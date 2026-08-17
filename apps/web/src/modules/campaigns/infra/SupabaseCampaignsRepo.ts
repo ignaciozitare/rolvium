@@ -5,22 +5,22 @@ import { normalizeInviteCode } from '../domain/useCases/campaignRules';
 
 interface Row {
   id: string; name: string; description: string; system_id: string; system_version: string; dm_id: string;
-  visibility: 'open' | 'invite'; seats: number; invite_code: string | null; progression_enabled: boolean;
+  visibility: 'open' | 'invite'; seats: number; progression_enabled: boolean;
   next_session_at: string | null; last_session_at: string | null; archived_at: string | null; created_at: string;
   dm: { name: string } | { name: string }[] | null;
   members: { user_id: string; role: 'dm' | 'player'; character_id: string | null }[] | null;
 }
-const SELECT = 'id, name, description, system_id, system_version, dm_id, visibility, seats, invite_code, progression_enabled, next_session_at, last_session_at, archived_at, created_at, dm:users!campaigns_campaigns_dm_id_fkey ( name ), members:campaigns_members ( user_id, role, character_id )';
+const SELECT = 'id, name, description, system_id, system_version, dm_id, visibility, seats, progression_enabled, next_session_at, last_session_at, archived_at, created_at, dm:users!campaigns_campaigns_dm_id_fkey ( name ), members:campaigns_members ( user_id, role, character_id )';
 
-function mapRow(r: Row, me: string | null): Campaign {
+function mapRow(r: Row, me: string | null, playersCount?: number): Campaign {
   const dm = Array.isArray(r.dm) ? r.dm[0] : r.dm;
   const members = r.members ?? [];
   const mine = me ? members.find(m => m.user_id === me) : undefined;
   const c: Campaign = {
     id: r.id, name: r.name, description: r.description, systemId: r.system_id, systemVersion: r.system_version,
     dmId: r.dm_id, dmName: dm?.name ?? '', visibility: r.visibility, seats: r.seats,
-    inviteCode: r.dm_id === me ? r.invite_code : null, progressionEnabled: r.progression_enabled,
-    playersCount: members.filter(m => m.role === 'player').length,
+    inviteCode: null, progressionEnabled: r.progression_enabled,
+    playersCount: playersCount ?? members.filter(m => m.role === 'player').length,
     nextSessionAt: r.next_session_at, lastSessionAt: r.last_session_at, archivedAt: r.archived_at, createdAt: r.created_at,
   };
   if (mine) { c.myRole = mine.role; c.myCharacterId = mine.character_id; }
@@ -47,7 +47,17 @@ export class SupabaseCampaignsRepo implements CampaignsPort {
     const me = await this.me();
     const { data, error } = await this.db.from('campaigns_campaigns').select(SELECT).eq('visibility', 'open').is('archived_at', null).order('created_at', { ascending: false });
     if (error) throw error;
-    return (data as unknown as Row[]).map(r => mapRow(r, me)).filter(c => !c.myRole);
+    const rows = (data as unknown as Row[]).map(r => mapRow(r, me)).filter(c => !c.myRole);
+    // Non-members cannot see member rows (RLS) → ask the server for the count.
+    const counts = await Promise.all(rows.map(c => this.db.rpc('campaigns_players_count', { cid: c.id }).then(r => (r.data as number | null) ?? 0)));
+    return rows.map((c, i) => ({ ...c, playersCount: counts[i] ?? c.playersCount }));
+  }
+
+  /** DM only — the code is never part of the row select. */
+  async getInviteCode(id: string): Promise<string | null> {
+    const { data, error } = await this.db.rpc('campaigns_my_invite_code', { cid: id });
+    if (error) return null;
+    return (data as string | null) ?? null;
   }
 
   async getById(id: string): Promise<Campaign | null> {
@@ -75,7 +85,9 @@ export class SupabaseCampaignsRepo implements CampaignsPort {
       shared_resources: input.sharedResources, locale: input.locale ?? 'es',
     }).select(SELECT).single();
     if (error) throw error;
-    return mapRow(data as unknown as Row, me);
+    const c = mapRow(data as unknown as Row, me);
+    c.inviteCode = await this.getInviteCode(c.id);
+    return c;
   }
 
   async joinByCode(code: string): Promise<{ campaignId: string } | { error: JoinError }> {
@@ -115,12 +127,9 @@ export class SupabaseCampaignsRepo implements CampaignsPort {
   }
 
   async regenerateInviteCode(id: string): Promise<string> {
-    const { data, error } = await this.db.rpc('campaigns_new_code');
+    const { data, error } = await this.db.rpc('campaigns_regenerate_invite_code', { cid: id });
     if (error) throw error;
-    const code = data as string;
-    const { error: e2 } = await this.db.from('campaigns_campaigns').update({ invite_code: code }).eq('id', id);
-    if (e2) throw e2;
-    return code;
+    return data as string;
   }
 
   async archive(id: string): Promise<void> {

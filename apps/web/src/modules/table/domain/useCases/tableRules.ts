@@ -14,7 +14,7 @@ export function canTake(def: SharedResourceDef, state: SharedResourceState | und
   if (!state || state.value <= 0) return false;
   if (def.whoCanTake === 'player' && role !== 'player') return false;
   if (def.whoCanTake === 'dm' && role !== 'dm') return false;
-  return handOf(state, userId) < def.perTakeMax;
+  return handOf(state, userId) < (state.perTakeMax ?? def.perTakeMax);
 }
 export const canReset = (def: SharedResourceDef, role: TableRole): boolean => def.whoCanReset === 'dm' && role === 'dm';
 

@@ -16,7 +16,7 @@ import './table.css';
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
 export function TablePage({ repo = tableRepo }: { repo?: TablePort }): JSX.Element {
   const { id = '' } = useParams();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { user } = useAuth();
   const { snap, system, status, patchResources } = useTable(id, repo);
   const [tab, setTab] = useState<TableTab>('sheet');
@@ -48,7 +48,7 @@ export function TablePage({ repo = tableRepo }: { repo?: TablePort }): JSX.Eleme
   const tabs = tabsFor(role);
   const dm = members.find(m => m.role === 'dm');
   const players = members.filter(m => m.role === 'player');
-  const sysT = (key: string) => { const dict = (system.locales.es ?? {}) as Record<string, unknown>; const v = key.split('.').reduce<unknown>((o, k) => (o && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined), dict); return typeof v === 'string' ? v : key; };
+  const sysT = (key: string) => { const dict = ((system.locales[locale] ?? system.locales.es) ?? {}) as Record<string, unknown>; const v = key.split('.').reduce<unknown>((o, k) => (o && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined), dict); return typeof v === 'string' ? v : key; };
 
   return (
     <div className="tb-root" data-system={system.id} style={themeStyle}>
@@ -88,7 +88,7 @@ export function TablePage({ repo = tableRepo }: { repo?: TablePort }): JSX.Eleme
         {(system.engine.sharedResources ?? []).map(def => (
           <div key={def.id} className="tb-res-wrap">
             <SharedResourceBar def={def} state={resources[def.id]} role={role} userId={user.id} label={sysT(def.label)}
-              onTake={async () => { const r = await repo.takeResource(campaign.id, def.id, 1, def.perTakeMax); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
+              onTake={async () => { const r = await repo.takeResource(campaign.id, def.id, 1); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
               onReturn={async () => { const r = await repo.returnResource(campaign.id, def.id, 1); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
               onReset={async () => { const r = await repo.resetResource(campaign.id, def.id); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }} />
           </div>

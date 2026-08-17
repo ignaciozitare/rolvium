@@ -48,6 +48,12 @@ Migración: `supabase/migrations/20260817120000_campaigns.sql` (aplicada en loca
 - **`campaigns_requests`** — solicitudes a campañas abiertas (`pending`/`accepted`/`rejected`). **Lee**: el solicitante y
   el director. **Escribe**: el solicitante crea/borra la suya pendiente; el estado cambia solo con
   `campaigns_resolve_request(req, accept)` (director).
+- Endurecimiento (`20260817140000_campaigns_hardening.sql`, tras la review): los jugadores solo pueden **UPDATE de
+  `character_id`** en su fila de miembro (grant por columna + trigger que impide cambiar rol/campaña/usuario si no eres
+  DJ); `invite_code` **no es legible por SELECT** para `authenticated` (grant por columnas) — el DJ lo obtiene con
+  `campaigns_my_invite_code(cid)` y lo rota con `campaigns_regenerate_invite_code(cid)`; `campaigns_players_count(cid)`
+  da el conteo a quien puede ver la campaña; `join_campaign_by_code` bloquea la fila; `campaigns_resolve_request` exige
+  `pending` y plaza libre. En `table`, `table_take_resource(cid, rid, n)` lee `perTakeMax` del recurso guardado.
 - Helpers reutilizados por el resto de hexágonos: `is_campaign_member(id)`, `is_campaign_dm(id)`,
   `can_create_campaigns()`; `campaign_invite_preview(code)` para la vista previa (autenticados; los visitantes la
   obtienen vía API con service role — nunca `TO anon`).

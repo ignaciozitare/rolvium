@@ -51,7 +51,7 @@ export class SupabaseTableRepo implements TablePort {
     if (error) return { error: toError(error.message ?? '') };
     return { state: data as SharedResourceState };
   }
-  takeResource(cid: string, rid: string, n: number, perTakeMax: number) { return this.rpc('table_take_resource', { cid, rid, n, per_take_max: perTakeMax }); }
+  takeResource(cid: string, rid: string, n: number) { return this.rpc('table_take_resource', { cid, rid, n }); }
   returnResource(cid: string, rid: string, n?: number) { return this.rpc('table_return_resource', { cid, rid, n: n ?? null }); }
   resetResource(cid: string, rid: string) { return this.rpc('table_reset_resource', { cid, rid, to_value: null }); }
 }

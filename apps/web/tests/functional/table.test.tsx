@@ -19,7 +19,7 @@ function fakeTableRepo(role: 'dm' | 'player', value = 7): TablePort & { snap: Ta
       { campaignId: 'c1', userId: 'u-pip', name: 'Pip', avatarUrl: null, role: 'player', characterId: null, joinedAt: '' },
       { campaignId: 'c1', userId: 'u-nix', name: 'Dani', avatarUrl: null, role: 'player', characterId: null, joinedAt: '' },
     ],
-    resources: { destiny: { value, max: 10, hands: {} } },
+    resources: { destiny: { value, max: 10, perTakeMax: 5, hands: {} } },
     presence: [{ userId: 'dm-1', devices: 1 }, { userId: 'u-pip', devices: 2 }],
     activeSceneId: null,
   };
@@ -28,10 +28,10 @@ function fakeTableRepo(role: 'dm' | 'player', value = 7): TablePort & { snap: Ta
     snap,
     load: async () => snap,
     subscribe: () => () => {},
-    takeResource: async (_c, _r, n, max) => {
+    takeResource: async (_c, _r, n) => {
       const hand = st().hands['u-pip'] ?? 0;
       if (st().value < n) return { error: 'pool_empty' };
-      if (hand + n > max) return { error: 'per_take_max' };
+      if (hand + n > st().perTakeMax) return { error: 'per_take_max' };
       st().value -= n; st().hands['u-pip'] = hand + n; return { state: { ...st() } };
     },
     returnResource: async () => { const h = st().hands['u-pip'] ?? 0; st().value += h; st().hands['u-pip'] = 0; return { state: { ...st() } }; },
@@ -53,10 +53,10 @@ describe('table: rules', () => {
   });
   it('only players take dice, up to the per-take max, while the pool has dice', () => {
     const def = { id: 'destiny', label: 'x', max: 10, initial: 10, perTakeMax: 5, whoCanTake: 'player' as const, whoCanReset: 'dm' as const };
-    expect(canTake(def, { value: 3, max: 10, hands: {} }, 'player', 'u')).toBe(true);
-    expect(canTake(def, { value: 3, max: 10, hands: {} }, 'dm', 'u')).toBe(false);
-    expect(canTake(def, { value: 0, max: 10, hands: {} }, 'player', 'u')).toBe(false);
-    expect(canTake(def, { value: 3, max: 10, hands: { u: 5 } }, 'player', 'u')).toBe(false);
+    expect(canTake(def, { value: 3, max: 10, perTakeMax: 5, hands: {} }, 'player', 'u')).toBe(true);
+    expect(canTake(def, { value: 3, max: 10, perTakeMax: 5, hands: {} }, 'dm', 'u')).toBe(false);
+    expect(canTake(def, { value: 0, max: 10, perTakeMax: 5, hands: {} }, 'player', 'u')).toBe(false);
+    expect(canTake(def, { value: 3, max: 10, perTakeMax: 5, hands: { u: 5 } }, 'player', 'u')).toBe(false);
   });
 });
 

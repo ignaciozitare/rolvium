@@ -14,6 +14,8 @@ export interface CampaignsPort {
   leave(campaignId: string): Promise<void>;
   /** DM only. */
   update(id: string, patch: Partial<Pick<Campaign, 'name' | 'description' | 'visibility' | 'seats' | 'progressionEnabled' | 'nextSessionAt'>>): Promise<void>;
+  /** DM only: the invite code (never included in listings). */
+  getInviteCode(id: string): Promise<string | null>;
   regenerateInviteCode(id: string): Promise<string>;
   archive(id: string): Promise<void>;
 }

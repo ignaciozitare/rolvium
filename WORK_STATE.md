@@ -47,4 +47,9 @@ Building the v1 hexagons in order (see ARCHITECTURE.md "Product hexagons" + spec
 3. When a hosted project is available: `supabase link` + `npm run db:push`, swap `.env`, create Vercel projects.
 
 ## 🚫 Blockers / notes
+- Review 2026-08-17 (subagent) → BLOCKED → fixed by `20260817140000_campaigns_hardening.sql` (column grants on
+  members/campaigns, invite code via RPC, perTakeMax server-side, players_count RPC, row locks). Pending MINORs:
+  `/join`, `/signup`, `/forgot`, `/characters`, `/systems` routes; `fondo.png` 3.5 MB → WebP; raw px in inline styles;
+  system font URL whitelisting; unit tests for packages/core. Verify Realtime `postgres_changes` payload respects the
+  column grants on `campaigns_campaigns` (invite_code) — if not, move invite_code to its own table.
 - Placeholder prod URLs in the harness (`rolvium.vercel.app`, `rolvium-api.vercel.app`) — update when Vercel projects exist.

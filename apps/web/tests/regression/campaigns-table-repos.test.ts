@@ -27,10 +27,10 @@ describe('SupabaseCampaignsRepo (row mapping + rpc error mapping)', () => {
     const [c] = await repo.listMine();
     expect(c).toMatchObject({ id: 'c1', dmName: 'Laura', playersCount: 1, myRole: 'player', inviteCode: null });
   });
-  it('shows the invite code to the DM', async () => {
+  it('never exposes the invite code in listings (DM fetches it via RPC)', async () => {
     const repo = new SupabaseCampaignsRepo(client('dm-1', { campaigns_campaigns: { data: [ROW], error: null } }));
     const [c] = await repo.listMine();
-    expect(c?.inviteCode).toBe('LUNA-4F7K');
+    expect(c?.inviteCode).toBeNull();
     expect(c?.myRole).toBe('dm');
   });
   it('listOpen excludes campaigns I am already in; listMine returns [] when signed out', async () => {
@@ -59,7 +59,7 @@ describe('SupabaseTableRepo', () => {
   });
   it('maps resource rpc errors to ResourceError and returns state on success', async () => {
     const err = new SupabaseTableRepo(client('u', {}, { data: null, error: { message: 'P0001: per_take_max' } }), campaigns);
-    expect(await err.takeResource('c1', 'destiny', 1, 5)).toEqual({ error: 'per_take_max' });
+    expect(await err.takeResource('c1', 'destiny', 1)).toEqual({ error: 'per_take_max' });
     const ok = new SupabaseTableRepo(client('u', {}, { data: { value: 9, max: 10, hands: {} }, error: null }), campaigns);
     expect(await ok.returnResource('c1', 'destiny')).toEqual({ state: { value: 9, max: 10, hands: {} } });
   });

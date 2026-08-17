@@ -81,6 +81,7 @@ export function fakeCampaignsRepo(seed: { mine?: Campaign[]; open?: Campaign[]; 
     requestJoin: async () => {},
     leave: async () => {},
     update: async () => {},
+    getInviteCode: async () => 'LUNA-4F7K',
     regenerateInviteCode: async () => 'NEW1-CODE',
     archive: async () => {},
   };
