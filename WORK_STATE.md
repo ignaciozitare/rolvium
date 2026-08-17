@@ -4,11 +4,21 @@
 Building the v1 hexagons in order (map: ARCHITECTURE.md "Product hexagons"; specs: specs/modules/*).
 **DONE:** design (`rolvium.pen`) · specs · `packages/core` · `campaigns` (H2) · `table` (H3) shell · `@rolvium/ui` primitives ·
 `identity` (H1, 5c51f39) · `characters` (H4) slice 1 (7f3f5e3: DB + Plenilunio engine audited vs the manual 8eef64b) ·
-**`characters` slice 2 (de01d40: `<Sheet>`, `/characters`, `/characters/:id`, generator, progression, table tabs, API authority
-`PUT /characters/:id/sheet` + `POST /rolls`)** — review APPROVED WITH NOTES, QA see below.
-**NEXT:** `dice` (H6: roll log table + visibility RLS + Registro panel; the API roll endpoint already exists) → `maps` → `chat/journal` → DM panel.
+`characters` slice 2 (de01d40 + 10f8b49: `<Sheet>`, `/characters`, `/characters/:id`, generator, progression, table tabs, API
+authority `PUT /characters/:id/sheet`) · **`dice` (H6, 149b3bf: immutable `dice_rolls`, `POST /rolls` persists + server effects +
+pool rebuilt from the sheet, Registro live, floating roller, side panel)** — review APPROVED WITH NOTES, QA see below.
+**NEXT:** `maps` (H7) → `chat/journal` (H8/H9) → DM panel → bestiary.
 
-## 📍 Exact point (2026-08-18 early morning)
+## 📍 Exact point (2026-08-18 morning)
+- **dice (H6) shipped** (149b3bf): `dice_rolls` immutable log (RLS: table = members; dm/secret = author or DM; realtime), RPC
+  `dice_commit_roll` (service role; membership as actor; shared-hand debit atomic via `table_spend_hand`; `pool_empty` → 409),
+  API `POST /rolls` = `performRoll` (rights → **rebuild groups with `engine.poolFor(sheet, options)`** → CSPRNG → `engine.resolve`
+  → commit → sheet `effects.patch` applied via `saveSheet` origin `roll` → `{id, request, dice, result, effectsApplied, sheet}`).
+  Web `modules/dice` (RollsPort/HttpRollsAdapter moved here; RollLogPort/SupabaseRollLogRepo; `RollLog` Registro live;
+  `DiceRoller` floating draggable; `SidePanel` Registro·Chat·Notas·Bitácora placeholders) in the table's right column.
+  Deviations: die tones system-agnostic (max face/1); specialty not shown in the log title; own-dice trust fixed server-side.
+- Owner plan: **test everything together tomorrow** (2026-08-19) — identity, campaigns, table, characters, dice — light/dark + functional.
+
 - characters slice 2 shipped (see commit de01d40 body). Key architecture now in place:
   - **Client = preview**: `<Sheet>` (packages/ui, schema-driven, `--sys-*` only) + `useCharacterSheet` (draft, debounced autosave,
     origin-tagged) call `CharactersPort.saveSheet` → `HttpSheetAdapter` → **API `PUT /characters/:id/sheet`** which validates
