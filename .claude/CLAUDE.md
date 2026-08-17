@@ -149,7 +149,7 @@ Rolvium/
 │   ├── i18n/                Translation keys (@rolvium/i18n) — locales/{es,en}.json
 │   └── shared-types/        Cross-app types (@rolvium/shared-types)
 ├── specs/                   Functional specs (SPEC.md index, core/, modules/) — source of truth
-├── supabase/                Supabase config + migrations (via DBA Agent)
+├── supabase/                Supabase CLI project: config.toml, migrations/, seed.sql (local stack via `npm run db:start`)
 ├── scripts/                 audit.mjs, gen-ui-catalog.mjs, …
 ├── ARCHITECTURE.md · README.md · WORK_STATE.md
 └── rolvium.pen              Design master (Pencil MCP) — created by the Design Agent on first run

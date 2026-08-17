@@ -247,4 +247,11 @@ CREATE POLICY users_manage ON public.users
 
 -- Deleting users goes through auth.users (service role) → cascade. No policy.
 
+-- ── 9. Grants (explicit — RLS still decides row access) ─────────────────────
+GRANT USAGE ON SCHEMA public TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.roles TO authenticated;
+GRANT SELECT, UPDATE                 ON public.users TO authenticated;
+GRANT ALL ON public.roles, public.users TO service_role;
+GRANT EXECUTE ON FUNCTION public.current_role_name(), public.is_admin(), public.has_permission(text), public.has_module(text) TO authenticated, service_role;
+
 COMMIT;

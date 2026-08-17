@@ -6,8 +6,13 @@ roles & permissions, admin area, i18n, @rolvium/ui, API, RLS migration, dev-agen
 
 ## 📍 Exact point
 - All apps typecheck, build, and pass tests (web 28, api 13). `npm run audit` → 0 hard.
-- Supabase project NOT created yet → migration `supabase/migrations/20260817_core_users_roles.sql`
-  not applied; no `.env` files; no Vercel projects; `rolvium.pen` not created.
+- **Local Supabase stack working** (`npm run db:start`, Docker): migration
+  `supabase/migrations/20260817000000_core_users_roles.sql` + `supabase/seed.sql` applied; `.env` files
+  in `apps/web` and `apps/api` point at it (gitignored). Dev admin: admin@rolvium.local / rolvium123.
+  Verified end-to-end (2026-08-17): login, RLS reads, anon denied, API `/auth/me`, admin create user
+  via API, player → 403 in API and in RLS.
+- No hosted Supabase project (owner's plan only allows 2 → local for now, `supabase link` + `db push` later);
+  no Vercel projects; `rolvium.pen` not created; no git remote.
 
 ## ✅ Decisions made
 - Roles: `admin` (system, locked), `game_master`, `player` (default on signup). Custom roles allowed.
@@ -17,11 +22,12 @@ roles & permissions, admin area, i18n, @rolvium/ui, API, RLS migration, dev-agen
 - Privileged ops (create user, set password, delete) go through the API (`/admin/*`), not the browser.
 - Design: "Candlelit Grimoire" (ink surfaces, parchment text, ember-gold accent). Tokens in RolviumApp.css.
 - Harness ported from WorkSuite minus OIH/Momentum/Jira; env escape hatches `ROLVIUM_SKIP_*`.
+- Database is LOCAL-first (Supabase CLI stack). Migrations are the contract; `seed.sql` is local-only. Explicit GRANTs in migrations (local stack has no default privileges).
 
 ## ⏳ Next immediate step
-1. Create the Supabase project, apply the migration, create the first admin (see README).
-2. Fill `apps/web/.env` + `apps/api/.env`, run `npm run dev:web` + `npm run dev:api`, log in.
-3. Run the Spec agent for the first game module (e.g. campaigns).
+1. `npm run db:start` (if Docker is up) → `npm run dev:api` + `npm run dev:web` → log in as the dev admin.
+2. Run the Spec agent for the first game module (e.g. campaigns).
+3. When a hosted project is available: `supabase link` + `npm run db:push`, swap `.env`, create Vercel projects.
 
 ## 🚫 Blockers / notes
 - Placeholder prod URLs in the harness (`rolvium.vercel.app`, `rolvium-api.vercel.app`) — update when Vercel projects exist.

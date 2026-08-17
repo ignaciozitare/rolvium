@@ -18,7 +18,14 @@
     "test:regression": "npm -w apps/web run test:regression && npm -w apps/api run test",
     "test:functional": "npm -w apps/web run test:functional",
     "audit": "node scripts/audit.mjs",
-    "ui:catalog": "node scripts/gen-ui-catalog.mjs"
+    "ui:catalog": "node scripts/gen-ui-catalog.mjs",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:status": "supabase status",
+    "db:migration": "supabase migration new",
+    "db:push": "supabase db push",
+    "db:types": "supabase gen types typescript --local > packages/shared-types/src/database.types.ts"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

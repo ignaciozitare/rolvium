@@ -120,10 +120,15 @@ the project's anon key — which is shipped to every browser.
 
 After writing the migration:
 
-1. Apply it via Supabase MCP (`apply_migration`). The project ID is not known
-   yet — read it from `supabase/config.toml` / `.vercel/project.json` or ask
-   the owner; never guess.
-2. **Immediately run** `get_advisors` for `type: "security"`.
+1. **Local stack (default while there is no hosted project):** apply with
+   `npm run db:reset` (re-applies every migration + `supabase/seed.sql`). It must
+   run clean. Then check RLS with the local linter:
+   `supabase db lint --local --level error` (must report nothing) and run
+   `npm run audit` (RLS / `TO anon` checks on the migration file).
+   **Hosted project (once linked):** `npm run db:push`, then run the Supabase MCP
+   `get_advisors` with `type: "security"` for the linked project.
+2. Never apply a migration with the MCP `apply_migration` on a project you have
+   not confirmed is Rolvium's — never guess a project ref.
 3. The lint result must contain **zero `level: "ERROR"` entries** for any table
    you created or modified. The most relevant advisors:
    - `rls_disabled_in_public` — table without RLS in public schema.

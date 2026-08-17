@@ -6,17 +6,30 @@ roles & permissions and the admin area are the base every game module builds on.
 
 ## Requirements
 - Node ≥ 20, npm ≥ 10
-- A Supabase project (Auth + Postgres). Apply `supabase/migrations/*.sql` in order.
+- Docker Desktop + Supabase CLI (`brew install supabase/tap/supabase`) for the **local** database.
 
-## Setup
+## Setup (local database — default)
 ```bash
 npm install
-cp .env.example apps/web/.env        # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_API_URL
-cp .env.example apps/api/.env        # SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ALLOWED_ORIGIN, PORT
+npm run db:start          # boots Postgres + Auth + Studio in Docker, applies supabase/migrations, runs supabase/seed.sql
+npm run dev:api           # http://localhost:3001  (reads apps/api/.env)
+npm run dev:web           # http://localhost:5173  (reads apps/web/.env)
 ```
-Create the first admin: sign up a user in Supabase Auth (dashboard → Authentication →
-Add user). The `on_auth_user_created` trigger creates the profile with role `player`;
-then run once in the SQL editor:
+`apps/web/.env` and `apps/api/.env` are pre-filled for the local stack (URL `http://127.0.0.1:54321`,
+demo keys). Studio: http://127.0.0.1:54323. Local dev admin (from `supabase/seed.sql`):
+**admin@rolvium.local / rolvium123**.
+
+- New migration: `npm run db:migration <name>` → edit the file → `npm run db:reset` (re-applies everything + seed).
+- `npm run db:status` prints URLs/keys; `npm run db:stop` stops the containers (data persists).
+
+## Moving to a hosted Supabase project (later)
+```bash
+supabase login
+supabase link --project-ref <ref>
+supabase db push          # applies supabase/migrations to the remote (seed.sql is NOT pushed)
+```
+Then point `.env` files at the remote URL/keys and create the first admin: sign up a user (Auth →
+Add user) — the trigger creates the profile as `player` — and promote it once in the SQL editor:
 ```sql
 update public.users set role_id = (select id from public.roles where name = 'admin') where email = 'you@example.com';
 ```
@@ -31,6 +44,7 @@ update public.users set role_id = (select id from public.roles where name = 'adm
 | `npm run test:smoke` · `test:regression` · `test:functional` | Test tiers (see `specs/core/testing/SPEC.md`) |
 | `npm run audit` | Deterministic compliance audit (hexagonal, security, RLS, design tokens, i18n) — 0 tokens |
 | `npm run ui:catalog` | Regenerate `packages/ui/CATALOG.md` |
+| `npm run db:start` · `db:stop` · `db:reset` · `db:status` · `db:migration <name>` · `db:push` | Local Supabase stack / migrations |
 
 ## Layout
 See [ARCHITECTURE.md](ARCHITECTURE.md). Functional specs live in [specs/](specs/SPEC.md).
