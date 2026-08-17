@@ -1,0 +1,52 @@
+# Game System port (`packages/core`) — SPEC
+
+## Purpose
+Un **sistema de juego** (Plenilunio hoy; Cyberpunk, D&D 5e mañana) es un paquete enchufable. La plataforma
+no conoce ninguna regla: solo pide cosas a un objeto que implementa el puerto `GameSystem`. Así una campaña
+de Plenilunio y una de D&D usan la misma mesa, el mismo chat, el mismo mapa y las mismas tablas.
+Who: lo consumen `campaigns`, `table`, `characters`, `bestiary`, `dice`; lo implementan `packages/system-*`.
+
+## Contract (`packages/core/src/gameSystem.ts`)
+```ts
+interface GameSystem {
+  id: string;            // 'plenilunio'
+  version: string;       // semver del paquete; la campaña queda anclada a él
+  name: I18nKey;         // nombre mostrado (clave i18n del paquete)
+  locales: Record<Locale, Messages>;   // el paquete trae sus propios textos (es, en…)
+
+  sheetSchema: SheetSchema;            // campos de la ficha y su agrupación (secciones, tipos, límites)
+  catalogs: Catalogs;                  // armas, armaduras, equipo, dones, especialidades, bestiario base
+  references: Record<RuleKey, { page: number; title: I18nKey; summary: I18nKey }>; // tooltips + página del manual
+  theme: VisualTheme;                  // CSS vars (--sys-*), fuentes, imagen de fondo, iconografía
+
+  engine: {
+    derived(sheet): Derived;                          // p.ej. Aguante, Resistencia, Fortuna máx
+    poolFor(sheet, action): RollRequest;              // cuántos dados / de qué tipo / opciones
+    resolve(request, dice): RollResult;               // resolución completa (grado, revés, efectos)
+    applyDamage(sheet, damage): SheetPatch;
+    progression: ProgressionRules;                    // costes y límites de mejora
+    sharedResources?: SharedResourceDef[];            // p.ej. la reserva de Destino
+    actions?: ActionDef[];                            // acciones con icono: atacar con arma, activar don…
+  };
+
+  generator: GeneratorStep[];          // asistente de creación declarado en datos
+}
+```
+- `RollRequest/RollResult` viajan a `dice` (H6). `dice` genera los dados y llama a `engine.resolve` **en el servidor**.
+- `SharedResourceDef` = `{ id, label, max, initial, whoCanTake: 'player'|'dm'|'all', whoCanReset: 'dm', perTakeMax }`.
+- `ActionDef` = `{ id, icon, label, appliesTo: 'weapon'|'gift'|'skill'|…, cost?, toRoll(sheet, target): RollRequest }`.
+- `VisualTheme` se aplica como variables CSS **en el contenedor de la mesa** (`.rv-table[data-system=...]`), nunca con condicionales en componentes.
+
+## Rules & limits
+- Un sistema no importa nada de la plataforma salvo `packages/core`. La plataforma no importa nada de `packages/system-*` salvo por el registro de sistemas (`systems/registry.ts`).
+- Cambiar de sistema en una campaña existente no está permitido; se crea otra.
+- Todo texto visible del sistema es clave i18n del paquete; los resúmenes de reglas son texto propio (no transcripción del manual); la página remite al ejemplar de cada mesa.
+- Aviso: el puerto solo se considera bien diseñado cuando hay dos sistemas dentro. Antes de cerrar la interfaz se esboza el segundo (Cyberpunk o D&D) en papel.
+
+## Connections
+`campaigns` (elige sistema), `characters` (schema, derived, generator, progression, actions), `bestiary` (catalogs.bestiary),
+`dice` (poolFor/resolve), `table` (theme, sharedResources).
+
+## Modelo de datos
+Sin tablas propias. `campaigns.system_id` + `system_version` anclan el paquete. Los datos de ficha van en `jsonb`
+validados contra `sheetSchema` en la API.
