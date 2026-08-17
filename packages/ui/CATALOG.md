@@ -22,13 +22,20 @@ Import: `import { X } from '@rolvium/ui'`
 | `DialogProvider` | contexto para abrir modales imperativamente | `useDialog().confirm(...)` |
 | `Divider` | separador tonal (átomo) | `<Divider />` |
 | `DualPanelPicker` | transferencia entre dos paneles (disponible/seleccionado) | `<DualPanelPicker items value>` |
+| `EmptyState` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
+| `Field` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
 | `IconPicker` | selector de icono Material Symbols | `<IconPicker value onChange>` |
 | `ImagePicker` | subida/recorte de imagen o avatar | `<ImagePicker shape onChange>` |
 | `Modal` | overlay/diálogo con foco atrapado y cierre por ESC | `<Modal open onClose title>` |
 | `MultiSelectDropdown` | selección múltiple con búsqueda | `<MultiSelectDropdown items value onChange>` |
+| `PageHeader` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
+| `SectionTitle` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
 | `StatBox` | métrica/KPI con label (átomo) | `<StatBox label value>` |
+| `StatusChip` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
+| `SystemChip` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
+| `TopBar` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
 | `UserAvatar` | avatar de usuario (preset o imagen) con iniciales | `<UserAvatar user size>` |
 
 > Fuente de verdad del código: `packages/ui/src/index.ts`.
 > Ejemplos vivos e interactivos: `apps/web/src/shared/ui/UIKit.tsx`.
-> 18 componentes exportados.
+> 25 componentes exportados.

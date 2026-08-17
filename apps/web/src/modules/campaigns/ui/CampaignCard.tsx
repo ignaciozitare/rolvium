@@ -1,5 +1,5 @@
 import { useTranslation } from '@rolvium/i18n';
-import { Btn, Badge, UserAvatar } from '@rolvium/ui';
+import { Btn, SystemChip, StatusChip, UserAvatar } from '@rolvium/ui';
 import type { Campaign } from '../domain/entities/Campaign';
 import { freeSeats, isFull } from '../domain/useCases/campaignRules';
 import { SYSTEMS } from '@/systems/registry';
@@ -22,11 +22,11 @@ export function CampaignCard({ campaign: c, onEnter, onRequestJoin }: Props): JS
       <div className="rv-camp-body">
         <div className="rv-camp-head">
           <h3 className="rv-camp-title">{c.name}</h3>
-          <Badge color="accent">{sys ? t(sys.nameKey) : c.systemId}</Badge>
-          {!installed && <Badge color="amber">{t('campaigns.systemNotInstalled')}</Badge>}
-          {installed && dm && <Badge color="purple">{t('campaigns.youDirect')}</Badge>}
-          {installed && !dm && mine && <Badge color="green">{t('campaigns.active')}</Badge>}
-          {installed && !mine && <Badge color="green">{t('campaigns.freeSeats', { n: String(freeSeats(c)) })}</Badge>}
+          <SystemChip muted={!installed}>{sys ? t(sys.nameKey) : c.systemId}</SystemChip>
+          {!installed && <StatusChip tone="amber">{t('campaigns.systemNotInstalled')}</StatusChip>}
+          {installed && dm && <StatusChip tone="purple">{t('campaigns.youDirect')}</StatusChip>}
+          {installed && !dm && mine && <StatusChip tone="green">{t('campaigns.active')}</StatusChip>}
+          {installed && !mine && <StatusChip tone="green">{t('campaigns.freeSeats', { n: String(freeSeats(c)) })}</StatusChip>}
         </div>
         {c.description && <p className="rv-camp-desc">{c.description}</p>}
         <div className="rv-camp-meta">

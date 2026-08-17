@@ -13,15 +13,18 @@ interface BtnProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'style'
 }
 
 const VARIANT_STYLES: Record<BtnVariant, CSSProperties> = {
+  // rolvium.pen Button/Primary: ember gradient + glow halo, ink-on-ember text
   primary: {
-    background: 'var(--ac)',
-    color: '#fff',
+    background: 'var(--ac-grad)',
+    color: 'var(--ac-on)',
     border: 'none',
+    boxShadow: '0 6px 18px var(--glow)',
   },
+  // rolvium.pen Button/Ghost: --sf3 fill, no border
   ghost: {
-    background: 'var(--sf2)',
-    color: 'var(--tx2)',
-    border: '1px solid var(--bd)',
+    background: 'var(--sf3)',
+    color: 'var(--tx)',
+    border: 'none',
   },
   success: {
     background: 'var(--green-dim)',
@@ -46,9 +49,9 @@ const VARIANT_STYLES: Record<BtnVariant, CSSProperties> = {
 };
 
 const SIZE_STYLES: Record<BtnSize, CSSProperties> = {
-  sm: { fontSize: 'var(--fs-2xs)', padding: '4px 11px' },
-  md: { fontSize: 'var(--fs-xs)', padding: '8px 16px' },
-  lg: { fontSize: 'var(--fs-sm)', padding: '10px 20px' },
+  sm: { fontSize: 'var(--fs-2xs)', padding: '6px 12px' },
+  md: { fontSize: 'var(--fs-sm)', padding: '12px 20px' },
+  lg: { fontSize: 'var(--fs-body)', padding: '14px 20px' },
 };
 
 export function Btn({
@@ -68,7 +71,7 @@ export function Btn({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    borderRadius: 'var(--r2)',
+    borderRadius: 'var(--r)',
     fontWeight: 600,
     fontFamily: 'inherit',
     cursor: 'pointer',

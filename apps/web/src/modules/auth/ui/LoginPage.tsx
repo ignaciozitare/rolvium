@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
-import { Btn, Badge } from '@rolvium/ui';
+import { Btn, Field, SystemChip } from '@rolvium/ui';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { SYSTEMS } from '@/systems/registry';
 
@@ -41,7 +41,7 @@ export function LoginPage(): JSX.Element {
         </div>
         <div className="rv-login-systems">
           <span className="rv-label" style={{ margin: 0 }}>{t('auth.systems')}</span>
-          {SYSTEMS.map(s => <Badge key={s.id} color={s.installed ? 'accent' : 'gray'}>{t(s.nameKey)}{!s.installed && ` · ${t('campaigns.comingSoon')}`}</Badge>)}
+          {SYSTEMS.map(s => <SystemChip key={s.id} muted={!s.installed}>{t(s.nameKey)}{!s.installed && ` · ${t('campaigns.comingSoon')}`}</SystemChip>)}
         </div>
       </section>
 
@@ -50,19 +50,9 @@ export function LoginPage(): JSX.Element {
           <h2 className="rv-login-title">{t('auth.title')}</h2>
           <p className="rv-login-sub">{t('auth.subtitle')}</p>
 
-          <div className="rv-field">
-            <label className="rv-label" htmlFor="email">{t('auth.email')}</label>
-            <input id="email" className={`rv-inp ${error ? 'err' : ''}`} type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
-          </div>
-          <div className="rv-field">
-            <label className="rv-label" htmlFor="password">{t('auth.password')}</label>
-            <div className="rv-inp-wrap">
-              <input id="password" className={`rv-inp ${error ? 'err' : ''}`} type={showPw ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} />
-              <button type="button" className="rv-inp-icon" onClick={() => setShowPw(v => !v)} aria-label={showPw ? t('auth.hidePassword') : t('auth.showPassword')}>
-                <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-md)' }}>{showPw ? 'visibility_off' : 'visibility'}</span>
-              </button>
-            </div>
-          </div>
+          <Field id="email" label={t('auth.email')} type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} error={error ? ' ' : null} />
+          <Field id="password" label={t('auth.password')} type={showPw ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} error={error ? ' ' : null}
+            trailing={<button type="button" className="rv-inp-icon" onClick={() => setShowPw(v => !v)} aria-label={showPw ? t('auth.hidePassword') : t('auth.showPassword')}><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-md)' }}>{showPw ? 'visibility_off' : 'visibility'}</span></button>} />
           <div className="rv-login-opts">
             <label className="rv-check"><input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} />{t('auth.remember')}</label>
             <Link to="/forgot" className="rv-link">{t('auth.forgot')}</Link>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
-import { Btn, Card } from '@rolvium/ui';
+import { Btn, Card, PageHeader, SectionTitle, EmptyState } from '@rolvium/ui';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { SYSTEMS, systemRegistry } from '@/systems/registry';
 import { initialSharedResources } from '@rolvium/core';
@@ -36,25 +36,18 @@ export function CampaignsPage({ repo = campaignsRepo }: { repo?: CampaignsPort }
   return (
     <div className="rv-camp-page">
       <div className="rv-camp-main">
-        <header className="rv-camp-header">
-          <div>
-            <h1 className="rv-page-title">{t('campaigns.hello', { name: user?.name?.split(' ')[0] ?? '' })}</h1>
-            <p className="rv-page-sub" style={{ marginBottom: 0 }}>{mine && mine.length > 0 ? t('campaigns.subtitle', { n: String(mine.length) }) : t('campaigns.subtitleEmpty')}</p>
-          </div>
-          {canCreate && <Btn variant="primary" onClick={() => setWizard(true)}>{t('campaigns.createBtn')}</Btn>}
-        </header>
+        <PageHeader title={t('campaigns.hello', { name: user?.name?.split(' ')[0] ?? '' })}
+          subtitle={mine && mine.length > 0 ? t('campaigns.subtitle', { n: String(mine.length) }) : t('campaigns.subtitleEmpty')}
+          actions={canCreate && <Btn variant="primary" onClick={() => setWizard(true)}>{t('campaigns.createBtn')}</Btn>} />
 
         {error && <div className="rv-err" role="alert">{error}</div>}
 
         <section aria-labelledby="mine-h">
-          <h2 id="mine-h" className="rv-section-title">{t('campaigns.mine')}</h2>
+          <SectionTitle id="mine-h">{t('campaigns.mine')}</SectionTitle>
           {mine === null && <p className="rv-page-sub">{t('common.loading')}</p>}
           {mine && mine.length === 0 && (
-            <Card><div className="rv-empty">
-              <span className="material-symbols-outlined rv-empty-icon">auto_stories</span>
-              <h3>{t('campaigns.empty.title')}</h3><p>{t('campaigns.empty.desc')}</p>
-              {canCreate && <Btn variant="primary" onClick={() => setWizard(true)}>{t('campaigns.createBtn')}</Btn>}
-            </div></Card>
+            <Card><EmptyState icon="auto_stories" title={t('campaigns.empty.title')} description={t('campaigns.empty.desc')}
+              actions={canCreate && <Btn variant="primary" onClick={() => setWizard(true)}>{t('campaigns.createBtn')}</Btn>} /></Card>
           )}
           <div className="rv-camp-list">
             {mine?.map(c => <CampaignCard key={c.id} campaign={c} onEnter={goTable} />)}
@@ -63,7 +56,7 @@ export function CampaignsPage({ repo = campaignsRepo }: { repo?: CampaignsPort }
 
         {open.length > 0 && (
           <section aria-labelledby="open-h">
-            <h2 id="open-h" className="rv-section-title">{t('campaigns.open')}</h2>
+            <SectionTitle id="open-h">{t('campaigns.open')}</SectionTitle>
             <div className="rv-camp-list">
               {open.map(c => <CampaignCard key={c.id} campaign={c} onRequestJoin={async (x) => { await repo.requestJoin(x.id); }} />)}
             </div>

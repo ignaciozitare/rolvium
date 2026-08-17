@@ -4,6 +4,7 @@ import { useTranslation } from '@rolvium/i18n';
 import { usePermissions } from '@/shared/permissions/usePermissions';
 import { MODULES } from '@/shared/modules/registry';
 import { UserMenu } from '@/shared/ui/UserMenu';
+import { TopBar, type TopBarLink } from '@rolvium/ui';
 import './RolviumApp.css';
 
 type Theme = 'dark' | 'light';
@@ -24,31 +25,23 @@ export function RolviumApp({ children }: { children: ReactNode }): JSX.Element {
   }, [theme]);
 
   const nav = MODULES.filter(m => m.core || canSee(m.id));
+  const links: TopBarLink[] = [
+    ...nav.map(m => ({ key: m.id, label: t(m.labelKey), active: location.pathname.startsWith(m.path), render: (cls: string, ch: ReactNode) => <NavLink key={m.id} to={m.path} className={cls}>{ch}</NavLink> })),
+    ...(canOpenAdmin ? [{ key: 'admin', label: t('nav.admin'), active: location.pathname.startsWith('/admin'), render: (cls: string, ch: ReactNode) => <NavLink key="admin" to="/admin" className={cls}>{ch}</NavLink> }] : []),
+  ];
 
   return (
     <div className="rv-shell rv-shell-top" data-theme={theme}>
-      <header className="rv-topnav">
-        <div className="rv-topnav-left">
-          <NavLink to="/campaigns" className="rv-brand" aria-label={t('app.name')}>
-            <img src="/brand/mark.svg" alt="" width={28} height={28} />{t('app.name')}
-          </NavLink>
-          <nav className="rv-topnav-links" aria-label={t('nav.main')}>
-            {nav.map(m => (
-              <NavLink key={m.id} to={m.path} className={({ isActive }) => `rv-nav-btn ${isActive ? 'active' : ''}`}>{t(m.labelKey)}</NavLink>
-            ))}
-            {canOpenAdmin && (
-              <NavLink to="/admin" className={`rv-nav-btn ${location.pathname.startsWith('/admin') ? 'active' : ''}`}>{t('nav.admin')}</NavLink>
-            )}
-          </nav>
-        </div>
-        <div className="rv-topnav-right">
+      <TopBar
+        brand={<NavLink to="/campaigns" className="rv-brand" aria-label={t('app.name')}><img src="/brand/mark.svg" alt="" width={28} height={28} />{t('app.name')}</NavLink>}
+        links={links}
+        right={<>
           <button type="button" className="rv-icon-btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             aria-label={theme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark')} title={theme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark')}>
             <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-md)' }}>{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
           </button>
           <UserMenu />
-        </div>
-      </header>
+        </>} />
       <main className="rv-content-top">{children}</main>
     </div>
   );

@@ -48,3 +48,11 @@ export type { ImagePickerProps, ImagePickerShape, ImagePickerOutput, ImagePicker
 // ── Data Table ────────────────────────────────────────────────────────────────
 export { DataTable }                     from './components/DataTable';
 export type { DataTableColumn, DataTableSort } from './components/DataTable';
+
+// ── Design-system primitives from rolvium.pen (Field, chips, layout) ──────────
+export { Field }                          from './components/Field';
+export type { FieldProps }                from './components/Field';
+export { SystemChip, StatusChip }         from './components/Chips';
+export type { StatusTone }                from './components/Chips';
+export { SectionTitle, PageHeader, EmptyState, TopBar } from './components/Layout';
+export type { TopBarLink }                from './components/Layout';
