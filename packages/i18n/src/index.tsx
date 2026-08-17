@@ -25,7 +25,7 @@ export function ensureLocale(locale: Locale): Promise<void> {
 }
 
 /**
- * Nested key path, e.g. 'common.save' | 'retro.categories.good'
+ * Nested key path, e.g. 'common.save' | 'admin.perm.manage_users'
  * Typed via recursive template literal — autocomplete en IDE.
  */
 type NestedKeys<T, Prefix extends string = ''> = {

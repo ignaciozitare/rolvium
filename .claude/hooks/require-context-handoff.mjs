@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PreToolUse hook — context-handoff gate («fumarse el contexto» nunca más).
 //
-// EL FALLO QUE CIERRA (medido en el proyecto hermano WorkSuite, 2026-08-08): la
+// EL FALLO QUE CIERRA (medido en un proyecto anterior, 2026-08-08): la
 // regla del traspaso de contexto —
 // «cuando el chat está largo: WORK_STATE al día + chat nuevo, nunca seguir» — era
 // de honor, y las reglas de honor se saltan (mismo hallazgo del 2026-07-29 que
@@ -16,7 +16,7 @@
 //   · NO le pregunta nada al dueño — deniega al AGENTE, con la instrucción de
 //     traspasar. El dueño no tiene que estar delante.
 //   · Solo actúa cuando la transcripción REAL de la sesión supera el umbral
-//     (por defecto 6 MB de JSONL — las sesiones que acabaron mal en WorkSuite
+//     (por defecto 6 MB de JSONL — las sesiones que acabaron mal en el proyecto anterior
 //     pasaban de 10). Por debajo, silencio absoluto: cero fricción.
 //   · El traspaso mismo nunca se bloquea: markdown, specs/, .claude/ y scratch
 //     siguen abiertos SIEMPRE (misma lista exenta que change-safety), así el

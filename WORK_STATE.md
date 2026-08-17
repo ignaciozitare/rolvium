@@ -21,7 +21,7 @@ roles & permissions, admin area, i18n, @rolvium/ui, API, RLS migration, dev-agen
 - Login in-browser via Supabase; API verifies tokens with `auth.getUser(jwt)` (no unsigned decode).
 - Privileged ops (create user, set password, delete) go through the API (`/admin/*`), not the browser.
 - Design: "Candlelit Grimoire" (ink surfaces, parchment text, ember-gold accent). Tokens in RolviumApp.css.
-- Harness ported from WorkSuite minus OIH/Momentum/Jira; env escape hatches `ROLVIUM_SKIP_*`.
+- Harness inherited from a previous project, stripped of that project's business; env escape hatches `ROLVIUM_SKIP_*`.
 - Database is LOCAL-first (Supabase CLI stack). Migrations are the contract; `seed.sql` is local-only. Explicit GRANTs in migrations (local stack has no default privileges).
 
 ## ⏳ Next immediate step

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PreToolUse hook — change-safety gate.
 //
-// WHY THIS EXISTS. The pattern measured in the sibling project WorkSuite on
+// WHY THIS EXISTS. The pattern measured in a previous project on
 // 2026-07-29: everything enforced by a hook was followed 100% of the time (a
 // read-gate that blocks the Write cannot be skipped); everything left to the
 // agent's judgement was skipped for

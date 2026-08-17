@@ -26,7 +26,7 @@ A `PreToolUse` hook ([.claude/hooks/require-change-safety.mjs](hooks/require-cha
 **blocks the first `Write`/`Edit` of a session** until the `change-safety` skill has
 been loaded. After that it never fires again.
 
-**Why it is a hook and not a reminder.** Learned in the sibling project WorkSuite on
+**Why it is a hook and not a reminder.** Learned in a previous project on
 2026-07-29: every rule enforced by a hook was followed 100% of the time; every rule
 left to the agent's judgement was skipped for entire sessions — `change-safety` among
 them, whose whole job is to stop edits creeping outside what was asked. A note in a
@@ -49,7 +49,7 @@ A `PreToolUse` hook ([.claude/hooks/require-qa-before-merge.mjs](hooks/require-q
 **blocks `git merge` and any `git push` aimed at `main`** until the `qa` subagent (or
 the `/qa` skill) has run in the session. After that it never fires again.
 
-**Why it is a hook (orden del dueño, learned in the sibling project WorkSuite on
+**Why it is a hook (orden del dueño, learned in a previous project on
 2026-08-10: «muy mal lo de qa, no te los puedes saltar porque sí. Ponlo en el hook
 igual que el del diseño»).** That morning a branch went to `main` with the review
 subagent passed and the preview green, and QA skipped on the agent's own judgement
@@ -68,7 +68,7 @@ it to judgement is the same honour system that failed with `change-safety`.
 A `PreToolUse` hook ([.claude/hooks/require-context-handoff.mjs](hooks/require-context-handoff.mjs))
 **blocks code `Write`/`Edit` once the session transcript exceeds the threshold**
 (default 6 MB of JSONL; `ROLVIUM_HANDOFF_LIMIT_MB=<n>` adjusts it). Learned in the
-sibling project WorkSuite on 2026-08-08: the "long chat → update `WORK_STATE.md` and
+previous project on 2026-08-08: the "long chat → update `WORK_STATE.md` and
 open a new chat" rule was honour-based and the agent worked a whole night in a burnt
 context after the owner had explicitly asked for the handoff. The gate denies the
 AGENT (never asks the owner anything), leaves markdown/specs/`.claude/` open so the
@@ -105,7 +105,7 @@ Never skip steps. Never start coding without a confirmed spec.
 
 ## 💰 Cost & Token Discipline (ZERO TOLERANCE — read before any large task)
 
-A prior session in the sibling project WorkSuite spent a week's token budget doing a single documentation/audit pass by fanning out ~80 subagents. That must never repeat here. These rules override any "be thorough / be exhaustive" instinct.
+A prior session in a previous project spent a week's token budget doing a single documentation/audit pass by fanning out ~80 subagents. That must never repeat here. These rules override any "be thorough / be exhaustive" instinct.
 
 1. **Single agent is the default. Multi-agent fan-out (the `Workflow` tool, "ultracode") is OPT-IN only** — use it exclusively when the user explicitly asks ("use a workflow", "ultracode", "fan out"), or for a rare, pre-agreed heavy pass. Never make it the default for a normal task. If a task *would* benefit from fan-out, say so and estimate the cost, then ask — do not just launch it.
 

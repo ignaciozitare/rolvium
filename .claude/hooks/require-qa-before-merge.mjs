@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PreToolUse hook — QA gate on the MERGE, not on the edit.
 //
-// WHY THIS EXISTS. Commissioned by the owner in the sibling project WorkSuite on
+// WHY THIS EXISTS. Commissioned by the owner in a previous project on
 // 2026-08-10, in his words: «muy mal lo de qa, no te los puedes saltar porque sí.
 // Ponlo en el hook igual que el del diseño». That morning a fix branch was merged
 // to `main` with the review subagent passed and the preview green — and QA skipped entirely,
@@ -141,7 +141,7 @@ const msg = [
   'spec compliance, the whole test suite, architecture and security, Supabase',
   'advisors, i18n parity, docs and both builds. A passing review and a green',
   'preview are NOT a substitute; that combination shipped two visible defects to',
-  'the owner on 2026-08-10 (in the sibling project WorkSuite), which is why this gate exists.',
+  'the owner on 2026-08-10 (in a previous project), which is why this gate exists.',
   '',
   'Run it now — Agent tool, subagent_type: "qa" (the orchestrator `/qa` skill asks',
   'the owner the block/warn and light/dark questions first) — then retry the merge.',

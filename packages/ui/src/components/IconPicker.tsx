@@ -49,7 +49,7 @@ const COLOR_SWATCHES: Array<{ value: string | null; varName: string; labelKey: k
 /**
  * Curated icon library from Material Symbols Outlined — a hand-picked subset
  * useful for task types and project entities. Click the trigger to open a
- * popover grid and pick one. Shared component (was vector-logic-local).
+ * popover grid and pick one.
  */
 const ICONS = [
   'priority_high', 'keyboard_double_arrow_up', 'keyboard_arrow_up',
