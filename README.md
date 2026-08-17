@@ -42,7 +42,7 @@ update public.users set role_id = (select id from public.roles where name = 'adm
 | `npm run dev:web` / `npm run dev:api` | Dev servers (web :5173, api :3001) |
 | `npm run build:web` / `npm run build:api` | Vite build / API typecheck (Vercel bundles via `apps/api/bundle.mjs`) |
 | `npm run typecheck` | tsc for web + api |
-| `npm test` | All tests (web + api) |
+| `npm test` | All tests (web + api + system packages) |
 | `npm run test:smoke` · `test:regression` · `test:functional` | Test tiers (see `specs/core/testing/SPEC.md`) |
 | `npm run audit` | Deterministic compliance audit (hexagonal, security, RLS, design tokens, i18n) — 0 tokens |
 | `npm run ui:catalog` | Regenerate `packages/ui/CATALOG.md` |

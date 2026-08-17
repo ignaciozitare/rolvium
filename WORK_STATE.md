@@ -4,30 +4,34 @@
 Building the v1 hexagons in order (map: ARCHITECTURE.md "Product hexagons"; specs: specs/modules/*).
 **DONE 2026-08-17:** design (`rolvium.pen`, approved) · specs for all hexagons · `packages/core` · `system-plenilunio` skeleton ·
 `campaigns` (H2) · `table` (H3) shell · login page from design · `@rolvium/ui` primitives · security hardening after review ·
-**`identity` (H1)** (this session, review APPROVED WITH NOTES, QA see below).
-**NEXT:** `characters` (H4, Plenilunio engine + sheet + generator) → `dice` → `maps` → `chat/journal` → DM panel.
+**`identity` (H1)** (review APPROVED WITH NOTES, QA PASSED w/ warnings, commit 5c51f39; `.pen` saved by owner, commit 443bb29) ·
+**`characters` (H4) slice 1** = DB + Plenilunio system package + web domain/infra (commit 7f3f5e3, review APPROVED WITH NOTES).
+**NEXT:** `characters` slice 2 = UI (`<Sheet>`, generator, `/characters`, Ficha tab) + API validation/rolls → `dice` → `maps` → `chat/journal` → DM panel.
 
-## 📍 Exact point (2026-08-17 late night)
-- `identity` built end-to-end: routes `/signup`, `/join`, `/join/:code` (public invite preview via API `GET /invites/:code`,
-  sign-up → join → `/table/:id`; signed-in visitor sees only "Unirme"; "Iniciar sesión con el código" path), `/forgot` → mail →
-  `/reset`, `/account` (Perfil + avatar upload/crop to Storage `avatars/{uid}/avatar.png` · Contraseña y acceso · Dispositivos
-  via RPCs `identity_my_sessions`/`identity_revoke_session` on `auth.sessions` · Idioma y tema saved to `users.locale/theme_pref`).
-  User menu → "Cuenta". Theme now lives in `shared/hooks/useTheme.tsx` (`ThemeProvider`, dark/light/system) and
-  `PreferencesSync` applies profile locale+theme once per sign-in. `AuthShell` = shared hero for every `Auth/*` screen.
-- Migration `20260818000000_identity_profile_sessions_avatars.sql` (users.alias/locale/theme_pref + checks, sign-up trigger copies
-  alias/locale, 2 SECURITY DEFINER RPCs scoped to auth.uid(), bucket `avatars` public-read + owner-folder policies).
-  Local stack: 5 migrations apply clean, `db lint` empty, e2e verified with curl (signup metadata → users row, join, avatar RLS
-  own/other folder, guard email, theme check, recover mail `redirect_to=/reset`).
-- `supabase/config.toml`: `site_url = http://localhost:5173`, redirect allow-list `localhost:5173/**` (needed `db:stop`+`db:start`).
-- Tests: web 92 · api 15 green; typecheck OK; `npm run audit` 0 hard (warns = pre-existing inline buttons in UserMenu);
-  builds OK. Review subagent = **APPROVED WITH NOTES** (added `SupabaseAuthRepository.test.ts` for `mapProfileRow`).
-- Design: `.pen` gained `Auth/Registro` GdPGz/jEhok, `Auth/Recuperar contraseña` BC5HL/SlkGn, `Auth/Restablecer contraseña`
-  OZtnB/qa5me (row y=17400) and the «Contraseña y acceso» section in Cuenta (SOUyO/MUQjG, height 1130).
-  **⚠ The `.pen` tab must be saved by the owner (Cmd+S) — the Pencil buffer could not be flushed from the agent
-  (no Accessibility permission for osascript). Check `ls -la rolvium.pen` mtime before committing it.**
-- Dev: `npm run dev:web` → http://localhost:5173. **`npm run dev:api` is broken (pre-existing: `tsx --env-file=.env watch` arg
-  order with tsx 4.x/Node 26)** → run `cd apps/api && npx tsx --env-file=.env src/server.ts` meanwhile. Test users this session:
-  marta2@ejemplo.com / supersecret1 (player, member of "Las ruinas de Manhattan" code NFTE-8RGX, DM = admin). `db:reset` wipes them.
+## 📍 Exact point (2026-08-17, end of session — HANDOFF)
+- **identity (H1)** shipped: `/signup`, `/join`, `/join/:code` (public preview `GET /invites/:code`), `/forgot` → `/reset`, `/account`
+  (profile+avatar, password, devices via `auth.sessions` RPCs, language & theme). `ThemeProvider` + `PreferencesSync` in shared/hooks,
+  `AuthShell` hero shared by Auth screens, user menu → «Cuenta». Migration `20260818000000_identity_profile_sessions_avatars.sql`.
+  Owner still owes the light/dark pass on those routes (QA manual step).
+- **characters (H4) slice 1** shipped and verified with curl (player/DM RLS, audit, xp guard, claim, origin-tagged update):
+  - Migration `20260818100000_characters.sql`: `characters` (campaign, owner nullable = «sin asignar», kind pc/npc, name, concept,
+    avatar/token/color, `data` jsonb, `derived`, `health`, `xp`, archived, created_by), `characters_audit` (trigger-written, DM-only read,
+    origin sheet|roll|damage|progression|dm|system via `set_config('rolvium.audit_origin')`), guard trigger (players: no campaign/kind/
+    owner/archive changes; xp only if `campaigns.progression_enabled`), RPCs `characters_claim(cid)`, `characters_update_with_origin(cid,
+    patch, origin)` (SECURITY INVOKER; 'dm' gated to DM), FK `campaigns_members.character_id`, bucket `tokens`.
+  - `packages/system-plenilunio` 0.2.0 = real `GameSystem`: `schema.ts` (sheetSchema, newSheet, PRESETS 16/21/25/30 max 5/5/6/7,
+    readers statOf/healthOf/weaponsOf/giftsOf), `catalogs.ts` (WEAPONS/ARMOURS/EQUIPMENT/27 GIFTS/SPECIALTIES/SIZES/BESTIARY/DIFFICULTIES),
+    `references.ts` (17 keys), `engine.ts` (classify/applyArmour/resolveAction/derived/poolFor/resolve/applyDamage/progression/actions
+    attack.melee·attack.ranged·gift.activate; RollRequest.options = {stat, specialty?, armourPenalty?, extraDice?, destinyDice?≤5,
+    difficulty? (=opposition dice), weaponId?, ranged?, giftId?}; groups tagged own/destiny/opposition; effects {destinyUp, fortuneRefill,
+    patch, setback, ammoSpent, fortuneSpent}), `generator.ts` (concept→stats→specialties→destiny→gifts→summary, budgetOf, finalizeDraft),
+    `locales.ts` es+en, 48 tests (`npm -w packages/system-plenilunio test`, wired into root `npm test`).
+  - Web `apps/web/src/modules/characters/`: `domain/entities/Character.ts`, `domain/ports/CharactersPort.ts` (listMine, listByCampaign,
+    getById, create, update(patch, origin), claim, remove, listAudit, uploadImage), `domain/useCases/characterRules.ts`,
+    `infra/SupabaseCharactersRepo.ts`, `container.ts` (`charactersRepo`). **No UI, no routes yet.**
+- Tests: web 102 · api 15 · system-plenilunio 48; typecheck OK; audit 0 hard; builds OK.
+- Local test data (wiped by `db:reset`): players marta2@ejemplo.com / pip@ejemplo.com (pw supersecret1); campaign "Test chars" (DM admin).
+- Known: `npm run dev:api` broken (pre-existing tsx watch arg order) → `cd apps/api && npx tsx --env-file=.env src/server.ts`.
 
 ## ✅ Decisions made
 - Hexagons: identity, campaigns, table, characters (PJ only), bestiary (PNJ/monsters/encounters), dice, maps, chat,
@@ -50,14 +54,26 @@ Building the v1 hexagons in order (map: ARCHITECTURE.md "Product hexagons"; spec
   QA mode agreed with owner: spec deviations = warning; light/dark = user-accepted per round.
 
 ## ⏳ Next immediate step
-1. Owner: save `rolvium.pen` (Cmd+S), do the light/dark pass on `/signup`, `/join/:code`, `/forgot`, `/reset`, `/account`,
-   then commit the `.pen`.
-2. `characters` (H4): port the validated JSX engine (`~/Documents/Developer/Rolvium context/plenilunio-vtt-prototipo.jsx`)
-   to `packages/system-plenilunio` (sheetSchema, catalogs, references, engine with tests vs manual examples, generator),
-   migration `characters` + audit trigger, generic `<Sheet>` in the table's Ficha tab. Then wire nav `/characters`, `/systems`.
-3. Pending small items: DM management UI (regenerate code, requests, kick, archive, next session — port/DB ready),
-   leave campaign, WebP background, unit tests for packages/core, `campaigns_players_count` N+1 → set-returning RPC,
-   fix `dev:api` script, `/join` intent after e-mail confirmation on hosted (done via emailRedirectTo — verify there).
+**Open a new chat** and resume with: «Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. characters slice 2 (UI + API) según
+rolvium.pen. Flujo: design(check) → dev → review → qa».
+1. `characters` slice 2 (design already in `.pen`: Personajes ZhUSp/B4Wasr (y13400), Personajes/Ficha aparte PiVhB (x3040,y4680; Ficha
+   main frame qjLDu), Mesa/Plenilunio·Jugador zt5B6 (Ficha tab), Generador GjeeD/kB8pn (y6700), Mejorar ORP75/lMRPP (y12000), PL/*
+   components in frame z84erH — node ids in memory `project_rolvium_pen`):
+   a. `packages/ui`: neutral `<Sheet>` renderer driven by `sheetSchema` (sections/fields/types text·number·counter·boxes·select·list·
+      table·health·stat·image; `derived` read-only; `action` icon buttons; tooltips from `references`), themed only via `--sys-*` vars.
+   b. `modules/characters/ui`: `CharactersPage` (`/characters`, mine grouped by campaign, «Abrir en la mesa»/«Ver ficha», claim
+      unassigned), `CharacterSheetPage` (`/characters/:id`, separate window, DM read-only→edit), `GeneratorWizard` (system
+      `generator` steps + budgets, DM: kind + assign-to), `ProgressionPanel` (enabled/blocked with reason from `campaigns.progression_enabled`).
+   c. Table `Ficha` tab (`modules/table`) renders `<Sheet>` for my character (or pick/create); «El grupo» lists PCs with avatar precedence
+      (own → account → initials, `characterRules.characterAvatar`).
+   d. API authority: `PUT /characters/:id/sheet` (verify token, membership, validate `data` against the system's `sheetSchema`, compute
+      `derived`/`health` with the engine, persist with origin) and `POST /rolls` (CSPRNG dice, `engine.resolve`, immutable log — this
+      belongs to `dice` H6; at least stub the port). Web repo `update` for sheet edits should move to the API once it exists.
+   e. i18n `characters.*` es/en; nav `/characters` route (registry entry exists); tests per file (Level B).
+2. Then `dice` (H6), `maps`, `chat/journal`, DM panel. Pending small items: DM management UI (regenerate code, requests, kick, archive,
+   next session), leave campaign, WebP background, unit tests for packages/core, `campaigns_players_count` N+1 → set-returning RPC,
+   fix `dev:api` script, `/systems` page (designed mTux7/J6LAv).
+3. Owner decisions pending: preset 30 max stat 7 (prototype) vs 10 (old spec); confirm gift/specialty English names with the manual.
 
 ## 🚫 Blockers / notes
 - No hosted Supabase (owner plan allows 2 projects) → local only; Vercel + `supabase link`/`db push` when table+characters+dice are playable.
