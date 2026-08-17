@@ -23,15 +23,32 @@
     "switchToDark": "Switch to dark mode"
   },
   "auth": {
-    "title": "Sign in to Rolvium",
-    "subtitle": "Log in to continue your adventure",
+    "title": "Sign in",
+    "subtitle": "Sign in to see your campaigns and sit at the table.",
     "email": "Email",
     "password": "Password",
     "signIn": "Sign in",
     "signingIn": "Signing in…",
     "invalidCredentials": "Invalid email or password",
     "accountDisabled": "Your account is disabled. Contact an administrator.",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "headline": "Your tabletop, with the rules of your system.",
+    "tagline": "Create a campaign, invite your group and pick the system. The sheet, the dice, the table and even the look adapt to the game you play.",
+    "feat": {
+      "campaigns": "Campaigns by invite code or open to new players",
+      "dice": "Rolls resolved by the rules engine, impossible to tamper with",
+      "maps": "Map with fog of war, tokens, chat and shared journal"
+    },
+    "systems": "Systems",
+    "remember": "Remember me",
+    "forgot": "Forgot your password?",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "or": "or",
+    "inviteTitle": "Were you invited to a campaign?",
+    "inviteSub": "Create your account with the invite code",
+    "noAccount": "No account yet?",
+    "createAccount": "Create account"
   },
   "nav": {
     "home": "Home",

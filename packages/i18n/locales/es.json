@@ -23,15 +23,32 @@
     "switchToDark": "Cambiar a modo oscuro"
   },
   "auth": {
-    "title": "Entrar en Rolvium",
-    "subtitle": "Inicia sesión para continuar tu aventura",
-    "email": "Email",
+    "title": "Iniciar sesión",
+    "subtitle": "Entra para ver tus campañas y sentarte a la mesa.",
+    "email": "Correo",
     "password": "Contraseña",
     "signIn": "Entrar",
     "signingIn": "Entrando…",
     "invalidCredentials": "Email o contraseña incorrectos",
     "accountDisabled": "Tu cuenta está desactivada. Contacta con un administrador.",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "headline": "Tu mesa de rol, con las reglas de tu sistema.",
+    "tagline": "Crea una campaña, invita a tu grupo y elige el sistema. La ficha, los dados, la mesa y hasta el aspecto se adaptan al juego que estáis jugando.",
+    "feat": {
+      "campaigns": "Campañas con invitación por código o abiertas a nuevos jugadores",
+      "dice": "Tiradas resueltas por el motor de reglas, imposibles de alterar",
+      "maps": "Mapa con niebla de guerra, tokens, chat y bitácora compartida"
+    },
+    "systems": "Sistemas",
+    "remember": "Recordarme",
+    "forgot": "¿Olvidaste tu contraseña?",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "or": "o",
+    "inviteTitle": "¿Te han invitado a una campaña?",
+    "inviteSub": "Crea tu cuenta con el código de invitación",
+    "noAccount": "¿No tienes cuenta?",
+    "createAccount": "Crear cuenta"
   },
   "nav": {
     "home": "Inicio",

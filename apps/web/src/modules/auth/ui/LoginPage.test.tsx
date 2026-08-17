@@ -17,7 +17,7 @@ function fakeRepo(over: Partial<IAuthRepository> = {}): IAuthRepository {
 describe('LoginPage', () => {
   it('renders the form with i18n labels', async () => {
     renderWithProviders(<AuthProvider repo={fakeRepo()}><LoginPage /></AuthProvider>);
-    expect(await screen.findByLabelText('Email')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Correo')).toBeInTheDocument();
     expect(screen.getByLabelText('Contraseña')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
   });
@@ -25,7 +25,7 @@ describe('LoginPage', () => {
   it('calls the repository and shows the invalid-credentials error', async () => {
     const repo = fakeRepo();
     renderWithProviders(<AuthProvider repo={repo}><LoginPage /></AuthProvider>);
-    await userEvent.type(await screen.findByLabelText('Email'), 'a@b.co');
+    await userEvent.type(await screen.findByLabelText('Correo'), 'a@b.co');
     await userEvent.type(screen.getByLabelText('Contraseña'), 'secret123');
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
     await waitFor(() => expect(repo.signInWithPassword).toHaveBeenCalledWith('a@b.co', 'secret123'));
@@ -35,7 +35,7 @@ describe('LoginPage', () => {
   it('shows the disabled-account message', async () => {
     const repo = fakeRepo({ signInWithPassword: vi.fn().mockResolvedValue({ user: null, error: 'account_disabled' }) });
     renderWithProviders(<AuthProvider repo={repo}><LoginPage /></AuthProvider>);
-    await userEvent.type(await screen.findByLabelText('Email'), 'a@b.co');
+    await userEvent.type(await screen.findByLabelText('Correo'), 'a@b.co');
     await userEvent.type(screen.getByLabelText('Contraseña'), 'secret123');
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/desactivada/);
