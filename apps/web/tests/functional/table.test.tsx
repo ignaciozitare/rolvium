@@ -6,7 +6,7 @@ import { AuthProvider } from '@/shared/hooks/useAuth';
 import { TablePage } from '@/modules/table/ui/TablePage';
 import type { TablePort } from '@/modules/table/domain/ports/TablePort';
 import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
-import { fakeAuthRepo, fakeCharactersRepo, fakeRollsPort, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN } from '../helpers/fakes';
+import { fakeAuthRepo, fakeCharactersRepo, fakeRollsPort, fakeRollLog, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE } from '../helpers/fakes';
 import { canTake, tabsFor } from '@/modules/table/domain/useCases/tableRules';
 
 const GM = { ...ADMIN_USER, id: 'dm-1', name: 'Laura', role: 'game_master' };
@@ -39,11 +39,12 @@ function fakeTableRepo(role: 'dm' | 'player', value = 7): TablePort & { snap: Ta
   };
 }
 
-function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN])) {
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog()) {
   renderWithProviders(
-    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={fakeRollsPort()} />} /></Routes></AuthProvider>,
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} />} /></Routes></AuthProvider>,
     { providers: { routerProps: { initialEntries: ['/table/c1'] } } },
   );
+  return { rolls, rollLog };
 }
 
 describe('table: rules', () => {
@@ -114,5 +115,22 @@ describe('table: page', () => {
     document.body.innerHTML = '';
     mount(PLAYER_USER, fakeTableRepo('player'));
     expect(await screen.findByLabelText('Personaje')).toHaveValue('Karen «K»');
+  });
+
+  it('side panel: Registro lists the campaign rolls live; the Lanzador toggle opens the floating roller which rolls into this campaign', async () => {
+    const u = userEvent.setup();
+    const { rolls, rollLog } = mount(PLAYER_USER, fakeTableRepo('player'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort({ summary: 'roll.free', total: 9 }), fakeRollLog([]));
+    expect(await screen.findByText('Pulsa TIRAR en una característica, o usa el lanzador libre.')).toBeInTheDocument();
+    rollLog.push(ROLL_FREE);
+    expect(await screen.findByText('2D10 · Nix')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Lanzador de dados' })).not.toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Lanzador de dados' }));
+    const roller = await screen.findByRole('dialog', { name: 'Lanzador de dados' });
+    expect(screen.getByRole('button', { name: 'Lanzador de dados · abierto', pressed: true })).toBeInTheDocument();
+    await u.click(within(roller).getByRole('button', { name: 'Tirar 2 D10' }));
+    await waitFor(() => expect(rolls.requests).toHaveLength(1));
+    expect(rolls.requests[0]).toMatchObject({ campaignId: 'c1', kind: 'free', groups: [{ count: 2, sides: 10 }] });
+    await u.click(within(roller).getByRole('button', { name: 'Cerrar el lanzador' }));
+    expect(screen.queryByRole('dialog', { name: 'Lanzador de dados' })).not.toBeInTheDocument();
   });
 });

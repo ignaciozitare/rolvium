@@ -17,18 +17,29 @@ async function mount(canEdit = true, rolls = fakeRollsPort(), rollOptions?: Reco
 }
 
 describe('<CharacterSheetView>', () => {
-  it('renders the system sheet, TIRAR sends poolFor request (with Destiny dice in hand) and logs the summary', async () => {
+  it('renders the system sheet, TIRAR sends poolFor request (with Destiny dice in hand + campaignId) and logs the summary; effects fall back to the client when the API did not apply them', async () => {
     const u = userEvent.setup();
     const rolls = fakeRollsPort({ summary: 'roll.degree.success.2', total: 2, effects: { patch: { destiny: 3, fortune: 3 } } });
     const { repo, onRolled } = await mount(true, rolls, { destinyDice: 2 });
     const stat = document.querySelector('[data-stat="combat"]') as HTMLElement;
     await u.click(within(stat).getByRole('button', { name: 'Tirar 6' })); // 4 + 2 destiny
     await waitFor(() => expect(rolls.requests).toHaveLength(1));
-    expect(rolls.requests[0]).toMatchObject({ systemId: 'plenilunio', characterId: 'ch-karen', sharedResources: { destiny: 2 } });
+    expect(rolls.requests[0]).toMatchObject({ systemId: 'plenilunio', characterId: 'ch-karen', campaignId: 'c1', sharedResources: { destiny: 2 } });
     expect(onRolled).toHaveBeenCalled();
     expect(await screen.findByText(/Combate · Lo consigue\./)).toBeInTheDocument();
-    // effects.patch applied with origin roll
+    // effects.patch applied with origin roll (client fallback: the fake API did not report effectsApplied)
     await waitFor(() => expect(repo.updates.some(x => x.origin === 'roll' && x.patch.data?.destiny === 3)).toBe(true));
+  });
+  it('when the API applied the effects, the sheet mirrors them (derived/health from the server) without saving again', async () => {
+    const u = userEvent.setup();
+    const rolls = fakeRollsPort({ summary: 'roll.degree.success.2', total: 2, effects: { destinyUp: true, patch: { destiny: 3, fortune: 3 } } }, { effectsApplied: true, sheet: { derived: { endurance: 99 }, health: 'healthy' } });
+    const { repo, hook } = await mount(true, rolls);
+    const stat = document.querySelector('[data-stat="combat"]') as HTMLElement;
+    await u.click(within(stat).getByRole('button', { name: /Tirar/ }));
+    await waitFor(() => expect(hook.result.current.data.destiny).toBe(3));
+    expect(hook.result.current.character?.derived.endurance).toBe(99);
+    expect(hook.result.current.dirty).toBe(false);
+    expect(repo.updates.filter(x => x.origin === 'roll')).toHaveLength(0);
   });
   it('weapon attack + gift activation build action requests; failed roll shows an error line', async () => {
     const u = userEvent.setup();

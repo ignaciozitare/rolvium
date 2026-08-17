@@ -38,6 +38,19 @@ describe('useCharacterSheet', () => {
     act(() => f.result.current.applyPatch({ concept: 'x' }, 'sheet', true));
     await waitFor(() => expect(f.result.current.saveError).toBe(true));
   });
+  it('applyRemote merges a server-applied change into draft + character without saving or dirtying', async () => {
+    const repo = fakeCharactersRepo();
+    const { result } = renderHook(() => useCharacterSheet('ch-karen', repo, 10));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.applyRemote({ destiny: 3, fortune: 3 }, { derived: { endurance: 42 }, health: 'bruised' }));
+    expect(result.current.data.destiny).toBe(3);
+    expect(result.current.character?.data.fortune).toBe(3);
+    expect(result.current.character?.derived.endurance).toBe(42);
+    expect(result.current.character?.health).toBe('bruised');
+    expect(result.current.dirty).toBe(false);
+    await new Promise(r => setTimeout(r, 30));
+    expect(repo.updates).toHaveLength(0);
+  });
   it('rowPatchFor mirrors only changed row columns', () => {
     const p = rowPatchFor(plenilunio, { ...CHARACTER_KAREN.data, concept: 'Nueva' }, CHARACTER_KAREN);
     expect(p.concept).toBe('Nueva'); expect(p.name).toBeUndefined(); expect(p.xp).toBeUndefined(); expect(p.health).toBe('healthy');

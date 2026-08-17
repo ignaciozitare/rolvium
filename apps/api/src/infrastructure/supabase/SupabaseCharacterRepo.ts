@@ -33,4 +33,10 @@ export class SupabaseCharacterRepo implements ICharacterRepository {
     if (error) throw new Error(error.message);
     return !!data;
   }
+
+  async isCampaignDm(campaignId: string, actorId: string): Promise<boolean> {
+    const { data, error } = await this.db.from('campaigns_campaigns').select('dm_id').eq('id', campaignId).maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as { dm_id?: string } | null)?.dm_id === actorId;
+  }
 }

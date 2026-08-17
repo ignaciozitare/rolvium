@@ -21,4 +21,6 @@ export interface ICharacterRepository {
   saveSheet(characterId: string, actorId: string, patch: { data: SheetData; derived: Record<string, unknown>; health: string | null; xp?: number; name?: string; concept?: string | null }, origin: SaveOrigin): Promise<void>;
   /** Membership check for rolls without a character (campaign-level). */
   isCampaignMember(campaignId: string, actorId: string): Promise<boolean>;
+  /** Whether the actor directs the campaign (the DM is not in `campaigns_members`). */
+  isCampaignDm(campaignId: string, actorId: string): Promise<boolean>;
 }

@@ -12,15 +12,19 @@ import { useTable } from './useTable';
 import { SharedResourceBar } from './SharedResourceBar';
 import { Crescent } from './systemIcons';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
-import type { RollsPort } from '@/modules/characters/domain/ports/RollsPort';
-import { charactersRepo as defaultCharacters, rollsPort as defaultRolls } from '@/modules/characters/container';
+import type { RollsPort } from '@/modules/dice/domain/ports/RollsPort';
+import type { RollLogPort } from '@/modules/dice/domain/ports/RollLogPort';
+import { charactersRepo as defaultCharacters } from '@/modules/characters/container';
+import { rollsPort as defaultRolls, rollLog as defaultRollLog } from '@/modules/dice/container';
+import { SidePanel } from '@/modules/dice/ui/SidePanel';
+import { DiceRoller } from '@/modules/dice/ui/DiceRoller';
 import { SheetTab, CreateTab } from './tabs/SheetTab';
 import { ImproveTab } from './tabs/ImproveTab';
 import { GroupTab } from './tabs/GroupTab';
 import './table.css';
 
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
-export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort }): JSX.Element {
+export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort }): JSX.Element {
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
@@ -123,15 +127,10 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             )}
           </main>
           <aside className="tb-side">
-            <button type="button" className={`tb-roller-btn ${rollerOpen ? 'on' : ''}`} onClick={() => setRollerOpen(o => !o)} aria-pressed={rollerOpen}>
-              <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-md)' }}>casino</span>{t('table.roller')}
-            </button>
-            <section className="tb-hoja tb-panel">
-              <div className="tb-panel-tabs">{(['log', 'chat', 'notes', 'journal'] as const).map((p, i) => <span key={p} className={`tb-btn tb-btn-xs ${i === 0 ? 'tb-btn-solid' : ''}`}>{t(`table.panel.${p}`)}</span>)}</div>
-              <p className="tb-italic tb-dim">{t('table.logEmpty')}</p>
-            </section>
+            <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} />
           </aside>
         </div>
+        {rollerOpen && <DiceRoller campaignId={campaign.id} rolls={rolls} onClose={() => setRollerOpen(false)} />}
       </div>
     </div>
   );

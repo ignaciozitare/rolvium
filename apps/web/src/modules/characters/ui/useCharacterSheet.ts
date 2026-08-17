@@ -78,11 +78,17 @@ export function useCharacterSheet(id: string | null, repo: CharactersPort, autos
     else timer.current = setTimeout(() => void flush(), autosaveMs);
   }, [flush, autosaveMs]);
 
+  /** Merges a change the server already persisted (e.g. roll effects applied by the API): no save, not dirty. */
+  const applyRemote = useCallback((patch: SheetPatch, authoritative?: { derived: Record<string, unknown>; health: string | null }) => {
+    setData(prev => ({ ...prev, ...patch }));
+    setCharacter(prev => (prev ? { ...prev, data: { ...prev.data, ...patch }, ...(authoritative ? { derived: authoritative.derived, health: authoritative.health } : {}) } : prev));
+  }, []);
+
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   const derived = useMemo(() => (system ? system.engine.derived(data) : {}), [system, data]);
 
-  return useMemo(() => ({ character, system, status, data, derived, dirty, saving, saveError, applyPatch, save: flush, reload: load }),
-    [character, system, status, data, derived, dirty, saving, saveError, applyPatch, flush, load]);
+  return useMemo(() => ({ character, system, status, data, derived, dirty, saving, saveError, applyPatch, applyRemote, save: flush, reload: load }),
+    [character, system, status, data, derived, dirty, saving, saveError, applyPatch, applyRemote, flush, load]);
 }
 export type CharacterSheetState = ReturnType<typeof useCharacterSheet>;

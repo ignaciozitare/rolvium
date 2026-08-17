@@ -521,5 +521,41 @@
       "viewSheet": "View sheet",
       "unassigned": "unclaimed"
     }
+  },
+  "dice": {
+    "panel": {
+      "tabs": "Side panel",
+      "soon": "This part of the table is coming soon.",
+      "rollerOpen": "Dice roller · open"
+    },
+    "roller": {
+      "title": "Dice roller",
+      "drag": "Drag",
+      "close": "Close the roller",
+      "visibility": "Roll visibility",
+      "table": "Everyone",
+      "dm": "Director",
+      "secret": "Secret",
+      "rollN": "Roll {{n}} {{die}}",
+      "mod": "Mod.",
+      "modDown": "Lower the modifier",
+      "modUp": "Raise the modifier",
+      "last": "last: {{notation}} = {{total}}",
+      "none": "no rolls yet",
+      "failed": "The roll could not be made.",
+      "rolling": "rolling…"
+    },
+    "log": {
+      "title": "Roll log",
+      "empty": "Press ROLL on a stat, or use the free roller.",
+      "error": "The log could not be loaded.",
+      "vs": "vs",
+      "freeTitle": "{{notation}} · {{who}}",
+      "shared": "shared-resource die",
+      "visibility": {
+        "dm": "Director",
+        "secret": "Secret"
+      }
+    }
   }
 }

@@ -116,9 +116,11 @@ export function fakeIdentityDeps(over: { identity?: Partial<IdentityDeps['identi
 
 // ── characters ───────────────────────────────────────────────────────────────
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
-import type { RollsPort } from '@/modules/characters/domain/ports/RollsPort';
+import type { RollInput, RollsPort } from '@/modules/dice/domain/ports/RollsPort';
+import type { RollLogPort } from '@/modules/dice/domain/ports/RollLogPort';
+import type { Roll, RollOutcome } from '@/modules/dice/domain/entities/Roll';
 import type { Character, CharacterAuditEntry, CharacterPatch, CreateCharacterInput, WriteOrigin } from '@/modules/characters/domain/entities/Character';
-import type { RollRequest, RollResult, SheetData } from '@rolvium/core';
+import type { RollResult, SheetData } from '@rolvium/core';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
 /** A finished Plenilunio sheet (Karen «K», the design's sample character). */
@@ -174,8 +176,58 @@ export function fakeCharactersRepo(seed: Character[] = [CHARACTER_KAREN]): Chara
   };
 }
 
-/** RollsPort that echoes a fixed result and records requests. */
-export function fakeRollsPort(result: RollResult | null = { summary: 'roll.degree.success.2', total: 2 }): RollsPort & { requests: RollRequest[] } {
-  const requests: RollRequest[] = [];
-  return { requests, roll: async (req) => { requests.push(req); return result; } };
+/**
+ * RollsPort that echoes a fixed result and records requests. `outcome` overrides the API extras
+ * (`effectsApplied`, `sheet`) so views can be tested against the server-applied path.
+ */
+export function fakeRollsPort(result: RollResult | null = { summary: 'roll.degree.success.2', total: 2 }, outcome: Partial<RollOutcome> = {}): RollsPort & { requests: RollInput[] } {
+  const requests: RollInput[] = [];
+  return {
+    requests,
+    roll: async (req) => {
+      requests.push(req);
+      if (!result) return null;
+      const dice = req.groups.map(g => Array.from({ length: g.count }, (_, i) => 1 + ((i * 3) % g.sides)));
+      return { id: `roll-${requests.length}`, request: req, dice, result, rolledAt: '2026-08-18T00:00:00Z', ...outcome };
+    },
+  };
+}
+
+// ── dice ─────────────────────────────────────────────────────────────────────
+/** Karen's opposed Combat roll from the design (7—1, a Destiny die triumph → +1 Destino). */
+export const ROLL_COMBAT: Roll = {
+  id: 'roll-combat', campaignId: 'c1', characterId: 'ch-karen', authorId: PLAYER_USER.id, authorName: 'Karen «K»', authorAvatarUrl: null, systemId: 'plenilunio', kind: 'system',
+  title: 'sheet.stats.combat',
+  request: { systemId: 'plenilunio', kind: 'system', title: 'sheet.stats.combat', groups: [{ count: 4, sides: 6, tag: 'own' }, { count: 2, sides: 6, tag: 'destiny' }, { count: 2, sides: 6, tag: 'opposition' }], options: { stat: 'combat', specialty: true }, sharedResources: { destiny: 2 }, visibility: 'table' },
+  dice: [[5, 6, 2, 4], [6, 3], [4, 1]],
+  result: { summary: 'roll.degree.success.absolute', total: 6, detail: { ownHits: 4, destinyHits: 3, oppositionHits: 1, difference: 6, degree: 'roll.degree.success.absolute' }, effects: { destinyUp: true, fortuneRefill: true, patch: { destiny: 3, fortune: 3 } } },
+  visibility: 'table', correctsId: null, createdAt: '2026-08-18T21:03:00Z',
+};
+/** Elías' failed Cunning roll with a setback (0—2, «Revés»). */
+export const ROLL_SETBACK: Roll = {
+  ...ROLL_COMBAT, id: 'roll-setback', characterId: 'ch-elias', authorId: 'u-nix', authorName: 'Elías Vance', title: 'sheet.stats.cunning',
+  request: { systemId: 'plenilunio', kind: 'system', title: 'sheet.stats.cunning', groups: [{ count: 2, sides: 6, tag: 'own' }, { count: 2, sides: 6, tag: 'opposition' }], options: { stat: 'cunning' }, visibility: 'dm' },
+  dice: [[1, 3], [5, 4]],
+  result: { summary: 'roll.summary.setback', total: -2, detail: { ownHits: 0, destinyHits: 0, oppositionHits: 2, difference: -2, setback: true }, effects: { setback: true } },
+  visibility: 'dm', createdAt: '2026-08-18T21:04:00Z',
+};
+/** Nix's free 2D10 = 13. */
+export const ROLL_FREE: Roll = {
+  ...ROLL_COMBAT, id: 'roll-free', characterId: null, authorId: 'u-nix2', authorName: 'Nix', systemId: null, kind: 'free', title: '2D10',
+  request: { systemId: null, kind: 'free', title: '2D10', groups: [{ count: 2, sides: 10 }], visibility: 'table' },
+  dice: [[6, 7]], result: { summary: 'roll.free', total: 13, detail: {} }, visibility: 'table', createdAt: '2026-08-18T21:05:00Z',
+};
+
+/** In-memory RollLogPort; `push(roll)` simulates a live insert to every subscriber. */
+export function fakeRollLog(seed: Roll[] = [ROLL_COMBAT, ROLL_SETBACK, ROLL_FREE]): RollLogPort & { rolls: Roll[]; push: (r: Roll) => void; subscribers: number } {
+  const rolls = [...seed];
+  const listeners = new Set<(r: Roll) => void>();
+  const api = {
+    rolls,
+    get subscribers() { return listeners.size; },
+    push: (r: Roll) => { rolls.unshift(r); listeners.forEach(l => l(r)); },
+    listRecent: async (cid: string, limit = 50) => rolls.filter(r => r.campaignId === cid).slice(0, limit),
+    subscribe: (_cid: string, on: (r: Roll) => void) => { listeners.add(on); return () => { listeners.delete(on); }; },
+  };
+  return api;
 }

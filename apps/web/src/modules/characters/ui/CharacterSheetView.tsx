@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Sheet } from '@rolvium/ui';
-import type { RollRequest, RollResult, SheetPatch } from '@rolvium/core';
-import type { RollsPort } from '../domain/ports/RollsPort';
+import type { RollRequest, SheetPatch } from '@rolvium/core';
+import type { RollsPort } from '@/modules/dice/domain/ports/RollsPort';
+import type { RollOutcome } from '@/modules/dice/domain/entities/Roll';
 import { rollsPort as defaultRolls } from '../container';
 import { sysT } from '../domain/useCases/systemText';
 import type { CharacterSheetState } from './useCharacterSheet';
@@ -15,7 +16,7 @@ interface Props {
   rolls?: RollsPort;
   /** Extra roll options from the table (e.g. Destiny dice in hand). */
   rollOptions?: Record<string, unknown>;
-  onRolled?: (req: RollRequest, result: RollResult | null) => void;
+  onRolled?: (req: RollRequest, outcome: RollOutcome | null) => void;
   /** Number of dice a stat would roll now — shown on TIRAR (system engine `poolFor`). */
   showActions?: boolean;
 }
@@ -26,7 +27,7 @@ interface Props {
  */
 export function CharacterSheetView({ state, canEdit, rolls = defaultRolls, rollOptions, onRolled, showActions = true }: Props): JSX.Element | null {
   const { t, locale } = useTranslation();
-  const { character, system, data, derived, applyPatch } = state;
+  const { character, system, data, derived, applyPatch, applyRemote } = state;
   const [damage, setDamage] = useState(1);
   const [log, setLog] = useState<{ text: string; err?: boolean }[]>([]);
   const ts = useMemo(() => (system ? sysT(system, locale) : (k: string) => k), [system, locale]);
@@ -52,13 +53,16 @@ export function CharacterSheetView({ state, canEdit, rolls = defaultRolls, rollO
       req = a.toRoll(data, itemId, rollOptions);
     }
     req = { ...req, characterId: character.id };
-    const res = await rolls.roll(req);
+    const res = await rolls.roll({ ...req, campaignId: character.campaignId });
     onRolled?.(req, res);
     if (!res) { setLog(l => [{ text: t('characters.sheet.rollFailed'), err: true }, ...l].slice(0, 5)); return; }
-    setLog(l => [{ text: t('characters.sheet.rolled', { title: ts(req.title), summary: ts(res.summary) }) }, ...l].slice(0, 5));
-    const patch = res.effects?.patch;
-    if (patch && typeof patch === 'object') applyPatch(patch as SheetPatch, 'roll', true);
-  }, [system, character, data, rollOptions, rolls, onRolled, applyPatch, t, ts]);
+    setLog(l => [{ text: t('characters.sheet.rolled', { title: ts(req.title), summary: ts(res.result.summary) }) }, ...l].slice(0, 5));
+    const patch = res.result.effects?.patch;
+    if (!patch || typeof patch !== 'object') return;
+    // The API applies roll effects to the sheet (origin `roll`); we only mirror them. Fallback to the client path if it could not.
+    if (res.effectsApplied) applyRemote(patch as SheetPatch, res.sheet);
+    else applyPatch(patch as SheetPatch, 'roll', true);
+  }, [system, character, data, rollOptions, rolls, onRolled, applyPatch, applyRemote, t, ts]);
 
   if (!system || !character) return null;
   const labels = { roll: t('characters.sheet.roll'), add: t('characters.sheet.add'), remove: t('characters.sheet.remove'), manual: t('characters.sheet.manual'), of: t('characters.sheet.of'), pick: t('characters.sheet.pickAvatar') };

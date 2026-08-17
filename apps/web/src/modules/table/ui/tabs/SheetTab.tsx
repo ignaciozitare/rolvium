@@ -5,7 +5,7 @@ import type { GameSystem } from '@rolvium/core';
 import type { TableRole } from '@/modules/campaigns/domain/entities/Campaign';
 import type { Character } from '@/modules/characters/domain/entities/Character';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
-import type { RollsPort } from '@/modules/characters/domain/ports/RollsPort';
+import type { RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import { CharacterSheetView } from '@/modules/characters/ui/CharacterSheetView';
 import { GeneratorWizard } from '@/modules/characters/ui/GeneratorWizard';
 import { useCharacterSheet } from '@/modules/characters/ui/useCharacterSheet';

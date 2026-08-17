@@ -8,7 +8,9 @@ const ROW = { id: 'ch1', campaign_id: 'c1', owner_id: 'u-owner', data: { name: '
 function fakeDb(over: { character?: unknown; member?: unknown; rpcError?: { message: string } | null } = {}) {
   const rpc = vi.fn().mockResolvedValue({ error: over.rpcError ?? null });
   const from = vi.fn((table: string) => {
-    const result = table === 'characters' ? { data: over.character === undefined ? ROW : over.character, error: null } : { data: over.member === undefined ? null : over.member, error: null };
+    const result = table === 'characters' ? { data: over.character === undefined ? ROW : over.character, error: null }
+      : table === 'campaigns_campaigns' ? { data: { dm_id: 'u-dm' }, error: null }
+      : { data: over.member === undefined ? null : over.member, error: null };
     const q: Record<string, unknown> = {};
     q.select = () => q; q.eq = () => q; q.maybeSingle = async () => result;
     return q;
@@ -34,5 +36,10 @@ describe('SupabaseCharacterRepo (service role)', () => {
   it('maps DB permission errors to FORBIDDEN and everything else to DB_ERROR', async () => {
     await expect(new SupabaseCharacterRepo(fakeDb({ rpcError: { message: 'progression_disabled' } }).db).saveSheet('ch1', 'u', { data: {}, derived: {}, health: null }, 'sheet')).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(new SupabaseCharacterRepo(fakeDb({ rpcError: { message: 'connection reset' } }).db).saveSheet('ch1', 'u', { data: {}, derived: {}, health: null }, 'sheet')).rejects.toMatchObject({ code: 'DB_ERROR' });
+  });
+  it('isCampaignDm reads campaigns_campaigns.dm_id (the DM has no member row)', async () => {
+    const repo = new SupabaseCharacterRepo(fakeDb().db);
+    expect(await repo.isCampaignDm('c1', 'u-dm')).toBe(true);
+    expect(await repo.isCampaignDm('c1', 'u-x')).toBe(false);
   });
 });

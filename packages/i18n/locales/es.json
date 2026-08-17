@@ -521,5 +521,41 @@
       "viewSheet": "Ver ficha",
       "unassigned": "sin dueño"
     }
+  },
+  "dice": {
+    "panel": {
+      "tabs": "Panel lateral",
+      "soon": "Esta parte de la mesa llega pronto.",
+      "rollerOpen": "Lanzador de dados · abierto"
+    },
+    "roller": {
+      "title": "Lanzador de dados",
+      "drag": "Arrastrar",
+      "close": "Cerrar el lanzador",
+      "visibility": "Visibilidad de la tirada",
+      "table": "Todos",
+      "dm": "Director",
+      "secret": "Secreta",
+      "rollN": "Tirar {{n}} {{die}}",
+      "mod": "Mod.",
+      "modDown": "Bajar el modificador",
+      "modUp": "Subir el modificador",
+      "last": "última: {{notation}} = {{total}}",
+      "none": "sin tiradas todavía",
+      "failed": "No se ha podido tirar.",
+      "rolling": "tirando…"
+    },
+    "log": {
+      "title": "Registro de tiradas",
+      "empty": "Pulsa TIRAR en una característica, o usa el lanzador libre.",
+      "error": "No se ha podido cargar el registro.",
+      "vs": "vs",
+      "freeTitle": "{{notation}} · {{who}}",
+      "shared": "dado de recurso compartido",
+      "visibility": {
+        "dm": "Director",
+        "secret": "Secreta"
+      }
+    }
   }
 }

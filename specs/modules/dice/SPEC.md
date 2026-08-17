@@ -26,6 +26,17 @@ restringida.
 `game-system` (poolFor/resolve/actions), `table` (recursos), `characters`/`bestiary` (origen), `chat` (adjunto), `realtime`.
 
 ## Modelo de datos
-> Pending — DBA. Propuesta: `rolls` (id, campaign_id, character_id nullable, author_id, system_id, kind system|free,
-> title, request jsonb, dice jsonb, result jsonb, visibility table|dm|secret, corrects_id nullable, at). Insert solo con
-> service role desde la API; sin update/delete.
+- **`dice_rolls`**: una fila por tirada (sistema o libre): campaña, personaje (opcional), autor, sistema, tipo, título, la
+  intención (`request`), los **dados crudos generados por el servidor** (`dice`), el resultado del motor (`result`),
+  visibilidad `table`|`dm`|`secret`, `corrects_id` (una corrección es una tirada nueva que apunta a la anterior), fecha.
+  **Inmutable** (trigger bloquea UPDATE/DELETE, también al director; sólo pasan las acciones de FK — borrar la campaña
+  arrastra sus tiradas, borrar el personaje deja `character_id` a null). Se inserta sólo desde la API mediante
+  `dice_commit_roll` (service role): comprueba la membresía del actor, **descuenta los dados de recurso compartido de su
+  mano en la misma transacción** (si no los tiene, la tirada falla con `pool_empty`) y guarda la fila. La API además
+  rechaza (403) una petición que tire más dados etiquetados con un recurso compartido de los que declara en
+  `sharedResources`, para que el descuento no pueda esquivarse.
+- Lectura por RLS: miembros de la campaña ven `table`; el autor ve las suyas; el director lo ve todo (`dm` y `secret`).
+  El canal Realtime (`postgres_changes` en `dice_rolls`) sólo entrega lo que la RLS permite.
+- Efectos de la tirada sobre la ficha (`result.effects.patch`, p.ej. subir Destino / recargar Fortuna) se aplican en la
+  API tras guardar la tirada, con origen `roll`, por el mismo camino autoritativo que la ficha.
+- Migración: `supabase/migrations/20260818120000_dice_rolls.sql`.

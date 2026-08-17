@@ -8,7 +8,7 @@ import { campaignsRepo as defaultCampaigns } from '@/modules/campaigns/container
 import type { CampaignsPort } from '@/modules/campaigns/domain/ports/CampaignsPort';
 import '@/modules/table/ui/table.css';
 import type { CharactersPort } from '../domain/ports/CharactersPort';
-import type { RollsPort } from '../domain/ports/RollsPort';
+import type { RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import { charactersRepo as defaultRepo, rollsPort as defaultRolls } from '../container';
 import { canEditCharacter } from '../domain/useCases/characterRules';
 import { useCharacterSheet } from './useCharacterSheet';
