@@ -24,6 +24,11 @@ roles & permissions, admin area, i18n, @rolvium/ui, API, RLS migration, dev-agen
 - Harness inherited from a previous project, stripped of that project's business; env escape hatches `ROLVIUM_SKIP_*`.
 - Database is LOCAL-first (Supabase CLI stack). Migrations are the contract; `seed.sql` is local-only. Explicit GRANTs in migrations (local stack has no default privileges).
 
+- Design decisions (2026-08-17, in rolvium.pen): avatars — the **user** has an account avatar; **each character** can
+  upload its own avatar/token; if the character has none, the user's avatar is the default (then initials+color).
+- Product hexagons map lives in ARCHITECTURE.md ("Product hexagons"); characters (PJ) ≠ bestiary (PNJ/monsters);
+  journal = notes + shared log; platform is multi-language (i18n keys everywhere, systems ship their own locales).
+
 ## ⏳ Next immediate step
 1. `npm run db:start` (if Docker is up) → `npm run dev:api` + `npm run dev:web` → log in as the dev admin.
 2. Run the Spec agent for the first game module (e.g. campaigns).
