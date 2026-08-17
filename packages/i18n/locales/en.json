@@ -1,0 +1,103 @@
+{
+  "app": {
+    "name": "Rolvium",
+    "tagline": "Your tabletop, anywhere"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "close": "Close",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "search": "Search",
+    "yes": "Yes",
+    "no": "No",
+    "add": "Add",
+    "back": "Back",
+    "you": "you"
+  },
+  "theme": {
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
+  },
+  "auth": {
+    "title": "Sign in to Rolvium",
+    "subtitle": "Log in to continue your adventure",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "invalidCredentials": "Invalid email or password",
+    "accountDisabled": "Your account is disabled. Contact an administrator.",
+    "signOut": "Sign out"
+  },
+  "nav": {
+    "home": "Home",
+    "admin": "Admin",
+    "profile": "Profile"
+  },
+  "home": {
+    "welcome": "Welcome, {{name}}",
+    "empty": "No modules are active yet. Once an administrator grants you access to one, it will show up here."
+  },
+  "admin": {
+    "title": "Administration",
+    "sidebar": "ADMIN",
+    "settings": "Settings",
+    "users": "Users",
+    "roles": "Roles & permissions",
+    "forbidden": "You do not have permission to view this section.",
+    "usersTitle": "Users",
+    "usersSubtitle": "{{count}} users. Manage roles and access.",
+    "addUser": "Add user",
+    "userAdded": "User created",
+    "fieldName": "Name",
+    "fieldEmail": "Email",
+    "fieldRole": "Role",
+    "fieldPassword": "Password",
+    "fieldConfirm": "Confirm password",
+    "saveUser": "Create user",
+    "errNameRequired": "Name is required",
+    "errEmailRequired": "Email is required",
+    "errEmailInvalid": "Invalid email",
+    "errEmailExists": "A user with that email already exists",
+    "errPasswordShort": "Minimum 8 characters",
+    "errPasswordMatch": "Passwords do not match",
+    "colUser": "User",
+    "colEmail": "Email",
+    "colRole": "Role",
+    "colAccess": "Access",
+    "colActions": "Actions",
+    "statusActive": "Active",
+    "statusBlocked": "Blocked",
+    "blockUser": "Block",
+    "unblockUser": "Unblock",
+    "changePassword": "Change password",
+    "newPassword": "New password",
+    "passwordChanged": "Password updated",
+    "rolesTitle": "Roles & permissions",
+    "newRolePlaceholder": "New role name",
+    "roleDescription": "Role description",
+    "deleteRoleConfirm": "Delete this role? Users holding it will fall back to the default role.",
+    "selectRole": "← Select a role to configure its permissions",
+    "systemRole": "system",
+    "adminLocked": "The admin role has full access and cannot be modified.",
+    "modulesPicker": "Modules — visible to the role",
+    "permsPicker": "Permissions — Admin access and special capabilities",
+    "perm": {
+      "manage_users": "Manage users",
+      "manage_users_desc": "Create, block and change users' roles",
+      "manage_roles": "Manage roles",
+      "manage_roles_desc": "Create roles and edit their permissions",
+      "manage_settings": "Manage settings",
+      "manage_settings_desc": "Platform-wide configuration"
+    },
+    "settingsTitle": "Settings",
+    "settingsEmpty": "There are no configurable settings yet."
+  },
+  "modules": {
+    "home": "Home"
+  }
+}

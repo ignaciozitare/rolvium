@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true, "module": "ESNext", "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"], "jsx": "react-jsx", "resolveJsonModule": true, "types": ["node"]
+  },
+  "include": ["src/**/*", "locales/*.json"]
+}

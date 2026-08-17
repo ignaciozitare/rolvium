@@ -1,0 +1,103 @@
+{
+  "app": {
+    "name": "Rolvium",
+    "tagline": "Tu mesa de rol, en cualquier parte"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "loading": "Cargando…",
+    "error": "Algo salió mal",
+    "search": "Buscar",
+    "yes": "Sí",
+    "no": "No",
+    "add": "Añadir",
+    "back": "Volver",
+    "you": "tú"
+  },
+  "theme": {
+    "switchToLight": "Cambiar a modo claro",
+    "switchToDark": "Cambiar a modo oscuro"
+  },
+  "auth": {
+    "title": "Entrar en Rolvium",
+    "subtitle": "Inicia sesión para continuar tu aventura",
+    "email": "Email",
+    "password": "Contraseña",
+    "signIn": "Entrar",
+    "signingIn": "Entrando…",
+    "invalidCredentials": "Email o contraseña incorrectos",
+    "accountDisabled": "Tu cuenta está desactivada. Contacta con un administrador.",
+    "signOut": "Cerrar sesión"
+  },
+  "nav": {
+    "home": "Inicio",
+    "admin": "Administración",
+    "profile": "Perfil"
+  },
+  "home": {
+    "welcome": "Bienvenido, {{name}}",
+    "empty": "Aún no hay módulos activos. Cuando un administrador te dé acceso a alguno, aparecerá aquí."
+  },
+  "admin": {
+    "title": "Administración",
+    "sidebar": "ADMIN",
+    "settings": "Ajustes",
+    "users": "Usuarios",
+    "roles": "Roles y permisos",
+    "forbidden": "No tienes permiso para ver esta sección.",
+    "usersTitle": "Usuarios",
+    "usersSubtitle": "{{count}} usuarios. Gestiona roles y acceso.",
+    "addUser": "Añadir usuario",
+    "userAdded": "Usuario creado",
+    "fieldName": "Nombre",
+    "fieldEmail": "Email",
+    "fieldRole": "Rol",
+    "fieldPassword": "Contraseña",
+    "fieldConfirm": "Confirmar contraseña",
+    "saveUser": "Crear usuario",
+    "errNameRequired": "El nombre es obligatorio",
+    "errEmailRequired": "El email es obligatorio",
+    "errEmailInvalid": "Email no válido",
+    "errEmailExists": "Ya existe un usuario con ese email",
+    "errPasswordShort": "Mínimo 8 caracteres",
+    "errPasswordMatch": "Las contraseñas no coinciden",
+    "colUser": "Usuario",
+    "colEmail": "Email",
+    "colRole": "Rol",
+    "colAccess": "Acceso",
+    "colActions": "Acciones",
+    "statusActive": "Activo",
+    "statusBlocked": "Bloqueado",
+    "blockUser": "Bloquear",
+    "unblockUser": "Desbloquear",
+    "changePassword": "Cambiar contraseña",
+    "newPassword": "Nueva contraseña",
+    "passwordChanged": "Contraseña actualizada",
+    "rolesTitle": "Roles y permisos",
+    "newRolePlaceholder": "Nombre del nuevo rol",
+    "roleDescription": "Descripción del rol",
+    "deleteRoleConfirm": "¿Eliminar este rol? Los usuarios que lo tengan pasarán al rol por defecto.",
+    "selectRole": "← Selecciona un rol para configurar sus permisos",
+    "systemRole": "sistema",
+    "adminLocked": "El rol admin tiene acceso total y no se puede modificar.",
+    "modulesPicker": "Módulos — visibles para el rol",
+    "permsPicker": "Permisos — acceso a Admin y capacidades especiales",
+    "perm": {
+      "manage_users": "Gestionar usuarios",
+      "manage_users_desc": "Crear, bloquear y cambiar el rol de usuarios",
+      "manage_roles": "Gestionar roles",
+      "manage_roles_desc": "Crear roles y editar sus permisos",
+      "manage_settings": "Gestionar ajustes",
+      "manage_settings_desc": "Configuración general de la plataforma"
+    },
+    "settingsTitle": "Ajustes",
+    "settingsEmpty": "Todavía no hay ajustes configurables."
+  },
+  "modules": {
+    "home": "Inicio"
+  }
+}

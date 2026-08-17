@@ -1,0 +1,39 @@
+{
+  "name": "@rolvium/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:smoke": "vitest run --passWithNoTests tests/smoke",
+    "test:regression": "vitest run --passWithNoTests tests/regression src",
+    "test:functional": "vitest run --passWithNoTests tests/functional"
+  },
+  "dependencies": {
+    "@rolvium/i18n": "*",
+    "@rolvium/shared-types": "*",
+    "@rolvium/ui": "*",
+    "@supabase/supabase-js": "^2.43.4",
+    "@tanstack/react-query": "^5.56.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.23.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.4.0",
+    "vite": "^5.3.1",
+    "vitest": "^3.2.4"
+  }
+}

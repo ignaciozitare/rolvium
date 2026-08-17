@@ -1,0 +1,172 @@
+/* ─── Rolvium Design Tokens ────────────────────────────────────────────────
+ *
+ * Convención:
+ *   --rv-*  →  tokens públicos usados en todos los componentes de @rolvium/ui
+ *
+ * Regla de oro:
+ *   Ningún componente hardcodea colores. Solo usa variables --rv-*.
+ *   El tema cambia asignando distintos valores a estas variables.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* ─── DARK (default) ───────────────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --rv-bg:        #0C0E14;
+  --rv-surface:   #161923;
+  --rv-surface-2: #1e2438;
+  --rv-surface-3: #252d42;
+
+  /* Borders */
+  --rv-border:    rgba(255, 255, 255, 0.07);
+  --rv-border-2:  rgba(255, 255, 255, 0.12);
+
+  /* Text */
+  --rv-text:      #e2e8f0;
+  --rv-text-2:    #94a3b8;
+  --rv-text-3:    #64748b;
+  --rv-text-dim:  #334155;
+
+  /* ── Brand / Accent ─────────────────────────────── */
+  --rv-accent:    #6366f1;
+  --rv-accent-bg: rgba(99, 102, 241, 0.15);
+  --rv-accent-glow: rgba(99, 102, 241, 0.08);
+
+  /* ── Semantic status ────────────────────────────── */
+  --rv-green:     #4ade80;
+  --rv-green-bg:  rgba(74, 222, 128, 0.12);
+  --rv-red:       #f87171;
+  --rv-red-bg:    rgba(248, 113, 113, 0.12);
+  --rv-amber:     #fbbf24;
+  --rv-amber-bg:  rgba(251, 191, 36, 0.12);
+  --rv-blue:      #60a5fa;
+  --rv-blue-bg:   rgba(96, 165, 250, 0.12);
+  --rv-purple:    #a78bfa;
+  --rv-purple-bg: rgba(167, 139, 250, 0.12);
+
+  /* ── Typography ─────────────────────────────────── */
+  --rv-font-sans:    'DM Sans', system-ui, sans-serif;
+  --rv-font-heading: 'Sora', var(--rv-font-sans);
+  --rv-font-mono:    'JetBrains Mono', monospace;
+
+  --rv-text-xs:   11px;
+  --rv-text-sm:   12px;
+  --rv-text-base: 13px;
+  --rv-text-md:   14px;
+  --rv-text-lg:   16px;
+  --rv-text-xl:   18px;
+  --rv-text-2xl:  22px;
+
+  /* ── Spacing ─────────────────────────────────────── */
+  --rv-space-1:  4px;
+  --rv-space-2:  8px;
+  --rv-space-3:  12px;
+  --rv-space-4:  16px;
+  --rv-space-5:  20px;
+  --rv-space-6:  24px;
+  --rv-space-8:  32px;
+
+  /* ── Radius ──────────────────────────────────────── */
+  --rv-radius-sm:  6px;
+  --rv-radius:     8px;
+  --rv-radius-md:  10px;
+  --rv-radius-lg:  12px;
+  --rv-radius-xl:  16px;
+  --rv-radius-full: 9999px;
+
+  /* ── Shadows ─────────────────────────────────────── */
+  --rv-shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.2);
+  --rv-shadow:     0 4px 12px rgba(0, 0, 0, 0.3);
+  --rv-shadow-lg:  0 12px 32px rgba(0, 0, 0, 0.4);
+  --rv-shadow-xl:  0 24px 64px rgba(0, 0, 0, 0.5);
+
+  /* ── Motion ──────────────────────────────────────── */
+  --rv-ease:       all 0.15s ease;
+  --rv-ease-slow:  all 0.25s ease;
+
+  /* ── Layout ──────────────────────────────────────── */
+  --rv-topbar-h:   48px;
+  --rv-sidebar-w:  180px;
+}
+
+/* ─── LIGHT OVERRIDE ───────────────────────────────────────────────────────── */
+.light {
+  --rv-bg:        #f1f5f9;
+  --rv-surface:   #ffffff;
+  --rv-surface-2: #f8fafc;
+  --rv-surface-3: #f1f5f9;
+
+  --rv-border:    rgba(0, 0, 0, 0.08);
+  --rv-border-2:  rgba(0, 0, 0, 0.14);
+
+  --rv-text:      #0f172a;
+  --rv-text-2:    #475569;
+  --rv-text-3:    #64748b;
+  --rv-text-dim:  #94a3b8;
+
+  --rv-accent:    #6366f1;
+  --rv-accent-bg: rgba(99, 102, 241, 0.08);
+  --rv-accent-glow: rgba(99, 102, 241, 0.05);
+
+  --rv-green:     #16a34a;
+  --rv-green-bg:  rgba(22, 163, 74, 0.10);
+  --rv-red:       #dc2626;
+  --rv-red-bg:    rgba(220, 38, 38, 0.10);
+  --rv-amber:     #d97706;
+  --rv-amber-bg:  rgba(217, 119, 6, 0.10);
+  --rv-blue:      #2563eb;
+  --rv-blue-bg:   rgba(37, 99, 235, 0.10);
+  --rv-purple:    #7c3aed;
+  --rv-purple-bg: rgba(124, 58, 237, 0.10);
+
+  --rv-shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.06);
+  --rv-shadow:     0 4px 12px rgba(0, 0, 0, 0.10);
+  --rv-shadow-lg:  0 12px 32px rgba(0, 0, 0, 0.12);
+  --rv-shadow-xl:  0 24px 64px rgba(0, 0, 0, 0.16);
+}
+
+/* ─── Global resets ────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: var(--rv-font-sans);
+  background: var(--rv-bg);
+  color: var(--rv-text);
+  overflow: hidden;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--rv-surface); }
+::-webkit-scrollbar-thumb { background: var(--rv-surface-2); border-radius: 3px; }
+
+/* ─── Select options ────────────────────────────────────────────────────────── */
+select option { background: var(--rv-surface); }
+
+/* ─── Date input ────────────────────────────────────────────────────────────── */
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.4); }
+
+/* ─── Animations ────────────────────────────────────────────────────────────── */
+@keyframes rv-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rv-pulse {
+  from { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }
+  to   { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0); }
+}
+
+@keyframes rv-spin {
+  to { transform: rotate(360deg); }
+}
+
+.rv-fade-in { animation: rv-fade-in 0.15s ease; }

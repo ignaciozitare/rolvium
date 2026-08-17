@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@rolvium/shared-types": ["./packages/shared-types/src/index.ts"],
+      "@rolvium/i18n":         ["./packages/i18n/src/index.tsx"],
+      "@rolvium/ui":           ["./packages/ui/src/index.ts"]
+    }
+  },
+  "include": []
+}

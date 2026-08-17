@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.local
+*.local
+.DS_Store
+.vercel/
+.vscode/
+*.tsbuildinfo
+rolvium.pen.bak-*
+apps/api/.vercel/
+
+# Claude Code local settings — machine-local; never commit
+.claude/settings.local.json
