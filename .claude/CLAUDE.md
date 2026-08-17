@@ -346,6 +346,10 @@ These rules apply while writing code. The QA Agent will verify them before any m
 - `specs/SPEC.md` is the global index that references all individual specs.
 - Always read the relevant SPEC.md before starting any work on that area.
 - Update the SPEC.md when functionality changes, after it is stable in production.
+- **Game systems (`packages/system-*`): the rulebook is the source of truth.** Each system package keeps a
+  `RULES.md` digest (own words + page numbers + «⚠ interpretación» where the book is silent). Any engine change
+  is checked against the book first, then RULES.md is corrected, then the code — never the other way round
+  (owner rule, 2026-08-17: «con respecto a las reglas el manual manda»).
 
 ---
 

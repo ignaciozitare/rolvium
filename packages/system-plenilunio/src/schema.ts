@@ -2,7 +2,7 @@
 // Declares the character sheet as data (sections + fields) so the platform's
 // generic <Sheet> renders it. Field ids are the keys of the sheet's `data` jsonb.
 // Derived fields (`derived: true`) are computed by engine.derived and are not
-// stored by newSheet(). Manual pages: stats p.20, roll p.84, state p.98, p.90.
+// stored by newSheet(). Manual pages: stats p.20–21, roll p.82–84, state p.98–99, p.88–89. See RULES.md.
 import type { FieldDef, SectionDef, SheetData, SheetSchema } from '@rolvium/core';
 import {
   ARMOURS, DIFFICULTIES, EQUIPMENT, GIFTS, HEALTH_LEVELS, SIZES, STAT_IDS, WEAPONS, specialtiesFor, type HealthId, type StatId,
@@ -19,12 +19,12 @@ export interface GiftRow { id: string; level: number }
 /** Row of the `equipment` list. */
 export interface EquipmentRow { id: string; label?: string }
 
-/** Character-creation presets (points / max per stat) exactly as the prototype. */
+/** Character-creation presets (points / max per stat), manual p.21: 16/5 · 21/5 · 25/6 · 30/10. */
 export const PRESETS = [
   { id: 'human', points: 16, maxStat: 5 },
   { id: 'standard', points: 21, maxStat: 5 },
   { id: 'legendary', points: 25, maxStat: 6 },
-  { id: 'mythic', points: 30, maxStat: 7 },
+  { id: 'mythic', points: 30, maxStat: 10 },
 ] as const;
 export type PresetId = (typeof PRESETS)[number]['id'];
 export const DEFAULT_PRESET: PresetId = 'standard';
@@ -35,7 +35,7 @@ const yesNo = (id: string, label: string, ref?: string): FieldDef => ({
 });
 
 const statField = (id: StatId): FieldDef => ({
-  id, type: 'stat', label: `sheet.stats.${id}`, ref: 'stats', min: 1, max: 6, action: 'roll',
+  id, type: 'stat', label: `sheet.stats.${id}`, ref: 'stats', min: 1, max: 10, action: 'roll',
   itemFields: [{ id: 'specialties', type: 'select', label: 'sheet.stats.specialty', ref: 'specialty', options: specialtiesFor(id).map(s => ({ value: s.id, label: s.label })) }],
 });
 
@@ -48,7 +48,7 @@ export const sections: SectionDef[] = [
     { id: 'size', type: 'select', label: 'sheet.identity.size', ref: 'size', options: SIZES.map(s => ({ value: s.id, label: `catalog.sizes.${s.id}` })) },
   ] },
   { id: 'roll', label: 'sheet.sections.roll', layout: 'row', fields: [
-    { id: 'difficulty', type: 'select', label: 'sheet.roll.difficulty', ref: 'roll', options: DIFFICULTIES.map(d => ({ value: String(d.value), label: `roll.difficulty.${d.id}` })) },
+    { id: 'difficulty', type: 'select', label: 'sheet.roll.difficulty', ref: 'difficulty', options: DIFFICULTIES.map(d => ({ value: String(d.value), label: `roll.difficulty.${d.id}` })) },
     yesNo('useSpecialty', 'sheet.roll.specialty', 'specialty'),
     yesNo('useArmour', 'sheet.roll.armour', 'armours'),
     { id: 'extraDice', type: 'number', label: 'sheet.roll.extra', min: 0, max: 5 },
@@ -57,9 +57,11 @@ export const sections: SectionDef[] = [
   { id: 'state', label: 'sheet.sections.state', layout: 'grid', fields: [
     { id: 'endurance', type: 'number', label: 'sheet.state.endurance', ref: 'endurance', derived: true },
     { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'resistance', derived: true },
-    { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 30 },
+    { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },
     { id: 'health', type: 'health', label: 'sheet.state.health', ref: 'health', options: HEALTH_LEVELS.map(h => ({ value: h.id, label: `sheet.health.${h.id}` })) },
     { id: 'dicePenalty', type: 'number', label: 'sheet.state.dicePenalty', ref: 'health', derived: true },
+    yesNo('unconscious', 'sheet.state.unconscious', 'health'),
+    { id: 'recoveryMax', type: 'number', label: 'sheet.state.recoveryMax', ref: 'recovery', derived: true },
     { id: 'destiny', type: 'counter', label: 'sheet.state.destiny', ref: 'destiny', min: 1, max: 10 },
     { id: 'fortuneMax', type: 'number', label: 'sheet.state.fortuneMax', ref: 'fortune', derived: true },
     { id: 'fortune', type: 'counter', label: 'sheet.state.fortune', ref: 'fortune', min: 0, max: 10 },

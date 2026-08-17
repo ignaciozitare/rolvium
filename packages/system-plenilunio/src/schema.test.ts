@@ -7,13 +7,13 @@ describe('sheetSchema', () => {
   it('has the expected sections and field types', () => {
     expect(sheetSchema.version).toBe('1');
     expect(sections.map(s => s.id)).toEqual(['identity', 'roll', 'stats', 'state', 'armour', 'weapons', 'gifts', 'equipment', 'story', 'creation']);
-    for (const id of STAT_IDS) expect(fieldById(id)).toMatchObject({ type: 'stat', action: 'roll', min: 1, max: 6 });
+    for (const id of STAT_IDS) expect(fieldById(id)).toMatchObject({ type: 'stat', action: 'roll', min: 1, max: 10 });
     expect(fieldById('weapons')).toMatchObject({ type: 'table', action: 'attack' });
     expect(fieldById('gifts')).toMatchObject({ type: 'list', action: 'gift.activate' });
     expect(fieldById('health')?.options?.map(o => o.value)).toEqual(['healthy', 'bruised', 'wounded', 'badlyWounded', 'dead']);
   });
   it('marks derived fields', () => {
-    for (const id of ['endurance', 'resistanceMax', 'fortuneMax', 'dicePenalty', 'protection', 'armourPenalty', 'giftPoints']) expect(fieldById(id)?.derived).toBe(true);
+    for (const id of ['endurance', 'resistanceMax', 'recoveryMax', 'fortuneMax', 'dicePenalty', 'protection', 'armourPenalty', 'giftPoints']) expect(fieldById(id)?.derived).toBe(true);
     expect(fieldById('resistance')?.derived).toBeFalsy();
   });
   it('every field label and option label resolves in es and en', () => {
@@ -35,7 +35,7 @@ describe('newSheet', () => {
   });
   it('defaults follow the rules: destiny 3, fortune 3, healthy, medium size, no armour, stats at 1', () => {
     const s = newSheet();
-    expect(s).toMatchObject({ destiny: 3, fortune: 3, health: 'healthy', size: 'medium', armour: 'none', difficulty: '2', useSpecialty: 'no', extraDice: 0, xp: 0, weapons: [], gifts: [], equipment: [], story: '', preset: 'standard' });
+    expect(s).toMatchObject({ destiny: 3, fortune: 3, health: 'healthy', size: 'medium', armour: 'none', difficulty: '2', useSpecialty: 'no', unconscious: 'no', extraDice: 0, xp: 0, weapons: [], gifts: [], equipment: [], story: '', preset: 'standard' });
     for (const id of STAT_IDS) expect(statOf(s, id)).toEqual({ value: 1, specialties: [] });
   });
   it('defaultFor is total over field types', () => {

@@ -12,14 +12,14 @@ Building the v1 hexagons in order (map: ARCHITECTURE.md "Product hexagons"; spec
 - **identity (H1)** shipped: `/signup`, `/join`, `/join/:code` (public preview `GET /invites/:code`), `/forgot` → `/reset`, `/account`
   (profile+avatar, password, devices via `auth.sessions` RPCs, language & theme). `ThemeProvider` + `PreferencesSync` in shared/hooks,
   `AuthShell` hero shared by Auth screens, user menu → «Cuenta». Migration `20260818000000_identity_profile_sessions_avatars.sql`.
-  Owner still owes the light/dark pass on those routes (QA manual step).
+  Light/dark pass on those routes confirmed by owner 2026-08-17.
 - **characters (H4) slice 1** shipped and verified with curl (player/DM RLS, audit, xp guard, claim, origin-tagged update):
   - Migration `20260818100000_characters.sql`: `characters` (campaign, owner nullable = «sin asignar», kind pc/npc, name, concept,
     avatar/token/color, `data` jsonb, `derived`, `health`, `xp`, archived, created_by), `characters_audit` (trigger-written, DM-only read,
     origin sheet|roll|damage|progression|dm|system via `set_config('rolvium.audit_origin')`), guard trigger (players: no campaign/kind/
     owner/archive changes; xp only if `campaigns.progression_enabled`), RPCs `characters_claim(cid)`, `characters_update_with_origin(cid,
     patch, origin)` (SECURITY INVOKER; 'dm' gated to DM), FK `campaigns_members.character_id`, bucket `tokens`.
-  - `packages/system-plenilunio` 0.2.0 = real `GameSystem`: `schema.ts` (sheetSchema, newSheet, PRESETS 16/21/25/30 max 5/5/6/7,
+  - `packages/system-plenilunio` 0.2.0 = real `GameSystem` audited vs the manual (`RULES.md`): `schema.ts` (sheetSchema, newSheet, PRESETS 16/21/25/30 max 5/5/6/10,
     readers statOf/healthOf/weaponsOf/giftsOf), `catalogs.ts` (WEAPONS/ARMOURS/EQUIPMENT/27 GIFTS/SPECIALTIES/SIZES/BESTIARY/DIFFICULTIES),
     `references.ts` (17 keys), `engine.ts` (classify/applyArmour/resolveAction/derived/poolFor/resolve/applyDamage/progression/actions
     attack.melee·attack.ranged·gift.activate; RollRequest.options = {stat, specialty?, armourPenalty?, extraDice?, destinyDice?≤5,
@@ -29,7 +29,7 @@ Building the v1 hexagons in order (map: ARCHITECTURE.md "Product hexagons"; spec
   - Web `apps/web/src/modules/characters/`: `domain/entities/Character.ts`, `domain/ports/CharactersPort.ts` (listMine, listByCampaign,
     getById, create, update(patch, origin), claim, remove, listAudit, uploadImage), `domain/useCases/characterRules.ts`,
     `infra/SupabaseCharactersRepo.ts`, `container.ts` (`charactersRepo`). **No UI, no routes yet.**
-- Tests: web 102 · api 15 · system-plenilunio 48; typecheck OK; audit 0 hard; builds OK.
+- Tests: web 102 · api 15 · system-plenilunio 60; typecheck OK; audit 0 hard; builds OK.
 - Local test data (wiped by `db:reset`): players marta2@ejemplo.com / pip@ejemplo.com (pw supersecret1); campaign "Test chars" (DM admin).
 - Known: `npm run dev:api` broken (pre-existing tsx watch arg order) → `cd apps/api && npx tsx --env-file=.env src/server.ts`.
 
@@ -73,7 +73,7 @@ rolvium.pen. Flujo: design(check) → dev → review → qa».
 2. Then `dice` (H6), `maps`, `chat/journal`, DM panel. Pending small items: DM management UI (regenerate code, requests, kick, archive,
    next session), leave campaign, WebP background, unit tests for packages/core, `campaigns_players_count` N+1 → set-returning RPC,
    fix `dev:api` script, `/systems` page (designed mTux7/J6LAv).
-3. Owner decisions pending: preset 30 max stat 7 (prototype) vs 10 (old spec); confirm gift/specialty English names with the manual.
+3. Resolved 2026-08-17: rules audited against the manual → `packages/system-plenilunio/RULES.md` is the digest (preset 30 = max 10; Resistencia sin tope; daño con triunfos doblados; recuperación; inconsciente; 20 especialidades añadidas; páginas de references corregidas; 60 tests). Owner confirmed light/dark on identity routes. Open: base bestiary «Solitario/Chatarrero» are prototype templates, not book stat blocks (RULES §8).
 
 ## 🚫 Blockers / notes
 - No hosted Supabase (owner plan allows 2 projects) → local only; Vercel + `supabase link`/`db push` when table+characters+dice are playable.

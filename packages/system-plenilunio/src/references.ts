@@ -6,23 +6,25 @@ import type { References, RuleReference } from '@rolvium/core';
 
 const ref = (key: string, page: number): [string, RuleReference] => [key, { page, title: `ref.${key}.title`, summary: `ref.${key}.summary` }];
 
-/** Manual pages as listed in the validated prototype (REFERENCIAS) plus sizes (p.25) and damage (p.98). */
+/** Printed manual pages, verified against the book (see RULES.md §9). */
 export const references: References = Object.fromEntries([
   ref('stats', 20),
-  ref('specialty', 85),
-  ref('roll', 84),
-  ref('degree', 87),
-  ref('setback', 88),
-  ref('destinyPool', 90),
-  ref('destiny', 90),
-  ref('fortune', 90),
+  ref('specialty', 83),
+  ref('roll', 82),
+  ref('difficulty', 84),
+  ref('degree', 85),
+  ref('setback', 86),
+  ref('destinyPool', 88),
+  ref('destiny', 88),
+  ref('fortune', 89),
   ref('endurance', 98),
   ref('resistance', 98),
-  ref('health', 98),
-  ref('damage', 98),
+  ref('health', 99),
+  ref('damage', 97),
   ref('weapons', 97),
   ref('armours', 98),
-  ref('gifts', 104),
+  ref('recovery', 101),
+  ref('gifts', 102),
   ref('xp', 91),
   ref('size', 25),
 ]);

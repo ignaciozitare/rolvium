@@ -5,7 +5,7 @@
 // platform generates dice on the server and calls `resolve`.
 import type { ActionDef, DiceGroup, Engine, RollRequest, RollResult, RolledDice, SharedResourceDef, SheetData, SheetPatch } from '@rolvium/core';
 import {
-  GIFT_IDS, GIFT_MAX_LEVEL, HEALTH_LEVELS, armourById, isMelee, isStatId, sizeMod, weaponById,
+  GIFT_IDS, GIFT_MAX_LEVEL, HEALTH_LEVELS, RANGE_DIFFICULTY, RECOVERY, armourById, isMelee, isStatId, sizeMod, weaponById,
   type HealthId, type StatId, type WeaponData,
 } from './catalogs';
 import { giftsOf, healthOf, num, statOf, str, weaponsOf, type GiftRow, type WeaponRow } from './schema';
@@ -13,24 +13,24 @@ import { giftsOf, healthOf, num, statOf, str, weaponsOf, type GiftRow, type Weap
 export const SYSTEM_ID = 'plenilunio';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-/** Shared Destiny pool (manual p.90): 10 dice, up to 5 per roll, players take, DM resets. */
+/** Shared Destiny pool (manual p.88–89): 10 dice by default, up to 5 per roll, players take, DM resets. */
 export const DESTINY_POOL = { max: 10, initial: 10, perTakeMax: 5 } as const;
 export const DESTINY_MAX = 10;
-export const RESISTANCE_CAP = 30;
+/** Highest value reachable with XP (manual p.91 only prices up to 6; creation presets may go higher, p.21). */
 export const STAT_MAX = 6;
 /** XP costs (manual p.91). */
 export const XP_COSTS = { statTo5: 20, statTo6: 40, newSpecialty: 10, changeSpecialty: 3, gift: 10 } as const;
 export const GIFT_ACTIVATION_COST = 1;
 
-// ─── Derived values (manual p.98, p.90, p.25) ────────────────────────────────
+// ─── Derived values (manual p.25, p.89, p.98–101) ────────────────────────────
 export interface Derived {
-  endurance: number; resistanceMax: number; fortuneMax: number; dicePenalty: number; healthIndex: number;
+  endurance: number; resistanceMax: number; recoveryMax: number; fortuneMax: number; dicePenalty: number; healthIndex: number;
   protection: number; armourPenalty: number; giftPoints: number;
 }
 export const healthIndexOf = (h: HealthId) => HEALTH_LEVELS.findIndex(l => l.id === h);
 export const healthPenaltyOf = (h: HealthId) => HEALTH_LEVELS[healthIndexOf(h)]?.penalty ?? 0;
 
-/** Endurance = Fortitude + Will ± size (min 1); Resistance = Endurance×3 capped at 30; Fortune max = Destiny. */
+/** Endurance = Fortitude + Will ± size (min 1); Resistance = Endurance×3 (p.25, no cap); recoveryMax = what rest restores at the current health (p.101); Fortune max = Destiny. */
 export function derived(sheet: SheetData): Derived {
   const endurance = Math.max(1, statOf(sheet, 'fortitude').value + statOf(sheet, 'will').value + sizeMod(sheet.size));
   const health = healthOf(sheet);
@@ -39,7 +39,8 @@ export function derived(sheet: SheetData): Derived {
   const spent = giftsOf(sheet).reduce((s, g) => s + num(g.level), 0);
   return {
     endurance,
-    resistanceMax: Math.min(RESISTANCE_CAP, endurance * 3),
+    resistanceMax: endurance * 3,
+    recoveryMax: endurance * RECOVERY[health].restFactor,
     fortuneMax: destiny,
     dicePenalty: healthPenaltyOf(health),
     healthIndex: healthIndexOf(health),
@@ -49,7 +50,7 @@ export function derived(sheet: SheetData): Derived {
   };
 }
 
-// ─── Dice classification (manual p.84) ───────────────────────────────────────
+// ─── Dice classification (manual p.82) ───────────────────────────────────────
 export interface Tally { fumbles: number; misses: number; successes: number; triumphs: number }
 /** 1 fumble · 2–3 miss · 4–5 success · 6 triumph. */
 export function classify(dice: readonly number[]): Tally {
@@ -71,57 +72,65 @@ export function applyArmour(t: Tally, penalty: number): { tally: Tally; converte
   return { tally: t, converted: 0 };
 }
 
-export interface ResolveInput { own: readonly number[]; destiny?: readonly number[]; opposition?: readonly number[]; specialty?: boolean; armourPenalty?: number }
+export interface ResolveInput {
+  own: readonly number[]; destiny?: readonly number[]; opposition?: readonly number[];
+  specialty?: boolean; armourPenalty?: number;
+  /** In conflicts the rival may apply a specialty too (p.85): their triumphs count double. Never for difficulty dice (p.84). */
+  oppositionSpecialty?: boolean;
+}
 export interface Outcome {
   own: Tally; destiny: Tally; opposition: Tally;
   ownHits: number; destinyHits: number; oppositionHits: number;
   /** ownHits + destinyHits − oppositionHits: >0 success degree, <0 failure degree, 0 ambiguous. */
   difference: number;
-  setback: boolean; destinyUp: boolean; armourConverted: number; specialty: boolean;
+  setback: boolean; destinyUp: boolean; armourConverted: number; specialty: boolean; oppositionSpecialty: boolean;
 }
 /**
- * Full resolution (manual p.84–90): specialty doubles own triumphs (p.85); Destiny dice always double and a
- * triumph among them raises Destiny (p.90); setback = no raw hit at all and ≥1 fumble (p.88).
+ * Full resolution (manual p.82–89): specialty doubles own triumphs (p.83); Destiny dice always double and a
+ * triumph among them raises Destiny (p.89); setback = no raw hit at all and ≥1 fumble (p.86).
  */
 export function resolveAction(input: ResolveInput): Outcome {
   const specialty = !!input.specialty;
+  const oppositionSpecialty = !!input.oppositionSpecialty;
   const { tally: own, converted } = applyArmour(classify(input.own), input.armourPenalty ?? 0);
   const destiny = classify(input.destiny ?? []);
   const opposition = classify(input.opposition ?? []);
   const ownHits = own.successes + own.triumphs * (specialty ? 2 : 1);
   const destinyHits = destiny.successes + destiny.triumphs * 2;
-  const oppositionHits = opposition.successes + opposition.triumphs;
+  const oppositionHits = opposition.successes + opposition.triumphs * (oppositionSpecialty ? 2 : 1);
   const raw = own.successes + own.triumphs + destiny.successes + destiny.triumphs;
   return {
     own, destiny, opposition, ownHits, destinyHits, oppositionHits,
     difference: ownHits + destinyHits - oppositionHits,
     setback: raw === 0 && own.fumbles + destiny.fumbles > 0,
     destinyUp: destiny.triumphs > 0,
-    armourConverted: converted, specialty,
+    armourConverted: converted, specialty, oppositionSpecialty,
   };
 }
 
-/** Degree of success/failure (manual p.87) as an i18n key of this package. */
+/** Degree of success/failure (manual p.85) as an i18n key of this package. */
 export function degreeKey(difference: number): string {
   if (difference === 0) return 'roll.degree.ambiguous';
   if (difference > 0) return difference <= 3 ? `roll.degree.success.${difference}` : 'roll.degree.success.absolute';
   return -difference <= 3 ? `roll.degree.failure.${-difference}` : 'roll.degree.failure.absolute';
 }
 
-// ─── Pools (manual p.84, p.90, p.97) ─────────────────────────────────────────
+// ─── Pools (manual p.82–84, p.88, p.97) ──────────────────────────────────────
 /** Shape of `RollRequest.options` produced by this system. */
 export interface PlenilunioRollOptions {
   stat: StatId;
   specialty?: boolean;
   /** Armour penalty applied on this roll (0 = ignored). */
   armourPenalty?: number;
+  /** Rival applies a specialty (conflicts only, p.85). */
+  oppositionSpecialty?: boolean;
   extraDice?: number;
   /** Destiny-pool dice taken (≤ perTakeMax, none at Destiny 10). */
   destinyDice?: number;
   /** Opposition dice (challenge difficulty 1/2/3/5/6 or an opponent's pool). */
   difficulty?: number;
-  /** Set by actions. */
-  weaponId?: string; ranged?: boolean; weaponDamage?: number; bonusDice?: number; giftId?: string;
+  /** Set by actions. `range` picks the ranged difficulty (p.96) when no explicit difficulty is given. */
+  weaponId?: string; ranged?: boolean; range?: keyof typeof RANGE_DIFFICULTY; weaponDamage?: number; bonusDice?: number; giftId?: string;
 }
 export const readOptions = (o: Record<string, unknown> | undefined): Partial<PlenilunioRollOptions> => (o ?? {}) as Partial<PlenilunioRollOptions>;
 
@@ -160,14 +169,19 @@ export function poolFor(sheet: SheetData, action: { stat: string; options?: Reco
 const diceByTag = (request: RollRequest, dice: RolledDice, tag: string): number[] =>
   request.groups.flatMap((g, i) => (g.tag === tag ? (dice[i] ?? []) : []));
 
-/** Damage potential of an attack (manual p.97–98): opposition cancels successes first, triumphs last; success = 1, triumph = weapon damage. */
+/**
+ * Damage of a winning attack (manual p.97). Cancellation: opposition hits cancel plain successes first, triumphs last;
+ * a doubled triumph (specialty / Destiny die) may be half-cancelled. Then: success = 1, triumph = weapon damage,
+ * doubled triumph = 2× weapon damage, half-cancelled doubled triumph = 1× weapon damage.
+ * Implemented as units: success = 1 unit worth 1; plain triumph = 1 unit worth `weaponDamage`; doubled triumph = 2 units worth `weaponDamage` each.
+ */
 export function attackDamage(o: Outcome, weaponDamage: number): number {
   let successes = o.own.successes + o.destiny.successes;
-  let triumphs = o.own.triumphs + o.destiny.triumphs;
+  let triumphUnits = o.own.triumphs * (o.specialty ? 2 : 1) + o.destiny.triumphs * 2;
   let cancel = o.oppositionHits;
   const fromSuccesses = Math.min(cancel, successes); successes -= fromSuccesses; cancel -= fromSuccesses;
-  const fromTriumphs = Math.min(cancel, triumphs); triumphs -= fromTriumphs;
-  return successes + triumphs * Math.max(1, weaponDamage);
+  triumphUnits -= Math.min(cancel, triumphUnits);
+  return successes + triumphUnits * Math.max(1, weaponDamage);
 }
 
 /** Server-side resolution: classifies each tagged group and returns summary key + all numbers + effects. */
@@ -175,7 +189,7 @@ export function resolve(request: RollRequest, dice: RolledDice, sheet?: SheetDat
   const opts = readOptions(request.options);
   const o = resolveAction({
     own: diceByTag(request, dice, 'own'), destiny: diceByTag(request, dice, 'destiny'), opposition: diceByTag(request, dice, 'opposition'),
-    specialty: !!opts.specialty, armourPenalty: num(opts.armourPenalty),
+    specialty: !!opts.specialty, armourPenalty: num(opts.armourPenalty), oppositionSpecialty: !!opts.oppositionSpecialty,
   });
   const detail: Record<string, unknown> = {
     stat: opts.stat, own: o.own, destiny: o.destiny, opposition: o.opposition,
@@ -194,21 +208,38 @@ export function resolve(request: RollRequest, dice: RolledDice, sheet?: SheetDat
   return { summary: o.setback ? 'roll.summary.setback' : degreeKey(o.difference), detail, effects, total: o.difference };
 }
 
-// ─── Damage & health (manual p.98) ───────────────────────────────────────────
-/** Protection subtracts; every full multiple of Endurance marks one health level; boxes go down by the net damage. */
-export function applyDamage(sheet: SheetData, damage: number): SheetPatch {
+// ─── Damage & health (manual p.89, p.98–101) ─────────────────────────────────
+/**
+ * Protection subtracts; every full multiple of Endurance in one blow marks one health level (4× = dead); Resistance
+ * goes down by the net damage and dropping below 0 leaves the character unconscious (p.98).
+ * `fortune` = Fortune points spent to lower the wound's severity, one level each (p.89); Resistance is still lost.
+ */
+export function applyDamage(sheet: SheetData, damage: number, fortune = 0): SheetPatch {
   const d = derived(sheet);
   const net = Math.max(0, Math.floor(damage) - d.protection);
-  const levels = net >= d.endurance ? Math.floor(net / d.endurance) : 0;
+  const levels = Math.max(0, Math.floor(net / d.endurance) - Math.max(0, Math.floor(fortune)));
   const idx = Math.min(HEALTH_LEVELS.length - 1, d.healthIndex + levels);
   const health = HEALTH_LEVELS[idx]?.id ?? 'dead';
-  return { resistance: Math.max(0, num(sheet.resistance) - net), health };
+  const remaining = num(sheet.resistance) - net;
+  const patch: SheetPatch = { resistance: Math.max(0, remaining), health };
+  if (net > 0 && remaining < 0) patch.unconscious = 'yes';
+  if (fortune > 0) patch.fortune = Math.max(0, num(sheet.fortune) - Math.floor(fortune));
+  return patch;
 }
 
-/** Fortune spend/refill helpers (manual p.90). */
+/** Fortune spend/refill helpers (manual p.89–90). */
 export const spendFortune = (sheet: SheetData, amount = 1): SheetPatch | null =>
   num(sheet.fortune) >= amount ? { fortune: num(sheet.fortune) - amount } : null;
 export const refillFortune = (sheet: SheetData): SheetPatch => ({ fortune: derived(sheet).fortuneMax });
+/** «Recobrar el aliento» (p.89): 1 Fortune → regain half of the Resistance lost (rounded down, ⚠ interpretación). */
+export function catchBreath(sheet: SheetData): SheetPatch | null {
+  if (num(sheet.fortune) < 1) return null;
+  const d = derived(sheet);
+  const lost = Math.max(0, d.resistanceMax - num(sheet.resistance));
+  return { fortune: num(sheet.fortune) - 1, resistance: Math.min(d.resistanceMax, num(sheet.resistance) + Math.floor(lost / 2)) };
+}
+/** Rest after the scene (p.101): Resistance back to what the current health level allows (×3 / ×2 / ×1 Endurance). */
+export const rest = (sheet: SheetData): SheetPatch => ({ resistance: Math.max(num(sheet.resistance), derived(sheet).recoveryMax), unconscious: 'no' });
 
 /** Ammo bookkeeping for ranged weapons (manual p.97). */
 export function weaponData(row: WeaponRow): WeaponData | null {
@@ -294,6 +325,8 @@ const attackRequest = (sheet: SheetData, itemId: string, options: Record<string,
   const data = weaponData(row) ?? { bonus: 0, damage: 0, strength: true, range: 'melee' as const, magazine: null };
   const weaponDamage = data.strength ? statOf(sheet, 'fortitude').value + data.damage : data.damage;
   const extra: Partial<PlenilunioRollOptions> = { weaponId: itemId, ranged, weaponDamage, bonusDice: ranged ? 0 : data.bonus };
+  const range = readOptions(options).range;
+  if (ranged && range && options?.difficulty === undefined && RANGE_DIFFICULTY[range] !== undefined) extra.difficulty = RANGE_DIFFICULTY[range];
   const req = poolFor(sheet, { stat: 'combat', options: { ...(options ?? {}), ...extra } });
   return { ...req, title: `catalog.weapons.${itemId}` };
 };

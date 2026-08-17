@@ -11,7 +11,7 @@ export type StatId = (typeof STAT_IDS)[number];
 export const isStatId = (v: unknown): v is StatId => typeof v === 'string' && (STAT_IDS as readonly string[]).includes(v);
 
 // ─── Health levels ───────────────────────────────────────────────────────────
-/** Health levels and their dice penalty (manual p.98). Order matters: index = severity. */
+/** Health levels and their dice penalty (manual p.98–99). Order matters: index = severity. Unconscious (Resistance spent) is a separate flag. */
 export const HEALTH_LEVELS = [
   { id: 'healthy', penalty: 0 },
   { id: 'bruised', penalty: 0 },
@@ -84,8 +84,8 @@ export const EQUIPMENT_IDS = [
 ] as const;
 export const EQUIPMENT: CatalogItem[] = EQUIPMENT_IDS.map(id => ({ id, label: `catalog.equipment.${id}` }));
 
-// ─── Gifts (manual p.102+) ───────────────────────────────────────────────────
-/** 27 gifts. Names are game values; the summary key holds our own one-liner. */
+// ─── Gifts (manual p.102–107) ────────────────────────────────────────────────
+/** 27 gifts (activation 1 Fortune, levels 1–5). Names are game values; the summary key holds our own one-liner. */
 export const GIFT_IDS = [
   'realityAllegory', 'steelDefense', 'meltIntoShadows', 'titanFury', 'illOmenGesture', 'preciseStrike', 'wordGuardian',
   'spiritThreads', 'beastTongue', 'spiritualCleansing', 'innerSpring', 'immaterialHand', 'healingHands', 'protectionMantle',
@@ -98,22 +98,22 @@ export const GIFTS: CatalogItem[] = GIFT_IDS.map(id => ({
   id, label: `catalog.gifts.${id}.name`, ref: 'gifts', data: { summary: `catalog.gifts.${id}.summary`, maxLevel: GIFT_MAX_LEVEL },
 }));
 
-// ─── Specialties per stat (manual p.21–22) ───────────────────────────────────
+// ─── Specialties per stat (manual p.21–22; open list, 19/21/18/21/16/16/16 entries) ──
 export const SPECIALTIES: Record<StatId, readonly string[]> = {
-  fortitude: ['acrobatics', 'athletics', 'carrying', 'breakingDoors', 'balance', 'escapology', 'sprinting', 'riding', 'swimming', 'parkour', 'jumping', 'climbing', 'vigour', 'breakingFree'],
-  combat: ['bows', 'thrownWeapons', 'bluntWeapons', 'shortWeapons', 'improvisedWeapons', 'heavyWeapons', 'martialArts', 'crossbows', 'shotguns', 'shields', 'swords', 'axes', 'spears', 'wrestling', 'knives', 'dirtyFighting', 'rifles', 'submachineGuns'],
-  will: ['divination', 'selfEsteem', 'concentration', 'constancy', 'fanaticism', 'faith', 'hypnosis', 'integrity', 'intuition', 'meditation', 'patience', 'perseverance', 'painResistance', 'rites', 'temperance', 'courage'],
-  cunning: ['anticipation', 'searching', 'streetwise', 'cooking', 'driving', 'lieDetection', 'riddles', 'animalTraining', 'smithing', 'investigation', 'orientation', 'perception', 'piloting', 'dangerSense', 'survival', 'vigilance'],
-  subtlety: ['acting', 'camouflage', 'blackmail', 'disguise', 'dissembling', 'ambush', 'hiding', 'feigning', 'imitation', 'gambling', 'silentMovement', 'concealment', 'haggling', 'shadowing', 'ventriloquism'],
-  presence: ['singing', 'charlatanry', 'courtesy', 'empathy', 'humour', 'inspiring', 'interrogation', 'intimidation', 'leadership', 'negotiation', 'poetry', 'seduction', 'animalHandling'],
-  culture: ['art', 'sciences', 'history', 'humanities', 'languages', 'computing', 'legends', 'medicine', 'newYork', 'occultism', 'firstAid', 'psychology', 'religion', 'tactics', 'technology'],
+  fortitude: ['acrobatics', 'athletics', 'drinking', 'diving', 'carrying', 'cycling', 'dancing', 'breakingDoors', 'balance', 'escapology', 'sprinting', 'stayingAwake', 'riding', 'swimming', 'parkour', 'jumping', 'climbing', 'vigour', 'breakingFree'],
+  combat: ['bows', 'thrownWeapons', 'bluntWeapons', 'shortWeapons', 'improvisedWeapons', 'heavyWeapons', 'martialArts', 'crossbows', 'staves', 'shotguns', 'shields', 'swords', 'axes', 'spears', 'wrestling', 'maces', 'knives', 'dirtyFighting', 'nets', 'rifles', 'submachineGuns'],
+  will: ['divination', 'selfEsteem', 'concentration', 'constancy', 'fanaticism', 'faith', 'hypnosis', 'innocence', 'integrity', 'intuition', 'keepingFace', 'meditation', 'patience', 'perseverance', 'painResistance', 'rites', 'temperance', 'courage'],
+  cunning: ['anticipation', 'searching', 'streetwise', 'carpentry', 'cooking', 'driving', 'lieDetection', 'riddles', 'animalTraining', 'smithing', 'investigation', 'movingBlind', 'orientation', 'perception', 'piloting', 'dangerSense', 'timeSense', 'lightSleep', 'survival', 'vigilance', 'keenSight'],
+  subtlety: ['acting', 'camouflage', 'blackmail', 'disguise', 'dissembling', 'ambush', 'hiding', 'feigning', 'imitation', 'gambling', 'knack', 'silentMovement', 'concealment', 'haggling', 'shadowing', 'ventriloquism'],
+  presence: ['singing', 'charlatanry', 'courtesy', 'empathy', 'eroticism', 'humour', 'inspiring', 'interrogation', 'intimidation', 'leadership', 'mime', 'negotiation', 'poetry', 'seduction', 'torture', 'animalHandling'],
+  culture: ['art', 'sciences', 'history', 'humanities', 'languages', 'computing', 'legends', 'medicine', 'newYork', 'occultism', 'firstAid', 'psychology', 'religion', 'tactics', 'technology', 'conspiracyTheory'],
 };
 /** Flat catalog of specialties; `data.stat` says which characteristic they belong to. */
 export const SPECIALTY_ITEMS: CatalogItem[] = STAT_IDS.flatMap(stat =>
   SPECIALTIES[stat].map(id => ({ id: `${stat}.${id}`, label: `catalog.specialties.${stat}.${id}`, ref: 'specialty', data: { stat } })));
 export const specialtiesFor = (stat: StatId): CatalogItem[] => SPECIALTY_ITEMS.filter(s => s.data?.stat === stat);
 
-// ─── Base bestiary ───────────────────────────────────────────────────────────
+// ─── Base bestiary (mutant p.100, ogre p.152; loner/scavenger are prototype templates, not manual blocks) ──
 export interface BestiaryData { resistance: number; protection: number; notes: string }
 const b = (id: string, resistance: number, protection: number): CatalogItem & { data: BestiaryData } =>
   ({ id, label: `catalog.bestiary.${id}.name`, data: { resistance, protection, notes: `catalog.bestiary.${id}.notes` } });
@@ -123,6 +123,18 @@ export const BESTIARY = [b('mutant', 12, 2), b('loner', 18, 0), b('ogre', 30, 3)
 export const DIFFICULTIES = [
   { id: 'easy', value: 1 }, { id: 'medium', value: 2 }, { id: 'hard', value: 3 }, { id: 'veryHard', value: 5 }, { id: 'epic', value: 6 },
 ] as const;
+/** Ranged attacks are challenges against the range's difficulty (manual p.96). */
+export const RANGE_DIFFICULTY: Record<Exclude<WeaponRange, 'melee'>, number> = { short: 2, medium: 3, long: 5, veryLong: 6 };
+
+// ─── Recovery (manual p.101) ─────────────────────────────────────────────────
+/** Resting time (days) and Fortitude-roll difficulty to regain one health level; `restFactor` × Endurance = Resistance recoverable by rest. */
+export const RECOVERY: Record<HealthId, { days: number | null; difficulty: number | null; restFactor: number }> = {
+  healthy: { days: null, difficulty: null, restFactor: 3 },
+  bruised: { days: 1, difficulty: 2, restFactor: 3 },
+  wounded: { days: 7, difficulty: 3, restFactor: 2 },
+  badlyWounded: { days: 14, difficulty: 4, restFactor: 1 },
+  dead: { days: null, difficulty: null, restFactor: 0 },
+};
 
 // ─── Assembled `GameSystem.catalogs` ─────────────────────────────────────────
 export const catalogs: Catalogs = {
@@ -134,7 +146,7 @@ export const catalogs: Catalogs = {
   specialties: SPECIALTY_ITEMS,
   sizes: SIZES.map(s => ({ id: s.id, label: `catalog.sizes.${s.id}`, data: { mod: s.mod } })),
   healthLevels: HEALTH_LEVELS.map(h => ({ id: h.id, label: `sheet.health.${h.id}`, ref: 'health', data: { penalty: h.penalty } })),
-  difficulties: DIFFICULTIES.map(d => ({ id: d.id, label: `roll.difficulty.${d.id}`, ref: 'roll', data: { value: d.value } })),
+  difficulties: DIFFICULTIES.map(d => ({ id: d.id, label: `roll.difficulty.${d.id}`, ref: 'difficulty', data: { value: d.value } })),
   bestiary: BESTIARY,
 };
 

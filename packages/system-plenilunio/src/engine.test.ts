@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  applyArmour, applyDamage, attackDamage, classify, degreeKey, derived, engine, poolFor, progressionApply, progressionCost, reload,
-  resolve, resolveAction, sharedResources, spendAmmo, actions, XP_COSTS, DESTINY_POOL,
+  applyArmour, applyDamage, attackDamage, catchBreath, classify, degreeKey, derived, engine, poolFor, progressionApply, progressionCost, reload,
+  resolve, resolveAction, rest, sharedResources, spendAmmo, actions, XP_COSTS, DESTINY_POOL, STAT_MAX,
 } from './engine';
 import { newSheet, type StatValue } from './schema';
 import { budgetOf, generator, canAdjustStat, finalizeDraft } from './generator';
@@ -10,7 +10,7 @@ import type { SheetData } from '@rolvium/core';
 const stat = (value: number, specialties: string[] = []): StatValue => ({ value, specialties });
 const sheet = (over: SheetData = {}): SheetData => ({ ...newSheet(), fortitude: stat(3), will: stat(2), combat: stat(4), destiny: 3, fortune: 3, resistance: 15, ...over });
 
-describe('classify (manual p.84)', () => {
+describe('classify (manual p.82)', () => {
   it('1 fumble · 2–3 miss · 4–5 success · 6 triumph', () => {
     expect(classify([1, 2, 3, 4, 5, 6])).toEqual({ fumbles: 1, misses: 2, successes: 2, triumphs: 1 });
     expect(classify([])).toEqual({ fumbles: 0, misses: 0, successes: 0, triumphs: 0 });
@@ -45,13 +45,19 @@ describe('resolveAction', () => {
     expect(resolveAction({ own: [1], destiny: [6] }).setback).toBe(false);
     expect(resolveAction({ own: [2], destiny: [1] }).setback).toBe(true);
   });
-  it('difference = own + destiny − opposition (opposition triumphs count 1)', () => {
+  it('difference = own + destiny − opposition (difficulty triumphs count 1, p.84)', () => {
     const r = resolveAction({ own: [4, 5], destiny: [6], opposition: [6, 4, 2] });
     expect(r).toMatchObject({ ownHits: 2, destinyHits: 2, oppositionHits: 2, difference: 2 });
   });
+  it('p.85 conflict: the rival may apply a specialty (their triumphs count double)', () => {
+    // Armand Cunning [2,2,6] vs hidden figure Subtlety+«Esconderse» [1,3,6,6] → 1 vs 4, three in favour of the rival.
+    const r = resolveAction({ own: [2, 2, 6], opposition: [1, 3, 6, 6], oppositionSpecialty: true });
+    expect(r).toMatchObject({ ownHits: 1, oppositionHits: 4, difference: -3 });
+    expect(resolveAction({ own: [2, 2, 6], opposition: [1, 3, 6, 6] }).oppositionHits).toBe(2);
+  });
 });
 
-describe('degreeKey (manual p.87)', () => {
+describe('degreeKey (manual p.85)', () => {
   it('maps difference to keys', () => {
     expect(degreeKey(0)).toBe('roll.degree.ambiguous');
     expect(degreeKey(1)).toBe('roll.degree.success.1');
@@ -62,14 +68,21 @@ describe('degreeKey (manual p.87)', () => {
   });
 });
 
-describe('derived (manual p.98, p.90)', () => {
-  it('endurance = fortitude + will ± size, resistance = ×3 capped at 30, fortuneMax = destiny', () => {
+describe('derived (manual p.25, p.89, p.101)', () => {
+  it('endurance = fortitude + will ± size, resistance = ×3 (no cap), fortuneMax = destiny', () => {
     const d = derived(sheet());
-    expect(d).toMatchObject({ endurance: 5, resistanceMax: 15, fortuneMax: 3, dicePenalty: 0, protection: 0, armourPenalty: 0 });
+    expect(d).toMatchObject({ endurance: 5, resistanceMax: 15, recoveryMax: 15, fortuneMax: 3, dicePenalty: 0, protection: 0, armourPenalty: 0 });
     expect(derived(sheet({ size: 'huge' })).endurance).toBe(7);
     expect(derived(sheet({ size: 'tiny', fortitude: stat(1), will: stat(1) })).endurance).toBe(1);
-    expect(derived(sheet({ fortitude: stat(6), will: stat(6) })).resistanceMax).toBe(30);
+    expect(derived(sheet({ fortitude: stat(6), will: stat(6) })).resistanceMax).toBe(36);
     expect(derived(sheet({ destiny: 7 })).fortuneMax).toBe(7);
+  });
+  it('p.101 recoveryMax by health: ×3 healthy/bruised, ×2 wounded, ×1 badly wounded', () => {
+    expect(derived(sheet({ health: 'bruised' })).recoveryMax).toBe(15);
+    expect(derived(sheet({ health: 'wounded' })).recoveryMax).toBe(10);
+    expect(derived(sheet({ health: 'badlyWounded' })).recoveryMax).toBe(5);
+    expect(rest(sheet({ health: 'wounded', resistance: 2, unconscious: 'yes' }))).toEqual({ resistance: 10, unconscious: 'no' });
+    expect(rest(sheet({ health: 'wounded', resistance: 12 }))).toEqual({ resistance: 12, unconscious: 'no' });
   });
   it('health level sets the dice penalty and armour sets protection/penalty', () => {
     expect(derived(sheet({ health: 'wounded' })).dicePenalty).toBe(1);
@@ -139,6 +152,22 @@ describe('attacks (manual p.97)', () => {
     expect(attackDamage(o, 3)).toBe(3);
     expect(attackDamage(resolveAction({ own: [6, 4], opposition: [4, 4] }), 3)).toBe(0);
   });
+  it('p.97 doubled triumphs deal twice the weapon damage and may be half-cancelled', () => {
+    // Armand unarmed (F3) with «Artes marciales» rolls [5,6] vs mutant [2,3,4]: the success is cancelled, the doubled triumph deals 2×3 = 6.
+    expect(attackDamage(resolveAction({ own: [5, 6], opposition: [2, 3, 4], specialty: true }), 3)).toBe(6);
+    // Half-cancelled doubled triumph = plain weapon damage.
+    expect(attackDamage(resolveAction({ own: [6], opposition: [4], specialty: true }), 3)).toBe(3);
+    // Destiny-die triumphs are always doubled.
+    expect(attackDamage(resolveAction({ own: [2], destiny: [6] }), 4)).toBe(8);
+    // Without specialty a triumph is a single unit.
+    expect(attackDamage(resolveAction({ own: [6, 6], opposition: [4] }), 3)).toBe(3);
+  });
+  it('p.96 ranged attack takes the difficulty of the range when none is given', () => {
+    const req = actions.find(a => a.id === 'attack.ranged')!.toRoll(s, 'magnum44', { range: 'long' });
+    expect(req.groups.find(g => g.tag === 'opposition')?.count).toBe(5);
+    const explicit = actions.find(a => a.id === 'attack.ranged')!.toRoll(s, 'magnum44', { range: 'long', difficulty: 1 });
+    expect(explicit.groups.find(g => g.tag === 'opposition')?.count).toBe(1);
+  });
   it('spendAmmo / reload', () => {
     expect(spendAmmo(s, 'magnum44')).toMatchObject({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 1 }] });
     expect(spendAmmo(s, 'bat')).toBeNull();
@@ -153,18 +182,35 @@ describe('attacks (manual p.97)', () => {
   });
 });
 
-describe('applyDamage (manual p.98)', () => {
+describe('applyDamage (manual p.98–100)', () => {
   it('protection subtracts, boxes go down, each multiple of endurance marks a level', () => {
     const s = sheet({ armour: 'leatherJacket' }); // endurance 5, protection 1
     expect(applyDamage(s, 3)).toEqual({ resistance: 13, health: 'healthy' });
     expect(applyDamage(s, 6)).toEqual({ resistance: 10, health: 'bruised' });
     expect(applyDamage(s, 11)).toEqual({ resistance: 5, health: 'wounded' });
-    expect(applyDamage(s, 40)).toEqual({ resistance: 0, health: 'dead' });
+    expect(applyDamage(s, 40)).toEqual({ resistance: 0, health: 'dead', unconscious: 'yes' });
   });
   it('accumulates from the current level and stops at dead', () => {
     expect(applyDamage(sheet({ health: 'wounded' }), 5)).toEqual({ resistance: 10, health: 'badlyWounded' });
     expect(applyDamage(sheet({ health: 'badlyWounded' }), 10)).toEqual({ resistance: 5, health: 'dead' });
     expect(applyDamage(sheet({ health: 'dead' }), 1)).toEqual({ resistance: 14, health: 'dead' });
+  });
+  it('p.100 mutant example: 6 damage − 2 protection = 4 ≥ endurance 4 → bruised, 4 boxes', () => {
+    const mutant = sheet({ fortitude: stat(3), will: stat(1), resistance: 12, armour: 'leatherArmour' }); // protection 2 stands in for its hide
+    expect(applyDamage(mutant, 6)).toEqual({ resistance: 8, health: 'bruised' });
+  });
+  it('p.98 dropping below zero Resistance leaves the character unconscious', () => {
+    expect(applyDamage(sheet({ resistance: 2 }), 3)).toEqual({ resistance: 0, health: 'healthy', unconscious: 'yes' });
+    expect(applyDamage(sheet({ resistance: 3 }), 3)).toEqual({ resistance: 0, health: 'healthy' });
+  });
+  it('p.89 Fortune lowers wound severity one level per point; Resistance is still lost', () => {
+    expect(applyDamage(sheet({ fortune: 3 }), 10, 1)).toEqual({ resistance: 5, health: 'bruised', fortune: 2 });
+    expect(applyDamage(sheet({ fortune: 3 }), 10, 2)).toEqual({ resistance: 5, health: 'healthy', fortune: 1 });
+  });
+  it('p.89 catchBreath: 1 Fortune restores half the lost Resistance', () => {
+    expect(catchBreath(sheet({ resistance: 5, fortune: 2 }))).toEqual({ fortune: 1, resistance: 10 });
+    expect(catchBreath(sheet({ resistance: 4, fortune: 2 }))).toEqual({ fortune: 1, resistance: 9 });
+    expect(catchBreath(sheet({ resistance: 4, fortune: 0 }))).toBeNull();
   });
 });
 
@@ -174,6 +220,8 @@ describe('progression (manual p.91)', () => {
     expect(progressionCost(s, { kind: 'stat', target: 'fortitude' })).toBe(XP_COSTS.statTo5);
     expect(progressionCost(s, { kind: 'stat', target: 'will' })).toBe(XP_COSTS.statTo6);
     expect(progressionCost(s, { kind: 'stat', target: 'combat' })).toBeNull();
+    expect(STAT_MAX).toBe(6);
+    expect(progressionCost(sheet({ preset: 'mythic', cunning: stat(8) }), { kind: 'stat', target: 'cunning' })).toBeNull();
     expect(progressionCost(s, { kind: 'stat', target: 'nope' })).toBeNull();
     expect(progressionCost(s, { kind: 'specialty.new', target: 'fortitude', to: 'fortitude.climbing' })).toBe(10);
     expect(progressionCost(s, { kind: 'specialty.new', target: 'fortitude', to: 'fortitude.vigour' })).toBeNull();
@@ -209,8 +257,8 @@ describe('shared resources', () => {
 describe('generator budgets', () => {
   const draft = (over: SheetData = {}) => ({ ...newSheet(), ...over });
   it.each([
-    ['human', 16, 5], ['standard', 21, 5], ['legendary', 25, 6], ['mythic', 30, 7],
-  ])('preset %s: %i points, max %i', (preset, points, max) => {
+    ['human', 16, 5], ['standard', 21, 5], ['legendary', 25, 6], ['mythic', 30, 10],
+  ])('p.21 creation presets · %s: %i points, max %i', (preset, points, max) => {
     const b = budgetOf(draft({ preset }));
     expect(b.total).toBe(points);
     expect(b.maxStat).toBe(max);
@@ -233,6 +281,8 @@ describe('generator budgets', () => {
     expect(canAdjustStat(draft(), 'culture', 1)).toBe(true);
     expect(canAdjustStat(draft({ fortitude: stat(5) }), 'fortitude', 1)).toBe(false);
     expect(canAdjustStat(draft({ preset: 'legendary', fortitude: stat(5) }), 'fortitude', 1)).toBe(true);
+    expect(canAdjustStat(draft({ preset: 'mythic', fortitude: stat(9) }), 'fortitude', 1)).toBe(true);
+    expect(canAdjustStat(draft({ preset: 'mythic', fortitude: stat(10) }), 'fortitude', 1)).toBe(false);
     expect(canAdjustStat(draft(), 'fortitude', -1)).toBe(false);
   });
   it('specialty, destiny, gift and concept steps validate', () => {

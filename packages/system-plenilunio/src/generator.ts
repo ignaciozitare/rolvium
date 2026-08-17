@@ -1,9 +1,9 @@
 // ─── Character generator · Malefic Time: Plenilunio ──────────────────────────
-// Steps declared as data (GeneratorStep[]) with the point economy of the
-// validated prototype: presets 16/21/25/30 points (max stat 5/5/6/7), Destiny
-// 3 ± 2 (each +1 costs a point, each −1 refunds one), 1 point = 2 extra
-// specialties (max 2 trades) or 2 gift points; gift points = Destiny (+ trades).
-// Manual: stats p.20, specialties p.21–22, destiny/fortune p.90, gifts p.102+.
+// Steps declared as data (GeneratorStep[]) with the manual's point economy:
+// presets 16/21/25/30 points (max stat 5/5/6/10, p.21), Destiny 3 ± 2 (each +1
+// costs a point, each −1 refunds one, p.22–23), 1 point = 2 extra specialties
+// (max 2 trades, p.22) or 2 gift points; gift points = Destiny (+ trades), p.25.
+// See RULES.md §1.
 import type { GeneratorStep, SheetData } from '@rolvium/core';
 import { GIFT_MAX_LEVEL, STAT_IDS } from './catalogs';
 import { derived } from './engine';
