@@ -5,7 +5,7 @@ Primer sistema instalado. Implementa el puerto `GameSystem` con las reglas de *M
 (NoSoloRol) validadas contra los ejemplos del manual. Who: consumido por la plataforma; nunca importa de ella.
 
 ## Reglas que implementa (engine)
-- Características (7, 1–5; presets de creación 16/21/25/30 con máximos 5/5/6/10), especialidad por característica.
+- Características (7, 1–5; presets de creación 16/21/25/30 con máximos 5/5/6/7 (según el prototipo validado; el spec anterior decía 10 — confirmar con el manual)), especialidad por característica.
 - Derivadas: Aguante = Fortaleza + Voluntad ± tamaño · Resistencia = Aguante×3 (hasta 30 casillas) · Fortuna máx = Destino (1–10).
 - Dados d6: 1 fracaso · 2–3 fallo · 4–5 éxito · 6 triunfo; especialidad dobla triunfos; **reserva de Destino**
   (recurso compartido: 10 por defecto, hasta 5 por tirada, solo jugadores, solo el DJ reinicia; los dados de la
@@ -28,7 +28,7 @@ Primer sistema instalado. Implementa el puerto `GameSystem` con las reglas de *M
 - `theme`: papel gris `#dedcd5`, tinta `#131310`, oro `#8a7038`, sangre `#6e2418`, Cormorant Garamond, luna creciente,
   discos de salud en fases lunares, fondo `systems/plenilunio/fondo.png`. Variables `--sys-*` en el contenedor de la mesa.
 - `generator`: Concepto → Características → Especialidades → Destino → Dones → Resumen (economía de puntos y canjes).
-- `locales`: `es` completo; `en` pendiente.
+- `locales`: `es` y `en` completos (nombres de dones/especialidades en inglés = traducción provisional).
 
 ## Rules & limits (licencia)
 - Se implementan mecánicas; **no se reproducen textos del manual**: resúmenes propios, la página remite al ejemplar.

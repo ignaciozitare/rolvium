@@ -1,0 +1,259 @@
+import { describe, expect, it } from 'vitest';
+import {
+  applyArmour, applyDamage, attackDamage, classify, degreeKey, derived, engine, poolFor, progressionApply, progressionCost, reload,
+  resolve, resolveAction, sharedResources, spendAmmo, actions, XP_COSTS, DESTINY_POOL,
+} from './engine';
+import { newSheet, type StatValue } from './schema';
+import { budgetOf, generator, canAdjustStat, finalizeDraft } from './generator';
+import type { SheetData } from '@rolvium/core';
+
+const stat = (value: number, specialties: string[] = []): StatValue => ({ value, specialties });
+const sheet = (over: SheetData = {}): SheetData => ({ ...newSheet(), fortitude: stat(3), will: stat(2), combat: stat(4), destiny: 3, fortune: 3, resistance: 15, ...over });
+
+describe('classify (manual p.84)', () => {
+  it('1 fumble · 2–3 miss · 4–5 success · 6 triumph', () => {
+    expect(classify([1, 2, 3, 4, 5, 6])).toEqual({ fumbles: 1, misses: 2, successes: 2, triumphs: 1 });
+    expect(classify([])).toEqual({ fumbles: 0, misses: 0, successes: 0, triumphs: 0 });
+  });
+});
+
+describe('resolveAction', () => {
+  it('specialty doubles own triumphs only', () => {
+    const plain = resolveAction({ own: [6, 6, 4] });
+    const spec = resolveAction({ own: [6, 6, 4], specialty: true });
+    expect(plain.ownHits).toBe(3);
+    expect(spec.ownHits).toBe(5);
+  });
+  it('destiny dice always double their triumphs and flag destinyUp', () => {
+    const r = resolveAction({ own: [2], destiny: [6, 4] });
+    expect(r.destinyHits).toBe(3);
+    expect(r.destinyUp).toBe(true);
+    expect(resolveAction({ own: [2], destiny: [4, 5] }).destinyUp).toBe(false);
+  });
+  it('armour penalty converts triumphs to successes only when there is a fumble', () => {
+    expect(applyArmour(classify([6, 6, 4]), 1)).toEqual({ tally: { fumbles: 0, misses: 0, successes: 1, triumphs: 2 }, converted: 0 });
+    expect(applyArmour(classify([6, 6, 1]), 1)).toEqual({ tally: { fumbles: 1, misses: 0, successes: 1, triumphs: 1 }, converted: 1 });
+    expect(applyArmour(classify([6, 1]), 3).tally.triumphs).toBe(0);
+    const r = resolveAction({ own: [6, 6, 1], specialty: true, armourPenalty: 1 });
+    expect(r.ownHits).toBe(3); // 1 triumph doubled + 1 converted success
+    expect(r.armourConverted).toBe(1);
+  });
+  it('setback only with zero raw hits and at least one fumble', () => {
+    expect(resolveAction({ own: [1, 2, 3] }).setback).toBe(true);
+    expect(resolveAction({ own: [2, 3] }).setback).toBe(false);
+    expect(resolveAction({ own: [1, 4] }).setback).toBe(false);
+    expect(resolveAction({ own: [1], destiny: [6] }).setback).toBe(false);
+    expect(resolveAction({ own: [2], destiny: [1] }).setback).toBe(true);
+  });
+  it('difference = own + destiny − opposition (opposition triumphs count 1)', () => {
+    const r = resolveAction({ own: [4, 5], destiny: [6], opposition: [6, 4, 2] });
+    expect(r).toMatchObject({ ownHits: 2, destinyHits: 2, oppositionHits: 2, difference: 2 });
+  });
+});
+
+describe('degreeKey (manual p.87)', () => {
+  it('maps difference to keys', () => {
+    expect(degreeKey(0)).toBe('roll.degree.ambiguous');
+    expect(degreeKey(1)).toBe('roll.degree.success.1');
+    expect(degreeKey(3)).toBe('roll.degree.success.3');
+    expect(degreeKey(7)).toBe('roll.degree.success.absolute');
+    expect(degreeKey(-2)).toBe('roll.degree.failure.2');
+    expect(degreeKey(-4)).toBe('roll.degree.failure.absolute');
+  });
+});
+
+describe('derived (manual p.98, p.90)', () => {
+  it('endurance = fortitude + will ± size, resistance = ×3 capped at 30, fortuneMax = destiny', () => {
+    const d = derived(sheet());
+    expect(d).toMatchObject({ endurance: 5, resistanceMax: 15, fortuneMax: 3, dicePenalty: 0, protection: 0, armourPenalty: 0 });
+    expect(derived(sheet({ size: 'huge' })).endurance).toBe(7);
+    expect(derived(sheet({ size: 'tiny', fortitude: stat(1), will: stat(1) })).endurance).toBe(1);
+    expect(derived(sheet({ fortitude: stat(6), will: stat(6) })).resistanceMax).toBe(30);
+    expect(derived(sheet({ destiny: 7 })).fortuneMax).toBe(7);
+  });
+  it('health level sets the dice penalty and armour sets protection/penalty', () => {
+    expect(derived(sheet({ health: 'wounded' })).dicePenalty).toBe(1);
+    expect(derived(sheet({ health: 'badlyWounded' })).dicePenalty).toBe(2);
+    expect(derived(sheet({ armour: 'mailShirt' }))).toMatchObject({ protection: 5, armourPenalty: 3 });
+  });
+});
+
+describe('poolFor', () => {
+  it('builds tagged groups from stat, health penalty, extra, destiny and difficulty', () => {
+    const req = poolFor(sheet({ health: 'wounded' }), { stat: 'combat', options: { extraDice: 1, destinyDice: 2, difficulty: 3, specialty: true } });
+    expect(req.groups).toEqual([{ count: 4, sides: 6, tag: 'own' }, { count: 2, sides: 6, tag: 'destiny' }, { count: 3, sides: 6, tag: 'opposition' }]);
+    expect(req.sharedResources).toEqual({ destiny: 2 });
+    expect(req.options).toMatchObject({ stat: 'combat', specialty: true, destinyDice: 2, difficulty: 3 });
+    expect(req.systemId).toBe('plenilunio');
+  });
+  it('caps destiny dice to perTakeMax and blocks them at Destiny 10; never negative own dice', () => {
+    expect(poolFor(sheet(), { stat: 'combat', options: { destinyDice: 9, difficulty: 0 } }).groups[1]?.count).toBe(DESTINY_POOL.perTakeMax);
+    const at10 = poolFor(sheet({ destiny: 10 }), { stat: 'combat', options: { destinyDice: 2, difficulty: 0 } });
+    expect(at10.groups).toHaveLength(1);
+    expect(at10.sharedResources).toBeUndefined();
+    expect(poolFor(sheet({ fortitude: stat(1), health: 'badlyWounded' }), { stat: 'fortitude', options: { difficulty: 0 } }).groups[0]?.count).toBe(0);
+  });
+  it('reads the roll block of the sheet as defaults', () => {
+    const req = poolFor(sheet({ difficulty: '5', useSpecialty: 'yes', useArmour: 'yes', armour: 'furs', extraDice: 2 }), { stat: 'will' });
+    expect(req.groups).toEqual([{ count: 4, sides: 6, tag: 'own' }, { count: 5, sides: 6, tag: 'opposition' }]);
+    expect(req.options).toMatchObject({ specialty: true, armourPenalty: 2 });
+  });
+});
+
+describe('resolve', () => {
+  it('returns degree key summary, detail numbers and destiny effects', () => {
+    const req = poolFor(sheet(), { stat: 'combat', options: { destinyDice: 1, difficulty: 2 } });
+    const res = resolve(req, [[6, 4, 2, 1], [6], [4, 3]], sheet());
+    expect(res.detail).toMatchObject({ ownHits: 2, destinyHits: 2, oppositionHits: 1, difference: 3, destinyUp: true, setback: false });
+    expect(res.summary).toBe('roll.degree.success.3');
+    expect(res.effects).toMatchObject({ destinyUp: true, fortuneRefill: true, patch: { destiny: 4, fortune: 4 } });
+    expect(res.total).toBe(3);
+  });
+  it('flags setback in summary and effects', () => {
+    const req = poolFor(sheet(), { stat: 'will', options: { difficulty: 1 } });
+    const res = resolve(req, [[1, 2], [4]]);
+    expect(res.summary).toBe('roll.summary.setback');
+    expect(res.effects).toMatchObject({ setback: true });
+  });
+  it('destiny patch never exceeds 10', () => {
+    const req = poolFor(sheet({ destiny: 9 }), { stat: 'will', options: { destinyDice: 1, difficulty: 0 } });
+    expect(resolve(req, [[2], [6]], sheet({ destiny: 9 })).effects).toMatchObject({ patch: { destiny: 10, fortune: 10 } });
+  });
+});
+
+describe('attacks (manual p.97)', () => {
+  const s = sheet({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 2 }] });
+  it('melee adds the weapon bonus dice and F+n damage; ranged does not add bonus and spends ammo', () => {
+    const melee = actions.find(a => a.id === 'attack.melee')!.toRoll(s, 'bat', { difficulty: 0 });
+    expect(melee.groups[0]?.count).toBe(5);
+    expect(melee.options).toMatchObject({ weaponId: 'bat', weaponDamage: 4, ranged: false });
+    const ranged = actions.find(a => a.id === 'attack.ranged')!.toRoll(s, 'magnum44', { difficulty: 0 });
+    expect(ranged.groups[0]?.count).toBe(4);
+    expect(ranged.options).toMatchObject({ weaponDamage: 7, ranged: true });
+    const res = resolve(ranged, [[6, 4, 2, 2]]);
+    expect(res.effects).toMatchObject({ ammoSpent: 'magnum44' });
+    expect(res.detail?.damage).toBe(8);
+  });
+  it('opposition cancels successes before triumphs', () => {
+    const o = resolveAction({ own: [6, 4, 4], opposition: [4, 4] });
+    expect(attackDamage(o, 3)).toBe(3);
+    expect(attackDamage(resolveAction({ own: [6, 4], opposition: [4, 4] }), 3)).toBe(0);
+  });
+  it('spendAmmo / reload', () => {
+    expect(spendAmmo(s, 'magnum44')).toMatchObject({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 1 }] });
+    expect(spendAmmo(s, 'bat')).toBeNull();
+    expect(spendAmmo(sheet({ weapons: [{ id: 'magnum44', ammo: 0 }] }), 'magnum44')).toBeNull();
+    expect(reload(s, 'magnum44')).toMatchObject({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 6 }] });
+    expect(reload(s, 'bat')).toBeNull();
+  });
+  it('gift activation rolls the given stat and marks the fortune cost', () => {
+    const req = actions.find(a => a.id === 'gift.activate')!.toRoll(s, 'titanFury', { stat: 'fortitude', difficulty: 0 });
+    expect(req.title).toBe('catalog.gifts.titanFury.name');
+    expect(resolve(req, [[4, 4, 4]]).effects).toMatchObject({ fortuneSpent: 1 });
+  });
+});
+
+describe('applyDamage (manual p.98)', () => {
+  it('protection subtracts, boxes go down, each multiple of endurance marks a level', () => {
+    const s = sheet({ armour: 'leatherJacket' }); // endurance 5, protection 1
+    expect(applyDamage(s, 3)).toEqual({ resistance: 13, health: 'healthy' });
+    expect(applyDamage(s, 6)).toEqual({ resistance: 10, health: 'bruised' });
+    expect(applyDamage(s, 11)).toEqual({ resistance: 5, health: 'wounded' });
+    expect(applyDamage(s, 40)).toEqual({ resistance: 0, health: 'dead' });
+  });
+  it('accumulates from the current level and stops at dead', () => {
+    expect(applyDamage(sheet({ health: 'wounded' }), 5)).toEqual({ resistance: 10, health: 'badlyWounded' });
+    expect(applyDamage(sheet({ health: 'badlyWounded' }), 10)).toEqual({ resistance: 5, health: 'dead' });
+    expect(applyDamage(sheet({ health: 'dead' }), 1)).toEqual({ resistance: 14, health: 'dead' });
+  });
+});
+
+describe('progression (manual p.91)', () => {
+  const s = sheet({ xp: 50, fortitude: stat(3, ['fortitude.vigour']), will: stat(5), combat: stat(6, []), gifts: [{ id: 'titanFury', level: 1 }, { id: 'serendipity', level: 5 }] });
+  it('costs', () => {
+    expect(progressionCost(s, { kind: 'stat', target: 'fortitude' })).toBe(XP_COSTS.statTo5);
+    expect(progressionCost(s, { kind: 'stat', target: 'will' })).toBe(XP_COSTS.statTo6);
+    expect(progressionCost(s, { kind: 'stat', target: 'combat' })).toBeNull();
+    expect(progressionCost(s, { kind: 'stat', target: 'nope' })).toBeNull();
+    expect(progressionCost(s, { kind: 'specialty.new', target: 'fortitude', to: 'fortitude.climbing' })).toBe(10);
+    expect(progressionCost(s, { kind: 'specialty.new', target: 'fortitude', to: 'fortitude.vigour' })).toBeNull();
+    expect(progressionCost(s, { kind: 'specialty.change', target: 'fortitude', to: 'fortitude.climbing' })).toBe(3);
+    expect(progressionCost(s, { kind: 'specialty.change', target: 'combat', to: 'combat.swords' })).toBeNull();
+    expect(progressionCost(s, { kind: 'gift.new', target: 'innerVoice' })).toBe(10);
+    expect(progressionCost(s, { kind: 'gift.new', target: 'titanFury' })).toBeNull();
+    expect(progressionCost(s, { kind: 'gift.new', target: 'notAGift' })).toBeNull();
+    expect(progressionCost(s, { kind: 'gift.level', target: 'titanFury' })).toBe(10);
+    expect(progressionCost(s, { kind: 'gift.level', target: 'serendipity' })).toBeNull();
+    expect(progressionCost(s, { kind: 'weird', target: 'x' })).toBeNull();
+  });
+  it('apply debits xp and patches; refuses when unaffordable', () => {
+    expect(progressionApply(s, { kind: 'stat', target: 'will' })).toEqual({ xp: 10, will: { value: 6, specialties: [] } });
+    expect(progressionApply(s, { kind: 'specialty.new', target: 'fortitude', to: 'fortitude.climbing' })).toEqual({ xp: 40, fortitude: { value: 3, specialties: ['fortitude.vigour', 'fortitude.climbing'] } });
+    expect(progressionApply(s, { kind: 'specialty.change', target: 'fortitude', to: 'fortitude.climbing' })).toEqual({ xp: 47, fortitude: { value: 3, specialties: ['fortitude.climbing'] } });
+    expect(progressionApply(s, { kind: 'gift.new', target: 'innerVoice' }).gifts).toHaveLength(3);
+    expect(progressionApply(s, { kind: 'gift.level', target: 'titanFury' }).gifts).toEqual([{ id: 'titanFury', level: 2 }, { id: 'serendipity', level: 5 }]);
+    expect(progressionApply(sheet({ xp: 5 }), { kind: 'stat', target: 'will' })).toEqual({});
+    expect(engine.progression.cost(s, { kind: 'stat', target: 'combat' })).toBeNull();
+  });
+});
+
+describe('shared resources', () => {
+  it('destiny pool 10 / 5 per take, blocked at Destiny 10', () => {
+    const d = sharedResources[0]!;
+    expect(d).toMatchObject({ id: 'destiny', max: 10, initial: 10, perTakeMax: 5, whoCanTake: 'player', whoCanReset: 'dm' });
+    expect(d.blockedIf?.(sheet({ destiny: 10 }))).toBe('roll.destinyBlocked');
+    expect(d.blockedIf?.(sheet({ destiny: 4 }))).toBeNull();
+  });
+});
+
+describe('generator budgets', () => {
+  const draft = (over: SheetData = {}) => ({ ...newSheet(), ...over });
+  it.each([
+    ['human', 16, 5], ['standard', 21, 5], ['legendary', 25, 6], ['mythic', 30, 7],
+  ])('preset %s: %i points, max %i', (preset, points, max) => {
+    const b = budgetOf(draft({ preset }));
+    expect(b.total).toBe(points);
+    expect(b.maxStat).toBe(max);
+    expect(b.available).toBe(points - 7); // seven stats at 1
+    expect(b.giftPoints).toBe(3);
+  });
+  it('destiny +1 costs a point, −1 refunds; trades cost points and give 2 specialties / 2 gift points', () => {
+    expect(budgetOf(draft({ destiny: 5 })).available).toBe(21 - 7 - 2);
+    expect(budgetOf(draft({ destiny: 1 })).available).toBe(21 - 7 + 2);
+    expect(budgetOf(draft({ specialtyTrade: 2, giftTrade: 1 }))).toMatchObject({ available: 21 - 7 - 3, giftPoints: 5 });
+  });
+  it('stats step advances only when the budget is exactly spent and within max', () => {
+    const stats = generator.find(s => s.id === 'stats')!;
+    expect(stats.canAdvance(draft())).toBe('generator.error.pointsLeft');
+    const full = draft({ fortitude: stat(5), combat: stat(5), will: stat(5), cunning: stat(3) }); // 5+5+5+3+1+1+1 = 21
+    expect(stats.canAdvance(full)).toBeNull();
+    expect(stats.canAdvance({ ...full, culture: stat(2) })).toBe('generator.error.pointsOver');
+    expect(stats.budget?.(full)).toMatchObject({ remaining: 0 });
+    expect(canAdjustStat(full, 'culture', 1)).toBe(false);
+    expect(canAdjustStat(draft(), 'culture', 1)).toBe(true);
+    expect(canAdjustStat(draft({ fortitude: stat(5) }), 'fortitude', 1)).toBe(false);
+    expect(canAdjustStat(draft({ preset: 'legendary', fortitude: stat(5) }), 'fortitude', 1)).toBe(true);
+    expect(canAdjustStat(draft(), 'fortitude', -1)).toBe(false);
+  });
+  it('specialty, destiny, gift and concept steps validate', () => {
+    const by = (id: string) => generator.find(s => s.id === id)!;
+    expect(by('concept').canAdvance(draft())).toBe('generator.error.nameAndConcept');
+    expect(by('concept').canAdvance(draft({ name: 'K', concept: 'Leader' }))).toBeNull();
+    expect(by('specialties').canAdvance(draft())).toBe('generator.error.specialtyEach');
+    const withSpecs = draft(Object.fromEntries(['fortitude', 'combat', 'will', 'cunning', 'subtlety', 'presence', 'culture'].map(s => [s, stat(1, [`${s}.x`])])));
+    expect(by('specialties').canAdvance(withSpecs)).toBeNull();
+    expect(by('specialties').canAdvance({ ...withSpecs, fortitude: stat(1, ['a', 'b']) })).toBe('generator.error.tooManySpecialties');
+    expect(by('specialties').canAdvance({ ...withSpecs, specialtyTrade: 1, fortitude: stat(1, ['a', 'b']), combat: stat(1, ['c', 'd']) })).toBeNull();
+    expect(by('specialties').canAdvance({ ...withSpecs, specialtyTrade: 1, fortitude: stat(1, ['a', 'b', 'c']) })).toBe('generator.error.extraSpecialtiesSpread');
+    expect(by('destiny').canAdvance(draft({ destiny: 6 }))).toBe('generator.error.destinyRange');
+    expect(by('destiny').canAdvance(draft({ destiny: 5 }))).toBeNull();
+    expect(by('gifts').canAdvance(draft())).toBe('generator.error.giftPointsLeft');
+    expect(by('gifts').canAdvance(draft({ gifts: [{ id: 'titanFury', level: 3 }] }))).toBeNull();
+    expect(by('gifts').canAdvance(draft({ gifts: [{ id: 'titanFury', level: 4 }] }))).toBe('generator.error.giftPointsOver');
+    expect(by('gifts').budget?.(draft({ gifts: [{ id: 'titanFury', level: 1 }] }))).toMatchObject({ remaining: 2 });
+  });
+  it('finalizeDraft sets fortune = destiny and full resistance', () => {
+    const f = finalizeDraft(draft({ destiny: 4, fortitude: stat(3), will: stat(3) }));
+    expect(f).toMatchObject({ fortune: 4, resistance: 18, health: 'healthy', xp: 0 });
+  });
+});

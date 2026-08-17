@@ -38,7 +38,16 @@ PNJ; puede asignarlas o dejarlas sin dueño).
 `bestiary` (mismo `<Sheet>` y generador para PNJ), `maps` (token del personaje), `realtime`, `table`.
 
 ## Modelo de datos
-> Pending — DBA. Propuesta: `characters` (id, campaign_id, owner_id nullable, name, concept, avatar_url, token_url,
-> color, data jsonb, derived jsonb, hp/health materializadas para la mesa, xp, created/updated);
-> `character_audit` (character_id, campaign_id, author_id, field, before, after, origin sheet|roll|damage|progression|dm, at)
-> escrita por trigger; buckets `avatars`, `tokens`.
+- **`characters`**: un registro por personaje de una campaña. Campos: campaña, dueño (`owner_id`, vacío = «sin asignar»,
+  cualquier miembro puede reclamarlo con `characters_claim`), tipo `pc`/`npc` (los PNJ los ve sólo el director), nombre,
+  concepto, avatar y token propios, color, `data` (la ficha, jsonb según el `sheetSchema` del sistema de la campaña;
+  validada en la API), `derived` (caché del motor), `health` y `xp` materializados para la mesa, archivado, autor, fechas.
+  Acceso: leen los miembros de la campaña (PJ) y el director (todo); crea un miembro su propio PJ o el director cualquiera;
+  edita el dueño o el director; borra sólo el director. Un jugador no puede cambiar campaña/tipo/dueño/archivo ni tocar
+  `xp` si el director no tiene la progresión abierta (`campaigns.progression_enabled`). Al crear, la fila del miembro se
+  enlaza (`campaigns_members.character_id`, FK ahora real).
+- **`characters_audit`**: escrita sólo por trigger (creación, cada clave de `data` que cambia con antes/después, nombre,
+  dueño, xp, salud), con autor y origen (`sheet`|`roll`|`damage`|`progression`|`dm`|`system`; el escritor lo indica con
+  `set_config('rolvium.audit_origin', …)`). Sólo la lee el director de la campaña; nadie escribe directamente.
+- **Bucket `tokens`**: como `avatars` (público de lectura, escritura en `{uid}/`, 2 MB, imágenes).
+- Migración: `supabase/migrations/20260818100000_characters.sql`.
