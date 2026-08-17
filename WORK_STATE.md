@@ -25,8 +25,7 @@ pool rebuilt from the sheet, Registro live, floating roller, side panel)** — r
     (`validateSheet`, @rolvium/core), recomputes derived/health with the engine, enforces XP authority (DM awards; players only
     spend via origin `progression`), mirrors name/concept into the row and persists **as the actor** through
     `characters_api_update` (SECURITY DEFINER, service_role only, sets `request.jwt.claims.sub` so guards + audit run as the user).
-  - Rolls: `RollsPort` → `HttpRollsAdapter` → **API `POST /rolls`** (CSPRNG dice, `engine.resolve`, returns {request, dice, result});
-    the client applies `result.effects.patch` via the sheet save (origin `roll`). No roll log yet (dice H6).
+  - Rolls: `RollsPort` (dice module) → `HttpRollsAdapter` → **API `POST /rolls`** (see dice below: persisted, effects server-side).
   - Table: tabs Ficha (SheetTab: my sheet / create CTA → GeneratorWizard), Mejorar (ImproveTab → ProgressionPanel, blocked unless
     `campaigns.progression_enabled`), El grupo (DM: PCs with avatar precedence, health, xp, «Ver ficha»).
 - Suites: web 139 · api 28 · core 2 · system-plenilunio 60; typecheck OK; audit 0 hard (4 pre-existing warns); builds + API bundle OK.

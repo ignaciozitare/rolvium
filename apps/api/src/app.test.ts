@@ -10,6 +10,7 @@ const ADMIN: UserProfile = { id: '11111111-1111-4111-8111-111111111111', name: '
 const PLAYER: UserProfile = { ...ADMIN, id: '22222222-2222-4222-8222-222222222222', name: 'Pip', email: 'pip@rolvium.test', role: 'player' };
 const users = new Map<string, UserProfile>([[ADMIN.id, ADMIN], [PLAYER.id, PLAYER]]);
 const created: unknown[] = [];
+const MEMBER_ID = '77777777-7777-4777-8777-777777777777';
 const CHAR_ID = '55555555-5555-4555-8555-555555555555';
 const CAMP_ID = '77777777-7777-4777-8777-777777777777';
 const OTHER_CAMP = '88888888-8888-4888-8888-888888888888';
@@ -19,7 +20,7 @@ const committed: RollCommitInput[] = [];
 const charData = (): SheetData => ({ ...plenilunio.newSheet(), name: 'Karen', destiny: 2, fortune: 1 });
 
 const makeDeps = (): AppDeps => ({
-    tokenVerifier: { verify: async (t) => t === 'admin' ? { userId: ADMIN.id, email: ADMIN.email } : t === 'player' ? { userId: PLAYER.id, email: PLAYER.email } : null },
+    tokenVerifier: { verify: async (t) => t === 'admin' ? { userId: ADMIN.id, email: ADMIN.email } : t === 'player' ? { userId: PLAYER.id, email: PLAYER.email } : t === 'member' ? { userId: MEMBER_ID, email: 'member@rolvium.test' } : null },
     userRepo: {
       findById: async (id) => users.get(id) ?? null,
       findByEmail: async (email) => [...users.values()].find(u => u.email === email) ?? null,
@@ -224,6 +225,13 @@ describe('POST /rolls', () => {
     const f = await app.inject({ method: 'POST', url: '/rolls', headers: { authorization: 'Bearer player' }, payload: { campaignId: CAMP_ID, systemId: null, kind: 'free', title: '4dF', groups: [{ count: 4, sides: 3, tag: 'fudge' }], visibility: 'table' } });
     const fd = f.json().data;
     expect(fd.result.total).toBe((fd.dice[0] as number[]).reduce((a: number, v: number) => a + (v - 2), 0));
+  });
+});
+
+describe('POST /rolls — character rolls need owner or DM', () => {
+  it('403 for a member who does not own the character', async () => {
+    const r = await app.inject({ method: 'POST', url: '/rolls', headers: { authorization: 'Bearer member' }, payload: { campaignId: CAMP_ID, systemId: 'plenilunio', kind: 'system', title: 'x', groups: [{ count: 2, sides: 6, tag: 'own' }], options: { stat: 'combat' }, visibility: 'table', characterId: CHAR_ID } });
+    expect(r.statusCode).toBe(403);
   });
 });
 

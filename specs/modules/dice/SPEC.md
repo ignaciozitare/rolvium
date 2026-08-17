@@ -9,7 +9,7 @@ restringida.
 - **Tirar desde la ficha** (característica, ataque de arma, activación de don): la UI manda la intención
   (`RollRequest` del sistema + opciones + dados de recurso compartido cogidos) → la API genera dados (CSPRNG),
   llama a `engine.resolve`, persiste dados crudos + resultado → Registro y chat.
-- **Lanzador de dados flotante** (modal arrastrable, se abre desde el lateral): pestañas de visibilidad
+- **Lanzador de dados flotante** (ventana flotante arrastrable, **no modal** — la mesa sigue usable debajo; se abre desde el lateral): pestañas de visibilidad
   **Todos / Director / Secreta**, filas d4·d6·d8·d10·d12·d20·d100·Fudge × cantidad 1–6 (tocar = tirar),
   modificador, última tirada.
 - **Registro** lateral: por tirada autor, título (característica · especialidad), dados propios / de recurso (borde
@@ -17,6 +17,7 @@ restringida.
 - Recalcular/verificar cualquier tirada (cliente o API) a partir de los dados crudos.
 
 ## Rules & limits
+- Tirar *como* un personaje: sólo su dueño o el director (un miembro no puede registrar tiradas contra la ficha de otro).
 - Inmutables: nadie (ni el DJ) edita/borra; una corrección es una tirada nueva que referencia la anterior.
 - Visibilidad: `table` (todos), `dm` (jugador → DJ), `secret` (solo el autor; DJ). Filtrada por RLS.
 - Recurso compartido: el descuento y la tirada son la misma transacción (si no hay dados, la tirada falla).

@@ -39,7 +39,8 @@ export async function performRoll(deps: PerformRollDeps, input: PerformRollInput
   if (request.characterId) {
     const c = await deps.characters.findForActor(request.characterId, actorId);
     if (!c) return { ok: false, code: 'NOT_FOUND' };
-    if (!c.isMember || c.campaignId !== campaignId) return { ok: false, code: 'FORBIDDEN' };
+    // Rolling *as* a character: its owner or the DM (a member may not log rolls against someone else's sheet).
+    if (!c.isMember || c.campaignId !== campaignId || !(c.isOwner || c.isDm)) return { ok: false, code: 'FORBIDDEN' };
     sheet = c.data;
   } else {
     const member = (await deps.characters.isCampaignMember(campaignId, actorId)) || (await deps.characters.isCampaignDm(campaignId, actorId));
