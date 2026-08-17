@@ -24,6 +24,13 @@ const OUT = path.join(ROOT, 'packages/ui/CATALOG.md');
 // Keep this in sync when you ADD a component. The generator flags anything
 // exported-but-missing here, so you'll be reminded.
 const META = {
+  Field:              { resolves: 'campo de formulario del .pen: label ALL-CAPS + input + error/hint + trailing (icono)', usage: '<Field id label value onChange error trailing>' },
+  SystemChip:         { resolves: 'chip de sistema de juego (icono + nombre; muted si no instalado)', usage: '<SystemChip muted>Plenilunio</SystemChip>' },
+  StatusChip:         { resolves: 'chip de estado con punto (green/purple/amber/red/gray)', usage: '<StatusChip tone="green">Activa</StatusChip>' },
+  SectionTitle:       { resolves: 'título de sección ALL-CAPS con línea', usage: '<SectionTitle>Mis campañas</SectionTitle>' },
+  PageHeader:         { resolves: 'cabecera de página: título display + subtítulo + acciones', usage: '<PageHeader title subtitle actions>' },
+  EmptyState:         { resolves: 'estado vacío/error centrado con icono, texto y acciones', usage: '<EmptyState icon title description actions>' },
+  TopBar:             { resolves: 'barra superior del shell: marca · links · cluster derecho (router-agnóstica)', usage: '<TopBar brand links right>' },
   Btn:                { resolves: 'botón (primary/ghost/semantic) con estados y glow', usage: '<Btn variant="primary" onClick>' },
   Card:               { resolves: 'contenedor elevado sin líneas divisorias', usage: '<Card variant>...</Card>' },
   Modal:              { resolves: 'overlay/diálogo con foco atrapado y cierre por ESC', usage: '<Modal open onClose title>' },

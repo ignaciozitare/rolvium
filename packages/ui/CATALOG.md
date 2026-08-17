@@ -22,18 +22,18 @@ Import: `import { X } from '@rolvium/ui'`
 | `DialogProvider` | contexto para abrir modales imperativamente | `useDialog().confirm(...)` |
 | `Divider` | separador tonal (átomo) | `<Divider />` |
 | `DualPanelPicker` | transferencia entre dos paneles (disponible/seleccionado) | `<DualPanelPicker items value>` |
-| `EmptyState` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
-| `Field` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
+| `EmptyState` | estado vacío/error centrado con icono, texto y acciones | `<EmptyState icon title description actions>` |
+| `Field` | campo de formulario del .pen: label ALL-CAPS + input + error/hint + trailing (icono) | `<Field id label value onChange error trailing>` |
 | `IconPicker` | selector de icono Material Symbols | `<IconPicker value onChange>` |
 | `ImagePicker` | subida/recorte de imagen o avatar | `<ImagePicker shape onChange>` |
 | `Modal` | overlay/diálogo con foco atrapado y cierre por ESC | `<Modal open onClose title>` |
 | `MultiSelectDropdown` | selección múltiple con búsqueda | `<MultiSelectDropdown items value onChange>` |
-| `PageHeader` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
-| `SectionTitle` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
+| `PageHeader` | cabecera de página: título display + subtítulo + acciones | `<PageHeader title subtitle actions>` |
+| `SectionTitle` | título de sección ALL-CAPS con línea | `<SectionTitle>Mis campañas</SectionTitle>` |
 | `StatBox` | métrica/KPI con label (átomo) | `<StatBox label value>` |
-| `StatusChip` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
-| `SystemChip` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
-| `TopBar` | ⚠️ UNDOCUMENTED — añadí metadata en gen-ui-catalog.mjs | — |
+| `StatusChip` | chip de estado con punto (green/purple/amber/red/gray) | `<StatusChip tone="green">Activa</StatusChip>` |
+| `SystemChip` | chip de sistema de juego (icono + nombre; muted si no instalado) | `<SystemChip muted>Plenilunio</SystemChip>` |
+| `TopBar` | barra superior del shell: marca · links · cluster derecho (router-agnóstica) | `<TopBar brand links right>` |
 | `UserAvatar` | avatar de usuario (preset o imagen) con iniciales | `<UserAvatar user size>` |
 
 > Fuente de verdad del código: `packages/ui/src/index.ts`.
