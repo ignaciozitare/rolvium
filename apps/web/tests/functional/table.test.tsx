@@ -1,0 +1,101 @@
+import { describe, it, expect, vi } from 'vitest';
+import { renderWithProviders, screen, waitFor } from '../helpers/render';
+import userEvent from '@testing-library/user-event';
+import { Route, Routes } from 'react-router-dom';
+import { AuthProvider } from '@/shared/hooks/useAuth';
+import { TablePage } from '@/modules/table/ui/TablePage';
+import type { TablePort } from '@/modules/table/domain/ports/TablePort';
+import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
+import { fakeAuthRepo, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE } from '../helpers/fakes';
+import { canTake, tabsFor } from '@/modules/table/domain/useCases/tableRules';
+
+const GM = { ...ADMIN_USER, id: 'dm-1', name: 'Laura', role: 'game_master' };
+
+function fakeTableRepo(role: 'dm' | 'player', value = 7): TablePort & { snap: TableSnapshot } {
+  const snap: TableSnapshot = {
+    campaign: { ...CAMPAIGN_MINE, myRole: role },
+    members: [
+      { campaignId: 'c1', userId: 'dm-1', name: 'Laura', avatarUrl: null, role: 'dm', characterId: null, joinedAt: '' },
+      { campaignId: 'c1', userId: 'u-pip', name: 'Pip', avatarUrl: null, role: 'player', characterId: null, joinedAt: '' },
+      { campaignId: 'c1', userId: 'u-nix', name: 'Dani', avatarUrl: null, role: 'player', characterId: null, joinedAt: '' },
+    ],
+    resources: { destiny: { value, max: 10, hands: {} } },
+    presence: [{ userId: 'dm-1', devices: 1 }, { userId: 'u-pip', devices: 2 }],
+    activeSceneId: null,
+  };
+  const st = () => snap.resources.destiny!;
+  return {
+    snap,
+    load: async () => snap,
+    subscribe: () => () => {},
+    takeResource: async (_c, _r, n, max) => {
+      const hand = st().hands['u-pip'] ?? 0;
+      if (st().value < n) return { error: 'pool_empty' };
+      if (hand + n > max) return { error: 'per_take_max' };
+      st().value -= n; st().hands['u-pip'] = hand + n; return { state: { ...st() } };
+    },
+    returnResource: async () => { const h = st().hands['u-pip'] ?? 0; st().value += h; st().hands['u-pip'] = 0; return { state: { ...st() } }; },
+    resetResource: async () => { st().value = 10; st().hands = {}; return { state: { ...st() } }; },
+  };
+}
+
+function mount(user: typeof PLAYER_USER, repo: TablePort) {
+  renderWithProviders(
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} />} /></Routes></AuthProvider>,
+    { providers: { routerProps: { initialEntries: ['/table/c1'] } } },
+  );
+}
+
+describe('table: rules', () => {
+  it('tabs depend on the role', () => {
+    expect(tabsFor('player')).toEqual(['sheet', 'scene', 'improve', 'create']);
+    expect(tabsFor('dm')).toContain('group');
+  });
+  it('only players take dice, up to the per-take max, while the pool has dice', () => {
+    const def = { id: 'destiny', label: 'x', max: 10, initial: 10, perTakeMax: 5, whoCanTake: 'player' as const, whoCanReset: 'dm' as const };
+    expect(canTake(def, { value: 3, max: 10, hands: {} }, 'player', 'u')).toBe(true);
+    expect(canTake(def, { value: 3, max: 10, hands: {} }, 'dm', 'u')).toBe(false);
+    expect(canTake(def, { value: 0, max: 10, hands: {} }, 'player', 'u')).toBe(false);
+    expect(canTake(def, { value: 3, max: 10, hands: { u: 5 } }, 'player', 'u')).toBe(false);
+  });
+});
+
+describe('table: page', () => {
+  it('player sees the themed table, connected people and takes/returns Destiny dice', async () => {
+    const repo = fakeTableRepo('player');
+    mount(PLAYER_USER, repo);
+    const u = userEvent.setup();
+    expect(await screen.findByText('PLENILUNIO')).toBeInTheDocument();
+    expect(screen.getByText('7/10')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ficha', pressed: true })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'El grupo' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reiniciar' })).not.toBeInTheDocument();
+    // Dani is absent (not in presence)
+    expect(screen.getByText('AUSENTE')).toBeInTheDocument();
+    // take one die
+    const dice = screen.getAllByRole('button', { name: 'Coger un dado' });
+    await u.click(dice[0]!);
+    await waitFor(() => expect(screen.getByText('6/10')).toBeInTheDocument());
+    expect(screen.getByText('+1')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Devolver' }));
+    await waitFor(() => expect(screen.getByText('7/10')).toBeInTheDocument());
+  });
+
+  it('DM sees group/bestiary tabs, cannot take dice, can reset', async () => {
+    const repo = fakeTableRepo('dm', 2);
+    mount(GM, repo);
+    const u = userEvent.setup();
+    expect(await screen.findByRole('button', { name: 'El grupo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bestiario' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Coger un dado' }).every(b => (b as HTMLButtonElement).disabled)).toBe(true);
+    await u.click(screen.getByRole('button', { name: 'Reiniciar' }));
+    await waitFor(() => expect(screen.getByText('10/10')).toBeInTheDocument());
+  });
+
+  it('non-member sees the notice', async () => {
+    const repo = fakeTableRepo('player'); repo.load = async () => null;
+    mount(PLAYER_USER, repo);
+    expect(await screen.findByText('No formas parte de esta campaña.')).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+});

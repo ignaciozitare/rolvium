@@ -196,5 +196,52 @@
       "seatsTaken": "Plazas · {{n}} de {{seats}} ocupadas",
       "inviteLater": "Invitar más tarde"
     }
+  },
+  "table": {
+    "notMember": "No formas parte de esta campaña.",
+    "systemNotInstalled": "El sistema de juego de esta campaña no está instalado en Rolvium.",
+    "devices": "{{n}} dispositivos",
+    "connected": "Conectados",
+    "dm": "Directora",
+    "absent": "Ausente",
+    "yourRole": "Tu rol",
+    "role": {
+      "dm": "Director",
+      "player": "Jugador"
+    },
+    "tabs": "Pestañas de la mesa",
+    "tab": {
+      "sheet": "Ficha",
+      "group": "El grupo",
+      "scene": "Escena",
+      "bestiary": "Bestiario",
+      "improve": "Mejorar",
+      "create": "Crear personaje"
+    },
+    "comingNext": "Esta parte de la mesa llega en la siguiente iteración.",
+    "roller": "Lanzador de dados",
+    "panel": {
+      "log": "Registro",
+      "chat": "Chat",
+      "notes": "Notas",
+      "journal": "Bitácora"
+    },
+    "logEmpty": "Pulsa TIRAR en una característica, o usa el lanzador libre.",
+    "resource": {
+      "take": "Coger un dado",
+      "spent": "Gastado",
+      "inHand": "En tu mano",
+      "return": "Devolver",
+      "reset": "Reiniciar",
+      "dmNote": "El director no coge dados · puede reiniciar",
+      "errors": {
+        "pool_empty": "No quedan dados en la reserva: alguien cogió el último justo antes que tú.",
+        "per_take_max": "Ya tienes el máximo de dados en la mano para una tirada.",
+        "resource_missing": "Esta campaña no tiene ese recurso.",
+        "not_member": "No formas parte de esta campaña.",
+        "forbidden": "Solo el director puede hacer eso.",
+        "unknown": "No se ha podido cambiar la reserva."
+      }
+    }
   }
 }

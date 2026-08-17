@@ -196,5 +196,52 @@
       "seatsTaken": "Seats · {{n}} of {{seats}} taken",
       "inviteLater": "Invite later"
     }
+  },
+  "table": {
+    "notMember": "You are not part of this campaign.",
+    "systemNotInstalled": "This campaign's game system is not installed in Rolvium.",
+    "devices": "{{n}} devices",
+    "connected": "Connected",
+    "dm": "Game master",
+    "absent": "Away",
+    "yourRole": "Your role",
+    "role": {
+      "dm": "Game master",
+      "player": "Player"
+    },
+    "tabs": "Table tabs",
+    "tab": {
+      "sheet": "Sheet",
+      "group": "The party",
+      "scene": "Scene",
+      "bestiary": "Bestiary",
+      "improve": "Improve",
+      "create": "Create character"
+    },
+    "comingNext": "This part of the table arrives in the next iteration.",
+    "roller": "Dice roller",
+    "panel": {
+      "log": "Log",
+      "chat": "Chat",
+      "notes": "Notes",
+      "journal": "Journal"
+    },
+    "logEmpty": "Press ROLL on a stat, or use the free roller.",
+    "resource": {
+      "take": "Take a die",
+      "spent": "Spent",
+      "inHand": "In your hand",
+      "return": "Return",
+      "reset": "Reset",
+      "dmNote": "The GM takes no dice · can reset",
+      "errors": {
+        "pool_empty": "No dice left in the pool: someone took the last one just before you.",
+        "per_take_max": "You already hold the maximum dice for one roll.",
+        "resource_missing": "This campaign has no such resource.",
+        "not_member": "You are not part of this campaign.",
+        "forbidden": "Only the game master can do that.",
+        "unknown": "Could not change the pool."
+      }
+    }
   }
 }

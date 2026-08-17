@@ -112,3 +112,10 @@ export interface GameSystem {
   /** Blank sheet respecting the schema. */
   newSheet: () => SheetData;
 }
+
+/** State shape of one shared resource inside `campaigns.shared_resources`. */
+export interface SharedResourceState { value: number; max: number; hands: Record<string, number>; }
+/** Initial `shared_resources` jsonb for a new campaign of this system. */
+export function initialSharedResources(system: Pick<GameSystem, 'engine'>): Record<string, SharedResourceState> {
+  return Object.fromEntries((system.engine.sharedResources ?? []).map(r => [r.id, { value: r.initial, max: r.max, hands: {} }]));
+}

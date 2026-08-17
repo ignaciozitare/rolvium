@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
 import { Btn, Card } from '@rolvium/ui';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { SYSTEMS } from '@/systems/registry';
+import { SYSTEMS, systemRegistry } from '@/systems/registry';
+import { initialSharedResources } from '@rolvium/core';
 import type { Campaign } from '../domain/entities/Campaign';
 import type { CampaignsPort } from '../domain/ports/CampaignsPort';
 import { campaignsRepo } from '../container';
@@ -86,7 +87,7 @@ export function CampaignsPage({ repo = campaignsRepo }: { repo?: CampaignsPort }
         </Card>
       </aside>
 
-      {wizard && <CreateCampaignWizard onClose={() => { setWizard(false); void load(); }} onCreate={input => repo.create(input)} onOpenTable={goTable} />}
+      {wizard && <CreateCampaignWizard onClose={() => { setWizard(false); void load(); }} onCreate={async input => { const sys = await systemRegistry.load(input.systemId); return repo.create({ ...input, sharedResources: initialSharedResources(sys) }); }} onOpenTable={goTable} />}
     </div>
   );
 }

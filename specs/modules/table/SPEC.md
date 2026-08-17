@@ -32,5 +32,9 @@ Plenilunio) y reúne ficha, escena, dados, chat, notas y el panel del director. 
 `journal`, `realtime` (presence).
 
 ## Modelo de datos
-> Pending — DBA. Estado de recursos en `campaigns.shared_resources` (jsonb, update solo DJ/API); presencia vía Realtime;
-> `character_audit` vive en `characters`.
+Migración `20260817130000_table_shared_resources.sql`. Sin tablas propias: el estado de los recursos compartidos vive en
+`campaigns_campaigns.shared_resources` (jsonb `{ id: { value, max, hands: { userId: n } } }`). Los jugadores solo lo
+tocan a través de funciones SECURITY DEFINER atómicas (bloqueo de fila): `table_take_resource(cid, rid, n, per_take_max)`
+(errores `pool_empty`, `per_take_max`, `not_member`), `table_return_resource`, `table_reset_resource` (solo DJ →
+`forbidden`), `table_spend_hand` (solo service role: la API la llama al consumir los dados en una tirada). Realtime:
+`campaigns_campaigns` y `campaigns_members` están en la publicación; presencia por canal `campaign:{id}`.

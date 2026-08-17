@@ -2,7 +2,7 @@
 
 ## 🎯 Current task
 Building the v1 hexagons in order (see ARCHITECTURE.md "Product hexagons" + specs/modules/*):
-**campaigns DONE (2026-08-17)** → next `table` shell (+ system theme) → `characters` → `dice` → `maps` → `chat` → DM panel.
+**campaigns DONE · table shell DONE (2026-08-17)** → next `characters` (sheet from schema + generator + Plenilunio engine) → `dice` → `maps` → `chat` → DM panel.
 
 ## 📍 Exact point
 - 2026-08-17 evening: design approved & committed (`rolvium.pen`, 31 frames); specs for all hexagons written;
@@ -11,8 +11,12 @@ Building the v1 hexagons in order (see ARCHITECTURE.md "Product hexagons" + spec
   `campaigns` hexagon: migration `20260817120000_campaigns.sql` (RLS smoke-tested), web module
   (`modules/campaigns/{domain,infra,container,ui}`: home page, create wizard, join by code), top-bar shell
   (`RolviumApp.tsx` now renders the pen TopBar; `/campaigns` is the landing), `systems/registry.ts`, i18n es/en,
-  9 web test files green (34 tests), audit 0 hard, build OK. Routes `/table/:id`, `/characters`, `/systems` are NOT
-  implemented yet (nav links exist).
+  9 web test files green (34 tests), audit 0 hard, build OK. `/characters`, `/systems` NOT implemented yet (nav links exist).
+- `table` (H3) shell: migration `20260817130000_table_shared_resources.sql` (RPCs `table_take_resource` /
+  `table_return_resource` / `table_reset_resource` / `table_spend_hand`, atomic, tested), `modules/table`
+  (TablePage `/table/:id` without platform shell; system theme applied as `--sys-*` inline vars + bg image; Rolvium
+  bar; header with presence halos via Realtime `presence`; SharedResourceBar = Destiny pool; tabs by role; side panel
+  placeholder). Tabs content (sheet/scene/…) are placeholders until their hexagons land. Tests: 39 green.
 - All apps typecheck, build, and pass tests (web 28, api 13). `npm run audit` → 0 hard.
 - **Local Supabase stack working** (`npm run db:start`, Docker): migration
   `supabase/migrations/20260817000000_core_users_roles.sql` + `supabase/seed.sql` applied; `.env` files

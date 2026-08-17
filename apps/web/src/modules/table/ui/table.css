@@ -1,0 +1,63 @@
+/* Neutral defaults for an unthemed system; the game system overrides them inline via VisualTheme.vars. */
+.tb-root{--sys-bg:var(--bg;--sys-ink:#131310;--sys-font-body:Georgia,serif;--sys-bg-image:none;--sys-ink-soft:#39382f;--sys-ink-dim:#63615a;--sys-gold:#8a7038;--sys-font-display:inherit;--sys-line:#8a887e;--sys-paper-hi:#efede7;--sys-card:#f2f0ea80;--sys-card-shadow:0 3px 10px #13131040;--sys-border:#949288;--sys-blood:#6e2418;--sys-moon-hi:#a8a69b;--sys-moon-mid:#5a594e;--sys-moon-lo:#15140e;}
+/* ── Table (H3): platform chrome + system-themed container ─────────────────
+   Everything below `.tb-table` uses ONLY --sys-* variables (set inline from the
+   game system's VisualTheme). Fallbacks are neutral so an unthemed system still
+   reads. Platform tokens (--sf, --tx…) are used only in the Rolvium bar. */
+.tb-root{display:flex;flex-direction:column;min-height:100vh;background:var(--sys-bg));}
+.tb-rvbar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:var(--sf);color:var(--tx);}
+.tb-rvbar-left,.tb-rvbar-right{display:flex;align-items:center;gap:14px;}
+.tb-rvbar-back{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:var(--r);background:var(--sf3);color:var(--tx2);font-size:var(--fs-xs);font-weight:500;text-decoration:none;}
+.tb-rvbar-name{font-size:var(--fs-sm);font-weight:600;}
+.tb-rvbar-devices{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-2xs);color:var(--tx3);}
+
+.tb-table{flex:1;padding:16px;display:flex;flex-direction:column;gap:16px;color:var(--sys-ink);
+  font-family:var(--sys-font-body);background:var(--sys-bg) var(--sys-bg-image) center/cover fixed;}
+.tb-rotulo{font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;color:var(--sys-ink-soft);}
+.tb-dim{color:var(--sys-ink-dim);}.tb-italic{font-style:italic;}.tb-gold{color:var(--sys-gold);}
+.tb-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:12px;border-bottom:2px solid var(--sys-ink-soft);}
+.tb-head-left{display:flex;align-items:center;gap:14px;}
+.tb-sysname{font-size:var(--fs-lg);letter-spacing:.32em;line-height:1.2;font-family:var(--sys-font-display);}
+.tb-head-right{display:flex;align-items:center;gap:20px;}
+.tb-people{list-style:none;margin:0;padding:0;display:flex;gap:12px;}
+.tb-person{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.tb-person.off{opacity:.45;}
+.tb-halo{display:inline-flex;border-radius:50%;padding:2px;box-shadow:0 0 0 2px var(--sys-ink);}
+.tb-halo.dm{box-shadow:0 0 0 2.5px var(--sys-gold);}
+.tb-person.on .tb-halo{box-shadow:0 0 0 2px var(--sys-ink),0 0 0 4px var(--green),0 0 8px 2px var(--green);}
+.tb-person.on.me .tb-halo{box-shadow:0 0 0 2px var(--sys-ink),0 0 0 5px var(--green),0 0 12px 3px var(--green);}
+.tb-person-label{font-size:8px;letter-spacing:.1em;color:var(--sys-ink-dim);}
+.tb-btn{font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;padding:7px 13px;cursor:pointer;background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);}
+.tb-btn:disabled{opacity:.35;cursor:default;}
+.tb-btn-solid{background:var(--sys-ink);color:var(--sys-paper-hi);border-color:var(--sys-ink);}
+.tb-btn-gold{border-color:var(--sys-gold);color:var(--sys-gold);}
+.tb-btn-xs{padding:5px 10px;font-size:9px;}
+/* shared resource */
+.tb-res-wrap{display:flex;justify-content:center;}
+.tb-res{display:inline-flex;align-items:center;gap:22px;flex-wrap:wrap;padding:12px 22px;background:var(--sys-card);box-shadow:var(--sys-card-shadow);border:2px solid var(--sys-border);position:relative;}
+.tb-res.has-hand{border-color:var(--sys-gold);}
+.tb-res-pool{display:flex;align-items:center;gap:12px;}
+.tb-res-moons{display:flex;gap:8px;align-items:center;}
+.tb-moon-btn{background:none;border:none;padding:0;cursor:pointer;line-height:0;}
+.tb-moon-btn:disabled{cursor:default;}
+.tb-res-count{font-size:var(--fs-md);}
+.tb-res-hand{display:flex;align-items:center;gap:12px;padding:8px 14px;border:2px solid var(--sys-border);}
+.tb-res.has-hand .tb-res-hand{border-color:var(--sys-gold);background:color-mix(in srgb,var(--sys-gold) 20%,transparent);}
+.tb-res-dots{display:flex;gap:4px;}
+.tb-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--sys-line);}
+.tb-dot.on{background:var(--sys-gold);border-color:var(--sys-gold);}
+.tb-res-plus{font-size:var(--fs-lg);}
+.tb-res-err{position:absolute;left:0;right:0;bottom:-22px;text-align:center;font-size:var(--fs-2xs);color:var(--sys-blood);font-style:italic;}
+/* layout */
+.tb-tabs{display:flex;gap:8px;flex-wrap:wrap;}
+.tb-body{display:flex;gap:16px;align-items:flex-start;}
+.tb-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;}
+.tb-side{width:272px;flex-shrink:0;display:flex;flex-direction:column;gap:12px;}
+.tb-hoja{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:16px;}
+.tb-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 16px;text-align:center;color:var(--sys-ink-dim);}
+.tb-roller-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:9px 12px;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;cursor:pointer;border:none;background:var(--sys-card);box-shadow:var(--sys-card-shadow);color:var(--sys-ink-soft);}
+.tb-roller-btn.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
+.tb-panel{padding:12px;display:flex;flex-direction:column;gap:12px;}
+.tb-panel-tabs{display:flex;gap:4px;flex-wrap:wrap;}
+.tb-state{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--tx);}
+@media (max-width:900px){.tb-body{flex-direction:column;}.tb-side{width:100%;}}
