@@ -53288,7 +53288,7 @@
       },
       "clip": true,
       "width": 1440,
-      "height": 900,
+      "height": 1130,
       "fill": "$bg",
       "layout": "vertical",
       "children": [
@@ -53759,6 +53759,106 @@
                           "descendants": {
                             "MkRqy": {
                               "content": "Guardar cambios",
+                              "fontSize": "$fs-xs"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "H1knI",
+                  "name": "Contraseña y acceso",
+                  "width": "fill_container",
+                  "fill": "$sf",
+                  "cornerRadius": "$r2",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 18,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "OJsF6",
+                      "name": "H",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lBodX",
+                          "name": "T",
+                          "fill": "$tx",
+                          "content": "Contraseña y acceso",
+                          "fontFamily": "$font-display",
+                          "fontSize": "$fs-body",
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "g0Q3P",
+                          "name": "S",
+                          "fill": "$tx2",
+                          "content": "Cambia tu contraseña. Cerrará el resto de sesiones sólo si tú lo pides.",
+                          "fontFamily": "Inter",
+                          "fontSize": "$fs-xs",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GhEjP",
+                      "name": "Fila",
+                      "width": "fill_container",
+                      "gap": 14,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "id": "nAVLn",
+                          "type": "ref",
+                          "ref": "eaHH8",
+                          "name": "Nueva",
+                          "width": "fill_container",
+                          "descendants": {
+                            "YYcai": {
+                              "content": "NUEVA CONTRASEÑA"
+                            },
+                            "tJu1V": {
+                              "content": "mínimo 8 caracteres",
+                              "fill": "$tx3"
+                            }
+                          }
+                        },
+                        {
+                          "id": "lKBMd",
+                          "type": "ref",
+                          "ref": "eaHH8",
+                          "name": "Repetir",
+                          "width": "fill_container",
+                          "descendants": {
+                            "YYcai": {
+                              "content": "REPETIR CONTRASEÑA"
+                            },
+                            "tJu1V": {
+                              "content": "la misma contraseña",
+                              "fill": "$tx3"
+                            }
+                          }
+                        },
+                        {
+                          "id": "sgtsj",
+                          "type": "ref",
+                          "ref": "Nq63f",
+                          "name": "Cambiar",
+                          "padding": [
+                            9,
+                            16
+                          ],
+                          "descendants": {
+                            "MkRqy": {
+                              "content": "Cambiar contraseña",
                               "fontSize": "$fs-xs"
                             }
                           }
@@ -54306,7 +54406,7 @@
       },
       "clip": true,
       "width": 1440,
-      "height": 900,
+      "height": 1130,
       "fill": "$bg",
       "layout": "vertical",
       "children": [
@@ -54777,6 +54877,106 @@
                           "descendants": {
                             "MkRqy": {
                               "content": "Guardar cambios",
+                              "fontSize": "$fs-xs"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "dPESo",
+                  "name": "Contraseña y acceso",
+                  "width": "fill_container",
+                  "fill": "$sf",
+                  "cornerRadius": "$r2",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 18,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "x7Now",
+                      "name": "H",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "DZyF1",
+                          "name": "T",
+                          "fill": "$tx",
+                          "content": "Contraseña y acceso",
+                          "fontFamily": "$font-display",
+                          "fontSize": "$fs-body",
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "UPeFS",
+                          "name": "S",
+                          "fill": "$tx2",
+                          "content": "Cambia tu contraseña. Cerrará el resto de sesiones sólo si tú lo pides.",
+                          "fontFamily": "Inter",
+                          "fontSize": "$fs-xs",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gTfCh",
+                      "name": "Fila",
+                      "width": "fill_container",
+                      "gap": 14,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "id": "E90bNy",
+                          "type": "ref",
+                          "ref": "eaHH8",
+                          "name": "Nueva",
+                          "width": "fill_container",
+                          "descendants": {
+                            "YYcai": {
+                              "content": "NUEVA CONTRASEÑA"
+                            },
+                            "tJu1V": {
+                              "content": "mínimo 8 caracteres",
+                              "fill": "$tx3"
+                            }
+                          }
+                        },
+                        {
+                          "id": "A10CsX",
+                          "type": "ref",
+                          "ref": "eaHH8",
+                          "name": "Repetir",
+                          "width": "fill_container",
+                          "descendants": {
+                            "YYcai": {
+                              "content": "REPETIR CONTRASEÑA"
+                            },
+                            "tJu1V": {
+                              "content": "la misma contraseña",
+                              "fill": "$tx3"
+                            }
+                          }
+                        },
+                        {
+                          "id": "wj95Q",
+                          "type": "ref",
+                          "ref": "Nq63f",
+                          "name": "Cambiar",
+                          "padding": [
+                            9,
+                            16
+                          ],
+                          "descendants": {
+                            "MkRqy": {
+                              "content": "Cambiar contraseña",
                               "fontSize": "$fs-xs"
                             }
                           }
@@ -60722,6 +60922,2732 @@
           "x": 640,
           "y": 300,
           "enabled": false
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "GdPGz",
+      "x": 0,
+      "y": 17400,
+      "name": "Auth/Registro · dark",
+      "theme": {
+        "mode": "dark"
+      },
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$bg",
+      "children": [
+        {
+          "type": "frame",
+          "id": "KRXdP",
+          "name": "Hero",
+          "width": 790,
+          "height": "fill_container",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "radial",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "width": 1.4,
+              "height": 1.4
+            },
+            "colors": [
+              {
+                "color": "$ac-dim",
+                "position": 0
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 0.6
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 1
+              }
+            ],
+            "center": {
+              "x": 0.25,
+              "y": 0.2
+            }
+          },
+          "layout": "vertical",
+          "padding": 56,
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "frame",
+              "id": "m7722Y",
+              "name": "Brand",
+              "width": 176,
+              "height": 57,
+              "gap": 14,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "hJKXD",
+                  "type": "ref",
+                  "ref": "L1cy0",
+                  "name": "Logo",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "text",
+                  "id": "TvkAo",
+                  "name": "App Name",
+                  "fill": "$ac2",
+                  "content": "Rolvium",
+                  "fontFamily": "$font-display",
+                  "fontSize": "$fs-lg",
+                  "fontWeight": "600",
+                  "letterSpacing": 3
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "FF5Nr",
+              "name": "Hero Body",
+              "width": 520,
+              "layout": "vertical",
+              "gap": 28,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lQnIl",
+                  "name": "Headline",
+                  "fill": "$tx",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Tu mesa de rol, con las reglas de tu sistema.",
+                  "lineHeight": 1.15,
+                  "fontFamily": "$font-display",
+                  "fontSize": 44,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "yXAKG",
+                  "name": "Tagline",
+                  "fill": "$tx2",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Crea una campaña, invita a tu grupo y elige el sistema. La ficha, los dados, la mesa y hasta el aspecto se adaptan al juego que estáis jugando.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-md",
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "Z5rWB",
+                  "name": "Features",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Vw4K5",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "scN4P",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "groups",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "s1Rda",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Campañas con invitación por código o abiertas a nuevos jugadores",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cbuyZ",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "I2oqy",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "casino",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "I5bna",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Tiradas resueltas por el motor de reglas, imposibles de alterar",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GrWoW",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "c6ArHq",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "map",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "vTyRV",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Mapa con niebla de guerra, tokens, chat y bitácora compartida",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "mwD69",
+              "name": "Systems",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "aMeZb",
+                  "name": "Systems Label",
+                  "fill": "$tx3",
+                  "content": "SISTEMAS",
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-2xs",
+                  "fontWeight": "700",
+                  "letterSpacing": 0.8
+                },
+                {
+                  "id": "j9eqMf",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "Plenilunio"
+                },
+                {
+                  "id": "nHVSr",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "CYBERPUNK",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "CYBERPUNK · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                },
+                {
+                  "id": "rGX3o",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "D&D 5E",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "D&D 5E · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "X780Ao",
+          "name": "Form Side",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "padding": 40,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "CnYdO",
+              "name": "Signup Card",
+              "width": 420,
+              "fill": "$sf",
+              "cornerRadius": "$r2",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "$shadow",
+                "offset": {
+                  "x": 0,
+                  "y": 10
+                },
+                "blur": 30
+              },
+              "layout": "vertical",
+              "gap": 20,
+              "padding": 36,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "PWqiw",
+                  "name": "Card Head",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "HFlVw",
+                      "name": "Title",
+                      "fill": "$tx",
+                      "content": "Crear cuenta",
+                      "fontFamily": "$font-display",
+                      "fontSize": "$fs-lg",
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "WnyV9",
+                      "name": "Subtitle",
+                      "fill": "$tx2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Crea tu cuenta y únete a campañas abiertas o por código.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "fia3s",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Nombre",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "TU NOMBRE EN LA MESA"
+                    },
+                    "tJu1V": {
+                      "content": "Marta",
+                      "fill": "$tx"
+                    }
+                  }
+                },
+                {
+                  "id": "BOGVF",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Email",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "CORREO"
+                    },
+                    "tJu1V": {
+                      "content": "marta@ejemplo.com",
+                      "fill": "$tx"
+                    }
+                  }
+                },
+                {
+                  "id": "y7TXMD",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Password",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "CONTRASEÑA"
+                    },
+                    "tJu1V": {
+                      "content": "mínimo 8 caracteres"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "jweO3",
+                  "name": "Idioma",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "O6zwhf",
+                      "name": "L",
+                      "fill": "$tx2",
+                      "content": "IDIOMA",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-2xs",
+                      "fontWeight": "700",
+                      "letterSpacing": 0.8
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WmbyA",
+                      "name": "Opciones",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "R8rp3",
+                          "name": "Español",
+                          "fill": "$sf3",
+                          "cornerRadius": "$r",
+                          "stroke": "$ac",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "padding": [
+                            8,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "mAmlX",
+                              "name": "T",
+                              "fill": "$tx",
+                              "content": "Español",
+                              "fontFamily": "$font-body",
+                              "fontSize": "$fs-xs",
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "wXN0k",
+                          "name": "English",
+                          "fill": "$bg",
+                          "cornerRadius": "$r",
+                          "stroke": "$bd",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "padding": [
+                            8,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "egihF",
+                              "name": "T",
+                              "fill": "$tx2",
+                              "content": "English",
+                              "fontFamily": "$font-body",
+                              "fontSize": "$fs-xs"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "QrHjy",
+                  "type": "ref",
+                  "ref": "Nq63f",
+                  "name": "Submit",
+                  "width": "fill_container",
+                  "padding": [
+                    14,
+                    20
+                  ],
+                  "descendants": {
+                    "MkRqy": {
+                      "content": "Crear cuenta",
+                      "fontSize": "$fs-body"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "PrdN6",
+                  "name": "Login link",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "e1esz",
+                      "name": "T",
+                      "fill": "$tx2",
+                      "content": "¿Ya tienes cuenta?",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-xs",
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "k4NE1",
+                      "type": "ref",
+                      "ref": "MZ6Qw",
+                      "name": "Go",
+                      "padding": 0,
+                      "descendants": {
+                        "tMloa": {
+                          "content": "Iniciar sesión"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "jEhok",
+      "x": 1520,
+      "y": 17400,
+      "name": "Auth/Registro · light",
+      "theme": {
+        "mode": "light"
+      },
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$bg",
+      "children": [
+        {
+          "type": "frame",
+          "id": "ZNmVl",
+          "name": "Hero",
+          "width": 790,
+          "height": "fill_container",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "radial",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "width": 1.4,
+              "height": 1.4
+            },
+            "colors": [
+              {
+                "color": "$ac-dim",
+                "position": 0
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 0.6
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 1
+              }
+            ],
+            "center": {
+              "x": 0.25,
+              "y": 0.2
+            }
+          },
+          "layout": "vertical",
+          "padding": 56,
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "frame",
+              "id": "U7t7e",
+              "name": "Brand",
+              "gap": 14,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "N8sPE",
+                  "type": "ref",
+                  "ref": "L1cy0",
+                  "name": "Logo",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "text",
+                  "id": "PjCKL",
+                  "name": "App Name",
+                  "fill": "$ac2",
+                  "content": "Rolvium",
+                  "fontFamily": "$font-display",
+                  "fontSize": "$fs-lg",
+                  "fontWeight": "600",
+                  "letterSpacing": 3
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "sH4Sc",
+              "name": "Hero Body",
+              "width": 520,
+              "layout": "vertical",
+              "gap": 28,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ZUhBd",
+                  "name": "Headline",
+                  "fill": "$tx",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Tu mesa de rol, con las reglas de tu sistema.",
+                  "lineHeight": 1.15,
+                  "fontFamily": "$font-display",
+                  "fontSize": 44,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "Nb6eN",
+                  "name": "Tagline",
+                  "fill": "$tx2",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Crea una campaña, invita a tu grupo y elige el sistema. La ficha, los dados, la mesa y hasta el aspecto se adaptan al juego que estáis jugando.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-md",
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "G5erPY",
+                  "name": "Features",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "PUSl9",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "XAGmg",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "groups",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "mjotx",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Campañas con invitación por código o abiertas a nuevos jugadores",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gXbSi",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "z8863a",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "casino",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "z9LMiS",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Tiradas resueltas por el motor de reglas, imposibles de alterar",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cyZiX",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "C2ZqrA",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "map",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "YGN0n",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Mapa con niebla de guerra, tokens, chat y bitácora compartida",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "igCNS",
+              "name": "Systems",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "CFg1F",
+                  "name": "Systems Label",
+                  "fill": "$tx3",
+                  "content": "SISTEMAS",
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-2xs",
+                  "fontWeight": "700",
+                  "letterSpacing": 0.8
+                },
+                {
+                  "id": "EuTLk",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "Plenilunio"
+                },
+                {
+                  "id": "lReko",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "CYBERPUNK",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "CYBERPUNK · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                },
+                {
+                  "id": "yiehY",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "D&D 5E",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "D&D 5E · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "PQzO4",
+          "name": "Form Side",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "padding": 40,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "F7QvxU",
+              "name": "Signup Card",
+              "width": 420,
+              "fill": "$sf",
+              "cornerRadius": "$r2",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "$shadow",
+                "offset": {
+                  "x": 0,
+                  "y": 10
+                },
+                "blur": 30
+              },
+              "layout": "vertical",
+              "gap": 20,
+              "padding": 36,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "YDj0s",
+                  "name": "Card Head",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ODEgn",
+                      "name": "Title",
+                      "fill": "$tx",
+                      "content": "Crear cuenta",
+                      "fontFamily": "$font-display",
+                      "fontSize": "$fs-lg",
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "C37f2",
+                      "name": "Subtitle",
+                      "fill": "$tx2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Crea tu cuenta y únete a campañas abiertas o por código.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "qBaTO",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Nombre",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "TU NOMBRE EN LA MESA"
+                    },
+                    "tJu1V": {
+                      "content": "Marta",
+                      "fill": "$tx"
+                    }
+                  }
+                },
+                {
+                  "id": "T9nuJ",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Email",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "CORREO"
+                    },
+                    "tJu1V": {
+                      "content": "marta@ejemplo.com",
+                      "fill": "$tx"
+                    }
+                  }
+                },
+                {
+                  "id": "eP0Lj",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Password",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "CONTRASEÑA"
+                    },
+                    "tJu1V": {
+                      "content": "mínimo 8 caracteres"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "u7Ndb",
+                  "name": "Idioma",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "a9lBQ",
+                      "name": "L",
+                      "fill": "$tx2",
+                      "content": "IDIOMA",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-2xs",
+                      "fontWeight": "700",
+                      "letterSpacing": 0.8
+                    },
+                    {
+                      "type": "frame",
+                      "id": "qaVDn",
+                      "name": "Opciones",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "fFaoI",
+                          "name": "Español",
+                          "fill": "$sf3",
+                          "cornerRadius": "$r",
+                          "stroke": "$ac",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "padding": [
+                            8,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "CtfAj",
+                              "name": "T",
+                              "fill": "$tx",
+                              "content": "Español",
+                              "fontFamily": "$font-body",
+                              "fontSize": "$fs-xs",
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Rlh8q",
+                          "name": "English",
+                          "fill": "$bg",
+                          "cornerRadius": "$r",
+                          "stroke": "$bd",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "padding": [
+                            8,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "J9qyP",
+                              "name": "T",
+                              "fill": "$tx2",
+                              "content": "English",
+                              "fontFamily": "$font-body",
+                              "fontSize": "$fs-xs"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "nI7lE",
+                  "type": "ref",
+                  "ref": "Nq63f",
+                  "name": "Submit",
+                  "width": "fill_container",
+                  "padding": [
+                    14,
+                    20
+                  ],
+                  "descendants": {
+                    "MkRqy": {
+                      "content": "Crear cuenta",
+                      "fontSize": "$fs-body"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "CneYO",
+                  "name": "Login link",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "EHcQN",
+                      "name": "T",
+                      "fill": "$tx2",
+                      "content": "¿Ya tienes cuenta?",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-xs",
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "YrFXa",
+                      "type": "ref",
+                      "ref": "MZ6Qw",
+                      "name": "Go",
+                      "padding": 0,
+                      "descendants": {
+                        "tMloa": {
+                          "content": "Iniciar sesión"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "BC5HL",
+      "x": 3040,
+      "y": 17400,
+      "name": "Auth/Recuperar contraseña · dark",
+      "theme": {
+        "mode": "dark"
+      },
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$bg",
+      "children": [
+        {
+          "type": "frame",
+          "id": "EnLCy",
+          "name": "Hero",
+          "width": 790,
+          "height": "fill_container",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "radial",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "width": 1.4,
+              "height": 1.4
+            },
+            "colors": [
+              {
+                "color": "$ac-dim",
+                "position": 0
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 0.6
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 1
+              }
+            ],
+            "center": {
+              "x": 0.25,
+              "y": 0.2
+            }
+          },
+          "layout": "vertical",
+          "padding": 56,
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Gxmdk",
+              "name": "Brand",
+              "width": 176,
+              "height": 57,
+              "gap": 14,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "XlM8Q",
+                  "type": "ref",
+                  "ref": "L1cy0",
+                  "name": "Logo",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "text",
+                  "id": "PulKd",
+                  "name": "App Name",
+                  "fill": "$ac2",
+                  "content": "Rolvium",
+                  "fontFamily": "$font-display",
+                  "fontSize": "$fs-lg",
+                  "fontWeight": "600",
+                  "letterSpacing": 3
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "YnU28",
+              "name": "Hero Body",
+              "width": 520,
+              "layout": "vertical",
+              "gap": 28,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Vsu5j",
+                  "name": "Headline",
+                  "fill": "$tx",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Tu mesa de rol, con las reglas de tu sistema.",
+                  "lineHeight": 1.15,
+                  "fontFamily": "$font-display",
+                  "fontSize": 44,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "k4IvU",
+                  "name": "Tagline",
+                  "fill": "$tx2",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Crea una campaña, invita a tu grupo y elige el sistema. La ficha, los dados, la mesa y hasta el aspecto se adaptan al juego que estáis jugando.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-md",
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "LuxdC",
+                  "name": "Features",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "kzbJm",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "nHoak",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "groups",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "m8ifIh",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Campañas con invitación por código o abiertas a nuevos jugadores",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UNWpn",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "dTZZG",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "casino",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "QO2lh",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Tiradas resueltas por el motor de reglas, imposibles de alterar",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "C8M2R",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "RnK3P",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "map",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "p5tNSR",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Mapa con niebla de guerra, tokens, chat y bitácora compartida",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "a6TrBT",
+              "name": "Systems",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "cv5vY",
+                  "name": "Systems Label",
+                  "fill": "$tx3",
+                  "content": "SISTEMAS",
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-2xs",
+                  "fontWeight": "700",
+                  "letterSpacing": 0.8
+                },
+                {
+                  "id": "JQ4IT",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "Plenilunio"
+                },
+                {
+                  "id": "wY0fk",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "CYBERPUNK",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "CYBERPUNK · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                },
+                {
+                  "id": "YH7pG",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "D&D 5E",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "D&D 5E · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "dRx1Y",
+          "name": "Form Side",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "padding": 40,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "hNt3R",
+              "name": "Signup Card",
+              "width": 420,
+              "fill": "$sf",
+              "cornerRadius": "$r2",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "$shadow",
+                "offset": {
+                  "x": 0,
+                  "y": 10
+                },
+                "blur": 30
+              },
+              "layout": "vertical",
+              "gap": 20,
+              "padding": 36,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qnwcM",
+                  "name": "Card Head",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Lztub",
+                      "name": "Title",
+                      "fill": "$tx",
+                      "content": "Recuperar contraseña",
+                      "fontFamily": "$font-display",
+                      "fontSize": "$fs-lg",
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SP46p",
+                      "name": "Subtitle",
+                      "fill": "$tx2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Escribe tu correo y te enviamos un enlace para crear una contraseña nueva.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "scKDd",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Email",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "CORREO"
+                    },
+                    "tJu1V": {
+                      "content": "marta@ejemplo.com",
+                      "fill": "$tx"
+                    }
+                  }
+                },
+                {
+                  "id": "ZTJ00",
+                  "type": "ref",
+                  "ref": "Nq63f",
+                  "name": "Submit",
+                  "width": "fill_container",
+                  "padding": [
+                    14,
+                    20
+                  ],
+                  "descendants": {
+                    "MkRqy": {
+                      "content": "Enviar enlace",
+                      "fontSize": "$fs-body"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "S6wNQ",
+                  "name": "Login link",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Rptci",
+                      "name": "T",
+                      "fill": "$tx2",
+                      "content": "¿La recordaste?",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-xs",
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "VV4ds",
+                      "type": "ref",
+                      "ref": "MZ6Qw",
+                      "name": "Go",
+                      "padding": 0,
+                      "descendants": {
+                        "tMloa": {
+                          "content": "Volver a iniciar sesión"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "SlkGn",
+      "x": 4560,
+      "y": 17400,
+      "name": "Auth/Recuperar contraseña · light",
+      "theme": {
+        "mode": "light"
+      },
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$bg",
+      "children": [
+        {
+          "type": "frame",
+          "id": "j178v9",
+          "name": "Hero",
+          "width": 790,
+          "height": "fill_container",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "radial",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "width": 1.4,
+              "height": 1.4
+            },
+            "colors": [
+              {
+                "color": "$ac-dim",
+                "position": 0
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 0.6
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 1
+              }
+            ],
+            "center": {
+              "x": 0.25,
+              "y": 0.2
+            }
+          },
+          "layout": "vertical",
+          "padding": 56,
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "frame",
+              "id": "mRwHK",
+              "name": "Brand",
+              "gap": 14,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "RpkOH",
+                  "type": "ref",
+                  "ref": "L1cy0",
+                  "name": "Logo",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "text",
+                  "id": "zXGDy",
+                  "name": "App Name",
+                  "fill": "$ac2",
+                  "content": "Rolvium",
+                  "fontFamily": "$font-display",
+                  "fontSize": "$fs-lg",
+                  "fontWeight": "600",
+                  "letterSpacing": 3
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "l2Kx6E",
+              "name": "Hero Body",
+              "width": 520,
+              "layout": "vertical",
+              "gap": 28,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "MVh0w",
+                  "name": "Headline",
+                  "fill": "$tx",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Tu mesa de rol, con las reglas de tu sistema.",
+                  "lineHeight": 1.15,
+                  "fontFamily": "$font-display",
+                  "fontSize": 44,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "H7cGT",
+                  "name": "Tagline",
+                  "fill": "$tx2",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Crea una campaña, invita a tu grupo y elige el sistema. La ficha, los dados, la mesa y hasta el aspecto se adaptan al juego que estáis jugando.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-md",
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "b5zHkm",
+                  "name": "Features",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "NNOQW",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "QxckB",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "groups",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "H9QRC",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Campañas con invitación por código o abiertas a nuevos jugadores",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oLI3o",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "c0VXJ",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "casino",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "intai",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Tiradas resueltas por el motor de reglas, imposibles de alterar",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "iZ5zc",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "SMIeI",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "map",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "hpQhD",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Mapa con niebla de guerra, tokens, chat y bitácora compartida",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rB7VV",
+              "name": "Systems",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "h8VJlK",
+                  "name": "Systems Label",
+                  "fill": "$tx3",
+                  "content": "SISTEMAS",
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-2xs",
+                  "fontWeight": "700",
+                  "letterSpacing": 0.8
+                },
+                {
+                  "id": "vDz0P",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "Plenilunio"
+                },
+                {
+                  "id": "OV813",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "CYBERPUNK",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "CYBERPUNK · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                },
+                {
+                  "id": "ohJ9Y",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "D&D 5E",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "D&D 5E · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "a4iBg",
+          "name": "Form Side",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "padding": 40,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "c84wBP",
+              "name": "Signup Card",
+              "width": 420,
+              "fill": "$sf",
+              "cornerRadius": "$r2",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "$shadow",
+                "offset": {
+                  "x": 0,
+                  "y": 10
+                },
+                "blur": 30
+              },
+              "layout": "vertical",
+              "gap": 20,
+              "padding": 36,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "apFYb",
+                  "name": "Card Head",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "jDyq3",
+                      "name": "Title",
+                      "fill": "$tx",
+                      "content": "Recuperar contraseña",
+                      "fontFamily": "$font-display",
+                      "fontSize": "$fs-lg",
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "NoKhS",
+                      "name": "Subtitle",
+                      "fill": "$tx2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Escribe tu correo y te enviamos un enlace para crear una contraseña nueva.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "vtomf",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Email",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "CORREO"
+                    },
+                    "tJu1V": {
+                      "content": "marta@ejemplo.com",
+                      "fill": "$tx"
+                    }
+                  }
+                },
+                {
+                  "id": "Uqh5A",
+                  "type": "ref",
+                  "ref": "Nq63f",
+                  "name": "Submit",
+                  "width": "fill_container",
+                  "padding": [
+                    14,
+                    20
+                  ],
+                  "descendants": {
+                    "MkRqy": {
+                      "content": "Enviar enlace",
+                      "fontSize": "$fs-body"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "gQqZJ",
+                  "name": "Login link",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "QQE57",
+                      "name": "T",
+                      "fill": "$tx2",
+                      "content": "¿La recordaste?",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-xs",
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "s5AX8",
+                      "type": "ref",
+                      "ref": "MZ6Qw",
+                      "name": "Go",
+                      "padding": 0,
+                      "descendants": {
+                        "tMloa": {
+                          "content": "Volver a iniciar sesión"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "OZtnB",
+      "x": 6080,
+      "y": 17400,
+      "name": "Auth/Restablecer contraseña · dark",
+      "theme": {
+        "mode": "dark"
+      },
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$bg",
+      "children": [
+        {
+          "type": "frame",
+          "id": "cD1xC",
+          "name": "Hero",
+          "width": 790,
+          "height": "fill_container",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "radial",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "width": 1.4,
+              "height": 1.4
+            },
+            "colors": [
+              {
+                "color": "$ac-dim",
+                "position": 0
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 0.6
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 1
+              }
+            ],
+            "center": {
+              "x": 0.25,
+              "y": 0.2
+            }
+          },
+          "layout": "vertical",
+          "padding": 56,
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "frame",
+              "id": "DSAYK",
+              "name": "Brand",
+              "width": 176,
+              "height": 57,
+              "gap": 14,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "z7C7i",
+                  "type": "ref",
+                  "ref": "L1cy0",
+                  "name": "Logo",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "text",
+                  "id": "sVvHD",
+                  "name": "App Name",
+                  "fill": "$ac2",
+                  "content": "Rolvium",
+                  "fontFamily": "$font-display",
+                  "fontSize": "$fs-lg",
+                  "fontWeight": "600",
+                  "letterSpacing": 3
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "drVM5",
+              "name": "Hero Body",
+              "width": 520,
+              "layout": "vertical",
+              "gap": 28,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "gFpDp",
+                  "name": "Headline",
+                  "fill": "$tx",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Tu mesa de rol, con las reglas de tu sistema.",
+                  "lineHeight": 1.15,
+                  "fontFamily": "$font-display",
+                  "fontSize": 44,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "VaiIS",
+                  "name": "Tagline",
+                  "fill": "$tx2",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Crea una campaña, invita a tu grupo y elige el sistema. La ficha, los dados, la mesa y hasta el aspecto se adaptan al juego que estáis jugando.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-md",
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "gES6B",
+                  "name": "Features",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Fpqq6",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "C6GUp7",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "groups",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "FinSu",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Campañas con invitación por código o abiertas a nuevos jugadores",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "k7LE2v",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "cUJ0u",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "casino",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Hrs52",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Tiradas resueltas por el motor de reglas, imposibles de alterar",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UEqOi",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "ggKPp",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "map",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "F3xWnZ",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Mapa con niebla de guerra, tokens, chat y bitácora compartida",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "US3Pg",
+              "name": "Systems",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "yVnI9",
+                  "name": "Systems Label",
+                  "fill": "$tx3",
+                  "content": "SISTEMAS",
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-2xs",
+                  "fontWeight": "700",
+                  "letterSpacing": 0.8
+                },
+                {
+                  "id": "hVNgD",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "Plenilunio"
+                },
+                {
+                  "id": "Y6EYqY",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "CYBERPUNK",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "CYBERPUNK · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                },
+                {
+                  "id": "l2mEs",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "D&D 5E",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "D&D 5E · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ZgiEL",
+          "name": "Form Side",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "padding": 40,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "J1i1U",
+              "name": "Signup Card",
+              "width": 420,
+              "fill": "$sf",
+              "cornerRadius": "$r2",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "$shadow",
+                "offset": {
+                  "x": 0,
+                  "y": 10
+                },
+                "blur": 30
+              },
+              "layout": "vertical",
+              "gap": 20,
+              "padding": 36,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "HPc6I",
+                  "name": "Card Head",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "l22cNN",
+                      "name": "Title",
+                      "fill": "$tx",
+                      "content": "Nueva contraseña",
+                      "fontFamily": "$font-display",
+                      "fontSize": "$fs-lg",
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "RwaGh",
+                      "name": "Subtitle",
+                      "fill": "$tx2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Elige una contraseña nueva para tu cuenta.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "F6QqQQ",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Password",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "NUEVA CONTRASEÑA"
+                    },
+                    "tJu1V": {
+                      "content": "mínimo 8 caracteres",
+                      "fill": "$tx3"
+                    }
+                  }
+                },
+                {
+                  "id": "j5QQI",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Password2",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "REPETIR CONTRASEÑA"
+                    },
+                    "tJu1V": {
+                      "content": "la misma contraseña",
+                      "fill": "$tx3"
+                    }
+                  }
+                },
+                {
+                  "id": "SrFXb",
+                  "type": "ref",
+                  "ref": "Nq63f",
+                  "name": "Submit",
+                  "width": "fill_container",
+                  "padding": [
+                    14,
+                    20
+                  ],
+                  "descendants": {
+                    "MkRqy": {
+                      "content": "Guardar y entrar",
+                      "fontSize": "$fs-body"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "VMi6k",
+                  "name": "Login link",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "aWvQR",
+                      "name": "T",
+                      "fill": "$tx2",
+                      "content": "¿Problemas con el enlace?",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-xs",
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "m0kJAv",
+                      "type": "ref",
+                      "ref": "MZ6Qw",
+                      "name": "Go",
+                      "padding": 0,
+                      "descendants": {
+                        "tMloa": {
+                          "content": "Pedir otro"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "qa5me",
+      "x": 7600,
+      "y": 17400,
+      "name": "Auth/Restablecer contraseña · light",
+      "theme": {
+        "mode": "light"
+      },
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$bg",
+      "children": [
+        {
+          "type": "frame",
+          "id": "HnM7Z",
+          "name": "Hero",
+          "width": 790,
+          "height": "fill_container",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "radial",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "width": 1.4,
+              "height": 1.4
+            },
+            "colors": [
+              {
+                "color": "$ac-dim",
+                "position": 0
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 0.6
+              },
+              {
+                "color": "$sf-lowest",
+                "position": 1
+              }
+            ],
+            "center": {
+              "x": 0.25,
+              "y": 0.2
+            }
+          },
+          "layout": "vertical",
+          "padding": 56,
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "frame",
+              "id": "YlzkC",
+              "name": "Brand",
+              "gap": 14,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "sE4yz",
+                  "type": "ref",
+                  "ref": "L1cy0",
+                  "name": "Logo",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "text",
+                  "id": "aopLq",
+                  "name": "App Name",
+                  "fill": "$ac2",
+                  "content": "Rolvium",
+                  "fontFamily": "$font-display",
+                  "fontSize": "$fs-lg",
+                  "fontWeight": "600",
+                  "letterSpacing": 3
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "G8dg2",
+              "name": "Hero Body",
+              "width": 520,
+              "layout": "vertical",
+              "gap": 28,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "y4Ljdh",
+                  "name": "Headline",
+                  "fill": "$tx",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Tu mesa de rol, con las reglas de tu sistema.",
+                  "lineHeight": 1.15,
+                  "fontFamily": "$font-display",
+                  "fontSize": 44,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "m8m3iQ",
+                  "name": "Tagline",
+                  "fill": "$tx2",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Crea una campaña, invita a tu grupo y elige el sistema. La ficha, los dados, la mesa y hasta el aspecto se adaptan al juego que estáis jugando.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-md",
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "vRX0N",
+                  "name": "Features",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "x8ape",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "G8WWK",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "groups",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "vNhxv",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Campañas con invitación por código o abiertas a nuevos jugadores",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Al5Nj",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "C770p",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "casino",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Skpzl",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Tiradas resueltas por el motor de reglas, imposibles de alterar",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TwFbG",
+                      "name": "Feature",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "a06vd",
+                          "name": "Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "map",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$ac"
+                        },
+                        {
+                          "type": "text",
+                          "id": "qjyL7",
+                          "name": "Text",
+                          "fill": "$tx2",
+                          "content": "Mapa con niebla de guerra, tokens, chat y bitácora compartida",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "g1wvbN",
+              "name": "Systems",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lsR60",
+                  "name": "Systems Label",
+                  "fill": "$tx3",
+                  "content": "SISTEMAS",
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-2xs",
+                  "fontWeight": "700",
+                  "letterSpacing": 0.8
+                },
+                {
+                  "id": "tCrml",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "Plenilunio"
+                },
+                {
+                  "id": "VNKcl",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "CYBERPUNK",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "CYBERPUNK · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                },
+                {
+                  "id": "y5fAK",
+                  "type": "ref",
+                  "ref": "AQI2f",
+                  "name": "D&D 5E",
+                  "fill": "$sf2",
+                  "descendants": {
+                    "o3jAjK": {
+                      "fill": "$tx3",
+                      "icon": "schedule"
+                    },
+                    "rxyJF": {
+                      "content": "D&D 5E · PRONTO",
+                      "fill": "$tx3"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "xJzeo",
+          "name": "Form Side",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "padding": 40,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Ec3fp",
+              "name": "Signup Card",
+              "width": 420,
+              "fill": "$sf",
+              "cornerRadius": "$r2",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "$shadow",
+                "offset": {
+                  "x": 0,
+                  "y": 10
+                },
+                "blur": 30
+              },
+              "layout": "vertical",
+              "gap": 20,
+              "padding": 36,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Tu4O9",
+                  "name": "Card Head",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "fZZCI",
+                      "name": "Title",
+                      "fill": "$tx",
+                      "content": "Nueva contraseña",
+                      "fontFamily": "$font-display",
+                      "fontSize": "$fs-lg",
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "mggyP",
+                      "name": "Subtitle",
+                      "fill": "$tx2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Elige una contraseña nueva para tu cuenta.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "qN9sU",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Password",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "NUEVA CONTRASEÑA"
+                    },
+                    "tJu1V": {
+                      "content": "mínimo 8 caracteres",
+                      "fill": "$tx3"
+                    }
+                  }
+                },
+                {
+                  "id": "uqZzo",
+                  "type": "ref",
+                  "ref": "eaHH8",
+                  "name": "Password2",
+                  "width": "fill_container",
+                  "descendants": {
+                    "YYcai": {
+                      "content": "REPETIR CONTRASEÑA"
+                    },
+                    "tJu1V": {
+                      "content": "la misma contraseña",
+                      "fill": "$tx3"
+                    }
+                  }
+                },
+                {
+                  "id": "LlslJ",
+                  "type": "ref",
+                  "ref": "Nq63f",
+                  "name": "Submit",
+                  "width": "fill_container",
+                  "padding": [
+                    14,
+                    20
+                  ],
+                  "descendants": {
+                    "MkRqy": {
+                      "content": "Guardar y entrar",
+                      "fontSize": "$fs-body"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "uZlJt",
+                  "name": "Login link",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "RrFJP",
+                      "name": "T",
+                      "fill": "$tx2",
+                      "content": "¿Problemas con el enlace?",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-xs",
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "nCW0G",
+                      "type": "ref",
+                      "ref": "MZ6Qw",
+                      "name": "Go",
+                      "padding": 0,
+                      "descendants": {
+                        "tMloa": {
+                          "content": "Pedir otro"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
