@@ -44,3 +44,44 @@ export function fakeAdminDeps(over: Partial<AdminDeps> = {}): AdminDeps {
     ...over,
   };
 }
+
+// ── campaigns ────────────────────────────────────────────────────────────────
+import type { CampaignsPort } from '@/modules/campaigns/domain/ports/CampaignsPort';
+import type { Campaign, CreateCampaignInput } from '@/modules/campaigns/domain/entities/Campaign';
+
+export const CAMPAIGN_MINE: Campaign = {
+  id: 'c1', name: 'Las noches de Queens', description: 'Nueva York tras el Colapso.', systemId: 'plenilunio', systemVersion: '0.1.0',
+  dmId: 'dm-1', dmName: 'Laura', visibility: 'invite', seats: 5, inviteCode: null, progressionEnabled: false, playersCount: 3,
+  nextSessionAt: null, lastSessionAt: null, archivedAt: null, createdAt: '2026-08-17T00:00:00Z', myRole: 'player', myCharacterId: null,
+};
+export const CAMPAIGN_OPEN: Campaign = {
+  ...CAMPAIGN_MINE, id: 'c3', name: 'Sangre en el asfalto', dmId: 'dm-2', dmName: 'Rubén', visibility: 'open', playersCount: 2,
+  myRole: undefined as unknown as Campaign['myRole'],
+};
+delete (CAMPAIGN_OPEN as { myRole?: unknown }).myRole;
+
+/** In-memory CampaignsPort. `mine`/`open` seed the lists; create/join mutate them. */
+export function fakeCampaignsRepo(seed: { mine?: Campaign[]; open?: Campaign[]; joinResult?: Awaited<ReturnType<CampaignsPort['joinByCode']>> } = {}): CampaignsPort & { created: CreateCampaignInput[] } {
+  const mine = [...(seed.mine ?? [])];
+  const open = [...(seed.open ?? [])];
+  const created: CreateCampaignInput[] = [];
+  return {
+    created,
+    listMine: async () => mine,
+    listOpen: async () => open,
+    getById: async (id) => mine.find(c => c.id === id) ?? open.find(c => c.id === id) ?? null,
+    listMembers: async () => [],
+    create: async (input) => {
+      created.push(input);
+      const c: Campaign = { ...CAMPAIGN_MINE, id: `new-${created.length}`, name: input.name, systemId: input.systemId, visibility: input.visibility, seats: input.seats, inviteCode: 'LUNA-4F7K', playersCount: 0, myRole: 'dm', dmName: 'Yo' };
+      mine.unshift(c);
+      return c;
+    },
+    joinByCode: async () => seed.joinResult ?? { campaignId: 'c1' },
+    requestJoin: async () => {},
+    leave: async () => {},
+    update: async () => {},
+    regenerateInviteCode: async () => 'NEW1-CODE',
+    archive: async () => {},
+  };
+}

@@ -21,6 +21,8 @@ export default defineConfig({
       '@rolvium/i18n': path.resolve(__dirname, '../../packages/i18n/src/index.tsx'),
       '@rolvium/ui/tokens': path.resolve(__dirname, '../../packages/ui/src/tokens/index.css'),
       '@rolvium/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
+      '@rolvium/core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
+      '@rolvium/system-plenilunio': path.resolve(__dirname, '../../packages/system-plenilunio/src/index.ts'),
     },
   },
 });

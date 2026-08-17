@@ -36,7 +36,8 @@
   "nav": {
     "home": "Inicio",
     "admin": "Administración",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "main": "Principal"
   },
   "home": {
     "welcome": "Bienvenido, {{name}}",
@@ -98,6 +99,102 @@
     "settingsEmpty": "Todavía no hay ajustes configurables."
   },
   "modules": {
-    "home": "Inicio"
+    "home": "Inicio",
+    "campaigns": "Campañas",
+    "characters": "Personajes",
+    "systems": "Sistemas"
+  },
+  "systems": {
+    "plenilunio": {
+      "name": "Plenilunio",
+      "tagline": "Malefic Time · d6, reserva de Destino",
+      "desc": "Reservas de d6 · fracaso / fallo / éxito / triunfo · reserva compartida de Destino · salud en fases lunares."
+    },
+    "cyberpunk": {
+      "name": "Cyberpunk",
+      "tagline": "Próximamente",
+      "desc": "R. Talsorian · próximamente"
+    },
+    "dnd5e": {
+      "name": "D&D 5e",
+      "tagline": "Próximamente",
+      "desc": "SRD 5.1 · próximamente"
+    }
+  },
+  "campaigns": {
+    "hello": "Hola, {{name}}",
+    "subtitle": "Tienes {{n}} campañas en marcha. Elige mesa o crea una nueva como director.",
+    "subtitleEmpty": "Crea una campaña como director o únete con un código.",
+    "createBtn": "Crear campaña",
+    "mine": "Mis campañas",
+    "open": "Campañas abiertas a nuevos jugadores",
+    "youDirect": "Diriges",
+    "active": "Activa",
+    "freeSeats": "{{n}} plazas libres",
+    "systemNotInstalled": "Sistema no instalado",
+    "comingSoon": "Próximamente",
+    "metaDm": "Dirige {{name}}",
+    "metaYouDirect": "Diriges tú",
+    "metaPlayers": "{{n}}/{{seats}} jugadores",
+    "openTable": "Abrir la mesa",
+    "enterTable": "Entrar a la mesa",
+    "requestJoin": "Pedir unirme",
+    "joinTitle": "Unirme con un código",
+    "joinSub": "El director te lo envía. Al unirte, la mesa se abre con las reglas y el aspecto del sistema de esa campaña.",
+    "code": "Código",
+    "join": "Unirme",
+    "systemsTitle": "Sistemas instalados",
+    "systemsNote": "Cada campaña queda anclada a un sistema: define la ficha, los dados, los catálogos y el aspecto de la mesa.",
+    "empty": {
+      "title": "Todavía no estás en ninguna campaña",
+      "desc": "Crea una como director o únete con el código que te haya pasado el tuyo. También puedes mirar las campañas abiertas."
+    },
+    "visibility": {
+      "invite": "Por invitación",
+      "open": "Abierta",
+      "inviteDesc": "Solo entran quienes tengan el código o el enlace.",
+      "openDesc": "Aparece en el catálogo; los jugadores piden unirse y tú aceptas."
+    },
+    "errors": {
+      "nameRequired": "Ponle un nombre a la campaña.",
+      "systemRequired": "Elige un sistema de juego.",
+      "seatsRange": "Las plazas van de 1 a 12.",
+      "invalidCode": "Ese código no vale. Revisa mayúsculas y guiones o pide al director un enlace nuevo.",
+      "campaignFull": "La campaña está completa.",
+      "joinFailed": "No hemos podido unirte. Inténtalo de nuevo."
+    },
+    "create": {
+      "title": "Nueva campaña",
+      "steps": "Pasos",
+      "step": {
+        "name": "Nombre",
+        "system": "Sistema de juego",
+        "seats": "Visibilidad y plazas",
+        "options": "Opciones de mesa",
+        "invite": "Invitar jugadores"
+      },
+      "nameQ": "¿Cómo se llama la campaña?",
+      "name": "Nombre",
+      "namePh": "Las ruinas de Manhattan",
+      "description": "Descripción",
+      "descriptionPh": "Nueva York tras el Colapso…",
+      "systemQ": "¿Con qué sistema se juega esta campaña?",
+      "systemSub": "El sistema define las reglas, la ficha, los catálogos y el aspecto visual de la mesa. No se puede cambiar después de crear la campaña.",
+      "seatsQ": "¿Quién puede entrar y cuántos?",
+      "visibility": "Visibilidad",
+      "seats": "Plazas de jugador",
+      "optionsQ": "Opciones de mesa",
+      "progression": "Permitir mejoras con experiencia desde el principio",
+      "progressionSub": "Puedes abrirlas o cerrarlas en cualquier momento desde la mesa (suele hacerse entre sesiones).",
+      "createBtn": "Crear campaña",
+      "next": "Continuar",
+      "stepCount": "Paso {{n}} de {{total}}",
+      "createdQ": "«{{name}}» está creada. Invita a tu grupo.",
+      "createdSub": "Los jugadores entran con el código o el enlace. Al unirse verán la mesa con las reglas y el aspecto del sistema y podrán crear su personaje.",
+      "inviteCode": "Código de invitación",
+      "copy": "Copiar",
+      "seatsTaken": "Plazas · {{n}} de {{seats}} ocupadas",
+      "inviteLater": "Invitar más tarde"
+    }
   }
 }

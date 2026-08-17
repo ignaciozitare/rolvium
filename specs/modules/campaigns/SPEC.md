@@ -32,7 +32,22 @@ Who: crear → `game_master`/`admin`; unirse → cualquier usuario.
 `realtime` (canal por campaña), `notifications` (futuro: invitación por correo, próxima sesión).
 
 ## Modelo de datos
-> Pending — DBA. Propuesta (prefijo `campaigns_`): `campaigns` (id, name, system_id, system_version, dm_id,
-> invite_code, visibility, seats, description, progression_enabled, active_scene_id, shared_resources jsonb,
-> next_session_at, archived_at); `campaign_members` (campaign_id, user_id, role dm|player, character_id, joined_at);
-> `campaign_requests` (campaign_id, user_id, status).
+Migración: `supabase/migrations/20260817120000_campaigns.sql` (aplicada en local, lint 0 errores, audit 0 hard).
+
+- **`campaigns_campaigns`** — una fila por campaña: nombre, descripción, **sistema anclado** (`system_id` +
+  `system_version`, un trigger impide cambiarlos), director (`dm_id`), visibilidad (`open`/`invite`), plazas (1–12),
+  código de invitación (`XXXX-XXXX`, único, regenerable, `invite_enabled`), progresión habilitada, `shared_resources`
+  (jsonb que gestiona el sistema), idioma de la mesa, escena activa (FK la añade `maps`), próxima/última sesión,
+  archivado. **Lee**: sus miembros y su director; cualquiera si es abierta y no archivada. **Escribe**: crear solo
+  `game_master`/admin como propio director; actualizar/archivar solo el director (o admin).
+- **`campaigns_members`** — quién está en la campaña y con qué rol de mesa (`dm`/`player`); `character_id` enlaza la
+  ficha (FK la añade `characters`). El director se inserta solo por trigger al crear la campaña. **Lee**: miembros de
+  la misma campaña. **Escribe**: el director cualquier fila; un jugador solo puede salir (borrar la suya) o actualizar
+  la suya (p. ej. su personaje). Un jugador **se une solo a través de `join_campaign_by_code(code)`** (SECURITY
+  DEFINER: valida código habilitado, no archivada, plazas libres; idempotente) o cuando el director acepta su solicitud.
+- **`campaigns_requests`** — solicitudes a campañas abiertas (`pending`/`accepted`/`rejected`). **Lee**: el solicitante y
+  el director. **Escribe**: el solicitante crea/borra la suya pendiente; el estado cambia solo con
+  `campaigns_resolve_request(req, accept)` (director).
+- Helpers reutilizados por el resto de hexágonos: `is_campaign_member(id)`, `is_campaign_dm(id)`,
+  `can_create_campaigns()`; `campaign_invite_preview(code)` para la vista previa (autenticados; los visitantes la
+  obtienen vía API con service role — nunca `TO anon`).

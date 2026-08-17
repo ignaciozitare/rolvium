@@ -18,10 +18,12 @@ export interface ModuleDef {
 }
 
 export const MODULES: ModuleDef[] = [
-  { id: 'home', labelKey: 'modules.home', icon: 'castle', path: '/home', core: true },
-  // Future RPG modules go here, e.g.:
-  // { id: 'campaigns',  labelKey: 'modules.campaigns',  icon: 'auto_stories', path: '/campaigns' },
-  // { id: 'characters', labelKey: 'modules.characters', icon: 'person_play',  path: '/characters' },
+  // Product hexagons (see ARCHITECTURE.md "Product hexagons"). They are core:
+  // every signed-in user sees them; what they can DO inside is decided by the
+  // campaign role (dm/player) and RLS, not by module grants.
+  { id: 'campaigns',  labelKey: 'modules.campaigns',  icon: 'auto_stories', path: '/campaigns',  core: true },
+  { id: 'characters', labelKey: 'modules.characters', icon: 'person_play',  path: '/characters', core: true },
+  { id: 'systems',    labelKey: 'modules.systems',    icon: 'extension',    path: '/systems',    core: true },
 ];
 
 /** Modules a role can be granted (excludes core ones). */

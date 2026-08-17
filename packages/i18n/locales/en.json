@@ -36,7 +36,8 @@
   "nav": {
     "home": "Home",
     "admin": "Admin",
-    "profile": "Profile"
+    "profile": "Profile",
+    "main": "Main"
   },
   "home": {
     "welcome": "Welcome, {{name}}",
@@ -98,6 +99,102 @@
     "settingsEmpty": "There are no configurable settings yet."
   },
   "modules": {
-    "home": "Home"
+    "home": "Home",
+    "campaigns": "Campaigns",
+    "characters": "Characters",
+    "systems": "Systems"
+  },
+  "systems": {
+    "plenilunio": {
+      "name": "Plenilunio",
+      "tagline": "Malefic Time · d6, shared Destiny pool",
+      "desc": "d6 pools · failure / miss / success / triumph · shared Destiny pool · lunar health levels."
+    },
+    "cyberpunk": {
+      "name": "Cyberpunk",
+      "tagline": "Coming soon",
+      "desc": "R. Talsorian · coming soon"
+    },
+    "dnd5e": {
+      "name": "D&D 5e",
+      "tagline": "Coming soon",
+      "desc": "SRD 5.1 · coming soon"
+    }
+  },
+  "campaigns": {
+    "hello": "Hello, {{name}}",
+    "subtitle": "You have {{n}} campaigns running. Pick a table or create a new one as game master.",
+    "subtitleEmpty": "Create a campaign as game master or join with a code.",
+    "createBtn": "Create campaign",
+    "mine": "My campaigns",
+    "open": "Campaigns open to new players",
+    "youDirect": "You run it",
+    "active": "Active",
+    "freeSeats": "{{n}} free seats",
+    "systemNotInstalled": "System not installed",
+    "comingSoon": "Coming soon",
+    "metaDm": "Run by {{name}}",
+    "metaYouDirect": "Run by you",
+    "metaPlayers": "{{n}}/{{seats}} players",
+    "openTable": "Open the table",
+    "enterTable": "Enter the table",
+    "requestJoin": "Ask to join",
+    "joinTitle": "Join with a code",
+    "joinSub": "The game master sends it to you. When you join, the table opens with that campaign's system rules and look.",
+    "code": "Code",
+    "join": "Join",
+    "systemsTitle": "Installed systems",
+    "systemsNote": "Each campaign is pinned to a system: it defines the sheet, the dice, the catalogs and the look of the table.",
+    "empty": {
+      "title": "You are not in any campaign yet",
+      "desc": "Create one as game master or join with the code your GM sent you. You can also browse open campaigns."
+    },
+    "visibility": {
+      "invite": "By invitation",
+      "open": "Open",
+      "inviteDesc": "Only people with the code or link can join.",
+      "openDesc": "Listed in the catalog; players ask to join and you accept."
+    },
+    "errors": {
+      "nameRequired": "Give the campaign a name.",
+      "systemRequired": "Choose a game system.",
+      "seatsRange": "Seats go from 1 to 12.",
+      "invalidCode": "That code is not valid. Check capitals and dashes or ask the GM for a new link.",
+      "campaignFull": "The campaign is full.",
+      "joinFailed": "We could not join you. Try again."
+    },
+    "create": {
+      "title": "New campaign",
+      "steps": "Steps",
+      "step": {
+        "name": "Name",
+        "system": "Game system",
+        "seats": "Visibility & seats",
+        "options": "Table options",
+        "invite": "Invite players"
+      },
+      "nameQ": "What is the campaign called?",
+      "name": "Name",
+      "namePh": "The ruins of Manhattan",
+      "description": "Description",
+      "descriptionPh": "New York after the Collapse…",
+      "systemQ": "Which system does this campaign use?",
+      "systemSub": "The system defines the rules, the sheet, the catalogs and the visual look of the table. It cannot be changed after creation.",
+      "seatsQ": "Who can join and how many?",
+      "visibility": "Visibility",
+      "seats": "Player seats",
+      "optionsQ": "Table options",
+      "progression": "Allow XP upgrades from the start",
+      "progressionSub": "You can open or close them any time from the table (usually between sessions).",
+      "createBtn": "Create campaign",
+      "next": "Continue",
+      "stepCount": "Step {{n}} of {{total}}",
+      "createdQ": "“{{name}}” is created. Invite your group.",
+      "createdSub": "Players join with the code or the link. Once in, they see the table with the system's rules and look and can create their character.",
+      "inviteCode": "Invite code",
+      "copy": "Copy",
+      "seatsTaken": "Seats · {{n}} of {{seats}} taken",
+      "inviteLater": "Invite later"
+    }
   }
 }
