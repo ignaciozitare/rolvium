@@ -33,7 +33,9 @@ export async function saveSheet(
   // The row mirrors identity fields kept inside the sheet (name/concept) so lists never need the jsonb.
   const name = typeof input.data['name'] === 'string' && (input.data['name'] as string).trim() ? (input.data['name'] as string).trim().slice(0, 80) : undefined;
   const concept = typeof input.data['concept'] === 'string' ? (input.data['concept'] as string) : undefined;
-  const xp = input.xp ?? (nextXp !== null && nextXp !== prevXp ? nextXp : undefined);
+  // The row's xp column mirrors the (authority-checked) sheet value; the body's `xp` is only trusted from the DM.
+  const dataXp = nextXp !== null && nextXp !== prevXp ? nextXp : undefined;
+  const xp = c.isDm ? (input.xp ?? dataXp) : dataXp;
   const patch = { data: input.data, derived, health, ...(xp !== undefined ? { xp } : {}), ...(name !== undefined ? { name } : {}), ...(concept !== undefined ? { concept } : {}) };
   try {
     await deps.characters.saveSheet(c.id, input.actorId, patch, input.origin);

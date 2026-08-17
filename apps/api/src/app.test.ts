@@ -125,8 +125,10 @@ describe('PUT /characters/:id/sheet', () => {
     expect((await app.inject({ method: 'PUT', url: `/characters/${CHAR_ID}/sheet`, headers: { authorization: 'Bearer player' }, payload: { data: base } })).statusCode).toBe(403);
     expect((await app.inject({ method: 'PUT', url: `/characters/${CHAR_ID}/sheet`, headers: { authorization: 'Bearer admin' }, payload: { data: base, origin: 'dm' } })).statusCode).toBe(200);
     expect(saved.at(-1)!.patch).toMatchObject({ xp: 5 });
-    const same = { ...sheet(), xp: 0 }; // unchanged xp → allowed for the player
-    expect((await app.inject({ method: 'PUT', url: `/characters/${CHAR_ID}/sheet`, headers: { authorization: 'Bearer player' }, payload: { data: same } })).statusCode).toBe(200);
+    const same = { ...sheet(), xp: 0 }; // unchanged xp → allowed for the player…
+    const r = await app.inject({ method: 'PUT', url: `/characters/${CHAR_ID}/sheet`, headers: { authorization: 'Bearer player' }, payload: { data: same, xp: 9999 } });
+    expect(r.statusCode).toBe(200);
+    expect((saved.at(-1)!.patch as { xp?: number }).xp).toBeUndefined(); // …but the top-level xp from a player is ignored
   });
   it("403 when a player tags origin 'dm'; DM may", async () => {
     expect((await app.inject({ method: 'PUT', url: `/characters/${CHAR_ID}/sheet`, headers: { authorization: 'Bearer player' }, payload: { data: sheet(), origin: 'dm' } })).statusCode).toBe(403);
