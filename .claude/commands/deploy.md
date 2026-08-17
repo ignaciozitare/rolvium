@@ -130,7 +130,7 @@ Tell the user:
 The Deploy Agent itself must hit production after the build reports green
 in Vercel. A green build does not mean a live service — bundling can pass
 while the function entrypoint is wrong, env vars missing, or a token expired.
-In the sibling project the API was dead for a week before anyone noticed;
+In a previous project the API was dead for a week before anyone noticed;
 that does not repeat here.
 
 curl -fsS -m 5 https://rolvium-api.vercel.app/health

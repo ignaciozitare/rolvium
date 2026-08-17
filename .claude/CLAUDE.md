@@ -121,7 +121,7 @@ A prior session in a previous project spent a week's token budget doing a single
 
 Rolvium is a **monorepo** (npm workspaces) with a frontend, a backend, and shared
 packages. You MUST understand this layout before placing any file. Failure to read
-this section caused real bugs in the sibling project (e.g. putting API keys in the
+this section caused real bugs in a previous project (e.g. putting API keys in the
 frontend because the backend was assumed not to exist).
 
 ```
@@ -354,7 +354,7 @@ These rules apply while writing code. The QA Agent will verify them before any m
 - A passing local build is not enough — the preview deploy is the real gate.
 - If the preview deploy fails, fix it on the branch before merging.
 - To promote a deploy to production, use the Vercel dashboard UI (the Rolvium team in Vercel; frontend and api are separate projects).
-- **Never report a task as "done" while production is down.** The Review, QA, and Deploy agents all probe `https://rolvium-api.vercel.app/health` and `https://rolvium.vercel.app` live (placeholders — update when the Vercel projects exist). If either is failing, fix it first — a green local build means nothing if the live service is dead. In the sibling project the API was silently dead for a week once; that does not repeat here.
+- **Never report a task as "done" while production is down.** The Review, QA, and Deploy agents all probe `https://rolvium-api.vercel.app/health` and `https://rolvium.vercel.app` live (placeholders — update when the Vercel projects exist). If either is failing, fix it first — a green local build means nothing if the live service is dead. In a previous project the API was silently dead for a week once; that does not repeat here.
 - **The build verification step must build BOTH apps**: `npm run build:web` AND `npm run build:api`. A frontend-only build hides backend regressions until they reach production.
 
 ---
