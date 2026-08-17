@@ -56,3 +56,7 @@ export { SystemChip, StatusChip }         from './components/Chips';
 export type { StatusTone }                from './components/Chips';
 export { SectionTitle, PageHeader, EmptyState, TopBar } from './components/Layout';
 export type { TopBarLink }                from './components/Layout';
+
+// ── Sheet (schema-driven character sheet, themed via --sys-* vars) ────────────
+export { Sheet, Crescent, PhaseDisc }     from './components/Sheet';
+export type { SheetProps, SheetLabels, SheetRef } from './components/Sheet';

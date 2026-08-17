@@ -17,6 +17,7 @@ Import: `import { X } from '@rolvium/ui'`
 | `Chip` | chip semántico (success/error/warning) | `<Chip tone>...</Chip>` |
 | `ColorPicker` | selector de color de la paleta del sistema | `<ColorPicker value onChange>` |
 | `ConfirmModal` | confirmación de acción destructiva | `<ConfirmModal open onConfirm onCancel>` |
+| `Crescent` | luna creciente SVG (PL/Creciente) coloreada con --sys-moon-* | `<Crescent size={26} />` |
 | `DataTable` | tabla con columnas reordenables/redimensionables, sort por click en título y paginación opcional | `<DataTable columns rows sortable pageSize>` |
 | `DateRangePicker` | selección de rango de fechas con presets | `<DateRangePicker value onChange>` |
 | `DialogProvider` | contexto para abrir modales imperativamente | `useDialog().confirm(...)` |
@@ -29,7 +30,9 @@ Import: `import { X } from '@rolvium/ui'`
 | `Modal` | overlay/diálogo con foco atrapado y cierre por ESC | `<Modal open onClose title>` |
 | `MultiSelectDropdown` | selección múltiple con búsqueda | `<MultiSelectDropdown items value onChange>` |
 | `PageHeader` | cabecera de página: título display + subtítulo + acciones | `<PageHeader title subtitle actions>` |
+| `PhaseDisc` | disco de fase (PL/Salud): fracción oscura 0→1 | `<PhaseDisc fraction={0.5} />` |
 | `SectionTitle` | título de sección ALL-CAPS con línea | `<SectionTitle>Mis campañas</SectionTitle>` |
+| `Sheet` | ficha de personaje neutra dirigida por el sheetSchema del sistema (secciones, campos, derivadas, acciones, tooltips «Manual · p.XX»), tema solo vía --sys-* | `<Sheet schema data derived readOnly onChange onAction actions t refText labels>` |
 | `StatBox` | métrica/KPI con label (átomo) | `<StatBox label value>` |
 | `StatusChip` | chip de estado con punto (green/purple/amber/red/gray) | `<StatusChip tone="green">Activa</StatusChip>` |
 | `SystemChip` | chip de sistema de juego (icono + nombre; muted si no instalado) | `<SystemChip muted>Plenilunio</SystemChip>` |
@@ -38,4 +41,4 @@ Import: `import { X } from '@rolvium/ui'`
 
 > Fuente de verdad del código: `packages/ui/src/index.ts`.
 > Ejemplos vivos e interactivos: `apps/web/src/shared/ui/UIKit.tsx`.
-> 25 componentes exportados.
+> 28 componentes exportados.

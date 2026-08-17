@@ -2,6 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { SheetData } from '@rolvium/core';
 import type { Character, CharacterAuditEntry, CharacterPatch, CreateCharacterInput, WriteOrigin } from '../domain/entities/Character';
 import type { CharactersPort } from '../domain/ports/CharactersPort';
+import type { SheetSavePort, SheetSaveResult, SheetSaveError } from '../domain/ports/SheetSavePort';
+import { HttpSheetAdapter } from './HttpSheetAdapter';
 
 interface Row {
   id: string; campaign_id: string; owner_id: string | null; kind: 'pc' | 'npc'; name: string; concept: string | null;
@@ -25,7 +27,11 @@ export function mapCharacterRow(r: Row): Character {
 }
 
 export class SupabaseCharactersRepo implements CharactersPort {
-  constructor(private readonly db: SupabaseClient) {}
+  constructor(private readonly db: SupabaseClient, private readonly sheetSaver: SheetSavePort = new HttpSheetAdapter()) {}
+
+  async saveSheet(id: string, patch: CharacterPatch & { data: SheetData }, origin: WriteOrigin): Promise<SheetSaveResult | { error: SheetSaveError }> {
+    return this.sheetSaver.save(id, patch.data, origin, patch.xp);
+  }
 
   private async me(): Promise<string | null> {
     const { data: { session } } = await this.db.auth.getSession();

@@ -264,3 +264,16 @@ a{color:var(--ac2);text-decoration:none;}
 .rv-device-text strong{font-size:var(--fs-sm);font-weight:600;color:var(--tx);}
 .rv-device-text small{font-size:var(--fs-2xs);color:var(--tx3);}
 @media (max-width:900px){.rv-account{grid-template-columns:1fr;}.rv-account-nav{position:static;flex-direction:row;flex-wrap:wrap;}.rv-account-row{flex-direction:column;}.rv-account-grid2,.rv-account-pwrow{grid-template-columns:1fr;}.rv-account-pwrow > button{margin-top:0;}}
+/* ── characters (H4) — /characters page (rolvium.pen Personajes) ── */
+.rv-chars-page{display:flex;flex-direction:column;gap:28px;min-width:0;}
+.rv-chars-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;}
+.rv-chars-card{display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:var(--r2);background:var(--sf2);}
+.rv-chars-head{display:flex;gap:14px;align-items:flex-start;}
+.rv-chars-id{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.rv-chars-name{font-family:var(--display);font-size:var(--fs-md);font-weight:600;color:var(--tx);margin:0;}
+.rv-chars-concept{font-size:var(--fs-sm);color:var(--tx2);margin:0;}
+.rv-chars-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.rv-chars-meta{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0;font-size:var(--fs-xs);}
+.rv-chars-meta dt{font-size:var(--fs-2xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);}
+.rv-chars-meta dd{margin:0;color:var(--tx2);}
+.rv-chars-actions{display:flex;gap:8px;flex-wrap:wrap;}

@@ -49,6 +49,9 @@ const META = {
   Chip:               { resolves: 'chip semántico (success/error/warning)', usage: '<Chip tone>...</Chip>' },
   StatBox:            { resolves: 'métrica/KPI con label (átomo)', usage: '<StatBox label value>' },
   Divider:            { resolves: 'separador tonal (átomo)', usage: '<Divider />' },
+  Sheet:              { resolves: 'ficha de personaje neutra dirigida por el sheetSchema del sistema (secciones, campos, derivadas, acciones, tooltips «Manual · p.XX»), tema solo vía --sys-*', usage: '<Sheet schema data derived readOnly onChange onAction actions t refText labels>' },
+  Crescent:           { resolves: 'luna creciente SVG (PL/Creciente) coloreada con --sys-moon-*', usage: '<Crescent size={26} />' },
+  PhaseDisc:          { resolves: 'disco de fase (PL/Salud): fracción oscura 0→1', usage: '<PhaseDisc fraction={0.5} />' },
 };
 
 function exportedComponents(src) {

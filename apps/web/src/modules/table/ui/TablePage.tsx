@@ -7,20 +7,28 @@ import { SYSTEMS } from '@/systems/registry';
 import type { TablePort } from '../domain/ports/TablePort';
 import type { TableTab } from '../domain/entities/Table';
 import { tableRepo } from '../container';
-import { isConnected, tabsFor } from '../domain/useCases/tableRules';
+import { handOf, isConnected, tabsFor } from '../domain/useCases/tableRules';
 import { useTable } from './useTable';
 import { SharedResourceBar } from './SharedResourceBar';
 import { Crescent } from './systemIcons';
+import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
+import type { RollsPort } from '@/modules/characters/domain/ports/RollsPort';
+import { charactersRepo as defaultCharacters, rollsPort as defaultRolls } from '@/modules/characters/container';
+import { SheetTab, CreateTab } from './tabs/SheetTab';
+import { ImproveTab } from './tabs/ImproveTab';
+import { GroupTab } from './tabs/GroupTab';
 import './table.css';
 
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
-export function TablePage({ repo = tableRepo }: { repo?: TablePort }): JSX.Element {
+export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort }): JSX.Element {
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
   const { snap, system, status, patchResources } = useTable(id, repo);
   const [tab, setTab] = useState<TableTab>('sheet');
   const [rollerOpen, setRollerOpen] = useState(false);
+  /** Sheet the DM opened from «El grupo» (null = my own). */
+  const [viewCharacterId, setViewCharacterId] = useState<string | null>(null);
 
   // System fonts: load once per system (theme.fonts.url).
   useEffect(() => {
@@ -48,6 +56,8 @@ export function TablePage({ repo = tableRepo }: { repo?: TablePort }): JSX.Eleme
   const tabs = tabsFor(role);
   const dm = members.find(m => m.role === 'dm');
   const players = members.filter(m => m.role === 'player');
+  // Shared-resource dice in hand travel with every roll as `<resourceId>Dice` (e.g. destinyDice).
+  const rollOptions = Object.fromEntries((system.engine.sharedResources ?? []).map(d => [`${d.id}Dice`, handOf(resources[d.id], user.id)]));
   const sysT = (key: string) => { const dict = ((system.locales[locale] ?? system.locales.es) ?? {}) as Record<string, unknown>; const v = key.split('.').reduce<unknown>((o, k) => (o && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined), dict); return typeof v === 'string' ? v : key; };
 
   return (
@@ -100,11 +110,17 @@ export function TablePage({ repo = tableRepo }: { repo?: TablePort }): JSX.Eleme
 
         <div className="tb-body">
           <main className="tb-main">
-            <section className="tb-hoja tb-placeholder" aria-live="polite">
-              <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>construction</span>
-              <div className="tb-rotulo">{t(`table.tab.${tab}`)}</div>
-              <p>{t('table.comingNext')}</p>
-            </section>
+            {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} characterId={viewCharacterId} onOpenCreate={() => setTab('create')} />}
+            {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
+            {tab === 'improve' && <ImproveTab campaignId={campaign.id} userId={user.id} repo={charactersRepo} progressionEnabled={campaign.progressionEnabled} characterId={viewCharacterId} />}
+            {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}
+            {(tab === 'scene' || tab === 'bestiary') && (
+              <section className="tb-hoja tb-placeholder" aria-live="polite">
+                <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>construction</span>
+                <div className="tb-rotulo">{t(`table.tab.${tab}`)}</div>
+                <p>{t('table.comingNext')}</p>
+              </section>
+            )}
           </main>
           <aside className="tb-side">
             <button type="button" className={`tb-roller-btn ${rollerOpen ? 'on' : ''}`} onClick={() => setRollerOpen(o => !o)} aria-pressed={rollerOpen}>

@@ -50,4 +50,17 @@ PNJ; puede asignarlas o dejarlas sin dueño).
   dueño, xp, salud), con autor y origen (`sheet`|`roll`|`damage`|`progression`|`dm`|`system`; el escritor lo indica con
   `set_config('rolvium.audit_origin', …)`). Sólo la lee el director de la campaña; nadie escribe directamente.
 - **Bucket `tokens`**: como `avatars` (público de lectura, escritura en `{uid}/`, 2 MB, imágenes).
-- Migración: `supabase/migrations/20260818100000_characters.sql`.
+- Migración: `supabase/migrations/20260818100000_characters.sql` · `20260818110000_characters_api.sql` (`characters_api_update`:
+  la API guarda **como el usuario** — la función, sólo para service role, adopta la identidad del actor en la transacción para
+  que guards, auditoría y comprobación dueño/director apliquen igual que desde el navegador).
+- **Guardado de ficha (autoridad)**: `PUT /characters/:id/sheet` — valida `data` contra el `sheetSchema` del sistema
+  (`validateSheet` de `@rolvium/core`: tipos, rangos, opciones, formas de listas, claves desconocidas rechazadas), recalcula
+  `derived`/`health` con el motor y persiste con `origin`. El navegador sólo previsualiza. Tiradas: `POST /rolls` (dados en
+  servidor + `engine.resolve`; el registro persistente es de `dice`).
+
+## Estado v1 (2026-08-18)
+Hecho: DB, motor Plenilunio, `<Sheet>` genérico, `/characters`, `/characters/:id` (ventana aparte, director lectura→edición),
+generador por pasos del sistema (director: tipo + asignar), Mejorar habilitada/bloqueada, pestañas Ficha/Mejorar/El grupo en la
+mesa, guardado autoritativo por API, tiradas por API. Pendiente: avatar/token desde la ficha, cambio de especialidad (3 px),
+registro de auditoría en «El grupo», filtros/importar en `/characters`, panel Registro en la ficha aparte, iconos ⚔/◎ por
+tipo de arma en el `<Sheet>` neutro, tooltips ricos (hoy `title`).

@@ -7,6 +7,8 @@ import { ResetPage } from '@/modules/identity/ui/ResetPage';
 import { AccountPage } from '@/modules/identity/ui/AccountPage';
 import { CampaignsPage } from '@/modules/campaigns/ui/CampaignsPage';
 import { TablePage } from '@/modules/table/ui/TablePage';
+import { CharactersPage } from '@/modules/characters/ui/CharactersPage';
+import { CharacterSheetPage } from '@/modules/characters/ui/CharacterSheetPage';
 import { AdminShell } from '@/modules/admin/ui/AdminShell';
 import { UIKit } from '@/shared/ui/UIKit';
 import { RolviumApp } from './RolviumApp';
@@ -50,6 +52,8 @@ export function AppRoutes(): JSX.Element {
       <Route path="/account" element={<Protected><AccountPage /></Protected>} />
       <Route path="/campaigns" element={<Protected><CampaignsPage /></Protected>} />
       <Route path="/table/:id" element={<ProtectedBare><TablePage /></ProtectedBare>} />
+      <Route path="/characters" element={<Protected><CharactersPage /></Protected>} />
+      <Route path="/characters/:id" element={<ProtectedBare><CharacterSheetPage /></ProtectedBare>} />
       <Route path="/home" element={<Navigate to="/campaigns" replace />} />
       <Route path="/admin" element={<Protected><AdminShell /></Protected>} />
       <Route path="/ui-kit" element={<Protected><UIKit /></Protected>} />

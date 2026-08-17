@@ -2,8 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "types": ["node"],
-    "paths": { "@rolvium/shared-types": ["../../packages/shared-types/src/index.ts"] }
+    "paths": { "@rolvium/shared-types": ["../../packages/shared-types/src/index.ts"], "@rolvium/core": ["../../packages/core/src/index.ts"], "@rolvium/system-plenilunio": ["../../packages/system-plenilunio/src/index.ts"] }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]

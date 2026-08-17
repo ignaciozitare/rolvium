@@ -111,6 +111,8 @@ export interface GameSystem {
   generator: GeneratorStep[];
   /** Blank sheet respecting the schema. */
   newSheet: () => SheetData;
+  /** Values to write when the generator finishes (e.g. fill resources, full resistance). Identity when absent. */
+  finalizeDraft?: (draft: SheetData) => SheetData;
 }
 
 /** State shape of one shared resource inside `campaigns.shared_resources`. */

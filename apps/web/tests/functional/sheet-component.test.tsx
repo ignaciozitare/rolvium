@@ -1,0 +1,109 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Sheet, PhaseDisc } from '@rolvium/ui';
+import { plenilunio } from '@rolvium/system-plenilunio';
+import { sysT } from '@/modules/characters/domain/useCases/systemText';
+import { KAREN_DATA } from '../helpers/fakes';
+
+const ts = sysT(plenilunio, 'es');
+const labels = { roll: 'Tirar', add: 'Añadir', remove: 'Quitar', manual: 'Manual', of: 'de' };
+const refText = (k: string) => { const r = plenilunio.references[k]; return r ? { page: r.page, title: ts(r.title), summary: ts(r.summary) } : null; };
+
+function mount(over: Partial<Parameters<typeof Sheet>[0]> = {}) {
+  const onChange = vi.fn(); const onAction = vi.fn();
+  render(<Sheet schema={plenilunio.sheetSchema} data={KAREN_DATA} derived={plenilunio.engine.derived(KAREN_DATA)} onChange={onChange} onAction={onAction}
+    actions={plenilunio.engine.actions ?? []} catalogs={plenilunio.catalogs} t={ts} refText={refText} labels={labels} icons={plenilunio.theme.icons ?? {}} poolSize={() => 6} {...over} />);
+  return { onChange, onAction };
+}
+
+describe('<Sheet> — schema-driven, every field type', () => {
+  it('renders every section from the schema with system text and tooltips «Manual · p.XX»', () => {
+    mount();
+    for (const s of plenilunio.sheetSchema.sections) expect(screen.getByRole('region', { name: ts(s.label) })).toBeInTheDocument();
+    expect(screen.getByLabelText('Personaje')).toHaveValue('Karen «K»');
+    // stat row: label + specialty + value + TIRAR n
+    const stat = document.querySelector('[data-stat="combat"]')!;
+    expect(within(stat as HTMLElement).getByText('Combate')).toBeInTheDocument();
+    expect(within(stat as HTMLElement).getAllByRole('combobox')[0]).toHaveValue('combat.improvisedWeapons');
+    expect(within(stat as HTMLElement).getByRole('button', { name: 'Tirar 6' })).toBeInTheDocument();
+    // tooltip from references
+    const tips = screen.getAllByRole('tooltip');
+    expect(tips.some(t => t.textContent?.includes('Manual · p.20'))).toBe(true);
+    // derived read-only values (endurance = 4+3 = 7, resistance max 21)
+    expect(screen.getByRole('region', { name: 'Estado' })).toHaveTextContent('7');
+    expect(screen.getByText('21 de 21')).toBeInTheDocument();
+    // health discs
+    expect(screen.getByRole('radio', { name: 'Sano' })).toHaveAttribute('aria-checked', 'true');
+    // weapons table with catalog-derived cells and attack icon buttons
+    const table = screen.getByRole('table', { name: 'Armas' });
+    expect(within(table).getAllByRole('combobox')[0]).toHaveValue('bat');
+    expect(within(table).getAllByRole('row')[2]).toHaveTextContent('7'); // magnum damage from the catalog
+    expect(within(table).getAllByRole('button', { name: /Atacar cuerpo a cuerpo/ }).length).toBe(2);
+    // gifts with ⚡ (bolt) and cost text
+    expect(screen.getByRole('button', { name: /Activar don · Furia de titán/ })).toBeInTheDocument();
+    expect(screen.getByText('1 punto de Fortuna')).toBeInTheDocument();
+    // section ref hint for weapons
+    expect(screen.getByText(/Armas · Manual · p.97/)).toBeInTheDocument();
+  });
+
+  it('edits emit patches: text, select, counter, boxes, health, list add/remove, table add', async () => {
+    const u = userEvent.setup();
+    const { onChange } = mount();
+    await u.type(screen.getByLabelText('Concepto'), '!');
+    expect(onChange).toHaveBeenLastCalledWith({ concept: 'Líder de banda!' });
+    await u.selectOptions(within(screen.getByRole('region', { name: 'Armadura' })).getByRole('combobox'), 'furs');
+    expect(onChange).toHaveBeenLastCalledWith({ armour: 'furs' });
+    await u.click(screen.getByRole('button', { name: '+ Destino' }));
+    expect(onChange).toHaveBeenLastCalledWith({ destiny: 3 });
+    await u.click(screen.getByRole('button', { name: 'Resistencia 10' }));
+    expect(onChange).toHaveBeenLastCalledWith({ resistance: 10 });
+    await u.click(screen.getByRole('radio', { name: 'Herido' }));
+    expect(onChange).toHaveBeenLastCalledWith({ health: 'wounded' });
+    await u.click(screen.getByRole('button', { name: '+ Añadir · Dones' }));
+    const gifts = onChange.mock.calls.at(-1)![0].gifts as unknown[];
+    expect(gifts).toHaveLength(2);
+    await u.click(screen.getByRole('button', { name: 'Quitar · Furia de titán' }));
+    expect(onChange).toHaveBeenLastCalledWith({ gifts: [] });
+    await u.click(screen.getByRole('button', { name: '+ Añadir · Armas' }));
+    expect((onChange.mock.calls.at(-1)![0].weapons as unknown[]).length).toBe(3);
+    // stat +1 and specialty add
+    await u.click(screen.getByRole('button', { name: '+ Combate' }));
+    expect(onChange).toHaveBeenLastCalledWith({ combat: { value: 5, specialties: ['combat.improvisedWeapons'] } });
+    await u.selectOptions(screen.getByLabelText('Añadir Especialidad · Combate'), 'combat.knives');
+    expect(onChange).toHaveBeenLastCalledWith({ combat: { value: 4, specialties: ['combat.improvisedWeapons', 'combat.knives'] } });
+  });
+
+  it('actions: TIRAR → onAction("roll", stat); weapon icon → attack action; gift ⚡ → gift.activate', async () => {
+    const u = userEvent.setup();
+    const { onAction } = mount();
+    await u.click(within(document.querySelector('[data-stat="presence"]') as HTMLElement).getByRole('button', { name: /Tirar/ }));
+    expect(onAction).toHaveBeenCalledWith('roll', 'presence');
+    await u.click(screen.getByRole('button', { name: /Disparar · Revólver magnum .44/ }));
+    expect(onAction).toHaveBeenCalledWith('attack.ranged', 'magnum44');
+    await u.click(screen.getByRole('button', { name: /Activar don · Furia de titán/ }));
+    expect(onAction).toHaveBeenCalledWith('gift.activate', 'titanFury');
+  });
+
+  it('readOnly disables inputs and hides add/remove but keeps roll buttons; showActions=false hides them; canChange vetoes', async () => {
+    const u = userEvent.setup();
+    const { onChange } = mount({ readOnly: true });
+    expect(screen.getByLabelText('Personaje')).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /Añadir/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Tirar/ }).length).toBe(7);
+    document.body.innerHTML = '';
+    mount({ showActions: false, canChange: (id) => id !== 'destiny' });
+    expect(screen.queryByRole('button', { name: /Tirar/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ Destino' })).toBeDisabled();
+    await u.click(screen.getByRole('button', { name: '+ Fortuna' }));
+    expect(onChange).not.toHaveBeenCalled(); // first mount's spy; second mount has its own
+  });
+
+  it('fields=[…] renders only those fields (generator steps) and PhaseDisc covers 0/½/1', () => {
+    mount({ fields: ['name', 'concept'] });
+    expect(screen.getByLabelText('Personaje')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Estado' })).not.toBeInTheDocument();
+    const { container } = render(<><PhaseDisc fraction={0} /><PhaseDisc fraction={0.5} /><PhaseDisc fraction={1} /><PhaseDisc fraction={0.25} /><PhaseDisc fraction={0.75} /></>);
+    expect(container.querySelectorAll('svg path').length).toBe(4);
+  });
+});

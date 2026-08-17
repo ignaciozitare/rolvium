@@ -9,13 +9,19 @@ import type { ITokenVerifier, VerifiedIdentity } from './domain/auth/ITokenVerif
 import type { IUserRepository } from './domain/user/IUserRepository.js';
 import type { IUserAdmin } from './domain/user/IUserAdmin.js';
 import type { IInviteRepository } from './domain/invite/IInviteRepository.js';
+import type { ICharacterRepository } from './domain/character/ICharacterRepository.js';
+import type { GameSystem } from '@rolvium/core';
 import { SupabaseTokenVerifier } from './infrastructure/supabase/SupabaseTokenVerifier.js';
 import { SupabaseUserRepo } from './infrastructure/supabase/SupabaseUserRepo.js';
 import { SupabaseUserAdmin } from './infrastructure/supabase/SupabaseUserAdmin.js';
 import { SupabaseInviteRepo } from './infrastructure/supabase/SupabaseInviteRepo.js';
+import { SupabaseCharacterRepo } from './infrastructure/supabase/SupabaseCharacterRepo.js';
+import { systemById } from './infrastructure/systems.js';
 import { authRoutes } from './infrastructure/http/authRoutes.js';
 import { adminRoutes } from './infrastructure/http/adminRoutes.js';
 import { invitesRoutes } from './infrastructure/http/invitesRoutes.js';
+import { charactersRoutes } from './infrastructure/http/charactersRoutes.js';
+import { rollsRoutes } from './infrastructure/http/rollsRoutes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -32,6 +38,9 @@ export interface AppDeps {
   userRepo: IUserRepository;
   userAdmin: IUserAdmin;
   invites: IInviteRepository;
+  characters: ICharacterRepository;
+  /** Installed game systems (defaults to the bundled registry). */
+  systemById?: (id: string) => GameSystem | null;
   allowedOrigins?: string[];
   logger?: boolean;
 }
@@ -49,6 +58,7 @@ export function supabaseDeps(): AppDeps {
     userRepo: new SupabaseUserRepo(db),
     userAdmin: new SupabaseUserAdmin(db),
     invites: new SupabaseInviteRepo(db),
+    characters: new SupabaseCharacterRepo(db),
     allowedOrigins: ALLOWED_ORIGIN ? ALLOWED_ORIGIN.split(',').map(s => s.trim()) : [],
     logger: true,
   };
@@ -86,6 +96,9 @@ export async function createApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(authRoutes, { prefix: '/auth', userRepo: deps.userRepo });
   await app.register(adminRoutes, { prefix: '/admin', userRepo: deps.userRepo, userAdmin: deps.userAdmin });
   await app.register(invitesRoutes, { prefix: '/invites', invites: deps.invites });
+  const sys = deps.systemById ?? systemById;
+  await app.register(charactersRoutes, { prefix: '/characters', characters: deps.characters, systemById: sys });
+  await app.register(rollsRoutes, { prefix: '/rolls', characters: deps.characters, systemById: sys });
 
   app.get('/health', async () => ({ ok: true, ts: new Date().toISOString() }));
 

@@ -1,5 +1,5 @@
 /* Neutral defaults for an unthemed system; the game system overrides them inline via VisualTheme.vars. */
-.tb-root{--sys-bg:var(--bg);--sys-ink:#131310;--sys-font-body:Georgia,serif;--sys-bg-image:none;--sys-ink-soft:#39382f;--sys-ink-dim:#63615a;--sys-gold:#8a7038;--sys-font-display:inherit;--sys-line:#8a887e;--sys-paper-hi:#efede7;--sys-card:#f2f0ea80;--sys-card-shadow:0 3px 10px #13131040;--sys-border:#949288;--sys-blood:#6e2418;--sys-moon-hi:#a8a69b;--sys-moon-mid:#5a594e;--sys-moon-lo:#15140e;}
+.tb-root{--sys-bg:var(--bg);--sys-ink:#131310;--sys-font-body:Georgia,serif;--sys-bg-image:none;--sys-ink-soft:#39382f;--sys-ink-dim:#63615a;--sys-gold:#8a7038;--sys-font-display:inherit;--sys-line:#8a887e;--sys-paper-hi:#efede7;--sys-card:#f2f0ea80;--sys-card-shadow:0 3px 10px #13131040;--sys-border:#949288;--sys-blood:#6e2418;--sys-moon-hi:#a8a69b;--sys-moon-mid:#5a594e;--sys-moon-lo:#15140e;--sys-paper:#dedcd5;--sys-paper-lo:#cbc9c0;--sys-olive:#3a3a26;--sys-steel:#4a5757;}
 /* ── Table (H3): platform chrome + system-themed container ─────────────────
    Everything below `.tb-table` uses ONLY --sys-* variables (set inline from the
    game system's VisualTheme). Fallbacks are neutral so an unthemed system still

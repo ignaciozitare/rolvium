@@ -1,3 +1,4 @@
+import type { SheetSaveResult, SheetSaveError } from './SheetSavePort';
 import type { Character, CharacterAuditEntry, CharacterPatch, CreateCharacterInput, WriteOrigin } from '../entities/Character';
 
 export interface CharactersPort {
@@ -9,6 +10,11 @@ export interface CharactersPort {
   create(input: CreateCharacterInput): Promise<Character>;
   /** `origin` is recorded by the audit trigger (default 'sheet'). */
   update(id: string, patch: CharacterPatch, origin?: WriteOrigin): Promise<void>;
+  /**
+   * Sheet edits: the authoritative save (API validates against the schema, recomputes derived/health, persists as
+   * the actor with `origin`). `patch.data` is required; the returned derived/health win over the local preview.
+   */
+  saveSheet(id: string, patch: CharacterPatch & { data: NonNullable<CharacterPatch['data']> }, origin: WriteOrigin): Promise<SheetSaveResult | { error: SheetSaveError }>;
   /** Take an unassigned PC (DM-made) and link it to my member row. */
   claim(id: string): Promise<void>;
   remove(id: string): Promise<void>;

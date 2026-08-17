@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderWithProviders, screen, waitFor } from '../helpers/render';
+import { renderWithProviders, screen, waitFor, within } from '../helpers/render';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/shared/hooks/useAuth';
 import { TablePage } from '@/modules/table/ui/TablePage';
 import type { TablePort } from '@/modules/table/domain/ports/TablePort';
 import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
-import { fakeAuthRepo, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE } from '../helpers/fakes';
+import { fakeAuthRepo, fakeCharactersRepo, fakeRollsPort, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN } from '../helpers/fakes';
 import { canTake, tabsFor } from '@/modules/table/domain/useCases/tableRules';
 
 const GM = { ...ADMIN_USER, id: 'dm-1', name: 'Laura', role: 'game_master' };
@@ -39,9 +39,9 @@ function fakeTableRepo(role: 'dm' | 'player', value = 7): TablePort & { snap: Ta
   };
 }
 
-function mount(user: typeof PLAYER_USER, repo: TablePort) {
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN])) {
   renderWithProviders(
-    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} />} /></Routes></AuthProvider>,
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={fakeRollsPort()} />} /></Routes></AuthProvider>,
     { providers: { routerProps: { initialEntries: ['/table/c1'] } } },
   );
 }
@@ -97,5 +97,22 @@ describe('table: page', () => {
     mount(PLAYER_USER, repo);
     expect(await screen.findByText('No formas parte de esta campaña.')).toBeInTheDocument();
     vi.restoreAllMocks();
+  });
+
+  it('Ficha tab renders my sheet; DM «El grupo» → «Ver ficha» opens that sheet; Mejorar and Crear personaje tabs render', async () => {
+    const u = userEvent.setup();
+    mount(GM, fakeTableRepo('dm'));
+    await u.click(await screen.findByRole('button', { name: 'El grupo' }));
+    const karen = await screen.findByRole('article', { name: 'Karen «K»' });
+    await u.click(within(karen).getByRole('button', { name: 'Ver ficha' }));
+    expect(await screen.findByLabelText('Personaje')).toHaveValue('Karen «K»');
+    expect(screen.getByRole('button', { name: 'Ficha', pressed: true })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Mejorar' }));
+    expect(await screen.findByText('Mejorar con experiencia')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Crear personaje' }));
+    expect(await screen.findByText('Solo director')).toBeInTheDocument();
+    document.body.innerHTML = '';
+    mount(PLAYER_USER, fakeTableRepo('player'));
+    expect(await screen.findByLabelText('Personaje')).toHaveValue('Karen «K»');
   });
 });

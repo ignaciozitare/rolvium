@@ -210,6 +210,9 @@ CREATE POLICY characters_audit_select ON public.characters_audit
   FOR SELECT TO authenticated USING (public.is_campaign_dm(campaign_id));
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.characters TO authenticated;
+-- The API (service role) reads/writes characters and audit (default privileges grant nothing to service_role here).
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.characters, public.characters_audit TO service_role;
+GRANT USAGE, SELECT ON SEQUENCE public.characters_audit_id_seq TO service_role;
 GRANT SELECT ON public.characters_audit TO authenticated;
 REVOKE INSERT, UPDATE, DELETE ON public.characters_audit FROM authenticated;
 

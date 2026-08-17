@@ -113,3 +113,69 @@ export function fakeIdentityDeps(over: { identity?: Partial<IdentityDeps['identi
     joinByCode: over.joinByCode ?? vi.fn().mockResolvedValue({ campaignId: 'c1' }),
   };
 }
+
+// ── characters ───────────────────────────────────────────────────────────────
+import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
+import type { RollsPort } from '@/modules/characters/domain/ports/RollsPort';
+import type { Character, CharacterAuditEntry, CharacterPatch, CreateCharacterInput, WriteOrigin } from '@/modules/characters/domain/entities/Character';
+import type { RollRequest, RollResult, SheetData } from '@rolvium/core';
+import { plenilunio } from '@rolvium/system-plenilunio';
+
+/** A finished Plenilunio sheet (Karen «K», the design's sample character). */
+export const KAREN_DATA: SheetData = {
+  ...plenilunio.newSheet(), name: 'Karen «K»', player: 'Pip', concept: 'Líder de banda', size: 'medium', preset: 'standard',
+  fortitude: { value: 4, specialties: ['fortitude.vigour'] }, combat: { value: 4, specialties: ['combat.improvisedWeapons'] }, will: { value: 3, specialties: ['will.courage'] },
+  cunning: { value: 3, specialties: ['cunning.streetwise'] }, subtlety: { value: 2, specialties: ['subtlety.ambush'] }, presence: { value: 5, specialties: ['presence.leadership'] }, culture: { value: 1, specialties: ['culture.legends'] },
+  destiny: 2, fortune: 2, resistance: 21, health: 'healthy', xp: 24, armour: 'leatherJacket',
+  weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 6 }], gifts: [{ id: 'titanFury', level: 1 }], equipment: [{ id: 'dynamoTorch' }, { id: 'ductTape' }],
+  story: 'Creció entre los escombros del Bronx.',
+};
+export const CHARACTER_KAREN: Character = {
+  id: 'ch-karen', campaignId: 'c1', campaignName: 'Las noches de Queens', systemId: 'plenilunio', ownerId: PLAYER_USER.id, ownerName: 'Pip', kind: 'pc',
+  name: 'Karen «K»', concept: 'Líder de banda', avatarUrl: null, tokenUrl: null, color: null, data: KAREN_DATA, derived: plenilunio.engine.derived(KAREN_DATA),
+  health: 'healthy', xp: 24, archivedAt: null, createdAt: '2026-08-17T00:00:00Z', updatedAt: '2026-08-17T00:00:00Z',
+};
+export const CHARACTER_UNASSIGNED: Character = {
+  ...CHARACTER_KAREN, id: 'ch-nix', ownerId: null, ownerName: null, name: 'Nix', concept: 'Chatarrera', xp: 0,
+  data: { ...KAREN_DATA, name: 'Nix', concept: 'Chatarrera', xp: 0 },
+};
+export const CHARACTER_OTHER: Character = {
+  ...CHARACTER_KAREN, id: 'ch-elias', ownerId: 'u-nix', ownerName: 'Dani', name: 'Elías Vance', concept: 'Predicador armado', health: 'wounded',
+  data: { ...KAREN_DATA, name: 'Elías Vance', concept: 'Predicador armado', health: 'wounded', resistance: 13 },
+};
+
+/** In-memory CharactersPort. Mutations are recorded so tests can assert persistence + audit origin. */
+export function fakeCharactersRepo(seed: Character[] = [CHARACTER_KAREN]): CharactersPort & { list: Character[]; updates: { id: string; patch: CharacterPatch; origin: WriteOrigin | undefined }[]; created: CreateCharacterInput[]; claimed: string[] } {
+  const list = seed.map(c => ({ ...c }));
+  const updates: { id: string; patch: CharacterPatch; origin: WriteOrigin | undefined }[] = [];
+  const created: CreateCharacterInput[] = [];
+  const claimed: string[] = [];
+  return {
+    list, updates, created, claimed,
+    listMine: async () => list.filter(c => c.ownerId === PLAYER_USER.id),
+    listByCampaign: async (cid) => list.filter(c => c.campaignId === cid),
+    getById: async (id) => list.find(c => c.id === id) ?? null,
+    create: async (input) => {
+      created.push(input);
+      const c: Character = { ...CHARACTER_KAREN, id: `new-${created.length}`, campaignId: input.campaignId, name: input.name, concept: input.concept ?? null, kind: input.kind ?? 'pc',
+        ownerId: input.ownerId === undefined ? PLAYER_USER.id : input.ownerId, data: input.data, derived: input.derived ?? {}, health: input.health ?? null, xp: 0 };
+      list.push(c); return c;
+    },
+    saveSheet: async (id, patch, origin) => { updates.push({ id, patch, origin }); return { derived: patch.derived ?? {}, health: patch.health ?? null }; },
+    update: async (id, patch, origin) => {
+      updates.push({ id, patch, origin });
+      const i = list.findIndex(c => c.id === id);
+      if (i >= 0) list[i] = { ...list[i]!, ...patch, data: patch.data ?? list[i]!.data } as Character;
+    },
+    claim: async (id) => { claimed.push(id); const c = list.find(x => x.id === id); if (c) c.ownerId = PLAYER_USER.id; },
+    remove: async (id) => { const i = list.findIndex(c => c.id === id); if (i >= 0) list.splice(i, 1); },
+    listAudit: async () => [] as CharacterAuditEntry[],
+    uploadImage: async () => 'https://x/tokens/u/avatar.png',
+  };
+}
+
+/** RollsPort that echoes a fixed result and records requests. */
+export function fakeRollsPort(result: RollResult | null = { summary: 'roll.degree.success.2', total: 2 }): RollsPort & { requests: RollRequest[] } {
+  const requests: RollRequest[] = [];
+  return { requests, roll: async (req) => { requests.push(req); return result; } };
+}

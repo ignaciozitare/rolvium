@@ -9,7 +9,7 @@ import { sheetSchema, newSheet } from './schema';
 import { catalogs } from './catalogs';
 import { references } from './references';
 import { engine, SYSTEM_ID } from './engine';
-import { generator } from './generator';
+import { generator, finalizeDraft } from './generator';
 
 export const PLENILUNIO_ID = SYSTEM_ID;
 export const PLENILUNIO_VERSION = '0.2.0';
@@ -27,6 +27,7 @@ export const plenilunio: GameSystem = {
   engine,
   generator,
   newSheet,
+  finalizeDraft,
 };
 
 export default plenilunio;

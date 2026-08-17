@@ -13,7 +13,7 @@
     "build:web": "npm -w apps/web run build",
     "build:api": "npm -w apps/api run build",
     "typecheck": "npm -w apps/web run typecheck && npm -w apps/api run typecheck",
-    "test": "npm -w apps/web run test && npm -w apps/api run test && npm -w packages/system-plenilunio run test",
+    "test": "npm -w apps/web run test && npm -w apps/api run test && npm -w packages/core run test && npm -w packages/system-plenilunio run test",
     "test:smoke": "npm -w apps/web run test:smoke",
     "test:regression": "npm -w apps/web run test:regression && npm -w apps/api run test",
     "test:functional": "npm -w apps/web run test:functional",

@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, SystemChip, StatusChip, SectionTitle, PageHeader, EmptyState } from '@rolvium/ui';
+import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, SystemChip, StatusChip, SectionTitle, PageHeader, EmptyState, Sheet } from '@rolvium/ui';
+import type { SheetData } from '@rolvium/core';
+import { plenilunio } from '@rolvium/system-plenilunio';
+import { sysT } from '@/modules/characters/domain/useCases/systemText';
 
 /**
  * Live catalogue of @rolvium/ui. Every new shared component gets an example
@@ -8,6 +11,8 @@ import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, Syst
 export function UIKit(): JSX.Element {
   const [open, setOpen] = useState(false);
   const [sel, setSel] = useState<string[]>(['b']);
+  const [sheet, setSheet] = useState<SheetData>(() => ({ ...plenilunio.newSheet(), name: 'Karen «K»', concept: 'Líder de banda' }));
+  const sysVars = Object.fromEntries(Object.entries(plenilunio.theme.vars).map(([k, v]) => [`--sys-${k}`, v]));
   return (
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24, background: 'var(--bg)', minHeight: '100vh', color: 'var(--tx)' }}>
       <div className="rv-page-title">UI Kit</div>
@@ -27,6 +32,14 @@ export function UIKit(): JSX.Element {
         <PageHeader title="Hola, Ignacio" subtitle="Subtítulo de página" actions={<Btn variant="primary">Acción</Btn>} />
         <SectionTitle style={{ marginTop: 16 }}>Mis campañas</SectionTitle>
         <Card><EmptyState icon="auto_stories" title="Todavía no estás en ninguna campaña" description="Crea una como director o únete con un código." actions={<Btn variant="primary">Crear campaña</Btn>} /></Card>
+      </section>
+      <section><h3 style={{ marginBottom: 8 }}>Sheet (schema-driven, themed by --sys-* vars — here Plenilunio's)</h3>
+        <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--tx2)', marginBottom: 8 }}>{"import { Sheet } from '@rolvium/ui'"} · {'<Sheet schema data derived onChange onAction actions t refText labels icons />'}</p>
+        <div style={{ ...sysVars, padding: 16, background: 'var(--sys-bg)', fontFamily: 'var(--sys-font-body)' } as React.CSSProperties}>
+          <Sheet schema={plenilunio.sheetSchema} data={sheet} derived={plenilunio.engine.derived(sheet)} onChange={p => setSheet(d => ({ ...d, ...p }))} onAction={() => undefined} actions={plenilunio.engine.actions ?? []}
+            catalogs={plenilunio.catalogs} t={sysT(plenilunio, 'es')} refText={k => { const r = plenilunio.references[k]; return r ? { page: r.page, title: sysT(plenilunio, 'es')(r.title), summary: sysT(plenilunio, 'es')(r.summary) } : null; }}
+            labels={{ roll: 'Tirar', add: 'Añadir', remove: 'Quitar', manual: 'Manual', of: 'de' }} icons={plenilunio.theme.icons ?? {}} />
+        </div>
       </section>
       <section><h3 style={{ marginBottom: 8 }}>Modal</h3>
         <Btn variant="primary" onClick={() => setOpen(true)}>open modal</Btn>

@@ -31,6 +31,19 @@ describe('smoke: routing + auth gate', () => {
   });
 });
 
+vi.mock('@/modules/characters/container', async () => { const f = await import('../helpers/fakes'); return { charactersRepo: f.fakeCharactersRepo([f.CHARACTER_KAREN]), rollsPort: f.fakeRollsPort() }; });
+
+describe('smoke: characters routes', () => {
+  it('/characters lists my characters behind the auth gate', async () => {
+    renderWithProviders(<AuthProvider repo={fakeAuthRepo(PLAYER_USER)}><AppRoutes /></AuthProvider>, { providers: { routerProps: { initialEntries: ['/characters'] } } });
+    expect(await screen.findByRole('article', { name: 'Karen «K»' })).toBeInTheDocument();
+  });
+  it('/characters/:id opens the sheet dressed by the system', async () => {
+    renderWithProviders(<AuthProvider repo={fakeAuthRepo(PLAYER_USER)}><AppRoutes /></AuthProvider>, { providers: { routerProps: { initialEntries: ['/characters/ch-karen'] } } });
+    expect(await screen.findByText(/Karen «K»/)).toBeInTheDocument();
+  });
+});
+
 vi.mock('@/modules/identity/container', async () => { const f = await import('../helpers/fakes'); return { identityDeps: f.fakeIdentityDeps() }; });
 
 describe('smoke: identity routes', () => {

@@ -67,6 +67,10 @@ Naming: **code and ids in English**, UI copy through i18n keys, specs written in
 | `admin` | Users, roles & permissions, settings | ports `RolePort`, `UserPort`, `UserAdminPort`; adapters `SupabaseRoleRepo`, `SupabaseUserRepo`, `HttpUserAdminAdapter`; UI `AdminShell`, `AdminUsers`, `AdminRoles`, `AdminSettings` |
 | `home` | Landing after login; lists granted modules | `ui/HomePage.tsx` |
 | `identity` (H1) | Sign-up (open / `/join/:code` with invite preview), password recovery (`/forgot` → `/reset`), `/account` (profile + avatar, password, devices, language & theme) | ports `IdentityPort`, `InvitePort`; adapters `SupabaseIdentityRepo` (auth, `users`, Storage `avatars`, RPCs `identity_my_sessions`/`identity_revoke_session`), `HttpInviteAdapter` (`GET /invites/:code`); `container.ts` exports `identityDeps` (also bridges `campaignsRepo.joinByCode`); UI `SignupPage`, `ForgotPage`, `ResetPage`, `AccountPage` + sections |
+| `characters` (H4) | Player characters: `/characters` (mine by campaign + claim unassigned), `/characters/:id` (sheet in its own window, system-themed; DM read-only → «Editar»), generator, progression, Ficha/Mejorar/El grupo/Crear personaje tabs of the table | port `CharactersPort` (`SupabaseCharactersRepo`), `RollsPort` (`HttpRollsAdapter` → `POST /rolls`); `container.ts` exports `charactersRepo`, `rollsPort`; `domain/useCases/{characterRules,systemText}` (`tSys` = system locales lookup); UI `CharactersPage`, `CharacterSheetPage`, `CharacterSheetView` (+ `useCharacterSheet` autosave hook with audit origin), `GeneratorWizard`, `ProgressionPanel`; the neutral `<Sheet>` renderer lives in `@rolvium/ui` (schema-driven, `--sys-*` vars only) and the table hosts it via `modules/table/ui/tabs/*` |
+
+Game systems are also loaded in the API (`apps/api/src/infrastructure/systems.ts`, mirror of the web registry) so the
+server can validate sheets and resolve rolls with the same engine the browser uses for previews.
 
 Product hexagons (`campaigns`, `table`, `characters`, `bestiary`, `dice`, `maps`, `chat`, `journal`) are added under `apps/web/src/modules/<hex>/` following the same layout; see "Product hexagons" above.
 
@@ -83,7 +87,11 @@ user menu); `AppRouter.tsx` the route table.
 and `buildApp()` (Supabase deps from env). `authenticate` verifies the bearer token with
 `ITokenVerifier` (Supabase `auth.getUser(jwt)` — signature + expiry checked server-side,
 never decode-and-trust). Routes: `GET /health`, `GET /auth/me`, `GET /invites/:code` (public: invite preview via
-`campaign_invite_preview` with the service role — never the campaign id, never why a code fails), `POST /admin/users`,
+`campaign_invite_preview` with the service role — never the campaign id, never why a code fails),
+`PUT /characters/:id/sheet` (authoritative sheet save: `validateSheet` from `@rolvium/core` against the campaign
+system's `sheetSchema` → `engine.derived` → persisted **as the actor** through `characters_api_update`, which
+impersonates the user for the transaction so guards/audit/DM checks apply), `POST /rolls` (server CSPRNG dice →
+`engine.resolve`; roll log persistence is the `dice` hexagon's job), `POST /admin/users`,
 `POST /admin/users/:id/password`, `DELETE /admin/users/:id` (all `/admin` routes require
 `manage_users` via `application/authorize.ts`).
 

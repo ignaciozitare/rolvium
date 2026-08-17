@@ -8,7 +8,8 @@ const ROW = { id: 'ch1', campaign_id: 'c1', owner_id: 'u1', kind: 'pc' as const,
 function make() {
   const m = createSupabaseMock({ tables: { characters: { data: [ROW], error: null }, characters_audit: { data: [{ id: 2, character_id: 'ch1', author_id: 'u1', origin: 'damage', field: 'health', before: 'healthy', after: 'bruised', at: 't' }], error: null }, campaigns_members: { data: null, error: null } } });
   (m.client.auth as Record<string, unknown>)['getSession'] = vi.fn().mockResolvedValue({ data: { session: { user: { id: 'u1' } } } });
-  return { m, repo: new SupabaseCharactersRepo(m.client as unknown as SupabaseClient) };
+  const saver = { save: vi.fn().mockResolvedValue({ derived: { endurance: 9 }, health: 'bruised' }) };
+  return { m, saver, repo: new SupabaseCharactersRepo(m.client as unknown as SupabaseClient, saver) };
 }
 
 describe('SupabaseCharactersRepo', () => {
@@ -46,6 +47,12 @@ describe('SupabaseCharactersRepo', () => {
     m.updateSpy.mockClear();
     await repo.update('ch1', {});
     expect(m.updateSpy).not.toHaveBeenCalled();
+  });
+  it('saveSheet delegates to the API sheet saver (data, origin, xp) and returns its derived/health', async () => {
+    const { repo, saver } = make();
+    const r = await repo.saveSheet('ch1', { data: { name: 'K' }, derived: { local: 1 }, xp: 3 }, 'progression');
+    expect(saver.save).toHaveBeenCalledWith('ch1', { name: 'K' }, 'progression', 3);
+    expect(r).toEqual({ derived: { endurance: 9 }, health: 'bruised' });
   });
   it('claim/remove/listAudit go through rpc/delete/select', async () => {
     const { repo, m } = make();
