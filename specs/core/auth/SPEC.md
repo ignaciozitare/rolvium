@@ -10,7 +10,7 @@ Who: everyone. Unauthenticated visitors only see `/login`.
 - Sessions ended elsewhere (other tab / token revoked) drop the user to `/login`.
 
 ## Flows
-1. `/login` → submit → `IAuthRepository.signInWithPassword` → profile (with role + permissions) loaded → redirect `/home`.
+1. `/login` → submit → `IAuthRepository.signInWithPassword` → profile (with role + permissions) loaded → redirect `/campaigns`.
 2. Reload → `AuthProvider` restores session via `getCurrentUser()`; while loading, blank screen (no flash of login).
 3. Protected routes wrap content in `RolviumApp` shell; public routes redirect signed-in users to `/home`.
 

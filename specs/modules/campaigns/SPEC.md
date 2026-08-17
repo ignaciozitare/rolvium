@@ -23,7 +23,7 @@ Who: crear → `game_master`/`admin`; unirse → cualquier usuario.
 
 ## Rules & limits
 - Nunca cambiar de sistema; el asistente lo avisa antes de crear.
-- Plazas: 1–8 jugadores (orientativo, configurable). El DJ no ocupa plaza.
+- Plazas: 1–12 jugadores (8 recomendadas). El DJ no ocupa plaza.
 - Progresión **deshabilitada por defecto**. Recursos compartidos iniciales los define el sistema (p.ej. Destino 10).
 - Códigos: únicos, legibles (`XXXX-XXXX`), regenerables; caducan si el DJ lo decide.
 

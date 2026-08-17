@@ -129,3 +129,14 @@ BEGIN
 END $$;
 
 COMMIT;
+
+-- ── Review note: players_count only for campaigns the caller may see ─────────
+BEGIN;
+CREATE OR REPLACE FUNCTION public.campaigns_players_count(cid uuid)
+RETURNS int LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT CASE WHEN public.is_campaign_member(cid)
+                OR EXISTS (SELECT 1 FROM public.campaigns_campaigns c WHERE c.id = cid AND c.visibility = 'open' AND c.archived_at IS NULL)
+         THEN (SELECT count(*)::int FROM public.campaigns_members m WHERE m.campaign_id = cid AND m.role = 'player')
+         ELSE 0 END;
+$$;
+COMMIT;

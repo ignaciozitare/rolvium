@@ -16,7 +16,7 @@ Building the v1 hexagons in order (see ARCHITECTURE.md "Product hexagons" + spec
   `table_return_resource` / `table_reset_resource` / `table_spend_hand`, atomic, tested), `modules/table`
   (TablePage `/table/:id` without platform shell; system theme applied as `--sys-*` inline vars + bg image; Rolvium
   bar; header with presence halos via Realtime `presence`; SharedResourceBar = Destiny pool; tabs by role; side panel
-  placeholder). Tabs content (sheet/scene/…) are placeholders until their hexagons land. Tests: 39 green.
+  placeholder). Tabs content (sheet/scene/…) are placeholders until their hexagons land. Tests: web 45 + api 13 green (after review/QA 2026-08-17: review APPROVED WITH NOTES, QA READY WITH WARNINGS).
 - All apps typecheck, build, and pass tests (web 28, api 13). `npm run audit` → 0 hard.
 - **Local Supabase stack working** (`npm run db:start`, Docker): migration
   `supabase/migrations/20260817000000_core_users_roles.sql` + `supabase/seed.sql` applied; `.env` files
@@ -43,7 +43,7 @@ Building the v1 hexagons in order (see ARCHITECTURE.md "Product hexagons" + spec
 
 ## ⏳ Next immediate step
 1. `npm run db:start` (if Docker is up) → `npm run dev:api` + `npm run dev:web` → log in as the dev admin.
-2. Run the Spec agent for the first game module (e.g. campaigns).
+2. Next hexagon: `identity` (registro con código `/join/:code`, `/signup`, `/forgot`, perfil) → then `characters` (Plenilunio engine + sheet + generator).
 3. When a hosted project is available: `supabase link` + `npm run db:push`, swap `.env`, create Vercel projects.
 
 ## 🚫 Blockers / notes

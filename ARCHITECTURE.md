@@ -25,7 +25,7 @@ events** — never by importing another hexagon's `infra/`. Game systems are
 | # | Hexagon (id) | Owns | Talks to |
 |---|---|---|---|
 | H1 | `identity` (today `auth` + `admin`) | login, sign-up (open or by invitation code), multi-device sessions, profile/avatar, roles & permissions, user administration | everyone via `IAuthRepository` / `usePermissions` |
-| H2 | `campaigns` | create/join (invite code, open campaigns), members and their table role (`dj`/`player`), the pinned `system_id`+version, table options (progression enabled, initial shared resources), invitations | H1, HX (choose system), H9 |
+| H2 | `campaigns` | create/join (invite code, open campaigns), members and their table role (`dm`/`player`), the pinned `system_id`+version, table options (progression enabled, initial shared resources), invitations | H1, HX (choose system), H9 |
 | H3 | `table` | the live table shell: presence/connected users, tabs, DM panel, shared resources (e.g. Destiny pool), applying the system's `VisualTheme` to the table container | H2, HX, H4–H8, H9 |
 | H4 | `characters` | **player characters only**: sheet (`jsonb` per the system's `sheetSchema`), generator, progression, avatar/token, change audit log, "open in separate window" | HX (schema, engine), H5 (asks for rolls), H9 |
 | H5 | `bestiary` | NPCs, monsters and encounters: system creatures, DM-made NPCs (via the generator), quick copies, token images, encounter instances (own HP per copy) | H4 (reuses sheet/generator), H6 (placing tokens), HX, H9 |
