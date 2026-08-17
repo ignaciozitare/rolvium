@@ -66,10 +66,13 @@ Naming: **code and ids in English**, UI copy through i18n keys, specs written in
 | `auth` | Login/session/profile of the current user | `domain/ports/IAuthRepository.ts`, `infra/SupabaseAuthRepository.ts`, `ui/LoginPage.tsx` |
 | `admin` | Users, roles & permissions, settings | ports `RolePort`, `UserPort`, `UserAdminPort`; adapters `SupabaseRoleRepo`, `SupabaseUserRepo`, `HttpUserAdminAdapter`; UI `AdminShell`, `AdminUsers`, `AdminRoles`, `AdminSettings` |
 | `home` | Landing after login; lists granted modules | `ui/HomePage.tsx` |
+| `identity` (H1) | Sign-up (open / `/join/:code` with invite preview), password recovery (`/forgot` → `/reset`), `/account` (profile + avatar, password, devices, language & theme) | ports `IdentityPort`, `InvitePort`; adapters `SupabaseIdentityRepo` (auth, `users`, Storage `avatars`, RPCs `identity_my_sessions`/`identity_revoke_session`), `HttpInviteAdapter` (`GET /invites/:code`); `container.ts` exports `identityDeps` (also bridges `campaignsRepo.joinByCode`); UI `SignupPage`, `ForgotPage`, `ResetPage`, `AccountPage` + sections |
 
 Product hexagons (`campaigns`, `table`, `characters`, `bestiary`, `dice`, `maps`, `chat`, `journal`) are added under `apps/web/src/modules/<hex>/` following the same layout; see "Product hexagons" above.
 
-Cross-cutting (`apps/web/src/shared/`): `hooks/useAuth.tsx` (AuthProvider), `permissions/`
+Cross-cutting (`apps/web/src/shared/`): `hooks/useAuth.tsx` (AuthProvider), `hooks/useTheme.tsx` (ThemeProvider: dark/light/system,
+`data-theme` on `<html>`), `hooks/PreferencesSync.tsx` (applies the profile's locale/theme once per sign-in), `ui/AuthShell.tsx` (hero + card
+shared by every `Auth/*` screen), `permissions/`
 (`hasPermission`, `hasModule`, `usePermissions`), `modules/registry.ts` (module registry +
 admin permission keys), `lib/{supabaseClient,api,utils}.ts`, `ui/{UserMenu,UIKit}.tsx`.
 `RolviumApp.tsx` is the authenticated shell (sidebar from the registry, theme toggle,
@@ -79,13 +82,16 @@ user menu); `AppRouter.tsx` the route table.
 `apps/api/src/app.ts` is the composition root: `createApp(deps)` (testable, fakes injected)
 and `buildApp()` (Supabase deps from env). `authenticate` verifies the bearer token with
 `ITokenVerifier` (Supabase `auth.getUser(jwt)` — signature + expiry checked server-side,
-never decode-and-trust). Routes: `GET /health`, `GET /auth/me`, `POST /admin/users`,
+never decode-and-trust). Routes: `GET /health`, `GET /auth/me`, `GET /invites/:code` (public: invite preview via
+`campaign_invite_preview` with the service role — never the campaign id, never why a code fails), `POST /admin/users`,
 `POST /admin/users/:id/password`, `DELETE /admin/users/:id` (all `/admin` routes require
 `manage_users` via `application/authorize.ts`).
 
 ## Auth, roles & permissions
 - Login happens in the browser against Supabase Auth (anon key is public; RLS protects data).
-- `public.users` (1:1 with `auth.users`, created by trigger) → `role_id` → `public.roles`.
+- `public.users` (1:1 with `auth.users`, created by trigger from sign-up metadata `name/alias/locale`) → `role_id` → `public.roles`.
+  Profile prefs: `alias`, `locale`, `theme_pref`. Sessions are read from `auth.sessions` through SECURITY DEFINER RPCs scoped
+  to `auth.uid()`; avatars live in the public Storage bucket `avatars/{uid}/avatar.png` (owner-folder policies).
 - `roles.permissions` JSONB: `{ modules: string[], admin: { manage_users, manage_roles, manage_settings } }`.
 - The `admin` role is system-locked (DB trigger) and bypasses every check.
 - Same rule in three places, always in sync:

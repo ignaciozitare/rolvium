@@ -231,3 +231,36 @@ a{color:var(--ac2);text-decoration:none;}
 .rv-code{display:block;font-family:var(--display);font-size:var(--fs-xl);font-weight:600;letter-spacing:.15em;color:var(--ac2);}
 .rv-code-link{flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r);background:var(--bg);min-width:0;}
 .rv-code-url{flex:1;font-size:var(--fs-xs);color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ── Identity: invite card (rolvium.pen Auth/Registro con código) ─────────── */
+.rv-invite-card{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:var(--r);background:var(--sf2);}
+.rv-invite-row1{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.rv-invite-code{font-family:var(--display);font-size:var(--fs-md);font-weight:600;letter-spacing:.08em;color:var(--ac2);}
+.rv-invite-camp{display:flex;flex-direction:column;gap:2px;}
+.rv-invite-camp strong{font-size:var(--fs-sm);font-weight:600;color:var(--tx);}
+.rv-invite-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:var(--fs-2xs);color:var(--tx3);}
+.rv-invite-enter{display:flex;align-items:flex-end;gap:8px;}
+
+/* ── Identity: account page (rolvium.pen Cuenta/Perfil) ────────────────────── */
+.rv-account{display:grid;grid-template-columns:220px 1fr;gap:32px;align-items:start;}
+.rv-account-nav{display:flex;flex-direction:column;gap:4px;position:sticky;top:0;}
+.rv-account-nav .rv-page-title{margin-bottom:8px;}
+.rv-nav-btn-soon{opacity:.55;cursor:default;}
+.rv-account-main{display:flex;flex-direction:column;gap:14px;min-width:0;}
+.rv-account-card{display:flex;flex-direction:column;gap:12px;}
+.rv-account-row{display:flex;gap:24px;align-items:flex-start;}
+.rv-account-avatar{display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;width:120px;text-align:center;}
+.rv-account-fields{flex:1;min-width:0;display:flex;flex-direction:column;}
+.rv-account-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.rv-account-role{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.rv-account-acts{display:flex;align-items:center;gap:12px;}
+.rv-account-pwrow{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:start;}
+.rv-account-pwrow > button{margin-top:22px;}
+.rv-account-prefs{display:flex;gap:32px;flex-wrap:wrap;}
+.rv-devices{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;}
+.rv-device{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r);}
+.rv-device.current{background:var(--sf2);}
+.rv-device-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.rv-device-text strong{font-size:var(--fs-sm);font-weight:600;color:var(--tx);}
+.rv-device-text small{font-size:var(--fs-2xs);color:var(--tx3);}
+@media (max-width:900px){.rv-account{grid-template-columns:1fr;}.rv-account-nav{position:static;flex-direction:row;flex-wrap:wrap;}.rv-account-row{flex-direction:column;}.rv-account-grid2,.rv-account-pwrow{grid-template-columns:1fr;}.rv-account-pwrow > button{margin-top:0;}}

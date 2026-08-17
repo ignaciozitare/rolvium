@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DialogProvider } from '@rolvium/ui';
 import type { Locale } from '@rolvium/i18n';
 import { I18nTestProvider } from './i18nWrapper';
+import { ThemeProvider } from '@/shared/hooks/useTheme';
 
 interface ProviderOptions {
   locale?: Locale;
@@ -22,6 +23,7 @@ function makeWrapper(opts: ProviderOptions = {}) {
   return function Wrapper({ children }: { children: ReactNode }) {
     let tree: ReactNode = children;
     if (withDialog) tree = <DialogProvider>{tree}</DialogProvider>;
+    tree = <ThemeProvider>{tree}</ThemeProvider>;
     tree = <I18nTestProvider locale={locale}>{tree}</I18nTestProvider>;
     if (queryClient) tree = <QueryClientProvider client={queryClient}>{tree}</QueryClientProvider>;
     if (withRouter) tree = <MemoryRouter {...routerProps}>{tree}</MemoryRouter>;

@@ -45,12 +45,20 @@ export interface Role {
 export const ADMIN_ROLE_NAME = 'admin';
 
 // ─── User ────────────────────────────────────────────────────────────────────
+export type ThemePref = 'dark' | 'light' | 'system';
+
 export interface User {
   id: string;
   name: string;
   email: string;
   /** Photo URL or `preset:NAME`; null → initials avatar. */
   avatarUrl: string | null;
+  /** Name shown at the tables; falls back to `name` when empty. */
+  alias: string | null;
+  /** UI locale saved in the profile ('es' | 'en'). */
+  locale: string;
+  /** Platform theme preference; inside a table the game system's theme wins. */
+  themePref: ThemePref;
   roleId: string;
   /** Denormalised role name — convenience for the UI (`user.role === 'admin'`). */
   role: string;

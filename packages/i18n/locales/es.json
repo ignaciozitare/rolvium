@@ -54,7 +54,8 @@
     "home": "Inicio",
     "admin": "Administración",
     "profile": "Perfil",
-    "main": "Principal"
+    "main": "Principal",
+    "account": "Cuenta"
   },
   "home": {
     "welcome": "Bienvenido, {{name}}",
@@ -258,6 +259,164 @@
         "not_member": "No formas parte de esta campaña.",
         "forbidden": "Solo el director puede hacer eso.",
         "unknown": "No se ha podido cambiar la reserva."
+      }
+    }
+  },
+  "identity": {
+    "signup": {
+      "title": "Crear cuenta",
+      "subtitle": "Crea tu cuenta y únete a campañas abiertas o por código.",
+      "subtitleInvite": "Te han invitado a una campaña. Con el código entras directo a su mesa.",
+      "name": "Tu nombre en la mesa",
+      "email": "Correo",
+      "password": "Contraseña",
+      "passwordHint": "mínimo 8 caracteres",
+      "language": "Idioma",
+      "submit": "Crear cuenta",
+      "submitInvite": "Crear cuenta y entrar a la mesa",
+      "haveAccount": "¿Ya tienes cuenta?",
+      "signIn": "Iniciar sesión",
+      "signInWithCode": "Iniciar sesión con el código",
+      "confirmEmailTitle": "Revisa tu correo",
+      "confirmEmail": "Te hemos enviado un enlace para confirmar la cuenta. Cuando lo abras podrás entrar.",
+      "errors": {
+        "name": "Dinos cómo llamarte en la mesa",
+        "email": "Ese correo no parece válido",
+        "password": "La contraseña necesita al menos 8 caracteres",
+        "email_taken": "Ya existe una cuenta con ese correo",
+        "weak_password": "La contraseña es demasiado débil",
+        "invalid_email": "Ese correo no parece válido",
+        "unknown": "No se pudo crear la cuenta. Inténtalo de nuevo."
+      }
+    },
+    "invite": {
+      "code": "Código",
+      "codePlaceholder": "LUNA-4F7K",
+      "enterCode": "Escribe el código de invitación",
+      "check": "Comprobar",
+      "checking": "Comprobando…",
+      "dm": "dirige {{name}}",
+      "seats": "{{n}} plazas libres",
+      "seatsOne": "1 plaza libre",
+      "invalid": "Ese código no vale",
+      "invalidSub": "Puede haber caducado, estar completo o no existir. Pídele otro al director — o crea la cuenta sin código.",
+      "joinTitle": "Unirte a la campaña",
+      "joinSub": "Ya tienes sesión iniciada. Con este código te sientas a la mesa.",
+      "join": "Unirme",
+      "joining": "Uniéndote…",
+      "signInJoin": "Iniciar sesión y unirme",
+      "full": "La campaña ya está completa",
+      "joinFailed": "No se pudo unir a la campaña"
+    },
+    "forgot": {
+      "title": "Recuperar contraseña",
+      "subtitle": "Escribe tu correo y te enviamos un enlace para crear una contraseña nueva.",
+      "submit": "Enviar enlace",
+      "sending": "Enviando…",
+      "sentTitle": "Revisa tu correo",
+      "sent": "Si existe una cuenta con ese correo, te hemos enviado un enlace para crear una contraseña nueva.",
+      "remembered": "¿La recordaste?",
+      "backToLogin": "Volver a iniciar sesión"
+    },
+    "reset": {
+      "title": "Nueva contraseña",
+      "subtitle": "Elige una contraseña nueva para tu cuenta.",
+      "password": "Nueva contraseña",
+      "repeat": "Repetir contraseña",
+      "repeatHint": "la misma contraseña",
+      "submit": "Guardar y entrar",
+      "saving": "Guardando…",
+      "linkProblem": "¿Problemas con el enlace?",
+      "requestAnother": "Pedir otro",
+      "noSession": "El enlace no es válido o ha caducado. Pide uno nuevo.",
+      "done": "Contraseña actualizada"
+    },
+    "account": {
+      "title": "Cuenta",
+      "nav": {
+        "profile": "Perfil",
+        "password": "Contraseña y acceso",
+        "devices": "Dispositivos",
+        "prefs": "Idioma y tema",
+        "notifications": "Notificaciones"
+      },
+      "soon": "pronto",
+      "profile": {
+        "title": "Perfil",
+        "subtitle": "Cómo te ven en las mesas.",
+        "name": "Nombre",
+        "alias": "Nombre en las mesas",
+        "aliasHint": "si lo dejas vacío se usa tu nombre",
+        "email": "Correo",
+        "emailHint": "el correo no se puede cambiar por ahora",
+        "role": "Rol en la plataforma",
+        "roleHint": {
+          "admin": "acceso total a la plataforma",
+          "game_master": "puedes crear campañas y dirigirlas",
+          "player": "puedes unirte a campañas y jugar"
+        },
+        "save": "Guardar cambios",
+        "saving": "Guardando…",
+        "saved": "Cambios guardados",
+        "error": "No se pudieron guardar los cambios",
+        "upload": "Subir imagen",
+        "avatarHint": "PNG/JPG · se recorta a círculo",
+        "avatarLabel": "Avatar",
+        "avatarDrop": "Arrastra una imagen o haz clic",
+        "avatarCrop": "Recorta tu avatar",
+        "avatarZoom": "Zoom",
+        "avatarSave": "Guardar",
+        "avatarBack": "Volver",
+        "avatarRemove": "Quitar",
+        "avatarLoading": "Subiendo…",
+        "avatarErrMime": "Sólo PNG, JPG o WebP",
+        "avatarErrSize": "La imagen supera ${kb} KB",
+        "avatarErrRead": "No se pudo leer la imagen",
+        "avatarErrUpload": "No se pudo subir la imagen"
+      },
+      "password": {
+        "title": "Contraseña y acceso",
+        "subtitle": "Cambia tu contraseña. El resto de sesiones seguirán abiertas.",
+        "new": "Nueva contraseña",
+        "newHint": "mínimo 8 caracteres",
+        "repeat": "Repetir contraseña",
+        "repeatHint": "la misma contraseña",
+        "submit": "Cambiar contraseña",
+        "saving": "Cambiando…",
+        "done": "Contraseña cambiada",
+        "errors": {
+          "too_short": "La contraseña necesita al menos 8 caracteres",
+          "mismatch": "Las contraseñas no coinciden",
+          "weak_password": "La contraseña es demasiado débil",
+          "unknown": "No se pudo cambiar la contraseña"
+        }
+      },
+      "devices": {
+        "title": "Sesiones y dispositivos",
+        "subtitle": "Puedes tener varias abiertas a la vez; todas reciben los mismos eventos.",
+        "current": "Actual",
+        "thisSession": "esta sesión",
+        "now": "ahora",
+        "close": "Cerrar sesión",
+        "closing": "Cerrando…",
+        "empty": "No hay otras sesiones abiertas.",
+        "error": "No se pudieron cargar las sesiones",
+        "closeThisConfirm": "Vas a cerrar esta sesión. Volverás a la pantalla de entrada.",
+        "closeConfirm": "¿Cerrar la sesión de {{device}}? Ese dispositivo tendrá que volver a entrar.",
+        "ago": {
+          "minutes": "hace {{n}} min",
+          "hours": "hace {{n}} h",
+          "days": "hace {{n}} días"
+        }
+      },
+      "prefs": {
+        "title": "Idioma y tema",
+        "language": "Idioma",
+        "theme": "Tema de la plataforma",
+        "dark": "Oscuro",
+        "light": "Claro",
+        "system": "Sistema",
+        "note": "Dentro de una mesa manda el tema del sistema de juego; esta preferencia afecta al resto de la plataforma."
       }
     }
   }

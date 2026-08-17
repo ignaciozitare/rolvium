@@ -21,6 +21,9 @@ beforeAll(async () => {
       setPassword: async () => undefined,
       deleteUser: async () => undefined,
     },
+    invites: {
+      preview: async (code) => code === 'LUNA-4F7K' ? { code, campaignName: 'Las ruinas de Manhattan', systemId: 'plenilunio', dmName: 'Ignacio', seatsFree: 4 } : null,
+    },
   });
 });
 afterAll(() => app.close());
@@ -69,5 +72,20 @@ describe('POST /admin/users', () => {
   it('cannot delete yourself', async () => {
     const r = await app.inject({ method: 'DELETE', url: `/admin/users/${ADMIN.id}`, headers: { authorization: 'Bearer admin' } });
     expect(r.statusCode).toBe(400);
+  });
+});
+
+describe('GET /invites/:code (public)', () => {
+  it('previews a valid code without a token and normalises lower-case / missing dash', async () => {
+    const r = await app.inject({ method: 'GET', url: '/invites/luna4f7k' });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data).toEqual({ code: 'LUNA-4F7K', campaignName: 'Las ruinas de Manhattan', systemId: 'plenilunio', dmName: 'Ignacio', seatsFree: 4 });
+    expect(r.json().data.id).toBeUndefined();
+  });
+  it('404 INVALID_CODE for unknown or malformed codes — same body, no hint why', async () => {
+    const a = await app.inject({ method: 'GET', url: '/invites/XXXX-XXXX' });
+    const b = await app.inject({ method: 'GET', url: '/invites/12' });
+    const c = await app.inject({ method: 'GET', url: '/invites/AAAA-BBBB-CCCC-DDDD' });
+    for (const r of [a, b, c]) { expect(r.statusCode).toBe(404); expect(r.json().error.code).toBe('INVALID_CODE'); }
   });
 });

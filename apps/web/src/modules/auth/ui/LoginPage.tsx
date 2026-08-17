@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
-import { Btn, Field, SystemChip } from '@rolvium/ui';
+import { Btn, Field } from '@rolvium/ui';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { SYSTEMS } from '@/systems/registry';
+import { AuthShell } from '@/shared/ui/AuthShell';
 
-/** rolvium.pen `Auth/Login`: hero (brand, claim, features, systems) + login card (invite-code shortcut, sign-up). */
+/** rolvium.pen `Auth/Login`: shared hero (`AuthShell`) + login card (invite-code shortcut, sign-up). */
 export function LoginPage(): JSX.Element {
   const { t } = useTranslation();
   const { login } = useAuth();
@@ -26,26 +26,8 @@ export function LoginPage(): JSX.Element {
     }
   };
 
-  const features: [string, string][] = [['groups', t('auth.feat.campaigns')], ['casino', t('auth.feat.dice')], ['map', t('auth.feat.maps')]];
-
   return (
-    <div className="rv-login">
-      <section className="rv-login-hero" aria-hidden="true">
-        <div className="rv-login-brand"><img src="/brand/mark.svg" alt="" width={40} height={40} /><span>{t('app.name')}</span></div>
-        <div className="rv-login-hero-body">
-          <h1>{t('auth.headline')}</h1>
-          <p>{t('auth.tagline')}</p>
-          <ul className="rv-login-feats">
-            {features.map(([ic, txt]) => <li key={ic}><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-md)', color: 'var(--ac)' }}>{ic}</span>{txt}</li>)}
-          </ul>
-        </div>
-        <div className="rv-login-systems">
-          <span className="rv-label" style={{ margin: 0 }}>{t('auth.systems')}</span>
-          {SYSTEMS.map(s => <SystemChip key={s.id} muted={!s.installed}>{t(s.nameKey)}{!s.installed && ` · ${t('campaigns.comingSoon')}`}</SystemChip>)}
-        </div>
-      </section>
-
-      <section className="rv-login-form">
+    <AuthShell>
         <form className="rv-login-card" onSubmit={submit} aria-label={t('auth.title')}>
           <h2 className="rv-login-title">{t('auth.title')}</h2>
           <p className="rv-login-sub">{t('auth.subtitle')}</p>
@@ -72,7 +54,6 @@ export function LoginPage(): JSX.Element {
 
           <p className="rv-login-signup">{t('auth.noAccount')} <Link to="/signup" className="rv-link">{t('auth.createAccount')}</Link></p>
         </form>
-      </section>
-    </div>
+    </AuthShell>
   );
 }

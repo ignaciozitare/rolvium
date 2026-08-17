@@ -21,6 +21,8 @@ demo keys). Studio: http://127.0.0.1:54323. Local dev admin (from `supabase/seed
 
 - New migration: `npm run db:migration <name>` → edit the file → `npm run db:reset` (re-applies everything + seed).
 - `npm run db:status` prints URLs/keys; `npm run db:stop` stops the containers (data persists).
+- E-mails (sign-up confirmation, password reset) land in the local Mailpit inbox: http://127.0.0.1:54324. Reset links
+  point at `http://localhost:5173/reset` (`site_url` in `supabase/config.toml`; a config change needs `db:stop` + `db:start`).
 
 ## Moving to a hosted Supabase project (later)
 ```bash

@@ -7,8 +7,8 @@ export const ROLE_ADMIN: Role = { id: 'r-admin', name: 'admin', description: 'Fu
 export const ROLE_GM: Role = { id: 'r-gm', name: 'game_master', description: 'Runs games', isSystem: true, permissions: { modules: [], admin: {} }, createdAt: '' };
 export const ROLE_PLAYER: Role = { id: 'r-player', name: 'player', description: 'Default', isSystem: true, permissions: { modules: [], admin: {} }, createdAt: '' };
 
-export const ADMIN_USER: User = { id: 'u-admin', name: 'Root', email: 'root@rolvium.test', avatarUrl: null, roleId: ROLE_ADMIN.id, role: 'admin', permissions: ROLE_ADMIN.permissions, active: true, createdAt: '' };
-export const PLAYER_USER: User = { id: 'u-pip', name: 'Pip', email: 'pip@rolvium.test', avatarUrl: null, roleId: ROLE_PLAYER.id, role: 'player', permissions: ROLE_PLAYER.permissions, active: true, createdAt: '' };
+export const ADMIN_USER: User = { id: 'u-admin', name: 'Root', email: 'root@rolvium.test', avatarUrl: null, alias: null, locale: 'es', themePref: 'system', roleId: ROLE_ADMIN.id, role: 'admin', permissions: ROLE_ADMIN.permissions, active: true, createdAt: '' };
+export const PLAYER_USER: User = { id: 'u-pip', name: 'Pip', email: 'pip@rolvium.test', avatarUrl: null, alias: null, locale: 'es', themePref: 'system', roleId: ROLE_PLAYER.id, role: 'player', permissions: ROLE_PLAYER.permissions, active: true, createdAt: '' };
 
 export function fakeAuthRepo(user: User | null = null, over: Partial<IAuthRepository> = {}): IAuthRepository {
   return {
@@ -84,5 +84,32 @@ export function fakeCampaignsRepo(seed: { mine?: Campaign[]; open?: Campaign[]; 
     getInviteCode: async () => 'LUNA-4F7K',
     regenerateInviteCode: async () => 'NEW1-CODE',
     archive: async () => {},
+  };
+}
+
+// ── identity ─────────────────────────────────────────────────────────────────
+import type { IdentityDeps } from '@/modules/identity/container';
+import type { DeviceSession, InvitePreview } from '@/modules/identity/domain/entities/Identity';
+
+export const INVITE_PREVIEW: InvitePreview = { code: 'LUNA-4F7K', campaignName: 'Las ruinas de Manhattan', systemId: 'plenilunio', dmName: 'Ignacio', seatsFree: 4 };
+export const SESSION_CURRENT: DeviceSession = { id: 's-cur', userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605 Version/17 Safari/605.1', ip: '10.0.0.1', createdAt: '2026-08-17T10:00:00Z', lastSeenAt: new Date().toISOString(), isCurrent: true };
+export const SESSION_OTHER: DeviceSession = { id: 's-ipad', userAgent: 'Mozilla/5.0 (iPad; CPU OS 17_0) AppleWebKit/605 Version/17 Safari/605.1', ip: '10.0.0.2', createdAt: '2026-08-16T10:00:00Z', lastSeenAt: new Date(Date.now() - 3 * 60_000).toISOString(), isCurrent: false };
+
+/** In-memory IdentityDeps. Every method is a vi.fn so tests can assert calls. */
+export function fakeIdentityDeps(over: { identity?: Partial<IdentityDeps['identity']>; invites?: Partial<IdentityDeps['invites']>; joinByCode?: IdentityDeps['joinByCode'] } = {}): IdentityDeps {
+  return {
+    identity: {
+      signUp: vi.fn().mockResolvedValue({ status: 'signed_in' }),
+      requestPasswordReset: vi.fn().mockResolvedValue(undefined),
+      updatePassword: vi.fn().mockResolvedValue({}),
+      updateProfile: vi.fn().mockResolvedValue(undefined),
+      uploadAvatar: vi.fn().mockResolvedValue('https://x/avatars/u/avatar.png?v=1'),
+      removeAvatar: vi.fn().mockResolvedValue(undefined),
+      listSessions: vi.fn().mockResolvedValue([SESSION_OTHER, SESSION_CURRENT]),
+      revokeSession: vi.fn().mockResolvedValue(undefined),
+      ...over.identity,
+    },
+    invites: { preview: vi.fn().mockResolvedValue(INVITE_PREVIEW), ...over.invites },
+    joinByCode: over.joinByCode ?? vi.fn().mockResolvedValue({ campaignId: 'c1' }),
   };
 }

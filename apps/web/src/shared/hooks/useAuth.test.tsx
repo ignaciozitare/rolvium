@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './useAuth';
 import type { IAuthRepository } from '@/modules/auth/domain/ports/IAuthRepository';
 import type { User } from '@rolvium/shared-types';
 
-const USER: User = { id: 'u1', name: 'Ada', email: 'ada@x.co', avatarUrl: null, roleId: 'r', role: 'player', permissions: { modules: [], admin: {} }, active: true, createdAt: '' };
+const USER: User = { id: 'u1', name: 'Ada', email: 'ada@x.co', avatarUrl: null, alias: null, locale: 'es', themePref: 'system', roleId: 'r', role: 'player', permissions: { modules: [], admin: {} }, active: true, createdAt: '' };
 
 function repo(over: Partial<IAuthRepository> = {}): IAuthRepository {
   return {

@@ -12,11 +12,12 @@ Who: everyone. Unauthenticated visitors only see `/login`.
 ## Flows
 1. `/login` → submit → `IAuthRepository.signInWithPassword` → profile (with role + permissions) loaded → redirect `/campaigns`.
 2. Reload → `AuthProvider` restores session via `getCurrentUser()`; while loading, blank screen (no flash of login).
-3. Protected routes wrap content in `RolviumApp` shell; public routes redirect signed-in users to `/home`.
+3. Protected routes wrap content in `RolviumApp` shell; public routes redirect signed-in users to `/campaigns`.
 
 ## Rules & limits
 - Inactive users (`users.active = false`) cannot use the app even with a valid session.
-- No self-signup UI yet (users are created by admins). Out of scope: OAuth/SSO, password reset by email, MFA.
+- Self-signup (open or with invite code), password reset by e-mail, profile/avatar, devices and locale/theme
+  preferences are specified in `specs/modules/identity/SPEC.md` (H1). Out of scope: OAuth/SSO, MFA, e-mail change.
 
 ## Connections
 - Supabase Auth (browser, anon key). API `GET /auth/me` returns the same profile for server-side needs.

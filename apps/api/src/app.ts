@@ -8,11 +8,14 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { ITokenVerifier, VerifiedIdentity } from './domain/auth/ITokenVerifier.js';
 import type { IUserRepository } from './domain/user/IUserRepository.js';
 import type { IUserAdmin } from './domain/user/IUserAdmin.js';
+import type { IInviteRepository } from './domain/invite/IInviteRepository.js';
 import { SupabaseTokenVerifier } from './infrastructure/supabase/SupabaseTokenVerifier.js';
 import { SupabaseUserRepo } from './infrastructure/supabase/SupabaseUserRepo.js';
 import { SupabaseUserAdmin } from './infrastructure/supabase/SupabaseUserAdmin.js';
+import { SupabaseInviteRepo } from './infrastructure/supabase/SupabaseInviteRepo.js';
 import { authRoutes } from './infrastructure/http/authRoutes.js';
 import { adminRoutes } from './infrastructure/http/adminRoutes.js';
+import { invitesRoutes } from './infrastructure/http/invitesRoutes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -28,6 +31,7 @@ export interface AppDeps {
   tokenVerifier: ITokenVerifier;
   userRepo: IUserRepository;
   userAdmin: IUserAdmin;
+  invites: IInviteRepository;
   allowedOrigins?: string[];
   logger?: boolean;
 }
@@ -44,6 +48,7 @@ export function supabaseDeps(): AppDeps {
     tokenVerifier: new SupabaseTokenVerifier(db),
     userRepo: new SupabaseUserRepo(db),
     userAdmin: new SupabaseUserAdmin(db),
+    invites: new SupabaseInviteRepo(db),
     allowedOrigins: ALLOWED_ORIGIN ? ALLOWED_ORIGIN.split(',').map(s => s.trim()) : [],
     logger: true,
   };
@@ -80,6 +85,7 @@ export async function createApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await app.register(authRoutes, { prefix: '/auth', userRepo: deps.userRepo });
   await app.register(adminRoutes, { prefix: '/admin', userRepo: deps.userRepo, userAdmin: deps.userAdmin });
+  await app.register(invitesRoutes, { prefix: '/invites', invites: deps.invites });
 
   app.get('/health', async () => ({ ok: true, ts: new Date().toISOString() }));
 

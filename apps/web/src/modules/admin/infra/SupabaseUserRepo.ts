@@ -3,7 +3,7 @@ import type { User } from '@rolvium/shared-types';
 import type { UserPort } from '../domain/ports/UserPort';
 import { mapProfileRow } from '@/modules/auth/infra/SupabaseAuthRepository';
 
-const SELECT = 'id, name, email, avatar_url, role_id, active, created_at, roles ( name, permissions )';
+const SELECT = 'id, name, email, avatar_url, alias, locale, theme_pref, role_id, active, created_at, roles ( name, permissions )';
 
 export class SupabaseUserRepo implements UserPort {
   constructor(private readonly db: SupabaseClient) {}

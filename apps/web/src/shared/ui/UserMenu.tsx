@@ -33,6 +33,9 @@ export function UserMenu(): JSX.Element | null {
       </button>
       {open && (
         <div role="menu" style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', minWidth: 220, background: 'var(--sf2)', borderRadius: 'var(--r2)', boxShadow: 'var(--shadow)', padding: 6, zIndex: 50 }}>
+          <button type="button" role="menuitem" style={item} onClick={() => { setOpen(false); navigate('/account'); }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-md)' }}>person</span>{t('nav.account')}
+          </button>
           {canOpenAdmin && (
             <button type="button" role="menuitem" style={item} onClick={() => { setOpen(false); navigate('/admin'); }}>
               <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-md)' }}>admin_panel_settings</span>{t('nav.admin')}

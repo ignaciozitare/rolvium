@@ -1,13 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { EMPTY_PERMISSIONS, type RolePermissions, type User } from '@rolvium/shared-types';
+import { EMPTY_PERMISSIONS, type RolePermissions, type ThemePref, type User } from '@rolvium/shared-types';
 import type { IAuthRepository, SignInResult } from '../domain/ports/IAuthRepository';
 
 interface ProfileRow {
-  id: string; name: string; email: string; avatar_url: string | null; role_id: string; active: boolean; created_at: string;
+  id: string; name: string; email: string; avatar_url: string | null; alias?: string | null; locale?: string | null; theme_pref?: string | null;
+  role_id: string; active: boolean; created_at: string;
   roles: { name: string; permissions: RolePermissions } | { name: string; permissions: RolePermissions }[] | null;
 }
 
-const PROFILE_SELECT = 'id, name, email, avatar_url, role_id, active, created_at, roles ( name, permissions )';
+export const PROFILE_SELECT = 'id, name, email, avatar_url, alias, locale, theme_pref, role_id, active, created_at, roles ( name, permissions )';
 
 export function mapProfileRow(row: ProfileRow): User {
   const role = Array.isArray(row.roles) ? row.roles[0] : row.roles;
@@ -16,6 +17,9 @@ export function mapProfileRow(row: ProfileRow): User {
     name: row.name,
     email: row.email,
     avatarUrl: row.avatar_url,
+    alias: row.alias ?? null,
+    locale: row.locale ?? 'es',
+    themePref: (['dark', 'light', 'system'].includes(row.theme_pref ?? '') ? row.theme_pref : 'system') as ThemePref,
     roleId: row.role_id,
     role: role?.name ?? '',
     permissions: role?.permissions ?? EMPTY_PERMISSIONS,

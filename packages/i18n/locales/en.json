@@ -54,7 +54,8 @@
     "home": "Home",
     "admin": "Admin",
     "profile": "Profile",
-    "main": "Main"
+    "main": "Main",
+    "account": "Account"
   },
   "home": {
     "welcome": "Welcome, {{name}}",
@@ -258,6 +259,164 @@
         "not_member": "You are not part of this campaign.",
         "forbidden": "Only the game master can do that.",
         "unknown": "Could not change the pool."
+      }
+    }
+  },
+  "identity": {
+    "signup": {
+      "title": "Create account",
+      "subtitle": "Create your account and join open campaigns or by code.",
+      "subtitleInvite": "You've been invited to a campaign. With the code you go straight to its table.",
+      "name": "Your name at the table",
+      "email": "E-mail",
+      "password": "Password",
+      "passwordHint": "at least 8 characters",
+      "language": "Language",
+      "submit": "Create account",
+      "submitInvite": "Create account and enter the table",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "signInWithCode": "Sign in with the code",
+      "confirmEmailTitle": "Check your inbox",
+      "confirmEmail": "We sent you a link to confirm the account. Once you open it you can sign in.",
+      "errors": {
+        "name": "Tell us what to call you at the table",
+        "email": "That e-mail doesn't look valid",
+        "password": "The password needs at least 8 characters",
+        "email_taken": "An account with that e-mail already exists",
+        "weak_password": "The password is too weak",
+        "invalid_email": "That e-mail doesn't look valid",
+        "unknown": "Couldn't create the account. Please try again."
+      }
+    },
+    "invite": {
+      "code": "Code",
+      "codePlaceholder": "LUNA-4F7K",
+      "enterCode": "Type the invite code",
+      "check": "Check",
+      "checking": "Checking…",
+      "dm": "run by {{name}}",
+      "seats": "{{n}} seats free",
+      "seatsOne": "1 seat free",
+      "invalid": "That code doesn't work",
+      "invalidSub": "It may have expired, be full or not exist. Ask the game master for another — or create the account without a code.",
+      "joinTitle": "Join the campaign",
+      "joinSub": "You're already signed in. With this code you take a seat at the table.",
+      "join": "Join",
+      "joining": "Joining…",
+      "signInJoin": "Sign in and join",
+      "full": "The campaign is already full",
+      "joinFailed": "Couldn't join the campaign"
+    },
+    "forgot": {
+      "title": "Recover password",
+      "subtitle": "Type your e-mail and we'll send you a link to create a new password.",
+      "submit": "Send link",
+      "sending": "Sending…",
+      "sentTitle": "Check your inbox",
+      "sent": "If an account exists for that e-mail, we've sent a link to create a new password.",
+      "remembered": "Remembered it?",
+      "backToLogin": "Back to sign in"
+    },
+    "reset": {
+      "title": "New password",
+      "subtitle": "Choose a new password for your account.",
+      "password": "New password",
+      "repeat": "Repeat password",
+      "repeatHint": "the same password",
+      "submit": "Save and enter",
+      "saving": "Saving…",
+      "linkProblem": "Trouble with the link?",
+      "requestAnother": "Request another",
+      "noSession": "The link is invalid or has expired. Request a new one.",
+      "done": "Password updated"
+    },
+    "account": {
+      "title": "Account",
+      "nav": {
+        "profile": "Profile",
+        "password": "Password & access",
+        "devices": "Devices",
+        "prefs": "Language & theme",
+        "notifications": "Notifications"
+      },
+      "soon": "soon",
+      "profile": {
+        "title": "Profile",
+        "subtitle": "How others see you at the tables.",
+        "name": "Name",
+        "alias": "Name at the tables",
+        "aliasHint": "leave empty to use your name",
+        "email": "E-mail",
+        "emailHint": "the e-mail can't be changed yet",
+        "role": "Platform role",
+        "roleHint": {
+          "admin": "full access to the platform",
+          "game_master": "you can create and run campaigns",
+          "player": "you can join campaigns and play"
+        },
+        "save": "Save changes",
+        "saving": "Saving…",
+        "saved": "Changes saved",
+        "error": "Couldn't save the changes",
+        "upload": "Upload image",
+        "avatarHint": "PNG/JPG · cropped to a circle",
+        "avatarLabel": "Avatar",
+        "avatarDrop": "Drop an image or click",
+        "avatarCrop": "Crop your avatar",
+        "avatarZoom": "Zoom",
+        "avatarSave": "Save",
+        "avatarBack": "Back",
+        "avatarRemove": "Remove",
+        "avatarLoading": "Uploading…",
+        "avatarErrMime": "Only PNG, JPG or WebP",
+        "avatarErrSize": "The image exceeds ${kb} KB",
+        "avatarErrRead": "Couldn't read the image",
+        "avatarErrUpload": "Couldn't upload the image"
+      },
+      "password": {
+        "title": "Password & access",
+        "subtitle": "Change your password. Other sessions stay open.",
+        "new": "New password",
+        "newHint": "at least 8 characters",
+        "repeat": "Repeat password",
+        "repeatHint": "the same password",
+        "submit": "Change password",
+        "saving": "Changing…",
+        "done": "Password changed",
+        "errors": {
+          "too_short": "The password needs at least 8 characters",
+          "mismatch": "The passwords don't match",
+          "weak_password": "The password is too weak",
+          "unknown": "Couldn't change the password"
+        }
+      },
+      "devices": {
+        "title": "Sessions & devices",
+        "subtitle": "You can keep several open at once; all of them receive the same events.",
+        "current": "Current",
+        "thisSession": "this session",
+        "now": "now",
+        "close": "Sign out",
+        "closing": "Closing…",
+        "empty": "No other sessions open.",
+        "error": "Couldn't load the sessions",
+        "closeThisConfirm": "You're about to close this session. You'll go back to the sign-in screen.",
+        "closeConfirm": "Close the session on {{device}}? That device will need to sign in again.",
+        "ago": {
+          "minutes": "{{n}} min ago",
+          "hours": "{{n}} h ago",
+          "days": "{{n}} days ago"
+        }
+      },
+      "prefs": {
+        "title": "Language & theme",
+        "language": "Language",
+        "theme": "Platform theme",
+        "dark": "Dark",
+        "light": "Light",
+        "system": "System",
+        "note": "Inside a table the game system's theme takes over; this preference applies to the rest of the platform."
       }
     }
   }

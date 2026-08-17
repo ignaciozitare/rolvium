@@ -1,28 +1,19 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
 import { usePermissions } from '@/shared/permissions/usePermissions';
 import { MODULES } from '@/shared/modules/registry';
 import { UserMenu } from '@/shared/ui/UserMenu';
+import { useTheme } from '@/shared/hooks/useTheme';
 import { TopBar, type TopBarLink } from '@rolvium/ui';
 import './RolviumApp.css';
-
-type Theme = 'dark' | 'light';
-const THEME_KEY = 'rolvium_theme';
-const readTheme = (): Theme => { try { return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'; } catch { return 'dark'; } };
-const storeTheme = (t: Theme): void => { try { localStorage.setItem(THEME_KEY, t); } catch { /* storage unavailable */ } };
 
 /** Authenticated shell: sidebar (modules the user can see) + topbar + content. */
 export function RolviumApp({ children }: { children: ReactNode }): JSX.Element {
   const { t } = useTranslation();
   const { canSee, canOpenAdmin } = usePermissions();
   const location = useLocation();
-  const [theme, setTheme] = useState<Theme>(readTheme);
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    storeTheme(theme);
-  }, [theme]);
+  const { theme, toggle } = useTheme();
 
   const nav = MODULES.filter(m => m.core || canSee(m.id));
   const links: TopBarLink[] = [
@@ -36,7 +27,7 @@ export function RolviumApp({ children }: { children: ReactNode }): JSX.Element {
         brand={<NavLink to="/campaigns" className="rv-brand" aria-label={t('app.name')}><img src="/brand/mark.svg" alt="" width={28} height={28} />{t('app.name')}</NavLink>}
         links={links}
         right={<>
-          <button type="button" className="rv-icon-btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          <button type="button" className="rv-icon-btn" onClick={toggle}
             aria-label={theme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark')} title={theme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark')}>
             <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-md)' }}>{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
           </button>
