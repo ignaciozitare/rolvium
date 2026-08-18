@@ -12,7 +12,7 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onSelectWall: vi.fn(), onMoveWall: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onSelectWall: vi.fn(), onMoveWall: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
@@ -352,3 +352,29 @@ describe('<MapCanvas> Seleccionar edita muros', () => {
     expect(chain.cb.onAddWall).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('<MapCanvas> teclado y botón derecho', () => {
+  it('Suprimir borra lo seleccionado; escribiendo en un campo no borra nada', () => {
+    const { cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', selectedWallId: 'w-1', walls: [WALL_1] });
+    fireEvent.keyDown(window, { key: 'Delete' });
+    expect(cb.onDeleteSelection).toHaveBeenCalledTimes(1);
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: 'Delete' });
+    expect(cb.onDeleteSelection).toHaveBeenCalledTimes(1);
+    input.remove();
+  });
+
+  it('el botón derecho termina el muro a medias como Escape, y sólo abre el menú cuando no hay nada pendiente', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'wall' });
+    down(svg, 2 * G, 2 * G);                       // muro empezado
+    fireEvent.contextMenu(svg, { clientX: 100, clientY: 100 });
+    expect(cb.onContextMenu).not.toHaveBeenCalled();   // primero cancela
+    down(svg, 6 * G, 2 * G);
+    expect(cb.onAddWall).not.toHaveBeenCalled();       // se había cancelado de verdad
+
+    fireEvent.contextMenu(svg, { clientX: 100, clientY: 100 });
+    fireEvent.contextMenu(svg, { clientX: 140, clientY: 120 });
+    expect(cb.onContextMenu).toHaveBeenCalledWith({ x: 140, y: 120 }, { x: 140, y: 120 });
+  });
+})

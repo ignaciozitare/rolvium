@@ -19,7 +19,8 @@
 .mp-pcwrap{position:relative;}
 .mp-pcmenu{top:calc(100% + 4px);right:0;min-width:220px;}
 /* stroke bar */
-.mp-strokebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 12px;background:color-mix(in srgb,var(--sys-paper-lo) 70%,transparent);}
+.mp-strokebar{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  max-width:calc(100% - 16px);padding:6px 10px;background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);}
 .mp-stroke-width{width:110px;accent-color:var(--sys-ink);}
 .mp-stroke-colors{display:flex;gap:6px;}
 .mp-swatch{width:20px;height:20px;padding:0;border:2px solid transparent;cursor:pointer;box-shadow:0 0 0 1px var(--sys-line);}
@@ -173,3 +174,5 @@
 .mp-wall.selected{stroke:var(--sys-paper-hi);stroke-width:6;}
 .mp-opening.selected .mp-wall{stroke:var(--sys-paper-hi);}
 .mp-vertex{fill:var(--sys-paper-hi);stroke:var(--sys-ink);stroke-width:2;cursor:pointer;}
+/* quick menu on right-click over empty ground */
+.mp-quick{min-width:180px;}

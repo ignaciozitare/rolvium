@@ -10,7 +10,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, newWallOf, WALL_FLAGS, STROKE_COLORS, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, newWallOf, WALL_FLAGS, STROKE_COLORS, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -69,6 +69,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [wallKind, setWallKind] = useState<WallKind>('wall');
   const [railFolded, setRailFolded] = useState(false);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
+  const [quickMenu, setQuickMenu] = useState<{ at: Point; scene: Point } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
   // ── load: DM lists; player follows the active scene ──
@@ -90,7 +91,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
 
   useEffect(() => { if (live) setView(fitView(live, viewport())); setSelectedTokenId(null); setEncounter(null); }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (st.pin && st.pin.by !== userId) setView(v => centerOn(v, st.pin!, viewport())); }, [st.pin, userId]);
+  // Whoever accepts the pin centres on it — including the one who dropped it, which is what «enfoque» means.
+  useEffect(() => { if (st.pin) setView(v => centerOn(v, st.pin!, viewport())); }, [st.pin]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (tool !== 'encounter') setEncounter(null); }, [tool]);
 
   const nameOf = useCallback((uid: string) => members.find(m => m.userId === uid)?.name ?? uid, [members]);
@@ -136,10 +138,6 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const bgName = live.bgImageUrl ? (images?.find(i => i.url === live.bgImageUrl)?.name ?? live.bgImageUrl.split('/').pop() ?? '') : t('maps.noBackground');
   return (
     <section className="mp-root">
-      <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll() ): undefined}
-        tool={tool}
-        {...(isDm && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})}
- />
       <div className="mp-stage-row">
         {scenesRail}
         <Toolbar tool={tool} isDm={isDm} onChange={setTool}
@@ -148,16 +146,22 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
         <div className="mp-stage" ref={stageRef}>
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
             playerView={playerView} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
+            onCloseMenus={() => setQuickMenu(null)}
             onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))}
             onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width }))}
             onErase={id => run(st.eraseDrawing(id))}
             onAddWall={(a, b) => run(st.addWall({ sceneId: live.id, campaignId, x1: a.x, y1: a.y, x2: b.x, y2: b.y, visiblePlayers: false, ...newWallOf(wallKind) }))}
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
-            onPin={st.focusPin}
+            onPin={pt => { st.focusPin(pt); setView(v => centerOn(v, pt, viewport())); }}
             onPlace={encounter ? cell => run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, cell)) ): undefined}
             selectedTokenId={selectedTokenId} onSelectToken={setSelectedTokenId}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
+            onContextMenu={(at, pt) => setQuickMenu({ at, scene: pt })}
+            onDeleteSelection={() => {
+              if (selectedWall && isDm) { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); return; }
+              if (selectedToken && isDm) { run(st.removeToken(selectedToken.id)); setSelectedTokenId(null); }
+            }}
             onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))} />
           {isDm && (
             <div className="mp-dmtag" role="group" aria-label={t('maps.dmOptions')}>
@@ -168,6 +172,11 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           <span className="mp-canvas-label">{isDm && !playerView
             ? `${t('maps.dmView')}${live.fogMode === 'vision' ? ` · ${t('maps.fog.byVision')}` : ''}${isBrush(tool) ? ` · ${t(`maps.brush.${tool}`)}` : ''}`
             : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
+          {(isDraw(tool) || (isDm && isBrush(tool))) && (
+            <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll()) : undefined}
+              tool={tool}
+              {...(isDm && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})} />
+          )}
           {isDm && (tool === 'wall' || selectedWall) && (
             <SegmentBar wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
               onKind={k => (selectedWall ? run(st.patchWall(selectedWall.id, { kind: k, ...WALL_FLAGS[k] })) : setWallKind(k))}
@@ -176,6 +185,16 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
                 onToggleOpen: () => run(st.patchWall(selectedWall.id, { isOpen: !selectedWall.isOpen })),
                 onRemove: () => { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); },
               } : {})} />
+          )}
+          {quickMenu && (
+            <div className="mp-pop mp-quick" role="menu" aria-label={t('maps.quick.title')} style={{ left: quickMenu.at.x, top: quickMenu.at.y }}>
+              <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { st.focusPin(quickMenu.scene); setView(v => centerOn(v, quickMenu.scene, viewport())); setQuickMenu(null); }}>
+                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>location_on</span>{t('maps.tool.pin')}
+              </button>
+              <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { onOpenDice?.(); setQuickMenu(null); }}>
+                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>casino</span>{t('maps.action.dice')}
+              </button>
+            </div>
           )}
           {isDm && selectedToken && (
             <div className="mp-tokbar" role="toolbar" aria-label={t('maps.token.selected')}>

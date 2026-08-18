@@ -41,6 +41,12 @@ interface Props {
   /** DM: paint the fog at a scene point with the current brush radius (scene px). */
   onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => void;
   onPin: (p: Point) => void;
+  /** Suprimir / Del over the selection (DM). */
+  onDeleteSelection?: () => void;
+  /** Right-click on empty ground with nothing pending: where to open the quick menu (canvas px + scene point). */
+  onContextMenu?: (at: { x: number; y: number }, scene: Point) => void;
+  /** Any press on the canvas dismisses whatever popover is open. */
+  onCloseMenus?: () => void;
   /** Encounter / PC placement (cell coordinates); only wired while something is pending. */
   onPlace?: (cell: Point) => void;
   selectedTokenId: string | null;
@@ -85,6 +91,8 @@ export function MapCanvas(p: Props): JSX.Element {
   /** Space held = pan, from ANY tool (the middle button already did this). Panning is a modifier, not a tool. */
   const [spacePan, setSpacePan] = useState(false);
   const [wallDraft, setWallDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  /** In a ref so the key listener never has to be re-bound as the selection changes. */
+  const onDeleteRef = useRef<() => void>(() => {});
   const lastPaint = useRef(0);
   const grid = p.scene.grid.size;
   const dmSight = p.isDm && !p.playerView;
@@ -96,6 +104,7 @@ export function MapCanvas(p: Props): JSX.Element {
     return () => window.clearTimeout(id);
   }, [p.pin]);
   useEffect(() => { if (p.tool !== 'wall') setWallStart(null); if (p.tool !== 'measure') setMeasure(null); }, [p.tool]);
+  useEffect(() => { onDeleteRef.current = () => p.onDeleteSelection?.(); });
   useEffect(() => {
     /** Never steal the space bar from someone typing a scene name or a text drawing. */
     const typing = (t: EventTarget | null): boolean => {
@@ -105,7 +114,8 @@ export function MapCanvas(p: Props): JSX.Element {
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { setWallStart(null); setGesture(null); setMeasure(null); p.onSelectToken(null); return; }
-      if (e.key === ' ' && !typing(e.target)) { e.preventDefault(); setSpacePan(true); } // preventDefault: space scrolls the table otherwise
+      if (e.key === ' ' && !typing(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
     };
     const onKeyUp = (e: KeyboardEvent) => { if (e.key === ' ') setSpacePan(false); };
     /** Alt-tabbing away with space down would leave the canvas stuck in pan mode. */
@@ -149,6 +159,7 @@ export function MapCanvas(p: Props): JSX.Element {
   };
 
   const onDown = (e: ReactPointerEvent<SVGSVGElement>) => {
+    p.onCloseMenus?.();
     const s = toScene(e);
     // Panning is a modifier, never a tool: middle button or space bar, from whatever tool is active.
     if (e.button === 1 || (e.button === 0 && spacePan)) {
@@ -234,6 +245,16 @@ export function MapCanvas(p: Props): JSX.Element {
     }
   };
 
+  /**
+   * Right button: first it ends whatever is half-drawn (a chained wall, a measure) — same job as Escape, but
+   * without moving your hand. On empty ground with nothing pending it opens the quick menu instead.
+   */
+  const onRightClick = (e: ReactPointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
+    e.preventDefault();
+    if (wallStart || measure || gesture) { setWallStart(null); setMeasure(null); setGesture(null); return; }
+    p.onContextMenu?.(local(e), toScene(e));
+  };
+
   const onUp = () => {
     if (!gesture) return;
     if (gesture.kind === 'wallEdit') {
@@ -283,7 +304,7 @@ export function MapCanvas(p: Props): JSX.Element {
 
   return (
     <svg ref={svgRef} className="mp-svg" data-tool={p.tool} style={{ cursor }} aria-label={t('maps.canvas.label')} role="application"
-      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => setHover(null)} onContextMenu={e => e.preventDefault()}>
+      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => setHover(null)} onContextMenu={onRightClick}>
       <defs>
         <clipPath id={clipId}><rect x={0} y={0} width={p.scene.width} height={p.scene.height} /></clipPath>
         {fog && <FogMasks scene={p.scene} fog={fog} ids={fogIds} />}

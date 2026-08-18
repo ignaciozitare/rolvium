@@ -781,6 +781,9 @@
       "dice": "Lanzador de dados",
       "placePc": "Colocar PJ",
       "background": "Fondo del mapa"
+    },
+    "quick": {
+      "title": "Acciones rápidas"
     }
   }
 }

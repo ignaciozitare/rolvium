@@ -68,6 +68,7 @@ describe('<SceneTab> player', () => {
     expect(repo.removedDrawings).toEqual(['d-1']);
     await u.click(screen.getByRole('button', { name: 'Limpiar mis trazos' }));
     await waitFor(() => expect(repo.clearedMine).toEqual(['sc-1']));
+    // la barra de Trazo vive dentro del mapa y sólo con herramienta de dibujo: el jugador nunca ve «Limpiar todos»
     expect(screen.queryByRole('button', { name: 'Limpiar todos' })).not.toBeInTheDocument();
   });
   it('live: token updates / inserts / deletes, remote drag, and a remote pin re-centre the view; a pin by me is not re-applied', async () => {
@@ -143,7 +144,8 @@ describe('<SceneTab> DM', () => {
     await waitFor(() => expect(repo.tokenUpdates).toContainEqual({ id: 'tk-karen', patch: { visible: true } }));
     await u.click(within(bar).getByRole('button', { name: 'Quitar de la escena' }));
     await waitFor(() => expect(repo.tokens.some(t => t.id === 'tk-karen')).toBe(false));
-    await u.click(screen.getByRole('button', { name: 'Limpiar todos' }));
+    await u.click(screen.getByRole('button', { name: 'Lápiz' }));   // la barra de Trazo sólo aparece con herramienta de dibujo
+    await u.click(await screen.findByRole('button', { name: 'Limpiar todos' }));
     await waitFor(() => expect(repo.clearedAll).toEqual(['sc-1']));
     await u.click(screen.getByRole('button', { name: '+ Escena' }));
     await u.type(await screen.findByRole('textbox'), 'Mercado');
@@ -296,5 +298,51 @@ describe('<SceneTab> rebanada 3 — la cabecera desaparece y su contenido se rep
     expect(screen.queryByRole('group', { name: 'Escenas' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lanzador de dados' })).toBeInTheDocument();
     expect(screen.getByText(/La directora decide qué escena ves\./)).toBeInTheDocument();
+  });
+});
+
+describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón derecho y pin que centra', () => {
+  it('la barra que aparece depende de la herramienta, y siempre va DENTRO del lienzo', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed());
+    await screen.findByText(/Almacén de Queens/);
+    const stage = () => canvas().closest('.mp-stage')!;
+
+    // Seleccionar: ninguna barra
+    expect(stage().querySelector('.mp-strokebar')).toBeNull();
+    expect(stage().querySelector('.mp-segbar')).toBeNull();
+
+    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    expect(stage().querySelector('.mp-strokebar')).not.toBeNull();   // «Trazo», sobre el mapa
+
+    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    expect(stage().querySelector('.mp-strokebar')).toBeNull();
+    expect(stage().querySelector('.mp-segbar')).not.toBeNull();      // «Segmento», sobre el mapa
+
+    await u.click(screen.getByRole('button', { name: 'Revelar' }));
+    expect(stage().querySelector('.mp-brushbar')).not.toBeNull();    // «Pincel», sobre el mapa
+  });
+
+  it('el botón derecho en vacío ofrece pin y dados; el pin centra la vista de quien lo pone', async () => {
+    const onOpenDice = vi.fn();
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={seed()} vision={fakeVisionPort()} onOpenDice={onOpenDice} />);
+    await screen.findByText(/Almacén de Queens/);
+    fireEvent.contextMenu(canvas(), { clientX: 120, clientY: 90 });
+    const menu = await screen.findByRole('menu', { name: 'Acciones rápidas' });
+    await userEvent.setup().click(within(menu).getByRole('menuitem', { name: /Lanzador de dados/ }));
+    expect(onOpenDice).toHaveBeenCalled();
+    expect(screen.queryByRole('menu', { name: 'Acciones rápidas' })).not.toBeInTheDocument();
+  });
+
+  it('Suprimir con un muro seleccionado lo borra', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1 + 2, clientY: 380, pointerId: 1, button: 0 });
+    await screen.findByRole('toolbar', { name: 'Segmento' });
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.walls).toHaveLength(0));
   });
 });

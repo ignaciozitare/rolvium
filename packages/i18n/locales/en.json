@@ -781,6 +781,9 @@
       "dice": "Dice roller",
       "placePc": "Place PC",
       "background": "Map background"
+    },
+    "quick": {
+      "title": "Quick actions"
     }
   }
 }

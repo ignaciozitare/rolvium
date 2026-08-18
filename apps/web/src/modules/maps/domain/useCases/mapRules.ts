@@ -247,3 +247,7 @@ export function wallDragTo(
   const sx = snap(origin.x1 + dx, grid) - origin.x1, sy = snap(origin.y1 + dy, grid) - origin.y1;
   return { x1: origin.x1 + sx, y1: origin.y1 + sy, x2: origin.x2 + sx, y2: origin.y2 + sy };
 }
+
+/** Tools that put ink on the map: while one is active the «Trazo» bar is the one that shows. */
+export const DRAW_TOOLS: Tool[] = ['pencil', 'line', 'rect', 'circle', 'erase'];
+export const isDraw = (t: Tool): boolean => DRAW_TOOLS.includes(t);
