@@ -56,6 +56,59 @@ describe('<GeneratorWizard>', () => {
     expect(input.ownerId).toBeUndefined();
     expect(input.data.fortune).toBe(3); expect(input.data.resistance).toBe((4 + 3) * 3); expect(input.health).toBe('healthy');
   }, 40000);
+  it('honours the system per-field guard: a stat stops at the preset maximum (regression 2026-08-18)', async () => {
+    const u = userEvent.setup();
+    mount('player');
+    await u.type(screen.getByLabelText('Personaje'), 'Karen');
+    await u.type(screen.getByLabelText('Concepto'), 'Líder');
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    // Standard spread: 21 points, max 5 per stat. Points alone would allow a 7 here.
+    const plus = within(stat('fortitude')).getByRole('button', { name: /^\+ / });
+    for (let i = 0; i < 4; i++) await u.click(plus);
+    expect(within(stat('fortitude')).getByText('5')).toBeInTheDocument();
+    expect(plus).toBeDisabled();                       // capped by the preset, not by the budget…
+    expect(screen.getByRole('status')).toHaveTextContent('10'); // …10 points still unspent
+    // Dropping the spread re-clamps instead of stranding the draft above the new maximum.
+    await u.selectOptions(screen.getByLabelText('Reparto de puntos'), 'mythic');
+    for (let i = 0; i < 3; i++) await u.click(within(stat('fortitude')).getByRole('button', { name: /^\+ / }));
+    expect(within(stat('fortitude')).getByText('8')).toBeInTheDocument();
+    await u.selectOptions(screen.getByLabelText('Reparto de puntos'), 'standard');
+    expect(within(stat('fortitude')).getByText('5')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Te sobran puntos');
+  }, 40000);
+  it('an overspent draft can always be walked back (review finding 2026-08-18)', async () => {
+    const u = userEvent.setup();
+    mount('player');
+    await u.type(screen.getByLabelText('Personaje'), 'Karen');
+    await u.type(screen.getByLabelText('Concepto'), 'Líder');
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    await u.selectOptions(screen.getByLabelText('Reparto de puntos'), 'mythic');
+    // Spend all 30 creation points without any stat above 6, so no re-clamp can rescue us.
+    for (const [id, n] of [['fortitude', 5], ['combat', 5], ['will', 5], ['cunning', 5], ['subtlety', 2], ['presence', 1]] as const) {
+      for (let i = 0; i < n; i++) await u.click(within(stat(id)).getByRole('button', { name: /^\+ / }));
+    }
+    expect(screen.getByRole('status')).toHaveTextContent('0');
+    // Gift trades are budgeted in gift points, so they can push creation points negative.
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));   // specialties…
+    for (const f of plenilunio.sheetSchema.sections.flatMap(s => s.fields).filter(f => f.type === 'stat')) {
+      await u.selectOptions(within(stat(f.id)).getByLabelText(/^Añadir Especialidad/), f.itemFields![0]!.options![0]!.value);
+    }
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …destiny…
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …gifts
+    const trade = screen.getByLabelText('Puntos canjeados por dones');
+    for (let i = 0; i < 3; i++) await u.click(within(trade).getByRole('button', { name: /^\+ / }));
+    // Back to the stats step: 3 points overspent. Each − still leaves it negative, so the
+    // old "remaining >= 0" veto disabled every control and the draft could only be cancelled.
+    await u.click(screen.getByRole('button', { name: /Características/ }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Te faltan puntos');
+    for (let i = 0; i < 3; i++) {
+      const minus = within(stat('fortitude')).getByRole('button', { name: /^− |^- / });
+      expect(minus).toBeEnabled();
+      await u.click(minus);
+    }
+    expect(screen.getByRole('status')).toHaveTextContent('0');
+    expect(screen.queryByRole('alert')).toBeNull();
+  }, 40000);
   it('DM sees kind + assign-to, and «Atrás»/«Cancelar» work', async () => {
     const u = userEvent.setup();
     const { onCancel } = mount('dm');

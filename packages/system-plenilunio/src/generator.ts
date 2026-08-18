@@ -4,8 +4,8 @@
 // costs a point, each −1 refunds one, p.22–23), 1 point = 2 extra specialties
 // (max 2 trades, p.22) or 2 gift points; gift points = Destiny (+ trades), p.25.
 // See RULES.md §1.
-import type { GeneratorStep, SheetData } from '@rolvium/core';
-import { GIFT_MAX_LEVEL, STAT_IDS } from './catalogs';
+import type { GeneratorStep, SheetData, SheetPatch } from '@rolvium/core';
+import { GIFT_MAX_LEVEL, STAT_IDS, isStatId } from './catalogs';
 import { derived } from './engine';
 import { DEFAULT_PRESET, PRESETS, giftsOf, num, statOf, str, type PresetId } from './schema';
 
@@ -48,6 +48,30 @@ export function canAdjustStat(draft: SheetData, stat: (typeof STAT_IDS)[number],
 /** Extra specialties granted by trades: 2 per point, must go to different stats (validated in step 3). */
 export const extraSpecialtiesAllowed = (draft: SheetData) => budgetOf(draft).specialtyTrade * 2;
 
+/**
+ * Per-field guard of the generator (`GeneratorStep.applyChange`). The point budget alone
+ * cannot express the preset's ceiling (p.21), so without this a stat could be pushed to 10
+ * under a 21/max-5 spread and the step would then refuse to advance with no way forward.
+ * Lowering the preset re-clamps every stat for the same reason: the refunded points show up
+ * as "te sobran puntos", which the player can act on, instead of an unreachable maximum.
+ */
+export function applyChange(draft: SheetData, fieldId: string, next: unknown): SheetPatch | null {
+  if (fieldId === 'preset') {
+    const preset = PRESETS.find(p => p.id === next) ?? presetOf(draft);
+    const patch: SheetPatch = { preset: preset.id };
+    for (const id of STAT_IDS) {
+      const s = statOf(draft, id);
+      if (s.value > preset.maxStat) patch[id] = { ...s, value: preset.maxStat };
+    }
+    return patch;
+  }
+  if (isStatId(fieldId)) {
+    const value = statOf({ ...draft, [fieldId]: next }, fieldId).value;
+    if (value < 1 || value > presetOf(draft).maxStat) return null;
+  }
+  return { [fieldId]: next };
+}
+
 const statsError = (draft: SheetData): string | null => {
   const b = budgetOf(draft);
   if (b.available > 0) return 'generator.error.pointsLeft';
@@ -68,7 +92,7 @@ export const generator: GeneratorStep[] = [
   },
   {
     id: 'stats', label: 'generator.step.stats', fields: ['preset', ...STAT_IDS],
-    canAdvance: statsError, budget: pointsBudget,
+    canAdvance: statsError, budget: pointsBudget, applyChange,
   },
   {
     id: 'specialties', label: 'generator.step.specialties', fields: ['specialtyTrade', ...STAT_IDS],
@@ -79,7 +103,7 @@ export const generator: GeneratorStep[] = [
       if (STAT_IDS.some(id => statOf(draft, id).specialties.length > 1 + budgetOf(draft).specialtyTrade)) return 'generator.error.extraSpecialtiesSpread';
       return budgetOf(draft).available < 0 ? 'generator.error.pointsOver' : null;
     },
-    budget: pointsBudget,
+    budget: pointsBudget, applyChange,
   },
   {
     id: 'destiny', label: 'generator.step.destiny', fields: ['destiny'],

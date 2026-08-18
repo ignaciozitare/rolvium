@@ -16,8 +16,9 @@ npm run dev:api           # http://localhost:3001  (reads apps/api/.env)
 npm run dev:web           # http://localhost:5173  (reads apps/web/.env)
 ```
 `apps/web/.env` and `apps/api/.env` are pre-filled for the local stack (URL `http://127.0.0.1:54321`,
-demo keys). Studio: http://127.0.0.1:54323. Local dev admin (from `supabase/seed.sql`):
-**admin@rolvium.local / rolvium123**.
+demo keys). Studio: http://127.0.0.1:54323. Local dev accounts (from `supabase/seed.sql`, all with password
+`rolvium123`): **admin@rolvium.local** (admin) · **jugador1@ejemplo.com** (Marta Ruiz) · **jugador2@ejemplo.com**
+(Nico Vega) — the two players are seeded unjoined on purpose, so joining by invite code stays part of the manual test.
 
 - New migration: `npm run db:migration <name>` → edit the file → `npm run db:reset` (re-applies everything + seed).
 - `npm run db:status` prints URLs/keys; `npm run db:stop` stops the containers (data persists).

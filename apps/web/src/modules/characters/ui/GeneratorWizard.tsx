@@ -53,10 +53,33 @@ export function GeneratorWizard({ campaignId, system, role, repo = defaultRepo, 
   const budget = step.budget?.(draft) ?? null;
   const last = i === steps.length - 1;
   const refText = (key: string) => { const r = system.references[key]; return r ? { page: r.page, title: ts(r.title), summary: ts(r.summary) } : null; };
-  const labels = { roll: t('characters.sheet.roll'), add: t('characters.sheet.add'), remove: t('characters.sheet.remove'), manual: t('characters.sheet.manual'), of: t('characters.sheet.of') };
-  /** A change is vetoed when it would push the step's budget below zero. */
-  const canChange = (id: string, next: unknown) => { const b = step.budget?.({ ...draft, [id]: next }); return !b || b.remaining >= 0; };
-  const patch = (p: SheetPatch) => setDraft(d => ({ ...d, ...p }));
+  const labels = { roll: t('characters.sheet.roll'), add: t('characters.sheet.add'), remove: t('characters.sheet.remove'), manual: t('characters.sheet.manual'), of: t('characters.sheet.of'), soon: t('characters.sheet.imageSoon') };
+  /**
+   * Draft after one field edit: the system normalises it when it declares `applyChange`
+   * (returning null to refuse), otherwise the field is merged as-is. The budget is checked
+   * on that result, never on the raw merge — lowering a preset refunds points by re-clamping
+   * stats, and probing the raw merge would veto the very edit that fixes the overspend.
+   */
+  const nextDraft = (d: SheetData, id: string, next: unknown): SheetData | null => {
+    const p = step.applyChange ? step.applyChange(d, id, next) : { [id]: next };
+    return p === null ? null : { ...d, ...p };
+  };
+  /**
+   * A change is vetoed by the system's own rules, or when it leaves the step's budget
+   * overspent — *unless it spends less than the draft already does*. Without that escape
+   * an overspent draft is a dead end: the controls that would repair it are disabled too,
+   * and a step can be left overspent by another step (Plenilunio's gift trades spend
+   * creation points against the gift-point budget).
+   */
+  const canChange = (id: string, next: unknown) => {
+    const d = nextDraft(draft, id, next);
+    if (!d) return false;
+    const b = step.budget?.(d);
+    if (!b) return true;
+    return b.remaining >= 0 || b.remaining > (step.budget?.(draft)?.remaining ?? 0);
+  };
+  /** `Sheet` emits one field per change, but fold every key through the guard all the same. */
+  const patch = (p: SheetPatch) => setDraft(d => Object.keys(p).reduce<SheetData>((acc, id) => nextDraft(acc, id, p[id]) ?? acc, d));
 
   const finish = async () => {
     setBusy(true); setFailed(false);

@@ -66,4 +66,15 @@ describe('<CharacterSheetView>', () => {
     expect(screen.queryByRole('button', { name: 'Recibir daño' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Personaje')).toBeDisabled();
   });
+  it('image fields say «Subir imagen: pronto» while no picker is wired, and stay silent when read-only', async () => {
+    await mount(true);
+    const disc = screen.getByLabelText('Avatar');
+    const field = disc.parentElement as HTMLElement;
+    expect(within(field).getByText('Subir imagen: pronto')).toBeInTheDocument();
+    // The «Avatar» pick button only appears once onImagePick exists — no dead control meanwhile.
+    expect(within(field).queryByRole('button')).not.toBeInTheDocument();
+    document.body.innerHTML = '';
+    await mount(false);
+    expect(screen.queryByText('Subir imagen: pronto')).not.toBeInTheDocument();
+  });
 });

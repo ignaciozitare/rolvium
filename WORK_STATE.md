@@ -8,13 +8,37 @@ diseño `rolvium.pen` · specs de todos los hexágonos · `packages/core` (puert
 `packages/system-plenilunio` **auditado contra el manual** (`RULES.md`) · `identity` (H1) · `campaigns` (H2, con panel de
 gestión del director) · `table` (H3) · `characters` (H4) · `dice` (H6) · `maps` (H7) **rebanada 1** · página `/systems`.
 
-**SIGUIENTE:** `maps` rebanada 2 (niebla + visión en servidor) → `chat` (H8) + `journal` (H9) → `bestiary` (H5) →
-notificaciones/deploy. Antes de nada: **el dueño prueba todo junto** con `docs/PRUEBA-MANUAL.md`.
+**SIGUIENTE:** `maps` rebanada 2 (niebla + visión + día/noche + puertas/ventanas) → rebanada 3 (movimiento máx. por
+turno, configurable por sistema) → rebanada 4 (galería de props para construir mapas) → `chat` (H8) + `journal` (H9) →
+`bestiary` (H5) → notificaciones/deploy.
+
+## 🔎 Prueba manual del dueño (2026-08-18) — cerrada
+- **(a) El generador se atascaba en «Características».** Causa: `GeneratorWizard.canChange` sólo miraba el presupuesto,
+  nunca el máximo del reparto; `canAdjustStat` estaba exportada y testeada pero la UI no la llamaba, y el campo `stat`
+  declara `max: 10`. **Arreglado** con un miembro opcional nuevo del puerto, `GeneratorStep.applyChange(draft, campo,
+  valor) → SheetPatch | null`: el sistema veta o normaliza cada edición (la plataforma sigue sin conocer `PRESETS` ni
+  `maxStat`). Plenilunio lo implementa: tope por reparto y **re-clamp al bajar de reparto** conservando especialidades.
+  Además `canChange` ahora permite siempre un cambio que **reduce** el sobregasto — sin eso, un borrador sobregastado
+  (los canjes de dones se presupuestan en puntos de don y pueden dejar los de creación en negativo) desactivaba también
+  los `−` y sólo se salía con «Cancelar». Hallazgo del Review; hay test que falla sin el arreglo.
+- **Especialidades:** las reglas son correctas (RULES.md §1.3, p.21–22). **Deuda de UI, sin tocar:** los desplegables
+  «+ Especialidad» salen ya en el paso de Características porque el campo `stat` arrastra sus `itemFields` a cualquier
+  paso que lo liste; su paso propio es el siguiente.
+- **(b) «La Reserva de Destino no funciona»:** funciona como está diseñada — `whoCanTake: 'player'`, el director no coge
+  dados, sólo reinicia (lo dice el propio `.pen`). El dueño probaba solo, como admin/director.
+- **(c) «No se guarda nada»:** la BD estaba bien (9 migraciones, campaña guardada). Eran dos cosas: **la API no estaba
+  levantada** (`:3001` sin escuchar → `PUT /characters/:id/sheet` y `POST /rolls` fallaban) y `characters` tenía 0 filas
+  porque (a) impedía terminar el generador. **Arrancar `npm run dev:api` es obligatorio; sin él la mesa parece rota.**
+- **Leyendas «pronto»:** ya estaban Bestiario, Chat/Notas/Bitácora, herramientas de niebla, sistemas y Notificaciones.
+  El único hueco era el avatar de la ficha → `characters.sheet.imageSoon` («Subir imagen: pronto»).
+- **Cuentas de desarrollo en `supabase/seed.sql`** (sobreviven a `db:reset`, contraseña `rolvium123`):
+  `jugador1@ejemplo.com` (Marta Ruiz · «Marta») y `jugador2@ejemplo.com` (Nico Vega · «Nix»). **No** están unidas a
+  ninguna campaña a propósito. El §1 de `docs/PRUEBA-MANUAL.md` da de alta `jugador3@ejemplo.com` para no chocar.
 
 ## 📍 Punto exacto (2026-08-18, fin de sesión)
-- **9 migraciones** aplican limpias (`npm run db:reset`), `supabase db lint` sin errores:
+- **10 migraciones** aplican limpias (`npm run db:reset`), `supabase db lint` sin errores:
   core_users_roles · campaigns · table_shared_resources · campaigns_hardening · identity · characters · characters_api ·
-  dice_rolls · maps.
+  dice_rolls · maps · maps_vision.
 - **Arquitectura que ya está en pie** (responde a «¿dónde vive el backend?»):
   - *Postgres + RLS* = permisos y atomicidad. Lo que un jugador no debe ver o tocar lo corta la RLS o un trigger, nunca el
     cliente. Operaciones atómicas en RPCs (`join_campaign_by_code`, `table_take_resource`, `dice_commit_roll`, `characters_claim`).
@@ -23,7 +47,7 @@ notificaciones/deploy. Antes de nada: **el dueño prueba todo junto** con `docs/
     `POST /rolls` (reconstruye la reserva con `engine.poolFor`, dados CSPRNG, `engine.resolve`, guarda la tirada inmutable,
     aplica los efectos en la ficha), `GET /invites/:code` público, `/admin/*`.
   - *Cliente* = UX y vista previa. El mismo paquete de reglas corre en los dos lados; sólo el servidor decide.
-- **Suites**: web 222 · api 39 · core 2 · system-plenilunio 60. `npm run typecheck` OK · `npm run audit` 0 hard / 8 warn
+- **Suites**: web 225 · api 39 · core 2 · system-plenilunio 62. `npm run typecheck` OK · `npm run audit` 0 hard / 8 warn
   (UserMenu ×3 y 4 overlays de canvas intencionados) · `npm run build` + `build:api` OK.
 - **Sin Supabase hosted ni Vercel todavía**: todo local. Las URLs de producción del harness son placeholders.
 
@@ -45,19 +69,20 @@ notificaciones/deploy. Antes de nada: **el dueño prueba todo junto** con `docs/
   `.claude/agents/{review,qa}.md`). QA: desviaciones de spec = warning; light/dark lo valida el dueño por ronda.
 
 ## ⏳ Siguiente paso inmediato
-**Chat nuevo.** Prompt de reanudación:
-> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Primero repasamos los fallos de mi prueba manual
-> (`docs/PRUEBA-MANUAL.md`); luego `maps` rebanada 2 (niebla + visión en servidor) según rolvium.pen.
-> Flujo: spec → dba → dev → review → qa.
-
-1. **Prueba manual del dueño** (`docs/PRUEBA-MANUAL.md`): arranque, usuarios, checklist por hexágono y pasada light/dark.
-   Vigilar en concreto lo arreglado a ciegas hoy: scroll de la mesa (el generador se completa) y que la rueda haga zoom
-   **sin** mover la mesa. Los fallos que salgan entran al backlog de aquí.
-2. **`maps` rebanada 2**: endpoint que calcule el polígono de visión con **todos** los muros en servidor y escriba
-   `maps_fog` por jugador; pincel revelar/ocultar del director; velo azulado en vista de director; activar las herramientas
-   hoy deshabilitadas (`TOOLS_NOT_YET = ['reveal','hide']`, hay `TODO(slice 2)` en `MapCanvas`).
-3. **`chat` (H8) + `journal` (H9)**: las pestañas Chat · Notas · Bitácora del panel lateral son placeholders «pronto».
-4. **`bestiary` (H5)**: hoy `EncounterMenu` usa `system.catalogs.bestiary`; alinear las entradas base con bloques reales del
+1. **Segunda pasada de la prueba manual** con las tres cuentas (`docs/PRUEBA-MANUAL.md`), ahora que el generador se
+   completa y la API está arriba. Los fallos que salgan entran al backlog de aquí.
+2. **`maps` rebanada 2 — spec → dba → dev → review → qa.** Decisiones del dueño (2026-08-18), ya cerradas:
+   - **Visión:** cada jugador ve lo que ve **su** token y sólo mueve el suyo; el director mueve cualquiera.
+   - **Alcance de la visión:** es un **ajuste de la escena**, no del token — *de día* se ve todo, *de noche* hasta el
+     equivalente a **10 m**. Por defecto: total. (`maps_tokens.vision_radius` sigue sin usar.)
+   - **Niebla:** la casilla «Niebla automática por visión» alterna sólo `vision` ↔ `manual`; `off` sin UI todavía.
+   - **Pincel revelar/ocultar:** el selector de trazo se **diseña primero en `rolvium.pen`** (no está dibujado).
+   - **Muros:** entran ya **puertas y ventanas** que se puedan abrir y cerrar.
+3. **Rebanada 3 — movimiento máximo por turno**, configurable **por sistema** (toca el puerto `GameSystem` y `packages/core`).
+4. **Rebanada 4 — galería de componentes** (muebles, árboles…) que se puedan ir cargando, para construir mapas dentro
+   de la app. Tabla + bucket + UI + diseño propios; da para un hexágono.
+5. **`chat` (H8) + `journal` (H9)**: las pestañas Chat · Notas · Bitácora del panel lateral son placeholders «pronto».
+6. **`bestiary` (H5)**: hoy `EncounterMenu` usa `system.catalogs.bestiary`; alinear las entradas base con bloques reales del
    manual (RULES §8: «Solitario/Chatarrero» son plantillas del prototipo, no del libro).
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
@@ -65,6 +90,8 @@ notificaciones/deploy. Antes de nada: **el dueño prueba todo junto** con `docs/
   revelado) · límites duros de escenas/tokens/trazos (hoy sólo orientativos en el spec).
 - Maps: `removeImage` deja el objeto huérfano en Storage · `uploadImage` siempre nombra `.png` · ruta de subida no-uuid da
   `22P02` en vez de 403 · `mapRules.visibleTokens/sceneVisibleTo` duplicados en línea en el canvas · 6 claves `maps.*` sin uso.
+- Generador: los desplegables «+ Especialidad» aparecen ya en el paso de Características (`stat` arrastra sus
+  `itemFields`) · bajar de reparto re-clampa sin aviso ni deshacer (Mítico 10 → Estándar 5 → volver a Mítico deja 5).
 - Characters: subir avatar/token desde la ficha (`onImagePick` existe, sin cablear) · cambiar especialidad (3 px) ·
   registro de auditoría en «El grupo» · errores por campo del `INVALID_SHEET` en la UI · iconos ⚔/◎ por tipo de arma.
 - Dice: adjuntar tirada al chat · endpoint/UI para verificar una tirada desde los dados crudos · membresía en `POST /rolls`

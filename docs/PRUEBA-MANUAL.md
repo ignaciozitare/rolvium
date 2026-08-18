@@ -7,18 +7,28 @@ Marca lo que falle y lo apuntamos al backlog de `WORK_STATE.md`.
 ```bash
 cd ~/Documents/Developer/Rolvium
 npm run db:start          # Docker debe estar abierto (a veces hay que abrir Docker dos veces)
-npm run db:reset          # aplica las 7 migraciones + seed (borra los datos de prueba anteriores)
+npm run db:reset          # aplica las 10 migraciones + seed — ⚠ BORRA la base local (campañas incluidas).
+                          # Con la base ya arrancada y al día, sáltate este paso.
 npm run dev:api           # http://localhost:3001  (ya arreglado; antes fallaba el script)
 npm run dev:web           # http://localhost:5173
 ```
 Correo de prueba: **Mailpit** en http://127.0.0.1:54324 (confirmaciones y enlaces de recuperación).
-Studio (ver tablas): http://127.0.0.1:54323. Admin de desarrollo: **admin@rolvium.local / rolvium123**.
+Studio (ver tablas): http://127.0.0.1:54323.
+
+Cuentas que el seed deja creadas (todas con contraseña **rolvium123**):
+
+| Correo | Rol | Para qué |
+|---|---|---|
+| `admin@rolvium.local` | admin | el director de tus campañas |
+| `jugador1@ejemplo.com` | player | Marta Ruiz («Marta») |
+| `jugador2@ejemplo.com` | player | Nico Vega («Nix») |
 
 Para probar director + jugador a la vez: una ventana normal (director) y otra de incógnito (jugador).
 
 ## 1. identity (H1)
 - [ ] `/login` entra con el admin; el menú de usuario muestra «Cuenta».
-- [ ] `/signup`: crear `jugador1@ejemplo.com` / `supersecret1`. Entra directo a `/campaigns`.
+- [ ] `/signup`: crear `jugador3@ejemplo.com` / `supersecret1`. Entra directo a `/campaigns`.
+      (los otros dos jugadores ya existen en el seed; este alta es para probar el registro en sí)
 - [ ] `/forgot` con ese correo → llega el enlace a Mailpit → abre `/reset` → cambiar contraseña → entra.
 - [ ] `/account`: cambiar nombre y «nombre en las mesas», subir un avatar (recorte circular), cambiar idioma a English y volver,
       cambiar tema Oscuro/Claro/Sistema, ver «Sesiones y dispositivos» (la actual marcada) y cerrar otra sesión.

@@ -9,7 +9,7 @@ import './sheet.css';
 
 export interface SheetRef { page: number; title: string; summary: string }
 /** Platform strings the sheet needs (passed in so the kit stays i18n-agnostic). */
-export interface SheetLabels { roll: string; add: string; remove: string; manual: string; of: string; pick?: string }
+export interface SheetLabels { roll: string; add: string; remove: string; manual: string; of: string; pick?: string; soon?: string }
 export interface SheetProps {
   schema: SheetSchema;
   data: SheetData;
@@ -119,6 +119,8 @@ export function Sheet(p: SheetProps): JSX.Element {
           <div className="rv-sheet-field rv-sheet-image">
             <span className="rv-sheet-image-disc" aria-label={p.t(f.label)}>{url ? <img src={url} alt="" /> : initials}</span>
             {!ro && p.onImagePick && <button type="button" className="rv-sheet-btn" onClick={() => p.onImagePick?.(f.id)}>{p.labels.pick ?? p.t(f.label)}</button>}
+            {/* No picker wired yet: say so rather than leave a disc the user pokes at. */}
+            {!ro && !p.onImagePick && p.labels.soon && <span className="rv-sheet-caption">{p.labels.soon}</span>}
           </div>
         );
       }

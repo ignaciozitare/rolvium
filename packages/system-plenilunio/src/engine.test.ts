@@ -285,6 +285,31 @@ describe('generator budgets', () => {
     expect(canAdjustStat(draft({ preset: 'mythic', fortitude: stat(10) }), 'fortitude', 1)).toBe(false);
     expect(canAdjustStat(draft(), 'fortitude', -1)).toBe(false);
   });
+  it('p.21 applyChange caps a stat at the preset maximum even while points remain', () => {
+    const stats = generator.find(s => s.id === 'stats')!;
+    expect(stats.applyChange).toBeDefined();
+    // The budget alone would allow this: 7+1+1+1+1+1+1 = 13 of 21 points still fits.
+    expect(stats.applyChange!(draft(), 'fortitude', stat(7))).toBeNull();
+    expect(stats.applyChange!(draft(), 'fortitude', stat(5))).toEqual({ fortitude: stat(5) });
+    expect(stats.applyChange!(draft(), 'fortitude', stat(0))).toBeNull();
+    expect(stats.applyChange!(draft({ preset: 'mythic' }), 'fortitude', stat(7))).toEqual({ fortitude: stat(7) });
+    // The state the owner actually reached on 2026-08-18 must now be unreachable.
+    const over = draft({ fortitude: stat(7), combat: stat(3), will: stat(3), cunning: stat(2), subtlety: stat(2), presence: stat(2), culture: stat(2) });
+    expect(stats.canAdvance(over)).toBe('generator.error.statOutOfRange');
+    expect(stats.applyChange!(draft({ combat: stat(3) }), 'fortitude', stat(7))).toBeNull();
+  });
+  it('p.21 lowering the preset re-clamps every stat instead of stranding the draft', () => {
+    const stats = generator.find(s => s.id === 'stats')!;
+    const mythic = draft({ preset: 'mythic', fortitude: stat(10, ['Vigor']), combat: stat(6), will: stat(2) });
+    const patch = stats.applyChange!(mythic, 'preset', 'standard');
+    expect(patch).toEqual({ preset: 'standard', fortitude: stat(5, ['Vigor']), combat: stat(5) });
+    // Specialties survive the clamp, and stats already within the new ceiling are left alone.
+    expect(patch).not.toHaveProperty('will');
+    const after = { ...mythic, ...patch } as SheetData;
+    expect(budgetOf(after)).toMatchObject({ total: 21, maxStat: 5 });
+    expect(stats.canAdvance(after)).toBe('generator.error.pointsLeft'); // actionable, not a dead end
+    expect(stats.applyChange!(draft(), 'preset', 'legendary')).toEqual({ preset: 'legendary' });
+  });
   it('specialty, destiny, gift and concept steps validate', () => {
     const by = (id: string) => generator.find(s => s.id === id)!;
     expect(by('concept').canAdvance(draft())).toBe('generator.error.nameAndConcept');

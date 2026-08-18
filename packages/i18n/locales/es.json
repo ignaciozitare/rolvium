@@ -531,7 +531,8 @@
       "avatarHint": "sin imagen propia se usa el avatar de tu cuenta",
       "rollFailed": "No se ha podido tirar. Inténtalo de nuevo.",
       "rolled": "{{title}} · {{summary}}",
-      "openApart": "Abrir ficha aparte"
+      "openApart": "Abrir ficha aparte",
+      "imageSoon": "Subir imagen: pronto"
     },
     "generator": {
       "title": "Crear personaje",

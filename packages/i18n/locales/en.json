@@ -531,7 +531,8 @@
       "avatarHint": "without an image of its own, your account avatar is used",
       "rollFailed": "The roll could not be made. Try again.",
       "rolled": "{{title}} · {{summary}}",
-      "openApart": "Open sheet apart"
+      "openApart": "Open sheet apart",
+      "imageSoon": "Image upload: coming soon"
     },
     "generator": {
       "title": "Create character",

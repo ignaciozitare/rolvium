@@ -65,7 +65,7 @@ export function CharacterSheetView({ state, canEdit, rolls = defaultRolls, rollO
   }, [system, character, data, rollOptions, rolls, onRolled, applyPatch, applyRemote, t, ts]);
 
   if (!system || !character) return null;
-  const labels = { roll: t('characters.sheet.roll'), add: t('characters.sheet.add'), remove: t('characters.sheet.remove'), manual: t('characters.sheet.manual'), of: t('characters.sheet.of'), pick: t('characters.sheet.pickAvatar') };
+  const labels = { roll: t('characters.sheet.roll'), add: t('characters.sheet.add'), remove: t('characters.sheet.remove'), manual: t('characters.sheet.manual'), of: t('characters.sheet.of'), pick: t('characters.sheet.pickAvatar'), soon: t('characters.sheet.imageSoon') };
   const takeDamage = () => { if (damage > 0) applyPatch(system.engine.applyDamage(data, damage), 'damage', true); };
   // The damage control lives under whichever section holds the `health` field (no per-system ids here).
   const healthSection = system.sheetSchema.sections.find(s => s.fields.some(f => f.type === 'health'))?.id ?? '';

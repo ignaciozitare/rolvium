@@ -94,6 +94,14 @@ export interface GeneratorStep {
   canAdvance: (draft: SheetData) => I18nKey | null;
   /** Point economy shown in the header (e.g. remaining stat points). */
   budget?: (draft: SheetData) => { label: I18nKey; remaining: number; detail?: string };
+  /**
+   * Vetoes or normalises one field edit while generating: `null` refuses the edit
+   * (the platform greys the control out), otherwise the patch to apply — which may
+   * touch more than the edited field, e.g. lowering a preset re-clamps every stat.
+   * Without it the platform only checks that `budget.remaining` stays >= 0, which
+   * cannot know a system's per-field ceilings.
+   */
+  applyChange?: (draft: SheetData, fieldId: string, next: unknown) => SheetPatch | null;
 }
 
 // ─── The port ────────────────────────────────────────────────────────────────
