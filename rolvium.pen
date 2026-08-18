@@ -1976,7 +1976,7 @@
       "type": "frame",
       "id": "G8Zgrq",
       "x": 0,
-      "y": 1740,
+      "y": 2760,
       "name": "Campañas/Home · dark",
       "theme": {
         "mode": "dark"
@@ -2724,7 +2724,7 @@
       "type": "frame",
       "id": "RCIRk",
       "x": 1520,
-      "y": 1740,
+      "y": 2760,
       "name": "Campañas/Home · light",
       "theme": {
         "mode": "light"
@@ -3472,7 +3472,7 @@
       "type": "frame",
       "id": "qai31",
       "x": 0,
-      "y": 2720,
+      "y": 3760,
       "name": "Campañas/Crear · Sistema · dark",
       "theme": {
         "mode": "dark"
@@ -5262,7 +5262,7 @@
       "type": "frame",
       "id": "iOQE7",
       "x": 1520,
-      "y": 2720,
+      "y": 3760,
       "name": "Campañas/Crear · Sistema · light",
       "theme": {
         "mode": "light"
@@ -7052,7 +7052,7 @@
       "type": "frame",
       "id": "fzQy4",
       "x": 0,
-      "y": 3700,
+      "y": 4760,
       "name": "Campañas/Crear · Invitar · dark",
       "theme": {
         "mode": "dark"
@@ -8597,7 +8597,7 @@
       "type": "frame",
       "id": "iEmzN",
       "x": 1520,
-      "y": 3700,
+      "y": 4760,
       "name": "Campañas/Crear · Invitar · light",
       "theme": {
         "mode": "light"
@@ -13010,7 +13010,7 @@
       "type": "frame",
       "id": "zt5B6",
       "x": 0,
-      "y": 4680,
+      "y": 5760,
       "name": "Mesa/Plenilunio · Jugador",
       "theme": {
         "mode": "dark"
@@ -17647,8 +17647,8 @@
     {
       "type": "frame",
       "id": "kulJy",
-      "x": 1520,
-      "y": 4680,
+      "x": 3040,
+      "y": 5760,
       "name": "Mesa/Plenilunio · Director · El grupo",
       "theme": {
         "mode": "dark"
@@ -20286,7 +20286,7 @@
       "type": "frame",
       "id": "PiVhB",
       "x": 3040,
-      "y": 4680,
+      "y": 14160,
       "name": "Personajes/Ficha en ventana aparte",
       "theme": {
         "mode": "dark"
@@ -23474,7 +23474,7 @@
       "type": "frame",
       "id": "GjeeD",
       "x": 0,
-      "y": 6700,
+      "y": 7860,
       "name": "Mesa/Plenilunio · Crear personaje · Características",
       "theme": {
         "mode": "dark"
@@ -26248,7 +26248,7 @@
       "type": "frame",
       "id": "kB8pn",
       "x": 1520,
-      "y": 6700,
+      "y": 7860,
       "name": "Mesa/Plenilunio · Crear personaje · Dones (director)",
       "theme": {
         "mode": "dark"
@@ -30606,8 +30606,8 @@
     {
       "type": "frame",
       "id": "XwDVn",
-      "x": 0,
-      "y": 11000,
+      "x": 4560,
+      "y": 12060,
       "name": "Mesa/Plenilunio · Panel lateral · Chat, Notas, Bitácora",
       "theme": {
         "mode": "dark"
@@ -31919,7 +31919,7 @@
       "type": "frame",
       "id": "ORP75",
       "x": 0,
-      "y": 12000,
+      "y": 12060,
       "name": "Mesa/Plenilunio · Mejorar · habilitada",
       "theme": {
         "mode": "dark"
@@ -34449,7 +34449,7 @@
       "type": "frame",
       "id": "lMRPP",
       "x": 1520,
-      "y": 12000,
+      "y": 12060,
       "name": "Mesa/Plenilunio · Mejorar · bloqueada",
       "theme": {
         "mode": "dark"
@@ -36980,7 +36980,7 @@
       "type": "frame",
       "id": "qLGcY",
       "x": 3040,
-      "y": 12000,
+      "y": 12060,
       "name": "Mesa/Plenilunio · Director · Bestiario y PNJ",
       "theme": {
         "mode": "dark"
@@ -40238,8 +40238,8 @@
     {
       "type": "frame",
       "id": "yZDqm",
-      "x": 0,
-      "y": 8900,
+      "x": 6080,
+      "y": 9960,
       "name": "Mesa/Plenilunio · Escena · Jugador",
       "theme": {
         "mode": "dark"
@@ -41139,8 +41139,11 @@
                             {
                               "type": "frame",
                               "id": "Wz1vi",
+                              "x": 0,
+                              "y": 0,
                               "name": "Cabecera Escena",
-                              "width": "fill_container",
+                              "enabled": false,
+                              "width": "fill_container(1088)",
                               "justifyContent": "space_between",
                               "alignItems": "center",
                               "children": [
@@ -41336,11 +41339,12 @@
                               "id": "IRZ6D",
                               "name": "Lienzo Fila",
                               "width": "fill_container",
+                              "height": 700,
                               "gap": 10,
                               "children": [
                                 {
                                   "type": "frame",
-                                  "id": "SNgBt",
+                                  "id": "Mdmga",
                                   "name": "Herramientas",
                                   "fill": "#f2f0eacc",
                                   "effect": {
@@ -41356,11 +41360,45 @@
                                   "layout": "vertical",
                                   "gap": 2,
                                   "padding": 4,
+                                  "alignItems": "center",
                                   "children": [
                                     {
+                                      "type": "text",
+                                      "id": "C3aLgK",
+                                      "name": "R",
+                                      "fill": "$pl-tinta-tenue",
+                                      "content": "JUEGO",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 6.5,
+                                      "fontWeight": "normal",
+                                      "letterSpacing": 1.2
+                                    },
+                                    {
                                       "type": "frame",
-                                      "id": "q1LS1",
-                                      "name": "H/Mover",
+                                      "id": "G4q3i",
+                                      "name": "H/Dados",
+                                      "width": 36,
+                                      "height": 36,
+                                      "fill": "#00000000",
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "k54bz",
+                                          "name": "I",
+                                          "width": 20,
+                                          "height": 20,
+                                          "icon": "casino",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-tinta-suave"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "gzlTA",
+                                      "name": "H/Seleccionar",
                                       "width": 36,
                                       "height": 36,
                                       "fill": "$pl-tinta",
@@ -41369,11 +41407,11 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "T8INng",
+                                          "id": "A2SaW",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
-                                          "icon": "open_with",
+                                          "icon": "arrow_selector_tool",
                                           "library": "Material Symbols Outlined",
                                           "fill": "$pl-papel-alto"
                                         }
@@ -41381,7 +41419,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "OzlD5",
+                                      "id": "ebWRY",
                                       "name": "H/Medir",
                                       "width": 36,
                                       "height": 36,
@@ -41391,7 +41429,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "kWoOM",
+                                          "id": "soBSj",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -41403,7 +41441,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "Y4REdH",
+                                      "id": "dodLV",
                                       "name": "H/Pin",
                                       "width": 36,
                                       "height": 36,
@@ -41413,7 +41451,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "dqQoQ",
+                                          "id": "VUhDI",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -41425,15 +41463,26 @@
                                     },
                                     {
                                       "type": "rectangle",
-                                      "id": "ONC3P",
+                                      "id": "bOptu",
                                       "name": "Sep",
                                       "fill": "$pl-borde",
                                       "width": 28,
                                       "height": 1
                                     },
                                     {
+                                      "type": "text",
+                                      "id": "YpO1Z",
+                                      "name": "R",
+                                      "fill": "$pl-tinta-tenue",
+                                      "content": "LIENZO",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 6.5,
+                                      "fontWeight": "normal",
+                                      "letterSpacing": 1.2
+                                    },
+                                    {
                                       "type": "frame",
-                                      "id": "fPVZZ",
+                                      "id": "b9LjeT",
                                       "name": "H/Lápiz",
                                       "width": 36,
                                       "height": 36,
@@ -41443,7 +41492,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "db8I1",
+                                          "id": "UK4Nb",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -41455,7 +41504,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "CYCBf",
+                                      "id": "D9zyVg",
                                       "name": "H/Línea",
                                       "width": 36,
                                       "height": 36,
@@ -41465,11 +41514,11 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "bgPUE",
+                                          "id": "d38CIp",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
-                                          "icon": "pen_size_2",
+                                          "icon": "horizontal_rule",
                                           "library": "Material Symbols Outlined",
                                           "fill": "$pl-tinta-suave"
                                         }
@@ -41477,7 +41526,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "y5dOI",
+                                      "id": "C0S23q",
                                       "name": "H/Caja",
                                       "width": 36,
                                       "height": 36,
@@ -41487,7 +41536,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "q19y4V",
+                                          "id": "FUeM9",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -41499,7 +41548,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "iO6F1",
+                                      "id": "CZduE",
                                       "name": "H/Círculo",
                                       "width": 36,
                                       "height": 36,
@@ -41509,7 +41558,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "K3II4",
+                                          "id": "CaHAz",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -41521,7 +41570,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "ibMZZ",
+                                      "id": "FOUSN",
                                       "name": "H/Borrar",
                                       "width": 36,
                                       "height": 36,
@@ -41531,7 +41580,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "Sumx5",
+                                          "id": "S3GkR",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -41548,7 +41597,7 @@
                                   "id": "ycdDL",
                                   "name": "Lienzo Wrap",
                                   "width": "fill_container",
-                                  "height": 594,
+                                  "height": 700,
                                   "children": [
                                     {
                                       "type": "frame",
@@ -41556,7 +41605,7 @@
                                       "name": "Lienzo",
                                       "clip": true,
                                       "width": "fill_container",
-                                      "height": "fill_container",
+                                      "height": 700,
                                       "fill": "#1e1e19",
                                       "layout": "none",
                                       "children": [
@@ -42342,8 +42391,8 @@
                                           "type": "frame",
                                           "id": "iHfnj",
                                           "layoutPosition": "absolute",
-                                          "x": 988,
-                                          "y": 484,
+                                          "x": 780,
+                                          "y": 510,
                                           "name": "Controles",
                                           "fill": "#f2f0eacc",
                                           "effect": {
@@ -42526,14 +42575,18 @@
                   "id": "LEbgG",
                   "name": "Side",
                   "width": 272,
+                  "height": 777,
                   "layout": "vertical",
                   "gap": 12,
                   "children": [
                     {
                       "type": "frame",
                       "id": "z86EF",
+                      "x": 0,
+                      "y": 0,
                       "name": "Botón Lanzador",
-                      "width": "fill_container",
+                      "enabled": false,
+                      "width": "fill_container(272)",
                       "fill": "#f2f0ea99",
                       "effect": {
                         "type": "shadow",
@@ -42583,6 +42636,7 @@
                       "name": "Hoja/Panel",
                       "width": "fill_container",
                       "padding": 12,
+                      "height": 777,
                       "descendants": {
                         "zg1xV": {
                           "enabled": false
@@ -43209,8 +43263,8 @@
     {
       "type": "frame",
       "id": "ORZJD",
-      "x": 1520,
-      "y": 8900,
+      "x": 7600,
+      "y": 9960,
       "name": "Mesa/Plenilunio · Escena · Director",
       "theme": {
         "mode": "dark"
@@ -44163,8 +44217,11 @@
                             {
                               "type": "frame",
                               "id": "bM3i9",
+                              "x": 0,
+                              "y": 0,
                               "name": "Cabecera Escena",
-                              "width": "fill_container",
+                              "enabled": false,
+                              "width": "fill_container(1088)",
                               "justifyContent": "space_between",
                               "alignItems": "center",
                               "children": [
@@ -44452,11 +44509,12 @@
                               "id": "jAK0x",
                               "name": "Lienzo Fila",
                               "width": "fill_container",
+                              "height": 700,
                               "gap": 10,
                               "children": [
                                 {
                                   "type": "frame",
-                                  "id": "hHKQo",
+                                  "id": "mgfsZ",
                                   "name": "Herramientas",
                                   "fill": "#f2f0eacc",
                                   "effect": {
@@ -44472,11 +44530,23 @@
                                   "layout": "vertical",
                                   "gap": 2,
                                   "padding": 4,
+                                  "alignItems": "center",
                                   "children": [
                                     {
+                                      "type": "text",
+                                      "id": "F1EXmt",
+                                      "name": "R",
+                                      "fill": "$pl-tinta-tenue",
+                                      "content": "JUEGO",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 6.5,
+                                      "fontWeight": "normal",
+                                      "letterSpacing": 1.2
+                                    },
+                                    {
                                       "type": "frame",
-                                      "id": "dle0Z",
-                                      "name": "H/Mover",
+                                      "id": "sHRKm",
+                                      "name": "H/Dados",
                                       "width": 36,
                                       "height": 36,
                                       "fill": "#00000000",
@@ -44485,11 +44555,11 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "EBLxu",
+                                          "id": "cnRSO",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
-                                          "icon": "open_with",
+                                          "icon": "casino",
                                           "library": "Material Symbols Outlined",
                                           "fill": "$pl-tinta-suave"
                                         }
@@ -44497,7 +44567,29 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "Sg7lJ",
+                                      "id": "L6a08I",
+                                      "name": "H/Seleccionar",
+                                      "width": 36,
+                                      "height": 36,
+                                      "fill": "$pl-tinta",
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "kcdmS",
+                                          "name": "I",
+                                          "width": 20,
+                                          "height": 20,
+                                          "icon": "arrow_selector_tool",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-papel-alto"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "j9hMaB",
                                       "name": "H/Medir",
                                       "width": 36,
                                       "height": 36,
@@ -44507,7 +44599,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "cjjtV",
+                                          "id": "SctSc",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -44519,7 +44611,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "fvYzs",
+                                      "id": "gtjBP",
                                       "name": "H/Pin",
                                       "width": 36,
                                       "height": 36,
@@ -44529,7 +44621,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "mA1TZ",
+                                          "id": "TFmgY",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -44541,15 +44633,26 @@
                                     },
                                     {
                                       "type": "rectangle",
-                                      "id": "taIvJ",
+                                      "id": "xkN4v",
                                       "name": "Sep",
                                       "fill": "$pl-borde",
                                       "width": 28,
                                       "height": 1
                                     },
                                     {
+                                      "type": "text",
+                                      "id": "AdRLo",
+                                      "name": "R",
+                                      "fill": "$pl-tinta-tenue",
+                                      "content": "LIENZO",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 6.5,
+                                      "fontWeight": "normal",
+                                      "letterSpacing": 1.2
+                                    },
+                                    {
                                       "type": "frame",
-                                      "id": "jC7DX",
+                                      "id": "Wo4qD",
                                       "name": "H/Lápiz",
                                       "width": 36,
                                       "height": 36,
@@ -44559,7 +44662,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "C4Kdqn",
+                                          "id": "cgxfC",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -44571,7 +44674,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "SB6lY",
+                                      "id": "I0Q65g",
                                       "name": "H/Línea",
                                       "width": 36,
                                       "height": 36,
@@ -44581,11 +44684,11 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "FKZvJ",
+                                          "id": "KWPfw",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
-                                          "icon": "pen_size_2",
+                                          "icon": "horizontal_rule",
                                           "library": "Material Symbols Outlined",
                                           "fill": "$pl-tinta-suave"
                                         }
@@ -44593,7 +44696,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "d4tYsj",
+                                      "id": "Qzd5O",
                                       "name": "H/Caja",
                                       "width": 36,
                                       "height": 36,
@@ -44603,7 +44706,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "GcSW7",
+                                          "id": "i4Pnt",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -44615,7 +44718,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "K0YyS",
+                                      "id": "Y2y2He",
                                       "name": "H/Círculo",
                                       "width": 36,
                                       "height": 36,
@@ -44625,7 +44728,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "BooBI",
+                                          "id": "Na1un",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -44637,7 +44740,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "fT1SB",
+                                      "id": "JLy0v",
                                       "name": "H/Borrar",
                                       "width": 36,
                                       "height": 36,
@@ -44647,7 +44750,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "a8zCNM",
+                                          "id": "itDFC",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -44659,37 +44762,48 @@
                                     },
                                     {
                                       "type": "rectangle",
-                                      "id": "Q99npI",
+                                      "id": "UbBHb",
                                       "name": "Sep DJ",
                                       "fill": "$pl-oro",
                                       "width": 28,
-                                      "height": 1
+                                      "height": 2
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "hRlA5",
+                                      "name": "R",
+                                      "fill": "$pl-tinta-tenue",
+                                      "content": "DIRECTOR",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 6.5,
+                                      "fontWeight": "normal",
+                                      "letterSpacing": 1.2
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "AewYC",
+                                      "id": "YcUH1",
                                       "name": "H/Muro",
                                       "width": 36,
                                       "height": 36,
-                                      "fill": "$pl-tinta",
+                                      "fill": "#00000000",
                                       "justifyContent": "center",
                                       "alignItems": "center",
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "PKo1W",
+                                          "id": "AER15",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
                                           "icon": "fence",
                                           "library": "Material Symbols Outlined",
-                                          "fill": "$pl-papel-alto"
+                                          "fill": "$pl-oro"
                                         }
                                       ]
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "X70jfk",
+                                      "id": "oODaD",
                                       "name": "H/Revelar",
                                       "width": 36,
                                       "height": 36,
@@ -44699,7 +44813,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "lLIow",
+                                          "id": "CQEl9",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -44711,7 +44825,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "RgtKj",
+                                      "id": "HKXJN",
                                       "name": "H/Ocultar",
                                       "width": 36,
                                       "height": 36,
@@ -44721,7 +44835,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "fTVYM",
+                                          "id": "s98tk",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -44732,24 +44846,76 @@
                                       ]
                                     },
                                     {
+                                      "type": "rectangle",
+                                      "id": "PTaza",
+                                      "name": "Sep",
+                                      "fill": "$pl-borde",
+                                      "width": 28,
+                                      "height": 1
+                                    },
+                                    {
                                       "type": "frame",
-                                      "id": "HEVPu",
+                                      "id": "muiYo",
                                       "name": "H/Encuentro",
                                       "width": 36,
                                       "height": 36,
-                                      "fill": "$pl-oro",
+                                      "fill": "#00000000",
                                       "justifyContent": "center",
                                       "alignItems": "center",
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "haEFm",
+                                          "id": "FlOKT",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
                                           "icon": "swords",
                                           "library": "Material Symbols Outlined",
-                                          "fill": "#1a1508"
+                                          "fill": "$pl-oro"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "bCY9h",
+                                      "name": "H/Colocar PJ",
+                                      "width": 36,
+                                      "height": 36,
+                                      "fill": "#00000000",
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "WNXpS",
+                                          "name": "I",
+                                          "width": 20,
+                                          "height": 20,
+                                          "icon": "person_add",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-oro"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "Rm28a",
+                                      "name": "H/Fondo del mapa",
+                                      "width": 36,
+                                      "height": 36,
+                                      "fill": "#00000000",
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "ebpsY",
+                                          "name": "I",
+                                          "width": 20,
+                                          "height": 20,
+                                          "icon": "image",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-oro"
                                         }
                                       ]
                                     }
@@ -44760,7 +44926,7 @@
                                   "id": "uYjBO",
                                   "name": "Lienzo Wrap",
                                   "width": "fill_container",
-                                  "height": 594,
+                                  "height": 700,
                                   "children": [
                                     {
                                       "type": "frame",
@@ -44768,7 +44934,7 @@
                                       "name": "Lienzo",
                                       "clip": true,
                                       "width": "fill_container",
-                                      "height": "fill_container",
+                                      "height": 700,
                                       "fill": "#4a4a3e",
                                       "layout": "none",
                                       "children": [
@@ -45761,8 +45927,8 @@
                                           "type": "frame",
                                           "id": "Cnzfm",
                                           "layoutPosition": "absolute",
-                                          "x": 988,
-                                          "y": 404,
+                                          "x": 780,
+                                          "y": 510,
                                           "name": "Controles",
                                           "fill": "#f2f0eacc",
                                           "effect": {
@@ -47423,14 +47589,18 @@
                   "id": "FVb1c",
                   "name": "Side",
                   "width": 272,
+                  "height": 777,
                   "layout": "vertical",
                   "gap": 12,
                   "children": [
                     {
                       "type": "frame",
                       "id": "v8aPS",
+                      "x": 0,
+                      "y": 0,
                       "name": "Botón Lanzador",
-                      "width": "fill_container",
+                      "enabled": false,
+                      "width": "fill_container(272)",
                       "fill": "$pl-tinta",
                       "effect": {
                         "type": "shadow",
@@ -47480,6 +47650,7 @@
                       "name": "Hoja/Panel",
                       "width": "fill_container",
                       "padding": 12,
+                      "height": 777,
                       "descendants": {
                         "zg1xV": {
                           "enabled": false
@@ -48125,7 +48296,7 @@
     {
       "type": "frame",
       "id": "ikHW3",
-      "x": 4560,
+      "x": 6080,
       "y": 760,
       "name": "Auth/Registro con código · dark",
       "theme": {
@@ -48758,7 +48929,7 @@
     {
       "type": "frame",
       "id": "miXVe",
-      "x": 6080,
+      "x": 7600,
       "y": 760,
       "name": "Auth/Registro con código · light",
       "theme": {
@@ -49390,7 +49561,7 @@
       "type": "frame",
       "id": "ZhUSp",
       "x": 0,
-      "y": 13400,
+      "y": 14160,
       "name": "Personajes/Mis personajes · dark",
       "theme": {
         "mode": "dark"
@@ -50488,7 +50659,7 @@
       "type": "frame",
       "id": "B4Wasr",
       "x": 1520,
-      "y": 13400,
+      "y": 14160,
       "name": "Personajes/Mis personajes · light",
       "theme": {
         "mode": "light"
@@ -51586,7 +51757,7 @@
       "type": "frame",
       "id": "mTux7",
       "x": 0,
-      "y": 14400,
+      "y": 15160,
       "name": "Sistemas/Catálogo · dark",
       "theme": {
         "mode": "dark"
@@ -52452,7 +52623,7 @@
       "type": "frame",
       "id": "J6LAv",
       "x": 1520,
-      "y": 14400,
+      "y": 15160,
       "name": "Sistemas/Catálogo · light",
       "theme": {
         "mode": "light"
@@ -53318,7 +53489,7 @@
       "type": "frame",
       "id": "SOUyO",
       "x": 0,
-      "y": 15400,
+      "y": 16160,
       "name": "Cuenta/Perfil · dark",
       "theme": {
         "mode": "dark"
@@ -54436,7 +54607,7 @@
       "type": "frame",
       "id": "MUQjG",
       "x": 1520,
-      "y": 15400,
+      "y": 16160,
       "name": "Cuenta/Perfil · light",
       "theme": {
         "mode": "light"
@@ -55554,7 +55725,7 @@
       "type": "frame",
       "id": "g2JV3U",
       "x": 0,
-      "y": 16400,
+      "y": 17160,
       "name": "Estados/Vacíos y errores",
       "theme": {
         "mode": "dark"
@@ -56326,8 +56497,8 @@
     {
       "type": "frame",
       "id": "K2eo0",
-      "x": 4560,
-      "y": 4680,
+      "x": 1520,
+      "y": 5760,
       "name": "Mesa/Plenilunio · Jugador · barra light",
       "theme": {
         "mode": "light"
@@ -60965,8 +61136,8 @@
     {
       "type": "frame",
       "id": "GdPGz",
-      "x": 0,
-      "y": 17400,
+      "x": 3040,
+      "y": 760,
       "name": "Auth/Registro · dark",
       "theme": {
         "mode": "dark"
@@ -61489,8 +61660,8 @@
     {
       "type": "frame",
       "id": "jEhok",
-      "x": 1520,
-      "y": 17400,
+      "x": 4560,
+      "y": 760,
       "name": "Auth/Registro · light",
       "theme": {
         "mode": "light"
@@ -62011,8 +62182,8 @@
     {
       "type": "frame",
       "id": "BC5HL",
-      "x": 3040,
-      "y": 17400,
+      "x": 0,
+      "y": 1760,
       "name": "Auth/Recuperar contraseña · dark",
       "theme": {
         "mode": "dark"
@@ -62424,8 +62595,8 @@
     {
       "type": "frame",
       "id": "SlkGn",
-      "x": 4560,
-      "y": 17400,
+      "x": 1520,
+      "y": 1760,
       "name": "Auth/Recuperar contraseña · light",
       "theme": {
         "mode": "light"
@@ -62835,8 +63006,8 @@
     {
       "type": "frame",
       "id": "OZtnB",
-      "x": 6080,
-      "y": 17400,
+      "x": 3040,
+      "y": 1760,
       "name": "Auth/Restablecer contraseña · dark",
       "theme": {
         "mode": "dark"
@@ -63264,8 +63435,8 @@
     {
       "type": "frame",
       "id": "qa5me",
-      "x": 7600,
-      "y": 17400,
+      "x": 4560,
+      "y": 1760,
       "name": "Auth/Restablecer contraseña · light",
       "theme": {
         "mode": "light"
@@ -63691,9 +63862,9 @@
     {
       "type": "frame",
       "id": "uXK3T",
-      "x": -25,
-      "y": 18380,
-      "name": "Mesa/Plenilunio · Escena · Director · Niebla",
+      "x": 0,
+      "y": 9960,
+      "name": "Mesa/Plenilunio · Escena · Director · niebla y pincel",
       "theme": {
         "mode": "dark"
       },
@@ -64645,8 +64816,11 @@
                             {
                               "type": "frame",
                               "id": "XXvTs",
+                              "x": 0,
+                              "y": 0,
                               "name": "Cabecera Escena",
-                              "width": "fill_container",
+                              "enabled": false,
+                              "width": "fill_container(1088)",
                               "justifyContent": "space_between",
                               "alignItems": "center",
                               "children": [
@@ -64903,11 +65077,12 @@
                               "id": "cBOwI",
                               "name": "Lienzo Fila",
                               "width": "fill_container",
+                              "height": 700,
                               "gap": 10,
                               "children": [
                                 {
                                   "type": "frame",
-                                  "id": "v3Mt2",
+                                  "id": "MWVY6",
                                   "name": "Herramientas",
                                   "fill": "#f2f0eacc",
                                   "effect": {
@@ -64923,11 +65098,23 @@
                                   "layout": "vertical",
                                   "gap": 2,
                                   "padding": 4,
+                                  "alignItems": "center",
                                   "children": [
                                     {
+                                      "type": "text",
+                                      "id": "BERJr",
+                                      "name": "R",
+                                      "fill": "$pl-tinta-tenue",
+                                      "content": "JUEGO",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 6.5,
+                                      "fontWeight": "normal",
+                                      "letterSpacing": 1.2
+                                    },
+                                    {
                                       "type": "frame",
-                                      "id": "Z4dQK",
-                                      "name": "H/Mover",
+                                      "id": "W6wPx",
+                                      "name": "H/Dados",
                                       "width": 36,
                                       "height": 36,
                                       "fill": "#00000000",
@@ -64936,11 +65123,11 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "cqxma",
+                                          "id": "V1wCn3",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
-                                          "icon": "open_with",
+                                          "icon": "casino",
                                           "library": "Material Symbols Outlined",
                                           "fill": "$pl-tinta-suave"
                                         }
@@ -64948,7 +65135,29 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "q0W7wh",
+                                      "id": "G3DRo",
+                                      "name": "H/Seleccionar",
+                                      "width": 36,
+                                      "height": 36,
+                                      "fill": "$pl-tinta",
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "W1Ljs",
+                                          "name": "I",
+                                          "width": 20,
+                                          "height": 20,
+                                          "icon": "arrow_selector_tool",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-papel-alto"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "lmKwB",
                                       "name": "H/Medir",
                                       "width": 36,
                                       "height": 36,
@@ -64958,7 +65167,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "Es5xe",
+                                          "id": "SCfjL",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -64970,7 +65179,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "gfcCw",
+                                      "id": "Jz3Go",
                                       "name": "H/Pin",
                                       "width": 36,
                                       "height": 36,
@@ -64980,7 +65189,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "Us00c",
+                                          "id": "qULLh",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -64992,15 +65201,26 @@
                                     },
                                     {
                                       "type": "rectangle",
-                                      "id": "c1U42x",
+                                      "id": "FYVv5",
                                       "name": "Sep",
                                       "fill": "$pl-borde",
                                       "width": 28,
                                       "height": 1
                                     },
                                     {
+                                      "type": "text",
+                                      "id": "P5R3VV",
+                                      "name": "R",
+                                      "fill": "$pl-tinta-tenue",
+                                      "content": "LIENZO",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 6.5,
+                                      "fontWeight": "normal",
+                                      "letterSpacing": 1.2
+                                    },
+                                    {
                                       "type": "frame",
-                                      "id": "vSadG",
+                                      "id": "MFRkH",
                                       "name": "H/Lápiz",
                                       "width": 36,
                                       "height": 36,
@@ -65010,7 +65230,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "pcOnR",
+                                          "id": "V2mOW",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -65022,7 +65242,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "mzJ7a",
+                                      "id": "l0UGvM",
                                       "name": "H/Línea",
                                       "width": 36,
                                       "height": 36,
@@ -65032,11 +65252,11 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "W907N",
+                                          "id": "CJoPR",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
-                                          "icon": "pen_size_2",
+                                          "icon": "horizontal_rule",
                                           "library": "Material Symbols Outlined",
                                           "fill": "$pl-tinta-suave"
                                         }
@@ -65044,7 +65264,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "yiQq2",
+                                      "id": "w5fyGu",
                                       "name": "H/Caja",
                                       "width": 36,
                                       "height": 36,
@@ -65054,7 +65274,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "DNqy9",
+                                          "id": "wyrKZ",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -65066,7 +65286,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "YSdoe",
+                                      "id": "ExF19",
                                       "name": "H/Círculo",
                                       "width": 36,
                                       "height": 36,
@@ -65076,7 +65296,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "BcDXo",
+                                          "id": "uUWYO",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -65088,7 +65308,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "oxou8",
+                                      "id": "nEdax",
                                       "name": "H/Borrar",
                                       "width": 36,
                                       "height": 36,
@@ -65098,7 +65318,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "a8obA",
+                                          "id": "Mat7l",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -65110,25 +65330,36 @@
                                     },
                                     {
                                       "type": "rectangle",
-                                      "id": "xdptc",
+                                      "id": "NuoR5",
                                       "name": "Sep DJ",
                                       "fill": "$pl-oro",
                                       "width": 28,
-                                      "height": 1
+                                      "height": 2
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "MOoCJ",
+                                      "name": "R",
+                                      "fill": "$pl-tinta-tenue",
+                                      "content": "DIRECTOR",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 6.5,
+                                      "fontWeight": "normal",
+                                      "letterSpacing": 1.2
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "cmI0f",
+                                      "id": "KITpr",
                                       "name": "H/Muro",
                                       "width": 36,
                                       "height": 36,
-                                      "fill": "#1313101f",
+                                      "fill": "#00000000",
                                       "justifyContent": "center",
                                       "alignItems": "center",
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "cm8uZ",
+                                          "id": "O5EAH",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -65140,29 +65371,29 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "jyK1X",
+                                      "id": "m7EFhK",
                                       "name": "H/Revelar",
                                       "width": 36,
                                       "height": 36,
-                                      "fill": "$pl-tinta",
+                                      "fill": "#00000000",
                                       "justifyContent": "center",
                                       "alignItems": "center",
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "Guyt4",
+                                          "id": "nT8Kv",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
                                           "icon": "visibility",
                                           "library": "Material Symbols Outlined",
-                                          "fill": "$pl-papel-alto"
+                                          "fill": "$pl-oro"
                                         }
                                       ]
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "r6wU2g",
+                                      "id": "p11iQa",
                                       "name": "H/Ocultar",
                                       "width": 36,
                                       "height": 36,
@@ -65172,7 +65403,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "xEfFY",
+                                          "id": "fzC8L",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -65183,24 +65414,76 @@
                                       ]
                                     },
                                     {
+                                      "type": "rectangle",
+                                      "id": "yV2nr",
+                                      "name": "Sep",
+                                      "fill": "$pl-borde",
+                                      "width": 28,
+                                      "height": 1
+                                    },
+                                    {
                                       "type": "frame",
-                                      "id": "w3r3Vo",
+                                      "id": "XnnV5",
                                       "name": "H/Encuentro",
                                       "width": 36,
                                       "height": 36,
-                                      "fill": "$pl-oro",
+                                      "fill": "#00000000",
                                       "justifyContent": "center",
                                       "alignItems": "center",
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "v6DBa",
+                                          "id": "Zc49v",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
                                           "icon": "swords",
                                           "library": "Material Symbols Outlined",
-                                          "fill": "#1a1508"
+                                          "fill": "$pl-oro"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "mDVkK",
+                                      "name": "H/Colocar PJ",
+                                      "width": 36,
+                                      "height": 36,
+                                      "fill": "#00000000",
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "no8Jq",
+                                          "name": "I",
+                                          "width": 20,
+                                          "height": 20,
+                                          "icon": "person_add",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-oro"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "TpMK6",
+                                      "name": "H/Fondo del mapa",
+                                      "width": 36,
+                                      "height": 36,
+                                      "fill": "#00000000",
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "bVgep",
+                                          "name": "I",
+                                          "width": 20,
+                                          "height": 20,
+                                          "icon": "image",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-oro"
                                         }
                                       ]
                                     }
@@ -65211,7 +65494,7 @@
                                   "id": "z5KD0V",
                                   "name": "Lienzo Wrap",
                                   "width": "fill_container",
-                                  "height": 594,
+                                  "height": 700,
                                   "children": [
                                     {
                                       "type": "frame",
@@ -65219,7 +65502,7 @@
                                       "name": "Lienzo",
                                       "clip": true,
                                       "width": "fill_container",
-                                      "height": "fill_container",
+                                      "height": 700,
                                       "fill": "#4a4a3e",
                                       "layout": "none",
                                       "children": [
@@ -66212,8 +66495,8 @@
                                           "type": "frame",
                                           "id": "nuLks",
                                           "layoutPosition": "absolute",
-                                          "x": 988,
-                                          "y": 404,
+                                          "x": 780,
+                                          "y": 510,
                                           "name": "Controles",
                                           "fill": "#f2f0eacc",
                                           "effect": {
@@ -66507,6 +66790,7 @@
                                           "x": 12,
                                           "y": 486,
                                           "name": "Leyenda",
+                                          "enabled": false,
                                           "width": 214,
                                           "height": 96,
                                           "fill": "#f2f0eacc",
@@ -66931,14 +67215,18 @@
                   "id": "ZujqA",
                   "name": "Side",
                   "width": 272,
+                  "height": 777,
                   "layout": "vertical",
                   "gap": 12,
                   "children": [
                     {
                       "type": "frame",
                       "id": "n6Ey8r",
+                      "x": 0,
+                      "y": 0,
                       "name": "Botón Lanzador",
-                      "width": "fill_container",
+                      "enabled": false,
+                      "width": "fill_container(272)",
                       "fill": "$pl-tinta",
                       "effect": {
                         "type": "shadow",
@@ -66988,6 +67276,7 @@
                       "name": "Hoja/Panel",
                       "width": "fill_container",
                       "padding": 12,
+                      "height": 777,
                       "descendants": {
                         "zg1xV": {
                           "enabled": false
@@ -67614,9 +67903,9 @@
     {
       "type": "frame",
       "id": "vz19f",
-      "x": -25,
-      "y": 19509,
-      "name": "Mesa/Plenilunio · Escena · Jugador · Noche",
+      "x": 1520,
+      "y": 9960,
+      "name": "Mesa/Plenilunio · Escena · Jugador · noche",
       "theme": {
         "mode": "dark"
       },
@@ -68515,8 +68804,11 @@
                             {
                               "type": "frame",
                               "id": "JZcUs",
+                              "x": 0,
+                              "y": 0,
                               "name": "Cabecera Escena",
-                              "width": "fill_container",
+                              "enabled": false,
+                              "width": "fill_container(1088)",
                               "justifyContent": "space_between",
                               "alignItems": "center",
                               "children": [
@@ -68712,11 +69004,12 @@
                               "id": "rGqkQ",
                               "name": "Lienzo Fila",
                               "width": "fill_container",
+                              "height": 700,
                               "gap": 10,
                               "children": [
                                 {
                                   "type": "frame",
-                                  "id": "XmTzN",
+                                  "id": "sDdGc",
                                   "name": "Herramientas",
                                   "fill": "#f2f0eacc",
                                   "effect": {
@@ -68732,11 +69025,45 @@
                                   "layout": "vertical",
                                   "gap": 2,
                                   "padding": 4,
+                                  "alignItems": "center",
                                   "children": [
                                     {
+                                      "type": "text",
+                                      "id": "B7951",
+                                      "name": "R",
+                                      "fill": "$pl-tinta-tenue",
+                                      "content": "JUEGO",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 6.5,
+                                      "fontWeight": "normal",
+                                      "letterSpacing": 1.2
+                                    },
+                                    {
                                       "type": "frame",
-                                      "id": "wlhGG",
-                                      "name": "H/Mover",
+                                      "id": "App4p",
+                                      "name": "H/Dados",
+                                      "width": 36,
+                                      "height": 36,
+                                      "fill": "#00000000",
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "Bu4Bi",
+                                          "name": "I",
+                                          "width": 20,
+                                          "height": 20,
+                                          "icon": "casino",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-tinta-suave"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "svESn",
+                                      "name": "H/Seleccionar",
                                       "width": 36,
                                       "height": 36,
                                       "fill": "$pl-tinta",
@@ -68745,11 +69072,11 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "Upc86",
+                                          "id": "c4wz6",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
-                                          "icon": "open_with",
+                                          "icon": "arrow_selector_tool",
                                           "library": "Material Symbols Outlined",
                                           "fill": "$pl-papel-alto"
                                         }
@@ -68757,7 +69084,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "a0HO2",
+                                      "id": "CUEbv",
                                       "name": "H/Medir",
                                       "width": 36,
                                       "height": 36,
@@ -68767,7 +69094,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "JmTQL",
+                                          "id": "KFQ7T",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -68779,7 +69106,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "HVFn7",
+                                      "id": "I6mbIq",
                                       "name": "H/Pin",
                                       "width": 36,
                                       "height": 36,
@@ -68789,7 +69116,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "OhumV",
+                                          "id": "flokP",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -68801,15 +69128,26 @@
                                     },
                                     {
                                       "type": "rectangle",
-                                      "id": "p53MD",
+                                      "id": "pfCMt",
                                       "name": "Sep",
                                       "fill": "$pl-borde",
                                       "width": 28,
                                       "height": 1
                                     },
                                     {
+                                      "type": "text",
+                                      "id": "AE16p",
+                                      "name": "R",
+                                      "fill": "$pl-tinta-tenue",
+                                      "content": "LIENZO",
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 6.5,
+                                      "fontWeight": "normal",
+                                      "letterSpacing": 1.2
+                                    },
+                                    {
                                       "type": "frame",
-                                      "id": "yrsQW",
+                                      "id": "chwJQ",
                                       "name": "H/Lápiz",
                                       "width": 36,
                                       "height": 36,
@@ -68819,7 +69157,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "aiA4U",
+                                          "id": "F1Cqo",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -68831,7 +69169,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "m5A7er",
+                                      "id": "AxTLA",
                                       "name": "H/Línea",
                                       "width": 36,
                                       "height": 36,
@@ -68841,11 +69179,11 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "d7UsQ",
+                                          "id": "qRPl7",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
-                                          "icon": "pen_size_2",
+                                          "icon": "horizontal_rule",
                                           "library": "Material Symbols Outlined",
                                           "fill": "$pl-tinta-suave"
                                         }
@@ -68853,7 +69191,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "nDUwX",
+                                      "id": "nmmHx",
                                       "name": "H/Caja",
                                       "width": 36,
                                       "height": 36,
@@ -68863,7 +69201,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "Y2WHSc",
+                                          "id": "gZOuZ",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -68875,7 +69213,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "zF71b",
+                                      "id": "c0eJuC",
                                       "name": "H/Círculo",
                                       "width": 36,
                                       "height": 36,
@@ -68885,7 +69223,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "llYkR",
+                                          "id": "crrOx",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -68897,7 +69235,7 @@
                                     },
                                     {
                                       "type": "frame",
-                                      "id": "EVHXN",
+                                      "id": "u2oUlo",
                                       "name": "H/Borrar",
                                       "width": 36,
                                       "height": 36,
@@ -68907,7 +69245,7 @@
                                       "children": [
                                         {
                                           "type": "icon",
-                                          "id": "FrTJG",
+                                          "id": "TqrgV",
                                           "name": "I",
                                           "width": 20,
                                           "height": 20,
@@ -68924,7 +69262,7 @@
                                   "id": "XDXhP",
                                   "name": "Lienzo Wrap",
                                   "width": "fill_container",
-                                  "height": 594,
+                                  "height": 700,
                                   "children": [
                                     {
                                       "type": "frame",
@@ -68932,7 +69270,7 @@
                                       "name": "Lienzo",
                                       "clip": true,
                                       "width": "fill_container",
-                                      "height": "fill_container",
+                                      "height": 700,
                                       "fill": "#1e1e19",
                                       "layout": "none",
                                       "children": [
@@ -69690,8 +70028,8 @@
                                           "type": "frame",
                                           "id": "f2CAf",
                                           "layoutPosition": "absolute",
-                                          "x": 988,
-                                          "y": 484,
+                                          "x": 780,
+                                          "y": 510,
                                           "name": "Controles",
                                           "fill": "#f2f0eacc",
                                           "effect": {
@@ -69912,14 +70250,18 @@
                   "id": "dKyvr",
                   "name": "Side",
                   "width": 272,
+                  "height": 777,
                   "layout": "vertical",
                   "gap": 12,
                   "children": [
                     {
                       "type": "frame",
                       "id": "gw6ZN",
+                      "x": 0,
+                      "y": 0,
                       "name": "Botón Lanzador",
-                      "width": "fill_container",
+                      "enabled": false,
+                      "width": "fill_container(272)",
                       "fill": "#f2f0ea99",
                       "effect": {
                         "type": "shadow",
@@ -69969,6 +70311,7 @@
                       "name": "Hoja/Panel",
                       "width": "fill_container",
                       "padding": 12,
+                      "height": 777,
                       "descendants": {
                         "zg1xV": {
                           "enabled": false
@@ -70595,9 +70938,9 @@
     {
       "type": "frame",
       "id": "h3Q3NN",
-      "x": 1495,
-      "y": 18380,
-      "name": "Mesa/Plenilunio · Escena · Director · Muro",
+      "x": 3040,
+      "y": 9960,
+      "name": "Mesa/Plenilunio · Escena · Director · herramienta Muro",
       "theme": {
         "mode": "dark"
       },
@@ -71549,8 +71892,11 @@
                             {
                               "type": "frame",
                               "id": "nh1n4",
+                              "x": 0,
+                              "y": 0,
                               "name": "Cabecera Escena",
-                              "width": "fill_container",
+                              "enabled": false,
+                              "width": "fill_container(1088)",
                               "justifyContent": "space_between",
                               "alignItems": "center",
                               "children": [
@@ -71852,6 +72198,7 @@
                               "id": "H38Xi",
                               "name": "Lienzo Fila",
                               "width": "fill_container",
+                              "height": 700,
                               "gap": 10,
                               "children": [
                                 {
@@ -72160,7 +72507,7 @@
                                   "id": "cpcGa",
                                   "name": "Lienzo Wrap",
                                   "width": "fill_container",
-                                  "height": 594,
+                                  "height": 700,
                                   "children": [
                                     {
                                       "type": "frame",
@@ -72168,7 +72515,7 @@
                                       "name": "Lienzo",
                                       "clip": true,
                                       "width": "fill_container",
-                                      "height": "fill_container",
+                                      "height": 700,
                                       "fill": "#4a4a3e",
                                       "layout": "none",
                                       "children": [
@@ -73161,8 +73508,8 @@
                                           "type": "frame",
                                           "id": "LXqYv",
                                           "layoutPosition": "absolute",
-                                          "x": 988,
-                                          "y": 404,
+                                          "x": 780,
+                                          "y": 510,
                                           "name": "Controles",
                                           "fill": "#f2f0eacc",
                                           "effect": {
@@ -73457,6 +73804,7 @@
                                           "x": 12,
                                           "y": 486,
                                           "name": "Leyenda",
+                                          "enabled": false,
                                           "width": 214,
                                           "height": 96,
                                           "fill": "#f2f0eacc",
@@ -73881,14 +74229,18 @@
                   "id": "tOkUl",
                   "name": "Side",
                   "width": 272,
+                  "height": 777,
                   "layout": "vertical",
                   "gap": 12,
                   "children": [
                     {
                       "type": "frame",
                       "id": "uvlYz",
+                      "x": 0,
+                      "y": 0,
                       "name": "Botón Lanzador",
-                      "width": "fill_container",
+                      "enabled": false,
+                      "width": "fill_container(272)",
                       "fill": "$pl-tinta",
                       "effect": {
                         "type": "shadow",
@@ -73938,6 +74290,7 @@
                       "name": "Hoja/Panel",
                       "width": "fill_container",
                       "padding": 12,
+                      "height": 777,
                       "descendants": {
                         "zg1xV": {
                           "enabled": false
@@ -74564,9 +74917,9 @@
     {
       "type": "frame",
       "id": "sFipl",
-      "x": 3015,
-      "y": 18380,
-      "name": "Mesa/Plenilunio · Escena · Rediseño (sin cabecera · rail · seleccionar)",
+      "x": 4560,
+      "y": 9960,
+      "name": "Mesa/Plenilunio · Escena · Director · seleccionar y editar",
       "theme": {
         "mode": "dark"
       },
@@ -75513,7 +75866,7 @@
                           "name": "Contenido",
                           "width": "fill_container",
                           "layout": "vertical",
-                          "gap": 10,
+                          "gap": 12,
                           "children": [
                             {
                               "type": "frame",
@@ -77695,8 +78048,9 @@
                                           "type": "frame",
                                           "id": "R4JbYx",
                                           "x": 12,
-                                          "y": 588,
+                                          "y": 548,
                                           "name": "Leyenda",
+                                          "enabled": false,
                                           "width": 214,
                                           "height": 96,
                                           "fill": "#f2f0eacc",
@@ -78098,19 +78452,6 @@
                                               "fill": "$pl-sangre"
                                             }
                                           ]
-                                        },
-                                        {
-                                          "id": "OVtDz",
-                                          "type": "ref",
-                                          "ref": "YQHKf",
-                                          "name": "Tooltip · Seleccionar",
-                                          "x": 6,
-                                          "y": 56,
-                                          "descendants": {
-                                            "N1gQvF": {
-                                              "content": "SELECCIONAR · ESPACIO O BOTÓN CENTRAL MUEVE EL MAPA"
-                                            }
-                                          }
                                         }
                                       ]
                                     }
@@ -78388,14 +78729,18 @@
                   "id": "UxyZ9",
                   "name": "Side",
                   "width": 272,
+                  "height": 777,
                   "layout": "vertical",
                   "gap": 12,
                   "children": [
                     {
                       "type": "frame",
                       "id": "VB19b",
+                      "x": 0,
+                      "y": 0,
                       "name": "Botón Lanzador",
-                      "width": "fill_container",
+                      "enabled": false,
+                      "width": "fill_container(272)",
                       "fill": "$pl-tinta",
                       "effect": {
                         "type": "shadow",
@@ -78445,6 +78790,7 @@
                       "name": "Hoja/Panel",
                       "width": "fill_container",
                       "padding": 12,
+                      "height": 777,
                       "descendants": {
                         "zg1xV": {
                           "enabled": false
