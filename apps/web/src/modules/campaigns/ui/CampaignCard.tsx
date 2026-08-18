@@ -8,11 +8,15 @@ interface Props {
   campaign: Campaign;
   onEnter?: (c: Campaign) => void;
   onRequestJoin?: (c: Campaign) => void;
+  /** DM only: opens the manage panel. */
+  onManage?: (c: Campaign) => void;
+  /** Player only: leave the campaign (caller confirms). */
+  onLeave?: (c: Campaign) => void;
 }
 
 /** Card as designed in rolvium.pen `Card/Campaign` (mine vs open variants). */
-export function CampaignCard({ campaign: c, onEnter, onRequestJoin }: Props): JSX.Element {
-  const { t } = useTranslation();
+export function CampaignCard({ campaign: c, onEnter, onRequestJoin, onManage, onLeave }: Props): JSX.Element {
+  const { t, locale } = useTranslation();
   const sys = SYSTEMS.find(s => s.id === c.systemId);
   const installed = !!sys?.installed;
   const mine = !!c.myRole;
@@ -31,7 +35,8 @@ export function CampaignCard({ campaign: c, onEnter, onRequestJoin }: Props): JS
         {c.description && <p className="rv-camp-desc">{c.description}</p>}
         <div className="rv-camp-meta">
           <UserAvatar user={{ name: c.dmName, avatarUrl: null }} size={22} />
-          <span>{dm ? t('campaigns.metaYouDirect') : t('campaigns.metaDm', { name: c.dmName })}  ·  {t('campaigns.metaPlayers', { n: String(c.playersCount), seats: String(c.seats) })}</span>
+          <span>{dm ? t('campaigns.metaYouDirect') : t('campaigns.metaDm', { name: c.dmName })}  ·  {t('campaigns.metaPlayers', { n: String(c.playersCount), seats: String(c.seats) })}
+            {mine && c.nextSessionAt && <>  ·  {t('campaigns.nextSessionShort', { date: new Date(c.nextSessionAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }) })}</>}</span>
         </div>
       </div>
       <div className="rv-camp-side">
@@ -40,6 +45,8 @@ export function CampaignCard({ campaign: c, onEnter, onRequestJoin }: Props): JS
             {dm ? t('campaigns.openTable') : t('campaigns.enterTable')}
           </Btn>
         )}
+        {mine && dm && onManage && <Btn variant="ghost" size="sm" onClick={() => onManage(c)}>{t('campaigns.manage.btn')}</Btn>}
+        {mine && !dm && onLeave && <Btn variant="ghost" size="sm" onClick={() => onLeave(c)}>{t('campaigns.leave.btn')}</Btn>}
         {!mine && (
           <Btn variant="ghost" onClick={() => onRequestJoin?.(c)} disabled={!installed || isFull(c)}>
             {installed ? t('campaigns.requestJoin') : t('campaigns.comingSoon')}

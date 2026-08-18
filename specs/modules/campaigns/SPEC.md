@@ -57,3 +57,8 @@ Migración: `supabase/migrations/20260817120000_campaigns.sql` (aplicada en loca
 - Helpers reutilizados por el resto de hexágonos: `is_campaign_member(id)`, `is_campaign_dm(id)`,
   `can_create_campaigns()`; `campaign_invite_preview(code)` para la vista previa (autenticados; los visitantes la
   obtienen vía API con service role — nunca `TO anon`).
+
+## Estado v1 (2026-08-18)
+Hecho además de crear/unirse: panel **Gestionar** del director (código + enlace + regenerar, solicitudes aceptar/rechazar,
+miembros con expulsar, próxima sesión, progresión abierta/cerrada, archivar), **Abandonar** para jugadores, página `/systems`.
+Pendiente: mensajes específicos para `campaign_full`/`already_resolved`, editar nombre/descripción/plazas desde el panel.

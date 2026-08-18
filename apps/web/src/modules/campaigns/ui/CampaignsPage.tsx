@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
-import { Btn, Card, PageHeader, SectionTitle, EmptyState } from '@rolvium/ui';
+import { Btn, Card, PageHeader, SectionTitle, EmptyState, useDialog } from '@rolvium/ui';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { SYSTEMS, systemRegistry } from '@/systems/registry';
 import { initialSharedResources } from '@rolvium/core';
@@ -11,15 +11,18 @@ import { campaignsRepo } from '../container';
 import { CampaignCard } from './CampaignCard';
 import { JoinByCodePanel } from './JoinByCodePanel';
 import { CreateCampaignWizard } from './CreateCampaignWizard';
+import { CampaignManagePanel } from './CampaignManagePanel';
 
 /** Home after login — rolvium.pen `Campañas/Home`. `repo` is injectable for tests. */
 export function CampaignsPage({ repo = campaignsRepo }: { repo?: CampaignsPort }): JSX.Element {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const dialog = useDialog();
   const [mine, setMine] = useState<Campaign[] | null>(null);
   const [open, setOpen] = useState<Campaign[]>([]);
   const [wizard, setWizard] = useState(false);
+  const [manage, setManage] = useState<Campaign | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -32,6 +35,10 @@ export function CampaignsPage({ repo = campaignsRepo }: { repo?: CampaignsPort }
 
   const canCreate = user?.role === 'game_master' || user?.role === 'admin';
   const goTable = (c: Campaign) => navigate(`/table/${c.id}`);
+  const leave = async (c: Campaign) => {
+    if (!(await dialog.confirm(t('campaigns.leave.confirm', { name: c.name }), { danger: true, confirmLabel: t('campaigns.leave.btn'), cancelLabel: t('common.cancel') }))) return;
+    try { await repo.leave(c.id); await load(); } catch { setError(t('common.error')); }
+  };
 
   return (
     <div className="rv-camp-page">
@@ -50,7 +57,7 @@ export function CampaignsPage({ repo = campaignsRepo }: { repo?: CampaignsPort }
               actions={canCreate && <Btn variant="primary" onClick={() => setWizard(true)}>{t('campaigns.createBtn')}</Btn>} /></Card>
           )}
           <div className="rv-camp-list">
-            {mine?.map(c => <CampaignCard key={c.id} campaign={c} onEnter={goTable} />)}
+            {mine?.map(c => <CampaignCard key={c.id} campaign={c} onEnter={goTable} onManage={setManage} onLeave={c2 => void leave(c2)} />)}
           </div>
         </section>
 
@@ -77,9 +84,11 @@ export function CampaignsPage({ repo = campaignsRepo }: { repo?: CampaignsPort }
             ))}
           </ul>
           <p className="rv-aside-note">{t('campaigns.systemsNote')}</p>
+          <Btn variant="ghost" size="sm" style={{ marginTop: 12 }} onClick={() => navigate('/systems')}>{t('campaigns.systemsLink')}</Btn>
         </Card>
       </aside>
 
+      {manage && <CampaignManagePanel campaign={manage} repo={repo} onClose={() => { setManage(null); void load(); }} onChanged={() => void load()} />}
       {wizard && <CreateCampaignWizard onClose={() => { setWizard(false); void load(); }} onCreate={async input => { const sys = await systemRegistry.load(input.systemId); return repo.create({ ...input, sharedResources: initialSharedResources(sys) }); }} onOpenTable={goTable} />}
     </div>
   );

@@ -1,4 +1,4 @@
-import type { Campaign, CampaignMember, CreateCampaignInput, JoinError } from '../entities/Campaign';
+import type { Campaign, CampaignMember, CreateCampaignInput, JoinError, JoinRequest } from '../entities/Campaign';
 
 export interface CampaignsPort {
   /** Campaigns where the current user is DM or player. */
@@ -18,4 +18,10 @@ export interface CampaignsPort {
   getInviteCode(id: string): Promise<string | null>;
   regenerateInviteCode(id: string): Promise<string>;
   archive(id: string): Promise<void>;
+  /** DM only: pending join requests of an open campaign. */
+  listRequests(campaignId: string): Promise<JoinRequest[]>;
+  /** DM only: accept (→ member) or reject a pending request (`campaigns_resolve_request`). */
+  resolveRequest(requestId: string, accept: boolean): Promise<void>;
+  /** DM only: expel a player (deletes the member row). */
+  removeMember(campaignId: string, userId: string): Promise<void>;
 }

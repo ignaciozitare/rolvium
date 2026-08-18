@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
+import { Crescent } from '@rolvium/ui';
 import type { SharedResourceDef, SharedResourceState } from '@rolvium/core';
 import type { TableRole } from '@/modules/campaigns/domain/entities/Campaign';
 import type { ResourceError } from '../domain/entities/Table';
 import { canReset, canTake, handOf } from '../domain/useCases/tableRules';
-import { Crescent } from './systemIcons';
 
 interface Props {
   def: SharedResourceDef;

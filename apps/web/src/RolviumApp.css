@@ -231,6 +231,18 @@ a{color:var(--ac2);text-decoration:none;}
 .rv-code{display:block;font-family:var(--display);font-size:var(--fs-xl);font-weight:600;letter-spacing:.15em;color:var(--ac2);}
 .rv-code-link{flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r);background:var(--bg);min-width:0;}
 .rv-code-url{flex:1;font-size:var(--fs-xs);color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* ── Campaigns: DM manage panel (rolvium.pen Campañas/Home · Crear/Invitar) ─ */
+.rv-manage{display:flex;flex-direction:column;gap:22px;}
+.rv-manage-h{font-family:var(--display);font-size:var(--fs-body);font-weight:600;color:var(--tx);margin:0 0 6px;}
+.rv-manage-list{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;}
+.rv-manage-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--r);background:var(--sf2);}
+.rv-manage-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.rv-manage-text strong{font-size:var(--fs-sm);font-weight:600;color:var(--tx);}
+.rv-manage-text small{font-size:var(--fs-2xs);color:var(--tx3);}
+.rv-manage-opts{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+.rv-manage-danger{display:flex;align-items:center;gap:16px;padding:16px;border-radius:var(--r2);background:var(--red-dim);}
+.rv-camp-side .rv-camp-side-acts{display:flex;gap:8px;}
+@media (max-width:700px){.rv-manage-opts{grid-template-columns:1fr;}}
 
 /* ── Identity: invite card (rolvium.pen Auth/Registro con código) ─────────── */
 .rv-invite-card{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:var(--r);background:var(--sf2);}

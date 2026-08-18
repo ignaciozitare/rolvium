@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Campaign, CampaignMember, CreateCampaignInput, JoinError } from '../domain/entities/Campaign';
+import type { Campaign, CampaignMember, CreateCampaignInput, JoinError, JoinRequest } from '../domain/entities/Campaign';
 import type { CampaignsPort } from '../domain/ports/CampaignsPort';
 import { normalizeInviteCode } from '../domain/useCases/campaignRules';
 
@@ -134,6 +134,28 @@ export class SupabaseCampaignsRepo implements CampaignsPort {
 
   async archive(id: string): Promise<void> {
     const { error } = await this.db.from('campaigns_campaigns').update({ archived_at: new Date().toISOString() }).eq('id', id);
+    if (error) throw error;
+  }
+
+  async listRequests(campaignId: string): Promise<JoinRequest[]> {
+    const { data, error } = await this.db.from('campaigns_requests')
+      .select('id, campaign_id, user_id, message, status, created_at, user:users ( name, avatar_url )')
+      .eq('campaign_id', campaignId).eq('status', 'pending').order('created_at', { ascending: true });
+    if (error) throw error;
+    type ReqRow = { id: string; campaign_id: string; user_id: string; message: string; status: JoinRequest['status']; created_at: string; user: { name: string; avatar_url: string | null } | { name: string; avatar_url: string | null }[] | null };
+    return ((data ?? []) as unknown as ReqRow[]).map(r => {
+      const u = Array.isArray(r.user) ? r.user[0] : r.user;
+      return { id: r.id, campaignId: r.campaign_id, userId: r.user_id, message: r.message ?? '', status: r.status, createdAt: r.created_at, name: u?.name ?? '', avatarUrl: u?.avatar_url ?? null };
+    });
+  }
+
+  async resolveRequest(requestId: string, accept: boolean): Promise<void> {
+    const { error } = await this.db.rpc('campaigns_resolve_request', { req: requestId, accept });
+    if (error) throw error;
+  }
+
+  async removeMember(campaignId: string, userId: string): Promise<void> {
+    const { error } = await this.db.from('campaigns_members').delete().eq('campaign_id', campaignId).eq('user_id', userId).eq('role', 'player');
     if (error) throw error;
   }
 }

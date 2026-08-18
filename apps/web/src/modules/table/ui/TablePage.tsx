@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
-import { Badge, UserAvatar } from '@rolvium/ui';
+import { Badge, Crescent, UserAvatar } from '@rolvium/ui';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { SYSTEMS } from '@/systems/registry';
 import type { TablePort } from '../domain/ports/TablePort';
@@ -10,7 +10,6 @@ import { tableRepo } from '../container';
 import { handOf, isConnected, tabsFor } from '../domain/useCases/tableRules';
 import { useTable } from './useTable';
 import { SharedResourceBar } from './SharedResourceBar';
-import { Crescent } from './systemIcons';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
 import type { RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import type { RollLogPort } from '@/modules/dice/domain/ports/RollLogPort';

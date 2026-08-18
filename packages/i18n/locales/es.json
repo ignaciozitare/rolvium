@@ -137,6 +137,27 @@
       "name": "D&D 5e",
       "tagline": "Próximamente",
       "desc": "SRD 5.1 · próximamente"
+    },
+    "page": {
+      "title": "Sistemas de juego",
+      "subtitle": "Cada sistema es un paquete: reglas, ficha, catálogos, generador y aspecto de la mesa. Las campañas quedan ancladas a uno.",
+      "installed": "Instalado",
+      "comingSoon": "Próximamente",
+      "packageVersion": "paquete v{{version}}",
+      "brings": "Qué incluye",
+      "sheet": "Ficha renderizada desde el esquema del sistema · {{sections}} secciones · referencias al manual en cada campo",
+      "engine": "Motor de reglas: derivadas, tiradas, armadura, daño, recuperación, progresión",
+      "catalogs": "Catálogos: {{n}} listas · {{items}} entradas (armas, armaduras, equipo, dones, especialidades, bestiario…)",
+      "generator": "Generador de personaje de {{steps}} pasos",
+      "theme": "Tema visual: {{font}}",
+      "locales": "Idiomas del paquete: {{list}}",
+      "license": "Mecánicas implementadas; los textos del manual no se reproducen — los resúmenes son propios y cada mesa usa su ejemplar.",
+      "createWith": "Crear campaña con {{name}}",
+      "rules": "Referencia del manual",
+      "rulesHint": "RULES.md del paquete: cada regla apunta a su página.",
+      "haveOne": "¿Tienes un sistema?",
+      "haveOneDesc": "Un sistema es un paquete que implementa el puerto GameSystem: esquema de ficha, catálogos, motor, generador, tema e idiomas.",
+      "loadError": "No se ha podido cargar el paquete."
     }
   },
   "campaigns": {
@@ -213,7 +234,48 @@
       "copy": "Copiar",
       "seatsTaken": "Plazas · {{n}} de {{seats}} ocupadas",
       "inviteLater": "Invitar más tarde"
-    }
+    },
+    "manage": {
+      "btn": "Gestionar",
+      "title": "Gestionar «{{name}}»",
+      "subtitle": "Invitaciones, solicitudes, jugadores y opciones de la mesa.",
+      "inviteTitle": "Invitación",
+      "inviteSub": "Comparte el código o el enlace. Al regenerar, el código anterior deja de valer.",
+      "copy": "Copiar enlace",
+      "copied": "Enlace copiado",
+      "regenerate": "Regenerar",
+      "regenerateConfirm": "¿Regenerar el código? El anterior dejará de funcionar y tendrás que reenviar el nuevo.",
+      "requestsTitle": "Solicitudes pendientes",
+      "requestsEmpty": "Nadie ha pedido unirse todavía.",
+      "accept": "Aceptar",
+      "reject": "Rechazar",
+      "requestedAt": "pidió unirse el {{date}}",
+      "membersTitle": "Jugadores · {{n}} de {{seats}}",
+      "membersEmpty": "Todavía no hay jugadores. Envía el código o el enlace.",
+      "kick": "Expulsar",
+      "kickConfirm": "¿Expulsar a {{name}} de la campaña? Podrá volver a entrar si tiene el código.",
+      "director": "Director",
+      "withCharacter": "con personaje",
+      "noCharacter": "sin personaje",
+      "optionsTitle": "Opciones de mesa",
+      "nextSession": "Próxima sesión",
+      "nextSessionHint": "Se muestra a todo el grupo en la home.",
+      "clearSession": "Sin fecha",
+      "progression": "Progresión",
+      "progressionOn": "Abierta · los jugadores pueden gastar experiencia",
+      "progressionOff": "Cerrada · las mejoras esperan a que la abras",
+      "archiveTitle": "Archivar campaña",
+      "archiveSub": "Desaparece de las listas de todo el grupo. Las fichas y el registro se conservan.",
+      "archive": "Archivar",
+      "archiveConfirm": "¿Archivar «{{name}}»? El grupo dejará de verla en su home.",
+      "saved": "Guardado"
+    },
+    "leave": {
+      "btn": "Abandonar",
+      "confirm": "¿Abandonar «{{name}}»? Dejarás de ver la mesa; tu personaje queda en la campaña sin dueño."
+    },
+    "nextSessionShort": "Próxima sesión · {{date}}",
+    "systemsLink": "Ver todos los sistemas"
   },
   "table": {
     "notMember": "No formas parte de esta campaña.",

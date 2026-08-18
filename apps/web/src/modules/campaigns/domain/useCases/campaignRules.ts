@@ -18,3 +18,21 @@ export function validateCreateStep(step: 'name' | 'system' | 'seats', draft: { n
   if (step === 'seats' && (draft.seats < 1 || draft.seats > 12)) return 'campaigns.errors.seatsRange';
   return null;
 }
+
+/** Public join link for an invite code (the `/join/:code` route). */
+export const inviteUrl = (origin: string, code: string | null): string => `${origin}/join/${code ?? ''}`;
+
+/** ISO (UTC) → value for `<input type="datetime-local">` in the browser's zone; '' when unset. */
+export function toDatetimeLocal(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+/** datetime-local value → ISO (UTC); null when empty/invalid. */
+export function fromDatetimeLocal(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}

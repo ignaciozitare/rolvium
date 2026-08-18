@@ -44,6 +44,14 @@ describe('smoke: characters routes', () => {
   });
 });
 
+describe('smoke: systems route', () => {
+  it('/systems renders the catalog behind the auth gate', async () => {
+    renderWithProviders(<AuthProvider repo={fakeAuthRepo(PLAYER_USER)}><AppRoutes /></AuthProvider>, { providers: { routerProps: { initialEntries: ['/systems'] } } });
+    expect(await screen.findByRole('article', { name: 'Plenilunio' })).toBeInTheDocument();
+    expect(await screen.findByText('Instalado')).toBeInTheDocument();
+  });
+});
+
 vi.mock('@/modules/identity/container', async () => { const f = await import('../helpers/fakes'); return { identityDeps: f.fakeIdentityDeps() }; });
 
 describe('smoke: identity routes', () => {

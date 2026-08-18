@@ -33,6 +33,20 @@ export interface CampaignMember {
   joinedAt: string;
 }
 
+export type JoinRequestStatus = 'pending' | 'accepted' | 'rejected';
+
+/** A player's request to join an open campaign (DM resolves it). */
+export interface JoinRequest {
+  id: string;
+  campaignId: string;
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  message: string;
+  status: JoinRequestStatus;
+  createdAt: string;
+}
+
 export interface CreateCampaignInput {
   name: string;
   description?: string;

@@ -137,6 +137,27 @@
       "name": "D&D 5e",
       "tagline": "Coming soon",
       "desc": "SRD 5.1 · coming soon"
+    },
+    "page": {
+      "title": "Game systems",
+      "subtitle": "Each system is a package: rules, sheet, catalogs, generator and table look. Campaigns are anchored to one.",
+      "installed": "Installed",
+      "comingSoon": "Coming soon",
+      "packageVersion": "package v{{version}}",
+      "brings": "What it brings",
+      "sheet": "Sheet rendered from the system schema · {{sections}} sections · rulebook references on every field",
+      "engine": "Rules engine: derived values, rolls, armour, damage, recovery, progression",
+      "catalogs": "Catalogs: {{n}} lists · {{items}} entries (weapons, armours, gear, gifts, specialties, bestiary…)",
+      "generator": "{{steps}}-step character generator",
+      "theme": "Visual theme: {{font}}",
+      "locales": "Package languages: {{list}}",
+      "license": "Mechanics implemented; rulebook text is not reproduced — summaries are our own and every table uses its own copy.",
+      "createWith": "Create a campaign with {{name}}",
+      "rules": "Rulebook reference",
+      "rulesHint": "The package's RULES.md: every rule points to its page.",
+      "haveOne": "Have a system?",
+      "haveOneDesc": "A system is a package implementing the GameSystem port: sheet schema, catalogs, engine, generator, theme and languages.",
+      "loadError": "The package could not be loaded."
     }
   },
   "campaigns": {
@@ -213,7 +234,48 @@
       "copy": "Copy",
       "seatsTaken": "Seats · {{n}} of {{seats}} taken",
       "inviteLater": "Invite later"
-    }
+    },
+    "manage": {
+      "btn": "Manage",
+      "title": "Manage “{{name}}”",
+      "subtitle": "Invitations, requests, players and table options.",
+      "inviteTitle": "Invitation",
+      "inviteSub": "Share the code or the link. Regenerating makes the previous code stop working.",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "regenerate": "Regenerate",
+      "regenerateConfirm": "Regenerate the code? The previous one will stop working and you will need to send the new one.",
+      "requestsTitle": "Pending requests",
+      "requestsEmpty": "Nobody has asked to join yet.",
+      "accept": "Accept",
+      "reject": "Reject",
+      "requestedAt": "asked to join on {{date}}",
+      "membersTitle": "Players · {{n}} of {{seats}}",
+      "membersEmpty": "No players yet. Send the code or the link.",
+      "kick": "Remove",
+      "kickConfirm": "Remove {{name}} from the campaign? They can come back if they have the code.",
+      "director": "Director",
+      "withCharacter": "with character",
+      "noCharacter": "no character",
+      "optionsTitle": "Table options",
+      "nextSession": "Next session",
+      "nextSessionHint": "Shown to the whole group on the home page.",
+      "clearSession": "No date",
+      "progression": "Progression",
+      "progressionOn": "Open · players can spend experience",
+      "progressionOff": "Closed · improvements wait until you open it",
+      "archiveTitle": "Archive campaign",
+      "archiveSub": "It disappears from everyone's lists. Sheets and the log are kept.",
+      "archive": "Archive",
+      "archiveConfirm": "Archive “{{name}}”? The group will no longer see it on their home page.",
+      "saved": "Saved"
+    },
+    "leave": {
+      "btn": "Leave",
+      "confirm": "Leave “{{name}}”? You will stop seeing the table; your character stays in the campaign without an owner."
+    },
+    "nextSessionShort": "Next session · {{date}}",
+    "systemsLink": "See all systems"
   },
   "table": {
     "notMember": "You are not part of this campaign.",

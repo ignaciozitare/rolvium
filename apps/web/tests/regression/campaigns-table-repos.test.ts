@@ -47,6 +47,36 @@ describe('SupabaseCampaignsRepo (row mapping + rpc error mapping)', () => {
   });
 });
 
+describe('SupabaseCampaignsRepo (DM management)', () => {
+  it('listRequests maps pending rows with the requester profile', async () => {
+    const h = createSupabaseMock({ tables: { campaigns_requests: { data: [{ id: 'rq-1', campaign_id: 'c2', user_id: 'u-marta', message: 'Hola', status: 'pending', created_at: '2026-08-17T03:00:00Z', user: [{ name: 'Marta', avatar_url: null }] }], error: null } } });
+    const repo = new SupabaseCampaignsRepo(h.client as unknown as SupabaseClient);
+    const [r] = await repo.listRequests('c2');
+    expect(r).toEqual({ id: 'rq-1', campaignId: 'c2', userId: 'u-marta', name: 'Marta', avatarUrl: null, message: 'Hola', status: 'pending', createdAt: '2026-08-17T03:00:00Z' });
+    expect(h.fromSpy).toHaveBeenCalledWith('campaigns_requests');
+  });
+  it('resolveRequest calls campaigns_resolve_request and surfaces errors', async () => {
+    const h = createSupabaseMock();
+    const rpc = h.client.rpc as ReturnType<typeof vi.fn>;
+    const repo = new SupabaseCampaignsRepo(h.client as unknown as SupabaseClient);
+    await repo.resolveRequest('rq-1', true);
+    expect(rpc).toHaveBeenCalledWith('campaigns_resolve_request', { req: 'rq-1', accept: true });
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'campaign_full' } });
+    await expect(repo.resolveRequest('rq-1', true)).rejects.toMatchObject({ message: 'campaign_full' });
+  });
+  it('removeMember deletes the player row of that campaign (DM policy)', async () => {
+    const h = createSupabaseMock();
+    const repo = new SupabaseCampaignsRepo(h.client as unknown as SupabaseClient);
+    await repo.removeMember('c2', 'u-pip');
+    expect(h.fromSpy).toHaveBeenCalledWith('campaigns_members');
+    expect(h.deleteSpy).toHaveBeenCalled();
+    const chain = h.deleteSpy.mock.results[0]!.value as { eq: ReturnType<typeof vi.fn> };
+    expect(chain.eq).toHaveBeenCalledWith('campaign_id', 'c2');
+    expect(chain.eq).toHaveBeenCalledWith('user_id', 'u-pip');
+    expect(chain.eq).toHaveBeenCalledWith('role', 'player');
+  });
+});
+
 describe('SupabaseTableRepo', () => {
   const campaigns: CampaignsPort = { ...fakeCampaignsRepo({ mine: [CAMPAIGN_MINE] }), listMembers: async () => [] };
   it('load returns null for non-members and a snapshot for members', async () => {

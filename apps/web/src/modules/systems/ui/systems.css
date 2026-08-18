@@ -1,0 +1,22 @@
+/* ── systems — /systems page (rolvium.pen Sistemas/Catálogo) ─────────────── */
+.rv-systems-page{display:flex;flex-direction:column;gap:8px;min-width:0;}
+.rv-systems-grid{display:grid;grid-template-columns:1fr 400px;gap:16px;align-items:start;}
+@media (max-width:1100px){.rv-systems-grid{grid-template-columns:1fr;}}
+.rv-systems-main,.rv-systems-aside{display:flex;flex-direction:column;gap:16px;min-width:0;}
+.rv-system-card{border-radius:var(--r2);background:var(--sf2);overflow:hidden;box-shadow:var(--shadow);}
+/* preview strip: painted with the package theme (--sys-* set inline from the loaded system) */
+.rv-system-preview{display:flex;align-items:center;gap:14px;padding:22px 24px;background:var(--sys-paper);color:var(--sys-ink);}
+.rv-system-preview-name{font-family:var(--sys-font-display);font-size:var(--fs-lg);letter-spacing:.35em;text-transform:uppercase;}
+.rv-system-body{display:flex;flex-direction:column;gap:14px;padding:22px 24px 24px;}
+.rv-system-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+.rv-system-name{font-family:var(--display);font-size:var(--fs-lg);font-weight:600;color:var(--tx);margin:0;}
+.rv-system-soon .rv-system-name{font-size:var(--fs-md);}
+.rv-system-sub{font-size:var(--fs-xs);color:var(--tx3);margin:4px 0 0;}
+.rv-system-desc{font-size:var(--fs-sm);color:var(--tx2);line-height:var(--lh-normal);margin:0;}
+.rv-system-facts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;}
+.rv-system-facts li{display:flex;align-items:flex-start;gap:10px;font-size:var(--fs-sm);color:var(--tx2);}
+.rv-system-facts .material-symbols-outlined,.rv-system-license .material-symbols-outlined,.rv-system-rules .material-symbols-outlined{font-size:var(--icon-sm);color:var(--ac);flex-shrink:0;}
+.rv-system-license{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--r);background:var(--ac-dim);font-size:var(--fs-2xs);color:var(--tx2);margin:0;}
+.rv-system-acts{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.rv-system-rules{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--tx3);}
+.rv-system-soon{display:flex;flex-direction:column;gap:10px;opacity:.75;}

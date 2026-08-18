@@ -7,6 +7,7 @@ Building the v1 hexagons in order (map: ARCHITECTURE.md "Product hexagons"; spec
 `characters` slice 2 (de01d40 + 10f8b49: `<Sheet>`, `/characters`, `/characters/:id`, generator, progression, table tabs, API
 authority `PUT /characters/:id/sheet`) · **`dice` (H6, 149b3bf: immutable `dice_rolls`, `POST /rolls` persists + server effects +
 pool rebuilt from the sheet, Registro live, floating roller, side panel)** — review APPROVED WITH NOTES, QA see below.
+· **campaigns polish (DM Gestionar panel, Abandonar, `/systems`, `dev:api` fixed, Crescent dedupe)** — review PASSED.
 **NEXT:** `maps` (H7) → `chat/journal` (H8/H9) → DM panel → bestiary.
 
 ## 📍 Exact point (2026-08-18 morning)
@@ -17,6 +18,8 @@ pool rebuilt from the sheet, Registro live, floating roller, side panel)** — r
   Web `modules/dice` (RollsPort/HttpRollsAdapter moved here; RollLogPort/SupabaseRollLogRepo; `RollLog` Registro live;
   `DiceRoller` floating draggable; `SidePanel` Registro·Chat·Notas·Bitácora placeholders) in the table's right column.
   Deviations: die tones system-agnostic (max face/1); specialty not shown in the log title; own-dice trust fixed server-side.
+- Campaigns polish shipped: `CampaignManagePanel` (Modal from the DM card «Gestionar»), player «Abandonar», `/systems` page
+  (`modules/systems/ui/SystemsPage.tsx`), `npm run dev:api` works again, duplicate `Crescent` removed.
 - Owner plan: **test everything together tomorrow** (2026-08-19) — identity, campaigns, table, characters, dice — light/dark + functional.
 
 - characters slice 2 shipped (see commit de01d40 body). Key architecture now in place:
@@ -69,8 +72,8 @@ rolvium.pen (PL/Lanzador flotante SRdGf, panel Registro XwDVn). Flujo: spec → 
 2. characters follow-ups: avatar/token upload from the sheet (`onImagePick`), specialty change (3 px), audit log in «El grupo»,
    per-field validation issues in the UI, ⚔/◎ per weapon type in `<Sheet>` (needs a neutral hint in the schema), remove duplicate
    `Crescent` in `modules/table/ui/systemIcons.tsx`, membership check for `POST /rolls` without character.
-3. Pending small items: DM management UI (regenerate code, requests, kick, archive, next session), leave campaign, WebP background,
-   `campaigns_players_count` N+1 → set-returning RPC, fix `dev:api` script, `/systems` page (designed mTux7/J6LAv), bestiary base
+3. Pending small items: WebP background, `campaigns_players_count` N+1 → set-returning RPC, specific messages for
+   `campaign_full`/`already_resolved` in the manage panel, edit name/description/seats from the panel, bestiary base
    entries «Solitario/Chatarrero» → real book stat blocks when doing `bestiary` (RULES §8).
 
 ## 🚫 Blockers / notes

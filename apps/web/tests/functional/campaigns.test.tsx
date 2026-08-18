@@ -1,15 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { renderWithProviders, screen, waitFor } from '../helpers/render';
+import { renderWithProviders, screen, waitFor, within } from '../helpers/render';
 import userEvent from '@testing-library/user-event';
 import { AuthProvider } from '@/shared/hooks/useAuth';
 import { CampaignsPage } from '@/modules/campaigns/ui/CampaignsPage';
-import { fakeAuthRepo, PLAYER_USER, ADMIN_USER, fakeCampaignsRepo, CAMPAIGN_MINE, CAMPAIGN_OPEN } from '../helpers/fakes';
-import { normalizeInviteCode, isValidInviteCode, validateCreateStep } from '@/modules/campaigns/domain/useCases/campaignRules';
+import { Route, Routes } from 'react-router-dom';
+import { fakeAuthRepo, PLAYER_USER, ADMIN_USER, fakeCampaignsRepo, CAMPAIGN_MINE, CAMPAIGN_OPEN, CAMPAIGN_DM, MEMBER_DM, MEMBER_PIP } from '../helpers/fakes';
+import { normalizeInviteCode, isValidInviteCode, validateCreateStep, inviteUrl, toDatetimeLocal, fromDatetimeLocal } from '@/modules/campaigns/domain/useCases/campaignRules';
 
 const GM = { ...ADMIN_USER, id: 'u-gm', name: 'Laura', role: 'game_master' };
 
 function mount(user = PLAYER_USER, repo = fakeCampaignsRepo({ mine: [CAMPAIGN_MINE], open: [CAMPAIGN_OPEN] })) {
-  renderWithProviders(<AuthProvider repo={fakeAuthRepo(user)}><CampaignsPage repo={repo} /></AuthProvider>);
+  renderWithProviders(
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes>
+      <Route path="/campaigns" element={<CampaignsPage repo={repo} />} />
+      <Route path="/systems" element={<div>SYSTEMS</div>} />
+    </Routes></AuthProvider>,
+    { providers: { routerProps: { initialEntries: ['/campaigns'] } } },
+  );
   return repo;
 }
 
@@ -19,6 +26,15 @@ describe('campaigns: rules', () => {
     expect(normalizeInviteCode(' luna-4f7k ')).toBe('LUNA-4F7K');
     expect(isValidInviteCode('LUNA-4F7')).toBe(false);
     expect(isValidInviteCode('luna4f7k')).toBe(true);
+  });
+  it('builds the join link and round-trips datetime-local values', () => {
+    expect(inviteUrl('https://rolvium.app', 'LUNA-4F7K')).toBe('https://rolvium.app/join/LUNA-4F7K');
+    expect(inviteUrl('https://rolvium.app', null)).toBe('https://rolvium.app/join/');
+    expect(toDatetimeLocal(null)).toBe('');
+    expect(toDatetimeLocal('garbage')).toBe('');
+    const local = '2026-09-04T21:00';
+    expect(toDatetimeLocal(fromDatetimeLocal(local))).toBe(local);
+    expect(fromDatetimeLocal('')).toBeNull();
   });
   it('validates wizard steps', () => {
     expect(validateCreateStep('name', { name: ' ', systemId: 'plenilunio', seats: 5 })).toBe('campaigns.errors.nameRequired');
@@ -81,5 +97,32 @@ describe('campaigns: home', () => {
     await waitFor(() => expect(screen.getByText('LUNA-4F7K')).toBeInTheDocument());
     expect(repo.created[0]).toMatchObject({ name: 'Las ruinas de Manhattan', systemId: 'plenilunio', visibility: 'open', progressionEnabled: true });
     expect(screen.getByRole('button', { name: 'Abrir la mesa' })).toBeInTheDocument();
+  });
+
+  it('DM card offers «Gestionar» → manage panel; player card offers «Abandonar» with confirm', async () => {
+    const repo = mount(GM, fakeCampaignsRepo({ mine: [{ ...CAMPAIGN_DM, nextSessionAt: '2026-09-04T19:00:00Z' }, CAMPAIGN_MINE], members: [MEMBER_DM, MEMBER_PIP] }));
+    const u = userEvent.setup();
+    const dmCard = await screen.findByRole('article', { name: 'El sótano de la catedral' });
+    expect(dmCard).toHaveTextContent(/Próxima sesión · /);
+    await u.click(within(dmCard).getByRole('button', { name: 'Gestionar' }));
+    expect(await screen.findByRole('heading', { name: 'Gestionar «El sótano de la catedral»' })).toBeInTheDocument();
+    expect(await screen.findByTestId('invite-code')).toHaveTextContent('LUNA-4F7K');
+    await u.click(screen.getByRole('button', { name: 'Close' }));
+    // player card
+    const pCard = screen.getByRole('article', { name: 'Las noches de Queens' });
+    expect(within(pCard).queryByRole('button', { name: 'Gestionar' })).not.toBeInTheDocument();
+    await u.click(within(pCard).getByRole('button', { name: 'Abandonar' }));
+    expect(await screen.findByText(/Abandonar «Las noches de Queens»/)).toBeInTheDocument();
+    const btns = screen.getAllByRole('button', { name: 'Abandonar' });
+    await u.click(btns[btns.length - 1]!);
+    await waitFor(() => expect(repo.left).toEqual(['c1']));
+    await waitFor(() => expect(screen.queryByRole('article', { name: 'Las noches de Queens' })).not.toBeInTheDocument());
+  });
+
+  it('systems aside links to /systems', async () => {
+    mount();
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole('button', { name: 'Ver todos los sistemas' }));
+    expect(screen.getByText('SYSTEMS')).toBeInTheDocument();
   });
 });

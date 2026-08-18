@@ -47,7 +47,7 @@ export function fakeAdminDeps(over: Partial<AdminDeps> = {}): AdminDeps {
 
 // ── campaigns ────────────────────────────────────────────────────────────────
 import type { CampaignsPort } from '@/modules/campaigns/domain/ports/CampaignsPort';
-import type { Campaign, CreateCampaignInput } from '@/modules/campaigns/domain/entities/Campaign';
+import type { Campaign, CampaignMember, CreateCampaignInput, JoinRequest } from '@/modules/campaigns/domain/entities/Campaign';
 
 export const CAMPAIGN_MINE: Campaign = {
   id: 'c1', name: 'Las noches de Queens', description: 'Nueva York tras el Colapso.', systemId: 'plenilunio', systemVersion: '0.1.0',
@@ -59,19 +59,32 @@ export const CAMPAIGN_OPEN: Campaign = {
   myRole: undefined as unknown as Campaign['myRole'],
 };
 delete (CAMPAIGN_OPEN as { myRole?: unknown }).myRole;
+/** The same campaign seen by its DM (Laura). */
+export const CAMPAIGN_DM: Campaign = { ...CAMPAIGN_MINE, id: 'c2', name: 'El sótano de la catedral', dmId: 'u-gm', dmName: 'Laura', myRole: 'dm', playersCount: 2 };
+export const MEMBER_DM: CampaignMember = { campaignId: 'c2', userId: 'u-gm', name: 'Laura', avatarUrl: null, role: 'dm', characterId: null, joinedAt: '2026-08-17T00:00:00Z' };
+export const MEMBER_PIP: CampaignMember = { campaignId: 'c2', userId: 'u-pip', name: 'Pip', avatarUrl: null, role: 'player', characterId: 'ch-karen', joinedAt: '2026-08-17T01:00:00Z' };
+export const MEMBER_DANI: CampaignMember = { campaignId: 'c2', userId: 'u-nix', name: 'Dani', avatarUrl: null, role: 'player', characterId: null, joinedAt: '2026-08-17T02:00:00Z' };
+export const REQUEST_MARTA: JoinRequest = { id: 'rq-1', campaignId: 'c2', userId: 'u-marta', name: 'Marta', avatarUrl: null, message: 'Juego los martes', status: 'pending', createdAt: '2026-08-17T03:00:00Z' };
 
-/** In-memory CampaignsPort. `mine`/`open` seed the lists; create/join mutate them. */
-export function fakeCampaignsRepo(seed: { mine?: Campaign[]; open?: Campaign[]; joinResult?: Awaited<ReturnType<CampaignsPort['joinByCode']>> } = {}): CampaignsPort & { created: CreateCampaignInput[] } {
+/** In-memory CampaignsPort. `mine`/`open` seed the lists; create/join mutate them; DM actions are recorded. */
+export function fakeCampaignsRepo(seed: { mine?: Campaign[]; open?: Campaign[]; members?: CampaignMember[]; requests?: JoinRequest[]; joinResult?: Awaited<ReturnType<CampaignsPort['joinByCode']>> } = {}): CampaignsPort & { created: CreateCampaignInput[]; updates: { id: string; patch: Parameters<CampaignsPort['update']>[1] }[]; resolved: { id: string; accept: boolean }[]; removed: string[]; left: string[]; archived: string[]; regenerated: number } {
   const mine = [...(seed.mine ?? [])];
   const open = [...(seed.open ?? [])];
+  const members = (seed.members ?? []).map(m => ({ ...m }));
+  const requests = (seed.requests ?? []).map(r => ({ ...r }));
   const created: CreateCampaignInput[] = [];
-  return {
-    created,
-    listMine: async () => mine,
-    listOpen: async () => open,
-    getById: async (id) => mine.find(c => c.id === id) ?? open.find(c => c.id === id) ?? null,
-    listMembers: async () => [],
-    create: async (input) => {
+  const updates: { id: string; patch: Parameters<CampaignsPort['update']>[1] }[] = [];
+  const resolved: { id: string; accept: boolean }[] = [];
+  const removed: string[] = [];
+  const left: string[] = [];
+  const archived: string[] = [];
+  const api = {
+    created, updates, resolved, removed, left, archived, regenerated: 0,
+    listMine: async () => [...mine],
+    listOpen: async () => [...open],
+    getById: async (id: string) => mine.find(c => c.id === id) ?? open.find(c => c.id === id) ?? null,
+    listMembers: async (cid: string) => members.filter(m => m.campaignId === cid),
+    create: async (input: CreateCampaignInput) => {
       created.push(input);
       const c: Campaign = { ...CAMPAIGN_MINE, id: `new-${created.length}`, name: input.name, systemId: input.systemId, visibility: input.visibility, seats: input.seats, inviteCode: 'LUNA-4F7K', playersCount: 0, myRole: 'dm', dmName: 'Yo' };
       mine.unshift(c);
@@ -79,12 +92,22 @@ export function fakeCampaignsRepo(seed: { mine?: Campaign[]; open?: Campaign[]; 
     },
     joinByCode: async () => seed.joinResult ?? { campaignId: 'c1' },
     requestJoin: async () => {},
-    leave: async () => {},
-    update: async () => {},
+    leave: async (cid: string) => { left.push(cid); const i = mine.findIndex(c => c.id === cid); if (i >= 0) mine.splice(i, 1); },
+    update: async (id: string, patch: Parameters<CampaignsPort['update']>[1]) => { updates.push({ id, patch }); const c = mine.find(x => x.id === id); if (c) Object.assign(c, patch); },
     getInviteCode: async () => 'LUNA-4F7K',
-    regenerateInviteCode: async () => 'NEW1-CODE',
-    archive: async () => {},
+    regenerateInviteCode: async () => { api.regenerated += 1; return 'NEW1-CODE'; },
+    archive: async (id: string) => { archived.push(id); const i = mine.findIndex(c => c.id === id); if (i >= 0) mine.splice(i, 1); },
+    listRequests: async (cid: string) => requests.filter(r => r.campaignId === cid && r.status === 'pending'),
+    resolveRequest: async (id: string, accept: boolean) => {
+      resolved.push({ id, accept });
+      const r = requests.find(x => x.id === id);
+      if (!r) return;
+      r.status = accept ? 'accepted' : 'rejected';
+      if (accept) members.push({ campaignId: r.campaignId, userId: r.userId, name: r.name, avatarUrl: r.avatarUrl, role: 'player', characterId: null, joinedAt: new Date().toISOString() });
+    },
+    removeMember: async (cid: string, uid: string) => { removed.push(uid); const i = members.findIndex(m => m.campaignId === cid && m.userId === uid); if (i >= 0) members.splice(i, 1); },
   };
+  return api;
 }
 
 // ── identity ─────────────────────────────────────────────────────────────────
