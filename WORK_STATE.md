@@ -8,8 +8,11 @@ diseño `rolvium.pen` · specs de todos los hexágonos · `packages/core` (puert
 `packages/system-plenilunio` **auditado contra el manual** (`RULES.md`) · `identity` (H1) · `campaigns` (H2, con panel de
 gestión del director) · `table` (H3) · `characters` (H4) · `dice` (H6) · `maps` (H7) **rebanadas 1 y 2** · página `/systems`.
 
-**SIGUIENTE:** rebanada 3 (movimiento máx. por turno, configurable por sistema) → rebanada 4 (galería de props para
-construir mapas) → `chat` (H8) + `journal` (H9) → `bestiary` (H5) → notificaciones/deploy.
+`maps` **rebanada 3** (rediseño de la escena a pantalla completa, Seleccionar, aberturas, Texto) construida en la
+sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corriendo.
+
+**SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
+por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
 ## 🔎 Prueba manual del dueño (2026-08-18) — cerrada
 - **(a) El generador se atascaba en «Características».** Causa: `GeneratorWizard.canChange` sólo miraba el presupuesto,
@@ -34,43 +37,46 @@ construir mapas) → `chat` (H8) + `journal` (H9) → `bestiary` (H5) → notifi
   `jugador1@ejemplo.com` (Marta Ruiz · «Marta») y `jugador2@ejemplo.com` (Nico Vega · «Nix»). **No** están unidas a
   ninguna campaña a propósito. El §1 de `docs/PRUEBA-MANUAL.md` da de alta `jugador3@ejemplo.com` para no chocar.
 
-## 📍 Punto exacto (2026-08-18, fin de sesión — rebanada 2 de `maps` construida)
-- **`maps` rebanada 2 HECHA**: dev + review + qa pasados. **Sin commitear todavía** (árbol sucio, ver «Siguiente paso»).
-  El dueño **aún no ha validado light/dark** de las pantallas nuevas: es el único paso manual pendiente.
-- **Dónde vive la visión: en el servidor, y eso es la frontera de seguridad.**
-  - `packages/core/src/maps.ts` — contrato compartido (`SceneVision`, `FogCell`, `VisionPolygon`, `sightRadiusPx`) y
-    `METRES_PER_CELL`, que **se mudó aquí desde `mapRules`** para que la API y el navegador usen el mismo número
-    (`mapRules` lo reexporta, nadie se enteró). Sigue siendo deuda: la rebanada 3 lo sube al puerto `GameSystem`.
-  - API: `application/maps/vision.ts` (barrido de rayos puro), `application/maps/sceneVision.ts`
-    (`computeSceneVision` / `paintSceneFog`), puerto `domain/maps/IMapsRepository.ts`, adaptador service-role
-    `infrastructure/supabase/SupabaseMapsRepo.ts`, rutas `POST /scenes/:id/vision` y `POST /scenes/:id/fog`.
-  - Web: `VisionPort` + `HttpVisionAdapter` + `container.visionPort`. **El navegador nunca calcula la visión**: sólo
-    recibe polígonos (visión actual) y casillas (lo explorado) y los pinta con máscaras SVG.
-- **Lo explorado se guarda como CASILLAS** (`maps_fog.explored = [[x,y],…]`), no como polígonos libres: la unión entre
-  sesiones es una operación de conjuntos, está acotada por el tamaño de la escena y es justo lo que pinta el pincel.
-- **El bug del spec que encontró QA está corregido**: abrir una puerta NO llega por `postgres_changes` (aplica la RLS de
-  cada suscriptor, y al jugador no le llega la fila de una puerta oculta). Viaja un **broadcast `fog.updated`** por el
-  canal `scene:{id}` que dice «vuelve a pedir tu visión»; quien lo recibe recalcula y **no vuelve a emitir** (sería un
-  bucle infinito — hay test que lo fija).
-- **UI**: `MapCanvas` dibuja la niebla con máscaras SVG (`seen` = explorado ∪ visión · `lit` = visión · `dim` = lo
-  recordado apagado · `unexplored` = velo azul del director); `WallShape` dibuja los tres tipos de segmento;
-  `DmOptionsBar` (nuevo) lleva niebla automática + luz día/noche + recuento; `StrokeBar` se convierte en la barra
-  «Pincel» con la herramienta Revelar/Ocultar activa y en la barra «Muro» (tipo del siguiente segmento) con la
-  herramienta Muro; `Toolbar` usa el **`Tooltip` nuevo de `@rolvium/ui`** (en el UI
-  Kit y en `CATALOG.md`).
-- **10 migraciones**, sin cambios en esta sesión: la de la rebanada 2 (`20260818140000_maps_vision`) ya estaba aplicada
-  y sólo añade columnas con DEFAULT. Verificado contra la base local: las 4 columnas de `maps_walls` y las 2 de
-  `maps_scenes` están vivas.
-- **Suites**: web **263** · api **77** · core 2 · system-plenilunio 62. `npm run typecheck` OK ·
-  `npm run audit` **0 hard / 9 warn** (8 de `ui-reuse` preexistentes + 1 nuevo aceptado a conciencia, abajo) ·
-  `npm run build` + `build:api` OK.
-- **Arquitectura que ya está en pie** (responde a «¿dónde vive el backend?»):
-  - *Postgres + RLS* = permisos y atomicidad. Lo que un jugador no debe ver o tocar lo corta la RLS o un trigger, nunca el
-    cliente. Operaciones atómicas en RPCs (`join_campaign_by_code`, `table_take_resource`, `dice_commit_roll`, `characters_claim`).
-  - *API Fastify* = autoridad en TypeScript + service role: `PUT /characters/:id/sheet`, `POST /rolls`,
-    **`POST /scenes/:id/{vision,fog}`**, `GET /invites/:code` público, `/admin/*`.
-  - *Cliente* = UX y vista previa. El mismo paquete de reglas corre en los dos lados; sólo el servidor decide.
-- **Sin Supabase hosted ni Vercel todavía**: todo local. Las URLs de producción del harness son placeholders.
+## 📍 Punto exacto (2026-08-19, madrugada — rebanada 3 construida, base hosted en pie, despliegue a medias)
+
+### Lo que está hecho y commiteado (rama `feat/maps-slice-2`, el nombre se quedó corto)
+Ocho commits. La rebanada 3 salió entera de que el dueño probara la app y fuera pidiendo correcciones:
+- **La escena ocupa la pantalla.** Fuera la banda «ESCENA · nombre»; sus tres trabajos se repartieron (escenas al
+  rail izquierdo plegable, «Fondo del mapa» y «Colocar PJ» a la barra, el nombre a la etiqueta del lienzo).
+  Las pestañas y los conectados subieron a la barra negra; la Reserva de Destino se sentó en la cabecera blanca con
+  su botón de plegar. **La mesa dejó de scrollear** (`.tb-root` `overflow:hidden`, `.tb-body` estirado, `.mp-stage`
+  sin alto fijo), así que lienzo y registro acaban a la misma altura por construcción. Más una pasada de compactación.
+- **Una sola barra de herramientas** en tres bloques separados por reglas (sin rótulos: ensanchaban). Dados primero.
+- **`move` → `select`** y el paneo pasa a ser modificador: **espacio o botón central**, desde cualquier herramienta.
+- **Seleccionar edita de verdad**: tiradores en los vértices de un muro, arrastrar entero o un extremo, selección por
+  área arrastrando un marco, Suprimir borra, y menú al botón derecho (centrar para mí · centrar para todos · ajustar
+  a la pantalla · dados · eliminar). El botón derecho también cancela un muro a medias, como Escape.
+- **Aberturas**: una puerta o ventana ya no encadena la siguiente. La barra «Segmento» flota sobre el lienzo y sirve
+  para elegir lo que vas a dibujar y para editar lo elegido (tipo, visible, abrir/cerrar, borrar).
+- **Herramienta Texto** (el tipo `text` ya existía en la base y en el pintor; sólo faltaba la puerta).
+- **Colocar PJ** estaba roto (su popover seguía anclado bajo un botón de cabecera que ya no existe) y colocaba a
+  ciegas en el centro. Ahora va en dos pasos como Encuentro.
+- **Dados**: el registro se lee como un chat y sigue a la última tirada; scrollea dentro de su panel con
+  `scrollbar-gutter`; fuera el botón duplicado del lanzador y la línea negra de cada entrada; el lanzador se abre
+  junto a la barra y mide 272 px.
+- **La luna** (`Crescent`) se traza con el path del master en vez de aproximarla con dos arcos.
+
+### La base hosted YA EXISTE y tiene el esquema
+- Proyecto **`scfspsiemikfcnqteonq`** («Rolvium»), org `iuxzfnveabephkcixsaa` (**free tier — 0 €/mes**), región
+  **eu-central-1**. La org de Worksuite cobra 10 $/mes por proyecto extra; ésta no. OIH lo borró el dueño tras migrar
+  sus 28 tablas a Worksuite.
+- **Las 11 migraciones aplicadas** contra hosted, en orden y sin errores. `npm run db:reset` las replica en local.
+- **No se pudo usar `supabase link` + `db push`**: el CLI no está autenticado (`supabase login` pendiente). Se
+  aplicaron con `psql` a través del contenedor local contra el **pooler** —
+  `aws-0-eu-central-1.pooler.supabase.com:5432`, usuario `postgres.scfspsiemikfcnqteonq`—, porque el host directo
+  `db.<ref>.supabase.co` **no resuelve** (los proyectos nuevos son sólo IPv6 por ahí).
+- **`get_advisors` sin ningún CRITICAL.** Los avisos que salieron se arreglaron con la migración
+  `20260819010000_harden_functions`: `SET search_path` en cinco funciones SECURITY DEFINER que no lo tenían, y fuera
+  el EXECUTE de las funciones de TRIGGER (PostgREST las publicaba como RPC) y de los helpers de permisos para `anon`.
+
+### Suites
+web **300** · api **77** · core 2 · system-plenilunio 62 · `typecheck` OK · `audit` **0 hard / 9 warn** ·
+`build` + `build:api` OK.
 
 ## ✅ Decisiones vigentes
 - **El manual manda** en las reglas de un sistema: cada `packages/system-*` guarda `RULES.md` (resumen propio + páginas +
@@ -95,45 +101,50 @@ construir mapas) → `chat` (H8) + `journal` (H9) → `bestiary` (H5) → notifi
 - Harness: diseño en `.pen` → spec → dba → dev → **review + qa como subagentes** (lanzados como general-purpose leyendo
   `.claude/agents/{review,qa}.md`). QA: desviaciones de spec = warning; light/dark lo valida el dueño por ronda.
 
-## ❓ Pendiente del dueño
-1. **Aprobar el frame `sFipl`** de `rolvium.pen` («Mesa/Plenilunio · Escena · Rediseño (sin cabecera · rail ·
-   seleccionar)») y **guardarlo con Cmd+S**. Es lo que desbloquea el dev de la rebanada 3 — el harness prohíbe UI sin
-   blueprint aprobado.
-2. **Validar light/dark** de la rebanada 2 (`SceneTab`, niebla, `DmOptionsBar`, barra «Pincel», `Tooltip`).
-3. **Supabase**: crear el proyecto de Rolvium cuesta **10 $/mes** en la organización actual — el Pro de 25 € NO
-   incluye proyectos extra, sólo 10 $/mes de crédito de cómputo que ya se gastan los dos que hay. El dueño va a
-   **fusionar OIH dentro de Worksuite con el agente de Worksuite** para liberar el hueco. Datos que le pasé:
-   OIH tiene **28 tablas / ~5,1 M filas / 7,2 GB** en un esquema propio `oih` (no en `public`), 12 funciones,
-   **0 políticas RLS**, **0 usuarios de auth** y **0 ficheros en Storage** — sin usuarios ni Storage, la fusión es
-   mucho menos peligrosa de lo normal; el volumen es lo que la hace lenta.
+## ❓ Pendiente del dueño (lo primero al despertar)
+
+### 1. Las variables de entorno de Vercel — es lo ÚNICO que separa de producción
+No las puedo poner yo: **el token del CLI de Vercel está caducado** (`vercel whoami` → «The specified token is not
+valid») y el conector MCP de Vercel no expone ninguna herramienta para escribir variables. Dos caminos: `vercel login`
+en la terminal y me lo dices, o pegarlas a mano en el panel.
+
+En **`rolvium-api`** (ya existe y está conectado a GitHub, así que despliega solo al hacer push):
+```
+SUPABASE_URL=https://scfspsiemikfcnqteonq.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<el `sb_secret_…` del panel de Supabase>
+ALLOWED_ORIGIN=https://rolvium.vercel.app
+```
+En el proyecto **web** (aún NO existe: hay que crearlo apuntando al mismo repo, raíz del monorepo; `vercel.json` ya
+está escrito con el build y el rewrite a `index.html`):
+```
+VITE_SUPABASE_URL=https://scfspsiemikfcnqteonq.supabase.co
+VITE_SUPABASE_ANON_KEY=<el `sb_publishable_…`>
+VITE_API_URL=https://rolvium-api.vercel.app
+```
+Hoy `https://rolvium-api.vercel.app/health` devuelve **500 `FUNCTION_INVOCATION_FAILED`** y los runtime logs dicen
+literalmente `Missing required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY`. En cuanto estén, revive solo.
+
+### 2. Rotar credenciales
+La contraseña de Postgres y las claves llegaron por el chat, y el repo es público. **Nada de eso está en git** —
+comprobado: `apps/api/.env` y `apps/web/.env` están en `.gitignore` y siguen apuntando al stack local. Aun así,
+conviene rotar la contraseña y la `service_role` desde el panel una vez enlazado todo.
+
+### 3. Guardar el `.pen`
+Los dos frames de escena están sincronizados con lo construido (pestañas en la barra negra, Reserva en la cabecera
+blanca, barras dentro del lienzo, lienzo a todo el alto). **Falta el Cmd+S**, que sólo puede dar el dueño.
+Las otras pantallas de Mesa siguen enseñando el chrome viejo: la causa es que la barra de plataforma y las pestañas
+están **copiadas** en cada frame en vez de ser un componente. Convertirlas en componente lo arregla de raíz.
+
+### 4. Validar light/dark
+Sigue pendiente de la rebanada 2 y ahora también de la 3.
 
 ## ⏳ Siguiente paso inmediato
-**La rebanada 2 está commiteada en la rama `feat/maps-slice-2`** (49 archivos, sin subir a `main` ni a GitHub — el
-repo es público, así que el push lo pide el dueño explícitamente).
-
-**Rebanada 3 — spec ✅ · diseño ✅ (falta aprobación) · queda DEV.** Salió entera de la prueba del dueño sobre la
-rebanada 2; está en `specs/modules/maps/SPEC.md` § «Rebanada 3» y en `specs/modules/dice/SPEC.md` § «Dados 3D»:
-1. **Fuera la cabecera «ESCENA · nombre»** (el dueño la señaló como espacio muerto) y **el lienzo a todo el alto, sin
-   scroll**. Ojo al orden: la cabecera **no se puede quitar antes** de que existan el rail y las entradas nuevas de la
-   barra, porque hoy aloja el desplegable de escenas, «Fondo del mapa» y «Colocar PJ» — quitarla antes deja al
-   director sin acceso a las tres cosas.
-2. **Rail de escenas** plegable (miniatura + nombre + punto oro en la activa) sustituyendo al desplegable.
-3. **Una barra de herramientas** en tres bloques rotulados: JUEGO (Dados primero · Seleccionar · Medir · Pin) ·
-   LIENZO (dibujo) · DIRECTOR tras el separador oro (Muro · Revelar · Ocultar ‖ Encuentro · Colocar PJ · Fondo).
-4. **Herramienta Seleccionar** (sustituye a Mover): selecciona tokens, trazos y **muros**, con **tirador en cada
-   vértice** para estirarlos y barra de segmento para cambiar el tipo / visibilidad / borrar. Abrir puertas pasa a un
-   **disco oro al pasar el ratón** sobre el vano, lo que además mata el choque de la rebanada 2 (empezar un muro cerca
-   de una puerta la abría).
-5. **Una puerta dibujada sobre un muro lo parte** — hoy se superponen y la puerta no hace nada. Es el agujero más
-   grave que dejó la rebanada 2.
-6. **Dados 3D** (H6) con `import()` dinámico y aterrizando en el resultado que ya decidió el servidor.
-
-**HECHO ya de la rebanada 3** (aditivo, no necesitaba diseño): **paneo con barra espaciadora** desde cualquier
-herramienta, con guarda para no robarle el espacio a quien escribe en un campo y para no quedarse pegado al perder
-el foco. El botón central ya paneaba.
-
-Después: segunda pasada de la prueba manual · rebanada 4 (movimiento máx. por turno, toca `GameSystem`) ·
-rebanada 5 (galería de props) · `chat` (H8) + `journal` (H9) · `bestiary` (H5).
+1. **Variables de Vercel** (arriba) → el API revive → crear el proyecto web → probar `/health` y la app entera.
+2. **Segunda prueba manual** contra hosted, con las tres cuentas. Ojo: la base hosted está **vacía** (no se cargó
+   `seed.sql`), así que hay que registrar el primer usuario y darle rol admin a mano.
+3. **Rebanada 4 — movimiento máximo por turno**, configurable por sistema (toca el puerto `GameSystem` y
+   `packages/core`; se lleva por delante la deuda de `METRES_PER_CELL`).
+4. Rebanada 5 (galería de props) · `chat` (H8) + `journal` (H9) · `bestiary` (H5).
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 - **Enseñar fotos sobre el mapa** (pedido del dueño, 2026-08-19, explícitamente **para otra sesión**): cargar una
