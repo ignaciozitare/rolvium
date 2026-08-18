@@ -164,11 +164,19 @@ describe('table: page', () => {
  * exactly the kind of thing a refactor undoes without noticing.
  */
 describe('table chrome — dónde vive cada cosa tras la rebanada 3', () => {
-  it('las pestañas viven en la cabecera de la mesa, no en una fila propia', async () => {
+  it('las pestañas viven en la barra de la plataforma, junto a los conectados, y no en una fila propia', async () => {
+    mount(PLAYER_USER, fakeTableRepo('player'));
+    await screen.findByRole('banner');
+    const nav = screen.getByRole('navigation', { name: 'Pestañas de la mesa' });
+    expect(nav.closest('.tb-rvbar')).not.toBeNull();
+    expect(within(nav).getByRole('button', { name: 'Escena' })).toBeInTheDocument();
+  });
+
+  it('la Reserva de Destino se sienta en la cabecera blanca, junto al nombre del sistema', async () => {
     mount(PLAYER_USER, fakeTableRepo('player'));
     const head = await screen.findByRole('banner');
-    expect(within(head).getByRole('navigation', { name: 'Pestañas de la mesa' })).toBeInTheDocument();
-    expect(within(head).getByRole('button', { name: 'Escena' })).toBeInTheDocument();
+    expect(within(head).getByText('Reserva de Destino')).toBeInTheDocument();
+    expect(within(head).getByRole('button', { name: 'Ocultar la reserva' })).toBeInTheDocument();
   });
 
   it('los conectados van en la barra de la plataforma, arriba del todo, y ya no en la cabecera de la mesa', async () => {

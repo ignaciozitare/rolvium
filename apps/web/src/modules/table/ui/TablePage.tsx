@@ -78,6 +78,9 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
           <strong className="tb-rvbar-name">{campaign.name}</strong>
           <Badge color="accent">{sysInfo ? t(sysInfo.nameKey) : campaign.systemId}</Badge>
         </div>
+        <nav className="tb-tabs tb-tabs-bar" aria-label={t('table.tabs')}>
+          {tabs.map(tb => <button key={tb} type="button" className={`tb-rvtab ${tab === tb ? 'on' : ''}`} aria-pressed={tab === tb} onClick={() => setTab(tb)}>{t(`table.tab.${tb}`)}</button>)}
+        </nav>
         <div className="tb-rvbar-right">
           {/* Who is at the table lives in the platform bar: it is the same on every tab and the table needs its height for the map. */}
           <ul className="tb-people tb-people-bar" aria-label={t('table.connected')}>
@@ -99,9 +102,21 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               <div className="tb-rotulo tb-dim">{campaign.name}</div>
             </div>
           </div>
-          <nav className="tb-tabs" aria-label={t('table.tabs')}>
-            {tabs.map(tb => <button key={tb} type="button" className={`tb-btn ${tab === tb ? 'tb-btn-solid' : ''}`} aria-pressed={tab === tb} onClick={() => setTab(tb)}>{t(`table.tab.${tb}`)}</button>)}
-          </nav>
+          {(system.engine.sharedResources ?? []).length > 0 && (
+            <div className={`tb-res-head ${resOpen ? '' : 'folded'}`}>
+              {resOpen && (system.engine.sharedResources ?? []).map(def => (
+                <div key={def.id} className="tb-res-wrap">
+                  <SharedResourceBar def={def} state={resources[def.id]} role={role} userId={user.id} label={sysT(def.label)}
+                    onTake={async () => { const r = await repo.takeResource(campaign.id, def.id, 1); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
+                    onReturn={async () => { const r = await repo.returnResource(campaign.id, def.id, 1); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
+                    onReset={async () => { const r = await repo.resetResource(campaign.id, def.id); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }} />
+                </div>
+              ))}
+              <button type="button" className="tb-res-fold" aria-expanded={resOpen} aria-label={resOpen ? t('maps.reserve.hide') : t('maps.reserve.show')} onClick={() => setResOpen(o => !o)}>
+                <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{resOpen ? 'chevron_left' : 'chevron_right'}</span>
+              </button>
+            </div>
+          )}
           <div className="tb-head-right">
             <span className={`tb-btn ${role === 'dm' ? 'tb-btn-gold' : 'tb-btn-solid'}`} aria-label={t('table.yourRole')}>{t(`table.role.${role}`)}</span>
           </div>
@@ -109,21 +124,6 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
 
         <div className="tb-body">
           <main className="tb-main">
-            {(system.engine.sharedResources ?? []).length > 0 && (
-              <div className={`tb-res-float ${resOpen ? '' : 'folded'}`}>
-                <button type="button" className="tb-res-fold" aria-expanded={resOpen} aria-label={resOpen ? t('maps.reserve.hide') : t('maps.reserve.show')} onClick={() => setResOpen(o => !o)}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{resOpen ? 'keyboard_double_arrow_up' : 'keyboard_double_arrow_down'}</span>
-                </button>
-                {resOpen && (system.engine.sharedResources ?? []).map(def => (
-                  <div key={def.id} className="tb-res-wrap">
-                    <SharedResourceBar def={def} state={resources[def.id]} role={role} userId={user.id} label={sysT(def.label)}
-                      onTake={async () => { const r = await repo.takeResource(campaign.id, def.id, 1); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
-                      onReturn={async () => { const r = await repo.returnResource(campaign.id, def.id, 1); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
-                      onReset={async () => { const r = await repo.resetResource(campaign.id, def.id); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }} />
-                  </div>
-                ))}
-              </div>
-            )}
             {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} characterId={viewCharacterId} onOpenCreate={() => setTab('create')} />}
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'improve' && <ImproveTab campaignId={campaign.id} userId={user.id} repo={charactersRepo} progressionEnabled={campaign.progressionEnabled} characterId={viewCharacterId} />}

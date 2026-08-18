@@ -7,7 +7,7 @@
 .dc-side{display:flex;flex-direction:column;gap:12px;flex:1 1 auto;min-height:0;}
 .dc-roller-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:9px 12px;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;cursor:pointer;border:none;background:var(--sys-card);box-shadow:var(--sys-card-shadow);color:var(--sys-ink-soft);}
 .dc-roller-btn.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
-.dc-panel{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:12px;display:flex;flex-direction:column;gap:12px;min-height:0;flex:1 1 auto;}
+.dc-panel{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:8px;display:flex;flex-direction:column;gap:8px;min-height:0;flex:1 1 auto;}
 /* The log scrolls inside the panel so it can follow the newest roll without the whole table moving. */
 /* `scrollbar-gutter` reserves the strip so the bar never lands on top of the roll text. */
 .dc-log-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-gutter:stable;padding-right:8px;}
@@ -17,7 +17,7 @@
 .dc-soon{display:flex;flex-direction:column;align-items:center;gap:8px;padding:32px 8px;text-align:center;color:var(--sys-ink-dim);font-style:italic;font-size:var(--fs-sm);}
 
 /* Registro */
-.dc-log{display:flex;flex-direction:column;gap:12px;margin:0;padding:0;list-style:none;}
+.dc-log{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;}
 .dc-log-empty,.dc-log-error{font-style:italic;color:var(--sys-ink-dim);font-size:var(--fs-sm);margin:0;}
 .dc-log-error{color:var(--sys-blood);}
 .dc-entry{display:flex;flex-direction:column;gap:6px;padding:0 0 9px 10px;border-left:3px solid var(--sys-ink);border-bottom:1px solid var(--sys-ink);}

@@ -2,7 +2,7 @@
    Themed ONLY via --sys-* (set by the game system on the table container);
    platform tokens only for the type scale / icon sizes. Neutral defaults for the
    --sys-* vars live in table.css (.tb-root). */
-.mp-root{display:flex;flex-direction:column;gap:10px;background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:10px 12px;flex:1 1 auto;min-height:0;}
+.mp-root{display:flex;flex-direction:column;gap:6px;background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:6px;flex:1 1 auto;min-height:0;}
 .mp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 .mp-head-l{display:flex;align-items:baseline;gap:12px;}
 .mp-scene-name{font-family:var(--sys-font-display);font-size:var(--fs-lg);color:var(--sys-ink);}
@@ -27,11 +27,11 @@
 .mp-stroke-note{font-size:var(--fs-xs);}
 /* stage */
 .mp-stage-row{display:flex;gap:10px;align-items:stretch;flex:1 1 auto;min-height:0;}
-.mp-toolbar{display:flex;flex-direction:column;gap:6px;padding:6px 4px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);align-self:stretch;overflow:auto;}
-.mp-tool-group{display:flex;flex-direction:column;gap:2px;padding-bottom:6px;border-bottom:1px solid var(--sys-line);}
+.mp-toolbar{display:flex;flex-direction:column;gap:3px;padding:4px 3px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);align-self:stretch;overflow:auto;}
+.mp-tool-group{display:flex;flex-direction:column;gap:1px;padding-bottom:4px;border-bottom:1px solid var(--sys-line);}
 .mp-tool-group:last-child{border-bottom:none;padding-bottom:0;}
-.mp-tool-group.dm{border-top:2px solid var(--sys-gold);padding-top:6px;}
-.mp-tool{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:none;background:transparent;color:var(--sys-ink-soft);cursor:pointer;}
+.mp-tool-group.dm{border-top:2px solid var(--sys-gold);padding-top:4px;}
+.mp-tool{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:none;background:transparent;color:var(--sys-ink-soft);cursor:pointer;}
 .mp-tool:hover{background:color-mix(in srgb,var(--sys-ink) 10%,transparent);}
 .mp-tool.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
 .mp-tool.dm.on{background:var(--sys-gold);}
@@ -137,18 +137,18 @@
 .mp-enc-name{font-size:var(--fs-sm);}
 .mp-enc-sub{font-size:var(--fs-2xs);color:var(--sys-ink-dim);}
 /* footer */
-.mp-foot{margin:0;font-size:var(--fs-xs);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mp-foot{margin:0;font-size:var(--fs-2xs);display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.3;}
 .mp-dm-tag{font-style:normal;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;background:var(--sys-blood);color:var(--sys-paper-hi);}
 @media (max-width:900px){.mp-stage{min-height:60vh;}.mp-bgpop{right:8px;width:calc(100% - 16px);}}
 .mp-foot-err{color:var(--sys-blood);font-style:italic;}
 /* ── scenes rail (replaces the header dropdown; folds to give the map its width back) ── */
-.mp-rail{display:flex;flex-direction:column;gap:4px;width:186px;flex-shrink:0;padding:6px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
+.mp-rail{display:flex;flex-direction:column;gap:3px;width:176px;flex-shrink:0;padding:5px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
 .mp-rail-head{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 4px;}
 .mp-rail.collapsed .mp-rail-head{justify-content:center;}
 .mp-rail-fold{display:inline-flex;border:none;background:transparent;padding:0;cursor:pointer;color:var(--sys-ink-dim);line-height:0;}
 .mp-rail-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;overflow:auto;flex:1;min-height:0;}
 .mp-rail-row{position:relative;}
-.mp-rail-item{display:flex;align-items:center;gap:8px;width:100%;padding:5px;border:none;background:transparent;font-family:inherit;font-size:var(--fs-sm);color:var(--sys-ink-soft);cursor:pointer;text-align:left;}
+.mp-rail-item{display:flex;align-items:center;gap:8px;width:100%;padding:3px 4px;border:none;background:transparent;font-family:inherit;font-size:var(--fs-sm);color:var(--sys-ink-soft);cursor:pointer;text-align:left;}
 .mp-rail-item:hover{background:color-mix(in srgb,var(--sys-ink) 8%,transparent);}
 .mp-rail-item.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
 .mp-rail-thumb{width:38px;height:26px;flex-shrink:0;box-shadow:0 0 0 1px var(--sys-line);}
