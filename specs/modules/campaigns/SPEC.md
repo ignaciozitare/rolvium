@@ -61,4 +61,5 @@ Migración: `supabase/migrations/20260817120000_campaigns.sql` (aplicada en loca
 ## Estado v1 (2026-08-18)
 Hecho además de crear/unirse: panel **Gestionar** del director (código + enlace + regenerar, solicitudes aceptar/rechazar,
 miembros con expulsar, próxima sesión, progresión abierta/cerrada, archivar), **Abandonar** para jugadores, página `/systems`.
-Pendiente: mensajes específicos para `campaign_full`/`already_resolved`, editar nombre/descripción/plazas desde el panel.
+Pendiente: mensajes específicos para `campaign_full`/`already_resolved`, editar nombre/descripción/plazas/visibilidad desde el panel.
+La página `/systems` (catálogo de sistemas instalados/próximos) se describe en `specs/core/game-system/SPEC.md`.

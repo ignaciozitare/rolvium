@@ -43,6 +43,10 @@ interface GameSystem {
 - Todo texto visible del sistema es clave i18n del paquete; los resúmenes de reglas son texto propio (no transcripción del manual); la página remite al ejemplar de cada mesa.
 - Aviso: el puerto solo se considera bien diseñado cuando hay dos sistemas dentro. Antes de cerrar la interfaz se esboza el segundo (Cyberpunk o D&D) en papel.
 
+## Página `/systems`
+Catálogo para el usuario: sistemas instalados (nombre, editor, versión, qué incluye según el paquete cargado, referencia al
+manual) y próximos. Sólo lectura; «Crear campaña con …» lleva al alta de campaña.
+
 ## Connections
 `campaigns` (elige sistema), `characters` (schema, derived, generator, progression, actions), `bestiary` (catalogs.bestiary),
 `dice` (poolFor/resolve), `table` (theme, sharedResources).

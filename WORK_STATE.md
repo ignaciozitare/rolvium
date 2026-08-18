@@ -70,8 +70,7 @@ rolvium.pen (PL/Lanzador flotante SRdGf, panel Registro XwDVn). Flujo: spec → 
    in the table (realtime), floating roller (`PL/Lanzador flotante`), free roller; apply `effects` (destinyUp/fortuneRefill/ammo)
    server-side after the roll instead of client-side patch.
 2. characters follow-ups: avatar/token upload from the sheet (`onImagePick`), specialty change (3 px), audit log in «El grupo»,
-   per-field validation issues in the UI, ⚔/◎ per weapon type in `<Sheet>` (needs a neutral hint in the schema), remove duplicate
-   `Crescent` in `modules/table/ui/systemIcons.tsx`, membership check for `POST /rolls` without character.
+   per-field validation issues in the UI, ⚔/◎ per weapon type in `<Sheet>` (needs a neutral hint in the schema), membership check for `POST /rolls` without character (done: character rolls need owner/DM).
 3. Pending small items: WebP background, `campaigns_players_count` N+1 → set-returning RPC, specific messages for
    `campaign_full`/`already_resolved` in the manage panel, edit name/description/seats from the panel, bestiary base
    entries «Solitario/Chatarrero» → real book stat blocks when doing `bestiary` (RULES §8).

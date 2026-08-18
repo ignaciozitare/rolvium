@@ -36,8 +36,18 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 (biblioteca por campaña).
 
 ## Modelo de datos
-> Pending — DBA. Propuesta: `scenes` (id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform jsonb,
-> grid jsonb, order, visible_players); `scene_walls` (scene_id, segments jsonb, visible_players bool default false);
-> `scene_tokens` (scene_id, character_id|bestiary_entry_id, name, x, y, size, visible, controlled_by, state jsonb);
-> `scene_drawings` (scene_id, author_id, kind, data jsonb, color, width); `scene_fog` (scene_id, user_id, explored mask);
-> `campaign_images` (campaign_id, url, name, uploaded_by).
+- **`maps_scenes`**: escenas de una campaña (nombre, tamaño, color de base, imagen de fondo + ajuste, grilla, modo de niebla
+  `vision`|`manual`|`off`, orden, `visible_players`). Los jugadores ven una escena si está marcada visible **o es la activa**
+  (`campaigns.active_scene_id`, ahora con FK real). El director hace todo.
+- **`maps_walls`**: segmentos por escena; a los jugadores sólo les llegan los marcados `visible_players` (RLS). La visión se
+  calcula en la API con todos los muros.
+- **`maps_tokens`**: PJ o instancia de bestiario, posición/tamaño en celdas, imagen, color, `visible` (oculto = no existe para el
+  jugador por RLS), `controlled_by` (jugador que puede moverlo), radio de visión, `state` (p.ej. PV de la copia). Un jugador sólo
+  puede cambiar `x`/`y` de sus tokens (trigger); el director cualquier cosa.
+- **`maps_drawings`**: trazos/líneas/cajas/círculos/textos con autor; leen los miembros de escenas visibles, inserta el autor,
+  borra el autor o el director.
+- **`maps_fog`**: polígonos explorados por (escena, usuario); cada jugador lee lo suyo, el director todo y puede escribir
+  (revelar/ocultar manual); la API escribe con service role tras calcular la visión.
+- **`maps_images`**: biblioteca de fondos de la campaña (bucket público `backgrounds/{campaignId}/…`, 10 MB, sólo el director sube).
+- Realtime: `maps_scenes/walls/tokens/drawings/fog` en la publicación; el arrastre va por broadcast y la posición final se persiste.
+- Migración: `supabase/migrations/20260818130000_maps.sql`.
