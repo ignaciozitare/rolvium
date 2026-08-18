@@ -138,7 +138,33 @@ están **copiadas** en cada frame en vez de ser un componente. Convertirlas en c
 ### 4. Validar light/dark
 Sigue pendiente de la rebanada 2 y ahora también de la 3.
 
+## ⚠️ Incidente de la madrugada (leer antes de tocar la base)
+**Rompí la creación de campañas en la base hosted y lo cazó el Review.** Queda escrito porque el fallo es sutil y
+tiene enseñanza:
+- `20260819010000_harden_functions` trató a `campaigns_new_code()` como función de trigger. **No lo es**: es el
+  `DEFAULT` de `campaigns_campaigns.invite_code`. PostgreSQL evalúa los DEFAULT **con los privilegios de quien
+  inserta** y comprueba el EXECUTE, así que quitárselo a `authenticated` reventaba todo `insert` de campaña desde el
+  cliente con `permission denied for function campaigns_new_code`.
+- La misma migración creía revocar los helpers de permisos a `anon` y **no revocaba nada**: `REVOKE … FROM anon`
+  sólo quita la concesión explícita, no la que Postgres da a `PUBLIC`. Hay que revocar `FROM PUBLIC`. El mismo error
+  estaba ya en `20260817000000_core_users_roles.sql:127-130`.
+- Arreglado con `20260819020000_fix_function_grants`, **aplicada en hosted y en local**, y verificado a mano
+  ejecutando `campaigns_new_code()` con `SET ROLE authenticated` (devuelve código) y comprobando
+  `has_function_privilege` de los cuatro helpers. `get_advisors`: sin CRITICAL y sin nada expuesto a `anon`.
+- Lo que sí era correcto: revocar EXECUTE a las funciones de **trigger** no las rompe — Postgres comprueba el EXECUTE
+  al `CREATE TRIGGER`, no al dispararse. Verificado con un UPDATE real.
+
+**Regla que sale de esto:** antes de tocar grants, comprobar `prosecdef` y si la función es DEFAULT de alguna columna;
+«se llama sola» no equivale a «es de trigger».
+
 ## ⏳ Siguiente paso inmediato
+0. **Dos cosas del spec de la rebanada 3 NO se construyeron** (las cazó el Review comparando spec y código; el spec ya
+   está corregido y las marca):
+   - **La puerta dibujada sobre un muro no lo parte.** Sigue superponiéndose, así que una puerta encima de un muro no
+     hace nada. El propio spec lo llamaba «el agujero más grave que dejó la rebanada 2».
+   - **Abrir/cerrar sigue dependiendo de la herramienta Muro** (no hay disco al pasar el ratón), y con ello sigue vivo
+     el choque de empezar un muro cerca de una puerta.
+   Son lo primero de la rebanada 4, o se hacen antes si el dueño las quiere ya.
 1. **Variables de Vercel** (arriba) → el API revive → crear el proyecto web → probar `/health` y la app entera.
 2. **Segunda prueba manual** contra hosted, con las tres cuentas. Ojo: la base hosted está **vacía** (no se cargó
    `seed.sql`), así que hay que registrar el primer usuario y darle rol admin a mano.

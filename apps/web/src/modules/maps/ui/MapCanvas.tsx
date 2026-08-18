@@ -119,9 +119,15 @@ export function MapCanvas(p: Props): JSX.Element {
       const tag = el?.tagName;
       return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable === true;
     };
+    /**
+     * Nor from a focused control: the space bar is how a keyboard user presses a button, so swallowing it
+     * globally would break the whole toolbar, the rail and the dice roller for anyone not using a mouse.
+     */
+    const onControl = (t: EventTarget | null): boolean =>
+      !!(t as HTMLElement | null)?.closest?.('button, a[href], input, select, textarea, summary, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="radio"], [role="tab"], [contenteditable="true"]');
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setWallStart(null); setGesture(null); setMeasure(null); p.onSelectToken(null); return; }
-      if (e.key === ' ' && !typing(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
+      if (e.key === 'Escape') { setWallStart(null); setGesture(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); return; }
+      if (e.key === ' ' && !typing(e.target) && !onControl(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
     };
     const onKeyUp = (e: KeyboardEvent) => { if (e.key === ' ') setSpacePan(false); };
@@ -160,6 +166,9 @@ export function MapCanvas(p: Props): JSX.Element {
     if (p.tool !== 'select' || e.button !== 0) return;
     e.stopPropagation();
     p.onSelectToken(tok.id);
+    // One selection at a time: leaving a segment selected would stack «Segmento» and the token bar on the same
+    // spot over the canvas, and Suprimir would delete the segment instead of the token you just picked.
+    p.onSelectWall?.(null);
     if (!canMoveToken(tok, p.me, p.isDm)) return;
     svgRef.current?.setPointerCapture?.(e.pointerId);
     setGesture({ kind: 'token', id: tok.id, start: toScene(e), origin: { x: tok.x, y: tok.y }, moved: false });

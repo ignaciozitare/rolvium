@@ -21,9 +21,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Fondo del mapa** (popover, solo DJ): **color de base** (muestras + hex + cuentagotas; se ve donde no llega la
   imagen) y **biblioteca de imágenes** de la campaña (subir, elegir, ninguna) con ajuste Cubrir / Encajar /
   Reposicionar.
-- **Barra vertical de herramientas** (izquierda del lienzo): Mover · Medir · Pin | Lápiz · Línea · Caja · Círculo ·
-  Borrar; director además (separador oro): Muro · Revelar · Ocultar · **Encuentro** (abre desplegable con buscador y
-  todas las entradas del bestiario; clic en el mapa coloca una instancia).
+- **Barra vertical de herramientas** (izquierda del lienzo), en tres bloques separados por reglas: **Dados** ·
+  Seleccionar · Medir · Pin | Lápiz · Línea · Caja · Círculo · Texto · Borrar; director además (separador oro):
+  Muro · Revelar · Ocultar ‖ **Encuentro** · Colocar PJ · Fondo del mapa (estas tres abren panel).
+  **Panear no es herramienta**: barra espaciadora o botón central, desde cualquiera.
   - **Cada botón muestra un tooltip propio al pasar el ratón** con el nombre de la herramienta (componente
     `PL/Tooltip herramienta`). Los iconos solos no se entienden — el dueño no supo identificar el de Muro (`fence`) —
     y el `title` nativo del navegador tarda casi un segundo, se coloca donde quiere y no sigue el aspecto del sistema.
@@ -64,9 +65,11 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   base de datos pero **no tiene interfaz** todavía.
 - **Pincel Revelar / Ocultar** (sólo director), con tamaño. Pinta sobre lo explorado de **todos** los jugadores de la
   escena. Las dos herramientas que la rebanada 1 dejaba deshabilitadas ya están activas (`TOOLS_NOT_YET` quedó vacío).
+  Desde la rebanada 3 la barra del pincel **flota sobre el lienzo**, no ocupa una franja a lo ancho.
 - Botones **Revelar todo** y **Ocultar todo** de la escena.
 - El tamaño del pincel y los botones «Revelar todo» / «Ocultar todo» viven en la barra de Trazo, que cambia a modo
-  «Pincel» mientras la herramienta activa sea Revelar u Ocultar (diseñado en `rolvium.pen` `uXK3T` antes de la UI).
+  «Pincel» mientras la herramienta activa sea Revelar u Ocultar (diseñado en `rolvium.pen` antes de la UI). Desde la
+  rebanada 3 el **tipo de segmento** ya no vive ahí: tiene su propia barra «Segmento» flotando sobre el mapa.
 
 ### Puertas y ventanas
 - Un muro deja de ser sólo un segmento: tiene un **tipo** y, si procede, un estado **abierto/cerrado**.
@@ -136,13 +139,14 @@ cambia el cursor con lo que abre un panel:
   borrar y volver a trazar.
 - Con el muro seleccionado aparece la **barra de segmento** (misma familia que la barra de token): tipo
   `MURO · PUERTA · VENTANA`, «visible para jugadores» y papelera. **Ahí se cambia el tipo de un segmento ya puesto.**
-- **Abrir y cerrar una puerta** deja de depender de la herramienta Muro: al pasar el ratón sobre una puerta o ventana
-  sale un **disco oro con icono de puerta** sobre el vano; un clic la abre o la cierra. Esto arregla además el choque
-  que tenía la rebanada 2 (empezar un muro cerca de una puerta la abría en vez de dibujar), porque **Muro pasa a ser
-  sólo de construcción**. Cuando en una rebanada posterior un jugador pueda abrir la puerta que su token alcance, el
-  gesto ya es el mismo.
+- **Abrir y cerrar una puerta** debe dejar de depender de la herramienta Muro: al pasar el ratón sobre una puerta o
+  ventana saldría un **disco oro con icono de puerta** sobre el vano. Eso arreglaría el choque de la rebanada 2
+  (empezar un muro cerca de una puerta la abre en vez de dibujar), porque Muro pasaría a ser sólo de construcción.
+  **⚠ Estado real (2026-08-19): NO construido, pasa a la rebanada 4.** Lo que sí existe es el botón Abrir/Cerrar de
+  la barra «Segmento» cuando hay un segmento elegido con Seleccionar — una reubicación parcial. El clic desde la
+  herramienta Muro sigue vivo, y con él el choque.
 
-### Una puerta dibujada sobre un muro lo parte
+### Una puerta dibujada sobre un muro lo parte — ⚠ NO CONSTRUIDO, pasa a la rebanada 4
 - Hoy los segmentos se superponen: dibujar una puerta encima de un muro deja los dos, el muro sigue cortando la vista
   y **la puerta no hace nada**. Es el agujero más grave que dejó la rebanada 2.
 - A partir de ahora, dibujar una puerta o una ventana **sobre** un muro **parte el muro**: el tramo solapado se
@@ -150,6 +154,9 @@ cambia el cursor con lo que abre un panel:
 - La abertura **se pega al muro** que tiene debajo (se proyecta sobre su recta) para que nunca quede un pelo torcida
   y siga cortando por los lados. Si no hay ningún muro debajo, se crea suelta, como hoy.
 - El recorte es geometría pura y va en `mapRules`, con test: es la clase de cosa que se rompe en silencio.
+- **Estado real (2026-08-19): no está hecho.** `onAddWall` sigue insertando un segmento suelto que se superpone, así
+  que una puerta dibujada encima de un muro **sigue sin hacer nada**. Lo cazó el Review al comparar el spec con el
+  código. Es lo primero de la rebanada 4.
 
 ### Dados 3D
 Es del hexágono `dice` (H6) — ver `specs/modules/dice/SPEC.md` § «Dados 3D». Aquí sólo consta que el lanzador se abre

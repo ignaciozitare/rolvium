@@ -327,6 +327,23 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     expect(stage().querySelector('.mp-brushbar')).not.toBeNull();    // «Pincel», sobre el mapa
   });
 
+  it('cambiar de herramienta suelta la selección: «Segmento» no se queda pisando a «Trazo»', async () => {
+    const u = userEvent.setup();
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1] }));
+    await screen.findByText(/Almacén de Queens/);
+    const stage = () => canvas().closest('.mp-stage')!;
+
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1 + 2, clientY: 380, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await screen.findByRole('toolbar', { name: 'Segmento' });
+
+    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    expect(stage().querySelector('.mp-strokebar')).not.toBeNull();
+    expect(stage().querySelector('.mp-segbar')).toBeNull();          // las dos flotan en el mismo sitio
+    expect(stage().querySelector('.mp-wall-handles')).toBeNull();     // ni tiradores de un muro que ya no editas
+  });
+
   it('el botón derecho en vacío ofrece pin y dados; el pin centra la vista de quien lo pone', async () => {
     const onOpenDice = vi.fn();
     renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}

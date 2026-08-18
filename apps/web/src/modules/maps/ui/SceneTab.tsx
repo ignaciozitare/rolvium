@@ -96,6 +96,9 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   // Whoever accepts the pin centres on it — including the one who dropped it, which is what «enfoque» means.
   useEffect(() => { if (st.pin) setView(v => centerOn(v, st.pin!, viewport())); }, [st.pin]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (tool !== 'encounter') setEncounter(null); }, [tool]);
+  // Only Seleccionar owns a selection. Carrying it into another tool stacks «Segmento» / the token bar on top of
+  // «Trazo» — all three float at the same spot over the canvas — and leaves Suprimir armed on an invisible target.
+  useEffect(() => { if (tool !== 'select') { setSelectedWallId(null); setSelectedTokenIds([]); } }, [tool]);
   useEffect(() => { if (live) { setPendingPc(null); setPcMenu(false); } }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nameOf = useCallback((uid: string) => members.find(m => m.userId === uid)?.name ?? uid, [members]);

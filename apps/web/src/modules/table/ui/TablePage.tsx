@@ -149,9 +149,11 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
 
 function Person({ name, avatarUrl, label, isDm = false, connected, me, size = 40 }: { name: string; avatarUrl: string | null; label: string; isDm?: boolean; connected: boolean; me: boolean; size?: number }): JSX.Element {
   return (
-    <li className={`tb-person ${connected ? 'on' : 'off'} ${me ? 'me' : ''}`} title={name}>
+    // In the platform bar the written label is hidden to save height, which also takes it out of the accessibility
+    // tree: «director» and «ausente» would stop being readable at all. The name carries them instead.
+    <li className={`tb-person ${connected ? 'on' : 'off'} ${me ? 'me' : ''}`} title={name} aria-label={label === name ? name : `${name} · ${label}`}>
       <span className={`tb-halo ${isDm ? 'dm' : ''}`}><UserAvatar user={{ name, avatarUrl }} size={size} /></span>
-      <span className="tb-person-label">{label.toUpperCase()}</span>
+      <span className="tb-person-label" aria-hidden>{label.toUpperCase()}</span>
     </li>
   );
 }

@@ -309,6 +309,17 @@ describe('<MapCanvas> panning is a modifier, not a tool', () => {
     fireEvent.blur(window);                              // alt-tab with space down must not stick
     expect(svg).toHaveStyle({ cursor: 'crosshair' });
   });
+
+  it('space on a focused button is left to the button: it is how a keyboard presses it', () => {
+    const { svg } = mount({ tool: 'pencil' });
+    const btn = document.createElement('button');
+    document.body.appendChild(btn);
+    btn.focus();
+    const ev = fireEvent.keyDown(btn, { key: ' ', cancelable: true });
+    expect(svg).toHaveStyle({ cursor: 'crosshair' });     // no pan: the toolbar keeps its keyboard
+    expect(ev).toBe(true);                                // not preventDefault()ed, so the button still activates
+    btn.remove();
+  });
 });
 
 describe('<MapCanvas> Seleccionar edita muros', () => {
@@ -323,6 +334,20 @@ describe('<MapCanvas> Seleccionar edita muros', () => {
     expect(within(sel.svg).getByTestId('mp-wall-handles').querySelectorAll('.mp-vertex')).toHaveLength(2);
     down(sel.svg, 272, 380); move(sel.svg, 272 + G, 380); up(sel.svg);
     expect(sel.cb.onMoveWall).toHaveBeenCalledWith('w-1', { x1: 270 + G, y1: 216, x2: 270 + G, y2: 540 });
+  });
+
+  it('elegir un token suelta el segmento: una sola selección, o «Segmento» y la barra del token se pisan', () => {
+    const { token, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: 'w-1' });
+    down(token('Karen'), 300, 300);
+    expect(cb.onSelectToken).toHaveBeenCalledWith('tk-karen');
+    expect(cb.onSelectWall).toHaveBeenCalledWith(null);
+  });
+
+  it('Escape suelta el segmento además del token', () => {
+    const { cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: 'w-1' });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(cb.onSelectToken).toHaveBeenCalledWith(null);
+    expect(cb.onSelectWall).toHaveBeenCalledWith(null);
   });
 
   it('arrastrar un vértice estira sólo ese extremo, ajustado a la rejilla', () => {

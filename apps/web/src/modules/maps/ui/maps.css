@@ -176,5 +176,5 @@
 /* quick menu on right-click over empty ground */
 .mp-quick{min-width:180px;}
 .mp-placing{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:10px;
-  padding:6px 10px;background:var(--sys-gold);color:#1a1508;font-size:var(--fs-xs);box-shadow:var(--sys-card-shadow);}
+  padding:6px 10px;background:var(--sys-gold);color:var(--sys-ink);font-size:var(--fs-xs);box-shadow:var(--sys-card-shadow);}
 .mp-marquee{fill:color-mix(in srgb,var(--sys-gold) 14%,transparent);stroke:var(--sys-gold);stroke-width:1;stroke-dasharray:4 3;pointer-events:none;}

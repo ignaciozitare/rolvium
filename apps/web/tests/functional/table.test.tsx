@@ -185,6 +185,11 @@ describe('table chrome — dónde vive cada cosa tras la rebanada 3', () => {
     const people = screen.getByRole('list', { name: 'Conectados' });
     expect(people.closest('.tb-rvbar')).not.toBeNull();
     expect(people.closest('.tb-head')).toBeNull();
+    // La barra esconde el rótulo escrito (`display:none`, que también lo saca del árbol de accesibilidad):
+    // quién dirige y quién falta tiene que seguir leyéndose en el nombre de cada persona.
+    expect(within(people).getByRole('listitem', { name: 'Laura · Directora' })).toBeInTheDocument();
+    expect(within(people).getByRole('listitem', { name: 'Dani · Ausente' })).toBeInTheDocument();
+    expect(within(people).getByRole('listitem', { name: 'Pip' })).toBeInTheDocument();
   });
 
   it('la escena ya no lleva barra de opciones bajo el mapa: «Solo director» va encima del lienzo', async () => {
