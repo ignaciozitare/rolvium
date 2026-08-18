@@ -60,7 +60,12 @@
 .tb-people-bar .tb-halo.dm{box-shadow:0 0 0 2.5px var(--ac);}
 .tb-people-bar .tb-person.on .tb-halo{box-shadow:0 0 0 2px var(--sf),0 0 0 3px var(--green);}
 .tb-body{display:flex;gap:16px;align-items:stretch;flex:1 1 auto;min-height:0;}
-.tb-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;}
+.tb-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;position:relative;}
+/* The shared pool floats over the tab instead of pushing it down, and folds to a tab you can pull back. */
+.tb-res-float{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;max-width:100%;}
+.tb-res-fold{order:2;display:inline-flex;border:none;padding:1px 14px;cursor:pointer;line-height:0;
+  background:color-mix(in srgb,var(--sys-paper-hi) 92%,transparent);color:var(--sys-ink-dim);box-shadow:var(--sys-card-shadow);}
+.tb-res-float .tb-res-wrap{order:1;}
 .tb-side{width:272px;flex-shrink:0;display:flex;flex-direction:column;gap:12px;min-height:0;}
 .tb-hoja{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:16px;}
 .tb-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 16px;text-align:center;color:var(--sys-ink-dim);}

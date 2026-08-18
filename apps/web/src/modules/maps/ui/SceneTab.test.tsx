@@ -35,7 +35,7 @@ describe('<SceneTab> player', () => {
     await waitFor(() => expect(within(canvas()).getAllByRole('img', { name: /^Token/ })).toHaveLength(2));
     expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).not.toBeInTheDocument();
     expect(within(canvas()).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(0);
-    expect(screen.getByRole('toolbar', { name: 'Herramientas del lienzo' }).querySelectorAll('button')).toHaveLength(9); // 8 herramientas + Dados
+    expect(screen.getByRole('toolbar', { name: 'Herramientas del lienzo' }).querySelectorAll('button')).toHaveLength(10); // 9 herramientas + Dados
     expect(screen.getByText(/Los muros no se dibujan/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Fondo del mapa' })).not.toBeInTheDocument();
     expect(screen.getByText('Almacén de Queens · tu visión')).toBeInTheDocument();
@@ -114,9 +114,13 @@ describe('<SceneTab> DM', () => {
     // place PC
     await u.click(screen.getByRole('button', { name: 'Colocar PJ' }));
     expect((await screen.findByRole('menuitem', { name: /Karen/ }))).toBeDisabled(); // already in scene
+    // ahora es en dos pasos, como Encuentro: eliges a quién y luego dónde
     await u.click(screen.getByRole('menuitem', { name: /Elías/ }));
+    expect(await screen.findByRole('status')).toHaveTextContent(/Coloca a Elías/);
+    expect(repo.tokens.filter(t => t.characterId === 'ch-elias')).toHaveLength(0);
+    fireEvent.pointerDown(canvas(), { clientX: 4 * G + 3, clientY: 7 * G + 3, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.tokens.filter(t => t.characterId === 'ch-elias')).toHaveLength(1));
-    expect(repo.tokens.at(-1)).toMatchObject({ characterId: 'ch-elias', controlledBy: 'u-nix', visible: true });
+    expect(repo.tokens.at(-1)).toMatchObject({ characterId: 'ch-elias', controlledBy: 'u-nix', visible: true, x: 4, y: 7 });
     // encounter
     await u.click(screen.getByRole('button', { name: 'Encuentro' }));
     await u.click(await screen.findByRole('button', { name: 'Elegir Ogro' }));

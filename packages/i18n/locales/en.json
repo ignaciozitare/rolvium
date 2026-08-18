@@ -693,7 +693,8 @@
       "hide": "Hide",
       "encounter": "Encounter",
       "soon": "coming soon",
-      "select": "Select"
+      "select": "Select",
+      "text": "Text"
     },
     "toolbar": "Canvas tools",
     "controls": {
@@ -726,7 +727,8 @@
       "pc": "Place PC",
       "noPc": "You have no character in this campaign.",
       "already": "Already in the scene",
-      "pick": "Pick a character"
+      "pick": "Pick a character",
+      "now": "Placing {{name}}: click on the map"
     },
     "unit": {
       "cells": "cells",
@@ -736,7 +738,8 @@
       "show": "Show to players",
       "hide": "Hide from players",
       "remove": "Remove from scene",
-      "selected": "Selected token"
+      "selected": "Selected token",
+      "many": "{{n}} tokens selected"
     },
     "saveFailed": "Couldn't save the map change. Check your connection or whether you have permission.",
     "brush": {
@@ -784,6 +787,13 @@
     },
     "quick": {
       "title": "Quick actions"
+    },
+    "text": {
+      "prompt": "Text on the map"
+    },
+    "reserve": {
+      "hide": "Hide the pool",
+      "show": "Show the pool"
     }
   }
 }

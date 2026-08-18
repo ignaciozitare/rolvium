@@ -12,11 +12,11 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onSelectWall: vi.fn(), onMoveWall: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onMoveWall: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
-    fog: null, brush: 3, view: VIEW, nameOf: id => id, selectedTokenId: null, ...cb, ...over,
+    fog: null, brush: 3, view: VIEW, nameOf: id => id, selectedTokenIds: [], ...cb, ...over,
   };
   const r = renderWithProviders(<MapCanvas {...props} />);
   const svg = screen.getByRole('application', { name: 'Lienzo de la escena' });
@@ -75,7 +75,7 @@ describe('<MapCanvas> tools', () => {
     expect(cb.onMoveToken).toHaveBeenCalledTimes(1);
   });
   it('select on empty canvas clears the selection and does NOT pan (panning is space/middle); wheel still zooms', () => {
-    const { svg, cb } = mount({ selectedTokenId: 'tk-karen' });
+    const { svg, cb } = mount({ selectedTokenIds: ['tk-karen'] });
     down(svg, 10, 10); move(svg, 30, 50); up(svg);
     expect(cb.onSelectToken).toHaveBeenCalledWith(null);
     expect(cb.onViewChange).not.toHaveBeenCalled();
@@ -126,9 +126,13 @@ describe('<MapCanvas> tools', () => {
     rerender({ tool: 'wall', isDm: false });
     down(svg, 0, 0); down(svg, 50, 0);
     expect(cb.onAddWall).toHaveBeenCalledTimes(2);
-    rerender({ tool: 'encounter', isDm: true, me: 'u-gm' });
+    // colocar es un estado, no una herramienta: con algo pendiente el clic manda, venga de donde venga
+    rerender({ tool: 'encounter', isDm: true, me: 'u-gm', placing: true });
     down(svg, 2 * G + 5, 3 * G + 5);
     expect(cb.onPlace).toHaveBeenCalledWith({ x: 2, y: 3 });
+    rerender({ tool: 'select', isDm: true, me: 'u-gm', placing: true });
+    down(svg, 5 * G + 5, G + 5);
+    expect(cb.onPlace).toHaveBeenLastCalledWith({ x: 5, y: 1 });
   });
 });
 
@@ -378,3 +382,28 @@ describe('<MapCanvas> teclado y botón derecho', () => {
     expect(cb.onContextMenu).toHaveBeenCalledWith({ x: 140, y: 120 }, { x: 140, y: 120 });
   });
 })
+
+describe('<MapCanvas> selección por área', () => {
+  it('mantener pulsado y arrastrar dibuja el marco y devuelve los tokens de dentro', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select' });
+    down(svg, 7 * G, 10 * G);
+    move(svg, 12 * G, 13 * G);
+    expect(within(svg).getByTestId('mp-marquee')).toBeInTheDocument();
+    up(svg);
+    expect(cb.onMarquee).toHaveBeenCalledWith(['tk-karen', 'tk-elias']);
+  });
+
+  it('un clic sin arrastre no es un marco: sólo deselecciona', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select' });
+    down(svg, 7 * G, 10 * G); up(svg);
+    expect(cb.onMarquee).not.toHaveBeenCalled();
+    expect(cb.onSelectToken).toHaveBeenCalledWith(null);
+  });
+
+  it('la herramienta Texto pide el punto y deja que el llamante pregunte el texto', () => {
+    const { svg, cb } = mount({ tool: 'text' });
+    down(svg, 120, 90);
+    expect(cb.onAddText).toHaveBeenCalledWith({ x: 120, y: 90 });
+    expect(cb.onAddDrawing).not.toHaveBeenCalled();
+  });
+});

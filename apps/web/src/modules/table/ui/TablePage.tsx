@@ -33,6 +33,8 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   const { snap, system, status, patchResources } = useTable(id, repo);
   const [tab, setTab] = useState<TableTab>('sheet');
   const [rollerOpen, setRollerOpen] = useState(false);
+  /** The shared-resource bar floats over the tab and can be folded away: on the scene it was eating map. */
+  const [resOpen, setResOpen] = useState(true);
   /** Sheet the DM opened from «El grupo» (null = my own). */
   const [viewCharacterId, setViewCharacterId] = useState<string | null>(null);
 
@@ -105,17 +107,23 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
           </div>
         </header>
 
-        {(system.engine.sharedResources ?? []).map(def => (
-          <div key={def.id} className="tb-res-wrap">
-            <SharedResourceBar def={def} state={resources[def.id]} role={role} userId={user.id} label={sysT(def.label)}
-              onTake={async () => { const r = await repo.takeResource(campaign.id, def.id, 1); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
-              onReturn={async () => { const r = await repo.returnResource(campaign.id, def.id, 1); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
-              onReset={async () => { const r = await repo.resetResource(campaign.id, def.id); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }} />
-          </div>
-        ))}
-
         <div className="tb-body">
           <main className="tb-main">
+            {(system.engine.sharedResources ?? []).length > 0 && (
+              <div className={`tb-res-float ${resOpen ? '' : 'folded'}`}>
+                <button type="button" className="tb-res-fold" aria-expanded={resOpen} aria-label={resOpen ? t('maps.reserve.hide') : t('maps.reserve.show')} onClick={() => setResOpen(o => !o)}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{resOpen ? 'keyboard_double_arrow_up' : 'keyboard_double_arrow_down'}</span>
+                </button>
+                {resOpen && (system.engine.sharedResources ?? []).map(def => (
+                  <div key={def.id} className="tb-res-wrap">
+                    <SharedResourceBar def={def} state={resources[def.id]} role={role} userId={user.id} label={sysT(def.label)}
+                      onTake={async () => { const r = await repo.takeResource(campaign.id, def.id, 1); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
+                      onReturn={async () => { const r = await repo.returnResource(campaign.id, def.id, 1); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }}
+                      onReset={async () => { const r = await repo.resetResource(campaign.id, def.id); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }} />
+                  </div>
+                ))}
+              </div>
+            )}
             {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} characterId={viewCharacterId} onOpenCreate={() => setTab('create')} />}
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'improve' && <ImproveTab campaignId={campaign.id} userId={user.id} repo={charactersRepo} progressionEnabled={campaign.progressionEnabled} characterId={viewCharacterId} />}

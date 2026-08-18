@@ -15,8 +15,8 @@ describe('<Toolbar>', () => {
   it('three labelled blocks: Dados abre el lanzador y va primero; el jugador no ve el bloque de director; Fondo y Colocar PJ son botones de panel, no herramientas', async () => {
     const onChange = vi.fn(), onDice = vi.fn(), onPlacePc = vi.fn(), onBackground = vi.fn();
     const { rerender } = renderWithProviders(<Toolbar tool="select" isDm={false} onChange={onChange} onDice={onDice} />);
-    // JUEGO: Dados + Seleccionar · Medir · Pin  ·  LIENZO: 5 de dibujo
-    expect(screen.getAllByRole('button')).toHaveLength(9);
+    // juego: Dados + Seleccionar · Medir · Pin  ·  lienzo: Lápiz · Línea · Caja · Círculo · Texto · Borrar
+    expect(screen.getAllByRole('button')).toHaveLength(10);
     expect(screen.getByRole('button', { name: 'Seleccionar' })).toHaveAttribute('aria-pressed', 'true');
     await userEvent.setup().click(screen.getByRole('button', { name: 'Lanzador de dados' }));
     expect(onDice).toHaveBeenCalled();
@@ -24,7 +24,7 @@ describe('<Toolbar>', () => {
     expect(onChange).toHaveBeenCalledWith('pencil');
     rerender(<Toolbar tool="wall" isDm onChange={onChange} onDice={onDice} onPlacePc={onPlacePc} onBackground={onBackground} />);
     // + DIRECTOR: Muro · Revelar · Ocultar · Encuentro · Colocar PJ · Fondo del mapa
-    expect(screen.getAllByRole('button')).toHaveLength(15);
+    expect(screen.getAllByRole('button')).toHaveLength(16);
     await userEvent.setup().click(screen.getByRole('button', { name: 'Colocar PJ' }));
     expect(onPlacePc).toHaveBeenCalled();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Fondo del mapa' }));

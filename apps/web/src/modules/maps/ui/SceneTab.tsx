@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { CatalogItem, GameSystem } from '@rolvium/core';
-import { UserAvatar } from '@rolvium/ui';
+import { UserAvatar, useDialog } from '@rolvium/ui';
 import type { CampaignMember, TableRole } from '@/modules/campaigns/domain/entities/Campaign';
 import type { Character } from '@/modules/characters/domain/entities/Character';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
@@ -45,6 +45,7 @@ const DEFAULT_STROKE: StrokeStyle = { color: STROKE_COLORS[1], width: 2 };
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
 export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, diceOpen = false, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
   const { t, locale } = useTranslation();
+  const dialog = useDialog();
   const isDm = role === 'dm';
   const ts = useMemo(() => sysT(system, locale), [system, locale]);
   const [scenes, setScenes] = useState<Scene[] | null>(null);
@@ -64,7 +65,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [bgOpen, setBgOpen] = useState(false);
   const [encounter, setEncounter] = useState<CatalogItem | null>(null);
   const [pcMenu, setPcMenu] = useState(false);
-  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+  const [pendingPc, setPendingPc] = useState<Character | null>(null);
+  const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [brush, setBrush] = useState<number>(DEFAULT_BRUSH);
   const [wallKind, setWallKind] = useState<WallKind>('wall');
   const [railFolded, setRailFolded] = useState(false);
@@ -90,10 +92,11 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const viewport = () => ({ width: stageRef.current?.clientWidth ?? 0, height: stageRef.current?.clientHeight ?? 0 });
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
 
-  useEffect(() => { if (live) setView(fitView(live, viewport())); setSelectedTokenId(null); setEncounter(null); }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (live) setView(fitView(live, viewport())); setSelectedTokenIds([]); setEncounter(null); }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Whoever accepts the pin centres on it — including the one who dropped it, which is what «enfoque» means.
   useEffect(() => { if (st.pin) setView(v => centerOn(v, st.pin!, viewport())); }, [st.pin]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (tool !== 'encounter') setEncounter(null); }, [tool]);
+  useEffect(() => { if (live) { setPendingPc(null); setPcMenu(false); } }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nameOf = useCallback((uid: string) => members.find(m => m.userId === uid)?.name ?? uid, [members]);
   const patchScene = useCallback(async (id: string, patch: ScenePatch) => {
@@ -108,13 +111,16 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     const c = vp.width && vp.height ? canvasToScene({ x: vp.width / 2, y: vp.height / 2 }, view) : { x: live.width / 2, y: live.height / 2 };
     return tokenCellAt(c, live.grid.size);
   };
-  const placePc = async (c: Character) => {
+  /** Same gesture as «Encuentro»: pick who, then click where. Placing blind in the middle of the view was a guess. */
+  const pickPc = (c: Character) => { setPendingPc(c); setPcMenu(false); };
+  const placePcAt = async (c: Character, cell: Point) => {
     if (!live) return;
-    setPcMenu(false);
-    await st.addToken(tokenFromCharacter(c, members.find(m => m.userId === c.ownerId)?.avatarUrl, live.id, centerCell()));
+    setPendingPc(null);
+    await st.addToken(tokenFromCharacter(c, members.find(m => m.userId === c.ownerId)?.avatarUrl, live.id, cell));
   };
   const bestiary = system.catalogs['bestiary'] ?? [];
-  const selectedToken = st.tokens.find(tk => tk.id === selectedTokenId) ?? null;
+  const selectedTokens = st.tokens.filter(tk => selectedTokenIds.includes(tk.id));
+  const selectedToken = selectedTokens.length === 1 ? selectedTokens[0]! : null;
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
 
   if (status === 'loading') return <section className="tb-hoja tb-placeholder">{t('maps.loading')}</section>;
@@ -147,6 +153,10 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
             playerView={playerView} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
+            onAddText={async at => {
+              const text = await dialog.prompt(t('maps.text.prompt'));
+              if (text?.trim()) run(st.addDrawing({ sceneId: live.id, campaignId, kind: 'text', data: { x: at.x, y: at.y, text: text.trim() }, color: stroke.color, width: stroke.width }));
+            }}
             onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))}
             onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width }))}
             onErase={id => run(st.eraseDrawing(id))}
@@ -154,13 +164,17 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             onPin={pt => { st.focusPin(pt); setView(v => centerOn(v, pt, viewport())); }}
-            onPlace={encounter ? cell => run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, cell)) ): undefined}
-            selectedTokenId={selectedTokenId} onSelectToken={setSelectedTokenId}
+            placing={!!encounter || !!pendingPc}
+            onPlace={cell => {
+              if (pendingPc) { run(placePcAt(pendingPc, cell)); return; }
+              if (encounter) run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, cell)));
+            }}
+            selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
             onContextMenu={(at, pt) => setQuickMenu({ at, scene: pt })}
             onDeleteSelection={() => {
               if (selectedWall && isDm) { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); return; }
-              if (selectedToken && isDm) { run(st.removeToken(selectedToken.id)); setSelectedTokenId(null); }
+              if (selectedTokens.length && isDm) { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }
             }}
             onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))} />
           {isDm && (
@@ -186,6 +200,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
                 onRemove: () => { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); },
               } : {})} />
           )}
+          {pendingPc && (
+            <div className="mp-placing" role="status">
+              {t('maps.place.now', { name: pendingPc.name })}
+              <button type="button" className="tb-btn tb-btn-xs" onClick={() => setPendingPc(null)}>{t('common.cancel')}</button>
+            </div>
+          )}
           {quickMenu && (
             <div className="mp-pop mp-quick" role="menu" aria-label={t('maps.quick.title')} style={{ left: quickMenu.at.x, top: quickMenu.at.y }}>
               <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { st.focusPin(quickMenu.scene); setView(v => centerOn(v, quickMenu.scene, viewport())); setQuickMenu(null); }}>
@@ -196,11 +216,13 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               </button>
             </div>
           )}
-          {isDm && selectedToken && (
+          {isDm && selectedTokens.length > 0 && (
             <div className="mp-tokbar" role="toolbar" aria-label={t('maps.token.selected')}>
-              <span className="mp-tokbar-name">{selectedToken.name}</span>
-              <button type="button" className="tb-btn tb-btn-xs" onClick={() => run(st.patchToken(selectedToken.id, { visible: !selectedToken.visible }))}>{selectedToken.visible ? t('maps.token.hide') : t('maps.token.show')}</button>
-              <button type="button" className="tb-btn tb-btn-xs" onClick={() => { run(st.removeToken(selectedToken.id)); setSelectedTokenId(null); }}>{t('maps.token.remove')}</button>
+              <span className="mp-tokbar-name">{selectedToken ? selectedToken.name : t('maps.token.many', { n: String(selectedTokens.length) })}</span>
+              <button type="button" className="tb-btn tb-btn-xs" onClick={() => { const show = selectedTokens.some(tk => !tk.visible); selectedTokens.forEach(tk => run(st.patchToken(tk.id, { visible: show }))); }}>
+                {selectedTokens.some(tk => !tk.visible) ? t('maps.token.show') : t('maps.token.hide')}
+              </button>
+              <button type="button" className="tb-btn tb-btn-xs" onClick={() => { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }}>{t('maps.token.remove')}</button>
             </div>
           )}
           {isDm && pcMenu && (
@@ -209,7 +231,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               {pcs?.length === 0 && <span className="tb-dim tb-italic">{t('characters.table.groupEmpty')}</span>}
               {pcs?.map(c => {
                 const placed = st.tokens.some(tk => tk.characterId === c.id);
-                return <button key={c.id} type="button" role="menuitem" className="mp-menu-item" disabled={placed} onClick={() => void placePc(c)}>
+                return <button key={c.id} type="button" role="menuitem" className="mp-menu-item" disabled={placed} onClick={() => pickPc(c)}>
                   <UserAvatar user={{ name: c.name, avatarUrl: characterAvatar(c, members.find(m => m.userId === c.ownerId)?.avatarUrl) }} size={22} />{c.name}{placed && <span className="tb-dim"> · {t('maps.place.already')}</span>}
                 </button>;
               })}

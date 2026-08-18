@@ -693,7 +693,8 @@
       "hide": "Ocultar",
       "encounter": "Encuentro",
       "soon": "próximamente",
-      "select": "Seleccionar"
+      "select": "Seleccionar",
+      "text": "Texto"
     },
     "toolbar": "Herramientas del lienzo",
     "controls": {
@@ -726,7 +727,8 @@
       "pc": "Colocar PJ",
       "noPc": "No tienes personaje en esta campaña.",
       "already": "Ya está en la escena",
-      "pick": "Elige un personaje"
+      "pick": "Elige un personaje",
+      "now": "Coloca a {{name}}: haz clic en el mapa"
     },
     "unit": {
       "cells": "casillas",
@@ -736,7 +738,8 @@
       "show": "Mostrar a los jugadores",
       "hide": "Ocultar a los jugadores",
       "remove": "Quitar de la escena",
-      "selected": "Token seleccionado"
+      "selected": "Token seleccionado",
+      "many": "{{n}} tokens seleccionados"
     },
     "saveFailed": "No se pudo guardar el cambio en el mapa. Comprueba tu conexión o si tienes permiso.",
     "brush": {
@@ -784,6 +787,13 @@
     },
     "quick": {
       "title": "Acciones rápidas"
+    },
+    "text": {
+      "prompt": "Texto en el mapa"
+    },
+    "reserve": {
+      "hide": "Ocultar la reserva",
+      "show": "Ver la reserva"
     }
   }
 }

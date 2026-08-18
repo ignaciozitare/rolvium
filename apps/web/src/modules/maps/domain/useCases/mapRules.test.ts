@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_KAREN, TOKEN_MUTANT, WALL_1 } from '../../../../../tests/helpers/fakes';
+import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1 } from '../../../../../tests/helpers/fakes';
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitWall, isBrush, METRES_PER_CELL, newWallOf, nightLabelM, openingGeometry, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, WALL_FLAGS, WALL_KINDS,
+  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitWall, isBrush, METRES_PER_CELL, newWallOf, nightLabelM, openingGeometry, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS,
 } from './mapRules';
 
 describe('mapRules — view & coordinates', () => {
@@ -209,5 +209,21 @@ describe('wallDragTo — mover un segmento o estirar un vértice', () => {
   });
   it('un arrastre menor que media casilla no mueve nada: la rejilla lo absorbe', () => {
     expect(wallDragTo(origin, 'whole', { x: 50, y: 50 }, { x: 55, y: 52 }, 27)).toEqual(origin);
+  });
+});
+
+describe('selección por área y herramienta de texto', () => {
+  it('el rectángulo se normaliza se arrastre hacia donde se arrastre', () => {
+    expect(rectFrom({ x: 100, y: 80 }, { x: 20, y: 10 })).toEqual({ x: 20, y: 10, w: 80, h: 70 });
+  });
+  it('atrapa los tokens cuyo centro cae dentro, y sólo esos', () => {
+    // TOKEN_KAREN está en la celda (10,11) y TOKEN_ELIAS en la (8,12); rejilla de 27
+    expect(tokensInRect([TOKEN_KAREN, TOKEN_ELIAS], { x: 7 * 27, y: 10 * 27 }, { x: 12 * 27, y: 13 * 27 }, 27)).toEqual(['tk-karen', 'tk-elias']);
+    expect(tokensInRect([TOKEN_KAREN, TOKEN_ELIAS], { x: 9 * 27, y: 10 * 27 }, { x: 12 * 27, y: 13 * 27 }, 27)).toEqual(['tk-karen']);
+    expect(tokensInRect([TOKEN_KAREN, TOKEN_ELIAS], { x: 0, y: 0 }, { x: 27, y: 27 }, 27)).toEqual([]);
+  });
+  it('Texto es herramienta de lienzo y la tiene también el jugador', () => {
+    expect(isDraw('text')).toBe(true);
+    expect(PLAYER_TOOLS).toContain('text');
   });
 });

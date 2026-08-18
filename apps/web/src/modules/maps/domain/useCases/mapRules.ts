@@ -13,9 +13,9 @@ export interface View { zoom: number; panX: number; panY: number }
  * `select` replaced `move` in slice 3: choosing and editing is a tool, panning is NOT — it is a modifier
  * (space bar or middle button) so it works from every tool (specs/modules/maps/SPEC.md § «Rebanada 3»).
  */
-export type Tool = 'select' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'erase' | 'wall' | 'reveal' | 'hide' | 'encounter';
+export type Tool = 'select' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'text' | 'erase' | 'wall' | 'reveal' | 'hide' | 'encounter';
 
-export const PLAYER_TOOLS: Tool[] = ['select', 'measure', 'pin', 'pencil', 'line', 'rect', 'circle', 'erase'];
+export const PLAYER_TOOLS: Tool[] = ['select', 'measure', 'pin', 'pencil', 'line', 'rect', 'circle', 'text', 'erase'];
 export const DM_TOOLS: Tool[] = ['wall', 'reveal', 'hide', 'encounter'];
 /** Tools that exist in the design but not yet in code; the toolbar greys them out. Empty since slice 2 shipped the fog brush. */
 export const TOOLS_NOT_YET: Tool[] = [];
@@ -249,5 +249,18 @@ export function wallDragTo(
 }
 
 /** Tools that put ink on the map: while one is active the «Trazo» bar is the one that shows. */
-export const DRAW_TOOLS: Tool[] = ['pencil', 'line', 'rect', 'circle', 'erase'];
+export const DRAW_TOOLS: Tool[] = ['pencil', 'line', 'rect', 'circle', 'text', 'erase'];
 export const isDraw = (t: Tool): boolean => DRAW_TOOLS.includes(t);
+
+/** Normalised rectangle from two dragged corners, in scene px. */
+export function rectFrom(a: Point, b: Point): { x: number; y: number; w: number; h: number } {
+  return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+}
+/** Tokens whose centre falls inside the marquee — «mantener pulsado y seleccionar por área». */
+export function tokensInRect(tokens: Token[], a: Point, b: Point, grid: number): string[] {
+  const r = rectFrom(a, b);
+  return tokens.filter(t => {
+    const c = tokenCenter(t, grid);
+    return c.x >= r.x && c.x <= r.x + r.w && c.y >= r.y && c.y <= r.y + r.h;
+  }).map(t => t.id);
+}

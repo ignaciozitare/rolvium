@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveToken, canOpen, canvasToScene, distanceCells, distanceLabel, hitTest, hitWall, isBrush, shapeData, snap, tokenCellAt, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveToken, canOpen, canvasToScene, distanceCells, distanceLabel, hitTest, hitWall, isBrush, rectFrom, shapeData, snap, tokenCellAt, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, TokenGlyph, WallShape } from './canvasLayers';
 
@@ -47,9 +47,15 @@ interface Props {
   onContextMenu?: (at: { x: number; y: number }, scene: Point) => void;
   /** Any press on the canvas dismisses whatever popover is open. */
   onCloseMenus?: () => void;
+  /** Tokens caught by dragging a box with Seleccionar. */
+  onMarquee?: (tokenIds: string[]) => void;
+  /** Text tool: the canvas says where, the caller asks what and writes it. */
+  onAddText?: (at: Point) => void;
+  /** Something is waiting to be dropped on the map (a bestiary entry, a PC): the next click places it. */
+  placing?: boolean;
   /** Encounter / PC placement (cell coordinates); only wired while something is pending. */
   onPlace?: (cell: Point) => void;
-  selectedTokenId: string | null;
+  selectedTokenIds: string[];
   onSelectToken: (id: string | null) => void;
   /** DM, Seleccionar: the segment being edited and its handles. */
   selectedWallId?: string | null;
@@ -64,6 +70,7 @@ type Gesture =
   | { kind: 'draw'; tool: DrawTool; start: Point; points: [number, number][]; last: Point }
   | { kind: 'brush'; op: 'reveal' | 'hide' }
   | { kind: 'wallEdit'; id: string; grab: 'a' | 'b' | 'whole'; start: Point; origin: { x1: number; y1: number; x2: number; y2: number } }
+  | { kind: 'marquee'; start: Point; last: Point }
   | { kind: 'measure' };
 
 type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
@@ -167,6 +174,8 @@ export function MapCanvas(p: Props): JSX.Element {
       svgRef.current?.setPointerCapture?.(e.pointerId);
       return;
     }
+    // Placing wins over every tool: you already said what goes down, this click only says where.
+    if (e.button === 0 && p.placing && p.onPlace) { p.onPlace(tokenCellAt(s, grid)); return; }
     if (e.button === 0 && p.tool === 'select') {
       // Seleccionar: pick a segment (DM only) and grab it, or clear everything.
       const wall = dmSight ? hitWall(p.walls, s, 10 / p.view.zoom) : null;
@@ -181,12 +190,15 @@ export function MapCanvas(p: Props): JSX.Element {
       }
       p.onSelectToken(null);
       p.onSelectWall?.(null);
+      setGesture({ kind: 'marquee', start: s, last: s });
+      svgRef.current?.setPointerCapture?.(e.pointerId);
       return;
     }
     if (e.button !== 0) return;
     const draw = DRAW_TOOLS[p.tool];
     if (draw) { setGesture({ kind: 'draw', tool: draw, start: s, points: [[s.x, s.y]], last: s }); svgRef.current?.setPointerCapture?.(e.pointerId); return; }
     switch (p.tool) {
+      case 'text': p.onAddText?.(s); return;
       case 'measure': setMeasure({ a: s, b: s }); setGesture({ kind: 'measure' }); svgRef.current?.setPointerCapture?.(e.pointerId); return;
       case 'pin': p.onPin(s); return;
       case 'erase': { const hit = hitTest(p.drawings, s, 6 / p.view.zoom); if (hit && canEraseDrawing(hit, p.me, p.isDm)) p.onErase(hit.id); return; }
@@ -214,7 +226,7 @@ export function MapCanvas(p: Props): JSX.Element {
         svgRef.current?.setPointerCapture?.(e.pointerId);
         return;
       }
-      case 'encounter': if (p.onPlace) p.onPlace(tokenCellAt(s, grid)); return;
+
       default: return;
     }
   };
@@ -233,6 +245,8 @@ export function MapCanvas(p: Props): JSX.Element {
       p.onDragToken(gesture.id, x, y);
     } else if (gesture.kind === 'draw') {
       setGesture(gesture.tool === 'stroke' ? { ...gesture, points: [...gesture.points, [s.x, s.y]], last: s } : { ...gesture, last: s });
+    } else if (gesture.kind === 'marquee') {
+      setGesture({ ...gesture, last: s });
     } else if (gesture.kind === 'wallEdit') {
       setWallDraft(wallDragTo(gesture.origin, gesture.grab, gesture.start, s, grid));
     } else if (gesture.kind === 'brush') {
@@ -262,6 +276,13 @@ export function MapCanvas(p: Props): JSX.Element {
       const moved = at.x1 !== gesture.origin.x1 || at.y1 !== gesture.origin.y1 || at.x2 !== gesture.origin.x2 || at.y2 !== gesture.origin.y2;
       if (moved) p.onMoveWall?.(gesture.id, at);
       setWallDraft(null);
+      setGesture(null);
+      return;
+    }
+    if (gesture.kind === 'marquee') {
+      const ids = tokensInRect(tokensShown, gesture.start, gesture.last, grid);
+      // A click without a drag is not a marquee — it already cleared the selection on the way down.
+      if (Math.hypot(gesture.last.x - gesture.start.x, gesture.last.y - gesture.start.y) > 4) p.onMarquee?.(ids);
       setGesture(null);
       return;
     }
@@ -328,11 +349,15 @@ export function MapCanvas(p: Props): JSX.Element {
         <g className="mp-layer-tokens" data-testid="mp-tokens" {...(tokenMask ? { mask: url(tokenMask) } : {})}>
           {tokensShown.map(tk => {
             const ov = localDrag?.id === tk.id ? localDrag : p.drags[tk.id] ?? null;
-            return <TokenGlyph key={tk.id} token={tk} grid={grid} override={ov} selected={p.selectedTokenId === tk.id} movable={p.tool === 'select' && canMoveToken(tk, p.me, p.isDm)}
+            return <TokenGlyph key={tk.id} token={tk} grid={grid} override={ov} selected={p.selectedTokenIds.includes(tk.id)} movable={p.tool === 'select' && canMoveToken(tk, p.me, p.isDm)}
               label={t('maps.canvas.token', { name: tk.name })} hiddenLabel={t('maps.canvas.hidden')} onPointerDown={onTokenDown(tk)} />;
           })}
         </g>
         <g className="mp-layer-ui">
+          {gesture?.kind === 'marquee' && (
+            <rect className="mp-marquee" data-testid="mp-marquee"
+              {...(({ x, y, w, h }) => ({ x, y, width: w, height: h }))(rectFrom(gesture.start, gesture.last))} />
+          )}
           {dmSight && isBrush(p.tool) && hover && (
             <circle cx={hover.x} cy={hover.y} r={brushPx} className={`mp-brush ${p.tool}`} data-testid="mp-brush" />
           )}
