@@ -79,7 +79,11 @@ rolvium.pen (PL/Lanzador flotante SRdGf, panel Registro XwDVn). Flujo: spec → 
    server-side after the roll instead of client-side patch.
 2. characters follow-ups: avatar/token upload from the sheet (`onImagePick`), specialty change (3 px), audit log in «El grupo»,
    per-field validation issues in the UI, ⚔/◎ per weapon type in `<Sheet>` (needs a neutral hint in the schema), membership check for `POST /rolls` without character (done: character rolls need owner/DM).
-3. Pending small items: WebP background, `campaigns_players_count` N+1 → set-returning RPC, specific messages for
+3. Owner decisions / backlog from the maps review: the `backgrounds` bucket is public-read like `avatars`/`tokens` (any URL
+   holder sees an unrevealed DM map — decide before slice 2); `removeImage` leaves the storage object orphaned; `uploadImage`
+   always names the object `.png`; `mapRules.visibleTokens/sceneVisibleTo` are duplicated inline in the canvas; 6 unused
+   `maps.*` keys.
+4. Pending small items: WebP background, `campaigns_players_count` N+1 → set-returning RPC, specific messages for
    `campaign_full`/`already_resolved` in the manage panel, edit name/description/seats from the panel, bestiary base
    entries «Solitario/Chatarrero» → real book stat blocks when doing `bestiary` (RULES §8).
 

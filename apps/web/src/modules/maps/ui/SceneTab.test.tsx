@@ -153,3 +153,17 @@ describe('<SceneTab> DM', () => {
     expect(repo.scenes.at(-1)).toMatchObject({ name: 'Mercado', campaignId: 'c1' });
   });
 });
+
+describe('<SceneTab> failures', () => {
+  it('surfaces a refused map change instead of swallowing it', async () => {
+    const u = userEvent.setup();
+    const repo = seed();
+    repo.addWall = async () => { throw new Error('rls'); };
+    mount('dm', repo);
+    await screen.findByText('Almacén de Queens', { selector: '.mp-scene-name' });
+    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    fireEvent.pointerDown(canvas(), { clientX: 27, clientY: 27, pointerId: 1, button: 0 });
+    fireEvent.pointerDown(canvas(), { clientX: 81, clientY: 27, pointerId: 1, button: 0 });
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo guardar el cambio en el mapa');
+  });
+});

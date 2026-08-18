@@ -9,7 +9,7 @@ import { characterAvatar } from '@/modules/characters/domain/useCases/characterR
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { ImageAsset, Scene, ScenePatch } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
-import { canvasToScene, centerOn, fitView, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { canvasToScene, centerOn, fitView, STROKE_COLORS, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -33,7 +33,8 @@ interface Props {
   repo?: MapsPort;
 }
 
-const DEFAULT_STROKE: StrokeStyle = { color: '#c9a84c', width: 2 };
+/** Gold, the second swatch of the persisted stroke palette (mapRules.STROKE_COLORS). */
+const DEFAULT_STROKE: StrokeStyle = { color: STROKE_COLORS[1], width: 2 };
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
 export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, repo = mapsRepo }: Props): JSX.Element {
@@ -44,6 +45,9 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [playerScene, setPlayerScene] = useState<Scene | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  /** Mutations can be refused by RLS (e.g. someone else's token) or fail offline: surface it instead of swallowing. */
+  const [failed, setFailed] = useState(false);
+  const run = useCallback((p: Promise<unknown>) => { void p.then(() => setFailed(false)).catch(() => setFailed(true)); }, []);
   const [images, setImages] = useState<ImageAsset[] | null>(null);
   const [pcs, setPcs] = useState<Character[] | null>(null);
   const [tool, setTool] = useState<Tool>('move');
@@ -145,25 +149,25 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   return (
     <section className="mp-root">
       {header}
-      <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => void st.clearMine()} onClearAll={isDm ? () => void st.clearAll() : undefined} />
+      <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll() ): undefined} />
       <div className="mp-stage-row">
         <Toolbar tool={tool} isDm={isDm} onChange={setTool} />
         <div className="mp-stage" ref={stageRef}>
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
             playerView={playerView} showWalls={showWalls} view={view} onViewChange={setView} nameOf={nameOf}
-            onDragToken={st.dragToken} onMoveToken={(id, x, y) => void st.moveToken(id, x, y)}
-            onAddDrawing={(kind, data) => void st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width })}
-            onErase={id => void st.eraseDrawing(id)}
-            onAddWall={(a, b) => void st.addWall({ sceneId: live.id, campaignId, x1: a.x, y1: a.y, x2: b.x, y2: b.y, visiblePlayers: false })}
+            onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))}
+            onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width }))}
+            onErase={id => run(st.eraseDrawing(id))}
+            onAddWall={(a, b) => run(st.addWall({ sceneId: live.id, campaignId, x1: a.x, y1: a.y, x2: b.x, y2: b.y, visiblePlayers: false }))}
             onPin={st.focusPin}
-            onPlace={encounter ? cell => void st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, cell)) : undefined}
+            onPlace={encounter ? cell => run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, cell)) ): undefined}
             selectedTokenId={selectedTokenId} onSelectToken={setSelectedTokenId} />
           <span className="mp-canvas-label">{isDm && !playerView ? t('maps.dmView') : t('maps.playerVision', { name: live.name })}</span>
           {isDm && selectedToken && (
             <div className="mp-tokbar" role="toolbar" aria-label={t('maps.token.selected')}>
               <span className="mp-tokbar-name">{selectedToken.name}</span>
-              <button type="button" className="tb-btn tb-btn-xs" onClick={() => void st.patchToken(selectedToken.id, { visible: !selectedToken.visible })}>{selectedToken.visible ? t('maps.token.hide') : t('maps.token.show')}</button>
-              <button type="button" className="tb-btn tb-btn-xs" onClick={() => { void st.removeToken(selectedToken.id); setSelectedTokenId(null); }}>{t('maps.token.remove')}</button>
+              <button type="button" className="tb-btn tb-btn-xs" onClick={() => run(st.patchToken(selectedToken.id, { visible: !selectedToken.visible }))}>{selectedToken.visible ? t('maps.token.hide') : t('maps.token.show')}</button>
+              <button type="button" className="tb-btn tb-btn-xs" onClick={() => { run(st.removeToken(selectedToken.id)); setSelectedTokenId(null); }}>{t('maps.token.remove')}</button>
             </div>
           )}
           {isDm && tool === 'encounter' && (
@@ -171,9 +175,9 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           )}
           {isDm && bgOpen && (
             <BackgroundPopover scene={live} images={images}
-              onColor={hex => void patchScene(live.id, { bgColor: hex })}
-              onImage={url => void patchScene(live.id, { bgImageUrl: url })}
-              onTransform={tr => void patchScene(live.id, { bgTransform: tr })}
+              onColor={hex => run(patchScene(live.id, { bgColor: hex }))}
+              onImage={url => run(patchScene(live.id, { bgImageUrl: url }))}
+              onTransform={tr => run(patchScene(live.id, { bgTransform: tr }))}
               onUpload={async f => { const img = await repo.uploadImage(campaignId, f, f.name.replace(/\.[^.]+$/, '')); setImages(l => [img, ...(l ?? [])]); await patchScene(live.id, { bgImageUrl: img.url }); }}
               onClose={() => setBgOpen(false)} />
           )}
@@ -182,6 +186,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onCenter={() => setView(fitView(live, viewport()))} onToggleWalls={() => setShowWalls(w => !w)} onTogglePlayerView={() => setPlayerView(v => !v)} />
         </div>
       </div>
+      {failed && <p className="mp-foot mp-foot-err" role="alert">{t('maps.saveFailed')}</p>}
       <p className="mp-foot tb-italic tb-dim">
         {isDm
           ? <><span className="mp-dm-tag">{t('maps.dmOnly')}</span> {t('maps.fogSoon')} · {t('maps.dmFoot', { walls: String(st.walls.length), hidden: String(hiddenCount), bg: bgName })}</>

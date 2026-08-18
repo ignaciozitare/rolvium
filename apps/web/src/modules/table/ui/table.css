@@ -6,7 +6,7 @@
    reads. Platform tokens (--sf, --tx…) are used only in the Rolvium bar. */
 /* The table owns its scroll: the generator, the sheet and long tabs must be reachable
    even when the document itself does not scroll (bug found in the browser 2026-08-18). */
-.tb-root{display:flex;flex-direction:column;height:100vh;overflow-y:auto;overflow-x:hidden;background:var(--sys-bg);}
+.tb-root{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow-y:auto;overflow-x:hidden;background:var(--sys-bg);}
 .tb-rvbar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:var(--sf);color:var(--tx);}
 .tb-rvbar-left,.tb-rvbar-right{display:flex;align-items:center;gap:14px;}
 .tb-rvbar-back{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:var(--r);background:var(--sf3);color:var(--tx2);font-size:var(--fs-xs);font-weight:500;text-decoration:none;}

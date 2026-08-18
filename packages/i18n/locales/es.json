@@ -734,6 +734,7 @@
       "hide": "Ocultar a los jugadores",
       "remove": "Quitar de la escena",
       "selected": "Token seleccionado"
-    }
+    },
+    "saveFailed": "No se pudo guardar el cambio en el mapa. Comprueba tu conexión o si tienes permiso."
   }
 }

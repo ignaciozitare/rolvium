@@ -734,6 +734,7 @@
       "hide": "Hide from players",
       "remove": "Remove from scene",
       "selected": "Selected token"
-    }
+    },
+    "saveFailed": "Couldn't save the map change. Check your connection or whether you have permission."
   }
 }

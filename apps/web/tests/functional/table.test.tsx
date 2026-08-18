@@ -6,7 +6,7 @@ import { AuthProvider } from '@/shared/hooks/useAuth';
 import { TablePage } from '@/modules/table/ui/TablePage';
 import type { TablePort } from '@/modules/table/domain/ports/TablePort';
 import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
-import { fakeAuthRepo, fakeCharactersRepo, fakeRollsPort, fakeRollLog, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE } from '../helpers/fakes';
+import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeRollsPort, fakeRollLog, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
 import { canTake, tabsFor } from '@/modules/table/domain/useCases/tableRules';
 
 const GM = { ...ADMIN_USER, id: 'dm-1', name: 'Laura', role: 'game_master' };
@@ -39,12 +39,12 @@ function fakeTableRepo(role: 'dm' | 'player', value = 7): TablePort & { snap: Ta
   };
 }
 
-function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog()) {
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo()) {
   renderWithProviders(
-    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} />} /></Routes></AuthProvider>,
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} />} /></Routes></AuthProvider>,
     { providers: { routerProps: { initialEntries: ['/table/c1'] } } },
   );
-  return { rolls, rollLog };
+  return { rolls, rollLog, maps };
 }
 
 describe('table: rules', () => {
@@ -115,6 +115,23 @@ describe('table: page', () => {
     document.body.innerHTML = '';
     mount(PLAYER_USER, fakeTableRepo('player'));
     expect(await screen.findByLabelText('Personaje')).toHaveValue('Karen «K»');
+  });
+
+  it('«Escena» tab mounts the maps hexagon with the snapshot\'s active scene (player follows the DM\'s choice; no scene → the notice)', async () => {
+    const u = userEvent.setup();
+    const empty = fakeTableRepo('player');
+    mount(PLAYER_USER, empty);
+    await u.click(await screen.findByRole('button', { name: 'Escena' }));
+    expect(await screen.findByText('El director aún no ha activado ninguna escena.')).toBeInTheDocument();
+    document.body.innerHTML = '';
+    const live = fakeTableRepo('player');
+    live.snap.activeSceneId = SCENE_WAREHOUSE.id;
+    const { maps } = mount(PLAYER_USER, live, fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN] }));
+    await u.click(await screen.findByRole('button', { name: 'Escena' }));
+    expect(await screen.findByText(SCENE_WAREHOUSE.name)).toBeInTheDocument();
+    const canvas = screen.getByRole('application', { name: 'Lienzo de la escena' });
+    expect(await within(canvas).findByRole('img', { name: 'Token Karen «K»' })).toBeInTheDocument();
+    await waitFor(() => expect(maps.subscribers).toBe(1));
   });
 
   it('side panel: Registro lists the campaign rolls live; the Lanzador toggle opens the floating roller which rolls into this campaign', async () => {
