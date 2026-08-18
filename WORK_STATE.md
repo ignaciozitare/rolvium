@@ -190,28 +190,22 @@ Sigue pendiente de la rebanada 2 y ahora también de la 3.
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🚫 Bloqueos / notas
-### Vercel: el proyecto de la API ya existe, pero **está caído a propósito** (2026-08-18)
-El dueño creó `rolvium-api` en Vercel «para cuando estemos listos para subir»:
+### Vercel — el API existe y despliega solo, pero le faltan las variables (2026-08-19)
 - Panel: https://vercel.com/ignaciozitare-9429s-projects/rolvium-api · `prj_0OBlHaNEmoDHOZVoEnFTV8hr4i70` ·
-  team `team_O0LMo9mzgF91fZTJ1mJg7yJw` (`ignaciozitare-9429s-projects`). Framework `fastify`, Node 24.x.
-- Dominio: **https://rolvium-api.vercel.app** — deja de ser un placeholder. `apps/web` lo consume con
-  `VITE_API_URL`, y `.claude/commands/{review,qa,deploy}.md` sondean esta URL.
-- **`GET /health` → 500 `FUNCTION_INVOCATION_FAILED`.** No es un bug del código: el build está `READY` y la función
-  arranca, pero `supabaseDeps()` lanza `Missing required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY`
-  (confirmado en los runtime logs). Falta configurarlas, y **no se pueden configurar todavía porque no hay Supabase
-  hosted**: primero el proyecto de Supabase, luego las variables, luego el deploy vuelve solo.
-- **No existe aún el proyecto web** (`rolvium.vercel.app` → 404 `DEPLOYMENT_NOT_FOUND`). Hacen falta los dos: web
-  (estático + rewrites a `index.html`) y api (Build Output API v3 vía `apps/api/bundle.mjs`).
-- Ojo con la regla «nunca dar por terminado con producción caída» de `.claude/CLAUDE.md`: **no aplica todavía**. Esto
-  no es producción caída, es producción que aún no ha nacido — no hay código subido ni base hosted. En cuanto se
-  suba de verdad, la regla vuelve a morder.
-- **Orden correcto para subir**: (1) proyecto Supabase hosted → (2) `supabase link` + `db push` → (3) variables en
-  Vercel (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ALLOWED_ORIGIN`) → (4) proyecto web + `VITE_API_URL` →
-  (5) `get_advisors` → (6) volver a sondear `/health`.
+  team `team_O0LMo9mzgF91fZTJ1mJg7yJw`. **Está conectado a GitHub**, así que cada push a `main` lo redespliega.
+- **https://rolvium-api.vercel.app** deja de ser un placeholder: es la URL real que consume `VITE_API_URL`.
+- Devuelve 500 hasta que se pongan `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` (ver «Pendiente del dueño» §1).
+- **El proyecto web no existe todavía.** `rolvium.vercel.app` → 404.
+- **El token del CLI está caducado**, y el MCP de Vercel no sabe escribir variables de entorno: por eso este paso
+  quedó en manos del dueño y no lo pudo cerrar el agente.
 
-- Sin Supabase hosted (el plan del dueño permite 2 proyectos) → local. Al pasar a hosted: `supabase link` + `db push`,
-  comprobar que `postgres` puede borrar en `auth.sessions`/`auth.refresh_tokens` (RPCs de identity), que
-  `site_url`/redirects incluyan el dominio de Vercel (`/reset`, `/join/*`), y volver a correr `get_advisors`.
+- **Supabase hosted YA está** (`scfspsiemikfcnqteonq`, org free). Queda por comprobar allí: que `postgres` puede
+  borrar en `auth.sessions`/`auth.refresh_tokens` (los RPC de identity), y que `site_url`/redirects incluyan el
+  dominio de Vercel (`/reset`, `/join/*`). `get_advisors` ya se corrió: 0 CRITICAL.
+- **Para volver a tocar la base hosted**: el CLI de Supabase NO está autenticado, y el host directo
+  `db.<ref>.supabase.co` no resuelve (IPv6). Lo que funciona es el pooler, usando el psql del contenedor local:
+  `docker exec -i -e PGPASSWORD=… supabase_db_rolvium psql -h aws-0-eu-central-1.pooler.supabase.com -p 5432
+  -U postgres.scfspsiemikfcnqteonq -d postgres -f - < migracion.sql`
 - Realtime `postgres_changes` respeta los grants de columna (según review) — reconfirmar en hosted.
 - Arrancar: `npm run db:start` (Docker) · `npm run dev:api` (ya arreglado) · `npm run dev:web` (:5173).
   Admin de desarrollo: `admin@rolvium.local` / `rolvium123`. Correo local: Mailpit http://127.0.0.1:54324.
