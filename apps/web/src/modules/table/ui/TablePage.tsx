@@ -77,6 +77,11 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
           <Badge color="accent">{sysInfo ? t(sysInfo.nameKey) : campaign.systemId}</Badge>
         </div>
         <div className="tb-rvbar-right">
+          {/* Who is at the table lives in the platform bar: it is the same on every tab and the table needs its height for the map. */}
+          <ul className="tb-people tb-people-bar" aria-label={t('table.connected')}>
+            {dm && <Person key={dm.userId} name={dm.name} avatarUrl={dm.avatarUrl} label={t('table.dm')} isDm connected={isConnected(presence, dm.userId)} me={dm.userId === user.id} size={26} />}
+            {players.map(p => <Person key={p.userId} name={p.name} avatarUrl={p.avatarUrl} label={isConnected(presence, p.userId) ? p.name : t('table.absent')} connected={isConnected(presence, p.userId)} me={p.userId === user.id} size={26} />)}
+          </ul>
           <span className="tb-rvbar-devices"><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>devices</span>{t('table.devices', { n: String(presence.find(p => p.userId === user.id)?.devices ?? 1) })}</span>
           <UserAvatar user={{ name: user.name, avatarUrl: user.avatarUrl }} size={28} />
         </div>
@@ -92,11 +97,10 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               <div className="tb-rotulo tb-dim">{campaign.name}</div>
             </div>
           </div>
+          <nav className="tb-tabs" aria-label={t('table.tabs')}>
+            {tabs.map(tb => <button key={tb} type="button" className={`tb-btn ${tab === tb ? 'tb-btn-solid' : ''}`} aria-pressed={tab === tb} onClick={() => setTab(tb)}>{t(`table.tab.${tb}`)}</button>)}
+          </nav>
           <div className="tb-head-right">
-            <ul className="tb-people" aria-label={t('table.connected')}>
-              {dm && <Person key={dm.userId} name={dm.name} avatarUrl={dm.avatarUrl} label={t('table.dm')} isDm connected={isConnected(presence, dm.userId)} me={dm.userId === user.id} />}
-              {players.map(p => <Person key={p.userId} name={p.name} avatarUrl={p.avatarUrl} label={isConnected(presence, p.userId) ? p.name : t('table.absent')} connected={isConnected(presence, p.userId)} me={p.userId === user.id} />)}
-            </ul>
             <span className={`tb-btn ${role === 'dm' ? 'tb-btn-gold' : 'tb-btn-solid'}`} aria-label={t('table.yourRole')}>{t(`table.role.${role}`)}</span>
           </div>
         </header>
@@ -109,10 +113,6 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               onReset={async () => { const r = await repo.resetResource(campaign.id, def.id); if ('error' in r) return r.error; patchResources(def.id, r.state); return null; }} />
           </div>
         ))}
-
-        <nav className="tb-tabs" aria-label={t('table.tabs')}>
-          {tabs.map(tb => <button key={tb} type="button" className={`tb-btn ${tab === tb ? 'tb-btn-solid' : ''}`} aria-pressed={tab === tb} onClick={() => setTab(tb)}>{t(`table.tab.${tb}`)}</button>)}
-        </nav>
 
         <div className="tb-body">
           <main className="tb-main">
@@ -139,10 +139,10 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   );
 }
 
-function Person({ name, avatarUrl, label, isDm = false, connected, me }: { name: string; avatarUrl: string | null; label: string; isDm?: boolean; connected: boolean; me: boolean }): JSX.Element {
+function Person({ name, avatarUrl, label, isDm = false, connected, me, size = 40 }: { name: string; avatarUrl: string | null; label: string; isDm?: boolean; connected: boolean; me: boolean; size?: number }): JSX.Element {
   return (
     <li className={`tb-person ${connected ? 'on' : 'off'} ${me ? 'me' : ''}`} title={name}>
-      <span className={`tb-halo ${isDm ? 'dm' : ''}`}><UserAvatar user={{ name, avatarUrl }} size={40} /></span>
+      <span className={`tb-halo ${isDm ? 'dm' : ''}`}><UserAvatar user={{ name, avatarUrl }} size={size} /></span>
       <span className="tb-person-label">{label.toUpperCase()}</span>
     </li>
   );

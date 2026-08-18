@@ -20,7 +20,6 @@ import { CanvasControls } from './CanvasControls';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
-import { DmOptionsBar } from './DmOptionsBar';
 import './maps.css';
 
 interface Props {
@@ -155,6 +154,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onPin={st.focusPin}
             onPlace={encounter ? cell => run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, cell)) ): undefined}
             selectedTokenId={selectedTokenId} onSelectToken={setSelectedTokenId} />
+          {isDm && (
+            <div className="mp-dmtag" role="group" aria-label={t('maps.dmOptions')}>
+              <span className="mp-dm-tag">{t('maps.dmOnly')}</span>
+              <span className="tb-italic">{t('maps.dmCounts', { walls: String(st.walls.filter(w => w.kind === 'wall').length), doors: String(st.walls.filter(w => w.kind === 'door').length), windows: String(st.walls.filter(w => w.kind === 'window').length), hidden: String(hiddenCount) })} · {bgName}</span>
+            </div>
+          )}
           <span className="mp-canvas-label">{isDm && !playerView
             ? `${t('maps.dmView')}${live.fogMode === 'vision' ? ` · ${t('maps.fog.byVision')}` : ''}${isBrush(tool) ? ` · ${t(`maps.brush.${tool}`)}` : ''}`
             : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
@@ -188,20 +193,15 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               onUpload={async f => { const img = await repo.uploadImage(campaignId, f, f.name.replace(/\.[^.]+$/, '')); setImages(l => [img, ...(l ?? [])]); await patchScene(live.id, { bgImageUrl: img.url }); }}
               onClose={() => setBgOpen(false)} />
           )}
-          <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView}
+          <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView} scene={live}
+            onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}
+            onLighting={lighting => run(patchScene(live.id, { lighting }))}
             onZoomIn={() => setView(v => zoomAt(v, ZOOM_STEP, viewCenter()))} onZoomOut={() => setView(v => zoomAt(v, 1 / ZOOM_STEP, viewCenter()))}
             onCenter={() => setView(fitView(live, viewport()))} onToggleWalls={() => setShowWalls(w => !w)} onTogglePlayerView={() => setPlayerView(v => !v)} />
         </div>
       </div>
       {failed && <p className="mp-foot mp-foot-err" role="alert">{t('maps.saveFailed')}</p>}
-      {isDm
-        ? <>
-            <DmOptionsBar scene={live} walls={st.walls} hiddenTokens={hiddenCount}
-              onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}
-              onLighting={lighting => run(patchScene(live.id, { lighting }))} />
-            <p className="mp-foot tb-italic tb-dim">{t('maps.dmFoot', { walls: String(st.walls.length), hidden: String(hiddenCount), bg: bgName })}</p>
-          </>
-        : <p className="mp-foot tb-italic tb-dim">{t('maps.dmDecides')} {live.lighting === 'night' ? t('maps.playerFootNight', { m: String(live.nightRadiusM) }) : t('maps.playerFoot')}</p>}
+      {!isDm && <p className="mp-foot tb-italic tb-dim">{t('maps.dmDecides')} {live.lighting === 'night' ? t('maps.playerFootNight', { m: String(live.nightRadiusM) }) : t('maps.playerFoot')}</p>}
     </section>
   );
 }

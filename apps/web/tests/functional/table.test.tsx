@@ -152,3 +152,37 @@ describe('table: page', () => {
     expect(screen.queryByRole('dialog', { name: 'Lanzador de dados' })).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Where the table chrome lives after slice 3 moved it to give the map its height back
+ * (specs/modules/maps/SPEC.md § «Rebanada 3»). The owner asked for each of these by hand, and they are
+ * exactly the kind of thing a refactor undoes without noticing.
+ */
+describe('table chrome — dónde vive cada cosa tras la rebanada 3', () => {
+  it('las pestañas viven en la cabecera de la mesa, no en una fila propia', async () => {
+    mount(PLAYER_USER, fakeTableRepo('player'));
+    const head = await screen.findByRole('banner');
+    expect(within(head).getByRole('navigation', { name: 'Pestañas de la mesa' })).toBeInTheDocument();
+    expect(within(head).getByRole('button', { name: 'Escena' })).toBeInTheDocument();
+  });
+
+  it('los conectados van en la barra de la plataforma, arriba del todo, y ya no en la cabecera de la mesa', async () => {
+    mount(PLAYER_USER, fakeTableRepo('player'));
+    await screen.findByRole('banner');
+    const people = screen.getByRole('list', { name: 'Conectados' });
+    expect(people.closest('.tb-rvbar')).not.toBeNull();
+    expect(people.closest('.tb-head')).toBeNull();
+  });
+
+  it('la escena ya no lleva barra de opciones bajo el mapa: «Solo director» va encima del lienzo', async () => {
+    const u = userEvent.setup();
+    const live = fakeTableRepo('dm');
+    live.snap.activeSceneId = SCENE_WAREHOUSE.id;
+    mount(ADMIN_USER, live, fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    await u.click(await screen.findByRole('button', { name: 'Escena' }));
+    const canvas = await screen.findByRole('application', { name: 'Lienzo de la escena' });
+    const stage = canvas.closest('.mp-stage');
+    expect(stage?.querySelector('.mp-dmtag')).not.toBeNull();
+    expect(document.querySelector('.mp-dmbar')).toBeNull();
+  });
+});

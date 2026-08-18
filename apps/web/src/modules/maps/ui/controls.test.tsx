@@ -1,15 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderWithProviders, screen, fireEvent } from '../../../../tests/helpers/render';
+import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
-import { SCENE_WAREHOUSE, WALL_1, WALL_DOOR, WALL_WINDOW } from '../../../../tests/helpers/fakes';
+import { SCENE_WAREHOUSE } from '../../../../tests/helpers/fakes';
 import { STROKE_COLORS } from '../domain/useCases/mapRules';
 import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { CanvasControls } from './CanvasControls';
 import { EncounterMenu } from './EncounterMenu';
-import { DmOptionsBar } from './DmOptionsBar';
 
 describe('<Toolbar>', () => {
   it('three labelled blocks: Dados abre el lanzador y va primero; el jugador no ve el bloque de director; Fondo y Colocar PJ son botones de panel, no herramientas', async () => {
@@ -151,32 +150,30 @@ describe('<StrokeBar> as the wall-type picker', () => {
   });
 });
 
-describe('<DmOptionsBar>', () => {
-  const scene = { ...SCENE_WAREHOUSE };
-  const walls = [WALL_1, WALL_DOOR, WALL_WINDOW];
+describe('<CanvasControls> — la luz y la niebla como iconos, no como barra', () => {
+  const base = { onZoomIn: vi.fn(), onZoomOut: vi.fn(), onCenter: vi.fn(), onToggleWalls: vi.fn(), onTogglePlayerView: vi.fn(), showWalls: true, playerView: false };
 
-  it('shows automatic fog on, the light segmented control and the tally of what players cannot see', async () => {
+  it('el director alterna día/noche y la niebla automática desde la pila del zoom', async () => {
     const u = userEvent.setup();
-    const onFogMode = vi.fn(); const onLighting = vi.fn();
-    renderWithProviders(<DmOptionsBar scene={scene} walls={walls} hiddenTokens={3} onFogMode={onFogMode} onLighting={onLighting} />);
-    expect(screen.getByRole('checkbox', { name: 'Niebla automática por visión' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Día' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Noche · 10 m' })).not.toBeChecked();
-    expect(screen.getByText('1 muros · 1 puertas · 1 ventanas (invisibles para jugadores) · 3 tokens ocultos')).toBeInTheDocument();
-    await u.click(screen.getByRole('radio', { name: 'Noche · 10 m' }));
+    const onFogMode = vi.fn(), onLighting = vi.fn();
+    renderWithProviders(<CanvasControls {...base} isDm scene={SCENE_WAREHOUSE} onFogMode={onFogMode} onLighting={onLighting} />);
+    const stack = screen.getByRole('group', { name: 'Controles del lienzo' });
+    await u.click(within(stack).getByRole('button', { name: 'Día' }));
     expect(onLighting).toHaveBeenCalledWith('night');
-    await u.click(screen.getByRole('checkbox', { name: 'Niebla automática por visión' }));
+    const fog = within(stack).getByRole('button', { name: 'Niebla automática por visión' });
+    expect(fog).toHaveAttribute('aria-pressed', 'true');
+    await u.click(fog);
     expect(onFogMode).toHaveBeenCalledWith('manual');
   });
 
-  it('at night the light control is on «Noche» and turning the automatic fog back on asks for `vision`', async () => {
-    const onFogMode = vi.fn(); const onLighting = vi.fn();
-    renderWithProviders(<DmOptionsBar scene={{ ...scene, lighting: 'night', fogMode: 'manual' }} walls={[]} hiddenTokens={0} onFogMode={onFogMode} onLighting={onLighting} />);
-    expect(screen.getByRole('radio', { name: 'Noche · 10 m' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Niebla automática por visión' })).not.toBeChecked();
-    await userEvent.setup().click(screen.getByRole('checkbox', { name: 'Niebla automática por visión' }));
-    expect(onFogMode).toHaveBeenCalledWith('vision');
-    await userEvent.setup().click(screen.getByRole('radio', { name: 'Día' }));
-    expect(onLighting).toHaveBeenCalledWith('day');
+  it('de noche el icono lo dice con los metros, y el jugador no ve ninguno de los dos', async () => {
+    renderWithProviders(<CanvasControls {...base} isDm scene={{ ...SCENE_WAREHOUSE, lighting: 'night' }} onFogMode={vi.fn()} onLighting={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Noche · 10 m' })).toHaveAttribute('aria-pressed', 'true');
+
+    document.body.innerHTML = '';
+    renderWithProviders(<CanvasControls {...base} isDm={false} scene={SCENE_WAREHOUSE} onFogMode={vi.fn()} onLighting={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Día|Noche/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Niebla automática por visión' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Acercar' })).toBeInTheDocument();
   });
 });

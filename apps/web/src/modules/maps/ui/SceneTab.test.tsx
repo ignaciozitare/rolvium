@@ -101,7 +101,7 @@ describe('<SceneTab> DM', () => {
     await within(canvas()).findByRole('img', { name: 'Token Mutante (oculto)' });
     expect(within(canvas()).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(1);
     expect(screen.getByText(/Vista de director · muros y tokens ocultos visibles · Niebla por visión/)).toBeInTheDocument();
-    expect(screen.getByText(/1 muros \(invisibles para jugadores\) · 1 tokens ocultos/)).toBeInTheDocument();
+    expect(screen.getByText(/1 muros · 0 puertas · 0 ventanas \(invisibles para jugadores\) · 1 tokens ocultos/)).toBeInTheDocument();
     // background
     await u.click(screen.getByRole('button', { name: 'Fondo del mapa' }));
     await u.click(await screen.findByRole('button', { name: 'Capilla' }));
@@ -186,8 +186,8 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
   it('DM: the light switch writes the scene and the label follows; the night radius reaches the player footer', async () => {
     const u = userEvent.setup();
     const repo = mount('dm', seed());
-    await screen.findByRole('radio', { name: 'Día' });
-    await u.click(screen.getByRole('radio', { name: 'Noche · 10 m' }));
+    // la luz ya no es una barra: es un icono en la pila del zoom
+    await u.click(await screen.findByRole('button', { name: 'Día' }));
     await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { lighting: 'night' } }));
 
     document.body.innerHTML = '';
@@ -199,8 +199,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
   it('DM: «Niebla automática por visión» switches the scene between `vision` and `manual`', async () => {
     const u = userEvent.setup();
     const repo = mount('dm', seed());
-    const check = await screen.findByRole('checkbox', { name: 'Niebla automática por visión' });
-    await u.click(check);
+    await u.click(await screen.findByRole('button', { name: 'Niebla automática por visión' }));
     await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { fogMode: 'manual' } }));
   });
 
