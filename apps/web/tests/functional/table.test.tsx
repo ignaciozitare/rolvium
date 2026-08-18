@@ -135,16 +135,21 @@ describe('table: page', () => {
     await waitFor(() => expect(maps.subscribers).toBe(1));
   });
 
-  it('side panel: Registro lists the campaign rolls live; the Lanzador toggle opens the floating roller which rolls into this campaign', async () => {
+  it('side panel: el Registro lista las tiradas en vivo; el lanzador se abre desde la barra de la escena y tira en esta campaña', async () => {
     const u = userEvent.setup();
-    const { rolls, rollLog } = mount(PLAYER_USER, fakeTableRepo('player'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort({ summary: 'roll.free', total: 9 }), fakeRollLog([]));
+    const table = fakeTableRepo('player');
+    table.snap.activeSceneId = SCENE_WAREHOUSE.id;   // el lanzador vive en la barra de la escena, así que hace falta escena
+    const { rolls, rollLog } = mount(PLAYER_USER, table, fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort({ summary: 'roll.free', total: 9 }), fakeRollLog([]), fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
     expect(await screen.findByText('Pulsa TIRAR en una característica, o usa el lanzador libre.')).toBeInTheDocument();
     rollLog.push(ROLL_FREE);
     expect(await screen.findByText('2D10 · Nix')).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'Lanzador de dados' })).not.toBeInTheDocument();
-    await u.click(screen.getByRole('button', { name: 'Lanzador de dados' }));
+    // ya no hay botón en el panel: los dados son la primera herramienta de la escena
+    await u.click(screen.getByRole('button', { name: 'Escena' }));
+    const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
+    await u.click(within(bar).getByRole('button', { name: 'Lanzador de dados' }));
     const roller = await screen.findByRole('dialog', { name: 'Lanzador de dados' });
-    expect(screen.getByRole('button', { name: 'Lanzador de dados · abierto', pressed: true })).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'Lanzador de dados', pressed: true })).toBeInTheDocument();
     await u.click(within(roller).getByRole('button', { name: 'Tirar 2 D10' }));
     await waitFor(() => expect(rolls.requests).toHaveLength(1));
     expect(rolls.requests[0]).toMatchObject({ campaignId: 'c1', kind: 'free', groups: [{ count: 2, sides: 10 }] });

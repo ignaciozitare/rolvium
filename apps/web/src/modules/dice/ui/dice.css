@@ -4,7 +4,7 @@
    --sys-* vars live in table.css (.tb-root). */
 
 /* Side panel (rolvium.pen Mesa/Side): toggle + card with tabs */
-.dc-side{display:flex;flex-direction:column;gap:12px;}
+.dc-side{display:flex;flex-direction:column;gap:12px;flex:1 1 auto;min-height:0;}
 .dc-roller-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:9px 12px;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;cursor:pointer;border:none;background:var(--sys-card);box-shadow:var(--sys-card-shadow);color:var(--sys-ink-soft);}
 .dc-roller-btn.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
 .dc-panel{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:12px;display:flex;flex-direction:column;gap:12px;min-height:0;flex:1 1 auto;}

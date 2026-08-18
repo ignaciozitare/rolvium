@@ -10,7 +10,7 @@ interface Props {
   campaignId: string;
   onClose: () => void;
   rolls?: RollsPort;
-  /** Initial screen position (px). Defaults to the top-right area of the viewport. */
+  /** Initial screen position (px). Defaults to just right of the scene toolbar, which is where it is opened from. */
   initial?: { x: number; y: number };
 }
 const VISIBILITIES: RollVisibility[] = ['table', 'dm', 'secret'];
@@ -27,7 +27,16 @@ export function DiceRoller({ campaignId, onClose, rolls = defaultRolls, initial 
   const [modifier, setModifier] = useState(0);
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<{ die: string; count: number; text: string; err?: boolean } | null>(null);
-  const [pos, setPos] = useState(() => initial ?? { x: Math.max(8, (typeof window !== 'undefined' ? window.innerWidth : 800) - 560), y: 120 });
+  /**
+   * It opens from the first tool of the scene bar, so it appears right next to that bar instead of across the
+   * screen: you press the die and the roller is under your cursor. Falls back to a sane left margin off-canvas.
+   */
+  const [pos, setPos] = useState(() => {
+    if (initial) return initial;
+    const bar = typeof document !== 'undefined' ? document.querySelector('.mp-toolbar') : null;
+    const r = bar?.getBoundingClientRect();
+    return r ? { x: Math.round(r.right + 10), y: Math.round(r.top) } : { x: 96, y: 160 };
+  });
   const drag = useRef<{ dx: number; dy: number } | null>(null);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {

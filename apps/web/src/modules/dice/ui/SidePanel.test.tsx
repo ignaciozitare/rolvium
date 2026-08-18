@@ -6,7 +6,7 @@ import { fakeRollLog } from '../../../../tests/helpers/fakes';
 import { SidePanel } from './SidePanel';
 
 describe('<SidePanel>', () => {
-  it('shows the Registro by default, switches to the placeholder tabs and toggles the roller', async () => {
+  it('muestra el Registro por defecto, cambia a las pestañas «pronto», y NO duplica el botón del lanzador', async () => {
     const u = userEvent.setup();
     const onToggle = vi.fn();
     const { rerender } = renderWithProviders(<SidePanel campaignId="c1" system={plenilunio} rollerOpen={false} onToggleRoller={onToggle} log={fakeRollLog()} />);
@@ -19,11 +19,10 @@ describe('<SidePanel>', () => {
     }
     await u.click(screen.getByRole('tab', { name: 'Registro' }));
     expect(await screen.findByText('Combate')).toBeInTheDocument();
-    const toggle = screen.getByRole('button', { name: 'Lanzador de dados' });
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    await u.click(toggle);
-    expect(onToggle).toHaveBeenCalledTimes(1);
+    // el lanzador se abre desde la primera herramienta de la barra de la escena; aquí ya no hay botón
+    expect(screen.queryByRole('button', { name: /Lanzador de dados/ })).not.toBeInTheDocument();
+    expect(onToggle).not.toHaveBeenCalled();
     rerender(<SidePanel campaignId="c1" system={plenilunio} rollerOpen onToggleRoller={onToggle} log={fakeRollLog()} />);
-    expect(screen.getByRole('button', { name: 'Lanzador de dados · abierto' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: /Lanzador de dados/ })).not.toBeInTheDocument();
   });
 });
