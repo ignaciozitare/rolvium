@@ -20,6 +20,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Barra vertical de herramientas** (izquierda del lienzo): Mover · Medir · Pin | Lápiz · Línea · Caja · Círculo ·
   Borrar; director además (separador oro): Muro · Revelar · Ocultar · **Encuentro** (abre desplegable con buscador y
   todas las entradas del bestiario; clic en el mapa coloca una instancia).
+  - **Cada botón muestra un tooltip propio al pasar el ratón** con el nombre de la herramienta (componente
+    `PL/Tooltip herramienta`). Los iconos solos no se entienden — el dueño no supo identificar el de Muro (`fence`) —
+    y el `title` nativo del navegador tarda casi un segundo, se coloca donde quiere y no sigue el aspecto del sistema.
+    El `aria-label` que ya existe se queda: el tooltip es visual, no sustituye a la accesibilidad.
 - **Barra de Trazo** (idéntica para todos): grosor, colores, "lo que dibujas lo ve toda la mesa", limpiar mis trazos.
 - **Controles del lienzo** (esquina inferior derecha): acercar, alejar, centrar; DJ además ver/ocultar paredes y
   "ver como jugador".
