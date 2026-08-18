@@ -136,6 +136,10 @@ Después: segunda pasada de la prueba manual · rebanada 4 (movimiento máx. por
 rebanada 5 (galería de props) · `chat` (H8) + `journal` (H9) · `bestiary` (H5).
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
+- **Enseñar fotos sobre el mapa** (pedido del dueño, 2026-08-19, explícitamente **para otra sesión**): cargar una
+  imagen y mostrarla a la mesa desde el menú del botón derecho. **No es el fondo del mapa**: el fondo es el plano de
+  la escena; esto es enseñar algo puntual (un retrato, una carta, una pista) encima. Decidir si es efímero
+  (broadcast, se cierra y desaparece) o una entidad más de la escena con su propia tabla y RLS.
 - **Decidir**: el bucket `backgrounds` es de lectura pública como `avatars`/`tokens` (cualquiera con la URL ve un mapa no
   revelado) · límites duros de escenas/tokens/trazos (hoy sólo orientativos en el spec).
 - Maps: `removeImage` deja el objeto huérfano en Storage · `uploadImage` siempre nombra `.png` · ruta de subida no-uuid da

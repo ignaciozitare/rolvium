@@ -323,12 +323,30 @@ function Cell({ d, value, ro, p, onChange }: { d: FieldDef; value: unknown; ro: 
 }
 
 // ─── SVG primitives (PL/Creciente, PL/Salud) — colours from --sys-moon-* ─────
+/**
+ * The crescent, traced from the master (rolvium.pen `PL/Creciente` → `Luna`): the outline is the design's own path,
+ * not an approximation with two arcs — the arc version had the wrong inner curve and no rim or shadow, which is what
+ * made it read as a different moon.
+ */
+const CRESCENT_PATH =
+  'M31 4.51c-3.8-2.7-8.47-3.91-13.12-3.39-4.64 0.52-8.93 2.73-12.04 6.22-3.12 3.48-4.84 7.99-4.84 12.66 0 4.67 1.72 9.18 4.84 12.66 3.11 3.49 7.4 5.7 12.04 6.22 4.65 0.52 9.32-0.69 13.13-3.39-3.81 0.99-7.85 0.53-11.35-1.27-3.49-1.81-6.2-4.84-7.61-8.51-1.4-3.68-1.4-7.74 0-11.42 1.41-3.67 4.12-6.7 7.61-8.51 3.5-1.8 7.54-2.26 11.35-1.27z';
+
 export function Crescent({ size = 26 }: { size?: number }): JSX.Element {
   const uid = useId();
   return (
-    <svg className="rv-sheet-svg" width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
-      <defs><radialGradient id={`rvc${uid}`} cx="0.28" cy="0.25" r="0.8"><stop offset="0%" stopColor="var(--sys-moon-hi)" /><stop offset="50%" stopColor="var(--sys-moon-mid)" /><stop offset="100%" stopColor="var(--sys-moon-lo)" /></radialGradient></defs>
-      <path fill={`url(#rvc${uid})`} d="M31 4.51 A19 19 0 1 0 31 35.49 A16 16 0 0 1 31 4.51 Z" />
+    <svg className="rv-sheet-svg" width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" overflow="visible">
+      <defs>
+        <radialGradient id={`rvc${uid}`} cx="0.28" cy="0.25" r="0.75">
+          <stop offset="0%" stopColor="var(--sys-moon-hi)" />
+          <stop offset="50%" stopColor="var(--sys-moon-mid)" />
+          <stop offset="100%" stopColor="var(--sys-moon-lo)" />
+        </radialGradient>
+        <filter id={`rvcs${uid}`} x="-25%" y="-25%" width="150%" height="150%">
+          <feDropShadow dx="0" dy="1" stdDeviation="1.25" floodColor="var(--sys-ink)" floodOpacity="0.35" />
+        </filter>
+      </defs>
+      <path d={CRESCENT_PATH} fill={`url(#rvc${uid})`} stroke="var(--sys-moon-mid)" strokeOpacity="0.4" strokeWidth="0.6"
+        strokeLinejoin="round" filter={`url(#rvcs${uid})`} />
     </svg>
   );
 }

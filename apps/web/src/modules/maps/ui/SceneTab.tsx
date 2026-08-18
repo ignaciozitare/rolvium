@@ -218,6 +218,9 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { st.focusPin(quickMenu.scene); setView(v => centerOn(v, quickMenu.scene, viewport())); setQuickMenu(null); }}>
                 <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>location_on</span>{t('maps.quick.centerAll')}
               </button>
+              <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { setView(fitView(live, viewport())); setQuickMenu(null); }}>
+                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>fit_screen</span>{t('maps.controls.center')}
+              </button>
               <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { onOpenDice?.(); setQuickMenu(null); }}>
                 <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>casino</span>{t('maps.action.dice')}
               </button>

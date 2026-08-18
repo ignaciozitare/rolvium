@@ -337,6 +337,7 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     // centrar sólo para mí no molesta a nadie; centrar para todos sí manda el pin
     expect(within(menu).getByRole('menuitem', { name: /Centrar mi vista aquí/ })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: /Centrar la vista de todos/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Centrar' })).toBeInTheDocument();   // ajustar a la pantalla
     await userEvent.setup().click(within(menu).getByRole('menuitem', { name: /Lanzador de dados/ }));
     expect(onOpenDice).toHaveBeenCalled();
     expect(screen.queryByRole('menu', { name: 'Acciones rápidas' })).not.toBeInTheDocument();
