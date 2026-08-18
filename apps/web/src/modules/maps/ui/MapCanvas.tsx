@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
-import type { Drawing, DrawingKind, Scene, Token, Wall } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveToken, canOpen, canvasToScene, distanceCells, distanceLabel, hitTest, hitWall, isBrush, shapeData, snap, tokenCellAt, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import type { Drawing, DrawingKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
+import { brushRadius, canEraseDrawing, canMoveToken, canOpen, canvasToScene, distanceCells, distanceLabel, hitTest, hitWall, isBrush, shapeData, snap, tokenCellAt, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, TokenGlyph, WallShape } from './canvasLayers';
 
@@ -26,6 +26,8 @@ interface Props {
   fog: SceneVision | null;
   /** Reveal/hide brush radius in cells (DM). */
   brush: number;
+  /** What the Muro tool draws next. Only a plain wall chains click-to-click; an opening is one segment and stop. */
+  wallKind?: WallKind;
   view: View;
   onViewChange: (v: View) => void;
   nameOf: (userId: string) => string;
@@ -43,6 +45,11 @@ interface Props {
   onPlace?: (cell: Point) => void;
   selectedTokenId: string | null;
   onSelectToken: (id: string | null) => void;
+  /** DM, Seleccionar: the segment being edited and its handles. */
+  selectedWallId?: string | null;
+  onSelectWall?: (id: string | null) => void;
+  /** New endpoints after dragging the segment or one of its vertices (already grid-snapped). */
+  onMoveWall?: (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => void;
 }
 
 type Gesture =
@@ -50,6 +57,7 @@ type Gesture =
   | { kind: 'token'; id: string; start: Point; origin: Point; moved: boolean }
   | { kind: 'draw'; tool: DrawTool; start: Point; points: [number, number][]; last: Point }
   | { kind: 'brush'; op: 'reveal' | 'hide' }
+  | { kind: 'wallEdit'; id: string; grab: 'a' | 'b' | 'whole'; start: Point; origin: { x1: number; y1: number; x2: number; y2: number } }
   | { kind: 'measure' };
 
 type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
@@ -76,6 +84,7 @@ export function MapCanvas(p: Props): JSX.Element {
   const [pinShown, setPinShown] = useState<LivePin | null>(null);
   /** Space held = pan, from ANY tool (the middle button already did this). Panning is a modifier, not a tool. */
   const [spacePan, setSpacePan] = useState(false);
+  const [wallDraft, setWallDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const lastPaint = useRef(0);
   const grid = p.scene.grid.size;
   const dmSight = p.isDm && !p.playerView;
@@ -147,8 +156,22 @@ export function MapCanvas(p: Props): JSX.Element {
       svgRef.current?.setPointerCapture?.(e.pointerId);
       return;
     }
-    // Clicking empty ground with Seleccionar just clears the selection.
-    if (e.button === 0 && p.tool === 'select') { p.onSelectToken(null); return; }
+    if (e.button === 0 && p.tool === 'select') {
+      // Seleccionar: pick a segment (DM only) and grab it, or clear everything.
+      const wall = dmSight ? hitWall(p.walls, s, 10 / p.view.zoom) : null;
+      if (wall) {
+        p.onSelectToken(null);
+        p.onSelectWall?.(wall.id);
+        const near = (x: number, y: number) => Math.hypot(s.x - x, s.y - y) <= 12 / p.view.zoom;
+        const grab = near(wall.x1, wall.y1) ? 'a' : near(wall.x2, wall.y2) ? 'b' : 'whole';
+        setGesture({ kind: 'wallEdit', id: wall.id, grab, start: s, origin: { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 } });
+        svgRef.current?.setPointerCapture?.(e.pointerId);
+        return;
+      }
+      p.onSelectToken(null);
+      p.onSelectWall?.(null);
+      return;
+    }
     if (e.button !== 0) return;
     const draw = DRAW_TOOLS[p.tool];
     if (draw) { setGesture({ kind: 'draw', tool: draw, start: s, points: [[s.x, s.y]], last: s }); svgRef.current?.setPointerCapture?.(e.pointerId); return; }
@@ -162,7 +185,12 @@ export function MapCanvas(p: Props): JSX.Element {
         const opening = hitWall(p.walls.filter(canOpen), s, 8 / p.view.zoom);
         if (opening && !wallStart) { p.onToggleWall(opening); return; }
         const q = { x: snap(s.x, grid), y: snap(s.y, grid) };
-        if (wallStart) p.onAddWall(wallStart, q);
+        if (wallStart) {
+          p.onAddWall(wallStart, q);
+          // A door or a window is ONE segment: chaining would drop a second one where you did not ask for it.
+          setWallStart(p.wallKind && p.wallKind !== 'wall' ? null : q);
+          return;
+        }
         setWallStart(q);
         return;
       }
@@ -194,6 +222,8 @@ export function MapCanvas(p: Props): JSX.Element {
       p.onDragToken(gesture.id, x, y);
     } else if (gesture.kind === 'draw') {
       setGesture(gesture.tool === 'stroke' ? { ...gesture, points: [...gesture.points, [s.x, s.y]], last: s } : { ...gesture, last: s });
+    } else if (gesture.kind === 'wallEdit') {
+      setWallDraft(wallDragTo(gesture.origin, gesture.grab, gesture.start, s, grid));
     } else if (gesture.kind === 'brush') {
       // Same rate limit as the token drag: every call is a round trip that rewrites the fog row of EVERY player
       // and wakes the whole table through `fog.updated`. One per pointermove would be ~60 a second.
@@ -206,6 +236,14 @@ export function MapCanvas(p: Props): JSX.Element {
 
   const onUp = () => {
     if (!gesture) return;
+    if (gesture.kind === 'wallEdit') {
+      const at = wallDragTo(gesture.origin, gesture.grab, gesture.start, hover ?? gesture.start, grid);
+      const moved = at.x1 !== gesture.origin.x1 || at.y1 !== gesture.origin.y1 || at.x2 !== gesture.origin.x2 || at.y2 !== gesture.origin.y2;
+      if (moved) p.onMoveWall?.(gesture.id, at);
+      setWallDraft(null);
+      setGesture(null);
+      return;
+    }
     if (gesture.kind === 'token') {
       if (gesture.moved && localDrag) p.onMoveToken(gesture.id, Math.round(localDrag.x), Math.round(localDrag.y));
       setLocalDrag(null);
@@ -240,6 +278,8 @@ export function MapCanvas(p: Props): JSX.Element {
   const tokenMask = playerSight ? (p.scene.fogMode === 'vision' ? fogIds.lit : fogIds.seen) : null;
   const sceneRect = { x: 0, y: 0, width: p.scene.width, height: p.scene.height };
   const brushPx = brushRadius(p.brush, grid);
+  const selectedWall = p.selectedWallId ? p.walls.find(w => w.id === p.selectedWallId) ?? null : null;
+  const handleAt = wallDraft ?? (selectedWall ? { x1: selectedWall.x1, y1: selectedWall.y1, x2: selectedWall.x2, y2: selectedWall.y2 } : { x1: 0, y1: 0, x2: 0, y2: 0 });
 
   return (
     <svg ref={svgRef} className="mp-svg" data-tool={p.tool} style={{ cursor }} aria-label={t('maps.canvas.label')} role="application"
@@ -254,7 +294,7 @@ export function MapCanvas(p: Props): JSX.Element {
           <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} />
           {dmSight && fog && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
-            {wallsShown.map(w => <WallShape key={w.id} wall={w} />)}
+            {wallsShown.map(w => <WallShape key={w.id} wall={w} selected={w.id === p.selectedWallId} draft={wallDraft && w.id === p.selectedWallId ? wallDraft : null} />)}
             {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={snap(hover.x, grid)} y2={snap(hover.y, grid)} className="mp-wall draft" />}
           </g>
           <g className="mp-layer-drawings" data-testid="mp-drawings">
@@ -274,6 +314,13 @@ export function MapCanvas(p: Props): JSX.Element {
         <g className="mp-layer-ui">
           {dmSight && isBrush(p.tool) && hover && (
             <circle cx={hover.x} cy={hover.y} r={brushPx} className={`mp-brush ${p.tool}`} data-testid="mp-brush" />
+          )}
+          {dmSight && selectedWall && (
+            <g className="mp-wall-handles" data-testid="mp-wall-handles">
+              {([['a', handleAt.x1, handleAt.y1], ['b', handleAt.x2, handleAt.y2]] as const).map(([id, hx, hy]) => (
+                <rect key={id} data-vertex={id} x={hx - 6} y={hy - 6} width={12} height={12} className="mp-vertex" />
+              ))}
+            </g>
           )}
           {measure && measured && (
             <g className="mp-measure" data-testid="mp-measure">

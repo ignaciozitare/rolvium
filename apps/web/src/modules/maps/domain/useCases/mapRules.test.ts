@@ -3,7 +3,7 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitWall, isBrush, METRES_PER_CELL, newWallOf, nightLabelM, openingGeometry, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, WALL_FLAGS, WALL_KINDS,
+  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitWall, isBrush, METRES_PER_CELL, newWallOf, nightLabelM, openingGeometry, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, WALL_FLAGS, WALL_KINDS,
 } from './mapRules';
 
 describe('mapRules — view & coordinates', () => {
@@ -195,5 +195,19 @@ describe('light and fog helpers', () => {
     expect(isBrush('hide')).toBe(true);
     expect(isBrush('pencil')).toBe(false);
     expect(TOOLS_NOT_YET).toEqual([]);
+  });
+});
+
+describe('wallDragTo — mover un segmento o estirar un vértice', () => {
+  const origin = { x1: 27, y1: 54, x2: 135, y2: 54 };
+  it('agarrando el cuerpo mueve los dos extremos a la vez, ajustado a la rejilla', () => {
+    expect(wallDragTo(origin, 'whole', { x: 50, y: 50 }, { x: 50 + 27, y: 50 + 27 }, 27)).toEqual({ x1: 54, y1: 81, x2: 162, y2: 81 });
+  });
+  it('agarrando un vértice mueve sólo ese extremo', () => {
+    expect(wallDragTo(origin, 'a', { x: 27, y: 54 }, { x: 27, y: 54 + 27 }, 27)).toEqual({ x1: 27, y1: 81, x2: 135, y2: 54 });
+    expect(wallDragTo(origin, 'b', { x: 135, y: 54 }, { x: 135 + 27, y: 54 }, 27)).toEqual({ x1: 27, y1: 54, x2: 162, y2: 54 });
+  });
+  it('un arrastre menor que media casilla no mueve nada: la rejilla lo absorbe', () => {
+    expect(wallDragTo(origin, 'whole', { x: 50, y: 50 }, { x: 55, y: 52 }, 27)).toEqual(origin);
   });
 });

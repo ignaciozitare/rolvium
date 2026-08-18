@@ -85,13 +85,13 @@ export function TokenGlyph({ token, grid, override, selected, movable, label, hi
  * keeps the threshold faint and swings its leaf out; a window is steel and never cuts sight
  * (rolvium.pen `uXK3T` · Muro / Puerta cerrada / Puerta abierta / Ventana).
  */
-export function WallShape({ wall, draft = false }: { wall: Wall; draft?: boolean }): JSX.Element {
-  const line = { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 };
-  const cls = `mp-wall ${wall.kind} ${wall.isOpen ? 'open' : ''} ${wall.visiblePlayers ? 'visible' : ''} ${draft ? 'draft' : ''}`;
+export function WallShape({ wall, selected = false, draft = null }: { wall: Wall; selected?: boolean; draft?: { x1: number; y1: number; x2: number; y2: number } | null }): JSX.Element {
+  const line = draft ?? { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 };
+  const cls = `mp-wall ${wall.kind} ${wall.isOpen ? 'open' : ''} ${wall.visiblePlayers ? 'visible' : ''} ${selected ? 'selected' : ''}`;
   if (wall.kind === 'wall') return <line {...line} className={cls} data-wall-id={wall.id} data-wall-kind={wall.kind} />;
-  const g = openingGeometry(wall);
+  const g = openingGeometry(line);
   return (
-    <g className={`mp-opening ${wall.kind} ${wall.isOpen ? 'open' : ''}`} data-wall-id={wall.id} data-wall-kind={wall.kind} data-open={wall.isOpen ? 'true' : 'false'}>
+    <g className={`mp-opening ${wall.kind} ${wall.isOpen ? 'open' : ''} ${selected ? 'selected' : ''}`} data-wall-id={wall.id} data-wall-kind={wall.kind} data-open={wall.isOpen ? 'true' : 'false'}>
       <line {...line} className={cls} />
       {wall.kind === 'door' && !wall.isOpen && <line {...line} className="mp-wall-core" />}
       {wall.kind === 'door' && wall.isOpen && <line x1={g.leaf[0].x} y1={g.leaf[0].y} x2={g.leaf[1].x} y2={g.leaf[1].y} className="mp-wall-leaf" />}

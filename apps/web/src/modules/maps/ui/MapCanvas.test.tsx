@@ -12,7 +12,7 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onSelectWall: vi.fn(), onMoveWall: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
@@ -304,5 +304,51 @@ describe('<MapCanvas> panning is a modifier, not a tool', () => {
     expect(svg).toHaveStyle({ cursor: 'grab' });
     fireEvent.blur(window);                              // alt-tab with space down must not stick
     expect(svg).toHaveStyle({ cursor: 'crosshair' });
+  });
+});
+
+describe('<MapCanvas> Seleccionar edita muros', () => {
+  it('el director elige un segmento, le salen tiradores en los vértices, y arrastrarlo entero lo mueve', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: null });
+    // WALL_1 es vertical en x = 270, de y = 216 a 540
+    down(svg, 272, 380);
+    expect(cb.onSelectWall).toHaveBeenCalledWith('w-1');
+
+    document.body.innerHTML = '';
+    const sel = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: 'w-1' });
+    expect(within(sel.svg).getByTestId('mp-wall-handles').querySelectorAll('.mp-vertex')).toHaveLength(2);
+    down(sel.svg, 272, 380); move(sel.svg, 272 + G, 380); up(sel.svg);
+    expect(sel.cb.onMoveWall).toHaveBeenCalledWith('w-1', { x1: 270 + G, y1: 216, x2: 270 + G, y2: 540 });
+  });
+
+  it('arrastrar un vértice estira sólo ese extremo, ajustado a la rejilla', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: 'w-1' });
+    down(svg, 270, 216); move(svg, 270, 216 + G); up(svg);
+    expect(cb.onMoveWall).toHaveBeenCalledWith('w-1', { x1: 270, y1: 216 + G, x2: 270, y2: 540 });
+  });
+
+  it('pulsar en vacío deselecciona muro y token; un jugador no puede seleccionar muros', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: 'w-1' });
+    down(svg, 700, 100); up(svg);
+    expect(cb.onSelectWall).toHaveBeenCalledWith(null);
+    expect(cb.onMoveWall).not.toHaveBeenCalled();
+
+    document.body.innerHTML = '';
+    const player = mount({ tool: 'select', walls: [WALL_VISIBLE] });
+    down(player.svg, WALL_VISIBLE.x1 + 2, WALL_VISIBLE.y1);
+    expect(player.cb.onSelectWall).toHaveBeenCalledWith(null);
+  });
+
+  it('una puerta es UN segmento: no encadena el siguiente; un muro liso sí', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'wall', wallKind: 'door' });
+    down(svg, 2 * G, 2 * G); down(svg, 6 * G, 2 * G);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+    down(svg, 9 * G, 2 * G);              // sin encadenar, este clic sólo abre el siguiente segmento
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+
+    document.body.innerHTML = '';
+    const chain = mount({ isDm: true, me: 'u-gm', tool: 'wall', wallKind: 'wall' });
+    down(chain.svg, 2 * G, 2 * G); down(chain.svg, 6 * G, 2 * G); down(chain.svg, 9 * G, 2 * G);
+    expect(chain.cb.onAddWall).toHaveBeenCalledTimes(2);
   });
 });

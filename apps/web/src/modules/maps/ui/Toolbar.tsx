@@ -34,19 +34,21 @@ function Btn({ label, icon, on, dm, disabled, onClick }: { label: string; icon: 
 /**
  * The single vertical bar of the scene, in three labelled blocks (rolvium.pen · «Escena · Director»):
  *
- *   JUEGO     Dados · Seleccionar · Medir · Pin        — what you touch while playing
- *   LIENZO    Lápiz · Línea · Caja · Círculo · Borrar  — drawing on the map
- *   DIRECTOR  Muro · Revelar · Ocultar ‖ Encuentro · Colocar PJ · Fondo del mapa
+ *   play    Dados · Seleccionar · Medir · Pin        — what you touch while playing
+ *   canvas  Lápiz · Línea · Caja · Círculo · Borrar  — drawing on the map
+ *   dm      Muro · Revelar · Ocultar ‖ Encuentro · Colocar PJ · Fondo del mapa
  *
- * The blocks are labelled on purpose: the bar now carries everything, so what changes the cursor and what opens a
- * panel must not look alike — the last three of the DM block open a panel and sit behind their own separator.
+ * The blocks are separated by rules, not by written labels: labels made the bar wide enough to eat map. What
+ * changes the cursor and what opens a panel still must not look alike, so the DM panels sit behind their own rule.
+ * A player never gets the DM block at all.
  * Panning is NOT here: it is a modifier (space bar or middle button), so it works from every tool.
  */
 export function Toolbar(p: Props): JSX.Element {
   const { t } = useTranslation();
   const label = (id: Tool) => (TOOLS_NOT_YET.includes(id) ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.soon')}` : t(`maps.tool.${id}`));
   const tools = (ids: Tool[]) => ids.filter(x => p.isDm || PLAYER_TOOLS.includes(x)).map(id => (
-    <Btn key={id} label={label(id)} icon={ICONS[id]} on={p.tool === id} dm={DM_TOOLS.includes(id)} disabled={TOOLS_NOT_YET.includes(id)} onClick={() => p.onChange(id)} />
+    <Btn key={id} label={label(id)} icon={ICONS[id]} on={p.tool === id} dm={DM_TOOLS.includes(id)} disabled={TOOLS_NOT_YET.includes(id)}
+      onClick={() => p.onChange(p.tool === id ? 'select' : id)} />
   ));
   const actions = (list: Action[]) => list.map(a => (
     <Btn key={a.id} label={t(`maps.action.${a.id}`)} icon={a.icon} on={!!a.on} dm={a.id !== 'dice'} onClick={a.onClick} />
@@ -60,17 +62,14 @@ export function Toolbar(p: Props): JSX.Element {
   return (
     <div className="mp-toolbar" role="toolbar" aria-label={t('maps.toolbar')} aria-orientation="vertical">
       <div className="mp-tool-group">
-        <span className="mp-tool-rotulo">{t('maps.group.play')}</span>
         {actions([{ id: 'dice', icon: 'casino', onClick: p.onDice, ...(p.diceOpen !== undefined ? { on: p.diceOpen } : {}) }])}
         {tools(['select', 'measure', 'pin'])}
       </div>
       <div className="mp-tool-group">
-        <span className="mp-tool-rotulo">{t('maps.group.canvas')}</span>
         {tools(['pencil', 'line', 'rect', 'circle', 'erase'])}
       </div>
       {p.isDm && (
         <div className="mp-tool-group dm">
-          <span className="mp-tool-rotulo">{t('maps.group.dm')}</span>
           {tools(['wall', 'reveal', 'hide'])}
           <span className="mp-tool-sep" aria-hidden />
           {tools(['encounter'])}

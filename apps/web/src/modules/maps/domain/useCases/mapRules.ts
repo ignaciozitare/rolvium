@@ -228,3 +228,22 @@ export function filterEntries<T>(items: T[], query: string, labelOf: (t: T) => s
   const q = norm(query.trim());
   return q ? items.filter(i => norm(labelOf(i)).includes(q)) : items;
 }
+
+/**
+ * Where a segment lands while it is being dragged with Seleccionar: grabbing an endpoint stretches that end,
+ * grabbing anywhere else moves the whole thing. Everything snaps to the grid, like drawing does, so an edited
+ * wall keeps lining up with the plan.
+ */
+export function wallDragTo(
+  origin: { x1: number; y1: number; x2: number; y2: number },
+  grab: 'a' | 'b' | 'whole',
+  from: Point,
+  to: Point,
+  grid: number,
+): { x1: number; y1: number; x2: number; y2: number } {
+  const dx = to.x - from.x, dy = to.y - from.y;
+  if (grab === 'a') return { ...origin, x1: snap(origin.x1 + dx, grid), y1: snap(origin.y1 + dy, grid) };
+  if (grab === 'b') return { ...origin, x2: snap(origin.x2 + dx, grid), y2: snap(origin.y2 + dy, grid) };
+  const sx = snap(origin.x1 + dx, grid) - origin.x1, sy = snap(origin.y1 + dy, grid) - origin.y1;
+  return { x1: origin.x1 + sx, y1: origin.y1 + sy, x2: origin.x2 + sx, y2: origin.y2 + sy };
+}

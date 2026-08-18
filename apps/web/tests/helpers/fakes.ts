@@ -298,6 +298,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const tokenUpdates: { id: string; patch: TokenPatch }[] = [];
   const sceneUpdates: { id: string; patch: ScenePatch }[] = [];
   const wallUpdates: { id: string; patch: WallPatch }[] = [];
+  const wallMoves: { id: string; at: { x1: number; y1: number; x2: number; y2: number } }[] = [];
   const activated: (string | null)[] = [];
   const removedDrawings: string[] = [];
   const clearedMine: string[] = [];
@@ -305,7 +306,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const uploads: { campaignId: string; name: string }[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, activated, removedDrawings, clearedMine, clearedAll, uploads,
+    scenes, tokens, walls, drawings, images, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, activated, removedDrawings, clearedMine, clearedAll, uploads,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.event) h.onEvent?.(what.event); });
@@ -322,6 +323,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     listWalls: async (sid: string) => walls.filter(w => w.sceneId === sid),
     addWall: async (w: NewWall) => { const created: Wall = { ...w, id: `w-new-${++n}` }; walls.push(created); return created; },
     updateWall: async (id: string, patch: WallPatch) => { wallUpdates.push({ id, patch }); const w = walls.find(x => x.id === id); if (w) Object.assign(w, patch); },
+    updateWallGeometry: async (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => { wallMoves.push({ id, at }); const w = walls.find(x => x.id === id); if (w) Object.assign(w, at); },
     removeWall: async (id: string) => { const i = walls.findIndex(w => w.id === id); if (i >= 0) walls.splice(i, 1); },
     listTokens: async (sid: string) => tokens.filter(t => t.sceneId === sid),
     addToken: async (t: NewToken) => { const created: Token = { ...t, id: `tk-new-${++n}` }; tokens.push(created); return created; },

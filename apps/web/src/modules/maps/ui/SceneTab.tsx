@@ -10,12 +10,13 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, newWallOf, STROKE_COLORS, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, newWallOf, WALL_FLAGS, STROKE_COLORS, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
 import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
+import { SegmentBar } from './SegmentBar';
 import { CanvasControls } from './CanvasControls';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
@@ -67,6 +68,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [brush, setBrush] = useState<number>(DEFAULT_BRUSH);
   const [wallKind, setWallKind] = useState<WallKind>('wall');
   const [railFolded, setRailFolded] = useState(false);
+  const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
   // ── load: DM lists; player follows the active scene ──
@@ -111,6 +113,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   };
   const bestiary = system.catalogs['bestiary'] ?? [];
   const selectedToken = st.tokens.find(tk => tk.id === selectedTokenId) ?? null;
+  const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
 
   if (status === 'loading') return <section className="tb-hoja tb-placeholder">{t('maps.loading')}</section>;
   if (status === 'error') return <section className="tb-hoja tb-placeholder">{t('maps.error')}</section>;
@@ -136,7 +139,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
       <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll() ): undefined}
         tool={tool}
         {...(isDm && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})}
-        {...(isDm && tool === 'wall' ? { wallKind, onWallKind: setWallKind } : {})} />
+ />
       <div className="mp-stage-row">
         {scenesRail}
         <Toolbar tool={tool} isDm={isDm} onChange={setTool}
@@ -144,7 +147,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
-            playerView={playerView} showWalls={showWalls} fog={st.fog} brush={brush} view={view} onViewChange={setView} nameOf={nameOf}
+            playerView={playerView} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
             onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))}
             onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width }))}
             onErase={id => run(st.eraseDrawing(id))}
@@ -153,7 +156,9 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             onPin={st.focusPin}
             onPlace={encounter ? cell => run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, cell)) ): undefined}
-            selectedTokenId={selectedTokenId} onSelectToken={setSelectedTokenId} />
+            selectedTokenId={selectedTokenId} onSelectToken={setSelectedTokenId}
+            selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
+            onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))} />
           {isDm && (
             <div className="mp-dmtag" role="group" aria-label={t('maps.dmOptions')}>
               <span className="mp-dm-tag">{t('maps.dmOnly')}</span>
@@ -163,6 +168,15 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           <span className="mp-canvas-label">{isDm && !playerView
             ? `${t('maps.dmView')}${live.fogMode === 'vision' ? ` · ${t('maps.fog.byVision')}` : ''}${isBrush(tool) ? ` · ${t(`maps.brush.${tool}`)}` : ''}`
             : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
+          {isDm && (tool === 'wall' || selectedWall) && (
+            <SegmentBar wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
+              onKind={k => (selectedWall ? run(st.patchWall(selectedWall.id, { kind: k, ...WALL_FLAGS[k] })) : setWallKind(k))}
+              {...(selectedWall ? {
+                onVisible: (v: boolean) => run(st.patchWall(selectedWall.id, { visiblePlayers: v })),
+                onToggleOpen: () => run(st.patchWall(selectedWall.id, { isOpen: !selectedWall.isOpen })),
+                onRemove: () => { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); },
+              } : {})} />
+          )}
           {isDm && selectedToken && (
             <div className="mp-tokbar" role="toolbar" aria-label={t('maps.token.selected')}>
               <span className="mp-tokbar-name">{selectedToken.name}</span>

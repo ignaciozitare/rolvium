@@ -769,12 +769,13 @@
         "window": "Ventana"
       },
       "kindOf": "Tipo de segmento",
-      "toggleHint": "clic en una puerta o una ventana para abrirla o cerrarla"
-    },
-    "group": {
-      "play": "Juego",
-      "canvas": "Lienzo",
-      "dm": "Director"
+      "toggleHint": "clic en una puerta o una ventana para abrirla o cerrarla",
+      "segment": "Segmento",
+      "visible": "visible para jugadores",
+      "remove": "Quitar segmento",
+      "open": "Abrir",
+      "close": "Cerrar",
+      "selected": "Segmento seleccionado"
     },
     "action": {
       "dice": "Lanzador de dados",

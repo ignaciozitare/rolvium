@@ -150,6 +150,10 @@ export class SupabaseMapsRepo implements MapsPort {
     this.fail(error);
     return mapWallRow(data as unknown as WallRow);
   }
+  async updateWallGeometry(id: string, at: { x1: number; y1: number; x2: number; y2: number }): Promise<void> {
+    const { error } = await this.db.from('maps_walls').update(at).eq('id', id);
+    this.fail(error);
+  }
   /** DM only (RLS): opening or closing a door/window is an UPDATE on the segment. */
   async updateWall(id: string, patch: WallPatch): Promise<void> {
     const { error } = await this.db.from('maps_walls').update(wallPatchRow(patch)).eq('id', id);

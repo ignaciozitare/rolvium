@@ -42,6 +42,8 @@ export interface MapsPort {
   addWall(input: NewWall): Promise<Wall>;
   /** DM only: open/close a door or window, or change what a segment is. */
   updateWall(id: string, patch: WallPatch): Promise<void>;
+  /** DM only: the segment was moved or a vertex stretched with Seleccionar. */
+  updateWallGeometry(id: string, at: { x1: number; y1: number; x2: number; y2: number }): Promise<void>;
   removeWall(id: string): Promise<void>;
   // tokens
   listTokens(sceneId: string): Promise<Token[]>;

@@ -133,6 +133,12 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     await repo.updateWall(id, patch);
     announceVision();
   }, [repo, announceVision]);
+  /** DM, Seleccionar: the segment moved or a vertex was stretched — geometry only, but it changes every sightline. */
+  const patchWallGeometry = useCallback(async (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => {
+    setWalls(l => l.map(w => (w.id === id ? { ...w, ...at } : w)));
+    await repo.updateWallGeometry(id, at);
+    announceVision();
+  }, [repo, announceVision]);
   /** DM brush: paints on every player's explored cells; the answer is the DM's own union. */
   const paintFog = useCallback(async (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => {
     if (!sceneId || !vision) return;
@@ -156,8 +162,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, drags, pin, status, fog,
-    dragToken, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, focusPin,
+    dragToken, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin,
     refreshVision, paintFog, paintAllFog,
-  }), [live, tokens, walls, drawings, drags, pin, status, fog, dragToken, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, focusPin, refreshVision, paintFog, paintAllFog]);
+  }), [live, tokens, walls, drawings, drags, pin, status, fog, dragToken, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog]);
 }
 export type SceneState = ReturnType<typeof useScene>;

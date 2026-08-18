@@ -29,7 +29,7 @@ export function SidePanel({ campaignId, system, rollerOpen, onToggleRoller, log 
         <div className="dc-tabs" role="tablist" aria-label={t('dice.panel.tabs')}>
           {TABS.map(p => <button key={p} type="button" role="tab" className="dc-tab" aria-selected={tab === p} onClick={() => setTab(p)}>{t(`table.panel.${p}`)}</button>)}
         </div>
-        <div role="tabpanel">
+        <div role="tabpanel" className="dc-log-scroll">
           {tab === 'log'
             ? <RollLog campaignId={campaignId} system={system} {...(log ? { log } : {})} />
             : <div className="dc-soon" aria-live="polite"><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>construction</span>{t('dice.panel.soon')}</div>}

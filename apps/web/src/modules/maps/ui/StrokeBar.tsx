@@ -1,6 +1,5 @@
 import { useTranslation } from '@rolvium/i18n';
-import type { WallKind } from '../domain/entities/Scene';
-import { BRUSH_SIZES, STROKE_COLORS, STROKE_WIDTHS, WALL_KINDS, isBrush, type Tool } from '../domain/useCases/mapRules';
+import { BRUSH_SIZES, STROKE_COLORS, STROKE_WIDTHS, isBrush, type Tool } from '../domain/useCases/mapRules';
 import type { StrokeStyle } from './MapCanvas';
 
 interface Props {
@@ -14,36 +13,16 @@ interface Props {
   onBrush?: (size: number) => void;
   onRevealAll?: () => void;
   onHideAll?: () => void;
-  /** What the Muro tool draws next (DM). */
-  wallKind?: WallKind;
-  onWallKind?: (kind: WallKind) => void;
 }
 
 /**
  * The bar above the canvas follows the active tool. Drawing → «Trazo» (thickness · colours · clear); the DM's
- * reveal/hide → «Pincel» (brush size + the two «todo» buttons, rolvium.pen `uXK3T`); the DM's Muro → «Muro»
- * (which of the three types the next segment is, rolvium.pen `h3Q3NN`). The canvas legend keeps explaining what
- * each type cuts, so the note here only says the thing the legend cannot: how to work a door.
+ * reveal/hide → «Pincel» (brush size + the two «todo» buttons, rolvium.pen `uXK3T`). Choosing what kind of segment
+ * to draw is NOT here: it rides `SegmentBar`, floating over the map, because a full-width bar costs map height.
  */
-export function StrokeBar({ value, onChange, onClearMine, onClearAll, tool = 'pencil', brush, onBrush, onRevealAll, onHideAll, wallKind, onWallKind }: Props): JSX.Element {
+export function StrokeBar({ value, onChange, onClearMine, onClearAll, tool = 'pencil', brush, onBrush, onRevealAll, onHideAll }: Props): JSX.Element {
   const { t } = useTranslation();
   const brushing = isBrush(tool) && brush !== undefined && !!onBrush;
-  const walling = tool === 'wall' && wallKind !== undefined && !!onWallKind;
-
-  if (walling) {
-    return (
-      <div className="mp-strokebar mp-wallbar">
-        <span className="tb-rotulo">{t('maps.wall.label')}</span>
-        <span className="mp-kinds" role="radiogroup" aria-label={t('maps.wall.kindOf')}>
-          {WALL_KINDS.map(kind => (
-            <button key={kind} type="button" role="radio" aria-checked={wallKind === kind}
-              className={`mp-seg ${wallKind === kind ? 'on' : ''}`} onClick={() => onWallKind(kind)}>{t(`maps.wall.kind.${kind}`)}</button>
-          ))}
-        </span>
-        <span className="mp-stroke-note tb-italic tb-dim">{t('maps.wall.toggleHint')}</span>
-      </div>
-    );
-  }
 
   if (brushing) {
     return (

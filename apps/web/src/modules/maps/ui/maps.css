@@ -157,7 +157,6 @@
 .mp-rail-add{padding:5px 8px;border:1px solid var(--sys-border);background:transparent;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink-soft);cursor:pointer;}
 .mp-rail-add:hover{background:color-mix(in srgb,var(--sys-ink) 8%,transparent);}
 /* the toolbar now carries everything, so each block says what it is */
-.mp-tool-rotulo{font-size:var(--fs-2xs);letter-spacing:.16em;text-transform:uppercase;color:var(--sys-ink-dim);text-align:center;padding-bottom:2px;}
 .mp-tool-sep{display:block;height:1px;margin:4px 3px;background:var(--sys-line);}
 /* Collapsed the rail is just the button to bring it back — the map takes the rest. */
 .mp-rail.collapsed{width:34px;padding:4px;gap:0;background:color-mix(in srgb,var(--sys-paper-hi) 88%,transparent);}
@@ -167,3 +166,10 @@
   padding:4px 8px;background:color-mix(in srgb,var(--sys-ink) 78%,transparent);color:var(--sys-paper-lo);
   font-size:var(--fs-2xs);pointer-events:none;}
 .mp-ctl-sep{display:block;height:1px;margin:3px 5px;background:var(--sys-line);}
+/* «Segmento»: floats over the map like the token bar, so it costs no height */
+.mp-segbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:6px 10px;background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);color:var(--sys-ink);}
+.mp-segbar-del{border:none;background:transparent;padding:0;line-height:0;color:var(--sys-blood);cursor:pointer;}
+.mp-wall.selected{stroke:var(--sys-paper-hi);stroke-width:6;}
+.mp-opening.selected .mp-wall{stroke:var(--sys-paper-hi);}
+.mp-vertex{fill:var(--sys-paper-hi);stroke:var(--sys-ink);stroke-width:2;cursor:pointer;}

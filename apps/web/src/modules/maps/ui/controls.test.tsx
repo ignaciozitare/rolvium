@@ -3,12 +3,13 @@ import { renderWithProviders, screen, fireEvent, within } from '../../../../test
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
-import { SCENE_WAREHOUSE } from '../../../../tests/helpers/fakes';
+import { SCENE_WAREHOUSE, WALL_1, WALL_DOOR } from '../../../../tests/helpers/fakes';
 import { STROKE_COLORS } from '../domain/useCases/mapRules';
 import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { CanvasControls } from './CanvasControls';
 import { EncounterMenu } from './EncounterMenu';
+import { SegmentBar } from './SegmentBar';
 
 describe('<Toolbar>', () => {
   it('three labelled blocks: Dados abre el lanzador y va primero; el jugador no ve el bloque de director; Fondo y Colocar PJ son botones de panel, no herramientas', async () => {
@@ -16,9 +17,6 @@ describe('<Toolbar>', () => {
     const { rerender } = renderWithProviders(<Toolbar tool="select" isDm={false} onChange={onChange} onDice={onDice} />);
     // JUEGO: Dados + Seleccionar · Medir · Pin  ·  LIENZO: 5 de dibujo
     expect(screen.getAllByRole('button')).toHaveLength(9);
-    expect(screen.getByText('Juego')).toBeInTheDocument();
-    expect(screen.getByText('Lienzo')).toBeInTheDocument();
-    expect(screen.queryByText('Director')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Seleccionar' })).toHaveAttribute('aria-pressed', 'true');
     await userEvent.setup().click(screen.getByRole('button', { name: 'Lanzador de dados' }));
     expect(onDice).toHaveBeenCalled();
@@ -27,7 +25,6 @@ describe('<Toolbar>', () => {
     rerender(<Toolbar tool="wall" isDm onChange={onChange} onDice={onDice} onPlacePc={onPlacePc} onBackground={onBackground} />);
     // + DIRECTOR: Muro · Revelar · Ocultar · Encuentro · Colocar PJ · Fondo del mapa
     expect(screen.getAllByRole('button')).toHaveLength(15);
-    expect(screen.getByText('Director')).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Colocar PJ' }));
     expect(onPlacePc).toHaveBeenCalled();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Fondo del mapa' }));
@@ -129,24 +126,98 @@ describe('<StrokeBar> as the fog brush', () => {
   });
 });
 
-describe('<StrokeBar> as the wall-type picker', () => {
-  it('with the Muro tool it becomes «Muro»: the three types + how to work a door, and the stroke controls step aside', async () => {
-    const onWallKind = vi.fn();
-    renderWithProviders(
-      <StrokeBar value={{ color: STROKE_COLORS[1], width: 2 }} onChange={vi.fn()} onClearMine={vi.fn()} tool="wall" wallKind="wall" onWallKind={onWallKind} />,
-    );
-    expect(screen.queryByRole('slider', { name: 'Grosor del trazo' })).not.toBeInTheDocument();
+describe('<SegmentBar> — el tipo de segmento vive sobre el mapa, no en una barra a lo ancho', () => {
+  it('con la herramienta Muro y nada seleccionado elige lo que se dibujará', async () => {
+    const onKind = vi.fn();
+    renderWithProviders(<SegmentBar wall={null} kind="wall" onKind={onKind} />);
     expect(screen.getByRole('radio', { name: 'Muro' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Puerta' })).not.toBeChecked();
     expect(screen.getByText('clic en una puerta o una ventana para abrirla o cerrarla')).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole('radio', { name: 'Ventana' }));
-    expect(onWallKind).toHaveBeenCalledWith('window');
+    expect(onKind).toHaveBeenCalledWith('window');
+    // sin segmento seleccionado no hay nada que borrar ni que abrir
+    expect(screen.queryByRole('button', { name: 'Quitar segmento' })).not.toBeInTheDocument();
   });
 
-  it('a player never gets the type picker — the bar stays «Trazo» on the same tool', () => {
-    renderWithProviders(<StrokeBar value={{ color: STROKE_COLORS[1], width: 2 }} onChange={vi.fn()} onClearMine={vi.fn()} tool="wall" />);
+  it('con un segmento seleccionado cambia su tipo, su visibilidad, lo abre y lo borra', async () => {
+    const u = userEvent.setup();
+    const cb = { onKind: vi.fn(), onVisible: vi.fn(), onToggleOpen: vi.fn(), onRemove: vi.fn() };
+    renderWithProviders(<SegmentBar wall={WALL_DOOR} kind="door" {...cb} />);
+    expect(screen.getByRole('radio', { name: 'Puerta' })).toBeChecked();
+    await u.click(screen.getByRole('checkbox', { name: 'visible para jugadores' }));
+    expect(cb.onVisible).toHaveBeenCalledWith(true);
+    await u.click(screen.getByRole('button', { name: 'Abrir' }));
+    expect(cb.onToggleOpen).toHaveBeenCalled();
+    await u.click(screen.getByRole('button', { name: 'Quitar segmento' }));
+    expect(cb.onRemove).toHaveBeenCalled();
+  });
+
+  it('un muro liso no se abre: no ofrece el botón', () => {
+    renderWithProviders(<SegmentBar wall={WALL_1} kind="wall" onKind={vi.fn()} onToggleOpen={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Abrir|Cerrar/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('<CanvasControls>', () => {
+  it('zoom in/out/centre for everyone; walls toggle + «ver como jugador» for the DM', async () => {
+    const u = userEvent.setup();
+    const p = { onZoomIn: vi.fn(), onZoomOut: vi.fn(), onCenter: vi.fn(), onToggleWalls: vi.fn(), onTogglePlayerView: vi.fn(), showWalls: true, playerView: false };
+    const { rerender } = renderWithProviders(<CanvasControls {...p} isDm={false} />);
+    expect(screen.getAllByRole('button')).toHaveLength(3);
+    await u.click(screen.getByRole('button', { name: 'Acercar' })); expect(p.onZoomIn).toHaveBeenCalled();
+    await u.click(screen.getByRole('button', { name: 'Alejar' })); expect(p.onZoomOut).toHaveBeenCalled();
+    await u.click(screen.getByRole('button', { name: 'Centrar' })); expect(p.onCenter).toHaveBeenCalled();
+    rerender(<CanvasControls {...p} isDm />);
+    await u.click(screen.getByRole('button', { name: 'Ver/ocultar muros' })); expect(p.onToggleWalls).toHaveBeenCalled();
+    await u.click(screen.getByRole('button', { name: 'Ver como jugador' })); expect(p.onTogglePlayerView).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Ver/ocultar muros' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+describe('<EncounterMenu>', () => {
+  it('lists the system bestiary with Res/Prot, filters by search, selects an entry, closes', async () => {
+    const u = userEvent.setup();
+    const ts = sysT(plenilunio, 'es');
+    const entries = plenilunio.catalogs['bestiary'] ?? [];
+    const onSelect = vi.fn(); const onClose = vi.fn();
+    renderWithProviders(<EncounterMenu entries={entries} labelOf={e => ts(e.label)} selectedId={null} onSelect={onSelect} onClose={onClose} />);
+    expect(screen.getByRole('dialog', { name: 'Colocar encuentro' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Elegir / })).toHaveLength(entries.length);
+    expect(screen.getByRole('button', { name: 'Elegir Mutante' })).toHaveTextContent(/Res \d+/);
+    await u.type(screen.getByRole('searchbox'), 'ogr');
+    expect(screen.getAllByRole('button', { name: /^Elegir / })).toHaveLength(1);
+    await u.click(screen.getByRole('button', { name: 'Elegir Ogro' }));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'ogre' }));
+    await u.clear(screen.getByRole('searchbox'));
+    await u.type(screen.getByRole('searchbox'), 'zzz');
+    expect(screen.getByText('Sin resultados')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Cerrar' }));
+    expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe('<StrokeBar> as the fog brush', () => {
+  it('with a brush tool it becomes «Pincel»: sizes + revelar/ocultar todo, and the stroke controls step aside', async () => {
+    const u = userEvent.setup();
+    const onBrush = vi.fn(); const onRevealAll = vi.fn(); const onHideAll = vi.fn();
+    renderWithProviders(
+      <StrokeBar value={{ color: STROKE_COLORS[1], width: 2 }} onChange={vi.fn()} onClearMine={vi.fn()}
+        tool="reveal" brush={3} onBrush={onBrush} onRevealAll={onRevealAll} onHideAll={onHideAll} />,
+    );
+    expect(screen.queryByRole('slider', { name: 'Grosor del trazo' })).not.toBeInTheDocument();
+    expect(screen.getByText('revelar u ocultar afecta a todos los jugadores')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Tamaño 3' })).toBeChecked();
+    await u.click(screen.getByRole('radio', { name: 'Tamaño 1' }));
+    expect(onBrush).toHaveBeenCalledWith(1);
+    await u.click(screen.getByRole('button', { name: 'Revelar todo' }));
+    expect(onRevealAll).toHaveBeenCalled();
+    await u.click(screen.getByRole('button', { name: 'Ocultar todo' }));
+    expect(onHideAll).toHaveBeenCalled();
+  });
+
+  it('a player never gets the brush bar even on a brush tool, because they are given no brush', () => {
+    renderWithProviders(<StrokeBar value={{ color: STROKE_COLORS[1], width: 2 }} onChange={vi.fn()} onClearMine={vi.fn()} tool="reveal" />);
     expect(screen.getByRole('slider', { name: 'Grosor del trazo' })).toBeInTheDocument();
-    expect(screen.queryByRole('radio', { name: 'Puerta' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Revelar todo' })).not.toBeInTheDocument();
   });
 });
 
