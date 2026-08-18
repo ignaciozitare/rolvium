@@ -129,3 +129,14 @@ describe('<MapCanvas> tools', () => {
     expect(cb.onPlace).toHaveBeenCalledWith({ x: 2, y: 3 });
   });
 });
+
+describe('<MapCanvas> wheel', () => {
+  it('registers the zoom listener natively with passive:false (React would make it passive)', () => {
+    const add = vi.spyOn(SVGElement.prototype, 'addEventListener');
+    mount();
+    const wheel = add.mock.calls.find(c => c[0] === 'wheel');
+    expect(wheel).toBeDefined();
+    expect(wheel![2]).toMatchObject({ passive: false });
+    add.mockRestore();
+  });
+});

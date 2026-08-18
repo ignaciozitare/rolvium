@@ -20,6 +20,11 @@ Who: transversal; sin UI propia. Lo usan `table`, `characters`, `dice`, `maps`, 
 - Un usuario puede tener varias sesiones (portátil + tablet); todas reciben los mismos eventos. No hay expulsión.
 - La **ficha en ventana aparte** (`/table/:id/sheet/:charId`) es una sesión más del canal.
 
+## Canales en uso (2026-08-18)
+`campaign:{id}` (mesa: campaña, miembros, presencia) · `campaign-rolls:{id}` (dice) · `scene:{sceneId}` (maps: filas + broadcast
+de arrastre y pin). El spec pedía un único canal por campaña; se dividió por volumen y por vida útil distinta (una escena se
+cambia, la mesa no). Los **payloads** siguen siendo los tipos de `packages/core/events.ts`.
+
 ## Rules & limits
 - Lo que un jugador no debe ver (muros, tokens ocultos, tiradas secretas, niebla ajena) se filtra **por RLS**: el
   canal solo entrega filas que la RLS permite. Nunca se filtra en el cliente.

@@ -17,7 +17,8 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   "ver como jugador".
 - **Lienzo** ocupa todo el ancho disponible; grilla fina (27 px base, ajustable) para casar con el plano.
 - Capas: fondo → muros → dibujos/textos → tokens → niebla → interfaz (medida, pin, selección).
-- Vista de jugador: solo su polígono de visión + lo explorado; **los muros no se dibujan** (la niebla se corta contra
+- Vista de jugador: solo su polígono de visión + lo explorado; **los muros no se dibujan** salvo los marcados `visible_players`
+  (excepción explícita del modelo de datos: sirve para mostrar una verja o una barandilla) (la niebla se corta contra
   las paredes del plano); tokens ocultos no existen para él. Vista de director: etiqueta "VISTA DE DIRECTOR", muros
   en oro, velo azulado sobre lo no explorado, tokens ocultos con borde oro.
 - Todos: mover tokens propios, medir, pin de enfoque (centra la vista de quien lo acepte), dibujar/escribir, borrar lo

@@ -28,6 +28,10 @@ pool rebuilt from the sheet, Registro live, floating roller, side panel)** — r
   table's Escena tab). **Fog of war / server-side vision is slice 2** (spec §Rules: the API computes the polygon).
 - **Bug found in the browser and fixed (2026-08-18)**: the table had no scroll of its own (`.tb-root` relied on the document),
   so the character generator could not be completed. `.tb-root` is now `height:100vh; overflow-y:auto` — re-check tomorrow.
+- QA de maps: **PASSED con warnings**. Arreglado ya: zoom con rueda hacía scroll de la mesa (listener nativo `passive:false`),
+  migración de maps ahora es re-ejecutable, specs aclarados (muros `visible_players` visibles al jugador; canales realtime en uso).
+  Queda en backlog: bucket `backgrounds` público, ruta de subida no-uuid da 22P02, límites orientativos sin constantes.
+- Guion de prueba manual paso a paso: `docs/PRUEBA-MANUAL.md`.
 - Owner plan: **test everything together tomorrow** (2026-08-19) — identity, campaigns, table, characters, dice — light/dark + functional.
 
 - characters slice 2 shipped (see commit de01d40 body). Key architecture now in place:

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { Drawing, DrawingKind, Scene, Token, Wall } from '../domain/entities/Scene';
 import { canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitTest, shapeData, snap, tokenCellAt, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
@@ -78,10 +78,22 @@ export function MapCanvas(p: Props): JSX.Element {
   }, []);
   const toScene = useCallback((e: { clientX: number; clientY: number }): Point => canvasToScene(local(e), p.view), [local, p.view]);
 
-  const onWheel = (e: WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
-    p.onViewChange(zoomAt(p.view, e.deltaY < 0 ? 1.1 : 1 / 1.1, local(e)));
-  };
+  /**
+   * Zoom must be a NATIVE listener with `{ passive: false }`: React registers `wheel` passively, so
+   * `preventDefault()` inside `onWheel` is a no-op and the wheel would also scroll the table (`.tb-root`).
+   */
+  const onViewChange = p.onViewChange;
+  const view = p.view;
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const handler = (e: globalThis.WheelEvent) => {
+      e.preventDefault();
+      onViewChange(zoomAt(view, e.deltaY < 0 ? 1.1 : 1 / 1.1, local(e)));
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, [local, view, onViewChange]);
 
   const onTokenDown = (tok: Token) => (e: ReactPointerEvent<SVGGElement>) => {
     if (p.tool !== 'move' || e.button !== 0) return;
@@ -159,7 +171,7 @@ export function MapCanvas(p: Props): JSX.Element {
 
   return (
     <svg ref={svgRef} className="mp-svg" data-tool={p.tool} style={{ cursor }} aria-label={t('maps.canvas.label')} role="application"
-      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => setHover(null)} onWheel={onWheel} onContextMenu={e => e.preventDefault()}>
+      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => setHover(null)} onContextMenu={e => e.preventDefault()}>
       <defs><clipPath id={clipId}><rect x={0} y={0} width={p.scene.width} height={p.scene.height} /></clipPath></defs>
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
         <BackgroundLayer scene={p.scene} clipId={clipId} />

@@ -199,7 +199,16 @@ CREATE POLICY maps_images_dm_write ON public.maps_images FOR ALL TO authenticate
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.maps_scenes, public.maps_walls, public.maps_tokens, public.maps_drawings, public.maps_fog, public.maps_images TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.maps_scenes, public.maps_walls, public.maps_tokens, public.maps_drawings, public.maps_fog, public.maps_images TO service_role;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.maps_scenes, public.maps_walls, public.maps_tokens, public.maps_drawings, public.maps_fog;
+-- Replay-safe: adding a table already in the publication would abort a re-run.
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['maps_scenes', 'maps_walls', 'maps_tokens', 'maps_drawings', 'maps_fog'] LOOP
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
+END $$;
 
 -- ── Backgrounds bucket: members read (public URLs), DM uploads under {campaignId}/ ─
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
