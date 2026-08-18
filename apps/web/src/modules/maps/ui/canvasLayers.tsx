@@ -1,7 +1,17 @@
-import type { Drawing, Scene, Token } from '../domain/entities/Scene';
-import { initialsOf, tokenCenter } from '../domain/useCases/mapRules';
+import type { SceneVision } from '@rolvium/core';
+import type { Drawing, Scene, Token, Wall } from '../domain/entities/Scene';
+import { cellsPath, initialsOf, openingGeometry, polygonPoints, tokenCenter } from '../domain/useCases/mapRules';
 
 /** Presentational SVG pieces of the canvas (no pointer logic) — see MapCanvas.tsx. */
+
+/**
+ * Luminance values of an SVG `<mask>`, NOT colours: white = fully opaque, black = fully transparent.
+ * They are the only place in the app where pure white is correct — a design token would be off-white and
+ * would leak a few per cent of fog into what should be plainly visible. `npm run audit` flags them as
+ * `design:#fff` warnings; this is the justification.
+ */
+const MASK_SHOW = '#ffffff';
+const MASK_HIDE = '#000000';
 
 export function BackgroundLayer({ scene, clipId }: { scene: Scene; clipId: string }): JSX.Element {
   const { width, height, bgColor, bgImageUrl, bgTransform: tr } = scene;
@@ -67,5 +77,61 @@ export function TokenGlyph({ token, grid, override, selected, movable, label, hi
       {selected && <circle r={r + 4} className="mp-token-sel" />}
       <text className="mp-token-name" y={r + 11} textAnchor="middle">{token.name}</text>
     </g>
+  );
+}
+
+/**
+ * A wall segment. `wall` is a plain gold line; a closed door adds a dark core between two jambs; an open one
+ * keeps the threshold faint and swings its leaf out; a window is steel and never cuts sight
+ * (rolvium.pen `uXK3T` · Muro / Puerta cerrada / Puerta abierta / Ventana).
+ */
+export function WallShape({ wall, draft = false }: { wall: Wall; draft?: boolean }): JSX.Element {
+  const line = { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 };
+  const cls = `mp-wall ${wall.kind} ${wall.isOpen ? 'open' : ''} ${wall.visiblePlayers ? 'visible' : ''} ${draft ? 'draft' : ''}`;
+  if (wall.kind === 'wall') return <line {...line} className={cls} data-wall-id={wall.id} data-wall-kind={wall.kind} />;
+  const g = openingGeometry(wall);
+  return (
+    <g className={`mp-opening ${wall.kind} ${wall.isOpen ? 'open' : ''}`} data-wall-id={wall.id} data-wall-kind={wall.kind} data-open={wall.isOpen ? 'true' : 'false'}>
+      <line {...line} className={cls} />
+      {wall.kind === 'door' && !wall.isOpen && <line {...line} className="mp-wall-core" />}
+      {wall.kind === 'door' && wall.isOpen && <line x1={g.leaf[0].x} y1={g.leaf[0].y} x2={g.leaf[1].x} y2={g.leaf[1].y} className="mp-wall-leaf" />}
+      <line x1={g.jambA[0].x} y1={g.jambA[0].y} x2={g.jambA[1].x} y2={g.jambA[1].y} className="mp-wall-jamb" />
+      <line x1={g.jambB[0].x} y1={g.jambB[0].y} x2={g.jambB[1].x} y2={g.jambB[1].y} className="mp-wall-jamb" />
+    </g>
+  );
+}
+
+interface FogProps { scene: Scene; fog: SceneVision; ids: { seen: string; lit: string; dim: string; unexplored: string } }
+
+/**
+ * The masks the fog is painted with. Everything comes from the API — this only turns polygons and cells into SVG.
+ *
+ * `seen` = explored ∪ current vision (what exists at all for a player) · `lit` = current vision only (tokens) ·
+ * `dim` = everything but the current vision (darkens the remembered part) · `unexplored` = the DM's blue veil.
+ */
+export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
+  const cells = cellsPath(fog.explored, scene.grid.size);
+  const full = { x: 0, y: 0, width: scene.width, height: scene.height };
+  const polys = fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_SHOW} />);
+  return (
+    <>
+      <mask id={ids.seen} maskUnits="userSpaceOnUse" {...full}>
+        <rect {...full} fill={MASK_HIDE} />
+        {cells && <path d={cells} fill={MASK_SHOW} />}
+        {polys}
+      </mask>
+      <mask id={ids.lit} maskUnits="userSpaceOnUse" {...full}>
+        <rect {...full} fill={MASK_HIDE} />
+        {polys}
+      </mask>
+      <mask id={ids.dim} maskUnits="userSpaceOnUse" {...full}>
+        <rect {...full} fill={MASK_SHOW} />
+        {fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_HIDE} />)}
+      </mask>
+      <mask id={ids.unexplored} maskUnits="userSpaceOnUse" {...full}>
+        <rect {...full} fill={MASK_SHOW} />
+        {cells && <path d={cells} fill={MASK_HIDE} />}
+      </mask>
+    </>
   );
 }

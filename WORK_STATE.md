@@ -3,14 +3,13 @@
 ## 🎯 Current task
 Construir los hexágonos v1 en orden (mapa: ARCHITECTURE.md «Product hexagons»; specs: `specs/modules/*`).
 
-**HECHO** (todo con review + QA pasados, `main`, árbol limpio en `03d0938`):
+**HECHO** (todo con review + QA pasados):
 diseño `rolvium.pen` · specs de todos los hexágonos · `packages/core` (puerto `GameSystem`, `validateSheet`) ·
 `packages/system-plenilunio` **auditado contra el manual** (`RULES.md`) · `identity` (H1) · `campaigns` (H2, con panel de
-gestión del director) · `table` (H3) · `characters` (H4) · `dice` (H6) · `maps` (H7) **rebanada 1** · página `/systems`.
+gestión del director) · `table` (H3) · `characters` (H4) · `dice` (H6) · `maps` (H7) **rebanadas 1 y 2** · página `/systems`.
 
-**SIGUIENTE:** `maps` rebanada 2 (niebla + visión + día/noche + puertas/ventanas) → rebanada 3 (movimiento máx. por
-turno, configurable por sistema) → rebanada 4 (galería de props para construir mapas) → `chat` (H8) + `journal` (H9) →
-`bestiary` (H5) → notificaciones/deploy.
+**SIGUIENTE:** rebanada 3 (movimiento máx. por turno, configurable por sistema) → rebanada 4 (galería de props para
+construir mapas) → `chat` (H8) + `journal` (H9) → `bestiary` (H5) → notificaciones/deploy.
 
 ## 🔎 Prueba manual del dueño (2026-08-18) — cerrada
 - **(a) El generador se atascaba en «Características».** Causa: `GeneratorWizard.canChange` sólo miraba el presupuesto,
@@ -35,20 +34,42 @@ turno, configurable por sistema) → rebanada 4 (galería de props para construi
   `jugador1@ejemplo.com` (Marta Ruiz · «Marta») y `jugador2@ejemplo.com` (Nico Vega · «Nix»). **No** están unidas a
   ninguna campaña a propósito. El §1 de `docs/PRUEBA-MANUAL.md` da de alta `jugador3@ejemplo.com` para no chocar.
 
-## 📍 Punto exacto (2026-08-18, fin de sesión)
-- **10 migraciones** aplican limpias (`npm run db:reset`), `supabase db lint` sin errores:
-  core_users_roles · campaigns · table_shared_resources · campaigns_hardening · identity · characters · characters_api ·
-  dice_rolls · maps · maps_vision.
+## 📍 Punto exacto (2026-08-18, fin de sesión — rebanada 2 de `maps` construida)
+- **`maps` rebanada 2 HECHA**: dev + review + qa pasados. **Sin commitear todavía** (árbol sucio, ver «Siguiente paso»).
+  El dueño **aún no ha validado light/dark** de las pantallas nuevas: es el único paso manual pendiente.
+- **Dónde vive la visión: en el servidor, y eso es la frontera de seguridad.**
+  - `packages/core/src/maps.ts` — contrato compartido (`SceneVision`, `FogCell`, `VisionPolygon`, `sightRadiusPx`) y
+    `METRES_PER_CELL`, que **se mudó aquí desde `mapRules`** para que la API y el navegador usen el mismo número
+    (`mapRules` lo reexporta, nadie se enteró). Sigue siendo deuda: la rebanada 3 lo sube al puerto `GameSystem`.
+  - API: `application/maps/vision.ts` (barrido de rayos puro), `application/maps/sceneVision.ts`
+    (`computeSceneVision` / `paintSceneFog`), puerto `domain/maps/IMapsRepository.ts`, adaptador service-role
+    `infrastructure/supabase/SupabaseMapsRepo.ts`, rutas `POST /scenes/:id/vision` y `POST /scenes/:id/fog`.
+  - Web: `VisionPort` + `HttpVisionAdapter` + `container.visionPort`. **El navegador nunca calcula la visión**: sólo
+    recibe polígonos (visión actual) y casillas (lo explorado) y los pinta con máscaras SVG.
+- **Lo explorado se guarda como CASILLAS** (`maps_fog.explored = [[x,y],…]`), no como polígonos libres: la unión entre
+  sesiones es una operación de conjuntos, está acotada por el tamaño de la escena y es justo lo que pinta el pincel.
+- **El bug del spec que encontró QA está corregido**: abrir una puerta NO llega por `postgres_changes` (aplica la RLS de
+  cada suscriptor, y al jugador no le llega la fila de una puerta oculta). Viaja un **broadcast `fog.updated`** por el
+  canal `scene:{id}` que dice «vuelve a pedir tu visión»; quien lo recibe recalcula y **no vuelve a emitir** (sería un
+  bucle infinito — hay test que lo fija).
+- **UI**: `MapCanvas` dibuja la niebla con máscaras SVG (`seen` = explorado ∪ visión · `lit` = visión · `dim` = lo
+  recordado apagado · `unexplored` = velo azul del director); `WallShape` dibuja los tres tipos de segmento;
+  `DmOptionsBar` (nuevo) lleva niebla automática + luz día/noche + recuento; `StrokeBar` se convierte en la barra
+  «Pincel» con la herramienta Revelar/Ocultar activa y en la barra «Muro» (tipo del siguiente segmento) con la
+  herramienta Muro; `Toolbar` usa el **`Tooltip` nuevo de `@rolvium/ui`** (en el UI
+  Kit y en `CATALOG.md`).
+- **10 migraciones**, sin cambios en esta sesión: la de la rebanada 2 (`20260818140000_maps_vision`) ya estaba aplicada
+  y sólo añade columnas con DEFAULT. Verificado contra la base local: las 4 columnas de `maps_walls` y las 2 de
+  `maps_scenes` están vivas.
+- **Suites**: web **263** · api **77** · core 2 · system-plenilunio 62. `npm run typecheck` OK ·
+  `npm run audit` **0 hard / 9 warn** (8 de `ui-reuse` preexistentes + 1 nuevo aceptado a conciencia, abajo) ·
+  `npm run build` + `build:api` OK.
 - **Arquitectura que ya está en pie** (responde a «¿dónde vive el backend?»):
   - *Postgres + RLS* = permisos y atomicidad. Lo que un jugador no debe ver o tocar lo corta la RLS o un trigger, nunca el
     cliente. Operaciones atómicas en RPCs (`join_campaign_by_code`, `table_take_resource`, `dice_commit_roll`, `characters_claim`).
-  - *API Fastify* = autoridad en TypeScript + service role: `PUT /characters/:id/sheet` (valida contra el `sheetSchema`,
-    recalcula derivadas con el motor, autoridad de px, **persiste como el usuario** vía `characters_api_update`),
-    `POST /rolls` (reconstruye la reserva con `engine.poolFor`, dados CSPRNG, `engine.resolve`, guarda la tirada inmutable,
-    aplica los efectos en la ficha), `GET /invites/:code` público, `/admin/*`.
+  - *API Fastify* = autoridad en TypeScript + service role: `PUT /characters/:id/sheet`, `POST /rolls`,
+    **`POST /scenes/:id/{vision,fog}`**, `GET /invites/:code` público, `/admin/*`.
   - *Cliente* = UX y vista previa. El mismo paquete de reglas corre en los dos lados; sólo el servidor decide.
-- **Suites**: web 225 · api 39 · core 2 · system-plenilunio 62. `npm run typecheck` OK · `npm run audit` 0 hard / 8 warn
-  (UserMenu ×3 y 4 overlays de canvas intencionados) · `npm run build` + `build:api` OK.
 - **Sin Supabase hosted ni Vercel todavía**: todo local. Las URLs de producción del harness son placeholders.
 
 ## ✅ Decisiones vigentes
@@ -65,44 +86,36 @@ turno, configurable por sistema) → rebanada 4 (galería de props para construi
   reserva se descuentan en la misma transacción que la tirada; tirar *como* un personaje exige ser su dueño o el director.
 - Maps: el jugador ve la escena activa (o marcada visible), sólo tokens visibles y sólo muros `visible_players`; mueve
   únicamente x/y de sus tokens. Canales realtime en uso: `campaign:{id}`, `campaign-rolls:{id}`, `scene:{sceneId}`.
+- **Maps rebanada 2**: la visión la calcula el **servidor** con TODOS los muros y devuelve polígono + casillas; el
+  cliente sólo pinta. Corolario general de realtime: `postgres_changes` aplica la RLS de cada suscriptor, así que
+  cualquier cambio al que un usuario deba **reaccionar** sin poder leer la fila viaja por **broadcast** (aquí,
+  `fog.updated`). La visión sigue al **control** del token, no a su visibilidad: un token que el director oculta sigue
+  dando vista a su dueño. Recalcular está **coalescido** en un tick y el pincel va a 20 Hz, porque cada llamada
+  reescribe la niebla de todos los jugadores.
 - Harness: diseño en `.pen` → spec → dba → dev → **review + qa como subagentes** (lanzados como general-purpose leyendo
   `.claude/agents/{review,qa}.md`). QA: desviaciones de spec = warning; light/dark lo valida el dueño por ronda.
 
-## ⏳ Siguiente paso inmediato
-**Chat nuevo** (el transcript del 2026-08-18 llegó a 8,2 MB, por encima del umbral de handoff). Prompt de reanudación:
-> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Toca el **dev de `maps` rebanada 2** (niebla + visión en
-> servidor, luz día/noche, puertas y ventanas, tooltips de la barra) — el spec, la migración y el diseño ya están
-> aprobados. Flujo: dev → review → qa.
+## ❓ Pregunta abierta al dueño
+*(ninguna abierta)* — la anterior («¿añadimos el selector de tipo de muro?») está **resuelta**: el dueño dijo que sí,
+se diseñó primero en `rolvium.pen` (frame nuevo `h3Q3NN` «Mesa/Plenilunio · Escena · Director · Muro») y luego se
+cableó. El director ya coloca muros, puertas y ventanas.
 
-1. **Segunda pasada de la prueba manual** con las tres cuentas (`docs/PRUEBA-MANUAL.md`), ahora que el generador se
-   completa y la API está arriba. Los fallos que salgan entran al backlog de aquí.
-2. **`maps` rebanada 2 — spec ✅ · dba ✅ · diseño ✅ · queda DEV → review → qa.**
-   Spec confirmado por el dueño y migración `20260818140000_maps_vision` aplicada. Diseño aprobado y `.pen` guardado.
-   **Lo único que falta es el código.** Punto de partida exacto para el dev:
-   - **Semántica de aberturas, ya en la BD** (no la reinventes): `corta la vista ⇔ blocks_sight AND NOT is_open`;
-     `corta el paso ⇔ blocks_move AND NOT is_open`. Muro `t/t/cerrado` · Puerta `t/t/abrible` · Ventana `f/t/abrible`.
-     `blocks_move` no hace nada hasta la rebanada 3. Restricciones probadas contra la base real.
-   - **Visión:** cada jugador ve lo que ven **sus** tokens; el director la unión de lo explorado por todos. El cálculo
-     va **en servidor con TODOS los muros** (los `visible_players=false` no viajan al cliente) — es la frontera de
-     seguridad: si se calculase en el cliente habría que mandarle la planta entera.
-   - **Luz:** `maps_scenes.lighting` (`day`/`night`) + `night_radius_m` (10 por defecto, en METROS). La conversión a
-     casillas usa `METRES_PER_CELL` de `mapRules` — ⚠ deuda: es una regla de Plenilunio en la plataforma, y con la luz
-     nocturna pasa de cosmética a decidir quién ve a quién. Subirla al puerto `GameSystem` en la rebanada 3.
-   - **Recalcular** al mover token, abrir/cerrar puerta, cambiar luz o muros, y al entrar en la escena.
-   - **Activar** `TOOLS_NOT_YET = ['reveal','hide']` en `mapRules` y quitar el `TODO(slice 2)` de `MapCanvas`.
-   - **Diseño 1:1** en `rolvium.pen`: frames `uXK3T` (Escena · Director · Niebla) y `vz19f` (Escena · Jugador · Noche);
-     componente nuevo `PL/Tooltip herramienta` (`YQHKf`). El jugador ve **negro** fuera de su visión, no un velo.
-   - **Tooltip de las herramientas**: los botones ya tienen `title`/`aria-label`; hay que sustituir el nativo por el
-     componente. El `aria-label` se queda.
-   - ⚠ **Corregir el spec antes de implementar** (hallazgo de QA): dice que abrir una puerta llega sola por realtime
-     porque `maps_walls` está en la publicación, pero `postgres_changes` aplica RLS por suscriptor y al jugador no le
-     llega el evento de una puerta oculta. Tiene que llegarle por el recálculo del servidor.
-3. **Rebanada 3 — movimiento máximo por turno**, configurable **por sistema** (toca el puerto `GameSystem` y `packages/core`).
-4. **Rebanada 4 — galería de componentes** (muebles, árboles…) que se puedan ir cargando, para construir mapas dentro
-   de la app. Tabla + bucket + UI + diseño propios; da para un hexágono.
-5. **`chat` (H8) + `journal` (H9)**: las pestañas Chat · Notas · Bitácora del panel lateral son placeholders «pronto».
-6. **`bestiary` (H5)**: hoy `EncounterMenu` usa `system.catalogs.bestiary`; alinear las entradas base con bloques reales del
-   manual (RULES §8: «Solitario/Chatarrero» son plantillas del prototipo, no del libro).
+## ⏳ Siguiente paso inmediato
+1. **Validar light/dark** de lo nuevo (`SceneTab`, capas de niebla de `MapCanvas`, `DmOptionsBar`, la barra «Pincel»,
+   el `Tooltip` en la barra de herramientas y en `/ui-kit`) — lo hace el dueño mirando la pantalla. Es el único paso
+   manual que queda de la ronda de QA.
+2. **Aberturas — HECHO** (2026-08-18): el director ya crea puertas y ventanas. Diseño primero (`rolvium.pen`
+   `h3Q3NN`), luego el cableado: `WALL_KINDS` + `newWallOf(kind)` en `mapRules` (única vía de construcción, es donde
+   vive la invariante «una ventana nunca corta la vista»), tercer modo «Muro» en `StrokeBar`, estado `wallKind` en
+   `SceneTab`, `.mp-kinds` en `maps.css` reutilizando `.mp-seg`, 6 claves `maps.wall.*` en es/en. La barra «Muro»
+   entra en la validación light/dark del punto 1.
+3. **Commitear** la rebanada 2 (el árbol está sucio; nada se ha commiteado en esta sesión).
+4. **Segunda pasada de la prueba manual** con las tres cuentas (`docs/PRUEBA-MANUAL.md`).
+5. **Rebanada 3 — movimiento máximo por turno**, configurable **por sistema** (toca el puerto `GameSystem` y
+   `packages/core`). Se lleva por delante la deuda de `METRES_PER_CELL`, que ahora vive en `packages/core`.
+6. **Rebanada 4 — galería de componentes** (muebles, árboles…) para construir mapas dentro de la app.
+7. **`chat` (H8) + `journal` (H9)**: las pestañas Chat · Notas · Bitácora del panel lateral son placeholders «pronto».
+8. **`bestiary` (H5)**: alinear las entradas base con bloques reales del manual (RULES §8).
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 - **Decidir**: el bucket `backgrounds` es de lectura pública como `avatars`/`tokens` (cualquiera con la URL ve un mapa no
@@ -120,13 +133,20 @@ turno, configurable por sistema) → rebanada 4 (galería de props para construi
 - Plataforma: fondo de Plenilunio a WebP (3,5 MB) · `UserMenu` con botones en línea (3 warns del audit).
 
 ## 🧾 Deuda abierta con nombre y apellidos (de Review y QA, 2026-08-18)
+- ~~**El director no puede crear puertas ni ventanas**~~ (hallazgo de Review y QA, 2026-08-18) — **CERRADA** el
+  mismo día: diseño en `rolvium.pen` `h3Q3NN` + selector de tipo cableado en la barra «Muro». Ver «Siguiente paso» §2.
+- **`MASK_SHOW = '#ffffff'` en `canvasLayers.tsx` es un warning permanente aceptado.** No es un color: es el valor de
+  **luminancia** de una `<mask>` de SVG (blanco = opaco, negro = transparente). Un token del sistema sería blanco roto y
+  filtraría un 5 % de niebla sobre lo que debería verse limpio. Review y QA lo revisaron por separado y coinciden: no
+  tocar, y **no** enseñarle la excepción a `audit.mjs` por una línea.
+- **`maps_walls` no ata `kind` a los flags** (preexistente): nada impide `kind='window'` con `blocks_sight=true`. La
+  invariante vive en `WALL_FLAGS` y en el spec. Un `CHECK (kind <> 'window' OR NOT blocks_sight)` la cerraría.
 - **El tope por reparto es guardia de cliente, no de servidor.** `applyChange` corre en el navegador; la creación es un
   `insert` directo en `characters` y `PUT /characters/:id/sheet` valida contra `sheetSchema` (`stat.max = 10`), no
   contra `preset.maxStat`. Editando la ficha se puede dejar Fortaleza 7 con reparto Estándar. No es frontera de
   seguridad (personaje propio, el director lo ve) pero rompe el «mismas reglas en los dos lados» de ARCHITECTURE.
-- **`maps_walls` no ata `kind` a los flags**: nada impide `kind='window'` con `blocks_sight=true`. La invariante de los
-  tres tipos vive sólo en el spec. Un `CHECK (kind <> 'window' OR NOT blocks_sight)` la cerraría.
-- **`maps_tokens.vision_radius`** queda redundante con `night_radius_m` de escena; decidir si se usa o se retira.
+- **`maps_tokens.vision_radius`** quedó redundante con `night_radius_m` de escena y la rebanada 2 **no lo usa**;
+  decidir si se aprovecha (visión por token) o se retira de la tabla.
 - **Edición neutra de presupuesto con borrador sobregastado** (preexistente): añadir/quitar una especialidad no cuesta
   puntos pero sigue vetada mientras el paso esté en negativo, y el `<select>` no se deshabilita — el usuario elige y no
   pasa nada. Ya no es callejón sin salida.
@@ -137,6 +157,25 @@ turno, configurable por sistema) → rebanada 4 (galería de props para construi
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🚫 Bloqueos / notas
+### Vercel: el proyecto de la API ya existe, pero **está caído a propósito** (2026-08-18)
+El dueño creó `rolvium-api` en Vercel «para cuando estemos listos para subir»:
+- Panel: https://vercel.com/ignaciozitare-9429s-projects/rolvium-api · `prj_0OBlHaNEmoDHOZVoEnFTV8hr4i70` ·
+  team `team_O0LMo9mzgF91fZTJ1mJg7yJw` (`ignaciozitare-9429s-projects`). Framework `fastify`, Node 24.x.
+- Dominio: **https://rolvium-api.vercel.app** — deja de ser un placeholder. `apps/web` lo consume con
+  `VITE_API_URL`, y `.claude/commands/{review,qa,deploy}.md` sondean esta URL.
+- **`GET /health` → 500 `FUNCTION_INVOCATION_FAILED`.** No es un bug del código: el build está `READY` y la función
+  arranca, pero `supabaseDeps()` lanza `Missing required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY`
+  (confirmado en los runtime logs). Falta configurarlas, y **no se pueden configurar todavía porque no hay Supabase
+  hosted**: primero el proyecto de Supabase, luego las variables, luego el deploy vuelve solo.
+- **No existe aún el proyecto web** (`rolvium.vercel.app` → 404 `DEPLOYMENT_NOT_FOUND`). Hacen falta los dos: web
+  (estático + rewrites a `index.html`) y api (Build Output API v3 vía `apps/api/bundle.mjs`).
+- Ojo con la regla «nunca dar por terminado con producción caída» de `.claude/CLAUDE.md`: **no aplica todavía**. Esto
+  no es producción caída, es producción que aún no ha nacido — no hay código subido ni base hosted. En cuanto se
+  suba de verdad, la regla vuelve a morder.
+- **Orden correcto para subir**: (1) proyecto Supabase hosted → (2) `supabase link` + `db push` → (3) variables en
+  Vercel (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ALLOWED_ORIGIN`) → (4) proyecto web + `VITE_API_URL` →
+  (5) `get_advisors` → (6) volver a sondear `/health`.
+
 - Sin Supabase hosted (el plan del dueño permite 2 proyectos) → local. Al pasar a hosted: `supabase link` + `db push`,
   comprobar que `postgres` puede borrar en `auth.sessions`/`auth.refresh_tokens` (RPCs de identity), que
   `site_url`/redirects incluyan el dominio de Vercel (`/reset`, `/join/*`), y volver a correr `get_advisors`.

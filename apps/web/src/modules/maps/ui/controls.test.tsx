@@ -3,14 +3,16 @@ import { renderWithProviders, screen, fireEvent } from '../../../../tests/helper
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
+import { SCENE_WAREHOUSE, WALL_1, WALL_DOOR, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import { STROKE_COLORS } from '../domain/useCases/mapRules';
 import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { CanvasControls } from './CanvasControls';
 import { EncounterMenu } from './EncounterMenu';
+import { DmOptionsBar } from './DmOptionsBar';
 
 describe('<Toolbar>', () => {
-  it('player: 8 tools; DM adds Muro · Revelar · Ocultar · Encuentro (fog tools disabled «próximamente»); pressed state + onChange', async () => {
+  it('player: 8 tools; DM adds Muro · Revelar · Ocultar · Encuentro (all enabled since the fog brush shipped); pressed state + onChange; every tool carries a tooltip', async () => {
     const onChange = vi.fn();
     const { rerender } = renderWithProviders(<Toolbar tool="move" isDm={false} onChange={onChange} />);
     expect(screen.getAllByRole('button')).toHaveLength(8);
@@ -20,8 +22,15 @@ describe('<Toolbar>', () => {
     rerender(<Toolbar tool="wall" isDm onChange={onChange} />);
     expect(screen.getAllByRole('button')).toHaveLength(12);
     expect(screen.getByRole('button', { name: 'Muro' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Revelar · próximamente' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Revelar' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Ocultar' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Encuentro' })).toBeEnabled();
+    // the name is a Tooltip, not the browser's `title`: instant, placed, and following the system's look.
+    // It is aria-hidden on purpose — the button's aria-label already carries the accessible name.
+    const tips = [...document.querySelectorAll('.rv-tip')];
+    expect(tips.map(t => t.textContent)).toContain('Muro');
+    expect(tips.every(t => t.getAttribute('aria-hidden') === 'true')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Muro' })).not.toHaveAttribute('title');
   });
 });
 
@@ -80,5 +89,82 @@ describe('<EncounterMenu>', () => {
     expect(screen.getByText('Sin resultados')).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Cerrar' }));
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe('<StrokeBar> as the fog brush', () => {
+  it('with a brush tool it becomes «Pincel»: sizes + revelar/ocultar todo, and the stroke controls step aside', async () => {
+    const u = userEvent.setup();
+    const onBrush = vi.fn(); const onRevealAll = vi.fn(); const onHideAll = vi.fn();
+    renderWithProviders(
+      <StrokeBar value={{ color: STROKE_COLORS[1], width: 2 }} onChange={vi.fn()} onClearMine={vi.fn()}
+        tool="reveal" brush={3} onBrush={onBrush} onRevealAll={onRevealAll} onHideAll={onHideAll} />,
+    );
+    expect(screen.queryByRole('slider', { name: 'Grosor del trazo' })).not.toBeInTheDocument();
+    expect(screen.getByText('revelar u ocultar afecta a todos los jugadores')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Tamaño 3' })).toBeChecked();
+    await u.click(screen.getByRole('radio', { name: 'Tamaño 1' }));
+    expect(onBrush).toHaveBeenCalledWith(1);
+    await u.click(screen.getByRole('button', { name: 'Revelar todo' }));
+    expect(onRevealAll).toHaveBeenCalled();
+    await u.click(screen.getByRole('button', { name: 'Ocultar todo' }));
+    expect(onHideAll).toHaveBeenCalled();
+  });
+
+  it('a player never gets the brush bar even on a brush tool, because they are given no brush', () => {
+    renderWithProviders(<StrokeBar value={{ color: STROKE_COLORS[1], width: 2 }} onChange={vi.fn()} onClearMine={vi.fn()} tool="reveal" />);
+    expect(screen.getByRole('slider', { name: 'Grosor del trazo' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Revelar todo' })).not.toBeInTheDocument();
+  });
+});
+
+describe('<StrokeBar> as the wall-type picker', () => {
+  it('with the Muro tool it becomes «Muro»: the three types + how to work a door, and the stroke controls step aside', async () => {
+    const onWallKind = vi.fn();
+    renderWithProviders(
+      <StrokeBar value={{ color: STROKE_COLORS[1], width: 2 }} onChange={vi.fn()} onClearMine={vi.fn()} tool="wall" wallKind="wall" onWallKind={onWallKind} />,
+    );
+    expect(screen.queryByRole('slider', { name: 'Grosor del trazo' })).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Muro' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Puerta' })).not.toBeChecked();
+    expect(screen.getByText('clic en una puerta o una ventana para abrirla o cerrarla')).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'Ventana' }));
+    expect(onWallKind).toHaveBeenCalledWith('window');
+  });
+
+  it('a player never gets the type picker — the bar stays «Trazo» on the same tool', () => {
+    renderWithProviders(<StrokeBar value={{ color: STROKE_COLORS[1], width: 2 }} onChange={vi.fn()} onClearMine={vi.fn()} tool="wall" />);
+    expect(screen.getByRole('slider', { name: 'Grosor del trazo' })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Puerta' })).not.toBeInTheDocument();
+  });
+});
+
+describe('<DmOptionsBar>', () => {
+  const scene = { ...SCENE_WAREHOUSE };
+  const walls = [WALL_1, WALL_DOOR, WALL_WINDOW];
+
+  it('shows automatic fog on, the light segmented control and the tally of what players cannot see', async () => {
+    const u = userEvent.setup();
+    const onFogMode = vi.fn(); const onLighting = vi.fn();
+    renderWithProviders(<DmOptionsBar scene={scene} walls={walls} hiddenTokens={3} onFogMode={onFogMode} onLighting={onLighting} />);
+    expect(screen.getByRole('checkbox', { name: 'Niebla automática por visión' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Día' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Noche · 10 m' })).not.toBeChecked();
+    expect(screen.getByText('1 muros · 1 puertas · 1 ventanas (invisibles para jugadores) · 3 tokens ocultos')).toBeInTheDocument();
+    await u.click(screen.getByRole('radio', { name: 'Noche · 10 m' }));
+    expect(onLighting).toHaveBeenCalledWith('night');
+    await u.click(screen.getByRole('checkbox', { name: 'Niebla automática por visión' }));
+    expect(onFogMode).toHaveBeenCalledWith('manual');
+  });
+
+  it('at night the light control is on «Noche» and turning the automatic fog back on asks for `vision`', async () => {
+    const onFogMode = vi.fn(); const onLighting = vi.fn();
+    renderWithProviders(<DmOptionsBar scene={{ ...scene, lighting: 'night', fogMode: 'manual' }} walls={[]} hiddenTokens={0} onFogMode={onFogMode} onLighting={onLighting} />);
+    expect(screen.getByRole('radio', { name: 'Noche · 10 m' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Niebla automática por visión' })).not.toBeChecked();
+    await userEvent.setup().click(screen.getByRole('checkbox', { name: 'Niebla automática por visión' }));
+    expect(onFogMode).toHaveBeenCalledWith('vision');
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'Día' }));
+    expect(onLighting).toHaveBeenCalledWith('day');
   });
 });

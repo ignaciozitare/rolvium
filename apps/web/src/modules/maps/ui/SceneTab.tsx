@@ -7,10 +7,11 @@ import type { Character } from '@/modules/characters/domain/entities/Character';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
 import { characterAvatar } from '@/modules/characters/domain/useCases/characterRules';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
-import type { ImageAsset, Scene, ScenePatch } from '../domain/entities/Scene';
+import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
-import { canvasToScene, centerOn, fitView, STROKE_COLORS, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
-import { mapsRepo } from '../container';
+import type { VisionPort } from '../domain/ports/VisionPort';
+import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, newWallOf, STROKE_COLORS, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
 import { Toolbar } from './Toolbar';
@@ -19,6 +20,7 @@ import { CanvasControls } from './CanvasControls';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
+import { DmOptionsBar } from './DmOptionsBar';
 import './maps.css';
 
 interface Props {
@@ -31,13 +33,14 @@ interface Props {
   activeSceneId: string | null;
   charactersRepo: CharactersPort;
   repo?: MapsPort;
+  vision?: VisionPort;
 }
 
 /** Gold, the second swatch of the persisted stroke palette (mapRules.STROKE_COLORS). */
 const DEFAULT_STROKE: StrokeStyle = { color: STROKE_COLORS[1], width: 2 };
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, repo = mapsRepo }: Props): JSX.Element {
+export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const isDm = role === 'dm';
   const ts = useMemo(() => sysT(system, locale), [system, locale]);
@@ -59,6 +62,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [encounter, setEncounter] = useState<CatalogItem | null>(null);
   const [pcMenu, setPcMenu] = useState(false);
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+  const [brush, setBrush] = useState<number>(DEFAULT_BRUSH);
+  const [wallKind, setWallKind] = useState<WallKind>('wall');
   const stageRef = useRef<HTMLDivElement>(null);
 
   // ── load: DM lists; player follows the active scene ──
@@ -74,7 +79,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   }, [repo, campaignId, isDm, activeSceneId]);
 
   const scene = isDm ? scenes?.find(s => s.id === selectedId) ?? null : playerScene;
-  const st = useScene(repo, scene, userId);
+  const st = useScene(repo, scene, userId, vision);
   const live = st.scene;
   const viewport = () => ({ width: stageRef.current?.clientWidth ?? 0, height: stageRef.current?.clientHeight ?? 0 });
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
@@ -149,20 +154,27 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   return (
     <section className="mp-root">
       {header}
-      <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll() ): undefined} />
+      <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll() ): undefined}
+        tool={tool}
+        {...(isDm && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})}
+        {...(isDm && tool === 'wall' ? { wallKind, onWallKind: setWallKind } : {})} />
       <div className="mp-stage-row">
         <Toolbar tool={tool} isDm={isDm} onChange={setTool} />
         <div className="mp-stage" ref={stageRef}>
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
-            playerView={playerView} showWalls={showWalls} view={view} onViewChange={setView} nameOf={nameOf}
+            playerView={playerView} showWalls={showWalls} fog={st.fog} brush={brush} view={view} onViewChange={setView} nameOf={nameOf}
             onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))}
             onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width }))}
             onErase={id => run(st.eraseDrawing(id))}
-            onAddWall={(a, b) => run(st.addWall({ sceneId: live.id, campaignId, x1: a.x, y1: a.y, x2: b.x, y2: b.y, visiblePlayers: false }))}
+            onAddWall={(a, b) => run(st.addWall({ sceneId: live.id, campaignId, x1: a.x, y1: a.y, x2: b.x, y2: b.y, visiblePlayers: false, ...newWallOf(wallKind) }))}
+            onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
+            onPaintFog={(at, op) => run(st.paintFog(at, op))}
             onPin={st.focusPin}
             onPlace={encounter ? cell => run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, cell)) ): undefined}
             selectedTokenId={selectedTokenId} onSelectToken={setSelectedTokenId} />
-          <span className="mp-canvas-label">{isDm && !playerView ? t('maps.dmView') : t('maps.playerVision', { name: live.name })}</span>
+          <span className="mp-canvas-label">{isDm && !playerView
+            ? `${t('maps.dmView')}${live.fogMode === 'vision' ? ` · ${t('maps.fog.byVision')}` : ''}${isBrush(tool) ? ` · ${t(`maps.brush.${tool}`)}` : ''}`
+            : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
           {isDm && selectedToken && (
             <div className="mp-tokbar" role="toolbar" aria-label={t('maps.token.selected')}>
               <span className="mp-tokbar-name">{selectedToken.name}</span>
@@ -187,11 +199,14 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
         </div>
       </div>
       {failed && <p className="mp-foot mp-foot-err" role="alert">{t('maps.saveFailed')}</p>}
-      <p className="mp-foot tb-italic tb-dim">
-        {isDm
-          ? <><span className="mp-dm-tag">{t('maps.dmOnly')}</span> {t('maps.fogSoon')} · {t('maps.dmFoot', { walls: String(st.walls.length), hidden: String(hiddenCount), bg: bgName })}</>
-          : t('maps.playerFoot')}
-      </p>
+      {isDm
+        ? <>
+            <DmOptionsBar scene={live} walls={st.walls} hiddenTokens={hiddenCount}
+              onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}
+              onLighting={lighting => run(patchScene(live.id, { lighting }))} />
+            <p className="mp-foot tb-italic tb-dim">{t('maps.dmFoot', { walls: String(st.walls.length), hidden: String(hiddenCount), bg: bgName })}</p>
+          </>
+        : <p className="mp-foot tb-italic tb-dim">{live.lighting === 'night' ? t('maps.playerFootNight', { m: String(live.nightRadiusM) }) : t('maps.playerFoot')}</p>}
     </section>
   );
 }

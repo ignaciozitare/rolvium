@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
+import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Scene, Token, Wall } from '../domain/entities/Scene';
-import { canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitTest, shapeData, snap, tokenCellAt, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveToken, canOpen, canvasToScene, distanceCells, distanceLabel, hitTest, hitWall, isBrush, shapeData, snap, tokenCellAt, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { BackgroundLayer, DrawingShape, GridLayer, TokenGlyph } from './canvasLayers';
+import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, TokenGlyph, WallShape } from './canvasLayers';
 
 export interface StrokeStyle { color: string; width: number }
 
@@ -21,6 +22,10 @@ interface Props {
   /** DM «ver como jugador»: hides walls / hidden tokens / DM chrome. */
   playerView: boolean;
   showWalls: boolean;
+  /** What the server says this viewer can see. `null` while it is still loading — the canvas then draws unfogged. */
+  fog: SceneVision | null;
+  /** Reveal/hide brush radius in cells (DM). */
+  brush: number;
   view: View;
   onViewChange: (v: View) => void;
   nameOf: (userId: string) => string;
@@ -29,6 +34,10 @@ interface Props {
   onAddDrawing: (kind: DrawingKind, data: Drawing['data']) => void;
   onErase: (id: string) => void;
   onAddWall: (a: Point, b: Point) => void;
+  /** DM: open or close the door/window that was clicked. */
+  onToggleWall: (wall: Wall) => void;
+  /** DM: paint the fog at a scene point with the current brush radius (scene px). */
+  onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => void;
   onPin: (p: Point) => void;
   /** Encounter / PC placement (cell coordinates); only wired while something is pending. */
   onPlace?: (cell: Point) => void;
@@ -40,13 +49,22 @@ type Gesture =
   | { kind: 'pan'; start: Point; origin: View }
   | { kind: 'token'; id: string; start: Point; origin: Point; moved: boolean }
   | { kind: 'draw'; tool: DrawTool; start: Point; points: [number, number][]; last: Point }
+  | { kind: 'brush'; op: 'reveal' | 'hide' }
   | { kind: 'measure' };
 
 type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
 const DRAW_TOOLS: Record<string, DrawTool> = { pencil: 'stroke', line: 'line', rect: 'rect', circle: 'circle' };
 const PIN_MS = 2500;
+/** Brush paints per second, matching the token drag's `DRAG_HZ_MS` (useScene.ts). */
+const PAINT_HZ_MS = 50;
 
-/** SVG scene canvas: background → grid → walls → drawings → tokens → UI (measure · pin · wall draft · selection). Fog arrives in slice 2 (specs/modules/maps/SPEC.md). */
+/**
+ * SVG scene canvas: background → grid → (DM veil) → walls → drawings → tokens → UI (measure · pin · brush · selection).
+ *
+ * Fog is drawn, never decided: `fog` comes from the API, which is the only side that knows every wall
+ * (specs/modules/maps/SPEC.md § «Rules & limits»). A player sees black outside their sight, the remembered part
+ * dimmed; the DM sees the whole map under a blue veil where nobody has been.
+ */
 export function MapCanvas(p: Props): JSX.Element {
   const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -56,6 +74,7 @@ export function MapCanvas(p: Props): JSX.Element {
   const [wallStart, setWallStart] = useState<Point | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
   const [pinShown, setPinShown] = useState<LivePin | null>(null);
+  const lastPaint = useRef(0);
   const grid = p.scene.grid.size;
   const dmSight = p.isDm && !p.playerView;
 
@@ -121,9 +140,21 @@ export function MapCanvas(p: Props): JSX.Element {
       case 'erase': { const hit = hitTest(p.drawings, s, 6 / p.view.zoom); if (hit && canEraseDrawing(hit, p.me, p.isDm)) p.onErase(hit.id); return; }
       case 'wall': {
         if (!dmSight) return;
+        // Clicking an existing door or window opens/closes it — that is how the DM works a door in this slice.
+        const opening = hitWall(p.walls.filter(canOpen), s, 8 / p.view.zoom);
+        if (opening && !wallStart) { p.onToggleWall(opening); return; }
         const q = { x: snap(s.x, grid), y: snap(s.y, grid) };
         if (wallStart) p.onAddWall(wallStart, q);
         setWallStart(q);
+        return;
+      }
+      case 'reveal':
+      case 'hide': {
+        if (!dmSight) return;
+        const op = p.tool === 'reveal' ? 'reveal' : 'hide';
+        p.onPaintFog({ ...s, radius: brushRadius(p.brush, grid) }, op);
+        setGesture({ kind: 'brush', op });
+        svgRef.current?.setPointerCapture?.(e.pointerId);
         return;
       }
       case 'encounter': if (p.onPlace) p.onPlace(tokenCellAt(s, grid)); return;
@@ -145,6 +176,11 @@ export function MapCanvas(p: Props): JSX.Element {
       p.onDragToken(gesture.id, x, y);
     } else if (gesture.kind === 'draw') {
       setGesture(gesture.tool === 'stroke' ? { ...gesture, points: [...gesture.points, [s.x, s.y]], last: s } : { ...gesture, last: s });
+    } else if (gesture.kind === 'brush') {
+      // Same rate limit as the token drag: every call is a round trip that rewrites the fog row of EVERY player
+      // and wakes the whole table through `fog.updated`. One per pointermove would be ~60 a second.
+      const now = Date.now();
+      if (now - lastPaint.current >= PAINT_HZ_MS) { lastPaint.current = now; p.onPaintFog({ ...s, radius: brushRadius(p.brush, grid) }, gesture.op); }
     } else if (gesture.kind === 'measure' && measure) {
       setMeasure({ a: measure.a, b: s });
     }
@@ -169,23 +205,48 @@ export function MapCanvas(p: Props): JSX.Element {
   const cursor = p.tool === 'move' ? (gesture?.kind === 'pan' ? 'grabbing' : 'grab') : 'crosshair';
   const measured = measure ? distanceLabel(distanceCells(measure.a, measure.b, grid)) : null;
 
+  // ── fog ──
+  // `null` = the API has not answered yet: draw the scene unfogged rather than flash a black canvas.
+  const fog = p.fog;
+  const fogIds = { seen: `mp-seen-${p.scene.id}`, lit: `mp-lit-${p.scene.id}`, dim: `mp-dim-${p.scene.id}`, unexplored: `mp-unex-${p.scene.id}` };
+  const url = (id: string) => `url(#${id})`;
+  /** A player (and the DM «viendo como jugador») only gets what the server drew for them. */
+  const playerSight = !!fog && !dmSight;
+  const hasVision = !!fog && fog.vision.length > 0;
+  /**
+   * Tokens live inside the CURRENT sight, never inside memory: a monster standing where you have been but are not
+   * looking must not show. With `vision` fog that is the `lit` mask even when it is empty — a player with no token
+   * «no ve nada más que lo que ya tenga explorado», creatures included. Manual/off fog has no sight to speak of, so
+   * tokens follow whatever is revealed.
+   */
+  const tokenMask = playerSight ? (p.scene.fogMode === 'vision' ? fogIds.lit : fogIds.seen) : null;
+  const sceneRect = { x: 0, y: 0, width: p.scene.width, height: p.scene.height };
+  const brushPx = brushRadius(p.brush, grid);
+
   return (
     <svg ref={svgRef} className="mp-svg" data-tool={p.tool} style={{ cursor }} aria-label={t('maps.canvas.label')} role="application"
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => setHover(null)} onContextMenu={e => e.preventDefault()}>
-      <defs><clipPath id={clipId}><rect x={0} y={0} width={p.scene.width} height={p.scene.height} /></clipPath></defs>
+      <defs>
+        <clipPath id={clipId}><rect x={0} y={0} width={p.scene.width} height={p.scene.height} /></clipPath>
+        {fog && <FogMasks scene={p.scene} fog={fog} ids={fogIds} />}
+      </defs>
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
-        <BackgroundLayer scene={p.scene} clipId={clipId} />
-        <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} />
-        <g className="mp-layer-walls" data-testid="mp-walls">
-          {wallsShown.map(w => <line key={w.id} x1={w.x1} y1={w.y1} x2={w.x2} y2={w.y2} className={`mp-wall ${w.visiblePlayers ? 'visible' : ''}`} data-wall-id={w.id} />)}
-          {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={snap(hover.x, grid)} y2={snap(hover.y, grid)} className="mp-wall draft" />}
+        <g className="mp-layer-map" {...(playerSight ? { mask: url(fogIds.seen) } : {})} data-testid="mp-map">
+          <BackgroundLayer scene={p.scene} clipId={clipId} />
+          <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} />
+          {dmSight && fog && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
+          <g className="mp-layer-walls" data-testid="mp-walls">
+            {wallsShown.map(w => <WallShape key={w.id} wall={w} />)}
+            {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={snap(hover.x, grid)} y2={snap(hover.y, grid)} className="mp-wall draft" />}
+          </g>
+          <g className="mp-layer-drawings" data-testid="mp-drawings">
+            {p.drawings.map(d => <DrawingShape key={d.id} d={d} />)}
+            {draft && <DrawingShape d={draft} draft />}
+          </g>
+          {/* What was explored but is out of sight right now stays visible, only dimmed — «sigue ahí, apagado». */}
+          {playerSight && hasVision && <rect {...sceneRect} className="mp-fog-dim" mask={url(fogIds.dim)} data-testid="mp-fog-dim" />}
         </g>
-        <g className="mp-layer-drawings" data-testid="mp-drawings">
-          {p.drawings.map(d => <DrawingShape key={d.id} d={d} />)}
-          {draft && <DrawingShape d={draft} draft />}
-        </g>
-        {/* TODO(slice 2): fog layer — per-player explored polygons + vision from the API (specs/modules/maps/SPEC.md). */}
-        <g className="mp-layer-tokens" data-testid="mp-tokens">
+        <g className="mp-layer-tokens" data-testid="mp-tokens" {...(tokenMask ? { mask: url(tokenMask) } : {})}>
           {tokensShown.map(tk => {
             const ov = localDrag?.id === tk.id ? localDrag : p.drags[tk.id] ?? null;
             return <TokenGlyph key={tk.id} token={tk} grid={grid} override={ov} selected={p.selectedTokenId === tk.id} movable={p.tool === 'move' && canMoveToken(tk, p.me, p.isDm)}
@@ -193,6 +254,9 @@ export function MapCanvas(p: Props): JSX.Element {
           })}
         </g>
         <g className="mp-layer-ui">
+          {dmSight && isBrush(p.tool) && hover && (
+            <circle cx={hover.x} cy={hover.y} r={brushPx} className={`mp-brush ${p.tool}`} data-testid="mp-brush" />
+          )}
           {measure && measured && (
             <g className="mp-measure" data-testid="mp-measure">
               <line x1={measure.a.x} y1={measure.a.y} x2={measure.b.x} y2={measure.b.y} />

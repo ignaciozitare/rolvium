@@ -736,6 +736,38 @@
       "remove": "Quitar de la escena",
       "selected": "Token seleccionado"
     },
-    "saveFailed": "No se pudo guardar el cambio en el mapa. Comprueba tu conexión o si tienes permiso."
+    "saveFailed": "No se pudo guardar el cambio en el mapa. Comprueba tu conexión o si tienes permiso.",
+    "brush": {
+      "label": "Pincel",
+      "size": "Tamaño del pincel",
+      "sizeN": "Tamaño {{n}}",
+      "affectsAll": "revelar u ocultar afecta a todos los jugadores",
+      "revealAll": "Revelar todo",
+      "hideAll": "Ocultar todo",
+      "reveal": "Pincel revelar",
+      "hide": "Pincel ocultar"
+    },
+    "fog": {
+      "auto": "Niebla automática por visión",
+      "byVision": "Niebla por visión"
+    },
+    "light": {
+      "label": "Luz de la escena",
+      "day": "Día",
+      "night": "Noche · {{m}} m"
+    },
+    "dmOptions": "Opciones del director",
+    "dmCounts": "{{walls}} muros · {{doors}} puertas · {{windows}} ventanas (invisibles para jugadores) · {{hidden}} tokens ocultos",
+    "playerFootNight": "De noche ves hasta {{m}} m; lo que ya exploraste sigue ahí, apagado. Los muros no se dibujan: la niebla se corta contra las paredes.",
+    "wall": {
+      "label": "Muro",
+      "kind": {
+        "wall": "Muro",
+        "door": "Puerta",
+        "window": "Ventana"
+      },
+      "kindOf": "Tipo de segmento",
+      "toggleHint": "clic en una puerta o una ventana para abrirla o cerrarla"
+    }
   }
 }

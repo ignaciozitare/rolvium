@@ -1,6 +1,8 @@
 /** Maps (H7) — domain entities. Mirrors `maps_*` (supabase/migrations/20260818130000_maps.sql). */
 
 export type FogMode = 'vision' | 'manual' | 'off';
+/** Scene light: `day` = only geometry limits sight; `night` = up to `nightRadiusM` metres from each token. */
+export type Lighting = 'day' | 'night';
 /** Background fit: Cubrir / Encajar / Reposicionar. */
 export type BgFit = 'cover' | 'contain' | 'custom';
 export interface BgTransform { mode: BgFit; x: number; y: number; scale: number }
@@ -18,17 +20,35 @@ export interface Scene {
   bgTransform: BgTransform;
   grid: GridSettings;
   fogMode: FogMode;
+  lighting: Lighting;
+  /** How far one sees at night, in METRES (the unit the table reasons in); px conversion uses the system's metres per cell. */
+  nightRadiusM: number;
   sortOrder: number;
   visiblePlayers: boolean;
   createdAt: string;
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'sortOrder' | 'visiblePlayers'>>;
+export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'sortOrder' | 'visiblePlayers'>>;
 
-/** Wall segment in scene px; players only receive `visiblePlayers` ones (RLS). */
-export interface Wall { id: string; sceneId: string; campaignId: string; x1: number; y1: number; x2: number; y2: number; visiblePlayers: boolean }
+/** What a segment is. The three types collapse into two flags — see `blocksSightNow` / `blocksMoveNow` in mapRules. */
+export type WallKind = 'wall' | 'door' | 'window';
+/**
+ * Wall segment in scene px; players only receive `visiblePlayers` ones (RLS).
+ * Semantics (supabase/migrations/20260818140000_maps_vision.sql): cuts sight ⇔ `blocksSight && !isOpen`;
+ * cuts movement ⇔ `blocksMove && !isOpen` (no effect until slice 3).
+ */
+export interface Wall {
+  id: string; sceneId: string; campaignId: string;
+  x1: number; y1: number; x2: number; y2: number;
+  visiblePlayers: boolean;
+  kind: WallKind;
+  blocksSight: boolean;
+  blocksMove: boolean;
+  isOpen: boolean;
+}
 export type NewWall = Omit<Wall, 'id'>;
+export type WallPatch = Partial<Pick<Wall, 'visiblePlayers' | 'kind' | 'blocksSight' | 'blocksMove' | 'isOpen'>>;
 
 /** A PC or a bestiary instance. `x`/`y`/`size` are in grid cells (top-left cell). */
 export interface Token {

@@ -41,11 +41,41 @@
 .mp-canvas-label{position:absolute;top:8px;left:8px;padding:3px 8px;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;background:color-mix(in srgb,var(--sys-ink) 82%,transparent);color:var(--sys-gold);pointer-events:none;}
 .mp-tokbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 10px;background:color-mix(in srgb,var(--sys-paper-hi) 94%,transparent);box-shadow:var(--sys-card-shadow);}
 .mp-tokbar-name{font-size:var(--fs-sm);color:var(--sys-ink);}
+/* the bar follows the tool: «Trazo» → «Pincel» (reveal/hide) → «Muro» (segment type) */
+.mp-kinds{display:inline-flex;align-items:center;gap:6px;}
+.mp-brush-sizes{display:flex;align-items:center;gap:8px;}
+.mp-brush-dot{padding:0;border:none;border-radius:50%;background:var(--sys-ink-soft);opacity:.55;cursor:pointer;}
+.mp-brush-dot.on{background:var(--sys-ink);opacity:1;}
+/* DM options bar (design: «Opciones DJ») */
+.mp-dmbar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:8px 10px;
+  background:color-mix(in srgb,var(--sys-gold) 7%,transparent);border-top:2px solid var(--sys-gold);}
+.mp-check{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--sys-ink-soft);cursor:pointer;}
+.mp-check input{accent-color:var(--sys-ink);}
+.mp-light{display:inline-flex;align-items:center;gap:6px;}
+.mp-light-label{font-size:var(--fs-sm);color:var(--sys-ink-soft);}
+.mp-seg{padding:3px 9px;border:1px solid var(--sys-border);background:transparent;
+  font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink-soft);cursor:pointer;}
+.mp-seg.on{background:var(--sys-ink);color:var(--sys-paper-hi);border-color:var(--sys-ink);}
+.mp-dm-count{font-size:var(--fs-xs);}
 /* svg */
 .mp-grid-line{stroke:var(--sys-paper-hi);stroke-opacity:.09;stroke-width:1;}
 .mp-wall{stroke:var(--sys-gold);stroke-width:3;stroke-linecap:round;}
 .mp-wall.visible{stroke:var(--sys-paper-hi);}
 .mp-wall.draft{stroke-dasharray:6 4;opacity:.7;}
+/* openings: a closed door is a thick leaf with a dark core between two jambs; an open one keeps a faint
+   threshold and swings its leaf out; a window is steel and never cuts sight (rolvium.pen uXK3T) */
+.mp-wall.door{stroke-width:7;}
+.mp-wall.door.open{stroke-width:1;opacity:.3;}
+.mp-wall.window{stroke:var(--sys-steel);stroke-width:5;}
+.mp-wall-core{stroke:var(--sys-ink);stroke-width:2;}
+.mp-wall-leaf{stroke:var(--sys-gold);stroke-width:5;stroke-linecap:round;}
+.mp-wall-jamb{stroke:var(--sys-gold);stroke-width:3;stroke-linecap:round;}
+/* fog: the player gets black where the map is not, a dim veil over what is only remembered;
+   the DM keeps the whole map under a blue veil where nobody has been */
+.mp-fog-veil{fill:var(--sys-steel);fill-opacity:.4;pointer-events:none;}
+.mp-fog-dim{fill:var(--sys-ink);fill-opacity:.55;pointer-events:none;}
+.mp-brush{fill:color-mix(in srgb,var(--sys-gold) 18%,transparent);stroke:var(--sys-gold);stroke-width:1;pointer-events:none;}
+.mp-brush.hide{fill:color-mix(in srgb,var(--sys-ink) 22%,transparent);stroke:var(--sys-ink-soft);}
 .mp-drawing.draft{opacity:.7;}
 .mp-drawing-text{font-family:var(--sys-font-body);font-size:16px;}
 .mp-token{cursor:default;}

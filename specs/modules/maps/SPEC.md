@@ -7,8 +7,9 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 ## Estado por rebanadas
 - **Rebanada 1 — HECHA** (2026-08-18): escenas, fondo + biblioteca de imágenes, muros rectos, tokens (PJ y bestiario),
   dibujos, medir, pin, zoom/pan, «ver como jugador». Sin niebla: las herramientas Revelar/Ocultar salen deshabilitadas.
-- **Rebanada 2 — ESTE SPEC**: niebla y visión calculadas en servidor, luz de la escena (día/noche), pincel
-  revelar/ocultar, y **puertas y ventanas** que se abren y cierran.
+- **Rebanada 2 — HECHA** (2026-08-18): niebla y visión calculadas en servidor, luz de la escena (día/noche), pincel
+  revelar/ocultar, y **puertas y ventanas**: el director las **crea** eligiendo el tipo en la barra «Muro», y las abre y
+  cierra con clic (el selector se diseñó antes en `rolvium.pen` `h3Q3NN`).
 - **Rebanada 3 — pendiente**: movimiento máximo por turno, configurable **por sistema** (toca el puerto `GameSystem`).
 - **Rebanada 4 — pendiente**: galería de componentes (muebles, árboles…) para construir mapas dentro de la app.
 
@@ -59,10 +60,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   partir de los tokens y los muros) y **`manual`** (sólo se revela con el pincel). El tercer estado `off` existe en la
   base de datos pero **no tiene interfaz** todavía.
 - **Pincel Revelar / Ocultar** (sólo director), con tamaño. Pinta sobre lo explorado de **todos** los jugadores de la
-  escena. Se activan las dos herramientas hoy deshabilitadas (`TOOLS_NOT_YET`).
+  escena. Las dos herramientas que la rebanada 1 dejaba deshabilitadas ya están activas (`TOOLS_NOT_YET` quedó vacío).
 - Botones **Revelar todo** y **Ocultar todo** de la escena.
-- ⚠ El tamaño del pincel y los dos botones «todo» **no están dibujados**: se diseñan primero en `rolvium.pen` sobre la
-  barra de Trazo, antes de escribir UI (regla del harness).
+- El tamaño del pincel y los botones «Revelar todo» / «Ocultar todo» viven en la barra de Trazo, que cambia a modo
+  «Pincel» mientras la herramienta activa sea Revelar u Ocultar (diseñado en `rolvium.pen` `uXK3T` antes de la UI).
 
 ### Puertas y ventanas
 - Un muro deja de ser sólo un segmento: tiene un **tipo** y, si procede, un estado **abierto/cerrado**.
@@ -73,6 +74,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   | **Ventana** | nunca (para eso es) | sólo cerrada | sí (para el paso, no para la vista) |
 - «Corta el paso» **no tiene efecto todavía**: no hay reglas de movimiento hasta la rebanada 3. Se guarda ahora para no
   volver a migrar la tabla.
+- **Crear** una abertura: con la herramienta Muro activa la barra de Trazo pasa a modo «Muro» y ofrece el **tipo** del
+  siguiente segmento (Muro · Puerta · Ventana, diseñado en `rolvium.pen` `h3Q3NN`). El tipo **fija los flags**: un
+  segmento nuevo se construye siempre con `newWallOf(kind)`, así que una ventana no puede nacer cortando la vista.
+  Sólo el director: la herramienta es suya y la RLS de `maps_walls` sólo deja escribir al DJ.
 - Abrir y cerrar **lo hace el director** en esta rebanada. Que un jugador abra una puerta que su token alcanza queda
   fuera de alcance (necesita adyacencia, y eso es materia de la rebanada 3).
 - Abrir o cerrar una puerta **recalcula la visión de todos** en el acto.
@@ -89,6 +94,14 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
   muros con `visible_players=false` no viajan al cliente del jugador (RLS). **Esta es la frontera de seguridad**: si la
   visión se calculase en el cliente, habría que mandarle la planta entera y cualquiera la leería en el navegador.
+- La API expone dos operaciones (prefijo `/scenes`, ambas autenticadas): `POST /scenes/:id/vision` recalcula y devuelve
+  **lo que ve quien llama** (jugador: sus tokens; director: la unión de lo explorado por todos) y persiste lo explorado;
+  `POST /scenes/:id/fog` es el pincel del director (`reveal`/`hide`, por casillas o «todo») y escribe sobre lo explorado
+  de **todos** los jugadores de la campaña. El servidor usa service role: lee todos los muros, decide, y devuelve
+  polígonos y casillas — nunca la geometría oculta.
+- **Lo explorado se guarda como casillas** (`maps_fog.explored` = `[[x,y], …]` en coordenadas de celda), no como
+  polígonos libres: la unión entre sesiones es entonces una operación de conjuntos, está acotada por el tamaño de la
+  escena y es exactamente lo que el pincel pinta. La **visión actual** sí viaja como polígono, porque se dibuja nítida.
 - La visión se recalcula cuando: se mueve un token, se abre o cierra una puerta, cambia la luz o los muros de la
   escena, o el jugador entra en la escena.
 - Niebla explorada por jugador y escena; persiste entre sesiones. Lo explorado **no se olvida** al alejarse.
@@ -135,5 +148,8 @@ muros cerrados que cortan vista y paso, que es justo lo que hacen hoy, así que 
   - La columna es `is_open` y no `open` porque `OPEN` es palabra reservada de PL/pgSQL.
 - **`maps_fog`** no cambia: la rebanada 1 ya la dejó con la forma que la visión necesita (`explored` por escena y
   jugador). La escribe el servidor tras calcular la visión, y el director a mano con el pincel.
-- Realtime: `maps_scenes` y `maps_walls` ya estaban en la publicación, así que abrir una puerta o cambiar la luz llega
-  sola a la mesa.
+- Realtime: `maps_scenes` y `maps_walls` ya estaban en la publicación, **pero `postgres_changes` aplica la RLS de cada
+  suscriptor**: al jugador NO le llega el evento de una puerta que no puede ver (`visible_players = false`), que es el
+  caso normal. Por eso abrir una puerta no puede llegar «sola» por la tabla. Lo que viaja es un **`broadcast`**
+  (`fog.updated` en el canal `scene:{id}`, sin RLS) que dice «vuelve a pedir tu visión»; cada cliente llama entonces al
+  servidor y recibe su polígono recalculado. Al director sí le llegan los dos caminos porque él ve todas las filas.

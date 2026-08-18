@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_KAREN, TOKEN_MUTANT } from '../../../../../tests/helpers/fakes';
+import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_KAREN, TOKEN_MUTANT, WALL_1 } from '../../../../../tests/helpers/fakes';
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
+  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitWall, isBrush, METRES_PER_CELL, newWallOf, nightLabelM, openingGeometry, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, WALL_FLAGS, WALL_KINDS,
 } from './mapRules';
 
 describe('mapRules — view & coordinates', () => {
@@ -133,5 +134,66 @@ describe('mapRules — token factories & search', () => {
     expect(filterEntries(items, 'mut', i => i.n)).toEqual([{ n: 'Mutante' }]);
     expect(filterEntries(items, 'VIDÁL', i => i.n)).toEqual([{ n: 'Padre Vidal' }]);
     expect(filterEntries(items, '  ', i => i.n)).toHaveLength(3);
+  });
+});
+
+// ── slice 2: openings, light and fog ─────────────────────────────────────────
+describe('openings — walls, doors and windows', () => {
+  const wall = { ...WALL_1 };
+  const door = { ...WALL_1, kind: 'door' as const };
+  const window = { ...WALL_1, kind: 'window' as const, blocksSight: false };
+
+  it('the three types are two flags, not a switch', () => {
+    expect(WALL_FLAGS.wall).toEqual({ blocksSight: true, blocksMove: true });
+    expect(WALL_FLAGS.door).toEqual({ blocksSight: true, blocksMove: true });
+    expect(WALL_FLAGS.window).toEqual({ blocksSight: false, blocksMove: true });
+  });
+  it('a new segment always takes the flags of its type — the picker can never make an incoherent wall', () => {
+    expect(WALL_KINDS).toEqual(['wall', 'door', 'window']);
+    expect(newWallOf('wall')).toEqual({ kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false });
+    expect(newWallOf('door')).toEqual({ kind: 'door', blocksSight: true, blocksMove: true, isOpen: false });
+    // a window that cut sight would be the invariant the DB does not enforce yet — this is where it is held
+    expect(newWallOf('window')).toEqual({ kind: 'window', blocksSight: false, blocksMove: true, isOpen: false });
+  });
+  it('only doors and windows open; a closed door cuts sight, an open one does not, a window never does', () => {
+    expect([wall, door, window].map(canOpen)).toEqual([false, true, true]);
+    expect(blocksSightNow(door)).toBe(true);
+    expect(blocksSightNow({ ...door, isOpen: true })).toBe(false);
+    expect(blocksSightNow(window)).toBe(false);
+    expect(blocksMoveNow(window)).toBe(true);
+    expect(blocksMoveNow({ ...window, isOpen: true })).toBe(false);
+  });
+  it('hitWall picks the nearest segment within tolerance and nothing when the click is away', () => {
+    // WALL_1 runs vertically at x = 270 between y = 216 and y = 540
+    expect(hitWall([WALL_1], { x: 273, y: 300 })?.id).toBe('w-1');
+    expect(hitWall([WALL_1], { x: 320, y: 300 })).toBeNull();
+  });
+  it('openingGeometry puts a jamb across each end and swings the leaf out of the first one', () => {
+    const g = openingGeometry({ x1: 0, y1: 0, x2: 0, y2: 100 }, 10);
+    expect(g.jambA).toEqual([{ x: 10, y: 0 }, { x: -10, y: 0 }]);
+    expect(g.jambB).toEqual([{ x: 10, y: 100 }, { x: -10, y: 100 }]);
+    expect(g.leaf).toEqual([{ x: 0, y: 0 }, { x: -100, y: 0 }]);
+  });
+});
+
+describe('light and fog helpers', () => {
+  it('day has no radius; night converts metres to px with the system’s metres per cell', () => {
+    expect(sceneRadiusPx(SCENE_WAREHOUSE)).toBeNull();
+    expect(sceneRadiusPx({ ...SCENE_WAREHOUSE, lighting: 'night', nightRadiusM: 10 })).toBeCloseTo((10 / METRES_PER_CELL) * 27);
+    expect(nightLabelM({ nightRadiusM: 10.04 })).toBe('10');
+  });
+  it('the brush radius grows with the size, in scene px', () => {
+    expect(brushRadius(3, 27)).toBe(81);
+  });
+  it('polygons and explored cells become SVG payloads', () => {
+    expect(polygonPoints([[0, 0], [10, 5]])).toBe('0,0 10,5');
+    expect(cellsPath([[0, 0], [2, 1]], 27)).toBe('M0 0h27v27h-27zM54 27h27v27h-27z');
+    expect(cellsPath([], 27)).toBe('');
+  });
+  it('the fog brush tools are the ones that paint, and nothing is «próximamente» any more', () => {
+    expect(isBrush('reveal')).toBe(true);
+    expect(isBrush('hide')).toBe(true);
+    expect(isBrush('pencil')).toBe(false);
+    expect(TOOLS_NOT_YET).toEqual([]);
   });
 });

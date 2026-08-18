@@ -22,10 +22,11 @@ import { ImproveTab } from './tabs/ImproveTab';
 import { GroupTab } from './tabs/GroupTab';
 import { SceneTab } from './tabs/SceneTab';
 import type { MapsPort } from '@/modules/maps/domain/ports/MapsPort';
+import type { VisionPort } from '@/modules/maps/domain/ports/VisionPort';
 import './table.css';
 
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
-export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, maps }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; maps?: MapsPort }): JSX.Element {
+export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, maps, vision }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; maps?: MapsPort; vision?: VisionPort }): JSX.Element {
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
@@ -119,7 +120,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'improve' && <ImproveTab campaignId={campaign.id} userId={user.id} repo={charactersRepo} progressionEnabled={campaign.progressionEnabled} characterId={viewCharacterId} />}
             {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}
-            {tab === 'scene' && <SceneTab campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} />}
+            {tab === 'scene' && <SceneTab campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} />}
             {tab === 'bestiary' && (
               <section className="tb-hoja tb-placeholder" aria-live="polite">
                 <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>construction</span>

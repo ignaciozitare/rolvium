@@ -736,6 +736,38 @@
       "remove": "Remove from scene",
       "selected": "Selected token"
     },
-    "saveFailed": "Couldn't save the map change. Check your connection or whether you have permission."
+    "saveFailed": "Couldn't save the map change. Check your connection or whether you have permission.",
+    "brush": {
+      "label": "Brush",
+      "size": "Brush size",
+      "sizeN": "Size {{n}}",
+      "affectsAll": "revealing or hiding affects every player",
+      "revealAll": "Reveal all",
+      "hideAll": "Hide all",
+      "reveal": "Reveal brush",
+      "hide": "Hide brush"
+    },
+    "fog": {
+      "auto": "Automatic fog by line of sight",
+      "byVision": "Fog by line of sight"
+    },
+    "light": {
+      "label": "Scene light",
+      "day": "Day",
+      "night": "Night · {{m}} m"
+    },
+    "dmOptions": "Director options",
+    "dmCounts": "{{walls}} walls · {{doors}} doors · {{windows}} windows (invisible to players) · {{hidden}} hidden tokens",
+    "playerFootNight": "At night you see up to {{m}} m; what you already explored is still there, dimmed. Walls are not drawn: the fog is cut by them.",
+    "wall": {
+      "label": "Wall",
+      "kind": {
+        "wall": "Wall",
+        "door": "Door",
+        "window": "Window"
+      },
+      "kindOf": "Segment type",
+      "toggleHint": "click a door or a window to open or close it"
+    }
   }
 }

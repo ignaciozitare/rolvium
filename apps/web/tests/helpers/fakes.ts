@@ -257,11 +257,12 @@ export function fakeRollLog(seed: Roll[] = [ROLL_COMBAT, ROLL_SETBACK, ROLL_FREE
 
 // ── maps ─────────────────────────────────────────────────────────────────────
 import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
-import type { Drawing, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall } from '@/modules/maps/domain/entities/Scene';
+import type { SceneVision, VisionPort } from '@/modules/maps/domain/ports/VisionPort';
+import type { Drawing, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
 
 export const SCENE_WAREHOUSE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Almacén de Queens', width: 1080, height: 675, bgColor: '#4a4a3e', bgImageUrl: null,
-  bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', sortOrder: 0, visiblePlayers: false,
+  bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, sortOrder: 0, visiblePlayers: false,
   createdAt: '2026-08-18T00:00:00Z', updatedAt: '2026-08-18T00:00:00Z',
 };
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };
@@ -271,8 +272,12 @@ export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId:
 export const TOKEN_ELIAS: Token = { ...TOKEN_KAREN, id: 'tk-elias', characterId: 'ch-elias', name: 'Elías Vance', x: 8, y: 12, color: '#3a3a26', controlledBy: 'u-nix' };
 /** A hidden mutant placed by the DM (players never receive it). */
 export const TOKEN_MUTANT: Token = { ...TOKEN_KAREN, id: 'tk-mut', characterId: null, bestiaryRef: 'mutant', name: 'Mutante', x: 20, y: 9, color: null, visible: false, controlledBy: null, state: { resistance: 12 } };
-export const WALL_1: Wall = { id: 'w-1', sceneId: 'sc-1', campaignId: 'c1', x1: 270, y1: 216, x2: 270, y2: 540, visiblePlayers: false };
+export const WALL_1: Wall = { id: 'w-1', sceneId: 'sc-1', campaignId: 'c1', x1: 270, y1: 216, x2: 270, y2: 540, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false };
 export const WALL_VISIBLE: Wall = { ...WALL_1, id: 'w-2', x1: 270, y1: 540, x2: 540, y2: 540, visiblePlayers: true };
+/** A closed door across the corridor: cuts sight and movement until the DM opens it. */
+export const WALL_DOOR: Wall = { ...WALL_1, id: 'w-door', x1: 540, y1: 216, x2: 540, y2: 324, kind: 'door' };
+/** A window: never cuts sight, only movement (spec § «Puertas y ventanas»). */
+export const WALL_WINDOW: Wall = { ...WALL_1, id: 'w-win', x1: 600, y1: 216, x2: 700, y2: 216, kind: 'window', blocksSight: false };
 export const DRAWING_MINE: Drawing = { id: 'd-1', sceneId: 'sc-1', campaignId: 'c1', authorId: PLAYER_USER.id, kind: 'stroke', data: { points: [[300, 300], [340, 280], [380, 300]] }, color: '#c9a84c', width: 2, createdAt: '2026-08-18T00:00:00Z' };
 export const DRAWING_OTHER: Drawing = { ...DRAWING_MINE, id: 'd-2', authorId: 'u-nix', kind: 'rect', data: { x1: 450, y1: 500, x2: 510, y2: 540 }, color: '#b8452c' };
 export const IMAGE_CHAPEL: ImageAsset = { id: 'img-1', campaignId: 'c1', name: 'Capilla', url: 'https://x/backgrounds/c1/chapel.png', createdAt: '2026-08-18T00:00:00Z' };
@@ -292,6 +297,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const broadcasts: { sceneId: string; event: MapsLiveEvent }[] = [];
   const tokenUpdates: { id: string; patch: TokenPatch }[] = [];
   const sceneUpdates: { id: string; patch: ScenePatch }[] = [];
+  const wallUpdates: { id: string; patch: WallPatch }[] = [];
   const activated: (string | null)[] = [];
   const removedDrawings: string[] = [];
   const clearedMine: string[] = [];
@@ -299,7 +305,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const uploads: { campaignId: string; name: string }[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, broadcasts, tokenUpdates, sceneUpdates, activated, removedDrawings, clearedMine, clearedAll, uploads,
+    scenes, tokens, walls, drawings, images, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, activated, removedDrawings, clearedMine, clearedAll, uploads,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.event) h.onEvent?.(what.event); });
@@ -315,6 +321,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     removeImage: async (id: string) => { const i = images.findIndex(x => x.id === id); if (i >= 0) images.splice(i, 1); },
     listWalls: async (sid: string) => walls.filter(w => w.sceneId === sid),
     addWall: async (w: NewWall) => { const created: Wall = { ...w, id: `w-new-${++n}` }; walls.push(created); return created; },
+    updateWall: async (id: string, patch: WallPatch) => { wallUpdates.push({ id, patch }); const w = walls.find(x => x.id === id); if (w) Object.assign(w, patch); },
     removeWall: async (id: string) => { const i = walls.findIndex(w => w.id === id); if (i >= 0) walls.splice(i, 1); },
     listTokens: async (sid: string) => tokens.filter(t => t.sceneId === sid),
     addToken: async (t: NewToken) => { const created: Token = { ...t, id: `tk-new-${++n}` }; tokens.push(created); return created; },
@@ -329,4 +336,23 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     broadcast: (sceneId: string, event: MapsLiveEvent) => { broadcasts.push({ sceneId, event }); },
   } satisfies MapsPort & Record<string, unknown>;
   return api;
+}
+
+/** A polygon covering the left half of `SCENE_WAREHOUSE`, as if a wall at x = 540 cut the sight. */
+export const VISION_LEFT: SceneVision['vision'] = [[[0, 0], [540, 0], [540, 675], [0, 675]]];
+export const EXPLORED_2x2: SceneVision['explored'] = [[0, 0], [0, 1], [1, 0], [1, 1]];
+
+/**
+ * In-memory VisionPort. Vision is computed by the API in production, so the fake just hands back what it was
+ * seeded with and records every call — the browser must never derive it.
+ */
+export function fakeVisionPort(seed: Partial<SceneVision> = {}) {
+  const state: SceneVision = { vision: VISION_LEFT, explored: EXPLORED_2x2, radiusPx: null, ...seed };
+  const calls: { op: string; sceneId: string; at?: unknown }[] = [];
+  return {
+    state, calls,
+    refresh: async (sceneId: string) => { calls.push({ op: 'refresh', sceneId }); return { ...state }; },
+    paint: async (sceneId: string, op: 'reveal' | 'hide', at: { x: number; y: number; radius: number }) => { calls.push({ op, sceneId, at }); return { ...state }; },
+    paintAll: async (sceneId: string, op: 'reveal' | 'hide') => { calls.push({ op: `${op}All`, sceneId }); return { ...state }; },
+  } satisfies VisionPort & Record<string, unknown>;
 }

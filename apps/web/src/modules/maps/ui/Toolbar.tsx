@@ -1,17 +1,25 @@
 import { useTranslation } from '@rolvium/i18n';
+import { Tooltip } from '@rolvium/ui';
 import { DM_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '../domain/useCases/mapRules';
 
 const ICONS: Record<Tool, string> = { move: 'open_with', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', erase: 'ink_eraser', wall: 'fence', reveal: 'visibility', hide: 'visibility_off', encounter: 'swords' };
 const GROUPS: Tool[][] = [['move', 'measure', 'pin'], ['pencil', 'line', 'rect', 'circle', 'erase']];
 
+/**
+ * One tool. The name rides in a `Tooltip` and not in the browser's `title`: the native one waits about a second,
+ * lands wherever it likes and ignores the system's look, and an icon alone is not readable — the owner could not
+ * tell what `fence` meant. The `aria-label` stays: the tooltip is the visual half, not the accessible one.
+ */
 function ToolButton({ id, current, onChange }: { id: Tool; current: Tool; onChange: (t: Tool) => void }): JSX.Element {
   const { t } = useTranslation();
   const soon = TOOLS_NOT_YET.includes(id);
   const label = soon ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.soon')}` : t(`maps.tool.${id}`);
   return (
-    <button type="button" className={`mp-tool ${current === id ? 'on' : ''} ${DM_TOOLS.includes(id) ? 'dm' : ''}`} aria-pressed={current === id} aria-label={label} title={label} disabled={soon} onClick={() => onChange(id)}>
-      <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{ICONS[id]}</span>
-    </button>
+    <Tooltip label={label}>
+      <button type="button" className={`mp-tool ${current === id ? 'on' : ''} ${DM_TOOLS.includes(id) ? 'dm' : ''}`} aria-pressed={current === id} aria-label={label} disabled={soon} onClick={() => onChange(id)}>
+        <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{ICONS[id]}</span>
+      </button>
+    </Tooltip>
   );
 }
 

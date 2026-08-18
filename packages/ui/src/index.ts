@@ -11,6 +11,10 @@ export { Avatar, Badge, StatBox, Divider, Chip } from './components/Atoms';
 export { IconPicker }                    from './components/IconPicker';
 export type { IconPickerProps, IconPickerLabels } from './components/IconPicker';
 
+// ── Tooltip ───────────────────────────────────────────────────────────────────
+export { Tooltip }                       from './components/Tooltip';
+export type { TooltipProps, TooltipPlacement } from './components/Tooltip';
+
 // ── Overlay ────────────────────────────────────────────────────────────────────
 export { Modal, ConfirmModal }           from './components/Modal';
 

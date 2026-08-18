@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { SheetData } from '@rolvium/core';
 import type { RollCommitInput } from './domain/roll/IRollRepository.js';
+import { fakeMapsRepo } from './application/maps/fakeMapsRepo.js';
 
 const ADMIN: UserProfile = { id: '11111111-1111-4111-8111-111111111111', name: 'Root', email: 'root@rolvium.test', avatarUrl: null, roleId: 'r-admin', role: 'admin', permissions: { modules: [], admin: {} }, active: true, createdAt: '' };
 const PLAYER: UserProfile = { ...ADMIN, id: '22222222-2222-4222-8222-222222222222', name: 'Pip', email: 'pip@rolvium.test', role: 'player' };
@@ -39,6 +40,7 @@ const makeDeps = (): AppDeps => ({
       isCampaignMember: async (cid, actor) => cid === CAMP_ID && actor === PLAYER.id,
       isCampaignDm: async (cid, actor) => cid === CAMP_ID && actor === ADMIN.id,
     },
+    maps: fakeMapsRepo({ roles: { [ADMIN.id]: 'dm', [PLAYER.id]: 'player' }, tokens: [{ id: 'tk-pip', x: 2, y: 5, size: 1, controlledBy: PLAYER.id }] }),
     rolls: {
       commit: async (input) => {
         if ((input.shared['destiny'] ?? 0) > 1) throw Object.assign(new Error('pool_empty'), { code: 'POOL_EMPTY' });
@@ -243,5 +245,57 @@ describe('POST /rolls — pool authority', () => {
     const own = (r.json().data.request.groups as { count: number; tag?: string }[]).find(g => g.tag === 'own');
     expect(own!.count).toBeLessThan(20);
     expect(r.json().data.dice[0].length).toBe(own!.count);
+  });
+});
+
+
+// ── maps (H7 slice 2): vision and fog are computed by the server, never by the browser ──
+const SCENE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const post = (app: FastifyInstance, url: string, token?: string, payload?: unknown) =>
+  app.inject({ method: 'POST', url, ...(token ? { headers: { authorization: `Bearer ${token}` } } : {}), ...(payload ? { payload } : {}) });
+
+describe('POST /scenes/:id/vision', () => {
+  it('requires a token', async () => {
+    expect((await post(app, `/scenes/${SCENE_ID}/vision`)).statusCode).toBe(401);
+  });
+  it('rejects a scene id that is not a uuid', async () => {
+    expect((await post(app, '/scenes/nope/vision', 'player')).statusCode).toBe(400);
+  });
+  it('404 for an unknown scene, 403 for someone who is not at the table', async () => {
+    expect((await post(app, '/scenes/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/vision', 'player')).statusCode).toBe(404);
+    expect((await post(app, `/scenes/${SCENE_ID}/vision`, 'member')).statusCode).toBe(403);
+  });
+  it('answers the player with their own polygon and remembers what they saw', async () => {
+    const res = await post(app, `/scenes/${SCENE_ID}/vision`, 'player');
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { ok: boolean; data: { vision: number[][][]; explored: number[][]; radiusPx: number | null } };
+    expect(body.ok).toBe(true);
+    expect(body.data.vision).toHaveLength(1);
+    expect(body.data.explored.length).toBeGreaterThan(0);
+    expect(body.data.radiusPx).toBeNull();
+  });
+  it('answers the DM with no polygon (they see everything) and the union of the table', async () => {
+    const body = (await post(app, `/scenes/${SCENE_ID}/vision`, 'admin')).json() as { data: { vision: unknown[]; explored: number[][] } };
+    expect(body.data.vision).toEqual([]);
+    expect(body.data.explored.length).toBeGreaterThan(0);
+  });
+});
+
+describe('POST /scenes/:id/fog', () => {
+  it('rejects a body with neither `at` nor `all`', async () => {
+    expect((await post(app, `/scenes/${SCENE_ID}/fog`, 'admin', { op: 'reveal' })).statusCode).toBe(400);
+  });
+  it('only the DM paints', async () => {
+    expect((await post(app, `/scenes/${SCENE_ID}/fog`, 'player', { op: 'reveal', all: true })).statusCode).toBe(403);
+  });
+  it('«revelar todo» reveals the whole scene for the table', async () => {
+    const body = (await post(app, `/scenes/${SCENE_ID}/fog`, 'admin', { op: 'reveal', all: true })).json() as { data: { explored: number[][] } };
+    expect(body.data.explored).toHaveLength(100);
+  });
+  it('the brush hides only what it covers', async () => {
+    await post(app, `/scenes/${SCENE_ID}/fog`, 'admin', { op: 'reveal', all: true });
+    const body = (await post(app, `/scenes/${SCENE_ID}/fog`, 'admin', { op: 'hide', at: { x: 13.5, y: 13.5, radius: 20 } })).json() as { data: { explored: number[][] } };
+    expect(body.data.explored.some(([x, y]) => x === 0 && y === 0)).toBe(false);
+    expect(body.data.explored).toHaveLength(99);
   });
 });

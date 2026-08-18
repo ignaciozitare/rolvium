@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
-import { DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_VISIBLE } from '../../../../tests/helpers/fakes';
+import { DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import type { Tool } from '../domain/useCases/mapRules';
 import { MapCanvas } from './MapCanvas';
 
@@ -12,10 +12,11 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
-    tool: 'move', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true, view: VIEW, nameOf: id => id, selectedTokenId: null, ...cb, ...over,
+    tool: 'move', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
+    fog: null, brush: 3, view: VIEW, nameOf: id => id, selectedTokenId: null, ...cb, ...over,
   };
   const r = renderWithProviders(<MapCanvas {...props} />);
   const svg = screen.getByRole('application', { name: 'Lienzo de la escena' });
@@ -138,5 +139,127 @@ describe('<MapCanvas> wheel', () => {
     expect(wheel).toBeDefined();
     expect(wheel![2]).toMatchObject({ passive: false });
     add.mockRestore();
+  });
+});
+
+// ── slice 2: fog, light and openings ─────────────────────────────────────────
+const FOG = { vision: [[[0, 0], [540, 0], [540, 675], [0, 675]]] as [number, number][][], explored: [[0, 0], [1, 0]] as [number, number][], radiusPx: null };
+
+describe('<MapCanvas> fog', () => {
+  it('without an answer from the API yet the scene draws unfogged — no black flash', () => {
+    const { svg } = mount({ fog: null });
+    expect(within(svg).getByTestId('mp-map')).not.toHaveAttribute('mask');
+    expect(within(svg).queryByTestId('mp-fog-dim')).not.toBeInTheDocument();
+    expect(svg.querySelector('mask')).toBeNull();
+  });
+
+  it('player: the map is masked to explored ∪ vision, what is only remembered is dimmed, and tokens live only inside the current sight', () => {
+    const { svg } = mount({ fog: FOG });
+    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-fog-dim')).toHaveAttribute('mask', `url(#mp-dim-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).queryByTestId('mp-fog-veil')).not.toBeInTheDocument();
+    // the seen mask carries both the remembered cells and the polygon
+    const seen = svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}`)!;
+    expect(seen.querySelector('path')).toHaveAttribute('d', 'M0 0h27v27h-27zM27 0h27v27h-27z');
+    expect(seen.querySelector('polygon')).toHaveAttribute('points', '0,0 540,0 540,675 0,675');
+  });
+
+  it('with manual fog nothing is dimmed and tokens follow whatever the DM revealed', () => {
+    const { svg } = mount({ scene: { ...SCENE_WAREHOUSE, fogMode: 'manual' }, fog: { ...FOG, vision: [] } });
+    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).queryByTestId('mp-fog-dim')).not.toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+  });
+
+  it('a player with no token of their own sees the map they remember but NO tokens on it — memory holds no creatures', () => {
+    const { svg } = mount({ fog: { ...FOG, vision: [] } });
+    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    // the `lit` mask is empty, so the token layer resolves to nothing
+    expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
+    expect(svg.querySelector(`#mp-lit-${SCENE_WAREHOUSE.id}`)!.querySelector('polygon')).toBeNull();
+  });
+
+  it('DM: the whole map stays visible under a veil over what nobody explored; «ver como jugador» switches to the player’s fog', () => {
+    const { svg, rerender } = mount({ isDm: true, me: 'u-gm', fog: FOG });
+    expect(within(svg).getByTestId('mp-map')).not.toHaveAttribute('mask');
+    expect(within(svg).getByTestId('mp-fog-veil')).toHaveAttribute('mask', `url(#mp-unex-${SCENE_WAREHOUSE.id})`);
+    rerender({ isDm: true, me: 'u-gm', fog: FOG, playerView: true });
+    expect(within(svg).queryByTestId('mp-fog-veil')).not.toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+  });
+});
+
+describe('<MapCanvas> openings', () => {
+  it('a door renders its jambs (and a dark core while closed), a window is its own segment, a plain wall stays one line', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', walls: [WALL_1, WALL_DOOR, WALL_WINDOW] });
+    const walls = within(svg).getByTestId('mp-walls');
+    expect(walls.querySelector('[data-wall-id="w-1"]')!.tagName).toBe('line');
+    const door = walls.querySelector('[data-wall-id="w-door"]')!;
+    expect(door.getAttribute('data-open')).toBe('false');
+    expect(door.querySelectorAll('.mp-wall-core')).toHaveLength(1);
+    expect(door.querySelectorAll('.mp-wall-jamb')).toHaveLength(2);
+    expect(door.querySelectorAll('.mp-wall-leaf')).toHaveLength(0);
+    expect(walls.querySelector('[data-wall-id="w-win"] .mp-wall')!.classList.contains('window')).toBe(true);
+  });
+
+  it('an open door drops the core and swings a leaf instead', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', walls: [{ ...WALL_DOOR, isOpen: true }] });
+    const door = within(svg).getByTestId('mp-walls').querySelector('[data-wall-id="w-door"]')!;
+    expect(door.getAttribute('data-open')).toBe('true');
+    expect(door.querySelectorAll('.mp-wall-core')).toHaveLength(0);
+    expect(door.querySelectorAll('.mp-wall-leaf')).toHaveLength(1);
+  });
+
+  it('DM with the wall tool: clicking a door toggles it, clicking empty floor still starts a wall', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'wall', walls: [WALL_DOOR] });
+    // WALL_DOOR is the vertical segment x = 540, y ∈ [216, 324]
+    down(svg, 541, 260);
+    expect(cb.onToggleWall).toHaveBeenCalledWith(WALL_DOOR);
+    expect(cb.onAddWall).not.toHaveBeenCalled();
+    down(svg, 100, 100);
+    down(svg, 200, 100);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+  });
+
+  it('a player never gets a hidden door: only `visible_players` segments are drawn', () => {
+    const { svg } = mount({ walls: [WALL_DOOR, WALL_VISIBLE] });
+    const walls = within(svg).getByTestId('mp-walls');
+    expect(walls.querySelector('[data-wall-id="w-door"]')).toBeNull();
+    expect(walls.querySelector('[data-wall-id="w-2"]')).not.toBeNull();
+  });
+});
+
+describe('<MapCanvas> reveal/hide brush', () => {
+  beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: true }); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('shows the brush disc under the pointer and paints on press and while dragging', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'reveal', brush: 2 });
+    move(svg, 100, 100);
+    expect(within(svg).getByTestId('mp-brush')).toHaveAttribute('r', String(2 * G));
+    down(svg, 100, 100);
+    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 100, y: 100, radius: 2 * G }, 'reveal');
+    // throttled like the token drag: every paint rewrites the fog row of every player and wakes the whole table
+    vi.setSystemTime(Date.now() + 100);
+    move(svg, 130, 100);
+    expect(cb.onPaintFog).toHaveBeenLastCalledWith({ x: 130, y: 100, radius: 2 * G }, 'reveal');
+    const painted = cb.onPaintFog.mock.calls.length;
+    move(svg, 131, 100);
+    move(svg, 132, 100);
+    expect(cb.onPaintFog.mock.calls.length).toBe(painted);
+    up(svg);
+  });
+
+  it('the hide brush sends the other op, and a player never paints', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'hide', brush: 1 });
+    down(svg, 50, 50);
+    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 50, y: 50, radius: G }, 'hide');
+
+    document.body.innerHTML = '';
+    const player = mount({ tool: 'reveal', brush: 1 });
+    down(player.svg, 50, 50);
+    expect(player.cb.onPaintFog).not.toHaveBeenCalled();
+    expect(within(player.svg).queryByTestId('mp-brush')).not.toBeInTheDocument();
   });
 });

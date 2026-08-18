@@ -1,6 +1,8 @@
-import type { CatalogItem } from '@rolvium/core';
+import { METRES_PER_CELL, sightRadiusPx, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
 import type { Character } from '@/modules/characters/domain/entities/Character';
-import type { Drawing, DrawingKind, NewToken, Scene, Token } from '../entities/Scene';
+import type { Drawing, DrawingKind, NewToken, Scene, Token, Wall, WallKind } from '../entities/Scene';
+
+export { METRES_PER_CELL } from '@rolvium/core';
 
 /** Pure rules of the scene: coordinates, grid, permissions, hit-tests. No React, no I/O. */
 
@@ -11,16 +13,20 @@ export type Tool = 'move' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'ci
 
 export const PLAYER_TOOLS: Tool[] = ['move', 'measure', 'pin', 'pencil', 'line', 'rect', 'circle', 'erase'];
 export const DM_TOOLS: Tool[] = ['wall', 'reveal', 'hide', 'encounter'];
-/** Fog tools arrive with slice 2 (vision computed by the API — specs/modules/maps/SPEC.md). */
-export const TOOLS_NOT_YET: Tool[] = ['reveal', 'hide'];
+/** Tools that exist in the design but not yet in code; the toolbar greys them out. Empty since slice 2 shipped the fog brush. */
+export const TOOLS_NOT_YET: Tool[] = [];
+/** The reveal/hide brush paints on the fog instead of drawing. */
+export const BRUSH_TOOLS: Tool[] = ['reveal', 'hide'];
+export const isBrush = (t: Tool): boolean => BRUSH_TOOLS.includes(t);
 export const toolsFor = (isDm: boolean): Tool[] => (isDm ? [...PLAYER_TOOLS, ...DM_TOOLS] : PLAYER_TOOLS);
 
 export const MIN_ZOOM = 0.25;
 export const MAX_ZOOM = 4;
 export const ZOOM_STEP = 1.25;
 export const DEFAULT_GRID = 27;
-/** Metres per grid cell for the measure tool (Plenilunio plays in metres; 1 cell ≈ 1.5 m). */
-export const METRES_PER_CELL = 1.5;
+/** Reveal/hide brush radii in cells (design: four discs on the «Pincel» bar). */
+export const BRUSH_SIZES = [1, 2, 3, 4] as const;
+export const DEFAULT_BRUSH = 3;
 
 /** Stroke palette (persisted as hex in `maps_drawings.color`, so these are data, not theme). Order = design (paper, gold, blood, olive, steel, ink). */
 export const STROKE_COLORS = ['#dedcd5', '#c9a84c', '#b8452c', '#5f8f6a', '#5f6bb3', '#131310'] as const;
@@ -89,13 +95,78 @@ export function visibleTokens(tokens: Token[], isDm: boolean, playerView = false
   return isDm && !playerView ? tokens : tokens.filter(t => t.visible);
 }
 
-// ── hit tests (erase) ────────────────────────────────────────────────────────
+/** Distance from `p` to the segment `a`–`b` (used by the erase and door hit-tests). */
 function segDist(p: Point, a: Point, b: Point): number {
   const dx = b.x - a.x, dy = b.y - a.y;
   const l2 = dx * dx + dy * dy;
   const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }
+
+// ── openings: walls, doors and windows ───────────────────────────────────────
+/**
+ * The three types of the spec are two flags, so nothing here is a `switch` on `kind`
+ * (supabase/migrations/20260818140000_maps_vision.sql):
+ *   muro    → sight ✓ move ✓, never opens   · puerta → both, opens · ventana → move only, opens
+ * The server applies the same condition to compute vision; this copy only decides how a segment is drawn.
+ */
+/** Order of the picker in the design (rolvium.pen `h3Q3NN` · Tipo). */
+export const WALL_KINDS: WallKind[] = ['wall', 'door', 'window'];
+export const WALL_FLAGS: Record<WallKind, Pick<Wall, 'blocksSight' | 'blocksMove'>> = {
+  wall: { blocksSight: true, blocksMove: true },
+  door: { blocksSight: true, blocksMove: true },
+  window: { blocksSight: false, blocksMove: true },
+};
+/** A brand-new segment of `kind`: the flags always follow the type, never the other way round. */
+export const newWallOf = (kind: WallKind): Pick<Wall, 'kind' | 'blocksSight' | 'blocksMove' | 'isOpen'> =>
+  ({ kind, ...WALL_FLAGS[kind], isOpen: false });
+/** A `wall` is fixed shut; doors and windows can be opened. */
+export const canOpen = (w: Pick<Wall, 'kind'>): boolean => w.kind !== 'wall';
+export const blocksSightNow = (w: Pick<Wall, 'blocksSight' | 'isOpen'>): boolean => w.blocksSight && !w.isOpen;
+/** No movement rules until slice 3 — kept so the invariant lives next to its twin. */
+export const blocksMoveNow = (w: Pick<Wall, 'blocksMove' | 'isOpen'>): boolean => w.blocksMove && !w.isOpen;
+
+/** Nearest segment within `tol` scene px of `p` — how the DM picks a door to open. */
+export function hitWall(walls: Wall[], p: Point, tol = 8): Wall | null {
+  let best: Wall | null = null;
+  let bestDist = tol;
+  for (const w of walls) {
+    const d = segDist(p, { x: w.x1, y: w.y1 }, { x: w.x2, y: w.y2 });
+    if (d <= bestDist) { best = w; bestDist = d; }
+  }
+  return best;
+}
+
+/**
+ * Where to draw a door's jambs and its swung leaf. `n` is the unit normal of the segment, `d` the unit direction.
+ * A closed door is the segment itself plus a jamb tick at each end; an open one keeps the threshold faint and
+ * swings a leaf out of one jamb (rolvium.pen `uXK3T` · «Puerta abierta»).
+ */
+export function openingGeometry(w: Pick<Wall, 'x1' | 'y1' | 'x2' | 'y2'>, jamb = 9): { jambA: [Point, Point]; jambB: [Point, Point]; leaf: [Point, Point] } {
+  const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const d = { x: dx / len, y: dy / len };
+  const n = { x: -d.y, y: d.x };
+  const a = { x: w.x1, y: w.y1 }, b = { x: w.x2, y: w.y2 };
+  const tick = (p: Point): [Point, Point] => [{ x: p.x - n.x * jamb, y: p.y - n.y * jamb }, { x: p.x + n.x * jamb, y: p.y + n.y * jamb }];
+  return { jambA: tick(a), jambB: tick(b), leaf: [a, { x: a.x + n.x * len, y: a.y + n.y * len }] };
+}
+
+// ── fog & vision (drawn from what the API answers; never computed here) ──────
+/** `"x,y x,y …"` for an SVG `<polygon points>`. */
+export const polygonPoints = (poly: VisionPolygon): string => poly.map(([x, y]) => `${x},${y}`).join(' ');
+/** One `<path d>` for a whole set of explored cells — one element instead of a rect per cell. */
+export const cellsPath = (cells: FogCell[], grid: number): string =>
+  cells.map(([cx, cy]) => `M${cx * grid} ${cy * grid}h${grid}v${grid}h${-grid}z`).join('');
+/** Brush radius in scene px for a size taken from `BRUSH_SIZES`. */
+export const brushRadius = (size: number, grid: number): number => size * grid;
+/** Night sight radius of a scene in scene px, or `null` by day. Same helper the API uses. */
+export const sceneRadiusPx = (s: Pick<Scene, 'lighting' | 'nightRadiusM' | 'grid'>): number | null =>
+  sightRadiusPx(s.lighting, s.nightRadiusM, s.grid.size);
+/** Night radius as a rounded metre label for the light toggle. */
+export const nightLabelM = (s: Pick<Scene, 'nightRadiusM'>): string => String(Math.round(s.nightRadiusM * 10) / 10);
+
+// ── hit tests (erase) ────────────────────────────────────────────────────────
 /** True when `p` is within `tol` scene px of the drawing's outline (rect/circle: their border; text: its anchor box). */
 export function hitDrawing(d: Pick<Drawing, 'kind' | 'data' | 'width'>, p: Point, tol = 6): boolean {
   const tolerance = tol + d.width / 2;

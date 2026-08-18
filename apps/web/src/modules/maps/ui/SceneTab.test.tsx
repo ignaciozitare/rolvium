@@ -3,7 +3,7 @@ import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../.
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
-import { fakeCharactersRepo, fakeMapsRepo, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
+import { fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
 import { SceneTab } from './SceneTab';
 
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -18,8 +18,9 @@ const seed = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE, SCENE_CHAPEL], token
 const G = SCENE_WAREHOUSE.grid.size;
 const canvas = () => screen.getByRole('application', { name: 'Lienzo de la escena' });
 
-function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])) {
-  renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio} members={MEMBERS} activeSceneId={activeSceneId} charactersRepo={chars} repo={repo} />);
+/** Vision always comes from the API — the tests inject a fake port so nothing here ever computes it. */
+function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision = fakeVisionPort()) {
+  renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio} members={MEMBERS} activeSceneId={activeSceneId} charactersRepo={chars} repo={repo} vision={vision} />);
   return repo;
 }
 
@@ -47,7 +48,9 @@ describe('<SceneTab> player', () => {
     fireEvent.pointerMove(canvas(), { clientX: (TOKEN_KAREN.x + 2.5) * G, clientY: (TOKEN_KAREN.y + 0.5) * G, pointerId: 1 });
     fireEvent.pointerUp(canvas(), { pointerId: 1 });
     await waitFor(() => expect(repo.tokenUpdates).toEqual([{ id: 'tk-karen', patch: { x: 12, y: 11 } }]));
-    expect(repo.broadcasts.map(b => b.event.type === 'token.moved' && b.event.final)).toEqual([false, true]);
+    expect(repo.broadcasts.filter(b => b.event.type === 'token.moved').map(b => b.event.type === 'token.moved' && b.event.final)).toEqual([false, true]);
+    // moving a token changes what the DM's union of explored covers, and `postgres_changes` cannot say so → broadcast
+    expect(repo.broadcasts.some(b => b.event.type === 'fog.updated')).toBe(true);
     expect(repo.broadcasts[0]!.sceneId).toBe('sc-1');
     const u = userEvent.setup();
     await u.click(screen.getByRole('button', { name: 'Lápiz' }));
@@ -97,7 +100,7 @@ describe('<SceneTab> DM', () => {
     await u.click(screen.getByRole('button', { name: 'Ver escena Almacén de Queens' }));
     await within(canvas()).findByRole('img', { name: 'Token Mutante (oculto)' });
     expect(within(canvas()).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(1);
-    expect(screen.getByText('Vista de director · muros y tokens ocultos visibles')).toBeInTheDocument();
+    expect(screen.getByText(/Vista de director · muros y tokens ocultos visibles · Niebla por visión/)).toBeInTheDocument();
     expect(screen.getByText(/1 muros \(invisibles para jugadores\) · 1 tokens ocultos/)).toBeInTheDocument();
     // background
     await u.click(screen.getByRole('button', { name: 'Fondo del mapa' }));
@@ -165,5 +168,107 @@ describe('<SceneTab> failures', () => {
     fireEvent.pointerDown(canvas(), { clientX: 27, clientY: 27, pointerId: 1, button: 0 });
     fireEvent.pointerDown(canvas(), { clientX: 81, clientY: 27, pointerId: 1, button: 0 });
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo guardar el cambio en el mapa');
+  });
+});
+
+describe('<SceneTab> slice 2 — vision, light and openings', () => {
+  it('player: asks the API for its vision on entering, draws what it answers, and never computes it here', async () => {
+    const vision = fakeVisionPort();
+    mount('player', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    await screen.findByText('Almacén de Queens');
+    await waitFor(() => expect(vision.calls.some(c => c.op === 'refresh' && c.sceneId === 'sc-1')).toBe(true));
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-map')).toHaveAttribute('mask', 'url(#mp-seen-sc-1)'));
+    // Refreshes are coalesced on a trailing tick: entering the scene costs at most one round trip per DATA
+    // arrival (the scene, then its tokens and walls), never one per dependency that happened to change.
+    expect(vision.calls.filter(c => c.op === 'refresh').length).toBeLessThanOrEqual(2);
+  });
+
+  it('DM: the light switch writes the scene and the label follows; the night radius reaches the player footer', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', seed());
+    await screen.findByRole('radio', { name: 'Día' });
+    await u.click(screen.getByRole('radio', { name: 'Noche · 10 m' }));
+    await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { lighting: 'night' } }));
+
+    document.body.innerHTML = '';
+    mount('player', fakeMapsRepo({ scenes: [{ ...SCENE_WAREHOUSE, lighting: 'night' }], tokens: [TOKEN_KAREN], walls: [WALL_1] }));
+    expect(await screen.findByText(/De noche ves hasta 10 m/)).toBeInTheDocument();
+    expect(screen.getByText(/Almacén de Queens · tu visión · Noche · 10 m/)).toBeInTheDocument();
+  });
+
+  it('DM: «Niebla automática por visión» switches the scene between `vision` and `manual`', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', seed());
+    const check = await screen.findByRole('checkbox', { name: 'Niebla automática por visión' });
+    await u.click(check);
+    await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { fogMode: 'manual' } }));
+  });
+
+  it('DM: the Muro tool draws whatever type the picker says, with the flags of that type', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [] }));
+    await screen.findByText('Almacén de Queens');
+    await u.click(screen.getByRole('button', { name: 'Muro' }));
+
+    // default: a plain wall
+    fireEvent.pointerDown(canvas(), { clientX: 2 * G, clientY: 2 * G, pointerId: 1, button: 0 });
+    fireEvent.pointerDown(canvas(), { clientX: 6 * G, clientY: 2 * G, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.walls).toHaveLength(1));
+    expect(repo.walls[0]).toMatchObject({ kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false });
+
+    // Esc ends the chain (walls chain click to click), then pick «Ventana» → the next segment never cuts sight
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await u.click(screen.getByRole('radio', { name: 'Ventana' }));
+    fireEvent.pointerDown(canvas(), { clientX: 6 * G, clientY: 6 * G, pointerId: 1, button: 0 });
+    fireEvent.pointerDown(canvas(), { clientX: 9 * G, clientY: 6 * G, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.walls).toHaveLength(2));
+    expect(repo.walls[1]).toMatchObject({ kind: 'window', blocksSight: false, blocksMove: true, isOpen: false });
+
+    // and drawing one announces it, because it changes what everyone can see
+    expect(repo.broadcasts.some(b => b.event.type === 'fog.updated')).toBe(true);
+  });
+
+  it('DM: opening a door persists `is_open` and announces it — a player cannot learn it from postgres_changes', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [WALL_DOOR] }));
+    await screen.findByText('Almacén de Queens');
+    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    fireEvent.pointerDown(canvas(), { clientX: WALL_DOOR.x1 + 1, clientY: 260, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.wallUpdates).toContainEqual({ id: 'w-door', patch: { isOpen: true } }));
+    expect(repo.broadcasts.some(b => b.event.type === 'fog.updated')).toBe(true);
+  });
+
+  it('DM: the reveal brush replaces the stroke bar and «Revelar todo» paints the whole scene for every player', async () => {
+    const u = userEvent.setup();
+    const vision = fakeVisionPort();
+    mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    await screen.findByText('Almacén de Queens');
+    await u.click(screen.getByRole('button', { name: 'Revelar' }));
+    expect(await screen.findByRole('radio', { name: 'Tamaño 3' })).toBeChecked();
+    await u.click(screen.getByRole('button', { name: 'Revelar todo' }));
+    await waitFor(() => expect(vision.calls.some(c => c.op === 'revealAll')).toBe(true));
+  });
+
+  it('a `fog.updated` from someone else makes this client ask the server again; its own does not (that would loop)', async () => {
+    const vision = fakeVisionPort();
+    const repo = mount('player', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    await screen.findByText('Almacén de Queens');
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(0));
+    const before = vision.calls.length;
+    repo.emit('sc-1', { event: { type: 'fog.updated', campaignId: 'c1', sceneId: 'sc-1', userId: PLAYER_USER.id } });
+    await waitFor(() => expect(vision.calls.length).toBe(before));
+    repo.emit('sc-1', { event: { type: 'fog.updated', campaignId: 'c1', sceneId: 'sc-1', userId: 'u-gm' } });
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(before));
+  });
+
+  it('a burst of reasons to recompute collapses into ONE round trip', async () => {
+    const vision = fakeVisionPort();
+    const repo = mount('player', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    await screen.findByText('Almacén de Queens');
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(0));
+    const before = vision.calls.length;
+    // the DM swings three doors in the same tick — that is one answer to ask for, not three
+    for (let i = 0; i < 3; i++) repo.emit('sc-1', { event: { type: 'fog.updated', campaignId: 'c1', sceneId: 'sc-1', userId: 'u-gm' } });
+    await waitFor(() => expect(vision.calls.length).toBe(before + 1));
   });
 });
