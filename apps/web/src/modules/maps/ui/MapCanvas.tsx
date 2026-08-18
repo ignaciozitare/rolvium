@@ -74,6 +74,8 @@ export function MapCanvas(p: Props): JSX.Element {
   const [wallStart, setWallStart] = useState<Point | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
   const [pinShown, setPinShown] = useState<LivePin | null>(null);
+  /** Space held = pan, from ANY tool (the middle button already did this). Panning is a modifier, not a tool. */
+  const [spacePan, setSpacePan] = useState(false);
   const lastPaint = useRef(0);
   const grid = p.scene.grid.size;
   const dmSight = p.isDm && !p.playerView;
@@ -86,9 +88,23 @@ export function MapCanvas(p: Props): JSX.Element {
   }, [p.pin]);
   useEffect(() => { if (p.tool !== 'wall') setWallStart(null); if (p.tool !== 'measure') setMeasure(null); }, [p.tool]);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setWallStart(null); setGesture(null); setMeasure(null); p.onSelectToken(null); } };
+    /** Never steal the space bar from someone typing a scene name or a text drawing. */
+    const typing = (t: EventTarget | null): boolean => {
+      const el = t as HTMLElement | null;
+      const tag = el?.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable === true;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setWallStart(null); setGesture(null); setMeasure(null); p.onSelectToken(null); return; }
+      if (e.key === ' ' && !typing(e.target)) { e.preventDefault(); setSpacePan(true); } // preventDefault: space scrolls the table otherwise
+    };
+    const onKeyUp = (e: KeyboardEvent) => { if (e.key === ' ') setSpacePan(false); };
+    /** Alt-tabbing away with space down would leave the canvas stuck in pan mode. */
+    const onBlur = () => setSpacePan(false);
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('blur', onBlur); };
   }, [p.onSelectToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const local = useCallback((e: { clientX: number; clientY: number }): Point => {
@@ -125,7 +141,7 @@ export function MapCanvas(p: Props): JSX.Element {
 
   const onDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     const s = toScene(e);
-    if (e.button === 1 || (e.button === 0 && p.tool === 'move')) {
+    if (e.button === 1 || (e.button === 0 && (spacePan || p.tool === 'move'))) {
       p.onSelectToken(null);
       setGesture({ kind: 'pan', start: local(e), origin: p.view });
       svgRef.current?.setPointerCapture?.(e.pointerId);
@@ -202,7 +218,7 @@ export function MapCanvas(p: Props): JSX.Element {
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
   const draft = gesture?.kind === 'draw' ? { kind: gesture.tool, data: gesture.tool === 'stroke' ? { points: gesture.points } : shapeData(gesture.tool, gesture.start, gesture.last), color: p.stroke.color, width: p.stroke.width } : null;
   const clipId = `mp-clip-${p.scene.id}`;
-  const cursor = p.tool === 'move' ? (gesture?.kind === 'pan' ? 'grabbing' : 'grab') : 'crosshair';
+  const cursor = spacePan || p.tool === 'move' ? (gesture?.kind === 'pan' ? 'grabbing' : 'grab') : 'crosshair';
   const measured = measure ? distanceLabel(distanceCells(measure.a, measure.b, grid)) : null;
 
   // ── fog ──

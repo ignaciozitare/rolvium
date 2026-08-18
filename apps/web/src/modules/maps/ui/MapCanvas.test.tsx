@@ -263,3 +263,45 @@ describe('<MapCanvas> reveal/hide brush', () => {
     expect(within(player.svg).queryByTestId('mp-brush')).not.toBeInTheDocument();
   });
 });
+
+describe('<MapCanvas> panning is a modifier, not a tool', () => {
+  it('space held pans from a drawing tool and never draws; releasing gives the tool back', () => {
+    const { svg, cb } = mount({ tool: 'pencil' });
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(svg).toHaveStyle({ cursor: 'grab' });
+    down(svg, 100, 100);
+    move(svg, 140, 130);
+    expect(cb.onViewChange).toHaveBeenCalledWith({ zoom: 1, panX: 40, panY: 30 });
+    up(svg);
+    expect(cb.onAddDrawing).not.toHaveBeenCalled();
+
+    fireEvent.keyUp(window, { key: ' ' });
+    expect(svg).toHaveStyle({ cursor: 'crosshair' });
+    down(svg, 200, 200);
+    move(svg, 240, 200);
+    up(svg);
+    expect(cb.onAddDrawing).toHaveBeenCalled();
+  });
+
+  it('the middle button pans from any tool too (it already did)', () => {
+    const { svg, cb } = mount({ tool: 'wall', isDm: true, me: 'u-gm' });
+    down(svg, 100, 100, 1);
+    move(svg, 150, 100);
+    expect(cb.onViewChange).toHaveBeenCalledWith({ zoom: 1, panX: 50, panY: 0 });
+    expect(cb.onAddWall).not.toHaveBeenCalled();
+  });
+
+  it('space typed into a field is left alone, and losing the window unsticks the pan', () => {
+    const { svg } = mount({ tool: 'pencil' });
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: ' ' });
+    expect(svg).toHaveStyle({ cursor: 'crosshair' });   // still drawing: the field ate the space
+    input.remove();
+
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(svg).toHaveStyle({ cursor: 'grab' });
+    fireEvent.blur(window);                              // alt-tab with space down must not stick
+    expect(svg).toHaveStyle({ cursor: 'crosshair' });
+  });
+});

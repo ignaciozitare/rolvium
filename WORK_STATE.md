@@ -95,27 +95,45 @@ construir mapas) → `chat` (H8) + `journal` (H9) → `bestiary` (H5) → notifi
 - Harness: diseño en `.pen` → spec → dba → dev → **review + qa como subagentes** (lanzados como general-purpose leyendo
   `.claude/agents/{review,qa}.md`). QA: desviaciones de spec = warning; light/dark lo valida el dueño por ronda.
 
-## ❓ Pregunta abierta al dueño
-*(ninguna abierta)* — la anterior («¿añadimos el selector de tipo de muro?») está **resuelta**: el dueño dijo que sí,
-se diseñó primero en `rolvium.pen` (frame nuevo `h3Q3NN` «Mesa/Plenilunio · Escena · Director · Muro») y luego se
-cableó. El director ya coloca muros, puertas y ventanas.
+## ❓ Pendiente del dueño
+1. **Aprobar el frame `sFipl`** de `rolvium.pen` («Mesa/Plenilunio · Escena · Rediseño (sin cabecera · rail ·
+   seleccionar)») y **guardarlo con Cmd+S**. Es lo que desbloquea el dev de la rebanada 3 — el harness prohíbe UI sin
+   blueprint aprobado.
+2. **Validar light/dark** de la rebanada 2 (`SceneTab`, niebla, `DmOptionsBar`, barra «Pincel», `Tooltip`).
+3. **Supabase**: crear el proyecto de Rolvium cuesta **10 $/mes** en la organización actual — el Pro de 25 € NO
+   incluye proyectos extra, sólo 10 $/mes de crédito de cómputo que ya se gastan los dos que hay. El dueño va a
+   **fusionar OIH dentro de Worksuite con el agente de Worksuite** para liberar el hueco. Datos que le pasé:
+   OIH tiene **28 tablas / ~5,1 M filas / 7,2 GB** en un esquema propio `oih` (no en `public`), 12 funciones,
+   **0 políticas RLS**, **0 usuarios de auth** y **0 ficheros en Storage** — sin usuarios ni Storage, la fusión es
+   mucho menos peligrosa de lo normal; el volumen es lo que la hace lenta.
 
 ## ⏳ Siguiente paso inmediato
-1. **Validar light/dark** de lo nuevo (`SceneTab`, capas de niebla de `MapCanvas`, `DmOptionsBar`, la barra «Pincel»,
-   el `Tooltip` en la barra de herramientas y en `/ui-kit`) — lo hace el dueño mirando la pantalla. Es el único paso
-   manual que queda de la ronda de QA.
-2. **Aberturas — HECHO** (2026-08-18): el director ya crea puertas y ventanas. Diseño primero (`rolvium.pen`
-   `h3Q3NN`), luego el cableado: `WALL_KINDS` + `newWallOf(kind)` en `mapRules` (única vía de construcción, es donde
-   vive la invariante «una ventana nunca corta la vista»), tercer modo «Muro» en `StrokeBar`, estado `wallKind` en
-   `SceneTab`, `.mp-kinds` en `maps.css` reutilizando `.mp-seg`, 6 claves `maps.wall.*` en es/en. La barra «Muro»
-   entra en la validación light/dark del punto 1.
-3. **Commitear** la rebanada 2 (el árbol está sucio; nada se ha commiteado en esta sesión).
-4. **Segunda pasada de la prueba manual** con las tres cuentas (`docs/PRUEBA-MANUAL.md`).
-5. **Rebanada 3 — movimiento máximo por turno**, configurable **por sistema** (toca el puerto `GameSystem` y
-   `packages/core`). Se lleva por delante la deuda de `METRES_PER_CELL`, que ahora vive en `packages/core`.
-6. **Rebanada 4 — galería de componentes** (muebles, árboles…) para construir mapas dentro de la app.
-7. **`chat` (H8) + `journal` (H9)**: las pestañas Chat · Notas · Bitácora del panel lateral son placeholders «pronto».
-8. **`bestiary` (H5)**: alinear las entradas base con bloques reales del manual (RULES §8).
+**La rebanada 2 está commiteada en la rama `feat/maps-slice-2`** (49 archivos, sin subir a `main` ni a GitHub — el
+repo es público, así que el push lo pide el dueño explícitamente).
+
+**Rebanada 3 — spec ✅ · diseño ✅ (falta aprobación) · queda DEV.** Salió entera de la prueba del dueño sobre la
+rebanada 2; está en `specs/modules/maps/SPEC.md` § «Rebanada 3» y en `specs/modules/dice/SPEC.md` § «Dados 3D»:
+1. **Fuera la cabecera «ESCENA · nombre»** (el dueño la señaló como espacio muerto) y **el lienzo a todo el alto, sin
+   scroll**. Ojo al orden: la cabecera **no se puede quitar antes** de que existan el rail y las entradas nuevas de la
+   barra, porque hoy aloja el desplegable de escenas, «Fondo del mapa» y «Colocar PJ» — quitarla antes deja al
+   director sin acceso a las tres cosas.
+2. **Rail de escenas** plegable (miniatura + nombre + punto oro en la activa) sustituyendo al desplegable.
+3. **Una barra de herramientas** en tres bloques rotulados: JUEGO (Dados primero · Seleccionar · Medir · Pin) ·
+   LIENZO (dibujo) · DIRECTOR tras el separador oro (Muro · Revelar · Ocultar ‖ Encuentro · Colocar PJ · Fondo).
+4. **Herramienta Seleccionar** (sustituye a Mover): selecciona tokens, trazos y **muros**, con **tirador en cada
+   vértice** para estirarlos y barra de segmento para cambiar el tipo / visibilidad / borrar. Abrir puertas pasa a un
+   **disco oro al pasar el ratón** sobre el vano, lo que además mata el choque de la rebanada 2 (empezar un muro cerca
+   de una puerta la abría).
+5. **Una puerta dibujada sobre un muro lo parte** — hoy se superponen y la puerta no hace nada. Es el agujero más
+   grave que dejó la rebanada 2.
+6. **Dados 3D** (H6) con `import()` dinámico y aterrizando en el resultado que ya decidió el servidor.
+
+**HECHO ya de la rebanada 3** (aditivo, no necesitaba diseño): **paneo con barra espaciadora** desde cualquier
+herramienta, con guarda para no robarle el espacio a quien escribe en un campo y para no quedarse pegado al perder
+el foco. El botón central ya paneaba.
+
+Después: segunda pasada de la prueba manual · rebanada 4 (movimiento máx. por turno, toca `GameSystem`) ·
+rebanada 5 (galería de props) · `chat` (H8) + `journal` (H9) · `bestiary` (H5).
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 - **Decidir**: el bucket `backgrounds` es de lectura pública como `avatars`/`tokens` (cualquiera con la URL ve un mapa no

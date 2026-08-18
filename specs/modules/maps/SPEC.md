@@ -10,8 +10,11 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Rebanada 2 — HECHA** (2026-08-18): niebla y visión calculadas en servidor, luz de la escena (día/noche), pincel
   revelar/ocultar, y **puertas y ventanas**: el director las **crea** eligiendo el tipo en la barra «Muro», y las abre y
   cierra con clic (el selector se diseñó antes en `rolvium.pen` `h3Q3NN`).
-- **Rebanada 3 — pendiente**: movimiento máximo por turno, configurable **por sistema** (toca el puerto `GameSystem`).
-- **Rebanada 4 — pendiente**: galería de componentes (muebles, árboles…) para construir mapas dentro de la app.
+- **Rebanada 3 — ESTE SPEC** (§ «Rebanada 3»): la escena deja de ser una pestaña con cabecera y pasa a ocupar la
+  pantalla. Rail de escenas plegable, una sola barra de herramientas con Dados dentro, **herramienta Seleccionar**
+  (mover y editar muros y vértices), puertas que **parten** el muro donde se dibujan, y dados 3D al tirar.
+- **Rebanada 4 — pendiente**: movimiento máximo por turno, configurable **por sistema** (toca el puerto `GameSystem`).
+- **Rebanada 5 — pendiente**: galería de componentes (muebles, árboles…) para construir mapas dentro de la app.
 
 ## What the user can do
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
@@ -89,6 +92,68 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Director:** ve el mapa entero con un **velo azulado** sobre lo no explorado y los muros en oro; las puertas se
   distinguen del muro y se ve si están abiertas. Etiqueta «VISTA DE DIRECTOR · MUROS Y TOKENS OCULTOS VISIBLES».
   «Ver como jugador» sigue mostrando la escena tal y como la ve el grupo.
+
+## Rebanada 3 — la escena a pantalla completa, seleccionar y editar
+
+Diseño aprobado en `rolvium.pen`, frame **`sFipl`** («Mesa/Plenilunio · Escena · Rediseño»). Todo lo de abajo sale de
+la prueba del dueño sobre la rebanada 2 ya construida: son correcciones de uso, no ideas nuevas.
+
+### La pantalla: sin cabecera y sin scroll
+- **Se elimina la banda «ESCENA · <nombre>»** que había sobre el lienzo. El dueño la señaló como espacio muerto: el
+  nombre de la escena ya lo dice el rail, y la etiqueta de dentro del lienzo ya dice en qué vista estás. La nota del
+  jugador («la directora decide la luz») se va al pie, donde ya hay una.
+- **El lienzo ocupa todo el alto disponible y la vista de escena NO scrollea.** Hoy no lo hace porque `.mp-stage`
+  lleva `height: min(70vh, 640px)` fijo y la fila del cuerpo de la mesa usa `align-items: flex-start`, así que ni el
+  lienzo ni el panel lateral se estiran. El lienzo y la barra de dados quedan **a la misma altura por construcción**
+  (misma fila estirada), no cuadrando un número a mano — un número se desajusta con cualquier cambio de contenido.
+
+### Rail de escenas (sustituye al desplegable)
+- Barra lateral **izquierda, plegable**, con una fila por escena: **miniatura + nombre**, punto oro en la activa.
+  Abajo, «+ Escena». Se pliega a una tira estrecha para recuperar ancho de mapa.
+- Sustituye al desplegable de escenas de la cabecera: elegir escena pasa de dos clics a uno, y se ve de un vistazo
+  cuál estás mirando y cuál ven los jugadores.
+
+### Una sola barra de herramientas, en tres bloques
+Deja de ser «herramientas del lienzo» y pasa a llevarlo todo, **rotulada por bloques** para que no se mezcle lo que
+cambia el cursor con lo que abre un panel:
+| Bloque | Herramientas |
+|---|---|
+| **JUEGO** | **Dados** (primera de todas) · Seleccionar · Medir · Pin |
+| **LIENZO** | Lápiz · Línea · Caja · Círculo · Borrar |
+| **DIRECTOR** (separador oro) | Muro · Revelar · Ocultar ‖ Encuentro · Colocar PJ · Fondo del mapa |
+- Las tres últimas del bloque de director abren panel en vez de cambiar el cursor, y van tras un separador propio.
+- «Fondo del mapa» y «Colocar PJ» **dejan la cabecera** (que desaparece) y viven aquí.
+
+### Seleccionar: una herramienta, y el paneo como modificador
+- **Seleccionar** (`arrow_selector_tool`) reemplaza a «Mover» en la barra. Con ella se elige y se edita: tokens,
+  trazos y **muros**.
+- **El paneo deja de ser una herramienta**: se panea con **la barra espaciadora mantenida** o con el **botón central**
+  del ratón, desde cualquier herramienta, y al soltar vuelves a lo que estabas. (El botón central ya lo hace hoy;
+  falta la barra espaciadora.) Se descartó fusionar Seleccionar y Mover en una sola herramienta: dos formas de
+  «clic sobre una cosa» conviviendo es justo lo que confunde.
+- **Muro seleccionado**: se resalta en oro y saca **un tirador cuadrado en cada vértice**. Arrastrando el segmento se
+  mueve entero; arrastrando un vértice se estira. Es lo que hoy no se puede hacer: un muro mal puesto sólo se puede
+  borrar y volver a trazar.
+- Con el muro seleccionado aparece la **barra de segmento** (misma familia que la barra de token): tipo
+  `MURO · PUERTA · VENTANA`, «visible para jugadores» y papelera. **Ahí se cambia el tipo de un segmento ya puesto.**
+- **Abrir y cerrar una puerta** deja de depender de la herramienta Muro: al pasar el ratón sobre una puerta o ventana
+  sale un **disco oro con icono de puerta** sobre el vano; un clic la abre o la cierra. Esto arregla además el choque
+  que tenía la rebanada 2 (empezar un muro cerca de una puerta la abría en vez de dibujar), porque **Muro pasa a ser
+  sólo de construcción**. Cuando en una rebanada posterior un jugador pueda abrir la puerta que su token alcance, el
+  gesto ya es el mismo.
+
+### Una puerta dibujada sobre un muro lo parte
+- Hoy los segmentos se superponen: dibujar una puerta encima de un muro deja los dos, el muro sigue cortando la vista
+  y **la puerta no hace nada**. Es el agujero más grave que dejó la rebanada 2.
+- A partir de ahora, dibujar una puerta o una ventana **sobre** un muro **parte el muro**: el tramo solapado se
+  convierte en la abertura y el muro queda en los dos trozos que sobran (los de longitud cero no se guardan).
+- La abertura **se pega al muro** que tiene debajo (se proyecta sobre su recta) para que nunca quede un pelo torcida
+  y siga cortando por los lados. Si no hay ningún muro debajo, se crea suelta, como hoy.
+- El recorte es geometría pura y va en `mapRules`, con test: es la clase de cosa que se rompe en silencio.
+
+### Dados 3D
+Es del hexágono `dice` (H6) — ver `specs/modules/dice/SPEC.md` § «Dados 3D». Aquí sólo consta que el lanzador se abre
+desde la primera herramienta de esta barra.
 
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
