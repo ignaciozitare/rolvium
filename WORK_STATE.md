@@ -69,15 +69,34 @@ turno, configurable por sistema) → rebanada 4 (galería de props para construi
   `.claude/agents/{review,qa}.md`). QA: desviaciones de spec = warning; light/dark lo valida el dueño por ronda.
 
 ## ⏳ Siguiente paso inmediato
+**Chat nuevo** (el transcript del 2026-08-18 llegó a 8,2 MB, por encima del umbral de handoff). Prompt de reanudación:
+> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Toca el **dev de `maps` rebanada 2** (niebla + visión en
+> servidor, luz día/noche, puertas y ventanas, tooltips de la barra) — el spec, la migración y el diseño ya están
+> aprobados. Flujo: dev → review → qa.
+
 1. **Segunda pasada de la prueba manual** con las tres cuentas (`docs/PRUEBA-MANUAL.md`), ahora que el generador se
    completa y la API está arriba. Los fallos que salgan entran al backlog de aquí.
-2. **`maps` rebanada 2 — spec → dba → dev → review → qa.** Decisiones del dueño (2026-08-18), ya cerradas:
-   - **Visión:** cada jugador ve lo que ve **su** token y sólo mueve el suyo; el director mueve cualquiera.
-   - **Alcance de la visión:** es un **ajuste de la escena**, no del token — *de día* se ve todo, *de noche* hasta el
-     equivalente a **10 m**. Por defecto: total. (`maps_tokens.vision_radius` sigue sin usar.)
-   - **Niebla:** la casilla «Niebla automática por visión» alterna sólo `vision` ↔ `manual`; `off` sin UI todavía.
-   - **Pincel revelar/ocultar:** el selector de trazo se **diseña primero en `rolvium.pen`** (no está dibujado).
-   - **Muros:** entran ya **puertas y ventanas** que se puedan abrir y cerrar.
+2. **`maps` rebanada 2 — spec ✅ · dba ✅ · diseño ✅ · queda DEV → review → qa.**
+   Spec confirmado por el dueño y migración `20260818140000_maps_vision` aplicada. Diseño aprobado y `.pen` guardado.
+   **Lo único que falta es el código.** Punto de partida exacto para el dev:
+   - **Semántica de aberturas, ya en la BD** (no la reinventes): `corta la vista ⇔ blocks_sight AND NOT is_open`;
+     `corta el paso ⇔ blocks_move AND NOT is_open`. Muro `t/t/cerrado` · Puerta `t/t/abrible` · Ventana `f/t/abrible`.
+     `blocks_move` no hace nada hasta la rebanada 3. Restricciones probadas contra la base real.
+   - **Visión:** cada jugador ve lo que ven **sus** tokens; el director la unión de lo explorado por todos. El cálculo
+     va **en servidor con TODOS los muros** (los `visible_players=false` no viajan al cliente) — es la frontera de
+     seguridad: si se calculase en el cliente habría que mandarle la planta entera.
+   - **Luz:** `maps_scenes.lighting` (`day`/`night`) + `night_radius_m` (10 por defecto, en METROS). La conversión a
+     casillas usa `METRES_PER_CELL` de `mapRules` — ⚠ deuda: es una regla de Plenilunio en la plataforma, y con la luz
+     nocturna pasa de cosmética a decidir quién ve a quién. Subirla al puerto `GameSystem` en la rebanada 3.
+   - **Recalcular** al mover token, abrir/cerrar puerta, cambiar luz o muros, y al entrar en la escena.
+   - **Activar** `TOOLS_NOT_YET = ['reveal','hide']` en `mapRules` y quitar el `TODO(slice 2)` de `MapCanvas`.
+   - **Diseño 1:1** en `rolvium.pen`: frames `uXK3T` (Escena · Director · Niebla) y `vz19f` (Escena · Jugador · Noche);
+     componente nuevo `PL/Tooltip herramienta` (`YQHKf`). El jugador ve **negro** fuera de su visión, no un velo.
+   - **Tooltip de las herramientas**: los botones ya tienen `title`/`aria-label`; hay que sustituir el nativo por el
+     componente. El `aria-label` se queda.
+   - ⚠ **Corregir el spec antes de implementar** (hallazgo de QA): dice que abrir una puerta llega sola por realtime
+     porque `maps_walls` está en la publicación, pero `postgres_changes` aplica RLS por suscriptor y al jugador no le
+     llega el evento de una puerta oculta. Tiene que llegarle por el recálculo del servidor.
 3. **Rebanada 3 — movimiento máximo por turno**, configurable **por sistema** (toca el puerto `GameSystem` y `packages/core`).
 4. **Rebanada 4 — galería de componentes** (muebles, árboles…) que se puedan ir cargando, para construir mapas dentro
    de la app. Tabla + bucket + UI + diseño propios; da para un hexágono.
@@ -100,6 +119,23 @@ turno, configurable por sistema) → rebanada 4 (galería de props para construi
   desde el panel · `campaigns_players_count` N+1 → RPC que devuelva conjunto.
 - Plataforma: fondo de Plenilunio a WebP (3,5 MB) · `UserMenu` con botones en línea (3 warns del audit).
 
+## 🧾 Deuda abierta con nombre y apellidos (de Review y QA, 2026-08-18)
+- **El tope por reparto es guardia de cliente, no de servidor.** `applyChange` corre en el navegador; la creación es un
+  `insert` directo en `characters` y `PUT /characters/:id/sheet` valida contra `sheetSchema` (`stat.max = 10`), no
+  contra `preset.maxStat`. Editando la ficha se puede dejar Fortaleza 7 con reparto Estándar. No es frontera de
+  seguridad (personaje propio, el director lo ve) pero rompe el «mismas reglas en los dos lados» de ARCHITECTURE.
+- **`maps_walls` no ata `kind` a los flags**: nada impide `kind='window'` con `blocks_sight=true`. La invariante de los
+  tres tipos vive sólo en el spec. Un `CHECK (kind <> 'window' OR NOT blocks_sight)` la cerraría.
+- **`maps_tokens.vision_radius`** queda redundante con `night_radius_m` de escena; decidir si se usa o se retira.
+- **Edición neutra de presupuesto con borrador sobregastado** (preexistente): añadir/quitar una especialidad no cuesta
+  puntos pero sigue vetada mientras el paso esté en negativo, y el `<select>` no se deshabilita — el usuario elige y no
+  pasa nada. Ya no es callejón sin salida.
+- **Los desplegables «+ Especialidad» aparecen en el paso de Características** (el campo `stat` arrastra sus
+  `itemFields` a cualquier paso que lo liste). El dueño preguntó por ello; las reglas son correctas, la pantalla no.
+- `UIKit.tsx` pasa `labels` a `<Sheet>` sin la clave `soon`, así que la leyenda nueva no se ve en el UI Kit.
+- `packages/ui` no tiene runner de tests propio: sus ramas las cubren los consumidores desde `apps/web`.
+- Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
+
 ## 🚫 Bloqueos / notas
 - Sin Supabase hosted (el plan del dueño permite 2 proyectos) → local. Al pasar a hosted: `supabase link` + `db push`,
   comprobar que `postgres` puede borrar en `auth.sessions`/`auth.refresh_tokens` (RPCs de identity), que
@@ -107,4 +143,12 @@ turno, configurable por sistema) → rebanada 4 (galería de props para construi
 - Realtime `postgres_changes` respeta los grants de columna (según review) — reconfirmar en hosted.
 - Arrancar: `npm run db:start` (Docker) · `npm run dev:api` (ya arreglado) · `npm run dev:web` (:5173).
   Admin de desarrollo: `admin@rolvium.local` / `rolvium123`. Correo local: Mailpit http://127.0.0.1:54324.
-- Esta sesión agotó dos veces el límite de Fable con subagentes; se reanudaron sin perder contexto (`SendMessage` al agente).
+- **Repo en GitHub: https://github.com/ignaciozitare/rolvium — PÚBLICO** (`origin/main`, push por gh CLI). El dueño lo
+  eligió público a sabiendas tras plantearle privado o reescribir el historial; contiene `RULES.md` (digesto del manual
+  comercial de Plenilunio) y `fondo.png` desde commits del 17-08. Cambiar la visibilidad ya no basta para retirarlo.
+- **Arrancar `npm run dev:api` NO es opcional**: sin él no se guarda ninguna ficha ni se tira ningún dado, y la mesa
+  parece rota sin dar ningún error claro. Fue la causa de dos de los tres «fallos» de la prueba manual.
+- `npm run db:reset` **borra la base local**, campañas de prueba incluidas. La migración de la rebanada 2 se aplicó en
+  caliente por eso. Si necesitas resetear, avisa al dueño antes.
+- El `.pen` **sólo lo puede guardar el dueño** (Cmd+S en la pestaña): no hay permiso de Accesibilidad para automatizarlo.
+  Comprobar siempre `ls -la rolvium.pen` antes de dar por hecho que el diseño está en disco.
