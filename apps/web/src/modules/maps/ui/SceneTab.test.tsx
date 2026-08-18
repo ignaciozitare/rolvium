@@ -334,6 +334,9 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     await screen.findByText(/Almacén de Queens/);
     fireEvent.contextMenu(canvas(), { clientX: 120, clientY: 90 });
     const menu = await screen.findByRole('menu', { name: 'Acciones rápidas' });
+    // centrar sólo para mí no molesta a nadie; centrar para todos sí manda el pin
+    expect(within(menu).getByRole('menuitem', { name: /Centrar mi vista aquí/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: /Centrar la vista de todos/ })).toBeInTheDocument();
     await userEvent.setup().click(within(menu).getByRole('menuitem', { name: /Lanzador de dados/ }));
     expect(onOpenDice).toHaveBeenCalled();
     expect(screen.queryByRole('menu', { name: 'Acciones rápidas' })).not.toBeInTheDocument();
@@ -347,6 +350,23 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1 + 2, clientY: 380, pointerId: 1, button: 0 });
     await screen.findByRole('toolbar', { name: 'Segmento' });
     fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.walls).toHaveLength(0));
+  });
+
+  it('el mismo borrar está en el menú del botón derecho, y sólo cuando hay algo elegido', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1] }));
+    await screen.findByText(/Almacén de Queens/);
+
+    fireEvent.contextMenu(canvas(), { clientX: 700, clientY: 100 });
+    expect(within(await screen.findByRole('menu', { name: 'Acciones rápidas' })).queryByRole('menuitem', { name: /Eliminar/ })).not.toBeInTheDocument();
+
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1 + 2, clientY: 380, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await screen.findByRole('toolbar', { name: 'Segmento' });
+    fireEvent.contextMenu(canvas(), { clientX: 700, clientY: 100 });
+    await u.click(within(await screen.findByRole('menu', { name: 'Acciones rápidas' })).getByRole('menuitem', { name: /Eliminar/ }));
     await waitFor(() => expect(repo.walls).toHaveLength(0));
   });
 });

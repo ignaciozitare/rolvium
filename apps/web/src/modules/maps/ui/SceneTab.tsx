@@ -123,6 +123,13 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const selectedToken = selectedTokens.length === 1 ? selectedTokens[0]! : null;
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
 
+  /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
+  const deleteSelection = () => {
+    if (!isDm) return;
+    if (selectedWall) { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); return; }
+    if (selectedTokens.length) { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }
+  };
+
   if (status === 'loading') return <section className="tb-hoja tb-placeholder">{t('maps.loading')}</section>;
   if (status === 'error') return <section className="tb-hoja tb-placeholder">{t('maps.error')}</section>;
 
@@ -172,10 +179,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
             onContextMenu={(at, pt) => setQuickMenu({ at, scene: pt })}
-            onDeleteSelection={() => {
-              if (selectedWall && isDm) { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); return; }
-              if (selectedTokens.length && isDm) { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }
-            }}
+            onDeleteSelection={deleteSelection}
             onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))} />
           {isDm && (
             <div className="mp-dmtag" role="group" aria-label={t('maps.dmOptions')}>
@@ -208,12 +212,20 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           )}
           {quickMenu && (
             <div className="mp-pop mp-quick" role="menu" aria-label={t('maps.quick.title')} style={{ left: quickMenu.at.x, top: quickMenu.at.y }}>
+              <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { setView(v => centerOn(v, quickMenu.scene, viewport())); setQuickMenu(null); }}>
+                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>my_location</span>{t('maps.quick.centerMe')}
+              </button>
               <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { st.focusPin(quickMenu.scene); setView(v => centerOn(v, quickMenu.scene, viewport())); setQuickMenu(null); }}>
-                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>location_on</span>{t('maps.tool.pin')}
+                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>location_on</span>{t('maps.quick.centerAll')}
               </button>
               <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { onOpenDice?.(); setQuickMenu(null); }}>
                 <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>casino</span>{t('maps.action.dice')}
               </button>
+              {isDm && (selectedWall || selectedTokens.length > 0) && (
+                <button type="button" role="menuitem" className="mp-menu-item danger" onClick={() => { deleteSelection(); setQuickMenu(null); }}>
+                  <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>delete</span>{t('common.delete')}
+                </button>
+              )}
             </div>
           )}
           {isDm && selectedTokens.length > 0 && (
@@ -222,7 +234,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               <button type="button" className="tb-btn tb-btn-xs" onClick={() => { const show = selectedTokens.some(tk => !tk.visible); selectedTokens.forEach(tk => run(st.patchToken(tk.id, { visible: show }))); }}>
                 {selectedTokens.some(tk => !tk.visible) ? t('maps.token.show') : t('maps.token.hide')}
               </button>
-              <button type="button" className="tb-btn tb-btn-xs" onClick={() => { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }}>{t('maps.token.remove')}</button>
+              <button type="button" className="tb-btn tb-btn-xs" onClick={deleteSelection}>{t('maps.token.remove')}</button>
             </div>
           )}
           {isDm && pcMenu && (

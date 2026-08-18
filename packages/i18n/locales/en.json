@@ -786,7 +786,9 @@
       "background": "Map background"
     },
     "quick": {
-      "title": "Quick actions"
+      "title": "Quick actions",
+      "centerMe": "Centre my view here",
+      "centerAll": "Centre everyone's view"
     },
     "text": {
       "prompt": "Text on the map"

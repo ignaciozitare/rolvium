@@ -786,7 +786,9 @@
       "background": "Fondo del mapa"
     },
     "quick": {
-      "title": "Acciones rápidas"
+      "title": "Acciones rápidas",
+      "centerMe": "Centrar mi vista aquí",
+      "centerAll": "Centrar la vista de todos"
     },
     "text": {
       "prompt": "Texto en el mapa"
