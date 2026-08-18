@@ -2,40 +2,81 @@ import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import { DM_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '../domain/useCases/mapRules';
 
-const ICONS: Record<Tool, string> = { move: 'open_with', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', erase: 'ink_eraser', wall: 'fence', reveal: 'visibility', hide: 'visibility_off', encounter: 'swords' };
-const GROUPS: Tool[][] = [['move', 'measure', 'pin'], ['pencil', 'line', 'rect', 'circle', 'erase']];
+const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', erase: 'ink_eraser', wall: 'fence', reveal: 'visibility', hide: 'visibility_off', encounter: 'swords' };
 
-/**
- * One tool. The name rides in a `Tooltip` and not in the browser's `title`: the native one waits about a second,
- * lands wherever it likes and ignores the system's look, and an icon alone is not readable — the owner could not
- * tell what `fence` meant. The `aria-label` stays: the tooltip is the visual half, not the accessible one.
- */
-function ToolButton({ id, current, onChange }: { id: Tool; current: Tool; onChange: (t: Tool) => void }): JSX.Element {
-  const { t } = useTranslation();
-  const soon = TOOLS_NOT_YET.includes(id);
-  const label = soon ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.soon')}` : t(`maps.tool.${id}`);
+/** Actions that open a panel instead of changing the cursor: they are buttons, not tools. */
+interface Action { id: 'dice' | 'placePc' | 'background'; icon: string; onClick: () => void; on?: boolean }
+
+interface Props {
+  tool: Tool;
+  isDm: boolean;
+  onChange: (tool: Tool) => void;
+  /** «Lanzador de dados» — the first button of all (specs/modules/maps/SPEC.md § «Rebanada 3»). */
+  onDice: () => void;
+  diceOpen?: boolean;
+  /** DM panels that used to live in the scene header, which no longer exists. */
+  onPlacePc?: () => void;
+  placePcOpen?: boolean;
+  onBackground?: () => void;
+  backgroundOpen?: boolean;
+}
+
+function Btn({ label, icon, on, dm, disabled, onClick }: { label: string; icon: string; on: boolean; dm?: boolean; disabled?: boolean; onClick: () => void }): JSX.Element {
   return (
     <Tooltip label={label}>
-      <button type="button" className={`mp-tool ${current === id ? 'on' : ''} ${DM_TOOLS.includes(id) ? 'dm' : ''}`} aria-pressed={current === id} aria-label={label} disabled={soon} onClick={() => onChange(id)}>
-        <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{ICONS[id]}</span>
+      <button type="button" className={`mp-tool ${on ? 'on' : ''} ${dm ? 'dm' : ''}`} aria-pressed={on} aria-label={label} disabled={disabled} onClick={onClick}>
+        <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{icon}</span>
       </button>
     </Tooltip>
   );
 }
 
-interface Props { tool: Tool; isDm: boolean; onChange: (tool: Tool) => void }
-
-/** Vertical icon toolbar (design: Mover · Medir · Pin | Lápiz · Línea · Caja · Círculo · Borrar | DM: Muro · Revelar · Ocultar · Encuentro). */
-export function Toolbar({ tool, isDm, onChange }: Props): JSX.Element {
+/**
+ * The single vertical bar of the scene, in three labelled blocks (rolvium.pen · «Escena · Director»):
+ *
+ *   JUEGO     Dados · Seleccionar · Medir · Pin        — what you touch while playing
+ *   LIENZO    Lápiz · Línea · Caja · Círculo · Borrar  — drawing on the map
+ *   DIRECTOR  Muro · Revelar · Ocultar ‖ Encuentro · Colocar PJ · Fondo del mapa
+ *
+ * The blocks are labelled on purpose: the bar now carries everything, so what changes the cursor and what opens a
+ * panel must not look alike — the last three of the DM block open a panel and sit behind their own separator.
+ * Panning is NOT here: it is a modifier (space bar or middle button), so it works from every tool.
+ */
+export function Toolbar(p: Props): JSX.Element {
   const { t } = useTranslation();
-  const groups = isDm ? [...GROUPS, DM_TOOLS] : GROUPS;
+  const label = (id: Tool) => (TOOLS_NOT_YET.includes(id) ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.soon')}` : t(`maps.tool.${id}`));
+  const tools = (ids: Tool[]) => ids.filter(x => p.isDm || PLAYER_TOOLS.includes(x)).map(id => (
+    <Btn key={id} label={label(id)} icon={ICONS[id]} on={p.tool === id} dm={DM_TOOLS.includes(id)} disabled={TOOLS_NOT_YET.includes(id)} onClick={() => p.onChange(id)} />
+  ));
+  const actions = (list: Action[]) => list.map(a => (
+    <Btn key={a.id} label={t(`maps.action.${a.id}`)} icon={a.icon} on={!!a.on} dm={a.id !== 'dice'} onClick={a.onClick} />
+  ));
+
+  const dmPanels: Action[] = [
+    ...(p.onPlacePc ? [{ id: 'placePc' as const, icon: 'person_add', onClick: p.onPlacePc, ...(p.placePcOpen !== undefined ? { on: p.placePcOpen } : {}) }] : []),
+    ...(p.onBackground ? [{ id: 'background' as const, icon: 'image', onClick: p.onBackground, ...(p.backgroundOpen !== undefined ? { on: p.backgroundOpen } : {}) }] : []),
+  ];
+
   return (
     <div className="mp-toolbar" role="toolbar" aria-label={t('maps.toolbar')} aria-orientation="vertical">
-      {groups.map((g, i) => (
-        <div key={i} className={`mp-tool-group ${g === DM_TOOLS ? 'dm' : ''}`}>
-          {g.filter(x => isDm || PLAYER_TOOLS.includes(x)).map(id => <ToolButton key={id} id={id} current={tool} onChange={onChange} />)}
+      <div className="mp-tool-group">
+        <span className="mp-tool-rotulo">{t('maps.group.play')}</span>
+        {actions([{ id: 'dice', icon: 'casino', onClick: p.onDice, ...(p.diceOpen !== undefined ? { on: p.diceOpen } : {}) }])}
+        {tools(['select', 'measure', 'pin'])}
+      </div>
+      <div className="mp-tool-group">
+        <span className="mp-tool-rotulo">{t('maps.group.canvas')}</span>
+        {tools(['pencil', 'line', 'rect', 'circle', 'erase'])}
+      </div>
+      {p.isDm && (
+        <div className="mp-tool-group dm">
+          <span className="mp-tool-rotulo">{t('maps.group.dm')}</span>
+          {tools(['wall', 'reveal', 'hide'])}
+          <span className="mp-tool-sep" aria-hidden />
+          {tools(['encounter'])}
+          {actions(dmPanels)}
         </div>
-      ))}
+      )}
     </div>
   );
 }

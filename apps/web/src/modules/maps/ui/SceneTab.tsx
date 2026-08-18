@@ -32,6 +32,9 @@ interface Props {
   /** From the table snapshot (live). Players see this scene; the DM starts on it. */
   activeSceneId: string | null;
   charactersRepo: CharactersPort;
+  /** The dice roller belongs to H6 and is hosted by the table; the scene only owns the button that opens it. */
+  onOpenDice?: () => void;
+  diceOpen?: boolean;
   repo?: MapsPort;
   vision?: VisionPort;
 }
@@ -40,7 +43,7 @@ interface Props {
 const DEFAULT_STROKE: StrokeStyle = { color: STROKE_COLORS[1], width: 2 };
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
+export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, diceOpen = false, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const isDm = role === 'dm';
   const ts = useMemo(() => sysT(system, locale), [system, locale]);
@@ -53,7 +56,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const run = useCallback((p: Promise<unknown>) => { void p.then(() => setFailed(false)).catch(() => setFailed(true)); }, []);
   const [images, setImages] = useState<ImageAsset[] | null>(null);
   const [pcs, setPcs] = useState<Character[] | null>(null);
-  const [tool, setTool] = useState<Tool>('move');
+  const [tool, setTool] = useState<Tool>('select');
   const [stroke, setStroke] = useState<StrokeStyle>(DEFAULT_STROKE);
   const [view, setView] = useState<View>({ zoom: 1, panX: 0, panY: 0 });
   const [showWalls, setShowWalls] = useState(true);
@@ -64,6 +67,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
   const [brush, setBrush] = useState<number>(DEFAULT_BRUSH);
   const [wallKind, setWallKind] = useState<WallKind>('wall');
+  const [railFolded, setRailFolded] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
 
   // ── load: DM lists; player follows the active scene ──
@@ -112,54 +116,33 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   if (status === 'loading') return <section className="tb-hoja tb-placeholder">{t('maps.loading')}</section>;
   if (status === 'error') return <section className="tb-hoja tb-placeholder">{t('maps.error')}</section>;
 
-  const header = (
-    <div className="mp-head">
-      <div className="mp-head-l"><span className="tb-rotulo">{t('maps.scene')}</span><span className="mp-scene-name">{live?.name ?? '—'}</span></div>
-      <div className="mp-head-r">
-        {isDm && scenes && <ScenesMenu scenes={scenes} selectedId={selectedId} activeSceneId={activeSceneId} onSelect={setSelectedId}
-          onCreate={async name => { const s = await repo.createScene({ campaignId, name, sortOrder: scenes.length }); setScenes(l => [...(l ?? []), s]); setSelectedId(s.id); }}
-          onRename={(id, name) => patchScene(id, { name })}
-          onActivate={id => repo.setActiveScene(campaignId, id)}
-          onToggleVisible={(id, visiblePlayers) => patchScene(id, { visiblePlayers })}
-          onRemove={async id => { await repo.removeScene(id); setScenes(l => { const n = (l ?? []).filter(s => s.id !== id); setSelectedId(cur => (cur === id ? n[0]?.id ?? null : cur)); return n; }); }} />}
-        {isDm && live && <button type="button" className={`tb-btn ${bgOpen ? 'tb-btn-solid' : ''}`} aria-pressed={bgOpen} onClick={() => void openBg()}>{t('maps.bg.button')}</button>}
-        {isDm && live && (
-          <span className="mp-pcwrap">
-            <button type="button" className={`tb-btn ${pcMenu ? 'tb-btn-solid' : ''}`} aria-pressed={pcMenu} onClick={() => void openPcMenu()}>{t('maps.place.pc')}</button>
-            {pcMenu && (
-              <div className="mp-pop mp-pcmenu" role="menu" aria-label={t('maps.place.pick')}>
-                {pcs === null && <span className="tb-dim tb-italic">{t('common.loading')}</span>}
-                {pcs?.length === 0 && <span className="tb-dim tb-italic">{t('characters.table.groupEmpty')}</span>}
-                {pcs?.map(c => {
-                  const placed = st.tokens.some(tk => tk.characterId === c.id);
-                  return <button key={c.id} type="button" role="menuitem" className="mp-menu-item" disabled={placed} onClick={() => void placePc(c)}>
-                    <UserAvatar user={{ name: c.name, avatarUrl: characterAvatar(c, members.find(m => m.userId === c.ownerId)?.avatarUrl) }} size={22} />{c.name}{placed && <span className="tb-dim"> · {t('maps.place.already')}</span>}
-                  </button>;
-                })}
-              </div>
-            )}
-          </span>
-        )}
-        {!isDm && <span className="tb-italic tb-dim mp-note">{t('maps.dmDecides')}</span>}
-      </div>
-    </div>
-  );
+  const scenesRail = isDm && scenes && live ? (
+    <ScenesMenu scenes={scenes} selectedId={selectedId} activeSceneId={activeSceneId} onSelect={setSelectedId}
+      collapsed={railFolded} onToggleCollapsed={() => setRailFolded(f => !f)}
+      onCreate={async name => { const sc = await repo.createScene({ campaignId, name, sortOrder: scenes.length }); setScenes(l => [...(l ?? []), sc]); setSelectedId(sc.id); }}
+      onRename={(id, name) => patchScene(id, { name })}
+      onActivate={id => repo.setActiveScene(campaignId, id)}
+      onToggleVisible={(id, visiblePlayers) => patchScene(id, { visiblePlayers })}
+      onRemove={async id => { await repo.removeScene(id); setScenes(l => { const n = (l ?? []).filter(sc => sc.id !== id); setSelectedId(cur => (cur === id ? n[0]?.id ?? null : cur)); return n; }); }} />
+  ) : null;
 
   if (!live) {
-    return <section className="mp-root">{header}<div className="tb-hoja tb-placeholder"><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>map</span><p>{isDm ? t('maps.noScenesDm') : t('maps.noScene')}</p></div></section>;
+    return <section className="mp-root"><div className="tb-hoja tb-placeholder"><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>map</span><p>{isDm ? t('maps.noScenesDm') : t('maps.noScene')}</p></div></section>;
   }
 
   const hiddenCount = st.tokens.filter(tk => !tk.visible).length;
   const bgName = live.bgImageUrl ? (images?.find(i => i.url === live.bgImageUrl)?.name ?? live.bgImageUrl.split('/').pop() ?? '') : t('maps.noBackground');
   return (
     <section className="mp-root">
-      {header}
       <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll() ): undefined}
         tool={tool}
         {...(isDm && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})}
         {...(isDm && tool === 'wall' ? { wallKind, onWallKind: setWallKind } : {})} />
       <div className="mp-stage-row">
-        <Toolbar tool={tool} isDm={isDm} onChange={setTool} />
+        {scenesRail}
+        <Toolbar tool={tool} isDm={isDm} onChange={setTool}
+          onDice={() => onOpenDice?.()} diceOpen={diceOpen}
+          {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
             playerView={playerView} showWalls={showWalls} fog={st.fog} brush={brush} view={view} onViewChange={setView} nameOf={nameOf}
@@ -182,8 +165,20 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               <button type="button" className="tb-btn tb-btn-xs" onClick={() => { run(st.removeToken(selectedToken.id)); setSelectedTokenId(null); }}>{t('maps.token.remove')}</button>
             </div>
           )}
+          {isDm && pcMenu && (
+            <div className="mp-pop mp-pcmenu" role="menu" aria-label={t('maps.place.pick')}>
+              {pcs === null && <span className="tb-dim tb-italic">{t('common.loading')}</span>}
+              {pcs?.length === 0 && <span className="tb-dim tb-italic">{t('characters.table.groupEmpty')}</span>}
+              {pcs?.map(c => {
+                const placed = st.tokens.some(tk => tk.characterId === c.id);
+                return <button key={c.id} type="button" role="menuitem" className="mp-menu-item" disabled={placed} onClick={() => void placePc(c)}>
+                  <UserAvatar user={{ name: c.name, avatarUrl: characterAvatar(c, members.find(m => m.userId === c.ownerId)?.avatarUrl) }} size={22} />{c.name}{placed && <span className="tb-dim"> · {t('maps.place.already')}</span>}
+                </button>;
+              })}
+            </div>
+          )}
           {isDm && tool === 'encounter' && (
-            <EncounterMenu entries={bestiary} labelOf={e => ts(e.label)} selectedId={encounter?.id ?? null} onSelect={setEncounter} onClose={() => setTool('move')} />
+            <EncounterMenu entries={bestiary} labelOf={e => ts(e.label)} selectedId={encounter?.id ?? null} onSelect={setEncounter} onClose={() => setTool('select')} />
           )}
           {isDm && bgOpen && (
             <BackgroundPopover scene={live} images={images}
@@ -206,7 +201,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               onLighting={lighting => run(patchScene(live.id, { lighting }))} />
             <p className="mp-foot tb-italic tb-dim">{t('maps.dmFoot', { walls: String(st.walls.length), hidden: String(hiddenCount), bg: bgName })}</p>
           </>
-        : <p className="mp-foot tb-italic tb-dim">{live.lighting === 'night' ? t('maps.playerFootNight', { m: String(live.nightRadiusM) }) : t('maps.playerFoot')}</p>}
+        : <p className="mp-foot tb-italic tb-dim">{t('maps.dmDecides')} {live.lighting === 'night' ? t('maps.playerFootNight', { m: String(live.nightRadiusM) }) : t('maps.playerFoot')}</p>}
     </section>
   );
 }

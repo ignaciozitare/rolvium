@@ -128,7 +128,8 @@ describe('table: page', () => {
     live.snap.activeSceneId = SCENE_WAREHOUSE.id;
     const { maps } = mount(PLAYER_USER, live, fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN] }));
     await u.click(await screen.findByRole('button', { name: 'Escena' }));
-    expect(await screen.findByText(SCENE_WAREHOUSE.name)).toBeInTheDocument();
+    // the scene header is gone in slice 3: the name rides the canvas label
+    expect(await screen.findByText(new RegExp(SCENE_WAREHOUSE.name))).toBeInTheDocument();
     const canvas = screen.getByRole('application', { name: 'Lienzo de la escena' });
     expect(await within(canvas).findByRole('img', { name: 'Token Karen «K»' })).toBeInTheDocument();
     await waitFor(() => expect(maps.subscribers).toBe(1));

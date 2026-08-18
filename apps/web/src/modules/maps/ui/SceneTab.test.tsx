@@ -30,19 +30,19 @@ describe('<SceneTab> player', () => {
     expect(await screen.findByText('El director aún no ha activado ninguna escena.')).toBeInTheDocument();
     document.body.innerHTML = '';
     mount('player');
-    expect(await screen.findByText('Almacén de Queens')).toBeInTheDocument();
-    expect(screen.getByText('La directora decide qué escena ves.')).toBeInTheDocument();
+    expect(await screen.findByText(/Almacén de Queens · tu visión/)).toBeInTheDocument();  // el nombre va en la etiqueta del lienzo, ya no en una cabecera
+    expect(screen.getByText(/La directora decide qué escena ves\./)).toBeInTheDocument();
     await waitFor(() => expect(within(canvas()).getAllByRole('img', { name: /^Token/ })).toHaveLength(2));
     expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).not.toBeInTheDocument();
     expect(within(canvas()).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(0);
-    expect(screen.getByRole('toolbar', { name: 'Herramientas del lienzo' }).querySelectorAll('button')).toHaveLength(8);
+    expect(screen.getByRole('toolbar', { name: 'Herramientas del lienzo' }).querySelectorAll('button')).toHaveLength(9); // 8 herramientas + Dados
     expect(screen.getByText(/Los muros no se dibujan/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Fondo del mapa' })).not.toBeInTheDocument();
     expect(screen.getByText('Almacén de Queens · tu visión')).toBeInTheDocument();
   });
   it('dragging my token broadcasts (final:false … final:true) and persists x/y; drawing a stroke inserts with my colour; erasing my stroke removes it; «Limpiar mis trazos»', async () => {
     const repo = mount('player');
-    await screen.findByText('Almacén de Queens');
+    await screen.findByText(/Almacén de Queens/);
     const karen = await within(canvas()).findByRole('img', { name: 'Token Karen «K»' });
     fireEvent.pointerDown(karen, { clientX: (TOKEN_KAREN.x + 0.5) * G, clientY: (TOKEN_KAREN.y + 0.5) * G, pointerId: 1, button: 0 });
     fireEvent.pointerMove(canvas(), { clientX: (TOKEN_KAREN.x + 2.5) * G, clientY: (TOKEN_KAREN.y + 0.5) * G, pointerId: 1 });
@@ -72,7 +72,7 @@ describe('<SceneTab> player', () => {
   });
   it('live: token updates / inserts / deletes, remote drag, and a remote pin re-centre the view; a pin by me is not re-applied', async () => {
     const repo = mount('player');
-    await screen.findByText('Almacén de Queens');
+    await screen.findByText(/Almacén de Queens/);
     await within(canvas()).findByRole('img', { name: 'Token Karen «K»' });
     repo.emit('sc-1', { token: { type: 'UPDATE', id: 'tk-elias', row: { ...TOKEN_ELIAS, x: 1, y: 1 } } });
     await waitFor(() => expect(within(canvas()).getByRole('img', { name: 'Token Elías Vance' })).toHaveAttribute('transform', `translate(${1.5 * G} ${1.5 * G})`));
@@ -96,7 +96,7 @@ describe('<SceneTab> DM', () => {
     const u = userEvent.setup();
     // Elías is not on the map yet: «Colocar PJ» must be able to add him (Karen already is → disabled).
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE, SCENE_CHAPEL], tokens: [TOKEN_KAREN, TOKEN_MUTANT], walls: [WALL_1], drawings: [DRAWING_MINE, DRAWING_OTHER], images: [IMAGE_CHAPEL] }), 'sc-2');
-    expect(await screen.findByText('Capilla sin techo', { selector: '.mp-scene-name' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Ver escena Capilla sin techo' })).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Ver escena Almacén de Queens' }));
     await within(canvas()).findByRole('img', { name: 'Token Mutante (oculto)' });
     expect(within(canvas()).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(1);
@@ -126,14 +126,14 @@ describe('<SceneTab> DM', () => {
   it('walls: click-click adds a segment; token bar: select → hide/show + remove; «Limpiar todos»; create + activate a scene', async () => {
     const u = userEvent.setup();
     const repo = mount('dm');
-    await screen.findByText('Almacén de Queens', { selector: '.mp-scene-name' });
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
     const karen = await within(canvas()).findByRole('img', { name: 'Token Karen «K»' });
     await u.click(screen.getByRole('button', { name: 'Muro' }));
     fireEvent.pointerDown(canvas(), { clientX: 27, clientY: 27, pointerId: 1, button: 0 });
     fireEvent.pointerDown(canvas(), { clientX: 81, clientY: 27, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.walls).toHaveLength(2));
     expect(repo.walls[1]).toMatchObject({ sceneId: 'sc-1', x1: 27, y1: 27, x2: 81, y2: 27, visiblePlayers: false });
-    await u.click(screen.getByRole('button', { name: 'Mover' }));
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
     fireEvent.pointerDown(karen, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
     fireEvent.pointerUp(canvas(), { pointerId: 1 });
     const bar = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
@@ -148,7 +148,7 @@ describe('<SceneTab> DM', () => {
     await u.click(screen.getByRole('button', { name: '+ Escena' }));
     await u.type(await screen.findByRole('textbox'), 'Mercado');
     await u.click(screen.getByRole('button', { name: 'Confirm' }));
-    expect(await screen.findByText('Mercado', { selector: '.mp-scene-name' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Ver escena Mercado' })).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Ver escena Mercado' }));
     await u.click(screen.getByRole('menuitem', { name: 'Activar para los jugadores' }));
     // the fake's id counter is shared across creations — assert against the scene that was just created
@@ -163,7 +163,7 @@ describe('<SceneTab> failures', () => {
     const repo = seed();
     repo.addWall = async () => { throw new Error('rls'); };
     mount('dm', repo);
-    await screen.findByText('Almacén de Queens', { selector: '.mp-scene-name' });
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
     await u.click(screen.getByRole('button', { name: 'Muro' }));
     fireEvent.pointerDown(canvas(), { clientX: 27, clientY: 27, pointerId: 1, button: 0 });
     fireEvent.pointerDown(canvas(), { clientX: 81, clientY: 27, pointerId: 1, button: 0 });
@@ -175,7 +175,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
   it('player: asks the API for its vision on entering, draws what it answers, and never computes it here', async () => {
     const vision = fakeVisionPort();
     mount('player', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
-    await screen.findByText('Almacén de Queens');
+    await screen.findByText(/Almacén de Queens/);
     await waitFor(() => expect(vision.calls.some(c => c.op === 'refresh' && c.sceneId === 'sc-1')).toBe(true));
     await waitFor(() => expect(within(canvas()).getByTestId('mp-map')).toHaveAttribute('mask', 'url(#mp-seen-sc-1)'));
     // Refreshes are coalesced on a trailing tick: entering the scene costs at most one round trip per DATA
@@ -207,7 +207,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
   it('DM: the Muro tool draws whatever type the picker says, with the flags of that type', async () => {
     const u = userEvent.setup();
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [] }));
-    await screen.findByText('Almacén de Queens');
+    await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Muro' }));
 
     // default: a plain wall
@@ -231,7 +231,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
   it('DM: opening a door persists `is_open` and announces it — a player cannot learn it from postgres_changes', async () => {
     const u = userEvent.setup();
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [WALL_DOOR] }));
-    await screen.findByText('Almacén de Queens');
+    await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Muro' }));
     fireEvent.pointerDown(canvas(), { clientX: WALL_DOOR.x1 + 1, clientY: 260, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.wallUpdates).toContainEqual({ id: 'w-door', patch: { isOpen: true } }));
@@ -242,7 +242,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
     const u = userEvent.setup();
     const vision = fakeVisionPort();
     mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
-    await screen.findByText('Almacén de Queens');
+    await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Revelar' }));
     expect(await screen.findByRole('radio', { name: 'Tamaño 3' })).toBeChecked();
     await u.click(screen.getByRole('button', { name: 'Revelar todo' }));
@@ -252,7 +252,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
   it('a `fog.updated` from someone else makes this client ask the server again; its own does not (that would loop)', async () => {
     const vision = fakeVisionPort();
     const repo = mount('player', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
-    await screen.findByText('Almacén de Queens');
+    await screen.findByText(/Almacén de Queens/);
     await waitFor(() => expect(vision.calls.length).toBeGreaterThan(0));
     const before = vision.calls.length;
     repo.emit('sc-1', { event: { type: 'fog.updated', campaignId: 'c1', sceneId: 'sc-1', userId: PLAYER_USER.id } });
@@ -264,11 +264,38 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
   it('a burst of reasons to recompute collapses into ONE round trip', async () => {
     const vision = fakeVisionPort();
     const repo = mount('player', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
-    await screen.findByText('Almacén de Queens');
+    await screen.findByText(/Almacén de Queens/);
     await waitFor(() => expect(vision.calls.length).toBeGreaterThan(0));
     const before = vision.calls.length;
     // the DM swings three doors in the same tick — that is one answer to ask for, not three
     for (let i = 0; i < 3; i++) repo.emit('sc-1', { event: { type: 'fog.updated', campaignId: 'c1', sceneId: 'sc-1', userId: 'u-gm' } });
     await waitFor(() => expect(vision.calls.length).toBe(before + 1));
+  });
+});
+
+describe('<SceneTab> rebanada 3 — la cabecera desaparece y su contenido se reparte', () => {
+  it('no queda ninguna cabecera de escena: el nombre va en la etiqueta del lienzo y las escenas en el rail', async () => {
+    mount('dm', seed());
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    expect(document.querySelector('.mp-head')).toBeNull();
+    expect(screen.getByRole('group', { name: 'Escenas' })).toBeInTheDocument();
+  });
+
+  it('«Fondo del mapa» y «Colocar PJ» son ahora botones de la barra, y abren su panel', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed());
+    const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
+    await u.click(within(bar).getByRole('button', { name: 'Fondo del mapa' }));
+    expect(await screen.findByText('Biblioteca de imágenes')).toBeInTheDocument();
+    await u.click(within(bar).getByRole('button', { name: 'Colocar PJ' }));
+    expect(await screen.findByRole('menu', { name: 'Elige un personaje' })).toBeInTheDocument();
+  });
+
+  it('el jugador no tiene rail (no elige escena) pero sí el botón de dados', async () => {
+    mount('player');
+    await screen.findByText(/Almacén de Queens/);
+    expect(screen.queryByRole('group', { name: 'Escenas' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lanzador de dados' })).toBeInTheDocument();
+    expect(screen.getByText(/La directora decide qué escena ves\./)).toBeInTheDocument();
   });
 });

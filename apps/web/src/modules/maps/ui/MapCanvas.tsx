@@ -131,7 +131,7 @@ export function MapCanvas(p: Props): JSX.Element {
   }, [local, view, onViewChange]);
 
   const onTokenDown = (tok: Token) => (e: ReactPointerEvent<SVGGElement>) => {
-    if (p.tool !== 'move' || e.button !== 0) return;
+    if (p.tool !== 'select' || e.button !== 0) return;
     e.stopPropagation();
     p.onSelectToken(tok.id);
     if (!canMoveToken(tok, p.me, p.isDm)) return;
@@ -141,12 +141,14 @@ export function MapCanvas(p: Props): JSX.Element {
 
   const onDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     const s = toScene(e);
-    if (e.button === 1 || (e.button === 0 && (spacePan || p.tool === 'move'))) {
-      p.onSelectToken(null);
+    // Panning is a modifier, never a tool: middle button or space bar, from whatever tool is active.
+    if (e.button === 1 || (e.button === 0 && spacePan)) {
       setGesture({ kind: 'pan', start: local(e), origin: p.view });
       svgRef.current?.setPointerCapture?.(e.pointerId);
       return;
     }
+    // Clicking empty ground with Seleccionar just clears the selection.
+    if (e.button === 0 && p.tool === 'select') { p.onSelectToken(null); return; }
     if (e.button !== 0) return;
     const draw = DRAW_TOOLS[p.tool];
     if (draw) { setGesture({ kind: 'draw', tool: draw, start: s, points: [[s.x, s.y]], last: s }); svgRef.current?.setPointerCapture?.(e.pointerId); return; }
@@ -218,7 +220,7 @@ export function MapCanvas(p: Props): JSX.Element {
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
   const draft = gesture?.kind === 'draw' ? { kind: gesture.tool, data: gesture.tool === 'stroke' ? { points: gesture.points } : shapeData(gesture.tool, gesture.start, gesture.last), color: p.stroke.color, width: p.stroke.width } : null;
   const clipId = `mp-clip-${p.scene.id}`;
-  const cursor = spacePan || p.tool === 'move' ? (gesture?.kind === 'pan' ? 'grabbing' : 'grab') : 'crosshair';
+  const cursor = spacePan ? (gesture?.kind === 'pan' ? 'grabbing' : 'grab') : p.tool === 'select' ? 'default' : 'crosshair';
   const measured = measure ? distanceLabel(distanceCells(measure.a, measure.b, grid)) : null;
 
   // ── fog ──
@@ -265,7 +267,7 @@ export function MapCanvas(p: Props): JSX.Element {
         <g className="mp-layer-tokens" data-testid="mp-tokens" {...(tokenMask ? { mask: url(tokenMask) } : {})}>
           {tokensShown.map(tk => {
             const ov = localDrag?.id === tk.id ? localDrag : p.drags[tk.id] ?? null;
-            return <TokenGlyph key={tk.id} token={tk} grid={grid} override={ov} selected={p.selectedTokenId === tk.id} movable={p.tool === 'move' && canMoveToken(tk, p.me, p.isDm)}
+            return <TokenGlyph key={tk.id} token={tk} grid={grid} override={ov} selected={p.selectedTokenId === tk.id} movable={p.tool === 'select' && canMoveToken(tk, p.me, p.isDm)}
               label={t('maps.canvas.token', { name: tk.name })} hiddenLabel={t('maps.canvas.hidden')} onPointerDown={onTokenDown(tk)} />;
           })}
         </g>

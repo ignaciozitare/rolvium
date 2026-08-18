@@ -9,9 +9,13 @@ export { METRES_PER_CELL } from '@rolvium/core';
 export type Point = { x: number; y: number };
 /** Canvas view: scene px → canvas px is `(p * zoom) + pan`. */
 export interface View { zoom: number; panX: number; panY: number }
-export type Tool = 'move' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'erase' | 'wall' | 'reveal' | 'hide' | 'encounter';
+/**
+ * `select` replaced `move` in slice 3: choosing and editing is a tool, panning is NOT — it is a modifier
+ * (space bar or middle button) so it works from every tool (specs/modules/maps/SPEC.md § «Rebanada 3»).
+ */
+export type Tool = 'select' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'erase' | 'wall' | 'reveal' | 'hide' | 'encounter';
 
-export const PLAYER_TOOLS: Tool[] = ['move', 'measure', 'pin', 'pencil', 'line', 'rect', 'circle', 'erase'];
+export const PLAYER_TOOLS: Tool[] = ['select', 'measure', 'pin', 'pencil', 'line', 'rect', 'circle', 'erase'];
 export const DM_TOOLS: Tool[] = ['wall', 'reveal', 'hide', 'encounter'];
 /** Tools that exist in the design but not yet in code; the toolbar greys them out. Empty since slice 2 shipped the fog brush. */
 export const TOOLS_NOT_YET: Tool[] = [];

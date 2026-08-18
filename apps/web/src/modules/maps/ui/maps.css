@@ -141,3 +141,22 @@
 .mp-dm-tag{font-style:normal;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;background:var(--sys-blood);color:var(--sys-paper-hi);}
 @media (max-width:900px){.mp-stage{height:60vh;}.mp-bgpop{right:8px;width:calc(100% - 16px);}}
 .mp-foot-err{color:var(--sys-blood);font-style:italic;}
+/* ── scenes rail (replaces the header dropdown; folds to give the map its width back) ── */
+.mp-rail{display:flex;flex-direction:column;gap:4px;width:186px;flex-shrink:0;padding:6px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
+.mp-rail.collapsed{width:56px;}
+.mp-rail-head{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 4px;}
+.mp-rail.collapsed .mp-rail-head{justify-content:center;}
+.mp-rail-fold{display:inline-flex;border:none;background:transparent;padding:0;cursor:pointer;color:var(--sys-ink-dim);line-height:0;}
+.mp-rail-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;overflow:auto;flex:1;min-height:0;}
+.mp-rail-row{position:relative;}
+.mp-rail-item{display:flex;align-items:center;gap:8px;width:100%;padding:5px;border:none;background:transparent;font-family:inherit;font-size:var(--fs-sm);color:var(--sys-ink-soft);cursor:pointer;text-align:left;}
+.mp-rail-item:hover{background:color-mix(in srgb,var(--sys-ink) 8%,transparent);}
+.mp-rail-item.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
+.mp-rail-thumb{width:38px;height:26px;flex-shrink:0;box-shadow:0 0 0 1px var(--sys-line);}
+.mp-rail.collapsed .mp-rail-thumb{width:44px;height:30px;}
+.mp-rail-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-rail-add{padding:5px 8px;border:1px solid var(--sys-border);background:transparent;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink-soft);cursor:pointer;}
+.mp-rail-add:hover{background:color-mix(in srgb,var(--sys-ink) 8%,transparent);}
+/* the toolbar now carries everything, so each block says what it is */
+.mp-tool-rotulo{font-size:var(--fs-2xs);letter-spacing:.16em;text-transform:uppercase;color:var(--sys-ink-dim);text-align:center;padding-bottom:2px;}
+.mp-tool-sep{display:block;height:1px;margin:4px 3px;background:var(--sys-line);}

@@ -15,7 +15,7 @@ function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
   const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
-    tool: 'move', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
+    tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
     fog: null, brush: 3, view: VIEW, nameOf: id => id, selectedTokenId: null, ...cb, ...over,
   };
   const r = renderWithProviders(<MapCanvas {...props} />);
@@ -62,7 +62,7 @@ describe('<MapCanvas> layers', () => {
 });
 
 describe('<MapCanvas> tools', () => {
-  it('move: dragging my token broadcasts while moving and persists the snapped cell on release; someone else\'s token only selects', () => {
+  it('select: dragging my token broadcasts while moving and persists the snapped cell on release; someone else\'s token only selects', () => {
     const { svg, token, cb } = mount();
     down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
     expect(cb.onSelectToken).toHaveBeenCalledWith('tk-karen');
@@ -74,10 +74,11 @@ describe('<MapCanvas> tools', () => {
     expect(cb.onSelectToken).toHaveBeenLastCalledWith('tk-elias');
     expect(cb.onMoveToken).toHaveBeenCalledTimes(1);
   });
-  it('move on empty canvas pans; wheel zooms', () => {
-    const { svg, cb } = mount();
+  it('select on empty canvas clears the selection and does NOT pan (panning is space/middle); wheel still zooms', () => {
+    const { svg, cb } = mount({ selectedTokenId: 'tk-karen' });
     down(svg, 10, 10); move(svg, 30, 50); up(svg);
-    expect(cb.onViewChange).toHaveBeenLastCalledWith({ zoom: 1, panX: 20, panY: 40 });
+    expect(cb.onSelectToken).toHaveBeenCalledWith(null);
+    expect(cb.onViewChange).not.toHaveBeenCalled();
     fireEvent.wheel(svg, { deltaY: -100, clientX: 0, clientY: 0 });
     expect(cb.onViewChange).toHaveBeenLastCalledWith(expect.objectContaining({ zoom: expect.closeTo(1.1, 5) }));
   });

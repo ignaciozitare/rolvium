@@ -648,7 +648,9 @@
       "delete": "Eliminar escena",
       "deleteConfirm": "¿Eliminar «{{name}}» con sus tokens, muros y trazos?",
       "menu": "Opciones de la escena",
-      "select": "Ver escena {{name}}"
+      "select": "Ver escena {{name}}",
+      "collapse": "Plegar escenas",
+      "expand": "Desplegar escenas"
     },
     "bg": {
       "button": "Fondo del mapa",
@@ -679,7 +681,6 @@
       "clearAll": "Limpiar todos"
     },
     "tool": {
-      "move": "Mover",
       "measure": "Medir",
       "pin": "Pin de enfoque",
       "pencil": "Lápiz",
@@ -691,7 +692,8 @@
       "reveal": "Revelar",
       "hide": "Ocultar",
       "encounter": "Encuentro",
-      "soon": "próximamente"
+      "soon": "próximamente",
+      "select": "Seleccionar"
     },
     "toolbar": "Herramientas del lienzo",
     "controls": {
@@ -768,6 +770,16 @@
       },
       "kindOf": "Tipo de segmento",
       "toggleHint": "clic en una puerta o una ventana para abrirla o cerrarla"
+    },
+    "group": {
+      "play": "Juego",
+      "canvas": "Lienzo",
+      "dm": "Director"
+    },
+    "action": {
+      "dice": "Lanzador de dados",
+      "placePc": "Colocar PJ",
+      "background": "Fondo del mapa"
     }
   }
 }
