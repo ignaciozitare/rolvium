@@ -254,3 +254,79 @@ export function fakeRollLog(seed: Roll[] = [ROLL_COMBAT, ROLL_SETBACK, ROLL_FREE
   };
   return api;
 }
+
+// ── maps ─────────────────────────────────────────────────────────────────────
+import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
+import type { Drawing, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall } from '@/modules/maps/domain/entities/Scene';
+
+export const SCENE_WAREHOUSE: Scene = {
+  id: 'sc-1', campaignId: 'c1', name: 'Almacén de Queens', width: 1080, height: 675, bgColor: '#4a4a3e', bgImageUrl: null,
+  bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', sortOrder: 0, visiblePlayers: false,
+  createdAt: '2026-08-18T00:00:00Z', updatedAt: '2026-08-18T00:00:00Z',
+};
+export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };
+export const SCENE_TUNNELS: Scene = { ...SCENE_WAREHOUSE, id: 'sc-3', name: 'Túneles de servicio', sortOrder: 2, visiblePlayers: true };
+/** Karen's token: Pip controls it. */
+export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId: 'c1', characterId: 'ch-karen', bestiaryRef: null, name: 'Karen «K»', imageUrl: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlledBy: PLAYER_USER.id, visionRadius: null, state: {} };
+export const TOKEN_ELIAS: Token = { ...TOKEN_KAREN, id: 'tk-elias', characterId: 'ch-elias', name: 'Elías Vance', x: 8, y: 12, color: '#3a3a26', controlledBy: 'u-nix' };
+/** A hidden mutant placed by the DM (players never receive it). */
+export const TOKEN_MUTANT: Token = { ...TOKEN_KAREN, id: 'tk-mut', characterId: null, bestiaryRef: 'mutant', name: 'Mutante', x: 20, y: 9, color: null, visible: false, controlledBy: null, state: { resistance: 12 } };
+export const WALL_1: Wall = { id: 'w-1', sceneId: 'sc-1', campaignId: 'c1', x1: 270, y1: 216, x2: 270, y2: 540, visiblePlayers: false };
+export const WALL_VISIBLE: Wall = { ...WALL_1, id: 'w-2', x1: 270, y1: 540, x2: 540, y2: 540, visiblePlayers: true };
+export const DRAWING_MINE: Drawing = { id: 'd-1', sceneId: 'sc-1', campaignId: 'c1', authorId: PLAYER_USER.id, kind: 'stroke', data: { points: [[300, 300], [340, 280], [380, 300]] }, color: '#c9a84c', width: 2, createdAt: '2026-08-18T00:00:00Z' };
+export const DRAWING_OTHER: Drawing = { ...DRAWING_MINE, id: 'd-2', authorId: 'u-nix', kind: 'rect', data: { x1: 450, y1: 500, x2: 510, y2: 540 }, color: '#b8452c' };
+export const IMAGE_CHAPEL: ImageAsset = { id: 'img-1', campaignId: 'c1', name: 'Capilla', url: 'https://x/backgrounds/c1/chapel.png', createdAt: '2026-08-18T00:00:00Z' };
+export const IMAGE_MARKET: ImageAsset = { id: 'img-2', campaignId: 'c1', name: 'Mercado', url: 'https://x/backgrounds/c1/market.png', createdAt: '2026-08-18T00:00:00Z' };
+
+/**
+ * In-memory MapsPort. Mutations are recorded; `emit(sceneId, …)` simulates realtime rows/events to subscribers;
+ * `broadcasts` collects what I sent on the scene channel.
+ */
+export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[] } = {}) {
+  const scenes = (seed.scenes ?? [SCENE_WAREHOUSE]).map(s => ({ ...s }));
+  const tokens = (seed.tokens ?? []).map(t => ({ ...t }));
+  const walls = (seed.walls ?? []).map(w => ({ ...w }));
+  const drawings = (seed.drawings ?? []).map(d => ({ ...d }));
+  const images = (seed.images ?? []).map(i => ({ ...i }));
+  const subs = new Map<string, Set<MapsLiveHandlers>>();
+  const broadcasts: { sceneId: string; event: MapsLiveEvent }[] = [];
+  const tokenUpdates: { id: string; patch: TokenPatch }[] = [];
+  const sceneUpdates: { id: string; patch: ScenePatch }[] = [];
+  const activated: (string | null)[] = [];
+  const removedDrawings: string[] = [];
+  const clearedMine: string[] = [];
+  const clearedAll: string[] = [];
+  const uploads: { campaignId: string; name: string }[] = [];
+  let n = 0;
+  const api = {
+    scenes, tokens, walls, drawings, images, broadcasts, tokenUpdates, sceneUpdates, activated, removedDrawings, clearedMine, clearedAll, uploads,
+    get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
+    emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; event?: MapsLiveEvent }) => {
+      subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.event) h.onEvent?.(what.event); });
+    },
+    listScenes: async (cid: string) => scenes.filter(s => s.campaignId === cid),
+    getScene: async (id: string) => scenes.find(s => s.id === id) ?? null,
+    createScene: async (input: { campaignId: string; name: string; sortOrder?: number }) => { const s: Scene = { ...SCENE_WAREHOUSE, id: `sc-new-${++n}`, campaignId: input.campaignId, name: input.name, sortOrder: input.sortOrder ?? scenes.length, bgImageUrl: null }; scenes.push(s); return s; },
+    updateScene: async (id: string, patch: ScenePatch) => { sceneUpdates.push({ id, patch }); const s = scenes.find(x => x.id === id); if (s) Object.assign(s, patch); },
+    removeScene: async (id: string) => { const i = scenes.findIndex(s => s.id === id); if (i >= 0) scenes.splice(i, 1); },
+    setActiveScene: async (_cid: string, sceneId: string | null) => { activated.push(sceneId); },
+    listImages: async (cid: string) => images.filter(i => i.campaignId === cid),
+    uploadImage: async (campaignId: string, _file: Blob, name: string) => { uploads.push({ campaignId, name }); const img: ImageAsset = { id: `img-new-${++n}`, campaignId, name, url: `https://x/backgrounds/${campaignId}/${name}.png`, createdAt: '' }; images.unshift(img); return img; },
+    removeImage: async (id: string) => { const i = images.findIndex(x => x.id === id); if (i >= 0) images.splice(i, 1); },
+    listWalls: async (sid: string) => walls.filter(w => w.sceneId === sid),
+    addWall: async (w: NewWall) => { const created: Wall = { ...w, id: `w-new-${++n}` }; walls.push(created); return created; },
+    removeWall: async (id: string) => { const i = walls.findIndex(w => w.id === id); if (i >= 0) walls.splice(i, 1); },
+    listTokens: async (sid: string) => tokens.filter(t => t.sceneId === sid),
+    addToken: async (t: NewToken) => { const created: Token = { ...t, id: `tk-new-${++n}` }; tokens.push(created); return created; },
+    updateToken: async (id: string, patch: TokenPatch) => { tokenUpdates.push({ id, patch }); const t = tokens.find(x => x.id === id); if (t) Object.assign(t, patch); },
+    removeToken: async (id: string) => { const i = tokens.findIndex(t => t.id === id); if (i >= 0) tokens.splice(i, 1); },
+    listDrawings: async (sid: string) => drawings.filter(d => d.sceneId === sid),
+    addDrawing: async (d: NewDrawing) => { const created: Drawing = { ...d, id: `d-new-${++n}`, authorId: PLAYER_USER.id, createdAt: '' }; drawings.push(created); return created; },
+    removeDrawing: async (id: string) => { removedDrawings.push(id); const i = drawings.findIndex(d => d.id === id); if (i >= 0) drawings.splice(i, 1); },
+    removeMyDrawings: async (sid: string) => { clearedMine.push(sid); for (let i = drawings.length - 1; i >= 0; i--) if (drawings[i]!.sceneId === sid && drawings[i]!.authorId === PLAYER_USER.id) drawings.splice(i, 1); },
+    removeAllDrawings: async (sid: string) => { clearedAll.push(sid); for (let i = drawings.length - 1; i >= 0; i--) if (drawings[i]!.sceneId === sid) drawings.splice(i, 1); },
+    subscribe: (sid: string, h: MapsLiveHandlers) => { const set = subs.get(sid) ?? new Set<MapsLiveHandlers>(); set.add(h); subs.set(sid, set); return () => { set.delete(h); }; },
+    broadcast: (sceneId: string, event: MapsLiveEvent) => { broadcasts.push({ sceneId, event }); },
+  } satisfies MapsPort & Record<string, unknown>;
+  return api;
+}

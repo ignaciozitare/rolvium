@@ -619,5 +619,121 @@
         "secret": "Secret"
       }
     }
+  },
+  "maps": {
+    "scene": "Scene",
+    "noScene": "The DM has not activated a scene yet.",
+    "noScenesDm": "Create the first scene to set the table.",
+    "dmDecides": "The DM decides which scene you see.",
+    "playerVision": "{{name}} · your vision",
+    "dmView": "DM view · walls and hidden tokens visible",
+    "playerFoot": "Walls are not drawn: the fog is cut against the walls of the map. Your explored fog is kept between sessions.",
+    "dmFoot": "{{walls}} walls (invisible to players) · {{hidden}} hidden tokens · background: {{bg}}",
+    "dmOnly": "DM only",
+    "fogSoon": "Vision fog: coming soon",
+    "noBackground": "no image",
+    "loading": "Loading the scene…",
+    "error": "The scene could not be loaded.",
+    "scenes": {
+      "title": "Scenes",
+      "add": "+ Scene",
+      "new": "New scene",
+      "name": "Scene name",
+      "create": "Create",
+      "rename": "Rename",
+      "activate": "Activate for players",
+      "active": "Active",
+      "visible": "Visible to players",
+      "delete": "Delete scene",
+      "deleteConfirm": "Delete “{{name}}” with its tokens, walls and strokes?",
+      "menu": "Scene options",
+      "select": "View scene {{name}}"
+    },
+    "bg": {
+      "button": "Map background",
+      "title": "Map background",
+      "baseColor": "Base colour",
+      "hexHint": "shows where the image does not reach",
+      "hex": "Hex colour",
+      "library": "Image library",
+      "upload": "+ Upload",
+      "none": "None",
+      "fit": "Fit",
+      "cover": "Cover",
+      "contain": "Fit",
+      "custom": "Reposition",
+      "scale": "Scale",
+      "offsetX": "Offset X",
+      "offsetY": "Offset Y",
+      "empty": "Upload the campaign's first map.",
+      "uploadError": "The image could not be uploaded.",
+      "close": "Close"
+    },
+    "stroke": {
+      "label": "Stroke",
+      "width": "Stroke width",
+      "color": "Colour {{n}}",
+      "shared": "what you draw is seen by the whole table",
+      "clearMine": "Clear my strokes",
+      "clearAll": "Clear all"
+    },
+    "tool": {
+      "move": "Move",
+      "measure": "Measure",
+      "pin": "Focus pin",
+      "pencil": "Pencil",
+      "line": "Line",
+      "rect": "Box",
+      "circle": "Circle",
+      "erase": "Erase",
+      "wall": "Wall",
+      "reveal": "Reveal",
+      "hide": "Hide",
+      "encounter": "Encounter",
+      "soon": "coming soon"
+    },
+    "toolbar": "Canvas tools",
+    "controls": {
+      "label": "Canvas controls",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "center": "Centre",
+      "walls": "Show/hide walls",
+      "playerView": "View as player"
+    },
+    "canvas": {
+      "label": "Scene canvas",
+      "token": "Token {{name}}",
+      "hidden": "hidden",
+      "measure": "{{cells}} cells · {{m}} m",
+      "pin": "Pin by {{name}}",
+      "wallHint": "click to start a wall · click to chain · Esc ends"
+    },
+    "encounter": {
+      "title": "Place encounter",
+      "search": "Search the bestiary",
+      "empty": "No results",
+      "hint": "click on the map to place · each copy has its own Resistance",
+      "resistance": "Res {{n}}",
+      "protection": "Prot {{n}}",
+      "select": "Choose {{name}}"
+    },
+    "place": {
+      "mine": "Place my character",
+      "pc": "Place PC",
+      "noPc": "You have no character in this campaign.",
+      "already": "Already in the scene",
+      "pick": "Pick a character"
+    },
+    "unit": {
+      "cells": "cells",
+      "m": "m"
+    },
+    "token": {
+      "show": "Show to players",
+      "hide": "Hide from players",
+      "remove": "Remove from scene",
+      "selected": "Selected token"
+    }
   }
 }

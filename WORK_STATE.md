@@ -8,7 +8,8 @@ Building the v1 hexagons in order (map: ARCHITECTURE.md "Product hexagons"; spec
 authority `PUT /characters/:id/sheet`) · **`dice` (H6, 149b3bf: immutable `dice_rolls`, `POST /rolls` persists + server effects +
 pool rebuilt from the sheet, Registro live, floating roller, side panel)** — review APPROVED WITH NOTES, QA see below.
 · **campaigns polish (DM Gestionar panel, Abandonar, `/systems`, `dev:api` fixed, Crescent dedupe)** — review PASSED.
-**NEXT:** `maps` (H7) → `chat/journal` (H8/H9) → DM panel → bestiary.
+· **`maps` (H7) slice 1** (scenes/tokens/walls/drawings/measure/pin, DM tools; sin niebla todavía).
+**NEXT:** `maps` slice 2 (niebla + visión en servidor) → `chat/journal` (H8/H9) → `bestiary` (H5).
 
 ## 📍 Exact point (2026-08-18 morning)
 - **dice (H6) shipped** (149b3bf): `dice_rolls` immutable log (RLS: table = members; dm/secret = author or DM; realtime), RPC
@@ -20,6 +21,13 @@ pool rebuilt from the sheet, Registro live, floating roller, side panel)** — r
   Deviations: die tones system-agnostic (max face/1); specialty not shown in the log title; own-dice trust fixed server-side.
 - Campaigns polish shipped: `CampaignManagePanel` (Modal from the DM card «Gestionar»), player «Abandonar», `/systems` page
   (`modules/systems/ui/SystemsPage.tsx`), `npm run dev:api` works again, duplicate `Crescent` removed.
+- **maps (H7) slice 1**: migration `20260818130000_maps.sql` (scenes/walls/tokens/drawings/fog/images + RLS: players see the
+  active/visible scene, only visible tokens, only `visible_players` walls, may move only their own token's x/y; bucket
+  `backgrounds`), web `modules/maps` (MapsPort + SupabaseMapsRepo with realtime + broadcast drag/pin, `mapRules`, SVG
+  `MapCanvas` with layers, Toolbar/StrokeBar/ScenesMenu/BackgroundPopover/EncounterMenu/CanvasControls, `SceneTab` in the
+  table's Escena tab). **Fog of war / server-side vision is slice 2** (spec §Rules: the API computes the polygon).
+- **Bug found in the browser and fixed (2026-08-18)**: the table had no scroll of its own (`.tb-root` relied on the document),
+  so the character generator could not be completed. `.tb-root` is now `height:100vh; overflow-y:auto` — re-check tomorrow.
 - Owner plan: **test everything together tomorrow** (2026-08-19) — identity, campaigns, table, characters, dice — light/dark + functional.
 
 - characters slice 2 shipped (see commit de01d40 body). Key architecture now in place:

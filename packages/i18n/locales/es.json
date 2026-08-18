@@ -619,5 +619,121 @@
         "secret": "Secreta"
       }
     }
+  },
+  "maps": {
+    "scene": "Escena",
+    "noScene": "El director aún no ha activado ninguna escena.",
+    "noScenesDm": "Crea la primera escena para preparar la mesa.",
+    "dmDecides": "La directora decide qué escena ves.",
+    "playerVision": "{{name}} · tu visión",
+    "dmView": "Vista de director · muros y tokens ocultos visibles",
+    "playerFoot": "Los muros no se dibujan: la niebla se corta contra las paredes del plano. Tu niebla explorada se guarda entre sesiones.",
+    "dmFoot": "{{walls}} muros (invisibles para jugadores) · {{hidden}} tokens ocultos · fondo: {{bg}}",
+    "dmOnly": "Solo director",
+    "fogSoon": "Niebla por visión: próximamente",
+    "noBackground": "sin imagen",
+    "loading": "Cargando la escena…",
+    "error": "No se pudo cargar la escena.",
+    "scenes": {
+      "title": "Escenas",
+      "add": "+ Escena",
+      "new": "Nueva escena",
+      "name": "Nombre de la escena",
+      "create": "Crear",
+      "rename": "Renombrar",
+      "activate": "Activar para los jugadores",
+      "active": "Activa",
+      "visible": "Visible para jugadores",
+      "delete": "Eliminar escena",
+      "deleteConfirm": "¿Eliminar «{{name}}» con sus tokens, muros y trazos?",
+      "menu": "Opciones de la escena",
+      "select": "Ver escena {{name}}"
+    },
+    "bg": {
+      "button": "Fondo del mapa",
+      "title": "Fondo del mapa",
+      "baseColor": "Color de base",
+      "hexHint": "se ve donde no llega la imagen",
+      "hex": "Color hex",
+      "library": "Biblioteca de imágenes",
+      "upload": "+ Subir",
+      "none": "Ninguna",
+      "fit": "Ajuste",
+      "cover": "Cubrir",
+      "contain": "Encajar",
+      "custom": "Reposicionar",
+      "scale": "Escala",
+      "offsetX": "Desplazamiento X",
+      "offsetY": "Desplazamiento Y",
+      "empty": "Sube el primer plano de la campaña.",
+      "uploadError": "No se pudo subir la imagen.",
+      "close": "Cerrar"
+    },
+    "stroke": {
+      "label": "Trazo",
+      "width": "Grosor del trazo",
+      "color": "Color {{n}}",
+      "shared": "lo que dibujas lo ve toda la mesa",
+      "clearMine": "Limpiar mis trazos",
+      "clearAll": "Limpiar todos"
+    },
+    "tool": {
+      "move": "Mover",
+      "measure": "Medir",
+      "pin": "Pin de enfoque",
+      "pencil": "Lápiz",
+      "line": "Línea",
+      "rect": "Caja",
+      "circle": "Círculo",
+      "erase": "Borrar",
+      "wall": "Muro",
+      "reveal": "Revelar",
+      "hide": "Ocultar",
+      "encounter": "Encuentro",
+      "soon": "próximamente"
+    },
+    "toolbar": "Herramientas del lienzo",
+    "controls": {
+      "label": "Controles del lienzo",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar",
+      "center": "Centrar",
+      "walls": "Ver/ocultar muros",
+      "playerView": "Ver como jugador"
+    },
+    "canvas": {
+      "label": "Lienzo de la escena",
+      "token": "Token {{name}}",
+      "hidden": "oculto",
+      "measure": "{{cells}} casillas · {{m}} m",
+      "pin": "Pin de {{name}}",
+      "wallHint": "clic para empezar un muro · clic para encadenar · Esc termina"
+    },
+    "encounter": {
+      "title": "Colocar encuentro",
+      "search": "Buscar en el bestiario",
+      "empty": "Sin resultados",
+      "hint": "clic en el mapa para colocar · cada copia tiene su propia Resistencia",
+      "resistance": "Res {{n}}",
+      "protection": "Prot {{n}}",
+      "select": "Elegir {{name}}"
+    },
+    "place": {
+      "mine": "Colocar mi personaje",
+      "pc": "Colocar PJ",
+      "noPc": "No tienes personaje en esta campaña.",
+      "already": "Ya está en la escena",
+      "pick": "Elige un personaje"
+    },
+    "unit": {
+      "cells": "casillas",
+      "m": "m"
+    },
+    "token": {
+      "show": "Mostrar a los jugadores",
+      "hide": "Ocultar a los jugadores",
+      "remove": "Quitar de la escena",
+      "selected": "Token seleccionado"
+    }
   }
 }
