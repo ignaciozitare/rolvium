@@ -83,7 +83,11 @@ Cross-cutting (`apps/web/src/shared/`): `hooks/useAuth.tsx` (AuthProvider), `hoo
 `data-theme` on `<html>`), `hooks/PreferencesSync.tsx` (applies the profile's locale/theme once per sign-in), `ui/AuthShell.tsx` (hero + card
 shared by every `Auth/*` screen), `permissions/`
 (`hasPermission`, `hasModule`, `usePermissions`), `modules/registry.ts` (module registry +
-admin permission keys), `lib/{supabaseClient,api,utils}.ts`, `ui/{UserMenu,UIKit}.tsx`.
+admin permission keys), `lib/{supabaseClient,api,utils,errors}.ts`, `ui/{UserMenu,UIKit}.tsx`.
+`lib/errors.ts` (`DbError`/`dbError`/`reasonOf`) normalises to a real `Error` whatever a DB client throws —
+supabase-js throws a PLAIN object `{message, details, hint, code}`, so `e instanceof Error` silently discarded
+the reason of every DB failure. Infra adapters wrap with `dbError()`; UI reads the reason with `reasonOf()`.
+It is a pure normaliser with no imports, which is why `/ui/` may import it without breaking the hexagon.
 `RolviumApp.tsx` is the authenticated shell (sidebar from the registry, theme toggle,
 user menu); `AppRouter.tsx` the route table.
 
