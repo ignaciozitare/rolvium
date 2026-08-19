@@ -29,8 +29,48 @@ contexto cortó la sesión justo al escribir el ÚLTIMO test que faltaba.
      `data-tooltip="Hasta 50 m · dificultad 3"` (así se alcanza sin ratón);
    - «Cuerpo a cuerpo» sale como texto pelado: ni `ABBR` ni `.rv-tip-wrap`.
    Patrón: copiar `sheet-state-tiles.test.tsx` (`renderWithProviders`, `screen`, `within`).
-2. **Aplicar lo que diga el Review** de esta tanda (se lanzó al cerrar; sus hallazgos NO están
-   aplicados — el gate bloqueó los edits de código).
+2. 🐛 **BUG DEL REVIEW, sin aplicar — lo primero de todo, antes que el test.** Es mío, de esta tanda.
+   `packages/system-plenilunio/src/engine.ts:250`, `catchBreath`: el `Math.min(d.resistanceMax, …)`
+   era inofensivo mientras el máximo era siempre 3×Aguante. Ahora que **lo baja el estado de salud**,
+   capa **hacia abajo** — justo lo que RULES.md §6.3 prohíbe («se capa la subida, nunca la bajada»),
+   y que `rest` y las casillas sí respetan.
+   Repro: Aguante 5, **Herido** (máximo 10), Resistencia **12** —estado legal según §6.3, porque
+   pasar de Sano a Herido no borra puntos ya marcados—. `lost = 0`, así que «Recobrar el aliento»
+   **cobra el punto de Fortuna y baja la Resistencia de 12 a 10**: pulsar el botón es peor que no
+   pulsarlo. En todos los demás casos el `Math.min` es código muerto
+   (`resistance + ⌊(max − resistance)/2⌋ ≤ max` por construcción), así que **se borra**:
+
+   ```ts
+   const lost = Math.max(0, d.resistanceMax - num(sheet.resistance));
+   // Se capa la SUBIDA, nunca la bajada (RULES.md §6.3, igual que `rest` y las casillas).
+   return { fortune: num(sheet.fortune) - 1, resistance: num(sheet.resistance) + Math.floor(lost / 2) };
+   ```
+
+   Y su pin en `packages/system-plenilunio/src/engine.test.ts` (~línea 228: los tres casos de
+   `catchBreath` que hay usan una ficha SANA, así que ninguno pasa por aquí):
+
+   ```ts
+   // Con más Resistencia que el máximo del estado, recobrar el aliento no la BAJA (RULES.md §6.3).
+   expect(catchBreath(sheet({ health: 'wounded', resistance: 12, fortune: 2 }))).toEqual({ fortune: 1, resistance: 12 });
+   ```
+
+   **La rama no va a QA ni se mergea hasta que esto esté.**
+
+2b. **Lo demás que dejó el Review, menor y opcional** (decidir, no urgente):
+   - **El tooltip de Recuperación (p.101) desapareció de la ficha**: `recoveryMax` era el único campo
+     con `ref: 'recovery'`. La propuesta del Review es buena — `resistanceMax` ahora saca su valor de
+     la tabla de la p.101, así que apuntarlo a `ref: 'recovery'` (en vez de `'resistance'`, p.98)
+     devuelve el texto a donde toca.
+   - **Un PJ MUERTO sale con «Resistencia máxima 0»** y sin casillas (`RECOVERY.dead.restFactor` es 0).
+     Coherente, pero es un cambio visible que nadie pidió: mirarlo en pantalla y decidir.
+   - `finalizeDraft` (`generator.ts:230`) calcula `derived(draft)` **antes** de forzar
+     `health: 'healthy'`. Hoy no es alcanzable, pero `derived({ ...draft, health: 'healthy' })` lo
+     deja a prueba de orden.
+   - Clave i18n muerta: `characters.progression.noCharacter` (sólo la usaba el borrado `ImproveTab`).
+     No se tocó: borrar claves queda fuera del alcance de esta tanda.
+
+   El resto del Review pasó limpio: hexagonal, seguridad, RLS (n/a), tokens de diseño, i18n en es y
+   en, cobertura y los dos builds.
 3. **QA + merge** de `fix/ficha-listas`. Sigue sin pasar ninguno de los dos.
 4. **Lo del bloque «Tirada»** (abajo): pide decisión del dueño, spec y `.pen` antes de código.
 5. La lógica de daño → Resistencia → Salud («LA REGLA QUE SE NOS ESTABA ESCAPANDO»): sin empezar.
