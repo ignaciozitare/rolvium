@@ -221,14 +221,117 @@ Sale de que el dueño probó el generador con la versión buena. Los tres arregl
   reparte el déficit como hueco NEGATIVO. Arreglado como lo hace la web (`min-width:0` + `overflow:auto`): fila
   con hueco y la Reserva en su propio contenedor con recorte.
 - Seis vistas de Escena igualadas a 1440×1130; fuera los 13 `Reserva Wrap` vacíos.
-- ⚠ **PENDIENTE**: con 6 pestañas la barra de director pide **1486 px** y el frame da **1420**. El dueño fue
-  explícito: **no se acortan rótulos**, lo que no respeta la ventana real es el tamaño del frame. Falta que diga
-  a qué ancho van los 14 frames de Mesa.
+- ~~⚠ PENDIENTE: el ancho de los 14 frames de Mesa~~ — **CERRADO** (2026-08-19 noche): el dueño dice que en
+  producción se ven bien y no se toca. El desajuste 1486 vs 1420 se queda en el `.pen` como está.
+
+## 📍 Sesión del 2026-08-19 (tarde-noche) — rama cerrada y desplegada, y el generador diseñado entero
+
+### Lo que se cerró y está en producción
+`main` = **`c2460da`** (merge de `fix/rules-audit`, Review + QA pasados). Dieciséis commits.
+
+- **Reglas contra el PDF.** El Destino se capa AL ELEGIR (base 3, 1–5 al crear, p.23). El canje de dones a
+  máx. 2, el segundo asumiendo permiso del DJ — ⚠ interpretación declarada: p.25 NO lleva cláusula, y se lee
+  calcado a especialidades (p.23), donde sí es literal. **El Review cazó un error factual del diff**: decía
+  en tres sitios que el libro no pone techo al Destino, y **sí lo pone** (p.88, «entre 1 y 10»). El `max: 10`
+  del esquema es regla del manual, no validación inventada.
+- **El tope del canje rige las DOS lecturas** (hallazgo del QA): `budgetOf` recortaba y `derived()` usaba el
+  valor crudo, así que una ficha guardada con 3–10 canjes iba a enseñar puntos de don inflados para siempre.
+  Decisión del dueño: **capar también en `derived`**, no indultar. `MAX_GIFT_TRADES`/`MAX_SPECIALTY_TRADES`
+  se mudan a `catalogs.ts` porque `engine.ts` no puede importar del generador sin ciclo.
+- **Punto 12 acotado** (ver abajo).
+
+Puertas: web 344 · api 77 · core 6 · plenilunio 70 · typecheck OK · audit 0 hard / 9 warn · build + build:api
+OK · i18n 647 claves sin desajuste · advisors 0 ERROR · sondas de producción vivas de verdad.
+
+### Punto 12 — el personaje no se guarda: SIGUE ABIERTO, pero ya se puede leer el motivo
+**El arreglo anterior (`a028692`) no funcionaba.** `setFailed(e instanceof Error && e.message ? … : true)`, y
+**supabase-js no lanza `Error`**: sin `throwOnError`, el campo `error` de la respuesta es un OBJETO PLANO
+`{message, details, hint, code}` (`postgrest-js` sólo construye su clase `PostgrestError` en la rama
+`shouldThrowOnError`), y los repos hacen `throw error`. Ese `instanceof` descartaba justo los fallos de base,
+que son los únicos que se dan ahí. Comprobado contra el stack local: nombre vacío →
+`{code:'23514', message:'…violates check constraint "characters_name_check"'}` con `instanceof Error === false`.
+
+Arreglado en `apps/web/src/shared/lib/errors.ts` (`DbError`, `dbError()`, `reasonOf()`), aplicado a los 9
+`throw error` de `SupabaseCharactersRepo` y al catch del generador. El `hint` viaja dentro del mensaje porque
+para un 42501 PostgREST mete ahí el GRANT literal que lo arregla.
+
+**Lo que YA está descartado como causa** (probado con el cliente real, no leyendo código):
+- login como director, RLS del insert, `owner_id NULL`, `kind 'pc'`, `created_by`;
+- el SELECT con sus **dos embeds** (`campaigns_campaigns` y `users!characters_owner_id_fkey`) y el `.single()`;
+- un borrador **completo salido del generador de verdad** (los seis `canAdvance` en verde, `finalizeDraft` +
+  `engine.derived`, 773 bytes) — entra sin un error;
+- la **caché de esquema de PostgREST en hosted** resuelve tabla y los dos embeds (sonda HTTP con la clave
+  publicable: 200 en las cuatro consultas).
+
+**Sospecha viva, sin confirmar**: sesión caducada (`PGRST301 JWT expired`) en una prueba larga — daría
+exactamente «no se guarda y no dice nada». **Lo primero: crear un personaje y LEER el aviso, que ahora sí trae
+motivo, hint y código.** Ojo: hasta este merge, producción no tenía el arreglo, así que un intento anterior
+no habría dicho nada.
+
+### Deuda que dejó el QA, sin tocar
+- **20 `throw error` crudos** fuera de `characters`: `SupabaseCampaignsRepo` (12), `SupabaseRoleRepo` (5),
+  `SupabaseUserRepo` (3). Misma clase de fallo; rebanada propia o se deja.
+- `GeneratorWizard.tsx:148` pinta el texto crudo de Postgres (sin i18n, con detalle interno). Decisión
+  consciente para no volver a perder un personaje en silencio.
+- `create` sigue ignorando el error del enlace a `campaigns_members`.
+- RULES.md §1.5 marca «un don no se repite» como ⚠ interpretación, pero **p.89 casi lo dice**: al subir el
+  Destino «recibe un nuevo punto para adquirir otro don **o aumentar la puntuación de uno que ya posea**».
+  Se puede ascender a regla citada.
+
+### 🎨 El `.pen`: los SEIS pasos del generador, construidos — ⚠ **SIN GUARDAR**
+Fila `y=7860`, ahora en orden de paso y sin duplicados. **Los dos que existían se MOVIERON, no se copiaron.**
+
+| x | paso | frame | Hoja/Generador |
+|---|---|---|---|
+| 0 | 1 Concepto | `fyIR5` | `NGlGX` |
+| 1520 | 2 Características | `GjeeD` | `glSFU` |
+| 3040 | 3 Especialidades | `vE82H` | `CIYdA` |
+| 4560 | 4 Destino | `u4eNh` | `rbmLQ` |
+| 6080 | 5 Dones | `kB8pn` | `GfYkv` |
+| 7600 | 6 Resumen | `z5q8XR` | `GuDBo` |
+
+Lo que resuelve, del backlog:
+- **Las 4 vistas que faltaban** (Concepto, Especialidades, Destino, Resumen).
+- **Características y Especialidades ya NO son la misma pantalla**: Características son números (−/+, reparto,
+  derivadas) y **no enseña especialidades**; Especialidades enseña el valor en gris, sin controles, y sólo los
+  chips + «+ Especialidad», con el contador de cambios «1 de 2».
+- **El paso de Destino se entiende**: escala de 5 lunas con la activa grande, «AL CREAR, DE 1 A 5 · en juego
+  llega a 10 (p.88)», la banda de equivalencia **«3 · PUNTOS DE DON — tu Destino ES tu número de puntos de
+  don»**, y la tabla Destino / puntos de don / coste / qué significa.
+- **Leyenda en cada paso**: banda dorada arriba con rótulo, página del manual y una frase de qué estás haciendo.
+- **Columna de ayuda a la derecha**: el `Side` (272) deja de ser el registro de tiradas y pasa a ser **GUÍA**
+  (`Hoja/Panel` de cada frame), en tres bloques — «en este paso», la descripción **al vuelo** de lo que señalas
+  (con su página), y una nota. El botón «Lanzador de dados» queda `enabled:false` en el generador.
+- **Contador legible y con el mismo significado en los dos pasos**: rótulo **«TE QUEDAN»**, el número grande es
+  lo que queda, y el detalle dice de cuánto («de 21 del reparto · 18 ya repartidos» / «de 3 · tu Destino es tu
+  número de puntos de don · 2 repartidos»).
+- **Canje con su tope a la vista**: «0 de 2».
+
+**⚠ EL `.pen` NO ESTÁ GUARDADO EN DISCO.** Sólo lo puede guardar el dueño con **Cmd+S** en la pestaña de
+Pencil (no hay permiso de Accesibilidad para automatizarlo). Comprobar `ls -la rolvium.pen` y `git status`
+antes de dar por hecho nada. Si se cierra sin guardar, se pierde toda la fila.
+
+### Decisiones del dueño de esta sesión
+- **El ancho de los 14 frames de Mesa: NO se toca.** «Se ven bien en producción, eso ya está.» El desajuste
+  1420 vs 1486 se queda como está; cerrada la pregunta.
+- **El interruptor del director SÍ va como opción de campaña**, y gobernará LOS DOS canjes (dones y
+  especialidades). Es su propia rebanada: migración + panel del director + guardia. No entra en este lote.
+- **Claro/oscuro**: mergear ya y mirarlo en producción; la rama no tocaba ningún token de color.
+
+### Lo que queda de la tanda de diseño — la FICHA, sin empezar
+Los 11 puntos del QA del dueño sobre la ficha y los de la prueba en producción siguen intactos (§ más abajo).
+En `.pen`: `PiVhB` (Personajes/Ficha en ventana aparte, x=3040 y=14160) y el frame de ficha `qjLDu`.
+Pendiente en pantalla: Dones/Equipo/Armadura en fila y Armas en su card · fuera el registro de tiradas de la
+ficha · «Mejorar» como botón dentro de la ficha, no pestaña · Equipo como lista con «+» · recibir daño ·
+tooltip de característica (y el bug del segundo tooltip) · Resistencia invertida (p.25: en blanco = lo que te
+queda, se TACHA) · Cargador sólo en armas a distancia · un solo botón por arma (⚔ o ◎) · leyenda por dado
+(1 fracaso · 2–3 fallo · 4–5 éxito · 6 triunfo, p.82) · Estado ocupando el ancho · cards con sombra y sin
+borde · tipografía más oscura (tokens de `RolviumApp.css`, afecta a toda la app).
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
 ### Últimos cuatro del dueño (2026-08-19, tarde)
-12. ~~**Un personaje creado no aparece**~~ → **NO SE GUARDA**. El dueño lo precisó: salió de la campaña, volvió
+12. ~~**Un personaje creado no aparece**~~ → **NO SE GUARDA**. **(2026-08-19 noche: el motivo ya se lee — ver «Punto 12» arriba; causa raíz aún abierta.)** El dueño lo precisó: salió de la campaña, volvió
     y no estaba. La base NO es el problema: probado el insert exacto bajo RLS como director, con `owner_id NULL`
     y `kind 'pc'`, y entra. Lo que había era que **el generador se tragaba el error** (`catch { setFailed(true) }`),
     así que un fallo de guardado era indistinguible de que no hubiera pasado nada. **Ya se ve el motivo**
@@ -381,18 +484,21 @@ actual: un personaje sano sale **todo negro**, y al recibir daño se va **despin
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🔁 Prompt para el chat nuevo
-> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción está al día (`main` = `b84234b`, web y API
-> responden). La rama `fix/rules-audit` está terminada y **sin Review ni QA**: el Destino se capa al elegir, el
-> canje de dones a 2 (el segundo con permiso del DJ) y `RULES.md` verificado contra el PDF del manual, que está
-> en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf` — **úsalo, el manual manda y las páginas del
-> PDF van con 2 de desfase sobre las del libro**. Empieza por: (1) Review + QA a esa rama y subirla, (2) el
-> punto 12 del backlog: **un personaje creado NO SE GUARDA**. El generador ya no se traga el error, así que
-> crea uno y **lee el mensaje que sale**; la base acepta el insert bajo RLS, está probado, así que el motivo es
-> del cliente, (3) la tanda de diseño en el `.pen` del generador y la ficha, que cubre 15 puntos del backlog.
-> Diseño en `.pen` ANTES de cualquier código de UI, orden del dueño. Flujo: dev → review → qa.
-> Dos decisiones del dueño pendientes: el ancho de los 14 frames de Mesa (con 6 pestañas la barra pide 1486 px
-> y el frame da 1420; dijo que NO se acortan rótulos) y si quiere el interruptor del director como opción de
-> campaña. El `.pen` está guardado hasta la Reserva achicada; comprueba `git status` antes de dar nada por hecho.
+> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción está al día (`main` = `c2460da`, con
+> `fix/rules-audit` ya mergeada: Review y QA pasados). **Lo PRIMERO: comprueba `ls -la rolvium.pen` y
+> `git status`** — la fila entera del generador (los 6 pasos, `y=7860`) se construyó en el `.pen` y sólo
+> la puede guardar el dueño con Cmd+S; si no está guardada, pídesela antes de tocar nada.
+> Sigue por: (1) **el punto 12**: crea un personaje y LEE el aviso, que ahora sí trae motivo, hint y código
+> — ya están descartados RLS, embeds, `.single()` y el borrador completo del generador, probados con el
+> cliente real; la sospecha viva es sesión caducada (`PGRST301`). (2) **La tanda de diseño de la FICHA en el
+> `.pen`** (`PiVhB` / `qjLDu`), que es lo que queda de los 15 puntos: Dones/Equipo/Armadura en fila y Armas
+> en su card, fuera el registro de tiradas, «Mejorar» como botón, Equipo como lista, recibir daño, tooltip
+> de característica, Resistencia invertida (p.25), Cargador sólo a distancia, un botón por arma, leyenda por
+> dado (p.82), Estado a lo ancho, cards con sombra, tipografía más oscura.
+> El manual manda: PDF en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf`, **con 2 de desfase**
+> sobre las páginas del libro. Diseño en `.pen` ANTES de cualquier código de UI, orden del dueño.
+> Flujo: dev → review → qa. Decidido ya: el ancho de los frames de Mesa NO se toca, y el interruptor del
+> director va como **opción de campaña** gobernando los dos canjes (rebanada propia, sin empezar).
 
 ### Lección de esta sesión, que se repitió cuatro veces
 **Un guardia que mide sólo el estado RESULTANTE convierte cualquier borrador ya fuera de norma en un callejón
