@@ -346,9 +346,25 @@ describe('generator budgets', () => {
     expect(gifts.applyChange!(traded, 'giftTrade', 15)).toBeNull();
     expect(gifts.applyChange!(traded, 'giftTrade', 9)).toEqual({ giftTrade: 9 });   // bajar siempre se puede
   });
+  /**
+   * Review 2026-08-19: «bajar siempre se puede» tiene que valer TAMBIÉN con el borrador en rojo, que es
+   * justo cuando hace falta. Con el techo mirando sólo «lo que cuesta hoy + lo que queda», un borrador
+   * sobregastado desactivaba el «−» del canje y no se salía de ahí — la misma trampa que `budgetAllows`
+   * evita en los pasos que enseñan el presupuesto de creación.
+   */
+  it('un canje que ya no se puede pagar se puede deshacer de uno en uno', () => {
+    const gifts = generator.find(s => s.id === 'gifts')!;
+    const over = draft({ giftTrade: 20 });   // 14 pagables, 20 canjeados: 6 en rojo
+    expect(budgetOf(over).available).toBe(-6);
+    expect(gifts.applyChange!(over, 'giftTrade', 19)).toEqual({ giftTrade: 19 });   // el «−» sigue vivo
+    expect(gifts.applyChange!(over, 'giftTrade', 0)).toEqual({ giftTrade: 0 });
+    expect(gifts.applyChange!(over, 'giftTrade', 21)).toBeNull();                   // subir, ni un punto más
+  });
   it('un paso con los puntos de creación en rojo señala el canje, no el reparto de dones', () => {
     const gifts = generator.find(s => s.id === 'gifts')!;
-    const over = draft({ giftTrade: 20 });   // se llega bajando el Destino después de canjear
+    // Sólo se llega con una ficha guardada a mano: por el asistente los cinco sumandos están vetados
+    // (preset/características/especialidades/Destino por `budgetAllows`, el canje por `applyGiftChange`).
+    const over = draft({ giftTrade: 20 });
     expect(budgetOf(over).available).toBeLessThan(0);
     expect(gifts.canAdvance(over)).toBe('generator.error.pointsOver');
   });

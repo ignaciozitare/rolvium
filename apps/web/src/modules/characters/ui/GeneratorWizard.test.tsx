@@ -41,10 +41,17 @@ describe('<GeneratorWizard>', () => {
       await u.selectOptions(sel, f.itemFields![0]!.options![0]!.value);
     }
     await u.click(screen.getByRole('button', { name: 'Continuar' }));
-    // destiny (3 default) → continue; gifts: 3 points → add one gift and raise to level 3
+    // destiny (3 default) → continue; gifts: 3 points → dos dones, uno de ellos a nivel 2
     await u.click(screen.getByRole('button', { name: 'Continuar' }));
     await u.click(screen.getByRole('button', { name: /Añadir · Dones/ }));
-    await u.click(screen.getByRole('button', { name: '+ Nivel' })); await u.click(screen.getByRole('button', { name: '+ Nivel' }));
+    // La fila en blanco toma la PRIMERA opción del desplegable y un don no se repite (RULES.md §1.5),
+    // así que «+ Añadir» tiene que proponer un don distinto — si no, el botón se queda muerto.
+    await u.click(screen.getByRole('button', { name: /Añadir · Dones/ }));
+    const gifts = within(screen.getByRole('list', { name: 'Dones' })).getAllByRole('listitem');
+    expect(gifts).toHaveLength(2);
+    const giftOf = (row: HTMLElement) => (within(row).getByLabelText('Don') as HTMLSelectElement).value;
+    expect(giftOf(gifts[0]!)).not.toBe(giftOf(gifts[1]!));
+    await u.click(within(gifts[0]!).getByRole('button', { name: '+ Nivel' }));
     expect(screen.getByRole('status')).toHaveTextContent('0');
     await u.click(screen.getByRole('button', { name: 'Continuar' }));
     // summary read-only + finish
@@ -101,6 +108,47 @@ describe('<GeneratorWizard>', () => {
     expect(within(trade).getByRole('button', { name: /^\+ / })).toBeDisabled();
     // y Características sigue cuadrado, sin aviso ninguno
     await u.click(screen.getByRole('button', { name: /Características/ }));
+    expect(screen.getByRole('status')).toHaveTextContent('0');
+    expect(screen.queryByRole('alert')).toBeNull();
+  }, 40000);
+  /**
+   * Review 2026-08-19: cerrada la ruta del canje, la red de `budgetAllows` («after >= before») NO queda
+   * muerta — se llega por Destino. Bajar el Destino después de repartir los dones encoge la reserva de
+   * puntos de don sin tocar los ya gastados, y ahí el paso está en rojo: es el único sitio donde cambiar
+   * QUÉ don es una fila (mismo coste, `after === before`) depende de esa red. El test que este commit
+   * reescribió era el único testigo de integración que le quedaba.
+   */
+  it('con la reserva de dones en rojo el paso se repara, no se atasca (review 2026-08-19)', async () => {
+    const u = userEvent.setup();
+    mount('player');
+    await u.type(screen.getByLabelText('Personaje'), 'Karen');
+    await u.type(screen.getByLabelText('Concepto'), 'Líder');
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    for (const [id, n] of [['fortitude', 3], ['combat', 3], ['will', 2], ['cunning', 2], ['presence', 4]] as const) {
+      for (let i = 0; i < n; i++) await u.click(within(stat(id)).getByRole('button', { name: /^\+ / }));
+    }
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    for (const f of plenilunio.sheetSchema.sections.flatMap(s => s.fields).filter(f => f.type === 'stat')) {
+      await u.selectOptions(within(stat(f.id)).getByLabelText(/^Añadir Especialidad/), f.itemFields![0]!.options![0]!.value);
+    }
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …destiny…
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …gifts: Destino 3 → 3 puntos
+    await u.click(screen.getByRole('button', { name: /Añadir · Dones/ }));
+    await u.click(screen.getByRole('button', { name: /Añadir · Dones/ }));
+    await u.click(within(within(screen.getByRole('list', { name: 'Dones' })).getAllByRole('listitem')[0]!).getByRole('button', { name: '+ Nivel' }));
+    expect(screen.getByRole('status')).toHaveTextContent('0');
+    // Atrás a Destino y bajarlo: la reserva pasa a 2 con 3 ya repartidos
+    await u.click(screen.getByRole('button', { name: 'Destino' }));
+    await u.click(within(screen.getByRole('group', { name: 'Destino' })).getByRole('button', { name: /^− |^- / }));
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('más puntos de don de los que tienes');
+    const row0 = () => within(screen.getByRole('list', { name: 'Dones' })).getAllByRole('listitem')[0]!;
+    // cambiar QUÉ don es la fila cuesta lo mismo: sigue permitido, que es lo que la red sostiene
+    const other = plenilunio.sheetSchema.sections.flatMap(s => s.fields).find(f => f.id === 'gifts')!.itemFields![0]!.options![2]!.value;
+    await u.selectOptions(within(row0()).getByLabelText('Don'), other);
+    expect(within(row0()).getByLabelText('Don')).toHaveValue(other);
+    // y bajando el nivel se repara del todo
+    await u.click(within(row0()).getByRole('button', { name: '− Nivel' }));
     expect(screen.getByRole('status')).toHaveTextContent('0');
     expect(screen.queryByRole('alert')).toBeNull();
   }, 40000);

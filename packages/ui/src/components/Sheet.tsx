@@ -292,7 +292,26 @@ function ListField({ f, p, ro, showActions, set, label, allowed }: Shared & { al
   const withRow = (i: number, k: string, v: unknown) => list.map((r, j) => (j === i ? { ...r, [k]: v } : r));
   const patchRow = (i: number, k: string, v: unknown) => set(f.id, withRow(i, k, v));
   const rowAllows = (i: number, k: string, v: unknown) => allowed(f.id, withRow(i, k, v));
-  const canAdd = allowed(f.id, [...list, blankRow(defs)]);
+  /**
+   * The row «+ Añadir» would add. A blank row takes the FIRST option of every select, so against a
+   * guard that refuses duplicates (Plenilunio: a gift has ONE level, never two rows of the same gift)
+   * the second click proposed a row that was always refused and the button went dead with nothing on
+   * screen to explain it — the first row already holds that first option. So ask the guard for the
+   * first variant it accepts instead of assuming the blank one; when it accepts none, the button is
+   * disabled because there is genuinely nothing left to add.
+   */
+  const addRow = (): Record<string, unknown> | null => {
+    const blank = blankRow(defs);
+    if (allowed(f.id, [...list, blank])) return blank;
+    const sel = defs.find(d => d.type === 'select');
+    if (!sel) return null;
+    for (const o of sel.options ?? []) {
+      const row = { ...blank, [sel.id]: o.value };
+      if (allowed(f.id, [...list, row])) return row;
+    }
+    return null;
+  };
+  const nextRow = ro ? null : addRow();
   return (
     <div className="rv-sheet-field span">
       <div className="rv-sheet-list" role="list" aria-label={p.t(f.label)}>
@@ -304,7 +323,7 @@ function ListField({ f, p, ro, showActions, set, label, allowed }: Shared & { al
           </div>
         ))}
       </div>
-      {!ro && <button type="button" className="rv-sheet-btn rv-sheet-add" disabled={!canAdd} onClick={() => set(f.id, [...list, blankRow(defs)])}>+ {p.labels.add} · {p.t(f.label)}</button>}
+      {!ro && <button type="button" className="rv-sheet-btn rv-sheet-add" disabled={!nextRow} onClick={() => nextRow && set(f.id, [...list, nextRow])}>+ {p.labels.add} · {p.t(f.label)}</button>}
     </div>
   );
 }

@@ -26,9 +26,9 @@ const SCHEMA: SheetSchema = {
 const LABELS = { roll: 'Tirar', add: 'Añadir', remove: 'Quitar', manual: 'manual', of: 'de' };
 
 /** Stateful host: the bug only shows when the edit really lands and the list re-renders. */
-function Host({ canChange, onData }: { canChange?: (id: string, v: unknown) => boolean; onData: (d: unknown) => void }) {
+function Host({ canChange, onData, initial }: { canChange?: (id: string, v: unknown) => boolean; onData: (d: unknown) => void; initial?: unknown[] }) {
   // two rows on the SAME gift — exactly what «+ Añadir» twice produces before you pick anything
-  const [data, setData] = useState<Record<string, unknown>>({ gifts: [{ id: 'a', level: 1 }, { id: 'a', level: 2 }] });
+  const [data, setData] = useState<Record<string, unknown>>({ gifts: initial ?? [{ id: 'a', level: 1 }, { id: 'a', level: 2 }] });
   return <Sheet schema={SCHEMA} data={data} derived={{}} t={(k: string) => k} labels={LABELS} icons={{}}
     {...(canChange ? { canChange } : {})}
     onChange={p => setData(d => { const next = { ...d, ...p }; onData(next); return next; })} />;
@@ -79,6 +79,26 @@ describe('regression · filas de una lista de la ficha', () => {
     // y lo permitido sigue llegando al onChange, no sólo "no está desactivado"
     fireEvent.click(within(rows[0]!).getByRole('button', { name: '+ Nivel' }));
     expect(onData).toHaveBeenLastCalledWith({ gifts: [{ id: 'a', level: 2 }, { id: 'a', level: 2 }] });
+  });
+
+  /**
+   * Review 2026-08-19: the gifts step gained a veto on duplicate rows (a gift has ONE level), and a
+   * blank row takes the FIRST option of its select. So the second «+ Añadir» proposed a row the guard
+   * always refused: the button went dead, with nothing on screen saying why. It has to offer a row the
+   * guard accepts, and only give up when none is left.
+   */
+  it('«+ Añadir» propone una fila que el guardia acepte, no siempre la primera opción', () => {
+    const ids = (v: unknown) => (v as { id: string }[]).map(r => r.id);
+    const noDupes = (_id: string, v: unknown) => new Set(ids(v)).size === ids(v).length;
+    const onData = vi.fn();
+    renderWithProviders(<Host onData={onData} canChange={noDupes} initial={[{ id: 'a', level: 1 }]} />);
+    const add = screen.getByRole('button', { name: /Añadir · Dones/ });
+    expect(add).toBeEnabled();
+    fireEvent.click(add);
+    expect(onData).toHaveBeenLastCalledWith({ gifts: [{ id: 'a', level: 1 }, { id: 'b', level: 1 }] });
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    // y con las dos opciones ya cogidas sí está desactivado: ahí no queda nada que añadir
+    expect(screen.getByRole('button', { name: /Añadir · Dones/ })).toBeDisabled();
   });
 
   /**

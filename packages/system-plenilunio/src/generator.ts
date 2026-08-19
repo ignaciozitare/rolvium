@@ -89,8 +89,11 @@ export function applyGiftChange(draft: SheetData, fieldId: string, next: unknown
   if (fieldId === 'giftTrade') {
     const wanted = num(next);
     const b = budgetOf(draft);
-    // `b.available` already has the current trade subtracted, so the ceiling is what it costs today plus what is left.
-    if (wanted < 0 || wanted > b.giftTrade + b.available) return null;
+    // `b.available` already has the current trade subtracted, so the ceiling is what it costs today plus
+    // what is left. Only a RISE is capped: an overspent draft has to stay repairable, and a ceiling that
+    // also blocks the way down would disable the very «−» that fixes it — the same invariant
+    // `budgetAllows` keeps for every step that shows the creation budget.
+    if (wanted < 0 || (wanted > b.giftTrade && wanted > b.giftTrade + b.available)) return null;
     return { giftTrade: wanted };
   }
   if (fieldId === 'gifts') {
@@ -98,7 +101,9 @@ export function applyGiftChange(draft: SheetData, fieldId: string, next: unknown
     if (new Set(ids).size !== ids.length) return null;
     return { gifts: next };
   }
-  return { [fieldId]: next };
+  // Anything else this step ever gains goes through the generator's own guard, not straight in:
+  // dropping to `{ [fieldId]: next }` here would silently lose the preset ceiling and the stat range.
+  return applyChange(draft, fieldId, next);
 }
 
 const statsError = (draft: SheetData): string | null => {
