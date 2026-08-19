@@ -109,6 +109,32 @@ describe('<GeneratorWizard>', () => {
     expect(screen.getByRole('status')).toHaveTextContent('0');
     expect(screen.queryByRole('alert')).toBeNull();
   }, 40000);
+  it('un reparto que no cabe se ve desactivado en el desplegable, no rebota en silencio (review 2026-08-19)', async () => {
+    const u = userEvent.setup();
+    mount('player');
+    await u.type(screen.getByLabelText('Personaje'), 'Karen');
+    await u.type(screen.getByLabelText('Concepto'), 'Líder');
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    const preset = screen.getByLabelText('Reparto de puntos');
+    // Mítico (30, máx. 10) gastado hasta el último punto…
+    await u.selectOptions(preset, 'mythic');
+    for (const [id, n] of [['fortitude', 5], ['combat', 5], ['will', 5], ['cunning', 5], ['subtlety', 3]] as const) {
+      for (let i = 0; i < n; i++) await u.click(within(stat(id)).getByRole('button', { name: /^\+ / }));
+    }
+    expect(screen.getByRole('status')).toHaveTextContent('0');
+    // …no cabe en Estándar: el re-clamp a máx. 5 deja 26 gastados de 21. El guardia lo veta, y
+    // antes el <select> volvía a «Mítico» sin decir nada — el mismo rebote mudo de los dones.
+    expect(within(preset).getByRole('option', { name: /^Estándar/ })).toBeDisabled();
+    expect(within(preset).getByRole('option', { name: /^Más humano/ })).toBeDisabled();
+    expect(within(preset).getByRole('option', { name: /^Mítico/ })).toBeEnabled();      // el actual, nunca
+    // y sigue siendo un callejón con salida: bajando características vuelve a caber
+    // (tras el re-clamp a máx. 5, Estándar necesita bajar de 26 a 21 gastados)
+    for (let i = 0; i < 5; i++) await u.click(within(stat('fortitude')).getByRole('button', { name: /^− |^- / }));
+    await u.click(within(stat('subtlety')).getByRole('button', { name: /^− |^- / }));
+    expect(within(preset).getByRole('option', { name: /^Estándar/ })).toBeEnabled();
+    await u.selectOptions(preset, 'standard');
+    expect(preset).toHaveValue('standard');
+  }, 40000);
   it('DM sees kind + assign-to, and «Atrás»/«Cancelar» work', async () => {
     const u = userEvent.setup();
     const { onCancel } = mount('dm');

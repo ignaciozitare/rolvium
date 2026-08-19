@@ -5,8 +5,8 @@ import { SCENE_CHAPEL, SCENE_TUNNELS, SCENE_WAREHOUSE } from '../../../../tests/
 import { ScenesMenu } from './ScenesMenu';
 
 function mount(over: Partial<React.ComponentProps<typeof ScenesMenu>> = {}) {
-  const cb = { onSelect: vi.fn(), onCreate: vi.fn().mockResolvedValue(undefined), onRename: vi.fn().mockResolvedValue(undefined), onActivate: vi.fn().mockResolvedValue(undefined), onToggleVisible: vi.fn().mockResolvedValue(undefined), onRemove: vi.fn().mockResolvedValue(undefined) };
-  renderWithProviders(<ScenesMenu scenes={[SCENE_WAREHOUSE, SCENE_CHAPEL, SCENE_TUNNELS]} selectedId="sc-1" activeSceneId="sc-2" {...cb} {...over} />);
+  const cb = { onSelect: vi.fn(), onCreate: vi.fn().mockResolvedValue(undefined), onRename: vi.fn().mockResolvedValue(undefined), onActivate: vi.fn().mockResolvedValue(undefined), onToggleVisible: vi.fn().mockResolvedValue(undefined), onRemove: vi.fn().mockResolvedValue(undefined), onToggleCollapsed: vi.fn() };
+  renderWithProviders(<ScenesMenu scenes={[SCENE_WAREHOUSE, SCENE_CHAPEL, SCENE_TUNNELS]} selectedId="sc-1" activeSceneId="sc-2" collapsed={false} {...cb} {...over} />);
   return cb;
 }
 
@@ -52,5 +52,31 @@ describe('<ScenesMenu>', () => {
     mount({ selectedId: 'sc-2' });
     await u.click(screen.getByRole('button', { name: 'Ver escena Capilla sin techo' }));
     expect(screen.getByRole('menuitem', { name: 'Activar para los jugadores' })).toBeDisabled();
+  });
+});
+
+describe('<ScenesMenu> plegado', () => {
+  it('plegado deja sólo las miniaturas, con el nombre en tooltip, y sigue pudiendo cambiar de escena', async () => {
+    const cb = mount({ collapsed: true });
+    // la fila ya no pinta el nombre; sólo lo lleva el tooltip y el nombre accesible del botón
+    expect(document.querySelector('.mp-rail-name')).toBeNull();
+    expect([...document.querySelectorAll('.rv-tip')].map(t => t.textContent)).toContain('Túneles de servicio');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Ver escena Túneles de servicio' }));
+    expect(cb.onSelect).toHaveBeenCalledWith('sc-3');
+  });
+
+  it('plegado NO abre el menú de opciones al pulsar la escena ya seleccionada: la vuelve a seleccionar y nada más', async () => {
+    const cb = mount({ collapsed: true });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Ver escena Almacén de Queens' }));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(cb.onSelect).toHaveBeenCalledWith('sc-1');
+  });
+
+  it('el botón de plegar dice si está abierto y avisa al pulsarlo', async () => {
+    const cb = mount();
+    const fold = screen.getByRole('button', { name: 'Plegar escenas' });
+    expect(fold).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.setup().click(fold);
+    expect(cb.onToggleCollapsed).toHaveBeenCalled();
   });
 });

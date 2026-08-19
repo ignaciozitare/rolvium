@@ -1,6 +1,21 @@
 import { useTranslation } from '@rolvium/i18n';
+import type { Scene } from '../domain/entities/Scene';
+import { nightLabelM } from '../domain/useCases/mapRules';
 
-interface Props { onZoomIn: () => void; onZoomOut: () => void; onCenter: () => void; isDm: boolean; showWalls: boolean; onToggleWalls: () => void; playerView: boolean; onTogglePlayerView: () => void }
+interface Props {
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onCenter: () => void;
+  isDm: boolean;
+  showWalls: boolean;
+  onToggleWalls: () => void;
+  playerView: boolean;
+  onTogglePlayerView: () => void;
+  /** DM scene switches that used to sit on a full-width bar under the canvas. */
+  scene?: Scene;
+  onFogMode?: (mode: 'vision' | 'manual') => void;
+  onLighting?: (lighting: 'day' | 'night') => void;
+}
 
 function Ctl({ icon, label, onClick, on }: { icon: string; label: string; onClick: () => void; on?: boolean }): JSX.Element {
   return (
@@ -10,11 +25,26 @@ function Ctl({ icon, label, onClick, on }: { icon: string; label: string; onClic
   );
 }
 
-/** Bottom-right canvas controls: zoom in/out/centre; DM adds walls toggle + «ver como jugador». */
+/**
+ * Bottom-right stack over the canvas: zoom in/out/centre, and for the DM the walls toggle, «ver como jugador» and —
+ * above those — the two scene switches, light and automatic fog. They were a full-width bar under the map; as icons
+ * here they cost no height, which is the whole point (specs/modules/maps/SPEC.md § «Rebanada 3»).
+ */
 export function CanvasControls(p: Props): JSX.Element {
   const { t } = useTranslation();
+  const night = p.scene?.lighting === 'night';
+  const auto = p.scene?.fogMode === 'vision';
   return (
     <div className="mp-controls" role="group" aria-label={t('maps.controls.label')}>
+      {p.isDm && p.scene && p.onLighting && (
+        <Ctl icon={night ? 'dark_mode' : 'light_mode'} on={night}
+          label={night ? t('maps.light.night', { m: nightLabelM(p.scene) }) : t('maps.light.day')}
+          onClick={() => p.onLighting?.(night ? 'day' : 'night')} />
+      )}
+      {p.isDm && p.scene && p.onFogMode && (
+        <Ctl icon={auto ? 'cloud' : 'cloud_off'} on={auto} label={t('maps.fog.auto')} onClick={() => p.onFogMode?.(auto ? 'manual' : 'vision')} />
+      )}
+      {p.isDm && <span className="mp-ctl-sep" aria-hidden />}
       <Ctl icon="zoom_in" label={t('maps.controls.zoomIn')} onClick={p.onZoomIn} />
       <Ctl icon="zoom_out" label={t('maps.controls.zoomOut')} onClick={p.onZoomOut} />
       <Ctl icon="center_focus_strong" label={t('maps.controls.center')} onClick={p.onCenter} />

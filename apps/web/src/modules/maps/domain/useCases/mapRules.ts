@@ -1,26 +1,36 @@
-import type { CatalogItem } from '@rolvium/core';
+import { METRES_PER_CELL, sightRadiusPx, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
 import type { Character } from '@/modules/characters/domain/entities/Character';
-import type { Drawing, DrawingKind, NewToken, Scene, Token } from '../entities/Scene';
+import type { Drawing, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
+
+export { METRES_PER_CELL } from '@rolvium/core';
 
 /** Pure rules of the scene: coordinates, grid, permissions, hit-tests. No React, no I/O. */
 
 export type Point = { x: number; y: number };
 /** Canvas view: scene px → canvas px is `(p * zoom) + pan`. */
 export interface View { zoom: number; panX: number; panY: number }
-export type Tool = 'move' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'erase' | 'wall' | 'reveal' | 'hide' | 'encounter';
+/**
+ * `select` replaced `move` in slice 3: choosing and editing is a tool, panning is NOT — it is a modifier
+ * (space bar or middle button) so it works from every tool (specs/modules/maps/SPEC.md § «Rebanada 3»).
+ */
+export type Tool = 'select' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'text' | 'erase' | 'wall' | 'reveal' | 'hide' | 'encounter';
 
-export const PLAYER_TOOLS: Tool[] = ['move', 'measure', 'pin', 'pencil', 'line', 'rect', 'circle', 'erase'];
+export const PLAYER_TOOLS: Tool[] = ['select', 'measure', 'pin', 'pencil', 'line', 'rect', 'circle', 'text', 'erase'];
 export const DM_TOOLS: Tool[] = ['wall', 'reveal', 'hide', 'encounter'];
-/** Fog tools arrive with slice 2 (vision computed by the API — specs/modules/maps/SPEC.md). */
-export const TOOLS_NOT_YET: Tool[] = ['reveal', 'hide'];
+/** Tools that exist in the design but not yet in code; the toolbar greys them out. Empty since slice 2 shipped the fog brush. */
+export const TOOLS_NOT_YET: Tool[] = [];
+/** The reveal/hide brush paints on the fog instead of drawing. */
+export const BRUSH_TOOLS: Tool[] = ['reveal', 'hide'];
+export const isBrush = (t: Tool): boolean => BRUSH_TOOLS.includes(t);
 export const toolsFor = (isDm: boolean): Tool[] => (isDm ? [...PLAYER_TOOLS, ...DM_TOOLS] : PLAYER_TOOLS);
 
 export const MIN_ZOOM = 0.25;
 export const MAX_ZOOM = 4;
 export const ZOOM_STEP = 1.25;
 export const DEFAULT_GRID = 27;
-/** Metres per grid cell for the measure tool (Plenilunio plays in metres; 1 cell ≈ 1.5 m). */
-export const METRES_PER_CELL = 1.5;
+/** Reveal/hide brush radii in cells (design: four discs on the «Pincel» bar). */
+export const BRUSH_SIZES = [1, 2, 3, 4] as const;
+export const DEFAULT_BRUSH = 3;
 
 /** Stroke palette (persisted as hex in `maps_drawings.color`, so these are data, not theme). Order = design (paper, gold, blood, olive, steel, ink). */
 export const STROKE_COLORS = ['#dedcd5', '#c9a84c', '#b8452c', '#5f8f6a', '#5f6bb3', '#131310'] as const;
@@ -89,13 +99,146 @@ export function visibleTokens(tokens: Token[], isDm: boolean, playerView = false
   return isDm && !playerView ? tokens : tokens.filter(t => t.visible);
 }
 
-// ── hit tests (erase) ────────────────────────────────────────────────────────
+/** Distance from `p` to the segment `a`–`b` (used by the erase and door hit-tests). */
 function segDist(p: Point, a: Point, b: Point): number {
   const dx = b.x - a.x, dy = b.y - a.y;
   const l2 = dx * dx + dy * dy;
   const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }
+
+// ── openings: walls, doors and windows ───────────────────────────────────────
+/**
+ * The three types of the spec are two flags, so nothing here is a `switch` on `kind`
+ * (supabase/migrations/20260818140000_maps_vision.sql):
+ *   muro    → sight ✓ move ✓, never opens   · puerta → both, opens · ventana → move only, opens
+ * The server applies the same condition to compute vision; this copy only decides how a segment is drawn.
+ */
+/** Order of the picker in the design (rolvium.pen `h3Q3NN` · Tipo). */
+export const WALL_KINDS: WallKind[] = ['wall', 'door', 'window'];
+export const WALL_FLAGS: Record<WallKind, Pick<Wall, 'blocksSight' | 'blocksMove'>> = {
+  wall: { blocksSight: true, blocksMove: true },
+  door: { blocksSight: true, blocksMove: true },
+  window: { blocksSight: false, blocksMove: true },
+};
+/** A brand-new segment of `kind`: the flags always follow the type, never the other way round. */
+export const newWallOf = (kind: WallKind): Pick<Wall, 'kind' | 'blocksSight' | 'blocksMove' | 'isOpen'> =>
+  ({ kind, ...WALL_FLAGS[kind], isOpen: false });
+/** A `wall` is fixed shut; doors and windows can be opened. */
+export const canOpen = (w: Pick<Wall, 'kind'>): boolean => w.kind !== 'wall';
+export const blocksSightNow = (w: Pick<Wall, 'blocksSight' | 'isOpen'>): boolean => w.blocksSight && !w.isOpen;
+/** No movement rules until slice 3 — kept so the invariant lives next to its twin. */
+export const blocksMoveNow = (w: Pick<Wall, 'blocksMove' | 'isOpen'>): boolean => w.blocksMove && !w.isOpen;
+
+/** Nearest segment within `tol` scene px of `p` — how the DM picks a door to open. */
+export function hitWall(walls: Wall[], p: Point, tol = 8): Wall | null {
+  let best: Wall | null = null;
+  let bestDist = tol;
+  for (const w of walls) {
+    const d = segDist(p, { x: w.x1, y: w.y1 }, { x: w.x2, y: w.y2 });
+    if (d <= bestDist) { best = w; bestDist = d; }
+  }
+  return best;
+}
+
+/** The door or the window under the pointer — what the hover disc opens. A plain wall never answers: it never opens. */
+export const hitOpening = (walls: Wall[], p: Point, tol = 8): Wall | null => hitWall(walls.filter(canOpen), p, tol);
+/** Middle of a segment: where the open/close disc sits. */
+export const midpoint = (w: Segment): Point => ({ x: (w.x1 + w.x2) / 2, y: (w.y1 + w.y2) / 2 });
+
+/**
+ * Where to draw a door's jambs and its swung leaf. `n` is the unit normal of the segment, `d` the unit direction.
+ * A closed door is the segment itself plus a jamb tick at each end; an open one keeps the threshold faint and
+ * swings a leaf out of one jamb (rolvium.pen `uXK3T` · «Puerta abierta»).
+ */
+export function openingGeometry(w: Pick<Wall, 'x1' | 'y1' | 'x2' | 'y2'>, jamb = 9): { jambA: [Point, Point]; jambB: [Point, Point]; leaf: [Point, Point] } {
+  const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const d = { x: dx / len, y: dy / len };
+  const n = { x: -d.y, y: d.x };
+  const a = { x: w.x1, y: w.y1 }, b = { x: w.x2, y: w.y2 };
+  const tick = (p: Point): [Point, Point] => [{ x: p.x - n.x * jamb, y: p.y - n.y * jamb }, { x: p.x + n.x * jamb, y: p.y + n.y * jamb }];
+  return { jambA: tick(a), jambB: tick(b), leaf: [a, { x: a.x + n.x * len, y: a.y + n.y * len }] };
+}
+
+/** Endpoints of a segment in scene px — the geometry of a wall without the row around it. */
+export interface Segment { x1: number; y1: number; x2: number; y2: number }
+/** Leftovers this short are the zero-length ends of a cut: the spec says they are not saved. */
+const MIN_PIECE = 0.5;
+
+export interface OpeningPlan {
+  /** Where the opening lands: on the host's line when there is a wall underneath, exactly as drawn when there is not. */
+  opening: Segment;
+  /** The wall the opening was cut out of and what survives of it, or `null` when nothing was underneath. */
+  split: { host: Wall; pieces: Segment[] } | null;
+}
+export type WallSplit = NonNullable<OpeningPlan['split']>;
+
+/**
+ * Where a door or a window drawn between `a` and `b` really goes
+ * (specs/modules/maps/SPEC.md § «Una puerta dibujada sobre un muro lo parte»).
+ *
+ * Until now segments simply stacked: a door drawn on a wall left both, the wall went on cutting sight and the
+ * door did nothing. Here the overlapped stretch BECOMES the opening and the wall is left as the two leftovers.
+ * The opening is projected onto the host's line so it can never sit a hair off — a crooked one would keep the
+ * wall cutting sight along its sides, which is the same bug wearing a different hat.
+ *
+ * A plain wall never cuts anything (you are building, not opening), and neither does an opening drawn over
+ * another opening: masonry is what gets holes.
+ */
+export function planOpening(walls: Wall[], a: Point, b: Point, kind: WallKind, tol = 8): OpeningPlan {
+  const opening: Segment = { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
+  if (kind === 'wall' || (a.x === b.x && a.y === b.y)) return { opening, split: null };
+  let best: { host: Wall; len: number; s0: number; s1: number; off: number } | null = null;
+  for (const host of walls) {
+    if (host.kind !== 'wall') continue;
+    const dx = host.x2 - host.x1, dy = host.y2 - host.y1;
+    const len = Math.hypot(dx, dy);
+    if (len < MIN_PIECE) continue;
+    const d = { x: dx / len, y: dy / len };
+    const along = (q: Point): number => (q.x - host.x1) * d.x + (q.y - host.y1) * d.y;
+    const off = (q: Point): number => Math.abs((q.x - host.x1) * -d.y + (q.y - host.y1) * d.x);
+    const worst = Math.max(off(a), off(b));
+    if (worst > tol) continue;                       // it is not lying ON this wall
+    const s0 = Math.max(0, Math.min(along(a), along(b)));
+    const s1 = Math.min(len, Math.max(along(a), along(b)));
+    if (s1 - s0 <= MIN_PIECE) continue;              // it only grazes an end: nothing to cut
+    // Longest overlap wins; between two equal ones, the wall it sits flattest on.
+    if (!best || s1 - s0 > best.s1 - best.s0 || (s1 - s0 === best.s1 - best.s0 && worst < best.off)) best = { host, len, s0, s1, off: worst };
+  }
+  if (!best) return { opening, split: null };
+  const { host, len } = best;
+  const at = (s: number): Point => ({ x: host.x1 + (host.x2 - host.x1) * (s / len), y: host.y1 + (host.y2 - host.y1) * (s / len) });
+  const seg = (from: number, to: number): Segment => { const p = at(from), q = at(to); return { x1: p.x, y1: p.y, x2: q.x, y2: q.y }; };
+  // A leftover shorter than MIN_PIECE is not saved, so the OPENING has to take that stub: otherwise dropping it
+  // would leave a sub-pixel slit of nothing at the wall's end — a hole, which is exactly what this must never make.
+  const from = best.s0 > MIN_PIECE ? best.s0 : 0;
+  const to = len - best.s1 > MIN_PIECE ? best.s1 : len;
+  const pieces = ([[0, from], [to, len]] as const).filter(([a0, b0]) => b0 > a0).map(([a0, b0]) => seg(a0, b0));
+  return { opening: seg(from, to), split: { host, pieces } };
+}
+
+/** A leftover of a split keeps everything the host wall was — only its geometry is new. */
+export const wallPiece = (host: Wall, at: Segment): NewWall => ({
+  sceneId: host.sceneId, campaignId: host.campaignId, visiblePlayers: host.visiblePlayers,
+  kind: host.kind, blocksSight: host.blocksSight, blocksMove: host.blocksMove, isOpen: host.isOpen, ...at,
+});
+
+// ── fog & vision (drawn from what the API answers; never computed here) ──────
+/** `"x,y x,y …"` for an SVG `<polygon points>`. */
+export const polygonPoints = (poly: VisionPolygon): string => poly.map(([x, y]) => `${x},${y}`).join(' ');
+/** One `<path d>` for a whole set of explored cells — one element instead of a rect per cell. */
+export const cellsPath = (cells: FogCell[], grid: number): string =>
+  cells.map(([cx, cy]) => `M${cx * grid} ${cy * grid}h${grid}v${grid}h${-grid}z`).join('');
+/** Brush radius in scene px for a size taken from `BRUSH_SIZES`. */
+export const brushRadius = (size: number, grid: number): number => size * grid;
+/** Night sight radius of a scene in scene px, or `null` by day. Same helper the API uses. */
+export const sceneRadiusPx = (s: Pick<Scene, 'lighting' | 'nightRadiusM' | 'grid'>): number | null =>
+  sightRadiusPx(s.lighting, s.nightRadiusM, s.grid.size);
+/** Night radius as a rounded metre label for the light toggle. */
+export const nightLabelM = (s: Pick<Scene, 'nightRadiusM'>): string => String(Math.round(s.nightRadiusM * 10) / 10);
+
+// ── hit tests (erase) ────────────────────────────────────────────────────────
 /** True when `p` is within `tol` scene px of the drawing's outline (rect/circle: their border; text: its anchor box). */
 export function hitDrawing(d: Pick<Drawing, 'kind' | 'data' | 'width'>, p: Point, tol = 6): boolean {
   const tolerance = tol + d.width / 2;
@@ -152,4 +295,40 @@ export function filterEntries<T>(items: T[], query: string, labelOf: (t: T) => s
   const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const q = norm(query.trim());
   return q ? items.filter(i => norm(labelOf(i)).includes(q)) : items;
+}
+
+/**
+ * Where a segment lands while it is being dragged with Seleccionar: grabbing an endpoint stretches that end,
+ * grabbing anywhere else moves the whole thing. Everything snaps to the grid, like drawing does, so an edited
+ * wall keeps lining up with the plan.
+ */
+export function wallDragTo(
+  origin: { x1: number; y1: number; x2: number; y2: number },
+  grab: 'a' | 'b' | 'whole',
+  from: Point,
+  to: Point,
+  grid: number,
+): { x1: number; y1: number; x2: number; y2: number } {
+  const dx = to.x - from.x, dy = to.y - from.y;
+  if (grab === 'a') return { ...origin, x1: snap(origin.x1 + dx, grid), y1: snap(origin.y1 + dy, grid) };
+  if (grab === 'b') return { ...origin, x2: snap(origin.x2 + dx, grid), y2: snap(origin.y2 + dy, grid) };
+  const sx = snap(origin.x1 + dx, grid) - origin.x1, sy = snap(origin.y1 + dy, grid) - origin.y1;
+  return { x1: origin.x1 + sx, y1: origin.y1 + sy, x2: origin.x2 + sx, y2: origin.y2 + sy };
+}
+
+/** Tools that put ink on the map: while one is active the «Trazo» bar is the one that shows. */
+export const DRAW_TOOLS: Tool[] = ['pencil', 'line', 'rect', 'circle', 'text', 'erase'];
+export const isDraw = (t: Tool): boolean => DRAW_TOOLS.includes(t);
+
+/** Normalised rectangle from two dragged corners, in scene px. */
+export function rectFrom(a: Point, b: Point): { x: number; y: number; w: number; h: number } {
+  return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+}
+/** Tokens whose centre falls inside the marquee — «mantener pulsado y seleccionar por área». */
+export function tokensInRect(tokens: Token[], a: Point, b: Point, grid: number): string[] {
+  const r = rectFrom(a, b);
+  return tokens.filter(t => {
+    const c = tokenCenter(t, grid);
+    return c.x >= r.x && c.x <= r.x + r.w && c.y >= r.y && c.y <= r.y + r.h;
+  }).map(t => t.id);
 }

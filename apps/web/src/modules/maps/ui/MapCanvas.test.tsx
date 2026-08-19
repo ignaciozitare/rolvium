@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
-import { DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_VISIBLE } from '../../../../tests/helpers/fakes';
+import { DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import type { Tool } from '../domain/useCases/mapRules';
 import { MapCanvas } from './MapCanvas';
 
@@ -12,10 +12,11 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onMoveWall: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
-    tool: 'move', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true, view: VIEW, nameOf: id => id, selectedTokenId: null, ...cb, ...over,
+    tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
+    fog: null, brush: 3, view: VIEW, nameOf: id => id, selectedTokenIds: [], ...cb, ...over,
   };
   const r = renderWithProviders(<MapCanvas {...props} />);
   const svg = screen.getByRole('application', { name: 'Lienzo de la escena' });
@@ -61,7 +62,7 @@ describe('<MapCanvas> layers', () => {
 });
 
 describe('<MapCanvas> tools', () => {
-  it('move: dragging my token broadcasts while moving and persists the snapped cell on release; someone else\'s token only selects', () => {
+  it('select: dragging my token broadcasts while moving and persists the snapped cell on release; someone else\'s token only selects', () => {
     const { svg, token, cb } = mount();
     down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
     expect(cb.onSelectToken).toHaveBeenCalledWith('tk-karen');
@@ -73,10 +74,11 @@ describe('<MapCanvas> tools', () => {
     expect(cb.onSelectToken).toHaveBeenLastCalledWith('tk-elias');
     expect(cb.onMoveToken).toHaveBeenCalledTimes(1);
   });
-  it('move on empty canvas pans; wheel zooms', () => {
-    const { svg, cb } = mount();
+  it('select on empty canvas clears the selection and does NOT pan (panning is space/middle); wheel still zooms', () => {
+    const { svg, cb } = mount({ selectedTokenIds: ['tk-karen'] });
     down(svg, 10, 10); move(svg, 30, 50); up(svg);
-    expect(cb.onViewChange).toHaveBeenLastCalledWith({ zoom: 1, panX: 20, panY: 40 });
+    expect(cb.onSelectToken).toHaveBeenCalledWith(null);
+    expect(cb.onViewChange).not.toHaveBeenCalled();
     fireEvent.wheel(svg, { deltaY: -100, clientX: 0, clientY: 0 });
     expect(cb.onViewChange).toHaveBeenLastCalledWith(expect.objectContaining({ zoom: expect.closeTo(1.1, 5) }));
   });
@@ -124,9 +126,13 @@ describe('<MapCanvas> tools', () => {
     rerender({ tool: 'wall', isDm: false });
     down(svg, 0, 0); down(svg, 50, 0);
     expect(cb.onAddWall).toHaveBeenCalledTimes(2);
-    rerender({ tool: 'encounter', isDm: true, me: 'u-gm' });
+    // colocar es un estado, no una herramienta: con algo pendiente el clic manda, venga de donde venga
+    rerender({ tool: 'encounter', isDm: true, me: 'u-gm', placing: true });
     down(svg, 2 * G + 5, 3 * G + 5);
     expect(cb.onPlace).toHaveBeenCalledWith({ x: 2, y: 3 });
+    rerender({ tool: 'select', isDm: true, me: 'u-gm', placing: true });
+    down(svg, 5 * G + 5, G + 5);
+    expect(cb.onPlace).toHaveBeenLastCalledWith({ x: 5, y: 1 });
   });
 });
 
@@ -138,5 +144,348 @@ describe('<MapCanvas> wheel', () => {
     expect(wheel).toBeDefined();
     expect(wheel![2]).toMatchObject({ passive: false });
     add.mockRestore();
+  });
+});
+
+// ── slice 2: fog, light and openings ─────────────────────────────────────────
+const FOG = { vision: [[[0, 0], [540, 0], [540, 675], [0, 675]]] as [number, number][][], explored: [[0, 0], [1, 0]] as [number, number][], radiusPx: null };
+
+describe('<MapCanvas> fog', () => {
+  it('without an answer from the API yet the scene draws unfogged — no black flash', () => {
+    const { svg } = mount({ fog: null });
+    expect(within(svg).getByTestId('mp-map')).not.toHaveAttribute('mask');
+    expect(within(svg).queryByTestId('mp-fog-dim')).not.toBeInTheDocument();
+    expect(svg.querySelector('mask')).toBeNull();
+  });
+
+  it('player: the map is masked to explored ∪ vision, what is only remembered is dimmed, and tokens live only inside the current sight', () => {
+    const { svg } = mount({ fog: FOG });
+    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-fog-dim')).toHaveAttribute('mask', `url(#mp-dim-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).queryByTestId('mp-fog-veil')).not.toBeInTheDocument();
+    // the seen mask carries both the remembered cells and the polygon
+    const seen = svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}`)!;
+    expect(seen.querySelector('path')).toHaveAttribute('d', 'M0 0h27v27h-27zM27 0h27v27h-27z');
+    expect(seen.querySelector('polygon')).toHaveAttribute('points', '0,0 540,0 540,675 0,675');
+  });
+
+  it('with manual fog nothing is dimmed and tokens follow whatever the DM revealed', () => {
+    const { svg } = mount({ scene: { ...SCENE_WAREHOUSE, fogMode: 'manual' }, fog: { ...FOG, vision: [] } });
+    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).queryByTestId('mp-fog-dim')).not.toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+  });
+
+  it('a player with no token of their own sees the map they remember but NO tokens on it — memory holds no creatures', () => {
+    const { svg } = mount({ fog: { ...FOG, vision: [] } });
+    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    // the `lit` mask is empty, so the token layer resolves to nothing
+    expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
+    expect(svg.querySelector(`#mp-lit-${SCENE_WAREHOUSE.id}`)!.querySelector('polygon')).toBeNull();
+  });
+
+  it('DM: the whole map stays visible under a veil over what nobody explored; «ver como jugador» switches to the player’s fog', () => {
+    const { svg, rerender } = mount({ isDm: true, me: 'u-gm', fog: FOG });
+    expect(within(svg).getByTestId('mp-map')).not.toHaveAttribute('mask');
+    expect(within(svg).getByTestId('mp-fog-veil')).toHaveAttribute('mask', `url(#mp-unex-${SCENE_WAREHOUSE.id})`);
+    rerender({ isDm: true, me: 'u-gm', fog: FOG, playerView: true });
+    expect(within(svg).queryByTestId('mp-fog-veil')).not.toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+  });
+});
+
+describe('<MapCanvas> openings', () => {
+  it('a door renders its jambs (and a dark core while closed), a window is its own segment, a plain wall stays one line', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', walls: [WALL_1, WALL_DOOR, WALL_WINDOW] });
+    const walls = within(svg).getByTestId('mp-walls');
+    expect(walls.querySelector('[data-wall-id="w-1"]')!.tagName).toBe('line');
+    const door = walls.querySelector('[data-wall-id="w-door"]')!;
+    expect(door.getAttribute('data-open')).toBe('false');
+    expect(door.querySelectorAll('.mp-wall-core')).toHaveLength(1);
+    expect(door.querySelectorAll('.mp-wall-jamb')).toHaveLength(2);
+    expect(door.querySelectorAll('.mp-wall-leaf')).toHaveLength(0);
+    expect(walls.querySelector('[data-wall-id="w-win"] .mp-wall')!.classList.contains('window')).toBe(true);
+  });
+
+  it('an open door drops the core and swings a leaf instead', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', walls: [{ ...WALL_DOOR, isOpen: true }] });
+    const door = within(svg).getByTestId('mp-walls').querySelector('[data-wall-id="w-door"]')!;
+    expect(door.getAttribute('data-open')).toBe('true');
+    expect(door.querySelectorAll('.mp-wall-core')).toHaveLength(0);
+    expect(door.querySelectorAll('.mp-wall-leaf')).toHaveLength(1);
+  });
+
+  it('Muro sólo construye: empezar un muro sobre una puerta ya no la abre (ése era el choque de la rebanada 2)', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'wall', walls: [WALL_DOOR] });
+    // WALL_DOOR is the vertical segment x = 540, y ∈ [216, 324]
+    down(svg, 541, 260);
+    expect(cb.onToggleWall).not.toHaveBeenCalled();
+    down(svg, 541, 360);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+  });
+
+  it('el disco de abrir sale al pasar el ratón por una puerta y la abre; sobre un muro no sale, y el jugador no lo tiene', () => {
+    const { svg, cb, rerender } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_DOOR, WALL_1] });
+    expect(within(svg).queryByTestId('mp-door-toggle')).not.toBeInTheDocument();
+    move(svg, 541, 260);
+    const disc = within(svg).getByTestId('mp-door-toggle');
+    expect(disc).toHaveAttribute('data-wall-id', 'w-door');
+    expect(disc).toHaveAttribute('aria-label', 'Abrir');
+    // el disco se planta en el centro del vano, no donde esté el ratón
+    expect(disc).toHaveAttribute('transform', 'translate(540 270) scale(1)');
+    down(disc, 540, 270); up(svg);
+    expect(cb.onToggleWall).toHaveBeenCalledWith(WALL_DOOR);
+
+    move(svg, 271, 300);                                   // WALL_1 es un muro liso: no se abre
+    expect(within(svg).queryByTestId('mp-door-toggle')).not.toBeInTheDocument();
+
+    rerender({ isDm: true, me: 'u-gm', tool: 'select', walls: [{ ...WALL_DOOR, isOpen: true }] });
+    move(svg, 541, 260);
+    expect(within(svg).getByTestId('mp-door-toggle')).toHaveAttribute('aria-label', 'Cerrar');
+
+    document.body.innerHTML = '';
+    const player = mount({ tool: 'select', walls: [{ ...WALL_DOOR, visiblePlayers: true }] });
+    move(player.svg, 541, 260);
+    expect(within(player.svg).queryByTestId('mp-door-toggle')).not.toBeInTheDocument();
+  });
+
+  it('el disco no roba el arrastre: una puerta de una casilla se sigue pudiendo elegir y mover con Seleccionar', () => {
+    // El disco se planta justo encima del cuerpo del segmento; sin esto una puerta corta quedaría inseleccionable
+    // (y con ella, sin barra «Segmento»: ni cambiarle el tipo, ni borrarla).
+    const short = { ...WALL_DOOR, y2: WALL_DOOR.y1 + G };            // una sola casilla de largo
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [short] });
+    move(svg, short.x1 + 1, short.y1 + G / 2);
+    const disc = within(svg).getByTestId('mp-door-toggle');
+    down(disc, short.x1, short.y1 + G / 2);
+    expect(cb.onSelectWall).toHaveBeenCalledWith('w-door');           // el clic llega igual al lienzo: la elige
+    move(svg, short.x1, short.y1 + G / 2 + 2 * G);                    // …y arrastrarla la mueve
+    up(svg);
+    expect(cb.onMoveWall).toHaveBeenCalledTimes(1);
+    expect(cb.onToggleWall).not.toHaveBeenCalled();                   // arrastrar NO es abrir
+  });
+
+  it('el disco no sale donde tendría que tragarse la pulsación: Muro, Pin, Texto, Borrar, pinceles, ni con algo a medias', () => {
+    for (const tool of ['wall', 'pin', 'text', 'erase', 'reveal', 'hide'] as Tool[]) {
+      document.body.innerHTML = '';
+      const m = mount({ isDm: true, me: 'u-gm', tool, walls: [WALL_DOOR] });
+      move(m.svg, 541, 260);
+      expect(within(m.svg).queryByTestId('mp-door-toggle')).not.toBeInTheDocument();
+    }
+    document.body.innerHTML = '';
+    const placing = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_DOOR], placing: true });
+    move(placing.svg, 541, 260);
+    expect(within(placing.svg).queryByTestId('mp-door-toggle')).not.toBeInTheDocument();
+  });
+
+  it('el disco mide lo mismo en pantalla a cualquier zoom: es un control, no un dibujo del mapa', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_DOOR], view: { zoom: 2, panX: 0, panY: 0 } });
+    move(svg, 2 * 540 + 2, 2 * 260);
+    expect(within(svg).getByTestId('mp-door-toggle')).toHaveAttribute('transform', 'translate(540 270) scale(0.5)');
+  });
+
+  it('a player never gets a hidden door: only `visible_players` segments are drawn', () => {
+    const { svg } = mount({ walls: [WALL_DOOR, WALL_VISIBLE] });
+    const walls = within(svg).getByTestId('mp-walls');
+    expect(walls.querySelector('[data-wall-id="w-door"]')).toBeNull();
+    expect(walls.querySelector('[data-wall-id="w-2"]')).not.toBeNull();
+  });
+});
+
+describe('<MapCanvas> reveal/hide brush', () => {
+  beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: true }); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('shows the brush disc under the pointer and paints on press and while dragging', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'reveal', brush: 2 });
+    move(svg, 100, 100);
+    expect(within(svg).getByTestId('mp-brush')).toHaveAttribute('r', String(2 * G));
+    down(svg, 100, 100);
+    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 100, y: 100, radius: 2 * G }, 'reveal');
+    // throttled like the token drag: every paint rewrites the fog row of every player and wakes the whole table
+    vi.setSystemTime(Date.now() + 100);
+    move(svg, 130, 100);
+    expect(cb.onPaintFog).toHaveBeenLastCalledWith({ x: 130, y: 100, radius: 2 * G }, 'reveal');
+    const painted = cb.onPaintFog.mock.calls.length;
+    move(svg, 131, 100);
+    move(svg, 132, 100);
+    expect(cb.onPaintFog.mock.calls.length).toBe(painted);
+    up(svg);
+  });
+
+  it('the hide brush sends the other op, and a player never paints', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'hide', brush: 1 });
+    down(svg, 50, 50);
+    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 50, y: 50, radius: G }, 'hide');
+
+    document.body.innerHTML = '';
+    const player = mount({ tool: 'reveal', brush: 1 });
+    down(player.svg, 50, 50);
+    expect(player.cb.onPaintFog).not.toHaveBeenCalled();
+    expect(within(player.svg).queryByTestId('mp-brush')).not.toBeInTheDocument();
+  });
+});
+
+describe('<MapCanvas> panning is a modifier, not a tool', () => {
+  it('space held pans from a drawing tool and never draws; releasing gives the tool back', () => {
+    const { svg, cb } = mount({ tool: 'pencil' });
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(svg).toHaveStyle({ cursor: 'grab' });
+    down(svg, 100, 100);
+    move(svg, 140, 130);
+    expect(cb.onViewChange).toHaveBeenCalledWith({ zoom: 1, panX: 40, panY: 30 });
+    up(svg);
+    expect(cb.onAddDrawing).not.toHaveBeenCalled();
+
+    fireEvent.keyUp(window, { key: ' ' });
+    expect(svg).toHaveStyle({ cursor: 'crosshair' });
+    down(svg, 200, 200);
+    move(svg, 240, 200);
+    up(svg);
+    expect(cb.onAddDrawing).toHaveBeenCalled();
+  });
+
+  it('the middle button pans from any tool too (it already did)', () => {
+    const { svg, cb } = mount({ tool: 'wall', isDm: true, me: 'u-gm' });
+    down(svg, 100, 100, 1);
+    move(svg, 150, 100);
+    expect(cb.onViewChange).toHaveBeenCalledWith({ zoom: 1, panX: 50, panY: 0 });
+    expect(cb.onAddWall).not.toHaveBeenCalled();
+  });
+
+  it('space typed into a field is left alone, and losing the window unsticks the pan', () => {
+    const { svg } = mount({ tool: 'pencil' });
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: ' ' });
+    expect(svg).toHaveStyle({ cursor: 'crosshair' });   // still drawing: the field ate the space
+    input.remove();
+
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(svg).toHaveStyle({ cursor: 'grab' });
+    fireEvent.blur(window);                              // alt-tab with space down must not stick
+    expect(svg).toHaveStyle({ cursor: 'crosshair' });
+  });
+
+  it('space on a focused button is left to the button: it is how a keyboard presses it', () => {
+    const { svg } = mount({ tool: 'pencil' });
+    const btn = document.createElement('button');
+    document.body.appendChild(btn);
+    btn.focus();
+    const ev = fireEvent.keyDown(btn, { key: ' ', cancelable: true });
+    expect(svg).toHaveStyle({ cursor: 'crosshair' });     // no pan: the toolbar keeps its keyboard
+    expect(ev).toBe(true);                                // not preventDefault()ed, so the button still activates
+    btn.remove();
+  });
+});
+
+describe('<MapCanvas> Seleccionar edita muros', () => {
+  it('el director elige un segmento, le salen tiradores en los vértices, y arrastrarlo entero lo mueve', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: null });
+    // WALL_1 es vertical en x = 270, de y = 216 a 540
+    down(svg, 272, 380);
+    expect(cb.onSelectWall).toHaveBeenCalledWith('w-1');
+
+    document.body.innerHTML = '';
+    const sel = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: 'w-1' });
+    expect(within(sel.svg).getByTestId('mp-wall-handles').querySelectorAll('.mp-vertex')).toHaveLength(2);
+    down(sel.svg, 272, 380); move(sel.svg, 272 + G, 380); up(sel.svg);
+    expect(sel.cb.onMoveWall).toHaveBeenCalledWith('w-1', { x1: 270 + G, y1: 216, x2: 270 + G, y2: 540 });
+  });
+
+  it('elegir un token suelta el segmento: una sola selección, o «Segmento» y la barra del token se pisan', () => {
+    const { token, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: 'w-1' });
+    down(token('Karen'), 300, 300);
+    expect(cb.onSelectToken).toHaveBeenCalledWith('tk-karen');
+    expect(cb.onSelectWall).toHaveBeenCalledWith(null);
+  });
+
+  it('Escape suelta el segmento además del token', () => {
+    const { cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: 'w-1' });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(cb.onSelectToken).toHaveBeenCalledWith(null);
+    expect(cb.onSelectWall).toHaveBeenCalledWith(null);
+  });
+
+  it('arrastrar un vértice estira sólo ese extremo, ajustado a la rejilla', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: 'w-1' });
+    down(svg, 270, 216); move(svg, 270, 216 + G); up(svg);
+    expect(cb.onMoveWall).toHaveBeenCalledWith('w-1', { x1: 270, y1: 216 + G, x2: 270, y2: 540 });
+  });
+
+  it('pulsar en vacío deselecciona muro y token; un jugador no puede seleccionar muros', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_1], selectedWallId: 'w-1' });
+    down(svg, 700, 100); up(svg);
+    expect(cb.onSelectWall).toHaveBeenCalledWith(null);
+    expect(cb.onMoveWall).not.toHaveBeenCalled();
+
+    document.body.innerHTML = '';
+    const player = mount({ tool: 'select', walls: [WALL_VISIBLE] });
+    down(player.svg, WALL_VISIBLE.x1 + 2, WALL_VISIBLE.y1);
+    expect(player.cb.onSelectWall).toHaveBeenCalledWith(null);
+  });
+
+  it('una puerta es UN segmento: no encadena el siguiente; un muro liso sí', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'wall', wallKind: 'door' });
+    down(svg, 2 * G, 2 * G); down(svg, 6 * G, 2 * G);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+    down(svg, 9 * G, 2 * G);              // sin encadenar, este clic sólo abre el siguiente segmento
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+
+    document.body.innerHTML = '';
+    const chain = mount({ isDm: true, me: 'u-gm', tool: 'wall', wallKind: 'wall' });
+    down(chain.svg, 2 * G, 2 * G); down(chain.svg, 6 * G, 2 * G); down(chain.svg, 9 * G, 2 * G);
+    expect(chain.cb.onAddWall).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('<MapCanvas> teclado y botón derecho', () => {
+  it('Suprimir borra lo seleccionado; escribiendo en un campo no borra nada', () => {
+    const { cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', selectedWallId: 'w-1', walls: [WALL_1] });
+    fireEvent.keyDown(window, { key: 'Delete' });
+    expect(cb.onDeleteSelection).toHaveBeenCalledTimes(1);
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: 'Delete' });
+    expect(cb.onDeleteSelection).toHaveBeenCalledTimes(1);
+    input.remove();
+  });
+
+  it('el botón derecho termina el muro a medias como Escape, y sólo abre el menú cuando no hay nada pendiente', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'wall' });
+    down(svg, 2 * G, 2 * G);                       // muro empezado
+    fireEvent.contextMenu(svg, { clientX: 100, clientY: 100 });
+    expect(cb.onContextMenu).not.toHaveBeenCalled();   // primero cancela
+    down(svg, 6 * G, 2 * G);
+    expect(cb.onAddWall).not.toHaveBeenCalled();       // se había cancelado de verdad
+
+    fireEvent.contextMenu(svg, { clientX: 100, clientY: 100 });
+    fireEvent.contextMenu(svg, { clientX: 140, clientY: 120 });
+    expect(cb.onContextMenu).toHaveBeenCalledWith({ x: 140, y: 120 }, { x: 140, y: 120 });
+  });
+})
+
+describe('<MapCanvas> selección por área', () => {
+  it('mantener pulsado y arrastrar dibuja el marco y devuelve los tokens de dentro', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select' });
+    down(svg, 7 * G, 10 * G);
+    move(svg, 12 * G, 13 * G);
+    expect(within(svg).getByTestId('mp-marquee')).toBeInTheDocument();
+    up(svg);
+    expect(cb.onMarquee).toHaveBeenCalledWith(['tk-karen', 'tk-elias']);
+  });
+
+  it('un clic sin arrastre no es un marco: sólo deselecciona', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select' });
+    down(svg, 7 * G, 10 * G); up(svg);
+    expect(cb.onMarquee).not.toHaveBeenCalled();
+    expect(cb.onSelectToken).toHaveBeenCalledWith(null);
+  });
+
+  it('la herramienta Texto pide el punto y deja que el llamante pregunte el texto', () => {
+    const { svg, cb } = mount({ tool: 'text' });
+    down(svg, 120, 90);
+    expect(cb.onAddText).toHaveBeenCalledWith({ x: 120, y: 90 });
+    expect(cb.onAddDrawing).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,7 @@ import type { Character, CharacterKind } from '../domain/entities/Character';
 import type { CharactersPort } from '../domain/ports/CharactersPort';
 import { charactersRepo as defaultRepo } from '../container';
 import { sysT } from '../domain/useCases/systemText';
+import { budgetAllows } from '../domain/useCases/generatorRules';
 import './characters.css';
 
 interface Props {
@@ -64,19 +65,11 @@ export function GeneratorWizard({ campaignId, system, role, repo = defaultRepo, 
     const p = step.applyChange ? step.applyChange(d, id, next) : { [id]: next };
     return p === null ? null : { ...d, ...p };
   };
-  /**
-   * A change is vetoed by the system's own rules, or when it leaves the step's budget
-   * overspent — *unless it spends less than the draft already does*. Without that escape
-   * an overspent draft is a dead end: the controls that would repair it are disabled too,
-   * and a step can be left overspent by another step (Plenilunio's gift trades spend
-   * creation points against the gift-point budget).
-   */
+  /** Vetoed by the system's own rules (`applyChange` → null), or by the step's budget (`budgetAllows`). */
   const canChange = (id: string, next: unknown) => {
     const d = nextDraft(draft, id, next);
     if (!d) return false;
-    const b = step.budget?.(d);
-    if (!b) return true;
-    return b.remaining >= 0 || b.remaining > (step.budget?.(draft)?.remaining ?? 0);
+    return budgetAllows(step.budget?.(d)?.remaining, step.budget?.(draft)?.remaining);
   };
   /** `Sheet` emits one field per change, but fold every key through the guard all the same. */
   const patch = (p: SheetPatch) => setDraft(d => Object.keys(p).reduce<SheetData>((acc, id) => nextDraft(acc, id, p[id]) ?? acc, d));

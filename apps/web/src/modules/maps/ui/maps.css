@@ -2,7 +2,7 @@
    Themed ONLY via --sys-* (set by the game system on the table container);
    platform tokens only for the type scale / icon sizes. Neutral defaults for the
    --sys-* vars live in table.css (.tb-root). */
-.mp-root{display:flex;flex-direction:column;gap:10px;background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:12px 14px 10px;}
+.mp-root{display:flex;flex-direction:column;gap:6px;background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:6px;flex:1 1 auto;min-height:0;}
 .mp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 .mp-head-l{display:flex;align-items:baseline;gap:12px;}
 .mp-scene-name{font-family:var(--sys-font-display);font-size:var(--fs-lg);color:var(--sys-ink);}
@@ -16,36 +16,68 @@
 .mp-scene-thumb{width:14px;height:14px;border:1px solid var(--sys-line);flex-shrink:0;}
 .mp-scene-active{width:7px;height:7px;border-radius:50%;background:var(--sys-gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--sys-gold) 35%,transparent);}
 .mp-scene-menu{top:calc(100% + 4px);left:0;min-width:220px;}
-.mp-pcwrap{position:relative;}
-.mp-pcmenu{top:calc(100% + 4px);right:0;min-width:220px;}
+.mp-pcmenu{top:60px;left:8px;min-width:230px;max-height:calc(100% - 70px);overflow:auto;}
 /* stroke bar */
-.mp-strokebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 12px;background:color-mix(in srgb,var(--sys-paper-lo) 70%,transparent);}
+.mp-strokebar{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  max-width:calc(100% - 16px);padding:6px 10px;background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);}
 .mp-stroke-width{width:110px;accent-color:var(--sys-ink);}
 .mp-stroke-colors{display:flex;gap:6px;}
 .mp-swatch{width:20px;height:20px;padding:0;border:2px solid transparent;cursor:pointer;box-shadow:0 0 0 1px var(--sys-line);}
 .mp-swatch.on{border-color:var(--sys-paper-hi);box-shadow:0 0 0 2px var(--sys-ink);}
 .mp-stroke-note{font-size:var(--fs-xs);}
 /* stage */
-.mp-stage-row{display:flex;gap:10px;align-items:stretch;}
-.mp-toolbar{display:flex;flex-direction:column;gap:6px;padding:6px 4px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);align-self:flex-start;}
-.mp-tool-group{display:flex;flex-direction:column;gap:2px;padding-bottom:6px;border-bottom:1px solid var(--sys-line);}
+.mp-stage-row{display:flex;gap:10px;align-items:stretch;flex:1 1 auto;min-height:0;}
+/* Zero scenes: the rail keeps its width and the placeholder takes the rest, so «+ Escena» stays reachable. */
+.mp-empty{flex:1 1 auto;}
+.mp-toolbar{display:flex;flex-direction:column;gap:3px;padding:4px 3px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);align-self:stretch;overflow:auto;}
+.mp-tool-group{display:flex;flex-direction:column;gap:1px;padding-bottom:4px;border-bottom:1px solid var(--sys-line);}
 .mp-tool-group:last-child{border-bottom:none;padding-bottom:0;}
-.mp-tool-group.dm{border-top:2px solid var(--sys-gold);padding-top:6px;}
-.mp-tool{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:none;background:transparent;color:var(--sys-ink-soft);cursor:pointer;}
+.mp-tool-group.dm{border-top:2px solid var(--sys-gold);padding-top:4px;}
+.mp-tool{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:none;background:transparent;color:var(--sys-ink-soft);cursor:pointer;}
 .mp-tool:hover{background:color-mix(in srgb,var(--sys-ink) 10%,transparent);}
 .mp-tool.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
 .mp-tool.dm.on{background:var(--sys-gold);}
 .mp-tool:disabled{opacity:.35;cursor:default;background:transparent;}
-.mp-stage{position:relative;flex:1;min-width:0;height:min(70vh,640px);background:var(--sys-ink);overflow:hidden;touch-action:none;}
+.mp-stage{position:relative;flex:1 1 auto;min-width:0;min-height:0;background:var(--sys-ink);overflow:hidden;touch-action:none;}
 .mp-svg{display:block;width:100%;height:100%;user-select:none;}
 .mp-canvas-label{position:absolute;top:8px;left:8px;padding:3px 8px;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;background:color-mix(in srgb,var(--sys-ink) 82%,transparent);color:var(--sys-gold);pointer-events:none;}
 .mp-tokbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 10px;background:color-mix(in srgb,var(--sys-paper-hi) 94%,transparent);box-shadow:var(--sys-card-shadow);}
 .mp-tokbar-name{font-size:var(--fs-sm);color:var(--sys-ink);}
+/* the bar follows the tool: «Trazo» → «Pincel» (reveal/hide) → «Muro» (segment type) */
+.mp-kinds{display:inline-flex;align-items:center;gap:6px;}
+.mp-brush-sizes{display:flex;align-items:center;gap:8px;}
+.mp-brush-dot{padding:0;border:none;border-radius:50%;background:var(--sys-ink-soft);opacity:.55;cursor:pointer;}
+.mp-brush-dot.on{background:var(--sys-ink);opacity:1;}
+/* DM options bar (design: «Opciones DJ») */
+.mp-dmbar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:8px 10px;
+  background:color-mix(in srgb,var(--sys-gold) 7%,transparent);border-top:2px solid var(--sys-gold);}
+.mp-check{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--sys-ink-soft);cursor:pointer;}
+.mp-check input{accent-color:var(--sys-ink);}
+.mp-light{display:inline-flex;align-items:center;gap:6px;}
+.mp-light-label{font-size:var(--fs-sm);color:var(--sys-ink-soft);}
+.mp-seg{padding:3px 9px;border:1px solid var(--sys-border);background:transparent;
+  font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink-soft);cursor:pointer;}
+.mp-seg.on{background:var(--sys-ink);color:var(--sys-paper-hi);border-color:var(--sys-ink);}
+.mp-dm-count{font-size:var(--fs-xs);}
 /* svg */
 .mp-grid-line{stroke:var(--sys-paper-hi);stroke-opacity:.09;stroke-width:1;}
 .mp-wall{stroke:var(--sys-gold);stroke-width:3;stroke-linecap:round;}
 .mp-wall.visible{stroke:var(--sys-paper-hi);}
 .mp-wall.draft{stroke-dasharray:6 4;opacity:.7;}
+/* openings: a closed door is a thick leaf with a dark core between two jambs; an open one keeps a faint
+   threshold and swings its leaf out; a window is steel and never cuts sight (rolvium.pen uXK3T) */
+.mp-wall.door{stroke-width:7;}
+.mp-wall.door.open{stroke-width:1;opacity:.3;}
+.mp-wall.window{stroke:var(--sys-steel);stroke-width:5;}
+.mp-wall-core{stroke:var(--sys-ink);stroke-width:2;}
+.mp-wall-leaf{stroke:var(--sys-gold);stroke-width:5;stroke-linecap:round;}
+.mp-wall-jamb{stroke:var(--sys-gold);stroke-width:3;stroke-linecap:round;}
+/* fog: the player gets black where the map is not, a dim veil over what is only remembered;
+   the DM keeps the whole map under a blue veil where nobody has been */
+.mp-fog-veil{fill:var(--sys-steel);fill-opacity:.4;pointer-events:none;}
+.mp-fog-dim{fill:var(--sys-ink);fill-opacity:.55;pointer-events:none;}
+.mp-brush{fill:color-mix(in srgb,var(--sys-gold) 18%,transparent);stroke:var(--sys-gold);stroke-width:1;pointer-events:none;}
+.mp-brush.hide{fill:color-mix(in srgb,var(--sys-ink) 22%,transparent);stroke:var(--sys-ink-soft);}
 .mp-drawing.draft{opacity:.7;}
 .mp-drawing-text{font-family:var(--sys-font-body);font-size:16px;}
 .mp-token{cursor:default;}
@@ -107,7 +139,49 @@
 .mp-enc-name{font-size:var(--fs-sm);}
 .mp-enc-sub{font-size:var(--fs-2xs);color:var(--sys-ink-dim);}
 /* footer */
-.mp-foot{margin:0;font-size:var(--fs-xs);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mp-foot{margin:0;font-size:var(--fs-2xs);display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.3;}
 .mp-dm-tag{font-style:normal;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;background:var(--sys-blood);color:var(--sys-paper-hi);}
-@media (max-width:900px){.mp-stage{height:60vh;}.mp-bgpop{right:8px;width:calc(100% - 16px);}}
+@media (max-width:900px){.mp-stage{min-height:60vh;}.mp-bgpop{right:8px;width:calc(100% - 16px);}}
 .mp-foot-err{color:var(--sys-blood);font-style:italic;}
+/* ── scenes rail (replaces the header dropdown; folds to give the map its width back) ── */
+.mp-rail{display:flex;flex-direction:column;gap:3px;width:176px;flex-shrink:0;padding:5px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
+.mp-rail-head{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 4px;}
+.mp-rail.collapsed .mp-rail-head{justify-content:center;}
+.mp-rail-fold{display:inline-flex;border:none;background:transparent;padding:0;cursor:pointer;color:var(--sys-ink-dim);line-height:0;}
+.mp-rail-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;overflow:auto;flex:1;min-height:0;}
+.mp-rail-row{position:relative;}
+.mp-rail-item{display:flex;align-items:center;gap:8px;width:100%;padding:3px 4px;border:none;background:transparent;font-family:inherit;font-size:var(--fs-sm);color:var(--sys-ink-soft);cursor:pointer;text-align:left;}
+.mp-rail-item:hover{background:color-mix(in srgb,var(--sys-ink) 8%,transparent);}
+.mp-rail-item.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
+.mp-rail-thumb{width:38px;height:26px;flex-shrink:0;box-shadow:0 0 0 1px var(--sys-line);}
+.mp-rail.collapsed .mp-rail-thumb{width:44px;height:30px;}
+.mp-rail-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-rail-add{padding:5px 8px;border:1px solid var(--sys-border);background:transparent;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink-soft);cursor:pointer;}
+.mp-rail-add:hover{background:color-mix(in srgb,var(--sys-ink) 8%,transparent);}
+/* the toolbar now carries everything, so each block says what it is */
+.mp-tool-sep{display:block;height:1px;margin:4px 3px;background:var(--sys-line);}
+/* Collapsed the rail is just the button to bring it back — the map takes the rest. */
+.mp-rail.collapsed{width:34px;padding:4px;gap:0;background:color-mix(in srgb,var(--sys-paper-hi) 88%,transparent);}
+.mp-rail.collapsed .mp-rail-list,.mp-rail.collapsed .mp-rail-add{display:none;}
+/* «Solo director» rides the map instead of a bar under it (bottom-left, out of the controls' way). */
+.mp-dmtag{position:absolute;left:8px;bottom:8px;display:flex;align-items:center;gap:8px;max-width:calc(100% - 120px);
+  padding:4px 8px;background:color-mix(in srgb,var(--sys-ink) 78%,transparent);color:var(--sys-paper-lo);
+  font-size:var(--fs-2xs);pointer-events:none;}
+.mp-ctl-sep{display:block;height:1px;margin:3px 5px;background:var(--sys-line);}
+/* «Segmento»: floats over the map like the token bar, so it costs no height */
+.mp-segbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:6px 10px;background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);color:var(--sys-ink);}
+.mp-segbar-del{border:none;background:transparent;padding:0;line-height:0;color:var(--sys-blood);cursor:pointer;}
+.mp-wall.selected{stroke:var(--sys-paper-hi);stroke-width:6;}
+.mp-opening.selected .mp-wall{stroke:var(--sys-paper-hi);}
+.mp-vertex{fill:var(--sys-paper-hi);stroke:var(--sys-ink);stroke-width:2;cursor:pointer;}
+/* open/close disc: hovering a door or a window offers it, from any tool, so Muro can be build-only */
+.mp-door-toggle{cursor:pointer;}
+.mp-door-disc{fill:var(--sys-gold);stroke:var(--sys-ink);stroke-width:1.5;}
+.mp-door-toggle.open .mp-door-disc{fill:var(--sys-paper-hi);}
+.mp-door-icon{fill:var(--sys-ink);font-size:var(--icon-sm);pointer-events:none;user-select:none;}
+/* quick menu on right-click over empty ground */
+.mp-quick{min-width:180px;}
+.mp-placing{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:10px;
+  padding:6px 10px;background:var(--sys-gold);color:var(--sys-ink);font-size:var(--fs-xs);box-shadow:var(--sys-card-shadow);}
+.mp-marquee{fill:color-mix(in srgb,var(--sys-gold) 14%,transparent);stroke:var(--sys-gold);stroke-width:1;stroke-dasharray:4 3;pointer-events:none;}

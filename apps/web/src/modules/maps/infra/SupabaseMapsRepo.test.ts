@@ -3,9 +3,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseMock } from '../../../../tests/helpers/supabaseMock';
 import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapSceneRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
 
-const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
+const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, lighting: 'day' as const, night_radius_m: 10, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
 const TOKEN_ROW = { id: 'tk-1', scene_id: 'sc-1', campaign_id: 'c1', character_id: 'ch-karen', bestiary_ref: null, name: 'Karen', image_url: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlled_by: 'u-pip', vision_radius: null, state: {} };
-const WALL_ROW = { id: 'w-1', scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visible_players: false };
+const WALL_ROW = { id: 'w-1', scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visible_players: false, kind: 'wall' as const, blocks_sight: true, blocks_move: true, is_open: false };
 const DRAWING_ROW = { id: 'd-1', scene_id: 'sc-1', campaign_id: 'c1', author_id: 'u-pip', kind: 'stroke' as const, data: { points: [[1, 2]] as [number, number][] }, color: '#c9a84c', width: 2, created_at: 't' };
 const IMAGE_ROW = { id: 'img-1', campaign_id: 'c1', name: 'Capilla', url: 'https://x/chapel.png', created_at: 't' };
 
@@ -14,10 +14,12 @@ const q = (m: ReturnType<typeof createSupabaseMock>, i = 0) => (m.client.from as
 
 describe('SupabaseMapsRepo — mappers', () => {
   it('maps snake_case rows to entities with jsonb defaults', () => {
-    expect(mapSceneRow(SCENE_ROW)).toMatchObject({ id: 'sc-1', campaignId: 'c1', bgColor: '#4a4a3e', bgTransform: { mode: 'cover' }, grid: { size: 27 }, fogMode: 'vision', visiblePlayers: false });
+    expect(mapSceneRow(SCENE_ROW)).toMatchObject({ id: 'sc-1', campaignId: 'c1', bgColor: '#4a4a3e', bgTransform: { mode: 'cover' }, grid: { size: 27 }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, visiblePlayers: false });
+    // a row written before slice 2 still reads as a plain closed wall by day
+    expect(mapSceneRow({ ...SCENE_ROW, lighting: null as never, night_radius_m: null as never })).toMatchObject({ lighting: 'day', nightRadiusM: 10 });
     expect(mapSceneRow({ ...SCENE_ROW, bg_transform: null as never, grid: null as never }).grid).toEqual({ size: 27, visible: true });
     expect(mapTokenRow(TOKEN_ROW)).toMatchObject({ id: 'tk-1', sceneId: 'sc-1', characterId: 'ch-karen', controlledBy: 'u-pip', x: 10, y: 11, state: {} });
-    expect(mapWallRow(WALL_ROW)).toMatchObject({ id: 'w-1', x2: 10, visiblePlayers: false });
+    expect(mapWallRow(WALL_ROW)).toMatchObject({ id: 'w-1', x2: 10, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false });
     expect(mapDrawingRow(DRAWING_ROW)).toMatchObject({ id: 'd-1', authorId: 'u-pip', kind: 'stroke', data: { points: [[1, 2]] } });
   });
 });
@@ -80,8 +82,8 @@ describe('SupabaseMapsRepo — walls, tokens, drawings', () => {
     expect(q(list)['eq']).toHaveBeenCalledWith('scene_id', 'sc-1');
     const m = createSupabaseMock({ tables: { maps_walls: { data: WALL_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    const w = await repo.addWall({ sceneId: 'sc-1', campaignId: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visiblePlayers: false });
-    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visible_players: false });
+    const w = await repo.addWall({ sceneId: 'sc-1', campaignId: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false });
+    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visible_players: false, kind: 'wall', blocks_sight: true, blocks_move: true, is_open: false });
     expect(w.id).toBe('w-1');
     await repo.removeWall('w-1');
     expect(m.deleteSpy).toHaveBeenCalled();

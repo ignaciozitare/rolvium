@@ -648,7 +648,9 @@
       "delete": "Delete scene",
       "deleteConfirm": "Delete “{{name}}” with its tokens, walls and strokes?",
       "menu": "Scene options",
-      "select": "View scene {{name}}"
+      "select": "View scene {{name}}",
+      "collapse": "Collapse scenes",
+      "expand": "Expand scenes"
     },
     "bg": {
       "button": "Map background",
@@ -679,7 +681,6 @@
       "clearAll": "Clear all"
     },
     "tool": {
-      "move": "Move",
       "measure": "Measure",
       "pin": "Focus pin",
       "pencil": "Pencil",
@@ -691,7 +692,9 @@
       "reveal": "Reveal",
       "hide": "Hide",
       "encounter": "Encounter",
-      "soon": "coming soon"
+      "soon": "coming soon",
+      "select": "Select",
+      "text": "Text"
     },
     "toolbar": "Canvas tools",
     "controls": {
@@ -724,7 +727,8 @@
       "pc": "Place PC",
       "noPc": "You have no character in this campaign.",
       "already": "Already in the scene",
-      "pick": "Pick a character"
+      "pick": "Pick a character",
+      "now": "Placing {{name}}: click on the map"
     },
     "unit": {
       "cells": "cells",
@@ -734,8 +738,64 @@
       "show": "Show to players",
       "hide": "Hide from players",
       "remove": "Remove from scene",
-      "selected": "Selected token"
+      "selected": "Selected token",
+      "many": "{{n}} tokens selected"
     },
-    "saveFailed": "Couldn't save the map change. Check your connection or whether you have permission."
+    "saveFailed": "Couldn't save the map change. Check your connection or whether you have permission.",
+    "brush": {
+      "label": "Brush",
+      "size": "Brush size",
+      "sizeN": "Size {{n}}",
+      "affectsAll": "revealing or hiding affects every player",
+      "revealAll": "Reveal all",
+      "hideAll": "Hide all",
+      "reveal": "Reveal brush",
+      "hide": "Hide brush"
+    },
+    "fog": {
+      "auto": "Automatic fog by line of sight",
+      "byVision": "Fog by line of sight"
+    },
+    "light": {
+      "label": "Scene light",
+      "day": "Day",
+      "night": "Night · {{m}} m"
+    },
+    "dmOptions": "Director options",
+    "dmCounts": "{{walls}} walls · {{doors}} doors · {{windows}} windows (invisible to players) · {{hidden}} hidden tokens",
+    "playerFootNight": "At night you see up to {{m}} m; what you already explored is still there, dimmed. Walls are not drawn: the fog is cut by them.",
+    "wall": {
+      "label": "Wall",
+      "kind": {
+        "wall": "Wall",
+        "door": "Door",
+        "window": "Window"
+      },
+      "kindOf": "Segment type",
+      "toggleHint": "draw a door or a window over a wall and it cuts it · hover one to open or close it",
+      "segment": "Segment",
+      "visible": "visible to players",
+      "remove": "Remove segment",
+      "open": "Open",
+      "close": "Close",
+      "selected": "Selected segment"
+    },
+    "action": {
+      "dice": "Dice roller",
+      "placePc": "Place PC",
+      "background": "Map background"
+    },
+    "quick": {
+      "title": "Quick actions",
+      "centerMe": "Centre my view here",
+      "centerAll": "Centre everyone's view"
+    },
+    "text": {
+      "prompt": "Text on the map"
+    },
+    "reserve": {
+      "hide": "Hide the pool",
+      "show": "Show the pool"
+    }
   }
 }

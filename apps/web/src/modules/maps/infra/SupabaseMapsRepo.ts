@@ -1,23 +1,36 @@
 import type { RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
-import type { BgTransform, CreateSceneInput, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall } from '../domain/entities/Scene';
+import type { BgTransform, CreateSceneInput, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Lighting, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, Unsubscribe } from '../domain/ports/MapsPort';
 
-interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; sort_order: number; visible_players: boolean; created_at: string; updated_at: string }
-interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean }
+interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; sort_order: number; visible_players: boolean; created_at: string; updated_at: string }
+interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean }
 interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown> }
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string }
 interface ImageRow { id: string; campaign_id: string; name: string; url: string; created_at: string }
 
-const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, sort_order, visible_players, created_at, updated_at';
+const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, sort_order, visible_players, created_at, updated_at';
+const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, kind, blocks_sight, blocks_move, is_open';
+/** Defaults mirror the migration, so a row written before slice 2 still reads as a plain closed wall. */
+const DEFAULT_NIGHT_RADIUS_M = 10;
 const TOKEN_COLS = 'id, scene_id, campaign_id, character_id, bestiary_ref, name, image_url, x, y, size, color, visible, controlled_by, vision_radius, state';
 export const BACKGROUNDS_BUCKET = 'backgrounds';
 
 export const mapSceneRow = (r: SceneRow): Scene => ({
   id: r.id, campaignId: r.campaign_id, name: r.name, width: r.width, height: r.height, bgColor: r.bg_color, bgImageUrl: r.bg_image_url,
   bgTransform: r.bg_transform ?? { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: r.grid ?? { size: 27, visible: true }, fogMode: r.fog_mode,
+  lighting: r.lighting ?? 'day', nightRadiusM: r.night_radius_m ?? DEFAULT_NIGHT_RADIUS_M,
   sortOrder: r.sort_order, visiblePlayers: r.visible_players, createdAt: r.created_at, updatedAt: r.updated_at,
 });
-export const mapWallRow = (r: WallRow): Wall => ({ id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, visiblePlayers: r.visible_players });
+export const mapWallRow = (r: WallRow): Wall => ({
+  id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, visiblePlayers: r.visible_players,
+  kind: r.kind ?? 'wall', blocksSight: r.blocks_sight ?? true, blocksMove: r.blocks_move ?? true, isOpen: r.is_open ?? false,
+});
+function wallPatchRow(p: WallPatch): Record<string, unknown> {
+  const map: Record<string, string> = { visiblePlayers: 'visible_players', kind: 'kind', blocksSight: 'blocks_sight', blocksMove: 'blocks_move', isOpen: 'is_open' };
+  const row: Record<string, unknown> = {};
+  for (const [k, col] of Object.entries(map)) { const v = (p as Record<string, unknown>)[k]; if (v !== undefined) row[col] = v; }
+  return row;
+}
 export const mapTokenRow = (r: TokenRow): Token => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, characterId: r.character_id, bestiaryRef: r.bestiary_ref, name: r.name, imageUrl: r.image_url,
   x: r.x, y: r.y, size: r.size, color: r.color, visible: r.visible, controlledBy: r.controlled_by, visionRadius: r.vision_radius, state: r.state ?? {},
@@ -35,6 +48,8 @@ function scenePatchRow(p: ScenePatch): Record<string, unknown> {
   if (p.bgTransform !== undefined) row.bg_transform = p.bgTransform;
   if (p.grid !== undefined) row.grid = p.grid;
   if (p.fogMode !== undefined) row.fog_mode = p.fogMode;
+  if (p.lighting !== undefined) row.lighting = p.lighting;
+  if (p.nightRadiusM !== undefined) row.night_radius_m = p.nightRadiusM;
   if (p.sortOrder !== undefined) row.sort_order = p.sortOrder;
   if (p.visiblePlayers !== undefined) row.visible_players = p.visiblePlayers;
   return row;
@@ -124,14 +139,25 @@ export class SupabaseMapsRepo implements MapsPort {
 
   // ── walls ──
   async listWalls(sceneId: string): Promise<Wall[]> {
-    const { data, error } = await this.db.from('maps_walls').select('id, scene_id, campaign_id, x1, y1, x2, y2, visible_players').eq('scene_id', sceneId);
+    const { data, error } = await this.db.from('maps_walls').select(WALL_COLS).eq('scene_id', sceneId);
     this.fail(error);
     return ((data ?? []) as unknown as WallRow[]).map(mapWallRow);
   }
   async addWall(w: NewWall): Promise<Wall> {
-    const { data, error } = await this.db.from('maps_walls').insert({ scene_id: w.sceneId, campaign_id: w.campaignId, x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2, visible_players: w.visiblePlayers }).select('id, scene_id, campaign_id, x1, y1, x2, y2, visible_players').single();
+    const { data, error } = await this.db.from('maps_walls')
+      .insert({ scene_id: w.sceneId, campaign_id: w.campaignId, x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2, ...wallPatchRow(w) })
+      .select(WALL_COLS).single();
     this.fail(error);
     return mapWallRow(data as unknown as WallRow);
+  }
+  async updateWallGeometry(id: string, at: { x1: number; y1: number; x2: number; y2: number }): Promise<void> {
+    const { error } = await this.db.from('maps_walls').update(at).eq('id', id);
+    this.fail(error);
+  }
+  /** DM only (RLS): opening or closing a door/window is an UPDATE on the segment. */
+  async updateWall(id: string, patch: WallPatch): Promise<void> {
+    const { error } = await this.db.from('maps_walls').update(wallPatchRow(patch)).eq('id', id);
+    this.fail(error);
   }
   async removeWall(id: string): Promise<void> {
     const { error } = await this.db.from('maps_walls').delete().eq('id', id);

@@ -648,7 +648,9 @@
       "delete": "Eliminar escena",
       "deleteConfirm": "¿Eliminar «{{name}}» con sus tokens, muros y trazos?",
       "menu": "Opciones de la escena",
-      "select": "Ver escena {{name}}"
+      "select": "Ver escena {{name}}",
+      "collapse": "Plegar escenas",
+      "expand": "Desplegar escenas"
     },
     "bg": {
       "button": "Fondo del mapa",
@@ -679,7 +681,6 @@
       "clearAll": "Limpiar todos"
     },
     "tool": {
-      "move": "Mover",
       "measure": "Medir",
       "pin": "Pin de enfoque",
       "pencil": "Lápiz",
@@ -691,7 +692,9 @@
       "reveal": "Revelar",
       "hide": "Ocultar",
       "encounter": "Encuentro",
-      "soon": "próximamente"
+      "soon": "próximamente",
+      "select": "Seleccionar",
+      "text": "Texto"
     },
     "toolbar": "Herramientas del lienzo",
     "controls": {
@@ -724,7 +727,8 @@
       "pc": "Colocar PJ",
       "noPc": "No tienes personaje en esta campaña.",
       "already": "Ya está en la escena",
-      "pick": "Elige un personaje"
+      "pick": "Elige un personaje",
+      "now": "Coloca a {{name}}: haz clic en el mapa"
     },
     "unit": {
       "cells": "casillas",
@@ -734,8 +738,64 @@
       "show": "Mostrar a los jugadores",
       "hide": "Ocultar a los jugadores",
       "remove": "Quitar de la escena",
-      "selected": "Token seleccionado"
+      "selected": "Token seleccionado",
+      "many": "{{n}} tokens seleccionados"
     },
-    "saveFailed": "No se pudo guardar el cambio en el mapa. Comprueba tu conexión o si tienes permiso."
+    "saveFailed": "No se pudo guardar el cambio en el mapa. Comprueba tu conexión o si tienes permiso.",
+    "brush": {
+      "label": "Pincel",
+      "size": "Tamaño del pincel",
+      "sizeN": "Tamaño {{n}}",
+      "affectsAll": "revelar u ocultar afecta a todos los jugadores",
+      "revealAll": "Revelar todo",
+      "hideAll": "Ocultar todo",
+      "reveal": "Pincel revelar",
+      "hide": "Pincel ocultar"
+    },
+    "fog": {
+      "auto": "Niebla automática por visión",
+      "byVision": "Niebla por visión"
+    },
+    "light": {
+      "label": "Luz de la escena",
+      "day": "Día",
+      "night": "Noche · {{m}} m"
+    },
+    "dmOptions": "Opciones del director",
+    "dmCounts": "{{walls}} muros · {{doors}} puertas · {{windows}} ventanas (invisibles para jugadores) · {{hidden}} tokens ocultos",
+    "playerFootNight": "De noche ves hasta {{m}} m; lo que ya exploraste sigue ahí, apagado. Los muros no se dibujan: la niebla se corta contra las paredes.",
+    "wall": {
+      "label": "Muro",
+      "kind": {
+        "wall": "Muro",
+        "door": "Puerta",
+        "window": "Ventana"
+      },
+      "kindOf": "Tipo de segmento",
+      "toggleHint": "dibuja una puerta o una ventana sobre un muro y lo parte · pasa el ratón por una para abrirla o cerrarla",
+      "segment": "Segmento",
+      "visible": "visible para jugadores",
+      "remove": "Quitar segmento",
+      "open": "Abrir",
+      "close": "Cerrar",
+      "selected": "Segmento seleccionado"
+    },
+    "action": {
+      "dice": "Lanzador de dados",
+      "placePc": "Colocar PJ",
+      "background": "Fondo del mapa"
+    },
+    "quick": {
+      "title": "Acciones rápidas",
+      "centerMe": "Centrar mi vista aquí",
+      "centerAll": "Centrar la vista de todos"
+    },
+    "text": {
+      "prompt": "Texto en el mapa"
+    },
+    "reserve": {
+      "hide": "Ocultar la reserva",
+      "show": "Ver la reserva"
+    }
   }
 }

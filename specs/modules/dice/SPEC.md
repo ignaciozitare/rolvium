@@ -23,6 +23,25 @@ restringida.
 - Recurso compartido: el descuento y la tirada son la misma transacción (si no hay dados, la tirada falla).
 - El motor genérico sabe `NdX`, contar éxitos por predicado, explotar, mayor/menor, sumar; cada sistema aporta la regla.
 
+## Dados 3D (pendiente — pedido del dueño, 2026-08-18)
+
+Al tirar, unos dados en 3D caen sobre la pantalla, se paran mostrando el resultado y desaparecen a los pocos
+segundos. El registro de la derecha no cambia: la tirada queda ahí como hoy.
+
+- **La animación NO decide nada.** Los dados los genera el servidor con CSPRNG y la tirada es inmutable
+  (§ «Rules & limits»); la animación recibe el resultado ya decidido y **aterriza en él**. Las librerías de dados 3D
+  aceptan justo eso — se les pasa la cara de cada dado. Lejos de debilitar el antitrampas, lo hace visible: se ve caer
+  el dado que el servidor ya eligió.
+- **Se carga aparte.** WebGL + física + mallas pesan del orden de cientos de KB; el bundle de la web va hoy por
+  105 KB gzip. La librería entra por `import()` dinámico **la primera vez que se abre el lanzador**, nunca en el
+  arranque. Si la carga falla, la tirada se resuelve igual y sólo se pierde la animación: **nada del resultado puede
+  depender de que el 3D funcione.**
+- **Duración**: los dados se van solos a los 3–4 s, y se pueden despachar con un clic. No bloquean el lienzo ni la
+  mesa: son una capa por encima, sin capturar el ratón una vez parados.
+- **Accesibilidad**: quien tenga `prefers-reduced-motion` no ve la caída — el resultado aparece directamente. La
+  animación no es la única forma de leer la tirada; el registro lateral sigue siendo la fuente.
+- Se abre desde la **primera herramienta** de la barra de la escena (`maps` rebanada 3).
+
 ## Connections
 `game-system` (poolFor/resolve/actions), `table` (recursos), `characters`/`bestiary` (origen), `chat` (adjunto), `realtime`.
 

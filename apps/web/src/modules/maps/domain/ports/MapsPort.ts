@@ -1,17 +1,21 @@
 import type { TableEvent } from '@rolvium/core';
-import type { CreateSceneInput, Drawing, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall } from '../entities/Scene';
+import type { CreateSceneInput, Drawing, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
 
 export type Unsubscribe = () => void;
 
 /** Ephemeral events that travel by broadcast on the scene channel (never persisted). */
-export type MapsLiveEvent = Extract<TableEvent, { type: 'token.moved' | 'pin.focused' }>;
+export type MapsLiveEvent = Extract<TableEvent, { type: 'token.moved' | 'pin.focused' | 'fog.updated' }>;
 
 export interface MapsLiveHandlers {
   onScene?: (change: RowChange<Scene>) => void;
   onToken?: (change: RowChange<Token>) => void;
   onWall?: (change: RowChange<Wall>) => void;
   onDrawing?: (change: RowChange<Drawing>) => void;
-  /** Token drag in progress / focus pin from another device. */
+  /**
+   * Token drag in progress · focus pin from another device · `fog.updated` = «what you can see may have changed,
+   * ask the server again». That last one MUST travel by broadcast: `postgres_changes` applies each subscriber's
+   * RLS, so a player never receives the row of a door they are not allowed to see.
+   */
   onEvent?: (event: MapsLiveEvent) => void;
 }
 
@@ -36,6 +40,10 @@ export interface MapsPort {
   // walls
   listWalls(sceneId: string): Promise<Wall[]>;
   addWall(input: NewWall): Promise<Wall>;
+  /** DM only: open/close a door or window, or change what a segment is. */
+  updateWall(id: string, patch: WallPatch): Promise<void>;
+  /** DM only: the segment was moved or a vertex stretched with Seleccionar. */
+  updateWallGeometry(id: string, at: { x1: number; y1: number; x2: number; y2: number }): Promise<void>;
   removeWall(id: string): Promise<void>;
   // tokens
   listTokens(sceneId: string): Promise<Token[]>;

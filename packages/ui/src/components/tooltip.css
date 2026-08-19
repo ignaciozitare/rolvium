@@ -1,0 +1,15 @@
+/* ── Tooltip — neutral table primitive (rolvium.pen `PL/Tooltip herramienta`) ──
+   Themed ONLY via --sys-* (set by the game system on the table container), like
+   Sheet. CSS-only: it shows on hover and on keyboard focus, so it never needs
+   state, a portal or a listener. The trigger keeps its own aria-label, which is
+   the accessible name; this bubble is only the visual half and is aria-hidden,
+   so the name is never announced twice. */
+.rv-tip-wrap{position:relative;display:inline-flex;}
+.rv-tip{position:absolute;z-index:20;display:none;white-space:nowrap;padding:5px 9px;
+  background:var(--sys-ink);color:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);
+  font-size:var(--fs-2xs);letter-spacing:.18em;text-transform:uppercase;line-height:var(--lh-tight);pointer-events:none;}
+.rv-tip-wrap:hover>.rv-tip,.rv-tip-wrap:focus-within>.rv-tip{display:block;}
+.rv-tip[data-placement="right"]{left:calc(100% + 8px);top:50%;transform:translateY(-50%);}
+.rv-tip[data-placement="left"]{right:calc(100% + 8px);top:50%;transform:translateY(-50%);}
+.rv-tip[data-placement="top"]{bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);}
+.rv-tip[data-placement="bottom"]{top:calc(100% + 8px);left:50%;transform:translateX(-50%);}

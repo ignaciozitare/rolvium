@@ -6,7 +6,7 @@ import { AuthProvider } from '@/shared/hooks/useAuth';
 import { TablePage } from '@/modules/table/ui/TablePage';
 import type { TablePort } from '@/modules/table/domain/ports/TablePort';
 import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
-import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeRollsPort, fakeRollLog, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
+import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
 import { canTake, tabsFor } from '@/modules/table/domain/useCases/tableRules';
 
 const GM = { ...ADMIN_USER, id: 'dm-1', name: 'Laura', role: 'game_master' };
@@ -39,12 +39,12 @@ function fakeTableRepo(role: 'dm' | 'player', value = 7): TablePort & { snap: Ta
   };
 }
 
-function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo()) {
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort()) {
   renderWithProviders(
-    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} />} /></Routes></AuthProvider>,
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} />} /></Routes></AuthProvider>,
     { providers: { routerProps: { initialEntries: ['/table/c1'] } } },
   );
-  return { rolls, rollLog, maps };
+  return { rolls, rollLog, maps, vision };
 }
 
 describe('table: rules', () => {
@@ -128,26 +128,79 @@ describe('table: page', () => {
     live.snap.activeSceneId = SCENE_WAREHOUSE.id;
     const { maps } = mount(PLAYER_USER, live, fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN] }));
     await u.click(await screen.findByRole('button', { name: 'Escena' }));
-    expect(await screen.findByText(SCENE_WAREHOUSE.name)).toBeInTheDocument();
+    // the scene header is gone in slice 3: the name rides the canvas label
+    expect(await screen.findByText(new RegExp(SCENE_WAREHOUSE.name))).toBeInTheDocument();
     const canvas = screen.getByRole('application', { name: 'Lienzo de la escena' });
     expect(await within(canvas).findByRole('img', { name: 'Token Karen «K»' })).toBeInTheDocument();
     await waitFor(() => expect(maps.subscribers).toBe(1));
   });
 
-  it('side panel: Registro lists the campaign rolls live; the Lanzador toggle opens the floating roller which rolls into this campaign', async () => {
+  it('side panel: el Registro lista las tiradas en vivo; el lanzador se abre desde la barra de la escena y tira en esta campaña', async () => {
     const u = userEvent.setup();
-    const { rolls, rollLog } = mount(PLAYER_USER, fakeTableRepo('player'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort({ summary: 'roll.free', total: 9 }), fakeRollLog([]));
+    const table = fakeTableRepo('player');
+    table.snap.activeSceneId = SCENE_WAREHOUSE.id;   // el lanzador vive en la barra de la escena, así que hace falta escena
+    const { rolls, rollLog } = mount(PLAYER_USER, table, fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort({ summary: 'roll.free', total: 9 }), fakeRollLog([]), fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
     expect(await screen.findByText('Pulsa TIRAR en una característica, o usa el lanzador libre.')).toBeInTheDocument();
     rollLog.push(ROLL_FREE);
     expect(await screen.findByText('2D10 · Nix')).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'Lanzador de dados' })).not.toBeInTheDocument();
-    await u.click(screen.getByRole('button', { name: 'Lanzador de dados' }));
+    // ya no hay botón en el panel: los dados son la primera herramienta de la escena
+    await u.click(screen.getByRole('button', { name: 'Escena' }));
+    const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
+    await u.click(within(bar).getByRole('button', { name: 'Lanzador de dados' }));
     const roller = await screen.findByRole('dialog', { name: 'Lanzador de dados' });
-    expect(screen.getByRole('button', { name: 'Lanzador de dados · abierto', pressed: true })).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'Lanzador de dados', pressed: true })).toBeInTheDocument();
     await u.click(within(roller).getByRole('button', { name: 'Tirar 2 D10' }));
     await waitFor(() => expect(rolls.requests).toHaveLength(1));
     expect(rolls.requests[0]).toMatchObject({ campaignId: 'c1', kind: 'free', groups: [{ count: 2, sides: 10 }] });
     await u.click(within(roller).getByRole('button', { name: 'Cerrar el lanzador' }));
     expect(screen.queryByRole('dialog', { name: 'Lanzador de dados' })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Where the table chrome lives after slice 3 moved it to give the map its height back
+ * (specs/modules/maps/SPEC.md § «Rebanada 3»). The owner asked for each of these by hand, and they are
+ * exactly the kind of thing a refactor undoes without noticing.
+ */
+describe('table chrome — dónde vive cada cosa tras la rebanada 3', () => {
+  it('las pestañas viven en la barra de la plataforma, junto a los conectados, y no en una fila propia', async () => {
+    mount(PLAYER_USER, fakeTableRepo('player'));
+    await screen.findByRole('banner');
+    const nav = screen.getByRole('navigation', { name: 'Pestañas de la mesa' });
+    expect(nav.closest('.tb-rvbar')).not.toBeNull();
+    expect(within(nav).getByRole('button', { name: 'Escena' })).toBeInTheDocument();
+  });
+
+  it('la Reserva de Destino se sienta en la cabecera blanca, junto al nombre del sistema', async () => {
+    mount(PLAYER_USER, fakeTableRepo('player'));
+    const head = await screen.findByRole('banner');
+    expect(within(head).getByText('Reserva de Destino')).toBeInTheDocument();
+    expect(within(head).getByRole('button', { name: 'Ocultar la reserva' })).toBeInTheDocument();
+  });
+
+  it('los conectados van en la barra de la plataforma, arriba del todo, y ya no en la cabecera de la mesa', async () => {
+    mount(PLAYER_USER, fakeTableRepo('player'));
+    await screen.findByRole('banner');
+    const people = screen.getByRole('list', { name: 'Conectados' });
+    expect(people.closest('.tb-rvbar')).not.toBeNull();
+    expect(people.closest('.tb-head')).toBeNull();
+    // La barra esconde el rótulo escrito (`display:none`, que también lo saca del árbol de accesibilidad):
+    // quién dirige y quién falta tiene que seguir leyéndose en el nombre de cada persona.
+    expect(within(people).getByRole('listitem', { name: 'Laura · Directora' })).toBeInTheDocument();
+    expect(within(people).getByRole('listitem', { name: 'Dani · Ausente' })).toBeInTheDocument();
+    expect(within(people).getByRole('listitem', { name: 'Pip' })).toBeInTheDocument();
+  });
+
+  it('la escena ya no lleva barra de opciones bajo el mapa: «Solo director» va encima del lienzo', async () => {
+    const u = userEvent.setup();
+    const live = fakeTableRepo('dm');
+    live.snap.activeSceneId = SCENE_WAREHOUSE.id;
+    mount(ADMIN_USER, live, fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    await u.click(await screen.findByRole('button', { name: 'Escena' }));
+    const canvas = await screen.findByRole('application', { name: 'Lienzo de la escena' });
+    const stage = canvas.closest('.mp-stage');
+    expect(stage?.querySelector('.mp-dmtag')).not.toBeNull();
+    expect(document.querySelector('.mp-dmbar')).toBeNull();
   });
 });

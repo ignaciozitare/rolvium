@@ -36,9 +36,10 @@ Import: `import { X } from '@rolvium/ui'`
 | `StatBox` | métrica/KPI con label (átomo) | `<StatBox label value>` |
 | `StatusChip` | chip de estado con punto (green/purple/amber/red/gray) | `<StatusChip tone="green">Activa</StatusChip>` |
 | `SystemChip` | chip de sistema de juego (icono + nombre; muted si no instalado) | `<SystemChip muted>Plenilunio</SystemChip>` |
+| `Tooltip` | etiqueta breve al pasar el ratón o al enfocar con teclado; sustituye al `title` nativo en botones de solo icono, tema solo vía --sys-* | `<Tooltip label="Muro" placement="right">{children}</Tooltip>` |
 | `TopBar` | barra superior del shell: marca · links · cluster derecho (router-agnóstica) | `<TopBar brand links right>` |
 | `UserAvatar` | avatar de usuario (preset o imagen) con iniciales | `<UserAvatar user size>` |
 
 > Fuente de verdad del código: `packages/ui/src/index.ts`.
 > Ejemplos vivos e interactivos: `apps/web/src/shared/ui/UIKit.tsx`.
-> 28 componentes exportados.
+> 29 componentes exportados.

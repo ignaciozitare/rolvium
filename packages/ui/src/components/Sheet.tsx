@@ -43,6 +43,22 @@ const num = (v: unknown, d = 0): number => (typeof v === 'number' && Number.isFi
 const str = (v: unknown): string => (typeof v === 'string' ? v : v == null ? '' : String(v));
 const rows = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter((r): r is Record<string, unknown> => !!r && typeof r === 'object') : []);
 const WIDE_TYPES = new Set(['table', 'longtext', 'image']);
+/**
+ * Whether ONE option of a `<select>` must be shown disabled, given the guard (`canChange`).
+ *
+ * Per option and not on the whole control: a budget rules out some choices, almost never the
+ * field itself — greying the `<select>` would hide the choices the player can still afford.
+ * Without this a refused pick died in silence: `set` skips `onChange` when the guard says no,
+ * so React re-rendered the old value and the dropdown "bounced back" with no explanation
+ * (owner, 2026-08-19: «los dones no me deja elegirlos, me deja el último»). The counters had
+ * this signal through `allowed` from the start; the selects did not.
+ *
+ * The value already selected is never disabled — a disabled selected option is a broken
+ * control, and re-picking what is already there costs nothing anyway.
+ */
+const optionVetoed = (value: string, current: string, disabled: boolean, allowed: (v: unknown) => boolean): boolean =>
+  !disabled && value !== current && !allowed(value);
+
 const isWide = (s: SectionDef) => s.layout === 'row' || s.fields.some(f => WIDE_TYPES.has(f.type));
 
 export function Sheet(p: SheetProps): JSX.Element {
@@ -88,14 +104,16 @@ export function Sheet(p: SheetProps): JSX.Element {
           </div>
         );
       }
-      case 'select':
+      case 'select': {
+        const dis = ro || !!f.derived;
         return (
           <div className="rv-sheet-field">{label(f)}
-            <select className="rv-sheet-inp" aria-label={p.t(f.label)} value={str(v)} disabled={ro || !!f.derived} onChange={e => set(f.id, e.target.value)}>
-              {(f.options ?? []).map(o => <option key={o.value} value={o.value}>{p.t(o.label)}</option>)}
+            <select className="rv-sheet-inp" aria-label={p.t(f.label)} value={str(v)} disabled={dis} onChange={e => set(f.id, e.target.value)}>
+              {(f.options ?? []).map(o => <option key={o.value} value={o.value} disabled={optionVetoed(o.value, str(v), dis, x => allowed(f.id, x))}>{p.t(o.label)}</option>)}
             </select>
           </div>
         );
+      }
       case 'health': {
         const opts = f.options ?? [];
         return (
@@ -124,7 +142,7 @@ export function Sheet(p: SheetProps): JSX.Element {
           </div>
         );
       }
-      case 'list': return <ListField f={f} p={p} ro={ro} showActions={showActions} set={set} label={label} />;
+      case 'list': return <ListField f={f} p={p} ro={ro} showActions={showActions} set={set} label={label} allowed={allowed} />;
       case 'table': return <TableField f={f} p={p} ro={ro} showActions={showActions} set={set} label={label} />;
     }
     return null;
@@ -232,6 +250,17 @@ const actionsFor = (f: FieldDef, actions: ActionDef[] | undefined): ActionDef[] 
   return exact ? [exact] : actions.filter(a => a.appliesTo === f.id);
 };
 const rowId = (r: Record<string, unknown>, i: number) => str(r.id) || String(i);
+/**
+ * React key of a list OR table row. NOT `rowId`: a blank row takes the first option of its select,
+ * so two unfilled gifts (or two unfilled weapons, both `unarmed`) carry the SAME id and React then
+ * treats them as one — "Encountered two children with the same key", which React documents as
+ * unsupported: children may be duplicated or omitted (owner, 2026-08-19). Every mutation here is by
+ * index (`patchRow`, the × button), so the index IS the row's identity.
+ *
+ * `rowId` stays for what it is actually about — the identity handed to `onAction` and used to look
+ * a row up in a catalog — which is the row's game id, not its position.
+ */
+const rowKey = (r: Record<string, unknown>, i: number) => `${i}:${str(r.id)}`;
 const blankRow = (defs: FieldDef[]): Record<string, unknown> => Object.fromEntries(defs.filter(d => !d.derived).map(d => [d.id, d.type === 'select' ? d.options?.[0]?.value ?? '' : d.type === 'counter' || d.type === 'number' ? d.min ?? 0 : d.type === 'text' ? '' : null]));
 
 function ItemActions({ f, p, item, i, ro, showActions, list, set }: Shared & { item: Record<string, unknown>; i: number; list: Record<string, unknown>[] }): JSX.Element {
@@ -257,22 +286,25 @@ const rowLabel = (f: FieldDef, item: Record<string, unknown>, p: SheetProps): st
   return opt ? p.t(opt.label) : v;
 };
 
-function ListField({ f, p, ro, showActions, set, label }: Shared): JSX.Element {
+function ListField({ f, p, ro, showActions, set, label, allowed }: Shared & { allowed: (id: string, v: unknown) => boolean }): JSX.Element {
   const list = rows(p.data[f.id]);
   const defs = f.itemFields ?? [];
-  const patchRow = (i: number, k: string, v: unknown) => set(f.id, list.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  const withRow = (i: number, k: string, v: unknown) => list.map((r, j) => (j === i ? { ...r, [k]: v } : r));
+  const patchRow = (i: number, k: string, v: unknown) => set(f.id, withRow(i, k, v));
+  const rowAllows = (i: number, k: string, v: unknown) => allowed(f.id, withRow(i, k, v));
+  const canAdd = allowed(f.id, [...list, blankRow(defs)]);
   return (
     <div className="rv-sheet-field span">
       <div className="rv-sheet-list" role="list" aria-label={p.t(f.label)}>
         {list.map((item, i) => (
-          <div key={rowId(item, i)} className="rv-sheet-item" role="listitem">
+          <div key={rowKey(item, i)} className="rv-sheet-item" role="listitem">
             {p.icons?.stat === 'crescent' && <Crescent size={20} />}
-            {defs.map(d => <Cell key={d.id} d={d} value={item[d.id]} ro={ro} p={p} onChange={v => patchRow(i, d.id, v)} />)}
+            {defs.map(d => <Cell key={d.id} d={d} value={item[d.id]} ro={ro} p={p} allowed={v => rowAllows(i, d.id, v)} onChange={v => patchRow(i, d.id, v)} />)}
             <ItemActions f={f} p={p} item={item} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} />
           </div>
         ))}
       </div>
-      {!ro && <button type="button" className="rv-sheet-btn rv-sheet-add" onClick={() => set(f.id, [...list, blankRow(defs)])}>+ {p.labels.add} · {p.t(f.label)}</button>}
+      {!ro && <button type="button" className="rv-sheet-btn rv-sheet-add" disabled={!canAdd} onClick={() => set(f.id, [...list, blankRow(defs)])}>+ {p.labels.add} · {p.t(f.label)}</button>}
     </div>
   );
 }
@@ -295,7 +327,7 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
         <thead><tr>{cols.map(c => <th key={c.id} className={c.type === 'number' || c.type === 'counter' ? 'num' : ''}>{p.t(c.label)}</th>)}<th /></tr></thead>
         <tbody>
           {list.map((row, i) => (
-            <tr key={rowId(row, i)}>
+            <tr key={rowKey(row, i)}>
               {cols.map(c => <td key={c.id} className={c.type === 'number' || c.type === 'counter' ? 'num' : ''}>{c.derived ? derivedCell(row, c) : <Cell d={c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}</td>)}
               <td><ItemActions f={f} p={p} item={row} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} /></td>
             </tr>
@@ -308,27 +340,45 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
 }
 
 /** Inline editor for a list item / table cell (select · counter · number · text). */
-function Cell({ d, value, ro, p, onChange }: { d: FieldDef; value: unknown; ro: boolean; p: SheetProps; onChange: (v: unknown) => void }): JSX.Element {
+function Cell({ d, value, ro, p, onChange, allowed = () => true }: { d: FieldDef; value: unknown; ro: boolean; p: SheetProps; onChange: (v: unknown) => void; allowed?: (v: unknown) => boolean }): JSX.Element {
   const dis = ro || !!d.derived;
   if (d.type === 'select') {
     if (dis) return <span>{p.t(d.options?.find(o => o.value === str(value))?.label ?? str(value))}</span>;
-    return <select className="rv-sheet-inp" aria-label={p.t(d.label)} value={str(value)} onChange={e => onChange(e.target.value)}>{(d.options ?? []).map(o => <option key={o.value} value={o.value}>{p.t(o.label)}</option>)}</select>;
+    return <select className="rv-sheet-inp" aria-label={p.t(d.label)} value={str(value)} onChange={e => onChange(e.target.value)}>{(d.options ?? []).map(o => <option key={o.value} value={o.value} disabled={optionVetoed(o.value, str(value), dis, allowed)}>{p.t(o.label)}</option>)}</select>;
   }
   if (d.type === 'counter') {
     if (value === null || value === undefined) return <span className="rv-sheet-caption">—</span>;
-    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="rv-sheet-caption">{p.t(d.label)}</span><Counter value={num(value)} min={d.min} max={d.max} labelText={p.t(d.label)} disabled={dis} allowed={() => true} onChange={onChange} /></span>;
+    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="rv-sheet-caption">{p.t(d.label)}</span><Counter value={num(value)} min={d.min} max={d.max} labelText={p.t(d.label)} disabled={dis} allowed={n => allowed(n)} onChange={onChange} /></span>;
   }
   if (d.type === 'number') return dis ? <span>{str(value)}</span> : <input type="number" className="rv-sheet-inp num" aria-label={p.t(d.label)} value={num(value)} min={d.min} max={d.max} onChange={e => onChange(Number(e.target.value))} />;
   return dis ? <span>{str(value)}</span> : <input className="rv-sheet-inp" aria-label={p.t(d.label)} value={str(value)} onChange={e => onChange(e.target.value)} />;
 }
 
 // ─── SVG primitives (PL/Creciente, PL/Salud) — colours from --sys-moon-* ─────
+/**
+ * The crescent, traced from the master (rolvium.pen `PL/Creciente` → `Luna`): the outline is the design's own path,
+ * not an approximation with two arcs — the arc version had the wrong inner curve and no rim or shadow, which is what
+ * made it read as a different moon.
+ */
+const CRESCENT_PATH =
+  'M31 4.51c-3.8-2.7-8.47-3.91-13.12-3.39-4.64 0.52-8.93 2.73-12.04 6.22-3.12 3.48-4.84 7.99-4.84 12.66 0 4.67 1.72 9.18 4.84 12.66 3.11 3.49 7.4 5.7 12.04 6.22 4.65 0.52 9.32-0.69 13.13-3.39-3.81 0.99-7.85 0.53-11.35-1.27-3.49-1.81-6.2-4.84-7.61-8.51-1.4-3.68-1.4-7.74 0-11.42 1.41-3.67 4.12-6.7 7.61-8.51 3.5-1.8 7.54-2.26 11.35-1.27z';
+
 export function Crescent({ size = 26 }: { size?: number }): JSX.Element {
   const uid = useId();
   return (
-    <svg className="rv-sheet-svg" width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
-      <defs><radialGradient id={`rvc${uid}`} cx="0.28" cy="0.25" r="0.8"><stop offset="0%" stopColor="var(--sys-moon-hi)" /><stop offset="50%" stopColor="var(--sys-moon-mid)" /><stop offset="100%" stopColor="var(--sys-moon-lo)" /></radialGradient></defs>
-      <path fill={`url(#rvc${uid})`} d="M31 4.51 A19 19 0 1 0 31 35.49 A16 16 0 0 1 31 4.51 Z" />
+    <svg className="rv-sheet-svg" width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" overflow="visible">
+      <defs>
+        <radialGradient id={`rvc${uid}`} cx="0.28" cy="0.25" r="0.75">
+          <stop offset="0%" stopColor="var(--sys-moon-hi)" />
+          <stop offset="50%" stopColor="var(--sys-moon-mid)" />
+          <stop offset="100%" stopColor="var(--sys-moon-lo)" />
+        </radialGradient>
+        <filter id={`rvcs${uid}`} x="-25%" y="-25%" width="150%" height="150%">
+          <feDropShadow dx="0" dy="1" stdDeviation="1.25" floodColor="var(--sys-ink)" floodOpacity="0.35" />
+        </filter>
+      </defs>
+      <path d={CRESCENT_PATH} fill={`url(#rvc${uid})`} stroke="var(--sys-moon-mid)" strokeOpacity="0.4" strokeWidth="0.6"
+        strokeLinejoin="round" filter={`url(#rvcs${uid})`} />
     </svg>
   );
 }

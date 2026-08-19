@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, SystemChip, StatusChip, SectionTitle, PageHeader, EmptyState, Sheet } from '@rolvium/ui';
+import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, SystemChip, StatusChip, SectionTitle, PageHeader, EmptyState, Sheet, Tooltip } from '@rolvium/ui';
 import type { SheetData } from '@rolvium/core';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
@@ -39,6 +39,18 @@ export function UIKit(): JSX.Element {
           <Sheet schema={plenilunio.sheetSchema} data={sheet} derived={plenilunio.engine.derived(sheet)} onChange={p => setSheet(d => ({ ...d, ...p }))} onAction={() => undefined} actions={plenilunio.engine.actions ?? []}
             catalogs={plenilunio.catalogs} t={sysT(plenilunio, 'es')} refText={k => { const r = plenilunio.references[k]; return r ? { page: r.page, title: sysT(plenilunio, 'es')(r.title), summary: sysT(plenilunio, 'es')(r.summary) } : null; }}
             labels={{ roll: 'Tirar', add: 'Añadir', remove: 'Quitar', manual: 'Manual', of: 'de' }} icons={plenilunio.theme.icons ?? {}} />
+        </div>
+      </section>
+      <section><h3 style={{ marginBottom: 8 }}>Tooltip (table primitive, themed by --sys-* — hover or Tab into a button)</h3>
+        <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--tx2)', marginBottom: 8 }}>{"import { Tooltip } from '@rolvium/ui'"} · {'<Tooltip label="Muro" placement="right">…</Tooltip>'}</p>
+        <div style={{ ...sysVars, padding: 24, display: 'flex', gap: 24, background: 'var(--sys-bg)' } as React.CSSProperties}>
+          {(['right', 'top', 'bottom', 'left'] as const).map(place => (
+            <Tooltip key={place} label={place.toUpperCase()} placement={place}>
+              <button type="button" aria-label={`Ejemplo ${place}`} style={{ width: 34, height: 34, border: 'none', background: 'var(--sys-paper-hi)', color: 'var(--sys-ink-soft)', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>fence</span>
+              </button>
+            </Tooltip>
+          ))}
         </div>
       </section>
       <section><h3 style={{ marginBottom: 8 }}>Modal</h3>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { UserAvatar } from '@rolvium/ui';
 import type { GameSystem } from '@rolvium/core';
@@ -31,16 +31,26 @@ export function useRollLog(campaignId: string, log: RollLogPort, limit = 50) {
   return { rolls, status };
 }
 
-/** Registro (rolvium.pen Mesa/Side · Tirada/*): one entry per roll, newest first. */
+/**
+ * Registro (rolvium.pen Mesa/Side · Tirada/*): one entry per roll, **oldest first, newest at the bottom**, and it
+ * follows the newest like a chat does. The store keeps them newest-first (that is what the query and the realtime
+ * insert produce); only the reading order is flipped here, so the last thing you rolled is where your eyes are.
+ */
 export function RollLog({ campaignId, system, log = defaultLog, limit = 50 }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const { rolls, status } = useRollLog(campaignId, log, limit);
   const ts = useMemo(() => (system ? sysT(system, locale) : (k: string) => k), [system, locale]);
+  const listRef = useRef<HTMLUListElement>(null);
+  /** Layout effect, not effect: scroll before the browser paints, so the jump is never visible. */
+  useLayoutEffect(() => {
+    const el = listRef.current?.closest('.dc-log-scroll') ?? listRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [rolls.length]);
   if (status === 'error') return <p className="dc-log-error" role="alert">{t('dice.log.error')}</p>;
   if (status === 'ready' && rolls.length === 0) return <p className="dc-log-empty">{t('dice.log.empty')}</p>;
   return (
-    <ul className="dc-log" aria-label={t('dice.log.title')} aria-busy={status === 'loading'}>
-      {rolls.map(r => <RollEntry key={r.id} roll={r} t={t} ts={ts} />)}
+    <ul className="dc-log" ref={listRef} aria-label={t('dice.log.title')} aria-busy={status === 'loading'}>
+      {[...rolls].reverse().map(r => <RollEntry key={r.id} roll={r} t={t} ts={ts} />)}
     </ul>
   );
 }
