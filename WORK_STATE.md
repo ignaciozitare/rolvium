@@ -227,6 +227,38 @@ Sale de que el dueño probó el generador con la versión buena. Los tres arregl
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
+### QA del dueño sobre la ficha (2026-08-19, tarde) — 11 puntos, NADA hecho
+Marcados los que el **libro** resuelve (verificado en el PDF) y los que son pantalla (→ `.pen` antes que código).
+
+1. **La ficha en pestaña aparte no scrollea.** Causa encontrada: `CharacterSheetPage` usa `className="tb-root"`,
+   y `.tb-root` lleva `height:100dvh; overflow:hidden` — que existe para que la ESCENA no scrollee (el mapa se
+   comía el alto). La página suelta hereda esa regla y se queda sin scroll. Necesita su propia clase.
+2. **Disparar tiene que gastar munición.** El libro trae columna «Cargador» por arma (p.97) y recargar es una
+   acción que consume dados de Combate (p.96–97). ⚠ interpretación: el libro no fija cadencia, así que
+   1 disparo = 1 bala es lectura nuestra.
+3. **Los dados de ataque necesitan leyenda por dado**: 1 fracaso · 2–3 fallo · 4–5 éxito · 6 triunfo (p.82).
+   Hoy sólo sale el texto de grado de éxito.
+4. **Equipo como lista de verdad**: un «+» que abre desplegable y añade. Fuera las lunas por fila. → `.pen`
+5. **«Lo de recibir daño no lo entiendo».** → `.pen`
+6. **El generador necesita leyendas en cada paso**: qué es, qué estás haciendo y cómo repartir. → `.pen`
+7. **Las armas cuerpo a cuerpo no llevan munición. LO DICE EL LIBRO** (p.97): toda arma c/c tiene «-» en
+   Cargador. Los datos ya están bien (`cargador: null` en las nueve de c/c); es la TABLA la que pinta la
+   columna para todas las filas. Sale «Cargador 0» en unas Nudilleras.
+8. **Los dos botones (⚔ y ◎) en todas las armas: SÍ es de reglas, y lo tenemos mal.** Son acciones distintas:
+   - **A distancia** = *reto* contra la dificultad del alcance (corto Media 2 · medio Difícil 3 · largo Muy
+     difícil 5 · muy largo Épica 6, p.96) y **el arma NO da dados extra**: «al contrario de lo que ocurre en el
+     combate cuerpo a cuerpo, las armas no proporcionan dados extra en este tipo de combate: sin ellas
+     simplemente no se puede atacar a distancia» (p.96).
+   - **Cuerpo a cuerpo** = conflicto enfrentado, y ahí **sí** aplica la bonificación: «la bonificación de Combate
+     solo se aplica en alcance cuerpo a cuerpo» (p.97).
+   Así que cada arma debe ofrecer **sólo su acción**. Ya estaba anotado como «iconos ⚔/◎ por tipo de arma».
+9. **Tooltip de característica: sale un segundo tooltip que no debería**, y debe explicar la especialidad como
+   dice el diseño, con más cuerpo porque no se lee. → `.pen` + bug de tooltip.
+10. **Dones, Equipo y Armadura, uno al lado del otro**, creciendo a la vez; Armas en su propia card y las otras
+    tres debajo. → `.pen`
+11. **Fuera el registro de tiradas de la ficha**: ya está en la barra de tiradas. Duplicado.
+
+
 ### Ficha y generador — prueba del dueño en producción (2026-08-19, tarde). NADA de esto está hecho
 Cinco de los siete son trabajo de **pantalla**: por la regla del dueño van al `.pen` ANTES que al código.
 
