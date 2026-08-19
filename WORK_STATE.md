@@ -129,11 +129,20 @@ La contraseña de Postgres y las claves llegaron por el chat, y el repo es públ
 comprobado: `apps/api/.env` y `apps/web/.env` están en `.gitignore` y siguen apuntando al stack local. Aun así,
 conviene rotar la contraseña y la `service_role` desde el panel una vez enlazado todo.
 
-### 3. Guardar el `.pen`
-Los dos frames de escena están sincronizados con lo construido (pestañas en la barra negra, Reserva en la cabecera
-blanca, barras dentro del lienzo, lienzo a todo el alto). **Falta el Cmd+S**, que sólo puede dar el dueño.
-Las otras pantallas de Mesa siguen enseñando el chrome viejo: la causa es que la barra de plataforma y las pestañas
-están **copiadas** en cada frame en vez de ser un componente. Convertirlas en componente lo arregla de raíz.
+### 3. Guardar el `.pen` — **Cmd+S pendiente**
+Las **14 vistas de Mesa** están sincronizadas con lo construido, no sólo las de escena: conectados y pestañas en la
+barra negra de la plataforma, Reserva de Destino en la cabecera blanca junto al sistema, y en las de escena además
+las barras dentro del lienzo y el lienzo a todo el alto. Comprobado nodo a nodo (`Conectados@8`, `Pestañas@21`,
+`Reserva de Destino` dentro de `Cabecera` en las 14), no mirando miniaturas.
+
+**Frames de escena, 6, cada uno con un estado distinto y nombrados por él** (fila `y=9960`):
+`uXK3T` niebla y pincel · `vz19f` jugador · noche · `h3Q3NN` herramienta Muro · `sFipl` seleccionar y editar ·
+`yZDqm` y `ORZJD` (los dos de la rebanada 1, duplicados exactos de los dos primeros — se pueden borrar cuando el
+dueño lo diga; no los borro yo por mi cuenta después de haberme pasado una vez).
+
+**Deuda de raíz**: la barra de plataforma y las pestañas están **copiadas** en cada frame en vez de ser un componente
+reutilizable. Por eso cada cambio de chrome hay que repetirlo 14 veces y por eso las vistas se desincronizan. Antes
+del próximo cambio de chrome, convertirlas en componente (`Shell/TopBar` ya existe para el chrome de plataforma).
 
 ### 4. Validar light/dark
 Sigue pendiente de la rebanada 2 y ahora también de la 3.
@@ -214,6 +223,13 @@ tiene enseñanza:
 - `UIKit.tsx` pasa `labels` a `<Sheet>` sin la clave `soon`, así que la leyenda nueva no se ve en el UI Kit.
 - `packages/ui` no tiene runner de tests propio: sus ramas las cubren los consumidores desde `apps/web`.
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
+
+## 🔁 Prompt para el chat nuevo
+> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. La rebanada 3 de `maps` está construida y commiteada en
+> `feat/maps-slice-2` (sin mergear a `main`), y la base hosted ya tiene las 12 migraciones. Empieza por: (1) las dos
+> cosas del spec de la rebanada 3 que NO se construyeron —la puerta que parte el muro y el disco de abrir al pasar el
+> ratón, ambas marcadas en `specs/modules/maps/SPEC.md`—, y (2) el despliegue, que sólo espera las variables de
+> entorno de Vercel. Flujo: dev → review → qa.
 
 ## 🚫 Bloqueos / notas
 ### Vercel — el API existe y despliega solo, pero le faltan las variables (2026-08-19)
