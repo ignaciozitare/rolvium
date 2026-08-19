@@ -318,15 +318,50 @@ antes de dar por hecho nada. Si se cierra sin guardar, se pierde toda la fila.
   especialidades). Es su propia rebanada: migración + panel del director + guardia. No entra en este lote.
 - **Claro/oscuro**: mergear ya y mirarlo en producción; la rama no tocaba ningún token de color.
 
-### Lo que queda de la tanda de diseño — la FICHA, sin empezar
-Los 11 puntos del QA del dueño sobre la ficha y los de la prueba en producción siguen intactos (§ más abajo).
-En `.pen`: `PiVhB` (Personajes/Ficha en ventana aparte, x=3040 y=14160) y el frame de ficha `qjLDu`.
-Pendiente en pantalla: Dones/Equipo/Armadura en fila y Armas en su card · fuera el registro de tiradas de la
-ficha · «Mejorar» como botón dentro de la ficha, no pestaña · Equipo como lista con «+» · recibir daño ·
-tooltip de característica (y el bug del segundo tooltip) · Resistencia invertida (p.25: en blanco = lo que te
-queda, se TACHA) · Cargador sólo en armas a distancia · un solo botón por arma (⚔ o ◎) · leyenda por dado
-(1 fracaso · 2–3 fallo · 4–5 éxito · 6 triunfo, p.82) · Estado ocupando el ancho · cards con sombra y sin
-borde · tipografía más oscura (tokens de `RolviumApp.css`, afecta a toda la app).
+### 🎨 La FICHA en el `.pen` — hecha, y con una sorpresa
+Trabajado sobre `qjLDu` (ficha de la Mesa, dentro de `zt5B6`) y **sincronizada** a `g6RyaZ` (ficha en ventana
+aparte, `PiVhB`): las seis tarjetas de la Mesa se copiaron encima y se borraron las siete viejas, que eran el
+mismo diseño desactualizado. Ya no hay dos fichas divergiendo.
+
+**Lo que se rediseñó:**
+- **#10 Reordenada.** Armas sube a su propia card a todo el ancho; **Dones · Equipo · Armadura** quedan en una
+  fila de tres creciendo a la vez.
+- **Resistencia invertida al derecho (p.25).** Antes se pintaban en negro las casillas que te quedaban y al
+  recibir daño se despintaban — justo al revés del libro. Ahora **en blanco = lo que te queda** y las tachadas
+  con una equis son el daño, con la cuenta «17 en blanco de 21».
+- **#5 «Lo de recibir daño no lo entiendo».** Bloque propio que lo explica en dos frases (se resta la
+  protección, el resto tacha casillas de izquierda a derecha; cada múltiplo del Aguante baja un nivel de
+  salud) y la cuenta hecha al lado del botón: «5 − 1 de protección = 4 casillas tachadas».
+- **Estado ya ocupa el ancho**: las filas de salud y de Destino/Fortuna/Experiencia se reparten en vez de
+  dejar el hueco de la derecha. Fortuna dice «2 de 2 sin gastar» en vez de dos cuadros mudos.
+- **#4 Equipo con «+» de verdad**: desplegable abierto con buscador, opciones del catálogo y «…o escribe una
+  tuya». Sin lunas por fila.
+- **#9 Tooltip con cuerpo**: 300 → 360 px, texto 12 → 13,5, y la especialidad pasa a bloque propio con rótulo
+  dorado y una explicación que dice lo que importa — **el dado extra lo da la especialidad, no el arma**.
+- **#3 Leyenda por dado** en la card de Armas: 1 fracaso · 2–3 fallo · 4–5 éxito · 6 triunfo (p.82), con los
+  dados dibujados y la nota de que a distancia el arma NO da dados extra.
+- **#13 «Mejorar» fuera de las pestañas**: la pestaña queda apagada y el botón se suma a la cabecera de la
+  ficha, junto a **EDITAR** y **ABRIR FICHA APARTE**.
+- **Contraste (las letras que no se leen).** Medido, no opinado: `tx3` estaba en **2,79:1** en claro y
+  **3,44:1** en oscuro, por debajo del mínimo de 4,5:1, y se usa en textos pequeños. Ahora `#67605a` (5,52:1)
+  y `#8f87a0` (5,43:1). `pl-tinta-tenue` de 4,52 a **5,61:1** (`#55534c`). Y **`pl-oro` sobre fondo oscuro
+  daba 3,95:1**: el rótulo del tooltip salía invisible, así que hay `pl-oro-claro` `#c9a44e` (7,89:1) para
+  superficies oscuras. **Falta portarlo a `apps/web/src/RolviumApp.css`** — es un cambio de tokens, afecta a
+  toda la app y va con su propia ronda de review.
+- **Fallo del `.pen` arreglado de paso**: la **Reserva de Destino de la Mesa del jugador estaba anidada dentro
+  de la cabecera de la card de Armas**, aplastando los rótulos de columna. Movida a la `Cabecera` de la mesa,
+  con su envoltorio de recorte y su botón de plegar, como en la del director. La comprobación «Reserva dentro
+  de Cabecera en las 14» daba falso positivo porque casaba por nombre.
+
+### ⚠️ Cinco puntos del QA del dueño NO eran de diseño: el `.pen` ya estaba bien y es el código el que diverge
+Comprobado nodo a nodo, no supuesto. **No hay que rediseñar nada de esto; hay que arreglar la web:**
+1. **#7 Cargador sólo en armas a distancia** — el diseño ya pinta «—» en el Bate. La tabla de la web pinta la
+   columna para todas las filas.
+2. **#8 Un solo botón por arma** — el Bate ya tiene sólo ⚔ (`swords`) y el Revólver sólo ◎ (`my_location`).
+3. **#2 Munición** — el Revólver ya lleva su «6/6» con el icono de recargar al lado del botón.
+4. **#11 Registro de tiradas dentro de la ficha** — en el `.pen` **no existe**, ni en `qjLDu` ni en `g6RyaZ`.
+   Es un añadido del código.
+5. **Cards sin borde y con sombra** — `PL/Hoja` (`LtIYz`) ya es `fill #f2f0ea80`, sin borde y con dos sombras.
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
@@ -484,21 +519,28 @@ actual: un personaje sano sale **todo negro**, y al recibir daño se va **despin
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🔁 Prompt para el chat nuevo
-> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción está al día (`main` = `c2460da`, con
-> `fix/rules-audit` ya mergeada: Review y QA pasados). **Lo PRIMERO: comprueba `ls -la rolvium.pen` y
-> `git status`** — la fila entera del generador (los 6 pasos, `y=7860`) se construyó en el `.pen` y sólo
-> la puede guardar el dueño con Cmd+S; si no está guardada, pídesela antes de tocar nada.
-> Sigue por: (1) **el punto 12**: crea un personaje y LEE el aviso, que ahora sí trae motivo, hint y código
-> — ya están descartados RLS, embeds, `.single()` y el borrador completo del generador, probados con el
-> cliente real; la sospecha viva es sesión caducada (`PGRST301`). (2) **La tanda de diseño de la FICHA en el
-> `.pen`** (`PiVhB` / `qjLDu`), que es lo que queda de los 15 puntos: Dones/Equipo/Armadura en fila y Armas
-> en su card, fuera el registro de tiradas, «Mejorar» como botón, Equipo como lista, recibir daño, tooltip
-> de característica, Resistencia invertida (p.25), Cargador sólo a distancia, un botón por arma, leyenda por
-> dado (p.82), Estado a lo ancho, cards con sombra, tipografía más oscura.
+> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción al día (`main`, `fix/rules-audit` mergeada
+> con Review y QA pasados). **Lo PRIMERO: `ls -la rolvium.pen` y `git status`** — el `.pen` sólo lo guarda el
+> dueño con Cmd+S; si hay cambios sin guardar, pídeselos antes de tocar nada.
+> El diseño de la tanda está HECHO: los 6 pasos del generador (`y=7860`) y la ficha (`qjLDu`, sincronizada a
+> `g6RyaZ`). **Ahora toca el CÓDIGO**, y en este orden:
+> 1. **El punto 12**: crea un personaje y LEE el aviso — ya trae motivo, hint y código. Descartados con el
+>    cliente real: RLS, los dos embeds, `.single()` y un borrador completo del generador. Sospecha viva:
+>    sesión caducada (`PGRST301`).
+> 2. **Los cinco puntos que NO eran de diseño** (ver la sección con ese título): cargador sólo a distancia,
+>    un botón por arma, munición, fuera el registro de tiradas de la ficha, y cards con sombra sin borde.
+>    El `.pen` ya lo dice bien; es la web la que diverge. Son los más baratos y los ve el dueño enseguida.
+> 3. **Los tokens de contraste** a `apps/web/src/RolviumApp.css`: `tx3` → `#67605a` claro / `#8f87a0` oscuro,
+>    `pl-tinta-tenue` → `#55534c`, y `pl-oro-claro` `#c9a44e` nuevo para dorado sobre fondo oscuro (el
+>    `pl-oro` daba 3,95:1 y el rótulo del tooltip salía invisible). Afecta a toda la app: ronda propia.
+> 4. **Lo demás del diseño nuevo**, contra el `.pen` 1:1: reordenar la ficha (Armas arriba, luego Dones ·
+>    Equipo · Armadura), Resistencia invertida (p.25), el bloque de recibir daño, Equipo con «+»
+>    desplegable, el tooltip con cuerpo, la leyenda por dado, «Mejorar» fuera de las pestañas, y las seis
+>    vistas del generador con su columna de GUÍA.
 > El manual manda: PDF en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf`, **con 2 de desfase**
-> sobre las páginas del libro. Diseño en `.pen` ANTES de cualquier código de UI, orden del dueño.
-> Flujo: dev → review → qa. Decidido ya: el ancho de los frames de Mesa NO se toca, y el interruptor del
-> director va como **opción de campaña** gobernando los dos canjes (rebanada propia, sin empezar).
+> sobre las páginas del libro. Diseño en `.pen` ANTES de cualquier código de UI. Flujo: dev → review → qa.
+> Decidido: el ancho de los frames de Mesa NO se toca; el interruptor del director va como **opción de
+> campaña** gobernando los dos canjes (rebanada propia, sin empezar).
 
 ### Lección de esta sesión, que se repitió cuatro veces
 **Un guardia que mide sólo el estado RESULTANTE convierte cualquier borrador ya fuera de norma en un callejón
