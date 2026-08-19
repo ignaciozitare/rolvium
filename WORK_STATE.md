@@ -243,7 +243,15 @@ Sale de que el dueño probó el generador con la versión buena. Los tres arregl
 Puertas: web 344 · api 77 · core 6 · plenilunio 70 · typecheck OK · audit 0 hard / 9 warn · build + build:api
 OK · i18n 647 claves sin desajuste · advisors 0 ERROR · sondas de producción vivas de verdad.
 
-### Punto 12 — el personaje no se guarda: SIGUE ABIERTO, pero ya se puede leer el motivo
+### Punto 12 — el personaje YA SE GUARDA (dueño, 2026-08-19 noche). Causa raíz nunca identificada
+**Cerrado por observación, no por diagnóstico.** El dueño confirma que ya se guarda. Empezó a funcionar
+después del merge y el despliegue, y eso encaja con la sospecha que quedó viva —**sesión caducada**
+(`PGRST301 JWT expired`) en la prueba larga de la tarde— pero **nadie llegó a leer el mensaje**, así que no
+está demostrado. ⚠ Si vuelve a pasar, lo primero es leer el aviso: ya trae motivo, hint y código.
+
+Lo que sí queda hecho y desplegado de aquí: el motivo de cualquier fallo de guardado ahora se ve.
+
+### Cómo estaba antes (se deja escrito porque el fallo es sutil)
 **El arreglo anterior (`a028692`) no funcionaba.** `setFailed(e instanceof Error && e.message ? … : true)`, y
 **supabase-js no lanza `Error`**: sin `throwOnError`, el campo `error` de la respuesta es un OBJETO PLANO
 `{message, details, hint, code}` (`postgrest-js` sólo construye su clase `PostgrestError` en la rama
@@ -267,6 +275,15 @@ para un 42501 PostgREST mete ahí el GRANT literal que lo arregla.
 exactamente «no se guarda y no dice nada». **Lo primero: crear un personaje y LEER el aviso, que ahora sí trae
 motivo, hint y código.** Ojo: hasta este merge, producción no tenía el arreglo, así que un intento anterior
 no habría dicho nada.
+
+### ✅ Producción verificada contra el bundle (2026-08-19 noche)
+No de memoria: descargados `index-*.css` e `index-*.js` de https://rolvium.vercel.app y grepeados.
+- `tb-root-page` → **está** (CSS y JS): el scroll de la ficha en pestaña aparte está desplegado.
+- `DbError` / `unknown_error` → **están**: el motivo legible del fallo al crear está desplegado.
+- `MEJORAR` → **no está**, y es correcto: eso es diseño del `.pen`, todavía sin código.
+
+**Lo que el dueño ve como «la hoja del jugador no se subió» es exactamente eso**: el rediseño de la ficha
+vive sólo en `rolvium.pen`. Nunca se escribió como código — es el punto 5 del backlog de esta sesión.
 
 ### Deuda que dejó el QA, sin tocar
 - **20 `throw error` crudos** fuera de `characters`: `SupabaseCampaignsRepo` (12), `SupabaseRoleRepo` (5),
