@@ -8,8 +8,8 @@ sentarse a la mesa, y desde donde salta a la escena que toca.
 Hoy las escenas cuelgan directamente de la campaña y no hay dónde escribir nada: la preparación
 vive fuera de Rolvium (un documento aparte) y la mesa sólo tiene el mapa.
 
-**Estado: propuesto. Nada construido.** Este spec es el paso 1 del flujo
-(spec → dba → scaffold → design → dev → review → qa).
+**Estado: spec CERRADO por el dueño (2026-08-19). Nada construido.** Siguiente paso del flujo:
+dba → scaffold → design (`.pen`) → dev → review → qa.
 
 ## Decisiones del dueño (2026-08-19)
 1. **Toda campaña tiene aventuras.** No hay escenas sueltas: la migración crea una «Aventura 1»
@@ -17,6 +17,14 @@ vive fuera de Rolvium (un documento aparte) y la mesa sólo tiene el mapa.
 2. **Las tablas de PNJ y encuentros son texto enriquecido en v1.** Se escriben y se leen dentro
    del documento, como en un manual impreso. Enlazarlas con entidades reales exige el **Bestiario
    (H5)**, que no está construido, y es otra rebanada.
+3. **Sección propia en la cabecera de la plataforma**, no una pestaña más de la Mesa. Con **rail
+   lateral** de aventuras (1, 2, 3…) a lo OneNote, y **abrible en ventana aparte** como la ficha
+   de personaje.
+4. **El editor guarda solo.** Sin botón de guardar.
+5. **Todo el contenido vive en la BASE DE DATOS, nunca en el front.** Regla general del dueño, no
+   sólo para aventuras: personajes, encuentros y aventuras son datos, no código. La intención a
+   futuro es poder llegar a ellos desde fuera —un MCP, una sincronización con Drive, una IA que
+   los lea—, y eso sólo funciona si la fuente es la base. Ver «Deuda que esto deja al descubierto».
 
 ## What the user can do
 
@@ -117,9 +125,49 @@ proyecto). Un árbol de bloques, cada uno con su `type`:
 - Imágenes dentro del documento · importar/exportar.
 - Compartir la aventura con los jugadores.
 
-## Preguntas abiertas para el dueño
-1. **¿La aventura se ve dentro de la Mesa o en su propia página?** Una pestaña más en la mesa
-   choca con el ancho de la barra, que ya viene justo. Una página `/campanas/:id/aventuras` deja
-   sitio para un editor de verdad y se abre en otra ventana mientras se juega.
-2. **¿El editor guarda solo o con botón?** Guardar solo es más cómodo escribiendo; el botón deja
-   claro cuándo se ha guardado. Propuesta: solo, con marca de «guardado» y `Cmd+S` que fuerza.
+## La pantalla (decidido por el dueño)
+**Sección propia en la cabecera de la plataforma**, al lado de las que ya hay — no una pestaña más
+de la Mesa: la barra de la mesa ya viene justa de ancho con seis pestañas y los rótulos no se
+acortan.
+
+Ruta `/campanas/:id/aventuras/:adventureId?`. Tres zonas, a lo OneNote:
+
+```
+┌─ cabecera de plataforma · «Aventuras» ────────────────────────────────────────┐
+├──────────────┬────────────────────────────────────────────────────────────────┤
+│ AVENTURAS  + │  Título de la aventura                    ● guardado · ⧉       │
+│              │ ───────────────────────────────────────────────────────────── │
+│ ▸ Aventura 1 │  El almacén de los muelles                                     │
+│   Aventura 2 │  Llegan de noche y el portón está entornado…                   │
+│   Aventura 3 │                                                                │
+│              │  ╔═ ENCUENTRO ═══════════════════════════╗                     │
+│ ── escenas ─ │  ║ PNJ        │ N.º │ Notas             ║                     │
+│   El almacén │  ╚═══════════════════════════════════════╝                     │
+│   Los muelles│                                                                │
+│            + │  ▸ escena: El almacén        ← chip que la abre en la mesa    │
+└──────────────┴────────────────────────────────────────────────────────────────┘
+```
+
+- **Rail izquierdo**: las aventuras de la campaña, y debajo las escenas de la abierta. El «+» de
+  cada bloque crea. Plegable, como el rail de escenas de la mesa.
+- **Cabecera del documento**: el título editable, el indicador de guardado y el botón de **abrir en
+  ventana aparte** — el mismo patrón que «Abrir ficha aparte», y con la misma trampa ya conocida:
+  la página suelta **no puede heredar `.tb-root`**, que lleva `height:100dvh; overflow:hidden` y
+  la dejaría sin scroll (ver `sheet-standalone-scroll.test.tsx`).
+- **Guarda solo**, con retardo, y `Cmd+S` fuerza. El indicador dice «guardando…» / «guardado» y la
+  hora. Nada de botón.
+
+## Deuda que esto deja al descubierto
+La regla del dueño —**el contenido vive en la base, no en el front**— ya se cumple para
+personajes, campañas, escenas y tiradas, y este spec la cumple para aventuras (`doc` es una
+columna `jsonb`, no un fichero del bundle).
+
+**Donde NO se cumple hoy es en los textos de reglas del sistema.** Los tooltips y las referencias
+de Plenilunio viven en `packages/system-plenilunio/src/{references,locales}.ts` y se compilan
+dentro del bundle del navegador: una errata obliga a tocar código y desplegar. Comprobado
+(2026-08-19): no hay ninguna tabla de textos en las migraciones.
+
+Eso es **su propia rebanada**, y hay que pensarla bien antes: mover las reglas a la base choca con
+«el paquete del sistema es enchufable y se distribuye con sus reglas» (ARCHITECTURE.md), así que
+lo más probable es un modelo mixto — el paquete trae los textos por defecto y la base guarda sólo
+las **correcciones**, por sistema y por idioma. Anotado en el backlog, sin decidir.

@@ -363,6 +363,32 @@ Comprobado nodo a nodo, no supuesto. **No hay que rediseñar nada de esto; hay q
    Es un añadido del código.
 5. **Cards sin borde y con sombra** — `PL/Hoja` (`LtIYz`) ya es `fill #f2f0ea80`, sin borde y con dos sombras.
 
+## 📜 Aventuras (H12) — spec cerrado, nada construido (2026-08-19)
+`specs/modules/adventures/SPEC.md`. El director escribe aventuras dentro de la campaña; cada una con su
+documento, sus escenas y sus encuentros. Decidido por el dueño:
+- **Toda campaña tiene aventuras** (la migración crea «Aventura 1» y le cuelga las escenas que ya haya);
+  `maps_scenes` gana `adventure_id`, nullable → relleno → NOT NULL. Borrar una aventura NO borra escenas.
+- **Tablas de PNJ y encuentros como texto enriquecido en v1**; cada fila lleva `npcId` siempre null, que es
+  el hueco para que el Bestiario (H5) enlace sin migrar documentos.
+- **Sección propia en la cabecera de plataforma**, rail lateral de aventuras a lo OneNote, y **abrible en
+  ventana aparte** como la ficha. ⚠ La página suelta no puede heredar `.tb-root` (`height:100dvh;
+  overflow:hidden`) o se queda sin scroll — ya pasó con la ficha.
+- **Guarda solo**, sin botón; `Cmd+S` fuerza.
+- El documento es **JSON de bloques, no HTML**: se pinta desde el cliente, nunca se inyecta como marcado.
+- RLS sólo para el director y el admin: al jugador la fila no le existe.
+
+**Siguiente paso del flujo: dba → scaffold → design (`.pen`) → dev → review → qa.** No hay ni una línea.
+
+### La regla que sale de aquí, y a quién señala
+**El contenido vive en la BASE, nunca hardcodeado en el front** — aventuras, personajes, encuentros. El
+dueño lo quiere así también para poder llegar a ellos desde fuera algún día (un MCP, Drive, una IA que los
+lea). Personajes, campañas, escenas y tiradas ya cumplen. **Los textos de reglas del sistema NO**: los
+tooltips y referencias de Plenilunio viven en `packages/system-plenilunio/src/{references,locales}.ts` y se
+compilan en el bundle, así que una errata exige tocar código y desplegar (comprobado: cero tablas de textos
+en las migraciones). Rebanada propia y hay que pensarla: choca con «el paquete del sistema es enchufable y
+trae sus reglas», así que lo más probable es mixto — el paquete pone los textos por defecto y la base guarda
+sólo las correcciones, por sistema e idioma.
+
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
 ### Últimos cuatro del dueño (2026-08-19, tarde)
@@ -383,6 +409,16 @@ Comprobado nodo a nodo, no supuesto. **No hay que rediseñar nada de esto; hay q
 14. **Multiidioma: existe, pero no dentro de la Mesa.** El conmutador ES/EN vive en `UserMenu` (menú del avatar)
     y en `/account`. Pero `TablePage` pinta un `UserAvatar` pelado, **no** el `UserMenu`: dentro de la mesa no
     hay forma de cambiar de idioma. Por eso «desapareció».
+16. **Armadura y escudo a la vez.** Hoy `armour` es un select único y los tres escudos son filas de la
+    misma tabla, así que o llevas armadura o llevas escudo. El dueño quiere las dos. **El manual no lo
+    resuelve**: p.98 mete los escudos DENTRO de la tabla de Armadura con sus dos columnas (pequeño 1/–,
+    grande 2/1, antidisturbios 3/2), las fichas de PNJ del libro listan el escudo aparte y con protección
+    propia («Espada 10 (daño 9), escudo (protección 5)», Azelías p.133–134; la Égida es «un escudo de
+    protección 4», p.160), y **en ningún sitio dice que puedas llevar ambos ni cómo se sumarían**.
+    Decisión: **sumar las dos columnas** —protección + protección, penalización + penalización— porque es la
+    única lectura que no inventa ningún número. Va a RULES.md como ⚠ interpretación con las citas. **Sin
+    implementar**: hace falta un campo de escudo aparte en el esquema y que `derived()` sume ambos.
+17. **Los textos de reglas viven en el front, no en la base.** Ver «Aventuras · la regla que sale de aquí».
 15. **A distancia y cuerpo a cuerpo usan la MISMA característica (Combate)** — matiz que el dueño preguntó. Lo
     que cambia es el tipo de tirada: a distancia es un **reto** contra la dificultad del alcance y el arma no
     suma dados; cuerpo a cuerpo es un **conflicto enfrentado** y ahí sí suma la bonificación (p.96–97).
