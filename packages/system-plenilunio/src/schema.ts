@@ -54,7 +54,9 @@ export const sections: SectionDef[] = [
     { id: 'extraDice', type: 'number', label: 'sheet.roll.extra', min: 0, max: 5 },
   ] },
   { id: 'stats', label: 'sheet.sections.stats', layout: 'stack', fields: STAT_IDS.map(statField) },
-  { id: 'state', label: 'sheet.sections.state', layout: 'grid', fields: [
+  // `span: 2`: Estado dejaba un hueco en blanco a su derecha (queja del dueño) porque Armas ocupa
+  // fila entera y no puede rellenarla. Con dos columnas, Características + Estado cierran la fila.
+  { id: 'state', label: 'sheet.sections.state', layout: 'grid', span: 2, fields: [
     { id: 'endurance', type: 'number', label: 'sheet.state.endurance', ref: 'endurance', derived: true },
     { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'resistance', derived: true },
     { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },
@@ -67,11 +69,6 @@ export const sections: SectionDef[] = [
     { id: 'fortune', type: 'counter', label: 'sheet.state.fortune', ref: 'fortune', min: 0, max: 10 },
     { id: 'xp', type: 'counter', label: 'sheet.state.xp', ref: 'xp', min: 0 },
     { id: 'giftPoints', type: 'number', label: 'sheet.state.giftPoints', ref: 'gifts', derived: true },
-  ] },
-  { id: 'armour', label: 'sheet.sections.armour', layout: 'row', fields: [
-    { id: 'armour', type: 'select', label: 'sheet.armour.worn', ref: 'armours', options: ARMOURS.map(x => ({ value: x.id, label: x.label })) },
-    { id: 'protection', type: 'number', label: 'sheet.armour.protection', ref: 'armours', derived: true },
-    { id: 'armourPenalty', type: 'number', label: 'sheet.armour.penalty', ref: 'armours', derived: true },
   ] },
   { id: 'weapons', label: 'sheet.sections.weapons', layout: 'stack', fields: [
     { id: 'weapons', type: 'table', label: 'sheet.weapons.list', ref: 'weapons', action: 'attack', columns: [
@@ -92,6 +89,13 @@ export const sections: SectionDef[] = [
     { id: 'equipment', type: 'list', label: 'sheet.equipment.list', itemFields: [
       { id: 'id', type: 'select', label: 'sheet.equipment.name', options: EQUIPMENT.map(e => ({ value: e.id, label: e.label })) },
     ] },
+  ] },
+  // `stack` y no `row`: `row` la marca como ancha y ocupaba una fila entera. El dueño la quiere en
+  // columna, junto a Dones y Equipo, con Armas encima a todo el ancho (rolvium.pen, ficha 2026-08-19).
+  { id: 'armour', label: 'sheet.sections.armour', layout: 'stack', fields: [
+    { id: 'armour', type: 'select', label: 'sheet.armour.worn', ref: 'armours', options: ARMOURS.map(x => ({ value: x.id, label: x.label })) },
+    { id: 'protection', type: 'number', label: 'sheet.armour.protection', ref: 'armours', derived: true },
+    { id: 'armourPenalty', type: 'number', label: 'sheet.armour.penalty', ref: 'armours', derived: true },
   ] },
   { id: 'story', label: 'sheet.sections.story', layout: 'stack', fields: [
     { id: 'story', type: 'longtext', label: 'sheet.story.text' },

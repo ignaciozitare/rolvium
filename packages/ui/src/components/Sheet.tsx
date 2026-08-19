@@ -91,13 +91,40 @@ export function Sheet(p: SheetProps): JSX.Element {
         return <div className="rv-sheet-field">{label(f)}<Counter value={num(v, f.min ?? 0)} min={f.min} max={f.max} labelText={p.t(f.label)} disabled={ro || !!f.derived} allowed={n => allowed(f.id, n)} onChange={n => set(f.id, n)} /></div>;
       case 'boxes': {
         const max = Math.max(0, num(derived[`${f.id}Max`], f.max ?? 0));
-        const val = Math.min(num(v), Math.max(max, num(v)));
+        /**
+         * El valor guardado NO se capa a `max`: se capa la subida, nunca la bajada (misma regla que
+         * `engine.rest`). Una ficha puede llevar `resistance > resistanceMax` de siempre — basta con
+         * bajar Fortaleza o Voluntad después de haberla guardado sana — y esos puntos son suyos.
+         */
+        const val = num(v);
+        /**
+         * Las casillas van al revés de como estaban (manual p.25, verificado en el PDF): «sombrea los
+         * puntos SOBRANTES y deja los cuadrados EN BLANCO correspondientes a tu Resistencia para poder
+         * tacharlos durante el juego». O sea: **en blanco = lo que te queda**, marcadas = el daño
+         * recibido. Antes se pintaban las `val` primeras, así que un personaje sano salía todo negro y
+         * al recibir daño se iba DESPINTANDO — justo al revés.
+         * El daño va por delante, de izquierda a derecha, que es como lo tacha uno en la hoja de papel.
+         */
+        /**
+         * Todo se mide contra `len` —las casillas que hay en pantalla— y NUNCA contra `max`: cuando
+         * `val > max` se pintan `val` casillas, así que un índice puede pasarse de `max` y `max − (i+1)`
+         * daba Resistencia NEGATIVA (max 21, val 25, casilla 22 → −1), además de tirar 25 → 20 de un
+         * solo clic. Con `len` cada casilla vale exactamente un punto y el suelo es 0, igual que
+         * `engine.applyDamage`. El tope de `hits` deja la última marcada devolvible incluso partiendo
+         * de un `val` corrupto por debajo de 0.
+         */
+        const len = Math.max(max, val);
+        // `len >= val` por construccion, asi que `len - val` nunca es negativo: sobra el suelo. El tope
+        // si hace falta, y protege de un `val` guardado por debajo de 0. (Hallazgo del QA.)
+        const hits = Math.min(len, len - val);
         return (
           <div className="rv-sheet-field">{label(f)}
             <div className="rv-sheet-boxes" role="group" aria-label={p.t(f.label)}>
-              {Array.from({ length: Math.max(max, val) }, (_, i) => (
-                <button key={i} type="button" className={`rv-sheet-box ${i < val ? 'on' : ''}`} disabled={ro} aria-pressed={i < val} aria-label={`${p.t(f.label)} ${i + 1}`}
-                  onClick={() => set(f.id, i + 1 === val ? i : i + 1)} />
+              {Array.from({ length: len }, (_, i) => (
+                <button key={i} type="button" className={`rv-sheet-box ${i < hits ? 'hit' : ''}`} disabled={ro} aria-pressed={i < hits}
+                  aria-label={`${p.t(f.label)} ${i + 1}`}
+                  // Pulsar la última tachada la devuelve: sin esto, un clic de más no se puede deshacer.
+                  onClick={() => set(f.id, len - (i + 1 === hits ? i : i + 1))} />
               ))}
             </div>
             <span className="rv-sheet-caption">{val} {p.labels.of} {max}</span>
@@ -151,7 +178,8 @@ export function Sheet(p: SheetProps): JSX.Element {
   return (
     <div className="rv-sheet">
       {sections.map(s => (
-        <section key={s.id} className={`rv-sheet-section ${isWide(s) ? 'wide' : ''}`} data-section={s.id} aria-label={p.t(s.label)}>
+        <section key={s.id} className={`rv-sheet-section ${isWide(s) ? 'wide' : ''}`} data-section={s.id} aria-label={p.t(s.label)}
+          style={!isWide(s) && s.span && s.span > 1 ? { gridColumn: `span ${s.span}` } : undefined}>
           <header className="rv-sheet-section-head">
             <h3 className="rv-sheet-section-title">{p.t(s.label)}</h3>
             {sectionRef(s, p)}

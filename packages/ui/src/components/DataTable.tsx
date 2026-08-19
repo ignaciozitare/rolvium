@@ -213,7 +213,7 @@ export function DataTable({
   const pagerBtn = (disabled: boolean): CSSProperties => ({
     width: 28, height: 28, borderRadius: 6, border: 'none', background: 'var(--sf2)',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    color: disabled ? 'var(--tx3)' : 'var(--tx)', cursor: disabled ? 'default' : 'pointer',
+    color: disabled ? 'var(--tx-off)' : 'var(--tx)', cursor: disabled ? 'default' : 'pointer',
     opacity: disabled ? 0.45 : 1, padding: 0,
   });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Sheet, PhaseDisc } from '@rolvium/ui';
 import { plenilunio } from '@rolvium/system-plenilunio';
@@ -56,8 +56,11 @@ describe('<Sheet> — schema-driven, every field type', () => {
     expect(onChange).toHaveBeenLastCalledWith({ armour: 'furs' });
     await u.click(screen.getByRole('button', { name: '+ Destino' }));
     expect(onChange).toHaveBeenLastCalledWith({ destiny: 3 });
+    // Manual p.25: las casillas EN BLANCO son la Resistencia que te queda y las marcadas el daño, no al
+    // revés. Pulsar la décima casilla son 10 de daño, así que la Resistencia baja a 21 − 10 = 11.
     await u.click(screen.getByRole('button', { name: 'Resistencia 10' }));
-    expect(onChange).toHaveBeenLastCalledWith({ resistance: 10 });
+    expect(onChange).toHaveBeenLastCalledWith({ resistance: 11 });
+
     await u.click(screen.getByRole('radio', { name: 'Herido' }));
     expect(onChange).toHaveBeenLastCalledWith({ health: 'wounded' });
     await u.click(screen.getByRole('button', { name: '+ Añadir · Dones' }));
@@ -74,6 +77,70 @@ describe('<Sheet> — schema-driven, every field type', () => {
     expect(onChange).toHaveBeenLastCalledWith({ combat: { value: 4, specialties: ['combat.improvisedWeapons', 'combat.knives'] } });
   });
 
+  /**
+   * La Resistencia va al revés de como estaba (manual p.25): en blanco lo que te queda, marcadas las
+   * que te han tachado. Se prueba con una ficha YA dañada, que es la única forma de ver de qué lado
+   * se pinta y de comprobar que la última marcada se puede devolver — un clic de más tiene que
+   * deshacerse, si no el jugador se queda con daño que no recibió.
+   */
+  it('Resistencia: en blanco lo que queda, marcado el daño, y la última se devuelve (p.25)', async () => {
+    const u = userEvent.setup();
+    const herida = { ...KAREN_DATA, resistance: 11 };
+    const { onChange } = mount({ data: herida, derived: plenilunio.engine.derived(herida) });
+    const box = (n: number) => screen.getByRole('button', { name: `Resistencia ${n}` });
+    // resistanceMax 21 y quedan 11 → 10 tachadas, y van por delante
+    expect(box(1)).toHaveAttribute('aria-pressed', 'true');
+    expect(box(10)).toHaveAttribute('aria-pressed', 'true');
+    expect(box(11)).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('11 de 21')).toBeInTheDocument();
+    // pulsar la última tachada la devuelve: 9 de daño → 12 de Resistencia
+    await u.click(box(10));
+    expect(onChange).toHaveBeenLastCalledWith({ resistance: 12 });
+    // y pulsar una en blanco tacha hasta ahí: 15 de daño → 6 de Resistencia
+    await u.click(box(15));
+    expect(onChange).toHaveBeenLastCalledWith({ resistance: 6 });
+  });
+
+  /**
+   * Bordes de las casillas. El que de verdad mordía: una ficha guardada con Resistencia POR ENCIMA
+   * del máximo —basta bajar Fortaleza o Voluntad después de guardarla sana, y nada la capa porque se
+   * capa la subida y nunca la bajada— pintaba `val` casillas pero contaba los clics contra `max`, así
+   * que las casillas de más daban Resistencia NEGATIVA y la primera tiraba 25 → 20 de un solo clic.
+   * Cada casilla vale un punto y el suelo es 0, igual que `engine.applyDamage`.
+   */
+  it('Resistencia: sin daño, con daño máximo, y con la Resistencia por encima del máximo', async () => {
+    const u = userEvent.setup();
+    const box = (n: number) => screen.getByRole('button', { name: `Resistencia ${n}` });
+
+    // sana (21 de 21): ninguna marcada, y la primera casilla es 1 de daño
+    const sana = mount();
+    expect(box(1)).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('21 de 21')).toBeInTheDocument();
+    await u.click(box(1));
+    expect(sana.onChange).toHaveBeenLastCalledWith({ resistance: 20 });
+    cleanup();
+
+    // al límite (0 de 21): todas marcadas y la última se devuelve, no se pasa de rosca
+    const rota = { ...KAREN_DATA, resistance: 0 };
+    const alLimite = mount({ data: rota, derived: plenilunio.engine.derived(rota) });
+    expect(box(21)).toHaveAttribute('aria-pressed', 'true');
+    await u.click(box(21));
+    expect(alLimite.onChange).toHaveBeenLastCalledWith({ resistance: 1 });
+    cleanup();
+
+    // por encima del máximo (25 de 21): 25 casillas, ninguna marcada, y NINGÚN clic baja de 0
+    const sobrada = { ...KAREN_DATA, resistance: 25 };
+    const over = mount({ data: sobrada, derived: plenilunio.engine.derived(sobrada) });
+    expect(screen.getByText('25 de 21')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Resistencia \d+$/ })).toHaveLength(25);
+    expect(box(25)).toHaveAttribute('aria-pressed', 'false');
+    await u.click(box(1));
+    expect(over.onChange).toHaveBeenLastCalledWith({ resistance: 24 }); // un punto, no cinco
+    await u.click(box(22));
+    expect(over.onChange).toHaveBeenLastCalledWith({ resistance: 3 });  // antes: −1
+    await u.click(box(25));
+    expect(over.onChange).toHaveBeenLastCalledWith({ resistance: 0 });  // antes: −4
+  });
   it('actions: TIRAR → onAction("roll", stat); weapon icon → attack action; gift ⚡ → gift.activate', async () => {
     const u = userEvent.setup();
     const { onAction } = mount();
