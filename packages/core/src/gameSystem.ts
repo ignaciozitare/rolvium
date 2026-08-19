@@ -31,6 +31,24 @@ export interface FieldDef {
   itemFields?: FieldDef[];      // for 'list'
   derived?: boolean;            // computed by engine.derived, read-only in the sheet
   action?: string;              // ActionDef.id rendered as an icon button on this field/row
+  /**
+   * Sólo campos `health`: aviso que la ficha pinta BAJO el campo cuando las reglas lo disparan, en
+   * rojo. Devuelve la clave i18n del aviso o `null`. Lo declara el sistema porque la plataforma no
+   * sabe qué condición avisa: en Plenilunio es «Inconsciente» —el sexto nivel de salud (p.101)—, que
+   * no es una fase de luna y no se elige a mano, se cae en él al quedarse sin Resistencia (p.98).
+   * Antes era un desplegable «Inconsciente Sí/No» en la rejilla de Estado: un valor que el motor ya
+   * calcula, ofrecido como si fuera una decisión del jugador y capaz de contradecirlo — el mismo
+   * fallo que el cargador editable a mano que el dueño hizo quitar (2026-08-19).
+   */
+  note?: (sheet: SheetData) => I18nKey | null;
+  /**
+   * Campo que existe en el esquema —se guarda, se valida y lo escribe el motor— pero que la ficha NO
+   * pinta: no hay nada que decidir en él. `derived` no sirve para esto (un derivado no se guarda y
+   * `validateSheet` rechaza como `unknown` cualquier clave que el esquema no declare, así que el
+   * `unconscious` que escribe `applyDamage` tumbaría el guardado entero). Plenilunio lo usa para
+   * «Inconsciente», que sale como `note` bajo las lunas.
+   */
+  hidden?: boolean;
 }
 
 /**

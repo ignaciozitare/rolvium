@@ -25,7 +25,9 @@ describe('<Sheet> — schema-driven, every field type', () => {
     // stat row: label + specialty + value + TIRAR n
     const stat = document.querySelector('[data-stat="combat"]')!;
     expect(within(stat as HTMLElement).getByText('Combate')).toBeInTheDocument();
-    expect(within(stat as HTMLElement).getAllByRole('combobox')[0]).toHaveValue('combat.improvisedWeapons');
+    // La especialidad ya elegida es TEXTO en la ficha viva; el desplegable sólo vive en el generador.
+    expect(within(stat as HTMLElement).getByText('Armas improvisadas')).toBeInTheDocument();
+    expect(within(stat as HTMLElement).queryByRole('combobox')).toBeNull();
     expect(within(stat as HTMLElement).getByRole('button', { name: 'Tirar 6' })).toBeInTheDocument();
     // tooltip from references
     const tips = screen.getAllByRole('tooltip');
@@ -78,8 +80,13 @@ describe('<Sheet> — schema-driven, every field type', () => {
     // stat +1 and specialty add
     await u.click(screen.getByRole('button', { name: '+ Combate' }));
     expect(onChange).toHaveBeenLastCalledWith({ combat: { value: 5, specialties: ['combat.improvisedWeapons'] } });
-    await u.selectOptions(screen.getByLabelText('Añadir Especialidad · Combate'), 'combat.knives');
+    // El desplegable no está hasta que se pide con el «+», y desaparece al elegir.
+    const pickSpec = () => screen.queryByRole('combobox', { name: 'Añadir Especialidad · Combate' });
+    expect(pickSpec()).toBeNull();
+    await u.click(screen.getByRole('button', { name: 'Añadir Especialidad · Combate' }));
+    await u.selectOptions(pickSpec()!, 'combat.knives');
     expect(onChange).toHaveBeenLastCalledWith({ combat: { value: 4, specialties: ['combat.improvisedWeapons', 'combat.knives'] } });
+    expect(pickSpec()).toBeNull();
   });
 
   /**

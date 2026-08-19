@@ -24,13 +24,23 @@ export const GIFT_ACTIVATION_COST = 1;
 
 // ─── Derived values (manual p.25, p.89, p.98–101) ────────────────────────────
 export interface Derived {
-  endurance: number; resistanceMax: number; recoveryMax: number; fortuneMax: number; dicePenalty: number; healthIndex: number;
+  endurance: number; resistanceMax: number; fortuneMax: number; dicePenalty: number; healthIndex: number;
   protection: number; armourPenalty: number; giftPoints: number;
 }
 export const healthIndexOf = (h: HealthId) => HEALTH_LEVELS.findIndex(l => l.id === h);
 export const healthPenaltyOf = (h: HealthId) => HEALTH_LEVELS[healthIndexOf(h)]?.penalty ?? 0;
 
-/** Endurance = Fortitude + Will ± size (min 1); Resistance = Endurance×3 (p.25, no cap); recoveryMax = what rest restores at the current health (p.101); Fortune max = Destiny. */
+/**
+ * Endurance = Fortitude + Will ± size (min 1); Fortune max = Destiny (p.90, hard cap: «nunca pueden llegar a ser
+ * mayores que la puntuación de Destino»).
+ *
+ * Resistance max = Endurance × the CURRENT health level's factor (p.101, literal): ×3 sano/magullado, ×2 herido,
+ * ×1 malherido. No es «lo que cura el descanso» y aparte un tope de 3×Aguante — el libro dice que los puntos
+ * máximos «pasan a ser» ese número, así que es EL máximo y el descanso sólo te lleva hasta él. Antes se
+ * calculaban los dos por separado (`resistanceMax` = ×3 siempre, `recoveryMax` = el del estado) y la ficha
+ * enseñaba lo mismo dos veces con nombres distintos: Karen, herida, salía con «máxima 18» —la de una persona
+ * sana, que ella no es— y «recuperable 12». Uno solo, y verdadero (dueño, 2026-08-19; RULES.md §6.3).
+ */
 export function derived(sheet: SheetData): Derived {
   const endurance = Math.max(1, statOf(sheet, 'fortitude').value + statOf(sheet, 'will').value + sizeMod(sheet.size));
   const health = healthOf(sheet);
@@ -39,8 +49,7 @@ export function derived(sheet: SheetData): Derived {
   const spent = giftsOf(sheet).reduce((s, g) => s + num(g.level), 0);
   return {
     endurance,
-    resistanceMax: endurance * 3,
-    recoveryMax: endurance * RECOVERY[health].restFactor,
+    resistanceMax: endurance * RECOVERY[health].restFactor,
     fortuneMax: destiny,
     dicePenalty: healthPenaltyOf(health),
     healthIndex: healthIndexOf(health),
@@ -241,7 +250,7 @@ export function catchBreath(sheet: SheetData): SheetPatch | null {
   return { fortune: num(sheet.fortune) - 1, resistance: Math.min(d.resistanceMax, num(sheet.resistance) + Math.floor(lost / 2)) };
 }
 /** Rest after the scene (p.101): Resistance back to what the current health level allows (×3 / ×2 / ×1 Endurance). */
-export const rest = (sheet: SheetData): SheetPatch => ({ resistance: Math.max(num(sheet.resistance), derived(sheet).recoveryMax), unconscious: 'no' });
+export const rest = (sheet: SheetData): SheetPatch => ({ resistance: Math.max(num(sheet.resistance), derived(sheet).resistanceMax), unconscious: 'no' });
 
 /** Ammo bookkeeping for ranged weapons (manual p.97). */
 export function weaponData(row: WeaponRow): WeaponData | null {

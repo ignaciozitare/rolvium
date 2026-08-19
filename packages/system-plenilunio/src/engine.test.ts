@@ -70,19 +70,27 @@ describe('degreeKey (manual p.85)', () => {
 });
 
 describe('derived (manual p.25, p.89, p.101)', () => {
-  it('endurance = fortitude + will ± size, resistance = ×3 (no cap), fortuneMax = destiny', () => {
+  it('endurance = fortitude + will ± size, resistance = ×3 sano (no cap), fortuneMax = destiny', () => {
     const d = derived(sheet());
-    expect(d).toMatchObject({ endurance: 5, resistanceMax: 15, recoveryMax: 15, fortuneMax: 3, dicePenalty: 0, protection: 0, armourPenalty: 0 });
+    expect(d).toMatchObject({ endurance: 5, resistanceMax: 15, fortuneMax: 3, dicePenalty: 0, protection: 0, armourPenalty: 0 });
     expect(derived(sheet({ size: 'huge' })).endurance).toBe(7);
     expect(derived(sheet({ size: 'tiny', fortitude: stat(1), will: stat(1) })).endurance).toBe(1);
     expect(derived(sheet({ fortitude: stat(6), will: stat(6) })).resistanceMax).toBe(36);
     expect(derived(sheet({ destiny: 7 })).fortuneMax).toBe(7);
   });
-  it('p.101 recoveryMax by health: ×3 healthy/bruised, ×2 wounded, ×1 badly wounded', () => {
-    expect(derived(sheet({ health: 'bruised' })).recoveryMax).toBe(15);
-    expect(derived(sheet({ health: 'wounded' })).recoveryMax).toBe(10);
-    expect(derived(sheet({ health: 'badlyWounded' })).recoveryMax).toBe(5);
+  /**
+   * p.101, literal: los puntos de Resistencia máximos «pasan a ser» el doble del Aguante estando
+   * herido y iguales al Aguante estando malherido. O sea que NO hay un máximo de 3×Aguante y aparte
+   * un «recuperable descansando»: es el mismo número, y antes se calculaba dos veces con dos nombres
+   * (`resistanceMax` siempre ×3 y `recoveryMax` según el estado). La ficha enseñaba las dos, y la
+   * primera mentía en cuanto el personaje se hería.
+   */
+  it('p.101 la Resistencia máxima la baja el estado: ×3 sano/magullado, ×2 herido, ×1 malherido', () => {
+    expect(derived(sheet({ health: 'bruised' })).resistanceMax).toBe(15);
+    expect(derived(sheet({ health: 'wounded' })).resistanceMax).toBe(10);
+    expect(derived(sheet({ health: 'badlyWounded' })).resistanceMax).toBe(5);
     expect(rest(sheet({ health: 'wounded', resistance: 2, unconscious: 'yes' }))).toEqual({ resistance: 10, unconscious: 'no' });
+    // Se capa la subida, nunca la bajada: descansar nunca QUITA Resistencia ya marcada.
     expect(rest(sheet({ health: 'wounded', resistance: 12 }))).toEqual({ resistance: 12, unconscious: 'no' });
   });
   it('health level sets the dice penalty and armour sets protection/penalty', () => {

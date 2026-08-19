@@ -29,8 +29,8 @@ export const PRESETS = [
 export type PresetId = (typeof PRESETS)[number]['id'];
 export const DEFAULT_PRESET: PresetId = 'standard';
 
-const yesNo = (id: string, label: string, ref?: string): FieldDef => ({
-  id, type: 'select', label, ...(ref ? { ref } : {}),
+const yesNo = (id: string, label: string, ref?: string, hidden = false): FieldDef => ({
+  id, type: 'select', label, ...(ref ? { ref } : {}), ...(hidden ? { hidden: true } : {}),
   options: [{ value: 'no', label: 'sheet.common.no' }, { value: 'yes', label: 'sheet.common.yes' }],
 });
 
@@ -58,26 +58,32 @@ export const sections: SectionDef[] = [
   // tarjeta se quedó con el doble de ancho y el mismo contenido, o sea un vacío enorme bajo «Recibir
   // daño» (visto en producción por el dueño, 2026-08-19). El hueco no se arregla ensanchando: se
   // arregla componiendo los 12 campos de la sección como los tiene el `.pen`, y eso es su propia tanda.
-  // Orden pensado, no el que salió: primero lo que mide el CUERPO (aguante → resistencia máxima → las
-  // casillas → la salud), luego lo que la salud arrastra (penalización, inconsciente, lo que cura el
-  // descanso), y al final los recursos que se gastan (destino, fortuna, experiencia, puntos de don).
-  // Antes «penalización por heridas» caía entre las casillas y el destino sin nada que lo atara.
+  // Orden pensado, no el que salió: primero los tres numeros que MIDEN el cuerpo (aguante, la
+  // Resistencia maxima que permite tu estado y la penalizacion que arrastra), luego los dos marcadores
+  // que se tocan en mesa (las casillas y las lunas), y al final los recursos que se gastan (destino,
+  // fortuna, experiencia) con sus calculados debajo.
+  // Los numeros CALCULADOS van SEGUIDOS: la ficha agrupa cada tanda en una fila de tarjetas cuadradas
+  // centradas (`groupTiles` → `rv-sheet-tiles`), y una tarjeta sola en su fila se ve descolgada.
+  // «Resistencia recuperable descansando» YA NO EXISTE: era el mismo numero que «Resistencia maxima»
+  // con otro nombre (p.101, RULES.md §6.3). Y «Inconsciente» tampoco: no se elige a mano — sale como
+  // aviso bajo las lunas (`note`). Al salir los dos de la rejilla, Destino · Fortuna · Experiencia
+  // caben en UNA fila de tres, que es justo como los pidio el dueno (2026-08-19).
   { id: 'state', label: 'sheet.sections.state', layout: 'grid', fields: [
     { id: 'endurance', type: 'number', label: 'sheet.state.endurance', ref: 'endurance', derived: true },
     { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'resistance', derived: true },
-    { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },
-    { id: 'health', type: 'health', label: 'sheet.state.health', ref: 'health', options: HEALTH_LEVELS.map(h => ({ value: h.id, label: `sheet.health.${h.id}` })) },
-    // Los numeros CALCULADOS van seguidos, y de dos en dos: la ficha los pinta como tarjetas cuadradas
-    // centradas (`rv-sheet-tiles`), y una tarjeta sola en su fila se ve descolgada. Por eso «Inconsciente»
-    // —que es un desplegable, no un numero— baja por debajo de la pareja penalizacion + recuperable, en
-    // vez de partirla por la mitad como estaba (dueno, 2026-08-19: «las dos, una al lado de la otra»).
     { id: 'dicePenalty', type: 'number', label: 'sheet.state.dicePenalty', ref: 'health', derived: true },
-    { id: 'recoveryMax', type: 'number', label: 'sheet.state.recoveryMax', ref: 'recovery', derived: true },
-    yesNo('unconscious', 'sheet.state.unconscious', 'health'),
+    { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },
+    // El sexto nivel de salud del manual (p.101) NO es una fase de luna: se puede estar Herido E
+    // Inconsciente a la vez, y no se elige — lo calcula `applyDamage` al quedarse sin Resistencia.
+    { id: 'health', type: 'health', label: 'sheet.state.health', ref: 'health', options: HEALTH_LEVELS.map(h => ({ value: h.id, label: `sheet.health.${h.id}` })), note: sheet => (sheet.unconscious === 'yes' || sheet.unconscious === true ? 'sheet.state.unconsciousNote' : null) },
     // Los tres contadores llenan la fila de la rejilla, y debajo la pareja de calculados que arrastran:
-    // Fortuna maxima cae centrada justo bajo Fortuna.
+    // Fortuna maxima cae centrada justo bajo Fortuna. La Fortuna NO lleva `max` propio: su techo es el
+    // Destino (p.90, tope duro) y la ficha lo lee de `fortuneMax`, como las casillas leen su maximo.
+    // Se GUARDA (lo escriben `applyDamage` y `rest`) y por eso sigue declarado —`validateSheet` rechaza
+    // toda clave que el esquema no conozca—, pero no se pinta como campo: sale de `note`, arriba.
+    yesNo('unconscious', 'sheet.state.unconscious', 'health', true),
     { id: 'destiny', type: 'counter', label: 'sheet.state.destiny', ref: 'destiny', min: 1, max: 10 },
-    { id: 'fortune', type: 'counter', label: 'sheet.state.fortune', ref: 'fortune', min: 0, max: 10 },
+    { id: 'fortune', type: 'counter', label: 'sheet.state.fortune', ref: 'fortune', min: 0 },
     { id: 'xp', type: 'counter', label: 'sheet.state.xp', ref: 'xp', min: 0 },
     { id: 'fortuneMax', type: 'number', label: 'sheet.state.fortuneMax', ref: 'fortune', derived: true },
     { id: 'giftPoints', type: 'number', label: 'sheet.state.giftPoints', ref: 'gifts', derived: true },

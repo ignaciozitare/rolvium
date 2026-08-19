@@ -14,4 +14,4 @@ export interface TableSnapshot {
 export interface TableViewer { userId: string; role: TableRole; name: string; }
 
 export type ResourceError = 'pool_empty' | 'per_take_max' | 'resource_missing' | 'not_member' | 'forbidden' | 'unknown';
-export type TableTab = 'sheet' | 'group' | 'scene' | 'bestiary' | 'improve' | 'create';
+export type TableTab = 'sheet' | 'group' | 'scene' | 'bestiary' | 'create';

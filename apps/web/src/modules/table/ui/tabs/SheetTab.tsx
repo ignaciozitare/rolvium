@@ -8,6 +8,7 @@ import type { CharactersPort } from '@/modules/characters/domain/ports/Character
 import type { RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import { CharacterSheetView } from '@/modules/characters/ui/CharacterSheetView';
 import { GeneratorWizard } from '@/modules/characters/ui/GeneratorWizard';
+import { ProgressionPanel } from '@/modules/characters/ui/ProgressionPanel';
 import { useCharacterSheet } from '@/modules/characters/ui/useCharacterSheet';
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
   rollOptions?: Record<string, unknown>;
   /** Character to show (DM opening a sheet from «El grupo»); defaults to my own PC. */
   characterId?: string | null;
+  /** Whether the campaign has progression open — «Mejorar» shows the panel locked when it is closed. */
+  progressionEnabled?: boolean;
   onOpenCreate: () => void;
 }
 
@@ -32,11 +35,12 @@ export function useMyCharacter(campaignId: string, userId: string, repo: Charact
 }
 
 /** Ficha tab: my sheet, or the empty state → generator (rolvium.pen Vacío/«No tienes personaje en esta campaña»). */
-export function SheetTab({ campaignId, system, role, userId, repo, rolls, rollOptions, characterId, onOpenCreate }: Props): JSX.Element {
+export function SheetTab({ campaignId, system, role, userId, repo, rolls, rollOptions, characterId, progressionEnabled = false, onOpenCreate }: Props): JSX.Element {
   const { t } = useTranslation();
   const my = useMyCharacter(campaignId, userId, repo, characterId);
   const state = useCharacterSheet(my.ready ? my.id : null, repo);
   const [editing, setEditing] = useState(false);
+  const [improving, setImproving] = useState(false);
   if (!my.ready || (my.id && state.status === 'loading')) return <section className="tb-hoja tb-placeholder">{t('common.loading')}</section>;
   if (!my.id) {
     return (
@@ -57,9 +61,13 @@ export function SheetTab({ campaignId, system, role, userId, repo, rolls, rollOp
         <span className={`ch-status ${state.saveError ? 'error' : state.dirty ? 'dirty' : 'synced'}`}><span className="dot" />{state.saveError ? t('common.error') : state.dirty ? t('characters.sheet.dirty') : t('characters.sheet.synced')}</span>
         <div className="ch-toolbar-right">
           {role === 'dm' && !owner && <button type="button" className={`rv-sheet-btn ${editing ? 'solid' : ''}`} aria-pressed={editing} onClick={() => setEditing(e => !e)}>{editing ? t('characters.sheet.readOnly') : t('characters.sheet.edit')}</button>}
+          {/* «Mejorar» vive AQUÍ, no en la barra de pestañas: es algo que le haces a la ficha que
+              tienes delante (dueño). Abre el panel encima de la ficha y se cierra con el mismo botón. */}
+          <button type="button" className={`rv-sheet-btn ${improving ? 'solid' : ''}`} aria-pressed={improving} onClick={() => setImproving(v => !v)}>{t('table.tab.improve')}</button>
           <Link to={`/characters/${state.character.id}`} target="_blank" rel="noopener" className="rv-sheet-btn" style={{ textDecoration: 'none' }}>{t('characters.sheet.openApart')}</Link>
         </div>
       </div>
+      {improving && <ProgressionPanel state={state} enabled={progressionEnabled} />}
       <CharacterSheetView state={state} canEdit={canEdit} {...(rolls ? { rolls } : {})} {...(rollOptions ? { rollOptions } : {})} />
     </>
   );

@@ -5,7 +5,6 @@ import { plenilunio } from '@rolvium/system-plenilunio';
 import { fakeCharactersRepo, fakeRollsPort, CHARACTER_KAREN, CHARACTER_OTHER, CHARACTER_UNASSIGNED, PLAYER_USER } from '../../../../../tests/helpers/fakes';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
 import { SheetTab, CreateTab } from './SheetTab';
-import { ImproveTab } from './ImproveTab';
 import { GroupTab } from './GroupTab';
 
 const MEMBERS: CampaignMember[] = [
@@ -14,7 +13,7 @@ const MEMBERS: CampaignMember[] = [
   { campaignId: 'c1', userId: 'u-nix', name: 'Dani', avatarUrl: null, role: 'player', characterId: null, joinedAt: '' },
 ];
 
-describe('table tabs — sheet / create / improve / group', () => {
+describe('table tabs — sheet / create / group', () => {
   it('SheetTab shows my sheet with roll options from the table, «Abrir ficha aparte»; empty state → create', async () => {
     const repo = fakeCharactersRepo([CHARACTER_KAREN]);
     const rolls = fakeRollsPort();
@@ -37,16 +36,28 @@ describe('table tabs — sheet / create / improve / group', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Editar' }));
     expect(screen.getByLabelText('Personaje')).not.toBeDisabled();
   });
-  it('CreateTab hosts the generator; ImproveTab gates on progressionEnabled', async () => {
+  it('CreateTab hosts the generator', async () => {
     const repo = fakeCharactersRepo([CHARACTER_KAREN]);
     renderWithProviders(<CreateTab campaignId="c1" system={plenilunio} role="player" repo={repo} onCancel={() => {}} onCreated={() => {}} />);
     expect(screen.getByRole('button', { name: 'Continuar' })).toBeInTheDocument();
-    document.body.innerHTML = '';
-    renderWithProviders(<ImproveTab campaignId="c1" userId={PLAYER_USER.id} repo={repo} progressionEnabled={false} />);
+  });
+
+  /**
+   * «Mejorar» dejó de ser pestaña y bajó a la barra de la ficha, al lado de «Abrir ficha aparte»
+   * (dueño, 2026-08-19: «quedamos hace varias sesiones que lo bajarías»). El panel sale sobre la
+   * ficha, se cierra con el mismo botón, y con la progresión cerrada en la campaña sale bloqueado.
+   */
+  it('«Mejorar» es un botón de la ficha: abre y cierra el panel, y respeta progressionEnabled', async () => {
+    const repo = fakeCharactersRepo([CHARACTER_KAREN]);
+    const u = userEvent.setup();
+    renderWithProviders(<SheetTab campaignId="c1" system={plenilunio} role="player" userId={PLAYER_USER.id} repo={repo} progressionEnabled={false} onOpenCreate={() => {}} />);
+    expect(await screen.findByLabelText('Personaje')).toBeInTheDocument();
+    const btn = screen.getByRole('button', { name: 'Mejorar' });
+    expect(screen.queryByText(/las mejoras cerradas/)).not.toBeInTheDocument();
+    await u.click(btn);
     expect(await screen.findByText(/las mejoras cerradas/)).toBeInTheDocument();
-    document.body.innerHTML = '';
-    renderWithProviders(<ImproveTab campaignId="c1" userId="nobody" repo={repo} progressionEnabled />);
-    expect(await screen.findByText('Necesitas un personaje en esta campaña para mejorarlo.')).toBeInTheDocument();
+    await u.click(btn);
+    expect(screen.queryByText(/las mejoras cerradas/)).not.toBeInTheDocument();
   });
   it('GroupTab lists PCs with avatar precedence, resistance, health and xp; «Ver ficha» callback', async () => {
     const repo = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER, CHARACTER_UNASSIGNED, { ...CHARACTER_OTHER, id: 'npc', kind: 'npc', name: 'Ogro' }]);

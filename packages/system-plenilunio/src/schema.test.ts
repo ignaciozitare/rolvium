@@ -22,8 +22,14 @@ describe('sheetSchema', () => {
     expect(fieldById('health')?.options?.map(o => o.value)).toEqual(['healthy', 'bruised', 'wounded', 'badlyWounded', 'dead']);
   });
   it('marks derived fields', () => {
-    for (const id of ['endurance', 'resistanceMax', 'recoveryMax', 'fortuneMax', 'dicePenalty', 'protection', 'armourPenalty', 'giftPoints']) expect(fieldById(id)?.derived).toBe(true);
+    for (const id of ['endurance', 'resistanceMax', 'fortuneMax', 'dicePenalty', 'protection', 'armourPenalty', 'giftPoints']) expect(fieldById(id)?.derived).toBe(true);
     expect(fieldById('resistance')?.derived).toBeFalsy();
+    // «Resistencia recuperable descansando» era el mismo número que «Resistencia máxima» (p.101).
+    expect(fieldById('recoveryMax')).toBeNull();
+    // Se guarda y se valida, pero no se pinta: lo escribe el motor, no se elige (p.101, RULES.md §6.2).
+    expect(fieldById('unconscious')?.hidden).toBe(true);
+    expect(fieldById('unconscious')?.derived).toBeUndefined();   // se GUARDA: `derived` lo dejaría fuera de `newSheet`
+    expect(fieldById('health')?.note?.({ unconscious: 'yes' })).toBe('sheet.state.unconsciousNote');
   });
   it('every field label and option label resolves in es and en', () => {
     for (const f of sections.flatMap(s => s.fields)) {

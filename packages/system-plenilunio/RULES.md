@@ -81,7 +81,8 @@ Cada vez que sube el Destino se recibe **1 punto de don** nuevo (p. 89).
 
 ### 1.6 Últimos cálculos (p. 25)
 - **Aguante** = Fortaleza + Voluntad ± modificador de tamaño.
-- **Resistencia** = 3 × Aguante. La hoja impresa tiene hueco para 30 casillas.
+- **Resistencia** = 3 × Aguante **mientras el personaje esté Sano o Magullado**; Herido y Malherido bajan ese
+  máximo a 2× y 1× (p. 101, §6.3). La hoja impresa tiene hueco para 30 casillas.
   - ⚠ interpretación: la regla es 3×Aguante sin tope; no aplicamos tope de 30 (un héroe legendario 6+6 tiene 36).
   - Cómo se leen las casillas (p. 25, literal): «sombrea los puntos sobrantes y deja los cuadrados en blanco
     correspondientes a tu Resistencia **para poder tacharlos durante el juego**». En la hoja impresa hay tres
@@ -181,7 +182,9 @@ De **1 a 10**. PJ empiezan 1–5. Al llegar a 10 el destino se cumple: última a
 - Con **Destino 10** ya no se puede usar la reserva (p. 90).
 
 ### 3.3 Fortuna (p. 89–90)
-Máximo = Destino; se empieza cada aventura al máximo. Usos:
+**Máximo = Destino**, y es un tope duro, literal (p. 90): «los puntos de Fortuna de un personaje **nunca pueden
+llegar a ser mayores que la puntuación de Destino** del personaje». No hay tope propio de 10: el 10 es de Destino
+(§3.1) y la Fortuna lo hereda. Se empieza cada aventura al máximo. Usos:
 1. **Activar un don**: 1 punto.
 2. **Reducir la severidad de una herida**: 1 punto por nivel de herida reducido (se pierde Resistencia igualmente).
 3. **Recobrar el aliento**: 1 punto → recupera la mitad de la Resistencia perdida.
@@ -300,7 +303,8 @@ penalización pasan a ser éxitos normales (si son menos, todos); un triunfo dob
 ## 6. Salud (pp. 98–101)
 
 ### 6.1 Resistencia y heridas (p. 98)
-Todo daño resta Resistencia. Resistencia 0 = al límite; **un punto más → inconsciente**.
+Todo daño resta Resistencia. Resistencia 0 = al límite; **un punto más → inconsciente** (§6.2: la p. 101 lo
+cuenta distinto y ahí está anotada la contradicción).
 Si el daño de un golpe ≥ Aguante, además produce herida:
 
 | Daño en un golpe   | Niveles de salud perdidos |
@@ -313,13 +317,53 @@ Si el daño de un golpe ≥ Aguante, además produce herida:
 
 Fortuna: 1 punto por nivel de severidad que se quiera reducir (§3.3).
 
-### 6.2 Niveles de salud (p. 98–99)
-**Sano · Magullado (sin penalización) · Herido (−1 dado) · Malherido (−2 dados) · Muerto**; más el estado
-**Inconsciente** (Resistencia agotada). Perder todos los niveles = muerte.
+### 6.2 Niveles de salud (p. 98–101) — son SEIS, y el sexto es Inconsciente
+La tira de lunas de la hoja tiene **cinco** fases: **Sano · Magullado** (sin penalización) **· Herido** (−1 dado)
+**· Malherido** (−2 dados) **· Muerto**. Perder todos los niveles = muerte.
+
+Pero el libro anuncia «los personajes de Plenilunio tienen **seis niveles básicos de salud**» (p. 99) y en esa
+página sólo caben cinco: **p. 100 es una ilustración a página completa y la lista continúa en la p. 101** con el
+sexto, literal:
+
+> «**Inconsciente:** El personaje ha perdido todos sus puntos de Resistencia por el daño acumulado durante un
+> combate o por otras fuentes de daño, y queda inconsciente e indefenso en el suelo.»
+
+O sea que **Inconsciente no es una rareza ni un añadido nuestro: es el sexto nivel del manual**. Lo que no es, es
+una **fase de luna**: no va en la tira sano→muerto (que la hoja oficial dibuja con cinco) ni sustituye a ninguna —
+se puede estar Herido **e** Inconsciente a la vez. Es un estado que **arrastra la Resistencia**, no las heridas.
+
+⚠ **Contradicción del libro, sin resolver** (no inventamos cuál gana):
+- **p. 98**: «Cuando lleguen a 0, el personaje está al límite de sus fuerzas: **si pierde un punto más**, caerá
+  inconsciente.» → a 0 sigue consciente; cae al siguiente punto.
+- **p. 101**: «ha perdido **todos** sus puntos de Resistencia … y queda inconsciente.» → a 0 ya está inconsciente.
+
+**El motor sigue la de p. 98** (`applyDamage`: cae cuando el daño neto deja la Resistencia **por debajo** de 0), que
+es la más explícita de las dos y la única que distingue «al límite» de «en el suelo». Por eso el estado se
+**guarda** (`unconscious`) en vez de deducirse de `resistance === 0`: a 0 hay que recordar si se llegó al límite o
+se pasó de él. Lo levanta `rest` (§6.3).
+
+⚠ Interpretación (ficha digital): **no se elige a mano**. Es una consecuencia que calculan las reglas, como el
+cargador de un arma, así que la ficha no ofrece desplegable: sale como **aviso** bajo las lunas cuando toca.
 
 ### 6.3 Recuperación (p. 101)
 - Tras la escena, con descanso/elipsis: Resistencia al máximo si Sano/Magullado; si Herido, hasta **2 × Aguante**;
   si Malherido, hasta **1 × Aguante**.
+- **La Resistencia máxima NO es siempre 3 × Aguante: la baja el estado de salud.** El libro lo dice así de literal:
+  «sus puntos de Resistencia máximos **pasan a ser** el doble de su Aguante, **en lugar del triple habitual**»
+  (Herido), y «sus puntos de Resistencia máximos **son iguales** a su Aguante» (Malherido). No es «lo que te cura
+  el descanso» y aparte un máximo: **es el máximo**, y el descanso lo que hace es llevarte hasta él.
+
+  | Estado                | Resistencia máxima |
+  |-----------------------|--------------------|
+  | Sano · Magullado      | 3 × Aguante        |
+  | Herido                | 2 × Aguante        |
+  | Malherido             | 1 × Aguante        |
+
+  Aguante 6: sana 18, herida 12, malherida 6. Por eso la ficha enseña **un solo** número («Resistencia máxima», la
+  del estado actual) y no dos — tenía «Resistencia máxima 18» y «recuperable descansando 12», que son la misma
+  cosa contada dos veces, y el 18 era el de una persona sana que el personaje ya no es.
+  ⚠ Interpretación: se capa la **subida**, nunca la bajada — una ficha puede llevar más Resistencia que su
+  máximo actual (bajar de Sano a Herido no te quita puntos ya marcados; el libro no manda tacharlos).
 - Heridas: reposo + tirada de Fortaleza; éxito = +1 nivel de salud; fallo = igual; **revés = −1 nivel** (Malherido → muere).
 
 | Estado     | Tiempo      | Dificultad |

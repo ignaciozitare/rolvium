@@ -75,14 +75,76 @@ describe('regresión · tarjetas de los números calculados de la ficha', () => 
     expect(container.querySelectorAll('.rv-sheet-field.num-derived')).toHaveLength(2);
   });
 
-  it('Plenilunio deja las DOS parejas que pidió el dueño seguidas, y en ese orden', () => {
+  /**
+   * Actualizado 2026-08-19 (revisión de Estado contra el PDF): la pareja «penalización + Resistencia
+   * recuperable» ya no existe — `recoveryMax` era el MISMO número que `resistanceMax` con otro nombre
+   * (p.101), así que se fusionaron. Los tres calculados del cuerpo van ahora en una tanda seguida, y
+   * ninguna tarjeta se queda sola en su fila.
+   */
+  it('Plenilunio deja los tres calculados del cuerpo SEGUIDOS, y sin campos editables en medio', () => {
     const state = sheetSchema.sections.find(s => s.id === 'state');
-    const ids = (state?.fields ?? []).map(f => f.id);
+    const ids = (state?.fields ?? []).filter(f => !f.hidden).map(f => f.id);
 
     expect(ids.indexOf('resistanceMax')).toBe(ids.indexOf('endurance') + 1);
-    expect(ids.indexOf('recoveryMax')).toBe(ids.indexOf('dicePenalty') + 1);
-    // «Inconsciente» ya no parte la pareja por la mitad
-    expect(ids.indexOf('unconscious')).toBeGreaterThan(ids.indexOf('recoveryMax'));
+    expect(ids.indexOf('dicePenalty')).toBe(ids.indexOf('resistanceMax') + 1);
+    // El número que se contaba dos veces ya no está
+    expect(ids).not.toContain('recoveryMax');
+  });
+
+  /**
+   * «Inconsciente» es el SEXTO nivel de salud del manual (p.101) y NO se elige a mano: lo calcula
+   * `applyDamage` al quedarse sin Resistencia. Se sigue GUARDANDO —`validateSheet` rechaza toda clave
+   * que el esquema no declare, así que borrarlo tumbaría el guardado tras recibir daño— pero no se
+   * pinta como desplegable: sale como aviso bajo las lunas. Antes era un `select` «Inconsciente Sí/No»
+   * en la rejilla de Estado, capaz de contradecir al motor.
+   */
+  it('«Inconsciente» sigue en el esquema pero no se pinta: sale como aviso bajo las lunas', () => {
+    const state = sheetSchema.sections.find(s => s.id === 'state');
+    const unconscious = state?.fields.find(f => f.id === 'unconscious');
+    expect(unconscious?.hidden).toBe(true);
+
+    const health = state?.fields.find(f => f.id === 'health');
+    expect(health?.note?.({ unconscious: 'yes' })).toBe('sheet.state.unconsciousNote');
+    expect(health?.note?.({ unconscious: 'no' })).toBeNull();
+
+    const { container } = renderWithProviders(
+      <Sheet schema={sheetSchema} data={{ unconscious: 'yes', health: 'wounded' }} derived={{}} t={(k: string) => k} labels={LABELS} icons={{}} />,
+    );
+    expect(container.querySelector('.rv-sheet-note')?.textContent).toBe('sheet.state.unconsciousNote');
+    expect(screen.queryByLabelText('sheet.state.unconscious')).toBeNull();
+  });
+
+  it('un campo `hidden` no se pinta, esté donde esté', () => {
+    const { container } = mount(schemaOf('grid', [
+      { id: 'visible', type: 'number', label: 'Visible', derived: true },
+      { id: 'oculto', type: 'select', label: 'Oculto', hidden: true, options: [{ value: 'no', label: 'No' }] },
+    ]), { oculto: 'no' }, { visible: 1 });
+
+    expect(container.querySelectorAll('select')).toHaveLength(0);
+    expect(screen.queryByText('Oculto')).toBeNull();
+    expect(screen.getByText('Visible')).toBeInTheDocument();
+  });
+
+  /**
+   * El techo de la Fortuna es el Destino (p.90, tope duro), no el `max: 10` que llevaba el esquema:
+   * Karen salía con «Fortuna 5 · Fortuna máxima 4» y el `+` seguía vivo. Se capa la SUBIDA, nunca la
+   * bajada — desde 5 con techo 4 hay que poder volver a bajar.
+   */
+  it('un contador con `<id>Max` calculado se capa contra el derivado, y sólo hacia arriba', () => {
+    mount(schemaOf('grid', [
+      { id: 'fortune', type: 'counter', label: 'Fortuna', min: 0, max: 10 },
+    ]), { fortune: 5 }, { fortuneMax: 4 });
+
+    expect(screen.getByLabelText('+ Fortuna')).toBeDisabled();
+    expect(screen.getByLabelText('− Fortuna')).toBeEnabled();
+  });
+
+  it('sin `<id>Max` derivado manda el `max` del esquema, como siempre', () => {
+    mount(schemaOf('grid', [
+      { id: 'xp', type: 'counter', label: 'Experiencia', min: 0, max: 6 },
+    ]), { xp: 6 }, {});
+
+    expect(screen.getByLabelText('+ Experiencia')).toBeDisabled();
   });
 
   it('las casillas y las lunas van a lo ancho de la tarjeta, para poder centrarse', () => {

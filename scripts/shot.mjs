@@ -21,7 +21,7 @@ await pg.waitForTimeout(3500);
 const gifts = pg.locator('[data-section="gifts"]');
 if (await gifts.count()) { await gifts.scrollIntoViewIfNeeded(); await pg.waitForTimeout(400); }
 await pg.screenshot({ path: '/tmp/full.png', fullPage: true });
-for (const s of ['gifts', 'equipment', 'armour', 'state', 'weapons']) {
+for (const s of ['identity', 'stats', 'gifts', 'equipment', 'armour', 'state', 'weapons']) {
   const el = pg.locator(`[data-section="${s}"]`);
   if (await el.count()) await el.first().screenshot({ path: `/tmp/sec-${s}.png` });
 }
