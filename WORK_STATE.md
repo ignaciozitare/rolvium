@@ -441,8 +441,10 @@ sólo las correcciones, por sistema e idioma.
     suma dados; cuerpo a cuerpo es un **conflicto enfrentado** y ahí sí suma la bonificación (p.96–97).
 
 
-### QA del dueño sobre la ficha (2026-08-19, tarde) — 11 puntos, NADA hecho
+### QA del dueño sobre la ficha (2026-08-19, tarde) — 11 puntos, 3 hechos
 Marcados los que el **libro** resuelve (verificado en el PDF) y los que son pantalla (→ `.pen` antes que código).
+**Actualizado 2026-08-19 noche:** la rama `fix/ficha-diseno` cierra el punto 10, la Resistencia invertida y el
+contraste de los rótulos. El resto sigue igual. Ver «Primera tanda del rediseño de la ficha» al final.
 
 1. ~~**La ficha en pestaña aparte no scrollea**~~ — **HECHO** (`a028692`), con test. Causa: `CharacterSheetPage` usa `className="tb-root"`,
    y `.tb-root` lleva `height:100dvh; overflow:hidden` — que existe para que la ESCENA no scrollee (el mapa se
@@ -468,8 +470,13 @@ Marcados los que el **libro** resuelve (verificado en el PDF) y los que son pant
    Así que cada arma debe ofrecer **sólo su acción**. Ya estaba anotado como «iconos ⚔/◎ por tipo de arma».
 9. **Tooltip de característica: sale un segundo tooltip que no debería**, y debe explicar la especialidad como
    dice el diseño, con más cuerpo porque no se lee. → `.pen` + bug de tooltip.
-10. **Dones, Equipo y Armadura, uno al lado del otro**, creciendo a la vez; Armas en su propia card y las otras
-    tres debajo. → `.pen`
+10. ~~**Dones, Equipo y Armadura, uno al lado del otro**, creciendo a la vez; Armas en su propia card y las otras
+    tres debajo.~~ — **HECHO a medias** (`bffc7b2`): `armour` baja detrás de `equipment` y pasa a `stack`, y el
+    grid de `.rv-sheet` baja de 420 a 340 de mínimo. ⚠ **Sólo se cumple a partir de 1052 px de ancho
+    disponible** (3×340 + 2×16 de gap). En la Mesa el ancho útil es `viewport − 298` (24 de padding de
+    `.tb-table` + 264 de `.tb-side` + 10 de gap), así que hacen falta **≥1350 px de viewport**: en un portátil
+    de 1280 salen dos columnas y Armadura se queda sola, que es justo lo que se quería evitar. En «ficha
+    aparte» (sin `.tb-side`) sí caben las tres a 1280. Medido por QA, 2026-08-19.
 11. **Fuera el registro de tiradas de la ficha**: ya está en la barra de tiradas. Duplicado.
 
 
@@ -487,11 +494,28 @@ Cinco de los siete son trabajo de **pantalla**: por la regla del dueño van al `
   especialidad, una característica) debe decir qué es, y al elegirla debe quedar **en la columna de la derecha**.
   Los datos YA existen: `catalog.gifts.<id>.summary` y `references` (clave → página + resumen propio). Falta la UI.
   El **glosario por característica ya está diseñado** en `GjeeD` y nunca se construyó.
-- **Las letras siguen sin leerse.** Tokens de `RolviumApp.css`; afecta a TODA la app, no sólo a la ficha.
+- ~~**Las letras siguen sin leerse.**~~ — **HECHO** (`bffc7b2`) para el token que más dolía: `--tx3` (rótulos y
+  notas pequeñas) y `--sys-ink-dim`. Afecta a TODA la app. ⚠ Queda vivo el dorado: `--sys-paper-hi` sobre
+  `--sys-gold` da **4,03:1** en `.rv-sheet-btn.gold` y `.rv-sheet-icon-btn`, y `--sys-gold` como texto sobre la
+  card da **3,17:1** (`.tb-btn-gold`) — los dos por debajo de 4,5:1 y en pantalla hoy. El `gold-hi` `#c9a44e`
+  (7,89:1) existe en el `.pen` como `pl-oro-claro` pero **no** en `theme.ts`: se retiró a propósito en `2a22c09`
+  porque no tenía consumidores. Entra con ellos, en el mismo commit, y sólo para fondo oscuro (sobre `paper` da 1,72:1).
 - **Las cards van sin borde y con sombra** (así está en el diseño); en producción no tienen sombra.
 - **Estado deja un hueco en blanco a la derecha**: tiene que ocupar el ancho que queda y reordenar sus componentes.
+  ⚠ **Sigue abierto y el cambio de 340 no lo arregla** (QA 2026-08-19): con tres columnas las secciones anchas
+  (`identity` por el avatar, `roll` y `creation` por `layout:'row'`, `weapons` y `story` por sus campos) cortan
+  la fila, y `stats` · `state` dejan la tercera celda vacía. Antes, con dos columnas, el hueco caía detrás de
+  `armour`; ahora cae detrás de `state`. Se ha movido, no se ha cerrado.
 
-### Resistencia — la casilla está INVERTIDA respecto al libro (p.25, verificado en el PDF)
+### ~~Resistencia — la casilla está INVERTIDA respecto al libro (p.25)~~ — HECHO (`bffc7b2` + `2a22c09`)
+**Cerrado en `fix/ficha-diseno`.** En blanco = lo que te queda, marcada en bordó (`--sys-blood`) = daño, el daño
+por delante y de izquierda a derecha, y la última marcada se devuelve al pulsarla. `RULES.md` recoge la lectura
+del libro y la ⚠ interpretación de la ficha digital (no hay estado *sombreado* porque se pintan exactamente
+`resistanceMax` casillas). El segundo commit arregla además que los clics se contaban contra `max` en vez de
+contra las casillas pintadas, lo que daba **Resistencia negativa** en una ficha con `resistance > resistanceMax`.
+Sigue vivo el aviso ⚠ de abajo sobre el «6 de 24» — no se ha reproducido.
+
+Texto original, para contexto:
 El libro dice: «sombrea los puntos **sobrantes** y deja los cuadrados **en blanco** correspondientes a tu
 Resistencia **para poder tacharlos durante el juego**». O sea: en blanco = la Resistencia que te queda, y se van
 **tachando** según recibes daño. Hoy el kit pinta en negro las `val` primeras casillas, con `val` = Resistencia
@@ -652,3 +676,36 @@ en diagnosticar «bugs» que ya estaban arreglados. **Comprueba `git log origin/
   caliente por eso. Si necesitas resetear, avisa al dueño antes.
 - El `.pen` **sólo lo puede guardar el dueño** (Cmd+S en la pestaña): no hay permiso de Accesibilidad para automatizarlo.
   Comprobar siempre `ls -la rolvium.pen` antes de dar por hecho que el diseño está en disco.
+
+## 📍 Primera tanda del rediseño de la ficha — rama `fix/ficha-diseno` (2026-08-19, QA pasado)
+
+Dos commits: `bffc7b2` (Resistencia + orden + contraste) y `2a22c09` (arreglos del Review). Puertas verificadas
+por el subagente QA: web 346 · api 77 · core 6 · plenilunio 70 · `typecheck` OK · `audit` 0 hard / 9 warn ·
+`build:web` + `build:api` OK · sondas de producción 200/200 · advisors de Supabase 0 CRITICAL (21 WARN, la línea
+base de siempre; la rama no toca migraciones).
+
+**Lo que cierra:** la Resistencia al derecho del libro (p.25, releída en el PDF por QA: página 27 del fichero),
+`armour` detrás de `equipment` y en `stack`, el grid de la ficha a 340, y `--tx3` / `--sys-ink-dim` por encima
+de 4,5:1. `RULES.md` corregido ANTES que el código, como manda la regla del manual.
+
+**Deuda encontrada por QA y NO tocada** (decisión del dueño, ninguna bloquea):
+1. **El hueco de `state` sigue ahí** y ahora es el hueco de tres columnas — ver el punto de arriba. Es trabajo
+   de `.pen`, no de CSS suelto.
+2. **En la Mesa hacen falta ≥1350 px de viewport** para que Dones · Equipo · Armadura salgan en fila. A 1280 no.
+   Si el dueño trabaja en un portátil de 1280, el cambio no se le nota en la Mesa (sí en «ficha aparte»).
+3. **`--tx3` es a la vez «texto atenuado» y «control desactivado»** (`DataTable.tsx:216`, `DateRangePicker.tsx:238`,
+   `MultiSelectDropdown.tsx:170`). Al subirle el contraste, la distancia entre activo (`--tx`) y desactivado
+   (`--tx3`) cae de 4,36:1 a 2,76:1 en oscuro y de 5,29:1 a 2,68:1 en claro: **un control vetado se ve menos
+   vetado**. Choca con el invariante del proyecto. Hace falta un token propio de «desactivado», no reusar `--tx3`.
+4. **Las casillas de Resistencia no se ven vetadas en solo lectura**: `.rv-sheet-box:disabled` sólo cambia el
+   cursor, sin `opacity` como sí hacen `.rv-sheet-btn` y `.rv-sheet-icon-btn`. Igual `.rv-sheet-health-opt`.
+   Viene de antes de esta rama, pero con la inversión duele más (21 cuadrados vacíos que parecen pulsables).
+5. **Tautología nueva en `Sheet.tsx`**: en `hits = Math.min(len, Math.max(0, len - val))`, el `Math.max(0, …)`
+   no se alcanza nunca porque `len = Math.max(max, val) ≥ val`. El `Math.min` sí hace falta (protege de un
+   `val` negativo). Es la misma clase de tautología que el 2º commit quitó de `val`.
+6. **`--sys-gold` sigue por debajo de 4,5:1** — ver el punto del contraste más arriba.
+7. **`npm run audit` no detecta los `var()` con fallback anidado**: `design:var-fallback` da 0, pero hay cuatro
+   en `packages/ui/src/components/DateRangePicker.tsx` (185, 188, 193, 297) con la forma `var(--x,var(--y))`.
+   Es un agujero en la puerta determinista, no en esta rama.
+8. **`.tb-root` duplica en hex la paleta de Plenilunio** (`table.css:5`). Ya se desincronizó una vez con
+   `ink-dim`. Anotado en el propio fichero por el Review; sigue pendiente de limpiar.

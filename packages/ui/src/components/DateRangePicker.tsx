@@ -235,7 +235,7 @@ export function DateRangePicker({
             let border = 'none';
             let fontWeight = 400;
 
-            if (disabled) { color = 'var(--tx3)'; }
+            if (disabled) { color = 'var(--tx-off)'; }
             else if (isStart || isEnd) { bg = '#4f6ef7'; color = '#fff'; fontWeight = 700; }
             else if (inRange) { bg = 'rgba(79,110,247,.15)'; color = '#93b4ff'; }
             if (isToday && !isStart && !isEnd) { border = '1px solid var(--tx3)'; }

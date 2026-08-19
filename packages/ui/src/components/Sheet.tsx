@@ -114,7 +114,9 @@ export function Sheet(p: SheetProps): JSX.Element {
          * de un `val` corrupto por debajo de 0.
          */
         const len = Math.max(max, val);
-        const hits = Math.min(len, Math.max(0, len - val));
+        // `len >= val` por construccion, asi que `len - val` nunca es negativo: sobra el suelo. El tope
+        // si hace falta, y protege de un `val` guardado por debajo de 0. (Hallazgo del QA.)
+        const hits = Math.min(len, len - val);
         return (
           <div className="rv-sheet-field">{label(f)}
             <div className="rv-sheet-boxes" role="group" aria-label={p.t(f.label)}>

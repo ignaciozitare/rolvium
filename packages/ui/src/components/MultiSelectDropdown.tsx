@@ -167,7 +167,7 @@ export function MultiSelectDropdown({
                       }}
                     >
                       <span className="material-symbols-outlined" style={{
-                        fontSize: 'var(--fs-sm)', color: checked ? 'var(--ac)' : 'var(--tx3)',
+                        fontSize: 'var(--fs-sm)', color: checked ? 'var(--ac)' : 'var(--tx-off)',
                       }}>
                         {checked ? 'check_box' : 'check_box_outline_blank'}
                       </span>

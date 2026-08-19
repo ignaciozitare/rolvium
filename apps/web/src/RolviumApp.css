@@ -27,10 +27,14 @@
   --purple:#a97fe0; --purple-dim:rgba(169,127,224,.14);
   --danger:#ffb4ab; --danger-strong:#e0625c;
   /* Text — parchment */
-  /* --tx3 daba 3,44:1 sobre el fondo oscuro y 2,79:1 sobre el claro, por debajo del minimo de 4,5:1
-     de texto, y es el token de los rotulos y las notas pequenas: de ahi el «las letras no se leen»
-     del dueno. Medido, no estimado. Ahora 5,43:1 y 5,52:1. (2026-08-19) */
-  --tx:#efe6d6; --tx2:#b3a898; --tx3:#8f87a0;
+  /* --tx3 es el texto atenuado (rotulos, notas, estados vacios) y estaba por debajo del minimo de
+     4,5:1 de texto en los dos temas: 3,60:1 sobre --bg oscuro y 2,68:1 sobre --bg claro. De ahi el
+     «las letras no se leen». Ahora 5,69:1 y 5,30:1, medido sobre --bg de cada tema.
+     --tx-off es DISTINTO a proposito y conserva los valores viejos: es el gris de «desactivado».
+     Si se reusara --tx3 para eso, subirle el contraste acercaria activo y desactivado (de 4,36:1
+     a 2,76:1 en oscuro) y un control vetado se veria MENOS vetado — justo al reves del invariante
+     del proyecto. Hallazgo del QA, 2026-08-19. */
+  --tx:#efe6d6; --tx2:#b3a898; --tx3:#8f87a0; --tx-off:#6f6680;
   --shadow:0 10px 30px rgba(0,0,0,.55);
   --login-hero:radial-gradient(circle at 30% 20%,rgba(224,164,88,.18),transparent 55%),radial-gradient(circle at 80% 80%,rgba(169,127,224,.14),transparent 50%),#0a090d;
   color-scheme:dark;
@@ -47,10 +51,14 @@
   --red:#e0625c;   --red-dim:rgba(224,98,92,.14);
   --purple:#a97fe0; --purple-dim:rgba(169,127,224,.14);
   --danger:#ffb4ab; --danger-strong:#e0625c;
-  /* --tx3 daba 3,44:1 sobre el fondo oscuro y 2,79:1 sobre el claro, por debajo del minimo de 4,5:1
-     de texto, y es el token de los rotulos y las notas pequenas: de ahi el «las letras no se leen»
-     del dueno. Medido, no estimado. Ahora 5,43:1 y 5,52:1. (2026-08-19) */
-  --tx:#efe6d6; --tx2:#b3a898; --tx3:#8f87a0;
+  /* --tx3 es el texto atenuado (rotulos, notas, estados vacios) y estaba por debajo del minimo de
+     4,5:1 de texto en los dos temas: 3,60:1 sobre --bg oscuro y 2,68:1 sobre --bg claro. De ahi el
+     «las letras no se leen». Ahora 5,69:1 y 5,30:1, medido sobre --bg de cada tema.
+     --tx-off es DISTINTO a proposito y conserva los valores viejos: es el gris de «desactivado».
+     Si se reusara --tx3 para eso, subirle el contraste acercaria activo y desactivado (de 4,36:1
+     a 2,76:1 en oscuro) y un control vetado se veria MENOS vetado — justo al reves del invariante
+     del proyecto. Hallazgo del QA, 2026-08-19. */
+  --tx:#efe6d6; --tx2:#b3a898; --tx3:#8f87a0; --tx-off:#6f6680;
   --shadow:0 10px 30px rgba(0,0,0,.55);
   --login-hero:radial-gradient(circle at 30% 20%,rgba(224,164,88,.18),transparent 55%),radial-gradient(circle at 80% 80%,rgba(169,127,224,.14),transparent 50%),#0a090d;
   color-scheme:dark;
@@ -67,7 +75,7 @@
   --red:#b93630;   --red-dim:rgba(185,54,48,.12);
   --purple:#6b3fb0; --purple-dim:rgba(107,63,176,.12);
   --danger:#b93630; --danger-strong:#8f2520;
-  --tx:#221c2b; --tx2:#5b5266; --tx3:#67605a;
+  --tx:#221c2b; --tx2:#5b5266; --tx3:#67605a; --tx-off:#9a9088;
   --shadow:0 10px 30px rgba(40,30,10,.12);
   --login-hero:radial-gradient(circle at 30% 20%,rgba(184,116,42,.16),transparent 55%),radial-gradient(circle at 80% 80%,rgba(107,63,176,.10),transparent 50%),#efe8da;
   color-scheme:light;
