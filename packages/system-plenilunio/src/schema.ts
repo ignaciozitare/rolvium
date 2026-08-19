@@ -87,7 +87,10 @@ export const sections: SectionDef[] = [
       // Dos columnas distintas y a menudo confundidas: `ammo` es lo que hay EN el cargador y `reserve`
       // las balas sueltas que llevas encima. Recargar mueve de la segunda a la primera. Ninguna aparece
       // en las armas cuerpo a cuerpo: el libro les pone «-» en Cargador (p.97).
-      { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
+      // El cargador NO se toca a mano (dueño): lo bajan los disparos y lo sube el botón de recargar.
+      // `derived` aquí no significa «calculado del catálogo», significa «no editable en la tabla»:
+      // la celda pinta el valor que la fila ya guarda.
+      { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0, derived: true, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
       { id: 'reserve', type: 'counter', label: 'sheet.weapons.reserve', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
     ] },
   ] },
