@@ -394,7 +394,12 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
     if (own !== undefined && own !== null && own !== '') return str(own);
     const item = catalog.find(x => x.id === str(row.id));
     const v = item?.data?.[c.id];
-    return v === undefined || v === null ? '—' : typeof v === 'string' ? p.t(v) : str(v);
+    if (v === undefined || v === null) return '—';
+    // Si la columna declara `options`, el valor del catálogo es un id y su rótulo sale de ahí: el
+    // alcance guarda `medium` para las reglas y se pinta «Medio · hasta 50 m · dif. 3». Antes se
+    // traducía el id crudo, así que en pantalla salía literalmente «medium».
+    const opt = c.options?.find(o => o.value === str(v));
+    return opt ? p.t(opt.label) : typeof v === 'string' ? p.t(v) : str(v);
   };
   return (
     <div className="rv-sheet-field span">

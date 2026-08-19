@@ -521,7 +521,7 @@
       "synced": "sincronizada con la mesa",
       "damage": "Recibir daño",
       "damageAmount": "Daño",
-      "damageHint": "la protección resta · cada múltiplo del aguante tacha un nivel de salud",
+      "damageHint": "la protección resta · la salud baja según lo que UN golpe supere tu aguante, no según lo acumulado",
       "damageResult": "{{damage}} − {{protection}} de protección = {{net}} casillas tachadas",
       "damageNone": "{{damage}} − {{protection}} de protección = 0 · la armadura lo para entero",
       "damageLevel": " · y bajas a {{health}}",

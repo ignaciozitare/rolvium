@@ -81,7 +81,7 @@ export const sections: SectionDef[] = [
       { id: 'id', type: 'select', label: 'sheet.weapons.name', options: WEAPONS.map(x => ({ value: x.id, label: x.label })) },
       { id: 'bonus', type: 'number', label: 'sheet.weapons.bonus', derived: true },
       { id: 'damage', type: 'text', label: 'sheet.weapons.damage', derived: true },
-      { id: 'range', type: 'text', label: 'sheet.weapons.range', derived: true },
+      { id: 'range', type: 'text', label: 'sheet.weapons.range', derived: true, options: (['melee', 'short', 'medium', 'long', 'veryLong'] as const).map(r => ({ value: r, label: `sheet.range.${r}` })) },
       // Sólo las armas de fuego tienen cargador: el libro pone «-» en las nueve de cuerpo a cuerpo
       // (p.97) y `magazine` es null en el catálogo. Sin esto salían unas Nudilleras con 14 balas.
       { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },

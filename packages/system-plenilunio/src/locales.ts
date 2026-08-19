@@ -22,7 +22,8 @@ const es: Messages = {
     story: { text: 'Aspecto e historia' },
     creation: { preset: 'Reparto de puntos', specialtyTrade: 'Puntos canjeados por especialidades', giftTrade: 'Puntos canjeados por dones' },
     actions: { attackMelee: 'Atacar cuerpo a cuerpo', attackRanged: 'Disparar', activateGift: 'Activar don', giftCost: '1 Fortuna', damage: 'Recibir daño', reload: 'Recargar' },
-    range: { melee: 'Cuerpo a cuerpo', short: 'Corto', medium: 'Medio', long: 'Largo', veryLong: 'Muy largo' },
+    // Con los metros y la dificultad del reto, que es lo que hace falta saber al disparar (p.95–96).
+    range: { melee: 'Cuerpo a cuerpo', short: 'Corto · hasta 20 m · dif. 2', medium: 'Medio · hasta 50 m · dif. 3', long: 'Largo · hasta 200 m · dif. 5', veryLong: 'Muy largo · hasta 800 m · dif. 6' },
   },
   catalog: {
     weapons: {
@@ -155,7 +156,7 @@ const en: Messages = {
     story: { text: 'Looks and story' },
     creation: { preset: 'Point spread', specialtyTrade: 'Points traded for specialties', giftTrade: 'Points traded for gifts' },
     actions: { attackMelee: 'Melee attack', attackRanged: 'Shoot', activateGift: 'Activate gift', giftCost: '1 Fortune', damage: 'Take damage', reload: 'Reload' },
-    range: { melee: 'Melee', short: 'Short', medium: 'Medium', long: 'Long', veryLong: 'Very long' },
+    range: { melee: 'Melee', short: 'Short · up to 20 m · diff. 2', medium: 'Medium · up to 50 m · diff. 3', long: 'Long · up to 200 m · diff. 5', veryLong: 'Very long · up to 800 m · diff. 6' },
   },
   catalog: {
     weapons: {

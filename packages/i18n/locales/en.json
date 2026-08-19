@@ -521,7 +521,7 @@
       "synced": "synced with the table",
       "damage": "Take damage",
       "damageAmount": "Damage",
-      "damageHint": "protection subtracts · every multiple of endurance marks a health level",
+      "damageHint": "protection subtracts · health drops by how much ONE blow beats your endurance, not by the total",
       "damageResult": "{{damage}} − {{protection}} protection = {{net}} boxes crossed",
       "damageNone": "{{damage}} − {{protection}} protection = 0 · the armour stops it whole",
       "damageLevel": " · and you drop to {{health}}",
