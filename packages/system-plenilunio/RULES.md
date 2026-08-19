@@ -30,10 +30,13 @@ Tabla de repartos (p. 21):
 
 ### 1.3 Especialidades (p. 21–22)
 Descriptor asociado a una característica; lista abierta. Cada personaje empieza con **una por característica**.
-Canje: 1 punto de característica → 2 especialidades extra en dos características distintas.
-Un segundo canje solo con permiso del DJ (máx. 2 canjes). El DJ debería evitar >2 especialidades en la misma
-característica (sobre todo Combate).
-- ⚠ interpretación: con dos canjes permitimos hasta 1 + nº de canjes especialidades por característica.
+Canje: 1 punto de característica → 2 especialidades extra **en dos características distintas**.
+Un segundo canje solo con permiso del DJ (máx. 2 canjes).
+- **No es interpretación, se deduce del libro** (verificado contra el PDF, p.23): cada canje reparte sus 2 extra en
+  DOS características distintas, así que por característica el techo es **1 + nº de canjes** (máx. 3 con los dos
+  canjes) y el total es **11** (7 + 2×2). Es lo que aplica el generador, al elegir.
+- Lo que el libro da como **consejo al DJ y no como regla**: «debería pensárselo muy bien antes de permitir que un
+  personaje tenga más de dos especialidades en la misma característica, especialmente en Combate». No se codifica.
 
 Lista del manual (por característica):
 - **Fortaleza (19):** Acrobacias, Atletismo, Bebedor, Buceador, Cargar, Ciclismo, Danza, Derribar puertas, Equilibrio, Escapismo, Esprintar, Mantenerse despierto, Montar, Nadar, Parkour, Saltar, Trepar, Vigor, Zafarse.
@@ -55,8 +58,13 @@ Rango inicial efectivo: **1–5** (p. 88 confirma que los PJ empiezan entre 1 y 
 
 ### 1.5 Dones en creación (p. 23–25; detalle p. 102+)
 Puntos de don iniciales = **Destino**. Se reparten libremente entre dones (nivel máx. inicial **5**).
-Canje: 1 punto de característica → **2 puntos de don** (sin límite explícito de canjes; el campo tampoco
-lleva tope, sólo lo frena lo pagable).
+Canje: 1 punto de característica → **2 puntos de don**.
+- ⚠ **interpretación, y la más floja que tenemos** (verificado contra el PDF, p.25). El libro dice literalmente
+  «Puede gastarse **un punto** de característica para recibir dos puntos de dones adicionales», y no añade
+  ninguna cláusula de límite. Lo leemos como «por cada punto», sin tope más allá de lo pagable. **Pero el
+  contraste con las especialidades incomoda**: allí (p.23) el libro sí se molesta en decir «en principio solo se
+  puede gastar un único punto de característica de este modo» y en abrir la puerta a un segundo con permiso del
+  DJ. Aquí no dice ni una cosa ni la otra. Cabe leerlo como un único canje. **Pendiente de decisión del dueño.**
 Cada vez que sube el Destino se recibe **1 punto de don** nuevo (p. 89).
 - ⚠ interpretación: el libro no pone tope al número de canjes, pero sí lo pone lo que puedes pagar — no se
   canjean puntos de característica que no tienes. El generador lo veta ahí, no con un número inventado.
