@@ -228,7 +228,13 @@ Sale de que el dueño probó el generador con la versión buena. Los tres arregl
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
 ### Últimos cuatro del dueño (2026-08-19, tarde)
-12. **Un personaje creado no aparece ni en `/characters` ni en «Colocar PJ» del mapa.** Revisado el código y
+12. ~~**Un personaje creado no aparece**~~ → **NO SE GUARDA**. El dueño lo precisó: salió de la campaña, volvió
+    y no estaba. La base NO es el problema: probado el insert exacto bajo RLS como director, con `owner_id NULL`
+    y `kind 'pc'`, y entra. Lo que había era que **el generador se tragaba el error** (`catch { setFailed(true) }`),
+    así que un fallo de guardado era indistinguible de que no hubiera pasado nada. **Ya se ve el motivo**
+    (commit `a028692`): el estado de fallo guarda el mensaje y se pinta. **La causa raíz sigue sin identificar** —
+    lo primero del chat nuevo es crear un personaje y LEER lo que dice ese aviso.
+    (Redacción original, por si sirve: no aparecía ni en `/characters` ni en «Colocar PJ» del mapa.) Revisado el código y
     **debería aparecer**: `CharactersPage` lista `listMine()` + `listByCampaign()` de cada campaña mía y filtra
     los `isUnassigned`; el mapa usa `listByCampaign().filter(kind === 'pc')`. La RLS tampoco lo tapa (el
     director ve todo lo de su campaña). Sospechas por orden: que la campaña no salga en `campaigns.listMine()`
@@ -247,7 +253,7 @@ Sale de que el dueño probó el generador con la versión buena. Los tres arregl
 ### QA del dueño sobre la ficha (2026-08-19, tarde) — 11 puntos, NADA hecho
 Marcados los que el **libro** resuelve (verificado en el PDF) y los que son pantalla (→ `.pen` antes que código).
 
-1. **La ficha en pestaña aparte no scrollea.** Causa encontrada: `CharacterSheetPage` usa `className="tb-root"`,
+1. ~~**La ficha en pestaña aparte no scrollea**~~ — **HECHO** (`a028692`), con test. Causa: `CharacterSheetPage` usa `className="tb-root"`,
    y `.tb-root` lleva `height:100dvh; overflow:hidden` — que existe para que la ESCENA no scrollee (el mapa se
    comía el alto). La página suelta hereda esa regla y se queda sin scroll. Necesita su propia clase.
 2. **Disparar tiene que gastar munición.** El libro trae columna «Cargador» por arma (p.97) y recargar es una
@@ -380,8 +386,9 @@ actual: un personaje sano sale **todo negro**, y al recibir daño se va **despin
 > canje de dones a 2 (el segundo con permiso del DJ) y `RULES.md` verificado contra el PDF del manual, que está
 > en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf` — **úsalo, el manual manda y las páginas del
 > PDF van con 2 de desfase sobre las del libro**. Empieza por: (1) Review + QA a esa rama y subirla, (2) el
-> punto 12 del backlog (un personaje creado no aparece en `/characters` ni en el mapa) — reprodúcelo antes de
-> tocar código, (3) la tanda de diseño en el `.pen` del generador y la ficha, que cubre 15 puntos del backlog.
+> punto 12 del backlog: **un personaje creado NO SE GUARDA**. El generador ya no se traga el error, así que
+> crea uno y **lee el mensaje que sale**; la base acepta el insert bajo RLS, está probado, así que el motivo es
+> del cliente, (3) la tanda de diseño en el `.pen` del generador y la ficha, que cubre 15 puntos del backlog.
 > Diseño en `.pen` ANTES de cualquier código de UI, orden del dueño. Flujo: dev → review → qa.
 > Dos decisiones del dueño pendientes: el ancho de los 14 frames de Mesa (con 6 pestañas la barra pide 1486 px
 > y el frame da 1420; dijo que NO se acortan rótulos) y si quiere el interruptor del director como opción de
