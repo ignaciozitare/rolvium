@@ -2,9 +2,11 @@
    Themed ONLY through --sys-* variables (set by the game system's VisualTheme
    on the table container). Platform tokens are used for spacing/typo scale.
    rolvium.pen: Mesa/Plenilunio·Jugador (Ficha), Personajes/Ficha aparte, PL/Hoja. */
-/* 340 y no 420: con 420 solo caben DOS columnas en el ancho de la mesa (1120) y Dones, Equipo y
-   Armadura no podian ponerse una al lado de la otra, que es como las quiere el dueno. Con 340 caben
-   las tres (3x340=1020) y el grid ya las estira a la altura de la mas alta por si mismo. */
+/* 340 y no 420: con 420 solo caben DOS columnas en el ancho de la mesa y Dones, Equipo y Armadura no
+   podian ponerse una al lado de la otra, que es como las quiere el dueno. Con 340 caben las tres a
+   partir de 3x340 + 2x16 de gap = 1052px de ancho DISPONIBLE (no 1020: los huecos cuentan), y el grid
+   ya las estira a la altura de la mas alta por si mismo. Por debajo de 1052 se cae a dos columnas y
+   Armadura se queda sola en su fila; a 1052+ el hueco cae a la derecha de Estado. */
 .rv-sheet{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px;color:var(--sys-ink);font-family:var(--sys-font-body);}
 .rv-sheet-section{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px;min-width:0;}
 .rv-sheet-section.wide{grid-column:1/-1;}
@@ -50,10 +52,12 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-boxes{display:flex;flex-wrap:wrap;gap:4px;max-width:100%;}
 .rv-sheet-box{width:16px;height:16px;padding:0;border:1px solid var(--sys-border);background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);cursor:pointer;}
 /* Manual p.25: en blanco es la Resistencia que te QUEDA; las marcadas son el dano recibido.
-   Bordo (`--sys-blood`), no una cruz: decision del dueno 2026-08-19. `.on` se queda por si algun
-   otro campo `boxes` quisiera la lectura contraria; hoy `resistance` es el unico del esquema. */
+   Bordo (`--sys-blood`), no una cruz: decision del dueno 2026-08-19.
+   Fuera `.on`: ningun camino del codigo emite ya esa clase, asi que era CSS inalcanzable, y el
+   comentario que la guardaba «por si otro campo boxes quisiera la lectura contraria» prometia una
+   opcion que nadie podia activar. El dia que exista un `boxes` de acumulacion (XP, marcas), entran
+   juntos el flag del esquema y la clase, en el mismo commit. Hallazgo del Review. */
 .rv-sheet-box.hit{background:var(--sys-blood);border-color:var(--sys-blood);}
-.rv-sheet-box.on{background:var(--sys-ink);border-color:var(--sys-ink);}
 .rv-sheet-box:disabled{cursor:default;}
 .rv-sheet-caption{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
 /* health (PL/Salud) */

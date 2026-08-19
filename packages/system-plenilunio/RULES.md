@@ -83,7 +83,17 @@ Cada vez que sube el Destino se recibe **1 punto de don** nuevo (p. 89).
 - **Aguante** = Fortaleza + Voluntad ± modificador de tamaño.
 - **Resistencia** = 3 × Aguante. La hoja impresa tiene hueco para 30 casillas.
   - ⚠ interpretación: la regla es 3×Aguante sin tope; no aplicamos tope de 30 (un héroe legendario 6+6 tiene 36).
-- **Fortuna máxima** = Destino; se empieza con la Fortuna al máximo.
+  - Cómo se leen las casillas (p. 25, literal): «sombrea los puntos sobrantes y deja los cuadrados en blanco
+    correspondientes a tu Resistencia **para poder tacharlos durante el juego**». En la hoja impresa hay tres
+    estados: *sombreado* = casilla que no tienes (de las 30 impresas, las que pasan de tu Resistencia),
+    *en blanco* = Resistencia disponible, *tachado* = daño recibido.
+  - ⚠ interpretación (ficha digital): pintamos exactamente `resistanceMax` casillas, así que el estado
+    *sombreado* no existe — no hay sobrantes que sombrear. Quedan los otros dos: **en blanco = lo que te
+    queda**, **marcada (bordó) = daño**, y el daño se marca por delante, de izquierda a derecha, como se
+    tacha en papel. Pulsar la última marcada la devuelve.
+- **Fortuna máxima** = Destino; se empieza con la Fortuna al máximo (p. 25: mismo texto de sombrear los
+  excedentes y dejar en blanco tantas casillas como el Destino). En la ficha digital la Fortuna es un
+  `counter`, no `boxes`, así que la lectura de casillas no le aplica hoy.
 
 Tamaños (p. 25):
 
