@@ -3,6 +3,7 @@ import type { SheetData } from '@rolvium/core';
 import type { Character, CharacterAuditEntry, CharacterPatch, CreateCharacterInput, WriteOrigin } from '../domain/entities/Character';
 import type { CharactersPort } from '../domain/ports/CharactersPort';
 import type { SheetSavePort, SheetSaveResult, SheetSaveError } from '../domain/ports/SheetSavePort';
+import { dbError } from '@/shared/lib/errors';
 import { HttpSheetAdapter } from './HttpSheetAdapter';
 
 interface Row {
@@ -42,19 +43,19 @@ export class SupabaseCharactersRepo implements CharactersPort {
     const me = await this.me();
     if (!me) return [];
     const { data, error } = await this.db.from('characters').select(SELECT).eq('owner_id', me).is('archived_at', null).order('updated_at', { ascending: false });
-    if (error) throw error;
+    if (error) throw dbError(error);
     return (data as unknown as Row[]).map(mapCharacterRow);
   }
 
   async listByCampaign(campaignId: string): Promise<Character[]> {
     const { data, error } = await this.db.from('characters').select(SELECT).eq('campaign_id', campaignId).is('archived_at', null).order('created_at');
-    if (error) throw error;
+    if (error) throw dbError(error);
     return (data as unknown as Row[]).map(mapCharacterRow);
   }
 
   async getById(id: string): Promise<Character | null> {
     const { data, error } = await this.db.from('characters').select(SELECT).eq('id', id).maybeSingle();
-    if (error) throw error;
+    if (error) throw dbError(error);
     return data ? mapCharacterRow(data as unknown as Row) : null;
   }
 
@@ -66,7 +67,7 @@ export class SupabaseCharactersRepo implements CharactersPort {
       health: input.health ?? null, color: input.color ?? null, created_by: me,
     };
     const { data, error } = await this.db.from('characters').insert(row).select(SELECT).single();
-    if (error) throw error;
+    if (error) throw dbError(error);
     const c = mapCharacterRow(data as unknown as Row);
     // Link my member row to my own PC (players may only update character_id on their row).
     if (c.ownerId && c.ownerId === me && c.kind === 'pc') {
@@ -91,26 +92,26 @@ export class SupabaseCharactersRepo implements CharactersPort {
       // Tell the audit trigger where this change comes from (same transaction is not guaranteed over REST,
       // so the RPC sets it and performs the update itself).
       const { error } = await this.db.rpc('characters_update_with_origin', { cid: id, patch: row, origin });
-      if (error) throw error;
+      if (error) throw dbError(error);
       return;
     }
     const { error } = await this.db.from('characters').update(row).eq('id', id);
-    if (error) throw error;
+    if (error) throw dbError(error);
   }
 
   async claim(id: string): Promise<void> {
     const { error } = await this.db.rpc('characters_claim', { cid: id });
-    if (error) throw error;
+    if (error) throw dbError(error);
   }
 
   async remove(id: string): Promise<void> {
     const { error } = await this.db.from('characters').delete().eq('id', id);
-    if (error) throw error;
+    if (error) throw dbError(error);
   }
 
   async listAudit(characterId: string): Promise<CharacterAuditEntry[]> {
     const { data, error } = await this.db.from('characters_audit').select('id, character_id, author_id, origin, field, before, after, at').eq('character_id', characterId).order('id', { ascending: false }).limit(200);
-    if (error) throw error;
+    if (error) throw dbError(error);
     return ((data ?? []) as { id: number; character_id: string; author_id: string | null; origin: CharacterAuditEntry['origin']; field: string; before: unknown; after: unknown; at: string }[])
       .map(r => ({ id: r.id, characterId: r.character_id, authorId: r.author_id, origin: r.origin, field: r.field, before: r.before, after: r.after, at: r.at }));
   }

@@ -5,6 +5,7 @@ import type { GameSystem, SheetData, SheetPatch } from '@rolvium/core';
 import type { CampaignMember, TableRole } from '@/modules/campaigns/domain/entities/Campaign';
 import type { CampaignsPort } from '@/modules/campaigns/domain/ports/CampaignsPort';
 import { campaignsRepo as defaultCampaigns } from '@/modules/campaigns/container';
+import { reasonOf } from '@/shared/lib/errors';
 import type { Character, CharacterKind } from '../domain/entities/Character';
 import type { CharactersPort } from '../domain/ports/CharactersPort';
 import { charactersRepo as defaultRepo } from '../container';
@@ -90,7 +91,10 @@ export function GeneratorWizard({ campaignId, system, role, repo = defaultRepo, 
       // (2026-08-19): el `catch {}` de antes descartaba el motivo, así que un fallo de guardado era
       // indistinguible de que nunca hubiera pasado nada. La base acepta el insert bajo RLS —probado—, así
       // que el motivo vive aquí y hay que poder leerlo.
-      setFailed(e instanceof Error && e.message ? e.message : true);
+      // `reasonOf` y no `e instanceof Error`: supabase-js lanza un OBJETO PLANO, no un `Error`, así que
+      // ese `instanceof` descartaba justo los fallos de base —los únicos que se dan aquí de verdad— y
+      // dejaba el aviso genérico de siempre. Ver `shared/lib/errors.ts`.
+      setFailed(reasonOf(e) ?? true);
     }
     finally { setBusy(false); }
   };
