@@ -266,6 +266,17 @@ describe('generator budgets', () => {
     expect(b.available).toBe(points - 7); // seven stats at 1
     expect(b.giftPoints).toBe(3);
   });
+  /**
+   * Hallazgo del QA 2026-08-19: `budgetOf` recortaba el canje a MAX_GIFT_TRADES y `derived` usaba el
+   * valor crudo. Dos lecturas de la misma regla dentro del mismo paquete: una ficha guardada con más
+   * canjes enseñaba puntos de don inflados para siempre. El tope rige creación Y ficha viva.
+   */
+  it('derived() capa el canje de dones igual que budgetOf, no sólo al crear', () => {
+    expect(derived(sheet({ destiny: 3, giftTrade: 2 })).giftPoints).toBe(3 + 4);
+    expect(derived(sheet({ destiny: 3, giftTrade: 10 })).giftPoints).toBe(3 + 4);
+    expect(derived(sheet({ destiny: 3, giftTrade: -5 })).giftPoints).toBe(3);
+    expect(derived(sheet({ destiny: 3, giftTrade: 10 })).giftPoints).toBe(budgetOf({ ...sheet({ destiny: 3, giftTrade: 10 }), preset: 'standard' }).giftPoints);
+  });
   it('destiny +1 costs a point, −1 refunds; trades cost points and give 2 specialties / 2 gift points', () => {
     expect(budgetOf(draft({ destiny: 5 })).available).toBe(21 - 7 - 2);
     expect(budgetOf(draft({ destiny: 1 })).available).toBe(21 - 7 + 2);

@@ -5,7 +5,7 @@
 // platform generates dice on the server and calls `resolve`.
 import type { ActionDef, DiceGroup, Engine, RollRequest, RollResult, RolledDice, SharedResourceDef, SheetData, SheetPatch } from '@rolvium/core';
 import {
-  GIFT_IDS, GIFT_MAX_LEVEL, HEALTH_LEVELS, RANGE_DIFFICULTY, RECOVERY, armourById, isMelee, isStatId, sizeMod, weaponById,
+  GIFT_IDS, GIFT_MAX_LEVEL, HEALTH_LEVELS, MAX_GIFT_TRADES, RANGE_DIFFICULTY, RECOVERY, armourById, isMelee, isStatId, sizeMod, weaponById,
   type HealthId, type StatId, type WeaponData,
 } from './catalogs';
 import { giftsOf, healthOf, num, statOf, str, weaponsOf, type GiftRow, type WeaponRow } from './schema';
@@ -46,7 +46,9 @@ export function derived(sheet: SheetData): Derived {
     healthIndex: healthIndexOf(health),
     protection: armour?.data.protection ?? 0,
     armourPenalty: armour?.data.penalty ?? 0,
-    giftPoints: Math.max(0, destiny + num(sheet.giftTrade) * 2 - spent),
+    // El tope del canje se aplica aquí TAMBIÉN, no sólo en `budgetOf`: si no, una ficha guardada con
+    // más de MAX_GIFT_TRADES canjes enseñaría puntos de don inflados para siempre (hallazgo del QA).
+    giftPoints: Math.max(0, destiny + Math.min(MAX_GIFT_TRADES, Math.max(0, num(sheet.giftTrade))) * 2 - spent),
   };
 }
 

@@ -94,6 +94,20 @@ export const GIFT_IDS = [
 ] as const;
 export type GiftId = (typeof GIFT_IDS)[number];
 export const GIFT_MAX_LEVEL = 5;
+/**
+ * Canjes de un punto de característica. Especialidades (p.23): «solo se puede gastar un único punto
+ * de característica de este modo, pero si el director de juego lo permite, el jugador podría cambiar
+ * un segundo punto». Dones (p.25) no lleva cláusula de límite y se lee calcado a especialidades —
+ * ⚠ interpretación del dueño, declarada en RULES.md §1.5.
+ *
+ * Viven aquí, y no en `generator.ts`, porque el tope tiene que regir las DOS lecturas de la regla: el
+ * presupuesto de creación (`budgetOf`) y los puntos de don de la ficha viva (`derived`). Cuando sólo
+ * lo aplicaba el generador, una ficha guardada con más canjes enseñaba puntos de don inflados para
+ * siempre — hallazgo del QA, 2026-08-19. `generator.ts` no puede ser la casa: `engine.ts` no puede
+ * importar de él sin ciclo.
+ */
+export const MAX_SPECIALTY_TRADES = 2;
+export const MAX_GIFT_TRADES = 2;
 export const GIFTS: CatalogItem[] = GIFT_IDS.map(id => ({
   id, label: `catalog.gifts.${id}.name`, ref: 'gifts', data: { summary: `catalog.gifts.${id}.summary`, maxLevel: GIFT_MAX_LEVEL },
 }));

@@ -5,22 +5,13 @@
 // (max 2 trades, p.23) or 2 gift points; gift points = Destiny (+ trades), p.25.
 // See RULES.md §1.
 import type { GeneratorStep, SheetData, SheetPatch } from '@rolvium/core';
-import { GIFT_MAX_LEVEL, STAT_IDS, isStatId } from './catalogs';
+import { GIFT_MAX_LEVEL, MAX_GIFT_TRADES, MAX_SPECIALTY_TRADES, STAT_IDS, isStatId } from './catalogs';
 import { derived } from './engine';
 import { DEFAULT_PRESET, PRESETS, giftsOf, num, statOf, str, type PresetId } from './schema';
 
 export const BASE_DESTINY = 3;
 export const DESTINY_ADJUST = 2;
-export const MAX_SPECIALTY_TRADES = 2;
-/**
- * Canjes de dones. El libro (p.25) dice «Puede gastarse UN punto de característica para recibir dos
- * puntos de dones adicionales» y no pone cláusula de límite, pero la sección hermana de
- * especialidades (p.23) sí es explícita: un único punto, y un segundo sólo con permiso del DJ.
- * Decisión del dueño (2026-08-19): se lee calcado a especialidades. El segundo canje asume ese
- * permiso, igual que `MAX_SPECIALTY_TRADES` ya lo asume hoy; el interruptor de verdad del director
- * es su propia rebanada (opción de campaña), y cuando exista gobernará los dos canjes.
- */
-export const MAX_GIFT_TRADES = 2;
+/** `MAX_SPECIALTY_TRADES` y `MAX_GIFT_TRADES` viven en `catalogs.ts`: el tope rige creación Y ficha viva. */
 
 export const presetOf = (draft: SheetData) => PRESETS.find(p => p.id === str(draft.preset, DEFAULT_PRESET)) ?? PRESETS[1];
 

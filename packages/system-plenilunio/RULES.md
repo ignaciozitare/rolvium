@@ -68,6 +68,11 @@ Canje: 1 punto de característica → **2 puntos de don**. **Máx. 2 canjes**, e
 - El segundo canje **asume** ese permiso, igual que ya lo asume `MAX_SPECIALTY_TRADES`. El interruptor real del
   director es una **opción de campaña** y es su propia rebanada (migración + RLS + spec); cuando exista
   gobernará los dos canjes, no sólo éste.
+- El tope rige **las dos** lecturas de la regla: el presupuesto de creación (`budgetOf`) y los puntos de don
+  de la ficha viva (`derived`). Por eso `MAX_GIFT_TRADES` vive en `catalogs.ts` y no en `generator.ts`
+  (`engine.ts` no puede importar del generador sin ciclo). Cuando sólo lo aplicaba el generador, una ficha
+  guardada con más canjes enseñaba puntos de don inflados para siempre — hallazgo del QA, 2026-08-19.
+  Decisión del dueño: **capar también en `derived`**, no indultar las fichas viejas.
 Cada vez que sube el Destino se recibe **1 punto de don** nuevo (p. 89).
 - Además del tope de 2, frena lo que puedas **pagar**: no se canjean puntos de característica que no tienes.
   El generador veta en los dos sitios, y ambos topes capan sólo la SUBIDA (un borrador ya pasado se repara).
