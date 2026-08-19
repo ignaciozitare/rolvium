@@ -14,6 +14,113 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🔴 REVISIÓN DE «ESTADO» CONTRA EL PDF — 2026-08-19 noche · TODO SIN IMPLEMENTAR
+
+El dueño pidió: «revisa en el pdf que todos los datos que tenemos en la card de estado tienen sentido».
+Leído del **PDF**, no de RULES.md: p.98–99 (PDF 100–101), p.101 (PDF 103), p.88–89 (PDF 90–91),
+p.91 (PDF 93), y la **hoja oficial** `~/Documents/Developer/Rolvium context/PlenilunioHojadePersonaje.pdf`.
+Nada de esto está tocado: el gate de handoff cerró la sesión. **Es la tarea del chat nuevo.**
+
+### 🏆 Hallazgo gordo: los «seis niveles de salud» ya no son una rareza — el sexto es INCONSCIENTE
+`RULES.md` y este WORK_STATE tenían anotado «⚠ el libro dice **seis** niveles básicos de salud y luego
+lista **cinco**». **Resuelto.** La lista de p.99 (Sano · Magullado · Herido · Malherido · Muerto) NO
+termina ahí: **p.100 es una ilustración a página completa** y la lista **continúa en p.101** con el
+sexto punto:
+
+> «**Inconsciente:** El personaje ha perdido todos sus puntos de Resistencia por el daño acumulado
+> durante un combate u otras fuentes de daño, y queda inconsciente e indefenso en el suelo.»
+
+**Corregir `RULES.md` con esto antes de tocar código** (orden del dueño: el manual manda, y RULES.md se
+corrige primero).
+
+### ❓ «¿Tiene sentido el desplegable de Inconsciente?» → NO
+El estado existe y es del libro, pero **no se elige a mano: se deduce**. p.98: «Cuando lleguen a 0, el
+personaje está al límite de sus fuerzas: **si pierde un punto más, caerá inconsciente**». p.101:
+«ha perdido todos sus puntos de Resistencia … y queda inconsciente».
+Es **exactamente el mismo error que el cargador editable a mano** que el dueño ya hizo quitar: un valor
+que las reglas calculan, ofrecido como si fuera una decisión del jugador. Y encima `engine.applyDamage`
+YA lo calcula — el desplegable puede contradecir al motor.
+→ **`unconscious` pasa a `derived: true`** (o desaparece como campo y se convierte en un aviso rojo bajo
+las lunas, que es lo que de verdad ayuda en mesa). Deja de ser `yesNo(...)` en `schema.ts`.
+**Bonus:** al salir de la rejilla, **Destino · Fortuna · Experiencia quedan solos en su fila** — que es
+justo el otro punto que pidió el dueño. Un arreglo, dos peticiones.
+
+⚠ Discrepancia del libro, anotar en RULES.md sin inventar: p.98 dice inconsciente al perder **un punto
+más** estando a 0; p.101 dice inconsciente al **perder todos** los puntos. El motor sigue hoy la de p.98.
+
+### 🐛 Fortuna se puede subir por encima de su máximo
+p.89: «Un personaje comienza cada aventura con tantos puntos de Fortuna como su **puntuación de
+Destino**», y al subir Destino «recupera todos sus puntos de Fortuna hasta su **nueva puntuación de
+Destino**». O sea: **el techo de Fortuna ES Destino**. En `schema.ts` el contador lleva `max: 10`
+a pelo, así que Karen tiene **Fortuna 5 con Fortuna máxima 4**. Hay que capar contra `fortuneMax`
+(`derived`), no contra 10. Regla de la casa: se capa la SUBIDA, nunca la bajada.
+
+### 🐛 «Resistencia máxima 18» miente cuando el personaje está herido
+p.101, recuperación: «Si se encuentra **herido** … sus puntos de Resistencia máximos pasan a ser el
+**doble de su Aguante**, en lugar del triple habitual. Si se encuentra **malherido** … sus puntos de
+Resistencia máximos pasan a ser **iguales a su Aguante**.»
+Karen: Aguante 6 → sana 18 (3×6), **herida 12** (2×6), malherida 6 (1×6). Hoy la ficha pinta
+«Resistencia máxima **18**» + «Resistencia recuperable descansando **12**» — dos rótulos para lo mismo,
+y el 18 es el de una persona sana que ella no es. **Decidir con el dueño**: o «Resistencia máxima» pasa
+a ser la del estado actual (y desaparece «recuperable»), o se rotulan como «máxima (sana)» y «máxima
+ahora». Yo propondría lo primero: es lo que dice el libro y quita un campo de la tarjeta.
+
+### ✅ Lo que SÍ cuadra con el manual
+- **Aguante** = Fortaleza + Voluntad (p.98) · Karen 6 ✓
+- **Resistencia** = 3 × Aguante sana (p.98) · 18 ✓ · casillas en blanco = lo que queda (p.25) ✓
+- **Salud**: cinco fases de luna sano→muerto (p.99) ✓ · Magullado sin penalización, Herido −1 dado,
+  Malherido −2 (p.99) ✓ coincide con `HEALTH_LEVELS`
+- **Destino** 1–10, jugadores empiezan 1–5 (p.88) ✓ `min:1 max:10` ✓
+- **Experiencia**: se acumula sin techo, se gasta en característica 20/40, especialidad 10, cambiar
+  especialidad 3, don 10 (p.91) ✓ `min:0` sin `max` ✓
+- **Puntos de don**: atados a Destino (p.89, p.25) — **NO verificado en p.102**, me quedé sin sesión.
+
+### 📄 La hoja OFICIAL de personaje (PlenilunioHojadePersonaje.pdf) — cómo es Estado de verdad
+Bloque de estado de la hoja impresa: **AGUANTE** (luna con número) · **RESISTENCIA** (casillas) ·
+la tira de lunas SANO→MUERTO · **DESTINO** (luna) · **FORTUNA** (¡**casillas**, no contador!) ·
+**EXPERIENCIA** (luna). Y nada más.
+O sea: la hoja oficial **no tiene** Resistencia máxima, ni Penalización por heridas, ni Inconsciente,
+ni Resistencia recuperable, ni Fortuna máxima, ni Puntos de don. Todo eso lo añadimos nosotros como
+ayuda calculada — está bien que esté (la app puede hacer cuentas que el papel no), pero explica por qué
+la tarjeta se ve recargada. **Dos cosas a llevar al `.pen`**: Fortuna debería pintarse como
+**casillas** igual que Resistencia, y Aguante/Destino/Experiencia como número sobre luna.
+
+---
+
+## 🧱 MAQUETACIÓN — lo que el dueño ve mal (2026-08-19 noche) · TODO SIN ARREGLAR
+
+1. **El «p.99» / «p.101» se sale de las tarjetas pequeñas.** El rótulo de la tarjeta es `display:block`
+   con la página en línea al final (`.rv-sheet-tiles .rv-sheet-page{margin-left:6px}`), y en 120 px de
+   contenido se desborda. → que la página vaya en **su propia línea** dentro de la tarjeta
+   (`.rv-sheet-tiles .rv-sheet-page{display:block;margin:2px 0 0;}`), o quitarla de la tarjeta y dejarla
+   sólo en el tooltip, que ya la lleva.
+2. **Filete entre el texto y el número, dentro de cada tarjeta pequeña** (pedido nuevo). Ya existe el
+   patrón exacto en Armadura: `width:56px;height:1px;background:var(--sys-line)`. Va como `::after` del
+   rótulo o `::before` del `.rv-sheet-derived`, dentro de `.rv-sheet-tiles`.
+3. **Destino, Fortuna y Experiencia en la misma línea.** Sale gratis al quitar el desplegable de
+   Inconsciente de la rejilla (arriba): quedan tres campos y la rejilla de Estado tiene tres columnas.
+4. **Los `+` y los `−` de Munición no se alinean en vertical.** Dos causas, las dos en `sheet.css`:
+   - el número del contador no tiene ancho fijo, así que un `2` y un `12` corren los botones →
+     `.rv-sheet-counter > .rv-sheet-value{min-width:3ch;text-align:center;}` (ya hay `tabular-nums`);
+   - **una regla de LISTA se está colando en la TABLA**: `.rv-sheet-item-counter{margin-left:auto;
+     min-width:96px;justify-content:flex-end;}` está **sin acotar** y `Cell` pinta esa misma clase en
+     las celdas de tabla. Hay que acotarla a `.rv-sheet-item > .rv-sheet-item-counter`.
+5. **Repasar el resto de desbordes con `scripts/shot.mjs`** — el dueño dice «hay cosas que se salen de
+   las cards», en plural. Mirar sección por sección, no sólo Estado.
+
+### 🧾 Aclaración: el tooltip del alcance SÍ está y SÍ funciona
+El dueño lo vio bien. Lo que falta es **su test**, no el tooltip (redacción mía poco clara en el chat
+anterior). Fichero a escribir: `apps/web/tests/regression/sheet-range-hint.test.tsx`.
+
+### ⚠️ Sigue pendiente de antes
+- El **«Cargador —» del rifle de asalto** teniendo 12 de munición (ver deuda más abajo).
+- **Toda** la sección «LA REGLA QUE SE NOS ESTABA ESCAPANDO» (daño → Resistencia → Salud), donde ahora
+  encaja también la **reducción de severidad con Fortuna** (p.89 y p.99, un punto por nivel) y
+  **«Recobrar el aliento»** (p.89): un punto de Fortuna recupera la MITAD de la Resistencia perdida.
+- **Review + QA a `fix/ficha-listas` y mergear.** Ninguno de los dos se ha pasado.
+
+---
+
 ## 🟢 PUNTO EXACTO — 2026-08-19, cierre por handoff de contexto
 
 **Rama `fix/ficha-listas`, 8 commits sobre `main`. Sigue SIN Review, SIN QA y SIN mergear.**
@@ -790,9 +897,13 @@ actual: un personaje sano sale **todo negro**, y al recibir daño se va **despin
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🔁 Prompt para el chat nuevo
-> Retomo Rolvium: lee WORK_STATE.md (empieza por el bloque 🟢 PUNTO EXACTO) y ARCHITECTURE.md. **Estoy
-> en la rama `fix/ficha-listas`, con ocho commits que NO están en `main` ni en producción** — comprueba
-> `git status` y `git log main..HEAD`. Lo PRIMERO es el test que falta del tooltip del alcance.
+> Retomo Rolvium: lee WORK_STATE.md **empezando por los bloques 🔴 REVISIÓN DE «ESTADO» CONTRA EL PDF y
+> 🧱 MAQUETACIÓN**, y luego ARCHITECTURE.md. Estoy en la rama `fix/ficha-listas` con ocho commits que NO
+> están en `main` — comprueba `git status` y `git log main..HEAD`. Ejecuta esos dos bloques enteros: el
+> desplegable de Inconsciente pasa a calculado, el techo de Fortuna es Destino, decidir conmigo lo de
+> «Resistencia máxima» cuando estás herido, y los cuatro arreglos de maquetación. Corrige `RULES.md`
+> ANTES del código (el sexto nivel de salud es Inconsciente, p.101). Y no toques una pantalla sin verla:
+> `node scripts/shot.mjs`.
 >
 > **Regla número uno de esta fase: no se toca una pantalla sin verla.** `node scripts/shot.mjs` levanta
 > sesión y captura la ficha (necesita `npm run db:start`, `npm run dev:api` y `npm run dev:web`). Se subió
