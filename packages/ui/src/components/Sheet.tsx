@@ -211,6 +211,8 @@ function StatRow({ f, p, ro, showActions, allowed, set, label }: Shared & { allo
   const specField = f.itemFields?.[0];
   const optLabel = (id: string) => specField?.options?.find(x => x.value === id)?.label;
   const setSpecs = (next: string[]) => set(f.id, { ...o, value, specialties: next });
+  /** Any option the guard would accept — the same «propose a row it takes» rule the lists use. */
+  const canAddSpec = !!(specField?.options ?? []).find(op => allowed(f.id, { ...o, value, specialties: [...specs, op.value] }));
   const pool = p.poolSize?.(f.id) ?? null;
   return (
     <div className="rv-sheet-stat" data-stat={f.id}>
@@ -228,7 +230,10 @@ function StatRow({ f, p, ro, showActions, allowed, set, label }: Shared & { allo
                   <button type="button" className="rv-sheet-x" aria-label={`${p.labels.remove} ${p.t(specField.label)} ${i + 1}`} onClick={() => setSpecs(specs.filter((_, j) => j !== i))}>×</button>
                 </span>
               ))}
-              <select className="rv-sheet-inp" aria-label={`${p.labels.add} ${p.t(specField.label)} · ${p.t(f.label)}`} value="" onChange={e => { if (e.target.value) setSpecs([...specs, e.target.value]); }}>
+              {/* Disabled when the guard refuses EVERY option: adding is an affordance, not a choice
+                  among them, so offering it while nothing can land is the silent bounce again. */}
+              <select className="rv-sheet-inp" aria-label={`${p.labels.add} ${p.t(specField.label)} · ${p.t(f.label)}`} value="" disabled={!canAddSpec}
+                onChange={e => { if (e.target.value) setSpecs([...specs, e.target.value]); }}>
                 <option value="">+ {p.t(specField.label)}</option>
                 {(specField.options ?? []).filter(op => !specs.includes(op.value)).map(op => <option key={op.value} value={op.value}>{p.t(op.label)}</option>)}
               </select>
@@ -292,7 +297,26 @@ function ListField({ f, p, ro, showActions, set, label, allowed }: Shared & { al
   const withRow = (i: number, k: string, v: unknown) => list.map((r, j) => (j === i ? { ...r, [k]: v } : r));
   const patchRow = (i: number, k: string, v: unknown) => set(f.id, withRow(i, k, v));
   const rowAllows = (i: number, k: string, v: unknown) => allowed(f.id, withRow(i, k, v));
-  const canAdd = allowed(f.id, [...list, blankRow(defs)]);
+  /**
+   * The row «+ Añadir» would add. A blank row takes the FIRST option of every select, so against a
+   * guard that refuses duplicates (Plenilunio: a gift has ONE level, never two rows of the same gift)
+   * the second click proposed a row that was always refused and the button went dead with nothing on
+   * screen to explain it — the first row already holds that first option. So ask the guard for the
+   * first variant it accepts instead of assuming the blank one; when it accepts none, the button is
+   * disabled because there is genuinely nothing left to add.
+   */
+  const addRow = (): Record<string, unknown> | null => {
+    const blank = blankRow(defs);
+    if (allowed(f.id, [...list, blank])) return blank;
+    const sel = defs.find(d => d.type === 'select');
+    if (!sel) return null;
+    for (const o of sel.options ?? []) {
+      const row = { ...blank, [sel.id]: o.value };
+      if (allowed(f.id, [...list, row])) return row;
+    }
+    return null;
+  };
+  const nextRow = ro ? null : addRow();
   return (
     <div className="rv-sheet-field span">
       <div className="rv-sheet-list" role="list" aria-label={p.t(f.label)}>
@@ -304,7 +328,7 @@ function ListField({ f, p, ro, showActions, set, label, allowed }: Shared & { al
           </div>
         ))}
       </div>
-      {!ro && <button type="button" className="rv-sheet-btn rv-sheet-add" disabled={!canAdd} onClick={() => set(f.id, [...list, blankRow(defs)])}>+ {p.labels.add} · {p.t(f.label)}</button>}
+      {!ro && <button type="button" className="rv-sheet-btn rv-sheet-add" disabled={!nextRow} onClick={() => nextRow && set(f.id, [...list, nextRow])}>+ {p.labels.add} · {p.t(f.label)}</button>}
     </div>
   );
 }

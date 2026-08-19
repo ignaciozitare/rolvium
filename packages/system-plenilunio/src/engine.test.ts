@@ -4,6 +4,7 @@ import {
   resolve, resolveAction, rest, sharedResources, spendAmmo, actions, XP_COSTS, DESTINY_POOL, STAT_MAX,
 } from './engine';
 import { newSheet, type StatValue } from './schema';
+import { STAT_IDS } from './catalogs';
 import { budgetOf, generator, canAdjustStat, finalizeDraft } from './generator';
 import type { SheetData } from '@rolvium/core';
 
@@ -326,6 +327,106 @@ describe('generator budgets', () => {
     expect(by('gifts').canAdvance(draft({ gifts: [{ id: 'titanFury', level: 3 }] }))).toBeNull();
     expect(by('gifts').canAdvance(draft({ gifts: [{ id: 'titanFury', level: 4 }] }))).toBe('generator.error.giftPointsOver');
     expect(by('gifts').budget?.(draft({ gifts: [{ id: 'titanFury', level: 1 }] }))).toMatchObject({ remaining: 2 });
+  });
+  /**
+   * Los tres fallos que el dueño vio en el paso de Dones el 2026-08-19: el canje que no comprueba
+   * que puedas pagarlo (y deja el paso sin salida), el mismo don repetido, y el contador ilegible.
+   */
+  it('el canje de dones sólo llega hasta donde alcanzan los puntos de creación', () => {
+    const gifts = generator.find(s => s.id === 'gifts')!;
+    // reparto estándar: 21 puntos, 7 características a 1 = 7 gastados, quedan 14 para canjear
+    const base = draft();
+    expect(budgetOf(base).available).toBe(14);
+    expect(gifts.applyChange!(base, 'giftTrade', 14)).toEqual({ giftTrade: 14 });
+    expect(gifts.applyChange!(base, 'giftTrade', 15)).toBeNull();   // un punto más de los que hay
+    expect(gifts.applyChange!(base, 'giftTrade', -1)).toBeNull();
+    // y con el canje ya puesto, el tope sigue siendo «lo que cuesta hoy + lo que queda»
+    const traded = draft({ giftTrade: 10 });
+    expect(budgetOf(traded).available).toBe(4);
+    expect(gifts.applyChange!(traded, 'giftTrade', 14)).toEqual({ giftTrade: 14 });
+    expect(gifts.applyChange!(traded, 'giftTrade', 15)).toBeNull();
+    expect(gifts.applyChange!(traded, 'giftTrade', 9)).toEqual({ giftTrade: 9 });   // bajar siempre se puede
+  });
+  /**
+   * Review 2026-08-19: «bajar siempre se puede» tiene que valer TAMBIÉN con el borrador en rojo, que es
+   * justo cuando hace falta. Con el techo mirando sólo «lo que cuesta hoy + lo que queda», un borrador
+   * sobregastado desactivaba el «−» del canje y no se salía de ahí — la misma trampa que `budgetAllows`
+   * evita en los pasos que enseñan el presupuesto de creación.
+   */
+  it('un canje que ya no se puede pagar se puede deshacer de uno en uno', () => {
+    const gifts = generator.find(s => s.id === 'gifts')!;
+    const over = draft({ giftTrade: 20 });   // 14 pagables, 20 canjeados: 6 en rojo
+    expect(budgetOf(over).available).toBe(-6);
+    expect(gifts.applyChange!(over, 'giftTrade', 19)).toEqual({ giftTrade: 19 });   // el «−» sigue vivo
+    expect(gifts.applyChange!(over, 'giftTrade', 0)).toEqual({ giftTrade: 0 });
+    expect(gifts.applyChange!(over, 'giftTrade', 21)).toBeNull();                   // subir, ni un punto más
+  });
+  it('un paso con los puntos de creación en rojo señala el canje, no el reparto de dones', () => {
+    const gifts = generator.find(s => s.id === 'gifts')!;
+    // Sólo se llega con una ficha guardada a mano: por el asistente los cinco sumandos están vetados
+    // (preset/características/especialidades/Destino por `budgetAllows`, el canje por `applyGiftChange`).
+    const over = draft({ giftTrade: 20 });
+    expect(budgetOf(over).available).toBeLessThan(0);
+    expect(gifts.canAdvance(over)).toBe('generator.error.pointsOver');
+  });
+  it('el mismo don no se puede coger dos veces: es nivel 6 por la puerta de atrás', () => {
+    const gifts = generator.find(s => s.id === 'gifts')!;
+    const dup = draft({ gifts: [{ id: 'titanFury', level: 2 }, { id: 'titanFury', level: 1 }] });
+    expect(gifts.canAdvance(dup)).toBe('generator.error.giftDuplicate');
+    expect(gifts.applyChange!(draft({ gifts: [{ id: 'titanFury', level: 1 }] }), 'gifts',
+      [{ id: 'titanFury', level: 1 }, { id: 'titanFury', level: 1 }])).toBeNull();
+    expect(gifts.applyChange!(draft({ gifts: [{ id: 'titanFury', level: 1 }] }), 'gifts',
+      [{ id: 'titanFury', level: 1 }, { id: 'catlike', level: 1 }])).toEqual({ gifts: [{ id: 'titanFury', level: 1 }, { id: 'catlike', level: 1 }] });
+  });
+  it('el contador del paso dice total/gastados, igual que los pasos de puntos', () => {
+    const gifts = generator.find(s => s.id === 'gifts')!;
+    expect(gifts.budget?.(draft({ gifts: [{ id: 'titanFury', level: 1 }] }))).toMatchObject({ remaining: 2, detail: '3/1' });
+  });
+  /**
+   * Dueño 2026-08-19: «en especialidades me deja elegir todo lo que quiera y después no me deja
+   * avanzar». Las reglas están en RULES.md §1.3 (p.21–22) y ahora se aplican AL ELEGIR.
+   */
+  it('las especialidades se topan al elegir, no al pulsar Continuar', () => {
+    const spec = generator.find(s => s.id === 'specialties')!;
+    const one = (over: SheetData = {}) => draft({ presence: stat(1, ['presence.poetry']), ...over });
+    // sin canjes: una por característica y ni una más
+    expect(spec.applyChange!(one(), 'presence', stat(1, ['presence.poetry', 'presence.empathy']))).toBeNull();
+    // un canje: 2 extra, así que hasta 2 en la misma característica…
+    const traded = one({ specialtyTrade: 1 });
+    expect(spec.applyChange!(traded, 'presence', stat(1, ['presence.poetry', 'presence.empathy']))).toMatchObject({ presence: expect.anything() });
+    // …pero no 3, que es lo que pasaría de «1 + canjes»
+    expect(spec.applyChange!(traded, 'presence', stat(1, ['presence.poetry', 'presence.empathy', 'presence.humour']))).toBeNull();
+    // y el total no pasa de 2 por canje aunque se reparta entre características distintas
+    const spread = draft({ specialtyTrade: 1, presence: stat(1, ['presence.poetry', 'presence.empathy']), combat: stat(1, ['combat.martialArts', 'combat.swords']) });
+    expect(spec.applyChange!(spread, 'culture', stat(1, ['culture.art', 'culture.history']))).toBeNull();
+    // quitar siempre se puede
+    expect(spec.applyChange!(traded, 'presence', stat(1, []))).toMatchObject({ presence: expect.anything() });
+  });
+  /**
+   * QA 2026-08-19: «quitar siempre se puede» hay que probarlo con el borrador YA por encima del cupo,
+   * que es justo cuando hace falta — la prueba de arriba sólo lo mira estando dentro. Se llega bajando
+   * `specialtyTrade` después de repartir las extra (bajar el canje devuelve puntos, así que nada lo veta),
+   * y con el techo mirando sólo el cupo se quedaban muertos la ×, el desplegable y hasta el −/+ de la
+   * característica: la misma trampa que el Review ya cazó en el techo del canje de dones.
+   */
+  it('un borrador ya por encima del cupo de especialidades se puede reparar', () => {
+    const spec = generator.find(s => s.id === 'specialties')!;
+    // una por característica (si no, salta `specialtyEach` antes que el cupo) y dos de más repartidas
+    const one = Object.fromEntries(STAT_IDS.map(id => [id, stat(1, [`${id}.a`])]));
+    const over = draft({ ...one, specialtyTrade: 0, presence: stat(1, ['presence.poetry', 'presence.empathy']), combat: stat(1, ['combat.swords', 'combat.martialArts']) });
+    expect(spec.canAdvance(over)).toBe('generator.error.tooManySpecialties');
+    // quitar la de más: baja el exceso, así que pasa aunque siga por encima del cupo
+    expect(spec.applyChange!(over, 'presence', stat(1, ['presence.poetry']))).toMatchObject({ presence: stat(1, ['presence.poetry']) });
+    // cambiar CUÁL, sin tocar cuántas, tampoco empeora nada
+    expect(spec.applyChange!(over, 'presence', stat(1, ['presence.poetry', 'presence.humour']))).toMatchObject({ presence: expect.anything() });
+    // y el −/+ de la característica sigue vivo: el cupo es de especialidades, no de puntos
+    expect(spec.applyChange!(over, 'presence', stat(2, ['presence.poetry', 'presence.empathy']))).toMatchObject({ presence: stat(2, ['presence.poetry', 'presence.empathy']) });
+    // subir sí sigue vetado: reparar no es una puerta trasera para añadir más
+    expect(spec.applyChange!(over, 'presence', stat(1, ['presence.poetry', 'presence.empathy', 'presence.humour']))).toBeNull();
+    expect(spec.applyChange!(over, 'culture', stat(1, ['culture.art', 'culture.history']))).toBeNull();
+    // dos pasos y el paso vuelve a dejar avanzar
+    const fixed = draft({ ...over, presence: stat(1, ['presence.poetry']), combat: stat(1, ['combat.swords']) });
+    expect(spec.canAdvance(fixed)).toBeNull();
   });
   it('finalizeDraft sets fortune = destiny and full resistance', () => {
     const f = finalizeDraft(draft({ destiny: 4, fortitude: stat(3), will: stat(3) }));

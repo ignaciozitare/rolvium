@@ -41,10 +41,17 @@ describe('<GeneratorWizard>', () => {
       await u.selectOptions(sel, f.itemFields![0]!.options![0]!.value);
     }
     await u.click(screen.getByRole('button', { name: 'Continuar' }));
-    // destiny (3 default) → continue; gifts: 3 points → add one gift and raise to level 3
+    // destiny (3 default) → continue; gifts: 3 points → dos dones, uno de ellos a nivel 2
     await u.click(screen.getByRole('button', { name: 'Continuar' }));
     await u.click(screen.getByRole('button', { name: /Añadir · Dones/ }));
-    await u.click(screen.getByRole('button', { name: '+ Nivel' })); await u.click(screen.getByRole('button', { name: '+ Nivel' }));
+    // La fila en blanco toma la PRIMERA opción del desplegable y un don no se repite (RULES.md §1.5),
+    // así que «+ Añadir» tiene que proponer un don distinto — si no, el botón se queda muerto.
+    await u.click(screen.getByRole('button', { name: /Añadir · Dones/ }));
+    const gifts = within(screen.getByRole('list', { name: 'Dones' })).getAllByRole('listitem');
+    expect(gifts).toHaveLength(2);
+    const giftOf = (row: HTMLElement) => (within(row).getByLabelText('Don') as HTMLSelectElement).value;
+    expect(giftOf(gifts[0]!)).not.toBe(giftOf(gifts[1]!));
+    await u.click(within(gifts[0]!).getByRole('button', { name: '+ Nivel' }));
     expect(screen.getByRole('status')).toHaveTextContent('0');
     await u.click(screen.getByRole('button', { name: 'Continuar' }));
     // summary read-only + finish
@@ -76,7 +83,7 @@ describe('<GeneratorWizard>', () => {
     expect(within(stat('fortitude')).getByText('5')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Te sobran puntos');
   }, 40000);
-  it('an overspent draft can always be walked back (review finding 2026-08-18)', async () => {
+  it('el canje de dones ya no puede empujar el borrador a números rojos (dueño 2026-08-19)', async () => {
     const u = userEvent.setup();
     mount('player');
     await u.type(screen.getByLabelText('Personaje'), 'Karen');
@@ -88,26 +95,82 @@ describe('<GeneratorWizard>', () => {
       for (let i = 0; i < n; i++) await u.click(within(stat(id)).getByRole('button', { name: /^\+ / }));
     }
     expect(screen.getByRole('status')).toHaveTextContent('0');
-    // Gift trades are budgeted in gift points, so they can push creation points negative.
     await u.click(screen.getByRole('button', { name: 'Continuar' }));   // specialties…
     for (const f of plenilunio.sheetSchema.sections.flatMap(s => s.fields).filter(f => f.type === 'stat')) {
       await u.selectOptions(within(stat(f.id)).getByLabelText(/^Añadir Especialidad/), f.itemFields![0]!.options![0]!.value);
     }
     await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …destiny…
     await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …gifts
+    // Sin un punto de creación libre, canjear no es una opción. Antes el guardia de este paso miraba
+    // el presupuesto DE DONES —que un canje sólo SUBE— así que decía que sí siempre y dejaba los
+    // puntos de creación en rojo; el dueño llegó así a un paso del que no se salía.
     const trade = screen.getByLabelText('Puntos canjeados por dones');
-    for (let i = 0; i < 3; i++) await u.click(within(trade).getByRole('button', { name: /^\+ / }));
-    // Back to the stats step: 3 points overspent. Each − still leaves it negative, so the
-    // old "remaining >= 0" veto disabled every control and the draft could only be cancelled.
+    expect(within(trade).getByRole('button', { name: /^\+ / })).toBeDisabled();
+    // y Características sigue cuadrado, sin aviso ninguno
     await u.click(screen.getByRole('button', { name: /Características/ }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Te faltan puntos');
-    for (let i = 0; i < 3; i++) {
-      const minus = within(stat('fortitude')).getByRole('button', { name: /^− |^- / });
-      expect(minus).toBeEnabled();
-      await u.click(minus);
-    }
     expect(screen.getByRole('status')).toHaveTextContent('0');
     expect(screen.queryByRole('alert')).toBeNull();
+  }, 40000);
+  /**
+   * Review 2026-08-19: cerrada la ruta del canje, la red de `budgetAllows` («after >= before») NO queda
+   * muerta — se llega por Destino. Bajar el Destino después de repartir los dones encoge la reserva de
+   * puntos de don sin tocar los ya gastados, y ahí el paso está en rojo: es el único sitio donde cambiar
+   * QUÉ don es una fila (mismo coste, `after === before`) depende de esa red. El test que este commit
+   * reescribió era el único testigo de integración que le quedaba.
+   */
+  it('con la reserva de dones en rojo el paso se repara, no se atasca (review 2026-08-19)', async () => {
+    const u = userEvent.setup();
+    mount('player');
+    await u.type(screen.getByLabelText('Personaje'), 'Karen');
+    await u.type(screen.getByLabelText('Concepto'), 'Líder');
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    for (const [id, n] of [['fortitude', 3], ['combat', 3], ['will', 2], ['cunning', 2], ['presence', 4]] as const) {
+      for (let i = 0; i < n; i++) await u.click(within(stat(id)).getByRole('button', { name: /^\+ / }));
+    }
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    for (const f of plenilunio.sheetSchema.sections.flatMap(s => s.fields).filter(f => f.type === 'stat')) {
+      await u.selectOptions(within(stat(f.id)).getByLabelText(/^Añadir Especialidad/), f.itemFields![0]!.options![0]!.value);
+    }
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …destiny…
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …gifts: Destino 3 → 3 puntos
+    await u.click(screen.getByRole('button', { name: /Añadir · Dones/ }));
+    await u.click(screen.getByRole('button', { name: /Añadir · Dones/ }));
+    await u.click(within(within(screen.getByRole('list', { name: 'Dones' })).getAllByRole('listitem')[0]!).getByRole('button', { name: '+ Nivel' }));
+    expect(screen.getByRole('status')).toHaveTextContent('0');
+    // Atrás a Destino y bajarlo: la reserva pasa a 2 con 3 ya repartidos
+    await u.click(screen.getByRole('button', { name: 'Destino' }));
+    await u.click(within(screen.getByRole('group', { name: 'Destino' })).getByRole('button', { name: /^− |^- / }));
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('más puntos de don de los que tienes');
+    const row0 = () => within(screen.getByRole('list', { name: 'Dones' })).getAllByRole('listitem')[0]!;
+    // cambiar QUÉ don es la fila cuesta lo mismo: sigue permitido, que es lo que la red sostiene
+    const other = plenilunio.sheetSchema.sections.flatMap(s => s.fields).find(f => f.id === 'gifts')!.itemFields![0]!.options![2]!.value;
+    await u.selectOptions(within(row0()).getByLabelText('Don'), other);
+    expect(within(row0()).getByLabelText('Don')).toHaveValue(other);
+    // y bajando el nivel se repara del todo
+    await u.click(within(row0()).getByRole('button', { name: '− Nivel' }));
+    expect(screen.getByRole('status')).toHaveTextContent('0');
+    expect(screen.queryByRole('alert')).toBeNull();
+  }, 40000);
+  it('el «+ Especialidad» se apaga al llegar al cupo, en vez de dejar elegir y bloquear Continuar', async () => {
+    const u = userEvent.setup();
+    mount('player');
+    await u.type(screen.getByLabelText('Personaje'), 'Karen');
+    await u.type(screen.getByLabelText('Concepto'), 'Líder');
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    // gasta el reparto entero (21): 7 características a 1 = 7, quedan 14
+    for (const [id, n] of [['presence', 4], ['combat', 4], ['will', 4], ['cunning', 2]] as const) {
+      for (let i = 0; i < n; i++) await u.click(within(stat(id)).getByRole('button', { name: /^\+ / }));
+    }
+    expect(screen.getByRole('status')).toHaveTextContent('0');
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …especialidades
+    const add = () => within(stat('presence')).getByLabelText(/^Añadir Especialidad/);
+    // la primera es obligatoria y entra
+    await u.selectOptions(add(), 'presence.poetry');
+    // la segunda ya no: sin canjes el cupo es una por característica (RULES.md §1.3)
+    expect(add()).toBeDisabled();
+    // el dueño llegó a meter seis en Presencia porque nadie se lo impedía al elegir
+    expect(within(stat('presence')).getAllByRole('combobox', { name: /· Especialidad \d/ })).toHaveLength(1);
   }, 40000);
   it('un reparto que no cabe se ve desactivado en el desplegable, no rebota en silencio (review 2026-08-19)', async () => {
     const u = userEvent.setup();
