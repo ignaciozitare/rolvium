@@ -21,7 +21,7 @@ const es: Messages = {
     equipment: { list: 'Equipo', name: 'Objeto' },
     story: { text: 'Aspecto e historia' },
     creation: { preset: 'Reparto de puntos', specialtyTrade: 'Puntos canjeados por especialidades', giftTrade: 'Puntos canjeados por dones' },
-    actions: { attackMelee: 'Atacar cuerpo a cuerpo', attackRanged: 'Disparar', activateGift: 'Activar don', giftCost: '1 punto de Fortuna', damage: 'Recibir daño', reload: 'Recargar' },
+    actions: { attackMelee: 'Atacar cuerpo a cuerpo', attackRanged: 'Disparar', activateGift: 'Activar don', giftCost: '1 Fortuna', damage: 'Recibir daño', reload: 'Recargar' },
     range: { melee: 'Cuerpo a cuerpo', short: 'Corto', medium: 'Medio', long: 'Largo', veryLong: 'Muy largo' },
   },
   catalog: {
@@ -154,7 +154,7 @@ const en: Messages = {
     equipment: { list: 'Equipment', name: 'Item' },
     story: { text: 'Looks and story' },
     creation: { preset: 'Point spread', specialtyTrade: 'Points traded for specialties', giftTrade: 'Points traded for gifts' },
-    actions: { attackMelee: 'Melee attack', attackRanged: 'Shoot', activateGift: 'Activate gift', giftCost: '1 Fortune point', damage: 'Take damage', reload: 'Reload' },
+    actions: { attackMelee: 'Melee attack', attackRanged: 'Shoot', activateGift: 'Activate gift', giftCost: '1 Fortune', damage: 'Take damage', reload: 'Reload' },
     range: { melee: 'Melee', short: 'Short', medium: 'Medium', long: 'Long', veryLong: 'Very long' },
   },
   catalog: {

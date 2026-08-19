@@ -54,9 +54,11 @@ export const sections: SectionDef[] = [
     { id: 'extraDice', type: 'number', label: 'sheet.roll.extra', min: 0, max: 5 },
   ] },
   { id: 'stats', label: 'sheet.sections.stats', layout: 'stack', fields: STAT_IDS.map(statField) },
-  // `span: 2`: Estado dejaba un hueco en blanco a su derecha (queja del dueño) porque Armas ocupa
-  // fila entera y no puede rellenarla. Con dos columnas, Características + Estado cierran la fila.
-  { id: 'state', label: 'sheet.sections.state', layout: 'grid', span: 2, fields: [
+  // ⚠ NADA de `span: 2` aquí. Se probó para cerrar el hueco de la derecha de Estado y salió peor: la
+  // tarjeta se quedó con el doble de ancho y el mismo contenido, o sea un vacío enorme bajo «Recibir
+  // daño» (visto en producción por el dueño, 2026-08-19). El hueco no se arregla ensanchando: se
+  // arregla componiendo los 12 campos de la sección como los tiene el `.pen`, y eso es su propia tanda.
+  { id: 'state', label: 'sheet.sections.state', layout: 'grid', fields: [
     { id: 'endurance', type: 'number', label: 'sheet.state.endurance', ref: 'endurance', derived: true },
     { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'resistance', derived: true },
     { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },

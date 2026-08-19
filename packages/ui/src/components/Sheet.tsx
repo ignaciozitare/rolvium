@@ -350,7 +350,9 @@ function ListField({ f, p, ro, showActions, set, label, allowed }: Shared & { al
       <div className="rv-sheet-list" role="list" aria-label={p.t(f.label)}>
         {list.map((item, i) => (
           <div key={rowKey(item, i)} className="rv-sheet-item" role="listitem">
-            {p.icons?.stat === 'crescent' && <Crescent size={20} />}
+            {/* La luna sólo en listas con accion. rolvium.pen: la fila de Don la lleva (22 px), la de
+                Equipo NO — era una lista de objetos con lunas y el dueño lo pidio fuera. */}
+            {f.action && p.icons?.stat === 'crescent' && <Crescent size={22} />}
             {defs.map(d => <Cell key={d.id} d={d} value={item[d.id]} ro={ro} p={p} allowed={v => rowAllows(i, d.id, v)} onChange={v => patchRow(i, d.id, v)} />)}
             <ItemActions f={f} p={p} item={item} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} />
           </div>
@@ -400,7 +402,10 @@ function Cell({ d, value, ro, p, onChange, allowed = () => true }: { d: FieldDef
   }
   if (d.type === 'counter') {
     if (value === null || value === undefined) return <span className="rv-sheet-caption">—</span>;
-    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="rv-sheet-caption">{p.t(d.label)}</span><Counter value={num(value)} min={d.min} max={d.max} labelText={p.t(d.label)} disabled={dis} allowed={n => allowed(n)} onChange={onChange} /></span>;
+    // Sin rotulo repetido al lado del contador: en el `.pen` la fila de un don pone «nivel 1» y punto.
+    // El nombre es lo que tiene que llevarse el ancho, y «Nivel −1+» se comia 60 px por fila.
+    // La etiqueta sigue en el `aria-label` del contador, asi que no se pierde para lectores.
+    return <span className="rv-sheet-item-counter"><Counter value={num(value)} min={d.min} max={d.max} labelText={p.t(d.label)} disabled={dis} allowed={n => allowed(n)} onChange={onChange} /></span>;
   }
   if (d.type === 'number') return dis ? <span>{str(value)}</span> : <input type="number" className="rv-sheet-inp num" aria-label={p.t(d.label)} value={num(value)} min={d.min} max={d.max} onChange={e => onChange(Number(e.target.value))} />;
   return dis ? <span>{str(value)}</span> : <input className="rv-sheet-inp" aria-label={p.t(d.label)} value={str(value)} onChange={e => onChange(e.target.value)} />;

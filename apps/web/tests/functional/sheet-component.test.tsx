@@ -42,7 +42,7 @@ describe('<Sheet> — schema-driven, every field type', () => {
     expect(within(table).getAllByRole('button', { name: /Atacar cuerpo a cuerpo/ }).length).toBe(2);
     // gifts with ⚡ (bolt) and cost text
     expect(screen.getByRole('button', { name: /Activar don · Furia de titán/ })).toBeInTheDocument();
-    expect(screen.getByText('1 punto de Fortuna')).toBeInTheDocument();
+    expect(screen.getByText('1 Fortuna')).toBeInTheDocument();
     // section ref hint for weapons
     expect(screen.getByText(/Armas · Manual · p.97/)).toBeInTheDocument();
   });

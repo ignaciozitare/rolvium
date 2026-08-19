@@ -75,10 +75,16 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-stat .rv-sheet-value{min-width:28px;text-align:right;}
 /* list & table */
 .rv-sheet-list{display:flex;flex-direction:column;}
-.rv-sheet-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--sys-line);flex-wrap:wrap;}
-.rv-sheet-item > .rv-sheet-field{flex:1 1 140px;}
+/* UNA linea por fila, como el .pen: `flex-wrap:wrap` mas un select a ancho completo partia cada
+   objeto en dos o tres lineas y la tarjeta se estiraba sin fondo (visto en produccion 2026-08-19).
+   El nombre se come el hueco que sobra y el resto —nivel, coste, acciones— va detras, sin envolver. */
+.rv-sheet-item{display:flex;align-items:center;gap:10px;padding:4px 0 6px;border-bottom:1px solid var(--sys-line);flex-wrap:nowrap;}
+.rv-sheet-item > .rv-sheet-field{flex:1 1 140px;min-width:0;}
+.rv-sheet-item > select.rv-sheet-inp{flex:1 1 auto;min-width:0;}
+.rv-sheet-item > span{flex:0 0 auto;white-space:nowrap;}
 .rv-sheet-item-actions{display:inline-flex;gap:6px;align-items:center;margin-left:auto;}
-.rv-sheet-item-cost{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+.rv-sheet-item-cost{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);white-space:nowrap;}
+.rv-sheet-item-counter{display:inline-flex;align-items:center;flex:0 0 auto;}
 .rv-sheet-add{align-self:flex-start;margin-top:8px;display:inline-flex;align-items:center;gap:8px;}
 .rv-sheet-add small{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);letter-spacing:0;text-transform:none;}
 .rv-sheet-table{width:100%;border-collapse:collapse;}

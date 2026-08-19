@@ -11,10 +11,8 @@ describe('sheetSchema', () => {
     // Por eso `armour` baja detrás de `equipment` y deja de ser `row`, que la marcaba como ancha.
     expect(sections.map(s => s.id)).toEqual(['identity', 'roll', 'stats', 'state', 'weapons', 'gifts', 'equipment', 'armour', 'story', 'creation']);
     expect(sections.find(s => s.id === 'armour')?.layout).toBe('stack');
-    // Estado ocupa dos columnas: si no, Armas (que va a fila entera) le deja un hueco en blanco a la
-    // derecha — queja del dueño. `span` lo declara el sistema; la plataforma no sabe qué pide sitio.
-    expect(sections.find(s => s.id === 'state')?.span).toBe(2);
-    expect(sections.filter(s => s.span).map(s => s.id)).toEqual(['state']);
+    // Ninguna sección usa `span` hoy: ensanchar Estado a dos columnas dejó un vacío enorme debajo.
+    expect(sections.filter(s => s.span).map(s => s.id)).toEqual([]);
     for (const id of STAT_IDS) expect(fieldById(id)).toMatchObject({ type: 'stat', action: 'roll', min: 1, max: 10 });
     expect(fieldById('weapons')).toMatchObject({ type: 'table', action: 'attack' });
     expect(fieldById('gifts')).toMatchObject({ type: 'list', action: 'gift.activate' });
