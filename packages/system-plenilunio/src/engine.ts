@@ -333,9 +333,33 @@ const attackRequest = (sheet: SheetData, itemId: string, options: Record<string,
   return { ...req, title: `catalog.weapons.${itemId}` };
 };
 
+/** Un arma ofrece SOLO su acción: c/c o a distancia, nunca las dos (p.96–97, y `attackActionFor`). */
+const rowIsMelee = (row: Record<string, unknown>): boolean => {
+  const d = weaponData(row as unknown as WeaponRow);
+  return !d || isMelee(d);
+};
 export const actions: ActionDef[] = [
-  { id: 'attack.melee', icon: 'swords', label: 'sheet.actions.attackMelee', appliesTo: 'weapons', toRoll: (s, id, o) => attackRequest(s, id, o, false) },
-  { id: 'attack.ranged', icon: 'target', label: 'sheet.actions.attackRanged', appliesTo: 'weapons', toRoll: (s, id, o) => attackRequest(s, id, o, true) },
+  { id: 'attack.melee', icon: 'swords', label: 'sheet.actions.attackMelee', appliesTo: 'weapons', appliesToRow: rowIsMelee, toRoll: (s, id, o) => attackRequest(s, id, o, false) },
+  {
+    id: 'attack.ranged', icon: 'target', label: 'sheet.actions.attackRanged', appliesTo: 'weapons',
+    appliesToRow: r => !rowIsMelee(r),
+    /**
+     * Un disparo gasta un punto de cargador (p.97). Que el arco, la ballesta y el tirachinas pongan
+     * «Cargador 1» es lo que fija la unidad: una unidad = un disparo, y a recargar. Sin balas devuelve
+     * null y el botón se apaga; recargar es una acción aparte que el libro cobra en dados de Combate
+     * (p.96) y que todavía no está construida.
+     */
+    spend: (sheet, id) => {
+      // `spendAmmo` ya existía y está probado: se reutiliza en vez de repetir la cuenta. Devuelve null
+      // cuando el arma no tiene cargador, así que aquí se distingue ese caso —un arma a distancia sin
+      // munición declarada se dispara gratis— de quedarse sin balas, que sí apaga el botón.
+      const row = weaponsOf(sheet).find(r => str(r.id) === id);
+      const d = row ? weaponData(row) : null;
+      if (d && d.magazine === null) return {};
+      return spendAmmo(sheet, id);
+    },
+    toRoll: (s, id, o) => attackRequest(s, id, o, true),
+  },
   {
     id: 'gift.activate', icon: 'bolt', label: 'sheet.actions.activateGift', appliesTo: 'gifts', cost: 'sheet.actions.giftCost',
     toRoll: (sheet, giftId, options) => {

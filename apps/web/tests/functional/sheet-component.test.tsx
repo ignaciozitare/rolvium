@@ -39,7 +39,12 @@ describe('<Sheet> — schema-driven, every field type', () => {
     const table = screen.getByRole('table', { name: 'Armas' });
     expect(within(table).getAllByRole('combobox')[0]).toHaveValue('bat');
     expect(within(table).getAllByRole('row')[2]).toHaveTextContent('7'); // magnum damage from the catalog
-    expect(within(table).getAllByRole('button', { name: /Atacar cuerpo a cuerpo/ }).length).toBe(2);
+    // Cada arma ofrece SÓLO su acción (p.96–97): el bate es cuerpo a cuerpo y el magnum a distancia.
+    // Antes se pintaban las dos en todas las filas y unas Nudilleras ofrecían «Disparar».
+    expect(within(table).getAllByRole('button', { name: /Atacar cuerpo a cuerpo/ }).length).toBe(1);
+    expect(within(table).getAllByRole('button', { name: /Disparar/ }).length).toBe(1);
+    // Y el cargador sólo lo llevan las de fuego: el libro pone «-» en las nueve de cuerpo a cuerpo.
+    expect(within(table).getAllByRole('row')[1]).toHaveTextContent('—');
     // gifts with ⚡ (bolt) and cost text
     expect(screen.getByRole('button', { name: /Activar don · Furia de titán/ })).toBeInTheDocument();
     expect(screen.getByText('1 Fortuna')).toBeInTheDocument();

@@ -58,8 +58,8 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-counter{display:inline-flex;align-items:center;gap:8px;}
 .rv-sheet-counter .rv-sheet-btn{padding:4px 9px;}
 /* boxes (PL/Casilla) */
-.rv-sheet-boxes{display:flex;flex-wrap:wrap;gap:4px;max-width:100%;}
-.rv-sheet-box{width:16px;height:16px;padding:0;border:1px solid var(--sys-border);background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);cursor:pointer;}
+.rv-sheet-boxes{display:flex;flex-wrap:wrap;gap:5px;max-width:100%;}
+.rv-sheet-box{width:20px;height:20px;padding:0;border:1px solid var(--sys-border);background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);cursor:pointer;}
 /* Manual p.25: en blanco es la Resistencia que te QUEDA; las marcadas son el dano recibido.
    Bordo (`--sys-blood`), no una cruz: decision del dueno 2026-08-19.
    Fuera `.on`: ningun camino del codigo emite ya esa clase, asi que era CSS inalcanzable, y el
@@ -94,6 +94,7 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-item-actions{display:inline-flex;gap:6px;align-items:center;margin-left:auto;}
 .rv-sheet-item-cost{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);white-space:nowrap;}
 .rv-sheet-item-counter{display:inline-flex;align-items:center;flex:0 0 auto;}
+.rv-sheet-item-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-body);}
 .rv-sheet-add{align-self:flex-start;margin-top:8px;display:inline-flex;align-items:center;gap:8px;}
 .rv-sheet-add small{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);letter-spacing:0;text-transform:none;}
 .rv-sheet-table{width:100%;border-collapse:collapse;}
@@ -107,3 +108,12 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-image-disc img{width:100%;height:100%;object-fit:cover;}
 .rv-sheet-image .rv-sheet-caption{max-width:120px;line-height:var(--lh-tight);}
 .rv-sheet-svg{display:block;flex-shrink:0;}
+
+/* (dueno 2026-08-19) El contador de una fila va pegado a la DERECHA, con las acciones, no contra el
+   nombre: asi los numeros de todas las filas quedan en columna y se leen de arriba abajo. */
+.rv-sheet-item > .rv-sheet-item-actions{margin-left:0;}
+.rv-sheet-item-counter{margin-left:auto;min-width:96px;justify-content:flex-end;}
+/* Numeros calculados de una tarjeta en columna: centrados, y un filete corto entre dos seguidos. */
+.rv-sheet-fields.stack > .rv-sheet-field.num-derived{text-align:center;align-items:center;}
+.rv-sheet-fields.stack > .rv-sheet-field.num-derived .rv-sheet-derived{justify-content:center;}
+.rv-sheet-fields.stack > .rv-sheet-field.num-derived + .rv-sheet-field.num-derived::before{content:'';display:block;width:56px;height:1px;background:var(--sys-line);margin:2px auto 10px;}

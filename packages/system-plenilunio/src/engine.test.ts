@@ -437,3 +437,30 @@ describe('generator budgets', () => {
     expect(f).toMatchObject({ fortune: 4, resistance: 18, health: 'healthy', xp: 0 });
   });
 });
+
+describe('munición (p.97)', () => {
+  /**
+   * El libro no escribe «un disparo gasta una bala», pero la tabla de armas lo fija: el arco, la
+   * ballesta y el tirachinas ponen **Cargador 1**, y eso sólo tiene sentido si la unidad del cargador
+   * es un disparo — tiras y ya tienes que recargar.
+   */
+  const ranged = actions.find(a => a.id === 'attack.ranged')!;
+  const melee = actions.find(a => a.id === 'attack.melee')!;
+  const withGun = (ammo: number) => sheet({ weapons: [{ id: 'magnum44', ammo }] });
+
+  it('disparar gasta un punto de cargador', () => {
+    expect(ranged.spend!(withGun(6), 'magnum44')).toEqual({ weapons: [{ id: 'magnum44', ammo: 5 }] });
+  });
+  it('sin balas no se dispara: devuelve null y el botón se apaga', () => {
+    expect(ranged.spend!(withGun(0), 'magnum44')).toBeNull();
+  });
+  it('un arma sin cargador no gasta nada al usarla', () => {
+    expect(ranged.spend!(sheet({ weapons: [{ id: 'knuckles' }] }), 'knuckles')).toEqual({});
+  });
+  it('cada arma ofrece SÓLO su acción (p.96–97)', () => {
+    expect(melee.appliesToRow!({ id: 'knuckles' })).toBe(true);
+    expect(ranged.appliesToRow!({ id: 'knuckles' })).toBe(false);
+    expect(melee.appliesToRow!({ id: 'magnum44' })).toBe(false);
+    expect(ranged.appliesToRow!({ id: 'magnum44' })).toBe(true);
+  });
+});

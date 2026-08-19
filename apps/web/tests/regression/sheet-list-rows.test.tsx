@@ -29,7 +29,9 @@ const LABELS = { roll: 'Tirar', add: 'Añadir', remove: 'Quitar', manual: 'manua
 function Host({ canChange, onData, initial }: { canChange?: (id: string, v: unknown) => boolean; onData: (d: unknown) => void; initial?: unknown[] }) {
   // two rows on the SAME gift — exactly what «+ Añadir» twice produces before you pick anything
   const [data, setData] = useState<Record<string, unknown>>({ gifts: initial ?? [{ id: 'a', level: 1 }, { id: 'a', level: 2 }] });
-  return <Sheet schema={SCHEMA} data={data} derived={{}} t={(k: string) => k} labels={LABELS} icons={{}}
+  // `rowPicker`: el desplegable por fila vive en el GENERADOR, que es donde se elige el don. En la
+  // ficha viva la fila es texto y sólo se borra (dueño, 2026-08-19). El veto por opción es de aquí.
+  return <Sheet schema={SCHEMA} data={data} derived={{}} rowPicker t={(k: string) => k} labels={LABELS} icons={{}}
     {...(canChange ? { canChange } : {})}
     onChange={p => setData(d => { const next = { ...d, ...p }; onData(next); return next; })} />;
 }

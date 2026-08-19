@@ -31,6 +31,12 @@ export interface SheetProps {
   onImagePick?: (fieldId: string) => void;
   /** Only these fields (any section) are rendered — used by the generator steps. */
   fields?: string[];
+  /**
+   * Si cada fila de una lista lleva su desplegable para elegir. En la ficha viva NO: la fila es texto
+   * y se borra (dueño: «tendría que ser una lista y ya, y que se puedan borrar las cosas»). En el
+   * GENERADOR sí, porque ahí es donde se elige el don. Por defecto false.
+   */
+  rowPicker?: boolean;
   /** Hide roll/action buttons (generator, previews). */
   showActions?: boolean;
   /** Icon hints from `VisualTheme.icons` (`stat: 'crescent'`, `health: 'moon-phase'`). */
@@ -82,7 +88,9 @@ export function Sheet(p: SheetProps): JSX.Element {
       }
       case 'number':
         return (
-          <div className="rv-sheet-field">{label(f)}
+          // `num-derived`: un numero calculado que sale solo en una tarjeta se lee centrado, y entre dos
+          // seguidos va un filete corto (dueno, sobre Armadura: proteccion y penalizacion).
+          <div className={`rv-sheet-field ${f.derived ? 'num-derived' : ''}`}>{label(f)}
             {f.derived || ro ? <div className="rv-sheet-derived"><span className="rv-sheet-value">{str(v) || '—'}</span></div>
               : <input type="number" className="rv-sheet-inp num" aria-label={p.t(f.label)} value={num(v)} min={f.min} max={f.max} onChange={e => set(f.id, Number(e.target.value))} />}
           </div>
@@ -118,7 +126,9 @@ export function Sheet(p: SheetProps): JSX.Element {
         // si hace falta, y protege de un `val` guardado por debajo de 0. (Hallazgo del QA.)
         const hits = Math.min(len, len - val);
         return (
-          <div className="rv-sheet-field">{label(f)}
+          // `span`: las casillas se leen de un vistazo en UNA fila a lo ancho de la tarjeta; metidas en
+          // media columna salian en tres lineas (dueno, 2026-08-19).
+          <div className="rv-sheet-field span">{label(f)}
             <div className="rv-sheet-boxes" role="group" aria-label={p.t(f.label)}>
               {Array.from({ length: len }, (_, i) => (
                 <button key={i} type="button" className={`rv-sheet-box ${i < hits ? 'hit' : ''}`} disabled={ro} aria-pressed={i < hits}
@@ -297,13 +307,17 @@ const rowKey = (r: Record<string, unknown>, i: number) => `${i}:${str(r.id)}`;
 const blankRow = (defs: FieldDef[]): Record<string, unknown> => Object.fromEntries(defs.filter(d => !d.derived).map(d => [d.id, d.type === 'select' ? d.options?.[0]?.value ?? '' : d.type === 'counter' || d.type === 'number' ? d.min ?? 0 : d.type === 'text' ? '' : null]));
 
 function ItemActions({ f, p, item, i, ro, showActions, list, set }: Shared & { item: Record<string, unknown>; i: number; list: Record<string, unknown>[] }): JSX.Element {
-  const acts = actionsFor(f, p.actions);
+  const acts = actionsFor(f, p.actions).filter(a => a.appliesToRow?.(item) ?? true);
   return (
     <span className="rv-sheet-item-actions">
       {showActions && p.onAction && acts.map(a => (
         <span key={a.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           {a.cost && <span className="rv-sheet-item-cost">{p.t(a.cost)}</span>}
-          <button type="button" className="rv-sheet-icon-btn" title={p.t(a.label)} aria-label={`${p.t(a.label)} · ${rowLabel(f, item, p)}`} onClick={() => p.onAction?.(a.id, rowId(item, i))}>
+          <button type="button" className="rv-sheet-icon-btn" title={p.t(a.label)} aria-label={`${p.t(a.label)} · ${rowLabel(f, item, p)}`}
+            /* Sin balas no se dispara, y el boton tiene que VERSE apagado: un control vetado que no lo
+               parece es «pulso y no pasa nada», el fallo que ya ha salido cuatro veces en este proyecto. */
+            disabled={a.spend ? a.spend(p.data, rowId(item, i)) === null : false}
+            onClick={() => p.onAction?.(a.id, rowId(item, i))}>
             <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">{a.icon}</span>
           </button>
         </span>
@@ -353,7 +367,14 @@ function ListField({ f, p, ro, showActions, set, label, allowed }: Shared & { al
             {/* La luna sólo en listas con accion. rolvium.pen: la fila de Don la lleva (22 px), la de
                 Equipo NO — era una lista de objetos con lunas y el dueño lo pidio fuera. */}
             {f.action && p.icons?.stat === 'crescent' && <Crescent size={22} />}
-            {defs.map(d => <Cell key={d.id} d={d} value={item[d.id]} ro={ro} p={p} allowed={v => rowAllows(i, d.id, v)} onChange={v => patchRow(i, d.id, v)} />)}
+            {/* La fila de una lista es TEXTO, no un desplegable. `rolvium.pen` la pinta así y el dueño lo
+                pidió con estas palabras: «tendría que ser una lista y ya, y que se puedan borrar las
+                cosas». Un `<select>` por fila metía un control de 300 px donde va un nombre. Lo que se
+                elige, se elige al añadir; para cambiarlo se borra y se añade. Los contadores (el nivel
+                de un don) sí siguen vivos: eso no es elegir, es un valor que se toca en la mesa. */}
+            {defs.map(d => (d.type === 'select' && !p.rowPicker
+              ? <span key={d.id} className="rv-sheet-item-name">{p.t(d.options?.find(o => o.value === str(item[d.id]))?.label ?? str(item[d.id]))}</span>
+              : <Cell key={d.id} d={d} value={item[d.id]} ro={ro} p={p} allowed={v => rowAllows(i, d.id, v)} onChange={v => patchRow(i, d.id, v)} />))}
             <ItemActions f={f} p={p} item={item} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} />
           </div>
         ))}
@@ -382,7 +403,17 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
         <tbody>
           {list.map((row, i) => (
             <tr key={rowKey(row, i)}>
-              {cols.map(c => <td key={c.id} className={c.type === 'number' || c.type === 'counter' ? 'num' : ''}>{c.derived ? derivedCell(row, c) : <Cell d={c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}</td>)}
+              {cols.map(c => (
+                <td key={c.id} className={c.type === 'number' || c.type === 'counter' ? 'num' : ''}>
+                  {c.derived ? derivedCell(row, c)
+                    /* Una columna que el catálogo deja en blanco para ESTA fila no se edita: es que la
+                       fila no la tiene. Un arma cuerpo a cuerpo no lleva cargador —el libro pone «-» en
+                       las nueve (p.97)— y la tabla pintaba igualmente un contador, así que salían unas
+                       Nudilleras con 14 balas. */
+                    : c.appliesToRow && !c.appliesToRow(row) ? <span className="rv-sheet-caption">—</span>
+                      : <Cell d={c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}
+                </td>
+              ))}
               <td><ItemActions f={f} p={p} item={row} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} /></td>
             </tr>
           ))}

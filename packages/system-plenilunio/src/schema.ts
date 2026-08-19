@@ -5,7 +5,7 @@
 // stored by newSheet(). Manual pages: stats p.20–21, roll p.82–84, state p.98–99, p.88–89. See RULES.md.
 import type { FieldDef, SectionDef, SheetData, SheetSchema } from '@rolvium/core';
 import {
-  ARMOURS, DIFFICULTIES, EQUIPMENT, GIFTS, HEALTH_LEVELS, SIZES, STAT_IDS, WEAPONS, specialtiesFor, type HealthId, type StatId,
+  ARMOURS, DIFFICULTIES, EQUIPMENT, GIFTS, HEALTH_LEVELS, SIZES, STAT_IDS, WEAPONS, specialtiesFor, weaponById, type HealthId, type StatId,
 } from './catalogs';
 
 export const SHEET_VERSION = '1';
@@ -58,6 +58,10 @@ export const sections: SectionDef[] = [
   // tarjeta se quedó con el doble de ancho y el mismo contenido, o sea un vacío enorme bajo «Recibir
   // daño» (visto en producción por el dueño, 2026-08-19). El hueco no se arregla ensanchando: se
   // arregla componiendo los 12 campos de la sección como los tiene el `.pen`, y eso es su propia tanda.
+  // Orden pensado, no el que salió: primero lo que mide el CUERPO (aguante → resistencia máxima → las
+  // casillas → la salud), luego lo que la salud arrastra (penalización, inconsciente, lo que cura el
+  // descanso), y al final los recursos que se gastan (destino, fortuna, experiencia, puntos de don).
+  // Antes «penalización por heridas» caía entre las casillas y el destino sin nada que lo atara.
   { id: 'state', label: 'sheet.sections.state', layout: 'grid', fields: [
     { id: 'endurance', type: 'number', label: 'sheet.state.endurance', ref: 'endurance', derived: true },
     { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'resistance', derived: true },
@@ -67,10 +71,10 @@ export const sections: SectionDef[] = [
     yesNo('unconscious', 'sheet.state.unconscious', 'health'),
     { id: 'recoveryMax', type: 'number', label: 'sheet.state.recoveryMax', ref: 'recovery', derived: true },
     { id: 'destiny', type: 'counter', label: 'sheet.state.destiny', ref: 'destiny', min: 1, max: 10 },
-    { id: 'fortuneMax', type: 'number', label: 'sheet.state.fortuneMax', ref: 'fortune', derived: true },
     { id: 'fortune', type: 'counter', label: 'sheet.state.fortune', ref: 'fortune', min: 0, max: 10 },
-    { id: 'xp', type: 'counter', label: 'sheet.state.xp', ref: 'xp', min: 0 },
+    { id: 'fortuneMax', type: 'number', label: 'sheet.state.fortuneMax', ref: 'fortune', derived: true },
     { id: 'giftPoints', type: 'number', label: 'sheet.state.giftPoints', ref: 'gifts', derived: true },
+    { id: 'xp', type: 'counter', label: 'sheet.state.xp', ref: 'xp', min: 0 },
   ] },
   { id: 'weapons', label: 'sheet.sections.weapons', layout: 'stack', fields: [
     { id: 'weapons', type: 'table', label: 'sheet.weapons.list', ref: 'weapons', action: 'attack', columns: [
@@ -78,7 +82,9 @@ export const sections: SectionDef[] = [
       { id: 'bonus', type: 'number', label: 'sheet.weapons.bonus', derived: true },
       { id: 'damage', type: 'text', label: 'sheet.weapons.damage', derived: true },
       { id: 'range', type: 'text', label: 'sheet.weapons.range', derived: true },
-      { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0 },
+      // Sólo las armas de fuego tienen cargador: el libro pone «-» en las nueve de cuerpo a cuerpo
+      // (p.97) y `magazine` es null en el catálogo. Sin esto salían unas Nudilleras con 14 balas.
+      { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
     ] },
   ] },
   { id: 'gifts', label: 'sheet.sections.gifts', layout: 'stack', span: 2, fields: [

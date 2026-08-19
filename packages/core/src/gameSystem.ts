@@ -13,6 +13,13 @@ export interface FieldDef {
   type: FieldType;
   label: I18nKey;
   ref?: string;                 // rule reference key → tooltip + manual page
+  /**
+   * Sólo columnas de tabla: si la columna aplica a ESTA fila. Sin definir = a todas. Lo declara el
+   * sistema porque la plataforma no sabe qué fila tiene qué: un arma cuerpo a cuerpo no lleva
+   * cargador —el libro pone «-» en las nueve (p.97)— y la tabla pintaba un contador igual, así que
+   * salían unas Nudilleras con 14 balas.
+   */
+  appliesToRow?: (row: Record<string, unknown>) => boolean;
   min?: number; max?: number;
   options?: { value: string; label: I18nKey }[];
   columns?: FieldDef[];         // for 'table'
@@ -76,7 +83,23 @@ export interface ActionDef {
   icon: string;                  // Material Symbols name
   label: I18nKey;
   appliesTo: string;             // field/list id in the schema, e.g. 'weapons' | 'gifts' | 'stats'
+  /**
+   * Si aplica a ESTA fila. Sin esto la ficha pintaba las dos acciones de arma en todas: unas
+   * Nudilleras ofrecian «Disparar». El manual las separa (p.96–97): a distancia es un reto contra la
+   * dificultad del alcance y el arma no da dados extra; cuerpo a cuerpo es enfrentado y ahi si suma la
+   * bonificacion. Son acciones distintas, y cada arma tiene la suya. Sin definir = aplica a todas.
+   */
+  appliesToRow?: (row: Record<string, unknown>) => boolean;
   cost?: I18nKey;
+  /**
+   * Lo que la accion GASTA en la ficha, o `null` si ahora mismo no se puede pagar. Devuelve un patch
+   * que la plataforma aplica al lanzar, y `null` apaga el boton.
+   *
+   * Existe por la municion: la tabla de armas (p.97) da un «Cargador» por arma, y que un arco o una
+   * ballesta pongan **Cargador 1** solo tiene sentido si la unidad del cargador es UN disparo — tiras
+   * y ya tienes que recargar. Asi que disparar gasta un punto, y sin balas no se dispara.
+   */
+  spend?: (sheet: SheetData, itemId: string) => SheetPatch | null;
   toRoll: (sheet: SheetData, itemId: string, options?: Record<string, unknown>) => RollRequest;
 }
 
