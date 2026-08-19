@@ -136,7 +136,10 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   if (status === 'loading') return <section className="tb-hoja tb-placeholder">{t('maps.loading')}</section>;
   if (status === 'error') return <section className="tb-hoja tb-placeholder">{t('maps.error')}</section>;
 
-  const scenesRail = isDm && scenes && live ? (
+  // NOT `&& live`: the rail carries the only «+ Escena» there is since slice 3 took the scene header
+  // away, so hiding it until a scene exists left the DM with no way to create the first one — the
+  // «crea la primera escena» placeholder asked for exactly what it disabled (owner, 2026-08-19).
+  const scenesRail = isDm && scenes ? (
     <ScenesMenu scenes={scenes} selectedId={selectedId} activeSceneId={activeSceneId} onSelect={setSelectedId}
       collapsed={railFolded} onToggleCollapsed={() => setRailFolded(f => !f)}
       onCreate={async name => { const sc = await repo.createScene({ campaignId, name, sortOrder: scenes.length }); setScenes(l => [...(l ?? []), sc]); setSelectedId(sc.id); }}
@@ -147,7 +150,17 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   ) : null;
 
   if (!live) {
-    return <section className="mp-root"><div className="tb-hoja tb-placeholder"><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>map</span><p>{isDm ? t('maps.noScenesDm') : t('maps.noScene')}</p></div></section>;
+    return (
+      <section className="mp-root">
+        <div className="mp-stage-row">
+          {scenesRail}
+          <div className="tb-hoja tb-placeholder mp-empty">
+            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>map</span>
+            <p>{isDm ? t('maps.noScenesDm') : t('maps.noScene')}</p>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   const hiddenCount = st.tokens.filter(tk => !tk.visible).length;

@@ -27,6 +27,8 @@
 .mp-stroke-note{font-size:var(--fs-xs);}
 /* stage */
 .mp-stage-row{display:flex;gap:10px;align-items:stretch;flex:1 1 auto;min-height:0;}
+/* Zero scenes: the rail keeps its width and the placeholder takes the rest, so «+ Escena» stays reachable. */
+.mp-empty{flex:1 1 auto;}
 .mp-toolbar{display:flex;flex-direction:column;gap:3px;padding:4px 3px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);align-self:stretch;overflow:auto;}
 .mp-tool-group{display:flex;flex-direction:column;gap:1px;padding-bottom:4px;border-bottom:1px solid var(--sys-line);}
 .mp-tool-group:last-child{border-bottom:none;padding-bottom:0;}

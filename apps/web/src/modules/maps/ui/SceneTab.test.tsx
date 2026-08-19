@@ -434,3 +434,30 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     await waitFor(() => expect(repo.walls).toHaveLength(0));
   });
 });
+
+describe('<SceneTab> cero escenas', () => {
+  /**
+   * Regresión, dueño 2026-08-19: «no tengo opción de crear mapa». La rebanada 3 se llevó el control de
+   * crear al rail, y el rail sólo se pintaba con una escena viva: el cartel «crea la primera escena»
+   * pedía justo lo que la pantalla no dejaba hacer.
+   */
+  it('el director sin ninguna escena sigue teniendo el rail y su «+ Escena», y crearla la deja elegida', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [] }), null);
+    expect(await screen.findByText('Crea la primera escena para preparar la mesa.')).toBeInTheDocument();
+
+    const rail = screen.getByRole('group', { name: 'Escenas' });
+    await u.click(within(rail).getByRole('button', { name: '+ Escena' }));
+    await u.type(await screen.findByRole('textbox'), 'Almacén');
+    await u.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => expect(repo.scenes.map(s => s.name)).toEqual(['Almacén']));
+    expect(await screen.findByRole('application', { name: 'Lienzo de la escena' })).toBeInTheDocument();
+  });
+
+  it('el jugador sin escena activa NO ve el rail: crear escenas es del director', async () => {
+    mount('player', fakeMapsRepo({ scenes: [] }), null);
+    expect(await screen.findByText('El director aún no ha activado ninguna escena.')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Escenas' })).not.toBeInTheDocument();
+  });
+});
