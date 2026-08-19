@@ -227,6 +227,91 @@ Sale de que el dueño probó el generador con la versión buena. Los tres arregl
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
+### Últimos cuatro del dueño (2026-08-19, tarde)
+12. ~~**Un personaje creado no aparece**~~ → **NO SE GUARDA**. El dueño lo precisó: salió de la campaña, volvió
+    y no estaba. La base NO es el problema: probado el insert exacto bajo RLS como director, con `owner_id NULL`
+    y `kind 'pc'`, y entra. Lo que había era que **el generador se tragaba el error** (`catch { setFailed(true) }`),
+    así que un fallo de guardado era indistinguible de que no hubiera pasado nada. **Ya se ve el motivo**
+    (commit `a028692`): el estado de fallo guarda el mensaje y se pinta. **La causa raíz sigue sin identificar** —
+    lo primero del chat nuevo es crear un personaje y LEER lo que dice ese aviso.
+    (Redacción original, por si sirve: no aparecía ni en `/characters` ni en «Colocar PJ» del mapa.) Revisado el código y
+    **debería aparecer**: `CharactersPage` lista `listMine()` + `listByCampaign()` de cada campaña mía y filtra
+    los `isUnassigned`; el mapa usa `listByCampaign().filter(kind === 'pc')`. La RLS tampoco lo tapa (el
+    director ve todo lo de su campaña). Sospechas por orden: que la campaña no salga en `campaigns.listMine()`
+    para ese usuario, o que la creación fallara en silencio. **Sin reproducir. Hay que crear uno y mirar la
+    fila en la base ANTES de tocar código.**
+13. **«Mejorar» no debe estar en la barra de pestañas**: va como botón dentro de la ficha, al lado de «Editar»
+    y «Abrir ficha aparte». → `.pen`
+14. **Multiidioma: existe, pero no dentro de la Mesa.** El conmutador ES/EN vive en `UserMenu` (menú del avatar)
+    y en `/account`. Pero `TablePage` pinta un `UserAvatar` pelado, **no** el `UserMenu`: dentro de la mesa no
+    hay forma de cambiar de idioma. Por eso «desapareció».
+15. **A distancia y cuerpo a cuerpo usan la MISMA característica (Combate)** — matiz que el dueño preguntó. Lo
+    que cambia es el tipo de tirada: a distancia es un **reto** contra la dificultad del alcance y el arma no
+    suma dados; cuerpo a cuerpo es un **conflicto enfrentado** y ahí sí suma la bonificación (p.96–97).
+
+
+### QA del dueño sobre la ficha (2026-08-19, tarde) — 11 puntos, NADA hecho
+Marcados los que el **libro** resuelve (verificado en el PDF) y los que son pantalla (→ `.pen` antes que código).
+
+1. ~~**La ficha en pestaña aparte no scrollea**~~ — **HECHO** (`a028692`), con test. Causa: `CharacterSheetPage` usa `className="tb-root"`,
+   y `.tb-root` lleva `height:100dvh; overflow:hidden` — que existe para que la ESCENA no scrollee (el mapa se
+   comía el alto). La página suelta hereda esa regla y se queda sin scroll. Necesita su propia clase.
+2. **Disparar tiene que gastar munición.** El libro trae columna «Cargador» por arma (p.97) y recargar es una
+   acción que consume dados de Combate (p.96–97). ⚠ interpretación: el libro no fija cadencia, así que
+   1 disparo = 1 bala es lectura nuestra.
+3. **Los dados de ataque necesitan leyenda por dado**: 1 fracaso · 2–3 fallo · 4–5 éxito · 6 triunfo (p.82).
+   Hoy sólo sale el texto de grado de éxito.
+4. **Equipo como lista de verdad**: un «+» que abre desplegable y añade. Fuera las lunas por fila. → `.pen`
+5. **«Lo de recibir daño no lo entiendo».** → `.pen`
+6. **El generador necesita leyendas en cada paso**: qué es, qué estás haciendo y cómo repartir. → `.pen`
+7. **Las armas cuerpo a cuerpo no llevan munición. LO DICE EL LIBRO** (p.97): toda arma c/c tiene «-» en
+   Cargador. Los datos ya están bien (`cargador: null` en las nueve de c/c); es la TABLA la que pinta la
+   columna para todas las filas. Sale «Cargador 0» en unas Nudilleras.
+8. **Los dos botones (⚔ y ◎) en todas las armas: SÍ es de reglas, y lo tenemos mal.** Son acciones distintas:
+   - **A distancia** = *reto* contra la dificultad del alcance (corto Media 2 · medio Difícil 3 · largo Muy
+     difícil 5 · muy largo Épica 6, p.96) y **el arma NO da dados extra**: «al contrario de lo que ocurre en el
+     combate cuerpo a cuerpo, las armas no proporcionan dados extra en este tipo de combate: sin ellas
+     simplemente no se puede atacar a distancia» (p.96).
+   - **Cuerpo a cuerpo** = conflicto enfrentado, y ahí **sí** aplica la bonificación: «la bonificación de Combate
+     solo se aplica en alcance cuerpo a cuerpo» (p.97).
+   Así que cada arma debe ofrecer **sólo su acción**. Ya estaba anotado como «iconos ⚔/◎ por tipo de arma».
+9. **Tooltip de característica: sale un segundo tooltip que no debería**, y debe explicar la especialidad como
+   dice el diseño, con más cuerpo porque no se lee. → `.pen` + bug de tooltip.
+10. **Dones, Equipo y Armadura, uno al lado del otro**, creciendo a la vez; Armas en su propia card y las otras
+    tres debajo. → `.pen`
+11. **Fuera el registro de tiradas de la ficha**: ya está en la barra de tiradas. Duplicado.
+
+
+### Ficha y generador — prueba del dueño en producción (2026-08-19, tarde). NADA de esto está hecho
+Cinco de los siete son trabajo de **pantalla**: por la regla del dueño van al `.pen` ANTES que al código.
+
+- **Características y Especialidades siguen siendo la misma pantalla.** No es un bug de reglas: el campo `stat`
+  arrastra sus `itemFields` (los desplegables de especialidad) a **cualquier** paso que liste las características, y
+  los dos pasos las listan. Lo que se elige en uno se ve en el otro porque **es el mismo campo**. Se arregla
+  decidiendo en el diseño qué enseña cada paso, no con un parche.
+- **El paso de Destino no dice qué hay que hacer.** Enseña un `- 3 +` pelado. Falta: empieza en 3, va de 1 a 5, cada
+  +1 cuesta un punto de característica y cada −1 devuelve uno, y —lo que más importa— **el Destino ES tu número de
+  puntos de don**. Sin vista en el `.pen`.
+- **Descripciones al vuelo, pedidas más de una vez y aún sin hacer**: al pasar por encima de una opción (un don, una
+  especialidad, una característica) debe decir qué es, y al elegirla debe quedar **en la columna de la derecha**.
+  Los datos YA existen: `catalog.gifts.<id>.summary` y `references` (clave → página + resumen propio). Falta la UI.
+  El **glosario por característica ya está diseñado** en `GjeeD` y nunca se construyó.
+- **Las letras siguen sin leerse.** Tokens de `RolviumApp.css`; afecta a TODA la app, no sólo a la ficha.
+- **Las cards van sin borde y con sombra** (así está en el diseño); en producción no tienen sombra.
+- **Estado deja un hueco en blanco a la derecha**: tiene que ocupar el ancho que queda y reordenar sus componentes.
+
+### Resistencia — la casilla está INVERTIDA respecto al libro (p.25, verificado en el PDF)
+El libro dice: «sombrea los puntos **sobrantes** y deja los cuadrados **en blanco** correspondientes a tu
+Resistencia **para poder tacharlos durante el juego**». O sea: en blanco = la Resistencia que te queda, y se van
+**tachando** según recibes daño. Hoy el kit pinta en negro las `val` primeras casillas, con `val` = Resistencia
+actual: un personaje sano sale **todo negro**, y al recibir daño se va **despintando**. Justo al revés.
+- Afecta a `packages/ui/src/components/Sheet.tsx` (campo `boxes`) y a su CSS. Es el único campo `boxes` del
+  esquema, así que el cambio está contenido — pero es interacción, no sólo color: hay que decidir qué hace un clic.
+- ⚠ **Aparte y sin confirmar**: en la captura del dueño un personaje recién creado marca «6 de 24», y 6 es
+  justo el valor de la ficha en blanco (`newSheet`). `finalizeDraft` pone `resistance = resistanceMax` y el wizard
+  lo usa, así que o esa ficha no pasó por ahí o el patch no se guardó. **Reproducir antes de tocar nada.**
+
+
 ### Maps — pedidos del dueño 2026-08-19 (sin spec ni diseño todavía)
 - **Rejilla más fina**, para poder cuadrar los muros con el plano que se pone de fondo. Hoy `grid.size` sale a 27 px
   y sólo se ajusta por escena; el dueño quiere un paso menor (y probablemente un control, no un valor fijo).
@@ -296,12 +381,28 @@ Sale de que el dueño probó el generador con la versión buena. Los tres arregl
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🔁 Prompt para el chat nuevo
-> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción ya está en pie (web y API responden). En el árbol
-> de trabajo de `feat/maps-slice-2`, sin commitear, hay dos lotes: la rebanada 3 de `maps` (review + qa pasados) y
-> tres arreglos del generador de personajes (sin review ni qa). Empieza por: (1) commitear lo que hay, (2) pasar
-> review + qa a los arreglos del generador, (3) el `.pen` — encontrar por qué se solapa la cabecera del frame `GjeeD`
-> y convertir en componente las 14 copias de `Rolvium Bar`. Diseño en `.pen` ANTES de cualquier código de UI, orden
-> del dueño. Flujo: dev → review → qa.
+> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción está al día (`main` = `b84234b`, web y API
+> responden). La rama `fix/rules-audit` está terminada y **sin Review ni QA**: el Destino se capa al elegir, el
+> canje de dones a 2 (el segundo con permiso del DJ) y `RULES.md` verificado contra el PDF del manual, que está
+> en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf` — **úsalo, el manual manda y las páginas del
+> PDF van con 2 de desfase sobre las del libro**. Empieza por: (1) Review + QA a esa rama y subirla, (2) el
+> punto 12 del backlog: **un personaje creado NO SE GUARDA**. El generador ya no se traga el error, así que
+> crea uno y **lee el mensaje que sale**; la base acepta el insert bajo RLS, está probado, así que el motivo es
+> del cliente, (3) la tanda de diseño en el `.pen` del generador y la ficha, que cubre 15 puntos del backlog.
+> Diseño en `.pen` ANTES de cualquier código de UI, orden del dueño. Flujo: dev → review → qa.
+> Dos decisiones del dueño pendientes: el ancho de los 14 frames de Mesa (con 6 pestañas la barra pide 1486 px
+> y el frame da 1420; dijo que NO se acortan rótulos) y si quiere el interruptor del director como opción de
+> campaña. El `.pen` está guardado hasta la Reserva achicada; comprueba `git status` antes de dar nada por hecho.
+
+### Lección de esta sesión, que se repitió cuatro veces
+**Un guardia que mide sólo el estado RESULTANTE convierte cualquier borrador ya fuera de norma en un callejón
+sin salida**, porque veta también los controles que lo repararían. Se capa la subida, nunca la bajada. Salió en
+el canje de dones, en el cupo de especialidades, en el techo del Destino y en el canje contra el valor recortado.
+Y su gemela: **un control vetado tiene que VERSE vetado**; si no, el usuario elige y no pasa nada.
+
+**Y la de fondo**: producción llevaba dos días congelada porque la rama nunca se pusheó, y media mañana se fue
+en diagnosticar «bugs» que ya estaban arreglados. **Comprueba `git log origin/main` antes de creerte cualquier
+«esto está roto en producción».**
 
 ## 🚫 Bloqueos / notas
 ### Vercel — el API existe y despliega solo, pero le faltan las variables (2026-08-19)

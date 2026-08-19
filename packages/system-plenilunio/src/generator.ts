@@ -1,17 +1,17 @@
 // ─── Character generator · Malefic Time: Plenilunio ──────────────────────────
 // Steps declared as data (GeneratorStep[]) with the manual's point economy:
 // presets 16/21/25/30 points (max stat 5/5/6/10, p.21), Destiny 3 ± 2 (each +1
-// costs a point, each −1 refunds one, p.22–23), 1 point = 2 extra specialties
-// (max 2 trades, p.22) or 2 gift points; gift points = Destiny (+ trades), p.25.
+// costs a point, each −1 refunds one, p.23), 1 point = 2 extra specialties
+// (max 2 trades, p.23) or 2 gift points; gift points = Destiny (+ trades), p.25.
 // See RULES.md §1.
 import type { GeneratorStep, SheetData, SheetPatch } from '@rolvium/core';
-import { GIFT_MAX_LEVEL, STAT_IDS, isStatId } from './catalogs';
+import { GIFT_MAX_LEVEL, MAX_GIFT_TRADES, MAX_SPECIALTY_TRADES, STAT_IDS, isStatId } from './catalogs';
 import { derived } from './engine';
 import { DEFAULT_PRESET, PRESETS, giftsOf, num, statOf, str, type PresetId } from './schema';
 
 export const BASE_DESTINY = 3;
 export const DESTINY_ADJUST = 2;
-export const MAX_SPECIALTY_TRADES = 2;
+/** `MAX_SPECIALTY_TRADES` y `MAX_GIFT_TRADES` viven en `catalogs.ts`: el tope rige creación Y ficha viva. */
 
 export const presetOf = (draft: SheetData) => PRESETS.find(p => p.id === str(draft.preset, DEFAULT_PRESET)) ?? PRESETS[1];
 
@@ -25,7 +25,7 @@ export function budgetOf(draft: SheetData): Budget {
   const preset = presetOf(draft);
   const statsSpent = STAT_IDS.reduce((s, id) => s + statOf(draft, id).value, 0);
   const specialtyTrade = Math.max(0, Math.min(MAX_SPECIALTY_TRADES, num(draft.specialtyTrade)));
-  const giftTrade = Math.max(0, num(draft.giftTrade));
+  const giftTrade = Math.max(0, Math.min(MAX_GIFT_TRADES, num(draft.giftTrade)));
   const destiny = num(draft.destiny, BASE_DESTINY);
   const destinyCost = Math.max(0, destiny - BASE_DESTINY);
   const destinyRefund = Math.max(0, BASE_DESTINY - destiny);
@@ -78,8 +78,8 @@ export function applyChange(draft: SheetData, fieldId: string, next: unknown): S
  *
  * - **A trade must be payable.** `giftTrade` spends CREATION points to buy gift points (1 → 2,
  *   RULES.md §1.5), but the budget this step guards is the GIFT one, and a trade only ever raises
- *   it — so the guard always said yes and you could spend creation points you do not have. The book
- *   puts no cap on the number of trades, only on what you can pay for, so that is what we check.
+ *   it — so the guard always said yes and you could spend creation points you do not have. On top of
+ *   the book's own ceiling (`MAX_GIFT_TRADES`), what you can PAY for is the second cap we check.
  *   Left unchecked it also became a dead end: 10 trades give 23 gift points, and with the level cap
  *   of 5 that needs five gifts to spend — with three rows «Continuar» could never light up, and the
  *   error only said «reparte los puntos restantes», never naming the trade that caused it.
@@ -93,7 +93,13 @@ export function applyGiftChange(draft: SheetData, fieldId: string, next: unknown
     // what is left. Only a RISE is capped: an overspent draft has to stay repairable, and a ceiling that
     // also blocks the way down would disable the very «−» that fixes it — the same invariant
     // `budgetAllows` keeps for every step that shows the creation budget.
-    if (wanted < 0 || (wanted > b.giftTrade && wanted > b.giftTrade + b.available)) return null;
+    // Dos techos, y los dos capan sólo la SUBIDA para que un borrador ya excedido se pueda reparar:
+    // el del libro (`MAX_GIFT_TRADES`) y el de lo que puedas pagar.
+    // Contra el valor CRUDO, no contra `b.giftTrade`, que ya viene recortado a MAX_GIFT_TRADES: si se
+    // comparase con el recortado, una ficha guardada con 10 no podría ni bajar a 9.
+    const now = Math.max(0, num(draft.giftTrade));
+    if (wanted < 0) return null;
+    if (wanted > now && (wanted > MAX_GIFT_TRADES || wanted > b.giftTrade + b.available)) return null;
     return { giftTrade: wanted };
   }
   if (fieldId === 'gifts') {
@@ -112,7 +118,7 @@ export function applyGiftChange(draft: SheetData, fieldId: string, next: unknown
  * through and the caps only showed up on «Continuar» (owner, 2026-08-19: seis especialidades en
  * Presencia con cero canjes, y luego no se avanza).
  *
- * Both caps come straight from the book (RULES.md §1.3, p.21–22): one per characteristic to start,
+ * Both caps come straight from the book (RULES.md §1.3, p.21–23): one per characteristic to start,
  * and each trade buys 2 extra **in two different characteristics** — which is what the per-stat
  * ceiling of `1 + canjes` expresses, with the total capped at `2 × canjes`.
  */
@@ -172,6 +178,18 @@ export const generator: GeneratorStep[] = [
   },
   {
     id: 'destiny', label: 'generator.step.destiny', fields: ['destiny'],
+    // El campo `destiny` de la ficha llega hasta 10 porque ése es el techo DEL LIBRO («El Destino puede
+    // adoptar puntuaciones entre 1 y 10», p.88, y en 10 se revela el destino), pero AL CREAR va de 1 a 5
+    // («comenzará el juego con una puntuación de Destino entre 1 y 5», p.88; RULES.md §1.4). Sin este guardia el contador
+    // dejaba subir hasta 10 y luego «Continuar» lo rechazaba: elegir y que no pase nada, otra vez.
+    // Sólo se capa la SUBIDA, para que un borrador que ya venga fuera de rango se pueda reparar.
+    applyChange: (draft, fieldId, next) => {
+      if (fieldId !== 'destiny') return applyChange(draft, fieldId, next);
+      const wanted = num(next), now = num(draft.destiny, BASE_DESTINY);
+      const low = BASE_DESTINY - DESTINY_ADJUST, high = BASE_DESTINY + DESTINY_ADJUST;
+      if ((wanted > high && wanted > now) || (wanted < low && wanted < now)) return null;
+      return { destiny: wanted };
+    },
     canAdvance: draft => {
       const d = num(draft.destiny, BASE_DESTINY);
       if (d < BASE_DESTINY - DESTINY_ADJUST || d > BASE_DESTINY + DESTINY_ADJUST) return 'generator.error.destinyRange';

@@ -66,7 +66,7 @@ export function CharacterSheetPage({ repo = defaultRepo, campaigns = defaultCamp
   const canEdit = owner || (isDm && editing);
 
   return (
-    <div className="tb-root" data-system={system.id} style={themeStyle}>
+    <div className="tb-root tb-root-page" data-system={system.id} style={themeStyle}>
       <div className="tb-rvbar">
         <div className="tb-rvbar-left">
           <Link to={`/table/${character.campaignId}`} className="tb-rvbar-back"><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>arrow_back</span>{t('characters.sheet.back')}</Link>

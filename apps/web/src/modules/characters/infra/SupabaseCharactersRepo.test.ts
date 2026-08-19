@@ -24,6 +24,26 @@ describe('SupabaseCharactersRepo', () => {
     expect(m.fromSpy).toHaveBeenCalledWith('characters');
     expect((await repo.listByCampaign('c1')).length).toBe(1);
   });
+  /**
+   * Regresión, dueño 2026-08-19 («el personaje no se guarda y no dice por qué»): supabase-js NO lanza
+   * `Error` —el campo `error` de la respuesta es un objeto plano `{ message, details, hint, code }`—,
+   * así que el `e instanceof Error` del generador descartaba el motivo de TODOS los fallos de base.
+   * El adaptador es quien tiene que devolver un `Error` de verdad, con el `hint` y el `code` dentro:
+   * PostgREST pone en `hint` la orden literal que arregla un 42501.
+   */
+  it('create envuelve el error PLANO de supabase en un Error con motivo, hint y código', async () => {
+    const { repo, m } = make();
+    const pg = { message: 'new row for relation "characters" violates check constraint "characters_name_check"', details: null, hint: null, code: '23514' };
+    (m.client.from as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      const chain: Record<string, unknown> = { then: (f: (r: unknown) => unknown) => Promise.resolve({ data: null, error: pg }).then(f) };
+      for (const k of ['insert', 'select', 'single', 'update', 'eq']) chain[k] = vi.fn(() => chain);
+      return chain;
+    });
+    const err = await repo.create({ campaignId: 'c1', name: '', data: {} }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toContain('characters_name_check');
+    expect((err as Error).message).toContain('23514');
+  });
   it('create inserts with me as owner by default and links my member row', async () => {
     const { repo, m } = make();
     (m.client.from as ReturnType<typeof vi.fn>).mockImplementation((t: string) => {

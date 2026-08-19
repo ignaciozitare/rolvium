@@ -266,6 +266,17 @@ describe('generator budgets', () => {
     expect(b.available).toBe(points - 7); // seven stats at 1
     expect(b.giftPoints).toBe(3);
   });
+  /**
+   * Hallazgo del QA 2026-08-19: `budgetOf` recortaba el canje a MAX_GIFT_TRADES y `derived` usaba el
+   * valor crudo. Dos lecturas de la misma regla dentro del mismo paquete: una ficha guardada con más
+   * canjes enseñaba puntos de don inflados para siempre. El tope rige creación Y ficha viva.
+   */
+  it('derived() capa el canje de dones igual que budgetOf, no sólo al crear', () => {
+    expect(derived(sheet({ destiny: 3, giftTrade: 2 })).giftPoints).toBe(3 + 4);
+    expect(derived(sheet({ destiny: 3, giftTrade: 10 })).giftPoints).toBe(3 + 4);
+    expect(derived(sheet({ destiny: 3, giftTrade: -5 })).giftPoints).toBe(3);
+    expect(derived(sheet({ destiny: 3, giftTrade: 10 })).giftPoints).toBe(budgetOf({ ...sheet({ destiny: 3, giftTrade: 10 }), preset: 'standard' }).giftPoints);
+  });
   it('destiny +1 costs a point, −1 refunds; trades cost points and give 2 specialties / 2 gift points', () => {
     expect(budgetOf(draft({ destiny: 5 })).available).toBe(21 - 7 - 2);
     expect(budgetOf(draft({ destiny: 1 })).available).toBe(21 - 7 + 2);
@@ -332,42 +343,25 @@ describe('generator budgets', () => {
    * Los tres fallos que el dueño vio en el paso de Dones el 2026-08-19: el canje que no comprueba
    * que puedas pagarlo (y deja el paso sin salida), el mismo don repetido, y el contador ilegible.
    */
-  it('el canje de dones sólo llega hasta donde alcanzan los puntos de creación', () => {
+  it('el canje de dones se topa en 2 —el segundo con permiso del DJ— y en lo que puedas pagar', () => {
     const gifts = generator.find(s => s.id === 'gifts')!;
-    // reparto estándar: 21 puntos, 7 características a 1 = 7 gastados, quedan 14 para canjear
     const base = draft();
     expect(budgetOf(base).available).toBe(14);
-    expect(gifts.applyChange!(base, 'giftTrade', 14)).toEqual({ giftTrade: 14 });
-    expect(gifts.applyChange!(base, 'giftTrade', 15)).toBeNull();   // un punto más de los que hay
+    expect(gifts.applyChange!(base, 'giftTrade', 2)).toEqual({ giftTrade: 2 });
+    expect(gifts.applyChange!(base, 'giftTrade', 3)).toBeNull();     // el libro no da un tercero (p.25 leído como p.23)
     expect(gifts.applyChange!(base, 'giftTrade', -1)).toBeNull();
-    // y con el canje ya puesto, el tope sigue siendo «lo que cuesta hoy + lo que queda»
-    const traded = draft({ giftTrade: 10 });
-    expect(budgetOf(traded).available).toBe(4);
-    expect(gifts.applyChange!(traded, 'giftTrade', 14)).toEqual({ giftTrade: 14 });
-    expect(gifts.applyChange!(traded, 'giftTrade', 15)).toBeNull();
-    expect(gifts.applyChange!(traded, 'giftTrade', 9)).toEqual({ giftTrade: 9 });   // bajar siempre se puede
+    // y con un solo punto libre, el segundo canje no se puede pagar aunque el libro lo permita
+    const tight = draft({ fortitude: stat(5), combat: stat(5), will: stat(5), cunning: stat(2) });
+    expect(budgetOf(tight).available).toBe(1);
+    expect(gifts.applyChange!(tight, 'giftTrade', 1)).toEqual({ giftTrade: 1 });
+    expect(gifts.applyChange!(tight, 'giftTrade', 2)).toBeNull();
   });
-  /**
-   * Review 2026-08-19: «bajar siempre se puede» tiene que valer TAMBIÉN con el borrador en rojo, que es
-   * justo cuando hace falta. Con el techo mirando sólo «lo que cuesta hoy + lo que queda», un borrador
-   * sobregastado desactivaba el «−» del canje y no se salía de ahí — la misma trampa que `budgetAllows`
-   * evita en los pasos que enseñan el presupuesto de creación.
-   */
-  it('un canje que ya no se puede pagar se puede deshacer de uno en uno', () => {
+  it('una ficha guardada por encima del tope se puede deshacer de uno en uno', () => {
     const gifts = generator.find(s => s.id === 'gifts')!;
-    const over = draft({ giftTrade: 20 });   // 14 pagables, 20 canjeados: 6 en rojo
-    expect(budgetOf(over).available).toBe(-6);
-    expect(gifts.applyChange!(over, 'giftTrade', 19)).toEqual({ giftTrade: 19 });   // el «−» sigue vivo
-    expect(gifts.applyChange!(over, 'giftTrade', 0)).toEqual({ giftTrade: 0 });
-    expect(gifts.applyChange!(over, 'giftTrade', 21)).toBeNull();                   // subir, ni un punto más
-  });
-  it('un paso con los puntos de creación en rojo señala el canje, no el reparto de dones', () => {
-    const gifts = generator.find(s => s.id === 'gifts')!;
-    // Sólo se llega con una ficha guardada a mano: por el asistente los cinco sumandos están vetados
-    // (preset/características/especialidades/Destino por `budgetAllows`, el canje por `applyGiftChange`).
-    const over = draft({ giftTrade: 20 });
-    expect(budgetOf(over).available).toBeLessThan(0);
-    expect(gifts.canAdvance(over)).toBe('generator.error.pointsOver');
+    const corrupt = draft({ giftTrade: 10 });
+    expect(budgetOf(corrupt).giftTrade).toBe(2);                     // el presupuesto ya lo recorta
+    expect(gifts.applyChange!(corrupt, 'giftTrade', 9)).toEqual({ giftTrade: 9 });   // bajar SIEMPRE
+    expect(gifts.applyChange!(corrupt, 'giftTrade', 11)).toBeNull();
   });
   it('el mismo don no se puede coger dos veces: es nivel 6 por la puerta de atrás', () => {
     const gifts = generator.find(s => s.id === 'gifts')!;
@@ -427,6 +421,16 @@ describe('generator budgets', () => {
     // dos pasos y el paso vuelve a dejar avanzar
     const fixed = draft({ ...over, presence: stat(1, ['presence.poetry']), combat: stat(1, ['combat.swords']) });
     expect(spec.canAdvance(fixed)).toBeNull();
+  });
+  it('el Destino se topa en 1–5 al crear, aunque la ficha llegue a 10 en juego (RULES.md §1.4)', () => {
+    const d = generator.find(s => s.id === 'destiny')!;
+    expect(d.applyChange!(draft(), 'destiny', 5)).toEqual({ destiny: 5 });
+    expect(d.applyChange!(draft(), 'destiny', 6)).toBeNull();
+    expect(d.applyChange!(draft(), 'destiny', 1)).toEqual({ destiny: 1 });
+    expect(d.applyChange!(draft(), 'destiny', 0)).toBeNull();
+    // un borrador que ya venga fuera de rango se repara: sólo se capa la subida
+    expect(d.applyChange!(draft({ destiny: 8 }), 'destiny', 7)).toEqual({ destiny: 7 });
+    expect(d.applyChange!(draft({ destiny: 8 }), 'destiny', 9)).toBeNull();
   });
   it('finalizeDraft sets fortune = destiny and full resistance', () => {
     const f = finalizeDraft(draft({ destiny: 4, fortitude: stat(3), will: stat(3) }));

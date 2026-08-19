@@ -37,6 +37,21 @@ Fuente de verdad: el manual. Digesto con páginas y decisiones «⚠ interpretac
 - `theme`: papel gris `#dedcd5`, tinta `#131310`, oro `#8a7038`, sangre `#6e2418`, Cormorant Garamond, luna creciente,
   discos de salud en fases lunares, fondo `systems/plenilunio/fondo.png`. Variables `--sys-*` en el contenedor de la mesa.
 - `generator`: Concepto → Características → Especialidades → Destino → Dones → Resumen (economía de puntos y canjes).
+  **Cada tope se aplica AL ELEGIR, nunca sólo al pulsar «Continuar»** (`GeneratorStep.applyChange`): elegir y que no
+  pase nada es el fallo que el dueño encontró tres veces seguidas el 2026-08-19. Y **sólo se capa la subida**: un
+  borrador que ya venga fuera de norma —una ficha guardada, o bajar un canje después de repartirlo— tiene que dejarse
+  reparar, o el aviso en rojo se queda sin un solo control vivo y sólo se sale con «Cancelar».
+  - **Especialidades**: 1 por característica; cada canje compra 2 extra en dos características distintas → techo
+    `1 + canjes` por característica y `2 × canjes` en total (RULES.md §1.3). Va en los dos pasos que listan las
+    características, porque el campo `stat` arrastra sus desplegables a los dos.
+  - **Destino**: 1–5 al crear (RULES.md §1.4, p. 88 literal). El campo de la ficha llega a 10 porque **el libro
+    dice 1–10** (p. 88) y en juego el Destino sube hasta ese tope: es regla, no límite de validación.
+  - **Dones**: un don no se repite (tiene UN nivel, 1–5, RULES.md §7). El canje de dones va a **máx. 2, el segundo
+    con permiso del DJ** —calcado a especialidades, decisión del dueño 2026-08-19 tras verificar el PDF— y además lo
+    frena lo que puedas pagar en puntos de creación (RULES.md §1.5). El contador del paso dice `total/gastados`, igual
+    que los pasos de puntos.
+  - Y los puntos de creación en rojo se avisan **antes** que el reparto de dones: si no, el mensaje manda al jugador a
+    arreglar el control que no es.
 - `locales`: `es` y `en` completos (nombres de dones/especialidades en inglés = traducción provisional).
 
 ## Rules & limits (licencia)
