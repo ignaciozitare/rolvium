@@ -124,7 +124,7 @@ export function Sheet(p: SheetProps): JSX.Element {
           </div>
         );
       }
-      case 'list': return <ListField f={f} p={p} ro={ro} showActions={showActions} set={set} label={label} />;
+      case 'list': return <ListField f={f} p={p} ro={ro} showActions={showActions} set={set} label={label} allowed={allowed} />;
       case 'table': return <TableField f={f} p={p} ro={ro} showActions={showActions} set={set} label={label} />;
     }
     return null;
@@ -232,6 +232,13 @@ const actionsFor = (f: FieldDef, actions: ActionDef[] | undefined): ActionDef[] 
   return exact ? [exact] : actions.filter(a => a.appliesTo === f.id);
 };
 const rowId = (r: Record<string, unknown>, i: number) => str(r.id) || String(i);
+/**
+ * React key of a list row. NOT `rowId`: a blank row takes the first option of its select, so two
+ * unfilled gifts carry the SAME id and React then treats them as one — you edit one and the other
+ * changes, you delete one and the wrong one goes (owner, 2026-08-19). Every mutation here is by
+ * index (`patchRow`, the × button), so the index IS the row's identity.
+ */
+const rowKey = (r: Record<string, unknown>, i: number) => `${i}:${str(r.id)}`;
 const blankRow = (defs: FieldDef[]): Record<string, unknown> => Object.fromEntries(defs.filter(d => !d.derived).map(d => [d.id, d.type === 'select' ? d.options?.[0]?.value ?? '' : d.type === 'counter' || d.type === 'number' ? d.min ?? 0 : d.type === 'text' ? '' : null]));
 
 function ItemActions({ f, p, item, i, ro, showActions, list, set }: Shared & { item: Record<string, unknown>; i: number; list: Record<string, unknown>[] }): JSX.Element {
@@ -257,22 +264,25 @@ const rowLabel = (f: FieldDef, item: Record<string, unknown>, p: SheetProps): st
   return opt ? p.t(opt.label) : v;
 };
 
-function ListField({ f, p, ro, showActions, set, label }: Shared): JSX.Element {
+function ListField({ f, p, ro, showActions, set, label, allowed }: Shared & { allowed: (id: string, v: unknown) => boolean }): JSX.Element {
   const list = rows(p.data[f.id]);
   const defs = f.itemFields ?? [];
-  const patchRow = (i: number, k: string, v: unknown) => set(f.id, list.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  const withRow = (i: number, k: string, v: unknown) => list.map((r, j) => (j === i ? { ...r, [k]: v } : r));
+  const patchRow = (i: number, k: string, v: unknown) => set(f.id, withRow(i, k, v));
+  const rowAllows = (i: number, k: string, v: unknown) => allowed(f.id, withRow(i, k, v));
+  const canAdd = allowed(f.id, [...list, blankRow(defs)]);
   return (
     <div className="rv-sheet-field span">
       <div className="rv-sheet-list" role="list" aria-label={p.t(f.label)}>
         {list.map((item, i) => (
-          <div key={rowId(item, i)} className="rv-sheet-item" role="listitem">
+          <div key={rowKey(item, i)} className="rv-sheet-item" role="listitem">
             {p.icons?.stat === 'crescent' && <Crescent size={20} />}
-            {defs.map(d => <Cell key={d.id} d={d} value={item[d.id]} ro={ro} p={p} onChange={v => patchRow(i, d.id, v)} />)}
+            {defs.map(d => <Cell key={d.id} d={d} value={item[d.id]} ro={ro} p={p} allowed={v => rowAllows(i, d.id, v)} onChange={v => patchRow(i, d.id, v)} />)}
             <ItemActions f={f} p={p} item={item} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} />
           </div>
         ))}
       </div>
-      {!ro && <button type="button" className="rv-sheet-btn rv-sheet-add" onClick={() => set(f.id, [...list, blankRow(defs)])}>+ {p.labels.add} · {p.t(f.label)}</button>}
+      {!ro && <button type="button" className="rv-sheet-btn rv-sheet-add" disabled={!canAdd} onClick={() => set(f.id, [...list, blankRow(defs)])}>+ {p.labels.add} · {p.t(f.label)}</button>}
     </div>
   );
 }
@@ -308,7 +318,7 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
 }
 
 /** Inline editor for a list item / table cell (select · counter · number · text). */
-function Cell({ d, value, ro, p, onChange }: { d: FieldDef; value: unknown; ro: boolean; p: SheetProps; onChange: (v: unknown) => void }): JSX.Element {
+function Cell({ d, value, ro, p, onChange, allowed = () => true }: { d: FieldDef; value: unknown; ro: boolean; p: SheetProps; onChange: (v: unknown) => void; allowed?: (v: unknown) => boolean }): JSX.Element {
   const dis = ro || !!d.derived;
   if (d.type === 'select') {
     if (dis) return <span>{p.t(d.options?.find(o => o.value === str(value))?.label ?? str(value))}</span>;
@@ -316,7 +326,7 @@ function Cell({ d, value, ro, p, onChange }: { d: FieldDef; value: unknown; ro: 
   }
   if (d.type === 'counter') {
     if (value === null || value === undefined) return <span className="rv-sheet-caption">—</span>;
-    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="rv-sheet-caption">{p.t(d.label)}</span><Counter value={num(value)} min={d.min} max={d.max} labelText={p.t(d.label)} disabled={dis} allowed={() => true} onChange={onChange} /></span>;
+    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="rv-sheet-caption">{p.t(d.label)}</span><Counter value={num(value)} min={d.min} max={d.max} labelText={p.t(d.label)} disabled={dis} allowed={n => allowed(n)} onChange={onChange} /></span>;
   }
   if (d.type === 'number') return dis ? <span>{str(value)}</span> : <input type="number" className="rv-sheet-inp num" aria-label={p.t(d.label)} value={num(value)} min={d.min} max={d.max} onChange={e => onChange(Number(e.target.value))} />;
   return dis ? <span>{str(value)}</span> : <input className="rv-sheet-inp" aria-label={p.t(d.label)} value={str(value)} onChange={e => onChange(e.target.value)} />;
