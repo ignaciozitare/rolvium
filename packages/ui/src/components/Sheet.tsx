@@ -92,12 +92,23 @@ export function Sheet(p: SheetProps): JSX.Element {
       case 'boxes': {
         const max = Math.max(0, num(derived[`${f.id}Max`], f.max ?? 0));
         const val = Math.min(num(v), Math.max(max, num(v)));
+        /**
+         * Las casillas van al revés de como estaban (manual p.25, verificado en el PDF): «sombrea los
+         * puntos SOBRANTES y deja los cuadrados EN BLANCO correspondientes a tu Resistencia para poder
+         * tacharlos durante el juego». O sea: **en blanco = lo que te queda**, marcadas = el daño
+         * recibido. Antes se pintaban las `val` primeras, así que un personaje sano salía todo negro y
+         * al recibir daño se iba DESPINTANDO — justo al revés.
+         * El daño va por delante, de izquierda a derecha, que es como lo tacha uno en la hoja de papel.
+         */
+        const hits = Math.max(0, max - val);
         return (
           <div className="rv-sheet-field">{label(f)}
             <div className="rv-sheet-boxes" role="group" aria-label={p.t(f.label)}>
               {Array.from({ length: Math.max(max, val) }, (_, i) => (
-                <button key={i} type="button" className={`rv-sheet-box ${i < val ? 'on' : ''}`} disabled={ro} aria-pressed={i < val} aria-label={`${p.t(f.label)} ${i + 1}`}
-                  onClick={() => set(f.id, i + 1 === val ? i : i + 1)} />
+                <button key={i} type="button" className={`rv-sheet-box ${i < hits ? 'hit' : ''}`} disabled={ro} aria-pressed={i < hits}
+                  aria-label={`${p.t(f.label)} ${i + 1}`}
+                  // Pulsar la última tachada la devuelve: sin esto, un clic de más no se puede deshacer.
+                  onClick={() => set(f.id, max - (i + 1 === hits ? i : i + 1))} />
               ))}
             </div>
             <span className="rv-sheet-caption">{val} {p.labels.of} {max}</span>

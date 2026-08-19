@@ -6,7 +6,11 @@ import { lookup, messages } from './locales';
 describe('sheetSchema', () => {
   it('has the expected sections and field types', () => {
     expect(sheetSchema.version).toBe('1');
-    expect(sections.map(s => s.id)).toEqual(['identity', 'roll', 'stats', 'state', 'armour', 'weapons', 'gifts', 'equipment', 'story', 'creation']);
+    // El orden es decisión de pantalla, no capricho: Armas va a todo el ancho en su propia tarjeta y
+    // Dones · Equipo · Armadura quedan una al lado de otra debajo (dueño 2026-08-19, rolvium.pen).
+    // Por eso `armour` baja detrás de `equipment` y deja de ser `row`, que la marcaba como ancha.
+    expect(sections.map(s => s.id)).toEqual(['identity', 'roll', 'stats', 'state', 'weapons', 'gifts', 'equipment', 'armour', 'story', 'creation']);
+    expect(sections.find(s => s.id === 'armour')?.layout).toBe('stack');
     for (const id of STAT_IDS) expect(fieldById(id)).toMatchObject({ type: 'stat', action: 'roll', min: 1, max: 10 });
     expect(fieldById('weapons')).toMatchObject({ type: 'table', action: 'attack' });
     expect(fieldById('gifts')).toMatchObject({ type: 'list', action: 'gift.activate' });

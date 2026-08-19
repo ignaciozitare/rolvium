@@ -27,7 +27,10 @@
   --purple:#a97fe0; --purple-dim:rgba(169,127,224,.14);
   --danger:#ffb4ab; --danger-strong:#e0625c;
   /* Text — parchment */
-  --tx:#efe6d6; --tx2:#b3a898; --tx3:#6f6680;
+  /* --tx3 daba 3,44:1 sobre el fondo oscuro y 2,79:1 sobre el claro, por debajo del minimo de 4,5:1
+     de texto, y es el token de los rotulos y las notas pequenas: de ahi el «las letras no se leen»
+     del dueno. Medido, no estimado. Ahora 5,43:1 y 5,52:1. (2026-08-19) */
+  --tx:#efe6d6; --tx2:#b3a898; --tx3:#8f87a0;
   --shadow:0 10px 30px rgba(0,0,0,.55);
   --login-hero:radial-gradient(circle at 30% 20%,rgba(224,164,88,.18),transparent 55%),radial-gradient(circle at 80% 80%,rgba(169,127,224,.14),transparent 50%),#0a090d;
   color-scheme:dark;
@@ -44,7 +47,10 @@
   --red:#e0625c;   --red-dim:rgba(224,98,92,.14);
   --purple:#a97fe0; --purple-dim:rgba(169,127,224,.14);
   --danger:#ffb4ab; --danger-strong:#e0625c;
-  --tx:#efe6d6; --tx2:#b3a898; --tx3:#6f6680;
+  /* --tx3 daba 3,44:1 sobre el fondo oscuro y 2,79:1 sobre el claro, por debajo del minimo de 4,5:1
+     de texto, y es el token de los rotulos y las notas pequenas: de ahi el «las letras no se leen»
+     del dueno. Medido, no estimado. Ahora 5,43:1 y 5,52:1. (2026-08-19) */
+  --tx:#efe6d6; --tx2:#b3a898; --tx3:#8f87a0;
   --shadow:0 10px 30px rgba(0,0,0,.55);
   --login-hero:radial-gradient(circle at 30% 20%,rgba(224,164,88,.18),transparent 55%),radial-gradient(circle at 80% 80%,rgba(169,127,224,.14),transparent 50%),#0a090d;
   color-scheme:dark;
@@ -61,7 +67,7 @@
   --red:#b93630;   --red-dim:rgba(185,54,48,.12);
   --purple:#6b3fb0; --purple-dim:rgba(107,63,176,.12);
   --danger:#b93630; --danger-strong:#8f2520;
-  --tx:#221c2b; --tx2:#5b5266; --tx3:#9a9088;
+  --tx:#221c2b; --tx2:#5b5266; --tx3:#67605a;
   --shadow:0 10px 30px rgba(40,30,10,.12);
   --login-hero:radial-gradient(circle at 30% 20%,rgba(184,116,42,.16),transparent 55%),radial-gradient(circle at 80% 80%,rgba(107,63,176,.10),transparent 50%),#efe8da;
   color-scheme:light;

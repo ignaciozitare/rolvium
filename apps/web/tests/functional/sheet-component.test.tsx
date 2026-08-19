@@ -56,8 +56,11 @@ describe('<Sheet> — schema-driven, every field type', () => {
     expect(onChange).toHaveBeenLastCalledWith({ armour: 'furs' });
     await u.click(screen.getByRole('button', { name: '+ Destino' }));
     expect(onChange).toHaveBeenLastCalledWith({ destiny: 3 });
+    // Manual p.25: las casillas EN BLANCO son la Resistencia que te queda y las marcadas el daño, no al
+    // revés. Pulsar la décima casilla son 10 de daño, así que la Resistencia baja a 21 − 10 = 11.
     await u.click(screen.getByRole('button', { name: 'Resistencia 10' }));
-    expect(onChange).toHaveBeenLastCalledWith({ resistance: 10 });
+    expect(onChange).toHaveBeenLastCalledWith({ resistance: 11 });
+
     await u.click(screen.getByRole('radio', { name: 'Herido' }));
     expect(onChange).toHaveBeenLastCalledWith({ health: 'wounded' });
     await u.click(screen.getByRole('button', { name: '+ Añadir · Dones' }));
@@ -74,6 +77,29 @@ describe('<Sheet> — schema-driven, every field type', () => {
     expect(onChange).toHaveBeenLastCalledWith({ combat: { value: 4, specialties: ['combat.improvisedWeapons', 'combat.knives'] } });
   });
 
+  /**
+   * La Resistencia va al revés de como estaba (manual p.25): en blanco lo que te queda, marcadas las
+   * que te han tachado. Se prueba con una ficha YA dañada, que es la única forma de ver de qué lado
+   * se pinta y de comprobar que la última marcada se puede devolver — un clic de más tiene que
+   * deshacerse, si no el jugador se queda con daño que no recibió.
+   */
+  it('Resistencia: en blanco lo que queda, marcado el daño, y la última se devuelve (p.25)', async () => {
+    const u = userEvent.setup();
+    const herida = { ...KAREN_DATA, resistance: 11 };
+    const { onChange } = mount({ data: herida, derived: plenilunio.engine.derived(herida) });
+    const box = (n: number) => screen.getByRole('button', { name: `Resistencia ${n}` });
+    // resistanceMax 21 y quedan 11 → 10 tachadas, y van por delante
+    expect(box(1)).toHaveAttribute('aria-pressed', 'true');
+    expect(box(10)).toHaveAttribute('aria-pressed', 'true');
+    expect(box(11)).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('11 de 21')).toBeInTheDocument();
+    // pulsar la última tachada la devuelve: 9 de daño → 12 de Resistencia
+    await u.click(box(10));
+    expect(onChange).toHaveBeenLastCalledWith({ resistance: 12 });
+    // y pulsar una en blanco tacha hasta ahí: 15 de daño → 6 de Resistencia
+    await u.click(box(15));
+    expect(onChange).toHaveBeenLastCalledWith({ resistance: 6 });
+  });
   it('actions: TIRAR → onAction("roll", stat); weapon icon → attack action; gift ⚡ → gift.activate', async () => {
     const u = userEvent.setup();
     const { onAction } = mount();
