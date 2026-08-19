@@ -1,5 +1,6 @@
-import { useId, type ReactNode } from 'react';
+import { Fragment, useId, type ReactNode } from 'react';
 import type { ActionDef, Catalogs, FieldDef, SectionDef, SheetData, SheetPatch, SheetSchema } from '@rolvium/core';
+import { Tooltip } from './Tooltip';
 import './sheet.css';
 
 // ─── <Sheet> — neutral, schema-driven character sheet ────────────────────────
@@ -66,6 +67,27 @@ const optionVetoed = (value: string, current: string, disabled: boolean, allowed
   !disabled && value !== current && !allowed(value);
 
 const isWide = (s: SectionDef) => s.layout === 'row' || s.fields.some(f => WIDE_TYPES.has(f.type));
+
+/**
+ * Un numero CALCULADO se pinta como tarjeta cuadrada centrada, no como una celda mas de la rejilla
+ * (dueno, 2026-08-19, sobre Estado: «Aguante y Resistencia maxima en tarjetas cuadradas centradas,
+ * con los textos centrados con los numeros»). No es editable, asi que no necesita ancho de control:
+ * necesita leerse de un vistazo.
+ */
+const isTile = (f: FieldDef) => f.type === 'number' && !!f.derived;
+/**
+ * Agrupa las TIRADAS SEGUIDAS de tarjetas en una fila propia, para poder centrarlas juntas. Centrar
+ * cada una en su celda de la rejilla no vale: quedan repartidas por el ancho, no centradas en la
+ * tarjeta grande. Solo se hace en `grid`; en `stack` los calculados ya tienen su lectura (Armadura:
+ * centrados en columna con un filete corto entre dos), y esa no se toca.
+ */
+const groupTiles = (fields: FieldDef[]): (FieldDef | FieldDef[])[] =>
+  fields.reduce<(FieldDef | FieldDef[])[]>((acc, f) => {
+    const last = acc[acc.length - 1];
+    if (isTile(f) && Array.isArray(last)) last.push(f);
+    else acc.push(isTile(f) ? [f] : f);
+    return acc;
+  }, []);
 
 export function Sheet(p: SheetProps): JSX.Element {
   const derived = p.derived ?? {};
@@ -195,7 +217,9 @@ export function Sheet(p: SheetProps): JSX.Element {
             {sectionRef(s, p)}
           </header>
           <div className={`rv-sheet-fields ${s.layout ?? 'stack'}`}>
-            {s.fields.map(f => <FieldWrap key={f.id}>{renderField(f)}</FieldWrap>)}
+            {(s.layout === 'grid' ? groupTiles(s.fields) : s.fields).map((g, i) => (Array.isArray(g)
+              ? <div key={`tiles-${i}`} className="rv-sheet-tiles">{g.map(f => <FieldWrap key={f.id}>{renderField(f)}</FieldWrap>)}</div>
+              : <FieldWrap key={g.id}>{renderField(g)}</FieldWrap>))}
           </div>
           {p.extras?.[s.id]}
         </section>
@@ -204,7 +228,7 @@ export function Sheet(p: SheetProps): JSX.Element {
   );
 }
 
-const FieldWrap = ({ children }: { children: ReactNode }) => <>{children}</>;
+const FieldWrap = ({ children }: { children: ReactNode }) => <Fragment>{children}</Fragment>;
 
 /** Section-level hint: «reglas · p.XX» from the first field carrying a `ref` when the section is a single list/table. */
 function sectionRef(s: SectionDef, p: SheetProps): ReactNode {
@@ -389,17 +413,22 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
   const cols = f.columns ?? [];
   const catalog = p.catalogs?.[f.id] ?? [];
   const patchRow = (i: number, k: string, v: unknown) => set(f.id, list.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
-  const derivedCell = (row: Record<string, unknown>, c: FieldDef): string => {
+  const derivedCell = (row: Record<string, unknown>, c: FieldDef): ReactNode => {
     const own = row[c.id];
     if (own !== undefined && own !== null && own !== '') return str(own);
     const item = catalog.find(x => x.id === str(row.id));
     const v = item?.data?.[c.id];
     if (v === undefined || v === null) return '—';
     // Si la columna declara `options`, el valor del catálogo es un id y su rótulo sale de ahí: el
-    // alcance guarda `medium` para las reglas y se pinta «Medio · hasta 50 m · dif. 3». Antes se
-    // traducía el id crudo, así que en pantalla salía literalmente «medium».
+    // alcance guarda `medium` para las reglas y se pinta «Medio». Antes se traducía el id crudo, así
+    // que en pantalla salía literalmente «medium».
     const opt = c.options?.find(o => o.value === str(v));
-    return opt ? p.t(opt.label) : typeof v === 'string' ? p.t(v) : str(v);
+    if (!opt) return typeof v === 'string' ? p.t(v) : str(v);
+    // El dato secundario de la opción va en tooltip, no en la celda: «Medio» se lee de un vistazo y los
+    // metros con la dificultad se consultan al pasar por encima (dueño, 2026-08-19). Marcado como
+    // `<abbr>` para que el motivo del subrayado punteado se entienda sin ratón.
+    if (!opt.hint) return p.t(opt.label);
+    return <Tooltip label={p.t(opt.hint)} placement="top"><abbr className="rv-sheet-hinted" tabIndex={0} title={p.t(opt.hint)}>{p.t(opt.label)}</abbr></Tooltip>;
   };
   return (
     <div className="rv-sheet-field span">

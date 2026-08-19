@@ -67,21 +67,29 @@ export const sections: SectionDef[] = [
     { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'resistance', derived: true },
     { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },
     { id: 'health', type: 'health', label: 'sheet.state.health', ref: 'health', options: HEALTH_LEVELS.map(h => ({ value: h.id, label: `sheet.health.${h.id}` })) },
+    // Los numeros CALCULADOS van seguidos, y de dos en dos: la ficha los pinta como tarjetas cuadradas
+    // centradas (`rv-sheet-tiles`), y una tarjeta sola en su fila se ve descolgada. Por eso «Inconsciente»
+    // —que es un desplegable, no un numero— baja por debajo de la pareja penalizacion + recuperable, en
+    // vez de partirla por la mitad como estaba (dueno, 2026-08-19: «las dos, una al lado de la otra»).
     { id: 'dicePenalty', type: 'number', label: 'sheet.state.dicePenalty', ref: 'health', derived: true },
-    yesNo('unconscious', 'sheet.state.unconscious', 'health'),
     { id: 'recoveryMax', type: 'number', label: 'sheet.state.recoveryMax', ref: 'recovery', derived: true },
+    yesNo('unconscious', 'sheet.state.unconscious', 'health'),
+    // Los tres contadores llenan la fila de la rejilla, y debajo la pareja de calculados que arrastran:
+    // Fortuna maxima cae centrada justo bajo Fortuna.
     { id: 'destiny', type: 'counter', label: 'sheet.state.destiny', ref: 'destiny', min: 1, max: 10 },
     { id: 'fortune', type: 'counter', label: 'sheet.state.fortune', ref: 'fortune', min: 0, max: 10 },
+    { id: 'xp', type: 'counter', label: 'sheet.state.xp', ref: 'xp', min: 0 },
     { id: 'fortuneMax', type: 'number', label: 'sheet.state.fortuneMax', ref: 'fortune', derived: true },
     { id: 'giftPoints', type: 'number', label: 'sheet.state.giftPoints', ref: 'gifts', derived: true },
-    { id: 'xp', type: 'counter', label: 'sheet.state.xp', ref: 'xp', min: 0 },
   ] },
   { id: 'weapons', label: 'sheet.sections.weapons', layout: 'stack', fields: [
     { id: 'weapons', type: 'table', label: 'sheet.weapons.list', ref: 'weapons', action: 'attack', columns: [
       { id: 'id', type: 'select', label: 'sheet.weapons.name', options: WEAPONS.map(x => ({ value: x.id, label: x.label })) },
       { id: 'bonus', type: 'number', label: 'sheet.weapons.bonus', derived: true },
       { id: 'damage', type: 'text', label: 'sheet.weapons.damage', derived: true },
-      { id: 'range', type: 'text', label: 'sheet.weapons.range', derived: true, options: (['melee', 'short', 'medium', 'long', 'veryLong'] as const).map(r => ({ value: r, label: `sheet.range.${r}` })) },
+      // El alcance se lee «Medio» y los metros con la dificultad salen en un tooltip (`hint`): en linea
+      // ocupaban media tabla. Cuerpo a cuerpo no lleva pista — no tiene metros ni reto (p.95–96).
+      { id: 'range', type: 'text', label: 'sheet.weapons.range', derived: true, options: (['melee', 'short', 'medium', 'long', 'veryLong'] as const).map(r => ({ value: r, label: `sheet.range.${r}`, ...(r === 'melee' ? {} : { hint: `sheet.rangeHint.${r}` }) })) },
       // Sólo las armas de fuego tienen cargador: el libro pone «-» en las nueve de cuerpo a cuerpo
       // (p.97) y `magazine` es null en el catálogo. Sin esto salían unas Nudilleras con 14 balas.
       // Dos columnas distintas y a menudo confundidas: `ammo` es lo que hay EN el cargador y `reserve`

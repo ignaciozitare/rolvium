@@ -21,7 +21,12 @@ export interface FieldDef {
    */
   appliesToRow?: (row: Record<string, unknown>) => boolean;
   min?: number; max?: number;
-  options?: { value: string; label: I18nKey }[];
+  /**
+   * `hint`: dato secundario de la opción, que sale en un tooltip y NO en la celda. El alcance de un
+   * arma se lee «Medio» y los metros y la dificultad se consultan al pasar por encima (p.95–96):
+   * escritos en línea se comían media tabla de Armas (dueño, 2026-08-19).
+   */
+  options?: { value: string; label: I18nKey; hint?: I18nKey }[];
   columns?: FieldDef[];         // for 'table'
   itemFields?: FieldDef[];      // for 'list'
   derived?: boolean;            // computed by engine.derived, read-only in the sheet

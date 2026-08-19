@@ -117,3 +117,33 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-fields.stack > .rv-sheet-field.num-derived{text-align:center;align-items:center;}
 .rv-sheet-fields.stack > .rv-sheet-field.num-derived .rv-sheet-derived{justify-content:center;}
 .rv-sheet-fields.stack > .rv-sheet-field.num-derived + .rv-sheet-field.num-derived::before{content:'';display:block;width:56px;height:1px;background:var(--sys-line);margin:2px auto 10px;}
+
+/* ── Numeros calculados de una seccion en rejilla: tarjetas cuadradas centradas ──────────────
+   (dueno 2026-08-19, sobre Estado) «Aguante y Resistencia maxima en tarjetas cuadradas centradas
+   dentro de la tarjeta grande, con los textos centrados con los numeros», y «penalizacion por
+   heridas y Resistencia recuperable, una al lado de la otra, en tarjetas como las de Aguante».
+   La fila la agrupa `groupTiles` en Sheet.tsx: centrar cada campo en SU celda de la rejilla los
+   dejaba repartidos por el ancho, no centrados en la tarjeta. Se queda en `grid` — en `stack`
+   (Armadura) los calculados ya tienen su lectura en columna, y esa no se toca. */
+.rv-sheet-tiles{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:center;align-items:stretch;gap:14px;margin:2px 0;}
+.rv-sheet-tiles > .rv-sheet-field{width:140px;min-height:140px;padding:14px 10px;gap:10px;align-items:center;justify-content:center;text-align:center;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
+/* `block` y no el `inline-flex` de siempre: en dos lineas, el flex metia el «p.98» ENTRE ellas
+   («RESISTENCIA p.98 / MAXIMA»). Como texto normal, la pagina va detras del rotulo entero. */
+.rv-sheet-tiles .rv-sheet-label{display:block;width:100%;text-align:center;line-height:var(--lh-tight);}
+.rv-sheet-tiles .rv-sheet-page{margin-left:6px;}
+.rv-sheet-tiles .rv-sheet-derived{justify-content:center;min-height:0;}
+.rv-sheet-tiles .rv-sheet-value{font-size:var(--fs-xl);}
+/* El tooltip del rotulo cuelga de un `left:0` pensado para un campo alineado a la izquierda; en una
+   tarjeta centrada de 140 px se salia por la derecha. Aqui se centra sobre la tarjeta. */
+.rv-sheet-tiles .rv-sheet-tip{left:50%;transform:translateX(-50%);}
+/* ── Casillas y lunas, centradas en la tarjeta (dueno 2026-08-19) ─────────────────────────────
+   Solo en `grid`: es donde la seccion es una tarjeta con contenido a lo ancho. Se centra el campo
+   entero —rotulo, casillas y el «0 de 18»— porque un rotulo pegado a la izquierda sobre unas
+   casillas centradas se lee como un descuadre, no como una decision. */
+.rv-sheet-fields.grid > .rv-sheet-field.span{align-items:center;text-align:center;}
+.rv-sheet-fields.grid > .rv-sheet-field.span .rv-sheet-boxes,
+.rv-sheet-fields.grid > .rv-sheet-field.span .rv-sheet-health{justify-content:center;}
+.rv-sheet-fields.grid > .rv-sheet-field.span .rv-sheet-tip{left:50%;transform:translateX(-50%);}
+/* Dato secundario en tooltip (el alcance de un arma): subrayado punteado, sin cambiar el color ni
+   heredar la cursiva del `abbr` del navegador. */
+.rv-sheet-hinted{text-decoration:underline dotted var(--sys-ink-dim);text-underline-offset:3px;cursor:help;font-variant:inherit;}
