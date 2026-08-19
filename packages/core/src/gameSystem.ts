@@ -21,7 +21,13 @@ export interface FieldDef {
   action?: string;              // ActionDef.id rendered as an icon button on this field/row
 }
 
-export interface SectionDef { id: string; label: I18nKey; fields: FieldDef[]; layout?: 'grid' | 'stack' | 'row'; }
+/**
+ * `span`: cuantas columnas del grid de la ficha ocupa la seccion. Lo declara el SISTEMA porque la
+ * plataforma no sabe que «Estado» pide mas sitio que «Dones» — igual que no sabe reglas. Sin `span`
+ * ocupa una; las secciones con campo `table`/`longtext`/`image` o `layout:'row'` siguen ocupando la
+ * fila entera por su cuenta.
+ */
+export interface SectionDef { id: string; label: I18nKey; fields: FieldDef[]; layout?: 'grid' | 'stack' | 'row'; span?: number; }
 export interface SheetSchema { version: string; sections: SectionDef[]; }
 
 /** A sheet's data is opaque JSON validated against the schema by the API. */

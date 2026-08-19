@@ -178,7 +178,8 @@ export function Sheet(p: SheetProps): JSX.Element {
   return (
     <div className="rv-sheet">
       {sections.map(s => (
-        <section key={s.id} className={`rv-sheet-section ${isWide(s) ? 'wide' : ''}`} data-section={s.id} aria-label={p.t(s.label)}>
+        <section key={s.id} className={`rv-sheet-section ${isWide(s) ? 'wide' : ''}`} data-section={s.id} aria-label={p.t(s.label)}
+          style={!isWide(s) && s.span && s.span > 1 ? { gridColumn: `span ${s.span}` } : undefined}>
           <header className="rv-sheet-section-head">
             <h3 className="rv-sheet-section-title">{p.t(s.label)}</h3>
             {sectionRef(s, p)}
