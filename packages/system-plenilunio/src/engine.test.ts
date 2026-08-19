@@ -428,6 +428,16 @@ describe('generator budgets', () => {
     const fixed = draft({ ...over, presence: stat(1, ['presence.poetry']), combat: stat(1, ['combat.swords']) });
     expect(spec.canAdvance(fixed)).toBeNull();
   });
+  it('el Destino se topa en 1–5 al crear, aunque la ficha llegue a 10 en juego (RULES.md §1.4)', () => {
+    const d = generator.find(s => s.id === 'destiny')!;
+    expect(d.applyChange!(draft(), 'destiny', 5)).toEqual({ destiny: 5 });
+    expect(d.applyChange!(draft(), 'destiny', 6)).toBeNull();
+    expect(d.applyChange!(draft(), 'destiny', 1)).toEqual({ destiny: 1 });
+    expect(d.applyChange!(draft(), 'destiny', 0)).toBeNull();
+    // un borrador que ya venga fuera de rango se repara: sólo se capa la subida
+    expect(d.applyChange!(draft({ destiny: 8 }), 'destiny', 7)).toEqual({ destiny: 7 });
+    expect(d.applyChange!(draft({ destiny: 8 }), 'destiny', 9)).toBeNull();
+  });
   it('finalizeDraft sets fortune = destiny and full resistance', () => {
     const f = finalizeDraft(draft({ destiny: 4, fortitude: stat(3), will: stat(3) }));
     expect(f).toMatchObject({ fortune: 4, resistance: 18, health: 'healthy', xp: 0 });

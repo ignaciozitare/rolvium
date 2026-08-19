@@ -48,10 +48,15 @@ Lista del manual (por característica):
 Empieza en **3**. Canjes: +1 Destino por cada punto de característica gastado (máx. +2 → 5);
 −1 Destino devuelve 1 punto de característica; un segundo −1 solo con permiso del DJ (mín. 1).
 Rango inicial efectivo: **1–5** (p. 88 confirma que los PJ empiezan entre 1 y 5).
+- ⚠ interpretación: **en juego el libro no le pone techo** al Destino (sube por progresión, y cada subida da
+  1 punto de don, p. 89). El campo de la ficha lo capa en **10** como límite de validación, no como regla:
+  sin ningún tope, un contador editable por el jugador no tendría freno. Al **crear** sí manda el libro: 1–5.
+
 
 ### 1.5 Dones en creación (p. 23–25; detalle p. 102+)
 Puntos de don iniciales = **Destino**. Se reparten libremente entre dones (nivel máx. inicial **5**).
-Canje: 1 punto de característica → **2 puntos de don** (sin límite explícito de canjes).
+Canje: 1 punto de característica → **2 puntos de don** (sin límite explícito de canjes; el campo tampoco
+lleva tope, sólo lo frena lo pagable).
 Cada vez que sube el Destino se recibe **1 punto de don** nuevo (p. 89).
 - ⚠ interpretación: el libro no pone tope al número de canjes, pero sí lo pone lo que puedes pagar — no se
   canjean puntos de característica que no tienes. El generador lo veta ahí, no con un número inventado.

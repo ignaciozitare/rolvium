@@ -172,6 +172,17 @@ export const generator: GeneratorStep[] = [
   },
   {
     id: 'destiny', label: 'generator.step.destiny', fields: ['destiny'],
+    // El campo `destiny` de la ficha llega hasta 10 —en juego el Destino sube, y el libro no le pone
+    // techo—, pero AL CREAR va de 1 a 5 (RULES.md §1.4, p.22–23 y p.88). Sin este guardia el contador
+    // dejaba subir hasta 10 y luego «Continuar» lo rechazaba: elegir y que no pase nada, otra vez.
+    // Sólo se capa la SUBIDA, para que un borrador que ya venga fuera de rango se pueda reparar.
+    applyChange: (draft, fieldId, next) => {
+      if (fieldId !== 'destiny') return applyChange(draft, fieldId, next);
+      const wanted = num(next), now = num(draft.destiny, BASE_DESTINY);
+      const low = BASE_DESTINY - DESTINY_ADJUST, high = BASE_DESTINY + DESTINY_ADJUST;
+      if ((wanted > high && wanted > now) || (wanted < low && wanted < now)) return null;
+      return { destiny: wanted };
+    },
     canAdvance: draft => {
       const d = num(draft.destiny, BASE_DESTINY);
       if (d < BASE_DESTINY - DESTINY_ADJUST || d > BASE_DESTINY + DESTINY_ADJUST) return 'generator.error.destinyRange';
