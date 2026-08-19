@@ -14,77 +14,49 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-19, cierre por el gate de handoff (8,4 MB de transcripción)
+## 🟢 PUNTO EXACTO — 2026-08-19, rama `fix/ficha-listas` lista para QA
 
-**Rama `fix/ficha-listas`.** Los dos bloques que el dueño mandó ejecutar (Estado contra el PDF +
-maquetación) están **hechos y commiteados**, con las pantallas verificadas una a una. El gate de
-contexto cortó la sesión justo al escribir el ÚLTIMO test que faltaba.
+El dueño mandó **seguir en el mismo chat** en vez de hacer el handoff que pedía el gate de contexto,
+así que la sesión continuó y **ya no queda nada pendiente de la tanda**:
 
-### Lo que queda, en este orden (primera cosa del chat nuevo)
-1. **Escribir `apps/web/tests/regression/sheet-range-hint.test.tsx`** — el tooltip del alcance sigue
-   sin test. Estaba redactado y no llegó a disco. Tiene que fijar tres cosas, con el esquema real de
-   Plenilunio y dos armas (`magnum44` alcance medio CON pista, `knuckles` cuerpo a cuerpo SIN pista):
-   - la celda dice sólo «Medio» y **no** contiene «50 m» ni «dificultad 3»;
-   - el `<abbr>` lleva `tabindex="0"` y `title` con la pista, y su envoltorio `.rv-tip-wrap` lleva
-     `data-tooltip="Hasta 50 m · dificultad 3"` (así se alcanza sin ratón);
-   - «Cuerpo a cuerpo» sale como texto pelado: ni `ABBR` ni `.rv-tip-wrap`.
-   Patrón: copiar `sheet-state-tiles.test.tsx` (`renderWithProviders`, `screen`, `within`).
-2. 🐛 **BUG DEL REVIEW, sin aplicar — lo primero de todo, antes que el test.** Es mío, de esta tanda.
-   `packages/system-plenilunio/src/engine.ts:250`, `catchBreath`: el `Math.min(d.resistanceMax, …)`
-   era inofensivo mientras el máximo era siempre 3×Aguante. Ahora que **lo baja el estado de salud**,
-   capa **hacia abajo** — justo lo que RULES.md §6.3 prohíbe («se capa la subida, nunca la bajada»),
-   y que `rest` y las casillas sí respetan.
-   Repro: Aguante 5, **Herido** (máximo 10), Resistencia **12** —estado legal según §6.3, porque
-   pasar de Sano a Herido no borra puntos ya marcados—. `lost = 0`, así que «Recobrar el aliento»
-   **cobra el punto de Fortuna y baja la Resistencia de 12 a 10**: pulsar el botón es peor que no
-   pulsarlo. En todos los demás casos el `Math.min` es código muerto
-   (`resistance + ⌊(max − resistance)/2⌋ ≤ max` por construcción), así que **se borra**:
+- ✅ Los dos bloques (Estado contra el PDF + maquetación) — commit `bcabdc6`.
+- ✅ **El bug que encontró el Review** en «Recobrar el aliento»: `catchBreath` capaba hacia ABAJO desde
+  que la Resistencia máxima la baja el estado de salud (Aguante 5, herido, Resistencia 12 → te cobraba
+  la Fortuna y te dejaba en 10). Fuera el `Math.min`, que además era código muerto en todos los demás
+  casos. Pin nuevo en `engine.test.ts` con ese caso y con el de curar por debajo del máximo.
+- ✅ **El test que faltaba**: `apps/web/tests/regression/sheet-range-hint.test.tsx`, 3 casos. Ojo al
+  redactarlo: el texto de la pista **sí está en el DOM** —el tooltip del kit lo pinta en su capa,
+  oculta por CSS y con `aria-hidden`—, así que lo que se fija no es «no está», es «no está en el
+  flujo de la celda».
+- ✅ **El tooltip de Recuperación vuelve a la ficha**: `resistanceMax` apunta a `ref: 'recovery'`
+  (p.101), que es de donde sale su valor; las casillas conservan `ref: 'resistance'` (p.98). Sin esto
+  la referencia se había quedado sin ningún campo que la enseñara.
+- ✅ `finalizeDraft` ya no depende del orden: calcula la Resistencia sobre el borrador **ya sano**.
 
-   ```ts
-   const lost = Math.max(0, d.resistanceMax - num(sheet.resistance));
-   // Se capa la SUBIDA, nunca la bajada (RULES.md §6.3, igual que `rest` y las casillas).
-   return { fortune: num(sheet.fortune) - 1, resistance: num(sheet.resistance) + Math.floor(lost / 2) };
-   ```
+Verde: `npm test` **518/518** · `typecheck` · `build:web` + `build:api` · `audit` 0 hard / 9 warn
+(los 9 preexistentes). Pantallas verificadas otra vez con `node scripts/shot.mjs`.
 
-   Y su pin en `packages/system-plenilunio/src/engine.test.ts` (~línea 228: los tres casos de
-   `catchBreath` que hay usan una ficha SANA, así que ninguno pasa por aquí):
+### ⏳ Próximo paso
+1. **QA + merge de `fix/ficha-listas`.** Es lo único que queda de esta rama. El dueño no ha dicho
+   todavía «listo para mergear»; la orden de QA la lanza él.
+2. Lo del bloque **«Tirada»** (más abajo): pide decisión suya, spec y `.pen` antes de código.
+3. La lógica de **daño → Resistencia → Salud** («LA REGLA QUE SE NOS ESTABA ESCAPANDO»): sin empezar.
 
-   ```ts
-   // Con más Resistencia que el máximo del estado, recobrar el aliento no la BAJA (RULES.md §6.3).
-   expect(catchBreath(sheet({ health: 'wounded', resistance: 12, fortune: 2 }))).toEqual({ fortune: 1, resistance: 12 });
-   ```
+### 🔎 Decidido y NO tocado
+- **Un PJ MUERTO sale con «Resistencia máxima 0»** y sus casillas en blanco («3 de 0»). Mirado en
+  pantalla. Sale de `RECOVERY.dead.restFactor = 0`, que es **codificación nuestra**: la tabla de
+  recuperación de la p.101 no dice nada de los muertos. Se deja como está —un muerto no recupera— y
+  no se inventa un máximo para él; si al dueño le chirría en pantalla, se decide aparte.
+- Clave i18n muerta `characters.progression.noCharacter`: sólo la pintaba el borrado `ImproveTab`, y
+  con «Mejorar» dentro de la ficha ese caso ya no existe (el botón sólo está si hay personaje).
+  Se deja: borrar claves queda fuera del alcance de esta tanda.
 
-   **La rama no va a QA ni se mergea hasta que esto esté.**
-
-2b. **Lo demás que dejó el Review, menor y opcional** (decidir, no urgente):
-   - **El tooltip de Recuperación (p.101) desapareció de la ficha**: `recoveryMax` era el único campo
-     con `ref: 'recovery'`. La propuesta del Review es buena — `resistanceMax` ahora saca su valor de
-     la tabla de la p.101, así que apuntarlo a `ref: 'recovery'` (en vez de `'resistance'`, p.98)
-     devuelve el texto a donde toca.
-   - **Un PJ MUERTO sale con «Resistencia máxima 0»** y sin casillas (`RECOVERY.dead.restFactor` es 0).
-     Coherente, pero es un cambio visible que nadie pidió: mirarlo en pantalla y decidir.
-   - `finalizeDraft` (`generator.ts:230`) calcula `derived(draft)` **antes** de forzar
-     `health: 'healthy'`. Hoy no es alcanzable, pero `derived({ ...draft, health: 'healthy' })` lo
-     deja a prueba de orden.
-   - Clave i18n muerta: `characters.progression.noCharacter` (sólo la usaba el borrado `ImproveTab`).
-     No se tocó: borrar claves queda fuera del alcance de esta tanda.
-
-   El resto del Review pasó limpio: hexagonal, seguridad, RLS (n/a), tokens de diseño, i18n en es y
-   en, cobertura y los dos builds.
-3. **QA + merge** de `fix/ficha-listas`. Sigue sin pasar ninguno de los dos.
-4. **Lo del bloque «Tirada»** (abajo): pide decisión del dueño, spec y `.pen` antes de código.
-5. La lógica de daño → Resistencia → Salud («LA REGLA QUE SE NOS ESTABA ESCAPANDO»): sin empezar.
-
-### Prompt de resume, de una línea
-> Retomo Rolvium en `fix/ficha-listas`: lee el bloque 🟢 de WORK_STATE.md y haz los puntos 1 a 3 —
-> escribe `sheet-range-hint.test.tsx`, aplica lo que salga del Review y pasa QA antes de mergear.
-
-### El entorno quedó levantado
-Docker + Supabase local + `dev:api` en **:3001** + `dev:web` en **:5173**. Capturas de esta tanda en
-`/tmp/sec-*.png` y `/tmp/full.png`. Datos de prueba: campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`,
-Karen Sinclair `3af4f238-25ad-4cf1-a264-09d7586019d8`, `admin@rolvium.local` / `rolvium123`.
-⚠ Para VER el aviso de Inconsciente se puso a mano `data->>'unconscious' = 'yes'` en la base local y
-**se dejó otra vez en `'no'`** — Karen está como estaba (herida, 3 de 12).
+### El entorno sigue levantado
+Docker + Supabase local + `dev:api` en **:3001** + `dev:web` en **:5173**. Capturas en `/tmp/sec-*.png`.
+Campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`, Karen `3af4f238-25ad-4cf1-a264-09d7586019d8`,
+`admin@rolvium.local` / `rolvium123`.
+⚠ Para VER el aviso de Inconsciente y la ficha de un muerto se tocó a mano la base local; **Karen
+quedó como estaba** (herida, 3 de 12, consciente). Comprobado con un `select` después de cada uno.
 
 ---
 

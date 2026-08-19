@@ -225,7 +225,10 @@ export const generator: GeneratorStep[] = [
 
 /** Values the platform should write when the wizard finishes: fortune = destiny, resistance full, healthy, no xp. */
 export function finalizeDraft(draft: SheetData): SheetData {
-  const d = derived(draft);
   const destiny = num(draft.destiny, BASE_DESTINY);
-  return { ...draft, destiny, fortune: destiny, resistance: d.resistanceMax, health: 'healthy', xp: num(draft.xp) };
+  // `derived` se calcula sobre el borrador YA sano: `resistanceMax` depende del estado de salud
+  // (p.101), asi que leerlo antes de forzar `health: 'healthy'` haria que un borrador que llegara
+  // herido naciera con la Resistencia de un herido. Hoy no pasa —`newSheet` nace sano— pero el
+  // orden no deberia sostener la regla (hallazgo del Review).
+  return { ...draft, destiny, fortune: destiny, resistance: derived({ ...draft, health: 'healthy' }).resistanceMax, health: 'healthy', xp: num(draft.xp) };
 }

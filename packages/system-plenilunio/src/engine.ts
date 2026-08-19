@@ -247,7 +247,16 @@ export function catchBreath(sheet: SheetData): SheetPatch | null {
   if (num(sheet.fortune) < 1) return null;
   const d = derived(sheet);
   const lost = Math.max(0, d.resistanceMax - num(sheet.resistance));
-  return { fortune: num(sheet.fortune) - 1, resistance: Math.min(d.resistanceMax, num(sheet.resistance) + Math.floor(lost / 2)) };
+  /**
+   * Sin `Math.min` contra el máximo: se capa la SUBIDA, nunca la bajada (RULES.md §6.3, igual que
+   * `rest` y las casillas). El tope era inofensivo mientras el máximo era siempre 3×Aguante, pero
+   * desde que lo baja el estado de salud capaba hacia ABAJO: Aguante 5, herido (máximo 10) y
+   * Resistencia 12 —legal: pasar de Sano a Herido no borra puntos ya marcados— daba `lost = 0` y
+   * devolvía 10, o sea que recobrar el aliento te cobraba la Fortuna y te QUITABA dos puntos. Y en
+   * todos los demás casos sobraba: `resistencia + ⌊(máx − resistencia)/2⌋ ≤ máx` por construcción.
+   * (Hallazgo del Review, 2026-08-19.)
+   */
+  return { fortune: num(sheet.fortune) - 1, resistance: num(sheet.resistance) + Math.floor(lost / 2) };
 }
 /** Rest after the scene (p.101): Resistance back to what the current health level allows (×3 / ×2 / ×1 Endurance). */
 export const rest = (sheet: SheetData): SheetPatch => ({ resistance: Math.max(num(sheet.resistance), derived(sheet).resistanceMax), unconscious: 'no' });

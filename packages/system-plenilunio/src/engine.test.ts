@@ -230,6 +230,17 @@ describe('applyDamage (manual p.98–100)', () => {
     expect(catchBreath(sheet({ resistance: 4, fortune: 2 }))).toEqual({ fortune: 1, resistance: 9 });
     expect(catchBreath(sheet({ resistance: 4, fortune: 0 }))).toBeNull();
   });
+  /**
+   * Los tres casos de arriba usan una ficha SANA, donde el máximo es 3×Aguante y nunca se llega
+   * por encima. Herido el máximo baja (p.101) y la ficha puede llevar MÁS Resistencia que él —pasar
+   * de Sano a Herido no borra puntos ya marcados, RULES.md §6.3—, y ahí recobrar el aliento cobraba
+   * la Fortuna y BAJABA la Resistencia hasta el nuevo máximo. Se capa la subida, nunca la bajada.
+   */
+  it('p.101 con más Resistencia que el máximo del estado, recobrar el aliento no la BAJA', () => {
+    expect(catchBreath(sheet({ health: 'wounded', resistance: 12, fortune: 2 }))).toEqual({ fortune: 1, resistance: 12 });
+    // Y por debajo del máximo del estado sigue curando la mitad de lo perdido: máx. 10, quedan 4 → +3.
+    expect(catchBreath(sheet({ health: 'wounded', resistance: 4, fortune: 2 }))).toEqual({ fortune: 1, resistance: 7 });
+  });
 });
 
 describe('progression (manual p.91)', () => {

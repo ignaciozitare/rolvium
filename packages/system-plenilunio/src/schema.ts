@@ -70,7 +70,11 @@ export const sections: SectionDef[] = [
   // caben en UNA fila de tres, que es justo como los pidio el dueno (2026-08-19).
   { id: 'state', label: 'sheet.sections.state', layout: 'grid', fields: [
     { id: 'endurance', type: 'number', label: 'sheet.state.endurance', ref: 'endurance', derived: true },
-    { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'resistance', derived: true },
+    // `ref: 'recovery'` (p.101) y no `'resistance'` (p.98): este numero SALE de la tabla de
+    // recuperacion —lo baja el estado de salud—, y al desaparecer «Resistencia recuperable» esa
+    // referencia se quedo sin ningun campo que la enseñara. Asi el tooltip explica por que pone 12
+    // y no 18. La regla base de la Resistencia sigue en las casillas, que llevan `ref: 'resistance'`.
+    { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'recovery', derived: true },
     { id: 'dicePenalty', type: 'number', label: 'sheet.state.dicePenalty', ref: 'health', derived: true },
     { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },
     // El sexto nivel de salud del manual (p.101) NO es una fase de luna: se puede estar Herido E
