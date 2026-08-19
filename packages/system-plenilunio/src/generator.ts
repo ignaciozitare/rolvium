@@ -120,12 +120,18 @@ export function applySpecialtyChange(draft: SheetData, fieldId: string, next: un
   if (isStatId(fieldId)) {
     const after = { ...draft, [fieldId]: next };
     const trades = budgetOf(after).specialtyTrade;
-    if (statOf(after, fieldId).specialties.length > 1 + trades) return null;
-    const extra = STAT_IDS.reduce((s, id) => s + Math.max(0, statOf(after, id).specialties.length - 1), 0);
-    if (extra > trades * 2) return null;
+    // Only a RISE is capped, the same invariant the gift trade's ceiling and `budgetAllows` keep: a
+    // draft can already sit ABOVE the cap without ever adding anything — lowering `specialtyTrade`
+    // after spreading the extra ones does it — and a ceiling that also blocks the way down freezes
+    // every control that could repair it (the ×, the specialty select, even the stat's −/+), leaving
+    // «más especialidades extra de las canjeadas» on screen with nothing able to act on it.
+    if (own(after, fieldId) > 1 + trades && own(after, fieldId) > own(draft, fieldId)) return null;
+    if (extrasOf(after) > trades * 2 && extrasOf(after) > extrasOf(draft)) return null;
   }
   return applyChange(draft, fieldId, next);
 }
+const own = (draft: SheetData, id: string): number => (isStatId(id) ? statOf(draft, id).specialties.length : 0);
+const extrasOf = (draft: SheetData): number => STAT_IDS.reduce((s, id) => s + Math.max(0, statOf(draft, id).specialties.length - 1), 0);
 
 const statsError = (draft: SheetData): string | null => {
   const b = budgetOf(draft);

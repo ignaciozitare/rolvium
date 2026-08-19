@@ -4,6 +4,7 @@ import {
   resolve, resolveAction, rest, sharedResources, spendAmmo, actions, XP_COSTS, DESTINY_POOL, STAT_MAX,
 } from './engine';
 import { newSheet, type StatValue } from './schema';
+import { STAT_IDS } from './catalogs';
 import { budgetOf, generator, canAdjustStat, finalizeDraft } from './generator';
 import type { SheetData } from '@rolvium/core';
 
@@ -400,6 +401,32 @@ describe('generator budgets', () => {
     expect(spec.applyChange!(spread, 'culture', stat(1, ['culture.art', 'culture.history']))).toBeNull();
     // quitar siempre se puede
     expect(spec.applyChange!(traded, 'presence', stat(1, []))).toMatchObject({ presence: expect.anything() });
+  });
+  /**
+   * QA 2026-08-19: «quitar siempre se puede» hay que probarlo con el borrador YA por encima del cupo,
+   * que es justo cuando hace falta — la prueba de arriba sólo lo mira estando dentro. Se llega bajando
+   * `specialtyTrade` después de repartir las extra (bajar el canje devuelve puntos, así que nada lo veta),
+   * y con el techo mirando sólo el cupo se quedaban muertos la ×, el desplegable y hasta el −/+ de la
+   * característica: la misma trampa que el Review ya cazó en el techo del canje de dones.
+   */
+  it('un borrador ya por encima del cupo de especialidades se puede reparar', () => {
+    const spec = generator.find(s => s.id === 'specialties')!;
+    // una por característica (si no, salta `specialtyEach` antes que el cupo) y dos de más repartidas
+    const one = Object.fromEntries(STAT_IDS.map(id => [id, stat(1, [`${id}.a`])]));
+    const over = draft({ ...one, specialtyTrade: 0, presence: stat(1, ['presence.poetry', 'presence.empathy']), combat: stat(1, ['combat.swords', 'combat.martialArts']) });
+    expect(spec.canAdvance(over)).toBe('generator.error.tooManySpecialties');
+    // quitar la de más: baja el exceso, así que pasa aunque siga por encima del cupo
+    expect(spec.applyChange!(over, 'presence', stat(1, ['presence.poetry']))).toMatchObject({ presence: stat(1, ['presence.poetry']) });
+    // cambiar CUÁL, sin tocar cuántas, tampoco empeora nada
+    expect(spec.applyChange!(over, 'presence', stat(1, ['presence.poetry', 'presence.humour']))).toMatchObject({ presence: expect.anything() });
+    // y el −/+ de la característica sigue vivo: el cupo es de especialidades, no de puntos
+    expect(spec.applyChange!(over, 'presence', stat(2, ['presence.poetry', 'presence.empathy']))).toMatchObject({ presence: stat(2, ['presence.poetry', 'presence.empathy']) });
+    // subir sí sigue vetado: reparar no es una puerta trasera para añadir más
+    expect(spec.applyChange!(over, 'presence', stat(1, ['presence.poetry', 'presence.empathy', 'presence.humour']))).toBeNull();
+    expect(spec.applyChange!(over, 'culture', stat(1, ['culture.art', 'culture.history']))).toBeNull();
+    // dos pasos y el paso vuelve a dejar avanzar
+    const fixed = draft({ ...over, presence: stat(1, ['presence.poetry']), combat: stat(1, ['combat.swords']) });
+    expect(spec.canAdvance(fixed)).toBeNull();
   });
   it('finalizeDraft sets fortune = destiny and full resistance', () => {
     const f = finalizeDraft(draft({ destiny: 4, fortitude: stat(3), will: stat(3) }));
