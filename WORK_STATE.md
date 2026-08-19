@@ -171,95 +171,59 @@ tiene enseñanza:
 **Regla que sale de esto:** antes de tocar grants, comprobar `prosecdef` y si la función es DEFAULT de alguna columna;
 «se llama sola» no equivale a «es de trigger».
 
-## 📍 Sesión del 2026-08-19 (mañana) — despliegue CERRADO, generador arreglado, `.pen` a medias
+## 📍 Sesión del 2026-08-19 — PRODUCCIÓN AL DÍA por fin, y el generador en arreglo
 
-### Producción EN PIE (por fin)
-- **https://rolvium.vercel.app** → 200, la app carga. Proyecto `rolvium` (`prj_hdz5cRj0Vv2AJKbIVqVk1Ao1rk9W`),
-  raíz del monorepo, con las tres `VITE_*`. Comprobado que el bundle lleva horneadas la URL de Supabase y la de la API.
-- **https://rolvium-api.vercel.app/health** → `{"ok":true}`. El dueño puso las variables y redesplegó.
-- ⚠ **Dos proyectos de API duplicados que borrar**: `rolvium-api-s5g6` y `rolvium-api-1c5c`. Salieron de importar el
-  repo dejando el Root Directory en `apps/api` (Vercel rellena el formulario con lo de la vez anterior). El bueno es
-  **`rolvium-api`**, que es al que apunta `VITE_API_URL`.
-- **Clave pública ya anotada**: `sb_publishable_M6SulfHCNvzQtjKagrJ4Hw_odrg-iZV`. Los seis nombres de variable están
-  comprobados contra el código (`apps/api/src/app.ts:58`, `shared/lib/{supabaseClient,api}.ts`).
-- ⚠ Los logs mostraron peticiones desde `rolvium-9q17w34w3-….vercel.app` (URL de despliegue). `ALLOWED_ORIGIN` sólo
-  admite `https://rolvium.vercel.app`, así que entrando por otra URL da CORS. Entrar siempre por el dominio bueno.
+### Lo primero que hay que entender de esta sesión
+**Producción llevaba dos días congelada.** `origin/main` seguía en `ee11a56` (18 de agosto), el commit de
+handoff de ANTES de construir la rebanada 2 de maps: las tres últimas sesiones vivían en `feat/maps-slice-2`,
+sin pushear. Todo lo que el dueño «probaba en producción» era código viejo — de ahí que el generador hiciera
+cosas ya arregladas y que no hubiera nada de la escena. **Mergeado y desplegado**: `main` = `384fe96`,
+https://rolvium.vercel.app y https://rolvium-api.vercel.app/health responden, y el bundle de producción lleva
+`mp-rail-add` (comprobado, no supuesto). Lección: comprobar `git log origin/main` ANTES de diagnosticar
+cualquier «esto está roto en producción».
 
-### La base hosted sigue SIN USUARIOS
-El SQL que los crea (admin + dos jugadores, `rolvium123`, ya confirmados) **está escrito y pegado en el chat**, sale de
-`supabase/seed.sql` adaptado a hosted (`extensions.crypt`). **No lo pude ejecutar yo**: el clasificador del modo
-automático bloquea escrituras contra la base de producción, y también bloquea que me edite `.claude/settings.json`
-para dárme permiso (un agente no puede ampliarse los permisos: es correcto). Lo ejecuta el dueño en
-`https://supabase.com/dashboard/project/scfspsiemikfcnqteonq/sql/new`, o añade a mano las reglas
-`mcp__claude_ai_Supabase__execute_sql` y compañía en `.claude/settings.json`.
-**Por qué en Worksuite sí puedo**: su `.claude/settings.local.json` tiene 198 reglas acumuladas, `execute_sql` entre
-ellas; el de Rolvium tiene 6 y ninguna de MCP.
+### Arreglado hoy en `feat/maps-slice-2` (ya en `main`)
+- **Cero escenas dejaba al director sin forma de crear la primera.** El rail es el único sitio con «+ Escena»
+  desde la rebanada 3, y se pintaba con `isDm && scenes && live`: sin escena no había rail. El cartel «crea la
+  primera escena» pedía justo lo que la pantalla no dejaba hacer. El diseño lo tenía bien desde el principio
+  (`sFipl` → `Escenas rail` → `Nueva`). Ni Review ni QA lo cazaron: sólo aparece con CERO escenas, que ninguna
+  prueba cubría. Ahora hay test, y otro de que el jugador NO ve el rail.
+- Rebanada 3 de maps cerrada, arreglos del generador, `optionVetoed`, `rowKey` también en `TableField`.
 
-### Generador de personajes — tres arreglos (SIN review ni qa todavía)
-Salen de que el dueño lo probó en producción:
-- **`budgetAllows`** (`characters/domain/useCases/generatorRules.ts`, nuevo, con test): el guardia de presupuesto
-  aceptaba un cambio sólo si gastaba **menos** que el borrador. Un cambio que deja el presupuesto **igual** —cambiar
-  QUÉ don es una fila, cambiar una especialidad— caía en el veto, y como `set` no llama a `onChange` cuando el
-  guardia dice que no, **el desplegable rebotaba al valor anterior sin decir nada**. Ahora es `>=`.
-  Se llega al saldo negativo bajando el Destino después de repartir dones.
-- **Los controles vetados ahora se ven desactivados** (`packages/ui/Sheet.tsx`): los `+`/`−` de características ya lo
-  hacían vía `allowed`; las listas (dones) no recibían esa señal, así que parecían rotas. Test que falla sin el arreglo.
-- Claves de fila únicas (`rowKey`) en las listas. **No era la causa de nada** — lo diagnostiqué mal, escribí el test y
-  pasaba igual sin el arreglo; queda porque dos filas con la misma clave es un error latente.
-- ⚠ **Pendiente y confirmado por captura**: el «+ Especialidad» **no mira el cupo** — el dueño metió 14 en Fortaleza.
-  El tope sólo se comprueba al pulsar Continuar. Mismo fallo de clase que los dones.
+### En marcha: rama `fix/generator-gifts` (3 commits, Review pasado, QA en curso)
+Sale de que el dueño probó el generador con la versión buena. Los tres arreglos:
+- **El paso de Dones era un callejón.** `giftTrade` gasta puntos de CREACIÓN pero el presupuesto que guarda el
+  paso es el DE DONES —y canjear sólo lo sube— así que el guardia decía que sí siempre. Con 10 canjes son 23
+  puntos de don y, con el tope de nivel 5, hacen falta 5 dones para gastarlos: con 3 filas «Continuar» no se
+  encendía nunca. Ahora el techo del canje es lo pagable (sólo se capa la SUBIDA: un borrador en rojo tiene que
+  dejarse reparar). Y `canAdvance` avisa de los puntos de creación en rojo PRIMERO.
+- **Un don no se repite** (era nivel 6 por la puerta de atrás). Ojo con el efecto colateral que cazó el Review:
+  una fila en blanco toma la PRIMERA opción del select, así que el veto de duplicados dejaba muerto el
+  «+ Añadir» desde el segundo clic. `ListField` ahora propone la primera variante que el guardia acepta.
+- **El cupo de especialidades se aplica AL ELEGIR** (RULES.md §1.3), en los DOS pasos que listan las
+  características — el de Características también las pinta.
 
-### Reglas — decisión del dueño: **el libro al pie de la letra**
-- Especialidades: 1 por característica + 2 extra por canje en **dos características distintas**, **máx. 2 canjes** →
-  tope 11, y máx. 3 en una misma característica. Eso **se deduce del libro**, no es interpretación nuestra:
-  hay que **corregir `RULES.md`**, que hoy lo marca como «⚠ interpretación». Lo que sí es consejo (y no regla) es
-  «el DJ debería evitar >2 en la misma característica».
+### Lo que el dueño pidió y NO está hecho
+- **Faltan 4 de las 6 vistas del generador en `rolvium.pen`**: sólo están `GjeeD` (Características) y `kB8pn`
+  (Dones). Concepto, Especialidades, Destino y Resumen nunca se diseñaron, y se nota.
+- **Características y Especialidades se ven igual**: el campo `stat` arrastra sus desplegables de especialidad
+  a cualquier paso que lo liste. Es deuda de pantalla; se resuelve en el `.pen`, no con un parche.
+- **El paso de Destino no se entiende**: enseña un `- 3 +` pelado. No dice que empieza en 3, que va de 1 a 5,
+  que cada +1 cuesta un punto de característica y devuelve uno al bajar, ni —lo más importante— que **el
+  Destino ES tu número de puntos de don**.
+- Columna de ayuda a la derecha, leyenda del Continuar legible, tipografía general más oscura.
 
-### El `.pen` — organizado a medias, con dos diagnósticos MÍOS FALLIDOS
-El dueño pidió diseño primero para toda la UI nueva, y organizar el fichero. Lo que sé:
-- **El glosario por característica YA ESTÁ DISEÑADO** en `GjeeD` («forma física, correr, trepar, nadar»…) y **nunca se
-  construyó en código**. La petición del dueño es, en buena parte, construir lo que ya existe.
-- **La cabecera se solapa** en `GjeeD`: la banda «RESERVA DE DESTINO» cruza el título «PLENILUNIO», y el chip
-  «JUGADOR» tapa el botón «DEVOLVER». **Causa aún NO encontrada.** Descartado: que fuera la falta de `layout`
-  (lo probé, revertí) y que fuera el marco vacío `j55LR` en absoluto (lo borré, no cambió nada; estaba muerto igual).
-  Lo que queda: la fila `n1zuQT` «Cabecera» (hijos `CvP9G` Head Left · `rQz0s` Reserva · `LrsFs` Head Right)
-  **se desborda a lo ancho**. Mirar anchos/`flexShrink` ahí, y exportar con `Export([...], 'png', ...)` para verificar
-  — el screenshot del MCP sale demasiado pequeño para juzgar.
-- **Deuda de raíz pendiente**: **14 copias** del nodo `Rolvium Bar` (`WS6NB hYXBv NPhq6 nm1QK aiFqb Xytxm oxjM8
-  nOQRR KVlwW Hm78T UE3ot WHbga R1Ga1 QNP1i`), todas a profundidad 1 de su frame. `Shell/TopBar` (`ocnOs`) **NO** es
-  ésta: es la barra de campañas/personajes. Hay que crear el componente de la barra de mesa y dejar las pestañas como
-  slot (patrón `PL/Hoja LtIYz` → `Replace(instance+'/h55HL')`), porque los juegos de pestañas cambian por frame.
-- Gotchas nuevos del MCP: `Get(document, …)` exige visitor; `Print()` para ver resultados (no `Log`); `ctx.depth === 1`
-  son los hijos de los frames de primer nivel; `Export` a png + `Read` es la única forma fiable de ver el diseño.
-
-### Peticiones del dueño aún sin diseñar
-Columna de ayuda a la derecha (qué toca en cada paso · cuántas especialidades quedan · glosario), leyenda del
-Continuar legible (hoy `--fs-xs` en `--tx3`, no se lee), tipografía general más oscura y con más cuerpo (tokens de
-`RolviumApp.css`, afecta a TODA la app), y un **toggle del director para levantar el tope de especialidades** —
-que NO es UI: es **opción de campaña** (migración + RLS + spec), su propia rebanada.
-
-## ⏳ Siguiente paso inmediato
-0. ~~**Dos cosas del spec de la rebanada 3 NO se construyeron**~~ — **CERRADAS el 2026-08-19**, antes de empezar la
-   rebanada 4 (sin commitear todavía; el diff vive en el árbol de trabajo de `feat/maps-slice-2`):
-   - **La puerta dibujada sobre un muro lo parte.** Geometría pura en `mapRules.planOpening` + `wallPiece`: el tramo
-     solapado se convierte en la abertura (proyectada sobre la recta del muro, absorbiendo el cabo menor que
-     `MIN_PIECE` para no dejar rendija), el muro queda en sus trozos, un muro liso nunca parte y una abertura no
-     parte a otra abertura, y la abertura hereda `visiblePlayers` del muro. Lo guarda `useScene.addWall(input, split?)`
-     — **los trozos primero, el muro original el último**, un solo `announceVision()`. Cableado en `SceneTab.onAddWall`.
-   - **El disco de abrir al pasar el ratón.** `hitOpening`/`midpoint` en `mapRules`; `MapCanvas` pinta un disco oro en
-     el centro del vano para el director, del **mismo tamaño a cualquier zoom** (`scale(1/zoom)`). **No se traga la
-     pulsación**: un clic abre/cierra, arrastrar sigue siendo el gesto de la herramienta, así que una puerta de una
-     casilla se sigue pudiendo elegir, mover y borrar. Sólo sale con las herramientas cuya pulsación empieza un gesto
-     (`DISC_TOOLS`: Seleccionar, Medir, lápiz, línea, rect, círculo), nunca con Muro/Pin/Texto/Borrar/pinceles ni con
-     algo a medias. **La herramienta Muro ya no abre puertas**: muere el choque de la rebanada 2.
-   - ⚠ **Límite conocido, anotado en el spec para la rebanada 4**: una abertura a caballo entre **dos muros alineados**
-     parte sólo uno.
-1. **Variables de Vercel** (arriba) → el API revive → crear el proyecto web → probar `/health` y la app entera.
-2. **Segunda prueba manual** contra hosted, con las tres cuentas. Ojo: la base hosted está **vacía** (no se cargó
-   `seed.sql`), así que hay que registrar el primer usuario y darle rol admin a mano.
-3. **Rebanada 4 — movimiento máximo por turno**, configurable por sistema (toca el puerto `GameSystem` y
-   `packages/core`; se lleva por delante la deuda de `METRES_PER_CELL`).
-4. Rebanada 5 (galería de props) · `chat` (H8) + `journal` (H9) · `bestiary` (H5).
+### El `.pen` (guardado por el dueño, commit `c7a99ae`)
+- Las 14 copias de `Rolvium Bar` son ya instancias de **`Shell/TableBar`** (`njHz3`) con las pestañas como
+  `slot`. Al hacerlo salió que **12 de las 14 tenían el orden mal** (Conectados suelto a la izquierda); las
+  correctas eran las dos que parecían raras, que son las que coinciden con `TablePage.tsx`.
+- **La cabecera ya no se solapa.** Causa: fila horizontal `space_between` con hijos de 1583 px en 1408 → Pencil
+  reparte el déficit como hueco NEGATIVO. Arreglado como lo hace la web (`min-width:0` + `overflow:auto`): fila
+  con hueco y la Reserva en su propio contenedor con recorte.
+- Seis vistas de Escena igualadas a 1440×1130; fuera los 13 `Reserva Wrap` vacíos.
+- ⚠ **PENDIENTE**: con 6 pestañas la barra de director pide **1486 px** y el frame da **1420**. El dueño fue
+  explícito: **no se acortan rótulos**, lo que no respeta la ventana real es el tamaño del frame. Falta que diga
+  a qué ancho van los 14 frames de Mesa.
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
