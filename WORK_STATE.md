@@ -555,28 +555,40 @@ actual: un personaje sano sale **todo negro**, y al recibir daño se va **despin
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🔁 Prompt para el chat nuevo
-> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción al día (`main`, `fix/rules-audit` mergeada
-> con Review y QA pasados). **Lo PRIMERO: `ls -la rolvium.pen` y `git status`** — el `.pen` sólo lo guarda el
-> dueño con Cmd+S; si hay cambios sin guardar, pídeselos antes de tocar nada.
-> El diseño de la tanda está HECHO: los 6 pasos del generador (`y=7860`) y la ficha (`qjLDu`, sincronizada a
-> `g6RyaZ`). **Ahora toca el CÓDIGO**, y en este orden:
-> 1. **El punto 12**: crea un personaje y LEE el aviso — ya trae motivo, hint y código. Descartados con el
->    cliente real: RLS, los dos embeds, `.single()` y un borrador completo del generador. Sospecha viva:
->    sesión caducada (`PGRST301`).
-> 2. **Los cinco puntos que NO eran de diseño** (ver la sección con ese título): cargador sólo a distancia,
->    un botón por arma, munición, fuera el registro de tiradas de la ficha, y cards con sombra sin borde.
->    El `.pen` ya lo dice bien; es la web la que diverge. Son los más baratos y los ve el dueño enseguida.
-> 3. **Los tokens de contraste** a `apps/web/src/RolviumApp.css`: `tx3` → `#67605a` claro / `#8f87a0` oscuro,
->    `pl-tinta-tenue` → `#55534c`, y `pl-oro-claro` `#c9a44e` nuevo para dorado sobre fondo oscuro (el
->    `pl-oro` daba 3,95:1 y el rótulo del tooltip salía invisible). Afecta a toda la app: ronda propia.
-> 4. **Lo demás del diseño nuevo**, contra el `.pen` 1:1: reordenar la ficha (Armas arriba, luego Dones ·
->    Equipo · Armadura), Resistencia invertida (p.25), el bloque de recibir daño, Equipo con «+»
->    desplegable, el tooltip con cuerpo, la leyenda por dado, «Mejorar» fuera de las pestañas, y las seis
->    vistas del generador con su columna de GUÍA.
-> El manual manda: PDF en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf`, **con 2 de desfase**
-> sobre las páginas del libro. Diseño en `.pen` ANTES de cualquier código de UI. Flujo: dev → review → qa.
-> Decidido: el ancho de los frames de Mesa NO se toca; el interruptor del director va como **opción de
-> campaña** gobernando los dos canjes (rebanada propia, sin empezar).
+> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción al día; `main` lleva la rama
+> `fix/rules-audit` mergeada (Review y QA pasados), el `.pen` con el generador Y la ficha ya guardado
+> por el dueño y commiteado, y el spec de **Aventuras (H12) cerrado sin construir**.
+> **Comprueba `git status` y `ls -la rolvium.pen` antes de dar nada por hecho.**
+>
+> El diseño de la tanda está HECHO (6 pasos del generador en `y=7860`; ficha `qjLDu` sincronizada a
+> `g6RyaZ`). Ahora toca CÓDIGO, en este orden:
+>
+> 1. **Punto 12 — el personaje no se guarda.** Crea uno y LEE el aviso: ya trae motivo, hint y
+>    código. Descartados con el cliente real: RLS, los dos embeds, `.single()` y un borrador completo
+>    del generador. Sospecha viva: sesión caducada (`PGRST301`).
+> 2. **Los cinco puntos que NO eran de diseño** (sección con ese título): cargador sólo en armas a
+>    distancia, un solo botón por arma (⚔ o ◎), munición al disparar, fuera el registro de tiradas de
+>    la ficha, y cards con sombra sin borde. El `.pen` ya lo dice bien; diverge la web. Son los más
+>    baratos y se ven enseguida. Ojo: la munición es la única con carga de reglas (1 disparo = 1 bala
+>    es lectura nuestra; recargar consume dados de Combate, p.96–97).
+> 3. **Tokens de contraste** a `apps/web/src/RolviumApp.css`: `tx3` → `#67605a` claro / `#8f87a0`
+>    oscuro, `pl-tinta-tenue` → `#55534c`, y `pl-oro-claro` `#c9a44e` nuevo para dorado sobre fondo
+>    oscuro (`pl-oro` daba 3,95:1 y el rótulo del tooltip salía invisible). Afecta a toda la app.
+> 4. **Armadura + escudo** (backlog 16): campo de escudo aparte y `derived()` sumando las dos
+>    columnas, con la nota en RULES.md. El manual NO lo resuelve; las citas están en el backlog.
+> 5. **El resto del diseño nuevo**, contra el `.pen` 1:1: reordenar la ficha, Resistencia con las
+>    dañadas en bordó (`pl-sangre`), el tooltip de recibir daño, Equipo con «+» desplegable, el
+>    tooltip de característica con cuerpo, la leyenda por dado, «Mejorar» fuera de las pestañas, y las
+>    seis vistas del generador con su columna de GUÍA.
+> 6. **Aventuras (H12)**: spec cerrado en `specs/modules/adventures/SPEC.md`. Sigue por **dba →
+>    scaffold → design (`.pen`) → dev**. Nada empezado.
+>
+> El manual manda: PDF en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf`, **con 2 de
+> desfase** sobre las páginas del libro. Diseño en `.pen` ANTES de cualquier código de UI, orden del
+> dueño. Flujo: dev → review → qa.
+> Ya decidido: el ancho de los frames de Mesa no se toca · el interruptor del director va como opción
+> de campaña gobernando los dos canjes (rebanada propia) · el contenido vive en la BASE, nunca
+> hardcodeado en el front.
 
 ### Lección de esta sesión, que se repitió cuatro veces
 **Un guardia que mide sólo el estado RESULTANTE convierte cualquier borrador ya fuera de norma en un callejón
