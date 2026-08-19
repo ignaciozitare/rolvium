@@ -262,6 +262,31 @@ que NO es UI: es **opción de campaña** (migración + RLS + spec), su propia re
 4. Rebanada 5 (galería de props) · `chat` (H8) + `journal` (H9) · `bestiary` (H5).
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
+
+### Maps — pedidos del dueño 2026-08-19 (sin spec ni diseño todavía)
+- **Rejilla más fina**, para poder cuadrar los muros con el plano que se pone de fondo. Hoy `grid.size` sale a 27 px
+  y sólo se ajusta por escena; el dueño quiere un paso menor (y probablemente un control, no un valor fijo).
+- **Deshacer / rehacer** con `Cmd/Ctrl+Z` y `Shift+Cmd/Ctrl+Z`, **con sus iconos en la barra**. Hoy NO existe nada:
+  cada acción va directa al repo (`st.addWall`, `addDrawing`, `removeToken`…). Necesita una pila de comandos en
+  `useScene` con su inverso, y decidir qué entra (¿mueve de token ajeno? ¿pincel de niebla?) y si es por usuario.
+- **Muros a mano alzada y muros circulares**, cada uno **su propio botón**, sin tocar el de muro recto. La tabla
+  `maps_walls` guarda segmentos `a→b`, así que un trazo libre son N segmentos: decidir si se guarda como polilínea
+  (columna nueva) o como N filas hermanas con un id de grupo — afecta a Seleccionar, a borrar y a la visión.
+- **GIFs animados** sobre el mapa. Hoy el bucket `backgrounds` sólo admite `image/png|jpeg|webp` y los tokens pintan
+  con `<image>`; hay que decidir bucket, tipos permitidos y si un GIF es fondo, token o «enseñar foto» (ver abajo).
+- ~~Toggle de «ver como jugador»~~ — **YA EXISTE**, `playerView` en `CanvasControls` (i18n `maps.playerView`).
+  El dueño no lo veía porque producción iba dos días atrasada.
+
+### Generador de dones — lo que vio el dueño el 2026-08-19 (aún sin arreglar)
+- **El canje de dones no comprueba que puedas pagarlo.** El `+` de `giftTrade` sólo lo frena el `max: 10` del
+  esquema: el guardia del paso mira el presupuesto **de dones**, y canjear lo *sube*, así que siempre pasa. Con 10
+  canjeados tienes 23 puntos de don y, con el tope de nivel 5, hacen falta **5 dones** para gastarlos — con 3 filas
+  es imposible avanzar y el error sólo dice «reparte los puntos restantes», sin señalar el canje.
+- **El contador del paso es ilegible**: Dones pinta `restantes` grande y `total` pequeño; Características pinta
+  `total/gastados`. Dos significados con la misma forma.
+- **Nada impide dos filas del mismo don.** Por el libro un don tiene un nivel 1–5; dos filas de «Alegoría» a 3 son
+  un nivel 6 por la puerta de atrás. Falta unicidad (en `canAdvance` y en el desplegable).
+
 - **Enseñar fotos sobre el mapa** (pedido del dueño, 2026-08-19, explícitamente **para otra sesión**): cargar una
   imagen y mostrarla a la mesa desde el menú del botón derecho. **No es el fondo del mapa**: el fondo es el plano de
   la escena; esto es enseñar algo puntual (un retrato, una carta, una pista) encima. Decidir si es efímero
