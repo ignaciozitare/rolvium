@@ -20,5 +20,6 @@ Product hexagons (map in `ARCHITECTURE.md`):
 - [maps (H7)](modules/maps/SPEC.md) — escenas, fondos, muros, niebla, tokens, dibujo
 - [chat (H8)](modules/chat/SPEC.md) — mesa, privados, susurros, adjuntos
 - [journal (H9)](modules/journal/SPEC.md) — notas privadas, bitácora con versiones
+- [adventures (H12)](modules/adventures/SPEC.md) — aventuras del director: documento, escenas y encuentros *(propuesto)*
 - [system-plenilunio (HX)](modules/system-plenilunio/SPEC.md) — primer sistema de juego
 - notifications (H11) — futuro, sin spec aún
