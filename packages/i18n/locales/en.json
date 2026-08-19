@@ -772,7 +772,7 @@
         "window": "Window"
       },
       "kindOf": "Segment type",
-      "toggleHint": "click a door or a window to open or close it",
+      "toggleHint": "draw a door or a window over a wall and it cuts it · hover one to open or close it",
       "segment": "Segment",
       "visible": "visible to players",
       "remove": "Remove segment",

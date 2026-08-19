@@ -1,6 +1,6 @@
 import { METRES_PER_CELL, sightRadiusPx, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
 import type { Character } from '@/modules/characters/domain/entities/Character';
-import type { Drawing, DrawingKind, NewToken, Scene, Token, Wall, WallKind } from '../entities/Scene';
+import type { Drawing, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
 
 export { METRES_PER_CELL } from '@rolvium/core';
 
@@ -141,6 +141,11 @@ export function hitWall(walls: Wall[], p: Point, tol = 8): Wall | null {
   return best;
 }
 
+/** The door or the window under the pointer — what the hover disc opens. A plain wall never answers: it never opens. */
+export const hitOpening = (walls: Wall[], p: Point, tol = 8): Wall | null => hitWall(walls.filter(canOpen), p, tol);
+/** Middle of a segment: where the open/close disc sits. */
+export const midpoint = (w: Segment): Point => ({ x: (w.x1 + w.x2) / 2, y: (w.y1 + w.y2) / 2 });
+
 /**
  * Where to draw a door's jambs and its swung leaf. `n` is the unit normal of the segment, `d` the unit direction.
  * A closed door is the segment itself plus a jamb tick at each end; an open one keeps the threshold faint and
@@ -155,6 +160,69 @@ export function openingGeometry(w: Pick<Wall, 'x1' | 'y1' | 'x2' | 'y2'>, jamb =
   const tick = (p: Point): [Point, Point] => [{ x: p.x - n.x * jamb, y: p.y - n.y * jamb }, { x: p.x + n.x * jamb, y: p.y + n.y * jamb }];
   return { jambA: tick(a), jambB: tick(b), leaf: [a, { x: a.x + n.x * len, y: a.y + n.y * len }] };
 }
+
+/** Endpoints of a segment in scene px — the geometry of a wall without the row around it. */
+export interface Segment { x1: number; y1: number; x2: number; y2: number }
+/** Leftovers this short are the zero-length ends of a cut: the spec says they are not saved. */
+const MIN_PIECE = 0.5;
+
+export interface OpeningPlan {
+  /** Where the opening lands: on the host's line when there is a wall underneath, exactly as drawn when there is not. */
+  opening: Segment;
+  /** The wall the opening was cut out of and what survives of it, or `null` when nothing was underneath. */
+  split: { host: Wall; pieces: Segment[] } | null;
+}
+export type WallSplit = NonNullable<OpeningPlan['split']>;
+
+/**
+ * Where a door or a window drawn between `a` and `b` really goes
+ * (specs/modules/maps/SPEC.md § «Una puerta dibujada sobre un muro lo parte»).
+ *
+ * Until now segments simply stacked: a door drawn on a wall left both, the wall went on cutting sight and the
+ * door did nothing. Here the overlapped stretch BECOMES the opening and the wall is left as the two leftovers.
+ * The opening is projected onto the host's line so it can never sit a hair off — a crooked one would keep the
+ * wall cutting sight along its sides, which is the same bug wearing a different hat.
+ *
+ * A plain wall never cuts anything (you are building, not opening), and neither does an opening drawn over
+ * another opening: masonry is what gets holes.
+ */
+export function planOpening(walls: Wall[], a: Point, b: Point, kind: WallKind, tol = 8): OpeningPlan {
+  const opening: Segment = { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
+  if (kind === 'wall' || (a.x === b.x && a.y === b.y)) return { opening, split: null };
+  let best: { host: Wall; len: number; s0: number; s1: number; off: number } | null = null;
+  for (const host of walls) {
+    if (host.kind !== 'wall') continue;
+    const dx = host.x2 - host.x1, dy = host.y2 - host.y1;
+    const len = Math.hypot(dx, dy);
+    if (len < MIN_PIECE) continue;
+    const d = { x: dx / len, y: dy / len };
+    const along = (q: Point): number => (q.x - host.x1) * d.x + (q.y - host.y1) * d.y;
+    const off = (q: Point): number => Math.abs((q.x - host.x1) * -d.y + (q.y - host.y1) * d.x);
+    const worst = Math.max(off(a), off(b));
+    if (worst > tol) continue;                       // it is not lying ON this wall
+    const s0 = Math.max(0, Math.min(along(a), along(b)));
+    const s1 = Math.min(len, Math.max(along(a), along(b)));
+    if (s1 - s0 <= MIN_PIECE) continue;              // it only grazes an end: nothing to cut
+    // Longest overlap wins; between two equal ones, the wall it sits flattest on.
+    if (!best || s1 - s0 > best.s1 - best.s0 || (s1 - s0 === best.s1 - best.s0 && worst < best.off)) best = { host, len, s0, s1, off: worst };
+  }
+  if (!best) return { opening, split: null };
+  const { host, len } = best;
+  const at = (s: number): Point => ({ x: host.x1 + (host.x2 - host.x1) * (s / len), y: host.y1 + (host.y2 - host.y1) * (s / len) });
+  const seg = (from: number, to: number): Segment => { const p = at(from), q = at(to); return { x1: p.x, y1: p.y, x2: q.x, y2: q.y }; };
+  // A leftover shorter than MIN_PIECE is not saved, so the OPENING has to take that stub: otherwise dropping it
+  // would leave a sub-pixel slit of nothing at the wall's end — a hole, which is exactly what this must never make.
+  const from = best.s0 > MIN_PIECE ? best.s0 : 0;
+  const to = len - best.s1 > MIN_PIECE ? best.s1 : len;
+  const pieces = ([[0, from], [to, len]] as const).filter(([a0, b0]) => b0 > a0).map(([a0, b0]) => seg(a0, b0));
+  return { opening: seg(from, to), split: { host, pieces } };
+}
+
+/** A leftover of a split keeps everything the host wall was — only its geometry is new. */
+export const wallPiece = (host: Wall, at: Segment): NewWall => ({
+  sceneId: host.sceneId, campaignId: host.campaignId, visiblePlayers: host.visiblePlayers,
+  kind: host.kind, blocksSight: host.blocksSight, blocksMove: host.blocksMove, isOpen: host.isOpen, ...at,
+});
 
 // ── fog & vision (drawn from what the API answers; never computed here) ──────
 /** `"x,y x,y …"` for an SVG `<polygon points>`. */

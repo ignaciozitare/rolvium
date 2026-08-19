@@ -10,7 +10,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, newWallOf, WALL_FLAGS, STROKE_COLORS, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -170,7 +170,13 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))}
             onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width }))}
             onErase={id => run(st.eraseDrawing(id))}
-            onAddWall={(a, b) => run(st.addWall({ sceneId: live.id, campaignId, x1: a.x, y1: a.y, x2: b.x, y2: b.y, visiblePlayers: false, ...newWallOf(wallKind) }))}
+            onAddWall={(a, b) => {
+              // A door or a window drawn over a wall CUTS it instead of stacking on top of it (planOpening).
+              // It also inherits whether the players could see that wall: otherwise their plan grows a gap
+              // exactly where the doorway is.
+              const plan = planOpening(st.walls, a, b, wallKind);
+              run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.split?.host.visiblePlayers ?? false, ...newWallOf(wallKind) }, plan.split));
+            }}
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             onPin={pt => { st.focusPin(pt); setView(v => centerOn(v, pt, viewport())); }}

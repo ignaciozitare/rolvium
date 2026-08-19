@@ -131,7 +131,7 @@ describe('<SegmentBar> — el tipo de segmento vive sobre el mapa, no en una bar
     const onKind = vi.fn();
     renderWithProviders(<SegmentBar wall={null} kind="wall" onKind={onKind} />);
     expect(screen.getByRole('radio', { name: 'Muro' })).toBeChecked();
-    expect(screen.getByText('clic en una puerta o una ventana para abrirla o cerrarla')).toBeInTheDocument();
+    expect(screen.getByText('dibuja una puerta o una ventana sobre un muro y lo parte · pasa el ratón por una para abrirla o cerrarla')).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole('radio', { name: 'Ventana' }));
     expect(onKind).toHaveBeenCalledWith('window');
     // sin segmento seleccionado no hay nada que borrar ni que abrir

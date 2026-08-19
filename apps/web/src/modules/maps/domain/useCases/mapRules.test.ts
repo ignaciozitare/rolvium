@@ -3,7 +3,7 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitWall, isBrush, METRES_PER_CELL, newWallOf, nightLabelM, openingGeometry, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS,
+  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS,
 } from './mapRules';
 
 describe('mapRules — view & coordinates', () => {
@@ -225,5 +225,76 @@ describe('selección por área y herramienta de texto', () => {
   it('Texto es herramienta de lienzo y la tiene también el jugador', () => {
     expect(isDraw('text')).toBe(true);
     expect(PLAYER_TOOLS).toContain('text');
+  });
+});
+
+describe('planOpening — una puerta dibujada sobre un muro lo parte', () => {
+  // Un muro horizontal de 10 casillas: de (0,54) a (270,54), rejilla de 27.
+  const host = { ...WALL_1, id: 'w-host', x1: 0, y1: 54, x2: 270, y2: 54 };
+
+  it('el tramo solapado se convierte en la abertura y el muro queda en los dos trozos que sobran', () => {
+    const plan = planOpening([host], { x: 81, y: 54 }, { x: 135, y: 54 }, 'door');
+    expect(plan.opening).toEqual({ x1: 81, y1: 54, x2: 135, y2: 54 });
+    expect(plan.split!.host.id).toBe('w-host');
+    expect(plan.split!.pieces).toEqual([
+      { x1: 0, y1: 54, x2: 81, y2: 54 },
+      { x1: 135, y1: 54, x2: 270, y2: 54 },
+    ]);
+  });
+  it('la abertura se proyecta sobre la recta del muro: nunca queda un pelo torcida', () => {
+    // dibujada 3 px por debajo y desbordando por la izquierda — se pega al muro y se recorta contra su extremo
+    const plan = planOpening([host], { x: -40, y: 57 }, { x: 108, y: 51 }, 'window');
+    expect(plan.opening).toEqual({ x1: 0, y1: 54, x2: 108, y2: 54 });
+    expect(plan.split!.pieces).toEqual([{ x1: 108, y1: 54, x2: 270, y2: 54 }]); // el trozo de longitud cero no se guarda
+  });
+  it('sin muro debajo se crea suelta, como hasta ahora', () => {
+    const plan = planOpening([host], { x: 0, y: 500 }, { x: 54, y: 500 }, 'door');
+    expect(plan).toEqual({ opening: { x1: 0, y1: 500, x2: 54, y2: 500 }, split: null });
+  });
+  it('un muro nunca parte a otro, y una abertura no parte a otra abertura', () => {
+    expect(planOpening([host], { x: 81, y: 54 }, { x: 135, y: 54 }, 'wall').split).toBeNull();
+    const door = { ...host, id: 'w-d', kind: 'door' as const };
+    expect(planOpening([door], { x: 81, y: 54 }, { x: 135, y: 54 }, 'window').split).toBeNull();
+  });
+  it('rozar un extremo o un punto no parte nada; una abertura de longitud cero tampoco', () => {
+    expect(planOpening([host], { x: -54, y: 54 }, { x: 0, y: 54 }, 'door').split).toBeNull();
+    expect(planOpening([host], { x: 81, y: 54 }, { x: 81, y: 54 }, 'door').split).toBeNull();
+  });
+  it('parte el muro sobre el que más se apoya, aunque haya varios candidatos', () => {
+    const short = { ...host, id: 'w-short', x1: 81, y1: 56, x2: 135, y2: 56 };
+    const plan = planOpening([short, host], { x: 27, y: 54 }, { x: 216, y: 54 }, 'door');
+    expect(plan.split!.host.id).toBe('w-host');
+  });
+  it('el trozo que no se guarda se lo queda la abertura: partir nunca deja una rendija de nada en el extremo', () => {
+    // el sobrante de la izquierda mide 0,4 px — por debajo del mínimo, así que no se guarda
+    const plan = planOpening([host], { x: 0.4, y: 54 }, { x: 135, y: 54 }, 'door');
+    expect(plan.split!.pieces).toEqual([{ x1: 135, y1: 54, x2: 270, y2: 54 }]);
+    // …y la abertura llega hasta el extremo del muro, no hasta donde se dibujó
+    expect(plan.opening).toEqual({ x1: 0, y1: 54, x2: 135, y2: 54 });
+  });
+  it('también corta un muro en diagonal, sobre su propia recta', () => {
+    const diag = { ...WALL_1, id: 'w-diag', x1: 0, y1: 0, x2: 100, y2: 100 };
+    const plan = planOpening([diag], { x: 20, y: 20 }, { x: 40, y: 40 }, 'door');
+    expect(plan.opening).toEqual({ x1: 20, y1: 20, x2: 40, y2: 40 });
+    expect(plan.split!.pieces).toEqual([{ x1: 0, y1: 0, x2: 20, y2: 20 }, { x1: 40, y1: 40, x2: 100, y2: 100 }]);
+  });
+  it('los trozos que sobran heredan todo lo que era el muro menos su geometría', () => {
+    const visible = { ...host, visiblePlayers: true };
+    expect(wallPiece(visible, { x1: 0, y1: 54, x2: 81, y2: 54 })).toEqual({
+      sceneId: visible.sceneId, campaignId: visible.campaignId, visiblePlayers: true,
+      kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false,
+      x1: 0, y1: 54, x2: 81, y2: 54,
+    });
+  });
+});
+
+describe('el disco de abrir al pasar el ratón', () => {
+  it('sólo responden las puertas y las ventanas, nunca un muro', () => {
+    const door = { ...WALL_1, id: 'w-d', kind: 'door' as const };
+    expect(hitOpening([door], { x: 273, y: 300 })?.id).toBe('w-d');
+    expect(hitOpening([WALL_1], { x: 273, y: 300 })).toBeNull();
+  });
+  it('el disco se pone en el centro del vano', () => {
+    expect(midpoint({ x1: 0, y1: 54, x2: 100, y2: 154 })).toEqual({ x: 50, y: 104 });
   });
 });

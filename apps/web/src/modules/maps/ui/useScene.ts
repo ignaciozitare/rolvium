@@ -3,7 +3,7 @@ import type { SceneVision } from '@rolvium/core';
 import type { Drawing, NewDrawing, NewToken, NewWall, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import type { Point } from '../domain/useCases/mapRules';
+import { wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
 
 export interface LiveDrag { tokenId: string; x: number; y: number }
 export interface LivePin { x: number; y: number; by: string; at: number }
@@ -125,7 +125,23 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const eraseDrawing = useCallback(async (id: string) => { setDrawings(l => l.filter(d => d.id !== id)); await repo.removeDrawing(id); }, [repo]);
   const clearMine = useCallback(async () => { if (!sceneId) return; setDrawings(l => l.filter(d => d.authorId !== me)); await repo.removeMyDrawings(sceneId); }, [repo, sceneId, me]);
   const clearAll = useCallback(async () => { if (!sceneId) return; setDrawings([]); await repo.removeAllDrawings(sceneId); }, [repo, sceneId]);
-  const addWall = useCallback(async (w: NewWall) => { const created = await repo.addWall(w); setWalls(l => (l.some(x => x.id === created.id) ? l : [...l, created])); announceVision(); return created; }, [repo, announceVision]);
+  /**
+   * DM: a new segment. When it is an opening drawn over a wall (`split`, planned by `mapRules.planOpening`) the
+   * wall is REPLACED: its leftovers go in first and the host comes out last, so a failure halfway leaves the wall
+   * whole and overlapping — never a hole in the plan nobody asked for.
+   */
+  const addWall = useCallback(async (w: NewWall, split?: WallSplit | null) => {
+    const pieces = split ? await Promise.all(split.pieces.map(pc => repo.addWall(wallPiece(split.host, pc)))) : [];
+    const created = await repo.addWall(w);
+    if (split) await repo.removeWall(split.host.id);
+    setWalls(l => {
+      const fresh = [...pieces, created];
+      // Realtime may have brought any of these back already; the host is gone either way.
+      return [...l.filter(x => x.id !== split?.host.id && !fresh.some(f => f.id === x.id)), ...fresh];
+    });
+    announceVision();
+    return created;
+  }, [repo, announceVision]);
   const removeWall = useCallback(async (id: string) => { setWalls(l => l.filter(w => w.id !== id)); await repo.removeWall(id); announceVision(); }, [repo, announceVision]);
   /** DM: open/close a door or window. The players cannot learn it from `postgres_changes`, so this announces it. */
   const patchWall = useCallback(async (id: string, patch: WallPatch) => {

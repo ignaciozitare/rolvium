@@ -173,6 +173,11 @@
 .mp-wall.selected{stroke:var(--sys-paper-hi);stroke-width:6;}
 .mp-opening.selected .mp-wall{stroke:var(--sys-paper-hi);}
 .mp-vertex{fill:var(--sys-paper-hi);stroke:var(--sys-ink);stroke-width:2;cursor:pointer;}
+/* open/close disc: hovering a door or a window offers it, from any tool, so Muro can be build-only */
+.mp-door-toggle{cursor:pointer;}
+.mp-door-disc{fill:var(--sys-gold);stroke:var(--sys-ink);stroke-width:1.5;}
+.mp-door-toggle.open .mp-door-disc{fill:var(--sys-paper-hi);}
+.mp-door-icon{fill:var(--sys-ink);font-size:var(--icon-sm);pointer-events:none;user-select:none;}
 /* quick menu on right-click over empty ground */
 .mp-quick{min-width:180px;}
 .mp-placing{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:10px;

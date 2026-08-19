@@ -14,6 +14,8 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   pantalla. Rail de escenas plegable, una sola barra de herramientas con Dados dentro, **herramienta Seleccionar**
   (mover y editar muros y vértices), puertas que **parten** el muro donde se dibujan, y dados 3D al tirar.
 - **Rebanada 4 — pendiente**: movimiento máximo por turno, configurable **por sistema** (toca el puerto `GameSystem`).
+  Las dos deudas que la rebanada 3 se dejó (la puerta que parte el muro y el disco de abrir al pasar el ratón) se
+  construyeron el 2026-08-19, antes de empezarla.
 - **Rebanada 5 — pendiente**: galería de componentes (muebles, árboles…) para construir mapas dentro de la app.
 
 ## What the user can do
@@ -139,24 +141,39 @@ cambia el cursor con lo que abre un panel:
   borrar y volver a trazar.
 - Con el muro seleccionado aparece la **barra de segmento** (misma familia que la barra de token): tipo
   `MURO · PUERTA · VENTANA`, «visible para jugadores» y papelera. **Ahí se cambia el tipo de un segmento ya puesto.**
-- **Abrir y cerrar una puerta** debe dejar de depender de la herramienta Muro: al pasar el ratón sobre una puerta o
-  ventana saldría un **disco oro con icono de puerta** sobre el vano. Eso arreglaría el choque de la rebanada 2
-  (empezar un muro cerca de una puerta la abre en vez de dibujar), porque Muro pasaría a ser sólo de construcción.
-  **⚠ Estado real (2026-08-19): NO construido, pasa a la rebanada 4.** Lo que sí existe es el botón Abrir/Cerrar de
-  la barra «Segmento» cuando hay un segmento elegido con Seleccionar — una reubicación parcial. El clic desde la
-  herramienta Muro sigue vivo, y con él el choque.
+- **Abrir y cerrar una puerta ya no depende de la herramienta Muro**: al pasar el ratón sobre una puerta o una
+  ventana sale un **disco oro con icono de puerta** sobre el centro del vano, y ese disco la abre o la cierra. Con
+  eso **Muro pasa a ser sólo de construcción** y muere el choque de la rebanada 2 (empezar un muro cerca de una
+  puerta la abría en vez de dibujar). El botón Abrir/Cerrar de la barra «Segmento» sigue estando: es el camino con
+  teclado, porque un disco al pasar el ratón no lo es.
+  - El disco es **del director**, mide **lo mismo en pantalla a cualquier zoom** (es un control, no un dibujo del
+    mapa) y no sale sobre un muro que el director tenga oculto: no se abre lo que no se ve.
+  - **El disco nunca se traga la pulsación**: un *clic* abre o cierra, pero *arrastrar* desde él es lo que haga la
+    herramienta. Sin eso, una puerta de una casilla quedaría debajo del disco y no se podría ni elegir ni mover ni
+    borrar — el disco taparía justo el cuerpo por el que se agarra un segmento.
+  - Por eso mismo **sólo aparece con las herramientas cuya pulsación empieza un gesto**: Seleccionar, Medir y las de
+    dibujo. Con las que actúan en la propia pulsación (Muro, Pin, Texto, Borrar y los pinceles) tendría que robarla,
+    y robar pulsaciones es justo como funcionaba el choque de la rebanada 2. Tampoco con algo a medias: un muro
+    empezado, un arrastre en curso o algo pendiente de colocar.
 
-### Una puerta dibujada sobre un muro lo parte — ⚠ NO CONSTRUIDO, pasa a la rebanada 4
-- Hoy los segmentos se superponen: dibujar una puerta encima de un muro deja los dos, el muro sigue cortando la vista
-  y **la puerta no hace nada**. Es el agujero más grave que dejó la rebanada 2.
-- A partir de ahora, dibujar una puerta o una ventana **sobre** un muro **parte el muro**: el tramo solapado se
-  convierte en la abertura y el muro queda en los dos trozos que sobran (los de longitud cero no se guardan).
+### Una puerta dibujada sobre un muro lo parte
+- Antes los segmentos se superponían: dibujar una puerta encima de un muro dejaba los dos, el muro seguía cortando la
+  vista y **la puerta no hacía nada**. Era el agujero más grave que dejó la rebanada 2.
+- Dibujar una puerta o una ventana **sobre** un muro **parte el muro**: el tramo solapado se convierte en la abertura
+  y el muro queda en los dos trozos que sobran (los de longitud cero no se guardan; ese cabo se lo queda la
+  abertura, para que tirar el trozo no deje una rendija de nada justo en el extremo del muro).
 - La abertura **se pega al muro** que tiene debajo (se proyecta sobre su recta) para que nunca quede un pelo torcida
-  y siga cortando por los lados. Si no hay ningún muro debajo, se crea suelta, como hoy.
-- El recorte es geometría pura y va en `mapRules`, con test: es la clase de cosa que se rompe en silencio.
-- **Estado real (2026-08-19): no está hecho.** `onAddWall` sigue insertando un segmento suelto que se superpone, así
-  que una puerta dibujada encima de un muro **sigue sin hacer nada**. Lo cazó el Review al comparar el spec con el
-  código. Es lo primero de la rebanada 4.
+  y siga cortando por los lados. Si no hay ningún muro debajo, se crea suelta, como antes.
+- Un muro **no** parte a otro (estás construyendo, no abriendo) y una abertura **no** parte a otra abertura: lo que
+  se agujerea es la mampostería. Con varios muros debajo se parte aquel sobre el que la abertura más se apoya.
+  - ⚠ **Límite conocido**: una abertura dibujada a caballo entre **dos muros alineados** parte sólo uno, así que sale
+    más corta de lo dibujada y el otro muro sigue cortando la vista por su mitad. Sale del mismo «se parte uno solo».
+    Pendiente de decidir en la rebanada 4: o se parten todos los muros que solapa, o se avisa al dibujarla.
+- La abertura **hereda «visible para jugadores» del muro que parte**: si no, al partir un muro que los jugadores
+  veían dibujado les aparecería un hueco justo donde está el vano.
+- El recorte es geometría pura y vive en `mapRules.planOpening`, con test: es la clase de cosa que se rompe en
+  silencio. El guardado (los trozos primero, el muro original después) va en `useScene.addWall`, para que un fallo a
+  medias deje el muro **entero** y superpuesto, nunca un agujero que nadie pidió.
 
 ### Dados 3D
 Es del hexágono `dice` (H6) — ver `specs/modules/dice/SPEC.md` § «Dados 3D». Aquí sólo consta que el lanzador se abre

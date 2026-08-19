@@ -233,14 +233,60 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
     expect(repo.broadcasts.some(b => b.event.type === 'fog.updated')).toBe(true);
   });
 
-  it('DM: opening a door persists `is_open` and announces it — a player cannot learn it from postgres_changes', async () => {
-    const u = userEvent.setup();
+  it('DM: el disco de abrir sale al pasar el ratón, persiste `is_open` y lo anuncia — el jugador no puede saberlo por postgres_changes', async () => {
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [WALL_DOOR] }));
     await screen.findByText(/Almacén de Queens/);
-    await u.click(screen.getByRole('button', { name: 'Muro' }));
-    fireEvent.pointerDown(canvas(), { clientX: WALL_DOOR.x1 + 1, clientY: 260, pointerId: 1, button: 0 });
+    // sin tocar la herramienta: Seleccionar es la de partida y el disco va en cualquiera
+    fireEvent.pointerMove(canvas(), { clientX: WALL_DOOR.x1 + 1, clientY: 260, pointerId: 1 });
+    // un CLIC sobre el disco abre la puerta; si en vez de soltar arrastrases, el gesto sería de la herramienta
+    fireEvent.pointerDown(within(canvas()).getByRole('img', { name: 'Abrir' }), { clientX: WALL_DOOR.x1, clientY: 270, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
     await waitFor(() => expect(repo.wallUpdates).toContainEqual({ id: 'w-door', patch: { isOpen: true } }));
     expect(repo.broadcasts.some(b => b.event.type === 'fog.updated')).toBe(true);
+  });
+
+  it('DM: una puerta dibujada sobre un muro lo parte — el muro sale y quedan la abertura y los dos trozos', async () => {
+    const u = userEvent.setup();
+    // WALL_1 es vertical en x = 270 (10 casillas), de y = 216 (8) a y = 540 (20)
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [WALL_1] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    await u.click(screen.getByRole('radio', { name: 'Puerta' }));
+    fireEvent.pointerDown(canvas(), { clientX: 10 * G, clientY: 10 * G, pointerId: 1, button: 0 });
+    fireEvent.pointerDown(canvas(), { clientX: 10 * G, clientY: 12 * G, pointerId: 1, button: 0 });
+
+    await waitFor(() => expect(repo.walls).toHaveLength(3));
+    expect(repo.walls.some(w => w.id === 'w-1')).toBe(false);
+    expect(repo.walls.find(w => w.kind === 'door')).toMatchObject({ x1: 270, y1: 270, x2: 270, y2: 324, blocksSight: true, isOpen: false });
+    expect(repo.walls.filter(w => w.kind === 'wall').map(w => [w.y1, w.y2])).toEqual([[216, 270], [324, 540]]);
+    expect(repo.broadcasts.some(b => b.event.type === 'fog.updated')).toBe(true);
+  });
+
+  it('DM: al partir, el muro original sale EL ÚLTIMO — un fallo a medias lo deja entero, nunca un agujero', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [WALL_1] }));
+    // qué había guardado en el instante en que se pidió quitar el muro original
+    const whenRemoved: string[][] = [];
+    const removeWall = repo.removeWall;
+    repo.removeWall = async (id: string) => { whenRemoved.push(repo.walls.map(w => w.id)); await removeWall(id); };
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    await u.click(screen.getByRole('radio', { name: 'Puerta' }));
+    fireEvent.pointerDown(canvas(), { clientX: 10 * G, clientY: 10 * G, pointerId: 1, button: 0 });
+    fireEvent.pointerDown(canvas(), { clientX: 10 * G, clientY: 12 * G, pointerId: 1, button: 0 });
+
+    await waitFor(() => expect(whenRemoved).toHaveLength(1));
+    // los dos trozos y la abertura ya estaban puestos, y el muro seguía ahí: el orden es el que hace inocuo el fallo
+    expect(whenRemoved[0]).toHaveLength(4);
+    expect(whenRemoved[0]).toContain('w-1');
+
+    // y el lienzo queda con tres segmentos aunque el realtime traiga de vuelta uno de los recién creados
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-walls').querySelectorAll('[data-wall-id]')).toHaveLength(3));
+    const piece = repo.walls.find(w => w.kind === 'wall')!;
+    fireEvent.pointerMove(canvas(), { clientX: 0, clientY: 0, pointerId: 1 });   // suelta el muro a medias
+    repo.emit('sc-1', { wall: { type: 'INSERT', id: piece.id, row: piece } });
+    repo.emit('sc-1', { wall: { type: 'DELETE', id: 'w-1', row: null } });
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-walls').querySelectorAll('[data-wall-id]')).toHaveLength(3));
   });
 
   it('DM: the reveal brush replaces the stroke bar and «Revelar todo» paints the whole scene for every player', async () => {

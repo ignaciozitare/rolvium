@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveToken, canOpen, canvasToScene, distanceCells, distanceLabel, hitTest, hitWall, isBrush, rectFrom, shapeData, snap, tokenCellAt, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, snap, tokenCellAt, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, TokenGlyph, WallShape } from './canvasLayers';
 
@@ -74,6 +74,8 @@ type Gesture =
   | { kind: 'measure' };
 
 type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
+/** Tools whose press opens a gesture, so the open/close disc can wait for the release instead of stealing it. */
+const DISC_TOOLS: Tool[] = ['select', 'measure', 'pencil', 'line', 'rect', 'circle'];
 const DRAW_TOOLS: Record<string, DrawTool> = { pencil: 'stroke', line: 'line', rect: 'rect', circle: 'circle' };
 const PIN_MS = 2500;
 /** Brush paints per second, matching the token drag's `DRAG_HZ_MS` (useScene.ts). */
@@ -100,6 +102,8 @@ export function MapCanvas(p: Props): JSX.Element {
   const [wallDraft, setWallDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   /** In a ref so the key listener never has to be re-bound as the selection changes. */
   const onDeleteRef = useRef<() => void>(() => {});
+  /** A press that started on the open/close disc, until the pointer moves far enough to make it a drag. */
+  const discPress = useRef<{ id: string; at: Point } | null>(null);
   const lastPaint = useRef(0);
   const grid = p.scene.grid.size;
   const dmSight = p.isDm && !p.playerView;
@@ -213,9 +217,8 @@ export function MapCanvas(p: Props): JSX.Element {
       case 'erase': { const hit = hitTest(p.drawings, s, 6 / p.view.zoom); if (hit && canEraseDrawing(hit, p.me, p.isDm)) p.onErase(hit.id); return; }
       case 'wall': {
         if (!dmSight) return;
-        // Clicking an existing door or window opens/closes it — that is how the DM works a door in this slice.
-        const opening = hitWall(p.walls.filter(canOpen), s, 8 / p.view.zoom);
-        if (opening && !wallStart) { p.onToggleWall(opening); return; }
+        // Muro only BUILDS. Opening a door is the hover disc's job, which is what unblocks starting a wall next
+        // to a door — that click used to open it instead (specs/modules/maps/SPEC.md § «Rebanada 3»).
         const q = { x: snap(s.x, grid), y: snap(s.y, grid) };
         if (wallStart) {
           p.onAddWall(wallStart, q);
@@ -243,6 +246,9 @@ export function MapCanvas(p: Props): JSX.Element {
   const onMove = (e: ReactPointerEvent<SVGSVGElement>) => {
     const s = toScene(e);
     setHover(s);
+    // Past a few px the press is a DRAG, and a drag belongs to the tool (moving the segment, drawing a stroke),
+    // never to the disc. This is what keeps Seleccionar able to grab a one-cell door the disc sits right on top of.
+    if (discPress.current && Math.hypot(s.x - discPress.current.at.x, s.y - discPress.current.at.y) > 4 / p.view.zoom) discPress.current = null;
     if (!gesture) return;
     if (gesture.kind === 'pan') {
       const l = local(e);
@@ -279,6 +285,12 @@ export function MapCanvas(p: Props): JSX.Element {
   };
 
   const onUp = () => {
+    const press = discPress.current;
+    discPress.current = null;
+    if (press) {
+      const w = p.walls.find(x => x.id === press.id);
+      if (w) p.onToggleWall(w);
+    }
     if (!gesture) return;
     if (gesture.kind === 'wallEdit') {
       const at = wallDragTo(gesture.origin, gesture.grab, gesture.start, hover ?? gesture.start, grid);
@@ -330,6 +342,15 @@ export function MapCanvas(p: Props): JSX.Element {
   const sceneRect = { x: 0, y: 0, width: p.scene.width, height: p.scene.height };
   const brushPx = brushRadius(p.brush, grid);
   const selectedWall = p.selectedWallId ? p.walls.find(w => w.id === p.selectedWallId) ?? null : null;
+  /**
+   * Hovering a door or a window offers the disc that opens it, and it is the disc — not the Muro tool — that
+   * works a door now. It only shows under the tools whose press STARTS something (Seleccionar, medir, dibujar):
+   * there the disc can afford to wait for the release and tell a click from a drag. Under a tool that acts on the
+   * press itself (Muro, Pin, Texto, Borrar, los pinceles) it would have to swallow that press, and swallowing is
+   * how the rebanada 2 clash worked — so there it simply does not appear. Nor with something half-done.
+   */
+  const hoverOpening = dmSight && hover && !gesture && !wallStart && !p.placing && DISC_TOOLS.includes(p.tool)
+    ? hitOpening(wallsShown, hover, 14 / p.view.zoom) : null;
   const handleAt = wallDraft ?? (selectedWall ? { x1: selectedWall.x1, y1: selectedWall.y1, x2: selectedWall.x2, y2: selectedWall.y2 } : { x1: 0, y1: 0, x2: 0, y2: 0 });
 
   return (
@@ -375,6 +396,17 @@ export function MapCanvas(p: Props): JSX.Element {
               {([['a', handleAt.x1, handleAt.y1], ['b', handleAt.x2, handleAt.y2]] as const).map(([id, hx, hy]) => (
                 <rect key={id} data-vertex={id} x={hx - 6} y={hy - 6} width={12} height={12} className="mp-vertex" />
               ))}
+            </g>
+          )}
+          {/* scale(1/zoom): the disc is a control, so it keeps ONE size on screen — and that is the same budget its
+              hover tolerance spends, or the disc you see and the part that answers drift apart as you zoom. */}
+          {hoverOpening && (
+            <g className={`mp-door-toggle ${hoverOpening.isOpen ? 'open' : ''}`} data-testid="mp-door-toggle" data-wall-id={hoverOpening.id}
+              transform={`translate(${midpoint(hoverOpening).x} ${midpoint(hoverOpening).y}) scale(${1 / p.view.zoom})`}
+              role="img" tabIndex={-1} aria-label={t(hoverOpening.isOpen ? 'maps.wall.close' : 'maps.wall.open')}
+              onPointerDown={e => { if (e.button === 0) discPress.current = { id: hoverOpening.id, at: toScene(e) }; }}>
+              <circle r={13} className="mp-door-disc" />
+              <text className="material-symbols-outlined mp-door-icon" textAnchor="middle" dominantBaseline="central">{hoverOpening.isOpen ? 'door_open' : 'door_front'}</text>
             </g>
           )}
           {measure && measured && (

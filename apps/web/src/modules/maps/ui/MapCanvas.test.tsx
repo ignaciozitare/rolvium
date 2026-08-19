@@ -216,15 +216,72 @@ describe('<MapCanvas> openings', () => {
     expect(door.querySelectorAll('.mp-wall-leaf')).toHaveLength(1);
   });
 
-  it('DM with the wall tool: clicking a door toggles it, clicking empty floor still starts a wall', () => {
+  it('Muro sólo construye: empezar un muro sobre una puerta ya no la abre (ése era el choque de la rebanada 2)', () => {
     const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'wall', walls: [WALL_DOOR] });
     // WALL_DOOR is the vertical segment x = 540, y ∈ [216, 324]
     down(svg, 541, 260);
-    expect(cb.onToggleWall).toHaveBeenCalledWith(WALL_DOOR);
-    expect(cb.onAddWall).not.toHaveBeenCalled();
-    down(svg, 100, 100);
-    down(svg, 200, 100);
+    expect(cb.onToggleWall).not.toHaveBeenCalled();
+    down(svg, 541, 360);
     expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+  });
+
+  it('el disco de abrir sale al pasar el ratón por una puerta y la abre; sobre un muro no sale, y el jugador no lo tiene', () => {
+    const { svg, cb, rerender } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_DOOR, WALL_1] });
+    expect(within(svg).queryByTestId('mp-door-toggle')).not.toBeInTheDocument();
+    move(svg, 541, 260);
+    const disc = within(svg).getByTestId('mp-door-toggle');
+    expect(disc).toHaveAttribute('data-wall-id', 'w-door');
+    expect(disc).toHaveAttribute('aria-label', 'Abrir');
+    // el disco se planta en el centro del vano, no donde esté el ratón
+    expect(disc).toHaveAttribute('transform', 'translate(540 270) scale(1)');
+    down(disc, 540, 270); up(svg);
+    expect(cb.onToggleWall).toHaveBeenCalledWith(WALL_DOOR);
+
+    move(svg, 271, 300);                                   // WALL_1 es un muro liso: no se abre
+    expect(within(svg).queryByTestId('mp-door-toggle')).not.toBeInTheDocument();
+
+    rerender({ isDm: true, me: 'u-gm', tool: 'select', walls: [{ ...WALL_DOOR, isOpen: true }] });
+    move(svg, 541, 260);
+    expect(within(svg).getByTestId('mp-door-toggle')).toHaveAttribute('aria-label', 'Cerrar');
+
+    document.body.innerHTML = '';
+    const player = mount({ tool: 'select', walls: [{ ...WALL_DOOR, visiblePlayers: true }] });
+    move(player.svg, 541, 260);
+    expect(within(player.svg).queryByTestId('mp-door-toggle')).not.toBeInTheDocument();
+  });
+
+  it('el disco no roba el arrastre: una puerta de una casilla se sigue pudiendo elegir y mover con Seleccionar', () => {
+    // El disco se planta justo encima del cuerpo del segmento; sin esto una puerta corta quedaría inseleccionable
+    // (y con ella, sin barra «Segmento»: ni cambiarle el tipo, ni borrarla).
+    const short = { ...WALL_DOOR, y2: WALL_DOOR.y1 + G };            // una sola casilla de largo
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [short] });
+    move(svg, short.x1 + 1, short.y1 + G / 2);
+    const disc = within(svg).getByTestId('mp-door-toggle');
+    down(disc, short.x1, short.y1 + G / 2);
+    expect(cb.onSelectWall).toHaveBeenCalledWith('w-door');           // el clic llega igual al lienzo: la elige
+    move(svg, short.x1, short.y1 + G / 2 + 2 * G);                    // …y arrastrarla la mueve
+    up(svg);
+    expect(cb.onMoveWall).toHaveBeenCalledTimes(1);
+    expect(cb.onToggleWall).not.toHaveBeenCalled();                   // arrastrar NO es abrir
+  });
+
+  it('el disco no sale donde tendría que tragarse la pulsación: Muro, Pin, Texto, Borrar, pinceles, ni con algo a medias', () => {
+    for (const tool of ['wall', 'pin', 'text', 'erase', 'reveal', 'hide'] as Tool[]) {
+      document.body.innerHTML = '';
+      const m = mount({ isDm: true, me: 'u-gm', tool, walls: [WALL_DOOR] });
+      move(m.svg, 541, 260);
+      expect(within(m.svg).queryByTestId('mp-door-toggle')).not.toBeInTheDocument();
+    }
+    document.body.innerHTML = '';
+    const placing = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_DOOR], placing: true });
+    move(placing.svg, 541, 260);
+    expect(within(placing.svg).queryByTestId('mp-door-toggle')).not.toBeInTheDocument();
+  });
+
+  it('el disco mide lo mismo en pantalla a cualquier zoom: es un control, no un dibujo del mapa', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_DOOR], view: { zoom: 2, panX: 0, panY: 0 } });
+    move(svg, 2 * 540 + 2, 2 * 260);
+    expect(within(svg).getByTestId('mp-door-toggle')).toHaveAttribute('transform', 'translate(540 270) scale(0.5)');
   });
 
   it('a player never gets a hidden door: only `visible_players` segments are drawn', () => {
