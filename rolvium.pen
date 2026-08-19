@@ -756,11 +756,11 @@
           "reusable": true,
           "width": 1440,
           "fill": "$sf",
+          "gap": 16,
           "padding": [
             8,
             20
           ],
-          "justifyContent": "space_between",
           "alignItems": "center",
           "children": [
             {
@@ -838,7 +838,9 @@
               "slot": [
                 "Q1Ra4E"
               ],
+              "clip": true,
               "gap": 2,
+              "justifyContent": "center",
               "alignItems": "center",
               "children": [
                 {
@@ -848,6 +850,10 @@
                   "name": "Tab/FICHA",
                   "fill": "#00000000",
                   "stroke": "$pl-linea",
+                  "padding": [
+                    7,
+                    13
+                  ],
                   "descendants": {
                     "K8OxW": {
                       "content": "FICHA",
@@ -862,6 +868,10 @@
                   "name": "Tab/EL GRUPO",
                   "fill": "#00000000",
                   "stroke": "$pl-linea",
+                  "padding": [
+                    7,
+                    13
+                  ],
                   "descendants": {
                     "K8OxW": {
                       "content": "EL GRUPO",
@@ -876,6 +886,10 @@
                   "name": "Tab/ESCENA",
                   "fill": "$pl-tinta",
                   "stroke": "$pl-tinta",
+                  "padding": [
+                    7,
+                    13
+                  ],
                   "descendants": {
                     "K8OxW": {
                       "content": "ESCENA",
@@ -890,6 +904,10 @@
                   "name": "Tab/BESTIARIO",
                   "fill": "#00000000",
                   "stroke": "$pl-linea",
+                  "padding": [
+                    7,
+                    13
+                  ],
                   "descendants": {
                     "K8OxW": {
                       "content": "BESTIARIO",
@@ -904,6 +922,10 @@
                   "name": "Tab/MEJORAR",
                   "fill": "#00000000",
                   "stroke": "$pl-linea",
+                  "padding": [
+                    7,
+                    13
+                  ],
                   "descendants": {
                     "K8OxW": {
                       "content": "MEJORAR",
@@ -918,6 +940,10 @@
                   "name": "Tab/CREAR PERSONAJE",
                   "fill": "#00000000",
                   "stroke": "$pl-linea",
+                  "padding": [
+                    7,
+                    13
+                  ],
                   "descendants": {
                     "K8OxW": {
                       "content": "CREAR PERSONAJE",
@@ -13693,17 +13719,6 @@
             },
             {
               "type": "frame",
-              "id": "VGPST",
-              "x": 16,
-              "y": 97,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(67)",
-              "justifyContent": "center"
-            },
-            {
-              "type": "frame",
               "id": "HXx1R",
               "name": "Body",
               "width": "fill_container",
@@ -17983,10 +17998,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -17994,7 +18009,7 @@
                               "type": "frame",
                               "id": "RLrJB",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -18021,7 +18036,7 @@
                                   "type": "frame",
                                   "id": "jMTez",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -18029,8 +18044,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -18038,8 +18053,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -18047,8 +18062,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -18056,8 +18071,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -18065,8 +18080,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -18074,8 +18089,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -18083,8 +18098,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -18092,8 +18107,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -18101,8 +18116,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -18110,8 +18125,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -18136,10 +18151,10 @@
                               "stroke": "$pl-borde",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -18160,15 +18175,15 @@
                                   "y": 11.5,
                                   "name": "Dots",
                                   "enabled": false,
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "fDT9y",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -18178,8 +18193,8 @@
                                       "id": "V1FQcL",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -18189,8 +18204,8 @@
                                       "id": "szA3T",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -18200,8 +18215,8 @@
                                       "id": "sCm6R",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -18211,8 +18226,8 @@
                                       "id": "n9Kuzn",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -18328,17 +18343,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "Gw2Bj",
-              "x": 16,
-              "y": 97,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(63)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -23448,10 +23452,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -23459,7 +23463,7 @@
                               "type": "frame",
                               "id": "EklQy",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -23486,7 +23490,7 @@
                                   "type": "frame",
                                   "id": "U81i1a",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -23494,8 +23498,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -23503,8 +23507,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -23512,8 +23516,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -23521,8 +23525,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -23530,8 +23534,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -23539,8 +23543,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -23548,8 +23552,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -23557,8 +23561,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -23566,8 +23570,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -23575,8 +23579,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -23601,10 +23605,10 @@
                               "stroke": "$pl-oro",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -23622,15 +23626,15 @@
                                   "type": "frame",
                                   "id": "b4jiQ",
                                   "name": "Dots",
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "PEF8Y",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -23640,8 +23644,8 @@
                                       "id": "iQzkP",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -23651,8 +23655,8 @@
                                       "id": "NMPcd",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -23662,8 +23666,8 @@
                                       "id": "mVMOb",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -23673,8 +23677,8 @@
                                       "id": "NtpRf",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -25878,10 +25882,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -25889,7 +25893,7 @@
                               "type": "frame",
                               "id": "gMzFs",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -25916,7 +25920,7 @@
                                   "type": "frame",
                                   "id": "h9iZt",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -25924,8 +25928,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -25933,8 +25937,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -25942,8 +25946,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -25951,8 +25955,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -25960,8 +25964,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -25969,8 +25973,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -25978,8 +25982,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -25987,8 +25991,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -25996,8 +26000,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -26005,8 +26009,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -26031,10 +26035,10 @@
                               "stroke": "$pl-borde",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -26055,15 +26059,15 @@
                                   "y": 11.5,
                                   "name": "Dots",
                                   "enabled": false,
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "nZl2W",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -26073,8 +26077,8 @@
                                       "id": "DOtP4",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -26084,8 +26088,8 @@
                                       "id": "cAvwz",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -26095,8 +26099,8 @@
                                       "id": "Q54bf",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -26106,8 +26110,8 @@
                                       "id": "xOjDg",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -26223,17 +26227,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "knZhl",
-              "x": 16,
-              "y": 97,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(63)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -31216,10 +31209,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -31227,7 +31220,7 @@
                               "type": "frame",
                               "id": "bMHSp",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -31254,7 +31247,7 @@
                                   "type": "frame",
                                   "id": "FVpW4",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -31262,8 +31255,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -31271,8 +31264,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -31280,8 +31273,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -31289,8 +31282,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -31298,8 +31291,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -31307,8 +31300,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -31316,8 +31309,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -31325,8 +31318,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -31334,8 +31327,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -31343,8 +31336,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -31369,10 +31362,10 @@
                               "stroke": "$pl-oro",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -31390,15 +31383,15 @@
                                   "type": "frame",
                                   "id": "f5pkoK",
                                   "name": "Dots",
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "Gc05h",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -31408,8 +31401,8 @@
                                       "id": "ha0v6",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -31419,8 +31412,8 @@
                                       "id": "Q0AVPm",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -31430,8 +31423,8 @@
                                       "id": "yCn62",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -31441,8 +31434,8 @@
                                       "id": "wJhEY",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -31536,17 +31529,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "SZDsM",
-              "x": 16,
-              "y": 97,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(67)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -33413,10 +33395,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -33424,7 +33406,7 @@
                               "type": "frame",
                               "id": "Q7JeA",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -33451,7 +33433,7 @@
                                   "type": "frame",
                                   "id": "D5Oul",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -33459,8 +33441,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -33468,8 +33450,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -33477,8 +33459,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -33486,8 +33468,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -33495,8 +33477,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -33504,8 +33486,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -33513,8 +33495,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -33522,8 +33504,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -33531,8 +33513,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -33540,8 +33522,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -33566,10 +33548,10 @@
                               "stroke": "$pl-oro",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -33587,15 +33569,15 @@
                                   "type": "frame",
                                   "id": "I9AJfe",
                                   "name": "Dots",
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "m11tDE",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -33605,8 +33587,8 @@
                                       "id": "p8E5y",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -33616,8 +33598,8 @@
                                       "id": "n3DgH",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -33627,8 +33609,8 @@
                                       "id": "y21M2",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -33638,8 +33620,8 @@
                                       "id": "F7kspk",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -33733,17 +33715,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "sE3oI",
-              "x": 16,
-              "y": 97,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(67)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -35639,10 +35610,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -35650,7 +35621,7 @@
                               "type": "frame",
                               "id": "RMz6E",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -35677,7 +35648,7 @@
                                   "type": "frame",
                                   "id": "PDxWw",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -35685,8 +35656,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -35694,8 +35665,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -35703,8 +35674,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -35712,8 +35683,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -35721,8 +35692,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -35730,8 +35701,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -35739,8 +35710,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -35748,8 +35719,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -35757,8 +35728,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -35766,8 +35737,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -35792,10 +35763,10 @@
                               "stroke": "$pl-borde",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -35816,15 +35787,15 @@
                                   "y": 11.5,
                                   "name": "Dots",
                                   "enabled": false,
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "Yk9DH",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -35834,8 +35805,8 @@
                                       "id": "jRi8P",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -35845,8 +35816,8 @@
                                       "id": "ODgDb",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -35856,8 +35827,8 @@
                                       "id": "k8uRL",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -35867,8 +35838,8 @@
                                       "id": "DSOkt",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -35984,17 +35955,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "UbpR6",
-              "x": 16,
-              "y": 97,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(63)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -38538,10 +38498,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -38549,7 +38509,7 @@
                               "type": "frame",
                               "id": "i5zjH",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -38576,7 +38536,7 @@
                                   "type": "frame",
                                   "id": "bfmP0",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -38584,8 +38544,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -38593,8 +38553,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -38602,8 +38562,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -38611,8 +38571,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -38620,8 +38580,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -38629,8 +38589,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -38638,8 +38598,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -38647,8 +38607,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -38656,8 +38616,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -38665,8 +38625,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -38691,10 +38651,10 @@
                               "stroke": "$pl-oro",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -38712,15 +38672,15 @@
                                   "type": "frame",
                                   "id": "Emgkp",
                                   "name": "Dots",
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "zhkCw",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -38730,8 +38690,8 @@
                                       "id": "AylLC",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -38741,8 +38701,8 @@
                                       "id": "kDfVj",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -38752,8 +38712,8 @@
                                       "id": "jV28T",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -38763,8 +38723,8 @@
                                       "id": "MvlBL",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -38858,17 +38818,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "mLeM5",
-              "x": 16,
-              "y": 97,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(67)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -41259,10 +41208,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -41270,7 +41219,7 @@
                               "type": "frame",
                               "id": "l6QEe",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -41297,7 +41246,7 @@
                                   "type": "frame",
                                   "id": "cl1NR",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -41305,8 +41254,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -41314,8 +41263,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -41323,8 +41272,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -41332,8 +41281,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -41341,8 +41290,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -41350,8 +41299,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -41359,8 +41308,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -41368,8 +41317,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -41377,8 +41326,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -41386,8 +41335,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -41412,10 +41361,10 @@
                               "stroke": "$pl-borde",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -41436,15 +41385,15 @@
                                   "y": 11.5,
                                   "name": "Dots",
                                   "enabled": false,
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "TOqFv",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -41454,8 +41403,8 @@
                                       "id": "OeGNz",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -41465,8 +41414,8 @@
                                       "id": "X2AliM",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -41476,8 +41425,8 @@
                                       "id": "YuGgC",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -41487,8 +41436,8 @@
                                       "id": "p9CMG4",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -41604,17 +41553,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "MdbFT",
-              "x": 16,
-              "y": 97,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(63)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -53932,8 +53870,8 @@
     {
       "type": "frame",
       "id": "K2eo0",
-      "x": 1520,
-      "y": 5760,
+      "x": 1600,
+      "y": 5855,
       "name": "Mesa/Plenilunio · Jugador · barra light",
       "theme": {
         "mode": "light"
@@ -54143,17 +54081,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "J1Nd4",
-              "x": 16,
-              "y": 97,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(67)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -61164,10 +61091,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -61175,7 +61102,7 @@
                               "type": "frame",
                               "id": "f3V8z4",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -61202,7 +61129,7 @@
                                   "type": "frame",
                                   "id": "euwxu",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -61210,8 +61137,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -61219,8 +61146,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -61228,8 +61155,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -61237,8 +61164,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -61246,8 +61173,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -61255,8 +61182,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -61264,8 +61191,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -61273,8 +61200,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -61282,8 +61209,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -61291,8 +61218,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -61317,10 +61244,10 @@
                               "stroke": "$pl-borde",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -61341,15 +61268,15 @@
                                   "y": 11.5,
                                   "name": "Dots",
                                   "enabled": false,
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "dytOn",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -61359,8 +61286,8 @@
                                       "id": "y0c89",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -61370,8 +61297,8 @@
                                       "id": "Twq5g",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -61381,8 +61308,8 @@
                                       "id": "N4vWs",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -61392,8 +61319,8 @@
                                       "id": "C2A3pk",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -61509,17 +61436,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "jaZbj",
-              "x": 16,
-              "y": 86,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(63)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -64952,10 +64868,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -64963,7 +64879,7 @@
                               "type": "frame",
                               "id": "QwWkh",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -64990,7 +64906,7 @@
                                   "type": "frame",
                                   "id": "tnr40",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -64998,8 +64914,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -65007,8 +64923,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -65016,8 +64932,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -65025,8 +64941,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -65034,8 +64950,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -65043,8 +64959,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -65052,8 +64968,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -65061,8 +64977,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -65070,8 +64986,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -65079,8 +64995,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -65105,10 +65021,10 @@
                               "stroke": "$pl-oro",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -65126,15 +65042,15 @@
                                   "type": "frame",
                                   "id": "DLRpx",
                                   "name": "Dots",
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "Nxge8",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -65144,8 +65060,8 @@
                                       "id": "wijmK",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -65155,8 +65071,8 @@
                                       "id": "FEEg4",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -65166,8 +65082,8 @@
                                       "id": "oPZfH",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -65177,8 +65093,8 @@
                                       "id": "XUU4R",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -65272,17 +65188,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "D1AzrV",
-              "x": 16,
-              "y": 86,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(67)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -67685,10 +67590,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -67696,7 +67601,7 @@
                               "type": "frame",
                               "id": "p535BZ",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -67723,7 +67628,7 @@
                                   "type": "frame",
                                   "id": "gkush",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -67731,8 +67636,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -67740,8 +67645,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -67749,8 +67654,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -67758,8 +67663,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -67767,8 +67672,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -67776,8 +67681,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -67785,8 +67690,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -67794,8 +67699,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -67803,8 +67708,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -67812,8 +67717,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -67838,10 +67743,10 @@
                               "stroke": "$pl-borde",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -67862,15 +67767,15 @@
                                   "y": 11.5,
                                   "name": "Dots",
                                   "enabled": false,
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "UlAOw",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -67880,8 +67785,8 @@
                                       "id": "BdcVG",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -67891,8 +67796,8 @@
                                       "id": "t8Q5O",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -67902,8 +67807,8 @@
                                       "id": "BgQ6G",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -67913,8 +67818,8 @@
                                       "id": "MaptS",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -68030,17 +67935,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "n2ygTs",
-              "x": 16,
-              "y": 86,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(63)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",
@@ -71437,10 +71331,10 @@
                             },
                             "blur": 10
                           },
-                          "gap": 22,
+                          "gap": 14,
                           "padding": [
-                            12,
-                            22
+                            10,
+                            14
                           ],
                           "alignItems": "center",
                           "children": [
@@ -71448,7 +71342,7 @@
                               "type": "frame",
                               "id": "ucRGU",
                               "name": "Reserva",
-                              "gap": 12,
+                              "gap": 8,
                               "alignItems": "center",
                               "children": [
                                 {
@@ -71475,7 +71369,7 @@
                                   "type": "frame",
                                   "id": "HN0Mm",
                                   "name": "Lunas",
-                                  "gap": 8,
+                                  "gap": 5,
                                   "alignItems": "center",
                                   "children": [
                                     {
@@ -71483,8 +71377,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 1",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -71492,8 +71386,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 2",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -71501,8 +71395,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 3",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -71510,8 +71404,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 4",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -71519,8 +71413,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 5",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -71528,8 +71422,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 6",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -71537,8 +71431,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 7",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 1
                                     },
                                     {
@@ -71546,8 +71440,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 8",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -71555,8 +71449,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 9",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     },
                                     {
@@ -71564,8 +71458,8 @@
                                       "type": "ref",
                                       "ref": "kA0SF",
                                       "name": "Luna 10",
-                                      "width": 34,
-                                      "height": 34,
+                                      "width": 20,
+                                      "height": 20,
                                       "opacity": 0.16
                                     }
                                   ]
@@ -71590,10 +71484,10 @@
                               "stroke": "$pl-borde",
                               "strokeWidth": 2,
                               "strokeAlignment": "inner",
-                              "gap": 12,
+                              "gap": 8,
                               "padding": [
-                                8,
-                                14
+                                6,
+                                10
                               ],
                               "alignItems": "center",
                               "children": [
@@ -71614,15 +71508,15 @@
                                   "y": 11.5,
                                   "name": "Dots",
                                   "enabled": false,
-                                  "gap": 4,
+                                  "gap": 3,
                                   "children": [
                                     {
                                       "type": "ellipse",
                                       "id": "J2Zx8Y",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -71632,8 +71526,8 @@
                                       "id": "nWHvT",
                                       "name": "Dot",
                                       "fill": "$pl-oro",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-oro",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -71643,8 +71537,8 @@
                                       "id": "WZO5L",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -71654,8 +71548,8 @@
                                       "id": "KJ5kx",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -71665,8 +71559,8 @@
                                       "id": "PSXbe",
                                       "name": "Dot",
                                       "fill": "#00000000",
-                                      "width": 20,
-                                      "height": 20,
+                                      "width": 16,
+                                      "height": 16,
                                       "stroke": "$pl-linea",
                                       "strokeWidth": 2,
                                       "strokeAlignment": "inner"
@@ -71782,17 +71676,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "OgwA1",
-              "x": 16,
-              "y": 86,
-              "name": "Reserva Wrap",
-              "enabled": false,
-              "width": "fill_container(1408)",
-              "height": "fit_content(63)",
-              "justifyContent": "center"
             },
             {
               "type": "frame",

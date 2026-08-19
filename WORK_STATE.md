@@ -227,6 +227,36 @@ Sale de que el dueño probó el generador con la versión buena. Los tres arregl
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
+### Ficha y generador — prueba del dueño en producción (2026-08-19, tarde). NADA de esto está hecho
+Cinco de los siete son trabajo de **pantalla**: por la regla del dueño van al `.pen` ANTES que al código.
+
+- **Características y Especialidades siguen siendo la misma pantalla.** No es un bug de reglas: el campo `stat`
+  arrastra sus `itemFields` (los desplegables de especialidad) a **cualquier** paso que liste las características, y
+  los dos pasos las listan. Lo que se elige en uno se ve en el otro porque **es el mismo campo**. Se arregla
+  decidiendo en el diseño qué enseña cada paso, no con un parche.
+- **El paso de Destino no dice qué hay que hacer.** Enseña un `- 3 +` pelado. Falta: empieza en 3, va de 1 a 5, cada
+  +1 cuesta un punto de característica y cada −1 devuelve uno, y —lo que más importa— **el Destino ES tu número de
+  puntos de don**. Sin vista en el `.pen`.
+- **Descripciones al vuelo, pedidas más de una vez y aún sin hacer**: al pasar por encima de una opción (un don, una
+  especialidad, una característica) debe decir qué es, y al elegirla debe quedar **en la columna de la derecha**.
+  Los datos YA existen: `catalog.gifts.<id>.summary` y `references` (clave → página + resumen propio). Falta la UI.
+  El **glosario por característica ya está diseñado** en `GjeeD` y nunca se construyó.
+- **Las letras siguen sin leerse.** Tokens de `RolviumApp.css`; afecta a TODA la app, no sólo a la ficha.
+- **Las cards van sin borde y con sombra** (así está en el diseño); en producción no tienen sombra.
+- **Estado deja un hueco en blanco a la derecha**: tiene que ocupar el ancho que queda y reordenar sus componentes.
+
+### Resistencia — la casilla está INVERTIDA respecto al libro (p.25, verificado en el PDF)
+El libro dice: «sombrea los puntos **sobrantes** y deja los cuadrados **en blanco** correspondientes a tu
+Resistencia **para poder tacharlos durante el juego**». O sea: en blanco = la Resistencia que te queda, y se van
+**tachando** según recibes daño. Hoy el kit pinta en negro las `val` primeras casillas, con `val` = Resistencia
+actual: un personaje sano sale **todo negro**, y al recibir daño se va **despintando**. Justo al revés.
+- Afecta a `packages/ui/src/components/Sheet.tsx` (campo `boxes`) y a su CSS. Es el único campo `boxes` del
+  esquema, así que el cambio está contenido — pero es interacción, no sólo color: hay que decidir qué hace un clic.
+- ⚠ **Aparte y sin confirmar**: en la captura del dueño un personaje recién creado marca «6 de 24», y 6 es
+  justo el valor de la ficha en blanco (`newSheet`). `finalizeDraft` pone `resistance = resistanceMax` y el wizard
+  lo usa, así que o esa ficha no pasó por ahí o el patch no se guardó. **Reproducir antes de tocar nada.**
+
+
 ### Maps — pedidos del dueño 2026-08-19 (sin spec ni diseño todavía)
 - **Rejilla más fina**, para poder cuadrar los muros con el plano que se pone de fondo. Hoy `grid.size` sale a 27 px
   y sólo se ajusta por escena; el dueño quiere un paso menor (y probablemente un control, no un valor fijo).
