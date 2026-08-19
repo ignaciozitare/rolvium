@@ -76,7 +76,7 @@ describe('<GeneratorWizard>', () => {
     expect(within(stat('fortitude')).getByText('5')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Te sobran puntos');
   }, 40000);
-  it('an overspent draft can always be walked back (review finding 2026-08-18)', async () => {
+  it('el canje de dones ya no puede empujar el borrador a números rojos (dueño 2026-08-19)', async () => {
     const u = userEvent.setup();
     mount('player');
     await u.type(screen.getByLabelText('Personaje'), 'Karen');
@@ -88,24 +88,19 @@ describe('<GeneratorWizard>', () => {
       for (let i = 0; i < n; i++) await u.click(within(stat(id)).getByRole('button', { name: /^\+ / }));
     }
     expect(screen.getByRole('status')).toHaveTextContent('0');
-    // Gift trades are budgeted in gift points, so they can push creation points negative.
     await u.click(screen.getByRole('button', { name: 'Continuar' }));   // specialties…
     for (const f of plenilunio.sheetSchema.sections.flatMap(s => s.fields).filter(f => f.type === 'stat')) {
       await u.selectOptions(within(stat(f.id)).getByLabelText(/^Añadir Especialidad/), f.itemFields![0]!.options![0]!.value);
     }
     await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …destiny…
     await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …gifts
+    // Sin un punto de creación libre, canjear no es una opción. Antes el guardia de este paso miraba
+    // el presupuesto DE DONES —que un canje sólo SUBE— así que decía que sí siempre y dejaba los
+    // puntos de creación en rojo; el dueño llegó así a un paso del que no se salía.
     const trade = screen.getByLabelText('Puntos canjeados por dones');
-    for (let i = 0; i < 3; i++) await u.click(within(trade).getByRole('button', { name: /^\+ / }));
-    // Back to the stats step: 3 points overspent. Each − still leaves it negative, so the
-    // old "remaining >= 0" veto disabled every control and the draft could only be cancelled.
+    expect(within(trade).getByRole('button', { name: /^\+ / })).toBeDisabled();
+    // y Características sigue cuadrado, sin aviso ninguno
     await u.click(screen.getByRole('button', { name: /Características/ }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Te faltan puntos');
-    for (let i = 0; i < 3; i++) {
-      const minus = within(stat('fortitude')).getByRole('button', { name: /^− |^- / });
-      expect(minus).toBeEnabled();
-      await u.click(minus);
-    }
     expect(screen.getByRole('status')).toHaveTextContent('0');
     expect(screen.queryByRole('alert')).toBeNull();
   }, 40000);

@@ -128,7 +128,7 @@ const es: Messages = {
     error: {
       nameAndConcept: 'Faltan el nombre y el concepto', pointsLeft: 'Te sobran puntos', pointsOver: 'Te faltan puntos', statOutOfRange: 'Alguna característica se sale del máximo del reparto',
       specialtyEach: 'Elige una especialidad en cada característica', tooManySpecialties: 'Más especialidades extra de las canjeadas', extraSpecialtiesSpread: 'Las especialidades extra deben ir a características distintas',
-      destinyRange: 'El Destino inicial va de 1 a 5', giftLevel: 'Los dones van de nivel 1 a 5', giftPointsLeft: 'Reparte los puntos de don restantes', giftPointsOver: 'Has repartido más puntos de don de los que tienes',
+      destinyRange: 'El Destino inicial va de 1 a 5', giftLevel: 'Los dones van de nivel 1 a 5', giftDuplicate: 'Un don no se puede repetir: sube su nivel', giftPointsLeft: 'Reparte los puntos de don restantes', giftPointsOver: 'Has repartido más puntos de don de los que tienes',
     },
   },
   progression: {
@@ -261,7 +261,7 @@ const en: Messages = {
     error: {
       nameAndConcept: 'Name and concept are missing', pointsLeft: 'You have points left', pointsOver: 'You are short of points', statOutOfRange: 'A characteristic exceeds the spread maximum',
       specialtyEach: 'Pick a specialty for each characteristic', tooManySpecialties: 'More extra specialties than traded', extraSpecialtiesSpread: 'Extra specialties must go to different characteristics',
-      destinyRange: 'Starting Destiny goes from 1 to 5', giftLevel: 'Gifts go from level 1 to 5', giftPointsLeft: 'Spend the remaining gift points', giftPointsOver: 'You spent more gift points than you have',
+      destinyRange: 'Starting Destiny goes from 1 to 5', giftLevel: 'Gifts go from level 1 to 5', giftDuplicate: 'A gift cannot repeat: raise its level', giftPointsLeft: 'Spend the remaining gift points', giftPointsOver: 'You spent more gift points than you have',
     },
   },
   progression: {

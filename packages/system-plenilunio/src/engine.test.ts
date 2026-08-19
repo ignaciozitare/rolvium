@@ -327,6 +327,44 @@ describe('generator budgets', () => {
     expect(by('gifts').canAdvance(draft({ gifts: [{ id: 'titanFury', level: 4 }] }))).toBe('generator.error.giftPointsOver');
     expect(by('gifts').budget?.(draft({ gifts: [{ id: 'titanFury', level: 1 }] }))).toMatchObject({ remaining: 2 });
   });
+  /**
+   * Los tres fallos que el dueño vio en el paso de Dones el 2026-08-19: el canje que no comprueba
+   * que puedas pagarlo (y deja el paso sin salida), el mismo don repetido, y el contador ilegible.
+   */
+  it('el canje de dones sólo llega hasta donde alcanzan los puntos de creación', () => {
+    const gifts = generator.find(s => s.id === 'gifts')!;
+    // reparto estándar: 21 puntos, 7 características a 1 = 7 gastados, quedan 14 para canjear
+    const base = draft();
+    expect(budgetOf(base).available).toBe(14);
+    expect(gifts.applyChange!(base, 'giftTrade', 14)).toEqual({ giftTrade: 14 });
+    expect(gifts.applyChange!(base, 'giftTrade', 15)).toBeNull();   // un punto más de los que hay
+    expect(gifts.applyChange!(base, 'giftTrade', -1)).toBeNull();
+    // y con el canje ya puesto, el tope sigue siendo «lo que cuesta hoy + lo que queda»
+    const traded = draft({ giftTrade: 10 });
+    expect(budgetOf(traded).available).toBe(4);
+    expect(gifts.applyChange!(traded, 'giftTrade', 14)).toEqual({ giftTrade: 14 });
+    expect(gifts.applyChange!(traded, 'giftTrade', 15)).toBeNull();
+    expect(gifts.applyChange!(traded, 'giftTrade', 9)).toEqual({ giftTrade: 9 });   // bajar siempre se puede
+  });
+  it('un paso con los puntos de creación en rojo señala el canje, no el reparto de dones', () => {
+    const gifts = generator.find(s => s.id === 'gifts')!;
+    const over = draft({ giftTrade: 20 });   // se llega bajando el Destino después de canjear
+    expect(budgetOf(over).available).toBeLessThan(0);
+    expect(gifts.canAdvance(over)).toBe('generator.error.pointsOver');
+  });
+  it('el mismo don no se puede coger dos veces: es nivel 6 por la puerta de atrás', () => {
+    const gifts = generator.find(s => s.id === 'gifts')!;
+    const dup = draft({ gifts: [{ id: 'titanFury', level: 2 }, { id: 'titanFury', level: 1 }] });
+    expect(gifts.canAdvance(dup)).toBe('generator.error.giftDuplicate');
+    expect(gifts.applyChange!(draft({ gifts: [{ id: 'titanFury', level: 1 }] }), 'gifts',
+      [{ id: 'titanFury', level: 1 }, { id: 'titanFury', level: 1 }])).toBeNull();
+    expect(gifts.applyChange!(draft({ gifts: [{ id: 'titanFury', level: 1 }] }), 'gifts',
+      [{ id: 'titanFury', level: 1 }, { id: 'catlike', level: 1 }])).toEqual({ gifts: [{ id: 'titanFury', level: 1 }, { id: 'catlike', level: 1 }] });
+  });
+  it('el contador del paso dice total/gastados, igual que los pasos de puntos', () => {
+    const gifts = generator.find(s => s.id === 'gifts')!;
+    expect(gifts.budget?.(draft({ gifts: [{ id: 'titanFury', level: 1 }] }))).toMatchObject({ remaining: 2, detail: '3/1' });
+  });
   it('finalizeDraft sets fortune = destiny and full resistance', () => {
     const f = finalizeDraft(draft({ destiny: 4, fortitude: stat(3), will: stat(3) }));
     expect(f).toMatchObject({ fortune: 4, resistance: 18, health: 'healthy', xp: 0 });
