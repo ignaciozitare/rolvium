@@ -84,7 +84,11 @@ export const sections: SectionDef[] = [
       { id: 'range', type: 'text', label: 'sheet.weapons.range', derived: true, options: (['melee', 'short', 'medium', 'long', 'veryLong'] as const).map(r => ({ value: r, label: `sheet.range.${r}` })) },
       // Sólo las armas de fuego tienen cargador: el libro pone «-» en las nueve de cuerpo a cuerpo
       // (p.97) y `magazine` es null en el catálogo. Sin esto salían unas Nudilleras con 14 balas.
+      // Dos columnas distintas y a menudo confundidas: `ammo` es lo que hay EN el cargador y `reserve`
+      // las balas sueltas que llevas encima. Recargar mueve de la segunda a la primera. Ninguna aparece
+      // en las armas cuerpo a cuerpo: el libro les pone «-» en Cargador (p.97).
       { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
+      { id: 'reserve', type: 'counter', label: 'sheet.weapons.reserve', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
     ] },
   ] },
   { id: 'gifts', label: 'sheet.sections.gifts', layout: 'stack', span: 2, fields: [

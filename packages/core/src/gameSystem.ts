@@ -100,7 +100,8 @@ export interface ActionDef {
    * y ya tienes que recargar. Asi que disparar gasta un punto, y sin balas no se dispara.
    */
   spend?: (sheet: SheetData, itemId: string) => SheetPatch | null;
-  toRoll: (sheet: SheetData, itemId: string, options?: Record<string, unknown>) => RollRequest;
+  /** Sin `toRoll` la acción sólo GASTA (recargar): se aplica el `spend` y no se tira nada. */
+  toRoll?: (sheet: SheetData, itemId: string, options?: Record<string, unknown>) => RollRequest;
 }
 
 export interface ProgressionRules {

@@ -64,6 +64,7 @@ export function CharacterSheetView({ state, canEdit, rolls = defaultRolls, rollO
         if (!cost) return;
         if (Object.keys(cost).length > 0) applyPatch(cost, 'sheet', true);
       }
+      if (!a.toRoll) return;   // acción que sólo gasta (recargar): el `spend` ya la ha hecho entera
       req = a.toRoll(data, itemId, rollOptions);
     }
     req = { ...req, characterId: character.id };

@@ -255,13 +255,27 @@ export function spendAmmo(sheet: SheetData, weaponId: string): SheetPatch | null
   if (!row || row.ammo === null || row.ammo === undefined || row.ammo <= 0) return null;
   return { weapons: rows.map((r, j) => (j === i ? { ...r, ammo: (r.ammo ?? 0) - 1 } : r)) };
 }
+/**
+ * Recargar saca balas de la MUNICIÓN que llevas encima (`reserve`) y llena el cargador. Devuelve null
+ * si no hay de dónde: el arma no tiene cargador, ya está lleno, o no te queda munición suelta.
+ *
+ * El libro no da una tabla de recarga, pero sí las dos piezas: el «Cargador» por arma (p.97) y que la
+ * munición es un recurso escaso que se consigue y se lleva («entre 20 y 40 balas» en el equipo inicial,
+ * p.019; «conseguir munición es muy difícil», p.030). ⚠ Interpretación: el cargador se llena hasta
+ * donde alcance la munición, sin exigir tenerlo completo.
+ */
 export function reload(sheet: SheetData, weaponId: string): SheetPatch | null {
   const rows = weaponsOf(sheet);
   const i = rows.findIndex(r => r.id === weaponId);
   const row = rows[i];
   const data = row ? weaponData(row) : null;
   if (!row || !data || data.magazine === null) return null;
-  return { weapons: rows.map((r, j) => (j === i ? { ...r, ammo: data.magazine } : r)) };
+  const inMag = num(row.ammo);
+  const reserve = num((row as unknown as Record<string, unknown>)['reserve']);
+  const need = data.magazine - inMag;
+  if (need <= 0 || reserve <= 0) return null;
+  const moved = Math.min(need, reserve);
+  return { weapons: rows.map((r, j) => (j === i ? { ...r, ammo: inMag + moved, reserve: reserve - moved } : r)) };
 }
 
 // ─── Progression (manual p.91) ───────────────────────────────────────────────
@@ -359,6 +373,13 @@ export const actions: ActionDef[] = [
       return spendAmmo(sheet, id);
     },
     toRoll: (s, id, o) => attackRequest(s, id, o, true),
+  },
+  {
+    // Recargar no tira dados: mueve balas de la munición al cargador. El libro lo cobra como acción del
+    // turno con al menos 1 dado de Combate y sin tirada (p.96); ese coste en dados todavía no se aplica.
+    id: 'reload', icon: 'refresh', label: 'sheet.actions.reload', appliesTo: 'weapons',
+    appliesToRow: r => !rowIsMelee(r),
+    spend: (sheet, id) => reload(sheet, id),
   },
   {
     id: 'gift.activate', icon: 'bolt', label: 'sheet.actions.activateGift', appliesTo: 'gifts', cost: 'sheet.actions.giftCost',

@@ -173,7 +173,16 @@ describe('attacks (manual p.97)', () => {
     expect(spendAmmo(s, 'magnum44')).toMatchObject({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 1 }] });
     expect(spendAmmo(s, 'bat')).toBeNull();
     expect(spendAmmo(sheet({ weapons: [{ id: 'magnum44', ammo: 0 }] }), 'magnum44')).toBeNull();
-    expect(reload(s, 'magnum44')).toMatchObject({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 6 }] });
+    // Recargar saca de la munición que llevas encima (`reserve`), no de la nada: sin munición suelta
+    // no hay recarga por mucho que el cargador esté vacío (dueño 2026-08-19).
+    expect(reload(s, 'magnum44')).toBeNull();                       // sin `reserve` no hay de dónde
+    const conBalas = sheet({ weapons: [{ id: 'magnum44', ammo: 2, reserve: 20 }] });
+    expect(reload(conBalas, 'magnum44')).toMatchObject({ weapons: [{ id: 'magnum44', ammo: 6, reserve: 16 }] });
+    // Sólo se llena hasta donde alcance la munición, sin exigir cargador completo.
+    const casiSinBalas = sheet({ weapons: [{ id: 'magnum44', ammo: 0, reserve: 3 }] });
+    expect(reload(casiSinBalas, 'magnum44')).toMatchObject({ weapons: [{ id: 'magnum44', ammo: 3, reserve: 0 }] });
+    // Cargador lleno: no se recarga y no se tira munición.
+    expect(reload(sheet({ weapons: [{ id: 'magnum44', ammo: 6, reserve: 9 }] }), 'magnum44')).toBeNull();
     expect(reload(s, 'bat')).toBeNull();
   });
   it('gift activation rolls the given stat and marks the fortune cost', () => {
