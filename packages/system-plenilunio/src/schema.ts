@@ -81,20 +81,20 @@ export const sections: SectionDef[] = [
       { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0 },
     ] },
   ] },
-  { id: 'gifts', label: 'sheet.sections.gifts', layout: 'stack', fields: [
+  { id: 'gifts', label: 'sheet.sections.gifts', layout: 'stack', span: 2, fields: [
     { id: 'gifts', type: 'list', label: 'sheet.gifts.list', ref: 'gifts', action: 'gift.activate', itemFields: [
       { id: 'id', type: 'select', label: 'sheet.gifts.name', options: GIFTS.map(g => ({ value: g.id, label: g.label })) },
       { id: 'level', type: 'counter', label: 'sheet.gifts.level', min: 1, max: 5 },
     ] },
   ] },
-  { id: 'equipment', label: 'sheet.sections.equipment', layout: 'stack', fields: [
+  { id: 'equipment', label: 'sheet.sections.equipment', layout: 'stack', span: 2, fields: [
     { id: 'equipment', type: 'list', label: 'sheet.equipment.list', itemFields: [
       { id: 'id', type: 'select', label: 'sheet.equipment.name', options: EQUIPMENT.map(e => ({ value: e.id, label: e.label })) },
     ] },
   ] },
   // `stack` y no `row`: `row` la marca como ancha y ocupaba una fila entera. El dueño la quiere en
   // columna, junto a Dones y Equipo, con Armas encima a todo el ancho (rolvium.pen, ficha 2026-08-19).
-  { id: 'armour', label: 'sheet.sections.armour', layout: 'stack', fields: [
+  { id: 'armour', label: 'sheet.sections.armour', layout: 'stack', span: 2, fields: [
     { id: 'armour', type: 'select', label: 'sheet.armour.worn', ref: 'armours', options: ARMOURS.map(x => ({ value: x.id, label: x.label })) },
     { id: 'protection', type: 'number', label: 'sheet.armour.protection', ref: 'armours', derived: true },
     { id: 'armourPenalty', type: 'number', label: 'sheet.armour.penalty', ref: 'armours', derived: true },

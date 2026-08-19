@@ -7,9 +7,18 @@
    partir de 3x340 + 2x16 de gap = 1052px de ancho DISPONIBLE (no 1020: los huecos cuentan), y el grid
    ya las estira a la altura de la mas alta por si mismo. Por debajo de 1052 se cae a dos columnas y
    Armadura se queda sola en su fila; a 1052+ el hueco cae a la derecha de Estado. */
-.rv-sheet{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px;color:var(--sys-ink);font-family:var(--sys-font-body);}
+/* Rejilla de SEIS columnas, no `auto-fit`. El auto-fit repartia por ancho minimo, asi que en una
+   pantalla ancha salian cuatro columnas y las tarjetas quedaban estrechas con medio lienzo vacio
+   a la derecha (visto en local por el dueno, 2026-08-19). rolvium.pen no funciona asi: declara
+   fracciones — Identidad, Dificultad, Armas e Historia a fila entera; Caracteristicas y Estado a
+   la MITAD (793 de 1601); Dones, Equipo y Armadura a un TERCIO (523 de 1601). Cada seccion dice
+   lo suyo con `span` en sextos, y el ancho lo pone la rejilla, no el contenido. */
+.rv-sheet{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;color:var(--sys-ink);font-family:var(--sys-font-body);}
 .rv-sheet-section{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px;min-width:0;}
+.rv-sheet-section{grid-column:span var(--sec-span,3);}
 .rv-sheet-section.wide{grid-column:1/-1;}
+/* Estrecho: todo a una columna. Media fila de 793 px no cabe en un movil. */
+@media (max-width:900px){.rv-sheet{grid-template-columns:1fr;}.rv-sheet-section,.rv-sheet-section.wide{grid-column:1/-1;}}
 .rv-sheet-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:8px;border-bottom:1px solid var(--sys-line);}
 .rv-sheet-section-title{font-size:var(--fs-xs);letter-spacing:.24em;text-transform:uppercase;color:var(--sys-ink);margin:0;font-weight:600;}
 .rv-sheet-section-ref{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);letter-spacing:.06em;}

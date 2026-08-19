@@ -11,8 +11,11 @@ describe('sheetSchema', () => {
     // Por eso `armour` baja detrás de `equipment` y deja de ser `row`, que la marcaba como ancha.
     expect(sections.map(s => s.id)).toEqual(['identity', 'roll', 'stats', 'state', 'weapons', 'gifts', 'equipment', 'armour', 'story', 'creation']);
     expect(sections.find(s => s.id === 'armour')?.layout).toBe('stack');
-    // Ninguna sección usa `span` hoy: ensanchar Estado a dos columnas dejó un vacío enorme debajo.
-    expect(sections.filter(s => s.span).map(s => s.id)).toEqual([]);
+    // El ancho de cada fila sale del `.pen`, en sextos: Identidad, Dificultad, Armas e Historia a fila
+    // entera (lo hacen solas por llevar `image`/`row`/`table`/`longtext`); Características y Estado a la
+    // MITAD (793 de 1601); Dones, Equipo y Armadura a un TERCIO (523 de 1601).
+    expect(sections.filter(s => s.span).map(s => `${s.id}:${s.span}`)).toEqual(['gifts:2', 'equipment:2', 'armour:2']);
+    for (const id of ['stats', 'state']) expect(sections.find(s => s.id === id)?.span).toBeUndefined();
     for (const id of STAT_IDS) expect(fieldById(id)).toMatchObject({ type: 'stat', action: 'roll', min: 1, max: 10 });
     expect(fieldById('weapons')).toMatchObject({ type: 'table', action: 'attack' });
     expect(fieldById('gifts')).toMatchObject({ type: 'list', action: 'gift.activate' });

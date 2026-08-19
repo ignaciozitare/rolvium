@@ -27,6 +27,12 @@ export interface FieldDef {
  * ocupa una; las secciones con campo `table`/`longtext`/`image` o `layout:'row'` siguen ocupando la
  * fila entera por su cuenta.
  */
+/**
+ * `span`: cuanto ocupa la seccion en la rejilla de SEIS de la ficha. 6 = fila entera, 3 = media,
+ * 2 = un tercio. Lo declara el SISTEMA porque la plataforma no sabe que Estado pide media fila y
+ * Armadura un tercio — igual que no sabe reglas. Por defecto 3 (media).
+ * Las secciones con campo `table`/`longtext`/`image` o `layout:'row'` ocupan la fila entera solas.
+ */
 export interface SectionDef { id: string; label: I18nKey; fields: FieldDef[]; layout?: 'grid' | 'stack' | 'row'; span?: number; }
 export interface SheetSchema { version: string; sections: SectionDef[]; }
 
