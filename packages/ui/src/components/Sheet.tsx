@@ -211,6 +211,8 @@ function StatRow({ f, p, ro, showActions, allowed, set, label }: Shared & { allo
   const specField = f.itemFields?.[0];
   const optLabel = (id: string) => specField?.options?.find(x => x.value === id)?.label;
   const setSpecs = (next: string[]) => set(f.id, { ...o, value, specialties: next });
+  /** Any option the guard would accept — the same «propose a row it takes» rule the lists use. */
+  const canAddSpec = !!(specField?.options ?? []).find(op => allowed(f.id, { ...o, value, specialties: [...specs, op.value] }));
   const pool = p.poolSize?.(f.id) ?? null;
   return (
     <div className="rv-sheet-stat" data-stat={f.id}>
@@ -228,7 +230,10 @@ function StatRow({ f, p, ro, showActions, allowed, set, label }: Shared & { allo
                   <button type="button" className="rv-sheet-x" aria-label={`${p.labels.remove} ${p.t(specField.label)} ${i + 1}`} onClick={() => setSpecs(specs.filter((_, j) => j !== i))}>×</button>
                 </span>
               ))}
-              <select className="rv-sheet-inp" aria-label={`${p.labels.add} ${p.t(specField.label)} · ${p.t(f.label)}`} value="" onChange={e => { if (e.target.value) setSpecs([...specs, e.target.value]); }}>
+              {/* Disabled when the guard refuses EVERY option: adding is an affordance, not a choice
+                  among them, so offering it while nothing can land is the silent bounce again. */}
+              <select className="rv-sheet-inp" aria-label={`${p.labels.add} ${p.t(specField.label)} · ${p.t(f.label)}`} value="" disabled={!canAddSpec}
+                onChange={e => { if (e.target.value) setSpecs([...specs, e.target.value]); }}>
                 <option value="">+ {p.t(specField.label)}</option>
                 {(specField.options ?? []).filter(op => !specs.includes(op.value)).map(op => <option key={op.value} value={op.value}>{p.t(op.label)}</option>)}
               </select>

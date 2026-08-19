@@ -106,6 +106,27 @@ export function applyGiftChange(draft: SheetData, fieldId: string, next: unknown
   return applyChange(draft, fieldId, next);
 }
 
+/**
+ * Per-field guard of the specialties step. The step's budget is the CREATION one, and a specialty
+ * costs nothing on its own — the points went into the trade — so `budgetAllows` waves every pick
+ * through and the caps only showed up on «Continuar» (owner, 2026-08-19: seis especialidades en
+ * Presencia con cero canjes, y luego no se avanza).
+ *
+ * Both caps come straight from the book (RULES.md §1.3, p.21–22): one per characteristic to start,
+ * and each trade buys 2 extra **in two different characteristics** — which is what the per-stat
+ * ceiling of `1 + canjes` expresses, with the total capped at `2 × canjes`.
+ */
+export function applySpecialtyChange(draft: SheetData, fieldId: string, next: unknown): SheetPatch | null {
+  if (isStatId(fieldId)) {
+    const after = { ...draft, [fieldId]: next };
+    const trades = budgetOf(after).specialtyTrade;
+    if (statOf(after, fieldId).specialties.length > 1 + trades) return null;
+    const extra = STAT_IDS.reduce((s, id) => s + Math.max(0, statOf(after, id).specialties.length - 1), 0);
+    if (extra > trades * 2) return null;
+  }
+  return applyChange(draft, fieldId, next);
+}
+
 const statsError = (draft: SheetData): string | null => {
   const b = budgetOf(draft);
   if (b.available > 0) return 'generator.error.pointsLeft';
@@ -126,7 +147,11 @@ export const generator: GeneratorStep[] = [
   },
   {
     id: 'stats', label: 'generator.step.stats', fields: ['preset', ...STAT_IDS],
-    canAdvance: statsError, budget: pointsBudget, applyChange,
+    // `applySpecialtyChange` y no `applyChange`: este paso lista las características, y el campo
+    // `stat` arrastra sus desplegables de especialidad a cualquier paso que lo liste, así que aquí
+    // también se pueden añadir — sin el cupo, era la puerta de atrás al tope del paso siguiente.
+    // (La pantalla que no debería enseñarlos aquí es deuda aparte, ya anotada.)
+    canAdvance: statsError, budget: pointsBudget, applyChange: applySpecialtyChange,
   },
   {
     id: 'specialties', label: 'generator.step.specialties', fields: ['specialtyTrade', ...STAT_IDS],
@@ -137,7 +162,7 @@ export const generator: GeneratorStep[] = [
       if (STAT_IDS.some(id => statOf(draft, id).specialties.length > 1 + budgetOf(draft).specialtyTrade)) return 'generator.error.extraSpecialtiesSpread';
       return budgetOf(draft).available < 0 ? 'generator.error.pointsOver' : null;
     },
-    budget: pointsBudget, applyChange,
+    budget: pointsBudget, applyChange: applySpecialtyChange,
   },
   {
     id: 'destiny', label: 'generator.step.destiny', fields: ['destiny'],

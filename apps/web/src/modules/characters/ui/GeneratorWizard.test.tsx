@@ -152,6 +152,26 @@ describe('<GeneratorWizard>', () => {
     expect(screen.getByRole('status')).toHaveTextContent('0');
     expect(screen.queryByRole('alert')).toBeNull();
   }, 40000);
+  it('el «+ Especialidad» se apaga al llegar al cupo, en vez de dejar elegir y bloquear Continuar', async () => {
+    const u = userEvent.setup();
+    mount('player');
+    await u.type(screen.getByLabelText('Personaje'), 'Karen');
+    await u.type(screen.getByLabelText('Concepto'), 'Líder');
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));
+    // gasta el reparto entero (21): 7 características a 1 = 7, quedan 14
+    for (const [id, n] of [['presence', 4], ['combat', 4], ['will', 4], ['cunning', 2]] as const) {
+      for (let i = 0; i < n; i++) await u.click(within(stat(id)).getByRole('button', { name: /^\+ / }));
+    }
+    expect(screen.getByRole('status')).toHaveTextContent('0');
+    await u.click(screen.getByRole('button', { name: 'Continuar' }));   // …especialidades
+    const add = () => within(stat('presence')).getByLabelText(/^Añadir Especialidad/);
+    // la primera es obligatoria y entra
+    await u.selectOptions(add(), 'presence.poetry');
+    // la segunda ya no: sin canjes el cupo es una por característica (RULES.md §1.3)
+    expect(add()).toBeDisabled();
+    // el dueño llegó a meter seis en Presencia porque nadie se lo impedía al elegir
+    expect(within(stat('presence')).getAllByRole('combobox', { name: /· Especialidad \d/ })).toHaveLength(1);
+  }, 40000);
   it('un reparto que no cabe se ve desactivado en el desplegable, no rebota en silencio (review 2026-08-19)', async () => {
     const u = userEvent.setup();
     mount('player');

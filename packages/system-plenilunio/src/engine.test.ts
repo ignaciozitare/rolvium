@@ -381,6 +381,26 @@ describe('generator budgets', () => {
     const gifts = generator.find(s => s.id === 'gifts')!;
     expect(gifts.budget?.(draft({ gifts: [{ id: 'titanFury', level: 1 }] }))).toMatchObject({ remaining: 2, detail: '3/1' });
   });
+  /**
+   * Dueño 2026-08-19: «en especialidades me deja elegir todo lo que quiera y después no me deja
+   * avanzar». Las reglas están en RULES.md §1.3 (p.21–22) y ahora se aplican AL ELEGIR.
+   */
+  it('las especialidades se topan al elegir, no al pulsar Continuar', () => {
+    const spec = generator.find(s => s.id === 'specialties')!;
+    const one = (over: SheetData = {}) => draft({ presence: stat(1, ['presence.poetry']), ...over });
+    // sin canjes: una por característica y ni una más
+    expect(spec.applyChange!(one(), 'presence', stat(1, ['presence.poetry', 'presence.empathy']))).toBeNull();
+    // un canje: 2 extra, así que hasta 2 en la misma característica…
+    const traded = one({ specialtyTrade: 1 });
+    expect(spec.applyChange!(traded, 'presence', stat(1, ['presence.poetry', 'presence.empathy']))).toMatchObject({ presence: expect.anything() });
+    // …pero no 3, que es lo que pasaría de «1 + canjes»
+    expect(spec.applyChange!(traded, 'presence', stat(1, ['presence.poetry', 'presence.empathy', 'presence.humour']))).toBeNull();
+    // y el total no pasa de 2 por canje aunque se reparta entre características distintas
+    const spread = draft({ specialtyTrade: 1, presence: stat(1, ['presence.poetry', 'presence.empathy']), combat: stat(1, ['combat.martialArts', 'combat.swords']) });
+    expect(spec.applyChange!(spread, 'culture', stat(1, ['culture.art', 'culture.history']))).toBeNull();
+    // quitar siempre se puede
+    expect(spec.applyChange!(traded, 'presence', stat(1, []))).toMatchObject({ presence: expect.anything() });
+  });
   it('finalizeDraft sets fortune = destiny and full resistance', () => {
     const f = finalizeDraft(draft({ destiny: 4, fortitude: stat(3), will: stat(3) }));
     expect(f).toMatchObject({ fortune: 4, resistance: 18, health: 'healthy', xp: 0 });
