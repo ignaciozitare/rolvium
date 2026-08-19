@@ -227,6 +227,23 @@ Sale de que el dueño probó el generador con la versión buena. Los tres arregl
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
+### Últimos cuatro del dueño (2026-08-19, tarde)
+12. **Un personaje creado no aparece ni en `/characters` ni en «Colocar PJ» del mapa.** Revisado el código y
+    **debería aparecer**: `CharactersPage` lista `listMine()` + `listByCampaign()` de cada campaña mía y filtra
+    los `isUnassigned`; el mapa usa `listByCampaign().filter(kind === 'pc')`. La RLS tampoco lo tapa (el
+    director ve todo lo de su campaña). Sospechas por orden: que la campaña no salga en `campaigns.listMine()`
+    para ese usuario, o que la creación fallara en silencio. **Sin reproducir. Hay que crear uno y mirar la
+    fila en la base ANTES de tocar código.**
+13. **«Mejorar» no debe estar en la barra de pestañas**: va como botón dentro de la ficha, al lado de «Editar»
+    y «Abrir ficha aparte». → `.pen`
+14. **Multiidioma: existe, pero no dentro de la Mesa.** El conmutador ES/EN vive en `UserMenu` (menú del avatar)
+    y en `/account`. Pero `TablePage` pinta un `UserAvatar` pelado, **no** el `UserMenu`: dentro de la mesa no
+    hay forma de cambiar de idioma. Por eso «desapareció».
+15. **A distancia y cuerpo a cuerpo usan la MISMA característica (Combate)** — matiz que el dueño preguntó. Lo
+    que cambia es el tipo de tirada: a distancia es un **reto** contra la dificultad del alcance y el arma no
+    suma dados; cuerpo a cuerpo es un **conflicto enfrentado** y ahí sí suma la bonificación (p.96–97).
+
+
 ### QA del dueño sobre la ficha (2026-08-19, tarde) — 11 puntos, NADA hecho
 Marcados los que el **libro** resuelve (verificado en el PDF) y los que son pantalla (→ `.pen` antes que código).
 
@@ -358,12 +375,27 @@ actual: un personaje sano sale **todo negro**, y al recibir daño se va **despin
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🔁 Prompt para el chat nuevo
-> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción ya está en pie (web y API responden). En el árbol
-> de trabajo de `feat/maps-slice-2`, sin commitear, hay dos lotes: la rebanada 3 de `maps` (review + qa pasados) y
-> tres arreglos del generador de personajes (sin review ni qa). Empieza por: (1) commitear lo que hay, (2) pasar
-> review + qa a los arreglos del generador, (3) el `.pen` — encontrar por qué se solapa la cabecera del frame `GjeeD`
-> y convertir en componente las 14 copias de `Rolvium Bar`. Diseño en `.pen` ANTES de cualquier código de UI, orden
-> del dueño. Flujo: dev → review → qa.
+> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción está al día (`main` = `b84234b`, web y API
+> responden). La rama `fix/rules-audit` está terminada y **sin Review ni QA**: el Destino se capa al elegir, el
+> canje de dones a 2 (el segundo con permiso del DJ) y `RULES.md` verificado contra el PDF del manual, que está
+> en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf` — **úsalo, el manual manda y las páginas del
+> PDF van con 2 de desfase sobre las del libro**. Empieza por: (1) Review + QA a esa rama y subirla, (2) el
+> punto 12 del backlog (un personaje creado no aparece en `/characters` ni en el mapa) — reprodúcelo antes de
+> tocar código, (3) la tanda de diseño en el `.pen` del generador y la ficha, que cubre 15 puntos del backlog.
+> Diseño en `.pen` ANTES de cualquier código de UI, orden del dueño. Flujo: dev → review → qa.
+> Dos decisiones del dueño pendientes: el ancho de los 14 frames de Mesa (con 6 pestañas la barra pide 1486 px
+> y el frame da 1420; dijo que NO se acortan rótulos) y si quiere el interruptor del director como opción de
+> campaña. El `.pen` está guardado hasta la Reserva achicada; comprueba `git status` antes de dar nada por hecho.
+
+### Lección de esta sesión, que se repitió cuatro veces
+**Un guardia que mide sólo el estado RESULTANTE convierte cualquier borrador ya fuera de norma en un callejón
+sin salida**, porque veta también los controles que lo repararían. Se capa la subida, nunca la bajada. Salió en
+el canje de dones, en el cupo de especialidades, en el techo del Destino y en el canje contra el valor recortado.
+Y su gemela: **un control vetado tiene que VERSE vetado**; si no, el usuario elige y no pasa nada.
+
+**Y la de fondo**: producción llevaba dos días congelada porque la rama nunca se pusheó, y media mañana se fue
+en diagnosticar «bugs» que ya estaban arreglados. **Comprueba `git log origin/main` antes de creerte cualquier
+«esto está roto en producción».**
 
 ## 🚫 Bloqueos / notas
 ### Vercel — el API existe y despliega solo, pero le faltan las variables (2026-08-19)
