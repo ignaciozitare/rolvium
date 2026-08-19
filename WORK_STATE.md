@@ -444,6 +444,98 @@ característica con cuerpo · leyenda por dado · «Mejorar» fuera de las pesta
 - `specs/modules/system-plenilunio/SPEC.md:33` lista el orden viejo de secciones — se actualiza ahora que
   ya está desplegado.
 
+## 🩸 LA REGLA QUE SE NOS ESTABA ESCAPANDO — daño, Resistencia y Salud (p.98–99)
+Salió de que el dueño insistiera en que «no tiene relación» y en que **mirara el PDF, no el RULES.md**.
+Tenía razón: `RULES.md` NO tiene esta tabla, que es justo la que explica la relación.
+
+| Daño recibido | Casillas a tachar |
+|---|---|
+| Aguante | 1 casilla (herida leve) |
+| Dos veces el Aguante | 2 casillas (herida grave) |
+| Tres veces el Aguante | 3 casillas (herida crítica) |
+| Cuatro veces el Aguante | Muerto (herida mortal) |
+
+**La clave está en «casillas a tachar»**: las lunas de salud SON casillas que se tachan, y **se acumulan
+entre golpes** — «si un personaje pierde todos sus niveles de salud, bien porque haya sufrido una herida
+mortal o **por haber acumulado cualquier combinación** de suficientes heridas de distinta severidad,
+entonces está muerto».
+
+Son **dos marcadores con dos finales distintos, unidos por el Aguante**:
+
+| | Resistencia | Salud (lunas) |
+|---|---|---|
+| qué la baja | el daño, siempre, punto a punto | sólo si **UN** golpe llega al Aguante |
+| cuánto | el daño neto | 1 luna por cada Aguante completo de **ese** golpe |
+| al fondo | 0 → un punto más y cae **inconsciente** | todas tachadas → **muerto** |
+
+Con Aguante 6: un golpe de 5 quita 5 de Resistencia y **ninguna** luna · uno de 6 quita 6 y **una** luna ·
+uno de 13 quita 13 y **dos** lunas. Por eso parecía roto: los golpes pequeños vacían la Resistencia sin
+tocar las lunas, y eso es correcto.
+
+Verificado además contra el PDF: **Magullado NO penaliza** («puede realizar todo tipo de acciones sin
+penalización alguna»); Herido −1 dado; Malherido −2. Coincide con `HEALTH_LEVELS`.
+⚠ Rareza del libro, anotada sin resolver: dice «**seis** niveles básicos de salud» y luego lista **cinco**.
+
+### Qué hay que hacer con esto (pedido del dueño, sin empezar)
+**«Que esta lógica funcione por detrás y cuando coma daño lo vaya poniendo. Esto tiene que facilitarle la
+vida a los jugadores.»** Hoy el motor calcula bien pero la ficha no lo cuenta ni lo automatiza:
+1. **Meter la tabla de p.99 en `RULES.md`** — es la deuda que causó todo esto.
+2. Al recibir daño, **enseñar las dos consecuencias por separado** («−13 de Resistencia · 2 heridas → Herido»)
+   en vez de dejar que el jugador deduzca. Hoy sólo se dice la resta de la protección.
+3. **Reducir la severidad con Fortuna** (p.99, «un punto por cada nivel de severidad que se quiera
+   reducir»): no existe. `applyDamage` ya acepta un parámetro `fortune` que nadie le pasa.
+4. Comprobar el aviso de **inconsciente** en pantalla: la regla SÍ está implementada
+   (`applyDamage`: Resistencia a 0 y un punto más → `unconscious`), pero no se avisa de nada.
+
+## 🧾 Sesión del 2026-08-19 (noche) — rama `fix/ficha-listas`, SIN Review, SIN QA, SIN mergear
+Seis commits sobre `main`. **Nada de esto está en producción.** La rama arregla lo que el dueño vio en
+local y va acompañada de capturas hechas con la app corriendo.
+
+- **La ficha se monta como el `.pen`**: rejilla de SEIS columnas con `SectionDef.span` en sextos, no
+  `auto-fit`. Medido sobre `qjLDu` (1601): Identidad/Dificultad/Armas/Historia fila entera ·
+  Características y Estado a la MITAD (793) · Dones/Equipo/Armadura a un TERCIO (523). Antes salían
+  cuatro columnas estrechas con media pantalla vacía.
+- **Las listas a UNA línea**, sin `flex-wrap`; la luna sólo en listas con acción (Dones sí, Equipo no); el
+  contador sin rótulo repetido y pegado a la derecha. Las filas son **texto**, no desplegables
+  (`rowPicker` los deja sólo en el generador, que es donde se elige).
+- **Revertido el `span: 2` de Estado**: dejaba un vacío enorme. El hueco se arregla componiendo, no
+  ensanchando.
+- **Cargador y Munición como columnas separadas**, con botón de recargar. `reload()` llenaba el cargador
+  **de la nada**; ahora saca de `reserve`. El cargador es **sólo lectura**: lo mueven disparar y recargar.
+- **La munición se gasta al disparar.** ⚠ Me equivoqué al decir que «1 disparo = 1 bala» era lectura
+  nuestra: lo fija la tabla de armas (p.97), donde arco, ballesta y tirachinas ponen **Cargador 1** — eso
+  sólo tiene sentido si la unidad es un disparo. `ActionDef.spend` nuevo (null = no se puede pagar → botón
+  apagado) y `ActionDef.toRoll` pasa a opcional (recargar no tira dados).
+- **Cada arma ofrece SÓLO su acción** (`ActionDef.appliesToRow`) y el cargador no sale en las de cuerpo a
+  cuerpo (`FieldDef.appliesToRow`): el libro les pone «-» en las nueve (p.97).
+- **El alcance ya sale traducido y con los metros**: «Medio · hasta 50 m · dif. 3» (p.95–96). Antes salía
+  literalmente «medium».
+- Fuera el **registro de tiradas duplicado** de la ficha; queda sólo el aviso de fallo.
+- Las casillas de Resistencia más grandes (20 px) y en UNA fila a lo ancho; botón de daño en **color
+  sangre**; números calculados centrados con filete corto entre dos (Armadura); Estado reordenado.
+- **El botón de recibir daño NO estaba roto**: con protección 6 un daño de 5 da 0 y no pasaba nada, sin
+  decir nada. Ahora la línea de abajo dice la cuenta: «5 − 6 de protección = 0 · la armadura lo para
+  entero».
+
+### ⚠️ Lo que el dueño pidió y NO está hecho (de esta ronda)
+1. **Aguante y Resistencia máxima en tarjetas cuadradas centradas** dentro de la tarjeta grande, con los
+   textos centrados con los números.
+2. **Penalización por heridas y Resistencia recuperable, una al lado de la otra**, en tarjetas como las de
+   Aguante.
+3. **Las casillas de Resistencia y las lunas, centradas** en la tarjeta.
+4. **Un tooltip en el alcance**: hoy los metros van inline en el texto, no en tooltip.
+5. Todo lo de la sección «LA REGLA QUE SE NOS ESTABA ESCAPANDO».
+
+### 🔬 Ahora se puede VER lo que se escribe: `scripts/shot.mjs`
+Playwright entra como dependencia de desarrollo. El script levanta sesión, entra en la mesa y captura la
+ficha entera y cada sección por separado (`/tmp/full.png`, `/tmp/sec-<sección>.png`). **Existe porque se
+subió a producción una tanda entera validada sólo con tests unitarios y medidas de contraste, y se veía
+mal.** Orden del dueño: no volver a trabajar a ciegas en pantallas. `TABLE=<uuid> node scripts/shot.mjs`.
+
+Datos de prueba en local: campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`, personaje **Karen Sinclair**
+(`3af4f238-25ad-4cf1-a264-09d7586019d8`) con dones, equipo, chaleco antibalas, nudilleras y un magnum.
+`admin@rolvium.local` / `rolvium123`.
+
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
 ### Últimos cuatro del dueño (2026-08-19, tarde)
@@ -634,40 +726,31 @@ actual: un personaje sano sale **todo negro**, y al recibir daño se va **despin
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🔁 Prompt para el chat nuevo
-> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción al día; `main` lleva la rama
-> `fix/rules-audit` mergeada (Review y QA pasados), el `.pen` con el generador Y la ficha ya guardado
-> por el dueño y commiteado, y el spec de **Aventuras (H12) cerrado sin construir**.
-> **Comprueba `git status` y `ls -la rolvium.pen` antes de dar nada por hecho.**
+> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. **Estoy en la rama `fix/ficha-listas`, con seis
+> commits que NO están en `main` ni en producción** — comprueba `git status` y `git log main..HEAD`.
 >
-> El diseño de la tanda está HECHO (6 pasos del generador en `y=7860`; ficha `qjLDu` sincronizada a
-> `g6RyaZ`). Ahora toca CÓDIGO, en este orden:
+> **Regla número uno de esta fase: no se toca una pantalla sin verla.** `node scripts/shot.mjs` levanta
+> sesión y captura la ficha (necesita `npm run db:start`, `npm run dev:api` y `npm run dev:web`). Se subió
+> una tanda entera validada sólo con tests y se veía mal; el dueño lo dejó claro.
 >
-> 1. **Punto 12 — el personaje no se guarda.** Crea uno y LEE el aviso: ya trae motivo, hint y
->    código. Descartados con el cliente real: RLS, los dos embeds, `.single()` y un borrador completo
->    del generador. Sospecha viva: sesión caducada (`PGRST301`).
-> 2. **Los cinco puntos que NO eran de diseño** (sección con ese título): cargador sólo en armas a
->    distancia, un solo botón por arma (⚔ o ◎), munición al disparar, fuera el registro de tiradas de
->    la ficha, y cards con sombra sin borde. El `.pen` ya lo dice bien; diverge la web. Son los más
->    baratos y se ven enseguida. Ojo: la munición es la única con carga de reglas (1 disparo = 1 bala
->    es lectura nuestra; recargar consume dados de Combate, p.96–97).
-> 3. **Tokens de contraste** a `apps/web/src/RolviumApp.css`: `tx3` → `#67605a` claro / `#8f87a0`
->    oscuro, `pl-tinta-tenue` → `#55534c`, y `pl-oro-claro` `#c9a44e` nuevo para dorado sobre fondo
->    oscuro (`pl-oro` daba 3,95:1 y el rótulo del tooltip salía invisible). Afecta a toda la app.
-> 4. **Armadura + escudo** (backlog 16): campo de escudo aparte y `derived()` sumando las dos
->    columnas, con la nota en RULES.md. El manual NO lo resuelve; las citas están en el backlog.
-> 5. **El resto del diseño nuevo**, contra el `.pen` 1:1: reordenar la ficha, Resistencia con las
->    dañadas en bordó (`pl-sangre`), el tooltip de recibir daño, Equipo con «+» desplegable, el
->    tooltip de característica con cuerpo, la leyenda por dado, «Mejorar» fuera de las pestañas, y las
->    seis vistas del generador con su columna de GUÍA.
-> 6. **Aventuras (H12)**: spec cerrado en `specs/modules/adventures/SPEC.md`. Sigue por **dba →
->    scaffold → design (`.pen`) → dev**. Nada empezado.
+> Sigue por, en este orden:
+> 1. **La lógica de daño → Resistencia → Salud** (sección «LA REGLA QUE SE NOS ESTABA ESCAPANDO»). Meter la
+>    tabla de p.99 en `RULES.md`, enseñar las dos consecuencias al recibir daño, avisar del inconsciente, y
+>    la reducción de severidad con Fortuna (p.99), que no existe. Objetivo del dueño: **que le facilite la
+>    vida al jugador**, no que tenga que deducirlo.
+> 2. **Los cuatro puntos de pantalla que quedaron sin hacer** (sección «Lo que el dueño pidió y NO está
+>    hecho»): Aguante y Resistencia máxima en tarjetas cuadradas centradas · Penalización y Resistencia
+>    recuperable en tarjetas al lado · casillas y lunas centradas · tooltip en el alcance.
+> 3. **Review + QA a `fix/ficha-listas` y mergear.** No se ha pasado ninguno de los dos.
+> 4. Lo que siga del backlog: Estado compuesto como el `.pen`, armadura + escudo (backlog 16), los tokens
+>    de contraste que faltan, y Aventuras (H12), cuyo spec está cerrado y sin construir.
 >
-> El manual manda: PDF en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf`, **con 2 de
-> desfase** sobre las páginas del libro. Diseño en `.pen` ANTES de cualquier código de UI, orden del
-> dueño. Flujo: dev → review → qa.
-> Ya decidido: el ancho de los frames de Mesa no se toca · el interruptor del director va como opción
-> de campaña gobernando los dos canjes (rebanada propia) · el contenido vive en la BASE, nunca
-> hardcodeado en el front.
+> El manual manda: PDF en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf`, **con 2 de desfase**
+> sobre las páginas del libro. Y **léelo del PDF, no de RULES.md**: la tabla de heridas de p.99 no estaba en
+> RULES.md y por eso se nos escapó una regla entera.
+> Diseño en `.pen` ANTES de cualquier código de UI. Flujo: dev → review → qa.
+> Local: campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`, personaje Karen Sinclair, `admin@rolvium.local` /
+> `rolvium123`.
 
 ### Lección de esta sesión, que se repitió cuatro veces
 **Un guardia que mide sólo el estado RESULTANTE convierte cualquier borrador ya fuera de norma en un callejón
