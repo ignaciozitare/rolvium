@@ -43,6 +43,22 @@ const num = (v: unknown, d = 0): number => (typeof v === 'number' && Number.isFi
 const str = (v: unknown): string => (typeof v === 'string' ? v : v == null ? '' : String(v));
 const rows = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter((r): r is Record<string, unknown> => !!r && typeof r === 'object') : []);
 const WIDE_TYPES = new Set(['table', 'longtext', 'image']);
+/**
+ * Whether ONE option of a `<select>` must be shown disabled, given the guard (`canChange`).
+ *
+ * Per option and not on the whole control: a budget rules out some choices, almost never the
+ * field itself — greying the `<select>` would hide the choices the player can still afford.
+ * Without this a refused pick died in silence: `set` skips `onChange` when the guard says no,
+ * so React re-rendered the old value and the dropdown "bounced back" with no explanation
+ * (owner, 2026-08-19: «los dones no me deja elegirlos, me deja el último»). The counters had
+ * this signal through `allowed` from the start; the selects did not.
+ *
+ * The value already selected is never disabled — a disabled selected option is a broken
+ * control, and re-picking what is already there costs nothing anyway.
+ */
+const optionVetoed = (value: string, current: string, disabled: boolean, allowed: (v: unknown) => boolean): boolean =>
+  !disabled && value !== current && !allowed(value);
+
 const isWide = (s: SectionDef) => s.layout === 'row' || s.fields.some(f => WIDE_TYPES.has(f.type));
 
 export function Sheet(p: SheetProps): JSX.Element {
@@ -88,14 +104,16 @@ export function Sheet(p: SheetProps): JSX.Element {
           </div>
         );
       }
-      case 'select':
+      case 'select': {
+        const dis = ro || !!f.derived;
         return (
           <div className="rv-sheet-field">{label(f)}
-            <select className="rv-sheet-inp" aria-label={p.t(f.label)} value={str(v)} disabled={ro || !!f.derived} onChange={e => set(f.id, e.target.value)}>
-              {(f.options ?? []).map(o => <option key={o.value} value={o.value}>{p.t(o.label)}</option>)}
+            <select className="rv-sheet-inp" aria-label={p.t(f.label)} value={str(v)} disabled={dis} onChange={e => set(f.id, e.target.value)}>
+              {(f.options ?? []).map(o => <option key={o.value} value={o.value} disabled={optionVetoed(o.value, str(v), dis, x => allowed(f.id, x))}>{p.t(o.label)}</option>)}
             </select>
           </div>
         );
+      }
       case 'health': {
         const opts = f.options ?? [];
         return (
@@ -322,7 +340,7 @@ function Cell({ d, value, ro, p, onChange, allowed = () => true }: { d: FieldDef
   const dis = ro || !!d.derived;
   if (d.type === 'select') {
     if (dis) return <span>{p.t(d.options?.find(o => o.value === str(value))?.label ?? str(value))}</span>;
-    return <select className="rv-sheet-inp" aria-label={p.t(d.label)} value={str(value)} onChange={e => onChange(e.target.value)}>{(d.options ?? []).map(o => <option key={o.value} value={o.value}>{p.t(o.label)}</option>)}</select>;
+    return <select className="rv-sheet-inp" aria-label={p.t(d.label)} value={str(value)} onChange={e => onChange(e.target.value)}>{(d.options ?? []).map(o => <option key={o.value} value={o.value} disabled={optionVetoed(o.value, str(value), dis, allowed)}>{p.t(o.label)}</option>)}</select>;
   }
   if (d.type === 'counter') {
     if (value === null || value === undefined) return <span className="rv-sheet-caption">—</span>;

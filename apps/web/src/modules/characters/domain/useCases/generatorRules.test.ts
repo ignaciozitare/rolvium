@@ -17,4 +17,9 @@ describe('budgetAllows — el guardia de presupuesto del generador', () => {
     // cambiar QUÉ don es una fila no mueve el presupuesto; vetarlo no protegía nada
     expect(budgetAllows(-2, -2)).toBe(true);
   });
+  it('si el paso de partida no tenía presupuesto, entrar en rojo se veta igual', () => {
+    // `before` ausente cuenta como 0: nadie puede estrenar números rojos «gratis»
+    expect(budgetAllows(-1, undefined)).toBe(false);
+    expect(budgetAllows(0, undefined)).toBe(true);
+  });
 });

@@ -62,5 +62,22 @@ describe('regression · filas de una lista de la ficha', () => {
     expect(screen.getByRole('button', { name: /Añadir · Dones/ })).toBeDisabled();
     expect(within(rows[0]!).getByRole('button', { name: '+ Nivel' })).toBeDisabled();
     expect(within(rows[0]!).getByRole('button', { name: '− Nivel' })).toBeDisabled();
+    // el desplegable también: era el control que rebotaba en silencio
+    const sel = within(rows[0]!).getByLabelText('Don');
+    expect(within(sel).getByRole('option', { name: 'Don B' })).toBeDisabled();
+    expect(within(sel).getByRole('option', { name: 'Don A' })).toBeEnabled();   // la ya elegida, nunca
+  });
+
+  it('el veto es por opción, no por control: lo que sí cabe se sigue pudiendo elegir', () => {
+    // veta cualquier lista que contenga el don B; lo demás pasa
+    const veto = (_id: string, v: unknown) => !JSON.stringify(v).includes('"b"');
+    const { onData, rows } = mount({ canChange: veto });
+    const sel = within(rows[0]!).getByLabelText('Don') as HTMLSelectElement;
+    expect(sel).toBeEnabled();
+    expect(within(sel).getByRole('option', { name: 'Don B' })).toBeDisabled();
+    expect(within(rows[0]!).getByRole('button', { name: '+ Nivel' })).toBeEnabled();  // subir nivel no toca el don vetado
+    // y lo permitido sigue llegando al onChange, no sólo "no está desactivado"
+    fireEvent.click(within(rows[0]!).getByRole('button', { name: '+ Nivel' }));
+    expect(onData).toHaveBeenLastCalledWith({ gifts: [{ id: 'a', level: 2 }, { id: 'a', level: 2 }] });
   });
 });
