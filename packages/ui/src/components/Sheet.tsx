@@ -251,10 +251,14 @@ const actionsFor = (f: FieldDef, actions: ActionDef[] | undefined): ActionDef[] 
 };
 const rowId = (r: Record<string, unknown>, i: number) => str(r.id) || String(i);
 /**
- * React key of a list row. NOT `rowId`: a blank row takes the first option of its select, so two
- * unfilled gifts carry the SAME id and React then treats them as one — you edit one and the other
- * changes, you delete one and the wrong one goes (owner, 2026-08-19). Every mutation here is by
+ * React key of a list OR table row. NOT `rowId`: a blank row takes the first option of its select,
+ * so two unfilled gifts (or two unfilled weapons, both `unarmed`) carry the SAME id and React then
+ * treats them as one — "Encountered two children with the same key", which React documents as
+ * unsupported: children may be duplicated or omitted (owner, 2026-08-19). Every mutation here is by
  * index (`patchRow`, the × button), so the index IS the row's identity.
+ *
+ * `rowId` stays for what it is actually about — the identity handed to `onAction` and used to look
+ * a row up in a catalog — which is the row's game id, not its position.
  */
 const rowKey = (r: Record<string, unknown>, i: number) => `${i}:${str(r.id)}`;
 const blankRow = (defs: FieldDef[]): Record<string, unknown> => Object.fromEntries(defs.filter(d => !d.derived).map(d => [d.id, d.type === 'select' ? d.options?.[0]?.value ?? '' : d.type === 'counter' || d.type === 'number' ? d.min ?? 0 : d.type === 'text' ? '' : null]));
@@ -323,7 +327,7 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
         <thead><tr>{cols.map(c => <th key={c.id} className={c.type === 'number' || c.type === 'counter' ? 'num' : ''}>{p.t(c.label)}</th>)}<th /></tr></thead>
         <tbody>
           {list.map((row, i) => (
-            <tr key={rowId(row, i)}>
+            <tr key={rowKey(row, i)}>
               {cols.map(c => <td key={c.id} className={c.type === 'number' || c.type === 'counter' ? 'num' : ''}>{c.derived ? derivedCell(row, c) : <Cell d={c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}</td>)}
               <td><ItemActions f={f} p={p} item={row} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} /></td>
             </tr>

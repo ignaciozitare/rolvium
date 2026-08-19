@@ -80,4 +80,39 @@ describe('regression · filas de una lista de la ficha', () => {
     fireEvent.click(within(rows[0]!).getByRole('button', { name: '+ Nivel' }));
     expect(onData).toHaveBeenLastCalledWith({ gifts: [{ id: 'a', level: 2 }, { id: 'a', level: 2 }] });
   });
+
+  /**
+   * QA 2026-08-19: the three assertions above pass just as well with the rows keyed by `rowId`
+   * again — with fully controlled inputs the collision is invisible to jsdom, so nothing pinned
+   * the fix and it could be undone without a red test. React itself is the only witness, and it
+   * calls duplicate keys unsupported ("children may be duplicated and/or omitted"), so assert on
+   * the warning: this is what actually goes red if `rowKey` ever becomes `rowId` again.
+   */
+  const keyWarnings = (ui: JSX.Element): string[] => {
+    const seen: string[] = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => { seen.push(a.map(String).join(' ')); });
+    try { renderWithProviders(ui); } finally { spy.mockRestore(); }
+    return seen.filter(m => m.includes('same key'));
+  };
+
+  it('dos filas en blanco no comparten clave de React — ni en lista ni en tabla', () => {
+    expect(keyWarnings(<Host onData={vi.fn()} />)).toEqual([]);
+
+    // la tabla tiene exactamente la misma forma: «+ Añadir» dos veces da dos armas `unarmed`
+    const TABLE: SheetSchema = {
+      version: '1',
+      sections: [{
+        id: 'weapons', label: 'weapons', layout: 'stack', fields: [
+          { id: 'weapons', type: 'table', label: 'Armas', columns: [
+            { id: 'id', type: 'select', label: 'Arma', options: [{ value: 'a', label: 'Arma A' }, { value: 'b', label: 'Arma B' }] },
+            { id: 'ammo', type: 'counter', label: 'Munición', min: 0, max: 9 },
+          ] },
+        ],
+      }],
+    };
+    expect(keyWarnings(
+      <Sheet schema={TABLE} data={{ weapons: [{ id: 'a', ammo: 0 }, { id: 'a', ammo: 0 }] }} derived={{}}
+        t={(k: string) => k} labels={LABELS} icons={{}} onChange={() => undefined} />,
+    )).toEqual([]);
+  });
 });
