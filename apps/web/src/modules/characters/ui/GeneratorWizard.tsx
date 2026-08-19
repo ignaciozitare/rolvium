@@ -38,7 +38,8 @@ export function GeneratorWizard({ campaignId, system, role, repo = defaultRepo, 
   const [assignTo, setAssignTo] = useState<string>('');
   const [members, setMembers] = useState<CampaignMember[]>([]);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  /** `false` = sin fallo · `true` = fallo sin motivo legible · texto = el motivo tal cual, para poder arreglarlo. */
+  const [failed, setFailed] = useState<boolean | string>(false);
   const isDm = role === 'dm';
 
   useEffect(() => {
@@ -84,7 +85,13 @@ export function GeneratorWizard({ campaignId, system, role, repo = defaultRepo, 
         data, derived: system.engine.derived(data), health: str(data.health) || null,
       });
       onCreated(created);
-    } catch { setFailed(true); }
+    } catch (e) {
+      // NO tragarse el error. El dueño perdió un personaje entero y lo único que quedó fue «se borró»
+      // (2026-08-19): el `catch {}` de antes descartaba el motivo, así que un fallo de guardado era
+      // indistinguible de que nunca hubiera pasado nada. La base acepta el insert bajo RLS —probado—, así
+      // que el motivo vive aquí y hay que poder leerlo.
+      setFailed(e instanceof Error && e.message ? e.message : true);
+    }
     finally { setBusy(false); }
   };
 
@@ -134,7 +141,7 @@ export function GeneratorWizard({ campaignId, system, role, repo = defaultRepo, 
         </div>
         <div className="ch-gen-foot-right">
           {error && <span className="ch-gen-err" role="alert">{ts(error)}</span>}
-          {failed && <span className="ch-gen-err" role="alert">{t('characters.generator.failed')}</span>}
+          {failed && <span className="ch-gen-err" role="alert">{t('characters.generator.failed')}{typeof failed === 'string' ? ` · ${failed}` : ''}</span>}
           {last
             ? <button type="button" className="rv-sheet-btn solid" disabled={!!error || busy} onClick={() => void finish()}>{busy ? t('characters.generator.creating') : t('characters.generator.finish')}</button>
             : <button type="button" className="rv-sheet-btn solid" disabled={!!error} onClick={() => setI(x => x + 1)}>{t('characters.generator.next')}</button>}
