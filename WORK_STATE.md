@@ -406,6 +406,44 @@ en las migraciones). Rebanada propia y hay que pensarla: choca con «el paquete 
 trae sus reglas», así que lo más probable es mixto — el paquete pone los textos por defecto y la base guarda
 sólo las correcciones, por sistema e idioma.
 
+## ✅ Primera tanda del rediseño de la ficha — EN PRODUCCIÓN (2026-08-19 noche)
+`main` con `fix/ficha-diseno` mergeada (Review + QA pasados, cinco commits). Comprobado contra el bundle
+desplegado, no de memoria: el CSS nuevo trae `rv-sheet-box.hit` y el JS trae `tx-off`.
+
+- **Resistencia al derecho** (p.25): en blanco lo que queda, dañadas en bordó (`--sys-blood`), la última
+  devolvible. ⚠ El Review corrigió el razonamiento: en la hoja impresa hay TRES estados (sombreado = las
+  que no tienes de las 30 impresas · blanco = tu Resistencia · tachado = daño); lo que autoriza el cambio
+  digital es «para poder tacharlos durante el juego», porque en pantalla se pintan exactamente
+  `resistanceMax` casillas y el sombreado no existe. En RULES.md.
+- **Bug que se coló y cazó el Review**: los clics se contaban contra `max` y no contra las casillas
+  pintadas, así que una ficha con `resistance > resistanceMax` llegaba a Resistencia **negativa** y perdía
+  el deshacer. Test de los tres bordes.
+- **Armas a todo el ancho · Dones · Equipo · Armadura en fila · Estado con `span: 2`** (`SectionDef.span`
+  nuevo, declarado por el SISTEMA: el kit no puede saber que Estado pide más sitio).
+- **Contraste**: `--tx3` de 3,60→5,69 (oscuro) y 2,68→5,30 (claro); `--sys-ink-dim` 4,52→5,61.
+  **`--tx-off` aparte para «desactivado»**: subir `--tx3` a secas acercaba activo y desactivado de 4,36:1
+  a 2,76:1 y un control vetado se veía MENOS vetado — regresión mía, hallazgo del QA.
+
+**Decisiones del dueño**: claro/oscuro se mira en producción · **no se estrechan las cards para 1280 px**
+(«un portátil de 1280 es algo muy viejo, me da igual»); con 340 de mínimo hacen falta ~1350 px en la Mesa.
+
+### Lo que queda de la ficha, sin hacer
+Cargador sólo en armas a distancia · un solo botón por arma (⚔ o ◎) · munición al disparar · fuera el
+registro de tiradas duplicado · Equipo con «+» desplegable · tooltip de recibir daño · tooltip de
+característica con cuerpo · leyenda por dado · «Mejorar» fuera de las pestañas. Todo está diseñado en el
+`.pen`; es llevarlo a código.
+
+### Deuda que dejó el QA
+- `.rv-sheet-box:disabled` sólo cambia el cursor, sin `opacity`: en solo lectura las casillas parecen
+  pulsables. Mismo caso en `.rv-sheet-health-opt`. Es cambio visual → pasa antes por el `.pen`.
+- `--sys-gold` sobre `--sys-paper-hi` da 4,03:1 en `.rv-sheet-btn.gold`, y como texto sobre card 3,17:1.
+  El `.pen` ya tiene `pl-oro-claro` `#c9a44e`; el código no, a propósito, hasta que entre con consumidores.
+- `audit.mjs` no detecta `var()` con fallback **anidado** (`var(--x,var(--y))`): cuatro casos en
+  `DateRangePicker.tsx`. Fallo del comprobador determinista, no del código.
+- `table.css:5` sigue duplicando en hex la paleta de Plenilunio bajo el nombre «neutral defaults».
+- `specs/modules/system-plenilunio/SPEC.md:33` lista el orden viejo de secciones — se actualiza ahora que
+  ya está desplegado.
+
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
 ### Últimos cuatro del dueño (2026-08-19, tarde)
