@@ -44,8 +44,8 @@ Fuente de verdad: el manual. Digesto con páginas y decisiones «⚠ interpretac
   - **Especialidades**: 1 por característica; cada canje compra 2 extra en dos características distintas → techo
     `1 + canjes` por característica y `2 × canjes` en total (RULES.md §1.3). Va en los dos pasos que listan las
     características, porque el campo `stat` arrastra sus desplegables a los dos.
-  - **Destino**: 1–5 al crear (RULES.md §1.4). El campo de la ficha llega a 10 porque en juego sube, y eso es límite
-    de validación, no regla del libro.
+  - **Destino**: 1–5 al crear (RULES.md §1.4, p. 88 literal). El campo de la ficha llega a 10 porque **el libro
+    dice 1–10** (p. 88) y en juego el Destino sube hasta ese tope: es regla, no límite de validación.
   - **Dones**: un don no se repite (tiene UN nivel, 1–5, RULES.md §7). El canje de dones va a **máx. 2, el segundo
     con permiso del DJ** —calcado a especialidades, decisión del dueño 2026-08-19 tras verificar el PDF— y además lo
     frena lo que puedas pagar en puntos de creación (RULES.md §1.5). El contador del paso dice `total/gastados`, igual

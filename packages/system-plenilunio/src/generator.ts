@@ -1,8 +1,8 @@
 // ─── Character generator · Malefic Time: Plenilunio ──────────────────────────
 // Steps declared as data (GeneratorStep[]) with the manual's point economy:
 // presets 16/21/25/30 points (max stat 5/5/6/10, p.21), Destiny 3 ± 2 (each +1
-// costs a point, each −1 refunds one, p.22–23), 1 point = 2 extra specialties
-// (max 2 trades, p.22) or 2 gift points; gift points = Destiny (+ trades), p.25.
+// costs a point, each −1 refunds one, p.23), 1 point = 2 extra specialties
+// (max 2 trades, p.23) or 2 gift points; gift points = Destiny (+ trades), p.25.
 // See RULES.md §1.
 import type { GeneratorStep, SheetData, SheetPatch } from '@rolvium/core';
 import { GIFT_MAX_LEVEL, STAT_IDS, isStatId } from './catalogs';
@@ -87,8 +87,8 @@ export function applyChange(draft: SheetData, fieldId: string, next: unknown): S
  *
  * - **A trade must be payable.** `giftTrade` spends CREATION points to buy gift points (1 → 2,
  *   RULES.md §1.5), but the budget this step guards is the GIFT one, and a trade only ever raises
- *   it — so the guard always said yes and you could spend creation points you do not have. The book
- *   puts no cap on the number of trades, only on what you can pay for, so that is what we check.
+ *   it — so the guard always said yes and you could spend creation points you do not have. On top of
+ *   the book's own ceiling (`MAX_GIFT_TRADES`), what you can PAY for is the second cap we check.
  *   Left unchecked it also became a dead end: 10 trades give 23 gift points, and with the level cap
  *   of 5 that needs five gifts to spend — with three rows «Continuar» could never light up, and the
  *   error only said «reparte los puntos restantes», never naming the trade that caused it.
@@ -127,7 +127,7 @@ export function applyGiftChange(draft: SheetData, fieldId: string, next: unknown
  * through and the caps only showed up on «Continuar» (owner, 2026-08-19: seis especialidades en
  * Presencia con cero canjes, y luego no se avanza).
  *
- * Both caps come straight from the book (RULES.md §1.3, p.21–22): one per characteristic to start,
+ * Both caps come straight from the book (RULES.md §1.3, p.21–23): one per characteristic to start,
  * and each trade buys 2 extra **in two different characteristics** — which is what the per-stat
  * ceiling of `1 + canjes` expresses, with the total capped at `2 × canjes`.
  */
@@ -187,8 +187,9 @@ export const generator: GeneratorStep[] = [
   },
   {
     id: 'destiny', label: 'generator.step.destiny', fields: ['destiny'],
-    // El campo `destiny` de la ficha llega hasta 10 —en juego el Destino sube, y el libro no le pone
-    // techo—, pero AL CREAR va de 1 a 5 (RULES.md §1.4, p.22–23 y p.88). Sin este guardia el contador
+    // El campo `destiny` de la ficha llega hasta 10 porque ése es el techo DEL LIBRO («El Destino puede
+    // adoptar puntuaciones entre 1 y 10», p.88, y en 10 se revela el destino), pero AL CREAR va de 1 a 5
+    // («comenzará el juego con una puntuación de Destino entre 1 y 5», p.88; RULES.md §1.4). Sin este guardia el contador
     // dejaba subir hasta 10 y luego «Continuar» lo rechazaba: elegir y que no pase nada, otra vez.
     // Sólo se capa la SUBIDA, para que un borrador que ya venga fuera de rango se pueda reparar.
     applyChange: (draft, fieldId, next) => {

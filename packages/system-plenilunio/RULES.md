@@ -28,7 +28,7 @@ Tabla de repartos (p. 21):
 | Héroes legendarios  | 25     | 6      |
 | Seres míticos       | 30     | 10     |
 
-### 1.3 Especialidades (p. 21–22)
+### 1.3 Especialidades (p. 21–23)
 Descriptor asociado a una característica; lista abierta. Cada personaje empieza con **una por característica**.
 Canje: 1 punto de característica → 2 especialidades extra **en dos características distintas**.
 Un segundo canje solo con permiso del DJ (máx. 2 canjes).
@@ -47,14 +47,15 @@ Lista del manual (por característica):
 - **Presencia (16):** Cantar, Charlatanería, Cortesía, Empatía, Erotismo, Humor, Inspirar, Interrogación, Intimidar, Liderazgo, Mímica, Negociar, Poesía, Seducción, Tortura, Trato con animales.
 - **Cultura (16):** Arte, Ciencias, Historia, Humanidades, Idiomas, Informática, Leyendas, Medicina, Nueva York, Ocultismo, Primeros auxilios, Psicología, Religión, Tácticas, Tecnología, Teoría de la conspiración.
 
-### 1.4 Destino inicial (p. 22–23; p. 88)
+### 1.4 Destino inicial (p. 23; p. 88)
 Empieza en **3**. Canjes: +1 Destino por cada punto de característica gastado (máx. +2 → 5);
 −1 Destino devuelve 1 punto de característica; un segundo −1 solo con permiso del DJ (mín. 1).
-Rango inicial efectivo: **1–5** (p. 88 confirma que los PJ empiezan entre 1 y 5).
-- ⚠ interpretación: **en juego el libro no le pone techo** al Destino (sube por progresión, y cada subida da
-  1 punto de don, p. 89). El campo de la ficha lo capa en **10** como límite de validación, no como regla:
-  sin ningún tope, un contador editable por el jugador no tendría freno. Al **crear** sí manda el libro: 1–5.
-
+Rango inicial efectivo: **1–5** — p. 88, literal: «cada personaje jugador comenzará el juego con una
+puntuación de Destino entre 1 y 5».
+- **No es interpretación, el libro lo dice** (p. 88): «El Destino puede adoptar puntuaciones entre 1 y 10», y
+  el 10 es el final del camino («la puntuación llega a 10 puntos y el destino queda totalmente revelado»).
+  Así que el **10 de la ficha es la regla del libro**, no un límite de validación inventado: en juego el
+  Destino sube por progresión (y cada subida da 1 punto de don, p. 89) hasta ese tope. Al **crear**, 1–5.
 
 ### 1.5 Dones en creación (p. 23–25; detalle p. 102+)
 Puntos de don iniciales = **Destino**. Se reparten libremente entre dones (nivel máx. inicial **5**).
@@ -68,8 +69,8 @@ Canje: 1 punto de característica → **2 puntos de don**. **Máx. 2 canjes**, e
   director es una **opción de campaña** y es su propia rebanada (migración + RLS + spec); cuando exista
   gobernará los dos canjes, no sólo éste.
 Cada vez que sube el Destino se recibe **1 punto de don** nuevo (p. 89).
-- ⚠ interpretación: el libro no pone tope al número de canjes, pero sí lo pone lo que puedes pagar — no se
-  canjean puntos de característica que no tienes. El generador lo veta ahí, no con un número inventado.
+- Además del tope de 2, frena lo que puedas **pagar**: no se canjean puntos de característica que no tienes.
+  El generador veta en los dos sitios, y ambos topes capan sólo la SUBIDA (un borrador ya pasado se repara).
 - ⚠ interpretación: **un don no se repite**; un don tiene UN nivel (1–5, §7), así que dos filas del mismo don
   serían un nivel por encima del tope por la puerta de atrás. Para tener más, se sube el nivel.
 

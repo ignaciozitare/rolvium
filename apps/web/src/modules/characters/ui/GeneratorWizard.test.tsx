@@ -5,8 +5,7 @@ import { plenilunio } from '@rolvium/system-plenilunio';
 import { fakeCampaignsRepo, fakeCharactersRepo } from '../../../../tests/helpers/fakes';
 import { GeneratorWizard } from './GeneratorWizard';
 
-function mount(role: 'dm' | 'player') {
-  const repo = fakeCharactersRepo([]);
+function mount(role: 'dm' | 'player', repo = fakeCharactersRepo([])) {
   const campaigns = fakeCampaignsRepo();
   campaigns.listMembers = async () => [{ campaignId: 'c1', userId: 'u-pip', name: 'Pip', avatarUrl: null, role: 'player', characterId: null, joinedAt: '' }];
   const onCreated = vi.fn(); const onCancel = vi.fn();
@@ -14,6 +13,32 @@ function mount(role: 'dm' | 'player') {
   return { repo, onCreated, onCancel };
 }
 const stat = (id: string) => document.querySelector(`[data-stat="${id}"]`) as HTMLElement;
+
+/** Concepto → Características → Especialidades con un reparto válido; deja el asistente en el paso de Destino. */
+async function walkToDestiny(u: ReturnType<typeof userEvent.setup>) {
+  await u.type(screen.getByLabelText('Personaje'), 'Karen');
+  await u.type(screen.getByLabelText('Concepto'), 'Líder');
+  await u.click(screen.getByRole('button', { name: 'Continuar' }));
+  for (const [id, n] of [['fortitude', 3], ['combat', 3], ['will', 2], ['cunning', 2], ['presence', 4]] as const) {
+    for (let i = 0; i < n; i++) await u.click(within(stat(id)).getByRole('button', { name: /^\+ / }));
+  }
+  await u.click(screen.getByRole('button', { name: 'Continuar' }));
+  for (const f of plenilunio.sheetSchema.sections.flatMap(s => s.fields).filter(f => f.type === 'stat')) {
+    await u.selectOptions(within(stat(f.id)).getByLabelText(/^Añadir Especialidad/), f.itemFields![0]!.options![0]!.value);
+  }
+  await u.click(screen.getByRole('button', { name: 'Continuar' }));   // especialidades → Destino
+}
+
+/** Recorre los seis pasos con un reparto válido y deja el asistente en el resumen, listo para «Crear personaje». */
+async function walkToSummary(u: ReturnType<typeof userEvent.setup>) {
+  await walkToDestiny(u);
+  await u.click(screen.getByRole('button', { name: 'Continuar' }));   // Destino 3 por defecto → Dones
+  await u.click(screen.getByRole('button', { name: /Añadir · Dones/ }));
+  await u.click(screen.getByRole('button', { name: /Añadir · Dones/ }));
+  const gifts = within(screen.getByRole('list', { name: 'Dones' })).getAllByRole('listitem');
+  await u.click(within(gifts[0]!).getByRole('button', { name: '+ Nivel' }));   // 3 puntos de don repartidos
+  await u.click(screen.getByRole('button', { name: 'Continuar' }));
+}
 
 describe('<GeneratorWizard>', () => {
   it('walks the system steps with budget + validation and creates the character with finalizeDraft', async () => {
@@ -197,6 +222,65 @@ describe('<GeneratorWizard>', () => {
     expect(within(preset).getByRole('option', { name: /^Estándar/ })).toBeEnabled();
     await u.selectOptions(preset, 'standard');
     expect(preset).toHaveValue('standard');
+  }, 40000);
+  /**
+   * El tope del Destino al crear (1–5, RULES.md §1.4) se aplica AL ELEGIR y además se VE: con el guardia
+   * devolviendo null pero el «+» pintado como vivo, pulsarlo no haría nada — «elegir y que no pase nada»,
+   * que es justo el fallo que este guardia venía a arreglar.
+   */
+  it('el Destino se ve topado en 1–5 al crear: el «+» se desactiva en 5, no rebota en silencio', async () => {
+    const u = userEvent.setup();
+    mount('player');
+    await walkToDestiny(u);
+    const inc = () => screen.getByRole('button', { name: '+ Destino' });
+    const dec = () => screen.getByRole('button', { name: '− Destino' });
+    // 3 → 5 gastando dos puntos de característica; en 5 el «+» queda desactivado
+    await u.click(inc()); await u.click(inc());
+    expect(inc()).toBeDisabled();
+    // y la bajada sigue viva hasta 1, que es como se repara
+    for (let i = 0; i < 4; i++) await u.click(dec());
+    expect(dec()).toBeDisabled();
+    expect(inc()).toBeEnabled();
+  }, 40000);
+  /**
+   * Regresión, dueño 2026-08-19: el `catch { setFailed(true) }` de antes descartaba el motivo, así que un
+   * fallo de guardado era indistinguible de que no hubiera pasado nada («se borró» el personaje). El motivo
+   * tiene que llegar a la pantalla, y el botón tiene que quedar vivo para reintentar.
+   */
+  it('un fallo al crear enseña el MOTIVO en vez de tragárselo', async () => {
+    const u = userEvent.setup();
+    const repo = fakeCharactersRepo([]);
+    repo.create = async () => { throw new Error('new row violates row-level security policy'); };
+    const { onCreated } = mount('player', repo);
+    await walkToSummary(u);
+    await u.click(screen.getByRole('button', { name: 'Crear personaje' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('new row violates row-level security policy'));
+    expect(onCreated).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Crear personaje' })).toBeEnabled();   // se puede reintentar
+  }, 40000);
+  /**
+   * El fallo REAL: supabase-js lanza un objeto plano `{ message, code, … }`, no un `Error`. Con el
+   * `e instanceof Error` de antes, el motivo de todos los fallos de base se tiraba y el dueño volvía a
+   * ver el aviso genérico. Este test usa la forma exacta que devuelve PostgREST.
+   */
+  it('un fallo de base (objeto PLANO, no Error) también enseña el motivo', async () => {
+    const u = userEvent.setup();
+    const repo = fakeCharactersRepo([]);
+    repo.create = async () => { throw { message: 'new row violates row-level security policy for table "characters"', details: null, hint: null, code: '42501' }; };
+    mount('player', repo);
+    await walkToSummary(u);
+    await u.click(screen.getByRole('button', { name: 'Crear personaje' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('row-level security'));
+    expect(screen.getByRole('alert')).toHaveTextContent('42501');
+  }, 40000);
+  it('un fallo sin mensaje legible sigue avisando, aunque sin motivo', async () => {
+    const u = userEvent.setup();
+    const repo = fakeCharactersRepo([]);
+    repo.create = async () => { throw 'nope'; };
+    mount('player', repo);
+    await walkToSummary(u);
+    await u.click(screen.getByRole('button', { name: 'Crear personaje' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
   }, 40000);
   it('DM sees kind + assign-to, and «Atrás»/«Cancelar» work', async () => {
     const u = userEvent.setup();
