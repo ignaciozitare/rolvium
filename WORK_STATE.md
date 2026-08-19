@@ -14,6 +14,71 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🟢 PUNTO EXACTO — 2026-08-19, cierre por handoff de contexto
+
+**Rama `fix/ficha-listas`, 8 commits sobre `main`. Sigue SIN Review, SIN QA y SIN mergear.**
+Último commit: `2182f38` — los cuatro puntos de pantalla que quedaban del dueño.
+
+### Lo que se hizo en esta sesión
+Los **cuatro puntos de pantalla** (punto 2 del plan del dueño), todos verificados con
+`node scripts/shot.mjs` antes y después:
+- **Aguante y Resistencia máxima** en tarjetas cuadradas centradas, rótulo y número centrados.
+- **Penalización por heridas y Resistencia recuperable**, una al lado de la otra, en tarjetas iguales.
+  «Inconsciente» baja por debajo de la pareja en vez de partirla (reorden en `schema.ts`).
+- **Casillas de Resistencia y lunas de Salud, centradas** en la tarjeta.
+- **Alcance con tooltip**: la celda dice «Medio», el tooltip «Hasta 50 m · dificultad 3» (p.95–96).
+  Antes ocupaba media tabla de Armas.
+
+Cómo, para no re-descubrirlo:
+- `<Sheet>` agrupa las **tandas seguidas** de números calculados de una sección `grid` en una fila
+  propia (`groupTiles` → `.rv-sheet-tiles`) y las centra. Centrar cada campo en SU celda de la rejilla
+  no vale: quedan repartidos por el ancho, no centrados en la tarjeta grande.
+- En `stack` **no se toca nada**: Armadura conserva su lectura en columna con el filete corto.
+- `FieldDef.options` acepta un **`hint` opcional** (clave i18n). La ficha lo saca en `Tooltip` de
+  `@rolvium/ui` sobre un `<abbr tabIndex={0}>`, no en la celda. Locales: `sheet.range.*` es el nombre
+  a secas y `sheet.rangeHint.*` los metros y la dificultad.
+
+Ficheros: `packages/core/src/gameSystem.ts` · `packages/system-plenilunio/src/{schema,locales}.ts` ·
+`packages/ui/src/components/{Sheet.tsx,sheet.css}` · test nuevo
+`apps/web/tests/regression/sheet-state-tiles.test.tsx` (6 casos).
+
+Verde: `npm test` 509/509 · `npm run typecheck` · `npm run build:web` y `build:api` · `npm run audit`
+0 hard / 9 warn, **todos los warns preexistentes** (maps, dice, UserMenu — ninguno de esta tanda).
+
+### ⏳ Próximo paso, en este orden
+1. **El test que falta** (obligatorio antes de Review): el **tooltip del alcance** no tiene test. El
+   hook de context-handoff cerró la sesión justo al escribirlo. El fichero iba a ser
+   `apps/web/tests/regression/sheet-range-hint.test.tsx` y tiene que fijar tres cosas: que la celda
+   diga sólo «Medio» (nada de «Medio · hasta 50 m»), que el tooltip lleve la pista y el `<abbr>` sea
+   `tabIndex=0` (sin eso el dato sólo existe con ratón), y que una opción SIN `hint` salga como texto
+   pelado. Patrón: copiar `sheet-state-tiles.test.tsx`.
+2. **La lógica de daño → Resistencia → Salud** (sección «LA REGLA QUE SE NOS ESTABA ESCAPANDO»). Nada
+   empezado. **Leer el PDF, no RULES.md.**
+3. **Review + QA a `fix/ficha-listas` y mergear.** Ninguno de los dos se ha pasado.
+4. Backlog: Estado compuesto, armadura + escudo (16), tokens de contraste, Aventuras (H12).
+
+### 🔎 Deuda encontrada y NO tocada (decidir aparte)
+- **El «Cargador» del rifle de asalto sale «—» teniendo 12 de munición** (visto en la captura). La
+  columna `ammo` es `derived`, y en `TableField` el `derived` gana al `appliesToRow`, así que
+  `derivedCell` busca el valor en la fila, no lo encuentra (`null`) y no hay `ammo` en el catálogo →
+  pinta «—» en vez de `0`. El magnum sale bien porque tiene `ammo: 6` guardado. El botón de recargar
+  sí está activo, así que la fila se contradice a sí misma. **No lo he tocado: está fuera de los
+  cuatro puntos.**
+- La rejilla de Estado tiene 3 columnas y quedan **4 campos no-tarjeta** (inconsciente, destino,
+  fortuna, experiencia), así que la fila siempre sale 3+1 y «Experiencia» cuelga sola. Ya salía
+  desparejada antes del cambio (era «Puntos de don | Experiencia»), o sea que no ha empeorado, pero
+  no está resuelto. Si molesta, se arregla componiendo, no ensanchando.
+- **El `.pen` no se ha tocado**: estos cuatro puntos son correcciones dictadas por el dueño sobre la
+  pantalla, no un diseño nuevo, y el `.pen` sólo lo puede guardar él. Si la lectura en tarjetas se
+  queda, hay que bajarla al master.
+
+### 🖥 El entorno local quedó levantado
+Docker + `npm run db:start` + `npm run dev:web` (:5173) están **corriendo**. El `dev:api` que ya
+estaba de antes sigue en **:3001** (no :3000): si `npm run dev:api` da `EADDRINUSE 3001`, es que ya
+hay uno vivo y está sano — comprobá `curl localhost:3001/health` antes de matar nada.
+
+---
+
 ## 🔎 Prueba manual del dueño (2026-08-18) — cerrada
 - **(a) El generador se atascaba en «Características».** Causa: `GeneratorWizard.canChange` sólo miraba el presupuesto,
   nunca el máximo del reparto; `canAdjustStat` estaba exportada y testeada pero la UI no la llamaba, y el campo `stat`
@@ -517,14 +582,13 @@ local y va acompañada de capturas hechas con la app corriendo.
   decir nada. Ahora la línea de abajo dice la cuenta: «5 − 6 de protección = 0 · la armadura lo para
   entero».
 
-### ⚠️ Lo que el dueño pidió y NO está hecho (de esta ronda)
-1. **Aguante y Resistencia máxima en tarjetas cuadradas centradas** dentro de la tarjeta grande, con los
-   textos centrados con los números.
-2. **Penalización por heridas y Resistencia recuperable, una al lado de la otra**, en tarjetas como las de
-   Aguante.
-3. **Las casillas de Resistencia y las lunas, centradas** en la tarjeta.
-4. **Un tooltip en el alcance**: hoy los metros van inline en el texto, no en tooltip.
-5. Todo lo de la sección «LA REGLA QUE SE NOS ESTABA ESCAPANDO».
+### ✅ Los cuatro puntos de pantalla — HECHOS (2026-08-19 noche, commit `2182f38`)
+Los cuatro se hicieron mirando la app corriendo (`scripts/shot.mjs`), antes y después:
+1. ~~Aguante y Resistencia máxima en tarjetas cuadradas centradas~~ ✅
+2. ~~Penalización por heridas y Resistencia recuperable, una al lado de la otra~~ ✅
+3. ~~Casillas de Resistencia y lunas centradas~~ ✅
+4. ~~Tooltip en el alcance~~ ✅ — la celda dice «Medio» y el tooltip «Hasta 50 m · dificultad 3».
+5. **Sigue SIN empezar**: todo lo de la sección «LA REGLA QUE SE NOS ESTABA ESCAPANDO».
 
 ### 🔬 Ahora se puede VER lo que se escribe: `scripts/shot.mjs`
 Playwright entra como dependencia de desarrollo. El script levanta sesión, entra en la mesa y captura la
@@ -726,8 +790,9 @@ actual: un personaje sano sale **todo negro**, y al recibir daño se va **despin
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🔁 Prompt para el chat nuevo
-> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. **Estoy en la rama `fix/ficha-listas`, con seis
-> commits que NO están en `main` ni en producción** — comprueba `git status` y `git log main..HEAD`.
+> Retomo Rolvium: lee WORK_STATE.md (empieza por el bloque 🟢 PUNTO EXACTO) y ARCHITECTURE.md. **Estoy
+> en la rama `fix/ficha-listas`, con ocho commits que NO están en `main` ni en producción** — comprueba
+> `git status` y `git log main..HEAD`. Lo PRIMERO es el test que falta del tooltip del alcance.
 >
 > **Regla número uno de esta fase: no se toca una pantalla sin verla.** `node scripts/shot.mjs` levanta
 > sesión y captura la ficha (necesita `npm run db:start`, `npm run dev:api` y `npm run dev:web`). Se subió
@@ -738,9 +803,8 @@ actual: un personaje sano sale **todo negro**, y al recibir daño se va **despin
 >    tabla de p.99 en `RULES.md`, enseñar las dos consecuencias al recibir daño, avisar del inconsciente, y
 >    la reducción de severidad con Fortuna (p.99), que no existe. Objetivo del dueño: **que le facilite la
 >    vida al jugador**, no que tenga que deducirlo.
-> 2. **Los cuatro puntos de pantalla que quedaron sin hacer** (sección «Lo que el dueño pidió y NO está
->    hecho»): Aguante y Resistencia máxima en tarjetas cuadradas centradas · Penalización y Resistencia
->    recuperable en tarjetas al lado · casillas y lunas centradas · tooltip en el alcance.
+> 2. ~~Los cuatro puntos de pantalla~~ **HECHOS** (commit `2182f38`), pero al tooltip del alcance le
+>    falta el test — escríbelo antes de nada.
 > 3. **Review + QA a `fix/ficha-listas` y mergear.** No se ha pasado ninguno de los dos.
 > 4. Lo que siga del backlog: Estado compuesto como el `.pen`, armadura + escudo (backlog 16), los tokens
 >    de contraste que faltan, y Aventuras (H12), cuyo spec está cerrado y sin construir.
@@ -763,7 +827,14 @@ en diagnosticar «bugs» que ya estaban arreglados. **Comprueba `git log origin/
 «esto está roto en producción».**
 
 ## 🚫 Bloqueos / notas
-### Vercel — el API existe y despliega solo, pero le faltan las variables (2026-08-19)
+### ⚠️ La sección de Vercel de abajo está VIEJA — el dueño lo desmintió (2026-08-19 noche)
+Palabras suyas: «lo del bloqueo vivo tiene que ser viejo porque está todo subido y lo veo funcionando».
+O sea: las variables de entorno y el proyecto web ya están puestos, y `rolvium.vercel.app` ya no da 404.
+**No lo he verificado yo** (no toco producción sin que se pida), así que lo dejo escrito tal cual y sin
+borrar el histórico. Lo que siga sin comprobar de esa lista, se comprueba en el chat nuevo antes de
+creérselo en ninguna dirección.
+
+### Vercel — el API existe y despliega solo, pero le faltan las variables (2026-08-19) [DESMENTIDO ARRIBA]
 - Panel: https://vercel.com/ignaciozitare-9429s-projects/rolvium-api · `prj_0OBlHaNEmoDHOZVoEnFTV8hr4i70` ·
   team `team_O0LMo9mzgF91fZTJ1mJg7yJw`. **Está conectado a GitHub**, así que cada push a `main` lo redespliega.
 - **https://rolvium-api.vercel.app** deja de ser un placeholder: es la URL real que consume `VITE_API_URL`.
