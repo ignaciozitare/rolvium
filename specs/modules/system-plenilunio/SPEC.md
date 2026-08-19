@@ -46,7 +46,8 @@ Fuente de verdad: el manual. Digesto con páginas y decisiones «⚠ interpretac
     características, porque el campo `stat` arrastra sus desplegables a los dos.
   - **Destino**: 1–5 al crear (RULES.md §1.4). El campo de la ficha llega a 10 porque en juego sube, y eso es límite
     de validación, no regla del libro.
-  - **Dones**: un don no se repite (tiene UN nivel, 1–5, RULES.md §7). El canje de dones **no lleva tope propio**: lo
+  - **Dones**: un don no se repite (tiene UN nivel, 1–5, RULES.md §7). El canje de dones va a **máx. 2, el segundo
+    con permiso del DJ** —calcado a especialidades, decisión del dueño 2026-08-19 tras verificar el PDF— y además lo
     frena lo que puedas pagar en puntos de creación (RULES.md §1.5). El contador del paso dice `total/gastados`, igual
     que los pasos de puntos.
   - Y los puntos de creación en rojo se avisan **antes** que el reparto de dones: si no, el mensaje manda al jugador a

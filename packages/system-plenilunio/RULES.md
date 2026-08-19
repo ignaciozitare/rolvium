@@ -58,13 +58,15 @@ Rango inicial efectivo: **1–5** (p. 88 confirma que los PJ empiezan entre 1 y 
 
 ### 1.5 Dones en creación (p. 23–25; detalle p. 102+)
 Puntos de don iniciales = **Destino**. Se reparten libremente entre dones (nivel máx. inicial **5**).
-Canje: 1 punto de característica → **2 puntos de don**.
-- ⚠ **interpretación, y la más floja que tenemos** (verificado contra el PDF, p.25). El libro dice literalmente
-  «Puede gastarse **un punto** de característica para recibir dos puntos de dones adicionales», y no añade
-  ninguna cláusula de límite. Lo leemos como «por cada punto», sin tope más allá de lo pagable. **Pero el
-  contraste con las especialidades incomoda**: allí (p.23) el libro sí se molesta en decir «en principio solo se
-  puede gastar un único punto de característica de este modo» y en abrir la puerta a un segundo con permiso del
-  DJ. Aquí no dice ni una cosa ni la otra. Cabe leerlo como un único canje. **Pendiente de decisión del dueño.**
+Canje: 1 punto de característica → **2 puntos de don**. **Máx. 2 canjes**, el segundo con permiso del DJ.
+- ⚠ interpretación **decidida por el dueño (2026-08-19)**, verificada contra el PDF. El libro (p.25) dice
+  «Puede gastarse **un punto** de característica para recibir dos puntos de dones adicionales» y no añade
+  cláusula de límite; la sección hermana de especialidades (p.23) sí es explícita: «solo se puede gastar un
+  único punto de característica de este modo», y un segundo sólo si el DJ lo permite. Se lee **calcado a
+  especialidades**: un canje, dos con permiso del DJ.
+- El segundo canje **asume** ese permiso, igual que ya lo asume `MAX_SPECIALTY_TRADES`. El interruptor real del
+  director es una **opción de campaña** y es su propia rebanada (migración + RLS + spec); cuando exista
+  gobernará los dos canjes, no sólo éste.
 Cada vez que sube el Destino se recibe **1 punto de don** nuevo (p. 89).
 - ⚠ interpretación: el libro no pone tope al número de canjes, pero sí lo pone lo que puedes pagar — no se
   canjean puntos de característica que no tienes. El generador lo veta ahí, no con un número inventado.

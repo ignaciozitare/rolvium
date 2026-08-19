@@ -99,7 +99,7 @@ export const sections: SectionDef[] = [
   { id: 'creation', label: 'sheet.sections.creation', layout: 'row', fields: [
     { id: 'preset', type: 'select', label: 'sheet.creation.preset', ref: 'stats', options: PRESETS.map(p => ({ value: p.id, label: `generator.preset.${p.id}` })) },
     { id: 'specialtyTrade', type: 'counter', label: 'sheet.creation.specialtyTrade', ref: 'specialty', min: 0, max: 2 },
-    { id: 'giftTrade', type: 'counter', label: 'sheet.creation.giftTrade', ref: 'gifts', min: 0 },   // sin tope: el libro no lo pone, lo pone lo que puedas pagar (RULES.md §1.5)
+    { id: 'giftTrade', type: 'counter', label: 'sheet.creation.giftTrade', ref: 'gifts', min: 0, max: 2 },   // máx. 2 canjes, el segundo con permiso del DJ (RULES.md §1.5), igual que specialtyTrade
   ] },
 ];
 

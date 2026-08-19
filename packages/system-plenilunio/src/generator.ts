@@ -12,6 +12,15 @@ import { DEFAULT_PRESET, PRESETS, giftsOf, num, statOf, str, type PresetId } fro
 export const BASE_DESTINY = 3;
 export const DESTINY_ADJUST = 2;
 export const MAX_SPECIALTY_TRADES = 2;
+/**
+ * Canjes de dones. El libro (p.25) dice «Puede gastarse UN punto de característica para recibir dos
+ * puntos de dones adicionales» y no pone cláusula de límite, pero la sección hermana de
+ * especialidades (p.23) sí es explícita: un único punto, y un segundo sólo con permiso del DJ.
+ * Decisión del dueño (2026-08-19): se lee calcado a especialidades. El segundo canje asume ese
+ * permiso, igual que `MAX_SPECIALTY_TRADES` ya lo asume hoy; el interruptor de verdad del director
+ * es su propia rebanada (opción de campaña), y cuando exista gobernará los dos canjes.
+ */
+export const MAX_GIFT_TRADES = 2;
 
 export const presetOf = (draft: SheetData) => PRESETS.find(p => p.id === str(draft.preset, DEFAULT_PRESET)) ?? PRESETS[1];
 
@@ -25,7 +34,7 @@ export function budgetOf(draft: SheetData): Budget {
   const preset = presetOf(draft);
   const statsSpent = STAT_IDS.reduce((s, id) => s + statOf(draft, id).value, 0);
   const specialtyTrade = Math.max(0, Math.min(MAX_SPECIALTY_TRADES, num(draft.specialtyTrade)));
-  const giftTrade = Math.max(0, num(draft.giftTrade));
+  const giftTrade = Math.max(0, Math.min(MAX_GIFT_TRADES, num(draft.giftTrade)));
   const destiny = num(draft.destiny, BASE_DESTINY);
   const destinyCost = Math.max(0, destiny - BASE_DESTINY);
   const destinyRefund = Math.max(0, BASE_DESTINY - destiny);
@@ -93,7 +102,13 @@ export function applyGiftChange(draft: SheetData, fieldId: string, next: unknown
     // what is left. Only a RISE is capped: an overspent draft has to stay repairable, and a ceiling that
     // also blocks the way down would disable the very «−» that fixes it — the same invariant
     // `budgetAllows` keeps for every step that shows the creation budget.
-    if (wanted < 0 || (wanted > b.giftTrade && wanted > b.giftTrade + b.available)) return null;
+    // Dos techos, y los dos capan sólo la SUBIDA para que un borrador ya excedido se pueda reparar:
+    // el del libro (`MAX_GIFT_TRADES`) y el de lo que puedas pagar.
+    // Contra el valor CRUDO, no contra `b.giftTrade`, que ya viene recortado a MAX_GIFT_TRADES: si se
+    // comparase con el recortado, una ficha guardada con 10 no podría ni bajar a 9.
+    const now = Math.max(0, num(draft.giftTrade));
+    if (wanted < 0) return null;
+    if (wanted > now && (wanted > MAX_GIFT_TRADES || wanted > b.giftTrade + b.available)) return null;
     return { giftTrade: wanted };
   }
   if (fieldId === 'gifts') {
