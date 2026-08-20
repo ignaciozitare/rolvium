@@ -7,7 +7,7 @@ import { TablePage } from '@/modules/table/ui/TablePage';
 import type { TablePort } from '@/modules/table/domain/ports/TablePort';
 import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
 import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
-import { canTake, tabsFor } from '@/modules/table/domain/useCases/tableRules';
+import { canTake, initialTabFor, tabsFor } from '@/modules/table/domain/useCases/tableRules';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 
 const GM = { ...ADMIN_USER, id: 'dm-1', name: 'Laura', role: 'game_master' };
@@ -63,6 +63,28 @@ describe('table: rules', () => {
     expect(tabsFor('player')).toEqual(['sheet', 'scene', 'create']);
     expect(tabsFor('dm')).toContain('group');
     for (const role of ['player', 'dm'] as const) expect(tabsFor(role)).not.toContain('improve');
+  });
+
+  /**
+   * El director NO tiene personaje propio, así que «Ficha» no es pestaña suya (dueño, 2026-08-21). Le
+   * enseñaba un vacío o, peor, la ficha del jugador que hubiera abierto antes desde «El grupo».
+   *
+   * Y al jugador NO se le toca: es su pestaña principal, la primera y donde aterriza. El dueño avisó
+   * expresamente de esto, así que queda pinchado.
+   */
+  it('«Ficha» no es pestaña del director, y sigue siendo la del jugador', () => {
+    expect(tabsFor('dm')).not.toContain('sheet');
+    expect(tabsFor('player')).toContain('sheet');
+    expect(tabsFor('player')[0]).toBe('sheet');
+    // El director conserva lo suyo: nada más se ha caído por el camino.
+    expect(tabsFor('dm')).toEqual(['group', 'scene', 'bestiary', 'create']);
+  });
+
+  it('cada rol aterriza donde le sirve: el jugador en su ficha, el director en la escena', () => {
+    expect(initialTabFor('player')).toBe('sheet');
+    expect(initialTabFor('dm')).toBe('scene');
+    // Aterrizar donde no hay pestaña dejaría la barra sin nada marcado.
+    for (const role of ['player', 'dm'] as const) expect(tabsFor(role)).toContain(initialTabFor(role));
   });
   it('only players take dice, up to the per-take max, while the pool has dice', () => {
     const def = { id: 'destiny', label: 'x', max: 10, initial: 10, perTakeMax: 5, whoCanTake: 'player' as const, whoCanReset: 'dm' as const };
@@ -137,21 +159,40 @@ describe('table: page', () => {
     vi.restoreAllMocks();
   });
 
-  it('Ficha tab renders my sheet; DM «El grupo» → «Ver ficha» opens that sheet; Mejorar and Crear personaje tabs render', async () => {
+  /**
+   * El camino del director a una ficha es «El grupo» → «Ver ficha» → «← Volver al grupo». Ya no hay
+   * pestaña «Ficha» suya (dueño, 2026-08-21: no tiene personaje propio), pero la VISTA de la ficha sigue
+   * existiendo: lo que se quitó es el botón que llevaba a ella sin haber elegido a nadie.
+   */
+  it('DM: sin pestaña «Ficha», llega por «El grupo» → «Ver ficha» y vuelve; Mejorar y Crear personaje siguen', async () => {
     const u = userEvent.setup();
     mount(GM, fakeTableRepo('dm'));
+    // Aterriza en la escena, y «Ficha» no está en su barra.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Escena', pressed: true })).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Ficha' })).not.toBeInTheDocument();
+
     await u.click(await screen.findByRole('button', { name: 'El grupo' }));
     const karen = await screen.findByRole('article', { name: 'Karen «K»' });
     await u.click(within(karen).getByRole('button', { name: 'Ver ficha' }));
     expect(await screen.findByLabelText('Personaje')).toHaveValue('Karen «K»');
-    expect(screen.getByRole('button', { name: 'Ficha', pressed: true })).toBeInTheDocument();
+    // Y hay puerta de salida, que antes no había.
+    expect(screen.getByText(/Estás viendo la ficha de/)).toBeInTheDocument();
+
     await u.click(screen.getByRole('button', { name: 'Mejorar' }));
     expect(await screen.findByText('Mejorar con experiencia')).toBeInTheDocument();
+
+    await u.click(screen.getByRole('button', { name: /Volver al grupo/ }));
+    expect(await screen.findByRole('article', { name: 'Karen «K»' })).toBeInTheDocument();
+
     await u.click(screen.getByRole('button', { name: 'Crear personaje' }));
     expect(await screen.findByText('Solo director')).toBeInTheDocument();
-    document.body.innerHTML = '';
+  });
+
+  /** Al JUGADOR no se le toca: «Ficha» sigue siendo su pestaña y donde aterriza (aviso expreso del dueño). */
+  it('el jugador conserva su pestaña «Ficha» y sigue aterrizando en ella', async () => {
     mount(PLAYER_USER, fakeTableRepo('player'));
     expect(await screen.findByLabelText('Personaje')).toHaveValue('Karen «K»');
+    expect(screen.getByRole('button', { name: 'Ficha', pressed: true })).toBeInTheDocument();
   });
 
   it('«Escena» tab mounts the maps hexagon with the snapshot\'s active scene (player follows the DM\'s choice; no scene → the notice)', async () => {

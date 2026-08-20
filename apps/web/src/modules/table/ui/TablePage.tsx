@@ -7,7 +7,7 @@ import { SYSTEMS } from '@/systems/registry';
 import type { TablePort } from '../domain/ports/TablePort';
 import type { TableTab } from '../domain/entities/Table';
 import { tableRepo } from '../container';
-import { handOf, isConnected, tabsFor } from '../domain/useCases/tableRules';
+import { handOf, initialTabFor, isConnected, tabsFor } from '../domain/useCases/tableRules';
 import { useTable } from './useTable';
 import { SharedResourceBar } from './SharedResourceBar';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
@@ -35,7 +35,9 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   const { t, locale } = useTranslation();
   const { user } = useAuth();
   const { snap, system, status, patchResources } = useTable(id, repo);
-  const [tab, setTab] = useState<TableTab>('sheet');
+  // `null` = todavía no ha elegido. El rol no se sabe hasta que carga la campaña, y cada uno aterriza en
+  // un sitio distinto: el director no tiene ficha propia, así que empieza en la escena.
+  const [chosenTab, setTab] = useState<TableTab | null>(null);
   const [rollerOpen, setRollerOpen] = useState(false);
   /** The shared-resource bar floats over the tab and can be folded away: on the scene it was eating map. */
   const [resOpen, setResOpen] = useState(true);
@@ -67,6 +69,10 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
 
   const { campaign, members, presence, resources, activeSceneId } = snap;
   const role = campaign.myRole ?? 'player';
+  const tab = chosenTab ?? initialTabFor(role);
+  // La ficha de un jugador no es pestaña del director, pero se llega desde «El grupo» y se vuelve allí:
+  // marcarla mientras tanto evita una barra sin nada encendido, que se lee como «no estoy en ningún sitio».
+  const marked = tab === 'sheet' && viewCharacterId ? 'group' : tab;
   const sysInfo = SYSTEMS.find(s => s.id === campaign.systemId);
   const tabs = tabsFor(role);
   const dm = members.find(m => m.role === 'dm');
@@ -89,7 +95,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
           {/* Pulsar «Ficha» vuelve SIEMPRE a la mía. Si no, el director que había abierto la de un jugador
               desde «El grupo» se quedaba con esa pegada a la pestaña para el resto de la sesión: pulsaba
               «Ficha» y seguía viendo a otro, sin decirle de quién era ni cómo salir (dueño, 2026-08-21). */}
-          {tabs.map(tb => <button key={tb} type="button" className={`tb-rvtab ${tab === tb ? 'on' : ''}`} aria-pressed={tab === tb}
+          {tabs.map(tb => <button key={tb} type="button" className={`tb-rvtab ${marked === tb ? 'on' : ''}`} aria-pressed={marked === tb}
                                   onClick={() => { if (tb === 'sheet') setViewCharacterId(null); setTab(tb); }}>{t(`table.tab.${tb}`)}</button>)}
         </nav>
         <div className="tb-rvbar-right">

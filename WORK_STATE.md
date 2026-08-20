@@ -99,10 +99,18 @@ Todas arregladas y comprobadas en la app corriendo.
    SIEMPRE a la propia.
 5. **Sin salida desde «El grupo».** La ficha ajena no tenía ni cartel de quién era ni puerta. Ahora lleva
    «← Volver al grupo» y «Estás viendo la ficha de X».
+6. **«Ficha» YA NO ES PESTAÑA DEL DIRECTOR** (lo que el dueño pedía de verdad en el punto 4: «el director
+   de juego no tiene personaje propio, por eso te pedí que quites el botón»). `tabsFor('dm')` pasa a
+   `['group','scene','bestiary','create']` y el director **aterriza en «Escena»** (`initialTabFor`).
+   La VISTA de la ficha sigue existiendo para él: se llega por «El grupo» → «Ver ficha», y mientras la
+   mira queda marcada «El grupo», que es de donde viene y a donde vuelve.
+   ⚠ **Al jugador NO se le toca** — aviso expreso del dueño. Sigue con `['sheet','scene','create']`,
+   «Ficha» primera y aterrizando en ella. Hay tests que lo pinchan en `tests/functional/table.test.tsx`.
 
 **Ficheros de esta vuelta:** `bestiary.css` · `CreatureRollPopover.tsx` · `EntryCard.tsx` ·
 `BestiaryTab.tsx` · `SceneTab.tsx` (+test, 4) · `TablePage.tsx` · `tabs/SheetTab.tsx` (+test, 2) ·
-`characters.css` · `locales/{es,en}.json` · el pin de regresión (+1) · `rolvium.pen` · el spec.
+`characters.css` · `locales/{es,en}.json` · el pin de regresión (+1) · `rolvium.pen` · el spec ·
+`tableRules.ts` (+`initialTabFor`) · `tests/functional/table.test.tsx` (+2).
 
 ### ⚠️ PENDIENTE DE DECIDIR (nada de esto está hecho)
 - **Review y QA NO se han pasado.** Esta sesión tenía instrucción de no lanzar subagentes, así que se
