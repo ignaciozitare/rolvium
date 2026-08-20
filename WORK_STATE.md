@@ -14,6 +14,140 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🟢 PUNTO EXACTO — 2026-08-21, CIERRE POR HANDOFF. Siguiente: tiradas + panel del director (`.pen` v3vfV)
+
+Rama **`feat/bestiario`**, árbol **limpio**, todo verde: **664 tests** (487 web + 77 api + 6 core + 16 ui
++ 78 plenilunio), typecheck, `audit` 0 hard, ambas apps compilando. Últimos commits: `2c70075`, `8e4a55f`,
+`000f758`.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: construye las tiradas y el panel del director del `.pen` (nodo `v3vfV`) siguiendo el
+> bloque 🟢 de WORK_STATE al pie de la letra, empezando por las columnas 1 y 2.
+
+### ⚠️ Por qué se cerró
+Saltó el hook de context-handoff (14,2 MB de transcripción, umbral 6). Se había empezado la columna 1 y se
+**revirtió a propósito** para no dejar la rama en rojo: el cambio en `packages/ui/src/components/Sheet.tsx`
+rompía `tests/functional/sheet-component.test.tsx` y el gate ya no dejaba tocar el test. **No hay nada a
+medias en el árbol.**
+
+---
+
+## 🎲 LO SIGUIENTE — el encargo del dueño, literal
+> «Ahora continúa con esta parte de las tiradas y el panel del DM, Node ID: v3vfV, sigue el diseño al pie
+> de la letra en el .pen, no quiero que inventes.»
+
+**El spec YA lo describe entero** en [specs/modules/dice/SPEC.md](specs/modules/dice/SPEC.md), sección «Cómo
+se lanza una tirada, y el panel del director». **El diseño está entero** en `rolvium.pen`, frame `v3vfV`
+«Mesa/Tiradas · rediseño — quién ve qué». No hace falta spec nuevo ni diseño nuevo: hace falta construirlo.
+
+### 🚨 EL DATO QUE CAMBIA EL ORDEN — leer antes de planificar
+`v3vfV` son **SEIS columnas**, no una pantalla. **Tres necesitan tabla nueva** porque son mensajes entre dos
+personas, y hoy no existe ninguna: el director pide una tirada a un jugador; la criatura ataca; el jugador
+contesta defendiéndose. Eso es **paso de DBA + migración + realtime + RLS**, no sólo UI.
+
+| # | Columna (`.pen`) | Quién lo ve | ¿Necesita base? |
+|---|---|---|---|
+| 1 | `Popover/Tirar` (característica) | jugador | **No** |
+| 2 | `Popover/Disparar` (arma) | jugador | **No** |
+| 3 | `Panel/Registro` + `Tooltip/Desglose` | los dos | **No** |
+| 4 | `Panel/Director` | sólo director | **SÍ** (peticiones de tirada) |
+| 5 | `Aviso/Te atacan` | jugador atacado | **SÍ** |
+| 6 | `Modal/Atacar con el token` | sólo director | **SÍ** |
+
+**Orden recomendado:** 1 y 2 → 3 → DBA (una tabla para peticiones/ataques pendientes) → 4 → 6 → 5.
+
+### 📐 El diseño, ya extraído del `.pen` (no hace falta releerlo)
+
+**Columna 1 · `Popover/Tirar`** — «1 · TIRAR UNA CARACTERÍSTICA»
+- Head: «TIRAR · ASTUCIA» + ref «Manual · p.82»
+- Rótulo «DADOS QUE TIRAS» · contador `[−] 3 [+]` · «tu Astucia 4, menos 1 por herido»
+- Rótulo «DADOS DE LA RESERVA DE DESTINO» + ref «p.88» · chips `0 1 2 3 4 5` · «quedan 10 en la mesa»
+- Pie: «+ dados extra: 0» · botón «TIRAR 3»
+
+**Columna 2 · `Popover/Disparar`** — «2 · DISPARAR UN ARMA»
+- Head: «DISPARAR · REVÓLVER MAGNUM .44» + ref «Manual · p.96»
+- «DADOS QUE TIRAS» · contador · «tu Combate 4, menos 1 por herido»
+- Rótulo «ALCANCE» + ref «lo mide el mapa · p.96» · dos filas:
+  `CORTO · 2` `MEDIO · 3` / `LARGO · 5` `MUY LARGO · 6`  ← son `RANGE_DIFFICULTY` de `catalogs.ts`, ya existe
+- «DE LA RESERVA DE DESTINO» + «p.88» · chips `0…5`
+- Pie: botón «DISPARAR · 3 DADOS»
+
+**Columna 3 · `Panel/Registro` + `Tooltip/Desglose`** — «3 · EL REGISTRO: QUIÉN TIRÓ, Y EL DESGLOSE AL PASAR POR ENCIMA»
+- Entrada: avatar + «KAREN SINCLAIR» + «· MAGNUM .44» + marcador «1—2»; dados propios, «vs», dados de
+  oposición; grado: «No consigue lo que se propone por muy poco (grado de fallo 1).»
+- Tooltip al pasar por encima: «CÓMO SALIÓ ESTA TIRADA» + «Manual · p.82 y p.96»
+  `4 Combate − 1 por herido = 3 dados` / `Reto a dificultad 3 · alcance medio (p.96)`
+  Rótulo «LO QUE SE APLICÓ» y las líneas: especialidad no aplicada por el director (p.83) · el arma no suma
+  a distancia (p.96) · chaleco antibalas → 1 triunfo pasa a éxito normal (p.98) · a cubierto.
+- **Nota del `.pen`:** «El desglose sale al pasar por encima de la tirada, como en Roll20. Debajo no va nada:
+  el registro se lee de un vistazo.»
+
+**Columna 4 · `Panel/Director`** — «4 · EL PANEL DEL DIRECTOR — EL MISMO LANZADOR, EXPANDIDO»
+- Head «LANZADOR · DIRECTOR» + icono `unfold_less` (**es el lanzador que ya existe, expandido — NO una
+  ventana nueva**).
+- «¿A QUIÉN LE PIDES LA TIRADA?» + «puedes marcar varios» · chips `KAREN` `ELÍAS` `NIX` `A TODOS`
+- «MANTÉN PULSADA UNA CARACTERÍSTICA» + «y elige la dificultad sin soltar · p.84» · las 7 a **ancho igual**,
+  dos filas de tres y la séptima **centrada** · desplegable pegado al botón:
+  `FÁCIL · 1` `MEDIA · 2` `DIFÍCIL · 3` `MUY DIFÍCIL · 5` `ÉPICA · 6`
+  **Nota del `.pen`: «Sueltas encima de la dificultad y la petición sale. Sin botón de confirmar.»**
+- Casilla «Le vale su especialidad — lo decides tú (p.83)»
+- Plegable «ENCUENTROS EN LA ESCENA · 4» + «+ AÑADIR» + flecha. Cada fila: token con iniciales, nombre con
+  **lápiz para renombrar en la propia fila** («EL DE LA PUERTA» en vez de «Hambriento (2)»), sub
+  «Resistencia 30 · protección 3 · p.152», botón «ATACAR», flecha de desplegar. Desplegado: las 7
+  características en cajitas (`FOR 8`, `COM 4`…) y «Otras tiradas» con chips de característica.
+  **Nota: «Al desplegar uno se cierra el que estuviera abierto»** y «el token que se tira al mapa se añade solo».
+
+**Columna 5 · `Aviso/Te atacan`** — «5 · LE SALTA AL JUGADOR CUANDO LE ATACAN»
+- Head icono `swords` + «TE ATACA UN OGRO»
+- Sub: «Cuerpo a cuerpo con 4 dados de Combate. Es un conflicto: los dados que pongas son tu defensa y tu
+  ataque a la vez (p.93).»
+- «¿CUÁNTOS DADOS DE COMBATE GASTAS?» + «p.93» · chips `0 1 2 3 4` + «tienes Combate 4»
+- Coste (icono `schedule`): «Los que gastes se te quitan del próximo turno: con 2 te quedarán 2 para actuar.
+  Si gastas los cuatro, pierdes el turno; si ya los gastaste todos, quedas indefenso (p.94).»
+- Pie: «NO ME DEFIENDO» · «DEFENDERME · 2 DADOS»
+- **Nota: «Si el jugador no contesta, la tirada espera: nadie la resuelve por él (decisión del dueño). A
+  distancia NO aparece este aviso — es un reto contra la dificultad del alcance, y lo que el jugador puede
+  hacer es ponerse a cubierto (p.96).»**
+
+**Columna 6 · `Modal/Atacar con el token`** — «6 · TOCA EL TOKEN DE LA CRIATURA EN EL MAPA Y ATACA CON ELLA»
+- Head: token «OG» + «OGRO» + «Combate 4 · Resistencia 30 · protección 3 · p.152»
+- «A QUIÉN ATACA» · chips `KAREN` `ELÍAS` `NIX`
+- «Karen está a 2 casillas: cuerpo a cuerpo. Lo mide el mapa.»
+- «DADOS QUE PONE» · contador `[−] 4 [+]` · «de su Combate 4 · puede repartirlos entre varios (p.94)»
+- Pie: «ATACAR A KAREN»
+- **Nota: «Así da igual cuántas criaturas haya en la escena: no hay lista que crezca… el mapa ya sabe a qué
+  distancia está cada jugador — o sea que también sabe si es cuerpo a cuerpo o un disparo, y con qué
+  dificultad.»**
+
+### 🔑 Reglas del spec que NO se pueden saltar
+- **El jugador NUNCA elige la dificultad de su propio reto** (p.84).
+- **La especialidad la marca el DIRECTOR, no el jugador** (p.83).
+- **En el modal del jugador NO van leyendas de «esto ya lo sabe la ficha»** (dueño, 2026-08-20: «mataban la
+  pantalla»). Sólo dos controles: cuántos dados y cuántos de la reserva; en un disparo, además el alcance.
+- **Criatura contra el entorno = reto, lleva dificultad. Criatura contra un jugador = conflicto y NO lleva
+  dificultad**: los dados del otro lado los pone el jugador al defenderse.
+- **Las tiradas del director para sí mismo NO van en este panel**: van en el lanzador que ya existe.
+- **El bloque «Tirada» de la ficha DESAPARECE** (`schema.ts`, sección `roll`: dificultad/especialidad/
+  armadura/extra). ⚠ **OJO CON EL ORDEN**: hoy `poolFor` saca la dificultad de ahí (`rollBlockOptions`). Si
+  se quita ANTES de que exista el panel del director, las tiradas de reto se quedan **sin oposición
+  ninguna**. Quitarlo va junto con la columna 4, no antes.
+
+### 🧭 Cómo empezar la columna 1 (lo que ya estaba hecho y se revirtió)
+1. `packages/ui/src/components/Sheet.tsx` — `onAction` gana un 4.º parámetro opcional `anchor?: DOMRect`, y
+   los botones pasan `e.currentTarget.getBoundingClientRect()`. Retrocompatible. **Hay que actualizar
+   `apps/web/tests/functional/sheet-component.test.tsx`**, que comprueba los argumentos exactos de
+   `onAction` — eso fue lo que puso la rama en rojo.
+2. `CharacterSheetView.tsx` (`onAction`, línea ~50) hoy **tira directamente**. Debe abrir el popover y tirar
+   sólo al confirmar.
+3. El popover necesita el estado de la Reserva de Destino para «quedan 10 en la mesa»: vive en el snapshot
+   de la mesa (`resources.destiny`), y hoy `CharacterSheetView` sólo recibe `rollOptions`. Hay que bajarlo
+   desde `TablePage` → `SheetTab` → `CharacterSheetView`. En la ficha aparte (`/characters/:id`) no hay
+   mesa: sin reserva, esa sección no se pinta.
+4. Precedente de popover que el dueño YA aprobó: `bestiary/ui/CreatureRollPopover.tsx` + `.bs-pop` en
+   `bestiary.css` (sale sobre su ficha, captador invisible, Escape). **No usar overlay a pantalla completa.**
+
+---
+
 ## 🟢 PUNTO EXACTO — 2026-08-21 (noche): los CUATRO rechazos del Bestiario, ARREGLADOS y mirados en pantalla
 
 Rama **`feat/bestiario`**. Los cuatro puntos que el dueño rechazó por la mañana —MÁS cinco que vio probando por la
