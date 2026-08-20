@@ -20,8 +20,8 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 abierta. Lo que sigue vivo es **un diseño en el `.pen` sin guardar** y **un spec escrito pero sin construir**.
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: lee el bloque 🟢 de WORK_STATE.md. Lo primero es guardar `rolvium.pen` (Cmd+S) y sacar las
-> capturas del frame `Mesa/Tiradas · rediseño — quién ve qué`; luego seguimos con el modelo de datos de las tiradas.
+> Retomo Rolvium: lee el bloque 🟢 de WORK_STATE.md y arrancamos el **Bestiario (H5)**, que es la prioridad; de
+> paso, guardo `rolvium.pen` (Cmd+S) para poder ver el diseño de tiradas que quedó montado.
 
 ---
 
@@ -48,15 +48,29 @@ Seis columnas, cada una con su etiqueta de quién la ve:
 ataque desde el token, fuera las leyendas del modal del jugador, fuera elegir especialidad en el lado del jugador,
 las tiradas «para mí» al lanzador que ya existe, botones a ancho igual 3+3+1). **Lo único que falta es MIRARLO.**
 
-### ⏳ Lo siguiente, en orden
-1. **Guardar el `.pen`**, sacar capturas de las seis columnas y corregir lo que se vea torcido.
-2. **Modelo de datos de las tiradas agrupadas** (DBA): una tirada del director **enfocada** contra uno o varios
-   jugadores, y la respuesta del jugador **enlazada** a ella para que salgan como una sola entrada. Ya existe
-   `dice_rolls.corrects_id` como precedente de enlace. Si el jugador no contesta, **la tirada espera
-   indefinidamente** (decisión del dueño) — o sea que hace falta un estado «pendiente».
-3. **Construirlo**: ficha (fuera el bloque «Tirada»), panel del director, aviso de defensa, registro con autor y
-   tooltip de desglose.
-4. **La niebla degradada** y el resto del backlog de la escena (los siete puntos, más abajo).
+### ⏳ Lo siguiente, en orden — **el BESTIARIO manda** (dueño, 2026-08-20: «tenemos que construir el bestiario asap»)
+1. 🔥 **Bestiario (H5)**, spec en `specs/modules/bestiary/SPEC.md`. Lo que hay hecho es sólo la **semilla**: el
+   bestiario del sistema con los 37 bloques del manual. Falta el hexágono entero:
+   - **DBA primero**: tabla `bestiary_entries` (campaña, origen manual|propio|PNJ, datos jsonb, imagen, notas) con
+     su RLS **sólo director**, y el enlace desde `maps_tokens`. El campo `bestiary_ref` ya existe en tokens.
+   - **Encuentros propios del director**: crear, editar, duplicar («otro mutante»), borrar.
+   - **Las especialidades de cada criatura, como DATO** — respondida aquí la pregunta que quedó abierta: entran
+     **con el Bestiario**, no antes. El ogro tiene «Garrote» en Combate y el hambriento «Mordisco»; hoy están sólo
+     en su texto y por eso el motor no puede doblarles los triunfos. Son ~200 nombres que **no** están en la lista
+     de especialidades de jugador, así que necesitan claves i18n propias (es y en).
+   - **Imagen por entrada**, con el compresor a WebP de `specs/core/images` (tampoco existe: hoy los fondos suben
+     sin comprimir y el avatar dice «pronto»). El bucket `tokens` ya está creado y vacío.
+   - Listado con buscador y filtros, y colocar en escena creando **instancia** con su propia Resistencia.
+2. **Guardar el `.pen`** y sacar capturas de las seis columnas del diseño de tiradas (ver arriba), para no perder
+   lo ya diseñado mientras se construye el bestiario.
+3. **Modelo de datos de las tiradas agrupadas** (DBA): una tirada del director **enfocada** contra uno o varios
+   jugadores, y la respuesta del jugador **enlazada** para que salgan como una sola entrada. Ya existe
+   `dice_rolls.corrects_id` como precedente. Si el jugador no contesta, **la tirada espera indefinidamente**
+   (decisión del dueño): hace falta un estado «pendiente».
+4. **Construir las tiradas**: ficha (fuera el bloque «Tirada»), panel del director, aviso de defensa, registro con
+   autor y tooltip de desglose. **El bestiario va antes porque el panel del director lo necesita**: sin encuentros
+   con características no hay con qué atacar.
+5. **La niebla degradada** y el resto del backlog de la escena (los siete puntos, más abajo).
 
 ### 🧾 Lo que se cerró hoy (2026-08-20)
 - **`fix/ficha-listas` mergeada** (`026ee6d`): el sexto nivel de salud (Inconsciente, p.101), la Resistencia máxima
@@ -72,10 +86,8 @@ las tiradas «para mí» al lanzador que ya existe, botones a ancho igual 3+3+1)
   antiguo. `lining-nums` en la mesa entera. Y los grises de texto, un escalón más oscuros.
 
 ### 🔎 Deuda conocida, escrita para que no se pierda
-- **Las especialidades de las criaturas no son dato.** El ogro tiene «Garrote» en Combate y el hambriento
-  «Mordisco», pero están sólo en su texto, así que el motor **no puede doblarles los triunfos**. Son ~200 nombres
-  que NO están en la lista de especialidades de jugador, así que hacen falta claves i18n propias. **Preguntado al
-  dueño y sin responder**: ¿ahora o cuando se construya el Bestiario?
+- ~~Las especialidades de las criaturas no son dato~~ → **decidido**: entran **con el Bestiario** (punto 1 de
+  arriba), no en una tanda aparte.
 - **Los advisors de Supabase no se pueden correr**: no hay referencia del proyecto en el repo. No bloqueó porque no
   hubo migraciones, pero **la próxima rama que toque base necesita `supabase link`** o la ref.
 - Cinco avisos del QA sin tocar: `playwright` está en `apps/web` mientras `scripts/shot.mjs` vive en la raíz y nadie
