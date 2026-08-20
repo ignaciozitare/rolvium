@@ -28,6 +28,12 @@ interface Props {
   role: TableRole;
   userId: string;
   system: GameSystem;
+  /**
+   * Encuentros PROPIOS del director (H5), ya con forma de `CatalogItem`. Llegan por parámetro y no de un
+   * repositorio: `maps` no tiene por qué saber que existe el bestiario, igual que `EncounterMenu` no sabe de
+   * dónde salen sus entradas.
+   */
+  extraEncounters?: CatalogItem[];
   members: CampaignMember[];
   /** From the table snapshot (live). Players see this scene; the DM starts on it. */
   activeSceneId: string | null;
@@ -43,7 +49,7 @@ interface Props {
 const DEFAULT_STROKE: StrokeStyle = { color: STROKE_COLORS[1], width: 2 };
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, diceOpen = false, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
+export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, diceOpen = false, extraEncounters, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -121,7 +127,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     setPendingPc(null);
     await st.addToken(tokenFromCharacter(c, members.find(m => m.userId === c.ownerId)?.avatarUrl, live.id, cell));
   };
-  const bestiary = system.catalogs['bestiary'] ?? [];
+  // Las 45 del manual (datos del paquete) MÁS los encuentros propios del director. Sin esto el desplegable
+  // enseña sólo el libro y lo que el director se ha inventado no se puede colocar.
+  const bestiary = useMemo(
+    () => [...(system.catalogs['bestiary'] ?? []), ...(extraEncounters ?? [])],
+    [system, extraEncounters],
+  );
   const selectedTokens = st.tokens.filter(tk => selectedTokenIds.includes(tk.id));
   const selectedToken = selectedTokens.length === 1 ? selectedTokens[0]! : null;
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;

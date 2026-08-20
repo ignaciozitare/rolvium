@@ -268,7 +268,7 @@ export const SCENE_WAREHOUSE: Scene = {
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };
 export const SCENE_TUNNELS: Scene = { ...SCENE_WAREHOUSE, id: 'sc-3', name: 'Túneles de servicio', sortOrder: 2, visiblePlayers: true };
 /** Karen's token: Pip controls it. */
-export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId: 'c1', characterId: 'ch-karen', bestiaryRef: null, name: 'Karen «K»', imageUrl: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlledBy: PLAYER_USER.id, visionRadius: null, state: {} };
+export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId: 'c1', characterId: 'ch-karen', bestiaryRef: null, bestiaryEntryId: null, name: 'Karen «K»', imageUrl: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlledBy: PLAYER_USER.id, visionRadius: null, state: {} };
 export const TOKEN_ELIAS: Token = { ...TOKEN_KAREN, id: 'tk-elias', characterId: 'ch-elias', name: 'Elías Vance', x: 8, y: 12, color: '#3a3a26', controlledBy: 'u-nix' };
 /** A hidden mutant placed by the DM (players never receive it). */
 export const TOKEN_MUTANT: Token = { ...TOKEN_KAREN, id: 'tk-mut', characterId: null, bestiaryRef: 'mutant', name: 'Mutante', x: 20, y: 9, color: null, visible: false, controlledBy: null, state: { resistance: 12 } };

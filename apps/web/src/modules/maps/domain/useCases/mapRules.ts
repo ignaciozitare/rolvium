@@ -277,17 +277,35 @@ export const initialsOf = (name: string): string => name.split(/\s+/).map(w => w
 /** Token from a PC: token image → avatar → owner avatar; the owner controls it. */
 export function tokenFromCharacter(c: Character, ownerAvatarUrl: string | null | undefined, sceneId: string, at: Point): NewToken {
   return {
-    sceneId, campaignId: c.campaignId, characterId: c.id, bestiaryRef: null, name: c.name,
+    sceneId, campaignId: c.campaignId, characterId: c.id, bestiaryRef: null, bestiaryEntryId: null, name: c.name,
     imageUrl: c.tokenUrl ?? c.avatarUrl ?? ownerAvatarUrl ?? null, x: at.x, y: at.y, size: 1, color: c.color,
     visible: true, controlledBy: c.ownerId, visionRadius: null, state: {},
   };
 }
-/** Token from a system bestiary entry (the bestiary hexagon lands later; `bestiary_ref` keeps the catalog id). */
+/**
+ * Instancia colocada en la escena desde el bestiario (H5).
+ *
+ * La Resistencia se copia al `state` del token: es lo que hace que cada ogro se hiera por su cuenta y que la
+ * plantilla no se entere. Sin esto, dos ogros compartirían heridas.
+ *
+ * Dos procedencias, y por eso dos campos: las criaturas del MANUAL no tienen fila y viajan en `bestiaryRef`
+ * (id del catálogo); los encuentros PROPIOS del director sí la tienen y viajan en `bestiaryEntryId`, que
+ * `toCatalogItem` del bestiario deja en `data.entryId`. `data.tokenUrl` trae su imagen si le pusieron una.
+ */
 export function tokenFromBestiary(entry: CatalogItem, label: string, campaignId: string, sceneId: string, at: Point): NewToken {
   const state: Record<string, unknown> = {};
   const res = entry.data?.resistance;
   if (typeof res === 'number') state.resistance = res;
-  return { sceneId, campaignId, characterId: null, bestiaryRef: entry.id, name: label, imageUrl: null, x: at.x, y: at.y, size: 1, color: null, visible: false, controlledBy: null, visionRadius: null, state };
+  const entryId = entry.data?.entryId;
+  const tokenUrl = entry.data?.tokenUrl;
+  return {
+    sceneId, campaignId, characterId: null,
+    // Una entrada propia no es un id de catálogo: si se guardara en `bestiaryRef` nadie sabría distinguirlas.
+    bestiaryRef: typeof entryId === 'string' ? null : entry.id,
+    bestiaryEntryId: typeof entryId === 'string' ? entryId : null,
+    name: label, imageUrl: typeof tokenUrl === 'string' ? tokenUrl : null,
+    x: at.x, y: at.y, size: 1, color: null, visible: false, controlledBy: null, visionRadius: null, state,
+  };
 }
 
 /** Case/diacritics-insensitive filter for the encounter search. */

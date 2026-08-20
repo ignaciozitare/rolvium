@@ -128,6 +128,33 @@ describe('<SceneTab> DM', () => {
     await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ bestiaryRef: 'ogre', name: 'Ogro', x: 5, y: 6, visible: false, controlledBy: null, state: { resistance: 30 } }));
     expect(await within(canvas()).findByRole('img', { name: 'Token Ogro (oculto)' })).toBeInTheDocument();
   });
+  /**
+   * Los encuentros PROPIOS del director (H5) tienen que salir en el desplegable junto a las 45 del manual, y
+   * al colocarlos enlazar a SU FILA (`bestiaryEntryId`), no al catálogo. Sin esto el director ve el libro y
+   * nada de lo que se ha inventado, que es justo lo que pasaba antes de cablearlo.
+   */
+  it('encuentro: los propios del director salen en el desplegable y colocan una instancia enlazada a su fila', async () => {
+    const u = userEvent.setup();
+    const repo = seed();
+    renderWithProviders(
+      <SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+                charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={repo} vision={fakeVisionPort()}
+                extraEncounters={[{ id: 'be-9', label: 'Ogro con antorcha', ref: 'bestiary',
+                                    data: { resistance: 30, protection: 3, origin: 'custom', entryId: 'be-9', tokenUrl: null } }]} />,
+    );
+
+    await u.click(await screen.findByRole('button', { name: 'Encuentro' }));
+    // El del manual sigue estando: lo propio SUMA, no sustituye.
+    expect(await screen.findByRole('button', { name: 'Elegir Ogro' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Elegir Ogro con antorcha' }));
+    fireEvent.pointerDown(canvas(), { clientX: 3 * G + 3, clientY: 4 * G + 3, pointerId: 1, button: 0 });
+
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({
+      bestiaryEntryId: 'be-9', bestiaryRef: null, name: 'Ogro con antorcha', x: 3, y: 4,
+      visible: false, state: { resistance: 30 },
+    }));
+  });
+
   it('walls: click-click adds a segment; token bar: select → hide/show + remove; «Limpiar todos»; create + activate a scene', async () => {
     const u = userEvent.setup();
     const repo = mount('dm');

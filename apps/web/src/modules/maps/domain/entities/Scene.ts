@@ -57,6 +57,12 @@ export interface Token {
   campaignId: string;
   characterId: string | null;
   bestiaryRef: string | null;
+  /**
+   * Fila de `bestiary_entries` de la que salió esta instancia, cuando viene de un encuentro PROPIO del
+   * director (H5). Las criaturas del manual no tienen fila y siguen viajando en `bestiaryRef`.
+   * Se rompe con ON DELETE SET NULL: borrar la plantilla no puede vaciar la escena a mitad de partida.
+   */
+  bestiaryEntryId: string | null;
   name: string;
   imageUrl: string | null;
   x: number;

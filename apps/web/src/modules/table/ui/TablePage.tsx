@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type ComponentProps, type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
 import { Badge, Crescent, UserAvatar } from '@rolvium/ui';
@@ -21,6 +21,8 @@ import { SheetTab, CreateTab } from './tabs/SheetTab';
 import { GroupTab } from './tabs/GroupTab';
 import { SceneTab } from './tabs/SceneTab';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
+import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
+import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
 import type { MapsPort } from '@/modules/maps/domain/ports/MapsPort';
 import type { VisionPort } from '@/modules/maps/domain/ports/VisionPort';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
@@ -128,7 +130,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} characterId={viewCharacterId} progressionEnabled={campaign.progressionEnabled} onOpenCreate={() => setTab('create')} />}
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}
-            {tab === 'scene' && <SceneTab campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} />}
+            {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={() => setTab('scene')} onRoll={() => setRollerOpen(true)} {...(bestiary ? { repo: bestiary } : {})} />}
           </main>
           <aside className="tb-side">
@@ -139,6 +141,28 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
       </div>
     </div>
   );
+}
+
+type SceneProps = ComponentProps<typeof SceneTab>;
+
+/**
+ * La escena, con los encuentros PROPIOS del director metidos en su desplegable además de las 45 del manual.
+ *
+ * Es un componente aparte y no dos líneas dentro de `TablePage` por una razón concreta: `useBestiary` es un
+ * hook y `TablePage` tiene varios `return` tempranos (sin sesión, sin sistema, sin ser miembro) por delante.
+ *
+ * Un jugador no pasa por aquí: la RLS no le devolvería nada, pero además así no se hace la consulta.
+ */
+function Scene(props: SceneProps): JSX.Element {
+  return props.role === 'dm' ? <DmScene {...props} /> : <SceneTab {...props} />;
+}
+
+function DmScene(props: SceneProps): JSX.Element {
+  const { entries } = useBestiary({ campaignId: props.campaignId, system: props.system });
+  // Sólo las propias: las del manual ya las trae la escena del catálogo del sistema, y duplicarlas
+  // las enseñaría dos veces en el desplegable.
+  const extra = useMemo(() => entries.filter(e => e.origin !== 'manual').map(toCatalogItem), [entries]);
+  return <SceneTab {...props} extraEncounters={extra} />;
 }
 
 function Person({ name, avatarUrl, label, isDm = false, connected, me, size = 40 }: { name: string; avatarUrl: string | null; label: string; isDm?: boolean; connected: boolean; me: boolean; size?: number }): JSX.Element {

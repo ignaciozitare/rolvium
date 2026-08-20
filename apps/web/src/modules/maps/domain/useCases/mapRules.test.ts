@@ -121,6 +121,25 @@ describe('mapRules — token factories & search', () => {
     expect(tokenFromCharacter({ ...CHARACTER_KAREN, avatarUrl: 'a' }, 'o', 'sc-1', { x: 0, y: 0 }).imageUrl).toBe('a');
     expect(tokenFromCharacter(CHARACTER_KAREN, null, 'sc-1', { x: 0, y: 0 }).imageUrl).toBeNull();
   });
+  /**
+   * Un encuentro PROPIO del director (H5) sí tiene fila, así que su id va en `bestiaryEntryId` y NO en
+   * `bestiaryRef`, que es para ids del catálogo. Mezclarlos dejaría el token apuntando a una criatura del
+   * manual que no existe, y al borrar la plantilla nadie sabría qué instancias tocaban.
+   */
+  it('tokenFromBestiary: una entrada propia enlaza a su fila y se trae su imagen', () => {
+    const t = tokenFromBestiary(
+      { id: 'be-9', label: 'Ogro con antorcha', data: { resistance: 30, entryId: 'be-9', tokenUrl: 'https://x/o.webp' } },
+      'Ogro con antorcha', 'c1', 'sc-1', { x: 2, y: 3 },
+    );
+    expect(t).toMatchObject({ bestiaryEntryId: 'be-9', bestiaryRef: null, imageUrl: 'https://x/o.webp' });
+    expect(t.state).toEqual({ resistance: 30 });      // su Resistencia, no la de la plantilla
+  });
+
+  it('tokenFromBestiary: una criatura del manual no enlaza a ninguna fila', () => {
+    const t = tokenFromBestiary({ id: 'ogre', label: 'l', data: { resistance: 30 } }, 'Ogro', 'c1', 'sc-1', { x: 0, y: 0 });
+    expect(t).toMatchObject({ bestiaryRef: 'ogre', bestiaryEntryId: null, imageUrl: null });
+  });
+
   it('tokenFromBestiary: hidden by default, keeps the catalog id and copies resistance into state', () => {
     const t = tokenFromBestiary({ id: 'mutant', label: 'catalog.bestiary.mutant.name', data: { resistance: 12, protection: 2 } }, 'Mutante', 'c1', 'sc-1', { x: 5, y: 5 });
     expect(t).toMatchObject({ bestiaryRef: 'mutant', name: 'Mutante', visible: false, controlledBy: null, characterId: null, state: { resistance: 12 } });
