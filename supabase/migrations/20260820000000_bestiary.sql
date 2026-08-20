@@ -91,3 +91,10 @@ CREATE POLICY bestiary_entries_write ON public.bestiary_entries
   FOR ALL TO authenticated
   USING (owner_id = auth.uid() AND (campaign_id IS NULL OR public.is_campaign_dm(campaign_id)))
   WITH CHECK (owner_id = auth.uid() AND (campaign_id IS NULL OR public.is_campaign_dm(campaign_id)));
+
+-- ── Permisos de tabla ────────────────────────────────────────────────────────
+-- La RLS decide QUÉ FILAS se ven; esto decide si el rol puede tocar la tabla siquiera. Sin este GRANT,
+-- PostgREST responde 403 a todo y la pantalla no puede ni leer ni crear — la RLS no llega a evaluarse.
+-- Se descubrió mirando la app corriendo: los tests con el cliente simulado no pasan por PostgREST.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.bestiary_entries TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.bestiary_entries TO service_role;

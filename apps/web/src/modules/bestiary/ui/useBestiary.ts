@@ -6,6 +6,7 @@ import { bestiaryRepo } from '../container';
 import type { BestiaryPort } from '../domain/ports/BestiaryPort';
 import type { BestiaryEntry, BestiaryEntryPatch, NewBestiaryEntry, OriginFilter } from '../domain/entities/BestiaryEntry';
 import { byOrigin, duplicateOf, fromCatalog, mergeEntries } from '../domain/useCases/bestiaryRules';
+import { errorText } from '../domain/useCases/errorText';
 import { filterEntries } from '@/modules/maps/domain/useCases/mapRules';
 
 interface Options { campaignId: string; system: GameSystem; repo?: BestiaryPort }
@@ -30,7 +31,7 @@ export function useBestiary({ campaignId, system, repo = bestiaryRepo }: Options
     try {
       setOwn(await repo.listForCampaign(campaignId, system.id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorText(e));
     } finally {
       setLoading(false);
     }

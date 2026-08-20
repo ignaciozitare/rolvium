@@ -6,6 +6,7 @@ import { STAT_IDS } from '@rolvium/system-plenilunio';
 import type { StatId } from '@rolvium/system-plenilunio';
 import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
 import { resistanceOf } from '../domain/useCases/bestiaryRules';
+import { errorText } from '../domain/useCases/errorText';
 import type { BestiaryEntry, CreatureData } from '../domain/entities/BestiaryEntry';
 
 interface Props {
@@ -76,7 +77,7 @@ export function EntrySheetModal({ entry, specialtyLabel, onSave, onUploadImage, 
       await onSave({ name: name.trim() || entry.name, notes, data: { ...data, page: data.page }, campaignId: global ? null : campaignId, tokenUrl });
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

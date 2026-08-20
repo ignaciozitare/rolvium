@@ -3,6 +3,7 @@ import { useTranslation } from '@rolvium/i18n';
 import { Btn, Modal, Sheet } from '@rolvium/ui';
 import type { GameSystem, SheetPatch } from '@rolvium/core';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
+import { errorText } from '../domain/useCases/errorText';
 import type { BestiaryEntry, CreatureData } from '../domain/entities/BestiaryEntry';
 
 interface Props {
@@ -68,7 +69,7 @@ export function NpcSheetModal({ entry, system, onSave, onDelete, onClose, campai
       setDirty(false);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }
