@@ -13,7 +13,6 @@ interface Props {
   onEdit: (e: BestiaryEntry) => void;
   onPhoto: (e: BestiaryEntry) => void;
   onMore: (e: BestiaryEntry) => void;
-  placedCount?: number;
   /**
    * Lee la ficha de un PNJ para sacar sus valores de juego. Entra por parámetro porque quien sabe leerla
    * es el motor del sistema, y esta ficha no conoce ningún sistema.
@@ -36,7 +35,7 @@ const ORIGIN_KEY = { manual: 'bestiary.origin.manual', custom: 'bestiary.origin.
  * siguen `EncounterMenu` y `StrokeBar` de `maps`, con sus clases `mp-*`. Donde sí manda el estilo de la
  * plataforma —los modales— se usan los componentes compartidos: `Modal`, `Btn` y `Tooltip`.
  */
-export function EntryCard({ entry, specialtyLabel, onRoll, onPlace, onEdit, onPhoto, onMore, placedCount = 0, derive }: Props): JSX.Element {
+export function EntryCard({ entry, specialtyLabel, onRoll, onPlace, onEdit, onPhoto, onMore, derive }: Props): JSX.Element {
   const { t } = useTranslation();
   const specs = Object.values(entry.data.specialties).flat().slice(0, 2);
   const { resistance, protection } = gameValuesOf(entry, derive);
@@ -53,7 +52,6 @@ export function EntryCard({ entry, specialtyLabel, onRoll, onPlace, onEdit, onPh
             <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>visibility</span>
           </button>
         </Tooltip>
-        {placedCount > 0 && <span className="bs-card-placed">{t('bestiary.card.placed', { n: String(placedCount) })}</span>}
       </div>
 
       <div className="bs-card-body">

@@ -37,6 +37,28 @@ un personaje jugador, con su ficha guardada en `data.sheet` de la entrada.
   (`engine.derived`), así que entra por parámetro: el dominio del bestiario no conoce el esquema de fichas de
   ningún sistema. Si se calculara como una criatura, todos los PNJ saldrían con Resistencia 0.
 
+### Lo que las fichas del catálogo hacen HOY, y lo que no (QA, 2026-08-20)
+El listado promete cuatro acciones por entrada. Dos hacen lo que dicen y dos son un atajo, y conviene que esté
+escrito para que nadie lo lea como que está terminado:
+
+| Acción | Hoy |
+|---|---|
+| **Colocar** | Lleva a la escena. **Colocar de verdad** se hace desde el desplegable «Encuentro» de la escena, que sí funciona y sí crea la instancia enlazada con su Resistencia. |
+| **Editar / Duplicar** | ✅ Hace lo que dice. Del manual duplica; de las propias edita. |
+| **Ver foto** | ✅ Hace lo que dice. |
+| **Tirar** | Abre el **lanzador libre**, no tira en nombre de la criatura: ni sus características, ni el selector de especialidad, ni la visibilidad mesa/DJ/secreta. |
+
+**«Tirar en su nombre» es la cabecera del spec y es lo que justificó meter las especialidades como dato**, así
+que no está cerrado hasta que exista el **panel del director de las tiradas** (H6), que es la pieza que las
+consume. El bestiario era su requisito previo —sin encuentros con características no hay con qué atacar— y ese
+requisito ya está cubierto.
+
+- **«N en escena»** estaba en el diseño y **se ha quitado del código**: necesita los tokens de la escena activa,
+  que esta pestaña no carga. Mejor no tenerlo que tener un contador que nunca se pinta.
+- **Un PNJ aliado no se puede duplicar** todavía: su ficha no ofrece «Duplicar». Los encuentros sí.
+- **Exportar el token a PNG** no existe. El dueño ya cambió ese rótulo del `.pen` a «SUBIR IMAGEN (WEBP)», así
+  que la línea del spec que lo pedía puede estar simplemente vieja.
+
 ### Alcance de esta tanda (dueño, 2026-08-20)
 **El hexágono entero de una vez**, no una rebanada: listado + encuentros propios (crear, editar, duplicar, borrar)
 + **imagen por entrada** (obliga a construir el compresor de [core/images](../../core/images/SPEC.md), que hoy no

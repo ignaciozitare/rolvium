@@ -16,7 +16,10 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 ## 🟢 PUNTO EXACTO — 2026-08-20 (tarde), Bestiario (H5) en curso
 
-Rama **`feat/bestiario`**, 4 commits sobre `main`. **Sin review, sin QA, sin mergear.**
+Rama **`feat/bestiario`**, 12 commits sobre `main`. **Review pasado** (cazó y arregló 3 defectos reales: ruta de
+subida que habría dado 403 en producción, `tokenUrl` que no se guardaba, e interpolación sin validar en el filtro
+de PostgREST). **QA automático pasado** (617 tests, advisors 0 críticos / 21 WARN = línea base, ambas apps
+compilando). **Sin mergear**: falta la verificación visual light/dark del dueño.
 Alcance aprobado por el dueño: **el hexágono entero**, no una rebanada.
 
 ### Hecho y en verde
@@ -43,17 +46,32 @@ Alcance aprobado por el dueño: **el hexágono entero**, no una rebanada.
   cajas de características alineadas, catálogo a pantalla completa, y «PNG» → «WEBP».
 - `ec16cbc` **el código** — compresor de imágenes en `packages/ui` (con vitest nuevo en ese paquete), y el
   catálogo, la ficha y el modal de la foto enganchados en la pestaña «Bestiario» de la mesa, que era un cartel
-  de «en construcción». 591 tests, `audit` 0 hard, `build:web` y `build:api` en verde.
+  de «en construcción». `audit` 0 hard, `build:web` y `build:api` en verde.
+- `efa120e` **los 3 arreglos del Review** · `91c41b3` **encuentros propios en la escena** · `2617588` **PNJ
+  aliados con la ficha completa de personaje** · `40f0000` **el bucket público, anotado como deuda**.
+  Total tras el QA: **617 tests en verde** (440 web + 77 api + 6 core + 16 ui + 78 plenilunio).
 
 ### ⏳ Lo que falta del hexágono
 1. ~~Visto bueno del dueño al diseño~~ **dado** · ~~compresor~~ **hecho** · ~~UI del catálogo y la ficha~~
    **hecha** · ~~i18n~~ **hecha**.
-2. **Los PNJ aliados con ficha COMPLETA de personaje**: el origen `npc` existe en base, dominio y filtros, pero
-   la ficha que se abre es la del encuentro. Falta reutilizar `<Sheet>` de `characters` para ese caso.
-3. **Alimentar `EncounterMenu` de la escena con las entradas propias**: hoy «Colocar» lleva a la escena, pero el
-   desplegable de allí sigue enseñando sólo las 45 del manual. Es pequeño: `toCatalogItem` ya deja la entrada
-   con la forma que ese componente consume, así que es pasarle la lista unida en `SceneTab`.
-4. Review (lanzado) → QA → merge.
+2. ~~Los PNJ aliados con ficha COMPLETA de personaje~~ **hecho** (`2617588`, `NpcSheetModal` reutiliza `<Sheet>`).
+3. ~~Alimentar `EncounterMenu` de la escena con las entradas propias~~ **hecho** (`91c41b3`, `DmScene` +
+   `extraEncounters` + `tokenFromBestiary`).
+4. ~~Review~~ **pasado** → ~~QA~~ **pasado** → falta light/dark del dueño → merge.
+
+### 🟡 Lo que el QA dejó anotado (2026-08-20) — no bloquea, decide el dueño
+- **«Tirar» y «Colocar» de la ficha son atajos, no la acción del spec.** `TablePage` los engancha como
+  `onRoll={() => setRollerOpen(true)}` y `onPlace={() => setTab('scene')}`: abren el lanzador libre y llevan a
+  la escena, pero **no tiran en nombre de la criatura** (sin sus características, sin elegir especialidad, sin
+  visibilidad mesa/DJ/secreta) ni colocan el token — eso se hace desde el desplegable de la escena. El spec
+  describe la tirada completa; depende del **panel del director de tiradas**, que es lo siguiente.
+- **«N en escena» no se pinta**: `EntryCard` acepta `placedCount` pero `BestiaryTab` nunca se lo pasa.
+- **No hay menú «…» con duplicar / borrar / token PNG**: el botón `more_horiz` abre la ficha, igual que «Editar»;
+  duplicar y borrar viven dentro del modal. La **descarga del token en PNG no existe** en ninguna parte.
+- **La migración NO está en producción todavía** — `bestiary_entries` no aparece en el proyecto hosted. Los
+  advisors salen limpios porque la tabla aún no está allí: **hay que volver a pasarlos después del deploy**.
+- **`ARCHITECTURE.md` no tiene fila de implementación para `bestiary`**, sólo la del mapa de hexágonos (H5).
+  Todos los módulos construidos (auth, identity, characters, dice, maps…) sí la tienen.
 
 ### 🔎 Lo que me encontré y NO toqué (decidir aparte)
 - 🔒 **El bucket `tokens` es PÚBLICO** (`public = true`, migración de `characters`, línea 221). Cualquiera con
