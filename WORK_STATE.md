@@ -20,6 +20,14 @@ Rama cerrada: Review pasado, **QA pasado** (apto con avisos, modo `warn`), previ
 verde sobre el commit de la rama, merge `026ee6d` empujado a `main`. Producción se despliega sola
 desde `main`.
 
+### ✅ Producción al día, comprobada contra el bundle (2026-08-20, 06:01)
+`https://rolvium-api.vercel.app/health` → `{"ok":true}`. Y el bundle que sirve
+`https://rolvium.vercel.app` **contiene** «indefenso en el suelo» y `rv-sheet-note` (lo nuevo de esta
+tanda) y **ya no contiene** «Resistencia recuperable» (el campo que desapareció).
+⚠ Nota para el que compruebe la próxima: **el hash del bundle de producción NO coincide con el del
+build local** y eso es normal — Vite inlinea las variables `VITE_*`, así que el contenido difiere.
+Comparar hashes da un falso negativo; hay que grepear el bundle por una cadena de la tanda.
+
 ### Lo que dejó el QA para decidir (ninguno bloqueaba, y NO están hechos)
 1. **`specs/core/game-system/SPEC.md:37` está viejo** — es el contrato contra el que se escribirá
    cualquier sistema de juego futuro, así que es el que más urge. No tiene: `ActionDef.toRoll`
