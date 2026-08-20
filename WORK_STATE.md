@@ -27,9 +27,16 @@ Alcance aprobado por el dueño: **el hexágono entero**, no una rebanada.
 - `de2adbe` **el `.pen` del dueño commiteado** — el diseño de tiradas ya no depende de que nadie cierre el editor.
 - `b6af70f` **datos del manual** — especialidades de las 45 criaturas + **los 8 bloques que faltaban**.
 - `07d9d11` **scaffold** — dominio, puerto, repo Supabase y contenedor del módulo, con 27 tests.
-- **Diseño**: el listado **ya estaba diseñado** (`qLGcY` · «Mesa/Plenilunio · Director · Bestiario y PNJ»). Sólo
-  faltaba la ficha de crear/editar, creada como `kD9lH` · «Mesa/Plenilunio · Director · Ficha del encuentro».
-  **Pendiente: que el dueño la apruebe** — es gate obligatorio antes de escribir UI.
+- **Diseño** — el listado **ya estaba diseñado** (`qLGcY`). Añadidos tres frames y aplicadas las 5 correcciones
+  del dueño (2026-08-20):
+  - `kD9lH` **Ficha del encuentro** — imagen a 152 px con el ojo encima; cajas de características **alineadas en
+    columna y del mismo tamaño** (el fallo era que el nombre no tenía ancho fijo, así que «Fortaleza» y «Cultura»
+    empujaban la caja a distinta x).
+  - `g0L0jJ` **Catálogo a pantalla completa** — rejilla de 4×2 fichas con imagen grande, buscador, filtros, crear
+    y editar. La primera enseña el **estado hover con el ojo**.
+  - `muyDX` **Modal de la foto** — lo que abre el ojo: foto a tamaño grande, nombre, página y «abrir ficha».
+  - Corregido el rótulo del pie del listado: «SUBIR TOKEN PNG» → **«SUBIR IMAGEN (WEBP)»** (el PNG era viejo).
+  **Pendiente: que el dueño lo apruebe** — es gate obligatorio antes de escribir UI.
 
 ### ⏳ Lo que falta del hexágono
 1. **Que el dueño mire `kD9lH`** y dé el visto bueno (o lo corrija).
@@ -43,7 +50,9 @@ Alcance aprobado por el dueño: **el hexágono entero**, no una rebanada.
 ### 🔎 Lo que me encontré y NO toqué (decidir aparte)
 - **El diseño del listado enseña «Solitario» y «Chatarrero»**, que se quitaron del catálogo por no ser bloques del
   manual (RULES.md §8). Es texto de ejemplo del `.pen`, no código, pero conviene refrescarlo.
-- **El pie del diseño dice «SUBIR TOKEN PNG»** y `specs/core/images` manda comprimir a **WebP**. Cambiar el rótulo.
+- ~~El pie decía «SUBIR TOKEN PNG»~~ → **corregido a «SUBIR IMAGEN (WEBP)»** (el dueño confirmó que el PNG era viejo).
+- **La barra superior sale «partially clipped»** en el catálogo nuevo — pero ya venía así en `qLGcY` y en otros
+  frames: es del componente compartido `njHz3`, no de lo añadido. No tocado.
 - `cannibalCook` es **Will** y `scavenger` es **Kharla**: nombres engañosos, valores correctos. Renombrar es
   cosmético y arrastra los tokens ya colocados, así que va aparte.
 
