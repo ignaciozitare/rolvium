@@ -447,6 +447,7 @@ Dos cosas que se leen mal si no se avisan:
 | Fantasma aparecido | 0 | 0 | 3 | 2 | 2 | 1 | 3 | 0 | 10 | – | Ancla terrenal, Incorpóreo, Mano inmaterial 3 | 149 |
 | Poseído | 2 | 2 | 2 | 2 | 0 | 0 | 0 | 4 | 0 | – | Inmune al dolor | 149 |
 | Querubín | 2 | 2 | 2 | 1 | 3 | 0 | 0 | 3 | 0 | – | Ponzoña 3, Visión en la oscuridad | 155 |
+| Arpía | 4 | 3 | 1 | 4 | 4 | 0 | 0 | 5 | 2 | – | Alado, Visión en la oscuridad | 147 |
 
 ### 8.2 Sobrenaturales
 | Criatura | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | Capacidades | p. |
@@ -455,8 +456,11 @@ Dos cosas que se leen mal si no se avisan:
 | Soldado de élite de los caídos | 7 | 7 | 4 | 4 | 3 | 3 | 4 | 11 | 8 | Alado, Aura sombría 3, Piel de humano | 124 |
 | Solar | 6 | 7 | 4 | 3 | 2 | 3 | 3 | 10 | 7 | Alado, Aura 2, Disfraz terrenal, Ira solar 2 | 132 |
 | Paladín solar | 6 | 8 | 5 | 3 | 2 | 4 | 4 | 7 | 8 | Alado, Aura 3, Disfraz terrenal, Ira solar 3 | 132 |
+| Aamel (lugarteniente solar) | 6 | 8 | 5 | 4 | 3 | 4 | 5 | 11 | 8 | Alado, Aura 3, Disfraz terrenal, Ira solar 2 | 132 |
 
-### 8.3 Humanos hostiles
+### 8.3 Humanos y figuras de la ambientación
+Los bloques de los capítulos de ambientación (pp. 44–74). Sirven de encuentro tal cual.
+
 | Bloque | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | p. |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Carroñera | 3 | 3 | 3 | 2 | 2 | 3 | 2 | 6 | 1 | 74 |
@@ -465,11 +469,33 @@ Dos cosas que se leen mal si no se avisan:
 | Yihadista | 2 | 3 | 3 | 2 | 3 | 2 | 2 | 5 | 2 | 62 |
 | Dragón | 3 | 2 | 3 | 2 | 1 | 2 | 1 | 6 | 1 | 63 |
 | Pandillero latino | 3 | 2 | 2 | 3 | 1 | 2 | 1 | 5 | 1 | 61 |
+| Paramilitar | 3 | 3 | 1 | 3 | 1 | 2 | 2 | 4 | 2 | 61 |
+| Buscador del nuevo Edén | 2 | 1 | 2 | 2 | 3 | 2 | 2 | 4 | 1 | 61 |
+| Miembro de un kibutz | 1 | 1 | 2 | 2 | 3 | 3 | 2 | 3 | 2 | 61 |
+| Mártir del Paraíso | 2 | 2 | 2 | 3 | 3 | 2 | 2 | 4 | 2 | 57 |
+| Internauta ocultista | 2 | 1 | 2 | 2 | 3 | 2 | 3 | 4 | 1 | 59 |
+| Miembro de la banda de Big Dima | 3 | 4 | 2 | 3 | 1 | 2 | 3 | 5 | 1 | 59 |
+| Seguidor de la Iglesia del Nuevo Orden | 2 | 1 | 3 | 2 | 2 | 2 | 3 | 5 | 1 | 59 |
+| Charlatán de los Illuminati | 2 | 1 | 1 | 3 | 3 | 3 | 3 | 5 | 1 | 63 |
+| Soldado Miyamoto | 2 | 3 | 2 | 3 | 2 | 2 | 1 | 4 | 1 | 64 |
+| Matón de Pequeño Tokio | 3 | 3 | 2 | 2 | 3 | 1 | 1 | 5 | 2 | 65 |
+| Cocinero caníbal | 2 | 3 | 1 | 3 | 2 | 1 | 1 | 3 | 7 | 69 |
+| Maggie (cocinera caníbal) | 2 | 1 | 3 | 3 | 3 | 3 | 1 | 5 | 7 | 68 |
+| El bobo de la flauta | 4 | 1 | 3 | 1 | 2 | 1 | 4 | 7 | 4 | 69 |
+| Ramírez | 4 | 4 | 2 | 4 | 2 | 2 | 2 | 6 | 2 | 69 |
+| Jellybean | 2 | 1 | 2 | 2 | 2 | 3 | 4 | 4 | 3 | 74 |
+| Hermes | 1 | 1 | 3 | 3 | 2 | 2 | 4 | 4 | 4 | 67 |
+| Judith | 2 | 1 | 3 | 3 | 1 | 4 | 3 | 5 | 4 | 67 |
+| Henry Putnam | 1 | 2 | 4 | 3 | 4 | 3 | 2 | 5 | 8 | 44 |
+| Dorcy | 2 | 1 | 3 | 1 | 3 | 3 | 1 | 5 | 6 | 44 |
 
 ### 8.4 El mutante — lo único que el libro publica
 Sale en dos ejemplos, no en un bloque: **Fortaleza 3 y Voluntad 1 → Aguante 4** y protección 2 por su piel curtida
 (p. 98), y **Combate 3** (p. 94). **Las otras cuatro características no están escritas en ninguna parte**, así que el
 paquete las deja SIN VALOR en vez de inventarlas: la ficha pinta «—» y el director tira con lo que hay.
+
+**Cobertura**: son los **37 bloques completos** que imprime el manual (los que traen las siete características y el
+Aguante). Contados uno a uno sobre el PDF, no de memoria.
 
 ⚠ Fuera del catálogo, y anotado: «Solitario» y «Chatarrero», que venían del prototipo y **no eran bloques del
 manual**. En su lugar entran Carroñera (p. 74) y Vagabundo amable (p. 69), que sí lo son. `scavenger` conserva su

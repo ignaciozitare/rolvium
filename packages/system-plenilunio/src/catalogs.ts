@@ -168,18 +168,20 @@ const st = (fortitude: number, combat: number, will: number, cunning: number, su
   ({ fortitude, combat, will, cunning, subtlety, presence, culture });
 
 export const BESTIARY = [
-  // Criaturas (capítulo de criaturas)
+  // Criaturas (capítulo de criaturas, pp. 147–155)
   b('hungry', { stats: st(3, 3, 1, 4, 0, 0, 0), endurance: 4, destiny: 0, abilities: ['Hambre inhumana'], page: 150 }),
   b('ogre', { stats: st(8, 4, 1, 3, 1, 1, 0), endurance: 10, destiny: 0, protection: 3, abilities: ['Piel gruesa 3'], page: 152 }),
   b('ghost', { stats: st(0, 0, 3, 2, 2, 1, 3), endurance: 0, destiny: 10, abilities: ['Ancla terrenal', 'Incorpóreo', 'Mano inmaterial 3'], page: 149 }),
   b('possessed', { stats: st(2, 2, 2, 2, 0, 0, 0), endurance: 4, destiny: 0, abilities: ['Inmune al dolor'], page: 149 }),
   b('cherub', { stats: st(2, 2, 2, 1, 3, 0, 0), endurance: 3, destiny: 0, abilities: ['Ponzoña 3', 'Visión en la oscuridad'], page: 155 }),
-  // Sobrenaturales
+  b('harpy', { stats: st(4, 3, 1, 4, 4, 0, 0), endurance: 5, destiny: 2, abilities: ['Alado', 'Visión en la oscuridad'], page: 147 }),
+  // Sobrenaturales (lunares y solares)
   b('lunar', { stats: st(7, 6, 3, 4, 3, 2, 3), endurance: 10, destiny: 7, abilities: ['Alado', 'Aura sombría 2', 'Piel de humano'], page: 120 }),
   b('fallenElite', { stats: st(7, 7, 4, 4, 3, 3, 4), endurance: 11, destiny: 8, abilities: ['Alado', 'Aura sombría 3', 'Piel de humano'], page: 124 }),
   b('solar', { stats: st(6, 7, 4, 3, 2, 3, 3), endurance: 10, destiny: 7, abilities: ['Alado', 'Aura 2', 'Disfraz terrenal', 'Ira solar 2'], page: 132 }),
   b('solarPaladin', { stats: st(6, 8, 5, 3, 2, 4, 4), endurance: 7, destiny: 8, abilities: ['Alado', 'Aura 3', 'Disfraz terrenal', 'Ira solar 3'], page: 132 }),
-  // Humanos hostiles (bloques del capítulo de ambientación)
+  b('aamel', { stats: st(6, 8, 5, 4, 3, 4, 5), endurance: 11, destiny: 8, abilities: ['Alado', 'Aura 3', 'Disfraz terrenal', 'Ira solar 2'], page: 132 }),
+  // Humanos hostiles y figuras de la ambientación (pp. 44–74, 98)
   b('mutant', { stats: { fortitude: 3, combat: 3, will: 1 }, endurance: 4, destiny: 0, protection: 2, abilities: ['Piel curtida'], page: 98 }),
   b('scavenger', { stats: st(3, 3, 3, 2, 2, 3, 2), endurance: 6, destiny: 1, page: 74 }),
   b('wanderer', { stats: st(2, 1, 3, 3, 1, 4, 3), endurance: 5, destiny: 4, page: 69 }),
@@ -187,6 +189,25 @@ export const BESTIARY = [
   b('jihadist', { stats: st(2, 3, 3, 2, 3, 2, 2), endurance: 5, destiny: 2, page: 62 }),
   b('dragon', { stats: st(3, 2, 3, 2, 1, 2, 1), endurance: 6, destiny: 1, page: 63 }),
   b('latinGang', { stats: st(3, 2, 2, 3, 1, 2, 1), endurance: 5, destiny: 1, page: 61 }),
+  b('paramilitary', { stats: st(3, 3, 1, 3, 1, 2, 2), endurance: 4, destiny: 2, page: 61 }),
+  b('edenSeeker', { stats: st(2, 1, 2, 2, 3, 2, 2), endurance: 4, destiny: 1, page: 61 }),
+  b('kibbutzMember', { stats: st(1, 1, 2, 2, 3, 3, 2), endurance: 3, destiny: 2, page: 61 }),
+  b('paradiseMartyr', { stats: st(2, 2, 2, 3, 3, 2, 2), endurance: 4, destiny: 2, page: 57 }),
+  b('occultNetizen', { stats: st(2, 1, 2, 2, 3, 2, 3), endurance: 4, destiny: 1, page: 59 }),
+  b('dimaGang', { stats: st(3, 4, 2, 3, 1, 2, 3), endurance: 5, destiny: 1, page: 59 }),
+  b('newOrderFollower', { stats: st(2, 1, 3, 2, 2, 2, 3), endurance: 5, destiny: 1, page: 59 }),
+  b('illuminatiCharlatan', { stats: st(2, 1, 1, 3, 3, 3, 3), endurance: 5, destiny: 1, page: 63 }),
+  b('miyamotoSoldier', { stats: st(2, 3, 2, 3, 2, 2, 1), endurance: 4, destiny: 1, page: 64 }),
+  b('littleTokyoThug', { stats: st(3, 3, 2, 2, 3, 1, 1), endurance: 5, destiny: 2, page: 65 }),
+  b('cannibalCook', { stats: st(2, 3, 1, 3, 2, 1, 1), endurance: 3, destiny: 7, page: 69 }),
+  b('maggie', { stats: st(2, 1, 3, 3, 3, 3, 1), endurance: 5, destiny: 7, page: 68 }),
+  b('fluteFool', { stats: st(4, 1, 3, 1, 2, 1, 4), endurance: 7, destiny: 4, page: 69 }),
+  b('ramirez', { stats: st(4, 4, 2, 4, 2, 2, 2), endurance: 6, destiny: 2, page: 69 }),
+  b('jellybean', { stats: st(2, 1, 2, 2, 2, 3, 4), endurance: 4, destiny: 3, page: 74 }),
+  b('hermes', { stats: st(1, 1, 3, 3, 2, 2, 4), endurance: 4, destiny: 4, page: 67 }),
+  b('judith', { stats: st(2, 1, 3, 3, 1, 4, 3), endurance: 5, destiny: 4, page: 67 }),
+  b('henryPutnam', { stats: st(1, 2, 4, 3, 4, 3, 2), endurance: 5, destiny: 8, page: 44 }),
+  b('dorcy', { stats: st(2, 1, 3, 1, 3, 3, 1), endurance: 5, destiny: 6, page: 44 }),
 ];
 
 // ─── Difficulty presets (manual p.84) ────────────────────────────────────────
