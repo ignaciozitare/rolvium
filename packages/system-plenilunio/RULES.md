@@ -457,6 +457,7 @@ Dos cosas que se leen mal si no se avisan:
 | Solar | 6 | 7 | 4 | 3 | 2 | 3 | 3 | 10 | 7 | Alado, Aura 2, Disfraz terrenal, Ira solar 2 | 132 |
 | Paladín solar | 6 | 8 | 5 | 3 | 2 | 4 | 4 | 7 | 8 | Alado, Aura 3, Disfraz terrenal, Ira solar 3 | 132 |
 | Aamel (lugarteniente solar) | 6 | 8 | 5 | 4 | 3 | 4 | 5 | 11 | 8 | Alado, Aura 3, Disfraz terrenal, Ira solar 2 | 132 |
+| Azelías (lugarteniente solar) | 6 | 7 | 4 | 3 | 5 | 5 | 5 | 10 | 8 | Alado, Aura 2, Disfraz terrenal, Ira solar 3 | 132 |
 
 ### 8.3 Humanos y figuras de la ambientación
 Los bloques de los capítulos de ambientación (pp. 44–74). Sirven de encuentro tal cual.
@@ -488,22 +489,52 @@ Los bloques de los capítulos de ambientación (pp. 44–74). Sirven de encuentr
 | Judith | 2 | 1 | 3 | 3 | 1 | 4 | 3 | 5 | 4 | 67 |
 | Henry Putnam | 1 | 2 | 4 | 3 | 4 | 3 | 2 | 5 | 8 | 44 |
 | Dorcy | 2 | 1 | 3 | 1 | 3 | 3 | 1 | 5 | 6 | 44 |
+| Silhouette (mimo peligroso) | 3 | 3 | 1 | 2 | 2 | 2 | 1 | 4 | 1 | 57 |
+| Big Dima (jefe mafioso) | 4 | 4 | 3 | 4 | 3 | 3 | 4 | 7 | 7 | 59 |
+| Hermana de las Trece Lunas | 4 | 5 | 3 | 4 | 4 | 2 | 3 | 7 | 4 | 67 |
+| Jacobista | 2 | 2 | 3 | 1 | 2 | 3 | 2 | 6 | 1 | 67 |
+| George (cocinero caníbal) | 3 | 3 | 1 | 3 | 2 | 2 | 1 | 4 | 7 | 68 |
+| Diane (carroñera) | 2 | 3 | 3 | 3 | 3 | 2 | 2 | 5 | 2 | 74 |
+| Allen Dallas «el Americano» | 2 | 1 | 3 | 3 | 4 | 1 | 5 | 5 | 7 | 74 |
+
+⚠ La Hermana de las Trece Lunas trae capacidades, cosa rara en un bloque humano: **Defensa de acero 2** y
+**Movimientos felinos 2**.
 
 ### 8.4 El mutante — lo único que el libro publica
 Sale en dos ejemplos, no en un bloque: **Fortaleza 3 y Voluntad 1 → Aguante 4** y protección 2 por su piel curtida
 (p. 98), y **Combate 3** (p. 94). **Las otras cuatro características no están escritas en ninguna parte**, así que el
 paquete las deja SIN VALOR en vez de inventarlas: la ficha pinta «—» y el director tira con lo que hay.
 
-**Cobertura**: son los **37 bloques completos** que imprime el manual (los que traen las siete características y el
-Aguante). Contados uno a uno sobre el PDF, no de memoria.
+**Cobertura**: son los **45 bloques completos** que imprime el manual (los que traen las siete características y el
+Aguante).
+
+⚠ Corregido el 2026-08-20: antes decía 37 «contados uno a uno sobre el PDF», y faltaban **ocho**. Aparecieron al
+releer el libro para sacar las especialidades. Dos de los que ya estaban tenían además el nombre engañoso, aunque
+sus valores eran correctos: `cannibalCook` (p. 69) es **Will** —el manual imprime TRES cocineros: Maggie p. 68,
+George p. 68 y Will p. 69— y `scavenger` (p. 74) es **Kharla**, que tiene compañera, Diane.
 
 ⚠ Fuera del catálogo, y anotado: «Solitario» y «Chatarrero», que venían del prototipo y **no eran bloques del
 manual**. En su lugar entran Carroñera (p. 74) y Vagabundo amable (p. 69), que sí lo son. `scavenger` conserva su
 identificador —lo usan los tokens ya colocados— y pasa a ser la Carroñera del libro.
 
-⚠ Pendiente: las **especialidades** de cada bloque (el ogro tiene «Garrote» en Combate, el hambriento «Mordisco»)
-están escritas en los `notes` de cada criatura pero **no como dato**, así que el motor todavía no puede doblar sus
-triunfos. Hace falta una clave i18n por criatura y característica.
+### 8.5 Las especialidades de los bloques
+El manual imprime **una especialidad por característica dentro del propio bloque**, a la derecha de su puntuación,
+y un guion donde no la hay (que suele coincidir con puntuación 0). El ogro (p. 152):
+
+```
+Fortaleza  8   Derribar paredes
+Combate    4   Garrote
+Voluntad   1   Constancia
+Cultura    0   -
+```
+
+Un bloque puede traer **dos** en la misma característica (Hermana de las Trece Lunas: «Acrobacias, Equilibrio»).
+Cuentan como especialidad normal: **doblan los triunfos** de esa tirada (§3, p. 83), y es el director quien marca
+cuál aplica —no se aplican solas por característica, porque el garrote no sirve para esquivar.
+
+De los **133 nombres distintos** que usa el bestiario, **104 ya existen** en la lista de especialidades de jugador y
+reutilizan su clave; sólo **30** son propias de criatura (Garrote, Mordisco, Picado de garras, Uñas y dientes…).
+El **mutante no tiene ninguna**: el libro no le imprime bloque (§8.4).
 
 ---
 

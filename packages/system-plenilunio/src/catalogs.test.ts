@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARMOURS, BESTIARY, DIFFICULTIES, GIFTS, GIFT_IDS, RANGE_DIFFICULTY, RECOVERY, SIZES, SPECIALTIES, SPECIALTY_ITEMS, STAT_IDS, WEAPONS, catalogs, isMelee, specialtiesFor, weaponById } from './catalogs';
+import { ARMOURS, BESTIARY, CREATURE_SPECIALTY_ITEMS, DIFFICULTIES, GIFTS, GIFT_IDS, RANGE_DIFFICULTY, RECOVERY, SIZES, SPECIALTIES, SPECIALTY_ITEMS, STAT_IDS, WEAPONS, catalogs, isMelee, specialtiesFor, weaponById } from './catalogs';
 import { references } from './references';
 import { lookup, messages } from './locales';
 
@@ -90,6 +90,50 @@ describe('catalogs', () => {
     expect(Object.keys(mutant.data.stats).sort()).toEqual(['combat', 'fortitude', 'will']);
     // El fantasma no tiene cuerpo: Fortaleza y Combate a 0, y Aguante 0 (p.149).
     expect(BESTIARY.find(b => b.id === 'ghost')?.data).toMatchObject({ endurance: 0, resistance: 0, destiny: 10 });
+  });
+  /**
+   * Las especialidades de las criaturas, como DATO (dueño, 2026-08-20). El manual las imprime dentro del propio
+   * bloque, una por característica —el ogro «Fortaleza 8: Derribar paredes», «Combate 4: Garrote»— y sin ellas el
+   * motor no puede doblarles los triunfos (p.83) aunque ya sepa hacerlo. Se fija aquí que sean ids REALES: el
+   * fallo que importa es una especialidad escrita a mano que no resuelve a ninguna etiqueta y sale en blanco.
+   */
+  it('cada especialidad de criatura es un id real, de jugador o propia de criatura', () => {
+    const known = new Set([...SPECIALTY_ITEMS, ...CREATURE_SPECIALTY_ITEMS].map(i => i.id));
+    for (const b of BESTIARY) {
+      for (const [stat, ids] of Object.entries(b.data.specialties)) {
+        expect(STAT_IDS, `${b.id}.${stat}`).toContain(stat);
+        for (const id of ids) expect(known.has(id), `${b.id}.${stat} → ${id}`).toBe(true);
+        // Una especialidad sin puntuación no puede existir: el bloque pone «-» donde la característica es 0.
+        expect(b.data.stats[stat as keyof typeof b.data.stats], `${b.id}.${stat} sin puntuación`).toBeDefined();
+      }
+    }
+    for (const it of CREATURE_SPECIALTY_ITEMS) resolves(it.label);
+  });
+  it('las especialidades reutilizan la clave de jugador cuando el nombre coincide', () => {
+    // «Ocultismo» y «Percepción» ya existían como especialidad de jugador: NO se duplican con clave nueva.
+    expect(BESTIARY.find(b => b.id === 'ghost')!.data.specialties).toMatchObject({ culture: ['culture.occultism'], cunning: ['cunning.perception'] });
+    // «Garrote» y «Mordisco» no las tiene ningún personaje: clave propia de criatura.
+    expect(BESTIARY.find(b => b.id === 'ogre')!.data.specialties).toMatchObject({ fortitude: ['creature.derribarParedes'], combat: ['creature.garrote'] });
+    expect(BESTIARY.find(b => b.id === 'hungry')!.data.specialties.combat).toEqual(['creature.mordisco']);
+    // Un bloque puede traer DOS en la misma característica (Trece Lunas: «Acrobacias, Equilibrio»).
+    expect(BESTIARY.find(b => b.id === 'thirteenMoonsSister')!.data.specialties.fortitude).toHaveLength(2);
+    // Del mutante el libro no imprime bloque: ni características completas ni especialidades. No se inventan.
+    expect(BESTIARY.find(b => b.id === 'mutant')!.data.specialties).toEqual({});
+  });
+  /**
+   * Los 8 bloques que le faltaban al catálogo, encontrados leyendo el PDF para sacar las especialidades. El
+   * comentario decía «los 37 bloques completos, contados uno a uno sobre el PDF» y eran 45.
+   */
+  it('están los 45 bloques del manual, incluidos los 8 que faltaban', () => {
+    expect(BESTIARY).toHaveLength(45);
+    // Azelías, el segundo lugarteniente solar: mismo bloque que Aamel salvo Aura e Ira solar (p.132).
+    expect(BESTIARY.find(b => b.id === 'azelias')?.data).toMatchObject({ endurance: 10, destiny: 8, page: 132 });
+    // George es el TERCER cocinero caníbal: el catálogo sólo tenía a Maggie (p.68) y a Will (`cannibalCook`, p.69).
+    expect(BESTIARY.find(b => b.id === 'george')?.data).toMatchObject({ endurance: 4, destiny: 7, page: 68 });
+    // Diane es la segunda carroñera: `scavenger` es Kharla (p.74).
+    expect(BESTIARY.find(b => b.id === 'diane')?.data.stats).toMatchObject({ combat: 3, cunning: 3 });
+    for (const id of ['azelias', 'silhouette', 'bigDima', 'thirteenMoonsSister', 'jacobite', 'george', 'diane', 'allenDallas'])
+      expect(BESTIARY.find(b => b.id === id), id).toBeDefined();
   });
   it('every catalog label and every reference resolves in es and en', () => {
     for (const items of Object.values(catalogs)) for (const it of items) { resolves(it.label); if (it.ref) expect(references[it.ref], it.ref).toBeDefined(); }

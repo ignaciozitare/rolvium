@@ -140,8 +140,8 @@ export const specialtiesFor = (stat: StatId): CatalogItem[] => SPECIALTY_ITEMS.f
  * (p.94), protección 2— así que el resto de sus características van SIN VALOR en vez de inventadas: la ficha las
  * pinta «—» y el director tira con lo que hay.
  *
- * Las **especialidades** de cada bloque (el ogro tiene «Garrote» en Combate, el hambriento «Mordisco») todavía no se
- * guardan: harían falta claves i18n por criatura y característica. Pendiente, anotado en el spec.
+ * Las **especialidades** de cada bloque (el ogro «Garrote» en Combate, el hambriento «Mordisco») SÍ se guardan,
+ * en `CREATURE_SPECIALTIES` — el manual las imprime dentro del propio bloque, una por característica.
  */
 export interface BestiaryData {
   /** Las que el manual publica. Ausente = el bloque no la da (no la inventamos). */
@@ -157,12 +157,105 @@ export interface BestiaryData {
   page: number;
   /** Resistencia = Aguante × 3 (p.25). Se guarda calculada para no repetir la cuenta en cada consumidor. */
   resistance: number;
+  /** Una especialidad por característica, como las imprime el bloque. Ids de `SPECIALTY_ITEMS` o `creature.*`. */
+  specialties: Partial<Record<StatId, string[]>>;
   notes: string;
 }
 type Block = { stats: Partial<Record<StatId, number>>; endurance: number; destiny: number; protection?: number; abilities?: string[]; page: number };
+// ─── Especialidades de las criaturas (dato, no adorno) ───────────────────────
+/**
+ * Cada bloque del manual imprime UNA especialidad por característica junto a su puntuación (el ogro:
+ * «Fortaleza 8 — Derribar paredes», «Combate 4 — Garrote»), y un guion cuando no la hay. Sin esto el motor
+ * no puede doblarles los triunfos (p.83) aunque ya sepa hacerlo: el director las ve al tirar y marca la que aplica.
+ *
+ * De los 133 nombres distintos que usa el bestiario, **104 ya existen** como especialidad de jugador y reutilizan
+ * su clave (`combat.firearms`…). Sólo los 30 restantes son propios de criatura y llevan clave nueva
+ * (`creature.*`): son los de sabor —Garrote, Mordisco, Picado de garras, Uñas y dientes—, que ningún personaje tiene.
+ */
+export const CREATURE_SPECIALTIES: Record<string, Partial<Record<StatId, string[]>>> = {
+  hungry: { fortitude: ['creature.persecucionALaCarrera'], combat: ['creature.mordisco'], will: ['creature.temeridad'], cunning: ['cunning.searching'] },
+  ogre: { fortitude: ['creature.derribarParedes'], combat: ['creature.garrote'], will: ['will.constancy'], cunning: ['cunning.movingBlind'], subtlety: ['creature.permanecerInmovil'], presence: ['presence.intimidation'] },
+  ghost: { will: ['creature.fijacion'], cunning: ['cunning.perception'], subtlety: ['subtlety.acting'], presence: ['presence.intimidation'], culture: ['culture.occultism'] },
+  possessed: { fortitude: ['creature.mantenerseDePie'], combat: ['creature.tijeras'], will: ['creature.dominarCuerpo'], cunning: ['cunning.movingBlind'] },
+  cherub: { fortitude: ['creature.saltarALaEspaldaDeLaVictima'], combat: ['creature.unasYDientes'], will: ['creature.obedienciaCiega'], cunning: ['cunning.anticipation'], subtlety: ['subtlety.ambush'] },
+  harpy: { fortitude: ['creature.atraparVictimasAlVuelo'], combat: ['creature.picadoDeGarras'], will: ['will.patience'], cunning: ['cunning.keenSight'], subtlety: ['creature.acechar'] },
+  lunar: { fortitude: ['fortitude.carrying'], combat: ['combat.bluntWeapons'], will: ['will.courage'], cunning: ['cunning.dangerSense'], subtlety: ['subtlety.hiding'], presence: ['presence.intimidation'], culture: ['culture.history'] },
+  fallenElite: { fortitude: ['creature.volarLargasDistancias'], combat: ['creature.hachasYMachetes'], will: ['will.fanaticism'], cunning: ['cunning.dangerSense'], subtlety: ['subtlety.ambush'], presence: ['presence.intimidation'], culture: ['culture.tactics'] },
+  solar: { fortitude: ['creature.vueloEnPicado'], combat: ['creature.lanzaYEspada'], will: ['will.faith'], cunning: ['cunning.keenSight'], subtlety: ['creature.acechar'], presence: ['presence.seduction'], culture: ['culture.history'] },
+  solarPaladin: { fortitude: ['fortitude.vigour'], combat: ['creature.lanzaYEspada'], will: ['will.fanaticism'], cunning: ['cunning.lieDetection'], subtlety: ['creature.acechar'], presence: ['presence.interrogation'], culture: ['culture.religion'] },
+  aamel: { fortitude: ['will.painResistance'], combat: ['creature.mandoble'], will: ['will.integrity'], cunning: ['cunning.investigation'], subtlety: ['presence.courtesy'], presence: ['presence.inspiring'], culture: ['culture.legends'] },
+  scavenger: { fortitude: ['fortitude.carrying'], combat: ['combat.crossbows'], will: ['will.constancy'], cunning: ['cunning.searching'], subtlety: ['subtlety.dissembling'], presence: ['presence.negotiation'], culture: ['culture.languages'] },
+  wanderer: { fortitude: ['fortitude.carrying'], combat: ['combat.improvisedWeapons'], will: ['will.intuition'], cunning: ['cunning.dangerSense'], subtlety: ['subtlety.concealment'], presence: ['presence.empathy'], culture: ['culture.humanities'] },
+  gangster: { fortitude: ['fortitude.drinking'], combat: ['combat.submachineGuns'], will: ['will.constancy'], cunning: ['cunning.searching'], subtlety: ['subtlety.gambling'], presence: ['subtlety.blackmail'], culture: ['culture.newYork'] },
+  jihadist: { fortitude: ['fortitude.sprinting'], combat: ['combat.rifles'], will: ['will.courage'], cunning: ['cunning.lightSleep'], subtlety: ['subtlety.disguise'], presence: ['presence.torture'], culture: ['culture.tactics'] },
+  dragon: { fortitude: ['fortitude.athletics'], combat: ['creature.artesMarcialesMixtas'], will: ['will.selfEsteem'], cunning: ['cunning.lightSleep'], subtlety: ['subtlety.gambling'], presence: ['presence.intimidation'], culture: ['culture.legends'] },
+  latinGang: { fortitude: ['fortitude.breakingDoors'], combat: ['combat.wrestling'], will: ['will.integrity'], cunning: ['cunning.streetwise'], subtlety: ['subtlety.concealment'], presence: ['presence.torture'], culture: ['culture.languages'] },
+  paramilitary: { fortitude: ['fortitude.athletics'], combat: ['combat.heavyWeapons'], will: ['will.courage'], cunning: ['cunning.lightSleep'], subtlety: ['subtlety.camouflage'], presence: ['presence.interrogation'], culture: ['culture.tactics'] },
+  edenSeeker: { fortitude: ['fortitude.riding'], combat: ['combat.bows'], will: ['will.rites'], cunning: ['cunning.animalTraining'], subtlety: ['presence.poetry'], presence: ['presence.animalHandling'], culture: ['culture.conspiracyTheory'] },
+  kibbutzMember: { fortitude: ['fortitude.carrying'], combat: ['creature.artesMarcialesKravMaga'], will: ['will.patience'], cunning: ['cunning.carpentry'], subtlety: ['subtlety.haggling'], presence: ['presence.negotiation'], culture: ['culture.art'] },
+  paradiseMartyr: { fortitude: ['fortitude.carrying'], combat: ['combat.spears'], will: ['will.fanaticism'], cunning: ['subtlety.feigning'], subtlety: ['subtlety.blackmail'], presence: ['presence.empathy'], culture: ['culture.religion'] },
+  occultNetizen: { fortitude: ['fortitude.stayingAwake'], combat: ['combat.shortWeapons'], will: ['will.divination'], cunning: ['cunning.riddles'], subtlety: ['subtlety.gambling'], presence: ['presence.charlatanry'], culture: ['culture.occultism'] },
+  dimaGang: { fortitude: ['cunning.driving'], combat: ['combat.shotguns'], will: ['will.constancy'], cunning: ['cunning.streetwise'], subtlety: ['subtlety.haggling'], presence: ['presence.intimidation'], culture: ['culture.technology'] },
+  newOrderFollower: { fortitude: ['fortitude.vigour'], combat: ['combat.bows'], will: ['will.fanaticism'], cunning: ['cunning.carpentry'], subtlety: ['subtlety.hiding'], presence: ['presence.empathy'], culture: ['culture.conspiracyTheory'] },
+  illuminatiCharlatan: { fortitude: ['fortitude.drinking'], combat: ['combat.knives'], will: ['will.keepingFace'], cunning: ['cunning.lieDetection'], subtlety: ['subtlety.feigning'], presence: ['presence.charlatanry'], culture: ['culture.religion'] },
+  miyamotoSoldier: { fortitude: ['fortitude.escapology'], combat: ['combat.shortWeapons'], will: ['will.temperance'], cunning: ['cunning.movingBlind'], subtlety: ['subtlety.haggling'], presence: ['subtlety.blackmail'], culture: ['culture.technology'] },
+  littleTokyoThug: { fortitude: ['fortitude.parkour'], combat: ['combat.dirtyFighting'], will: ['will.selfEsteem'], cunning: ['cunning.perception'], subtlety: ['subtlety.knack'], presence: ['presence.singing'], culture: ['creature.artePintadas'] },
+  cannibalCook: { fortitude: ['fortitude.carrying'], combat: ['creature.cuchillos'], will: ['will.painResistance'], cunning: ['cunning.streetwise'], subtlety: ['subtlety.knack'], presence: ['presence.torture'], culture: ['culture.legends'] },
+  maggie: { fortitude: ['fortitude.vigour'], combat: ['creature.hachuelaDeCocina'], will: ['will.intuition'], cunning: ['cunning.orientation'], subtlety: ['subtlety.feigning'], presence: ['presence.courtesy'], culture: ['culture.firstAid'] },
+  fluteFool: { fortitude: ['fortitude.dancing'], combat: ['combat.improvisedWeapons'], will: ['will.concentration'], cunning: ['cunning.perception'], subtlety: ['subtlety.ventriloquism'], presence: ['presence.singing'], culture: ['culture.languages'] },
+  ramirez: { fortitude: ['cunning.driving'], combat: ['combat.shortWeapons'], will: ['will.intuition'], cunning: ['cunning.survival'], subtlety: ['subtlety.knack'], presence: ['presence.intimidation'], culture: ['culture.newYork'] },
+  jellybean: { fortitude: ['fortitude.cycling'], combat: ['combat.shortWeapons'], will: ['will.patience'], cunning: ['cunning.riddles'], subtlety: ['subtlety.haggling'], presence: ['presence.negotiation'], culture: ['culture.technology'] },
+  hermes: { fortitude: ['fortitude.stayingAwake'], combat: ['combat.bluntWeapons'], will: ['will.concentration'], cunning: ['cunning.investigation'], subtlety: ['subtlety.feigning'], presence: ['presence.courtesy'], culture: ['culture.history'] },
+  judith: { fortitude: ['fortitude.carrying'], combat: ['combat.improvisedWeapons'], will: ['will.intuition'], cunning: ['cunning.dangerSense'], subtlety: ['subtlety.concealment'], presence: ['presence.empathy'], culture: ['culture.humanities'] },
+  henryPutnam: { fortitude: ['fortitude.stayingAwake'], combat: ['combat.staves'], will: ['will.fanaticism'], cunning: ['creature.buscarInfieles'], subtlety: ['creature.predicar'], presence: ['presence.inspiring'], culture: ['culture.religion'] },
+  dorcy: { fortitude: ['fortitude.carrying'], combat: ['combat.knives'], will: ['will.faith'], cunning: ['cunning.lieDetection'], subtlety: ['subtlety.imitation'], presence: ['presence.courtesy'], culture: ['culture.firstAid'] },
+  azelias: { fortitude: ['creature.vueloAcrobatico'], combat: ['combat.swords'], will: ['will.keepingFace'], cunning: ['cunning.perception'], subtlety: ['subtlety.dissembling'], presence: ['subtlety.blackmail'], culture: ['culture.occultism'] },
+  silhouette: { fortitude: ['fortitude.parkour'], combat: ['combat.submachineGuns'], will: ['will.rites'], cunning: ['cunning.streetwise'], subtlety: ['subtlety.acting'], presence: ['presence.mime'], culture: ['culture.newYork'] },
+  bigDima: { fortitude: ['fortitude.drinking'], combat: ['combat.shortWeapons'], will: ['will.integrity'], cunning: ['cunning.timeSense'], subtlety: ['subtlety.knack'], presence: ['presence.leadership'], culture: ['culture.newYork'] },
+  thirteenMoonsSister: { fortitude: ['fortitude.acrobatics', 'fortitude.balance'], combat: ['creature.espadasYCuchillosSamurais'], will: ['will.constancy'], cunning: ['cunning.movingBlind'], subtlety: ['subtlety.camouflage'], presence: ['presence.seduction'], culture: ['culture.legends'] },
+  jacobite: { fortitude: ['fortitude.riding'], combat: ['combat.spears'], will: ['will.faith'], cunning: ['cunning.timeSense'], subtlety: ['subtlety.imitation'], presence: ['presence.charlatanry'], culture: ['culture.psychology'] },
+  george: { fortitude: ['fortitude.drinking'], combat: ['creature.cuchillos'], will: ['will.constancy'], cunning: ['cunning.streetwise'], subtlety: ['subtlety.gambling'], presence: ['presence.humour'], culture: ['culture.medicine'] },
+  diane: { fortitude: ['fortitude.vigour'], combat: ['combat.crossbows'], will: ['will.courage'], cunning: ['cunning.keenSight'], subtlety: ['subtlety.concealment'], presence: ['presence.poetry'], culture: ['culture.firstAid'] },
+  allenDallas: { fortitude: ['fortitude.stayingAwake'], combat: ['combat.bluntWeapons'], will: ['will.constancy'], cunning: ['cunning.investigation'], subtlety: ['subtlety.dissembling'], presence: ['presence.humour'], culture: ['culture.computing'] },
+};
+
+/** Las especialidades que sólo tienen las criaturas. Las compartidas con jugadores viven en `SPECIALTY_ITEMS`. */
+export const CREATURE_SPECIALTY_ITEMS: CatalogItem[] = [
+  { id: 'creature.acechar', label: 'catalog.creatureSpecialties.acechar', ref: 'specialty' },
+  { id: 'creature.artePintadas', label: 'catalog.creatureSpecialties.artePintadas', ref: 'specialty' },
+  { id: 'creature.artesMarcialesKravMaga', label: 'catalog.creatureSpecialties.artesMarcialesKravMaga', ref: 'specialty' },
+  { id: 'creature.artesMarcialesMixtas', label: 'catalog.creatureSpecialties.artesMarcialesMixtas', ref: 'specialty' },
+  { id: 'creature.atraparVictimasAlVuelo', label: 'catalog.creatureSpecialties.atraparVictimasAlVuelo', ref: 'specialty' },
+  { id: 'creature.buscarInfieles', label: 'catalog.creatureSpecialties.buscarInfieles', ref: 'specialty' },
+  { id: 'creature.cuchillos', label: 'catalog.creatureSpecialties.cuchillos', ref: 'specialty' },
+  { id: 'creature.derribarParedes', label: 'catalog.creatureSpecialties.derribarParedes', ref: 'specialty' },
+  { id: 'creature.dominarCuerpo', label: 'catalog.creatureSpecialties.dominarCuerpo', ref: 'specialty' },
+  { id: 'creature.espadasYCuchillosSamurais', label: 'catalog.creatureSpecialties.espadasYCuchillosSamurais', ref: 'specialty' },
+  { id: 'creature.fijacion', label: 'catalog.creatureSpecialties.fijacion', ref: 'specialty' },
+  { id: 'creature.garrote', label: 'catalog.creatureSpecialties.garrote', ref: 'specialty' },
+  { id: 'creature.hachasYMachetes', label: 'catalog.creatureSpecialties.hachasYMachetes', ref: 'specialty' },
+  { id: 'creature.hachuelaDeCocina', label: 'catalog.creatureSpecialties.hachuelaDeCocina', ref: 'specialty' },
+  { id: 'creature.lanzaYEspada', label: 'catalog.creatureSpecialties.lanzaYEspada', ref: 'specialty' },
+  { id: 'creature.mandoble', label: 'catalog.creatureSpecialties.mandoble', ref: 'specialty' },
+  { id: 'creature.mantenerseDePie', label: 'catalog.creatureSpecialties.mantenerseDePie', ref: 'specialty' },
+  { id: 'creature.mordisco', label: 'catalog.creatureSpecialties.mordisco', ref: 'specialty' },
+  { id: 'creature.obedienciaCiega', label: 'catalog.creatureSpecialties.obedienciaCiega', ref: 'specialty' },
+  { id: 'creature.permanecerInmovil', label: 'catalog.creatureSpecialties.permanecerInmovil', ref: 'specialty' },
+  { id: 'creature.persecucionALaCarrera', label: 'catalog.creatureSpecialties.persecucionALaCarrera', ref: 'specialty' },
+  { id: 'creature.picadoDeGarras', label: 'catalog.creatureSpecialties.picadoDeGarras', ref: 'specialty' },
+  { id: 'creature.predicar', label: 'catalog.creatureSpecialties.predicar', ref: 'specialty' },
+  { id: 'creature.saltarALaEspaldaDeLaVictima', label: 'catalog.creatureSpecialties.saltarALaEspaldaDeLaVictima', ref: 'specialty' },
+  { id: 'creature.temeridad', label: 'catalog.creatureSpecialties.temeridad', ref: 'specialty' },
+  { id: 'creature.tijeras', label: 'catalog.creatureSpecialties.tijeras', ref: 'specialty' },
+  { id: 'creature.unasYDientes', label: 'catalog.creatureSpecialties.unasYDientes', ref: 'specialty' },
+  { id: 'creature.volarLargasDistancias', label: 'catalog.creatureSpecialties.volarLargasDistancias', ref: 'specialty' },
+  { id: 'creature.vueloAcrobatico', label: 'catalog.creatureSpecialties.vueloAcrobatico', ref: 'specialty' },
+  { id: 'creature.vueloEnPicado', label: 'catalog.creatureSpecialties.vueloEnPicado', ref: 'specialty' },
+];
+
 const b = (id: string, k: Block): CatalogItem & { data: BestiaryData } => ({
   id, label: `catalog.bestiary.${id}.name`, ref: 'bestiary',
-  data: { stats: k.stats, endurance: k.endurance, destiny: k.destiny, protection: k.protection ?? 0, abilities: k.abilities ?? [], page: k.page, resistance: k.endurance * 3, notes: `catalog.bestiary.${id}.notes` },
+  data: { stats: k.stats, endurance: k.endurance, destiny: k.destiny, protection: k.protection ?? 0, abilities: k.abilities ?? [], page: k.page, resistance: k.endurance * 3, specialties: CREATURE_SPECIALTIES[id] ?? {}, notes: `catalog.bestiary.${id}.notes` },
 });
 const st = (fortitude: number, combat: number, will: number, cunning: number, subtlety: number, presence: number, culture: number) =>
   ({ fortitude, combat, will, cunning, subtlety, presence, culture });
@@ -181,6 +274,7 @@ export const BESTIARY = [
   b('solar', { stats: st(6, 7, 4, 3, 2, 3, 3), endurance: 10, destiny: 7, abilities: ['Alado', 'Aura 2', 'Disfraz terrenal', 'Ira solar 2'], page: 132 }),
   b('solarPaladin', { stats: st(6, 8, 5, 3, 2, 4, 4), endurance: 7, destiny: 8, abilities: ['Alado', 'Aura 3', 'Disfraz terrenal', 'Ira solar 3'], page: 132 }),
   b('aamel', { stats: st(6, 8, 5, 4, 3, 4, 5), endurance: 11, destiny: 8, abilities: ['Alado', 'Aura 3', 'Disfraz terrenal', 'Ira solar 2'], page: 132 }),
+  b('azelias', { stats: st(6, 7, 4, 3, 5, 5, 5), endurance: 10, destiny: 8, abilities: ['Alado', 'Aura 2', 'Disfraz terrenal', 'Ira solar 3'], page: 132 }),
   // Humanos hostiles y figuras de la ambientación (pp. 44–74, 98)
   b('mutant', { stats: { fortitude: 3, combat: 3, will: 1 }, endurance: 4, destiny: 0, protection: 2, abilities: ['Piel curtida'], page: 98 }),
   b('scavenger', { stats: st(3, 3, 3, 2, 2, 3, 2), endurance: 6, destiny: 1, page: 74 }),
@@ -208,6 +302,13 @@ export const BESTIARY = [
   b('judith', { stats: st(2, 1, 3, 3, 1, 4, 3), endurance: 5, destiny: 4, page: 67 }),
   b('henryPutnam', { stats: st(1, 2, 4, 3, 4, 3, 2), endurance: 5, destiny: 8, page: 44 }),
   b('dorcy', { stats: st(2, 1, 3, 1, 3, 3, 1), endurance: 5, destiny: 6, page: 44 }),
+  b('silhouette', { stats: st(3, 3, 1, 2, 2, 2, 1), endurance: 4, destiny: 1, page: 57 }),
+  b('bigDima', { stats: st(4, 4, 3, 4, 3, 3, 4), endurance: 7, destiny: 7, page: 59 }),
+  b('thirteenMoonsSister', { stats: st(4, 5, 3, 4, 4, 2, 3), endurance: 7, destiny: 4, abilities: ['Defensa de acero 2', 'Movimientos felinos 2'], page: 67 }),
+  b('jacobite', { stats: st(2, 2, 3, 1, 2, 3, 2), endurance: 6, destiny: 1, page: 67 }),
+  b('george', { stats: st(3, 3, 1, 3, 2, 2, 1), endurance: 4, destiny: 7, page: 68 }),
+  b('diane', { stats: st(2, 3, 3, 3, 3, 2, 2), endurance: 5, destiny: 2, page: 74 }),
+  b('allenDallas', { stats: st(2, 1, 3, 3, 4, 1, 5), endurance: 5, destiny: 7, page: 74 }),
 ];
 
 // ─── Difficulty presets (manual p.84) ────────────────────────────────────────
@@ -235,6 +336,7 @@ export const catalogs: Catalogs = {
   equipment: EQUIPMENT,
   gifts: GIFTS,
   specialties: SPECIALTY_ITEMS,
+  creatureSpecialties: CREATURE_SPECIALTY_ITEMS,
   sizes: SIZES.map(s => ({ id: s.id, label: `catalog.sizes.${s.id}`, data: { mod: s.mod } })),
   healthLevels: HEALTH_LEVELS.map(h => ({ id: h.id, label: `sheet.health.${h.id}`, ref: 'health', data: { penalty: h.penalty } })),
   difficulties: DIFFICULTIES.map(d => ({ id: d.id, label: `roll.difficulty.${d.id}`, ref: 'difficulty', data: { value: d.value } })),
