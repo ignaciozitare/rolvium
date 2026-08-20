@@ -38,14 +38,22 @@ Alcance aprobado por el dueño: **el hexágono entero**, no una rebanada.
   - Corregido el rótulo del pie del listado: «SUBIR TOKEN PNG» → **«SUBIR IMAGEN (WEBP)»** (el PNG era viejo).
   **Pendiente: que el dueño lo apruebe** — es gate obligatorio antes de escribir UI.
 
+### Construido después (2026-08-20, tarde)
+- `36a55f8` **diseño** — las 5 correcciones del dueño: imagen grande, ojo sobre el token + modal de la foto,
+  cajas de características alineadas, catálogo a pantalla completa, y «PNG» → «WEBP».
+- `ec16cbc` **el código** — compresor de imágenes en `packages/ui` (con vitest nuevo en ese paquete), y el
+  catálogo, la ficha y el modal de la foto enganchados en la pestaña «Bestiario» de la mesa, que era un cartel
+  de «en construcción». 591 tests, `audit` 0 hard, `build:web` y `build:api` en verde.
+
 ### ⏳ Lo que falta del hexágono
-1. **Que el dueño mire `kD9lH`** y dé el visto bueno (o lo corrija).
-2. **El compresor de imágenes** (`specs/core/images`) — no existe nada; va en `packages/ui` como utilidad que
-   devuelve un `Blob` y no sabe de Supabase.
-3. **La UI**: página del listado, ficha de encuentro, PNJ con ficha completa (reusa `<Sheet>` de `characters`),
-   y alimentar `EncounterMenu` con las entradas propias además del catálogo.
-4. **Claves i18n** del módulo en es y en.
-5. Review → QA → merge.
+1. ~~Visto bueno del dueño al diseño~~ **dado** · ~~compresor~~ **hecho** · ~~UI del catálogo y la ficha~~
+   **hecha** · ~~i18n~~ **hecha**.
+2. **Los PNJ aliados con ficha COMPLETA de personaje**: el origen `npc` existe en base, dominio y filtros, pero
+   la ficha que se abre es la del encuentro. Falta reutilizar `<Sheet>` de `characters` para ese caso.
+3. **Alimentar `EncounterMenu` de la escena con las entradas propias**: hoy «Colocar» lleva a la escena, pero el
+   desplegable de allí sigue enseñando sólo las 45 del manual. Es pequeño: `toCatalogItem` ya deja la entrada
+   con la forma que ese componente consume, así que es pasarle la lista unida en `SceneTab`.
+4. Review (lanzado) → QA → merge.
 
 ### 🔎 Lo que me encontré y NO toqué (decidir aparte)
 - **El diseño del listado enseña «Solitario» y «Chatarrero»**, que se quitaron del catálogo por no ser bloques del

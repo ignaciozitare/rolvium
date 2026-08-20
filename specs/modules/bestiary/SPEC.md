@@ -18,6 +18,18 @@ las tiradas no se puede construir sin él — sin encuentros con característica
 - **Imagen propia por entrada** (además del color+iniciales): se sube desde la ficha del encuentro y se comprime a
   WebP en el navegador antes de subirla — ver [core/images](../../core/images/SPEC.md). El bucket `tokens` ya existe.
 
+### Estado de construcción (2026-08-20, rama `feat/bestiario`)
+**Construido**: tabla y RLS · especialidades y los 8 bloques que faltaban · dominio, puerto, repositorio y
+contenedor · compresor de imágenes · catálogo a pantalla completa en la pestaña «Bestiario» de la mesa · ficha
+de crear/editar · modal de la foto · claves i18n en es y en. 591 tests en verde, `audit` 0 hard, ambas apps
+compilando. **Sin mergear**: falta Review + QA.
+
+**Pendiente**: los PNJ aliados con la ficha COMPLETA de personaje (reutilizando `<Sheet>` de `characters`)
+siguen sin construir — el origen `npc` existe en base, dominio y filtros, pero la ficha que se abre hoy es la
+del encuentro, no la de personaje. Y alimentar `EncounterMenu` de la escena con las entradas propias además
+del catálogo: hoy el botón «Colocar» del catálogo lleva a la escena, pero el desplegable de allí sigue
+enseñando sólo las del manual.
+
 ### Alcance de esta tanda (dueño, 2026-08-20)
 **El hexágono entero de una vez**, no una rebanada: listado + encuentros propios (crear, editar, duplicar, borrar)
 + **imagen por entrada** (obliga a construir el compresor de [core/images](../../core/images/SPEC.md), que hoy no
