@@ -756,6 +756,31 @@ Datos de prueba en local: campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`, perso
 
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
+### 🗺️ La escena — siete peticiones del dueño (2026-08-20). Nada empezado
+El **orden que él fijó**: primero las tiradas y el bestiario; el punto 7 (niebla degradada) va **después** de esas
+dos. Los demás no llevan orden.
+
+1. **Probar la niebla desde el mapa.** Un botón en la escena que deje **ver el mapa como lo ve un jugador**, con
+   los tokens de los personajes puestos, para comprobar la niebla antes de la partida. Hoy el director sólo ve su
+   propia vista y no hay forma de comprobarlo sin otra sesión abierta.
+2. **Luces dinámicas.** Poder colocar luces con **forma** —cono, radio o cuadrado— y **tipo**: antorcha, bombilla,
+   fuego. (Y lo que aporte el diseño: farol, linterna, luz de luna, resplandor mágico; cada tipo con su color, su
+   alcance y su parpadeo — una antorcha tiembla, una bombilla no.)
+3. **Capas en el mapa, con solapamiento.** Se dibuja/coloca **en la capa activa**, y con el botón derecho sobre un
+   objeto un desplegable deja **mandarlo a otra capa**. (Falta decidir qué capas por defecto: fondo · terreno ·
+   objetos · criaturas · efectos · notas del director.)
+4. 🐛 **El modal de «subir imagen de fondo» aparece en la otra punta de la pantalla.** Sale lejos del botón que lo
+   abre. Es un bug de colocación, no un rediseño.
+5. **Tirar imágenes sueltas en la escena**, además del fondo: la cara de un PNJ, un objeto, una pista… y **poder
+   moverlas** por encima del mapa. Va con el punto 3 (¿en qué capa cae?) y con el compresor de imágenes
+   (`specs/core/images`).
+6. **Fondos animados**: poder elegir de fondo un **GIF** o un **vídeo**. El vídeo **por enlace** (YouTube o
+   similar), **NO subiendo el fichero** — decisión explícita del dueño, y además evita pagar almacenamiento.
+7. **La niebla no se corta de golpe** (⚠ **después** de tiradas y bestiario): los personajes ven a cierta distancia
+   de noche o a oscuras, y hoy la visión termina en un borde duro. Tiene que **degradarse hasta el negro**, no
+   cortarse. Es lo que ya hace `vision_radius` en los tokens, pero pintado con un degradado en vez de un círculo.
+
+
 ### Últimos cuatro del dueño (2026-08-19, tarde)
 12. ~~**Un personaje creado no aparece**~~ → **NO SE GUARDA**. **(2026-08-19 noche: el motivo ya se lee — ver «Punto 12» arriba; causa raíz aún abierta.)** El dueño lo precisó: salió de la campaña, volvió
     y no estaba. La base NO es el problema: probado el insert exacto bajo RLS como director, con `owner_id NULL`
