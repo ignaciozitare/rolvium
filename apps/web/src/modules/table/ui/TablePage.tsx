@@ -20,6 +20,7 @@ import { DiceRoller } from '@/modules/dice/ui/DiceRoller';
 import { SheetTab, CreateTab } from './tabs/SheetTab';
 import { GroupTab } from './tabs/GroupTab';
 import { SceneTab } from './tabs/SceneTab';
+import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
 import type { MapsPort } from '@/modules/maps/domain/ports/MapsPort';
 import type { VisionPort } from '@/modules/maps/domain/ports/VisionPort';
 import './table.css';
@@ -127,13 +128,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}
             {tab === 'scene' && <SceneTab campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} />}
-            {tab === 'bestiary' && (
-              <section className="tb-hoja tb-placeholder" aria-live="polite">
-                <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>construction</span>
-                <div className="tb-rotulo">{t(`table.tab.${tab}`)}</div>
-                <p>{t('table.comingNext')}</p>
-              </section>
-            )}
+            {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={() => setTab('scene')} onRoll={() => setRollerOpen(true)} />}
           </main>
           <aside className="tb-side">
             <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} />

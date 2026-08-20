@@ -4,18 +4,20 @@
     "tagline": "Your tabletop, anywhere"
   },
   "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "confirm": "Confirm",
-    "close": "Close",
-    "loading": "Loading…",
-    "error": "Something went wrong",
-    "search": "Search",
-    "yes": "Yes",
-    "no": "No",
     "add": "Add",
     "back": "Back",
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "error": "Something went wrong",
+    "loading": "Loading…",
+    "no": "No",
+    "remove": "Remove",
+    "save": "Save",
+    "saving": "Saving…",
+    "search": "Search",
+    "yes": "Yes",
     "you": "you"
   },
   "theme": {
@@ -799,6 +801,91 @@
     "reserve": {
       "hide": "Hide the pool",
       "show": "Show the pool"
+    }
+  },
+  "bestiary": {
+    "title": "Bestiary",
+    "counts": "{{all}} entries · {{manual}} from the book · {{own}} your own",
+    "search": "Search creature",
+    "new": "+ New encounter",
+    "newName": "Unnamed encounter",
+    "filters": "Filter by origin",
+    "onlyDm": "GM ONLY",
+    "onlyDmNote": "Players see nothing on this screen. Placing an entry creates a copy with its own Resistance: wounding one ogre does not wound the other.",
+    "empty": "No creature matches",
+    "emptyHint": "Try different words or change the filter.",
+    "deleteConfirm": "Delete “{{name}}”? Creatures already placed on the scene stay where they are.",
+    "filter": {
+      "all": "All",
+      "manual": "Book",
+      "custom": "Your own",
+      "npc": "NPCs with a sheet"
+    },
+    "origin": {
+      "manual": "Book",
+      "custom": "Your own",
+      "npc": "NPC · sheet"
+    },
+    "action": {
+      "roll": "Roll",
+      "place": "Place",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "photo": "View photo",
+      "photoOf": "View the photo of {{name}}",
+      "more": "More options for {{name}}"
+    },
+    "card": {
+      "resistance": "Resistance {{n}}",
+      "protection": "Protection {{n}}",
+      "page": "book p.{{n}}",
+      "own": "your own encounter",
+      "placed": "{{n}} on the scene"
+    },
+    "photo": {
+      "page": "book p.{{n}}",
+      "alt": "Illustration of {{name}}",
+      "openSheet": "Open sheet"
+    },
+    "stat": {
+      "fortitude": "Fortitude",
+      "combat": "Combat",
+      "will": "Will",
+      "cunning": "Cunning",
+      "subtlety": "Subtlety",
+      "presence": "Presence",
+      "culture": "Culture"
+    },
+    "sheet": {
+      "title": "Encounter sheet",
+      "note": "Creatures from the book cannot be edited: this is your own copy. Resistance is worked out on its own (Endurance × 3), never typed.",
+      "name": "Name",
+      "notes": "Notes",
+      "stats": "Characteristics and specialties",
+      "image": "Image",
+      "imageHint": "PNG, JPG, WebP or GIF · max 8 MB · compressed to WebP automatically",
+      "imageCta": "Drop an image or click to choose one",
+      "savings": "Compressed: {{s}}",
+      "endurance": "Endurance",
+      "destiny": "Destiny",
+      "protection": "Protection",
+      "resistance": "Resistance",
+      "computed": "worked out",
+      "noSpecialty": "no specialty",
+      "absentHint": "The book does not publish this characteristic: it is not invented.",
+      "giveValue": "Give this characteristic a value",
+      "clearValue": "Leave this characteristic without a value",
+      "allCampaigns": "Save for all my campaigns",
+      "allCampaignsHint": "unchecked, it lives only in this game"
+    },
+    "image": {
+      "error": {
+        "mime": "That file type will not do. Use PNG, JPG, WebP or GIF.",
+        "input-too-large": "The image is over 8 MB. Pick a lighter one.",
+        "output-too-large": "Even compressed it is still too heavy.",
+        "decode": "That image could not be read.",
+        "upload": "The image could not be uploaded. Try again."
+      }
     }
   }
 }

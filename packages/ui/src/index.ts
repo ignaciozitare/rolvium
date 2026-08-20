@@ -64,3 +64,7 @@ export type { TopBarLink }                from './components/Layout';
 // ── Sheet (schema-driven character sheet, themed via --sys-* vars) ────────────
 export { Sheet, Crescent, PhaseDisc }     from './components/Sheet';
 export type { SheetProps, SheetLabels, SheetRef } from './components/Sheet';
+
+// ── Imágenes: compresión a WebP en el navegador (specs/core/images) ───────────
+export { compressImage, fitDimensions, formatBytes, CompressError, IMAGE_TARGETS, ACCEPTED_MIME, MAX_INPUT_BYTES, MAX_OUTPUT_BYTES } from './lib/compressImage';
+export type { ImageTarget, CompressResult, CompressDeps, CompressErrorCode, TargetSpec } from './lib/compressImage';

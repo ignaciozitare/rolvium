@@ -4,18 +4,20 @@
     "tagline": "Tu mesa de rol, en cualquier parte"
   },
   "common": {
-    "save": "Guardar",
-    "cancel": "Cancelar",
-    "delete": "Eliminar",
-    "confirm": "Confirmar",
-    "close": "Cerrar",
-    "loading": "Cargando…",
-    "error": "Algo salió mal",
-    "search": "Buscar",
-    "yes": "Sí",
-    "no": "No",
     "add": "Añadir",
     "back": "Volver",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "error": "Algo salió mal",
+    "loading": "Cargando…",
+    "no": "No",
+    "remove": "Quitar",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "search": "Buscar",
+    "yes": "Sí",
     "you": "tú"
   },
   "theme": {
@@ -799,6 +801,91 @@
     "reserve": {
       "hide": "Ocultar la reserva",
       "show": "Ver la reserva"
+    }
+  },
+  "bestiary": {
+    "title": "Bestiario",
+    "counts": "{{all}} entradas · {{manual}} del manual · {{own}} propias",
+    "search": "Buscar criatura",
+    "new": "+ Nuevo encuentro",
+    "newName": "Encuentro sin nombre",
+    "filters": "Filtrar por origen",
+    "onlyDm": "SOLO DIRECTOR",
+    "onlyDmNote": "Los jugadores no ven nada de esta pantalla. Colocar una entrada crea una copia con su propia Resistencia: herir a un ogro no hiere al otro.",
+    "empty": "Ninguna criatura coincide",
+    "emptyHint": "Prueba con otro texto o cambia el filtro.",
+    "deleteConfirm": "¿Borrar «{{name}}»? Las criaturas ya colocadas en la escena se quedan donde están.",
+    "filter": {
+      "all": "Todos",
+      "manual": "Manual",
+      "custom": "Propios",
+      "npc": "PNJ con ficha"
+    },
+    "origin": {
+      "manual": "Manual",
+      "custom": "Propio",
+      "npc": "PNJ · ficha"
+    },
+    "action": {
+      "roll": "Tirar",
+      "place": "Colocar",
+      "edit": "Editar",
+      "duplicate": "Duplicar",
+      "photo": "Ver foto",
+      "photoOf": "Ver la foto de {{name}}",
+      "more": "Más opciones de {{name}}"
+    },
+    "card": {
+      "resistance": "Resistencia {{n}}",
+      "protection": "Protección {{n}}",
+      "page": "manual p.{{n}}",
+      "own": "encuentro propio",
+      "placed": "{{n}} en escena"
+    },
+    "photo": {
+      "page": "manual p.{{n}}",
+      "alt": "Ilustración de {{name}}",
+      "openSheet": "Abrir ficha"
+    },
+    "stat": {
+      "fortitude": "Fortaleza",
+      "combat": "Combate",
+      "will": "Voluntad",
+      "cunning": "Astucia",
+      "subtlety": "Sutileza",
+      "presence": "Presencia",
+      "culture": "Cultura"
+    },
+    "sheet": {
+      "title": "Ficha del encuentro",
+      "note": "Las criaturas del manual no se editan: esto es una copia tuya. La Resistencia se calcula sola (Aguante × 3), no se teclea.",
+      "name": "Nombre",
+      "notes": "Notas",
+      "stats": "Características y especialidades",
+      "image": "Imagen",
+      "imageHint": "PNG, JPG, WebP o GIF · máx. 8 MB · se comprime sola a WebP",
+      "imageCta": "Arrastra una imagen o pulsa para elegirla",
+      "savings": "Comprimida: {{s}}",
+      "endurance": "Aguante",
+      "destiny": "Destino",
+      "protection": "Protección",
+      "resistance": "Resistencia",
+      "computed": "se calcula",
+      "noSpecialty": "sin especialidad",
+      "absentHint": "El manual no publica esta característica: no se inventa.",
+      "giveValue": "Darle un valor a esta característica",
+      "clearValue": "Dejar esta característica sin valor",
+      "allCampaigns": "Guardar para todas mis campañas",
+      "allCampaignsHint": "sin marcar, vive sólo en esta partida"
+    },
+    "image": {
+      "error": {
+        "mime": "Ese tipo de fichero no vale. Usa PNG, JPG, WebP o GIF.",
+        "input-too-large": "La imagen pesa más de 8 MB. Elige una más ligera.",
+        "output-too-large": "Aun comprimida sigue pesando demasiado.",
+        "decode": "No se ha podido leer esa imagen.",
+        "upload": "No se ha podido subir la imagen. Inténtalo otra vez."
+      }
     }
   }
 }

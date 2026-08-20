@@ -1,0 +1,137 @@
+/* Bestiario (H5) — .pen «Bestiario/Catálogo · pantalla completa» y «Ficha del encuentro».
+   Va vestido con el tema del sistema de juego (--sys-*), como el resto de la mesa: dentro del pergamino los
+   tokens de la plataforma (--sf, --ac) desentonan. Los modales sí usan los de la plataforma, porque son
+   chrome de Rolvium y no hoja de juego. */
+
+.bs-tab { display: flex; flex-direction: column; gap: var(--sp-md); }
+
+/* ── cabecera ───────────────────────────────────────────────────────────── */
+.bs-head { display: flex; align-items: center; gap: var(--sp-sm); }
+.bs-title { font-family: var(--sys-font-display); font-size: var(--fs-lg); letter-spacing: .18em; color: var(--sys-ink); margin: 0; }
+.bs-sub { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; color: var(--sys-ink-dim); margin: 2px 0 0; }
+.bs-card-sp { flex: 1; }
+
+.bs-search { display: flex; align-items: center; gap: var(--sp-xs); width: 240px;
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-line); padding: 6px 9px; color: var(--sys-ink-dim); }
+.bs-search input { flex: 1; background: none; border: none; outline: none; color: var(--sys-ink);
+  font-family: var(--sys-font-body); font-size: var(--fs-sm); }
+
+/* ── aviso solo director ────────────────────────────────────────────────── */
+.bs-onlydm { display: flex; align-items: center; gap: var(--sp-sm); margin: 0;
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-gold); padding: 8px 10px;
+  font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; color: var(--sys-ink-dim); }
+.bs-onlydm-tag { background: var(--sys-gold); color: var(--sys-bg); padding: 2px 7px; letter-spacing: .16em;
+  font-size: var(--fs-2xs); font-style: normal; white-space: nowrap; }
+
+/* ── botones del pergamino (ver la nota de reutilización en EntryCard.tsx) ── */
+.bs-btn { background: none; border: 1px solid var(--sys-line); color: var(--sys-ink-soft); cursor: pointer;
+  font-family: var(--sys-font-body); font-size: var(--fs-2xs); letter-spacing: .12em; text-transform: uppercase;
+  padding: 4px 9px; transition: background .15s, border-color .15s, color .15s; }
+.bs-btn:hover { border-color: var(--sys-ink-soft); color: var(--sys-ink); }
+.bs-btn.on, .bs-btn[aria-pressed='true'] { background: var(--sys-paper-hi); border-color: var(--sys-ink-soft); color: var(--sys-ink); }
+.bs-btn-on { background: var(--sys-ink); border-color: var(--sys-ink); color: var(--sys-paper-hi); }
+.bs-btn-on:hover { background: var(--sys-ink-soft); border-color: var(--sys-ink-soft); color: var(--sys-paper-hi); }
+.bs-btn-lg { padding: 7px 12px; font-size: var(--fs-xs); }
+.bs-btn:focus-visible, .bs-icon:focus-visible, .bs-card-eye:focus-visible { outline: 2px solid var(--sys-gold); outline-offset: 2px; }
+
+.bs-icon { background: none; border: none; cursor: pointer; color: var(--sys-ink-dim); padding: 3px; display: inline-flex; }
+.bs-icon:hover { color: var(--sys-ink); }
+
+.bs-filters { display: flex; gap: var(--sp-xs); align-items: center; }
+
+/* ── rejilla de fichas ──────────────────────────────────────────────────── */
+.bs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--sp-md); }
+
+.bs-card { display: flex; flex-direction: column; background: var(--sys-card); border: 1px solid var(--sys-border);
+  box-shadow: var(--sys-card-shadow); }
+
+.bs-card-img { position: relative; height: 168px; display: flex; align-items: center; justify-content: center;
+  background: var(--sys-paper-hi); overflow: hidden; }
+.bs-card-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bs-card-ini { font-family: var(--sys-font-display); font-size: var(--fs-display); color: var(--sys-ink-dim); }
+
+/* El ojo: aparece al pasar por encima, pero SIEMPRE es alcanzable con teclado (:focus-within). */
+.bs-card-eye { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%;
+  border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--sys-bg); color: var(--sys-paper-hi); opacity: 0; transition: opacity .15s; }
+.bs-card:hover .bs-card-eye, .bs-card:focus-within .bs-card-eye { opacity: .92; }
+.bs-card-eye:hover { opacity: 1; }
+
+.bs-card-placed { position: absolute; left: 10px; bottom: 10px; background: var(--sys-bg); color: var(--sys-paper-hi);
+  font-family: var(--sys-font-body); font-size: var(--fs-2xs); letter-spacing: .1em; padding: 2px 7px; }
+
+.bs-card-body { display: flex; flex-direction: column; gap: 6px; padding: var(--sp-sm); }
+.bs-card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-xs); }
+.bs-card-name { font-family: var(--sys-font-display); font-size: var(--fs-md); color: var(--sys-ink); margin: 0; }
+.bs-card-stats { font-family: var(--sys-font-body); font-size: var(--fs-xs); color: var(--sys-ink-soft); margin: 0; }
+.bs-card-notes { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; color: var(--sys-ink-dim); margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bs-card-src { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-style: italic; color: var(--sys-ink-dim); margin: 0; }
+.bs-card-actions { display: flex; align-items: center; gap: 5px; padding-top: 4px; }
+
+.bs-card-specs { display: flex; flex-wrap: wrap; gap: 5px; list-style: none; margin: 0; padding: 0; }
+.bs-spec { background: var(--sys-paper-hi); border: 1px solid var(--sys-ink-soft); color: var(--sys-ink);
+  font-family: var(--sys-font-body); font-size: var(--fs-2xs); padding: 2px 7px; }
+
+.bs-origin { font-family: var(--sys-font-body); font-size: var(--fs-2xs); letter-spacing: .1em; padding: 2px 7px;
+  border: 1px solid var(--sys-line); color: var(--sys-ink-dim); white-space: nowrap; }
+.bs-origin-custom, .bs-origin-npc { border-color: var(--sys-ink-soft); color: var(--sys-ink); background: var(--sys-paper-hi); }
+
+/* ── ficha del encuentro (dentro del Modal de la plataforma) ─────────────── */
+.bs-sheet { display: flex; flex-direction: column; gap: var(--sp-md); }
+.bs-note { font-size: var(--fs-xs); font-style: italic; color: var(--tx3); margin: 0; }
+.bs-error { font-size: var(--fs-xs); color: var(--red); background: var(--red-dim); padding: 8px 10px; margin: 0; border-radius: var(--r); }
+
+.bs-sheet-top { display: flex; gap: var(--sp-md); align-items: flex-start; }
+.bs-sheet-img { display: flex; flex-direction: column; gap: var(--sp-xs); width: 200px; flex-shrink: 0; }
+.bs-sheet-preview { width: 200px; height: 200px; display: flex; align-items: center; justify-content: center;
+  background: var(--sf2); border-radius: var(--r); overflow: hidden; }
+.bs-savings { font-size: var(--fs-2xs); color: var(--green); margin: 0; }
+.bs-sheet-fields { display: flex; flex-direction: column; gap: var(--sp-xs); flex: 1; }
+
+.bs-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tx3); }
+.bs-textarea { width: 100%; background: var(--bg); border: 1px solid var(--bd); border-radius: var(--r);
+  color: var(--tx); font-family: inherit; font-size: var(--fs-sm); padding: 8px 10px; resize: vertical; }
+
+.bs-sec { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); margin: 0; }
+
+/* Nombre y caja con MEDIDA FIJA: sin ellas «Fortaleza» y «Cultura» empujan la caja a distinta x y la
+   columna de números sale escalonada (corrección pedida por el dueño sobre el diseño). */
+.bs-stats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.bs-stat { display: flex; align-items: center; gap: var(--sp-sm); padding: 6px 2px; border-bottom: 1px solid var(--bd2); }
+.bs-stat-name { width: 104px; flex-shrink: 0; font-size: var(--fs-sm); color: var(--tx); }
+.bs-stat-box, .bs-stat-absent { width: 52px; height: 34px; flex-shrink: 0; text-align: center; }
+.bs-stat-box { background: var(--bg); border: 1px solid var(--bd); border-radius: var(--r); color: var(--tx);
+  font-family: inherit; font-size: var(--fs-sm); }
+.bs-stat-absent { display: inline-flex; align-items: center; justify-content: center; color: var(--tx3); font-size: var(--fs-sm); }
+.bs-stat-specs { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
+.bs-stat-none { font-size: var(--fs-2xs); font-style: italic; color: var(--tx3); }
+
+.bs-tiles { display: flex; gap: var(--sp-sm); }
+.bs-tile { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px;
+  background: var(--sf2); border: 1px solid var(--bd); border-radius: var(--r); }
+.bs-tile-locked { background: none; }
+.bs-tile-l { font-size: var(--fs-2xs); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
+.bs-tile-in { width: 64px; text-align: center; background: var(--bg); border: 1px solid var(--bd); border-radius: var(--r);
+  color: var(--tx); font-family: inherit; font-size: var(--fs-lg); }
+.bs-tile-out { font-size: var(--fs-lg); color: var(--tx2); }
+.bs-tile-h { font-size: var(--fs-2xs); font-style: italic; color: var(--tx3); }
+
+.bs-scope { display: flex; align-items: center; gap: var(--sp-xs); font-size: var(--fs-sm); color: var(--tx); }
+.bs-scope-h { font-size: var(--fs-2xs); font-style: italic; color: var(--tx3); }
+
+.bs-sheet-foot { display: flex; align-items: center; gap: var(--sp-xs); padding-top: var(--sp-xs); }
+
+/* ── modal de la foto ───────────────────────────────────────────────────── */
+.bs-photo { height: 480px; background: var(--sf2); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.bs-photo-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.bs-photo-fallback { font-size: var(--fs-display); color: var(--tx3); }
+.bs-photo-foot { display: flex; align-items: center; gap: var(--sp-sm); padding: var(--sp-md); }
+.bs-photo-foot > div { flex: 1; }
+.bs-photo-name { font-size: var(--fs-lg); color: var(--tx); }
+.bs-photo-meta { font-size: var(--fs-xs); font-style: italic; color: var(--tx3); }
+
+@media (max-width: 720px) {
+  .bs-sheet-top { flex-direction: column; }
+  .bs-sheet-img, .bs-sheet-preview { width: 100%; }
+}
