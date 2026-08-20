@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARMOURS, BESTIARY, CREATURE_SPECIALTY_ITEMS, DIFFICULTIES, GIFTS, GIFT_IDS, RANGE_DIFFICULTY, RECOVERY, SIZES, SPECIALTIES, SPECIALTY_ITEMS, STAT_IDS, WEAPONS, catalogs, isMelee, specialtiesFor, weaponById } from './catalogs';
+import { ARMOURS, BESTIARY, CREATURE_SPECIALTY_ITEMS, DIFFICULTIES, GIFTS, GIFT_IDS, RANGE_DIFFICULTY, RANGES, RECOVERY, SIZES, SPECIALTIES, SPECIALTY_ITEMS, STAT_IDS, WEAPONS, catalogs, isMelee, specialtiesFor, weaponById } from './catalogs';
 import { references } from './references';
 import { lookup, messages } from './locales';
 
@@ -61,6 +61,11 @@ describe('catalogs', () => {
     expect(SIZES.map(s => s.mod)).toEqual([-2, -1, 0, 1, 2]);
     expect(DIFFICULTIES.map(d => d.value)).toEqual([1, 2, 3, 5, 6]);
     expect(RANGE_DIFFICULTY).toEqual({ short: 2, medium: 3, long: 5, veryLong: 6 });
+    // Los mismos alcances, ya en `catalogs` y EN ORDEN: el orden es lo que dice cuáles quedan fuera del
+    // arma en el desplegable de disparar, así que si alguien los reordena aquí, esto lo caza.
+    expect(RANGES.map(r => r.id)).toEqual(['short', 'medium', 'long', 'veryLong']);
+    expect(RANGES.map(r => r.data.difficulty)).toEqual([2, 3, 5, 6]);
+    expect(catalogs.ranges).toBe(RANGES);
     expect(RECOVERY.bruised).toEqual({ days: 1, difficulty: 2, restFactor: 3 });
     expect(RECOVERY.wounded).toEqual({ days: 7, difficulty: 3, restFactor: 2 });
     expect(RECOVERY.badlyWounded).toEqual({ days: 14, difficulty: 4, restFactor: 1 });
@@ -143,7 +148,7 @@ describe('catalogs', () => {
     const pages = Object.fromEntries(Object.entries(references).map(([k, r]) => [k, r.page]));
     expect(pages).toEqual({
       stats: 20, specialty: 83, roll: 82, difficulty: 84, degree: 85, setback: 86, destinyPool: 88, destiny: 88, fortune: 89,
-      endurance: 98, resistance: 98, health: 99, damage: 97, weapons: 97, armours: 98, recovery: 101, gifts: 102, xp: 91, size: 25,
+      endurance: 98, resistance: 98, health: 99, damage: 97, weapons: 97, ranged: 96, armours: 98, recovery: 101, gifts: 102, xp: 91, size: 25,
       bestiary: 107,
     });
   });

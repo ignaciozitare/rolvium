@@ -22,6 +22,7 @@ export const references: References = Object.fromEntries([
   ref('health', 99),
   ref('damage', 97),
   ref('weapons', 97),
+  ref('ranged', 96),
   ref('armours', 98),
   ref('recovery', 101),
   ref('gifts', 102),

@@ -79,6 +79,26 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   const players = members.filter(m => m.role === 'player');
   // Shared-resource dice in hand travel with every roll as `<resourceId>Dice` (e.g. destinyDice).
   const rollOptions = Object.fromEntries((system.engine.sharedResources ?? []).map(d => [`${d.id}Dice`, handOf(resources[d.id], user.id)]));
+  /**
+   * La reserva compartida, tal y como la usa el desplegable de tirar (`.pen` «Mesa/Tiradas», columna 1:
+   * fichas `0…5` y «quedan N en la mesa»). Coger los dados es lo mismo que hace la barra de la reserva
+   * —el mismo `takeResource`/`returnResource`—: sólo cambia desde dónde se pulsa. Sólo se arma para quien
+   * PUEDE coger de ella; al director no se le pinta esa parte porque el servidor se la rechazaría.
+   */
+  const poolDef = (system.engine.sharedResources ?? []).find(d => d.whoCanTake === 'all' || d.whoCanTake === role);
+  const pool = poolDef ? {
+    def: poolDef,
+    left: resources[poolDef.id]?.value ?? 0,
+    hand: handOf(resources[poolDef.id], user.id),
+    setHand: async (n: number): Promise<boolean> => {
+      const diff = n - handOf(resources[poolDef.id], user.id);
+      if (diff === 0) return true;
+      const r = diff > 0 ? await repo.takeResource(campaign.id, poolDef.id, diff) : await repo.returnResource(campaign.id, poolDef.id, -diff);
+      if ('error' in r) return false;
+      patchResources(poolDef.id, r.state);
+      return true;
+    },
+  } : undefined;
   const sysT = (key: string) => { const dict = ((system.locales[locale] ?? system.locales.es) ?? {}) as Record<string, unknown>; const v = key.split('.').reduce<unknown>((o, k) => (o && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined), dict); return typeof v === 'string' ? v : key; };
 
   return (
@@ -141,7 +161,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
 
         <div className="tb-body">
           <main className="tb-main">
-            {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} characterId={viewCharacterId} progressionEnabled={campaign.progressionEnabled} onOpenCreate={() => setTab('create')}
+            {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} {...(pool ? { pool } : {})} characterId={viewCharacterId} progressionEnabled={campaign.progressionEnabled} onOpenCreate={() => setTab('create')}
               {...(viewCharacterId ? { onBack: () => { setViewCharacterId(null); setTab('group'); } } : {})} />}
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}

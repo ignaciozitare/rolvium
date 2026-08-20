@@ -22,7 +22,12 @@ describe('<CharacterSheetView>', () => {
     const rolls = fakeRollsPort({ summary: 'roll.degree.success.2', total: 2, effects: { patch: { destiny: 3, fortune: 3 } } });
     const { repo, onRolled } = await mount(true, rolls, { destinyDice: 2 });
     const stat = document.querySelector('[data-stat="combat"]') as HTMLElement;
+    // El botón ya no tira: abre el desplegable (`.pen` «Mesa/Tiradas», columna 1) y se tira al confirmar.
     await u.click(within(stat).getByRole('button', { name: 'Tirar 6' })); // 4 + 2 destiny
+    expect(rolls.requests).toHaveLength(0);
+    const pop = await screen.findByRole('dialog', { name: 'Tirar · Combate' });
+    expect(within(pop).getByText('tu Combate 4')).toBeInTheDocument();
+    await u.click(within(pop).getByRole('button', { name: 'Tirar 6' }));
     await waitFor(() => expect(rolls.requests).toHaveLength(1));
     expect(rolls.requests[0]).toMatchObject({ systemId: 'plenilunio', characterId: 'ch-karen', campaignId: 'c1', sharedResources: { destiny: 2 } });
     expect(onRolled).toHaveBeenCalled();
@@ -39,6 +44,7 @@ describe('<CharacterSheetView>', () => {
     const { repo, hook } = await mount(true, rolls);
     const stat = document.querySelector('[data-stat="combat"]') as HTMLElement;
     await u.click(within(stat).getByRole('button', { name: /Tirar/ }));
+    await u.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /Tirar/ }));
     await waitFor(() => expect(hook.result.current.data.destiny).toBe(3));
     expect(hook.result.current.character?.derived.endurance).toBe(99);
     expect(hook.result.current.dirty).toBe(false);
@@ -48,12 +54,22 @@ describe('<CharacterSheetView>', () => {
     const u = userEvent.setup();
     const rolls = fakeRollsPort(null);
     await mount(true, rolls);
+    // Disparar abre el desplegable, con su alcance; activar un don sigue yendo directo (el `.pen` no lo diseña).
     await u.click(screen.getByRole('button', { name: /Disparar · Revólver magnum .44/ }));
+    const pop = await screen.findByRole('dialog', { name: 'Disparar · Revólver magnum .44' });
+    expect(within(pop).getByRole('button', { name: 'Medio · 3' })).toHaveAttribute('aria-pressed', 'true');
+    // El magnum llega a alcance medio: largo y muy largo se ven, pero no se pueden elegir (p.96).
+    expect(within(pop).getByRole('button', { name: 'Largo · 5' })).toBeDisabled();
+    await u.click(within(pop).getByRole('button', { name: /Disparar · 4 dados/ }));
+    await waitFor(() => expect(rolls.requests).toHaveLength(1));
+    expect(rolls.requests[0]!.title).toBe('catalog.weapons.magnum44');
+    expect(rolls.requests[0]!.options).toMatchObject({ range: 'medium', difficulty: 3 });
+    // La tirada falló: el desplegable se queda abierto y lo dice, en vez de cerrarse en falso.
+    expect((await screen.findAllByText('No se ha podido tirar. Inténtalo de nuevo.')).length).toBeGreaterThan(0);
+    await u.keyboard('{Escape}');
     await u.click(screen.getByRole('button', { name: /Activar don · Furia de titán/ }));
     await waitFor(() => expect(rolls.requests).toHaveLength(2));
-    expect(rolls.requests[0]!.title).toBe('catalog.weapons.magnum44');
     expect(rolls.requests[1]!.options).toMatchObject({ giftId: 'titanFury' });
-    expect((await screen.findAllByText('No se ha podido tirar. Inténtalo de nuevo.')).length).toBeGreaterThan(0);
   });
   it('Recibir daño applies engine.applyDamage immediately with origin damage; hidden when read-only', async () => {
     const u = userEvent.setup();

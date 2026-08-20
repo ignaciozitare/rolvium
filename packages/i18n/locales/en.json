@@ -548,6 +548,23 @@
       "backToGroup": "Back to the group",
       "viewing": "You are viewing {{name}}’s sheet"
     },
+    "roll": {
+      "titleStat": "Roll · {{name}}",
+      "dice": "Dice you roll",
+      "less": "One die less",
+      "more": "One die more",
+      "from": "your {{stat}} {{n}}",
+      "penalty": ", minus {{n}} for {{health}}",
+      "range": "Range",
+      "rangeHint": "the map measures it",
+      "pool": "Dice from the {{name}}",
+      "poolLeft": "{{n}} left on the table",
+      "poolFailed": "Those pool dice could not be taken.",
+      "extra": "+ extra dice: {{n}}",
+      "fewer": "− dice: {{n}}",
+      "go": "Roll {{n}}",
+      "goAction": "{{action}} · {{n}} dice"
+    },
     "generator": {
       "title": "Create character",
       "dmOnly": "Director only",

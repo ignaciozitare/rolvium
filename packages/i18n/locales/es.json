@@ -548,6 +548,23 @@
       "backToGroup": "Volver al grupo",
       "viewing": "Estás viendo la ficha de {{name}}"
     },
+    "roll": {
+      "titleStat": "Tirar · {{name}}",
+      "dice": "Dados que tiras",
+      "less": "Un dado menos",
+      "more": "Un dado más",
+      "from": "tu {{stat}} {{n}}",
+      "penalty": ", menos {{n}} por {{health}}",
+      "range": "Alcance",
+      "rangeHint": "lo mide el mapa",
+      "pool": "Dados de la {{name}}",
+      "poolLeft": "quedan {{n}} en la mesa",
+      "poolFailed": "No se han podido coger esos dados de la reserva.",
+      "extra": "+ dados extra: {{n}}",
+      "fewer": "− dados: {{n}}",
+      "go": "Tirar {{n}}",
+      "goAction": "{{action}} · {{n}} dados"
+    },
     "generator": {
       "title": "Crear personaje",
       "dmOnly": "Solo director",

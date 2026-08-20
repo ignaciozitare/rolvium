@@ -7,6 +7,7 @@ import type { Character } from '@/modules/characters/domain/entities/Character';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
 import type { RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import { CharacterSheetView } from '@/modules/characters/ui/CharacterSheetView';
+import type { SharedPoolHandle } from '@/modules/characters/ui/RollPopover';
 import { GeneratorWizard } from '@/modules/characters/ui/GeneratorWizard';
 import { ProgressionPanel } from '@/modules/characters/ui/ProgressionPanel';
 import { useCharacterSheet } from '@/modules/characters/ui/useCharacterSheet';
@@ -16,6 +17,8 @@ interface Props {
   repo: CharactersPort; rolls?: RollsPort;
   /** Roll options from the table (Destiny dice in hand…). */
   rollOptions?: Record<string, unknown>;
+  /** La reserva compartida de la mesa: el desplegable de tirar coge de ella (`.pen`, columna 1). */
+  pool?: SharedPoolHandle;
   /** Character to show (DM opening a sheet from «El grupo»); defaults to my own PC. */
   characterId?: string | null;
   /** Whether the campaign has progression open — «Mejorar» shows the panel locked when it is closed. */
@@ -40,7 +43,7 @@ export function useMyCharacter(campaignId: string, userId: string, repo: Charact
 }
 
 /** Ficha tab: my sheet, or the empty state → generator (rolvium.pen Vacío/«No tienes personaje en esta campaña»). */
-export function SheetTab({ campaignId, system, role, userId, repo, rolls, rollOptions, characterId, progressionEnabled = false, onOpenCreate, onBack }: Props): JSX.Element {
+export function SheetTab({ campaignId, system, role, userId, repo, rolls, rollOptions, pool, characterId, progressionEnabled = false, onOpenCreate, onBack }: Props): JSX.Element {
   const { t } = useTranslation();
   const my = useMyCharacter(campaignId, userId, repo, characterId);
   const state = useCharacterSheet(my.ready ? my.id : null, repo);
@@ -81,7 +84,7 @@ export function SheetTab({ campaignId, system, role, userId, repo, rolls, rollOp
         </div>
       </div>
       {improving && <ProgressionPanel state={state} enabled={progressionEnabled} />}
-      <CharacterSheetView state={state} canEdit={canEdit} {...(rolls ? { rolls } : {})} {...(rollOptions ? { rollOptions } : {})} />
+      <CharacterSheetView state={state} canEdit={canEdit} {...(rolls ? { rolls } : {})} {...(rollOptions ? { rollOptions } : {})} {...(pool ? { pool } : {})} />
     </>
   );
 }

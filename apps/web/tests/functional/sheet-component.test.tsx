@@ -157,11 +157,13 @@ describe('<Sheet> — schema-driven, every field type', () => {
     const u = userEvent.setup();
     const { onAction } = mount();
     await u.click(within(document.querySelector('[data-stat="presence"]') as HTMLElement).getByRole('button', { name: /Tirar/ }));
-    expect(onAction).toHaveBeenCalledWith('roll', 'presence');
+    // La hoja pasa ademas el rectangulo del boton pulsado: es lo que deja nacer el desplegable de tirar
+    // pegado a el. Los tres primeros argumentos no cambian.
+    expect(onAction).toHaveBeenCalledWith('roll', 'presence', undefined, expect.objectContaining({ top: expect.any(Number), left: expect.any(Number) }));
     await u.click(screen.getByRole('button', { name: /Disparar · Revólver magnum .44/ }));
-    expect(onAction).toHaveBeenCalledWith('attack.ranged', 'magnum44');
+    expect(onAction).toHaveBeenCalledWith('attack.ranged', 'magnum44', undefined, expect.objectContaining({ top: expect.any(Number), left: expect.any(Number) }));
     await u.click(screen.getByRole('button', { name: /Activar don · Furia de titán/ }));
-    expect(onAction).toHaveBeenCalledWith('gift.activate', 'titanFury');
+    expect(onAction).toHaveBeenCalledWith('gift.activate', 'titanFury', undefined, expect.objectContaining({ top: expect.any(Number), left: expect.any(Number) }));
   });
 
   it('readOnly disables inputs and hides add/remove but keeps roll buttons; showActions=false hides them; canChange vetoes', async () => {

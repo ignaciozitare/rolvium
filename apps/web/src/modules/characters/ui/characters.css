@@ -73,3 +73,48 @@
 .ch-back { display: inline-flex; align-items: center; gap: 5px; }
 .ch-viewing { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic;
   font-weight: 500; color: var(--sys-ink-soft); }
+
+/* ── El desplegable de tirar ─────────────────────────────────────────────────
+   `rolvium.pen` «Mesa/Tiradas · rediseño», columnas 1 `Popover/Tirar` y 2 `Popover/Disparar`.
+   Sale SOBRE la ficha, pegado al botón que lo abrió (posición en línea, la calcula el componente),
+   con captador invisible: un velo opaco lo convertiría en otra pantalla, que es lo que el dueño
+   rechazó en el Bestiario el 2026-08-21. Mismo precedente que `.bs-pop`. */
+.ch-pop-catch{position:fixed;inset:0;z-index:39;background:none;}
+.ch-pop{position:fixed;z-index:40;width:372px;max-width:calc(100vw - 16px);max-height:min(560px,82vh);
+  overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:16px 18px 18px;
+  background:var(--sys-paper-hi);border:1px solid var(--sys-border);box-shadow:var(--sys-card-shadow);outline:none;}
+.ch-pop-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.ch-pop-title{flex:1;margin:0;font-family:var(--sys-font-display);font-size:var(--fs-2xs);font-weight:600;
+  /* Cuerpo y letra del `.pen` (11 px, tracking 1.4 = .127em), que aquí son `--fs-2xs` y .12em, el mismo
+     par que ya usa `.bs-pop-title`. Con `--fs-xs` y .16em el título del arma —«DISPARAR · REVÓLVER
+     MAGNUM .44», el más largo del diseño— se partía en dos líneas y dejaba «Manual · p.96» descolgado.
+     Se deja envolver de todos modos: hay armas con nombres mucho más largos. Visto en la app. */
+  letter-spacing:.12em;text-transform:uppercase;color:var(--sys-ink);line-height:var(--lh-tight);}
+.ch-pop-ref{font-size:var(--fs-2xs);font-style:italic;font-weight:500;color:var(--sys-ink-soft);white-space:nowrap;}
+.ch-pop-err{margin:0;padding:8px 10px;font-size:var(--fs-sm);font-weight:500;color:var(--sys-blood);
+  background:var(--sys-paper);border:1px solid var(--sys-blood);}
+.ch-pop-block{display:flex;flex-direction:column;gap:6px;}
+.ch-pop-label{display:flex;align-items:baseline;gap:6px;font-size:var(--fs-2xs);font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--sys-ink);}
+.ch-pop-hint{font-size:var(--fs-2xs);font-style:italic;font-weight:500;letter-spacing:0;
+  text-transform:none;color:var(--sys-ink-soft);}
+.ch-pop-count{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.ch-pop-count .rv-sheet-btn{padding:4px 10px;}
+.ch-pop-n{min-width:40px;text-align:center;font-family:var(--sys-font-display);font-size:var(--fs-xl);
+  font-weight:600;color:var(--sys-ink);line-height:1;}
+.ch-pop-from{font-size:var(--fs-sm);font-style:italic;font-weight:500;color:var(--sys-ink-soft);}
+.ch-pop-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+/* Dos filas de dos, como en el `.pen`: `CORTO · 2` `MEDIO · 3` / `LARGO · 5` `MUY LARGO · 6`. */
+.ch-pop-ranges{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+.ch-pop-chip{background:none;border:1px solid var(--sys-line);color:var(--sys-ink-soft);cursor:pointer;
+  font-family:inherit;font-size:var(--fs-2xs);font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 10px;line-height:1.2;transition:background .15s,border-color .15s,color .15s;}
+.ch-pop-chip:hover:not(:disabled){border-color:var(--sys-ink-soft);background:var(--sys-paper);}
+.ch-pop-chip.on{background:var(--sys-ink);border-color:var(--sys-ink);color:var(--sys-paper-hi);}
+.ch-pop-chip:disabled{cursor:default;opacity:.5;}
+/* Más lejos de lo que llega el arma: se ve —para saber que existe— pero no se puede elegir (p.96). */
+.ch-pop-chip.beyond{opacity:.35;}
+.ch-pop-chip:focus-visible{outline:2px solid var(--sys-gold);outline-offset:2px;}
+.ch-pop-note{margin:0;font-size:var(--fs-sm);font-style:italic;font-weight:500;color:var(--sys-ink-soft);}
+.ch-pop-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px;}
+.ch-pop-extra{font-size:var(--fs-sm);font-style:italic;font-weight:500;color:var(--sys-ink-soft);}

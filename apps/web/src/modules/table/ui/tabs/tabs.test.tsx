@@ -21,7 +21,11 @@ describe('table tabs — sheet / create / group', () => {
     renderWithProviders(<SheetTab campaignId="c1" system={plenilunio} role="player" userId={PLAYER_USER.id} repo={repo} rolls={rolls} rollOptions={{ destinyDice: 1 }} onOpenCreate={onOpenCreate} />);
     expect(await screen.findByLabelText('Personaje')).toHaveValue('Karen «K»');
     expect(screen.getByRole('link', { name: 'Abrir ficha aparte' })).toHaveAttribute('href', '/characters/ch-karen');
-    await userEvent.setup().click(within(document.querySelector('[data-stat="combat"]') as HTMLElement).getByRole('button', { name: 'Tirar 5' }));
+    const u1 = userEvent.setup();
+    await u1.click(within(document.querySelector('[data-stat="combat"]') as HTMLElement).getByRole('button', { name: 'Tirar 5' }));
+    // El botón abre el desplegable de tirar y se tira al confirmar (`.pen` «Mesa/Tiradas», columna 1);
+    // los dados de reserva que ya llevas en la mano siguen viajando con la petición.
+    await u1.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Tirar 5' }));
     await waitFor(() => expect(rolls.requests[0]?.sharedResources).toEqual({ destiny: 1 }));
     document.body.innerHTML = '';
     renderWithProviders(<SheetTab campaignId="c1" system={plenilunio} role="player" userId="someone-else" repo={repo} onOpenCreate={onOpenCreate} />);

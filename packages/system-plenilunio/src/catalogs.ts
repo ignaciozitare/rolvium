@@ -318,6 +318,15 @@ export const DIFFICULTIES = [
 /** Ranged attacks are challenges against the range's difficulty (manual p.96). */
 export const RANGE_DIFFICULTY: Record<Exclude<WeaponRange, 'melee'>, number> = { short: 2, medium: 3, long: 5, veryLong: 6 };
 
+/**
+ * Los alcances de disparo, de cerca a lejos (p.95–96). Van en `catalogs` —y no sueltos— para que el
+ * desplegable de disparar pueda leerlos sin saber de qué sistema es la ficha: `data.difficulty` es la
+ * dificultad del reto, y el orden del array es el que dice cuáles quedan FUERA del arma (un arma llega
+ * hasta su propio alcance y no más lejos).
+ */
+export const RANGES: (CatalogItem & { data: { difficulty: number } })[] =
+  (['short', 'medium', 'long', 'veryLong'] as const).map(id => ({ id, label: `sheet.range.${id}`, ref: 'ranged', data: { difficulty: RANGE_DIFFICULTY[id] } }));
+
 // ─── Recovery (manual p.101) ─────────────────────────────────────────────────
 /** Resting time (days) and Fortitude-roll difficulty to regain one health level; `restFactor` × Endurance = Resistance recoverable by rest. */
 export const RECOVERY: Record<HealthId, { days: number | null; difficulty: number | null; restFactor: number }> = {
@@ -340,6 +349,7 @@ export const catalogs: Catalogs = {
   sizes: SIZES.map(s => ({ id: s.id, label: `catalog.sizes.${s.id}`, data: { mod: s.mod } })),
   healthLevels: HEALTH_LEVELS.map(h => ({ id: h.id, label: `sheet.health.${h.id}`, ref: 'health', data: { penalty: h.penalty } })),
   difficulties: DIFFICULTIES.map(d => ({ id: d.id, label: `roll.difficulty.${d.id}`, ref: 'difficulty', data: { value: d.value } })),
+  ranges: RANGES,
   bestiary: BESTIARY,
 };
 

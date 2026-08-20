@@ -75,6 +75,22 @@ en «Difícil» y todas las tiradas siguientes salen así sin avisar. Está mal 
   característica del rival si es conflicto.
 
 ### Lado del jugador: todo al botón, y nada que adivinar
+
+> **Estado — construido** (columnas 1 y 2 del `.pen` «Mesa/Tiradas · rediseño», nodo `v3vfV`).
+> `characters/ui/RollPopover.tsx` + `characters/domain/useCases/rollIntent.ts`. Sale sobre la ficha,
+> pegado al botón (`<Sheet>` pasa el rectángulo del botón como 4.º argumento de `onAction`), con captador
+> invisible y Escape, igual que `CreatureRollPopover`. **Abre en TIRAR de una característica y en la
+> acción de un arma**; activar un don y recargar siguen yendo directas, que es como estaban — el `.pen`
+> no las diseña. **El bloque «Tirada» de la ficha TODAVÍA NO desaparece**: hoy es de donde `poolFor` saca
+> la dificultad, y quitarlo antes de que exista el panel del director dejaría las tiradas de reto sin
+> oposición ninguna. Se va con la columna 4.
+>
+> Nada del desplegable sabe de Plenilunio: los alcances salen del catálogo `ranges` (nuevo, con su
+> dificultad y en orden, p.95–96), la penalización por heridas de `healthLevels`, y la reserva de
+> `engine.sharedResources` — incluido su `blockedIf`, que es lo que hace que con Destino 10 no se ofrezca.
+> Los dados de la reserva se **cogen de la mesa al confirmar** (`takeResource`/`returnResource`, los
+> mismos de la barra) porque el servidor sólo deja tirar los que ya están en la mano.
+
 - **Desaparece el bloque «Tirada».**
 - Cada botón (TIRAR de una característica, o la acción de un arma) abre su propio panel con **sólo lo que el manual
   deja elegir en ese momento**:
