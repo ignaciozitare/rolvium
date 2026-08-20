@@ -88,8 +88,19 @@ las tiradas «para mí» al lanzador que ya existe, botones a ancho igual 3+3+1)
 ### 🔎 Deuda conocida, escrita para que no se pierda
 - ~~Las especialidades de las criaturas no son dato~~ → **decidido**: entran **con el Bestiario** (punto 1 de
   arriba), no en una tanda aparte.
-- **Los advisors de Supabase no se pueden correr**: no hay referencia del proyecto en el repo. No bloqueó porque no
-  hubo migraciones, pero **la próxima rama que toque base necesita `supabase link`** o la ref.
+- 🚨 **DOS organizaciones en Supabase — «Worksuite» NO SE TOCA.** Orden del dueño, 2026-08-20: «no la vayas a
+  cagar tocando worksuite!». `list_projects` sólo devuelve `ignaciozitare's Org` (`anewnkzmtgjrnqekoaie`), que
+  contiene **Worksuite** (`enclhswdbwbgxbjykdtj`) y **NO es de este proyecto**: ni escrituras, ni migraciones, ni
+  `execute_sql`. Rolvium está en la OTRA org (`iuxzfnveabephkcixsaa`) y hay que pedirlo por su ref exacta.
+- ~~Los advisors de Supabase no se pueden correr~~ → **RESUELTO (2026-08-20). El aviso era falso.** El proyecto
+  **«Rolvium» existe y está sano**: ref `scfspsiemikfcnqteonq`, org `iuxzfnveabephkcixsaa`, eu-central-1, creado el
+  18/08. La ref estaba escrita en este mismo fichero (línea del bloque de Vercel). No sale en `list_projects` porque
+  el conector sólo ve la OTRA organización del dueño (la de «Worksuite»), pero **responde si se le pasa la ref
+  exacta**. No hace falta `supabase link` para los advisors.
+  **Foto de partida antes del Bestiario: 0 críticos, 21 WARN** — 20 son funciones `SECURITY DEFINER` llamables por
+  usuarios registrados (`is_admin`, `has_permission`, `join_campaign_by_code`…, intencionadas y preexistentes) y 1 es
+  «Leaked password protection disabled», que se activa con un clic en el panel y **está pendiente del dueño**.
+  Tras la migración del Bestiario hay que repetirlo y comparar contra estos 21.
 - Cinco avisos del QA sin tocar: `playwright` está en `apps/web` mientras `scripts/shot.mjs` vive en la raíz y nadie
   documentó que hace falta `npx playwright install`.
 - Un PJ **muerto** sale con «Resistencia máxima 0» y sin casillas. Es coherente (un muerto no recupera) pero la
