@@ -33,8 +33,24 @@ interface GameSystem {
 }
 ```
 - `RollRequest/RollResult` viajan a `dice` (H6). `dice` genera los dados y llama a `engine.resolve` **en el servidor**.
-- `SharedResourceDef` = `{ id, label, max, initial, whoCanTake: 'player'|'dm'|'all', whoCanReset: 'dm', perTakeMax }`.
-- `ActionDef` = `{ id, icon, label, appliesTo: 'weapon'|'gift'|'skill'|…, cost?, toRoll(sheet, target): RollRequest }`.
+- `SharedResourceDef` = `{ id, label, max, initial, whoCanTake: 'player'|'dm'|'all', whoCanReset: 'dm', perTakeMax, blockedIf?(sheet) }`.
+- `ActionDef` = `{ id, icon, label, appliesTo, appliesToRow?(row), cost?, spend?(sheet, itemId), toRoll?(sheet, target, options) }`.
+  - **`toRoll` es OPCIONAL**: hay acciones que sólo GASTAN y no tiran dados — recargar mueve balas de la munición
+    al cargador y no lanza nada.
+  - **`spend`** devuelve el patch que la acción cuesta en la ficha, o `null` si ahora mismo no se puede pagar; `null`
+    apaga el botón. Existe por la munición: sin balas no se dispara, y un botón vetado tiene que VERSE vetado.
+  - **`appliesToRow`** decide si la acción aplica a ESA fila. Un arma cuerpo a cuerpo no ofrece «Disparar».
+- `FieldDef` (un campo de la ficha) admite además:
+  - `appliesToRow?(row)` — sólo columnas de tabla: si la columna aplica a esa fila (un arma c/c no lleva cargador).
+  - `options[].hint?` — dato secundario de una opción, que la ficha saca en un TOOLTIP y no en la celda (el alcance
+    se lee «Medio» y los metros con la dificultad se consultan por encima).
+  - `note?(sheet)` — sólo campos `health`: aviso calculado que la ficha pinta bajo el campo, en rojo. Lo declara el
+    sistema porque la plataforma no sabe qué condición avisa (en Plenilunio, «Inconsciente»).
+  - `hidden?` — el campo existe en el esquema (se guarda y se valida) pero NO se pinta. Para valores que escribe el
+    motor y no se eligen a mano. Ojo: `derived` no sirve para eso — un derivado no se guarda, y `validateSheet`
+    rechaza como `unknown` toda clave que el esquema no declare.
+- `SectionDef.span` — cuánto ocupa la sección en la rejilla de SEIS de la ficha (6 = fila entera, 3 = media,
+  2 = un tercio). Lo declara el sistema: la plataforma no sabe que «Estado» pide más sitio que «Dones».
 - `VisualTheme` se aplica como variables CSS **en el contenedor de la mesa** (`.rv-table[data-system=...]`), nunca con condicionales en componentes.
 
 ## Rules & limits

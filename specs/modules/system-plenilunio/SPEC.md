@@ -9,8 +9,11 @@ Fuente de verdad: el manual. Digesto con páginas y decisiones «⚠ interpretac
 - Características (7; humanos 1–5; presets de creación p.21: 16/21/25/30 puntos con máximos **5/5/6/10**), una especialidad
   por característica (lista abierta p.21–22, 127 en catálogo); canjes: 1 punto → 2 especialidades extra (máx. 2 canjes),
   1 punto → 2 puntos de don, Destino 3 ± 2 (1–5).
-- Derivadas: Aguante = Fortaleza + Voluntad ± tamaño (p.25) · Resistencia = Aguante×3 (sin tope; la hoja impresa tiene 30 casillas) ·
-  Fortuna máx = Destino (1–10) · Resistencia recuperable descansando ×3/×2/×1 según estado (p.101).
+- Derivadas: Aguante = Fortaleza + Voluntad ± tamaño (p.25) · **Resistencia máxima = Aguante × el factor del estado de
+  salud** (×3 sano/magullado, ×2 herido, ×1 malherido, p.101; sin tope — la hoja impresa tiene 30 casillas) ·
+  Fortuna máx = Destino (p.90, tope duro literal: «nunca pueden llegar a ser mayores que la puntuación de Destino»).
+  **Un solo número**: no hay «Resistencia máxima» y aparte «recuperable descansando» — el libro dice que los puntos
+  máximos «pasan a ser» los del estado, así que es EL máximo y el descanso sólo te lleva hasta él.
 - Dados d6 (p.82): 1 fracaso · 2–3 fallo · 4–5 éxito · 6 triunfo; especialidad dobla triunfos propios (p.83); en conflictos el
   rival también puede doblar (`oppositionSpecialty`, p.85); **reserva de Destino** (p.88–89: recurso compartido, 10 por
   defecto, hasta 5 por tirada, solo jugadores, solo el DJ reinicia; los dados de la reserva doblan siempre y un triunfo en
@@ -19,7 +22,10 @@ Fuente de verdad: el manual. Digesto con páginas y decisiones «⚠ interpretac
   acciones prolongadas; armadura (protección; con ≥1 fracaso convierte tantos triunfos como la penalización en éxitos, p.98).
 - Daño (p.97): éxitos 1, triunfos daño del arma (F+n o fijo), triunfo doblado 2× arma, cancelación ordenada (éxitos normales
   primero, triunfos los últimos, doblado cancelado a medias = daño sencillo del arma); Resistencia y **niveles de salud** por
-  múltiplos de Aguante (Sano · Magullado · Herido −1d · Malherido −2d · Muerto; Inconsciente al bajar de 0 Resistencia, p.98–99);
+  múltiplos de Aguante. **Seis niveles de salud, no cinco**: la tira de lunas trae Sano · Magullado · Herido −1d ·
+  Malherido −2d · Muerto (p.99) y el sexto es **Inconsciente** (p.101, la lista continúa tras la ilustración de la
+  p.100). Inconsciente no es una fase de luna —se puede estar Herido E Inconsciente— y **no se elige a mano**: lo
+  calcula el motor al bajar de 0 de Resistencia (p.98) y la ficha lo saca como aviso bajo las lunas;
   Fortuna reduce severidad (1/nivel); recuperación por estado (1 día/1 semana/2 semanas, dif. 2/3/4, p.101).
 - Ataque a distancia = reto contra la dificultad del alcance (corto 2 · medio 3 · largo 5 · muy largo 6, p.96); bonificación de
   arma solo cuerpo a cuerpo (p.97).
@@ -27,7 +33,12 @@ Fuente de verdad: el manual. Digesto con páginas y decisiones «⚠ interpretac
   adelantarse; recarga al subir Destino, al añadir dados a la reserva, al empezar historia.
 - Progresión (p.91): 20 px/característica hasta 5, 40 px de 5→6 (tope con px: 6), 10 px especialidad nueva, 3 px cambiarla,
   10 px por nivel de don o don nuevo (máx. nivel 5).
-- Acciones con icono: atacar con arma (⚔/◎, munición), activar don (⚡, 1 Fortuna).
+- Acciones con icono: **cada arma ofrece SÓLO la suya** — atacar cuerpo a cuerpo (conflicto) o disparar (reto contra la
+  dificultad del alcance), nunca las dos. Disparar **gasta un punto de cargador** (p.97: el arco, la ballesta y el
+  tirachinas ponen «Cargador 1», y eso sólo tiene sentido si la unidad es un disparo); sin balas el botón sale apagado.
+  **Recargar** es una acción aparte que no tira dados: mueve balas de la munición que llevas encima (`reserve`) al
+  cargador (`ammo`). El cargador es de sólo lectura: lo mueven disparar y recargar, no la mano del jugador.
+  Activar don (1 Fortuna).
 
 ## Datos del paquete
 - `sheetSchema` (identidad, tirada, características+especialidades, estado, armadura, armas, dones, equipo, historia).

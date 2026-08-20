@@ -11,8 +11,11 @@ Plenilunio) y reúne ficha, escena, dados, chat, notas y el panel del director. 
   *Abrir ficha aparte* (jugador).
 - **Recursos compartidos** centrados bajo la cabecera (p.ej. Reserva de Destino: lunas grandes, cogidas "en tu mano",
   Devolver; **Reiniciar solo director**; el director no coge dados).
-- **Pestañas**: jugador → Ficha · Escena · Mejorar · Crear personaje; director → Ficha · El grupo · Escena · Bestiario ·
-  Mejorar · Crear personaje.
+- **Pestañas**: jugador → Ficha · Escena · Crear personaje; director → Ficha · El grupo · Escena · Bestiario ·
+  Crear personaje.
+  **«Mejorar» NO es una pestaña**: es un botón dentro de la ficha, al lado de «Editar» y «Abrir ficha aparte», que
+  abre el panel de progresión sobre la ficha (dueño, 2026-08-20). Mejorar es algo que le haces a la ficha que estás
+  mirando, no un sitio aparte al que ir — y como pestaña te sacaba de la ficha para volver a cargarla al lado.
 - **Lateral (272 px)**: botón **Lanzador de dados** (abre/cierra un modal flotante arrastrable) y panel con Registro ·
   Chat · Notas · Bitácora.
 - **Panel del director "El grupo"**: cada jugador con avatar, personaje, barra de Resistencia (x/máx, color por tramo),

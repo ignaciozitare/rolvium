@@ -120,6 +120,16 @@ Se tiran tantos d6 como la característica implicada, siempre **enfrentados** a 
 característica rival). Resultados: **1 fracaso · 2–3 fallo · 4–5 éxito · 6 triunfo**. Normalmente fracaso = fallo y
 triunfo = éxito; solo algunas reglas distinguen fracasos/triunfos.
 
+**No existe la tirada en el vacío.** Literal, p. 82: «Todas las acciones de Plenilunio se resuelven mediante
+**tiradas opuestas** de grupos de dados de seis caras… el director lanzará un número de dados determinado por la
+dificultad de la acción, si se trata de un reto, o por la característica del personaje que se enfrente al del
+jugador, si se trata de un conflicto». Esos son los dados del otro lado del «vs» en el registro.
+
+⚠ **Y el libro quiere que no se distingan** (p. 85, literal): «Como todas las acciones requieren tiradas opuestas,
+Luis no sabe si el director de juego tira los dados porque hay otro personaje o porque es la dificultad de la
+acción». Consecuencia para la ficha: el registro enseña los dos grupos y **no etiqueta** si el de la derecha es una
+dificultad o un rival.
+
 ### 2.2 Especialidad (p. 83)
 Si el DJ la considera aplicable, **cada triunfo propio vale 2 éxitos**. El DJ puede permitir aplicar la especialidad de
 otra característica.
