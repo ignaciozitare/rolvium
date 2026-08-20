@@ -6,6 +6,7 @@ Source of truth for functionality. Read the relevant spec before touching its ar
 - [Auth](core/auth/SPEC.md) — login, session, profile
 - [Roles & permissions](core/roles-permissions/SPEC.md) — roles, permission model, admin area
 - [Testing](core/testing/SPEC.md) — suites, helpers, coverage rule
+- [Imágenes](core/images/SPEC.md) — subida única y compresión a WebP en el navegador (avatares, tokens, fondos)
 - [Game System port](core/game-system/SPEC.md) — contrato `GameSystem` que implementa cada sistema de juego
 - [Realtime & event bus](core/realtime/SPEC.md) — canal por campaña, presencia, bus de la mesa
 
