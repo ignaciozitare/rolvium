@@ -8952,7 +8952,8 @@
                               "width": "fill_container",
                               "content": "Plaza libre",
                               "fontFamily": "$font-body",
-                              "fontSize": "$fs-sm"
+                              "fontSize": "$fs-sm",
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -9009,7 +9010,8 @@
                               "width": "fill_container",
                               "content": "Plaza libre",
                               "fontFamily": "$font-body",
-                              "fontSize": "$fs-sm"
+                              "fontSize": "$fs-sm",
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -10497,7 +10499,8 @@
                               "width": "fill_container",
                               "content": "Plaza libre",
                               "fontFamily": "$font-body",
-                              "fontSize": "$fs-sm"
+                              "fontSize": "$fs-sm",
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -10554,7 +10557,8 @@
                               "width": "fill_container",
                               "content": "Plaza libre",
                               "fontFamily": "$font-body",
-                              "fontSize": "$fs-sm"
+                              "fontSize": "$fs-sm",
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -11506,11 +11510,6 @@
               "id": "W6AiGC",
               "name": "Especialidad",
               "fill": "$pl-papel",
-              "stroke": "#8a7038",
-              "strokeWidth": {
-                "top": 1
-              },
-              "strokeAlignment": "inner",
               "textGrowth": "fixed-width",
               "width": "fill_container",
               "content": "Cuando el director la ve aplicable, tiras un dado más. Es la especialidad quien da el dado extra, no el arma.",
@@ -16226,32 +16225,6 @@
                                       "fontStyle": "italic"
                                     }
                                   ]
-                                },
-                                {
-                                  "id": "uZ5Mk",
-                                  "type": "ref",
-                                  "ref": "VmYgS",
-                                  "name": "Tooltip Recibir daño",
-                                  "layoutPosition": "absolute",
-                                  "x": 155,
-                                  "y": 275,
-                                  "descendants": {
-                                    "A2l6c": {
-                                      "content": "RECIBIR DAÑO"
-                                    },
-                                    "gcSYP": {
-                                      "content": "Manual · p.98"
-                                    },
-                                    "c8kx4": {
-                                      "content": "Al daño se le resta tu protección. Lo que queda tacha casillas de Resistencia de izquierda a derecha: las de color son lo recibido, las blancas lo que te queda."
-                                    },
-                                    "KEtEM": {
-                                      "content": "Y LA SALUD BAJA SOLA"
-                                    },
-                                    "W6AiGC": {
-                                      "content": "Cada múltiplo de tu Aguante que llevas dañado te baja un nivel: sano → magullado → herido → malherido → muerto. Con Aguante 7, a las 7 casillas pasas a magullado."
-                                    }
-                                  }
                                 }
                               ]
                             }
@@ -18538,6 +18511,32 @@
                       }
                     }
                   ]
+                },
+                {
+                  "id": "uZ5Mk",
+                  "type": "ref",
+                  "ref": "VmYgS",
+                  "name": "Tooltip Recibir daño",
+                  "layoutPosition": "absolute",
+                  "x": 1143,
+                  "y": 608,
+                  "descendants": {
+                    "A2l6c": {
+                      "content": "RECIBIR DAÑO"
+                    },
+                    "gcSYP": {
+                      "content": "Manual · p.98"
+                    },
+                    "c8kx4": {
+                      "content": "Al daño se le resta tu protección. Lo que queda tacha casillas de Resistencia de izquierda a derecha: las de color son lo recibido, las blancas lo que te queda."
+                    },
+                    "KEtEM": {
+                      "content": "Y LA SALUD BAJA SOLA"
+                    },
+                    "W6AiGC": {
+                      "content": "Cada múltiplo de tu Aguante que llevas dañado te baja un nivel: sano → magullado → herido → malherido → muerto. Con Aguante 7, a las 7 casillas pasas a magullado."
+                    }
+                  }
                 }
               ]
             }
@@ -46884,7 +46883,8 @@
                               "fill": "$tx2",
                               "content": "English",
                               "fontFamily": "$font-body",
-                              "fontSize": "$fs-xs"
+                              "fontSize": "$fs-xs",
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -47515,7 +47515,8 @@
                               "fill": "$tx2",
                               "content": "English",
                               "fontFamily": "$font-body",
-                              "fontSize": "$fs-xs"
+                              "fontSize": "$fs-xs",
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -52457,7 +52458,8 @@
                                       "fill": "$tx2",
                                       "content": "English",
                                       "fontFamily": "$font-body",
-                                      "fontSize": "$fs-xs"
+                                      "fontSize": "$fs-xs",
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -52560,7 +52562,8 @@
                                       "fill": "$tx2",
                                       "content": "Claro",
                                       "fontFamily": "$font-body",
-                                      "fontSize": "$fs-xs"
+                                      "fontSize": "$fs-xs",
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -52597,7 +52600,8 @@
                                       "fill": "$tx2",
                                       "content": "Sistema",
                                       "fontFamily": "$font-body",
-                                      "fontSize": "$fs-xs"
+                                      "fontSize": "$fs-xs",
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -53575,7 +53579,8 @@
                                       "fill": "$tx2",
                                       "content": "English",
                                       "fontFamily": "$font-body",
-                                      "fontSize": "$fs-xs"
+                                      "fontSize": "$fs-xs",
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -53640,7 +53645,8 @@
                                       "fill": "$tx2",
                                       "content": "Oscuro",
                                       "fontFamily": "$font-body",
-                                      "fontSize": "$fs-xs"
+                                      "fontSize": "$fs-xs",
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -53715,7 +53721,8 @@
                                       "fill": "$tx2",
                                       "content": "Sistema",
                                       "fontFamily": "$font-body",
-                                      "fontSize": "$fs-xs"
+                                      "fontSize": "$fs-xs",
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -59242,7 +59249,8 @@
                               "fill": "$tx2",
                               "content": "English",
                               "fontFamily": "$font-body",
-                              "fontSize": "$fs-xs"
+                              "fontSize": "$fs-xs",
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -59764,7 +59772,8 @@
                               "fill": "$tx2",
                               "content": "English",
                               "fontFamily": "$font-body",
-                              "fontSize": "$fs-xs"
+                              "fontSize": "$fs-xs",
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -83787,6 +83796,2902 @@
                   ]
                 }
               ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "v3vfV",
+      "x": 9287,
+      "y": -235,
+      "name": "Mesa/Tiradas · rediseño — quién ve qué",
+      "clip": true,
+      "width": 2420,
+      "fill": "$pl-fondo",
+      "gap": 28,
+      "padding": 28,
+      "children": [
+        {
+          "type": "frame",
+          "id": "hQdLf",
+          "name": "Columna · característica",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "K0JYQk",
+              "name": "Quién lo ve",
+              "fill": "$pl-acero",
+              "gap": 6,
+              "padding": [
+                5,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "HrjoF",
+                  "name": "Icono",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "person",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-papel-alto"
+                },
+                {
+                  "type": "text",
+                  "id": "uXS8B",
+                  "name": "Texto",
+                  "fill": "$pl-papel-alto",
+                  "content": "LO VE EL JUGADOR",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.6
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "r34DG",
+              "name": "Label",
+              "gap": 4,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "wB4VE",
+                  "name": "Texto",
+                  "fill": "$pl-tinta",
+                  "content": "1 · TIRAR UNA CARACTERÍSTICA",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal",
+                  "letterSpacing": 2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "UnY4s",
+              "name": "Popover/Tirar",
+              "width": 372,
+              "fill": "$pl-papel-alto",
+              "stroke": "$pl-borde",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#13131033",
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
+                "blur": 22
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                16,
+                18,
+                18,
+                18
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "JkPtF",
+                  "name": "Head",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "axqCU",
+                      "name": "Titulo",
+                      "fill": "$pl-tinta",
+                      "content": "TIRAR · ASTUCIA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.8
+                    },
+                    {
+                      "type": "text",
+                      "id": "PEPJA",
+                      "name": "Ref",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "Manual · p.82",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UT2rE",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "H17nAi",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "DADOS QUE TIRAS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MxaxZ",
+                  "name": "Contador",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "r8j0y",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Menos",
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "−",
+                          "fontSize": 13
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "Q0ZqB",
+                      "name": "Valor",
+                      "fill": "$pl-tinta",
+                      "content": "3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 26,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "id": "lFCf5",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Más",
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "+",
+                          "fontSize": 13
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "gF0Pl",
+                      "name": "De",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "tu Astucia 4, menos 1 por herido",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yrUhw",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "uVJyb",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "DADOS DE LA RESERVA DE DESTINO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "i0lQyt",
+                      "name": "Ref",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "p.88",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "eeMkU",
+                  "name": "Reserva",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "j88QI8",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/0",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "0",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    },
+                    {
+                      "id": "v5L8yp",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/1",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "1",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "zu5M5",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/2",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "2",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "hc9Ws",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/3",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "3",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "T1AJE",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/4",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "4",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "k9PC1V",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/5",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "5",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "exfBN",
+                      "name": "Nota",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "quedan 10 en la mesa",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fYkhN",
+                  "name": "Pie",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "h0zTQ",
+                      "name": "Extra",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "+ dados extra: 0",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "T2rti",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Botón Tirar",
+                      "padding": [
+                        8,
+                        18
+                      ],
+                      "fill": "$pl-oro",
+                      "stroke": "$pl-oro",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "TIRAR 3",
+                          "fill": "$pl-papel-alto",
+                          "fontSize": 11
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "I8Glt",
+          "name": "Columna · arma",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "S4G9G3",
+              "name": "Quién lo ve",
+              "fill": "$pl-acero",
+              "gap": 6,
+              "padding": [
+                5,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "x4q4w",
+                  "name": "Icono",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "person",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-papel-alto"
+                },
+                {
+                  "type": "text",
+                  "id": "LaIwN",
+                  "name": "Texto",
+                  "fill": "$pl-papel-alto",
+                  "content": "LO VE EL JUGADOR",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.6
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "r26TZD",
+              "name": "Label",
+              "gap": 4,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "jjm3W",
+                  "name": "Texto",
+                  "fill": "$pl-tinta",
+                  "content": "2 · DISPARAR UN ARMA",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal",
+                  "letterSpacing": 2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "X8No2",
+              "name": "Popover/Disparar",
+              "width": 372,
+              "fill": "$pl-papel-alto",
+              "stroke": "$pl-borde",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#13131033",
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
+                "blur": 22
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                16,
+                18,
+                18,
+                18
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "R3vUjD",
+                  "name": "Head",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nosz9",
+                      "name": "Titulo",
+                      "fill": "$pl-tinta",
+                      "content": "DISPARAR · REVÓLVER MAGNUM .44",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "nN2Rj",
+                      "name": "Ref",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "Manual · p.96",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "a6JQX6",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "E7fgQc",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "DADOS QUE TIRAS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "b97i4O",
+                  "name": "Contador",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "kMv0K",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Menos",
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "−",
+                          "fontSize": 13
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "pyOg6",
+                      "name": "Valor",
+                      "fill": "$pl-tinta",
+                      "content": "3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 26,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "id": "m8GFyo",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Más",
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "+",
+                          "fontSize": 13
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "zSAWZ",
+                      "name": "De",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "tu Combate 4, menos 1 por herido",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "GQhyA",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xEf0T",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "ALCANCE",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "wobhi",
+                      "name": "Ref",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "lo mide el mapa · p.96",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "K9uoaV",
+                  "name": "Alcance",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "O8v0AB",
+                      "name": "Fila 1",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "id": "RFsfL",
+                          "type": "ref",
+                          "ref": "Q1Ra4E",
+                          "name": "Alc/CORTO · 2",
+                          "padding": [
+                            5,
+                            8
+                          ],
+                          "opacity": 1,
+                          "fill": "#00000000",
+                          "stroke": "$pl-linea",
+                          "descendants": {
+                            "K8OxW": {
+                              "content": "CORTO · 2",
+                              "fontSize": 9,
+                              "letterSpacing": 1.2,
+                              "fill": "$pl-tinta-suave"
+                            }
+                          }
+                        },
+                        {
+                          "id": "PC8Hm",
+                          "type": "ref",
+                          "ref": "Q1Ra4E",
+                          "name": "Alc/MEDIO · 3",
+                          "padding": [
+                            5,
+                            8
+                          ],
+                          "opacity": 1,
+                          "fill": "$pl-tinta",
+                          "stroke": "$pl-tinta",
+                          "descendants": {
+                            "K8OxW": {
+                              "content": "MEDIO · 3",
+                              "fontSize": 9,
+                              "letterSpacing": 1.2,
+                              "fill": "$pl-papel-alto"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KtUg9",
+                      "name": "Fila 2",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "id": "g4djyH",
+                          "type": "ref",
+                          "ref": "Q1Ra4E",
+                          "name": "Alc/LARGO · 5",
+                          "padding": [
+                            5,
+                            8
+                          ],
+                          "opacity": 0.35,
+                          "fill": "#00000000",
+                          "stroke": "$pl-linea",
+                          "descendants": {
+                            "K8OxW": {
+                              "content": "LARGO · 5",
+                              "fontSize": 9,
+                              "letterSpacing": 1.2,
+                              "fill": "$pl-tinta-suave"
+                            }
+                          }
+                        },
+                        {
+                          "id": "KDNtY",
+                          "type": "ref",
+                          "ref": "Q1Ra4E",
+                          "name": "Alc/MUY LARGO · 6",
+                          "padding": [
+                            5,
+                            8
+                          ],
+                          "opacity": 0.35,
+                          "fill": "#00000000",
+                          "stroke": "$pl-linea",
+                          "descendants": {
+                            "K8OxW": {
+                              "content": "MUY LARGO · 6",
+                              "fontSize": 9,
+                              "letterSpacing": 1.2,
+                              "fill": "$pl-tinta-suave"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "KFDQr",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "bToym",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "DE LA RESERVA DE DESTINO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "boflf",
+                      "name": "Ref",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "p.88",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "J37Zj5",
+                  "name": "Reserva",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "zP8dj",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/0",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "0",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    },
+                    {
+                      "id": "SMldv",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/1",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "1",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "O3COR5",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/2",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "2",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "KqPPk",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/3",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "3",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "Rhr7J",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/4",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "4",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "JZXyG",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Res/5",
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "5",
+                          "fontSize": 10,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ymEfY",
+                  "name": "Pie",
+                  "width": "fill_container",
+                  "justifyContent": "end",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "ibDYS",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Botón Disparar",
+                      "padding": [
+                        8,
+                        18
+                      ],
+                      "fill": "$pl-oro",
+                      "stroke": "$pl-oro",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "DISPARAR · 3 DADOS",
+                          "fill": "$pl-papel-alto",
+                          "fontSize": 11
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "DWtPh",
+          "name": "Columna · registro",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "RVwrw",
+              "name": "Quién lo ve",
+              "fill": "$pl-acero",
+              "gap": 6,
+              "padding": [
+                5,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "Ea7Ai",
+                  "name": "Icono",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "person",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-papel-alto"
+                },
+                {
+                  "type": "text",
+                  "id": "ijzf5",
+                  "name": "Texto",
+                  "fill": "$pl-papel-alto",
+                  "content": "LO VEN LOS DOS",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.6
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "XPqO0",
+              "name": "Label",
+              "gap": 4,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "BvkjG",
+                  "name": "Texto",
+                  "fill": "$pl-tinta",
+                  "content": "3 · EL REGISTRO: QUIÉN TIRÓ, Y EL DESGLOSE AL PASAR POR ENCIMA",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal",
+                  "letterSpacing": 2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OOWZv",
+              "name": "Panel/Registro",
+              "width": 372,
+              "fill": "#e6e3da99",
+              "stroke": "$pl-borde",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Whlox",
+                  "name": "Tirada/Disparo",
+                  "width": "fill_container",
+                  "stroke": "$pl-tinta",
+                  "strokeWidth": {
+                    "bottom": 1,
+                    "left": 3
+                  },
+                  "strokeAlignment": "inner",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": [
+                    0,
+                    0,
+                    9,
+                    10
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "S4LuY",
+                      "name": "Head",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "B2k1a",
+                          "name": "Autor",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "W0kgND",
+                              "type": "ref",
+                              "ref": "bwyxO",
+                              "name": "Av",
+                              "width": 20,
+                              "height": 20,
+                              "cornerRadius": 10,
+                              "strokeWidth": 0,
+                              "descendants": {
+                                "D80d9o": {
+                                  "content": "K",
+                                  "fontSize": 8.5
+                                }
+                              }
+                            },
+                            {
+                              "type": "text",
+                              "id": "Vh4KL",
+                              "fill": "$pl-tinta",
+                              "content": "KAREN SINCLAIR",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 9.5,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1.4
+                            },
+                            {
+                              "type": "text",
+                              "id": "g2nWYL",
+                              "name": "Acción",
+                              "fill": "$pl-tinta-tenue",
+                              "content": "· MAGNUM .44",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 9,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1.2
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "yZhnE",
+                          "name": "Marcador",
+                          "fill": "$pl-tinta",
+                          "content": "1—2",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Qg3wW",
+                      "name": "Dados",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "EZnNB",
+                          "type": "ref",
+                          "ref": "mhFF8",
+                          "name": "d5",
+                          "descendants": {
+                            "lb7q3": {
+                              "content": "1"
+                            }
+                          }
+                        },
+                        {
+                          "id": "j8Wsn",
+                          "type": "ref",
+                          "ref": "mhFF8",
+                          "name": "d6",
+                          "fill": "$pl-tinta",
+                          "stroke": "$pl-tinta",
+                          "descendants": {
+                            "lb7q3": {
+                              "content": "4",
+                              "fill": "$pl-papel-alto"
+                            }
+                          }
+                        },
+                        {
+                          "id": "qENg8",
+                          "type": "ref",
+                          "ref": "mhFF8",
+                          "name": "d2",
+                          "fill": "#00000000",
+                          "stroke": "$pl-linea",
+                          "descendants": {
+                            "lb7q3": {
+                              "content": "6",
+                              "fill": "$pl-tinta-tenue"
+                            }
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "aHvJe",
+                          "name": "vs",
+                          "fill": "$pl-tinta-tenue",
+                          "content": "vs",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "id": "Uyaba",
+                          "type": "ref",
+                          "ref": "mhFF8",
+                          "name": "d4",
+                          "descendants": {
+                            "lb7q3": {
+                              "content": "5"
+                            }
+                          }
+                        },
+                        {
+                          "id": "bsJR8",
+                          "type": "ref",
+                          "ref": "mhFF8",
+                          "name": "d1",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
+                          "descendants": {
+                            "lb7q3": {
+                              "content": "6",
+                              "fill": "$pl-papel-alto"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "RFxU9",
+                      "name": "Grado",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "No consigue lo que se propone por muy poco (grado de fallo 1).",
+                      "lineHeight": 1.55,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "y0WfVO",
+              "type": "ref",
+              "ref": "VmYgS",
+              "name": "Tooltip/Desglose",
+              "descendants": {
+                "A2l6c": {
+                  "content": "CÓMO SALIÓ ESTA TIRADA"
+                },
+                "gcSYP": {
+                  "content": "Manual · p.82 y p.96"
+                },
+                "c8kx4": {
+                  "content": "4 Combate − 1 por herido = 3 dados\nReto a dificultad 3 · alcance medio (p.96)"
+                },
+                "KEtEM": {
+                  "content": "LO QUE SE APLICÓ"
+                },
+                "W6AiGC": {
+                  "content": "Especialidad «Armas cortas» — no aplicada por el director (p.83)\nEl arma no suma dados: a distancia no hay bonificación (p.96)\nChaleco antibalas — salió un fracaso, así que 1 triunfo pasa a éxito normal (p.98)\nA cubierto — no\n\n1 éxito contra 2 de dificultad = grado de fallo 1"
+                }
+              }
+            },
+            {
+              "type": "text",
+              "id": "GYYUL",
+              "name": "Nota",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": 372,
+              "content": "El desglose sale al pasar por encima de la tirada, como en Roll20. Debajo no va nada: el registro se lee de un vistazo.",
+              "lineHeight": 1.45,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "qHMjx",
+          "name": "Columna · director",
+          "width": 406,
+          "height": 661,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "EPGGS",
+              "name": "Quién lo ve",
+              "fill": "$pl-sangre",
+              "gap": 6,
+              "padding": [
+                5,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "UwA2d",
+                  "name": "Icono",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "shield_person",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-papel-alto"
+                },
+                {
+                  "type": "text",
+                  "id": "zsxum",
+                  "name": "Texto",
+                  "fill": "$pl-papel-alto",
+                  "content": "LO VE SÓLO EL DIRECTOR",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.6
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "UT0Yn",
+              "name": "Label",
+              "gap": 4,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "tyQxH",
+                  "name": "Texto",
+                  "fill": "$pl-tinta",
+                  "content": "4 · EL PANEL DEL DIRECTOR — EL MISMO LANZADOR, EXPANDIDO",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal",
+                  "letterSpacing": 2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "QWHSS",
+              "name": "Panel/Director",
+              "width": 372,
+              "fill": "$pl-papel-alto",
+              "stroke": "$pl-borde",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#13131033",
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
+                "blur": 22
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                14,
+                16,
+                16,
+                16
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "jDXfu",
+                  "name": "Head",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "SB6qm",
+                      "name": "Titulo",
+                      "fill": "$pl-tinta",
+                      "content": "LANZADOR · DIRECTOR",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.8
+                    },
+                    {
+                      "type": "icon",
+                      "id": "bKaJw",
+                      "name": "Plegar",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "unfold_less",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "cmBNe",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "WrHPR",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "PEDIR UNA TIRADA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "P5mZc",
+                      "name": "Ref",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "p.84",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "zLpuw",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZKWcm",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "TIRADA DE QUÉ",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "GKPva",
+                  "name": "Característica f1",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "id": "JV5wl",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/FORTALEZA",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "FORTALEZA",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "flFaz",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/COMBATE",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "COMBATE",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "gZ9R2",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/VOLUNTAD",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "VOLUNTAD",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "shmJq",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/ASTUCIA",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "ASTUCIA",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "US3dw",
+                  "name": "Característica f2",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "id": "jyRbU",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/SUTILEZA",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "SUTILEZA",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "JgU91",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/PRESENCIA",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "PRESENCIA",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "UA75m",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/CULTURA",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "CULTURA",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "CpxxA",
+                  "name": "Dificultad f1",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "id": "A0BL5",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/FÁCIL · 1",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "FÁCIL · 1",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "rNxMh",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/MEDIA · 2",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "MEDIA · 2",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "H4tbI",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/DIFÍCIL · 3",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "DIFÍCIL · 3",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "X2nr4",
+                  "name": "Dificultad f2",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "id": "j8ieUc",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/MUY DIFÍCIL · 5",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "MUY DIFÍCIL · 5",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "yGkso",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/ÉPICA · 6",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "ÉPICA · 6",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yubHd",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "sZd2z",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "¿A QUIÉN?",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "k6N8nP",
+                  "name": "Jugadores",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "id": "PbVNc",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/KAREN",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "KAREN",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    },
+                    {
+                      "id": "OYbR7",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/ELÍAS",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "ELÍAS",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "aX0Qn",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/NIX",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "NIX",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "bOuss",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/A TODOS",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "A TODOS",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "RdjvH",
+                  "name": "Especialidad",
+                  "width": "fill_container",
+                  "gap": 7,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "c8Ztfv",
+                      "name": "Box",
+                      "fill": "$pl-tinta",
+                      "width": 13,
+                      "height": 13,
+                      "stroke": "$pl-tinta-suave",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner"
+                    },
+                    {
+                      "type": "text",
+                      "id": "EkTDO",
+                      "name": "Label",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Le vale su especialidad «Buscar» — decides tú (p.83)",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XTM3Z",
+                  "name": "Pie 1",
+                  "width": "fill_container",
+                  "justifyContent": "end",
+                  "children": [
+                    {
+                      "id": "fhcF6",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Botón Pedir",
+                      "padding": [
+                        7,
+                        14
+                      ],
+                      "fill": "$pl-oro",
+                      "stroke": "$pl-oro",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "PEDIR A KAREN · ASTUCIA, DIFÍCIL",
+                          "fill": "$pl-papel-alto",
+                          "fontSize": 10
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ecdS7",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rlbTc",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "PARA MÍ",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "LOrOa",
+                  "name": "Libre",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "id": "nOXRc",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/d4",
+                      "padding": [
+                        5,
+                        7
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "d4",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "VAu0l",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/d6",
+                      "padding": [
+                        5,
+                        7
+                      ],
+                      "opacity": 1,
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "d6",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    },
+                    {
+                      "id": "dk4jB",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/d8",
+                      "padding": [
+                        5,
+                        7
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "d8",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "di7nv",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/d10",
+                      "padding": [
+                        5,
+                        7
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "d10",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "pBKxj",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/d12",
+                      "padding": [
+                        5,
+                        7
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "d12",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "rHmVT",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/d20",
+                      "padding": [
+                        5,
+                        7
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "d20",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "A6Ha2p",
+                  "name": "Visibilidad",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "id": "HGuQy",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/TODOS",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "TODOS",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    },
+                    {
+                      "id": "brr9c",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/SOLO YO",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "SOLO YO",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "ot2gW",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/SECRETA",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "opacity": 1,
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "SECRETA",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "oSBrx",
+          "name": "Columna · defensa",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "w3o17S",
+              "name": "Quién lo ve",
+              "fill": "$pl-sangre",
+              "gap": 6,
+              "padding": [
+                5,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "Qe8ix",
+                  "name": "Icono",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "shield_person",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-papel-alto"
+                },
+                {
+                  "type": "text",
+                  "id": "DWh9a",
+                  "name": "Texto",
+                  "fill": "$pl-papel-alto",
+                  "content": "LO VE EL JUGADOR ATACADO",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.6
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "aOwzw",
+              "name": "Label",
+              "gap": 4,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "wzhNJ",
+                  "name": "Texto",
+                  "fill": "$pl-tinta",
+                  "content": "5 · LE SALTA AL JUGADOR CUANDO LE ATACAN",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal",
+                  "letterSpacing": 2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dcTPM",
+              "name": "Aviso/Te atacan",
+              "width": 372,
+              "fill": "$pl-papel-alto",
+              "stroke": "$pl-sangre",
+              "strokeWidth": {
+                "left": 3
+              },
+              "strokeAlignment": "inner",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#13131033",
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
+                "blur": 22
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                14,
+                16,
+                16,
+                16
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "SCnH8",
+                  "name": "Head",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "L1HYpp",
+                      "name": "Icono",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "swords",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-sangre"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ijDeS",
+                      "name": "Titulo",
+                      "fill": "$pl-sangre",
+                      "content": "TE ATACA UN OGRO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.6
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "z6DAoy",
+                  "name": "Sub",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Cuerpo a cuerpo con 4 dados de Combate. Es un conflicto: los dados que pongas son tu defensa y tu ataque a la vez (p.93).",
+                  "lineHeight": 1.45,
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11.5,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "YM44V",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xBFGQ",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "¿CUÁNTOS DADOS DE COMBATE GASTAS?",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "MPmtW",
+                      "name": "Ref",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "p.93",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NgtLV",
+                  "name": "Dados",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "HSnPn",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Def/0",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "0",
+                          "fontSize": 11,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "m25nj",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Def/1",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "1",
+                          "fontSize": 11,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "D0RQsC",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Def/2",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "2",
+                          "fontSize": 11,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    },
+                    {
+                      "id": "X3Y11h",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Def/3",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "3",
+                          "fontSize": 11,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "vW1aN",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Def/4",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "4",
+                          "fontSize": 11,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "FBxuv",
+                      "name": "Tienes",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "tienes Combate 4",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "d1hNx3",
+                  "name": "Coste",
+                  "width": "fill_container",
+                  "fill": "$pl-papel-hueco",
+                  "gap": 8,
+                  "padding": [
+                    9,
+                    11
+                  ],
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "l142s",
+                      "name": "Icono",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "schedule",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Z8SHjp",
+                      "name": "Texto",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Los que gastes se te quitan del próximo turno: con 2 te quedarán 2 para actuar. Si gastas los cuatro, pierdes el turno; si ya los gastaste todos, quedas indefenso (p.94).",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "y4pjcM",
+                  "name": "Pie",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "Yo3qr",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Botón No defenderme",
+                      "padding": [
+                        7,
+                        12
+                      ],
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "NO ME DEFIENDO",
+                          "fontSize": 10
+                        }
+                      }
+                    },
+                    {
+                      "id": "fep5o",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Botón Defenderme",
+                      "padding": [
+                        7,
+                        14
+                      ],
+                      "fill": "$pl-oro",
+                      "stroke": "$pl-oro",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "DEFENDERME · 2 DADOS",
+                          "fill": "$pl-papel-alto",
+                          "fontSize": 10
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "ohEmn",
+              "name": "Nota",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": 372,
+              "content": "Si el jugador no contesta, la tirada espera: nadie la resuelve por él (decisión del dueño). A distancia no aparece este aviso — es un reto contra la dificultad del alcance, y lo que el jugador puede hacer es ponerse a cubierto (p.96).",
+              "lineHeight": 1.45,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "aegrX",
+          "name": "Columna · atacar desde el token",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "frame",
+              "id": "auuKg",
+              "name": "Quién lo ve",
+              "fill": "$pl-sangre",
+              "gap": 6,
+              "padding": [
+                5,
+                10
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "zEmrI",
+                  "name": "Icono",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "shield_person",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-papel-alto"
+                },
+                {
+                  "type": "text",
+                  "id": "zS8wL",
+                  "name": "Texto",
+                  "fill": "$pl-papel-alto",
+                  "content": "LO VE SÓLO EL DIRECTOR",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.6
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "msSVm",
+              "name": "Label",
+              "gap": 4,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "A8uuBi",
+                  "name": "Texto",
+                  "fill": "$pl-tinta",
+                  "content": "6 · TOCA EL TOKEN DE LA CRIATURA EN EL MAPA Y ATACA CON ELLA",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal",
+                  "letterSpacing": 2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "A4VWk",
+              "name": "Modal/Atacar con el token",
+              "width": 372,
+              "fill": "$pl-papel-alto",
+              "stroke": "$pl-borde",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#13131033",
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
+                "blur": 22
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                14,
+                16,
+                16,
+                16
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "p2B0bg",
+                  "name": "Head",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "r5ODG",
+                      "name": "Token",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "$pl-sangre",
+                      "cornerRadius": 18,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "BjlAl",
+                          "name": "Iniciales",
+                          "fill": "$pl-papel-alto",
+                          "content": "OG",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "h8gLwt",
+                      "name": "Nombre",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "kCYut",
+                          "name": "Titulo",
+                          "fill": "$pl-tinta",
+                          "content": "OGRO",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 13,
+                          "fontWeight": "600",
+                          "letterSpacing": 1.6
+                        },
+                        {
+                          "type": "text",
+                          "id": "iWoE1",
+                          "name": "Datos",
+                          "fill": "$pl-tinta-tenue",
+                          "content": "Combate 4 · Resistencia 30 · protección 3 · p.152",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 10.5,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "l7RsD",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "i3hU2",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "A QUIÉN ATACA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "KKKGG",
+                  "name": "Objetivo",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "id": "lKBD0",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/KAREN",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "KAREN",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    },
+                    {
+                      "id": "wZKb1",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/ELÍAS",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "ELÍAS",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "q5cDN",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Chip/NIX",
+                      "padding": [
+                        5,
+                        9
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "NIX",
+                          "fontSize": 9,
+                          "letterSpacing": 1.2,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "y2u96",
+                  "name": "Distancia",
+                  "fill": "$pl-tinta-tenue",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Karen está a 2 casillas: cuerpo a cuerpo. Lo mide el mapa.",
+                  "lineHeight": 1.45,
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11.5,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "cCmQg",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pvKt8",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "DADOS QUE PONE",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "p3STk",
+                  "name": "Contador",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "Lmldo",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Menos",
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "−",
+                          "fontSize": 13
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "VTwMy",
+                      "name": "Valor",
+                      "fill": "$pl-tinta",
+                      "content": "4",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 26,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "id": "KqebF",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Más",
+                      "padding": [
+                        4,
+                        10
+                      ],
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "+",
+                          "fontSize": 13
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "baiR3",
+                      "name": "De",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "de su Combate 4 · puede repartirlos entre varios (p.94)",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "USBNd",
+                  "name": "Pie",
+                  "width": "fill_container",
+                  "justifyContent": "end",
+                  "children": [
+                    {
+                      "id": "aj4Gi",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Botón Atacar",
+                      "padding": [
+                        8,
+                        16
+                      ],
+                      "fill": "$pl-sangre",
+                      "stroke": "$pl-sangre",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "ATACAR A KAREN",
+                          "fill": "$pl-papel-alto",
+                          "fontSize": 11
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "HpPS1",
+              "name": "Nota",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": 372,
+              "content": "Así da igual cuántas criaturas haya en la escena: no hay lista que crezca. Atacas desde el bicho que estás mirando, y el mapa ya sabe a qué distancia está cada jugador — o sea que también sabe si es cuerpo a cuerpo o un disparo, y con qué dificultad.",
+              "lineHeight": 1.45,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "normal"
             }
           ]
         }

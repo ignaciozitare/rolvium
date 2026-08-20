@@ -42,7 +42,16 @@
 textarea.rv-sheet-inp{min-height:88px;resize:vertical;line-height:var(--lh-normal);}
 select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-inp.num{width:64px;text-align:center;}
-.rv-sheet-value{font-size:var(--fs-lg);line-height:1;color:var(--sys-ink);font-variant-numeric:tabular-nums;}
+/* `lining-nums` y no sólo `tabular-nums`: Cormorant Garamond trae por defecto cifras de ESTILO ANTIGUO
+   —el 1 es del alto de una x y parece una «I», el 3, el 4, el 7 y el 9 caen por debajo de la línea de
+   base—, así que cualquier número salía descuadrado contra el de al lado y contra su rótulo. Con
+   `lining-nums` todas las cifras tienen la misma altura y se alinean; `tabular-nums` les da además el
+   mismo ancho, que es lo que mantiene los `+`/`−` en columna. (Dueño, 2026-08-20: «los números en todo
+   el diseño están desalineados, esto no puede ser».) */
+.rv-sheet-value{font-size:var(--fs-lg);line-height:1;color:var(--sys-ink);font-variant-numeric:lining-nums tabular-nums;}
+/* Y en toda la ficha, no sólo donde hay un `.rv-sheet-value`: las cifras de una tabla, de un rótulo o
+   de una leyenda son el mismo problema. */
+.rv-sheet,.rv-sheet input,.rv-sheet select,.rv-sheet textarea{font-variant-numeric:lining-nums tabular-nums;}
 .rv-sheet-value.big{font-size:var(--fs-xl);}
 .rv-sheet-derived{display:flex;align-items:center;gap:8px;min-height:32px;}
 /* buttons (PL/Boton) */
