@@ -2,9 +2,16 @@ import type { SharedResourceDef, SharedResourceState } from '@rolvium/core';
 import type { TableRole } from '@/modules/campaigns/domain/entities/Campaign';
 import type { TableTab } from '../entities/Table';
 
-/** Tabs per role — matches rolvium.pen (player: Ficha·Escena·Mejorar·Crear; DM adds El grupo·Bestiario). */
+/**
+ * Tabs per role (player: Ficha·Escena·Crear; DM adds El grupo·Bestiario).
+ *
+ * «Mejorar» YA NO es una pestaña: es un botón dentro de la ficha, al lado de «Editar» y «Abrir ficha
+ * aparte» (dueño, decidido hace varias sesiones y pendiente desde entonces). Mejorar es algo que le
+ * haces a la ficha que estás mirando, no un sitio aparte al que ir — y de pestaña te sacaba de la
+ * ficha para volver a cargarla entera al lado.
+ */
 export function tabsFor(role: TableRole): TableTab[] {
-  return role === 'dm' ? ['sheet', 'group', 'scene', 'bestiary', 'improve', 'create'] : ['sheet', 'scene', 'improve', 'create'];
+  return role === 'dm' ? ['sheet', 'group', 'scene', 'bestiary', 'create'] : ['sheet', 'scene', 'create'];
 }
 
 export const handOf = (state: SharedResourceState | undefined, userId: string): number => state?.hands?.[userId] ?? 0;

@@ -18,7 +18,6 @@ import { rollsPort as defaultRolls, rollLog as defaultRollLog } from '@/modules/
 import { SidePanel } from '@/modules/dice/ui/SidePanel';
 import { DiceRoller } from '@/modules/dice/ui/DiceRoller';
 import { SheetTab, CreateTab } from './tabs/SheetTab';
-import { ImproveTab } from './tabs/ImproveTab';
 import { GroupTab } from './tabs/GroupTab';
 import { SceneTab } from './tabs/SceneTab';
 import type { MapsPort } from '@/modules/maps/domain/ports/MapsPort';
@@ -124,9 +123,8 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
 
         <div className="tb-body">
           <main className="tb-main">
-            {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} characterId={viewCharacterId} onOpenCreate={() => setTab('create')} />}
+            {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} characterId={viewCharacterId} progressionEnabled={campaign.progressionEnabled} onOpenCreate={() => setTab('create')} />}
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
-            {tab === 'improve' && <ImproveTab campaignId={campaign.id} userId={user.id} repo={charactersRepo} progressionEnabled={campaign.progressionEnabled} characterId={viewCharacterId} />}
             {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}
             {tab === 'scene' && <SceneTab campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} />}
             {tab === 'bestiary' && (

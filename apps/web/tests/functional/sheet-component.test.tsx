@@ -25,7 +25,9 @@ describe('<Sheet> — schema-driven, every field type', () => {
     // stat row: label + specialty + value + TIRAR n
     const stat = document.querySelector('[data-stat="combat"]')!;
     expect(within(stat as HTMLElement).getByText('Combate')).toBeInTheDocument();
-    expect(within(stat as HTMLElement).getAllByRole('combobox')[0]).toHaveValue('combat.improvisedWeapons');
+    // La especialidad ya elegida es TEXTO en la ficha viva; el desplegable sólo vive en el generador.
+    expect(within(stat as HTMLElement).getByText('Armas improvisadas')).toBeInTheDocument();
+    expect(within(stat as HTMLElement).queryByRole('combobox')).toBeNull();
     expect(within(stat as HTMLElement).getByRole('button', { name: 'Tirar 6' })).toBeInTheDocument();
     // tooltip from references
     const tips = screen.getAllByRole('tooltip');
@@ -39,10 +41,15 @@ describe('<Sheet> — schema-driven, every field type', () => {
     const table = screen.getByRole('table', { name: 'Armas' });
     expect(within(table).getAllByRole('combobox')[0]).toHaveValue('bat');
     expect(within(table).getAllByRole('row')[2]).toHaveTextContent('7'); // magnum damage from the catalog
-    expect(within(table).getAllByRole('button', { name: /Atacar cuerpo a cuerpo/ }).length).toBe(2);
+    // Cada arma ofrece SÓLO su acción (p.96–97): el bate es cuerpo a cuerpo y el magnum a distancia.
+    // Antes se pintaban las dos en todas las filas y unas Nudilleras ofrecían «Disparar».
+    expect(within(table).getAllByRole('button', { name: /Atacar cuerpo a cuerpo/ }).length).toBe(1);
+    expect(within(table).getAllByRole('button', { name: /Disparar/ }).length).toBe(1);
+    // Y el cargador sólo lo llevan las de fuego: el libro pone «-» en las nueve de cuerpo a cuerpo.
+    expect(within(table).getAllByRole('row')[1]).toHaveTextContent('—');
     // gifts with ⚡ (bolt) and cost text
     expect(screen.getByRole('button', { name: /Activar don · Furia de titán/ })).toBeInTheDocument();
-    expect(screen.getByText('1 punto de Fortuna')).toBeInTheDocument();
+    expect(screen.getByText('1 Fortuna')).toBeInTheDocument();
     // section ref hint for weapons
     expect(screen.getByText(/Armas · Manual · p.97/)).toBeInTheDocument();
   });
@@ -73,8 +80,13 @@ describe('<Sheet> — schema-driven, every field type', () => {
     // stat +1 and specialty add
     await u.click(screen.getByRole('button', { name: '+ Combate' }));
     expect(onChange).toHaveBeenLastCalledWith({ combat: { value: 5, specialties: ['combat.improvisedWeapons'] } });
-    await u.selectOptions(screen.getByLabelText('Añadir Especialidad · Combate'), 'combat.knives');
+    // El desplegable no está hasta que se pide con el «+», y desaparece al elegir.
+    const pickSpec = () => screen.queryByRole('combobox', { name: 'Añadir Especialidad · Combate' });
+    expect(pickSpec()).toBeNull();
+    await u.click(screen.getByRole('button', { name: 'Añadir Especialidad · Combate' }));
+    await u.selectOptions(pickSpec()!, 'combat.knives');
     expect(onChange).toHaveBeenLastCalledWith({ combat: { value: 4, specialties: ['combat.improvisedWeapons', 'combat.knives'] } });
+    expect(pickSpec()).toBeNull();
   });
 
   /**

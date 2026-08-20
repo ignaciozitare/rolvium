@@ -5,7 +5,7 @@
 // stored by newSheet(). Manual pages: stats p.20–21, roll p.82–84, state p.98–99, p.88–89. See RULES.md.
 import type { FieldDef, SectionDef, SheetData, SheetSchema } from '@rolvium/core';
 import {
-  ARMOURS, DIFFICULTIES, EQUIPMENT, GIFTS, HEALTH_LEVELS, SIZES, STAT_IDS, WEAPONS, specialtiesFor, type HealthId, type StatId,
+  ARMOURS, DIFFICULTIES, EQUIPMENT, GIFTS, HEALTH_LEVELS, SIZES, STAT_IDS, WEAPONS, specialtiesFor, weaponById, type HealthId, type StatId,
 } from './catalogs';
 
 export const SHEET_VERSION = '1';
@@ -29,8 +29,8 @@ export const PRESETS = [
 export type PresetId = (typeof PRESETS)[number]['id'];
 export const DEFAULT_PRESET: PresetId = 'standard';
 
-const yesNo = (id: string, label: string, ref?: string): FieldDef => ({
-  id, type: 'select', label, ...(ref ? { ref } : {}),
+const yesNo = (id: string, label: string, ref?: string, hidden = false): FieldDef => ({
+  id, type: 'select', label, ...(ref ? { ref } : {}), ...(hidden ? { hidden: true } : {}),
   options: [{ value: 'no', label: 'sheet.common.no' }, { value: 'yes', label: 'sheet.common.yes' }],
 });
 
@@ -54,20 +54,42 @@ export const sections: SectionDef[] = [
     { id: 'extraDice', type: 'number', label: 'sheet.roll.extra', min: 0, max: 5 },
   ] },
   { id: 'stats', label: 'sheet.sections.stats', layout: 'stack', fields: STAT_IDS.map(statField) },
-  // `span: 2`: Estado dejaba un hueco en blanco a su derecha (queja del dueño) porque Armas ocupa
-  // fila entera y no puede rellenarla. Con dos columnas, Características + Estado cierran la fila.
-  { id: 'state', label: 'sheet.sections.state', layout: 'grid', span: 2, fields: [
+  // ⚠ NADA de `span: 2` aquí. Se probó para cerrar el hueco de la derecha de Estado y salió peor: la
+  // tarjeta se quedó con el doble de ancho y el mismo contenido, o sea un vacío enorme bajo «Recibir
+  // daño» (visto en producción por el dueño, 2026-08-19). El hueco no se arregla ensanchando: se
+  // arregla componiendo los 12 campos de la sección como los tiene el `.pen`, y eso es su propia tanda.
+  // Orden pensado, no el que salió: primero los tres numeros que MIDEN el cuerpo (aguante, la
+  // Resistencia maxima que permite tu estado y la penalizacion que arrastra), luego los dos marcadores
+  // que se tocan en mesa (las casillas y las lunas), y al final los recursos que se gastan (destino,
+  // fortuna, experiencia) con sus calculados debajo.
+  // Los numeros CALCULADOS van SEGUIDOS: la ficha agrupa cada tanda en una fila de tarjetas cuadradas
+  // centradas (`groupTiles` → `rv-sheet-tiles`), y una tarjeta sola en su fila se ve descolgada.
+  // «Resistencia recuperable descansando» YA NO EXISTE: era el mismo numero que «Resistencia maxima»
+  // con otro nombre (p.101, RULES.md §6.3). Y «Inconsciente» tampoco: no se elige a mano — sale como
+  // aviso bajo las lunas (`note`). Al salir los dos de la rejilla, Destino · Fortuna · Experiencia
+  // caben en UNA fila de tres, que es justo como los pidio el dueno (2026-08-19).
+  { id: 'state', label: 'sheet.sections.state', layout: 'grid', fields: [
     { id: 'endurance', type: 'number', label: 'sheet.state.endurance', ref: 'endurance', derived: true },
-    { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'resistance', derived: true },
-    { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },
-    { id: 'health', type: 'health', label: 'sheet.state.health', ref: 'health', options: HEALTH_LEVELS.map(h => ({ value: h.id, label: `sheet.health.${h.id}` })) },
+    // `ref: 'recovery'` (p.101) y no `'resistance'` (p.98): este numero SALE de la tabla de
+    // recuperacion —lo baja el estado de salud—, y al desaparecer «Resistencia recuperable» esa
+    // referencia se quedo sin ningun campo que la enseñara. Asi el tooltip explica por que pone 12
+    // y no 18. La regla base de la Resistencia sigue en las casillas, que llevan `ref: 'resistance'`.
+    { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'recovery', derived: true },
     { id: 'dicePenalty', type: 'number', label: 'sheet.state.dicePenalty', ref: 'health', derived: true },
-    yesNo('unconscious', 'sheet.state.unconscious', 'health'),
-    { id: 'recoveryMax', type: 'number', label: 'sheet.state.recoveryMax', ref: 'recovery', derived: true },
+    { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },
+    // El sexto nivel de salud del manual (p.101) NO es una fase de luna: se puede estar Herido E
+    // Inconsciente a la vez, y no se elige — lo calcula `applyDamage` al quedarse sin Resistencia.
+    { id: 'health', type: 'health', label: 'sheet.state.health', ref: 'health', options: HEALTH_LEVELS.map(h => ({ value: h.id, label: `sheet.health.${h.id}` })), note: sheet => (sheet.unconscious === 'yes' || sheet.unconscious === true ? 'sheet.state.unconsciousNote' : null) },
+    // Los tres contadores llenan la fila de la rejilla, y debajo la pareja de calculados que arrastran:
+    // Fortuna maxima cae centrada justo bajo Fortuna. La Fortuna NO lleva `max` propio: su techo es el
+    // Destino (p.90, tope duro) y la ficha lo lee de `fortuneMax`, como las casillas leen su maximo.
+    // Se GUARDA (lo escriben `applyDamage` y `rest`) y por eso sigue declarado —`validateSheet` rechaza
+    // toda clave que el esquema no conozca—, pero no se pinta como campo: sale de `note`, arriba.
+    yesNo('unconscious', 'sheet.state.unconscious', 'health', true),
     { id: 'destiny', type: 'counter', label: 'sheet.state.destiny', ref: 'destiny', min: 1, max: 10 },
-    { id: 'fortuneMax', type: 'number', label: 'sheet.state.fortuneMax', ref: 'fortune', derived: true },
-    { id: 'fortune', type: 'counter', label: 'sheet.state.fortune', ref: 'fortune', min: 0, max: 10 },
+    { id: 'fortune', type: 'counter', label: 'sheet.state.fortune', ref: 'fortune', min: 0 },
     { id: 'xp', type: 'counter', label: 'sheet.state.xp', ref: 'xp', min: 0 },
+    { id: 'fortuneMax', type: 'number', label: 'sheet.state.fortuneMax', ref: 'fortune', derived: true },
     { id: 'giftPoints', type: 'number', label: 'sheet.state.giftPoints', ref: 'gifts', derived: true },
   ] },
   { id: 'weapons', label: 'sheet.sections.weapons', layout: 'stack', fields: [
@@ -75,24 +97,35 @@ export const sections: SectionDef[] = [
       { id: 'id', type: 'select', label: 'sheet.weapons.name', options: WEAPONS.map(x => ({ value: x.id, label: x.label })) },
       { id: 'bonus', type: 'number', label: 'sheet.weapons.bonus', derived: true },
       { id: 'damage', type: 'text', label: 'sheet.weapons.damage', derived: true },
-      { id: 'range', type: 'text', label: 'sheet.weapons.range', derived: true },
-      { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0 },
+      // El alcance se lee «Medio» y los metros con la dificultad salen en un tooltip (`hint`): en linea
+      // ocupaban media tabla. Cuerpo a cuerpo no lleva pista — no tiene metros ni reto (p.95–96).
+      { id: 'range', type: 'text', label: 'sheet.weapons.range', derived: true, options: (['melee', 'short', 'medium', 'long', 'veryLong'] as const).map(r => ({ value: r, label: `sheet.range.${r}`, ...(r === 'melee' ? {} : { hint: `sheet.rangeHint.${r}` }) })) },
+      // Sólo las armas de fuego tienen cargador: el libro pone «-» en las nueve de cuerpo a cuerpo
+      // (p.97) y `magazine` es null en el catálogo. Sin esto salían unas Nudilleras con 14 balas.
+      // Dos columnas distintas y a menudo confundidas: `ammo` es lo que hay EN el cargador y `reserve`
+      // las balas sueltas que llevas encima. Recargar mueve de la segunda a la primera. Ninguna aparece
+      // en las armas cuerpo a cuerpo: el libro les pone «-» en Cargador (p.97).
+      // El cargador NO se toca a mano (dueño): lo bajan los disparos y lo sube el botón de recargar.
+      // `derived` aquí no significa «calculado del catálogo», significa «no editable en la tabla»:
+      // la celda pinta el valor que la fila ya guarda.
+      { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0, derived: true, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
+      { id: 'reserve', type: 'counter', label: 'sheet.weapons.reserve', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
     ] },
   ] },
-  { id: 'gifts', label: 'sheet.sections.gifts', layout: 'stack', fields: [
+  { id: 'gifts', label: 'sheet.sections.gifts', layout: 'stack', span: 2, fields: [
     { id: 'gifts', type: 'list', label: 'sheet.gifts.list', ref: 'gifts', action: 'gift.activate', itemFields: [
       { id: 'id', type: 'select', label: 'sheet.gifts.name', options: GIFTS.map(g => ({ value: g.id, label: g.label })) },
       { id: 'level', type: 'counter', label: 'sheet.gifts.level', min: 1, max: 5 },
     ] },
   ] },
-  { id: 'equipment', label: 'sheet.sections.equipment', layout: 'stack', fields: [
+  { id: 'equipment', label: 'sheet.sections.equipment', layout: 'stack', span: 2, fields: [
     { id: 'equipment', type: 'list', label: 'sheet.equipment.list', itemFields: [
       { id: 'id', type: 'select', label: 'sheet.equipment.name', options: EQUIPMENT.map(e => ({ value: e.id, label: e.label })) },
     ] },
   ] },
   // `stack` y no `row`: `row` la marca como ancha y ocupaba una fila entera. El dueño la quiere en
   // columna, junto a Dones y Equipo, con Armas encima a todo el ancho (rolvium.pen, ficha 2026-08-19).
-  { id: 'armour', label: 'sheet.sections.armour', layout: 'stack', fields: [
+  { id: 'armour', label: 'sheet.sections.armour', layout: 'stack', span: 2, fields: [
     { id: 'armour', type: 'select', label: 'sheet.armour.worn', ref: 'armours', options: ARMOURS.map(x => ({ value: x.id, label: x.label })) },
     { id: 'protection', type: 'number', label: 'sheet.armour.protection', ref: 'armours', derived: true },
     { id: 'armourPenalty', type: 'number', label: 'sheet.armour.penalty', ref: 'armours', derived: true },

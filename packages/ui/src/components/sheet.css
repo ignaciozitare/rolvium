@@ -7,9 +7,18 @@
    partir de 3x340 + 2x16 de gap = 1052px de ancho DISPONIBLE (no 1020: los huecos cuentan), y el grid
    ya las estira a la altura de la mas alta por si mismo. Por debajo de 1052 se cae a dos columnas y
    Armadura se queda sola en su fila; a 1052+ el hueco cae a la derecha de Estado. */
-.rv-sheet{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px;color:var(--sys-ink);font-family:var(--sys-font-body);}
+/* Rejilla de SEIS columnas, no `auto-fit`. El auto-fit repartia por ancho minimo, asi que en una
+   pantalla ancha salian cuatro columnas y las tarjetas quedaban estrechas con medio lienzo vacio
+   a la derecha (visto en local por el dueno, 2026-08-19). rolvium.pen no funciona asi: declara
+   fracciones — Identidad, Dificultad, Armas e Historia a fila entera; Caracteristicas y Estado a
+   la MITAD (793 de 1601); Dones, Equipo y Armadura a un TERCIO (523 de 1601). Cada seccion dice
+   lo suyo con `span` en sextos, y el ancho lo pone la rejilla, no el contenido. */
+.rv-sheet{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;color:var(--sys-ink);font-family:var(--sys-font-body);}
 .rv-sheet-section{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px;min-width:0;}
+.rv-sheet-section{grid-column:span var(--sec-span,3);}
 .rv-sheet-section.wide{grid-column:1/-1;}
+/* Estrecho: todo a una columna. Media fila de 793 px no cabe en un movil. */
+@media (max-width:900px){.rv-sheet{grid-template-columns:1fr;}.rv-sheet-section,.rv-sheet-section.wide{grid-column:1/-1;}}
 .rv-sheet-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:8px;border-bottom:1px solid var(--sys-line);}
 .rv-sheet-section-title{font-size:var(--fs-xs);letter-spacing:.24em;text-transform:uppercase;color:var(--sys-ink);margin:0;font-weight:600;}
 .rv-sheet-section-ref{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);letter-spacing:.06em;}
@@ -49,8 +58,8 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-counter{display:inline-flex;align-items:center;gap:8px;}
 .rv-sheet-counter .rv-sheet-btn{padding:4px 9px;}
 /* boxes (PL/Casilla) */
-.rv-sheet-boxes{display:flex;flex-wrap:wrap;gap:4px;max-width:100%;}
-.rv-sheet-box{width:16px;height:16px;padding:0;border:1px solid var(--sys-border);background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);cursor:pointer;}
+.rv-sheet-boxes{display:flex;flex-wrap:wrap;gap:5px;max-width:100%;}
+.rv-sheet-box{width:20px;height:20px;padding:0;border:1px solid var(--sys-border);background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);cursor:pointer;}
 /* Manual p.25: en blanco es la Resistencia que te QUEDA; las marcadas son el dano recibido.
    Bordo (`--sys-blood`), no una cruz: decision del dueno 2026-08-19.
    Fuera `.on`: ningun camino del codigo emite ya esa clase, asi que era CSS inalcanzable, y el
@@ -72,13 +81,28 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-stat-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
 .rv-sheet-stat-sub{font-size:var(--fs-xs);font-style:italic;color:var(--sys-ink-dim);display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;}
 .rv-sheet-stat-sub select{max-width:160px;}
+/* Especialidad ya elegida: texto con su × al lado, como una fila de lista. El desplegable sale sólo
+   al pulsar el `+` (dueno, 2026-08-19). */
+.rv-sheet-spec{display:inline-flex;align-items:center;gap:2px;font-style:normal;color:var(--sys-ink);}
+.rv-sheet-plus{font-size:var(--fs-body);line-height:1;color:var(--sys-ink-soft);margin-left:2px;}
 .rv-sheet-stat .rv-sheet-value{min-width:28px;text-align:right;}
 /* list & table */
 .rv-sheet-list{display:flex;flex-direction:column;}
-.rv-sheet-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--sys-line);flex-wrap:wrap;}
-.rv-sheet-item > .rv-sheet-field{flex:1 1 140px;}
+/* UNA linea por fila, como el .pen: `flex-wrap:wrap` mas un select a ancho completo partia cada
+   objeto en dos o tres lineas y la tarjeta se estiraba sin fondo (visto en produccion 2026-08-19).
+   El nombre se come el hueco que sobra y el resto —nivel, coste, acciones— va detras, sin envolver. */
+.rv-sheet-item{display:flex;align-items:center;gap:10px;padding:4px 0 6px;border-bottom:1px solid var(--sys-line);flex-wrap:nowrap;}
+.rv-sheet-item > .rv-sheet-field{flex:1 1 140px;min-width:0;}
+.rv-sheet-item > select.rv-sheet-inp{flex:1 1 auto;min-width:0;}
+.rv-sheet-item > span{flex:0 0 auto;white-space:nowrap;}
 .rv-sheet-item-actions{display:inline-flex;gap:6px;align-items:center;margin-left:auto;}
-.rv-sheet-item-cost{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+.rv-sheet-item-cost{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);white-space:nowrap;}
+.rv-sheet-item-counter{display:inline-flex;align-items:center;flex:0 0 auto;}
+/* `> .rv-sheet-item-name` y no `.rv-sheet-item-name` a secas: la regla de arriba `.rv-sheet-item > span`
+   pesa mas (clase + tipo) y ganaba, asi que el nombre quedaba en `flex:0 0 auto` —lo ancho que fuera su
+   texto— y toda la cola de la fila (contador, coste, acciones) se corria a la derecha en las filas de
+   nombre largo: los `−`/`+` de Dones no caian en columna. Mismo fallo que el de Municion, otra causa. */
+.rv-sheet-item > .rv-sheet-item-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-body);}
 .rv-sheet-add{align-self:flex-start;margin-top:8px;display:inline-flex;align-items:center;gap:8px;}
 .rv-sheet-add small{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);letter-spacing:0;text-transform:none;}
 .rv-sheet-table{width:100%;border-collapse:collapse;}
@@ -92,3 +116,57 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-image-disc img{width:100%;height:100%;object-fit:cover;}
 .rv-sheet-image .rv-sheet-caption{max-width:120px;line-height:var(--lh-tight);}
 .rv-sheet-svg{display:block;flex-shrink:0;}
+
+/* (dueno 2026-08-19) El contador de una fila va pegado a la DERECHA, con las acciones, no contra el
+   nombre: asi los numeros de todas las filas quedan en columna y se leen de arriba abajo. */
+.rv-sheet-item > .rv-sheet-item-actions{margin-left:0;}
+/* Acotada a la LISTA (`> .rv-sheet-item`). Sin acotar se colaba en la TABLA —`Cell` pinta la misma
+   clase en las celdas— y ahi el `margin-left:auto` con 96px de minimo empujaba cada contador a un
+   sitio distinto: los `+`/`−` de Municion no caian en columna de una fila a otra (dueno, 2026-08-19). */
+.rv-sheet-item > .rv-sheet-item-counter{margin-left:auto;min-width:96px;justify-content:flex-end;}
+/* El numero del contador con ancho fijo: sin esto un `2` y un `12` corren los botones y los `+`/`−`
+   de dos filas seguidas no se alinean. `tabular-nums` ya lo trae `.rv-sheet-value`. */
+.rv-sheet-counter > .rv-sheet-value{min-width:3ch;text-align:center;}
+/* Numeros calculados de una tarjeta en columna: centrados, y un filete corto entre dos seguidos. */
+.rv-sheet-fields.stack > .rv-sheet-field.num-derived{text-align:center;align-items:center;}
+.rv-sheet-fields.stack > .rv-sheet-field.num-derived .rv-sheet-derived{justify-content:center;}
+.rv-sheet-fields.stack > .rv-sheet-field.num-derived + .rv-sheet-field.num-derived::before{content:'';display:block;width:56px;height:1px;background:var(--sys-line);margin:2px auto 10px;}
+
+/* ── Numeros calculados de una seccion en rejilla: tarjetas cuadradas centradas ──────────────
+   (dueno 2026-08-19, sobre Estado) «Aguante y Resistencia maxima en tarjetas cuadradas centradas
+   dentro de la tarjeta grande, con los textos centrados con los numeros», y «penalizacion por
+   heridas y Resistencia recuperable, una al lado de la otra, en tarjetas como las de Aguante».
+   La fila la agrupa `groupTiles` en Sheet.tsx: centrar cada campo en SU celda de la rejilla los
+   dejaba repartidos por el ancho, no centrados en la tarjeta. Se queda en `grid` — en `stack`
+   (Armadura) los calculados ya tienen su lectura en columna, y esa no se toca. */
+.rv-sheet-tiles{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:center;align-items:stretch;gap:14px;margin:2px 0;}
+.rv-sheet-tiles > .rv-sheet-field{width:140px;min-height:140px;padding:14px 10px;gap:10px;align-items:center;justify-content:center;text-align:center;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
+/* `block` y no el `inline-flex` de siempre: en dos lineas, el flex metia el «p.98» ENTRE ellas
+   («RESISTENCIA p.98 / MAXIMA»). Como texto normal, la pagina va detras del rotulo entero. */
+.rv-sheet-tiles .rv-sheet-label{display:block;width:100%;text-align:center;line-height:var(--lh-tight);}
+/* La pagina, en SU linea: en linea al final del rotulo se salia de la tarjeta —140px de ancho no dan
+   para «RESISTENCIA RECUPERABLE DESCANSANDO p.101» (dueno, 2026-08-19: «se sale de las cards»). */
+.rv-sheet-tiles .rv-sheet-page{display:block;margin:2px 0 0;}
+/* Filete corto entre el texto y el numero, dentro de la tarjeta (pedido del dueno). Es el mismo
+   patron que ya separa los calculados de Armadura, aqui como cierre del rotulo. */
+.rv-sheet-tiles .rv-sheet-label::after{content:'';display:block;width:56px;height:1px;background:var(--sys-line);margin:8px auto 0;}
+.rv-sheet-tiles .rv-sheet-derived{justify-content:center;min-height:0;}
+.rv-sheet-tiles .rv-sheet-value{font-size:var(--fs-xl);}
+/* El tooltip del rotulo cuelga de un `left:0` pensado para un campo alineado a la izquierda; en una
+   tarjeta centrada de 140 px se salia por la derecha. Aqui se centra sobre la tarjeta. */
+.rv-sheet-tiles .rv-sheet-tip{left:50%;transform:translateX(-50%);}
+/* ── Casillas y lunas, centradas en la tarjeta (dueno 2026-08-19) ─────────────────────────────
+   Solo en `grid`: es donde la seccion es una tarjeta con contenido a lo ancho. Se centra el campo
+   entero —rotulo, casillas y el «0 de 18»— porque un rotulo pegado a la izquierda sobre unas
+   casillas centradas se lee como un descuadre, no como una decision. */
+.rv-sheet-fields.grid > .rv-sheet-field.span{align-items:center;text-align:center;}
+.rv-sheet-fields.grid > .rv-sheet-field.span .rv-sheet-boxes,
+.rv-sheet-fields.grid > .rv-sheet-field.span .rv-sheet-health{justify-content:center;}
+.rv-sheet-fields.grid > .rv-sheet-field.span .rv-sheet-tip{left:50%;transform:translateX(-50%);}
+/* Dato secundario en tooltip (el alcance de un arma): subrayado punteado, sin cambiar el color ni
+   heredar la cursiva del `abbr` del navegador. */
+.rv-sheet-hinted{text-decoration:underline dotted var(--sys-ink-dim);text-underline-offset:3px;cursor:help;font-variant:inherit;}
+/* Aviso de reglas bajo un campo (Plenilunio: «Inconsciente», el sexto nivel de salud, p.101). En
+   sangre y no en un gris mas: es lo que hay que ver al levantar la vista en mesa. Sin caja ni borde
+   —capas tonales, no cajas— y centrado porque cuelga de las lunas, que van centradas. */
+.rv-sheet-note{margin:2px 0 0;color:var(--sys-blood);font-size:var(--fs-xs);letter-spacing:.06em;line-height:var(--lh-tight);text-align:center;}

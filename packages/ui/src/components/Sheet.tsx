@@ -1,5 +1,6 @@
-import { useId, type ReactNode } from 'react';
+import { Fragment, useId, useState, type ReactNode } from 'react';
 import type { ActionDef, Catalogs, FieldDef, SectionDef, SheetData, SheetPatch, SheetSchema } from '@rolvium/core';
+import { Tooltip } from './Tooltip';
 import './sheet.css';
 
 // ─── <Sheet> — neutral, schema-driven character sheet ────────────────────────
@@ -31,6 +32,12 @@ export interface SheetProps {
   onImagePick?: (fieldId: string) => void;
   /** Only these fields (any section) are rendered — used by the generator steps. */
   fields?: string[];
+  /**
+   * Si cada fila de una lista lleva su desplegable para elegir. En la ficha viva NO: la fila es texto
+   * y se borra (dueño: «tendría que ser una lista y ya, y que se puedan borrar las cosas»). En el
+   * GENERADOR sí, porque ahí es donde se elige el don. Por defecto false.
+   */
+  rowPicker?: boolean;
   /** Hide roll/action buttons (generator, previews). */
   showActions?: boolean;
   /** Icon hints from `VisualTheme.icons` (`stat: 'crescent'`, `health: 'moon-phase'`). */
@@ -61,6 +68,27 @@ const optionVetoed = (value: string, current: string, disabled: boolean, allowed
 
 const isWide = (s: SectionDef) => s.layout === 'row' || s.fields.some(f => WIDE_TYPES.has(f.type));
 
+/**
+ * Un numero CALCULADO se pinta como tarjeta cuadrada centrada, no como una celda mas de la rejilla
+ * (dueno, 2026-08-19, sobre Estado: «Aguante y Resistencia maxima en tarjetas cuadradas centradas,
+ * con los textos centrados con los numeros»). No es editable, asi que no necesita ancho de control:
+ * necesita leerse de un vistazo.
+ */
+const isTile = (f: FieldDef) => f.type === 'number' && !!f.derived;
+/**
+ * Agrupa las TIRADAS SEGUIDAS de tarjetas en una fila propia, para poder centrarlas juntas. Centrar
+ * cada una en su celda de la rejilla no vale: quedan repartidas por el ancho, no centradas en la
+ * tarjeta grande. Solo se hace en `grid`; en `stack` los calculados ya tienen su lectura (Armadura:
+ * centrados en columna con un filete corto entre dos), y esa no se toca.
+ */
+const groupTiles = (fields: FieldDef[]): (FieldDef | FieldDef[])[] =>
+  fields.reduce<(FieldDef | FieldDef[])[]>((acc, f) => {
+    const last = acc[acc.length - 1];
+    if (isTile(f) && Array.isArray(last)) last.push(f);
+    else acc.push(isTile(f) ? [f] : f);
+    return acc;
+  }, []);
+
 export function Sheet(p: SheetProps): JSX.Element {
   const derived = p.derived ?? {};
   const ro = !!p.readOnly;
@@ -68,7 +96,9 @@ export function Sheet(p: SheetProps): JSX.Element {
   const set = (id: string, value: unknown) => { if (!ro && (p.canChange?.(id, value) ?? true)) p.onChange?.({ [id]: value }); };
   const allowed = (id: string, value: unknown) => !ro && (p.canChange?.(id, value) ?? true);
   const sections = p.schema.sections
-    .map(s => ({ ...s, fields: p.fields ? s.fields.filter(f => p.fields!.includes(f.id)) : s.fields }))
+    // `hidden`: el campo existe en el esquema —se guarda y se valida— pero no se pinta. Lo escribe el
+    // motor y no hay nada que elegir en él (Plenilunio: «Inconsciente», que sale como `note`).
+    .map(s => ({ ...s, fields: (p.fields ? s.fields.filter(f => p.fields!.includes(f.id)) : s.fields).filter(f => !f.hidden) }))
     .filter(s => s.fields.length > 0);
 
   const label = (f: Pick<FieldDef, 'label' | 'ref'>, extra?: ReactNode) => <Label text={p.t(f.label)} refKey={f.ref} refText={p.refText} manual={p.labels.manual} extra={extra} />;
@@ -82,13 +112,27 @@ export function Sheet(p: SheetProps): JSX.Element {
       }
       case 'number':
         return (
-          <div className="rv-sheet-field">{label(f)}
+          // `num-derived`: un numero calculado que sale solo en una tarjeta se lee centrado, y entre dos
+          // seguidos va un filete corto (dueno, sobre Armadura: proteccion y penalizacion).
+          <div className={`rv-sheet-field ${f.derived ? 'num-derived' : ''}`}>{label(f)}
             {f.derived || ro ? <div className="rv-sheet-derived"><span className="rv-sheet-value">{str(v) || '—'}</span></div>
               : <input type="number" className="rv-sheet-inp num" aria-label={p.t(f.label)} value={num(v)} min={f.min} max={f.max} onChange={e => set(f.id, Number(e.target.value))} />}
           </div>
         );
-      case 'counter':
-        return <div className="rv-sheet-field">{label(f)}<Counter value={num(v, f.min ?? 0)} min={f.min} max={f.max} labelText={p.t(f.label)} disabled={ro || !!f.derived} allowed={n => allowed(f.id, n)} onChange={n => set(f.id, n)} /></div>;
+      case 'counter': {
+        /**
+         * El techo puede ser CALCULADO: si el motor publica `<id>Max` en `derived`, manda ese y no el
+         * `max` fijo del esquema — la misma convención que ya usaban las casillas (`resistanceMax`).
+         * Sin esto la Fortuna se subía hasta 10 a pelo teniendo el tope en el Destino (Plenilunio
+         * p.90: «nunca pueden llegar a ser mayores que la puntuación de Destino»), así que la ficha
+         * enseñaba «Fortuna 5 · Fortuna máxima 4» y dejaba seguir subiendo.
+         * Se capa la SUBIDA, nunca la bajada: con un valor ya por encima del techo el `+` sale
+         * apagado y el `−` sigue vivo, que es como se sale de ahí.
+         */
+        const dmax = derived[`${f.id}Max`];
+        const max = typeof dmax === 'number' && Number.isFinite(dmax) ? dmax : f.max;
+        return <div className="rv-sheet-field">{label(f)}<Counter value={num(v, f.min ?? 0)} min={f.min} max={max} labelText={p.t(f.label)} disabled={ro || !!f.derived} allowed={n => allowed(f.id, n)} onChange={n => set(f.id, n)} /></div>;
+      }
       case 'boxes': {
         const max = Math.max(0, num(derived[`${f.id}Max`], f.max ?? 0));
         /**
@@ -118,7 +162,9 @@ export function Sheet(p: SheetProps): JSX.Element {
         // si hace falta, y protege de un `val` guardado por debajo de 0. (Hallazgo del QA.)
         const hits = Math.min(len, len - val);
         return (
-          <div className="rv-sheet-field">{label(f)}
+          // `span`: las casillas se leen de un vistazo en UNA fila a lo ancho de la tarjeta; metidas en
+          // media columna salian en tres lineas (dueno, 2026-08-19).
+          <div className="rv-sheet-field span">{label(f)}
             <div className="rv-sheet-boxes" role="group" aria-label={p.t(f.label)}>
               {Array.from({ length: len }, (_, i) => (
                 <button key={i} type="button" className={`rv-sheet-box ${i < hits ? 'hit' : ''}`} disabled={ro} aria-pressed={i < hits}
@@ -143,6 +189,7 @@ export function Sheet(p: SheetProps): JSX.Element {
       }
       case 'health': {
         const opts = f.options ?? [];
+        const note = f.note?.(p.data) ?? null;
         return (
           <div className="rv-sheet-field span">{label(f)}
             <div className="rv-sheet-health" role="radiogroup" aria-label={p.t(f.label)}>
@@ -153,6 +200,11 @@ export function Sheet(p: SheetProps): JSX.Element {
                 </button>
               ))}
             </div>
+            {/* Aviso de reglas bajo las lunas: en Plenilunio, «Inconsciente» — el sexto nivel de salud
+                (p.101), que no es una fase de luna y no se elige a mano. Va aquí y no como campo
+                porque en mesa lo que hace falta es que SE VEA, no un desplegable que contradiga al
+                motor. `role="status"` para que un lector de pantalla lo cante al caer. */}
+            {note && <p className="rv-sheet-note" role="status">{p.t(note)}</p>}
           </div>
         );
       }
@@ -179,13 +231,15 @@ export function Sheet(p: SheetProps): JSX.Element {
     <div className="rv-sheet">
       {sections.map(s => (
         <section key={s.id} className={`rv-sheet-section ${isWide(s) ? 'wide' : ''}`} data-section={s.id} aria-label={p.t(s.label)}
-          style={!isWide(s) && s.span && s.span > 1 ? { gridColumn: `span ${s.span}` } : undefined}>
+          style={isWide(s) ? undefined : ({ ['--sec-span' as string]: String(s.span ?? 3) } as Record<string, string>)}>
           <header className="rv-sheet-section-head">
             <h3 className="rv-sheet-section-title">{p.t(s.label)}</h3>
             {sectionRef(s, p)}
           </header>
           <div className={`rv-sheet-fields ${s.layout ?? 'stack'}`}>
-            {s.fields.map(f => <FieldWrap key={f.id}>{renderField(f)}</FieldWrap>)}
+            {(s.layout === 'grid' ? groupTiles(s.fields) : s.fields).map((g, i) => (Array.isArray(g)
+              ? <div key={`tiles-${i}`} className="rv-sheet-tiles">{g.map(f => <FieldWrap key={f.id}>{renderField(f)}</FieldWrap>)}</div>
+              : <FieldWrap key={g.id}>{renderField(g)}</FieldWrap>))}
           </div>
           {p.extras?.[s.id]}
         </section>
@@ -194,7 +248,7 @@ export function Sheet(p: SheetProps): JSX.Element {
   );
 }
 
-const FieldWrap = ({ children }: { children: ReactNode }) => <>{children}</>;
+const FieldWrap = ({ children }: { children: ReactNode }) => <Fragment>{children}</Fragment>;
 
 /** Section-level hint: «reglas · p.XX» from the first field carrying a `ref` when the section is a single list/table. */
 function sectionRef(s: SectionDef, p: SheetProps): ReactNode {
@@ -230,8 +284,17 @@ function Counter({ value, min, max, labelText, disabled, allowed, onChange }: { 
 
 type Shared = { f: FieldDef; p: SheetProps; ro: boolean; showActions: boolean; set: (id: string, v: unknown) => void; label: (f: Pick<FieldDef, 'label' | 'ref'>, extra?: ReactNode) => ReactNode };
 
-/** A characteristic: icon · name · specialties · value · TIRAR n. Edit mode adds −/+ and specialty selects. */
+/**
+ * A characteristic: icon · name · specialties · value · TIRAR n. Edit mode adds −/+ and, para las
+ * especialidades, la misma lectura que las listas de abajo: lo YA ELEGIDO es TEXTO (con su × para
+ * quitarlo) y el desplegable sólo aparece al pulsar un `+`, que a su vez sólo sale si de verdad queda
+ * alguna especialidad que añadir (dueño, 2026-08-19: «una vez seleccionado el desplegable ya no hace
+ * falta, sólo si realmente se puede agregar alguna especialidad le ponemos un pequeño + para
+ * agregar»). Antes cada característica llevaba DOS desplegables de 150 px —el de la elegida y el de
+ * «+ Especialidad»— en las siete filas, que es la mitad de la tarjeta en controles que no se tocan.
+ */
 function StatRow({ f, p, ro, showActions, allowed, set, label }: Shared & { allowed: (id: string, v: unknown) => boolean }): JSX.Element {
+  const [adding, setAdding] = useState(false);
   const raw = p.data[f.id];
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : { value: num(raw, 1), specialties: [] };
   const value = num(o.value, 1);
@@ -248,7 +311,10 @@ function StatRow({ f, p, ro, showActions, allowed, set, label }: Shared & { allo
       <div className="rv-sheet-stat-main">
         {label(f)}
         <div className="rv-sheet-stat-sub">
-          {ro || !specField ? (specs.length ? specs.map(s => p.t(optLabel(s) ?? s)).join(' · ') : '—') : (
+          {ro || !specField ? (specs.length ? specs.map(s => p.t(optLabel(s) ?? s)).join(' · ') : '—') : p.rowPicker ? (
+            /* En el GENERADOR el desplegable se queda: ese paso ES elegir especialidades, y ahí un
+               control apagado al llegar al cupo dice «ya no te quedan», que es justo lo que hace
+               falta saber mientras repartes. Misma frontera que ya usan las listas (`rowPicker`). */
             <>
               {specs.map((s, i) => (
                 <span key={`${s}-${i}`} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
@@ -265,6 +331,30 @@ function StatRow({ f, p, ro, showActions, allowed, set, label }: Shared & { allo
                 <option value="">+ {p.t(specField.label)}</option>
                 {(specField.options ?? []).filter(op => !specs.includes(op.value)).map(op => <option key={op.value} value={op.value}>{p.t(op.label)}</option>)}
               </select>
+            </>
+          ) : (
+            <>
+              {/* Lo elegido es TEXTO: para cambiarlo se quita y se vuelve a añadir, igual que en las listas. */}
+              {specs.map((s, i) => (
+                <span key={`${s}-${i}`} className="rv-sheet-spec">
+                  {p.t(optLabel(s) ?? s)}
+                  <button type="button" className="rv-sheet-x" aria-label={`${p.labels.remove} ${p.t(specField.label)} ${i + 1}`} onClick={() => setSpecs(specs.filter((_, j) => j !== i))}>×</button>
+                </span>
+              ))}
+              {/* El desplegable sólo mientras se elige, y se va con la elección hecha. */}
+              {adding && (
+                <select className="rv-sheet-inp" autoFocus aria-label={`${p.labels.add} ${p.t(specField.label)} · ${p.t(f.label)}`} value=""
+                  onChange={e => { if (e.target.value) setSpecs([...specs, e.target.value]); setAdding(false); }}
+                  onBlur={() => setAdding(false)}>
+                  <option value="">+ {p.t(specField.label)}</option>
+                  {(specField.options ?? []).filter(op => !specs.includes(op.value) && allowed(f.id, { ...o, value, specialties: [...specs, op.value] })).map(op => <option key={op.value} value={op.value}>{p.t(op.label)}</option>)}
+                </select>
+              )}
+              {/* Y el `+` sólo si de verdad cabe alguna: un `+` que no puede añadir nada es el mismo
+                  «pulso y no pasa nada» que ya costó cuatro sesiones en este proyecto. */}
+              {!adding && canAddSpec && (
+                <button type="button" className="rv-sheet-x rv-sheet-plus" aria-label={`${p.labels.add} ${p.t(specField.label)} · ${p.t(f.label)}`} onClick={() => setAdding(true)}>+</button>
+              )}
             </>
           )}
         </div>
@@ -297,13 +387,17 @@ const rowKey = (r: Record<string, unknown>, i: number) => `${i}:${str(r.id)}`;
 const blankRow = (defs: FieldDef[]): Record<string, unknown> => Object.fromEntries(defs.filter(d => !d.derived).map(d => [d.id, d.type === 'select' ? d.options?.[0]?.value ?? '' : d.type === 'counter' || d.type === 'number' ? d.min ?? 0 : d.type === 'text' ? '' : null]));
 
 function ItemActions({ f, p, item, i, ro, showActions, list, set }: Shared & { item: Record<string, unknown>; i: number; list: Record<string, unknown>[] }): JSX.Element {
-  const acts = actionsFor(f, p.actions);
+  const acts = actionsFor(f, p.actions).filter(a => a.appliesToRow?.(item) ?? true);
   return (
     <span className="rv-sheet-item-actions">
       {showActions && p.onAction && acts.map(a => (
         <span key={a.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           {a.cost && <span className="rv-sheet-item-cost">{p.t(a.cost)}</span>}
-          <button type="button" className="rv-sheet-icon-btn" title={p.t(a.label)} aria-label={`${p.t(a.label)} · ${rowLabel(f, item, p)}`} onClick={() => p.onAction?.(a.id, rowId(item, i))}>
+          <button type="button" className="rv-sheet-icon-btn" title={p.t(a.label)} aria-label={`${p.t(a.label)} · ${rowLabel(f, item, p)}`}
+            /* Sin balas no se dispara, y el boton tiene que VERSE apagado: un control vetado que no lo
+               parece es «pulso y no pasa nada», el fallo que ya ha salido cuatro veces en este proyecto. */
+            disabled={a.spend ? a.spend(p.data, rowId(item, i)) === null : false}
+            onClick={() => p.onAction?.(a.id, rowId(item, i))}>
             <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">{a.icon}</span>
           </button>
         </span>
@@ -350,8 +444,21 @@ function ListField({ f, p, ro, showActions, set, label, allowed }: Shared & { al
       <div className="rv-sheet-list" role="list" aria-label={p.t(f.label)}>
         {list.map((item, i) => (
           <div key={rowKey(item, i)} className="rv-sheet-item" role="listitem">
-            {p.icons?.stat === 'crescent' && <Crescent size={20} />}
-            {defs.map(d => <Cell key={d.id} d={d} value={item[d.id]} ro={ro} p={p} allowed={v => rowAllows(i, d.id, v)} onChange={v => patchRow(i, d.id, v)} />)}
+            {/* La luna sólo en listas con accion. rolvium.pen: la fila de Don la lleva (22 px), la de
+                Equipo NO — era una lista de objetos con lunas y el dueño lo pidio fuera. */}
+            {f.action && p.icons?.stat === 'crescent' && <Crescent size={22} />}
+            {/* La fila de una lista es TEXTO, no un desplegable. `rolvium.pen` la pinta así y el dueño lo
+                pidió con estas palabras: «tendría que ser una lista y ya, y que se puedan borrar las
+                cosas». Un `<select>` por fila metía un control de 300 px donde va un nombre. Lo que se
+                elige, se elige al añadir; para cambiarlo se borra y se añade. Los contadores (el nivel
+                de un don) sí siguen vivos: eso no es elegir, es un valor que se toca en la mesa. */}
+            {defs.map(d => (d.type === 'select' && !p.rowPicker
+              // `title`: el nombre se corta con puntos suspensivos cuando no cabe —la columna tiene
+              // que estar acotada para que los contadores de todas las filas caigan en columna—, asi
+              // que el nombre entero se consulta por encima. Sin esto «Alegoria de la realidad» se
+              // quedaba en «Alegoria de la realid…» sin forma de leerlo.
+              ? <span key={d.id} className="rv-sheet-item-name" title={p.t(d.options?.find(o => o.value === str(item[d.id]))?.label ?? str(item[d.id]))}>{p.t(d.options?.find(o => o.value === str(item[d.id]))?.label ?? str(item[d.id]))}</span>
+              : <Cell key={d.id} d={d} value={item[d.id]} ro={ro} p={p} allowed={v => rowAllows(i, d.id, v)} onChange={v => patchRow(i, d.id, v)} />))}
             <ItemActions f={f} p={p} item={item} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} />
           </div>
         ))}
@@ -366,12 +473,22 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
   const cols = f.columns ?? [];
   const catalog = p.catalogs?.[f.id] ?? [];
   const patchRow = (i: number, k: string, v: unknown) => set(f.id, list.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
-  const derivedCell = (row: Record<string, unknown>, c: FieldDef): string => {
+  const derivedCell = (row: Record<string, unknown>, c: FieldDef): ReactNode => {
     const own = row[c.id];
     if (own !== undefined && own !== null && own !== '') return str(own);
     const item = catalog.find(x => x.id === str(row.id));
     const v = item?.data?.[c.id];
-    return v === undefined || v === null ? '—' : typeof v === 'string' ? p.t(v) : str(v);
+    if (v === undefined || v === null) return '—';
+    // Si la columna declara `options`, el valor del catálogo es un id y su rótulo sale de ahí: el
+    // alcance guarda `medium` para las reglas y se pinta «Medio». Antes se traducía el id crudo, así
+    // que en pantalla salía literalmente «medium».
+    const opt = c.options?.find(o => o.value === str(v));
+    if (!opt) return typeof v === 'string' ? p.t(v) : str(v);
+    // El dato secundario de la opción va en tooltip, no en la celda: «Medio» se lee de un vistazo y los
+    // metros con la dificultad se consultan al pasar por encima (dueño, 2026-08-19). Marcado como
+    // `<abbr>` para que el motivo del subrayado punteado se entienda sin ratón.
+    if (!opt.hint) return p.t(opt.label);
+    return <Tooltip label={p.t(opt.hint)} placement="top"><abbr className="rv-sheet-hinted" tabIndex={0} title={p.t(opt.hint)}>{p.t(opt.label)}</abbr></Tooltip>;
   };
   return (
     <div className="rv-sheet-field span">
@@ -380,7 +497,17 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
         <tbody>
           {list.map((row, i) => (
             <tr key={rowKey(row, i)}>
-              {cols.map(c => <td key={c.id} className={c.type === 'number' || c.type === 'counter' ? 'num' : ''}>{c.derived ? derivedCell(row, c) : <Cell d={c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}</td>)}
+              {cols.map(c => (
+                <td key={c.id} className={c.type === 'number' || c.type === 'counter' ? 'num' : ''}>
+                  {c.derived ? derivedCell(row, c)
+                    /* Una columna que el catálogo deja en blanco para ESTA fila no se edita: es que la
+                       fila no la tiene. Un arma cuerpo a cuerpo no lleva cargador —el libro pone «-» en
+                       las nueve (p.97)— y la tabla pintaba igualmente un contador, así que salían unas
+                       Nudilleras con 14 balas. */
+                    : c.appliesToRow && !c.appliesToRow(row) ? <span className="rv-sheet-caption">—</span>
+                      : <Cell d={c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}
+                </td>
+              ))}
               <td><ItemActions f={f} p={p} item={row} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} /></td>
             </tr>
           ))}
@@ -400,7 +527,10 @@ function Cell({ d, value, ro, p, onChange, allowed = () => true }: { d: FieldDef
   }
   if (d.type === 'counter') {
     if (value === null || value === undefined) return <span className="rv-sheet-caption">—</span>;
-    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="rv-sheet-caption">{p.t(d.label)}</span><Counter value={num(value)} min={d.min} max={d.max} labelText={p.t(d.label)} disabled={dis} allowed={n => allowed(n)} onChange={onChange} /></span>;
+    // Sin rotulo repetido al lado del contador: en el `.pen` la fila de un don pone «nivel 1» y punto.
+    // El nombre es lo que tiene que llevarse el ancho, y «Nivel −1+» se comia 60 px por fila.
+    // La etiqueta sigue en el `aria-label` del contador, asi que no se pierde para lectores.
+    return <span className="rv-sheet-item-counter"><Counter value={num(value)} min={d.min} max={d.max} labelText={p.t(d.label)} disabled={dis} allowed={n => allowed(n)} onChange={onChange} /></span>;
   }
   if (d.type === 'number') return dis ? <span>{str(value)}</span> : <input type="number" className="rv-sheet-inp num" aria-label={p.t(d.label)} value={num(value)} min={d.min} max={d.max} onChange={e => onChange(Number(e.target.value))} />;
   return dis ? <span>{str(value)}</span> : <input className="rv-sheet-inp" aria-label={p.t(d.label)} value={str(value)} onChange={e => onChange(e.target.value)} />;

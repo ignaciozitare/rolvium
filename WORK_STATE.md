@@ -14,6 +14,228 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🟢 PUNTO EXACTO — 2026-08-19, rama `fix/ficha-listas` lista para QA
+
+El dueño mandó **seguir en el mismo chat** en vez de hacer el handoff que pedía el gate de contexto,
+así que la sesión continuó y **ya no queda nada pendiente de la tanda**:
+
+- ✅ Los dos bloques (Estado contra el PDF + maquetación) — commit `bcabdc6`.
+- ✅ **El bug que encontró el Review** en «Recobrar el aliento»: `catchBreath` capaba hacia ABAJO desde
+  que la Resistencia máxima la baja el estado de salud (Aguante 5, herido, Resistencia 12 → te cobraba
+  la Fortuna y te dejaba en 10). Fuera el `Math.min`, que además era código muerto en todos los demás
+  casos. Pin nuevo en `engine.test.ts` con ese caso y con el de curar por debajo del máximo.
+- ✅ **El test que faltaba**: `apps/web/tests/regression/sheet-range-hint.test.tsx`, 3 casos. Ojo al
+  redactarlo: el texto de la pista **sí está en el DOM** —el tooltip del kit lo pinta en su capa,
+  oculta por CSS y con `aria-hidden`—, así que lo que se fija no es «no está», es «no está en el
+  flujo de la celda».
+- ✅ **El tooltip de Recuperación vuelve a la ficha**: `resistanceMax` apunta a `ref: 'recovery'`
+  (p.101), que es de donde sale su valor; las casillas conservan `ref: 'resistance'` (p.98). Sin esto
+  la referencia se había quedado sin ningún campo que la enseñara.
+- ✅ `finalizeDraft` ya no depende del orden: calcula la Resistencia sobre el borrador **ya sano**.
+
+Verde: `npm test` **518/518** · `typecheck` · `build:web` + `build:api` · `audit` 0 hard / 9 warn
+(los 9 preexistentes). Pantallas verificadas otra vez con `node scripts/shot.mjs`.
+
+### ⏳ Próximo paso
+1. **QA + merge de `fix/ficha-listas`.** Es lo único que queda de esta rama. El dueño no ha dicho
+   todavía «listo para mergear»; la orden de QA la lanza él.
+2. Lo del bloque **«Tirada»** (más abajo): pide decisión suya, spec y `.pen` antes de código.
+3. La lógica de **daño → Resistencia → Salud** («LA REGLA QUE SE NOS ESTABA ESCAPANDO»): sin empezar.
+
+### 🔎 Decidido y NO tocado
+- **Un PJ MUERTO sale con «Resistencia máxima 0»** y sus casillas en blanco («3 de 0»). Mirado en
+  pantalla. Sale de `RECOVERY.dead.restFactor = 0`, que es **codificación nuestra**: la tabla de
+  recuperación de la p.101 no dice nada de los muertos. Se deja como está —un muerto no recupera— y
+  no se inventa un máximo para él; si al dueño le chirría en pantalla, se decide aparte.
+- Clave i18n muerta `characters.progression.noCharacter`: sólo la pintaba el borrado `ImproveTab`, y
+  con «Mejorar» dentro de la ficha ese caso ya no existe (el botón sólo está si hay personaje).
+  Se deja: borrar claves queda fuera del alcance de esta tanda.
+
+### El entorno sigue levantado
+Docker + Supabase local + `dev:api` en **:3001** + `dev:web` en **:5173**. Capturas en `/tmp/sec-*.png`.
+Campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`, Karen `3af4f238-25ad-4cf1-a264-09d7586019d8`,
+`admin@rolvium.local` / `rolvium123`.
+⚠ Para VER el aviso de Inconsciente y la ficha de un muerto se tocó a mano la base local; **Karen
+quedó como estaba** (herida, 3 de 12, consciente). Comprobado con un `select` después de cada uno.
+
+---
+
+## ✅ REVISIÓN DE «ESTADO» CONTRA EL PDF — HECHA (2026-08-19 noche)
+Los dos bloques que quedaban (Estado contra el PDF + maquetación) están **ejecutados enteros**, con
+`RULES.md` corregido ANTES del código y cada pantalla mirada con `node scripts/shot.mjs`.
+**Sin commitear todavía si esto lo lees a medias; sin Review cerrado; sin QA; sin mergear.**
+
+### El sexto nivel de salud: Inconsciente (p.101) — RULES.md corregido primero
+Confirmado en el PDF: la lista de p.99 no termina ahí, **p.100 es ilustración** y el sexto punto está en
+p.101. `RULES.md §6.2` se reescribió con la cita literal, con la aclaración de que **no es una fase de
+luna** (se puede estar Herido E Inconsciente) y con la **contradicción del libro anotada sin resolver**:
+p.98 dice que a 0 sigues consciente y caes al perder un punto más; p.101 dice que a 0 ya estás
+inconsciente. **El motor sigue la de p.98** y por eso el estado se GUARDA en vez de deducirse de
+`resistance === 0`.
+
+### Lo que cambió en el código, y por qué
+- **`unconscious` deja de ser un desplegable.** Es una consecuencia que calcula `applyDamage`, no una
+  decisión del jugador — el mismo fallo que el cargador editable a mano. Ahora sale como **aviso rojo
+  bajo las lunas**: «Inconsciente · sin Resistencia, indefenso en el suelo (p.101)». Visto en pantalla.
+  ⚠ **No se borró del esquema**: `validateSheet` rechaza como `unknown` toda clave que el esquema no
+  declare, así que sin declararlo el patch de `applyDamage` habría tumbado el guardado entero al
+  recibir daño. Se queda con `hidden: true` (miembro nuevo de `FieldDef`).
+- **La Resistencia máxima ya no miente.** `resistanceMax` pasa a ser `Aguante × factor del estado`
+  (×3 sano/magullado, ×2 herido, ×1 malherido, p.101) y **`recoveryMax` desaparece**: eran el mismo
+  número con dos nombres. Karen, herida, ya no sale con «máxima 18 / recuperable 12», sale con
+  **máxima 12**, y las casillas dicen «3 de 12».
+- **La Fortuna se capa contra el Destino** (p.90, tope duro literal). El `counter` lee su techo de
+  `derived['<id>Max']` cuando existe — la misma convención que ya usaban las `boxes` con
+  `resistanceMax`, sin API nueva. Se capa la SUBIDA, nunca la bajada: con Fortuna 5 y máxima 4 el `+`
+  sale apagado y el `−` sigue vivo. Comprobado en la app.
+- **Miembros nuevos de `FieldDef`** (`packages/core`): `note?: (sheet) => I18nKey | null` (sólo campos
+  `health`) y `hidden?: boolean`. Los dos documentados en el puerto con el porqué.
+
+### Maquetación — los cinco puntos, hechos
+1. La página («p.98») va en **su propia línea** dentro de la tarjeta: ya no se sale.
+2. **Filete corto** entre el rótulo y el número, dentro de cada tarjeta.
+3. **Destino · Fortuna · Experiencia en una sola fila** — sale de quitar el desplegable de la rejilla.
+4. Los `+`/`−` de **Munición alineados**: el número lleva `min-width:3ch` y la regla
+   `.rv-sheet-item-counter` (margen automático + 96 px) se **acotó a la lista**, que se estaba colando
+   en la tabla de Armas.
+5. **Repaso sección por sección** con capturas. Apareció un desborde más, del mismo tipo que el 4:
+   `.rv-sheet-item > span` pesa más que `.rv-sheet-item-name`, así que el nombre quedaba en
+   `flex:0 0 auto` y en **Dones** la cola entera de la fila (contador, coste, botón, ×) se corría a la
+   derecha en las filas de nombre largo. Acotada la regla del nombre; ahora caen en columna. El nombre
+   largo se corta con puntos suspensivos y lleva `title` para poder leerlo entero.
+   Identidad, Equipo, Armadura, Características e Historia: sin desbordes.
+
+### Dos peticiones del dueño llegadas a mitad de tarea — hechas
+- **Especialidades en Características**: lo ya elegido es **texto** con su `×`, y el desplegable sólo
+  aparece al pulsar un **`+` que sólo se pinta si de verdad cabe alguna**. Se acabaron los dos
+  desplegables de 150 px por fila en las siete características. **En el generador no cambia nada**
+  (`rowPicker`): ese paso ES elegir especialidades, y ahí un control apagado al llegar al cupo dice
+  «ya no te quedan», que es lo que hace falta saber mientras repartes.
+- **«Mejorar» baja a la barra de la ficha**, al lado de «Abrir ficha aparte», y abre el panel sobre la
+  ficha. Deja de ser pestaña (`tabsFor`, `TableTab`, `TablePage`); `ImproveTab.tsx` borrado — SheetTab
+  ya tiene el `state` que necesitaba.
+
+### Ficheros
+`packages/system-plenilunio/{RULES.md, src/{engine,schema,locales}.ts}` ·
+`packages/core/src/gameSystem.ts` · `packages/ui/src/components/{Sheet.tsx,sheet.css}` ·
+`apps/web/src/modules/table/{domain/entities/Table.ts, domain/useCases/tableRules.ts,
+ui/TablePage.tsx, ui/tabs/SheetTab.tsx}` · borrado `ui/tabs/ImproveTab.tsx` ·
+tests: `apps/web/tests/regression/sheet-state-tiles.test.tsx` (+5 casos),
+`apps/web/tests/functional/{sheet-component,table}.test.tsx`,
+`apps/web/src/modules/table/ui/tabs/tabs.test.tsx`,
+`packages/system-plenilunio/src/{engine,schema}.test.ts` · `scripts/shot.mjs` (captura también
+Identidad y Características).
+
+Verde: `npm test` **514/514** · `typecheck` · `build:web` + `build:api` · `audit` 0 hard / 9 warn
+(los 9 preexistentes: maps, dice, UserMenu).
+
+### ⚠ Lo que hay que saber de estos cambios
+- **Un personaje MUERTO sale con «Resistencia máxima 0»** (`RECOVERY.dead.restFactor` es 0). Es
+  coherente con el libro —un muerto no recupera— pero si molesta en pantalla, se decide aparte.
+- El test que faltaba del **tooltip del alcance** (`sheet-range-hint.test.tsx`) **sigue sin escribirse**.
+- La referencia `recovery` (p.101) se queda en `references.ts` sin campo que la use: el resumen de
+  `ref.resistance` ya cuenta la regla del estado, y el día que se construya «Descansar» la necesita.
+
+---
+
+## 🎲 LO SIGUIENTE, PEDIDO POR EL DUEÑO (2026-08-19, cierre) — el bloque «Tirada» está mal colocado
+Sin empezar. **Necesita spec y `.pen` antes de código.** Pedido literal: «en los botones de tiradas
+debería cada uno tener su desplegable con la dificultad. El tema de la armadura lo sabemos si tenemos
+una armadura seleccionada, la especialidad ya la conocemos, no hace falta seleccionarla ahí».
+
+Lo que dice el manual, para no diseñarlo a ciegas:
+- **Dificultad**: es de la ACCIÓN, no de la ficha (p.84). Hoy es un desplegable global y pegajoso —
+  lo dejas en «Difícil» y todas las tiradas siguientes salen así sin avisar. Darle su selector a cada
+  botón es correcto y además arregla ese fallo silencioso.
+- **Armadura**: la penalización **no se aplica siempre**, sólo «cada vez que el personaje realiza una
+  acción física que requiere coordinación, agilidad o rapidez» (p.98). O sea que no basta con saber
+  que llevas armadura: hay que saber si ESA acción es física. Se puede **derivar por defecto** (atacar
+  sí; Cultura no) en vez de preguntarlo, pero no se puede quitar sin decidir la regla.
+- **Especialidad**: sólo cuenta si encaja con lo que intentas (p.83). Karen tiene «Armas improvisadas»
+  en Combate: disparando un magnum **no** aplica. Así que no es «ya la conocemos» — es «cuál de ellas,
+  o ninguna», y esa elección es del momento de tirar, no de un Sí/No global.
+
+**Decisión pendiente del dueño** antes de tocar nada: ¿se derivan armadura y especialidad con una
+regla por defecto (y un modo de anularla al tirar), o cada botón abre un pequeño panel con las tres
+cosas? La sección «Tirada» entera desaparece en las dos.
+
+### 🧾 El «vs» del registro de tiradas, explicado (pregunta del dueño)
+No es un invento nuestro: es el reto del manual. A la izquierda **tus dados** (los tuyos + los de la
+reserva de Destino si cogiste); a la derecha los de la **oposición** — en un reto, tantos dados como
+la dificultad (p.84: 1/2/3/5/6); en un conflicto, la reserva del rival. Cada dado se lee igual (p.82):
+**1 fracaso · 2–3 fallo · 4–5 éxito · 6 triunfo**; los resaltados son los que puntúan. El «1—2» de la
+cabecera es **tus impactos — los suyos**, y la diferencia da el grado (p.85): de ahí «no lo consigue
+por muy poco». En el ejemplo `5 2 vs 6 6 3`: tú sacas un éxito y un fallo (1 impacto), la dificultad
+saca dos triunfos y un fallo (2), 1−2 = −1.
+⚠ Deuda de pantalla que esto destapa: falta la **leyenda por dado** (punto 3 del QA del dueño, p.82),
+que es lo que haría el «vs» legible sin explicación.
+
+---
+
+## 🟢 PUNTO EXACTO — 2026-08-19, cierre por handoff de contexto
+
+**Rama `fix/ficha-listas`, 8 commits sobre `main`. Sigue SIN Review, SIN QA y SIN mergear.**
+Último commit: `2182f38` — los cuatro puntos de pantalla que quedaban del dueño.
+
+### Lo que se hizo en esta sesión
+Los **cuatro puntos de pantalla** (punto 2 del plan del dueño), todos verificados con
+`node scripts/shot.mjs` antes y después:
+- **Aguante y Resistencia máxima** en tarjetas cuadradas centradas, rótulo y número centrados.
+- **Penalización por heridas y Resistencia recuperable**, una al lado de la otra, en tarjetas iguales.
+  «Inconsciente» baja por debajo de la pareja en vez de partirla (reorden en `schema.ts`).
+- **Casillas de Resistencia y lunas de Salud, centradas** en la tarjeta.
+- **Alcance con tooltip**: la celda dice «Medio», el tooltip «Hasta 50 m · dificultad 3» (p.95–96).
+  Antes ocupaba media tabla de Armas.
+
+Cómo, para no re-descubrirlo:
+- `<Sheet>` agrupa las **tandas seguidas** de números calculados de una sección `grid` en una fila
+  propia (`groupTiles` → `.rv-sheet-tiles`) y las centra. Centrar cada campo en SU celda de la rejilla
+  no vale: quedan repartidos por el ancho, no centrados en la tarjeta grande.
+- En `stack` **no se toca nada**: Armadura conserva su lectura en columna con el filete corto.
+- `FieldDef.options` acepta un **`hint` opcional** (clave i18n). La ficha lo saca en `Tooltip` de
+  `@rolvium/ui` sobre un `<abbr tabIndex={0}>`, no en la celda. Locales: `sheet.range.*` es el nombre
+  a secas y `sheet.rangeHint.*` los metros y la dificultad.
+
+Ficheros: `packages/core/src/gameSystem.ts` · `packages/system-plenilunio/src/{schema,locales}.ts` ·
+`packages/ui/src/components/{Sheet.tsx,sheet.css}` · test nuevo
+`apps/web/tests/regression/sheet-state-tiles.test.tsx` (6 casos).
+
+Verde: `npm test` 509/509 · `npm run typecheck` · `npm run build:web` y `build:api` · `npm run audit`
+0 hard / 9 warn, **todos los warns preexistentes** (maps, dice, UserMenu — ninguno de esta tanda).
+
+### ⏳ Próximo paso, en este orden
+⚠ Lista de la sesión ANTERIOR: los puntos 1 y 2 siguen en pie; lo demás lo cierra el bloque de arriba.
+1. **El test que falta** (obligatorio antes de Review): el **tooltip del alcance** no tiene test. El
+   hook de context-handoff cerró la sesión justo al escribirlo. El fichero iba a ser
+   `apps/web/tests/regression/sheet-range-hint.test.tsx` y tiene que fijar tres cosas: que la celda
+   diga sólo «Medio» (nada de «Medio · hasta 50 m»), que el tooltip lleve la pista y el `<abbr>` sea
+   `tabIndex=0` (sin eso el dato sólo existe con ratón), y que una opción SIN `hint` salga como texto
+   pelado. Patrón: copiar `sheet-state-tiles.test.tsx`.
+2. **La lógica de daño → Resistencia → Salud** (sección «LA REGLA QUE SE NOS ESTABA ESCAPANDO»). Nada
+   empezado. **Leer el PDF, no RULES.md.**
+3. **Review + QA a `fix/ficha-listas` y mergear.** Ninguno de los dos se ha pasado.
+4. Backlog: Estado compuesto, armadura + escudo (16), tokens de contraste, Aventuras (H12).
+
+### 🔎 Deuda encontrada y NO tocada (decidir aparte)
+- **El «Cargador» del rifle de asalto sale «—» teniendo 12 de munición** (visto en la captura). La
+  columna `ammo` es `derived`, y en `TableField` el `derived` gana al `appliesToRow`, así que
+  `derivedCell` busca el valor en la fila, no lo encuentra (`null`) y no hay `ammo` en el catálogo →
+  pinta «—» en vez de `0`. El magnum sale bien porque tiene `ammo: 6` guardado. El botón de recargar
+  sí está activo, así que la fila se contradice a sí misma. **No lo he tocado: está fuera de los
+  cuatro puntos.**
+- ~~La rejilla de Estado tiene 3 columnas y quedan 4 campos no-tarjeta~~ — **RESUELTO** al sacar
+  «Inconsciente» de la rejilla: quedan Destino · Fortuna · Experiencia y llenan la fila justa.
+- **El `.pen` no se ha tocado**: estos cuatro puntos son correcciones dictadas por el dueño sobre la
+  pantalla, no un diseño nuevo, y el `.pen` sólo lo puede guardar él. Si la lectura en tarjetas se
+  queda, hay que bajarla al master.
+
+### 🖥 El entorno local quedó levantado
+Docker + `npm run db:start` + `npm run dev:web` (:5173) están **corriendo**. El `dev:api` que ya
+estaba de antes sigue en **:3001** (no :3000): si `npm run dev:api` da `EADDRINUSE 3001`, es que ya
+hay uno vivo y está sano — comprobá `curl localhost:3001/health` antes de matar nada.
+
+---
+
 ## 🔎 Prueba manual del dueño (2026-08-18) — cerrada
 - **(a) El generador se atascaba en «Características».** Causa: `GeneratorWizard.canChange` sólo miraba el presupuesto,
   nunca el máximo del reparto; `canAdjustStat` estaba exportada y testeada pero la UI no la llamaba, y el campo `stat`
@@ -444,6 +666,97 @@ característica con cuerpo · leyenda por dado · «Mejorar» fuera de las pesta
 - `specs/modules/system-plenilunio/SPEC.md:33` lista el orden viejo de secciones — se actualiza ahora que
   ya está desplegado.
 
+## 🩸 LA REGLA QUE SE NOS ESTABA ESCAPANDO — daño, Resistencia y Salud (p.98–99)
+Salió de que el dueño insistiera en que «no tiene relación» y en que **mirara el PDF, no el RULES.md**.
+Tenía razón: `RULES.md` NO tiene esta tabla, que es justo la que explica la relación.
+
+| Daño recibido | Casillas a tachar |
+|---|---|
+| Aguante | 1 casilla (herida leve) |
+| Dos veces el Aguante | 2 casillas (herida grave) |
+| Tres veces el Aguante | 3 casillas (herida crítica) |
+| Cuatro veces el Aguante | Muerto (herida mortal) |
+
+**La clave está en «casillas a tachar»**: las lunas de salud SON casillas que se tachan, y **se acumulan
+entre golpes** — «si un personaje pierde todos sus niveles de salud, bien porque haya sufrido una herida
+mortal o **por haber acumulado cualquier combinación** de suficientes heridas de distinta severidad,
+entonces está muerto».
+
+Son **dos marcadores con dos finales distintos, unidos por el Aguante**:
+
+| | Resistencia | Salud (lunas) |
+|---|---|---|
+| qué la baja | el daño, siempre, punto a punto | sólo si **UN** golpe llega al Aguante |
+| cuánto | el daño neto | 1 luna por cada Aguante completo de **ese** golpe |
+| al fondo | 0 → un punto más y cae **inconsciente** | todas tachadas → **muerto** |
+
+Con Aguante 6: un golpe de 5 quita 5 de Resistencia y **ninguna** luna · uno de 6 quita 6 y **una** luna ·
+uno de 13 quita 13 y **dos** lunas. Por eso parecía roto: los golpes pequeños vacían la Resistencia sin
+tocar las lunas, y eso es correcto.
+
+Verificado además contra el PDF: **Magullado NO penaliza** («puede realizar todo tipo de acciones sin
+penalización alguna»); Herido −1 dado; Malherido −2. Coincide con `HEALTH_LEVELS`.
+⚠ Rareza del libro, anotada sin resolver: dice «**seis** niveles básicos de salud» y luego lista **cinco**.
+
+### Qué hay que hacer con esto (pedido del dueño, sin empezar)
+**«Que esta lógica funcione por detrás y cuando coma daño lo vaya poniendo. Esto tiene que facilitarle la
+vida a los jugadores.»** Hoy el motor calcula bien pero la ficha no lo cuenta ni lo automatiza:
+1. **Meter la tabla de p.99 en `RULES.md`** — es la deuda que causó todo esto.
+2. Al recibir daño, **enseñar las dos consecuencias por separado** («−13 de Resistencia · 2 heridas → Herido»)
+   en vez de dejar que el jugador deduzca. Hoy sólo se dice la resta de la protección.
+3. **Reducir la severidad con Fortuna** (p.99, «un punto por cada nivel de severidad que se quiera
+   reducir»): no existe. `applyDamage` ya acepta un parámetro `fortune` que nadie le pasa.
+4. Comprobar el aviso de **inconsciente** en pantalla: la regla SÍ está implementada
+   (`applyDamage`: Resistencia a 0 y un punto más → `unconscious`), pero no se avisa de nada.
+
+## 🧾 Sesión del 2026-08-19 (noche) — rama `fix/ficha-listas`, SIN Review, SIN QA, SIN mergear
+Seis commits sobre `main`. **Nada de esto está en producción.** La rama arregla lo que el dueño vio en
+local y va acompañada de capturas hechas con la app corriendo.
+
+- **La ficha se monta como el `.pen`**: rejilla de SEIS columnas con `SectionDef.span` en sextos, no
+  `auto-fit`. Medido sobre `qjLDu` (1601): Identidad/Dificultad/Armas/Historia fila entera ·
+  Características y Estado a la MITAD (793) · Dones/Equipo/Armadura a un TERCIO (523). Antes salían
+  cuatro columnas estrechas con media pantalla vacía.
+- **Las listas a UNA línea**, sin `flex-wrap`; la luna sólo en listas con acción (Dones sí, Equipo no); el
+  contador sin rótulo repetido y pegado a la derecha. Las filas son **texto**, no desplegables
+  (`rowPicker` los deja sólo en el generador, que es donde se elige).
+- **Revertido el `span: 2` de Estado**: dejaba un vacío enorme. El hueco se arregla componiendo, no
+  ensanchando.
+- **Cargador y Munición como columnas separadas**, con botón de recargar. `reload()` llenaba el cargador
+  **de la nada**; ahora saca de `reserve`. El cargador es **sólo lectura**: lo mueven disparar y recargar.
+- **La munición se gasta al disparar.** ⚠ Me equivoqué al decir que «1 disparo = 1 bala» era lectura
+  nuestra: lo fija la tabla de armas (p.97), donde arco, ballesta y tirachinas ponen **Cargador 1** — eso
+  sólo tiene sentido si la unidad es un disparo. `ActionDef.spend` nuevo (null = no se puede pagar → botón
+  apagado) y `ActionDef.toRoll` pasa a opcional (recargar no tira dados).
+- **Cada arma ofrece SÓLO su acción** (`ActionDef.appliesToRow`) y el cargador no sale en las de cuerpo a
+  cuerpo (`FieldDef.appliesToRow`): el libro les pone «-» en las nueve (p.97).
+- **El alcance ya sale traducido y con los metros**: «Medio · hasta 50 m · dif. 3» (p.95–96). Antes salía
+  literalmente «medium».
+- Fuera el **registro de tiradas duplicado** de la ficha; queda sólo el aviso de fallo.
+- Las casillas de Resistencia más grandes (20 px) y en UNA fila a lo ancho; botón de daño en **color
+  sangre**; números calculados centrados con filete corto entre dos (Armadura); Estado reordenado.
+- **El botón de recibir daño NO estaba roto**: con protección 6 un daño de 5 da 0 y no pasaba nada, sin
+  decir nada. Ahora la línea de abajo dice la cuenta: «5 − 6 de protección = 0 · la armadura lo para
+  entero».
+
+### ✅ Los cuatro puntos de pantalla — HECHOS (2026-08-19 noche, commit `2182f38`)
+Los cuatro se hicieron mirando la app corriendo (`scripts/shot.mjs`), antes y después:
+1. ~~Aguante y Resistencia máxima en tarjetas cuadradas centradas~~ ✅
+2. ~~Penalización por heridas y Resistencia recuperable, una al lado de la otra~~ ✅
+3. ~~Casillas de Resistencia y lunas centradas~~ ✅
+4. ~~Tooltip en el alcance~~ ✅ — la celda dice «Medio» y el tooltip «Hasta 50 m · dificultad 3».
+5. **Sigue SIN empezar**: todo lo de la sección «LA REGLA QUE SE NOS ESTABA ESCAPANDO».
+
+### 🔬 Ahora se puede VER lo que se escribe: `scripts/shot.mjs`
+Playwright entra como dependencia de desarrollo. El script levanta sesión, entra en la mesa y captura la
+ficha entera y cada sección por separado (`/tmp/full.png`, `/tmp/sec-<sección>.png`). **Existe porque se
+subió a producción una tanda entera validada sólo con tests unitarios y medidas de contraste, y se veía
+mal.** Orden del dueño: no volver a trabajar a ciegas en pantallas. `TABLE=<uuid> node scripts/shot.mjs`.
+
+Datos de prueba en local: campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`, personaje **Karen Sinclair**
+(`3af4f238-25ad-4cf1-a264-09d7586019d8`) con dones, equipo, chaleco antibalas, nudilleras y un magnum.
+`admin@rolvium.local` / `rolvium123`.
+
 ## 🗒️ Backlog (decisiones del dueño y deuda conocida)
 
 ### Últimos cuatro del dueño (2026-08-19, tarde)
@@ -634,40 +947,35 @@ actual: un personaje sano sale **todo negro**, y al recibir daño se va **despin
 - Flake preexistente: `CampaignManagePanel.test.tsx > shows the invite code…` falla bajo carga y pasa aislado.
 
 ## 🔁 Prompt para el chat nuevo
-> Retomo Rolvium: lee WORK_STATE.md y ARCHITECTURE.md. Producción al día; `main` lleva la rama
-> `fix/rules-audit` mergeada (Review y QA pasados), el `.pen` con el generador Y la ficha ya guardado
-> por el dueño y commiteado, y el spec de **Aventuras (H12) cerrado sin construir**.
-> **Comprueba `git status` y `ls -la rolvium.pen` antes de dar nada por hecho.**
+> Retomo Rolvium: lee WORK_STATE.md **empezando por los bloques 🔴 REVISIÓN DE «ESTADO» CONTRA EL PDF y
+> 🧱 MAQUETACIÓN**, y luego ARCHITECTURE.md. Estoy en la rama `fix/ficha-listas` con ocho commits que NO
+> están en `main` — comprueba `git status` y `git log main..HEAD`. Ejecuta esos dos bloques enteros: el
+> desplegable de Inconsciente pasa a calculado, el techo de Fortuna es Destino, decidir conmigo lo de
+> «Resistencia máxima» cuando estás herido, y los cuatro arreglos de maquetación. Corrige `RULES.md`
+> ANTES del código (el sexto nivel de salud es Inconsciente, p.101). Y no toques una pantalla sin verla:
+> `node scripts/shot.mjs`.
 >
-> El diseño de la tanda está HECHO (6 pasos del generador en `y=7860`; ficha `qjLDu` sincronizada a
-> `g6RyaZ`). Ahora toca CÓDIGO, en este orden:
+> **Regla número uno de esta fase: no se toca una pantalla sin verla.** `node scripts/shot.mjs` levanta
+> sesión y captura la ficha (necesita `npm run db:start`, `npm run dev:api` y `npm run dev:web`). Se subió
+> una tanda entera validada sólo con tests y se veía mal; el dueño lo dejó claro.
 >
-> 1. **Punto 12 — el personaje no se guarda.** Crea uno y LEE el aviso: ya trae motivo, hint y
->    código. Descartados con el cliente real: RLS, los dos embeds, `.single()` y un borrador completo
->    del generador. Sospecha viva: sesión caducada (`PGRST301`).
-> 2. **Los cinco puntos que NO eran de diseño** (sección con ese título): cargador sólo en armas a
->    distancia, un solo botón por arma (⚔ o ◎), munición al disparar, fuera el registro de tiradas de
->    la ficha, y cards con sombra sin borde. El `.pen` ya lo dice bien; diverge la web. Son los más
->    baratos y se ven enseguida. Ojo: la munición es la única con carga de reglas (1 disparo = 1 bala
->    es lectura nuestra; recargar consume dados de Combate, p.96–97).
-> 3. **Tokens de contraste** a `apps/web/src/RolviumApp.css`: `tx3` → `#67605a` claro / `#8f87a0`
->    oscuro, `pl-tinta-tenue` → `#55534c`, y `pl-oro-claro` `#c9a44e` nuevo para dorado sobre fondo
->    oscuro (`pl-oro` daba 3,95:1 y el rótulo del tooltip salía invisible). Afecta a toda la app.
-> 4. **Armadura + escudo** (backlog 16): campo de escudo aparte y `derived()` sumando las dos
->    columnas, con la nota en RULES.md. El manual NO lo resuelve; las citas están en el backlog.
-> 5. **El resto del diseño nuevo**, contra el `.pen` 1:1: reordenar la ficha, Resistencia con las
->    dañadas en bordó (`pl-sangre`), el tooltip de recibir daño, Equipo con «+» desplegable, el
->    tooltip de característica con cuerpo, la leyenda por dado, «Mejorar» fuera de las pestañas, y las
->    seis vistas del generador con su columna de GUÍA.
-> 6. **Aventuras (H12)**: spec cerrado en `specs/modules/adventures/SPEC.md`. Sigue por **dba →
->    scaffold → design (`.pen`) → dev**. Nada empezado.
+> Sigue por, en este orden:
+> 1. **La lógica de daño → Resistencia → Salud** (sección «LA REGLA QUE SE NOS ESTABA ESCAPANDO»). Meter la
+>    tabla de p.99 en `RULES.md`, enseñar las dos consecuencias al recibir daño, avisar del inconsciente, y
+>    la reducción de severidad con Fortuna (p.99), que no existe. Objetivo del dueño: **que le facilite la
+>    vida al jugador**, no que tenga que deducirlo.
+> 2. ~~Los cuatro puntos de pantalla~~ **HECHOS** (commit `2182f38`), pero al tooltip del alcance le
+>    falta el test — escríbelo antes de nada.
+> 3. **Review + QA a `fix/ficha-listas` y mergear.** No se ha pasado ninguno de los dos.
+> 4. Lo que siga del backlog: Estado compuesto como el `.pen`, armadura + escudo (backlog 16), los tokens
+>    de contraste que faltan, y Aventuras (H12), cuyo spec está cerrado y sin construir.
 >
-> El manual manda: PDF en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf`, **con 2 de
-> desfase** sobre las páginas del libro. Diseño en `.pen` ANTES de cualquier código de UI, orden del
-> dueño. Flujo: dev → review → qa.
-> Ya decidido: el ancho de los frames de Mesa no se toca · el interruptor del director va como opción
-> de campaña gobernando los dos canjes (rebanada propia) · el contenido vive en la BASE, nunca
-> hardcodeado en el front.
+> El manual manda: PDF en `~/Documents/Developer/Rolvium context/PlenilunioEbook.pdf`, **con 2 de desfase**
+> sobre las páginas del libro. Y **léelo del PDF, no de RULES.md**: la tabla de heridas de p.99 no estaba en
+> RULES.md y por eso se nos escapó una regla entera.
+> Diseño en `.pen` ANTES de cualquier código de UI. Flujo: dev → review → qa.
+> Local: campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`, personaje Karen Sinclair, `admin@rolvium.local` /
+> `rolvium123`.
 
 ### Lección de esta sesión, que se repitió cuatro veces
 **Un guardia que mide sólo el estado RESULTANTE convierte cualquier borrador ya fuera de norma en un callejón
@@ -680,7 +988,14 @@ en diagnosticar «bugs» que ya estaban arreglados. **Comprueba `git log origin/
 «esto está roto en producción».**
 
 ## 🚫 Bloqueos / notas
-### Vercel — el API existe y despliega solo, pero le faltan las variables (2026-08-19)
+### ⚠️ La sección de Vercel de abajo está VIEJA — el dueño lo desmintió (2026-08-19 noche)
+Palabras suyas: «lo del bloqueo vivo tiene que ser viejo porque está todo subido y lo veo funcionando».
+O sea: las variables de entorno y el proyecto web ya están puestos, y `rolvium.vercel.app` ya no da 404.
+**No lo he verificado yo** (no toco producción sin que se pida), así que lo dejo escrito tal cual y sin
+borrar el histórico. Lo que siga sin comprobar de esa lista, se comprueba en el chat nuevo antes de
+creérselo en ninguna dirección.
+
+### Vercel — el API existe y despliega solo, pero le faltan las variables (2026-08-19) [DESMENTIDO ARRIBA]
 - Panel: https://vercel.com/ignaciozitare-9429s-projects/rolvium-api · `prj_0OBlHaNEmoDHOZVoEnFTV8hr4i70` ·
   team `team_O0LMo9mzgF91fZTJ1mJg7yJw`. **Está conectado a GitHub**, así que cada push a `main` lo redespliega.
 - **https://rolvium-api.vercel.app** deja de ser un placeholder: es la URL real que consume `VITE_API_URL`.

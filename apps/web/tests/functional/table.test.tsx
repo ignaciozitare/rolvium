@@ -49,8 +49,10 @@ function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharacters
 
 describe('table: rules', () => {
   it('tabs depend on the role', () => {
-    expect(tabsFor('player')).toEqual(['sheet', 'scene', 'improve', 'create']);
+    // «Mejorar» dejó de ser pestaña: es un botón dentro de la ficha (dueño, 2026-08-19).
+    expect(tabsFor('player')).toEqual(['sheet', 'scene', 'create']);
     expect(tabsFor('dm')).toContain('group');
+    for (const role of ['player', 'dm'] as const) expect(tabsFor(role)).not.toContain('improve');
   });
   it('only players take dice, up to the per-take max, while the pool has dice', () => {
     const def = { id: 'destiny', label: 'x', max: 10, initial: 10, perTakeMax: 5, whoCanTake: 'player' as const, whoCanReset: 'dm' as const };

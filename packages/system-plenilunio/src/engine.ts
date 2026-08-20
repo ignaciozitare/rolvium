@@ -24,13 +24,23 @@ export const GIFT_ACTIVATION_COST = 1;
 
 // ─── Derived values (manual p.25, p.89, p.98–101) ────────────────────────────
 export interface Derived {
-  endurance: number; resistanceMax: number; recoveryMax: number; fortuneMax: number; dicePenalty: number; healthIndex: number;
+  endurance: number; resistanceMax: number; fortuneMax: number; dicePenalty: number; healthIndex: number;
   protection: number; armourPenalty: number; giftPoints: number;
 }
 export const healthIndexOf = (h: HealthId) => HEALTH_LEVELS.findIndex(l => l.id === h);
 export const healthPenaltyOf = (h: HealthId) => HEALTH_LEVELS[healthIndexOf(h)]?.penalty ?? 0;
 
-/** Endurance = Fortitude + Will ± size (min 1); Resistance = Endurance×3 (p.25, no cap); recoveryMax = what rest restores at the current health (p.101); Fortune max = Destiny. */
+/**
+ * Endurance = Fortitude + Will ± size (min 1); Fortune max = Destiny (p.90, hard cap: «nunca pueden llegar a ser
+ * mayores que la puntuación de Destino»).
+ *
+ * Resistance max = Endurance × the CURRENT health level's factor (p.101, literal): ×3 sano/magullado, ×2 herido,
+ * ×1 malherido. No es «lo que cura el descanso» y aparte un tope de 3×Aguante — el libro dice que los puntos
+ * máximos «pasan a ser» ese número, así que es EL máximo y el descanso sólo te lleva hasta él. Antes se
+ * calculaban los dos por separado (`resistanceMax` = ×3 siempre, `recoveryMax` = el del estado) y la ficha
+ * enseñaba lo mismo dos veces con nombres distintos: Karen, herida, salía con «máxima 18» —la de una persona
+ * sana, que ella no es— y «recuperable 12». Uno solo, y verdadero (dueño, 2026-08-19; RULES.md §6.3).
+ */
 export function derived(sheet: SheetData): Derived {
   const endurance = Math.max(1, statOf(sheet, 'fortitude').value + statOf(sheet, 'will').value + sizeMod(sheet.size));
   const health = healthOf(sheet);
@@ -39,8 +49,7 @@ export function derived(sheet: SheetData): Derived {
   const spent = giftsOf(sheet).reduce((s, g) => s + num(g.level), 0);
   return {
     endurance,
-    resistanceMax: endurance * 3,
-    recoveryMax: endurance * RECOVERY[health].restFactor,
+    resistanceMax: endurance * RECOVERY[health].restFactor,
     fortuneMax: destiny,
     dicePenalty: healthPenaltyOf(health),
     healthIndex: healthIndexOf(health),
@@ -238,10 +247,19 @@ export function catchBreath(sheet: SheetData): SheetPatch | null {
   if (num(sheet.fortune) < 1) return null;
   const d = derived(sheet);
   const lost = Math.max(0, d.resistanceMax - num(sheet.resistance));
-  return { fortune: num(sheet.fortune) - 1, resistance: Math.min(d.resistanceMax, num(sheet.resistance) + Math.floor(lost / 2)) };
+  /**
+   * Sin `Math.min` contra el máximo: se capa la SUBIDA, nunca la bajada (RULES.md §6.3, igual que
+   * `rest` y las casillas). El tope era inofensivo mientras el máximo era siempre 3×Aguante, pero
+   * desde que lo baja el estado de salud capaba hacia ABAJO: Aguante 5, herido (máximo 10) y
+   * Resistencia 12 —legal: pasar de Sano a Herido no borra puntos ya marcados— daba `lost = 0` y
+   * devolvía 10, o sea que recobrar el aliento te cobraba la Fortuna y te QUITABA dos puntos. Y en
+   * todos los demás casos sobraba: `resistencia + ⌊(máx − resistencia)/2⌋ ≤ máx` por construcción.
+   * (Hallazgo del Review, 2026-08-19.)
+   */
+  return { fortune: num(sheet.fortune) - 1, resistance: num(sheet.resistance) + Math.floor(lost / 2) };
 }
 /** Rest after the scene (p.101): Resistance back to what the current health level allows (×3 / ×2 / ×1 Endurance). */
-export const rest = (sheet: SheetData): SheetPatch => ({ resistance: Math.max(num(sheet.resistance), derived(sheet).recoveryMax), unconscious: 'no' });
+export const rest = (sheet: SheetData): SheetPatch => ({ resistance: Math.max(num(sheet.resistance), derived(sheet).resistanceMax), unconscious: 'no' });
 
 /** Ammo bookkeeping for ranged weapons (manual p.97). */
 export function weaponData(row: WeaponRow): WeaponData | null {
@@ -255,13 +273,27 @@ export function spendAmmo(sheet: SheetData, weaponId: string): SheetPatch | null
   if (!row || row.ammo === null || row.ammo === undefined || row.ammo <= 0) return null;
   return { weapons: rows.map((r, j) => (j === i ? { ...r, ammo: (r.ammo ?? 0) - 1 } : r)) };
 }
+/**
+ * Recargar saca balas de la MUNICIÓN que llevas encima (`reserve`) y llena el cargador. Devuelve null
+ * si no hay de dónde: el arma no tiene cargador, ya está lleno, o no te queda munición suelta.
+ *
+ * El libro no da una tabla de recarga, pero sí las dos piezas: el «Cargador» por arma (p.97) y que la
+ * munición es un recurso escaso que se consigue y se lleva («entre 20 y 40 balas» en el equipo inicial,
+ * p.019; «conseguir munición es muy difícil», p.030). ⚠ Interpretación: el cargador se llena hasta
+ * donde alcance la munición, sin exigir tenerlo completo.
+ */
 export function reload(sheet: SheetData, weaponId: string): SheetPatch | null {
   const rows = weaponsOf(sheet);
   const i = rows.findIndex(r => r.id === weaponId);
   const row = rows[i];
   const data = row ? weaponData(row) : null;
   if (!row || !data || data.magazine === null) return null;
-  return { weapons: rows.map((r, j) => (j === i ? { ...r, ammo: data.magazine } : r)) };
+  const inMag = num(row.ammo);
+  const reserve = num((row as unknown as Record<string, unknown>)['reserve']);
+  const need = data.magazine - inMag;
+  if (need <= 0 || reserve <= 0) return null;
+  const moved = Math.min(need, reserve);
+  return { weapons: rows.map((r, j) => (j === i ? { ...r, ammo: inMag + moved, reserve: reserve - moved } : r)) };
 }
 
 // ─── Progression (manual p.91) ───────────────────────────────────────────────
@@ -333,9 +365,40 @@ const attackRequest = (sheet: SheetData, itemId: string, options: Record<string,
   return { ...req, title: `catalog.weapons.${itemId}` };
 };
 
+/** Un arma ofrece SOLO su acción: c/c o a distancia, nunca las dos (p.96–97, y `attackActionFor`). */
+const rowIsMelee = (row: Record<string, unknown>): boolean => {
+  const d = weaponData(row as unknown as WeaponRow);
+  return !d || isMelee(d);
+};
 export const actions: ActionDef[] = [
-  { id: 'attack.melee', icon: 'swords', label: 'sheet.actions.attackMelee', appliesTo: 'weapons', toRoll: (s, id, o) => attackRequest(s, id, o, false) },
-  { id: 'attack.ranged', icon: 'target', label: 'sheet.actions.attackRanged', appliesTo: 'weapons', toRoll: (s, id, o) => attackRequest(s, id, o, true) },
+  { id: 'attack.melee', icon: 'swords', label: 'sheet.actions.attackMelee', appliesTo: 'weapons', appliesToRow: rowIsMelee, toRoll: (s, id, o) => attackRequest(s, id, o, false) },
+  {
+    id: 'attack.ranged', icon: 'target', label: 'sheet.actions.attackRanged', appliesTo: 'weapons',
+    appliesToRow: r => !rowIsMelee(r),
+    /**
+     * Un disparo gasta un punto de cargador (p.97). Que el arco, la ballesta y el tirachinas pongan
+     * «Cargador 1» es lo que fija la unidad: una unidad = un disparo, y a recargar. Sin balas devuelve
+     * null y el botón se apaga; recargar es una acción aparte que el libro cobra en dados de Combate
+     * (p.96) y que todavía no está construida.
+     */
+    spend: (sheet, id) => {
+      // `spendAmmo` ya existía y está probado: se reutiliza en vez de repetir la cuenta. Devuelve null
+      // cuando el arma no tiene cargador, así que aquí se distingue ese caso —un arma a distancia sin
+      // munición declarada se dispara gratis— de quedarse sin balas, que sí apaga el botón.
+      const row = weaponsOf(sheet).find(r => str(r.id) === id);
+      const d = row ? weaponData(row) : null;
+      if (d && d.magazine === null) return {};
+      return spendAmmo(sheet, id);
+    },
+    toRoll: (s, id, o) => attackRequest(s, id, o, true),
+  },
+  {
+    // Recargar no tira dados: mueve balas de la munición al cargador. El libro lo cobra como acción del
+    // turno con al menos 1 dado de Combate y sin tirada (p.96); ese coste en dados todavía no se aplica.
+    id: 'reload', icon: 'refresh', label: 'sheet.actions.reload', appliesTo: 'weapons',
+    appliesToRow: r => !rowIsMelee(r),
+    spend: (sheet, id) => reload(sheet, id),
+  },
   {
     id: 'gift.activate', icon: 'bolt', label: 'sheet.actions.activateGift', appliesTo: 'gifts', cost: 'sheet.actions.giftCost',
     toRoll: (sheet, giftId, options) => {

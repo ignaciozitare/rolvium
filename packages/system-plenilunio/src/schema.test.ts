@@ -11,18 +11,25 @@ describe('sheetSchema', () => {
     // Por eso `armour` baja detrás de `equipment` y deja de ser `row`, que la marcaba como ancha.
     expect(sections.map(s => s.id)).toEqual(['identity', 'roll', 'stats', 'state', 'weapons', 'gifts', 'equipment', 'armour', 'story', 'creation']);
     expect(sections.find(s => s.id === 'armour')?.layout).toBe('stack');
-    // Estado ocupa dos columnas: si no, Armas (que va a fila entera) le deja un hueco en blanco a la
-    // derecha — queja del dueño. `span` lo declara el sistema; la plataforma no sabe qué pide sitio.
-    expect(sections.find(s => s.id === 'state')?.span).toBe(2);
-    expect(sections.filter(s => s.span).map(s => s.id)).toEqual(['state']);
+    // El ancho de cada fila sale del `.pen`, en sextos: Identidad, Dificultad, Armas e Historia a fila
+    // entera (lo hacen solas por llevar `image`/`row`/`table`/`longtext`); Características y Estado a la
+    // MITAD (793 de 1601); Dones, Equipo y Armadura a un TERCIO (523 de 1601).
+    expect(sections.filter(s => s.span).map(s => `${s.id}:${s.span}`)).toEqual(['gifts:2', 'equipment:2', 'armour:2']);
+    for (const id of ['stats', 'state']) expect(sections.find(s => s.id === id)?.span).toBeUndefined();
     for (const id of STAT_IDS) expect(fieldById(id)).toMatchObject({ type: 'stat', action: 'roll', min: 1, max: 10 });
     expect(fieldById('weapons')).toMatchObject({ type: 'table', action: 'attack' });
     expect(fieldById('gifts')).toMatchObject({ type: 'list', action: 'gift.activate' });
     expect(fieldById('health')?.options?.map(o => o.value)).toEqual(['healthy', 'bruised', 'wounded', 'badlyWounded', 'dead']);
   });
   it('marks derived fields', () => {
-    for (const id of ['endurance', 'resistanceMax', 'recoveryMax', 'fortuneMax', 'dicePenalty', 'protection', 'armourPenalty', 'giftPoints']) expect(fieldById(id)?.derived).toBe(true);
+    for (const id of ['endurance', 'resistanceMax', 'fortuneMax', 'dicePenalty', 'protection', 'armourPenalty', 'giftPoints']) expect(fieldById(id)?.derived).toBe(true);
     expect(fieldById('resistance')?.derived).toBeFalsy();
+    // «Resistencia recuperable descansando» era el mismo número que «Resistencia máxima» (p.101).
+    expect(fieldById('recoveryMax')).toBeNull();
+    // Se guarda y se valida, pero no se pinta: lo escribe el motor, no se elige (p.101, RULES.md §6.2).
+    expect(fieldById('unconscious')?.hidden).toBe(true);
+    expect(fieldById('unconscious')?.derived).toBeUndefined();   // se GUARDA: `derived` lo dejaría fuera de `newSheet`
+    expect(fieldById('health')?.note?.({ unconscious: 'yes' })).toBe('sheet.state.unconsciousNote');
   });
   it('every field label and option label resolves in es and en', () => {
     for (const f of sections.flatMap(s => s.fields)) {

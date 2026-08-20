@@ -13,12 +13,42 @@ export interface FieldDef {
   type: FieldType;
   label: I18nKey;
   ref?: string;                 // rule reference key → tooltip + manual page
+  /**
+   * Sólo columnas de tabla: si la columna aplica a ESTA fila. Sin definir = a todas. Lo declara el
+   * sistema porque la plataforma no sabe qué fila tiene qué: un arma cuerpo a cuerpo no lleva
+   * cargador —el libro pone «-» en las nueve (p.97)— y la tabla pintaba un contador igual, así que
+   * salían unas Nudilleras con 14 balas.
+   */
+  appliesToRow?: (row: Record<string, unknown>) => boolean;
   min?: number; max?: number;
-  options?: { value: string; label: I18nKey }[];
+  /**
+   * `hint`: dato secundario de la opción, que sale en un tooltip y NO en la celda. El alcance de un
+   * arma se lee «Medio» y los metros y la dificultad se consultan al pasar por encima (p.95–96):
+   * escritos en línea se comían media tabla de Armas (dueño, 2026-08-19).
+   */
+  options?: { value: string; label: I18nKey; hint?: I18nKey }[];
   columns?: FieldDef[];         // for 'table'
   itemFields?: FieldDef[];      // for 'list'
   derived?: boolean;            // computed by engine.derived, read-only in the sheet
   action?: string;              // ActionDef.id rendered as an icon button on this field/row
+  /**
+   * Sólo campos `health`: aviso que la ficha pinta BAJO el campo cuando las reglas lo disparan, en
+   * rojo. Devuelve la clave i18n del aviso o `null`. Lo declara el sistema porque la plataforma no
+   * sabe qué condición avisa: en Plenilunio es «Inconsciente» —el sexto nivel de salud (p.101)—, que
+   * no es una fase de luna y no se elige a mano, se cae en él al quedarse sin Resistencia (p.98).
+   * Antes era un desplegable «Inconsciente Sí/No» en la rejilla de Estado: un valor que el motor ya
+   * calcula, ofrecido como si fuera una decisión del jugador y capaz de contradecirlo — el mismo
+   * fallo que el cargador editable a mano que el dueño hizo quitar (2026-08-19).
+   */
+  note?: (sheet: SheetData) => I18nKey | null;
+  /**
+   * Campo que existe en el esquema —se guarda, se valida y lo escribe el motor— pero que la ficha NO
+   * pinta: no hay nada que decidir en él. `derived` no sirve para esto (un derivado no se guarda y
+   * `validateSheet` rechaza como `unknown` cualquier clave que el esquema no declare, así que el
+   * `unconscious` que escribe `applyDamage` tumbaría el guardado entero). Plenilunio lo usa para
+   * «Inconsciente», que sale como `note` bajo las lunas.
+   */
+  hidden?: boolean;
 }
 
 /**
@@ -26,6 +56,12 @@ export interface FieldDef {
  * plataforma no sabe que «Estado» pide mas sitio que «Dones» — igual que no sabe reglas. Sin `span`
  * ocupa una; las secciones con campo `table`/`longtext`/`image` o `layout:'row'` siguen ocupando la
  * fila entera por su cuenta.
+ */
+/**
+ * `span`: cuanto ocupa la seccion en la rejilla de SEIS de la ficha. 6 = fila entera, 3 = media,
+ * 2 = un tercio. Lo declara el SISTEMA porque la plataforma no sabe que Estado pide media fila y
+ * Armadura un tercio — igual que no sabe reglas. Por defecto 3 (media).
+ * Las secciones con campo `table`/`longtext`/`image` o `layout:'row'` ocupan la fila entera solas.
  */
 export interface SectionDef { id: string; label: I18nKey; fields: FieldDef[]; layout?: 'grid' | 'stack' | 'row'; span?: number; }
 export interface SheetSchema { version: string; sections: SectionDef[]; }
@@ -70,8 +106,25 @@ export interface ActionDef {
   icon: string;                  // Material Symbols name
   label: I18nKey;
   appliesTo: string;             // field/list id in the schema, e.g. 'weapons' | 'gifts' | 'stats'
+  /**
+   * Si aplica a ESTA fila. Sin esto la ficha pintaba las dos acciones de arma en todas: unas
+   * Nudilleras ofrecian «Disparar». El manual las separa (p.96–97): a distancia es un reto contra la
+   * dificultad del alcance y el arma no da dados extra; cuerpo a cuerpo es enfrentado y ahi si suma la
+   * bonificacion. Son acciones distintas, y cada arma tiene la suya. Sin definir = aplica a todas.
+   */
+  appliesToRow?: (row: Record<string, unknown>) => boolean;
   cost?: I18nKey;
-  toRoll: (sheet: SheetData, itemId: string, options?: Record<string, unknown>) => RollRequest;
+  /**
+   * Lo que la accion GASTA en la ficha, o `null` si ahora mismo no se puede pagar. Devuelve un patch
+   * que la plataforma aplica al lanzar, y `null` apaga el boton.
+   *
+   * Existe por la municion: la tabla de armas (p.97) da un «Cargador» por arma, y que un arco o una
+   * ballesta pongan **Cargador 1** solo tiene sentido si la unidad del cargador es UN disparo — tiras
+   * y ya tienes que recargar. Asi que disparar gasta un punto, y sin balas no se dispara.
+   */
+  spend?: (sheet: SheetData, itemId: string) => SheetPatch | null;
+  /** Sin `toRoll` la acción sólo GASTA (recargar): se aplica el `spend` y no se tira nada. */
+  toRoll?: (sheet: SheetData, itemId: string, options?: Record<string, unknown>) => RollRequest;
 }
 
 export interface ProgressionRules {

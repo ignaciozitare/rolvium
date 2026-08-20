@@ -26,7 +26,10 @@ describe('<CharacterSheetView>', () => {
     await waitFor(() => expect(rolls.requests).toHaveLength(1));
     expect(rolls.requests[0]).toMatchObject({ systemId: 'plenilunio', characterId: 'ch-karen', campaignId: 'c1', sharedResources: { destiny: 2 } });
     expect(onRolled).toHaveBeenCalled();
-    expect(await screen.findByText(/Combate · Lo consigue\./)).toBeInTheDocument();
+    // El resumen de la tirada NO se repite dentro de la ficha: está en la barra de tiradas de la mesa,
+    // que es donde lo lee todo el mundo (dueño, 2026-08-19). Aquí sólo queda el aviso de fallo.
+    expect(screen.queryByText(/Combate · Lo consigue\./)).not.toBeInTheDocument();
+    expect(document.querySelector('.ch-log')).toBeNull();
     // effects.patch applied with origin roll (client fallback: the fake API did not report effectsApplied)
     await waitFor(() => expect(repo.updates.some(x => x.origin === 'roll' && x.patch.data?.destiny === 3)).toBe(true));
   });

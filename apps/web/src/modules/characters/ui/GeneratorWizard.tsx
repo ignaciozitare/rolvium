@@ -135,7 +135,7 @@ export function GeneratorWizard({ campaignId, system, role, repo = defaultRepo, 
       )}
 
       {step.fields.length > 0
-        ? <Sheet schema={system.sheetSchema} data={draft} derived={system.engine.derived(draft)} fields={step.fields} showActions={false} onChange={patch} canChange={canChange} t={ts} refText={refText} labels={labels} icons={system.theme.icons ?? {}} />
+        ? <Sheet schema={system.sheetSchema} data={draft} derived={system.engine.derived(draft)} fields={step.fields} showActions={false} rowPicker onChange={patch} canChange={canChange} t={ts} refText={refText} labels={labels} icons={system.theme.icons ?? {}} />
         : <><p className="ch-gen-hint">{t('characters.generator.summaryHint')}</p><Sheet schema={system.sheetSchema} data={draft} derived={system.engine.derived(draft)} readOnly showActions={false} t={ts} refText={refText} labels={labels} icons={system.theme.icons ?? {}} /></>}
 
       <footer className="ch-gen-foot">
