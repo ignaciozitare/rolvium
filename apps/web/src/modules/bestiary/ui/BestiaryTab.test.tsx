@@ -20,8 +20,11 @@ const makeRepo = (entries: BestiaryEntry[] = [own()]): BestiaryPort => ({
   uploadToken: vi.fn().mockResolvedValue('https://x/t.webp'),
 });
 
+/** El lanzador es obligatorio: «Tirar» arma la tirada de la criatura y la manda al servidor. */
+const makeRolls = () => ({ roll: vi.fn().mockResolvedValue({ id: 'r-1', request: {}, dice: [[6]], result: { summary: 'ok' }, rolledAt: '2026-08-21T00:00:00Z' }) });
+
 const setup = (repo: BestiaryPort = makeRepo(), props = {}) =>
-  renderWithProviders(<BestiaryTab campaignId="c1" system={plenilunio} repo={repo} {...props} />);
+  renderWithProviders(<BestiaryTab campaignId="c1" system={plenilunio} repo={repo} rolls={makeRolls()} {...props} />);
 
 /**
  * Busca la ficha por su título. Espera primero al encabezado porque las del manual pintan al instante

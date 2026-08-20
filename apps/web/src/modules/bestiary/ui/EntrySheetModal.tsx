@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { Btn, CompressError, Field, ImagePicker, Modal, compressImage, formatBytes } from '@rolvium/ui';
+import { CompressError, compressImage, formatBytes, pickImageFile } from '@rolvium/ui';
 import type { GameSystem } from '@rolvium/core';
 import { STAT_IDS } from '@rolvium/system-plenilunio';
 import type { StatId } from '@rolvium/system-plenilunio';
@@ -8,6 +8,7 @@ import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
 import { resistanceOf } from '../domain/useCases/bestiaryRules';
 import { errorText } from '../domain/useCases/errorText';
 import type { BestiaryEntry, CreatureData } from '../domain/entities/BestiaryEntry';
+import { SheetOverlay } from './SheetOverlay';
 
 interface Props {
   entry: BestiaryEntry;
@@ -42,6 +43,9 @@ export function EntrySheetModal({ entry, specialtyLabel, onSave, onUploadImage, 
   const [global, setGlobal] = useState(entry.campaignId === null);
   const [tokenUrl, setTokenUrl] = useState(entry.tokenUrl);
   const [busy, setBusy] = useState(false);
+  // Subir y guardar son dos esperas distintas: con un solo `busy` el botón Guardar decía «Guardando…»
+  // mientras sólo se estaba subiendo una imagen, que es mentirle al director sobre lo que ha pasado.
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savings, setSavings] = useState<string | null>(null);
 
@@ -54,9 +58,20 @@ export function EntrySheetModal({ entry, specialtyLabel, onSave, onUploadImage, 
       return { ...d, stats };
     });
 
-  /** Comprime en el navegador y sube; el compresor devuelve un Blob y no sabe de Supabase. */
-  const upload = useCallback(async (file: Blob) => {
+  /**
+   * Comprime en el navegador y sube; el compresor devuelve un Blob y no sabe de Supabase.
+   *
+   * El disparador es el botón «SUBIR IMAGEN (WEBP)» del `.pen`, no el `ImagePicker` de la plataforma:
+   * aquél está pintado con tokens de plataforma en estilos en línea (`--sf2`, `--bd`, `--tx3`) y sobre el
+   * pergamino salía un recuadro oscuro. Mismo camino que ya usa `NpcSheetModal` — `pickImageFile` +
+   * `compressImage` —, así que no se reinventa nada: se pierde el arrastrar-y-soltar, se gana la ficha
+   * que el dueño aprobó.
+   */
+  const upload = useCallback(async () => {
     setError(null);
+    const file = await pickImageFile();
+    if (!file) return;
+    setUploading(true);
     try {
       const r = await compressImage(file, 'token');
       const url = await onUploadImage(r.blob);
@@ -64,7 +79,8 @@ export function EntrySheetModal({ entry, specialtyLabel, onSave, onUploadImage, 
       setSavings(r.compressed ? `${formatBytes(r.originalBytes, locale)} → ${formatBytes(r.bytes, locale)}` : null);
     } catch (e) {
       setError(e instanceof CompressError ? t(`bestiary.image.error.${e.code}`) : t('bestiary.image.error.upload'));
-      throw e;
+    } finally {
+      setUploading(false);
     }
   }, [onUploadImage, t, locale]);
 
@@ -83,8 +99,14 @@ export function EntrySheetModal({ entry, specialtyLabel, onSave, onUploadImage, 
     }
   };
 
+  // «Titulo Derecha» de `PL/Hoja`: de dónde sale la criatura y, si viene del manual, por qué página.
+  const origin = [
+    t(`bestiary.origin.${entry.origin}`),
+    entry.data.page ? t('bestiary.card.page', { n: String(entry.data.page) }) : null,
+  ].filter(Boolean).join(' · ');
+
   return (
-    <Modal title={t('bestiary.sheet.title')} onClose={onClose} width={820}>
+    <SheetOverlay title={t('bestiary.sheet.title')} note={origin} width={820} onClose={onClose}>
       <div className="bs-sheet">
         <p className="bs-note">{t('bestiary.sheet.note')}</p>
         {error && <p className="bs-error" role="alert">{error}</p>}
@@ -96,24 +118,20 @@ export function EntrySheetModal({ entry, specialtyLabel, onSave, onUploadImage, 
                 ? <img src={tokenUrl} alt="" className="bs-card-photo" />
                 : <span className="bs-card-ini" aria-hidden="true">{initialsOf(name)}</span>}
             </div>
-            <ImagePicker
-              currentUrl={tokenUrl}
-              onUpload={upload}
-              outputFormat="webp"
-              outputDimension={512}
-              maxSizeKB={8 * 1024}
-              acceptMime={['image/png', 'image/jpeg', 'image/webp', 'image/gif']}
-              label={t('bestiary.sheet.image')}
-              helpText={t('bestiary.sheet.imageHint')}
-              labels={{ dropCta: t('bestiary.sheet.imageCta'), save: t('common.save'), back: t('common.cancel'), remove: t('common.remove'), loading: t('common.saving') }}
-            />
+            <button type="button" className="bs-btn" onClick={upload} disabled={busy || uploading}>{uploading ? t('common.saving') : t('bestiary.sheet.imageUpload')}</button>
+            <p className="bs-sheet-hint">{t('bestiary.sheet.imageHint')}</p>
             {savings && <p className="bs-savings">{t('bestiary.sheet.savings', { s: savings })}</p>}
           </div>
 
           <div className="bs-sheet-fields">
-            <Field id="bs-name" label={t('bestiary.sheet.name')} value={name} onChange={e => setName(e.target.value)} />
-            <label className="bs-label" htmlFor="bs-notes">{t('bestiary.sheet.notes')}</label>
-            <textarea id="bs-notes" className="bs-textarea" value={notes} onChange={e => setNotes(e.target.value)} rows={3} />
+            <div className="bs-field">
+              <label className="bs-label" htmlFor="bs-name">{t('bestiary.sheet.name')}</label>
+              <input id="bs-name" className="bs-input" value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div className="bs-field">
+              <label className="bs-label" htmlFor="bs-notes">{t('bestiary.sheet.notes')}</label>
+              <textarea id="bs-notes" className="bs-textarea" value={notes} onChange={e => setNotes(e.target.value)} rows={3} />
+            </div>
           </div>
         </div>
 
@@ -176,13 +194,20 @@ export function EntrySheetModal({ entry, specialtyLabel, onSave, onUploadImage, 
           <span className="bs-scope-h">{t('bestiary.sheet.allCampaignsHint')}</span>
         </label>
 
+        {/* El pie del `.pen`: GUARDAR en tinta llena, DUPLICAR con filete y BORRAR con filete de sangre.
+            No es el `Btn` de la plataforma: su primario es un degradado de ámbar con halo, que sobre el
+            pergamino canta. */}
         <div className="bs-sheet-foot">
-          <Btn variant="primary" onClick={save} loading={busy}>{t('common.save')}</Btn>
-          <Btn variant="ghost" onClick={onDuplicate}>{t('bestiary.action.duplicate')}</Btn>
+          <button type="button" className="bs-btn bs-btn-on bs-btn-lg" onClick={save} disabled={busy || uploading}>
+            {busy ? t('common.saving') : t('common.save')}
+          </button>
+          <button type="button" className="bs-btn bs-btn-lg" onClick={onDuplicate} disabled={busy || uploading}>{t('bestiary.action.duplicate')}</button>
           <span className="bs-card-sp" />
-          {entry.editable && <Btn variant="danger" onClick={onDelete}>{t('common.delete')}</Btn>}
+          {entry.editable && (
+            <button type="button" className="bs-btn bs-btn-danger bs-btn-lg" onClick={onDelete} disabled={busy || uploading}>{t('common.delete')}</button>
+          )}
         </div>
       </div>
-    </Modal>
+    </SheetOverlay>
   );
 }

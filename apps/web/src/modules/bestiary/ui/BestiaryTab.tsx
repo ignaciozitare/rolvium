@@ -9,7 +9,9 @@ import { EntryCard } from './EntryCard';
 import { EntrySheetModal } from './EntrySheetModal';
 import { PhotoModal } from './PhotoModal';
 import { NpcSheetModal } from './NpcSheetModal';
+import { CreatureRollPopover } from './CreatureRollPopover';
 import type { BestiaryPort } from '../domain/ports/BestiaryPort';
+import type { RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import './bestiary.css';
 
 interface Props {
@@ -17,7 +19,15 @@ interface Props {
   system: GameSystem;
   /** Colocar en escena lo resuelve `maps`; aquí sólo se elige qué colocar. */
   onPlace?: (entry: BestiaryEntry) => void;
-  onRoll?: (entry: BestiaryEntry) => void;
+  /**
+   * Tirar SÍ se resuelve aquí: la tirada es de la criatura, con sus características y su especialidad, así
+   * que quien la arma es quien tiene la entrada delante. Antes esto era un `onRoll` que abría el lanzador
+   * libre — el rechazo del dueño del 2026-08-21.
+   *
+   * Obligatorio a propósito: si pudiera faltar, «Tirar» no haría nada y en silencio, que es peor que el
+   * atajo que sustituye. `TablePage` siempre lo inyecta.
+   */
+  rolls: RollsPort;
   repo?: BestiaryPort;
 }
 
@@ -29,12 +39,13 @@ const FILTERS: OriginFilter[] = ['all', 'manual', 'custom', 'npc'];
  * **Sólo el director llega aquí**: la pestaña no existe para un jugador (`tabsFor`), y aunque llegara, la RLS no
  * le devolvería ni una fila. Las dos barreras son a propósito: la de pantalla es comodidad, la de base es la real.
  */
-export function BestiaryTab({ campaignId, system, onPlace, onRoll, repo }: Props): JSX.Element {
+export function BestiaryTab({ campaignId, system, onPlace, rolls, repo }: Props): JSX.Element {
   const { t } = useTranslation();
   const bs = useBestiary({ campaignId, system, ...(repo ? { repo } : {}) });
   const [editing, setEditing] = useState<BestiaryEntry | null>(null);
   const [photo, setPhoto] = useState<BestiaryEntry | null>(null);
   const [deleting, setDeleting] = useState<BestiaryEntry | null>(null);
+  const [rolling, setRolling] = useState<BestiaryEntry | null>(null);
 
   /** Del manual no se edita: se duplica y se edita la copia, que es lo que abre la ficha. */
   const openEditor = async (entry: BestiaryEntry) => setEditing(entry.editable ? entry : await bs.duplicate(entry));
@@ -82,11 +93,21 @@ export function BestiaryTab({ campaignId, system, onPlace, onRoll, repo }: Props
           <div className="bs-grid">
             {bs.visible.map(e => (
               <EntryCard key={`${e.origin}:${e.id}`} entry={e} specialtyLabel={bs.specialtyLabel}
-                         onRoll={() => onRoll?.(e)} onPlace={() => onPlace?.(e)}
+                         onRoll={() => setRolling(e)} onPlace={() => onPlace?.(e)}
                          onEdit={openEditor} onPhoto={setPhoto} onMore={openEditor} derive={system.engine.derived} />
             ))}
           </div>
         )}
+
+      {rolling && (
+        <CreatureRollPopover
+          entry={rolling}
+          system={system}
+          specialtyLabel={bs.specialtyLabel}
+          onRoll={req => rolls.roll({ ...req, campaignId })}
+          onClose={() => setRolling(null)}
+        />
+      )}
 
       {photo && <PhotoModal entry={photo} onClose={() => setPhoto(null)} onOpenSheet={() => { setPhoto(null); void openEditor(photo); }} />}
 

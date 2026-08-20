@@ -14,95 +14,98 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-21, el dueño rechazó la pantalla del Bestiario. LEER ESTO ENTERO
+## 🟢 PUNTO EXACTO — 2026-08-21 (noche): los CUATRO rechazos del Bestiario, ARREGLADOS y mirados en pantalla
 
-Rama **`feat/bestiario`**, 14 commits sobre `main`. Todo verde (623 tests, typecheck, audit 0 hard, builds) y
-**aun así la pantalla está mal**. El dueño la probó y dijo cuatro cosas. **Ninguna está arreglada.**
+Rama **`feat/bestiario`**. Los cuatro puntos que el dueño rechazó por la mañana están hechos, comprobados en
+la app corriendo y con tests. **654 tests verdes** (477 web + 77 api + 6 core + 16 ui + 78 plenilunio),
+typecheck limpio, `audit` **0 hard**, `build:web` y `build:api` en verde.
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: lee el bloque 🟢 de WORK_STATE.md y arregla las cuatro cosas que el dueño rechazó del
-> Bestiario — empieza por el pergamino de las fichas, que es la causa de dos de ellas.
+> Retomo Rolvium: el Bestiario tiene los cuatro rechazos arreglados y sin mergear — pásale Review y QA,
+> y decide lo que queda anotado en «Pendiente de decidir» del bloque 🟢.
 
 ---
 
-### 🔴 Los cuatro rechazos del dueño (2026-08-21), literales
+### ✅ Los cuatro, uno a uno
 
-1. **«si la ficha del monstruo estará en modo dark vale me gusta, pero respeta el diseño, no has leído el
-   .pen, no has seguido en ninguno el .pen, estás inventando sobre la marcha, no sé por qué lo haces»**
-2. **«si le pones tirar a un monstruo te abre el lanzador avanzado de dados, no lo que establecimos»**
-3. **«Nuevo PNJ con ficha no sé qué quisiste hacer ahí pero es horrible, ¿por qué no usaste la que está
-   hecha? creo que es porque el fondo está negro y no usaste la textura»**
-4. **«te pedí mil veces que hagas las letras de todo más oscuras y con más cuerpo, no se lee, hace doler la
-   cabeza, estás haciendo daño al usuario con esto, no entiendo por qué lo haces»**
+1. **«respeta el diseño, no has leído el .pen»** → **`SheetOverlay.tsx`**, hoja de pergamino propia que
+   replica `PL/Hoja` del `.pen`: papel `--sys-card`, filete `--sys-border`, sombra del sistema, rótulo en
+   versalitas con línea debajo y el texto de origen a la derecha («Propio · manual p.152» = «Titulo
+   Derecha» del `.pen`). Sustituye al `Modal` de plataforma en las tres fichas.
+2. **«te abre el lanzador avanzado de dados, no lo que establecimos»** → **construido** (el dueño eligió
+   construirlo, no quitar el botón). Ver abajo.
+3. **«Nuevo PNJ con ficha… es horrible, ¿por qué no usaste la que está hecha?»** → **sí era** la que está
+   hecha (`<Sheet>` de `@rolvium/ui`); lo que la estropeaba era el `Modal` negro alrededor. Con el
+   pergamino se ve lo que es. **No se tocó `<Sheet>`.**
+4. **«las letras de todo más oscuras y con más cuerpo»** → hecho en el Bestiario **y en toda la mesa**.
 
-### 🎯 CAUSA RAÍZ de 1 y 3 — diagnosticada, no adivinada
-Las fichas se diseñaron en el `.pen` como **pergamino** (`PL/Hoja`, frames `kD9lH` y `g0L0jJ`) y luego se
-**construyeron dentro del `Modal` de `@rolvium/ui`**, cuya superficie es el chrome OSCURO de la plataforma
-(`--sf`, `--bd`, `--tx`). Resultado: una hoja de juego dibujada en papel, pintada sobre fondo negro y sin
-textura. El dueño lo ve como «no has leído el .pen», y tiene razón: se dibujó una cosa y se construyó otra.
+### 🎯 LA CAUSA RAÍZ, confirmada mirando el código
+El `Modal` de `@rolvium/ui` pinta el panel en `var(--sf)` (chrome oscuro) sobre scrim `rgba(0,0,0,.6)`. Como
+`--sys-card` es **traslúcido** (alfa 80), el papel sobre ese negro salía sucio y el texto ilegible. Por eso
+un solo arreglo cerró los rechazos 1 y 3. **No se tocó `Modal`** —lo usa toda la plataforma y ahí está
+bien—: se dejó de usar dentro de la mesa, mismo precedente que `EncounterMenu`, `DiceRoller` y
+`BackgroundPopover`.
 
-**Dato técnico que ahorra media hora:** el `Modal` **NO usa `createPortal`** (comprobado). Se pinta en línea
-dentro de `.tb-root`, así que **los tokens `--sys-*` SÍ se heredan** —las variables CSS bajan por el árbol del
-DOM aunque el elemento esté en `position: fixed`—. El problema no es la herencia: son los colores propios del
-`Modal`. Por eso la solución NO es tocar `Modal` (lo usa toda la plataforma), sino no usarlo aquí.
+### 🐞 DOS FALLOS REALES que sólo aparecieron al mirar la app (no los cazaba ningún test)
+- **`--sp-xs` / `--sp-sm` / `--sp-md` NO EXISTEN en el repo.** Sólo los usaba `bestiary.css`, 20 veces, y
+  nadie los define: el navegador tiraba la declaración y **todos los `gap` y `padding` de la pestaña salían
+  a cero**. De ahí el amontonamiento. Pasados a px (6/10/16), que es la convención de la casa (`table.css`,
+  `sheet.css` ya lo hacen así).
+- **`.bs-btn[aria-pressed='true']` le ganaba en especificidad a `.bs-btn-on`**, así que el botón elegido
+  salía con filete en vez de relleno de tinta — no se veía cuál estaba marcado. Arreglado con
+  `.bs-btn.bs-btn-on`. Compilaba y pasaba los tests igual: sólo se veía en pantalla.
 
-### ✅ EL ARREGLO, ya empezado y bloqueado por el hook
-Estaba escribiendo **`apps/web/src/modules/bestiary/ui/SheetOverlay.tsx`**: una hoja de pergamino propia que
-replica `PL/Hoja` del `.pen` (papel, filete, sombra, título con línea debajo, botón de cerrar), con scrim,
-cierre por `Escape` y por clic fuera, `role="dialog"` + `aria-modal`. Sustituye al `Modal` en
-`EntrySheetModal` y `NpcSheetModal`. **Precedente que lo justifica**: `EncounterMenu`, `DiceRoller` y
-`BackgroundPopover` ya son overlays locales por exactamente este motivo, y el `audit` los da por buenos.
+### 🎲 La tirada de criatura (rechazo 2) — construida
+`ui/CreatureRollPopover.tsx` + `domain/useCases/creatureRoll.ts`, diseño en el `.pen`
+«Bestiario/Tirar por una criatura · popover» (creado en esta sesión).
+- **No duplica la matemática**: arma la ficha que el motor sabe leer y delega en `engine.poolFor`.
+- Sin penalización por heridas (la criatura lleva Resistencia, no salud) · **nunca** coge dados de la
+  Reserva de Destino (es de los jugadores, p.88) · un **PNJ aliado tira con su ficha de personaje**.
+- Una característica **ausente no se ofrece**: el manual deja bloques sin publicar enteros.
+- **Comprobado de punta a punta contra la API real**: `POST /rolls → 200` y en el Registro aparece
+  **«AAMEL · COMBATE»** con sus 8 dados contra la dificultad. Antes ponía «3D12 · GAME MASTER ROOT».
 
-Tokens que hay que usar (los define `.tb-root` en `table.css`, línea 5):
-`--sys-card:#f2f0ea80` · `--sys-paper-hi:#efede7` · `--sys-border:#949288` · `--sys-line:#8a887e`
-`--sys-ink:#131310` · `--sys-ink-soft:#221f19` · `--sys-ink-dim:#3b382f` · `--sys-gold:#8a7038`
-`--sys-card-shadow:0 3px 10px #13131040` · `--sys-font-display` / `--sys-font-body`
+### 🔠 Las letras (rechazo 4)
+La norma, ya escrita en `bestiary.css` y `table.css`: **el texto que se LEE va en `--sys-ink-soft` y con
+`font-weight:500`; nunca en `--sys-ink-dim`**, que queda para filetes y adornos grandes. Las dos veces
+anteriores se intentó bajando sólo el color del token y no bastó — **el problema es el PESO**, porque
+Cormorant Garamond es una romana de trazo fino.
+Tocados: `bestiary.css` entero · `table.css` (`.tb-dim`, `.tb-placeholder`) · `maps.css` (`.mp-enc-sub`) ·
+`packages/ui/src/components/sheet.css` (6 reglas) · `characters.css` (7 reglas).
 
-Y en `bestiary.css` hay que **quitar todos los tokens de plataforma de las secciones de las fichas**
-(`--sf2`, `--bd`, `--bd2`, `--tx`, `--tx3`, `--red`, `--red-dim`, `--green`, `--r`) y pasarlos a `--sys-*`.
-Están en los bloques `.bs-sheet*`, `.bs-stat*`, `.bs-tile*`, `.bs-scope`, `.bs-label`, `.bs-textarea`,
-`.bs-note`, `.bs-error`, `.bs-photo*`, `.bs-npc`.
+### 📄 Ficheros
+**Nuevos:** `bestiary/ui/SheetOverlay.tsx` (+test, 8) · `bestiary/ui/CreatureRollPopover.tsx` (+test, 8) ·
+`bestiary/domain/useCases/creatureRoll.ts` (+test, 10) ·
+`tests/regression/bestiary-sheets-on-parchment.test.tsx` (5).
+**Modificados:** `EntrySheetModal.tsx` · `NpcSheetModal.tsx` · `PhotoModal.tsx` · `BestiaryTab.tsx` (+test) ·
+`bestiary.css` · `TablePage.tsx` · `table.css` · `maps.css` · `characters.css` · `sheet.css` ·
+`locales/{es,en}.json` · `specs/modules/bestiary/SPEC.md` · `rolvium.pen` · `apps/web/shot-bestiary.mjs`.
 
-### 🔠 El punto 4 (letras) — lo que hay que hacer
-El dueño lo ha pedido **más de una vez** y sigue sin estar. No es sólo color: dice **«y con más cuerpo»**, o
-sea **peso**, porque la tipografía de la mesa es una serif fina y a tamaño pequeño se deshace.
-En `bestiary.css` hoy hay mucho texto en `--sys-ink-dim` (#3b382f) y a `--fs-2xs`.
-- Texto secundario (`.bs-card-notes`, `.bs-card-stats`, `.bs-card-src`, `.bs-sub`, `.bs-onlydm`,
-  `.bs-stat-none`, `.bs-tile-h`, `.bs-scope-h`, `.bs-photo-meta`) → **`--sys-ink-soft`**, nunca `ink-dim`.
-- Botones (`.bs-btn`) → color **`--sys-ink`** y **`font-weight:600`** (hoy heredan el peso normal).
-- Subir un escalón de tamaño lo que esté en `--fs-2xs` y sea texto de leer (no rótulos).
-- `table.css` sólo usa pesos 500 y 600: mantenerse en ese rango, no inventar 700.
-⚠ Comprobarlo **en pantalla**, no por el valor del token: el problema es de legibilidad, no de contraste
-medido. Y mirar también la mesa entera, porque el dueño dijo «las letras de TODO».
+### ⚠️ PENDIENTE DE DECIDIR (nada de esto está hecho)
+- **Review y QA NO se han pasado.** Esta sesión tenía instrucción de no lanzar subagentes, así que se
+  hicieron sólo las comprobaciones mecánicas (audit, tests, builds, fronteras hexagonales, hex crudos,
+  i18n). **Antes de mergear hay que pasar `/review` y `/qa`** — y el hook de QA lo bloquea igualmente.
+- **`bestiary_entries` sigue SIN estar en producción.** Repetir `get_advisors` DESPUÉS de subir la
+  migración: el chequeo limpio de antes hablaba de una tabla que no está allí.
+- **La ficha del encuentro perdió el arrastrar-y-soltar de imagen.** Se cambió `ImagePicker` (pintado con
+  tokens de plataforma en estilos en línea: sobre el papel era un recuadro oscuro) por el botón «SUBIR
+  IMAGEN (WEBP)» del `.pen`, con el mismo camino que ya usa `NpcSheetModal`. Sube, comprime y avisa igual.
+  **Si el dueño quiere el arrastrar-y-soltar de vuelta**, hay que vestir `ImagePicker` con `--sys-*`, y eso
+  toca un componente compartido con `characters` y `maps`.
+- **`ConfirmModal` (borrar una entrada) sigue siendo el modal negro de plataforma.** No se tocó: vestirlo
+  es o duplicar un componente compartido o migrar a sus otros consumidores. Decisión del dueño.
+- **En el `.pen` quedan textos pequeños en `ink-dim` en OTROS frames** (fichas de personaje, escena,
+  campañas). No se barrieron en bloque para no reescribir el master sin permiso. Hay una nota dentro del
+  `.pen` («Regla de tipografia — texto pequeno») con el cambio mecánico que haría falta.
+- **`.tb-person-label` está a `font-size:8px` crudo** — ilegible y además px crudo. No se tocó porque subirlo
+  mueve la maqueta bajo los avatares y hay que mirarlo.
+- El **bucket `tokens` sigue siendo PÚBLICO** — deuda aparcada a propósito por el dueño el 2026-08-20.
 
-### 🎲 El punto 2 (Tirar) — qué se estableció de verdad
-Hoy `TablePage.tsx:134` hace `onRoll={() => setRollerOpen(true)}`: abre el lanzador libre y **tira la entrada
-a la basura**. Lo que se diseñó está en el `.pen`, frame **`v3vfV` «Mesa/Tiradas · rediseño — quién ve qué»**,
-columnas `Popover/Tirar` (`UnY4s`) y `Panel/Director` (`QWHSS`): elegir característica, ver cuántos dados,
-marcar la especialidad de ESA criatura, y elegir visibilidad mesa/DJ/secreta.
-**Por eso se metieron las especialidades como dato.** Es H6 y no está construido; el Bestiario era su
-requisito previo y ya está cubierto. **Decidir con el dueño**: o se construye el popover de tirada del
-director ahora, o «Tirar» se quita de las fichas hasta que exista — pero dejarlo abriendo el lanzador libre
-no vale, porque promete algo que no hace.
-
-### 📌 Lo que SÍ quedó bien (no volver a tocarlo)
-- El **catálogo** en pergamino: rejilla, buscador, filtros, «SOLO DIRECTOR». El dueño sólo se quejó de la letra.
-- Los números del manual, comprobados en pantalla: Aamel 33 (Aguante 11 × 3), Azelías 30, Arpía 15.
-- Las cajas de características **alineadas**, que fue corrección suya.
-- La Resistencia apagada con «se calcula».
-- **El avatar ya sube** en ficha de PJ y de PNJ; el generador dice «podrás ponerle imagen al terminar».
-- La imagen del encuentro sube y se ve (probado por el dueño: subió una a «Allen Dallas (2)»).
-
-### ⚠️ Antes de mergear, sin falta
-- **`bestiary_entries` NO existe en producción** (comprobado con `list_tables`, no de memoria). El chequeo de
-  advisors que salió limpio hablaba de una tabla que no está: **repetirlo DESPUÉS de subir la migración**.
-- Ojo con el **GRANT**: se descubrió mirando la app que faltaba y daba 403 en todo. Ya está en la migración.
-
-### 🧰 Cómo mirar la app (obligatorio antes de dar nada por bueno)
-Entorno levantado: Docker + Supabase local + `dev:api` :3001 + `dev:web` :5173.
+### 🧰 Cómo mirarlo
+Docker + Supabase local + `dev:api` :3001 + `dev:web` :5173.
 `http://localhost:5173/table/8f506705-e348-415c-82a9-5a37e2c0ce51` · `admin@rolvium.local` / `rolvium123`.
-Capturas: `node scripts/shot-bestiary.mjs` **ejecutado desde `apps/web`** (playwright vive ahí, no en la raíz).
-Salen en `/tmp/bs-*.png`.
+Capturas: `node shot-bestiary.mjs` **desde `apps/web`** (playwright vive ahí). Salen en `/tmp/bs-*.png`:
+`bs-catalogo` · `bs-ficha` · `bs-foto` · `bs-pnj` · **`bs-tirada`** (nuevo).
 
 ---
 

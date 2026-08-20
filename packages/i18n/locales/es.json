@@ -871,6 +871,7 @@
       "notes": "Notas",
       "stats": "Características y especialidades",
       "image": "Imagen",
+      "imageUpload": "Subir imagen (WebP)",
       "imageHint": "PNG, JPG, WebP o GIF · máx. 8 MB · se comprime sola a WebP",
       "imageCta": "Arrastra una imagen o pulsa para elegirla",
       "savings": "Comprimida: {{s}}",
@@ -885,6 +886,21 @@
       "clearValue": "Dejar esta característica sin valor",
       "allCampaigns": "Guardar para todas mis campañas",
       "allCampaignsHint": "sin marcar, vive sólo en esta partida"
+    },
+    "roll": {
+      "title": "Tirar por {{name}}",
+      "stat": "¿Con qué característica?",
+      "dice": "Dados que tiras",
+      "less": "Un dado menos",
+      "more": "Un dado más",
+      "from": "su {{stat}} {{n}}",
+      "extra": "{{n}} extra",
+      "specialty": "Le vale su especialidad: {{name}}",
+      "difficulty": "Dificultad",
+      "visibility": "¿Quién lo ve?",
+      "go": "Tirar {{n}}",
+      "noStats": "El manual no publica ninguna característica de esta criatura, así que no hay con qué tirar.",
+      "failed": "No se ha podido tirar. Inténtalo otra vez."
     },
     "image": {
       "error": {

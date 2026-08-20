@@ -131,7 +131,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}
             {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} />}
-            {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={() => setTab('scene')} onRoll={() => setRollerOpen(true)} {...(bestiary ? { repo: bestiary } : {})} />}
+            {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={() => setTab('scene')} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
           </main>
           <aside className="tb-side">
             <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} />

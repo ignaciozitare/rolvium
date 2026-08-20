@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { Btn, CompressError, Modal, Sheet, compressImage, pickImageFile } from '@rolvium/ui';
+import { CompressError, Sheet, compressImage, pickImageFile } from '@rolvium/ui';
 import type { GameSystem, SheetPatch } from '@rolvium/core';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { errorText } from '../domain/useCases/errorText';
 import type { BestiaryEntry, CreatureData } from '../domain/entities/BestiaryEntry';
+import { SheetOverlay } from './SheetOverlay';
 
 interface Props {
   entry: BestiaryEntry;
@@ -94,7 +95,7 @@ export function NpcSheetModal({ entry, system, onSave, onUploadImage, onDelete, 
   };
 
   return (
-    <Modal title={t('bestiary.npc.title', { name })} onClose={onClose} width={980}>
+    <SheetOverlay title={t('bestiary.npc.title', { name })} width={980} onClose={onClose}>
       <div className="bs-npc">
         <p className="bs-note">{t('bestiary.npc.note')}</p>
         {error && <p className="bs-error" role="alert">{error}</p>}
@@ -107,13 +108,13 @@ export function NpcSheetModal({ entry, system, onSave, onUploadImage, onDelete, 
         />
 
         <div className="bs-sheet-foot">
-          <Btn variant="primary" onClick={save} loading={busy}>
-            {dirty ? t('bestiary.npc.saveDirty') : t('common.save')}
-          </Btn>
+          <button type="button" className="bs-btn bs-btn-on bs-btn-lg" onClick={save} disabled={busy}>
+            {busy ? t('common.saving') : dirty ? t('bestiary.npc.saveDirty') : t('common.save')}
+          </button>
           <span className="bs-card-sp" />
-          <Btn variant="danger" onClick={onDelete}>{t('common.delete')}</Btn>
+          <button type="button" className="bs-btn bs-btn-danger bs-btn-lg" onClick={onDelete} disabled={busy}>{t('common.delete')}</button>
         </div>
       </div>
-    </Modal>
+    </SheetOverlay>
   );
 }

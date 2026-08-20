@@ -871,6 +871,7 @@
       "notes": "Notes",
       "stats": "Characteristics and specialties",
       "image": "Image",
+      "imageUpload": "Upload image (WebP)",
       "imageHint": "PNG, JPG, WebP or GIF · max 8 MB · compressed to WebP automatically",
       "imageCta": "Drop an image or click to choose one",
       "savings": "Compressed: {{s}}",
@@ -885,6 +886,21 @@
       "clearValue": "Leave this characteristic without a value",
       "allCampaigns": "Save for all my campaigns",
       "allCampaignsHint": "unchecked, it lives only in this game"
+    },
+    "roll": {
+      "title": "Roll for {{name}}",
+      "stat": "Which characteristic?",
+      "dice": "Dice you roll",
+      "less": "One die fewer",
+      "more": "One die more",
+      "from": "its {{stat}} {{n}}",
+      "extra": "{{n}} extra",
+      "specialty": "Its specialty applies: {{name}}",
+      "difficulty": "Difficulty",
+      "visibility": "Who sees it?",
+      "go": "Roll {{n}}",
+      "noStats": "The manual publishes no characteristics for this creature, so there is nothing to roll.",
+      "failed": "The roll could not be made. Try again."
     },
     "image": {
       "error": {

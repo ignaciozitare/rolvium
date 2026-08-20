@@ -1,5 +1,5 @@
 import { useTranslation } from '@rolvium/i18n';
-import { Btn, Modal } from '@rolvium/ui';
+import { SheetOverlay } from './SheetOverlay';
 import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
 import { resistanceOf } from '../domain/useCases/bestiaryRules';
 import type { BestiaryEntry } from '../domain/entities/BestiaryEntry';
@@ -22,7 +22,7 @@ export function PhotoModal({ entry, onClose, onOpenSheet }: Props): JSX.Element 
   ].filter(Boolean).join(' · ');
 
   return (
-    <Modal title={entry.name} onClose={onClose} width={760} noPadding>
+    <SheetOverlay title={entry.name} width={760} noPadding onClose={onClose}>
       <div className="bs-photo">
         {entry.tokenUrl
           ? <img className="bs-photo-img" src={entry.tokenUrl} alt={t('bestiary.photo.alt', { name: entry.name })} />
@@ -33,8 +33,8 @@ export function PhotoModal({ entry, onClose, onOpenSheet }: Props): JSX.Element 
           <div className="bs-photo-name">{entry.name}</div>
           <div className="bs-photo-meta">{meta}</div>
         </div>
-        {onOpenSheet && <Btn variant="ghost" size="sm" onClick={onOpenSheet}>{t('bestiary.photo.openSheet')}</Btn>}
+        {onOpenSheet && <button type="button" className="bs-btn bs-btn-lg" onClick={onOpenSheet}>{t('bestiary.photo.openSheet')}</button>}
       </div>
-    </Modal>
+    </SheetOverlay>
   );
 }

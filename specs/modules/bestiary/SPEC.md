@@ -46,12 +46,30 @@ escrito para que nadie lo lea como que está terminado:
 | **Colocar** | Lleva a la escena. **Colocar de verdad** se hace desde el desplegable «Encuentro» de la escena, que sí funciona y sí crea la instancia enlazada con su Resistencia. |
 | **Editar / Duplicar** | ✅ Hace lo que dice. Del manual duplica; de las propias edita. |
 | **Ver foto** | ✅ Hace lo que dice. |
-| **Tirar** | Abre el **lanzador libre**, no tira en nombre de la criatura: ni sus características, ni el selector de especialidad, ni la visibilidad mesa/DJ/secreta. |
+| **Tirar** | ✅ **Cerrado el 2026-08-21.** Tira EN NOMBRE de la criatura: se elige característica (sólo las que el manual publica de ese bloque), se ve cuántos dados salen antes de tirar, se marca su especialidad, se elige dificultad y quién lo ve (mesa / DJ / secreta). |
 
-**«Tirar en su nombre» es la cabecera del spec y es lo que justificó meter las especialidades como dato**, así
-que no está cerrado hasta que exista el **panel del director de las tiradas** (H6), que es la pieza que las
-consume. El bestiario era su requisito previo —sin encuentros con características no hay con qué atacar— y ese
-requisito ya está cubierto.
+### «Tirar en su nombre» — cómo quedó (2026-08-21)
+Era la cabecera del spec y lo que justificó meter las especialidades como dato. Hasta el 2026-08-21 el botón
+abría el **lanzador libre**, que tiraba dados sueltos y tiraba la criatura a la basura; el dueño lo rechazó
+(«no lo que establecimos»). Construido en `ui/CreatureRollPopover.tsx` + `domain/useCases/creatureRoll.ts`,
+diseño en el `.pen` «Bestiario/Tirar por una criatura · popover».
+
+- **No duplica la matemática de dados.** Arma la forma de ficha que el motor del sistema ya sabe leer y
+  delega en `engine.poolFor`. Las reglas viven en el paquete del sistema y sólo ahí — con las reglas manda
+  el manual (regla del dueño, 2026-08-17).
+- **Sin penalización por heridas**: una criatura lleva Resistencia, no estado de salud, y el libro no le
+  resta dados por estar dañada. Restárselos sería inventarse una regla.
+- **Nunca coge dados de la Reserva de Destino**: la reserva es de la mesa, de los jugadores (p.88). Si el
+  director le robara dados al grupo sin que se viera, sería un agujero de juego, no un detalle.
+- **Un PNJ aliado tira con SU ficha de personaje**, con sus dones, su armadura y su penalización por heridas.
+- **Una característica ausente no se ofrece**: el manual deja bloques sin publicar entera (el mutante), y
+  ausente no es 0.
+- El Registro lo titula **«{criatura} · {característica}»**, ya traducido, porque el nombre es texto libre
+  del director y no existe en ningún diccionario: el Registro es acta de lo que pasó, no plantilla.
+
+**Lo que sigue siendo H6 y NO está aquí**: el panel del director completo —pedir tirada a los jugadores
+(mantener pulsada una característica y elegir dificultad sin soltar), la lista de encuentros de la escena y
+el botón ATACAR—. El `.pen` lo tiene diseñado en `Panel/Director`.
 
 - **«N en escena»** estaba en el diseño y **se ha quitado del código**: necesita los tokens de la escena activa,
   que esta pestaña no carga. Mejor no tenerlo que tener un contador que nunca se pinta.

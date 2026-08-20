@@ -26,7 +26,12 @@
 .tb-table{flex:1 1 auto;min-height:0;padding:8px 12px 10px;display:flex;flex-direction:column;gap:8px;color:var(--sys-ink);
   font-family:var(--sys-font-body);background:var(--sys-bg) var(--sys-bg-image) center/cover fixed;}
 .tb-rotulo{font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;color:var(--sys-ink-soft);}
-.tb-dim{color:var(--sys-ink-dim);}.tb-italic{font-style:italic;}.tb-gold{color:var(--sys-gold);}
+/* `tb-dim` NO es `ink-dim`. Cormorant Garamond es una romana de trazo fino: a tamaño pequeño un gris
+   medio se deshace aunque el contraste medido sea correcto, así que el texto que se LEE va en `ink-soft`
+   y con peso 500. `ink-dim` queda para bordes y adornos. Pedido por el dueño tres veces —2026-08-19,
+   2026-08-20 y 2026-08-21 «no se lee, hace doler la cabeza»— y las dos primeras se arreglaron sólo
+   bajando el token, que no bastaba porque el problema es el PESO de la letra, no el color. */
+.tb-dim{color:var(--sys-ink-soft);font-weight:500;}.tb-italic{font-style:italic;}.tb-gold{color:var(--sys-gold);}
 .tb-head{display:flex;align-items:center;gap:16px;padding-bottom:6px;border-bottom:2px solid var(--sys-ink-soft);flex-wrap:wrap;}
 .tb-head-right{margin-left:auto;}
 .tb-head-left{display:flex;align-items:center;gap:14px;}
@@ -84,7 +89,7 @@
   background:transparent;color:var(--sys-ink-dim);}
 .tb-side{width:264px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;min-height:0;}
 .tb-hoja{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:16px;}
-.tb-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 16px;text-align:center;color:var(--sys-ink-dim);}
+.tb-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 16px;text-align:center;color:var(--sys-ink-soft);font-weight:500;}
 .tb-state{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--tx);}
 /* The scene is the one tab that must never scroll: it fills what the row gives it. */
 .tb-main:has(.mp-root){overflow:hidden;}

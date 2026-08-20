@@ -1,46 +1,71 @@
+/* ⚠ El espaciado va en px, no en `var(--sp-*)`. Esos tokens NO EXISTEN en el repo — se escribieron aquí
+   por costumbre y no los define nadie, así que el navegador tiraba la declaración entera y TODOS los
+   `gap` y `padding` de la pestaña salían a cero: la ficha amontonada que vio el dueño. La convención de
+   la casa para espaciado es el px crudo (`table.css`, `sheet.css`); los tokens obligatorios son los de
+   color y tipografía. Escala usada, la del .pen: 6 / 10 / 16. */
+
 /* Bestiario (H5) — .pen «Bestiario/Catálogo · pantalla completa» y «Ficha del encuentro».
    Va vestido con el tema del sistema de juego (--sys-*), como el resto de la mesa: dentro del pergamino los
-   tokens de la plataforma (--sf, --ac) desentonan. Los modales sí usan los de la plataforma, porque son
-   chrome de Rolvium y no hoja de juego. */
+   tokens de la plataforma (--sf, --ac) desentonan.
 
-.bs-tab { display: flex; flex-direction: column; gap: var(--sp-md); }
+   ⚠ Regla de toda la pestaña, sin excepción: aquí NO entra un token de plataforma. Las fichas se
+   construyeron dentro del `Modal` de `@rolvium/ui` — panel `--sf` sobre scrim negro — y salió una hoja de
+   juego dibujada en papel metida en una caja negra: el rechazo del dueño del 2026-08-21. Los modales del
+   bestiario son `SheetOverlay`, no `Modal`, y todo lo de abajo va en `--sys-*`.
+
+   ⚠ Y las letras van con CUERPO: Cormorant Garamond es una romana de trazo fino, así que a tamaño pequeño
+   un gris medio se deshace aunque el contraste medido sea correcto (dueño, tres veces ya: 2026-08-19,
+   2026-08-20 y 2026-08-21 «hace doler la cabeza»). Norma de la casa aquí: el texto que se LEE va en
+   `--sys-ink-soft` como mínimo — nunca `--sys-ink-dim` — y con `font-weight:500`. `--sys-ink-dim` queda
+   sólo para lo decorativo grande (iniciales) y los bordes. */
+
+.bs-tab { display: flex; flex-direction: column; gap: 16px; }
 
 /* ── cabecera ───────────────────────────────────────────────────────────── */
-.bs-head { display: flex; align-items: center; gap: var(--sp-sm); }
+.bs-head { display: flex; align-items: center; gap: 10px; }
 .bs-title { font-family: var(--sys-font-display); font-size: var(--fs-lg); letter-spacing: .18em; color: var(--sys-ink); margin: 0; }
-.bs-sub { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; color: var(--sys-ink-dim); margin: 2px 0 0; }
+.bs-sub { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); margin: 2px 0 0; }
 .bs-card-sp { flex: 1; }
 
-.bs-search { display: flex; align-items: center; gap: var(--sp-xs); width: 240px;
-  background: var(--sys-paper-hi); border: 1px solid var(--sys-line); padding: 6px 9px; color: var(--sys-ink-dim); }
+.bs-search { display: flex; align-items: center; gap: 6px; width: 240px;
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-line); padding: 6px 9px; color: var(--sys-ink-soft); }
 .bs-search input { flex: 1; background: none; border: none; outline: none; color: var(--sys-ink);
-  font-family: var(--sys-font-body); font-size: var(--fs-sm); }
+  font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500; }
+.bs-search input::placeholder { color: var(--sys-ink-soft); opacity: .75; }
 
 /* ── aviso solo director ────────────────────────────────────────────────── */
-.bs-onlydm { display: flex; align-items: center; gap: var(--sp-sm); margin: 0;
+.bs-onlydm { display: flex; align-items: center; gap: 10px; margin: 0;
   background: var(--sys-paper-hi); border: 1px solid var(--sys-gold); padding: 8px 10px;
-  font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; color: var(--sys-ink-dim); }
+  font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); }
 .bs-onlydm-tag { background: var(--sys-gold); color: var(--sys-bg); padding: 2px 7px; letter-spacing: .16em;
-  font-size: var(--fs-2xs); font-style: normal; white-space: nowrap; }
+  font-size: var(--fs-2xs); font-weight: 600; font-style: normal; white-space: nowrap; }
 
-/* ── botones del pergamino (ver la nota de reutilización en EntryCard.tsx) ── */
-.bs-btn { background: none; border: 1px solid var(--sys-line); color: var(--sys-ink-soft); cursor: pointer;
-  font-family: var(--sys-font-body); font-size: var(--fs-2xs); letter-spacing: .12em; text-transform: uppercase;
+/* ── botones del pergamino (ver la nota de reutilización en EntryCard.tsx) ──
+   Son los tres del pie del `.pen`: GUARDAR (tinta llena), DUPLICAR (filete) y BORRAR (filete de sangre).
+   Peso 600 y tinta plena: en versalitas a 12 px el peso normal no se lee (punto 4 del dueño). */
+.bs-btn { background: none; border: 1px solid var(--sys-line); color: var(--sys-ink); cursor: pointer;
+  font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
   padding: 4px 9px; transition: background .15s, border-color .15s, color .15s; }
-.bs-btn:hover { border-color: var(--sys-ink-soft); color: var(--sys-ink); }
+.bs-btn:hover { border-color: var(--sys-ink-soft); background: var(--sys-paper-hi); }
 .bs-btn.on, .bs-btn[aria-pressed='true'] { background: var(--sys-paper-hi); border-color: var(--sys-ink-soft); color: var(--sys-ink); }
-.bs-btn-on { background: var(--sys-ink); border-color: var(--sys-ink); color: var(--sys-paper-hi); }
-.bs-btn-on:hover { background: var(--sys-ink-soft); border-color: var(--sys-ink-soft); color: var(--sys-paper-hi); }
+/* `.bs-btn.bs-btn-on` y no `.bs-btn-on`: con una sola clase pierde contra `.bs-btn[aria-pressed='true']`
+   de la regla de arriba, así que el botón elegido salía con filete en vez de relleno de tinta. No se podía
+   ver de otra forma que mirando la pantalla: compila y pasa los tests igual. */
+.bs-btn.bs-btn-on { background: var(--sys-ink); border-color: var(--sys-ink); color: var(--sys-paper-hi); }
+.bs-btn.bs-btn-on:hover { background: var(--sys-ink-soft); border-color: var(--sys-ink-soft); color: var(--sys-paper-hi); }
+.bs-btn-danger { border-color: var(--sys-blood); color: var(--sys-blood); }
+.bs-btn-danger:hover { background: var(--sys-blood); border-color: var(--sys-blood); color: var(--sys-paper-hi); }
 .bs-btn-lg { padding: 7px 12px; font-size: var(--fs-xs); }
-.bs-btn:focus-visible, .bs-icon:focus-visible, .bs-card-eye:focus-visible { outline: 2px solid var(--sys-gold); outline-offset: 2px; }
+.bs-btn:disabled { opacity: .55; cursor: default; }
+.bs-btn:focus-visible, .bs-icon:focus-visible, .bs-card-eye:focus-visible, .bs-ov-x:focus-visible { outline: 2px solid var(--sys-gold); outline-offset: 2px; }
 
-.bs-icon { background: none; border: none; cursor: pointer; color: var(--sys-ink-dim); padding: 3px; display: inline-flex; }
+.bs-icon { background: none; border: none; cursor: pointer; color: var(--sys-ink-soft); padding: 3px; display: inline-flex; }
 .bs-icon:hover { color: var(--sys-ink); }
 
-.bs-filters { display: flex; gap: var(--sp-xs); align-items: center; }
+.bs-filters { display: flex; gap: 6px; align-items: center; }
 
 /* ── rejilla de fichas ──────────────────────────────────────────────────── */
-.bs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--sp-md); }
+.bs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 
 .bs-card { display: flex; flex-direction: column; background: var(--sys-card); border: 1px solid var(--sys-border);
   box-shadow: var(--sys-card-shadow); }
@@ -58,78 +83,123 @@
 .bs-card-eye:hover { opacity: 1; }
 
 .bs-card-placed { position: absolute; left: 10px; bottom: 10px; background: var(--sys-bg); color: var(--sys-paper-hi);
-  font-family: var(--sys-font-body); font-size: var(--fs-2xs); letter-spacing: .1em; padding: 2px 7px; }
+  font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .1em; padding: 2px 7px; }
 
-.bs-card-body { display: flex; flex-direction: column; gap: 6px; padding: var(--sp-sm); }
-.bs-card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-xs); }
+.bs-card-body { display: flex; flex-direction: column; gap: 6px; padding: 10px; }
+.bs-card-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .bs-card-name { font-family: var(--sys-font-display); font-size: var(--fs-md); color: var(--sys-ink); margin: 0; }
-.bs-card-stats { font-family: var(--sys-font-body); font-size: var(--fs-xs); color: var(--sys-ink-soft); margin: 0; }
-.bs-card-notes { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; color: var(--sys-ink-dim); margin: 0;
+.bs-card-stats { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500; color: var(--sys-ink-soft); margin: 0; }
+.bs-card-notes { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); margin: 0;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.bs-card-src { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-style: italic; color: var(--sys-ink-dim); margin: 0; }
+.bs-card-src { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); margin: 0; }
 .bs-card-actions { display: flex; align-items: center; gap: 5px; padding-top: 4px; }
 
 .bs-card-specs { display: flex; flex-wrap: wrap; gap: 5px; list-style: none; margin: 0; padding: 0; }
 .bs-spec { background: var(--sys-paper-hi); border: 1px solid var(--sys-ink-soft); color: var(--sys-ink);
-  font-family: var(--sys-font-body); font-size: var(--fs-2xs); padding: 2px 7px; }
+  font-family: var(--sys-font-body); font-size: var(--fs-xs); font-weight: 500; padding: 2px 7px; }
 
-.bs-origin { font-family: var(--sys-font-body); font-size: var(--fs-2xs); letter-spacing: .1em; padding: 2px 7px;
-  border: 1px solid var(--sys-line); color: var(--sys-ink-dim); white-space: nowrap; }
+.bs-origin { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .1em; padding: 2px 7px;
+  border: 1px solid var(--sys-line); color: var(--sys-ink-soft); white-space: nowrap; }
 .bs-origin-custom, .bs-origin-npc { border-color: var(--sys-ink-soft); color: var(--sys-ink); background: var(--sys-paper-hi); }
 
-/* ── ficha del encuentro (dentro del Modal de la plataforma) ─────────────── */
-.bs-sheet { display: flex; flex-direction: column; gap: var(--sp-md); }
-.bs-note { font-size: var(--fs-xs); font-style: italic; color: var(--tx3); margin: 0; }
-.bs-error { font-size: var(--fs-xs); color: var(--red); background: var(--red-dim); padding: 8px 10px; margin: 0; border-radius: var(--r); }
+/* ── la hoja de pergamino que envuelve las fichas (`SheetOverlay`) ─────────
+   `PL/Hoja` del .pen: papel `--sys-card` sobre la piedra de la mesa CON su textura, filete de `--sys-border`
+   y la sombra del sistema. El fondo NO es un velo oscuro a propósito: `--sys-card` es traslúcido (alfa 80),
+   así que sobre negro el papel sale sucio — que es justo lo que el dueño rechazó. */
+.bs-ov { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-start; justify-content: center;
+  padding: 16px; overflow-y: auto; background: var(--sys-bg) var(--sys-bg-image) center/cover fixed; }
 
-.bs-sheet-top { display: flex; gap: var(--sp-md); align-items: flex-start; }
-.bs-sheet-img { display: flex; flex-direction: column; gap: var(--sp-xs); width: 200px; flex-shrink: 0; }
-.bs-sheet-preview { width: 200px; height: 200px; display: flex; align-items: center; justify-content: center;
-  background: var(--sf2); border-radius: var(--r); overflow: hidden; }
-.bs-savings { font-size: var(--fs-2xs); color: var(--green); margin: 0; }
-.bs-sheet-fields { display: flex; flex-direction: column; gap: var(--sp-xs); flex: 1; }
+.bs-ov-sheet { width: 100%; margin: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  background: var(--sys-card); border: 1px solid var(--sys-border); box-shadow: var(--sys-card-shadow); outline: none; }
 
-.bs-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tx3); }
-.bs-textarea { width: 100%; background: var(--bg); border: 1px solid var(--bd); border-radius: var(--r);
-  color: var(--tx); font-family: inherit; font-size: var(--fs-sm); padding: 8px 10px; resize: vertical; }
+.bs-ov-head { display: flex; align-items: center; gap: 10px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--sys-border); }
+.bs-ov-title { font-family: var(--sys-font-display); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--sys-ink); margin: 0; }
+/* «Titulo Derecha» del .pen. Allí es `ink-dim`; sube a `ink-soft` por el punto 4 del dueño. */
+.bs-ov-note { flex: 1; font-family: var(--sys-font-body); font-size: var(--fs-xs); font-weight: 500;
+  letter-spacing: .12em; color: var(--sys-ink-soft); }
+.bs-ov-x { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--sys-ink-soft);
+  padding: 2px; display: inline-flex; }
+.bs-ov-x:hover { color: var(--sys-ink); }
+.bs-ov-body { display: flex; flex-direction: column; }
+.bs-ov-bleed { margin: 0 -16px -16px; }
 
-.bs-sec { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); margin: 0; }
+/* ── ficha del encuentro ────────────────────────────────────────────────── */
+.bs-sheet { display: flex; flex-direction: column; gap: 16px; }
+.bs-note { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic; font-weight: 500;
+  color: var(--sys-ink-soft); margin: 0; }
+.bs-error { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500; color: var(--sys-blood);
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-blood); padding: 8px 10px; margin: 0; }
+
+.bs-sheet-top { display: flex; gap: 16px; align-items: flex-start; }
+/* 152 px y no 200: es la medida del `.pen` (frame «Ficha del encuentro», Avatar 152×152). El botón y la
+   pista van a ese mismo ancho, o el rótulo «SUBIR IMAGEN» se sale de la columna y la pista se parte en
+   tres líneas que chocan con «CARACTERÍSTICAS» (visto en la app, no deducido). */
+.bs-sheet-img { display: flex; flex-direction: column; gap: 6px; width: 152px; flex-shrink: 0; }
+.bs-sheet-img .bs-btn { width: 100%; text-align: center; }
+.bs-sheet-hint { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-style: italic;
+  font-weight: 500; color: var(--sys-ink-soft); margin: 0; line-height: var(--lh-tight); }
+.bs-sheet-preview { width: 152px; height: 152px; display: flex; align-items: center; justify-content: center;
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-ink); overflow: hidden; }
+.bs-savings { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-weight: 500; color: var(--sys-olive); margin: 0; }
+.bs-sheet-fields { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+
+.bs-label { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--sys-ink-soft); }
+/* Caja de campo del `.pen` («Nombre»/«Notas»: relleno `paper-hi`, filete `line`, tinta plena). No es el
+   `Field`/`rv-inp` de la plataforma a propósito: aquél va en `--bg`/`--bd`/`--tx` y sobre el papel sale
+   una caja negra. */
+.bs-input, .bs-textarea { width: 100%; background: var(--sys-paper-hi); border: 1px solid var(--sys-line);
+  color: var(--sys-ink); font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500;
+  padding: 8px 10px; outline: none; }
+.bs-textarea { resize: vertical; }
+.bs-input:focus, .bs-textarea:focus { border-color: var(--sys-ink); }
+.bs-field { display: flex; flex-direction: column; gap: 4px; }
+
+.bs-sec { font-family: var(--sys-font-display); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--sys-ink); margin: 0; }
 
 /* Nombre y caja con MEDIDA FIJA: sin ellas «Fortaleza» y «Cultura» empujan la caja a distinta x y la
    columna de números sale escalonada (corrección pedida por el dueño sobre el diseño). */
 .bs-stats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.bs-stat { display: flex; align-items: center; gap: var(--sp-sm); padding: 6px 2px; border-bottom: 1px solid var(--bd2); }
-.bs-stat-name { width: 104px; flex-shrink: 0; font-size: var(--fs-sm); color: var(--tx); }
+.bs-stat { display: flex; align-items: center; gap: 10px; padding: 6px 2px; border-bottom: 1px solid var(--sys-line); }
+.bs-stat-name { width: 104px; flex-shrink: 0; font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500; color: var(--sys-ink); }
 .bs-stat-box, .bs-stat-absent { width: 52px; height: 34px; flex-shrink: 0; text-align: center; }
-.bs-stat-box { background: var(--bg); border: 1px solid var(--bd); border-radius: var(--r); color: var(--tx);
-  font-family: inherit; font-size: var(--fs-sm); }
-.bs-stat-absent { display: inline-flex; align-items: center; justify-content: center; color: var(--tx3); font-size: var(--fs-sm); }
+.bs-stat-box { background: var(--sys-paper-hi); border: 1px solid var(--sys-line); color: var(--sys-ink);
+  font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500; outline: none; }
+.bs-stat-box:focus { border-color: var(--sys-ink); }
+.bs-stat-absent { display: inline-flex; align-items: center; justify-content: center; color: var(--sys-ink-soft); font-size: var(--fs-sm); }
 .bs-stat-specs { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
-.bs-stat-none { font-size: var(--fs-2xs); font-style: italic; color: var(--tx3); }
+.bs-stat-none { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); }
 
-.bs-tiles { display: flex; gap: var(--sp-sm); }
+.bs-tiles { display: flex; gap: 10px; }
 .bs-tile { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px;
-  background: var(--sf2); border: 1px solid var(--bd); border-radius: var(--r); }
-.bs-tile-locked { background: none; }
-.bs-tile-l { font-size: var(--fs-2xs); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
-.bs-tile-in { width: 64px; text-align: center; background: var(--bg); border: 1px solid var(--bd); border-radius: var(--r);
-  color: var(--tx); font-family: inherit; font-size: var(--fs-lg); }
-.bs-tile-out { font-size: var(--fs-lg); color: var(--tx2); }
-.bs-tile-h { font-size: var(--fs-2xs); font-style: italic; color: var(--tx3); }
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-ink-soft); }
+/* La Resistencia no se teclea: se pinta apagada, con filete flojo y sin papel (`.pen`, Tile/Resistencia). */
+.bs-tile-locked { background: none; border-color: var(--sys-line); }
+.bs-tile-l { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--sys-ink-soft); }
+.bs-tile-in { width: 64px; text-align: center; background: var(--sys-paper-hi); border: 1px solid var(--sys-line);
+  color: var(--sys-ink); font-family: var(--sys-font-body); font-size: var(--fs-lg); outline: none; }
+.bs-tile-in:focus { border-color: var(--sys-ink); }
+.bs-tile-out { font-family: var(--sys-font-body); font-size: var(--fs-lg); color: var(--sys-ink-soft); }
+.bs-tile-h { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); }
 
-.bs-scope { display: flex; align-items: center; gap: var(--sp-xs); font-size: var(--fs-sm); color: var(--tx); }
-.bs-scope-h { font-size: var(--fs-2xs); font-style: italic; color: var(--tx3); }
+.bs-scope { display: flex; align-items: center; gap: 6px; font-family: var(--sys-font-body);
+  font-size: var(--fs-sm); font-weight: 500; color: var(--sys-ink); }
+.bs-scope-h { font-size: var(--fs-xs); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); }
 
-.bs-sheet-foot { display: flex; align-items: center; gap: var(--sp-xs); padding-top: var(--sp-xs); }
+.bs-sheet-foot { display: flex; align-items: center; gap: 6px; padding-top: 6px; }
 
 /* ── modal de la foto ───────────────────────────────────────────────────── */
-.bs-photo { height: 480px; background: var(--sf2); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.bs-photo { height: 480px; background: var(--sys-paper-lo); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .bs-photo-img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.bs-photo-fallback { font-size: var(--fs-display); color: var(--tx3); }
-.bs-photo-foot { display: flex; align-items: center; gap: var(--sp-sm); padding: var(--sp-md); }
+.bs-photo-fallback { font-family: var(--sys-font-display); font-size: var(--fs-display); color: var(--sys-ink-dim); }
+.bs-photo-foot { display: flex; align-items: center; gap: 10px; padding: 16px; }
 .bs-photo-foot > div { flex: 1; }
-.bs-photo-name { font-size: var(--fs-lg); color: var(--tx); }
-.bs-photo-meta { font-size: var(--fs-xs); font-style: italic; color: var(--tx3); }
+.bs-photo-name { font-family: var(--sys-font-display); font-size: var(--fs-lg); color: var(--sys-ink); }
+.bs-photo-meta { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); }
 
 @media (max-width: 720px) {
   .bs-sheet-top { flex-direction: column; }
@@ -137,4 +207,16 @@
 }
 
 /* ── ficha completa de un PNJ aliado (el mismo <Sheet> que un PJ) ─────────── */
-.bs-npc { display: flex; flex-direction: column; gap: var(--sp-md); }
+.bs-npc { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── tirar en nombre de una criatura (`.pen` «Popover/Tirar») ──────────────
+   Cuadro estrecho: se abre desde una ficha del catálogo para decidir una cosa y cerrarse, no para
+   trabajar dentro. Reutiliza el pergamino de `SheetOverlay` y los botones de filete del pie. */
+.bs-roll { display: flex; flex-direction: column; gap: 10px; }
+.bs-roll-stats { display: flex; flex-wrap: wrap; gap: 5px; }
+.bs-roll-dice { display: flex; flex-direction: column; gap: 4px; }
+.bs-roll-count { display: flex; align-items: center; gap: 8px; }
+.bs-roll-n { min-width: 44px; text-align: center; font-family: var(--sys-font-display);
+  font-size: var(--fs-xl); color: var(--sys-ink); line-height: 1; }
+.bs-roll-from { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic;
+  font-weight: 500; color: var(--sys-ink-soft); }

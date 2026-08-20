@@ -49,4 +49,15 @@ if (await npc.count()) {
   await pg.screenshot({ path: '/tmp/bs-pnj.png' });
 }
 console.log('ok', pg.url());
+
+// Desplegable de tirada de la criatura (rechazo n.º 2 del dueño)
+await pg.keyboard.press('Escape');
+await pg.waitForTimeout(600);
+const tirar = pg.getByRole('button', { name: 'Tirar' }).first();
+if (await tirar.count()) {
+  await tirar.click();
+  await pg.waitForTimeout(1500);
+  await pg.screenshot({ path: '/tmp/bs-tirada.png' });
+  console.log('desplegable de tirada capturado');
+}
 await b.close();
