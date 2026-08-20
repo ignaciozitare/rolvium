@@ -115,6 +115,41 @@ describe('BestiaryTab — las del manual no se editan', () => {
   });
 });
 
+describe('BestiaryTab — los PNJ aliados con ficha completa', () => {
+  const NPC = own({ id: 'be-npc', origin: 'npc', name: 'Padre Vidal',
+    data: { stats: {}, endurance: 0, destiny: 0, protection: 0, abilities: [], specialties: {}, sheet: { name: 'Padre Vidal' } } });
+
+  /**
+   * Un aliado abre la ficha COMPLETA de personaje, no el formulario de criatura: tiene dones, armas y
+   * equipo. Abrirle el de criatura le daría siete números sueltos y ningún sitio donde poner su escopeta.
+   */
+  it('un PNJ abre la ficha de personaje, no la de encuentro', async () => {
+    setup(makeRepo([NPC]));
+    const card = await cardOf('Padre Vidal');
+    await userEvent.click(within(card).getByRole('button', { name: 'Editar' }));
+    expect(await screen.findByRole('heading', { name: /Ficha de Padre Vidal/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Ficha del encuentro' })).not.toBeInTheDocument();
+  });
+
+  it('«Nuevo PNJ con ficha» crea una entrada de tipo PNJ con la ficha vacía', async () => {
+    const repo = makeRepo([NPC]);
+    setup(repo);
+    await screen.findByRole('heading', { name: 'Ogro' });
+    await userEvent.click(screen.getByRole('button', { name: '+ Nuevo PNJ con ficha' }));
+    await waitFor(() => expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({
+      origin: 'npc', campaignId: 'c1', data: expect.objectContaining({ sheet: {} }),
+    })));
+  });
+
+  it('el filtro «PNJ con ficha» los separa de los encuentros', async () => {
+    setup(makeRepo([NPC, own()]));
+    await screen.findByRole('heading', { name: 'Padre Vidal' });
+    await userEvent.click(screen.getByRole('button', { name: 'PNJ con ficha' }));
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Ogro con antorcha' })).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: 'Padre Vidal' })).toBeInTheDocument();
+  });
+});
+
 describe('BestiaryTab — la foto', () => {
   /** El ojo tiene que ser alcanzable sin ratón: si sólo apareciera al pasar por encima, con teclado no habría foto. */
   it('el ojo es un botón de verdad y abre la foto', async () => {

@@ -110,6 +110,26 @@ export function duplicateOf(entry: BestiaryEntry, existing: BestiaryEntry[], cam
 export const emptyEntry = (campaignId: string | null, systemId: string, name: string): NewBestiaryEntry =>
   ({ campaignId, systemId, origin: 'custom', name, data: structuredClone(EMPTY), notes: '', tokenUrl: null, sourceRef: null });
 
+/** Un PNJ aliado recién creado: misma entrada, pero con ficha de personaje en vez de bloque de criatura. */
+export const emptyNpc = (campaignId: string | null, systemId: string, name: string): NewBestiaryEntry =>
+  ({ campaignId, systemId, origin: 'npc', name, data: { ...structuredClone(EMPTY), sheet: {} }, notes: '', tokenUrl: null, sourceRef: null });
+
+/**
+ * Los valores de juego que el listado enseña de una entrada.
+ *
+ * Un PNJ con ficha NO los tiene sueltos: salen de su ficha, y quien sabe leerla es el motor del sistema
+ * (`engine.derived`). Por eso entra por parámetro en vez de leerse aquí — el dominio del bestiario no
+ * conoce el esquema de fichas de ningún sistema.
+ */
+export function gameValuesOf(entry: BestiaryEntry, derive?: (sheet: Record<string, unknown>) => Record<string, unknown>): { resistance: number; protection: number } {
+  if (entry.origin === 'npc' && entry.data.sheet && derive) {
+    const d = derive(entry.data.sheet);
+    const n = (v: unknown, fallback: number): number => (typeof v === 'number' ? v : fallback);
+    return { resistance: n(d['resistance'] ?? d['resistanceMax'], resistanceOf(entry.data)), protection: n(d['protection'], entry.data.protection) };
+  }
+  return { resistance: resistanceOf(entry.data), protection: entry.data.protection };
+}
+
 /**
  * Las especialidades que el director puede marcar al tirar por esta criatura con esa característica.
  * Vacío = ninguna, y entonces no se ofrece la casilla: el bloque pone «-» donde la característica es 0.

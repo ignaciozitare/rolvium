@@ -1,7 +1,7 @@
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
-import { resistanceOf } from '../domain/useCases/bestiaryRules';
+import { gameValuesOf } from '../domain/useCases/bestiaryRules';
 import type { BestiaryEntry } from '../domain/entities/BestiaryEntry';
 
 interface Props {
@@ -14,6 +14,11 @@ interface Props {
   onPhoto: (e: BestiaryEntry) => void;
   onMore: (e: BestiaryEntry) => void;
   placedCount?: number;
+  /**
+   * Lee la ficha de un PNJ para sacar sus valores de juego. Entra por parámetro porque quien sabe leerla
+   * es el motor del sistema, y esta ficha no conoce ningún sistema.
+   */
+  derive?: (sheet: Record<string, unknown>) => Record<string, unknown>;
 }
 
 const ORIGIN_KEY = { manual: 'bestiary.origin.manual', custom: 'bestiary.origin.custom', npc: 'bestiary.origin.npc' } as const;
@@ -31,9 +36,10 @@ const ORIGIN_KEY = { manual: 'bestiary.origin.manual', custom: 'bestiary.origin.
  * siguen `EncounterMenu` y `StrokeBar` de `maps`, con sus clases `mp-*`. Donde sí manda el estilo de la
  * plataforma —los modales— se usan los componentes compartidos: `Modal`, `Btn` y `Tooltip`.
  */
-export function EntryCard({ entry, specialtyLabel, onRoll, onPlace, onEdit, onPhoto, onMore, placedCount = 0 }: Props): JSX.Element {
+export function EntryCard({ entry, specialtyLabel, onRoll, onPlace, onEdit, onPhoto, onMore, placedCount = 0, derive }: Props): JSX.Element {
   const { t } = useTranslation();
   const specs = Object.values(entry.data.specialties).flat().slice(0, 2);
+  const { resistance, protection } = gameValuesOf(entry, derive);
   const editKey = entry.editable ? 'bestiary.action.edit' : 'bestiary.action.duplicate';
 
   return (
@@ -57,7 +63,7 @@ export function EntryCard({ entry, specialtyLabel, onRoll, onPlace, onEdit, onPh
         </div>
 
         <p className="bs-card-stats">
-          {t('bestiary.card.resistance', { n: String(resistanceOf(entry.data)) })} · {t('bestiary.card.protection', { n: String(entry.data.protection) })}
+          {t('bestiary.card.resistance', { n: String(resistance) })} · {t('bestiary.card.protection', { n: String(protection) })}
         </p>
 
         {specs.length > 0 && (
@@ -69,7 +75,8 @@ export function EntryCard({ entry, specialtyLabel, onRoll, onPlace, onEdit, onPh
         {entry.notes && <p className="bs-card-notes">{entry.notes}</p>}
 
         <p className="bs-card-src">
-          {entry.data.page ? t('bestiary.card.page', { n: String(entry.data.page) }) : t('bestiary.card.own')}
+          {entry.data.page ? t('bestiary.card.page', { n: String(entry.data.page) })
+            : entry.origin === 'npc' ? t('bestiary.card.npcSheet') : t('bestiary.card.own')}
         </p>
 
         <div className="bs-card-actions">

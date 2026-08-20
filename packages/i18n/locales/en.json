@@ -840,7 +840,8 @@
       "protection": "Protection {{n}}",
       "page": "book p.{{n}}",
       "own": "your own encounter",
-      "placed": "{{n}} on the scene"
+      "placed": "{{n}} on the scene",
+      "npcSheet": "NPC sheet"
     },
     "photo": {
       "page": "book p.{{n}}",
@@ -886,6 +887,13 @@
         "decode": "That image could not be read.",
         "upload": "The image could not be uploaded. Try again."
       }
+    },
+    "newNpc": "+ New NPC with a sheet",
+    "newNpcName": "Unnamed NPC",
+    "npc": {
+      "title": "{{name}}’s sheet",
+      "note": "This is the same sheet a player character uses. Changes are NOT saved on their own: press Save before closing.",
+      "saveDirty": "Save changes"
     }
   }
 }

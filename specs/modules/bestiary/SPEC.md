@@ -24,11 +24,18 @@ contenedor · compresor de imágenes · catálogo a pantalla completa en la pest
 de crear/editar · modal de la foto · claves i18n en es y en. 591 tests en verde, `audit` 0 hard, ambas apps
 compilando. **Sin mergear**: falta Review + QA.
 
-**Pendiente**: los PNJ aliados con la ficha COMPLETA de personaje (reutilizando `<Sheet>` de `characters`)
-siguen sin construir — el origen `npc` existe en base, dominio y filtros, pero la ficha que se abre hoy es la
-del encuentro, no la de personaje. Y alimentar `EncounterMenu` de la escena con las entradas propias además
-del catálogo: hoy el botón «Colocar» del catálogo lleva a la escena, pero el desplegable de allí sigue
-enseñando sólo las del manual.
+~~Pendiente: PNJ con ficha completa y encuentros propios en la escena~~ → **hechos**. El desplegable de la
+escena une ahora las 45 del manual con los encuentros propios, y colocarlos crea una instancia enlazada a su
+fila (`maps_tokens.bestiary_entry_id`, ON DELETE SET NULL). Los PNJ aliados abren el **mismo `<Sheet>`** que
+un personaje jugador, con su ficha guardada en `data.sheet` de la entrada.
+
+**Dos decisiones de esa ficha de PNJ, para que no se relean como despistes:**
+- **No se guarda sola**, al revés que la de un PJ. Es una ventana que el director abre y cierra: un guardado
+  automático dentro de un modal le deja sin saber si lo que tocó quedó guardado. Hay botón, y el botón avisa
+  cuando hay cambios sin guardar.
+- **Los números de un PNJ salen de su ficha**, no de `Aguante × 3`. Quien sabe leerla es el motor del sistema
+  (`engine.derived`), así que entra por parámetro: el dominio del bestiario no conoce el esquema de fichas de
+  ningún sistema. Si se calculara como una criatura, todos los PNJ saldrían con Resistencia 0.
 
 ### Alcance de esta tanda (dueño, 2026-08-20)
 **El hexágono entero de una vez**, no una rebanada: listado + encuentros propios (crear, editar, duplicar, borrar)

@@ -840,7 +840,8 @@
       "protection": "Protección {{n}}",
       "page": "manual p.{{n}}",
       "own": "encuentro propio",
-      "placed": "{{n}} en escena"
+      "placed": "{{n}} en escena",
+      "npcSheet": "ficha de PNJ"
     },
     "photo": {
       "page": "manual p.{{n}}",
@@ -886,6 +887,13 @@
         "decode": "No se ha podido leer esa imagen.",
         "upload": "No se ha podido subir la imagen. Inténtalo otra vez."
       }
+    },
+    "newNpc": "+ Nuevo PNJ con ficha",
+    "newNpcName": "PNJ sin nombre",
+    "npc": {
+      "title": "Ficha de {{name}}",
+      "note": "Es la misma ficha que la de un personaje jugador. Los cambios NO se guardan solos: pulsa Guardar antes de cerrar.",
+      "saveDirty": "Guardar cambios"
     }
   }
 }

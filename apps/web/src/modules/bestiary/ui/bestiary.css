@@ -135,3 +135,6 @@
   .bs-sheet-top { flex-direction: column; }
   .bs-sheet-img, .bs-sheet-preview { width: 100%; }
 }
+
+/* ── ficha completa de un PNJ aliado (el mismo <Sheet> que un PJ) ─────────── */
+.bs-npc { display: flex; flex-direction: column; gap: var(--sp-md); }

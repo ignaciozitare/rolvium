@@ -35,6 +35,17 @@ export interface CreatureData {
   specialties: Partial<Record<StatId, string[]>>;
   /** Página del manual, cuando la entrada viene de él o se duplicó de una que venía. */
   page?: number;
+  /**
+   * Sólo en las entradas de origen `npc`: la ficha COMPLETA de personaje, con la misma forma que
+   * `characters.data`, para poder pintarla con el mismo `<Sheet>` del sistema.
+   *
+   * Va aquí dentro y no en una columna aparte porque un PNJ aliado es una entrada más del bestiario —
+   * se lista, se busca, se coloca en escena y se tira por él igual que por un ogro. Lo único distinto
+   * es que su ficha tiene dones, equipo y armas en vez de siete números sueltos.
+   *
+   * Ausente en un `npc` = ficha recién creada y aún vacía; se trata como `{}`, no como un error.
+   */
+  sheet?: Record<string, unknown>;
 }
 
 /** Una entrada del listado, ya unificadas las dos fuentes. */

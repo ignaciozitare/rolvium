@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { ConfirmModal, EmptyState } from '@rolvium/ui';
 import type { GameSystem } from '@rolvium/core';
-import { emptyEntry } from '../domain/useCases/bestiaryRules';
+import { emptyEntry, emptyNpc } from '../domain/useCases/bestiaryRules';
 import type { BestiaryEntry, OriginFilter } from '../domain/entities/BestiaryEntry';
 import { useBestiary } from './useBestiary';
 import { EntryCard } from './EntryCard';
 import { EntrySheetModal } from './EntrySheetModal';
 import { PhotoModal } from './PhotoModal';
+import { NpcSheetModal } from './NpcSheetModal';
 import type { BestiaryPort } from '../domain/ports/BestiaryPort';
 import './bestiary.css';
 
@@ -39,6 +40,8 @@ export function BestiaryTab({ campaignId, system, onPlace, onRoll, repo }: Props
   const openEditor = async (entry: BestiaryEntry) => setEditing(entry.editable ? entry : await bs.duplicate(entry));
 
   const createNew = async () => setEditing(await bs.create(emptyEntry(campaignId, system.id, t('bestiary.newName'))));
+  /** Un PNJ aliado nace con ficha de personaje vacía, no con bloque de criatura. */
+  const createNpc = async () => setEditing(await bs.create(emptyNpc(campaignId, system.id, t('bestiary.newNpcName'))));
 
   return (
     <section className="bs-tab" aria-busy={bs.loading}>
@@ -53,6 +56,7 @@ export function BestiaryTab({ campaignId, system, onPlace, onRoll, repo }: Props
           <input type="search" value={bs.query} onChange={e => bs.setQuery(e.target.value)}
                  placeholder={t('bestiary.search')} aria-label={t('bestiary.search')} />
         </label>
+        <button type="button" className="bs-btn bs-btn-lg" onClick={createNpc}>{t('bestiary.newNpc')}</button>
         <button type="button" className="bs-btn bs-btn-on bs-btn-lg" onClick={createNew}>{t('bestiary.new')}</button>
       </header>
 
@@ -79,14 +83,25 @@ export function BestiaryTab({ campaignId, system, onPlace, onRoll, repo }: Props
             {bs.visible.map(e => (
               <EntryCard key={`${e.origin}:${e.id}`} entry={e} specialtyLabel={bs.specialtyLabel}
                          onRoll={() => onRoll?.(e)} onPlace={() => onPlace?.(e)}
-                         onEdit={openEditor} onPhoto={setPhoto} onMore={openEditor} />
+                         onEdit={openEditor} onPhoto={setPhoto} onMore={openEditor} derive={system.engine.derived} />
             ))}
           </div>
         )}
 
       {photo && <PhotoModal entry={photo} onClose={() => setPhoto(null)} onOpenSheet={() => { setPhoto(null); void openEditor(photo); }} />}
 
-      {editing && (
+      {editing?.origin === 'npc' && (
+        <NpcSheetModal
+          entry={editing}
+          system={system}
+          campaignId={campaignId}
+          onSave={async patch => { await bs.update(editing.id, patch); }}
+          onDelete={() => { setDeleting(editing); setEditing(null); }}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      {editing && editing.origin !== 'npc' && (
         <EntrySheetModal
           entry={editing}
           system={system}
