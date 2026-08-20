@@ -14,6 +14,45 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🟢 PUNTO EXACTO — 2026-08-20 (tarde), Bestiario (H5) en curso
+
+Rama **`feat/bestiario`**, 4 commits sobre `main`. **Sin review, sin QA, sin mergear.**
+Alcance aprobado por el dueño: **el hexágono entero**, no una rebanada.
+
+### Hecho y en verde
+- `af1ffdf` **DBA** — tabla `bestiary_entries` (campaña en blanco = «todas mis campañas», `owner_id` obligatorio
+  porque es lo que sostiene la RLS de las globales), enlace `maps_tokens.bestiary_entry_id` con **ON DELETE SET
+  NULL** (borrar la plantilla no vacía la escena). RLS sólo director, doble condición (dueño **Y** director si
+  cuelga de campaña). Aplicada en local, `db lint --level error` sin resultados.
+- `de2adbe` **el `.pen` del dueño commiteado** — el diseño de tiradas ya no depende de que nadie cierre el editor.
+- `b6af70f` **datos del manual** — especialidades de las 45 criaturas + **los 8 bloques que faltaban**.
+- `07d9d11` **scaffold** — dominio, puerto, repo Supabase y contenedor del módulo, con 27 tests.
+- **Diseño**: el listado **ya estaba diseñado** (`qLGcY` · «Mesa/Plenilunio · Director · Bestiario y PNJ»). Sólo
+  faltaba la ficha de crear/editar, creada como `kD9lH` · «Mesa/Plenilunio · Director · Ficha del encuentro».
+  **Pendiente: que el dueño la apruebe** — es gate obligatorio antes de escribir UI.
+
+### ⏳ Lo que falta del hexágono
+1. **Que el dueño mire `kD9lH`** y dé el visto bueno (o lo corrija).
+2. **El compresor de imágenes** (`specs/core/images`) — no existe nada; va en `packages/ui` como utilidad que
+   devuelve un `Blob` y no sabe de Supabase.
+3. **La UI**: página del listado, ficha de encuentro, PNJ con ficha completa (reusa `<Sheet>` de `characters`),
+   y alimentar `EncounterMenu` con las entradas propias además del catálogo.
+4. **Claves i18n** del módulo en es y en.
+5. Review → QA → merge.
+
+### 🔎 Lo que me encontré y NO toqué (decidir aparte)
+- **El diseño del listado enseña «Solitario» y «Chatarrero»**, que se quitaron del catálogo por no ser bloques del
+  manual (RULES.md §8). Es texto de ejemplo del `.pen`, no código, pero conviene refrescarlo.
+- **El pie del diseño dice «SUBIR TOKEN PNG»** y `specs/core/images` manda comprimir a **WebP**. Cambiar el rótulo.
+- `cannibalCook` es **Will** y `scavenger` es **Kharla**: nombres engañosos, valores correctos. Renombrar es
+  cosmético y arrastra los tokens ya colocados, así que va aparte.
+
+### 🖥 Entorno
+Supabase local levantado (Docker). Migración del bestiario aplicada con `supabase migration up --local`, **no**
+con `db:reset`, para no borrar los datos de prueba del dueño.
+
+---
+
 ## 🟢 PUNTO EXACTO — 2026-08-20, handoff a chat nuevo
 
 `main` está al día y **producción también** (verificada contra el bundle, no de memoria). No hay ninguna rama

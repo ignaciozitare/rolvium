@@ -10641,8 +10641,8 @@
     {
       "type": "frame",
       "id": "z84erH",
-      "x": 1456,
-      "y": -146,
+      "x": 1710,
+      "y": -225,
       "name": "Plenilunio Components",
       "fill": [
         "$pl-fondo",
@@ -53754,7 +53754,7 @@
       "type": "frame",
       "id": "g2JV3U",
       "x": 0,
-      "y": 17160,
+      "y": 17324,
       "name": "Estados/Vacíos y errores",
       "theme": {
         "mode": "dark"
@@ -83808,7 +83808,8 @@
       "y": -235,
       "name": "Mesa/Tiradas · rediseño — quién ve qué",
       "clip": true,
-      "width": 2460,
+      "width": 2967,
+      "height": 1205,
       "fill": "$pl-fondo",
       "gap": 28,
       "padding": 28,
@@ -86647,19 +86648,6 @@
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
                   "content": "Al tirar un token de encuentro al mapa se añade solo a esta lista. El nombre se edita con el lápiz. Al desplegar uno se cierra el que estuviera abierto.",
-                  "lineHeight": 1.45,
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 11,
-                  "fontWeight": "500"
-                },
-                {
-                  "type": "text",
-                  "id": "YQDd8",
-                  "name": "Nota para mí",
-                  "fill": "$pl-tinta-tenue",
-                  "textGrowth": "fixed-width",
-                  "width": "fill_container",
-                  "content": "Las tiradas para ti mismo NO están aquí: van en el lanzador de dados que ya existe.",
                   "lineHeight": 1.45,
                   "fontFamily": "$font-plenilunio",
                   "fontSize": 11,
