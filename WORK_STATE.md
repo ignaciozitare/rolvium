@@ -14,49 +14,38 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-19, rama `fix/ficha-listas` lista para QA
+## 🟢 PUNTO EXACTO — 2026-08-20, `fix/ficha-listas` MERGEADA A `main`
 
-El dueño mandó **seguir en el mismo chat** en vez de hacer el handoff que pedía el gate de contexto,
-así que la sesión continuó y **ya no queda nada pendiente de la tanda**:
+Rama cerrada: Review pasado, **QA pasado** (apto con avisos, modo `warn`), previews de web y api en
+verde sobre el commit de la rama, merge `026ee6d` empujado a `main`. Producción se despliega sola
+desde `main`.
 
-- ✅ Los dos bloques (Estado contra el PDF + maquetación) — commit `bcabdc6`.
-- ✅ **El bug que encontró el Review** en «Recobrar el aliento»: `catchBreath` capaba hacia ABAJO desde
-  que la Resistencia máxima la baja el estado de salud (Aguante 5, herido, Resistencia 12 → te cobraba
-  la Fortuna y te dejaba en 10). Fuera el `Math.min`, que además era código muerto en todos los demás
-  casos. Pin nuevo en `engine.test.ts` con ese caso y con el de curar por debajo del máximo.
-- ✅ **El test que faltaba**: `apps/web/tests/regression/sheet-range-hint.test.tsx`, 3 casos. Ojo al
-  redactarlo: el texto de la pista **sí está en el DOM** —el tooltip del kit lo pinta en su capa,
-  oculta por CSS y con `aria-hidden`—, así que lo que se fija no es «no está», es «no está en el
-  flujo de la celda».
-- ✅ **El tooltip de Recuperación vuelve a la ficha**: `resistanceMax` apunta a `ref: 'recovery'`
-  (p.101), que es de donde sale su valor; las casillas conservan `ref: 'resistance'` (p.98). Sin esto
-  la referencia se había quedado sin ningún campo que la enseñara.
-- ✅ `finalizeDraft` ya no depende del orden: calcula la Resistencia sobre el borrador **ya sano**.
+### Lo que dejó el QA para decidir (ninguno bloqueaba, y NO están hechos)
+1. **`specs/core/game-system/SPEC.md:37` está viejo** — es el contrato contra el que se escribirá
+   cualquier sistema de juego futuro, así que es el que más urge. No tiene: `ActionDef.toRoll`
+   opcional, `ActionDef.spend`, `appliesToRow`, `FieldDef.note`, `FieldDef.hidden`,
+   `options[].hint`, `SectionDef.span`.
+2. **`specs/modules/table/SPEC.md:14-15`** sigue listando «Mejorar» como pestaña. Ya no lo es.
+3. **`specs/modules/system-plenilunio/SPEC.md:12-13`** sigue con «Resistencia = Aguante×3 (sin tope)»
+   MÁS «recuperable descansando ×3/×2/×1» — justo los dos números que esta rama fusionó. La línea 30
+   tampoco tiene recargar ni la columna de Munición.
+4. **`ARCHITECTURE.md:72`** sigue diciendo «Ficha/Mejorar/El grupo/Crear personaje».
+5. **`playwright` entró como devDependency de `apps/web`** pero `scripts/shot.mjs` vive en la raíz, y
+   nadie ha documentado que hace falta `npx playwright install` antes de usarlo.
 
-Verde: `npm test` **518/518** · `typecheck` · `build:web` + `build:api` · `audit` 0 hard / 9 warn
-(los 9 preexistentes). Pantallas verificadas otra vez con `node scripts/shot.mjs`.
+⚠ **Los advisors de Supabase no se pudieron correr**: el QA no encontró referencia del proyecto
+(`supabase/config.toml` sólo trae el nombre local, no hay `.vercel/` ni `supabase/.temp/project-ref`).
+No bloqueó porque **esta rama no lleva ni una migración**, pero la puerta está sin verificar: hace
+falta `supabase link` (o dar la ref) antes de la próxima rama que toque base.
 
 ### ⏳ Próximo paso
-1. **QA + merge de `fix/ficha-listas`.** Es lo único que queda de esta rama. El dueño no ha dicho
-   todavía «listo para mergear»; la orden de QA la lanza él.
-2. Lo del bloque **«Tirada»** (más abajo): pide decisión suya, spec y `.pen` antes de código.
-3. La lógica de **daño → Resistencia → Salud** («LA REGLA QUE SE NOS ESTABA ESCAPANDO»): sin empezar.
-
-### 🔎 Decidido y NO tocado
-- **Un PJ MUERTO sale con «Resistencia máxima 0»** y sus casillas en blanco («3 de 0»). Mirado en
-  pantalla. Sale de `RECOVERY.dead.restFactor = 0`, que es **codificación nuestra**: la tabla de
-  recuperación de la p.101 no dice nada de los muertos. Se deja como está —un muerto no recupera— y
-  no se inventa un máximo para él; si al dueño le chirría en pantalla, se decide aparte.
-- Clave i18n muerta `characters.progression.noCharacter`: sólo la pintaba el borrado `ImproveTab`, y
-  con «Mejorar» dentro de la ficha ese caso ya no existe (el botón sólo está si hay personaje).
-  Se deja: borrar claves queda fuera del alcance de esta tanda.
+1. Los cinco avisos de arriba — los specs 1 a 3 son los que de verdad importan.
+2. **«Tirada»**: pide decisión del dueño (ver el bloque de abajo), spec y `.pen` antes de código.
+3. La lógica de **daño → Resistencia → Salud**: sin empezar.
 
 ### El entorno sigue levantado
-Docker + Supabase local + `dev:api` en **:3001** + `dev:web` en **:5173**. Capturas en `/tmp/sec-*.png`.
-Campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`, Karen `3af4f238-25ad-4cf1-a264-09d7586019d8`,
-`admin@rolvium.local` / `rolvium123`.
-⚠ Para VER el aviso de Inconsciente y la ficha de un muerto se tocó a mano la base local; **Karen
-quedó como estaba** (herida, 3 de 12, consciente). Comprobado con un `select` después de cada uno.
+Docker + Supabase local + `dev:api` en **:3001** + `dev:web` en **:5173**. Capturas en `/tmp/sec-*.png`
+y `/tmp/theme-{dark,light}-*.png`. Karen quedó como estaba (herida, 3 de 12, consciente).
 
 ---
 
