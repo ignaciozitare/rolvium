@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { GameSystem, RollVisibility } from '@rolvium/core';
 import { DIFFICULTIES, STAT_IDS } from '@rolvium/system-plenilunio';
@@ -8,7 +8,6 @@ import { canRoll, specialtiesFor } from '../domain/useCases/bestiaryRules';
 import { creatureRollRequest, ownDiceOf } from '../domain/useCases/creatureRoll';
 import { errorText } from '../domain/useCases/errorText';
 import type { BestiaryEntry } from '../domain/entities/BestiaryEntry';
-import { SheetOverlay } from './SheetOverlay';
 
 interface Props {
   entry: BestiaryEntry;
@@ -44,6 +43,7 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
   const [visibility, setVisibility] = useState<RollVisibility>('table');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
 
   const specs = stat ? specialtiesFor(entry, stat) : [];
 
@@ -70,9 +70,28 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
     }
   };
 
+  // Escape cierra, como cualquier cosa que se abre encima. El clic fuera lo recoge el captador invisible.
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  useEffect(() => { panel.current?.focus(); }, []);
+
   return (
-    <SheetOverlay title={t('bestiary.roll.title', { name: entry.name })} width={420} onClose={onClose}>
-      <div className="bs-roll">
+    <>
+      {/* Captador invisible: cierra al pulsar fuera SIN tapar la mesa. Un velo opaco convertiría el
+          desplegable en otra pantalla, que es justo lo que el dueño rechazó. */}
+      <div className="bs-pop-catch" onClick={onClose} aria-hidden="true" />
+      <div className="bs-pop bs-roll" role="dialog" aria-modal="false" tabIndex={-1} ref={panel}
+           aria-label={t('bestiary.roll.title', { name: entry.name })}>
+        <div className="bs-pop-head">
+          <h3 className="bs-pop-title">{t('bestiary.roll.title', { name: entry.name })}</h3>
+          <button type="button" className="bs-ov-x" aria-label={t('common.close')} onClick={onClose}>
+            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>close</span>
+          </button>
+        </div>
         {error && <p className="bs-error" role="alert">{error}</p>}
 
         {/* El manual deja características SIN VALOR en los bloques que no publica enteros: ausente no es 0,
@@ -143,6 +162,6 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
             </>
           )}
       </div>
-    </SheetOverlay>
+    </>
   );
 }

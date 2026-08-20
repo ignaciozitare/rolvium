@@ -34,6 +34,14 @@ interface Props {
    * dónde salen sus entradas.
    */
   extraEncounters?: CatalogItem[];
+  /**
+   * Una criatura que llega YA ELEGIDA desde el Bestiario: «Colocar» allí arma la colocación aquí, y el
+   * director sólo tiene que pulsar dónde. Antes «Colocar» sólo cambiaba de pestaña y no colocaba nada —
+   * «el colocar no funciona» (dueño, 2026-08-21).
+   */
+  armEncounter?: CatalogItem | null;
+  /** Avisa de que ya se ha armado, para que el padre lo suelte y no se rearme solo al volver a la pestaña. */
+  onArmed?: () => void;
   members: CampaignMember[];
   /** From the table snapshot (live). Players see this scene; the DM starts on it. */
   activeSceneId: string | null;
@@ -49,7 +57,7 @@ interface Props {
 const DEFAULT_STROKE: StrokeStyle = { color: STROKE_COLORS[1], width: 2 };
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, diceOpen = false, extraEncounters, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
+export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -71,6 +79,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [bgOpen, setBgOpen] = useState(false);
   const [encounter, setEncounter] = useState<CatalogItem | null>(null);
   const [pcMenu, setPcMenu] = useState(false);
+  /** La criatura llegó ya elegida desde el Bestiario: se arma la colocación pero NO se abre el buscador. */
+  const [armedFromBestiary, setArmedFromBestiary] = useState(false);
   const [pendingPc, setPendingPc] = useState<Character | null>(null);
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [brush, setBrush] = useState<number>(DEFAULT_BRUSH);
@@ -101,7 +111,22 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   useEffect(() => { if (live) setView(fitView(live, viewport())); setSelectedTokenIds([]); setEncounter(null); }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Whoever accepts the pin centres on it — including the one who dropped it, which is what «enfoque» means.
   useEffect(() => { if (st.pin) setView(v => centerOn(v, st.pin!, viewport())); }, [st.pin]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (tool !== 'encounter') setEncounter(null); }, [tool]);
+  useEffect(() => { if (tool !== 'encounter') { setEncounter(null); setArmedFromBestiary(false); } }, [tool]);
+  /**
+   * Armar lo que llega del Bestiario. Espera a que la escena exista: al llegar de otra pestaña este
+   * componente monta con `live` a null y el efecto de `[live?.id]` limpia el encuentro justo después,
+   * así que armar antes se perdía. Y hay que poner la herramienta en «encounter» o el efecto de `[tool]`
+   * de arriba lo borra en el mismo commit.
+   */
+  useEffect(() => {
+    if (!armEncounter || !live) return;
+    setTool('encounter');
+    setEncounter(armEncounter);
+    // Sin abrir el buscador: la criatura ya viene elegida del Bestiario y el desplegable tapaba media
+    // escena para preguntar algo que ya estaba contestado.
+    setArmedFromBestiary(true);
+    onArmed?.();
+  }, [armEncounter, live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Only Seleccionar owns a selection. Carrying it into another tool stacks «Segmento» / the token bar on top of
   // «Trazo» — all three float at the same spot over the canvas — and leaves Suprimir armed on an invisible target.
   useEffect(() => { if (tool !== 'select') { setSelectedWallId(null); setSelectedTokenIds([]); } }, [tool]);
@@ -243,6 +268,14 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               <button type="button" className="tb-btn tb-btn-xs" onClick={() => setPendingPc(null)}>{t('common.cancel')}</button>
             </div>
           )}
+          {/* Mismo aviso para una criatura armada. Sin él, quien llega del Bestiario ve la escena y no sabe
+              que le falta pulsar en el mapa: la colocación quedaba armada y muda. */}
+          {encounter && !pendingPc && (
+            <div className="mp-placing" role="status">
+              {t('maps.place.now', { name: ts(encounter.label) })}
+              <button type="button" className="tb-btn tb-btn-xs" onClick={() => { setEncounter(null); setTool('select'); }}>{t('common.cancel')}</button>
+            </div>
+          )}
           {quickMenu && (
             <div className="mp-pop mp-quick" role="menu" aria-label={t('maps.quick.title')} style={{ left: quickMenu.at.x, top: quickMenu.at.y }}>
               <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { setView(v => centerOn(v, quickMenu.scene, viewport())); setQuickMenu(null); }}>
@@ -285,7 +318,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               })}
             </div>
           )}
-          {isDm && tool === 'encounter' && (
+          {isDm && tool === 'encounter' && !armedFromBestiary && (
             <EncounterMenu entries={bestiary} labelOf={e => ts(e.label)} selectedId={encounter?.id ?? null} onSelect={setEncounter} onClose={() => setTool('select')} />
           )}
           {isDm && bgOpen && (

@@ -488,3 +488,52 @@ describe('<SceneTab> cero escenas', () => {
     expect(screen.queryByRole('group', { name: 'Escenas' })).not.toBeInTheDocument();
   });
 });
+
+/**
+ * «Colocar» del Bestiario (dueño, 2026-08-21: «el colocar no funciona»).
+ *
+ * Antes sólo cambiaba de pestaña: llegabas a la escena y no había nada armado, así que el director tenía
+ * que volver a buscar la criatura en el desplegable. Ahora llega elegida y sólo falta pulsar dónde.
+ */
+describe('<SceneTab> — una criatura que llega ya elegida desde el Bestiario', () => {
+  const OGRO = { id: 'ogre', label: 'Ogro', ref: 'bestiary', data: { resistance: 30, protection: 3, origin: 'manual', tokenUrl: null, entryId: null } };
+
+  const mountArmed = (armEncounter: typeof OGRO | null, onArmed = vi.fn()) => {
+    const repo = seed();
+    renderWithProviders(
+      <SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+                charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={repo} vision={fakeVisionPort()}
+                armEncounter={armEncounter} onArmed={onArmed} />,
+    );
+    return { repo, onArmed };
+  };
+
+  it('arma la colocación y lo dice, sin abrir el buscador que ya sobra', async () => {
+    const { onArmed } = mountArmed(OGRO);
+    expect(await screen.findByText(/Coloca a Ogro/)).toBeInTheDocument();
+    // El desplegable preguntaría qué criatura, y eso ya está contestado.
+    expect(screen.queryByRole('dialog', { name: /Colocar encuentro/i })).not.toBeInTheDocument();
+    // Avisa al padre para que lo suelte: si no, volver a la pestaña la rearmaría sola.
+    await waitFor(() => expect(onArmed).toHaveBeenCalled());
+  });
+
+  it('pulsar en el mapa coloca la criatura de verdad', async () => {
+    const { repo } = mountArmed(OGRO);
+    await screen.findByText(/Coloca a Ogro/);
+    fireEvent.pointerDown(canvas(), { clientX: 3 * G + 3, clientY: 4 * G + 3, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ name: 'Ogro' }));
+  });
+
+  it('«Cancelar» desarma y devuelve el buscador a su sitio', async () => {
+    mountArmed(OGRO);
+    await screen.findByText(/Coloca a Ogro/);
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByText(/Coloca a Ogro/)).not.toBeInTheDocument());
+  });
+
+  it('sin nada armado no aparece el aviso', async () => {
+    mountArmed(null);
+    await screen.findByText(/Almacén de Queens/);
+    expect(screen.queryByText(/Coloca a/)).not.toBeInTheDocument();
+  });
+});

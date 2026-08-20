@@ -16,8 +16,8 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 ## 🟢 PUNTO EXACTO — 2026-08-21 (noche): los CUATRO rechazos del Bestiario, ARREGLADOS y mirados en pantalla
 
-Rama **`feat/bestiario`**. Los cuatro puntos que el dueño rechazó por la mañana están hechos, comprobados en
-la app corriendo y con tests. **654 tests verdes** (477 web + 77 api + 6 core + 16 ui + 78 plenilunio),
+Rama **`feat/bestiario`**. Los cuatro puntos que el dueño rechazó por la mañana —MÁS cinco que vio probando por la
+noche— están hechos, comprobados en la app corriendo y con tests. **661 tests verdes** (477 web + 77 api + 6 core + 16 ui + 78 plenilunio),
 typecheck limpio, `audit` **0 hard**, `build:web` y `build:api` en verde.
 
 ### Prompt de resume, de una línea
@@ -80,6 +80,29 @@ Tocados: `bestiary.css` entero · `table.css` (`.tb-dim`, `.tb-placeholder`) · 
 **Modificados:** `EntrySheetModal.tsx` · `NpcSheetModal.tsx` · `PhotoModal.tsx` · `BestiaryTab.tsx` (+test) ·
 `bestiary.css` · `TablePage.tsx` · `table.css` · `maps.css` · `characters.css` · `sheet.css` ·
 `locales/{es,en}.json` · `specs/modules/bestiary/SPEC.md` · `rolvium.pen` · `apps/web/shot-bestiary.mjs`.
+
+### 🔁 SEGUNDA VUELTA — cinco cosas más que el dueño vio probando (2026-08-21, noche)
+Todas arregladas y comprobadas en la app corriendo.
+
+1. **La foto salía recortada.** `.bs-card-photo` iba con `object-fit: cover`. El fichero subido está
+   intacto (el compresor escala por el lado largo), así que era sólo al pintarla. Ahora `contain`.
+2. **El desplegable de tirada parecía otra pantalla** («no es un modal, me abre una vista nueva… lo tiene
+   que abrir sobre la card»). Reusaba el pergamino a pantalla completa de `SheetOverlay`. Ahora es un
+   popover DENTRO de su propia ficha (`.bs-card` es `relative`, el popover `absolute`): arranca en su
+   esquina y crece hacia abajo, así que el catálogo se sigue viendo y el botón «Tirar» no queda fuera.
+   Cierra con Escape y con un captador **invisible** — un velo opaco lo volvería a convertir en pantalla.
+3. **«Colocar» no colocaba.** Sólo cambiaba de pestaña. Ahora manda la criatura ya elegida a la escena
+   (`armEncounter` / `onArmed`), sale el aviso «Coloca a X: haz clic en el mapa» y el buscador NO se abre,
+   que ya sobra. **Comprobado contra la base: 8 → 9 tokens, el último «Ogro».**
+4. **La pestaña «Ficha» del director enseñaba a otro.** Si había abierto la ficha de un jugador desde «El
+   grupo», `viewCharacterId` se quedaba pegado para el resto de la sesión. Pulsar «Ficha» vuelve ahora
+   SIEMPRE a la propia.
+5. **Sin salida desde «El grupo».** La ficha ajena no tenía ni cartel de quién era ni puerta. Ahora lleva
+   «← Volver al grupo» y «Estás viendo la ficha de X».
+
+**Ficheros de esta vuelta:** `bestiary.css` · `CreatureRollPopover.tsx` · `EntryCard.tsx` ·
+`BestiaryTab.tsx` · `SceneTab.tsx` (+test, 4) · `TablePage.tsx` · `tabs/SheetTab.tsx` (+test, 2) ·
+`characters.css` · `locales/{es,en}.json` · el pin de regresión (+1) · `rolvium.pen` · el spec.
 
 ### ⚠️ PENDIENTE DE DECIDIR (nada de esto está hecho)
 - **Review y QA NO se han pasado.** Esta sesión tenía instrucción de no lanzar subagentes, así que se

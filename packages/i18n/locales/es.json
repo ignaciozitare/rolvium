@@ -544,7 +544,9 @@
         "decode": "No se ha podido leer esa imagen.",
         "upload": "No se ha podido subir la imagen. Inténtalo otra vez."
       },
-      "imageAfterCreate": "Podrás ponerle imagen al terminar de crearlo"
+      "imageAfterCreate": "Podrás ponerle imagen al terminar de crearlo",
+      "backToGroup": "Volver al grupo",
+      "viewing": "Estás viendo la ficha de {{name}}"
     },
     "generator": {
       "title": "Crear personaje",

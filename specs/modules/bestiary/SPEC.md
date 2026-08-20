@@ -43,7 +43,7 @@ escrito para que nadie lo lea como que está terminado:
 
 | Acción | Hoy |
 |---|---|
-| **Colocar** | Lleva a la escena. **Colocar de verdad** se hace desde el desplegable «Encuentro» de la escena, que sí funciona y sí crea la instancia enlazada con su Resistencia. |
+| **Colocar** | ✅ **Cerrado el 2026-08-21.** Lleva a la escena **con la criatura ya elegida**: sólo falta pulsar dónde. Antes sólo cambiaba de pestaña y había que volver a buscarla en el desplegable — «el colocar no funciona» (dueño). El aviso «Coloca a X: haz clic en el mapa» lo dice, y el buscador NO se abre, que ya sobra. |
 | **Editar / Duplicar** | ✅ Hace lo que dice. Del manual duplica; de las propias edita. |
 | **Ver foto** | ✅ Hace lo que dice. |
 | **Tirar** | ✅ **Cerrado el 2026-08-21.** Tira EN NOMBRE de la criatura: se elige característica (sólo las que el manual publica de ese bloque), se ve cuántos dados salen antes de tirar, se marca su especialidad, se elige dificultad y quién lo ve (mesa / DJ / secreta). |
@@ -66,6 +66,12 @@ diseño en el `.pen` «Bestiario/Tirar por una criatura · popover».
   ausente no es 0.
 - El Registro lo titula **«{criatura} · {característica}»**, ya traducido, porque el nombre es texto libre
   del director y no existe en ningún diccionario: el Registro es acta de lo que pasó, no plantilla.
+
+### La foto de la entrada (2026-08-21)
+Se pinta con `object-fit: contain`, **nunca `cover`**: una foto que no fuera cuadrada salía recortada y el
+director veía media criatura. El fichero subido está intacto — el compresor escala por el lado largo y
+respeta la proporción —, así que el recorte era sólo al pintarla. La caja mantiene su alto para que la
+rejilla no se descuadre; lo que sobra enseña el papel.
 
 **Lo que sigue siendo H6 y NO está aquí**: el panel del director completo —pedir tirada a los jugadores
 (mantener pulsada una característica y elegir dificultad sin soltar), la lista de encuentros de la escena y

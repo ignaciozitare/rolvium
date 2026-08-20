@@ -67,12 +67,16 @@
 /* ── rejilla de fichas ──────────────────────────────────────────────────── */
 .bs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 
-.bs-card { display: flex; flex-direction: column; background: var(--sys-card); border: 1px solid var(--sys-border);
+.bs-card { position: relative; display: flex; flex-direction: column; background: var(--sys-card); border: 1px solid var(--sys-border);
   box-shadow: var(--sys-card-shadow); }
 
 .bs-card-img { position: relative; height: 168px; display: flex; align-items: center; justify-content: center;
   background: var(--sys-paper-hi); overflow: hidden; }
-.bs-card-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* `contain` y NO `cover`: con `cover` una foto que no fuera cuadrada salía recortada por los lados o por
+   arriba, y el director veía media criatura (dueño, 2026-08-21). El fichero subido está intacto —el
+   compresor escala por el lado largo y respeta la proporción—, así que el recorte era sólo al pintarla.
+   La caja mantiene su alto para que la rejilla no se descuadre; lo que sobra enseña el papel. */
+.bs-card-photo { width: 100%; height: 100%; object-fit: contain; display: block; }
 .bs-card-ini { font-family: var(--sys-font-display); font-size: var(--fs-display); color: var(--sys-ink-dim); }
 
 /* El ojo: aparece al pasar por encima, pero SIEMPRE es alcanzable con teclado (:focus-within). */
@@ -210,9 +214,26 @@
 .bs-npc { display: flex; flex-direction: column; gap: 16px; }
 
 /* ── tirar en nombre de una criatura (`.pen` «Popover/Tirar») ──────────────
-   Cuadro estrecho: se abre desde una ficha del catálogo para decidir una cosa y cerrarse, no para
-   trabajar dentro. Reutiliza el pergamino de `SheetOverlay` y los botones de filete del pie. */
-.bs-roll { display: flex; flex-direction: column; gap: 10px; }
+   POPOVER, no pantalla. Sale ENCIMA DE SU FICHA (`inset:0` dentro de `.bs-card`, que es `relative`), así
+   que el catálogo se sigue viendo alrededor y se entiende de qué criatura se está tirando. Antes reusaba
+   el pergamino a pantalla completa de `SheetOverlay` y parecía otra vista — «no es un modal, me abre una
+   vista nueva» (dueño, 2026-08-21). Al vivir dentro de la ficha sigue a su sitio al hacer scroll solo,
+   sin calcular coordenadas. */
+.bs-pop-catch { position: fixed; inset: 0; z-index: 29; background: none; }
+/* Arranca en la esquina de su ficha y CRECE HACIA ABAJO lo que haga falta (no `inset:0`): encajonado en el
+   alto de la ficha, el botón «Tirar» se quedaba fuera y había que buscarlo haciendo scroll dentro de una
+   caja pequeña. Se sale por encima de la fila de abajo, que es lo que hace un popover. */
+.bs-pop { position: absolute; top: 0; left: 0; right: 0; z-index: 30;
+  min-height: 100%; max-height: min(620px, 78vh); overflow-y: auto;
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-ink); box-shadow: var(--sys-card-shadow);
+  padding: 12px; outline: none; }
+.bs-pop-head { display: flex; align-items: flex-start; gap: 6px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--sys-border); }
+.bs-pop-title { flex: 1; margin: 0; font-family: var(--sys-font-display); font-size: var(--fs-2xs);
+  font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--sys-ink);
+  line-height: var(--lh-tight); }
+
+.bs-roll { display: flex; flex-direction: column; gap: 8px; }
 .bs-roll-stats { display: flex; flex-wrap: wrap; gap: 5px; }
 .bs-roll-dice { display: flex; flex-direction: column; gap: 4px; }
 .bs-roll-count { display: flex; align-items: center; gap: 8px; }

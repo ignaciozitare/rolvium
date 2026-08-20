@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
@@ -18,6 +19,12 @@ interface Props {
    * es el motor del sistema, y esta ficha no conoce ningún sistema.
    */
   derive?: (sheet: Record<string, unknown>) => Record<string, unknown>;
+  /**
+   * El desplegable de tirada, cuando es ESTA la criatura por la que se está tirando. Se pinta dentro de la
+   * ficha a propósito: así sale encima de ella, el catálogo se sigue viendo y no hay que calcular
+   * coordenadas ni seguirla al hacer scroll.
+   */
+  popover?: ReactNode;
 }
 
 const ORIGIN_KEY = { manual: 'bestiary.origin.manual', custom: 'bestiary.origin.custom', npc: 'bestiary.origin.npc' } as const;
@@ -35,7 +42,7 @@ const ORIGIN_KEY = { manual: 'bestiary.origin.manual', custom: 'bestiary.origin.
  * siguen `EncounterMenu` y `StrokeBar` de `maps`, con sus clases `mp-*`. Donde sí manda el estilo de la
  * plataforma —los modales— se usan los componentes compartidos: `Modal`, `Btn` y `Tooltip`.
  */
-export function EntryCard({ entry, specialtyLabel, onRoll, onPlace, onEdit, onPhoto, onMore, derive }: Props): JSX.Element {
+export function EntryCard({ entry, specialtyLabel, onRoll, onPlace, onEdit, onPhoto, onMore, derive, popover }: Props): JSX.Element {
   const { t } = useTranslation();
   const specs = Object.values(entry.data.specialties).flat().slice(0, 2);
   const { resistance, protection } = gameValuesOf(entry, derive);
@@ -87,6 +94,8 @@ export function EntryCard({ entry, specialtyLabel, onRoll, onPlace, onEdit, onPh
           </button>
         </div>
       </div>
+
+      {popover}
     </article>
   );
 }

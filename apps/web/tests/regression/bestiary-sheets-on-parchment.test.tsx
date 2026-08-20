@@ -97,6 +97,32 @@ describe('regresión: las fichas del bestiario van en pergamino, no en el Modal 
   });
 
   /**
+   * «El modal de tirada no es un modal, me abre una vista nueva… lo tiene que abrir sobre la card»
+   * (dueño, 2026-08-21). El desplegable reusaba el pergamino a pantalla completa de `SheetOverlay` y
+   * tapaba el catálogo entero. Ahora vive DENTRO de su ficha.
+   */
+  it('el desplegable de tirada sale dentro de su ficha, no a pantalla completa', async () => {
+    const { BestiaryTab } = await import('@/modules/bestiary/ui/BestiaryTab');
+    const entry = creature();
+    const repo = {
+      listForCampaign: vi.fn().mockResolvedValue([entry]), create: vi.fn(), update: vi.fn(),
+      remove: vi.fn(), uploadToken: vi.fn(),
+    };
+    renderWithProviders(
+      <BestiaryTab campaignId="c1" system={plenilunio} repo={repo} rolls={{ roll: vi.fn() }} />,
+    );
+    const heading = (await screen.findAllByRole('heading', { name: 'Ogro con antorcha' }))[0] as HTMLElement;
+    const card = heading.closest('article') as HTMLElement;
+    await userEvent.click(within(card).getByRole('button', { name: 'Tirar' }));
+
+    const pop = screen.getByRole('dialog', { name: /Tirar por Ogro con antorcha/ });
+    expect(card).toContainElement(pop);          // dentro de SU ficha
+    expect(pop).not.toHaveClass('bs-ov-sheet');  // y no es la hoja a pantalla completa
+    // El catálogo se sigue viendo por detrás: el desplegable no es una pantalla.
+    expect(within(card).getByRole('heading', { name: 'Ogro con antorcha' })).toBeInTheDocument();
+  });
+
+  /**
    * El filete superior lleva el origen y la página del manual — «Titulo Derecha» de `PL/Hoja`. Es el dato
    * que distingue una copia propia de la criatura publicada, y el .pen lo pone ahí a propósito.
    */

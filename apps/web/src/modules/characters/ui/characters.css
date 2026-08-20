@@ -67,3 +67,9 @@
    es la accion que hace dano, y tenia el mismo aspecto que «cancelar». */
 .ch-damage .rv-sheet-btn{background:var(--sys-blood);border-color:var(--sys-blood);color:var(--sys-paper-hi);}
 .ch-damage .rv-sheet-btn:hover{filter:brightness(1.15);}
+
+/* Volver a «El grupo» y de quién es la ficha que se está mirando. El director llega aquí desde el listado
+   del grupo y antes se quedaba dentro sin puerta ni cartel (dueño, 2026-08-21). */
+.ch-back { display: inline-flex; align-items: center; gap: 5px; }
+.ch-viewing { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic;
+  font-weight: 500; color: var(--sys-ink-soft); }

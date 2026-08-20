@@ -94,20 +94,19 @@ export function BestiaryTab({ campaignId, system, onPlace, rolls, repo }: Props)
             {bs.visible.map(e => (
               <EntryCard key={`${e.origin}:${e.id}`} entry={e} specialtyLabel={bs.specialtyLabel}
                          onRoll={() => setRolling(e)} onPlace={() => onPlace?.(e)}
-                         onEdit={openEditor} onPhoto={setPhoto} onMore={openEditor} derive={system.engine.derived} />
+                         onEdit={openEditor} onPhoto={setPhoto} onMore={openEditor} derive={system.engine.derived}
+                         popover={rolling?.id === e.id && rolling.origin === e.origin ? (
+                           <CreatureRollPopover
+                             entry={e}
+                             system={system}
+                             specialtyLabel={bs.specialtyLabel}
+                             onRoll={req => rolls.roll({ ...req, campaignId })}
+                             onClose={() => setRolling(null)}
+                           />
+                         ) : null} />
             ))}
           </div>
         )}
-
-      {rolling && (
-        <CreatureRollPopover
-          entry={rolling}
-          system={system}
-          specialtyLabel={bs.specialtyLabel}
-          onRoll={req => rolls.roll({ ...req, campaignId })}
-          onClose={() => setRolling(null)}
-        />
-      )}
 
       {photo && <PhotoModal entry={photo} onClose={() => setPhoto(null)} onOpenSheet={() => { setPhoto(null); void openEditor(photo); }} />}
 

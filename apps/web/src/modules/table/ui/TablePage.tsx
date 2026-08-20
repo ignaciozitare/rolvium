@@ -23,6 +23,7 @@ import { SceneTab } from './tabs/SceneTab';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
 import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
+import type { CatalogItem } from '@rolvium/core';
 import type { MapsPort } from '@/modules/maps/domain/ports/MapsPort';
 import type { VisionPort } from '@/modules/maps/domain/ports/VisionPort';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
@@ -40,6 +41,9 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   const [resOpen, setResOpen] = useState(true);
   /** Sheet the DM opened from «El grupo» (null = my own). */
   const [viewCharacterId, setViewCharacterId] = useState<string | null>(null);
+  // La criatura que el Bestiario manda a colocar. Vive aquí y no en la escena porque el viaje cruza dos
+  // pestañas: se elige en «Bestiario» y se coloca en «Escena».
+  const [toPlace, setToPlace] = useState<CatalogItem | null>(null);
 
   // System fonts: load once per system (theme.fonts.url).
   useEffect(() => {
@@ -82,7 +86,11 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
           <Badge color="accent">{sysInfo ? t(sysInfo.nameKey) : campaign.systemId}</Badge>
         </div>
         <nav className="tb-tabs tb-tabs-bar" aria-label={t('table.tabs')}>
-          {tabs.map(tb => <button key={tb} type="button" className={`tb-rvtab ${tab === tb ? 'on' : ''}`} aria-pressed={tab === tb} onClick={() => setTab(tb)}>{t(`table.tab.${tb}`)}</button>)}
+          {/* Pulsar «Ficha» vuelve SIEMPRE a la mía. Si no, el director que había abierto la de un jugador
+              desde «El grupo» se quedaba con esa pegada a la pestaña para el resto de la sesión: pulsaba
+              «Ficha» y seguía viendo a otro, sin decirle de quién era ni cómo salir (dueño, 2026-08-21). */}
+          {tabs.map(tb => <button key={tb} type="button" className={`tb-rvtab ${tab === tb ? 'on' : ''}`} aria-pressed={tab === tb}
+                                  onClick={() => { if (tb === 'sheet') setViewCharacterId(null); setTab(tb); }}>{t(`table.tab.${tb}`)}</button>)}
         </nav>
         <div className="tb-rvbar-right">
           {/* Who is at the table lives in the platform bar: it is the same on every tab and the table needs its height for the map. */}
@@ -127,11 +135,12 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
 
         <div className="tb-body">
           <main className="tb-main">
-            {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} characterId={viewCharacterId} progressionEnabled={campaign.progressionEnabled} onOpenCreate={() => setTab('create')} />}
+            {tab === 'sheet' && <SheetTab campaignId={campaign.id} system={system} role={role} userId={user.id} repo={charactersRepo} rolls={rolls} rollOptions={rollOptions} characterId={viewCharacterId} progressionEnabled={campaign.progressionEnabled} onOpenCreate={() => setTab('create')}
+              {...(viewCharacterId ? { onBack: () => { setViewCharacterId(null); setTab('group'); } } : {})} />}
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}
-            {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} />}
-            {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={() => setTab('scene')} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
+            {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)} />}
+            {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
           </main>
           <aside className="tb-side">
             <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} />

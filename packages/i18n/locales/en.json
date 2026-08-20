@@ -544,7 +544,9 @@
         "decode": "That image could not be read.",
         "upload": "The image could not be uploaded. Try again."
       },
-      "imageAfterCreate": "You can add an image once it is created"
+      "imageAfterCreate": "You can add an image once it is created",
+      "backToGroup": "Back to the group",
+      "viewing": "You are viewing {{name}}’s sheet"
     },
     "generator": {
       "title": "Create character",
