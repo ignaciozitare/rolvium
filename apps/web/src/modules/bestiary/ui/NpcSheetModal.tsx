@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { Btn, Modal, Sheet } from '@rolvium/ui';
+import { Btn, CompressError, Modal, Sheet, compressImage, pickImageFile } from '@rolvium/ui';
 import type { GameSystem, SheetPatch } from '@rolvium/core';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { errorText } from '../domain/useCases/errorText';
@@ -10,6 +10,8 @@ interface Props {
   entry: BestiaryEntry;
   system: GameSystem;
   onSave: (patch: { name: string; data: CreatureData; campaignId: string | null }) => Promise<void>;
+  /** Sube la imagen del PNJ y devuelve su URL. Igual que la de un encuentro: bucket `tokens`, WebP. */
+  onUploadImage: (file: Blob) => Promise<string>;
   onDelete: () => void;
   onClose: () => void;
   campaignId: string;
@@ -28,7 +30,7 @@ interface Props {
  * esta es una ventana que el director abre y cierra, y un guardado automático dentro de un modal deja al
  * director sin saber si lo que tocó quedó guardado. Hay botón, y el botón dice si hay cambios sin guardar.
  */
-export function NpcSheetModal({ entry, system, onSave, onDelete, onClose, campaignId }: Props): JSX.Element {
+export function NpcSheetModal({ entry, system, onSave, onUploadImage, onDelete, onClose, campaignId }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const ts = useMemo(() => sysT(system, locale), [system, locale]);
 
@@ -53,10 +55,26 @@ export function NpcSheetModal({ entry, system, onSave, onDelete, onClose, campai
   const labels = {
     roll: t('characters.sheet.roll'), add: t('characters.sheet.add'), remove: t('characters.sheet.remove'),
     manual: t('characters.sheet.manual'), of: t('characters.sheet.of'),
-    pick: t('characters.sheet.pickAvatar'), soon: t('characters.sheet.imageSoon'),
+    pick: t('characters.sheet.pickAvatar'),
   };
 
   const apply = (patch: SheetPatch) => { setSheet(s => ({ ...s, ...patch })); setDirty(true); };
+
+  /** La imagen se sube al momento (ya existe la fila), pero el campo queda sin guardar como el resto. */
+  const onImagePick = useCallback(async (fieldId: string) => {
+    setError(null);
+    const file = await pickImageFile();
+    if (!file) return;
+    try {
+      const { blob } = await compressImage(file, 'token');
+      const url = await onUploadImage(blob);
+      apply({ [fieldId]: url });
+    } catch (e) {
+      setError(e instanceof CompressError ? t(`bestiary.image.error.${e.code}`) : t('bestiary.image.error.upload'));
+    }
+  // `apply` se recrea en cada render a propósito (usa `setSheet` con función), así que no entra en las deps.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onUploadImage, t]);
 
   const save = async () => {
     setBusy(true);
@@ -85,7 +103,7 @@ export function NpcSheetModal({ entry, system, onSave, onDelete, onClose, campai
           schema={system.sheetSchema} data={sheet} derived={derived} readOnly={false}
           onChange={apply} actions={system.engine.actions ?? []} catalogs={system.catalogs}
           t={ts} refText={refText} labels={labels} poolSize={poolSize}
-          icons={system.theme.icons ?? {}} showActions={false}
+          icons={system.theme.icons ?? {}} showActions={false} onImagePick={onImagePick}
         />
 
         <div className="bs-sheet-foot">

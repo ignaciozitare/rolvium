@@ -56,7 +56,7 @@ export function GeneratorWizard({ campaignId, system, role, repo = defaultRepo, 
   const budget = step.budget?.(draft) ?? null;
   const last = i === steps.length - 1;
   const refText = (key: string) => { const r = system.references[key]; return r ? { page: r.page, title: ts(r.title), summary: ts(r.summary) } : null; };
-  const labels = { roll: t('characters.sheet.roll'), add: t('characters.sheet.add'), remove: t('characters.sheet.remove'), manual: t('characters.sheet.manual'), of: t('characters.sheet.of'), soon: t('characters.sheet.imageSoon') };
+  const labels = { roll: t('characters.sheet.roll'), add: t('characters.sheet.add'), remove: t('characters.sheet.remove'), manual: t('characters.sheet.manual'), of: t('characters.sheet.of'), soon: t('characters.sheet.imageAfterCreate') };
   /**
    * Draft after one field edit: the system normalises it when it declares `applyChange`
    * (returning null to refuse), otherwise the field is merged as-is. The budget is checked

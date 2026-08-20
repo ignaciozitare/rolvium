@@ -532,12 +532,19 @@
       "remove": "Remove",
       "manual": "Manual",
       "of": "of",
-      "pickAvatar": "Avatar",
+      "pickAvatar": "Upload image",
       "avatarHint": "without an image of its own, your account avatar is used",
       "rollFailed": "The roll could not be made. Try again.",
       "rolled": "{{title}} · {{summary}}",
       "openApart": "Open sheet apart",
-      "imageSoon": "Image upload: coming soon"
+      "imageError": {
+        "mime": "That file type will not do. Use PNG, JPG, WebP or GIF.",
+        "input-too-large": "The image is over 8 MB. Pick a lighter one.",
+        "output-too-large": "Even compressed it is still too heavy.",
+        "decode": "That image could not be read.",
+        "upload": "The image could not be uploaded. Try again."
+      },
+      "imageAfterCreate": "You can add an image once it is created"
     },
     "generator": {
       "title": "Create character",

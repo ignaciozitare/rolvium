@@ -96,6 +96,7 @@ export function BestiaryTab({ campaignId, system, onPlace, onRoll, repo }: Props
           system={system}
           campaignId={campaignId}
           onSave={async patch => { await bs.update(editing.id, patch); }}
+          onUploadImage={file => bs.repo.uploadToken(editing.id, file)}
           onDelete={() => { setDeleting(editing); setEditing(null); }}
           onClose={() => setEditing(null)}
         />

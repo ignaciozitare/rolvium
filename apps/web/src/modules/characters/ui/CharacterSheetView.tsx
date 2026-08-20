@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { Sheet } from '@rolvium/ui';
+import { CompressError, Sheet, compressImage, pickImageFile } from '@rolvium/ui';
 import type { RollRequest, SheetPatch } from '@rolvium/core';
 import type { RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import type { RollOutcome } from '@/modules/dice/domain/entities/Roll';
-import { rollsPort as defaultRolls } from '../container';
+import { charactersRepo, rollsPort as defaultRolls } from '../container';
 import { sysT } from '../domain/useCases/systemText';
 
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
@@ -80,7 +80,31 @@ export function CharacterSheetView({ state, canEdit, rolls = defaultRolls, rollO
   }, [system, character, data, rollOptions, rolls, onRolled, applyPatch, applyRemote, t, ts]);
 
   if (!system || !character) return null;
-  const labels = { roll: t('characters.sheet.roll'), add: t('characters.sheet.add'), remove: t('characters.sheet.remove'), manual: t('characters.sheet.manual'), of: t('characters.sheet.of'), pick: t('characters.sheet.pickAvatar'), soon: t('characters.sheet.imageSoon') };
+  /**
+   * Subir el avatar. El `<Sheet>` ya traía el enganche `onImagePick` desde que se escribió, y
+   * `charactersRepo.uploadImage` ya sabía subir: lo único que faltaba era juntarlos, y por eso la ficha
+   * llevaba meses diciendo «Subir imagen: pronto».
+   *
+   * Se comprime EN EL NAVEGADOR antes de subir (specs/core/images): 512 px y WebP para un avatar que se
+   * pinta a 64 px como mucho. Si el navegador no sabe hacer WebP, `compressImage` devuelve el original y
+   * la subida sigue: no se deja a nadie sin avatar por una optimización.
+   */
+  const [imageError, setImageError] = useState<string | null>(null);
+  const onImagePick = useCallback(async (fieldId: string) => {
+    if (!character) return;
+    setImageError(null);
+    const file = await pickImageFile();
+    if (!file) return;                                   // el usuario canceló: no es un error
+    try {
+      const { blob } = await compressImage(file, 'avatar');
+      const url = await charactersRepo.uploadImage('avatar', character.id, blob);
+      applyPatch({ [fieldId]: url }, 'sheet');
+    } catch (e) {
+      setImageError(e instanceof CompressError ? t(`characters.sheet.imageError.${e.code}`) : t('characters.sheet.imageError.upload'));
+    }
+  }, [character, applyPatch, t]);
+
+  const labels = { roll: t('characters.sheet.roll'), add: t('characters.sheet.add'), remove: t('characters.sheet.remove'), manual: t('characters.sheet.manual'), of: t('characters.sheet.of'), pick: t('characters.sheet.pickAvatar') };
   /**
    * El botón parecía roto y no lo estaba: con protección 6, un daño de 5 da 0 y no pasa NADA — ni una
    * casilla, ni un aviso (comprobado en la app corriendo, dueño 2026-08-19). Desde fuera es idéntico a
@@ -115,9 +139,11 @@ export function CharacterSheetView({ state, canEdit, rolls = defaultRolls, rollO
           donde lo lee todo el mundo (dueno, 2026-08-19). Solo se queda el aviso de que una tirada fallo,
           porque eso sin decirlo se pierde. */}
       {err && <div className="ch-log" aria-live="polite"><div className="ch-log-item err">{err}</div></div>}
+      {imageError && <div className="ch-log" aria-live="polite"><div className="ch-log-item err" role="alert">{imageError}</div></div>}
       <Sheet schema={system.sheetSchema} data={data} derived={derived} readOnly={!canEdit} onChange={p => applyPatch(p, 'sheet')}
         actions={system.engine.actions ?? []} {...(showActions ? { onAction: (a: string, i: string) => { void onAction(a, i); } } : {})} catalogs={system.catalogs}
         t={ts} refText={refText} labels={labels} poolSize={poolSize} icons={system.theme.icons ?? {}} showActions={showActions}
+        {...(canEdit ? { onImagePick } : {})}
         extras={{ [healthSection]: damageControl }} />
     </div>
   );

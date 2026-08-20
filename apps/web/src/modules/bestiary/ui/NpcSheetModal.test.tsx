@@ -13,7 +13,7 @@ const npc = (sheet: Record<string, unknown> = {}, over: Partial<BestiaryEntry> =
 });
 
 const setup = (entry = npc(), handlers = {}) => {
-  const props = { entry, system: plenilunio, campaignId: 'c1', onSave: vi.fn().mockResolvedValue(undefined), onDelete: vi.fn(), onClose: vi.fn(), ...handlers };
+  const props = { entry, system: plenilunio, campaignId: 'c1', onSave: vi.fn().mockResolvedValue(undefined), onUploadImage: vi.fn().mockResolvedValue('https://x/t.webp'), onDelete: vi.fn(), onClose: vi.fn(), ...handlers };
   renderWithProviders(<NpcSheetModal {...props} />);
   return props;
 };

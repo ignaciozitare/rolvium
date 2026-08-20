@@ -69,15 +69,19 @@ describe('<CharacterSheetView>', () => {
     expect(screen.queryByRole('button', { name: 'Recibir daño' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Personaje')).toBeDisabled();
   });
-  it('image fields say «Subir imagen: pronto» while no picker is wired, and stay silent when read-only', async () => {
+  /**
+   * La ficha decía «Subir imagen: pronto» desde que se escribió. Ya no: el `<Sheet>` traía el enganche
+   * `onImagePick` y `charactersRepo.uploadImage` sabía subir — sólo faltaba juntarlos (dueño, 2026-08-20).
+   * Se fija el botón, y que NO aparezca en modo lectura: un avatar ajeno no se cambia.
+   */
+  it('el avatar se puede subir cuando se puede editar, y no cuando es de sólo lectura', async () => {
     await mount(true);
-    const disc = screen.getByLabelText('Avatar');
-    const field = disc.parentElement as HTMLElement;
-    expect(within(field).getByText('Subir imagen: pronto')).toBeInTheDocument();
-    // The «Avatar» pick button only appears once onImagePick exists — no dead control meanwhile.
-    expect(within(field).queryByRole('button')).not.toBeInTheDocument();
+    const field = screen.getByLabelText('Avatar').parentElement as HTMLElement;
+    expect(within(field).getByRole('button', { name: 'Subir imagen' })).toBeInTheDocument();
+    expect(screen.queryByText(/pronto/i)).not.toBeInTheDocument();
     document.body.innerHTML = '';
     await mount(false);
-    expect(screen.queryByText('Subir imagen: pronto')).not.toBeInTheDocument();
+    const ro = screen.getByLabelText('Avatar').parentElement as HTMLElement;
+    expect(within(ro).queryByRole('button')).not.toBeInTheDocument();
   });
 });

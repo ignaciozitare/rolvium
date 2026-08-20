@@ -532,12 +532,19 @@
       "remove": "Quitar",
       "manual": "Manual",
       "of": "de",
-      "pickAvatar": "Avatar",
+      "pickAvatar": "Subir imagen",
       "avatarHint": "sin imagen propia se usa el avatar de tu cuenta",
       "rollFailed": "No se ha podido tirar. Inténtalo de nuevo.",
       "rolled": "{{title}} · {{summary}}",
       "openApart": "Abrir ficha aparte",
-      "imageSoon": "Subir imagen: pronto"
+      "imageError": {
+        "mime": "Ese tipo de fichero no vale. Usa PNG, JPG, WebP o GIF.",
+        "input-too-large": "La imagen pesa más de 8 MB. Elige una más ligera.",
+        "output-too-large": "Aun comprimida sigue pesando demasiado.",
+        "decode": "No se ha podido leer esa imagen.",
+        "upload": "No se ha podido subir la imagen. Inténtalo otra vez."
+      },
+      "imageAfterCreate": "Podrás ponerle imagen al terminar de crearlo"
     },
     "generator": {
       "title": "Crear personaje",
