@@ -60,3 +60,72 @@ segundos. El registro de la derecha no cambia: la tirada queda ahí como hoy.
 - Efectos de la tirada sobre la ficha (`result.effects.patch`, p.ej. subir Destino / recargar Fortuna) se aplican en la
   API tras guardar la tirada, con origen `roll`, por el mismo camino autoritativo que la ficha.
 - Migración: `supabase/migrations/20260818120000_dice_rolls.sql`.
+
+
+---
+
+## Cómo se lanza una tirada, y el panel del director (pedido del dueño, 2026-08-20)
+
+### El problema que arregla
+La ficha tiene arriba un bloque «Tirada» con dificultad, especialidad y armadura como **preset pegajoso**: lo dejas
+en «Difícil» y todas las tiradas siguientes salen así sin avisar. Está mal por dos motivos del manual:
+- **La dificultad no la pone el jugador.** p.84, literal: «Los dados de dificultad son **lanzados por el director de
+  juego**».
+- **No se tira en el vacío.** p.82: todas las acciones son **tiradas opuestas** — dificultad si es reto, la
+  característica del rival si es conflicto.
+
+### Lado del jugador: todo al botón, y nada que adivinar
+- **Desaparece el bloque «Tirada».**
+- Cada botón (TIRAR de una característica, o la acción de un arma) abre su propio panel con **sólo lo que el manual
+  deja elegir en ese momento**:
+  - **Especialidad** sí/no — la aplica el director si la ve adecuada (p.83).
+  - **Dados de la reserva de Destino** a coger, 0–5 (p.88–89).
+  - **Alcance** si es un disparo: de él sale la dificultad, no se teclea un número (p.96).
+- Lo que la ficha **ya sabe se enseña, no se pregunta**:
+  - Penalización por heridas: −1 dado herido, −2 malherido (p.99), ya restada del total.
+  - Armadura: si sale algún fracaso, convierte tantos triunfos como su penalización en éxitos normales (p.98).
+    ⚠ **No quita dados** — error que hubo que corregir en el diseño.
+  - Munición: disparar gasta un punto de cargador; sin balas el botón sale apagado (p.97).
+  - Bonificación del arma: sólo cuerpo a cuerpo (p.96).
+- **El jugador no elige cuántos dados tira**: son los de su característica (p.82). Sólo elige dados de reserva y,
+  en combate, cómo reparte los de Combate.
+
+### Lado del director: el panel de tiradas
+Vive en la escena. Es **el mismo lanzador de dados** con un botón de **expandir**; no es una ventana nueva.
+Desde ahí el director puede:
+- **Pedir una tirada con dificultad**: Fácil 1 · Media 2 · Difícil 3 · Muy difícil 5 · Épica 6 (p.84).
+- **Atacar con un encuentro** que tenga colocado en la escena, **eligiendo contra qué jugador**.
+- **Tirar por sí mismo** o una tirada libre.
+
+### Tirada enfocada, y la respuesta agrupada
+Al elegir jugador, la tirada queda **enfocada contra él**: le salta el aviso, contesta, y **las dos quedan como una
+sola entrada agrupada** en el registro (pedido literal del dueño: «que quede todo agrupado»).
+- **Cuerpo a cuerpo** (conflicto, p.93): al jugador se le pregunta **cuántos dados de Combate gasta en defenderse**
+  (0 a su Combate). Los gastados **se le descuentan del turno siguiente**; si gasta todos renuncia a ese turno, y si
+  ya los gastó todos queda **indefenso** (p.94: «sólo puede tomar dados de su siguiente turno»).
+- **A distancia** (reto, p.96): el jugador **no gasta dados de defensa**. Lo que sí puede es **ponerse a cubierto**
+  —reto de Combate o Astucia, y si lo logra, dispararle cuesta **+2 dados de dificultad** (p.96).
+- **Si el jugador no contesta, la tirada espera indefinidamente.** Nadie la resuelve por él, ni el director
+  (decisión del dueño, 2026-08-20).
+
+### Reglas y límites
+- El jugador **nunca** elige la dificultad de su propio reto.
+- El registro **no etiqueta** si el grupo de la derecha es una dificultad o un rival. Es una regla del libro, no un
+  descuido — p.85, literal: «Como todas las acciones requieren tiradas opuestas, Luis **no sabe** si el director de
+  juego tira los dados porque hay otro personaje o porque es la dificultad de la acción».
+- Los dados los sigue generando el **servidor**, y las tiradas siguen siendo **inmutables**: una tirada agrupada son
+  **dos tiradas enlazadas**, nunca una editada.
+- Atacar «como» una criatura es del director; un jugador no puede.
+
+### Fuera de alcance (de esta tanda)
+- **Ataques y defensas múltiples** — repartir los dados de Combate entre varios oponentes (p.94).
+- **Orden de actuación** por Destino y el gasto de Fortuna para adelantarse (p.92).
+- El **Bestiario** (H5) como módulo.
+
+### ⚠ Bloqueo conocido antes de construirlo
+Las criaturas del catálogo (`BESTIARY`) sólo llevan **Resistencia y protección**. No tienen **Combate, arma ni
+daño**, así que hoy el panel **no puede tirar su ataque**. Hay que meter esos datos desde el manual (el mutante en
+p.100: Fortaleza 3, Voluntad 1, Aguante 4, protección 2; el ogro en p.152).
+
+### Modelo de datos
+> Pendiente — lo completa el DBA Agent.

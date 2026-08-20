@@ -42,6 +42,15 @@ Fuente de verdad: el manual. Digesto con páginas y decisiones «⚠ interpretac
 
 ## Datos del paquete
 - `sheetSchema` (identidad, tirada, características+especialidades, estado, armadura, armas, dones, equipo, historia).
+- **Bestiario**: bloques del manual copiados uno a uno — las **siete características, Aguante, Destino, protección
+  natural (capacidades p.107–108) y la página** de cada criatura, para que el director pueda coger un encuentro y
+  tirar por él. Criaturas (Hambriento p.150, Ogro p.152, Fantasma p.149, Poseído p.149, Querubín p.155),
+  sobrenaturales (Lunar p.120, Soldado de élite de los caídos p.124, Solar y Paladín solar p.132) y humanos
+  hostiles (Carroñera p.74, Vagabundo p.69, Mafioso y Yihadista p.62, Dragón p.63, Pandillero latino p.61).
+  El **Aguante impreso ya incluye el tamaño** y la Resistencia es Aguante × 3. Del **mutante** el libro sólo publica
+  Fortaleza 3, Combate 3 y Voluntad 1: las demás quedan **sin valor**, no inventadas.
+  ⚠ Pendiente: las **especialidades** de cada bloque están en su texto pero no como dato, así que el motor todavía
+  no puede doblarle los triunfos a una criatura.
 - Catálogos: armas (tabla p.97), armaduras (p.98), equipo, 27 dones (p.102–107), especialidades por característica
   (p.21–22), bestiario base (Mutante p.100 y Ogro p.152 del manual; Solitario y Chatarrero son plantillas del prototipo), tamaños (p.25).
 - `references`: clave → {página, título, resumen propio} para tooltips (características, dones, estados, reserva…).

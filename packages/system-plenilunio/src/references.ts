@@ -27,6 +27,7 @@ export const references: References = Object.fromEntries([
   ref('gifts', 102),
   ref('xp', 91),
   ref('size', 25),
+  ref('bestiary', 107),
 ]);
 
 export const REFERENCE_KEYS = Object.keys(references);

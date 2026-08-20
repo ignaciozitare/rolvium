@@ -127,11 +127,67 @@ export const SPECIALTY_ITEMS: CatalogItem[] = STAT_IDS.flatMap(stat =>
   SPECIALTIES[stat].map(id => ({ id: `${stat}.${id}`, label: `catalog.specialties.${stat}.${id}`, ref: 'specialty', data: { stat } })));
 export const specialtiesFor = (stat: StatId): CatalogItem[] => SPECIALTY_ITEMS.filter(s => s.data?.stat === stat);
 
-// ─── Base bestiary (mutant p.100, ogre p.152; loner/scavenger are prototype templates, not manual blocks) ──
-export interface BestiaryData { resistance: number; protection: number; notes: string }
-const b = (id: string, resistance: number, protection: number): CatalogItem & { data: BestiaryData } =>
-  ({ id, label: `catalog.bestiary.${id}.name`, data: { resistance, protection, notes: `catalog.bestiary.${id}.notes` } });
-export const BESTIARY = [b('mutant', 12, 2), b('loner', 18, 0), b('ogre', 30, 3), b('scavenger', 9, 0)];
+// ─── Bestiario: bloques del manual, copiados uno a uno ───────────────────────
+/**
+ * Cada entrada es un bloque de criatura del libro, con sus SIETE características, su Aguante y su Destino tal y
+ * como los imprime (el Aguante del bloque **ya trae el modificador de tamaño**: el ogro tiene Fortaleza 8 y
+ * Voluntad 1 pero Aguante 10, porque es Grande). `resistance` no se guarda: es Aguante × 3 (p.25).
+ *
+ * `protection` sale de las **capacidades** (p.107–108), no de una armadura: «Piel gruesa*: cuenta como una armadura
+ * natural cuya protección es igual a la puntuación de esta capacidad». El mutante la tiene por su piel curtida (p.98).
+ *
+ * ⚠ Del mutante el libro sólo publica lo que se ve en sus ejemplos —Fortaleza 3 y Voluntad 1 (p.98), Combate 3
+ * (p.94), protección 2— así que el resto de sus características van SIN VALOR en vez de inventadas: la ficha las
+ * pinta «—» y el director tira con lo que hay.
+ *
+ * Las **especialidades** de cada bloque (el ogro tiene «Garrote» en Combate, el hambriento «Mordisco») todavía no se
+ * guardan: harían falta claves i18n por criatura y característica. Pendiente, anotado en el spec.
+ */
+export interface BestiaryData {
+  /** Las que el manual publica. Ausente = el bloque no la da (no la inventamos). */
+  stats: Partial<Record<StatId, number>>;
+  /** Aguante impreso en el bloque, modificador de tamaño incluido. */
+  endurance: number;
+  destiny: number;
+  /** Protección natural por capacidad (Piel gruesa N, piel curtida…). 0 = ninguna. */
+  protection: number;
+  /** Capacidades del bloque (p.107–108), como texto del libro para que el director las lea. */
+  abilities: string[];
+  /** Página del manual donde está el bloque. */
+  page: number;
+  /** Resistencia = Aguante × 3 (p.25). Se guarda calculada para no repetir la cuenta en cada consumidor. */
+  resistance: number;
+  notes: string;
+}
+type Block = { stats: Partial<Record<StatId, number>>; endurance: number; destiny: number; protection?: number; abilities?: string[]; page: number };
+const b = (id: string, k: Block): CatalogItem & { data: BestiaryData } => ({
+  id, label: `catalog.bestiary.${id}.name`, ref: 'bestiary',
+  data: { stats: k.stats, endurance: k.endurance, destiny: k.destiny, protection: k.protection ?? 0, abilities: k.abilities ?? [], page: k.page, resistance: k.endurance * 3, notes: `catalog.bestiary.${id}.notes` },
+});
+const st = (fortitude: number, combat: number, will: number, cunning: number, subtlety: number, presence: number, culture: number) =>
+  ({ fortitude, combat, will, cunning, subtlety, presence, culture });
+
+export const BESTIARY = [
+  // Criaturas (capítulo de criaturas)
+  b('hungry', { stats: st(3, 3, 1, 4, 0, 0, 0), endurance: 4, destiny: 0, abilities: ['Hambre inhumana'], page: 150 }),
+  b('ogre', { stats: st(8, 4, 1, 3, 1, 1, 0), endurance: 10, destiny: 0, protection: 3, abilities: ['Piel gruesa 3'], page: 152 }),
+  b('ghost', { stats: st(0, 0, 3, 2, 2, 1, 3), endurance: 0, destiny: 10, abilities: ['Ancla terrenal', 'Incorpóreo', 'Mano inmaterial 3'], page: 149 }),
+  b('possessed', { stats: st(2, 2, 2, 2, 0, 0, 0), endurance: 4, destiny: 0, abilities: ['Inmune al dolor'], page: 149 }),
+  b('cherub', { stats: st(2, 2, 2, 1, 3, 0, 0), endurance: 3, destiny: 0, abilities: ['Ponzoña 3', 'Visión en la oscuridad'], page: 155 }),
+  // Sobrenaturales
+  b('lunar', { stats: st(7, 6, 3, 4, 3, 2, 3), endurance: 10, destiny: 7, abilities: ['Alado', 'Aura sombría 2', 'Piel de humano'], page: 120 }),
+  b('fallenElite', { stats: st(7, 7, 4, 4, 3, 3, 4), endurance: 11, destiny: 8, abilities: ['Alado', 'Aura sombría 3', 'Piel de humano'], page: 124 }),
+  b('solar', { stats: st(6, 7, 4, 3, 2, 3, 3), endurance: 10, destiny: 7, abilities: ['Alado', 'Aura 2', 'Disfraz terrenal', 'Ira solar 2'], page: 132 }),
+  b('solarPaladin', { stats: st(6, 8, 5, 3, 2, 4, 4), endurance: 7, destiny: 8, abilities: ['Alado', 'Aura 3', 'Disfraz terrenal', 'Ira solar 3'], page: 132 }),
+  // Humanos hostiles (bloques del capítulo de ambientación)
+  b('mutant', { stats: { fortitude: 3, combat: 3, will: 1 }, endurance: 4, destiny: 0, protection: 2, abilities: ['Piel curtida'], page: 98 }),
+  b('scavenger', { stats: st(3, 3, 3, 2, 2, 3, 2), endurance: 6, destiny: 1, page: 74 }),
+  b('wanderer', { stats: st(2, 1, 3, 3, 1, 4, 3), endurance: 5, destiny: 4, page: 69 }),
+  b('gangster', { stats: st(2, 3, 1, 3, 1, 3, 2), endurance: 3, destiny: 1, page: 62 }),
+  b('jihadist', { stats: st(2, 3, 3, 2, 3, 2, 2), endurance: 5, destiny: 2, page: 62 }),
+  b('dragon', { stats: st(3, 2, 3, 2, 1, 2, 1), endurance: 6, destiny: 1, page: 63 }),
+  b('latinGang', { stats: st(3, 2, 2, 3, 1, 2, 1), endurance: 5, destiny: 1, page: 61 }),
+];
 
 // ─── Difficulty presets (manual p.84) ────────────────────────────────────────
 export const DIFFICULTIES = [

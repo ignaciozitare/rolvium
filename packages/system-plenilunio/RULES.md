@@ -427,19 +427,61 @@ Hambre inhumana, Ancla terrenal, Incorpóreo, Inmune al dolor, Deflagración*, V
 
 ---
 
-## 8. Bestiario (valores usados por el paquete)
-El manual da bloques completos (7 características, Aguante, Destino, capacidades). Los que usa el paquete:
-- **Mutante** (ejemplo p. 100): Aguante 4 (Fortaleza 3, Voluntad 1) → Resistencia 12; protección 2 (piel curtida).
-- **Ogro** (p. 152): Fortaleza 8, Combate 4, Voluntad 1, Astucia 3, Sutileza 1, Presencia 1, Cultura 0; Aguante 10
-  (tamaño Grande +1) → Resistencia 30; Piel gruesa 3 (protección 3).
-- ⚠ interpretación: «Solitario» (18/0) y «Chatarrero» (9/0) del catálogo base **no** son bloques del manual
-  (proceden del prototipo); se mantienen como plantillas genéricas.
-Otros bloques del libro útiles como referencia: Hambriento (Aguante 4, p. 150), Querubín (Aguante 3, Ponzoña 3, p. 155),
-Arpía (Aguante 5, p. 147), Salteador (Aguante 4, Destino 1, p. 209).
+## 8. Bestiario — bloques del manual, copiados uno a uno
+El libro imprime cada criatura con sus **siete características, su Aguante y su Destino**, y a veces
+**capacidades** (§7, p. 107–108). El paquete los copia tal cual: el director tiene que poder coger un encuentro y
+tirar por él. Nada de lo que hay aquí es invención nuestra.
+
+Dos cosas que se leen mal si no se avisan:
+- **El Aguante impreso ya trae el modificador de tamaño.** El ogro tiene Fortaleza 8 y Voluntad 1 —que suman 9— y
+  Aguante 10, porque es Grande (p. 25). Por eso el bloque se copia, no se recalcula.
+- **La protección de una criatura no es una armadura**, es una capacidad: «**Piel gruesa\*:** cuenta como una armadura
+  natural cuya protección es igual a la puntuación de esta capacidad» (p. 108).
+- Resistencia = Aguante × 3 (§1.6), como en cualquier personaje.
+
+### 8.1 Criaturas
+| Criatura | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | Prot. | Capacidades | p. |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|
+| Hambriento | 3 | 3 | 1 | 4 | 0 | 0 | 0 | 4 | 0 | – | Hambre inhumana | 150 |
+| Ogro | 8 | 4 | 1 | 3 | 1 | 1 | 0 | 10 | 0 | 3 | Piel gruesa 3 | 152 |
+| Fantasma aparecido | 0 | 0 | 3 | 2 | 2 | 1 | 3 | 0 | 10 | – | Ancla terrenal, Incorpóreo, Mano inmaterial 3 | 149 |
+| Poseído | 2 | 2 | 2 | 2 | 0 | 0 | 0 | 4 | 0 | – | Inmune al dolor | 149 |
+| Querubín | 2 | 2 | 2 | 1 | 3 | 0 | 0 | 3 | 0 | – | Ponzoña 3, Visión en la oscuridad | 155 |
+
+### 8.2 Sobrenaturales
+| Criatura | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | Capacidades | p. |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|
+| Lunar | 7 | 6 | 3 | 4 | 3 | 2 | 3 | 10 | 7 | Alado, Aura sombría 2, Piel de humano | 120 |
+| Soldado de élite de los caídos | 7 | 7 | 4 | 4 | 3 | 3 | 4 | 11 | 8 | Alado, Aura sombría 3, Piel de humano | 124 |
+| Solar | 6 | 7 | 4 | 3 | 2 | 3 | 3 | 10 | 7 | Alado, Aura 2, Disfraz terrenal, Ira solar 2 | 132 |
+| Paladín solar | 6 | 8 | 5 | 3 | 2 | 4 | 4 | 7 | 8 | Alado, Aura 3, Disfraz terrenal, Ira solar 3 | 132 |
+
+### 8.3 Humanos hostiles
+| Bloque | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | p. |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Carroñera | 3 | 3 | 3 | 2 | 2 | 3 | 2 | 6 | 1 | 74 |
+| Vagabundo amable | 2 | 1 | 3 | 3 | 1 | 4 | 3 | 5 | 4 | 69 |
+| Mafioso | 2 | 3 | 1 | 3 | 1 | 3 | 2 | 3 | 1 | 62 |
+| Yihadista | 2 | 3 | 3 | 2 | 3 | 2 | 2 | 5 | 2 | 62 |
+| Dragón | 3 | 2 | 3 | 2 | 1 | 2 | 1 | 6 | 1 | 63 |
+| Pandillero latino | 3 | 2 | 2 | 3 | 1 | 2 | 1 | 5 | 1 | 61 |
+
+### 8.4 El mutante — lo único que el libro publica
+Sale en dos ejemplos, no en un bloque: **Fortaleza 3 y Voluntad 1 → Aguante 4** y protección 2 por su piel curtida
+(p. 98), y **Combate 3** (p. 94). **Las otras cuatro características no están escritas en ninguna parte**, así que el
+paquete las deja SIN VALOR en vez de inventarlas: la ficha pinta «—» y el director tira con lo que hay.
+
+⚠ Fuera del catálogo, y anotado: «Solitario» y «Chatarrero», que venían del prototipo y **no eran bloques del
+manual**. En su lugar entran Carroñera (p. 74) y Vagabundo amable (p. 69), que sí lo son. `scavenger` conserva su
+identificador —lo usan los tokens ya colocados— y pasa a ser la Carroñera del libro.
+
+⚠ Pendiente: las **especialidades** de cada bloque (el ogro tiene «Garrote» en Combate, el hambriento «Mordisco»)
+están escritas en los `notes` de cada criatura pero **no como dato**, así que el motor todavía no puede doblar sus
+triunfos. Hace falta una clave i18n por criatura y característica.
 
 ---
 
 ## 9. Mapa página → clave `references.ts`
 stats 20 · specialty 83 · roll 82 · difficulty 84 · degree 85 · setback 86 · destinyPool 88 · destiny 88 ·
 fortune 89 · xp 91 · weapons 97 · damage 97 · armours 98 · endurance 98 · resistance 98 · health 99 ·
-recovery 101 · gifts 102 · size 25.
+recovery 101 · gifts 102 · size 25 · bestiary 107.

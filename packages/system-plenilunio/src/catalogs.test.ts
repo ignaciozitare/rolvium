@@ -65,11 +65,31 @@ describe('catalogs', () => {
     expect(RECOVERY.wounded).toEqual({ days: 7, difficulty: 3, restFactor: 2 });
     expect(RECOVERY.badlyWounded).toEqual({ days: 14, difficulty: 4, restFactor: 1 });
   });
-  it('bestiary base entries (mutant p.100: 12/2 · ogre p.152: 30/3)', () => {
-    expect(BESTIARY.map(b => b.id)).toEqual(['mutant', 'loner', 'ogre', 'scavenger']);
-    expect(BESTIARY.find(b => b.id === 'mutant')?.data).toMatchObject({ resistance: 12, protection: 2 });
-    expect(BESTIARY.find(b => b.id === 'ogre')?.data).toMatchObject({ resistance: 30, protection: 3 });
-    for (const b of BESTIARY) { resolves(b.label); resolves(b.data.notes); }
+  /**
+   * El bestiario son BLOQUES DEL MANUAL copiados uno a uno, no plantillas nuestras: el director tiene que poder
+   * coger un encuentro y tirar por él (dueño, 2026-08-20). Antes había cuatro entradas con sólo Resistencia y
+   * protección —y dos, `loner` y `scavenger`, inventadas—, así que no se podía tirar nada.
+   */
+  it('cada criatura trae el bloque del manual: siete características, Aguante, Destino y página', () => {
+    expect(BESTIARY.length).toBeGreaterThanOrEqual(16);
+    for (const b of BESTIARY) {
+      resolves(b.label); resolves(b.data.notes);
+      expect(b.data.page, b.id).toBeGreaterThan(0);
+      expect(b.data.resistance, b.id).toBe(b.data.endurance * 3);   // Resistencia = Aguante × 3 (p.25)
+      expect(b.data.destiny, b.id).toBeGreaterThanOrEqual(0);
+      for (const [k, v] of Object.entries(b.data.stats)) expect(v, `${b.id}.${k}`).toBeGreaterThanOrEqual(0);
+    }
+    // Ogro p.152: Fortaleza 8, Combate 4, Aguante 10 → Resistencia 30; su Piel gruesa 3 es protección 3 (p.108).
+    expect(BESTIARY.find(b => b.id === 'ogre')?.data).toMatchObject({ endurance: 10, resistance: 30, protection: 3, page: 152 });
+    expect(BESTIARY.find(b => b.id === 'ogre')?.data.stats).toMatchObject({ fortitude: 8, combat: 4 });
+    // Hambriento p.150.
+    expect(BESTIARY.find(b => b.id === 'hungry')?.data.stats).toMatchObject({ fortitude: 3, combat: 3, cunning: 4 });
+    // Del mutante el libro sólo publica tres características: las demás NO se inventan.
+    const mutant = BESTIARY.find(b => b.id === 'mutant')!;
+    expect(mutant.data).toMatchObject({ endurance: 4, resistance: 12, protection: 2 });
+    expect(Object.keys(mutant.data.stats).sort()).toEqual(['combat', 'fortitude', 'will']);
+    // El fantasma no tiene cuerpo: Fortaleza y Combate a 0, y Aguante 0 (p.149).
+    expect(BESTIARY.find(b => b.id === 'ghost')?.data).toMatchObject({ endurance: 0, resistance: 0, destiny: 10 });
   });
   it('every catalog label and every reference resolves in es and en', () => {
     for (const items of Object.values(catalogs)) for (const it of items) { resolves(it.label); if (it.ref) expect(references[it.ref], it.ref).toBeDefined(); }
@@ -80,6 +100,7 @@ describe('catalogs', () => {
     expect(pages).toEqual({
       stats: 20, specialty: 83, roll: 82, difficulty: 84, degree: 85, setback: 86, destinyPool: 88, destiny: 88, fortune: 89,
       endurance: 98, resistance: 98, health: 99, damage: 97, weapons: 97, armours: 98, recovery: 101, gifts: 102, xp: 91, size: 25,
+      bestiary: 107,
     });
   });
 });
