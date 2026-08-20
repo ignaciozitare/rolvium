@@ -78,10 +78,17 @@ en «Difícil» y todas las tiradas siguientes salen así sin avisar. Está mal 
 - **Desaparece el bloque «Tirada».**
 - Cada botón (TIRAR de una característica, o la acción de un arma) abre su propio panel con **sólo lo que el manual
   deja elegir en ese momento**:
-  - **Especialidad** sí/no — la aplica el director si la ve adecuada (p.83).
+  - ~~Especialidad~~ **NO se elige aquí**: si estás tirando una característica, tu especialidad ya está asignada en
+    la ficha. Quien decide si encaja en esa acción es el director, desde su panel (p.83).
   - **Dados de la reserva de Destino** a coger, 0–5 (p.88–89).
-  - **Alcance** si es un disparo: de él sale la dificultad, no se teclea un número (p.96).
-- Lo que la ficha **ya sabe se enseña, no se pregunta**:
+  - **Alcance** si es un disparo: de él sale la dificultad, no se teclea un número (p.96). **Y lo mide el mapa**:
+    con los dos tokens colocados la app sabe la distancia, así que sabe sola si es cuerpo a cuerpo o disparo y a
+    qué alcance — el jugador sólo lo corrige si hace falta.
+- **En el modal del jugador no van las leyendas de «esto ya lo sabe la ficha»** (dueño, 2026-08-20: mataban la
+  pantalla y no aportaban nada). Lo que la ficha sabe se aplica y punto; si hace falta explicarlo, va en el
+  **tooltip del registro**, no en el modal. Lo que el modal enseña son **dos controles**: cuántos dados tiras
+  (con −/+) y cuántos coges de la reserva; en un disparo, además, el alcance. **Nada más.**
+- Lo que la ficha ya sabe y aplica sin preguntar:
   - Penalización por heridas: −1 dado herido, −2 malherido (p.99), ya restada del total.
   - Armadura: si sale algún fracaso, convierte tantos triunfos como su penalización en éxitos normales (p.98).
     ⚠ **No quita dados** — error que hubo que corregir en el diseño.
@@ -92,10 +99,30 @@ en «Difícil» y todas las tiradas siguientes salen así sin avisar. Está mal 
 
 ### Lado del director: el panel de tiradas
 Vive en la escena. Es **el mismo lanzador de dados** con un botón de **expandir**; no es una ventana nueva.
-Desde ahí el director puede:
-- **Pedir una tirada con dificultad**: Fácil 1 · Media 2 · Difícil 3 · Muy difícil 5 · Épica 6 (p.84).
-- **Atacar con un encuentro** que tenga colocado en la escena, **eligiendo contra qué jugador**.
-- **Tirar por sí mismo** o una tirada libre.
+Corregido con el dueño el 2026-08-20, punto por punto:
+
+- **Pedir una tirada**: primero marca **a quién** —y se puede marcar **a más de uno**—, y luego **mantiene pulsada
+  una característica**: el desplegable de dificultad sale **pegado a ese botón**, suelta encima de la que quiera y
+  la petición sale. **Sin botón de confirmar.** Las siete características van a **ancho igual**, dos filas de tres
+  y la séptima centrada.
+- **Si le vale la especialidad lo marca él**, no el jugador: es lo que dice p.83 («es el director de juego quien
+  debe determinar si la especialidad del personaje es adecuada en esa ocasión»).
+- **Lista de encuentros** de la escena, plegable, dentro del panel:
+  - se pueden **añadir** encuentros a mano;
+  - **el token que se tira al mapa se añade solo** a la lista;
+  - el **nombre se edita en la propia fila** con un lápiz pequeño («EL DE LA PUERTA» en vez de «Hambriento (2)»);
+  - una **flecha despliega** sus características y sus otras tiradas, y **al abrir uno se cierra el anterior**;
+  - dentro del desplegado vale el mismo mantener-pulsado para la dificultad.
+- **Atacar desde el token**: tocar la criatura en el mapa abre **su** modal de ataque. **Se suma a la lista, no la
+  sustituye** — la lista sirve cuando no quieres buscar el bicho en el mapa. Esto es lo que hace que el panel no se
+  desborde cuando hay diez criaturas en la escena.
+- **Las tiradas del director para sí mismo NO van en este panel**: van en el lanzador de dados que ya existe.
+
+**Tirada de una criatura contra el entorno vs contra un jugador**: contra el entorno es un reto y lleva dificultad
+(mismo mantener-pulsado). **Contra un jugador es un conflicto y NO lleva dificultad** — los dados del otro lado los
+pone el jugador al defenderse, así que ahí el desplegable no debe aparecer. Los dados de la criatura son su
+característica; sólo en **Combate** se eligen, porque el libro deja repartirlos entre varios objetivos (p.94), y eso
+vive en el modal de atacar.
 
 ### Tirada enfocada, y la respuesta agrupada
 Al elegir jugador, la tirada queda **enfocada contra él**: le salta el aviso, contesta, y **las dos quedan como una

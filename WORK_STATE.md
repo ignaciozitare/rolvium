@@ -14,46 +14,81 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-20, `fix/ficha-listas` MERGEADA A `main`
+## 🟢 PUNTO EXACTO — 2026-08-20, handoff a chat nuevo
 
-Rama cerrada: Review pasado, **QA pasado** (apto con avisos, modo `warn`), previews de web y api en
-verde sobre el commit de la rama, merge `026ee6d` empujado a `main`. Producción se despliega sola
-desde `main`.
+`main` está al día y **producción también** (verificada contra el bundle, no de memoria). No hay ninguna rama
+abierta. Lo que sigue vivo es **un diseño en el `.pen` sin guardar** y **un spec escrito pero sin construir**.
 
-### ✅ Producción al día, comprobada contra el bundle (2026-08-20, 06:01)
-`https://rolvium-api.vercel.app/health` → `{"ok":true}`. Y el bundle que sirve
-`https://rolvium.vercel.app` **contiene** «indefenso en el suelo» y `rv-sheet-note` (lo nuevo de esta
-tanda) y **ya no contiene** «Resistencia recuperable» (el campo que desapareció).
-⚠ Nota para el que compruebe la próxima: **el hash del bundle de producción NO coincide con el del
-build local** y eso es normal — Vite inlinea las variables `VITE_*`, así que el contenido difiere.
-Comparar hashes da un falso negativo; hay que grepear el bundle por una cadena de la tanda.
+### Prompt de resume, de una línea
+> Retomo Rolvium: lee el bloque 🟢 de WORK_STATE.md. Lo primero es guardar `rolvium.pen` (Cmd+S) y sacar las
+> capturas del frame `Mesa/Tiradas · rediseño — quién ve qué`; luego seguimos con el modelo de datos de las tiradas.
 
-### Lo que dejó el QA para decidir (ninguno bloqueaba, y NO están hechos)
-1. **`specs/core/game-system/SPEC.md:37` está viejo** — es el contrato contra el que se escribirá
-   cualquier sistema de juego futuro, así que es el que más urge. No tiene: `ActionDef.toRoll`
-   opcional, `ActionDef.spend`, `appliesToRow`, `FieldDef.note`, `FieldDef.hidden`,
-   `options[].hint`, `SectionDef.span`.
-2. **`specs/modules/table/SPEC.md:14-15`** sigue listando «Mejorar» como pestaña. Ya no lo es.
-3. **`specs/modules/system-plenilunio/SPEC.md:12-13`** sigue con «Resistencia = Aguante×3 (sin tope)»
-   MÁS «recuperable descansando ×3/×2/×1» — justo los dos números que esta rama fusionó. La línea 30
-   tampoco tiene recargar ni la columna de Munición.
-4. **`ARCHITECTURE.md:72`** sigue diciendo «Ficha/Mejorar/El grupo/Crear personaje».
-5. **`playwright` entró como devDependency de `apps/web`** pero `scripts/shot.mjs` vive en la raíz, y
-   nadie ha documentado que hace falta `npx playwright install` antes de usarlo.
+---
 
-⚠ **Los advisors de Supabase no se pudieron correr**: el QA no encontró referencia del proyecto
-(`supabase/config.toml` sólo trae el nombre local, no hay `.vercel/` ni `supabase/.temp/project-ref`).
-No bloqueó porque **esta rama no lleva ni una migración**, pero la puerta está sin verificar: hace
-falta `supabase link` (o dar la ref) antes de la próxima rama que toque base.
+### ⚠️ LO PRIMERO: el `.pen` está SIN GUARDAR y el diseño NUNCA se ha visto
+El diseño de las tiradas está montado en el frame **`Mesa/Tiradas · rediseño — quién ve qué`** (id `v3vfV`), pero
+**el dueño no ha pulsado Cmd+S**, así que:
+- **no está en disco** y el commit no lo tiene;
+- **las capturas del MCP salen en blanco** — el renderizador lee el fichero guardado, no la caché;
+- **las medidas (`ctx.bounds`) que devuelve el MCP están viejas**, así que los avisos de «clipped» no son fiables.
+  Se perdió media sesión ajustando a ciegas por no saber esto. **Que el dueño guarde ANTES de tocar nada más.**
 
-### ⏳ Próximo paso
-1. Los cinco avisos de arriba — los specs 1 a 3 son los que de verdad importan.
-2. **«Tirada»**: pide decisión del dueño (ver el bloque de abajo), spec y `.pen` antes de código.
-3. La lógica de **daño → Resistencia → Salud**: sin empezar.
+Seis columnas, cada una con su etiqueta de quién la ve:
+| # | Frame | Quién lo ve |
+|---|---|---|
+| 1 | `Popover/Tirar` (`UnY4s`) | jugador — cuántos dados (−/+) y cuántos de la reserva. Nada más |
+| 2 | `Popover/Disparar` (`X8No2`) | jugador — lo mismo, más el alcance |
+| 3 | `Panel/Registro` (`OOWZv`) + `Tooltip/Desglose` (`y0WfVO`) | los dos — nombre de quién tiró y el desglose en tooltip |
+| 4 | `Panel/Director` (`QWHSS`) | sólo el director |
+| 5 | `Aviso/Te atacan` (`dcTPM`) | el jugador atacado |
+| 6 | `Modal/Atacar con el token` (`A4VWk`) | sólo el director |
 
-### El entorno sigue levantado
-Docker + Supabase local + `dev:api` en **:3001** + `dev:web` en **:5173**. Capturas en `/tmp/sec-*.png`
-y `/tmp/theme-{dark,light}-*.png`. Karen quedó como estaba (herida, 3 de 12, consciente).
+**Todo lo que el dueño corrigió está ya aplicado en el `.pen` y escrito en `specs/modules/dice/SPEC.md`**
+(mantener pulsada la característica, varios destinatarios, la lista de encuentros con añadir/editar/desplegar, el
+ataque desde el token, fuera las leyendas del modal del jugador, fuera elegir especialidad en el lado del jugador,
+las tiradas «para mí» al lanzador que ya existe, botones a ancho igual 3+3+1). **Lo único que falta es MIRARLO.**
+
+### ⏳ Lo siguiente, en orden
+1. **Guardar el `.pen`**, sacar capturas de las seis columnas y corregir lo que se vea torcido.
+2. **Modelo de datos de las tiradas agrupadas** (DBA): una tirada del director **enfocada** contra uno o varios
+   jugadores, y la respuesta del jugador **enlazada** a ella para que salgan como una sola entrada. Ya existe
+   `dice_rolls.corrects_id` como precedente de enlace. Si el jugador no contesta, **la tirada espera
+   indefinidamente** (decisión del dueño) — o sea que hace falta un estado «pendiente».
+3. **Construirlo**: ficha (fuera el bloque «Tirada»), panel del director, aviso de defensa, registro con autor y
+   tooltip de desglose.
+4. **La niebla degradada** y el resto del backlog de la escena (los siete puntos, más abajo).
+
+### 🧾 Lo que se cerró hoy (2026-08-20)
+- **`fix/ficha-listas` mergeada** (`026ee6d`): el sexto nivel de salud (Inconsciente, p.101), la Resistencia máxima
+  que la baja el estado, la Fortuna capada al Destino, la maquetación, las especialidades como texto con `+`, y
+  «Mejorar» fuera de las pestañas. Review + QA pasados, previews en verde, producción verificada.
+- **El bestiario entero** (`393f06d`): los **37 bloques del manual** con sus siete características, Aguante,
+  Destino, protección y página. Antes eran cuatro plantillas sin características, dos de ellas inventadas.
+- **Specs y ARCHITECTURE al día** (`d94b0ab`): el contrato del puerto de sistemas estaba viejo y es el que se usará
+  para escribir el próximo sistema de juego.
+- **`specs/core/images`** nuevo (`9964a73`): un solo camino para subir imágenes, comprimidas a **WebP en el
+  navegador** (sin coste de servidor), con tamaños y topes por destino.
+- **Los números descuadrados** (`c37a28a`): no era el CSS, era la letra — Cormorant Garamond trae cifras de estilo
+  antiguo. `lining-nums` en la mesa entera. Y los grises de texto, un escalón más oscuros.
+
+### 🔎 Deuda conocida, escrita para que no se pierda
+- **Las especialidades de las criaturas no son dato.** El ogro tiene «Garrote» en Combate y el hambriento
+  «Mordisco», pero están sólo en su texto, así que el motor **no puede doblarles los triunfos**. Son ~200 nombres
+  que NO están en la lista de especialidades de jugador, así que hacen falta claves i18n propias. **Preguntado al
+  dueño y sin responder**: ¿ahora o cuando se construya el Bestiario?
+- **Los advisors de Supabase no se pueden correr**: no hay referencia del proyecto en el repo. No bloqueó porque no
+  hubo migraciones, pero **la próxima rama que toque base necesita `supabase link`** o la ref.
+- Cinco avisos del QA sin tocar: `playwright` está en `apps/web` mientras `scripts/shot.mjs` vive en la raíz y nadie
+  documentó que hace falta `npx playwright install`.
+- Un PJ **muerto** sale con «Resistencia máxima 0» y sin casillas. Es coherente (un muerto no recupera) pero la
+  p.101 no dice nada de los muertos: ese 0 es codificación nuestra. Mirado en pantalla y dejado así a propósito.
+
+### 🖥 El entorno quedó levantado
+Docker + Supabase local + `dev:api` en **:3001** + `dev:web` en **:5173**. Capturas en `/tmp/sec-*.png` y
+`/tmp/theme-{dark,light}-*.png`. Campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`, Karen
+`3af4f238-25ad-4cf1-a264-09d7586019d8`, `admin@rolvium.local` / `rolvium123`.
+Para VER el aviso de Inconsciente o una ficha de muerto se tocó a mano la base local; **Karen quedó como estaba**
+(herida, 3 de 12, consciente), comprobado con un `select` después de cada uno.
 
 ---
 
