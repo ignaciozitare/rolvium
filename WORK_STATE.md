@@ -56,6 +56,13 @@ Alcance aprobado por el dueño: **el hexágono entero**, no una rebanada.
 4. Review (lanzado) → QA → merge.
 
 ### 🔎 Lo que me encontré y NO toqué (decidir aparte)
+- 🔒 **El bucket `tokens` es PÚBLICO** (`public = true`, migración de `characters`, línea 221). Cualquiera con
+  la URL ve la imagen **sin sesión siquiera**. En un módulo que grita «SOLO DIRECTOR» eso chirría: un jugador
+  curioso podría ver la ilustración de un monstruo antes de enfrentarse a él. **Es config preexistente**, pero
+  el Bestiario es lo primero que mete ahí contenido secreto del director. Arreglarlo son URLs firmadas en vez
+  de públicas y toca **también `characters` (avatares) y `maps` (fondos)**, con riesgo de que dejen de verse
+  imágenes ya subidas. El dueño lo aparcó el 2026-08-20 para no retrasar el merge del Bestiario: **decisión
+  suya, consciente**, no un olvido.
 - **El diseño del listado enseña «Solitario» y «Chatarrero»**, que se quitaron del catálogo por no ser bloques del
   manual (RULES.md §8). Es texto de ejemplo del `.pen`, no código, pero conviene refrescarlo.
 - ~~El pie decía «SUBIR TOKEN PNG»~~ → **corregido a «SUBIR IMAGEN (WEBP)»** (el dueño confirmó que el PNG era viejo).
