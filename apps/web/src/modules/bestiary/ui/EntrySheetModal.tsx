@@ -12,7 +12,7 @@ interface Props {
   entry: BestiaryEntry;
   system: GameSystem;
   specialtyLabel: (id: string) => string;
-  onSave: (patch: { name: string; notes: string; data: CreatureData; campaignId: string | null }) => Promise<void>;
+  onSave: (patch: { name: string; notes: string; data: CreatureData; campaignId: string | null; tokenUrl: string | null }) => Promise<void>;
   onUploadImage: (file: Blob) => Promise<string>;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -71,7 +71,9 @@ export function EntrySheetModal({ entry, specialtyLabel, onSave, onUploadImage, 
     setBusy(true);
     setError(null);
     try {
-      await onSave({ name: name.trim() || entry.name, notes, data: { ...data, page: data.page }, campaignId: global ? null : campaignId });
+      // `tokenUrl` viaja en el guardado: subir la imagen sólo la deja en el bucket, quien escribe
+      // `token_url` en la fila es este patch. Sin él la foto se ve hasta recargar y luego desaparece.
+      await onSave({ name: name.trim() || entry.name, notes, data: { ...data, page: data.page }, campaignId: global ? null : campaignId, tokenUrl });
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

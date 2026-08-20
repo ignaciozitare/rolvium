@@ -47,6 +47,17 @@ describe('SupabaseBestiaryRepo — listar', () => {
     expect(q(m).or).toHaveBeenCalledWith('campaign_id.eq.c1,campaign_id.is.null');
   });
 
+  /**
+   * El id de campaña viene de la URL. `or()` lo pega tal cual dentro del lenguaje de filtros de PostgREST,
+   * así que una coma dentro del valor añade condiciones a la consulta. Se corta antes de componer el filtro.
+   */
+  it('un id de campaña con sintaxis de filtro dentro no llega a la consulta', async () => {
+    const m = createSupabaseMock({ tables: { bestiary_entries: { data: [ROW], error: null } } });
+    const repo = new SupabaseBestiaryRepo(m.client as unknown as SupabaseClient);
+    await expect(repo.listForCampaign('c1,owner_id.neq.null', 'plenilunio')).rejects.toThrow(/bad campaign id/);
+    expect(m.fromSpy).not.toHaveBeenCalled();
+  });
+
   it('un error de la base sube, no devuelve lista vacía', async () => {
     const m = createSupabaseMock({ tables: { bestiary_entries: { data: null, error: new Error('boom') } } });
     const repo = new SupabaseBestiaryRepo(m.client as unknown as SupabaseClient);
@@ -104,24 +115,66 @@ describe('SupabaseBestiaryRepo — imagen del token', () => {
    */
   it('sube al bucket de tokens con nombre propio y devuelve la URL pública', async () => {
     const upload = vi.fn().mockResolvedValue({ error: null });
-    const getPublicUrl = vi.fn().mockReturnValue({ data: { publicUrl: 'https://x/be-1/uuid.webp' } });
+    const getPublicUrl = vi.fn().mockReturnValue({ data: { publicUrl: 'https://x/u-dm/bestiary/be-1/uuid.webp' } });
     const fromBucket = vi.fn().mockReturnValue({ upload, getPublicUrl });
     const m = createSupabaseMock();
-    const repo = new SupabaseBestiaryRepo({ ...m.client, storage: { from: fromBucket } } as unknown as SupabaseClient);
+    const repo = new SupabaseBestiaryRepo(withUser({ ...m.client, storage: { from: fromBucket } }) as unknown as SupabaseClient);
 
     const url = await repo.uploadToken('be-1', new Blob(['x'], { type: 'image/webp' }));
 
     expect(fromBucket).toHaveBeenCalledWith(TOKENS_BUCKET);
     const [path, , opts] = upload.mock.calls[0]!;
-    expect(path).toMatch(/^be-1\/[0-9a-f-]{36}\.webp$/);
+    expect(path).toMatch(/^u-dm\/bestiary\/be-1\/[0-9a-f-]{36}\.webp$/);
     expect(opts).toMatchObject({ contentType: 'image/webp', upsert: false });
-    expect(url).toBe('https://x/be-1/uuid.webp');
+    expect(url).toBe('https://x/u-dm/bestiary/be-1/uuid.webp');
+  });
+
+  /**
+   * El respaldo de `compressImage` (navegador sin WebP) devuelve el ORIGINAL, así que no siempre sube un
+   * WebP. Etiquetarlo a ciegas como WebP guardaría el fichero con un tipo que no es el suyo y el navegador
+   * se lo comería mal al pintarlo.
+   */
+  it('respeta el tipo real del fichero en vez de decir siempre WebP', async () => {
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const fromBucket = vi.fn().mockReturnValue({ upload, getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://x/a.png' } }) });
+    const m = createSupabaseMock();
+    const repo = new SupabaseBestiaryRepo(withUser({ ...m.client, storage: { from: fromBucket } }) as unknown as SupabaseClient);
+
+    await repo.uploadToken('be-1', new Blob(['x'], { type: 'image/png' }));
+
+    const [path, , opts] = upload.mock.calls[0]!;
+    expect(path).toMatch(/\.png$/);
+    expect(opts).toMatchObject({ contentType: 'image/png' });
+  });
+
+  /**
+   * La política del bucket (`tokens_insert_own`) exige que la PRIMERA carpeta sea el id del usuario. Con la
+   * entrada delante, Storage devuelve 403 y ninguna criatura puede tener foto. Es la misma forma que ya usa
+   * `SupabaseCharactersRepo`, y se fija aquí porque el fallo no se ve hasta subir contra la base de verdad.
+   */
+  it('la ruta empieza por el id del usuario, que es lo que exige la política del bucket', async () => {
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const fromBucket = vi.fn().mockReturnValue({ upload, getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://x/t.webp' } }) });
+    const m = createSupabaseMock();
+    const repo = new SupabaseBestiaryRepo(withUser({ ...m.client, storage: { from: fromBucket } }, 'u-otro') as unknown as SupabaseClient);
+
+    await repo.uploadToken('be-1', new Blob(['x'], { type: 'image/webp' }));
+
+    expect((upload.mock.calls[0]![0] as string).split('/')[0]).toBe('u-otro');
+  });
+
+  it('sin sesión no se sube nada', async () => {
+    const fromBucket = vi.fn();
+    const m = createSupabaseMock();
+    const repo = new SupabaseBestiaryRepo(withUser({ ...m.client, storage: { from: fromBucket } }, null) as unknown as SupabaseClient);
+    await expect(repo.uploadToken('be-1', new Blob(['x'], { type: 'image/webp' }))).rejects.toThrow(/no session/);
+    expect(fromBucket).not.toHaveBeenCalled();
   });
 
   it('si la subida falla, el error sube', async () => {
     const fromBucket = vi.fn().mockReturnValue({ upload: vi.fn().mockResolvedValue({ error: new Error('too big') }), getPublicUrl: vi.fn() });
     const m = createSupabaseMock();
-    const repo = new SupabaseBestiaryRepo({ ...m.client, storage: { from: fromBucket } } as unknown as SupabaseClient);
+    const repo = new SupabaseBestiaryRepo(withUser({ ...m.client, storage: { from: fromBucket } }) as unknown as SupabaseClient);
     await expect(repo.uploadToken('be-1', new Blob(['x']))).rejects.toThrow('too big');
   });
 });

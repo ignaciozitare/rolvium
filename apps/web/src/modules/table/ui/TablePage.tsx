@@ -23,10 +23,11 @@ import { SceneTab } from './tabs/SceneTab';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
 import type { MapsPort } from '@/modules/maps/domain/ports/MapsPort';
 import type { VisionPort } from '@/modules/maps/domain/ports/VisionPort';
+import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 import './table.css';
 
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
-export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, maps, vision }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; maps?: MapsPort; vision?: VisionPort }): JSX.Element {
+export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, maps, vision, bestiary }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort }): JSX.Element {
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
@@ -128,7 +129,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}
             {tab === 'scene' && <SceneTab campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} />}
-            {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={() => setTab('scene')} onRoll={() => setRollerOpen(true)} />}
+            {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={() => setTab('scene')} onRoll={() => setRollerOpen(true)} {...(bestiary ? { repo: bestiary } : {})} />}
           </main>
           <aside className="tb-side">
             <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} />

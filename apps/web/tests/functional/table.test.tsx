@@ -8,6 +8,7 @@ import type { TablePort } from '@/modules/table/domain/ports/TablePort';
 import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
 import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
 import { canTake, tabsFor } from '@/modules/table/domain/useCases/tableRules';
+import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 
 const GM = { ...ADMIN_USER, id: 'dm-1', name: 'Laura', role: 'game_master' };
 
@@ -39,12 +40,21 @@ function fakeTableRepo(role: 'dm' | 'player', value = 7): TablePort & { snap: Ta
   };
 }
 
-function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort()) {
+/**
+ * El bestiario se inyecta como todo lo demás. Sin este puerto la pestaña «Bestiario» iría contra el
+ * contenedor real —y contra Supabase— en cuanto un test la abriera, así que la pestaña no se podía probar.
+ */
+const fakeBestiaryRepo = (): BestiaryPort => ({
+  listForCampaign: vi.fn().mockResolvedValue([]),
+  create: vi.fn(), update: vi.fn(), remove: vi.fn(), uploadToken: vi.fn(),
+});
+
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo()) {
   renderWithProviders(
-    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} />} /></Routes></AuthProvider>,
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} />} /></Routes></AuthProvider>,
     { providers: { routerProps: { initialEntries: ['/table/c1'] } } },
   );
-  return { rolls, rollLog, maps, vision };
+  return { rolls, rollLog, maps, vision, bestiary };
 }
 
 describe('table: rules', () => {
@@ -93,6 +103,31 @@ describe('table: page', () => {
     expect(screen.getAllByRole('button', { name: 'Coger un dado' }).every(b => (b as HTMLButtonElement).disabled)).toBe(true);
     await u.click(screen.getByRole('button', { name: 'Reiniciar' }));
     await waitFor(() => expect(screen.getByText('10/10')).toBeInTheDocument());
+  });
+
+  /**
+   * La pestaña dejó de ser un cartel de «en construcción» y ahora monta el hexágono de verdad: se comprueba
+   * que llega el catálogo del manual y que la campaña y el sistema que le pasa la mesa son los correctos.
+   * Un jugador no ve la pestaña (`tabsFor`) y, aunque llegara, la RLS no le devolvería ni una fila.
+   */
+  it('la pestaña Bestiario monta el catálogo con la campaña y el sistema de la mesa', async () => {
+    const u = userEvent.setup();
+    const { bestiary } = mount(GM, fakeTableRepo('dm'));
+    await u.click(await screen.findByRole('button', { name: 'Bestiario' }));
+
+    expect(await screen.findByRole('heading', { name: 'Ogro' })).toBeInTheDocument();
+    await waitFor(() => expect(bestiary.listForCampaign).toHaveBeenCalledWith('c1', 'plenilunio'));
+  });
+
+  /** «Colocar» devuelve al director a la escena: es donde se coloca, y quedarse en el catálogo despista. */
+  it('colocar una criatura desde el Bestiario lleva a la escena', async () => {
+    const u = userEvent.setup();
+    mount(GM, fakeTableRepo('dm'));
+    await u.click(await screen.findByRole('button', { name: 'Bestiario' }));
+    const card = (await screen.findByRole('heading', { name: 'Ogro' })).closest('article')!;
+    await u.click(within(card).getByRole('button', { name: 'Colocar' }));
+
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Ogro' })).not.toBeInTheDocument());
   });
 
   it('non-member sees the notice', async () => {

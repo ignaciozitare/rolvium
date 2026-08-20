@@ -11,6 +11,21 @@ interface EntryRow {
 const COLS = 'id, campaign_id, owner_id, system_id, origin, source_ref, name, data, token_url, notes';
 export const TOKENS_BUCKET = 'tokens';
 
+/**
+ * Extensión por tipo. El bucket sólo admite estos tres (`allowed_mime_types` en la migración de `characters`):
+ * un GIF que llegue por la ruta de respaldo lo rechaza la base, y eso es lo correcto — mejor un error claro
+ * que un fichero que nadie puede pintar.
+ */
+const EXT: Record<string, string> = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' };
+
+/**
+ * El id de campaña llega de la URL, así que es entrada NO fiable, y `or()` lo mete tal cual en el lenguaje
+ * de filtros de PostgREST: una coma o un paréntesis dentro del valor añadiría condiciones a la consulta.
+ * Se comprueba antes de componer el filtro. La RLS seguiría tapando las filas ajenas, pero un filtro que el
+ * usuario puede reescribir no es un filtro.
+ */
+const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
 /** Una fila puede haberse guardado antes de que `data` tuviera un campo, así que todo lleva valor por defecto. */
 export const mapEntryRow = (r: EntryRow): BestiaryEntry => ({
   id: r.id,
@@ -55,6 +70,7 @@ export class SupabaseBestiaryRepo implements BestiaryPort {
 
   /** Las de la campaña MÁS las guardadas «para todas mis campañas» (campaña en blanco). */
   async listForCampaign(campaignId: string, systemId: string): Promise<BestiaryEntry[]> {
+    if (!SAFE_ID.test(campaignId)) throw new Error('bestiary: bad campaign id');
     const { data, error } = await this.sb.from('bestiary_entries').select(COLS)
       .eq('system_id', systemId)
       .or(`campaign_id.eq.${campaignId},campaign_id.is.null`)
@@ -90,10 +106,22 @@ export class SupabaseBestiaryRepo implements BestiaryPort {
   /**
    * La imagen llega YA comprimida a WebP (ver specs/core/images). El nombre lo pone el cliente a partir
    * del id de la entrada, nunca el del fichero del usuario: un nombre de fichero es entrada no fiable.
+   *
+   * La ruta EMPIEZA por el id del usuario porque así lo exige la política del bucket `tokens`
+   * (`tokens_insert_own`: `(storage.foldername(name))[1] = auth.uid()`), la misma que ya cumple
+   * `SupabaseCharactersRepo` con `{uid}/characters/…`. Con la entrada delante, la subida la rechaza
+   * la base con un 403 y el director no puede ponerle foto a ninguna criatura.
    */
   async uploadToken(entryId: string, file: Blob): Promise<string> {
-    const path = `${entryId}/${crypto.randomUUID()}.webp`;
-    const { error } = await this.sb.storage.from(TOKENS_BUCKET).upload(path, file, { contentType: 'image/webp', upsert: false });
+    const { data: auth } = await this.sb.auth.getUser();
+    const ownerId = auth.user?.id;
+    if (!ownerId) throw new Error('bestiary: no session');
+    // Casi siempre llega WebP, pero NO siempre: si el navegador no sabe generarlo, `compressImage` devuelve el
+    // original (specs/core/images). Declarar «webp» a ciegas etiquetaría mal ese fichero en el bucket y lo
+    // serviría con un tipo que no es el suyo.
+    const type = file.type || 'image/webp';
+    const path = `${ownerId}/bestiary/${entryId}/${crypto.randomUUID()}.${EXT[type] ?? 'webp'}`;
+    const { error } = await this.sb.storage.from(TOKENS_BUCKET).upload(path, file, { contentType: type, upsert: false });
     if (error) throw error;
     return this.sb.storage.from(TOKENS_BUCKET).getPublicUrl(path).data.publicUrl;
   }

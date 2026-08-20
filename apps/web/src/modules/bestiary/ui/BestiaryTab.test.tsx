@@ -150,6 +150,19 @@ describe('BestiaryTab — crear y borrar', () => {
     expect(await screen.findByRole('heading', { name: 'Ficha del encuentro' })).toBeInTheDocument();
   });
 
+  /**
+   * De punta a punta: lo que la ficha guarda tiene que llegar al repositorio, `token_url` incluido. Con la
+   * imagen fuera del patch la foto sobrevive en pantalla pero no en la fila, y se pierde al recargar.
+   */
+  it('guardar la ficha manda al repositorio también la imagen', async () => {
+    const repo = makeRepo([own({ tokenUrl: 'https://x/ogro.webp' })]);
+    setup(repo);
+    const card = await cardOf('Ogro con antorcha');
+    await userEvent.click(within(card).getByRole('button', { name: 'Editar' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(repo.update).toHaveBeenCalledWith('be-1', expect.objectContaining({ tokenUrl: 'https://x/ogro.webp' })));
+  });
+
   /** Borrar una plantilla NO puede vaciar la escena: el aviso lo dice y la base lo garantiza (ON DELETE SET NULL). */
   it('borrar pide confirmación y avisa de que los tokens colocados se quedan', async () => {
     const repo = makeRepo();

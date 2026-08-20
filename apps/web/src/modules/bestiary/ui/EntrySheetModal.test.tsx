@@ -123,6 +123,23 @@ describe('EntrySheetModal — guardar', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ name: 'Ogro con antorcha' })));
   });
 
+  /**
+   * Subir la imagen sólo la deja en el bucket: quien escribe `token_url` en la fila es este patch. Si no
+   * viajara, la foto se vería hasta recargar la página y después desaparecería sin ningún error — el peor
+   * tipo de fallo, porque parece que ha funcionado.
+   */
+  it('la imagen ya subida viaja en el guardado', async () => {
+    const { onSave } = setup({ tokenUrl: 'https://x/ya-subida.webp' });
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ tokenUrl: 'https://x/ya-subida.webp' })));
+  });
+
+  it('una entrada sin imagen manda la imagen en blanco, no la omite', async () => {
+    const { onSave } = setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ tokenUrl: null })));
+  });
+
   it('si guardar falla, se dice y la ficha no se cierra', async () => {
     const onSave = vi.fn().mockRejectedValue(new Error('sin permiso'));
     const { onClose } = setup({}, { onSave });
