@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { plenilunio } from '@rolvium/system-plenilunio';
-import { creatureRollRequest, ownDiceOf, type CreatureRollChoice } from './creatureRoll';
+import { creatureBlastRequest, creatureRollRequest, ownDiceOf, type CreatureRollChoice } from './creatureRoll';
 import type { BestiaryEntry } from '../entities/BestiaryEntry';
 
 const poolFor = (sheet: Record<string, unknown>, action: { stat: string; options?: Record<string, unknown> }) =>
@@ -101,5 +101,66 @@ describe('ownDiceOf — cuántos dados salen, para poder enseñarlo antes de tir
   it('suma los propios y deja fuera la oposición', () => {
     const req = creatureRollRequest(ogre(), choice({ difficulty: 3 }), poolFor, 'Combate');
     expect(ownDiceOf(req)).toBe(4);
+  });
+});
+
+/**
+ * Los ataques en caja y las capacidades (RULES.md §8.0 y §7.b.1). El ejemplo es Baal (p.126).
+ */
+const baal = (): BestiaryEntry => ({
+  id: 'be-2', origin: 'manual', name: 'Baal', notes: '', tokenUrl: null, sourceRef: null,
+  campaignId: null, editable: false,
+  data: {
+    stats: { fortitude: 7, combat: 8, will: 5, cunning: 4, subtlety: 5, presence: 3, culture: 8 },
+    endurance: 12, destiny: 9, protection: 0, page: 126, abilities: [],
+    capabilities: [{ id: 'nightShelter', level: 3 }, { id: 'blast', level: 5 }],
+    attacks: [{ label: 'catalog.creatureAttacks.espadaOriental', attack: 9, damage: 10 }],
+    specialties: {},
+  },
+});
+
+describe('creatureRollRequest — los ataques que imprime la caja', () => {
+  it('tira los dados del ataque impreso, no los de la característica', () => {
+    const req = creatureRollRequest(baal(), { ...choice(), attack: baal().data.attacks![0] }, poolFor, 'Espada oriental');
+    // 9 = su Combate 8 + la bonificación del arma, que es la diferencia con el ataque impreso. No se recalcula.
+    expect(req.groups.find(g => g.tag === 'own')?.count).toBe(9);
+    expect(req.options).toMatchObject({ weaponDamage: 10, bonusDice: 1, weaponId: 'catalog.creatureAttacks.espadaOriental' });
+    expect(req.title).toBe('Baal · Espada oriental');
+  });
+
+  it('sin ataque elegido sigue tirando su característica', () => {
+    const req = creatureRollRequest(baal(), choice(), poolFor, 'Combate');
+    expect(req.groups.find(g => g.tag === 'own')?.count).toBe(8);
+    expect(req.options?.['weaponId']).toBeUndefined();
+  });
+
+  it('lleva la noche, los éxitos automáticos y la Ira solar a la tirada', () => {
+    const req = creatureRollRequest(baal(),
+      { ...choice(), night: true, autoSuccesses: 3, autoSuccessFrom: 'nightShelter', solarWrath: 6 }, poolFor, 'Combate');
+    expect(req.options).toMatchObject({ night: true, autoSuccesses: 3, autoSuccessFrom: 'nightShelter', solarWrath: 6 });
+  });
+});
+
+describe('creatureBlastRequest — la Deflagración (p.108)', () => {
+  const blast = (over = {}) => ({ level: 5, metres: 2, dice: 3, difficulty: 1, visibility: 'table' as const, ...over });
+
+  it('tira los dados que le quedan a esa distancia, contra un reto a dificultad 1', () => {
+    const req = creatureBlastRequest(baal(), blast(), poolFor, 'Deflagración');
+    expect(req.groups.find(g => g.tag === 'own')?.count).toBe(3);
+    expect(req.groups.find(g => g.tag === 'opposition')?.count).toBe(1);
+    expect(req.options).toMatchObject({ difficulty: 1, weaponDamage: 5, blastLevel: 5, blastMetres: 2 });
+    expect(req.title).toBe('Baal · Deflagración');
+    expect(req.systemId).toBe(plenilunio.id);
+  });
+
+  /** Sin característica a propósito: el desglose prefiere callar antes que decir «3 Combate». */
+  it('no viaja con característica', () => {
+    expect(creatureBlastRequest(baal(), blast(), poolFor, 'Deflagración').options?.['stat']).toBeUndefined();
+  });
+
+  it('fuera del radio no hay ataque: cero dados y ningún grupo de oposición si no hay reto', () => {
+    const req = creatureBlastRequest(baal(), blast({ dice: 0, difficulty: 0 }), poolFor, 'Deflagración');
+    expect(req.groups.find(g => g.tag === 'own')?.count).toBe(0);
+    expect(req.groups.some(g => g.tag === 'opposition')).toBe(false);
   });
 });

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { GameSystem, RollVisibility } from '@rolvium/core';
-import { DIFFICULTIES, STAT_IDS } from '@rolvium/system-plenilunio';
-import type { StatId } from '@rolvium/system-plenilunio';
+import {
+  BLAST_DIFFICULTY, DIFFICULTIES, STAT_IDS, autoSuccessOptions, blastDice, blastReach, capabilityById, capabilityLevel,
+} from '@rolvium/system-plenilunio';
+import type { CapabilityId, StatId } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { canRoll, specialtiesFor } from '../domain/useCases/bestiaryRules';
-import { creatureRollRequest, ownDiceOf } from '../domain/useCases/creatureRoll';
+import { creatureBlastRequest, creatureRollRequest, ownDiceOf } from '../domain/useCases/creatureRoll';
 import { errorText } from '../domain/useCases/errorText';
 import type { BestiaryEntry } from '../domain/entities/BestiaryEntry';
 
@@ -15,6 +17,7 @@ interface Props {
   specialtyLabel: (id: string) => string;
   /** Tira de verdad: el servidor genera los dados y escribe el Registro. Devuelve null si no se pudo. */
   onRoll: (req: ReturnType<typeof creatureRollRequest>) => Promise<unknown>;
+
   onClose: () => void;
 }
 
@@ -43,15 +46,53 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
   const [visibility, setVisibility] = useState<RollVisibility>('table');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** La escena es de noche. Va en la tirada, no en la escena: lo marca el director (decisión del dueño). */
+  const [night, setNight] = useState(false);
+  /** El ataque impreso elegido, `null` = a mano. Y si lo elegido es la Deflagración, que no es un ataque más. */
+  const [attackIdx, setAttackIdx] = useState<number | null>(null);
+  const [blastOn, setBlastOn] = useState(false);
+  const [metres, setMetres] = useState(0);
+  const [marked, setMarked] = useState<CapabilityId[]>([]);
   const panel = useRef<HTMLDivElement>(null);
 
   const specs = stat ? specialtiesFor(entry, stat) : [];
 
+  // ─── Lo que la criatura trae en su bloque (p.107–108) ────────────────────
+  const caps = useMemo(() => entry.data.capabilities ?? [], [entry]);
+  const attacks = entry.data.attacks ?? [];
+  const blastLevel = capabilityLevel(caps, 'blast');
+  const solarWrath = capabilityLevel(caps, 'solarWrath');
+  const combat = Number(entry.data.stats.combat ?? 0);
+  /** La casilla de noche sólo tiene sentido si alguna de sus capacidades depende de la hora. */
+  const timeMatters = caps.some(c => !!capabilityById(c.id)?.data.timeOfDay);
+
+  /**
+   * Las capacidades que PODRÍAN aplicar a esta tirada. Las decide el motor a partir de la característica y
+   * de la hora; marcarlas es del director, como la especialidad (p.83, p.107). Lo marcado se filtra contra
+   * lo ofrecido en vez de limpiarse a mano: al cambiar de característica, lo que ya no encaja deja de contar.
+   */
+  const autoOptions = useMemo(
+    () => (stat && !blastOn ? autoSuccessOptions(caps, stat, night) : []),
+    [caps, stat, night, blastOn]);
+  const active = autoOptions.filter(o => marked.includes(o.id));
+  const autoSuccesses = active.reduce((n, o) => n + o.level, 0);
+
+  const attack = attackIdx !== null ? attacks[attackIdx] ?? null : null;
+
   const request = useMemo(() => {
+    const poolFor = (sheet: Record<string, unknown>, action: { stat: string; options?: Record<string, unknown> }) =>
+      system.engine.poolFor(sheet, action);
+    if (blastOn) {
+      return creatureBlastRequest(entry, {
+        level: blastLevel, metres, dice: blastDice(blastLevel, metres) + extraDice, difficulty, visibility,
+      }, poolFor, ts('catalog.capabilities.blast.name'));
+    }
     if (!stat) return null;
-    return creatureRollRequest(entry, { stat, specialty, difficulty, extraDice, visibility },
-      (sheet, action) => system.engine.poolFor(sheet, action), ts(`sheet.stats.${stat}`));
-  }, [entry, stat, specialty, difficulty, extraDice, visibility, system, ts]);
+    return creatureRollRequest(entry, {
+      stat, specialty, difficulty, extraDice, visibility, night,
+      autoSuccesses, autoSuccessFrom: active[0]?.id ?? null, solarWrath, attack,
+    }, poolFor, attack ? ts(attack.label) : ts(`sheet.stats.${stat}`));
+  }, [entry, stat, specialty, difficulty, extraDice, visibility, system, ts, blastOn, blastLevel, metres, night, autoSuccesses, active, solarWrath, attack]);
 
   const dice = request ? ownDiceOf(request) : 0;
 
@@ -103,12 +144,65 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
               <span className="bs-label">{t('bestiary.roll.stat')}</span>
               <div className="bs-roll-stats" role="group" aria-label={t('bestiary.roll.stat')}>
                 {rollable.map(s => (
-                  <button key={s} type="button" className={`bs-btn ${stat === s ? 'bs-btn-on' : ''}`}
-                          aria-pressed={stat === s} onClick={() => { setStat(s); setSpecialty(false); }}>
+                  <button key={s} type="button" className={`bs-btn ${stat === s && !blastOn ? 'bs-btn-on' : ''}`}
+                          aria-pressed={stat === s && !blastOn}
+                          onClick={() => { setStat(s); setSpecialty(false); setAttackIdx(null); setBlastOn(false); }}>
                     {t(`bestiary.stat.${s}`)}
                   </button>
                 ))}
               </div>
+              {blastOn && <p className="bs-note">{t('bestiary.roll.blastNoStat')}</p>}
+
+              {/* Los ATAQUES que imprime el bloque en caja, con su ataque y su daño ya calculados por el
+                  libro (p.97 para la cuenta, pero NO se recalculan: se copian). Elegir uno tira los dados
+                  del ataque en vez de los de la característica. La Deflagración va aquí porque también es
+                  un ataque, aunque sea uno APARTE que no usa característica ninguna (p.108). */}
+              {(attacks.length > 0 || blastLevel > 0) && (
+                <>
+                  <span className="bs-label">{t('bestiary.roll.attacks')}</span>
+                  <div className="bs-roll-stats" role="group" aria-label={t('bestiary.roll.attacks')}>
+                    <button type="button" className={`bs-btn ${attack === null && !blastOn ? 'bs-btn-on' : ''}`}
+                            aria-pressed={attack === null && !blastOn}
+                            onClick={() => { setAttackIdx(null); setBlastOn(false); setStat('combat'); }}>
+                      {t('bestiary.roll.attackNone', { n: String(combat) })}
+                    </button>
+                    {attacks.map((a, i) => (
+                      <button key={a.label} type="button" className={`bs-btn ${attackIdx === i && !blastOn ? 'bs-btn-on' : ''}`}
+                              aria-pressed={attackIdx === i && !blastOn}
+                              onClick={() => { setAttackIdx(i); setBlastOn(false); setStat('combat'); }}>
+                        {t(a.fortuneCost ? 'bestiary.roll.attackFortune' : 'bestiary.roll.attackChip',
+                           { name: ts(a.label), attack: String(a.attack), damage: String(a.damage) })}
+                      </button>
+                    ))}
+                    {blastLevel > 0 && (
+                      <button type="button" className={`bs-btn ${blastOn ? 'bs-btn-on' : ''}`} aria-pressed={blastOn}
+                              onClick={() => { setBlastOn(true); setAttackIdx(null); setStat(null); setDifficulty(BLAST_DIFFICULTY); }}>
+                        {t('bestiary.roll.blast', { n: String(blastLevel) })}
+                      </button>
+                    )}
+                  </div>
+                  <p className="bs-note">
+                    {blastOn ? t('bestiary.roll.blastNote') : t('bestiary.roll.attacksNote', { page: String(entry.data.page ?? '') })}
+                  </p>
+                </>
+              )}
+
+              {/* Los metros de la Deflagración los teclea el director (decisión del dueño, 2026-08-21):
+                  cuando existan los ataques sobre el mapa, la distancia saldrá de ahí. */}
+              {blastOn && (
+                <div className="bs-roll-dice">
+                  <span className="bs-label">{t('bestiary.roll.metres')}</span>
+                  <div className="bs-roll-count">
+                    <button type="button" className="bs-btn" aria-label={t('bestiary.roll.metresLess')}
+                            disabled={metres <= 0} onClick={() => setMetres(n => Math.max(0, n - 1))}>−</button>
+                    <output className="bs-roll-n" aria-live="polite">{t('bestiary.roll.metresValue', { n: String(metres) })}</output>
+                    <button type="button" className="bs-btn" aria-label={t('bestiary.roll.metresMore')}
+                            onClick={() => setMetres(n => n + 1)}>+</button>
+                    <span className="bs-roll-from">{t('bestiary.roll.metresFrom', { radius: String(blastReach(blastLevel)) })}</span>
+                  </div>
+                  <p className="bs-note">{t('bestiary.roll.blastDamage', { n: String(blastLevel) })}</p>
+                </div>
+              )}
 
               <div className="bs-roll-dice">
                 <span className="bs-label">{t('bestiary.roll.dice')}</span>
@@ -119,9 +213,16 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
                   <button type="button" className="bs-btn" aria-label={t('bestiary.roll.more')}
                           onClick={() => setExtraDice(n => n + 1)}>+</button>
                   <span className="bs-roll-from">
-                    {t('bestiary.roll.from', { stat: t(`bestiary.stat.${stat}`), n: String(stat ? entry.data.stats[stat] ?? 0 : 0) })}
+                    {blastOn
+                      ? t('bestiary.roll.fromBlast', { level: String(blastLevel), metres: String(metres) })
+                      : attack
+                        ? t('bestiary.roll.fromAttack', { name: ts(attack.label), n: String(attack.attack) })
+                        : t('bestiary.roll.from', { stat: t(`bestiary.stat.${stat}`), n: String(stat ? entry.data.stats[stat] ?? 0 : 0) })}
                     {extraDice > 0 && ` · ${t('bestiary.roll.extra', { n: String(extraDice) })}`}
                   </span>
+                  {autoSuccesses > 0 && (
+                    <span className="bs-auto">{t('bestiary.roll.capabilityAuto', { n: String(autoSuccesses) })}</span>
+                  )}
                 </div>
               </div>
 
@@ -134,6 +235,33 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
                 </label>
               )}
 
+              {/* La hora la marca el director en la propia tirada, no la escena. Sólo sale si alguna de sus
+                  capacidades depende de ella (Aura de día; Aura sombría y Amparo de la noche, de noche). */}
+              {timeMatters && !blastOn && (
+                <label className="bs-scope">
+                  <input type="checkbox" checked={night} onChange={e => setNight(e.target.checked)} />
+                  <span className="material-symbols-outlined bs-scope-i" aria-hidden="true">dark_mode</span>
+                  <span>{t('bestiary.roll.night')}</span>
+                </label>
+              )}
+
+              {/* Las capacidades NO se aplican solas, igual que la especialidad: el motor no puede saber si la
+                  tirada es «para intimidar o liderar», que es lo que pide el Aura (p.107). */}
+              {autoOptions.length > 0 && (
+                <>
+                  <span className="bs-label">{t('bestiary.roll.capabilities')}</span>
+                  {autoOptions.map(o => (
+                    <label key={o.id} className="bs-scope">
+                      <input type="checkbox" checked={marked.includes(o.id)}
+                             onChange={e => setMarked(ids => (e.target.checked ? [...ids, o.id] : ids.filter(x => x !== o.id)))} />
+                      <span>{ts(`catalog.capabilities.${o.id}.name`)} {o.level}</span>
+                      <span className="bs-auto">{t('bestiary.roll.capabilityAuto', { n: String(o.level) })}</span>
+                    </label>
+                  ))}
+                  <p className="bs-note">{t('bestiary.roll.capabilitiesNote')}</p>
+                </>
+              )}
+
               <span className="bs-label">{t('bestiary.roll.difficulty')}</span>
               <div className="bs-roll-stats" role="group" aria-label={t('bestiary.roll.difficulty')}>
                 {DIFFICULTIES.map(d => (
@@ -143,6 +271,8 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
                   </button>
                 ))}
               </div>
+
+              {blastOn && <p className="bs-note">{t('bestiary.roll.blastDifficulty')}</p>}
 
               <span className="bs-label">{t('bestiary.roll.visibility')}</span>
               <div className="bs-roll-stats" role="group" aria-label={t('bestiary.roll.visibility')}>
@@ -155,7 +285,7 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
               </div>
 
               <div className="bs-sheet-foot">
-                <button type="button" className="bs-btn bs-btn-on bs-btn-lg" onClick={fire} disabled={busy || !stat}>
+                <button type="button" className="bs-btn bs-btn-on bs-btn-lg" onClick={fire} disabled={busy || !request}>
                   {busy ? t('common.saving') : t('bestiary.roll.go', { n: String(dice) })}
                 </button>
               </div>

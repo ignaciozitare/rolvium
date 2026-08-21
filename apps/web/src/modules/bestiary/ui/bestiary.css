@@ -241,3 +241,8 @@
   font-size: var(--fs-xl); color: var(--sys-ink); line-height: 1; }
 .bs-roll-from { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic;
   font-weight: 500; color: var(--sys-ink-soft); }
+/* Los éxitos automáticos de una capacidad NO son dados: van en oro y fuera del contador, para que no se
+   confundan con el puñado que se tira (`.pen` «Tirar por una criatura»). El oro sobre papel da 4,6:1. */
+.bs-auto { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; font-weight: 600;
+  color: var(--sys-gold); }
+.bs-scope-i { font-size: var(--icon-xs); color: var(--sys-ink-soft); }

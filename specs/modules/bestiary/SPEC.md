@@ -46,7 +46,7 @@ escrito para que nadie lo lea como que está terminado:
 | **Colocar** | ✅ **Cerrado el 2026-08-21.** Lleva a la escena **con la criatura ya elegida**: sólo falta pulsar dónde. Antes sólo cambiaba de pestaña y había que volver a buscarla en el desplegable — «el colocar no funciona» (dueño). El aviso «Coloca a X: haz clic en el mapa» lo dice, y el buscador NO se abre, que ya sobra. |
 | **Editar / Duplicar** | ✅ Hace lo que dice. Del manual duplica; de las propias edita. |
 | **Ver foto** | ✅ Hace lo que dice. |
-| **Tirar** | ✅ **Cerrado el 2026-08-21.** Tira EN NOMBRE de la criatura: se elige característica (sólo las que el manual publica de ese bloque), se ve cuántos dados salen antes de tirar, se marca su especialidad, se elige dificultad y quién lo ve (mesa / DJ / secreta). |
+| **Tirar** | ✅ **Cerrado el 2026-08-21.** Tira EN NOMBRE de la criatura: se elige característica (sólo las que el manual publica de ese bloque) **o uno de los ataques que imprime su caja**, se ve cuántos dados salen antes de tirar, se marca su especialidad y **las capacidades que podrían aplicar** (con la casilla «es de noche»), se elige dificultad y quién lo ve (mesa / DJ / secreta). La **Deflagración** se tira aparte, tecleando los metros. |
 
 ### «Tirar en su nombre» — cómo quedó (2026-08-21)
 Era la cabecera del spec y lo que justificó meter las especialidades como dato. Hasta el 2026-08-21 el botón
@@ -66,6 +66,27 @@ diseño en el `.pen` «Bestiario/Tirar por una criatura · popover».
   ausente no es 0.
 - El Registro lo titula **«{criatura} · {característica}»**, ya traducido, porque el nombre es texto libre
   del director y no existe en ningún diccionario: el Registro es acta de lo que pasó, no plantilla.
+
+### Los ataques y las capacidades del bloque (2026-08-21, tanda 3)
+Diseño aprobado en el `.pen` «Bestiario/Tirar por una criatura · popover» y su gemelo «· Deflagración».
+
+- **Los ATAQUES que imprime la caja** (Baal: «Espada oriental 9, daño 10») salen como una fila propia,
+  «¿CON QUÉ ATACA?», con «a mano» delante. Elegir uno tira **los dados del ataque**, no los de la
+  característica: la diferencia con su Combate entra como la bonificación del arma que el motor ya sabe
+  sumar, y el daño impreso viaja tal cual. **Se copian, no se recalculan** (RULES.md §8.0).
+- **La casilla «es de noche»** va en la propia tirada, no en la escena (decisión del dueño, 2026-08-21):
+  meterla en la escena pedía migración y diseño nuevo del mapa. Sólo sale si alguna de las capacidades de
+  esa criatura depende de la hora.
+- **Las capacidades que podrían aplicar** las decide el motor (`autoSuccessOptions`) según la característica
+  y la hora, y **las marca el director**, como la especialidad: el motor no puede saber si la tirada es
+  «para intimidar o liderar», que es lo que pide el Aura (p.107). Suman **éxitos automáticos**, que no son
+  dados y por eso se pintan en oro y fuera del contador. Lo marcado que deja de encajar deja de contar.
+- **La Deflagración** es un ataque APARTE: no se tira con ninguna característica —los dados salen de su
+  puntuación, uno menos por metro—, se resuelve como reto a dificultad 1 y su desglose del Registro **calla**
+  en vez de decir «3 Combate», que sería mentira. Los metros los teclea el director; cuando existan los
+  ataques sobre el mapa, la distancia saldrá de ahí.
+- **Sólo hay versión oscura**: dentro de una campaña manda el tema del sistema (el papel de Plenilunio), no
+  el claro/oscuro de la app.
 
 ### La foto de la entrada (2026-08-21)
 Se pinta con `object-fit: contain`, **nunca `cover`**: una foto que no fuera cuadrada salía recortada y el

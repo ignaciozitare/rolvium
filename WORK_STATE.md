@@ -14,66 +14,69 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🔴 PUNTO EXACTO — 2026-08-21: EL BESTIARIO, TANDAS 1 Y 2 HECHAS. FALTA LA PANTALLA
+## 🔴 PUNTO EXACTO — 2026-08-21: EL BESTIARIO, LAS TRES TANDAS HECHAS. FALTA MIRARLO EN LA APP
 
-Rama **`feat/bestiario`**, **sin commitear todavía** (el dueño no lo ha pedido). Todo verde: **739 tests**
-(518 web + 77 api + 6 core + 16 ui + **122 plenilunio**, eran 102), typecheck de las dos apps, `audit`
-**0 hard** (12 warn, todos preexistentes y en ficheros que no se tocaron).
+Rama **`feat/bestiario`**. Todo verde: **755 tests** (534 web + 77 api + 6 core + 16 ui + 122 plenilunio),
+typecheck de las dos apps, `audit` **0 hard** (12 warn, todos preexistentes). Commit de las tandas 1 y 2:
+**`19df088`**.
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: el bestiario tiene ya los datos y el motor (bloque 🔴 de WORK_STATE). Falta la **tanda 3**,
-> la pantalla `CreatureRollPopover` — y va por el **Design Agent** primero, que es cambio visible.
+> Retomo Rolvium: el bestiario está construido entero (bloque 🔴 de WORK_STATE). Falta **mirarlo en la app
+> corriendo** con una criatura de caja (Baal), y decidir con el dueño lo que queda anotado abajo.
 
 ### ✅ Tanda 1 · los datos (`packages/system-plenilunio`)
 - **`BESTIARY` pasa de 45 a 57**: los doce bloques en caja del §8.0 (Nathael, Luz niña, Soum, Nergal, Samael,
   Lucifer, Baal, Gabriel, Marduk, Adán, Luz-Malefic y el Salteador), con sus siete características, Aguante,
   Destino, especialidades, la línea impresa de dones y capacidades, y sus **ATAQUES copiados, no recalculados**.
 - **`CAPABILITY_IDS`** — las quince capacidades de la p.107–108 como catálogo (`scored` y `timeOfDay`) y
-  **`capabilities`** como dato en cada bloque, además de `abilities`, que es la línea impresa y **no se toca**
-  porque además trae los dones. Un **test de paridad** ata las dos para que no se separen nunca.
-- **`CreatureAttack`** nuevo (`attacks` del bloque) con 12 claves `catalog.creatureAttacks.*`.
-- **Siete especialidades nuevas** `creature.*`: `vuelo · espadaSamurai · martilloDeGuerra · espadasSamurais ·
-  recorrerDistancias · espadaYEscudo · sables`. Gabriel lleva `protection: 5` (su escudo, que no es un ataque).
-- **i18n en es Y en**: los 12 del bestiario, las 7 especialidades, las 15 capacidades (`name` + `summary`) y
-  los 12 ataques. Los dones de las cajas **no se capan** (Furia de titán 8, Alegoría de la realidad 9).
+  **`capabilities`** como dato en cada bloque, además de `abilities`, que es la línea impresa y **no se toca**.
+  Un **test de paridad** ata las dos para que no se separen nunca.
+- **`CreatureAttack`** nuevo, **siete especialidades** `creature.*` nuevas, Gabriel con `protection: 5`, e
+  **i18n en es Y en** de los 12 bloques, las 7 especialidades, las 15 capacidades y los 12 ataques.
 
 ### ✅ Tanda 2 · el motor (`engine.ts`), según la tabla de RULES §7.b.1
-- **`autoSuccesses`** — mecánica nueva: entra por `ResolveInput` y por las opciones de la tirada, se suma a
-  `ownHits` **y a `raw`** (⚠ interpretación: con éxitos automáticos no hay revés), sale en `Outcome` y en el
-  `detail`, y el **desglose del Registro** lo cuenta con el nombre de la capacidad y la p.107.
-- **`autoSuccessOptions(caps, característica, esDeNoche)`** — las que PODRÍAN aplicar; las marca el director,
-  no se aplican solas: Amparo de la noche (Combate, de noche) · Aura (Presencia, de día) · Aura sombría
-  (Sutileza, de noche).
-- **Ira solar** en `attackDamage(o, daño, iraSolar)`, encima del daño impreso. **Inmune al dolor** y **Piel
-  gruesa** en `derived`. **Ancla terrenal** en `applyDamage` (se queda en malherido). **Incorpóreo**
-  (`incorporealStat`, `canBeAttackedPhysically`), **Ponzoña** (`venomDamage`) y **Deflagración**
-  (`blastReach`, `blastDice`, `blastDamage`, `BLAST_DIFFICULTY`) como funciones puras con sus tests.
-- **`capabilitiesOf(sheet)`** en `schema.ts` (lectura tolerante) y las capacidades **viajan con la ficha** que
-  el motor ve al tirar por una criatura (`creatureRoll.ts`), más el paso por `BestiaryEntry`/`fromCatalog`/
-  `SupabaseBestiaryRepo` para que la pantalla las tenga cuando entre la tanda 3.
+- **`autoSuccesses`** — mecánica nueva: se suma a `ownHits` **y a `raw`** (⚠ con éxitos automáticos no hay
+  revés), viaja en las opciones y sale en el **desglose del Registro** con el nombre de la capacidad y la p.107.
+- **`autoSuccessOptions(caps, característica, esDeNoche)`**; **Ira solar** en `attackDamage`; **Inmune al dolor**
+  y **Piel gruesa** en `derived`; **Ancla terrenal** en `applyDamage`; **Incorpóreo**, **Ponzoña** y
+  **Deflagración** como funciones puras. `capabilitiesOf(sheet)` en `schema.ts`.
 
-### ⏭ Tanda 3 · la pantalla — LO QUE FALTA
-`bestiary/ui/CreatureRollPopover.tsx`. **Va por el Design Agent primero**: es cambio visible y hay `.pen`
-(«Bestiario/Tirar por una criatura · popover»). Entra la **casilla «es de noche»**, la lista de capacidades
-que podrían aplicar (con su «+N éxitos automáticos») marcables como se marca la especialidad, los **ATAQUES**
-del bloque, y los **metros** de la Deflagración. El motor ya lo acepta todo por opciones de la tirada:
-`night`, `autoSuccesses`, `autoSuccessFrom`, `solarWrath`.
+### ✅ Tanda 3 · la pantalla (`bestiary/ui/CreatureRollPopover.tsx`) — diseñada y construida
+Diseño aprobado por el dueño con capturas: `.pen` **`vzBJo`** («Bestiario/Tirar por una criatura · popover»,
+actualizado) y **`zCTzX`** («· Deflagración», nuevo). Ejemplo: **Baal**, el único bloque con todo.
+- **¿CON QUÉ ATACA?** — los ataques impresos + «a mano». Elegir uno tira los dados del ataque (la diferencia
+  con su Combate entra como bonificación del arma) y lleva el daño impreso.
+- **Casilla «es de noche»** — sólo si alguna capacidad suya depende de la hora.
+- **CAPACIDADES QUE PODRÍAN APLICAR** — las que devuelve `autoSuccessOptions`, marcables; los éxitos
+  automáticos en **oro** (`.bs-auto`, `--sys-gold`) y fuera del contador, porque no son dados.
+- **Deflagración** — `creatureBlastRequest` (nuevo): sin característica, dados = puntuación − metros, reto a
+  dificultad 1, daño por triunfo = la puntuación.
+- `CreatureAttack`/`CreatureCapability` viajan por `BestiaryEntry` → `fromCatalog` → `SupabaseBestiaryRepo`.
+
+### ⏭ EL SIGUIENTE PASO
+**Mirarlo en la app corriendo** con Baal delante (el `.pen` no caza los fallos de ancho, y en esta rama
+siempre han salido así: la columna 3 dio tres). Después: `chat` (H8) + `journal` (H9), o cerrar el despliegue.
 
 ### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
-- **Nathael imprime Aguante 4** con Fortaleza 7 y Voluntad 5 (que dan 12). Se ha copiado lo impreso, como todo
-  el bestiario, pero es el único de los doce que se desvía tanto. **Anotado en RULES.md §8.0**: si algún día se
-  reabre el PDF, esa es la línea a mirar. Inventar un 12 sería corregirle el libro.
-- **Dos lecturas nuestras** en RULES.md §7.b.1, ambas anotadas y en un solo sitio del código: los éxitos
-  automáticos **cuentan como acierto para el revés**, y **hacen 1 punto de daño** cada uno.
-- **«Ponerse a cubierto» de la Deflagración (p.96) sigue sin existir** en el código, igual que en las tiradas.
-- El **Review Agent NO se ha lanzado**: esta sesión tiene prohibido usar subagentes. Queda pendiente de que el
-  dueño lo pida en una sesión normal, antes de dar la tanda por cerrada.
+- **El `.pen` está SIN GUARDAR en disco** si no ha pulsado Cmd+S: el MCP de Pencil escribe en caché. El
+  blueprint **no está commiteado** todavía por eso (`ls -la rolvium.pen` → mtime del 21 a las 00:57).
+- **Nathael imprime Aguante 4** con Fortaleza 7 y Voluntad 5 (que dan 12). Se copió lo impreso y quedó
+  anotado en RULES.md §8.0: si algún día se reabre el PDF, esa es la línea a mirar.
+- **Dos lecturas nuestras** (RULES.md §7.b.1): los éxitos automáticos **cuentan como acierto para el revés** y
+  **hacen 1 punto de daño** cada uno.
+- **«Ponerse a cubierto» (p.96) sigue sin existir** en el código: la nota de la Deflagración lo dice, pero el
+  director tiene que subir la dificultad a mano.
+- El **Review Agent NO se ha lanzado**: esta sesión tiene prohibido usar subagentes.
 
 ### 🔎 Deuda encontrada y NO tocada (decidir aparte)
-- **Ciclo de imports en plenilunio** (`engine` ↔ `explain`), ya anotado en el bloque 🟢: sigue igual.
+- **Ciclo de imports en plenilunio** (`engine` ↔ `explain`): sigue igual.
 - `applyDamage` sólo lo usa hoy la ficha de personaje; el daño a un token de criatura va por `maps` y **no
   pasa por el motor**, así que Ancla terrenal y Piel gruesa aún no llegan a la mesa por ese camino.
-- `blastDamage` y `venomDamage` no tienen todavía quien los llame: entran con la tanda 3.
+- **`venomDamage` sigue sin quien lo llame**: la Ponzoña es un ataque aparte que se dispara cuando el ataque
+  principal acierta, y eso pide encadenar dos tiradas — no entra en este desplegable.
+- El desglose del Registro de una Deflagración **sale vacío** (no lleva característica). Es «callar en vez de
+  inventar», pero se puede mejorar cuando el contrato `RollExplain` admita tiradas sin característica.
+- Los frames viejos del `.pen` usan hex crudos en vez de las variables `pl-*`; lo nuevo va con variables.
 
 ## 🟢 PUNTO EXACTO — 2026-08-21: COLUMNA 3 TERMINADA Y MIRADA EN LA APP
 
