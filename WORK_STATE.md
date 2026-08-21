@@ -14,136 +14,77 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-21, CIERRE POR HANDOFF. Siguiente: terminar la COLUMNA 3 (el desglose)
+## 🟢 PUNTO EXACTO — 2026-08-21: COLUMNA 3 TERMINADA. Falta MIRARLA EN LA APP
 
-Rama **`feat/bestiario`**, árbol **limpio**, todo verde: **683 tests** (506 web + 77 api + 6 core + 16 ui
-+ 78 plenilunio), typecheck, `audit` **0 hard**, ambas apps compilando.
-Commits: `375a46c` (columnas 1 y 2) · `37cad40` (los dos arreglos del dueño) · `c8bfe1c` (docs) ·
-**`89f8085`** (el contrato del desglose, ver abajo).
+Rama **`feat/bestiario`**, árbol **limpio**, todo verde: **717 tests** (516 web + 77 api + 6 core + 16 ui
++ 102 plenilunio), typecheck, `audit` **0 hard** (12 warn, todos preexistentes y en ficheros que no se
+tocaron), ambas apps compilando. **Review pasado.**
+Commits: `375a46c` (columnas 1 y 2) · `37cad40` (arreglos del dueño) · `89f8085` (el contrato del
+desglose) · **`138d614`** (la columna 3, entera).
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: termina la columna 3 de las tiradas (`Panel/Registro` + `Tooltip/Desglose` del `.pen`
-> `v3vfV`) siguiendo el bloque 🟢 de WORK_STATE — el contrato `Engine.explain` ya está puesto.
+> Retomo Rolvium: levanta la app y mira la columna 3 de las tiradas (el nombre del personaje en el
+> Registro y el desglose al pasar por encima) siguiendo el bloque 🟢 de WORK_STATE.
 
-### ⚠️ Por qué se cerró
-Saltó el hook de context-handoff (7,3 MB, umbral 6) **justo al escribir `explain.ts`**. Lo que quedó en el
-árbol es sólo el **cimiento**, y está verde y commiteado. **No hay nada a medias ni en rojo.**
+### ⏳ EL SIGUIENTE PASO, Y EL ÚNICO QUE FALTA DE ESTA TANDA
+**Mirarlo en la app corriendo.** En esta rama ya han salido dos fallos que ningún test cazaba, así que
+esto no está cerrado hasta que el dueño lo vea. Qué mirar, en orden:
+1. Que la cabecera del Registro pone **«KAREN SINCLAIR · REVÓLVER MAGNUM .44»** y no el nombre de la
+   cuenta, y que el avatar lleva las **iniciales del personaje**.
+2. Que al **pasar por encima** de una tirada sale el panel oscuro, y que **cabe** (ver el ⚠ de abajo).
+3. Que al llegar a una entrada **con el tabulador** también sale.
+4. Que una tirada de **criatura** y una **libre** siguen como estaban (no llevan desglose).
 
-### 🚨 LO PRIMERO QUE HAY QUE HACER (deuda consciente)
-El commit del cimiento **toca `engine.resolve` y NO trae test propio** — se cerró la sesión antes. El hook
-bloquea `Write`/`Edit` de código, así que no se pudo añadir. **Primer paso del chat nuevo: el test de los
-campos nuevos de `detail`** (`statValue`, `statSpecialties`, `dicePenalty`, `health`, `armour`) en
-`packages/system-plenilunio/src/engine.test.ts`, y que se guardan **sólo cuando `resolve` recibe la ficha**.
+### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
+**«A cubierto» del `.pen` se ha dejado FUERA a propósito.** Ponerse a cubierto (p.96) no existe en el
+código, así que una línea que sólo puede decir «no» para siempre miente. Es lo único del `.pen` que no
+se ha construido, y entra cuando entre la regla. **Decisión suya si quiere otra cosa.**
 
----
+### ✅ Lo que se construyó (todo con test, todo verde)
+- **`packages/system-plenilunio/src/explain.ts`** (NUEVO) — el desglose. `head` (de dónde salieron los
+  dados · la Reserva · contra qué se tiró), `applied` (especialidad · el arma · la armadura · el don) y
+  `verdict`. Páginas leídas de `references.ts`, que ya es la única verdad probada contra RULES.md §9.
+  Devuelve **`null`** para tiradas libres y peticiones sin característica.
+- **`locales.ts`** — `roll.explain.*` en es Y en. Singular y plural son frases distintas (`hit`/`hits`,
+  `armourOn`/`armourOnMany`), no un «triunfo(s)»: el desglose se lee, no se descifra.
+- **`catalogs.ts`** — `specialtyById` (busca en las de jugador y en las de criatura).
+- **`engine.ts`** — engancha `explain`. Y el **test de la deuda** del commit anterior (los campos nuevos
+  de `detail`, y que sólo se guardan cuando `resolve` recibe la ficha).
+- **El nombre del personaje**: `characterName` en la entidad `Roll`, join
+  `character:characters!dice_rolls_character_id_fkey ( name )` en `SupabaseRollLogRepo`, `who` en
+  `describeRoll`. **Verificado contra la RLS**: `characters_select` deja a cualquier miembro leer los PJ
+  de su campaña; un PNJ que el jugador no ve devuelve `null` y la entrada se queda como estaba —
+  **nunca** cae en el nombre de la cuenta.
+- **`RollBreakdown.tsx`** (NUEVO) + `.dc-tip*` en `dice.css`. Reutilización declarada: **NEW
+  (module-specific)** — el `Tooltip` de `@rolvium/ui` sólo acepta `label: string` y esto es un panel con
+  secciones. Precedente de la casa `.rv-sheet-tip`: CSS puro, `:hover` + `:focus-within`, sin estado ni JS.
+- **Token nuevo `--sys-gold-hi` (#c9a44e)** — el dorado para fondo oscuro que el propio `theme.ts` dejaba
+  anotado como pendiente «hasta que tenga consumidor». Su consumidor es el rótulo «LO QUE SE APLICÓ»
+  (`--sys-gold` sobre tinta da 3,95:1 y no llega; éste da 7,89:1). **Sólo para fondo oscuro**: sobre
+  papel da 1,72:1 y ahí sigue mandando `--sys-gold`.
+- `specs/modules/dice/SPEC.md` actualizado. El `.pen` no hacía falta tocarlo.
 
-## 🎯 COLUMNA 3 — el diseño, ya extraído del `.pen` (no hace falta releerlo)
+### ⚠️ EL RIESGO CONOCIDO — el desglose se abre HACIA ARRIBA
+`.dc-tip` es `position:absolute` dentro de `.dc-log-scroll`, que tiene `overflow-y:auto` y por tanto
+**recorta**. Se abre hacia arriba a propósito: el Registro sigue la tirada más nueva, que está abajo, y
+ahí es donde hay sitio. Puesto de parche, sin JS: `scroll-padding-block-start:180px` (arregla el camino
+del teclado) y `max-height:60vh` en el panel. **Lo que sigue expuesto**: pasar el ratón por una entrada
+ya pegada al borde de arriba en un registro largo. Sacarlo del recorte pide medir con JS (portal), y eso
+es **otra decisión** — el Review confirmó que hoy no hay alternativa en CSS puro (anchor positioning es
+sólo Chromium y sigue recortado; el Popover API no se puede abrir al pasar por encima sin JS).
 
-`v3vfV` → `Columna · registro` (`DWtPh`). **«LO VEN LOS DOS.»** Dos piezas:
-
-### `Panel/Registro` (`OOWZv`) — la entrada
-Papel `#e6e3da99` con filete `pl-borde`, 372 de ancho, entradas separadas por un filete de tinta abajo.
-- **Cabecera** (space_between): avatar 20 px con iniciales · **«KAREN SINCLAIR»** (fs9.5, ls1.4, tinta) ·
-  **«· MAGNUM .44»** (fs9, tinta-tenue) — y a la derecha el marcador **«1—2»** (fs15).
-- **Dados**: los propios, **«vs»**, los de oposición. Fichas de 24 px.
-- **Grado**: «No consigue lo que se propone por muy poco (grado de fallo 1).» (fs12)
-- **Nota del `.pen`:** «El desglose sale al pasar por encima de la tirada, como en Roll20. **Debajo no va
-  nada**: el registro se lee de un vistazo.»
-
-**Lo que YA está construido** (`dice/ui/RollLog.tsx` + `domain/useCases/rollRules.ts` → `describeRoll`):
-avatar, título, marcador, dados con «vs», grado y los avisos. **Lo único que falta en la entrada es el
-NOMBRE de quien tiró**: hoy la cabecera pone sólo el título («REVÓLVER MAGNUM .44») y el `.pen` quiere
-«KAREN SINCLAIR · MAGNUM .44».
-- El nombre es el del **personaje**, no el del usuario (hoy `authorName` es la cuenta: «Game Master Root»).
-- `Roll` no lo trae. Hay que **añadir el join** en `SupabaseRollLogRepo` (`SELECT` +
-  `character:characters!dice_rolls_character_id_fkey ( name )`) y un `characterName: string | null` en la
-  entidad. **La RLS ya lo permite**: `characters_select` deja a cualquier miembro leer los PJ de su campaña
-  (`20260818100000_characters.sql:179`). Si no llega (PNJ que el jugador no ve), **cae al comportamiento de
-  hoy** y no se enseña nombre.
-- **Tirada de criatura**: `creatureRoll.ts` ya compone el título como «Aamel · Combate» y no tiene
-  `characterId` → se queda como está. **Tirada libre**: igual. Sólo cambia la de ficha.
-
-### `Tooltip/Desglose` (`y0WfVO`) — LO NUEVO
-Panel **oscuro** (`pl-tinta`), 360 de ancho, padding [13,15], gap 9. Sale **al pasar por encima de la
-entrada**, no debajo.
-- Cabecera: **«CÓMO SALIÓ ESTA TIRADA»** (fs12.5, ls2.4, papel-alto) + ref **«Manual · p.82 y p.96»**
-  (fs10.5, itálica, `#b9b7ac`).
-- Bloque 1 (fs13.5, papel), dos líneas:
-  `4 Combate − 1 por herido = 3 dados` / `Reto a dificultad 3 · alcance medio (p.96)`
-- Rótulo **«LO QUE SE APLICÓ»** (fs10, ls2, **oro claro**).
-- Bloque 2 (fs12.5, papel):
-  `Especialidad «Armas cortas» — no aplicada por el director (p.83)`
-  `El arma no suma dados: a distancia no hay bonificación (p.96)`
-  `Chaleco antibalas — salió un fracaso, así que 1 triunfo pasa a éxito normal (p.98)`
-  `A cubierto — no`
-  (línea en blanco) `1 éxito contra 2 de dificultad = grado de fallo 1`
-
-⚠️ **«A cubierto» NO se puede pintar todavía**: ponerse a cubierto (p.96) **no existe en el código**, así
-que una línea que sólo puede decir «no» para siempre miente. Decisión tomada: **omitirla** hasta que la
-regla exista. Hay que **decírselo al dueño** — es lo único del `.pen` que se deja fuera a propósito.
-
----
-
-## ✅ EL CIMIENTO YA COMMITEADO (verde)
-
-### `packages/core/src/gameSystem.ts`
-```ts
-export interface ExplainLine { text: string; page?: number }
-export interface RollExplain { head: ExplainLine[]; applied: ExplainLine[]; verdict?: string }
-// en Engine, opcional:
-explain?: (roll: { request; dice; result }, ts: (key: string) => string) => RollExplain | null;
-```
-**Por qué el sistema y no la plataforma**: sólo el sistema sabe qué reglas se aplicaron y en qué página
-están. `ts` resuelve sus propias claves en el idioma de quien mira. Sin `explain`, no hay desglose y ya.
-
-### `packages/system-plenilunio/src/engine.ts` → `resolve`
-Guarda en `detail`, **sólo si `resolve` recibe la ficha**: `statValue`, `statSpecialties`, `dicePenalty`,
-`health`, `armour`.
-**Por qué**: la tirada es **inmutable**; el desglose tiene que decir lo mismo dentro de un mes, con el
-personaje curado y otra armadura puesta. Leerlo de la ficha de ahora sería mentir sobre el pasado.
-Sin esos campos (tiradas viejas, o resueltas sin ficha) el desglose **calla** esas líneas en vez de
-inventarse un número.
-
----
-
-## 🧭 LO QUE FALTA, EN ORDEN
-
-1. **El test de `resolve`** (la deuda de arriba). Bloqueante.
-2. **`packages/system-plenilunio/src/explain.ts`** — se llegó a escribir entero y el hook lo bloqueó.
-   Estructura acordada, todo desde la tirada guardada, nada de la ficha de ahora:
-   - helper `fill(tpl, params)` que rellena `{{clave}}` (las locales del sistema no interpolan hoy);
-   - `PAGE = { roll:82, specialty:83, degree:85, destinyPool:88, ranged:96, weapons:97, armours:98 }`;
-   - **head**: la línea de dados (`{{value}} {{stat}}` + `− {{n}} por {{health}}` + `+ {{n}} del arma` +
-     `+ {{n}} extra` + ` = {{n}} dados`); línea aparte para la Reserva si hay dados de la mesa (p.88);
-     línea de oposición (`Reto a dificultad {{n}}` + ` · alcance {{range}}` si es disparo);
-   - **applied**: especialidad aplicada/no por el director (p.83) · el arma a distancia no suma / c/c suma
-     {{n}} (p.96–97) · armadura, convirtió o no hizo falta (p.98) · don activado;
-   - **verdict**: `{{own}} contra {{opp}} de dificultad = {{degree}}`, con `1 éxito`/`n éxitos` y
-     `grado de fallo/éxito {{n}}` o `resultado ambiguo`.
-   - Devuelve **`null`** para tiradas libres y para peticiones sin característica.
-   - Engancharlo en `engine.explain` (`engine.ts`, al final, donde se arma `export const engine: Engine`).
-3. **Locales `roll.explain.*` en es Y en** (`locales.ts`) — `locales.test.ts` exige paridad exacta.
-   Claves: `hit`, `hits`, `diceOnly`, `diceFrom`, `dicePenalty`, `diceWeapon`, `diceExtra`, `diceTotal`,
-   `destiny`, `challenge`, `range`, `specialtyOn`, `specialtyOff`, `weaponRanged`, `weaponMelee`,
-   `armourOn`, `armourOff`, `gift`, `verdict`, `degree.{success,failure,ambiguous}`.
-   ⚠ **Falta `specialtyById` en `catalogs.ts`** — `explain.ts` lo usa para el nombre de la especialidad y
-   **no existe todavía**; hay `SPECIALTY_ITEMS`, así que es un `find` de una línea (con su test).
-4. **El nombre del personaje en la entrada** (el join de arriba) + `describeRoll` devolviendo `who`.
-5. **`dice/ui/RollBreakdown.tsx`** + `.dc-tip*` en `dice.css`. **Decisión de reutilización tomada:
-   NEW (module-specific)**. El `Tooltip` de `@rolvium/ui` sólo acepta `label: string` («a name, not a help
-   paragraph») y esto es un panel con secciones. Se sigue el precedente de la casa `.rv-sheet-tip`
-   (`sheet.css`): panel oscuro **con CSS puro**, `:hover` + `:focus-within`, sin estado ni JS; la entrada
-   pasa a `position:relative` y `tabIndex={0}` para que se llegue con teclado.
-6. **Tests**: `explain.test.ts` (sistema), `RollLog.test.tsx` (la cabecera con nombre + el desglose),
-   `SupabaseRollLogRepo.test.ts` (el join). Y **mirarlo en la app corriendo** — en esta rama ya han salido
-   dos fallos que ningún test cazaba.
-7. Actualizar `specs/modules/dice/SPEC.md` (sección «Cómo se lanza una tirada…») y el `.pen` no hace falta.
-
-⚠️ **Ojo con p.85**: el registro **no debe etiquetar** si los dados de la derecha son dificultad o un
-rival («Luis no sabe si el director tira porque hay otro personaje o porque es la dificultad»). Hoy la
-oposición de una tirada de ficha SIEMPRE es dificultad, así que «Reto a dificultad 3» es cierto y es lo
-que pide el `.pen`. **Cuando existan los conflictos (columna 5), esa línea hay que revisarla.** Queda
-anotado en el propio `explain.ts`.
+### 🔎 Deuda encontrada y NO tocada (decidir aparte)
+- **Ciclo de imports en plenilunio**: `engine.ts` importa `explain`, y `explain.ts` importa `readOptions`
+  de `engine.ts`. Funciona porque `readOptions` sólo se llama dentro de una función, nunca arriba del
+  módulo; un uso futuro en el top level daría TDZ. Se arregla moviendo `readOptions` (una línea) a
+  `schema.ts`. **Fuera del alcance de esta tanda.**
+- **Las tiradas de criatura no traen ficha**, así que su desglose enseña «4 dados» en vez de «4 Combate».
+  Es el camino honesto de «callar en vez de inventar», pero se puede mejorar pasándole el bloque de la
+  criatura a `resolve`. **Sin decidir.**
+- El `verdict` es un `string` pelado en el contrato `RollExplain`: no tiene hueco para su página, así que
+  la p.85 no llega a la línea «Manual · …». Limitación del contrato, no un fallo.
+- Un `test:regression` salió 1/470 en rojo una vez, con dos suites corriendo a la vez, y verde en seis
+  pasadas seguidas después. Huele a timeout por contención, no a fallo de este diff. **Anotado.**
 
 ---
 
