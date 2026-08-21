@@ -439,6 +439,13 @@ Dos cosas que se leen mal si no se avisan:
   natural cuya protección es igual a la puntuación de esta capacidad» (p. 108).
 - Resistencia = Aguante × 3 (§1.6), como en cualquier personaje.
 
+> **Verificación completa contra el PDF, 2026-08-21** (a petición del dueño: «si no sabías de los daños
+> puede que las fichas de los encuentros estén mal»). Se comprobaron los **45 bloques** uno a uno.
+> Las **siete características, el Aguante y el Destino de todos** estaban **bien**. Fallaron dos líneas de
+> capacidades —`lunar` y `fallenElite`— porque en el PDF **envuelven a una segunda línea** («…Piel de /
+> humano, Amparo de la noche N.») y se copiaron cortadas. Corregido. Y falta un bloque, el **Salteador**
+> (p. 209), que el libro usa en su aventura de ejemplo: sin decidir si entra.
+
 **El daño de una criatura SÍ está en el libro** (verificado en el PDF, 2026-08-21). Los bloques no traen
 línea de arma porque no hace falta: un zarpazo, un mordisco o un puñetazo es un **ataque sin armas**, y la
 tabla de armas (p. 97) le da **Daño: F** — la Fortaleza del atacante. El libro lo usa así en su propio
@@ -475,8 +482,8 @@ un dato que el libro no da: el director puede hacerlo a mano si quiere, pero por
 ### 8.2 Sobrenaturales
 | Criatura | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | Capacidades | p. |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|
-| Lunar | 7 | 6 | 3 | 4 | 3 | 2 | 3 | 10 | 7 | Alado, Aura sombría 2, Piel de humano | 120 |
-| Soldado de élite de los caídos | 7 | 7 | 4 | 4 | 3 | 3 | 4 | 11 | 8 | Alado, Aura sombría 3, Piel de humano | 124 |
+| Lunar | 7 | 6 | 3 | 4 | 3 | 2 | 3 | 10 | 7 | Alado, Aura sombría 2, Piel de humano, **Amparo de la noche 2** | 120 |
+| Soldado de élite de los caídos | 7 | 7 | 4 | 4 | 3 | 3 | 4 | 11 | 8 | Alado, Aura sombría 3, Piel de humano, **Amparo de la noche 3** | 124 |
 | Solar | 6 | 7 | 4 | 3 | 2 | 3 | 3 | 10 | 7 | Alado, Aura 2, Disfraz terrenal, Ira solar 2 | 132 |
 | Paladín solar | 6 | 8 | 5 | 3 | 2 | 4 | 4 | 7 | 8 | Alado, Aura 3, Disfraz terrenal, Ira solar 3 | 132 |
 | Aamel (lugarteniente solar) | 6 | 8 | 5 | 4 | 3 | 4 | 5 | 11 | 8 | Alado, Aura 3, Disfraz terrenal, Ira solar 2 | 132 |

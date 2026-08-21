@@ -133,6 +133,14 @@ describe('catalogs', () => {
     expect(BESTIARY).toHaveLength(45);
     // Azelías, el segundo lugarteniente solar: mismo bloque que Aamel salvo Aura e Ira solar (p.132).
     expect(BESTIARY.find(b => b.id === 'azelias')?.data).toMatchObject({ endurance: 10, destiny: 8, page: 132 });
+    /**
+     * En el PDF la línea de capacidades de estos dos ENVUELVE a una segunda línea («…Piel de / humano,
+     * Amparo de la noche N.») y al copiarla se cortó por la mitad: los dos se quedaron sin «Amparo de la
+     * noche», que de noche les añade éxitos automáticos al Combate (p.107). Verificado contra el PDF el
+     * 2026-08-21 a petición del dueño. Este test es el pin para que no se vuelva a caer.
+     */
+    expect(BESTIARY.find(b => b.id === 'lunar')?.data.abilities).toEqual(['Alado', 'Aura sombría 2', 'Piel de humano', 'Amparo de la noche 2']);
+    expect(BESTIARY.find(b => b.id === 'fallenElite')?.data.abilities).toEqual(['Alado', 'Aura sombría 3', 'Piel de humano', 'Amparo de la noche 3']);
     // George es el TERCER cocinero caníbal: el catálogo sólo tenía a Maggie (p.68) y a Will (`cannibalCook`, p.69).
     expect(BESTIARY.find(b => b.id === 'george')?.data).toMatchObject({ endurance: 4, destiny: 7, page: 68 });
     // Diane es la segunda carroñera: `scavenger` es Kharla (p.74).
