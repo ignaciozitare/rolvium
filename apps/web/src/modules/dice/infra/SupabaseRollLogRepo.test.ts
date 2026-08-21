@@ -8,6 +8,7 @@ const ROW = {
   request: { systemId: 'plenilunio', kind: 'system' as const, title: 'sheet.stats.combat', groups: [{ count: 2, sides: 6, tag: 'own' }], visibility: 'table' as const },
   dice: [[6, 2]], result: { summary: 'roll.degree.success.1', total: 1 }, visibility: 'table' as const, corrects_id: null, created_at: '2026-08-18T00:00:00Z',
   author: { name: 'Pip Pérez', alias: 'Pip', avatar_url: null },
+  character: { name: 'Karen Sinclair' },
 };
 
 describe('SupabaseRollLogRepo', () => {
@@ -15,6 +16,17 @@ describe('SupabaseRollLogRepo', () => {
     expect(mapRollRow(ROW)).toMatchObject({ id: 'r1', campaignId: 'c1', authorName: 'Pip', authorAvatarUrl: null, systemId: 'plenilunio', kind: 'system', dice: [[6, 2]], visibility: 'table', correctsId: null });
     expect(mapRollRow({ ...ROW, author: { name: 'Pip Pérez', alias: null, avatar_url: 'u' } }).authorName).toBe('Pip Pérez');
     expect(mapRollRow({ ...ROW, author: null }).authorName).toBeNull();
+  });
+  /**
+   * El Registro enseña quién tiró EN LA FICCIÓN, y eso es el personaje, no la cuenta: el director
+   * tira por media mesa. Cuando la RLS no deja ver ese personaje el join no llega y la entrada se
+   * queda como estaba, sin nombre — nunca cae en el del usuario.
+   */
+  it('mapea el nombre del personaje, y lo deja en null cuando el join no llega', () => {
+    expect(mapRollRow(ROW).characterName).toBe('Karen Sinclair');
+    expect(mapRollRow({ ...ROW, character: [{ name: 'Karen Sinclair' }] }).characterName).toBe('Karen Sinclair');
+    expect(mapRollRow({ ...ROW, character: null }).characterName).toBeNull();
+    expect(mapRollRow({ ...ROW, character: { name: '  ' } }).characterName).toBeNull();
   });
   it('listRecent selects dice_rolls of the campaign with the author join, newest first, limited', async () => {
     const m = createSupabaseMock({ tables: { dice_rolls: { data: [ROW], error: null } } });
@@ -24,6 +36,7 @@ describe('SupabaseRollLogRepo', () => {
     expect(list).toHaveLength(1);
     expect(m.fromSpy).toHaveBeenCalledWith('dice_rolls');
     expect(m.selectSpy).toHaveBeenCalledWith(expect.stringContaining('author:users!dice_rolls_author_id_fkey'));
+    expect(m.selectSpy).toHaveBeenCalledWith(expect.stringContaining('character:characters!dice_rolls_character_id_fkey ( name )'));
     const q = chain.mock.results[0]!.value as Record<string, ReturnType<typeof vi.fn>>;
     expect(q['eq']).toHaveBeenCalledWith('campaign_id', 'c1');
     expect(q['order']).toHaveBeenCalledWith('created_at', { ascending: false });

@@ -9,6 +9,7 @@ import {
   type HealthId, type StatId, type WeaponData,
 } from './catalogs';
 import { giftsOf, healthOf, num, statOf, str, weaponsOf, type GiftRow, type WeaponRow } from './schema';
+import { explain } from './explain';
 
 export const SYSTEM_ID = 'plenilunio';
 
@@ -433,5 +434,6 @@ export const engine: Engine = {
   poolFor, resolve, applyDamage,
   progression: { cost: progressionCost, apply: progressionApply },
   sharedResources, actions,
+  explain,
 };
 

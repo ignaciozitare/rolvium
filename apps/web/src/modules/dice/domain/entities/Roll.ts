@@ -5,6 +5,12 @@ export interface Roll {
   id: string;
   campaignId: string;
   characterId: string | null;
+  /**
+   * Quién tiró, en la ficción: el nombre del PERSONAJE, no el de la cuenta («Karen Sinclair», no
+   * «Game Master Root»). `null` cuando la tirada no sale de una ficha (libre, criatura) o cuando la
+   * RLS no me deja ver ese personaje — en cuyo caso el Registro enseña sólo el título, como siempre.
+   */
+  characterName: string | null;
   authorId: string;
   authorName: string | null;
   authorAvatarUrl: string | null;

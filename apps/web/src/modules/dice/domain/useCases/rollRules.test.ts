@@ -44,4 +44,15 @@ describe('rollRules', () => {
     expect(d.own.map(x => x.face)).toEqual(['6', '7']);
     expect(describeRoll({ ...ROLL_FREE, authorName: null, request: { ...ROLL_FREE.request, modifier: 2 } }, t, ts).title).toBe('2D10+2');
   });
+  /**
+   * `who` es el PERSONAJE. El nombre de la cuenta no sirve para el Registro: el director tira por
+   * media mesa y su usuario no dice nada de quién actuó.
+   */
+  it('who sale del personaje, nunca del autor, y es null en una tirada libre', () => {
+    const d = describeRoll(ROLL_COMBAT, t, ts);
+    expect(d.who).toBe('Karen Sinclair');
+    expect(describeRoll({ ...ROLL_COMBAT, characterName: null }, t, ts).who).toBeNull();
+    expect(describeRoll({ ...ROLL_COMBAT, characterName: '   ' }, t, ts).who).toBeNull();
+    expect(describeRoll(ROLL_FREE, t, ts).who).toBeNull();
+  });
 });

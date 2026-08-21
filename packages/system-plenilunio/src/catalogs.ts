@@ -354,5 +354,12 @@ export const catalogs: Catalogs = {
 };
 
 export const weaponById = (id: string) => WEAPONS.find(x => x.id === id) ?? null;
+/**
+ * Una especialidad por su id (`combat.shortWeapons`, `creature.garrote`), mire quien mire: el desglose
+ * del Registro necesita su NOMBRE («Especialidad "Armas cortas"»), y la ficha sólo guarda el id.
+ * Busca en las dos listas porque el director tira también en nombre de criaturas, que llevan las suyas.
+ */
+export const specialtyById = (id: string): CatalogItem | null =>
+  SPECIALTY_ITEMS.find(x => x.id === id) ?? CREATURE_SPECIALTY_ITEMS.find(x => x.id === id) ?? null;
 export const armourById = (id: string) => ARMOURS.find(x => x.id === id) ?? null;
 export const sizeMod = (id: unknown): number => SIZES.find(s => s.id === id)?.mod ?? 0;

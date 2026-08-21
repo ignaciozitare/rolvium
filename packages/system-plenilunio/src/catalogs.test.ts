@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARMOURS, BESTIARY, CREATURE_SPECIALTY_ITEMS, DIFFICULTIES, GIFTS, GIFT_IDS, RANGE_DIFFICULTY, RANGES, RECOVERY, SIZES, SPECIALTIES, SPECIALTY_ITEMS, STAT_IDS, WEAPONS, catalogs, isMelee, specialtiesFor, weaponById } from './catalogs';
+import { ARMOURS, BESTIARY, CREATURE_SPECIALTY_ITEMS, DIFFICULTIES, GIFTS, GIFT_IDS, RANGE_DIFFICULTY, RANGES, RECOVERY, SIZES, SPECIALTIES, SPECIALTY_ITEMS, STAT_IDS, WEAPONS, catalogs, isMelee, specialtiesFor, specialtyById, weaponById } from './catalogs';
 import { references } from './references';
 import { lookup, messages } from './locales';
 
@@ -143,6 +143,11 @@ describe('catalogs', () => {
   it('every catalog label and every reference resolves in es and en', () => {
     for (const items of Object.values(catalogs)) for (const it of items) { resolves(it.label); if (it.ref) expect(references[it.ref], it.ref).toBeDefined(); }
     for (const [key, r] of Object.entries(references)) { expect(r.page).toBeGreaterThan(0); resolves(r.title); resolves(r.summary); expect(r.title).toBe(`ref.${key}.title`); }
+  });
+  it('specialtyById encuentra las de jugador y las de criatura, y nada más', () => {
+    expect(specialtyById('combat.shortWeapons')?.label).toBe('catalog.specialties.combat.shortWeapons');
+    expect(specialtyById('creature.garrote')?.label).toBe('catalog.creatureSpecialties.garrote');
+    expect(specialtyById('noExiste')).toBeNull();
   });
   it('reference pages match RULES.md §9', () => {
     const pages = Object.fromEntries(Object.entries(references).map(([k, r]) => [k, r.page]));

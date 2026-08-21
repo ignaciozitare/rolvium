@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyArmour, applyDamage, attackDamage, catchBreath, classify, degreeKey, derived, engine, poolFor, progressionApply, progressionCost, reload,
-  resolve, resolveAction, rest, sharedResources, spendAmmo, actions, XP_COSTS, DESTINY_POOL, STAT_MAX,
+  resolve, resolveAction, rest, sharedResources, spendAmmo, actions, XP_COSTS, DESTINY_POOL, STAT_MAX, SYSTEM_ID,
 } from './engine';
 import { newSheet, type StatValue } from './schema';
 import { STAT_IDS } from './catalogs';
@@ -140,6 +140,29 @@ describe('resolve', () => {
   it('destiny patch never exceeds 10', () => {
     const req = poolFor(sheet({ destiny: 9 }), { stat: 'will', options: { destinyDice: 1, difficulty: 0 } });
     expect(resolve(req, [[2], [6]], sheet({ destiny: 9 })).effects).toMatchObject({ patch: { destiny: 10, fortune: 10 } });
+  });
+  /**
+   * El desglose del Registro se lee de la tirada GUARDADA, nunca de la ficha de ahora (la tirada es
+   * inmutable). Por eso `resolve` copia en `detail` lo que la ficha sabía al tirar — y sólo cuando la
+   * tiene delante: sin ficha no se inventa nada y el desglose calla esas líneas.
+   */
+  it('guarda en detail lo que la ficha sabía al tirar, para el desglose', () => {
+    const herida = sheet({ health: 'wounded', armour: 'bulletproofVest', combat: stat(4, ['combat.shortWeapons']) });
+    const req = poolFor(herida, { stat: 'combat', options: { difficulty: 2 } });
+    const res = resolve(req, [[6, 4, 2], [4, 3]], herida);
+    expect(res.detail).toMatchObject({
+      statValue: 4, statSpecialties: ['combat.shortWeapons'], dicePenalty: 1, health: 'wounded', armour: 'bulletproofVest',
+    });
+  });
+  it('sin ficha no guarda esos campos (tiradas viejas o resueltas sin ella)', () => {
+    const req = poolFor(sheet(), { stat: 'combat', options: { difficulty: 2 } });
+    const d = resolve(req, [[6, 4, 2, 1], [4, 3]]).detail ?? {};
+    for (const k of ['statValue', 'statSpecialties', 'dicePenalty', 'health', 'armour']) expect(d).not.toHaveProperty(k);
+  });
+  it('una tirada libre no lleva característica, así que tampoco lleva esos campos', () => {
+    const libre = { systemId: SYSTEM_ID, kind: 'system' as const, title: 'x', groups: [{ count: 2, sides: 6, tag: 'own' }], visibility: 'table' as const };
+    const d = resolve(libre, [[6, 4]], sheet()).detail ?? {};
+    expect(d).not.toHaveProperty('statValue');
   });
 });
 

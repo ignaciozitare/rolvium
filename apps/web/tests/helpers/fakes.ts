@@ -219,7 +219,7 @@ export function fakeRollsPort(result: RollResult | null = { summary: 'roll.degre
 // ── dice ─────────────────────────────────────────────────────────────────────
 /** Karen's opposed Combat roll from the design (7—1, a Destiny die triumph → +1 Destino). */
 export const ROLL_COMBAT: Roll = {
-  id: 'roll-combat', campaignId: 'c1', characterId: 'ch-karen', authorId: PLAYER_USER.id, authorName: 'Karen «K»', authorAvatarUrl: null, systemId: 'plenilunio', kind: 'system',
+  id: 'roll-combat', campaignId: 'c1', characterId: 'ch-karen', characterName: 'Karen Sinclair', authorId: PLAYER_USER.id, authorName: 'Karen «K»', authorAvatarUrl: null, systemId: 'plenilunio', kind: 'system',
   title: 'sheet.stats.combat',
   request: { systemId: 'plenilunio', kind: 'system', title: 'sheet.stats.combat', groups: [{ count: 4, sides: 6, tag: 'own' }, { count: 2, sides: 6, tag: 'destiny' }, { count: 2, sides: 6, tag: 'opposition' }], options: { stat: 'combat', specialty: true }, sharedResources: { destiny: 2 }, visibility: 'table' },
   dice: [[5, 6, 2, 4], [6, 3], [4, 1]],
@@ -228,7 +228,7 @@ export const ROLL_COMBAT: Roll = {
 };
 /** Elías' failed Cunning roll with a setback (0—2, «Revés»). */
 export const ROLL_SETBACK: Roll = {
-  ...ROLL_COMBAT, id: 'roll-setback', characterId: 'ch-elias', authorId: 'u-nix', authorName: 'Elías Vance', title: 'sheet.stats.cunning',
+  ...ROLL_COMBAT, id: 'roll-setback', characterId: 'ch-elias', characterName: 'Elías Vance', authorId: 'u-nix', authorName: 'Nix', title: 'sheet.stats.cunning',
   request: { systemId: 'plenilunio', kind: 'system', title: 'sheet.stats.cunning', groups: [{ count: 2, sides: 6, tag: 'own' }, { count: 2, sides: 6, tag: 'opposition' }], options: { stat: 'cunning' }, visibility: 'dm' },
   dice: [[1, 3], [5, 4]],
   result: { summary: 'roll.summary.setback', total: -2, detail: { ownHits: 0, destinyHits: 0, oppositionHits: 2, difference: -2, setback: true }, effects: { setback: true } },
@@ -236,7 +236,7 @@ export const ROLL_SETBACK: Roll = {
 };
 /** Nix's free 2D10 = 13. */
 export const ROLL_FREE: Roll = {
-  ...ROLL_COMBAT, id: 'roll-free', characterId: null, authorId: 'u-nix2', authorName: 'Nix', systemId: null, kind: 'free', title: '2D10',
+  ...ROLL_COMBAT, id: 'roll-free', characterId: null, characterName: null, authorId: 'u-nix2', authorName: 'Nix', systemId: null, kind: 'free', title: '2D10',
   request: { systemId: null, kind: 'free', title: '2D10', groups: [{ count: 2, sides: 10 }], visibility: 'table' },
   dice: [[6, 7]], result: { summary: 'roll.free', total: 13, detail: {} }, visibility: 'table', createdAt: '2026-08-18T21:05:00Z',
 };

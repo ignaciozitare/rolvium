@@ -12,8 +12,13 @@ restringida.
 - **Lanzador de dados flotante** (ventana flotante arrastrable, **no modal** — la mesa sigue usable debajo; se abre desde el lateral): pestañas de visibilidad
   **Todos / Director / Secreta**, filas d4·d6·d8·d10·d12·d20·d100·Fudge × cantidad 1–6 (tocar = tirar),
   modificador, última tirada.
-- **Registro** lateral: por tirada autor, título (característica · especialidad), dados propios / de recurso (borde
-  oro) vs oposición, marcador, grado de éxito, avisos (revés, +1 Destino…), tiradas libres con total. Adjuntables al chat.
+- **Registro** lateral: por tirada **quién tiró** (el nombre del PERSONAJE, no el de la cuenta: «Karen Sinclair ·
+  Magnum .44»), título (característica · especialidad), dados propios / de recurso (borde oro) vs oposición,
+  marcador, grado de éxito, avisos (revés, +1 Destino…), tiradas libres con total. Adjuntables al chat.
+- **Ver el desglose de una tirada**: al pasar por encima de la entrada —o al llegar a ella con el teclado— sale un
+  panel oscuro, «CÓMO SALIÓ ESTA TIRADA», con de dónde salieron los dados, qué reglas se aplicaron sin preguntar y
+  cómo se cierra el resultado, cada línea con su página del manual. Debajo de la entrada no cuelga nada: el registro
+  se lee de un vistazo y el detalle se consulta.
 - Recalcular/verificar cualquier tirada (cliente o API) a partir de los dados crudos.
 
 ## Rules & limits
@@ -22,6 +27,18 @@ restringida.
 - Visibilidad: `table` (todos), `dm` (jugador → DJ), `secret` (solo el autor; DJ). Filtrada por RLS.
 - Recurso compartido: el descuento y la tirada son la misma transacción (si no hay dados, la tirada falla).
 - El motor genérico sabe `NdX`, contar éxitos por predicado, explotar, mayor/menor, sumar; cada sistema aporta la regla.
+- **El desglose lo escribe el SISTEMA, no la plataforma** (`Engine.explain`, opcional): sólo él sabe qué regla entró
+  y en qué página del manual está. Un sistema que no lo declare simplemente no enseña desglose.
+- **El desglose se lee de la tirada guardada, nunca de la ficha de ahora.** Una tirada es inmutable y su desglose
+  tiene que decir lo mismo dentro de un mes, con el personaje ya curado y con otra armadura puesta: por eso
+  `engine.resolve` copia en `result.detail` lo que la ficha sabía al tirar (valor de la característica, sus
+  especialidades, la penalización por heridas, el estado de salud, la armadura puesta). Cuando esos campos no están
+  —tiradas viejas, o resueltas sin ficha, como las de criatura— el desglose **calla** esas líneas en vez de
+  inventarse un número.
+- **El nombre de quien tiró es el del personaje**, unido por join desde `characters`. Si la RLS no me deja ver ese
+  personaje, la entrada se queda sin nombre; **nunca cae en el del usuario**, que no dice nada de quién actuó.
+- **«Ponerse a cubierto» (p.96) no sale en el desglose**: la regla no existe todavía en el código, y una línea que
+  sólo puede decir «no» para siempre miente. Entra cuando entre la regla.
 
 ## Dados 3D (pendiente — pedido del dueño, 2026-08-18)
 

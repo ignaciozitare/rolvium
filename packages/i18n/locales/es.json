@@ -649,7 +649,15 @@
       "visibility": {
         "dm": "Director",
         "secret": "Secreta"
-      }
+      },
+      "breakdown": {
+        "title": "Cómo salió esta tirada",
+        "applied": "Lo que se aplicó",
+        "ref": "Manual · {{pages}}",
+        "page": "p.{{n}}",
+        "and": "y"
+      },
+      "rolledBy": "{{character}} · tirada de {{user}}"
     }
   },
   "maps": {
