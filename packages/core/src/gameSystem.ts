@@ -20,6 +20,14 @@ export interface FieldDef {
    * salían unas Nudilleras con 14 balas.
    */
   appliesToRow?: (row: Record<string, unknown>) => boolean;
+  /**
+   * Sólo columnas de tabla: el TECHO de esta celda para ESTA fila, cuando no es el mismo para todas.
+   * Lo declara el sistema porque la plataforma no sabe de dónde sale: en Plenilunio la Munición no
+   * puede pasar de lo que cabe en el cargador del arma (rifle 30, magnum 6), y sin techo el contador
+   * subía sin fin. Como en el resto de la ficha, capa la SUBIDA y nunca la bajada: un valor ya por
+   * encima apaga el `+` y deja el `−` vivo, que es como se sale de ahí.
+   */
+  maxForRow?: (row: Record<string, unknown>) => number | undefined;
   min?: number; max?: number;
   /**
    * `hint`: dato secundario de la opción, que sale en un tooltip y NO en la celda. El alcance de un

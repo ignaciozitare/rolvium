@@ -148,6 +148,14 @@ select.rv-sheet-inp{appearance:auto;}
    La fila la agrupa `groupTiles` en Sheet.tsx: centrar cada campo en SU celda de la rejilla los
    dejaba repartidos por el ancho, no centrados en la tarjeta. Se queda en `grid` — en `stack`
    (Armadura) los calculados ya tienen su lectura en columna, y esa no se toca. */
+/* Los contadores que se gastan en mesa (Destino · Fortuna · Experiencia) van CENTRADOS respecto a la
+   tarjeta, juntos en su propia fila. En la rejilla caian en las tres primeras celdas de cuatro, asi que
+   «Destino» quedaba contra el borde izquierdo y debajo la pareja de calculados salia centrada: dos
+   criterios distintos en la misma tarjeta (dueno). */
+.rv-sheet-counters{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;gap:12px 30px;margin:2px 0;}
+.rv-sheet-counters > .rv-sheet-field{align-items:center;text-align:center;}
+.rv-sheet-counters .rv-sheet-label{text-align:center;}
+.rv-sheet-counters .rv-sheet-tip{left:50%;transform:translateX(-50%);}
 .rv-sheet-tiles{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:center;align-items:stretch;gap:14px;margin:2px 0;}
 .rv-sheet-tiles > .rv-sheet-field{width:140px;min-height:140px;padding:14px 10px;gap:10px;align-items:center;justify-content:center;text-align:center;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
 /* `block` y no el `inline-flex` de siempre: en dos lineas, el flex metia el «p.98» ENTRE ellas

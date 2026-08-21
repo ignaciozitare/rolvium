@@ -109,7 +109,10 @@ export const sections: SectionDef[] = [
       // `derived` aquí no significa «calculado del catálogo», significa «no editable en la tabla»:
       // la celda pinta el valor que la fila ya guarda.
       { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0, derived: true, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
-      { id: 'reserve', type: 'counter', label: 'sheet.weapons.reserve', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
+      // La Municion no pasa de lo que cabe en el cargador (dueno, 2026-08-21): sin techo el contador
+      // subia sin fin, y recargar nunca podia traspasar mas de una carga de todos modos. Se capa la
+      // SUBIDA, nunca la bajada: una ficha guardada con mas balas conserva las suyas y puede gastarlas.
+      { id: 'reserve', type: 'counter', label: 'sheet.weapons.reserve', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null, maxForRow: row => weaponById(str(row['id']))?.data.magazine ?? undefined },
     ] },
   ] },
   { id: 'gifts', label: 'sheet.sections.gifts', layout: 'stack', span: 2, fields: [

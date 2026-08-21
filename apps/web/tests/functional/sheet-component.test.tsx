@@ -34,6 +34,16 @@ describe('<Sheet> — schema-driven, every field type', () => {
     expect(tips.some(t => t.textContent?.includes('Manual · p.20'))).toBe(true);
     // derived read-only values (endurance = 4+3 = 7, resistance max 21)
     expect(screen.getByRole('region', { name: 'Estado' })).toHaveTextContent('7');
+    /**
+     * Destino · Fortuna · Experiencia van JUNTOS y en su propia fila, centrados respecto a la tarjeta,
+     * igual que las tarjetas calculadas. Sueltos en la rejilla caían en las tres primeras celdas de una
+     * fila de cuatro y «Destino» quedaba contra el borde izquierdo (dueño, 2026-08-21).
+     */
+    const run = screen.getByRole('region', { name: 'Estado' }).querySelector('.rv-sheet-counters')!;
+    expect(run).toBeInTheDocument();
+    expect(Array.from(run.querySelectorAll('.rv-sheet-counter')).map(c => c.getAttribute('aria-label')))
+      .toEqual(['Destino', 'Fortuna', 'Experiencia']);
+    expect(run.querySelector('.rv-sheet-tiles')).toBeNull();
     expect(screen.getByText('21 de 21')).toBeInTheDocument();
     // health discs
     expect(screen.getByRole('radio', { name: 'Sano' })).toHaveAttribute('aria-checked', 'true');
@@ -164,6 +174,36 @@ describe('<Sheet> — schema-driven, every field type', () => {
     expect(onAction).toHaveBeenCalledWith('attack.ranged', 'magnum44', undefined, expect.objectContaining({ top: expect.any(Number), left: expect.any(Number) }));
     await u.click(screen.getByRole('button', { name: /Activar don · Furia de titán/ }));
     expect(onAction).toHaveBeenCalledWith('gift.activate', 'titanFury', undefined, expect.objectContaining({ top: expect.any(Number), left: expect.any(Number) }));
+  });
+
+  /**
+   * La MUNICIÓN no pasa de lo que cabe en el cargador (dueño, 2026-08-21: «al recargar de un arma nunca
+   * debería traspasar de la columna de munición más municiones de la capacidad que tiene el cargador»).
+   * El magnum lleva cargador de 6 (p.97): con 6 sueltas el `+` se apaga, con 5 todavía sube. Se capa la
+   * SUBIDA y nunca la bajada — una ficha guardada con más balas conserva las suyas y puede gastarlas.
+   */
+  it('la Munición tiene por techo el cargador del arma, y el techo es por fila', async () => {
+    const u = userEvent.setup();
+    const magazineRow = (data: Record<string, unknown>) => {
+      const { onChange } = mount({ data: { ...KAREN_DATA, ...data } });
+      const table = screen.getByRole('table', { name: 'Armas' });
+      const row = within(table).getAllByRole('row')[2] as HTMLElement;   // el magnum
+      return { onChange, more: within(row).getByRole('button', { name: '+ Munición' }) };
+    };
+    const lleno = magazineRow({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 6, reserve: 6 }] });
+    expect(lleno.more).toBeDisabled();
+    cleanup();
+    const casi = magazineRow({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 6, reserve: 5 }] });
+    expect(casi.more).not.toBeDisabled();
+    await u.click(casi.more);
+    expect(casi.onChange).toHaveBeenLastCalledWith({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 6, reserve: 6 }] });
+    cleanup();
+    // Y por fila: el rifle de asalto llega a 30 donde el magnum se queda en 6.
+    const rifle = mount({ data: { ...KAREN_DATA, weapons: [{ id: 'assaultRifle', ammo: 30, reserve: 29 }] } });
+    const rifleRow = within(screen.getByRole('table', { name: 'Armas' })).getAllByRole('row')[1] as HTMLElement;
+    expect(within(rifleRow).getByRole('button', { name: '+ Munición' })).not.toBeDisabled();
+    await u.click(within(rifleRow).getByRole('button', { name: '+ Munición' }));
+    expect(rifle.onChange).toHaveBeenLastCalledWith({ weapons: [{ id: 'assaultRifle', ammo: 30, reserve: 30 }] });
   });
 
   it('readOnly disables inputs and hides add/remove but keeps roll buttons; showActions=false hides them; canChange vetoes', async () => {

@@ -87,11 +87,23 @@ const isTile = (f: FieldDef) => f.type === 'number' && !!f.derived;
  * tarjeta grande. Solo se hace en `grid`; en `stack` los calculados ya tienen su lectura (Armadura:
  * centrados en columna con un filete corto entre dos), y esa no se toca.
  */
-const groupTiles = (fields: FieldDef[]): (FieldDef | FieldDef[])[] =>
+/**
+ * Un contador que se GASTA en mesa (Destino, Fortuna, Experiencia). Los seguidos se leen juntos y
+ * centrados bajo la tarjeta, no repartidos por el ancho de la rejilla: en `grid` caian en las tres
+ * primeras celdas de una fila de cuatro, asi que «Destino» quedaba pegado al borde izquierdo mientras
+ * los calculados de debajo iban centrados (dueno). Mismo trato que ya tenian las tarjetas calculadas.
+ */
+const isCounterRun = (f: FieldDef) => f.type === 'counter' && !f.derived;
+const runKind = (f: FieldDef): 'tiles' | 'counters' | null => (isTile(f) ? 'tiles' : isCounterRun(f) ? 'counters' : null);
+const runClass = (g: FieldDef[]): string => (runKind(g[0] as FieldDef) === 'tiles' ? 'rv-sheet-tiles' : 'rv-sheet-counters');
+
+/** Agrupa las TIRADAS SEGUIDAS del mismo tipo; lo demas se queda como celda suelta de la rejilla. */
+const groupRuns = (fields: FieldDef[]): (FieldDef | FieldDef[])[] =>
   fields.reduce<(FieldDef | FieldDef[])[]>((acc, f) => {
+    const kind = runKind(f);
     const last = acc[acc.length - 1];
-    if (isTile(f) && Array.isArray(last)) last.push(f);
-    else acc.push(isTile(f) ? [f] : f);
+    if (kind && Array.isArray(last) && runKind(last[0] as FieldDef) === kind) last.push(f);
+    else acc.push(kind ? [f] : f);
     return acc;
   }, []);
 
@@ -243,8 +255,8 @@ export function Sheet(p: SheetProps): JSX.Element {
             {sectionRef(s, p)}
           </header>
           <div className={`rv-sheet-fields ${s.layout ?? 'stack'}`}>
-            {(s.layout === 'grid' ? groupTiles(s.fields) : s.fields).map((g, i) => (Array.isArray(g)
-              ? <div key={`tiles-${i}`} className="rv-sheet-tiles">{g.map(f => <FieldWrap key={f.id}>{renderField(f)}</FieldWrap>)}</div>
+            {(s.layout === 'grid' ? groupRuns(s.fields) : s.fields).map((g, i) => (Array.isArray(g)
+              ? <div key={`run-${i}`} className={runClass(g)}>{g.map(f => <FieldWrap key={f.id}>{renderField(f)}</FieldWrap>)}</div>
               : <FieldWrap key={g.id}>{renderField(g)}</FieldWrap>))}
           </div>
           {p.extras?.[s.id]}
@@ -511,7 +523,7 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
                        las nueve (p.97)— y la tabla pintaba igualmente un contador, así que salían unas
                        Nudilleras con 14 balas. */
                     : c.appliesToRow && !c.appliesToRow(row) ? <span className="rv-sheet-caption">—</span>
-                      : <Cell d={c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}
+                      : <Cell d={c.maxForRow ? { ...c, max: c.maxForRow(row) ?? c.max } : c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}
                 </td>
               ))}
               <td><ItemActions f={f} p={p} item={row} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} /></td>
