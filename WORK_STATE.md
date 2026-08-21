@@ -14,26 +14,38 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-21: COLUMNA 3 TERMINADA. Falta MIRARLA EN LA APP
+## 🟢 PUNTO EXACTO — 2026-08-21: COLUMNA 3 TERMINADA Y MIRADA EN LA APP
 
 Rama **`feat/bestiario`**, árbol **limpio**, todo verde: **717 tests** (516 web + 77 api + 6 core + 16 ui
 + 102 plenilunio), typecheck, `audit` **0 hard** (12 warn, todos preexistentes y en ficheros que no se
 tocaron), ambas apps compilando. **Review pasado.**
 Commits: `375a46c` (columnas 1 y 2) · `37cad40` (arreglos del dueño) · `89f8085` (el contrato del
-desglose) · **`138d614`** (la columna 3, entera).
+desglose) · **`138d614`** (la columna 3, entera) · **`3fb0e0e`** (los tres fallos que salieron al mirarla).
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: levanta la app y mira la columna 3 de las tiradas (el nombre del personaje en el
-> Registro y el desglose al pasar por encima) siguiendo el bloque 🟢 de WORK_STATE.
+> Retomo Rolvium: la columna 3 de las tiradas está terminada y mirada en la app (bloque 🟢 de
+> WORK_STATE). Sigue con lo que decida el dueño: las columnas 4 y 5 del `.pen`, o cerrar el despliegue.
 
-### ⏳ EL SIGUIENTE PASO, Y EL ÚNICO QUE FALTA DE ESTA TANDA
-**Mirarlo en la app corriendo.** En esta rama ya han salido dos fallos que ningún test cazaba, así que
-esto no está cerrado hasta que el dueño lo vea. Qué mirar, en orden:
-1. Que la cabecera del Registro pone **«KAREN SINCLAIR · REVÓLVER MAGNUM .44»** y no el nombre de la
-   cuenta, y que el avatar lleva las **iniciales del personaje**.
-2. Que al **pasar por encima** de una tirada sale el panel oscuro, y que **cabe** (ver el ⚠ de abajo).
-3. Que al llegar a una entrada **con el tabulador** también sale.
-4. Que una tirada de **criatura** y una **libre** siguen como estaban (no llevan desglose).
+### ✅ MIRADO EN LA APP CORRIENDO (2026-08-21) — y salieron TRES fallos
+Ningún test los cazaba, como siempre en esta rama. Los tres son de **ancho**: el panel del Registro mide
+**235 px**, no los 372 que dibujó el `.pen`. Arreglados en `3fb0e0e`:
+1. El título de la entrada se comía a sí mismo («KAREN SINCLAIR · …»). La cabecera ahora **envuelve**.
+2. El rótulo «CÓMO SALIÓ ESTA TIRADA» se partía en **cuatro líneas**. La referencia del manual baja debajo.
+3. **El grave**: el desglose de las entradas de arriba se abría hacia arriba, donde no hay nada, y quedaba
+   **entero fuera** de la ventana del panel (282 px cortados, medido). Las **tres primeras** ahora se abren
+   hacia abajo. Tres porque el desglose mide ~240 px y una entrada ~84: de la cuarta en adelante ya cabe.
+
+**Comprobado posición por posición** con la app delante: entradas 1, 2, 4, 5, 11, 49 y 50 caben enteras;
+la 3 se pasa **7 px** por abajo, que se alcanzan desplazándose. Con el **teclado** cabe entera desde la
+primera. El desglose de una tirada nueva sale literal como el `.pen`:
+`4 Combate − 1 por herido = 3 dados` · `Reto a dificultad 3 (p.84)` · `LO QUE SE APLICÓ` ·
+`Especialidad «Armas improvisadas» — no aplicada por el director (p.83)` ·
+`1 éxito contra 1 de dificultad = resultado ambiguo`.
+
+**Ojo con las tiradas viejas**: las de antes de `138d614` no llevan guardado lo que sabía la ficha, así
+que su desglose dice «3 dados» en vez de «4 Combate − 1 por herido = 3 dados» y «Armadura» en vez de
+«Chaleco antibalas». **Es el comportamiento correcto** (callar en vez de inventar), no un fallo. Las
+tiradas nuevas salen completas.
 
 ### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
 **«A cubierto» del `.pen` se ha dejado FUERA a propósito.** Ponerse a cubierto (p.96) no existe en el
@@ -64,14 +76,14 @@ se ha construido, y entra cuando entre la regla. **Decisión suya si quiere otra
   papel da 1,72:1 y ahí sigue mandando `--sys-gold`.
 - `specs/modules/dice/SPEC.md` actualizado. El `.pen` no hacía falta tocarlo.
 
-### ⚠️ EL RIESGO CONOCIDO — el desglose se abre HACIA ARRIBA
+### ⚠️ Cómo se coloca el desglose (por si hay que tocarlo)
 `.dc-tip` es `position:absolute` dentro de `.dc-log-scroll`, que tiene `overflow-y:auto` y por tanto
-**recorta**. Se abre hacia arriba a propósito: el Registro sigue la tirada más nueva, que está abajo, y
-ahí es donde hay sitio. Puesto de parche, sin JS: `scroll-padding-block-start:180px` (arregla el camino
-del teclado) y `max-height:60vh` en el panel. **Lo que sigue expuesto**: pasar el ratón por una entrada
-ya pegada al borde de arriba en un registro largo. Sacarlo del recorte pide medir con JS (portal), y eso
-es **otra decisión** — el Review confirmó que hoy no hay alternativa en CSS puro (anchor positioning es
-sólo Chromium y sigue recortado; el Popover API no se puede abrir al pasar por encima sin JS).
+**recorta**. Por defecto se abre **hacia arriba** —el Registro sigue la tirada más nueva, que está abajo,
+y ahí es donde hay sitio—, y las **tres primeras** hacia abajo, porque encima de ellas no hay nada.
+Además: `scroll-padding-block-start:180px` en el panel (deja hueco al llegar con el teclado) y
+`max-height:60vh` en el desglose. Todo CSS, sin JS. **Ya no hay ningún caso que se pierda entero.**
+Si algún día el desglose crece mucho o el panel se estrecha más, el número `3` de
+`.dc-entry:nth-child(-n+3)` es lo que hay que revisar.
 
 ### 🔎 Deuda encontrada y NO tocada (decidir aparte)
 - **Ciclo de imports en plenilunio**: `engine.ts` importa `explain`, y `explain.ts` importa `readOptions`
@@ -85,6 +97,9 @@ sólo Chromium y sigue recortado; el Popover API no se puede abrir al pasar por 
   la p.85 no llega a la línea «Manual · …». Limitación del contrato, no un fallo.
 - Un `test:regression` salió 1/470 en rojo una vez, con dos suites corriendo a la vez, y verde en seis
   pasadas seguidas después. Huele a timeout por contención, no a fallo de este diff. **Anotado.**
+- **`GET /scenes/:id/vision` devuelve 400** en la mesa, tres veces por carga (visto en la consola del
+  navegador al probar esto). Es de `maps`, **preexistente y ajeno a esta tanda**, y no rompe nada visible
+  — pero está ahí. **Sin tocar.**
 
 ---
 
