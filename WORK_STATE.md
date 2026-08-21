@@ -14,6 +14,65 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🔴 PUNTO EXACTO — 2026-08-21 (noche): el dueño PROBÓ la app y salieron ocho cosas
+
+Rama **`fix/municion-y-preguntas`** (sale de `main`, que ya tiene la columna 5 en producción).
+**877 tests** verdes · typecheck · `audit` 0 hard. Commits: **`4e29ee7`** · **`ede3b1f`**.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: el dueño probó la app y salieron ocho cosas; dos arregladas en `fix/municion-y-preguntas`.
+> Lo gordo es que **la Resistencia máxima está mal leída del manual**. Bloque 🔴 de WORK_STATE.
+
+### ✅ ARREGLADO (con test, sin subir a producción todavía)
+1. **La Munición no se podía subir NUNCA** (`4e29ee7`). La celda pintaba «—» cuando la fila no traía el
+   dato, y en un guion no hay «+». Y el círculo se cerraba solo: `reloadWeapon` LEE ese dato. Un contador
+   que sí aplica a la fila arranca ahora en su mínimo.
+2. **El techo de la Munición era un sinsentido** (`ede3b1f`). Estaba topada en la capacidad del cargador:
+   «puedes tener una mochila llena de balas y tu cargador un límite de 2» (dueño). Fuera el tope. El techo
+   real es el del CARGADOR y ya estaba bien puesto — `reloadWeapon` sólo traspasa lo que cabe.
+
+### 🟥 LO GORDO: LA RESISTENCIA MÁXIMA ESTÁ MAL LEÍDA DEL MANUAL
+Comprobado **en el PDF** (`../Rolvium context/PlenilunioEbook.pdf`, que SÍ existe — está fuera del repo).
+
+- **Definición (creación)**: «La Resistencia … **Son iguales al triple del Aguante**. La ficha … sombrea
+  los puntos sobrantes y deja los cuadrados en blanco correspondientes a tu Resistencia para poder
+  tacharlos durante el juego.» → **la pista es 3 × Aguante, y se fija al crear el personaje**.
+- **Las ×2 y ×1 salen SÓLO bajo el epígrafe «RECUPERACIÓN»**, y el verbo es *se recupera*: «Si se
+  encuentra herido, **su salud se recupera** a dos tercios de su Resistencia: sus puntos de Resistencia
+  máximos pasan a ser el doble de su Aguante…».
+
+O sea: el estado de salud limita **cuánto recuperas descansando**, no el tamaño de la pista. El
+2026-08-19 se leyó al revés —se juntaron los dos números en uno y se borró «Resistencia recuperable
+descansando»— y por eso Karen, herida, enseña **12 casillas** en vez de 18.
+
+⚠ **NO SE HA TOCADO**: revierte una decisión que tomó el dueño el 2026-08-19 y cambia los números de su
+ficha. Hay que confirmarlo con él. El arreglo es separar otra vez `resistanceMax` (×3 siempre) de un
+`recoveryMax` (×3/×2/×1 según estado), que es como estaba ANTES.
+Sitio: `packages/system-plenilunio/src/engine.ts` (`derived`, línea ~62) y `RULES.md` §6.3.
+
+### ⏳ PENDIENTE, sin empezar
+3. **No hay límite en los dados que se pueden tirar.** El dueño llegó a **30 dados con Combate 4**
+   («+ dados extra: 26») desde el desplegable de disparar. En el manual los dados extra son siempre
+   **uno o dos** y situacionales (herramientas, miras, el grado de éxito de un médico), y ni siquiera se
+   acumulan: «se añaden solo los dados que añada la mejor herramienta». **Falta decidir el tope con el
+   dueño** — el libro no da un máximo global.
+4. **Tokens demasiado pequeños y pegados a la grilla.** Aclaración del dueño: **NO quiere rediseñar el
+   mapa**. Son dos cosas: (a) que los tokens sean **más grandes** —un 50% más para tamaño normal, y
+   escalados por el tamaño de la ficha (diminuto…enorme, p.25)—, y (b) que **el movimiento no dependa de
+   la grilla**. Hoy los tokens se guardan en coordenadas de casilla y `tokenCellAt` los pega a la rejilla
+   (`mapRules.ts`); la base ya guarda `x`/`y` como `real`, así que admite posiciones fraccionarias.
+5. **La escena deja abrir varios modales a la vez** (se ven «Colocar encuentro» y «Fondo del mapa»
+   abiertos juntos), y **el modal de Fondo del mapa sale en la otra punta** de su botón — petición vieja
+   del dueño que sigue en el backlog sin hacer.
+
+### 🚨 PARA EL DUEÑO
+- Lo de la Resistencia **es cosa suya**: el manual dice una cosa y hoy el código hace otra, pero cambiarlo
+  altera su ficha. **Sin su OK no se toca.**
+- **El PDF del manual está en `../Rolvium context/PlenilunioEbook.pdf`** y se lee con `pdftotext`. Que
+  no vuelva a decirse que no está: `RULES.md` se equivocó justamente por no abrirlo.
+
+---
+
 ## 🟢 PUNTO EXACTO — 2026-08-21: LA COLUMNA 5 ESTÁ EN PRODUCCIÓN. Falta MIRARLA EN LA APP
 
 **EN `main` Y EN PRODUCCIÓN.** Merge **`cb27b63`** (45 commits de `feat/bestiario`), desplegado y
