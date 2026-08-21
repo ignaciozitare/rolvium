@@ -65,8 +65,11 @@ Rama **`feat/bestiario`**, árbol **limpio**, commit **`4caa2de`**. **873 tests*
    el CHECK y que **hoy no escribe nadie** (no hay «el director retira el ataque»).
 
 ### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
-1. **La nube sigue SIN la migración.** En local está; en `scfspsiemikfcnqteonq` se aplica **con su
-   permiso**, no por nuestra cuenta.
+1. ~~La nube sigue sin la migración~~ — **APLICADA el 2026-08-21 con su permiso** en
+   `scfspsiemikfcnqteonq`. Comprobado allí: RLS encendida, la política, la publicación de realtime, las
+   tres funciones, y que **`authenticated` NO puede ejecutarlas** (son las únicas del proyecto que no
+   salen en el aviso de «SECURITY DEFINER ejecutable por usuarios»). `get_advisors` **igual que antes**:
+   0 CRITICAL, los mismos 21 warn de siempre.
 2. **Nada se ha mirado en la app corriendo.** En esta rama los fallos que se escapan son de ANCHO y de
    SITIO, y aquí hay una decisión de sitio sin comprobar: **el aviso sale abajo a la izquierda**. Es el
    único hueco (la derecha entera es el Registro, donde va a caer la tirada; arriba están las barras;
@@ -86,6 +89,20 @@ Rama **`feat/bestiario`**, árbol **limpio**, commit **`4caa2de`**. **873 tests*
    - **Si no se puede leer tu ficha, el servidor RECHAZA la respuesta** y el ataque **sigue esperando**,
      en vez de aceptarla a ciegas. La pantalla, mientras tanto, te deja «no defenderme».
 4. **El director no ve nada mientras espera** a que el jugador conteste. El `.pen` **no lo diseña**.
+
+### 🟥 DOS COSAS QUE SALIERON AL TOCAR LA NUBE (no las he arreglado: hay que decidirlas)
+1. **A la nube le FALTA `bestiary_entries`.** La migración `20260820000000_bestiary.sql` **nunca se
+   aplicó allí**. O sea que en producción el Bestiario del director no existe: sus encuentros propios no
+   se pueden guardar ni leer. Las criaturas del manual sí funcionan, porque salen del paquete del sistema
+   y no de la base. **No la he aplicado**: es un cambio de esquema que no estaba en lo que se pidió.
+2. **La nube no lleva historial de migraciones.** Antes de hoy, `supabase_migrations` estaba **vacía**
+   —el esquema se aplicó por otro camino— y ahora sólo consta `dice_attacks`. Nadie puede saber por lo
+   que hay en la base qué migraciones han pasado y cuáles no; así es como se llega a que falte una y no
+   se note. Merece una tanda aparte para dejarlas registradas.
+3. **En la nube TODAS las tablas tienen permisos anchos** para `anon` y `authenticated` (es el valor por
+   defecto de Supabase); en local están recortados. Lo que protege los datos es la RLS, que está bien
+   puesta, y `dice_attacks` queda **exactamente igual que sus vecinas** (`dice_rolls` incluida). Es
+   diferencia de antes y no la trae esta tanda; anotado para decidir aparte.
 
 ### ⏭ LO SIGUIENTE
 - **Mirarlo en la app corriendo** (Docker + Supabase local + `dev:api` :3001 + `dev:web` :5173), con dos
