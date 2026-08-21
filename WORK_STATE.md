@@ -14,69 +14,52 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🔴 PUNTO EXACTO — 2026-08-21: EL BESTIARIO, LAS TRES TANDAS HECHAS. FALTA MIRARLO EN LA APP
+## 🔴 PUNTO EXACTO — 2026-08-21: YA SE PUEDE ATACAR DESDE EL TOKEN. FALTAN LAS COLUMNAS 4 Y 5
 
-Rama **`feat/bestiario`**. Todo verde: **755 tests** (534 web + 77 api + 6 core + 16 ui + 122 plenilunio),
-typecheck de las dos apps, `audit` **0 hard** (12 warn, todos preexistentes). Commit de las tandas 1 y 2:
-**`19df088`**.
+Rama **`feat/bestiario`**. **777 tests** verdes (555 web + 77 api + 6 core + 16 ui + 123 plenilunio),
+typecheck, `audit` **0 hard** (13 warn; el nuevo es el overlay propio del modal de atacar, declarado).
+Commits: `19df088` (datos + motor) · `435b46f` (el desplegable de tirar) · **`8fb2fe3`** (atacar desde el token).
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: el bestiario está construido entero (bloque 🔴 de WORK_STATE). Falta **mirarlo en la app
-> corriendo** con una criatura de caja (Baal), y decidir con el dueño lo que queda anotado abajo.
+> Retomo Rolvium: atacar desde el token ya está (bloque 🔴 de WORK_STATE). Sigue con la **columna 5** del
+> `.pen` —el aviso de defensa al jugador— y luego la **columna 4**, el panel del director.
 
-### ✅ Tanda 1 · los datos (`packages/system-plenilunio`)
-- **`BESTIARY` pasa de 45 a 57**: los doce bloques en caja del §8.0 (Nathael, Luz niña, Soum, Nergal, Samael,
-  Lucifer, Baal, Gabriel, Marduk, Adán, Luz-Malefic y el Salteador), con sus siete características, Aguante,
-  Destino, especialidades, la línea impresa de dones y capacidades, y sus **ATAQUES copiados, no recalculados**.
-- **`CAPABILITY_IDS`** — las quince capacidades de la p.107–108 como catálogo (`scored` y `timeOfDay`) y
-  **`capabilities`** como dato en cada bloque, además de `abilities`, que es la línea impresa y **no se toca**.
-  Un **test de paridad** ata las dos para que no se separen nunca.
-- **`CreatureAttack`** nuevo, **siete especialidades** `creature.*` nuevas, Gabriel con `protection: 5`, e
-  **i18n en es Y en** de los 12 bloques, las 7 especialidades, las 15 capacidades y los 12 ataques.
+### ✅ Lo que se hizo hoy, por orden
+1. **Bestiario, tandas 1 y 2** (`19df088`): los 12 bloques en caja (BESTIARY 45 → 57) con sus ataques
+   impresos, las 15 capacidades como dato y el motor aplicándolas (éxitos automáticos, Ira solar, Inmune al
+   dolor, Piel gruesa, Ancla terrenal, Incorpóreo, Ponzoña, Deflagración).
+2. **Tanda 3** (`435b46f`): el desplegable de tirar aprende los ataques, la casilla de noche, las capacidades
+   marcables y la Deflagración. Diseño aprobado con capturas (`.pen` `vzBJo` y `zCTzX`, nuevo).
+3. **Atacar desde el token** (`8fb2fe3`): `.pen` columna 6, portada 1:1. Y el fallo que vio el dueño —
+   «Aamel (2)», una copia vieja sin capacidades guardadas, salía muda — arreglado con `withManualFallback`.
 
-### ✅ Tanda 2 · el motor (`engine.ts`), según la tabla de RULES §7.b.1
-- **`autoSuccesses`** — mecánica nueva: se suma a `ownHits` **y a `raw`** (⚠ con éxitos automáticos no hay
-  revés), viaja en las opciones y sale en el **desglose del Registro** con el nombre de la capacidad y la p.107.
-- **`autoSuccessOptions(caps, característica, esDeNoche)`**; **Ira solar** en `attackDamage`; **Inmune al dolor**
-  y **Piel gruesa** en `derived`; **Ancla terrenal** en `applyDamage`; **Incorpóreo**, **Ponzoña** y
-  **Deflagración** como funciones puras. `capabilitiesOf(sheet)` en `schema.ts`.
-
-### ✅ Tanda 3 · la pantalla (`bestiary/ui/CreatureRollPopover.tsx`) — diseñada y construida
-Diseño aprobado por el dueño con capturas: `.pen` **`vzBJo`** («Bestiario/Tirar por una criatura · popover»,
-actualizado) y **`zCTzX`** («· Deflagración», nuevo). Ejemplo: **Baal**, el único bloque con todo.
-- **¿CON QUÉ ATACA?** — los ataques impresos + «a mano». Elegir uno tira los dados del ataque (la diferencia
-  con su Combate entra como bonificación del arma) y lleva el daño impreso.
-- **Casilla «es de noche»** — sólo si alguna capacidad suya depende de la hora.
-- **CAPACIDADES QUE PODRÍAN APLICAR** — las que devuelve `autoSuccessOptions`, marcables; los éxitos
-  automáticos en **oro** (`.bs-auto`, `--sys-gold`) y fuera del contador, porque no son dados.
-- **Deflagración** — `creatureBlastRequest` (nuevo): sin característica, dados = puntuación − metros, reto a
-  dificultad 1, daño por triunfo = la puntuación.
-- `CreatureAttack`/`CreatureCapability` viajan por `BestiaryEntry` → `fromCatalog` → `SupabaseBestiaryRepo`.
-
-### ⏭ EL SIGUIENTE PASO
-**Mirarlo en la app corriendo** con Baal delante (el `.pen` no caza los fallos de ancho, y en esta rama
-siempre han salido así: la columna 3 dio tres). Después: `chat` (H8) + `journal` (H9), o cerrar el despliegue.
+### ⏭ LO QUE FALTA, EN ORDEN
+- **Columna 5 del `.pen`** («LE SALTA AL JUGADOR CUANDO LE ATACAN»): el aviso «TE ATACA UN OGRO», elegir
+  cuántos dados de Combate gasta en defenderse, y que esos dados sean la oposición del ataque. **Es lo que
+  cierra el cuerpo a cuerpo**, que hoy va sin oposición. Pide una pieza nueva: un ataque PENDIENTE que llegue
+  al jugador en tiempo real → migración, o sea **DBA Agent primero**.
+- **Columna 4 del `.pen`** (el panel del director): pedir tirada a los jugadores manteniendo pulsada una
+  característica, y la lista de encuentros de la escena. Es lo que el dueño pidió por su nombre.
+- **El daño no se aplica solo**: el motor lo calcula, pero quien lo recibe lo teclea en «Recibir daño». El
+  `.pen` **no diseña** dónde sale ese número — hay que dibujarlo antes de construirlo.
 
 ### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
-- **El `.pen` está SIN GUARDAR en disco** si no ha pulsado Cmd+S: el MCP de Pencil escribe en caché. El
-  blueprint **no está commiteado** todavía por eso (`ls -la rolvium.pen` → mtime del 21 a las 00:57).
-- **Nathael imprime Aguante 4** con Fortaleza 7 y Voluntad 5 (que dan 12). Se copió lo impreso y quedó
-  anotado en RULES.md §8.0: si algún día se reabre el PDF, esa es la línea a mirar.
-- **Dos lecturas nuestras** (RULES.md §7.b.1): los éxitos automáticos **cuentan como acierto para el revés** y
-  **hacen 1 punto de daño** cada uno.
-- **«Ponerse a cubierto» (p.96) sigue sin existir** en el código: la nota de la Deflagración lo dice, pero el
-  director tiene que subir la dificultad a mano.
+- **El `.pen` sigue SIN GUARDAR en disco** (Cmd+S): el MCP de Pencil escribe en caché. Los frames nuevos y
+  los cambios de hoy **no están commiteados** por eso.
+- **Nathael imprime Aguante 4** con Fortaleza 7 y Voluntad 5; se copió lo impreso (RULES.md §8.0).
+- **Dos lecturas nuestras** (RULES.md §7.b.1): los éxitos automáticos cuentan para el revés y hacen 1 punto
+  de daño. Y una tercera, nueva: **cuerpo a cuerpo hasta 3 m** (dos casillas), que el libro no dice porque no
+  juega en rejilla.
 - El **Review Agent NO se ha lanzado**: esta sesión tiene prohibido usar subagentes.
 
-### 🔎 Deuda encontrada y NO tocada (decidir aparte)
-- **Ciclo de imports en plenilunio** (`engine` ↔ `explain`): sigue igual.
-- `applyDamage` sólo lo usa hoy la ficha de personaje; el daño a un token de criatura va por `maps` y **no
-  pasa por el motor**, así que Ancla terrenal y Piel gruesa aún no llegan a la mesa por ese camino.
-- **`venomDamage` sigue sin quien lo llame**: la Ponzoña es un ataque aparte que se dispara cuando el ataque
-  principal acierta, y eso pide encadenar dos tiradas — no entra en este desplegable.
-- El desglose del Registro de una Deflagración **sale vacío** (no lleva característica). Es «callar en vez de
-  inventar», pero se puede mejorar cuando el contrato `RollExplain` admita tiradas sin característica.
-- Los frames viejos del `.pen` usan hex crudos en vez de las variables `pl-*`; lo nuevo va con variables.
+### 🔎 Deuda encontrada y NO tocada
+- **Ciclo de imports en plenilunio** (`engine` ↔ `explain`).
+- `applyDamage` sólo lo usa la ficha de personaje; el daño a un token de criatura no pasa por el motor.
+- **`venomDamage` sigue sin quien lo llame** (la Ponzoña encadena dos tiradas).
+- El desglose del Registro de una Deflagración sale vacío (no lleva característica).
+- En el `.pen`, insertar la X de cerrar en la cabecera del modal de atacar **no se pudo**: el nodo sale
+  «fully clipped» aunque el frame esté bien. Se dejó como está dibujado —sin X, se cierra con Escape o
+  pulsando fuera— y el código se ajustó al diseño, no al revés.
 
 ## 🟢 PUNTO EXACTO — 2026-08-21: COLUMNA 3 TERMINADA Y MIRADA EN LA APP
 
