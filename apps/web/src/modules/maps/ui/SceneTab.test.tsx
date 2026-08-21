@@ -497,6 +497,77 @@ describe('<SceneTab> rebanada 3 — la cabecera desaparece y su contenido se rep
     expect(await screen.findByRole('menu', { name: 'Elige un personaje' })).toBeInTheDocument();
   });
 
+  /**
+   * Regresión, prueba del dueño: en la escena se veían «Colocar encuentro» y «Fondo del mapa» abiertos A LA
+   * VEZ, tapándose. Cada uno tenía su interruptor y ninguno sabía de los demás. Ahora sobre el mapa sólo hay
+   * una cosa abierta a la vez: abrir una cierra las otras, y cerrarla no abre ninguna.
+   */
+  it('regresión · sobre el mapa sólo hay UN panel abierto a la vez', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed());
+    const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
+    const bg = () => screen.queryByRole('dialog', { name: 'Fondo del mapa' });
+    const pc = () => screen.queryByRole('menu', { name: 'Elige un personaje' });
+    const enc = () => screen.queryByRole('dialog', { name: 'Colocar encuentro' }) ?? screen.queryByRole('menu', { name: 'Colocar encuentro' });
+
+    await u.click(within(bar).getByRole('button', { name: 'Fondo del mapa' }));
+    await waitFor(() => expect(bg()).toBeInTheDocument());
+    // el encuentro se abre por HERRAMIENTA, y aun así cierra el fondo
+    await u.click(within(bar).getByRole('button', { name: 'Encuentro' }));
+    await waitFor(() => expect(enc()).toBeInTheDocument());
+    expect(bg()).not.toBeInTheDocument();
+    // y «Colocar PJ» cierra el de encuentros
+    await u.click(within(bar).getByRole('button', { name: 'Colocar PJ' }));
+    await waitFor(() => expect(pc()).toBeInTheDocument());
+    expect(enc()).not.toBeInTheDocument();
+    expect(bg()).not.toBeInTheDocument();
+    // volver a pulsar el mismo botón lo cierra, y no abre ningún otro
+    await u.click(within(bar).getByRole('button', { name: 'Colocar PJ' }));
+    await waitFor(() => expect(pc()).not.toBeInTheDocument());
+    expect(bg()).not.toBeInTheDocument();
+    expect(enc()).not.toBeInTheDocument();
+  });
+
+  /**
+   * El cuarto panel que se monta sobre el mapa es el de ATACAR, y no se abre por la barra sino desde el
+   * token elegido, así que se le escapaba a la exclusión: con «Fondo del mapa» abierto se podía elegir una
+   * criatura en el lienzo —el panel no tapa el mapa— y pulsar Atacar, quedando los dos encima. Es un modal
+   * de verdad (se traga los clics con su `.bs-pop-catch`), así que entra en la regla como los demás.
+   */
+  it('regresión · abrir ATACAR desde un token también cierra lo que hubiera abierto', async () => {
+    const u = userEvent.setup();
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
+      vision={fakeVisionPort()} onRoll={vi.fn().mockResolvedValue({ id: 'r-1' })} onOpenAttack={vi.fn().mockResolvedValue({ id: 'a-1' })} />);
+    const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
+    await u.click(within(bar).getByRole('button', { name: 'Fondo del mapa' }));
+    await screen.findByRole('dialog', { name: 'Fondo del mapa' });
+
+    const mutante = await within(canvas()).findByRole('img', { name: /Mutante/ });
+    fireEvent.pointerDown(mutante, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await u.click(within(await screen.findByRole('toolbar', { name: 'Token seleccionado' })).getByRole('button', { name: 'Atacar' }));
+
+    await screen.findByRole('dialog', { name: 'Atacar con Mutante' });
+    expect(screen.queryByRole('dialog', { name: 'Fondo del mapa' })).not.toBeInTheDocument();
+  });
+
+  /**
+   * «El modal de Fondo del mapa sale en la otra punta» (dueño): su botón vive en la barra de la IZQUIERDA y
+   * el panel estaba clavado a la derecha del lienzo. El arreglo es CSS (`.mp-bgpop` pasa de `right:54px` a
+   * `top:60px;left:8px`, el mismo hueco que sus vecinos `.mp-pcmenu` y `.mp-encounter`, que arrancan en 60px
+   * para no taparle la etiqueta al lienzo), y jsdom no carga la hoja de estilos, así que el SITIO no se puede
+   * comprobar aquí — cae en la excepción cosmética (CSS-only) de CLAUDE.md. Lo que sí se fija es que el panel
+   * siga saliendo con su clase, que es de lo que cuelga la posición.
+   */
+  it('el panel de Fondo del mapa lleva la clase de la que cuelga su posición', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed());
+    const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
+    await u.click(within(bar).getByRole('button', { name: 'Fondo del mapa' }));
+    expect(await screen.findByRole('dialog', { name: 'Fondo del mapa' })).toHaveClass('mp-bgpop');
+  });
+
   it('el jugador no tiene rail (no elige escena) pero sí el botón de dados', async () => {
     mount('player');
     await screen.findByText(/Almacén de Queens/);
@@ -663,5 +734,22 @@ describe('<SceneTab> — una criatura que llega ya elegida desde el Bestiario', 
     mountArmed(null);
     await screen.findByText(/Almacén de Queens/);
     expect(screen.queryByText(/Coloca a/)).not.toBeInTheDocument();
+  });
+
+  /**
+   * El botón derecho abre el menú rápido —«centra mi vista aquí»— y eso es justo lo que hace quien llega del
+   * Bestiario antes de soltar la criatura. Con la criatura YA elegida no hay ningún panel de encuentros
+   * abierto: sólo una colocación armada y su aviso. Cerrar «el menú de encuentros» ahí mataba en silencio el
+   * «pulsa dónde» que el dueño acababa de arreglar («el colocar no funciona», 2026-08-21).
+   */
+  it('el menú del botón derecho NO desarma la criatura que traes del Bestiario', async () => {
+    const { repo } = mountArmed(OGRO);
+    await screen.findByText(/Coloca a Ogro/);
+    fireEvent.contextMenu(canvas(), { clientX: 700, clientY: 100 });
+    await screen.findByRole('menu', { name: 'Acciones rápidas' });
+    expect(screen.getByText(/Coloca a Ogro/)).toBeInTheDocument();
+    // y sigue colocando de verdad, que es lo que se estaba perdiendo
+    fireEvent.pointerDown(canvas(), { clientX: 3 * G + 3, clientY: 4 * G + 3, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ name: 'Ogro' }));
   });
 });

@@ -133,6 +133,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
    */
   useEffect(() => {
     if (!armEncounter || !live) return;
+    closeOverlays('encounter');
     setTool('encounter');
     setEncounter(armEncounter);
     // Sin abrir el buscador: la criatura ya viene elegida del Bestiario y el desplegable tapaba media
@@ -150,8 +151,43 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     setScenes(l => l?.map(s => (s.id === id ? { ...s, ...patch } : s)) ?? l);
     await repo.updateScene(id, patch);
   }, [repo]);
-  const openBg = async () => { setBgOpen(o => !o); if (images === null) setImages(await repo.listImages(campaignId).catch(() => [])); };
-  const openPcMenu = async () => { setPcMenu(o => !o); if (pcs === null) setPcs((await charactersRepo.listByCampaign(campaignId).catch(() => [] as Character[])).filter(c => c.kind === 'pc')); };
+  /**
+   * Sobre el mapa sólo puede haber UNA cosa abierta a la vez. El dueño los vio abiertos a la vez al probar la
+   * app —«Colocar encuentro» y «Fondo del mapa» tapándose— porque cada uno tenía su interruptor y ninguno
+   * sabía de los demás. Abrir uno cierra los otros tres; cerrarlo no abre nada.
+   *
+   * El de encuentros no tiene interruptor propio: se abre por HERRAMIENTA (`tool === 'encounter'`), así que
+   * cerrarlo es volver a `select`. Por eso está aquí y no en un `useState` más.
+   *
+   * Y sólo está ABIERTO si se ve: con la criatura ya elegida en el Bestiario (`armedFromBestiary`) no hay
+   * panel ninguno —es la misma condición con la que se pinta el `EncounterMenu`—, sólo una colocación armada
+   * y su aviso. Cerrarla ahí desarmaba en silencio el «pulsa dónde» que se acababa de arreglar («el colocar
+   * no funciona», dueño 2026-08-21): bastaba con pulsar el botón derecho para centrar la vista antes de
+   * soltar la criatura y ya no había criatura que soltar.
+   *
+   * El de ATACAR no se abre por la barra sino desde el token elegido, y por eso se le escapaba: con «Fondo
+   * del mapa» abierto se puede elegir una criatura en el lienzo igual —el panel no lo tapa— y quedaban los
+   * dos encima. Llama a esto desde su botón, no tiene bandera aquí porque nada más lo abre.
+   */
+  const encounterMenuOpen = tool === 'encounter' && !armedFromBestiary;
+  const closeOverlays = (keep?: 'bg' | 'pc' | 'quick' | 'encounter') => {
+    if (keep !== 'bg') setBgOpen(false);
+    if (keep !== 'pc') setPcMenu(false);
+    if (keep !== 'quick') setQuickMenu(null);
+    if (keep !== 'encounter' && encounterMenuOpen) setTool(t => (t === 'encounter' ? 'select' : t));
+  };
+  const openBg = async () => {
+    const next = !bgOpen;
+    closeOverlays(next ? 'bg' : undefined);
+    setBgOpen(next);
+    if (next && images === null) setImages(await repo.listImages(campaignId).catch(() => []));
+  };
+  const openPcMenu = async () => {
+    const next = !pcMenu;
+    closeOverlays(next ? 'pc' : undefined);
+    setPcMenu(next);
+    if (next && pcs === null) setPcs((await charactersRepo.listByCampaign(campaignId).catch(() => [] as Character[])).filter(c => c.kind === 'pc'));
+  };
   /**
    * Lo ancho que es el token de una ficha, en casillas. Lo dice el SISTEMA a partir de su tabla de tamaños
    * (Plenilunio, p.25: diminuto…enorme), porque la plataforma no sabe que un ogro es más grande que un gato.
@@ -266,7 +302,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     <section className="mp-root">
       <div className="mp-stage-row">
         {scenesRail}
-        <Toolbar tool={tool} isDm={isDm} onChange={setTool}
+        <Toolbar tool={tool} isDm={isDm} onChange={next => { closeOverlays(next === 'encounter' ? 'encounter' : undefined); setTool(next); }}
           onDice={() => onOpenDice?.()} diceOpen={diceOpen}
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
@@ -298,7 +334,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             }}
             selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
-            onContextMenu={(at, pt) => setQuickMenu({ at, scene: pt })}
+            onContextMenu={(at, pt) => { closeOverlays('quick'); setQuickMenu({ at, scene: pt }); }}
             onDeleteSelection={deleteSelection}
             onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))} />
           {isDm && (
@@ -366,7 +402,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
                 {selectedTokens.some(tk => !tk.visible) ? t('maps.token.show') : t('maps.token.hide')}
               </button>
               {canAttack && (
-                <button type="button" className="tb-btn tb-btn-xs tb-btn-atk" onClick={() => setAttacking(true)}>
+                <button type="button" className="tb-btn tb-btn-xs tb-btn-atk" onClick={() => { closeOverlays(); setAttacking(true); }}>
                   {t('bestiary.attack.button')}
                 </button>
               )}
@@ -395,7 +431,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               })}
             </div>
           )}
-          {isDm && tool === 'encounter' && !armedFromBestiary && (
+          {isDm && encounterMenuOpen && (
             <EncounterMenu entries={bestiary} labelOf={e => ts(e.label)} selectedId={encounter?.id ?? null} onSelect={setEncounter} onClose={() => setTool('select')} />
           )}
           {isDm && bgOpen && (
