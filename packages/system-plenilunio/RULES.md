@@ -81,8 +81,10 @@ Cada vez que sube el Destino se recibe **1 punto de don** nuevo (p. 89).
 
 ### 1.6 Últimos cálculos (p. 25)
 - **Aguante** = Fortaleza + Voluntad ± modificador de tamaño.
-- **Resistencia** = 3 × Aguante **mientras el personaje esté Sano o Magullado**; Herido y Malherido bajan ese
-  máximo a 2× y 1× (p. 101, §6.3). La hoja impresa tiene hueco para 30 casillas.
+- **Resistencia** = **3 × Aguante, siempre** (p. 25, literal: «Son iguales al triple del Aguante»). Es el tamaño
+  de la PISTA, y se fija al crear el personaje: la hoja impresa tiene hueco para 30 casillas y «sombrea los puntos
+  sobrantes y deja los cuadrados en blanco correspondientes a tu Resistencia». Karen, con Aguante 7, tiene 21.
+  El estado de salud **no encoge la pista**: lo que limita es **cuánto recuperas descansando** (§6.3).
   - ⚠ interpretación: la regla es 3×Aguante sin tope; no aplicamos tope de 30 (un héroe legendario 6+6 tiene 36).
   - Cómo se leen las casillas (p. 25, literal): «sombrea los puntos sobrantes y deja los cuadrados en blanco
     correspondientes a tu Resistencia **para poder tacharlos durante el juego**». En la hoja impresa hay tres
@@ -358,22 +360,35 @@ cargador de un arma, así que la ficha no ofrece desplegable: sale como **aviso*
 ### 6.3 Recuperación (p. 101)
 - Tras la escena, con descanso/elipsis: Resistencia al máximo si Sano/Magullado; si Herido, hasta **2 × Aguante**;
   si Malherido, hasta **1 × Aguante**.
-- **La Resistencia máxima NO es siempre 3 × Aguante: la baja el estado de salud.** El libro lo dice así de literal:
-  «sus puntos de Resistencia máximos **pasan a ser** el doble de su Aguante, **en lugar del triple habitual**»
-  (Herido), y «sus puntos de Resistencia máximos **son iguales** a su Aguante» (Malherido). No es «lo que te cura
-  el descanso» y aparte un máximo: **es el máximo**, y el descanso lo que hace es llevarte hasta él.
+- **Son DOS números distintos, y no se pueden confundir en uno.** El manual los da en dos sitios y con dos verbos:
 
-  | Estado                | Resistencia máxima |
-  |-----------------------|--------------------|
-  | Sano · Magullado      | 3 × Aguante        |
-  | Herido                | 2 × Aguante        |
-  | Malherido             | 1 × Aguante        |
+  | Número | Dónde lo dice | Qué es |
+  |--------|---------------|--------|
+  | **Resistencia máxima** = 3 × Aguante | p. 25, creación | El tamaño de la PISTA. «Son iguales al triple del Aguante… deja los cuadrados en blanco correspondientes a tu Resistencia para poder tacharlos durante el juego.» Se fija al crear el personaje y **no cambia** con la salud. |
+  | **Resistencia recuperable descansando** = ×3 / ×2 / ×1 el Aguante | p. 101, «RECUPERACIÓN» | Hasta dónde te sube **descansar**, según el estado. «Si se encuentra herido, **su salud se recupera** a dos tercios de su Resistencia»; malherido, «a un tercio de su Resistencia». |
 
-  Aguante 6: sana 18, herida 12, malherida 6. Por eso la ficha enseña **un solo** número («Resistencia máxima», la
-  del estado actual) y no dos — tenía «Resistencia máxima 18» y «recuperable descansando 12», que son la misma
-  cosa contada dos veces, y el 18 era el de una persona sana que el personaje ya no es.
-  ⚠ Interpretación: se capa la **subida**, nunca la bajada — una ficha puede llevar más Resistencia que su
-  máximo actual (bajar de Sano a Herido no te quita puntos ya marcados; el libro no manda tacharlos).
+  | Estado                | Pista (casillas) | Recuperable descansando |
+  |-----------------------|------------------|-------------------------|
+  | Sano · Magullado      | 3 × Aguante      | 3 × Aguante (todo)      |
+  | Herido                | 3 × Aguante      | 2 × Aguante             |
+  | Malherido             | 3 × Aguante      | 1 × Aguante             |
+
+  Aguante 6: la pista son **18 casillas siempre**; descansando llegas a 18 sana, 12 herida, 6 malherida.
+
+  ⚠ Interpretación: la frase de p. 101 dice, literalmente, «sus puntos de Resistencia máximos **pasan a ser** el
+  doble de su Aguante, **en lugar del triple habitual**», y leída suelta parece encoger la pista. Se lee como el
+  **tope de esa recuperación** y no como el tamaño de la pista, por tres razones: (a) está sólo bajo el epígrafe
+  «RECUPERACIÓN» y el sujeto de la frase es *se recupera*; (b) «dos tercios de su Resistencia» sólo tiene sentido
+  si «su Resistencia» sigue siendo el triple del Aguante; (c) la p. 25 fija las casillas **al crear el personaje**,
+  y el libro no manda en ningún sitio borrar casillas ya dibujadas. El 2026-08-19 se leyó al revés —se fundieron
+  los dos números en uno— y Karen, herida, enseñaba 12 casillas en vez de 18. **Corregido el 2026-08-21 contra el
+  PDF, por orden del dueño: «el manual pdf manda».**
+
+  ⚠ Interpretación: se capa la **subida**, nunca la bajada — una ficha puede llevar más Resistencia de la que
+  le devolvería un descanso, y esos puntos son suyos (descansar no QUITA Resistencia ya marcada).
+- **Recobrar el aliento** (p. 89, 1 Fortuna) cura «la mitad de los puntos de Resistencia perdidos»: lo perdido se
+  mide contra la **pista** (3 × Aguante), no contra el recuperable — no es descansar, y el libro no le pone el
+  tope del estado de salud (§6.2).
 - Heridas: reposo + tirada de Fortaleza; éxito = +1 nivel de salud; fallo = igual; **revés = −1 nivel** (Malherido → muere).
 
 | Estado     | Tiempo      | Dificultad |

@@ -226,9 +226,8 @@ export const generator: GeneratorStep[] = [
 /** Values the platform should write when the wizard finishes: fortune = destiny, resistance full, healthy, no xp. */
 export function finalizeDraft(draft: SheetData): SheetData {
   const destiny = num(draft.destiny, BASE_DESTINY);
-  // `derived` se calcula sobre el borrador YA sano: `resistanceMax` depende del estado de salud
-  // (p.101), asi que leerlo antes de forzar `health: 'healthy'` haria que un borrador que llegara
-  // herido naciera con la Resistencia de un herido. Hoy no pasa —`newSheet` nace sano— pero el
-  // orden no deberia sostener la regla (hallazgo del Review).
+  // `resistanceMax` es 3 x Aguante y NO depende del estado de salud (p.25, RULES.md §6.3), asi que el
+  // orden ya no sostiene ninguna regla. Se sigue derivando sobre el borrador ya sano por si algun dia
+  // otro calculado del nacimiento si dependiera del estado (hallazgo del Review, 2026-08-19).
   return { ...draft, destiny, fortune: destiny, resistance: derived({ ...draft, health: 'healthy' }).resistanceMax, health: 'healthy', xp: num(draft.xp) };
 }

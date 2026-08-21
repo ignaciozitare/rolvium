@@ -26,7 +26,7 @@ export const GIFT_ACTIVATION_COST = 1;
 
 // ─── Derived values (manual p.25, p.89, p.98–101) ────────────────────────────
 export interface Derived {
-  endurance: number; resistanceMax: number; fortuneMax: number; dicePenalty: number; healthIndex: number;
+  endurance: number; resistanceMax: number; recoveryMax: number; fortuneMax: number; dicePenalty: number; healthIndex: number;
   protection: number; armourPenalty: number; giftPoints: number;
 }
 export const healthIndexOf = (h: HealthId) => HEALTH_LEVELS.findIndex(l => l.id === h);
@@ -36,12 +36,16 @@ export const healthPenaltyOf = (h: HealthId) => HEALTH_LEVELS[healthIndexOf(h)]?
  * Endurance = Fortitude + Will ± size (min 1); Fortune max = Destiny (p.90, hard cap: «nunca pueden llegar a ser
  * mayores que la puntuación de Destino»).
  *
- * Resistance max = Endurance × the CURRENT health level's factor (p.101, literal): ×3 sano/magullado, ×2 herido,
- * ×1 malherido. No es «lo que cura el descanso» y aparte un tope de 3×Aguante — el libro dice que los puntos
- * máximos «pasan a ser» ese número, así que es EL máximo y el descanso sólo te lleva hasta él. Antes se
- * calculaban los dos por separado (`resistanceMax` = ×3 siempre, `recoveryMax` = el del estado) y la ficha
- * enseñaba lo mismo dos veces con nombres distintos: Karen, herida, salía con «máxima 18» —la de una persona
- * sana, que ella no es— y «recuperable 12». Uno solo, y verdadero (dueño, 2026-08-19; RULES.md §6.3).
+ * **Son DOS números y no uno** (RULES.md §6.3, verificado en el PDF el 2026-08-21):
+ *  - `resistanceMax` = **Aguante × 3, SIEMPRE**. Es el tamaño de la pista, y lo fija la creación del personaje:
+ *    p.25, literal, «Son iguales al triple del Aguante… deja los cuadrados en blanco correspondientes a tu
+ *    Resistencia para poder tacharlos durante el juego». El estado de salud no borra casillas ya dibujadas.
+ *  - `recoveryMax` = Aguante × el factor del estado (×3 sano/magullado, ×2 herido, ×1 malherido). Es hasta dónde
+ *    te sube DESCANSAR, y sale sólo bajo el epígrafe «RECUPERACIÓN» de la p.101, cuyo sujeto es *se recupera*.
+ *
+ * El 2026-08-19 se fusionaron en uno leyendo la frase de la p.101 («sus puntos de Resistencia máximos pasan a ser
+ * el doble…») como si definiera la pista, y Karen, herida, pasó a enseñar 12 casillas en vez de 18. Revertido por
+ * orden del dueño el 2026-08-21: «el manual pdf manda». La lectura completa, con sus tres razones, en RULES.md §6.3.
  */
 export function derived(sheet: SheetData): Derived {
   const endurance = Math.max(1, statOf(sheet, 'fortitude').value + statOf(sheet, 'will').value + sizeMod(sheet.size));
@@ -59,7 +63,8 @@ export function derived(sheet: SheetData): Derived {
   const spent = giftsOf(sheet).reduce((s, g) => s + num(g.level), 0);
   return {
     endurance,
-    resistanceMax: endurance * RECOVERY[health].restFactor,
+    resistanceMax: endurance * 3,
+    recoveryMax: endurance * RECOVERY[health].restFactor,
     fortuneMax: destiny,
     dicePenalty: hasCapability(caps, 'painImmune') ? 0 : healthPenaltyOf(health),
     healthIndex: healthIndexOf(health),
@@ -362,20 +367,26 @@ export const refillFortune = (sheet: SheetData): SheetPatch => ({ fortune: deriv
 export function catchBreath(sheet: SheetData): SheetPatch | null {
   if (num(sheet.fortune) < 1) return null;
   const d = derived(sheet);
-  const lost = Math.max(0, d.resistanceMax - num(sheet.resistance));
   /**
-   * Sin `Math.min` contra el máximo: se capa la SUBIDA, nunca la bajada (RULES.md §6.3, igual que
-   * `rest` y las casillas). El tope era inofensivo mientras el máximo era siempre 3×Aguante, pero
-   * desde que lo baja el estado de salud capaba hacia ABAJO: Aguante 5, herido (máximo 10) y
-   * Resistencia 12 —legal: pasar de Sano a Herido no borra puntos ya marcados— daba `lost = 0` y
-   * devolvía 10, o sea que recobrar el aliento te cobraba la Fortuna y te QUITABA dos puntos. Y en
-   * todos los demás casos sobraba: `resistencia + ⌊(máx − resistencia)/2⌋ ≤ máx` por construcción.
-   * (Hallazgo del Review, 2026-08-19.)
+   * Lo perdido se mide contra la PISTA (`resistanceMax`, ×3), no contra `recoveryMax`: recobrar el aliento no es
+   * descansar —es un punto de Fortuna «para sacar fuerzas de flaqueza»— y la p.89 no le pone el tope del estado
+   * de salud, sólo dice «la mitad de los puntos de Resistencia perdidos» (RULES.md §6.3).
+   *
+   * Sin `Math.min` contra el máximo: se capa la SUBIDA, nunca la bajada (misma regla que `rest` y las casillas).
+   * Con la pista fija en ×3 el tope volvería a sobrar —`resistencia + ⌊(máx − resistencia)/2⌋ ≤ máx` por
+   * construcción—, pero una ficha guardada puede llevar `resistance > resistanceMax` si se le baja Fortaleza o
+   * Voluntad después, y ahí el `Math.min` cobraría la Fortuna y QUITARÍA puntos. (Hallazgo del Review, 2026-08-19.)
    */
+  const lost = Math.max(0, d.resistanceMax - num(sheet.resistance));
   return { fortune: num(sheet.fortune) - 1, resistance: num(sheet.resistance) + Math.floor(lost / 2) };
 }
-/** Rest after the scene (p.101): Resistance back to what the current health level allows (×3 / ×2 / ×1 Endurance). */
-export const rest = (sheet: SheetData): SheetPatch => ({ resistance: Math.max(num(sheet.resistance), derived(sheet).resistanceMax), unconscious: 'no' });
+/**
+ * Rest after the scene (p.101): Resistance back up to `recoveryMax` — ×3 Endurance sano/magullado, ×2 herido,
+ * ×1 malherido. NUNCA hasta `resistanceMax`: es justo el número que la p.101 recorta, y subir hasta la pista
+ * entera dejaría curado del todo a un personaje malherido con sólo pasar la escena.
+ * Se capa la subida y nunca la bajada: descansar no quita Resistencia ya marcada (RULES.md §6.3).
+ */
+export const rest = (sheet: SheetData): SheetPatch => ({ resistance: Math.max(num(sheet.resistance), derived(sheet).recoveryMax), unconscious: 'no' });
 
 /** Ammo bookkeeping for ranged weapons (manual p.97). */
 export function weaponData(row: WeaponRow): WeaponData | null {

@@ -70,18 +70,21 @@ export const sections: SectionDef[] = [
   // fortuna, experiencia) con sus calculados debajo.
   // Los numeros CALCULADOS van SEGUIDOS: la ficha agrupa cada tanda en una fila de tarjetas cuadradas
   // centradas (`groupTiles` → `rv-sheet-tiles`), y una tarjeta sola en su fila se ve descolgada.
-  // «Resistencia recuperable descansando» YA NO EXISTE: era el mismo numero que «Resistencia maxima»
-  // con otro nombre (p.101, RULES.md §6.3). Y «Inconsciente» tampoco: no se elige a mano — sale como
-  // aviso bajo las lunas (`note`). Al salir los dos de la rejilla, Destino · Fortuna · Experiencia
-  // caben en UNA fila de tres, que es justo como los pidio el dueno (2026-08-19).
+  // «Resistencia recuperable descansando» VUELVE (2026-08-21, corregido contra el PDF): NO es el mismo
+  // numero que «Resistencia maxima». La maxima es la PISTA —3 x Aguante, fijada al crear el personaje,
+  // p.25— y la recuperable es hasta donde te sube DESCANSAR segun el estado (x3/x2/x1, p.101). Coinciden
+  // sano y magullado, y se separan en cuanto el personaje se hiere. RULES.md §6.3.
+  // «Inconsciente» sigue fuera: no se elige a mano — sale como aviso bajo las lunas (`note`). Destino ·
+  // Fortuna · Experiencia siguen cabiendo en UNA fila de tres, que es como los pidio el dueno.
   { id: 'state', label: 'sheet.sections.state', layout: 'grid', fields: [
     { id: 'endurance', type: 'number', label: 'sheet.state.endurance', ref: 'endurance', derived: true },
-    // `ref: 'recovery'` (p.101) y no `'resistance'` (p.98): este numero SALE de la tabla de
-    // recuperacion —lo baja el estado de salud—, y al desaparecer «Resistencia recuperable» esa
-    // referencia se quedo sin ningun campo que la enseñara. Asi el tooltip explica por que pone 12
-    // y no 18. La regla base de la Resistencia sigue en las casillas, que llevan `ref: 'resistance'`.
-    { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'recovery', derived: true },
+    // La PISTA: 3 x Aguante siempre (p.25), asi que su referencia vuelve a ser `'resistance'`. La tabla
+    // de recuperacion (p.101) la enseña el campo de abajo, que es el que de verdad sale de ella.
+    { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'resistance', derived: true },
+    // Los dos que arrastra el ESTADO DE SALUD, uno al lado del otro: los dados que pierdes y lo que te
+    // devuelve un descanso. Con los cuatro seguidos la tanda de calculados llena su fila de tarjetas.
     { id: 'dicePenalty', type: 'number', label: 'sheet.state.dicePenalty', ref: 'health', derived: true },
+    { id: 'recoveryMax', type: 'number', label: 'sheet.state.recoveryMax', ref: 'recovery', derived: true },
     { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },
     // El sexto nivel de salud del manual (p.101) NO es una fase de luna: se puede estar Herido E
     // Inconsciente a la vez, y no se elige — lo calcula `applyDamage` al quedarse sin Resistencia.

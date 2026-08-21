@@ -73,24 +73,32 @@ describe('degreeKey (manual p.85)', () => {
 describe('derived (manual p.25, p.89, p.101)', () => {
   it('endurance = fortitude + will ± size, resistance = ×3 sano (no cap), fortuneMax = destiny', () => {
     const d = derived(sheet());
-    expect(d).toMatchObject({ endurance: 5, resistanceMax: 15, fortuneMax: 3, dicePenalty: 0, protection: 0, armourPenalty: 0 });
+    expect(d).toMatchObject({ endurance: 5, resistanceMax: 15, recoveryMax: 15, fortuneMax: 3, dicePenalty: 0, protection: 0, armourPenalty: 0 });
     expect(derived(sheet({ size: 'huge' })).endurance).toBe(7);
     expect(derived(sheet({ size: 'tiny', fortitude: stat(1), will: stat(1) })).endurance).toBe(1);
     expect(derived(sheet({ fortitude: stat(6), will: stat(6) })).resistanceMax).toBe(36);
     expect(derived(sheet({ destiny: 7 })).fortuneMax).toBe(7);
   });
   /**
-   * p.101, literal: los puntos de Resistencia máximos «pasan a ser» el doble del Aguante estando
-   * herido y iguales al Aguante estando malherido. O sea que NO hay un máximo de 3×Aguante y aparte
-   * un «recuperable descansando»: es el mismo número, y antes se calculaba dos veces con dos nombres
-   * (`resistanceMax` siempre ×3 y `recoveryMax` según el estado). La ficha enseñaba las dos, y la
-   * primera mentía en cuanto el personaje se hería.
+   * Regresión 2026-08-21 (contra el PDF, orden del dueño «el manual pdf manda»): la PISTA no la encoge el
+   * estado de salud. La p.25 fija la Resistencia al crear el personaje —«Son iguales al triple del Aguante»—
+   * y el ×2/×1 de la p.101 sale sólo bajo «RECUPERACIÓN», donde el sujeto es *se recupera*: limita cuánto te
+   * devuelve descansar, no cuántas casillas tienes. El 2026-08-19 se fundieron los dos números en uno y
+   * Karen, herida, enseñaba 12 casillas en vez de 18. Son DOS (RULES.md §6.3).
    */
-  it('p.101 la Resistencia máxima la baja el estado: ×3 sano/magullado, ×2 herido, ×1 malherido', () => {
-    expect(derived(sheet({ health: 'bruised' })).resistanceMax).toBe(15);
-    expect(derived(sheet({ health: 'wounded' })).resistanceMax).toBe(10);
-    expect(derived(sheet({ health: 'badlyWounded' })).resistanceMax).toBe(5);
+  it('p.25 la pista es ×3 el Aguante SIEMPRE, la hiera o no el estado de salud', () => {
+    for (const health of ['healthy', 'bruised', 'wounded', 'badlyWounded'] as const) {
+      expect(derived(sheet({ health })).resistanceMax).toBe(15);
+    }
+  });
+  it('p.101 lo que devuelve el descanso SÍ lo baja el estado: ×3 sano/magullado, ×2 herido, ×1 malherido', () => {
+    expect(derived(sheet({ health: 'bruised' })).recoveryMax).toBe(15);
+    expect(derived(sheet({ health: 'wounded' })).recoveryMax).toBe(10);
+    expect(derived(sheet({ health: 'badlyWounded' })).recoveryMax).toBe(5);
+    // `rest` sube hasta el recuperable, NUNCA hasta la pista: si no, una escena curaría del todo a un malherido.
     expect(rest(sheet({ health: 'wounded', resistance: 2, unconscious: 'yes' }))).toEqual({ resistance: 10, unconscious: 'no' });
+    expect(rest(sheet({ health: 'badlyWounded', resistance: 0 }))).toEqual({ resistance: 5, unconscious: 'no' });
+    expect(rest(sheet({ health: 'bruised', resistance: 3 }))).toEqual({ resistance: 15, unconscious: 'no' });
     // Se capa la subida, nunca la bajada: descansar nunca QUITA Resistencia ya marcada.
     expect(rest(sheet({ health: 'wounded', resistance: 12 }))).toEqual({ resistance: 12, unconscious: 'no' });
   });
@@ -255,15 +263,21 @@ describe('applyDamage (manual p.98–100)', () => {
     expect(catchBreath(sheet({ resistance: 4, fortune: 0 }))).toBeNull();
   });
   /**
-   * Los tres casos de arriba usan una ficha SANA, donde el máximo es 3×Aguante y nunca se llega
-   * por encima. Herido el máximo baja (p.101) y la ficha puede llevar MÁS Resistencia que él —pasar
-   * de Sano a Herido no borra puntos ya marcados, RULES.md §6.3—, y ahí recobrar el aliento cobraba
-   * la Fortuna y BAJABA la Resistencia hasta el nuevo máximo. Se capa la subida, nunca la bajada.
+   * Recobrar el aliento NO es descansar: es un punto de Fortuna «para sacar fuerzas de flaqueza» (p.89), y
+   * lo perdido se mide contra la PISTA (×3), no contra el recuperable del estado. Herido, Aguante 5:
+   * pista 15, quedan 4 → perdidos 11 → +5. Si se midiera contra el recuperable (10) sólo daría +3.
    */
-  it('p.101 con más Resistencia que el máximo del estado, recobrar el aliento no la BAJA', () => {
-    expect(catchBreath(sheet({ health: 'wounded', resistance: 12, fortune: 2 }))).toEqual({ fortune: 1, resistance: 12 });
-    // Y por debajo del máximo del estado sigue curando la mitad de lo perdido: máx. 10, quedan 4 → +3.
-    expect(catchBreath(sheet({ health: 'wounded', resistance: 4, fortune: 2 }))).toEqual({ fortune: 1, resistance: 7 });
+  it('p.89 lo perdido se mide contra la pista (×3), no contra lo que devuelve el descanso', () => {
+    expect(catchBreath(sheet({ health: 'wounded', resistance: 4, fortune: 2 }))).toEqual({ fortune: 1, resistance: 9 });
+    expect(catchBreath(sheet({ health: 'badlyWounded', resistance: 1, fortune: 1 }))).toEqual({ fortune: 0, resistance: 8 });
+  });
+  /**
+   * Una ficha guardada puede llevar MÁS Resistencia que su pista: basta bajarle Fortaleza o Voluntad después
+   * de haberla guardado. Se capa la subida, nunca la bajada — sin eso, recobrar el aliento cobraría la
+   * Fortuna y QUITARÍA puntos (hallazgo del Review, 2026-08-19).
+   */
+  it('con más Resistencia que la pista, recobrar el aliento no la BAJA', () => {
+    expect(catchBreath(sheet({ fortitude: stat(1), will: stat(1), resistance: 12, fortune: 2 }))).toEqual({ fortune: 1, resistance: 12 });
   });
 });
 

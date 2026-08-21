@@ -9,11 +9,14 @@ Fuente de verdad: el manual. Digesto con páginas y decisiones «⚠ interpretac
 - Características (7; humanos 1–5; presets de creación p.21: 16/21/25/30 puntos con máximos **5/5/6/10**), una especialidad
   por característica (lista abierta p.21–22, 127 en catálogo); canjes: 1 punto → 2 especialidades extra (máx. 2 canjes),
   1 punto → 2 puntos de don, Destino 3 ± 2 (1–5).
-- Derivadas: Aguante = Fortaleza + Voluntad ± tamaño (p.25) · **Resistencia máxima = Aguante × el factor del estado de
-  salud** (×3 sano/magullado, ×2 herido, ×1 malherido, p.101; sin tope — la hoja impresa tiene 30 casillas) ·
+- Derivadas: Aguante = Fortaleza + Voluntad ± tamaño (p.25) · **Resistencia máxima = Aguante × 3, siempre** (p.25,
+  literal «Son iguales al triple del Aguante»; sin tope — la hoja impresa tiene 30 casillas) · **Resistencia
+  recuperable descansando = Aguante × el factor del estado** (×3 sano/magullado, ×2 herido, ×1 malherido, p.101) ·
   Fortuna máx = Destino (p.90, tope duro literal: «nunca pueden llegar a ser mayores que la puntuación de Destino»).
-  **Un solo número**: no hay «Resistencia máxima» y aparte «recuperable descansando» — el libro dice que los puntos
-  máximos «pasan a ser» los del estado, así que es EL máximo y el descanso sólo te lleva hasta él.
+  **Son DOS números y la ficha enseña los dos**: la pista de casillas la fija la creación y el estado de salud no la
+  encoge; lo que el estado limita es hasta dónde te sube un descanso. Coinciden sano y magullado, y se separan al
+  herirse. Se fundieron en uno el 2026-08-19 —leyendo el «pasan a ser» de la p.101 fuera de su epígrafe— y Karen,
+  herida, enseñaba 12 casillas en vez de 18; corregido el 2026-08-21 contra el PDF (RULES.md §6.3).
 - Dados d6 (p.82): 1 fracaso · 2–3 fallo · 4–5 éxito · 6 triunfo; especialidad dobla triunfos propios (p.83); en conflictos el
   rival también puede doblar (`oppositionSpecialty`, p.85); **reserva de Destino** (p.88–89: recurso compartido, 10 por
   defecto, hasta 5 por tirada, solo jugadores, solo el DJ reinicia; los dados de la reserva doblan siempre y un triunfo en

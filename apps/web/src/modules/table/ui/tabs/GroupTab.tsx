@@ -36,7 +36,18 @@ export function GroupTab({ campaignId, system, members, repo, onView }: Props): 
       {list?.map(c => {
         const owner = members.find(m => m.userId === c.ownerId);
         const cur = boxes ? num(c.data[boxes.id]) : 0;
-        const max = boxes ? num(c.derived[`${boxes.id}Max`], boxes.max ?? 0) : 0;
+        /**
+         * El techo se RECALCULA de la ficha con `system.engine.derived`, igual que hacen TODAS las demás
+         * vistas (`useCharacterSheet`, `NpcSheetModal`, `GeneratorWizard`, `BestiaryTab`). Esta era la
+         * única que leía la columna `derived` guardada, y esa columna se queda vieja en cuanto cambia una
+         * regla: al corregir la Resistencia máxima —3×Aguante SIEMPRE, p.25, RULES.md §6.3— toda ficha
+         * guardada antes seguía enseñando aquí el techo viejo (Karen, herida: «18 / 12», y la barra a
+         * tope) hasta que alguien volviera a guardarla. No se pierde ningún punto —`c.data` no se toca—,
+         * pero el número que el dueño vio mal seguía saliendo en «El grupo». (Hallazgo del Review,
+         * 2026-08-21.) Se capa la SUBIDA y nunca la bajada: `cur` se enseña tal cual y la barra se topa
+         * al 100 %, así que una ficha por encima de su techo no pierde nada.
+         */
+        const max = boxes ? num(system.engine.derived(c.data)[`${boxes.id}Max`], boxes.max ?? 0) : 0;
         return (
           <article key={c.id} className="ch-group-row" aria-label={c.name}>
             <div className="ch-group-id">
