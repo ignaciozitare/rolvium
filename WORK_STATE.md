@@ -14,9 +14,14 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🔴 PUNTO EXACTO — 2026-08-21: LA COLUMNA 5 ESTÁ CONSTRUIDA. Falta MIRARLA EN LA APP y aplicarla en la nube
+## 🟢 PUNTO EXACTO — 2026-08-21: LA COLUMNA 5 ESTÁ EN PRODUCCIÓN. Falta MIRARLA EN LA APP
 
-Rama **`feat/bestiario`**, árbol **limpio**, HEAD **`fb05fb3`** (la columna 5 es `4caa2de`). **873 tests**
+**EN `main` Y EN PRODUCCIÓN.** Merge **`cb27b63`** (45 commits de `feat/bestiario`), desplegado y
+verificado en vivo: la API responde `{"ok":true}` en `/health`, la web `200`, y el **bundle que sirve
+producción lleva de verdad** la clase del aviso (`dc-atk`), la ruta `/attacks`, el canal de tiempo real
+`campaign-attacks` y el texto «Te ataca …». Las dos migraciones aplicadas en la nube. Rama sin borrar.
+
+Antes del merge, HEAD de la rama era **`a5e6077`**. **873 tests**
 verdes (602 web + 114 api + 14 core + 16 ui + 127 plenilunio), typecheck de las dos apps, `audit` **0 hard**
 (13 warn: **9 preexistentes y 4 nuevos**, los cuatro de `ui-reuse` por llevar desplegable propio en vez del
 `Modal` compartido —`CreatureRollPopover`, `SheetOverlay`, `TokenAttackModal` y `RollPopover`—, cada uno con
@@ -24,8 +29,8 @@ su justificación escrita en el propio fichero). `build:web` y `build:api` OK.
 **Review pasado**, sus hallazgos ARREGLADOS (abajo), y **QA pasada**: se puede mergear.
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: la **columna 5** (el aviso de defensa al jugador) está construida y verde, pero **sin
-> mirar en la app** y **sin aplicar en la nube**. Bloque 🔴 de WORK_STATE.
+> Retomo Rolvium: la **columna 5** está en producción pero **sin mirar en la app**. Lo siguiente es
+> mirarla con dos navegadores (director y jugador) y luego la **columna 4**. Bloque 🟢 de WORK_STATE.
 
 ### ✅ Lo que se ha construido
 - **La migración `20260821000000_dice_attacks.sql` está APLICADA EN LOCAL** — con
@@ -69,7 +74,7 @@ su justificación escrita en el propio fichero). `build:web` y `build:api` OK.
 
 ### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
 1. ~~La nube sigue sin la migración~~ — **APLICADA el 2026-08-21 con su permiso** en
-   `scfspsiemikfcnqteonq`. Comprobado allí: RLS encendida, la política, la publicación de realtime, las
+   `scfspsiemikfcnqteonq`, y con ella la del **Bestiario**, que faltaba y habría roto producción. Comprobado allí: RLS encendida, la política, la publicación de realtime, las
    tres funciones, y que **`authenticated` NO puede ejecutarlas** (son las únicas del proyecto que no
    salen en el aviso de «SECURITY DEFINER ejecutable por usuarios»). `get_advisors` **igual que antes**:
    0 CRITICAL, los mismos 21 warn de siempre.
@@ -93,11 +98,12 @@ su justificación escrita en el propio fichero). `build:web` y `build:api` OK.
      en vez de aceptarla a ciegas. La pantalla, mientras tanto, te deja «no defenderme».
 4. **El director no ve nada mientras espera** a que el jugador conteste. El `.pen` **no lo diseña**.
 
-### 🟥 DOS COSAS QUE SALIERON AL TOCAR LA NUBE (no las he arreglado: hay que decidirlas)
-1. **A la nube le FALTA `bestiary_entries`.** La migración `20260820000000_bestiary.sql` **nunca se
-   aplicó allí**. O sea que en producción el Bestiario del director no existe: sus encuentros propios no
-   se pueden guardar ni leer. Las criaturas del manual sí funcionan, porque salen del paquete del sistema
-   y no de la base. **No la he aplicado**: es un cambio de esquema que no estaba en lo que se pidió.
+### 🟥 LO QUE SALIÓ AL TOCAR LA NUBE
+1. ~~A la nube le falta `bestiary_entries`~~ — **APLICADA antes del merge, con permiso del dueño.** Iba a
+   romper producción: entraba todo el código del Bestiario contra una base sin su tabla. Se cazó porque
+   se miró la nube antes de subir, no por ningún test. **Es el fallo del que hay que aprender de esta
+   sesión.** La QA comprobó después, objeto por objeto, que ya no falta NADA más: 16 tablas con RLS, las
+   18 funciones que llama el código, los 3 buckets y las columnas necesarias.
 2. **La nube no lleva historial de migraciones.** Antes de hoy, `supabase_migrations` estaba **vacía**
    —el esquema se aplicó por otro camino— y ahora sólo consta `dice_attacks`. Nadie puede saber por lo
    que hay en la base qué migraciones han pasado y cuáles no; así es como se llega a que falte una y no
@@ -108,8 +114,10 @@ su justificación escrita en el propio fichero). `build:web` y `build:api` OK.
    diferencia de antes y no la trae esta tanda; anotado para decidir aparte.
 
 ### ⏭ LO SIGUIENTE
-- **Mirarlo en la app corriendo** (Docker + Supabase local + `dev:api` :3001 + `dev:web` :5173), con dos
-  navegadores: director y jugador.
+- **MIRARLO EN LA APP** — es lo único que queda de esta tanda, y en esta rama es donde siempre salen los
+  fallos. Se puede hacer ya **en producción** (`https://rolvium.vercel.app`) o en local (Docker + Supabase
+  local + `dev:api` :3001 + `dev:web` :5173), con dos navegadores: director y jugador. Lo que más falta
+  por comprobar es **dónde sale el aviso** (abajo a la izquierda, elegido a ciegas).
 - **Columna 4**, el panel del director: pedir tirada manteniendo pulsada una característica, y la lista de
   encuentros de la escena. Es lo que el dueño pidió por su nombre.
 - **El daño sigue sin aplicarse solo**, y el `.pen` **no diseña dónde sale ese número**: dibujarlo antes.
