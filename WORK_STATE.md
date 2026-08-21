@@ -14,6 +14,81 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🔴 PUNTO EXACTO — 2026-08-21, CIERRE POR HANDOFF (7,8 MB). El bestiario está INCOMPLETO
+
+Rama **`feat/bestiario`**, árbol **limpio**, todo verde: **717 tests**, typecheck, `audit` 0 hard, ambas
+apps compilando. Commits de este tramo: `997ad36` (el daño estaba en el libro) · `725ef35` (Amparo de la
+noche) · `a183e70` (las capacidades escritas de verdad + inventario).
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: copia del PDF los bloques que faltan del bestiario y aplica las capacidades
+> (bloque 🔴 de WORK_STATE, §8.0 y §7.b de `packages/system-plenilunio/RULES.md`).
+
+### 🚨 LA REGLA QUE HAY QUE INTERIORIZAR (orden del dueño, 2026-08-21)
+> «cuando hiciste el rules.md lo has mirado por arriba y no entraste todas las reglas, **cada vez que ves
+> que algo no te cierra tienes que consultar la fuente de la verdad que es el manual**»
+
+`RULES.md` **es un resumen incompleto, no la fuente de la verdad**. La fuente es el PDF:
+`/Users/ignacioz/Documents/Developer/Rolvium context/PlenilunioEbook.pdf` (227 páginas; **impresa = PDF − 2**).
+Se lee con `pdftotext -layout`, **pero la maqueta es a dos columnas**: hay que partir las líneas por columnas
+o los bloques salen mezclados, y **las líneas que envuelven se cortan** — así se perdió «Amparo de la noche».
+Para los bloques en cajas el texto NO sirve: hay que **leer la página como imagen**.
+
+### ✅ Lo que se hizo en este tramo
+1. **El daño de una criatura estaba en el libro** y yo había dicho que no. Tabla de armas p.97: «Sin armas —
+   Daño: F», con ejemplo trabajado. Un ogro pega **8** por triunfo. Corregido en spec y RULES.
+2. **Verificados los 45 bloques del bestiario contra el PDF.** Las siete características, el Aguante y el
+   Destino de los 45: **correctos**. Fallaban dos líneas de capacidades, `lunar` y `fallenElite`, sin
+   «Amparo de la noche» porque envuelven en el PDF. **Arreglado con test.**
+3. **`RULES.md` §7.b**: las **quince capacidades** transcritas del PDF con su efecto exacto. Antes había una
+   lista de nombres entre paréntesis y **ni una regla**.
+
+### 🔴 LO QUE FALTA — el dueño dijo «TODO ENTRA»
+**A · Copiar los bloques en cajas** (§8.0 de RULES.md tiene la tabla empezada). Páginas del PDF:
+`51 · 73 · 74 · 122` **leídas** (Nathael, Luz niña, Soum, Nergal) · `125 · 127 · 128 · 136 · 138 · 141 · 144`
+**sin leer**. Hay al menos Guardia del Señor de la Guerra, Baal, Gabriel, Adán/Satán y «Otras piezas del gran
+juego». **Leerlas como imagen, no con pdftotext.**
+- Traen **`ATAQUES` con arma y daño ya calculados** («Martillo de guerra 10 (daño 10)»). El modelo
+  `BestiaryData` **no tiene sitio para eso**: hay que añadirlo, y con él la Luz adulta (p.142) como segunda
+  versión de Luz.
+- Pueden llevar **varias especialidades por característica** (Soum tiene tres en Fortaleza) y **varios
+  ataques**. `CREATURE_SPECIALTIES` ya admite array, pero conviene comprobarlo.
+
+**B · Añadir el Salteador** (p.209). Datos completos en §8.0.
+
+**C · Aplicar las capacidades en el motor.** Hoy sólo está `Piel gruesa` (la protección). Faltan, por orden
+de impacto en combate:
+- **Amparo de la noche\*** — de noche, +N éxitos automáticos al Combate cada turno; si reparte dados,
+  reparte los éxitos. **Necesita saber si es de noche** → dato de escena que no existe.
+- **Ira solar\*** — suma N al daño del arma. La más fácil: entra en `attackDamage`.
+- **Ponzoña\*** — ataque APARTE tras impactar: conflicto Fortaleza de la víctima vs N.
+- **Inmune al dolor** — sin penalización de dados por estado. Toca `derived`.
+- **Incorpóreo** — no se la puede atacar físicamente; usa Voluntad en vez de Fortaleza/Combate.
+- **Ancla terrenal** — muerto cuenta como otro malherido.
+- **Deflagración\*** — ataque de área con dados que bajan por metro. **Necesita el mapa.**
+- **Aura\* / Aura sombría\*** — éxitos automáticos de día/de noche a Presencia / Sutileza.
+⚠ **Hoy un ogro y un solar pegan igual de fuerte aunque el libro diga que no.**
+
+**D · «Aura sobrenatural 5»** (Nathael, p.49) **no está en la lista de capacidades del libro**. Sin resolver:
+mismo «Aura» con otro nombre, u otra capacidad. **Preguntar al dueño.**
+
+### ⏸ LO QUE ESTABA EN CURSO Y QUEDA APARCADO
+El **spec de las columnas 4 y 5 + el orden de turnos** está **escrito y confirmado** por el dueño en
+`specs/modules/dice/SPEC.md` (secciones «El orden de turnos», «Columna 4 · el panel del director», «El aviso
+que le salta al jugador», «Ponerse a cubierto»). El diseño de la columna 4 y la 5 está **leído del `.pen`** y
+volcado ahí, incluidos dos detalles que el resumen viejo no traía: al renombrar un encuentro el lápiz pasa a
+**check** y la línea de abajo **conserva el nombre original**; el desplegable de dificultad sale **pegado al
+botón** y **tapa** lo que haya debajo, con la opción bajo el dedo en **oro**.
+
+**Orden acordado con el dueño**: 1) base de datos · 2) **diseñar en el `.pen`** el aviso de tirada pedida y el
+orden de turnos (**no están dibujados** — hay que diseñarlos y que los apruebe con capturas) · 3) el orden de
+turnos · 4) el panel del director · 5) el aviso al jugador, la defensa y ponerse a cubierto.
+
+**Lo del bestiario (A–D) va ANTES**, porque el panel del director tira por las criaturas y las ataca: con los
+datos incompletos se construiría sobre arena.
+
+---
+
 ## 🟢 PUNTO EXACTO — 2026-08-21: COLUMNA 3 TERMINADA Y MIRADA EN LA APP
 
 Rama **`feat/bestiario`**, árbol **limpio**, todo verde: **717 tests** (516 web + 77 api + 6 core + 16 ui
