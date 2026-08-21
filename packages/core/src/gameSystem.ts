@@ -141,6 +141,21 @@ export interface ProgressionRules {
   apply: (sheet: SheetData, change: { kind: string; target: string; to?: unknown }) => SheetPatch;
 }
 
+/** Una línea del desglose, ya compuesta por el sistema, con la página del manual cuando la tiene. */
+export interface ExplainLine { text: string; page?: number }
+/**
+ * El desglose de una tirada, tal y como lo enseña el Registro al pasar por encima
+ * (rolvium.pen «Mesa/Tiradas · rediseño», `Tooltip/Desglose`).
+ */
+export interface RollExplain {
+  /** De dónde salieron los dados y contra qué se tiró. */
+  head: ExplainLine[];
+  /** «Lo que se aplicó»: lo que las reglas metieron o dejaron fuera sin preguntar. */
+  applied: ExplainLine[];
+  /** El cierre: «1 éxito contra 2 de dificultad = grado de fallo 1». */
+  verdict?: string;
+}
+
 export interface Engine {
   derived: (sheet: SheetData) => Record<string, unknown>;
   poolFor: (sheet: SheetData, action: { stat: string; options?: Record<string, unknown> }) => RollRequest;
@@ -149,6 +164,18 @@ export interface Engine {
   progression: ProgressionRules;
   sharedResources?: SharedResourceDef[];
   actions?: ActionDef[];
+  /**
+   * El desglose que el Registro enseña al pasar por encima de una tirada. Lo escribe el SISTEMA, porque
+   * es el único que sabe qué reglas se aplicaron y en qué página del manual están; la plataforma sólo lo
+   * pinta. `ts` resuelve las claves del propio sistema en el idioma de quien mira.
+   *
+   * Se calcula desde la tirada YA GUARDADA (petición + dados + resultado), nunca desde la ficha de
+   * ahora: una tirada es inmutable y su desglose tiene que seguir diciendo lo mismo dentro de un mes,
+   * con el personaje ya curado y con otra armadura puesta.
+   *
+   * Opcional: un sistema que no lo declare simplemente no enseña desglose.
+   */
+  explain?: (roll: { request: RollRequest; dice: RolledDice; result: RollResult }, ts: (key: string) => string) => RollExplain | null;
 }
 
 // ─── Generator ───────────────────────────────────────────────────────────────

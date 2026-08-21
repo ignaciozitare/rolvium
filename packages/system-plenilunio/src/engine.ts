@@ -208,6 +208,21 @@ export function resolve(request: RollRequest, dice: RolledDice, sheet?: SheetDat
     setback: o.setback, destinyUp: o.destinyUp, armourConverted: o.armourConverted, specialty: o.specialty, degree: degreeKey(o.difference),
   };
   if (opts.weaponId) detail.damage = o.difference > 0 ? attackDamage(o, num(opts.weaponDamage, 1)) : 0;
+  /**
+   * Lo que la FICHA sabía en el momento de tirar, guardado con la tirada. El desglose del Registro
+   * («4 Combate − 1 por herido = 3 dados», «Chaleco antibalas — 1 triunfo pasa a éxito normal») no puede
+   * leerlo de la ficha de ahora: la tirada es inmutable y tiene que seguir diciendo lo mismo dentro de un
+   * mes, con el personaje ya curado y con otra armadura puesta. Sólo se guarda cuando el servidor tiene
+   * la ficha delante; sin ella el desglose enseña lo que pueda y calla el resto.
+   */
+  if (sheet && isStatId(opts.stat ?? '')) {
+    const st = statOf(sheet, opts.stat as StatId);
+    detail.statValue = st.value;
+    detail.statSpecialties = st.specialties;
+    detail.dicePenalty = derived(sheet).dicePenalty;
+    detail.health = str(sheet.health, 'healthy');
+    detail.armour = str(sheet.armour, 'none');
+  }
   const effects: Record<string, unknown> = {};
   if (o.destinyUp) {
     effects.destinyUp = true; effects.fortuneRefill = true;
