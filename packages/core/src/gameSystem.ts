@@ -20,6 +20,14 @@ export interface FieldDef {
    * salían unas Nudilleras con 14 balas.
    */
   appliesToRow?: (row: Record<string, unknown>) => boolean;
+  /**
+   * Sólo columnas de tabla: el TECHO de esta celda para ESTA fila, cuando no es el mismo para todas.
+   * Lo declara el sistema porque la plataforma no sabe de dónde sale: en Plenilunio la Munición no
+   * puede pasar de lo que cabe en el cargador del arma (rifle 30, magnum 6), y sin techo el contador
+   * subía sin fin. Como en el resto de la ficha, capa la SUBIDA y nunca la bajada: un valor ya por
+   * encima apaga el `+` y deja el `−` vivo, que es como se sale de ahí.
+   */
+  maxForRow?: (row: Record<string, unknown>) => number | undefined;
   min?: number; max?: number;
   /**
    * `hint`: dato secundario de la opción, que sale en un tooltip y NO en la celda. El alcance de un
@@ -133,6 +141,21 @@ export interface ProgressionRules {
   apply: (sheet: SheetData, change: { kind: string; target: string; to?: unknown }) => SheetPatch;
 }
 
+/** Una línea del desglose, ya compuesta por el sistema, con la página del manual cuando la tiene. */
+export interface ExplainLine { text: string; page?: number }
+/**
+ * El desglose de una tirada, tal y como lo enseña el Registro al pasar por encima
+ * (rolvium.pen «Mesa/Tiradas · rediseño», `Tooltip/Desglose`).
+ */
+export interface RollExplain {
+  /** De dónde salieron los dados y contra qué se tiró. */
+  head: ExplainLine[];
+  /** «Lo que se aplicó»: lo que las reglas metieron o dejaron fuera sin preguntar. */
+  applied: ExplainLine[];
+  /** El cierre: «1 éxito contra 2 de dificultad = grado de fallo 1». */
+  verdict?: string;
+}
+
 export interface Engine {
   derived: (sheet: SheetData) => Record<string, unknown>;
   poolFor: (sheet: SheetData, action: { stat: string; options?: Record<string, unknown> }) => RollRequest;
@@ -141,6 +164,18 @@ export interface Engine {
   progression: ProgressionRules;
   sharedResources?: SharedResourceDef[];
   actions?: ActionDef[];
+  /**
+   * El desglose que el Registro enseña al pasar por encima de una tirada. Lo escribe el SISTEMA, porque
+   * es el único que sabe qué reglas se aplicaron y en qué página del manual están; la plataforma sólo lo
+   * pinta. `ts` resuelve las claves del propio sistema en el idioma de quien mira.
+   *
+   * Se calcula desde la tirada YA GUARDADA (petición + dados + resultado), nunca desde la ficha de
+   * ahora: una tirada es inmutable y su desglose tiene que seguir diciendo lo mismo dentro de un mes,
+   * con el personaje ya curado y con otra armadura puesta.
+   *
+   * Opcional: un sistema que no lo declare simplemente no enseña desglose.
+   */
+  explain?: (roll: { request: RollRequest; dice: RolledDice; result: RollResult }, ts: (key: string) => string) => RollExplain | null;
 }
 
 // ─── Generator ───────────────────────────────────────────────────────────────
@@ -187,4 +222,28 @@ export interface SharedResourceState { value: number; max: number; perTakeMax: n
 /** Initial `shared_resources` jsonb for a new campaign of this system. */
 export function initialSharedResources(system: Pick<GameSystem, 'engine'>): Record<string, SharedResourceState> {
   return Object.fromEntries((system.engine.sharedResources ?? []).map(r => [r.id, { value: r.initial, max: r.max, perTakeMax: r.perTakeMax, hands: {} }]));
+}
+
+/**
+ * Cuántos dados PROPIOS le da a esta ficha una característica, ahora mismo.
+ *
+ * Se le pregunta al sistema (`engine.poolFor`) en vez de leer la ficha a mano: lo que cada sistema
+ * suma o resta —una penalización por heridas, un tamaño, lo que sea— vive ahí y sólo ahí. Cualquier
+ * segunda cuenta acabaría contradiciendo a la del motor el día que el motor cambie.
+ *
+ * Se le quita lo que la ficha traiga puesto en su bloque de tirada (dificultad, dados extra,
+ * bonificación de arma): esto responde a «cuánto vale su característica», no a «cómo sería esta tirada».
+ * La oposición no cuenta, porque no son dados suyos.
+ *
+ * Devuelve `null` sin característica, o si el sistema no sabe armar ese puñado: es la diferencia entre
+ * «no puede poner dados» y «no sabemos cuántos», y quien pregunta necesita distinguirlas.
+ */
+export function ownDiceForStat(system: Pick<GameSystem, 'engine'>, sheet: SheetData, stat: string | null): number | null {
+  if (!stat) return null;
+  try {
+    const req = system.engine.poolFor(sheet, { stat, options: { destinyDice: 0, difficulty: 0, extraDice: 0, bonusDice: 0 } });
+    return req.groups.filter(g => g.tag !== 'opposition').reduce((n, g) => n + g.count, 0);
+  } catch {
+    return null;
+  }
 }

@@ -4,18 +4,20 @@
     "tagline": "Tu mesa de rol, en cualquier parte"
   },
   "common": {
-    "save": "Guardar",
-    "cancel": "Cancelar",
-    "delete": "Eliminar",
-    "confirm": "Confirmar",
-    "close": "Cerrar",
-    "loading": "Cargando…",
-    "error": "Algo salió mal",
-    "search": "Buscar",
-    "yes": "Sí",
-    "no": "No",
     "add": "Añadir",
     "back": "Volver",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "error": "Algo salió mal",
+    "loading": "Cargando…",
+    "no": "No",
+    "remove": "Quitar",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "search": "Buscar",
+    "yes": "Sí",
     "you": "tú"
   },
   "theme": {
@@ -530,12 +532,38 @@
       "remove": "Quitar",
       "manual": "Manual",
       "of": "de",
-      "pickAvatar": "Avatar",
+      "pickAvatar": "Subir imagen",
       "avatarHint": "sin imagen propia se usa el avatar de tu cuenta",
       "rollFailed": "No se ha podido tirar. Inténtalo de nuevo.",
       "rolled": "{{title}} · {{summary}}",
       "openApart": "Abrir ficha aparte",
-      "imageSoon": "Subir imagen: pronto"
+      "imageError": {
+        "mime": "Ese tipo de fichero no vale. Usa PNG, JPG, WebP o GIF.",
+        "input-too-large": "La imagen pesa más de 8 MB. Elige una más ligera.",
+        "output-too-large": "Aun comprimida sigue pesando demasiado.",
+        "decode": "No se ha podido leer esa imagen.",
+        "upload": "No se ha podido subir la imagen. Inténtalo otra vez."
+      },
+      "imageAfterCreate": "Podrás ponerle imagen al terminar de crearlo",
+      "backToGroup": "Volver al grupo",
+      "viewing": "Estás viendo la ficha de {{name}}"
+    },
+    "roll": {
+      "titleStat": "Tirar · {{name}}",
+      "dice": "Dados que tiras",
+      "less": "Un dado menos",
+      "more": "Un dado más",
+      "from": "tu {{stat}} {{n}}",
+      "penalty": ", menos {{n}} por {{health}}",
+      "range": "Alcance",
+      "rangeHint": "lo mide el mapa",
+      "pool": "Dados de la {{name}}",
+      "poolLeft": "quedan {{n}} en la mesa",
+      "poolFailed": "No se han podido coger esos dados de la reserva.",
+      "extra": "+ dados extra: {{n}}",
+      "fewer": "− dados: {{n}}",
+      "go": "Tirar {{n}}",
+      "goAction": "{{action}} · {{n}} dados"
     },
     "generator": {
       "title": "Crear personaje",
@@ -611,6 +639,22 @@
       "failed": "No se ha podido tirar.",
       "rolling": "tirando…"
     },
+    "attack": {
+      "title": "Te ataca {{name}}",
+      "aria": "Te atacan",
+      "sub": "Cuerpo a cuerpo con {{n}} dados de {{stat}}. Es un conflicto: los dados que pongas son tu defensa y tu ataque a la vez (p.93).",
+      "subNoStat": "Cuerpo a cuerpo con {{n}} dados. Es un conflicto: los dados que pongas son tu defensa y tu ataque a la vez (p.93).",
+      "howMany": "¿Cuántos dados de {{stat}} gastas?",
+      "howManyNoStat": "¿Cuántos dados gastas?",
+      "youHave": "tienes {{stat}}: {{n}} dados",
+      "youHaveNoStat": "tienes {{n}} dados",
+      "noSheet": "No se ha podido leer tu ficha, así que no se sabe cuántos dados puedes gastar. Puedes no defenderte, o volver a intentarlo recargando.",
+      "cost": "Los que gastes se te quitan del próximo turno: con {{n}} te quedarán {{left}} para actuar. Si gastas los {{max}}, pierdes el turno; si ya los gastaste todos, quedas indefenso (p.94).",
+      "noDefence": "No me defiendo",
+      "defend": "Defenderme · {{n}} dados",
+      "defendOne": "Defenderme · 1 dado",
+      "failed": "No se ha podido contestar. Inténtalo otra vez."
+    },
     "log": {
       "title": "Registro de tiradas",
       "empty": "Pulsa TIRAR en una característica, o usa el lanzador libre.",
@@ -621,7 +665,15 @@
       "visibility": {
         "dm": "Director",
         "secret": "Secreta"
-      }
+      },
+      "breakdown": {
+        "title": "Cómo salió esta tirada",
+        "applied": "Lo que se aplicó",
+        "ref": "Manual · {{pages}}",
+        "page": "p.{{n}}",
+        "and": "y"
+      },
+      "rolledBy": "{{character}} · tirada de {{user}}"
     }
   },
   "maps": {
@@ -799,6 +851,156 @@
     "reserve": {
       "hide": "Ocultar la reserva",
       "show": "Ver la reserva"
+    }
+  },
+  "bestiary": {
+    "title": "Bestiario",
+    "counts": "{{all}} entradas · {{manual}} del manual · {{own}} propias",
+    "search": "Buscar criatura",
+    "new": "+ Nuevo encuentro",
+    "newName": "Encuentro sin nombre",
+    "filters": "Filtrar por origen",
+    "onlyDm": "SOLO DIRECTOR",
+    "onlyDmNote": "Los jugadores no ven nada de esta pantalla. Colocar una entrada crea una copia con su propia Resistencia: herir a un ogro no hiere al otro.",
+    "empty": "Ninguna criatura coincide",
+    "emptyHint": "Prueba con otro texto o cambia el filtro.",
+    "deleteConfirm": "¿Borrar «{{name}}»? Las criaturas ya colocadas en la escena se quedan donde están.",
+    "filter": {
+      "all": "Todos",
+      "manual": "Manual",
+      "custom": "Propios",
+      "npc": "PNJ con ficha"
+    },
+    "origin": {
+      "manual": "Manual",
+      "custom": "Propio",
+      "npc": "PNJ · ficha"
+    },
+    "action": {
+      "roll": "Tirar",
+      "place": "Colocar",
+      "edit": "Editar",
+      "duplicate": "Duplicar",
+      "photo": "Ver foto",
+      "photoOf": "Ver la foto de {{name}}",
+      "more": "Más opciones de {{name}}"
+    },
+    "card": {
+      "resistance": "Resistencia {{n}}",
+      "protection": "Protección {{n}}",
+      "page": "manual p.{{n}}",
+      "own": "encuentro propio",
+      "placed": "{{n}} en escena",
+      "npcSheet": "ficha de PNJ"
+    },
+    "photo": {
+      "page": "manual p.{{n}}",
+      "alt": "Ilustración de {{name}}",
+      "openSheet": "Abrir ficha"
+    },
+    "stat": {
+      "fortitude": "Fortaleza",
+      "combat": "Combate",
+      "will": "Voluntad",
+      "cunning": "Astucia",
+      "subtlety": "Sutileza",
+      "presence": "Presencia",
+      "culture": "Cultura"
+    },
+    "sheet": {
+      "title": "Ficha del encuentro",
+      "note": "Las criaturas del manual no se editan: esto es una copia tuya. La Resistencia se calcula sola (Aguante × 3), no se teclea.",
+      "name": "Nombre",
+      "notes": "Notas",
+      "stats": "Características y especialidades",
+      "image": "Imagen",
+      "imageUpload": "Subir imagen (WebP)",
+      "imageHint": "PNG, JPG, WebP o GIF · máx. 8 MB · se comprime sola a WebP",
+      "imageCta": "Arrastra una imagen o pulsa para elegirla",
+      "savings": "Comprimida: {{s}}",
+      "endurance": "Aguante",
+      "destiny": "Destino",
+      "protection": "Protección",
+      "resistance": "Resistencia",
+      "computed": "se calcula",
+      "noSpecialty": "sin especialidad",
+      "absentHint": "El manual no publica esta característica: no se inventa.",
+      "giveValue": "Darle un valor a esta característica",
+      "clearValue": "Dejar esta característica sin valor",
+      "allCampaigns": "Guardar para todas mis campañas",
+      "allCampaignsHint": "sin marcar, vive sólo en esta partida"
+    },
+    "roll": {
+      "title": "Tirar por {{name}}",
+      "stat": "¿Con qué característica?",
+      "dice": "Dados que tiras",
+      "less": "Un dado menos",
+      "more": "Un dado más",
+      "from": "su {{stat}} {{n}}",
+      "extra": "{{n}} extra",
+      "specialty": "Le vale su especialidad: {{name}}",
+      "difficulty": "Dificultad",
+      "visibility": "¿Quién lo ve?",
+      "go": "Tirar {{n}}",
+      "noStats": "El manual no publica ninguna característica de esta criatura, así que no hay con qué tirar.",
+      "failed": "No se ha podido tirar. Inténtalo otra vez.",
+      "attacks": "¿Con qué ataca?",
+      "attackNone": "A mano · {{n}}",
+      "attackChip": "{{name}} · {{attack}} · daño {{damage}}",
+      "attackFortune": "{{name}} · {{attack}} · daño {{damage}} · 1 Fortuna",
+      "attacksNote": "Los ataques los imprime el libro ya calculados, arma y daño (p.{{page}}). Se copian, no se recalculan.",
+      "fromAttack": "su ataque {{name}} · {{n}}",
+      "blast": "Deflagración · {{n}}",
+      "blastNote": "La Deflagración es un ataque aparte del principal: se tira sola, contra quien esté cerca (p.108).",
+      "blastNoStat": "Una Deflagración no se tira con ninguna característica: los dados salen de su puntuación.",
+      "metres": "¿A cuántos metros está?",
+      "metresValue": "{{n}} m",
+      "metresLess": "Un metro menos",
+      "metresMore": "Un metro más",
+      "metresFrom": "radio {{radius}} m · un dado menos por metro",
+      "blastDamage": "Cada éxito hace 1 punto de daño y cada triunfo, tantos como la puntuación: {{n}}. Fuera del radio no hay ataque.",
+      "fromBlast": "su Deflagración {{level}} − {{metres}} metros",
+      "blastDifficulty": "La Deflagración es siempre un reto a dificultad 1 (p.108): el director puede subirla si deja ponerse a cubierto, como en los disparos (p.96).",
+      "night": "Es de noche",
+      "capabilities": "Capacidades que podrían aplicar",
+      "capabilityAuto": "+{{n}} éxitos automáticos",
+      "capabilitiesNote": "Sólo salen las que encajan con la característica y con la hora: de día no sale ninguna de las nocturnas. Las marca el director, como la especialidad — el motor no sabe si la tirada es para intimidar (p.107)."
+    },
+    "image": {
+      "error": {
+        "mime": "Ese tipo de fichero no vale. Usa PNG, JPG, WebP o GIF.",
+        "input-too-large": "La imagen pesa más de 8 MB. Elige una más ligera.",
+        "output-too-large": "Aun comprimida sigue pesando demasiado.",
+        "decode": "No se ha podido leer esa imagen.",
+        "upload": "No se ha podido subir la imagen. Inténtalo otra vez."
+      }
+    },
+    "newNpc": "+ Nuevo PNJ con ficha",
+    "newNpcName": "PNJ sin nombre",
+    "npc": {
+      "title": "Ficha de {{name}}",
+      "note": "Es la misma ficha que la de un personaje jugador. Los cambios NO se guardan solos: pulsa Guardar antes de cerrar.",
+      "saveDirty": "Guardar cambios"
+    },
+    "attack": {
+      "title": "{{name}} ataca a {{target}}",
+      "with": "Atacar con {{name}}",
+      "who": "A quién ataca",
+      "stats": "Combate {{combat}} · Resistencia {{resistance}} · protección {{protection}}",
+      "page": "p.{{n}}",
+      "melee": "{{name}} está a {{cells}} casillas: cuerpo a cuerpo. Lo mide el mapa.",
+      "ranged": "{{name}} está a {{cells}} casillas ({{metres}} m): alcance {{range}}, reto a dificultad {{difficulty}}. Lo mide el mapa.",
+      "tooFar": "{{name}} está a {{cells}} casillas ({{metres}} m): demasiado lejos para dispararle (p.96).",
+      "dice": "Dados que pone",
+      "from": "de su Combate {{n}} · puede repartirlos entre varios (p.94)",
+      "fromAttack": "de su {{name}} · {{n}} · puede repartirlos entre varios (p.94)",
+      "go": "Atacar a {{name}}",
+      "noTargets": "No hay ningún personaje en la escena al que atacar.",
+      "button": "Atacar",
+      "nightNote": "Es de noche en esta escena, así que salen sus capacidades nocturnas: la hora la dice el interruptor de día/noche del mapa y aquí no se pregunta. Las marca el director, como la especialidad (p.107).",
+      "dayNote": "Es de día en esta escena: sólo salen las capacidades que valen de día. La hora la dice el interruptor de día/noche del mapa (p.107).",
+      "meleeWait": "Cuerpo a cuerpo es un conflicto: le llegará el aviso y la tirada saldrá cuando conteste con sus dados de defensa (p.93).",
+      "openFailed": "No se ha podido avisar al jugador. Inténtalo otra vez."
     }
   }
 }

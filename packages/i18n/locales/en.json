@@ -4,18 +4,20 @@
     "tagline": "Your tabletop, anywhere"
   },
   "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "confirm": "Confirm",
-    "close": "Close",
-    "loading": "Loading…",
-    "error": "Something went wrong",
-    "search": "Search",
-    "yes": "Yes",
-    "no": "No",
     "add": "Add",
     "back": "Back",
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "error": "Something went wrong",
+    "loading": "Loading…",
+    "no": "No",
+    "remove": "Remove",
+    "save": "Save",
+    "saving": "Saving…",
+    "search": "Search",
+    "yes": "Yes",
     "you": "you"
   },
   "theme": {
@@ -530,12 +532,38 @@
       "remove": "Remove",
       "manual": "Manual",
       "of": "of",
-      "pickAvatar": "Avatar",
+      "pickAvatar": "Upload image",
       "avatarHint": "without an image of its own, your account avatar is used",
       "rollFailed": "The roll could not be made. Try again.",
       "rolled": "{{title}} · {{summary}}",
       "openApart": "Open sheet apart",
-      "imageSoon": "Image upload: coming soon"
+      "imageError": {
+        "mime": "That file type will not do. Use PNG, JPG, WebP or GIF.",
+        "input-too-large": "The image is over 8 MB. Pick a lighter one.",
+        "output-too-large": "Even compressed it is still too heavy.",
+        "decode": "That image could not be read.",
+        "upload": "The image could not be uploaded. Try again."
+      },
+      "imageAfterCreate": "You can add an image once it is created",
+      "backToGroup": "Back to the group",
+      "viewing": "You are viewing {{name}}’s sheet"
+    },
+    "roll": {
+      "titleStat": "Roll · {{name}}",
+      "dice": "Dice you roll",
+      "less": "One die less",
+      "more": "One die more",
+      "from": "your {{stat}} {{n}}",
+      "penalty": ", minus {{n}} for {{health}}",
+      "range": "Range",
+      "rangeHint": "the map measures it",
+      "pool": "Dice from the {{name}}",
+      "poolLeft": "{{n}} left on the table",
+      "poolFailed": "Those pool dice could not be taken.",
+      "extra": "+ extra dice: {{n}}",
+      "fewer": "− dice: {{n}}",
+      "go": "Roll {{n}}",
+      "goAction": "{{action}} · {{n}} dice"
     },
     "generator": {
       "title": "Create character",
@@ -611,6 +639,22 @@
       "failed": "The roll could not be made.",
       "rolling": "rolling…"
     },
+    "attack": {
+      "title": "{{name}} attacks you",
+      "aria": "You are under attack",
+      "sub": "Melee with {{n}} {{stat}} dice. It is a conflict: the dice you spend are your defence and your attack at once (p.93).",
+      "subNoStat": "Melee with {{n}} dice. It is a conflict: the dice you spend are your defence and your attack at once (p.93).",
+      "howMany": "How many {{stat}} dice do you spend?",
+      "howManyNoStat": "How many dice do you spend?",
+      "youHave": "you have {{stat}}: {{n}} dice",
+      "youHaveNoStat": "you have {{n}} dice",
+      "noSheet": "Your sheet could not be read, so there is no telling how many dice you may spend. You can choose not to defend, or reload and try again.",
+      "cost": "What you spend is taken off your next turn: with {{n}} you will have {{left}} left to act. Spend all {{max}} and you lose the turn; if you already spent them, you are defenceless (p.94).",
+      "noDefence": "I do not defend",
+      "defend": "Defend · {{n}} dice",
+      "defendOne": "Defend · 1 die",
+      "failed": "Your answer could not be sent. Try again."
+    },
     "log": {
       "title": "Roll log",
       "empty": "Press ROLL on a stat, or use the free roller.",
@@ -621,7 +665,15 @@
       "visibility": {
         "dm": "Director",
         "secret": "Secret"
-      }
+      },
+      "breakdown": {
+        "title": "How this roll came out",
+        "applied": "What was applied",
+        "ref": "Manual · {{pages}}",
+        "page": "p.{{n}}",
+        "and": "and"
+      },
+      "rolledBy": "{{character}} · rolled by {{user}}"
     }
   },
   "maps": {
@@ -799,6 +851,156 @@
     "reserve": {
       "hide": "Hide the pool",
       "show": "Show the pool"
+    }
+  },
+  "bestiary": {
+    "title": "Bestiary",
+    "counts": "{{all}} entries · {{manual}} from the book · {{own}} your own",
+    "search": "Search creature",
+    "new": "+ New encounter",
+    "newName": "Unnamed encounter",
+    "filters": "Filter by origin",
+    "onlyDm": "GM ONLY",
+    "onlyDmNote": "Players see nothing on this screen. Placing an entry creates a copy with its own Resistance: wounding one ogre does not wound the other.",
+    "empty": "No creature matches",
+    "emptyHint": "Try different words or change the filter.",
+    "deleteConfirm": "Delete “{{name}}”? Creatures already placed on the scene stay where they are.",
+    "filter": {
+      "all": "All",
+      "manual": "Book",
+      "custom": "Your own",
+      "npc": "NPCs with a sheet"
+    },
+    "origin": {
+      "manual": "Book",
+      "custom": "Your own",
+      "npc": "NPC · sheet"
+    },
+    "action": {
+      "roll": "Roll",
+      "place": "Place",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "photo": "View photo",
+      "photoOf": "View the photo of {{name}}",
+      "more": "More options for {{name}}"
+    },
+    "card": {
+      "resistance": "Resistance {{n}}",
+      "protection": "Protection {{n}}",
+      "page": "book p.{{n}}",
+      "own": "your own encounter",
+      "placed": "{{n}} on the scene",
+      "npcSheet": "NPC sheet"
+    },
+    "photo": {
+      "page": "book p.{{n}}",
+      "alt": "Illustration of {{name}}",
+      "openSheet": "Open sheet"
+    },
+    "stat": {
+      "fortitude": "Fortitude",
+      "combat": "Combat",
+      "will": "Will",
+      "cunning": "Cunning",
+      "subtlety": "Subtlety",
+      "presence": "Presence",
+      "culture": "Culture"
+    },
+    "sheet": {
+      "title": "Encounter sheet",
+      "note": "Creatures from the book cannot be edited: this is your own copy. Resistance is worked out on its own (Endurance × 3), never typed.",
+      "name": "Name",
+      "notes": "Notes",
+      "stats": "Characteristics and specialties",
+      "image": "Image",
+      "imageUpload": "Upload image (WebP)",
+      "imageHint": "PNG, JPG, WebP or GIF · max 8 MB · compressed to WebP automatically",
+      "imageCta": "Drop an image or click to choose one",
+      "savings": "Compressed: {{s}}",
+      "endurance": "Endurance",
+      "destiny": "Destiny",
+      "protection": "Protection",
+      "resistance": "Resistance",
+      "computed": "worked out",
+      "noSpecialty": "no specialty",
+      "absentHint": "The book does not publish this characteristic: it is not invented.",
+      "giveValue": "Give this characteristic a value",
+      "clearValue": "Leave this characteristic without a value",
+      "allCampaigns": "Save for all my campaigns",
+      "allCampaignsHint": "unchecked, it lives only in this game"
+    },
+    "roll": {
+      "title": "Roll for {{name}}",
+      "stat": "Which characteristic?",
+      "dice": "Dice you roll",
+      "less": "One die fewer",
+      "more": "One die more",
+      "from": "its {{stat}} {{n}}",
+      "extra": "{{n}} extra",
+      "specialty": "Its specialty applies: {{name}}",
+      "difficulty": "Difficulty",
+      "visibility": "Who sees it?",
+      "go": "Roll {{n}}",
+      "noStats": "The manual publishes no characteristics for this creature, so there is nothing to roll.",
+      "failed": "The roll could not be made. Try again.",
+      "attacks": "What does it attack with?",
+      "attackNone": "Bare-handed · {{n}}",
+      "attackChip": "{{name}} · {{attack}} · damage {{damage}}",
+      "attackFortune": "{{name}} · {{attack}} · damage {{damage}} · 1 Fortune",
+      "attacksNote": "The book prints these attacks already worked out, weapon and damage (p.{{page}}). They are copied, not recomputed.",
+      "fromAttack": "its {{name}} attack · {{n}}",
+      "blast": "Blast · {{n}}",
+      "blastNote": "The Blast is an attack apart from the main one: it is rolled on its own, against whoever stands close (p.108).",
+      "blastNoStat": "A Blast is not rolled with any characteristic: the dice come from its own score.",
+      "metres": "How many metres away?",
+      "metresValue": "{{n}} m",
+      "metresLess": "One metre less",
+      "metresMore": "One metre more",
+      "metresFrom": "radius {{radius}} m · one die less per metre",
+      "blastDamage": "Each success deals 1 point of damage and each triumph as many as the score: {{n}}. Beyond the radius there is no attack.",
+      "fromBlast": "its Blast {{level}} − {{metres}} metres",
+      "blastDifficulty": "A Blast is always a difficulty 1 challenge (p.108): the director may raise it when allowing cover, as with shooting (p.96).",
+      "night": "It is night",
+      "capabilities": "Capacities that could apply",
+      "capabilityAuto": "+{{n}} automatic successes",
+      "capabilitiesNote": "Only the ones matching the characteristic and the hour show up: by day none of the night ones appear. The director marks them, like the specialty — the engine cannot know whether the roll is meant to intimidate (p.107)."
+    },
+    "image": {
+      "error": {
+        "mime": "That file type will not do. Use PNG, JPG, WebP or GIF.",
+        "input-too-large": "The image is over 8 MB. Pick a lighter one.",
+        "output-too-large": "Even compressed it is still too heavy.",
+        "decode": "That image could not be read.",
+        "upload": "The image could not be uploaded. Try again."
+      }
+    },
+    "newNpc": "+ New NPC with a sheet",
+    "newNpcName": "Unnamed NPC",
+    "npc": {
+      "title": "{{name}}’s sheet",
+      "note": "This is the same sheet a player character uses. Changes are NOT saved on their own: press Save before closing.",
+      "saveDirty": "Save changes"
+    },
+    "attack": {
+      "title": "{{name}} attacks {{target}}",
+      "with": "Attack with {{name}}",
+      "who": "Who it attacks",
+      "stats": "Combat {{combat}} · Resistance {{resistance}} · protection {{protection}}",
+      "page": "p.{{n}}",
+      "melee": "{{name}} is {{cells}} squares away: melee. The map measures it.",
+      "ranged": "{{name}} is {{cells}} squares away ({{metres}} m): {{range}} range, a difficulty {{difficulty}} challenge. The map measures it.",
+      "tooFar": "{{name}} is {{cells}} squares away ({{metres}} m): too far to shoot at (p.96).",
+      "dice": "Dice it puts in",
+      "from": "of its Combat {{n}} · it may split them between several (p.94)",
+      "fromAttack": "of its {{name}} · {{n}} · it may split them between several (p.94)",
+      "go": "Attack {{name}}",
+      "noTargets": "There is no character in the scene to attack.",
+      "button": "Attack",
+      "nightNote": "It is night in this scene, so its night capacities show up: the hour comes from the map's day/night switch and is not asked here. The director marks them, like the specialty (p.107).",
+      "dayNote": "It is day in this scene: only the capacities that work by day show up. The hour comes from the map's day/night switch (p.107).",
+      "meleeWait": "Melee is a conflict: they get the alert, and the roll comes out when they answer with their defence dice (p.93).",
+      "openFailed": "The player could not be alerted. Try again."
     }
   }
 }

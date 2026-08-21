@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  applyArmour, applyDamage, attackDamage, catchBreath, classify, degreeKey, derived, engine, poolFor, progressionApply, progressionCost, reload,
-  resolve, resolveAction, rest, sharedResources, spendAmmo, actions, XP_COSTS, DESTINY_POOL, STAT_MAX,
+  applyArmour, applyDamage, attackDamage, autoSuccessOptions, blastDamage, blastDice, blastReach, canBeAttackedPhysically, catchBreath, classify,
+  degreeKey, derived, engine, incorporealStat, poolFor, progressionApply, progressionCost, reload,
+  resolve, resolveAction, rest, sharedResources, spendAmmo, venomDamage, actions, BLAST_DIFFICULTY, XP_COSTS, DESTINY_POOL, STAT_MAX, SYSTEM_ID,
 } from './engine';
 import { newSheet, type StatValue } from './schema';
 import { STAT_IDS } from './catalogs';
@@ -140,6 +141,29 @@ describe('resolve', () => {
   it('destiny patch never exceeds 10', () => {
     const req = poolFor(sheet({ destiny: 9 }), { stat: 'will', options: { destinyDice: 1, difficulty: 0 } });
     expect(resolve(req, [[2], [6]], sheet({ destiny: 9 })).effects).toMatchObject({ patch: { destiny: 10, fortune: 10 } });
+  });
+  /**
+   * El desglose del Registro se lee de la tirada GUARDADA, nunca de la ficha de ahora (la tirada es
+   * inmutable). Por eso `resolve` copia en `detail` lo que la ficha sabía al tirar — y sólo cuando la
+   * tiene delante: sin ficha no se inventa nada y el desglose calla esas líneas.
+   */
+  it('guarda en detail lo que la ficha sabía al tirar, para el desglose', () => {
+    const herida = sheet({ health: 'wounded', armour: 'bulletproofVest', combat: stat(4, ['combat.shortWeapons']) });
+    const req = poolFor(herida, { stat: 'combat', options: { difficulty: 2 } });
+    const res = resolve(req, [[6, 4, 2], [4, 3]], herida);
+    expect(res.detail).toMatchObject({
+      statValue: 4, statSpecialties: ['combat.shortWeapons'], dicePenalty: 1, health: 'wounded', armour: 'bulletproofVest',
+    });
+  });
+  it('sin ficha no guarda esos campos (tiradas viejas o resueltas sin ella)', () => {
+    const req = poolFor(sheet(), { stat: 'combat', options: { difficulty: 2 } });
+    const d = resolve(req, [[6, 4, 2, 1], [4, 3]]).detail ?? {};
+    for (const k of ['statValue', 'statSpecialties', 'dicePenalty', 'health', 'armour']) expect(d).not.toHaveProperty(k);
+  });
+  it('una tirada libre no lleva característica, así que tampoco lleva esos campos', () => {
+    const libre = { systemId: SYSTEM_ID, kind: 'system' as const, title: 'x', groups: [{ count: 2, sides: 6, tag: 'own' }], visibility: 'table' as const };
+    const d = resolve(libre, [[6, 4]], sheet()).detail ?? {};
+    expect(d).not.toHaveProperty('statValue');
   });
 });
 
@@ -490,5 +514,107 @@ describe('munición (p.97)', () => {
     expect(ranged.appliesToRow!({ id: 'knuckles' })).toBe(false);
     expect(melee.appliesToRow!({ id: 'magnum44' })).toBe(false);
     expect(ranged.appliesToRow!({ id: 'magnum44' })).toBe(true);
+  });
+});
+
+/**
+ * Las capacidades de las criaturas (p.107–108) — RULES.md §7.b.1, la tabla de en qué punto del motor entra
+ * cada una. Ninguna se aplica sola: el director marca la que corresponde, igual que la especialidad (p.83).
+ */
+describe('capacidades de criatura (p.107–108)', () => {
+  const creature = (capabilities: unknown[], over: SheetData = {}): SheetData =>
+    sheet({ capabilities, ...over });
+
+  it('los éxitos automáticos se suman a los aciertos propios', () => {
+    expect(resolveAction({ own: [4, 2] }).ownHits).toBe(1);
+    expect(resolveAction({ own: [4, 2], autoSuccesses: 5 }).ownHits).toBe(6);
+    // Un número raro no descuadra la tirada: se lee tolerante, como el resto.
+    expect(resolveAction({ own: [4], autoSuccesses: -3 }).autoSuccesses).toBe(0);
+    expect(resolveAction({ own: [4], autoSuccesses: 2.7 }).autoSuccesses).toBe(2);
+  });
+  /**
+   * ⚠ Interpretación nuestra (RULES.md §7.b.1): un revés es «ni un solo acierto y al menos un fracaso»
+   * (p.86), y con Amparo de la noche 5 la criatura SÍ acierta. Este test es el pin de esa lectura.
+   */
+  it('con éxitos automáticos no puede haber revés', () => {
+    expect(resolveAction({ own: [1, 2] }).setback).toBe(true);
+    expect(resolveAction({ own: [1, 2], autoSuccesses: 3 }).setback).toBe(false);
+  });
+  it('el director ve sólo las capacidades que podrían aplicar, según la hora y la característica', () => {
+    const baal = [{ id: 'nightShelter', level: 3 }, { id: 'darkAura', level: 5 }, { id: 'blast', level: 5 }];
+    // Amparo de la noche: de noche y al Combate.
+    expect(autoSuccessOptions(baal, 'combat', true)).toEqual([{ id: 'nightShelter', level: 3 }]);
+    expect(autoSuccessOptions(baal, 'combat', false)).toEqual([]);
+    // Aura sombría: de noche y a la Sutileza (esconderse, moverse en silencio…).
+    expect(autoSuccessOptions(baal, 'subtlety', true)).toEqual([{ id: 'darkAura', level: 5 }]);
+    expect(autoSuccessOptions(baal, 'subtlety', false)).toEqual([]);
+    // Aura: sólo de DÍA y a la Presencia (intimidar o liderar).
+    const marduk = [{ id: 'aura', level: 6 }, { id: 'solarWrath', level: 6 }];
+    expect(autoSuccessOptions(marduk, 'presence', false)).toEqual([{ id: 'aura', level: 6 }]);
+    expect(autoSuccessOptions(marduk, 'presence', true)).toEqual([]);
+    // La Ira solar no da éxitos: suma daño.
+    expect(autoSuccessOptions(marduk, 'combat', false)).toEqual([]);
+    expect(autoSuccessOptions(undefined, 'combat', true)).toEqual([]);
+  });
+  it('la Ira solar suma su puntuación al daño del arma, encima del daño impreso', () => {
+    const o = resolveAction({ own: [6, 4] });          // 1 triunfo + 1 éxito
+    expect(attackDamage(o, 9)).toBe(10);                 // espada de Gabriel: 9 por triunfo + 1
+    expect(attackDamage(o, 9, 3)).toBe(13);              // con Ira solar 3: 12 por triunfo + 1
+  });
+  it('un éxito automático hace 1 punto de daño, como cualquier otro éxito', () => {
+    expect(attackDamage(resolveAction({ own: [4], autoSuccesses: 2 }), 5)).toBe(3);
+  });
+  it('Inmune al dolor: los estados no le restan dados', () => {
+    expect(derived(sheet({ health: 'badlyWounded' })).dicePenalty).toBe(2);
+    expect(derived(creature([{ id: 'painImmune' }], { health: 'badlyWounded' })).dicePenalty).toBe(0);
+  });
+  it('Piel gruesa: armadura natural con protección igual a la puntuación', () => {
+    expect(derived(creature([{ id: 'thickHide', level: 3 }])).protection).toBe(3);
+    expect(derived(sheet()).protection).toBe(0);
+    // Un `jsonb` malformado no revienta la tirada: se ignora.
+    expect(derived(creature(['piel gruesa', null, { id: 'noExiste', level: 9 }])).protection).toBe(0);
+  });
+  /** Ancla terrenal (p.108): mientras exista el ancla, lo que la mataría la deja malherida otra vez. */
+  it('Ancla terrenal: no muere, se queda en malherido', () => {
+    const hit = { fortitude: stat(1), will: stat(1), resistance: 6, health: 'wounded' };   // Aguante 2
+    expect(applyDamage(sheet(hit), 20).health).toBe('dead');
+    expect(applyDamage(creature([{ id: 'earthlyAnchor' }], hit), 20).health).toBe('badlyWounded');
+    // Y la Resistencia baja igual que a cualquiera.
+    expect(applyDamage(creature([{ id: 'earthlyAnchor' }], hit), 20).resistance).toBe(0);
+  });
+  it('Incorpóreo: usa Voluntad en lugar de Fortaleza o Combate, y no se le puede atacar físicamente', () => {
+    expect(incorporealStat('fortitude')).toBe('will');
+    expect(incorporealStat('combat')).toBe('will');
+    expect(incorporealStat('cunning')).toBe('cunning');
+    expect(canBeAttackedPhysically([{ id: 'incorporeal' }])).toBe(false);
+    expect(canBeAttackedPhysically([{ id: 'winged' }])).toBe(true);
+    expect(canBeAttackedPhysically(undefined)).toBe(true);
+  });
+  /** Ponzoña (p.108): ataque APARTE, conflicto Fortaleza de la víctima contra la puntuación. */
+  it('Ponzoña: éxito 1 punto, triunfo tantos como la puntuación, y nada si no vence', () => {
+    // Querubín, Ponzoña 3: 3 dados contra la Fortaleza de la víctima.
+    expect(venomDamage(resolveAction({ own: [6, 4], opposition: [2] }), 3)).toBe(4);
+    expect(venomDamage(resolveAction({ own: [2, 2], opposition: [4, 4] }), 3)).toBe(0);
+  });
+  /** Deflagración (p.108): radio 1 m por punto, −1 dado por metro, reto a dificultad 1. */
+  it('Deflagración: los dados bajan con la distancia y fuera del radio no hay ataque', () => {
+    expect(BLAST_DIFFICULTY).toBe(1);
+    expect(blastReach(5)).toBe(5);
+    expect(blastDice(5, 0)).toBe(5);
+    expect(blastDice(5, 2)).toBe(3);
+    expect(blastDice(5, 5)).toBe(0);
+    expect(blastDice(5, 9)).toBe(0);
+    expect(blastDice(5, -2)).toBe(5);
+    // Baal, Deflagración 5: un triunfo hace 5 puntos y un éxito 1.
+    expect(blastDamage(resolveAction({ own: [6, 4], opposition: [2] }), 5)).toBe(6);
+    expect(blastDamage(resolveAction({ own: [2], opposition: [4] }), 5)).toBe(0);
+  });
+  it('la tirada guarda los éxitos automáticos y la Ira solar entra en el daño', () => {
+    const req = poolFor(sheet(), { stat: 'combat', options: { autoSuccesses: 2, autoSuccessFrom: 'nightShelter', night: true, weaponId: 'bat', weaponDamage: 4, solarWrath: 3, difficulty: 0 } });
+    expect(req.options).toMatchObject({ autoSuccesses: 2, autoSuccessFrom: 'nightShelter', night: true, solarWrath: 3 });
+    const r = resolve(req, [[6, 2, 2, 2]]);
+    expect(r.detail.autoSuccesses).toBe(2);
+    expect(r.detail.ownHits).toBe(3);       // 1 triunfo + 2 automáticos
+    expect(r.detail.damage).toBe(9);        // 1 triunfo × (4 + 3) + 2 automáticos × 1
   });
 });

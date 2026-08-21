@@ -14,6 +14,676 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🔴 PUNTO EXACTO — 2026-08-21: LA COLUMNA 5 ESTÁ CONSTRUIDA. Falta MIRARLA EN LA APP y aplicarla en la nube
+
+Rama **`feat/bestiario`**, árbol **limpio**, HEAD **`fb05fb3`** (la columna 5 es `4caa2de`). **873 tests**
+verdes (602 web + 114 api + 14 core + 16 ui + 127 plenilunio), typecheck de las dos apps, `audit` **0 hard**
+(13 warn: **9 preexistentes y 4 nuevos**, los cuatro de `ui-reuse` por llevar desplegable propio en vez del
+`Modal` compartido —`CreatureRollPopover`, `SheetOverlay`, `TokenAttackModal` y `RollPopover`—, cada uno con
+su justificación escrita en el propio fichero). `build:web` y `build:api` OK.
+**Review pasado**, sus hallazgos ARREGLADOS (abajo), y **QA pasada**: se puede mergear.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: la **columna 5** (el aviso de defensa al jugador) está construida y verde, pero **sin
+> mirar en la app** y **sin aplicar en la nube**. Bloque 🔴 de WORK_STATE.
+
+### ✅ Lo que se ha construido
+- **La migración `20260821000000_dice_attacks.sql` está APLICADA EN LOCAL** — con
+  `supabase migration up --local`, **no** con `db reset`, para no borrarle los datos de prueba al dueño.
+  `db lint --local --level error` limpio. Comprobado a mano: RLS encendida, la política, la publicación de
+  realtime, las tres funciones, y que `authenticated` sólo tiene **SELECT** sobre la tabla (igual que
+  `dice_rolls`) y **ningún** EXECUTE sobre las funciones.
+- **API**: `POST /attacks` (el director abre) y `POST /attacks/:id/answer` (el jugador contesta y la
+  tirada sale ahí mismo). Puerto `IAttackRepository`, adaptador `SupabaseAttackRepo`, caso de uso
+  `application/attacks/answerAttack.ts`. **El autor de la tirada es el DIRECTOR**, no quien contesta.
+- **`rollBody.ts`** (NUEVO): la validación de una `RollRequest` que ahora comparten `/rolls` y `/attacks`.
+  Dos copias de esos límites habrían sido dos verdades.
+- **`TokenAttackModal`**: cuerpo a cuerpo **ya no tira** — abre el ataque a la espera, y lo dice antes de
+  pulsar. A distancia sigue tirando en el acto (es un reto contra el alcance, p.96).
+- **`AttackAlert` + `AttackWatcher`** (dice/ui): el aviso «TE ATACA UN OGRO», con realtime. Separados a
+  propósito — el aviso es una pantalla sin nada dentro y se prueba sin base de datos.
+- **`conflict` en el motor**: el desglose de un ataque cuerpo a cuerpo dice **«Conflicto: N dados de
+  defensa del otro lado» (p.93)** en vez de «Reto a dificultad N» (p.84). Referencia `melee` → 93 nueva,
+  anotada en RULES.md §9. Los dados y las cuentas no cambian ni un pelo.
+- Specs de `dice` y `bestiary` actualizados. El `.pen` **no hacía falta tocarlo**.
+
+### 🛡 LO QUE CAZÓ EL REVIEW Y SE ARREGLÓ EN EL SITIO
+1. **EL AGUJERO GORDO: el techo de dados de defensa vivía SÓLO en el navegador.** Un `{"defence": 40}`
+   mandado a mano le daba **40 dados de defensa** a un personaje con Combate 4 — la API sólo miraba que
+   fuese un entero de 0 a 40. Ahora `answerAttack` **lee la ficha de quien contesta y recorta** con la
+   misma cuenta que pinta la pantalla, y lo recortado es lo que se guarda y lo que se tira. De paso el
+   orden cambió: primero se comprueba quién es y cuánto puede, y sólo después se llama al SQL, para que
+   en `defence_dice` quede lo que de verdad se tiró y no lo que alguien pidió.
+2. **La cuenta ya no está dos veces.** `ownDiceForStat` vive en **`@rolvium/core`** y la usan las dos
+   orillas; el navegador y el servidor no pueden discrepar.
+3. **`GREATEST(0, LEAST(40, defence))` con `defence` NULL daba 40, no 0** — Postgres ignora los NULL en
+   `LEAST`, así que el tope fallaba **hacia arriba**. Arreglado con `COALESCE` en las dos funciones.
+4. **Un director que además lleve un PJ nunca habría visto el aviso**, y un ataque contra un PNJ suyo se
+   habría quedado esperando para siempre sin que nadie lo viera: el aviso se montaba por ROL. Ahora se
+   monta para todos y **descarta lo que no es suyo** mirando de quién es el personaje.
+5. **Un comentario prometía una protección que no existe** (que del `request` «sólo viaja la
+   característica»). Viaja la fila entera y la RLS deja leerla igual: corregido el comentario, que era lo
+   mentiroso, no el código.
+6. Dos claves de i18n muertas fuera, y **`cancelled` documentado como lo que es**: un estado que existe en
+   el CHECK y que **hoy no escribe nadie** (no hay «el director retira el ataque»).
+
+### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
+1. ~~La nube sigue sin la migración~~ — **APLICADA el 2026-08-21 con su permiso** en
+   `scfspsiemikfcnqteonq`. Comprobado allí: RLS encendida, la política, la publicación de realtime, las
+   tres funciones, y que **`authenticated` NO puede ejecutarlas** (son las únicas del proyecto que no
+   salen en el aviso de «SECURITY DEFINER ejecutable por usuarios»). `get_advisors` **igual que antes**:
+   0 CRITICAL, los mismos 21 warn de siempre.
+2. **Nada se ha mirado en la app corriendo.** En esta rama los fallos que se escapan son de ANCHO y de
+   SITIO, y aquí hay una decisión de sitio sin comprobar: **el aviso sale abajo a la izquierda**. Es el
+   único hueco (la derecha entera es el Registro, donde va a caer la tirada; arriba están las barras;
+   abajo a la derecha, el zoom del mapa). **Sin ver.**
+3. **Tres decisiones nuestras, por si quiere otra cosa**:
+   - **Cuántos dados puede gastar**: los que le da su característica **ahora mismo**, o sea Combate
+     **menos la penalización por heridas**. El `.pen` dibuja «tienes Combate 4»; la pantalla dice «tienes
+     Combate: 4 dados», que es lo mismo sano y lo cierto herido. No es una regla nueva: es el mismo
+     puñado que tiraría si actuase.
+   - **El aviso NO se puede cerrar**: ni X, ni Escape, ni pulsar fuera. Como si no contesta la tirada
+     espera indefinidamente (decisión suya), quitárselo de en medio sin querer dejaría la partida parada
+     sin que se note. Las dos salidas son «no me defiendo» y «defenderme».
+   - **Dos respuestas EXACTAMENTE simultáneas tirarían dos veces.** Se eligió a cambio de poder
+     reintentar cuando la tirada falla: una tirada de más se ve en el Registro y no rompe nada; quedarse
+     sin poder contestar no se ve y no se arregla. El comentario de la migración que decía lo contrario
+     estaba mal y se ha corregido.
+   - **Si no se puede leer tu ficha, el servidor RECHAZA la respuesta** y el ataque **sigue esperando**,
+     en vez de aceptarla a ciegas. La pantalla, mientras tanto, te deja «no defenderme».
+4. **El director no ve nada mientras espera** a que el jugador conteste. El `.pen` **no lo diseña**.
+
+### 🟥 DOS COSAS QUE SALIERON AL TOCAR LA NUBE (no las he arreglado: hay que decidirlas)
+1. **A la nube le FALTA `bestiary_entries`.** La migración `20260820000000_bestiary.sql` **nunca se
+   aplicó allí**. O sea que en producción el Bestiario del director no existe: sus encuentros propios no
+   se pueden guardar ni leer. Las criaturas del manual sí funcionan, porque salen del paquete del sistema
+   y no de la base. **No la he aplicado**: es un cambio de esquema que no estaba en lo que se pidió.
+2. **La nube no lleva historial de migraciones.** Antes de hoy, `supabase_migrations` estaba **vacía**
+   —el esquema se aplicó por otro camino— y ahora sólo consta `dice_attacks`. Nadie puede saber por lo
+   que hay en la base qué migraciones han pasado y cuáles no; así es como se llega a que falte una y no
+   se note. Merece una tanda aparte para dejarlas registradas.
+3. **En la nube TODAS las tablas tienen permisos anchos** para `anon` y `authenticated` (es el valor por
+   defecto de Supabase); en local están recortados. Lo que protege los datos es la RLS, que está bien
+   puesta, y `dice_attacks` queda **exactamente igual que sus vecinas** (`dice_rolls` incluida). Es
+   diferencia de antes y no la trae esta tanda; anotado para decidir aparte.
+
+### ⏭ LO SIGUIENTE
+- **Mirarlo en la app corriendo** (Docker + Supabase local + `dev:api` :3001 + `dev:web` :5173), con dos
+  navegadores: director y jugador.
+- **Columna 4**, el panel del director: pedir tirada manteniendo pulsada una característica, y la lista de
+  encuentros de la escena. Es lo que el dueño pidió por su nombre.
+- **El daño sigue sin aplicarse solo**, y el `.pen` **no diseña dónde sale ese número**: dibujarlo antes.
+- **El orden de turnos** (p.92–93): sin él, el coste del próximo turno es sólo texto.
+
+### 🔎 Deuda encontrada y NO tocada
+- **Ciclo de imports en plenilunio** (`engine` ↔ `explain`) — sigue igual.
+- `applyDamage` sólo lo usa la ficha; el daño a un token de criatura no pasa por el motor.
+- **`venomDamage` sigue sin quien lo llame** (la Ponzoña encadena dos tiradas).
+- El desglose de una Deflagración sale vacío (no lleva característica).
+- **`GET /scenes/:id/vision` devuelve 400** en la mesa, tres veces por carga. Preexistente, de `maps`.
+- **En el `.pen`, `Insert` dentro de `A4VWk` no PINTA**; `Copy` de un nodo que ya existe sí.
+
+---
+
+## 🟠 LO ANTERIOR — 2026-08-21, CIERRE POR HANDOFF. Atacar desde el token FUNCIONA; la columna 5 va por la mitad
+
+Rama **`feat/bestiario`**, árbol limpio. **781 tests** verdes (559 web + 77 api + 6 core + 16 ui + 123
+plenilunio), typecheck, `audit` **0 hard** (13 warn). Commits de hoy: `19df088` · `435b46f` · `8fb2fe3` ·
+`0838f0d` · `e23bb75` (el `.pen`, ya guardado y commiteado) · **`c8c79f6`**.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: sigue la **columna 5** del `.pen` (el aviso de defensa al jugador). La migración
+> `20260821000000_dice_attacks.sql` ya está escrita y SIN APLICAR; faltan la API y las dos pantallas.
+> Bloque 🔴 de WORK_STATE.
+
+### ✅ Lo que ya funciona
+- **Bestiario entero**: 57 bloques con sus ataques impresos, las 15 capacidades como dato y el motor
+  aplicándolas. El desplegable de tirar las ofrece (casilla de noche incluida) y la Deflagración se tira.
+- **Atacar desde el token** (`.pen` columna 6): seleccionas la criatura en la escena → **ATACAR** en la barra
+  del token → a quién, cuántos dados, y fuera. El mapa mide la distancia (1 casilla = 1,5 m): hasta 3 m es
+  cuerpo a cuerpo, más lejos sale el alcance con su dificultad (p.96) y pasado el muy largo el botón se apaga.
+- **La hora la manda el mapa**: `scene.lighting` decide qué capacidades ofrece el ataque (Amparo de la noche
+  de noche, ninguna nocturna de día). Aviso del dueño, 2026-08-21.
+- **Arreglado**: las copias viejas del manual («Aamel (2)») salían mudas por no tener capacidades guardadas.
+
+### ⏭ LA COLUMNA 5, PASO A PASO (es lo siguiente)
+`.pen` `oSBrx` «Columna · defensa» → `Aviso/Te atacan`. Lo que falta, en orden:
+1. **Aplicar la migración** `supabase/migrations/20260821000000_dice_attacks.sql` (escrita, NO aplicada).
+   Local: `npm run db:reset`. En la nube hay que **preguntarle al dueño antes** (proyecto `scfspsiemikfcnqteonq`).
+   Después: `supabase db lint --local --level error` y `get_advisors` sin CRITICAL nuevos.
+2. **API** (`apps/api`): `POST /attacks` (el director abre el ataque; llama a `dice_open_attack`) y
+   `POST /attacks/:id/answer` (el jugador contesta; llama a `dice_answer_attack`, mete los dados de defensa
+   como grupo `opposition` en la petición guardada, tira, escribe en `dice_rolls` con `dice_commit_roll` y
+   cierra con `dice_close_attack`).
+3. **`TokenAttackModal`**: cuando es CUERPO A CUERPO, en vez de tirar, abre el ataque pendiente. A distancia
+   sigue tirando en el acto — es un reto contra el alcance y no hay a quién preguntar.
+4. **Pantalla del jugador** (nueva, `.pen` columna 5): «TE ATACA UN OGRO», elegir 0..Combate dados de
+   defensa, botones «No defenderme» / «Defenderme». Llega por realtime (`dice_attacks` ya está en la
+   publicación). Si no contesta, **la tirada espera**: nadie la resuelve por él (decisión del dueño).
+5. La nota del coste («los que gastes se te quitan del próximo turno», p.94) es **texto**: no hay sistema de
+   turnos y no se va a inventar aquí.
+
+### ⏭ Y DESPUÉS
+- **Columna 4**, el panel del director: pedir tirada a los jugadores manteniendo pulsada una característica,
+  y la lista de encuentros de la escena. Es lo que el dueño pidió por su nombre.
+- **El daño no se aplica solo** y el `.pen` **no diseña dónde sale ese número**: hay que dibujarlo antes.
+
+### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
+- **La migración no está aplicada**: en la nube se aplica con su permiso, no por nuestra cuenta.
+- **Tres lecturas nuestras** anotadas: los éxitos automáticos cuentan para el revés y hacen 1 punto de daño
+  (RULES.md §7.b.1), y **cuerpo a cuerpo hasta 3 m** (dos casillas), que el libro no dice porque no juega
+  en rejilla.
+- **Nathael imprime Aguante 4** con For 7 + Vol 5 = 12 (RULES.md §8.0).
+- El **Review Agent NO se ha lanzado** en toda la sesión: estaba prohibido usar subagentes.
+- **Nada se ha mirado en la app corriendo** todavía. En esta rama los fallos que se escapan son de ancho.
+
+### 🔎 Deuda encontrada y NO tocada
+- **Ciclo de imports en plenilunio** (`engine` ↔ `explain`).
+- `applyDamage` sólo lo usa la ficha de personaje; el daño a un token de criatura no pasa por el motor.
+- **`venomDamage` sigue sin quien lo llame** (la Ponzoña encadena dos tiradas).
+- El desglose del Registro de una Deflagración sale vacío (no lleva característica).
+- **En el `.pen`, `Insert` dentro de `A4VWk` no PINTA** (ocupa sitio y sale en blanco); `Copy` de un nodo que
+  ya existe sí. Por eso la fila de capacidades del modal de atacar se hizo copiando la del desplegable de
+  tirar. Si hay que añadir algo más a ese frame, copiar, no insertar.
+
+## 🟢 PUNTO EXACTO — 2026-08-21: COLUMNA 3 TERMINADA Y MIRADA EN LA APP
+
+Rama **`feat/bestiario`**, árbol **limpio**, todo verde: **717 tests** (516 web + 77 api + 6 core + 16 ui
++ 102 plenilunio), typecheck, `audit` **0 hard** (12 warn, todos preexistentes y en ficheros que no se
+tocaron), ambas apps compilando. **Review pasado.**
+Commits: `375a46c` (columnas 1 y 2) · `37cad40` (arreglos del dueño) · `89f8085` (el contrato del
+desglose) · **`138d614`** (la columna 3, entera) · **`3fb0e0e`** (los tres fallos que salieron al mirarla).
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: la columna 3 de las tiradas está terminada y mirada en la app (bloque 🟢 de
+> WORK_STATE). Sigue con lo que decida el dueño: las columnas 4 y 5 del `.pen`, o cerrar el despliegue.
+
+### ✅ MIRADO EN LA APP CORRIENDO (2026-08-21) — y salieron TRES fallos
+Ningún test los cazaba, como siempre en esta rama. Los tres son de **ancho**: el panel del Registro mide
+**235 px**, no los 372 que dibujó el `.pen`. Arreglados en `3fb0e0e`:
+1. El título de la entrada se comía a sí mismo («KAREN SINCLAIR · …»). La cabecera ahora **envuelve**.
+2. El rótulo «CÓMO SALIÓ ESTA TIRADA» se partía en **cuatro líneas**. La referencia del manual baja debajo.
+3. **El grave**: el desglose de las entradas de arriba se abría hacia arriba, donde no hay nada, y quedaba
+   **entero fuera** de la ventana del panel (282 px cortados, medido). Las **tres primeras** ahora se abren
+   hacia abajo. Tres porque el desglose mide ~240 px y una entrada ~84: de la cuarta en adelante ya cabe.
+
+**Comprobado posición por posición** con la app delante: entradas 1, 2, 4, 5, 11, 49 y 50 caben enteras;
+la 3 se pasa **7 px** por abajo, que se alcanzan desplazándose. Con el **teclado** cabe entera desde la
+primera. El desglose de una tirada nueva sale literal como el `.pen`:
+`4 Combate − 1 por herido = 3 dados` · `Reto a dificultad 3 (p.84)` · `LO QUE SE APLICÓ` ·
+`Especialidad «Armas improvisadas» — no aplicada por el director (p.83)` ·
+`1 éxito contra 1 de dificultad = resultado ambiguo`.
+
+**Ojo con las tiradas viejas**: las de antes de `138d614` no llevan guardado lo que sabía la ficha, así
+que su desglose dice «3 dados» en vez de «4 Combate − 1 por herido = 3 dados» y «Armadura» en vez de
+«Chaleco antibalas». **Es el comportamiento correcto** (callar en vez de inventar), no un fallo. Las
+tiradas nuevas salen completas.
+
+### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
+**«A cubierto» del `.pen` se ha dejado FUERA a propósito.** Ponerse a cubierto (p.96) no existe en el
+código, así que una línea que sólo puede decir «no» para siempre miente. Es lo único del `.pen` que no
+se ha construido, y entra cuando entre la regla. **Decisión suya si quiere otra cosa.**
+
+### ✅ Lo que se construyó (todo con test, todo verde)
+- **`packages/system-plenilunio/src/explain.ts`** (NUEVO) — el desglose. `head` (de dónde salieron los
+  dados · la Reserva · contra qué se tiró), `applied` (especialidad · el arma · la armadura · el don) y
+  `verdict`. Páginas leídas de `references.ts`, que ya es la única verdad probada contra RULES.md §9.
+  Devuelve **`null`** para tiradas libres y peticiones sin característica.
+- **`locales.ts`** — `roll.explain.*` en es Y en. Singular y plural son frases distintas (`hit`/`hits`,
+  `armourOn`/`armourOnMany`), no un «triunfo(s)»: el desglose se lee, no se descifra.
+- **`catalogs.ts`** — `specialtyById` (busca en las de jugador y en las de criatura).
+- **`engine.ts`** — engancha `explain`. Y el **test de la deuda** del commit anterior (los campos nuevos
+  de `detail`, y que sólo se guardan cuando `resolve` recibe la ficha).
+- **El nombre del personaje**: `characterName` en la entidad `Roll`, join
+  `character:characters!dice_rolls_character_id_fkey ( name )` en `SupabaseRollLogRepo`, `who` en
+  `describeRoll`. **Verificado contra la RLS**: `characters_select` deja a cualquier miembro leer los PJ
+  de su campaña; un PNJ que el jugador no ve devuelve `null` y la entrada se queda como estaba —
+  **nunca** cae en el nombre de la cuenta.
+- **`RollBreakdown.tsx`** (NUEVO) + `.dc-tip*` en `dice.css`. Reutilización declarada: **NEW
+  (module-specific)** — el `Tooltip` de `@rolvium/ui` sólo acepta `label: string` y esto es un panel con
+  secciones. Precedente de la casa `.rv-sheet-tip`: CSS puro, `:hover` + `:focus-within`, sin estado ni JS.
+- **Token nuevo `--sys-gold-hi` (#c9a44e)** — el dorado para fondo oscuro que el propio `theme.ts` dejaba
+  anotado como pendiente «hasta que tenga consumidor». Su consumidor es el rótulo «LO QUE SE APLICÓ»
+  (`--sys-gold` sobre tinta da 3,95:1 y no llega; éste da 7,89:1). **Sólo para fondo oscuro**: sobre
+  papel da 1,72:1 y ahí sigue mandando `--sys-gold`.
+- `specs/modules/dice/SPEC.md` actualizado. El `.pen` no hacía falta tocarlo.
+
+### ⚠️ Cómo se coloca el desglose (por si hay que tocarlo)
+`.dc-tip` es `position:absolute` dentro de `.dc-log-scroll`, que tiene `overflow-y:auto` y por tanto
+**recorta**. Por defecto se abre **hacia arriba** —el Registro sigue la tirada más nueva, que está abajo,
+y ahí es donde hay sitio—, y las **tres primeras** hacia abajo, porque encima de ellas no hay nada.
+Además: `scroll-padding-block-start:180px` en el panel (deja hueco al llegar con el teclado) y
+`max-height:60vh` en el desglose. Todo CSS, sin JS. **Ya no hay ningún caso que se pierda entero.**
+Si algún día el desglose crece mucho o el panel se estrecha más, el número `3` de
+`.dc-entry:nth-child(-n+3)` es lo que hay que revisar.
+
+### 🔎 Deuda encontrada y NO tocada (decidir aparte)
+- **Ciclo de imports en plenilunio**: `engine.ts` importa `explain`, y `explain.ts` importa `readOptions`
+  de `engine.ts`. Funciona porque `readOptions` sólo se llama dentro de una función, nunca arriba del
+  módulo; un uso futuro en el top level daría TDZ. Se arregla moviendo `readOptions` (una línea) a
+  `schema.ts`. **Fuera del alcance de esta tanda.**
+- **Las tiradas de criatura no traen ficha**, así que su desglose enseña «4 dados» en vez de «4 Combate».
+  Es el camino honesto de «callar en vez de inventar», pero se puede mejorar pasándole el bloque de la
+  criatura a `resolve`. **Sin decidir.**
+- El `verdict` es un `string` pelado en el contrato `RollExplain`: no tiene hueco para su página, así que
+  la p.85 no llega a la línea «Manual · …». Limitación del contrato, no un fallo.
+- Un `test:regression` salió 1/470 en rojo una vez, con dos suites corriendo a la vez, y verde en seis
+  pasadas seguidas después. Huele a timeout por contención, no a fallo de este diff. **Anotado.**
+- **`GET /scenes/:id/vision` devuelve 400** en la mesa, tres veces por carga (visto en la consola del
+  navegador al probar esto). Es de `maps`, **preexistente y ajeno a esta tanda**, y no rompe nada visible
+  — pero está ahí. **Sin tocar.**
+
+---
+
+## 🟡 LO ANTERIOR DE ESTA SESIÓN — columnas 1 y 2, terminadas y miradas en pantalla
+
+Rama **`feat/bestiario`**, árbol limpio, todo verde: **683 tests** (506 web + 77 api + 6 core + 16 ui
++ 78 plenilunio), typecheck, `audit` **0 hard**, ambas apps compilando. Commits: `375a46c` (columnas 1 y 2)
+y `37cad40` (los dos arreglos que pidió el dueño probando).
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: las columnas 1 y 2 de las tiradas ya están; construye la columna 3 (`Panel/Registro` +
+> `Tooltip/Desglose`) del `.pen` `v3vfV`, siguiendo el bloque 🟢 de WORK_STATE.
+
+### ✅ Columnas 1 y 2 — el desplegable de tirar
+Mirado en la app corriendo con la mesa real, no sólo en tests: el texto sale **palabra por palabra igual
+que el `.pen`** («TIRAR · ASTUCIA / Manual · p.82 / DADOS QUE TIRAS / tu Astucia 4, menos 1 por herido /
+DADOS DE LA RESERVA DE DESTINO p.88 / quedan 10 en la mesa / + dados extra: 0 / TIRAR 3»), y la tirada
+llega a la base con 3 propios + 2 de Destino + 3 de oposición, con la reserva bajando de 10 a 8.
+
+- **`characters/ui/RollPopover.tsx`** (+test, 10) y **`characters/domain/useCases/rollIntent.ts`** (+test, 8).
+- **`packages/ui/Sheet.tsx`**: `onAction` gana un 4.º argumento opcional con el **rectángulo del botón**
+  pulsado. Es lo único que hacía falta para que el desplegable nazca pegado a él. Retrocompatible.
+- **Abre en**: TIRAR de una característica y la acción de un arma. **NO abre** en activar un don ni en
+  recargar — el `.pen` no las diseña y se dejaron exactamente como estaban.
+- **Nada sabe de Plenilunio**: los alcances salen del catálogo **`ranges`** (nuevo: alcance → dificultad,
+  en orden, p.95–96) con la referencia **`ranged` p.96** (también nueva, anotada en RULES.md §9); la
+  penalización por heridas sale de `healthLevels`; la reserva de `engine.sharedResources`, incluido su
+  `blockedIf` (con Destino 10 no se ofrece y se dice por qué).
+- **Los dados de la reserva se COGEN de la mesa al confirmar** (`takeResource`/`returnResource`, los
+  mismos de la barra), porque el servidor sólo deja tirar los que ya están en la mano. `TablePage` arma
+  el `SharedPoolHandle` y sólo para quien PUEDE coger: al director no se le pinta esa parte.
+- Dos cosas que sólo se vieron en pantalla: el título del arma se partía en dos líneas (era `--fs-xs` con
+  .16em; el `.pen` usa 11 px y 1.4 → `--fs-2xs` y .12em), y el desplegable se iba arriba sin necesidad
+  porque el alto estaba SUPUESTO; ahora se **mide** una vez pintado.
+
+### ⚠️ Lo que queda del encargo (el resto de `v3vfV`)
+La tabla de seis columnas del bloque de abajo sigue valiendo entera. **Siguiente: la columna 3**
+(`Panel/Registro` + `Tooltip/Desglose`), que **no necesita base de datos**. Después va el **paso de DBA**
+(una tabla para peticiones de tirada y ataques pendientes) y con él las columnas 4, 6 y 5.
+
+⚠ **El bloque «Tirada» de la ficha SIGUE AHÍ a propósito.** Hoy es de donde `poolFor` saca la dificultad
+del reto; quitarlo antes de que exista el panel del director dejaría las tiradas **sin oposición ninguna**.
+Se va junto con la columna 4, no antes.
+
+### 🔧 Los dos arreglos que pidió el dueño probando (`37cad40`)
+1. **La Munición no pasa del cargador.** El contador subía sin fin. Ahora el techo es el cargador y es
+   **por fila** (magnum 6, rifle 30). `FieldDef` gana `maxForRow`, opcional y sólo para columnas de tabla.
+   Se capa la subida y nunca la bajada. ⚠ El **traspaso al recargar YA estaba capado** y no se tocó
+   (cargador vacío + 100 en Munición → mete 30 y deja 70); lo que faltaba era el techo del contador.
+   Elección del dueño entre tres opciones: techo = **un cargador**, no varios.
+2. **Destino · Fortuna · Experiencia centrados** respecto a la tarjeta, en su propia fila. Sueltos en la
+   rejilla caían en tres celdas de una fila de cuatro y «Destino» quedaba contra el borde izquierdo,
+   mientras los calculados de debajo iban centrados. `groupTiles` → **`groupRuns`**, que agrupa las tandas
+   seguidas del mismo tipo (`rv-sheet-tiles` y `rv-sheet-counters`).
+
+### 🧰 Cómo mirarlo
+Docker + Supabase local + `dev:api` :3001 + `dev:web` :5173.
+`http://localhost:5173/table/8f506705-e348-415c-82a9-5a37e2c0ce51` · `admin@rolvium.local` / `rolvium123`.
+Capturas: **`node shot-tiradas.mjs`** desde `apps/web` → `/tmp/tir-caracteristica.png`, `/tmp/tir-disparar.png`,
+`/tmp/tir-disparar-cerca.png`.
+⚠ El admin es **director** en esa campaña, así que no ve la pestaña «Ficha» ni la reserva en el
+desplegable (la reserva es de los jugadores, p.88). Para mirarlo como jugador, en el Postgres local:
+`set session_replication_role = replica; update campaigns_members set role='player' …` — y **volver a
+dejarlo en `dm` al terminar**.
+
+### ⚠️ Sigue pendiente, igual que antes
+**Review y QA NO se han pasado** en esta rama. Antes de mergear hay que pasar `/review` y `/qa`, y el hook
+de QA lo bloquea igualmente. Lo demás de «Pendiente de decidir» del bloque de abajo sigue en pie.
+
+---
+
+## 🟡 PUNTO ANTERIOR — 2026-08-21, cierre por handoff (el encargo, entero)
+
+Rama **`feat/bestiario`**, árbol **limpio**, todo verde: **664 tests** (487 web + 77 api + 6 core + 16 ui
++ 78 plenilunio), typecheck, `audit` 0 hard, ambas apps compilando. Últimos commits: `2c70075`, `8e4a55f`,
+`000f758`.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: construye las tiradas y el panel del director del `.pen` (nodo `v3vfV`) siguiendo el
+> bloque 🟢 de WORK_STATE al pie de la letra, empezando por las columnas 1 y 2.
+
+### ⚠️ Por qué se cerró
+Saltó el hook de context-handoff (14,2 MB de transcripción, umbral 6). Se había empezado la columna 1 y se
+**revirtió a propósito** para no dejar la rama en rojo: el cambio en `packages/ui/src/components/Sheet.tsx`
+rompía `tests/functional/sheet-component.test.tsx` y el gate ya no dejaba tocar el test. **No hay nada a
+medias en el árbol.**
+
+---
+
+## 🎲 LO SIGUIENTE — el encargo del dueño, literal
+> «Ahora continúa con esta parte de las tiradas y el panel del DM, Node ID: v3vfV, sigue el diseño al pie
+> de la letra en el .pen, no quiero que inventes.»
+
+**El spec YA lo describe entero** en [specs/modules/dice/SPEC.md](specs/modules/dice/SPEC.md), sección «Cómo
+se lanza una tirada, y el panel del director». **El diseño está entero** en `rolvium.pen`, frame `v3vfV`
+«Mesa/Tiradas · rediseño — quién ve qué». No hace falta spec nuevo ni diseño nuevo: hace falta construirlo.
+
+### 🚨 EL DATO QUE CAMBIA EL ORDEN — leer antes de planificar
+`v3vfV` son **SEIS columnas**, no una pantalla. **Tres necesitan tabla nueva** porque son mensajes entre dos
+personas, y hoy no existe ninguna: el director pide una tirada a un jugador; la criatura ataca; el jugador
+contesta defendiéndose. Eso es **paso de DBA + migración + realtime + RLS**, no sólo UI.
+
+| # | Columna (`.pen`) | Quién lo ve | ¿Necesita base? |
+|---|---|---|---|
+| 1 | `Popover/Tirar` (característica) | jugador | **No** |
+| 2 | `Popover/Disparar` (arma) | jugador | **No** |
+| 3 | `Panel/Registro` + `Tooltip/Desglose` | los dos | **No** |
+| 4 | `Panel/Director` | sólo director | **SÍ** (peticiones de tirada) |
+| 5 | `Aviso/Te atacan` | jugador atacado | **SÍ** |
+| 6 | `Modal/Atacar con el token` | sólo director | **SÍ** |
+
+**Orden recomendado:** 1 y 2 → 3 → DBA (una tabla para peticiones/ataques pendientes) → 4 → 6 → 5.
+
+### 📐 El diseño, ya extraído del `.pen` (no hace falta releerlo)
+
+**Columna 1 · `Popover/Tirar`** — «1 · TIRAR UNA CARACTERÍSTICA»
+- Head: «TIRAR · ASTUCIA» + ref «Manual · p.82»
+- Rótulo «DADOS QUE TIRAS» · contador `[−] 3 [+]` · «tu Astucia 4, menos 1 por herido»
+- Rótulo «DADOS DE LA RESERVA DE DESTINO» + ref «p.88» · chips `0 1 2 3 4 5` · «quedan 10 en la mesa»
+- Pie: «+ dados extra: 0» · botón «TIRAR 3»
+
+**Columna 2 · `Popover/Disparar`** — «2 · DISPARAR UN ARMA»
+- Head: «DISPARAR · REVÓLVER MAGNUM .44» + ref «Manual · p.96»
+- «DADOS QUE TIRAS» · contador · «tu Combate 4, menos 1 por herido»
+- Rótulo «ALCANCE» + ref «lo mide el mapa · p.96» · dos filas:
+  `CORTO · 2` `MEDIO · 3` / `LARGO · 5` `MUY LARGO · 6`  ← son `RANGE_DIFFICULTY` de `catalogs.ts`, ya existe
+- «DE LA RESERVA DE DESTINO» + «p.88» · chips `0…5`
+- Pie: botón «DISPARAR · 3 DADOS»
+
+**Columna 3 · `Panel/Registro` + `Tooltip/Desglose`** — «3 · EL REGISTRO: QUIÉN TIRÓ, Y EL DESGLOSE AL PASAR POR ENCIMA»
+- Entrada: avatar + «KAREN SINCLAIR» + «· MAGNUM .44» + marcador «1—2»; dados propios, «vs», dados de
+  oposición; grado: «No consigue lo que se propone por muy poco (grado de fallo 1).»
+- Tooltip al pasar por encima: «CÓMO SALIÓ ESTA TIRADA» + «Manual · p.82 y p.96»
+  `4 Combate − 1 por herido = 3 dados` / `Reto a dificultad 3 · alcance medio (p.96)`
+  Rótulo «LO QUE SE APLICÓ» y las líneas: especialidad no aplicada por el director (p.83) · el arma no suma
+  a distancia (p.96) · chaleco antibalas → 1 triunfo pasa a éxito normal (p.98) · a cubierto.
+- **Nota del `.pen`:** «El desglose sale al pasar por encima de la tirada, como en Roll20. Debajo no va nada:
+  el registro se lee de un vistazo.»
+
+**Columna 4 · `Panel/Director`** — «4 · EL PANEL DEL DIRECTOR — EL MISMO LANZADOR, EXPANDIDO»
+- Head «LANZADOR · DIRECTOR» + icono `unfold_less` (**es el lanzador que ya existe, expandido — NO una
+  ventana nueva**).
+- «¿A QUIÉN LE PIDES LA TIRADA?» + «puedes marcar varios» · chips `KAREN` `ELÍAS` `NIX` `A TODOS`
+- «MANTÉN PULSADA UNA CARACTERÍSTICA» + «y elige la dificultad sin soltar · p.84» · las 7 a **ancho igual**,
+  dos filas de tres y la séptima **centrada** · desplegable pegado al botón:
+  `FÁCIL · 1` `MEDIA · 2` `DIFÍCIL · 3` `MUY DIFÍCIL · 5` `ÉPICA · 6`
+  **Nota del `.pen`: «Sueltas encima de la dificultad y la petición sale. Sin botón de confirmar.»**
+- Casilla «Le vale su especialidad — lo decides tú (p.83)»
+- Plegable «ENCUENTROS EN LA ESCENA · 4» + «+ AÑADIR» + flecha. Cada fila: token con iniciales, nombre con
+  **lápiz para renombrar en la propia fila** («EL DE LA PUERTA» en vez de «Hambriento (2)»), sub
+  «Resistencia 30 · protección 3 · p.152», botón «ATACAR», flecha de desplegar. Desplegado: las 7
+  características en cajitas (`FOR 8`, `COM 4`…) y «Otras tiradas» con chips de característica.
+  **Nota: «Al desplegar uno se cierra el que estuviera abierto»** y «el token que se tira al mapa se añade solo».
+
+**Columna 5 · `Aviso/Te atacan`** — «5 · LE SALTA AL JUGADOR CUANDO LE ATACAN»
+- Head icono `swords` + «TE ATACA UN OGRO»
+- Sub: «Cuerpo a cuerpo con 4 dados de Combate. Es un conflicto: los dados que pongas son tu defensa y tu
+  ataque a la vez (p.93).»
+- «¿CUÁNTOS DADOS DE COMBATE GASTAS?» + «p.93» · chips `0 1 2 3 4` + «tienes Combate 4»
+- Coste (icono `schedule`): «Los que gastes se te quitan del próximo turno: con 2 te quedarán 2 para actuar.
+  Si gastas los cuatro, pierdes el turno; si ya los gastaste todos, quedas indefenso (p.94).»
+- Pie: «NO ME DEFIENDO» · «DEFENDERME · 2 DADOS»
+- **Nota: «Si el jugador no contesta, la tirada espera: nadie la resuelve por él (decisión del dueño). A
+  distancia NO aparece este aviso — es un reto contra la dificultad del alcance, y lo que el jugador puede
+  hacer es ponerse a cubierto (p.96).»**
+
+**Columna 6 · `Modal/Atacar con el token`** — «6 · TOCA EL TOKEN DE LA CRIATURA EN EL MAPA Y ATACA CON ELLA»
+- Head: token «OG» + «OGRO» + «Combate 4 · Resistencia 30 · protección 3 · p.152»
+- «A QUIÉN ATACA» · chips `KAREN` `ELÍAS` `NIX`
+- «Karen está a 2 casillas: cuerpo a cuerpo. Lo mide el mapa.»
+- «DADOS QUE PONE» · contador `[−] 4 [+]` · «de su Combate 4 · puede repartirlos entre varios (p.94)»
+- Pie: «ATACAR A KAREN»
+- **Nota: «Así da igual cuántas criaturas haya en la escena: no hay lista que crezca… el mapa ya sabe a qué
+  distancia está cada jugador — o sea que también sabe si es cuerpo a cuerpo o un disparo, y con qué
+  dificultad.»**
+
+### 🔑 Reglas del spec que NO se pueden saltar
+- **El jugador NUNCA elige la dificultad de su propio reto** (p.84).
+- **La especialidad la marca el DIRECTOR, no el jugador** (p.83).
+- **En el modal del jugador NO van leyendas de «esto ya lo sabe la ficha»** (dueño, 2026-08-20: «mataban la
+  pantalla»). Sólo dos controles: cuántos dados y cuántos de la reserva; en un disparo, además el alcance.
+- **Criatura contra el entorno = reto, lleva dificultad. Criatura contra un jugador = conflicto y NO lleva
+  dificultad**: los dados del otro lado los pone el jugador al defenderse.
+- **Las tiradas del director para sí mismo NO van en este panel**: van en el lanzador que ya existe.
+- **El bloque «Tirada» de la ficha DESAPARECE** (`schema.ts`, sección `roll`: dificultad/especialidad/
+  armadura/extra). ⚠ **OJO CON EL ORDEN**: hoy `poolFor` saca la dificultad de ahí (`rollBlockOptions`). Si
+  se quita ANTES de que exista el panel del director, las tiradas de reto se quedan **sin oposición
+  ninguna**. Quitarlo va junto con la columna 4, no antes.
+
+### 🧭 Cómo empezar la columna 1 (lo que ya estaba hecho y se revirtió)
+1. `packages/ui/src/components/Sheet.tsx` — `onAction` gana un 4.º parámetro opcional `anchor?: DOMRect`, y
+   los botones pasan `e.currentTarget.getBoundingClientRect()`. Retrocompatible. **Hay que actualizar
+   `apps/web/tests/functional/sheet-component.test.tsx`**, que comprueba los argumentos exactos de
+   `onAction` — eso fue lo que puso la rama en rojo.
+2. `CharacterSheetView.tsx` (`onAction`, línea ~50) hoy **tira directamente**. Debe abrir el popover y tirar
+   sólo al confirmar.
+3. El popover necesita el estado de la Reserva de Destino para «quedan 10 en la mesa»: vive en el snapshot
+   de la mesa (`resources.destiny`), y hoy `CharacterSheetView` sólo recibe `rollOptions`. Hay que bajarlo
+   desde `TablePage` → `SheetTab` → `CharacterSheetView`. En la ficha aparte (`/characters/:id`) no hay
+   mesa: sin reserva, esa sección no se pinta.
+4. Precedente de popover que el dueño YA aprobó: `bestiary/ui/CreatureRollPopover.tsx` + `.bs-pop` en
+   `bestiary.css` (sale sobre su ficha, captador invisible, Escape). **No usar overlay a pantalla completa.**
+
+---
+
+## 🟢 PUNTO EXACTO — 2026-08-21 (noche): los CUATRO rechazos del Bestiario, ARREGLADOS y mirados en pantalla
+
+Rama **`feat/bestiario`**. Los cuatro puntos que el dueño rechazó por la mañana —MÁS cinco que vio probando por la
+noche— están hechos, comprobados en la app corriendo y con tests. **661 tests verdes** (477 web + 77 api + 6 core + 16 ui + 78 plenilunio),
+typecheck limpio, `audit` **0 hard**, `build:web` y `build:api` en verde.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: el Bestiario tiene los cuatro rechazos arreglados y sin mergear — pásale Review y QA,
+> y decide lo que queda anotado en «Pendiente de decidir» del bloque 🟢.
+
+---
+
+### ✅ Los cuatro, uno a uno
+
+1. **«respeta el diseño, no has leído el .pen»** → **`SheetOverlay.tsx`**, hoja de pergamino propia que
+   replica `PL/Hoja` del `.pen`: papel `--sys-card`, filete `--sys-border`, sombra del sistema, rótulo en
+   versalitas con línea debajo y el texto de origen a la derecha («Propio · manual p.152» = «Titulo
+   Derecha» del `.pen`). Sustituye al `Modal` de plataforma en las tres fichas.
+2. **«te abre el lanzador avanzado de dados, no lo que establecimos»** → **construido** (el dueño eligió
+   construirlo, no quitar el botón). Ver abajo.
+3. **«Nuevo PNJ con ficha… es horrible, ¿por qué no usaste la que está hecha?»** → **sí era** la que está
+   hecha (`<Sheet>` de `@rolvium/ui`); lo que la estropeaba era el `Modal` negro alrededor. Con el
+   pergamino se ve lo que es. **No se tocó `<Sheet>`.**
+4. **«las letras de todo más oscuras y con más cuerpo»** → hecho en el Bestiario **y en toda la mesa**.
+
+### 🎯 LA CAUSA RAÍZ, confirmada mirando el código
+El `Modal` de `@rolvium/ui` pinta el panel en `var(--sf)` (chrome oscuro) sobre scrim `rgba(0,0,0,.6)`. Como
+`--sys-card` es **traslúcido** (alfa 80), el papel sobre ese negro salía sucio y el texto ilegible. Por eso
+un solo arreglo cerró los rechazos 1 y 3. **No se tocó `Modal`** —lo usa toda la plataforma y ahí está
+bien—: se dejó de usar dentro de la mesa, mismo precedente que `EncounterMenu`, `DiceRoller` y
+`BackgroundPopover`.
+
+### 🐞 DOS FALLOS REALES que sólo aparecieron al mirar la app (no los cazaba ningún test)
+- **`--sp-xs` / `--sp-sm` / `--sp-md` NO EXISTEN en el repo.** Sólo los usaba `bestiary.css`, 20 veces, y
+  nadie los define: el navegador tiraba la declaración y **todos los `gap` y `padding` de la pestaña salían
+  a cero**. De ahí el amontonamiento. Pasados a px (6/10/16), que es la convención de la casa (`table.css`,
+  `sheet.css` ya lo hacen así).
+- **`.bs-btn[aria-pressed='true']` le ganaba en especificidad a `.bs-btn-on`**, así que el botón elegido
+  salía con filete en vez de relleno de tinta — no se veía cuál estaba marcado. Arreglado con
+  `.bs-btn.bs-btn-on`. Compilaba y pasaba los tests igual: sólo se veía en pantalla.
+
+### 🎲 La tirada de criatura (rechazo 2) — construida
+`ui/CreatureRollPopover.tsx` + `domain/useCases/creatureRoll.ts`, diseño en el `.pen`
+«Bestiario/Tirar por una criatura · popover» (creado en esta sesión).
+- **No duplica la matemática**: arma la ficha que el motor sabe leer y delega en `engine.poolFor`.
+- Sin penalización por heridas (la criatura lleva Resistencia, no salud) · **nunca** coge dados de la
+  Reserva de Destino (es de los jugadores, p.88) · un **PNJ aliado tira con su ficha de personaje**.
+- Una característica **ausente no se ofrece**: el manual deja bloques sin publicar enteros.
+- **Comprobado de punta a punta contra la API real**: `POST /rolls → 200` y en el Registro aparece
+  **«AAMEL · COMBATE»** con sus 8 dados contra la dificultad. Antes ponía «3D12 · GAME MASTER ROOT».
+
+### 🔠 Las letras (rechazo 4)
+La norma, ya escrita en `bestiary.css` y `table.css`: **el texto que se LEE va en `--sys-ink-soft` y con
+`font-weight:500`; nunca en `--sys-ink-dim`**, que queda para filetes y adornos grandes. Las dos veces
+anteriores se intentó bajando sólo el color del token y no bastó — **el problema es el PESO**, porque
+Cormorant Garamond es una romana de trazo fino.
+Tocados: `bestiary.css` entero · `table.css` (`.tb-dim`, `.tb-placeholder`) · `maps.css` (`.mp-enc-sub`) ·
+`packages/ui/src/components/sheet.css` (6 reglas) · `characters.css` (7 reglas).
+
+### 📄 Ficheros
+**Nuevos:** `bestiary/ui/SheetOverlay.tsx` (+test, 8) · `bestiary/ui/CreatureRollPopover.tsx` (+test, 8) ·
+`bestiary/domain/useCases/creatureRoll.ts` (+test, 10) ·
+`tests/regression/bestiary-sheets-on-parchment.test.tsx` (5).
+**Modificados:** `EntrySheetModal.tsx` · `NpcSheetModal.tsx` · `PhotoModal.tsx` · `BestiaryTab.tsx` (+test) ·
+`bestiary.css` · `TablePage.tsx` · `table.css` · `maps.css` · `characters.css` · `sheet.css` ·
+`locales/{es,en}.json` · `specs/modules/bestiary/SPEC.md` · `rolvium.pen` · `apps/web/shot-bestiary.mjs`.
+
+### 🔁 SEGUNDA VUELTA — cinco cosas más que el dueño vio probando (2026-08-21, noche)
+Todas arregladas y comprobadas en la app corriendo.
+
+1. **La foto salía recortada.** `.bs-card-photo` iba con `object-fit: cover`. El fichero subido está
+   intacto (el compresor escala por el lado largo), así que era sólo al pintarla. Ahora `contain`.
+2. **El desplegable de tirada parecía otra pantalla** («no es un modal, me abre una vista nueva… lo tiene
+   que abrir sobre la card»). Reusaba el pergamino a pantalla completa de `SheetOverlay`. Ahora es un
+   popover DENTRO de su propia ficha (`.bs-card` es `relative`, el popover `absolute`): arranca en su
+   esquina y crece hacia abajo, así que el catálogo se sigue viendo y el botón «Tirar» no queda fuera.
+   Cierra con Escape y con un captador **invisible** — un velo opaco lo volvería a convertir en pantalla.
+3. **«Colocar» no colocaba.** Sólo cambiaba de pestaña. Ahora manda la criatura ya elegida a la escena
+   (`armEncounter` / `onArmed`), sale el aviso «Coloca a X: haz clic en el mapa» y el buscador NO se abre,
+   que ya sobra. **Comprobado contra la base: 8 → 9 tokens, el último «Ogro».**
+4. **La pestaña «Ficha» del director enseñaba a otro.** Si había abierto la ficha de un jugador desde «El
+   grupo», `viewCharacterId` se quedaba pegado para el resto de la sesión. Pulsar «Ficha» vuelve ahora
+   SIEMPRE a la propia.
+5. **Sin salida desde «El grupo».** La ficha ajena no tenía ni cartel de quién era ni puerta. Ahora lleva
+   «← Volver al grupo» y «Estás viendo la ficha de X».
+6. **«Ficha» YA NO ES PESTAÑA DEL DIRECTOR** (lo que el dueño pedía de verdad en el punto 4: «el director
+   de juego no tiene personaje propio, por eso te pedí que quites el botón»). `tabsFor('dm')` pasa a
+   `['group','scene','bestiary','create']` y el director **aterriza en «Escena»** (`initialTabFor`).
+   La VISTA de la ficha sigue existiendo para él: se llega por «El grupo» → «Ver ficha», y mientras la
+   mira queda marcada «El grupo», que es de donde viene y a donde vuelve.
+   ⚠ **Al jugador NO se le toca** — aviso expreso del dueño. Sigue con `['sheet','scene','create']`,
+   «Ficha» primera y aterrizando en ella. Hay tests que lo pinchan en `tests/functional/table.test.tsx`.
+
+**Ficheros de esta vuelta:** `bestiary.css` · `CreatureRollPopover.tsx` · `EntryCard.tsx` ·
+`BestiaryTab.tsx` · `SceneTab.tsx` (+test, 4) · `TablePage.tsx` · `tabs/SheetTab.tsx` (+test, 2) ·
+`characters.css` · `locales/{es,en}.json` · el pin de regresión (+1) · `rolvium.pen` · el spec ·
+`tableRules.ts` (+`initialTabFor`) · `tests/functional/table.test.tsx` (+2).
+
+### ⚠️ PENDIENTE DE DECIDIR (nada de esto está hecho)
+- **Review y QA NO se han pasado.** Esta sesión tenía instrucción de no lanzar subagentes, así que se
+  hicieron sólo las comprobaciones mecánicas (audit, tests, builds, fronteras hexagonales, hex crudos,
+  i18n). **Antes de mergear hay que pasar `/review` y `/qa`** — y el hook de QA lo bloquea igualmente.
+- **`bestiary_entries` sigue SIN estar en producción.** Repetir `get_advisors` DESPUÉS de subir la
+  migración: el chequeo limpio de antes hablaba de una tabla que no está allí.
+- **La ficha del encuentro perdió el arrastrar-y-soltar de imagen.** Se cambió `ImagePicker` (pintado con
+  tokens de plataforma en estilos en línea: sobre el papel era un recuadro oscuro) por el botón «SUBIR
+  IMAGEN (WEBP)» del `.pen`, con el mismo camino que ya usa `NpcSheetModal`. Sube, comprime y avisa igual.
+  **Si el dueño quiere el arrastrar-y-soltar de vuelta**, hay que vestir `ImagePicker` con `--sys-*`, y eso
+  toca un componente compartido con `characters` y `maps`.
+- **`ConfirmModal` (borrar una entrada) sigue siendo el modal negro de plataforma.** No se tocó: vestirlo
+  es o duplicar un componente compartido o migrar a sus otros consumidores. Decisión del dueño.
+- **En el `.pen` quedan textos pequeños en `ink-dim` en OTROS frames** (fichas de personaje, escena,
+  campañas). No se barrieron en bloque para no reescribir el master sin permiso. Hay una nota dentro del
+  `.pen` («Regla de tipografia — texto pequeno») con el cambio mecánico que haría falta.
+- **`.tb-person-label` está a `font-size:8px` crudo** — ilegible y además px crudo. No se tocó porque subirlo
+  mueve la maqueta bajo los avatares y hay que mirarlo.
+- El **bucket `tokens` sigue siendo PÚBLICO** — deuda aparcada a propósito por el dueño el 2026-08-20.
+
+### 🧰 Cómo mirarlo
+Docker + Supabase local + `dev:api` :3001 + `dev:web` :5173.
+`http://localhost:5173/table/8f506705-e348-415c-82a9-5a37e2c0ce51` · `admin@rolvium.local` / `rolvium123`.
+Capturas: `node shot-bestiary.mjs` **desde `apps/web`** (playwright vive ahí). Salen en `/tmp/bs-*.png`:
+`bs-catalogo` · `bs-ficha` · `bs-foto` · `bs-pnj` · **`bs-tirada`** (nuevo).
+
+---
+
+## 🟢 PUNTO EXACTO — 2026-08-20 (tarde), Bestiario (H5) en curso
+
+Rama **`feat/bestiario`**, 12 commits sobre `main`. **Review pasado** (cazó y arregló 3 defectos reales: ruta de
+subida que habría dado 403 en producción, `tokenUrl` que no se guardaba, e interpolación sin validar en el filtro
+de PostgREST). **QA automático pasado** (617 tests, advisors 0 críticos / 21 WARN = línea base, ambas apps
+compilando). **Sin mergear**: falta la verificación visual light/dark del dueño.
+Alcance aprobado por el dueño: **el hexágono entero**, no una rebanada.
+
+### Hecho y en verde
+- `af1ffdf` **DBA** — tabla `bestiary_entries` (campaña en blanco = «todas mis campañas», `owner_id` obligatorio
+  porque es lo que sostiene la RLS de las globales), enlace `maps_tokens.bestiary_entry_id` con **ON DELETE SET
+  NULL** (borrar la plantilla no vacía la escena). RLS sólo director, doble condición (dueño **Y** director si
+  cuelga de campaña). Aplicada en local, `db lint --level error` sin resultados.
+- `de2adbe` **el `.pen` del dueño commiteado** — el diseño de tiradas ya no depende de que nadie cierre el editor.
+- `b6af70f` **datos del manual** — especialidades de las 45 criaturas + **los 8 bloques que faltaban**.
+- `07d9d11` **scaffold** — dominio, puerto, repo Supabase y contenedor del módulo, con 27 tests.
+- **Diseño** — el listado **ya estaba diseñado** (`qLGcY`). Añadidos tres frames y aplicadas las 5 correcciones
+  del dueño (2026-08-20):
+  - `kD9lH` **Ficha del encuentro** — imagen a 152 px con el ojo encima; cajas de características **alineadas en
+    columna y del mismo tamaño** (el fallo era que el nombre no tenía ancho fijo, así que «Fortaleza» y «Cultura»
+    empujaban la caja a distinta x).
+  - `g0L0jJ` **Catálogo a pantalla completa** — rejilla de 4×2 fichas con imagen grande, buscador, filtros, crear
+    y editar. La primera enseña el **estado hover con el ojo**.
+  - `muyDX` **Modal de la foto** — lo que abre el ojo: foto a tamaño grande, nombre, página y «abrir ficha».
+  - Corregido el rótulo del pie del listado: «SUBIR TOKEN PNG» → **«SUBIR IMAGEN (WEBP)»** (el PNG era viejo).
+  **Pendiente: que el dueño lo apruebe** — es gate obligatorio antes de escribir UI.
+
+### Construido después (2026-08-20, tarde)
+- `36a55f8` **diseño** — las 5 correcciones del dueño: imagen grande, ojo sobre el token + modal de la foto,
+  cajas de características alineadas, catálogo a pantalla completa, y «PNG» → «WEBP».
+- `ec16cbc` **el código** — compresor de imágenes en `packages/ui` (con vitest nuevo en ese paquete), y el
+  catálogo, la ficha y el modal de la foto enganchados en la pestaña «Bestiario» de la mesa, que era un cartel
+  de «en construcción». `audit` 0 hard, `build:web` y `build:api` en verde.
+- `efa120e` **los 3 arreglos del Review** · `91c41b3` **encuentros propios en la escena** · `2617588` **PNJ
+  aliados con la ficha completa de personaje** · `40f0000` **el bucket público, anotado como deuda**.
+  Total tras el QA: **617 tests en verde** (440 web + 77 api + 6 core + 16 ui + 78 plenilunio).
+
+### ⏳ Lo que falta del hexágono
+1. ~~Visto bueno del dueño al diseño~~ **dado** · ~~compresor~~ **hecho** · ~~UI del catálogo y la ficha~~
+   **hecha** · ~~i18n~~ **hecha**.
+2. ~~Los PNJ aliados con ficha COMPLETA de personaje~~ **hecho** (`2617588`, `NpcSheetModal` reutiliza `<Sheet>`).
+3. ~~Alimentar `EncounterMenu` de la escena con las entradas propias~~ **hecho** (`91c41b3`, `DmScene` +
+   `extraEncounters` + `tokenFromBestiary`).
+4. ~~Review~~ **pasado** → ~~QA~~ **pasado** → falta light/dark del dueño → merge.
+
+### 🟡 Lo que el QA dejó anotado (2026-08-20) — no bloquea, decide el dueño
+- **«Tirar» y «Colocar» de la ficha son atajos, no la acción del spec.** `TablePage` los engancha como
+  `onRoll={() => setRollerOpen(true)}` y `onPlace={() => setTab('scene')}`: abren el lanzador libre y llevan a
+  la escena, pero **no tiran en nombre de la criatura** (sin sus características, sin elegir especialidad, sin
+  visibilidad mesa/DJ/secreta) ni colocan el token — eso se hace desde el desplegable de la escena. El spec
+  describe la tirada completa; depende del **panel del director de tiradas**, que es lo siguiente.
+- **«N en escena» no se pinta**: `EntryCard` acepta `placedCount` pero `BestiaryTab` nunca se lo pasa.
+- **No hay menú «…» con duplicar / borrar / token PNG**: el botón `more_horiz` abre la ficha, igual que «Editar»;
+  duplicar y borrar viven dentro del modal. La **descarga del token en PNG no existe** en ninguna parte.
+- **La migración NO está en producción todavía** — `bestiary_entries` no aparece en el proyecto hosted. Los
+  advisors salen limpios porque la tabla aún no está allí: **hay que volver a pasarlos después del deploy**.
+- **`ARCHITECTURE.md` no tiene fila de implementación para `bestiary`**, sólo la del mapa de hexágonos (H5).
+  Todos los módulos construidos (auth, identity, characters, dice, maps…) sí la tienen.
+
+### 🔎 Lo que me encontré y NO toqué (decidir aparte)
+- 🔒 **El bucket `tokens` es PÚBLICO** (`public = true`, migración de `characters`, línea 221). Cualquiera con
+  la URL ve la imagen **sin sesión siquiera**. En un módulo que grita «SOLO DIRECTOR» eso chirría: un jugador
+  curioso podría ver la ilustración de un monstruo antes de enfrentarse a él. **Es config preexistente**, pero
+  el Bestiario es lo primero que mete ahí contenido secreto del director. Arreglarlo son URLs firmadas en vez
+  de públicas y toca **también `characters` (avatares) y `maps` (fondos)**, con riesgo de que dejen de verse
+  imágenes ya subidas. El dueño lo aparcó el 2026-08-20 para no retrasar el merge del Bestiario: **decisión
+  suya, consciente**, no un olvido.
+- **El diseño del listado enseña «Solitario» y «Chatarrero»**, que se quitaron del catálogo por no ser bloques del
+  manual (RULES.md §8). Es texto de ejemplo del `.pen`, no código, pero conviene refrescarlo.
+- ~~El pie decía «SUBIR TOKEN PNG»~~ → **corregido a «SUBIR IMAGEN (WEBP)»** (el dueño confirmó que el PNG era viejo).
+- **La barra superior sale «partially clipped»** en el catálogo nuevo — pero ya venía así en `qLGcY` y en otros
+  frames: es del componente compartido `njHz3`, no de lo añadido. No tocado.
+- `cannibalCook` es **Will** y `scavenger` es **Kharla**: nombres engañosos, valores correctos. Renombrar es
+  cosmético y arrastra los tokens ya colocados, así que va aparte.
+
+### 🖥 Entorno
+Supabase local levantado (Docker). Migración del bestiario aplicada con `supabase migration up --local`, **no**
+con `db:reset`, para no borrar los datos de prueba del dueño.
+
+---
+
 ## 🟢 PUNTO EXACTO — 2026-08-20, handoff a chat nuevo
 
 `main` está al día y **producción también** (verificada contra el bundle, no de memoria). No hay ninguna rama
@@ -88,8 +758,19 @@ las tiradas «para mí» al lanzador que ya existe, botones a ancho igual 3+3+1)
 ### 🔎 Deuda conocida, escrita para que no se pierda
 - ~~Las especialidades de las criaturas no son dato~~ → **decidido**: entran **con el Bestiario** (punto 1 de
   arriba), no en una tanda aparte.
-- **Los advisors de Supabase no se pueden correr**: no hay referencia del proyecto en el repo. No bloqueó porque no
-  hubo migraciones, pero **la próxima rama que toque base necesita `supabase link`** o la ref.
+- 🚨 **DOS organizaciones en Supabase — «Worksuite» NO SE TOCA.** Orden del dueño, 2026-08-20: «no la vayas a
+  cagar tocando worksuite!». `list_projects` sólo devuelve `ignaciozitare's Org` (`anewnkzmtgjrnqekoaie`), que
+  contiene **Worksuite** (`enclhswdbwbgxbjykdtj`) y **NO es de este proyecto**: ni escrituras, ni migraciones, ni
+  `execute_sql`. Rolvium está en la OTRA org (`iuxzfnveabephkcixsaa`) y hay que pedirlo por su ref exacta.
+- ~~Los advisors de Supabase no se pueden correr~~ → **RESUELTO (2026-08-20). El aviso era falso.** El proyecto
+  **«Rolvium» existe y está sano**: ref `scfspsiemikfcnqteonq`, org `iuxzfnveabephkcixsaa`, eu-central-1, creado el
+  18/08. La ref estaba escrita en este mismo fichero (línea del bloque de Vercel). No sale en `list_projects` porque
+  el conector sólo ve la OTRA organización del dueño (la de «Worksuite»), pero **responde si se le pasa la ref
+  exacta**. No hace falta `supabase link` para los advisors.
+  **Foto de partida antes del Bestiario: 0 críticos, 21 WARN** — 20 son funciones `SECURITY DEFINER` llamables por
+  usuarios registrados (`is_admin`, `has_permission`, `join_campaign_by_code`…, intencionadas y preexistentes) y 1 es
+  «Leaked password protection disabled», que se activa con un clic en el panel y **está pendiente del dueño**.
+  Tras la migración del Bestiario hay que repetirlo y comparar contra estos 21.
 - Cinco avisos del QA sin tocar: `playwright` está en `apps/web` mientras `scripts/shot.mjs` vive en la raíz y nadie
   documentó que hace falta `npx playwright install`.
 - Un PJ **muerto** sale con «Resistencia máxima 0» y sin casillas. Es coherente (un muerto no recupera) pero la

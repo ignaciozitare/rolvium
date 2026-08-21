@@ -5,7 +5,8 @@
 // stored by newSheet(). Manual pages: stats p.20–21, roll p.82–84, state p.98–99, p.88–89. See RULES.md.
 import type { FieldDef, SectionDef, SheetData, SheetSchema } from '@rolvium/core';
 import {
-  ARMOURS, DIFFICULTIES, EQUIPMENT, GIFTS, HEALTH_LEVELS, SIZES, STAT_IDS, WEAPONS, specialtiesFor, weaponById, type HealthId, type StatId,
+  ARMOURS, DIFFICULTIES, EQUIPMENT, GIFTS, HEALTH_LEVELS, SIZES, STAT_IDS, WEAPONS, isCapabilityId, specialtiesFor, weaponById,
+  type CreatureCapability, type HealthId, type StatId,
 } from './catalogs';
 
 export const SHEET_VERSION = '1';
@@ -109,7 +110,10 @@ export const sections: SectionDef[] = [
       // `derived` aquí no significa «calculado del catálogo», significa «no editable en la tabla»:
       // la celda pinta el valor que la fila ya guarda.
       { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0, derived: true, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
-      { id: 'reserve', type: 'counter', label: 'sheet.weapons.reserve', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
+      // La Municion no pasa de lo que cabe en el cargador (dueno, 2026-08-21): sin techo el contador
+      // subia sin fin, y recargar nunca podia traspasar mas de una carga de todos modos. Se capa la
+      // SUBIDA, nunca la bajada: una ficha guardada con mas balas conserva las suyas y puede gastarlas.
+      { id: 'reserve', type: 'counter', label: 'sheet.weapons.reserve', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null, maxForRow: row => weaponById(str(row['id']))?.data.magazine ?? undefined },
     ] },
   ] },
   { id: 'gifts', label: 'sheet.sections.gifts', layout: 'stack', span: 2, fields: [
@@ -192,3 +196,14 @@ export const healthOf = (sheet: SheetData): HealthId => {
 };
 export const weaponsOf = (sheet: SheetData): WeaponRow[] => (Array.isArray(sheet.weapons) ? sheet.weapons as WeaponRow[] : []);
 export const giftsOf = (sheet: SheetData): GiftRow[] => (Array.isArray(sheet.gifts) ? sheet.gifts as GiftRow[] : []);
+/**
+ * Las capacidades de una criatura (p.107–108), cuando la «ficha» que recibe el motor es un bloque del
+ * bestiario. Las fichas de personaje no llevan ninguna y devuelven la lista vacía: las capacidades son
+ * poderes innatos de las criaturas no humanas, no algo que un jugador pueda tener.
+ *
+ * No está en el esquema de la ficha a propósito —no es un campo que nadie teclee— y por eso se lee
+ * tolerante, como el resto: un `jsonb` malformado devuelve vacío en vez de reventar la tirada.
+ */
+export const capabilitiesOf = (sheet: SheetData): CreatureCapability[] =>
+  (Array.isArray(sheet.capabilities) ? sheet.capabilities : [])
+    .filter((c): c is CreatureCapability => !!c && typeof c === 'object' && isCapabilityId((c as { id?: unknown }).id));

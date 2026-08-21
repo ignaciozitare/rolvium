@@ -21,7 +21,11 @@ describe('table tabs — sheet / create / group', () => {
     renderWithProviders(<SheetTab campaignId="c1" system={plenilunio} role="player" userId={PLAYER_USER.id} repo={repo} rolls={rolls} rollOptions={{ destinyDice: 1 }} onOpenCreate={onOpenCreate} />);
     expect(await screen.findByLabelText('Personaje')).toHaveValue('Karen «K»');
     expect(screen.getByRole('link', { name: 'Abrir ficha aparte' })).toHaveAttribute('href', '/characters/ch-karen');
-    await userEvent.setup().click(within(document.querySelector('[data-stat="combat"]') as HTMLElement).getByRole('button', { name: 'Tirar 5' }));
+    const u1 = userEvent.setup();
+    await u1.click(within(document.querySelector('[data-stat="combat"]') as HTMLElement).getByRole('button', { name: 'Tirar 5' }));
+    // El botón abre el desplegable de tirar y se tira al confirmar (`.pen` «Mesa/Tiradas», columna 1);
+    // los dados de reserva que ya llevas en la mano siguen viajando con la petición.
+    await u1.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Tirar 5' }));
     await waitFor(() => expect(rolls.requests[0]?.sharedResources).toEqual({ destiny: 1 }));
     document.body.innerHTML = '';
     renderWithProviders(<SheetTab campaignId="c1" system={plenilunio} role="player" userId="someone-else" repo={repo} onOpenCreate={onOpenCreate} />);
@@ -73,5 +77,35 @@ describe('table tabs — sheet / create / group', () => {
     expect(screen.queryByRole('article', { name: 'Ogro' })).not.toBeInTheDocument();
     await userEvent.setup().click(within(karen).getByRole('button', { name: 'Ver ficha' }));
     expect(onView).toHaveBeenCalledWith(expect.objectContaining({ id: 'ch-karen' }));
+  });
+});
+
+/**
+ * La ficha abierta desde «El grupo» (dueño, 2026-08-21: «necesitamos un goback que te tiene que devolver
+ * a el grupo»). El director entraba en la ficha de un jugador y se quedaba dentro: ni cartel de quién era
+ * ni puerta de salida, y la pestaña «Ficha» seguía enseñando a esa persona.
+ */
+describe('SheetTab — entrar desde «El grupo» y poder volver', () => {
+  it('con `onBack` ofrece la vuelta y dice de quién es la ficha', async () => {
+    const onBack = vi.fn();
+    renderWithProviders(
+      <SheetTab campaignId="c1" system={plenilunio} role="dm" userId="dm-1"
+                repo={fakeCharactersRepo([CHARACTER_KAREN])} characterId="ch-karen"
+                onOpenCreate={vi.fn()} onBack={onBack} />,
+    );
+    const back = await screen.findByRole('button', { name: /Volver al grupo/ });
+    expect(screen.getByText(/Estás viendo la ficha de/)).toBeInTheDocument();
+    await userEvent.setup().click(back);
+    expect(onBack).toHaveBeenCalledOnce();
+  });
+
+  it('sin `onBack` (mi propia ficha) no pinta ni la vuelta ni el cartel', async () => {
+    renderWithProviders(
+      <SheetTab campaignId="c1" system={plenilunio} role="player" userId={PLAYER_USER.id}
+                repo={fakeCharactersRepo([CHARACTER_KAREN])} onOpenCreate={vi.fn()} />,
+    );
+    await screen.findByLabelText('Personaje');
+    expect(screen.queryByRole('button', { name: /Volver al grupo/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Estás viendo la ficha de/)).not.toBeInTheDocument();
   });
 });

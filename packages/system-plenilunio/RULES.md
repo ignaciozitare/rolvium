@@ -421,9 +421,83 @@ Resumen propio (27 dones):
 | Ver las señales | +nivel éxitos automáticos en Astucia de percepción; tirada del don para ver lo oculto por magia (vs don rival o Voluntad). |
 | Voz interior | Telepatía con contacto visual (más lejos con vínculo); si el objetivo resiste, conflicto don vs Voluntad. |
 
-Capacidades (p. 107–108) son poderes innatos de criaturas: sin activación ni Fortuna (Alado, Aura*, Aura sombría*,
-Amparo de la noche*, Disfraz terrenal, Ira solar*, Ponzoña*, Piel de humano, Piel gruesa* = protección natural,
-Hambre inhumana, Ancla terrenal, Incorpóreo, Inmune al dolor, Deflagración*, Visión en la oscuridad).
+---
+
+## 7.b Capacidades (pp. 107–108) — COMPLETADO CONTRA EL PDF, 2026-08-21
+
+> Aquí sólo había **una lista de nombres entre paréntesis**, sin una sola regla. Es el ejemplo de lo que el
+> dueño llamó «mirarlo por arriba». Transcritas ahora del PDF, una a una.
+
+Son **poderes innatos de las criaturas no humanas**: «no requieren activarse ni involucran gasto de Fortuna.
+Simplemente pueden usarse a voluntad». Las marcadas con **\*** tienen puntuación, como los dones; las demás
+son todo o nada.
+
+| Capacidad | Regla (del libro) | Motor |
+|---|---|---|
+| **Alado** | Alas y capacidad innata de volar. | — narrativa |
+| **Aura\*** | **Sólo de día.** Añade tantos **éxitos automáticos** como su puntuación a **cualquier tirada de Presencia** que la criatura haga **para intimidar o liderar**. | ✅ `autoSuccessOptions` |
+| **Aura sombría\*** | **Sólo de noche.** Añade tantos **éxitos automáticos** como su puntuación a **cualquier tirada de Sutileza** para **esconderse, moverse en silencio o pasar desapercibida**. | ✅ `autoSuccessOptions` |
+| **Amparo de la noche\*** | **De noche** añade tantos **éxitos automáticos** como su puntuación **a su total de Combate cada turno**. Si divide sus dados de Combate entre varios ataques o defensas, **debe dividir igualmente esos éxitos automáticos**. | ✅ `autoSuccessOptions` (el reparto lo hace el director) |
+| **Disfraz terrenal** | Disimula su naturaleza sobrenatural y parece **totalmente humana**. Se pone y se quita a voluntad. | — narrativa |
+| **Piel de humano** | Disimula su aspecto, pero **un examen superficial la delata**: conserva cuernos, escamas u otros rasgos. En la distancia puede confundirse con un humano. | — narrativa |
+| **Ira solar\*** | Incendia los objetos que lleva en las manos (normalmente el filo del arma). **Añade la puntuación de esta capacidad al daño del arma.** | ✅ `attackDamage(o, daño, iraSolar)` |
+| **Ponzoña\*** | Inocula veneno por dientes o garras. **Cualquier ataque de la criatura que tenga éxito inyecta el veneno.** Resistirlo es un **conflicto entre la Fortaleza de la víctima y la puntuación de Ponzoña**. Si vence la criatura, **cada éxito = 1 punto de daño y cada triunfo = tantos puntos como la Ponzoña**. | ✅ `venomDamage` (ataque APARTE del principal) |
+| **Piel gruesa\*** | Piel excepcionalmente dura: **cuenta como armadura natural cuya protección es igual a la puntuación**. | ✅ `protection` del bloque |
+| **Hambre inhumana** | Come sin saciarse; su olfato la guía hacia nuevas fuentes de alimento y **le permite descubrirlas aunque estén ocultas o escondidas**. | — narrativa |
+| **Ancla terrenal** | Su existencia está atada al mundo físico. **No puede ser destruida hasta que sea liberada del ancla.** Mientras el ancla exista, **cualquier resultado que la deje en nivel de salud muerto se trata como otro nivel malherido**, del que se recupera con el tiempo de forma normal. | ✅ `applyDamage` |
+| **Incorpóreo** | Carece de cuerpo físico. **No se la puede atacar físicamente** y sólo interactúan con ella otros seres inmateriales. **Usa la Voluntad de la criatura en lugar de su Fortaleza o su Combate** para cualquier pugna entre seres inmateriales. | ✅ `incorporealStat` · `canBeAttackedPhysically` |
+| **Inmune al dolor** | Sus niveles de salud sirven **sólo** para saber cuándo muere o es destruida: **no sufre penalización de dados por los estados** (p. 99). | ✅ `derived` |
+| **Deflagración\*** | Explosión de llamas sobrenaturales. Radio de **1 metro por punto**. Los que están junto a la criatura reciben un ataque con **tantos dados como la puntuación**, **−1 dado por cada metro de distancia**. Se resuelve como **reto de dificultad 1**, y el DJ puede permitir **ponerse a cubierto** como en los ataques a distancia (p. 096). **Cada éxito = 1 punto de daño; cada triunfo = tantos puntos como la puntuación.** | ✅ `blastDice` · `blastDamage` |
+| **Visión en la oscuridad** | Ve en la oscuridad más absoluta como si fuera de día. | — narrativa |
+
+⚠ **«Aura sobrenatural»** aparece en el bloque de Nathael (p. 49) y **no está en la lista de p. 107–108**. Sin
+resolver: puede ser el mismo «Aura\*» con otro nombre, o una capacidad que el libro no llegó a listar.
+
+⚠ Las criaturas también llevan **DONES** normales (§7), no sólo capacidades: el fantasma tiene «Mano
+inmaterial 3», Soum «Defensa de acero 3, Golpe certero 4, Movimientos felinos 5». Se leen del §7 y cuestan
+Fortuna como a cualquiera.
+
+### 7.b.1 Cómo entran en el motor (decidido con el dueño, 2026-08-21) — CONSTRUIDO el 2026-08-21
+
+**Día y noche**: la app no sabe la hora en ninguna parte, y cuatro capacidades dependen de ella. El dueño
+eligió **casilla «es de noche» en la propia tirada**, al lado de la de especialidad — no dato de la escena,
+que obligaría a migración y a diseño nuevo del mapa. Lo marca el director tirada a tirada.
+
+**Deflagración**: entra **a mano** (elección del dueño). El director teclea a cuántos metros está la víctima
+y el motor saca los dados; cuando existan los ataques sobre el mapa, la distancia saldrá de ahí.
+
+| Capacidad | Dónde entra | Regla exacta |
+|---|---|---|
+| **Piel gruesa\*** | ✅ ya está | `protection` del bloque |
+| **Ira solar\*** | `attackDamage` | Suma la puntuación al **daño del arma**, **encima** del daño impreso del ataque (probado con Gabriel, §8.0) |
+| **Amparo de la noche\*** | éxitos automáticos | De noche, +N al **total de Combate** cada turno; si reparte los dados entre varios ataques o defensas, reparte también los éxitos |
+| **Aura\*** | éxitos automáticos | **De día**, +N a **Presencia** cuando la tirada es **para intimidar o liderar** |
+| **Aura sombría\*** | éxitos automáticos | **De noche**, +N a **Sutileza** para **esconderse, moverse en silencio o pasar desapercibida** |
+| **Inmune al dolor** | `derived` | Penalización de dados por estado = **0** |
+| **Ancla terrenal** | `applyDamage` | Cualquier resultado que la dejaría **muerta** cuenta como **otro malherido** |
+| **Incorpóreo** | característica de la pugna | Usa **Voluntad** en lugar de Fortaleza o Combate en pugnas entre seres inmateriales; **no se la puede atacar físicamente** |
+| **Ponzoña\*** | ataque **aparte** | Todo ataque suyo con éxito inocula: conflicto **Fortaleza de la víctima vs Ponzoña**; si vence la criatura, éxito = 1 daño y triunfo = la puntuación de Ponzoña |
+| **Deflagración\*** | ataque **aparte** | Radio 1 m por punto; dados = puntuación **− 1 por metro**; **reto a dificultad 1**; se puede uno cubrir (p.96); éxito = 1 daño, triunfo = la puntuación |
+
+**Los éxitos automáticos eran mecánica nueva en el motor** —`resolveAction` sólo contaba dados— y ya está:
+`ResolveInput.autoSuccesses` se suma a `ownHits`, viaja en las opciones de la tirada (`autoSuccesses` +
+`autoSuccessFrom`, la capacidad que los da) y sale en el desglose del Registro con su nombre y la p.107.
+
+⚠ **Interpretación nuestra, el libro no lo dice**: los éxitos automáticos **también cuentan para el revés**
+(§2.6). Un revés es «ni un solo acierto y al menos un fracaso»; con Amparo de la noche 5 la criatura SÍ
+acierta, así que no puede sufrir un revés al mismo tiempo. Si el dueño lo lee al revés, se cambia en un sitio.
+
+⚠ **Interpretación nuestra, el libro no lo dice**: un **éxito automático hace 1 punto de daño**, como cualquier
+otro éxito (§5.6). Dejarlos fuera del daño sería peor: una criatura que gana el ataque gracias a ellos haría
+menos daño del que dice su diferencia.
+
+⚠ **Las capacidades no se aplican solas**, igual que las especialidades (§2.2): el director ve las que podrían
+aplicar según la característica y la casilla de noche, y marca la que corresponde. `autoSuccessOptions(caps,
+característica, esDeNoche)` es quien devuelve esa lista. «Aura» pide además que la tirada sea *para intimidar o
+liderar*, y eso no lo puede saber el motor.
+
+**Lo que queda de esta tabla, y NO es del motor**: la casilla «es de noche» y los metros de la Deflagración son
+pantalla (`bestiary/ui/CreatureRollPopover.tsx`), y esa tanda va por el Design Agent porque es cambio visible.
 
 ---
 
@@ -439,6 +513,172 @@ Dos cosas que se leen mal si no se avisan:
   natural cuya protección es igual a la puntuación de esta capacidad» (p. 108).
 - Resistencia = Aguante × 3 (§1.6), como en cualquier personaje.
 
+> **Verificación completa contra el PDF, 2026-08-21** (a petición del dueño: «si no sabías de los daños
+> puede que las fichas de los encuentros estén mal»). Se comprobaron los **45 bloques** uno a uno.
+> Las **siete características, el Aguante y el Destino de todos** estaban **bien**. Fallaron dos líneas de
+> capacidades —`lunar` y `fallenElite`— porque en el PDF **envuelven a una segunda línea** («…Piel de /
+> humano, Amparo de la noche N.») y se copiaron cortadas. Corregido.
+>
+> ✅ **Los doce que faltaban YA ESTÁN en el catálogo** (2026-08-21): `BESTIARY` tiene **57** bloques — los 45
+> en lista de §8.1–8.4 y los doce en caja del §8.0. Las tablas de §8.1–8.3 siguen siendo sólo los 45 en lista;
+> los doce se leen en el §8.0.
+
+**El daño de una criatura SÍ está en el libro** (verificado en el PDF, 2026-08-21). Los bloques no traen
+línea de arma porque no hace falta: un zarpazo, un mordisco o un puñetazo es un **ataque sin armas**, y la
+tabla de armas (p. 97) le da **Daño: F** — la Fortaleza del atacante. El libro lo usa así en su propio
+ejemplo, literal (p. 97): «comprueba el daño que hace con **sus manos desnudas** y ve que es igual a **su
+puntuación en Fortaleza** (3 puntos) por cada triunfo». Un ogro pega **8** por triunfo; un hambriento, 3.
+
+⚠ **«Garrote», «Mordisco», «Uñas y dientes» son ESPECIALIDADES de Combate, no armas.** Van en la columna de
+especialidad del bloque, junto a la puntuación. Asignarles una línea de la tabla de armas sería inventarse
+un dato que el libro no da: el director puede hacerlo a mano si quiere, pero por defecto es sin armas.
+
+**Capacidades que tocan al combate o al daño** (p. 107–108), y qué hace hoy el motor:
+| Capacidad | Lo que dice el libro | Motor |
+|---|---|---|
+| Piel gruesa\* | «armadura natural cuya protección es igual a la puntuación» | ✅ `protection` del bloque |
+| Ira solar\* | «Añade la puntuación de esta capacidad al **daño del arma**» | ✅ `attackDamage` |
+| Ponzoña\* | Todo ataque con éxito inocula veneno: conflicto Fortaleza de la víctima vs Ponzoña; si vence la criatura, éxito = 1 daño y triunfo = puntuación de Ponzoña | ✅ `venomDamage` (ataque APARTE del principal) |
+| Amparo de la noche\* | De noche, «añade tantos éxitos automáticos como su puntuación a su total de Combate cada turno»; si reparte dados, reparte también los éxitos | ✅ `autoSuccessOptions` + `autoSuccesses` |
+| Deflagración\* | Explosión de radio 1 m por punto; tantos dados como la puntuación, −1 por metro; reto a dificultad 1, se puede uno cubrir; éxito = 1 daño, triunfo = puntuación | ✅ `blastDice` · `blastDamage` (cubrirse, no: la regla no existe en el código) |
+| Incorpóreo | No se la puede atacar físicamente; usa **Voluntad** en lugar de Fortaleza o Combate frente a otros seres inmateriales | ✅ `incorporealStat` |
+| Inmune al dolor | Sus niveles de salud sólo dicen cuándo muere: **no sufre penalización de dados** por estado (p. 99) | ✅ `derived` |
+| Ancla terrenal | Mientras exista el ancla, cualquier resultado que la deje muerta cuenta como otro nivel malherido | ✅ `applyDamage` |
+| Alado · Visión en la oscuridad · Aura\* · Aura sombría\* · Disfraz terrenal · Piel de humano · Hambre inhumana | Sin efecto mecánico sobre el daño | — narrativas o fuera de combate |
+
+### 8.0 Los bloques EN CAJA — leídos del PDF uno a uno (2026-08-21) — YA EN EL CATÁLOGO
+
+El bestiario del §8.1–8.3 se copió **sólo de los bloques en lista** (los de «Fortaleza 8 / Combate 4 / …»).
+El libro trae **otro tipo de bloque, en cajas de lunas**, para los personajes con nombre, y **no se copió
+ninguno**. Aquí están **los once**, leídos página a página **como imagen** (el `pdftotext` no sirve para
+estas cajas), más el **Salteador**, que es un bloque en lista que faltaba.
+
+**Página impresa = página del PDF − 2.** Páginas del PDF con caja: `51 · 73 · 74 · 122 · 125 · 127 · 128 ·
+136 · 138 · 141 · 144`. El Salteador está en el PDF 211.
+
+#### Las siete características, el Aguante y el Destino
+
+| id propuesto | Personaje | p. | For | Com | Vol | Ast | Sut | Pre | Cul | Ag | Des |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `nathael` | **Nathael**, regente solar de Nueva York | 49 | 7 | 7 | 5 | 4 | 2 | 7 | 4 | 4 | 4 |
+| `luz` | **Luz** (niña), avatar de la Luna | 71 | 2 | 4 | 4 | 3 | 2 | 2 | 3 | 6 | 6 |
+| `soum` | **Soum**, katana elegida | 72 | 4 | 5 | 4 | 4 | 3 | 3 | 4 | 8 | 10 |
+| `nergal` | **Nergal**, príncipe de París | 120 | 6 | 8 | 5 | 4 | 2 | 7 | 4 | 12 | 6 |
+| `samael` | **Samael**, el Príncipe de la Guerra | 123 | 8 | 9 | 4 | 5 | 2 | 3 | 5 | 12 | 9 |
+| `lucifer` | **Lucifer**, el primer rebelde | 125 | 8 | 9 | 5 | 4 | 4 | 3 | 7 | 13 | 9 |
+| `baal` | **Baal**, príncipe lunar | 126 | 7 | 8 | 5 | 4 | 5 | 3 | 8 | 12 | 9 |
+| `gabriel` | **Gabriel**, el arcángel | 134 | 7 | 9 | 4 | 3 | 5 | 5 | 5 | 11 | 8 |
+| `marduk` | **Marduk**, el arcángel Miguel | 136 | 8 | 10 | 4 | 3 | 3 | 6 | 6 | 11 | 8 |
+| `adam` | **Adán**, Satán el acusador | 139 | 6 | 4 | 6 | 6 | 6 | 6 | 6 | 11 | 8 |
+| `luzMalefic` | **Luz-Malefic**, la decimotercera | 142 | 4 | 6 | 5 | 4 | 3 | 2 | 3 | 9 | 8 |
+| `highwayman` | **Salteador**, pandillero de Nueva York | 209 | 2 | 2 | 2 | 2 | 3 | 2 | 2 | 4 | 1 |
+
+⚠ **Nathael imprime Aguante 4** aunque su Fortaleza 7 + Voluntad 5 dan 12, y es el único de los doce que se
+desvía tanto (los demás cuadran, o fallan por uno). Se copia lo impreso, como todo el bestiario —el Aguante del
+bloque manda sobre la cuenta (§8)—, pero **queda anotado**: si algún día se vuelve a abrir el PDF, esta es la
+línea que hay que mirar (p.49). Sin volver a abrirlo no se toca: inventar un 12 sería corregirle el libro.
+
+⚠ **Gabriel**: su caja está impresa al pie de la **ilustración a página completa (p.134)**, que **no lleva
+nombre**; su texto es la p.135 y no lleva caja. Es el único candidato de todo el pliego (pp.131–135) y sus
+valores encajan como lugarteniente de Marduk (Com 9 contra 10, Aura 5 contra 6). **Atribución nuestra**, no
+un rótulo del libro.
+
+⚠ **Luz tiene DOS versiones**, y el propio libro lo dice en la p.71: la niña (p.71) y la adulta tras recibir
+la espada Malefic (p.142).
+
+#### Las especialidades de cada caja
+
+| id | Fortaleza | Combate | Voluntad | Astucia | Sutileza | Presencia | Cultura |
+|---|---|---|---|---|---|---|---|
+| `nathael` | Vuelo ✱ | Espadas | Perseverar | Vista penetrante | Actuación | Intimidar | Religión |
+| `luz` | Acrobacias | Espada samurai ✱ | Intuición | Sentido del peligro | Esconderse | Inspirar | Ocultismo |
+| `soum` | Acrobacias · Equilibrio · Trepar | Cuchillos · Espadas | Meditación | Anticipación | Emboscar | Seducción | Leyendas |
+| `nergal` | Vigor | Armas contundentes | Perseverar | Vista penetrante | Actuación | Intimidar | Religión |
+| `samael` | Vigor | Martillo de guerra ✱ | Resistir dolor | Anticipación | Acechar | Inspirar | Leyendas |
+| `lucifer` | Resistir dolor | Espadas | Valor | Vista penetrante | Emboscar | Liderazgo | Leyendas |
+| `baal` | Vigor | Espadas samuráis ✱ | Ritos | Detectar mentiras | Esconderse | Liderazgo | Ocultismo |
+| `gabriel` | Recorrer distancias ✱ | Espada y escudo ✱ | Constancia | Percepción | Emboscar | Seducción | Historia |
+| `marduk` | Vigor | Sables ✱ | Templanza | Anticipación | Acechar | Inspirar | Historia |
+| `adam` | Vigor | Cuchillos | Mantener fachada | Vista penetrante | Chantaje | Charlatanería | Psicología |
+| `luzMalefic` | Acrobacias | Espadas | Templanza | Moverse a ciegas | Acechar | Inspirar | Ocultismo |
+| `highwayman` | Conducir | Armas contundentes | Perseverar | Supervivencia | Emboscar | Interrogación | Tecnología |
+
+✱ = nombre que **no existe** todavía en `CREATURE_SPECIALTY_ITEMS`; hay que darle clave `creature.*` y
+etiqueta en es y en. Son **siete**: `vuelo`, `espadaSamurai`, `martilloDeGuerra`, `espadasSamurais`,
+`recorrerDistancias`, `espadaYEscudo`, `sables`. Las demás reutilizan claves que ya existen —
+«Cuchillos» es `creature.cuchillos` (no `combat.knives`, que se llama «Navajas y cuchillos»), «Actuación»
+es `subtlety.acting`, «Perseverar» es `will.perseverance`.
+
+⚠ Erratas del libro copiadas tal cual en la lectura, y corregidas al escribir la etiqueta: Luz-Malefic dice
+«Inpirar» (por Inspirar) y el Salteador «Perserverar» (por Perseverar).
+
+#### Los ATAQUES — el dato que faltaba
+
+Las cajas traen un apartado `ATAQUES` con **el arma, su puntuación de ataque y su daño YA calculados**.
+
+| id | Ataques |
+|---|---|
+| `nathael` | Espada flamígera **9** (daño **11**) |
+| `luz` | Katana **5** (daño **4**) |
+| `soum` | Katana de las Trece Lunas **6** (daño **7**) · cuchillo tantō **5** (daño **5**) |
+| `nergal` | Martillo de guerra **10** (daño **10**) |
+| `samael` | Martillo de guerra **11** (daño **11**) |
+| `lucifer` | Mandoble **11** (daño **12**) |
+| `baal` | Espada oriental **9** (daño **10**) |
+| `gabriel` | Espada **10** (daño **9**) · **escudo (protección 5)** |
+| `marduk` | Sables negros **11** (daño **11**) |
+| `adam` | Navaja **4** (daño **7**) |
+| `luzMalefic` | Malefic **8/10** (daño **8/10**) *(ver p.163)* |
+| `highwayman` | — ninguno impreso: «Puedes elegir las armas que llevan de la tabla de la página 097» |
+
+**Se copian, NO se recalculan.** La cuenta del libro es «Combate + bonificación del arma» y «Fortaleza +
+daño del arma» (§5.5–5.6), pero **no cuadra siempre**: Nergal tiene Fortaleza 6 y su martillo hace 10, no 9;
+Lucifer tiene Fortaleza 8 y su mandoble hace 12, no 11. Recalcularlos sería corregirle el libro.
+
+**El escudo de Gabriel no es un ataque**: es **protección 5**, y va al campo `protection` del bloque.
+
+**Malefic, la espada soberana (p.163)** — es lo que explica el «8/10»: «una espada a una mano que da
+bonificación a Combate **+2** y hace daño **Fortaleza+4**, pero activando un mecanismo del pomo (y **gastando
+un punto de Fortuna**) se convierte en una espada a dos manos con bonificación **+4** y daño
+**Fortaleza+6**». Luz adulta tiene For 4 y Com 6 → **8 (daño 8)** a una mano y **10 (daño 10)** a dos.
+Cuadra exacto. Van como **dos ataques** en el bloque, y el de dos manos cuesta 1 de Fortuna.
+
+**La Ira solar NO está sumada en el daño impreso.** Gabriel tiene Ira solar 3 y su espada hace 9, que es
+exactamente Fortaleza 7 + 2 de una espada de la tabla. Luego la capacidad **suma encima** del daño del
+ataque, no está dentro.
+
+#### Capacidades y dones de cada caja
+
+La línea se llama `CAPACIDADES` en Nathael, `DONES` en Luz, Soum, Adán y Luz-Malefic, y `DONES Y
+CAPACIDADES` en el resto: **mezcla las dos cosas** (§7 dones · §7.b capacidades).
+
+| id | Capacidades (§7.b) | Dones (§7) |
+|---|---|---|
+| `nathael` | Alado · **Aura sobrenatural 5** · Disfraz terrenal · Ira solar 5 | — |
+| `luz` | — | Golpe certero 3 · Separación espiritual 1 · Trance del destino 2 |
+| `soum` | — | Defensa de acero 3 · Golpe certero 4 · Movimientos felinos 5 |
+| `nergal` | Alado · Aura sombría 3 · Disfraz terrenal · Amparo de la noche 4 | — |
+| `samael` | Alado · Aura sombría 5 · Piel de humano | Furia de titán 8 |
+| `lucifer` | Alado · Aura sombría 5 · Piel de humano · Amparo de la noche 5 | — |
+| `baal` | Alado · Aura sombría 5 · Piel de humano · Amparo de la noche 3 · Deflagración 5 | — |
+| `gabriel` | Alado · Aura 5 · Disfraz terrenal · Ira solar 3 | Guardián de la Palabra 5 · Manto de protección 5 |
+| `marduk` | Alado · Aura 6 · Ira solar 6 | Guardián de la Palabra 4 |
+| `adam` | — | Alegoría de la realidad 9 |
+| `luzMalefic` | — | Golpe certero 5 · Trance del destino 5 |
+| `highwayman` | — | — |
+
+⚠ **Los dones de las cajas pasan de 5**, que es el tope de un personaje jugador (§7): Furia de titán **8**,
+Alegoría de la realidad **9**. No es un fallo de lectura: son seres míticos, como las características por
+encima de 6 (§1.2). El catálogo no debe caparlos.
+
+⚠ **Adán, «Especial»** (literal del libro): «Adán es inmune a las enfermedades, al hambre y a la sed».
+No es una capacidad de la lista; va a las notas de la entrada.
+
+✅ **«Aura sobrenatural 5» de Nathael → se trata como «Aura 5»** (decisión del dueño, 2026-08-21). El nombre
+no está en la lista de pp.107–108, pero Nathael es un solar y **todos** los demás solares del libro (Solar,
+Paladín, Aamel, Azelías, Gabriel, Marduk) llevan «Aura N». **Lectura nuestra, no del libro** — queda escrito
+aquí para que se pueda deshacer.
+
 ### 8.1 Criaturas
 | Criatura | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | Prot. | Capacidades | p. |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|
@@ -452,11 +692,12 @@ Dos cosas que se leen mal si no se avisan:
 ### 8.2 Sobrenaturales
 | Criatura | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | Capacidades | p. |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|
-| Lunar | 7 | 6 | 3 | 4 | 3 | 2 | 3 | 10 | 7 | Alado, Aura sombría 2, Piel de humano | 120 |
-| Soldado de élite de los caídos | 7 | 7 | 4 | 4 | 3 | 3 | 4 | 11 | 8 | Alado, Aura sombría 3, Piel de humano | 124 |
+| Lunar | 7 | 6 | 3 | 4 | 3 | 2 | 3 | 10 | 7 | Alado, Aura sombría 2, Piel de humano, **Amparo de la noche 2** | 120 |
+| Soldado de élite de los caídos | 7 | 7 | 4 | 4 | 3 | 3 | 4 | 11 | 8 | Alado, Aura sombría 3, Piel de humano, **Amparo de la noche 3** | 124 |
 | Solar | 6 | 7 | 4 | 3 | 2 | 3 | 3 | 10 | 7 | Alado, Aura 2, Disfraz terrenal, Ira solar 2 | 132 |
 | Paladín solar | 6 | 8 | 5 | 3 | 2 | 4 | 4 | 7 | 8 | Alado, Aura 3, Disfraz terrenal, Ira solar 3 | 132 |
 | Aamel (lugarteniente solar) | 6 | 8 | 5 | 4 | 3 | 4 | 5 | 11 | 8 | Alado, Aura 3, Disfraz terrenal, Ira solar 2 | 132 |
+| Azelías (lugarteniente solar) | 6 | 7 | 4 | 3 | 5 | 5 | 5 | 10 | 8 | Alado, Aura 2, Disfraz terrenal, Ira solar 3 | 132 |
 
 ### 8.3 Humanos y figuras de la ambientación
 Los bloques de los capítulos de ambientación (pp. 44–74). Sirven de encuentro tal cual.
@@ -488,26 +729,57 @@ Los bloques de los capítulos de ambientación (pp. 44–74). Sirven de encuentr
 | Judith | 2 | 1 | 3 | 3 | 1 | 4 | 3 | 5 | 4 | 67 |
 | Henry Putnam | 1 | 2 | 4 | 3 | 4 | 3 | 2 | 5 | 8 | 44 |
 | Dorcy | 2 | 1 | 3 | 1 | 3 | 3 | 1 | 5 | 6 | 44 |
+| Silhouette (mimo peligroso) | 3 | 3 | 1 | 2 | 2 | 2 | 1 | 4 | 1 | 57 |
+| Big Dima (jefe mafioso) | 4 | 4 | 3 | 4 | 3 | 3 | 4 | 7 | 7 | 59 |
+| Hermana de las Trece Lunas | 4 | 5 | 3 | 4 | 4 | 2 | 3 | 7 | 4 | 67 |
+| Jacobista | 2 | 2 | 3 | 1 | 2 | 3 | 2 | 6 | 1 | 67 |
+| George (cocinero caníbal) | 3 | 3 | 1 | 3 | 2 | 2 | 1 | 4 | 7 | 68 |
+| Diane (carroñera) | 2 | 3 | 3 | 3 | 3 | 2 | 2 | 5 | 2 | 74 |
+| Allen Dallas «el Americano» | 2 | 1 | 3 | 3 | 4 | 1 | 5 | 5 | 7 | 74 |
+
+⚠ La Hermana de las Trece Lunas trae capacidades, cosa rara en un bloque humano: **Defensa de acero 2** y
+**Movimientos felinos 2**.
 
 ### 8.4 El mutante — lo único que el libro publica
 Sale en dos ejemplos, no en un bloque: **Fortaleza 3 y Voluntad 1 → Aguante 4** y protección 2 por su piel curtida
 (p. 98), y **Combate 3** (p. 94). **Las otras cuatro características no están escritas en ninguna parte**, así que el
 paquete las deja SIN VALOR en vez de inventarlas: la ficha pinta «—» y el director tira con lo que hay.
 
-**Cobertura**: son los **37 bloques completos** que imprime el manual (los que traen las siete características y el
-Aguante). Contados uno a uno sobre el PDF, no de memoria.
+**Cobertura**: son los **45 bloques en lista** que imprime el manual (los que traen las siete características y el
+Aguante en columna). Con los **doce del §8.0** —los once en caja y el Salteador, bajados al catálogo el
+2026-08-21— `BESTIARY` suma **57**.
+
+⚠ Corregido el 2026-08-20: antes decía 37 «contados uno a uno sobre el PDF», y faltaban **ocho**. Aparecieron al
+releer el libro para sacar las especialidades. Dos de los que ya estaban tenían además el nombre engañoso, aunque
+sus valores eran correctos: `cannibalCook` (p. 69) es **Will** —el manual imprime TRES cocineros: Maggie p. 68,
+George p. 68 y Will p. 69— y `scavenger` (p. 74) es **Kharla**, que tiene compañera, Diane.
 
 ⚠ Fuera del catálogo, y anotado: «Solitario» y «Chatarrero», que venían del prototipo y **no eran bloques del
 manual**. En su lugar entran Carroñera (p. 74) y Vagabundo amable (p. 69), que sí lo son. `scavenger` conserva su
 identificador —lo usan los tokens ya colocados— y pasa a ser la Carroñera del libro.
 
-⚠ Pendiente: las **especialidades** de cada bloque (el ogro tiene «Garrote» en Combate, el hambriento «Mordisco»)
-están escritas en los `notes` de cada criatura pero **no como dato**, así que el motor todavía no puede doblar sus
-triunfos. Hace falta una clave i18n por criatura y característica.
+### 8.5 Las especialidades de los bloques
+El manual imprime **una especialidad por característica dentro del propio bloque**, a la derecha de su puntuación,
+y un guion donde no la hay (que suele coincidir con puntuación 0). El ogro (p. 152):
+
+```
+Fortaleza  8   Derribar paredes
+Combate    4   Garrote
+Voluntad   1   Constancia
+Cultura    0   -
+```
+
+Un bloque puede traer **dos** en la misma característica (Hermana de las Trece Lunas: «Acrobacias, Equilibrio»).
+Cuentan como especialidad normal: **doblan los triunfos** de esa tirada (§3, p. 83), y es el director quien marca
+cuál aplica —no se aplican solas por característica, porque el garrote no sirve para esquivar.
+
+De los **133 nombres distintos** que usa el bestiario, **104 ya existen** en la lista de especialidades de jugador y
+reutilizan su clave; sólo **30** son propias de criatura (Garrote, Mordisco, Picado de garras, Uñas y dientes…).
+El **mutante no tiene ninguna**: el libro no le imprime bloque (§8.4).
 
 ---
 
 ## 9. Mapa página → clave `references.ts`
 stats 20 · specialty 83 · roll 82 · difficulty 84 · degree 85 · setback 86 · destinyPool 88 · destiny 88 ·
-fortune 89 · xp 91 · weapons 97 · damage 97 · armours 98 · endurance 98 · resistance 98 · health 99 ·
-recovery 101 · gifts 102 · size 25 · bestiary 107.
+fortune 89 · xp 91 · ranged 96 · weapons 97 · damage 97 · armours 98 · endurance 98 · resistance 98 · health 99 ·
+recovery 101 · gifts 102 · size 25 · bestiary 107 · melee 93.

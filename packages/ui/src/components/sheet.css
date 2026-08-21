@@ -21,7 +21,7 @@
 @media (max-width:900px){.rv-sheet{grid-template-columns:1fr;}.rv-sheet-section,.rv-sheet-section.wide{grid-column:1/-1;}}
 .rv-sheet-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:8px;border-bottom:1px solid var(--sys-line);}
 .rv-sheet-section-title{font-size:var(--fs-xs);letter-spacing:.24em;text-transform:uppercase;color:var(--sys-ink);margin:0;font-weight:600;}
-.rv-sheet-section-ref{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);letter-spacing:.06em;}
+.rv-sheet-section-ref{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-soft);font-weight:500;letter-spacing:.06em;}
 .rv-sheet-fields{display:flex;flex-direction:column;gap:10px;}
 .rv-sheet-fields.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 18px;align-items:end;}
 .rv-sheet-fields.row{display:flex;flex-direction:row;flex-wrap:wrap;gap:12px 22px;align-items:end;}
@@ -29,7 +29,7 @@
 .rv-sheet-field.span{grid-column:1/-1;}
 /* label + tooltip */
 .rv-sheet-label{display:inline-flex;align-items:baseline;gap:6px;font-size:var(--fs-2xs);letter-spacing:.18em;text-transform:uppercase;color:var(--sys-ink-soft);position:relative;width:max-content;max-width:100%;}
-.rv-sheet-label .rv-sheet-page{font-size:var(--fs-2xs);letter-spacing:.02em;text-transform:none;font-style:italic;color:var(--sys-ink-dim);}
+.rv-sheet-label .rv-sheet-page{font-size:var(--fs-2xs);letter-spacing:.02em;text-transform:none;font-style:italic;color:var(--sys-ink-soft);font-weight:500;}
 .rv-sheet-tip{position:absolute;left:0;top:calc(100% + 6px);z-index:5;width:300px;max-width:80vw;padding:12px 14px;background:var(--sys-ink);color:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);font-size:var(--fs-sm);letter-spacing:0;text-transform:none;line-height:var(--lh-normal);display:none;text-align:left;}
 .rv-sheet-tip-head{display:flex;justify-content:space-between;gap:12px;font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;margin-bottom:6px;}
 .rv-sheet-tip-head em{letter-spacing:.02em;text-transform:none;opacity:.7;}
@@ -77,7 +77,7 @@ select.rv-sheet-inp{appearance:auto;}
    juntos el flag del esquema y la clase, en el mismo commit. Hallazgo del Review. */
 .rv-sheet-box.hit{background:var(--sys-blood);border-color:var(--sys-blood);}
 .rv-sheet-box:disabled{cursor:default;}
-.rv-sheet-caption{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+.rv-sheet-caption{font-size:var(--fs-xs);font-style:italic;color:var(--sys-ink-soft);font-weight:500;}
 /* health (PL/Salud) */
 .rv-sheet-health{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
 .rv-sheet-health-opt{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;padding:0;cursor:pointer;color:var(--sys-ink-dim);font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;}
@@ -88,7 +88,7 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-stat{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--sys-line);}
 .rv-sheet-stat:last-child{border-bottom:none;}
 .rv-sheet-stat-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
-.rv-sheet-stat-sub{font-size:var(--fs-xs);font-style:italic;color:var(--sys-ink-dim);display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;}
+.rv-sheet-stat-sub{font-size:var(--fs-xs);font-style:italic;color:var(--sys-ink-soft);font-weight:500;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;}
 .rv-sheet-stat-sub select{max-width:160px;}
 /* Especialidad ya elegida: texto con su × al lado, como una fila de lista. El desplegable sale sólo
    al pulsar el `+` (dueno, 2026-08-19). */
@@ -105,7 +105,7 @@ select.rv-sheet-inp{appearance:auto;}
 .rv-sheet-item > select.rv-sheet-inp{flex:1 1 auto;min-width:0;}
 .rv-sheet-item > span{flex:0 0 auto;white-space:nowrap;}
 .rv-sheet-item-actions{display:inline-flex;gap:6px;align-items:center;margin-left:auto;}
-.rv-sheet-item-cost{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);white-space:nowrap;}
+.rv-sheet-item-cost{font-size:var(--fs-xs);font-style:italic;color:var(--sys-ink-soft);font-weight:500;white-space:nowrap;}
 .rv-sheet-item-counter{display:inline-flex;align-items:center;flex:0 0 auto;}
 /* `> .rv-sheet-item-name` y no `.rv-sheet-item-name` a secas: la regla de arriba `.rv-sheet-item > span`
    pesa mas (clase + tipo) y ganaba, asi que el nombre quedaba en `flex:0 0 auto` —lo ancho que fuera su
@@ -113,7 +113,7 @@ select.rv-sheet-inp{appearance:auto;}
    nombre largo: los `−`/`+` de Dones no caian en columna. Mismo fallo que el de Municion, otra causa. */
 .rv-sheet-item > .rv-sheet-item-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-body);}
 .rv-sheet-add{align-self:flex-start;margin-top:8px;display:inline-flex;align-items:center;gap:8px;}
-.rv-sheet-add small{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);letter-spacing:0;text-transform:none;}
+.rv-sheet-add small{font-size:var(--fs-xs);font-style:italic;color:var(--sys-ink-soft);font-weight:500;letter-spacing:0;text-transform:none;}
 .rv-sheet-table{width:100%;border-collapse:collapse;}
 .rv-sheet-table th{font-size:var(--fs-2xs);letter-spacing:.18em;text-transform:uppercase;color:var(--sys-ink-soft);text-align:left;font-weight:400;padding:6px 8px 6px 0;border-bottom:1px solid var(--sys-line);}
 .rv-sheet-table td{padding:8px 8px 8px 0;border-bottom:1px solid var(--sys-line);font-size:var(--fs-sm);vertical-align:middle;}
@@ -148,6 +148,14 @@ select.rv-sheet-inp{appearance:auto;}
    La fila la agrupa `groupTiles` en Sheet.tsx: centrar cada campo en SU celda de la rejilla los
    dejaba repartidos por el ancho, no centrados en la tarjeta. Se queda en `grid` — en `stack`
    (Armadura) los calculados ya tienen su lectura en columna, y esa no se toca. */
+/* Los contadores que se gastan en mesa (Destino · Fortuna · Experiencia) van CENTRADOS respecto a la
+   tarjeta, juntos en su propia fila. En la rejilla caian en las tres primeras celdas de cuatro, asi que
+   «Destino» quedaba contra el borde izquierdo y debajo la pareja de calculados salia centrada: dos
+   criterios distintos en la misma tarjeta (dueno). */
+.rv-sheet-counters{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;gap:12px 30px;margin:2px 0;}
+.rv-sheet-counters > .rv-sheet-field{align-items:center;text-align:center;}
+.rv-sheet-counters .rv-sheet-label{text-align:center;}
+.rv-sheet-counters .rv-sheet-tip{left:50%;transform:translateX(-50%);}
 .rv-sheet-tiles{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:center;align-items:stretch;gap:14px;margin:2px 0;}
 .rv-sheet-tiles > .rv-sheet-field{width:140px;min-height:140px;padding:14px 10px;gap:10px;align-items:center;justify-content:center;text-align:center;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
 /* `block` y no el `inline-flex` de siempre: en dos lineas, el flex metia el «p.98» ENTRE ellas

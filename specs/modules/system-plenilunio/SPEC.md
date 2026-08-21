@@ -42,17 +42,25 @@ Fuente de verdad: el manual. Digesto con páginas y decisiones «⚠ interpretac
 
 ## Datos del paquete
 - `sheetSchema` (identidad, tirada, características+especialidades, estado, armadura, armas, dones, equipo, historia).
-- **Bestiario**: bloques del manual copiados uno a uno — las **siete características, Aguante, Destino, protección
-  natural (capacidades p.107–108) y la página** de cada criatura, para que el director pueda coger un encuentro y
-  tirar por él. Criaturas (Hambriento p.150, Ogro p.152, Fantasma p.149, Poseído p.149, Querubín p.155),
+- **Bestiario**: **57 bloques** del manual copiados uno a uno — las **siete características, Aguante, Destino,
+  protección natural, las especialidades del bloque, la línea impresa de capacidades y dones, y la página** de cada
+  criatura, para que el director pueda coger un encuentro y tirar por él. Son los **45 en lista** más los **doce en
+  caja** (los once personajes con nombre —Nathael, Luz, Soum, Nergal, Samael, Lucifer, Baal, Gabriel, Marduk, Adán y
+  Luz-Malefic— y el Salteador), que además traen sus **ATAQUES con arma y daño ya calculados por el libro**: se
+  copian, **no se recalculan** (RULES.md §8.0). Criaturas (Hambriento p.150, Ogro p.152, Fantasma p.149, Poseído p.149, Querubín p.155),
   sobrenaturales (Lunar p.120, Soldado de élite de los caídos p.124, Solar y Paladín solar p.132) y humanos
   hostiles (Carroñera p.74, Vagabundo p.69, Mafioso y Yihadista p.62, Dragón p.63, Pandillero latino p.61).
   El **Aguante impreso ya incluye el tamaño** y la Resistencia es Aguante × 3. Del **mutante** el libro sólo publica
   Fortaleza 3, Combate 3 y Voluntad 1: las demás quedan **sin valor**, no inventadas.
-  ⚠ Pendiente: las **especialidades** de cada bloque están en su texto pero no como dato, así que el motor todavía
-  no puede doblarle los triunfos a una criatura.
+- **Capacidades** (p.107–108): las **quince** del libro como catálogo (`capabilities`, con `scored` y la hora en la
+  que valen) y como dato en cada bloque, además de la línea impresa. Lo que aplica el motor: Piel gruesa → protección;
+  Ira solar → daño del arma; Inmune al dolor → sin penalización por estado; Ancla terrenal → no muere, se queda
+  malherida; Amparo de la noche · Aura · Aura sombría → **éxitos automáticos** que el director marca al tirar
+  (`autoSuccessOptions`); Incorpóreo, Ponzoña y Deflagración → funciones puras (`incorporealStat`, `venomDamage`,
+  `blastDice`/`blastDamage`). ⚠ Dos lecturas nuestras, declaradas en RULES.md §7.b.1: los éxitos automáticos
+  **cuentan como acierto para el revés** y **hacen 1 punto de daño** cada uno.
 - Catálogos: armas (tabla p.97), armaduras (p.98), equipo, 27 dones (p.102–107), especialidades por característica
-  (p.21–22), bestiario base (Mutante p.100 y Ogro p.152 del manual; Solitario y Chatarrero son plantillas del prototipo), tamaños (p.25).
+  (p.21–22) y de criatura (37 propias, `creature.*`), 15 capacidades (p.107–108), bestiario (57 bloques), tamaños (p.25).
 - `references`: clave → {página, título, resumen propio} para tooltips (características, dones, estados, reserva…).
 - `theme`: papel gris `#dedcd5`, tinta `#131310`, oro `#8a7038`, sangre `#6e2418`, Cormorant Garamond, luna creciente,
   discos de salud en fases lunares, fondo `systems/plenilunio/fondo.png`. Variables `--sys-*` en el contenedor de la mesa.

@@ -141,6 +141,9 @@ export function fakeIdentityDeps(over: { identity?: Partial<IdentityDeps['identi
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
 import type { RollInput, RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import type { RollLogPort } from '@/modules/dice/domain/ports/RollLogPort';
+import type { AttacksPort } from '@/modules/dice/domain/ports/AttacksPort';
+import type { AttackWatchPort } from '@/modules/dice/domain/ports/AttackWatchPort';
+import type { OpenAttackInput, PendingAttack } from '@/modules/dice/domain/entities/Attack';
 import type { Roll, RollOutcome } from '@/modules/dice/domain/entities/Roll';
 import type { Character, CharacterAuditEntry, CharacterPatch, CreateCharacterInput, WriteOrigin } from '@/modules/characters/domain/entities/Character';
 import type { RollResult, SheetData } from '@rolvium/core';
@@ -219,7 +222,7 @@ export function fakeRollsPort(result: RollResult | null = { summary: 'roll.degre
 // ── dice ─────────────────────────────────────────────────────────────────────
 /** Karen's opposed Combat roll from the design (7—1, a Destiny die triumph → +1 Destino). */
 export const ROLL_COMBAT: Roll = {
-  id: 'roll-combat', campaignId: 'c1', characterId: 'ch-karen', authorId: PLAYER_USER.id, authorName: 'Karen «K»', authorAvatarUrl: null, systemId: 'plenilunio', kind: 'system',
+  id: 'roll-combat', campaignId: 'c1', characterId: 'ch-karen', characterName: 'Karen Sinclair', authorId: PLAYER_USER.id, authorName: 'Karen «K»', authorAvatarUrl: null, systemId: 'plenilunio', kind: 'system',
   title: 'sheet.stats.combat',
   request: { systemId: 'plenilunio', kind: 'system', title: 'sheet.stats.combat', groups: [{ count: 4, sides: 6, tag: 'own' }, { count: 2, sides: 6, tag: 'destiny' }, { count: 2, sides: 6, tag: 'opposition' }], options: { stat: 'combat', specialty: true }, sharedResources: { destiny: 2 }, visibility: 'table' },
   dice: [[5, 6, 2, 4], [6, 3], [4, 1]],
@@ -228,7 +231,7 @@ export const ROLL_COMBAT: Roll = {
 };
 /** Elías' failed Cunning roll with a setback (0—2, «Revés»). */
 export const ROLL_SETBACK: Roll = {
-  ...ROLL_COMBAT, id: 'roll-setback', characterId: 'ch-elias', authorId: 'u-nix', authorName: 'Elías Vance', title: 'sheet.stats.cunning',
+  ...ROLL_COMBAT, id: 'roll-setback', characterId: 'ch-elias', characterName: 'Elías Vance', authorId: 'u-nix', authorName: 'Nix', title: 'sheet.stats.cunning',
   request: { systemId: 'plenilunio', kind: 'system', title: 'sheet.stats.cunning', groups: [{ count: 2, sides: 6, tag: 'own' }, { count: 2, sides: 6, tag: 'opposition' }], options: { stat: 'cunning' }, visibility: 'dm' },
   dice: [[1, 3], [5, 4]],
   result: { summary: 'roll.summary.setback', total: -2, detail: { ownHits: 0, destinyHits: 0, oppositionHits: 2, difference: -2, setback: true }, effects: { setback: true } },
@@ -236,7 +239,7 @@ export const ROLL_SETBACK: Roll = {
 };
 /** Nix's free 2D10 = 13. */
 export const ROLL_FREE: Roll = {
-  ...ROLL_COMBAT, id: 'roll-free', characterId: null, authorId: 'u-nix2', authorName: 'Nix', systemId: null, kind: 'free', title: '2D10',
+  ...ROLL_COMBAT, id: 'roll-free', characterId: null, characterName: null, authorId: 'u-nix2', authorName: 'Nix', systemId: null, kind: 'free', title: '2D10',
   request: { systemId: null, kind: 'free', title: '2D10', groups: [{ count: 2, sides: 10 }], visibility: 'table' },
   dice: [[6, 7]], result: { summary: 'roll.free', total: 13, detail: {} }, visibility: 'table', createdAt: '2026-08-18T21:05:00Z',
 };
@@ -255,6 +258,31 @@ export function fakeRollLog(seed: Roll[] = [ROLL_COMBAT, ROLL_SETBACK, ROLL_FREE
   return api;
 }
 
+/**
+ * Ataques cuerpo a cuerpo a la espera (`.pen` columna 5). `push` mete uno como si acabara de llegar por
+ * realtime; `answers` recoge lo que contestó el jugador, incluido el 0 de «no me defiendo».
+ */
+export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWatchPort & { pending: PendingAttack[]; opened: OpenAttackInput[]; answers: { id: string; defence: number }[]; push: (a: PendingAttack) => void } {
+  const pending = [...seed];
+  const opened: OpenAttackInput[] = [];
+  const answers: { id: string; defence: number }[] = [];
+  const listeners = new Set<() => void>();
+  return {
+    pending, opened, answers,
+    push: (a: PendingAttack) => { pending.push(a); listeners.forEach(l => l()); },
+    open: async (input: OpenAttackInput) => { opened.push(input); return { id: `atk-${opened.length}` }; },
+    answer: async (id: string, defence: number) => {
+      answers.push({ id, defence });
+      const i = pending.findIndex(a => a.id === id);
+      if (i >= 0) pending.splice(i, 1);
+      listeners.forEach(l => l());
+      return { id: `roll-${answers.length}`, request: { systemId: 'plenilunio', kind: 'system', title: 't', groups: [{ count: 1, sides: 6, tag: 'own' }], visibility: 'table' }, dice: [[4]], result: { summary: 'ok', total: 1 }, rolledAt: '2026-08-21T00:00:00Z' };
+    },
+    listPending: async (cid: string) => pending.filter(a => a.campaignId === cid),
+    subscribe: (_cid: string, onChange: () => void) => { listeners.add(onChange); return () => { listeners.delete(onChange); }; },
+  };
+}
+
 // ── maps ─────────────────────────────────────────────────────────────────────
 import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
 import type { SceneVision, VisionPort } from '@/modules/maps/domain/ports/VisionPort';
@@ -268,7 +296,7 @@ export const SCENE_WAREHOUSE: Scene = {
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };
 export const SCENE_TUNNELS: Scene = { ...SCENE_WAREHOUSE, id: 'sc-3', name: 'Túneles de servicio', sortOrder: 2, visiblePlayers: true };
 /** Karen's token: Pip controls it. */
-export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId: 'c1', characterId: 'ch-karen', bestiaryRef: null, name: 'Karen «K»', imageUrl: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlledBy: PLAYER_USER.id, visionRadius: null, state: {} };
+export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId: 'c1', characterId: 'ch-karen', bestiaryRef: null, bestiaryEntryId: null, name: 'Karen «K»', imageUrl: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlledBy: PLAYER_USER.id, visionRadius: null, state: {} };
 export const TOKEN_ELIAS: Token = { ...TOKEN_KAREN, id: 'tk-elias', characterId: 'ch-elias', name: 'Elías Vance', x: 8, y: 12, color: '#3a3a26', controlledBy: 'u-nix' };
 /** A hidden mutant placed by the DM (players never receive it). */
 export const TOKEN_MUTANT: Token = { ...TOKEN_KAREN, id: 'tk-mut', characterId: null, bestiaryRef: 'mutant', name: 'Mutante', x: 20, y: 9, color: null, visible: false, controlledBy: null, state: { resistance: 12 } };

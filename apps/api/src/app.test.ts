@@ -3,8 +3,9 @@ import { createApp, type AppDeps } from './app.js';
 import type { UserProfile } from './domain/user/IUserRepository.js';
 import type { FastifyInstance } from 'fastify';
 import { plenilunio } from '@rolvium/system-plenilunio';
-import type { SheetData } from '@rolvium/core';
+import { ownDiceForStat, type SheetData } from '@rolvium/core';
 import type { RollCommitInput } from './domain/roll/IRollRepository.js';
+import type { OpenAttackInput } from './domain/attack/IAttackRepository.js';
 import { fakeMapsRepo } from './application/maps/fakeMapsRepo.js';
 
 const ADMIN: UserProfile = { id: '11111111-1111-4111-8111-111111111111', name: 'Root', email: 'root@rolvium.test', avatarUrl: null, roleId: 'r-admin', role: 'admin', permissions: { modules: [], admin: {} }, active: true, createdAt: '' };
@@ -17,6 +18,14 @@ const CAMP_ID = '77777777-7777-4777-8777-777777777777';
 const OTHER_CAMP = '88888888-8888-4888-8888-888888888888';
 const saved: { id: string; actor: string; patch: unknown; origin: string }[] = [];
 const committed: RollCommitInput[] = [];
+const ATTACK_ID = '99999999-9999-4999-8999-999999999999';
+const opened: OpenAttackInput[] = [];
+const closedAttacks: { id: string; rollId: string | null; status: string }[] = [];
+/** Lo que el director guarda al atacar cuerpo a cuerpo: sin oposición, que la pone quien se defiende. */
+const attackRequest = () => ({
+  systemId: 'plenilunio', kind: 'system' as const, title: 'Ogro ataca a Karen',
+  groups: [{ count: 4, sides: 6, tag: 'own' }], options: { stat: 'combat', difficulty: 0 }, visibility: 'table' as const,
+});
 /** Karen-like sheet with Destiny 2 so a Destiny-die triumph raises it. */
 const charData = (): SheetData => ({ ...plenilunio.newSheet(), name: 'Karen', destiny: 2, fortune: 1 });
 
@@ -41,6 +50,18 @@ const makeDeps = (): AppDeps => ({
       isCampaignDm: async (cid, actor) => cid === CAMP_ID && actor === ADMIN.id,
     },
     maps: fakeMapsRepo({ roles: { [ADMIN.id]: 'dm', [PLAYER.id]: 'player' }, tokens: [{ id: 'tk-pip', x: 2, y: 5, size: 1, controlledBy: PLAYER.id }] }),
+    // Ataques a la espera (`.pen` columna 5): abrir es del director, contestar del dueño del personaje.
+    attacks: {
+      open: async (i) => { if (i.actorId !== ADMIN.id) throw Object.assign(new Error('not_dm'), { code: 'FORBIDDEN' }); opened.push(i); return { id: ATTACK_ID }; },
+      answer: async (actor, id, defence) => {
+        if (actor !== PLAYER.id || id !== ATTACK_ID) throw Object.assign(new Error('not_pending'), { code: 'FORBIDDEN' });
+        return defence;
+      },
+      findById: async (id) => id === ATTACK_ID
+        ? { id, campaignId: CAMP_ID, targetCharacterId: CHAR_ID, createdBy: ADMIN.id, dice: 4, request: attackRequest(), status: 'pending' as const }
+        : null,
+      close: async (id, rollId, status) => { closedAttacks.push({ id, rollId, status }); },
+    },
     rolls: {
       commit: async (input) => {
         if ((input.shared['destiny'] ?? 0) > 1) throw Object.assign(new Error('pool_empty'), { code: 'POOL_EMPTY' });
@@ -297,5 +318,70 @@ describe('POST /scenes/:id/fog', () => {
     const body = (await post(app, `/scenes/${SCENE_ID}/fog`, 'admin', { op: 'hide', at: { x: 13.5, y: 13.5, radius: 20 } })).json() as { data: { explored: number[][] } };
     expect(body.data.explored.some(([x, y]) => x === 0 && y === 0)).toBe(false);
     expect(body.data.explored).toHaveLength(99);
+  });
+});
+
+// ── ataques a la espera (`.pen` columna 5): el director abre, el jugador contesta y ahí sale la tirada ──
+describe('POST /attacks', () => {
+  const body = () => ({ campaignId: CAMP_ID, attackerName: 'Ogro', targetCharacterId: CHAR_ID, dice: 4, request: attackRequest() });
+  it('requires a token', async () => {
+    expect((await post(app, '/attacks')).statusCode).toBe(401);
+  });
+  it('rejects a body without a request', async () => {
+    expect((await post(app, '/attacks', 'admin', { campaignId: CAMP_ID, attackerName: 'Ogro', targetCharacterId: CHAR_ID, dice: 4 })).statusCode).toBe(400);
+  });
+  it('only the DM opens an attack', async () => {
+    expect((await post(app, '/attacks', 'player', body())).statusCode).toBe(403);
+  });
+  it('the DM opens it and gets its id back', async () => {
+    const r = await post(app, '/attacks', 'admin', body());
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data.id).toBe(ATTACK_ID);
+    expect(opened.at(-1)?.attackerName).toBe('Ogro');
+  });
+});
+
+describe('POST /attacks/:id/answer', () => {
+  it('requires a token, and the id must be a uuid', async () => {
+    expect((await post(app, `/attacks/${ATTACK_ID}/answer`)).statusCode).toBe(401);
+    expect((await post(app, '/attacks/nope/answer', 'player', { defence: 1 })).statusCode).toBe(400);
+  });
+  it('rejects a defence that is not a whole number of dice', async () => {
+    expect((await post(app, `/attacks/${ATTACK_ID}/answer`, 'player', { defence: -1 })).statusCode).toBe(400);
+    expect((await post(app, `/attacks/${ATTACK_ID}/answer`, 'player', {})).statusCode).toBe(400);
+  });
+  it('only the owner of the attacked character answers', async () => {
+    expect((await post(app, `/attacks/${ATTACK_ID}/answer`, 'admin', { defence: 1 })).statusCode).toBe(403);
+  });
+  /** El techo son los dados que le da su Combate AHORA: se pide al sistema, no se copia un número aquí. */
+  const cap = () => ownDiceForStat(plenilunio, charData(), 'combat') ?? 0;
+
+  it('answering rolls right there, with the defence dice facing the attacker', async () => {
+    const before = committed.length;
+    const r = await post(app, `/attacks/${ATTACK_ID}/answer`, 'player', { defence: cap() });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data.defence).toBe(cap());
+    const rolled = committed[before];
+    expect(rolled?.actorId).toBe(ADMIN.id);
+    expect(rolled?.request.groups).toContainEqual({ count: cap(), sides: 6, tag: 'opposition' });
+    expect(closedAttacks.at(-1)?.status).toBe('resolved');
+  });
+
+  /**
+   * El agujero que cerró el review: el techo vivía sólo en el navegador. Un `{"defence": 40}` a pelo daba
+   * 40 dados de defensa. Ahora lo recorta el servidor con la misma cuenta que pinta la pantalla.
+   */
+  it('a defence bigger than the character\'s own dice is trimmed, not obeyed', async () => {
+    const before = committed.length;
+    const r = await post(app, `/attacks/${ATTACK_ID}/answer`, 'player', { defence: 40 });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data.defence).toBe(cap());
+    expect(committed[before]?.request.groups.find(g => g.tag === 'opposition')?.count).toBe(cap());
+  });
+  it('«no me defiendo» is an answer: it rolls with nothing facing the attacker', async () => {
+    const before = committed.length;
+    const r = await post(app, `/attacks/${ATTACK_ID}/answer`, 'player', { defence: 0 });
+    expect(r.statusCode).toBe(200);
+    expect(committed[before]?.request.groups.some(g => g.tag === 'opposition')).toBe(false);
   });
 });

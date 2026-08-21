@@ -17,8 +17,14 @@ export interface SheetProps {
   derived?: Record<string, unknown>;
   readOnly?: boolean;
   onChange?: (patch: SheetPatch) => void;
-  /** Rolls and system actions: `roll` (stat rows) or an ActionDef id; `itemId` = stat/row id. */
-  onAction?: (actionId: string, itemId: string, options?: Record<string, unknown>) => void;
+  /**
+   * Rolls and system actions: `roll` (stat rows) or an ActionDef id; `itemId` = stat/row id.
+   *
+   * `anchor` es el rectángulo del BOTÓN que se ha pulsado. Lo pasa la hoja porque sólo ella sabe dónde
+   * está ese botón, y quien abre un desplegable encima necesita saberlo para nacer pegado a él. Es
+   * opcional a propósito: quien no lo use sigue leyendo los tres primeros argumentos igual que antes.
+   */
+  onAction?: (actionId: string, itemId: string, options?: Record<string, unknown>, anchor?: DOMRect) => void;
   actions?: ActionDef[];
   /** Catalog rows fill derived table columns (`catalogs[field.id]` → item.data[col.id]). */
   catalogs?: Catalogs;
@@ -81,11 +87,23 @@ const isTile = (f: FieldDef) => f.type === 'number' && !!f.derived;
  * tarjeta grande. Solo se hace en `grid`; en `stack` los calculados ya tienen su lectura (Armadura:
  * centrados en columna con un filete corto entre dos), y esa no se toca.
  */
-const groupTiles = (fields: FieldDef[]): (FieldDef | FieldDef[])[] =>
+/**
+ * Un contador que se GASTA en mesa (Destino, Fortuna, Experiencia). Los seguidos se leen juntos y
+ * centrados bajo la tarjeta, no repartidos por el ancho de la rejilla: en `grid` caian en las tres
+ * primeras celdas de una fila de cuatro, asi que «Destino» quedaba pegado al borde izquierdo mientras
+ * los calculados de debajo iban centrados (dueno). Mismo trato que ya tenian las tarjetas calculadas.
+ */
+const isCounterRun = (f: FieldDef) => f.type === 'counter' && !f.derived;
+const runKind = (f: FieldDef): 'tiles' | 'counters' | null => (isTile(f) ? 'tiles' : isCounterRun(f) ? 'counters' : null);
+const runClass = (g: FieldDef[]): string => (runKind(g[0] as FieldDef) === 'tiles' ? 'rv-sheet-tiles' : 'rv-sheet-counters');
+
+/** Agrupa las TIRADAS SEGUIDAS del mismo tipo; lo demas se queda como celda suelta de la rejilla. */
+const groupRuns = (fields: FieldDef[]): (FieldDef | FieldDef[])[] =>
   fields.reduce<(FieldDef | FieldDef[])[]>((acc, f) => {
+    const kind = runKind(f);
     const last = acc[acc.length - 1];
-    if (isTile(f) && Array.isArray(last)) last.push(f);
-    else acc.push(isTile(f) ? [f] : f);
+    if (kind && Array.isArray(last) && runKind(last[0] as FieldDef) === kind) last.push(f);
+    else acc.push(kind ? [f] : f);
     return acc;
   }, []);
 
@@ -237,8 +255,8 @@ export function Sheet(p: SheetProps): JSX.Element {
             {sectionRef(s, p)}
           </header>
           <div className={`rv-sheet-fields ${s.layout ?? 'stack'}`}>
-            {(s.layout === 'grid' ? groupTiles(s.fields) : s.fields).map((g, i) => (Array.isArray(g)
-              ? <div key={`tiles-${i}`} className="rv-sheet-tiles">{g.map(f => <FieldWrap key={f.id}>{renderField(f)}</FieldWrap>)}</div>
+            {(s.layout === 'grid' ? groupRuns(s.fields) : s.fields).map((g, i) => (Array.isArray(g)
+              ? <div key={`run-${i}`} className={runClass(g)}>{g.map(f => <FieldWrap key={f.id}>{renderField(f)}</FieldWrap>)}</div>
               : <FieldWrap key={g.id}>{renderField(g)}</FieldWrap>))}
           </div>
           {p.extras?.[s.id]}
@@ -361,7 +379,7 @@ function StatRow({ f, p, ro, showActions, allowed, set, label }: Shared & { allo
       </div>
       {ro ? <span className="rv-sheet-value big">{value}</span>
         : <Counter value={value} min={f.min} max={f.max} labelText={p.t(f.label)} disabled={false} allowed={n => allowed(f.id, { ...o, value: n, specialties: specs })} onChange={n => set(f.id, { ...o, value: n, specialties: specs })} />}
-      {showActions && p.onAction && <button type="button" className="rv-sheet-btn gold" onClick={() => p.onAction?.('roll', f.id)}>{p.labels.roll}{pool !== null ? ` ${pool}` : ''}</button>}
+      {showActions && p.onAction && <button type="button" className="rv-sheet-btn gold" onClick={e => p.onAction?.('roll', f.id, undefined, e.currentTarget.getBoundingClientRect())}>{p.labels.roll}{pool !== null ? ` ${pool}` : ''}</button>}
     </div>
   );
 }
@@ -397,7 +415,7 @@ function ItemActions({ f, p, item, i, ro, showActions, list, set }: Shared & { i
             /* Sin balas no se dispara, y el boton tiene que VERSE apagado: un control vetado que no lo
                parece es «pulso y no pasa nada», el fallo que ya ha salido cuatro veces en este proyecto. */
             disabled={a.spend ? a.spend(p.data, rowId(item, i)) === null : false}
-            onClick={() => p.onAction?.(a.id, rowId(item, i))}>
+            onClick={e => p.onAction?.(a.id, rowId(item, i), undefined, e.currentTarget.getBoundingClientRect())}>
             <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">{a.icon}</span>
           </button>
         </span>
@@ -505,7 +523,7 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
                        las nueve (p.97)— y la tabla pintaba igualmente un contador, así que salían unas
                        Nudilleras con 14 balas. */
                     : c.appliesToRow && !c.appliesToRow(row) ? <span className="rv-sheet-caption">—</span>
-                      : <Cell d={c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}
+                      : <Cell d={c.maxForRow ? { ...c, max: c.maxForRow(row) ?? c.max } : c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}
                 </td>
               ))}
               <td><ItemActions f={f} p={p} item={row} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} /></td>

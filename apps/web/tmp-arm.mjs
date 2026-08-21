@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const pg = await b.newPage({ viewport: { width: 1600, height: 1100 } });
+await pg.goto('http://localhost:5173/login', { waitUntil: 'networkidle' });
+await pg.locator('input[type=email]').fill('admin@rolvium.local');
+await pg.locator('input[type=password]').fill('rolvium123');
+await Promise.all([pg.waitForURL(u=>!String(u).includes('/login')).catch(()=>{}), pg.locator('button[type=submit]').click()]);
+await pg.goto('http://localhost:5173/characters/3af4f238-25ad-4cf1-a264-09d7586019d8', { waitUntil: 'networkidle' });
+await pg.waitForTimeout(2500);
+const tbl = pg.getByRole('table', { name: 'Armas' });
+console.log((await tbl.innerText()).split('\n').join(' | '));
+const box = await tbl.boundingBox();
+if (box) await pg.screenshot({ path: '/tmp/arm.png', clip: { x: box.x-10, y: box.y-40, width: Math.min(box.width+20, 1580), height: box.height+80 } });
+await b.close();

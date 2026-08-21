@@ -1,0 +1,272 @@
+/* ⚠ El espaciado va en px, no en `var(--sp-*)`. Esos tokens NO EXISTEN en el repo — se escribieron aquí
+   por costumbre y no los define nadie, así que el navegador tiraba la declaración entera y TODOS los
+   `gap` y `padding` de la pestaña salían a cero: la ficha amontonada que vio el dueño. La convención de
+   la casa para espaciado es el px crudo (`table.css`, `sheet.css`); los tokens obligatorios son los de
+   color y tipografía. Escala usada, la del .pen: 6 / 10 / 16. */
+
+/* Bestiario (H5) — .pen «Bestiario/Catálogo · pantalla completa» y «Ficha del encuentro».
+   Va vestido con el tema del sistema de juego (--sys-*), como el resto de la mesa: dentro del pergamino los
+   tokens de la plataforma (--sf, --ac) desentonan.
+
+   ⚠ Regla de toda la pestaña, sin excepción: aquí NO entra un token de plataforma. Las fichas se
+   construyeron dentro del `Modal` de `@rolvium/ui` — panel `--sf` sobre scrim negro — y salió una hoja de
+   juego dibujada en papel metida en una caja negra: el rechazo del dueño del 2026-08-21. Los modales del
+   bestiario son `SheetOverlay`, no `Modal`, y todo lo de abajo va en `--sys-*`.
+
+   ⚠ Y las letras van con CUERPO: Cormorant Garamond es una romana de trazo fino, así que a tamaño pequeño
+   un gris medio se deshace aunque el contraste medido sea correcto (dueño, tres veces ya: 2026-08-19,
+   2026-08-20 y 2026-08-21 «hace doler la cabeza»). Norma de la casa aquí: el texto que se LEE va en
+   `--sys-ink-soft` como mínimo — nunca `--sys-ink-dim` — y con `font-weight:500`. `--sys-ink-dim` queda
+   sólo para lo decorativo grande (iniciales) y los bordes. */
+
+.bs-tab { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── cabecera ───────────────────────────────────────────────────────────── */
+.bs-head { display: flex; align-items: center; gap: 10px; }
+.bs-title { font-family: var(--sys-font-display); font-size: var(--fs-lg); letter-spacing: .18em; color: var(--sys-ink); margin: 0; }
+.bs-sub { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); margin: 2px 0 0; }
+.bs-card-sp { flex: 1; }
+
+.bs-search { display: flex; align-items: center; gap: 6px; width: 240px;
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-line); padding: 6px 9px; color: var(--sys-ink-soft); }
+.bs-search input { flex: 1; background: none; border: none; outline: none; color: var(--sys-ink);
+  font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500; }
+.bs-search input::placeholder { color: var(--sys-ink-soft); opacity: .75; }
+
+/* ── aviso solo director ────────────────────────────────────────────────── */
+.bs-onlydm { display: flex; align-items: center; gap: 10px; margin: 0;
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-gold); padding: 8px 10px;
+  font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); }
+.bs-onlydm-tag { background: var(--sys-gold); color: var(--sys-bg); padding: 2px 7px; letter-spacing: .16em;
+  font-size: var(--fs-2xs); font-weight: 600; font-style: normal; white-space: nowrap; }
+
+/* ── botones del pergamino (ver la nota de reutilización en EntryCard.tsx) ──
+   Son los tres del pie del `.pen`: GUARDAR (tinta llena), DUPLICAR (filete) y BORRAR (filete de sangre).
+   Peso 600 y tinta plena: en versalitas a 12 px el peso normal no se lee (punto 4 del dueño). */
+.bs-btn { background: none; border: 1px solid var(--sys-line); color: var(--sys-ink); cursor: pointer;
+  font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  padding: 4px 9px; transition: background .15s, border-color .15s, color .15s; }
+.bs-btn:hover { border-color: var(--sys-ink-soft); background: var(--sys-paper-hi); }
+.bs-btn.on, .bs-btn[aria-pressed='true'] { background: var(--sys-paper-hi); border-color: var(--sys-ink-soft); color: var(--sys-ink); }
+/* `.bs-btn.bs-btn-on` y no `.bs-btn-on`: con una sola clase pierde contra `.bs-btn[aria-pressed='true']`
+   de la regla de arriba, así que el botón elegido salía con filete en vez de relleno de tinta. No se podía
+   ver de otra forma que mirando la pantalla: compila y pasa los tests igual. */
+.bs-btn.bs-btn-on { background: var(--sys-ink); border-color: var(--sys-ink); color: var(--sys-paper-hi); }
+.bs-btn.bs-btn-on:hover { background: var(--sys-ink-soft); border-color: var(--sys-ink-soft); color: var(--sys-paper-hi); }
+.bs-btn-danger { border-color: var(--sys-blood); color: var(--sys-blood); }
+.bs-btn-danger:hover { background: var(--sys-blood); border-color: var(--sys-blood); color: var(--sys-paper-hi); }
+.bs-btn-lg { padding: 7px 12px; font-size: var(--fs-xs); }
+.bs-btn:disabled { opacity: .55; cursor: default; }
+.bs-btn:focus-visible, .bs-icon:focus-visible, .bs-card-eye:focus-visible, .bs-ov-x:focus-visible { outline: 2px solid var(--sys-gold); outline-offset: 2px; }
+
+.bs-icon { background: none; border: none; cursor: pointer; color: var(--sys-ink-soft); padding: 3px; display: inline-flex; }
+.bs-icon:hover { color: var(--sys-ink); }
+
+.bs-filters { display: flex; gap: 6px; align-items: center; }
+
+/* ── rejilla de fichas ──────────────────────────────────────────────────── */
+.bs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+.bs-card { position: relative; display: flex; flex-direction: column; background: var(--sys-card); border: 1px solid var(--sys-border);
+  box-shadow: var(--sys-card-shadow); }
+
+.bs-card-img { position: relative; height: 168px; display: flex; align-items: center; justify-content: center;
+  background: var(--sys-paper-hi); overflow: hidden; }
+/* `contain` y NO `cover`: con `cover` una foto que no fuera cuadrada salía recortada por los lados o por
+   arriba, y el director veía media criatura (dueño, 2026-08-21). El fichero subido está intacto —el
+   compresor escala por el lado largo y respeta la proporción—, así que el recorte era sólo al pintarla.
+   La caja mantiene su alto para que la rejilla no se descuadre; lo que sobra enseña el papel. */
+.bs-card-photo { width: 100%; height: 100%; object-fit: contain; display: block; }
+.bs-card-ini { font-family: var(--sys-font-display); font-size: var(--fs-display); color: var(--sys-ink-dim); }
+
+/* El ojo: aparece al pasar por encima, pero SIEMPRE es alcanzable con teclado (:focus-within). */
+.bs-card-eye { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%;
+  border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--sys-bg); color: var(--sys-paper-hi); opacity: 0; transition: opacity .15s; }
+.bs-card:hover .bs-card-eye, .bs-card:focus-within .bs-card-eye { opacity: .92; }
+.bs-card-eye:hover { opacity: 1; }
+
+.bs-card-placed { position: absolute; left: 10px; bottom: 10px; background: var(--sys-bg); color: var(--sys-paper-hi);
+  font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .1em; padding: 2px 7px; }
+
+.bs-card-body { display: flex; flex-direction: column; gap: 6px; padding: 10px; }
+.bs-card-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.bs-card-name { font-family: var(--sys-font-display); font-size: var(--fs-md); color: var(--sys-ink); margin: 0; }
+.bs-card-stats { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500; color: var(--sys-ink-soft); margin: 0; }
+.bs-card-notes { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bs-card-src { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); margin: 0; }
+.bs-card-actions { display: flex; align-items: center; gap: 5px; padding-top: 4px; }
+
+.bs-card-specs { display: flex; flex-wrap: wrap; gap: 5px; list-style: none; margin: 0; padding: 0; }
+.bs-spec { background: var(--sys-paper-hi); border: 1px solid var(--sys-ink-soft); color: var(--sys-ink);
+  font-family: var(--sys-font-body); font-size: var(--fs-xs); font-weight: 500; padding: 2px 7px; }
+
+.bs-origin { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .1em; padding: 2px 7px;
+  border: 1px solid var(--sys-line); color: var(--sys-ink-soft); white-space: nowrap; }
+.bs-origin-custom, .bs-origin-npc { border-color: var(--sys-ink-soft); color: var(--sys-ink); background: var(--sys-paper-hi); }
+
+/* ── la hoja de pergamino que envuelve las fichas (`SheetOverlay`) ─────────
+   `PL/Hoja` del .pen: papel `--sys-card` sobre la piedra de la mesa CON su textura, filete de `--sys-border`
+   y la sombra del sistema. El fondo NO es un velo oscuro a propósito: `--sys-card` es traslúcido (alfa 80),
+   así que sobre negro el papel sale sucio — que es justo lo que el dueño rechazó. */
+.bs-ov { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-start; justify-content: center;
+  padding: 16px; overflow-y: auto; background: var(--sys-bg) var(--sys-bg-image) center/cover fixed; }
+
+.bs-ov-sheet { width: 100%; margin: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  background: var(--sys-card); border: 1px solid var(--sys-border); box-shadow: var(--sys-card-shadow); outline: none; }
+
+.bs-ov-head { display: flex; align-items: center; gap: 10px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--sys-border); }
+.bs-ov-title { font-family: var(--sys-font-display); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--sys-ink); margin: 0; }
+/* «Titulo Derecha» del .pen. Allí es `ink-dim`; sube a `ink-soft` por el punto 4 del dueño. */
+.bs-ov-note { flex: 1; font-family: var(--sys-font-body); font-size: var(--fs-xs); font-weight: 500;
+  letter-spacing: .12em; color: var(--sys-ink-soft); }
+.bs-ov-x { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--sys-ink-soft);
+  padding: 2px; display: inline-flex; }
+.bs-ov-x:hover { color: var(--sys-ink); }
+.bs-ov-body { display: flex; flex-direction: column; }
+.bs-ov-bleed { margin: 0 -16px -16px; }
+
+/* ── ficha del encuentro ────────────────────────────────────────────────── */
+.bs-sheet { display: flex; flex-direction: column; gap: 16px; }
+.bs-note { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic; font-weight: 500;
+  color: var(--sys-ink-soft); margin: 0; }
+.bs-error { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500; color: var(--sys-blood);
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-blood); padding: 8px 10px; margin: 0; }
+
+.bs-sheet-top { display: flex; gap: 16px; align-items: flex-start; }
+/* 152 px y no 200: es la medida del `.pen` (frame «Ficha del encuentro», Avatar 152×152). El botón y la
+   pista van a ese mismo ancho, o el rótulo «SUBIR IMAGEN» se sale de la columna y la pista se parte en
+   tres líneas que chocan con «CARACTERÍSTICAS» (visto en la app, no deducido). */
+.bs-sheet-img { display: flex; flex-direction: column; gap: 6px; width: 152px; flex-shrink: 0; }
+.bs-sheet-img .bs-btn { width: 100%; text-align: center; }
+.bs-sheet-hint { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-style: italic;
+  font-weight: 500; color: var(--sys-ink-soft); margin: 0; line-height: var(--lh-tight); }
+.bs-sheet-preview { width: 152px; height: 152px; display: flex; align-items: center; justify-content: center;
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-ink); overflow: hidden; }
+.bs-savings { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-weight: 500; color: var(--sys-olive); margin: 0; }
+.bs-sheet-fields { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+
+.bs-label { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--sys-ink-soft); }
+/* Caja de campo del `.pen` («Nombre»/«Notas»: relleno `paper-hi`, filete `line`, tinta plena). No es el
+   `Field`/`rv-inp` de la plataforma a propósito: aquél va en `--bg`/`--bd`/`--tx` y sobre el papel sale
+   una caja negra. */
+.bs-input, .bs-textarea { width: 100%; background: var(--sys-paper-hi); border: 1px solid var(--sys-line);
+  color: var(--sys-ink); font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500;
+  padding: 8px 10px; outline: none; }
+.bs-textarea { resize: vertical; }
+.bs-input:focus, .bs-textarea:focus { border-color: var(--sys-ink); }
+.bs-field { display: flex; flex-direction: column; gap: 4px; }
+
+.bs-sec { font-family: var(--sys-font-display); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--sys-ink); margin: 0; }
+
+/* Nombre y caja con MEDIDA FIJA: sin ellas «Fortaleza» y «Cultura» empujan la caja a distinta x y la
+   columna de números sale escalonada (corrección pedida por el dueño sobre el diseño). */
+.bs-stats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.bs-stat { display: flex; align-items: center; gap: 10px; padding: 6px 2px; border-bottom: 1px solid var(--sys-line); }
+.bs-stat-name { width: 104px; flex-shrink: 0; font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500; color: var(--sys-ink); }
+.bs-stat-box, .bs-stat-absent { width: 52px; height: 34px; flex-shrink: 0; text-align: center; }
+.bs-stat-box { background: var(--sys-paper-hi); border: 1px solid var(--sys-line); color: var(--sys-ink);
+  font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500; outline: none; }
+.bs-stat-box:focus { border-color: var(--sys-ink); }
+.bs-stat-absent { display: inline-flex; align-items: center; justify-content: center; color: var(--sys-ink-soft); font-size: var(--fs-sm); }
+.bs-stat-specs { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
+.bs-stat-none { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); }
+
+.bs-tiles { display: flex; gap: 10px; }
+.bs-tile { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px;
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-ink-soft); }
+/* La Resistencia no se teclea: se pinta apagada, con filete flojo y sin papel (`.pen`, Tile/Resistencia). */
+.bs-tile-locked { background: none; border-color: var(--sys-line); }
+.bs-tile-l { font-family: var(--sys-font-body); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--sys-ink-soft); }
+.bs-tile-in { width: 64px; text-align: center; background: var(--sys-paper-hi); border: 1px solid var(--sys-line);
+  color: var(--sys-ink); font-family: var(--sys-font-body); font-size: var(--fs-lg); outline: none; }
+.bs-tile-in:focus { border-color: var(--sys-ink); }
+.bs-tile-out { font-family: var(--sys-font-body); font-size: var(--fs-lg); color: var(--sys-ink-soft); }
+.bs-tile-h { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); }
+
+.bs-scope { display: flex; align-items: center; gap: 6px; font-family: var(--sys-font-body);
+  font-size: var(--fs-sm); font-weight: 500; color: var(--sys-ink); }
+.bs-scope-h { font-size: var(--fs-xs); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); }
+
+.bs-sheet-foot { display: flex; align-items: center; gap: 6px; padding-top: 6px; }
+
+/* ── modal de la foto ───────────────────────────────────────────────────── */
+.bs-photo { height: 480px; background: var(--sys-paper-lo); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.bs-photo-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.bs-photo-fallback { font-family: var(--sys-font-display); font-size: var(--fs-display); color: var(--sys-ink-dim); }
+.bs-photo-foot { display: flex; align-items: center; gap: 10px; padding: 16px; }
+.bs-photo-foot > div { flex: 1; }
+.bs-photo-name { font-family: var(--sys-font-display); font-size: var(--fs-lg); color: var(--sys-ink); }
+.bs-photo-meta { font-family: var(--sys-font-body); font-size: var(--fs-sm); font-style: italic; font-weight: 500; color: var(--sys-ink-soft); }
+
+@media (max-width: 720px) {
+  .bs-sheet-top { flex-direction: column; }
+  .bs-sheet-img, .bs-sheet-preview { width: 100%; }
+}
+
+/* ── ficha completa de un PNJ aliado (el mismo <Sheet> que un PJ) ─────────── */
+.bs-npc { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── tirar en nombre de una criatura (`.pen` «Popover/Tirar») ──────────────
+   POPOVER, no pantalla. Sale ENCIMA DE SU FICHA (`inset:0` dentro de `.bs-card`, que es `relative`), así
+   que el catálogo se sigue viendo alrededor y se entiende de qué criatura se está tirando. Antes reusaba
+   el pergamino a pantalla completa de `SheetOverlay` y parecía otra vista — «no es un modal, me abre una
+   vista nueva» (dueño, 2026-08-21). Al vivir dentro de la ficha sigue a su sitio al hacer scroll solo,
+   sin calcular coordenadas. */
+.bs-pop-catch { position: fixed; inset: 0; z-index: 29; background: none; }
+/* Arranca en la esquina de su ficha y CRECE HACIA ABAJO lo que haga falta (no `inset:0`): encajonado en el
+   alto de la ficha, el botón «Tirar» se quedaba fuera y había que buscarlo haciendo scroll dentro de una
+   caja pequeña. Se sale por encima de la fila de abajo, que es lo que hace un popover. */
+.bs-pop { position: absolute; top: 0; left: 0; right: 0; z-index: 30;
+  min-height: 100%; max-height: min(620px, 78vh); overflow-y: auto;
+  background: var(--sys-paper-hi); border: 1px solid var(--sys-ink); box-shadow: var(--sys-card-shadow);
+  padding: 12px; outline: none; }
+.bs-pop-head { display: flex; align-items: flex-start; gap: 6px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--sys-border); }
+.bs-pop-title { flex: 1; margin: 0; font-family: var(--sys-font-display); font-size: var(--fs-2xs);
+  font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--sys-ink);
+  line-height: var(--lh-tight); }
+
+.bs-roll { display: flex; flex-direction: column; gap: 8px; }
+.bs-roll-stats { display: flex; flex-wrap: wrap; gap: 5px; }
+.bs-roll-dice { display: flex; flex-direction: column; gap: 4px; }
+.bs-roll-count { display: flex; align-items: center; gap: 8px; }
+.bs-roll-n { min-width: 44px; text-align: center; font-family: var(--sys-font-display);
+  font-size: var(--fs-xl); color: var(--sys-ink); line-height: 1; }
+.bs-roll-from { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic;
+  font-weight: 500; color: var(--sys-ink-soft); }
+/* Los éxitos automáticos de una capacidad NO son dados: van en oro y fuera del contador, para que no se
+   confundan con el puñado que se tira (`.pen` «Tirar por una criatura»). El oro sobre papel da 4,6:1. */
+.bs-auto { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; font-weight: 600;
+  color: var(--sys-gold); }
+.bs-scope-i { font-size: var(--icon-xs); color: var(--sys-ink-soft); }
+
+/* ── atacar CON el token de una criatura (`.pen` «Modal/Atacar con el token») ──
+   Reutilización declarada: **NEW (module-specific)**, sobre las clases que ya existen aquí (`.bs-pop`,
+   `.bs-btn`, `.bs-label`, `.bs-roll-count`). El `Modal` de `@rolvium/ui` viste el tema de la app —fondo
+   oscuro/claro, radios, sombras— y esto vive DENTRO de la mesa, donde manda el papel del sistema; es el
+   mismo motivo por el que ya son propios `SheetOverlay`, `EncounterMenu` y el desplegable de tirar.
+   A diferencia de `.bs-pop`, éste no cuelga de ninguna ficha: sale centrado sobre la escena. */
+.bs-atk { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(372px, 92vw); min-height: 0; max-height: 80vh; gap: 12px; padding: 14px 16px 16px; }
+.bs-atk-head { display: flex; align-items: center; gap: 10px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--sys-border); }
+.bs-atk-tok { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--sys-blood);
+  color: var(--sys-paper-hi); font-family: var(--sys-font-display); font-size: var(--fs-sm); font-weight: 600;
+  display: flex; align-items: center; justify-content: center; }
+.bs-atk-id { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bs-atk-name { font-family: var(--sys-font-display); font-size: var(--fs-md); font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--sys-ink); }
+.bs-atk-data { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-weight: 500; color: var(--sys-ink-dim); }
+.bs-atk-dist { margin: 0; font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500;
+  line-height: var(--lh-normal); color: var(--sys-ink-dim); }
+.bs-atk-foot { justify-content: flex-end; }
+/* El botón de atacar va en sangre, no en tinta: es el único de la mesa que hace daño a alguien. */
+.bs-btn.bs-btn-atk { background: var(--sys-blood); border-color: var(--sys-blood); color: var(--sys-paper-hi); }
+.bs-btn.bs-btn-atk:hover { background: var(--sys-ink); border-color: var(--sys-ink); }

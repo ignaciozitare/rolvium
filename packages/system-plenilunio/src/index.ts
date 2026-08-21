@@ -36,6 +36,7 @@ export * from './schema';
 export * from './catalogs';
 export * from './references';
 export * from './engine';
+export * from './explain';
 export * from './generator';
 export { messages, lookup } from './locales';
 export { theme } from './theme';

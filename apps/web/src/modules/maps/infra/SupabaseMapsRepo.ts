@@ -4,7 +4,7 @@ import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, Unsubscribe } from '../
 
 interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; sort_order: number; visible_players: boolean; created_at: string; updated_at: string }
 interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean }
-interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown> }
+interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; bestiary_entry_id: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown> }
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string }
 interface ImageRow { id: string; campaign_id: string; name: string; url: string; created_at: string }
 
@@ -12,7 +12,7 @@ const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url
 const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, kind, blocks_sight, blocks_move, is_open';
 /** Defaults mirror the migration, so a row written before slice 2 still reads as a plain closed wall. */
 const DEFAULT_NIGHT_RADIUS_M = 10;
-const TOKEN_COLS = 'id, scene_id, campaign_id, character_id, bestiary_ref, name, image_url, x, y, size, color, visible, controlled_by, vision_radius, state';
+const TOKEN_COLS = 'id, scene_id, campaign_id, character_id, bestiary_ref, bestiary_entry_id, name, image_url, x, y, size, color, visible, controlled_by, vision_radius, state';
 export const BACKGROUNDS_BUCKET = 'backgrounds';
 
 export const mapSceneRow = (r: SceneRow): Scene => ({
@@ -32,7 +32,8 @@ function wallPatchRow(p: WallPatch): Record<string, unknown> {
   return row;
 }
 export const mapTokenRow = (r: TokenRow): Token => ({
-  id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, characterId: r.character_id, bestiaryRef: r.bestiary_ref, name: r.name, imageUrl: r.image_url,
+  id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, characterId: r.character_id, bestiaryRef: r.bestiary_ref,
+  bestiaryEntryId: r.bestiary_entry_id ?? null, name: r.name, imageUrl: r.image_url,
   x: r.x, y: r.y, size: r.size, color: r.color, visible: r.visible, controlledBy: r.controlled_by, visionRadius: r.vision_radius, state: r.state ?? {},
 });
 export const mapDrawingRow = (r: DrawingRow): Drawing => ({ id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, authorId: r.author_id, kind: r.kind, data: r.data, color: r.color, width: r.width, createdAt: r.created_at });
@@ -55,7 +56,7 @@ function scenePatchRow(p: ScenePatch): Record<string, unknown> {
   return row;
 }
 function tokenPatchRow(p: TokenPatch): Record<string, unknown> {
-  const map: Record<string, string> = { characterId: 'character_id', bestiaryRef: 'bestiary_ref', name: 'name', imageUrl: 'image_url', x: 'x', y: 'y', size: 'size', color: 'color', visible: 'visible', controlledBy: 'controlled_by', visionRadius: 'vision_radius', state: 'state' };
+  const map: Record<string, string> = { characterId: 'character_id', bestiaryRef: 'bestiary_ref', bestiaryEntryId: 'bestiary_entry_id', name: 'name', imageUrl: 'image_url', x: 'x', y: 'y', size: 'size', color: 'color', visible: 'visible', controlledBy: 'controlled_by', visionRadius: 'vision_radius', state: 'state' };
   const row: Record<string, unknown> = {};
   for (const [k, col] of Object.entries(map)) { const v = (p as Record<string, unknown>)[k]; if (v !== undefined) row[col] = v; }
   return row;

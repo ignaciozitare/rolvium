@@ -47,6 +47,13 @@ export function dieFace(value: number, tag?: string): string {
 export interface RollDie { value: number; sides: number; tag?: string; tone: DieTone; face: string; shared: boolean }
 export interface RollNotice { text: string; tone: 'gold' | 'blood' }
 export interface RollDescription {
+  /**
+   * Quién tiró, en la ficción (rolvium.pen `Panel/Registro`: «KAREN SINCLAIR · MAGNUM .44»). Es el
+   * nombre del PERSONAJE, no el de la cuenta: el director tira por media mesa y su usuario no dice
+   * nada de quién actuó. `null` cuando la tirada no sale de una ficha o no me dejan ver ese personaje,
+   * y entonces la entrada enseña sólo el título, como hasta ahora.
+   */
+  who: string | null;
   title: string;
   /** Right-hand figure: «7—1» (own hits vs opposition) for opposed system rolls, or the total. */
   score: string | null;
@@ -75,7 +82,7 @@ export function describeRoll(roll: Roll, t: (key: string, params?: Record<string
   if (roll.kind === 'free') {
     const notation = notationOf(roll.request.groups, roll.request.modifier ?? 0);
     const who = roll.authorName?.trim();
-    return { title: who ? t('dice.log.freeTitle', { notation, who }) : notation, score: isNum(roll.result.total) ? String(roll.result.total) : null, degree: null, own, opposition, notices: [] };
+    return { who: null, title: who ? t('dice.log.freeTitle', { notation, who }) : notation, score: isNum(roll.result.total) ? String(roll.result.total) : null, degree: null, own, opposition, notices: [] };
   }
   const d = roll.result.detail ?? {};
   const hits = isNum(d['ownHits']) ? d['ownHits'] + (isNum(d['destinyHits']) ? d['destinyHits'] : 0) : null;
@@ -85,5 +92,5 @@ export function describeRoll(roll: Roll, t: (key: string, params?: Record<string
     .map(([k]) => ({ key: k, text: ts(`roll.effects.${k}`) }))
     .filter(x => x.text !== `roll.effects.${x.key}`)
     .map(x => ({ text: x.text, tone: /setback|fumble|fail|revés/i.test(x.key) ? 'blood' : 'gold' }));
-  return { title: ts(roll.title), score, degree: ts(roll.result.summary), own, opposition, notices };
+  return { who: roll.characterName?.trim() || null, title: ts(roll.title), score, degree: ts(roll.result.summary), own, opposition, notices };
 }

@@ -128,6 +128,33 @@ describe('<SceneTab> DM', () => {
     await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ bestiaryRef: 'ogre', name: 'Ogro', x: 5, y: 6, visible: false, controlledBy: null, state: { resistance: 30 } }));
     expect(await within(canvas()).findByRole('img', { name: 'Token Ogro (oculto)' })).toBeInTheDocument();
   });
+  /**
+   * Los encuentros PROPIOS del director (H5) tienen que salir en el desplegable junto a las 45 del manual, y
+   * al colocarlos enlazar a SU FILA (`bestiaryEntryId`), no al catálogo. Sin esto el director ve el libro y
+   * nada de lo que se ha inventado, que es justo lo que pasaba antes de cablearlo.
+   */
+  it('encuentro: los propios del director salen en el desplegable y colocan una instancia enlazada a su fila', async () => {
+    const u = userEvent.setup();
+    const repo = seed();
+    renderWithProviders(
+      <SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+                charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={repo} vision={fakeVisionPort()}
+                extraEncounters={[{ id: 'be-9', label: 'Ogro con antorcha', ref: 'bestiary',
+                                    data: { resistance: 30, protection: 3, origin: 'custom', entryId: 'be-9', tokenUrl: null } }]} />,
+    );
+
+    await u.click(await screen.findByRole('button', { name: 'Encuentro' }));
+    // El del manual sigue estando: lo propio SUMA, no sustituye.
+    expect(await screen.findByRole('button', { name: 'Elegir Ogro' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Elegir Ogro con antorcha' }));
+    fireEvent.pointerDown(canvas(), { clientX: 3 * G + 3, clientY: 4 * G + 3, pointerId: 1, button: 0 });
+
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({
+      bestiaryEntryId: 'be-9', bestiaryRef: null, name: 'Ogro con antorcha', x: 3, y: 4,
+      visible: false, state: { resistance: 30 },
+    }));
+  });
+
   it('walls: click-click adds a segment; token bar: select → hide/show + remove; «Limpiar todos»; create + activate a scene', async () => {
     const u = userEvent.setup();
     const repo = mount('dm');
@@ -160,6 +187,85 @@ describe('<SceneTab> DM', () => {
     // the fake's id counter is shared across creations — assert against the scene that was just created
     expect(repo.activated).toEqual([repo.scenes.at(-1)!.id]);
     expect(repo.scenes.at(-1)).toMatchObject({ name: 'Mercado', campaignId: 'c1' });
+  });
+
+  /**
+   * Atacar CON el token (`.pen` columna 6). El botón sólo sale sobre una criatura, y la distancia hasta
+   * cada personaje la mide el mapa: el mutante está en (20,9) y Karen en (12,11) → 8,2 casillas, o sea
+   * un disparo, no cuerpo a cuerpo.
+   */
+  it('token de criatura: ATACAR mide la distancia y manda la tirada; sobre un PJ no se ofrece', async () => {
+    const u = userEvent.setup();
+    const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });
+    const onOpenAttack = vi.fn().mockResolvedValue({ id: 'atk-1' });
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
+      vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    const mutante = await within(canvas()).findByRole('img', { name: /Mutante/ });
+    fireEvent.pointerDown(mutante, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const bar = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
+    await u.click(within(bar).getByRole('button', { name: 'Atacar' }));
+    const modal = await screen.findByRole('dialog', { name: 'Atacar con Mutante' });
+    expect(within(modal).getByText(/casillas/)).toBeInTheDocument();
+    await u.click(within(modal).getByRole('button', { name: /^Atacar a / }));
+    await waitFor(() => expect(onRoll).toHaveBeenCalled());
+    expect(onRoll.mock.calls[0]?.[0]).toMatchObject({ campaignId: 'c1', kind: 'system' });
+    // Un disparo es un reto y sale en el acto: no hay a quién pedirle una defensa (p.96).
+    expect(onOpenAttack).not.toHaveBeenCalled();
+
+    // Sobre el token de un PERSONAJE no hay nada que atacar: el botón no está.
+    const karen = await within(canvas()).findByRole('img', { name: 'Token Karen «K»' });
+    fireEvent.pointerDown(karen, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const bar2 = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
+    expect(within(bar2).queryByRole('button', { name: 'Atacar' })).not.toBeInTheDocument();
+  });
+
+  /**
+   * Cuerpo a cuerpo es un CONFLICTO (p.93). Con el mutante pegado a Karen —en su misma casilla— el golpe
+   * no se tira: se abre un ataque a la espera y la escena rellena de dónde sale (escena y tokens), que es
+   * lo único que el modal no sabe.
+   */
+  it('token de criatura pegado a un PJ: ATACAR abre el ataque a la espera, no tira', async () => {
+    const u = userEvent.setup();
+    const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });
+    const onOpenAttack = vi.fn().mockResolvedValue({ id: 'atk-1' });
+    const close = fakeMapsRepo({
+      scenes: [SCENE_WAREHOUSE], walls: [WALL_1],
+      tokens: [TOKEN_KAREN, { ...TOKEN_MUTANT, x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, visible: true }],
+    });
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={close}
+      vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    const mutante = await within(canvas()).findByRole('img', { name: /Mutante/ });
+    fireEvent.pointerDown(mutante, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const bar = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
+    await u.click(within(bar).getByRole('button', { name: 'Atacar' }));
+    const modal = await screen.findByRole('dialog', { name: 'Atacar con Mutante' });
+    await u.click(within(modal).getByRole('button', { name: /^Atacar a Karen/ }));
+    await waitFor(() => expect(onOpenAttack).toHaveBeenCalled());
+    expect(onRoll).not.toHaveBeenCalled();
+    expect(onOpenAttack.mock.calls[0]?.[0]).toMatchObject({
+      sceneId: 'sc-1', attackerTokenId: TOKEN_MUTANT.id, attackerName: 'Mutante',
+      targetTokenId: TOKEN_KAREN.id, targetCharacterId: CHARACTER_KAREN.id,
+    });
+  });
+
+  /** Sin a dónde mandar el ataque a la espera, ATACAR no se ofrece: la mitad cuerpo a cuerpo moriría al pulsar. */
+  it('sin `onOpenAttack` el botón ATACAR no aparece', async () => {
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
+      vision={fakeVisionPort()} onRoll={vi.fn()} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    const mutante = await within(canvas()).findByRole('img', { name: /Mutante/ });
+    fireEvent.pointerDown(mutante, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const bar = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
+    expect(within(bar).queryByRole('button', { name: 'Atacar' })).not.toBeInTheDocument();
   });
 });
 
@@ -459,5 +565,54 @@ describe('<SceneTab> cero escenas', () => {
     mount('player', fakeMapsRepo({ scenes: [] }), null);
     expect(await screen.findByText('El director aún no ha activado ninguna escena.')).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Escenas' })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * «Colocar» del Bestiario (dueño, 2026-08-21: «el colocar no funciona»).
+ *
+ * Antes sólo cambiaba de pestaña: llegabas a la escena y no había nada armado, así que el director tenía
+ * que volver a buscar la criatura en el desplegable. Ahora llega elegida y sólo falta pulsar dónde.
+ */
+describe('<SceneTab> — una criatura que llega ya elegida desde el Bestiario', () => {
+  const OGRO = { id: 'ogre', label: 'Ogro', ref: 'bestiary', data: { resistance: 30, protection: 3, origin: 'manual', tokenUrl: null, entryId: null } };
+
+  const mountArmed = (armEncounter: typeof OGRO | null, onArmed = vi.fn()) => {
+    const repo = seed();
+    renderWithProviders(
+      <SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+                charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={repo} vision={fakeVisionPort()}
+                armEncounter={armEncounter} onArmed={onArmed} />,
+    );
+    return { repo, onArmed };
+  };
+
+  it('arma la colocación y lo dice, sin abrir el buscador que ya sobra', async () => {
+    const { onArmed } = mountArmed(OGRO);
+    expect(await screen.findByText(/Coloca a Ogro/)).toBeInTheDocument();
+    // El desplegable preguntaría qué criatura, y eso ya está contestado.
+    expect(screen.queryByRole('dialog', { name: /Colocar encuentro/i })).not.toBeInTheDocument();
+    // Avisa al padre para que lo suelte: si no, volver a la pestaña la rearmaría sola.
+    await waitFor(() => expect(onArmed).toHaveBeenCalled());
+  });
+
+  it('pulsar en el mapa coloca la criatura de verdad', async () => {
+    const { repo } = mountArmed(OGRO);
+    await screen.findByText(/Coloca a Ogro/);
+    fireEvent.pointerDown(canvas(), { clientX: 3 * G + 3, clientY: 4 * G + 3, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ name: 'Ogro' }));
+  });
+
+  it('«Cancelar» desarma y devuelve el buscador a su sitio', async () => {
+    mountArmed(OGRO);
+    await screen.findByText(/Coloca a Ogro/);
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByText(/Coloca a Ogro/)).not.toBeInTheDocument());
+  });
+
+  it('sin nada armado no aparece el aviso', async () => {
+    mountArmed(null);
+    await screen.findByText(/Almacén de Queens/);
+    expect(screen.queryByText(/Coloca a/)).not.toBeInTheDocument();
   });
 });

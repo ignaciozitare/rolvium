@@ -12,12 +12,13 @@ export const theme: VisualTheme = {
     // contraste medido sea correcto. Los dos tonos bajan un escalon — `ink-soft` #39382f → #221f19
     // (8,49:1 → 13,1:1) y `ink-dim` #55534c → #3b382f (5,61:1 → 9,5:1)— y los textos pequenos suben
     // de peso 400 a 500. El contraste solo puede mejorar bajando, asi que esto no rompe nada medido.
-    // ⚠ Pendiente y NO resuelto aqui: `gold` sobre `ink` da 3,95:1 y ese par ya esta en pantalla
-    // (`.rv-sheet-btn.gold`, `.rv-sheet-icon-btn`, `maps.css`). Hace falta un dorado para fondo
-    // oscuro (#c9a44e da 7,89:1), pero entra con sus consumidores, no antes: un token de tema que
-    // no usa nadie es una promesa con fecha de caducidad. Ojo, seria SOLO para fondo oscuro —
-    // sobre `paper` da 1,72:1. Anotado en WORK_STATE.
     'ink-dim': '#3b382f',
+    // El dorado que faltaba para fondo OSCURO. `gold` (#8a7038) sobre `ink` da 3,95:1 y no llega;
+    // #c9a44e da 7,89:1. Entra ahora porque ya tiene consumidor —el rotulo «LO QUE SE APLICO» del
+    // desglose del Registro, que el .pen pide en «oro claro» sobre el panel de tinta— y un token sin
+    // consumidor es una promesa con fecha de caducidad. Ojo: SOLO para fondo oscuro; sobre `paper`
+    // da 1,72:1 y ahi manda `gold`.
+    'gold-hi': '#c9a44e',
     'steel': '#4a5757', 'olive': '#3a3a26', 'blood': '#6e2418', 'gold': '#8a7038',
     'card': '#f2f0ea80', 'moon-hi': '#a8a69b', 'moon-mid': '#5a594e', 'moon-lo': '#15140e', 'card-shadow': '0 3px 10px #13131040',
     'font-display': "'Cormorant Garamond', Georgia, serif", 'font-body': "'Cormorant Garamond', Georgia, serif",

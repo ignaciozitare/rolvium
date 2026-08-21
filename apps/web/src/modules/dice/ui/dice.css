@@ -10,7 +10,9 @@
 .dc-panel{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:8px;display:flex;flex-direction:column;gap:8px;min-height:0;flex:1 1 auto;}
 /* The log scrolls inside the panel so it can follow the newest roll without the whole table moving. */
 /* `scrollbar-gutter` reserves the strip so the bar never lands on top of the roll text. */
-.dc-log-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-gutter:stable;padding-right:8px;}
+/* `scroll-padding-block-start` deja sitio ARRIBA al llevar una entrada al foco con el teclado, para que
+   su desglose —que se abre hacia arriba— quepa en vez de quedar cortado por el borde del panel. */
+.dc-log-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-gutter:stable;padding-right:8px;scroll-padding-block-start:180px;}
 .dc-tabs{display:flex;gap:4px;flex-wrap:wrap;}
 .dc-tab{font-family:inherit;font-size:var(--fs-2xs);font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding:5px 7px;cursor:pointer;background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);}
 .dc-tab[aria-selected="true"]{background:var(--sys-ink);color:var(--sys-paper-hi);border-color:var(--sys-ink);}
@@ -20,10 +22,18 @@
 .dc-log{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;}
 .dc-log-empty,.dc-log-error{font-style:italic;color:var(--sys-ink-dim);font-size:var(--fs-sm);margin:0;}
 .dc-log-error{color:var(--sys-blood);}
-.dc-entry{display:flex;flex-direction:column;gap:6px;padding:0 0 2px 10px;border-left:3px solid var(--sys-ink);}
+.dc-entry{position:relative;display:flex;flex-direction:column;gap:6px;padding:0 0 2px 10px;border-left:3px solid var(--sys-ink);}
+.dc-entry-who{font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;color:var(--sys-ink);white-space:nowrap;}
+/* «KAREN SINCLAIR · MAGNUM .44»: el punto es un separador de dibujo, así que lo pone el CSS y no
+   se cuela en el texto de la entrada. */
+.dc-entry-who + .dc-entry-title{color:var(--sys-ink-dim);}
+.dc-entry-who + .dc-entry-title::before{content:'· ';}
 .dc-entry.free{padding-left:0;border-left:none;border-bottom-color:var(--sys-border);gap:4px;}
 .dc-entry-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-.dc-entry-author{display:flex;align-items:center;gap:8px;min-width:0;}
+/* Envuelve: el `.pen` dibujó el nombre y el título en una línea a 372 de ancho, y el panel real mide
+   235. Sin esto el título se comía a sí mismo en puntos suspensivos («KAREN SINCLAIR · …»). Cuando
+   caben siguen juntos, como en el diseño; cuando no, el título baja a su propia línea. */
+.dc-entry-author{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;}
 .dc-entry-title{font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .dc-entry.free .dc-entry-title{letter-spacing:.2em;}
 .dc-entry-score{font-size:var(--fs-md);color:var(--sys-ink);white-space:nowrap;}
@@ -38,6 +48,32 @@
 .dc-degree{font-size:var(--fs-sm);line-height:var(--lh-normal);color:var(--sys-ink);margin:0;}
 .dc-notice{font-size:var(--fs-xs);padding:4px 8px;border-left:3px solid var(--sys-gold);background:color-mix(in srgb,var(--sys-gold) 18%,transparent);color:var(--sys-gold);}
 .dc-notice.blood{border-left-color:var(--sys-blood);background:color-mix(in srgb,var(--sys-blood) 14%,transparent);color:var(--sys-blood);}
+
+/* Desglose (rolvium.pen `Tooltip/Desglose`) — panel de tinta que sale AL PASAR POR ENCIMA de la
+   entrada, no debajo: el registro se lee de un vistazo y el detalle se consulta.
+   CSS puro, sin estado ni JS, igual que `.rv-sheet-tip` de la ficha: `:hover` para el ratón y
+   `:focus-within` para el teclado (la entrada lleva `tabIndex`).
+   Se abre HACIA ARRIBA a propósito: el Registro sigue a la tirada más nueva, que está abajo, y ahí
+   es donde hay sitio. ⚠ En un registro largo, una entrada muy pegada al borde de arriba puede
+   quedar recortada por el scroll del panel — sacarlo del recorte pide posicionarlo con JS y eso es
+   otra decisión, anotada en WORK_STATE. */
+.dc-tip{position:absolute;left:0;right:0;bottom:calc(100% + 6px);z-index:6;display:none;flex-direction:column;gap:9px;padding:13px 15px;
+  max-height:60vh;overflow-y:auto;background:var(--sys-ink);color:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);text-align:left;}
+.dc-entry:hover .dc-tip,.dc-entry:focus-within .dc-tip{display:flex;}
+/* Las tres primeras entradas —las MÁS VIEJAS, que van arriba— no tienen sitio encima: el suyo se abre
+   hacia abajo, que ahí el panel sí se puede desplazar. Tres porque el desglose mide unos 240 px y una
+   entrada unos 84: de la cuarta en adelante ya cabe hacia arriba. */
+.dc-entry:nth-child(-n+3) .dc-tip{bottom:auto;top:calc(100% + 6px);}
+/* Igual que la cabecera de la entrada: a lo ancho del `.pen` van en una línea, y en el panel real la
+   referencia del manual baja debajo en vez de estrujar el rótulo hasta partirlo en cuatro líneas. */
+.dc-tip-head{display:flex;align-items:baseline;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;}
+.dc-tip-head em{font-style:italic;letter-spacing:.02em;text-transform:none;color:var(--sys-moon-hi);white-space:nowrap;}
+.dc-tip-block{display:flex;flex-direction:column;gap:3px;}
+.dc-tip-block p{margin:0;font-size:var(--fs-xs);line-height:var(--lh-normal);}
+.dc-tip-block.applied p{font-size:var(--fs-2xs);}
+/* Oro CLARO sobre tinta: `--sys-gold` sobre este fondo da 3,95:1 y no llega. */
+.dc-tip-label{font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;color:var(--sys-gold-hi);}
+.dc-tip-verdict{margin:0;font-size:var(--fs-2xs);line-height:var(--lh-normal);}
 
 /* Lanzador flotante (rolvium.pen PL/Lanzador flotante) — floating, draggable, non-modal */
 .dc-roller{position:fixed;z-index:40;width:272px;display:flex;flex-direction:column;overflow:hidden;border-radius:3px;
@@ -63,3 +99,44 @@
 .dc-roller-mod output{cursor:default;min-width:26px;text-align:center;}
 .dc-roller-last{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .dc-roller-last.err{color:var(--sys-blood);}
+
+/* ── «TE ATACA UN OGRO» · el aviso del jugador atacado (`.pen` `oSBrx` → `Aviso/Te atacan`) ──
+   Papel con FILETE SANGRE a la izquierda, como lo dibuja el diseño: es el único panel de la mesa que
+   aparece sin que nadie lo abra, y el filete es lo que lo distingue de un desplegable cualquiera.
+   Reutilización declarada: **NEW (module-specific)** sobre las clases que ya existen aquí.
+
+   Va fijo ABAJO A LA IZQUIERDA, y ése es el único hueco que hay: el Registro ocupa la derecha entera y
+   ahí es donde va a caer la tirada que el jugador está a punto de provocar —taparlo sería quitarle de la
+   vista justo lo que ha pedido—, arriba viven la barra de herramientas y la del token, y abajo a la
+   derecha los mandos de zoom del mapa. La esquina de abajo a la izquierda sólo la usa el rótulo «Solo
+   director», que un jugador no ve. ⚠ Sin mirar en la app corriendo. */
+.dc-atk{position:fixed;left:16px;bottom:16px;z-index:41;width:min(372px,92vw);max-height:82vh;overflow-y:auto;
+  display:flex;flex-direction:column;gap:14px;padding:14px 16px 16px;
+  background:var(--sys-paper-hi);border-left:3px solid var(--sys-blood);box-shadow:var(--sys-card-shadow);}
+.dc-atk-head{display:flex;align-items:center;gap:8px;color:var(--sys-blood);}
+.dc-atk-title{margin:0;font-family:var(--sys-font-display);font-size:var(--fs-2xs);font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--sys-blood);line-height:var(--lh-tight);}
+.dc-atk-sub,.dc-atk-note{margin:0;font-family:var(--sys-font-body);font-size:var(--fs-sm);font-weight:500;
+  line-height:var(--lh-normal);color:var(--sys-ink-soft);}
+.dc-atk-note{font-style:italic;color:var(--sys-ink-dim);}
+.dc-atk-error{margin:0;font-family:var(--sys-font-body);font-size:var(--fs-sm);font-weight:500;color:var(--sys-blood);}
+.dc-atk-label{font-family:var(--sys-font-body);font-size:var(--fs-2xs);font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--sys-ink);}
+.dc-atk-dice{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.dc-atk-chip{font-family:inherit;font-size:var(--fs-xs);letter-spacing:.06em;padding:6px 12px;cursor:pointer;
+  background:transparent;border:1px solid var(--sys-line);color:var(--sys-ink-soft);}
+.dc-atk-chip:hover:not(:disabled){border-color:var(--sys-ink-soft);}
+.dc-atk-chip.on{background:var(--sys-ink);border-color:var(--sys-ink);color:var(--sys-paper-hi);}
+.dc-atk-have{font-family:var(--sys-font-body);font-size:var(--fs-xs);font-style:italic;font-weight:500;color:var(--sys-ink-dim);}
+/* La caja del coste (p.94). Es TEXTO: no hay orden de turnos y no se finge con un contador. */
+.dc-atk-cost{display:flex;align-items:flex-start;gap:8px;margin:0;padding:9px 11px;background:var(--sys-paper-lo);
+  font-family:var(--sys-font-body);font-size:var(--fs-sm);font-weight:500;line-height:var(--lh-normal);color:var(--sys-ink-soft);}
+.dc-atk-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.dc-atk-btn{flex:1 1 auto;font-family:inherit;font-size:var(--fs-2xs);font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;padding:7px 12px;cursor:pointer;background:transparent;border:1px solid var(--sys-line);color:var(--sys-ink);}
+.dc-atk-btn:hover:not(:disabled){border-color:var(--sys-ink-soft);background:var(--sys-paper-lo);}
+/* Defenderme va en ORO y no en tinta: es lo que el diseño resalta, y la otra salida no es un error. */
+.dc-atk-btn.gold{background:var(--sys-gold);border-color:var(--sys-gold);color:var(--sys-paper-hi);}
+.dc-atk-btn.gold:hover:not(:disabled){background:var(--sys-ink);border-color:var(--sys-ink);}
+.dc-atk-btn:disabled,.dc-atk-chip:disabled{opacity:.55;cursor:default;}
+.dc-atk-btn:focus-visible,.dc-atk-chip:focus-visible{outline:2px solid var(--sys-gold);outline-offset:2px;}
