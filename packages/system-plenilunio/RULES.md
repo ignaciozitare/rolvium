@@ -457,6 +457,39 @@ resolver: puede ser el mismo «Aura\*» con otro nombre, o una capacidad que el 
 inmaterial 3», Soum «Defensa de acero 3, Golpe certero 4, Movimientos felinos 5». Se leen del §7 y cuestan
 Fortuna como a cualquiera.
 
+### 7.b.1 Cómo entran en el motor (decidido con el dueño, 2026-08-21)
+
+**Día y noche**: la app no sabe la hora en ninguna parte, y cuatro capacidades dependen de ella. El dueño
+eligió **casilla «es de noche» en la propia tirada**, al lado de la de especialidad — no dato de la escena,
+que obligaría a migración y a diseño nuevo del mapa. Lo marca el director tirada a tirada.
+
+**Deflagración**: entra **a mano** (elección del dueño). El director teclea a cuántos metros está la víctima
+y el motor saca los dados; cuando existan los ataques sobre el mapa, la distancia saldrá de ahí.
+
+| Capacidad | Dónde entra | Regla exacta |
+|---|---|---|
+| **Piel gruesa\*** | ✅ ya está | `protection` del bloque |
+| **Ira solar\*** | `attackDamage` | Suma la puntuación al **daño del arma**, **encima** del daño impreso del ataque (probado con Gabriel, §8.0) |
+| **Amparo de la noche\*** | éxitos automáticos | De noche, +N al **total de Combate** cada turno; si reparte los dados entre varios ataques o defensas, reparte también los éxitos |
+| **Aura\*** | éxitos automáticos | **De día**, +N a **Presencia** cuando la tirada es **para intimidar o liderar** |
+| **Aura sombría\*** | éxitos automáticos | **De noche**, +N a **Sutileza** para **esconderse, moverse en silencio o pasar desapercibida** |
+| **Inmune al dolor** | `derived` | Penalización de dados por estado = **0** |
+| **Ancla terrenal** | `applyDamage` | Cualquier resultado que la dejaría **muerta** cuenta como **otro malherido** |
+| **Incorpóreo** | característica de la pugna | Usa **Voluntad** en lugar de Fortaleza o Combate en pugnas entre seres inmateriales; **no se la puede atacar físicamente** |
+| **Ponzoña\*** | ataque **aparte** | Todo ataque suyo con éxito inocula: conflicto **Fortaleza de la víctima vs Ponzoña**; si vence la criatura, éxito = 1 daño y triunfo = la puntuación de Ponzoña |
+| **Deflagración\*** | ataque **aparte** | Radio 1 m por punto; dados = puntuación **− 1 por metro**; **reto a dificultad 1**; se puede uno cubrir (p.96); éxito = 1 daño, triunfo = la puntuación |
+
+**Los éxitos automáticos son mecánica nueva en el motor.** Hoy `resolveAction` sólo cuenta dados. Hace falta
+un `autoSuccesses` que se sume a `ownHits`.
+
+⚠ **Interpretación nuestra, el libro no lo dice**: los éxitos automáticos **también cuentan para el revés**
+(§2.6). Un revés es «ni un solo acierto y al menos un fracaso»; con Amparo de la noche 5 la criatura SÍ
+acierta, así que no puede sufrir un revés al mismo tiempo. Si el dueño lo lee al revés, se cambia en un sitio.
+
+⚠ **Las capacidades no se aplican solas**, igual que las especialidades (§2.2): el director ve las que podrían
+aplicar según la característica y la casilla de noche, y marca la que corresponde. «Aura» pide además que la
+tirada sea *para intimidar o liderar*, y eso no lo puede saber el motor.
+
 ---
 
 ## 8. Bestiario — bloques del manual, copiados uno a uno
@@ -475,8 +508,11 @@ Dos cosas que se leen mal si no se avisan:
 > puede que las fichas de los encuentros estén mal»). Se comprobaron los **45 bloques** uno a uno.
 > Las **siete características, el Aguante y el Destino de todos** estaban **bien**. Fallaron dos líneas de
 > capacidades —`lunar` y `fallenElite`— porque en el PDF **envuelven a una segunda línea** («…Piel de /
-> humano, Amparo de la noche N.») y se copiaron cortadas. Corregido. Y falta un bloque, el **Salteador**
-> (p. 209), que el libro usa en su aventura de ejemplo: sin decidir si entra.
+> humano, Amparo de la noche N.») y se copiaron cortadas. Corregido.
+>
+> ⚠ **Los 45 no son todo el bestiario.** Faltan **doce** bloques más: los **once en caja** de los personajes
+> con nombre y el **Salteador** de la aventura de ejemplo. Están leídos del PDF y escritos en el **§8.0**,
+> listos para bajar al catálogo; hasta que se bajen, `BESTIARY` tiene 45 y §8.1–8.3 son sólo esos 45.
 
 **El daño de una criatura SÍ está en el libro** (verificado en el PDF, 2026-08-21). Los bloques no traen
 línea de arma porque no hace falta: un zarpazo, un mordisco o un puñetazo es un **ataque sin armas**, y la
@@ -501,36 +537,133 @@ un dato que el libro no da: el director puede hacerlo a mano si quiere, pero por
 | Ancla terrenal | Mientras exista el ancla, cualquier resultado que la deje muerta cuenta como otro nivel malherido | ❌ sin construir |
 | Alado · Visión en la oscuridad · Aura\* · Aura sombría\* · Disfraz terrenal · Piel de humano · Hambre inhumana | Sin efecto mecánico sobre el daño | — narrativas o fuera de combate |
 
-### 8.0 ⚠ LO QUE FALTA POR COPIAR DEL LIBRO (hallado 2026-08-21)
+### 8.0 Los bloques EN CAJA — leídos del PDF uno a uno (2026-08-21)
 
-El bestiario se copió **sólo de los bloques en lista** (los de «Fortaleza 8 / Combate 4 / …»). El libro trae
-**otro tipo de bloque, en cajas de lunas**, para los personajes con nombre — y ésos **no se copiaron ninguno**.
+El bestiario del §8.1–8.3 se copió **sólo de los bloques en lista** (los de «Fortaleza 8 / Combate 4 / …»).
+El libro trae **otro tipo de bloque, en cajas de lunas**, para los personajes con nombre, y **no se copió
+ninguno**. Aquí están **los once**, leídos página a página **como imagen** (el `pdftotext` no sirve para
+estas cajas), más el **Salteador**, que es un bloque en lista que faltaba.
 
-**Se distinguen porque llevan un apartado `ATAQUES` con arma y daño ya calculados**, que es justo el dato
-que se echaba en falta: «Martillo de guerra 10 (daño 10)», «Espada flamígera 9 (daño 11)», «Katana 5 (daño 4)».
-También pueden llevar **varias especialidades por característica** y **varios ataques**.
+**Página impresa = página del PDF − 2.** Páginas del PDF con caja: `51 · 73 · 74 · 122 · 125 · 127 · 128 ·
+136 · 138 · 141 · 144`. El Salteador está en el PDF 211.
 
-**Páginas del PDF con un bloque en cajas** (índice del fichero, no el número impreso; impreso = PDF − 2):
-`51 · 73 · 74 · 122 · 125 · 127 · 128 · 136 · 138 · 141 · 144`
+#### Las siete características, el Aguante y el Destino
 
-Leídos hasta ahora (los cuatro primeros):
+| id propuesto | Personaje | p. | For | Com | Vol | Ast | Sut | Pre | Cul | Ag | Des |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `nathael` | **Nathael**, regente solar de Nueva York | 49 | 7 | 7 | 5 | 4 | 2 | 7 | 4 | 4 | 4 |
+| `luz` | **Luz** (niña), avatar de la Luna | 71 | 2 | 4 | 4 | 3 | 2 | 2 | 3 | 6 | 6 |
+| `soum` | **Soum**, katana elegida | 72 | 4 | 5 | 4 | 4 | 3 | 3 | 4 | 8 | 10 |
+| `nergal` | **Nergal**, príncipe de París | 120 | 6 | 8 | 5 | 4 | 2 | 7 | 4 | 12 | 6 |
+| `samael` | **Samael**, el Príncipe de la Guerra | 123 | 8 | 9 | 4 | 5 | 2 | 3 | 5 | 12 | 9 |
+| `lucifer` | **Lucifer**, el primer rebelde | 125 | 8 | 9 | 5 | 4 | 4 | 3 | 7 | 13 | 9 |
+| `baal` | **Baal**, príncipe lunar | 126 | 7 | 8 | 5 | 4 | 5 | 3 | 8 | 12 | 9 |
+| `gabriel` | **Gabriel**, el arcángel | 134 | 7 | 9 | 4 | 3 | 5 | 5 | 5 | 11 | 8 |
+| `marduk` | **Marduk**, el arcángel Miguel | 136 | 8 | 10 | 4 | 3 | 3 | 6 | 6 | 11 | 8 |
+| `adam` | **Adán**, Satán el acusador | 139 | 6 | 4 | 6 | 6 | 6 | 6 | 6 | 11 | 8 |
+| `luzMalefic` | **Luz-Malefic**, la decimotercera | 142 | 4 | 6 | 5 | 4 | 3 | 2 | 3 | 9 | 8 |
+| `highwayman` | **Salteador**, pandillero de Nueva York | 209 | 2 | 2 | 2 | 2 | 3 | 2 | 2 | 4 | 1 |
 
-| Personaje | p. | For | Com | Vol | Ast | Sut | Pre | Cul | Ag | Des | Ataques | Dones y capacidades |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
-| **Nathael**, regente solar de NY | 49 | 7 | 7 | 5 | 4 | 2 | 7 | 4 | 4 | 4 | Espada flamígera 9 (daño 11) | Alado, **Aura sobrenatural 5**, Disfraz terrenal, Ira solar 5 |
-| **Luz** (niña), avatar de la Luna | 71 | 2 | 4 | 4 | 3 | 2 | 2 | 3 | 6 | 6 | Katana 5 (daño 4) | Golpe certero 3, Separación espiritual 1, Trance del destino 2 |
-| **Soum**, katana elegida | 72 | 4 | 5 | 4 | 4 | 3 | 3 | 4 | 8 | 10 | Katana de las Trece Lunas 6 (daño 7), cuchillo tantō 5 (daño 5) | Defensa de acero 3, Golpe certero 4, Movimientos felinos 5 |
-| **Nergal**, príncipe de París | 120 | 6 | 8 | 5 | 4 | 2 | 7 | 4 | 12 | 6 | Martillo de guerra 10 (daño 10) | Alado, Aura sombría 3, Disfraz terrenal, Amparo de la noche 4 |
+⚠ **Gabriel**: su caja está impresa al pie de la **ilustración a página completa (p.134)**, que **no lleva
+nombre**; su texto es la p.135 y no lleva caja. Es el único candidato de todo el pliego (pp.131–135) y sus
+valores encajan como lugarteniente de Marduk (Com 9 contra 10, Aura 5 contra 6). **Atribución nuestra**, no
+un rótulo del libro.
 
-⚠ Luz tiene **dos versiones**: la niña (p. 71) y la adulta tras recibir la espada Malefic (**p. 142**).
+⚠ **Luz tiene DOS versiones**, y el propio libro lo dice en la p.71: la niña (p.71) y la adulta tras recibir
+la espada Malefic (p.142).
 
-**Sin leer todavía**: PDF 125, 127, 128, 136, 138, 141, 144 — por los rastros del texto hay al menos
-Guardia del Señor de la Guerra, **Baal**, **Gabriel**, **Adán/Satán** y las Otras piezas del gran juego.
+#### Las especialidades de cada caja
 
-**Y falta un bloque en lista**: el **Salteador** (p. 209), que la aventura de ejemplo usa como enemigo de una
-escena entera — For 2, Com 2, Vol 2, Ast 2, Sut 3, Pre 2, Cul 2, Aguante 4, Destino 1; especialidades
-Conducir · Armas contundentes · Perseverar · Supervivencia · Emboscar · Interrogación · Tecnología.
-El libro añade: «Puedes elegir las armas que llevan de la tabla de la página 097».
+| id | Fortaleza | Combate | Voluntad | Astucia | Sutileza | Presencia | Cultura |
+|---|---|---|---|---|---|---|---|
+| `nathael` | Vuelo ✱ | Espadas | Perseverar | Vista penetrante | Actuación | Intimidar | Religión |
+| `luz` | Acrobacias | Espada samurai ✱ | Intuición | Sentido del peligro | Esconderse | Inspirar | Ocultismo |
+| `soum` | Acrobacias · Equilibrio · Trepar | Cuchillos · Espadas | Meditación | Anticipación | Emboscar | Seducción | Leyendas |
+| `nergal` | Vigor | Armas contundentes | Perseverar | Vista penetrante | Actuación | Intimidar | Religión |
+| `samael` | Vigor | Martillo de guerra ✱ | Resistir dolor | Anticipación | Acechar | Inspirar | Leyendas |
+| `lucifer` | Resistir dolor | Espadas | Valor | Vista penetrante | Emboscar | Liderazgo | Leyendas |
+| `baal` | Vigor | Espadas samuráis ✱ | Ritos | Detectar mentiras | Esconderse | Liderazgo | Ocultismo |
+| `gabriel` | Recorrer distancias ✱ | Espada y escudo ✱ | Constancia | Percepción | Emboscar | Seducción | Historia |
+| `marduk` | Vigor | Sables ✱ | Templanza | Anticipación | Acechar | Inspirar | Historia |
+| `adam` | Vigor | Cuchillos | Mantener fachada | Vista penetrante | Chantaje | Charlatanería | Psicología |
+| `luzMalefic` | Acrobacias | Espadas | Templanza | Moverse a ciegas | Acechar | Inspirar | Ocultismo |
+| `highwayman` | Conducir | Armas contundentes | Perseverar | Supervivencia | Emboscar | Interrogación | Tecnología |
+
+✱ = nombre que **no existe** todavía en `CREATURE_SPECIALTY_ITEMS`; hay que darle clave `creature.*` y
+etiqueta en es y en. Son **siete**: `vuelo`, `espadaSamurai`, `martilloDeGuerra`, `espadasSamurais`,
+`recorrerDistancias`, `espadaYEscudo`, `sables`. Las demás reutilizan claves que ya existen —
+«Cuchillos» es `creature.cuchillos` (no `combat.knives`, que se llama «Navajas y cuchillos»), «Actuación»
+es `subtlety.acting`, «Perseverar» es `will.perseverance`.
+
+⚠ Erratas del libro copiadas tal cual en la lectura, y corregidas al escribir la etiqueta: Luz-Malefic dice
+«Inpirar» (por Inspirar) y el Salteador «Perserverar» (por Perseverar).
+
+#### Los ATAQUES — el dato que faltaba
+
+Las cajas traen un apartado `ATAQUES` con **el arma, su puntuación de ataque y su daño YA calculados**.
+
+| id | Ataques |
+|---|---|
+| `nathael` | Espada flamígera **9** (daño **11**) |
+| `luz` | Katana **5** (daño **4**) |
+| `soum` | Katana de las Trece Lunas **6** (daño **7**) · cuchillo tantō **5** (daño **5**) |
+| `nergal` | Martillo de guerra **10** (daño **10**) |
+| `samael` | Martillo de guerra **11** (daño **11**) |
+| `lucifer` | Mandoble **11** (daño **12**) |
+| `baal` | Espada oriental **9** (daño **10**) |
+| `gabriel` | Espada **10** (daño **9**) · **escudo (protección 5)** |
+| `marduk` | Sables negros **11** (daño **11**) |
+| `adam` | Navaja **4** (daño **7**) |
+| `luzMalefic` | Malefic **8/10** (daño **8/10**) *(ver p.163)* |
+| `highwayman` | — ninguno impreso: «Puedes elegir las armas que llevan de la tabla de la página 097» |
+
+**Se copian, NO se recalculan.** La cuenta del libro es «Combate + bonificación del arma» y «Fortaleza +
+daño del arma» (§5.5–5.6), pero **no cuadra siempre**: Nergal tiene Fortaleza 6 y su martillo hace 10, no 9;
+Lucifer tiene Fortaleza 8 y su mandoble hace 12, no 11. Recalcularlos sería corregirle el libro.
+
+**El escudo de Gabriel no es un ataque**: es **protección 5**, y va al campo `protection` del bloque.
+
+**Malefic, la espada soberana (p.163)** — es lo que explica el «8/10»: «una espada a una mano que da
+bonificación a Combate **+2** y hace daño **Fortaleza+4**, pero activando un mecanismo del pomo (y **gastando
+un punto de Fortuna**) se convierte en una espada a dos manos con bonificación **+4** y daño
+**Fortaleza+6**». Luz adulta tiene For 4 y Com 6 → **8 (daño 8)** a una mano y **10 (daño 10)** a dos.
+Cuadra exacto. Van como **dos ataques** en el bloque, y el de dos manos cuesta 1 de Fortuna.
+
+**La Ira solar NO está sumada en el daño impreso.** Gabriel tiene Ira solar 3 y su espada hace 9, que es
+exactamente Fortaleza 7 + 2 de una espada de la tabla. Luego la capacidad **suma encima** del daño del
+ataque, no está dentro.
+
+#### Capacidades y dones de cada caja
+
+La línea se llama `CAPACIDADES` en Nathael, `DONES` en Luz, Soum, Adán y Luz-Malefic, y `DONES Y
+CAPACIDADES` en el resto: **mezcla las dos cosas** (§7 dones · §7.b capacidades).
+
+| id | Capacidades (§7.b) | Dones (§7) |
+|---|---|---|
+| `nathael` | Alado · **Aura sobrenatural 5** · Disfraz terrenal · Ira solar 5 | — |
+| `luz` | — | Golpe certero 3 · Separación espiritual 1 · Trance del destino 2 |
+| `soum` | — | Defensa de acero 3 · Golpe certero 4 · Movimientos felinos 5 |
+| `nergal` | Alado · Aura sombría 3 · Disfraz terrenal · Amparo de la noche 4 | — |
+| `samael` | Alado · Aura sombría 5 · Piel de humano | Furia de titán 8 |
+| `lucifer` | Alado · Aura sombría 5 · Piel de humano · Amparo de la noche 5 | — |
+| `baal` | Alado · Aura sombría 5 · Piel de humano · Amparo de la noche 3 · Deflagración 5 | — |
+| `gabriel` | Alado · Aura 5 · Disfraz terrenal · Ira solar 3 | Guardián de la Palabra 5 · Manto de protección 5 |
+| `marduk` | Alado · Aura 6 · Ira solar 6 | Guardián de la Palabra 4 |
+| `adam` | — | Alegoría de la realidad 9 |
+| `luzMalefic` | — | Golpe certero 5 · Trance del destino 5 |
+| `highwayman` | — | — |
+
+⚠ **Los dones de las cajas pasan de 5**, que es el tope de un personaje jugador (§7): Furia de titán **8**,
+Alegoría de la realidad **9**. No es un fallo de lectura: son seres míticos, como las características por
+encima de 6 (§1.2). El catálogo no debe caparlos.
+
+⚠ **Adán, «Especial»** (literal del libro): «Adán es inmune a las enfermedades, al hambre y a la sed».
+No es una capacidad de la lista; va a las notas de la entrada.
+
+✅ **«Aura sobrenatural 5» de Nathael → se trata como «Aura 5»** (decisión del dueño, 2026-08-21). El nombre
+no está en la lista de pp.107–108, pero Nathael es un solar y **todos** los demás solares del libro (Solar,
+Paladín, Aamel, Azelías, Gabriel, Marduk) llevan «Aura N». **Lectura nuestra, no del libro** — queda escrito
+aquí para que se pueda deshacer.
 
 ### 8.1 Criaturas
 | Criatura | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | Prot. | Capacidades | p. |
@@ -598,8 +731,9 @@ Sale en dos ejemplos, no en un bloque: **Fortaleza 3 y Voluntad 1 → Aguante 4*
 (p. 98), y **Combate 3** (p. 94). **Las otras cuatro características no están escritas en ninguna parte**, así que el
 paquete las deja SIN VALOR en vez de inventarlas: la ficha pinta «—» y el director tira con lo que hay.
 
-**Cobertura**: son los **45 bloques completos** que imprime el manual (los que traen las siete características y el
-Aguante).
+**Cobertura**: son los **45 bloques en lista** que imprime el manual (los que traen las siete características y el
+Aguante en columna). **No incluye los doce del §8.0** — los once en caja y el Salteador —, que todavía no están
+en `BESTIARY`.
 
 ⚠ Corregido el 2026-08-20: antes decía 37 «contados uno a uno sobre el PDF», y faltaban **ocho**. Aparecieron al
 releer el libro para sacar las especialidades. Dos de los que ya estaban tenían además el nombre engañoso, aunque
