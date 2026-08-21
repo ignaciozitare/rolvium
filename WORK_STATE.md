@@ -14,7 +14,75 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-21, CIERRE POR HANDOFF. Siguiente: tiradas + panel del director (`.pen` v3vfV)
+## 🟢 PUNTO EXACTO — 2026-08-21 (noche): COLUMNAS 1 y 2 CONSTRUIDAS. Siguiente: la 3 (el registro)
+
+Rama **`feat/bestiario`**, árbol limpio, todo verde: **683 tests** (506 web + 77 api + 6 core + 16 ui
++ 78 plenilunio), typecheck, `audit` **0 hard**, ambas apps compilando. Commits: `375a46c` (columnas 1 y 2)
+y `37cad40` (los dos arreglos que pidió el dueño probando).
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: las columnas 1 y 2 de las tiradas ya están; construye la columna 3 (`Panel/Registro` +
+> `Tooltip/Desglose`) del `.pen` `v3vfV`, siguiendo el bloque 🟢 de WORK_STATE.
+
+### ✅ Columnas 1 y 2 — el desplegable de tirar
+Mirado en la app corriendo con la mesa real, no sólo en tests: el texto sale **palabra por palabra igual
+que el `.pen`** («TIRAR · ASTUCIA / Manual · p.82 / DADOS QUE TIRAS / tu Astucia 4, menos 1 por herido /
+DADOS DE LA RESERVA DE DESTINO p.88 / quedan 10 en la mesa / + dados extra: 0 / TIRAR 3»), y la tirada
+llega a la base con 3 propios + 2 de Destino + 3 de oposición, con la reserva bajando de 10 a 8.
+
+- **`characters/ui/RollPopover.tsx`** (+test, 10) y **`characters/domain/useCases/rollIntent.ts`** (+test, 8).
+- **`packages/ui/Sheet.tsx`**: `onAction` gana un 4.º argumento opcional con el **rectángulo del botón**
+  pulsado. Es lo único que hacía falta para que el desplegable nazca pegado a él. Retrocompatible.
+- **Abre en**: TIRAR de una característica y la acción de un arma. **NO abre** en activar un don ni en
+  recargar — el `.pen` no las diseña y se dejaron exactamente como estaban.
+- **Nada sabe de Plenilunio**: los alcances salen del catálogo **`ranges`** (nuevo: alcance → dificultad,
+  en orden, p.95–96) con la referencia **`ranged` p.96** (también nueva, anotada en RULES.md §9); la
+  penalización por heridas sale de `healthLevels`; la reserva de `engine.sharedResources`, incluido su
+  `blockedIf` (con Destino 10 no se ofrece y se dice por qué).
+- **Los dados de la reserva se COGEN de la mesa al confirmar** (`takeResource`/`returnResource`, los
+  mismos de la barra), porque el servidor sólo deja tirar los que ya están en la mano. `TablePage` arma
+  el `SharedPoolHandle` y sólo para quien PUEDE coger: al director no se le pinta esa parte.
+- Dos cosas que sólo se vieron en pantalla: el título del arma se partía en dos líneas (era `--fs-xs` con
+  .16em; el `.pen` usa 11 px y 1.4 → `--fs-2xs` y .12em), y el desplegable se iba arriba sin necesidad
+  porque el alto estaba SUPUESTO; ahora se **mide** una vez pintado.
+
+### ⚠️ Lo que queda del encargo (el resto de `v3vfV`)
+La tabla de seis columnas del bloque de abajo sigue valiendo entera. **Siguiente: la columna 3**
+(`Panel/Registro` + `Tooltip/Desglose`), que **no necesita base de datos**. Después va el **paso de DBA**
+(una tabla para peticiones de tirada y ataques pendientes) y con él las columnas 4, 6 y 5.
+
+⚠ **El bloque «Tirada» de la ficha SIGUE AHÍ a propósito.** Hoy es de donde `poolFor` saca la dificultad
+del reto; quitarlo antes de que exista el panel del director dejaría las tiradas **sin oposición ninguna**.
+Se va junto con la columna 4, no antes.
+
+### 🔧 Los dos arreglos que pidió el dueño probando (`37cad40`)
+1. **La Munición no pasa del cargador.** El contador subía sin fin. Ahora el techo es el cargador y es
+   **por fila** (magnum 6, rifle 30). `FieldDef` gana `maxForRow`, opcional y sólo para columnas de tabla.
+   Se capa la subida y nunca la bajada. ⚠ El **traspaso al recargar YA estaba capado** y no se tocó
+   (cargador vacío + 100 en Munición → mete 30 y deja 70); lo que faltaba era el techo del contador.
+   Elección del dueño entre tres opciones: techo = **un cargador**, no varios.
+2. **Destino · Fortuna · Experiencia centrados** respecto a la tarjeta, en su propia fila. Sueltos en la
+   rejilla caían en tres celdas de una fila de cuatro y «Destino» quedaba contra el borde izquierdo,
+   mientras los calculados de debajo iban centrados. `groupTiles` → **`groupRuns`**, que agrupa las tandas
+   seguidas del mismo tipo (`rv-sheet-tiles` y `rv-sheet-counters`).
+
+### 🧰 Cómo mirarlo
+Docker + Supabase local + `dev:api` :3001 + `dev:web` :5173.
+`http://localhost:5173/table/8f506705-e348-415c-82a9-5a37e2c0ce51` · `admin@rolvium.local` / `rolvium123`.
+Capturas: **`node shot-tiradas.mjs`** desde `apps/web` → `/tmp/tir-caracteristica.png`, `/tmp/tir-disparar.png`,
+`/tmp/tir-disparar-cerca.png`.
+⚠ El admin es **director** en esa campaña, así que no ve la pestaña «Ficha» ni la reserva en el
+desplegable (la reserva es de los jugadores, p.88). Para mirarlo como jugador, en el Postgres local:
+`set session_replication_role = replica; update campaigns_members set role='player' …` — y **volver a
+dejarlo en `dm` al terminar**.
+
+### ⚠️ Sigue pendiente, igual que antes
+**Review y QA NO se han pasado** en esta rama. Antes de mergear hay que pasar `/review` y `/qa`, y el hook
+de QA lo bloquea igualmente. Lo demás de «Pendiente de decidir» del bloque de abajo sigue en pie.
+
+---
+
+## 🟡 PUNTO ANTERIOR — 2026-08-21, cierre por handoff (el encargo, entero)
 
 Rama **`feat/bestiario`**, árbol **limpio**, todo verde: **664 tests** (487 web + 77 api + 6 core + 16 ui
 + 78 plenilunio), typecheck, `audit` 0 hard, ambas apps compilando. Últimos commits: `2c70075`, `8e4a55f`,
