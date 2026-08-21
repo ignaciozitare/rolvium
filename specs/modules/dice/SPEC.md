@@ -269,11 +269,15 @@ vez de «de dificultad». Los dados y las cuentas son idénticos: lo único que 
 conflicto. El **Registro** sigue sin etiquetar el grupo de la derecha (p.85); es el desglose, que abre quien
 ya sabe de qué iba la tirada, el que lo nombra.
 
-### Ponerse a cubierto (p.96) — entra en esta tanda
+### Ponerse a cubierto (p.96) — ⚠ NO CONSTRUIDO
 Es lo único que puede hacer un jugador al que disparan, y sin ello el ataque a distancia le deja sin
-respuesta. Reto de **Combate o Astucia, la mayor de las dos**, contra dificultad **1/2/3/5 según la
-cobertura**; si lo logra, **dispararle cuesta +2 dados de dificultad**. Cierra además la línea «A cubierto»
-que el `.pen` pide en el desglose del Registro y que hoy se omite a propósito.
+respuesta. Sería: reto de **Combate o Astucia, la mayor de las dos**, contra dificultad **1/2/3/5 según la
+cobertura**; si lo logra, **dispararle cuesta +2 dados de dificultad**. Cerraría además la línea «A cubierto»
+que el `.pen` pide en el desglose del Registro.
+
+**Nada de esto existe todavía.** Este apartado decía «entra en esta tanda» y era falso: se dejó fuera a
+propósito porque una línea que sólo puede decir «no» para siempre miente (decisión del dueño, 2026-08-21).
+Es lo único del `.pen` de las tiradas que no está construido.
 
 ### El bloque «Tirada» de la ficha desaparece con esta tanda
 Hoy es de donde `poolFor` saca la dificultad del reto. Se quita **cuando exista el panel del director**, no

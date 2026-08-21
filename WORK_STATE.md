@@ -16,9 +16,12 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 ## 🔴 PUNTO EXACTO — 2026-08-21: LA COLUMNA 5 ESTÁ CONSTRUIDA. Falta MIRARLA EN LA APP y aplicarla en la nube
 
-Rama **`feat/bestiario`**, árbol **limpio**, commit **`4caa2de`**. **873 tests** verdes (602 web + 114 api + 14 core +
-16 ui + 127 plenilunio), typecheck de las dos apps, `audit` **0 hard** (13 warn, todos preexistentes),
-`build:web` y `build:api` OK. **Review pasado**, y sus hallazgos ARREGLADOS (abajo).
+Rama **`feat/bestiario`**, árbol **limpio**, HEAD **`fb05fb3`** (la columna 5 es `4caa2de`). **873 tests**
+verdes (602 web + 114 api + 14 core + 16 ui + 127 plenilunio), typecheck de las dos apps, `audit` **0 hard**
+(13 warn: **9 preexistentes y 4 nuevos**, los cuatro de `ui-reuse` por llevar desplegable propio en vez del
+`Modal` compartido —`CreatureRollPopover`, `SheetOverlay`, `TokenAttackModal` y `RollPopover`—, cada uno con
+su justificación escrita en el propio fichero). `build:web` y `build:api` OK.
+**Review pasado**, sus hallazgos ARREGLADOS (abajo), y **QA pasada**: se puede mergear.
 
 ### Prompt de resume, de una línea
 > Retomo Rolvium: la **columna 5** (el aviso de defensa al jugador) está construida y verde, pero **sin
