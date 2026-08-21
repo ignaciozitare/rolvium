@@ -14,77 +14,66 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🔴 PUNTO EXACTO — 2026-08-21, 2.º CIERRE POR HANDOFF. El manual YA está leído; falta bajarlo al código
+## 🔴 PUNTO EXACTO — 2026-08-21: EL BESTIARIO, TANDAS 1 Y 2 HECHAS. FALTA LA PANTALLA
 
-Rama **`feat/bestiario`**, árbol limpio salvo `RULES.md` (ver abajo). **Ni una línea de código tocada en
-este tramo**: el gate de contexto saltó a los 14,6 MB antes del primer `Edit`. **Leer páginas del PDF como
-imagen quema el contexto muy rápido** — 12 páginas ≈ 8 MB. Por eso todo lo leído está volcado a
-`packages/system-plenilunio/RULES.md`, para que el chat nuevo **no tenga que abrir ni una imagen más**.
+Rama **`feat/bestiario`**, **sin commitear todavía** (el dueño no lo ha pedido). Todo verde: **739 tests**
+(518 web + 77 api + 6 core + 16 ui + **122 plenilunio**, eran 102), typecheck de las dos apps, `audit`
+**0 hard** (12 warn, todos preexistentes y en ficheros que no se tocaron).
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: baja al código los doce bloques del §8.0 de `packages/system-plenilunio/RULES.md` y
-> aplica las capacidades del §7.b.1 (bloque 🔴 de WORK_STATE). **No abras el PDF: ya está todo leído.**
+> Retomo Rolvium: el bestiario tiene ya los datos y el motor (bloque 🔴 de WORK_STATE). Falta la **tanda 3**,
+> la pantalla `CreatureRollPopover` — y va por el **Design Agent** primero, que es cambio visible.
 
-### ✅ Lo que se hizo en este tramo (todo en `.md`)
-1. **Leídos del PDF los ONCE bloques en caja** que faltaban, página a página como imagen: Nathael, Luz niña,
-   Soum, Nergal, **Samael**, **Lucifer**, **Baal**, **Gabriel**, **Marduk**, **Adán/Satán** y **Luz-Malefic**.
-   Más el **Salteador** (p.209). Los doce, con sus **siete características, Aguante, Destino, las siete
-   especialidades, los ATAQUES y la línea de dones y capacidades**, están en **RULES.md §8.0**.
-2. **Leída la espada Malefic (p.163)**, que es lo que explica el «8/10» de Luz adulta: una mano +2 y daño
-   Fortaleza+4; dos manos, gastando 1 de Fortuna, +4 y daño Fortaleza+6. Con For 4 / Com 6 da 8/8 y 10/10. ✔
-3. **Hallazgo que cambia el diseño**: los ataques impresos **no se pueden recalcular** (Nergal pega 10 donde
-   la cuenta da 9; Lucifer 12 donde da 11). Se copian tal cual. Y la **Ira solar NO está sumada** en el daño
-   impreso (probado con Gabriel), así que suma encima.
-4. **RULES.md §7.b.1 nuevo**: la tabla de en qué punto del motor entra cada capacidad y con qué regla exacta.
+### ✅ Tanda 1 · los datos (`packages/system-plenilunio`)
+- **`BESTIARY` pasa de 45 a 57**: los doce bloques en caja del §8.0 (Nathael, Luz niña, Soum, Nergal, Samael,
+  Lucifer, Baal, Gabriel, Marduk, Adán, Luz-Malefic y el Salteador), con sus siete características, Aguante,
+  Destino, especialidades, la línea impresa de dones y capacidades, y sus **ATAQUES copiados, no recalculados**.
+- **`CAPABILITY_IDS`** — las quince capacidades de la p.107–108 como catálogo (`scored` y `timeOfDay`) y
+  **`capabilities`** como dato en cada bloque, además de `abilities`, que es la línea impresa y **no se toca**
+  porque además trae los dones. Un **test de paridad** ata las dos para que no se separen nunca.
+- **`CreatureAttack`** nuevo (`attacks` del bloque) con 12 claves `catalog.creatureAttacks.*`.
+- **Siete especialidades nuevas** `creature.*`: `vuelo · espadaSamurai · martilloDeGuerra · espadasSamurais ·
+  recorrerDistancias · espadaYEscudo · sables`. Gabriel lleva `protection: 5` (su escudo, que no es un ataque).
+- **i18n en es Y en**: los 12 del bestiario, las 7 especialidades, las 15 capacidades (`name` + `summary`) y
+  los 12 ataques. Los dones de las cajas **no se capan** (Furia de titán 8, Alegoría de la realidad 9).
 
-### ✅ Las tres decisiones del dueño (2026-08-21)
-- **«Aura sobrenatural 5» de Nathael → se trata como «Aura 5».** Lectura nuestra, anotada como tal.
-- **Día/noche → casilla «es de noche» en la propia tirada**, junto a la de especialidad. NO dato de escena
-  (eso pedía migración + diseño del mapa).
-- **Deflagración → entra ahora, a mano**: el director teclea los metros y el motor saca los dados.
+### ✅ Tanda 2 · el motor (`engine.ts`), según la tabla de RULES §7.b.1
+- **`autoSuccesses`** — mecánica nueva: entra por `ResolveInput` y por las opciones de la tirada, se suma a
+  `ownHits` **y a `raw`** (⚠ interpretación: con éxitos automáticos no hay revés), sale en `Outcome` y en el
+  `detail`, y el **desglose del Registro** lo cuenta con el nombre de la capacidad y la p.107.
+- **`autoSuccessOptions(caps, característica, esDeNoche)`** — las que PODRÍAN aplicar; las marca el director,
+  no se aplican solas: Amparo de la noche (Combate, de noche) · Aura (Presencia, de día) · Aura sombría
+  (Sutileza, de noche).
+- **Ira solar** en `attackDamage(o, daño, iraSolar)`, encima del daño impreso. **Inmune al dolor** y **Piel
+  gruesa** en `derived`. **Ancla terrenal** en `applyDamage` (se queda en malherido). **Incorpóreo**
+  (`incorporealStat`, `canBeAttackedPhysically`), **Ponzoña** (`venomDamage`) y **Deflagración**
+  (`blastReach`, `blastDice`, `blastDamage`, `BLAST_DIFFICULTY`) como funciones puras con sus tests.
+- **`capabilitiesOf(sheet)`** en `schema.ts` (lectura tolerante) y las capacidades **viajan con la ficha** que
+  el motor ve al tirar por una criatura (`creatureRoll.ts`), más el paso por `BestiaryEntry`/`fromCatalog`/
+  `SupabaseBestiaryRepo` para que la pantalla las tenga cuando entre la tanda 3.
 
-### ⏭ EL PLAN, en tres tandas — empezar por la 1
-**Tanda 1 · los datos** (`packages/system-plenilunio`), que es donde saltó el gate. El primer `Edit` ya estaba
-escrito y es éste, en `catalogs.ts`: `BestiaryData` gana dos campos —
-```ts
-  /** Las MISMAS capacidades, en forma de dato, para que el motor pueda aplicarlas. */
-  capabilities: CreatureCapability[];
-  /** Los ATAQUES que imprimen los bloques en caja, con arma y daño ya calculados por el libro. */
-  attacks: CreatureAttack[];
-```
-y `type Block` los suyos (`capabilities?`, `attacks?`). Con eso:
-- **`CAPABILITY_IDS`** (15, pp.107–108): `winged · aura · darkAura · nightShelter · earthlyDisguise ·
-  humanSkin · solarWrath · venom · thickHide · inhumanHunger · earthlyAnchor · incorporeal · painImmune ·
-  blast · darkvision`. Con puntuación (las del `*`): `aura · darkAura · nightShelter · solarWrath · venom ·
-  thickHide · blast`.
-- `abilities: string[]` **NO se toca** (es la línea impresa, y también trae los dones). Se añade un **test de
-  paridad** para que las dos no se separen nunca.
-- **Los 12 bloques nuevos** del §8.0 → `BESTIARY` (45 → 57), sus especialidades → `CREATURE_SPECIALTIES`, y
-  **siete claves nuevas** `creature.*`: `vuelo · espadaSamurai · martilloDeGuerra · espadasSamurais ·
-  recorrerDistancias · espadaYEscudo · sables`.
-- **Gabriel lleva `protection: 5`** — su escudo, que no es un ataque.
-- **i18n en es Y en**: `catalog.bestiary.{id}.{name,notes}` de los 12, las 7 especialidades y las 15
-  capacidades (`catalog.capabilities.{id}.{name,summary}`).
-- ⚠ **Los dones de las cajas pasan de 5** (Furia de titán 8, Alegoría de la realidad 9). No caparlos.
+### ⏭ Tanda 3 · la pantalla — LO QUE FALTA
+`bestiary/ui/CreatureRollPopover.tsx`. **Va por el Design Agent primero**: es cambio visible y hay `.pen`
+(«Bestiario/Tirar por una criatura · popover»). Entra la **casilla «es de noche»**, la lista de capacidades
+que podrían aplicar (con su «+N éxitos automáticos») marcables como se marca la especialidad, los **ATAQUES**
+del bloque, y los **metros** de la Deflagración. El motor ya lo acepta todo por opciones de la tirada:
+`night`, `autoSuccesses`, `autoSuccessFrom`, `solarWrath`.
 
-**Tanda 2 · el motor** (`engine.ts`), según la tabla de RULES §7.b.1. La pieza nueva es **`autoSuccesses`**:
-opción de tirada + campo de `ResolveInput`, sumado a `ownHits` **y a `raw`** (para que no salga revés cuando
-la criatura sí acierta — ⚠ interpretación nuestra, anotada). Después: Ira solar en `attackDamage`, Inmune al
-dolor en `derived`, Ancla terrenal en `applyDamage`, y **Incorpóreo · Ponzoña · Deflagración** como funciones
-puras exportadas con sus tests.
+### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
+- **Nathael imprime Aguante 4** con Fortaleza 7 y Voluntad 5 (que dan 12). Se ha copiado lo impreso, como todo
+  el bestiario, pero es el único de los doce que se desvía tanto. **Anotado en RULES.md §8.0**: si algún día se
+  reabre el PDF, esa es la línea a mirar. Inventar un 12 sería corregirle el libro.
+- **Dos lecturas nuestras** en RULES.md §7.b.1, ambas anotadas y en un solo sitio del código: los éxitos
+  automáticos **cuentan como acierto para el revés**, y **hacen 1 punto de daño** cada uno.
+- **«Ponerse a cubierto» de la Deflagración (p.96) sigue sin existir** en el código, igual que en las tiradas.
+- El **Review Agent NO se ha lanzado**: esta sesión tiene prohibido usar subagentes. Queda pendiente de que el
+  dueño lo pida en una sesión normal, antes de dar la tanda por cerrada.
 
-**Tanda 3 · la pantalla** (`bestiary/ui/CreatureRollPopover.tsx`). **Va por el Design Agent primero**: es
-cambio visible y hay `.pen` («Bestiario/Tirar por una criatura · popover»). Entra la casilla «es de noche»,
-la lista de capacidades que podrían aplicar (con su «+N éxitos automáticos») marcables como ya se marca la
-especialidad, los ATAQUES del bloque, y los metros de la Deflagración.
-
-### 🚫 Ojo con esto
-- **`RULES.md` está modificado y SIN commitear** si el commit de abajo no llegó a hacerse: `git status`.
-- **No volver a abrir el PDF** salvo que algo del §8.0 no cuadre. Si hay que abrirlo: `pdftoppm -f N -l N -r 150
-  -png` y leer la imagen, **de una en una**, porque el `pdftotext` parte las cajas y las columnas.
-- **Gabriel es atribución nuestra**: su caja está al pie de una ilustración sin nombre (p.134). Está anotado.
-- El bestiario (tandas 1–3) **sigue yendo ANTES** que las columnas 4 y 5 de las tiradas: el panel del director
-  tira por las criaturas y las ataca.
+### 🔎 Deuda encontrada y NO tocada (decidir aparte)
+- **Ciclo de imports en plenilunio** (`engine` ↔ `explain`), ya anotado en el bloque 🟢: sigue igual.
+- `applyDamage` sólo lo usa hoy la ficha de personaje; el daño a un token de criatura va por `maps` y **no
+  pasa por el motor**, así que Ancla terrenal y Piel gruesa aún no llegan a la mesa por ese camino.
+- `blastDamage` y `venomDamage` no tienen todavía quien los llame: entran con la tanda 3.
 
 ## 🟢 PUNTO EXACTO — 2026-08-21: COLUMNA 3 TERMINADA Y MIRADA EN LA APP
 

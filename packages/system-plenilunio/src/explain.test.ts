@@ -133,3 +133,22 @@ describe('explain · idioma y enganche', () => {
     expect(engine.explain?.({ request, dice: [[4, 4, 4, 4]], result }, ts())?.head).toHaveLength(1);
   });
 });
+
+describe('explain · las capacidades de una criatura (p.107–108)', () => {
+  it('cuenta los éxitos automáticos y de qué capacidad salen', () => {
+    const e = roll(sheet(), { stat: 'combat', difficulty: 0, autoSuccesses: 3, autoSuccessFrom: 'nightShelter', night: true }, [[4, 2, 2, 2]]);
+    expect(e?.applied).toContainEqual({ text: 'Capacidad «Amparo de la noche» — 3 éxitos automáticos, sin tirar dados', page: 107 });
+  });
+  it('uno solo se dice en singular, y en inglés también', () => {
+    const e = roll(sheet(), { stat: 'presence', difficulty: 0, autoSuccesses: 1, autoSuccessFrom: 'aura' }, [[2]], 'en');
+    expect(e?.applied).toContainEqual({ text: 'Capacity “Aura” — 1 automatic success, no dice rolled', page: 107 });
+  });
+  it('sin saber de qué capacidad salieron, dice el número igualmente', () => {
+    const e = roll(sheet(), { stat: 'combat', difficulty: 0, autoSuccesses: 2 }, [[2, 2, 2, 2]]);
+    expect(e?.applied).toContainEqual({ text: '2 éxitos automáticos, sin tirar dados', page: 107 });
+  });
+  it('una tirada sin capacidades no gana ninguna línea', () => {
+    const e = roll(sheet(), { stat: 'combat', difficulty: 0 }, [[4, 4, 4, 4]]);
+    expect(e?.applied.some(l => l.text.includes('automátic'))).toBe(false);
+  });
+});

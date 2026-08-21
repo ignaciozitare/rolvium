@@ -434,21 +434,21 @@ son todo o nada.
 
 | Capacidad | Regla (del libro) | Motor |
 |---|---|---|
-| **Alado** | Alas y capacidad innata de volar. | ❌ narrativa |
-| **Aura\*** | **Sólo de día.** Añade tantos **éxitos automáticos** como su puntuación a **cualquier tirada de Presencia** que la criatura haga **para intimidar o liderar**. | ❌ |
-| **Aura sombría\*** | **Sólo de noche.** Añade tantos **éxitos automáticos** como su puntuación a **cualquier tirada de Sutileza** para **esconderse, moverse en silencio o pasar desapercibida**. | ❌ |
-| **Amparo de la noche\*** | **De noche** añade tantos **éxitos automáticos** como su puntuación **a su total de Combate cada turno**. Si divide sus dados de Combate entre varios ataques o defensas, **debe dividir igualmente esos éxitos automáticos**. | ❌ |
-| **Disfraz terrenal** | Disimula su naturaleza sobrenatural y parece **totalmente humana**. Se pone y se quita a voluntad. | ❌ narrativa |
-| **Piel de humano** | Disimula su aspecto, pero **un examen superficial la delata**: conserva cuernos, escamas u otros rasgos. En la distancia puede confundirse con un humano. | ❌ narrativa |
-| **Ira solar\*** | Incendia los objetos que lleva en las manos (normalmente el filo del arma). **Añade la puntuación de esta capacidad al daño del arma.** | ❌ |
-| **Ponzoña\*** | Inocula veneno por dientes o garras. **Cualquier ataque de la criatura que tenga éxito inyecta el veneno.** Resistirlo es un **conflicto entre la Fortaleza de la víctima y la puntuación de Ponzoña**. Si vence la criatura, **cada éxito = 1 punto de daño y cada triunfo = tantos puntos como la Ponzoña**. | ❌ (es un ataque APARTE del principal) |
+| **Alado** | Alas y capacidad innata de volar. | — narrativa |
+| **Aura\*** | **Sólo de día.** Añade tantos **éxitos automáticos** como su puntuación a **cualquier tirada de Presencia** que la criatura haga **para intimidar o liderar**. | ✅ `autoSuccessOptions` |
+| **Aura sombría\*** | **Sólo de noche.** Añade tantos **éxitos automáticos** como su puntuación a **cualquier tirada de Sutileza** para **esconderse, moverse en silencio o pasar desapercibida**. | ✅ `autoSuccessOptions` |
+| **Amparo de la noche\*** | **De noche** añade tantos **éxitos automáticos** como su puntuación **a su total de Combate cada turno**. Si divide sus dados de Combate entre varios ataques o defensas, **debe dividir igualmente esos éxitos automáticos**. | ✅ `autoSuccessOptions` (el reparto lo hace el director) |
+| **Disfraz terrenal** | Disimula su naturaleza sobrenatural y parece **totalmente humana**. Se pone y se quita a voluntad. | — narrativa |
+| **Piel de humano** | Disimula su aspecto, pero **un examen superficial la delata**: conserva cuernos, escamas u otros rasgos. En la distancia puede confundirse con un humano. | — narrativa |
+| **Ira solar\*** | Incendia los objetos que lleva en las manos (normalmente el filo del arma). **Añade la puntuación de esta capacidad al daño del arma.** | ✅ `attackDamage(o, daño, iraSolar)` |
+| **Ponzoña\*** | Inocula veneno por dientes o garras. **Cualquier ataque de la criatura que tenga éxito inyecta el veneno.** Resistirlo es un **conflicto entre la Fortaleza de la víctima y la puntuación de Ponzoña**. Si vence la criatura, **cada éxito = 1 punto de daño y cada triunfo = tantos puntos como la Ponzoña**. | ✅ `venomDamage` (ataque APARTE del principal) |
 | **Piel gruesa\*** | Piel excepcionalmente dura: **cuenta como armadura natural cuya protección es igual a la puntuación**. | ✅ `protection` del bloque |
-| **Hambre inhumana** | Come sin saciarse; su olfato la guía hacia nuevas fuentes de alimento y **le permite descubrirlas aunque estén ocultas o escondidas**. | ❌ narrativa |
-| **Ancla terrenal** | Su existencia está atada al mundo físico. **No puede ser destruida hasta que sea liberada del ancla.** Mientras el ancla exista, **cualquier resultado que la deje en nivel de salud muerto se trata como otro nivel malherido**, del que se recupera con el tiempo de forma normal. | ❌ |
-| **Incorpóreo** | Carece de cuerpo físico. **No se la puede atacar físicamente** y sólo interactúan con ella otros seres inmateriales. **Usa la Voluntad de la criatura en lugar de su Fortaleza o su Combate** para cualquier pugna entre seres inmateriales. | ❌ |
-| **Inmune al dolor** | Sus niveles de salud sirven **sólo** para saber cuándo muere o es destruida: **no sufre penalización de dados por los estados** (p. 99). | ❌ |
-| **Deflagración\*** | Explosión de llamas sobrenaturales. Radio de **1 metro por punto**. Los que están junto a la criatura reciben un ataque con **tantos dados como la puntuación**, **−1 dado por cada metro de distancia**. Se resuelve como **reto de dificultad 1**, y el DJ puede permitir **ponerse a cubierto** como en los ataques a distancia (p. 096). **Cada éxito = 1 punto de daño; cada triunfo = tantos puntos como la puntuación.** | ❌ |
-| **Visión en la oscuridad** | Ve en la oscuridad más absoluta como si fuera de día. | ❌ narrativa |
+| **Hambre inhumana** | Come sin saciarse; su olfato la guía hacia nuevas fuentes de alimento y **le permite descubrirlas aunque estén ocultas o escondidas**. | — narrativa |
+| **Ancla terrenal** | Su existencia está atada al mundo físico. **No puede ser destruida hasta que sea liberada del ancla.** Mientras el ancla exista, **cualquier resultado que la deje en nivel de salud muerto se trata como otro nivel malherido**, del que se recupera con el tiempo de forma normal. | ✅ `applyDamage` |
+| **Incorpóreo** | Carece de cuerpo físico. **No se la puede atacar físicamente** y sólo interactúan con ella otros seres inmateriales. **Usa la Voluntad de la criatura en lugar de su Fortaleza o su Combate** para cualquier pugna entre seres inmateriales. | ✅ `incorporealStat` · `canBeAttackedPhysically` |
+| **Inmune al dolor** | Sus niveles de salud sirven **sólo** para saber cuándo muere o es destruida: **no sufre penalización de dados por los estados** (p. 99). | ✅ `derived` |
+| **Deflagración\*** | Explosión de llamas sobrenaturales. Radio de **1 metro por punto**. Los que están junto a la criatura reciben un ataque con **tantos dados como la puntuación**, **−1 dado por cada metro de distancia**. Se resuelve como **reto de dificultad 1**, y el DJ puede permitir **ponerse a cubierto** como en los ataques a distancia (p. 096). **Cada éxito = 1 punto de daño; cada triunfo = tantos puntos como la puntuación.** | ✅ `blastDice` · `blastDamage` |
+| **Visión en la oscuridad** | Ve en la oscuridad más absoluta como si fuera de día. | — narrativa |
 
 ⚠ **«Aura sobrenatural»** aparece en el bloque de Nathael (p. 49) y **no está en la lista de p. 107–108**. Sin
 resolver: puede ser el mismo «Aura\*» con otro nombre, o una capacidad que el libro no llegó a listar.
@@ -457,7 +457,7 @@ resolver: puede ser el mismo «Aura\*» con otro nombre, o una capacidad que el 
 inmaterial 3», Soum «Defensa de acero 3, Golpe certero 4, Movimientos felinos 5». Se leen del §7 y cuestan
 Fortuna como a cualquiera.
 
-### 7.b.1 Cómo entran en el motor (decidido con el dueño, 2026-08-21)
+### 7.b.1 Cómo entran en el motor (decidido con el dueño, 2026-08-21) — CONSTRUIDO el 2026-08-21
 
 **Día y noche**: la app no sabe la hora en ninguna parte, y cuatro capacidades dependen de ella. El dueño
 eligió **casilla «es de noche» en la propia tirada**, al lado de la de especialidad — no dato de la escena,
@@ -479,16 +479,25 @@ y el motor saca los dados; cuando existan los ataques sobre el mapa, la distanci
 | **Ponzoña\*** | ataque **aparte** | Todo ataque suyo con éxito inocula: conflicto **Fortaleza de la víctima vs Ponzoña**; si vence la criatura, éxito = 1 daño y triunfo = la puntuación de Ponzoña |
 | **Deflagración\*** | ataque **aparte** | Radio 1 m por punto; dados = puntuación **− 1 por metro**; **reto a dificultad 1**; se puede uno cubrir (p.96); éxito = 1 daño, triunfo = la puntuación |
 
-**Los éxitos automáticos son mecánica nueva en el motor.** Hoy `resolveAction` sólo cuenta dados. Hace falta
-un `autoSuccesses` que se sume a `ownHits`.
+**Los éxitos automáticos eran mecánica nueva en el motor** —`resolveAction` sólo contaba dados— y ya está:
+`ResolveInput.autoSuccesses` se suma a `ownHits`, viaja en las opciones de la tirada (`autoSuccesses` +
+`autoSuccessFrom`, la capacidad que los da) y sale en el desglose del Registro con su nombre y la p.107.
 
 ⚠ **Interpretación nuestra, el libro no lo dice**: los éxitos automáticos **también cuentan para el revés**
 (§2.6). Un revés es «ni un solo acierto y al menos un fracaso»; con Amparo de la noche 5 la criatura SÍ
 acierta, así que no puede sufrir un revés al mismo tiempo. Si el dueño lo lee al revés, se cambia en un sitio.
 
+⚠ **Interpretación nuestra, el libro no lo dice**: un **éxito automático hace 1 punto de daño**, como cualquier
+otro éxito (§5.6). Dejarlos fuera del daño sería peor: una criatura que gana el ataque gracias a ellos haría
+menos daño del que dice su diferencia.
+
 ⚠ **Las capacidades no se aplican solas**, igual que las especialidades (§2.2): el director ve las que podrían
-aplicar según la característica y la casilla de noche, y marca la que corresponde. «Aura» pide además que la
-tirada sea *para intimidar o liderar*, y eso no lo puede saber el motor.
+aplicar según la característica y la casilla de noche, y marca la que corresponde. `autoSuccessOptions(caps,
+característica, esDeNoche)` es quien devuelve esa lista. «Aura» pide además que la tirada sea *para intimidar o
+liderar*, y eso no lo puede saber el motor.
+
+**Lo que queda de esta tabla, y NO es del motor**: la casilla «es de noche» y los metros de la Deflagración son
+pantalla (`bestiary/ui/CreatureRollPopover.tsx`), y esa tanda va por el Design Agent porque es cambio visible.
 
 ---
 
@@ -510,9 +519,9 @@ Dos cosas que se leen mal si no se avisan:
 > capacidades —`lunar` y `fallenElite`— porque en el PDF **envuelven a una segunda línea** («…Piel de /
 > humano, Amparo de la noche N.») y se copiaron cortadas. Corregido.
 >
-> ⚠ **Los 45 no son todo el bestiario.** Faltan **doce** bloques más: los **once en caja** de los personajes
-> con nombre y el **Salteador** de la aventura de ejemplo. Están leídos del PDF y escritos en el **§8.0**,
-> listos para bajar al catálogo; hasta que se bajen, `BESTIARY` tiene 45 y §8.1–8.3 son sólo esos 45.
+> ✅ **Los doce que faltaban YA ESTÁN en el catálogo** (2026-08-21): `BESTIARY` tiene **57** bloques — los 45
+> en lista de §8.1–8.4 y los doce en caja del §8.0. Las tablas de §8.1–8.3 siguen siendo sólo los 45 en lista;
+> los doce se leen en el §8.0.
 
 **El daño de una criatura SÍ está en el libro** (verificado en el PDF, 2026-08-21). Los bloques no traen
 línea de arma porque no hace falta: un zarpazo, un mordisco o un puñetazo es un **ataque sin armas**, y la
@@ -528,16 +537,16 @@ un dato que el libro no da: el director puede hacerlo a mano si quiere, pero por
 | Capacidad | Lo que dice el libro | Motor |
 |---|---|---|
 | Piel gruesa\* | «armadura natural cuya protección es igual a la puntuación» | ✅ `protection` del bloque |
-| Ira solar\* | «Añade la puntuación de esta capacidad al **daño del arma**» | ❌ sin construir |
-| Ponzoña\* | Todo ataque con éxito inocula veneno: conflicto Fortaleza de la víctima vs Ponzoña; si vence la criatura, éxito = 1 daño y triunfo = puntuación de Ponzoña | ❌ sin construir (es un ataque APARTE del principal) |
-| Amparo de la noche\* | De noche, «añade tantos éxitos automáticos como su puntuación a su total de Combate cada turno»; si reparte dados, reparte también los éxitos | ❌ sin construir |
-| Deflagración\* | Explosión de radio 1 m por punto; tantos dados como la puntuación, −1 por metro; reto a dificultad 1, se puede uno cubrir; éxito = 1 daño, triunfo = puntuación | ❌ sin construir |
-| Incorpóreo | No se la puede atacar físicamente; usa **Voluntad** en lugar de Fortaleza o Combate frente a otros seres inmateriales | ❌ sin construir |
-| Inmune al dolor | Sus niveles de salud sólo dicen cuándo muere: **no sufre penalización de dados** por estado (p. 99) | ❌ sin construir |
-| Ancla terrenal | Mientras exista el ancla, cualquier resultado que la deje muerta cuenta como otro nivel malherido | ❌ sin construir |
+| Ira solar\* | «Añade la puntuación de esta capacidad al **daño del arma**» | ✅ `attackDamage` |
+| Ponzoña\* | Todo ataque con éxito inocula veneno: conflicto Fortaleza de la víctima vs Ponzoña; si vence la criatura, éxito = 1 daño y triunfo = puntuación de Ponzoña | ✅ `venomDamage` (ataque APARTE del principal) |
+| Amparo de la noche\* | De noche, «añade tantos éxitos automáticos como su puntuación a su total de Combate cada turno»; si reparte dados, reparte también los éxitos | ✅ `autoSuccessOptions` + `autoSuccesses` |
+| Deflagración\* | Explosión de radio 1 m por punto; tantos dados como la puntuación, −1 por metro; reto a dificultad 1, se puede uno cubrir; éxito = 1 daño, triunfo = puntuación | ✅ `blastDice` · `blastDamage` (cubrirse, no: la regla no existe en el código) |
+| Incorpóreo | No se la puede atacar físicamente; usa **Voluntad** en lugar de Fortaleza o Combate frente a otros seres inmateriales | ✅ `incorporealStat` |
+| Inmune al dolor | Sus niveles de salud sólo dicen cuándo muere: **no sufre penalización de dados** por estado (p. 99) | ✅ `derived` |
+| Ancla terrenal | Mientras exista el ancla, cualquier resultado que la deje muerta cuenta como otro nivel malherido | ✅ `applyDamage` |
 | Alado · Visión en la oscuridad · Aura\* · Aura sombría\* · Disfraz terrenal · Piel de humano · Hambre inhumana | Sin efecto mecánico sobre el daño | — narrativas o fuera de combate |
 
-### 8.0 Los bloques EN CAJA — leídos del PDF uno a uno (2026-08-21)
+### 8.0 Los bloques EN CAJA — leídos del PDF uno a uno (2026-08-21) — YA EN EL CATÁLOGO
 
 El bestiario del §8.1–8.3 se copió **sólo de los bloques en lista** (los de «Fortaleza 8 / Combate 4 / …»).
 El libro trae **otro tipo de bloque, en cajas de lunas**, para los personajes con nombre, y **no se copió
@@ -563,6 +572,11 @@ estas cajas), más el **Salteador**, que es un bloque en lista que faltaba.
 | `adam` | **Adán**, Satán el acusador | 139 | 6 | 4 | 6 | 6 | 6 | 6 | 6 | 11 | 8 |
 | `luzMalefic` | **Luz-Malefic**, la decimotercera | 142 | 4 | 6 | 5 | 4 | 3 | 2 | 3 | 9 | 8 |
 | `highwayman` | **Salteador**, pandillero de Nueva York | 209 | 2 | 2 | 2 | 2 | 3 | 2 | 2 | 4 | 1 |
+
+⚠ **Nathael imprime Aguante 4** aunque su Fortaleza 7 + Voluntad 5 dan 12, y es el único de los doce que se
+desvía tanto (los demás cuadran, o fallan por uno). Se copia lo impreso, como todo el bestiario —el Aguante del
+bloque manda sobre la cuenta (§8)—, pero **queda anotado**: si algún día se vuelve a abrir el PDF, esta es la
+línea que hay que mirar (p.49). Sin volver a abrirlo no se toca: inventar un 12 sería corregirle el libro.
 
 ⚠ **Gabriel**: su caja está impresa al pie de la **ilustración a página completa (p.134)**, que **no lleva
 nombre**; su texto es la p.135 y no lleva caja. Es el único candidato de todo el pliego (pp.131–135) y sus
@@ -732,8 +746,8 @@ Sale en dos ejemplos, no en un bloque: **Fortaleza 3 y Voluntad 1 → Aguante 4*
 paquete las deja SIN VALOR en vez de inventarlas: la ficha pinta «—» y el director tira con lo que hay.
 
 **Cobertura**: son los **45 bloques en lista** que imprime el manual (los que traen las siete características y el
-Aguante en columna). **No incluye los doce del §8.0** — los once en caja y el Salteador —, que todavía no están
-en `BESTIARY`.
+Aguante en columna). Con los **doce del §8.0** —los once en caja y el Salteador, bajados al catálogo el
+2026-08-21— `BESTIARY` suma **57**.
 
 ⚠ Corregido el 2026-08-20: antes decía 37 «contados uno a uno sobre el PDF», y faltaban **ocho**. Aparecieron al
 releer el libro para sacar las especialidades. Dos de los que ya estaban tenían además el nombre engañoso, aunque

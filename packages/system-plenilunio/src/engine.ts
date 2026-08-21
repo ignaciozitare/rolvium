@@ -5,10 +5,11 @@
 // platform generates dice on the server and calls `resolve`.
 import type { ActionDef, DiceGroup, Engine, RollRequest, RollResult, RolledDice, SharedResourceDef, SheetData, SheetPatch } from '@rolvium/core';
 import {
-  GIFT_IDS, GIFT_MAX_LEVEL, HEALTH_LEVELS, MAX_GIFT_TRADES, RANGE_DIFFICULTY, RECOVERY, armourById, isMelee, isStatId, sizeMod, weaponById,
-  type HealthId, type StatId, type WeaponData,
+  GIFT_IDS, GIFT_MAX_LEVEL, HEALTH_LEVELS, MAX_GIFT_TRADES, RANGE_DIFFICULTY, RECOVERY, armourById, capabilityLevel, hasCapability,
+  isMelee, isStatId, sizeMod, weaponById,
+  type CapabilityId, type CreatureCapability, type HealthId, type StatId, type WeaponData,
 } from './catalogs';
-import { giftsOf, healthOf, num, statOf, str, weaponsOf, type GiftRow, type WeaponRow } from './schema';
+import { capabilitiesOf, giftsOf, healthOf, num, statOf, str, weaponsOf, type GiftRow, type WeaponRow } from './schema';
 import { explain } from './explain';
 
 export const SYSTEM_ID = 'plenilunio';
@@ -46,15 +47,23 @@ export function derived(sheet: SheetData): Derived {
   const endurance = Math.max(1, statOf(sheet, 'fortitude').value + statOf(sheet, 'will').value + sizeMod(sheet.size));
   const health = healthOf(sheet);
   const armour = armourById(str(sheet.armour, 'none'));
+  /**
+   * Las capacidades de la criatura, cuando la ficha es un bloque del bestiario (p.107–108). En una ficha de
+   * personaje la lista viene vacía y nada de esto cambia:
+   *  - **Inmune al dolor**: «sus niveles de salud sólo sirven para saber cuándo muere»; no resta dados (p.99).
+   *  - **Piel gruesa N**: «armadura natural cuya protección es igual a la puntuación». Se SUMA a la armadura
+   *    llevada en vez de sustituirla, porque son dos cosas distintas y ninguna criatura del libro lleva las dos.
+   */
+  const caps = capabilitiesOf(sheet);
   const destiny = num(sheet.destiny, 3);
   const spent = giftsOf(sheet).reduce((s, g) => s + num(g.level), 0);
   return {
     endurance,
     resistanceMax: endurance * RECOVERY[health].restFactor,
     fortuneMax: destiny,
-    dicePenalty: healthPenaltyOf(health),
+    dicePenalty: hasCapability(caps, 'painImmune') ? 0 : healthPenaltyOf(health),
     healthIndex: healthIndexOf(health),
-    protection: armour?.data.protection ?? 0,
+    protection: (armour?.data.protection ?? 0) + capabilityLevel(caps, 'thickHide'),
     armourPenalty: armour?.data.penalty ?? 0,
     // El tope del canje se aplica aquí TAMBIÉN, no sólo en `budgetOf`: si no, una ficha guardada con
     // más de MAX_GIFT_TRADES canjes enseñaría puntos de don inflados para siempre (hallazgo del QA).
@@ -89,6 +98,11 @@ export interface ResolveInput {
   specialty?: boolean; armourPenalty?: number;
   /** In conflicts the rival may apply a specialty too (p.85): their triumphs count double. Never for difficulty dice (p.84). */
   oppositionSpecialty?: boolean;
+  /**
+   * Éxitos automáticos que no salen de ningún dado: las capacidades de criatura que los conceden
+   * (Amparo de la noche, Aura, Aura sombría — p.107–108). Se suman a los aciertos propios.
+   */
+  autoSuccesses?: number;
 }
 export interface Outcome {
   own: Tally; destiny: Tally; opposition: Tally;
@@ -96,29 +110,64 @@ export interface Outcome {
   /** ownHits + destinyHits − oppositionHits: >0 success degree, <0 failure degree, 0 ambiguous. */
   difference: number;
   setback: boolean; destinyUp: boolean; armourConverted: number; specialty: boolean; oppositionSpecialty: boolean;
+  /** Los éxitos automáticos que entraron (p.107–108). 0 en cualquier tirada de personaje. */
+  autoSuccesses: number;
 }
 /**
  * Full resolution (manual p.82–89): specialty doubles own triumphs (p.83); Destiny dice always double and a
  * triumph among them raises Destiny (p.89); setback = no raw hit at all and ≥1 fumble (p.86).
+ *
+ * Los **éxitos automáticos** de las capacidades (p.107–108) se suman a los aciertos propios y TAMBIÉN cuentan
+ * como acierto para el revés — ⚠ interpretación nuestra, el libro no lo dice (RULES.md §7.b.1): un revés es
+ * «ni un solo acierto y al menos un fracaso» (p.86), y una criatura con Amparo de la noche 5 sí acierta, así
+ * que no puede sufrir un revés al mismo tiempo. Si se lee al revés, se cambia en esta línea y en ninguna más.
  */
 export function resolveAction(input: ResolveInput): Outcome {
   const specialty = !!input.specialty;
   const oppositionSpecialty = !!input.oppositionSpecialty;
+  const autoSuccesses = Math.max(0, Math.floor(num(input.autoSuccesses)));
   const { tally: own, converted } = applyArmour(classify(input.own), input.armourPenalty ?? 0);
   const destiny = classify(input.destiny ?? []);
   const opposition = classify(input.opposition ?? []);
-  const ownHits = own.successes + own.triumphs * (specialty ? 2 : 1);
+  const ownHits = own.successes + own.triumphs * (specialty ? 2 : 1) + autoSuccesses;
   const destinyHits = destiny.successes + destiny.triumphs * 2;
   const oppositionHits = opposition.successes + opposition.triumphs * (oppositionSpecialty ? 2 : 1);
-  const raw = own.successes + own.triumphs + destiny.successes + destiny.triumphs;
+  const raw = own.successes + own.triumphs + destiny.successes + destiny.triumphs + autoSuccesses;
   return {
     own, destiny, opposition, ownHits, destinyHits, oppositionHits,
     difference: ownHits + destinyHits - oppositionHits,
     setback: raw === 0 && own.fumbles + destiny.fumbles > 0,
     destinyUp: destiny.triumphs > 0,
-    armourConverted: converted, specialty, oppositionSpecialty,
+    armourConverted: converted, specialty, oppositionSpecialty, autoSuccesses,
   };
 }
+
+// ─── Capacidades de criatura en la tirada (manual p.107–108) ─────────────────
+/** Una capacidad que PODRÍA dar éxitos automáticos en esta tirada, con cuántos daría. */
+export interface AutoSuccessOption { id: CapabilityId; level: number }
+/**
+ * Las capacidades que podrían aplicarse a esta tirada, según la característica y si es de noche.
+ *
+ * ⚠ **No se aplican solas**, igual que las especialidades (p.83): el director ve las que encajan y marca la
+ * que corresponde. El «Aura» pide además que la tirada sea *para intimidar o liderar*, y el «Aura sombría»
+ * que sea *para esconderse, moverse en silencio o pasar desapercibida* — eso el motor no lo puede saber.
+ */
+export function autoSuccessOptions(caps: readonly CreatureCapability[] | undefined, stat: StatId, night = false): AutoSuccessOption[] {
+  const opts: AutoSuccessOption[] = [];
+  const add = (id: CapabilityId) => { const level = capabilityLevel(caps, id); if (level > 0) opts.push({ id, level }); };
+  if (stat === 'combat' && night) add('nightShelter');       // de noche, a su total de Combate cada turno
+  if (stat === 'presence' && !night) add('aura');            // sólo de día, para intimidar o liderar
+  if (stat === 'subtlety' && night) add('darkAura');         // sólo de noche, para esconderse o pasar desapercibida
+  return opts;
+}
+
+/**
+ * Incorpóreo (p.108): «usa la Voluntad de la criatura en lugar de su Fortaleza o su Combate para cualquier
+ * pugna entre seres inmateriales». Sólo cambia esas dos; el resto de características se tiran como siempre.
+ */
+export const incorporealStat = (stat: StatId): StatId => (stat === 'fortitude' || stat === 'combat' ? 'will' : stat);
+/** Incorpóreo (p.108): «no se la puede atacar físicamente». */
+export const canBeAttackedPhysically = (caps: readonly CreatureCapability[] | undefined): boolean => !hasCapability(caps, 'incorporeal');
 
 /** Degree of success/failure (manual p.85) as an i18n key of this package. */
 export function degreeKey(difference: number): string {
@@ -143,6 +192,13 @@ export interface PlenilunioRollOptions {
   difficulty?: number;
   /** Set by actions. `range` picks the ranged difficulty (p.96) when no explicit difficulty is given. */
   weaponId?: string; ranged?: boolean; range?: keyof typeof RANGE_DIFFICULTY; weaponDamage?: number; bonusDice?: number; giftId?: string;
+  /**
+   * Capacidades de criatura marcadas por el director en esta tirada (p.107–108):
+   *  - `autoSuccesses`: éxitos que no salen de ningún dado, y `autoSuccessFrom` la capacidad que los da.
+   *  - `solarWrath`: puntuación de Ira solar, que suma al daño del arma.
+   *  - `night`: si la escena es de noche. Lo marca el director tirada a tirada (decisión del dueño, 2026-08-21).
+   */
+  autoSuccesses?: number; autoSuccessFrom?: CapabilityId; solarWrath?: number; night?: boolean;
 }
 export const readOptions = (o: Record<string, unknown> | undefined): Partial<PlenilunioRollOptions> => (o ?? {}) as Partial<PlenilunioRollOptions>;
 
@@ -186,15 +242,45 @@ const diceByTag = (request: RollRequest, dice: RolledDice, tag: string): number[
  * a doubled triumph (specialty / Destiny die) may be half-cancelled. Then: success = 1, triumph = weapon damage,
  * doubled triumph = 2× weapon damage, half-cancelled doubled triumph = 1× weapon damage.
  * Implemented as units: success = 1 unit worth 1; plain triumph = 1 unit worth `weaponDamage`; doubled triumph = 2 units worth `weaponDamage` each.
+ *
+ * `solarWrath` es la Ira solar (p.108): «añade la puntuación de esta capacidad al daño del arma». Suma ENCIMA
+ * del daño impreso de los ataques de las cajas, que no la traen dentro — comprobado con Gabriel, cuya espada
+ * hace 9 = Fortaleza 7 + 2 de la tabla, teniendo Ira solar 3 (RULES.md §8.0).
+ *
+ * ⚠ Interpretación nuestra: los **éxitos automáticos** valen 1 punto de daño cada uno, como cualquier otro
+ * éxito (p.97). El libro no lo dice; dejarlos fuera sería peor, porque entonces una criatura que gana el
+ * ataque gracias a ellos haría menos daño del que su diferencia dice.
  */
-export function attackDamage(o: Outcome, weaponDamage: number): number {
-  let successes = o.own.successes + o.destiny.successes;
+export function attackDamage(o: Outcome, weaponDamage: number, solarWrath = 0): number {
+  let successes = o.own.successes + o.destiny.successes + o.autoSuccesses;
   let triumphUnits = o.own.triumphs * (o.specialty ? 2 : 1) + o.destiny.triumphs * 2;
   let cancel = o.oppositionHits;
   const fromSuccesses = Math.min(cancel, successes); successes -= fromSuccesses; cancel -= fromSuccesses;
   triumphUnits -= Math.min(cancel, triumphUnits);
-  return successes + triumphUnits * Math.max(1, weaponDamage);
+  return successes + triumphUnits * Math.max(1, weaponDamage + Math.max(0, Math.floor(solarWrath)));
 }
+
+// ─── Los dos ataques APARTE de las capacidades (manual p.107–108) ────────────
+/**
+ * **Ponzoña\***: «cualquier ataque de la criatura que tenga éxito inyecta el veneno». Resistirlo es un
+ * conflicto entre la **Fortaleza de la víctima** y la puntuación de Ponzoña, y es un ataque APARTE del
+ * principal: se resuelve con su propia tirada. Si vence la criatura, «cada éxito = 1 punto de daño y cada
+ * triunfo = tantos puntos como la Ponzoña», que es exactamente la cuenta del daño de un arma (p.97).
+ */
+export const venomDamage = (o: Outcome, venom: number): number => (o.difference > 0 ? attackDamage(o, venom) : 0);
+
+/** La Deflagración se resuelve como un reto a dificultad 1 (p.108). */
+export const BLAST_DIFFICULTY = 1;
+/** Radio de la Deflagración: 1 metro por punto (p.108). */
+export const blastReach = (blast: number): number => Math.max(0, Math.floor(blast));
+/**
+ * Dados de una Deflagración contra quien está a `metres` metros: «tantos dados como la puntuación, −1 dado
+ * por cada metro de distancia» (p.108). Fuera del radio no hay ataque, y por eso da 0.
+ */
+export const blastDice = (blast: number, metres: number): number =>
+  Math.max(0, blastReach(blast) - Math.max(0, Math.floor(metres)));
+/** Daño de una Deflagración que gana el reto: éxito = 1 punto, triunfo = la puntuación (p.108). */
+export const blastDamage = (o: Outcome, blast: number): number => (o.difference > 0 ? attackDamage(o, blast) : 0);
 
 /** Server-side resolution: classifies each tagged group and returns summary key + all numbers + effects. */
 export function resolve(request: RollRequest, dice: RolledDice, sheet?: SheetData): RollResult {
@@ -202,13 +288,15 @@ export function resolve(request: RollRequest, dice: RolledDice, sheet?: SheetDat
   const o = resolveAction({
     own: diceByTag(request, dice, 'own'), destiny: diceByTag(request, dice, 'destiny'), opposition: diceByTag(request, dice, 'opposition'),
     specialty: !!opts.specialty, armourPenalty: num(opts.armourPenalty), oppositionSpecialty: !!opts.oppositionSpecialty,
+    autoSuccesses: num(opts.autoSuccesses),
   });
   const detail: Record<string, unknown> = {
     stat: opts.stat, own: o.own, destiny: o.destiny, opposition: o.opposition,
     ownHits: o.ownHits, destinyHits: o.destinyHits, oppositionHits: o.oppositionHits, difference: o.difference,
     setback: o.setback, destinyUp: o.destinyUp, armourConverted: o.armourConverted, specialty: o.specialty, degree: degreeKey(o.difference),
+    autoSuccesses: o.autoSuccesses,
   };
-  if (opts.weaponId) detail.damage = o.difference > 0 ? attackDamage(o, num(opts.weaponDamage, 1)) : 0;
+  if (opts.weaponId) detail.damage = o.difference > 0 ? attackDamage(o, num(opts.weaponDamage, 1), num(opts.solarWrath)) : 0;
   /**
    * Lo que la FICHA sabía en el momento de tirar, guardado con la tirada. El desglose del Registro
    * («4 Combate − 1 por herido = 3 dados», «Chaleco antibalas — 1 triunfo pasa a éxito normal») no puede
@@ -245,7 +333,13 @@ export function applyDamage(sheet: SheetData, damage: number, fortune = 0): Shee
   const d = derived(sheet);
   const net = Math.max(0, Math.floor(damage) - d.protection);
   const levels = Math.max(0, Math.floor(net / d.endurance) - Math.max(0, Math.floor(fortune)));
-  const idx = Math.min(HEALTH_LEVELS.length - 1, d.healthIndex + levels);
+  /**
+   * **Ancla terrenal** (p.108): mientras el ancla exista la criatura «no puede ser destruida», y «cualquier
+   * resultado que la deje en nivel de salud muerto se trata como otro nivel malherido», del que se recupera
+   * con el tiempo de forma normal. O sea: el estado se queda en malherido y la Resistencia baja igual.
+   */
+  const floorIdx = hasCapability(capabilitiesOf(sheet), 'earthlyAnchor') ? healthIndexOf('badlyWounded') : HEALTH_LEVELS.length - 1;
+  const idx = Math.min(floorIdx, d.healthIndex + levels);
   const health = HEALTH_LEVELS[idx]?.id ?? 'dead';
   const remaining = num(sheet.resistance) - net;
   const patch: SheetPatch = { resistance: Math.max(0, remaining), health };

@@ -43,10 +43,22 @@ describe('bestiaryRules — las dos fuentes del listado', () => {
     expect(e.data.page).toBe(152);
   });
 
+  it('un bloque del manual trae también sus capacidades y sus ataques', () => {
+    const item: CatalogItem = {
+      id: 'gabriel', label: 'catalog.bestiary.gabriel.name', ref: 'bestiary',
+      data: { ...data(), page: 134, capabilities: [{ id: 'solarWrath', level: 3 }], attacks: [{ label: 'catalog.creatureAttacks.espada', attack: 10, damage: 9 }] },
+    };
+    const e = fromCatalog(item, 'Gabriel', '');
+    expect(e.data.capabilities).toEqual([{ id: 'solarWrath', level: 3 }]);
+    expect(e.data.attacks).toEqual([{ label: 'catalog.creatureAttacks.espada', attack: 10, damage: 9 }]);
+  });
+
   it('un bloque incompleto no se rellena con ceros inventados', () => {
     const e = fromCatalog({ id: 'x', label: 'l', data: {} }, 'X', '');
     expect(e.data.stats).toEqual({});
     expect(e.data.specialties).toEqual({});
+    expect(e.data.capabilities).toEqual([]);
+    expect(e.data.attacks).toEqual([]);
     expect(e.data.page).toBeUndefined();
   });
 

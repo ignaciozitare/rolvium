@@ -21,7 +21,7 @@ describe('SupabaseBestiaryRepo — mapper', () => {
   /** Una fila guardada antes de que `data` tuviera especialidades no puede reventar el listado. */
   it('rellena los huecos de una fila vieja sin inventar características', () => {
     const e = mapEntryRow({ ...ROW, data: {}, notes: null as never });
-    expect(e.data).toMatchObject({ stats: {}, endurance: 0, destiny: 0, protection: 0, abilities: [], specialties: {} });
+    expect(e.data).toMatchObject({ stats: {}, endurance: 0, destiny: 0, protection: 0, abilities: [], capabilities: [], attacks: [], specialties: {} });
     expect(e.data.page).toBeUndefined();
     expect(e.notes).toBe('');
   });

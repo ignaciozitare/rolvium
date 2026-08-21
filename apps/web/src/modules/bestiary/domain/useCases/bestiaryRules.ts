@@ -39,6 +39,8 @@ export function fromCatalog(item: CatalogItem, name: string, notes: string): Bes
       destiny: d.destiny ?? 0,
       protection: d.protection ?? 0,
       abilities: d.abilities ?? [],
+      capabilities: d.capabilities ?? [],
+      attacks: d.attacks ?? [],
       specialties: d.specialties ?? {},
       page: d.page,
     },

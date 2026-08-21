@@ -122,6 +122,19 @@ export function explain(roll: { request: RollRequest; dice: RolledDice; result: 
 
   if (o.giftId) applied.push(line(fill(ts('roll.explain.gift'), { name: ts(`catalog.gifts.${o.giftId}.name`) }), 'gifts'));
 
+  /**
+   * Los éxitos automáticos de una capacidad (p.107–108). No son dados, así que no salen arriba con el puñado:
+   * salen aquí, con lo que se aplicó, y con el nombre de la capacidad cuando la tirada lo guardó. Sin nombre
+   * se dice el número igualmente: un acierto que no viene de ningún dado tiene que estar contado en alguna parte.
+   */
+  const auto = num(d['autoSuccesses'], num(o.autoSuccesses));
+  if (auto > 0) {
+    const from = o.autoSuccessFrom;
+    applied.push(line(from
+      ? fill(ts(auto === 1 ? 'roll.explain.capabilityOne' : 'roll.explain.capability'), { name: ts(`catalog.capabilities.${from}.name`), n: auto })
+      : fill(ts(auto === 1 ? 'roll.explain.autoSuccess' : 'roll.explain.autoSuccesses'), { n: auto }), 'bestiary'));
+  }
+
   // ─── El cierre (p.85) ──────────────────────────────────────────────────────
   const hits = num(d['ownHits']) + num(d['destinyHits']);
   const difference = num(d['difference'], NaN);

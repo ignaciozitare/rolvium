@@ -42,6 +42,8 @@ export const mapEntryRow = (r: EntryRow): BestiaryEntry => ({
     destiny: r.data?.destiny ?? 0,
     protection: r.data?.protection ?? 0,
     abilities: r.data?.abilities ?? [],
+    capabilities: r.data?.capabilities ?? [],
+    attacks: r.data?.attacks ?? [],
     specialties: r.data?.specialties ?? {},
     page: r.data?.page,
   },

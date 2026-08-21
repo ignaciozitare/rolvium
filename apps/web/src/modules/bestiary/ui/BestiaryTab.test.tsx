@@ -40,13 +40,13 @@ beforeEach(() => vi.clearAllMocks());
 describe('BestiaryTab — el listado une las dos fuentes', () => {
   /**
    * Lo que más se puede romper sin ruido: que el catálogo del manual deje de aparecer y el director sólo vea
-   * lo suyo. Son 45 bloques que vienen del paquete del sistema, no de la base.
+   * lo suyo. Son 57 bloques que vienen del paquete del sistema, no de la base (45 en lista + los 12 en caja).
    */
   it('enseña las criaturas del manual junto a las propias', async () => {
     setup();
     expect(await screen.findByRole('heading', { name: 'Ogro' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Ogro con antorcha' })).toBeInTheDocument();
-    expect(screen.getByText(/45 del manual/)).toBeInTheDocument();
+    expect(screen.getByText(/57 del manual/)).toBeInTheDocument();
   });
 
   it('pide sólo las entradas de esta campaña y este sistema', async () => {
@@ -166,7 +166,7 @@ describe('BestiaryTab — la foto', () => {
   });
 
   /**
-   * La mayoría de las 45 del manual no tienen foto: sin respaldo saldría un hueco roto. Se reutiliza
+   * La mayoría de las del manual no tienen foto: sin respaldo saldría un hueco roto. Se reutiliza
    * `initialsOf` de `maps`, que da una letra por palabra —«Ogro» → «O», «Ogro con antorcha» → «OC»—,
    * el mismo criterio que ya usan los tokens del mapa.
    */

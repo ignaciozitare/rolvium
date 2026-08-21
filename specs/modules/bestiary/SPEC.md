@@ -25,7 +25,7 @@ de crear/editar · modal de la foto · claves i18n en es y en. 591 tests en verd
 compilando. **Sin mergear**: falta Review + QA.
 
 ~~Pendiente: PNJ con ficha completa y encuentros propios en la escena~~ → **hechos**. El desplegable de la
-escena une ahora las 45 del manual con los encuentros propios, y colocarlos crea una instancia enlazada a su
+escena une ahora las 57 del manual con los encuentros propios, y colocarlos crea una instancia enlazada a su
 fila (`maps_tokens.bestiary_entry_id`, ON DELETE SET NULL). Los PNJ aliados abren el **mismo `<Sheet>`** que
 un personaje jugador, con su ficha guardada en `data.sheet` de la entrada.
 
@@ -119,6 +119,9 @@ siete características y su Aguante, en el mismo formato que los demás: **Azel�
 **George** (cocinero caníbal, p.68), **Diane** (carroñera, p.74) y **Allen Dallas «el Americano»** (p.74).
 
 El comentario del catálogo («los 37 bloques completos, contados uno a uno sobre el PDF») **es incorrecto**: son 45.
+**Y los 45 tampoco eran todos**: el libro imprime otros doce en cajas de lunas —los once personajes con nombre y el
+Salteador—, bajados al catálogo el 2026-08-21 con sus especialidades, sus capacidades como dato y sus ATAQUES
+(RULES.md §8.0). El catálogo tiene **57**.
 Entran en esta tanda (decisión del dueño, 2026-08-20), junto con las especialidades, porque es el mismo fichero y
 el mismo momento — separarlo obliga a releer el manual otra vez. Valores en `scratchpad/especialidades-criaturas.md`.
 
@@ -158,7 +161,7 @@ guarda el nombre, sus características y valores de juego, las notas, la imagen 
 qué criatura del manual se copió (para conservar la referencia a la página del libro).
 
 **Las criaturas del manual NO están en esta tabla**: son datos del paquete del sistema de juego, en el código.
-Meter las 45 en la base duplicaría 45 filas por campaña sin ganar nada, y sobre sus valores manda el manual.
+Meter las 57 en la base duplicaría 57 filas por campaña sin ganar nada, y sobre sus valores manda el manual.
 El listado une las dos fuentes: el catálogo alimenta el filtro «Manual» y la tabla los filtros «Propios» y «PNJ».
 
 **Las criaturas colocadas en escena tampoco están aquí.** Una instancia es un token del mapa (`maps_tokens`),

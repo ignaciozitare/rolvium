@@ -5,7 +5,8 @@
 // stored by newSheet(). Manual pages: stats p.20–21, roll p.82–84, state p.98–99, p.88–89. See RULES.md.
 import type { FieldDef, SectionDef, SheetData, SheetSchema } from '@rolvium/core';
 import {
-  ARMOURS, DIFFICULTIES, EQUIPMENT, GIFTS, HEALTH_LEVELS, SIZES, STAT_IDS, WEAPONS, specialtiesFor, weaponById, type HealthId, type StatId,
+  ARMOURS, DIFFICULTIES, EQUIPMENT, GIFTS, HEALTH_LEVELS, SIZES, STAT_IDS, WEAPONS, isCapabilityId, specialtiesFor, weaponById,
+  type CreatureCapability, type HealthId, type StatId,
 } from './catalogs';
 
 export const SHEET_VERSION = '1';
@@ -195,3 +196,14 @@ export const healthOf = (sheet: SheetData): HealthId => {
 };
 export const weaponsOf = (sheet: SheetData): WeaponRow[] => (Array.isArray(sheet.weapons) ? sheet.weapons as WeaponRow[] : []);
 export const giftsOf = (sheet: SheetData): GiftRow[] => (Array.isArray(sheet.gifts) ? sheet.gifts as GiftRow[] : []);
+/**
+ * Las capacidades de una criatura (p.107–108), cuando la «ficha» que recibe el motor es un bloque del
+ * bestiario. Las fichas de personaje no llevan ninguna y devuelven la lista vacía: las capacidades son
+ * poderes innatos de las criaturas no humanas, no algo que un jugador pueda tener.
+ *
+ * No está en el esquema de la ficha a propósito —no es un campo que nadie teclee— y por eso se lee
+ * tolerante, como el resto: un `jsonb` malformado devuelve vacío en vez de reventar la tirada.
+ */
+export const capabilitiesOf = (sheet: SheetData): CreatureCapability[] =>
+  (Array.isArray(sheet.capabilities) ? sheet.capabilities : [])
+    .filter((c): c is CreatureCapability => !!c && typeof c === 'object' && isCapabilityId((c as { id?: unknown }).id));

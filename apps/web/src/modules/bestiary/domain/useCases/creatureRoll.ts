@@ -27,7 +27,12 @@ export type PoolFor = (sheet: Record<string, unknown>, action: { stat: string; o
  * inventarse una regla que el libro no tiene.
  */
 const sheetOf = (entry: BestiaryEntry): Record<string, unknown> =>
-  ({ ...entry.data.stats, health: 'healthy', destiny: 0, size: 'normal' });
+  ({
+    ...entry.data.stats, health: 'healthy', destiny: 0, size: 'normal',
+    // Sus capacidades viajan con la ficha porque hay reglas que el motor aplica solo a partir de ellas
+    // (Piel gruesa es protección, Inmune al dolor no resta dados, Ancla terrenal no la deja morir, p.107–108).
+    capabilities: entry.data.capabilities ?? [],
+  });
 
 /**
  * La tirada del director EN NOMBRE de una criatura — lo que el spec llama «tirar en su nombre» y lo que

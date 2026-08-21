@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARMOURS, BESTIARY, CREATURE_SPECIALTY_ITEMS, DIFFICULTIES, GIFTS, GIFT_IDS, RANGE_DIFFICULTY, RANGES, RECOVERY, SIZES, SPECIALTIES, SPECIALTY_ITEMS, STAT_IDS, WEAPONS, catalogs, isMelee, specialtiesFor, specialtyById, weaponById } from './catalogs';
+import { ARMOURS, BESTIARY, CAPABILITIES, CAPABILITY_IDS, CREATURE_SPECIALTY_ITEMS, DIFFICULTIES, GIFTS, GIFT_IDS, RANGE_DIFFICULTY, RANGES, RECOVERY, SIZES, SPECIALTIES, SPECIALTY_ITEMS, STAT_IDS, WEAPONS, capabilityLevel, catalogs, hasCapability, isMelee, specialtiesFor, specialtyById, weaponById } from './catalogs';
 import { references } from './references';
 import { lookup, messages } from './locales';
 
@@ -129,8 +129,8 @@ describe('catalogs', () => {
    * Los 8 bloques que le faltaban al catálogo, encontrados leyendo el PDF para sacar las especialidades. El
    * comentario decía «los 37 bloques completos, contados uno a uno sobre el PDF» y eran 45.
    */
-  it('están los 45 bloques del manual, incluidos los 8 que faltaban', () => {
-    expect(BESTIARY).toHaveLength(45);
+  it('están los 45 bloques en lista y los 12 en caja: 57', () => {
+    expect(BESTIARY).toHaveLength(57);
     // Azelías, el segundo lugarteniente solar: mismo bloque que Aamel salvo Aura e Ira solar (p.132).
     expect(BESTIARY.find(b => b.id === 'azelias')?.data).toMatchObject({ endurance: 10, destiny: 8, page: 132 });
     /**
@@ -156,6 +156,101 @@ describe('catalogs', () => {
     expect(specialtyById('combat.shortWeapons')?.label).toBe('catalog.specialties.combat.shortWeapons');
     expect(specialtyById('creature.garrote')?.label).toBe('catalog.creatureSpecialties.garrote');
     expect(specialtyById('noExiste')).toBeNull();
+  });
+  /**
+   * Los DOCE bloques en caja (RULES.md §8.0): los once personajes con nombre —que el libro imprime en cajas de
+   * lunas, no en lista, y por eso no se copiaron con los otros 45— y el Salteador de la aventura de ejemplo.
+   * Leídos del PDF página a página como imagen el 2026-08-21, porque `pdftotext` parte las cajas.
+   */
+  it('los doce bloques en caja traen sus siete características, Aguante, Destino y ataques', () => {
+    for (const id of ['nathael', 'luz', 'soum', 'nergal', 'samael', 'lucifer', 'baal', 'gabriel', 'marduk', 'adam', 'luzMalefic', 'highwayman'])
+      expect(BESTIARY.find(b => b.id === id), id).toBeDefined();
+    // Marduk p.136: el más fuerte de los solares, Combate 10.
+    expect(BESTIARY.find(b => b.id === 'marduk')?.data).toMatchObject({ endurance: 11, destiny: 8, page: 136 });
+    expect(BESTIARY.find(b => b.id === 'marduk')?.data.stats).toEqual({ fortitude: 8, combat: 10, will: 4, cunning: 3, subtlety: 3, presence: 6, culture: 6 });
+    // El escudo de Gabriel NO es un ataque: es protección 5 (p.134).
+    const gabriel = BESTIARY.find(b => b.id === 'gabriel')!;
+    expect(gabriel.data.protection).toBe(5);
+    expect(gabriel.data.attacks).toEqual([{ label: 'catalog.creatureAttacks.espada', attack: 10, damage: 9 }]);
+    // Los ataques se COPIAN, no se recalculan: Nergal tiene Fortaleza 6 y su martillo hace 10, no 9 (§8.0).
+    expect(BESTIARY.find(b => b.id === 'nergal')?.data.attacks[0]).toMatchObject({ attack: 10, damage: 10 });
+    expect(BESTIARY.find(b => b.id === 'lucifer')?.data.attacks[0]).toMatchObject({ attack: 11, damage: 12 });
+    // Malefic (p.163): a una mano 8, a dos manos 10 y cuesta 1 de Fortuna.
+    expect(BESTIARY.find(b => b.id === 'luzMalefic')?.data.attacks).toEqual([
+      { label: 'catalog.creatureAttacks.maleficUnaMano', attack: 8, damage: 8 },
+      { label: 'catalog.creatureAttacks.maleficDosManos', attack: 10, damage: 10, fortuneCost: 1 },
+    ]);
+    // Soum lleva dos ataques; el Salteador ninguno («elige las armas de la tabla de la p.97»).
+    expect(BESTIARY.find(b => b.id === 'soum')?.data.attacks).toHaveLength(2);
+    expect(BESTIARY.find(b => b.id === 'highwayman')?.data.attacks).toEqual([]);
+    for (const b of BESTIARY) for (const a of b.data.attacks) {
+      resolves(a.label);
+      expect(a.attack, `${b.id} ataque`).toBeGreaterThan(0);
+      expect(a.damage, `${b.id} daño`).toBeGreaterThan(0);
+    }
+  });
+  it('las quince capacidades del libro, con nombre y resumen en los dos idiomas', () => {
+    expect(CAPABILITY_IDS).toHaveLength(15);
+    expect(new Set(CAPABILITY_IDS).size).toBe(15);
+    for (const c of CAPABILITIES) { resolves(c.label); resolves(c.data.summary); }
+    // Las siete que puntúan son las del `*` de la p.107.
+    expect(CAPABILITIES.filter(c => c.data.scored).map(c => c.id))
+      .toEqual(['aura', 'darkAura', 'nightShelter', 'solarWrath', 'venom', 'thickHide', 'blast']);
+    // Las cuatro que dependen de la hora: el Aura sólo de día, las dos nocturnas sólo de noche.
+    expect(CAPABILITIES.filter(c => c.data.timeOfDay === 'day').map(c => c.id)).toEqual(['aura']);
+    expect(CAPABILITIES.filter(c => c.data.timeOfDay === 'night').map(c => c.id)).toEqual(['darkAura', 'nightShelter']);
+    expect(hasCapability([{ id: 'thickHide', level: 3 }], 'thickHide')).toBe(true);
+    expect(hasCapability([{ id: 'thickHide', level: 3 }], 'blast')).toBe(false);
+    expect(capabilityLevel([{ id: 'thickHide', level: 3 }], 'thickHide')).toBe(3);
+    expect(capabilityLevel([{ id: 'winged' }], 'winged')).toBe(0);
+    expect(capabilityLevel(undefined, 'aura')).toBe(0);
+  });
+  /**
+   * `abilities` es la línea impresa del bloque y `capabilities` el mismo contenido como dato: si una se
+   * corrige y la otra no, el director lee una cosa y el motor aplica otra. Este test las ata leyendo los
+   * NOMBRES en español del propio catálogo, así que también caza una capacidad mal escrita o un don que
+   * no existe. Es el test de paridad que pedía el plan (WORK_STATE, tanda 1).
+   */
+  it('la línea impresa y las capacidades como dato dicen lo mismo', () => {
+    const es = messages.es as Record<string, never>;
+    const nameOf = (key: string) => String(lookup(es, key));
+    const byName = new Map(CAPABILITY_IDS.map(id => [nameOf(`catalog.capabilities.${id}.name`), id]));
+    const giftNames = new Set(GIFT_IDS.map(id => nameOf(`catalog.gifts.${id}.name`)));
+    /** «Aura sobrenatural» sólo sale en la caja de Nathael y no está en la lista de pp.107–108: se trata
+     *  como «Aura», porque todos los demás solares del libro la llevan (decisión del dueño, 2026-08-21). */
+    const ALIAS: Record<string, string> = { 'Aura sobrenatural': 'aura' };
+    /** La «piel curtida» del mutante es la descripción del libro (p.98), no una capacidad de la lista;
+     *  su efecto ya está donde tiene que estar, en `protection`. */
+    const NOT_A_CAPABILITY = ['Piel curtida'];
+    for (const b of BESTIARY) {
+      const seen: string[] = [];
+      for (const line of b.data.abilities) {
+        const m = /^(.*?)(?:\s+(\d+))?$/.exec(line);
+        const name = m?.[1] ?? line;
+        const level = m?.[2] === undefined ? undefined : Number(m[2]);
+        if (NOT_A_CAPABILITY.includes(name)) continue;
+        const id = ALIAS[name] ?? byName.get(name);
+        if (!id) { expect(giftNames.has(name), `${b.id}: «${line}» no es ni capacidad ni don`).toBe(true); continue; }
+        seen.push(id);
+        const cap = b.data.capabilities.find(c => c.id === id);
+        expect(cap, `${b.id}: «${line}» falta en capabilities`).toBeDefined();
+        expect(cap!.level, `${b.id}: nivel de «${line}»`).toBe(level);
+      }
+      // Y al revés: ninguna capacidad de dato sin su línea impresa.
+      expect(b.data.capabilities.map(c => c.id).sort(), `${b.id}: capacidades de más`).toEqual(seen.sort());
+    }
+    // Dos que importan: el ogro (Piel gruesa 3 = su protección) y Baal, el único con Deflagración.
+    expect(BESTIARY.find(b => b.id === 'ogre')!.data.capabilities).toEqual([{ id: 'thickHide', level: 3 }]);
+    expect(BESTIARY.find(b => b.id === 'baal')!.data.capabilities).toContainEqual({ id: 'blast', level: 5 });
+    // El fantasma lleva DOS capacidades y un don: el don no entra en `capabilities`.
+    expect(BESTIARY.find(b => b.id === 'ghost')!.data.capabilities).toEqual([{ id: 'earthlyAnchor' }, { id: 'incorporeal' }]);
+  });
+  it('las siete especialidades nuevas de las cajas tienen clave e etiqueta', () => {
+    for (const id of ['vuelo', 'espadaSamurai', 'martilloDeGuerra', 'espadasSamurais', 'recorrerDistancias', 'espadaYEscudo', 'sables'])
+      expect(specialtyById(`creature.${id}`), id).not.toBeNull();
+    // Reutilizan clave las que ya existían: «Cuchillos» de Soum es la de criatura, no `combat.knives` («Navajas y cuchillos»).
+    expect(BESTIARY.find(b => b.id === 'soum')!.data.specialties.combat).toEqual(['creature.cuchillos', 'combat.swords']);
+    expect(BESTIARY.find(b => b.id === 'nathael')!.data.specialties.fortitude).toEqual(['creature.vuelo']);
   });
   it('reference pages match RULES.md §9', () => {
     const pages = Object.fromEntries(Object.entries(references).map(([k, r]) => [k, r.page]));

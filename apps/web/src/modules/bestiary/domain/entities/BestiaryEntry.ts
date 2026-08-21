@@ -9,7 +9,7 @@
  * Lo que se coloca en la escena no es ninguna de las dos: es una INSTANCIA, un token de `maps` con su
  * propia Resistencia. Herir a un ogro no hiere al otro ni toca la plantilla.
  */
-import type { StatId } from '@rolvium/system-plenilunio';
+import type { CreatureAttack, CreatureCapability, StatId } from '@rolvium/system-plenilunio';
 
 /** De dónde sale una entrada. `manual` no existe en la base: es el catálogo del sistema. */
 export type EntryOrigin = 'manual' | 'custom' | 'npc';
@@ -29,8 +29,15 @@ export interface CreatureData {
   destiny: number;
   /** Protección natural por capacidad (Piel gruesa N…), no una armadura. 0 = ninguna. */
   protection: number;
-  /** Capacidades del bloque (p.107–108), como texto para que el director las lea. */
+  /** La línea impresa del bloque (p.107–108), como texto para que el director la lea: capacidades y dones mezclados. */
   abilities: string[];
+  /**
+   * Las capacidades de esa línea, ya como dato, para que el motor pueda aplicarlas (p.107–108).
+   * Ausente en las entradas propias de antes de que existieran: se lee como lista vacía, no como error.
+   */
+  capabilities?: CreatureCapability[];
+  /** Los ataques que imprime el bloque, con arma y daño ya calculados por el libro. Ausente = ninguno. */
+  attacks?: CreatureAttack[];
   /** Una por característica, como las imprime el bloque. Ids de `SPECIALTY_ITEMS` o `creature.*`. */
   specialties: Partial<Record<StatId, string[]>>;
   /** Página del manual, cuando la entrada viene de él o se duplicó de una que venía. */

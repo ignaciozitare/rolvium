@@ -20,6 +20,21 @@ const choice = (over: Partial<CreatureRollChoice> = {}): CreatureRollChoice =>
   ({ stat: 'combat', specialty: false, difficulty: 2, extraDice: 0, visibility: 'table', ...over });
 
 describe('creatureRollRequest — tirar en nombre de una criatura', () => {
+  /**
+   * Las capacidades del bloque (p.107–108) viajan con la ficha que ve el motor: hay reglas que aplica
+   * solo a partir de ellas —Piel gruesa es protección, Inmune al dolor no resta dados—, y sin este
+   * paso el bloque las tendría y el motor no las vería.
+   */
+  it('lleva las capacidades del bloque a la ficha que ve el motor', () => {
+    const withHide = ogre({ data: { ...ogre().data, capabilities: [{ id: 'thickHide', level: 3 }] } });
+    const seen: Record<string, unknown>[] = [];
+    creatureRollRequest(withHide, choice(), (sheet, action) => { seen.push(sheet); return poolFor(sheet, action); }, 'Combate');
+    expect(seen[0]?.['capabilities']).toEqual([{ id: 'thickHide', level: 3 }]);
+    // Un bloque sin capacidades manda lista vacía, no `undefined`.
+    creatureRollRequest(ogre(), choice(), (sheet, action) => { seen.push(sheet); return poolFor(sheet, action); }, 'Combate');
+    expect(seen[1]?.['capabilities']).toEqual([]);
+  });
+
   it('tira los dados de SU característica, no un puñado suelto', () => {
     const req = creatureRollRequest(ogre(), choice(), poolFor, 'Combate');
     expect(req.groups.find(g => g.tag === 'own')?.count).toBe(4);   // Combate 4

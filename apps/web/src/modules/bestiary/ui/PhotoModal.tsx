@@ -9,7 +9,7 @@ interface Props { entry: BestiaryEntry; onClose: () => void; onOpenSheet?: () =>
 /**
  * La foto de la criatura a tamaño grande — lo que abre el ojo de la ficha del catálogo.
  *
- * Sin imagen subida enseña el color y las iniciales, no un hueco roto: la mayoría de las 45 del manual no
+ * Sin imagen subida enseña el color y las iniciales, no un hueco roto: la mayoría de las del manual no
  * tienen foto y aun así el director quiere ver de qué va la criatura.
  */
 export function PhotoModal({ entry, onClose, onOpenSheet }: Props): JSX.Element {
