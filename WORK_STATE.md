@@ -19,7 +19,7 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 Rama **`feat/bestiario`**, árbol **limpio**, todo verde: **683 tests** (506 web + 77 api + 6 core + 16 ui
 + 78 plenilunio), typecheck, `audit` **0 hard**, ambas apps compilando.
 Commits: `375a46c` (columnas 1 y 2) · `37cad40` (los dos arreglos del dueño) · `c8bfe1c` (docs) ·
-**`<pendiente>`** (el contrato del desglose, ver abajo).
+**`89f8085`** (el contrato del desglose, ver abajo).
 
 ### Prompt de resume, de una línea
 > Retomo Rolvium: termina la columna 3 de las tiradas (`Panel/Registro` + `Tooltip/Desglose` del `.pen`
