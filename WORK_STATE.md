@@ -14,14 +14,16 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🔴 PUNTO EXACTO — 2026-08-21 (noche): el dueño PROBÓ la app y salieron ocho cosas
+## 🔴 PUNTO EXACTO — 2026-08-21 (noche): el dueño PROBÓ la app · 3 de 4 arregladas
 
 Rama **`fix/municion-y-preguntas`** (sale de `main`, que ya tiene la columna 5 en producción).
-**877 tests** verdes · typecheck · `audit` 0 hard. Commits: **`4e29ee7`** · **`ede3b1f`**.
+**882 tests** verdes · typecheck · `audit` 0 hard · `build:web` + `build:api`.
+Commits: **`4e29ee7`** · **`ede3b1f`** · **`aeb0717`**. **Review pasado.** Sin subir a producción todavía.
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: el dueño probó la app y salieron ocho cosas; dos arregladas en `fix/municion-y-preguntas`.
-> Lo gordo es que **la Resistencia máxima está mal leída del manual**. Bloque 🔴 de WORK_STATE.
+> Retomo Rolvium: el dueño probó la app y salieron cuatro cosas; **tres arregladas** en
+> `fix/municion-y-preguntas`, sin subir a producción. Queda **decidir con él el tope de dados extra**,
+> y luego los tokens y los modales de la escena. Bloque 🔴 de WORK_STATE.
 
 ### ✅ ARREGLADO (con test, sin subir a producción todavía)
 1. **La Munición no se podía subir NUNCA** (`4e29ee7`). La celda pintaba «—» cuando la fila no traía el
@@ -31,48 +33,47 @@ Rama **`fix/municion-y-preguntas`** (sale de `main`, que ya tiene la columna 5 e
    «puedes tener una mochila llena de balas y tu cargador un límite de 2» (dueño). Fuera el tope. El techo
    real es el del CARGADOR y ya estaba bien puesto — `reloadWeapon` sólo traspasa lo que cabe.
 
-### 🟥 A HACER · 1 — LA RESISTENCIA MÁXIMA ESTÁ MAL LEÍDA DEL MANUAL (aprobado: **el PDF manda**)
-Comprobado **en el PDF** (`../Rolvium context/PlenilunioEbook.pdf`, que SÍ existe — está fuera del repo).
+### ✅ ARREGLADO · 3 — LA RESISTENCIA YA NO ENCOGE AL HERIRSE (`aeb0717`, review pasado)
+Karen, herida, enseñaba **12 casillas en vez de 18**. Abierto el PDF antes de tocar nada. El libro da
+**dos** frases, en dos sitios, y el 2026-08-19 se fundieron en una sola:
 
-- **Definición (creación)**: «La Resistencia … **Son iguales al triple del Aguante**. La ficha … sombrea
-  los puntos sobrantes y deja los cuadrados en blanco correspondientes a tu Resistencia para poder
-  tacharlos durante el juego.» → **la pista es 3 × Aguante, y se fija al crear el personaje**.
-- **Las ×2 y ×1 salen SÓLO bajo el epígrafe «RECUPERACIÓN»**, y el verbo es *se recupera*: «Si se
-  encuentra herido, **su salud se recupera** a dos tercios de su Resistencia: sus puntos de Resistencia
-  máximos pasan a ser el doble de su Aguante…».
+| Número | Dónde | Qué es |
+|---|---|---|
+| **Resistencia máxima = 3 × Aguante** | p.25, creación | El tamaño de la PISTA. «Son iguales al triple del Aguante… deja los cuadrados en blanco correspondientes a tu Resistencia para poder tacharlos durante el juego.» No la encoge el estado de salud. |
+| **Recuperable descansando = ×3 / ×2 / ×1** | p.101, bajo «RECUPERACIÓN» | Hasta dónde te sube un DESCANSO. «Su salud **se recupera** a dos tercios de su Resistencia» — que sólo tiene sentido si «su Resistencia» sigue siendo el triple. |
 
-O sea: el estado de salud limita **cuánto recuperas descansando**, no el tamaño de la pista. El
-2026-08-19 se leyó al revés —se juntaron los dos números en uno y se borró «Resistencia recuperable
-descansando»— y por eso Karen, herida, enseña **12 casillas** en vez de 18.
+Hecho, en el orden que mandaba este bloque: **`RULES.md` §1.6 y §6.3 primero** (las dos citas, la tabla y
+las tres razones, marcadas ⚠ interpretación) → `derived` (`resistanceMax` = ×3 siempre, vuelve
+`recoveryMax`) → `rest()` sube hasta `recoveryMax` y no hasta la pista → la ficha vuelve a enseñar **los
+dos** números con su referencia al manual cada uno → `catchBreath` (p.89) mide lo perdido contra la
+pista, que no es descansar → specs y tests, con un pin de punta a punta (herida → 18 casillas, tarjeta
+del descanso a 12).
 
-**DECIDIDO POR EL DUEÑO (2026-08-21): se corrige. «El manual pdf manda».** No hay nada que preguntar:
-la decisión del 2026-08-19 se tomó sobre un RULES.md equivocado, y el libro gana. Deja de estar en duda.
+**Nadie pierde puntos al desplegar**: los máximos sólo SUBEN, y se capa la subida y nunca la bajada en
+los cuatro sitios (`rest`, `catchBreath`, las casillas y la barra de «El grupo»).
 
-**Qué hay que hacer, en este orden:**
-1. **`RULES.md` §6.3 primero** — hoy cita la frase de RECUPERACIÓN como si fuera la definición. Corregir
-   con las dos citas de arriba, dejando claro que son DOS números distintos.
-2. **`engine.ts` → `derived`** (línea ~62): `resistanceMax: endurance * 3` **siempre**, y recuperar un
-   **`recoveryMax`** aparte = `endurance * RECOVERY[health].restFactor`. Es como estaba ANTES del
-   2026-08-19; el commit que los fusionó explica en su comentario justo el razonamiento a revertir.
-3. **`rest()`** (línea ~378) debe subir hasta **`recoveryMax`**, no hasta el máximo.
-4. **La ficha vuelve a enseñar los dos números**: «Resistencia máxima» (×3) y el recuperable descansando.
-   Se borró el 2026-08-19 por creer que eran el mismo; no lo son.
-5. ⚠ **Ojo con las fichas ya guardadas**: una herida puede llevar hoy más Resistencia que el máximo viejo.
-   Se capa la SUBIDA, nunca la bajada — no borrar puntos a nadie al desplegar.
-6. Tests: `sheet-component.test.tsx` fija hoy «21 de 21» con Karen sana; comprobar qué espera con herida.
+**Lo que cazó el Review y se arregló**: «El grupo» (el panel del director) era la **ÚNICA** vista de toda
+la app que leía la columna `derived` **guardada en la base** en vez de recalcularla de la ficha. Sin
+tocarla, el 12 que chirrió habría seguido saliendo ahí —«18 / 12», barra a tope— hasta que alguien
+volviera a guardar cada personaje uno por uno. Ahora recalcula como todas las demás; el test se comprobó
+que **cae** sin el arreglo. Es la deuda a recordar: **una columna `derived` guardada se queda vieja en
+cuanto cambia una regla**, y sólo esa vista se fiaba de ella.
+
+**⚠ Sin mirar en la app corriendo.** Los tests cuentan las casillas, pero la tarjeta nueva de la ficha
+(«Resistencia recuperable descansando», la cuarta de la fila) **no se ha visto en pantalla**.
 
 ### ⏳ A HACER · el resto, sin empezar
-2. **No hay límite en los dados que se pueden tirar.** El dueño llegó a **30 dados con Combate 4**
+1. 🔴 **DECISIÓN DEL DUEÑO PENDIENTE — no hay límite en los dados que se pueden tirar.** El dueño llegó a **30 dados con Combate 4**
    («+ dados extra: 26») desde el desplegable de disparar. En el manual los dados extra son siempre
    **uno o dos** y situacionales (herramientas, miras, el grado de éxito de un médico), y ni siquiera se
    acumulan: «se añaden solo los dados que añada la mejor herramienta». **Falta decidir el tope con el
    dueño** — el libro no da un máximo global.
-3. **Tokens demasiado pequeños y pegados a la grilla.** Aclaración del dueño: **NO quiere rediseñar el
+2. **Tokens demasiado pequeños y pegados a la grilla.** Aclaración del dueño: **NO quiere rediseñar el
    mapa**. Son dos cosas: (a) que los tokens sean **más grandes** —un 50% más para tamaño normal, y
    escalados por el tamaño de la ficha (diminuto…enorme, p.25)—, y (b) que **el movimiento no dependa de
    la grilla**. Hoy los tokens se guardan en coordenadas de casilla y `tokenCellAt` los pega a la rejilla
    (`mapRules.ts`); la base ya guarda `x`/`y` como `real`, así que admite posiciones fraccionarias.
-4. **La escena deja abrir varios modales a la vez** (se ven «Colocar encuentro» y «Fondo del mapa»
+3. **La escena deja abrir varios modales a la vez** (se ven «Colocar encuentro» y «Fondo del mapa»
    abiertos juntos), y **el modal de Fondo del mapa sale en la otra punta** de su botón — petición vieja
    del dueño que sigue en el backlog sin hacer.
 
