@@ -29,7 +29,22 @@ export const tokensOf = (tokens: TokenRecord[], userId: string): TokenRecord[] =
  * The DM gets no polygon (they see the whole map) and the union of what every player has explored.
  * `manual` fog computes nothing — only the DM's brush reveals. `off` reveals the whole scene.
  */
-export async function computeSceneVision(deps: Deps, input: { sceneId: string; userId: string }): Promise<VisionOutcome> {
+export async function computeSceneVision(
+  deps: Deps,
+  /**
+   * `at` es una posición PROVISIONAL de un token: la que tiene el dedo encima mientras se arrastra, antes de
+   * soltarlo. Sirve para que la niebla siga al token mientras se mueve en vez de dar un salto al soltar
+   * (dueño, 2026-08-22: «en el prototipo se va actualizando de acuerdo a cuando mueves el token»). El
+   * prototipo lo recalculaba en el navegador; aquí la geometría es del servidor a propósito —los muros que un
+   * jugador no debe conocer no salen de este proceso— así que la posición tiene que venir a preguntar.
+   *
+   * NO se guarda nada con ella: ni la posición del token ni lo explorado. Es una consulta, no un movimiento;
+   * lo que se guarda se guarda al soltar, por el camino normal. Y sólo se aplica a un token que el que
+   * pregunta CONTROLA — se cruza contra su propia lista, así que pedir la visión desde el token de otro no
+   * enseña nada que no fuera suyo.
+   */
+  input: { sceneId: string; userId: string; at?: { tokenId: string; x: number; y: number } },
+): Promise<VisionOutcome> {
   const scene = await deps.maps.getScene(input.sceneId);
   if (!scene) return { ok: false, code: 'NOT_FOUND' };
   const role = await deps.maps.roleOf(scene.campaignId, input.userId);
@@ -50,12 +65,17 @@ export async function computeSceneVision(deps: Deps, input: { sceneId: string; u
 
   const [walls, tokens] = await Promise.all([deps.maps.listWalls(scene.id), deps.maps.listTokens(scene.id)]);
   const segments = sightSegments(walls, scene);
-  const vision: VisionPolygon[] = tokensOf(tokens, input.userId)
+  const at = input.at;
+  const mine = tokensOf(tokens, input.userId).map(t => (at && t.id === at.tokenId ? { ...t, x: at.x, y: at.y } : t));
+  const vision: VisionPolygon[] = mine
     .map(t => visionPolygon(tokenOrigin(t, scene.gridSize), segments, radiusPx ?? Infinity))
     .filter(p => p.length >= 3);
 
-  const explored = unionCells(stored, cellsInPolygons(vision, scene.gridSize, scene.width, scene.height));
-  if (explored.length !== stored.length) await deps.maps.saveExplored(scene.id, scene.campaignId, input.userId, explored);
+  const seen = cellsInPolygons(vision, scene.gridSize, scene.width, scene.height);
+  const explored = unionCells(stored, seen);
+  // Con posición provisional NO se escribe: es una consulta de «qué vería si lo suelto aquí». Lo explorado se
+  // devuelve igual, para que la pantalla ya lo pinte, y se guarda al soltar por el camino de siempre.
+  if (!at && explored.length !== stored.length) await deps.maps.saveExplored(scene.id, scene.campaignId, input.userId, explored);
   return { ok: true, data: { vision, explored, radiusPx } };
 }
 

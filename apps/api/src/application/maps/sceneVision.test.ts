@@ -49,6 +49,35 @@ describe('computeSceneVision', () => {
     expect(maps.fog[PIP]).toEqual(r.data.explored);
   });
 
+  /**
+   * La posición PROVISIONAL, para que la niebla siga al token mientras se arrastra en vez de saltar al
+   * soltarlo (dueño, 2026-08-22). Es una CONSULTA: contesta qué vería ahí y no guarda nada — ni la posición
+   * del token ni lo explorado. Y sólo vale sobre un token que el que pregunta controla.
+   */
+  it('`at`: contesta la visión desde la posición provisional y NO guarda nada', async () => {
+    const maps = seed();
+    const quieto = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    if (!quieto.ok) throw new Error('expected ok');
+    const guardadoAntes = maps.fog[PIP];
+
+    // al otro lado del muro (x = 135): desde ahí se ve lo que desde su sitio no se veía
+    const movido = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });
+    if (!movido.ok) throw new Error('expected ok');
+    expect(pointInPolygon({ x: 220, y: 148 }, movido.data.vision[0]!)).toBe(true);
+    expect(pointInPolygon({ x: 220, y: 148 }, quieto.data.vision[0]!)).toBe(false);
+    // lo explorado se DEVUELVE ya crecido, para poder pintarlo, pero no se ESCRIBE
+    expect(movido.data.explored.length).toBeGreaterThan(guardadoAntes!.length);
+    expect(maps.fog[PIP]).toEqual(guardadoAntes);
+  });
+
+  it('`at` sobre un token que NO controlas se ignora: contesta tu visión de siempre', async () => {
+    const maps = seed({ tokens: [PIP_TOKEN, { id: 'tk-nix', x: 7, y: 5, size: 1, controlledBy: NIX }] });
+    const normal = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    const colado = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-nix', x: 7, y: 5 } });
+    if (!normal.ok || !colado.ok) throw new Error('expected ok');
+    expect(colado.data.vision).toEqual(normal.data.vision);
+  });
+
   it('opening the door widens the same token’s vision past the wall', async () => {
     const open = seed({ walls: [{ id: 'w-1', x1: 135, y1: 0, x2: 135, y2: 270, blocksSight: true, blocksMove: true, isOpen: true }] });
     const r = await computeSceneVision({ maps: open }, { sceneId: SCENE, userId: PIP });

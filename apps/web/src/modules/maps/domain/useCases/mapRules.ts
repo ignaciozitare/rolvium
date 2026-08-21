@@ -323,7 +323,14 @@ export function tokenFromBestiary(entry: CatalogItem, label: string, campaignId:
     bestiaryRef: typeof entryId === 'string' ? null : entry.id,
     bestiaryEntryId: typeof entryId === 'string' ? entryId : null,
     name: label, imageUrl: typeof tokenUrl === 'string' ? tokenUrl : null,
-    x: at.x, y: at.y, size, color: null, visible: false, controlledBy: null, visionRadius: null, state,
+    /**
+     * Nace VISIBLE, y quien lo tapa es la niebla. Nacía oculto y había que revelarlo a mano con el ojo, así
+     * que un jugador con la criatura delante de las narices no la veía y no había forma de saber por qué
+     * (dueño, 2026-08-22: «los encuentros el jugador no los ve, no sé por qué»). Con la línea de visión
+     * funcionando eso sobra: si está en tu campo de visión la ves, y si no, no. Es lo que hacía el prototipo.
+     * El ojo sigue estando para lo otro: esconder algo A PROPÓSITO aunque lo tengas delante.
+     */
+    x: at.x, y: at.y, size, color: null, visible: true, controlledBy: null, visionRadius: null, state,
   };
 }
 

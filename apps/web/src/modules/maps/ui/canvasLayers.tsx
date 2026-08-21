@@ -104,6 +104,23 @@ export function WallShape({ wall, selected = false, draft = null }: { wall: Wall
 interface FogProps { scene: Scene; fog: SceneVision; ids: { seen: string; lit: string; dim: string; unexplored: string } }
 
 /**
+ * Lo BORROSO que es el borde de la niebla, en px de escena.
+ *
+ * Existe por dos quejas del dueño el 2026-08-22, que resultaron ser la misma cosa:
+ *  - «el borde de la niebla, a cuadros»: lo YA EXPLORADO se guarda por casillas, así que su contorno es una
+ *    escalera de 27 px. Difuminarlo la deshace sin cambiar cómo se guarda.
+ *  - «si es de noche que la visión sea más corta pero que no termine de manera abrupta, sino con un fade»:
+ *    de noche la visión se recorta contra un círculo, y ese corte es una cuchillada.
+ *
+ * Por eso son DOS valores: de día el borde lo ponen los muros y sólo hay que quitarle la escalera a lo
+ * explorado, así que basta un pelín; de noche el corte es el del alcance de la luz, que en el mundo real se
+ * apaga poco a poco. Se difumina la MÁSCARA, no el mapa: lo que se ve sigue nítido, lo que se difumina es
+ * dónde deja de verse.
+ */
+export const FOG_FEATHER = { day: 5, night: 22 } as const;
+export const fogFeather = (lighting: Scene['lighting']): number => (lighting === 'night' ? FOG_FEATHER.night : FOG_FEATHER.day);
+
+/**
  * The masks the fog is painted with. Everything comes from the API — this only turns polygons and cells into SVG.
  *
  * `seen` = explored ∪ current vision (what exists at all for a player) · `lit` = current vision only (tokens) ·
@@ -113,24 +130,41 @@ export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
   const cells = cellsPath(fog.explored, scene.grid.size);
   const full = { x: 0, y: 0, width: scene.width, height: scene.height };
   const polys = fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_SHOW} />);
+  const feather = fogFeather(scene.lighting);
+  const blurId = `${ids.seen}-feather`;
+  const blur = `url(#${blurId})`;
+  /**
+   * Las máscaras se pintan con MARGEN (`-feather*3`) y no justo en el borde de la escena: un desenfoque sobre
+   * un rectángulo que acaba en el filo se come su propio borde y deja el mapa con una orla apagada por los
+   * cuatro lados. Con margen, el degradado sólo aparece donde de verdad hay un borde de niebla.
+   */
+  const pad = feather * 3;
+  const wide = { x: -pad, y: -pad, width: scene.width + pad * 2, height: scene.height + pad * 2 };
   return (
     <>
+      <filter id={blurId} x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox">
+        <feGaussianBlur stdDeviation={feather} />
+      </filter>
       <mask id={ids.seen} maskUnits="userSpaceOnUse" {...full}>
-        <rect {...full} fill={MASK_HIDE} />
-        {cells && <path d={cells} fill={MASK_SHOW} />}
-        {polys}
+        <rect {...wide} fill={MASK_HIDE} />
+        <g filter={blur}>
+          {cells && <path d={cells} fill={MASK_SHOW} />}
+          {polys}
+        </g>
       </mask>
       <mask id={ids.lit} maskUnits="userSpaceOnUse" {...full}>
-        <rect {...full} fill={MASK_HIDE} />
-        {polys}
+        <rect {...wide} fill={MASK_HIDE} />
+        <g filter={blur}>{polys}</g>
       </mask>
       <mask id={ids.dim} maskUnits="userSpaceOnUse" {...full}>
-        <rect {...full} fill={MASK_SHOW} />
-        {fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_HIDE} />)}
+        <rect {...wide} fill={MASK_SHOW} />
+        <g filter={blur}>
+          {fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_HIDE} />)}
+        </g>
       </mask>
       <mask id={ids.unexplored} maskUnits="userSpaceOnUse" {...full}>
-        <rect {...full} fill={MASK_SHOW} />
-        {cells && <path d={cells} fill={MASK_HIDE} />}
+        <rect {...wide} fill={MASK_SHOW} />
+        <g filter={blur}>{cells && <path d={cells} fill={MASK_HIDE} />}</g>
       </mask>
     </>
   );

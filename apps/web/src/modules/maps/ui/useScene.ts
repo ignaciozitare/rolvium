@@ -17,6 +17,8 @@ function applyChange<T extends { id: string }>(list: T[], c: RowChange<T>): T[] 
 }
 
 const DRAG_HZ_MS = 50; // ~20 Hz (specs/core/realtime: broadcast 20–30 Hz)
+/** La niebla se repregunta al servidor mucho más despacio que el broadcast: cada una es una ida y vuelta. */
+const VISION_DRAG_HZ_MS = 140; // ~7 Hz
 
 /**
  * Loads a scene's tokens/walls/drawings, follows the scene channel and exposes the actions the
@@ -101,13 +103,28 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   /** One effect, so entering the scene costs ONE round trip and every later cause costs one more. */
   useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, live?.lighting, live?.nightRadiusM, live?.fogMode]);
 
+  /**
+   * La niebla SIGUE al token mientras se arrastra, en vez de dar un salto al soltarlo (dueño, 2026-08-22).
+   *
+   * Va a su propio ritmo, mucho más lento que el del broadcast: el aviso a la mesa es un mensaje suelto por un
+   * canal ya abierto, y esto es una ida y vuelta al servidor que además calcula geometría. A 20 Hz serían 20
+   * peticiones por segundo por jugador. A ~7 Hz el ojo ya lo lee como continuo.
+   *
+   * Sólo para MIS tokens: la visión que se pide es la mía, y mover el token de otro no cambia lo que yo veo.
+   */
+  const visionDrag = useRef(0);
   const dragToken = useCallback((tokenId: string, x: number, y: number) => {
     if (!sceneId || !live) return;
     const now = Date.now();
+    if (now - visionDrag.current >= VISION_DRAG_HZ_MS && vision && tokens.some(t => t.id === tokenId && t.controlledBy === me)) {
+      visionDrag.current = now;
+      const seq = ++visionSeq.current;
+      void vision.refresh(sceneId, { tokenId, x, y }).then(next => { if (seq === visionSeq.current) setFog(next); }).catch(() => undefined);
+    }
     if (now - lastSent.current < DRAG_HZ_MS) return;
     lastSent.current = now;
     repo.broadcast(sceneId, { type: 'token.moved', campaignId: live.campaignId, sceneId, tokenId, x, y, final: false });
-  }, [repo, sceneId, live]);
+  }, [repo, sceneId, live, vision, tokens, me]);
 
   const moveToken = useCallback(async (tokenId: string, x: number, y: number) => {
     if (!sceneId || !live) return;

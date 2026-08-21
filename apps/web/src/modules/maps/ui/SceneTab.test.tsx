@@ -71,6 +71,28 @@ describe('<SceneTab> player', () => {
     // la barra de Trazo vive dentro del mapa y sólo con herramienta de dibujo: el jugador nunca ve «Limpiar todos»
     expect(screen.queryByRole('button', { name: 'Limpiar todos' })).not.toBeInTheDocument();
   });
+  /**
+   * «En el prototipo se va actualizando de acuerdo a cuando mueves el token» (dueño, 2026-08-22). La niebla
+   * daba un salto al SOLTAR, porque hasta entonces el servidor no sabía dónde estaba el token. Ahora, mientras
+   * se arrastra, se le manda la posición PROVISIONAL —`refresh(sceneId, { tokenId, x, y })`— y contesta qué
+   * vería ahí sin guardar nada. Va a ~7 Hz, no a los 20 del broadcast: cada una es una ida y vuelta.
+   */
+  it('regresión · la niebla sigue al token MIENTRAS se arrastra, no al soltarlo', async () => {
+    const vision = fakeVisionPort();
+    mount('player', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    await screen.findByText(/Almacén de Queens/);
+    const karen = await within(canvas()).findByRole('img', { name: 'Token Karen «K»' });
+    const conPos = () => vision.calls.filter(c => c.op === 'refresh' && c.at);
+    expect(conPos()).toHaveLength(0);
+
+    fireEvent.pointerDown(karen, { clientX: (TOKEN_KAREN.x + 0.5) * G, clientY: (TOKEN_KAREN.y + 0.5) * G, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(canvas(), { clientX: (TOKEN_KAREN.x + 2.5) * G, clientY: (TOKEN_KAREN.y + 0.5) * G, pointerId: 1 });
+    await waitFor(() => expect(conPos().length).toBeGreaterThan(0));
+    // y la posición que viaja es la de DEBAJO DEL DEDO, no la guardada
+    expect(conPos()[0]!.at).toMatchObject({ tokenId: 'tk-karen', x: expect.closeTo(12, 0) });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+  });
+
   it('live: token updates / inserts / deletes, remote drag, and a remote pin re-centre the view; a pin by me is not re-applied', async () => {
     const repo = mount('player');
     await screen.findByText(/Almacén de Queens/);
@@ -93,7 +115,7 @@ describe('<SceneTab> player', () => {
 });
 
 describe('<SceneTab> DM', () => {
-  it('lists scenes (starts on the active one), shows walls + hidden tokens + DM label, background popover changes colour/image, «Colocar PJ» adds a controlled token, encounter places a hidden bestiary token', async () => {
+  it('lists scenes (starts on the active one), shows walls + hidden tokens + DM label, background popover changes colour/image, «Colocar PJ» adds a controlled token, encounter places a bestiary token', async () => {
     const u = userEvent.setup();
     // Elías is not on the map yet: «Colocar PJ» must be able to add him (Karen already is → disabled).
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE, SCENE_CHAPEL], tokens: [TOKEN_KAREN, TOKEN_MUTANT], walls: [WALL_1], drawings: [DRAWING_MINE, DRAWING_OTHER], images: [IMAGE_CHAPEL] }), 'sc-2');
@@ -130,8 +152,8 @@ describe('<SceneTab> DM', () => {
     await u.click(screen.getByRole('button', { name: 'Encuentro' }));
     await u.click(await screen.findByRole('button', { name: 'Elegir Ogro' }));
     fireEvent.pointerDown(canvas(), { clientX: 5 * G + 3, clientY: 6 * G + 3, pointerId: 1, button: 0 });
-    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ bestiaryRef: 'ogre', name: 'Ogro', x: expect.closeTo(4.36, 1), y: expect.closeTo(5.36, 1), size: 1.5, visible: false, controlledBy: null, state: { resistance: 30 } }));
-    expect(await within(canvas()).findByRole('img', { name: 'Token Ogro (oculto)' })).toBeInTheDocument();
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ bestiaryRef: 'ogre', name: 'Ogro', x: expect.closeTo(4.36, 1), y: expect.closeTo(5.36, 1), size: 1.5, visible: true, controlledBy: null, state: { resistance: 30 } }));
+    expect(await within(canvas()).findByRole('img', { name: 'Token Ogro' })).toBeInTheDocument();
   });
   /**
    * Los encuentros PROPIOS del director (H5) tienen que salir en el desplegable junto a las 45 del manual, y
@@ -160,7 +182,8 @@ describe('<SceneTab> DM', () => {
       // El bloque de una criatura NO imprime tamaño (comprobado en el PDF: el ogro de la p.152 trae Aguante y
       // Destino y nada más), así que se queda con el del mapa. Anotado como deuda en WORK_STATE.
       size: 1.5,
-      visible: false, state: { resistance: 30 },
+      // Nace VISIBLE: quien lo tapa es la niebla, no un interruptor (dueño, 2026-08-22).
+      visible: true, state: { resistance: 30 },
     }));
   });
 

@@ -75,7 +75,13 @@
 /* fog: the player gets black where the map is not, a dim veil over what is only remembered;
    the DM keeps the whole map under a blue veil where nobody has been */
 .mp-fog-veil{fill:var(--sys-steel);fill-opacity:.4;pointer-events:none;}
-.mp-fog-dim{fill:var(--sys-ink);fill-opacity:.55;pointer-events:none;}
+/* Lo RECORDADO, frente a lo que ves AHORA. El número es un equilibrio y se ha ajustado mirando:
+   .55 (lo que había) dejaba el plano entero igual de apagado y no se distinguía dónde estabas mirando
+   (dueño, 2026-08-22: «todo el plano igual de oscuro»); .78 daba el contraste pero hundía lo recordado en
+   negro, y lo explorado tiene que SEGUIR AHÍ, apagado. .66 es el punto donde lo que tienes delante se lee
+   limpio y lo de memoria se lee todavía, claramente detrás. Es el dial de esta pantalla: si el dueño lo
+   quiere más oscuro o más claro, se toca aquí y en ningún otro sitio. */
+.mp-fog-dim{fill:var(--sys-ink);fill-opacity:.66;pointer-events:none;}
 .mp-brush{fill:color-mix(in srgb,var(--sys-gold) 18%,transparent);stroke:var(--sys-gold);stroke-width:1;pointer-events:none;}
 .mp-brush.hide{fill:color-mix(in srgb,var(--sys-ink) 22%,transparent);stroke:var(--sys-ink-soft);}
 .mp-drawing.draft{opacity:.7;}

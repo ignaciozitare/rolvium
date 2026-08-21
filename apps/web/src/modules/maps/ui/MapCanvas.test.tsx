@@ -3,6 +3,7 @@ import { renderWithProviders, screen, fireEvent, within } from '../../../../test
 import { DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import type { Tool } from '../domain/useCases/mapRules';
 import { MapCanvas } from './MapCanvas';
+import { FOG_FEATHER } from './canvasLayers';
 
 // jsdom has no PointerEvent: a MouseEvent with pointerId is enough for the canvas handlers.
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -33,7 +34,9 @@ describe('<MapCanvas> layers', () => {
     expect(within(svg).getByTestId('mp-bg')).toHaveAttribute('fill', '#4a4a3e');
     expect(within(svg).getByTestId('mp-grid')).toBeInTheDocument();
     expect(within(svg).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(1);
-    expect(within(svg).getByTestId('mp-tokens').querySelectorAll('[data-token-id]')).toHaveLength(2);
+    // Dos capas de tokens: los PJ van aparte y SIN máscara, para no perderlos de vista nunca (2026-08-22).
+    expect(svg.querySelectorAll('[data-token-id]')).toHaveLength(2);
+    expect(within(svg).getByTestId('mp-tokens-pc').querySelectorAll('[data-token-id]')).toHaveLength(2);
     expect(token('Karen')).toHaveAttribute('data-token-id', 'tk-karen');
     expect(within(svg).getByTestId('mp-drawings').querySelectorAll('[data-drawing-id]')).toHaveLength(2);
     expect(within(svg).queryByTestId('mp-bg-image')).not.toBeInTheDocument();
@@ -180,11 +183,39 @@ describe('<MapCanvas> fog', () => {
     expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
     expect(within(svg).getByTestId('mp-fog-dim')).toHaveAttribute('mask', `url(#mp-dim-${SCENE_WAREHOUSE.id})`);
     expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
+    /**
+     * Los PJ NO llevan máscara: se pintan siempre, encima de la niebla, como en el prototipo. Antes se
+     * ocultaban con todo lo demás y el jugador se quedaba solo en un mapa negro (dueño, 2026-08-22).
+     * Lo que sí tapa la niebla es lo que no es un PJ: criaturas y PNJ.
+     */
+    expect(within(svg).getByTestId('mp-tokens-pc')).not.toHaveAttribute('mask');
+    expect(within(svg).getByTestId('mp-tokens-pc').querySelectorAll('[data-token-id]').length).toBeGreaterThan(0);
     expect(within(svg).queryByTestId('mp-fog-veil')).not.toBeInTheDocument();
     // the seen mask carries both the remembered cells and the polygon
     const seen = svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}`)!;
     expect(seen.querySelector('path')).toHaveAttribute('d', 'M0 0h27v27h-27zM27 0h27v27h-27z');
     expect(seen.querySelector('polygon')).toHaveAttribute('points', '0,0 540,0 540,675 0,675');
+  });
+
+  /**
+   * «El borde de la niebla, a cuadros» y «si es de noche que la visión sea más corta pero que no termine de
+   * manera abrupta, sino con un fade» (dueño, 2026-08-22). Las dos son el mismo arreglo: se DIFUMINA la
+   * máscara. De día basta un pelín, para deshacer la escalera de 27 px de lo explorado, que se guarda por
+   * casillas; de noche el corte es el del alcance de la luz y pide un degradado de verdad.
+   */
+  it('el borde de la niebla va difuminado, y de noche mucho más (el «fade» del alcance)', () => {
+    const dia = mount({ fog: FOG });
+    const filtroDia = dia.svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}-feather feGaussianBlur`);
+    expect(filtroDia).not.toBeNull();
+    expect(Number(filtroDia!.getAttribute('stdDeviation'))).toBe(FOG_FEATHER.day);
+    // y las máscaras lo USAN: sin esto el filtro estaría declarado y no se aplicaría a nada
+    expect(dia.svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id} g[filter]`)).not.toBeNull();
+    document.body.innerHTML = '';
+
+    const noche = mount({ scene: { ...SCENE_WAREHOUSE, lighting: 'night' }, fog: FOG });
+    const filtroNoche = noche.svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}-feather feGaussianBlur`);
+    expect(Number(filtroNoche!.getAttribute('stdDeviation'))).toBe(FOG_FEATHER.night);
+    expect(FOG_FEATHER.night).toBeGreaterThan(FOG_FEATHER.day);
   });
 
   it('with manual fog nothing is dimmed and tokens follow whatever the DM revealed', () => {
@@ -199,6 +230,13 @@ describe('<MapCanvas> fog', () => {
     expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
     // the `lit` mask is empty, so the token layer resolves to nothing
     expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
+    /**
+     * Los PJ NO llevan máscara: se pintan siempre, encima de la niebla, como en el prototipo. Antes se
+     * ocultaban con todo lo demás y el jugador se quedaba solo en un mapa negro (dueño, 2026-08-22).
+     * Lo que sí tapa la niebla es lo que no es un PJ: criaturas y PNJ.
+     */
+    expect(within(svg).getByTestId('mp-tokens-pc')).not.toHaveAttribute('mask');
+    expect(within(svg).getByTestId('mp-tokens-pc').querySelectorAll('[data-token-id]').length).toBeGreaterThan(0);
     expect(svg.querySelector(`#mp-lit-${SCENE_WAREHOUSE.id}`)!.querySelector('polygon')).toBeNull();
   });
 

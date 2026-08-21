@@ -182,9 +182,15 @@ describe('mapRules — token factories & search', () => {
     expect(t).toMatchObject({ bestiaryRef: 'ogre', bestiaryEntryId: null, imageUrl: null });
   });
 
-  it('tokenFromBestiary: hidden by default, keeps the catalog id and copies resistance into state', () => {
+  /**
+   * Cambiado el 2026-08-22: un encuentro nace VISIBLE y quien lo tapa es la niebla. Nacía oculto y había que
+   * revelarlo a mano, así que un jugador con la criatura delante no la veía y no había forma de saber por qué
+   * (dueño: «los encuentros el jugador no los ve, no sé por qué»). El ojo sigue estando para esconder algo a
+   * propósito aunque lo tengas a la vista.
+   */
+  it('tokenFromBestiary: nace VISIBLE (lo tapa la niebla), guarda el id del catálogo y copia la Resistencia', () => {
     const t = tokenFromBestiary({ id: 'mutant', label: 'catalog.bestiary.mutant.name', data: { resistance: 12, protection: 2 } }, 'Mutante', 'c1', 'sc-1', { x: 5, y: 5 });
-    expect(t).toMatchObject({ bestiaryRef: 'mutant', name: 'Mutante', visible: false, controlledBy: null, characterId: null, state: { resistance: 12 } });
+    expect(t).toMatchObject({ bestiaryRef: 'mutant', name: 'Mutante', visible: true, controlledBy: null, characterId: null, state: { resistance: 12 } });
     expect(tokenFromBestiary({ id: 'x', label: 'x' }, 'X', 'c1', 'sc-1', { x: 0, y: 0 }).state).toEqual({});
   });
   it('initials and diacritics-insensitive search', () => {

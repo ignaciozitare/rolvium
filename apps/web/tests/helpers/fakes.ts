@@ -381,7 +381,7 @@ export function fakeVisionPort(seed: Partial<SceneVision> = {}) {
   const calls: { op: string; sceneId: string; at?: unknown }[] = [];
   return {
     state, calls,
-    refresh: async (sceneId: string) => { calls.push({ op: 'refresh', sceneId }); return { ...state }; },
+    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number }) => { calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}) }); return { ...state }; },
     paint: async (sceneId: string, op: 'reveal' | 'hide', at: { x: number; y: number; radius: number }) => { calls.push({ op, sceneId, at }); return { ...state }; },
     paintAll: async (sceneId: string, op: 'reveal' | 'hide') => { calls.push({ op: `${op}All`, sceneId }); return { ...state }; },
   } satisfies VisionPort & Record<string, unknown>;

@@ -330,6 +330,13 @@ export function MapCanvas(p: Props): JSX.Element {
 
   const wallsShown = dmSight ? (p.showWalls ? p.walls : []) : p.walls.filter(w => w.visiblePlayers);
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
+  /** Un PJ es un token con ficha de personaje detrás. Los PNJ del bestiario no la tienen. */
+  const isPc = (tk: Token): boolean => tk.characterId !== null;
+  const renderToken = (tk: Token): JSX.Element => {
+    const ov = localDrag?.id === tk.id ? localDrag : p.drags[tk.id] ?? null;
+    return <TokenGlyph key={tk.id} token={tk} grid={grid} override={ov} selected={p.selectedTokenIds.includes(tk.id)} movable={p.tool === 'select' && canMoveToken(tk, p.me, p.isDm)}
+      label={t('maps.canvas.token', { name: tk.name })} hiddenLabel={t('maps.canvas.hidden')} onPointerDown={onTokenDown(tk)} />;
+  };
   const draft = gesture?.kind === 'draw' ? { kind: gesture.tool, data: gesture.tool === 'stroke' ? { points: gesture.points } : shapeData(gesture.tool, gesture.start, gesture.last), color: p.stroke.color, width: p.stroke.width } : null;
   const clipId = `mp-clip-${p.scene.id}`;
   const cursor = spacePan ? (gesture?.kind === 'pan' ? 'grabbing' : 'grab') : p.tool === 'select' ? 'default' : 'crosshair';
@@ -387,12 +394,18 @@ export function MapCanvas(p: Props): JSX.Element {
           {/* What was explored but is out of sight right now stays visible, only dimmed — «sigue ahí, apagado». */}
           {playerSight && hasVision && <rect {...sceneRect} className="mp-fog-dim" mask={url(fogIds.dim)} data-testid="mp-fog-dim" />}
         </g>
+        {/*
+          * Dos capas de tokens, no una. **Los PJ se pintan SIEMPRE, encima de la niebla y sin máscara**: sabes
+          * dónde está tu grupo aunque esté en otra sala, que es como funcionaba el prototipo
+          * (`plenilunio-vtt-prototipo.jsx`, «tokensEscena.filter(t => t.tipo === "pj").forEach(pintarToken)»).
+          * Antes se ocultaban con todo lo demás y el jugador se quedaba solo en el mapa (dueño, 2026-08-22).
+          * Lo que NO es un PJ —criaturas y PNJ— sí lo tapa la niebla: es justo lo que no debes ver.
+          */}
         <g className="mp-layer-tokens" data-testid="mp-tokens" {...(tokenMask ? { mask: url(tokenMask) } : {})}>
-          {tokensShown.map(tk => {
-            const ov = localDrag?.id === tk.id ? localDrag : p.drags[tk.id] ?? null;
-            return <TokenGlyph key={tk.id} token={tk} grid={grid} override={ov} selected={p.selectedTokenIds.includes(tk.id)} movable={p.tool === 'select' && canMoveToken(tk, p.me, p.isDm)}
-              label={t('maps.canvas.token', { name: tk.name })} hiddenLabel={t('maps.canvas.hidden')} onPointerDown={onTokenDown(tk)} />;
-          })}
+          {tokensShown.filter(tk => !isPc(tk)).map(renderToken)}
+        </g>
+        <g className="mp-layer-tokens-pc" data-testid="mp-tokens-pc">
+          {tokensShown.filter(isPc).map(renderToken)}
         </g>
         <g className="mp-layer-ui">
           {gesture?.kind === 'marquee' && (

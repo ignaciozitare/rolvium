@@ -12,6 +12,11 @@ const PaintBody = z.object({
   at: z.object({ x: z.number().finite(), y: z.number().finite(), radius: z.number().positive().max(4000) }).optional(),
 }).refine(b => b.all === true || b.at !== undefined, { message: 'at or all required' });
 
+/** Posición provisional de un token propio mientras se arrastra. No mueve nada: sólo pregunta qué vería ahí. */
+const VisionBody = z.object({
+  at: z.object({ tokenId: z.string().uuid(), x: z.number().finite(), y: z.number().finite() }).optional(),
+});
+
 const STATUS: Record<VisionErrorCode, number> = { NOT_FOUND: 404, FORBIDDEN: 403 };
 const bad = { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid scene request' } };
 
@@ -25,7 +30,14 @@ export async function mapsRoutes(app: FastifyInstance, opts: Opts): Promise<void
   app.post('/:sceneId/vision', { preHandler: [app.authenticate] }, async (request, reply) => {
     const p = Params.safeParse(request.params);
     if (!p.success) return reply.status(400).send(bad);
-    const r = await computeSceneVision(opts, { sceneId: p.data.sceneId, userId: request.identity.userId });
+    // Cuerpo OPCIONAL: la posición provisional del token que se está arrastrando, para que la niebla lo siga
+    // sin esperar a que lo suelten. Un cuerpo mal formado se ignora y se contesta la visión de siempre — una
+    // consulta de dibujo no debe tumbarse por eso.
+    const at = VisionBody.safeParse(request.body ?? {});
+    const r = await computeSceneVision(opts, {
+      sceneId: p.data.sceneId, userId: request.identity.userId,
+      ...(at.success && at.data.at ? { at: at.data.at } : {}),
+    });
     if (!r.ok) return reply.status(STATUS[r.code]).send({ ok: false, error: { code: r.code, message: r.code.toLowerCase() } });
     return reply.send({ ok: true, data: r.data });
   });
