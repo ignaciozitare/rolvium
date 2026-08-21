@@ -14,16 +14,17 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🔴 PUNTO EXACTO — 2026-08-21 (noche): el dueño PROBÓ la app · 3 de 4 arregladas
+## 🔴 PUNTO EXACTO — 2026-08-21/22: el dueño PROBÓ la app · 2 de 4 pendientes
 
 Rama **`fix/municion-y-preguntas`** (sale de `main`, que ya tiene la columna 5 en producción).
-**882 tests** verdes · typecheck · `audit` 0 hard · `build:web` + `build:api`.
-Commits: **`4e29ee7`** · **`ede3b1f`** · **`aeb0717`**. **Review pasado.** Sin subir a producción todavía.
+**893 tests** verdes · typecheck · `audit` 0 hard · `build:web` + `build:api`.
+Commits: **`4e29ee7`** · **`ede3b1f`** · **`aeb0717`** · **`e717f7d`**. **Review pasado en las dos tandas.**
+Sin subir a producción todavía.
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: el dueño probó la app y salieron cuatro cosas; **tres arregladas** en
-> `fix/municion-y-preguntas`, sin subir a producción. Queda **decidir con él el tope de dados extra**,
-> y luego los tokens y los modales de la escena. Bloque 🔴 de WORK_STATE.
+> Retomo Rolvium: el dueño probó la app y salieron cuatro cosas; **dos arregladas** en
+> `fix/municion-y-preguntas` (Munición, Resistencia, tope de dados), sin subir a producción. Quedan **los
+> tokens** (más grandes y sin pegarse a la grilla) y **los modales de la escena**. Bloque 🔴 de WORK_STATE.
 
 ### ✅ ARREGLADO (con test, sin subir a producción todavía)
 1. **La Munición no se podía subir NUNCA** (`4e29ee7`). La celda pintaba «—» cuando la fila no traía el
@@ -62,18 +63,50 @@ cuanto cambia una regla**, y sólo esa vista se fiaba de ella.
 **⚠ Sin mirar en la app corriendo.** Los tests cuentan las casillas, pero la tarjeta nueva de la ficha
 («Resistencia recuperable descansando», la cuarta de la fila) **no se ha visto en pantalla**.
 
+### ✅ ARREGLADO · 4 — LOS DADOS EXTRA YA TIENEN TECHO (`e717f7d`, review pasado)
+30 dados con Combate 4 («+ dados extra: 26») porque el «+» no tenía tope. **Decisión del dueño**: nada de
+un número global inventado — «teniendo identificado los casos como la atención médica no pones dos, y si
+alguna habilidad te deja más lo permites». El techo se construye con lo que el libro escribe (RULES.md §2.8):
+
+| Caso | Techo | Dónde |
+|---|---|---|
+| Herramientas y accesorios (lo normal) | **2** | p.87 «añade uno o dos dados», y no se acumulan: «solo los dados que añada la mejor herramienta». Las miras de las armas a distancia son lo mismo (p.96). |
+| **Atención médica** | **4** | p.101, el grado de éxito del médico son dados extra en la tirada de recuperación —que es de **Fortaleza**— y la tabla de grados llega a 4 (p.85). |
+
+**No gastan del techo** lo que no pone la mano de quien tira: la bonificación del arma (`bonusDice`; las
+excepcionales de la p.157 dan «tres o más») y los dados de la Reserva de Destino.
+
+El recorte vive en **`poolFor`**, no en la pantalla: con ficha, el servidor rehace ahí los grupos, así que un
+solo sitio cubre las dos orillas. Un `extraDice` **negativo** sigue siendo legítimo —repartir el Combate
+entre los ataques del turno, p.94— y no se toca.
+
+**Salió de paso**: el servidor recortaba los dados pero **guardaba lo pedido** («+26» en el Registro con 2
+tirados). Corregido: `performRoll` guarda también las opciones rehechas.
+
+**Regresión mía que cazó el Review**: el ataque impreso de una criatura viajaba por `extraDice` desde el
+token del mapa, así que el techo se lo comía — Luz-Malefic, mandoble 10 con Combate 6, habría tirado **8**
+mientras el modal prometía 10 (p.163: es «bonificación +4», justo lo que el techo exime). Ahora va por
+`bonusDice`. Test comprobado que cae sin el arreglo.
+
+**⚠ Sin mirar en la app corriendo.**
+
+### 🔎 Deuda anotada y NO tocada (decidir aparte)
+- **Una tirada de CRIATURA no lleva ficha, así que el servidor no la rehace**: su techo se queda del lado del
+  cliente. Hueco ANTERIOR a esta tanda y común a toda tirada de criatura (los dados salen igual del cliente);
+  quien tira es el director. Los comentarios que prometían «las dos orillas» sin matizar están corregidos.
+- **`schema.ts` declara `extraDice` con `max: 5`**, que ya no cuadra con el techo del motor (2, o 4 en
+  Fortaleza). Un `max` fijo del esquema no puede expresar un techo por característica. Es la casilla del
+  bloque de tirada de la ficha, no el desplegable que usó el dueño.
+- **Acciones conjuntas** (p.87, +1 dado por ayudante): el libro deja el número «en la decisión del director
+  de juego» y la app no las modela. Cuando se modelen, su techo sale de cuántos apoyan, no de la tabla de §2.8.
+
 ### ⏳ A HACER · el resto, sin empezar
-1. 🔴 **DECISIÓN DEL DUEÑO PENDIENTE — no hay límite en los dados que se pueden tirar.** El dueño llegó a **30 dados con Combate 4**
-   («+ dados extra: 26») desde el desplegable de disparar. En el manual los dados extra son siempre
-   **uno o dos** y situacionales (herramientas, miras, el grado de éxito de un médico), y ni siquiera se
-   acumulan: «se añaden solo los dados que añada la mejor herramienta». **Falta decidir el tope con el
-   dueño** — el libro no da un máximo global.
-2. **Tokens demasiado pequeños y pegados a la grilla.** Aclaración del dueño: **NO quiere rediseñar el
+1. **Tokens demasiado pequeños y pegados a la grilla.** Aclaración del dueño: **NO quiere rediseñar el
    mapa**. Son dos cosas: (a) que los tokens sean **más grandes** —un 50% más para tamaño normal, y
    escalados por el tamaño de la ficha (diminuto…enorme, p.25)—, y (b) que **el movimiento no dependa de
    la grilla**. Hoy los tokens se guardan en coordenadas de casilla y `tokenCellAt` los pega a la rejilla
    (`mapRules.ts`); la base ya guarda `x`/`y` como `real`, así que admite posiciones fraccionarias.
-3. **La escena deja abrir varios modales a la vez** (se ven «Colocar encuentro» y «Fondo del mapa»
+2. **La escena deja abrir varios modales a la vez** (se ven «Colocar encuentro» y «Fondo del mapa»
    abiertos juntos), y **el modal de Fondo del mapa sale en la otra punta** de su botón — petición vieja
    del dueño que sigue en el backlog sin hacer.
 
