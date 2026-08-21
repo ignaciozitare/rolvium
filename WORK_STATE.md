@@ -14,17 +14,17 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🔴 PUNTO EXACTO — 2026-08-21/22: el dueño PROBÓ la app · 2 de 4 pendientes
+## 🔴 PUNTO EXACTO — 2026-08-21/22: el dueño PROBÓ la app · LAS 4, HECHAS · falta MIRARLO
 
 Rama **`fix/municion-y-preguntas`** (sale de `main`, que ya tiene la columna 5 en producción).
-**893 tests** verdes · typecheck · `audit` 0 hard · `build:web` + `build:api`.
-Commits: **`4e29ee7`** · **`ede3b1f`** · **`aeb0717`** · **`e717f7d`**. **Review pasado en las dos tandas.**
-Sin subir a producción todavía.
+**900 tests** verdes · typecheck · `audit` 0 hard (13 warn, los de siempre) · `build:web` + `build:api`.
+Commits: **`4e29ee7`** · **`ede3b1f`** · **`aeb0717`** · **`e717f7d`** · **`0e3994b`** · **`53a7dfe`**.
+**Review pasado en las cuatro tandas.** Sin QA y **sin subir a producción**.
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: el dueño probó la app y salieron cuatro cosas; **dos arregladas** en
-> `fix/municion-y-preguntas` (Munición, Resistencia, tope de dados), sin subir a producción. Quedan **los
-> tokens** (más grandes y sin pegarse a la grilla) y **los modales de la escena**. Bloque 🔴 de WORK_STATE.
+> Retomo Rolvium: las **cuatro** cosas que salieron al probar la app están arregladas en
+> `fix/municion-y-preguntas`, con review pasado y **sin mirar en la app**. Lo siguiente es **mirarlo con dos
+> navegadores** (director y jugador) y luego QA + merge. Bloque 🔴 de WORK_STATE.
 
 ### ✅ ARREGLADO (con test, sin subir a producción todavía)
 1. **La Munición no se podía subir NUNCA** (`4e29ee7`). La celda pintaba «—» cuando la fila no traía el
@@ -100,15 +100,58 @@ mientras el modal prometía 10 (p.163: es «bonificación +4», justo lo que el 
 - **Acciones conjuntas** (p.87, +1 dado por ayudante): el libro deja el número «en la decisión del director
   de juego» y la app no las modela. Cuando se modelen, su techo sale de cuántos apoyan, no de la tabla de §2.8.
 
-### ⏳ A HACER · el resto, sin empezar
-1. **Tokens demasiado pequeños y pegados a la grilla.** Aclaración del dueño: **NO quiere rediseñar el
-   mapa**. Son dos cosas: (a) que los tokens sean **más grandes** —un 50% más para tamaño normal, y
-   escalados por el tamaño de la ficha (diminuto…enorme, p.25)—, y (b) que **el movimiento no dependa de
-   la grilla**. Hoy los tokens se guardan en coordenadas de casilla y `tokenCellAt` los pega a la rejilla
-   (`mapRules.ts`); la base ya guarda `x`/`y` como `real`, así que admite posiciones fraccionarias.
-2. **La escena deja abrir varios modales a la vez** (se ven «Colocar encuentro» y «Fondo del mapa»
-   abiertos juntos), y **el modal de Fondo del mapa sale en la otra punta** de su botón — petición vieja
-   del dueño que sigue en el backlog sin hacer.
+### ✅ ARREGLADO · 5 — LOS TOKENS, MÁS GRANDES Y SUELTOS DE LA REJILLA (`0e3994b`, review pasado)
+**El ancho**: antes TODO token nacía de una casilla — un gato y un dragón, igual. Ahora sale de la ficha con la
+escala de la p.25: **diminuto 0,5 · pequeño 0,75 · mediano 1,5 · grande 3,5 · enorme 7** casillas. La casilla
+mide 1,5 m, así que la huella literal es estatura ÷ 1,5 (mediano 1,13); encima va el aumento de legibilidad
+que pidió el dueño («un 50% más para tamaño normal»), que deja el mediano en 1,5 y multiplica a todos por
+igual. Lo declara el SISTEMA (`Engine.tokenCells`, opcional), no la plataforma.
+
+**El sitio**: era UNA línea. Arrastrar ya era libre; un `Math.round` al soltar daba el tirón a la rejilla. Y al
+colocar, el token cae **centrado** en el punto pulsado (antes, en la esquina de la casilla, lo que con 1,5 de
+huella lo dejaba medio fuera). La base ya guardaba `x`/`y` como `real`: **sin migración**.
+
+**Lo que cazó el Review**: faltaba cobertura de verdad (todas las aserciones eran 1,5, que es TAMBIÉN el valor
+por defecto, así que un `cellsOfSheet` que ignorara el motor habría pasado la suite entera).
+
+### ✅ ARREGLADO · 6 — LOS PANELES DE LA ESCENA (`53a7dfe`, review pasado)
+Cuatro cosas se abrían sobre el lienzo sin saber unas de otras. `closeOverlays`: abrir una cierra las demás.
+Y `.mp-bgpop` pasa de `right:54px` a la izquierda, que es donde está su botón.
+
+**Lo que cazó el Review, y eran dos agujeros en el arreglo**: (a) el menú de encuentros se identificaba por
+`tool === 'encounter'` pero sólo se PINTA con `&& !armedFromBestiary`, así que pulsar el botón derecho
+**desarmaba en silencio** la criatura traída del Bestiario — rompía el arreglo del 2026-08-21; (b) el modal de
+**atacar** se quedaba fuera de la exclusión. Y (c) el lado nuevo tapaba `.mp-canvas-label`, así que el panel
+baja a `top:60px`, el hueco que ya usaban sus vecinos.
+
+### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO — TRES COSAS QUE SÓLO SE VEN MIRANDO
+1. **Los tokens ya colocados siguen a 1 casilla.** No se migra nada y no hay control de tamaño en la
+   pantalla: sólo los que se pongan de nuevo salen a 1,5. Hoy la única vía es borrarlos y volver a ponerlos.
+2. **Toda criatura del bestiario sale mediana**, incluido el ogro, que el libro llama Grande. Su bloque no
+   imprime el tamaño (comprobado el ogro de la p.152). Es un PLAZO, no una laguna de reglas.
+3. **El alcance se mide de centro a centro.** Daba igual con todo a una casilla; con un dragón de 7 su borde
+   queda ~3,5 casillas más cerca de lo que dice el número.
+4. **La visión se recalcula en cada suelta**, también en los empujoncitos de menos de una casilla que antes no
+   hacían nada (una llamada más a la API por suelta, no por fotograma).
+
+### 🔎 Deuda anotada y NO tocada (decidir aparte)
+- **Darle tamaño a cada criatura** pide leerse su descripción una por una. ⚠ Y **NO se puede automatizar**
+  despejando `Aguante − (Fortaleza + Voluntad)`: comprobado sobre las 57 entradas, falla en muchas y se sale
+  del rango legal (Fantasma −3, Paladín solar −4, Nathael −8). RULES.md §1.6.
+- **Una tirada de CRIATURA no lleva ficha**, así que el servidor no la rehace con `poolFor` y su techo de
+  dados se queda del lado del cliente. Hueco anterior; quien tira es el director.
+- **`schema.ts` declara `extraDice` con `max: 5`**, que ya no cuadra con el techo del motor (2, o 4 en
+  Fortaleza). Un `max` fijo del esquema no puede expresar un techo por característica.
+- **Acciones conjuntas** (p.87, +1 por ayudante): el libro deja el número al director y la app no las modela.
+- **`.mp-tokbar` y `.mp-placing`** viven los dos en `top:8px;left:50%` y sí pueden coincidir (elige un token,
+  luego «Colocar PJ»). Anterior a esto, y son dos barras, no dos paneles.
+- **Ciclo de imports en plenilunio** (`engine` ↔ `explain`) — sigue igual.
+
+### ⏭ LO SIGUIENTE
+1. **MIRARLO EN LA APP, con dos navegadores** (director y jugador). Es lo único que queda, y es justo donde
+   salen los fallos de sitio y de ancho: el panel de Fondo **se ha movido dos veces**, los tokens a 1,5
+   casillas, y la tarjeta nueva de la ficha («Resistencia recuperable descansando»).
+2. Luego **QA** y merge a `main`.
 
 ### 🚨 REGLA DE LA CASA QUE SE VOLVIÓ A SALTAR (2026-08-21)
 **EL PDF DEL MANUAL MANDA. SIEMPRE. Y NO ESTÁ DENTRO DEL REPO:**
