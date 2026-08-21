@@ -16,7 +16,7 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 ## 🔴 PUNTO EXACTO — 2026-08-21: LA COLUMNA 5 ESTÁ CONSTRUIDA. Falta MIRARLA EN LA APP y aplicarla en la nube
 
-Rama **`feat/bestiario`**, **sin commitear todavía**. **873 tests** verdes (602 web + 114 api + 14 core +
+Rama **`feat/bestiario`**, árbol **limpio**, commit **`4caa2de`**. **873 tests** verdes (602 web + 114 api + 14 core +
 16 ui + 127 plenilunio), typecheck de las dos apps, `audit` **0 hard** (13 warn, todos preexistentes),
 `build:web` y `build:api` OK. **Review pasado**, y sus hallazgos ARREGLADOS (abajo).
 
