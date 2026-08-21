@@ -30,7 +30,10 @@
 .dc-entry-who + .dc-entry-title::before{content:'· ';}
 .dc-entry.free{padding-left:0;border-left:none;border-bottom-color:var(--sys-border);gap:4px;}
 .dc-entry-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-.dc-entry-author{display:flex;align-items:center;gap:8px;min-width:0;}
+/* Envuelve: el `.pen` dibujó el nombre y el título en una línea a 372 de ancho, y el panel real mide
+   235. Sin esto el título se comía a sí mismo en puntos suspensivos («KAREN SINCLAIR · …»). Cuando
+   caben siguen juntos, como en el diseño; cuando no, el título baja a su propia línea. */
+.dc-entry-author{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;}
 .dc-entry-title{font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .dc-entry.free .dc-entry-title{letter-spacing:.2em;}
 .dc-entry-score{font-size:var(--fs-md);color:var(--sys-ink);white-space:nowrap;}
@@ -57,7 +60,13 @@
 .dc-tip{position:absolute;left:0;right:0;bottom:calc(100% + 6px);z-index:6;display:none;flex-direction:column;gap:9px;padding:13px 15px;
   max-height:60vh;overflow-y:auto;background:var(--sys-ink);color:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);text-align:left;}
 .dc-entry:hover .dc-tip,.dc-entry:focus-within .dc-tip{display:flex;}
-.dc-tip-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;}
+/* Las tres primeras entradas —las MÁS VIEJAS, que van arriba— no tienen sitio encima: el suyo se abre
+   hacia abajo, que ahí el panel sí se puede desplazar. Tres porque el desglose mide unos 240 px y una
+   entrada unos 84: de la cuarta en adelante ya cabe hacia arriba. */
+.dc-entry:nth-child(-n+3) .dc-tip{bottom:auto;top:calc(100% + 6px);}
+/* Igual que la cabecera de la entrada: a lo ancho del `.pen` van en una línea, y en el panel real la
+   referencia del manual baja debajo en vez de estrujar el rótulo hasta partirlo en cuatro líneas. */
+.dc-tip-head{display:flex;align-items:baseline;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;}
 .dc-tip-head em{font-style:italic;letter-spacing:.02em;text-transform:none;color:var(--sys-moon-hi);white-space:nowrap;}
 .dc-tip-block{display:flex;flex-direction:column;gap:3px;}
 .dc-tip-block p{margin:0;font-size:var(--fs-xs);line-height:var(--lh-normal);}
