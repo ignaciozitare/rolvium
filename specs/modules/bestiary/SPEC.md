@@ -94,6 +94,32 @@ director veía media criatura. El fichero subido está intacto — el compresor 
 respeta la proporción —, así que el recorte era sólo al pintarla. La caja mantiene su alto para que la
 rejilla no se descuadre; lo que sobra enseña el papel.
 
+### Atacar CON el token de una criatura (2026-08-21, `.pen` columna 6)
+El botón **ATACAR** sale en la barra del token cuando el director selecciona una criatura (nunca sobre un PJ),
+y abre `ui/TokenAttackModal.tsx`, portado 1:1 de `Modal/Atacar con el token`.
+
+- **No hay lista que crezca**: se ataca desde el bicho que se está mirando, así que da igual cuántas criaturas
+  haya en la escena. Es la idea del diseño, literal.
+- **La distancia la mide el mapa** (1 casilla = 1,5 m) y de ahí sale todo: cuerpo a cuerpo hasta 3 m (dos
+  casillas, ⚠ lectura nuestra: el libro no juega en rejilla), y más allá el alcance con su dificultad
+  (`rangeForMetres`, p.95–96). Pasado el muy largo el botón se apaga: no se le puede disparar.
+- **Los dados los pone el director**, con su ataque impreso o su Combate como punto de partida: el libro le
+  deja repartir el Combate entre varios ataques y defensas del turno (p.94).
+- **El daño**: el impreso de su caja si la tiene; si no, sin armas, que el libro paga con su Fortaleza (p.97).
+- **La criatura sale del bloque del que se colocó el token**: del catálogo si es del manual (`bestiaryRef`), de
+  la fila del director si es propia (`bestiaryEntryId`). El nombre es el DEL TOKEN.
+- ⚠ **Cuerpo a cuerpo va SIN oposición todavía**: es un conflicto (p.93) y los dados de enfrente son los que el
+  jugador gaste en defenderse — la columna 5 del `.pen`, que no está construida. Un disparo sí lleva su
+  dificultad, porque es un reto y ahí no hay que preguntarle a nadie.
+- ⚠ **El daño no se aplica solo**: el número lo calcula el motor, pero quien recibe el golpe lo teclea en
+  «Recibir daño» de su ficha. Aplicarlo automáticamente pide la respuesta del jugador, o sea la columna 5.
+
+### Las copias viejas heredan lo que no tenían (2026-08-21)
+Una copia de un bloque del manual guarda sus valores el día que se duplica, así que las hechas ANTES de que
+existieran las capacidades y los ataques salían mudas — «Aamel (2)» sin casilla de noche ni capacidades, visto
+por el dueño. `withManualFallback` las rellena desde el bloque que dice `sourceRef`, y **sólo lo que falta**:
+si la copia trae lo suyo, manda la copia.
+
 **Lo que sigue siendo H6 y NO está aquí**: el panel del director completo —pedir tirada a los jugadores
 (mantener pulsada una característica y elegir dificultad sin soltar), la lista de encuentros de la escena y
 el botón ATACAR—. El `.pen` lo tiene diseñado en `Panel/Director`.

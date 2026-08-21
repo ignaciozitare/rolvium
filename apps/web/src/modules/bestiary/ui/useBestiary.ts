@@ -5,7 +5,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { bestiaryRepo } from '../container';
 import type { BestiaryPort } from '../domain/ports/BestiaryPort';
 import type { BestiaryEntry, BestiaryEntryPatch, NewBestiaryEntry, OriginFilter } from '../domain/entities/BestiaryEntry';
-import { byOrigin, duplicateOf, fromCatalog, mergeEntries } from '../domain/useCases/bestiaryRules';
+import { byOrigin, duplicateOf, fromCatalog, mergeEntries, withManualFallback } from '../domain/useCases/bestiaryRules';
 import { errorText } from '../domain/useCases/errorText';
 import { filterEntries } from '@/modules/maps/domain/useCases/mapRules';
 
@@ -45,7 +45,9 @@ export function useBestiary({ campaignId, system, repo = bestiaryRepo }: Options
     [system, ts],
   );
 
-  const all = useMemo(() => mergeEntries(manual, own), [manual, own]);
+  // Las copias viejas no traen capacidades ni ataques: se rellenan del bloque del que salieron (ver
+  // `withManualFallback`). Sin esto, «Aamel (2)» sale mudo aunque el Aamel del manual sí las tenga.
+  const all = useMemo(() => mergeEntries(manual, own.map(e => withManualFallback(e, manual))), [manual, own]);
   const visible = useMemo(() => filterEntries(byOrigin(all, filter), query, e => e.name), [all, filter, query]);
 
   /**

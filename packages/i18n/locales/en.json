@@ -965,6 +965,22 @@
       "title": "{{name}}’s sheet",
       "note": "This is the same sheet a player character uses. Changes are NOT saved on their own: press Save before closing.",
       "saveDirty": "Save changes"
+    },
+    "attack": {
+      "title": "{{name}} attacks {{target}}",
+      "with": "Attack with {{name}}",
+      "who": "Who it attacks",
+      "stats": "Combat {{combat}} · Resistance {{resistance}} · protection {{protection}}",
+      "page": "p.{{n}}",
+      "melee": "{{name}} is {{cells}} squares away: melee. The map measures it.",
+      "ranged": "{{name}} is {{cells}} squares away ({{metres}} m): {{range}} range, a difficulty {{difficulty}} challenge. The map measures it.",
+      "tooFar": "{{name}} is {{cells}} squares away ({{metres}} m): too far to shoot at (p.96).",
+      "dice": "Dice it puts in",
+      "from": "of its Combat {{n}} · it may split them between several (p.94)",
+      "fromAttack": "of its {{name}} · {{n}} · it may split them between several (p.94)",
+      "go": "Attack {{name}}",
+      "noTargets": "There is no character in the scene to attack.",
+      "button": "Attack"
     }
   }
 }

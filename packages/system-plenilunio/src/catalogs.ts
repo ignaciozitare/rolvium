@@ -453,6 +453,28 @@ export const DIFFICULTIES = [
 ] as const;
 /** Ranged attacks are challenges against the range's difficulty (manual p.96). */
 export const RANGE_DIFFICULTY: Record<Exclude<WeaponRange, 'melee'>, number> = { short: 2, medium: 3, long: 5, veryLong: 6 };
+/**
+ * Hasta dónde llega cada alcance, en metros (p.95–96): corto 20 · medio 50 · largo 200 · muy largo 800.
+ *
+ * Estaban en el libro y en RULES.md §5.3, pero no en el código, así que nadie podía decir a qué alcance
+ * está alguien: el mapa mide la distancia y necesita traducirla a la dificultad del reto.
+ */
+export const RANGE_METRES: Record<Exclude<WeaponRange, 'melee'>, number> = { short: 20, medium: 50, long: 200, veryLong: 800 };
+/**
+ * A partir de cuántos metros deja de ser cuerpo a cuerpo. El libro no lo dice —se juega en la mesa, no en
+ * una rejilla—, así que ⚠ es lectura nuestra: **3 metros, o sea dos casillas** del mapa (1,5 m cada una),
+ * que es lo que dibuja el `.pen` («Karen está a 2 casillas: cuerpo a cuerpo»).
+ */
+export const MELEE_METRES = 3;
+/**
+ * El alcance al que está algo, por su distancia en metros. `melee` mientras esté al alcance de la mano;
+ * `null` cuando se pasa del muy largo, que es donde ya no se le puede disparar (p.96).
+ */
+export function rangeForMetres(metres: number): WeaponRange | null {
+  if (metres <= MELEE_METRES) return 'melee';
+  for (const id of ['short', 'medium', 'long', 'veryLong'] as const) if (metres <= RANGE_METRES[id]) return id;
+  return null;
+}
 
 /**
  * Los alcances de disparo, de cerca a lejos (p.95–96). Van en `catalogs` —y no sueltos— para que el
@@ -461,7 +483,7 @@ export const RANGE_DIFFICULTY: Record<Exclude<WeaponRange, 'melee'>, number> = {
  * hasta su propio alcance y no más lejos).
  */
 export const RANGES: (CatalogItem & { data: { difficulty: number } })[] =
-  (['short', 'medium', 'long', 'veryLong'] as const).map(id => ({ id, label: `sheet.range.${id}`, ref: 'ranged', data: { difficulty: RANGE_DIFFICULTY[id] } }));
+  (['short', 'medium', 'long', 'veryLong'] as const).map(id => ({ id, label: `sheet.range.${id}`, ref: 'ranged', data: { difficulty: RANGE_DIFFICULTY[id], maxMetres: RANGE_METRES[id] } }));
 
 // ─── Recovery (manual p.101) ─────────────────────────────────────────────────
 /** Resting time (days) and Fortitude-roll difficulty to regain one health level; `restFactor` × Endurance = Resistance recoverable by rest. */

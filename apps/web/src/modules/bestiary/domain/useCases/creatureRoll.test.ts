@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { plenilunio } from '@rolvium/system-plenilunio';
-import { creatureBlastRequest, creatureRollRequest, ownDiceOf, type CreatureRollChoice } from './creatureRoll';
+import { creatureAttackRequest, creatureBlastRequest, creatureRollRequest, ownDiceOf, type CreatureRollChoice } from './creatureRoll';
 import type { BestiaryEntry } from '../entities/BestiaryEntry';
 
 const poolFor = (sheet: Record<string, unknown>, action: { stat: string; options?: Record<string, unknown> }) =>
@@ -162,5 +162,41 @@ describe('creatureBlastRequest — la Deflagración (p.108)', () => {
     const req = creatureBlastRequest(baal(), blast({ dice: 0, difficulty: 0 }), poolFor, 'Deflagración');
     expect(req.groups.find(g => g.tag === 'own')?.count).toBe(0);
     expect(req.groups.some(g => g.tag === 'opposition')).toBe(false);
+  });
+});
+
+describe('creatureAttackRequest — atacar desde el token (`.pen` columna 6)', () => {
+  const atk = (over = {}) => ({ dice: 4, range: 'melee' as const, difficulty: 0, visibility: 'table' as const, ...over });
+
+  it('pone los dados que dice el director, no los suyos de oficio', () => {
+    const req = creatureAttackRequest(ogre(), atk({ dice: 2 }), poolFor, 'Ogro ataca a Karen');
+    expect(req.groups.find(g => g.tag === 'own')?.count).toBe(2);   // reparte su Combate 4 (p.94)
+    expect(req.title).toBe('Ogro ataca a Karen');
+  });
+
+  /** Cuerpo a cuerpo es un CONFLICTO (p.93): los dados de enfrente son la defensa del jugador, que aún no existe. */
+  it('cuerpo a cuerpo va sin oposición', () => {
+    const req = creatureAttackRequest(ogre(), atk(), poolFor, 'x');
+    expect(req.groups.some(g => g.tag === 'opposition')).toBe(false);
+    expect(req.options?.['ranged']).toBe(false);
+  });
+
+  it('un disparo es un reto contra la dificultad del alcance (p.96)', () => {
+    const req = creatureAttackRequest(ogre(), atk({ range: 'medium', difficulty: 3 }), poolFor, 'x');
+    expect(req.groups.find(g => g.tag === 'opposition')?.count).toBe(3);
+    expect(req.options).toMatchObject({ ranged: true, range: 'medium' });
+  });
+
+  /** Sin ataque impreso pega sin armas, y la tabla de armas paga eso con su Fortaleza (p.97). */
+  it('sin ataque impreso el daño es su Fortaleza', () => {
+    expect(creatureAttackRequest(ogre(), atk(), poolFor, 'x').options).toMatchObject({
+      weaponId: 'catalog.weapons.unarmed', weaponDamage: 8,
+    });
+  });
+
+  it('con ataque impreso manda el daño impreso, y la Ira solar viaja aparte', () => {
+    const attack = { label: 'catalog.creatureAttacks.espada', attack: 10, damage: 9 };
+    const req = creatureAttackRequest(ogre(), atk({ attack, solarWrath: 3 }), poolFor, 'x');
+    expect(req.options).toMatchObject({ weaponId: 'catalog.creatureAttacks.espada', weaponDamage: 9, solarWrath: 3 });
   });
 });

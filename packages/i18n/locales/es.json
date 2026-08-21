@@ -965,6 +965,22 @@
       "title": "Ficha de {{name}}",
       "note": "Es la misma ficha que la de un personaje jugador. Los cambios NO se guardan solos: pulsa Guardar antes de cerrar.",
       "saveDirty": "Guardar cambios"
+    },
+    "attack": {
+      "title": "{{name}} ataca a {{target}}",
+      "with": "Atacar con {{name}}",
+      "who": "A quién ataca",
+      "stats": "Combate {{combat}} · Resistencia {{resistance}} · protección {{protection}}",
+      "page": "p.{{n}}",
+      "melee": "{{name}} está a {{cells}} casillas: cuerpo a cuerpo. Lo mide el mapa.",
+      "ranged": "{{name}} está a {{cells}} casillas ({{metres}} m): alcance {{range}}, reto a dificultad {{difficulty}}. Lo mide el mapa.",
+      "tooFar": "{{name}} está a {{cells}} casillas ({{metres}} m): demasiado lejos para dispararle (p.96).",
+      "dice": "Dados que pone",
+      "from": "de su Combate {{n}} · puede repartirlos entre varios (p.94)",
+      "fromAttack": "de su {{name}} · {{n}} · puede repartirlos entre varios (p.94)",
+      "go": "Atacar a {{name}}",
+      "noTargets": "No hay ningún personaje en la escena al que atacar.",
+      "button": "Atacar"
     }
   }
 }

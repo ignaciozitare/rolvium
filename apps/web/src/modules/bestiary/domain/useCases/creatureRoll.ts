@@ -1,5 +1,5 @@
 import type { DiceGroup, RollRequest, RollVisibility } from '@rolvium/core';
-import type { CreatureAttack, StatId } from '@rolvium/system-plenilunio';
+import type { CreatureAttack, StatId, WeaponRange } from '@rolvium/system-plenilunio';
 import type { BestiaryEntry } from '../entities/BestiaryEntry';
 
 /** Lo que el director elige en el desplegable antes de tirar por una criatura. */
@@ -141,3 +141,54 @@ export function creatureBlastRequest(entry: BestiaryEntry, choice: CreatureBlast
 /** Cuántos dados propios saldrán, para poder enseñarlo ANTES de tirar («DADOS QUE TIRAS» del diseño). */
 export const ownDiceOf = (req: RollRequest): number =>
   req.groups.filter(g => g.tag !== 'opposition').reduce((n, g) => n + g.count, 0);
+
+/** Lo que el director elige al atacar con el token de una criatura (`.pen` «Modal/Atacar con el token»). */
+export interface CreatureAttackChoice {
+  /** Dados de Combate que pone. Puede repartirlos entre varios objetivos, así que los teclea él (p.94). */
+  dice: number;
+  /** El alcance al que queda la víctima, ya medido por el mapa. `melee` es conflicto (p.93). */
+  range: WeaponRange | null;
+  /** Dados de oposición: la dificultad del alcance en un disparo (p.96). Cuerpo a cuerpo va a 0. */
+  difficulty: number;
+  visibility: RollVisibility;
+  /** El ataque impreso de su caja, si lo tiene. Sin él pega sin armas, y el daño es su Fortaleza (p.97). */
+  attack?: CreatureAttack | null;
+  /** Ira solar: suma al daño (p.108). */
+  solarWrath?: number;
+}
+
+/**
+ * Atacar CON la criatura desde su token del mapa (`.pen` «6 · Toca el token de la criatura en el mapa y
+ * ataca con ella»). Es la misma tirada de Combate de siempre; lo que cambia es de dónde salen los datos:
+ *
+ * - **Los dados los pone el director**, porque el libro le deja repartir su Combate entre varios ataques y
+ *   defensas del turno (p.94) y eso no lo puede adivinar el motor.
+ * - **La distancia la mide el mapa**, y de ahí sale si es cuerpo a cuerpo o un disparo y contra qué
+ *   dificultad (p.96). Cuerpo a cuerpo va SIN oposición: es un conflicto y los dados de enfrente son los
+ *   que gaste el jugador en defenderse, que es la pieza que todavía no existe.
+ * - **El daño**: el impreso de su caja si la tiene; si no, sin armas, que el libro paga con su Fortaleza.
+ *
+ * `title` llega ya escrito y traducido: el nombre de la criatura y el de quien recibe el golpe son texto
+ * libre del director y no existen en ningún diccionario.
+ */
+export function creatureAttackRequest(entry: BestiaryEntry, choice: CreatureAttackChoice, poolFor: PoolFor, title: string): RollRequest {
+  const combat = Number(entry.data.stats.combat ?? 0);
+  const fortitude = Number(entry.data.stats.fortitude ?? 0);
+  const attack = choice.attack ?? null;
+  const dice = Math.max(0, Math.floor(choice.dice));
+  const req = poolFor(sheetOf(entry), {
+    stat: 'combat',
+    options: {
+      destinyDice: 0,
+      difficulty: Math.max(0, Math.floor(choice.difficulty)),
+      // Los dados que pone el director, dichos como diferencia con su Combate para no recalcular el puñado.
+      extraDice: dice - combat,
+      ranged: choice.range !== null && choice.range !== 'melee',
+      ...(choice.range && choice.range !== 'melee' ? { range: choice.range } : {}),
+      weaponId: attack ? attack.label : 'catalog.weapons.unarmed',
+      weaponDamage: attack ? attack.damage : fortitude,
+      ...(choice.solarWrath ? { solarWrath: choice.solarWrath } : {}),
+    },
+  });
+  return { ...req, title, visibility: choice.visibility };
+}

@@ -246,3 +246,27 @@
 .bs-auto { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-style: italic; font-weight: 600;
   color: var(--sys-gold); }
 .bs-scope-i { font-size: var(--icon-xs); color: var(--sys-ink-soft); }
+
+/* ── atacar CON el token de una criatura (`.pen` «Modal/Atacar con el token») ──
+   Reutilización declarada: **NEW (module-specific)**, sobre las clases que ya existen aquí (`.bs-pop`,
+   `.bs-btn`, `.bs-label`, `.bs-roll-count`). El `Modal` de `@rolvium/ui` viste el tema de la app —fondo
+   oscuro/claro, radios, sombras— y esto vive DENTRO de la mesa, donde manda el papel del sistema; es el
+   mismo motivo por el que ya son propios `SheetOverlay`, `EncounterMenu` y el desplegable de tirar.
+   A diferencia de `.bs-pop`, éste no cuelga de ninguna ficha: sale centrado sobre la escena. */
+.bs-atk { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(372px, 92vw); min-height: 0; max-height: 80vh; gap: 12px; padding: 14px 16px 16px; }
+.bs-atk-head { display: flex; align-items: center; gap: 10px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--sys-border); }
+.bs-atk-tok { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--sys-blood);
+  color: var(--sys-paper-hi); font-family: var(--sys-font-display); font-size: var(--fs-sm); font-weight: 600;
+  display: flex; align-items: center; justify-content: center; }
+.bs-atk-id { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bs-atk-name { font-family: var(--sys-font-display); font-size: var(--fs-md); font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--sys-ink); }
+.bs-atk-data { font-family: var(--sys-font-body); font-size: var(--fs-xs); font-weight: 500; color: var(--sys-ink-dim); }
+.bs-atk-dist { margin: 0; font-family: var(--sys-font-body); font-size: var(--fs-sm); font-weight: 500;
+  line-height: var(--lh-normal); color: var(--sys-ink-dim); }
+.bs-atk-foot { justify-content: flex-end; }
+/* El botón de atacar va en sangre, no en tinta: es el único de la mesa que hace daño a alguien. */
+.bs-btn.bs-btn-atk { background: var(--sys-blood); border-color: var(--sys-blood); color: var(--sys-paper-hi); }
+.bs-btn.bs-btn-atk:hover { background: var(--sys-ink); border-color: var(--sys-ink); }

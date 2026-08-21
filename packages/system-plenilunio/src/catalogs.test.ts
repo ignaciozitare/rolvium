@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARMOURS, BESTIARY, CAPABILITIES, CAPABILITY_IDS, CREATURE_SPECIALTY_ITEMS, DIFFICULTIES, GIFTS, GIFT_IDS, RANGE_DIFFICULTY, RANGES, RECOVERY, SIZES, SPECIALTIES, SPECIALTY_ITEMS, STAT_IDS, WEAPONS, capabilityLevel, catalogs, hasCapability, isMelee, specialtiesFor, specialtyById, weaponById } from './catalogs';
+import { ARMOURS, BESTIARY, CAPABILITIES, CAPABILITY_IDS, CREATURE_SPECIALTY_ITEMS, DIFFICULTIES, GIFTS, GIFT_IDS, MELEE_METRES, RANGE_DIFFICULTY, RANGES, rangeForMetres, RECOVERY, SIZES, SPECIALTIES, SPECIALTY_ITEMS, STAT_IDS, WEAPONS, capabilityLevel, catalogs, hasCapability, isMelee, specialtiesFor, specialtyById, weaponById } from './catalogs';
 import { references } from './references';
 import { lookup, messages } from './locales';
 
@@ -251,6 +251,22 @@ describe('catalogs', () => {
     // Reutilizan clave las que ya existían: «Cuchillos» de Soum es la de criatura, no `combat.knives` («Navajas y cuchillos»).
     expect(BESTIARY.find(b => b.id === 'soum')!.data.specialties.combat).toEqual(['creature.cuchillos', 'combat.swords']);
     expect(BESTIARY.find(b => b.id === 'nathael')!.data.specialties.fortitude).toEqual(['creature.vuelo']);
+  });
+  it('el alcance sale de los metros (p.95–96), y más allá del muy largo no se dispara', () => {
+    expect(rangeForMetres(0)).toBe('melee');
+    expect(rangeForMetres(MELEE_METRES)).toBe('melee');       // dos casillas del mapa, lectura nuestra
+    expect(rangeForMetres(3.1)).toBe('short');
+    expect(rangeForMetres(20)).toBe('short');
+    expect(rangeForMetres(21)).toBe('medium');
+    expect(rangeForMetres(50)).toBe('medium');
+    expect(rangeForMetres(200)).toBe('long');
+    expect(rangeForMetres(800)).toBe('veryLong');
+    expect(rangeForMetres(801)).toBeNull();
+    // Cada alcance lleva su tope y su dificultad juntos, para que el mapa no tenga que saber la tabla.
+    expect(RANGES.map(r => r.data)).toEqual([
+      { difficulty: 2, maxMetres: 20 }, { difficulty: 3, maxMetres: 50 },
+      { difficulty: 5, maxMetres: 200 }, { difficulty: 6, maxMetres: 800 },
+    ]);
   });
   it('reference pages match RULES.md §9', () => {
     const pages = Object.fromEntries(Object.entries(references).map(([k, r]) => [k, r.page]));

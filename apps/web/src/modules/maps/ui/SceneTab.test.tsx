@@ -188,6 +188,37 @@ describe('<SceneTab> DM', () => {
     expect(repo.activated).toEqual([repo.scenes.at(-1)!.id]);
     expect(repo.scenes.at(-1)).toMatchObject({ name: 'Mercado', campaignId: 'c1' });
   });
+
+  /**
+   * Atacar CON el token (`.pen` columna 6). El botón sólo sale sobre una criatura, y la distancia hasta
+   * cada personaje la mide el mapa: el mutante está en (20,9) y Karen en (12,11) → 8,2 casillas, o sea
+   * un disparo, no cuerpo a cuerpo.
+   */
+  it('token de criatura: ATACAR mide la distancia y manda la tirada; sobre un PJ no se ofrece', async () => {
+    const u = userEvent.setup();
+    const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
+      vision={fakeVisionPort()} onRoll={onRoll} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    const mutante = await within(canvas()).findByRole('img', { name: /Mutante/ });
+    fireEvent.pointerDown(mutante, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const bar = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
+    await u.click(within(bar).getByRole('button', { name: 'Atacar' }));
+    const modal = await screen.findByRole('dialog', { name: 'Atacar con Mutante' });
+    expect(within(modal).getByText(/casillas/)).toBeInTheDocument();
+    await u.click(within(modal).getByRole('button', { name: /^Atacar a / }));
+    await waitFor(() => expect(onRoll).toHaveBeenCalled());
+    expect(onRoll.mock.calls[0]?.[0]).toMatchObject({ campaignId: 'c1', kind: 'system' });
+
+    // Sobre el token de un PERSONAJE no hay nada que atacar: el botón no está.
+    const karen = await within(canvas()).findByRole('img', { name: 'Token Karen «K»' });
+    fireEvent.pointerDown(karen, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const bar2 = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
+    expect(within(bar2).queryByRole('button', { name: 'Atacar' })).not.toBeInTheDocument();
+  });
 });
 
 describe('<SceneTab> failures', () => {

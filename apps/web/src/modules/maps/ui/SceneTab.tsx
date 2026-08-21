@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import type { CatalogItem, GameSystem } from '@rolvium/core';
+import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
 import { UserAvatar, useDialog } from '@rolvium/ui';
 import type { CampaignMember, TableRole } from '@/modules/campaigns/domain/entities/Campaign';
 import type { Character } from '@/modules/characters/domain/entities/Character';
@@ -10,7 +10,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenCellAt, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { canvasToScene, centerOn, DEFAULT_BRUSH, distanceCells, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -21,6 +21,8 @@ import { CanvasControls } from './CanvasControls';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
+import { TokenAttackModal, type AttackTarget } from '@/modules/bestiary/ui/TokenAttackModal';
+import { entryFromCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
 import './maps.css';
 
 interface Props {
@@ -48,6 +50,11 @@ interface Props {
   charactersRepo: CharactersPort;
   /** The dice roller belongs to H6 and is hosted by the table; the scene only owns the button that opens it. */
   onOpenDice?: () => void;
+  /**
+   * Tirar de verdad. Lo trae la mesa, igual que se lo da al Bestiario: la escena no tiene repositorio de
+   * tiradas ni tiene por qué tenerlo. Sin él, el botón ATACAR de un token no se ofrece.
+   */
+  onRoll?: (req: RollRequest & { campaignId?: string }) => Promise<unknown>;
   diceOpen?: boolean;
   repo?: MapsPort;
   vision?: VisionPort;
@@ -57,7 +64,7 @@ interface Props {
 const DEFAULT_STROKE: StrokeStyle = { color: STROKE_COLORS[1], width: 2 };
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
+export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, onRoll, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -160,6 +167,34 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   );
   const selectedTokens = st.tokens.filter(tk => selectedTokenIds.includes(tk.id));
   const selectedToken = selectedTokens.length === 1 ? selectedTokens[0]! : null;
+
+  /**
+   * ATACAR desde el token (`.pen` «6 · Toca el token de la criatura en el mapa y ataca con ella»).
+   *
+   * La criatura sale del bloque del que se colocó: del catálogo del sistema si es del manual
+   * (`bestiaryRef`), o de los encuentros propios del director si tiene fila (`bestiaryEntryId`). El nombre
+   * es el DEL TOKEN, porque el director renombra sus instancias.
+   */
+  const [attacking, setAttacking] = useState(false);
+  const attackerItem = useMemo(() => {
+    if (!selectedToken || selectedToken.characterId) return null;
+    if (selectedToken.bestiaryEntryId) return (extraEncounters ?? []).find(i => i.data?.['entryId'] === selectedToken.bestiaryEntryId) ?? null;
+    if (selectedToken.bestiaryRef) return (system.catalogs['bestiary'] ?? []).find(i => i.id === selectedToken.bestiaryRef) ?? null;
+    return null;
+  }, [selectedToken, extraEncounters, system]);
+  const canAttack = isDm && !!onRoll && !!attackerItem && !!selectedToken;
+
+  /** Los personajes de la escena con su distancia YA medida: «lo mide el mapa», dice el diseño. */
+  const attackTargets = useMemo((): AttackTarget[] => {
+    if (!selectedToken || !live) return [];
+    const grid = live.grid.size;
+    const from = tokenCenter(selectedToken, grid);
+    const round1 = (n: number) => Math.round(n * 10) / 10;
+    return st.tokens.filter(tk => tk.characterId && tk.id !== selectedToken.id).map(tk => {
+      const cells = distanceCells(from, tokenCenter(tk, grid), grid);
+      return { id: tk.id, name: tk.name, cells: round1(cells), metres: round1(cells * METRES_PER_CELL) };
+    });
+  }, [selectedToken, st.tokens, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
 
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
@@ -303,8 +338,18 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               <button type="button" className="tb-btn tb-btn-xs" onClick={() => { const show = selectedTokens.some(tk => !tk.visible); selectedTokens.forEach(tk => run(st.patchToken(tk.id, { visible: show }))); }}>
                 {selectedTokens.some(tk => !tk.visible) ? t('maps.token.show') : t('maps.token.hide')}
               </button>
+              {canAttack && (
+                <button type="button" className="tb-btn tb-btn-xs tb-btn-atk" onClick={() => setAttacking(true)}>
+                  {t('bestiary.attack.button')}
+                </button>
+              )}
               <button type="button" className="tb-btn tb-btn-xs" onClick={deleteSelection}>{t('maps.token.remove')}</button>
             </div>
+          )}
+          {canAttack && attacking && (
+            <TokenAttackModal entry={entryFromCatalogItem(attackerItem!, selectedToken!.name)} system={system}
+                              targets={attackTargets} onAttack={req => onRoll!({ ...req, campaignId })}
+                              onClose={() => setAttacking(false)} />
           )}
           {isDm && pcMenu && (
             <div className="mp-pop mp-pcmenu" role="menu" aria-label={t('maps.place.pick')}>

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { CatalogItem } from '@rolvium/core';
 import type { BestiaryEntry, CreatureData } from '../entities/BestiaryEntry';
-import { byOrigin, canRoll, duplicateOf, emptyEntry, fromCatalog, mergeEntries, resistanceOf, specialtiesFor, toCatalogItem } from './bestiaryRules';
+import { byOrigin, canRoll, duplicateOf, emptyEntry, fromCatalog, mergeEntries, resistanceOf, specialtiesFor, toCatalogItem, entryFromCatalogItem, withManualFallback } from './bestiaryRules';
 
 const data = (over: Partial<CreatureData> = {}): CreatureData =>
   ({ stats: { fortitude: 8, combat: 4 }, endurance: 10, destiny: 0, protection: 3, abilities: ['Piel gruesa 3'], specialties: { combat: ['creature.garrote'] }, ...over });
@@ -125,5 +125,43 @@ describe('bestiaryRules — duplicar («otro mutante»)', () => {
 
   it('un PNJ con ficha duplicado sigue siendo PNJ, no se degrada a encuentro', () => {
     expect(duplicateOf(entry({ origin: 'npc' }), [], 'c1', 'plenilunio').origin).toBe('npc');
+  });
+});
+
+describe('bestiaryRules — la criatura de un token de la escena', () => {
+  /** Una copia hecha ANTES de que existieran las capacidades salía muda en pantalla («Aamel (2)»). */
+  it('una copia sin capacidades las hereda del bloque del que salió', () => {
+    const manual = [entry({ id: 'aamel', origin: 'manual', name: 'Aamel',
+      data: { ...data(), capabilities: [{ id: 'aura', level: 3 }], attacks: [] } })];
+    const copia = entry({ id: 'row-1', origin: 'custom', name: 'Aamel (2)', sourceRef: 'aamel',
+      data: { ...data(), capabilities: [], attacks: [] } });
+    expect(withManualFallback(copia, manual).data.capabilities).toEqual([{ id: 'aura', level: 3 }]);
+  });
+
+  it('si la copia ya trae capacidades, mandan las suyas', () => {
+    const manual = [entry({ id: 'aamel', origin: 'manual', data: { ...data(), capabilities: [{ id: 'aura', level: 3 }] } })];
+    const copia = entry({ id: 'row-1', origin: 'custom', sourceRef: 'aamel',
+      data: { ...data(), capabilities: [{ id: 'winged' }] } });
+    expect(withManualFallback(copia, manual).data.capabilities).toEqual([{ id: 'winged' }]);
+  });
+
+  it('una entrada propia de cero (sin sourceRef) no hereda nada', () => {
+    const propia = entry({ id: 'row-2', origin: 'custom', sourceRef: null, data: { ...data(), capabilities: [] } });
+    expect(withManualFallback(propia, [])).toBe(propia);
+  });
+
+  /** El mapa sólo recibe `CatalogItem`s: el bloque entero viaja dentro para poder ATACAR desde el token. */
+  it('toCatalogItem lleva el bloque entero, y entryFromCatalogItem lo devuelve con el nombre del token', () => {
+    const e = entry({ id: 'ogre', origin: 'manual', name: 'Ogro', data: { ...data(), attacks: [{ label: 'x', attack: 9, damage: 10 }] } });
+    const item = toCatalogItem(e);
+    const back = entryFromCatalogItem(item, 'El de la puerta');
+    expect(back.name).toBe('El de la puerta');
+    expect(back.data.attacks).toEqual([{ label: 'x', attack: 9, damage: 10 }]);
+    expect(back.data.stats).toEqual(e.data.stats);
+  });
+
+  it('un bloque del manual entra igual, aunque sus valores estén en `data` a secas', () => {
+    const item = { id: 'ogre', label: 'catalog.bestiary.ogre.name', ref: 'bestiary', data: { ...data(), page: 152 } };
+    expect(entryFromCatalogItem(item, 'Ogro').data.endurance).toBe(data().endurance);
   });
 });

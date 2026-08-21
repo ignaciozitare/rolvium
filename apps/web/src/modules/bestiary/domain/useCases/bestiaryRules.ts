@@ -64,10 +64,46 @@ export function toCatalogItem(entry: BestiaryEntry): CatalogItem {
       protection: entry.data.protection,
       origin: entry.origin,
       tokenUrl: entry.tokenUrl,
+      /**
+       * El bloque entero, para que quien tenga el token delante pueda ATACAR con él sin volver a buscar la
+       * entrada: el mapa sólo recibe `CatalogItem`s y no sabe que existe el bestiario (`SceneTab`).
+       */
+      creature: entry.data,
       /** Sólo las propias tienen fila; es lo que rellena `maps_tokens.bestiary_entry_id`. */
       entryId: entry.origin === 'manual' ? null : entry.id,
     },
   };
+}
+
+/**
+ * Una copia de un bloque del manual («otro ogro», «Aamel (2)») guarda sus valores en la base el día que se
+ * duplica. Las hechas ANTES de que existieran las capacidades y los ataques no los tienen guardados, así que
+ * en pantalla salían mudas: ni casilla de noche, ni capacidades, ni ataques — que es justo lo que vio el
+ * dueño con «Aamel (2)» el 2026-08-21.
+ *
+ * `sourceRef` dice de qué bloque del manual salió la copia y existe precisamente para no perder esa
+ * referencia, así que de ahí se rellena lo que falta. **Sólo lo que falta**: si la copia ya trae capacidades
+ * o ataques, mandan los suyos — es una copia editable y el director manda sobre ella.
+ */
+export function withManualFallback(entry: BestiaryEntry, manual: BestiaryEntry[]): BestiaryEntry {
+  if (!entry.sourceRef || entry.data.capabilities?.length || entry.data.attacks?.length) return entry;
+  const src = manual.find(m => m.id === entry.sourceRef);
+  if (!src) return entry;
+  const capabilities = entry.data.capabilities?.length ? entry.data.capabilities : src.data.capabilities ?? [];
+  const attacks = entry.data.attacks?.length ? entry.data.attacks : src.data.attacks ?? [];
+  if (!capabilities.length && !attacks.length) return entry;
+  return { ...entry, data: { ...entry.data, capabilities, attacks } };
+}
+
+/**
+ * La criatura de un token de la escena. Sirve para los dos orígenes sin que quien llama sepa la diferencia:
+ * un bloque del manual trae sus valores en `data`, y una entrada propia los trae en `data.creature`
+ * (`toCatalogItem`). El nombre entra por parámetro porque es el DEL TOKEN: el director renombra sus
+ * instancias («el de la puerta») y el aviso tiene que llamarlo como él lo llamó.
+ */
+export function entryFromCatalogItem(item: CatalogItem, name: string): BestiaryEntry {
+  const d = (item.data?.['creature'] ?? item.data ?? {}) as Record<string, unknown>;
+  return fromCatalog({ ...item, data: d }, name, '');
 }
 
 /**
