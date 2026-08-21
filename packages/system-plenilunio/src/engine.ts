@@ -3,7 +3,7 @@
 // resolverAccion, describirGrado, damage/health, progression) plus the
 // `Engine` object required by the GameSystem port. No I/O, no randomness: the
 // platform generates dice on the server and calls `resolve`.
-import type { ActionDef, DiceGroup, Engine, RollRequest, RollResult, RolledDice, SharedResourceDef, SheetData, SheetPatch } from '@rolvium/core';
+import type { ActionDef, DiceGroup, Engine, ExtraDiceCap, RollRequest, RollResult, RolledDice, SharedResourceDef, SheetData, SheetPatch } from '@rolvium/core';
 import {
   GIFT_IDS, GIFT_MAX_LEVEL, HEALTH_LEVELS, MAX_GIFT_TRADES, RANGE_DIFFICULTY, RECOVERY, armourById, capabilityLevel, hasCapability,
   isMelee, isStatId, sizeMod, weaponById,
@@ -224,19 +224,70 @@ export function rollBlockOptions(sheet: SheetData): Pick<PlenilunioRollOptions, 
   };
 }
 
+// ─── Extra dice ceiling (manual p.87, p.96, p.101) ───────────────────────────
+/**
+ * Cuántos dados extra puede añadir a mano quien tira. **El libro no da un máximo global**, así que el techo
+ * sale de los casos que sí escribe, uno por uno (orden del dueño, 2026-08-21: «teniendo identificado los
+ * casos … no pones dos, y si alguna habilidad te deja más lo permites»). Antes no había techo ninguno y se
+ * llegaba a **30 dados con Combate 4** desde el desplegable de disparar.
+ *
+ *  - **`tools: 2`** — el caso normal. p.87, literal: «Si el personaje cuenta con herramientas adecuadas o de
+ *    más calidad, **añade uno o dos dados** a la característica del personaje», y **no se acumulan**: «se
+ *    añaden solo los dados que añada la mejor herramienta». Los accesorios de las armas a distancia (miras
+ *    láser, telescópicas, p.96) son lo mismo: el libro dice que dan dados extra y no pone número.
+ *  - **`medical: 4`** — la atención médica. p.101: «el grado de éxito que obtenga [el médico] se convierte en
+ *    dados extra que el jugador del personaje herido añadirá en su **próxima tirada de recuperación**», y la
+ *    tabla de grados de la p.85 llega hasta **4** («de forma absoluta»). La tirada de recuperación es de
+ *    Fortaleza, así que es Fortaleza la que admite hasta 4.
+ *
+ * NO gastan de este techo, porque el motor ya los pone por su cuenta y no son «lo que el jugador añade a
+ * mano»: la **bonificación del arma** cuerpo a cuerpo (p.87/p.97, 1–2 dados, y 3+ las excepcionales de la
+ * p.157) va en `bonusDice`, y los **dados de la reserva de Destino** (p.88–89) van en su propio grupo.
+ */
+export const EXTRA_DICE_MAX = { tools: 2, medical: 4 } as const;
+/**
+ * ⚠ Interpretación: el tope de la atención médica se aplica a **cualquier** tirada de Fortaleza, porque la
+ * app todavía no distingue «tirada de recuperación» de las demás. Peca de generoso en una Fortaleza que no
+ * sea de recuperación, y es preferible a dejar fuera el único caso del libro que pasa de dos.
+ *
+ * Lo que el manual deja EXPRESAMENTE en manos del director —cuántos compañeros pueden apoyar una acción
+ * conjunta, +1 dado cada uno (p.87: «quedará … en la decisión del director de juego»)— no está aquí: la app
+ * no modela la acción conjunta todavía. Cuando se modele, su techo sale de cuántos apoyan.
+ */
+export function extraDiceMax(sheet: SheetData, action: { stat: string; options?: Record<string, unknown> }): ExtraDiceCap {
+  const stat: StatId = isStatId(action.stat) ? action.stat : 'fortitude';
+  return stat === 'fortitude'
+    ? { max: EXTRA_DICE_MAX.medical, reason: 'sheet.roll.extraCap.medical', ref: 'recovery' }
+    : { max: EXTRA_DICE_MAX.tools, reason: 'sheet.roll.extraCap.tools', ref: 'tools' };
+}
+
 /** Builds the RollRequest for a stat: own dice = stat − health penalty + extra + bonus; Destiny and opposition groups tagged. */
 export function poolFor(sheet: SheetData, action: { stat: string; options?: Record<string, unknown> }): RollRequest {
   const stat: StatId = isStatId(action.stat) ? action.stat : 'fortitude';
   const opts: PlenilunioRollOptions = { ...rollBlockOptions(sheet), ...readOptions(action.options), stat };
   const d = derived(sheet);
   const destiny = num(sheet.destiny, 3);
-  const ownCount = Math.max(0, statOf(sheet, stat).value - d.dicePenalty + num(opts.extraDice) + num(opts.bonusDice));
+  /**
+   * El techo de los dados extra se aplica AQUÍ y no en la pantalla: cuando la tirada lleva ficha, el servidor
+   * rehace los grupos con este mismo `poolFor` (`performRoll`, «the client's groups are only a preview»), así
+   * que capándolo en un solo sitio vale igual en el navegador y en el servidor. Es la lección de la tanda
+   * anterior, donde el techo de los dados de defensa vivía SÓLO en el navegador y un `{"defence": 40}` a mano
+   * daba 40 dados. (Una tirada de criatura no lleva ficha y no se rehace: hueco de autoridad anterior a esto.)
+   * **Sólo es un TECHO.** Un `extraDice` NEGATIVO es legítimo y no se toca: es como se dice «tiro con menos
+   * dados de los que tengo», que el libro permite expresamente —el director reparte su Combate entre los
+   * ataques y defensas del turno (p.94)— y es lo que usan el contador de la ficha («N dados menos») y el
+   * ataque desde el token del mapa (`extraDice: dados − Combate`). Se capa la SUBIDA y nunca la bajada.
+   */
+  const extra = Math.min(Math.floor(num(opts.extraDice)), extraDiceMax(sheet, { stat, ...(action.options ? { options: action.options } : {}) }).max);
+  const ownCount = Math.max(0, statOf(sheet, stat).value - d.dicePenalty + extra + num(opts.bonusDice));
   const destinyDice = destiny >= DESTINY_MAX ? 0 : Math.max(0, Math.min(DESTINY_POOL.perTakeMax, Math.floor(num(opts.destinyDice))));
   const opposition = Math.max(0, Math.floor(num(opts.difficulty)));
   const groups: DiceGroup[] = [{ count: ownCount, sides: 6, tag: 'own' }];
   if (destinyDice > 0) groups.push({ count: destinyDice, sides: 6, tag: 'destiny' });
   if (opposition > 0) groups.push({ count: opposition, sides: 6, tag: 'opposition' });
-  const options: PlenilunioRollOptions = { ...opts, destinyDice, armourPenalty: num(opts.armourPenalty), specialty: !!opts.specialty };
+  // `extraDice` se guarda YA RECORTADO: en el Registro tiene que quedar lo que de verdad se tiró, no lo que
+  // alguien pidió (misma corrección que se hizo con `defence_dice` en la tanda anterior).
+  const options: PlenilunioRollOptions = { ...opts, extraDice: extra, destinyDice, armourPenalty: num(opts.armourPenalty), specialty: !!opts.specialty };
   return {
     systemId: SYSTEM_ID, kind: 'system', title: `sheet.stats.${stat}`, groups,
     options: options as unknown as Record<string, unknown>,
@@ -542,7 +593,7 @@ export const attackActionFor = (row: WeaponRow): 'attack.melee' | 'attack.ranged
 
 export const engine: Engine = {
   derived: sheet => ({ ...derived(sheet) }),
-  poolFor, resolve, applyDamage,
+  poolFor, extraDiceMax, resolve, applyDamage,
   progression: { cost: progressionCost, apply: progressionApply },
   sharedResources, actions,
   explain,

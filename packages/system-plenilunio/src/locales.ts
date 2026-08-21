@@ -10,7 +10,7 @@ const es: Messages = {
   sheet: {
     sections: { identity: 'Identidad', roll: 'Tirada', stats: 'Características', state: 'Estado', armour: 'Armadura', weapons: 'Armas', gifts: 'Dones', equipment: 'Equipo', story: 'Descripción e historia', creation: 'Creación' },
     identity: { name: 'Personaje', player: 'Jugador', concept: 'Concepto', avatar: 'Avatar', size: 'Tamaño' },
-    roll: { difficulty: 'Dificultad', specialty: 'Especialidad', armour: 'Armadura', extra: 'Extra' },
+    roll: { difficulty: 'Dificultad', specialty: 'Especialidad', armour: 'Armadura', extra: 'Extra', extraCap: { tools: 'Tope: 2 dados por herramientas, y no se acumulan', medical: 'Tope: 4 dados — el grado de éxito del médico (recuperación)' } },
     common: { yes: 'Sí', no: 'No' },
     stats: { fortitude: 'Fortaleza', combat: 'Combate', will: 'Voluntad', cunning: 'Astucia', subtlety: 'Sutileza', presence: 'Presencia', culture: 'Cultura', specialty: 'Especialidad', roll: 'Tirar' },
     state: { endurance: 'Aguante', resistanceMax: 'Resistencia máxima', resistance: 'Resistencia', health: 'Salud', dicePenalty: 'Penalización por heridas', unconscious: 'Inconsciente', recoveryMax: 'Resistencia recuperable descansando', unconsciousNote: 'Inconsciente · sin Resistencia, indefenso en el suelo (p.101)', destiny: 'Destino', fortuneMax: 'Fortuna máxima', fortune: 'Fortuna', xp: 'Experiencia', giftPoints: 'Puntos de don' },
@@ -230,6 +230,7 @@ const es: Messages = {
     damage: { title: 'Daño', summary: 'Cada éxito hace 1; cada triunfo, el daño del arma (doble si vale por dos éxitos). Se cancelan primero los éxitos normales. La protección se resta.' },
     weapons: { title: 'Armas', summary: 'La bonificación añade dados solo cuerpo a cuerpo; F+n suma la Fortaleza al daño.' },
     melee: { title: 'Cuerpo a cuerpo', summary: 'Conflicto de Combate contra Combate: el que se defiende elige cuántos dados gasta, y los gastados se le restan del turno siguiente.' },
+    tools: { title: 'Herramientas', summary: 'Unas herramientas adecuadas o mejores añaden uno o dos dados. No se acumulan: sólo cuentan los de la mejor.' },
     ranged: { title: 'Disparar', summary: 'Reto de Combate contra la dificultad del alcance: corto 2 · medio 3 · largo 5 · muy largo 6. A distancia el arma no añade dados.' },
     armours: { title: 'Armaduras', summary: 'La protección resta daño; con algún fracaso, la penalización convierte triunfos en éxitos.' },
     bestiary: { title: 'Criaturas', summary: 'Cada criatura trae sus siete características, su Aguante y su Destino. Las capacidades (Piel gruesa, Aura, Ponzoña…) son poderes innatos: no se activan ni cuestan Fortuna.' },
@@ -307,7 +308,7 @@ const en: Messages = {
   sheet: {
     sections: { identity: 'Identity', roll: 'Roll', stats: 'Characteristics', state: 'State', armour: 'Armour', weapons: 'Weapons', gifts: 'Gifts', equipment: 'Equipment', story: 'Description and story', creation: 'Creation' },
     identity: { name: 'Character', player: 'Player', concept: 'Concept', avatar: 'Avatar', size: 'Size' },
-    roll: { difficulty: 'Difficulty', specialty: 'Specialty', armour: 'Armour', extra: 'Extra' },
+    roll: { difficulty: 'Difficulty', specialty: 'Specialty', armour: 'Armour', extra: 'Extra', extraCap: { tools: 'Cap: 2 dice from tools, and they do not stack', medical: 'Cap: 4 dice — the doctor’s degree of success (recovery)' } },
     common: { yes: 'Yes', no: 'No' },
     stats: { fortitude: 'Fortitude', combat: 'Combat', will: 'Will', cunning: 'Cunning', subtlety: 'Subtlety', presence: 'Presence', culture: 'Culture', specialty: 'Specialty', roll: 'Roll' },
     state: { endurance: 'Endurance', resistanceMax: 'Max resistance', resistance: 'Resistance', health: 'Health', dicePenalty: 'Wound penalty', unconscious: 'Unconscious', recoveryMax: 'Resistance recoverable by rest', unconsciousNote: 'Unconscious · out of Resistance, helpless on the ground (p.101)', destiny: 'Destiny', fortuneMax: 'Max fortune', fortune: 'Fortune', xp: 'Experience', giftPoints: 'Gift points' },
@@ -525,6 +526,7 @@ const en: Messages = {
     damage: { title: 'Damage', summary: 'Each success deals 1; each triumph, the weapon’s damage (double when it counts as two successes). Plain successes are cancelled first. Protection is subtracted.' },
     weapons: { title: 'Weapons', summary: 'The bonus adds dice in melee only; F+n adds Fortitude to the damage.' },
     melee: { title: 'Melee', summary: 'A Combat versus Combat conflict: the defender chooses how many dice to spend, and what they spend is taken off their next turn.' },
+    tools: { title: 'Tools', summary: 'Suitable or better tools add one or two dice. They do not stack: only the best tool counts.' },
     ranged: { title: 'Shooting', summary: 'A Combat challenge against the range difficulty: short 2 · medium 3 · long 5 · very long 6. At range the weapon adds no dice.' },
     armours: { title: 'Armours', summary: 'Protection reduces damage; with any fumble, the penalty turns triumphs into successes.' },
     bestiary: { title: 'Creatures', summary: 'Every creature comes with its seven characteristics, its Endurance and its Destiny. Capacities (Thick hide, Aura, Venom…) are innate powers: they need no activation and cost no Fortune.' },

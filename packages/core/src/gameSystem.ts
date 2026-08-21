@@ -156,9 +156,31 @@ export interface RollExplain {
   verdict?: string;
 }
 
+/** El techo de dados extra de UNA tirada, con el porqué: lo declara el sistema, lo pinta la plataforma. */
+export interface ExtraDiceCap {
+  /** Cuántos dados extra admite esta tirada como mucho. */
+  max: number;
+  /** Clave i18n del sistema que dice DE DÓNDE sale el techo («herramientas», «atención médica»…). */
+  reason: I18nKey;
+  /** Clave de `references` para la página del manual del tooltip. */
+  ref?: string;
+}
+
 export interface Engine {
   derived: (sheet: SheetData) => Record<string, unknown>;
   poolFor: (sheet: SheetData, action: { stat: string; options?: Record<string, unknown> }) => RollRequest;
+  /**
+   * Cuántos dados extra puede añadir a mano quien tira, y POR QUÉ. Lo declara el sistema porque el techo es
+   * una regla suya: la plataforma no sabe de dónde salen los dados de más ni cuándo hay más de lo normal.
+   *
+   * `poolFor` lo aplica siempre, y la pantalla lo lee sólo para apagar el «+» y decir de dónde viene. Cuando
+   * la tirada lleva ficha el servidor rehace los grupos con ese mismo `poolFor` y no se fía de los del
+   * cliente, así que ahí el techo NO vive en el navegador; una tirada sin ficha no se rehace y el techo sí se
+   * queda del lado del cliente. Como en el resto de la ficha se capa la SUBIDA y nunca la bajada.
+   *
+   * Opcional: un sistema que no lo declare no tiene techo, que es como estaba todo antes.
+   */
+  extraDiceMax?: (sheet: SheetData, action: { stat: string; options?: Record<string, unknown> }) => ExtraDiceCap | null;
   resolve: (request: RollRequest, dice: RolledDice, sheet?: SheetData) => RollResult;
   applyDamage: (sheet: SheetData, damage: number) => SheetPatch;
   progression: ProgressionRules;

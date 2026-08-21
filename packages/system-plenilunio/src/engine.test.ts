@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyArmour, applyDamage, attackDamage, autoSuccessOptions, blastDamage, blastDice, blastReach, canBeAttackedPhysically, catchBreath, classify,
   degreeKey, derived, engine, incorporealStat, poolFor, progressionApply, progressionCost, reload,
-  resolve, resolveAction, rest, sharedResources, spendAmmo, venomDamage, actions, BLAST_DIFFICULTY, XP_COSTS, DESTINY_POOL, STAT_MAX, SYSTEM_ID,
+  resolve, resolveAction, rest, sharedResources, spendAmmo, venomDamage, actions, extraDiceMax, readOptions, BLAST_DIFFICULTY, EXTRA_DICE_MAX, XP_COSTS, DESTINY_POOL, STAT_MAX, SYSTEM_ID,
 } from './engine';
 import { newSheet, type StatValue } from './schema';
 import { STAT_IDS } from './catalogs';
@@ -106,6 +106,52 @@ describe('derived (manual p.25, p.89, p.101)', () => {
     expect(derived(sheet({ health: 'wounded' })).dicePenalty).toBe(1);
     expect(derived(sheet({ health: 'badlyWounded' })).dicePenalty).toBe(2);
     expect(derived(sheet({ armour: 'mailShirt' }))).toMatchObject({ protection: 5, armourPenalty: 3 });
+  });
+});
+
+/**
+ * El dueño llegó a **30 dados con Combate 4** desde el desplegable de disparar: el «+» no tenía techo. El libro
+ * no da un máximo global, así que el techo se construye con los casos que sí escribe (RULES.md §2.8):
+ * herramientas «uno o dos» y no acumulables (p.87) → 2, y la atención médica, cuyo grado de éxito llega a 4
+ * (p.101 + tabla de grados p.85) → 4 en la tirada de recuperación, que es de Fortaleza.
+ */
+describe('extraDiceMax + tope en poolFor (p.87, p.96, p.101)', () => {
+  it('2 por herramientas en el caso normal, 4 en Fortaleza por la atención médica', () => {
+    expect(EXTRA_DICE_MAX).toEqual({ tools: 2, medical: 4 });
+    for (const stat of ['combat', 'will', 'cunning', 'subtlety', 'presence', 'culture'] as const) {
+      expect(extraDiceMax(sheet(), { stat })).toEqual({ max: 2, reason: 'sheet.roll.extraCap.tools', ref: 'tools' });
+    }
+    expect(extraDiceMax(sheet(), { stat: 'fortitude' })).toEqual({ max: 4, reason: 'sheet.roll.extraCap.medical', ref: 'recovery' });
+  });
+  it('`poolFor` RECORTA los dados extra, así que el techo vale igual en el servidor', () => {
+    // Combate 4 + 26 extra era lo que salía en la app: se queda en 4 + 2.
+    const req = poolFor(sheet(), { stat: 'combat', options: { extraDice: 26, difficulty: 0 } });
+    expect(req.groups[0]?.count).toBe(6);
+    // Y lo GUARDADO es lo que de verdad se tiró, no lo que se pidió: el Registro no puede decir «+26».
+    expect(readOptions(req.options).extraDice).toBe(2);
+    // Fortaleza admite hasta 4.
+    expect(poolFor(sheet(), { stat: 'fortitude', options: { extraDice: 26, difficulty: 0 } }).groups[0]?.count).toBe(3 + 4);
+    // Por debajo del techo no toca nada.
+    expect(poolFor(sheet(), { stat: 'combat', options: { extraDice: 1, difficulty: 0 } }).groups[0]?.count).toBe(5);
+  });
+  /**
+   * Es un TECHO y nada más. Un `extraDice` NEGATIVO es legítimo: así se dice «tiro con menos dados de los que
+   * tengo», que es como el director reparte su Combate entre los ataques y defensas del turno (p.94) y lo que
+   * usa el ataque desde el token del mapa (`extraDice: dados − Combate`). Se capa la subida, nunca la bajada.
+   */
+  it('un `extraDice` NEGATIVO no se toca: es tirar con menos, y el libro lo permite (p.94)', () => {
+    expect(poolFor(sheet(), { stat: 'combat', options: { extraDice: -2, difficulty: 0 } }).groups[0]?.count).toBe(2);
+    // Y nunca por debajo de cero.
+    expect(poolFor(sheet(), { stat: 'combat', options: { extraDice: -99, difficulty: 0 } }).groups[0]?.count).toBe(0);
+  });
+  /**
+   * La bonificación del arma NO gasta del techo: la pone el motor (`bonusDice`), no la mano de quien tira, y el
+   * libro deja que las armas excepcionales de la p.157 añadan «tres o más» dados. Si gastara del techo, un arma
+   * excepcional dejaría al personaje sin poder usar sus herramientas.
+   */
+  it('la bonificación del arma no gasta del techo (p.87/p.97/p.157)', () => {
+    const req = poolFor(sheet(), { stat: 'combat', options: { extraDice: 2, bonusDice: 3, difficulty: 0 } });
+    expect(req.groups[0]?.count).toBe(4 + 2 + 3);
   });
 });
 

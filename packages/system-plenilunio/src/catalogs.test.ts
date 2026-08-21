@@ -272,7 +272,7 @@ describe('catalogs', () => {
     const pages = Object.fromEntries(Object.entries(references).map(([k, r]) => [k, r.page]));
     expect(pages).toEqual({
       stats: 20, specialty: 83, roll: 82, difficulty: 84, degree: 85, setback: 86, destinyPool: 88, destiny: 88, fortune: 89,
-      endurance: 98, resistance: 98, health: 99, damage: 97, weapons: 97, melee: 93, ranged: 96, armours: 98, recovery: 101, gifts: 102, xp: 91, size: 25,
+      endurance: 98, resistance: 98, health: 99, damage: 97, weapons: 97, melee: 93, ranged: 96, tools: 87, armours: 98, recovery: 101, gifts: 102, xp: 91, size: 25,
       bestiary: 107,
     });
   });

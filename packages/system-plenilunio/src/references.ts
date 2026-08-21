@@ -26,6 +26,8 @@ export const references: References = Object.fromEntries([
   // gasta en defenderse (RULES.md §5.2, pp. 93–95). Distinto de `difficulty`, que es un reto (p.84).
   ref('melee', 93),
   ref('ranged', 96),
+  // Las herramientas (p.87): de donde salen los dados extra de una accion normal, y por que son uno o dos.
+  ref('tools', 87),
   ref('armours', 98),
   ref('recovery', 101),
   ref('gifts', 102),

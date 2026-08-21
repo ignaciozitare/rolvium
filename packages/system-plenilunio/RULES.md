@@ -177,6 +177,41 @@ Ningún éxito ni triunfo en la tirada **y** al menos un fracaso → además de 
 - **Acciones conjuntas** (p. 87): coordina quien tenga la característica más alta; cada ayudante con característica
   ≥ mitad de la del coordinador añade +1 dado.
 - **Herramientas** (p. 87): herramienta adecuada +1 dado, excelente +2; no acumulables (vale la mejor).
+  Literal: «se asume que el personaje que realiza la acción cuenta con las herramientas mínimas necesarias…
+  Si el personaje cuenta con herramientas adecuadas o de más calidad, **añade uno o dos dados**», y «la
+  bonificación por herramientas **no se acumula** si el personaje utiliza varias herramientas al mismo tiempo.
+  En ese caso **se añaden solo los dados que añada la mejor herramienta**».
+
+### 2.8 Techo de los dados extra — ⚠ interpretación (p. 87, p. 96, p. 101)
+**El libro NO da un máximo global de dados extra**, así que el techo de la app se construye caso por caso con lo
+que sí escribe (orden del dueño, 2026-08-21; antes no había techo ninguno y se llegaba a 30 dados con Combate 4):
+
+| Caso | Techo | Dónde |
+|---|---|---|
+| **Herramientas y accesorios** — el caso normal | **2** | p. 87 «añade uno o dos dados», y no se acumulan. Los accesorios de las armas a distancia (miras láser, telescópicas) son lo mismo: p. 96 dice que dan dados extra y no pone número. |
+| **Atención médica**, antes de una tirada de recuperación | **4** | p. 101: «el grado de éxito que obtenga [el médico] se convierte en dados extra… en su próxima tirada de recuperación», y la tabla de grados de la p. 85 llega hasta **4** («de forma absoluta»). La tirada de recuperación es de **Fortaleza**. |
+
+**NO gastan de este techo**, porque no son «lo que se añade a mano»: la **bonificación del arma** cuerpo a cuerpo
+(p. 87/97, 1–2 dados, y «tres o más» las excepcionales de la p. 157) la pone el motor aparte, y los **dados de la
+reserva de Destino** (§3.2) van en su propio grupo.
+
+Lo mismo vale para el **ataque impreso de un bloque de bestiario** («Mandoble 11»), que es Combate más la
+bonificación de su arma (p. 97): su diferencia con el Combate viaja como bonificación del arma y no como dado
+extra, en las dos vías —tirar en su nombre y atacar desde su token del mapa—. El caso que lo prueba es
+**Malefic a dos manos** (p. 163): el libro le da «bonificación +4», y Luz-Malefic ataca con 10 teniendo Combate 6.
+Metido en los dados extra, el techo de dos se lo comería y tiraría 8.
+
+⚠ Interpretación: el techo de la atención médica se aplica a **cualquier** tirada de Fortaleza, porque la app aún
+no distingue la tirada de recuperación de las demás. Peca de generoso ahí, y es preferible a dejar fuera el único
+caso del libro que pasa de dos.
+
+⚠ **Lo que queda fuera a propósito**: las **acciones conjuntas** (p. 87, +1 dado por ayudante) tienen un tope que
+depende de cuántos apoyen, y el libro lo deja expresamente «en manos de la lógica de la situación y, en última
+instancia, en la decisión del director de juego». La app no modela la acción conjunta todavía; cuando la modele,
+su techo saldrá de ahí y no de esta tabla.
+
+**Es un TECHO y nada más**: un `extraDice` NEGATIVO —tirar con menos dados de los que se tienen— es legítimo y no
+se toca. Es como el director reparte su Combate entre los ataques y defensas de su turno (p. 94).
 
 ---
 
@@ -797,4 +832,4 @@ El **mutante no tiene ninguna**: el libro no le imprime bloque (§8.4).
 ## 9. Mapa página → clave `references.ts`
 stats 20 · specialty 83 · roll 82 · difficulty 84 · degree 85 · setback 86 · destinyPool 88 · destiny 88 ·
 fortune 89 · xp 91 · ranged 96 · weapons 97 · damage 97 · armours 98 · endurance 98 · resistance 98 · health 99 ·
-recovery 101 · gifts 102 · size 25 · bestiary 107 · melee 93.
+recovery 101 · gifts 102 · size 25 · bestiary 107 · melee 93 · tools 87.

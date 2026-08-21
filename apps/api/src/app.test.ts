@@ -267,6 +267,24 @@ describe('POST /rolls — pool authority', () => {
     expect(own!.count).toBeLessThan(20);
     expect(r.json().data.dice[0].length).toBe(own!.count);
   });
+  /**
+   * El techo de dados extra tiene que valer también AQUÍ, no sólo en el navegador: es la lección de la tanda
+   * anterior, donde el de los dados de defensa vivía sólo en la pantalla y un `{"defence": 40}` mandado a
+   * mano daba 40 dados. El manual da «uno o dos» por herramientas y no acumulables (p.87, RULES.md §2.8), y
+   * `poolFor` —por donde el servidor rehace los grupos— lo recorta, así que un `extraDice: 26` a mano no cuela.
+   */
+  it('recorta los dados extra pedidos a mano: el techo del manual no vive en el navegador (p.87)', async () => {
+    const payload = { campaignId: CAMP_ID, systemId: 'plenilunio', kind: 'system', title: 'Combate', groups: [{ count: 30, sides: 6, tag: 'own' }], options: { stat: 'combat', extraDice: 26 }, visibility: 'table', characterId: CHAR_ID };
+    const r = await app.inject({ method: 'POST', url: '/rolls', headers: { authorization: 'Bearer player' }, payload });
+    expect(r.statusCode).toBe(200);
+    const data = r.json().data as { request: { groups: { count: number; tag?: string }[]; options: Record<string, unknown> }; dice: number[][] };
+    const own = data.request.groups.find(g => g.tag === 'own')!;
+    const base = plenilunio.engine.poolFor(charData(), { stat: 'combat', options: { difficulty: 0 } }).groups[0]!.count;
+    expect(own.count).toBe(base + 2);
+    expect(data.dice[0]!.length).toBe(own.count);
+    // Y lo GUARDADO es lo que de verdad se tiró, no lo que se pidió: el Registro no puede decir «+26».
+    expect(data.request.options['extraDice']).toBe(2);
+  });
 });
 
 
