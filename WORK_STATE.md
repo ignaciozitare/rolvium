@@ -14,52 +14,66 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🔴 PUNTO EXACTO — 2026-08-21: YA SE PUEDE ATACAR DESDE EL TOKEN. FALTAN LAS COLUMNAS 4 Y 5
+## 🔴 PUNTO EXACTO — 2026-08-21, CIERRE POR HANDOFF. Atacar desde el token FUNCIONA; la columna 5 va por la mitad
 
-Rama **`feat/bestiario`**. **777 tests** verdes (555 web + 77 api + 6 core + 16 ui + 123 plenilunio),
-typecheck, `audit` **0 hard** (13 warn; el nuevo es el overlay propio del modal de atacar, declarado).
-Commits: `19df088` (datos + motor) · `435b46f` (el desplegable de tirar) · **`8fb2fe3`** (atacar desde el token).
+Rama **`feat/bestiario`**, árbol limpio. **781 tests** verdes (559 web + 77 api + 6 core + 16 ui + 123
+plenilunio), typecheck, `audit` **0 hard** (13 warn). Commits de hoy: `19df088` · `435b46f` · `8fb2fe3` ·
+`0838f0d` · `e23bb75` (el `.pen`, ya guardado y commiteado) · **`c8c79f6`**.
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: atacar desde el token ya está (bloque 🔴 de WORK_STATE). Sigue con la **columna 5** del
-> `.pen` —el aviso de defensa al jugador— y luego la **columna 4**, el panel del director.
+> Retomo Rolvium: sigue la **columna 5** del `.pen` (el aviso de defensa al jugador). La migración
+> `20260821000000_dice_attacks.sql` ya está escrita y SIN APLICAR; faltan la API y las dos pantallas.
+> Bloque 🔴 de WORK_STATE.
 
-### ✅ Lo que se hizo hoy, por orden
-1. **Bestiario, tandas 1 y 2** (`19df088`): los 12 bloques en caja (BESTIARY 45 → 57) con sus ataques
-   impresos, las 15 capacidades como dato y el motor aplicándolas (éxitos automáticos, Ira solar, Inmune al
-   dolor, Piel gruesa, Ancla terrenal, Incorpóreo, Ponzoña, Deflagración).
-2. **Tanda 3** (`435b46f`): el desplegable de tirar aprende los ataques, la casilla de noche, las capacidades
-   marcables y la Deflagración. Diseño aprobado con capturas (`.pen` `vzBJo` y `zCTzX`, nuevo).
-3. **Atacar desde el token** (`8fb2fe3`): `.pen` columna 6, portada 1:1. Y el fallo que vio el dueño —
-   «Aamel (2)», una copia vieja sin capacidades guardadas, salía muda — arreglado con `withManualFallback`.
+### ✅ Lo que ya funciona
+- **Bestiario entero**: 57 bloques con sus ataques impresos, las 15 capacidades como dato y el motor
+  aplicándolas. El desplegable de tirar las ofrece (casilla de noche incluida) y la Deflagración se tira.
+- **Atacar desde el token** (`.pen` columna 6): seleccionas la criatura en la escena → **ATACAR** en la barra
+  del token → a quién, cuántos dados, y fuera. El mapa mide la distancia (1 casilla = 1,5 m): hasta 3 m es
+  cuerpo a cuerpo, más lejos sale el alcance con su dificultad (p.96) y pasado el muy largo el botón se apaga.
+- **La hora la manda el mapa**: `scene.lighting` decide qué capacidades ofrece el ataque (Amparo de la noche
+  de noche, ninguna nocturna de día). Aviso del dueño, 2026-08-21.
+- **Arreglado**: las copias viejas del manual («Aamel (2)») salían mudas por no tener capacidades guardadas.
 
-### ⏭ LO QUE FALTA, EN ORDEN
-- **Columna 5 del `.pen`** («LE SALTA AL JUGADOR CUANDO LE ATACAN»): el aviso «TE ATACA UN OGRO», elegir
-  cuántos dados de Combate gasta en defenderse, y que esos dados sean la oposición del ataque. **Es lo que
-  cierra el cuerpo a cuerpo**, que hoy va sin oposición. Pide una pieza nueva: un ataque PENDIENTE que llegue
-  al jugador en tiempo real → migración, o sea **DBA Agent primero**.
-- **Columna 4 del `.pen`** (el panel del director): pedir tirada a los jugadores manteniendo pulsada una
-  característica, y la lista de encuentros de la escena. Es lo que el dueño pidió por su nombre.
-- **El daño no se aplica solo**: el motor lo calcula, pero quien lo recibe lo teclea en «Recibir daño». El
-  `.pen` **no diseña** dónde sale ese número — hay que dibujarlo antes de construirlo.
+### ⏭ LA COLUMNA 5, PASO A PASO (es lo siguiente)
+`.pen` `oSBrx` «Columna · defensa» → `Aviso/Te atacan`. Lo que falta, en orden:
+1. **Aplicar la migración** `supabase/migrations/20260821000000_dice_attacks.sql` (escrita, NO aplicada).
+   Local: `npm run db:reset`. En la nube hay que **preguntarle al dueño antes** (proyecto `scfspsiemikfcnqteonq`).
+   Después: `supabase db lint --local --level error` y `get_advisors` sin CRITICAL nuevos.
+2. **API** (`apps/api`): `POST /attacks` (el director abre el ataque; llama a `dice_open_attack`) y
+   `POST /attacks/:id/answer` (el jugador contesta; llama a `dice_answer_attack`, mete los dados de defensa
+   como grupo `opposition` en la petición guardada, tira, escribe en `dice_rolls` con `dice_commit_roll` y
+   cierra con `dice_close_attack`).
+3. **`TokenAttackModal`**: cuando es CUERPO A CUERPO, en vez de tirar, abre el ataque pendiente. A distancia
+   sigue tirando en el acto — es un reto contra el alcance y no hay a quién preguntar.
+4. **Pantalla del jugador** (nueva, `.pen` columna 5): «TE ATACA UN OGRO», elegir 0..Combate dados de
+   defensa, botones «No defenderme» / «Defenderme». Llega por realtime (`dice_attacks` ya está en la
+   publicación). Si no contesta, **la tirada espera**: nadie la resuelve por él (decisión del dueño).
+5. La nota del coste («los que gastes se te quitan del próximo turno», p.94) es **texto**: no hay sistema de
+   turnos y no se va a inventar aquí.
+
+### ⏭ Y DESPUÉS
+- **Columna 4**, el panel del director: pedir tirada a los jugadores manteniendo pulsada una característica,
+  y la lista de encuentros de la escena. Es lo que el dueño pidió por su nombre.
+- **El daño no se aplica solo** y el `.pen` **no diseña dónde sale ese número**: hay que dibujarlo antes.
 
 ### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
-- **El `.pen` sigue SIN GUARDAR en disco** (Cmd+S): el MCP de Pencil escribe en caché. Los frames nuevos y
-  los cambios de hoy **no están commiteados** por eso.
-- **Nathael imprime Aguante 4** con Fortaleza 7 y Voluntad 5; se copió lo impreso (RULES.md §8.0).
-- **Dos lecturas nuestras** (RULES.md §7.b.1): los éxitos automáticos cuentan para el revés y hacen 1 punto
-  de daño. Y una tercera, nueva: **cuerpo a cuerpo hasta 3 m** (dos casillas), que el libro no dice porque no
-  juega en rejilla.
-- El **Review Agent NO se ha lanzado**: esta sesión tiene prohibido usar subagentes.
+- **La migración no está aplicada**: en la nube se aplica con su permiso, no por nuestra cuenta.
+- **Tres lecturas nuestras** anotadas: los éxitos automáticos cuentan para el revés y hacen 1 punto de daño
+  (RULES.md §7.b.1), y **cuerpo a cuerpo hasta 3 m** (dos casillas), que el libro no dice porque no juega
+  en rejilla.
+- **Nathael imprime Aguante 4** con For 7 + Vol 5 = 12 (RULES.md §8.0).
+- El **Review Agent NO se ha lanzado** en toda la sesión: estaba prohibido usar subagentes.
+- **Nada se ha mirado en la app corriendo** todavía. En esta rama los fallos que se escapan son de ancho.
 
 ### 🔎 Deuda encontrada y NO tocada
 - **Ciclo de imports en plenilunio** (`engine` ↔ `explain`).
 - `applyDamage` sólo lo usa la ficha de personaje; el daño a un token de criatura no pasa por el motor.
 - **`venomDamage` sigue sin quien lo llame** (la Ponzoña encadena dos tiradas).
 - El desglose del Registro de una Deflagración sale vacío (no lleva característica).
-- En el `.pen`, insertar la X de cerrar en la cabecera del modal de atacar **no se pudo**: el nodo sale
-  «fully clipped» aunque el frame esté bien. Se dejó como está dibujado —sin X, se cierra con Escape o
-  pulsando fuera— y el código se ajustó al diseño, no al revés.
+- **En el `.pen`, `Insert` dentro de `A4VWk` no PINTA** (ocupa sitio y sale en blanco); `Copy` de un nodo que
+  ya existe sí. Por eso la fila de capacidades del modal de atacar se hizo copiando la del desplegable de
+  tirar. Si hay que añadir algo más a ese frame, copiar, no insertar.
 
 ## 🟢 PUNTO EXACTO — 2026-08-21: COLUMNA 3 TERMINADA Y MIRADA EN LA APP
 
