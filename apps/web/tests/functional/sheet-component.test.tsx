@@ -177,12 +177,14 @@ describe('<Sheet> — schema-driven, every field type', () => {
   });
 
   /**
-   * La MUNICIÓN no pasa de lo que cabe en el cargador (dueño, 2026-08-21: «al recargar de un arma nunca
-   * debería traspasar de la columna de munición más municiones de la capacidad que tiene el cargador»).
-   * El magnum lleva cargador de 6 (p.97): con 6 sueltas el `+` se apaga, con 5 todavía sube. Se capa la
-   * SUBIDA y nunca la bajada — una ficha guardada con más balas conserva las suyas y puede gastarlas.
+   * ⚠ CORREGIDO el 2026-08-21 por el dueño: «puedes tener una mochila llena de balas y tu cargador un
+   * límite de 2». Antes este test fijaba lo contrario —la Munición topada en la capacidad del cargador—
+   * y era un sinsentido: confundía lo que llevas ENCIMA con lo que cabe cargado.
+   *
+   * El techo que sí existe es el del CARGADOR, y lo aplica `reloadWeapon`: al recargar sólo traspasa lo
+   * que cabe. La Munición no se capa.
    */
-  it('la Munición tiene por techo el cargador del arma, y el techo es por fila', async () => {
+  it('la Munición NO tiene techo: la mochila no es el cargador', async () => {
     const u = userEvent.setup();
     const magazineRow = (data: Record<string, unknown>) => {
       const { onChange } = mount({ data: { ...KAREN_DATA, ...data } });
@@ -190,20 +192,22 @@ describe('<Sheet> — schema-driven, every field type', () => {
       const row = within(table).getAllByRole('row')[2] as HTMLElement;   // el magnum
       return { onChange, more: within(row).getByRole('button', { name: '+ Munición' }) };
     };
+    // El magnum lleva cargador de 6 (p.97), y aun con el cargador lleno la mochila sigue subiendo.
     const lleno = magazineRow({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 6, reserve: 6 }] });
-    expect(lleno.more).toBeDisabled();
+    expect(lleno.more).not.toBeDisabled();
+    await u.click(lleno.more);
+    expect(lleno.onChange).toHaveBeenLastCalledWith({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 6, reserve: 7 }] });
     cleanup();
-    const casi = magazineRow({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 6, reserve: 5 }] });
-    expect(casi.more).not.toBeDisabled();
-    await u.click(casi.more);
-    expect(casi.onChange).toHaveBeenLastCalledWith({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 6, reserve: 6 }] });
+    // Una mochila muy por encima de la capacidad del cargador es legal y sigue creciendo.
+    const mochila = magazineRow({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 2, reserve: 120 }] });
+    expect(mochila.more).not.toBeDisabled();
+    await u.click(mochila.more);
+    expect(mochila.onChange).toHaveBeenLastCalledWith({ weapons: [{ id: 'bat', ammo: null }, { id: 'magnum44', ammo: 2, reserve: 121 }] });
     cleanup();
-    // Y por fila: el rifle de asalto llega a 30 donde el magnum se queda en 6.
-    const rifle = mount({ data: { ...KAREN_DATA, weapons: [{ id: 'assaultRifle', ammo: 30, reserve: 29 }] } });
-    const rifleRow = within(screen.getByRole('table', { name: 'Armas' })).getAllByRole('row')[1] as HTMLElement;
-    expect(within(rifleRow).getByRole('button', { name: '+ Munición' })).not.toBeDisabled();
-    await u.click(within(rifleRow).getByRole('button', { name: '+ Munición' }));
-    expect(rifle.onChange).toHaveBeenLastCalledWith({ weapons: [{ id: 'assaultRifle', ammo: 30, reserve: 30 }] });
+    // Un arma sin cargador sigue sin columna de Munición: el libro les pone «-» (p.97).
+    mount({ data: { ...KAREN_DATA, weapons: [{ id: 'bat', ammo: null }] } });
+    const bateRow = within(screen.getByRole('table', { name: 'Armas' })).getAllByRole('row')[1] as HTMLElement;
+    expect(within(bateRow).queryByRole('button', { name: '+ Munición' })).not.toBeInTheDocument();
   });
 
   it('readOnly disables inputs and hides add/remove but keeps roll buttons; showActions=false hides them; canChange vetoes', async () => {

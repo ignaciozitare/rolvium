@@ -14,7 +14,7 @@ import { renderWithProviders, screen, within, fireEvent } from '../helpers/rende
  * Lo que se fija aquí: un contador que SÍ aplica a la fila arranca en su mínimo aunque la fila venga sin
  * él; el guion se reserva para las columnas que NO aplican (un arma cuerpo a cuerpo no tiene cargador).
  */
-const LABELS = { add: 'Añadir', remove: 'Quitar', empty: 'vacío' };
+const LABELS = { roll: 'Tirar', add: 'Añadir', remove: 'Quitar', manual: 'Manual', of: 'de' };
 
 /** `reserve` sólo aplica a las armas con cargador, como en el esquema de Plenilunio. */
 const SCHEMA: SheetSchema = {
@@ -23,11 +23,8 @@ const SCHEMA: SheetSchema = {
     id: 'weapons', label: 'weapons', layout: 'stack', fields: [
       { id: 'weapons', type: 'table', label: 'Armas', columns: [
         { id: 'id', type: 'select', label: 'Arma', options: [{ value: 'smg', label: 'Subfusil' }, { value: 'knife', label: 'Cuchillo' }] },
-        {
-          id: 'reserve', type: 'counter', label: 'Munición', min: 0,
-          appliesToRow: row => row['id'] === 'smg',
-          maxForRow: row => (row['id'] === 'smg' ? 30 : undefined),
-        },
+        // Sin techo a propósito: la Munición es la mochila, no el cargador (dueño, 2026-08-21).
+        { id: 'reserve', type: 'counter', label: 'Munición', min: 0, appliesToRow: row => row['id'] === 'smg' },
       ] },
     ],
   }],
@@ -63,6 +60,18 @@ describe('regresión · la Munición de un arma se puede subir aunque la fila no
   it('una fila que ya la trae no se toca', () => {
     mount([{ id: 'smg', ammo: 0, reserve: 7 }]);
     expect(ammoCell()).toHaveTextContent('7');
+  });
+
+  /**
+   * «Puedes tener una mochila llena de balas y tu cargador un límite de 2» (dueño, 2026-08-21). La
+   * Munición NO se capa: el techo del libro es el del cargador, y lo aplica `reloadWeapon` al traspasar.
+   */
+  it('la Munición no tiene techo: es lo que llevas encima, no lo que cabe en el cargador', () => {
+    const onChange = mount([{ id: 'smg', ammo: 0, reserve: 200 }]);
+    expect(ammoCell()).toHaveTextContent('200');
+    fireEvent.click(within(ammoCell()).getByRole('button', { name: /\+|más|more/i }));
+    const [patch] = onChange.mock.calls.at(-1)!;
+    expect((patch as { weapons: Record<string, unknown>[] }).weapons[0]).toMatchObject({ reserve: 201 });
   });
 
   /** El guion sigue siendo el correcto donde la columna NO aplica: un cuchillo no lleva cargador (p.97). */
