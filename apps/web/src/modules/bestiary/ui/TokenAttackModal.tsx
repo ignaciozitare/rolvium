@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { GameSystem, RollVisibility } from '@rolvium/core';
-import { capabilityLevel, rangeForMetres, RANGE_DIFFICULTY } from '@rolvium/system-plenilunio';
+import { autoSuccessOptions, capabilityLevel, rangeForMetres, RANGE_DIFFICULTY } from '@rolvium/system-plenilunio';
+import type { CapabilityId } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
 import { creatureAttackRequest } from '../domain/useCases/creatureRoll';
@@ -23,6 +24,11 @@ interface Props {
   system: GameSystem;
   /** Los personajes que hay en la escena, con su distancia. Vacío = no hay a quién atacar. */
   targets: AttackTarget[];
+  /**
+   * Si es de noche en la escena. **No se pregunta aquí**: sale del interruptor de día/noche del mapa, que es
+   * donde vive (dueño, 2026-08-21). De ella dependen las capacidades nocturnas de la criatura (p.107).
+   */
+  night?: boolean;
   onAttack: (req: ReturnType<typeof creatureAttackRequest>) => Promise<unknown>;
   onClose: () => void;
 }
@@ -39,13 +45,19 @@ interface Props {
  * aviso al jugador es la columna 5 del `.pen`, que no está construida. Un disparo sí lleva su dificultad,
  * porque es un reto contra el alcance (p.96) y ahí no hace falta preguntarle a nadie.
  */
-export function TokenAttackModal({ entry, system, targets, onAttack, onClose }: Props): JSX.Element {
+export function TokenAttackModal({ entry, system, targets, night = false, onAttack, onClose }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const ts = useMemo(() => sysT(system, locale), [system, locale]);
 
   const combat = Number(entry.data.stats.combat ?? 0);
   const attack = entry.data.attacks?.[0] ?? null;
-  const solarWrath = capabilityLevel(entry.data.capabilities ?? [], 'solarWrath');
+  const caps = useMemo(() => entry.data.capabilities ?? [], [entry]);
+  const solarWrath = capabilityLevel(caps, 'solarWrath');
+  /** Las capacidades que podrían aplicar a ESTE ataque: Combate, y la hora que diga la escena (p.107). */
+  const autoOptions = useMemo(() => autoSuccessOptions(caps, 'combat', night), [caps, night]);
+  const [marked, setMarked] = useState<CapabilityId[]>([]);
+  const active = autoOptions.filter(o => marked.includes(o.id));
+  const autoSuccesses = active.reduce((n, o) => n + o.level, 0);
   /** El puñado por defecto: su ataque impreso si lo tiene, y si no su Combate a secas. */
   const base = attack ? attack.attack : combat;
 
@@ -75,7 +87,8 @@ export function TokenAttackModal({ entry, system, targets, onAttack, onClose }: 
     setBusy(true);
     setError(null);
     try {
-      const req = creatureAttackRequest(entry, { dice, range, difficulty, visibility, attack, solarWrath },
+      const req = creatureAttackRequest(entry,
+        { dice, range, difficulty, visibility, attack, solarWrath, autoSuccesses, autoSuccessFrom: active[0]?.id ?? null },
         (sheet, action) => system.engine.poolFor(sheet, action),
         t('bestiary.attack.title', { name: entry.name, target: target.name }));
       const outcome = await onAttack(req);
@@ -143,6 +156,21 @@ export function TokenAttackModal({ entry, system, targets, onAttack, onClose }: 
                     : t('bestiary.attack.from', { n: String(combat) })}
                 </span>
               </div>
+
+              {autoOptions.length > 0 && (
+                <>
+                  <span className="bs-label">{t('bestiary.roll.capabilities')}</span>
+                  {autoOptions.map(o => (
+                    <label key={o.id} className="bs-scope">
+                      <input type="checkbox" checked={marked.includes(o.id)}
+                             onChange={e => setMarked(ids => (e.target.checked ? [...ids, o.id] : ids.filter(x => x !== o.id)))} />
+                      <span>{ts(`catalog.capabilities.${o.id}.name`)} {o.level}</span>
+                      <span className="bs-auto">{t('bestiary.roll.capabilityAuto', { n: String(o.level) })}</span>
+                    </label>
+                  ))}
+                  <p className="bs-note">{t(night ? 'bestiary.attack.nightNote' : 'bestiary.attack.dayNote')}</p>
+                </>
+              )}
 
               <div className="bs-sheet-foot bs-atk-foot">
                 <button type="button" className="bs-btn bs-btn-atk bs-btn-lg" onClick={fire}

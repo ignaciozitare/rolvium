@@ -980,7 +980,9 @@
       "fromAttack": "de su {{name}} · {{n}} · puede repartirlos entre varios (p.94)",
       "go": "Atacar a {{name}}",
       "noTargets": "No hay ningún personaje en la escena al que atacar.",
-      "button": "Atacar"
+      "button": "Atacar",
+      "nightNote": "Es de noche en esta escena, así que salen sus capacidades nocturnas: la hora la dice el interruptor de día/noche del mapa y aquí no se pregunta. Las marca el director, como la especialidad (p.107).",
+      "dayNote": "Es de día en esta escena: sólo salen las capacidades que valen de día. La hora la dice el interruptor de día/noche del mapa (p.107)."
     }
   }
 }

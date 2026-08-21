@@ -108,6 +108,11 @@ y abre `ui/TokenAttackModal.tsx`, portado 1:1 de `Modal/Atacar con el token`.
 - **El daño**: el impreso de su caja si la tiene; si no, sin armas, que el libro paga con su Fortaleza (p.97).
 - **La criatura sale del bloque del que se colocó el token**: del catálogo si es del manual (`bestiaryRef`), de
   la fila del director si es propia (`bestiaryEntryId`). El nombre es el DEL TOKEN.
+- **La hora sale del mapa, no de una pregunta**: la escena ya tiene interruptor de día/noche
+  (`scene.lighting`), y hay criaturas que cambian con él (dueño, 2026-08-21). El modal ofrece las
+  capacidades que podrían aplicar al Combate según esa hora —de noche el Amparo de la noche, de día
+  ninguna nocturna— y las marca el director, como la especialidad. En el desplegable del Bestiario sí hay
+  casilla de noche, porque allí no hay escena de la que leerla.
 - ⚠ **Cuerpo a cuerpo va SIN oposición todavía**: es un conflicto (p.93) y los dados de enfrente son los que el
   jugador gaste en defenderse — la columna 5 del `.pen`, que no está construida. Un disparo sí lleva su
   dificultad, porque es un reto y ahí no hay que preguntarle a nadie.

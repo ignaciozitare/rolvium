@@ -348,7 +348,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           )}
           {canAttack && attacking && (
             <TokenAttackModal entry={entryFromCatalogItem(attackerItem!, selectedToken!.name)} system={system}
-                              targets={attackTargets} onAttack={req => onRoll!({ ...req, campaignId })}
+                              targets={attackTargets} night={live?.lighting === 'night'}
+                              onAttack={req => onRoll!({ ...req, campaignId })}
                               onClose={() => setAttacking(false)} />
           )}
           {isDm && pcMenu && (

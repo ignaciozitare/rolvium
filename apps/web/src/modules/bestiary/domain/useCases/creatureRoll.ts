@@ -155,6 +155,12 @@ export interface CreatureAttackChoice {
   attack?: CreatureAttack | null;
   /** Ira solar: suma al daño (p.108). */
   solarWrath?: number;
+  /**
+   * Éxitos automáticos de una capacidad que el director marcó (Amparo de la noche, p.107). La HORA no se
+   * pregunta aquí: sale del interruptor de día/noche de la escena, que es donde vive (dueño, 2026-08-21).
+   */
+  autoSuccesses?: number;
+  autoSuccessFrom?: string | null;
 }
 
 /**
@@ -188,6 +194,8 @@ export function creatureAttackRequest(entry: BestiaryEntry, choice: CreatureAtta
       weaponId: attack ? attack.label : 'catalog.weapons.unarmed',
       weaponDamage: attack ? attack.damage : fortitude,
       ...(choice.solarWrath ? { solarWrath: choice.solarWrath } : {}),
+      autoSuccesses: Math.max(0, Math.floor(choice.autoSuccesses ?? 0)),
+      ...(choice.autoSuccessFrom ? { autoSuccessFrom: choice.autoSuccessFrom } : {}),
     },
   });
   return { ...req, title, visibility: choice.visibility };

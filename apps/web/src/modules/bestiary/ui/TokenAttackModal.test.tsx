@@ -18,14 +18,20 @@ const ogre = (over: Partial<BestiaryEntry['data']> = {}): BestiaryEntry => ({
 const karen: AttackTarget = { id: 'tk-1', name: 'Karen', cells: 2, metres: 3 };
 const nix: AttackTarget = { id: 'tk-2', name: 'Nix', cells: 14, metres: 21 };
 
-const setup = (entry = ogre(), targets: AttackTarget[] = [karen, nix]) => {
+const setup = (entry = ogre(), targets: AttackTarget[] = [karen, nix], night = false) => {
   const onAttack = vi.fn().mockResolvedValue({ id: 'r-1' });
   const onClose = vi.fn();
   renderWithProviders(
-    <TokenAttackModal entry={entry} system={plenilunio} targets={targets} onAttack={onAttack} onClose={onClose} />,
+    <TokenAttackModal entry={entry} system={plenilunio} targets={targets} night={night} onAttack={onAttack} onClose={onClose} />,
   );
   return { onAttack, onClose };
 };
+
+/** El lunar (p.120): de noche, su Amparo de la noche 2 le añade éxitos automáticos al Combate. */
+const lunar = () => ogre({
+  stats: { fortitude: 7, combat: 6, will: 3 },
+  capabilities: [{ id: 'winged' }, { id: 'darkAura', level: 2 }, { id: 'nightShelter', level: 2 }],
+});
 const lastRequest = (onAttack: ReturnType<typeof vi.fn>) => onAttack.mock.calls.at(-1)?.[0];
 
 beforeEach(() => vi.clearAllMocks());
@@ -102,5 +108,35 @@ describe('TokenAttackModal — atacar con el token de una criatura', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  /**
+   * La hora NO se pregunta aquí: la dice el interruptor de día/noche del mapa (dueño, 2026-08-21). De ella
+   * dependen las capacidades nocturnas, que son las que hacen que una criatura pegue distinto de noche.
+   */
+  it('de noche ofrece sus capacidades nocturnas; de día no', async () => {
+    setup(lunar(), [karen], true);
+    expect(screen.getByLabelText(/Amparo de la noche 2/)).toBeInTheDocument();
+    expect(screen.getByText('+2 éxitos automáticos')).toBeInTheDocument();
+    expect(screen.getByText(/Es de noche en esta escena/)).toBeInTheDocument();
+  });
+
+  it('de día no sale ninguna nocturna, y no hay casilla que marcar', () => {
+    setup(lunar(), [karen], false);
+    expect(screen.queryByText(/Amparo de la noche/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Capacidades que podrían aplicar')).not.toBeInTheDocument();
+  });
+
+  it('la capacidad marcada viaja en el ataque con su nombre', async () => {
+    const { onAttack } = setup(lunar(), [karen], true);
+    await userEvent.click(screen.getByLabelText(/Amparo de la noche 2/));
+    await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
+    expect(lastRequest(onAttack).options).toMatchObject({ autoSuccesses: 2, autoSuccessFrom: 'nightShelter' });
+  });
+
+  it('sin marcarla no suma nada: no se aplica sola (p.107)', async () => {
+    const { onAttack } = setup(lunar(), [karen], true);
+    await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
+    expect(lastRequest(onAttack).options.autoSuccesses).toBe(0);
   });
 });
