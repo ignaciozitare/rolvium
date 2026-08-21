@@ -190,6 +190,12 @@ export interface PlenilunioRollOptions {
   destinyDice?: number;
   /** Opposition dice (challenge difficulty 1/2/3/5/6 or an opponent's pool). */
   difficulty?: number;
+  /**
+   * Los dados de enfrente son un RIVAL, no una dificultad (conflicto, p.93–95). No cambia ni un dado ni
+   * una cuenta —`resolve` clasifica el grupo `opposition` igual— y existe sólo para que el desglose no
+   * llame «reto a dificultad N» a lo que el manual llama conflicto.
+   */
+  conflict?: boolean;
   /** Set by actions. `range` picks the ranged difficulty (p.96) when no explicit difficulty is given. */
   weaponId?: string; ranged?: boolean; range?: keyof typeof RANGE_DIFFICULTY; weaponDamage?: number; bonusDice?: number; giftId?: string;
   /**

@@ -14,7 +14,98 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🔴 PUNTO EXACTO — 2026-08-21, CIERRE POR HANDOFF. Atacar desde el token FUNCIONA; la columna 5 va por la mitad
+## 🔴 PUNTO EXACTO — 2026-08-21: LA COLUMNA 5 ESTÁ CONSTRUIDA. Falta MIRARLA EN LA APP y aplicarla en la nube
+
+Rama **`feat/bestiario`**, **sin commitear todavía**. **873 tests** verdes (602 web + 114 api + 14 core +
+16 ui + 127 plenilunio), typecheck de las dos apps, `audit` **0 hard** (13 warn, todos preexistentes),
+`build:web` y `build:api` OK. **Review pasado**, y sus hallazgos ARREGLADOS (abajo).
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: la **columna 5** (el aviso de defensa al jugador) está construida y verde, pero **sin
+> mirar en la app** y **sin aplicar en la nube**. Bloque 🔴 de WORK_STATE.
+
+### ✅ Lo que se ha construido
+- **La migración `20260821000000_dice_attacks.sql` está APLICADA EN LOCAL** — con
+  `supabase migration up --local`, **no** con `db reset`, para no borrarle los datos de prueba al dueño.
+  `db lint --local --level error` limpio. Comprobado a mano: RLS encendida, la política, la publicación de
+  realtime, las tres funciones, y que `authenticated` sólo tiene **SELECT** sobre la tabla (igual que
+  `dice_rolls`) y **ningún** EXECUTE sobre las funciones.
+- **API**: `POST /attacks` (el director abre) y `POST /attacks/:id/answer` (el jugador contesta y la
+  tirada sale ahí mismo). Puerto `IAttackRepository`, adaptador `SupabaseAttackRepo`, caso de uso
+  `application/attacks/answerAttack.ts`. **El autor de la tirada es el DIRECTOR**, no quien contesta.
+- **`rollBody.ts`** (NUEVO): la validación de una `RollRequest` que ahora comparten `/rolls` y `/attacks`.
+  Dos copias de esos límites habrían sido dos verdades.
+- **`TokenAttackModal`**: cuerpo a cuerpo **ya no tira** — abre el ataque a la espera, y lo dice antes de
+  pulsar. A distancia sigue tirando en el acto (es un reto contra el alcance, p.96).
+- **`AttackAlert` + `AttackWatcher`** (dice/ui): el aviso «TE ATACA UN OGRO», con realtime. Separados a
+  propósito — el aviso es una pantalla sin nada dentro y se prueba sin base de datos.
+- **`conflict` en el motor**: el desglose de un ataque cuerpo a cuerpo dice **«Conflicto: N dados de
+  defensa del otro lado» (p.93)** en vez de «Reto a dificultad N» (p.84). Referencia `melee` → 93 nueva,
+  anotada en RULES.md §9. Los dados y las cuentas no cambian ni un pelo.
+- Specs de `dice` y `bestiary` actualizados. El `.pen` **no hacía falta tocarlo**.
+
+### 🛡 LO QUE CAZÓ EL REVIEW Y SE ARREGLÓ EN EL SITIO
+1. **EL AGUJERO GORDO: el techo de dados de defensa vivía SÓLO en el navegador.** Un `{"defence": 40}`
+   mandado a mano le daba **40 dados de defensa** a un personaje con Combate 4 — la API sólo miraba que
+   fuese un entero de 0 a 40. Ahora `answerAttack` **lee la ficha de quien contesta y recorta** con la
+   misma cuenta que pinta la pantalla, y lo recortado es lo que se guarda y lo que se tira. De paso el
+   orden cambió: primero se comprueba quién es y cuánto puede, y sólo después se llama al SQL, para que
+   en `defence_dice` quede lo que de verdad se tiró y no lo que alguien pidió.
+2. **La cuenta ya no está dos veces.** `ownDiceForStat` vive en **`@rolvium/core`** y la usan las dos
+   orillas; el navegador y el servidor no pueden discrepar.
+3. **`GREATEST(0, LEAST(40, defence))` con `defence` NULL daba 40, no 0** — Postgres ignora los NULL en
+   `LEAST`, así que el tope fallaba **hacia arriba**. Arreglado con `COALESCE` en las dos funciones.
+4. **Un director que además lleve un PJ nunca habría visto el aviso**, y un ataque contra un PNJ suyo se
+   habría quedado esperando para siempre sin que nadie lo viera: el aviso se montaba por ROL. Ahora se
+   monta para todos y **descarta lo que no es suyo** mirando de quién es el personaje.
+5. **Un comentario prometía una protección que no existe** (que del `request` «sólo viaja la
+   característica»). Viaja la fila entera y la RLS deja leerla igual: corregido el comentario, que era lo
+   mentiroso, no el código.
+6. Dos claves de i18n muertas fuera, y **`cancelled` documentado como lo que es**: un estado que existe en
+   el CHECK y que **hoy no escribe nadie** (no hay «el director retira el ataque»).
+
+### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO
+1. **La nube sigue SIN la migración.** En local está; en `scfspsiemikfcnqteonq` se aplica **con su
+   permiso**, no por nuestra cuenta.
+2. **Nada se ha mirado en la app corriendo.** En esta rama los fallos que se escapan son de ANCHO y de
+   SITIO, y aquí hay una decisión de sitio sin comprobar: **el aviso sale abajo a la izquierda**. Es el
+   único hueco (la derecha entera es el Registro, donde va a caer la tirada; arriba están las barras;
+   abajo a la derecha, el zoom del mapa). **Sin ver.**
+3. **Tres decisiones nuestras, por si quiere otra cosa**:
+   - **Cuántos dados puede gastar**: los que le da su característica **ahora mismo**, o sea Combate
+     **menos la penalización por heridas**. El `.pen` dibuja «tienes Combate 4»; la pantalla dice «tienes
+     Combate: 4 dados», que es lo mismo sano y lo cierto herido. No es una regla nueva: es el mismo
+     puñado que tiraría si actuase.
+   - **El aviso NO se puede cerrar**: ni X, ni Escape, ni pulsar fuera. Como si no contesta la tirada
+     espera indefinidamente (decisión suya), quitárselo de en medio sin querer dejaría la partida parada
+     sin que se note. Las dos salidas son «no me defiendo» y «defenderme».
+   - **Dos respuestas EXACTAMENTE simultáneas tirarían dos veces.** Se eligió a cambio de poder
+     reintentar cuando la tirada falla: una tirada de más se ve en el Registro y no rompe nada; quedarse
+     sin poder contestar no se ve y no se arregla. El comentario de la migración que decía lo contrario
+     estaba mal y se ha corregido.
+   - **Si no se puede leer tu ficha, el servidor RECHAZA la respuesta** y el ataque **sigue esperando**,
+     en vez de aceptarla a ciegas. La pantalla, mientras tanto, te deja «no defenderme».
+4. **El director no ve nada mientras espera** a que el jugador conteste. El `.pen` **no lo diseña**.
+
+### ⏭ LO SIGUIENTE
+- **Mirarlo en la app corriendo** (Docker + Supabase local + `dev:api` :3001 + `dev:web` :5173), con dos
+  navegadores: director y jugador.
+- **Columna 4**, el panel del director: pedir tirada manteniendo pulsada una característica, y la lista de
+  encuentros de la escena. Es lo que el dueño pidió por su nombre.
+- **El daño sigue sin aplicarse solo**, y el `.pen` **no diseña dónde sale ese número**: dibujarlo antes.
+- **El orden de turnos** (p.92–93): sin él, el coste del próximo turno es sólo texto.
+
+### 🔎 Deuda encontrada y NO tocada
+- **Ciclo de imports en plenilunio** (`engine` ↔ `explain`) — sigue igual.
+- `applyDamage` sólo lo usa la ficha; el daño a un token de criatura no pasa por el motor.
+- **`venomDamage` sigue sin quien lo llame** (la Ponzoña encadena dos tiradas).
+- El desglose de una Deflagración sale vacío (no lleva característica).
+- **`GET /scenes/:id/vision` devuelve 400** en la mesa, tres veces por carga. Preexistente, de `maps`.
+- **En el `.pen`, `Insert` dentro de `A4VWk` no PINTA**; `Copy` de un nodo que ya existe sí.
+
+---
+
+## 🟠 LO ANTERIOR — 2026-08-21, CIERRE POR HANDOFF. Atacar desde el token FUNCIONA; la columna 5 va por la mitad
 
 Rama **`feat/bestiario`**, árbol limpio. **781 tests** verdes (559 web + 77 api + 6 core + 16 ui + 123
 plenilunio), typecheck, `audit` **0 hard** (13 warn). Commits de hoy: `19df088` · `435b46f` · `8fb2fe3` ·

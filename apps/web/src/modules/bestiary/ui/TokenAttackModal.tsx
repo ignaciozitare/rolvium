@@ -16,6 +16,12 @@ export interface AttackTarget {
   name: string;
   cells: number;
   metres: number;
+  /**
+   * El personaje que hay detrás del token. Es a QUIÉN se le pide la defensa cuando el golpe es cuerpo a
+   * cuerpo, así que un token sin personaje no es objetivo de un conflicto (la escena ya sólo manda los que
+   * lo tienen).
+   */
+  characterId: string;
 }
 
 interface Props {
@@ -30,6 +36,12 @@ interface Props {
    */
   night?: boolean;
   onAttack: (req: ReturnType<typeof creatureAttackRequest>) => Promise<unknown>;
+  /**
+   * Abrir un ataque A LA ESPERA en vez de tirar. Se usa SÓLO cuerpo a cuerpo, que es un conflicto (p.93):
+   * los dados de enfrente son los que el jugador decida gastar en defenderse, así que hay que preguntárselo
+   * antes de tirar. Devuelve `null` si no se pudo abrir.
+   */
+  onOpenAttack: (input: { targetTokenId: string; targetCharacterId: string; dice: number; request: ReturnType<typeof creatureAttackRequest> }) => Promise<unknown>;
   onClose: () => void;
 }
 
@@ -40,12 +52,12 @@ interface Props {
  * Atacas desde el bicho que estás mirando, y el mapa ya sabe a qué distancia está cada jugador — o sea que
  * también sabe si es cuerpo a cuerpo o un disparo, y con qué dificultad».
  *
- * Lo que NO hace todavía, y por qué: **cuerpo a cuerpo va sin oposición**. El libro lo resuelve como un
- * conflicto (p.93) en el que los dados de enfrente son los que el jugador decida gastar en defenderse, y ese
- * aviso al jugador es la columna 5 del `.pen`, que no está construida. Un disparo sí lleva su dificultad,
- * porque es un reto contra el alcance (p.96) y ahí no hace falta preguntarle a nadie.
+ * **Cuerpo a cuerpo no tira aquí**: el libro lo resuelve como un conflicto (p.93) en el que los dados de
+ * enfrente son los que el jugador decida gastar en defenderse, así que el ataque se queda A LA ESPERA, al
+ * jugador le salta el aviso (columna 5 del `.pen`) y la tirada sale cuando conteste. Un disparo sí sale en
+ * el acto, porque es un reto contra la dificultad del alcance (p.96) y ahí no hay a quién preguntar.
  */
-export function TokenAttackModal({ entry, system, targets, night = false, onAttack, onClose }: Props): JSX.Element {
+export function TokenAttackModal({ entry, system, targets, night = false, onAttack, onOpenAttack, onClose }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const ts = useMemo(() => sysT(system, locale), [system, locale]);
 
@@ -91,8 +103,11 @@ export function TokenAttackModal({ entry, system, targets, night = false, onAtta
         { dice, range, difficulty, visibility, attack, solarWrath, autoSuccesses, autoSuccessFrom: active[0]?.id ?? null },
         (sheet, action) => system.engine.poolFor(sheet, action),
         t('bestiary.attack.title', { name: entry.name, target: target.name }));
-      const outcome = await onAttack(req);
-      if (outcome === null) { setError(t('bestiary.roll.failed')); return; }
+      // Cuerpo a cuerpo NO se tira aquí: se abre el ataque y espera a que el jugador ponga su defensa.
+      const outcome = range === 'melee'
+        ? await onOpenAttack({ targetTokenId: target.id, targetCharacterId: target.characterId, dice, request: req })
+        : await onAttack(req);
+      if (outcome === null) { setError(t(range === 'melee' ? 'bestiary.attack.openFailed' : 'bestiary.roll.failed')); return; }
       onClose();
     } catch (e) {
       setError(errorText(e));
@@ -142,6 +157,7 @@ export function TokenAttackModal({ entry, system, targets, night = false, onAtta
                 ))}
               </div>
               {distance && <p className="bs-atk-dist">{distance}</p>}
+              {range === 'melee' && <p className="bs-note">{t('bestiary.attack.meleeWait')}</p>}
 
               <span className="bs-label">{t('bestiary.attack.dice')}</span>
               <div className="bs-roll-count">

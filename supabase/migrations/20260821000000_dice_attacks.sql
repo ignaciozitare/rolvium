@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS public.dice_attacks (
   -- de lo que conteste el jugador. Se guarda entera para que la tirada salga igual
   -- aunque la ficha o la escena hayan cambiado mientras esperaba.
   request             jsonb NOT NULL,
+  -- ⚠ `cancelled` está en el CHECK pero HOY NO LO ESCRIBE NADIE: no existe todavía «el director retira el
+  -- ataque». Un ataque sólo desaparece al contestarlo, o en cascada si se borra la escena o el personaje.
   status              text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'resolved', 'cancelled')),
   -- Lo que contestó el jugador. NULL mientras no ha contestado; 0 es «no me defiendo»,
   -- que es una respuesta y no lo mismo que el silencio.
@@ -103,7 +105,7 @@ BEGIN
   INSERT INTO public.dice_attacks (campaign_id, scene_id, attacker_token_id, target_token_id, attacker_name,
                                    target_character_id, dice, request, created_by)
   VALUES (cid, sid, attacker_token, target_token, left(COALESCE(attacker, ''), 80), target_char,
-          GREATEST(0, LEAST(40, dice_count)), req, actor)
+          GREATEST(0, LEAST(40, COALESCE(dice_count, 0))), req, actor)
   RETURNING id INTO new_id;
   RETURN new_id;
 END $$;
@@ -111,16 +113,25 @@ REVOKE ALL ON FUNCTION public.dice_open_attack(uuid, uuid, uuid, uuid, uuid, tex
 GRANT EXECUTE ON FUNCTION public.dice_open_attack(uuid, uuid, uuid, uuid, uuid, text, uuid, integer, jsonb) TO service_role;
 
 -- ── Contestar (API only) ────────────────────────────────────────────────────
--- Sólo el DUEÑO del personaje atacado contesta, y sólo una vez: la fila pasa de
--- `pending` a `resolved` en el mismo UPDATE que la cierra, así que dos respuestas
--- a la vez no pueden tirar dos veces. Devuelve los dados de defensa aceptados.
+-- Sólo el DUEÑO del personaje atacado contesta. Devuelve los dados aceptados.
+--
+-- ⚠ La fila sigue en `pending` al salir de aquí: quien la cierra es
+-- `dice_close_attack`, DESPUÉS de que la tirada haya salido bien. Es a propósito:
+-- si la tirada falla (la API se cae, el sistema no está instalado), el jugador
+-- puede volver a contestar en vez de quedarse con un ataque muerto delante. El
+-- precio es que dos respuestas EXACTAMENTE simultáneas tirarían dos veces; la
+-- pantalla apaga los botones mientras contesta, y una tirada de más se ve en el
+-- Registro (no corrompe nada). Quedarse sin poder contestar no se ve y no se
+-- arregla, así que se eligió el fallo visible.
 CREATE OR REPLACE FUNCTION public.dice_answer_attack(actor uuid, aid uuid, defence integer)
 RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE n integer;
 BEGIN
   IF actor IS NULL THEN RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501'; END IF;
   UPDATE public.dice_attacks a
-     SET defence_dice = GREATEST(0, LEAST(40, defence)), answered_at = now()
+     -- COALESCE por delante: Postgres IGNORA los NULL en LEAST/GREATEST, así que sin él un `defence`
+     -- nulo no se recortaría a 0 sino a 40 — el tope falla hacia arriba, que es el peor sitio.
+     SET defence_dice = GREATEST(0, LEAST(40, COALESCE(defence, 0))), answered_at = now()
    WHERE a.id = aid
      AND a.status = 'pending'
      AND EXISTS (

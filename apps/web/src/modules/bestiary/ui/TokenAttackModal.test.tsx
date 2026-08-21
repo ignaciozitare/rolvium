@@ -15,16 +15,18 @@ const ogre = (over: Partial<BestiaryEntry['data']> = {}): BestiaryEntry => ({
 });
 
 /** 1 casilla = 1,5 m (METRES_PER_CELL). La distancia la mide el mapa: aquí llega ya medida. */
-const karen: AttackTarget = { id: 'tk-1', name: 'Karen', cells: 2, metres: 3 };
-const nix: AttackTarget = { id: 'tk-2', name: 'Nix', cells: 14, metres: 21 };
+const karen: AttackTarget = { id: 'tk-1', name: 'Karen', cells: 2, metres: 3, characterId: 'ch-karen' };
+const nix: AttackTarget = { id: 'tk-2', name: 'Nix', cells: 14, metres: 21, characterId: 'ch-nix' };
 
 const setup = (entry = ogre(), targets: AttackTarget[] = [karen, nix], night = false) => {
   const onAttack = vi.fn().mockResolvedValue({ id: 'r-1' });
+  const onOpenAttack = vi.fn().mockResolvedValue({ id: 'atk-1' });
   const onClose = vi.fn();
   renderWithProviders(
-    <TokenAttackModal entry={entry} system={plenilunio} targets={targets} night={night} onAttack={onAttack} onClose={onClose} />,
+    <TokenAttackModal entry={entry} system={plenilunio} targets={targets} night={night}
+                      onAttack={onAttack} onOpenAttack={onOpenAttack} onClose={onClose} />,
   );
-  return { onAttack, onClose };
+  return { onAttack, onOpenAttack, onClose };
 };
 
 /** El lunar (p.120): de noche, su Amparo de la noche 2 le añade éxitos automáticos al Combate. */
@@ -33,6 +35,9 @@ const lunar = () => ogre({
   capabilities: [{ id: 'winged' }, { id: 'darkAura', level: 2 }, { id: 'nightShelter', level: 2 }],
 });
 const lastRequest = (onAttack: ReturnType<typeof vi.fn>) => onAttack.mock.calls.at(-1)?.[0];
+/** Cuerpo a cuerpo no tira: abre un ataque a la espera, y la petición viaja dentro (p.93). */
+const lastPending = (onOpenAttack: ReturnType<typeof vi.fn>) => onOpenAttack.mock.calls.at(-1)?.[0];
+const lastPendingRequest = (onOpenAttack: ReturnType<typeof vi.fn>) => lastPending(onOpenAttack)?.request;
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -57,41 +62,60 @@ describe('TokenAttackModal — atacar con el token de una criatura', () => {
   });
 
   it('los dados salen de su Combate y los reparte el director (p.94)', async () => {
-    const { onAttack } = setup();
+    const { onOpenAttack } = setup();
     expect(screen.getByRole('status')).toHaveTextContent('4');
     await userEvent.click(screen.getByRole('button', { name: 'Un dado menos' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('3'));
     await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
-    expect(lastRequest(onAttack).groups.find((g: { tag: string }) => g.tag === 'own').count).toBe(3);
+    expect(lastPendingRequest(onOpenAttack).groups.find((g: { tag: string }) => g.tag === 'own').count).toBe(3);
+    expect(lastPending(onOpenAttack).dice).toBe(3);
   });
 
-  it('cuerpo a cuerpo va sin oposición; un disparo lleva la dificultad del alcance', async () => {
-    const { onAttack } = setup();
+  /**
+   * Cuerpo a cuerpo es un CONFLICTO (p.93): la tirada no sale aquí, se abre un ataque a la espera y los
+   * dados de enfrente los pone el jugador al defenderse. Un disparo es un reto y sale en el acto (p.96).
+   */
+  it('cuerpo a cuerpo NO tira: abre el ataque y espera al jugador', async () => {
+    const { onAttack, onOpenAttack, onClose } = setup();
     await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
-    expect(lastRequest(onAttack).groups.some((g: { tag: string }) => g.tag === 'opposition')).toBe(false);
+    expect(onAttack).not.toHaveBeenCalled();
+    expect(lastPending(onOpenAttack)).toMatchObject({ targetTokenId: 'tk-1', targetCharacterId: 'ch-karen', dice: 4 });
+    expect(lastPendingRequest(onOpenAttack).groups.some((g: { tag: string }) => g.tag === 'opposition')).toBe(false);
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it('y lo dice antes de pulsar, para que el director sepa que la tirada no sale ahora', () => {
+    setup();
+    expect(screen.getByText(/le llegará el aviso y la tirada saldrá cuando conteste/)).toBeInTheDocument();
+  });
+
+  it('un disparo sí tira en el acto, con la dificultad del alcance (p.96)', async () => {
+    const { onAttack, onOpenAttack } = setup();
     await userEvent.click(screen.getByRole('button', { name: 'Nix' }));
     await userEvent.click(screen.getByRole('button', { name: 'Atacar a Nix' }));
+    expect(onOpenAttack).not.toHaveBeenCalled();
     expect(lastRequest(onAttack).groups.find((g: { tag: string }) => g.tag === 'opposition').count).toBe(3);
+    expect(screen.queryByText(/le llegará el aviso/)).not.toBeInTheDocument();
   });
 
-  it('la tirada dice quién ataca a quién, y el daño de un puñetazo es su Fortaleza (p.97)', async () => {
-    const { onAttack, onClose } = setup();
+  it('el ataque dice quién ataca a quién, y el daño de un puñetazo es su Fortaleza (p.97)', async () => {
+    const { onOpenAttack, onClose } = setup();
     await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
-    const req = lastRequest(onAttack);
+    const req = lastPendingRequest(onOpenAttack);
     expect(req.title).toBe('Ogro ataca a Karen');
     expect(req.options).toMatchObject({ weaponId: 'catalog.weapons.unarmed', weaponDamage: 8 });
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
   it('con ataque impreso arranca con SUS dados y lleva su daño', async () => {
-    const { onAttack } = setup(ogre({ attacks: [{ label: 'catalog.creatureAttacks.mandoble', attack: 11, damage: 12 }] }));
+    const { onOpenAttack } = setup(ogre({ attacks: [{ label: 'catalog.creatureAttacks.mandoble', attack: 11, damage: 12 }] }));
     expect(screen.getByRole('status')).toHaveTextContent('11');
     await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
-    expect(lastRequest(onAttack).options).toMatchObject({ weaponDamage: 12 });
+    expect(lastPendingRequest(onOpenAttack).options).toMatchObject({ weaponDamage: 12 });
   });
 
   it('más lejos del alcance muy largo no se puede disparar', async () => {
-    setup(ogre(), [{ id: 'tk-3', name: 'Lejos', cells: 700, metres: 1050 }]);
+    setup(ogre(), [{ id: 'tk-3', name: 'Lejos', cells: 700, metres: 1050, characterId: 'ch-lejos' }]);
     expect(screen.getByText(/demasiado lejos para dispararle/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Atacar a Lejos' })).toBeDisabled();
   });
@@ -101,11 +125,22 @@ describe('TokenAttackModal — atacar con el token de una criatura', () => {
     expect(screen.getByText(/No hay ningún personaje en la escena/)).toBeInTheDocument();
   });
 
-  it('si el servidor no puede tirar, lo dice y NO se cierra', async () => {
+  it('si no se puede avisar al jugador, lo dice y NO se cierra', async () => {
+    const onOpenAttack = vi.fn().mockResolvedValue(null);
+    const onClose = vi.fn();
+    renderWithProviders(<TokenAttackModal entry={ogre()} system={plenilunio} targets={[karen]}
+                                          onAttack={vi.fn()} onOpenAttack={onOpenAttack} onClose={onClose} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/No se ha podido avisar al jugador/);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('si el servidor no puede tirar un disparo, lo dice y NO se cierra', async () => {
     const onAttack = vi.fn().mockResolvedValue(null);
     const onClose = vi.fn();
-    renderWithProviders(<TokenAttackModal entry={ogre()} system={plenilunio} targets={[karen]} onAttack={onAttack} onClose={onClose} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
+    renderWithProviders(<TokenAttackModal entry={ogre()} system={plenilunio} targets={[nix]}
+                                          onAttack={onAttack} onOpenAttack={vi.fn()} onClose={onClose} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Atacar a Nix' }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });
@@ -128,15 +163,15 @@ describe('TokenAttackModal — atacar con el token de una criatura', () => {
   });
 
   it('la capacidad marcada viaja en el ataque con su nombre', async () => {
-    const { onAttack } = setup(lunar(), [karen], true);
+    const { onOpenAttack } = setup(lunar(), [karen], true);
     await userEvent.click(screen.getByLabelText(/Amparo de la noche 2/));
     await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
-    expect(lastRequest(onAttack).options).toMatchObject({ autoSuccesses: 2, autoSuccessFrom: 'nightShelter' });
+    expect(lastPendingRequest(onOpenAttack).options).toMatchObject({ autoSuccesses: 2, autoSuccessFrom: 'nightShelter' });
   });
 
   it('sin marcarla no suma nada: no se aplica sola (p.107)', async () => {
-    const { onAttack } = setup(lunar(), [karen], true);
+    const { onOpenAttack } = setup(lunar(), [karen], true);
     await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
-    expect(lastRequest(onAttack).options.autoSuccesses).toBe(0);
+    expect(lastPendingRequest(onOpenAttack).options.autoSuccesses).toBe(0);
   });
 });

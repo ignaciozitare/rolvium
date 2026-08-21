@@ -22,6 +22,9 @@ export const references: References = Object.fromEntries([
   ref('health', 99),
   ref('damage', 97),
   ref('weapons', 97),
+  // El cuerpo a cuerpo es un CONFLICTO, no un reto: los dados de enfrente son los que el defensor
+  // gasta en defenderse (RULES.md §5.2, pp. 93–95). Distinto de `difficulty`, que es un reto (p.84).
+  ref('melee', 93),
   ref('ranged', 96),
   ref('armours', 98),
   ref('recovery', 101),

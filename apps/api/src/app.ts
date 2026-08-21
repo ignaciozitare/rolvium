@@ -11,6 +11,7 @@ import type { IUserAdmin } from './domain/user/IUserAdmin.js';
 import type { IInviteRepository } from './domain/invite/IInviteRepository.js';
 import type { ICharacterRepository } from './domain/character/ICharacterRepository.js';
 import type { IRollRepository } from './domain/roll/IRollRepository.js';
+import type { IAttackRepository } from './domain/attack/IAttackRepository.js';
 import type { IMapsRepository } from './domain/maps/IMapsRepository.js';
 import type { GameSystem } from '@rolvium/core';
 import { SupabaseTokenVerifier } from './infrastructure/supabase/SupabaseTokenVerifier.js';
@@ -19,6 +20,7 @@ import { SupabaseUserAdmin } from './infrastructure/supabase/SupabaseUserAdmin.j
 import { SupabaseInviteRepo } from './infrastructure/supabase/SupabaseInviteRepo.js';
 import { SupabaseCharacterRepo } from './infrastructure/supabase/SupabaseCharacterRepo.js';
 import { SupabaseRollRepo } from './infrastructure/supabase/SupabaseRollRepo.js';
+import { SupabaseAttackRepo } from './infrastructure/supabase/SupabaseAttackRepo.js';
 import { SupabaseMapsRepo } from './infrastructure/supabase/SupabaseMapsRepo.js';
 import { systemById } from './infrastructure/systems.js';
 import { authRoutes } from './infrastructure/http/authRoutes.js';
@@ -26,6 +28,7 @@ import { adminRoutes } from './infrastructure/http/adminRoutes.js';
 import { invitesRoutes } from './infrastructure/http/invitesRoutes.js';
 import { charactersRoutes } from './infrastructure/http/charactersRoutes.js';
 import { rollsRoutes } from './infrastructure/http/rollsRoutes.js';
+import { attacksRoutes } from './infrastructure/http/attacksRoutes.js';
 import { mapsRoutes } from './infrastructure/http/mapsRoutes.js';
 
 declare module 'fastify' {
@@ -45,6 +48,8 @@ export interface AppDeps {
   invites: IInviteRepository;
   characters: ICharacterRepository;
   rolls: IRollRepository;
+  /** Ataques cuerpo a cuerpo a la espera de que el jugador conteste (`dice_attacks`). */
+  attacks: IAttackRepository;
   maps: IMapsRepository;
   /** Installed game systems (defaults to the bundled registry). */
   systemById?: (id: string) => GameSystem | null;
@@ -69,6 +74,7 @@ export function supabaseDeps(): AppDeps {
     invites: new SupabaseInviteRepo(db),
     characters: new SupabaseCharacterRepo(db),
     rolls: new SupabaseRollRepo(db),
+    attacks: new SupabaseAttackRepo(db),
     maps: new SupabaseMapsRepo(db),
     allowedOrigins: ALLOWED_ORIGIN ? ALLOWED_ORIGIN.split(',').map(s => s.trim()) : [],
     logger: true,
@@ -110,6 +116,7 @@ export async function createApp(deps: AppDeps): Promise<FastifyInstance> {
   const sys = deps.systemById ?? systemById;
   await app.register(charactersRoutes, { prefix: '/characters', characters: deps.characters, systemById: sys });
   await app.register(rollsRoutes, { prefix: '/rolls', characters: deps.characters, rolls: deps.rolls, systemById: sys, ...(deps.rng ? { rng: deps.rng } : {}) });
+  await app.register(attacksRoutes, { prefix: '/attacks', characters: deps.characters, rolls: deps.rolls, attacks: deps.attacks, systemById: sys, ...(deps.rng ? { rng: deps.rng } : {}) });
   await app.register(mapsRoutes, { prefix: '/scenes', maps: deps.maps });
 
   app.get('/health', async () => ({ ok: true, ts: new Date().toISOString() }));

@@ -639,6 +639,22 @@
       "failed": "No se ha podido tirar.",
       "rolling": "tirando…"
     },
+    "attack": {
+      "title": "Te ataca {{name}}",
+      "aria": "Te atacan",
+      "sub": "Cuerpo a cuerpo con {{n}} dados de {{stat}}. Es un conflicto: los dados que pongas son tu defensa y tu ataque a la vez (p.93).",
+      "subNoStat": "Cuerpo a cuerpo con {{n}} dados. Es un conflicto: los dados que pongas son tu defensa y tu ataque a la vez (p.93).",
+      "howMany": "¿Cuántos dados de {{stat}} gastas?",
+      "howManyNoStat": "¿Cuántos dados gastas?",
+      "youHave": "tienes {{stat}}: {{n}} dados",
+      "youHaveNoStat": "tienes {{n}} dados",
+      "noSheet": "No se ha podido leer tu ficha, así que no se sabe cuántos dados puedes gastar. Puedes no defenderte, o volver a intentarlo recargando.",
+      "cost": "Los que gastes se te quitan del próximo turno: con {{n}} te quedarán {{left}} para actuar. Si gastas los {{max}}, pierdes el turno; si ya los gastaste todos, quedas indefenso (p.94).",
+      "noDefence": "No me defiendo",
+      "defend": "Defenderme · {{n}} dados",
+      "defendOne": "Defenderme · 1 dado",
+      "failed": "No se ha podido contestar. Inténtalo otra vez."
+    },
     "log": {
       "title": "Registro de tiradas",
       "empty": "Pulsa TIRAR en una característica, o usa el lanzador libre.",
@@ -982,7 +998,9 @@
       "noTargets": "No hay ningún personaje en la escena al que atacar.",
       "button": "Atacar",
       "nightNote": "Es de noche en esta escena, así que salen sus capacidades nocturnas: la hora la dice el interruptor de día/noche del mapa y aquí no se pregunta. Las marca el director, como la especialidad (p.107).",
-      "dayNote": "Es de día en esta escena: sólo salen las capacidades que valen de día. La hora la dice el interruptor de día/noche del mapa (p.107)."
+      "dayNote": "Es de día en esta escena: sólo salen las capacidades que valen de día. La hora la dice el interruptor de día/noche del mapa (p.107).",
+      "meleeWait": "Cuerpo a cuerpo es un conflicto: le llegará el aviso y la tirada saldrá cuando conteste con sus dados de defensa (p.93).",
+      "openFailed": "No se ha podido avisar al jugador. Inténtalo otra vez."
     }
   }
 }

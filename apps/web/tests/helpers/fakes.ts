@@ -141,6 +141,9 @@ export function fakeIdentityDeps(over: { identity?: Partial<IdentityDeps['identi
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
 import type { RollInput, RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import type { RollLogPort } from '@/modules/dice/domain/ports/RollLogPort';
+import type { AttacksPort } from '@/modules/dice/domain/ports/AttacksPort';
+import type { AttackWatchPort } from '@/modules/dice/domain/ports/AttackWatchPort';
+import type { OpenAttackInput, PendingAttack } from '@/modules/dice/domain/entities/Attack';
 import type { Roll, RollOutcome } from '@/modules/dice/domain/entities/Roll';
 import type { Character, CharacterAuditEntry, CharacterPatch, CreateCharacterInput, WriteOrigin } from '@/modules/characters/domain/entities/Character';
 import type { RollResult, SheetData } from '@rolvium/core';
@@ -253,6 +256,31 @@ export function fakeRollLog(seed: Roll[] = [ROLL_COMBAT, ROLL_SETBACK, ROLL_FREE
     subscribe: (_cid: string, on: (r: Roll) => void) => { listeners.add(on); return () => { listeners.delete(on); }; },
   };
   return api;
+}
+
+/**
+ * Ataques cuerpo a cuerpo a la espera (`.pen` columna 5). `push` mete uno como si acabara de llegar por
+ * realtime; `answers` recoge lo que contestó el jugador, incluido el 0 de «no me defiendo».
+ */
+export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWatchPort & { pending: PendingAttack[]; opened: OpenAttackInput[]; answers: { id: string; defence: number }[]; push: (a: PendingAttack) => void } {
+  const pending = [...seed];
+  const opened: OpenAttackInput[] = [];
+  const answers: { id: string; defence: number }[] = [];
+  const listeners = new Set<() => void>();
+  return {
+    pending, opened, answers,
+    push: (a: PendingAttack) => { pending.push(a); listeners.forEach(l => l()); },
+    open: async (input: OpenAttackInput) => { opened.push(input); return { id: `atk-${opened.length}` }; },
+    answer: async (id: string, defence: number) => {
+      answers.push({ id, defence });
+      const i = pending.findIndex(a => a.id === id);
+      if (i >= 0) pending.splice(i, 1);
+      listeners.forEach(l => l());
+      return { id: `roll-${answers.length}`, request: { systemId: 'plenilunio', kind: 'system', title: 't', groups: [{ count: 1, sides: 6, tag: 'own' }], visibility: 'table' }, dice: [[4]], result: { summary: 'ok', total: 1 }, rolledAt: '2026-08-21T00:00:00Z' };
+    },
+    listPending: async (cid: string) => pending.filter(a => a.campaignId === cid),
+    subscribe: (_cid: string, onChange: () => void) => { listeners.add(onChange); return () => { listeners.delete(onChange); }; },
+  };
 }
 
 // ── maps ─────────────────────────────────────────────────────────────────────

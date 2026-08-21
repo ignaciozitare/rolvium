@@ -226,16 +226,48 @@ ASTUCIA, SUTILEZA) de las siete del ogro. No se inventa cuáles son: se pregunta
 
 ### El aviso que le salta al jugador
 - **Tirada pedida**: no está dibujada en el `.pen`. **Hay que diseñarla antes de tocar pantalla.**
-- **Te atacan cuerpo a cuerpo** (columna 5, `oSBrx` → `dcTPM`): panel de papel con **filete sangre a la
-  izquierda**, icono `swords` + **«TE ATACA UN OGRO»** en sangre. Cuerpo: «Cuerpo a cuerpo con 4 dados de
-  Combate. Es un conflicto: los dados que pongas son tu defensa y tu ataque a la vez (p.93).»
-  **«¿CUÁNTOS DADOS DE COMBATE GASTAS?» · p.93** con chips `0…Combate` (el elegido en tinta) y «tienes
-  Combate 4» al lado. Caja gris con icono `schedule` y el coste, **que cambia con lo elegido**: «Los que
-  gastes se te quitan del próximo turno: con 2 te quedarán 2 para actuar. Si gastas los cuatro, pierdes el
-  turno; si ya los gastaste todos, quedas indefenso (p.94).» Pie: **«NO ME DEFIENDO»** (fantasma) y
-  **«DEFENDERME · N DADOS»** (oro).
+- **Te atacan cuerpo a cuerpo** (columna 5, `oSBrx` → `dcTPM`) — **CONSTRUIDO 2026-08-21**: panel de papel
+  con **filete sangre a la izquierda**, icono `swords` + **«TE ATACA UN OGRO»** en sangre. Cuerpo: «Cuerpo a
+  cuerpo con 4 dados de Combate. Es un conflicto: los dados que pongas son tu defensa y tu ataque a la vez
+  (p.93).» **«¿CUÁNTOS DADOS DE COMBATE GASTAS?»** con chips `0…Combate` (el elegido en tinta) y «tienes
+  Combate: 4 dados» al lado. Caja gris con icono `schedule` y el coste, **que cambia con lo elegido**. Pie:
+  **«NO ME DEFIENDO»** (fantasma) y **«DEFENDERME · N DADOS»** (oro).
 - **Si el jugador no contesta, la petición espera indefinidamente.** Nadie tira por él, ni el director.
+  Por eso el aviso **no se puede cerrar**: ni X, ni Escape, ni pulsar fuera. Quitárselo de en medio sin
+  querer dejaría la partida parada sin que se note.
 - **A distancia NO salta este aviso**: es un reto contra la dificultad del alcance.
+- **Uno cada vez, el más viejo primero.** Dos avisos amontonados taparían el segundo.
+
+#### Cómo funciona por dentro
+1. El director ataca desde el token. **Cuerpo a cuerpo no tira**: `POST /attacks` guarda la petición ya
+   armada por el sistema, **sin oposición**, con a quién ataca y con cuántos dados.
+2. La fila está en la publicación de realtime: el aviso **le salta** al jugador sin recargar.
+3. El jugador contesta: `POST /attacks/:id/answer`. La API mete sus dados de defensa como grupo
+   `opposition` en la petición guardada, **tira ahí mismo** por el camino de siempre (`performRoll`:
+   dados del servidor, tirada inmutable) y cierra el ataque apuntando la tirada que salió.
+4. **El autor de la tirada es el DIRECTOR**, no quien contesta: quien ataca es su criatura, y el Registro
+   tiene que decir eso.
+5. Si la tirada falla, la fila **se queda pendiente** y el jugador puede volver a contestar, en vez de
+   quedarse con un ataque muerto delante que nadie puede resolver.
+
+⚠ **Cuántos dados puede gastar**: los que le daría **su propia característica ahora mismo**, pedidos al
+`poolFor` del sistema — o sea **Combate menos la penalización por heridas**. No es una cuenta nueva: es el
+mismo puñado que tiraría si actuase. El `.pen` dibuja «tienes Combate 4» y la pantalla dice «tienes
+Combate: 4 dados», que es lo mismo cuando está sano y lo cierto cuando no lo está.
+
+⚠ **El coste del próximo turno es TEXTO** (p.94). No hay orden de turnos todavía y **no se finge con un
+contador**: el aviso dice lo que le va a costar y el jugador lo lleva. Entra de verdad con el orden de
+turnos, ver arriba.
+
+⚠ **El director no ve nada mientras espera.** El `.pen` no dibuja una pantalla de espera para él; se entera
+cuando la tirada sale en el Registro. **Sin diseñar.**
+
+#### El desglose de un conflicto (p.93 contra p.84)
+La petición viaja con `conflict: true`, y sólo por eso el desglose dice **«Conflicto: 2 dados de defensa del
+otro lado» (p.93)** en vez de «Reto a dificultad 2» (p.84), y cierra con «… contra 1 **de la defensa**» en
+vez de «de dificultad». Los dados y las cuentas son idénticos: lo único que cambia es no llamar reto a un
+conflicto. El **Registro** sigue sin etiquetar el grupo de la derecha (p.85); es el desglose, que abre quien
+ya sabe de qué iba la tirada, el que lo nombra.
 
 ### Ponerse a cubierto (p.96) — entra en esta tanda
 Es lo único que puede hacer un jugador al que disparan, y sin ello el ataque a distancia le deja sin
@@ -249,7 +281,7 @@ antes: quitarlo antes deja las tiradas de reto sin oposición ninguna.
 
 ### Fuera de alcance (de esta tanda)
 - **Ataques y defensas múltiples** — repartir los dados de Combate entre varios oponentes (p.94).
-- **Atacar tocando el token de la criatura en el mapa** (columna 6 del `.pen`).
+- ~~Atacar tocando el token de la criatura en el mapa~~ (columna 6 del `.pen`) — **construido 2026-08-21**.
 - ~~Orden de actuación por Destino~~ — **entra**, ver «El orden de turnos» arriba (dueño, 2026-08-21).
 - El **Bestiario** (H5) como módulo — ya construido.
 
@@ -268,4 +300,28 @@ Estaba escrito que las criaturas no tenían ni Combate ni daño. **Las dos mitad
   anotadas: hasta que existan, un ogro y un solar pegan igual de fuerte aunque el libro diga que no.
 
 ### Modelo de datos
-> Pendiente — lo completa el DBA Agent.
+
+**`dice_attacks`** (migración `20260821000000_dice_attacks.sql`) — una fila por ataque cuerpo a cuerpo a la
+espera de respuesta. Guarda la `RollRequest` ya armada **sin el grupo de oposición**, quién ataca (nombre
+**copiado**, para poder decir «te ataca un ogro» aunque el token ya no exista), a quién (`target_character_id`,
+que es quien puede contestar), con cuántos dados, y en qué estado está (`pending` · `resolved` · `cancelled`).
+`defence_dice` es lo que contestó: **`NULL` es silencio y `0` es «no me defiendo»**, que no es lo mismo.
+
+⚠ **`cancelled` está en el CHECK pero hoy no lo escribe nadie**: no existe «el director retira el ataque».
+Un ataque sólo se va al contestarlo, o en cascada si se borra la escena o el personaje. Cuando exista ese
+botón, el sitio ya está hecho (`dice_close_attack(..., 'cancelled')`).
+
+- **RLS**: lo ve el **director** de la campaña y el **dueño del personaje atacado**, nadie más. Los demás
+  jugadores se enteran por la tirada, cuando salga en el Registro.
+- **Sin políticas de escritura para el navegador.** Crear y contestar pasan por la API con el service role,
+  igual que `dice_commit_roll`: los dados los genera el servidor, y si el navegador pudiera escribir la
+  tabla podría abrirse un ataque a sí mismo o contestarlo por otro. Tres funciones `SECURITY DEFINER`:
+  `dice_open_attack` (comprueba que es el director y que el atacado es de esa mesa), `dice_answer_attack`
+  (sólo el dueño del personaje) y `dice_close_attack`.
+- **En la publicación de realtime**, que es lo que hace que el aviso salte.
+- Los tokens se sueltan con `SET NULL`: borrar un token a mitad de partida no puede borrar el ataque que el
+  jugador tiene delante ni dejarlo sin contestar.
+
+⚠ **Dos respuestas EXACTAMENTE simultáneas tirarían dos veces**, porque la fila no se cierra hasta que la
+tirada sale bien. Es el precio elegido a cambio de poder reintentar cuando la tirada falla: una tirada de
+más se ve en el Registro y no corrompe nada; quedarse sin poder contestar no se ve y no se arregla.

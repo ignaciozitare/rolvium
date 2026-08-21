@@ -782,4 +782,4 @@ El **mutante no tiene ninguna**: el libro no le imprime bloque (§8.4).
 ## 9. Mapa página → clave `references.ts`
 stats 20 · specialty 83 · roll 82 · difficulty 84 · degree 85 · setback 86 · destinyPool 88 · destiny 88 ·
 fortune 89 · xp 91 · ranged 96 · weapons 97 · damage 97 · armours 98 · endurance 98 · resistance 98 · health 99 ·
-recovery 101 · gifts 102 · size 25 · bestiary 107.
+recovery 101 · gifts 102 · size 25 · bestiary 107 · melee 93.

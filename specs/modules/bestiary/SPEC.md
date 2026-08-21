@@ -113,11 +113,15 @@ y abre `ui/TokenAttackModal.tsx`, portado 1:1 de `Modal/Atacar con el token`.
   capacidades que podrían aplicar al Combate según esa hora —de noche el Amparo de la noche, de día
   ninguna nocturna— y las marca el director, como la especialidad. En el desplegable del Bestiario sí hay
   casilla de noche, porque allí no hay escena de la que leerla.
-- ⚠ **Cuerpo a cuerpo va SIN oposición todavía**: es un conflicto (p.93) y los dados de enfrente son los que el
-  jugador gaste en defenderse — la columna 5 del `.pen`, que no está construida. Un disparo sí lleva su
-  dificultad, porque es un reto y ahí no hay que preguntarle a nadie.
-- ⚠ **El daño no se aplica solo**: el número lo calcula el motor, pero quien recibe el golpe lo teclea en
-  «Recibir daño» de su ficha. Aplicarlo automáticamente pide la respuesta del jugador, o sea la columna 5.
+- **Cuerpo a cuerpo NO tira aquí** (2026-08-21): es un conflicto (p.93) y los dados de enfrente son los que
+  el jugador gaste en defenderse, así que el ataque se queda **a la espera**, al jugador le salta el aviso
+  (columna 5 del `.pen`) y la tirada sale cuando conteste. El modal lo dice antes de pulsar, para que el
+  director no se quede esperando una tirada que no va a salir todavía. Un disparo sí sale en el acto, con
+  su dificultad, porque es un reto y ahí no hay que preguntarle a nadie. El cómo está en
+  [specs/modules/dice/SPEC.md](../dice/SPEC.md) § «El aviso que le salta al jugador».
+- ⚠ **El daño SIGUE sin aplicarse solo**: el número lo calcula el motor, pero quien recibe el golpe lo
+  teclea en «Recibir daño» de su ficha. Ya existe la respuesta del jugador, pero **el `.pen` no diseña
+  dónde sale ese número**: hay que dibujarlo antes de construirlo.
 
 ### Las copias viejas heredan lo que no tenían (2026-08-21)
 Una copia de un bloque del manual guarda sus valores el día que se duplica, así que las hechas ANTES de que

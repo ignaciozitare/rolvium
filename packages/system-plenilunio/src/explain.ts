@@ -80,11 +80,22 @@ export function explain(roll: { request: RollRequest; dice: RolledDice; result: 
   /**
    * Contra qué se tiró. ⚠ Ojo con p.85: el Registro NO debe decir si los dados de enfrente son la
    * dificultad o un rival —«Luis no sabe si el director tira porque hay otro personaje o porque es la
-   * dificultad»—, pero hoy la oposición de una tirada de ficha SIEMPRE es dificultad, así que «Reto a
-   * dificultad 3» es cierto. **Cuando existan los conflictos (columna 5) hay que revisar esta línea.**
+   * dificultad»—, y por eso el Registro sigue sin etiquetarlos. El DESGLOSE sí puede: quien lo abre es
+   * quien ya sabe de qué iba la tirada, y decirle «reto a dificultad 3» cuando fue un conflicto sería
+   * mentirle sobre qué regla se aplicó.
+   *
+   * `conflict` lo marca la petición (un ataque cuerpo a cuerpo, p.93): los dados de enfrente son los que
+   * el defensor gastó en defenderse, no una dificultad que puso nadie. Sin la marca se mantiene lo de
+   * siempre, que es lo cierto para una tirada de ficha: su oposición es la dificultad de un reto.
    */
   const opposition = countOf(request, 'opposition');
-  if (opposition > 0) {
+  if (o.conflict) {
+    // Defenderse con 0 dados es una respuesta —«no me defiendo»— y tiene que contarse: sin esta línea,
+    // un ataque sin oposición se lee igual que uno donde nadie llegó a contestar.
+    head.push(line(opposition > 0
+      ? fill(ts('roll.explain.conflict'), { n: opposition })
+      : ts('roll.explain.conflictNone'), 'melee'));
+  } else if (opposition > 0) {
     let challenge = fill(ts('roll.explain.challenge'), { n: opposition });
     if (o.ranged && o.range) challenge += fill(ts('roll.explain.range'), { range: lower(ts(`sheet.range.${o.range}`)) });
     head.push(line(challenge, o.ranged ? 'ranged' : 'difficulty'));
@@ -142,7 +153,7 @@ export function explain(roll: { request: RollRequest; dice: RolledDice; result: 
   const degree = difference === 0
     ? ts('roll.explain.degree.ambiguous')
     : fill(ts(difference > 0 ? 'roll.explain.degree.success' : 'roll.explain.degree.failure'), { n: Math.abs(difference) });
-  const verdict = fill(ts('roll.explain.verdict'), {
+  const verdict = fill(ts(o.conflict ? 'roll.explain.verdictConflict' : 'roll.explain.verdict'), {
     own: fill(ts(hits === 1 ? 'roll.explain.hit' : 'roll.explain.hits'), { n: hits }),
     opp: num(d['oppositionHits']),
     degree,

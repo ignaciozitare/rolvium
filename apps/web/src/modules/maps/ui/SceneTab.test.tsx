@@ -197,9 +197,10 @@ describe('<SceneTab> DM', () => {
   it('token de criatura: ATACAR mide la distancia y manda la tirada; sobre un PJ no se ofrece', async () => {
     const u = userEvent.setup();
     const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });
+    const onOpenAttack = vi.fn().mockResolvedValue({ id: 'atk-1' });
     renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
-      vision={fakeVisionPort()} onRoll={onRoll} />);
+      vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
     const mutante = await within(canvas()).findByRole('img', { name: /Mutante/ });
     fireEvent.pointerDown(mutante, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
@@ -211,6 +212,8 @@ describe('<SceneTab> DM', () => {
     await u.click(within(modal).getByRole('button', { name: /^Atacar a / }));
     await waitFor(() => expect(onRoll).toHaveBeenCalled());
     expect(onRoll.mock.calls[0]?.[0]).toMatchObject({ campaignId: 'c1', kind: 'system' });
+    // Un disparo es un reto y sale en el acto: no hay a quién pedirle una defensa (p.96).
+    expect(onOpenAttack).not.toHaveBeenCalled();
 
     // Sobre el token de un PERSONAJE no hay nada que atacar: el botón no está.
     const karen = await within(canvas()).findByRole('img', { name: 'Token Karen «K»' });
@@ -218,6 +221,51 @@ describe('<SceneTab> DM', () => {
     fireEvent.pointerUp(canvas(), { pointerId: 1 });
     const bar2 = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
     expect(within(bar2).queryByRole('button', { name: 'Atacar' })).not.toBeInTheDocument();
+  });
+
+  /**
+   * Cuerpo a cuerpo es un CONFLICTO (p.93). Con el mutante pegado a Karen —en su misma casilla— el golpe
+   * no se tira: se abre un ataque a la espera y la escena rellena de dónde sale (escena y tokens), que es
+   * lo único que el modal no sabe.
+   */
+  it('token de criatura pegado a un PJ: ATACAR abre el ataque a la espera, no tira', async () => {
+    const u = userEvent.setup();
+    const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });
+    const onOpenAttack = vi.fn().mockResolvedValue({ id: 'atk-1' });
+    const close = fakeMapsRepo({
+      scenes: [SCENE_WAREHOUSE], walls: [WALL_1],
+      tokens: [TOKEN_KAREN, { ...TOKEN_MUTANT, x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, visible: true }],
+    });
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={close}
+      vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    const mutante = await within(canvas()).findByRole('img', { name: /Mutante/ });
+    fireEvent.pointerDown(mutante, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const bar = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
+    await u.click(within(bar).getByRole('button', { name: 'Atacar' }));
+    const modal = await screen.findByRole('dialog', { name: 'Atacar con Mutante' });
+    await u.click(within(modal).getByRole('button', { name: /^Atacar a Karen/ }));
+    await waitFor(() => expect(onOpenAttack).toHaveBeenCalled());
+    expect(onRoll).not.toHaveBeenCalled();
+    expect(onOpenAttack.mock.calls[0]?.[0]).toMatchObject({
+      sceneId: 'sc-1', attackerTokenId: TOKEN_MUTANT.id, attackerName: 'Mutante',
+      targetTokenId: TOKEN_KAREN.id, targetCharacterId: CHARACTER_KAREN.id,
+    });
+  });
+
+  /** Sin a dónde mandar el ataque a la espera, ATACAR no se ofrece: la mitad cuerpo a cuerpo moriría al pulsar. */
+  it('sin `onOpenAttack` el botón ATACAR no aparece', async () => {
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
+      vision={fakeVisionPort()} onRoll={vi.fn()} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    const mutante = await within(canvas()).findByRole('img', { name: /Mutante/ });
+    fireEvent.pointerDown(mutante, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const bar = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
+    expect(within(bar).queryByRole('button', { name: 'Atacar' })).not.toBeInTheDocument();
   });
 });
 

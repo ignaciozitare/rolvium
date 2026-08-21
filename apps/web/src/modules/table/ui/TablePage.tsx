@@ -13,10 +13,13 @@ import { SharedResourceBar } from './SharedResourceBar';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
 import type { RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import type { RollLogPort } from '@/modules/dice/domain/ports/RollLogPort';
+import type { AttacksPort } from '@/modules/dice/domain/ports/AttacksPort';
+import type { AttackWatchPort } from '@/modules/dice/domain/ports/AttackWatchPort';
 import { charactersRepo as defaultCharacters } from '@/modules/characters/container';
-import { rollsPort as defaultRolls, rollLog as defaultRollLog } from '@/modules/dice/container';
+import { rollsPort as defaultRolls, rollLog as defaultRollLog, attacksPort as defaultAttacks, attackWatch as defaultAttackWatch } from '@/modules/dice/container';
 import { SidePanel } from '@/modules/dice/ui/SidePanel';
 import { DiceRoller } from '@/modules/dice/ui/DiceRoller';
+import { AttackWatcher } from '@/modules/dice/ui/AttackWatcher';
 import { SheetTab, CreateTab } from './tabs/SheetTab';
 import { GroupTab } from './tabs/GroupTab';
 import { SceneTab } from './tabs/SceneTab';
@@ -30,7 +33,7 @@ import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort'
 import './table.css';
 
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
-export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, maps, vision, bestiary }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort }): JSX.Element {
+export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, maps, vision, bestiary }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort }): JSX.Element {
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
@@ -166,7 +169,8 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}
             {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
-              onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })} />}
+              onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
+              onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
           </main>
           <aside className="tb-side">
@@ -174,6 +178,14 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
           </aside>
         </div>
         {rollerOpen && <DiceRoller campaignId={campaign.id} rolls={rolls} onClose={() => setRollerOpen(false)} />}
+        {/*
+          «TE ATACA UN OGRO» (`.pen` columna 5). Vive aquí y no dentro de una pestaña porque el aviso le
+          SALTA a quien le atacan esté donde esté: si estuviera en la escena, quien tenga abierta su ficha
+          no se enteraría de que le están pegando. Quién lo ve lo decide de QUIÉN ES el personaje atacado
+          —eso lo filtra el propio aviso—, no el rol: un director que además lleve un PJ también recibe.
+        */}
+        <AttackWatcher campaignId={campaign.id} userId={user.id} system={system} charactersRepo={charactersRepo}
+                       attacks={attacks} watch={attackWatch} />
       </div>
     </div>
   );

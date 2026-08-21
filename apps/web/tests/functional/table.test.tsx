@@ -6,7 +6,7 @@ import { AuthProvider } from '@/shared/hooks/useAuth';
 import { TablePage } from '@/modules/table/ui/TablePage';
 import type { TablePort } from '@/modules/table/domain/ports/TablePort';
 import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
-import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
+import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, fakeAttacks, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
 import { canTake, initialTabFor, tabsFor } from '@/modules/table/domain/useCases/tableRules';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 
@@ -49,12 +49,12 @@ const fakeBestiaryRepo = (): BestiaryPort => ({
   create: vi.fn(), update: vi.fn(), remove: vi.fn(), uploadToken: vi.fn(),
 });
 
-function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo()) {
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks()) {
   renderWithProviders(
-    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} />} /></Routes></AuthProvider>,
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} attacks={attacks} attackWatch={attacks} />} /></Routes></AuthProvider>,
     { providers: { routerProps: { initialEntries: ['/table/c1'] } } },
   );
-  return { rolls, rollLog, maps, vision, bestiary };
+  return { rolls, rollLog, maps, vision, bestiary, attacks };
 }
 
 describe('table: rules', () => {
@@ -211,6 +211,37 @@ describe('table: page', () => {
     const canvas = screen.getByRole('application', { name: 'Lienzo de la escena' });
     expect(await within(canvas).findByRole('img', { name: 'Token Karen «K»' })).toBeInTheDocument();
     await waitFor(() => expect(maps.subscribers).toBe(1));
+  });
+
+  /**
+   * «TE ATACA UN OGRO» (`.pen` columna 5). Vive en la mesa y no dentro de una pestaña porque le SALTA al
+   * jugador esté donde esté: con la ficha abierta se tiene que enterar igual de que le están pegando.
+   */
+  it('al jugador le salta el aviso de que le atacan, esté en la pestaña que esté', async () => {
+    const u = userEvent.setup();
+    const attacks = fakeAttacks();
+    mount(PLAYER_USER, fakeTableRepo('player'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), fakeMapsRepo(), fakeVisionPort(), fakeBestiaryRepo(), attacks);
+    await screen.findByRole('button', { name: 'Ficha', pressed: true });
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    attacks.push({ id: 'atk-1', campaignId: 'c1', attackerName: 'Ogro', targetCharacterId: CHARACTER_KAREN.id, dice: 4, stat: 'combat', createdAt: '2026-08-21T00:00:00Z' });
+    expect(await screen.findByRole('heading', { name: 'Te ataca Ogro' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'No me defiendo' }));
+    await waitFor(() => expect(attacks.answers).toEqual([{ id: 'atk-1', defence: 0 }]));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+  });
+
+  /**
+   * El que contesta es el DUEÑO del personaje. La RLS le deja al director LEER los ataques de toda su mesa,
+   * así que el aviso tiene que descartar los que no son suyos — si no, le pediría defenderse por otro.
+   */
+  it('al director NO le sale el aviso de un ataque contra el personaje de un jugador', async () => {
+    const attacks = fakeAttacks([{ id: 'atk-1', campaignId: 'c1', attackerName: 'Ogro', targetCharacterId: CHARACTER_KAREN.id, dice: 4, stat: 'combat', createdAt: '2026-08-21T00:00:00Z' }]);
+    mount(GM, fakeTableRepo('dm'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog(), fakeMapsRepo(), fakeVisionPort(), fakeBestiaryRepo(), attacks);
+    await screen.findByRole('button', { name: 'El grupo' });
+    // Se le da tiempo a resolver de quién es el personaje antes de dar por bueno que no sale nada.
+    await waitFor(() => expect(attacks.pending).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+    expect(screen.queryByRole('heading', { name: 'Te ataca Ogro' })).not.toBeInTheDocument();
   });
 
   it('side panel: el Registro lista las tiradas en vivo; el lanzador se abre desde la barra de la escena y tira en esta campaña', async () => {

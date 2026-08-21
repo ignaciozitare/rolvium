@@ -99,3 +99,44 @@
 .dc-roller-mod output{cursor:default;min-width:26px;text-align:center;}
 .dc-roller-last{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .dc-roller-last.err{color:var(--sys-blood);}
+
+/* ── «TE ATACA UN OGRO» · el aviso del jugador atacado (`.pen` `oSBrx` → `Aviso/Te atacan`) ──
+   Papel con FILETE SANGRE a la izquierda, como lo dibuja el diseño: es el único panel de la mesa que
+   aparece sin que nadie lo abra, y el filete es lo que lo distingue de un desplegable cualquiera.
+   Reutilización declarada: **NEW (module-specific)** sobre las clases que ya existen aquí.
+
+   Va fijo ABAJO A LA IZQUIERDA, y ése es el único hueco que hay: el Registro ocupa la derecha entera y
+   ahí es donde va a caer la tirada que el jugador está a punto de provocar —taparlo sería quitarle de la
+   vista justo lo que ha pedido—, arriba viven la barra de herramientas y la del token, y abajo a la
+   derecha los mandos de zoom del mapa. La esquina de abajo a la izquierda sólo la usa el rótulo «Solo
+   director», que un jugador no ve. ⚠ Sin mirar en la app corriendo. */
+.dc-atk{position:fixed;left:16px;bottom:16px;z-index:41;width:min(372px,92vw);max-height:82vh;overflow-y:auto;
+  display:flex;flex-direction:column;gap:14px;padding:14px 16px 16px;
+  background:var(--sys-paper-hi);border-left:3px solid var(--sys-blood);box-shadow:var(--sys-card-shadow);}
+.dc-atk-head{display:flex;align-items:center;gap:8px;color:var(--sys-blood);}
+.dc-atk-title{margin:0;font-family:var(--sys-font-display);font-size:var(--fs-2xs);font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--sys-blood);line-height:var(--lh-tight);}
+.dc-atk-sub,.dc-atk-note{margin:0;font-family:var(--sys-font-body);font-size:var(--fs-sm);font-weight:500;
+  line-height:var(--lh-normal);color:var(--sys-ink-soft);}
+.dc-atk-note{font-style:italic;color:var(--sys-ink-dim);}
+.dc-atk-error{margin:0;font-family:var(--sys-font-body);font-size:var(--fs-sm);font-weight:500;color:var(--sys-blood);}
+.dc-atk-label{font-family:var(--sys-font-body);font-size:var(--fs-2xs);font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--sys-ink);}
+.dc-atk-dice{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.dc-atk-chip{font-family:inherit;font-size:var(--fs-xs);letter-spacing:.06em;padding:6px 12px;cursor:pointer;
+  background:transparent;border:1px solid var(--sys-line);color:var(--sys-ink-soft);}
+.dc-atk-chip:hover:not(:disabled){border-color:var(--sys-ink-soft);}
+.dc-atk-chip.on{background:var(--sys-ink);border-color:var(--sys-ink);color:var(--sys-paper-hi);}
+.dc-atk-have{font-family:var(--sys-font-body);font-size:var(--fs-xs);font-style:italic;font-weight:500;color:var(--sys-ink-dim);}
+/* La caja del coste (p.94). Es TEXTO: no hay orden de turnos y no se finge con un contador. */
+.dc-atk-cost{display:flex;align-items:flex-start;gap:8px;margin:0;padding:9px 11px;background:var(--sys-paper-lo);
+  font-family:var(--sys-font-body);font-size:var(--fs-sm);font-weight:500;line-height:var(--lh-normal);color:var(--sys-ink-soft);}
+.dc-atk-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.dc-atk-btn{flex:1 1 auto;font-family:inherit;font-size:var(--fs-2xs);font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;padding:7px 12px;cursor:pointer;background:transparent;border:1px solid var(--sys-line);color:var(--sys-ink);}
+.dc-atk-btn:hover:not(:disabled){border-color:var(--sys-ink-soft);background:var(--sys-paper-lo);}
+/* Defenderme va en ORO y no en tinta: es lo que el diseño resalta, y la otra salida no es un error. */
+.dc-atk-btn.gold{background:var(--sys-gold);border-color:var(--sys-gold);color:var(--sys-paper-hi);}
+.dc-atk-btn.gold:hover:not(:disabled){background:var(--sys-ink);border-color:var(--sys-ink);}
+.dc-atk-btn:disabled,.dc-atk-chip:disabled{opacity:.55;cursor:default;}
+.dc-atk-btn:focus-visible,.dc-atk-chip:focus-visible{outline:2px solid var(--sys-gold);outline-offset:2px;}

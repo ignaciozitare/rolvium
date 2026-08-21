@@ -59,6 +59,25 @@ describe('explain · contra qué se tiró', () => {
     const e = roll(sheet(), { stat: 'combat', difficulty: 0 }, [[4, 4, 4, 4]]);
     expect(e?.head.some(l => l.text.includes('Reto'))).toBe(false);
   });
+  // Un ataque cuerpo a cuerpo NO es un reto: los dados de enfrente son la defensa del otro (p.93).
+  it('un conflicto se nombra conflicto, no reto, y apunta a p.93', () => {
+    const e = roll(sheet(), { stat: 'combat', difficulty: 2, conflict: true }, [[4, 4, 4, 4], [4, 2]]);
+    expect(e?.head.at(-1)).toEqual({ text: 'Conflicto: 2 dados de defensa del otro lado', page: 93 });
+    expect(e?.head.some(l => l.text.includes('Reto'))).toBe(false);
+  });
+  it('defenderse con cero dados también se cuenta: es una respuesta, no un silencio', () => {
+    const e = roll(sheet(), { stat: 'combat', difficulty: 0, conflict: true }, [[4, 4, 4, 4]]);
+    expect(e?.head.at(-1)).toEqual({ text: 'Conflicto: no se defendió, 0 dados del otro lado', page: 93 });
+  });
+  it('el cierre de un conflicto no llama dificultad a la defensa', () => {
+    const e = roll(sheet(), { stat: 'combat', difficulty: 2, conflict: true }, [[4, 4, 4, 4], [4, 2]]);
+    expect(e?.verdict).toBe('4 éxitos contra 1 de la defensa = grado de éxito 3');
+  });
+  it('en inglés dice lo mismo', () => {
+    const e = roll(sheet(), { stat: 'combat', difficulty: 2, conflict: true }, [[4, 4, 4, 4], [4, 2]], 'en');
+    expect(e?.head.at(-1)?.text).toBe('Conflict: 2 defence dice on the other side');
+    expect(e?.verdict).toBe('4 successes against 1 from the defence = success degree 3');
+  });
 });
 
 describe('explain · lo que se aplicó', () => {

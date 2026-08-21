@@ -223,3 +223,27 @@ export interface SharedResourceState { value: number; max: number; perTakeMax: n
 export function initialSharedResources(system: Pick<GameSystem, 'engine'>): Record<string, SharedResourceState> {
   return Object.fromEntries((system.engine.sharedResources ?? []).map(r => [r.id, { value: r.initial, max: r.max, perTakeMax: r.perTakeMax, hands: {} }]));
 }
+
+/**
+ * Cuántos dados PROPIOS le da a esta ficha una característica, ahora mismo.
+ *
+ * Se le pregunta al sistema (`engine.poolFor`) en vez de leer la ficha a mano: lo que cada sistema
+ * suma o resta —una penalización por heridas, un tamaño, lo que sea— vive ahí y sólo ahí. Cualquier
+ * segunda cuenta acabaría contradiciendo a la del motor el día que el motor cambie.
+ *
+ * Se le quita lo que la ficha traiga puesto en su bloque de tirada (dificultad, dados extra,
+ * bonificación de arma): esto responde a «cuánto vale su característica», no a «cómo sería esta tirada».
+ * La oposición no cuenta, porque no son dados suyos.
+ *
+ * Devuelve `null` sin característica, o si el sistema no sabe armar ese puñado: es la diferencia entre
+ * «no puede poner dados» y «no sabemos cuántos», y quien pregunta necesita distinguirlas.
+ */
+export function ownDiceForStat(system: Pick<GameSystem, 'engine'>, sheet: SheetData, stat: string | null): number | null {
+  if (!stat) return null;
+  try {
+    const req = system.engine.poolFor(sheet, { stat, options: { destinyDice: 0, difficulty: 0, extraDice: 0, bonusDice: 0 } });
+    return req.groups.filter(g => g.tag !== 'opposition').reduce((n, g) => n + g.count, 0);
+  } catch {
+    return null;
+  }
+}

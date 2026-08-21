@@ -87108,7 +87108,7 @@
               "type": "frame",
               "id": "A4VWk",
               "name": "Modal/Atacar con el token",
-              "context": "Construido el 2026-08-21 en apps/web/src/modules/bestiary/ui/TokenAttackModal.tsx. Sale al seleccionar el token de una criatura y pulsar ATACAR en la barra del token.\n\nNo lleva X de cerrar, como esta dibujado: se cierra con Escape o pulsando fuera, igual que el desplegable de encuentros.\n\nLa linea de la distancia tiene TRES estados, no uno: cuerpo a cuerpo (hasta 3 m, o sea dos casillas), a distancia («Nix esta a 14 casillas (21 m): alcance medio, reto a dificultad 3») y demasiado lejos, pasado el alcance muy largo (p.96), donde el boton de atacar se apaga.\n\nLo que NO hace todavia: cuerpo a cuerpo va SIN oposicion. El libro lo resuelve como un conflicto (p.93) en el que los dados de enfrente son los que el jugador gaste en defenderse, y ese aviso al jugador es la columna 5, que sigue sin construir. Un disparo si lleva su dificultad, porque es un reto contra el alcance y ahi no hay que preguntarle a nadie.",
+              "context": "Construido el 2026-08-21 en apps/web/src/modules/bestiary/ui/TokenAttackModal.tsx. Sale al seleccionar el token de una criatura y pulsar ATACAR en la barra del token.\n\nNo lleva X de cerrar, como esta dibujado: se cierra con Escape o pulsando fuera.\n\nLa linea de la distancia tiene TRES estados: cuerpo a cuerpo (hasta 3 m, o sea dos casillas), a distancia («Nix esta a 14 casillas (21 m): alcance medio, reto a dificultad 3») y demasiado lejos, pasado el alcance muy largo (p.096), donde el boton de atacar se apaga.\n\nCAPACIDADES (2026-08-21, a peticion del dueno): hay criaturas que cambian segun sea de dia o de noche, y el mapa YA tiene interruptor de dia/noche en la escena. Asi que aqui la hora NO se pregunta: sale de `scene.lighting`, y con ella las capacidades que podrian aplicar al Combate (Amparo de la noche). Las marca el director, como la especialidad. En el desplegable del Bestiario si hay casilla de noche, porque alli no hay escena de la que leerla.\n\nLo que NO hace todavia: cuerpo a cuerpo va SIN oposicion. El libro lo resuelve como un conflicto (p.093) en el que los dados de enfrente son los que el jugador gaste en defenderse: esa es la columna 5.",
               "width": 372,
               "fill": "$pl-papel-alto",
               "stroke": "$pl-borde",
@@ -87378,6 +87378,86 @@
                       "fontWeight": "500"
                     }
                   ]
+                },
+                {
+                  "type": "text",
+                  "id": "UnOys",
+                  "name": "Rotulo Capacidades",
+                  "fill": "$pl-tinta-suave",
+                  "content": "CAPACIDADES QUE PODRÍAN APLICAR",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "frame",
+                  "id": "W18EC",
+                  "name": "Capacidad Amparo",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "G7fdNU",
+                      "name": "Casilla",
+                      "width": 13,
+                      "height": 13,
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "strokeAlignment": "inner",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "ncwbg",
+                          "name": "Marca",
+                          "width": 10,
+                          "height": 10,
+                          "icon": "check",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-papel-alto"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "ErO3w",
+                      "name": "L",
+                      "fill": "$pl-tinta",
+                      "content": "Amparo de la noche 3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZNr25",
+                      "name": "L",
+                      "fill": "$pl-oro",
+                      "content": "+3 éxitos automáticos",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "fontStyle": "italic"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "rsQt8",
+                  "name": "Nota capacidades",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": 340,
+                  "content": "Es de noche en esta escena, así que salen sus capacidades nocturnas: la hora la dice el interruptor de día/noche del mapa y aquí no se pregunta. Las marca el director, como la especialidad (p.107).",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "500",
+                  "fontStyle": "italic"
                 },
                 {
                   "type": "frame",

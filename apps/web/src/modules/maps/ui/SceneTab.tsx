@@ -55,6 +55,12 @@ interface Props {
    * tiradas ni tiene por qué tenerlo. Sin él, el botón ATACAR de un token no se ofrece.
    */
   onRoll?: (req: RollRequest & { campaignId?: string }) => Promise<unknown>;
+  /**
+   * Abrir un ataque cuerpo a cuerpo A LA ESPERA de que el jugador conteste (`.pen` columna 5). Lo trae la
+   * mesa igual que `onRoll`: la escena no tiene repositorio de ataques ni tiene por qué tenerlo. Sin él,
+   * un golpe cuerpo a cuerpo no se puede pedir y el botón ATACAR no se ofrece.
+   */
+  onOpenAttack?: (input: { sceneId: string | null; attackerTokenId: string; targetTokenId: string; attackerName: string; targetCharacterId: string; dice: number; request: RollRequest }) => Promise<unknown>;
   diceOpen?: boolean;
   repo?: MapsPort;
   vision?: VisionPort;
@@ -64,7 +70,7 @@ interface Props {
 const DEFAULT_STROKE: StrokeStyle = { color: STROKE_COLORS[1], width: 2 };
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, onRoll, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
+export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -182,7 +188,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     if (selectedToken.bestiaryRef) return (system.catalogs['bestiary'] ?? []).find(i => i.id === selectedToken.bestiaryRef) ?? null;
     return null;
   }, [selectedToken, extraEncounters, system]);
-  const canAttack = isDm && !!onRoll && !!attackerItem && !!selectedToken;
+  const canAttack = isDm && !!onRoll && !!onOpenAttack && !!attackerItem && !!selectedToken;
 
   /** Los personajes de la escena con su distancia YA medida: «lo mide el mapa», dice el diseño. */
   const attackTargets = useMemo((): AttackTarget[] => {
@@ -192,7 +198,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     const round1 = (n: number) => Math.round(n * 10) / 10;
     return st.tokens.filter(tk => tk.characterId && tk.id !== selectedToken.id).map(tk => {
       const cells = distanceCells(from, tokenCenter(tk, grid), grid);
-      return { id: tk.id, name: tk.name, cells: round1(cells), metres: round1(cells * METRES_PER_CELL) };
+      // `characterId!`: el filtro de arriba ya deja fuera los tokens que no son de un personaje.
+      return { id: tk.id, name: tk.name, cells: round1(cells), metres: round1(cells * METRES_PER_CELL), characterId: tk.characterId! };
     });
   }, [selectedToken, st.tokens, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
@@ -350,6 +357,10 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             <TokenAttackModal entry={entryFromCatalogItem(attackerItem!, selectedToken!.name)} system={system}
                               targets={attackTargets} night={live?.lighting === 'night'}
                               onAttack={req => onRoll!({ ...req, campaignId })}
+                              onOpenAttack={i => onOpenAttack!({
+                                sceneId: live?.id ?? null, attackerTokenId: selectedToken!.id, attackerName: selectedToken!.name,
+                                targetTokenId: i.targetTokenId, targetCharacterId: i.targetCharacterId, dice: i.dice, request: i.request,
+                              })}
                               onClose={() => setAttacking(false)} />
           )}
           {isDm && pcMenu && (
