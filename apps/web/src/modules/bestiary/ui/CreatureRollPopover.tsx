@@ -99,7 +99,7 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
    * El techo de los dados que el director añade a mano lo pone el SISTEMA (`engine.extraDiceMax`): en
    * Plenilunio, «uno o dos» por herramientas (p.87) y hasta cuatro por atención médica (p.101), porque el
    * libro no da un máximo global. Sin esto el «+» no tenía techo ninguno, igual que en la ficha.
-   * La pantalla APAGA el botón y `poolFor` recorta al construir la petición. ⚠ Pero una tirada de criatura NO
+   * La pantalla APAGA el botón y `poolFor` recorta al construir la petición. OJO: una tirada de criatura NO
    * lleva `characterId`, así que el servidor NO la rehace (`performRoll` sólo reconstruye con ficha): aquí el
    * techo vive de verdad en el navegador. Es un hueco de autoridad ANTERIOR a esto y común a toda tirada de
    * criatura —los dados salen igual del cliente—, y quien tira es el director, que es su propia mesa.

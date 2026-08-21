@@ -3,7 +3,7 @@ import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../.
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
-import { fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
+import { fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, KAREN_DATA, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
 import { SceneTab } from './SceneTab';
 
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -120,12 +120,17 @@ describe('<SceneTab> DM', () => {
     expect(repo.tokens.filter(t => t.characterId === 'ch-elias')).toHaveLength(0);
     fireEvent.pointerDown(canvas(), { clientX: 4 * G + 3, clientY: 7 * G + 3, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.tokens.filter(t => t.characterId === 'ch-elias')).toHaveLength(1));
-    expect(repo.tokens.at(-1)).toMatchObject({ characterId: 'ch-elias', controlledBy: 'u-nix', visible: true, x: 4, y: 7 });
+    // Cae CENTRADO donde se pulsa y sin pegarse a la rejilla (dueño, 2026-08-21): la esquina es el punto menos
+    // media huella, 111/27 − 0,75 = 3,36. Y su ancho sale de la ficha: Elías es «mediano» → 1,5 casillas (p.25).
+    expect(repo.tokens.at(-1)).toMatchObject({
+      characterId: 'ch-elias', controlledBy: 'u-nix', visible: true, size: 1.5,
+      x: expect.closeTo(3.36, 1), y: expect.closeTo(6.36, 1),
+    });
     // encounter
     await u.click(screen.getByRole('button', { name: 'Encuentro' }));
     await u.click(await screen.findByRole('button', { name: 'Elegir Ogro' }));
     fireEvent.pointerDown(canvas(), { clientX: 5 * G + 3, clientY: 6 * G + 3, pointerId: 1, button: 0 });
-    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ bestiaryRef: 'ogre', name: 'Ogro', x: 5, y: 6, visible: false, controlledBy: null, state: { resistance: 30 } }));
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ bestiaryRef: 'ogre', name: 'Ogro', x: expect.closeTo(4.36, 1), y: expect.closeTo(5.36, 1), size: 1.5, visible: false, controlledBy: null, state: { resistance: 30 } }));
     expect(await within(canvas()).findByRole('img', { name: 'Token Ogro (oculto)' })).toBeInTheDocument();
   });
   /**
@@ -150,9 +155,53 @@ describe('<SceneTab> DM', () => {
     fireEvent.pointerDown(canvas(), { clientX: 3 * G + 3, clientY: 4 * G + 3, pointerId: 1, button: 0 });
 
     await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({
-      bestiaryEntryId: 'be-9', bestiaryRef: null, name: 'Ogro con antorcha', x: 3, y: 4,
+      bestiaryEntryId: 'be-9', bestiaryRef: null, name: 'Ogro con antorcha',
+      x: expect.closeTo(2.36, 1), y: expect.closeTo(3.36, 1),
+      // El bloque de una criatura NO imprime tamaño (comprobado en el PDF: el ogro de la p.152 trae Aguante y
+      // Destino y nada más), así que se queda con el del mapa. Anotado como deuda en WORK_STATE.
+      size: 1.5,
       visible: false, state: { resistance: 30 },
     }));
+  });
+
+  /**
+   * El OTRO lado de lo mismo: cuando la ficha SÍ dice de qué tamaño es, manda ella y no el valor por defecto
+   * del mapa. Sin esta prueba las demás no distinguen «el motor dijo mediano» de «el motor no dijo nada»:
+   * las dos cosas dan 1,5, así que un `tokenCells` desconectado pasaría el resto de la tanda sin enterarse.
+   *
+   * Los números son los de la tabla de tamaños del manual (p.25, verificada en el PDF): grande 3,5 casillas,
+   * enorme 7. Y la esquina que se guarda sigue siendo el punto pulsado MENOS media huella, así que una huella
+   * más grande se centra igual — es lo que evita que un ogro caiga con el pie donde debería estar su cabeza.
+   */
+  it('el tamaño de la ficha manda sobre el del mapa: un PJ grande ocupa 3,5 casillas y un PNJ enorme 7, los dos centrados', async () => {
+    const u = userEvent.setup();
+    const repo = seed();
+    const bigPc = { ...CHARACTER_OTHER, id: 'ch-ogro', name: 'Bram el Grande', data: { ...KAREN_DATA, name: 'Bram el Grande', size: 'large' } };
+    renderWithProviders(
+      <SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+                charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, bigPc])} repo={repo} vision={fakeVisionPort()}
+                extraEncounters={[{ id: 'be-7', label: 'Dragón de Queens', ref: 'bestiary',
+                                    data: { resistance: 30, protection: 0, origin: 'npc', entryId: 'be-7', tokenUrl: null,
+                                            creature: { sheet: { ...KAREN_DATA, size: 'huge' } } } }]} />,
+    );
+
+    await u.click(await screen.findByRole('button', { name: 'Colocar PJ' }));
+    await u.click(await screen.findByRole('menuitem', { name: /Bram/ }));
+    fireEvent.pointerDown(canvas(), { clientX: 4 * G + 3, clientY: 7 * G + 3, pointerId: 1, button: 0 });
+    // 111/27 − 3,5/2 = 2,361 · 192/27 − 1,75 = 5,361
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({
+      characterId: 'ch-ogro', size: 3.5, x: expect.closeTo(2.36, 1), y: expect.closeTo(5.36, 1),
+    }));
+
+    await u.click(screen.getByRole('button', { name: 'Encuentro' }));
+    await u.click(await screen.findByRole('button', { name: 'Elegir Dragón de Queens' }));
+    fireEvent.pointerDown(canvas(), { clientX: 5 * G + 3, clientY: 6 * G + 3, pointerId: 1, button: 0 });
+    // 138/27 − 7/2 = 1,611 · 165/27 − 3,5 = 2,611. Una huella grande PUEDE salirse del mapa por arriba: es correcto.
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({
+      bestiaryEntryId: 'be-7', name: 'Dragón de Queens', size: 7, x: expect.closeTo(1.61, 1), y: expect.closeTo(2.61, 1),
+    }));
+    // Y se dibuja: un token de 7 casillas no revienta el glifo (`r = size·grid/2 − 1,5`).
+    expect(await within(canvas()).findByRole('img', { name: /Dragón de Queens/ })).toBeInTheDocument();
   });
 
   it('walls: click-click adds a segment; token bar: select → hide/show + remove; «Limpiar todos»; create + activate a scene', async () => {

@@ -108,6 +108,24 @@ Tamaños (p. 25):
 | Grande   | 4 m      | 1 t   | +1      | ogro           |
 | Enorme   | 8 m      | 9 t   | +2      | dragón         |
 
+⚠ Interpretación (mapa): el libro da estaturas y un modificador de Aguante, **no** huellas en casillas. La
+casilla del mapa mide 1,5 m, así que la huella literal sería estatura ÷ 1,5 (mediano 1,13). A eso se le aplica
+el aumento de LEGIBILIDAD que pidió el dueño el 2026-08-21 —«un 50% más para tamaño normal»—, que fija el
+mediano en **1,5 casillas** y multiplica a todos por igual (×1,33) para conservar las proporciones del libro.
+Redondeado al cuarto de casilla: **diminuto 0,5 · pequeño 0,75 · mediano 1,5 · grande 3,5 · enorme 7**.
+Los bloques de criatura **no imprimen el tamaño** (el ogro de la p.152 trae Aguante y Destino y nada más), así
+que un token del bestiario se queda con el tamaño por defecto del mapa hasta que se les dé uno. Ojo, que eso
+no es lo mismo que decir que el libro calla: la propia tabla de arriba pone de ejemplo **ogro** en Grande y
+**dragón** en Enorme, y la aritmética lo confirma —el ogro imprime Aguante 10 con Fortaleza 8 y Voluntad 1,
+o sea el +1 de Grande. Darle su tamaño a cada una de las 45 criaturas es leerse su descripción una por una,
+y es su propia tanda; hasta entonces el valor por defecto es una decisión de PLAZO, no de reglas.
+
+⚠ **Y NO se puede automatizar despejando** `Aguante − (Fortaleza + Voluntad)`. Comprobado sobre las 57
+entradas del catálogo el 2026-08-22: sale bien en el ogro (+1) pero **falla en muchas**, y no siempre dentro
+del rango legal −2…+2 — Fantasma **−3**, Paladín solar **−4**, Nathael **−8**, Marduk y Adán −1, Charlatán
+iluminati +2, Jacobita y Nergal +1. Los bloques imprimen el Aguante como dato suelto y no siempre cuadra con
+sus características. Quien lo automatice le pondrá tamaños inventados a media lista: hay que leerse el libro.
+
 ### 1.7 Equipo inicial (p. 25)
 Sin tabla de precios; se pacta con el DJ. Orientación: ropa + muda; bolsa/mochila; un arma acorde a la especialidad
 de Combate (arma de fuego/arco: 20–40 proyectiles; o 3–4 granadas); segunda arma si Combate ≥ 4; libros/portátil si

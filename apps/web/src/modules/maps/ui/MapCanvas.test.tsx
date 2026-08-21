@@ -62,14 +62,22 @@ describe('<MapCanvas> layers', () => {
 });
 
 describe('<MapCanvas> tools', () => {
-  it('select: dragging my token broadcasts while moving and persists the snapped cell on release; someone else\'s token only selects', () => {
+  /**
+   * Regresión, prueba del dueño 2026-08-21: «que el movimiento no dependa de la grilla». Arrastrar YA era
+   * libre —`onDragToken` mandaba fracciones—, pero al soltar un `Math.round` daba el tirón a la casilla, así
+   * que el token siempre acababa cuadrado. Ahora se guarda donde se soltó, redondeado sólo a la centésima de
+   * casilla para no mandar 14 decimales por la red. La columna `x`/`y` de la base ya era `real`.
+   */
+  it('select: al soltar se guarda DONDE SE SOLTÓ, sin pegarse a la casilla; el token de otro sólo se selecciona', () => {
     const { svg, token, cb } = mount();
     down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
     expect(cb.onSelectToken).toHaveBeenCalledWith('tk-karen');
     move(svg, (TOKEN_KAREN.x + 0.5) * G + 2 * G + 3, (TOKEN_KAREN.y + 0.5) * G + G);
     expect(cb.onDragToken).toHaveBeenLastCalledWith('tk-karen', expect.closeTo(12.11, 1), 12);
     up(svg);
-    expect(cb.onMoveToken).toHaveBeenCalledWith('tk-karen', 12, 12);
+    // 12,11 y no 12: la fracción sobrevive al soltar, que es justo lo que se pidió.
+    expect(cb.onMoveToken).toHaveBeenCalledWith('tk-karen', expect.closeTo(12.11, 2), 12);
+    expect(cb.onMoveToken.mock.calls[0]![1]).not.toBe(12);
     down(token('Elías'), 0, 0); move(svg, 50, 50); up(svg);
     expect(cb.onSelectToken).toHaveBeenLastCalledWith('tk-elias');
     expect(cb.onMoveToken).toHaveBeenCalledTimes(1);
@@ -115,7 +123,7 @@ describe('<MapCanvas> tools', () => {
     down(svg, 12, 34);
     expect(cb.onPin).toHaveBeenCalledWith({ x: 12, y: 34 });
   });
-  it('wall (DM): click-click chains grid-snapped segments, Escape ends; players get nothing; encounter places at the clicked cell', () => {
+  it('wall (DM): click-click chains grid-snapped segments, Escape ends; players get nothing; el encuentro cae CENTRADO donde se pulsa', () => {
     const { svg, cb, rerender } = mount({ tool: 'wall', isDm: true, me: 'u-gm' });
     down(svg, 28, 26); down(svg, 80, 26); down(svg, 80, 110);
     expect(cb.onAddWall).toHaveBeenNthCalledWith(1, { x: G, y: G }, { x: 3 * G, y: G });
@@ -126,13 +134,22 @@ describe('<MapCanvas> tools', () => {
     rerender({ tool: 'wall', isDm: false });
     down(svg, 0, 0); down(svg, 50, 0);
     expect(cb.onAddWall).toHaveBeenCalledTimes(2);
-    // colocar es un estado, no una herramienta: con algo pendiente el clic manda, venga de donde venga
+    /**
+     * Colocar es un estado, no una herramienta: con algo pendiente el clic manda, venga de donde venga.
+     * Y desde 2026-08-22 el token cae CENTRADO en el punto pulsado y sin pegarse a la rejilla — con la huella
+     * en fracciones (`DEFAULT_TOKEN_CELLS` = 1,5) caer en el vértice de una casilla lo dejaba medio fuera.
+     * La esquina que se guarda es el centro menos media huella: 59/27 − 0,75 = 1,435.
+     */
     rerender({ tool: 'encounter', isDm: true, me: 'u-gm', placing: true });
     down(svg, 2 * G + 5, 3 * G + 5);
-    expect(cb.onPlace).toHaveBeenCalledWith({ x: 2, y: 3 });
+    expect(cb.onPlace).toHaveBeenCalledWith({ x: expect.closeTo(1.435, 2), y: expect.closeTo(2.435, 2) });
     rerender({ tool: 'select', isDm: true, me: 'u-gm', placing: true });
     down(svg, 5 * G + 5, G + 5);
-    expect(cb.onPlace).toHaveBeenLastCalledWith({ x: 5, y: 1 });
+    expect(cb.onPlace).toHaveBeenLastCalledWith({ x: expect.closeTo(4.435, 2), y: expect.closeTo(0.435, 2) });
+    // Y un token grande se centra igual: la huella entra por `placingSize`.
+    rerender({ tool: 'select', isDm: true, me: 'u-gm', placing: true, placingSize: 3.5 });
+    down(svg, 5 * G + 5, G + 5);
+    expect(cb.onPlace).toHaveBeenLastCalledWith({ x: expect.closeTo(3.435, 2), y: expect.closeTo(-0.565, 2) });
   });
 });
 

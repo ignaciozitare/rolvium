@@ -7,7 +7,7 @@ import type { ActionDef, DiceGroup, Engine, ExtraDiceCap, RollRequest, RollResul
 import {
   GIFT_IDS, GIFT_MAX_LEVEL, HEALTH_LEVELS, MAX_GIFT_TRADES, RANGE_DIFFICULTY, RECOVERY, armourById, capabilityLevel, hasCapability,
   isMelee, isStatId, sizeMod, weaponById,
-  type CapabilityId, type CreatureCapability, type HealthId, type StatId, type WeaponData,
+  type CapabilityId, type CreatureCapability, type HealthId, type SizeId, type StatId, type WeaponData,
 } from './catalogs';
 import { capabilitiesOf, giftsOf, healthOf, num, statOf, str, weaponsOf, type GiftRow, type WeaponRow } from './schema';
 import { explain } from './explain';
@@ -259,6 +259,36 @@ export function extraDiceMax(sheet: SheetData, action: { stat: string; options?:
   return stat === 'fortitude'
     ? { max: EXTRA_DICE_MAX.medical, reason: 'sheet.roll.extraCap.medical', ref: 'recovery' }
     : { max: EXTRA_DICE_MAX.tools, reason: 'sheet.roll.extraCap.tools', ref: 'tools' };
+}
+
+// ─── Token size on the map (manual p.25) ─────────────────────────────────────
+/**
+ * Cuántas casillas de ancho ocupa el token de un personaje según su TAMAÑO, la columna «Estatura» de la tabla
+ * de la p.25. Antes todo token nacía de una casilla —un gato y un dragón, igual de grandes— y el dueño los vio
+ * además «demasiado pequeños» (2026-08-21).
+ *
+ * Cómo salen los números. La casilla del mapa mide `METRES_PER_CELL` (1,5 m), así que la huella literal de
+ * cada tamaño es su estatura entre 1,5: diminuto 0,33 · pequeño 0,60 · mediano 1,13 · grande 2,67 · enorme
+ * 5,33 casillas. A eso se le aplica el aumento de LEGIBILIDAD que pidió el dueño —«un 50% más para tamaño
+ * normal»—, que fija el mediano en **1,5 casillas** y multiplica por 1,33 a todos por igual para que las
+ * proporciones del libro se mantengan. Redondeado al cuarto de casilla, que es lo que se distingue en pantalla.
+ *
+ * | Tamaño   | Estatura (p.25) | Huella literal | En el mapa |
+ * |----------|-----------------|----------------|------------|
+ * | Diminuto | 50 cm           | 0,33           | **0,5**    |
+ * | Pequeño  | 90 cm           | 0,60           | **0,75**   |
+ * | Mediano  | 1,7 m           | 1,13           | **1,5**    |
+ * | Grande   | 4 m             | 2,67           | **3,5**    |
+ * | Enorme   | 8 m             | 5,33           | **7**      |
+ *
+ * ⚠ Interpretación: el libro NO da huellas en casillas —da estaturas y un modificador de Aguante—, así que el
+ * paso a casillas y el 1,33 de legibilidad son nuestros. Lo que SÍ es del libro son las proporciones.
+ */
+export const TOKEN_CELLS: Record<SizeId, number> = { tiny: 0.5, small: 0.75, medium: 1.5, large: 3.5, huge: 7 };
+/** `null` cuando la ficha no dice de qué tamaño es: el mapa pone entonces el suyo por defecto. */
+export function tokenCells(sheet: SheetData): number | null {
+  const id = str(sheet.size, '');
+  return (TOKEN_CELLS as Record<string, number | undefined>)[id] ?? null;
 }
 
 /** Builds the RollRequest for a stat: own dice = stat − health penalty + extra + bonus; Destiny and opposition groups tagged. */
@@ -593,7 +623,7 @@ export const attackActionFor = (row: WeaponRow): 'attack.melee' | 'attack.ranged
 
 export const engine: Engine = {
   derived: sheet => ({ ...derived(sheet) }),
-  poolFor, extraDiceMax, resolve, applyDamage,
+  poolFor, extraDiceMax, tokenCells, resolve, applyDamage,
   progression: { cost: progressionCost, apply: progressionApply },
   sharedResources, actions,
   explain,

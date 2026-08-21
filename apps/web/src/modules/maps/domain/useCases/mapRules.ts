@@ -71,6 +71,25 @@ export const cellOf = (px: number, grid: number): number => Math.floor(px / grid
 export function tokenCellAt(p: Point, grid: number, size = 1): Point {
   return { x: cellOf(p.x, grid) - Math.floor((size - 1) / 2), y: cellOf(p.y, grid) - Math.floor((size - 1) / 2) };
 }
+/**
+ * Lo ANCHO que es un token cuando su ficha no dice de qué tamaño es (una criatura del bestiario: el manual no
+ * imprime el tamaño en su bloque). **Casilla y media**, no una: el dueño los vio «demasiado pequeños» al
+ * probar la app y pidió «un 50% más para tamaño normal» (2026-08-21). Cuando la ficha SÍ lo dice manda ella,
+ * a través de `engine.tokenCells`.
+ */
+export const DEFAULT_TOKEN_CELLS = 1.5;
+/**
+ * Dónde queda un token CENTRADO en un punto de la escena, en casillas y **sin pegarse a la rejilla**: la
+ * esquina de un token de ancho `size` centrado en `p`. Devuelve fracciones a propósito.
+ *
+ * `tokenCellAt` —que sí redondea a casilla— sigue existiendo para lo que de verdad va por casillas. Aquí no:
+ * el dueño pidió que «el movimiento no dependa de la grilla» (2026-08-21), y con la huella en fracciones
+ * (un mediano ocupa 1,5 casillas) obligar a caer en el vértice de una casilla dejaba al token medio dentro y
+ * medio fuera. La base ya guarda `x`/`y` como `real`, así que no hace falta migración.
+ */
+export function tokenPointAt(p: Point, grid: number, size = DEFAULT_TOKEN_CELLS): Point {
+  return { x: p.x / grid - size / 2, y: p.y / grid - size / 2 };
+}
 export const tokenCenter = (t: Pick<Token, 'x' | 'y' | 'size'>, grid: number): Point => ({ x: (t.x + t.size / 2) * grid, y: (t.y + t.size / 2) * grid });
 
 /** Distance between two scene points in cells (Euclidean). */
@@ -275,10 +294,10 @@ export function shapeData(kind: Exclude<DrawingKind, 'stroke' | 'text'>, a: Poin
 export const initialsOf = (name: string): string => name.split(/\s+/).map(w => w.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join('') || '?';
 
 /** Token from a PC: token image → avatar → owner avatar; the owner controls it. */
-export function tokenFromCharacter(c: Character, ownerAvatarUrl: string | null | undefined, sceneId: string, at: Point): NewToken {
+export function tokenFromCharacter(c: Character, ownerAvatarUrl: string | null | undefined, sceneId: string, at: Point, size = DEFAULT_TOKEN_CELLS): NewToken {
   return {
     sceneId, campaignId: c.campaignId, characterId: c.id, bestiaryRef: null, bestiaryEntryId: null, name: c.name,
-    imageUrl: c.tokenUrl ?? c.avatarUrl ?? ownerAvatarUrl ?? null, x: at.x, y: at.y, size: 1, color: c.color,
+    imageUrl: c.tokenUrl ?? c.avatarUrl ?? ownerAvatarUrl ?? null, x: at.x, y: at.y, size, color: c.color,
     visible: true, controlledBy: c.ownerId, visionRadius: null, state: {},
   };
 }
@@ -292,7 +311,7 @@ export function tokenFromCharacter(c: Character, ownerAvatarUrl: string | null |
  * (id del catálogo); los encuentros PROPIOS del director sí la tienen y viajan en `bestiaryEntryId`, que
  * `toCatalogItem` del bestiario deja en `data.entryId`. `data.tokenUrl` trae su imagen si le pusieron una.
  */
-export function tokenFromBestiary(entry: CatalogItem, label: string, campaignId: string, sceneId: string, at: Point): NewToken {
+export function tokenFromBestiary(entry: CatalogItem, label: string, campaignId: string, sceneId: string, at: Point, size = DEFAULT_TOKEN_CELLS): NewToken {
   const state: Record<string, unknown> = {};
   const res = entry.data?.resistance;
   if (typeof res === 'number') state.resistance = res;
@@ -304,7 +323,7 @@ export function tokenFromBestiary(entry: CatalogItem, label: string, campaignId:
     bestiaryRef: typeof entryId === 'string' ? null : entry.id,
     bestiaryEntryId: typeof entryId === 'string' ? entryId : null,
     name: label, imageUrl: typeof tokenUrl === 'string' ? tokenUrl : null,
-    x: at.x, y: at.y, size: 1, color: null, visible: false, controlledBy: null, visionRadius: null, state,
+    x: at.x, y: at.y, size, color: null, visible: false, controlledBy: null, visionRadius: null, state,
   };
 }
 

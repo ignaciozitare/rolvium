@@ -3,8 +3,50 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS,
+  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt,
 } from './mapRules';
+import { plenilunio } from '@rolvium/system-plenilunio';
+
+/**
+ * Prueba del dueño 2026-08-21: los tokens estaban «demasiado pequeños y pegados a la grilla». Dos cosas
+ * distintas, y las dos se fijan aquí:
+ *  · el ancho — «un 50% más para tamaño normal, y escalados por el tamaño de la ficha» (p.25);
+ *  · el sitio — «que el movimiento no dependa de la grilla».
+ */
+describe('tokens: lo ancho que son y dónde caen (dueño 2026-08-21)', () => {
+  it('por defecto un token ocupa casilla y media, no una', () => {
+    expect(DEFAULT_TOKEN_CELLS).toBe(1.5);
+  });
+  it('la escala sale de la tabla de tamaños del manual (p.25), y el mediano es el 1,5 del dueño', () => {
+    expect(plenilunio.engine.tokenCells!({ size: 'tiny' })).toBe(0.5);
+    expect(plenilunio.engine.tokenCells!({ size: 'small' })).toBe(0.75);
+    expect(plenilunio.engine.tokenCells!({ size: 'medium' })).toBe(DEFAULT_TOKEN_CELLS);
+    expect(plenilunio.engine.tokenCells!({ size: 'large' })).toBe(3.5);
+    expect(plenilunio.engine.tokenCells!({ size: 'huge' })).toBe(7);
+    // Las proporciones son las del libro: un grande mide 4 m y un mediano 1,7 → 2,35 veces. 3,5/1,5 = 2,33.
+    expect(3.5 / 1.5).toBeCloseTo(4 / 1.7, 1);
+    expect(7 / 1.5).toBeCloseTo(8 / 1.7, 1);
+    // Una ficha que no diga de qué tamaño es no inventa nada: manda el del mapa.
+    expect(plenilunio.engine.tokenCells!({})).toBeNull();
+    expect(plenilunio.engine.tokenCells!({ size: 'colosal' })).toBeNull();
+  });
+  it('`tokenPointAt` CENTRA el token en el punto y devuelve fracciones (no se pega a la rejilla)', () => {
+    // Centro de la casilla 2,3 con una huella de 1,5: la esquina queda a 0,75 de distancia.
+    expect(tokenPointAt({ x: 2.5 * 27, y: 3.5 * 27 }, 27, 1.5)).toEqual({ x: 1.75, y: 2.75 });
+    // Un punto cualquiera dentro de una casilla NO cae en su vértice: la fracción se conserva.
+    const p = tokenPointAt({ x: 2 * 27 + 5, y: 3 * 27 + 5 }, 27, 1.5);
+    expect(p.x).toBeCloseTo(1.435, 2);
+    expect(p.y).toBeCloseTo(2.435, 2);
+    // Un token grande se centra igual, y su esquina puede salirse por arriba: es correcto, ocupa 3,5 casillas.
+    expect(tokenPointAt({ x: 27, y: 27 }, 27, 3.5)).toEqual({ x: -0.75, y: -0.75 });
+    // Y sigue quedando centrado: `tokenCenter` devuelve el punto de partida.
+    expect(tokenCenter({ ...tokenPointAt({ x: 100, y: 60 }, 27, 3.5), size: 3.5 }, 27)).toEqual({ x: 100, y: 60 });
+  });
+  /** `tokenCellAt` NO desaparece: sigue siendo lo que se usa cuando algo va de verdad por casillas. */
+  it('`tokenCellAt` sigue redondeando a casilla, para lo que sí va por casillas', () => {
+    expect(tokenCellAt({ x: 2 * 27 + 5, y: 3 * 27 + 5 }, 27)).toEqual({ x: 2, y: 3 });
+  });
+});
 
 describe('mapRules — view & coordinates', () => {
   it('canvas ↔ scene round-trips through zoom/pan', () => {

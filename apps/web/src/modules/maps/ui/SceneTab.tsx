@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
+import type { CatalogItem, GameSystem, RollRequest, SheetData } from '@rolvium/core';
 import { UserAvatar, useDialog } from '@rolvium/ui';
 import type { CampaignMember, TableRole } from '@/modules/campaigns/domain/entities/Campaign';
 import type { Character } from '@/modules/characters/domain/entities/Character';
@@ -10,7 +10,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { canvasToScene, centerOn, DEFAULT_BRUSH, distanceCells, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { canvasToScene, centerOn, DEFAULT_BRUSH, distanceCells, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenCenter, tokenFromBestiary, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -152,18 +152,37 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   }, [repo]);
   const openBg = async () => { setBgOpen(o => !o); if (images === null) setImages(await repo.listImages(campaignId).catch(() => [])); };
   const openPcMenu = async () => { setPcMenu(o => !o); if (pcs === null) setPcs((await charactersRepo.listByCampaign(campaignId).catch(() => [] as Character[])).filter(c => c.kind === 'pc')); };
+  /**
+   * Lo ancho que es el token de una ficha, en casillas. Lo dice el SISTEMA a partir de su tabla de tamaños
+   * (Plenilunio, p.25: diminuto…enorme), porque la plataforma no sabe que un ogro es más grande que un gato.
+   * Si la ficha no lo dice —las criaturas del bestiario no llevan tamaño en su bloque— manda el del mapa.
+   */
+  const cellsOfSheet = (sheet: SheetData | undefined): number =>
+    (sheet ? system.engine.tokenCells?.(sheet) ?? null : null) ?? DEFAULT_TOKEN_CELLS;
+  /**
+   * Lo mismo para un encuentro. Un PNJ aliado lleva ficha de personaje dentro de su bloque (`creature.sheet`)
+   * y de ahí sale su tamaño; una criatura del MANUAL no lleva ninguno —los bloques de la p.147 en adelante
+   * imprimen Aguante y Destino, y el tamaño no— así que se queda con el del mapa. Anotado como deuda: darle
+   * un tamaño a cada criatura pide leerse su descripción una por una, y es su propia tanda. Que conste que
+   * para algunas el libro SÍ lo dice —la tabla de la p.25 pone de ejemplo «ogro» en Grande y «dragón» en
+   * Enorme—, así que esto es un plazo, no una laguna de reglas. Lo que NO vale es despejarlo de
+   * `Aguante − (Fortaleza + Voluntad)`: comprobado sobre las 57 entradas, falla en muchas y se sale del rango
+   * legal (Fantasma −3, Paladín solar −4, Nathael −8). RULES.md §1.6.
+   */
+  const cellsOfEntry = (item: CatalogItem): number =>
+    cellsOfSheet((item.data?.['creature'] as { sheet?: SheetData } | undefined)?.sheet);
   const centerCell = (): Point => {
     if (!live) return { x: 0, y: 0 };
     const vp = viewport();
     const c = vp.width && vp.height ? canvasToScene({ x: vp.width / 2, y: vp.height / 2 }, view) : { x: live.width / 2, y: live.height / 2 };
-    return tokenCellAt(c, live.grid.size);
+    return tokenPointAt(c, live.grid.size);
   };
   /** Same gesture as «Encuentro»: pick who, then click where. Placing blind in the middle of the view was a guess. */
   const pickPc = (c: Character) => { setPendingPc(c); setPcMenu(false); };
-  const placePcAt = async (c: Character, cell: Point) => {
+  const placePcAt = async (c: Character, at: Point) => {
     if (!live) return;
     setPendingPc(null);
-    await st.addToken(tokenFromCharacter(c, members.find(m => m.userId === c.ownerId)?.avatarUrl, live.id, cell));
+    await st.addToken(tokenFromCharacter(c, members.find(m => m.userId === c.ownerId)?.avatarUrl, live.id, at, cellsOfSheet(c.data)));
   };
   // Las 45 del manual (datos del paquete) MÁS los encuentros propios del director. Sin esto el desplegable
   // enseña sólo el libro y lo que el director se ha inventado no se puede colocar.
@@ -272,9 +291,10 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             onPin={pt => { st.focusPin(pt); setView(v => centerOn(v, pt, viewport())); }}
             placing={!!encounter || !!pendingPc}
-            onPlace={cell => {
-              if (pendingPc) { run(placePcAt(pendingPc, cell)); return; }
-              if (encounter) run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, cell)));
+            placingSize={pendingPc ? cellsOfSheet(pendingPc.data) : encounter ? cellsOfEntry(encounter) : DEFAULT_TOKEN_CELLS}
+            onPlace={at => {
+              if (pendingPc) { run(placePcAt(pendingPc, at)); return; }
+              if (encounter) run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, at, cellsOfEntry(encounter))));
             }}
             selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}

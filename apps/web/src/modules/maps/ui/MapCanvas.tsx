@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, snap, tokenCellAt, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, snap, tokenPointAt, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, TokenGlyph, WallShape } from './canvasLayers';
 
@@ -53,6 +53,8 @@ interface Props {
   onAddText?: (at: Point) => void;
   /** Something is waiting to be dropped on the map (a bestiary entry, a PC): the next click places it. */
   placing?: boolean;
+  /** Lo ancho que va a ser el token que se está colocando, para centrarlo bien donde se pulsa. */
+  placingSize?: number;
   /** Encounter / PC placement (cell coordinates); only wired while something is pending. */
   onPlace?: (cell: Point) => void;
   selectedTokenIds: string[];
@@ -78,6 +80,8 @@ type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
 const DISC_TOOLS: Tool[] = ['select', 'measure', 'pencil', 'line', 'rect', 'circle'];
 const DRAW_TOOLS: Record<string, DrawTool> = { pencil: 'stroke', line: 'line', rect: 'rect', circle: 'circle' };
 const PIN_MS = 2500;
+/** Centésima de casilla: suficiente para que el movimiento se vea libre y no manda 14 decimales por la red. */
+const round2 = (v: number): number => Math.round(v * 100) / 100;
 /** Brush paints per second, matching the token drag's `DRAG_HZ_MS` (useScene.ts). */
 const PAINT_HZ_MS = 50;
 
@@ -188,7 +192,8 @@ export function MapCanvas(p: Props): JSX.Element {
       return;
     }
     // Placing wins over every tool: you already said what goes down, this click only says where.
-    if (e.button === 0 && p.placing && p.onPlace) { p.onPlace(tokenCellAt(s, grid)); return; }
+    // Se coloca CENTRADO donde se pulsa y sin pegarse a la rejilla, igual que se mueve.
+    if (e.button === 0 && p.placing && p.onPlace) { p.onPlace(tokenPointAt(s, grid, p.placingSize)); return; }
     if (e.button === 0 && p.tool === 'select') {
       // Seleccionar: pick a segment (DM only) and grab it, or clear everything.
       const wall = dmSight ? hitWall(p.walls, s, 10 / p.view.zoom) : null;
@@ -308,7 +313,13 @@ export function MapCanvas(p: Props): JSX.Element {
       return;
     }
     if (gesture.kind === 'token') {
-      if (gesture.moved && localDrag) p.onMoveToken(gesture.id, Math.round(localDrag.x), Math.round(localDrag.y));
+      /**
+       * Se guarda DONDE SE SOLTÓ, sin redondear a casilla: el dueño pidió que «el movimiento no dependa de la
+       * grilla» (2026-08-21). Arrastrar ya era libre —`localDrag` lleva fracciones—; era este `Math.round` del
+       * final el que daba el tirón a la rejilla al soltar. La columna es `real`, así que la fracción se guarda.
+       * Se redondea a la centésima de casilla para no mandar 14 decimales en cada movimiento.
+       */
+      if (gesture.moved && localDrag) p.onMoveToken(gesture.id, round2(localDrag.x), round2(localDrag.y));
       setLocalDrag(null);
     } else if (gesture.kind === 'draw') {
       if (gesture.tool === 'stroke') { if (gesture.points.length > 1) p.onAddDrawing('stroke', { points: gesture.points }); }

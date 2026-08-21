@@ -181,6 +181,14 @@ export interface Engine {
    * Opcional: un sistema que no lo declare no tiene techo, que es como estaba todo antes.
    */
   extraDiceMax?: (sheet: SheetData, action: { stat: string; options?: Record<string, unknown> }) => ExtraDiceCap | null;
+  /**
+   * Cuántas CASILLAS ocupa de ancho el token de esta ficha en el mapa. Lo declara el sistema porque el tamaño
+   * de una criatura es una regla suya: la plataforma no sabe que un ogro es más grande que un gato.
+   *
+   * `null` (o no declararlo) = la ficha no dice de qué tamaño es, y el mapa usa su propio tamaño por defecto.
+   * Antes TODO token nacía de una casilla, gato y dragón por igual.
+   */
+  tokenCells?: (sheet: SheetData) => number | null;
   resolve: (request: RollRequest, dice: RolledDice, sheet?: SheetData) => RollResult;
   applyDamage: (sheet: SheetData, damage: number) => SheetPatch;
   progression: ProgressionRules;
