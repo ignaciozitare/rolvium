@@ -421,9 +421,41 @@ Resumen propio (27 dones):
 | Ver las señales | +nivel éxitos automáticos en Astucia de percepción; tirada del don para ver lo oculto por magia (vs don rival o Voluntad). |
 | Voz interior | Telepatía con contacto visual (más lejos con vínculo); si el objetivo resiste, conflicto don vs Voluntad. |
 
-Capacidades (p. 107–108) son poderes innatos de criaturas: sin activación ni Fortuna (Alado, Aura*, Aura sombría*,
-Amparo de la noche*, Disfraz terrenal, Ira solar*, Ponzoña*, Piel de humano, Piel gruesa* = protección natural,
-Hambre inhumana, Ancla terrenal, Incorpóreo, Inmune al dolor, Deflagración*, Visión en la oscuridad).
+---
+
+## 7.b Capacidades (pp. 107–108) — COMPLETADO CONTRA EL PDF, 2026-08-21
+
+> Aquí sólo había **una lista de nombres entre paréntesis**, sin una sola regla. Es el ejemplo de lo que el
+> dueño llamó «mirarlo por arriba». Transcritas ahora del PDF, una a una.
+
+Son **poderes innatos de las criaturas no humanas**: «no requieren activarse ni involucran gasto de Fortuna.
+Simplemente pueden usarse a voluntad». Las marcadas con **\*** tienen puntuación, como los dones; las demás
+son todo o nada.
+
+| Capacidad | Regla (del libro) | Motor |
+|---|---|---|
+| **Alado** | Alas y capacidad innata de volar. | ❌ narrativa |
+| **Aura\*** | **Sólo de día.** Añade tantos **éxitos automáticos** como su puntuación a **cualquier tirada de Presencia** que la criatura haga **para intimidar o liderar**. | ❌ |
+| **Aura sombría\*** | **Sólo de noche.** Añade tantos **éxitos automáticos** como su puntuación a **cualquier tirada de Sutileza** para **esconderse, moverse en silencio o pasar desapercibida**. | ❌ |
+| **Amparo de la noche\*** | **De noche** añade tantos **éxitos automáticos** como su puntuación **a su total de Combate cada turno**. Si divide sus dados de Combate entre varios ataques o defensas, **debe dividir igualmente esos éxitos automáticos**. | ❌ |
+| **Disfraz terrenal** | Disimula su naturaleza sobrenatural y parece **totalmente humana**. Se pone y se quita a voluntad. | ❌ narrativa |
+| **Piel de humano** | Disimula su aspecto, pero **un examen superficial la delata**: conserva cuernos, escamas u otros rasgos. En la distancia puede confundirse con un humano. | ❌ narrativa |
+| **Ira solar\*** | Incendia los objetos que lleva en las manos (normalmente el filo del arma). **Añade la puntuación de esta capacidad al daño del arma.** | ❌ |
+| **Ponzoña\*** | Inocula veneno por dientes o garras. **Cualquier ataque de la criatura que tenga éxito inyecta el veneno.** Resistirlo es un **conflicto entre la Fortaleza de la víctima y la puntuación de Ponzoña**. Si vence la criatura, **cada éxito = 1 punto de daño y cada triunfo = tantos puntos como la Ponzoña**. | ❌ (es un ataque APARTE del principal) |
+| **Piel gruesa\*** | Piel excepcionalmente dura: **cuenta como armadura natural cuya protección es igual a la puntuación**. | ✅ `protection` del bloque |
+| **Hambre inhumana** | Come sin saciarse; su olfato la guía hacia nuevas fuentes de alimento y **le permite descubrirlas aunque estén ocultas o escondidas**. | ❌ narrativa |
+| **Ancla terrenal** | Su existencia está atada al mundo físico. **No puede ser destruida hasta que sea liberada del ancla.** Mientras el ancla exista, **cualquier resultado que la deje en nivel de salud muerto se trata como otro nivel malherido**, del que se recupera con el tiempo de forma normal. | ❌ |
+| **Incorpóreo** | Carece de cuerpo físico. **No se la puede atacar físicamente** y sólo interactúan con ella otros seres inmateriales. **Usa la Voluntad de la criatura en lugar de su Fortaleza o su Combate** para cualquier pugna entre seres inmateriales. | ❌ |
+| **Inmune al dolor** | Sus niveles de salud sirven **sólo** para saber cuándo muere o es destruida: **no sufre penalización de dados por los estados** (p. 99). | ❌ |
+| **Deflagración\*** | Explosión de llamas sobrenaturales. Radio de **1 metro por punto**. Los que están junto a la criatura reciben un ataque con **tantos dados como la puntuación**, **−1 dado por cada metro de distancia**. Se resuelve como **reto de dificultad 1**, y el DJ puede permitir **ponerse a cubierto** como en los ataques a distancia (p. 096). **Cada éxito = 1 punto de daño; cada triunfo = tantos puntos como la puntuación.** | ❌ |
+| **Visión en la oscuridad** | Ve en la oscuridad más absoluta como si fuera de día. | ❌ narrativa |
+
+⚠ **«Aura sobrenatural»** aparece en el bloque de Nathael (p. 49) y **no está en la lista de p. 107–108**. Sin
+resolver: puede ser el mismo «Aura\*» con otro nombre, o una capacidad que el libro no llegó a listar.
+
+⚠ Las criaturas también llevan **DONES** normales (§7), no sólo capacidades: el fantasma tiene «Mano
+inmaterial 3», Soum «Defensa de acero 3, Golpe certero 4, Movimientos felinos 5». Se leen del §7 y cuestan
+Fortuna como a cualquiera.
 
 ---
 
@@ -468,6 +500,37 @@ un dato que el libro no da: el director puede hacerlo a mano si quiere, pero por
 | Inmune al dolor | Sus niveles de salud sólo dicen cuándo muere: **no sufre penalización de dados** por estado (p. 99) | ❌ sin construir |
 | Ancla terrenal | Mientras exista el ancla, cualquier resultado que la deje muerta cuenta como otro nivel malherido | ❌ sin construir |
 | Alado · Visión en la oscuridad · Aura\* · Aura sombría\* · Disfraz terrenal · Piel de humano · Hambre inhumana | Sin efecto mecánico sobre el daño | — narrativas o fuera de combate |
+
+### 8.0 ⚠ LO QUE FALTA POR COPIAR DEL LIBRO (hallado 2026-08-21)
+
+El bestiario se copió **sólo de los bloques en lista** (los de «Fortaleza 8 / Combate 4 / …»). El libro trae
+**otro tipo de bloque, en cajas de lunas**, para los personajes con nombre — y ésos **no se copiaron ninguno**.
+
+**Se distinguen porque llevan un apartado `ATAQUES` con arma y daño ya calculados**, que es justo el dato
+que se echaba en falta: «Martillo de guerra 10 (daño 10)», «Espada flamígera 9 (daño 11)», «Katana 5 (daño 4)».
+También pueden llevar **varias especialidades por característica** y **varios ataques**.
+
+**Páginas del PDF con un bloque en cajas** (índice del fichero, no el número impreso; impreso = PDF − 2):
+`51 · 73 · 74 · 122 · 125 · 127 · 128 · 136 · 138 · 141 · 144`
+
+Leídos hasta ahora (los cuatro primeros):
+
+| Personaje | p. | For | Com | Vol | Ast | Sut | Pre | Cul | Ag | Des | Ataques | Dones y capacidades |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
+| **Nathael**, regente solar de NY | 49 | 7 | 7 | 5 | 4 | 2 | 7 | 4 | 4 | 4 | Espada flamígera 9 (daño 11) | Alado, **Aura sobrenatural 5**, Disfraz terrenal, Ira solar 5 |
+| **Luz** (niña), avatar de la Luna | 71 | 2 | 4 | 4 | 3 | 2 | 2 | 3 | 6 | 6 | Katana 5 (daño 4) | Golpe certero 3, Separación espiritual 1, Trance del destino 2 |
+| **Soum**, katana elegida | 72 | 4 | 5 | 4 | 4 | 3 | 3 | 4 | 8 | 10 | Katana de las Trece Lunas 6 (daño 7), cuchillo tantō 5 (daño 5) | Defensa de acero 3, Golpe certero 4, Movimientos felinos 5 |
+| **Nergal**, príncipe de París | 120 | 6 | 8 | 5 | 4 | 2 | 7 | 4 | 12 | 6 | Martillo de guerra 10 (daño 10) | Alado, Aura sombría 3, Disfraz terrenal, Amparo de la noche 4 |
+
+⚠ Luz tiene **dos versiones**: la niña (p. 71) y la adulta tras recibir la espada Malefic (**p. 142**).
+
+**Sin leer todavía**: PDF 125, 127, 128, 136, 138, 141, 144 — por los rastros del texto hay al menos
+Guardia del Señor de la Guerra, **Baal**, **Gabriel**, **Adán/Satán** y las Otras piezas del gran juego.
+
+**Y falta un bloque en lista**: el **Salteador** (p. 209), que la aventura de ejemplo usa como enemigo de una
+escena entera — For 2, Com 2, Vol 2, Ast 2, Sut 3, Pre 2, Cul 2, Aguante 4, Destino 1; especialidades
+Conducir · Armas contundentes · Perseverar · Supervivencia · Emboscar · Interrogación · Tecnología.
+El libro añade: «Puedes elegir las armas que llevan de la tabla de la página 097».
 
 ### 8.1 Criaturas
 | Criatura | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | Prot. | Capacidades | p. |
