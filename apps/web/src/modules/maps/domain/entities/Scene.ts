@@ -23,13 +23,19 @@ export interface Scene {
   lighting: Lighting;
   /** How far one sees at night, in METRES (the unit the table reasons in); px conversion uses the system's metres per cell. */
   nightRadiusM: number;
+  /**
+   * Paredes sólidas: si en esta escena un token puede o no atravesar un muro (rebanada 4).
+   * `false` = como siempre, los tokens pasan como fantasmas. Va por escena y no por campaña porque una
+   * mazmorra y un descampado no piden lo mismo (dueño, 2026-08-22).
+   */
+  solidWalls: boolean;
   sortOrder: number;
   visiblePlayers: boolean;
   createdAt: string;
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'sortOrder' | 'visiblePlayers'>>;
+export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers'>>;
 
 /** What a segment is. The three types collapse into two flags — see `blocksSightNow` / `blocksMoveNow` in mapRules. */
 export type WallKind = 'wall' | 'door' | 'window';

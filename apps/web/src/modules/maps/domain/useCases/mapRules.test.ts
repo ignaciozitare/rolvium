@@ -3,7 +3,7 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt,
+  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -13,6 +13,71 @@ import { plenilunio } from '@rolvium/system-plenilunio';
  *  · el ancho — «un 50% más para tamaño normal, y escalados por el tamaño de la ficha» (p.25);
  *  · el sitio — «que el movimiento no dependa de la grilla».
  */
+/**
+ * Paredes sólidas (rebanada 4, spec § «Rebanada 4»). El dueño pidió «un poco de física, que los tokens no
+ * puedan traspasar las paredes», y eligió: choca TODO EL CUERPO (no el centro) y al topar RESBALA.
+ */
+describe('paredes sólidas: `slideToken`, `moveBlockers`, `tokenRadiusPx`', () => {
+  /** Un muro vertical en x = 100, de y 0 a 200. */
+  const muro = { id: 'w', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 100, y2: 200, visiblePlayers: true, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false };
+  const R = 10;
+
+  it('cruzar el muro se queda a este lado; ir en paralelo pasa entero', () => {
+    // de (50,100) a (150,100): al otro lado. Ni X ni la diagonal caben → se queda donde estaba.
+    expect(slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, [muro])).toEqual({ x: 50, y: 100 });
+    // sin muros no hay física que valga
+    expect(slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, [])).toEqual({ x: 150, y: 100 });
+  });
+
+  it('RESBALA: empujando en diagonal contra el muro, sigue bajando pegado a él', () => {
+    // quiere ir a (150, 160) — cruzando. La X no cabe, la Y sí: baja pegado a la pared.
+    expect(slideToken({ x: 50, y: 100 }, { x: 150, y: 160 }, R, [muro])).toEqual({ x: 50, y: 160 });
+  });
+
+  it('choca TODO EL CUERPO: el gato pasa por el hueco por el que el ogro no cabe', () => {
+    // Dos muros con un hueco de 40 px entre ellos (de y=80 a y=120), y se cruza por el medio.
+    const arriba = { ...muro, id: 'a', y1: 0, y2: 80 };
+    const abajo = { ...muro, id: 'b', y1: 120, y2: 200 };
+    const cruzar = (radio: number) => slideToken({ x: 60, y: 100 }, { x: 140, y: 100 }, radio, [arriba, abajo]);
+    expect(cruzar(8)).toEqual({ x: 140, y: 100 });     // gato: cabe
+    expect(cruzar(30)).toEqual({ x: 60, y: 100 });     // ogro: no cabe, y no se queda a medias
+  });
+
+  /**
+   * El reparto: `moveBlockers` decide QUÉ bloquea (mira `blocksMove` y `isOpen`, y el interruptor de la
+   * escena) y `slideToken` bloquea lo que le den. Por eso la puerta abierta se prueba de punta a punta.
+   */
+  it('una puerta ABIERTA deja pasar, y una cerrada no', () => {
+    const puerta = (abierta: boolean) => ({ ...muro, kind: 'door' as const, isOpen: abierta });
+    const cruzar = (abierta: boolean) => slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, moveBlockers([puerta(abierta)], { solidWalls: true }));
+    expect(cruzar(true)).toEqual({ x: 150, y: 100 });
+    expect(cruzar(false)).toEqual({ x: 50, y: 100 });
+    expect(moveBlockers([puerta(true)], { solidWalls: true })).toEqual([]);
+    expect(moveBlockers([puerta(false)], { solidWalls: true })).toHaveLength(1);
+    // Una ventana corta el paso aunque NO corte la vista (p.ej. una cristalera).
+    expect(moveBlockers([{ ...muro, kind: 'window', blocksSight: false }], { solidWalls: true })).toHaveLength(1);
+  });
+
+  it('con el interruptor apagado no bloquea NADA: la escena se comporta como siempre', () => {
+    expect(moveBlockers([muro], { solidWalls: false })).toEqual([]);
+    expect(slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, moveBlockers([muro], { solidWalls: false }))).toEqual({ x: 150, y: 100 });
+  });
+
+  /**
+   * Si ya estabas DENTRO de un muro —la escena acaba de volverse sólida, o el director te dejó ahí— no se te
+   * encierra: te puedes mover hasta salir. Encerrar a alguien sería peor que el problema que se arregla.
+   */
+  it('quien ya estaba dentro de un muro no se queda encerrado', () => {
+    expect(slideToken({ x: 100, y: 100 }, { x: 105, y: 100 }, R, [muro])).toEqual({ x: 105, y: 100 });
+  });
+
+  it('el radio del cuerpo sale del ancho del token en casillas', () => {
+    expect(tokenRadiusPx({ size: 1.5 }, 27)).toBe(20.25);
+    expect(tokenRadiusPx({ size: 0.5 }, 27)).toBe(6.75);
+    expect(tokenRadiusPx({ size: 7 }, 27)).toBe(94.5);
+  });
+});
+
 describe('tokens: lo ancho que son y dónde caen (dueño 2026-08-21)', () => {
   it('por defecto un token ocupa casilla y media, no una', () => {
     expect(DEFAULT_TOKEN_CELLS).toBe(1.5);

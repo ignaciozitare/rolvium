@@ -14,6 +14,88 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🟢 PUNTO EXACTO — 2026-08-22: PAREDES SÓLIDAS, con DOS FALLOS SIN ARREGLAR
+
+Rama **`fix/municion-y-preguntas`**. **931 tests** verdes · typecheck · `audit` 0 hard · `build:web` +
+`build:api` · migración aplicada en local con `migration up` (NO `reset`: los datos del dueño siguen ahí).
+
+**⛔ El código de las paredes sólidas está SIN COMMITEAR y con dos fallos conocidos.** El guardia de contexto
+cerró los edits de código a mitad de arreglarlos (7,3 MB). Lo que sí está commiteado es todo lo anterior.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: las **paredes sólidas** están construidas y sin commitear en `fix/municion-y-preguntas`,
+> con **dos fallos que el review cazó y no me dio tiempo a arreglar** — el token oscila a través del muro, y
+> la niebla «manual» apaga la física. Están escritos con su arreglo exacto en el bloque 🟢 de WORK_STATE.
+
+### 🟥 LO PRIMERO AL ABRIR: LOS DOS FALLOS
+Los dos son **la misma inversión de lógica** que ya me mordió una vez, una capa más abajo. Y los dos tienen
+tests en verde, por la misma razón: **el doble de test no puede producir una corrección** — `fakes.ts:384`
+devuelve `{ ...state }`, que nunca lleva `corrected`, y el test de `MapCanvas` usa un `onServerCorrection`
+que devuelve siempre lo mismo, que es justo lo que el sistema real NO hace.
+
+**1. El token OSCILA a través del muro, ~7 veces por segundo.**
+`MapCanvas.tsx:297` le manda al servidor la posición **que el servidor acaba de corregir**
+(`p.onDragToken(gesture.id, x, y)` donde `x,y = server ?? frenado`). El servidor la evalúa, ve que cabe
+—claro, la recortó él— y por la regla «sólo contesto si recorto» contesta `null`; `correctedRef` se borra y
+el siguiente `pointermove` vuelve a `frenado`, que para un jugador es `libre` porque no recibe muros. El
+token salta al dedo, al otro lado de la pared. Simulado con el `slideCircle` real: `6 → 0 → 6 → 0 → 6`.
+**Soltando en el tick malo, el token se queda al otro lado.** Mi prueba a mano lo vio frenar por suerte.
+
+- **Arreglo**: preguntar SIEMPRE por el **deseo del dedo**, no por la posición corregida. `onDragToken` lleva
+  un cuarto argumento `desired` con `libre`; el broadcast a la mesa sigue usando `x,y` (donde el token está de
+  verdad) y `vision.refresh` usa `desired ?? {x,y}`. Simulado así: `6 → 0 → 0 → 0`. Y **`correctedRef.current
+  = null` al terminar el arrastre** (`moveToken`), o la corrección vieja clava el arrastre siguiente.
+
+**2. Con la niebla en «manual» (o «off»), las paredes sólidas NO EXISTEN.**
+`sceneVision.ts:61` y `:64` devuelven ANTES del bloque de paredes sólidas (`:79`) y antes de cargar los
+muros, así que no devuelven `corrected` → el navegador recibe `null` → y como el jugador no ve muros, su
+freno tampoco salta. **Un ajuste de niebla apaga la física en silencio**, y es un botón que el director tiene
+al lado del de paredes sólidas. Nada en la spec dice que dependan una de otra.
+- **Arreglo**: sacar el cálculo de `corrected` por encima de esos dos `return`, o devolverlo también en ellos.
+
+**3. Y el hueco de cobertura que los deja pasar**: `apps/web/src/modules/maps/ui/useScene.ts` no tiene test
+propio. El que falta ata el ciclo entero: corrección del servidor → qué se pinta → **qué se le pregunta al
+servidor en el tick siguiente**. Sin ese último eslabón, ningún doble puede fallar.
+
+### ✅ Lo que SÍ está bien (verificado por el review)
+Mira el camino y no el punto de llegada (círculo barrido, correcto) · puerta abierta deja pasar en las dos
+orillas · el director nunca choca (doble candado) · rendimiento irrelevante al lado del trazado de rayos que
+ya se hace en esa misma petición · RLS de la migración limpia · i18n es/en con paridad.
+
+### 📐 Lo construido (spec: `specs/modules/maps/SPEC.md` § «Rebanada 4», confirmada por el dueño)
+Decisiones suyas: interruptor **por escena** · al topar **resbala** · **el director nunca choca** · choca
+**todo el cuerpo** (radio), no el centro.
+- **DB**: `20260822000000_maps_solid_walls.sql` — una columna `solid_walls` en `maps_scenes`, `DEFAULT false`.
+  Sin tabla ni política nuevas. `db lint --level error` limpio.
+- **`packages/core/src/maps.ts`**: `slideCircle` + `segSegDist`, la geometría pura, en `core` porque la usan
+  las DOS orillas y no pueden discrepar (misma lección que `ownDiceForStat`).
+- **Navegador**: `mapRules.slideToken`/`moveBlockers`/`tokenRadiusPx` delegan en `core`; `MapCanvas` frena;
+  interruptor en `CanvasControls`.
+- **Servidor**: `computeSceneVision` devuelve `corrected`, y **sólo cuando de verdad recorta**.
+
+### ⚠ EL FALLO DEL QUE HAY QUE APRENDER DE ESTA SESIÓN
+Lo di por terminado con **todos los tests en verde** y en la app el token **atravesaba las paredes**. La
+razón: en una escena real **NINGÚN muro es visible para el jugador** (16 de 16 con `visible_players=false`,
+comprobado en la base), así que su freno propio no salta nunca — y yo había puesto que la corrección del
+servidor sólo se aplicara *si el navegador ya había frenado*. Al revés. Mis tests usaban un muro visible.
+**Se cazó arrastrando el token en la app.** Los dos fallos de arriba son la misma familia.
+
+### 🚨 LA SPEC ESTABA VENDIDA MÁS FUERTE DE LO QUE ES — ya corregida
+Decía «quien manda es el SERVIDOR» tomando prestada la autoridad de la visión, donde sí es cierta. El jugador
+escribe `x`/`y` **directamente en `maps_tokens`**; el trigger controla qué token y qué columnas, **nunca a
+dónde**. La corrección es **un consejo que el navegador obedece**. Cerrarlo pide mover el movimiento a la API
+(`POST /scenes/:id/tokens/:id/move`) + migración que quite a los jugadores la escritura de `x`/`y`; cierra
+también el **manotazo rápido** (un arrastre más corto que los ~140 ms no llega a preguntar). **Tarea aparte.**
+
+### 🧰 Estado del entorno local (lo dejé listo para probar)
+- Web `:5173` · API `:3001` · Supabase local, las tres levantadas.
+- **Cuenta de jugadora: `jugador1@ejemplo.com` / `rolvium123`** (Marta Ruiz), en la campaña «khgjhff» y con
+  **Karen Sinclair** asignada. Admin: `admin@rolvium.local` / `rolvium123`.
+- Escena «ssss» **activada** (sin escena activa el jugador no ve nada) y **`solid_walls` ENCENDIDO en las dos**.
+- Todo eso son datos locales: no sale del repo ni toca producción.
+
+---
+
 ## 🔴 PUNTO EXACTO — 2026-08-21/22: el dueño PROBÓ la app · LAS 4, HECHAS · falta MIRARLO
 
 Rama **`fix/municion-y-preguntas`** (sale de `main`, que ya tiene la columna 5 en producción).

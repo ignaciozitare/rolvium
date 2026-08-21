@@ -113,13 +113,29 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * Sólo para MIS tokens: la visión que se pide es la mía, y mover el token de otro no cambia lo que yo veo.
    */
   const visionDrag = useRef(0);
+  /** Lo último que el servidor dijo sobre dónde puede estar el token que se arrastra. `null` = no ha dicho nada. */
+  const correctedRef = useRef<{ tokenId: string; x: number; y: number } | null>(null);
+  /** Lo consulta `MapCanvas` mientras arrastra, para obedecer al servidor sin esperar al final. */
+  const serverCorrection = useCallback((tokenId: string) => {
+    const c = correctedRef.current;
+    return c && c.tokenId === tokenId ? { x: c.x, y: c.y } : null;
+  }, []);
   const dragToken = useCallback((tokenId: string, x: number, y: number) => {
     if (!sceneId || !live) return;
     const now = Date.now();
     if (now - visionDrag.current >= VISION_DRAG_HZ_MS && vision && tokens.some(t => t.id === tokenId && t.controlledBy === me)) {
       visionDrag.current = now;
       const seq = ++visionSeq.current;
-      void vision.refresh(sceneId, { tokenId, x, y }).then(next => { if (seq === visionSeq.current) setFog(next); }).catch(() => undefined);
+      void vision.refresh(sceneId, { tokenId, x, y }).then(next => {
+        if (seq !== visionSeq.current) return;
+        setFog(next);
+        /**
+         * La palabra final sobre DÓNDE puede estar el token es del servidor: es el único que tiene todos los
+         * muros, incluidos los secretos, que a este navegador no le llegan. Si nos corrige, se obedece —
+         * `correctedRef` lo lee el arrastre y lo aplica sin esperar a soltar.
+         */
+        correctedRef.current = next.corrected ?? null;
+      }).catch(() => undefined);
     }
     if (now - lastSent.current < DRAG_HZ_MS) return;
     lastSent.current = now;
@@ -196,7 +212,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, drags, pin, status, fog,
     dragToken, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin,
-    refreshVision, paintFog, paintAllFog,
-  }), [live, tokens, walls, drawings, drags, pin, status, fog, dragToken, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog]);
+    refreshVision, paintFog, paintAllFog, serverCorrection,
+  }), [live, tokens, walls, drawings, drags, pin, status, fog, dragToken, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection]);
 }
 export type SceneState = ReturnType<typeof useScene>;

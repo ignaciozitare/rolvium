@@ -13,7 +13,7 @@ export interface FakeMapsSeed {
 export function fakeMapsRepo(seed: FakeMapsSeed = {}): IMapsRepository & { fog: Record<string, FogCell[]>; scene: SceneRecord } {
   const scene: SceneRecord = {
     id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', campaignId: '77777777-7777-4777-8777-777777777777',
-    width: 270, height: 270, gridSize: 27, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, ...seed.scene,
+    width: 270, height: 270, gridSize: 27, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, solidWalls: false, ...seed.scene,
   };
   const walls = seed.walls ?? [{ id: 'w-1', x1: 135, y1: 0, x2: 135, y2: 270, blocksSight: true, blocksMove: true, isOpen: false }];
   const tokens = seed.tokens ?? [];

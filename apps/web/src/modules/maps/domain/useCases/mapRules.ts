@@ -1,4 +1,4 @@
-import { METRES_PER_CELL, sightRadiusPx, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
+import { METRES_PER_CELL, sightRadiusPx, slideCircle, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
 import type { Character } from '@/modules/characters/domain/entities/Character';
 import type { Drawing, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
 
@@ -146,8 +146,33 @@ export const newWallOf = (kind: WallKind): Pick<Wall, 'kind' | 'blocksSight' | '
 /** A `wall` is fixed shut; doors and windows can be opened. */
 export const canOpen = (w: Pick<Wall, 'kind'>): boolean => w.kind !== 'wall';
 export const blocksSightNow = (w: Pick<Wall, 'blocksSight' | 'isOpen'>): boolean => w.blocksSight && !w.isOpen;
-/** No movement rules until slice 3 — kept so the invariant lives next to its twin. */
+/** Lo que corta el PASO ahora mismo. Gemelo exacto de `blocksSightNow`: una puerta abierta deja pasar. */
 export const blocksMoveNow = (w: Pick<Wall, 'blocksMove' | 'isOpen'>): boolean => w.blocksMove && !w.isOpen;
+
+// ── paredes sólidas (rebanada 4) ─────────────────────────────────────────────
+/**
+ * Dónde acaba de verdad un token que quiere ir de `from` a `to` con las paredes sólidas encendidas.
+ *
+ * **Choca todo el CUERPO, no el centro** (decisión del dueño, 2026-08-22): un gato de media casilla pasa por
+ * un hueco por el que un ogro de tres y media no cabe. Un token es un círculo, así que su cuerpo contra un
+ * segmento es exactamente «la distancia del centro al segmento es menor que el radio».
+ *
+ * **Y RESBALA**: al topar no se clava ni vuelve de un salto — se prueba el movimiento descompuesto en sus dos
+ * ejes y se queda con lo que sí cabe. Así, empujando en diagonal contra una pared vertical, el token sigue
+ * bajando pegado a ella, que es lo que hacen los videojuegos y lo que el dueño eligió.
+ *
+ * Sólo geometría, sin estado ni I/O: quién choca y cuándo se decide fuera (el director nunca choca, y sólo
+ * aplica si la escena lo tiene encendido).
+ */
+export const slideToken = (from: Point, to: Point, radiusPx: number, blockers: readonly Wall[]): Point =>
+  slideCircle(from, to, radiusPx, blockers.map(w => [w.x1, w.y1, w.x2, w.y2] as const));
+
+/** Los muros de la escena que hoy cortan el paso. Vacío si la escena no tiene las paredes sólidas. */
+export const moveBlockers = (walls: readonly Wall[], scene: Pick<Scene, 'solidWalls'>): Wall[] =>
+  (scene.solidWalls ? walls.filter(blocksMoveNow) : []);
+
+/** El radio del cuerpo de un token en px de escena: su ancho en casillas, en píxeles, a la mitad. */
+export const tokenRadiusPx = (t: Pick<Token, 'size'>, grid: number): number => (t.size * grid) / 2;
 
 /** Nearest segment within `tol` scene px of `p` — how the DM picks a door to open. */
 export function hitWall(walls: Wall[], p: Point, tol = 8): Wall | null {

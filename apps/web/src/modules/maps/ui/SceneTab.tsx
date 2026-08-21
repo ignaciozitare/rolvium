@@ -313,7 +313,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               const text = await dialog.prompt(t('maps.text.prompt'));
               if (text?.trim()) run(st.addDrawing({ sceneId: live.id, campaignId, kind: 'text', data: { x: at.x, y: at.y, text: text.trim() }, color: stroke.color, width: stroke.width }));
             }}
-            onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))}
+            onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))} onServerCorrection={st.serverCorrection}
             onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width }))}
             onErase={id => run(st.eraseDrawing(id))}
             onAddWall={(a, b) => {
@@ -445,6 +445,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView} scene={live}
             onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}
             onLighting={lighting => run(patchScene(live.id, { lighting }))}
+            onSolidWalls={solidWalls => run(patchScene(live.id, { solidWalls }))}
             onZoomIn={() => setView(v => zoomAt(v, ZOOM_STEP, viewCenter()))} onZoomOut={() => setView(v => zoomAt(v, 1 / ZOOM_STEP, viewCenter()))}
             onCenter={() => setView(fitView(live, viewport()))} onToggleWalls={() => setShowWalls(w => !w)} onTogglePlayerView={() => setPlayerView(v => !v)} />
         </div>

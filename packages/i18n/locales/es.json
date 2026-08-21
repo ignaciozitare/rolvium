@@ -851,6 +851,10 @@
     "reserve": {
       "hide": "Ocultar la reserva",
       "show": "Ver la reserva"
+    },
+    "solidWalls": {
+      "on": "Paredes sólidas · los tokens no las atraviesan",
+      "off": "Paredes atravesables · pulsa para hacerlas sólidas"
     }
   },
   "bestiary": {

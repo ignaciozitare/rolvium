@@ -290,7 +290,7 @@ import type { Drawing, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Sce
 
 export const SCENE_WAREHOUSE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Almacén de Queens', width: 1080, height: 675, bgColor: '#4a4a3e', bgImageUrl: null,
-  bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, sortOrder: 0, visiblePlayers: false,
+  bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false,
   createdAt: '2026-08-18T00:00:00Z', updatedAt: '2026-08-18T00:00:00Z',
 };
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };

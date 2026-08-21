@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, snap, tokenPointAt, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, TokenGlyph, WallShape } from './canvasLayers';
 
@@ -33,6 +33,8 @@ interface Props {
   nameOf: (userId: string) => string;
   onDragToken: (id: string, x: number, y: number) => void;
   onMoveToken: (id: string, x: number, y: number) => void;
+  /** Dónde dice el SERVIDOR que puede estar el token que se arrastra, o `null` si no ha dicho nada. */
+  onServerCorrection?: (tokenId: string) => { x: number; y: number } | null;
   onAddDrawing: (kind: DrawingKind, data: Drawing['data']) => void;
   onErase: (id: string) => void;
   onAddWall: (a: Point, b: Point) => void;
@@ -259,7 +261,37 @@ export function MapCanvas(p: Props): JSX.Element {
       const l = local(e);
       p.onViewChange({ ...gesture.origin, panX: gesture.origin.panX + l.x - gesture.start.x, panY: gesture.origin.panY + l.y - gesture.start.y });
     } else if (gesture.kind === 'token') {
-      const x = gesture.origin.x + (s.x - gesture.start.x) / grid, y = gesture.origin.y + (s.y - gesture.start.y) / grid;
+      const libre = { x: gesture.origin.x + (s.x - gesture.start.x) / grid, y: gesture.origin.y + (s.y - gesture.start.y) / grid };
+      /**
+       * Paredes sólidas (rebanada 4): el token no atraviesa un muro, y al topar RESBALA pegado a él.
+       *
+       * Se calcula sobre CENTROS y en px de escena, que es donde viven los muros; `localDrag` va en casillas,
+       * así que se entra y se sale por `tokenCenter` / `tokenPointAt`. El director NUNCA choca, esté el
+       * interruptor como esté (decisión del dueño), y con el interruptor apagado `blockers` está vacío y esto
+       * no cambia ni un píxel de lo de antes.
+       *
+       * Esto es el freno PROVISIONAL, con los muros que este navegador conoce: a un jugador no le llegan los
+       * muros secretos, así que la palabra final es del servidor al soltar (spec § «Rebanada 4»).
+       */
+      const dragged = p.tokens.find(tk => tk.id === gesture.id);
+      const frenado = blockers.length > 0 && dragged
+        ? tokenPointAt(
+            slideToken(tokenCenter({ ...gesture.origin, size: dragged.size }, grid), tokenCenter({ ...libre, size: dragged.size }, grid), tokenRadiusPx(dragged, grid), blockers),
+            grid, dragged.size)
+        : libre;
+      /**
+       * Y por encima de todo manda el SERVIDOR: si contesta una corrección, se obedece, sin condiciones.
+       *
+       * SIN CONDICIONES es la parte importante, y me costó un fallo verlo: a un jugador **no le llegan los
+       * muros secretos** (RLS), y en una escena normal NINGÚN muro es visible — probado en la app, 16 de 16
+       * ocultos. O sea que su `blockers` está vacío y su freno propio no salta nunca. Yo había puesto que la
+       * corrección sólo se aplicara si el navegador ya había frenado por su cuenta: justo al revés de lo que
+       * hace falta, y el token atravesaba las paredes en la app aunque los tests pasaran.
+       *
+       * El servidor sólo contesta cuando de verdad ha recortado algo, así que si hay respuesta, hay muro.
+       */
+      const server = p.onServerCorrection?.(gesture.id) ?? null;
+      const { x, y } = server ?? frenado;
       setLocalDrag({ id: gesture.id, x, y });
       if (!gesture.moved) setGesture({ ...gesture, moved: true });
       p.onDragToken(gesture.id, x, y);
@@ -329,6 +361,13 @@ export function MapCanvas(p: Props): JSX.Element {
   };
 
   const wallsShown = dmSight ? (p.showWalls ? p.walls : []) : p.walls.filter(w => w.visiblePlayers);
+  /**
+   * Los muros que hoy cortan el paso en esta escena. Vacío cuando el interruptor está apagado — y **vacío
+   * siempre para el director**, que no choca nunca (decisión del dueño, 2026-08-22). Su contrapartida, dicha
+   * en la spec: el director no puede probar en su pantalla lo que siente un jugador; se mira entrando con una
+   * cuenta de jugador.
+   */
+  const blockers = p.isDm ? [] : moveBlockers(p.walls, p.scene);
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
   /** Un PJ es un token con ficha de personaje detrás. Los PNJ del bestiario no la tienen. */
   const isPc = (tk: Token): boolean => tk.characterId !== null;

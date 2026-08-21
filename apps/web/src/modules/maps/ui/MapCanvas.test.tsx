@@ -203,6 +203,50 @@ describe('<MapCanvas> fog', () => {
    * máscara. De día basta un pelín, para deshacer la escalera de 27 px de lo explorado, que se guarda por
    * casillas; de noche el corte es el del alcance de la luz y pide un degradado de verdad.
    */
+  /**
+   * Paredes sólidas (rebanada 4, spec § «Rebanada 4»). El muro va vertical entre Karen y su destino: con el
+   * interruptor apagado lo cruza como siempre, y con él encendido se queda a este lado. El DIRECTOR pasa
+   * siempre, esté como esté (decisión del dueño), y por eso se prueba con `isDm: false`.
+   */
+  it('con las paredes sólidas el token NO cruza el muro, y apagadas lo cruza como siempre', () => {
+    const MURO = { ...WALL_1, id: 'w-solid', x1: (TOKEN_KAREN.x + 1.5) * G, y1: 0, x2: (TOKEN_KAREN.x + 1.5) * G, y2: 2000, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false, visiblePlayers: true };
+    const arrastrar = (solidWalls: boolean, isDm: boolean) => {
+      document.body.innerHTML = '';
+      const { svg, token, cb } = mount({ scene: { ...SCENE_WAREHOUSE, solidWalls }, walls: [MURO], isDm, me: isDm ? 'u-gm' : PLAYER_USER.id });
+      down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+      move(svg, (TOKEN_KAREN.x + 3.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+      up(svg);
+      return cb.onMoveToken.mock.calls.at(-1);
+    };
+    // apagado: pasa de largo, tres casillas a la derecha
+    expect(arrastrar(false, false)![1]).toBeCloseTo(TOKEN_KAREN.x + 3, 1);
+    // encendido: se queda a ESTE lado del muro
+    expect(arrastrar(true, false)![1]).toBeLessThan(TOKEN_KAREN.x + 3);
+    // el director nunca choca
+    expect(arrastrar(true, true)![1]).toBeCloseTo(TOKEN_KAREN.x + 3, 1);
+  });
+
+  /**
+   * EL FALLO QUE ME MORDIÓ EN LA APP (2026-08-22). En una escena de verdad NINGÚN muro es visible para el
+   * jugador —16 de 16 ocultos, comprobado en la base—, así que su `blockers` está vacío y su freno propio no
+   * salta NUNCA. La primera versión aplicaba la corrección del servidor sólo si el navegador ya había frenado
+   * por su cuenta: justo al revés. Los tests pasaban —usaban un muro visible— y el token atravesaba las
+   * paredes en la app. La corrección del servidor se obedece SIN CONDICIONES.
+   */
+  it('regresión · sin ver ningún muro, la corrección del servidor sigue frenando al token', () => {
+    const onServerCorrection = vi.fn(() => ({ x: 3, y: 4 }));
+    const { svg, token, cb } = mount({
+      scene: { ...SCENE_WAREHOUSE, solidWalls: true },
+      walls: [],                                   // el jugador no recibe NINGÚN muro
+      isDm: false, me: PLAYER_USER.id, onServerCorrection,
+    });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 5.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    expect(onServerCorrection).toHaveBeenCalledWith('tk-karen');
+    expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', 3, 4);
+  });
+
   it('el borde de la niebla va difuminado, y de noche mucho más (el «fade» del alcance)', () => {
     const dia = mount({ fog: FOG });
     const filtroDia = dia.svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}-feather feGaussianBlur`);

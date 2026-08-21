@@ -1,4 +1,4 @@
-import { sightRadiusPx, type FogCell, type SceneVision, type VisionPolygon } from '@rolvium/core';
+import { sightRadiusPx, slideCircle, type FogCell, type SceneVision, type VisionPolygon } from '@rolvium/core';
 import type { IMapsRepository, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
 import { allCells, boundsSegments, cellsInDisc, cellsInPolygons, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
 
@@ -66,7 +66,35 @@ export async function computeSceneVision(
   const [walls, tokens] = await Promise.all([deps.maps.listWalls(scene.id), deps.maps.listTokens(scene.id)]);
   const segments = sightSegments(walls, scene);
   const at = input.at;
-  const mine = tokensOf(tokens, input.userId).map(t => (at && t.id === at.tokenId ? { ...t, x: at.x, y: at.y } : t));
+  /**
+   * PAREDES SÓLIDAS (rebanada 4). Aquí, y no en el navegador, porque a un jugador **no le llegan los muros
+   * secretos** (RLS): si el choque se calculase en su pantalla, un muro oculto no le frenaría. El navegador
+   * hace un freno provisional con lo que conoce y ésta es la palabra final.
+   *
+   * Se corrige sólo lo que se PREGUNTA (`at`) y sólo si la escena lo tiene encendido. Se devuelve en casillas,
+   * que es la unidad en la que viven los tokens; la geometría se hace en px, que es donde viven los muros.
+   */
+  const dragged = at ? tokensOf(tokens, input.userId).find(t => t.id === at.tokenId) ?? null : null;
+  let corrected: SceneVision['corrected'] = null;
+  if (at && dragged && scene.solidWalls) {
+    const radius = (dragged.size * scene.gridSize) / 2;
+    const blockers = walls.filter(w => w.blocksMove && !w.isOpen).map(w => [w.x1, w.y1, w.x2, w.y2] as const);
+    const end = slideCircle(tokenOrigin(dragged, scene.gridSize), tokenOrigin({ ...dragged, x: at.x, y: at.y }, scene.gridSize), radius, blockers);
+    const cx = end.x / scene.gridSize - dragged.size / 2, cy = end.y / scene.gridSize - dragged.size / 2;
+    /**
+     * Se contesta `corrected` SÓLO cuando de verdad se ha recortado algo. Si cabía, se calla — y así el
+     * navegador sabe que puede aplicar sin preguntar todo lo que le llegue, en vez de tener que adivinar si
+     * la respuesta es un recorte o el eco de lo que él mismo pidió.
+     *
+     * Importa más de lo que parece: a un jugador **no le llegan los muros secretos**, así que su pantalla no
+     * puede frenar ni saber que había algo. Si esto contestara siempre, no habría forma de distinguir «te
+     * paro» de «pasa», y una respuesta con retraso arrastraría al token hacia atrás sin motivo.
+     */
+    const tol = 1e-6;
+    if (Math.abs(cx - at.x) > tol || Math.abs(cy - at.y) > tol) corrected = { tokenId: at.tokenId, x: cx, y: cy };
+  }
+  const applied = corrected ?? at;
+  const mine = tokensOf(tokens, input.userId).map(t => (applied && t.id === applied.tokenId ? { ...t, x: applied.x, y: applied.y } : t));
   const vision: VisionPolygon[] = mine
     .map(t => visionPolygon(tokenOrigin(t, scene.gridSize), segments, radiusPx ?? Infinity))
     .filter(p => p.length >= 3);
@@ -76,7 +104,7 @@ export async function computeSceneVision(
   // Con posición provisional NO se escribe: es una consulta de «qué vería si lo suelto aquí». Lo explorado se
   // devuelve igual, para que la pantalla ya lo pinte, y se guarda al soltar por el camino de siempre.
   if (!at && explored.length !== stored.length) await deps.maps.saveExplored(scene.id, scene.campaignId, input.userId, explored);
-  return { ok: true, data: { vision, explored, radiusPx } };
+  return { ok: true, data: { vision, explored, radiusPx, corrected } };
 }
 
 export interface PaintInput {
