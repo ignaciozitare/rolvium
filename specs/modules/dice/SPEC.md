@@ -177,15 +177,95 @@ sola entrada agrupada** en el registro (pedido literal del dueño: «que quede t
   **dos tiradas enlazadas**, nunca una editada.
 - Atacar «como» una criatura es del director; un jugador no puede.
 
+### El orden de turnos (p.92–93) — decisión del dueño, 2026-08-21
+
+Sin turnos la columna 5 no se puede construir: defenderse **gasta dados del turno siguiente**, y no había
+turno siguiente. El dueño eligió construir el orden entero en vez de fingirlo con un contador.
+
+- **Quién entra**: lo abre el director y elige; le vienen ya marcados los personajes de la campaña y los
+  encuentros de la escena.
+- **El orden lo calcula la app**: **Destino descendente**. Empate → **PJ antes que PNJ**; entre PJ → **mayor
+  Combate**; si aún persiste, **decide el director** (la app le pregunta cuál va antes). Literal de p.92–93,
+  RULES.md §5.1. **El director NO reordena a mano** — el mando que el libro le da es desempatar, y sólo ese
+  (decisión del dueño: dejar arrastrar libremente convierte la regla del Destino en una sugerencia).
+- **Siguiente turno** y **cerrar el combate** los lleva el director.
+- **Adelantarse cuesta 1 Fortuna** (p.89 uso 5, p.92) y **el sitio nuevo se queda** para el resto del
+  combate: «el nuevo orden se mantiene».
+- Cada uno entra en su turno con sus dados de Combate **menos los que gastó defendiéndose**. Sólo se puede
+  tomar prestado del **turno siguiente**, nunca de más allá (p.94, literal).
+- Vive **en la escena**: un combate es de una escena, como los encuentros.
+
+### Columna 4 · el panel del director — lo que dibuja el `.pen` (`v3vfV` → `qHMjx` → `QWHSS`)
+
+Head **«LANZADOR · DIRECTOR»** + icono `unfold_less`: es el lanzador que ya existe, **expandido**.
+
+- **«¿A QUIÉN LE PIDES LA TIRADA?»** · «puedes marcar varios» · chips de cada personaje + **«A TODOS»**.
+- **«MANTÉN PULSADA UNA CARACTERÍSTICA»** · «y elige la dificultad sin soltar · p.84». Las siete a ancho
+  igual, **tres por fila** (la séptima queda en la columna del medio). Al mantener pulsada, el botón se
+  pone en tinta y **el desplegable sale pegado a ÉL, tapando lo que haya debajo**; la opción bajo el dedo
+  se resalta en **oro**. Opciones: `FÁCIL · 1` `MEDIA · 2` `DIFÍCIL · 3` `MUY DIFÍCIL · 5` `ÉPICA · 6`.
+  Nota del `.pen`: **«Sueltas encima de la dificultad y la petición sale. Sin botón de confirmar.»**
+- Casilla **«Le vale su especialidad — lo decides tú (p.83)»**.
+- **«ENCUENTROS EN LA ESCENA · N»** + **«+ AÑADIR»** + flecha de plegar. Cada fila: token con iniciales,
+  nombre + **lápiz**, sub «Resistencia 30 · protección 3 · p.152», botón **ATACAR** (rojo sangre) y flecha
+  de desplegar.
+  - **Renombrar se hace en la propia fila**: el lápiz pasa a **check**, el nombre se vuelve campo de texto
+    y **la línea de abajo conserva el nombre original** — «EL DE LA PUERTA» arriba, «Hambriento ·
+    Resistencia 12 · p.150» debajo. Así se sabe qué bicho es aunque le hayas puesto mote.
+  - Desplegado: las siete características como **número grande + rótulo pequeño** (`8 FOR`, `4 COM`…), una
+    fila de chips **«otras tiradas»**, y la nota «Mantén pulsada una para elegir dificultad, igual que con
+    los jugadores».
+  - **Al desplegar uno se cierra el que estuviera abierto.**
+  - **El token que se tira al mapa se añade solo a la lista.**
+- Nota del `.pen`: atacar desde el token del mapa **se suma a la lista, no la sustituye** — es lo que evita
+  que el panel se desborde con diez criaturas.
+- **Las tiradas del director para sí mismo NO van aquí**: van en el lanzador de siempre.
+
+⚠ **A confirmar con el dueño**: el `.pen` dibuja sólo **tres** chips en «otras tiradas» (FORTALEZA,
+ASTUCIA, SUTILEZA) de las siete del ogro. No se inventa cuáles son: se pregunta.
+
+### El aviso que le salta al jugador
+- **Tirada pedida**: no está dibujada en el `.pen`. **Hay que diseñarla antes de tocar pantalla.**
+- **Te atacan cuerpo a cuerpo** (columna 5, `oSBrx` → `dcTPM`): panel de papel con **filete sangre a la
+  izquierda**, icono `swords` + **«TE ATACA UN OGRO»** en sangre. Cuerpo: «Cuerpo a cuerpo con 4 dados de
+  Combate. Es un conflicto: los dados que pongas son tu defensa y tu ataque a la vez (p.93).»
+  **«¿CUÁNTOS DADOS DE COMBATE GASTAS?» · p.93** con chips `0…Combate` (el elegido en tinta) y «tienes
+  Combate 4» al lado. Caja gris con icono `schedule` y el coste, **que cambia con lo elegido**: «Los que
+  gastes se te quitan del próximo turno: con 2 te quedarán 2 para actuar. Si gastas los cuatro, pierdes el
+  turno; si ya los gastaste todos, quedas indefenso (p.94).» Pie: **«NO ME DEFIENDO»** (fantasma) y
+  **«DEFENDERME · N DADOS»** (oro).
+- **Si el jugador no contesta, la petición espera indefinidamente.** Nadie tira por él, ni el director.
+- **A distancia NO salta este aviso**: es un reto contra la dificultad del alcance.
+
+### Ponerse a cubierto (p.96) — entra en esta tanda
+Es lo único que puede hacer un jugador al que disparan, y sin ello el ataque a distancia le deja sin
+respuesta. Reto de **Combate o Astucia, la mayor de las dos**, contra dificultad **1/2/3/5 según la
+cobertura**; si lo logra, **dispararle cuesta +2 dados de dificultad**. Cierra además la línea «A cubierto»
+que el `.pen` pide en el desglose del Registro y que hoy se omite a propósito.
+
+### El bloque «Tirada» de la ficha desaparece con esta tanda
+Hoy es de donde `poolFor` saca la dificultad del reto. Se quita **cuando exista el panel del director**, no
+antes: quitarlo antes deja las tiradas de reto sin oposición ninguna.
+
 ### Fuera de alcance (de esta tanda)
 - **Ataques y defensas múltiples** — repartir los dados de Combate entre varios oponentes (p.94).
-- **Orden de actuación** por Destino y el gasto de Fortuna para adelantarse (p.92).
-- El **Bestiario** (H5) como módulo.
+- **Atacar tocando el token de la criatura en el mapa** (columna 6 del `.pen`).
+- ~~Orden de actuación por Destino~~ — **entra**, ver «El orden de turnos» arriba (dueño, 2026-08-21).
+- El **Bestiario** (H5) como módulo — ya construido.
 
-### ⚠ Bloqueo conocido antes de construirlo
-Las criaturas del catálogo (`BESTIARY`) sólo llevan **Resistencia y protección**. No tienen **Combate, arma ni
-daño**, así que hoy el panel **no puede tirar su ataque**. Hay que meter esos datos desde el manual (el mutante en
-p.100: Fortaleza 3, Voluntad 1, Aguante 4, protección 2; el ogro en p.152).
+### ⚠ Bloqueo conocido antes de construirlo — RESUELTO CONTRA EL PDF 2026-08-21
+Estaba escrito que las criaturas no tenían ni Combate ni daño. **Las dos mitades eran falsas.**
+
+- **Características**: entraron con el Bestiario (H5). El ogro tiene Combate 4 y el panel puede tirar por él.
+- **Daño**: lo dice el libro. Un zarpazo es un **ataque sin armas**, y la tabla de armas (p.97) le da
+  **Daño: F**, la Fortaleza del atacante — el propio manual lo usa así en su ejemplo. El ogro pega **8** por
+  triunfo. No hace falta ni inventarlo ni teclearlo. Recogido en `RULES.md` §8.
+- ⚠ **«Garrote» y «Mordisco» son ESPECIALIDADES de Combate, no armas**: van en la columna de especialidad del
+  bloque. Darles una línea de la tabla de armas sería inventarse un dato que el libro no da.
+- ⚠ **Capacidades sin construir que tocan al combate**: Ira solar (suma al daño), Ponzoña (ataque aparte),
+  Amparo de la noche (éxitos automáticos de noche), Deflagración, Incorpóreo, Inmune al dolor (sin
+  penalización por heridas), Ancla terrenal. Tabla completa en `RULES.md` §8. **Fuera de esta tanda**, pero
+  anotadas: hasta que existan, un ogro y un solar pegan igual de fuerte aunque el libro diga que no.
 
 ### Modelo de datos
 > Pendiente — lo completa el DBA Agent.

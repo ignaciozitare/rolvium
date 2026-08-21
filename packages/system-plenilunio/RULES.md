@@ -439,6 +439,29 @@ Dos cosas que se leen mal si no se avisan:
   natural cuya protección es igual a la puntuación de esta capacidad» (p. 108).
 - Resistencia = Aguante × 3 (§1.6), como en cualquier personaje.
 
+**El daño de una criatura SÍ está en el libro** (verificado en el PDF, 2026-08-21). Los bloques no traen
+línea de arma porque no hace falta: un zarpazo, un mordisco o un puñetazo es un **ataque sin armas**, y la
+tabla de armas (p. 97) le da **Daño: F** — la Fortaleza del atacante. El libro lo usa así en su propio
+ejemplo, literal (p. 97): «comprueba el daño que hace con **sus manos desnudas** y ve que es igual a **su
+puntuación en Fortaleza** (3 puntos) por cada triunfo». Un ogro pega **8** por triunfo; un hambriento, 3.
+
+⚠ **«Garrote», «Mordisco», «Uñas y dientes» son ESPECIALIDADES de Combate, no armas.** Van en la columna de
+especialidad del bloque, junto a la puntuación. Asignarles una línea de la tabla de armas sería inventarse
+un dato que el libro no da: el director puede hacerlo a mano si quiere, pero por defecto es sin armas.
+
+**Capacidades que tocan al combate o al daño** (p. 107–108), y qué hace hoy el motor:
+| Capacidad | Lo que dice el libro | Motor |
+|---|---|---|
+| Piel gruesa\* | «armadura natural cuya protección es igual a la puntuación» | ✅ `protection` del bloque |
+| Ira solar\* | «Añade la puntuación de esta capacidad al **daño del arma**» | ❌ sin construir |
+| Ponzoña\* | Todo ataque con éxito inocula veneno: conflicto Fortaleza de la víctima vs Ponzoña; si vence la criatura, éxito = 1 daño y triunfo = puntuación de Ponzoña | ❌ sin construir (es un ataque APARTE del principal) |
+| Amparo de la noche\* | De noche, «añade tantos éxitos automáticos como su puntuación a su total de Combate cada turno»; si reparte dados, reparte también los éxitos | ❌ sin construir |
+| Deflagración\* | Explosión de radio 1 m por punto; tantos dados como la puntuación, −1 por metro; reto a dificultad 1, se puede uno cubrir; éxito = 1 daño, triunfo = puntuación | ❌ sin construir |
+| Incorpóreo | No se la puede atacar físicamente; usa **Voluntad** en lugar de Fortaleza o Combate frente a otros seres inmateriales | ❌ sin construir |
+| Inmune al dolor | Sus niveles de salud sólo dicen cuándo muere: **no sufre penalización de dados** por estado (p. 99) | ❌ sin construir |
+| Ancla terrenal | Mientras exista el ancla, cualquier resultado que la deje muerta cuenta como otro nivel malherido | ❌ sin construir |
+| Alado · Visión en la oscuridad · Aura\* · Aura sombría\* · Disfraz terrenal · Piel de humano · Hambre inhumana | Sin efecto mecánico sobre el daño | — narrativas o fuera de combate |
+
 ### 8.1 Criaturas
 | Criatura | For | Com | Vol | Ast | Sut | Pre | Cul | Aguante | Destino | Prot. | Capacidades | p. |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|
