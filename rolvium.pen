@@ -87108,6 +87108,7 @@
               "type": "frame",
               "id": "A4VWk",
               "name": "Modal/Atacar con el token",
+              "context": "Construido el 2026-08-21 en apps/web/src/modules/bestiary/ui/TokenAttackModal.tsx. Sale al seleccionar el token de una criatura y pulsar ATACAR en la barra del token.\n\nNo lleva X de cerrar, como esta dibujado: se cierra con Escape o pulsando fuera, igual que el desplegable de encuentros.\n\nLa linea de la distancia tiene TRES estados, no uno: cuerpo a cuerpo (hasta 3 m, o sea dos casillas), a distancia («Nix esta a 14 casillas (21 m): alcance medio, reto a dificultad 3») y demasiado lejos, pasado el alcance muy largo (p.96), donde el boton de atacar se apaga.\n\nLo que NO hace todavia: cuerpo a cuerpo va SIN oposicion. El libro lo resuelve como un conflicto (p.93) en el que los dados de enfrente son los que el jugador gaste en defenderse, y ese aviso al jugador es la columna 5, que sigue sin construir. Un disparo si lleva su dificultad, porque es un reto contra el alcance y ahi no hay que preguntarle a nadie.",
               "width": 372,
               "fill": "$pl-papel-alto",
               "stroke": "$pl-borde",
@@ -91577,7 +91578,7 @@
       "x": 12394,
       "y": 1771,
       "name": "Bestiario/Tirar por una criatura · popover sobre la ficha",
-      "context": "Lo que abre «TIRAR» en una ficha del catalogo del Bestiario. Es un POPOVER que sale ENCIMA DE SU PROPIA FICHA del catalogo — no una pantalla. El catalogo se sigue viendo alrededor, que es lo que dice de que criatura se esta tirando. Arranca en la esquina de la ficha y crece hacia abajo lo que haga falta. Construido en apps/web/src/modules/bestiary/ui/CreatureRollPopover.tsx; el fondo de este frame representa la ficha de debajo, no la mesa. NO es el panel del director completo (pedir tirada a los jugadores, encuentros de la escena, ATACAR): eso sigue siendo H6, en Panel/Director.",
+      "context": "Lo que abre «TIRAR» en una ficha del catalogo del Bestiario. Es un POPOVER que sale ENCIMA DE SU PROPIA FICHA del catalogo — no una pantalla. El catalogo se sigue viendo alrededor, que es lo que dice de que criatura se esta tirando. Arranca en la esquina de la ficha y crece hacia abajo lo que haga falta. Construido en apps/web/src/modules/bestiary/ui/CreatureRollPopover.tsx; el fondo de este frame representa la ficha de debajo, no la mesa. NO es el panel del director completo (pedir tirada a los jugadores, encuentros de la escena, ATACAR): eso sigue siendo H6, en Panel/Director.\n\nTanda 3 del bestiario (2026-08-21). El ejemplo es BAAL (p.126), que es el unico bloque del libro que trae de todo. Entran cuatro cosas:\n1. ¿CON QUE ATACA? — los ATAQUES que imprime la caja, con su ataque y su daño ya calculados (Espada oriental 9, daño 10). Elegir uno cambia los dados que se tiran: son los del ataque, no los de la caracteristica. «A MANO» es el bloque sin arma. La Deflagracion es un ataque APARTE y sale en la misma fila.\n2. ES DE NOCHE — casilla en la propia tirada, no dato de la escena (decision del dueno, 2026-08-21). Cambia que capacidades se ofrecen.\n3. CAPACIDADES QUE PODRIAN APLICAR — solo las que encajan con la caracteristica y la hora, y las marca el director como la especialidad. Suman EXITOS AUTOMATICOS, que no son dados: por eso van en oro y aparte del contador.\n4. Los METROS de la Deflagracion, en el frame de al lado, que es el estado en el que esta elegida.\n\nSolo hay version oscura: dentro de una campana manda el tema del sistema (papel de Plenilunio), no el claro/oscuro de la app.",
       "width": 460,
       "fill": "#b9b7ac",
       "layout": "vertical",
@@ -91629,7 +91630,7 @@
                   "id": "qTHCu",
                   "name": "Titulo Texto",
                   "fill": "#131310",
-                  "content": "TIRAR POR AAMEL",
+                  "content": "TIRAR POR BAAL",
                   "fontFamily": "Cormorant Garamond",
                   "fontSize": 12,
                   "fontWeight": "600",
@@ -91669,8 +91670,8 @@
                   "type": "frame",
                   "id": "H42IJX",
                   "name": "Chip/FORTALEZA",
-                  "fill": "#131310",
-                  "stroke": "#131310",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-linea",
                   "strokeAlignment": "inner",
                   "padding": [
                     4,
@@ -91681,7 +91682,7 @@
                       "type": "text",
                       "id": "m7cTg",
                       "name": "L",
-                      "fill": "#efede7",
+                      "fill": "$pl-tinta",
                       "content": "FORTALEZA",
                       "fontFamily": "Cormorant Garamond",
                       "fontSize": 10,
@@ -91694,8 +91695,8 @@
                   "type": "frame",
                   "id": "giiJC",
                   "name": "Chip/COMBATE",
-                  "fill": "#efede7",
-                  "stroke": "#8a887e",
+                  "fill": "$pl-tinta",
+                  "stroke": "$pl-tinta",
                   "strokeAlignment": "inner",
                   "padding": [
                     4,
@@ -91706,7 +91707,7 @@
                       "type": "text",
                       "id": "j4Kxu",
                       "name": "L",
-                      "fill": "#131310",
+                      "fill": "$pl-papel-alto",
                       "content": "COMBATE",
                       "fontFamily": "Cormorant Garamond",
                       "fontSize": 10,
@@ -91867,6 +91868,124 @@
             },
             {
               "type": "text",
+              "id": "Xb4ub",
+              "name": "Rotulo Ataques",
+              "fill": "$pl-tinta-suave",
+              "content": "¿CON QUÉ ATACA?",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9,
+              "fontWeight": "600",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "FTo0T",
+              "name": "Ataques",
+              "width": "fill_container",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "c3cBAt",
+                  "name": "Chip/A MANO",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-linea",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "NAuIE",
+                      "name": "L",
+                      "fill": "$pl-tinta",
+                      "content": "A MANO · 8",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "F5zmwS",
+                  "name": "Chip/ESPADA ORIENTAL",
+                  "fill": "$pl-tinta",
+                  "stroke": "$pl-tinta",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Dc4DH",
+                      "name": "L",
+                      "fill": "$pl-papel-alto",
+                      "content": "ESPADA ORIENTAL · 9 · DAÑO 10",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "v06Sy",
+              "name": "Ataques 2",
+              "width": "fill_container",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ShETa",
+                  "name": "Chip/DEFLAGRACION",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-linea",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "A7Eq8Y",
+                      "name": "L",
+                      "fill": "$pl-tinta",
+                      "content": "DEFLAGRACIÓN · 5",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "fGIY0",
+              "name": "Nota ataques",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": 340,
+              "content": "Los ataques los imprime el libro ya calculados, arma y daño (p.126). Se copian, no se recalculan.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 10,
+              "fontWeight": "500",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
               "id": "BODTm",
               "name": "Rotulo",
               "fill": "#221f19",
@@ -91913,7 +92032,7 @@
                   "id": "FZdmi",
                   "name": "Valor",
                   "fill": "#131310",
-                  "content": "6",
+                  "content": "9",
                   "fontFamily": "Cormorant Garamond",
                   "fontSize": 28,
                   "fontWeight": "normal"
@@ -91948,10 +92067,21 @@
                   "id": "J6RWB6",
                   "name": "De",
                   "fill": "#221f19",
-                  "content": "su Fortaleza 6",
+                  "content": "su ataque Espada oriental · 9",
                   "fontFamily": "Cormorant Garamond",
                   "fontSize": 10,
                   "fontWeight": "500",
+                  "fontStyle": "italic"
+                },
+                {
+                  "type": "text",
+                  "id": "MTdZC",
+                  "name": "Automaticos",
+                  "fill": "$pl-oro",
+                  "content": "+3 automáticos",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "600",
                   "fontStyle": "italic"
                 }
               ]
@@ -91971,6 +92101,7 @@
                   "width": 13,
                   "height": 13,
                   "stroke": "#221f19",
+                  "strokeWidth": 1,
                   "strokeAlignment": "inner"
                 },
                 {
@@ -91978,7 +92109,7 @@
                   "id": "F0d4J8",
                   "name": "L",
                   "fill": "#131310",
-                  "content": "Le vale su especialidad: Resistir dolor",
+                  "content": "Le vale su especialidad: Espadas samuráis",
                   "fontFamily": "Cormorant Garamond",
                   "fontSize": 11,
                   "fontWeight": "500"
@@ -91995,6 +92126,140 @@
               "content": "La marca el DIRECTOR al tirar, no se aplica sola: el garrote no sirve para esquivar (p.83).",
               "lineHeight": 1.3,
               "fontFamily": "Cormorant Garamond",
+              "fontSize": 10,
+              "fontWeight": "500",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "frame",
+              "id": "PdDE2",
+              "name": "Es de noche",
+              "width": "fill_container",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "PoMYb",
+                  "name": "Casilla",
+                  "width": 13,
+                  "height": 13,
+                  "fill": "$pl-tinta",
+                  "stroke": "$pl-tinta",
+                  "strokeAlignment": "inner",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "EZ8cY",
+                      "name": "Marca",
+                      "width": 10,
+                      "height": 10,
+                      "icon": "check",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "JFtBB",
+                  "name": "Luna",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "dark_mode",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                },
+                {
+                  "type": "text",
+                  "id": "xd9Mt",
+                  "name": "L",
+                  "fill": "$pl-tinta",
+                  "content": "Es de noche",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "MlWlK",
+              "name": "Rotulo Capacidades",
+              "fill": "$pl-tinta-suave",
+              "content": "CAPACIDADES QUE PODRÍAN APLICAR",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9,
+              "fontWeight": "600",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "CQ8EG",
+              "name": "Capacidad Amparo",
+              "width": "fill_container",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "eHcmh",
+                  "name": "Casilla",
+                  "width": 13,
+                  "height": 13,
+                  "fill": "$pl-tinta",
+                  "stroke": "$pl-tinta",
+                  "strokeAlignment": "inner",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "W1H8uq",
+                      "name": "Marca",
+                      "width": 10,
+                      "height": 10,
+                      "icon": "check",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "y31rf",
+                  "name": "L",
+                  "fill": "$pl-tinta",
+                  "content": "Amparo de la noche 3",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "oYpGa",
+                  "name": "L",
+                  "fill": "$pl-oro",
+                  "content": "+3 éxitos automáticos",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "fontStyle": "italic"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "cgdJ9",
+              "name": "Nota capacidades",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": 340,
+              "content": "Sólo salen las que encajan con la característica y con la hora: de día no sale ninguna de las nocturnas. Las marca el DIRECTOR, como la especialidad — el motor no sabe si la tirada es para intimidar (p.107).",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
               "fontSize": 10,
               "fontWeight": "500",
               "fontStyle": "italic"
@@ -92272,7 +92537,971 @@
                       "id": "OzHrK",
                       "name": "L",
                       "fill": "#efede7",
-                      "content": "TIRAR 6",
+                      "content": "TIRAR 9",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 11,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.6
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "zCTzX",
+      "x": 12934,
+      "y": 1771,
+      "name": "Bestiario/Tirar por una criatura · Deflagración",
+      "context": "El MISMO popover de al lado, en el estado en el que el director elige la DEFLAGRACION de Baal (p.126, capacidad p.108).\n\nQue cambia respecto al otro frame:\n- No hay caracteristica marcada: una deflagracion no se tira con ninguna, los dados salen de su puntuacion.\n- Aparece ¿A CUANTOS METROS ESTA? — el director teclea la distancia y el motor saca los dados: la puntuacion menos un dado por metro. Fuera del radio (1 m por punto) no hay ataque. Cuando existan los ataques sobre el mapa la distancia saldra de ahi.\n- La dificultad queda en FACIL·1, que es lo que manda el libro para la deflagracion.\n- No sale la especialidad ni las capacidades: no aplican a este ataque. La casilla de noche se queda porque describe la escena, no la tirada.\n- El daño se cuenta aparte: cada exito 1 punto, cada triunfo tantos como la puntuacion.",
+      "width": 460,
+      "fill": "#b9b7ac",
+      "layout": "vertical",
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "QACbK",
+          "name": "Hoja/Tirar",
+          "width": "fill_container",
+          "fill": "#efede7",
+          "stroke": "#131310",
+          "strokeAlignment": "inner",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131040",
+            "offset": {
+              "x": 0,
+              "y": 3
+            },
+            "blur": 10
+          },
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "DJVCs",
+              "name": "Titulo",
+              "width": "fill_container",
+              "stroke": "#949288",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "strokeAlignment": "inner",
+              "padding": [
+                0,
+                0,
+                10,
+                0
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hvjNw",
+                  "name": "Titulo Texto",
+                  "fill": "#131310",
+                  "content": "TIRAR POR BAAL",
+                  "fontFamily": "Cormorant Garamond",
+                  "fontSize": 12,
+                  "fontWeight": "600",
+                  "letterSpacing": 2.4
+                },
+                {
+                  "type": "icon",
+                  "id": "yhFXA",
+                  "name": "Cerrar",
+                  "width": 14,
+                  "height": 14,
+                  "icon": "close",
+                  "library": "Material Symbols Outlined",
+                  "fill": "#221f19"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "BgqZZ",
+              "name": "Rotulo",
+              "fill": "#221f19",
+              "content": "¿CON QUÉ CARACTERÍSTICA?",
+              "fontFamily": "Cormorant Garamond",
+              "fontSize": 9,
+              "fontWeight": "600",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "d7prS",
+              "name": "Caracteristicas 1",
+              "width": "fill_container",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "EgdiJ",
+                  "name": "Chip/FORTALEZA",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-linea",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rmdqP",
+                      "name": "L",
+                      "fill": "$pl-tinta",
+                      "content": "FORTALEZA",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Aagrr",
+                  "name": "Chip/COMBATE",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-linea",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "BzmiW",
+                      "name": "L",
+                      "fill": "$pl-tinta",
+                      "content": "COMBATE",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "BX2QM",
+                  "name": "Chip/VOLUNTAD",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "n2fnOS",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "VOLUNTAD",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kJkmc",
+                  "name": "Chip/ASTUCIA",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "TzvKs",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "ASTUCIA",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dJzi7",
+              "name": "Caracteristicas 2",
+              "width": "fill_container",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "P2A8U",
+                  "name": "Chip/SUTILEZA",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "aX6ii",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "SUTILEZA",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZGbmz",
+                  "name": "Chip/PRESENCIA",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "jKNnI",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "PRESENCIA",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Slxxz",
+                  "name": "Chip/CULTURA",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "LTAGj",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "CULTURA",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "W46kj1",
+              "name": "Nota ausentes",
+              "fill": "#221f19",
+              "textGrowth": "fixed-width",
+              "width": 340,
+              "content": "Una Deflagración no se tira con ninguna característica: los dados salen de su puntuación.",
+              "lineHeight": 1.3,
+              "fontFamily": "Cormorant Garamond",
+              "fontSize": 10,
+              "fontWeight": "500",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "FgZVa",
+              "name": "Rotulo Ataques",
+              "fill": "$pl-tinta-suave",
+              "content": "¿CON QUÉ ATACA?",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9,
+              "fontWeight": "600",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "JkpTQ",
+              "name": "Ataques",
+              "width": "fill_container",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Jexf9",
+                  "name": "Chip/A MANO",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-linea",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "aG6ID",
+                      "name": "L",
+                      "fill": "$pl-tinta",
+                      "content": "A MANO · 8",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "uJAQE",
+                  "name": "Chip/ESPADA ORIENTAL",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-linea",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "tCCLw",
+                      "name": "L",
+                      "fill": "$pl-tinta",
+                      "content": "ESPADA ORIENTAL · 9 · DAÑO 10",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tfL9W",
+              "name": "Ataques 2",
+              "width": "fill_container",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "BKpEe",
+                  "name": "Chip/DEFLAGRACION",
+                  "fill": "$pl-tinta",
+                  "stroke": "$pl-tinta",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YrtOM",
+                      "name": "L",
+                      "fill": "$pl-papel-alto",
+                      "content": "DEFLAGRACIÓN · 5",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "dY9Kg",
+              "name": "Nota ataques",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": 340,
+              "content": "La Deflagración es un ataque APARTE del principal: se tira sola, contra quien esté cerca (p.108).",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 10,
+              "fontWeight": "500",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "ZYRhB",
+              "name": "Rotulo Metros",
+              "fill": "$pl-tinta-suave",
+              "content": "¿A CUÁNTOS METROS ESTÁ?",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9,
+              "fontWeight": "600",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "ATN4f",
+              "name": "Metros",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "HGrXB",
+                  "name": "Chip/−",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-linea",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "A9sm6",
+                      "name": "L",
+                      "fill": "$pl-tinta",
+                      "content": "−",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "ssNEj",
+                  "name": "Valor",
+                  "fill": "$pl-tinta",
+                  "content": "2 m",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 18,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "AbAkq",
+                  "name": "Chip/+",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-linea",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "I4ihLt",
+                      "name": "L",
+                      "fill": "$pl-tinta",
+                      "content": "+",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "Goiko",
+                  "name": "Cuenta",
+                  "fill": "$pl-tinta-suave",
+                  "content": "radio 5 m · un dado menos por metro",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "500",
+                  "fontStyle": "italic"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "gBKE3",
+              "name": "Nota metros",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": 340,
+              "content": "Cada éxito hace 1 punto de daño y cada triunfo, tantos como la puntuación: 5. Fuera del radio no hay ataque.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 10,
+              "fontWeight": "500",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "RrAef",
+              "name": "Rotulo",
+              "fill": "#221f19",
+              "content": "DADOS QUE TIRAS",
+              "fontFamily": "Cormorant Garamond",
+              "fontSize": 9,
+              "fontWeight": "600",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "X6Fnuw",
+              "name": "Contador",
+              "width": "fill_container",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "CcqzH",
+                  "name": "Chip/−",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GRzv2",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "−",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "JQgbc",
+                  "name": "Valor",
+                  "fill": "#131310",
+                  "content": "3",
+                  "fontFamily": "Cormorant Garamond",
+                  "fontSize": 28,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "gzigs",
+                  "name": "Chip/+",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "v1yu1J",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "+",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "WjMYT",
+                  "name": "De",
+                  "fill": "#221f19",
+                  "content": "su Deflagración 5 − 2 metros",
+                  "fontFamily": "Cormorant Garamond",
+                  "fontSize": 10,
+                  "fontWeight": "500",
+                  "fontStyle": "italic"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "PMhe2",
+              "name": "Es de noche",
+              "width": "fill_container",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "M9M9g",
+                  "name": "Casilla",
+                  "width": 13,
+                  "height": 13,
+                  "fill": "$pl-tinta",
+                  "stroke": "$pl-tinta",
+                  "strokeAlignment": "inner",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "V7hUw",
+                      "name": "Marca",
+                      "width": 10,
+                      "height": 10,
+                      "icon": "check",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "Xk3lJ",
+                  "name": "Luna",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "dark_mode",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                },
+                {
+                  "type": "text",
+                  "id": "ZBAkV",
+                  "name": "L",
+                  "fill": "$pl-tinta",
+                  "content": "Es de noche",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "l2FmRH",
+              "name": "Rotulo",
+              "fill": "#221f19",
+              "content": "DIFICULTAD",
+              "fontFamily": "Cormorant Garamond",
+              "fontSize": 9,
+              "fontWeight": "600",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "Rif6X",
+              "name": "Dificultad 1",
+              "width": "fill_container",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "RbP48",
+                  "name": "Chip/FÁCIL · 1",
+                  "fill": "$pl-tinta",
+                  "stroke": "$pl-tinta",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qEaRR",
+                      "name": "L",
+                      "fill": "$pl-papel-alto",
+                      "content": "FÁCIL · 1",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "EWnmX",
+                  "name": "Chip/MEDIA · 2",
+                  "fill": "$pl-papel-alto",
+                  "stroke": "$pl-linea",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ycF4H",
+                      "name": "L",
+                      "fill": "$pl-tinta",
+                      "content": "MEDIA · 2",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "w6WaSt",
+                  "name": "Chip/DIFÍCIL · 3",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GFu6Q",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "DIFÍCIL · 3",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "kWQUj",
+              "name": "Dificultad 2",
+              "width": "fill_container",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "XaqUI",
+                  "name": "Chip/MUY DIFÍCIL · 5",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "jYDhz",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "MUY DIFÍCIL · 5",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pP2dm",
+                  "name": "Chip/ÉPICA · 6",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "sBZ4v",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "ÉPICA · 6",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "W2sGR",
+              "name": "Nota dificultad",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": 340,
+              "content": "La Deflagración es SIEMPRE un reto a dificultad 1 (p.108): el director puede subirla si deja ponerse a cubierto, como en los disparos (p.96).",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 10,
+              "fontWeight": "500",
+              "fontStyle": "italic"
+            },
+            {
+              "type": "text",
+              "id": "M4gz5",
+              "name": "Rotulo",
+              "fill": "#221f19",
+              "content": "¿QUIÉN LO VE?",
+              "fontFamily": "Cormorant Garamond",
+              "fontSize": 9,
+              "fontWeight": "600",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "C88tDG",
+              "name": "Visibilidad",
+              "width": "fill_container",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "VSbCi",
+                  "name": "Chip/TODOS",
+                  "fill": "#131310",
+                  "stroke": "#131310",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "q0EXOo",
+                      "name": "L",
+                      "fill": "#efede7",
+                      "content": "TODOS",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yNqOF",
+                  "name": "Chip/DIRECTOR",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Rd5TQ",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "DIRECTOR",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "LtvN9",
+                  "name": "Chip/SECRETA",
+                  "fill": "#efede7",
+                  "stroke": "#8a887e",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    9
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ebi5O",
+                      "name": "L",
+                      "fill": "#131310",
+                      "content": "SECRETA",
+                      "fontFamily": "Cormorant Garamond",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "PBIXF",
+              "name": "Pie",
+              "width": "fill_container",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "o4nmWg",
+                  "name": "Boton Tirar",
+                  "fill": "#131310",
+                  "stroke": "#131310",
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    7,
+                    12
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "X0X9Ji",
+                      "name": "L",
+                      "fill": "#efede7",
+                      "content": "TIRAR 3",
                       "fontFamily": "Cormorant Garamond",
                       "fontSize": 11,
                       "fontWeight": "600",
