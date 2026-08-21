@@ -14,7 +14,12 @@ export const SHEET_VERSION = '1';
 /** Value stored under each stat field id (`fortitude`, `combat`…). */
 export interface StatValue { value: number; specialties: string[] }
 /** Row of the `weapons` table. `id` is a catalog weapon id (or a custom id when `custom` is set). */
-export interface WeaponRow { id: string; ammo: number | null; custom?: { label: string; bonus: number; damage: number; strength: boolean; range: string; magazine: number | null } }
+/**
+ * `ammo` es lo que hay EN el cargador y `reserve` las balas sueltas que llevas encima; recargar mueve de la
+ * segunda al primero. `reserve` faltaba en el tipo aunque `reloadWeapon` ya lo leía y lo escribía, así que
+ * nada avisaba de que la ficha no lo estuviera creando nunca (dueño, 2026-08-21).
+ */
+export interface WeaponRow { id: string; ammo: number | null; reserve?: number | null; custom?: { label: string; bonus: number; damage: number; strength: boolean; range: string; magazine: number | null } }
 /** Row of the `gifts` list. */
 export interface GiftRow { id: string; level: number }
 /** Row of the `equipment` list. */
