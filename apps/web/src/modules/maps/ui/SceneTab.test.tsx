@@ -327,6 +327,35 @@ describe('<SceneTab> DM', () => {
     });
   });
 
+  /**
+   * LA REGRESIÓN DEL ALCANCE (2026-08-22): con cuerpos de 1,5 casillas y los centros a 2,1 (3,15 m), medir
+   * de centro a centro clasificaba el ataque como «a corta distancia» → tirada inmediata y SIN aviso de
+   * defensa, con los tokens casi tocándose en pantalla. El libro mide si pueden TOCARSE (p.92/p.95): el
+   * hueco entre los cuerpos es 0,6 casillas (0,9 m) → cuerpo a cuerpo → ataque a la espera.
+   */
+  it('regresión · dos cuerpos grandes casi pegados son cuerpo a cuerpo: abre el ataque a la espera', async () => {
+    const u = userEvent.setup();
+    const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });
+    const onOpenAttack = vi.fn().mockResolvedValue({ id: 'atk-1' });
+    const grandes = fakeMapsRepo({
+      scenes: [SCENE_WAREHOUSE], walls: [WALL_1],
+      tokens: [{ ...TOKEN_KAREN, size: 1.5 }, { ...TOKEN_MUTANT, x: TOKEN_KAREN.x + 2.1, y: TOKEN_KAREN.y, size: 1.5, visible: true }],
+    });
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={grandes}
+      vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    const mutante = await within(canvas()).findByRole('img', { name: /Mutante/ });
+    fireEvent.pointerDown(mutante, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const bar = await screen.findByRole('toolbar', { name: 'Token seleccionado' });
+    await u.click(within(bar).getByRole('button', { name: 'Atacar' }));
+    const modal = await screen.findByRole('dialog', { name: 'Atacar con Mutante' });
+    await u.click(within(modal).getByRole('button', { name: /^Atacar a Karen/ }));
+    await waitFor(() => expect(onOpenAttack).toHaveBeenCalled());
+    expect(onRoll).not.toHaveBeenCalled();
+  });
+
   /** Sin a dónde mandar el ataque a la espera, ATACAR no se ofrece: la mitad cuerpo a cuerpo moriría al pulsar. */
   it('sin `onOpenAttack` el botón ATACAR no aparece', async () => {
     renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}

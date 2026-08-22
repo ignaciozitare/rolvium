@@ -14,7 +14,40 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-22 (noche): PAREDES SÓLIDAS — CINCO fallos arreglados en tres rondas. Falta MIRARLO EN LA APP
+## 🟢 PUNTO EXACTO — 2026-08-22 (noche, 2): v0.2.0 EN PRODUCCIÓN · el alcance de los ataques, arreglado CONTRA EL PDF
+
+**`main` = v0.2.0 en producción** (merge `ddbd042`, API y web sondeadas en vivo, 200 las dos; migración
+`solid_walls` aplicada en la nube ANTES del merge). Rama viva: **`fix/alcance-borde-a-borde`** (sin mergear).
+
+### La prueba del dueño tras el merge sacó DOS cosas (y una bronca merecida)
+1. **«Atacar a Karen no avisa»** — el ataque salía «a corta distancia» con los tokens casi pegados: la
+   distancia se medía de CENTRO a CENTRO y los cuerpos de 1,5 casillas se comieron el margen. Se abrió el
+   PDF (orden del dueño: «lee el puto manual… deja de inventar»): **p.92 «lo suficientemente cerca como para
+   tocarse» · p.95 «a más de tres pasos»** — el libro mide si los PERSONAJES pueden tocarse, y eso es cosa
+   de los CUERPOS. Arreglo en la rama: RULES.md §5.3 con las citas PRIMERO, `tokenGapCells` (hueco entre
+   bordes) en mapRules, `attackTargets` lo usa (clasificación + dificultad + metros del modal salen del
+   mismo número). Tests discriminantes (centros 2,1 casillas = «corta» con lo viejo; hueco 0,6 = c/c).
+   Review 5.ª ronda pasado. **646 web · 133 plenilunio · audit 0 hard.**
+2. **«El jugador no ve los encuentros»** — NO era fallo nuevo: esos tokens se colocaron ANTES del arreglo
+   «nacen visibles» de esta mañana y conservaban la marca de oculto. Destapados en la base local (= pulsar
+   «MOSTRAR A LOS JUGADORES»). Los nuevos nacen visibles.
+3. **«¿Y cubrirse?»** — el dueño recuerda bien: «Ponerse a cubierto» (p.96) está en la spec de dados y
+   marcado **⚠ NO CONSTRUIDO** (fuera a propósito desde el 21). Entra con la tanda del panel del director.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: v0.2.0 en producción; `fix/alcance-borde-a-borde` arregla el alcance de los ataques contra
+> el PDF (review pasado, sin merge — falta que el dueño pruebe Lunar pegado a Karen → aviso). Después: QA +
+> merge de esa rama, y la tanda del panel del director (bloque 🟢 de WORK_STATE, decisiones ya tomadas).
+
+### 🔎 Deuda que dejó el review de la 5.ª ronda (anotada, no tocada)
+- Texto del modal con tokens PEGADOS: «está a 0 casillas» — veraz pero raro; una variante «pegados a X» son
+  claves i18n nuevas, decisión de texto del dueño.
+- `round1` redondea casillas antes de pasar a metros: ±7 cm de artefacto en el límite exacto del alcance
+  (preexistente, ya pasaba con los centros).
+
+---
+
+## 🟢 PUNTO EXACTO — 2026-08-22 (noche): PAREDES SÓLIDAS — CINCO fallos arreglados en tres rondas (MERGEADO en v0.2.0)
 
 Rama **`fix/municion-y-preguntas`**. **942 tests** verdes (web 644 · api 126 · core 23 · plenilunio 133 · ui 16) ·
 typecheck web+api · `audit` 0 hard · `build:web` + `build:api` · **review pasado entero, TRES rondas**. Sin QA y sin merge.

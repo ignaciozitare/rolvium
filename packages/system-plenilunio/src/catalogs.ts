@@ -461,9 +461,12 @@ export const RANGE_DIFFICULTY: Record<Exclude<WeaponRange, 'melee'>, number> = {
  */
 export const RANGE_METRES: Record<Exclude<WeaponRange, 'melee'>, number> = { short: 20, medium: 50, long: 200, veryLong: 800 };
 /**
- * A partir de cuántos metros deja de ser cuerpo a cuerpo. El libro no lo dice —se juega en la mesa, no en
- * una rejilla—, así que ⚠ es lectura nuestra: **3 metros, o sea dos casillas** del mapa (1,5 m cada una),
- * que es lo que dibuja el `.pen` («Karen está a 2 casillas: cuerpo a cuerpo»).
+ * A partir de cuántos metros deja de ser cuerpo a cuerpo. El libro SÍ lo dice: a distancia es no poder
+ * tocarse rápidamente, «a más de tres pasos» (p.95), y cuerpo a cuerpo «lo suficientemente cerca como para
+ * tocarse» (p.92). ⚠ interpretación sólo en la unidad: un paso ≈ 1 m → **3 metros, dos casillas** (1,5 m
+ * cada una), que es lo que dibuja el `.pen` («Karen está a 2 casillas: cuerpo a cuerpo»). Y como el libro
+ * mide entre los personajes —si pueden tocarse—, la distancia que se compara con esto es el HUECO entre los
+ * cuerpos (borde a borde), no entre los centros (RULES.md §5.3): la mide `tokenGapCells` en el mapa.
  */
 export const MELEE_METRES = 3;
 /**

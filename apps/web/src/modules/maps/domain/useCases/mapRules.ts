@@ -93,6 +93,18 @@ export function tokenPointAt(p: Point, grid: number, size = DEFAULT_TOKEN_CELLS)
 export const tokenCenter = (t: Pick<Token, 'x' | 'y' | 'size'>, grid: number): Point => ({ x: (t.x + t.size / 2) * grid, y: (t.y + t.size / 2) * grid });
 
 /** Distance between two scene points in cells (Euclidean). */
+/**
+ * El HUECO entre los cuerpos de dos tokens, en casillas: distancia entre centros menos el radio de cada uno,
+ * nunca menos de 0. Es la distancia con la que se decide un ataque, porque el libro mide entre personajes —
+ * «lo suficientemente cerca como para tocarse» (p.92), «a más de tres pasos» (p.95) — y tocarse es cosa de
+ * los CUERPOS: dos tokens pegados están a 0, mida lo que mida cada cuerpo. De centro a centro, un cuerpo
+ * grande alejaba sus propios ataques: con tokens de 1,5 casillas, la separación visual que antes era cuerpo
+ * a cuerpo salía «a corta distancia» y el aviso de defensa no saltaba (regresión del 2026-08-22).
+ */
+export function tokenGapCells(a: Pick<Token, 'x' | 'y' | 'size'>, b: Pick<Token, 'x' | 'y' | 'size'>, grid: number): number {
+  return Math.max(0, distanceCells(tokenCenter(a, grid), tokenCenter(b, grid), grid) - a.size / 2 - b.size / 2);
+}
+
 export function distanceCells(a: Point, b: Point, grid: number): number {
   return Math.hypot(b.x - a.x, b.y - a.y) / grid;
 }

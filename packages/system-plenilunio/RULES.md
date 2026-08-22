@@ -297,6 +297,16 @@ Los éxitos con que el ganador supera al rival calculan el daño.
 Reto de Combate contra la dificultad del alcance (no un conflicto). Las armas a distancia no dan dados extra
 (sí accesorios como miras).
 
+**Qué es cada cosa, con las palabras del libro**: cuerpo a cuerpo es estar «a solo unos pasos de distancia,
+lo suficientemente cerca **como para tocarse**» (p.92); a distancia es estar «separados lo suficiente como
+para **no poder tocarse** rápidamente (**a más de tres pasos**)» (p.95). El libro mide entre los PERSONAJES
+— si pueden tocarse — así que en el mapa la distancia que decide es el **hueco entre los cuerpos de los
+tokens (borde a borde)**, no entre sus centros: dos tokens pegados están a 0, mida lo que mida cada cuerpo.
+⚠ interpretación sólo en el cambio de unidad: un paso ≈ 1 m → el límite del cuerpo a cuerpo son 3 m (dos
+casillas de 1,5 m). Medirlo de centro a centro castigaba a los cuerpos grandes — con tokens de 1,5 casillas,
+la misma separación visual que antes era cuerpo a cuerpo salía «a corta distancia» (regresión del
+2026-08-22, cazada por el dueño al atacar con el Lunar pegado a Karen).
+
 | Alcance                | Dificultad |
 |------------------------|------------|
 | Corto (hasta 20 m)     | Media (2)  |
