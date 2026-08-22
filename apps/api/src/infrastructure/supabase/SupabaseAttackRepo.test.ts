@@ -48,7 +48,7 @@ describe('SupabaseAttackRepo', () => {
   it('lee la fila y la traduce a la entidad del dominio', async () => {
     const { db, select } = selectDb({ data: { id: 'atk-1', campaign_id: 'c1', target_character_id: 'ch1', created_by: 'dm1', dice: 4, request: REQUEST, status: 'pending' } });
     expect(await new SupabaseAttackRepo(db).findById('atk-1')).toEqual({
-      id: 'atk-1', campaignId: 'c1', targetCharacterId: 'ch1', createdBy: 'dm1', dice: 4, request: REQUEST, status: 'pending',
+      id: 'atk-1', campaignId: 'c1', attackerCharacterId: null, targetCharacterId: 'ch1', createdBy: 'dm1', dice: 4, request: REQUEST, status: 'pending',
     });
     expect(select).toHaveBeenCalled();
   });

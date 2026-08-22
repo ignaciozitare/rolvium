@@ -53,7 +53,25 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 3. En el `.pen` además: popovers «Tirar por una criatura» en sangre · contexto del modal documentado ·
    ejemplo del modal cambiado a Soum (el ogro no lleva armas impresas).
 
-### 🚧 LA TANDA DEL PANEL DEL DIRECTOR — ARRANCADA (2026-08-22 noche; el dueño: «sigue con el panel»)
+### 🚧 LA TANDA DEL PANEL — TABLERO (2026-08-23 madrugada; el dueño: «sigue hasta que termines»)
+Rama `fix/alcance-borde-a-borde`. Todo con review pasado (rondas 7 y 8) y commiteado; **sin QA y sin merge**.
+1. ✅ **Pedir tiradas, de punta a punta** (`025c994`): panel del director en el lanzador (chips + mantener-
+   pulsado + especialidad p.83) → `/roll-requests` → aviso «Tirada pedida» (filete oro) → TIRAR arma el
+   puñado EN EL SERVIDOR con la ficha del que contesta → tirada del JUGADOR en el Registro. El review cazó
+   el gesto muerto con ratón (captura de puntero) y un hueco de cobertura del repo.
+2. ✅ **El espejo, SERVIDOR** (este commit): `/attacks/player` (el jugador abre contra una criatura) y
+   `/attacks/:id/defend` (el director pone la defensa; autor de la tirada = el jugador). Guardias de
+   dirección en caso de uso Y en SQL, cruzadas y pinadas. El review destascó el AttackWatcher (una fila
+   espejo ya no tapa los avisos de columna 5).
+3. ⏳ **GATED en el dueño**: visto bueno de las 3 pantallas dibujadas (capturas enviadas) → entonces: UI del
+   espejo (aviso de defensa del director + elegir blanco al atacar desde la ficha) y «ponerse a cubierto».
+4. ⏳ **Siguientes rebanadas sin gate**: encuentros en el panel (diseño aprobado `QWHSS`) · orden de turnos
+   (tablas listas) · pasada de armas de fuego con el PDF · quitar el bloque «Tirada» de la ficha (al final).
+5. 🔎 Deuda de la ronda 8: `answered_at` no se pone en el espejo (asimetría, próxima pasada DBA) · la
+   VISIBILIDAD del espejo debe fijarse a propósito en su UI (hoy heredaría la que mande el navegador, igual
+   que columna 5) · aviso del director al abrirse un espejo = la pantalla dibujada pendiente de visto bueno.
+
+### (histórico) LA TANDA DEL PANEL DEL DIRECTOR — ARRANCADA (2026-08-22 noche)
 El dueño NO probó el alcance ni el selector («no tengo tiempo») — la rama sigue SIN QA y sin merge, y su
 verificación queda pendiente para antes del cierre. Flujo de la tanda:
 1. **Spec** ✅ — cerrada con todas las decisiones (chips de las 7 · tanda completa · espejo · cubierto).

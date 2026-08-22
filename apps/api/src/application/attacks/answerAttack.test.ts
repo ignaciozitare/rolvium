@@ -3,7 +3,7 @@ import { plenilunio, messages, lookup } from '@rolvium/system-plenilunio';
 import type { RollRequest } from '@rolvium/core';
 import type { IAttackRepository, OpenAttackInput, PendingAttack } from '../../domain/attack/IAttackRepository.js';
 import type { RollCommitInput } from '../../domain/roll/IRollRepository.js';
-import { answerAttack, openAttack, withDefence } from './answerAttack.js';
+import { answerAttack, answerPlayerAttack, openAttack, openPlayerAttack, withDefence } from './answerAttack.js';
 
 const DM = '11111111-1111-4111-8111-111111111111';
 const PLAYER = '22222222-2222-4222-8222-222222222222';
@@ -23,8 +23,10 @@ const fakeAttacks = (over: Partial<IAttackRepository> = {}, row: Partial<Pending
   const opened: OpenAttackInput[] = [];
   const repo: IAttackRepository = {
     open: async i => { opened.push(i); return { id: 'atk-1' }; },
+    openPlayer: async () => ({ id: 'atk-esp' }),
+    answerPlayer: async (_a, _id, defence) => Math.max(0, Math.min(40, defence)),
     answer: async (_a, _id, defence) => defence,
-    findById: async id => ({ id, campaignId: CAMP, targetCharacterId: CHAR, createdBy: DM, dice: 4, request: stored(), status: 'pending', ...row }),
+    findById: async id => ({ id, campaignId: CAMP, targetCharacterId: CHAR, attackerCharacterId: null, createdBy: DM, dice: 4, request: stored(), status: 'pending', ...row }),
     close: async (id, rollId, status) => { closed.push({ id, rollId, status }); },
     ...over,
   };
@@ -205,5 +207,46 @@ describe('answerAttack', () => {
     const e = plenilunio.engine.explain?.({ request: c.request, dice: c.dice, result: c.result }, k => lookup(messages.es, k) ?? k);
     expect(e?.head.some(l => l.text.includes('Conflicto: 2 dados de defensa del otro lado'))).toBe(true);
     expect(e?.head.some(l => l.text.includes('Reto'))).toBe(false);
+  });
+});
+
+/**
+ * EL ESPEJO (spec § «El espejo»): un PJ ataca c/c a una criatura, la fila viaja sin personaje atacado, y la
+ * defensa la pone el DIRECTOR. El autor de la tirada es el JUGADOR que abrió — su ataque, su tirada.
+ */
+describe('answerPlayerAttack — el espejo', () => {
+  const espejo = { targetCharacterId: null, attackerCharacterId: CHAR, createdBy: PLAYER };
+
+  it('el director contesta, la defensa se pone enfrente y la tirada sale con el JUGADOR de autor', async () => {
+    const { repo, closed } = fakeAttacks({}, espejo);
+    const committed: import('../../domain/roll/IRollRepository.js').RollCommitInput[] = [];
+    const d = deps(repo, committed);
+    // el autor de la tirada es el JUGADOR: para performRoll tiene que ser miembro de la mesa
+    d.characters.isCampaignMember = async () => true;
+    const r = await answerPlayerAttack(d, { actorId: DM, attackId: 'atk-1', defence: 3 });
+    expect(r.ok).toBe(true);
+    expect(committed[0]?.actorId).toBe(PLAYER);
+    expect(committed[0]?.request.groups).toContainEqual({ count: 3, sides: 6, tag: 'opposition' });
+    expect(closed).toEqual([{ id: 'atk-1', rollId: 'roll-1', status: 'resolved' }]);
+  });
+
+  it('una fila de la columna 5 no se contesta por aquí, ni una del espejo por el camino del jugador', async () => {
+    const col5 = fakeAttacks();
+    expect(await answerPlayerAttack(deps(col5.repo), { actorId: DM, attackId: 'atk-1', defence: 1 })).toEqual({ ok: false, code: 'FORBIDDEN' });
+    const esp = fakeAttacks({}, espejo);
+    expect(await answerAttack(deps(esp.repo), { actorId: PLAYER, attackId: 'atk-1', defence: 1 })).toEqual({ ok: false, code: 'FORBIDDEN' });
+  });
+
+  it('quien no es el director rebota en la función SQL', async () => {
+    const { repo } = fakeAttacks({ answerPlayer: async () => { throw Object.assign(new Error('not_pending'), { code: 'NOT_PENDING' }); } }, espejo);
+    expect(await answerPlayerAttack(deps(repo), { actorId: PLAYER, attackId: 'atk-1', defence: 1 })).toEqual({ ok: false, code: 'NOT_PENDING' });
+  });
+
+  it('openPlayerAttack abre y devuelve el id; el rechazo SQL llega como FORBIDDEN', async () => {
+    const { repo } = fakeAttacks();
+    const input = { actorId: PLAYER, campaignId: CAMP, sceneId: null, attackerCharacterId: CHAR, attackerTokenId: null, targetTokenId: '44444444-4444-4444-8444-444444444444', attackerName: 'Karen', dice: 4, request: stored() };
+    expect(await openPlayerAttack({ attacks: repo }, input)).toEqual({ ok: true, data: { id: 'atk-esp' } });
+    const bad = fakeAttacks({ openPlayer: async () => { throw Object.assign(new Error('not_creature'), { code: 'FORBIDDEN' }); } });
+    expect(await openPlayerAttack({ attacks: bad.repo }, input)).toEqual({ ok: false, code: 'FORBIDDEN' });
   });
 });
