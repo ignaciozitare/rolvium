@@ -354,3 +354,32 @@ botón, el sitio ya está hecho (`dice_close_attack(..., 'cancelled')`).
 ⚠ **Dos respuestas EXACTAMENTE simultáneas tirarían dos veces**, porque la fila no se cierra hasta que la
 tirada sale bien. Es el precio elegido a cambio de poder reintentar cuando la tirada falla: una tirada de
 más se ve en el Registro y no corrompe nada; quedarse sin poder contestar no se ve y no se arregla.
+
+## Modelo de datos — el panel del director (2026-08-22)
+
+**Peticiones de tirada (`dice_roll_requests`)**: una fila por personaje al que el director le pide una
+tirada; «A TODOS» crea varias filas con el mismo lote (`batch_id`), para que el Registro pueda agrupar las
+respuestas. Guarda la característica, la dificultad, si le vale su especialidad, y el estado (pendiente ·
+resuelta · cancelada) con la tirada que la contestó. La ven el director y el dueño del personaje al que se
+le pide, nadie más; nadie escribe desde el navegador — crear el lote y cerrarlo pasan por la API, y el
+jugador contesta TIRANDO (los dados los genera el servidor). Está en el realtime: el aviso salta sin recargar.
+
+**El espejo del ataque (columnas nuevas en `dice_attacks`)**: la misma tabla de los ataques a la espera
+aprende la dirección contraria. Si la fila lleva personaje atacado, es una criatura atacando a un PJ
+(contesta el jugador, columna 5); si no lo lleva, es un PJ atacando a una criatura — `attacker_character_id`
+dice quién ataca y el token atacado qué criatura defiende — y contesta EL DIRECTOR con los dados de defensa
+de su criatura. El dueño del personaje atacante también puede leer su fila (ve su ataque esperando).
+
+**El combate (`dice_combats` + `dice_combat_slots`)**: un combate vive en una escena y sólo puede haber uno
+activo por escena. Los puestos guardan el orden de actuación (adelantarse gastando Fortuna reordena y «el
+sitio nuevo se queda», p.92), a quién le toca y la ronda; `spent_next` son los dados ya gastados del turno
+siguiente (defensas y adelantos, p.94). El orden lo VE toda la mesa; lo mueve la API (el director pulsa
+siguiente/cerrar; el adelantarse del jugador paga su Fortuna en el mismo paso). En el realtime: el turno se
+mueve en todas las pantallas.
+
+**Ponerse a cubierto — sin tabla**: es un estado del token en la escena y vive en `maps_tokens.state`
+(el JSONB que ya existe y ya viaja por el realtime de tokens). Lo escribe la API al resolver la tirada de
+cubrirse; dispararle a un token a cubierto cuesta +2 dados de dificultad (p.96).
+
+Migración: `supabase/migrations/20260822120000_dice_director_panel.sql` — aplicada en local, lint 0 errores.
+⚠ **Pendiente de aplicar en la nube ANTES del merge de esta tanda** (la lección del Bestiario).
