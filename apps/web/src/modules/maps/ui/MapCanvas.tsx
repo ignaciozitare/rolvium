@@ -36,6 +36,8 @@ interface Props {
   onMoveToken: (id: string, x: number, y: number) => void;
   /** Dónde dice el SERVIDOR que puede estar el token que se arrastra, o `null` si no ha dicho nada. */
   onServerCorrection?: (tokenId: string) => { x: number; y: number } | null;
+  /** El disco LIBRE que el servidor confirmó: centro + holgura en casillas. No se pinta más allá de él. */
+  onDragBound?: (tokenId: string) => { x: number; y: number; clearance: number } | null;
   onAddDrawing: (kind: DrawingKind, data: Drawing['data']) => void;
   onErase: (id: string) => void;
   onAddWall: (a: Point, b: Point) => void;
@@ -275,9 +277,15 @@ export function MapCanvas(p: Props): JSX.Element {
        * muros secretos, así que la palabra final es del servidor al soltar (spec § «Rebanada 4»).
        */
       const dragged = p.tokens.find(tk => tk.id === gesture.id);
+      /**
+       * El freno local barre desde DONDE ESTÁ el token pintado, no desde donde empezó el arrastre: anclado al
+       * origen, pasada la esquina de un muro la recta origen→dedo seguía cruzándolo y el token no podía
+       * doblarla. Barrer paso a paso desde la posición actual es lo que hace que el resbalón pivote solo.
+       */
+      const current = localDrag && localDrag.id === gesture.id ? { x: localDrag.x, y: localDrag.y } : gesture.origin;
       const frenado = blockers.length > 0 && dragged
         ? tokenPointAt(
-            slideToken(tokenCenter({ ...gesture.origin, size: dragged.size }, grid), tokenCenter({ ...libre, size: dragged.size }, grid), tokenRadiusPx(dragged, grid), blockers),
+            slideToken(tokenCenter({ ...current, size: dragged.size }, grid), tokenCenter({ ...libre, size: dragged.size }, grid), tokenRadiusPx(dragged, grid), blockers),
             grid, dragged.size)
         : libre;
       /**
@@ -298,7 +306,21 @@ export function MapCanvas(p: Props): JSX.Element {
        * través del muro ~7 veces por segundo, y soltando en el tick malo se quedaba al otro lado.
        */
       const server = p.onServerCorrection?.(gesture.id) ?? null;
-      const { x, y } = server ?? frenado;
+      let { x, y } = server ?? frenado;
+      /**
+       * Y NUNCA más allá del disco libre que el servidor confirmó: a este navegador no le llegan los muros
+       * secretos, así que entre respuesta y respuesta el token seguía al dedo a ciegas, se metía en el muro y
+       * al llegar la corrección rebotaba hacia atrás. El disco es convexo: todo lo que se pinte dentro es
+       * legal entero. Sin dato (sin física, director, primer instante) no se recorta nada.
+       */
+      const bound = p.onDragBound?.(gesture.id) ?? null;
+      if (bound) {
+        const dx = x - bound.x, dy = y - bound.y, d = Math.hypot(dx, dy);
+        if (d > bound.clearance) {
+          const k = bound.clearance / d;
+          x = bound.x + dx * k; y = bound.y + dy * k;
+        }
+      }
       setLocalDrag({ id: gesture.id, x, y });
       if (!gesture.moved) setGesture({ ...gesture, moved: true });
       p.onDragToken(gesture.id, x, y, libre);

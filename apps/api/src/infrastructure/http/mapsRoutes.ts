@@ -14,7 +14,11 @@ const PaintBody = z.object({
 
 /** Posición provisional de un token propio mientras se arrastra. No mueve nada: sólo pregunta qué vería ahí. */
 const VisionBody = z.object({
-  at: z.object({ tokenId: z.string().uuid(), x: z.number().finite(), y: z.number().finite() }).optional(),
+  at: z.object({
+    tokenId: z.string().uuid(), x: z.number().finite(), y: z.number().finite(),
+    /** Desde dónde sale el barrido: la posición ACTUAL del token en el navegador. Sin él, la guardada. */
+    from: z.object({ x: z.number().finite(), y: z.number().finite() }).optional(),
+  }).optional(),
 });
 
 const STATUS: Record<VisionErrorCode, number> = { NOT_FOUND: 404, FORBIDDEN: 403 };

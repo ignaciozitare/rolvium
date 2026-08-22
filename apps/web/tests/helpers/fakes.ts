@@ -381,15 +381,16 @@ export const EXPLORED_2x2: SceneVision['explored'] = [[0, 0], [0, 1], [1, 0], [1
  * contestaba siempre lo mismo no podía cazar la oscilación del 2026-08-22: el fallo estaba justo en QUÉ
  * posición se le pregunta, y a ese doble le daba igual.
  */
-export function fakeVisionPort(seed: Partial<SceneVision> = {}, correct?: (at: { tokenId: string; x: number; y: number }) => { x: number; y: number } | null) {
+export function fakeVisionPort(seed: Partial<SceneVision> = {}, correct?: (at: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }) => { x: number; y: number } | null) {
   const state: SceneVision = { vision: VISION_LEFT, explored: EXPLORED_2x2, radiusPx: null, ...seed };
-  const calls: { op: string; sceneId: string; at?: { tokenId: string; x: number; y: number } | { x: number; y: number; radius: number } }[] = [];
+  const calls: { op: string; sceneId: string; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } } | { x: number; y: number; radius: number } }[] = [];
   return {
     state, calls,
-    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number }) => {
+    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }) => {
       calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}) });
       const cut = at && correct ? correct(at) : null;
-      return { ...state, corrected: cut && at ? { tokenId: at.tokenId, ...cut } : null };
+      // Como el real: recortado → pegado al muro, holgura 0; si cabía, un disco grande alrededor.
+      return { ...state, corrected: cut && at ? { tokenId: at.tokenId, ...cut } : null, clearance: at ? (cut ? 0 : 100) : null };
     },
     paint: async (sceneId: string, op: 'reveal' | 'hide', at: { x: number; y: number; radius: number }) => { calls.push({ op, sceneId, at }); return { ...state }; },
     paintAll: async (sceneId: string, op: 'reveal' | 'hide') => { calls.push({ op: `${op}All`, sceneId }); return { ...state }; },

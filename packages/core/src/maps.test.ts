@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { METRES_PER_CELL, segSegDist, sightRadiusPx, slideCircle } from './maps';
+import { circleClearance, METRES_PER_CELL, segSegDist, sightRadiusPx, slideCircle } from './maps';
 
 describe('sightRadiusPx', () => {
   it('by day the geometry is the only limit: there is no radius', () => {
@@ -88,6 +88,15 @@ describe('slideCircle / segSegDist — paredes sólidas (rebanada 4)', () => {
 
   it('sin muros que bloqueen, va donde le pidan', () => {
     expect(slideCircle({ x: 50, y: 100 }, { x: 150, y: 100 }, 10, [])).toEqual({ x: 150, y: 100 });
+  });
+
+  it('circleClearance: cuánto puede moverse el centro en cualquier dirección sin que hubiera recorte', () => {
+    expect(circleClearance({ x: 50, y: 100 }, 10, [])).toBe(Infinity);
+    // hasta el muro en x = 100: 50 de hueco, menos el cuerpo (10) y la holgura (0,5)
+    expect(circleClearance({ x: 50, y: 100 }, 10, [MURO])).toBeCloseTo(39.5, 6);
+    // pegado al muro: cero — y nunca negativo
+    expect(circleClearance({ x: 89.5, y: 100 }, 10, [MURO])).toBeCloseTo(0, 6);
+    expect(circleClearance({ x: 95, y: 100 }, 10, [MURO])).toBe(0);
   });
 
   it('quien YA estaba dentro de un muro no se queda encerrado', () => {

@@ -318,6 +318,35 @@ describe('POST /scenes/:id/vision', () => {
     expect(body.data.vision).toEqual([]);
     expect(body.data.explored.length).toBeGreaterThan(0);
   });
+
+  /**
+   * PAREDES SÓLIDAS DE PUNTA A PUNTA: `at.from` tiene que atravesar el esquema zod de la ruta. El cuerpo se
+   * parsea con `safeParse` y fallback silencioso — si el esquema rechazara `from`, el `at` ENTERO se
+   * descartaría y la física moriría en producción sin ningún error y con los tests del caso de uso en verde
+   * (van directos a `computeSceneVision`). Este test es el canario (review, 3.ª ronda).
+   */
+  it('la física viaja entera por la ruta: `at.from` pasa el esquema y la corrección y la holgura llegan', async () => {
+    const TOKEN_UUID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const solid = await createApp({
+      ...makeDeps(),
+      maps: fakeMapsRepo({
+        roles: { [ADMIN.id]: 'dm', [PLAYER.id]: 'player' },
+        tokens: [{ id: TOKEN_UUID, x: 2, y: 5, size: 1, controlledBy: PLAYER.id }],
+        scene: { solidWalls: true },
+      }),
+    });
+    try {
+      const res = await post(solid, `/scenes/${SCENE_ID}/vision`, 'player', { at: { tokenId: TOKEN_UUID, x: 7, y: 5, from: { x: 2, y: 5 } } });
+      expect(res.statusCode).toBe(200);
+      const data = res.json().data as { corrected: { tokenId: string; x: number } | null; clearance: number | null };
+      // pidió cruzar el muro de x = 135: recortado a este lado (centro a 135 − 13.5 − 0.5 px), pegado
+      expect(data.corrected).not.toBeNull();
+      expect(data.corrected!.x).toBeCloseTo(121 / 27 - 0.5, 3);
+      expect(data.clearance).toBeCloseTo(0, 6);
+    } finally {
+      await solid.close();
+    }
+  });
 });
 
 describe('POST /scenes/:id/fog', () => {

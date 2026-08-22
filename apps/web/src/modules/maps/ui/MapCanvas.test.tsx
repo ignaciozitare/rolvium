@@ -251,6 +251,27 @@ describe('<MapCanvas> fog', () => {
       { x: expect.closeTo(TOKEN_KAREN.x + 5, 1), y: expect.closeTo(TOKEN_KAREN.y, 1) });
   });
 
+  /**
+   * EL DISCO LIBRE (2026-08-22): a un jugador no le llegan los muros secretos, así que entre respuesta y
+   * respuesta del servidor el token seguía al dedo a ciegas — se metía en el muro y al llegar la corrección
+   * REBOTABA hacia atrás. `onDragBound` da el último disco confirmado (centro + holgura) y el pintado no
+   * sale de él: el token espera en el borde a que el servidor confirme, en vez de cruzar y volver.
+   */
+  it('regresión · el pintado no sale del disco libre confirmado por el servidor: ni rebote ni cruce a ciegas', () => {
+    const onDragBound = vi.fn(() => ({ x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, clearance: 1 }));
+    const { svg, token, cb } = mount({
+      scene: { ...SCENE_WAREHOUSE, solidWalls: true },
+      walls: [], isDm: false, me: PLAYER_USER.id, onDragBound,
+    });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 5.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    // el dedo pidió +5 casillas; el disco sólo garantiza 1: se pinta (y se suelta) en el borde del disco
+    expect(cb.onDragToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x + 1, TOKEN_KAREN.y,
+      { x: expect.closeTo(TOKEN_KAREN.x + 5, 1), y: expect.closeTo(TOKEN_KAREN.y, 1) });
+    expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x + 1, TOKEN_KAREN.y);
+  });
+
   it('el borde de la niebla va difuminado, y de noche mucho más (el «fade» del alcance)', () => {
     const dia = mount({ fog: FOG });
     const filtroDia = dia.svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}-feather feGaussianBlur`);

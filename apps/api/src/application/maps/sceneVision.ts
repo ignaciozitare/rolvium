@@ -1,4 +1,4 @@
-import { sightRadiusPx, slideCircle, type FogCell, type SceneVision, type VisionPolygon } from '@rolvium/core';
+import { circleClearance, sightRadiusPx, slideCircle, type FogCell, type SceneVision, type VisionPolygon } from '@rolvium/core';
 import type { IMapsRepository, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
 import { allCells, boundsSegments, cellsInDisc, cellsInPolygons, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
 
@@ -43,7 +43,7 @@ export async function computeSceneVision(
    * pregunta CONTROLA — se cruza contra su propia lista, así que pedir la visión desde el token de otro no
    * enseña nada que no fuera suyo.
    */
-  input: { sceneId: string; userId: string; at?: { tokenId: string; x: number; y: number } },
+  input: { sceneId: string; userId: string; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } | undefined } },
 ): Promise<VisionOutcome> {
   const scene = await deps.maps.getScene(input.sceneId);
   if (!scene) return { ok: false, code: 'NOT_FOUND' };
@@ -79,11 +79,29 @@ export async function computeSceneVision(
     : [[], []];
   const dragged = at ? tokensOf(tokens, input.userId).find(t => t.id === at.tokenId) ?? null : null;
   let corrected: SceneVision['corrected'] = null;
+  let clearance: SceneVision['clearance'] = null;
   if (at && dragged && scene.solidWalls) {
     const radius = (dragged.size * scene.gridSize) / 2;
     const blockers = walls.filter(w => w.blocksMove && !w.isOpen).map(w => [w.x1, w.y1, w.x2, w.y2] as const);
-    const end = slideCircle(tokenOrigin(dragged, scene.gridSize), tokenOrigin({ ...dragged, x: at.x, y: at.y }, scene.gridSize), radius, blockers);
+    /**
+     * El barrido sale de `from` — la última posición que ESTE MISMO cálculo contestó en el tick anterior del
+     * arrastre, que el navegador devuelve tal cual — y no de la posición guardada al empezar. Anclarlo al
+     * origen era el fallo del vértice (dueño, 2026-08-22): tras resbalar hasta el final de un muro, la recta
+     * origen→dedo seguía cruzándolo y la corrección mantenía al token clavado al vector del muro, sin
+     * dejarle doblar la esquina hasta soltar. El primer tick llega sin `from` y ancla en la guardada, así
+     * que la cadena entera nace de una verdad del servidor y cada eslabón se validó barriendo desde el
+     * anterior — una posición pintada a ciegas por el navegador nunca entra en la cadena.
+     *
+     * Aun así `from` es palabra del cliente, como hoy lo es la escritura directa de `x`/`y` en `maps_tokens`
+     * (la corrección es un consejo, no una barrera — está anotado en la spec). Cuando el movimiento pase por
+     * la API como endpoint propio, el servidor recordará la posición él mismo y este campo sobrará.
+     */
+    const start = at.from ? { ...dragged, x: at.from.x, y: at.from.y } : dragged;
+    const end = slideCircle(tokenOrigin(start, scene.gridSize), tokenOrigin({ ...dragged, x: at.x, y: at.y }, scene.gridSize), radius, blockers);
     const cx = end.x / scene.gridSize - dragged.size / 2, cy = end.y / scene.gridSize - dragged.size / 2;
+    // La holgura libre alrededor de la respuesta, en casillas: el navegador no pinta más allá de ese disco.
+    const free = circleClearance(end, radius, blockers);
+    clearance = Number.isFinite(free) ? free / scene.gridSize : null;
     /**
      * Se contesta `corrected` SÓLO cuando de verdad se ha recortado algo. Si cabía, se calla — y así el
      * navegador sabe que puede aplicar sin preguntar todo lo que le llegue, en vez de tener que adivinar si
@@ -98,9 +116,9 @@ export async function computeSceneVision(
   }
 
   if (scene.fogMode === 'off') {
-    return { ok: true, data: { vision: [], explored: allCells(scene.gridSize, scene.width, scene.height), radiusPx, corrected } };
+    return { ok: true, data: { vision: [], explored: allCells(scene.gridSize, scene.width, scene.height), radiusPx, corrected, clearance } };
   }
-  if (scene.fogMode === 'manual') return { ok: true, data: { vision: [], explored: stored, radiusPx, corrected } };
+  if (scene.fogMode === 'manual') return { ok: true, data: { vision: [], explored: stored, radiusPx, corrected, clearance } };
 
   const segments = sightSegments(walls, scene);
   const applied = corrected ?? at;
@@ -114,7 +132,7 @@ export async function computeSceneVision(
   // Con posición provisional NO se escribe: es una consulta de «qué vería si lo suelto aquí». Lo explorado se
   // devuelve igual, para que la pantalla ya lo pinte, y se guarda al soltar por el camino de siempre.
   if (!at && explored.length !== stored.length) await deps.maps.saveExplored(scene.id, scene.campaignId, input.userId, explored);
-  return { ok: true, data: { vision, explored, radiusPx, corrected } };
+  return { ok: true, data: { vision, explored, radiusPx, corrected, clearance } };
 }
 
 export interface PaintInput {

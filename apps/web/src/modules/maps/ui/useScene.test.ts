@@ -59,6 +59,11 @@ describe('useScene · paredes sólidas, el ciclo entero', () => {
     expect(vision.calls.filter(c => c.at).map(c => c.at!.x)).toEqual([LIBRE.x, LIBRE.x, LIBRE.x]);
     // y a la mesa se le cuenta dónde está el token DE VERDAD, no el deseo
     expect(repo.broadcasts.flatMap(b => (b.event.type === 'token.moved' ? [b.event.x] : []))).toEqual([LIBRE.x, WALL_X, WALL_X]);
+    // el ancla del barrido: primer tick SIN `from` (manda la posición guardada); después, la última CONTESTADA
+    const froms = vision.calls.filter(c => c.at).map(c => (c.at as { from?: { x: number } }).from?.x);
+    expect(froms).toEqual([undefined, WALL_X, WALL_X]);
+    // y el disco libre queda expuesto para que el lienzo no pinte más allá: pegado al muro, holgura 0
+    expect(result.current.dragBound(TOKEN_KAREN.id)).toEqual({ x: WALL_X, y: LIBRE.y, clearance: 0 });
   });
 
   it('soltar el token limpia la corrección: no clava el arrastre siguiente en el sitio viejo', async () => {
@@ -69,6 +74,7 @@ describe('useScene · paredes sólidas, el ciclo entero', () => {
     expect(result.current.serverCorrection(TOKEN_KAREN.id)).toEqual({ x: WALL_X, y: LIBRE.y });
     await act(async () => { await result.current.moveToken(TOKEN_KAREN.id, WALL_X, LIBRE.y); });
     expect(result.current.serverCorrection(TOKEN_KAREN.id)).toBeNull();
+    expect(result.current.dragBound(TOKEN_KAREN.id)).toBeNull();
     // y la posición final se persiste donde se soltó
     expect(repo.tokenUpdates.at(-1)).toEqual({ id: TOKEN_KAREN.id, patch: { x: WALL_X, y: LIBRE.y } });
   });

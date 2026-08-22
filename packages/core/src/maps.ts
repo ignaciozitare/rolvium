@@ -25,6 +25,15 @@ export interface SceneVision {
    * cuando la escena no tiene la física encendida.
    */
   corrected?: { tokenId: string; x: number; y: number } | null;
+  /**
+   * Holgura LIBRE alrededor de la posición contestada, en CASILLAS: hasta esa distancia, en cualquier
+   * dirección, el centro del token puede moverse sin tocar ningún muro — también los secretos. El navegador
+   * no pinta nunca más allá de ese disco: así el token no puede meterse en un muro que no ve mientras espera
+   * la siguiente respuesta (~7/s), que era el «rebote» que vio el dueño (2026-08-22). `null` cuando la
+   * física está apagada o no se preguntó por ninguna posición. No revela geometría: es un solo número, y es
+   * lo mismo que el jugador aprendería a topetazos.
+   */
+  clearance?: number | null;
 }
 
 /**
@@ -141,4 +150,15 @@ export function slideCircle(from: ScenePoint, to: ScenePoint, radius: number, bl
     target = { x: stop.x + ux * along, y: stop.y + uy * along };
   }
   return pos;
+}
+
+/**
+ * Cuánto puede moverse el CENTRO de un círculo de radio `radius` desde `center`, en cualquier dirección, sin
+ * que `slideCircle` tuviera nada que recortar (se descuenta la misma holgura `SLIDE_GAP`). `Infinity` sin
+ * muros. El disco es convexo: cualquier camino que no salga de él es legal entero, no sólo su punto final.
+ */
+export function circleClearance(center: ScenePoint, radius: number, blockers: readonly BlockSegment[]): number {
+  if (blockers.length === 0) return Infinity;
+  const d = Math.min(...blockers.map(([x1, y1, x2, y2]) => pointSegDist(center, x1, y1, x2, y2)));
+  return Math.max(0, d - radius - SLIDE_GAP);
 }

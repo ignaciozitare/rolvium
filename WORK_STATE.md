@@ -14,15 +14,35 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-22 (tarde): PAREDES SÓLIDAS TERMINADAS — los TRES fallos, ARREGLADOS. Falta MIRARLO EN LA APP
+## 🟢 PUNTO EXACTO — 2026-08-22 (noche): PAREDES SÓLIDAS — CINCO fallos arreglados en tres rondas. Falta MIRARLO EN LA APP
 
-Rama **`fix/municion-y-preguntas`**. **936 tests** verdes (web 642 · api 123 · core 22 · plenilunio 133 · ui 16) ·
-typecheck web+api · `audit` 0 hard · `build:web` + `build:api` · **review pasado entero, dos rondas**. Sin QA y sin merge.
+Rama **`fix/municion-y-preguntas`**. **941 tests** verdes (web 643 · api 126 · core 23 · plenilunio 133 · ui 16) ·
+typecheck web+api · `audit` 0 hard · `build:web` + `build:api` · **review pasado entero, TRES rondas**. Sin QA y sin merge.
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: las paredes sólidas están TERMINADAS en `fix/municion-y-preguntas` (los TRES fallos del
-> 2026-08-22, arreglados y con review pasado). Falta **mirarlo en la app con dos navegadores** y luego
-> QA + merge. Bloque 🟢 de WORK_STATE.
+> Retomo Rolvium: las paredes sólidas están TERMINADAS en `fix/municion-y-preguntas` (cinco fallos en tres
+> rondas, todos con review pasado). Falta **mirarlo en la app con dos navegadores** y luego QA + merge.
+> Bloque 🟢 de WORK_STATE.
+
+### ✅ RONDA 3 — los dos fallos de TACTO que el dueño vio al probar la ronda 2
+1. **El rebote hacia atrás** («al pasar del centro del token rebota un poco para atrás»): entre pregunta y
+   pregunta al servidor (~7/s) el navegador pintaba al token siguiendo al dedo A CIEGAS —no ve los muros
+   secretos—, se metía en el muro y al llegar la corrección saltaba atrás. Arreglo: el servidor devuelve con
+   cada respuesta la **holgura libre** (`clearance`, un escalar en casillas — `circleClearance` en core: el
+   disco es convexo, todo camino dentro es legal entero) y `MapCanvas` **no pinta nunca más allá del disco
+   confirmado** (`dragBound`/`motionRef` en `useScene`). Y pegado a un muro (corrección en pie) el ritmo de
+   preguntas sube de 140 ms a 50 ms (`VISION_CONTACT_HZ_MS`) para que el despegue no dé tirón.
+2. **El vértice que no soltaba** («al llegar a un vértice sigue por el mismo vector y no deja cambiar de
+   dirección hasta soltar»): el barrido del servidor estaba anclado a la posición GUARDADA al empezar el
+   arrastre — pasada la esquina, la recta origen→dedo seguía cruzando el muro. Arreglo: `at.from` — el ancla
+   es **la última posición que el propio servidor contestó** (cadena validada eslabón a eslabón; el primer
+   tick va SIN `from` y ancla en la guardada; la posición PINTADA nunca entra en la cadena, que antes de la
+   primera respuesta puede estar ya al otro lado y legalizaría el cruce). El freno LOCAL de `MapCanvas`
+   también barre ahora desde la posición pintada actual, no desde el origen del gesto.
+   - Endurecido tras el review: `moveToken` invalida las respuestas en vuelo (`++visionSeq`) para que una
+     tardía no re-siembre la cadena del arrastre anterior; y **test de ruta en `app.test.ts`** que POSTea
+     `at.from` — el esquema zod parsea con fallback silencioso, y sin ese canario una regresión del esquema
+     apagaría la física en producción sin error y con los tests del caso de uso en verde.
 
 ### ✅ FALLO 3 — EL QUE VIO EL DUEÑO AL PROBAR: el token saltaba a su posición INICIAL, no se quedaba pegado
 Probó tras el arreglo de los fallos 1 y 2 y el token seguía mal: contra el muro, **volvía al punto de
@@ -59,6 +79,14 @@ mañana («6 → 0») lo enseñaba y se leyó como éxito.
    manual/off no apagan la corrección.
 
 ### 🔎 Observaciones del review, NO bloqueantes (anotadas, no tocadas)
+- **El leak de `clearance`** (3.ª ronda): un escalar de proximidad a muros secretos, a hasta 20 Hz, permite
+  cartografiarlos por gradiente sin tocarlos — más rápido que a topetazos, aunque la corrección ya revela la
+  geometría exacta al contacto. Veredicto del review: aceptable para una mesa de rol. **Si al dueño le
+  importara: capar `clearance` a ~2 casillas conserva íntegro el anti-rebote** (el disco sólo trabaja cerca
+  de muros) y reduce el leak a casi-contacto. Decisión suya, pendiente.
+- **`from` es palabra del cliente**, como hoy lo es escribir `x`/`y` en `maps_tokens` — mismo perímetro de
+  confianza, documentado en el código. Se cierra solo cuando el movimiento pase por la API (tarea aparte ya
+  anotada abajo); entonces el servidor recordará la posición él mismo y `from` sobrará.
 - **La holgura estrecha los huecos 0,5 px**: un token de tamaño 1 (radio 13,5 a grid 27) ya no pasa por un
   hueco de EXACTAMENTE 27 px (necesita ≥28). Antes sólo pasaba por la línea central milimétrica; el cambio
   práctico es marginal, y las puertas (que al abrirse dejan de bloquear) son el mecanismo previsto para pasar.
@@ -105,10 +133,12 @@ cierra también el **manotazo rápido** (un arrastre más corto que ~140 ms no l
 - Todo eso son datos locales: no sale del repo ni toca producción.
 
 ### ⏭ LO SIGUIENTE
-1. **MIRARLO EN LA APP con dos navegadores** (director y jugador): empujar el token de Karen DE FRENTE contra
-   un muro — debe avanzar hasta tocarlo y quedarse PEGADO (ni cruzar, ni temblar, ni volver al punto de
-   salida); empujar en diagonal — debe RESBALAR a lo largo; soltar pegado y volver a arrastrar (que no se
-   quede clavado); y repetir con la niebla en «manual» y en «off».
+1. **MIRARLO EN LA APP con dos navegadores** (director y jugador):
+   - empujar DE FRENTE contra un muro: avanza, se queda PEGADO, **sin rebotar hacia atrás** al pasar el cursor;
+   - empujar en diagonal: RESBALA a lo largo, y **al llegar al final del muro dobla la esquina** y responde al
+     ratón sin tener que soltar;
+   - soltar pegado y volver a arrastrar (que no se quede clavado);
+   - repetir con la niebla en «manual» y en «off».
 2. Luego **QA** y merge a `main`.
 
 ### 🔧 Deuda técnica menor (preexistente, vista de pasada)
