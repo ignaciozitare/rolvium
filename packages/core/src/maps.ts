@@ -91,19 +91,54 @@ export function segSegDist(a1: ScenePoint, a2: ScenePoint, b1: ScenePoint, b2: S
  * Se mira el CAMINO y no el punto de llegada: comprobar sólo dónde acabas deja pasar el peor caso, un
  * arrastre rápido de un lado al otro del muro que acaba lejos de él por los dos lados y se cuela.
  *
- * Y RESBALA: al topar se prueba el movimiento descompuesto en sus dos ejes y se queda con lo que sí cabe, así
- * que empujando en diagonal contra una pared el círculo sigue avanzando pegado a ella.
+ * Y RESBALA de verdad: primero se AVANZA hasta el punto de contacto (bisección sobre el camino — alargar un
+ * segmento sólo puede acercarlo al muro, así que «cabe hasta aquí» es monótono y la bisección vale), y el
+ * movimiento que sobra se proyecta A LO LARGO del muro tocado, con hasta dos rebotes para las esquinas.
+ *
+ * La primera versión descomponía el movimiento en los dos EJES desde el origen, sin avanzar nunca: empujar de
+ * frente contra un muro devolvía el punto de SALIDA —el dueño vio al token saltar a su posición inicial en la
+ * app (2026-08-22)— y contra un muro en diagonal no resbalaba jamás.
+ *
+ * `SLIDE_GAP`: el frenazo deja el cuerpo a medio px del muro, no a cero. Al soltar, la posición se redondea a
+ * la centésima de casilla (`round2` en el navegador) y ese redondeo puede empujar HACIA el muro; sin holgura
+ * dejaría al token dentro, y la vía de escape de «ya estabas dentro» le abriría la pared al arrastre siguiente.
  */
+const SLIDE_GAP = 0.5;
+
 export function slideCircle(from: ScenePoint, to: ScenePoint, radius: number, blockers: readonly BlockSegment[]): ScenePoint {
-  const clear = (a: ScenePoint, b: ScenePoint): boolean =>
-    !blockers.some(([x1, y1, x2, y2]) => segSegDist(a, b, { x: x1, y: y1 }, { x: x2, y: y2 }) < radius);
+  if (blockers.length === 0) return to;
+  const distAt = (p: ScenePoint): number => Math.min(...blockers.map(([x1, y1, x2, y2]) => pointSegDist(p, x1, y1, x2, y2)));
   // Si YA estabas dentro de un muro —la escena acaba de volverse sólida, o el director te dejó ahí— no se te
   // encierra: se te deja mover hasta que salgas. Capar la salida sería peor que el problema.
-  if (blockers.some(([x1, y1, x2, y2]) => pointSegDist(from, x1, y1, x2, y2) < radius)) return to;
-  if (clear(from, to)) return to;
-  const onlyX = { x: to.x, y: from.y };
-  if (onlyX.x !== from.x && clear(from, onlyX)) return onlyX;
-  const onlyY = { x: from.x, y: to.y };
-  if (onlyY.y !== from.y && clear(from, onlyY)) return onlyY;
-  return from;
+  const start = distAt(from);
+  if (start < radius) return to;
+  // Quien ya está pegado (a menos de la holgura entera) no puede exigirla, o no podría ni moverse: su listón
+  // es la separación que ya trae — puede resbalar a lo largo y alejarse, nunca acercarse más.
+  const pad = Math.max(radius, Math.min(radius + SLIDE_GAP, start - 1e-9));
+  const clear = (a: ScenePoint, b: ScenePoint): boolean =>
+    !blockers.some(([x1, y1, x2, y2]) => segSegDist(a, b, { x: x1, y: y1 }, { x: x2, y: y2 }) < pad);
+  const lerp = (a: ScenePoint, b: ScenePoint, t: number): ScenePoint => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+
+  let pos = from;
+  let target = to;
+  for (let bounce = 0; bounce < 3; bounce++) {
+    if (clear(pos, target)) return target;
+    // hasta dónde SÍ cabe por el camino recto
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 24; i++) {
+      const mid = (lo + hi) / 2;
+      if (clear(pos, lerp(pos, target, mid))) lo = mid; else hi = mid;
+    }
+    const stop = lerp(pos, target, lo);
+    // el muro contra el que se ha topado: el más cercano al punto de contacto
+    const wall = blockers.reduce((a, b) => (pointSegDist(stop, b[0], b[1], b[2], b[3]) < pointSegDist(stop, a[0], a[1], a[2], a[3]) ? b : a));
+    const len = Math.hypot(wall[2] - wall[0], wall[3] - wall[1]);
+    if (len < 1e-9) return stop;
+    const ux = (wall[2] - wall[0]) / len, uy = (wall[3] - wall[1]) / len;
+    const along = (target.x - stop.x) * ux + (target.y - stop.y) * uy;
+    if (Math.abs(along) < 1e-6) return stop; // empujón de frente: pegado al muro, y ahí se queda
+    pos = stop;
+    target = { x: stop.x + ux * along, y: stop.y + uy * along };
+  }
+  return pos;
 }

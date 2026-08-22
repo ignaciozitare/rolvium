@@ -38,19 +38,52 @@ describe('slideCircle / segSegDist — paredes sólidas (rebanada 4)', () => {
     expect(segSegDist({ x: 0, y: 0 }, { x: 0, y: 100 }, { x: 30, y: 0 }, { x: 30, y: 100 })).toBe(30);
   });
 
-  it('mira el CAMINO, no el punto de llegada: un arrastre rápido no atraviesa la pared', () => {
-    // los DOS extremos están lejos del muro; sólo el camino lo cruza
-    expect(slideCircle({ x: 50, y: 100 }, { x: 150, y: 100 }, 10, [MURO])).toEqual({ x: 50, y: 100 });
+  /**
+   * EL FALLO QUE VIO EL DUEÑO EN LA APP (2026-08-22): empujar de FRENTE devolvía el punto de salida — el
+   * token saltaba a su posición inicial en vez de quedarse pegado a la pared. Este test lo fijaba como
+   * comportamiento correcto (`toEqual({x: 50})`). Ahora se avanza hasta el contacto: el muro está en x = 100
+   * y el cuerpo mide 10, así que se queda en ~89,5 (muro − radio − holgura), y sin cruzar jamás.
+   */
+  it('mira el CAMINO y AVANZA: empujar de frente deja el cuerpo pegado al muro, ni lo cruza ni vuelve atrás', () => {
+    const r = slideCircle({ x: 50, y: 100 }, { x: 150, y: 100 }, 10, [MURO]);
+    expect(r.x).toBeCloseTo(89.5, 3);
+    expect(r.y).toBeCloseTo(100, 6);
   });
 
-  it('resbala pegado a la pared en vez de clavarse', () => {
-    expect(slideCircle({ x: 50, y: 100 }, { x: 150, y: 160 }, 10, [MURO])).toEqual({ x: 50, y: 160 });
+  it('resbala pegado a la pared: avanza hasta tocarla y el resto del movimiento baja a lo largo', () => {
+    const r = slideCircle({ x: 50, y: 100 }, { x: 150, y: 160 }, 10, [MURO]);
+    expect(r.x).toBeCloseTo(89.5, 3);
+    expect(r.y).toBeCloseTo(160, 3);
+  });
+
+  it('quien ya está pegado no se queda clavado: más adentro no, pero resbala a lo largo y se aleja libre', () => {
+    const pegado = { x: 89.5, y: 100 };
+    const empuje = slideCircle(pegado, { x: 150, y: 100 }, 10, [MURO]);
+    expect(empuje.x).toBeCloseTo(89.5, 3);
+    const diagonal = slideCircle(pegado, { x: 150, y: 160 }, 10, [MURO]);
+    expect(diagonal.x).toBeCloseTo(89.5, 3);
+    expect(diagonal.y).toBeCloseTo(160, 3);
+    expect(slideCircle(pegado, { x: 30, y: 100 }, 10, [MURO])).toEqual({ x: 30, y: 100 });
+  });
+
+  it('un muro en DIAGONAL también frena y también deja resbalar (los ejes no bastaban)', () => {
+    const diag = [0, 0, 200, 200] as const; // la recta y = x
+    // empujón perpendicular: se queda pegado a la recta, a radio + holgura, en el lado del que venía
+    const frontal = slideCircle({ x: 120, y: 60 }, { x: 60, y: 120 }, 10, [diag]);
+    expect((frontal.x - frontal.y) / Math.SQRT2).toBeCloseTo(10.5, 2);
+    // empujón oblicuo: resbala a lo largo de la recta sin despegarse
+    const oblicuo = slideCircle({ x: 120, y: 60 }, { x: 40, y: 60 }, 10, [diag]);
+    expect((oblicuo.x - oblicuo.y) / Math.SQRT2).toBeCloseTo(10.5, 2);
+    expect(oblicuo.y).toBeLessThan(59);
   });
 
   it('el cuerpo entero cuenta: el hueco por el que pasa un radio pequeño no deja pasar uno grande', () => {
     const hueco = [[100, 0, 100, 80], [100, 120, 100, 200]] as const;
     expect(slideCircle({ x: 60, y: 100 }, { x: 140, y: 100 }, 8, hueco)).toEqual({ x: 140, y: 100 });
-    expect(slideCircle({ x: 60, y: 100 }, { x: 140, y: 100 }, 30, hueco)).toEqual({ x: 60, y: 100 });
+    // el grande avanza hasta que su cuerpo toca las esquinas del hueco, y ahí se queda — sin colarse
+    const grande = slideCircle({ x: 60, y: 100 }, { x: 140, y: 100 }, 30, hueco);
+    expect(grande.x).toBeCloseTo(100 - Math.sqrt(30.5 ** 2 - 20 ** 2), 2);
+    expect(grande.y).toBeCloseTo(100, 6);
   });
 
   it('sin muros que bloqueen, va donde le pidan', () => {

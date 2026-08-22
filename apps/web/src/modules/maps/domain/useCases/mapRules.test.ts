@@ -22,16 +22,21 @@ describe('paredes sólidas: `slideToken`, `moveBlockers`, `tokenRadiusPx`', () =
   const muro = { id: 'w', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 100, y2: 200, visiblePlayers: true, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false };
   const R = 10;
 
-  it('cruzar el muro se queda a este lado; ir en paralelo pasa entero', () => {
-    // de (50,100) a (150,100): al otro lado. Ni X ni la diagonal caben → se queda donde estaba.
-    expect(slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, [muro])).toEqual({ x: 50, y: 100 });
+  it('cruzar el muro avanza hasta quedarse PEGADO a este lado; sin muros pasa entero', () => {
+    // de (50,100) a (150,100): al otro lado. Avanza hasta el contacto (100 − 10 − 0,5 de holgura) y ahí se
+    // queda — NO vuelve al punto de salida, que era el salto que vio el dueño en la app (2026-08-22).
+    const r = slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, [muro]);
+    expect(r.x).toBeCloseTo(89.5, 3);
+    expect(r.y).toBeCloseTo(100, 6);
     // sin muros no hay física que valga
     expect(slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, [])).toEqual({ x: 150, y: 100 });
   });
 
   it('RESBALA: empujando en diagonal contra el muro, sigue bajando pegado a él', () => {
-    // quiere ir a (150, 160) — cruzando. La X no cabe, la Y sí: baja pegado a la pared.
-    expect(slideToken({ x: 50, y: 100 }, { x: 150, y: 160 }, R, [muro])).toEqual({ x: 50, y: 160 });
+    // quiere ir a (150, 160) — cruzando. Avanza hasta tocar y el resto baja a lo largo de la pared.
+    const r = slideToken({ x: 50, y: 100 }, { x: 150, y: 160 }, R, [muro]);
+    expect(r.x).toBeCloseTo(89.5, 3);
+    expect(r.y).toBeCloseTo(160, 3);
   });
 
   it('choca TODO EL CUERPO: el gato pasa por el hueco por el que el ogro no cabe', () => {
@@ -40,7 +45,10 @@ describe('paredes sólidas: `slideToken`, `moveBlockers`, `tokenRadiusPx`', () =
     const abajo = { ...muro, id: 'b', y1: 120, y2: 200 };
     const cruzar = (radio: number) => slideToken({ x: 60, y: 100 }, { x: 140, y: 100 }, radio, [arriba, abajo]);
     expect(cruzar(8)).toEqual({ x: 140, y: 100 });     // gato: cabe
-    expect(cruzar(30)).toEqual({ x: 60, y: 100 });     // ogro: no cabe, y no se queda a medias
+    const ogro = cruzar(30);                           // ogro: no cabe — llega hasta tocar y ahí se queda
+    expect(ogro.x).toBeLessThan(100 - 20);
+    expect(ogro.x).toBeGreaterThan(60);
+    expect(ogro.y).toBeCloseTo(100, 6);
   });
 
   /**
@@ -51,7 +59,9 @@ describe('paredes sólidas: `slideToken`, `moveBlockers`, `tokenRadiusPx`', () =
     const puerta = (abierta: boolean) => ({ ...muro, kind: 'door' as const, isOpen: abierta });
     const cruzar = (abierta: boolean) => slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, moveBlockers([puerta(abierta)], { solidWalls: true }));
     expect(cruzar(true)).toEqual({ x: 150, y: 100 });
-    expect(cruzar(false)).toEqual({ x: 50, y: 100 });
+    const cerrada = cruzar(false); // contra la puerta cerrada te quedas pegado, no vuelves atrás
+    expect(cerrada.x).toBeCloseTo(89.5, 3);
+    expect(cerrada.y).toBeCloseTo(100, 6);
     expect(moveBlockers([puerta(true)], { solidWalls: true })).toEqual([]);
     expect(moveBlockers([puerta(false)], { solidWalls: true })).toHaveLength(1);
     // Una ventana corta el paso aunque NO corte la vista (p.ej. una cristalera).

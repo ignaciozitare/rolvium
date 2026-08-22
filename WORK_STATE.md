@@ -14,17 +14,33 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-22 (tarde): PAREDES SÓLIDAS TERMINADAS — los dos fallos, ARREGLADOS. Falta MIRARLO EN LA APP
+## 🟢 PUNTO EXACTO — 2026-08-22 (tarde): PAREDES SÓLIDAS TERMINADAS — los TRES fallos, ARREGLADOS. Falta MIRARLO EN LA APP
 
-Rama **`fix/municion-y-preguntas`**. **934 tests** verdes (web 642 · api 123 · core 20 · plenilunio 133 · ui 16) ·
-typecheck web+api · `audit` 0 hard · `build:web` + `build:api` · **review pasado entero**. Sin QA y sin merge.
+Rama **`fix/municion-y-preguntas`**. **936 tests** verdes (web 642 · api 123 · core 22 · plenilunio 133 · ui 16) ·
+typecheck web+api · `audit` 0 hard · `build:web` + `build:api` · **review pasado entero, dos rondas**. Sin QA y sin merge.
 
 ### Prompt de resume, de una línea
-> Retomo Rolvium: las paredes sólidas están TERMINADAS en `fix/municion-y-preguntas` (los dos fallos del
+> Retomo Rolvium: las paredes sólidas están TERMINADAS en `fix/municion-y-preguntas` (los TRES fallos del
 > 2026-08-22, arreglados y con review pasado). Falta **mirarlo en la app con dos navegadores** y luego
 > QA + merge. Bloque 🟢 de WORK_STATE.
 
-### ✅ LOS DOS FALLOS, ARREGLADOS (y el hueco de cobertura, cerrado)
+### ✅ FALLO 3 — EL QUE VIO EL DUEÑO AL PROBAR: el token saltaba a su posición INICIAL, no se quedaba pegado
+Probó tras el arreglo de los fallos 1 y 2 y el token seguía mal: contra el muro, **volvía al punto de
+salida**. La causa era más honda que el ciclo de preguntas: **`slideCircle` no resbalaba de verdad** — probaba
+el movimiento entero, luego sólo-X, luego sólo-Y, y si nada cabía devolvía `from`. Empujando de FRENTE
+(componente lateral cero) devolvía el punto de salida; contra un muro en diagonal no resbalaba jamás. **Los
+tests de `core` fijaban ese salto como comportamiento correcto** (`toEqual({x: 50})`), y la simulación de la
+mañana («6 → 0») lo enseñaba y se leyó como éxito.
+- **Arreglo** (`packages/core/src/maps.ts`, una sola función, las dos orillas a la vez): avance hasta el
+  contacto por bisección (monótona: alargar un segmento sólo puede acercarlo al muro) + el resto del
+  movimiento proyectado A LO LARGO del muro tocado, hasta 2 rebotes para esquinas. `SLIDE_GAP = 0.5` px de
+  holgura para que el `round2` al soltar (error máx. 0,135 px a grid 27) no deje al token DENTRO del muro y
+  la vía de «ya estabas dentro» le abra la pared; quien ya está a menos de la holgura usa como listón la
+  separación que trae (no se queda clavado: resbala y se aleja, nunca se acerca más).
+- Review 2.ª ronda: bisección demostrada monótona · imposible devolver un camino que cruce · 500 empujes
+  aleatorios contra 6 muros, ninguno acaba dentro · coste medido 0,15 ms/llamada en el peor caso.
+
+### ✅ FALLOS 1 y 2 (y el hueco de cobertura, cerrado)
 1. **La oscilación a través del muro** — era preguntarle al servidor por la posición que él mismo acababa de
    corregir (la veía caber, callaba, la corrección se borraba y el token saltaba al dedo). Ahora se le
    pregunta SIEMPRE por el **deseo del dedo**: `onDragToken` lleva un cuarto argumento `desired` (`libre`),
@@ -42,7 +58,13 @@ typecheck web+api · `audit` 0 hard · `build:web` + `build:api` · **review pas
    El test de regresión de `MapCanvas` aserta el cuarto argumento, y `sceneVision.test.ts` ata que
    manual/off no apagan la corrección.
 
-### 🔎 Dos observaciones del review, NO bloqueantes (anotadas, no tocadas)
+### 🔎 Observaciones del review, NO bloqueantes (anotadas, no tocadas)
+- **La holgura estrecha los huecos 0,5 px**: un token de tamaño 1 (radio 13,5 a grid 27) ya no pasa por un
+  hueco de EXACTAMENTE 27 px (necesita ≥28). Antes sólo pasaba por la línea central milimétrica; el cambio
+  práctico es marginal, y las puertas (que al abrirse dejan de bloquear) son el mecanismo previsto para pasar.
+  Sólo importa si algún mapa confía en huecos dibujados de una casilla justa.
+- **Si el grid llegara a ser editable por encima de ~100 px**, la garantía «round2 < holgura» muere (hoy el
+  grid es fijo a 27 en todas partes). Apuntarlo el día que el grid se haga configurable.
 - **Tacto a ~7 Hz contra muro VISIBLE**: ahora el servidor también contesta ahí y su corrección (hasta 140 ms
   vieja) pisa el freno local — posición correcta, tacto algo más escalonado. Caso raro: en escenas reales los
   muros van ocultos (16/16) y el director nunca choca.
@@ -56,7 +78,8 @@ Decisiones suyas: interruptor **por escena** · al topar **resbala** · **el dir
 - **DB**: `20260822000000_maps_solid_walls.sql` — una columna `solid_walls` en `maps_scenes`, `DEFAULT false`.
   Sin tabla ni política nuevas. Aplicada en local con `migration up` (NO `reset`: los datos del dueño siguen ahí).
 - **`packages/core/src/maps.ts`**: `slideCircle` + `segSegDist`, la geometría pura, en `core` porque la usan
-  las DOS orillas y no pueden discrepar (misma lección que `ownDiceForStat`).
+  las DOS orillas y no pueden discrepar (misma lección que `ownDiceForStat`). Desde el fallo 3, `slideCircle`
+  es avance-hasta-contacto + resbalón a lo largo del muro (no la descomposición en ejes).
 - **Navegador**: `mapRules.slideToken`/`moveBlockers`/`tokenRadiusPx` delegan en `core`; `MapCanvas` frena y
   obedece al servidor SIN CONDICIONES; interruptor en `CanvasControls`.
 - **Servidor**: `computeSceneVision` devuelve `corrected` en TODOS los modos de niebla, y sólo cuando recorta.
@@ -82,10 +105,16 @@ cierra también el **manotazo rápido** (un arrastre más corto que ~140 ms no l
 - Todo eso son datos locales: no sale del repo ni toca producción.
 
 ### ⏭ LO SIGUIENTE
-1. **MIRARLO EN LA APP con dos navegadores** (director y jugador): arrastrar el token de Karen contra un muro
-   — debe RESBALAR y quedarse a este lado, sin temblar; probarlo también con la niebla en «manual» y en «off»;
-   y soltar y volver a arrastrar (que no se quede clavado).
+1. **MIRARLO EN LA APP con dos navegadores** (director y jugador): empujar el token de Karen DE FRENTE contra
+   un muro — debe avanzar hasta tocarlo y quedarse PEGADO (ni cruzar, ni temblar, ni volver al punto de
+   salida); empujar en diagonal — debe RESBALAR a lo largo; soltar pegado y volver a arrastrar (que no se
+   quede clavado); y repetir con la niebla en «manual» y en «off».
 2. Luego **QA** y merge a `main`.
+
+### 🔧 Deuda técnica menor (preexistente, vista de pasada)
+- `cd packages/core && npx tsc --noEmit` falla en `gameSystem.test.ts` (Engine/`applyDamage`,
+  `exactOptionalPropertyTypes`). Ya falla igual en `main`; no bloquea ni suites ni builds (los gates normales
+  no typecheckean los tests de core). Arreglarlo aparte.
 
 ---
 
