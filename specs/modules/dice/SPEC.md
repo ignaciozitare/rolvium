@@ -157,6 +157,21 @@ pone el jugador al defenderse, así que ahí el desplegable no debe aparecer. Lo
 característica; sólo en **Combate** se eligen, porque el libro deja repartirlos entre varios objetivos (p.94), y eso
 vive en el modal de atacar.
 
+### El espejo: un JUGADOR ataca cuerpo a cuerpo a una criatura (dueño, 2026-08-22 — entra con el panel)
+Hoy el ataque c/c desde la ficha se resuelve en el acto contra unos dados que el propio jugador pone a mano
+(el bloque «Tirada», la muleta que desaparece con esta tanda): sin blanco y sin director. El dueño lo vio
+atacando con Karen: «lo resolvió solo, ¿contra qué enemigo?». El libro manda lo contrario: el c/c es un
+conflicto entre el Combate de AMBOS (p.93), el defensor actúa en el turno del atacante (p.92) y su defensa
+gasta dados de su turno siguiente (p.94) — cuando el defensor es una criatura, esa decisión es del DIRECTOR.
+- **El blanco lo declara quien ataca**: al atacar c/c desde la ficha con criaturas en la escena, el jugador
+  elige a cuál (como el director elige jugador en su modal). Sin blanco elegible no hay conflicto que abrir.
+- **Al director le salta el aviso** — «Karen ataca al Lunar (4 dados)» — y elige **cuántos dados de Combate
+  gasta la criatura en defenderse** (0 a su Combate actual), igual que el jugador en el aviso de la columna 5.
+- **Misma tubería que los ataques a la espera** (`dice_attacks`): la petición espera, el director contesta,
+  la tirada sale agrupada en el Registro con el jugador como autor. Si no contesta, espera indefinidamente.
+- **Pantalla SIN DIBUJAR en el `.pen`** — se diseña antes de construir, junto con «Tirada pedida».
+- A distancia contra una criatura sigue siendo un reto contra la dificultad del alcance, sin aviso (p.96).
+
 ### Tirada enfocada, y la respuesta agrupada
 Al elegir jugador, la tirada queda **enfocada contra él**: le salta el aviso, contesta, y **las dos quedan como una
 sola entrada agrupada** en el registro (pedido literal del dueño: «que quede todo agrupado»).
