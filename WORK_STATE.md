@@ -53,6 +53,25 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 3. En el `.pen` además: popovers «Tirar por una criatura» en sangre · contexto del modal documentado ·
    ejemplo del modal cambiado a Soum (el ogro no lleva armas impresas).
 
+### 🚧 LA TANDA DEL PANEL DEL DIRECTOR — ARRANCADA (2026-08-22 noche; el dueño: «sigue con el panel»)
+El dueño NO probó el alcance ni el selector («no tengo tiempo») — la rama sigue SIN QA y sin merge, y su
+verificación queda pendiente para antes del cierre. Flujo de la tanda:
+1. **Spec** ✅ — cerrada con todas las decisiones (chips de las 7 · tanda completa · espejo · cubierto).
+2. **DBA** ✅ — migración `20260822120000_dice_director_panel.sql` APLICADA EN LOCAL (lint 0 · realtime al
+   día): `dice_roll_requests` (lotes `batch_id`) · espejo en `dice_attacks` (`attacker_character_id`,
+   dirección, política con el atacante) · `dice_combats`/`dice_combat_slots` (uno activo por escena,
+   `spent_next` p.94) · cubierto SIN tabla (`maps_tokens.state`). Funciones API-only calcadas de la columna 5.
+   ⚠ **Aplicarla en la NUBE antes del merge** (lección del Bestiario). Modelo documentado en la spec.
+3. **Scaffold** — no aplica: las piezas viven en módulos existentes (dice/bestiary/table/maps).
+4. **Design** 🟡 — el panel (columna 4, `qHMjx`/`QWHSS`) ya estaba dibujado y el dueño lo dio por bueno
+   («constrúyelo tal cual»). Las TRES pantallas que faltaban están AHORA dibujadas en el lienzo nuevo
+   «Mesa/Tiradas · avisos del panel del director» del `.pen`: «Tirada pedida» (oro) · «Defensa del director»
+   (sangre, espejo) · «Ponerse a cubierto» (oro, el director pone la cobertura 1/2/3/5 y lanza el reto).
+   **Pendiente: Cmd+S del dueño** (la caché del editor enseña descuadres fantasma hasta guardar) **y su
+   visto bueno con capturas ANTES de construir esas tres pantallas.**
+5. **Dev** ⏳ — siguiente: la tubería de peticiones de tirada (api application + rutas + puertos web) y el
+   panel del director (`qHMjx`/`QWHSS`, ya aprobado). Las tres pantallas nuevas, tras el visto bueno.
+
 ### 🔎 Deuda que dejó el review (rondas 5 y 6 — anotada, no tocada)
 - `.tb-btn-gold` queda MUERTA en `table.css:51` (el diff le quitó los dos últimos consumidores). Borrarla o
   conservarla: decisión aparte.
