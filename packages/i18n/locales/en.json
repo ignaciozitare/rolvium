@@ -637,7 +637,8 @@
       "last": "last: {{notation}} = {{total}}",
       "none": "no rolls yet",
       "failed": "The roll could not be made.",
-      "rolling": "rolling…"
+      "rolling": "rolling…",
+      "dmTitle": "Roller · director"
     },
     "attack": {
       "title": "{{name}} attacks you",
@@ -674,6 +675,28 @@
         "and": "and"
       },
       "rolledBy": "{{character}} · rolled by {{user}}"
+    },
+    "ask": {
+      "who": "Who are you asking to roll?",
+      "whoHint": "you can mark several",
+      "everyone": "Everyone",
+      "hold": "Press and hold a stat",
+      "holdHint": "and pick the difficulty without releasing · p.84",
+      "difficulty": "Difficulty",
+      "specialty": "Their specialty applies — your call (p.83)",
+      "pickFirst": "Mark who you are asking first.",
+      "sent": "Asked {{n}} · {{stat}}.",
+      "failed": "Could not ask. Try again."
+    },
+    "request": {
+      "aria": "The director asks you to roll",
+      "title": "The director asks you to roll",
+      "sub": "{{stat}} at {{difficulty}} difficulty ({{n}}).",
+      "specialty": "Your specialty applies — the director decided (p.83).",
+      "waits": "If you do not answer, the request waits: nobody rolls for you.",
+      "failed": "Could not roll. Try again.",
+      "roll": "Roll · {{n}} dice",
+      "rollPlain": "Roll"
     }
   },
   "maps": {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, waitFor, fireEvent } from '../../../../tests/helpers/render';
+import { plenilunio } from '@rolvium/system-plenilunio';
 import userEvent from '@testing-library/user-event';
 import { fakeRollsPort } from '../../../../tests/helpers/fakes';
 import { DiceRoller } from './DiceRoller';
@@ -51,5 +52,22 @@ describe('<DiceRoller>', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     await u.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('DiceRoller — el modo director (.pen columna 4: el mismo lanzador, expandido)', () => {
+  it('con `ask` lleva el título de director y el panel de pedir encima del lanzador de siempre', () => {
+    renderWithProviders(
+      <DiceRoller campaignId="c1" onClose={vi.fn()} rolls={{ roll: vi.fn() } as never}
+                  ask={{ system: plenilunio, targets: [{ characterId: 'ch1', name: 'Karen' }], onAsk: vi.fn().mockResolvedValue(true) }} />,
+    );
+    expect(screen.getByRole('dialog', { name: 'Lanzador de dados' })).toHaveTextContent('Lanzador · director');
+    expect(screen.getByText('¿A quién le pides la tirada?')).toBeInTheDocument();
+    // y el lanzador libre sigue debajo: sus tiradas para sí van por donde siempre
+    expect(screen.getByRole('group', { name: 'Visibilidad de la tirada' })).toBeInTheDocument();
+  });
+  it('sin `ask` es el lanzador de siempre, sin panel', () => {
+    renderWithProviders(<DiceRoller campaignId="c1" onClose={vi.fn()} rolls={{ roll: vi.fn() } as never} />);
+    expect(screen.queryByText('¿A quién le pides la tirada?')).not.toBeInTheDocument();
   });
 });

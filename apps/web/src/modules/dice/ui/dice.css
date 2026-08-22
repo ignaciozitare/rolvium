@@ -140,3 +140,26 @@
 .dc-atk-btn.gold:hover:not(:disabled){background:var(--sys-ink);border-color:var(--sys-ink);}
 .dc-atk-btn:disabled,.dc-atk-chip:disabled{opacity:.55;cursor:default;}
 .dc-atk-btn:focus-visible,.dc-atk-chip:focus-visible{outline:2px solid var(--sys-gold);outline-offset:2px;}
+
+/* ── El panel del director: pedir tiradas (`.pen` columna 4) ───────────────── */
+.dc-ask{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid var(--sys-line);}
+.dc-ask-label{font-size:var(--fs-2xs);font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--sys-ink-soft);}
+.dc-ask-hint{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);margin-top:-4px;}
+.dc-ask-targets{display:flex;flex-wrap:wrap;gap:5px;}
+.dc-ask-chip{font-family:var(--sys-font-body);font-size:var(--fs-2xs);letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;background:var(--sys-paper-hi);border:1px solid var(--sys-line);color:var(--sys-ink);cursor:pointer;}
+.dc-ask-chip.on{background:var(--sys-blood);border-color:var(--sys-blood);color:var(--sys-paper-hi);}
+.dc-ask-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.dc-ask-stat-slot{position:relative;display:block;}
+.dc-ask-stat{width:100%;font-family:var(--sys-font-body);font-size:var(--fs-2xs);letter-spacing:.08em;text-transform:uppercase;padding:5px 4px;background:var(--sys-paper-hi);border:1px solid var(--sys-line);color:var(--sys-ink);cursor:pointer;}
+.dc-ask-stat.on{background:var(--sys-blood);border-color:var(--sys-blood);color:var(--sys-paper-hi);}
+/* El desplegable sale PEGADO al botón, tapando lo que haya debajo (nota del .pen). */
+.dc-ask-menu{position:absolute;left:0;top:100%;z-index:5;min-width:100%;display:flex;flex-direction:column;background:var(--sys-paper-hi);border:1px solid var(--sys-border);box-shadow:var(--sys-card-shadow);}
+.dc-ask-menu button{font-family:var(--sys-font-body);font-size:var(--fs-2xs);letter-spacing:.06em;text-transform:uppercase;text-align:left;white-space:nowrap;padding:6px 9px;background:none;border:0;color:var(--sys-ink);cursor:pointer;}
+.dc-ask-menu button:hover{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.dc-ask-specialty{display:flex;align-items:center;gap:6px;font-size:var(--fs-2xs);color:var(--sys-ink-soft);}
+.dc-ask-note{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+.dc-ask-note.err{color:var(--sys-blood);}
+
+/* El aviso «Tirada pedida»: mismo papel que el de «te atacan», con el filete y el título en ORO (el .pen nuevo). */
+.dc-ask-alert{border-left-color:var(--sys-gold);}
+.dc-ask-alert .dc-atk-head,.dc-ask-alert .dc-atk-title{color:var(--sys-gold);}

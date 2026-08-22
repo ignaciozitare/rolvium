@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import type { RollVisibility } from '@rolvium/core';
+import type { GameSystem, RollVisibility } from '@rolvium/core';
+import type { OpenRollRequestsInput } from '../domain/entities/RollRequestAsk';
+import { DmAskPanel, type AskTarget } from './DmAskPanel';
 import type { RollsPort } from '../domain/ports/RollsPort';
 import { rollsPort as defaultRolls } from '../container';
 import { DIE_KINDS, MAX_FREE_DICE, MODIFIER_RANGE, freeRollRequest, notationOf, type DieKind } from '../domain/useCases/rollRules';
@@ -12,6 +14,11 @@ interface Props {
   rolls?: RollsPort;
   /** Initial screen position (px). Defaults to just right of the scene toolbar, which is where it is opened from. */
   initial?: { x: number; y: number };
+  /**
+   * El modo DIRECTOR (`.pen` columna 4: «el mismo lanzador, EXPANDIDO»): con esto el lanzador lleva encima
+   * la mitad de pedir tiradas. Sus tiradas para sí mismo siguen abajo, en el lanzador de siempre.
+   */
+  ask?: { system: GameSystem; targets: AskTarget[]; onAsk: (input: Omit<OpenRollRequestsInput, 'campaignId'>) => Promise<boolean> };
 }
 const VISIBILITIES: RollVisibility[] = ['table', 'dm', 'secret'];
 const QUANTITIES = Array.from({ length: MAX_FREE_DICE }, (_, i) => i + 1);
@@ -21,7 +28,7 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(ma
  * Lanzador de dados (rolvium.pen PL/Lanzador flotante): floating, draggable by its header, NOT modal — the table
  * stays usable underneath. Tap a quantity = roll that many dice of that kind, with the chosen visibility + modifier.
  */
-export function DiceRoller({ campaignId, onClose, rolls = defaultRolls, initial }: Props): JSX.Element {
+export function DiceRoller({ campaignId, onClose, rolls = defaultRolls, initial, ask }: Props): JSX.Element {
   const { t } = useTranslation();
   const [visibility, setVisibility] = useState<RollVisibility>('table');
   const [modifier, setModifier] = useState(0);
@@ -68,10 +75,11 @@ export function DiceRoller({ campaignId, onClose, rolls = defaultRolls, initial 
       <div className="dc-roller-head" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} data-testid="dice-roller-handle">
         <span className="dc-roller-head-l">
           <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }} aria-label={t('dice.roller.drag')}>drag_indicator</span>
-          {t('dice.roller.title')}
+          {ask ? t('dice.roller.dmTitle') : t('dice.roller.title')}
         </span>
         <button type="button" className="dc-roller-x" onClick={onClose} aria-label={t('dice.roller.close')}><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>close</span></button>
       </div>
+      {ask && <DmAskPanel system={ask.system} targets={ask.targets} onAsk={ask.onAsk} />}
       <div className="dc-roller-vis" role="group" aria-label={t('dice.roller.visibility')}>
         {VISIBILITIES.map(v => <button key={v} type="button" aria-pressed={visibility === v} onClick={() => setVisibility(v)}>{t(`dice.roller.${v}`)}</button>)}
       </div>

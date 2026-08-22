@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ComponentProps, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type ComponentProps, type CSSProperties, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
 import { Badge, Crescent, UserAvatar } from '@rolvium/ui';
@@ -16,9 +16,14 @@ import type { RollLogPort } from '@/modules/dice/domain/ports/RollLogPort';
 import type { AttacksPort } from '@/modules/dice/domain/ports/AttacksPort';
 import type { AttackWatchPort } from '@/modules/dice/domain/ports/AttackWatchPort';
 import { charactersRepo as defaultCharacters } from '@/modules/characters/container';
-import { rollsPort as defaultRolls, rollLog as defaultRollLog, attacksPort as defaultAttacks, attackWatch as defaultAttackWatch } from '@/modules/dice/container';
+import { rollsPort as defaultRolls, rollLog as defaultRollLog, attacksPort as defaultAttacks, attackWatch as defaultAttackWatch, rollRequestsPort as defaultRollRequests, rollRequestWatch as defaultRollRequestWatch } from '@/modules/dice/container';
 import { SidePanel } from '@/modules/dice/ui/SidePanel';
 import { DiceRoller } from '@/modules/dice/ui/DiceRoller';
+import { RollRequestWatcher } from '@/modules/dice/ui/RollRequestWatcher';
+import type { RollRequestsPort } from '@/modules/dice/domain/ports/RollRequestsPort';
+import type { RollRequestWatchPort } from '@/modules/dice/domain/ports/RollRequestWatchPort';
+import type { AskTarget } from '@/modules/dice/ui/DmAskPanel';
+import type { OpenRollRequestsInput } from '@/modules/dice/domain/entities/RollRequestAsk';
 import { AttackWatcher } from '@/modules/dice/ui/AttackWatcher';
 import { SheetTab, CreateTab } from './tabs/SheetTab';
 import { GroupTab } from './tabs/GroupTab';
@@ -33,7 +38,7 @@ import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort'
 import './table.css';
 
 /** `/table/:id` — the live table, dressed with the campaign's game system (rolvium.pen Mesa/Plenilunio). */
-export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, maps, vision, bestiary }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort }): JSX.Element {
+export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters, rolls = defaultRolls, rollLog = defaultRollLog, attacks = defaultAttacks, attackWatch = defaultAttackWatch, rollRequests = defaultRollRequests, rollRequestWatch = defaultRollRequestWatch, maps, vision, bestiary }: { repo?: TablePort; charactersRepo?: CharactersPort; rolls?: RollsPort; rollLog?: RollLogPort; attacks?: AttacksPort; attackWatch?: AttackWatchPort; rollRequests?: RollRequestsPort; rollRequestWatch?: RollRequestWatchPort; maps?: MapsPort; vision?: VisionPort; bestiary?: BestiaryPort }): JSX.Element {
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
@@ -56,6 +61,25 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
     if (!url || document.querySelector(`link[data-sys-font="${system?.id}"]`)) return;
     const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = url; link.dataset.sysFont = system?.id ?? ''; document.head.appendChild(link);
   }, [system]);
+
+  /**
+   * Los chips de «¿a quién le pides la tirada?» (`.pen` columna 4): cada personaje CON dueño, por su nombre
+   * de PERSONAJE. Se leen una vez por mesa; los nombres no cambian a mitad de sesión y pedir no es crítico.
+   * Viven ANTES de los return de carga porque son hooks; sin campaña o sin ser director no leen nada.
+   */
+  const dmCampaignId = snap?.campaign.myRole === 'dm' ? snap.campaign.id : null;
+  const [askTargets, setAskTargets] = useState<AskTarget[]>([]);
+  useEffect(() => {
+    if (!dmCampaignId) return;
+    let live = true;
+    void charactersRepo.listByCampaign(dmCampaignId)
+      .then(list => { if (live) setAskTargets(list.filter(c => c.ownerId).map(c => ({ characterId: c.id, name: c.name }))); })
+      .catch(() => undefined);
+    return () => { live = false; };
+  }, [dmCampaignId, charactersRepo]);
+  /** Abre el lote por la API; el panel sólo necesita saber si se pudo. */
+  const ask = useCallback(async (i: Omit<OpenRollRequestsInput, 'campaignId'>) =>
+    dmCampaignId !== null && (await rollRequests.open({ ...i, campaignId: dmCampaignId })) !== null, [rollRequests, dmCampaignId]);
 
   const themeStyle = useMemo<CSSProperties>(() => {
     if (!system) return {};
@@ -177,13 +201,16 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} />
           </aside>
         </div>
-        {rollerOpen && <DiceRoller campaignId={campaign.id} rolls={rolls} onClose={() => setRollerOpen(false)} />}
+        {rollerOpen && <DiceRoller campaignId={campaign.id} rolls={rolls} onClose={() => setRollerOpen(false)}
+          {...(role === 'dm' ? { ask: { system, targets: askTargets, onAsk: ask } } : {})} />}
         {/*
           «TE ATACA UN OGRO» (`.pen` columna 5). Vive aquí y no dentro de una pestaña porque el aviso le
           SALTA a quien le atacan esté donde esté: si estuviera en la escena, quien tenga abierta su ficha
           no se enteraría de que le están pegando. Quién lo ve lo decide de QUIÉN ES el personaje atacado
           —eso lo filtra el propio aviso—, no el rol: un director que además lleve un PJ también recibe.
         */}
+        <RollRequestWatcher campaignId={campaign.id} userId={user.id} system={system} charactersRepo={charactersRepo}
+                            rollRequests={rollRequests} watch={rollRequestWatch} />
         <AttackWatcher campaignId={campaign.id} userId={user.id} system={system} charactersRepo={charactersRepo}
                        attacks={attacks} watch={attackWatch} />
       </div>

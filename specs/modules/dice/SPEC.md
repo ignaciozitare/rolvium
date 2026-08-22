@@ -172,6 +172,11 @@ gasta dados de su turno siguiente (p.94) — cuando el defensor es una criatura,
 - **Pantalla SIN DIBUJAR en el `.pen`** — se diseña antes de construir, junto con «Tirada pedida».
 - A distancia contra una criatura sigue siendo un reto contra la dificultad del alcance, sin aviso (p.96).
 
+**Dos avisos a la vez (2026-08-22)**: si a un jugador le esperan un ataque Y una petición de tirada, el
+aviso de **ataque tapa** al de petición (que te peguen manda sobre que te pidan); contestado el ataque,
+aparece la petición. Hoy sale del orden de montaje en `TablePage` — si algún día se quiere otro orden, es
+ahí.
+
 ### Tirada enfocada, y la respuesta agrupada
 Al elegir jugador, la tirada queda **enfocada contra él**: le salta el aviso, contesta, y **las dos quedan como una
 sola entrada agrupada** en el registro (pedido literal del dueño: «que quede todo agrupado»).
