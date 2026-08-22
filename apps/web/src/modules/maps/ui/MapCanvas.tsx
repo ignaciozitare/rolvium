@@ -87,6 +87,12 @@ const DRAW_TOOLS: Record<string, DrawTool> = { pencil: 'stroke', line: 'line', r
 const PIN_MS = 2500;
 /** Centésima de casilla: suficiente para que el movimiento se vea libre y no manda 14 decimales por la red. */
 const round2 = (v: number): number => Math.round(v * 100) / 100;
+/**
+ * Cuánto puede acercarse el PINTADO al objetivo por encima de lo que se movió el dedo, en casillas por
+ * evento. Es lo que convierte el reenganche tras un borde en un deslizamiento en vez de un salto: a ~60
+ * eventos/s son ~20 casillas/s de cierre — invisible en el arrastre normal, suave cuando hay hueco.
+ */
+const CATCH_UP_CELLS = 0.35;
 /** Brush paints per second, matching the token drag's `DRAG_HZ_MS` (useScene.ts). */
 const PAINT_HZ_MS = 50;
 
@@ -100,6 +106,10 @@ const PAINT_HZ_MS = 50;
 export function MapCanvas(p: Props): JSX.Element {
   const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
+  /** La posición LEGAL del arrastre (freno + corrección + disco): lo que se persiste al soltar. */
+  const idealDrag = useRef<{ id: string; x: number; y: number } | null>(null);
+  /** El `libre` del evento anterior, para medir cuánto se movió el dedo en éste. */
+  const lastLibre = useRef<{ x: number; y: number } | null>(null);
   const [gesture, setGesture] = useState<Gesture | null>(null);
   const [localDrag, setLocalDrag] = useState<{ id: string; x: number; y: number } | null>(null);
   const [measure, setMeasure] = useState<{ a: Point; b: Point } | null>(null);
@@ -278,11 +288,17 @@ export function MapCanvas(p: Props): JSX.Element {
        */
       const dragged = p.tokens.find(tk => tk.id === gesture.id);
       /**
-       * El freno local barre desde DONDE ESTÁ el token pintado, no desde donde empezó el arrastre: anclado al
+       * El freno local barre desde DONDE ESTÁ el token, no desde donde empezó el arrastre: anclado al
        * origen, pasada la esquina de un muro la recta origen→dedo seguía cruzándolo y el token no podía
        * doblarla. Barrer paso a paso desde la posición actual es lo que hace que el resbalón pivote solo.
+       *
+       * Y «donde está» es lo LEGAL del evento anterior (`idealDrag`), NUNCA el pintado suavizado: la
+       * persecución del pintado corta esquinas, y si entra a menos del radio de un muro visible, barrer
+       * desde ahí dispara la válvula «ya estabas dentro» de `slideCircle` y apaga el freno local. La física
+       * no lee la pintura — la separación va en un solo sentido.
        */
-      const current = localDrag && localDrag.id === gesture.id ? { x: localDrag.x, y: localDrag.y } : gesture.origin;
+      const ideal = idealDrag.current && idealDrag.current.id === gesture.id ? idealDrag.current : null;
+      const current = ideal ?? (localDrag && localDrag.id === gesture.id ? { x: localDrag.x, y: localDrag.y } : gesture.origin);
       const frenado = blockers.length > 0 && dragged
         ? tokenPointAt(
             slideToken(tokenCenter({ ...current, size: dragged.size }, grid), tokenCenter({ ...libre, size: dragged.size }, grid), tokenRadiusPx(dragged, grid), blockers),
@@ -320,6 +336,25 @@ export function MapCanvas(p: Props): JSX.Element {
           const k = bound.clearance / d;
           x = bound.x + dx * k; y = bound.y + dy * k;
         }
+      }
+      // Hasta aquí, lo LEGAL. Lo que sigue es sólo pintura: al soltar se persiste esto, no lo suavizado.
+      idealDrag.current = { id: gesture.id, x, y };
+      /**
+       * Y el pintado se ACERCA en vez de teletransportarse. Al rozar el borde de una puerta o ventana el
+       * token se engancha un instante mientras el dedo sigue; al liberarse el camino, el hueco entre ambos
+       * se cerraba de golpe — «un salto hacia adelante» (dueño, 2026-08-22). Ahora cada evento cierra el
+       * hueco lo que se movió el dedo más `CATCH_UP_CELLS`: sin hueco el arrastre sigue 1:1 exacto, y el
+       * reenganche es un deslizamiento proporcional al ratón. El primer movimiento del gesto no se capa
+       * (no hay hueco que cerrar, y una corrección tardía del arrastre anterior no debe alargarse).
+       */
+      const prev = localDrag && localDrag.id === gesture.id ? localDrag : gesture.origin;
+      const fingerMove = gesture.moved && lastLibre.current ? Math.hypot(libre.x - lastLibre.current.x, libre.y - lastLibre.current.y) : Infinity;
+      lastLibre.current = libre;
+      const gap = Math.hypot(x - prev.x, y - prev.y);
+      const maxStep = fingerMove + CATCH_UP_CELLS;
+      if (gap > maxStep) {
+        const k = maxStep / gap;
+        x = prev.x + (x - prev.x) * k; y = prev.y + (y - prev.y) * k;
       }
       setLocalDrag({ id: gesture.id, x, y });
       if (!gesture.moved) setGesture({ ...gesture, moved: true });
@@ -380,7 +415,12 @@ export function MapCanvas(p: Props): JSX.Element {
        * final el que daba el tirón a la rejilla al soltar. La columna es `real`, así que la fracción se guarda.
        * Se redondea a la centésima de casilla para no mandar 14 decimales en cada movimiento.
        */
-      if (gesture.moved && localDrag) p.onMoveToken(gesture.id, round2(localDrag.x), round2(localDrag.y));
+      // Se suelta en lo LEGAL (freno + corrección + disco), no en el pintado suavizado: si el dedo iba por
+      // delante del deslizamiento, el token acaba donde de verdad podía estar — como siempre hizo.
+      const final = (idealDrag.current && idealDrag.current.id === gesture.id ? idealDrag.current : null) ?? localDrag;
+      if (gesture.moved && localDrag && final) p.onMoveToken(gesture.id, round2(final.x), round2(final.y));
+      idealDrag.current = null;
+      lastLibre.current = null;
       setLocalDrag(null);
     } else if (gesture.kind === 'draw') {
       if (gesture.tool === 'stroke') { if (gesture.points.length > 1) p.onAddDrawing('stroke', { points: gesture.points }); }

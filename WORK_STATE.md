@@ -132,7 +132,25 @@ cierra también el **manotazo rápido** (un arrastre más corto que ~140 ms no l
 - Escena «ssss» **activada** (sin escena activa el jugador no ve nada) y **`solid_walls` ENCENDIDO en las dos**.
 - Todo eso son datos locales: no sale del repo ni toca producción.
 
-### ⏭ LO SIGUIENTE
+### ✅ RONDA 4 — el saltito del borde, AJUSTADO (y verificado por el dueño: «vale mucho mejor»)
+Al rozar el borde de una puerta/ventana el token se enganchaba un instante y, al liberarse, cerraba el hueco
+con el dedo DE GOLPE. Ahora el pintado se ACERCA (por evento: lo que se movió el dedo + `CATCH_UP_CELLS`
+0,35 casillas — arrastre libre 1:1 exacto, reenganche deslizado), y lo LEGAL (freno + corrección + disco)
+vive aparte en `idealDrag` y es lo que se persiste al soltar. **El review de la 4.ª ronda cazó y arregló él
+mismo un leak real**: el barrido local leía el pintado suavizado — la física ya sólo lee lo legal (`ideal ??
+localDrag ?? origin`, con id de gesto). Deuda anotada por el review, no tocada: cierre del hueco en reposo
+(sería un rAF) y un pin jsdom del escenario de esquina.
+
+**El dueño verificó TODO en la app: «el resto funciona muy bien» / «vale mucho mejor».**
+
+### ⏭ LO SIGUIENTE (decidido por el dueño, 2026-08-22)
+1. **QA de esta rama y merge a `main`** — el dueño ya verificó en la app; eligió cerrar antes de empezar lo nuevo.
+2. **Panel del director (columna 4 de dados) en rama nueva, TANDA COMPLETA** (panel + orden de turnos + aviso
+   «tirada pedida» + retirar el bloque «Tirada» de la ficha). Decisiones en `specs/modules/dice/SPEC.md`:
+   chips de las SIETE características · el `.pen` manda AL DETALLE y lo no dibujado se enseña antes de
+   construir (faltan: «Tirada pedida» y comprobar el orden de turnos). Flujo: dba → design → dev.
+
+### ⏭ La verificación en la app que ya se hizo (guía por si se repite)
 1. **MIRARLO EN LA APP con dos navegadores** (director y jugador):
    - empujar DE FRENTE contra un muro: avanza, se queda PEGADO, **sin rebotar hacia atrás** al pasar el cursor;
    - empujar en diagonal: RESBALA a lo largo, y **al llegar al final del muro dobla la esquina** y responde al

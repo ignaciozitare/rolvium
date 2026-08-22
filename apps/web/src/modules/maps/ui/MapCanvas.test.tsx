@@ -272,6 +272,32 @@ describe('<MapCanvas> fog', () => {
     expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x + 1, TOKEN_KAREN.y);
   });
 
+  /**
+   * EL SALTO DEL BORDE (dueño, 2026-08-22): al rozar el borde de una puerta o ventana el token se engancha
+   * un instante mientras el dedo sigue; al liberarse el camino, el hueco se cerraba DE GOLPE — un salto
+   * hacia adelante. Ahora el pintado cierra el hueco a razón de lo que se mueve el dedo más
+   * `CATCH_UP_CELLS` por evento (deslizamiento), y al soltar se persiste lo LEGAL, no lo suavizado.
+   */
+  it('regresión · al liberarse de un borde, el token se DESLIZA hasta el cursor en vez de saltar', () => {
+    const onServerCorrection = vi.fn()
+      .mockReturnValueOnce({ x: TOKEN_KAREN.x, y: TOKEN_KAREN.y })   // enganchado en el borde
+      .mockReturnValue(null);                                        // liberado: ya cabe
+    const { svg, token, cb } = mount({ scene: { ...SCENE_WAREHOUSE, solidWalls: true }, walls: [], isDm: false, me: PLAYER_USER.id, onServerCorrection });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    // el dedo se va 5 casillas; el token queda clavado donde dijo el servidor
+    move(svg, (TOKEN_KAREN.x + 5.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    expect(cb.onDragToken.mock.calls.at(-1)!.slice(0, 3)).toEqual(['tk-karen', TOKEN_KAREN.x, TOKEN_KAREN.y]);
+    // liberado, un empujoncito de 0,1 casillas NO teletransporta el hueco de 5: lo cierra 0,1 + 0,35
+    move(svg, (TOKEN_KAREN.x + 5.6) * G, (TOKEN_KAREN.y + 0.5) * G);
+    expect(cb.onDragToken.mock.calls.at(-1)![1]).toBeCloseTo(TOKEN_KAREN.x + 0.45, 3);
+    // y el evento siguiente lo sigue cerrando al ritmo del ratón
+    move(svg, (TOKEN_KAREN.x + 5.7) * G, (TOKEN_KAREN.y + 0.5) * G);
+    expect(cb.onDragToken.mock.calls.at(-1)![1]).toBeCloseTo(TOKEN_KAREN.x + 0.9, 3);
+    // al soltar, el token acaba en lo LEGAL (el dedo, que ya cabía), no a medio deslizamiento
+    up(svg);
+    expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', expect.closeTo(TOKEN_KAREN.x + 5.2, 2), TOKEN_KAREN.y);
+  });
+
   it('el borde de la niebla va difuminado, y de noche mucho más (el «fade» del alcance)', () => {
     const dia = mount({ fog: FOG });
     const filtroDia = dia.svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}-feather feGaussianBlur`);

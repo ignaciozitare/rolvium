@@ -221,8 +221,18 @@ Head **«LANZADOR · DIRECTOR»** + icono `unfold_less`: es el lanzador que ya e
   que el panel se desborde con diez criaturas.
 - **Las tiradas del director para sí mismo NO van aquí**: van en el lanzador de siempre.
 
-⚠ **A confirmar con el dueño**: el `.pen` dibuja sólo **tres** chips en «otras tiradas» (FORTALEZA,
-ASTUCIA, SUTILEZA) de las siete del ogro. No se inventa cuáles son: se pregunta.
+**Chips de «otras tiradas» — RESUELTO por el dueño (2026-08-22): las SIETE características**, un chip por
+cada una — cualquier tirada de la criatura a un toque. El `.pen` dibujaba sólo tres (FORTALEZA, ASTUCIA,
+SUTILEZA) y hay que actualizarlo antes de construir.
+
+**Alcance de la tanda — decidido por el dueño (2026-08-22): TODO JUNTO.** El panel (pedir tiradas +
+encuentros) y el **orden de turnos** del combate van en la misma tanda, junto con el aviso «tirada pedida»
+del jugador y la retirada del bloque «Tirada» de la ficha (ver abajo).
+
+**Regla de construcción (dueño, 2026-08-22): seguir el `.pen` AL DETALLE.** Lo que el diseño no dibuje no
+se inventa: se enseña al dueño ANTES de construirlo. Faltas conocidas hoy: el aviso **«Tirada pedida»** del
+jugador (sin dibujar — se diseña primero) y **el orden de turnos** (comprobar si el `.pen` lo dibuja; si
+no, diseñarlo antes).
 
 ### El aviso que le salta al jugador
 - **Tirada pedida**: no está dibujada en el `.pen`. **Hay que diseñarla antes de tocar pantalla.**
