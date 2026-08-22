@@ -39,7 +39,25 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 > el PDF (review pasado, sin merge — falta que el dueño pruebe Lunar pegado a Karen → aviso). Después: QA +
 > merge de esa rama, y la tanda del panel del director (bloque 🟢 de WORK_STATE, decisiones ya tomadas).
 
-### 🔎 Deuda que dejó el review de la 5.ª ronda (anotada, no tocada)
+### ✅ RONDA 6 — el selector de arma y el rojo sangre (pedidos del dueño, 2026-08-22 noche)
+1. **«¿Con qué ataca?»** en el modal de atacar: el modal cogía siempre `attacks[0]` («si tiene más de un
+   arma no me deja elegir»). Ahora, con ≥2 ataques impresos, fila de chips (nombre · dados · daño) + A MANO;
+   el elegido manda base del contador y daño/weaponId de la tirada. `CreatureAttack.ranged` nuevo y regla
+   p.95 («sin ellas simplemente no se puede atacar a distancia»): a distancia se apagan los c/c y la
+   selección salta al primero válido (o A MANO). **Diseñado ANTES en el `.pen`** (fila con ejemplo Soum).
+   ⚠ **Hueco de datos anotado en spec**: ningún bloque copiado lleva sus armas de fuego aún (el libro las
+   imprime en los bloques humanos); mientras dure, A MANO vale a distancia. Pasada de datos → tanda del panel.
+2. **Rojo sangre en el circuito de criaturas/atacar** (diseño aprobado en el `.pen` por el dueño): chips
+   marcados y TIRAR de los popovers, selección del modal, REINICIAR de la Reserva (`tb-btn-atk`) y la
+   insignia DIRECTOR/JUGADOR (`tb-btn-blood` nueva, sólida). Contraste sangre/papel medido: 9,3:1 (AAA).
+3. En el `.pen` además: popovers «Tirar por una criatura» en sangre · contexto del modal documentado ·
+   ejemplo del modal cambiado a Soum (el ogro no lleva armas impresas).
+
+### 🔎 Deuda que dejó el review (rondas 5 y 6 — anotada, no tocada)
+- `.tb-btn-gold` queda MUERTA en `table.css:51` (el diff le quitó los dos últimos consumidores). Borrarla o
+  conservarla: decisión aparte.
+- El par «fallback −1 ↔ A MANO a distancia» está pinado por test; si algún día A MANO se apaga a distancia,
+  revisitar los dos a la vez.
 - Texto del modal con tokens PEGADOS: «está a 0 casillas» — veraz pero raro; una variante «pegados a X» son
   claves i18n nuevas, decisión de texto del dueño.
 - `round1` redondea casillas antes de pasar a metros: ±7 cm de artefacto en el límite exacto del alcance

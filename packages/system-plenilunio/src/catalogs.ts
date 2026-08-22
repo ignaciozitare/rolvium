@@ -207,6 +207,13 @@ export interface CreatureAttack {
   damage: number;
   /** Fortuna que cuesta usarlo (Malefic a dos manos, p.163). Ausente = gratis. */
   fortuneCost?: number;
+  /**
+   * Es un ataque A DISTANCIA (p.95: «sin ellas simplemente no se puede atacar a distancia»). Ausente = cuerpo
+   * a cuerpo. Hoy ningún bloque copiado lo lleva —todos los ataques impresos del catálogo son de c/c—; los
+   * bloques humanos con armas de fuego (rifle automático, escopeta galga…) imprimen sus armas con
+   * bonificación y daño, y copiarlos con el PDF delante es la pasada de datos anotada en la spec del panel.
+   */
+  ranged?: boolean;
 }
 const at = (key: string, attack: number, damage: number, fortuneCost?: number): CreatureAttack =>
   ({ label: `catalog.creatureAttacks.${key}`, attack, damage, ...(fortuneCost === undefined ? {} : { fortuneCost }) });

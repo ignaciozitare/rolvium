@@ -62,7 +62,14 @@ export function TokenAttackModal({ entry, system, targets, night = false, onAtta
   const ts = useMemo(() => sysT(system, locale), [system, locale]);
 
   const combat = Number(entry.data.stats.combat ?? 0);
-  const attack = entry.data.attacks?.[0] ?? null;
+  /**
+   * ¿CON QUÉ ATACA? (dueño, 2026-08-22: «si tiene más de un arma no me deja elegir con qué ataco»).
+   * Un chip por ataque impreso del bloque, más A MANO (su Combate a secas, índice −1). Antes se cogía
+   * SIEMPRE el primero. El elegido manda: sus dados son la base del contador y su daño viaja con la tirada.
+   */
+  const attacks = useMemo(() => entry.data.attacks ?? [], [entry]);
+  const [attackIdx, setAttackIdx] = useState(attacks.length > 0 ? 0 : -1);
+  const attack = attackIdx >= 0 ? attacks[attackIdx] ?? null : null;
   const caps = useMemo(() => entry.data.capabilities ?? [], [entry]);
   const solarWrath = capabilityLevel(caps, 'solarWrath');
   /** Las capacidades que podrían aplicar a ESTE ataque: Combate, y la hora que diga la escena (p.107). */
@@ -94,6 +101,19 @@ export function TokenAttackModal({ entry, system, targets, night = false, onAtta
   const range = target ? rangeForMetres(target.metres) : null;
   const ranged = range !== null && range !== 'melee';
   const difficulty = ranged ? RANGE_DIFFICULTY[range] : 0;
+  /**
+   * A distancia sólo valen los ataques a distancia (p.95: «sin ellas simplemente no se puede atacar a
+   * distancia»). A MANO se queda utilizable también a distancia mientras dure el hueco de datos: ningún
+   * bloque copiado lleva aún sus armas de fuego (anotado en la spec), y apagarlo dejaría a toda criatura
+   * del catálogo sin disparo de un día para otro.
+   */
+  const usable = (a: { ranged?: boolean }) => !ranged || a.ranged === true;
+  useEffect(() => {
+    if (attack && !usable(attack)) setAttackIdx(attacks.findIndex(usable));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sólo al cambiar el alcance: es su guardia
+  }, [ranged]);
+  // Cambiar de arma devuelve el contador a SU puñado: los dados añadidos a mano eran del arma anterior.
+  useEffect(() => { setDice(base); }, [base, attackIdx]);
 
   /** La línea de la distancia del `.pen`: la mide el mapa y de ahí sale contra qué se tira. */
   const distance = !target ? null
@@ -168,6 +188,24 @@ export function TokenAttackModal({ entry, system, targets, night = false, onAtta
               </div>
               {distance && <p className="bs-atk-dist">{distance}</p>}
               {range === 'melee' && <p className="bs-note">{t('bestiary.attack.meleeWait')}</p>}
+
+              {attacks.length >= 2 && (
+                <>
+                  <span className="bs-label">{t('bestiary.attack.withWhat')}</span>
+                  <div className="bs-roll-stats" role="group" aria-label={t('bestiary.attack.withWhat')}>
+                    <button type="button" className={`bs-btn ${attackIdx === -1 ? 'bs-btn-on' : ''}`}
+                            aria-pressed={attackIdx === -1} onClick={() => setAttackIdx(-1)}>
+                      {t('bestiary.attack.hand')} · {combat}
+                    </button>
+                    {attacks.map((a, i) => (
+                      <button key={a.label} type="button" className={`bs-btn ${attackIdx === i ? 'bs-btn-on' : ''}`}
+                              aria-pressed={attackIdx === i} disabled={!usable(a)} onClick={() => setAttackIdx(i)}>
+                        {ts(a.label)} · {a.attack} · {t('bestiary.attack.chipDamage', { n: String(a.damage) })}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
 
               <span className="bs-label">{t('bestiary.attack.dice')}</span>
               <div className="bs-roll-count">

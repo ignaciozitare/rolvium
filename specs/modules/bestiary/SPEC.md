@@ -105,6 +105,16 @@ y abre `ui/TokenAttackModal.tsx`, portado 1:1 de `Modal/Atacar con el token`.
   (`rangeForMetres`, p.95–96). Pasado el muy largo el botón se apaga: no se le puede disparar.
 - **Los dados los pone el director**, con su ataque impreso o su Combate como punto de partida: el libro le
   deja repartir el Combate entre varios ataques y defensas del turno (p.94).
+- **¿CON QUÉ ATACA? (2026-08-22, pedido del dueño)**: si el bloque imprime **varios ataques**, una fila de
+  chips para elegir — un chip por ataque impreso (nombre · dados · daño) más **A MANO** (su Combate a secas,
+  daño de Fortaleza p.97). El elegido manda: sus dados son la base del contador y su daño viaja con la
+  tirada. Con un solo ataque impreso (o ninguno) la fila no sale. Dibujado en el `.pen` (ejemplo Soum).
+  Selección en **rojo sangre**, como todo el circuito de atacar (decisión del dueño, 2026-08-22).
+- **Regla p.95** («sin ellas simplemente no se puede atacar a distancia»): a distancia se apagan los ataques
+  de c/c; el dato vive en `CreatureAttack.ranged`. ⚠ **Hueco de datos anotado**: ningún bloque copiado lleva
+  aún sus armas de fuego (el libro las imprime con bonificación y daño en los bloques humanos — rifle
+  automático, escopeta galga…); mientras dure, A MANO sigue valiendo a distancia para no dejar a las
+  criaturas del catálogo sin disparo. La pasada de datos con el PDF delante va con la tanda del panel.
 - **El daño**: el impreso de su caja si la tiene; si no, sin armas, que el libro paga con su Fortaleza (p.97).
 - **La criatura sale del bloque del que se colocó el token**: del catálogo si es del manual (`bestiaryRef`), de
   la fila del director si es propia (`bestiaryEntryId`). El nombre es el DEL TOKEN.

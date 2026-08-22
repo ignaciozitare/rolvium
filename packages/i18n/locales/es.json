@@ -1004,7 +1004,10 @@
       "nightNote": "Es de noche en esta escena, así que salen sus capacidades nocturnas: la hora la dice el interruptor de día/noche del mapa y aquí no se pregunta. Las marca el director, como la especialidad (p.107).",
       "dayNote": "Es de día en esta escena: sólo salen las capacidades que valen de día. La hora la dice el interruptor de día/noche del mapa (p.107).",
       "meleeWait": "Cuerpo a cuerpo es un conflicto: le llegará el aviso y la tirada saldrá cuando conteste con sus dados de defensa (p.93).",
-      "openFailed": "No se ha podido avisar al jugador. Inténtalo otra vez."
+      "openFailed": "No se ha podido avisar al jugador. Inténtalo otra vez.",
+      "withWhat": "¿Con qué ataca?",
+      "hand": "A mano",
+      "chipDamage": "daño {{n}}"
     }
   }
 }

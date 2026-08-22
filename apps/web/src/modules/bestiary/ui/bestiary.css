@@ -51,8 +51,10 @@
 /* `.bs-btn.bs-btn-on` y no `.bs-btn-on`: con una sola clase pierde contra `.bs-btn[aria-pressed='true']`
    de la regla de arriba, así que el botón elegido salía con filete en vez de relleno de tinta. No se podía
    ver de otra forma que mirando la pantalla: compila y pasa los tests igual. */
-.bs-btn.bs-btn-on { background: var(--sys-ink); border-color: var(--sys-ink); color: var(--sys-paper-hi); }
-.bs-btn.bs-btn-on:hover { background: var(--sys-ink-soft); border-color: var(--sys-ink-soft); color: var(--sys-paper-hi); }
+/* Sangre y no tinta: el dueño pidió (2026-08-22) que lo marcado en el circuito de criaturas/atacar sea del
+   rojo del botón de atacar — está así en el `.pen` («Tirar por una criatura», «Atacar con el token»). */
+.bs-btn.bs-btn-on { background: var(--sys-blood); border-color: var(--sys-blood); color: var(--sys-paper-hi); }
+.bs-btn.bs-btn-on:hover { background: var(--sys-ink); border-color: var(--sys-ink); color: var(--sys-paper-hi); }
 .bs-btn-danger { border-color: var(--sys-blood); color: var(--sys-blood); }
 .bs-btn-danger:hover { background: var(--sys-blood); border-color: var(--sys-blood); color: var(--sys-paper-hi); }
 .bs-btn-lg { padding: 7px 12px; font-size: var(--fs-xs); }

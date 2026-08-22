@@ -126,6 +126,63 @@ describe('TokenAttackModal — atacar con el token de una criatura', () => {
    * quien recorta es `poolFor`, así que sin apagarlo el modal enseñaría un número que no es el que se tira.
    * Se capa la SUBIDA y nunca la bajada — repartir su Combate en el turno (p.94) sigue libre.
    */
+  /** Soum (p.72): dos armas impresas — el caso que el dueño no podía elegir (2026-08-22). */
+  const soum = () => ogre({
+    stats: { fortitude: 4, combat: 5, will: 4 },
+    attacks: [
+      { label: 'catalog.creatureAttacks.katanaTreceLunas', attack: 6, damage: 7 },
+      { label: 'catalog.creatureAttacks.cuchilloTanto', attack: 5, damage: 5 },
+    ],
+  });
+
+  it('con varios ataques impresos se elige con cuál, y el elegido manda dados y daño', async () => {
+    const u = userEvent.setup();
+    const { onOpenAttack } = setup(soum());
+    expect(screen.getByRole('status')).toHaveTextContent('6');
+    await u.click(screen.getByRole('button', { name: /cuchillo tantō · 5 · daño 5/i }));
+    expect(screen.getByRole('status')).toHaveTextContent('5');
+    await u.click(screen.getByRole('button', { name: /^Atacar a Karen/ }));
+    await waitFor(() => expect(onOpenAttack).toHaveBeenCalled());
+    expect(lastPendingRequest(onOpenAttack).options).toMatchObject({
+      weaponId: 'catalog.creatureAttacks.cuchilloTanto', weaponDamage: 5,
+    });
+    await u.click(screen.getByRole('button', { name: /A mano · 5/i }));
+    expect(screen.getByRole('status')).toHaveTextContent('5');
+    await u.click(screen.getByRole('button', { name: /^Atacar a Karen/ }));
+    await waitFor(() => expect(onOpenAttack).toHaveBeenCalledTimes(2));
+    expect(lastPendingRequest(onOpenAttack).options).toMatchObject({ weaponId: 'catalog.weapons.unarmed', weaponDamage: 4 });
+  });
+
+  it('a distancia un ataque de c/c no vale (p.95): se apaga y se pasa al que valga', async () => {
+    const u = userEvent.setup();
+    const conArco = ogre({
+      stats: { fortitude: 4, combat: 5, will: 4 },
+      attacks: [
+        { label: 'catalog.creatureAttacks.katanaTreceLunas', attack: 6, damage: 7 },
+        { label: 'catalog.creatureAttacks.cuchilloTanto', attack: 5, damage: 5, ranged: true },
+      ],
+    });
+    setup(conArco);
+    await u.click(screen.getByRole('button', { name: 'Nix' }));
+    expect(screen.getByRole('button', { name: /katana de las trece lunas · 6 · daño 7/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /cuchillo tantō · 5 · daño 5/i })).toBeEnabled();
+    expect(screen.getByRole('status')).toHaveTextContent('5');
+  });
+
+  /** Pin del acoplamiento −1↔A MANO: si algún día A MANO se apaga a distancia, esto obliga a revisitar el par. */
+  it('a distancia sin NINGÚN ataque a distancia, cae a A MANO (el hueco de datos, documentado)', async () => {
+    const u = userEvent.setup();
+    setup(soum());
+    await u.click(screen.getByRole('button', { name: 'Nix' }));
+    expect(screen.getByRole('button', { name: /A mano · 5/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('5');
+  });
+
+  it('con un solo ataque impreso (o ninguno) la fila de armas no sale', () => {
+    setup(ogre({ attacks: [{ label: 'catalog.creatureAttacks.navaja', attack: 4, damage: 7 }] }));
+    expect(screen.queryByText('¿Con qué ataca?')).not.toBeInTheDocument();
+  });
+
   it('regresión · el «+» se apaga a los 2 dados sobre su puñado, y dice por qué (p.87)', async () => {
     const { onOpenAttack } = setup();
     const more = screen.getByRole('button', { name: 'Un dado más' });

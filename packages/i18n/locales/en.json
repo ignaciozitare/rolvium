@@ -1004,7 +1004,10 @@
       "nightNote": "It is night in this scene, so its night capacities show up: the hour comes from the map's day/night switch and is not asked here. The director marks them, like the specialty (p.107).",
       "dayNote": "It is day in this scene: only the capacities that work by day show up. The hour comes from the map's day/night switch (p.107).",
       "meleeWait": "Melee is a conflict: they get the alert, and the roll comes out when they answer with their defence dice (p.93).",
-      "openFailed": "The player could not be alerted. Try again."
+      "openFailed": "The player could not be alerted. Try again.",
+      "withWhat": "What does it attack with?",
+      "hand": "Bare hands",
+      "chipDamage": "damage {{n}}"
     }
   }
 }

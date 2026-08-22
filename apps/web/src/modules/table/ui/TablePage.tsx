@@ -158,7 +158,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             </div>
           )}
           <div className="tb-head-right">
-            <span className={`tb-btn ${role === 'dm' ? 'tb-btn-gold' : 'tb-btn-solid'}`} aria-label={t('table.yourRole')}>{t(`table.role.${role}`)}</span>
+            <span className="tb-btn tb-btn-blood" aria-label={t('table.yourRole')}>{t(`table.role.${role}`)}</span>
           </div>
         </header>
 
