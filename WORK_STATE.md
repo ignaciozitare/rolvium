@@ -16,7 +16,7 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 ## 🟢 PUNTO EXACTO — 2026-08-22 (noche): PAREDES SÓLIDAS — CINCO fallos arreglados en tres rondas. Falta MIRARLO EN LA APP
 
-Rama **`fix/municion-y-preguntas`**. **941 tests** verdes (web 643 · api 126 · core 23 · plenilunio 133 · ui 16) ·
+Rama **`fix/municion-y-preguntas`**. **942 tests** verdes (web 644 · api 126 · core 23 · plenilunio 133 · ui 16) ·
 typecheck web+api · `audit` 0 hard · `build:web` + `build:api` · **review pasado entero, TRES rondas**. Sin QA y sin merge.
 
 ### Prompt de resume, de una línea
