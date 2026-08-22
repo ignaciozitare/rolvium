@@ -119,6 +119,22 @@ describe('computeSceneVision', () => {
     expect(pointInPolygon({ x: 220, y: 148 }, r.data.vision[0]!)).toBe(true);
   });
 
+  /**
+   * LA NIEBLA NO APAGA LA FÍSICA (fallo 2 del 2026-08-22). Los `return` de «off» y «manual» salían ANTES del
+   * bloque de paredes sólidas: no devolvían `corrected`, el navegador recibía `null` y —sin muros visibles—
+   * nada frenaba. Un ajuste de niebla apagaba las paredes en silencio, y es un botón que el director tiene al
+   * lado del de paredes sólidas. Nada en la spec dice que dependan una de otra.
+   */
+  it('con niebla «manual» o «off», las paredes sólidas siguen corrigiendo', async () => {
+    for (const fogMode of ['manual', 'off'] as const) {
+      const maps = seed({ scene: { solidWalls: true, fogMode } });
+      const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });
+      if (!r.ok) throw new Error('expected ok');
+      expect(r.data.corrected, `fogMode=${fogMode}`).not.toBeNull();
+      expect(r.data.corrected!.x).toBeLessThan(7);
+    }
+  });
+
   it('sin `at` no hay nada que corregir', async () => {
     const r = await computeSceneVision({ maps: seed({ scene: { solidWalls: true } }) }, { sceneId: SCENE, userId: PIP });
     if (!r.ok) throw new Error('expected ok');

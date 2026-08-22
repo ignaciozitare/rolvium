@@ -58,13 +58,6 @@ export async function computeSceneVision(
   }
 
   const stored = await deps.maps.getExplored(scene.id, input.userId);
-  if (scene.fogMode === 'off') {
-    return { ok: true, data: { vision: [], explored: allCells(scene.gridSize, scene.width, scene.height), radiusPx } };
-  }
-  if (scene.fogMode === 'manual') return { ok: true, data: { vision: [], explored: stored, radiusPx } };
-
-  const [walls, tokens] = await Promise.all([deps.maps.listWalls(scene.id), deps.maps.listTokens(scene.id)]);
-  const segments = sightSegments(walls, scene);
   const at = input.at;
   /**
    * PAREDES SÓLIDAS (rebanada 4). Aquí, y no en el navegador, porque a un jugador **no le llegan los muros
@@ -73,7 +66,17 @@ export async function computeSceneVision(
    *
    * Se corrige sólo lo que se PREGUNTA (`at`) y sólo si la escena lo tiene encendido. Se devuelve en casillas,
    * que es la unidad en la que viven los tokens; la geometría se hace en px, que es donde viven los muros.
+   *
+   * Y se calcula ANTES de mirar el modo de niebla: nada en la spec ata la física a la niebla, y el modo de
+   * niebla es un botón que el director tiene al lado del de paredes sólidas. La primera versión corregía sólo
+   * en modo «vision» —los `return` de «off» y «manual» salían antes de cargar los muros— y un ajuste de
+   * niebla apagaba las paredes en silencio. La geometría se carga sólo cuando hace falta: siempre en
+   * «vision» (las líneas de vista la necesitan), y en los otros modos sólo si hay un `at` que corregir con
+   * las paredes sólidas encendidas — apagadas, `corrected` sale `null` igual y sobran las dos lecturas.
    */
+  const [walls, tokens] = (at && scene.solidWalls) || scene.fogMode === 'vision'
+    ? await Promise.all([deps.maps.listWalls(scene.id), deps.maps.listTokens(scene.id)])
+    : [[], []];
   const dragged = at ? tokensOf(tokens, input.userId).find(t => t.id === at.tokenId) ?? null : null;
   let corrected: SceneVision['corrected'] = null;
   if (at && dragged && scene.solidWalls) {
@@ -93,6 +96,13 @@ export async function computeSceneVision(
     const tol = 1e-6;
     if (Math.abs(cx - at.x) > tol || Math.abs(cy - at.y) > tol) corrected = { tokenId: at.tokenId, x: cx, y: cy };
   }
+
+  if (scene.fogMode === 'off') {
+    return { ok: true, data: { vision: [], explored: allCells(scene.gridSize, scene.width, scene.height), radiusPx, corrected } };
+  }
+  if (scene.fogMode === 'manual') return { ok: true, data: { vision: [], explored: stored, radiusPx, corrected } };
+
+  const segments = sightSegments(walls, scene);
   const applied = corrected ?? at;
   const mine = tokensOf(tokens, input.userId).map(t => (applied && t.id === applied.tokenId ? { ...t, x: applied.x, y: applied.y } : t));
   const vision: VisionPolygon[] = mine

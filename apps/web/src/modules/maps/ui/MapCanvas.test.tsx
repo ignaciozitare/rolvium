@@ -76,7 +76,7 @@ describe('<MapCanvas> tools', () => {
     down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
     expect(cb.onSelectToken).toHaveBeenCalledWith('tk-karen');
     move(svg, (TOKEN_KAREN.x + 0.5) * G + 2 * G + 3, (TOKEN_KAREN.y + 0.5) * G + G);
-    expect(cb.onDragToken).toHaveBeenLastCalledWith('tk-karen', expect.closeTo(12.11, 1), 12);
+    expect(cb.onDragToken).toHaveBeenLastCalledWith('tk-karen', expect.closeTo(12.11, 1), 12, { x: expect.closeTo(12.11, 1), y: 12 });
     up(svg);
     // 12,11 y no 12: la fracción sobrevive al soltar, que es justo lo que se pidió.
     expect(cb.onMoveToken).toHaveBeenCalledWith('tk-karen', expect.closeTo(12.11, 2), 12);
@@ -245,6 +245,10 @@ describe('<MapCanvas> fog', () => {
     up(svg);
     expect(onServerCorrection).toHaveBeenCalledWith('tk-karen');
     expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', 3, 4);
+    // Y aunque PINTE la corrección, al servidor le sigue contando el DESEO del dedo. Preguntarle por la
+    // posición corregida era la oscilación: la veía caber, callaba, y el token saltaba al otro lado.
+    expect(cb.onDragToken).toHaveBeenLastCalledWith('tk-karen', 3, 4,
+      { x: expect.closeTo(TOKEN_KAREN.x + 5, 1), y: expect.closeTo(TOKEN_KAREN.y, 1) });
   });
 
   it('el borde de la niebla va difuminado, y de noche mucho más (el «fade» del alcance)', () => {

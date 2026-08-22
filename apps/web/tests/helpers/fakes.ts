@@ -375,13 +375,22 @@ export const EXPLORED_2x2: SceneVision['explored'] = [[0, 0], [0, 1], [1, 0], [1
 /**
  * In-memory VisionPort. Vision is computed by the API in production, so the fake just hands back what it was
  * seeded with and records every call — the browser must never derive it.
+ *
+ * `correct` imita las paredes sólidas del servidor: recibe la posición preguntada y devuelve el recorte, o
+ * `null` si cabía — porque el servidor real contesta `corrected` SÓLO cuando de verdad recorta. Un doble que
+ * contestaba siempre lo mismo no podía cazar la oscilación del 2026-08-22: el fallo estaba justo en QUÉ
+ * posición se le pregunta, y a ese doble le daba igual.
  */
-export function fakeVisionPort(seed: Partial<SceneVision> = {}) {
+export function fakeVisionPort(seed: Partial<SceneVision> = {}, correct?: (at: { tokenId: string; x: number; y: number }) => { x: number; y: number } | null) {
   const state: SceneVision = { vision: VISION_LEFT, explored: EXPLORED_2x2, radiusPx: null, ...seed };
-  const calls: { op: string; sceneId: string; at?: unknown }[] = [];
+  const calls: { op: string; sceneId: string; at?: { tokenId: string; x: number; y: number } | { x: number; y: number; radius: number } }[] = [];
   return {
     state, calls,
-    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number }) => { calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}) }); return { ...state }; },
+    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number }) => {
+      calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}) });
+      const cut = at && correct ? correct(at) : null;
+      return { ...state, corrected: cut && at ? { tokenId: at.tokenId, ...cut } : null };
+    },
     paint: async (sceneId: string, op: 'reveal' | 'hide', at: { x: number; y: number; radius: number }) => { calls.push({ op, sceneId, at }); return { ...state }; },
     paintAll: async (sceneId: string, op: 'reveal' | 'hide') => { calls.push({ op: `${op}All`, sceneId }); return { ...state }; },
   } satisfies VisionPort & Record<string, unknown>;

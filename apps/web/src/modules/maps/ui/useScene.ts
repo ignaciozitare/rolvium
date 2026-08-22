@@ -120,13 +120,19 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     const c = correctedRef.current;
     return c && c.tokenId === tokenId ? { x: c.x, y: c.y } : null;
   }, []);
-  const dragToken = useCallback((tokenId: string, x: number, y: number) => {
+  /**
+   * `x`/`y` es donde el token está (ya frenado/corregido) y va al broadcast de la mesa; `desired` es a dónde
+   * quería ir el dedo y es lo que se le pregunta al servidor. Preguntar por `x`/`y` era el fallo de la
+   * oscilación: el servidor veía caber su propia corrección, contestaba `null` («sólo contesto si recorto»),
+   * `correctedRef` se borraba y el token saltaba al otro lado del muro en el tick siguiente.
+   */
+  const dragToken = useCallback((tokenId: string, x: number, y: number, desired?: Point) => {
     if (!sceneId || !live) return;
     const now = Date.now();
     if (now - visionDrag.current >= VISION_DRAG_HZ_MS && vision && tokens.some(t => t.id === tokenId && t.controlledBy === me)) {
       visionDrag.current = now;
       const seq = ++visionSeq.current;
-      void vision.refresh(sceneId, { tokenId, x, y }).then(next => {
+      void vision.refresh(sceneId, { tokenId, ...(desired ?? { x, y }) }).then(next => {
         if (seq !== visionSeq.current) return;
         setFog(next);
         /**
@@ -144,6 +150,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   const moveToken = useCallback(async (tokenId: string, x: number, y: number) => {
     if (!sceneId || !live) return;
+    // La corrección vale para ESTE arrastre: si se quedara, clavaría el siguiente en el sitio viejo.
+    correctedRef.current = null;
     setTokens(l => l.map(t => (t.id === tokenId ? { ...t, x, y } : t)));
     repo.broadcast(sceneId, { type: 'token.moved', campaignId: live.campaignId, sceneId, tokenId, x, y, final: true });
     await repo.updateToken(tokenId, { x, y });

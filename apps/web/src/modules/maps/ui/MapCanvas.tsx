@@ -31,7 +31,8 @@ interface Props {
   view: View;
   onViewChange: (v: View) => void;
   nameOf: (userId: string) => string;
-  onDragToken: (id: string, x: number, y: number) => void;
+  /** `x`/`y` es donde el token ESTÁ (ya frenado/corregido); `desired`, a dónde quería ir el dedo. */
+  onDragToken: (id: string, x: number, y: number, desired: { x: number; y: number }) => void;
   onMoveToken: (id: string, x: number, y: number) => void;
   /** Dónde dice el SERVIDOR que puede estar el token que se arrastra, o `null` si no ha dicho nada. */
   onServerCorrection?: (tokenId: string) => { x: number; y: number } | null;
@@ -289,12 +290,18 @@ export function MapCanvas(p: Props): JSX.Element {
        * hace falta, y el token atravesaba las paredes en la app aunque los tests pasaran.
        *
        * El servidor sólo contesta cuando de verdad ha recortado algo, así que si hay respuesta, hay muro.
+       *
+       * Y al servidor se le pregunta SIEMPRE por `libre` —el deseo del dedo—, nunca por la posición ya
+       * corregida: por eso `onDragToken` lleva `libre` aparte de `x`/`y`. Si se le preguntara por la posición
+       * corregida, la vería caber —la recortó él—, callaría por la regla de arriba, la corrección se borraría
+       * y el tick siguiente volvería a `frenado`, que sin muros visibles es `libre`: el token oscilaba a
+       * través del muro ~7 veces por segundo, y soltando en el tick malo se quedaba al otro lado.
        */
       const server = p.onServerCorrection?.(gesture.id) ?? null;
       const { x, y } = server ?? frenado;
       setLocalDrag({ id: gesture.id, x, y });
       if (!gesture.moved) setGesture({ ...gesture, moved: true });
-      p.onDragToken(gesture.id, x, y);
+      p.onDragToken(gesture.id, x, y, libre);
     } else if (gesture.kind === 'draw') {
       setGesture(gesture.tool === 'stroke' ? { ...gesture, points: [...gesture.points, [s.x, s.y]], last: s } : { ...gesture, last: s });
     } else if (gesture.kind === 'marquee') {
