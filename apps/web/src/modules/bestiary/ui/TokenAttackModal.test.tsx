@@ -112,6 +112,31 @@ describe('TokenAttackModal — atacar con el token de una criatura', () => {
     expect(screen.getByRole('status')).toHaveTextContent('11');
     await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
     expect(lastPendingRequest(onOpenAttack).options).toMatchObject({ weaponDamage: 12 });
+    /**
+     * Regresión del techo de dados extra (2026-08-21): el ataque impreso NO gasta de ese techo —es la
+     * bonificación del arma (p.97)—, así que tira sus **once** dados y no los trece del Combate 4 + 2.
+     * Y lo que se avisa al jugador tiene que ser lo mismo que se tira: si no, el aviso miente.
+     */
+    expect(lastPendingRequest(onOpenAttack).groups.find((g: { tag: string }) => g.tag === 'own').count).toBe(11);
+    expect(lastPending(onOpenAttack).dice).toBe(11);
+  });
+
+  /**
+   * El «+» tampoco puede subir sin techo aquí: el manual da «uno o dos» dados por herramientas (p.87) y
+   * quien recorta es `poolFor`, así que sin apagarlo el modal enseñaría un número que no es el que se tira.
+   * Se capa la SUBIDA y nunca la bajada — repartir su Combate en el turno (p.94) sigue libre.
+   */
+  it('regresión · el «+» se apaga a los 2 dados sobre su puñado, y dice por qué (p.87)', async () => {
+    const { onOpenAttack } = setup();
+    const more = screen.getByRole('button', { name: 'Un dado más' });
+    await userEvent.click(more);
+    await userEvent.click(more);
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('6'));   // Combate 4 + 2
+    expect(more).toBeDisabled();
+    expect(screen.getByText(/Tope: 2 dados por herramientas/)).toBeInTheDocument();
+    // Lo que se tira es lo que se enseña, y el «−» sigue vivo.
+    await userEvent.click(screen.getByRole('button', { name: 'Atacar a Karen' }));
+    expect(lastPendingRequest(onOpenAttack).groups.find((g: { tag: string }) => g.tag === 'own').count).toBe(6);
   });
 
   it('más lejos del alcance muy largo no se puede disparar', async () => {

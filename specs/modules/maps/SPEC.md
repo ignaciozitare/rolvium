@@ -13,10 +13,12 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Rebanada 3 — ESTE SPEC** (§ «Rebanada 3»): la escena deja de ser una pestaña con cabecera y pasa a ocupar la
   pantalla. Rail de escenas plegable, una sola barra de herramientas con Dados dentro, **herramienta Seleccionar**
   (mover y editar muros y vértices), puertas que **parten** el muro donde se dibujan, y dados 3D al tirar.
-- **Rebanada 4 — pendiente**: movimiento máximo por turno, configurable **por sistema** (toca el puerto `GameSystem`).
+- **Rebanada 4 — ESTE SPEC** (§ «Rebanada 4»): **paredes sólidas** — los tokens dejan de atravesar los muros,
+  con un interruptor por escena. Confirmada por el dueño el 2026-08-22.
+- **Rebanada 5 — pendiente**: movimiento máximo por turno, configurable **por sistema** (toca el puerto `GameSystem`).
   Las dos deudas que la rebanada 3 se dejó (la puerta que parte el muro y el disco de abrir al pasar el ratón) se
   construyeron el 2026-08-19, antes de empezarla.
-- **Rebanada 5 — pendiente**: galería de componentes (muebles, árboles…) para construir mapas dentro de la app.
+- **Rebanada 6 — pendiente**: galería de componentes (muebles, árboles…) para construir mapas dentro de la app.
 
 ## What the user can do
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
@@ -179,6 +181,64 @@ cambia el cursor con lo que abre un panel:
 Es del hexágono `dice` (H6) — ver `specs/modules/dice/SPEC.md` § «Dados 3D». Aquí sólo consta que el lanzador se abre
 desde la primera herramienta de esta barra.
 
+## Rebanada 4 — paredes sólidas
+
+**Para qué.** Hoy los tokens atraviesan los muros como fantasmas. Con esto una pared es una pared, y el mapa deja
+de ser un dibujo para empezar a ser un sitio (dueño, 2026-08-22: «que los tokens no puedan traspasar las paredes»).
+
+### El interruptor
+- **Uno por ESCENA**, junto a los de día/noche y niebla, y se guarda con ella. Lo pone el director.
+  Elegido frente a uno por campaña porque una mazmorra y un descampado no piden lo mismo, y frente a uno
+  volátil porque «se te olvida encendido o apagado».
+- **Apagado deja todo exactamente como hoy.** Es la posición de partida de las escenas que ya existen: nada se
+  vuelve sólido de un día para otro sin que el director lo pida.
+
+### Cómo se siente
+- Arrastras, el token llega a la pared y **resbala pegado a ella** mientras sigues moviendo el dedo — no se
+  clava en el punto del choque ni pega un salto de vuelta al soltar.
+- El movimiento sigue siendo **libre**, sin rejilla (rebanada 3 bis, 2026-08-22).
+
+### Quién choca
+- **Sólo los jugadores. El director pasa siempre**, esté el interruptor como esté (decisión del dueño).
+- ⚠ Consecuencia aceptada: el director **no puede probar en su pantalla lo que siente un jugador**. Se mira
+  entrando con una cuenta de jugador.
+
+### El tamaño cuenta
+- Choca **todo el cuerpo** del token, no su punto central: un gato (0,5 casillas) pasa por un hueco por el que
+  un ogro (3,5) no cabe. Es la razón de que los tamaños de la p.25 existan.
+
+### Qué bloquea y qué no
+- Bloquea lo que ya lleva marcado `blocksMove`: **muros, ventanas y puertas cerradas**. Una **puerta abierta
+  deja pasar** — `blocksMoveNow(w)` = `blocksMove && !isOpen`, el gemelo exacto de `blocksSightNow`, escrito en
+  la rebanada 2 y esperando desde entonces («No movement rules until slice 3»).
+
+### Rules & limits de esta rebanada
+- **El servidor es quien SABE, no quien MANDA.** Corregido el 2026-08-22 tras el review: la primera redacción
+  de esta spec decía «quien manda es el servidor» tomando prestada la autoridad de la visión, donde sí es
+  cierta, y aquí **no se sostiene**. Lo que de verdad pasa:
+  - El servidor es el único que tiene TODOS los muros —a un jugador sólo le llegan los que puede ver, y en una
+    escena normal no le llega ninguno— así que es el único que puede decir dónde hay que parar. **Eso sí es
+    real y es la razón de que el cálculo viva ahí.**
+  - Pero el jugador escribe `x`/`y` **directamente en `maps_tokens`**; no hay endpoint de movimiento. El
+    trigger `maps_tokens_guard_update` controla QUÉ token y QUÉ columnas, nunca **a dónde**.
+  - O sea: la corrección del servidor es **un consejo que el navegador obedece**, no un límite. Un cliente
+    honesto respeta la física; uno manipulado, no. Es un mecanismo de SECRETO y de COMODIDAD, no una barrera
+    contra tramposos — y en la mesa de uno mismo, esa distinción importa poco.
+- **Cerrarlo del todo** pide mover el movimiento del token a la API: `POST /scenes/:id/tokens/:id/move`
+  calcado del de visión, que corre `slideCircle` con service role y hace él el UPDATE, más una migración que
+  le quite a los jugadores la escritura de `x`/`y`. Cierra también el agujero del **manotazo rápido** (un
+  arrastre más corto que el acelerador de ~140 ms no llega a preguntar nunca). Tiene un coste real: soltar el
+  token deja de ser instantáneo y pasa a ser una ida y vuelta a la red. **Es su propia tarea, no un parche.**
+- Para que el arrastre no vaya a tirones, la pantalla frena **provisionalmente** con los muros que conoce y el
+  servidor corrige a ~7 Hz. Un jugador puede notar el tirón cuando el muro era secreto: es el precio.
+- ⚠ **Los muros secretos se pueden descubrir a base de topar.** Si un jugador choca con algo que no ve, deduce
+  que hay una pared. Es inevitable si la física funciona de verdad y pasa en todos los VTT. Aceptado por el
+  dueño el 2026-08-22.
+
+### Fuera de esta rebanada, a propósito
+Distancia máxima de movimiento por turno · empujar a otro token · terreno difícil · diagonales ·
+**colisión entre tokens** (que un token choque con otro token, no con un muro).
+
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
   muros con `visible_players=false` no viajan al cliente del jugador (RLS). **Esta es la frontera de seguridad**: si la
@@ -217,6 +277,26 @@ desde la primera herramienta de esta barra.
 - **`maps_images`**: biblioteca de fondos de la campaña (bucket público `backgrounds/{campaignId}/…`, 10 MB, sólo el director sube).
 - Realtime: `maps_scenes/walls/tokens/drawings/fog` en la publicación; el arrastre va por broadcast y la posición final se persiste.
 - Migración: `supabase/migrations/20260818130000_maps.sql`.
+
+### Rebanada 4 — paredes sólidas
+Migración `supabase/migrations/20260822000000_maps_solid_walls.sql`. **Una sola columna**, aditiva y con valor por
+defecto. No crea tablas ni políticas: `maps_scenes` ya tiene RLS con `maps_scenes_select` (leen los miembros de la
+campaña) y `maps_scenes_dm_write FOR ALL` (escribe sólo el director), que es exactamente el reparto que pide la
+spec — el interruptor lo pone el DIRECTOR y lo LEEN todos, igual que la luz o el modo de niebla.
+
+- **`maps_scenes`** gana **`solid_walls`** (sí/no, por defecto **no**): si en esta escena un token puede o no
+  atravesar un muro. Va por escena y no por campaña porque una mazmorra y un descampado no piden lo mismo, y se
+  guarda —en vez de ser un botón del momento— porque «se te olvida encendido o apagado».
+- **Por defecto NO**, a propósito: ninguna escena de las que ya existen se vuelve sólida de un día para otro sin
+  que el director lo pida. Nada que rellenar a mano al desplegar.
+- **`maps_walls` no se toca.** `blocks_move` existe desde la rebanada 1 y ya guarda qué corta el paso; lo único
+  que faltaba era un sitio donde decir «en esta escena, hazle caso». Lo que bloquea es
+  `blocks_move AND NOT is_open`, así que una puerta abierta deja pasar.
+- **Que el director nunca choque NO se guarda**: es una regla, no un dato, y vive en el código con el resto de la
+  física. Guardarlo daría dos sitios donde decir lo mismo y un día dirían cosas distintas.
+- Acceso: **lee** cualquier miembro de la campaña que pueda ver la escena; **escribe** sólo el director. Sin
+  política nueva porque las que hay ya lo dicen. Comprobado en local: `db lint --level error` limpio,
+  `npm run audit` 0 hard (RLS activa, ninguna política `TO anon`).
 
 ### Rebanada 2 — luz y aberturas
 Migración `supabase/migrations/20260818140000_maps_vision.sql`. **Puramente aditiva**: no crea tablas ni políticas

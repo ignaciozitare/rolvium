@@ -290,7 +290,7 @@ import type { Drawing, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Sce
 
 export const SCENE_WAREHOUSE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Almacén de Queens', width: 1080, height: 675, bgColor: '#4a4a3e', bgImageUrl: null,
-  bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, sortOrder: 0, visiblePlayers: false,
+  bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false,
   createdAt: '2026-08-18T00:00:00Z', updatedAt: '2026-08-18T00:00:00Z',
 };
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };
@@ -375,13 +375,23 @@ export const EXPLORED_2x2: SceneVision['explored'] = [[0, 0], [0, 1], [1, 0], [1
 /**
  * In-memory VisionPort. Vision is computed by the API in production, so the fake just hands back what it was
  * seeded with and records every call — the browser must never derive it.
+ *
+ * `correct` imita las paredes sólidas del servidor: recibe la posición preguntada y devuelve el recorte, o
+ * `null` si cabía — porque el servidor real contesta `corrected` SÓLO cuando de verdad recorta. Un doble que
+ * contestaba siempre lo mismo no podía cazar la oscilación del 2026-08-22: el fallo estaba justo en QUÉ
+ * posición se le pregunta, y a ese doble le daba igual.
  */
-export function fakeVisionPort(seed: Partial<SceneVision> = {}) {
+export function fakeVisionPort(seed: Partial<SceneVision> = {}, correct?: (at: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }) => { x: number; y: number } | null) {
   const state: SceneVision = { vision: VISION_LEFT, explored: EXPLORED_2x2, radiusPx: null, ...seed };
-  const calls: { op: string; sceneId: string; at?: unknown }[] = [];
+  const calls: { op: string; sceneId: string; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } } | { x: number; y: number; radius: number } }[] = [];
   return {
     state, calls,
-    refresh: async (sceneId: string) => { calls.push({ op: 'refresh', sceneId }); return { ...state }; },
+    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }) => {
+      calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}) });
+      const cut = at && correct ? correct(at) : null;
+      // Como el real: recortado → pegado al muro, holgura 0; si cabía, un disco grande alrededor.
+      return { ...state, corrected: cut && at ? { tokenId: at.tokenId, ...cut } : null, clearance: at ? (cut ? 0 : 100) : null };
+    },
     paint: async (sceneId: string, op: 'reveal' | 'hide', at: { x: number; y: number; radius: number }) => { calls.push({ op, sceneId, at }); return { ...state }; },
     paintAll: async (sceneId: string, op: 'reveal' | 'hide') => { calls.push({ op: `${op}All`, sceneId }); return { ...state }; },
   } satisfies VisionPort & Record<string, unknown>;

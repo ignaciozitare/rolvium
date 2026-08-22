@@ -46,6 +46,44 @@ describe('<RollPopover> — `.pen` «Mesa/Tiradas · rediseño», columnas 1 y 2
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ extraDice: 1 }));
   });
 
+  /**
+   * Regresión, prueba del dueño 2026-08-21: el «+» no tenía TECHO y llegó a **30 dados con Combate 4**
+   * («+ dados extra: 26»). El manual no da un máximo global, así que el techo sale de los casos que sí
+   * escribe (RULES.md §2.8): «uno o dos» dados por herramientas y no acumulables (p.87).
+   * La pantalla sólo apaga el botón y dice de dónde sale el tope; quien recorta es `poolFor`.
+   */
+  it('regresión · el «+» se apaga a los 2 dados extra, y dice por qué (p.87)', async () => {
+    const u = userEvent.setup();
+    const { pop } = mount({ intent: SHOOT });
+    const more = within(pop).getByRole('button', { name: 'Un dado más' });
+    const less = within(pop).getByRole('button', { name: 'Un dado menos' });
+    await u.click(more);
+    expect(more).toBeEnabled();
+    await u.click(more);
+    expect(within(pop).getByText('+ dados extra: 2')).toBeInTheDocument();
+    expect(more).toBeDisabled();
+    expect(within(pop).getByText(/Tope: 2 dados por herramientas/)).toBeInTheDocument();
+    // Se capa la SUBIDA y nunca la bajada: el «−» sigue vivo y al bajar el «+» revive.
+    expect(less).toBeEnabled();
+    await u.click(less);
+    expect(more).toBeEnabled();
+  });
+
+  /**
+   * La atención médica es el único caso del libro que pasa de dos: el grado de éxito del médico se convierte
+   * en dados extra en la próxima tirada de recuperación (p.101), y el grado llega a 4 (p.85). La tirada de
+   * recuperación es de Fortaleza, así que Fortaleza admite 4.
+   */
+  it('en Fortaleza el techo sube a 4 por la atención médica (p.101)', async () => {
+    const u = userEvent.setup();
+    const { pop } = mount({ intent: { kind: 'stat', statId: 'fortitude' } as RollIntent });
+    const more = within(pop).getByRole('button', { name: 'Un dado más' });
+    for (let i = 0; i < 4; i++) await u.click(more);
+    expect(within(pop).getByText('+ dados extra: 4')).toBeInTheDocument();
+    expect(more).toBeDisabled();
+    expect(within(pop).getByText(/Tope: 4 dados/)).toBeInTheDocument();
+  });
+
   it('«tu Combate 4, menos 1 por herido»: la ficha ya descuenta las heridas (p.99)', () => {
     const { pop } = mount({ intent: SHOOT }, { ...KAREN_DATA, health: 'wounded' });
     expect(within(pop).getByText('tu Combate 4, menos 1 por herido')).toBeInTheDocument();

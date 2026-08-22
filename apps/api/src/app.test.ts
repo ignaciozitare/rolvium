@@ -267,6 +267,24 @@ describe('POST /rolls — pool authority', () => {
     expect(own!.count).toBeLessThan(20);
     expect(r.json().data.dice[0].length).toBe(own!.count);
   });
+  /**
+   * El techo de dados extra tiene que valer también AQUÍ, no sólo en el navegador: es la lección de la tanda
+   * anterior, donde el de los dados de defensa vivía sólo en la pantalla y un `{"defence": 40}` mandado a
+   * mano daba 40 dados. El manual da «uno o dos» por herramientas y no acumulables (p.87, RULES.md §2.8), y
+   * `poolFor` —por donde el servidor rehace los grupos— lo recorta, así que un `extraDice: 26` a mano no cuela.
+   */
+  it('recorta los dados extra pedidos a mano: el techo del manual no vive en el navegador (p.87)', async () => {
+    const payload = { campaignId: CAMP_ID, systemId: 'plenilunio', kind: 'system', title: 'Combate', groups: [{ count: 30, sides: 6, tag: 'own' }], options: { stat: 'combat', extraDice: 26 }, visibility: 'table', characterId: CHAR_ID };
+    const r = await app.inject({ method: 'POST', url: '/rolls', headers: { authorization: 'Bearer player' }, payload });
+    expect(r.statusCode).toBe(200);
+    const data = r.json().data as { request: { groups: { count: number; tag?: string }[]; options: Record<string, unknown> }; dice: number[][] };
+    const own = data.request.groups.find(g => g.tag === 'own')!;
+    const base = plenilunio.engine.poolFor(charData(), { stat: 'combat', options: { difficulty: 0 } }).groups[0]!.count;
+    expect(own.count).toBe(base + 2);
+    expect(data.dice[0]!.length).toBe(own.count);
+    // Y lo GUARDADO es lo que de verdad se tiró, no lo que se pidió: el Registro no puede decir «+26».
+    expect(data.request.options['extraDice']).toBe(2);
+  });
 });
 
 
@@ -299,6 +317,35 @@ describe('POST /scenes/:id/vision', () => {
     const body = (await post(app, `/scenes/${SCENE_ID}/vision`, 'admin')).json() as { data: { vision: unknown[]; explored: number[][] } };
     expect(body.data.vision).toEqual([]);
     expect(body.data.explored.length).toBeGreaterThan(0);
+  });
+
+  /**
+   * PAREDES SÓLIDAS DE PUNTA A PUNTA: `at.from` tiene que atravesar el esquema zod de la ruta. El cuerpo se
+   * parsea con `safeParse` y fallback silencioso — si el esquema rechazara `from`, el `at` ENTERO se
+   * descartaría y la física moriría en producción sin ningún error y con los tests del caso de uso en verde
+   * (van directos a `computeSceneVision`). Este test es el canario (review, 3.ª ronda).
+   */
+  it('la física viaja entera por la ruta: `at.from` pasa el esquema y la corrección y la holgura llegan', async () => {
+    const TOKEN_UUID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const solid = await createApp({
+      ...makeDeps(),
+      maps: fakeMapsRepo({
+        roles: { [ADMIN.id]: 'dm', [PLAYER.id]: 'player' },
+        tokens: [{ id: TOKEN_UUID, x: 2, y: 5, size: 1, controlledBy: PLAYER.id }],
+        scene: { solidWalls: true },
+      }),
+    });
+    try {
+      const res = await post(solid, `/scenes/${SCENE_ID}/vision`, 'player', { at: { tokenId: TOKEN_UUID, x: 7, y: 5, from: { x: 2, y: 5 } } });
+      expect(res.statusCode).toBe(200);
+      const data = res.json().data as { corrected: { tokenId: string; x: number } | null; clearance: number | null };
+      // pidió cruzar el muro de x = 135: recortado a este lado (centro a 135 − 13.5 − 0.5 px), pegado
+      expect(data.corrected).not.toBeNull();
+      expect(data.corrected!.x).toBeCloseTo(121 / 27 - 0.5, 3);
+      expect(data.clearance).toBeCloseTo(0, 6);
+    } finally {
+      await solid.close();
+    }
   });
 });
 

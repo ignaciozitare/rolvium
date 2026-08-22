@@ -17,6 +17,14 @@ function applyChange<T extends { id: string }>(list: T[], c: RowChange<T>): T[] 
 }
 
 const DRAG_HZ_MS = 50; // ~20 Hz (specs/core/realtime: broadcast 20–30 Hz)
+/** La niebla se repregunta al servidor mucho más despacio que el broadcast: cada una es una ida y vuelta. */
+const VISION_DRAG_HZ_MS = 140; // ~7 Hz
+/**
+ * PEGADO a un muro (hay corrección en pie) se pregunta al ritmo del broadcast: despegarse espera a que el
+ * servidor diga «ya cabes», y a 7 Hz ese despegue daba un tirón visible de hasta 140 ms. A 20 Hz no se nota,
+ * y sólo se paga mientras se está en contacto — que es poco tiempo y pocos jugadores a la vez.
+ */
+const VISION_CONTACT_HZ_MS = 50; // ~20 Hz
 
 /**
  * Loads a scene's tokens/walls/drawings, follows the scene channel and exposes the actions the
@@ -101,16 +109,90 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   /** One effect, so entering the scene costs ONE round trip and every later cause costs one more. */
   useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, live?.lighting, live?.nightRadiusM, live?.fogMode]);
 
-  const dragToken = useCallback((tokenId: string, x: number, y: number) => {
+  /**
+   * La niebla SIGUE al token mientras se arrastra, en vez de dar un salto al soltarlo (dueño, 2026-08-22).
+   *
+   * Va a su propio ritmo, mucho más lento que el del broadcast: el aviso a la mesa es un mensaje suelto por un
+   * canal ya abierto, y esto es una ida y vuelta al servidor que además calcula geometría. A 20 Hz serían 20
+   * peticiones por segundo por jugador. A ~7 Hz el ojo ya lo lee como continuo.
+   *
+   * Sólo para MIS tokens: la visión que se pide es la mía, y mover el token de otro no cambia lo que yo veo.
+   */
+  const visionDrag = useRef(0);
+  /** Lo último que el servidor dijo sobre dónde puede estar el token que se arrastra. `null` = no ha dicho nada. */
+  const correctedRef = useRef<{ tokenId: string; x: number; y: number } | null>(null);
+  /** Lo consulta `MapCanvas` mientras arrastra, para obedecer al servidor sin esperar al final. */
+  const serverCorrection = useCallback((tokenId: string) => {
+    const c = correctedRef.current;
+    return c && c.tokenId === tokenId ? { x: c.x, y: c.y } : null;
+  }, []);
+  /**
+   * El DISCO LIBRE que el servidor confirmó con su última respuesta: alrededor de esa posición hay
+   * `clearance` casillas sin ningún muro, también secretos. `MapCanvas` no pinta más allá de él — sin esto,
+   * entre pregunta y pregunta (~7/s) el token seguía al dedo a ciegas, se metía en el muro que no ve y al
+   * llegar la corrección REBOTABA hacia atrás (dueño, 2026-08-22). `null` = sin física o sin dato: pintado
+   * libre, como siempre.
+   */
+  const motionRef = useRef<{ tokenId: string; x: number; y: number; clearance: number } | null>(null);
+  const dragBound = useCallback((tokenId: string) => {
+    const m = motionRef.current;
+    return m && m.tokenId === tokenId ? { x: m.x, y: m.y, clearance: m.clearance } : null;
+  }, []);
+  /**
+   * `x`/`y` es donde el token está (ya frenado/corregido) y va al broadcast de la mesa; `desired` es a dónde
+   * quería ir el dedo y es lo que se le pregunta al servidor. Preguntar por `x`/`y` era el fallo de la
+   * oscilación: el servidor veía caber su propia corrección, contestaba `null` («sólo contesto si recorto»),
+   * `correctedRef` se borraba y el token saltaba al otro lado del muro en el tick siguiente.
+   */
+  const dragToken = useCallback((tokenId: string, x: number, y: number, desired?: Point) => {
     if (!sceneId || !live) return;
     const now = Date.now();
+    const throttle = correctedRef.current?.tokenId === tokenId ? VISION_CONTACT_HZ_MS : VISION_DRAG_HZ_MS;
+    if (now - visionDrag.current >= throttle && vision && tokens.some(t => t.id === tokenId && t.controlledBy === me)) {
+      visionDrag.current = now;
+      const seq = ++visionSeq.current;
+      const asked = desired ?? { x, y };
+      /**
+       * El barrido del servidor sale de la última posición QUE ÉL MISMO CONTESTÓ (`from`) hacia el deseo del
+       * dedo. Anclarlo a la posición guardada al empezar el arrastre era el fallo del vértice: pasado el
+       * final del muro, la recta origen→dedo seguía cruzándolo y el token no podía doblar la esquina.
+       *
+       * Y `from` NO es la posición pintada: antes de la primera respuesta el pintado puede haber seguido al
+       * dedo hasta el otro lado de un muro que no ve, y ese `from` legalizaría el cruce («desde aquí no
+       * cruzo nada»). La cadena contestada sale siempre de la posición guardada (primer tick, sin `from`) y
+       * cada eslabón lo validó el servidor barriendo desde el anterior.
+       */
+      const m = motionRef.current;
+      const from = m && m.tokenId === tokenId ? { from: { x: m.x, y: m.y } } : {};
+      void vision.refresh(sceneId, { tokenId, x: asked.x, y: asked.y, ...from }).then(next => {
+        if (seq !== visionSeq.current) return;
+        setFog(next);
+        /**
+         * La palabra final sobre DÓNDE puede estar el token es del servidor: es el único que tiene todos los
+         * muros, incluidos los secretos, que a este navegador no le llegan. Si nos corrige, se obedece —
+         * `correctedRef` lo lee el arrastre y lo aplica sin esperar a soltar.
+         */
+        correctedRef.current = next.corrected ?? null;
+        const answered = next.corrected ?? asked;
+        motionRef.current = typeof next.clearance === 'number'
+          ? { tokenId, x: answered.x, y: answered.y, clearance: next.clearance }
+          : null;
+      }).catch(() => undefined);
+    }
     if (now - lastSent.current < DRAG_HZ_MS) return;
     lastSent.current = now;
     repo.broadcast(sceneId, { type: 'token.moved', campaignId: live.campaignId, sceneId, tokenId, x, y, final: false });
-  }, [repo, sceneId, live]);
+  }, [repo, sceneId, live, vision, tokens, me]);
 
   const moveToken = useCallback(async (tokenId: string, x: number, y: number) => {
     if (!sceneId || !live) return;
+    // La corrección y el disco valen para ESTE arrastre: si se quedaran, clavarían el siguiente en el sitio viejo.
+    correctedRef.current = null;
+    motionRef.current = null;
+    // Y se invalida cualquier respuesta EN VUELO: si aterrizara después de este limpiado re-sembraría la
+    // cadena con el ancla del arrastre que acaba de terminar (review, 3.ª ronda). La niebla no pierde nada:
+    // el refresco de después de soltar (efecto de `myTokenKey`) trae la suya con un número más alto.
+    ++visionSeq.current;
     setTokens(l => l.map(t => (t.id === tokenId ? { ...t, x, y } : t)));
     repo.broadcast(sceneId, { type: 'token.moved', campaignId: live.campaignId, sceneId, tokenId, x, y, final: true });
     await repo.updateToken(tokenId, { x, y });
@@ -178,8 +260,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, drags, pin, status, fog,
-    dragToken, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin,
-    refreshVision, paintFog, paintAllFog,
-  }), [live, tokens, walls, drawings, drags, pin, status, fog, dragToken, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog]);
+    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin,
+    refreshVision, paintFog, paintAllFog, serverCorrection,
+  }), [live, tokens, walls, drawings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection]);
 }
 export type SceneState = ReturnType<typeof useScene>;

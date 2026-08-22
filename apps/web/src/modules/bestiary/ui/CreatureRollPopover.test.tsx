@@ -52,6 +52,27 @@ describe('CreatureRollPopover — tirar por la criatura, no abrir el lanzador li
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('5'));
   });
 
+  /**
+   * El mismo agujero que en la ficha del jugador (prueba del dueño, 2026-08-21): el «+» no tenía techo.
+   * El techo lo pone el sistema desde el manual —«uno o dos» dados por herramientas, no acumulables,
+   * p.87— y quien recorta de verdad es `poolFor`; aquí sólo se apaga el botón. RULES.md §2.8.
+   */
+  it('regresión · el «+» se apaga a los 2 dados extra, y dice por qué (p.87)', async () => {
+    setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Combate' }));
+    const more = screen.getByRole('button', { name: 'Un dado más' });
+    await userEvent.click(more);
+    await userEvent.click(more);
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('6'));
+    expect(more).toBeDisabled();
+    expect(screen.getByText(/Tope: 2 dados por herramientas/)).toBeInTheDocument();
+    // Se capa la subida y nunca la bajada: el «−» sigue vivo.
+    const less = screen.getByRole('button', { name: 'Un dado menos' });
+    expect(less).toBeEnabled();
+    await userEvent.click(less);
+    await waitFor(() => expect(more).toBeEnabled());
+  });
+
   it('ofrece la especialidad de ESA criatura y sólo cuando la tiene', async () => {
     setup();
     await userEvent.click(screen.getByRole('button', { name: 'Combate' }));

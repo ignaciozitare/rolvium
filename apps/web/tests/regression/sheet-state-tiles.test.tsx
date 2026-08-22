@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Sheet } from '@rolvium/ui';
 import type { SheetSchema } from '@rolvium/core';
-import { sheetSchema } from '@rolvium/system-plenilunio';
+import { sheetSchema, newSheet, plenilunio } from '@rolvium/system-plenilunio';
 import { renderWithProviders, screen } from '../helpers/render';
 
 /**
@@ -76,19 +76,35 @@ describe('regresión · tarjetas de los números calculados de la ficha', () => 
   });
 
   /**
-   * Actualizado 2026-08-19 (revisión de Estado contra el PDF): la pareja «penalización + Resistencia
-   * recuperable» ya no existe — `recoveryMax` era el MISMO número que `resistanceMax` con otro nombre
-   * (p.101), así que se fusionaron. Los tres calculados del cuerpo van ahora en una tanda seguida, y
-   * ninguna tarjeta se queda sola en su fila.
+   * Corregido el 2026-08-21 contra el PDF (orden del dueño: «el manual pdf manda»). El 2026-08-19 se
+   * fusionaron `resistanceMax` y `recoveryMax` creyendo que eran el mismo número; no lo son. La PISTA es
+   * 3×Aguante y la fija la creación (p.25); el ×2/×1 sale sólo bajo «RECUPERACIÓN» (p.101) y limita lo que
+   * te devuelve un descanso. Los CUATRO calculados van seguidos —primero lo que mide el cuerpo, luego lo
+   * que arrastra el estado de salud— y llenan su fila de tarjetas sin dejar ninguna descolgada.
    */
-  it('Plenilunio deja los tres calculados del cuerpo SEGUIDOS, y sin campos editables en medio', () => {
+  it('Plenilunio deja los cuatro calculados del cuerpo SEGUIDOS, y sin campos editables en medio', () => {
     const state = sheetSchema.sections.find(s => s.id === 'state');
     const ids = (state?.fields ?? []).filter(f => !f.hidden).map(f => f.id);
 
     expect(ids.indexOf('resistanceMax')).toBe(ids.indexOf('endurance') + 1);
     expect(ids.indexOf('dicePenalty')).toBe(ids.indexOf('resistanceMax') + 1);
-    // El número que se contaba dos veces ya no está
-    expect(ids).not.toContain('recoveryMax');
+    // El que se borró por error vuelve, y pegado a la penalización: los dos los mueve el estado de salud
+    expect(ids.indexOf('recoveryMax')).toBe(ids.indexOf('dicePenalty') + 1);
+  });
+
+  /**
+   * El fallo que vio el dueño en la app: Karen, HERIDA, enseñaba 12 casillas en vez de 18 — la pista se le
+   * encogía al herirse. La pista no se encoge (p.25); lo que baja es lo que le devuelve un descanso (p.101).
+   * Se prueba de punta a punta —motor + ficha— porque el fallo sólo se ve al contar las casillas pintadas.
+   */
+  it('regresión · herida, la pista NO encoge: 18 casillas y la tarjeta del descanso dice 12', () => {
+    const sheet = { ...newSheet(), fortitude: { value: 4, specialties: [] }, will: { value: 2, specialties: [] }, health: 'wounded', resistance: 18 };
+    const d = plenilunio.engine.derived(sheet) as Record<string, unknown>;
+    expect(d).toMatchObject({ endurance: 6, resistanceMax: 18, recoveryMax: 12 });
+
+    const { container } = mount(sheetSchema, sheet, d);
+    expect(container.querySelectorAll('.rv-sheet-boxes button')).toHaveLength(18);
+    expect(screen.getByText('18 de 18')).toBeInTheDocument();
   });
 
   /**

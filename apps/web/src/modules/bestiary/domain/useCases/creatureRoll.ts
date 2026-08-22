@@ -54,7 +54,7 @@ export type PoolFor = (sheet: Record<string, unknown>, action: { stat: string; o
  * salud. Una criatura lleva Resistencia, y el manual no le resta dados por estar dañada — restárselos sería
  * inventarse una regla que el libro no tiene.
  */
-const sheetOf = (entry: BestiaryEntry): Record<string, unknown> =>
+export const sheetOf = (entry: BestiaryEntry): Record<string, unknown> =>
   ({
     ...entry.data.stats, health: 'healthy', destiny: 0, size: 'normal',
     // Sus capacidades viajan con la ficha porque hay reglas que el motor aplica solo a partir de ellas
@@ -187,8 +187,20 @@ export function creatureAttackRequest(entry: BestiaryEntry, choice: CreatureAtta
     options: {
       destinyDice: 0,
       difficulty: Math.max(0, Math.floor(choice.difficulty)),
-      // Los dados que pone el director, dichos como diferencia con su Combate para no recalcular el puñado.
-      extraDice: dice - combat,
+      /**
+       * Los dados que pone el director, dichos como diferencia con su Combate para no recalcular el puñado.
+       * Van en DOS sitios distintos a propósito, y no en uno solo, porque el techo de dados extra (p.87) sólo
+       * capa lo que se añade a mano:
+       *
+       *  - El **ataque impreso** de su caja («Mandoble 11») es Combate más la bonificación del arma (p.97),
+       *    así que su diferencia con el Combate va donde va la de cualquier arma: en `bonusDice`, que no
+       *    gasta del techo —igual que ya hacía `creatureRollRequest`—. Metido en `extraDice` se lo comía el
+       *    techo: Luz-Malefic ataca a dos manos con 10 y su Combate es 6, y habría tirado 8 (p.163).
+       *  - Lo que el director sube o baja **a mano** sobre ese puñado impreso sí es un dado extra, y sí tiene
+       *    techo. Negativo es legítimo y no se toca: así reparte su Combate entre los ataques del turno (p.94).
+       */
+      bonusDice: attack ? attack.attack - combat : 0,
+      extraDice: dice - (attack ? attack.attack : combat),
       ranged: choice.range !== null && choice.range !== 'melee',
       ...(choice.range && choice.range !== 'melee' ? { range: choice.range } : {}),
       weaponId: attack ? attack.label : 'catalog.weapons.unarmed',

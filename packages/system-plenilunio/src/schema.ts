@@ -14,7 +14,12 @@ export const SHEET_VERSION = '1';
 /** Value stored under each stat field id (`fortitude`, `combat`…). */
 export interface StatValue { value: number; specialties: string[] }
 /** Row of the `weapons` table. `id` is a catalog weapon id (or a custom id when `custom` is set). */
-export interface WeaponRow { id: string; ammo: number | null; custom?: { label: string; bonus: number; damage: number; strength: boolean; range: string; magazine: number | null } }
+/**
+ * `ammo` es lo que hay EN el cargador y `reserve` las balas sueltas que llevas encima; recargar mueve de la
+ * segunda al primero. `reserve` faltaba en el tipo aunque `reloadWeapon` ya lo leía y lo escribía, así que
+ * nada avisaba de que la ficha no lo estuviera creando nunca (dueño, 2026-08-21).
+ */
+export interface WeaponRow { id: string; ammo: number | null; reserve?: number | null; custom?: { label: string; bonus: number; damage: number; strength: boolean; range: string; magazine: number | null } }
 /** Row of the `gifts` list. */
 export interface GiftRow { id: string; level: number }
 /** Row of the `equipment` list. */
@@ -65,18 +70,21 @@ export const sections: SectionDef[] = [
   // fortuna, experiencia) con sus calculados debajo.
   // Los numeros CALCULADOS van SEGUIDOS: la ficha agrupa cada tanda en una fila de tarjetas cuadradas
   // centradas (`groupTiles` → `rv-sheet-tiles`), y una tarjeta sola en su fila se ve descolgada.
-  // «Resistencia recuperable descansando» YA NO EXISTE: era el mismo numero que «Resistencia maxima»
-  // con otro nombre (p.101, RULES.md §6.3). Y «Inconsciente» tampoco: no se elige a mano — sale como
-  // aviso bajo las lunas (`note`). Al salir los dos de la rejilla, Destino · Fortuna · Experiencia
-  // caben en UNA fila de tres, que es justo como los pidio el dueno (2026-08-19).
+  // «Resistencia recuperable descansando» VUELVE (2026-08-21, corregido contra el PDF): NO es el mismo
+  // numero que «Resistencia maxima». La maxima es la PISTA —3 x Aguante, fijada al crear el personaje,
+  // p.25— y la recuperable es hasta donde te sube DESCANSAR segun el estado (x3/x2/x1, p.101). Coinciden
+  // sano y magullado, y se separan en cuanto el personaje se hiere. RULES.md §6.3.
+  // «Inconsciente» sigue fuera: no se elige a mano — sale como aviso bajo las lunas (`note`). Destino ·
+  // Fortuna · Experiencia siguen cabiendo en UNA fila de tres, que es como los pidio el dueno.
   { id: 'state', label: 'sheet.sections.state', layout: 'grid', fields: [
     { id: 'endurance', type: 'number', label: 'sheet.state.endurance', ref: 'endurance', derived: true },
-    // `ref: 'recovery'` (p.101) y no `'resistance'` (p.98): este numero SALE de la tabla de
-    // recuperacion —lo baja el estado de salud—, y al desaparecer «Resistencia recuperable» esa
-    // referencia se quedo sin ningun campo que la enseñara. Asi el tooltip explica por que pone 12
-    // y no 18. La regla base de la Resistencia sigue en las casillas, que llevan `ref: 'resistance'`.
-    { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'recovery', derived: true },
+    // La PISTA: 3 x Aguante siempre (p.25), asi que su referencia vuelve a ser `'resistance'`. La tabla
+    // de recuperacion (p.101) la enseña el campo de abajo, que es el que de verdad sale de ella.
+    { id: 'resistanceMax', type: 'number', label: 'sheet.state.resistanceMax', ref: 'resistance', derived: true },
+    // Los dos que arrastra el ESTADO DE SALUD, uno al lado del otro: los dados que pierdes y lo que te
+    // devuelve un descanso. Con los cuatro seguidos la tanda de calculados llena su fila de tarjetas.
     { id: 'dicePenalty', type: 'number', label: 'sheet.state.dicePenalty', ref: 'health', derived: true },
+    { id: 'recoveryMax', type: 'number', label: 'sheet.state.recoveryMax', ref: 'recovery', derived: true },
     { id: 'resistance', type: 'boxes', label: 'sheet.state.resistance', ref: 'resistance', min: 0, max: 66 },
     // El sexto nivel de salud del manual (p.101) NO es una fase de luna: se puede estar Herido E
     // Inconsciente a la vez, y no se elige — lo calcula `applyDamage` al quedarse sin Resistencia.
@@ -110,10 +118,12 @@ export const sections: SectionDef[] = [
       // `derived` aquí no significa «calculado del catálogo», significa «no editable en la tabla»:
       // la celda pinta el valor que la fila ya guarda.
       { id: 'ammo', type: 'counter', label: 'sheet.weapons.ammo', min: 0, derived: true, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
-      // La Municion no pasa de lo que cabe en el cargador (dueno, 2026-08-21): sin techo el contador
-      // subia sin fin, y recargar nunca podia traspasar mas de una carga de todos modos. Se capa la
-      // SUBIDA, nunca la bajada: una ficha guardada con mas balas conserva las suyas y puede gastarlas.
-      { id: 'reserve', type: 'counter', label: 'sheet.weapons.reserve', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null, maxForRow: row => weaponById(str(row['id']))?.data.magazine ?? undefined },
+      // La Municion es lo que llevas ENCIMA y NO tiene techo (dueno, 2026-08-21): «puedes tener una
+      // mochila llena de balas y tu cargador un limite de 2». El 2026-08-21 se le habia puesto de tope
+      // la capacidad del cargador y era un sinsentido — confundia la mochila con el cargador.
+      // El techo que si existe es el del CARGADOR, y ya lo aplica `reloadWeapon`: al recargar solo
+      // traspasa lo que cabe (`magazine - lo que ya hay`). Ahi es donde vive el limite del libro (p.97).
+      { id: 'reserve', type: 'counter', label: 'sheet.weapons.reserve', min: 0, appliesToRow: row => weaponById(str(row['id']))?.data.magazine != null },
     ] },
   ] },
   { id: 'gifts', label: 'sheet.sections.gifts', layout: 'stack', span: 2, fields: [

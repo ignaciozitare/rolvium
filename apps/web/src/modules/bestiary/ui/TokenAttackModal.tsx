@@ -5,7 +5,7 @@ import { autoSuccessOptions, capabilityLevel, rangeForMetres, RANGE_DIFFICULTY }
 import type { CapabilityId } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { initialsOf } from '@/modules/maps/domain/useCases/mapRules';
-import { creatureAttackRequest } from '../domain/useCases/creatureRoll';
+import { creatureAttackRequest, sheetOf } from '../domain/useCases/creatureRoll';
 import { errorText } from '../domain/useCases/errorText';
 import { resistanceOf } from '../domain/useCases/bestiaryRules';
 import type { BestiaryEntry } from '../domain/entities/BestiaryEntry';
@@ -72,9 +72,19 @@ export function TokenAttackModal({ entry, system, targets, night = false, onAtta
   const autoSuccesses = active.reduce((n, o) => n + o.level, 0);
   /** El puñado por defecto: su ataque impreso si lo tiene, y si no su Combate a secas. */
   const base = attack ? attack.attack : combat;
+  /**
+   * El techo de los dados que el director añade A MANO sobre ese puñado lo pone el SISTEMA
+   * (`engine.extraDiceMax`): en Plenilunio, «uno o dos» por herramientas (p.87), porque el libro no da un
+   * máximo global. Quien recorta de verdad es `poolFor`, así que sin apagar el «+» este modal enseñaría un
+   * número que no es el que se tira —y cuerpo a cuerpo se lo diría además al jugador en su aviso—.
+   * El ataque impreso NO gasta de este techo: viaja como bonificación del arma (`creatureAttackRequest`).
+   * Se capa la SUBIDA y nunca la bajada: el «−» sigue vivo para repartir su Combate en el turno (p.94).
+   */
+  const cap = system.engine.extraDiceMax?.(sheetOf(entry), { stat: 'combat' }) ?? null;
 
   const [targetId, setTargetId] = useState<string | null>(targets[0]?.id ?? null);
   const [dice, setDice] = useState(base);
+  const atCap = cap !== null && dice - base >= cap.max;
   const [visibility] = useState<RollVisibility>('table');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -165,12 +175,14 @@ export function TokenAttackModal({ entry, system, targets, night = false, onAtta
                         disabled={dice <= 0} onClick={() => setDice(n => Math.max(0, n - 1))}>−</button>
                 <output className="bs-roll-n" aria-live="polite">{dice}</output>
                 <button type="button" className="bs-btn" aria-label={t('bestiary.roll.more')}
-                        onClick={() => setDice(n => n + 1)}>+</button>
+                        disabled={atCap} onClick={() => setDice(n => n + 1)}>+</button>
                 <span className="bs-roll-from">
                   {attack
                     ? t('bestiary.attack.fromAttack', { name: ts(attack.label), n: String(base) })
                     : t('bestiary.attack.from', { n: String(combat) })}
                 </span>
+                {/* De dónde sale el tope, y sólo al llegar a él. */}
+                {atCap && cap && <span className="bs-roll-from">{ts(cap.reason)}</span>}
               </div>
 
               {autoOptions.length > 0 && (

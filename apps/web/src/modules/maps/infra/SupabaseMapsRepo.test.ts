@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseMock } from '../../../../tests/helpers/supabaseMock';
 import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapSceneRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
 
-const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, lighting: 'day' as const, night_radius_m: 10, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
+const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, lighting: 'day' as const, night_radius_m: 10, solid_walls: false, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
 const TOKEN_ROW = { id: 'tk-1', scene_id: 'sc-1', campaign_id: 'c1', character_id: 'ch-karen', bestiary_ref: null, bestiary_entry_id: null, name: 'Karen', image_url: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlled_by: 'u-pip', vision_radius: null, state: {} };
 const WALL_ROW = { id: 'w-1', scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visible_players: false, kind: 'wall' as const, blocks_sight: true, blocks_move: true, is_open: false };
 const DRAWING_ROW = { id: 'd-1', scene_id: 'sc-1', campaign_id: 'c1', author_id: 'u-pip', kind: 'stroke' as const, data: { points: [[1, 2]] as [number, number][] }, color: '#c9a84c', width: 2, created_at: 't' };
@@ -17,6 +17,10 @@ describe('SupabaseMapsRepo — mappers', () => {
     expect(mapSceneRow(SCENE_ROW)).toMatchObject({ id: 'sc-1', campaignId: 'c1', bgColor: '#4a4a3e', bgTransform: { mode: 'cover' }, grid: { size: 27 }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, visiblePlayers: false });
     // a row written before slice 2 still reads as a plain closed wall by day
     expect(mapSceneRow({ ...SCENE_ROW, lighting: null as never, night_radius_m: null as never })).toMatchObject({ lighting: 'day', nightRadiusM: 10 });
+    // Y una escrita antes de la rebanada 4 se lee como «paredes NO sólidas», que es como se comportaba.
+    expect(mapSceneRow(SCENE_ROW).solidWalls).toBe(false);
+    expect(mapSceneRow({ ...SCENE_ROW, solid_walls: true }).solidWalls).toBe(true);
+    expect(mapSceneRow({ ...SCENE_ROW, solid_walls: null as never }).solidWalls).toBe(false);
     expect(mapSceneRow({ ...SCENE_ROW, bg_transform: null as never, grid: null as never }).grid).toEqual({ size: 27, visible: true });
     expect(mapTokenRow(TOKEN_ROW)).toMatchObject({ id: 'tk-1', sceneId: 'sc-1', characterId: 'ch-karen', controlledBy: 'u-pip', x: 10, y: 11, state: {} });
     // El enlace al encuentro propio (H5). Una fila escrita antes de la columna lo lee como «ninguno».

@@ -851,6 +851,10 @@
     "reserve": {
       "hide": "Hide the pool",
       "show": "Show the pool"
+    },
+    "solidWalls": {
+      "on": "Solid walls · tokens cannot pass through",
+      "off": "Walls let tokens through · click to make them solid"
     }
   },
   "bestiary": {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseMapsRepo } from './SupabaseMapsRepo.js';
 
-const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', width: 1080, height: 675, grid: { size: 27, visible: true }, fog_mode: 'vision', lighting: 'night', night_radius_m: 12 };
+const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', width: 1080, height: 675, grid: { size: 27, visible: true }, fog_mode: 'vision', lighting: 'night', night_radius_m: 12, solid_walls: true };
 const WALL_ROWS = [
   { id: 'w-1', x1: 0, y1: 0, x2: 10, y2: 0, blocks_sight: true, blocks_move: true, is_open: false },
   { id: 'w-2', x1: 0, y1: 9, x2: 10, y2: 9, blocks_sight: false, blocks_move: true, is_open: true },
@@ -27,7 +27,7 @@ function fakeDb(rows: Record<string, unknown>) {
 describe('SupabaseMapsRepo (service role)', () => {
   it('reads the scene with its light and grid, falling back to the default grid size', async () => {
     expect(await new SupabaseMapsRepo(fakeDb({ maps_scenes: SCENE_ROW }).db).getScene('sc-1'))
-      .toEqual({ id: 'sc-1', campaignId: 'c1', width: 1080, height: 675, gridSize: 27, fogMode: 'vision', lighting: 'night', nightRadiusM: 12 });
+      .toEqual({ id: 'sc-1', campaignId: 'c1', width: 1080, height: 675, gridSize: 27, fogMode: 'vision', lighting: 'night', nightRadiusM: 12, solidWalls: true });
     expect((await new SupabaseMapsRepo(fakeDb({ maps_scenes: { ...SCENE_ROW, grid: null } }).db).getScene('sc-1'))?.gridSize).toBe(27);
     expect(await new SupabaseMapsRepo(fakeDb({}).db).getScene('nope')).toBeNull();
   });

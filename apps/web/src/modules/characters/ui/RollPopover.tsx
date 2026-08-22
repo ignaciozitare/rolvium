@@ -81,6 +81,21 @@ export function RollPopover({ system, data, intent, anchor, pool, baseOptions, t
   useEffect(() => { setDice(base); }, [base]);
 
   const extraDice = dice - base;
+  /**
+   * El techo de los dados que se pueden añadir a mano lo pone el SISTEMA, con su porqué y su página
+   * (`engine.extraDiceMax`): el manual de Plenilunio da «uno o dos» por herramientas (p.87) y hasta cuatro
+   * por atención médica en la recuperación (p.101), y no un máximo global. Sin esto el «+» no tenía techo
+   * ninguno y el dueño llegó a **30 dados con Combate 4** desde el desplegable de disparar (2026-08-21).
+   *
+   * La pantalla sólo APAGA el botón y dice de dónde sale el tope: quien recorta de verdad es `poolFor`. Y
+   * como una tirada de personaje lleva `characterId`, el servidor rehace ahí los grupos con ese mismo
+   * `poolFor` (`performRoll`), así que **en esta pantalla** el techo no vive en el navegador — lección de la
+   * tanda anterior, donde el de los dados de defensa sí vivía sólo aquí.
+   * Se capa la SUBIDA y nunca la bajada: `−` sigue vivo siempre.
+   */
+  const cap = statId ? system.engine.extraDiceMax?.(data, { stat: statId, options: optionsWith(0, 0) }) ?? null : null;
+  const capPage = cap?.ref ? system.references[cap.ref]?.page : undefined;
+  const atCap = cap !== null && extraDice >= cap.max;
   const request = previewRequest(system, data, intent, optionsWith(extraDice, picked));
   const total = diceOf(request, ['own', 'destiny']);
   const manual = t('characters.sheet.manual');
@@ -158,7 +173,7 @@ export function RollPopover({ system, data, intent, anchor, pool, baseOptions, t
                     disabled={dice <= 0} onClick={() => setDice(n => Math.max(0, n - 1))}>−</button>
             <output className="ch-pop-n" aria-live="polite">{dice}</output>
             <button type="button" className="rv-sheet-btn" aria-label={t('characters.roll.more')}
-                    onClick={() => setDice(n => n + 1)}>+</button>
+                    disabled={atCap} onClick={() => setDice(n => n + 1)}>+</button>
             {origin && (
               <span className="ch-pop-from">
                 {t('characters.roll.from', { stat: ts(origin.statLabel), n: String(origin.statValue) })}
@@ -208,6 +223,8 @@ export function RollPopover({ system, data, intent, anchor, pool, baseOptions, t
         <div className="ch-pop-foot">
           <span className="ch-pop-extra">
             {extraDice >= 0 ? t('characters.roll.extra', { n: String(extraDice) }) : t('characters.roll.fewer', { n: String(-extraDice) })}
+            {/* De dónde sale el tope, y sólo al llegar a él: en el resto del tiempo no hace falta decirlo. */}
+            {atCap && cap && <em className="ch-pop-hint">{ts(cap.reason)}{capPage !== undefined && ` · ${manual} p.${capPage}`}</em>}
           </span>
           <button type="button" className="rv-sheet-btn gold" disabled={busy} onClick={() => { void fire(); }}>
             {busy ? t('common.saving')

@@ -78,6 +78,24 @@ describe('table tabs — sheet / create / group', () => {
     await userEvent.setup().click(within(karen).getByRole('button', { name: 'Ver ficha' }));
     expect(onView).toHaveBeenCalledWith(expect.objectContaining({ id: 'ch-karen' }));
   });
+
+  /**
+   * Regresión (Review, 2026-08-21). «El grupo» era la ÚNICA vista que leía la columna `derived` guardada
+   * en vez de recalcularla de la ficha, y esa columna se queda vieja en cuanto cambia una regla. Con la
+   * Resistencia máxima corregida a 3×Aguante siempre (p.25, RULES.md §6.3), toda ficha guardada antes
+   * habría seguido enseñando aquí el techo viejo hasta que alguien la volviera a guardar.
+   * La ficha se monta con un `derived` guardado ADREDE mentiroso —Aguante 2, techo 6— y la barra tiene
+   * que enseñar el de verdad: Aguante 7 → 21. Y ningún punto se pierde: `cur` sale tal cual.
+   */
+  it('la barra recalcula el techo de la ficha, no se fía del `derived` guardado (que se queda viejo)', async () => {
+    const stale = { ...CHARACTER_KAREN, id: 'ch-stale', name: 'Vieja', derived: { endurance: 2, resistanceMax: 6 } };
+    const repo = fakeCharactersRepo([stale]);
+    renderWithProviders(<GroupTab campaignId="c1" system={plenilunio} members={MEMBERS} repo={repo} onView={vi.fn()} />);
+    const row = await screen.findByRole('article', { name: 'Vieja' });
+    expect(within(row).getByRole('meter')).toHaveAttribute('aria-valuemax', '21');
+    expect(within(row).getByRole('meter')).toHaveAttribute('aria-valuenow', '21');
+    expect(within(row).getByText('21 / 21')).toBeInTheDocument();
+  });
 });
 
 /**

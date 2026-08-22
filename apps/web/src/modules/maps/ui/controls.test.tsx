@@ -76,6 +76,30 @@ describe('<CanvasControls>', () => {
     await u.click(screen.getByRole('button', { name: 'Ver como jugador' })); expect(p.onTogglePlayerView).toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Ver/ocultar muros' })).toHaveAttribute('aria-pressed', 'true');
   });
+
+  /**
+   * Paredes sólidas (rebanada 4): un ajuste de ESTA escena, junto a la luz y la niebla, que pone el director.
+   * La etiqueta dice si está encendido o apagado — de un icono no se deduce qué pasa al pulsarlo.
+   */
+  it('el interruptor de paredes sólidas es del director, dice su estado y lo cambia', async () => {
+    const u = userEvent.setup();
+    const p = { onZoomIn: vi.fn(), onZoomOut: vi.fn(), onCenter: vi.fn(), onToggleWalls: vi.fn(), onTogglePlayerView: vi.fn(), showWalls: true, playerView: false, onSolidWalls: vi.fn() };
+    // el jugador NO lo ve: no es suyo
+    const { rerender } = renderWithProviders(<CanvasControls {...p} isDm={false} scene={SCENE_WAREHOUSE} />);
+    expect(screen.queryByRole('button', { name: /paredes/i })).not.toBeInTheDocument();
+
+    rerender(<CanvasControls {...p} isDm scene={{ ...SCENE_WAREHOUSE, solidWalls: false }} />);
+    const off = screen.getByRole('button', { name: 'Paredes atravesables · pulsa para hacerlas sólidas' });
+    expect(off).toHaveAttribute('aria-pressed', 'false');
+    await u.click(off);
+    expect(p.onSolidWalls).toHaveBeenCalledWith(true);
+
+    rerender(<CanvasControls {...p} isDm scene={{ ...SCENE_WAREHOUSE, solidWalls: true }} />);
+    const on = screen.getByRole('button', { name: 'Paredes sólidas · los tokens no las atraviesan' });
+    expect(on).toHaveAttribute('aria-pressed', 'true');
+    await u.click(on);
+    expect(p.onSolidWalls).toHaveBeenLastCalledWith(false);
+  });
 });
 
 describe('<EncounterMenu>', () => {

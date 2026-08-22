@@ -7,7 +7,7 @@ import {
 import type { CapabilityId, StatId } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { canRoll, specialtiesFor } from '../domain/useCases/bestiaryRules';
-import { creatureBlastRequest, creatureRollRequest, ownDiceOf } from '../domain/useCases/creatureRoll';
+import { creatureBlastRequest, creatureRollRequest, ownDiceOf, sheetOf } from '../domain/useCases/creatureRoll';
 import { errorText } from '../domain/useCases/errorText';
 import type { BestiaryEntry } from '../domain/entities/BestiaryEntry';
 
@@ -95,6 +95,18 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
   }, [entry, stat, specialty, difficulty, extraDice, visibility, system, ts, blastOn, blastLevel, metres, night, autoSuccesses, active, solarWrath, attack]);
 
   const dice = request ? ownDiceOf(request) : 0;
+  /**
+   * El techo de los dados que el director añade a mano lo pone el SISTEMA (`engine.extraDiceMax`): en
+   * Plenilunio, «uno o dos» por herramientas (p.87) y hasta cuatro por atención médica (p.101), porque el
+   * libro no da un máximo global. Sin esto el «+» no tenía techo ninguno, igual que en la ficha.
+   * La pantalla APAGA el botón y `poolFor` recorta al construir la petición. OJO: una tirada de criatura NO
+   * lleva `characterId`, así que el servidor NO la rehace (`performRoll` sólo reconstruye con ficha): aquí el
+   * techo vive de verdad en el navegador. Es un hueco de autoridad ANTERIOR a esto y común a toda tirada de
+   * criatura —los dados salen igual del cliente—, y quien tira es el director, que es su propia mesa.
+   * Anotado en WORK_STATE para decidirlo aparte; no se ensancha en esta tanda.
+   */
+  const cap = stat ? system.engine.extraDiceMax?.(sheetOf(entry), { stat }) ?? null : null;
+  const atCap = cap !== null && extraDice >= cap.max;
 
   const fire = async () => {
     if (!request) return;
@@ -211,7 +223,7 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
                           disabled={extraDice <= 0} onClick={() => setExtraDice(n => Math.max(0, n - 1))}>−</button>
                   <output className="bs-roll-n" aria-live="polite">{dice}</output>
                   <button type="button" className="bs-btn" aria-label={t('bestiary.roll.more')}
-                          onClick={() => setExtraDice(n => n + 1)}>+</button>
+                          disabled={atCap} onClick={() => setExtraDice(n => n + 1)}>+</button>
                   <span className="bs-roll-from">
                     {blastOn
                       ? t('bestiary.roll.fromBlast', { level: String(blastLevel), metres: String(metres) })
@@ -220,6 +232,8 @@ export function CreatureRollPopover({ entry, system, specialtyLabel, onRoll, onC
                         : t('bestiary.roll.from', { stat: t(`bestiary.stat.${stat}`), n: String(stat ? entry.data.stats[stat] ?? 0 : 0) })}
                     {extraDice > 0 && ` · ${t('bestiary.roll.extra', { n: String(extraDice) })}`}
                   </span>
+                  {/* De dónde sale el tope, y sólo al llegar a él. */}
+                  {atCap && cap && <span className="bs-roll-from">{ts(cap.reason)}</span>}
                   {autoSuccesses > 0 && (
                     <span className="bs-auto">{t('bestiary.roll.capabilityAuto', { n: String(autoSuccesses) })}</span>
                   )}

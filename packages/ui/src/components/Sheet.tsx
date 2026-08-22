@@ -523,7 +523,14 @@ function TableField({ f, p, ro, showActions, set, label }: Shared): JSX.Element 
                        las nueve (p.97)— y la tabla pintaba igualmente un contador, así que salían unas
                        Nudilleras con 14 balas. */
                     : c.appliesToRow && !c.appliesToRow(row) ? <span className="rv-sheet-caption">—</span>
-                      : <Cell d={c.maxForRow ? { ...c, max: c.maxForRow(row) ?? c.max } : c} value={row[c.id]} ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}
+                      /* Un contador que SÍ aplica a esta fila pero que la fila todavía no guarda arranca en
+                         su mínimo, no en un guion. `Cell` pinta «—» ante un valor ausente, y para un contador
+                         eso es un callejón sin salida: no hay «+» que pulsar, así que el valor no puede nacer
+                         nunca. Le pasaba a la Munición de cualquier arma guardada antes de que existiera esa
+                         columna — el motor la lee al recargar, pero la ficha no dejaba ponerla (dueño, 2026-08-21). */
+                      : <Cell d={c.maxForRow ? { ...c, max: c.maxForRow(row) ?? c.max } : c}
+                              value={row[c.id] ?? (c.type === 'counter' ? c.min ?? 0 : row[c.id])}
+                              ro={ro} p={p} onChange={v => patchRow(i, c.id, v)} />}
                 </td>
               ))}
               <td><ItemActions f={f} p={p} item={row} i={i} ro={ro} showActions={showActions} list={list} set={set} label={label} /></td>

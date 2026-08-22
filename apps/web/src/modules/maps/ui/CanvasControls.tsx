@@ -15,6 +15,8 @@ interface Props {
   scene?: Scene;
   onFogMode?: (mode: 'vision' | 'manual') => void;
   onLighting?: (lighting: 'day' | 'night') => void;
+  /** Paredes sólidas: si los tokens atraviesan los muros en esta escena (rebanada 4). */
+  onSolidWalls?: (solid: boolean) => void;
 }
 
 function Ctl({ icon, label, onClick, on }: { icon: string; label: string; onClick: () => void; on?: boolean }): JSX.Element {
@@ -40,6 +42,16 @@ export function CanvasControls(p: Props): JSX.Element {
         <Ctl icon={night ? 'dark_mode' : 'light_mode'} on={night}
           label={night ? t('maps.light.night', { m: nightLabelM(p.scene) }) : t('maps.light.day')}
           onClick={() => p.onLighting?.(night ? 'day' : 'night')} />
+      )}
+      {/*
+        * Paredes sólidas, junto a la luz y la niebla porque es de la misma familia: un ajuste de ESTA escena
+        * que pone el director y que cambia lo que puede hacer el jugador. Se dice si está encendido o apagado
+        * en la etiqueta, y no sólo con el icono, porque de un icono no se deduce qué pasa al pulsarlo.
+        */}
+      {p.isDm && p.scene && p.onSolidWalls && (
+        <Ctl icon={p.scene.solidWalls ? 'shield' : 'shield_moon'} on={p.scene.solidWalls}
+          label={p.scene.solidWalls ? t('maps.solidWalls.on') : t('maps.solidWalls.off')}
+          onClick={() => p.onSolidWalls?.(!p.scene!.solidWalls)} />
       )}
       {p.isDm && p.scene && p.onFogMode && (
         <Ctl icon={auto ? 'cloud' : 'cloud_off'} on={auto} label={t('maps.fog.auto')} onClick={() => p.onFogMode?.(auto ? 'manual' : 'vision')} />

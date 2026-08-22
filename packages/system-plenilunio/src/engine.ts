@@ -3,11 +3,11 @@
 // resolverAccion, describirGrado, damage/health, progression) plus the
 // `Engine` object required by the GameSystem port. No I/O, no randomness: the
 // platform generates dice on the server and calls `resolve`.
-import type { ActionDef, DiceGroup, Engine, RollRequest, RollResult, RolledDice, SharedResourceDef, SheetData, SheetPatch } from '@rolvium/core';
+import type { ActionDef, DiceGroup, Engine, ExtraDiceCap, RollRequest, RollResult, RolledDice, SharedResourceDef, SheetData, SheetPatch } from '@rolvium/core';
 import {
   GIFT_IDS, GIFT_MAX_LEVEL, HEALTH_LEVELS, MAX_GIFT_TRADES, RANGE_DIFFICULTY, RECOVERY, armourById, capabilityLevel, hasCapability,
   isMelee, isStatId, sizeMod, weaponById,
-  type CapabilityId, type CreatureCapability, type HealthId, type StatId, type WeaponData,
+  type CapabilityId, type CreatureCapability, type HealthId, type SizeId, type StatId, type WeaponData,
 } from './catalogs';
 import { capabilitiesOf, giftsOf, healthOf, num, statOf, str, weaponsOf, type GiftRow, type WeaponRow } from './schema';
 import { explain } from './explain';
@@ -26,7 +26,7 @@ export const GIFT_ACTIVATION_COST = 1;
 
 // ─── Derived values (manual p.25, p.89, p.98–101) ────────────────────────────
 export interface Derived {
-  endurance: number; resistanceMax: number; fortuneMax: number; dicePenalty: number; healthIndex: number;
+  endurance: number; resistanceMax: number; recoveryMax: number; fortuneMax: number; dicePenalty: number; healthIndex: number;
   protection: number; armourPenalty: number; giftPoints: number;
 }
 export const healthIndexOf = (h: HealthId) => HEALTH_LEVELS.findIndex(l => l.id === h);
@@ -36,12 +36,16 @@ export const healthPenaltyOf = (h: HealthId) => HEALTH_LEVELS[healthIndexOf(h)]?
  * Endurance = Fortitude + Will ± size (min 1); Fortune max = Destiny (p.90, hard cap: «nunca pueden llegar a ser
  * mayores que la puntuación de Destino»).
  *
- * Resistance max = Endurance × the CURRENT health level's factor (p.101, literal): ×3 sano/magullado, ×2 herido,
- * ×1 malherido. No es «lo que cura el descanso» y aparte un tope de 3×Aguante — el libro dice que los puntos
- * máximos «pasan a ser» ese número, así que es EL máximo y el descanso sólo te lleva hasta él. Antes se
- * calculaban los dos por separado (`resistanceMax` = ×3 siempre, `recoveryMax` = el del estado) y la ficha
- * enseñaba lo mismo dos veces con nombres distintos: Karen, herida, salía con «máxima 18» —la de una persona
- * sana, que ella no es— y «recuperable 12». Uno solo, y verdadero (dueño, 2026-08-19; RULES.md §6.3).
+ * **Son DOS números y no uno** (RULES.md §6.3, verificado en el PDF el 2026-08-21):
+ *  - `resistanceMax` = **Aguante × 3, SIEMPRE**. Es el tamaño de la pista, y lo fija la creación del personaje:
+ *    p.25, literal, «Son iguales al triple del Aguante… deja los cuadrados en blanco correspondientes a tu
+ *    Resistencia para poder tacharlos durante el juego». El estado de salud no borra casillas ya dibujadas.
+ *  - `recoveryMax` = Aguante × el factor del estado (×3 sano/magullado, ×2 herido, ×1 malherido). Es hasta dónde
+ *    te sube DESCANSAR, y sale sólo bajo el epígrafe «RECUPERACIÓN» de la p.101, cuyo sujeto es *se recupera*.
+ *
+ * El 2026-08-19 se fusionaron en uno leyendo la frase de la p.101 («sus puntos de Resistencia máximos pasan a ser
+ * el doble…») como si definiera la pista, y Karen, herida, pasó a enseñar 12 casillas en vez de 18. Revertido por
+ * orden del dueño el 2026-08-21: «el manual pdf manda». La lectura completa, con sus tres razones, en RULES.md §6.3.
  */
 export function derived(sheet: SheetData): Derived {
   const endurance = Math.max(1, statOf(sheet, 'fortitude').value + statOf(sheet, 'will').value + sizeMod(sheet.size));
@@ -59,7 +63,8 @@ export function derived(sheet: SheetData): Derived {
   const spent = giftsOf(sheet).reduce((s, g) => s + num(g.level), 0);
   return {
     endurance,
-    resistanceMax: endurance * RECOVERY[health].restFactor,
+    resistanceMax: endurance * 3,
+    recoveryMax: endurance * RECOVERY[health].restFactor,
     fortuneMax: destiny,
     dicePenalty: hasCapability(caps, 'painImmune') ? 0 : healthPenaltyOf(health),
     healthIndex: healthIndexOf(health),
@@ -219,19 +224,100 @@ export function rollBlockOptions(sheet: SheetData): Pick<PlenilunioRollOptions, 
   };
 }
 
+// ─── Extra dice ceiling (manual p.87, p.96, p.101) ───────────────────────────
+/**
+ * Cuántos dados extra puede añadir a mano quien tira. **El libro no da un máximo global**, así que el techo
+ * sale de los casos que sí escribe, uno por uno (orden del dueño, 2026-08-21: «teniendo identificado los
+ * casos … no pones dos, y si alguna habilidad te deja más lo permites»). Antes no había techo ninguno y se
+ * llegaba a **30 dados con Combate 4** desde el desplegable de disparar.
+ *
+ *  - **`tools: 2`** — el caso normal. p.87, literal: «Si el personaje cuenta con herramientas adecuadas o de
+ *    más calidad, **añade uno o dos dados** a la característica del personaje», y **no se acumulan**: «se
+ *    añaden solo los dados que añada la mejor herramienta». Los accesorios de las armas a distancia (miras
+ *    láser, telescópicas, p.96) son lo mismo: el libro dice que dan dados extra y no pone número.
+ *  - **`medical: 4`** — la atención médica. p.101: «el grado de éxito que obtenga [el médico] se convierte en
+ *    dados extra que el jugador del personaje herido añadirá en su **próxima tirada de recuperación**», y la
+ *    tabla de grados de la p.85 llega hasta **4** («de forma absoluta»). La tirada de recuperación es de
+ *    Fortaleza, así que es Fortaleza la que admite hasta 4.
+ *
+ * NO gastan de este techo, porque el motor ya los pone por su cuenta y no son «lo que el jugador añade a
+ * mano»: la **bonificación del arma** cuerpo a cuerpo (p.87/p.97, 1–2 dados, y 3+ las excepcionales de la
+ * p.157) va en `bonusDice`, y los **dados de la reserva de Destino** (p.88–89) van en su propio grupo.
+ */
+export const EXTRA_DICE_MAX = { tools: 2, medical: 4 } as const;
+/**
+ * ⚠ Interpretación: el tope de la atención médica se aplica a **cualquier** tirada de Fortaleza, porque la
+ * app todavía no distingue «tirada de recuperación» de las demás. Peca de generoso en una Fortaleza que no
+ * sea de recuperación, y es preferible a dejar fuera el único caso del libro que pasa de dos.
+ *
+ * Lo que el manual deja EXPRESAMENTE en manos del director —cuántos compañeros pueden apoyar una acción
+ * conjunta, +1 dado cada uno (p.87: «quedará … en la decisión del director de juego»)— no está aquí: la app
+ * no modela la acción conjunta todavía. Cuando se modele, su techo sale de cuántos apoyan.
+ */
+export function extraDiceMax(sheet: SheetData, action: { stat: string; options?: Record<string, unknown> }): ExtraDiceCap {
+  const stat: StatId = isStatId(action.stat) ? action.stat : 'fortitude';
+  return stat === 'fortitude'
+    ? { max: EXTRA_DICE_MAX.medical, reason: 'sheet.roll.extraCap.medical', ref: 'recovery' }
+    : { max: EXTRA_DICE_MAX.tools, reason: 'sheet.roll.extraCap.tools', ref: 'tools' };
+}
+
+// ─── Token size on the map (manual p.25) ─────────────────────────────────────
+/**
+ * Cuántas casillas de ancho ocupa el token de un personaje según su TAMAÑO, la columna «Estatura» de la tabla
+ * de la p.25. Antes todo token nacía de una casilla —un gato y un dragón, igual de grandes— y el dueño los vio
+ * además «demasiado pequeños» (2026-08-21).
+ *
+ * Cómo salen los números. La casilla del mapa mide `METRES_PER_CELL` (1,5 m), así que la huella literal de
+ * cada tamaño es su estatura entre 1,5: diminuto 0,33 · pequeño 0,60 · mediano 1,13 · grande 2,67 · enorme
+ * 5,33 casillas. A eso se le aplica el aumento de LEGIBILIDAD que pidió el dueño —«un 50% más para tamaño
+ * normal»—, que fija el mediano en **1,5 casillas** y multiplica por 1,33 a todos por igual para que las
+ * proporciones del libro se mantengan. Redondeado al cuarto de casilla, que es lo que se distingue en pantalla.
+ *
+ * | Tamaño   | Estatura (p.25) | Huella literal | En el mapa |
+ * |----------|-----------------|----------------|------------|
+ * | Diminuto | 50 cm           | 0,33           | **0,5**    |
+ * | Pequeño  | 90 cm           | 0,60           | **0,75**   |
+ * | Mediano  | 1,7 m           | 1,13           | **1,5**    |
+ * | Grande   | 4 m             | 2,67           | **3,5**    |
+ * | Enorme   | 8 m             | 5,33           | **7**      |
+ *
+ * ⚠ Interpretación: el libro NO da huellas en casillas —da estaturas y un modificador de Aguante—, así que el
+ * paso a casillas y el 1,33 de legibilidad son nuestros. Lo que SÍ es del libro son las proporciones.
+ */
+export const TOKEN_CELLS: Record<SizeId, number> = { tiny: 0.5, small: 0.75, medium: 1.5, large: 3.5, huge: 7 };
+/** `null` cuando la ficha no dice de qué tamaño es: el mapa pone entonces el suyo por defecto. */
+export function tokenCells(sheet: SheetData): number | null {
+  const id = str(sheet.size, '');
+  return (TOKEN_CELLS as Record<string, number | undefined>)[id] ?? null;
+}
+
 /** Builds the RollRequest for a stat: own dice = stat − health penalty + extra + bonus; Destiny and opposition groups tagged. */
 export function poolFor(sheet: SheetData, action: { stat: string; options?: Record<string, unknown> }): RollRequest {
   const stat: StatId = isStatId(action.stat) ? action.stat : 'fortitude';
   const opts: PlenilunioRollOptions = { ...rollBlockOptions(sheet), ...readOptions(action.options), stat };
   const d = derived(sheet);
   const destiny = num(sheet.destiny, 3);
-  const ownCount = Math.max(0, statOf(sheet, stat).value - d.dicePenalty + num(opts.extraDice) + num(opts.bonusDice));
+  /**
+   * El techo de los dados extra se aplica AQUÍ y no en la pantalla: cuando la tirada lleva ficha, el servidor
+   * rehace los grupos con este mismo `poolFor` (`performRoll`, «the client's groups are only a preview»), así
+   * que capándolo en un solo sitio vale igual en el navegador y en el servidor. Es la lección de la tanda
+   * anterior, donde el techo de los dados de defensa vivía SÓLO en el navegador y un `{"defence": 40}` a mano
+   * daba 40 dados. (Una tirada de criatura no lleva ficha y no se rehace: hueco de autoridad anterior a esto.)
+   * **Sólo es un TECHO.** Un `extraDice` NEGATIVO es legítimo y no se toca: es como se dice «tiro con menos
+   * dados de los que tengo», que el libro permite expresamente —el director reparte su Combate entre los
+   * ataques y defensas del turno (p.94)— y es lo que usan el contador de la ficha («N dados menos») y el
+   * ataque desde el token del mapa (`extraDice: dados − Combate`). Se capa la SUBIDA y nunca la bajada.
+   */
+  const extra = Math.min(Math.floor(num(opts.extraDice)), extraDiceMax(sheet, { stat, ...(action.options ? { options: action.options } : {}) }).max);
+  const ownCount = Math.max(0, statOf(sheet, stat).value - d.dicePenalty + extra + num(opts.bonusDice));
   const destinyDice = destiny >= DESTINY_MAX ? 0 : Math.max(0, Math.min(DESTINY_POOL.perTakeMax, Math.floor(num(opts.destinyDice))));
   const opposition = Math.max(0, Math.floor(num(opts.difficulty)));
   const groups: DiceGroup[] = [{ count: ownCount, sides: 6, tag: 'own' }];
   if (destinyDice > 0) groups.push({ count: destinyDice, sides: 6, tag: 'destiny' });
   if (opposition > 0) groups.push({ count: opposition, sides: 6, tag: 'opposition' });
-  const options: PlenilunioRollOptions = { ...opts, destinyDice, armourPenalty: num(opts.armourPenalty), specialty: !!opts.specialty };
+  // `extraDice` se guarda YA RECORTADO: en el Registro tiene que quedar lo que de verdad se tiró, no lo que
+  // alguien pidió (misma corrección que se hizo con `defence_dice` en la tanda anterior).
+  const options: PlenilunioRollOptions = { ...opts, extraDice: extra, destinyDice, armourPenalty: num(opts.armourPenalty), specialty: !!opts.specialty };
   return {
     systemId: SYSTEM_ID, kind: 'system', title: `sheet.stats.${stat}`, groups,
     options: options as unknown as Record<string, unknown>,
@@ -362,20 +448,26 @@ export const refillFortune = (sheet: SheetData): SheetPatch => ({ fortune: deriv
 export function catchBreath(sheet: SheetData): SheetPatch | null {
   if (num(sheet.fortune) < 1) return null;
   const d = derived(sheet);
-  const lost = Math.max(0, d.resistanceMax - num(sheet.resistance));
   /**
-   * Sin `Math.min` contra el máximo: se capa la SUBIDA, nunca la bajada (RULES.md §6.3, igual que
-   * `rest` y las casillas). El tope era inofensivo mientras el máximo era siempre 3×Aguante, pero
-   * desde que lo baja el estado de salud capaba hacia ABAJO: Aguante 5, herido (máximo 10) y
-   * Resistencia 12 —legal: pasar de Sano a Herido no borra puntos ya marcados— daba `lost = 0` y
-   * devolvía 10, o sea que recobrar el aliento te cobraba la Fortuna y te QUITABA dos puntos. Y en
-   * todos los demás casos sobraba: `resistencia + ⌊(máx − resistencia)/2⌋ ≤ máx` por construcción.
-   * (Hallazgo del Review, 2026-08-19.)
+   * Lo perdido se mide contra la PISTA (`resistanceMax`, ×3), no contra `recoveryMax`: recobrar el aliento no es
+   * descansar —es un punto de Fortuna «para sacar fuerzas de flaqueza»— y la p.89 no le pone el tope del estado
+   * de salud, sólo dice «la mitad de los puntos de Resistencia perdidos» (RULES.md §6.3).
+   *
+   * Sin `Math.min` contra el máximo: se capa la SUBIDA, nunca la bajada (misma regla que `rest` y las casillas).
+   * Con la pista fija en ×3 el tope volvería a sobrar —`resistencia + ⌊(máx − resistencia)/2⌋ ≤ máx` por
+   * construcción—, pero una ficha guardada puede llevar `resistance > resistanceMax` si se le baja Fortaleza o
+   * Voluntad después, y ahí el `Math.min` cobraría la Fortuna y QUITARÍA puntos. (Hallazgo del Review, 2026-08-19.)
    */
+  const lost = Math.max(0, d.resistanceMax - num(sheet.resistance));
   return { fortune: num(sheet.fortune) - 1, resistance: num(sheet.resistance) + Math.floor(lost / 2) };
 }
-/** Rest after the scene (p.101): Resistance back to what the current health level allows (×3 / ×2 / ×1 Endurance). */
-export const rest = (sheet: SheetData): SheetPatch => ({ resistance: Math.max(num(sheet.resistance), derived(sheet).resistanceMax), unconscious: 'no' });
+/**
+ * Rest after the scene (p.101): Resistance back up to `recoveryMax` — ×3 Endurance sano/magullado, ×2 herido,
+ * ×1 malherido. NUNCA hasta `resistanceMax`: es justo el número que la p.101 recorta, y subir hasta la pista
+ * entera dejaría curado del todo a un personaje malherido con sólo pasar la escena.
+ * Se capa la subida y nunca la bajada: descansar no quita Resistencia ya marcada (RULES.md §6.3).
+ */
+export const rest = (sheet: SheetData): SheetPatch => ({ resistance: Math.max(num(sheet.resistance), derived(sheet).recoveryMax), unconscious: 'no' });
 
 /** Ammo bookkeeping for ranged weapons (manual p.97). */
 export function weaponData(row: WeaponRow): WeaponData | null {
@@ -531,7 +623,7 @@ export const attackActionFor = (row: WeaponRow): 'attack.melee' | 'attack.ranged
 
 export const engine: Engine = {
   derived: sheet => ({ ...derived(sheet) }),
-  poolFor, resolve, applyDamage,
+  poolFor, extraDiceMax, tokenCells, resolve, applyDamage,
   progression: { cost: progressionCost, apply: progressionApply },
   sharedResources, actions,
   explain,

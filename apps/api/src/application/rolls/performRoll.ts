@@ -52,7 +52,11 @@ export async function performRoll(deps: PerformRollDeps, input: PerformRollInput
   const stat = typeof request.options?.['stat'] === 'string' ? (request.options['stat'] as string) : null;
   if (system && sheet && stat) {
     const rebuilt = system.engine.poolFor(sheet, { stat, options: request.options ?? {} });
-    effective = { ...request, groups: rebuilt.groups, sharedResources: rebuilt.sharedResources ?? request.sharedResources ?? {} };
+    // Las OPCIONES también salen de `poolFor`, no del cliente: son las que el Registro guarda y las que el
+    // desglose vuelve a leer dentro de un mes, así que tienen que decir lo que de verdad se tiró. Con las del
+    // cliente, un `extraDice: 26` recortado a 2 se tiraba como 2 y se GUARDABA como 26 — el mismo fallo que
+    // ya se corrigió con `defence_dice` en los ataques.
+    effective = { ...request, groups: rebuilt.groups, options: rebuilt.options ?? request.options ?? {}, sharedResources: rebuilt.sharedResources ?? request.sharedResources ?? {} };
     for (const def of system.engine.sharedResources ?? []) {
       const rolled = effective.groups.filter(g => g.tag === def.id).reduce((n, g) => n + g.count, 0);
       if (rolled > (effective.sharedResources?.[def.id] ?? 0)) return { ok: false, code: 'FORBIDDEN' };

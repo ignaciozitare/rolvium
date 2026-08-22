@@ -199,4 +199,28 @@ describe('creatureAttackRequest — atacar desde el token (`.pen` columna 6)', (
     const req = creatureAttackRequest(ogre(), atk({ attack, solarWrath: 3 }), poolFor, 'x');
     expect(req.options).toMatchObject({ weaponId: 'catalog.creatureAttacks.espada', weaponDamage: 9, solarWrath: 3 });
   });
+
+  /**
+   * Regresión del techo de dados extra (2026-08-21). El ataque impreso es Combate más la bonificación del
+   * arma (p.97), así que va como bonificación y NO gasta del techo de dados extra del manual («uno o dos»
+   * por herramientas, p.87). Con el ataque metido en `extraDice` se lo comía el techo: Luz-Malefic ataca a
+   * dos manos con 10 y su Combate es 6 (p.163), y tiraba 8 dados en vez de 10.
+   */
+  it('el ataque impreso NO gasta del techo de dados extra: tira sus dados enteros (p.97)', () => {
+    const luz = ogre({ data: { ...ogre().data, stats: { fortitude: 4, combat: 6, will: 5 } } });
+    const attack = { label: 'catalog.creatureAttacks.maleficDosManos', attack: 10, damage: 10 };
+    const req = creatureAttackRequest(luz, atk({ dice: 10, attack }), poolFor, 'x');
+    expect(req.groups.find(g => g.tag === 'own')?.count).toBe(10);
+    // La diferencia con su Combate viaja donde viaja la de un arma, y no queda ni un dado extra a mano.
+    expect(req.options).toMatchObject({ bonusDice: 4, extraDice: 0 });
+  });
+
+  /**
+   * Y lo que el director sube A MANO sobre ese puñado sí es un dado extra, con su techo. Se capa la subida
+   * y nunca la bajada: repartir su Combate entre los ataques del turno (p.94) es un `extraDice` negativo.
+   */
+  it('lo añadido a mano sí tiene techo, y bajar dados sigue libre (p.87, p.94)', () => {
+    expect(ownDiceOf(creatureAttackRequest(ogre(), atk({ dice: 9 }), poolFor, 'x'))).toBe(6);   // Combate 4 + 2 de techo
+    expect(ownDiceOf(creatureAttackRequest(ogre(), atk({ dice: 1 }), poolFor, 'x'))).toBe(1);   // bajar no se toca
+  });
 });

@@ -9,6 +9,8 @@ export interface SceneRecord {
   gridSize: number;
   fogMode: 'vision' | 'manual' | 'off';
   lighting: 'day' | 'night';
+  /** Paredes sólidas: si un token puede atravesar un muro en esta escena (rebanada 4). */
+  solidWalls: boolean;
   nightRadiusM: number;
 }
 

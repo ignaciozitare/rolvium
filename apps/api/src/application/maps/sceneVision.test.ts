@@ -49,6 +49,151 @@ describe('computeSceneVision', () => {
     expect(maps.fog[PIP]).toEqual(r.data.explored);
   });
 
+  /**
+   * La posición PROVISIONAL, para que la niebla siga al token mientras se arrastra en vez de saltar al
+   * soltarlo (dueño, 2026-08-22). Es una CONSULTA: contesta qué vería ahí y no guarda nada — ni la posición
+   * del token ni lo explorado. Y sólo vale sobre un token que el que pregunta controla.
+   */
+  it('`at`: contesta la visión desde la posición provisional y NO guarda nada', async () => {
+    const maps = seed();
+    const quieto = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    if (!quieto.ok) throw new Error('expected ok');
+    const guardadoAntes = maps.fog[PIP];
+
+    // al otro lado del muro (x = 135): desde ahí se ve lo que desde su sitio no se veía
+    const movido = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });
+    if (!movido.ok) throw new Error('expected ok');
+    expect(pointInPolygon({ x: 220, y: 148 }, movido.data.vision[0]!)).toBe(true);
+    expect(pointInPolygon({ x: 220, y: 148 }, quieto.data.vision[0]!)).toBe(false);
+    // lo explorado se DEVUELVE ya crecido, para poder pintarlo, pero no se ESCRIBE
+    expect(movido.data.explored.length).toBeGreaterThan(guardadoAntes!.length);
+    expect(maps.fog[PIP]).toEqual(guardadoAntes);
+  });
+
+  /**
+   * PAREDES SÓLIDAS (rebanada 4). La corrección se hace AQUÍ y no en el navegador porque a un jugador no le
+   * llegan los muros secretos (RLS): si el choque se calculase en su pantalla, un muro oculto no le frenaría.
+   * El muro de la escena de prueba es vertical en x = 135 y el token de Pip está a su izquierda.
+   */
+  it('con las paredes sólidas, `at` vuelve CORREGIDO contra el muro', async () => {
+    const solida = seed({ scene: { solidWalls: true } });
+    const r = await computeSceneVision({ maps: solida }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });
+    if (!r.ok) throw new Error('expected ok');
+    // pidió cruzar al otro lado (casilla 7) y se queda a este: no atraviesa el muro
+    expect(r.data.corrected).not.toBeNull();
+    expect(r.data.corrected!.x).toBeLessThan(7);
+    // y la visión que devuelve es la del sitio CORREGIDO, no la del que pidió
+    expect(pointInPolygon({ x: 220, y: 148 }, r.data.vision[0]!)).toBe(false);
+  });
+
+  it('sin paredes sólidas no corrige nada: la escena se comporta como siempre', async () => {
+    const maps = seed();
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });
+    if (!r.ok) throw new Error('expected ok');
+    expect(r.data.corrected).toBeNull();
+    expect(pointInPolygon({ x: 220, y: 148 }, r.data.vision[0]!)).toBe(true);
+  });
+
+  /**
+   * Se contesta `corrected` SÓLO cuando de verdad se ha recortado. Es lo que le dice al navegador «hay muro»
+   * cuando él no puede saberlo — los muros secretos no le llegan. Cazado en la app: con la respuesta puesta
+   * siempre, el navegador no podía distinguir un recorte del eco de lo que él mismo pidió.
+   */
+  it('si el movimiento CABÍA, no se contesta corrección ninguna', async () => {
+    const solida = seed({ scene: { solidWalls: true } });
+    // un paso corto a este lado del muro (x = 135): cabe de sobra
+    const r = await computeSceneVision({ maps: solida }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 2, y: 6 } });
+    if (!r.ok) throw new Error('expected ok');
+    expect(r.data.corrected).toBeNull();
+  });
+
+  it('una puerta ABIERTA deja pasar aunque las paredes sean sólidas', async () => {
+    const abierta = seed({
+      scene: { solidWalls: true },
+      walls: [{ id: 'w-1', x1: 135, y1: 0, x2: 135, y2: 270, blocksSight: true, blocksMove: true, isOpen: true }],
+    });
+    const r = await computeSceneVision({ maps: abierta }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });
+    if (!r.ok) throw new Error('expected ok');
+    // cabe entera, así que no hay nada que corregir
+    expect(r.data.corrected).toBeNull();
+    expect(pointInPolygon({ x: 220, y: 148 }, r.data.vision[0]!)).toBe(true);
+  });
+
+  /**
+   * LA NIEBLA NO APAGA LA FÍSICA (fallo 2 del 2026-08-22). Los `return` de «off» y «manual» salían ANTES del
+   * bloque de paredes sólidas: no devolvían `corrected`, el navegador recibía `null` y —sin muros visibles—
+   * nada frenaba. Un ajuste de niebla apagaba las paredes en silencio, y es un botón que el director tiene al
+   * lado del de paredes sólidas. Nada en la spec dice que dependan una de otra.
+   */
+  it('con niebla «manual» o «off», las paredes sólidas siguen corrigiendo', async () => {
+    for (const fogMode of ['manual', 'off'] as const) {
+      const maps = seed({ scene: { solidWalls: true, fogMode } });
+      const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });
+      if (!r.ok) throw new Error('expected ok');
+      expect(r.data.corrected, `fogMode=${fogMode}`).not.toBeNull();
+      expect(r.data.corrected!.x).toBeLessThan(7);
+    }
+  });
+
+  /**
+   * EL FALLO DEL VÉRTICE (dueño, 2026-08-22): con el barrido anclado a la posición GUARDADA, tras resbalar
+   * hasta el final de un muro la recta origen→dedo seguía cruzándolo y el token no podía doblar la esquina
+   * hasta soltar. `from` — la última posición que este cálculo contestó — mueve el ancla con el token.
+   */
+  it('`from` ancla el barrido donde el token está, no donde empezó el arrastre', async () => {
+    // muro sólo en la mitad de abajo (y 135–270): Pip, guardado en (2,5), queda DETRÁS de él
+    const medio = seed({
+      scene: { solidWalls: true },
+      walls: [{ id: 'w-1', x1: 135, y1: 135, x2: 135, y2: 270, blocksSight: true, blocksMove: true, isOpen: false }],
+    });
+    // sin `from`, la recta guardada→(7,5) cruza el muro: corrige
+    const anclado = await computeSceneVision({ maps: medio }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });
+    if (!anclado.ok) throw new Error('expected ok');
+    expect(anclado.data.corrected).not.toBeNull();
+    // con `from` en (2,0) —ya doblada la esquina por arriba— el camino (2,0)→(7,0) es libre: no corrige
+    const doblado = await computeSceneVision({ maps: medio }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 0, from: { x: 2, y: 0 } } });
+    if (!doblado.ok) throw new Error('expected ok');
+    expect(doblado.data.corrected).toBeNull();
+  });
+
+  /**
+   * La HOLGURA LIBRE que acompaña cada respuesta: hasta esa distancia (en casillas) el centro puede moverse
+   * en cualquier dirección sin tocar muro. El navegador no pinta más allá — sin ella, entre respuesta y
+   * respuesta el token seguía al dedo a ciegas dentro del muro y al llegar la corrección rebotaba atrás.
+   */
+  it('con paredes sólidas, cada respuesta trae la holgura libre alrededor de lo contestado', async () => {
+    const solida = seed({ scene: { solidWalls: true } });
+    // quieto en su casilla (paso legal corto): cabe, y sobra hueco hasta el muro de x = 135
+    const libre = await computeSceneVision({ maps: solida }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 2, y: 6 } });
+    if (!libre.ok) throw new Error('expected ok');
+    expect(libre.data.corrected).toBeNull();
+    // centro en (67.5, 175.5), muro a 67.5 px: 67.5 − radio 13.5 − holgura 0.5 = 53.5 px → en casillas
+    expect(libre.data.clearance).toBeCloseTo(53.5 / 27, 3);
+    // recortado contra el muro: pegado, holgura cero
+    const pegado = await computeSceneVision({ maps: solida }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });
+    if (!pegado.ok) throw new Error('expected ok');
+    expect(pegado.data.corrected).not.toBeNull();
+    expect(pegado.data.clearance).toBeCloseTo(0, 6);
+    // sin física no hay holgura que contar
+    const apagada = await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 2, y: 6 } });
+    if (!apagada.ok) throw new Error('expected ok');
+    expect(apagada.data.clearance).toBeNull();
+  });
+
+  it('sin `at` no hay nada que corregir', async () => {
+    const r = await computeSceneVision({ maps: seed({ scene: { solidWalls: true } }) }, { sceneId: SCENE, userId: PIP });
+    if (!r.ok) throw new Error('expected ok');
+    expect(r.data.corrected).toBeNull();
+  });
+
+  it('`at` sobre un token que NO controlas se ignora: contesta tu visión de siempre', async () => {
+    const maps = seed({ tokens: [PIP_TOKEN, { id: 'tk-nix', x: 7, y: 5, size: 1, controlledBy: NIX }] });
+    const normal = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    const colado = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-nix', x: 7, y: 5 } });
+    if (!normal.ok || !colado.ok) throw new Error('expected ok');
+    expect(colado.data.vision).toEqual(normal.data.vision);
+  });
+
   it('opening the door widens the same token’s vision past the wall', async () => {
     const open = seed({ walls: [{ id: 'w-1', x1: 135, y1: 0, x2: 135, y2: 270, blocksSight: true, blocksMove: true, isOpen: true }] });
     const r = await computeSceneVision({ maps: open }, { sceneId: SCENE, userId: PIP });

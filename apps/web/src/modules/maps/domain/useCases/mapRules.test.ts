@@ -3,8 +3,125 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS,
+  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx,
 } from './mapRules';
+import { plenilunio } from '@rolvium/system-plenilunio';
+
+/**
+ * Prueba del dueño 2026-08-21: los tokens estaban «demasiado pequeños y pegados a la grilla». Dos cosas
+ * distintas, y las dos se fijan aquí:
+ *  · el ancho — «un 50% más para tamaño normal, y escalados por el tamaño de la ficha» (p.25);
+ *  · el sitio — «que el movimiento no dependa de la grilla».
+ */
+/**
+ * Paredes sólidas (rebanada 4, spec § «Rebanada 4»). El dueño pidió «un poco de física, que los tokens no
+ * puedan traspasar las paredes», y eligió: choca TODO EL CUERPO (no el centro) y al topar RESBALA.
+ */
+describe('paredes sólidas: `slideToken`, `moveBlockers`, `tokenRadiusPx`', () => {
+  /** Un muro vertical en x = 100, de y 0 a 200. */
+  const muro = { id: 'w', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 100, y2: 200, visiblePlayers: true, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false };
+  const R = 10;
+
+  it('cruzar el muro avanza hasta quedarse PEGADO a este lado; sin muros pasa entero', () => {
+    // de (50,100) a (150,100): al otro lado. Avanza hasta el contacto (100 − 10 − 0,5 de holgura) y ahí se
+    // queda — NO vuelve al punto de salida, que era el salto que vio el dueño en la app (2026-08-22).
+    const r = slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, [muro]);
+    expect(r.x).toBeCloseTo(89.5, 3);
+    expect(r.y).toBeCloseTo(100, 6);
+    // sin muros no hay física que valga
+    expect(slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, [])).toEqual({ x: 150, y: 100 });
+  });
+
+  it('RESBALA: empujando en diagonal contra el muro, sigue bajando pegado a él', () => {
+    // quiere ir a (150, 160) — cruzando. Avanza hasta tocar y el resto baja a lo largo de la pared.
+    const r = slideToken({ x: 50, y: 100 }, { x: 150, y: 160 }, R, [muro]);
+    expect(r.x).toBeCloseTo(89.5, 3);
+    expect(r.y).toBeCloseTo(160, 3);
+  });
+
+  it('choca TODO EL CUERPO: el gato pasa por el hueco por el que el ogro no cabe', () => {
+    // Dos muros con un hueco de 40 px entre ellos (de y=80 a y=120), y se cruza por el medio.
+    const arriba = { ...muro, id: 'a', y1: 0, y2: 80 };
+    const abajo = { ...muro, id: 'b', y1: 120, y2: 200 };
+    const cruzar = (radio: number) => slideToken({ x: 60, y: 100 }, { x: 140, y: 100 }, radio, [arriba, abajo]);
+    expect(cruzar(8)).toEqual({ x: 140, y: 100 });     // gato: cabe
+    const ogro = cruzar(30);                           // ogro: no cabe — llega hasta tocar y ahí se queda
+    expect(ogro.x).toBeLessThan(100 - 20);
+    expect(ogro.x).toBeGreaterThan(60);
+    expect(ogro.y).toBeCloseTo(100, 6);
+  });
+
+  /**
+   * El reparto: `moveBlockers` decide QUÉ bloquea (mira `blocksMove` y `isOpen`, y el interruptor de la
+   * escena) y `slideToken` bloquea lo que le den. Por eso la puerta abierta se prueba de punta a punta.
+   */
+  it('una puerta ABIERTA deja pasar, y una cerrada no', () => {
+    const puerta = (abierta: boolean) => ({ ...muro, kind: 'door' as const, isOpen: abierta });
+    const cruzar = (abierta: boolean) => slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, moveBlockers([puerta(abierta)], { solidWalls: true }));
+    expect(cruzar(true)).toEqual({ x: 150, y: 100 });
+    const cerrada = cruzar(false); // contra la puerta cerrada te quedas pegado, no vuelves atrás
+    expect(cerrada.x).toBeCloseTo(89.5, 3);
+    expect(cerrada.y).toBeCloseTo(100, 6);
+    expect(moveBlockers([puerta(true)], { solidWalls: true })).toEqual([]);
+    expect(moveBlockers([puerta(false)], { solidWalls: true })).toHaveLength(1);
+    // Una ventana corta el paso aunque NO corte la vista (p.ej. una cristalera).
+    expect(moveBlockers([{ ...muro, kind: 'window', blocksSight: false }], { solidWalls: true })).toHaveLength(1);
+  });
+
+  it('con el interruptor apagado no bloquea NADA: la escena se comporta como siempre', () => {
+    expect(moveBlockers([muro], { solidWalls: false })).toEqual([]);
+    expect(slideToken({ x: 50, y: 100 }, { x: 150, y: 100 }, R, moveBlockers([muro], { solidWalls: false }))).toEqual({ x: 150, y: 100 });
+  });
+
+  /**
+   * Si ya estabas DENTRO de un muro —la escena acaba de volverse sólida, o el director te dejó ahí— no se te
+   * encierra: te puedes mover hasta salir. Encerrar a alguien sería peor que el problema que se arregla.
+   */
+  it('quien ya estaba dentro de un muro no se queda encerrado', () => {
+    expect(slideToken({ x: 100, y: 100 }, { x: 105, y: 100 }, R, [muro])).toEqual({ x: 105, y: 100 });
+  });
+
+  it('el radio del cuerpo sale del ancho del token en casillas', () => {
+    expect(tokenRadiusPx({ size: 1.5 }, 27)).toBe(20.25);
+    expect(tokenRadiusPx({ size: 0.5 }, 27)).toBe(6.75);
+    expect(tokenRadiusPx({ size: 7 }, 27)).toBe(94.5);
+  });
+});
+
+describe('tokens: lo ancho que son y dónde caen (dueño 2026-08-21)', () => {
+  it('por defecto un token ocupa casilla y media, no una', () => {
+    expect(DEFAULT_TOKEN_CELLS).toBe(1.5);
+  });
+  it('la escala sale de la tabla de tamaños del manual (p.25), y el mediano es el 1,5 del dueño', () => {
+    expect(plenilunio.engine.tokenCells!({ size: 'tiny' })).toBe(0.5);
+    expect(plenilunio.engine.tokenCells!({ size: 'small' })).toBe(0.75);
+    expect(plenilunio.engine.tokenCells!({ size: 'medium' })).toBe(DEFAULT_TOKEN_CELLS);
+    expect(plenilunio.engine.tokenCells!({ size: 'large' })).toBe(3.5);
+    expect(plenilunio.engine.tokenCells!({ size: 'huge' })).toBe(7);
+    // Las proporciones son las del libro: un grande mide 4 m y un mediano 1,7 → 2,35 veces. 3,5/1,5 = 2,33.
+    expect(3.5 / 1.5).toBeCloseTo(4 / 1.7, 1);
+    expect(7 / 1.5).toBeCloseTo(8 / 1.7, 1);
+    // Una ficha que no diga de qué tamaño es no inventa nada: manda el del mapa.
+    expect(plenilunio.engine.tokenCells!({})).toBeNull();
+    expect(plenilunio.engine.tokenCells!({ size: 'colosal' })).toBeNull();
+  });
+  it('`tokenPointAt` CENTRA el token en el punto y devuelve fracciones (no se pega a la rejilla)', () => {
+    // Centro de la casilla 2,3 con una huella de 1,5: la esquina queda a 0,75 de distancia.
+    expect(tokenPointAt({ x: 2.5 * 27, y: 3.5 * 27 }, 27, 1.5)).toEqual({ x: 1.75, y: 2.75 });
+    // Un punto cualquiera dentro de una casilla NO cae en su vértice: la fracción se conserva.
+    const p = tokenPointAt({ x: 2 * 27 + 5, y: 3 * 27 + 5 }, 27, 1.5);
+    expect(p.x).toBeCloseTo(1.435, 2);
+    expect(p.y).toBeCloseTo(2.435, 2);
+    // Un token grande se centra igual, y su esquina puede salirse por arriba: es correcto, ocupa 3,5 casillas.
+    expect(tokenPointAt({ x: 27, y: 27 }, 27, 3.5)).toEqual({ x: -0.75, y: -0.75 });
+    // Y sigue quedando centrado: `tokenCenter` devuelve el punto de partida.
+    expect(tokenCenter({ ...tokenPointAt({ x: 100, y: 60 }, 27, 3.5), size: 3.5 }, 27)).toEqual({ x: 100, y: 60 });
+  });
+  /** `tokenCellAt` NO desaparece: sigue siendo lo que se usa cuando algo va de verdad por casillas. */
+  it('`tokenCellAt` sigue redondeando a casilla, para lo que sí va por casillas', () => {
+    expect(tokenCellAt({ x: 2 * 27 + 5, y: 3 * 27 + 5 }, 27)).toEqual({ x: 2, y: 3 });
+  });
+});
 
 describe('mapRules — view & coordinates', () => {
   it('canvas ↔ scene round-trips through zoom/pan', () => {
@@ -140,9 +257,15 @@ describe('mapRules — token factories & search', () => {
     expect(t).toMatchObject({ bestiaryRef: 'ogre', bestiaryEntryId: null, imageUrl: null });
   });
 
-  it('tokenFromBestiary: hidden by default, keeps the catalog id and copies resistance into state', () => {
+  /**
+   * Cambiado el 2026-08-22: un encuentro nace VISIBLE y quien lo tapa es la niebla. Nacía oculto y había que
+   * revelarlo a mano, así que un jugador con la criatura delante no la veía y no había forma de saber por qué
+   * (dueño: «los encuentros el jugador no los ve, no sé por qué»). El ojo sigue estando para esconder algo a
+   * propósito aunque lo tengas a la vista.
+   */
+  it('tokenFromBestiary: nace VISIBLE (lo tapa la niebla), guarda el id del catálogo y copia la Resistencia', () => {
     const t = tokenFromBestiary({ id: 'mutant', label: 'catalog.bestiary.mutant.name', data: { resistance: 12, protection: 2 } }, 'Mutante', 'c1', 'sc-1', { x: 5, y: 5 });
-    expect(t).toMatchObject({ bestiaryRef: 'mutant', name: 'Mutante', visible: false, controlledBy: null, characterId: null, state: { resistance: 12 } });
+    expect(t).toMatchObject({ bestiaryRef: 'mutant', name: 'Mutante', visible: true, controlledBy: null, characterId: null, state: { resistance: 12 } });
     expect(tokenFromBestiary({ id: 'x', label: 'x' }, 'X', 'c1', 'sc-1', { x: 0, y: 0 }).state).toEqual({});
   });
   it('initials and diacritics-insensitive search', () => {

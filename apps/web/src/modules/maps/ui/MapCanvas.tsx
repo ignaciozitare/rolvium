@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, snap, tokenCellAt, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, TokenGlyph, WallShape } from './canvasLayers';
 
@@ -31,8 +31,13 @@ interface Props {
   view: View;
   onViewChange: (v: View) => void;
   nameOf: (userId: string) => string;
-  onDragToken: (id: string, x: number, y: number) => void;
+  /** `x`/`y` es donde el token ESTÁ (ya frenado/corregido); `desired`, a dónde quería ir el dedo. */
+  onDragToken: (id: string, x: number, y: number, desired: { x: number; y: number }) => void;
   onMoveToken: (id: string, x: number, y: number) => void;
+  /** Dónde dice el SERVIDOR que puede estar el token que se arrastra, o `null` si no ha dicho nada. */
+  onServerCorrection?: (tokenId: string) => { x: number; y: number } | null;
+  /** El disco LIBRE que el servidor confirmó: centro + holgura en casillas. No se pinta más allá de él. */
+  onDragBound?: (tokenId: string) => { x: number; y: number; clearance: number } | null;
   onAddDrawing: (kind: DrawingKind, data: Drawing['data']) => void;
   onErase: (id: string) => void;
   onAddWall: (a: Point, b: Point) => void;
@@ -53,6 +58,8 @@ interface Props {
   onAddText?: (at: Point) => void;
   /** Something is waiting to be dropped on the map (a bestiary entry, a PC): the next click places it. */
   placing?: boolean;
+  /** Lo ancho que va a ser el token que se está colocando, para centrarlo bien donde se pulsa. */
+  placingSize?: number;
   /** Encounter / PC placement (cell coordinates); only wired while something is pending. */
   onPlace?: (cell: Point) => void;
   selectedTokenIds: string[];
@@ -78,6 +85,14 @@ type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
 const DISC_TOOLS: Tool[] = ['select', 'measure', 'pencil', 'line', 'rect', 'circle'];
 const DRAW_TOOLS: Record<string, DrawTool> = { pencil: 'stroke', line: 'line', rect: 'rect', circle: 'circle' };
 const PIN_MS = 2500;
+/** Centésima de casilla: suficiente para que el movimiento se vea libre y no manda 14 decimales por la red. */
+const round2 = (v: number): number => Math.round(v * 100) / 100;
+/**
+ * Cuánto puede acercarse el PINTADO al objetivo por encima de lo que se movió el dedo, en casillas por
+ * evento. Es lo que convierte el reenganche tras un borde en un deslizamiento en vez de un salto: a ~60
+ * eventos/s son ~20 casillas/s de cierre — invisible en el arrastre normal, suave cuando hay hueco.
+ */
+const CATCH_UP_CELLS = 0.35;
 /** Brush paints per second, matching the token drag's `DRAG_HZ_MS` (useScene.ts). */
 const PAINT_HZ_MS = 50;
 
@@ -91,6 +106,10 @@ const PAINT_HZ_MS = 50;
 export function MapCanvas(p: Props): JSX.Element {
   const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
+  /** La posición LEGAL del arrastre (freno + corrección + disco): lo que se persiste al soltar. */
+  const idealDrag = useRef<{ id: string; x: number; y: number } | null>(null);
+  /** El `libre` del evento anterior, para medir cuánto se movió el dedo en éste. */
+  const lastLibre = useRef<{ x: number; y: number } | null>(null);
   const [gesture, setGesture] = useState<Gesture | null>(null);
   const [localDrag, setLocalDrag] = useState<{ id: string; x: number; y: number } | null>(null);
   const [measure, setMeasure] = useState<{ a: Point; b: Point } | null>(null);
@@ -188,7 +207,8 @@ export function MapCanvas(p: Props): JSX.Element {
       return;
     }
     // Placing wins over every tool: you already said what goes down, this click only says where.
-    if (e.button === 0 && p.placing && p.onPlace) { p.onPlace(tokenCellAt(s, grid)); return; }
+    // Se coloca CENTRADO donde se pulsa y sin pegarse a la rejilla, igual que se mueve.
+    if (e.button === 0 && p.placing && p.onPlace) { p.onPlace(tokenPointAt(s, grid, p.placingSize)); return; }
     if (e.button === 0 && p.tool === 'select') {
       // Seleccionar: pick a segment (DM only) and grab it, or clear everything.
       const wall = dmSight ? hitWall(p.walls, s, 10 / p.view.zoom) : null;
@@ -254,10 +274,91 @@ export function MapCanvas(p: Props): JSX.Element {
       const l = local(e);
       p.onViewChange({ ...gesture.origin, panX: gesture.origin.panX + l.x - gesture.start.x, panY: gesture.origin.panY + l.y - gesture.start.y });
     } else if (gesture.kind === 'token') {
-      const x = gesture.origin.x + (s.x - gesture.start.x) / grid, y = gesture.origin.y + (s.y - gesture.start.y) / grid;
+      const libre = { x: gesture.origin.x + (s.x - gesture.start.x) / grid, y: gesture.origin.y + (s.y - gesture.start.y) / grid };
+      /**
+       * Paredes sólidas (rebanada 4): el token no atraviesa un muro, y al topar RESBALA pegado a él.
+       *
+       * Se calcula sobre CENTROS y en px de escena, que es donde viven los muros; `localDrag` va en casillas,
+       * así que se entra y se sale por `tokenCenter` / `tokenPointAt`. El director NUNCA choca, esté el
+       * interruptor como esté (decisión del dueño), y con el interruptor apagado `blockers` está vacío y esto
+       * no cambia ni un píxel de lo de antes.
+       *
+       * Esto es el freno PROVISIONAL, con los muros que este navegador conoce: a un jugador no le llegan los
+       * muros secretos, así que la palabra final es del servidor al soltar (spec § «Rebanada 4»).
+       */
+      const dragged = p.tokens.find(tk => tk.id === gesture.id);
+      /**
+       * El freno local barre desde DONDE ESTÁ el token, no desde donde empezó el arrastre: anclado al
+       * origen, pasada la esquina de un muro la recta origen→dedo seguía cruzándolo y el token no podía
+       * doblarla. Barrer paso a paso desde la posición actual es lo que hace que el resbalón pivote solo.
+       *
+       * Y «donde está» es lo LEGAL del evento anterior (`idealDrag`), NUNCA el pintado suavizado: la
+       * persecución del pintado corta esquinas, y si entra a menos del radio de un muro visible, barrer
+       * desde ahí dispara la válvula «ya estabas dentro» de `slideCircle` y apaga el freno local. La física
+       * no lee la pintura — la separación va en un solo sentido.
+       */
+      const ideal = idealDrag.current && idealDrag.current.id === gesture.id ? idealDrag.current : null;
+      const current = ideal ?? (localDrag && localDrag.id === gesture.id ? { x: localDrag.x, y: localDrag.y } : gesture.origin);
+      const frenado = blockers.length > 0 && dragged
+        ? tokenPointAt(
+            slideToken(tokenCenter({ ...current, size: dragged.size }, grid), tokenCenter({ ...libre, size: dragged.size }, grid), tokenRadiusPx(dragged, grid), blockers),
+            grid, dragged.size)
+        : libre;
+      /**
+       * Y por encima de todo manda el SERVIDOR: si contesta una corrección, se obedece, sin condiciones.
+       *
+       * SIN CONDICIONES es la parte importante, y me costó un fallo verlo: a un jugador **no le llegan los
+       * muros secretos** (RLS), y en una escena normal NINGÚN muro es visible — probado en la app, 16 de 16
+       * ocultos. O sea que su `blockers` está vacío y su freno propio no salta nunca. Yo había puesto que la
+       * corrección sólo se aplicara si el navegador ya había frenado por su cuenta: justo al revés de lo que
+       * hace falta, y el token atravesaba las paredes en la app aunque los tests pasaran.
+       *
+       * El servidor sólo contesta cuando de verdad ha recortado algo, así que si hay respuesta, hay muro.
+       *
+       * Y al servidor se le pregunta SIEMPRE por `libre` —el deseo del dedo—, nunca por la posición ya
+       * corregida: por eso `onDragToken` lleva `libre` aparte de `x`/`y`. Si se le preguntara por la posición
+       * corregida, la vería caber —la recortó él—, callaría por la regla de arriba, la corrección se borraría
+       * y el tick siguiente volvería a `frenado`, que sin muros visibles es `libre`: el token oscilaba a
+       * través del muro ~7 veces por segundo, y soltando en el tick malo se quedaba al otro lado.
+       */
+      const server = p.onServerCorrection?.(gesture.id) ?? null;
+      let { x, y } = server ?? frenado;
+      /**
+       * Y NUNCA más allá del disco libre que el servidor confirmó: a este navegador no le llegan los muros
+       * secretos, así que entre respuesta y respuesta el token seguía al dedo a ciegas, se metía en el muro y
+       * al llegar la corrección rebotaba hacia atrás. El disco es convexo: todo lo que se pinte dentro es
+       * legal entero. Sin dato (sin física, director, primer instante) no se recorta nada.
+       */
+      const bound = p.onDragBound?.(gesture.id) ?? null;
+      if (bound) {
+        const dx = x - bound.x, dy = y - bound.y, d = Math.hypot(dx, dy);
+        if (d > bound.clearance) {
+          const k = bound.clearance / d;
+          x = bound.x + dx * k; y = bound.y + dy * k;
+        }
+      }
+      // Hasta aquí, lo LEGAL. Lo que sigue es sólo pintura: al soltar se persiste esto, no lo suavizado.
+      idealDrag.current = { id: gesture.id, x, y };
+      /**
+       * Y el pintado se ACERCA en vez de teletransportarse. Al rozar el borde de una puerta o ventana el
+       * token se engancha un instante mientras el dedo sigue; al liberarse el camino, el hueco entre ambos
+       * se cerraba de golpe — «un salto hacia adelante» (dueño, 2026-08-22). Ahora cada evento cierra el
+       * hueco lo que se movió el dedo más `CATCH_UP_CELLS`: sin hueco el arrastre sigue 1:1 exacto, y el
+       * reenganche es un deslizamiento proporcional al ratón. El primer movimiento del gesto no se capa
+       * (no hay hueco que cerrar, y una corrección tardía del arrastre anterior no debe alargarse).
+       */
+      const prev = localDrag && localDrag.id === gesture.id ? localDrag : gesture.origin;
+      const fingerMove = gesture.moved && lastLibre.current ? Math.hypot(libre.x - lastLibre.current.x, libre.y - lastLibre.current.y) : Infinity;
+      lastLibre.current = libre;
+      const gap = Math.hypot(x - prev.x, y - prev.y);
+      const maxStep = fingerMove + CATCH_UP_CELLS;
+      if (gap > maxStep) {
+        const k = maxStep / gap;
+        x = prev.x + (x - prev.x) * k; y = prev.y + (y - prev.y) * k;
+      }
       setLocalDrag({ id: gesture.id, x, y });
       if (!gesture.moved) setGesture({ ...gesture, moved: true });
-      p.onDragToken(gesture.id, x, y);
+      p.onDragToken(gesture.id, x, y, libre);
     } else if (gesture.kind === 'draw') {
       setGesture(gesture.tool === 'stroke' ? { ...gesture, points: [...gesture.points, [s.x, s.y]], last: s } : { ...gesture, last: s });
     } else if (gesture.kind === 'marquee') {
@@ -308,7 +409,18 @@ export function MapCanvas(p: Props): JSX.Element {
       return;
     }
     if (gesture.kind === 'token') {
-      if (gesture.moved && localDrag) p.onMoveToken(gesture.id, Math.round(localDrag.x), Math.round(localDrag.y));
+      /**
+       * Se guarda DONDE SE SOLTÓ, sin redondear a casilla: el dueño pidió que «el movimiento no dependa de la
+       * grilla» (2026-08-21). Arrastrar ya era libre —`localDrag` lleva fracciones—; era este `Math.round` del
+       * final el que daba el tirón a la rejilla al soltar. La columna es `real`, así que la fracción se guarda.
+       * Se redondea a la centésima de casilla para no mandar 14 decimales en cada movimiento.
+       */
+      // Se suelta en lo LEGAL (freno + corrección + disco), no en el pintado suavizado: si el dedo iba por
+      // delante del deslizamiento, el token acaba donde de verdad podía estar — como siempre hizo.
+      const final = (idealDrag.current && idealDrag.current.id === gesture.id ? idealDrag.current : null) ?? localDrag;
+      if (gesture.moved && localDrag && final) p.onMoveToken(gesture.id, round2(final.x), round2(final.y));
+      idealDrag.current = null;
+      lastLibre.current = null;
       setLocalDrag(null);
     } else if (gesture.kind === 'draw') {
       if (gesture.tool === 'stroke') { if (gesture.points.length > 1) p.onAddDrawing('stroke', { points: gesture.points }); }
@@ -318,7 +430,21 @@ export function MapCanvas(p: Props): JSX.Element {
   };
 
   const wallsShown = dmSight ? (p.showWalls ? p.walls : []) : p.walls.filter(w => w.visiblePlayers);
+  /**
+   * Los muros que hoy cortan el paso en esta escena. Vacío cuando el interruptor está apagado — y **vacío
+   * siempre para el director**, que no choca nunca (decisión del dueño, 2026-08-22). Su contrapartida, dicha
+   * en la spec: el director no puede probar en su pantalla lo que siente un jugador; se mira entrando con una
+   * cuenta de jugador.
+   */
+  const blockers = p.isDm ? [] : moveBlockers(p.walls, p.scene);
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
+  /** Un PJ es un token con ficha de personaje detrás. Los PNJ del bestiario no la tienen. */
+  const isPc = (tk: Token): boolean => tk.characterId !== null;
+  const renderToken = (tk: Token): JSX.Element => {
+    const ov = localDrag?.id === tk.id ? localDrag : p.drags[tk.id] ?? null;
+    return <TokenGlyph key={tk.id} token={tk} grid={grid} override={ov} selected={p.selectedTokenIds.includes(tk.id)} movable={p.tool === 'select' && canMoveToken(tk, p.me, p.isDm)}
+      label={t('maps.canvas.token', { name: tk.name })} hiddenLabel={t('maps.canvas.hidden')} onPointerDown={onTokenDown(tk)} />;
+  };
   const draft = gesture?.kind === 'draw' ? { kind: gesture.tool, data: gesture.tool === 'stroke' ? { points: gesture.points } : shapeData(gesture.tool, gesture.start, gesture.last), color: p.stroke.color, width: p.stroke.width } : null;
   const clipId = `mp-clip-${p.scene.id}`;
   const cursor = spacePan ? (gesture?.kind === 'pan' ? 'grabbing' : 'grab') : p.tool === 'select' ? 'default' : 'crosshair';
@@ -376,12 +502,18 @@ export function MapCanvas(p: Props): JSX.Element {
           {/* What was explored but is out of sight right now stays visible, only dimmed — «sigue ahí, apagado». */}
           {playerSight && hasVision && <rect {...sceneRect} className="mp-fog-dim" mask={url(fogIds.dim)} data-testid="mp-fog-dim" />}
         </g>
+        {/*
+          * Dos capas de tokens, no una. **Los PJ se pintan SIEMPRE, encima de la niebla y sin máscara**: sabes
+          * dónde está tu grupo aunque esté en otra sala, que es como funcionaba el prototipo
+          * (`plenilunio-vtt-prototipo.jsx`, «tokensEscena.filter(t => t.tipo === "pj").forEach(pintarToken)»).
+          * Antes se ocultaban con todo lo demás y el jugador se quedaba solo en el mapa (dueño, 2026-08-22).
+          * Lo que NO es un PJ —criaturas y PNJ— sí lo tapa la niebla: es justo lo que no debes ver.
+          */}
         <g className="mp-layer-tokens" data-testid="mp-tokens" {...(tokenMask ? { mask: url(tokenMask) } : {})}>
-          {tokensShown.map(tk => {
-            const ov = localDrag?.id === tk.id ? localDrag : p.drags[tk.id] ?? null;
-            return <TokenGlyph key={tk.id} token={tk} grid={grid} override={ov} selected={p.selectedTokenIds.includes(tk.id)} movable={p.tool === 'select' && canMoveToken(tk, p.me, p.isDm)}
-              label={t('maps.canvas.token', { name: tk.name })} hiddenLabel={t('maps.canvas.hidden')} onPointerDown={onTokenDown(tk)} />;
-          })}
+          {tokensShown.filter(tk => !isPc(tk)).map(renderToken)}
+        </g>
+        <g className="mp-layer-tokens-pc" data-testid="mp-tokens-pc">
+          {tokensShown.filter(isPc).map(renderToken)}
         </g>
         <g className="mp-layer-ui">
           {gesture?.kind === 'marquee' && (

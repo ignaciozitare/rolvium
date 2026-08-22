@@ -18,7 +18,7 @@ Product hexagons (map in `ARCHITECTURE.md`):
 - [characters (H4)](modules/characters/SPEC.md) — fichas PJ, generador, progresión, auditoría
 - [bestiary (H5)](modules/bestiary/SPEC.md) — PNJ, monstruos, encuentros
 - [dice (H6)](modules/dice/SPEC.md) — tiradas en servidor, lanzador flotante, visibilidad
-- [maps (H7)](modules/maps/SPEC.md) — escenas, fondos, muros, niebla, tokens, dibujo
+- [maps (H7)](modules/maps/SPEC.md) — escenas, fondos, muros, niebla, tokens, dibujo, paredes sólidas
 - [chat (H8)](modules/chat/SPEC.md) — mesa, privados, susurros, adjuntos
 - [journal (H9)](modules/journal/SPEC.md) — notas privadas, bitácora con versiones
 - [adventures (H12)](modules/adventures/SPEC.md) — aventuras del director: documento, escenas y encuentros *(propuesto)*

@@ -3,6 +3,7 @@ import { renderWithProviders, screen, fireEvent, within } from '../../../../test
 import { DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import type { Tool } from '../domain/useCases/mapRules';
 import { MapCanvas } from './MapCanvas';
+import { FOG_FEATHER } from './canvasLayers';
 
 // jsdom has no PointerEvent: a MouseEvent with pointerId is enough for the canvas handlers.
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -33,7 +34,9 @@ describe('<MapCanvas> layers', () => {
     expect(within(svg).getByTestId('mp-bg')).toHaveAttribute('fill', '#4a4a3e');
     expect(within(svg).getByTestId('mp-grid')).toBeInTheDocument();
     expect(within(svg).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(1);
-    expect(within(svg).getByTestId('mp-tokens').querySelectorAll('[data-token-id]')).toHaveLength(2);
+    // Dos capas de tokens: los PJ van aparte y SIN máscara, para no perderlos de vista nunca (2026-08-22).
+    expect(svg.querySelectorAll('[data-token-id]')).toHaveLength(2);
+    expect(within(svg).getByTestId('mp-tokens-pc').querySelectorAll('[data-token-id]')).toHaveLength(2);
     expect(token('Karen')).toHaveAttribute('data-token-id', 'tk-karen');
     expect(within(svg).getByTestId('mp-drawings').querySelectorAll('[data-drawing-id]')).toHaveLength(2);
     expect(within(svg).queryByTestId('mp-bg-image')).not.toBeInTheDocument();
@@ -62,14 +65,22 @@ describe('<MapCanvas> layers', () => {
 });
 
 describe('<MapCanvas> tools', () => {
-  it('select: dragging my token broadcasts while moving and persists the snapped cell on release; someone else\'s token only selects', () => {
+  /**
+   * Regresión, prueba del dueño 2026-08-21: «que el movimiento no dependa de la grilla». Arrastrar YA era
+   * libre —`onDragToken` mandaba fracciones—, pero al soltar un `Math.round` daba el tirón a la casilla, así
+   * que el token siempre acababa cuadrado. Ahora se guarda donde se soltó, redondeado sólo a la centésima de
+   * casilla para no mandar 14 decimales por la red. La columna `x`/`y` de la base ya era `real`.
+   */
+  it('select: al soltar se guarda DONDE SE SOLTÓ, sin pegarse a la casilla; el token de otro sólo se selecciona', () => {
     const { svg, token, cb } = mount();
     down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
     expect(cb.onSelectToken).toHaveBeenCalledWith('tk-karen');
     move(svg, (TOKEN_KAREN.x + 0.5) * G + 2 * G + 3, (TOKEN_KAREN.y + 0.5) * G + G);
-    expect(cb.onDragToken).toHaveBeenLastCalledWith('tk-karen', expect.closeTo(12.11, 1), 12);
+    expect(cb.onDragToken).toHaveBeenLastCalledWith('tk-karen', expect.closeTo(12.11, 1), 12, { x: expect.closeTo(12.11, 1), y: 12 });
     up(svg);
-    expect(cb.onMoveToken).toHaveBeenCalledWith('tk-karen', 12, 12);
+    // 12,11 y no 12: la fracción sobrevive al soltar, que es justo lo que se pidió.
+    expect(cb.onMoveToken).toHaveBeenCalledWith('tk-karen', expect.closeTo(12.11, 2), 12);
+    expect(cb.onMoveToken.mock.calls[0]![1]).not.toBe(12);
     down(token('Elías'), 0, 0); move(svg, 50, 50); up(svg);
     expect(cb.onSelectToken).toHaveBeenLastCalledWith('tk-elias');
     expect(cb.onMoveToken).toHaveBeenCalledTimes(1);
@@ -115,7 +126,7 @@ describe('<MapCanvas> tools', () => {
     down(svg, 12, 34);
     expect(cb.onPin).toHaveBeenCalledWith({ x: 12, y: 34 });
   });
-  it('wall (DM): click-click chains grid-snapped segments, Escape ends; players get nothing; encounter places at the clicked cell', () => {
+  it('wall (DM): click-click chains grid-snapped segments, Escape ends; players get nothing; el encuentro cae CENTRADO donde se pulsa', () => {
     const { svg, cb, rerender } = mount({ tool: 'wall', isDm: true, me: 'u-gm' });
     down(svg, 28, 26); down(svg, 80, 26); down(svg, 80, 110);
     expect(cb.onAddWall).toHaveBeenNthCalledWith(1, { x: G, y: G }, { x: 3 * G, y: G });
@@ -126,13 +137,22 @@ describe('<MapCanvas> tools', () => {
     rerender({ tool: 'wall', isDm: false });
     down(svg, 0, 0); down(svg, 50, 0);
     expect(cb.onAddWall).toHaveBeenCalledTimes(2);
-    // colocar es un estado, no una herramienta: con algo pendiente el clic manda, venga de donde venga
+    /**
+     * Colocar es un estado, no una herramienta: con algo pendiente el clic manda, venga de donde venga.
+     * Y desde 2026-08-22 el token cae CENTRADO en el punto pulsado y sin pegarse a la rejilla — con la huella
+     * en fracciones (`DEFAULT_TOKEN_CELLS` = 1,5) caer en el vértice de una casilla lo dejaba medio fuera.
+     * La esquina que se guarda es el centro menos media huella: 59/27 − 0,75 = 1,435.
+     */
     rerender({ tool: 'encounter', isDm: true, me: 'u-gm', placing: true });
     down(svg, 2 * G + 5, 3 * G + 5);
-    expect(cb.onPlace).toHaveBeenCalledWith({ x: 2, y: 3 });
+    expect(cb.onPlace).toHaveBeenCalledWith({ x: expect.closeTo(1.435, 2), y: expect.closeTo(2.435, 2) });
     rerender({ tool: 'select', isDm: true, me: 'u-gm', placing: true });
     down(svg, 5 * G + 5, G + 5);
-    expect(cb.onPlace).toHaveBeenLastCalledWith({ x: 5, y: 1 });
+    expect(cb.onPlace).toHaveBeenLastCalledWith({ x: expect.closeTo(4.435, 2), y: expect.closeTo(0.435, 2) });
+    // Y un token grande se centra igual: la huella entra por `placingSize`.
+    rerender({ tool: 'select', isDm: true, me: 'u-gm', placing: true, placingSize: 3.5 });
+    down(svg, 5 * G + 5, G + 5);
+    expect(cb.onPlace).toHaveBeenLastCalledWith({ x: expect.closeTo(3.435, 2), y: expect.closeTo(-0.565, 2) });
   });
 });
 
@@ -163,11 +183,134 @@ describe('<MapCanvas> fog', () => {
     expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
     expect(within(svg).getByTestId('mp-fog-dim')).toHaveAttribute('mask', `url(#mp-dim-${SCENE_WAREHOUSE.id})`);
     expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
+    /**
+     * Los PJ NO llevan máscara: se pintan siempre, encima de la niebla, como en el prototipo. Antes se
+     * ocultaban con todo lo demás y el jugador se quedaba solo en un mapa negro (dueño, 2026-08-22).
+     * Lo que sí tapa la niebla es lo que no es un PJ: criaturas y PNJ.
+     */
+    expect(within(svg).getByTestId('mp-tokens-pc')).not.toHaveAttribute('mask');
+    expect(within(svg).getByTestId('mp-tokens-pc').querySelectorAll('[data-token-id]').length).toBeGreaterThan(0);
     expect(within(svg).queryByTestId('mp-fog-veil')).not.toBeInTheDocument();
     // the seen mask carries both the remembered cells and the polygon
     const seen = svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}`)!;
     expect(seen.querySelector('path')).toHaveAttribute('d', 'M0 0h27v27h-27zM27 0h27v27h-27z');
     expect(seen.querySelector('polygon')).toHaveAttribute('points', '0,0 540,0 540,675 0,675');
+  });
+
+  /**
+   * «El borde de la niebla, a cuadros» y «si es de noche que la visión sea más corta pero que no termine de
+   * manera abrupta, sino con un fade» (dueño, 2026-08-22). Las dos son el mismo arreglo: se DIFUMINA la
+   * máscara. De día basta un pelín, para deshacer la escalera de 27 px de lo explorado, que se guarda por
+   * casillas; de noche el corte es el del alcance de la luz y pide un degradado de verdad.
+   */
+  /**
+   * Paredes sólidas (rebanada 4, spec § «Rebanada 4»). El muro va vertical entre Karen y su destino: con el
+   * interruptor apagado lo cruza como siempre, y con él encendido se queda a este lado. El DIRECTOR pasa
+   * siempre, esté como esté (decisión del dueño), y por eso se prueba con `isDm: false`.
+   */
+  it('con las paredes sólidas el token NO cruza el muro, y apagadas lo cruza como siempre', () => {
+    const MURO = { ...WALL_1, id: 'w-solid', x1: (TOKEN_KAREN.x + 1.5) * G, y1: 0, x2: (TOKEN_KAREN.x + 1.5) * G, y2: 2000, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false, visiblePlayers: true };
+    const arrastrar = (solidWalls: boolean, isDm: boolean) => {
+      document.body.innerHTML = '';
+      const { svg, token, cb } = mount({ scene: { ...SCENE_WAREHOUSE, solidWalls }, walls: [MURO], isDm, me: isDm ? 'u-gm' : PLAYER_USER.id });
+      down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+      move(svg, (TOKEN_KAREN.x + 3.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+      up(svg);
+      return cb.onMoveToken.mock.calls.at(-1);
+    };
+    // apagado: pasa de largo, tres casillas a la derecha
+    expect(arrastrar(false, false)![1]).toBeCloseTo(TOKEN_KAREN.x + 3, 1);
+    // encendido: se queda a ESTE lado del muro
+    expect(arrastrar(true, false)![1]).toBeLessThan(TOKEN_KAREN.x + 3);
+    // el director nunca choca
+    expect(arrastrar(true, true)![1]).toBeCloseTo(TOKEN_KAREN.x + 3, 1);
+  });
+
+  /**
+   * EL FALLO QUE ME MORDIÓ EN LA APP (2026-08-22). En una escena de verdad NINGÚN muro es visible para el
+   * jugador —16 de 16 ocultos, comprobado en la base—, así que su `blockers` está vacío y su freno propio no
+   * salta NUNCA. La primera versión aplicaba la corrección del servidor sólo si el navegador ya había frenado
+   * por su cuenta: justo al revés. Los tests pasaban —usaban un muro visible— y el token atravesaba las
+   * paredes en la app. La corrección del servidor se obedece SIN CONDICIONES.
+   */
+  it('regresión · sin ver ningún muro, la corrección del servidor sigue frenando al token', () => {
+    const onServerCorrection = vi.fn(() => ({ x: 3, y: 4 }));
+    const { svg, token, cb } = mount({
+      scene: { ...SCENE_WAREHOUSE, solidWalls: true },
+      walls: [],                                   // el jugador no recibe NINGÚN muro
+      isDm: false, me: PLAYER_USER.id, onServerCorrection,
+    });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 5.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    expect(onServerCorrection).toHaveBeenCalledWith('tk-karen');
+    expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', 3, 4);
+    // Y aunque PINTE la corrección, al servidor le sigue contando el DESEO del dedo. Preguntarle por la
+    // posición corregida era la oscilación: la veía caber, callaba, y el token saltaba al otro lado.
+    expect(cb.onDragToken).toHaveBeenLastCalledWith('tk-karen', 3, 4,
+      { x: expect.closeTo(TOKEN_KAREN.x + 5, 1), y: expect.closeTo(TOKEN_KAREN.y, 1) });
+  });
+
+  /**
+   * EL DISCO LIBRE (2026-08-22): a un jugador no le llegan los muros secretos, así que entre respuesta y
+   * respuesta del servidor el token seguía al dedo a ciegas — se metía en el muro y al llegar la corrección
+   * REBOTABA hacia atrás. `onDragBound` da el último disco confirmado (centro + holgura) y el pintado no
+   * sale de él: el token espera en el borde a que el servidor confirme, en vez de cruzar y volver.
+   */
+  it('regresión · el pintado no sale del disco libre confirmado por el servidor: ni rebote ni cruce a ciegas', () => {
+    const onDragBound = vi.fn(() => ({ x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, clearance: 1 }));
+    const { svg, token, cb } = mount({
+      scene: { ...SCENE_WAREHOUSE, solidWalls: true },
+      walls: [], isDm: false, me: PLAYER_USER.id, onDragBound,
+    });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 5.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    // el dedo pidió +5 casillas; el disco sólo garantiza 1: se pinta (y se suelta) en el borde del disco
+    expect(cb.onDragToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x + 1, TOKEN_KAREN.y,
+      { x: expect.closeTo(TOKEN_KAREN.x + 5, 1), y: expect.closeTo(TOKEN_KAREN.y, 1) });
+    expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x + 1, TOKEN_KAREN.y);
+  });
+
+  /**
+   * EL SALTO DEL BORDE (dueño, 2026-08-22): al rozar el borde de una puerta o ventana el token se engancha
+   * un instante mientras el dedo sigue; al liberarse el camino, el hueco se cerraba DE GOLPE — un salto
+   * hacia adelante. Ahora el pintado cierra el hueco a razón de lo que se mueve el dedo más
+   * `CATCH_UP_CELLS` por evento (deslizamiento), y al soltar se persiste lo LEGAL, no lo suavizado.
+   */
+  it('regresión · al liberarse de un borde, el token se DESLIZA hasta el cursor en vez de saltar', () => {
+    const onServerCorrection = vi.fn()
+      .mockReturnValueOnce({ x: TOKEN_KAREN.x, y: TOKEN_KAREN.y })   // enganchado en el borde
+      .mockReturnValue(null);                                        // liberado: ya cabe
+    const { svg, token, cb } = mount({ scene: { ...SCENE_WAREHOUSE, solidWalls: true }, walls: [], isDm: false, me: PLAYER_USER.id, onServerCorrection });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    // el dedo se va 5 casillas; el token queda clavado donde dijo el servidor
+    move(svg, (TOKEN_KAREN.x + 5.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    expect(cb.onDragToken.mock.calls.at(-1)!.slice(0, 3)).toEqual(['tk-karen', TOKEN_KAREN.x, TOKEN_KAREN.y]);
+    // liberado, un empujoncito de 0,1 casillas NO teletransporta el hueco de 5: lo cierra 0,1 + 0,35
+    move(svg, (TOKEN_KAREN.x + 5.6) * G, (TOKEN_KAREN.y + 0.5) * G);
+    expect(cb.onDragToken.mock.calls.at(-1)![1]).toBeCloseTo(TOKEN_KAREN.x + 0.45, 3);
+    // y el evento siguiente lo sigue cerrando al ritmo del ratón
+    move(svg, (TOKEN_KAREN.x + 5.7) * G, (TOKEN_KAREN.y + 0.5) * G);
+    expect(cb.onDragToken.mock.calls.at(-1)![1]).toBeCloseTo(TOKEN_KAREN.x + 0.9, 3);
+    // al soltar, el token acaba en lo LEGAL (el dedo, que ya cabía), no a medio deslizamiento
+    up(svg);
+    expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', expect.closeTo(TOKEN_KAREN.x + 5.2, 2), TOKEN_KAREN.y);
+  });
+
+  it('el borde de la niebla va difuminado, y de noche mucho más (el «fade» del alcance)', () => {
+    const dia = mount({ fog: FOG });
+    const filtroDia = dia.svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}-feather feGaussianBlur`);
+    expect(filtroDia).not.toBeNull();
+    expect(Number(filtroDia!.getAttribute('stdDeviation'))).toBe(FOG_FEATHER.day);
+    // y las máscaras lo USAN: sin esto el filtro estaría declarado y no se aplicaría a nada
+    expect(dia.svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id} g[filter]`)).not.toBeNull();
+    document.body.innerHTML = '';
+
+    const noche = mount({ scene: { ...SCENE_WAREHOUSE, lighting: 'night' }, fog: FOG });
+    const filtroNoche = noche.svg.querySelector(`#mp-seen-${SCENE_WAREHOUSE.id}-feather feGaussianBlur`);
+    expect(Number(filtroNoche!.getAttribute('stdDeviation'))).toBe(FOG_FEATHER.night);
+    expect(FOG_FEATHER.night).toBeGreaterThan(FOG_FEATHER.day);
   });
 
   it('with manual fog nothing is dimmed and tokens follow whatever the DM revealed', () => {
@@ -182,6 +325,13 @@ describe('<MapCanvas> fog', () => {
     expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
     // the `lit` mask is empty, so the token layer resolves to nothing
     expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
+    /**
+     * Los PJ NO llevan máscara: se pintan siempre, encima de la niebla, como en el prototipo. Antes se
+     * ocultaban con todo lo demás y el jugador se quedaba solo en un mapa negro (dueño, 2026-08-22).
+     * Lo que sí tapa la niebla es lo que no es un PJ: criaturas y PNJ.
+     */
+    expect(within(svg).getByTestId('mp-tokens-pc')).not.toHaveAttribute('mask');
+    expect(within(svg).getByTestId('mp-tokens-pc').querySelectorAll('[data-token-id]').length).toBeGreaterThan(0);
     expect(svg.querySelector(`#mp-lit-${SCENE_WAREHOUSE.id}`)!.querySelector('polygon')).toBeNull();
   });
 

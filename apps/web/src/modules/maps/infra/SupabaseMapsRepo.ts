@@ -2,13 +2,13 @@ import type { RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } 
 import type { BgTransform, CreateSceneInput, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Lighting, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, Unsubscribe } from '../domain/ports/MapsPort';
 
-interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; sort_order: number; visible_players: boolean; created_at: string; updated_at: string }
+interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; created_at: string; updated_at: string }
 interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean }
 interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; bestiary_entry_id: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown> }
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string }
 interface ImageRow { id: string; campaign_id: string; name: string; url: string; created_at: string }
 
-const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, sort_order, visible_players, created_at, updated_at';
+const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, created_at, updated_at';
 const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, kind, blocks_sight, blocks_move, is_open';
 /** Defaults mirror the migration, so a row written before slice 2 still reads as a plain closed wall. */
 const DEFAULT_NIGHT_RADIUS_M = 10;
@@ -19,6 +19,8 @@ export const mapSceneRow = (r: SceneRow): Scene => ({
   id: r.id, campaignId: r.campaign_id, name: r.name, width: r.width, height: r.height, bgColor: r.bg_color, bgImageUrl: r.bg_image_url,
   bgTransform: r.bg_transform ?? { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: r.grid ?? { size: 27, visible: true }, fogMode: r.fog_mode,
   lighting: r.lighting ?? 'day', nightRadiusM: r.night_radius_m ?? DEFAULT_NIGHT_RADIUS_M,
+  // Una escena guardada antes de la rebanada 4 no trae la columna: se lee como «no sólidas», que es como estaba.
+  solidWalls: r.solid_walls ?? false,
   sortOrder: r.sort_order, visiblePlayers: r.visible_players, createdAt: r.created_at, updatedAt: r.updated_at,
 });
 export const mapWallRow = (r: WallRow): Wall => ({
@@ -51,6 +53,7 @@ function scenePatchRow(p: ScenePatch): Record<string, unknown> {
   if (p.fogMode !== undefined) row.fog_mode = p.fogMode;
   if (p.lighting !== undefined) row.lighting = p.lighting;
   if (p.nightRadiusM !== undefined) row.night_radius_m = p.nightRadiusM;
+  if (p.solidWalls !== undefined) row.solid_walls = p.solidWalls;
   if (p.sortOrder !== undefined) row.sort_order = p.sortOrder;
   if (p.visiblePlayers !== undefined) row.visible_players = p.visiblePlayers;
   return row;

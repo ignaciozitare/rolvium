@@ -3,7 +3,7 @@ import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../.
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
-import { fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
+import { fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, KAREN_DATA, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
 import { SceneTab } from './SceneTab';
 
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -71,6 +71,28 @@ describe('<SceneTab> player', () => {
     // la barra de Trazo vive dentro del mapa y sólo con herramienta de dibujo: el jugador nunca ve «Limpiar todos»
     expect(screen.queryByRole('button', { name: 'Limpiar todos' })).not.toBeInTheDocument();
   });
+  /**
+   * «En el prototipo se va actualizando de acuerdo a cuando mueves el token» (dueño, 2026-08-22). La niebla
+   * daba un salto al SOLTAR, porque hasta entonces el servidor no sabía dónde estaba el token. Ahora, mientras
+   * se arrastra, se le manda la posición PROVISIONAL —`refresh(sceneId, { tokenId, x, y })`— y contesta qué
+   * vería ahí sin guardar nada. Va a ~7 Hz, no a los 20 del broadcast: cada una es una ida y vuelta.
+   */
+  it('regresión · la niebla sigue al token MIENTRAS se arrastra, no al soltarlo', async () => {
+    const vision = fakeVisionPort();
+    mount('player', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    await screen.findByText(/Almacén de Queens/);
+    const karen = await within(canvas()).findByRole('img', { name: 'Token Karen «K»' });
+    const conPos = () => vision.calls.filter(c => c.op === 'refresh' && c.at);
+    expect(conPos()).toHaveLength(0);
+
+    fireEvent.pointerDown(karen, { clientX: (TOKEN_KAREN.x + 0.5) * G, clientY: (TOKEN_KAREN.y + 0.5) * G, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(canvas(), { clientX: (TOKEN_KAREN.x + 2.5) * G, clientY: (TOKEN_KAREN.y + 0.5) * G, pointerId: 1 });
+    await waitFor(() => expect(conPos().length).toBeGreaterThan(0));
+    // y la posición que viaja es la de DEBAJO DEL DEDO, no la guardada
+    expect(conPos()[0]!.at).toMatchObject({ tokenId: 'tk-karen', x: expect.closeTo(12, 0) });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+  });
+
   it('live: token updates / inserts / deletes, remote drag, and a remote pin re-centre the view; a pin by me is not re-applied', async () => {
     const repo = mount('player');
     await screen.findByText(/Almacén de Queens/);
@@ -93,7 +115,7 @@ describe('<SceneTab> player', () => {
 });
 
 describe('<SceneTab> DM', () => {
-  it('lists scenes (starts on the active one), shows walls + hidden tokens + DM label, background popover changes colour/image, «Colocar PJ» adds a controlled token, encounter places a hidden bestiary token', async () => {
+  it('lists scenes (starts on the active one), shows walls + hidden tokens + DM label, background popover changes colour/image, «Colocar PJ» adds a controlled token, encounter places a bestiary token', async () => {
     const u = userEvent.setup();
     // Elías is not on the map yet: «Colocar PJ» must be able to add him (Karen already is → disabled).
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE, SCENE_CHAPEL], tokens: [TOKEN_KAREN, TOKEN_MUTANT], walls: [WALL_1], drawings: [DRAWING_MINE, DRAWING_OTHER], images: [IMAGE_CHAPEL] }), 'sc-2');
@@ -120,13 +142,18 @@ describe('<SceneTab> DM', () => {
     expect(repo.tokens.filter(t => t.characterId === 'ch-elias')).toHaveLength(0);
     fireEvent.pointerDown(canvas(), { clientX: 4 * G + 3, clientY: 7 * G + 3, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.tokens.filter(t => t.characterId === 'ch-elias')).toHaveLength(1));
-    expect(repo.tokens.at(-1)).toMatchObject({ characterId: 'ch-elias', controlledBy: 'u-nix', visible: true, x: 4, y: 7 });
+    // Cae CENTRADO donde se pulsa y sin pegarse a la rejilla (dueño, 2026-08-21): la esquina es el punto menos
+    // media huella, 111/27 − 0,75 = 3,36. Y su ancho sale de la ficha: Elías es «mediano» → 1,5 casillas (p.25).
+    expect(repo.tokens.at(-1)).toMatchObject({
+      characterId: 'ch-elias', controlledBy: 'u-nix', visible: true, size: 1.5,
+      x: expect.closeTo(3.36, 1), y: expect.closeTo(6.36, 1),
+    });
     // encounter
     await u.click(screen.getByRole('button', { name: 'Encuentro' }));
     await u.click(await screen.findByRole('button', { name: 'Elegir Ogro' }));
     fireEvent.pointerDown(canvas(), { clientX: 5 * G + 3, clientY: 6 * G + 3, pointerId: 1, button: 0 });
-    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ bestiaryRef: 'ogre', name: 'Ogro', x: 5, y: 6, visible: false, controlledBy: null, state: { resistance: 30 } }));
-    expect(await within(canvas()).findByRole('img', { name: 'Token Ogro (oculto)' })).toBeInTheDocument();
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ bestiaryRef: 'ogre', name: 'Ogro', x: expect.closeTo(4.36, 1), y: expect.closeTo(5.36, 1), size: 1.5, visible: true, controlledBy: null, state: { resistance: 30 } }));
+    expect(await within(canvas()).findByRole('img', { name: 'Token Ogro' })).toBeInTheDocument();
   });
   /**
    * Los encuentros PROPIOS del director (H5) tienen que salir en el desplegable junto a las 45 del manual, y
@@ -150,9 +177,54 @@ describe('<SceneTab> DM', () => {
     fireEvent.pointerDown(canvas(), { clientX: 3 * G + 3, clientY: 4 * G + 3, pointerId: 1, button: 0 });
 
     await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({
-      bestiaryEntryId: 'be-9', bestiaryRef: null, name: 'Ogro con antorcha', x: 3, y: 4,
-      visible: false, state: { resistance: 30 },
+      bestiaryEntryId: 'be-9', bestiaryRef: null, name: 'Ogro con antorcha',
+      x: expect.closeTo(2.36, 1), y: expect.closeTo(3.36, 1),
+      // El bloque de una criatura NO imprime tamaño (comprobado en el PDF: el ogro de la p.152 trae Aguante y
+      // Destino y nada más), así que se queda con el del mapa. Anotado como deuda en WORK_STATE.
+      size: 1.5,
+      // Nace VISIBLE: quien lo tapa es la niebla, no un interruptor (dueño, 2026-08-22).
+      visible: true, state: { resistance: 30 },
     }));
+  });
+
+  /**
+   * El OTRO lado de lo mismo: cuando la ficha SÍ dice de qué tamaño es, manda ella y no el valor por defecto
+   * del mapa. Sin esta prueba las demás no distinguen «el motor dijo mediano» de «el motor no dijo nada»:
+   * las dos cosas dan 1,5, así que un `tokenCells` desconectado pasaría el resto de la tanda sin enterarse.
+   *
+   * Los números son los de la tabla de tamaños del manual (p.25, verificada en el PDF): grande 3,5 casillas,
+   * enorme 7. Y la esquina que se guarda sigue siendo el punto pulsado MENOS media huella, así que una huella
+   * más grande se centra igual — es lo que evita que un ogro caiga con el pie donde debería estar su cabeza.
+   */
+  it('el tamaño de la ficha manda sobre el del mapa: un PJ grande ocupa 3,5 casillas y un PNJ enorme 7, los dos centrados', async () => {
+    const u = userEvent.setup();
+    const repo = seed();
+    const bigPc = { ...CHARACTER_OTHER, id: 'ch-ogro', name: 'Bram el Grande', data: { ...KAREN_DATA, name: 'Bram el Grande', size: 'large' } };
+    renderWithProviders(
+      <SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+                charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, bigPc])} repo={repo} vision={fakeVisionPort()}
+                extraEncounters={[{ id: 'be-7', label: 'Dragón de Queens', ref: 'bestiary',
+                                    data: { resistance: 30, protection: 0, origin: 'npc', entryId: 'be-7', tokenUrl: null,
+                                            creature: { sheet: { ...KAREN_DATA, size: 'huge' } } } }]} />,
+    );
+
+    await u.click(await screen.findByRole('button', { name: 'Colocar PJ' }));
+    await u.click(await screen.findByRole('menuitem', { name: /Bram/ }));
+    fireEvent.pointerDown(canvas(), { clientX: 4 * G + 3, clientY: 7 * G + 3, pointerId: 1, button: 0 });
+    // 111/27 − 3,5/2 = 2,361 · 192/27 − 1,75 = 5,361
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({
+      characterId: 'ch-ogro', size: 3.5, x: expect.closeTo(2.36, 1), y: expect.closeTo(5.36, 1),
+    }));
+
+    await u.click(screen.getByRole('button', { name: 'Encuentro' }));
+    await u.click(await screen.findByRole('button', { name: 'Elegir Dragón de Queens' }));
+    fireEvent.pointerDown(canvas(), { clientX: 5 * G + 3, clientY: 6 * G + 3, pointerId: 1, button: 0 });
+    // 138/27 − 7/2 = 1,611 · 165/27 − 3,5 = 2,611. Una huella grande PUEDE salirse del mapa por arriba: es correcto.
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({
+      bestiaryEntryId: 'be-7', name: 'Dragón de Queens', size: 7, x: expect.closeTo(1.61, 1), y: expect.closeTo(2.61, 1),
+    }));
+    // Y se dibuja: un token de 7 casillas no revienta el glifo (`r = size·grid/2 − 1,5`).
+    expect(await within(canvas()).findByRole('img', { name: /Dragón de Queens/ })).toBeInTheDocument();
   });
 
   it('walls: click-click adds a segment; token bar: select → hide/show + remove; «Limpiar todos»; create + activate a scene', async () => {
@@ -448,6 +520,77 @@ describe('<SceneTab> rebanada 3 — la cabecera desaparece y su contenido se rep
     expect(await screen.findByRole('menu', { name: 'Elige un personaje' })).toBeInTheDocument();
   });
 
+  /**
+   * Regresión, prueba del dueño: en la escena se veían «Colocar encuentro» y «Fondo del mapa» abiertos A LA
+   * VEZ, tapándose. Cada uno tenía su interruptor y ninguno sabía de los demás. Ahora sobre el mapa sólo hay
+   * una cosa abierta a la vez: abrir una cierra las otras, y cerrarla no abre ninguna.
+   */
+  it('regresión · sobre el mapa sólo hay UN panel abierto a la vez', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed());
+    const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
+    const bg = () => screen.queryByRole('dialog', { name: 'Fondo del mapa' });
+    const pc = () => screen.queryByRole('menu', { name: 'Elige un personaje' });
+    const enc = () => screen.queryByRole('dialog', { name: 'Colocar encuentro' }) ?? screen.queryByRole('menu', { name: 'Colocar encuentro' });
+
+    await u.click(within(bar).getByRole('button', { name: 'Fondo del mapa' }));
+    await waitFor(() => expect(bg()).toBeInTheDocument());
+    // el encuentro se abre por HERRAMIENTA, y aun así cierra el fondo
+    await u.click(within(bar).getByRole('button', { name: 'Encuentro' }));
+    await waitFor(() => expect(enc()).toBeInTheDocument());
+    expect(bg()).not.toBeInTheDocument();
+    // y «Colocar PJ» cierra el de encuentros
+    await u.click(within(bar).getByRole('button', { name: 'Colocar PJ' }));
+    await waitFor(() => expect(pc()).toBeInTheDocument());
+    expect(enc()).not.toBeInTheDocument();
+    expect(bg()).not.toBeInTheDocument();
+    // volver a pulsar el mismo botón lo cierra, y no abre ningún otro
+    await u.click(within(bar).getByRole('button', { name: 'Colocar PJ' }));
+    await waitFor(() => expect(pc()).not.toBeInTheDocument());
+    expect(bg()).not.toBeInTheDocument();
+    expect(enc()).not.toBeInTheDocument();
+  });
+
+  /**
+   * El cuarto panel que se monta sobre el mapa es el de ATACAR, y no se abre por la barra sino desde el
+   * token elegido, así que se le escapaba a la exclusión: con «Fondo del mapa» abierto se podía elegir una
+   * criatura en el lienzo —el panel no tapa el mapa— y pulsar Atacar, quedando los dos encima. Es un modal
+   * de verdad (se traga los clics con su `.bs-pop-catch`), así que entra en la regla como los demás.
+   */
+  it('regresión · abrir ATACAR desde un token también cierra lo que hubiera abierto', async () => {
+    const u = userEvent.setup();
+    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
+      vision={fakeVisionPort()} onRoll={vi.fn().mockResolvedValue({ id: 'r-1' })} onOpenAttack={vi.fn().mockResolvedValue({ id: 'a-1' })} />);
+    const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
+    await u.click(within(bar).getByRole('button', { name: 'Fondo del mapa' }));
+    await screen.findByRole('dialog', { name: 'Fondo del mapa' });
+
+    const mutante = await within(canvas()).findByRole('img', { name: /Mutante/ });
+    fireEvent.pointerDown(mutante, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await u.click(within(await screen.findByRole('toolbar', { name: 'Token seleccionado' })).getByRole('button', { name: 'Atacar' }));
+
+    await screen.findByRole('dialog', { name: 'Atacar con Mutante' });
+    expect(screen.queryByRole('dialog', { name: 'Fondo del mapa' })).not.toBeInTheDocument();
+  });
+
+  /**
+   * «El modal de Fondo del mapa sale en la otra punta» (dueño): su botón vive en la barra de la IZQUIERDA y
+   * el panel estaba clavado a la derecha del lienzo. El arreglo es CSS (`.mp-bgpop` pasa de `right:54px` a
+   * `top:60px;left:8px`, el mismo hueco que sus vecinos `.mp-pcmenu` y `.mp-encounter`, que arrancan en 60px
+   * para no taparle la etiqueta al lienzo), y jsdom no carga la hoja de estilos, así que el SITIO no se puede
+   * comprobar aquí — cae en la excepción cosmética (CSS-only) de CLAUDE.md. Lo que sí se fija es que el panel
+   * siga saliendo con su clase, que es de lo que cuelga la posición.
+   */
+  it('el panel de Fondo del mapa lleva la clase de la que cuelga su posición', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed());
+    const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
+    await u.click(within(bar).getByRole('button', { name: 'Fondo del mapa' }));
+    expect(await screen.findByRole('dialog', { name: 'Fondo del mapa' })).toHaveClass('mp-bgpop');
+  });
+
   it('el jugador no tiene rail (no elige escena) pero sí el botón de dados', async () => {
     mount('player');
     await screen.findByText(/Almacén de Queens/);
@@ -614,5 +757,22 @@ describe('<SceneTab> — una criatura que llega ya elegida desde el Bestiario', 
     mountArmed(null);
     await screen.findByText(/Almacén de Queens/);
     expect(screen.queryByText(/Coloca a/)).not.toBeInTheDocument();
+  });
+
+  /**
+   * El botón derecho abre el menú rápido —«centra mi vista aquí»— y eso es justo lo que hace quien llega del
+   * Bestiario antes de soltar la criatura. Con la criatura YA elegida no hay ningún panel de encuentros
+   * abierto: sólo una colocación armada y su aviso. Cerrar «el menú de encuentros» ahí mataba en silencio el
+   * «pulsa dónde» que el dueño acababa de arreglar («el colocar no funciona», 2026-08-21).
+   */
+  it('el menú del botón derecho NO desarma la criatura que traes del Bestiario', async () => {
+    const { repo } = mountArmed(OGRO);
+    await screen.findByText(/Coloca a Ogro/);
+    fireEvent.contextMenu(canvas(), { clientX: 700, clientY: 100 });
+    await screen.findByRole('menu', { name: 'Acciones rápidas' });
+    expect(screen.getByText(/Coloca a Ogro/)).toBeInTheDocument();
+    // y sigue colocando de verdad, que es lo que se estaba perdiendo
+    fireEvent.pointerDown(canvas(), { clientX: 3 * G + 3, clientY: 4 * G + 3, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ name: 'Ogro' }));
   });
 });

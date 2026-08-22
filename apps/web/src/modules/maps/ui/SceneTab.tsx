@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
+import type { CatalogItem, GameSystem, RollRequest, SheetData } from '@rolvium/core';
 import { UserAvatar, useDialog } from '@rolvium/ui';
 import type { CampaignMember, TableRole } from '@/modules/campaigns/domain/entities/Campaign';
 import type { Character } from '@/modules/characters/domain/entities/Character';
@@ -10,7 +10,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { canvasToScene, centerOn, DEFAULT_BRUSH, distanceCells, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { canvasToScene, centerOn, DEFAULT_BRUSH, distanceCells, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenCenter, tokenFromBestiary, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -133,6 +133,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
    */
   useEffect(() => {
     if (!armEncounter || !live) return;
+    closeOverlays('encounter');
     setTool('encounter');
     setEncounter(armEncounter);
     // Sin abrir el buscador: la criatura ya viene elegida del Bestiario y el desplegable tapaba media
@@ -150,20 +151,74 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     setScenes(l => l?.map(s => (s.id === id ? { ...s, ...patch } : s)) ?? l);
     await repo.updateScene(id, patch);
   }, [repo]);
-  const openBg = async () => { setBgOpen(o => !o); if (images === null) setImages(await repo.listImages(campaignId).catch(() => [])); };
-  const openPcMenu = async () => { setPcMenu(o => !o); if (pcs === null) setPcs((await charactersRepo.listByCampaign(campaignId).catch(() => [] as Character[])).filter(c => c.kind === 'pc')); };
+  /**
+   * Sobre el mapa sólo puede haber UNA cosa abierta a la vez. El dueño los vio abiertos a la vez al probar la
+   * app —«Colocar encuentro» y «Fondo del mapa» tapándose— porque cada uno tenía su interruptor y ninguno
+   * sabía de los demás. Abrir uno cierra los otros tres; cerrarlo no abre nada.
+   *
+   * El de encuentros no tiene interruptor propio: se abre por HERRAMIENTA (`tool === 'encounter'`), así que
+   * cerrarlo es volver a `select`. Por eso está aquí y no en un `useState` más.
+   *
+   * Y sólo está ABIERTO si se ve: con la criatura ya elegida en el Bestiario (`armedFromBestiary`) no hay
+   * panel ninguno —es la misma condición con la que se pinta el `EncounterMenu`—, sólo una colocación armada
+   * y su aviso. Cerrarla ahí desarmaba en silencio el «pulsa dónde» que se acababa de arreglar («el colocar
+   * no funciona», dueño 2026-08-21): bastaba con pulsar el botón derecho para centrar la vista antes de
+   * soltar la criatura y ya no había criatura que soltar.
+   *
+   * El de ATACAR no se abre por la barra sino desde el token elegido, y por eso se le escapaba: con «Fondo
+   * del mapa» abierto se puede elegir una criatura en el lienzo igual —el panel no lo tapa— y quedaban los
+   * dos encima. Llama a esto desde su botón, no tiene bandera aquí porque nada más lo abre.
+   */
+  const encounterMenuOpen = tool === 'encounter' && !armedFromBestiary;
+  const closeOverlays = (keep?: 'bg' | 'pc' | 'quick' | 'encounter') => {
+    if (keep !== 'bg') setBgOpen(false);
+    if (keep !== 'pc') setPcMenu(false);
+    if (keep !== 'quick') setQuickMenu(null);
+    if (keep !== 'encounter' && encounterMenuOpen) setTool(t => (t === 'encounter' ? 'select' : t));
+  };
+  const openBg = async () => {
+    const next = !bgOpen;
+    closeOverlays(next ? 'bg' : undefined);
+    setBgOpen(next);
+    if (next && images === null) setImages(await repo.listImages(campaignId).catch(() => []));
+  };
+  const openPcMenu = async () => {
+    const next = !pcMenu;
+    closeOverlays(next ? 'pc' : undefined);
+    setPcMenu(next);
+    if (next && pcs === null) setPcs((await charactersRepo.listByCampaign(campaignId).catch(() => [] as Character[])).filter(c => c.kind === 'pc'));
+  };
+  /**
+   * Lo ancho que es el token de una ficha, en casillas. Lo dice el SISTEMA a partir de su tabla de tamaños
+   * (Plenilunio, p.25: diminuto…enorme), porque la plataforma no sabe que un ogro es más grande que un gato.
+   * Si la ficha no lo dice —las criaturas del bestiario no llevan tamaño en su bloque— manda el del mapa.
+   */
+  const cellsOfSheet = (sheet: SheetData | undefined): number =>
+    (sheet ? system.engine.tokenCells?.(sheet) ?? null : null) ?? DEFAULT_TOKEN_CELLS;
+  /**
+   * Lo mismo para un encuentro. Un PNJ aliado lleva ficha de personaje dentro de su bloque (`creature.sheet`)
+   * y de ahí sale su tamaño; una criatura del MANUAL no lleva ninguno —los bloques de la p.147 en adelante
+   * imprimen Aguante y Destino, y el tamaño no— así que se queda con el del mapa. Anotado como deuda: darle
+   * un tamaño a cada criatura pide leerse su descripción una por una, y es su propia tanda. Que conste que
+   * para algunas el libro SÍ lo dice —la tabla de la p.25 pone de ejemplo «ogro» en Grande y «dragón» en
+   * Enorme—, así que esto es un plazo, no una laguna de reglas. Lo que NO vale es despejarlo de
+   * `Aguante − (Fortaleza + Voluntad)`: comprobado sobre las 57 entradas, falla en muchas y se sale del rango
+   * legal (Fantasma −3, Paladín solar −4, Nathael −8). RULES.md §1.6.
+   */
+  const cellsOfEntry = (item: CatalogItem): number =>
+    cellsOfSheet((item.data?.['creature'] as { sheet?: SheetData } | undefined)?.sheet);
   const centerCell = (): Point => {
     if (!live) return { x: 0, y: 0 };
     const vp = viewport();
     const c = vp.width && vp.height ? canvasToScene({ x: vp.width / 2, y: vp.height / 2 }, view) : { x: live.width / 2, y: live.height / 2 };
-    return tokenCellAt(c, live.grid.size);
+    return tokenPointAt(c, live.grid.size);
   };
   /** Same gesture as «Encuentro»: pick who, then click where. Placing blind in the middle of the view was a guess. */
   const pickPc = (c: Character) => { setPendingPc(c); setPcMenu(false); };
-  const placePcAt = async (c: Character, cell: Point) => {
+  const placePcAt = async (c: Character, at: Point) => {
     if (!live) return;
     setPendingPc(null);
-    await st.addToken(tokenFromCharacter(c, members.find(m => m.userId === c.ownerId)?.avatarUrl, live.id, cell));
+    await st.addToken(tokenFromCharacter(c, members.find(m => m.userId === c.ownerId)?.avatarUrl, live.id, at, cellsOfSheet(c.data)));
   };
   // Las 45 del manual (datos del paquete) MÁS los encuentros propios del director. Sin esto el desplegable
   // enseña sólo el libro y lo que el director se ha inventado no se puede colocar.
@@ -247,7 +302,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     <section className="mp-root">
       <div className="mp-stage-row">
         {scenesRail}
-        <Toolbar tool={tool} isDm={isDm} onChange={setTool}
+        <Toolbar tool={tool} isDm={isDm} onChange={next => { closeOverlays(next === 'encounter' ? 'encounter' : undefined); setTool(next); }}
           onDice={() => onOpenDice?.()} diceOpen={diceOpen}
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
@@ -258,7 +313,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               const text = await dialog.prompt(t('maps.text.prompt'));
               if (text?.trim()) run(st.addDrawing({ sceneId: live.id, campaignId, kind: 'text', data: { x: at.x, y: at.y, text: text.trim() }, color: stroke.color, width: stroke.width }));
             }}
-            onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))}
+            onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))} onServerCorrection={st.serverCorrection} onDragBound={st.dragBound}
             onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width }))}
             onErase={id => run(st.eraseDrawing(id))}
             onAddWall={(a, b) => {
@@ -272,13 +327,14 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             onPin={pt => { st.focusPin(pt); setView(v => centerOn(v, pt, viewport())); }}
             placing={!!encounter || !!pendingPc}
-            onPlace={cell => {
-              if (pendingPc) { run(placePcAt(pendingPc, cell)); return; }
-              if (encounter) run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, cell)));
+            placingSize={pendingPc ? cellsOfSheet(pendingPc.data) : encounter ? cellsOfEntry(encounter) : DEFAULT_TOKEN_CELLS}
+            onPlace={at => {
+              if (pendingPc) { run(placePcAt(pendingPc, at)); return; }
+              if (encounter) run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, at, cellsOfEntry(encounter))));
             }}
             selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
-            onContextMenu={(at, pt) => setQuickMenu({ at, scene: pt })}
+            onContextMenu={(at, pt) => { closeOverlays('quick'); setQuickMenu({ at, scene: pt }); }}
             onDeleteSelection={deleteSelection}
             onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))} />
           {isDm && (
@@ -346,7 +402,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
                 {selectedTokens.some(tk => !tk.visible) ? t('maps.token.show') : t('maps.token.hide')}
               </button>
               {canAttack && (
-                <button type="button" className="tb-btn tb-btn-xs tb-btn-atk" onClick={() => setAttacking(true)}>
+                <button type="button" className="tb-btn tb-btn-xs tb-btn-atk" onClick={() => { closeOverlays(); setAttacking(true); }}>
                   {t('bestiary.attack.button')}
                 </button>
               )}
@@ -375,7 +431,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               })}
             </div>
           )}
-          {isDm && tool === 'encounter' && !armedFromBestiary && (
+          {isDm && encounterMenuOpen && (
             <EncounterMenu entries={bestiary} labelOf={e => ts(e.label)} selectedId={encounter?.id ?? null} onSelect={setEncounter} onClose={() => setTool('select')} />
           )}
           {isDm && bgOpen && (
@@ -389,6 +445,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView} scene={live}
             onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}
             onLighting={lighting => run(patchScene(live.id, { lighting }))}
+            onSolidWalls={solidWalls => run(patchScene(live.id, { solidWalls }))}
             onZoomIn={() => setView(v => zoomAt(v, ZOOM_STEP, viewCenter()))} onZoomOut={() => setView(v => zoomAt(v, 1 / ZOOM_STEP, viewCenter()))}
             onCenter={() => setView(fitView(live, viewport()))} onToggleWalls={() => setShowWalls(w => !w)} onTogglePlayerView={() => setPlayerView(v => !v)} />
         </div>

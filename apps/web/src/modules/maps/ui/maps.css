@@ -75,7 +75,13 @@
 /* fog: the player gets black where the map is not, a dim veil over what is only remembered;
    the DM keeps the whole map under a blue veil where nobody has been */
 .mp-fog-veil{fill:var(--sys-steel);fill-opacity:.4;pointer-events:none;}
-.mp-fog-dim{fill:var(--sys-ink);fill-opacity:.55;pointer-events:none;}
+/* Lo RECORDADO, frente a lo que ves AHORA. El número es un equilibrio y se ha ajustado mirando:
+   .55 (lo que había) dejaba el plano entero igual de apagado y no se distinguía dónde estabas mirando
+   (dueño, 2026-08-22: «todo el plano igual de oscuro»); .78 daba el contraste pero hundía lo recordado en
+   negro, y lo explorado tiene que SEGUIR AHÍ, apagado. .66 es el punto donde lo que tienes delante se lee
+   limpio y lo de memoria se lee todavía, claramente detrás. Es el dial de esta pantalla: si el dueño lo
+   quiere más oscuro o más claro, se toca aquí y en ningún otro sitio. */
+.mp-fog-dim{fill:var(--sys-ink);fill-opacity:.66;pointer-events:none;}
 .mp-brush{fill:color-mix(in srgb,var(--sys-gold) 18%,transparent);stroke:var(--sys-gold);stroke-width:1;pointer-events:none;}
 .mp-brush.hide{fill:color-mix(in srgb,var(--sys-ink) 22%,transparent);stroke:var(--sys-ink-soft);}
 .mp-drawing.draft{opacity:.7;}
@@ -112,7 +118,11 @@
 .mp-menu-item:hover{background:color-mix(in srgb,var(--sys-ink) 10%,transparent);}
 .mp-menu-item:disabled{opacity:.45;cursor:default;}
 .mp-menu-item.danger{color:var(--sys-blood);}
-.mp-bgpop{top:8px;right:54px;width:340px;max-height:calc(100% - 16px);overflow:auto;}
+/* Pegado a SU botón, que está en la barra de la izquierda: estaba clavado a la derecha, o sea en la otra
+   punta de la pantalla que lo abre (dueño, prueba de la app). Mismo hueco que sus dos vecinos de esa esquina,
+   `.mp-pcmenu` y `.mp-encounter`: arrancan en 60px para no taparle la etiqueta al lienzo (`.mp-canvas-label`,
+   top:8px), que es la que dice si mandas tú o se ve la niebla. */
+.mp-bgpop{top:60px;left:8px;width:340px;max-height:calc(100% - 70px);overflow:auto;}
 .mp-hexrow{display:flex;align-items:center;gap:8px;}
 .mp-hex-swatch{width:16px;height:16px;border:1px solid var(--sys-line);}
 .mp-hex{width:96px;font-family:inherit;font-size:var(--fs-sm);padding:4px 8px;border:1px solid var(--sys-line);background:transparent;color:var(--sys-ink);}
@@ -141,7 +151,7 @@
 /* footer */
 .mp-foot{margin:0;font-size:var(--fs-2xs);display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.3;}
 .mp-dm-tag{font-style:normal;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;background:var(--sys-blood);color:var(--sys-paper-hi);}
-@media (max-width:900px){.mp-stage{min-height:60vh;}.mp-bgpop{right:8px;width:calc(100% - 16px);}}
+@media (max-width:900px){.mp-stage{min-height:60vh;}.mp-bgpop{left:8px;width:calc(100% - 16px);}}
 .mp-foot-err{color:var(--sys-blood);font-style:italic;}
 /* ── scenes rail (replaces the header dropdown; folds to give the map its width back) ── */
 .mp-rail{display:flex;flex-direction:column;gap:3px;width:176px;flex-shrink:0;padding:5px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}

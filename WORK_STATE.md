@@ -14,6 +14,308 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🟢 PUNTO EXACTO — 2026-08-22 (noche): PAREDES SÓLIDAS — CINCO fallos arreglados en tres rondas. Falta MIRARLO EN LA APP
+
+Rama **`fix/municion-y-preguntas`**. **942 tests** verdes (web 644 · api 126 · core 23 · plenilunio 133 · ui 16) ·
+typecheck web+api · `audit` 0 hard · `build:web` + `build:api` · **review pasado entero, TRES rondas**. Sin QA y sin merge.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: las paredes sólidas están TERMINADAS en `fix/municion-y-preguntas` (cinco fallos en tres
+> rondas, todos con review pasado). Falta **mirarlo en la app con dos navegadores** y luego QA + merge.
+> Bloque 🟢 de WORK_STATE.
+
+### ✅ RONDA 3 — los dos fallos de TACTO que el dueño vio al probar la ronda 2
+1. **El rebote hacia atrás** («al pasar del centro del token rebota un poco para atrás»): entre pregunta y
+   pregunta al servidor (~7/s) el navegador pintaba al token siguiendo al dedo A CIEGAS —no ve los muros
+   secretos—, se metía en el muro y al llegar la corrección saltaba atrás. Arreglo: el servidor devuelve con
+   cada respuesta la **holgura libre** (`clearance`, un escalar en casillas — `circleClearance` en core: el
+   disco es convexo, todo camino dentro es legal entero) y `MapCanvas` **no pinta nunca más allá del disco
+   confirmado** (`dragBound`/`motionRef` en `useScene`). Y pegado a un muro (corrección en pie) el ritmo de
+   preguntas sube de 140 ms a 50 ms (`VISION_CONTACT_HZ_MS`) para que el despegue no dé tirón.
+2. **El vértice que no soltaba** («al llegar a un vértice sigue por el mismo vector y no deja cambiar de
+   dirección hasta soltar»): el barrido del servidor estaba anclado a la posición GUARDADA al empezar el
+   arrastre — pasada la esquina, la recta origen→dedo seguía cruzando el muro. Arreglo: `at.from` — el ancla
+   es **la última posición que el propio servidor contestó** (cadena validada eslabón a eslabón; el primer
+   tick va SIN `from` y ancla en la guardada; la posición PINTADA nunca entra en la cadena, que antes de la
+   primera respuesta puede estar ya al otro lado y legalizaría el cruce). El freno LOCAL de `MapCanvas`
+   también barre ahora desde la posición pintada actual, no desde el origen del gesto.
+   - Endurecido tras el review: `moveToken` invalida las respuestas en vuelo (`++visionSeq`) para que una
+     tardía no re-siembre la cadena del arrastre anterior; y **test de ruta en `app.test.ts`** que POSTea
+     `at.from` — el esquema zod parsea con fallback silencioso, y sin ese canario una regresión del esquema
+     apagaría la física en producción sin error y con los tests del caso de uso en verde.
+
+### ✅ FALLO 3 — EL QUE VIO EL DUEÑO AL PROBAR: el token saltaba a su posición INICIAL, no se quedaba pegado
+Probó tras el arreglo de los fallos 1 y 2 y el token seguía mal: contra el muro, **volvía al punto de
+salida**. La causa era más honda que el ciclo de preguntas: **`slideCircle` no resbalaba de verdad** — probaba
+el movimiento entero, luego sólo-X, luego sólo-Y, y si nada cabía devolvía `from`. Empujando de FRENTE
+(componente lateral cero) devolvía el punto de salida; contra un muro en diagonal no resbalaba jamás. **Los
+tests de `core` fijaban ese salto como comportamiento correcto** (`toEqual({x: 50})`), y la simulación de la
+mañana («6 → 0») lo enseñaba y se leyó como éxito.
+- **Arreglo** (`packages/core/src/maps.ts`, una sola función, las dos orillas a la vez): avance hasta el
+  contacto por bisección (monótona: alargar un segmento sólo puede acercarlo al muro) + el resto del
+  movimiento proyectado A LO LARGO del muro tocado, hasta 2 rebotes para esquinas. `SLIDE_GAP = 0.5` px de
+  holgura para que el `round2` al soltar (error máx. 0,135 px a grid 27) no deje al token DENTRO del muro y
+  la vía de «ya estabas dentro» le abra la pared; quien ya está a menos de la holgura usa como listón la
+  separación que trae (no se queda clavado: resbala y se aleja, nunca se acerca más).
+- Review 2.ª ronda: bisección demostrada monótona · imposible devolver un camino que cruce · 500 empujes
+  aleatorios contra 6 muros, ninguno acaba dentro · coste medido 0,15 ms/llamada en el peor caso.
+
+### ✅ FALLOS 1 y 2 (y el hueco de cobertura, cerrado)
+1. **La oscilación a través del muro** — era preguntarle al servidor por la posición que él mismo acababa de
+   corregir (la veía caber, callaba, la corrección se borraba y el token saltaba al dedo). Ahora se le
+   pregunta SIEMPRE por el **deseo del dedo**: `onDragToken` lleva un cuarto argumento `desired` (`libre`),
+   `useScene.dragToken` pregunta con `desired ?? {x,y}`, el broadcast a la mesa sigue con `x,y` (donde el
+   token está de verdad), y **`moveToken` limpia `correctedRef` al soltar** para no clavar el arrastre
+   siguiente.
+2. **La niebla «manual»/«off» apagaba la física** — los dos `return` tempranos de `sceneVision.ts` salían
+   antes del bloque de paredes sólidas. El cálculo de `corrected` está ahora POR ENCIMA de esos `return` y
+   los dos lo devuelven. La geometría (muros+tokens) se carga sólo cuando hace falta: siempre en «vision», y
+   en los otros modos sólo con `at` **y** paredes sólidas encendidas (apagadas sobraban las dos lecturas —
+   lo cazó el review).
+3. **El hueco que los dejaba pasar** — `useScene.ts` tiene por fin test propio (`useScene.test.ts`): ata el
+   ciclo entero corrección → qué se pinta → **qué se le pregunta al servidor en el tick siguiente**, con un
+   doble que contesta SÓLO cuando recorta, como el real (`fakeVisionPort` ganó ese modo, retrocompatible).
+   El test de regresión de `MapCanvas` aserta el cuarto argumento, y `sceneVision.test.ts` ata que
+   manual/off no apagan la corrección.
+
+### 🔎 Observaciones del review, NO bloqueantes (anotadas, no tocadas)
+- **El leak de `clearance`** (3.ª ronda): un escalar de proximidad a muros secretos, a hasta 20 Hz, permite
+  cartografiarlos por gradiente sin tocarlos — más rápido que a topetazos, aunque la corrección ya revela la
+  geometría exacta al contacto. Veredicto del review: aceptable para una mesa de rol. **Si al dueño le
+  importara: capar `clearance` a ~2 casillas conserva íntegro el anti-rebote** (el disco sólo trabaja cerca
+  de muros) y reduce el leak a casi-contacto. Decisión suya, pendiente.
+- **`from` es palabra del cliente**, como hoy lo es escribir `x`/`y` en `maps_tokens` — mismo perímetro de
+  confianza, documentado en el código. Se cierra solo cuando el movimiento pase por la API (tarea aparte ya
+  anotada abajo); entonces el servidor recordará la posición él mismo y `from` sobrará.
+- **La holgura estrecha los huecos 0,5 px**: un token de tamaño 1 (radio 13,5 a grid 27) ya no pasa por un
+  hueco de EXACTAMENTE 27 px (necesita ≥28). Antes sólo pasaba por la línea central milimétrica; el cambio
+  práctico es marginal, y las puertas (que al abrirse dejan de bloquear) son el mecanismo previsto para pasar.
+  Sólo importa si algún mapa confía en huecos dibujados de una casilla justa.
+- **Si el grid llegara a ser editable por encima de ~100 px**, la garantía «round2 < holgura» muere (hoy el
+  grid es fijo a 27 en todas partes). Apuntarlo el día que el grid se haga configurable.
+- **Tacto a ~7 Hz contra muro VISIBLE**: ahora el servidor también contesta ahí y su corrección (hasta 140 ms
+  vieja) pisa el freno local — posición correcta, tacto algo más escalonado. Caso raro: en escenas reales los
+  muros van ocultos (16/16) y el director nunca choca.
+- **Carrera residual al soltar**: un `refresh` en vuelo puede re-sembrar una corrección vieja tras el limpiado
+  de `moveToken` (<150 ms, se autocorrige al primer refresco). Mejor que antes en cualquier caso; si molesta,
+  un `++visionSeq.current` dentro de `moveToken` lo cierra.
+
+### 📐 Lo construido (spec: `specs/modules/maps/SPEC.md` § «Rebanada 4», confirmada por el dueño)
+Decisiones suyas: interruptor **por escena** · al topar **resbala** · **el director nunca choca** · choca
+**todo el cuerpo** (radio), no el centro.
+- **DB**: `20260822000000_maps_solid_walls.sql` — una columna `solid_walls` en `maps_scenes`, `DEFAULT false`.
+  Sin tabla ni política nuevas. Aplicada en local con `migration up` (NO `reset`: los datos del dueño siguen ahí).
+- **`packages/core/src/maps.ts`**: `slideCircle` + `segSegDist`, la geometría pura, en `core` porque la usan
+  las DOS orillas y no pueden discrepar (misma lección que `ownDiceForStat`). Desde el fallo 3, `slideCircle`
+  es avance-hasta-contacto + resbalón a lo largo del muro (no la descomposición en ejes).
+- **Navegador**: `mapRules.slideToken`/`moveBlockers`/`tokenRadiusPx` delegan en `core`; `MapCanvas` frena y
+  obedece al servidor SIN CONDICIONES; interruptor en `CanvasControls`.
+- **Servidor**: `computeSceneVision` devuelve `corrected` en TODOS los modos de niebla, y sólo cuando recorta.
+
+### ⚠ EL FALLO DEL QUE HAY QUE APRENDER (sesión de la mañana)
+Lo di por terminado con **todos los tests en verde** y en la app el token **atravesaba las paredes**: en una
+escena real NINGÚN muro es visible para el jugador (16/16, comprobado en la base), su freno propio no salta
+nunca, y la corrección del servidor estaba condicionada al freno local. Al revés. **Se cazó arrastrando el
+token en la app** — y los dos fallos de esta tarde eran la misma familia, con dobles de test que no podían
+producir una corrección de verdad. De ahí el test nuevo de `useScene`: el eslabón que ningún doble ataba.
+
+### 🚨 LA SPEC ESTABA VENDIDA MÁS FUERTE DE LO QUE ES — ya corregida; cerrarla es TAREA APARTE
+El jugador escribe `x`/`y` **directamente en `maps_tokens`**; el trigger controla qué token y qué columnas,
+**nunca a dónde**. La corrección es **un consejo que el navegador obedece**. Cerrarlo pide mover el movimiento
+a la API (`POST /scenes/:id/tokens/:id/move`) + migración que quite a los jugadores la escritura de `x`/`y`;
+cierra también el **manotazo rápido** (un arrastre más corto que ~140 ms no llega a preguntar).
+
+### 🧰 Estado del entorno local (dejado listo para probar)
+- Web `:5173` · API `:3001` · Supabase local, las tres levantadas (si se apagaron: `npm run db:start` y los dev).
+- **Cuenta de jugadora: `jugador1@ejemplo.com` / `rolvium123`** (Marta Ruiz), en la campaña «khgjhff» y con
+  **Karen Sinclair** asignada. Admin: `admin@rolvium.local` / `rolvium123`.
+- Escena «ssss» **activada** (sin escena activa el jugador no ve nada) y **`solid_walls` ENCENDIDO en las dos**.
+- Todo eso son datos locales: no sale del repo ni toca producción.
+
+### ✅ RONDA 4 — el saltito del borde, AJUSTADO (y verificado por el dueño: «vale mucho mejor»)
+Al rozar el borde de una puerta/ventana el token se enganchaba un instante y, al liberarse, cerraba el hueco
+con el dedo DE GOLPE. Ahora el pintado se ACERCA (por evento: lo que se movió el dedo + `CATCH_UP_CELLS`
+0,35 casillas — arrastre libre 1:1 exacto, reenganche deslizado), y lo LEGAL (freno + corrección + disco)
+vive aparte en `idealDrag` y es lo que se persiste al soltar. **El review de la 4.ª ronda cazó y arregló él
+mismo un leak real**: el barrido local leía el pintado suavizado — la física ya sólo lee lo legal (`ideal ??
+localDrag ?? origin`, con id de gesto). Deuda anotada por el review, no tocada: cierre del hueco en reposo
+(sería un rAF) y un pin jsdom del escenario de esquina.
+
+**El dueño verificó TODO en la app: «el resto funciona muy bien» / «vale mucho mejor».**
+
+### ⏭ LO SIGUIENTE (decidido por el dueño, 2026-08-22)
+1. **QA de esta rama y merge a `main`** — el dueño ya verificó en la app; eligió cerrar antes de empezar lo nuevo.
+2. **Panel del director (columna 4 de dados) en rama nueva, TANDA COMPLETA** (panel + orden de turnos + aviso
+   «tirada pedida» + retirar el bloque «Tirada» de la ficha). Decisiones en `specs/modules/dice/SPEC.md`:
+   chips de las SIETE características · el `.pen` manda AL DETALLE y lo no dibujado se enseña antes de
+   construir (faltan: «Tirada pedida» y comprobar el orden de turnos). Flujo: dba → design → dev.
+
+### ⏭ La verificación en la app que ya se hizo (guía por si se repite)
+1. **MIRARLO EN LA APP con dos navegadores** (director y jugador):
+   - empujar DE FRENTE contra un muro: avanza, se queda PEGADO, **sin rebotar hacia atrás** al pasar el cursor;
+   - empujar en diagonal: RESBALA a lo largo, y **al llegar al final del muro dobla la esquina** y responde al
+     ratón sin tener que soltar;
+   - soltar pegado y volver a arrastrar (que no se quede clavado);
+   - repetir con la niebla en «manual» y en «off».
+2. Luego **QA** y merge a `main`.
+
+### 🔧 Deuda técnica menor (preexistente, vista de pasada)
+- `cd packages/core && npx tsc --noEmit` falla en `gameSystem.test.ts` (Engine/`applyDamage`,
+  `exactOptionalPropertyTypes`). Ya falla igual en `main`; no bloquea ni suites ni builds (los gates normales
+  no typecheckean los tests de core). Arreglarlo aparte.
+
+---
+
+## 🔴 PUNTO EXACTO — 2026-08-21/22: el dueño PROBÓ la app · LAS 4, HECHAS · falta MIRARLO
+
+Rama **`fix/municion-y-preguntas`** (sale de `main`, que ya tiene la columna 5 en producción).
+**900 tests** verdes · typecheck · `audit` 0 hard (13 warn, los de siempre) · `build:web` + `build:api`.
+Commits: **`4e29ee7`** · **`ede3b1f`** · **`aeb0717`** · **`e717f7d`** · **`0e3994b`** · **`53a7dfe`**.
+**Review pasado en las cuatro tandas.** Sin QA y **sin subir a producción**.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: las **cuatro** cosas que salieron al probar la app están arregladas en
+> `fix/municion-y-preguntas`, con review pasado y **sin mirar en la app**. Lo siguiente es **mirarlo con dos
+> navegadores** (director y jugador) y luego QA + merge. Bloque 🔴 de WORK_STATE.
+
+### ✅ ARREGLADO (con test, sin subir a producción todavía)
+1. **La Munición no se podía subir NUNCA** (`4e29ee7`). La celda pintaba «—» cuando la fila no traía el
+   dato, y en un guion no hay «+». Y el círculo se cerraba solo: `reloadWeapon` LEE ese dato. Un contador
+   que sí aplica a la fila arranca ahora en su mínimo.
+2. **El techo de la Munición era un sinsentido** (`ede3b1f`). Estaba topada en la capacidad del cargador:
+   «puedes tener una mochila llena de balas y tu cargador un límite de 2» (dueño). Fuera el tope. El techo
+   real es el del CARGADOR y ya estaba bien puesto — `reloadWeapon` sólo traspasa lo que cabe.
+
+### ✅ ARREGLADO · 3 — LA RESISTENCIA YA NO ENCOGE AL HERIRSE (`aeb0717`, review pasado)
+Karen, herida, enseñaba **12 casillas en vez de 18**. Abierto el PDF antes de tocar nada. El libro da
+**dos** frases, en dos sitios, y el 2026-08-19 se fundieron en una sola:
+
+| Número | Dónde | Qué es |
+|---|---|---|
+| **Resistencia máxima = 3 × Aguante** | p.25, creación | El tamaño de la PISTA. «Son iguales al triple del Aguante… deja los cuadrados en blanco correspondientes a tu Resistencia para poder tacharlos durante el juego.» No la encoge el estado de salud. |
+| **Recuperable descansando = ×3 / ×2 / ×1** | p.101, bajo «RECUPERACIÓN» | Hasta dónde te sube un DESCANSO. «Su salud **se recupera** a dos tercios de su Resistencia» — que sólo tiene sentido si «su Resistencia» sigue siendo el triple. |
+
+Hecho, en el orden que mandaba este bloque: **`RULES.md` §1.6 y §6.3 primero** (las dos citas, la tabla y
+las tres razones, marcadas ⚠ interpretación) → `derived` (`resistanceMax` = ×3 siempre, vuelve
+`recoveryMax`) → `rest()` sube hasta `recoveryMax` y no hasta la pista → la ficha vuelve a enseñar **los
+dos** números con su referencia al manual cada uno → `catchBreath` (p.89) mide lo perdido contra la
+pista, que no es descansar → specs y tests, con un pin de punta a punta (herida → 18 casillas, tarjeta
+del descanso a 12).
+
+**Nadie pierde puntos al desplegar**: los máximos sólo SUBEN, y se capa la subida y nunca la bajada en
+los cuatro sitios (`rest`, `catchBreath`, las casillas y la barra de «El grupo»).
+
+**Lo que cazó el Review y se arregló**: «El grupo» (el panel del director) era la **ÚNICA** vista de toda
+la app que leía la columna `derived` **guardada en la base** en vez de recalcularla de la ficha. Sin
+tocarla, el 12 que chirrió habría seguido saliendo ahí —«18 / 12», barra a tope— hasta que alguien
+volviera a guardar cada personaje uno por uno. Ahora recalcula como todas las demás; el test se comprobó
+que **cae** sin el arreglo. Es la deuda a recordar: **una columna `derived` guardada se queda vieja en
+cuanto cambia una regla**, y sólo esa vista se fiaba de ella.
+
+**⚠ Sin mirar en la app corriendo.** Los tests cuentan las casillas, pero la tarjeta nueva de la ficha
+(«Resistencia recuperable descansando», la cuarta de la fila) **no se ha visto en pantalla**.
+
+### ✅ ARREGLADO · 4 — LOS DADOS EXTRA YA TIENEN TECHO (`e717f7d`, review pasado)
+30 dados con Combate 4 («+ dados extra: 26») porque el «+» no tenía tope. **Decisión del dueño**: nada de
+un número global inventado — «teniendo identificado los casos como la atención médica no pones dos, y si
+alguna habilidad te deja más lo permites». El techo se construye con lo que el libro escribe (RULES.md §2.8):
+
+| Caso | Techo | Dónde |
+|---|---|---|
+| Herramientas y accesorios (lo normal) | **2** | p.87 «añade uno o dos dados», y no se acumulan: «solo los dados que añada la mejor herramienta». Las miras de las armas a distancia son lo mismo (p.96). |
+| **Atención médica** | **4** | p.101, el grado de éxito del médico son dados extra en la tirada de recuperación —que es de **Fortaleza**— y la tabla de grados llega a 4 (p.85). |
+
+**No gastan del techo** lo que no pone la mano de quien tira: la bonificación del arma (`bonusDice`; las
+excepcionales de la p.157 dan «tres o más») y los dados de la Reserva de Destino.
+
+El recorte vive en **`poolFor`**, no en la pantalla: con ficha, el servidor rehace ahí los grupos, así que un
+solo sitio cubre las dos orillas. Un `extraDice` **negativo** sigue siendo legítimo —repartir el Combate
+entre los ataques del turno, p.94— y no se toca.
+
+**Salió de paso**: el servidor recortaba los dados pero **guardaba lo pedido** («+26» en el Registro con 2
+tirados). Corregido: `performRoll` guarda también las opciones rehechas.
+
+**Regresión mía que cazó el Review**: el ataque impreso de una criatura viajaba por `extraDice` desde el
+token del mapa, así que el techo se lo comía — Luz-Malefic, mandoble 10 con Combate 6, habría tirado **8**
+mientras el modal prometía 10 (p.163: es «bonificación +4», justo lo que el techo exime). Ahora va por
+`bonusDice`. Test comprobado que cae sin el arreglo.
+
+**⚠ Sin mirar en la app corriendo.**
+
+### 🔎 Deuda anotada y NO tocada (decidir aparte)
+- **Una tirada de CRIATURA no lleva ficha, así que el servidor no la rehace**: su techo se queda del lado del
+  cliente. Hueco ANTERIOR a esta tanda y común a toda tirada de criatura (los dados salen igual del cliente);
+  quien tira es el director. Los comentarios que prometían «las dos orillas» sin matizar están corregidos.
+- **`schema.ts` declara `extraDice` con `max: 5`**, que ya no cuadra con el techo del motor (2, o 4 en
+  Fortaleza). Un `max` fijo del esquema no puede expresar un techo por característica. Es la casilla del
+  bloque de tirada de la ficha, no el desplegable que usó el dueño.
+- **Acciones conjuntas** (p.87, +1 dado por ayudante): el libro deja el número «en la decisión del director
+  de juego» y la app no las modela. Cuando se modelen, su techo sale de cuántos apoyan, no de la tabla de §2.8.
+
+### ✅ ARREGLADO · 5 — LOS TOKENS, MÁS GRANDES Y SUELTOS DE LA REJILLA (`0e3994b`, review pasado)
+**El ancho**: antes TODO token nacía de una casilla — un gato y un dragón, igual. Ahora sale de la ficha con la
+escala de la p.25: **diminuto 0,5 · pequeño 0,75 · mediano 1,5 · grande 3,5 · enorme 7** casillas. La casilla
+mide 1,5 m, así que la huella literal es estatura ÷ 1,5 (mediano 1,13); encima va el aumento de legibilidad
+que pidió el dueño («un 50% más para tamaño normal»), que deja el mediano en 1,5 y multiplica a todos por
+igual. Lo declara el SISTEMA (`Engine.tokenCells`, opcional), no la plataforma.
+
+**El sitio**: era UNA línea. Arrastrar ya era libre; un `Math.round` al soltar daba el tirón a la rejilla. Y al
+colocar, el token cae **centrado** en el punto pulsado (antes, en la esquina de la casilla, lo que con 1,5 de
+huella lo dejaba medio fuera). La base ya guardaba `x`/`y` como `real`: **sin migración**.
+
+**Lo que cazó el Review**: faltaba cobertura de verdad (todas las aserciones eran 1,5, que es TAMBIÉN el valor
+por defecto, así que un `cellsOfSheet` que ignorara el motor habría pasado la suite entera).
+
+### ✅ ARREGLADO · 6 — LOS PANELES DE LA ESCENA (`53a7dfe`, review pasado)
+Cuatro cosas se abrían sobre el lienzo sin saber unas de otras. `closeOverlays`: abrir una cierra las demás.
+Y `.mp-bgpop` pasa de `right:54px` a la izquierda, que es donde está su botón.
+
+**Lo que cazó el Review, y eran dos agujeros en el arreglo**: (a) el menú de encuentros se identificaba por
+`tool === 'encounter'` pero sólo se PINTA con `&& !armedFromBestiary`, así que pulsar el botón derecho
+**desarmaba en silencio** la criatura traída del Bestiario — rompía el arreglo del 2026-08-21; (b) el modal de
+**atacar** se quedaba fuera de la exclusión. Y (c) el lado nuevo tapaba `.mp-canvas-label`, así que el panel
+baja a `top:60px`, el hueco que ya usaban sus vecinos.
+
+### 🚨 LO QUE HAY QUE DECIRLE AL DUEÑO — TRES COSAS QUE SÓLO SE VEN MIRANDO
+1. **Los tokens ya colocados siguen a 1 casilla.** No se migra nada y no hay control de tamaño en la
+   pantalla: sólo los que se pongan de nuevo salen a 1,5. Hoy la única vía es borrarlos y volver a ponerlos.
+2. **Toda criatura del bestiario sale mediana**, incluido el ogro, que el libro llama Grande. Su bloque no
+   imprime el tamaño (comprobado el ogro de la p.152). Es un PLAZO, no una laguna de reglas.
+3. **El alcance se mide de centro a centro.** Daba igual con todo a una casilla; con un dragón de 7 su borde
+   queda ~3,5 casillas más cerca de lo que dice el número.
+4. **La visión se recalcula en cada suelta**, también en los empujoncitos de menos de una casilla que antes no
+   hacían nada (una llamada más a la API por suelta, no por fotograma).
+
+### 🔎 Deuda anotada y NO tocada (decidir aparte)
+- **Darle tamaño a cada criatura** pide leerse su descripción una por una. ⚠ Y **NO se puede automatizar**
+  despejando `Aguante − (Fortaleza + Voluntad)`: comprobado sobre las 57 entradas, falla en muchas y se sale
+  del rango legal (Fantasma −3, Paladín solar −4, Nathael −8). RULES.md §1.6.
+- **Una tirada de CRIATURA no lleva ficha**, así que el servidor no la rehace con `poolFor` y su techo de
+  dados se queda del lado del cliente. Hueco anterior; quien tira es el director.
+- **`schema.ts` declara `extraDice` con `max: 5`**, que ya no cuadra con el techo del motor (2, o 4 en
+  Fortaleza). Un `max` fijo del esquema no puede expresar un techo por característica.
+- **Acciones conjuntas** (p.87, +1 por ayudante): el libro deja el número al director y la app no las modela.
+- **`.mp-tokbar` y `.mp-placing`** viven los dos en `top:8px;left:50%` y sí pueden coincidir (elige un token,
+  luego «Colocar PJ»). Anterior a esto, y son dos barras, no dos paneles.
+- **Ciclo de imports en plenilunio** (`engine` ↔ `explain`) — sigue igual.
+
+### ⏭ LO SIGUIENTE
+1. **MIRARLO EN LA APP, con dos navegadores** (director y jugador). Es lo único que queda, y es justo donde
+   salen los fallos de sitio y de ancho: el panel de Fondo **se ha movido dos veces**, los tokens a 1,5
+   casillas, y la tarjeta nueva de la ficha («Resistencia recuperable descansando»).
+2. Luego **QA** y merge a `main`.
+
+### 🚨 REGLA DE LA CASA QUE SE VOLVIÓ A SALTAR (2026-08-21)
+**EL PDF DEL MANUAL MANDA. SIEMPRE. Y NO ESTÁ DENTRO DEL REPO:**
+`/Users/ignacioz/Documents/Developer/Rolvium context/PlenilunioEbook.pdf` · se lee con `pdftotext`.
+
+Hoy se contestó una pregunta de reglas **citando RULES.md** y diciendo que el PDF «no está en el repo»,
+sin buscarlo fuera. El dueño: «el manual pdf manda, ya te lo dije un millón de veces». Y RULES.md estaba
+equivocado. **Una cita de RULES.md no es haber mirado el manual.** Si la respuesta es una regla, se abre
+el PDF antes de contestar y antes de escribir código.
+
+---
+
 ## 🟢 PUNTO EXACTO — 2026-08-21: LA COLUMNA 5 ESTÁ EN PRODUCCIÓN. Falta MIRARLA EN LA APP
 
 **EN `main` Y EN PRODUCCIÓN.** Merge **`cb27b63`** (45 commits de `feat/bestiario`), desplegado y

@@ -81,8 +81,10 @@ Cada vez que sube el Destino se recibe **1 punto de don** nuevo (p. 89).
 
 ### 1.6 Últimos cálculos (p. 25)
 - **Aguante** = Fortaleza + Voluntad ± modificador de tamaño.
-- **Resistencia** = 3 × Aguante **mientras el personaje esté Sano o Magullado**; Herido y Malherido bajan ese
-  máximo a 2× y 1× (p. 101, §6.3). La hoja impresa tiene hueco para 30 casillas.
+- **Resistencia** = **3 × Aguante, siempre** (p. 25, literal: «Son iguales al triple del Aguante»). Es el tamaño
+  de la PISTA, y se fija al crear el personaje: la hoja impresa tiene hueco para 30 casillas y «sombrea los puntos
+  sobrantes y deja los cuadrados en blanco correspondientes a tu Resistencia». Karen, con Aguante 7, tiene 21.
+  El estado de salud **no encoge la pista**: lo que limita es **cuánto recuperas descansando** (§6.3).
   - ⚠ interpretación: la regla es 3×Aguante sin tope; no aplicamos tope de 30 (un héroe legendario 6+6 tiene 36).
   - Cómo se leen las casillas (p. 25, literal): «sombrea los puntos sobrantes y deja los cuadrados en blanco
     correspondientes a tu Resistencia **para poder tacharlos durante el juego**». En la hoja impresa hay tres
@@ -105,6 +107,24 @@ Tamaños (p. 25):
 | Mediano  | 1,7 m    | 70 kg | 0       | humano, alado  |
 | Grande   | 4 m      | 1 t   | +1      | ogro           |
 | Enorme   | 8 m      | 9 t   | +2      | dragón         |
+
+⚠ Interpretación (mapa): el libro da estaturas y un modificador de Aguante, **no** huellas en casillas. La
+casilla del mapa mide 1,5 m, así que la huella literal sería estatura ÷ 1,5 (mediano 1,13). A eso se le aplica
+el aumento de LEGIBILIDAD que pidió el dueño el 2026-08-21 —«un 50% más para tamaño normal»—, que fija el
+mediano en **1,5 casillas** y multiplica a todos por igual (×1,33) para conservar las proporciones del libro.
+Redondeado al cuarto de casilla: **diminuto 0,5 · pequeño 0,75 · mediano 1,5 · grande 3,5 · enorme 7**.
+Los bloques de criatura **no imprimen el tamaño** (el ogro de la p.152 trae Aguante y Destino y nada más), así
+que un token del bestiario se queda con el tamaño por defecto del mapa hasta que se les dé uno. Ojo, que eso
+no es lo mismo que decir que el libro calla: la propia tabla de arriba pone de ejemplo **ogro** en Grande y
+**dragón** en Enorme, y la aritmética lo confirma —el ogro imprime Aguante 10 con Fortaleza 8 y Voluntad 1,
+o sea el +1 de Grande. Darle su tamaño a cada una de las 45 criaturas es leerse su descripción una por una,
+y es su propia tanda; hasta entonces el valor por defecto es una decisión de PLAZO, no de reglas.
+
+⚠ **Y NO se puede automatizar despejando** `Aguante − (Fortaleza + Voluntad)`. Comprobado sobre las 57
+entradas del catálogo el 2026-08-22: sale bien en el ogro (+1) pero **falla en muchas**, y no siempre dentro
+del rango legal −2…+2 — Fantasma **−3**, Paladín solar **−4**, Nathael **−8**, Marduk y Adán −1, Charlatán
+iluminati +2, Jacobita y Nergal +1. Los bloques imprimen el Aguante como dato suelto y no siempre cuadra con
+sus características. Quien lo automatice le pondrá tamaños inventados a media lista: hay que leerse el libro.
 
 ### 1.7 Equipo inicial (p. 25)
 Sin tabla de precios; se pacta con el DJ. Orientación: ropa + muda; bolsa/mochila; un arma acorde a la especialidad
@@ -175,6 +195,41 @@ Ningún éxito ni triunfo en la tirada **y** al menos un fracaso → además de 
 - **Acciones conjuntas** (p. 87): coordina quien tenga la característica más alta; cada ayudante con característica
   ≥ mitad de la del coordinador añade +1 dado.
 - **Herramientas** (p. 87): herramienta adecuada +1 dado, excelente +2; no acumulables (vale la mejor).
+  Literal: «se asume que el personaje que realiza la acción cuenta con las herramientas mínimas necesarias…
+  Si el personaje cuenta con herramientas adecuadas o de más calidad, **añade uno o dos dados**», y «la
+  bonificación por herramientas **no se acumula** si el personaje utiliza varias herramientas al mismo tiempo.
+  En ese caso **se añaden solo los dados que añada la mejor herramienta**».
+
+### 2.8 Techo de los dados extra — ⚠ interpretación (p. 87, p. 96, p. 101)
+**El libro NO da un máximo global de dados extra**, así que el techo de la app se construye caso por caso con lo
+que sí escribe (orden del dueño, 2026-08-21; antes no había techo ninguno y se llegaba a 30 dados con Combate 4):
+
+| Caso | Techo | Dónde |
+|---|---|---|
+| **Herramientas y accesorios** — el caso normal | **2** | p. 87 «añade uno o dos dados», y no se acumulan. Los accesorios de las armas a distancia (miras láser, telescópicas) son lo mismo: p. 96 dice que dan dados extra y no pone número. |
+| **Atención médica**, antes de una tirada de recuperación | **4** | p. 101: «el grado de éxito que obtenga [el médico] se convierte en dados extra… en su próxima tirada de recuperación», y la tabla de grados de la p. 85 llega hasta **4** («de forma absoluta»). La tirada de recuperación es de **Fortaleza**. |
+
+**NO gastan de este techo**, porque no son «lo que se añade a mano»: la **bonificación del arma** cuerpo a cuerpo
+(p. 87/97, 1–2 dados, y «tres o más» las excepcionales de la p. 157) la pone el motor aparte, y los **dados de la
+reserva de Destino** (§3.2) van en su propio grupo.
+
+Lo mismo vale para el **ataque impreso de un bloque de bestiario** («Mandoble 11»), que es Combate más la
+bonificación de su arma (p. 97): su diferencia con el Combate viaja como bonificación del arma y no como dado
+extra, en las dos vías —tirar en su nombre y atacar desde su token del mapa—. El caso que lo prueba es
+**Malefic a dos manos** (p. 163): el libro le da «bonificación +4», y Luz-Malefic ataca con 10 teniendo Combate 6.
+Metido en los dados extra, el techo de dos se lo comería y tiraría 8.
+
+⚠ Interpretación: el techo de la atención médica se aplica a **cualquier** tirada de Fortaleza, porque la app aún
+no distingue la tirada de recuperación de las demás. Peca de generoso ahí, y es preferible a dejar fuera el único
+caso del libro que pasa de dos.
+
+⚠ **Lo que queda fuera a propósito**: las **acciones conjuntas** (p. 87, +1 dado por ayudante) tienen un tope que
+depende de cuántos apoyen, y el libro lo deja expresamente «en manos de la lógica de la situación y, en última
+instancia, en la decisión del director de juego». La app no modela la acción conjunta todavía; cuando la modele,
+su techo saldrá de ahí y no de esta tabla.
+
+**Es un TECHO y nada más**: un `extraDice` NEGATIVO —tirar con menos dados de los que se tienen— es legítimo y no
+se toca. Es como el director reparte su Combate entre los ataques y defensas de su turno (p. 94).
 
 ---
 
@@ -358,22 +413,35 @@ cargador de un arma, así que la ficha no ofrece desplegable: sale como **aviso*
 ### 6.3 Recuperación (p. 101)
 - Tras la escena, con descanso/elipsis: Resistencia al máximo si Sano/Magullado; si Herido, hasta **2 × Aguante**;
   si Malherido, hasta **1 × Aguante**.
-- **La Resistencia máxima NO es siempre 3 × Aguante: la baja el estado de salud.** El libro lo dice así de literal:
-  «sus puntos de Resistencia máximos **pasan a ser** el doble de su Aguante, **en lugar del triple habitual**»
-  (Herido), y «sus puntos de Resistencia máximos **son iguales** a su Aguante» (Malherido). No es «lo que te cura
-  el descanso» y aparte un máximo: **es el máximo**, y el descanso lo que hace es llevarte hasta él.
+- **Son DOS números distintos, y no se pueden confundir en uno.** El manual los da en dos sitios y con dos verbos:
 
-  | Estado                | Resistencia máxima |
-  |-----------------------|--------------------|
-  | Sano · Magullado      | 3 × Aguante        |
-  | Herido                | 2 × Aguante        |
-  | Malherido             | 1 × Aguante        |
+  | Número | Dónde lo dice | Qué es |
+  |--------|---------------|--------|
+  | **Resistencia máxima** = 3 × Aguante | p. 25, creación | El tamaño de la PISTA. «Son iguales al triple del Aguante… deja los cuadrados en blanco correspondientes a tu Resistencia para poder tacharlos durante el juego.» Se fija al crear el personaje y **no cambia** con la salud. |
+  | **Resistencia recuperable descansando** = ×3 / ×2 / ×1 el Aguante | p. 101, «RECUPERACIÓN» | Hasta dónde te sube **descansar**, según el estado. «Si se encuentra herido, **su salud se recupera** a dos tercios de su Resistencia»; malherido, «a un tercio de su Resistencia». |
 
-  Aguante 6: sana 18, herida 12, malherida 6. Por eso la ficha enseña **un solo** número («Resistencia máxima», la
-  del estado actual) y no dos — tenía «Resistencia máxima 18» y «recuperable descansando 12», que son la misma
-  cosa contada dos veces, y el 18 era el de una persona sana que el personaje ya no es.
-  ⚠ Interpretación: se capa la **subida**, nunca la bajada — una ficha puede llevar más Resistencia que su
-  máximo actual (bajar de Sano a Herido no te quita puntos ya marcados; el libro no manda tacharlos).
+  | Estado                | Pista (casillas) | Recuperable descansando |
+  |-----------------------|------------------|-------------------------|
+  | Sano · Magullado      | 3 × Aguante      | 3 × Aguante (todo)      |
+  | Herido                | 3 × Aguante      | 2 × Aguante             |
+  | Malherido             | 3 × Aguante      | 1 × Aguante             |
+
+  Aguante 6: la pista son **18 casillas siempre**; descansando llegas a 18 sana, 12 herida, 6 malherida.
+
+  ⚠ Interpretación: la frase de p. 101 dice, literalmente, «sus puntos de Resistencia máximos **pasan a ser** el
+  doble de su Aguante, **en lugar del triple habitual**», y leída suelta parece encoger la pista. Se lee como el
+  **tope de esa recuperación** y no como el tamaño de la pista, por tres razones: (a) está sólo bajo el epígrafe
+  «RECUPERACIÓN» y el sujeto de la frase es *se recupera*; (b) «dos tercios de su Resistencia» sólo tiene sentido
+  si «su Resistencia» sigue siendo el triple del Aguante; (c) la p. 25 fija las casillas **al crear el personaje**,
+  y el libro no manda en ningún sitio borrar casillas ya dibujadas. El 2026-08-19 se leyó al revés —se fundieron
+  los dos números en uno— y Karen, herida, enseñaba 12 casillas en vez de 18. **Corregido el 2026-08-21 contra el
+  PDF, por orden del dueño: «el manual pdf manda».**
+
+  ⚠ Interpretación: se capa la **subida**, nunca la bajada — una ficha puede llevar más Resistencia de la que
+  le devolvería un descanso, y esos puntos son suyos (descansar no QUITA Resistencia ya marcada).
+- **Recobrar el aliento** (p. 89, 1 Fortuna) cura «la mitad de los puntos de Resistencia perdidos»: lo perdido se
+  mide contra la **pista** (3 × Aguante), no contra el recuperable — no es descansar, y el libro no le pone el
+  tope del estado de salud (§6.2).
 - Heridas: reposo + tirada de Fortaleza; éxito = +1 nivel de salud; fallo = igual; **revés = −1 nivel** (Malherido → muere).
 
 | Estado     | Tiempo      | Dificultad |
@@ -782,4 +850,4 @@ El **mutante no tiene ninguna**: el libro no le imprime bloque (§8.4).
 ## 9. Mapa página → clave `references.ts`
 stats 20 · specialty 83 · roll 82 · difficulty 84 · degree 85 · setback 86 · destinyPool 88 · destiny 88 ·
 fortune 89 · xp 91 · ranged 96 · weapons 97 · damage 97 · armours 98 · endurance 98 · resistance 98 · health 99 ·
-recovery 101 · gifts 102 · size 25 · bestiary 107 · melee 93.
+recovery 101 · gifts 102 · size 25 · bestiary 107 · melee 93 · tools 87.

@@ -22,10 +22,13 @@ describe('sheetSchema', () => {
     expect(fieldById('health')?.options?.map(o => o.value)).toEqual(['healthy', 'bruised', 'wounded', 'badlyWounded', 'dead']);
   });
   it('marks derived fields', () => {
-    for (const id of ['endurance', 'resistanceMax', 'fortuneMax', 'dicePenalty', 'protection', 'armourPenalty', 'giftPoints']) expect(fieldById(id)?.derived).toBe(true);
+    for (const id of ['endurance', 'resistanceMax', 'recoveryMax', 'fortuneMax', 'dicePenalty', 'protection', 'armourPenalty', 'giftPoints']) expect(fieldById(id)?.derived).toBe(true);
     expect(fieldById('resistance')?.derived).toBeFalsy();
-    // «Resistencia recuperable descansando» era el mismo número que «Resistencia máxima» (p.101).
-    expect(fieldById('recoveryMax')).toBeNull();
+    // Son DOS números distintos y los dos se enseñan: la PISTA (3×Aguante, p.25) y lo que devuelve el
+    // descanso (×3/×2/×1 según el estado, p.101). Se fundieron en uno el 2026-08-19 y Karen, herida,
+    // enseñaba 12 casillas en vez de 18. Cada uno con su referencia al manual (RULES.md §6.3).
+    expect(fieldById('resistanceMax')?.ref).toBe('resistance');
+    expect(fieldById('recoveryMax')?.ref).toBe('recovery');
     // Se guarda y se valida, pero no se pinta: lo escribe el motor, no se elige (p.101, RULES.md §6.2).
     expect(fieldById('unconscious')?.hidden).toBe(true);
     expect(fieldById('unconscious')?.derived).toBeUndefined();   // se GUARDA: `derived` lo dejaría fuera de `newSheet`
