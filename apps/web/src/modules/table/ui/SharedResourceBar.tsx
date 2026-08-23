@@ -50,7 +50,7 @@ export function SharedResourceBar({ def, state, role, userId, label, onTake, onR
         ) : (
           <span className="tb-rotulo">{t('table.resource.dmNote')}</span>
         )}
-        {canReset(def, role) && <button type="button" className="tb-btn tb-btn-gold" onClick={() => void run(onReset)}>{t('table.resource.reset')}</button>}
+        {canReset(def, role) && <button type="button" className="tb-btn tb-btn-atk" onClick={() => void run(onReset)}>{t('table.resource.reset')}</button>}
       </div>
       {err && <span className="tb-res-err" role="alert">{err}</span>}
     </div>

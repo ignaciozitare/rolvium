@@ -637,7 +637,8 @@
       "last": "última: {{notation}} = {{total}}",
       "none": "sin tiradas todavía",
       "failed": "No se ha podido tirar.",
-      "rolling": "tirando…"
+      "rolling": "tirando…",
+      "dmTitle": "Lanzador · director"
     },
     "attack": {
       "title": "Te ataca {{name}}",
@@ -674,6 +675,28 @@
         "and": "y"
       },
       "rolledBy": "{{character}} · tirada de {{user}}"
+    },
+    "ask": {
+      "who": "¿A quién le pides la tirada?",
+      "whoHint": "puedes marcar varios",
+      "everyone": "A todos",
+      "hold": "Mantén pulsada una característica",
+      "holdHint": "y elige la dificultad sin soltar · p.84",
+      "difficulty": "Dificultad",
+      "specialty": "Le vale su especialidad — lo decides tú (p.83)",
+      "pickFirst": "Marca antes a quién se la pides.",
+      "sent": "Pedida a {{n}} · {{stat}}.",
+      "failed": "No se pudo pedir. Vuelve a intentarlo."
+    },
+    "request": {
+      "aria": "El director te pide una tirada",
+      "title": "El director te pide una tirada",
+      "sub": "{{stat}} a dificultad {{difficulty}} ({{n}}).",
+      "specialty": "Te vale tu especialidad — lo ha decidido el director (p.83).",
+      "waits": "Si no contestas, la petición espera: nadie tira por ti.",
+      "failed": "No se pudo tirar. Vuelve a intentarlo.",
+      "roll": "Tirar · {{n}} dados",
+      "rollPlain": "Tirar"
     }
   },
   "maps": {
@@ -1004,7 +1027,10 @@
       "nightNote": "Es de noche en esta escena, así que salen sus capacidades nocturnas: la hora la dice el interruptor de día/noche del mapa y aquí no se pregunta. Las marca el director, como la especialidad (p.107).",
       "dayNote": "Es de día en esta escena: sólo salen las capacidades que valen de día. La hora la dice el interruptor de día/noche del mapa (p.107).",
       "meleeWait": "Cuerpo a cuerpo es un conflicto: le llegará el aviso y la tirada saldrá cuando conteste con sus dados de defensa (p.93).",
-      "openFailed": "No se ha podido avisar al jugador. Inténtalo otra vez."
+      "openFailed": "No se ha podido avisar al jugador. Inténtalo otra vez.",
+      "withWhat": "¿Con qué ataca?",
+      "hand": "A mano",
+      "chipDamage": "daño {{n}}"
     }
   }
 }

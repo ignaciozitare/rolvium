@@ -4,7 +4,7 @@ import type { GameSystem, RollRequest } from '@rolvium/core';
 import type { ICharacterRepository } from '../../domain/character/ICharacterRepository.js';
 import type { IRollRepository } from '../../domain/roll/IRollRepository.js';
 import type { IAttackRepository } from '../../domain/attack/IAttackRepository.js';
-import { answerAttack, openAttack } from '../../application/attacks/answerAttack.js';
+import { answerAttack, answerPlayerAttack, openAttack, openPlayerAttack } from '../../application/attacks/answerAttack.js';
 import { RollRequestBody } from './rollBody.js';
 
 interface Opts extends FastifyPluginOptions {
@@ -24,6 +24,17 @@ const OpenBody = z.object({
   request: RollRequestBody,
 });
 const Params = z.object({ id: z.string().uuid() });
+/** El ESPEJO: un jugador abre su ataque c/c contra una criatura, y la defensa la pone el DIRECTOR. */
+const OpenPlayerBody = z.object({
+  campaignId: z.string().uuid(),
+  sceneId: uuidOrNull,
+  attackerCharacterId: z.string().uuid(),
+  attackerTokenId: uuidOrNull,
+  targetTokenId: z.string().uuid(),
+  attackerName: z.string().max(80),
+  dice: z.number().int().min(0).max(40),
+  request: RollRequestBody,
+});
 /** 0 es una respuesta —«no me defiendo»— y no lo mismo que el silencio, así que es un valor válido. */
 const AnswerBody = z.object({ defence: z.number().int().min(0).max(40) });
 
@@ -56,6 +67,36 @@ export async function attacksRoutes(app: FastifyInstance, opts: Opts): Promise<v
       dice: rest.dice,
       request: req as RollRequest,
     });
+    if (!r.ok) return reply.status(STATUS[r.code] ?? 400).send({ ok: false, error: { code: r.code, message: r.code.toLowerCase() } });
+    return reply.send({ ok: true, data: r.data });
+  });
+
+  app.post('/player', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const b = OpenPlayerBody.safeParse(request.body);
+    if (!b.success) return reply.status(400).send(bad);
+    const { request: req, ...rest } = b.data;
+    if (req.kind === 'system' && !req.systemId) return reply.status(400).send(bad);
+    const r = await openPlayerAttack(opts, {
+      actorId: request.identity.userId,
+      campaignId: rest.campaignId,
+      sceneId: rest.sceneId ?? null,
+      attackerCharacterId: rest.attackerCharacterId,
+      attackerTokenId: rest.attackerTokenId ?? null,
+      targetTokenId: rest.targetTokenId,
+      attackerName: rest.attackerName,
+      dice: rest.dice,
+      request: req as RollRequest,
+    });
+    if (!r.ok) return reply.status(STATUS[r.code] ?? 400).send({ ok: false, error: { code: r.code, message: r.code.toLowerCase() } });
+    return reply.send({ ok: true, data: r.data });
+  });
+
+  /** El director pone la defensa de su criatura y la tirada sale ahí mismo (espejo de `/:id/answer`). */
+  app.post('/:id/defend', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const p = Params.safeParse(request.params);
+    const b = AnswerBody.safeParse(request.body);
+    if (!p.success || !b.success) return reply.status(400).send(bad);
+    const r = await answerPlayerAttack(opts, { actorId: request.identity.userId, attackId: p.data.id, defence: b.data.defence });
     if (!r.ok) return reply.status(STATUS[r.code] ?? 400).send({ ok: false, error: { code: r.code, message: r.code.toLowerCase() } });
     return reply.send({ ok: true, data: r.data });
   });

@@ -51,6 +51,7 @@
 .tb-btn-gold{border-color:var(--sys-gold);color:var(--sys-gold);}
 /* Atacar con un token: sangre, como el botón del modal. Es el único botón de la mesa que hace daño. */
 .tb-btn-atk{border-color:var(--sys-blood);color:var(--sys-blood);}
+.tb-btn-blood{background:var(--sys-blood);border-color:var(--sys-blood);color:var(--sys-paper-hi);}
 .tb-btn-atk:hover{background:var(--sys-blood);color:var(--sys-paper-hi);}
 .tb-btn-xs{padding:5px 10px;font-size:9px;}
 /* shared resource */

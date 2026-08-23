@@ -1,5 +1,5 @@
 import { ownDiceForStat, type DiceGroup, type GameSystem, type RollRequest, type SheetData } from '@rolvium/core';
-import type { IAttackRepository, OpenAttackInput } from '../../domain/attack/IAttackRepository.js';
+import type { IAttackRepository, OpenAttackInput, OpenPlayerAttackInput } from '../../domain/attack/IAttackRepository.js';
 import { performRoll, type PerformRollDeps, type PerformedRoll } from '../rolls/performRoll.js';
 
 export interface AttackDeps extends PerformRollDeps { attacks: IAttackRepository }
@@ -75,6 +75,9 @@ export async function answerAttack(deps: AttackDeps, input: { actorId: string; a
   const attack = await deps.attacks.findById(input.attackId);
   if (!attack) return { ok: false, code: 'NOT_FOUND' };
   if (attack.status !== 'pending') return { ok: false, code: 'NOT_PENDING' };
+  // Sin personaje atacado, la fila es del ESPEJO (un PJ ataca a una criatura): la contesta el director por
+  // `answerPlayerAttack`, no este camino.
+  if (attack.targetCharacterId === null) return { ok: false, code: 'FORBIDDEN' };
   // Quien contesta tiene que ser el DUEÑO del personaje atacado. Lo vuelve a comprobar `dice_answer_attack`
   // en SQL; aquí hace falta además porque su ficha es de donde sale el techo de dados.
   const character = await deps.characters.findForActor(attack.targetCharacterId, input.actorId);
@@ -87,6 +90,53 @@ export async function answerAttack(deps: AttackDeps, input: { actorId: string; a
   let accepted: number;
   try {
     accepted = await deps.attacks.answer(input.actorId, input.attackId, capped);
+  } catch (e) {
+    const code = known(e);
+    if (code) return { ok: false, code };
+    throw e;
+  }
+  const r = await performRoll(deps, {
+    actorId: attack.createdBy, campaignId: attack.campaignId, request: withDefence(attack.request, accepted),
+  });
+  if (!r.ok) return r;
+  await deps.attacks.close(attack.id, r.data.id, 'resolved');
+  return { ok: true, data: { ...r.data, defence: accepted } };
+}
+
+/** El ESPEJO: el jugador abre su ataque c/c contra una criatura y el aviso le salta al DIRECTOR. */
+export async function openPlayerAttack(deps: Pick<AttackDeps, 'attacks'>, input: OpenPlayerAttackInput): Promise<OpenAttackResult> {
+  try {
+    return { ok: true, data: await deps.attacks.openPlayer(input) };
+  } catch (e) {
+    const code = known(e);
+    if (code) return { ok: false, code };
+    throw e;
+  }
+}
+
+/**
+ * El DIRECTOR contesta el espejo con los dados de defensa de su criatura, y la tirada sale ahí mismo.
+ *
+ * Mismo reparto que `answerAttack`, con dos diferencias dichas:
+ * - **Quién contesta lo comprueba SQL** (`dice_answer_player_attack`: sólo el director de esa campaña).
+ * - **El techo de la defensa es la palabra del director** (clamp de cordura 0–40 en SQL): su criatura no
+ *   tiene ficha que consultar — es el mismo perímetro que toda tirada de criatura, que hoy arma su puñado
+ *   el cliente del director (deuda anotada en la spec del bestiario).
+ *
+ * El AUTOR de la tirada es quien abrió el ataque — el JUGADOR: quien ataca es su personaje, y el Registro
+ * tiene que decir eso (espejo exacto de la columna 5, donde el autor era el director).
+ */
+export async function answerPlayerAttack(deps: AttackDeps, input: { actorId: string; attackId: string; defence: number }): Promise<AnswerAttackResult> {
+  const attack = await deps.attacks.findById(input.attackId);
+  if (!attack) return { ok: false, code: 'NOT_FOUND' };
+  if (attack.status !== 'pending') return { ok: false, code: 'NOT_PENDING' };
+  if (attack.targetCharacterId !== null) return { ok: false, code: 'FORBIDDEN' };
+  const system = attack.request.systemId ? deps.systemById(attack.request.systemId) : null;
+  if (attack.request.kind === 'system' && !system) return { ok: false, code: 'SYSTEM_NOT_INSTALLED' };
+
+  let accepted: number;
+  try {
+    accepted = await deps.attacks.answerPlayer(input.actorId, input.attackId, Math.max(0, Math.floor(input.defence)));
   } catch (e) {
     const code = known(e);
     if (code) return { ok: false, code };

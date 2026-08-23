@@ -19,7 +19,13 @@ const OTHER_CAMP = '88888888-8888-4888-8888-888888888888';
 const saved: { id: string; actor: string; patch: unknown; origin: string }[] = [];
 const committed: RollCommitInput[] = [];
 const ATTACK_ID = '99999999-9999-4999-8999-999999999999';
+const REQUEST_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const MIRROR_ID = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+const BATCH_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 const opened: OpenAttackInput[] = [];
+const openedRequests: { actorId: string; targetCharacterIds: string[]; stat: string }[] = [];
+const openedMirror: { actorId: string; targetTokenId: string }[] = [];
+const closedRequests: { id: string; rollId: string | null; status: string }[] = [];
 const closedAttacks: { id: string; rollId: string | null; status: string }[] = [];
 /** Lo que el director guarda al atacar cuerpo a cuerpo: sin oposición, que la pone quien se defiende. */
 const attackRequest = () => ({
@@ -51,15 +57,35 @@ const makeDeps = (): AppDeps => ({
     },
     maps: fakeMapsRepo({ roles: { [ADMIN.id]: 'dm', [PLAYER.id]: 'player' }, tokens: [{ id: 'tk-pip', x: 2, y: 5, size: 1, controlledBy: PLAYER.id }] }),
     // Ataques a la espera (`.pen` columna 5): abrir es del director, contestar del dueño del personaje.
+    rollRequests: {
+      openBatch: async (i) => {
+        if (i.actorId !== ADMIN.id) throw Object.assign(new Error('not_dm'), { code: 'FORBIDDEN' });
+        openedRequests.push(i); return { batchId: BATCH_ID };
+      },
+      findById: async (id) => (id === REQUEST_ID
+        ? { id, campaignId: CAMP_ID, batchId: BATCH_ID, targetCharacterId: CHAR_ID, createdBy: ADMIN.id, stat: 'fortitude', difficulty: 2, specialtyAllowed: true, status: 'pending' as const }
+        : null),
+      close: async (id, rollId, status) => { closedRequests.push({ id, rollId, status }); },
+    },
     attacks: {
       open: async (i) => { if (i.actorId !== ADMIN.id) throw Object.assign(new Error('not_dm'), { code: 'FORBIDDEN' }); opened.push(i); return { id: ATTACK_ID }; },
       answer: async (actor, id, defence) => {
         if (actor !== PLAYER.id || id !== ATTACK_ID) throw Object.assign(new Error('not_pending'), { code: 'FORBIDDEN' });
         return defence;
       },
+      openPlayer: async (i) => {
+        if (i.actorId !== PLAYER.id) throw Object.assign(new Error('not_owner'), { code: 'FORBIDDEN' });
+        openedMirror.push(i); return { id: MIRROR_ID };
+      },
+      answerPlayer: async (actor, id, defence) => {
+        if (actor !== ADMIN.id || id !== MIRROR_ID) throw Object.assign(new Error('not_pending'), { code: 'FORBIDDEN' });
+        return defence;
+      },
       findById: async (id) => id === ATTACK_ID
-        ? { id, campaignId: CAMP_ID, targetCharacterId: CHAR_ID, createdBy: ADMIN.id, dice: 4, request: attackRequest(), status: 'pending' as const }
-        : null,
+        ? { id, campaignId: CAMP_ID, targetCharacterId: CHAR_ID, attackerCharacterId: null, createdBy: ADMIN.id, dice: 4, request: attackRequest(), status: 'pending' as const }
+        : id === MIRROR_ID
+          ? { id, campaignId: CAMP_ID, targetCharacterId: null, attackerCharacterId: CHAR_ID, createdBy: PLAYER.id, dice: 4, request: attackRequest(), status: 'pending' as const }
+          : null,
       close: async (id, rollId, status) => { closedAttacks.push({ id, rollId, status }); },
     },
     rolls: {
@@ -385,6 +411,70 @@ describe('POST /attacks', () => {
     expect(r.statusCode).toBe(200);
     expect(r.json().data.id).toBe(ATTACK_ID);
     expect(opened.at(-1)?.attackerName).toBe('Ogro');
+  });
+});
+
+describe('el ESPEJO: /attacks/player y /attacks/:id/defend', () => {
+  const TOKEN_UUID2 = '99999999-9999-4999-8999-999999999999';
+  const body = () => ({ campaignId: CAMP_ID, attackerCharacterId: CHAR_ID, targetTokenId: TOKEN_UUID2, attackerName: 'Karen', dice: 4, request: attackRequest() });
+  it('el jugador abre su ataque contra la criatura; el director no puede abrirlo por él', async () => {
+    const r = await post(app, '/attacks/player', 'player', body());
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data.id).toBe(MIRROR_ID);
+    expect(openedMirror.at(-1)?.targetTokenId).toBe(TOKEN_UUID2);
+    expect((await post(app, '/attacks/player', 'admin', body())).statusCode).toBe(403);
+  });
+  it('la defensa la pone el DIRECTOR y la tirada sale con el JUGADOR de autor', async () => {
+    const before = committed.length;
+    const r = await post(app, `/attacks/${MIRROR_ID}/defend`, 'admin', { defence: 3 });
+    expect(r.statusCode).toBe(200);
+    const rolled = committed[before];
+    expect(rolled?.actorId).toBe(PLAYER.id);
+    expect(rolled?.request.groups).toContainEqual({ count: 3, sides: 6, tag: 'opposition' });
+    expect(closedAttacks.at(-1)).toMatchObject({ id: MIRROR_ID, status: 'resolved' });
+  });
+  it('un jugador no puede poner la defensa de la criatura, ni contestar el espejo por el camino de la columna 5', async () => {
+    expect((await post(app, `/attacks/${MIRROR_ID}/defend`, 'player', { defence: 3 })).statusCode).toBe(403);
+    expect((await post(app, `/attacks/${MIRROR_ID}/answer`, 'player', { defence: 3 })).statusCode).toBe(403);
+  });
+});
+
+describe('POST /roll-requests (el panel del director pide una tirada)', () => {
+  const body = () => ({ campaignId: CAMP_ID, targetCharacterIds: [CHAR_ID], stat: 'fortitude', difficulty: 2, specialtyAllowed: true });
+  it('requires a token, y el cuerpo tiene que traer a quién y con qué', async () => {
+    expect((await post(app, '/roll-requests')).statusCode).toBe(401);
+    expect((await post(app, '/roll-requests', 'admin', { campaignId: CAMP_ID, stat: 'fortitude', difficulty: 2 })).statusCode).toBe(400);
+  });
+  it('sólo el director pide tiradas', async () => {
+    expect((await post(app, '/roll-requests', 'player', body())).statusCode).toBe(403);
+  });
+  it('el director abre el lote y recibe su id', async () => {
+    const r = await post(app, '/roll-requests', 'admin', body());
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data.batchId).toBe(BATCH_ID);
+    expect(openedRequests.at(-1)?.targetCharacterIds).toEqual([CHAR_ID]);
+  });
+});
+
+describe('POST /roll-requests/:id/answer (el jugador contesta tirando)', () => {
+  it('requires a token, y el id tiene que ser un uuid', async () => {
+    expect((await post(app, `/roll-requests/${REQUEST_ID}/answer`)).statusCode).toBe(401);
+    expect((await post(app, '/roll-requests/nope/answer', 'player', {})).statusCode).toBe(400);
+  });
+  it('sólo el dueño del personaje contesta', async () => {
+    expect((await post(app, `/roll-requests/${REQUEST_ID}/answer`, 'admin')).statusCode).toBe(403);
+  });
+  it('contestar tira AHÍ MISMO, con el puñado rearmado por el servidor desde su ficha', async () => {
+    const before = committed.length;
+    const r = await post(app, `/roll-requests/${REQUEST_ID}/answer`, 'player');
+    expect(r.statusCode).toBe(200);
+    const rolled = committed[before];
+    // el autor es el JUGADOR, y el puñado sale de poolFor con SU Fortaleza — no de nada del navegador
+    expect(rolled?.actorId).toBe(PLAYER.id);
+    expect(rolled?.title).toBe('sheet.stats.fortitude');
+    expect(rolled?.request.options?.['difficulty']).toBe(2);
+    expect(rolled?.request.options?.['specialty']).toBe(true);
+    expect(closedRequests.at(-1)).toMatchObject({ id: REQUEST_ID, status: 'resolved' });
   });
 });
 

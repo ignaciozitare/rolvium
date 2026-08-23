@@ -157,6 +157,26 @@ pone el jugador al defenderse, así que ahí el desplegable no debe aparecer. Lo
 característica; sólo en **Combate** se eligen, porque el libro deja repartirlos entre varios objetivos (p.94), y eso
 vive en el modal de atacar.
 
+### El espejo: un JUGADOR ataca cuerpo a cuerpo a una criatura (dueño, 2026-08-22 — entra con el panel)
+Hoy el ataque c/c desde la ficha se resuelve en el acto contra unos dados que el propio jugador pone a mano
+(el bloque «Tirada», la muleta que desaparece con esta tanda): sin blanco y sin director. El dueño lo vio
+atacando con Karen: «lo resolvió solo, ¿contra qué enemigo?». El libro manda lo contrario: el c/c es un
+conflicto entre el Combate de AMBOS (p.93), el defensor actúa en el turno del atacante (p.92) y su defensa
+gasta dados de su turno siguiente (p.94) — cuando el defensor es una criatura, esa decisión es del DIRECTOR.
+- **El blanco lo declara quien ataca**: al atacar c/c desde la ficha con criaturas en la escena, el jugador
+  elige a cuál (como el director elige jugador en su modal). Sin blanco elegible no hay conflicto que abrir.
+- **Al director le salta el aviso** — «Karen ataca al Lunar (4 dados)» — y elige **cuántos dados de Combate
+  gasta la criatura en defenderse** (0 a su Combate actual), igual que el jugador en el aviso de la columna 5.
+- **Misma tubería que los ataques a la espera** (`dice_attacks`): la petición espera, el director contesta,
+  la tirada sale agrupada en el Registro con el jugador como autor. Si no contesta, espera indefinidamente.
+- **Pantalla SIN DIBUJAR en el `.pen`** — se diseña antes de construir, junto con «Tirada pedida».
+- A distancia contra una criatura sigue siendo un reto contra la dificultad del alcance, sin aviso (p.96).
+
+**Dos avisos a la vez (2026-08-22)**: si a un jugador le esperan un ataque Y una petición de tirada, el
+aviso de **ataque tapa** al de petición (que te peguen manda sobre que te pidan); contestado el ataque,
+aparece la petición. Hoy sale del orden de montaje en `TablePage` — si algún día se quiere otro orden, es
+ahí.
+
 ### Tirada enfocada, y la respuesta agrupada
 Al elegir jugador, la tirada queda **enfocada contra él**: le salta el aviso, contesta, y **las dos quedan como una
 sola entrada agrupada** en el registro (pedido literal del dueño: «que quede todo agrupado»).
@@ -339,3 +359,32 @@ botón, el sitio ya está hecho (`dice_close_attack(..., 'cancelled')`).
 ⚠ **Dos respuestas EXACTAMENTE simultáneas tirarían dos veces**, porque la fila no se cierra hasta que la
 tirada sale bien. Es el precio elegido a cambio de poder reintentar cuando la tirada falla: una tirada de
 más se ve en el Registro y no corrompe nada; quedarse sin poder contestar no se ve y no se arregla.
+
+## Modelo de datos — el panel del director (2026-08-22)
+
+**Peticiones de tirada (`dice_roll_requests`)**: una fila por personaje al que el director le pide una
+tirada; «A TODOS» crea varias filas con el mismo lote (`batch_id`), para que el Registro pueda agrupar las
+respuestas. Guarda la característica, la dificultad, si le vale su especialidad, y el estado (pendiente ·
+resuelta · cancelada) con la tirada que la contestó. La ven el director y el dueño del personaje al que se
+le pide, nadie más; nadie escribe desde el navegador — crear el lote y cerrarlo pasan por la API, y el
+jugador contesta TIRANDO (los dados los genera el servidor). Está en el realtime: el aviso salta sin recargar.
+
+**El espejo del ataque (columnas nuevas en `dice_attacks`)**: la misma tabla de los ataques a la espera
+aprende la dirección contraria. Si la fila lleva personaje atacado, es una criatura atacando a un PJ
+(contesta el jugador, columna 5); si no lo lleva, es un PJ atacando a una criatura — `attacker_character_id`
+dice quién ataca y el token atacado qué criatura defiende — y contesta EL DIRECTOR con los dados de defensa
+de su criatura. El dueño del personaje atacante también puede leer su fila (ve su ataque esperando).
+
+**El combate (`dice_combats` + `dice_combat_slots`)**: un combate vive en una escena y sólo puede haber uno
+activo por escena. Los puestos guardan el orden de actuación (adelantarse gastando Fortuna reordena y «el
+sitio nuevo se queda», p.92), a quién le toca y la ronda; `spent_next` son los dados ya gastados del turno
+siguiente (defensas y adelantos, p.94). El orden lo VE toda la mesa; lo mueve la API (el director pulsa
+siguiente/cerrar; el adelantarse del jugador paga su Fortuna en el mismo paso). En el realtime: el turno se
+mueve en todas las pantallas.
+
+**Ponerse a cubierto — sin tabla**: es un estado del token en la escena y vive en `maps_tokens.state`
+(el JSONB que ya existe y ya viaja por el realtime de tokens). Lo escribe la API al resolver la tirada de
+cubrirse; dispararle a un token a cubierto cuesta +2 dados de dificultad (p.96).
+
+Migración: `supabase/migrations/20260822120000_dice_director_panel.sql` — aplicada en local, lint 0 errores.
+✅ **Aplicada en la nube** (2026-08-23, versión `20260823005954` · advisors de seguridad 0 CRITICAL después).

@@ -5,7 +5,7 @@ import type { AttackWatchPort } from '../domain/ports/AttackWatchPort';
 import type { Unsubscribe } from '../domain/ports/RollLogPort';
 
 interface Row {
-  id: string; campaign_id: string; attacker_name: string; target_character_id: string;
+  id: string; campaign_id: string; attacker_name: string; target_character_id: string | null;
   dice: number; request: RollRequest; created_at: string;
 }
 
@@ -25,7 +25,7 @@ const statOfRequest = (request: RollRequest): string | null => {
 
 export const mapAttackRow = (r: Row): PendingAttack => ({
   id: r.id, campaignId: r.campaign_id, attackerName: r.attacker_name,
-  targetCharacterId: r.target_character_id, dice: r.dice,
+  targetCharacterId: r.target_character_id ?? null, dice: r.dice,
   stat: statOfRequest(r.request), createdAt: r.created_at,
 });
 

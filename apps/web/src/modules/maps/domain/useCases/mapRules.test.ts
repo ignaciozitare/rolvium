@@ -3,7 +3,7 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx,
+  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -17,6 +17,26 @@ import { plenilunio } from '@rolvium/system-plenilunio';
  * Paredes sólidas (rebanada 4, spec § «Rebanada 4»). El dueño pidió «un poco de física, que los tokens no
  * puedan traspasar las paredes», y eligió: choca TODO EL CUERPO (no el centro) y al topar RESBALA.
  */
+describe('tokenGapCells — la distancia de un ataque (p.92/p.95)', () => {
+  /**
+   * El libro mide entre personajes «lo suficientemente cerca como para tocarse» (p.92) / «a más de tres
+   * pasos» (p.95): tocarse es cosa de los CUERPOS. De centro a centro, dos tokens de 1,5 casillas con la
+   * misma separación visual que antes era cuerpo a cuerpo salían «a corta distancia» y el aviso de defensa
+   * no saltaba (regresión del 2026-08-22, cazada por el dueño con el Lunar pegado a Karen).
+   */
+  it('mide el HUECO entre los cuerpos, no entre los centros', () => {
+    const karen = { x: 10, y: 11, size: 1.5 };
+    // pegados: hueco 0, midan lo que midan los cuerpos → siempre cuerpo a cuerpo
+    expect(tokenGapCells(karen, { x: 11.5, y: 11, size: 1.5 }, 27)).toBeCloseTo(0, 6);
+    // LA REGRESIÓN: centros a 2,1 casillas (3,15 m — «corta» midiendo centros) pero cuerpos a 0,6 (0,9 m)
+    expect(tokenGapCells(karen, { x: 12.1, y: 11, size: 1.5 }, 27)).toBeCloseTo(0.6, 6);
+    // solapados: nunca negativo
+    expect(tokenGapCells(karen, karen, 27)).toBe(0);
+    // y de verdad lejos, sigue lejos: 12 casillas de centro, cuerpos de 1,5 → 10,5 de hueco
+    expect(tokenGapCells(karen, { x: 22, y: 11, size: 1.5 }, 27)).toBeCloseTo(10.5, 6);
+  });
+});
+
 describe('paredes sólidas: `slideToken`, `moveBlockers`, `tokenRadiusPx`', () => {
   /** Un muro vertical en x = 100, de y 0 a 200. */
   const muro = { id: 'w', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 100, y2: 200, visiblePlayers: true, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false };

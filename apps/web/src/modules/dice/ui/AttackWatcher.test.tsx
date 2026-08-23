@@ -51,6 +51,25 @@ describe('AttackWatcher — el aviso que le salta al jugador', () => {
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
+  /**
+   * EL ESPEJO NO ATASCA LA COLA (revisión del 2026-08-22): la RLS deja al atacante leer su propia fila
+   * espejo (`targetCharacterId` null, la contesta el director), así que `listPending` la trae. Sin saltarla,
+   * una espejo más VIEJA se quedaba seleccionada para siempre —`characterId` null cortaba el efecto sin
+   * marcarla `notMine`— y el aviso de un ataque de columna 5 más nuevo no salía nunca.
+   */
+  it('regresión · una fila espejo (sin personaje atacado) no se enseña ni tapa al ataque que sí es mío', async () => {
+    const first = setup({ pending: [
+      attack({ id: 'atk-espejo', targetCharacterId: null, attackerName: 'Karen', createdAt: '2026-08-20T00:00:00Z' }),
+      attack({ id: 'atk-1', createdAt: '2026-08-21T00:00:00Z' }),
+    ] });
+    expect(await screen.findByRole('heading', { name: 'Te ataca Ogro' })).toBeInTheDocument();
+    first.view.unmount();
+    // y sólo con la espejo pendiente, nada que enseñar
+    const { listPending } = setup({ pending: [attack({ id: 'atk-espejo2', targetCharacterId: null, attackerName: 'Karen' })] });
+    await waitFor(() => expect(listPending).toHaveBeenCalled());
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
   /** Le tiene que SALTAR sin recargar: es toda la razón de que la tabla esté en la publicación de realtime. */
   it('un ataque que llega en vivo aparece sin recargar', async () => {
     const { listPending, fire } = setup({ pending: [] });

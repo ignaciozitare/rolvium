@@ -142,6 +142,9 @@ import type { CharactersPort } from '@/modules/characters/domain/ports/Character
 import type { RollInput, RollsPort } from '@/modules/dice/domain/ports/RollsPort';
 import type { RollLogPort } from '@/modules/dice/domain/ports/RollLogPort';
 import type { AttacksPort } from '@/modules/dice/domain/ports/AttacksPort';
+import type { RollRequestsPort } from '@/modules/dice/domain/ports/RollRequestsPort';
+import type { RollRequestWatchPort } from '@/modules/dice/domain/ports/RollRequestWatchPort';
+import type { OpenRollRequestsInput, PendingRollRequest } from '@/modules/dice/domain/entities/RollRequestAsk';
 import type { AttackWatchPort } from '@/modules/dice/domain/ports/AttackWatchPort';
 import type { OpenAttackInput, PendingAttack } from '@/modules/dice/domain/entities/Attack';
 import type { Roll, RollOutcome } from '@/modules/dice/domain/entities/Roll';
@@ -262,6 +265,28 @@ export function fakeRollLog(seed: Roll[] = [ROLL_COMBAT, ROLL_SETBACK, ROLL_FREE
  * Ataques cuerpo a cuerpo a la espera (`.pen` columna 5). `push` mete uno como si acabara de llegar por
  * realtime; `answers` recoge lo que contestó el jugador, incluido el 0 de «no me defiendo».
  */
+/** Peticiones de tirada en memoria: puerto de pedir/contestar Y de vigilar, como `fakeAttacks`. */
+export function fakeRollRequests(seed: PendingRollRequest[] = []): RollRequestsPort & RollRequestWatchPort & { pending: PendingRollRequest[]; opened: OpenRollRequestsInput[]; answered: string[]; push: (r: PendingRollRequest) => void } {
+  const pending = [...seed];
+  const opened: OpenRollRequestsInput[] = [];
+  const answered: string[] = [];
+  const listeners = new Set<() => void>();
+  return {
+    pending, opened, answered,
+    push: (r: PendingRollRequest) => { pending.push(r); listeners.forEach(l => l()); },
+    open: async (input: OpenRollRequestsInput) => { opened.push(input); return { batchId: `batch-${opened.length}` }; },
+    answer: async (id: string) => {
+      answered.push(id);
+      const i = pending.findIndex(r => r.id === id);
+      if (i >= 0) pending.splice(i, 1);
+      listeners.forEach(l => l());
+      return { id: `roll-${answered.length}`, request: { systemId: 'plenilunio', kind: 'system', title: 'sheet.stats.fortitude', groups: [{ count: 4, sides: 6, tag: 'own' }], visibility: 'table' }, dice: [[4, 4, 4, 4]], result: { summary: 'ok', total: 1 }, rolledAt: '' } as never;
+    },
+    listPending: async () => [...pending],
+    subscribe: (_c: string, onChange: () => void) => { listeners.add(onChange); return () => { listeners.delete(onChange); }; },
+  };
+}
+
 export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWatchPort & { pending: PendingAttack[]; opened: OpenAttackInput[]; answers: { id: string; defence: number }[]; push: (a: PendingAttack) => void } {
   const pending = [...seed];
   const opened: OpenAttackInput[] = [];

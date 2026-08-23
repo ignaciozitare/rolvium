@@ -10,7 +10,12 @@ export interface PendingAttack {
   campaignId: string;
   /** Copiado al abrirlo, no leído del token: «te ataca un ogro» tiene que decirse aunque el token ya no esté. */
   attackerName: string;
-  targetCharacterId: string;
+  /**
+   * `null` = fila del ESPEJO (un PJ atacando a una criatura; contesta el DIRECTOR, no este aviso). La RLS
+   * deja leerla al dueño del atacante y al director, así que `listPending` las trae — el aviso de la
+   * columna 5 las salta sin marcarlas, que para eso no son suyas.
+   */
+  targetCharacterId: string | null;
   /** Dados que pone el atacante. El director los reparte entre sus ataques del turno (p.94). */
   dice: number;
   /**

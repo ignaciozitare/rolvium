@@ -52,7 +52,13 @@ export function AttackWatcher({ campaignId, userId, system, charactersRepo, atta
     return watch.subscribe(campaignId, reload);
   }, [watch, campaignId, reload]);
 
-  const attack = pending.find(a => !notMine.current.has(a.id)) ?? null;
+  /**
+   * Sin personaje atacado la fila es del ESPEJO (un PJ atacando a una criatura): la contesta el DIRECTOR
+   * por su propio aviso, no éste. Se salta AQUÍ y no vía `notMine` porque no es cuestión de dueño — y sin
+   * saltarla, una fila espejo vieja ATASCABA la cola: `characterId` null cortaba el efecto sin marcarla y
+   * un ataque de columna 5 más nuevo no salía nunca (cazado en la revisión del 2026-08-22).
+   */
+  const attack = pending.find(a => a.targetCharacterId !== null && !notMine.current.has(a.id)) ?? null;
   const attackId = attack?.id ?? null;
   const characterId = attack?.targetCharacterId ?? null;
   const stat = attack?.stat ?? null;

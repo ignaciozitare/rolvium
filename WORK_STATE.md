@@ -14,7 +14,100 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-## 🟢 PUNTO EXACTO — 2026-08-22 (noche): PAREDES SÓLIDAS — CINCO fallos arreglados en tres rondas. Falta MIRARLO EN LA APP
+## 🟢 PUNTO EXACTO — 2026-08-22 (noche, 2): v0.2.0 EN PRODUCCIÓN · el alcance de los ataques, arreglado CONTRA EL PDF
+
+**`main` = v0.2.0 en producción** (merge `ddbd042`, API y web sondeadas en vivo, 200 las dos; migración
+`solid_walls` aplicada en la nube ANTES del merge). Rama viva: **`fix/alcance-borde-a-borde`** (sin mergear).
+
+### La prueba del dueño tras el merge sacó DOS cosas (y una bronca merecida)
+1. **«Atacar a Karen no avisa»** — el ataque salía «a corta distancia» con los tokens casi pegados: la
+   distancia se medía de CENTRO a CENTRO y los cuerpos de 1,5 casillas se comieron el margen. Se abrió el
+   PDF (orden del dueño: «lee el puto manual… deja de inventar»): **p.92 «lo suficientemente cerca como para
+   tocarse» · p.95 «a más de tres pasos»** — el libro mide si los PERSONAJES pueden tocarse, y eso es cosa
+   de los CUERPOS. Arreglo en la rama: RULES.md §5.3 con las citas PRIMERO, `tokenGapCells` (hueco entre
+   bordes) en mapRules, `attackTargets` lo usa (clasificación + dificultad + metros del modal salen del
+   mismo número). Tests discriminantes (centros 2,1 casillas = «corta» con lo viejo; hueco 0,6 = c/c).
+   Review 5.ª ronda pasado. **646 web · 133 plenilunio · audit 0 hard.**
+2. **«El jugador no ve los encuentros»** — NO era fallo nuevo: esos tokens se colocaron ANTES del arreglo
+   «nacen visibles» de esta mañana y conservaban la marca de oculto. Destapados en la base local (= pulsar
+   «MOSTRAR A LOS JUGADORES»). Los nuevos nacen visibles.
+3. **«¿Y cubrirse?»** — el dueño recuerda bien: «Ponerse a cubierto» (p.96) está en la spec de dados y
+   marcado **⚠ NO CONSTRUIDO** (fuera a propósito desde el 21). Entra con la tanda del panel del director.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: v0.2.0 en producción; `fix/alcance-borde-a-borde` arregla el alcance de los ataques contra
+> el PDF (review pasado, sin merge — falta que el dueño pruebe Lunar pegado a Karen → aviso). Después: QA +
+> merge de esa rama, y la tanda del panel del director (bloque 🟢 de WORK_STATE, decisiones ya tomadas).
+
+### ✅ RONDA 6 — el selector de arma y el rojo sangre (pedidos del dueño, 2026-08-22 noche)
+1. **«¿Con qué ataca?»** en el modal de atacar: el modal cogía siempre `attacks[0]` («si tiene más de un
+   arma no me deja elegir»). Ahora, con ≥2 ataques impresos, fila de chips (nombre · dados · daño) + A MANO;
+   el elegido manda base del contador y daño/weaponId de la tirada. `CreatureAttack.ranged` nuevo y regla
+   p.95 («sin ellas simplemente no se puede atacar a distancia»): a distancia se apagan los c/c y la
+   selección salta al primero válido (o A MANO). **Diseñado ANTES en el `.pen`** (fila con ejemplo Soum).
+   ⚠ **Hueco de datos anotado en spec**: ningún bloque copiado lleva sus armas de fuego aún (el libro las
+   imprime en los bloques humanos); mientras dure, A MANO vale a distancia. Pasada de datos → tanda del panel.
+2. **Rojo sangre en el circuito de criaturas/atacar** (diseño aprobado en el `.pen` por el dueño): chips
+   marcados y TIRAR de los popovers, selección del modal, REINICIAR de la Reserva (`tb-btn-atk`) y la
+   insignia DIRECTOR/JUGADOR (`tb-btn-blood` nueva, sólida). Contraste sangre/papel medido: 9,3:1 (AAA).
+3. En el `.pen` además: popovers «Tirar por una criatura» en sangre · contexto del modal documentado ·
+   ejemplo del modal cambiado a Soum (el ogro no lleva armas impresas).
+
+### 🚧 LA TANDA DEL PANEL — TABLERO (2026-08-23 madrugada; el dueño: «sigue hasta que termines»)
+Rama `fix/alcance-borde-a-borde`. Todo con review pasado (rondas 7 y 8) y commiteado; **QA automático
+pasado (2026-08-23: 671 web + 151 api + 133 plenilunio + 23 core + 16 ui verdes · audit 0 hard · advisors 0
+CRITICAL · builds y typecheck limpios · sondas 200/200) — sin merge todavía**.
+1. ✅ **Pedir tiradas, de punta a punta** (`025c994`): panel del director en el lanzador (chips + mantener-
+   pulsado + especialidad p.83) → `/roll-requests` → aviso «Tirada pedida» (filete oro) → TIRAR arma el
+   puñado EN EL SERVIDOR con la ficha del que contesta → tirada del JUGADOR en el Registro. El review cazó
+   el gesto muerto con ratón (captura de puntero) y un hueco de cobertura del repo.
+2. ✅ **El espejo, SERVIDOR** (este commit): `/attacks/player` (el jugador abre contra una criatura) y
+   `/attacks/:id/defend` (el director pone la defensa; autor de la tirada = el jugador). Guardias de
+   dirección en caso de uso Y en SQL, cruzadas y pinadas. El review destascó el AttackWatcher (una fila
+   espejo ya no tapa los avisos de columna 5).
+3. ⏳ **GATED en el dueño**: visto bueno de las 3 pantallas dibujadas (capturas enviadas) → entonces: UI del
+   espejo (aviso de defensa del director + elegir blanco al atacar desde la ficha) y «ponerse a cubierto».
+4. ⏳ **Siguientes rebanadas sin gate**: encuentros en el panel (diseño aprobado `QWHSS`) · orden de turnos
+   (tablas listas) · pasada de armas de fuego con el PDF · quitar el bloque «Tirada» de la ficha (al final).
+5. 🔎 Deuda de la ronda 8: `answered_at` no se pone en el espejo (asimetría, próxima pasada DBA) · la
+   VISIBILIDAD del espejo debe fijarse a propósito en su UI (hoy heredaría la que mande el navegador, igual
+   que columna 5) · aviso del director al abrirse un espejo = la pantalla dibujada pendiente de visto bueno.
+
+### (histórico) LA TANDA DEL PANEL DEL DIRECTOR — ARRANCADA (2026-08-22 noche)
+El dueño NO probó el alcance ni el selector («no tengo tiempo») — la rama sigue SIN QA y sin merge, y su
+verificación queda pendiente para antes del cierre. Flujo de la tanda:
+1. **Spec** ✅ — cerrada con todas las decisiones (chips de las 7 · tanda completa · espejo · cubierto).
+2. **DBA** ✅ — migración `20260822120000_dice_director_panel.sql` APLICADA EN LOCAL (lint 0 · realtime al
+   día): `dice_roll_requests` (lotes `batch_id`) · espejo en `dice_attacks` (`attacker_character_id`,
+   dirección, política con el atacante) · `dice_combats`/`dice_combat_slots` (uno activo por escena,
+   `spent_next` p.94) · cubierto SIN tabla (`maps_tokens.state`). Funciones API-only calcadas de la columna 5.
+   ✅ **APLICADA EN LA NUBE** (confirmado 2026-08-23 por `list_migrations`: versión `20260823005954` ·
+   advisors de seguridad 0 CRITICAL tras aplicarla; el sello de la nube difiere del nombre del fichero
+   local `20260822120000`, pero la migración es idempotente — guardias IF NOT EXISTS / OR REPLACE —
+   así que un `db push` futuro no rompe). Modelo documentado en la spec.
+3. **Scaffold** — no aplica: las piezas viven en módulos existentes (dice/bestiary/table/maps).
+4. **Design** 🟡 — el panel (columna 4, `qHMjx`/`QWHSS`) ya estaba dibujado y el dueño lo dio por bueno
+   («constrúyelo tal cual»). Las TRES pantallas que faltaban están AHORA dibujadas en el lienzo nuevo
+   «Mesa/Tiradas · avisos del panel del director» del `.pen`: «Tirada pedida» (oro) · «Defensa del director»
+   (sangre, espejo) · «Ponerse a cubierto» (oro, el director pone la cobertura 1/2/3/5 y lanza el reto).
+   **Pendiente: Cmd+S del dueño** (la caché del editor enseña descuadres fantasma hasta guardar) **y su
+   visto bueno con capturas ANTES de construir esas tres pantallas.**
+5. **Dev** ⏳ — siguiente: la tubería de peticiones de tirada (api application + rutas + puertos web) y el
+   panel del director (`qHMjx`/`QWHSS`, ya aprobado). Las tres pantallas nuevas, tras el visto bueno.
+
+### 🔎 Deuda que dejó el review (rondas 5 y 6 — anotada, no tocada)
+- `.tb-btn-gold` queda MUERTA en `table.css:51` (el diff le quitó los dos últimos consumidores). Borrarla o
+  conservarla: decisión aparte.
+- El par «fallback −1 ↔ A MANO a distancia» está pinado por test; si algún día A MANO se apaga a distancia,
+  revisitar los dos a la vez.
+- Texto del modal con tokens PEGADOS: «está a 0 casillas» — veraz pero raro; una variante «pegados a X» son
+  claves i18n nuevas, decisión de texto del dueño.
+- `round1` redondea casillas antes de pasar a metros: ±7 cm de artefacto en el límite exacto del alcance
+  (preexistente, ya pasaba con los centros).
+
+---
+
+## 🟢 PUNTO EXACTO — 2026-08-22 (noche): PAREDES SÓLIDAS — CINCO fallos arreglados en tres rondas (MERGEADO en v0.2.0)
 
 Rama **`fix/municion-y-preguntas`**. **942 tests** verdes (web 644 · api 126 · core 23 · plenilunio 133 · ui 16) ·
 typecheck web+api · `audit` 0 hard · `build:web` + `build:api` · **review pasado entero, TRES rondas**. Sin QA y sin merge.

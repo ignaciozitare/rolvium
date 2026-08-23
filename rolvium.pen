@@ -14017,8 +14017,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -19049,11 +19049,11 @@
                                     5,
                                     11
                                   ],
-                                  "stroke": "$pl-oro",
+                                  "stroke": "$pl-sangre",
                                   "descendants": {
                                     "K8OxW": {
                                       "content": "REINICIAR",
-                                      "fill": "$pl-oro"
+                                      "fill": "$pl-sangre"
                                     }
                                   }
                                 }
@@ -19094,12 +19094,12 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-oro",
-                          "stroke": "$pl-oro",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "DIRECTOR",
-                              "fill": "#1a1508"
+                              "fill": "$pl-papel-alto"
                             }
                           }
                         },
@@ -25232,8 +25232,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -27306,11 +27306,11 @@
                                     5,
                                     11
                                   ],
-                                  "stroke": "$pl-oro",
+                                  "stroke": "$pl-sangre",
                                   "descendants": {
                                     "K8OxW": {
                                       "content": "REINICIAR",
-                                      "fill": "$pl-oro"
+                                      "fill": "$pl-sangre"
                                     }
                                   }
                                 }
@@ -27351,12 +27351,12 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-oro",
-                          "stroke": "$pl-oro",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "DIRECTOR",
-                              "fill": "#1a1508"
+                              "fill": "$pl-papel-alto"
                             }
                           }
                         },
@@ -32152,8 +32152,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -34338,8 +34338,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -36532,11 +36532,11 @@
                                     5,
                                     11
                                   ],
-                                  "stroke": "$pl-oro",
+                                  "stroke": "$pl-sangre",
                                   "descendants": {
                                     "K8OxW": {
                                       "content": "REINICIAR",
-                                      "fill": "$pl-oro"
+                                      "fill": "$pl-sangre"
                                     }
                                   }
                                 }
@@ -36577,12 +36577,12 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-oro",
-                          "stroke": "$pl-oro",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "DIRECTOR",
-                              "fill": "#1a1508"
+                              "fill": "$pl-papel-alto"
                             }
                           }
                         },
@@ -39441,8 +39441,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -42130,11 +42130,11 @@
                                     5,
                                     11
                                   ],
-                                  "stroke": "$pl-oro",
+                                  "stroke": "$pl-sangre",
                                   "descendants": {
                                     "K8OxW": {
                                       "content": "REINICIAR",
-                                      "fill": "$pl-oro"
+                                      "fill": "$pl-sangre"
                                     }
                                   }
                                 }
@@ -42175,12 +42175,12 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-oro",
-                          "stroke": "$pl-oro",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "DIRECTOR",
-                              "fill": "#1a1508"
+                              "fill": "$pl-papel-alto"
                             }
                           }
                         },
@@ -54712,8 +54712,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -62023,11 +62023,11 @@
                                     5,
                                     11
                                   ],
-                                  "stroke": "$pl-oro",
+                                  "stroke": "$pl-sangre",
                                   "descendants": {
                                     "K8OxW": {
                                       "content": "REINICIAR",
-                                      "fill": "$pl-oro"
+                                      "fill": "$pl-sangre"
                                     }
                                   }
                                 }
@@ -62068,12 +62068,12 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-oro",
-                          "stroke": "$pl-oro",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "DIRECTOR",
-                              "fill": "#1a1508"
+                              "fill": "$pl-papel-alto"
                             }
                           }
                         },
@@ -65821,8 +65821,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -68522,11 +68522,11 @@
                                     5,
                                     11
                                   ],
-                                  "stroke": "$pl-oro",
+                                  "stroke": "$pl-sangre",
                                   "descendants": {
                                     "K8OxW": {
                                       "content": "REINICIAR",
-                                      "fill": "$pl-oro"
+                                      "fill": "$pl-sangre"
                                     }
                                   }
                                 }
@@ -68567,12 +68567,12 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-oro",
-                          "stroke": "$pl-oro",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "DIRECTOR",
-                              "fill": "#1a1508"
+                              "fill": "$pl-papel-alto"
                             }
                           }
                         },
@@ -72263,11 +72263,11 @@
                                     5,
                                     11
                                   ],
-                                  "stroke": "$pl-oro",
+                                  "stroke": "$pl-sangre",
                                   "descendants": {
                                     "K8OxW": {
                                       "content": "REINICIAR",
-                                      "fill": "$pl-oro"
+                                      "fill": "$pl-sangre"
                                     }
                                   }
                                 }
@@ -72308,12 +72308,12 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-oro",
-                          "stroke": "$pl-oro",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "DIRECTOR",
-                              "fill": "#1a1508"
+                              "fill": "$pl-papel-alto"
                             }
                           }
                         },
@@ -76517,8 +76517,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -77984,8 +77984,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -80248,8 +80248,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -82131,8 +82131,8 @@
                           "type": "ref",
                           "ref": "Q1Ra4E",
                           "name": "Rol Jugador",
-                          "fill": "$pl-tinta",
-                          "stroke": "$pl-tinta",
+                          "fill": "$pl-sangre",
+                          "stroke": "$pl-sangre",
                           "descendants": {
                             "K8OxW": {
                               "content": "JUGADOR",
@@ -87108,7 +87108,7 @@
               "type": "frame",
               "id": "A4VWk",
               "name": "Modal/Atacar con el token",
-              "context": "Construido el 2026-08-21 en apps/web/src/modules/bestiary/ui/TokenAttackModal.tsx. Sale al seleccionar el token de una criatura y pulsar ATACAR en la barra del token.\n\nNo lleva X de cerrar, como esta dibujado: se cierra con Escape o pulsando fuera.\n\nLa linea de la distancia tiene TRES estados: cuerpo a cuerpo (hasta 3 m, o sea dos casillas), a distancia («Nix esta a 14 casillas (21 m): alcance medio, reto a dificultad 3») y demasiado lejos, pasado el alcance muy largo (p.096), donde el boton de atacar se apaga.\n\nCAPACIDADES (2026-08-21, a peticion del dueno): hay criaturas que cambian segun sea de dia o de noche, y el mapa YA tiene interruptor de dia/noche en la escena. Asi que aqui la hora NO se pregunta: sale de `scene.lighting`, y con ella las capacidades que podrian aplicar al Combate (Amparo de la noche). Las marca el director, como la especialidad. En el desplegable del Bestiario si hay casilla de noche, porque alli no hay escena de la que leerla.\n\nLo que NO hace todavia: cuerpo a cuerpo va SIN oposicion. El libro lo resuelve como un conflicto (p.093) en el que los dados de enfrente son los que el jugador gaste en defenderse: esa es la columna 5.",
+              "context": "Construido el 2026-08-21 en apps/web/src/modules/bestiary/ui/TokenAttackModal.tsx. Sale al seleccionar el token de una criatura y pulsar ATACAR en la barra del token.\n\nNo lleva X de cerrar, como esta dibujado: se cierra con Escape o pulsando fuera.\n\nLa linea de la distancia tiene TRES estados: cuerpo a cuerpo (hasta 3 m, o sea dos casillas), a distancia («Nix esta a 14 casillas (21 m): alcance medio, reto a dificultad 3») y demasiado lejos, pasado el alcance muy largo (p.096), donde el boton de atacar se apaga.\n\nCAPACIDADES (2026-08-21, a peticion del dueno): hay criaturas que cambian segun sea de dia o de noche, y el mapa YA tiene interruptor de dia/noche en la escena. Asi que aqui la hora NO se pregunta: sale de `scene.lighting`, y con ella las capacidades que podrian aplicar al Combate (Amparo de la noche). Las marca el director, como la especialidad. En el desplegable del Bestiario si hay casilla de noche, porque alli no hay escena de la que leerla.\n\nLo que NO hace todavia: cuerpo a cuerpo va SIN oposicion. El libro lo resuelve como un conflicto (p.093) en el que los dados de enfrente son los que el jugador gaste en defenderse: esa es la columna 5.\n\nFILA «¿CON QUE ATACA?» (2026-08-22, pedido del dueno: «el pnj si tiene mas de un arma no me deja elegir con que ataco»): un chip por ataque impreso del bloque (nombre · dados · dano), mas A MANO (su Combate a secas). El elegido manda: sus dados son la base del contador y su dano viaja con la tirada. Con UN solo ataque impreso o ninguno, la fila no sale. REGLA p.95: a distancia solo se ofrecen los ataques a distancia — «sin ellas simplemente no se puede atacar a distancia» — y cuerpo a cuerpo los c/c; el dato de si un ataque impreso es a distancia se marca en el catalogo con el PDF delante. Seleccion en pl-sangre, como todo lo del circuito de atacar (2026-08-22).",
               "width": 372,
               "fill": "$pl-papel-alto",
               "stroke": "$pl-borde",
@@ -87157,7 +87157,7 @@
                           "id": "BjlAl",
                           "name": "Iniciales",
                           "fill": "$pl-papel-alto",
-                          "content": "OG",
+                          "content": "SO",
                           "fontFamily": "$font-plenilunio",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -87176,7 +87176,7 @@
                           "id": "kCYut",
                           "name": "Titulo",
                           "fill": "$pl-tinta",
-                          "content": "OGRO",
+                          "content": "SOUM",
                           "fontFamily": "$font-plenilunio",
                           "fontSize": 13,
                           "fontWeight": "600",
@@ -87187,7 +87187,7 @@
                           "id": "iWoE1",
                           "name": "Datos",
                           "fill": "$pl-tinta-tenue",
-                          "content": "Combate 4 · Resistencia 30 · protección 3 · p.152",
+                          "content": "Combate 5 · Resistencia 24 · p.72",
                           "fontFamily": "$font-plenilunio",
                           "fontSize": 10.5,
                           "fontWeight": "500"
@@ -87232,8 +87232,8 @@
                         5,
                         9
                       ],
-                      "fill": "$pl-tinta",
-                      "stroke": "$pl-tinta",
+                      "fill": "$pl-sangre",
+                      "stroke": "$pl-sangre",
                       "descendants": {
                         "K8OxW": {
                           "content": "KAREN",
@@ -87299,6 +87299,110 @@
                   "fontWeight": "500"
                 },
                 {
+                  "type": "text",
+                  "id": "JtKLu",
+                  "name": "Rotulo Ataques",
+                  "fill": "$pl-tinta-suave",
+                  "content": "¿CON QUÉ ATACA?",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "frame",
+                  "id": "rGQfl",
+                  "name": "Ataques",
+                  "width": "fill_container",
+                  "gap": 5,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "TcaCB",
+                      "name": "Chip/A MANO",
+                      "fill": "$pl-papel-alto",
+                      "stroke": "$pl-linea",
+                      "strokeAlignment": "inner",
+                      "padding": [
+                        4,
+                        9
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "kWbDL",
+                          "name": "L",
+                          "fill": "$pl-tinta",
+                          "content": "A MANO · 5",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "letterSpacing": 1.2
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "brKZC",
+                      "name": "Chip/ESPADA ORIENTAL",
+                      "fill": "$pl-sangre",
+                      "stroke": "$pl-sangre",
+                      "strokeAlignment": "inner",
+                      "padding": [
+                        4,
+                        9
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "wcXUq",
+                          "name": "L",
+                          "fill": "$pl-papel-alto",
+                          "content": "KATANA TRECE LUNAS · 6 · DAÑO 7",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "letterSpacing": 1.2
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "uyRDZ",
+                  "name": "Ataques 2",
+                  "width": "fill_container",
+                  "gap": 5,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "PZEib",
+                      "name": "Chip/CUCHILLO TANTO",
+                      "fill": "$pl-papel-alto",
+                      "stroke": "$pl-linea",
+                      "strokeAlignment": "inner",
+                      "padding": [
+                        4,
+                        9
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "oaL9E",
+                          "name": "L",
+                          "fill": "$pl-tinta",
+                          "content": "CUCHILLO TANTO · 5 · DAÑO 5",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "letterSpacing": 1.2
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
                   "type": "frame",
                   "id": "cCmQg",
                   "name": "Label",
@@ -87346,7 +87450,7 @@
                       "id": "VTwMy",
                       "name": "Valor",
                       "fill": "$pl-tinta",
-                      "content": "4",
+                      "content": "6",
                       "fontFamily": "$font-plenilunio",
                       "fontSize": 26,
                       "fontWeight": "600"
@@ -87372,7 +87476,7 @@
                       "id": "baiR3",
                       "name": "De",
                       "fill": "$pl-tinta-tenue",
-                      "content": "de su Combate 4 · puede repartirlos entre varios (p.94)",
+                      "content": "de su Katana Trece Lunas · 6 · puede repartirlos entre varios (p.94)",
                       "fontFamily": "$font-plenilunio",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -91775,8 +91879,8 @@
                   "type": "frame",
                   "id": "giiJC",
                   "name": "Chip/COMBATE",
-                  "fill": "$pl-tinta",
-                  "stroke": "$pl-tinta",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
                   "strokeAlignment": "inner",
                   "padding": [
                     4,
@@ -91993,8 +92097,8 @@
                   "type": "frame",
                   "id": "F5zmwS",
                   "name": "Chip/ESPADA ORIENTAL",
-                  "fill": "$pl-tinta",
-                  "stroke": "$pl-tinta",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
                   "strokeAlignment": "inner",
                   "padding": [
                     4,
@@ -92391,8 +92495,8 @@
                   "type": "frame",
                   "id": "MFnOq",
                   "name": "Chip/MEDIA · 2",
-                  "fill": "#131310",
-                  "stroke": "#131310",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
                   "strokeAlignment": "inner",
                   "padding": [
                     4,
@@ -92520,8 +92624,8 @@
                   "type": "frame",
                   "id": "kErj9",
                   "name": "Chip/TODOS",
-                  "fill": "#131310",
-                  "stroke": "#131310",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
                   "strokeAlignment": "inner",
                   "padding": [
                     4,
@@ -92604,8 +92708,8 @@
                   "type": "frame",
                   "id": "TmBM1",
                   "name": "Boton Tirar",
-                  "fill": "#131310",
-                  "stroke": "#131310",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
                   "strokeAlignment": "inner",
                   "padding": [
                     7,
@@ -93006,8 +93110,8 @@
                   "type": "frame",
                   "id": "BKpEe",
                   "name": "Chip/DEFLAGRACION",
-                  "fill": "$pl-tinta",
-                  "stroke": "$pl-tinta",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
                   "strokeAlignment": "inner",
                   "padding": [
                     4,
@@ -93316,8 +93420,8 @@
                   "type": "frame",
                   "id": "RbP48",
                   "name": "Chip/FÁCIL · 1",
-                  "fill": "$pl-tinta",
-                  "stroke": "$pl-tinta",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
                   "strokeAlignment": "inner",
                   "padding": [
                     4,
@@ -93484,8 +93588,8 @@
                   "type": "frame",
                   "id": "VSbCi",
                   "name": "Chip/TODOS",
-                  "fill": "#131310",
-                  "stroke": "#131310",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
                   "strokeAlignment": "inner",
                   "padding": [
                     4,
@@ -93568,8 +93672,8 @@
                   "type": "frame",
                   "id": "o4nmWg",
                   "name": "Boton Tirar",
-                  "fill": "#131310",
-                  "stroke": "#131310",
+                  "fill": "$pl-sangre",
+                  "stroke": "$pl-sangre",
                   "strokeAlignment": "inner",
                   "padding": [
                     7,
@@ -93586,6 +93690,859 @@
                       "fontSize": 11,
                       "fontWeight": "600",
                       "letterSpacing": 1.6
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "W3oqw",
+      "x": 9287,
+      "y": 1050,
+      "name": "Mesa/Tiradas · avisos del panel del director (2026-08-22)",
+      "fill": "$pl-fondo",
+      "gap": 48,
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "bzpKz",
+          "name": "Columna · tirada pedida",
+          "width": 400,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "P9vJT",
+              "name": "Label",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "7 · «TIRADA PEDIDA» — LE SALTA AL JUGADOR (SIN DIBUJAR HASTA HOY)",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "wGyWJ",
+              "name": "Aviso/Tirada pedida",
+              "width": "fill_container",
+              "fill": "$pl-papel-alto",
+              "stroke": "$pl-oro",
+              "strokeWidth": {
+                "left": 3
+              },
+              "strokeAlignment": "inner",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#13131033",
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
+                "blur": 22
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                14,
+                16,
+                16,
+                16
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "fd20u",
+                  "name": "Head",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "KyEfn",
+                      "name": "Icono",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "casino",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-oro"
+                    },
+                    {
+                      "type": "text",
+                      "id": "CAECH",
+                      "name": "Titulo",
+                      "fill": "$pl-oro",
+                      "content": "EL DIRECTOR TE PIDE UNA TIRADA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.6
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "Dpom6",
+                  "name": "Sub",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fortaleza a dificultad Media (2). Te vale tu especialidad: Vigor — lo ha decidido el director (p.83).",
+                  "lineHeight": 1.45,
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11.5,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "frame",
+                  "id": "lA0Xx",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "azLv8",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "TIRAS CON TU FORTALEZA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "500",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "X7zOqk",
+                      "name": "Ref",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "p.84",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZTPua",
+                  "name": "Dados",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "c2gmxo",
+                      "name": "Tienes",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "Fortaleza 3 + tu especialidad: 4 dados. Los tira el servidor, como siempre.",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mn9Si",
+                  "name": "Coste",
+                  "width": "fill_container",
+                  "fill": "$pl-papel-hueco",
+                  "gap": 8,
+                  "padding": [
+                    9,
+                    11
+                  ],
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "MB6kL",
+                      "name": "Icono",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "schedule",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "jlg6x",
+                      "name": "Texto",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Si no contestas, la petición espera: nadie tira por ti, ni el director.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "FPqAU",
+                  "name": "Pie",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "quS9e",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Botón Tirar",
+                      "padding": [
+                        7,
+                        14
+                      ],
+                      "fill": "$pl-oro",
+                      "stroke": "$pl-oro",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "TIRAR · 4 DADOS",
+                          "fill": "$pl-papel-alto",
+                          "fontSize": 10
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cI3Zr",
+          "name": "Columna · defensa del director",
+          "width": 400,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "W1eo1",
+              "name": "Label",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "8 · LA DEFENSA — LE SALTA AL DIRECTOR CUANDO UN PJ ATACA A SU CRIATURA",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "LSquI",
+              "name": "Aviso/Defensa del director",
+              "width": "fill_container",
+              "fill": "$pl-papel-alto",
+              "stroke": "$pl-sangre",
+              "strokeWidth": {
+                "left": 3
+              },
+              "strokeAlignment": "inner",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#13131033",
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
+                "blur": 22
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                14,
+                16,
+                16,
+                16
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Ugisp",
+                  "name": "Head",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "DsTty",
+                      "name": "Icono",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "swords",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-sangre"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hlc8h",
+                      "name": "Titulo",
+                      "fill": "$pl-sangre",
+                      "content": "KAREN ATACA AL LUNAR",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.6
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "BgfvD",
+                  "name": "Sub",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Cuerpo a cuerpo con 4 dados de Combate. Es un conflicto: los dados que pongas son la defensa y el ataque del Lunar a la vez (p.93).",
+                  "lineHeight": 1.45,
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11.5,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "frame",
+                  "id": "dM1yf",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "j2uysE",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "¿CUÁNTOS DADOS DE COMBATE GASTA EL LUNAR?",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "500",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "mqfrz",
+                      "name": "Ref",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "p.93",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "RgswW",
+                  "name": "Dados",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "SofNo",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Def/0",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "0",
+                          "fontSize": 11,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "pxhtK",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Def/1",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "1",
+                          "fontSize": 11,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "H7Pda",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Def/2",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "$pl-tinta",
+                      "stroke": "$pl-tinta",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "2",
+                          "fontSize": 11,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    },
+                    {
+                      "id": "j5QRtk",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Def/3",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "3",
+                          "fontSize": 11,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "FwVFS",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Def/4",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "4",
+                          "fontSize": 11,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "umO6A",
+                      "name": "Tienes",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "tiene Combate 6",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MJUNU",
+                  "name": "Coste",
+                  "width": "fill_container",
+                  "fill": "$pl-papel-hueco",
+                  "gap": 8,
+                  "padding": [
+                    9,
+                    11
+                  ],
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "i5oSCO",
+                      "name": "Icono",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "schedule",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "EthGf",
+                      "name": "Texto",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Los que gaste se le quitan de su próximo turno (p.94).",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "BavWD",
+                  "name": "Pie",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "BnvEA",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Botón No se defiende",
+                      "padding": [
+                        7,
+                        12
+                      ],
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "NO SE DEFIENDE",
+                          "fontSize": 10
+                        }
+                      }
+                    },
+                    {
+                      "id": "KTLL9",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Botón Defender",
+                      "padding": [
+                        7,
+                        14
+                      ],
+                      "fill": "$pl-oro",
+                      "stroke": "$pl-oro",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "DEFENDER · 2 DADOS",
+                          "fill": "$pl-papel-alto",
+                          "fontSize": 10
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "bHiNQ",
+          "name": "Columna · cubierto",
+          "width": 400,
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "aJgri",
+              "name": "Label",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "9 · PONERSE A CUBIERTO — EL DIRECTOR PONE LA COBERTURA (p.96)",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "Uvjko",
+              "name": "Popover/Cubierto",
+              "width": "fill_container",
+              "fill": "$pl-papel-alto",
+              "stroke": "$pl-oro",
+              "strokeWidth": {
+                "left": 3
+              },
+              "strokeAlignment": "inner",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#13131033",
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
+                "blur": 22
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                14,
+                16,
+                16,
+                16
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Ahmx9",
+                  "name": "Head",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "iBH7s",
+                      "name": "Icono",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "shield",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-oro"
+                    },
+                    {
+                      "type": "text",
+                      "id": "nk55d",
+                      "name": "Titulo",
+                      "fill": "$pl-oro",
+                      "content": "KAREN QUIERE PONERSE A CUBIERTO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 12,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.6
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "l91qh1",
+                  "name": "Sub",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Reto de Combate o Astucia, la mayor de las dos (p.96). La cobertura que haya la decides tú mirando la escena.",
+                  "lineHeight": 1.45,
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11.5,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "frame",
+                  "id": "xH0jG",
+                  "name": "Label",
+                  "gap": 4,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "uJ74E",
+                      "name": "Texto",
+                      "fill": "$pl-tinta",
+                      "content": "¿CUÁNTA COBERTURA HAY?",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9.5,
+                      "fontWeight": "500",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "q6WxwU",
+                      "name": "Ref",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "p.96",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UMmhL",
+                  "name": "Dados",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "id": "F0Xl4",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Cob/1",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "MÚLTIPLES BARRERAS · 1",
+                          "fontSize": 9,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "dAw9o",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Cob/2",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "BASTANTES · 2",
+                          "fontSize": 9,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "id": "CmNyK",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Cob/3",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "$pl-sangre",
+                      "stroke": "$pl-sangre",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "ALGUNOS · 3",
+                          "fontSize": 9,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-papel-alto"
+                        }
+                      }
+                    },
+                    {
+                      "id": "RptvC",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Cob/5",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "fill": "#00000000",
+                      "stroke": "$pl-linea",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "SIN COBERTURA · 5",
+                          "fontSize": 9,
+                          "letterSpacing": 0.6,
+                          "fill": "$pl-tinta-suave"
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "jl87A",
+                      "name": "Tienes",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "con «algunos obstáculos» el reto sale a dificultad 3",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fp4Ah",
+                  "name": "Coste",
+                  "width": "fill_container",
+                  "fill": "$pl-papel-hueco",
+                  "gap": 8,
+                  "padding": [
+                    9,
+                    11
+                  ],
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "rYKOn",
+                      "name": "Icono",
+                      "width": 13,
+                      "height": 13,
+                      "icon": "schedule",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "YLZ67",
+                      "name": "Texto",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Si lo logra, dispararle costará +2 dados de dificultad (p.96). El resultado se queda en su token.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11.5,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mB6QF",
+                  "name": "Pie",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "AQiAc",
+                      "type": "ref",
+                      "ref": "Q1Ra4E",
+                      "name": "Botón Lanzar reto",
+                      "padding": [
+                        7,
+                        14
+                      ],
+                      "fill": "$pl-oro",
+                      "stroke": "$pl-oro",
+                      "descendants": {
+                        "K8OxW": {
+                          "content": "LANZAR SU RETO · DIFICULTAD 3",
+                          "fill": "$pl-papel-alto",
+                          "fontSize": 10
+                        }
+                      }
                     }
                   ]
                 }

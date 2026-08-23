@@ -10,7 +10,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { canvasToScene, centerOn, DEFAULT_BRUSH, distanceCells, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenCenter, tokenFromBestiary, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -249,10 +249,10 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const attackTargets = useMemo((): AttackTarget[] => {
     if (!selectedToken || !live) return [];
     const grid = live.grid.size;
-    const from = tokenCenter(selectedToken, grid);
     const round1 = (n: number) => Math.round(n * 10) / 10;
     return st.tokens.filter(tk => tk.characterId && tk.id !== selectedToken.id).map(tk => {
-      const cells = distanceCells(from, tokenCenter(tk, grid), grid);
+      // El HUECO entre los cuerpos, no entre los centros: el libro mide si pueden TOCARSE (RULES.md §5.3).
+      const cells = tokenGapCells(selectedToken, tk, grid);
       // `characterId!`: el filtro de arriba ya deja fuera los tokens que no son de un personaje.
       return { id: tk.id, name: tk.name, cells: round1(cells), metres: round1(cells * METRES_PER_CELL), characterId: tk.characterId! };
     });
