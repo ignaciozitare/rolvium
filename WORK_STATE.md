@@ -54,7 +54,9 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
    ejemplo del modal cambiado a Soum (el ogro no lleva armas impresas).
 
 ### 🚧 LA TANDA DEL PANEL — TABLERO (2026-08-23 madrugada; el dueño: «sigue hasta que termines»)
-Rama `fix/alcance-borde-a-borde`. Todo con review pasado (rondas 7 y 8) y commiteado; **sin QA y sin merge**.
+Rama `fix/alcance-borde-a-borde`. Todo con review pasado (rondas 7 y 8) y commiteado; **QA automático
+pasado (2026-08-23: 671 web + 151 api + 133 plenilunio + 23 core + 16 ui verdes · audit 0 hard · advisors 0
+CRITICAL · builds y typecheck limpios · sondas 200/200) — sin merge todavía**.
 1. ✅ **Pedir tiradas, de punta a punta** (`025c994`): panel del director en el lanzador (chips + mantener-
    pulsado + especialidad p.83) → `/roll-requests` → aviso «Tirada pedida» (filete oro) → TIRAR arma el
    puñado EN EL SERVIDOR con la ficha del que contesta → tirada del JUGADOR en el Registro. El review cazó
@@ -79,7 +81,10 @@ verificación queda pendiente para antes del cierre. Flujo de la tanda:
    día): `dice_roll_requests` (lotes `batch_id`) · espejo en `dice_attacks` (`attacker_character_id`,
    dirección, política con el atacante) · `dice_combats`/`dice_combat_slots` (uno activo por escena,
    `spent_next` p.94) · cubierto SIN tabla (`maps_tokens.state`). Funciones API-only calcadas de la columna 5.
-   ⚠ **Aplicarla en la NUBE antes del merge** (lección del Bestiario). Modelo documentado en la spec.
+   ✅ **APLICADA EN LA NUBE** (confirmado 2026-08-23 por `list_migrations`: versión `20260823005954` ·
+   advisors de seguridad 0 CRITICAL tras aplicarla; el sello de la nube difiere del nombre del fichero
+   local `20260822120000`, pero la migración es idempotente — guardias IF NOT EXISTS / OR REPLACE —
+   así que un `db push` futuro no rompe). Modelo documentado en la spec.
 3. **Scaffold** — no aplica: las piezas viven en módulos existentes (dice/bestiary/table/maps).
 4. **Design** 🟡 — el panel (columna 4, `qHMjx`/`QWHSS`) ya estaba dibujado y el dueño lo dio por bueno
    («constrúyelo tal cual»). Las TRES pantallas que faltaban están AHORA dibujadas en el lienzo nuevo

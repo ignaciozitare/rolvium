@@ -387,4 +387,4 @@ mueve en todas las pantallas.
 cubrirse; dispararle a un token a cubierto cuesta +2 dados de dificultad (p.96).
 
 Migración: `supabase/migrations/20260822120000_dice_director_panel.sql` — aplicada en local, lint 0 errores.
-⚠ **Pendiente de aplicar en la nube ANTES del merge de esta tanda** (la lección del Bestiario).
+✅ **Aplicada en la nube** (2026-08-23, versión `20260823005954` · advisors de seguridad 0 CRITICAL después).
