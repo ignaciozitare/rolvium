@@ -14,6 +14,29 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+## 🟢 PUNTO EXACTO — 2026-08-23: v0.3.0 EN PRODUCCIÓN, VERIFICADA EN VIVO
+
+**`main` = v0.3.0 desplegada** (merge `9fe9d47`). Sondeado contra el sitio real, no contra el build local:
+API `{"ok":true}` · web 200 · el bundle servido lleva `roll-requests`, `dc-ask` y «le pides la tirada».
+Migración `dice_director_panel` en la nube ANTES del merge (advisors idénticos, 0 críticos; sello nube
+`20260823005954` para el fichero `20260822120000` — idempotente, anotado por el QA). QA 12/12 (modo aviso:
+4 desviaciones, todas deliberadas = las piezas gated). **⚠ El dueño ordenó subir SIN su prueba manual en la
+app** («no tengo tiempo... súbelo a producción») — su verificación sigue pendiente y es lo primero al volver.
+
+### Qué hay ahora en producción (además de la v0.2.0 de las paredes)
+- El alcance de los ataques según el PDF (hueco entre cuerpos) · selector «¿Con qué ataca?» · rojo sangre.
+- **Pedir tiradas**: panel del director en el lanzador → aviso oro al jugador → tirada del servidor.
+- **El espejo, lado servidor** (sin UI: gated en el visto bueno de las 3 pantallas dibujadas).
+- Tablas del combate creadas y sin consumidor todavía (siguiente rebanada).
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: v0.3.0 en producción (panel del director: pedir tiradas + espejo servidor). Lo primero:
+> la prueba del dueño en la app y su visto bueno a las 3 pantallas dibujadas; después, las rebanadas del
+> tablero de la tanda (encuentros en el panel · UI del espejo · cubierto · turnos · armas de fuego · quitar
+> el bloque «Tirada»). Todo en el bloque 🟢 de WORK_STATE.
+
+---
+
 ## 🟢 PUNTO EXACTO — 2026-08-22 (noche, 2): v0.2.0 EN PRODUCCIÓN · el alcance de los ataques, arreglado CONTRA EL PDF
 
 **`main` = v0.2.0 en producción** (merge `ddbd042`, API y web sondeadas en vivo, 200 las dos; migración
