@@ -29,11 +29,23 @@ app** («no tengo tiempo... súbelo a producción») — su verificación sigue 
 - **El espejo, lado servidor** (sin UI: gated en el visto bueno de las 3 pantallas dibujadas).
 - Tablas del combate creadas y sin consumidor todavía (siguiente rebanada).
 
+### 🗣 FEEDBACK DEL DUEÑO SOBRE EL PANEL (2026-08-23, antes de apagar — LO PRIMERO de la próxima sesión)
+El panel de pedir tiradas **le gusta**. Tres correcciones suyas, con sus palabras:
+1. **Faltan los ENCUENTROS de la escena en el panel, COLAPSADOS y desplegables** («en el diseño te había
+   pedido que aparezcan colapsados los encuentros de la escena y puedas desplegarlos, y eso lo obviaste»)
+   — está dibujado en la columna 4 (`QWHSS`: «ENCUENTROS EN LA ESCENA · N» con flecha de plegar). Pasa de
+   «siguiente rebanada» a CORRECCIÓN prioritaria.
+2. **El panel debe ser MÁS ANCHO, como en el diseño** (hoy hereda el ancho del lanzador de siempre).
+3. **El desplegable de dificultad debe cerrarse al clicar FUERA** — el handler de hoy sólo cierra si el
+   clic cae fuera del panel ENTERO (`root.current.contains` en `DmAskPanel`); un clic dentro del panel pero
+   fuera del menú lo deja abierto. Cerrar cuando el clic no sea el menú ni su botón de característica.
+
 ### Prompt de resume, de una línea
-> Retomo Rolvium: v0.3.0 en producción (panel del director: pedir tiradas + espejo servidor). Lo primero:
-> la prueba del dueño en la app y su visto bueno a las 3 pantallas dibujadas; después, las rebanadas del
-> tablero de la tanda (encuentros en el panel · UI del espejo · cubierto · turnos · armas de fuego · quitar
-> el bloque «Tirada»). Todo en el bloque 🟢 de WORK_STATE.
+> Retomo Rolvium: v0.3.0 en producción. LO PRIMERO: las tres correcciones del dueño al panel del director
+> (encuentros de la escena colapsados y desplegables como el `.pen` · panel más ancho como el diseño · el
+> desplegable de dificultad se cierra al clicar fuera). Después: su prueba en la app, su visto bueno a las
+> 3 pantallas dibujadas, y el resto del tablero (UI del espejo · cubierto · turnos · armas de fuego ·
+> quitar el bloque «Tirada»). Bloque 🟢 de WORK_STATE.
 
 ---
 
