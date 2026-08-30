@@ -16,7 +16,7 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31, justo debajo.**
 
-## 🟢 PUNTO EXACTO — 2026-08-31: HANDOFF · v0.3.1 EN PRODUCCIÓN · REBANADA 7 ESPECIFICADA Y SIN CONSTRUIR
+## 🟢 PUNTO EXACTO — 2026-08-31: HANDOFF · v0.4.0 EN PRODUCCIÓN · REBANADA 7 ESPECIFICADA Y SIN CONSTRUIR
 
 ### 🔴 POR QUÉ SE ABRE UN CHAT NUEVO
 **El servidor MCP de Pencil se desconectó de la sesión** (`CONNECTION_CLOSED`). Primero fallaba con «A file
@@ -25,10 +25,14 @@ y eso **tumbó la conexión entera**. Esas conexiones se establecen AL ARRANCAR,
 dentro. Sin `.pen` no se toca una sola pantalla — **y todo lo que queda por hacer es pantalla.**
 
 ### 📍 Estado exacto
-- **`main` = v0.3.1 EN PRODUCCIÓN** (merge `c0a5c2a`), verificada en vivo: API `{"ok":true}` · web 200 · el
-  paquete servido lleva «Encuentros en la escena».
-- **Rama viva: `feat/armas-de-fuego`**, HEAD `2d38a5e`, pusheada, **al día con `main`**. Seis commits, todos
-  con review pasado. **SIN QA y SIN merge.**
+- **`main` = v0.4.0 EN PRODUCCIÓN** (merge `5c5e1d7`), sondeada en vivo: API `{"ok":true}` · web 200.
+  Trae las **armas de fuego** y el **orden de turnos LADO SERVIDOR**. QA pasada (0 hard · advisors 0 CRITICAL
+  · 1055 tests verdes entre las siete suites · builds y typecheck limpios · sondas 200/200).
+- **`feat/armas-de-fuego` MERGEADA.** Rama sin borrar. **No queda ninguna rama con trabajo pendiente.**
+- ⚠ **Lo que hay en producción NO TIENE PANTALLA**: el orden de turnos vive entero en el servidor y no hay
+  forma de usarlo desde la app hasta que se diseñe. Es a propósito (mismo patrón que el espejo), no un olvido.
+- ⚠ **La QA cazó tres líneas rancias** que decían «la nube no la tiene» cuando ya la tenía, y que
+  `ARCHITECTURE.md` no mencionaba `/combats`. Corregido antes del merge.
 - **Entorno local**: Supabase levantado, la migración `20260830120000_dice_combat_functions.sql` aplicada
   con `migration up`. **APLICADA TAMBIÉN EN LA NUBE el 2026-08-31 con permiso explícito del dueño**
   (`apply_migration` por MCP, proyecto `scfspsiemikfcnqteonq`). Verificado en la nube por la QA: las cuatro
@@ -83,11 +87,11 @@ pincel de niebla manual de la rebanada 2, que es el precedente). Después: desig
 → qa. **Nada de UI antes del `.pen`.**
 
 ### ⏳ Esperando al dueño
+- ~~QA + merge de `feat/armas-de-fuego`~~ — **HECHO: v0.4.0 en producción.**
 - **Su visto bueno a las 3 pantallas dibujadas**, lienzo «Mesa/Tiradas · avisos del panel del director»:
   **Tirada pedida** (oro; ya construida) · **Defensa del director** (sangre; el motor está hecho y espera la
   pantalla) · **Ponerse a cubierto** (oro; no construida por ningún lado — confirmar los cuatro niveles de
   cobertura 1/2/3/5).
-- **QA + merge de `feat/armas-de-fuego`** cuando él quiera.
 
 ### 🔎 Deuda anotada en esta tanda, NO tocada
 - **`spent_next` no tiene quien lo ESCRIBA**: atar la defensa de un ataque al gasto del turno siguiente
@@ -112,8 +116,9 @@ el **mensaje**, largo y con comillas «» y guiones largos. Con `merge: v0.3.1 -
 pasó a la primera. **Mensajes de merge cortos y en texto plano.**
 
 ### 🔁 Prompt de resume, de una línea
-> Retomo Rolvium. `main` = v0.3.1 en producción; estoy en `feat/armas-de-fuego` (armas de fuego + orden de
-> turnos lado servidor, con review, sin QA ni merge). **La tarea viva es la rebanada 7 de `maps`**, ya
+> Retomo Rolvium. `main` = **v0.4.0 en producción**, con las armas de fuego y el orden de turnos lado
+> servidor ya mergeados; **no hay ninguna rama con trabajo pendiente**. **La tarea viva es la rebanada 7 de
+> `maps`**, ya
 > especificada y confirmada con el dueño en `specs/modules/maps/SPEC.md` § «Rebanada 7»: capas (con varias de
 > terreno y pincel de transparencia), luces de ambiente, ver con los ojos de un personaje y penumbra.
 > **Siguiente paso: DBA Agent** — el modelo de datos está pendiente y la pregunta gorda es cómo se guarda la
