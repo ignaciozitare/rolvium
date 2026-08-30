@@ -248,3 +248,40 @@
 @media (prefers-reduced-motion:reduce){
   .mp-light.flicker-soft,.mp-light.flicker-sharp{animation:none;opacity:calc(1 - var(--mp-flicker)/2);}
 }
+
+/* ── editor de una luz (rebanada 7) ──────────────────────────────────────────
+   Flota sobre el mapa, junto al panel de capas. Reutiliza `.mp-swatch` y
+   `.tb-rotulo`, que ya existían. */
+.mp-light-editor{position:absolute;top:8px;right:222px;z-index:4;width:264px;max-height:calc(100% - 16px);overflow:auto;
+  display:flex;flex-direction:column;gap:10px;padding:10px;background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);}
+.mp-light-head{display:flex;align-items:center;gap:7px;}
+.mp-light-head-icon{color:var(--sys-gold);}
+.mp-light-title{flex:1;font-size:var(--fs-sm);color:var(--sys-ink);}
+.mp-light-preview{height:64px;background:var(--sys-ink);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.mp-light-halo{width:110px;height:110px;border-radius:50%;opacity:.85;}
+.mp-light-group{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;}
+.mp-light-group legend{padding:0;}
+.mp-light-seg{display:flex;gap:4px;}
+.mp-light-opt{flex:1;padding:4px 6px;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;
+  background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
+.mp-light-opt.on{background:var(--sys-ink);color:var(--sys-paper-hi);border-color:var(--sys-ink);}
+.mp-light-kinds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.mp-light-kind{display:inline-flex;align-items:center;gap:4px;padding:4px 6px;font-family:inherit;font-size:var(--fs-2xs);
+  background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
+.mp-light-kind.on{background:var(--sys-gold);color:var(--sys-ink);border-color:var(--sys-gold);}
+.mp-light-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mp-light-colors{display:flex;gap:5px;}
+.mp-light-check{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--sys-ink-soft);cursor:pointer;}
+.mp-light-check input{accent-color:var(--sys-ink);}
+/* Que se anima de verdad no se ve en un interruptor apagado: se dice. */
+.mp-light-animates{padding:1px 5px;font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;background:var(--sys-gold);color:var(--sys-ink);}
+.mp-light-range{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--sys-ink-soft);}
+.mp-light-range input{width:64px;font-family:inherit;font-size:var(--fs-xs);padding:2px 4px;background:transparent;color:var(--sys-ink);border:1px solid var(--sys-line);}
+.mp-light-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+.mp-light-value{color:var(--sys-ink);}
+.mp-light-note{display:flex;align-items:flex-start;gap:6px;margin:0;padding:6px;font-size:var(--fs-2xs);line-height:var(--lh-normal);
+  color:var(--sys-ink-dim);background:color-mix(in srgb,var(--sys-gold) 15%,transparent);}
+.mp-light-note .material-symbols-outlined{color:var(--sys-gold);flex-shrink:0;}
+/* La luz seleccionada: un aro para saber cuál se está tocando. */
+.mp-light-sel{fill:none;stroke:var(--sys-gold);stroke-width:2;stroke-dasharray:5 4;pointer-events:none;}
+.mp-light-hit{fill:transparent;cursor:pointer;}

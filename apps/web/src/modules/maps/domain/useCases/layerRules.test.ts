@@ -4,7 +4,7 @@ import {
   LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, SCENE_WAREHOUSE,
 } from '../../../../../tests/helpers/fakes';
 import {
-  canEditIn, clampStrength, conePath, DEFAULT_MASK_STRENGTH, FIXED_LAYER_KINDS, FLICKER, flickerOf, isFixedKind, isPainted,
+  canEditIn, clampRangeM, clampStrength, conePath, DEFAULT_MASK_STRENGTH, LIGHT_COLORS, MAX_RANGE_M, MIN_RANGE_M, FIXED_LAYER_KINDS, FLICKER, flickerOf, isFixedKind, isPainted,
   layerOfKind, layerSendsToPlayers, LIGHT_KINDS, LIGHT_PRESETS, LIGHT_SHAPES, lightRadiusPx, maskPath, maskSize, MASK_MAX_SIDE,
   maskSrc, newLightOf, nextTerrainSortOrder, paintedLights, paintOrder, panelOrder, rangeLabelM, reorderTerrain,
   strengthLabel, TERRAIN_WARN_AT, terrainLayers, terrainOverweight,
@@ -257,5 +257,21 @@ describe('qué luces se pintan', () => {
   it('apagar la capa de objetos apaga las luces que viven en ella, para todos', () => {
     const layers = LAYERS_ALL.map(l => (l.kind === 'objects' ? { ...l, visible: false } : l));
     expect(paintedLights(all, layers, true)).toEqual([LIGHT_SECRET]);
+  });
+});
+
+describe('la paleta y el alcance de las luces', () => {
+  /** Son valores que se GUARDAN en la fila, así que no pueden ser variables de CSS: cambiarían con el tema. */
+  it('la paleta es de colores guardables, no de tokens', () => {
+    expect(LIGHT_COLORS.length).toBeGreaterThan(3);
+    for (const c of LIGHT_COLORS) expect(c).toMatch(/^#[0-9a-f]{6}$/i);
+    // Y el color de cada tipo sale de esa misma paleta, para que no haya dos paletas.
+    for (const k of LIGHT_KINDS) expect(LIGHT_COLORS).toContain(LIGHT_PRESETS[k].color as typeof LIGHT_COLORS[number]);
+  });
+
+  it('el alcance se mueve en pasos de medio metro y no se sale de madre', () => {
+    expect(clampRangeM(6.3)).toBe(6.5);
+    expect(clampRangeM(0)).toBe(MIN_RANGE_M);
+    expect(clampRangeM(999)).toBe(MAX_RANGE_M);
   });
 });

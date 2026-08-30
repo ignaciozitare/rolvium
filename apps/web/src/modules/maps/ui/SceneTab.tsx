@@ -19,6 +19,8 @@ import { StrokeBar } from './StrokeBar';
 import { SegmentBar } from './SegmentBar';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
+import { LightEditor } from './LightEditor';
+import { newLightOf } from '../domain/useCases/layerRules';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
@@ -124,6 +126,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
    */
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
   const [layersOpen, setLayersOpen] = useState(true);
+  /** La luz que se está retocando. Es pintura: seleccionarla no cambia nada para nadie. */
+  const [selectedLightId, setSelectedLightId] = useState<string | null>(null);
   const live = st.scene;
   const viewport = () => ({ width: stageRef.current?.clientWidth ?? 0, height: stageRef.current?.clientHeight ?? 0 });
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
@@ -265,6 +269,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     });
   }, [selectedToken, st.tokens, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
+  const selectedLight = st.lights.find(l => l.id === selectedLightId) ?? null;
 
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
   const deleteSelection = () => {
@@ -332,6 +337,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             }}
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
+            selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
+            onPlaceLight={async at => {
+              // Nace con lo que trae su tipo; el editor se abre solo para retocarla sin buscarla.
+              const created = await st.addLight(newLightOf('torch', at, { id: live.id, campaignId }, activeLayerId));
+              setSelectedLightId(created.id);
+            }}
             onPin={pt => { st.focusPin(pt); setView(v => centerOn(v, pt, viewport())); }}
             placing={!!encounter || !!pendingPc}
             placingSize={pendingPc ? cellsOfSheet(pendingPc.data) : encounter ? cellsOfEntry(encounter) : DEFAULT_TOKEN_CELLS}
@@ -378,6 +389,11 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
                 if (activeLayerId === l.id) setActiveLayerId(null);
                 run(st.removeLayer(l.id));
               }} />
+          )}
+          {isDm && !playerView && selectedLight && (
+            <LightEditor light={selectedLight}
+              onChange={patch => run(st.patchLight(selectedLight.id, patch))}
+              onRemove={() => { setSelectedLightId(null); run(st.removeLight(selectedLight.id)); }} />
           )}
           {isDm && (tool === 'wall' || selectedWall) && (
             <SegmentBar wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}

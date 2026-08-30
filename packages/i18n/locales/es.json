@@ -772,7 +772,8 @@
       "encounter": "Encuentro",
       "soon": "próximamente",
       "select": "Seleccionar",
-      "text": "Texto"
+      "text": "Texto",
+      "light": "Luz de ambiente"
     },
     "toolbar": "Herramientas del lienzo",
     "controls": {
@@ -907,6 +908,37 @@
       "heavy": "{{n}} capas de terreno · la escena empieza a pesar",
       "empty": "Esta escena aún no tiene capas.",
       "newName": "Nombre de la capa de terreno"
+    },
+    "lights": {
+      "title": "Luz de ambiente",
+      "place": "Coloca una luz donde pinches",
+      "select": "Luz: {{kind}}",
+      "shape": "Forma",
+      "shapes": {
+        "cone": "Cono",
+        "radius": "Radio",
+        "square": "Cuadrado"
+      },
+      "kind": "Tipo",
+      "kinds": {
+        "torch": "Antorcha",
+        "bulb": "Bombilla",
+        "fire": "Hoguera",
+        "lantern": "Farol",
+        "flashlight": "Linterna",
+        "moonlight": "Luz de luna",
+        "magic": "Arcano"
+      },
+      "color": "Color y parpadeo",
+      "colorN": "Color {{n}}",
+      "flicker": "Parpadea",
+      "animates": "Se anima",
+      "prepared": "Alcance y sombra · se guardan ya",
+      "range": "Alcance en metros",
+      "shadow": "Proyecta sombra",
+      "cone": "Apertura del cono en grados",
+      "delete": "Borrar la luz",
+      "note": "Hoy la luz es pintura: no revela niebla ni cambia lo que ve nadie. Pero sí se mueve — el tipo manda el ritmo: la antorcha tiembla, la hoguera respira, la bombilla parpadea a golpes. El alcance y la sombra se guardan desde ya para el día que ilumine de verdad."
     }
   },
   "bestiary": {

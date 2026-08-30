@@ -876,4 +876,32 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     await screen.findByRole('complementary', { name: 'Capas' });
     expect(within(canvas()).getAllByTestId('mp-light')).toHaveLength(1);
   });
+
+  it('la herramienta Luz coloca una donde se pincha y abre su editor', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Luz de ambiente' }));
+    fireEvent.pointerDown(canvas(), { clientX: 9 * G, clientY: 7 * G, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.lights).toHaveLength(2));
+    expect(repo.lights.at(-1)).toMatchObject({ kind: 'torch', flicker: true, rangeM: 6, castsShadow: false, x: 9 * G, y: 7 * G });
+    // Y se abre solo para retocarla, sin tener que buscarla.
+    expect(await screen.findByRole('group', { name: 'Luz: Antorcha' })).toBeInTheDocument();
+  });
+
+  it('retocar y borrar la luz seleccionada llega al repositorio', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Luz de ambiente' }));
+    fireEvent.pointerDown(canvas(), { clientX: 9 * G, clientY: 7 * G, pointerId: 1, button: 0 });
+    await screen.findByRole('group', { name: 'Luz: Antorcha' });
+    await u.click(screen.getByRole('radio', { name: 'Hoguera' }));
+    await waitFor(() => expect(repo.lightUpdates.at(-1)).toMatchObject({ patch: { kind: 'fire' } }));
+    await u.click(screen.getByRole('button', { name: 'Borrar la luz' }));
+    await waitFor(() => expect(repo.lights).toHaveLength(1));
+    expect(screen.queryByRole('group', { name: /^Luz:/ })).not.toBeInTheDocument();
+  });
 });

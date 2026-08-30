@@ -23,8 +23,10 @@ describe('<Toolbar>', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Lápiz' }));
     expect(onChange).toHaveBeenCalledWith('pencil');
     rerender(<Toolbar tool="wall" isDm onChange={onChange} onDice={onDice} onPlacePc={onPlacePc} onBackground={onBackground} />);
-    // + DIRECTOR: Muro · Revelar · Ocultar · Encuentro · Colocar PJ · Fondo del mapa
-    expect(screen.getAllByRole('button')).toHaveLength(16);
+    // + DIRECTOR: Muro · Revelar · Ocultar · Luz de ambiente · Encuentro · Colocar PJ · Fondo del mapa
+    expect(screen.getAllByRole('button')).toHaveLength(17);
+    // La luz entra en el bloque del director: colocarla es cosa suya (rebanada 7).
+    expect(screen.getByRole('button', { name: 'Luz de ambiente' })).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Colocar PJ' }));
     expect(onPlacePc).toHaveBeenCalled();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Fondo del mapa' }));

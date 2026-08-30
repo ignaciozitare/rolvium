@@ -5,7 +5,7 @@ import type { Drawing, DrawingKind, Layer, Light, Scene, Token, Wall, WallKind }
 import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
-import { isPainted, paintedLights, resolveLayer, terrainLayers } from '../domain/useCases/layerRules';
+import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers } from '../domain/useCases/layerRules';
 
 export interface StrokeStyle { color: string; width: number }
 
@@ -50,6 +50,11 @@ interface Props {
   onToggleWall: (wall: Wall) => void;
   /** DM: paint the fog at a scene point with the current brush radius (scene px). */
   onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => void;
+  /** DM, herramienta Luz: coloca una luz de ambiente donde se pinchó (px de escena). */
+  onPlaceLight?: (at: Point) => void;
+  /** DM: la luz que se está editando. Es pintura, así que seleccionarla no cambia nada para nadie. */
+  selectedLightId?: string | null;
+  onSelectLight?: (id: string | null) => void;
   onPin: (p: Point) => void;
   /** Suprimir / Del over the selection (DM). */
   onDeleteSelection?: () => void;
@@ -239,6 +244,18 @@ export function MapCanvas(p: Props): JSX.Element {
       case 'text': p.onAddText?.(s); return;
       case 'measure': setMeasure({ a: s, b: s }); setGesture({ kind: 'measure' }); svgRef.current?.setPointerCapture?.(e.pointerId); return;
       case 'pin': p.onPin(s); return;
+      /**
+       * Colocar una luz es un clic y ya: no arrastra, no encadena y no toca la niebla — es pintura. Si el
+       * clic cae sobre una luz que ya existe, la SELECCIONA en vez de apilar otra encima, que es lo que
+       * pasaría si no se mirase antes.
+       */
+      case 'light': {
+        if (!dmSight) return;
+        const hit = lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12, lightRadiusPx(l, p.scene.grid) * 0.25));
+        if (hit) { p.onSelectLight?.(hit.id); return; }
+        p.onPlaceLight?.(s);
+        return;
+      }
       case 'erase': { const hit = hitTest(p.drawings, s, 6 / p.view.zoom); if (hit && canEraseDrawing(hit, p.me, p.isDm)) p.onErase(hit.id); return; }
       case 'wall': {
         if (!dmSight) return;
@@ -517,6 +534,13 @@ export function MapCanvas(p: Props): JSX.Element {
           </g>
           {/* Encima del mapa y de los trazos, debajo de las fichas: la luz baña el suelo, no a la gente. */}
           {lightsShown.length > 0 && <LightsLayer scene={p.scene} lights={lightsShown} />}
+          {/* El aro de la luz seleccionada y su zona de clic. Sólo para el director: es mobiliario de edición. */}
+          {dmSight && p.tool === 'light' && lightsShown.map(l => (
+            <g key={`hit-${l.id}`}>
+              <circle cx={l.x} cy={l.y} r={14} className="mp-light-hit" data-light-hit={l.id} />
+              {p.selectedLightId === l.id && <circle cx={l.x} cy={l.y} r={18} className="mp-light-sel" data-testid="mp-light-sel" />}
+            </g>
+          ))}
           {/* What was explored but is out of sight right now stays visible, only dimmed — «sigue ahí, apagado». */}
           {playerSight && hasVision && <rect {...sceneRect} className="mp-fog-dim" mask={url(fogIds.dim)} data-testid="mp-fog-dim" />}
         </g>

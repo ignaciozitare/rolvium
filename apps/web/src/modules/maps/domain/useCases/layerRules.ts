@@ -124,16 +124,31 @@ export function maskSize(scene: { width: number; height: number }): { width: num
 export const LIGHT_SHAPES: LightShape[] = ['cone', 'radius', 'square'];
 export const LIGHT_KINDS: LightKind[] = ['torch', 'bulb', 'fire', 'lantern', 'flashlight', 'moonlight', 'magic'];
 
-/** Lo que trae cada tipo al colocarlo. El director puede cambiarlo todo después. */
+/**
+ * Lo que trae cada tipo al colocarlo. El director puede cambiarlo todo después.
+ * Los colores salen SIEMPRE de `LIGHT_COLORS`: una sola paleta, y los tipos se distinguen por su forma y
+ * por su RITMO de parpadeo, no por tonos casi idénticos que en el selector no se sabrían separar.
+ */
 export const LIGHT_PRESETS: Record<LightKind, { color: string; rangeM: number; flicker: boolean; shape: LightShape; coneAngle: number }> = {
   torch:      { color: '#e8a24e', rangeM: 6,  flicker: true,  shape: 'radius', coneAngle: 60 },
   bulb:       { color: '#f0e6c8', rangeM: 4,  flicker: false, shape: 'radius', coneAngle: 60 },
   fire:       { color: '#e07a3c', rangeM: 8,  flicker: true,  shape: 'radius', coneAngle: 60 },
-  lantern:    { color: '#e8c07a', rangeM: 5,  flicker: true,  shape: 'radius', coneAngle: 60 },
-  flashlight: { color: '#f2e4b8', rangeM: 9,  flicker: false, shape: 'cone',   coneAngle: 60 },
+  lantern:    { color: '#e8a24e', rangeM: 5,  flicker: true,  shape: 'radius', coneAngle: 60 },
+  flashlight: { color: '#f0e6c8', rangeM: 9,  flicker: false, shape: 'cone',   coneAngle: 60 },
   moonlight:  { color: '#9fb6d4', rangeM: 12, flicker: false, shape: 'square', coneAngle: 90 },
   magic:      { color: '#a97fe0', rangeM: 5,  flicker: true,  shape: 'radius', coneAngle: 60 },
 };
+
+/**
+ * La paleta de las luces. Son valores que se GUARDAN en la fila, como `STROKE_COLORS` o `BG_COLORS`: por eso
+ * viven en el dominio y no como variables de CSS — una variable cambia con el tema y estos no pueden.
+ */
+export const LIGHT_COLORS = ['#e8a24e', '#f0e6c8', '#e07a3c', '#e0625c', '#a97fe0', '#9fb6d4'] as const;
+/** El alcance se toca en pasos de medio metro: es como se habla en la mesa. */
+export const RANGE_STEP_M = 0.5;
+export const MIN_RANGE_M = 0.5;
+export const MAX_RANGE_M = 60;
+export const clampRangeM = (v: number): number => Math.min(MAX_RANGE_M, Math.max(MIN_RANGE_M, Math.round(v / RANGE_STEP_M) * RANGE_STEP_M));
 
 export function newLightOf(kind: LightKind, at: { x: number; y: number }, scene: { id: string; campaignId: string }, layerId: string | null = null): NewLight {
   const p = LIGHT_PRESETS[kind];

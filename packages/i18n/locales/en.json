@@ -772,7 +772,8 @@
       "encounter": "Encounter",
       "soon": "coming soon",
       "select": "Select",
-      "text": "Text"
+      "text": "Text",
+      "light": "Ambient light"
     },
     "toolbar": "Canvas tools",
     "controls": {
@@ -907,6 +908,37 @@
       "heavy": "{{n}} terrain layers · the scene is getting heavy",
       "empty": "This scene has no layers yet.",
       "newName": "Name of the terrain layer"
+    },
+    "lights": {
+      "title": "Ambient light",
+      "place": "Click to place a light",
+      "select": "Light: {{kind}}",
+      "shape": "Shape",
+      "shapes": {
+        "cone": "Cone",
+        "radius": "Radius",
+        "square": "Square"
+      },
+      "kind": "Type",
+      "kinds": {
+        "torch": "Torch",
+        "bulb": "Bulb",
+        "fire": "Bonfire",
+        "lantern": "Lantern",
+        "flashlight": "Flashlight",
+        "moonlight": "Moonlight",
+        "magic": "Arcane"
+      },
+      "color": "Colour and flicker",
+      "colorN": "Colour {{n}}",
+      "flicker": "Flickers",
+      "animates": "Animated",
+      "prepared": "Range and shadow · saved already",
+      "range": "Range in metres",
+      "shadow": "Casts shadow",
+      "cone": "Cone aperture in degrees",
+      "delete": "Delete the light",
+      "note": "Today a light is paint: it reveals no fog and changes what nobody sees. But it does move — the type sets the rhythm: a torch trembles, a bonfire breathes, a bulb blinks in bursts. Range and shadow are stored from day one, for the day it truly lights."
     }
   },
   "bestiary": {

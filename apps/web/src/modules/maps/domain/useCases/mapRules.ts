@@ -13,10 +13,10 @@ export interface View { zoom: number; panX: number; panY: number }
  * `select` replaced `move` in slice 3: choosing and editing is a tool, panning is NOT — it is a modifier
  * (space bar or middle button) so it works from every tool (specs/modules/maps/SPEC.md § «Rebanada 3»).
  */
-export type Tool = 'select' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'text' | 'erase' | 'wall' | 'reveal' | 'hide' | 'encounter';
+export type Tool = 'select' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'text' | 'erase' | 'wall' | 'reveal' | 'hide' | 'light' | 'encounter';
 
 export const PLAYER_TOOLS: Tool[] = ['select', 'measure', 'pin', 'pencil', 'line', 'rect', 'circle', 'text', 'erase'];
-export const DM_TOOLS: Tool[] = ['wall', 'reveal', 'hide', 'encounter'];
+export const DM_TOOLS: Tool[] = ['wall', 'reveal', 'hide', 'light', 'encounter'];
 /** Tools that exist in the design but not yet in code; the toolbar greys them out. Empty since slice 2 shipped the fog brush. */
 export const TOOLS_NOT_YET: Tool[] = [];
 /** The reveal/hide brush paints on the fog instead of drawing. */
