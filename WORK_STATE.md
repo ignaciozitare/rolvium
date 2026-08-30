@@ -29,7 +29,45 @@ app** («no tengo tiempo... súbelo a producción») — su verificación sigue 
 - **El espejo, lado servidor** (sin UI: gated en el visto bueno de las 3 pantallas dibujadas).
 - Tablas del combate creadas y sin consumidor todavía (siguiente rebanada).
 
-### ✅ LAS TRES CORRECCIONES DEL PANEL — HECHAS (2026-08-23, rama `fix/panel-correcciones`, review 9.ª ronda)
+## 🟢 PUNTO EXACTO — 2026-08-23 (tarde): EL PANEL, CORREGIDO CON EL DUEÑO PROBANDO EN VIVO
+
+Rama **`fix/panel-correcciones`** (sobre main v0.3.0), pusheada, HEAD `df58621`. **683 tests web** ·
+audit 0 hard · build limpio · reviews 9.ª y 10.ª pasados. **SIN QA y SIN merge** — el dueño estaba
+probando el panel en local cuando paró.
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: `fix/panel-correcciones` lista y pusheada (las 3 correcciones del diseño + las 2 de la
+> prueba en vivo del dueño). Falta: que el dueño termine de probar el panel → QA + merge. Después: visto
+> bueno a las 3 pantallas dibujadas → UI del espejo y cubierto → turnos → armas de fuego → quitar el
+> bloque «Tirada». Bloque 🟢 de WORK_STATE.
+
+### ✅ En la rama (todo con review)
+1. **Las 3 correcciones del diseño** (`110d636`): encuentros de la escena en el panel COLAPSADOS y
+   desplegables (DmEncounters: filas con mote+bloque, ATACAR, 7 características, chips con mantener-pulsado;
+   uno abierto a la vez; «+ Añadir» → Bestiario) · panel ancho 372px · el desplegable de dificultad se
+   cierra al clicar fuera (gesto compartido en `DifficultyHold`). El review cazó DOS fallos de regalo: dos
+   menús abiertos a la vez entre padres, y el canal de la escena PISADO por la segunda suscripción (los
+   arrastres del director quedaban mudos al cerrar el panel) — `SupabaseMapsRepo` multiplexa con refcount.
+2. **Las 2 de la prueba en vivo** (`df58621`): «A todos» ya no se enciende solo (sólo con varios y todos
+   marcados; pulsar sigue toggle-ando) · el director NO se pide tiradas a sí mismo (`askTargetsFrom`: sólo
+   PJ de los jugadores; fuera PNJ y personajes propios — el aviso ya no le salta a él).
+
+### 🔎 Deuda anotada por los reviews (no tocada)
+- El candado «no pedirse a sí mismo» vive sólo en UI (la función SQL acepta cualquier personaje de la mesa).
+- `aria-pressed` de «A todos» con 1 objetivo (matiz de lector de pantalla) · Enter no confirma el renombrado.
+- Un aliado (PNJ) asignado a un jugador quedaría fuera de «pedir tirada» — revisitar si pasa.
+- `answered_at` del espejo no se escribe · la visibilidad del espejo se fija en su UI · `.tb-btn-gold` muerta.
+
+### ⏭ EL TABLERO (en orden)
+1. El dueño termina de probar el panel en local → **QA + merge + producción** de `fix/panel-correcciones`.
+2. Su **visto bueno a las 3 pantallas dibujadas** (tirada pedida ya construida · defensa del director ·
+   ponerse a cubierto) → construir la UI del espejo (elegir blanco al atacar desde la ficha + aviso del
+   director) y cubierto.
+3. Orden de turnos (tablas ya en local Y en la nube, sin consumidor).
+4. Pasada de armas de fuego de los bloques humanos con el PDF (`CreatureAttack.ranged`).
+5. Quitar el bloque «Tirada» de la ficha (al final de la tanda, como manda la spec).
+
+### (histórico) LAS TRES CORRECCIONES DEL PANEL — HECHAS (2026-08-23, review 9.ª ronda)
 1. **Encuentros de la escena en el panel** (`bestiary/ui/DmEncounters.tsx`): «Encuentros en la escena · N»
    COLAPSADO por defecto; filas con iniciales, nombre + lápiz (mote en el token, el bloque original se
    conserva debajo), Resistencia · protección · página, ATACAR (modal del token con blancos medidos) y
