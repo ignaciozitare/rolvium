@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, fireEvent, waitFor } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { IMAGE_CHAPEL, IMAGE_MARKET, SCENE_CHAPEL, SCENE_WAREHOUSE } from '../../../../tests/helpers/fakes';
+import { IMAGE_CHAPEL, IMAGE_MARKET, LAYER_MOSS, SCENE_CHAPEL, SCENE_WAREHOUSE } from '../../../../tests/helpers/fakes';
 import { BG_COLORS } from '../domain/useCases/mapRules';
 import { BackgroundPopover } from './BackgroundPopover';
 
@@ -50,5 +50,40 @@ describe('<BackgroundPopover>', () => {
     expect(await screen.findByText('No se pudo subir la imagen.')).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Cerrar' }));
     expect(cb.onClose).toHaveBeenCalled();
+  });
+});
+
+/**
+ * Rebanada 7: el mismo popover sirve para la foto de una CAPA DE TERRENO. Sin esto, «+ Capa de terreno»
+ * dejaba una capa vacía y no había manera de darle imagen — se veía como si el botón no hiciera nada.
+ */
+describe('<BackgroundPopover> sobre una capa de terreno', () => {
+  it('se titula con la capa y esconde el color de base, que es de la escena', () => {
+    mount({ layer: LAYER_MOSS });
+    expect(screen.getByRole('dialog', { name: 'Foto de la capa «Musgo»' })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Color hex' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Color de base')).not.toBeInTheDocument();
+  });
+
+  it('marca la foto de la CAPA, no la de la escena', () => {
+    // La escena tiene la de la capilla; la capa, la del musgo.
+    mount({ scene: SCENE_CHAPEL, layer: { ...LAYER_MOSS, imageUrl: IMAGE_MARKET.url } });
+    expect(screen.getByRole('button', { name: IMAGE_MARKET.name })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: IMAGE_CHAPEL.name })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('elegir una foto y el encaje salen por los mismos avisos', async () => {
+    const u = userEvent.setup();
+    const { cb } = mount({ layer: LAYER_MOSS });
+    await u.click(screen.getByRole('button', { name: IMAGE_CHAPEL.name }));
+    expect(cb.onImage).toHaveBeenCalledWith(IMAGE_CHAPEL.url);
+    await u.click(screen.getByRole('button', { name: 'Encajar' }));
+    expect(cb.onTransform).toHaveBeenCalledWith(expect.objectContaining({ mode: 'contain' }));
+  });
+
+  it('sin capa sigue siendo el fondo de la escena de siempre', () => {
+    mount();
+    expect(screen.getByRole('dialog', { name: 'Fondo del mapa' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Color hex' })).toBeInTheDocument();
   });
 });

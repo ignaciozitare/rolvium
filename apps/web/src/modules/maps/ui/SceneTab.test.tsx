@@ -813,7 +813,7 @@ describe('<SceneTab> — una criatura que llega ya elegida desde el Bestiario', 
  */
 describe('<SceneTab> capas (rebanada 7)', () => {
   const withLayers = () => fakeMapsRepo({
-    scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [], drawings: [],
+    scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [], drawings: [], images: [IMAGE_CHAPEL],
     layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS],
     lights: [LIGHT_TORCH],
   });
@@ -888,6 +888,35 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     expect(repo.lights.at(-1)).toMatchObject({ kind: 'torch', flicker: true, rangeM: 6, castsShadow: false, x: 9 * G, y: 7 * G });
     // Y se abre solo para retocarla, sin tener que buscarla.
     expect(await screen.findByRole('group', { name: 'Luz: Antorcha' })).toBeInTheDocument();
+  });
+
+  /**
+   * Lo que hace que «+ Capa de terreno» sirva de algo: con una capa de terreno activa, «Fondo del mapa» toca
+   * la foto DE LA CAPA. Sin esto la capa nacía vacía y parecía que el botón no hacía nada.
+   */
+  it('con una capa de terreno activa, «Fondo del mapa» le pone la foto a ELLA', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
+    await u.click(screen.getByRole('button', { name: 'Fondo del mapa' }));
+    expect(await screen.findByRole('dialog', { name: 'Foto de la capa «Musgo»' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: IMAGE_CHAPEL.name }));
+    await waitFor(() => expect(repo.layerUpdates.at(-1)).toEqual({ id: 'ly-moss', patch: { imageUrl: IMAGE_CHAPEL.url } }));
+    // Y la escena NO se ha tocado: la foto es de la capa.
+    expect(repo.sceneUpdates.some(u2 => 'bgImageUrl' in u2.patch)).toBe(false);
+  });
+
+  it('sin capa de terreno activa sigue siendo el fondo de la escena', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Fondo del mapa' }));
+    expect(await screen.findByRole('dialog', { name: 'Fondo del mapa' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: IMAGE_CHAPEL.name }));
+    await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { bgImageUrl: IMAGE_CHAPEL.url } }));
   });
 
   it('retocar y borrar la luz seleccionada llega al repositorio', async () => {

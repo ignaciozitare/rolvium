@@ -270,6 +270,11 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   }, [selectedToken, st.tokens, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
   const selectedLight = st.lights.find(l => l.id === selectedLightId) ?? null;
+  /**
+   * «Fondo del mapa» toca la CAPA DE TERRENO ACTIVA cuando hay una, y la escena cuando no. Es lo que hace que
+   * «+ Capa de terreno» sirva de algo: sin esto la capa nacía vacía y no había manera de darle foto.
+   */
+  const bgLayer = st.layers.find(l => l.id === activeLayerId && l.kind === 'terrain') ?? null;
 
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
   const deleteSelection = () => {
@@ -479,11 +484,15 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             <EncounterMenu entries={bestiary} labelOf={e => ts(e.label)} selectedId={encounter?.id ?? null} onSelect={setEncounter} onClose={() => setTool('select')} />
           )}
           {isDm && bgOpen && (
-            <BackgroundPopover scene={live} images={images}
+            <BackgroundPopover scene={live} layer={bgLayer} images={images}
               onColor={hex => run(patchScene(live.id, { bgColor: hex }))}
-              onImage={url => run(patchScene(live.id, { bgImageUrl: url }))}
-              onTransform={tr => run(patchScene(live.id, { bgTransform: tr }))}
-              onUpload={async f => { const img = await repo.uploadImage(campaignId, f, f.name.replace(/\.[^.]+$/, '')); setImages(l => [img, ...(l ?? [])]); await patchScene(live.id, { bgImageUrl: img.url }); }}
+              onImage={url => run(bgLayer ? st.patchLayer(bgLayer.id, { imageUrl: url }) : patchScene(live.id, { bgImageUrl: url }))}
+              onTransform={tr => run(bgLayer ? st.patchLayer(bgLayer.id, { transform: tr }) : patchScene(live.id, { bgTransform: tr }))}
+              onUpload={async f => {
+                const img = await repo.uploadImage(campaignId, f, f.name.replace(/\.[^.]+$/, ''));
+                setImages(l => [img, ...(l ?? [])]);
+                await (bgLayer ? st.patchLayer(bgLayer.id, { imageUrl: img.url }) : patchScene(live.id, { bgImageUrl: img.url }));
+              }}
               onClose={() => setBgOpen(false)} />
           )}
           <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView} scene={live}

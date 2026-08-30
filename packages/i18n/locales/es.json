@@ -748,7 +748,8 @@
       "offsetY": "Desplazamiento Y",
       "empty": "Sube el primer plano de la campaña.",
       "uploadError": "No se pudo subir la imagen.",
-      "close": "Cerrar"
+      "close": "Cerrar",
+      "layerTitle": "Foto de la capa «{{name}}»"
     },
     "stroke": {
       "label": "Trazo",

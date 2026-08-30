@@ -748,7 +748,8 @@
       "offsetY": "Offset Y",
       "empty": "Upload the campaign's first map.",
       "uploadError": "The image could not be uploaded.",
-      "close": "Close"
+      "close": "Close",
+      "layerTitle": "Photo of the “{{name}}” layer"
     },
     "stroke": {
       "label": "Stroke",
