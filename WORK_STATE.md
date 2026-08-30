@@ -22,8 +22,8 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 > **La nube y `main` no se han tocado.** Todo vive en `feat/maps-rebanada-7-capas-luces`.
 
 ### 📍 Estado exacto
-- **Rama `feat/maps-rebanada-7-capas-luces`**, 5 commits, **sin mergear**. `main` sigue en v0.4.0.
-- **775 tests verdes · typecheck limpio · `npm run audit` 0 hard · `build:web` y `build:api` OK.**
+- **Rama `feat/maps-rebanada-7-capas-luces`**, 7 commits, **sin mergear**. `main` sigue en v0.4.0.
+- **781 tests verdes · typecheck limpio · `npm run audit` 0 hard · `build:web` y `build:api` OK.**
 - **Migración aplicada SÓLO EN LOCAL.** ⚠ **La nube NO se ha tocado: hace falta permiso explícito del dueño.**
 - ⚠ **`rolvium.pen` SIGUE SIN GUARDAR EN DISCO** (última escritura: 30-ago 23:35). El diseño de la rebanada 7
   vive en la caché del editor. **Lo primero al retomar: pedirle que guarde el tab (Cmd+S) y commitear el
@@ -41,13 +41,13 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
    seleccionar, `LightEditor` con forma/tipo/color/parpadeo/alcance/sombra, y **el parpadeo ANIMADO** con el
    ritmo de cada tipo (antorcha tiembla · hoguera respira · bombilla a golpes), quieto con
    `prefers-reduced-motion`.
+5. **Darle foto a una capa de terreno**: «Fondo del mapa» apunta a la capa activa cuando hay una
+   (EXTEND retrocompatible de `BackgroundPopover`). Sin esto «+ Capa de terreno» parecía no hacer nada.
 
 ### ⏳ LO QUE FALTA DE LA REBANADA 7
 - **El pincel de transparencia en sí**: pintar la máscara sobre el lienzo y subir el PNG. El dato, la ruta, la
   versión, el tamaño reducido a 1024 y el `saveMask`/`clearMask` **ya están hechos y probados** — falta la
   interacción y la barra flotante (ya diseñada en el `.pen`).
-- **Elegir la foto de una capa de terreno**: hoy «+ Capa de terreno» la crea con nombre pero VACÍA, y la foto
-  sigue entrando por el «Fondo del mapa» de siempre. Hay que atar el popover que ya existe a la capa activa.
 - **Mandar elementos a otra capa con el botón derecho** (el menú está diseñado en el `.pen`; el dato
   `layer_id` ya viaja en fichas, dibujos y luces).
 - **Ver con los ojos de un personaje** y **la penumbra en tres zonas** — la penumbra necesita además trabajo

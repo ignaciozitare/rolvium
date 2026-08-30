@@ -25,10 +25,9 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   - ✅ **HECHO** (2026-08-31): el modelo de datos entero · el **panel de capas** (ojo, candado, orden, borrar,
     aviso de peso) · las **capas de terreno apiladas con su máscara** pintándose en el lienzo · las **luces de
     ambiente** de punta a punta, con su herramienta, su editor y el **parpadeo animado** por tipo.
-  - ⏳ **PENDIENTE**: el **pincel de transparencia** en sí (pintar la máscara y subirla) · **elegir la foto**
-    de una capa de terreno (hoy la capa nace vacía; la foto sigue entrando por «Fondo del mapa») · **mandar
-    elementos a otra capa** con el botón derecho · **ver con los ojos de un personaje** · la **penumbra** en
-    tres zonas, que necesita además trabajo en la API.
+  - ⏳ **PENDIENTE**: el **pincel de transparencia** en sí (pintar la máscara y subirla) · **mandar elementos a
+    otra capa** con el botón derecho · **ver con los ojos de un personaje** · la **penumbra** en tres zonas,
+    que necesita además trabajo en la API.
 
 ## What the user can do
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
