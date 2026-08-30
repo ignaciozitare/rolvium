@@ -23,7 +23,10 @@ const OpenBody = z.object({
   campaignId: z.string().uuid(),
   sceneId: z.string().uuid(),
   systemId: z.string().min(1).max(64),
-  candidates: z.array(Candidate).min(1).max(40),
+  // `key` es la identidad del puesto DENTRO de la petición: es lo que devuelve el orden y con lo que se
+  // desempata. Repetida, los dos puestos apuntarían al mismo candidato al montar los slots y uno de los dos
+  // desaparecería del combate sin decirlo. Se corta en la puerta, que es donde se validan las formas.
+  candidates: z.array(Candidate).min(1).max(40).refine(cs => new Set(cs.map(c => c.key)).size === cs.length),
   tiebreak: z.array(z.string().min(1).max(64)).max(40).optional(),
 });
 const Params = z.object({ id: z.string().uuid() });

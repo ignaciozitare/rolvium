@@ -5,7 +5,6 @@ import type { FastifyInstance } from 'fastify';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { ownDiceForStat, type SheetData } from '@rolvium/core';
 import type { RollCommitInput } from './domain/roll/IRollRepository.js';
-import type { OpenCombatInput } from './domain/combat/ICombatRepository.js';
 import type { OpenAttackInput } from './domain/attack/IAttackRepository.js';
 import type { OpenCombatInput } from './domain/combat/ICombatRepository.js';
 import { fakeMapsRepo } from './application/maps/fakeMapsRepo.js';
@@ -604,5 +603,18 @@ describe('POST /combats — el orden de turnos', () => {
     expect(r.json().data).toEqual({ position: 2, fortune: 0 });
     // La ficha se guarda de verdad: Karen entra con Fortuna 1 y sale con 0.
     expect(saved[before]?.patch.data['fortune']).toBe(0);
+  });
+
+  /**
+   * Dos puestos con la misma `key` se pisarían al montar el orden —los dos apuntan al mismo candidato— y uno
+   * de los dos desaparecería del combate sin avisar. Se corta en la puerta.
+   */
+  it('dos candidatos con la misma `key` no abren nada', async () => {
+    const r = await post(app, '/combats', 'admin', {
+      campaignId: CAMP_ID, sceneId: SCENE_ID, systemId: 'plenilunio',
+      candidates: [candidate('ogro', 6, 4), candidate('ogro', 2, 1)],
+    });
+    expect(r.statusCode).toBe(400);
+    expect(r.json().error.code).toBe('VALIDATION_ERROR');
   });
 });

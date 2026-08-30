@@ -179,6 +179,9 @@ export async function advanceTurn(deps: CombatDeps, input: { actorId: string; co
     if (code) return { ok: false, code };
     throw e;
   }
-  await saveSheet(deps, { characterId: slot.characterId, actorId: input.actorId, data: { ...ch.data, fortune: fortune - 1 }, origin: 'roll' });
-  return { ok: true, data: { position, fortune: fortune - 1 } };
+  const charged = await saveSheet(deps, { characterId: slot.characterId, actorId: input.actorId, data: { ...ch.data, fortune: fortune - 1 }, origin: 'roll' });
+  // Si el cobro no llega a entrar (ficha que ya no valida, permiso retirado entre medias…) el adelanto se
+  // queda regalado, que es la dirección que se prefiere. Lo que NO se puede es CONTARLO como cobrado: quien
+  // preguntara se creería una Fortuna que la ficha no tiene, y a la siguiente recarga le volvería el punto.
+  return { ok: true, data: { position, fortune: charged.ok ? fortune - 1 : fortune } };
 }

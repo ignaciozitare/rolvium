@@ -211,6 +211,19 @@ describe('advanceTurn — adelantarse cuesta 1 Fortuna (p.89 · p.92)', () => {
     expect(await advanceTurn(deps(repo), { actorId: PLAYER, combatId: COMBAT, slotId: SLOT })).toEqual({ ok: false, code: 'NOT_FOUND' });
   });
 
+  /**
+   * El adelanto ya está guardado y manda, así que si el cobro no entra se queda regalado — esa es la
+   * dirección que se prefiere. Lo que NO puede hacer la respuesta es contarlo como cobrado: quien se la
+   * creyera vería volver el punto a la siguiente recarga, y la ficha y la pantalla dirían cosas distintas.
+   */
+  it('si el cobro de la Fortuna no entra, la respuesta NO la cuenta como cobrada', async () => {
+    const { repo } = fakeCombats({ advance: async () => 2 });
+    const d = deps(repo);
+    d.characters.saveSheet = async () => { throw Object.assign(new Error('nope'), { code: 'FORBIDDEN' }); };
+    // El puesto se movió; la Fortuna que se devuelve es la que la ficha tiene DE VERDAD (2), no la 1 fingida.
+    expect(await advanceTurn(d, { actorId: PLAYER, combatId: COMBAT, slotId: SLOT })).toEqual({ ok: true, data: { position: 2, fortune: 2 } });
+  });
+
   /** El que ya actuó o está actuando no se puede saltar: lo dice SQL y aquí sólo se traduce. */
   it('no se puede saltar por encima de quien está actuando', async () => {
     const { repo } = fakeCombats({ advance: async () => { throw Object.assign(new Error('cannot_advance'), { code: 'CANNOT_ADVANCE' }); } });

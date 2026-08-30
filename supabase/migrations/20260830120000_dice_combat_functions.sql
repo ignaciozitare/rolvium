@@ -86,10 +86,14 @@ CREATE OR REPLACE FUNCTION public.dice_next_turn(kid uuid, actor uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE pos integer; rnd integer; total integer;
 BEGIN
+  -- `FOR UPDATE`: la fila del combate es el CERROJO de todo lo que mueve este orden. Sin él, dos «siguiente»
+  -- seguidos (o un «siguiente» a la vez que un «adelantarse») leen los dos la misma posición y uno de los dos
+  -- se pierde — o peor, el que se adelanta calcula su salto contra un turno que ya no es el que manda.
   SELECT k.current_position, k.round INTO pos, rnd
   FROM public.dice_combats k
   WHERE k.id = kid AND k.status = 'active'
-    AND EXISTS (SELECT 1 FROM public.campaigns_campaigns c WHERE c.id = k.campaign_id AND c.dm_id = actor);
+    AND EXISTS (SELECT 1 FROM public.campaigns_campaigns c WHERE c.id = k.campaign_id AND c.dm_id = actor)
+  FOR UPDATE;
   IF pos IS NULL THEN RAISE EXCEPTION 'not_active' USING ERRCODE = '42501'; END IF;
   SELECT count(*) INTO total FROM public.dice_combat_slots s WHERE s.combat_id = kid;
   IF total = 0 THEN RAISE EXCEPTION 'no_slots' USING ERRCODE = '22023'; END IF;
@@ -134,7 +138,12 @@ RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE cur integer; pos integer; ch uuid;
 BEGIN
   IF actor IS NULL THEN RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501'; END IF;
-  SELECT k.current_position INTO cur FROM public.dice_combats k WHERE k.id = kid AND k.status = 'active';
+  -- `FOR UPDATE` ANTES de leer nada más: coge el cerrojo de la fila del combate y deja pasar de uno en uno.
+  -- Sin él, dos jugadores que se adelantan a la vez leen los dos su posición VIEJA y el segundo escribe
+  -- contra un orden que ya cambió: se comprobó en local y dejaba dos puestos en la misma posición y otra
+  -- vacía (A0 · C1 · B2 · D2, sin el 3). El intercambio de abajo sigue siendo de dos pasos, pero ahora
+  -- nadie más lo está haciendo al mismo tiempo, que es lo único que lo hacía inseguro.
+  SELECT k.current_position INTO cur FROM public.dice_combats k WHERE k.id = kid AND k.status = 'active' FOR UPDATE;
   IF cur IS NULL THEN RAISE EXCEPTION 'not_active' USING ERRCODE = '42501'; END IF;
   SELECT s.position, s.character_id INTO pos, ch
   FROM public.dice_combat_slots s WHERE s.id = slot AND s.combat_id = kid;
@@ -146,7 +155,8 @@ BEGIN
 
   -- El intercambio, en dos pasos y en este orden: primero el de delante baja al
   -- hueco que va a dejar el que sube. (position no es única, así que el cruce
-  -- intermedio es legal y no hace falta un valor de paso.)
+  -- intermedio es legal y no hace falta un valor de paso; lo que sostiene esa
+  -- licencia es el cerrojo de arriba, que garantiza que nadie más está cruzando.)
   UPDATE public.dice_combat_slots s SET position = pos WHERE s.combat_id = kid AND s.position = pos - 1;
   UPDATE public.dice_combat_slots s SET position = pos - 1 WHERE s.id = slot;
   UPDATE public.dice_combats k SET updated_at = now() WHERE k.id = kid;
