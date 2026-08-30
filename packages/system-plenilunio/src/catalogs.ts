@@ -219,11 +219,13 @@ const at = (key: string, attack: number, damage: number, fortuneCost?: number): 
   ({ label: `catalog.creatureAttacks.${key}`, attack, damage, ...(fortuneCost === undefined ? {} : { fortuneCost }) });
 /**
  * El arma A DISTANCIA de un bloque humano (RULES.md §8.6): el arma de la tabla de la p.97 que nombra su
- * especialidad de Combate. `attack` es su Combate A SECAS —la bonificación de un arma a distancia no aplica
- * nunca (p.95 y p.97)— así que `attack - combat` (lo que viaja como `bonusDice`) queda en 0, calcado al flujo
- * de la ficha de jugador (`ranged ? 0 : bonus`). El label reutiliza la clave del catálogo de armas: mismo
- * nombre traducido en las dos lenguas y sin segunda verdad de valores. No coincide con ningún `WEAPONS.id`
- * a secas, así que el gasto de munición de una ficha (`spendAmmo` busca por id) no puede dispararse por error.
+ * especialidad de Combate. El ataque derivado es el DISPARO: `attack` es su Combate A SECAS, porque al
+ * disparar no se suma bonificación (p.95–96) — así `attack - combat` (lo que viaja como `bonusDice`) queda
+ * en 0, calcado al flujo de la ficha de jugador (`ranged ? 0 : bonus`). ⚠ Usada EN c/c, un arma de fuego
+ * daría +1 (p.95): no cabe en este único número y queda como deuda en §8.6 (el director puede sumarlo a
+ * mano). El label reutiliza la clave del catálogo de armas: mismo nombre traducido en las dos lenguas y sin
+ * segunda verdad de valores; no coincide con ningún `WEAPONS.id` a secas, así que el gasto de munición de
+ * una ficha (`spendAmmo` busca por id) no puede dispararse por error.
  */
 const rat = (weaponId: string, attack: number, damage: number): CreatureAttack =>
   ({ label: `catalog.weapons.${weaponId}`, attack, damage, ranged: true });

@@ -865,14 +865,19 @@ Lo que el libro sí da para cruzar bloque y arma:
 - **p. 25 (equipo inicial)**: «Un arma que se corresponda con su especialidad de combate» — y «es su concepto y
   sus especialidades los que deberían dar las pistas» del equipamiento.
 - **p. 209**: el Salteador «elige las armas de la tabla» de la p. 97 — el propio libro monta un bloque con la tabla.
-- **p. 95 y p. 97**: un arma a distancia no da bonificación NUNCA — ni al disparar («la bonificación de Combate
-  solo se aplica en alcance cuerpo a cuerpo») ni usada pegado («pueden usarse a distancia cuerpo a cuerpo, pero
-  no proporcionan bonificación»).
+- **p. 95 y p. 97**: al DISPARAR nadie suma bonificación (§5.3: las armas a distancia no dan dados extra; la
+  nota de la tabla: «la bonificación de Combate solo se aplica en alcance cuerpo a cuerpo»). El «+1» que la
+  tabla imprime a las armas de fuego es su bonificación EN cuerpo a cuerpo: «las armas de fuego añaden un dado
+  a la puntuación de Combate cuando se usan a distancia cuerpo a cuerpo» (p. 95); arcos y ballestas «no
+  proporcionan bonificación» ni pegados (p. 95).
 
 ⚠ interpretación: **cada bloque humano cuya especialidad de Combate impresa nombra un tipo de arma a distancia
-lleva UN arma de ese tipo, con los valores de la tabla del §5.5**. Sus dados de ataque son su **Combate a secas**
-(ver arriba: la bonificación no aplica en armas a distancia) y su daño el de la tabla (los arcos, F+3 con la
-Fortaleza del bloque). Donde la tabla da a elegir, se elige lo genérico y queda anotado:
+lleva UN arma de ese tipo, con los valores de la tabla del §5.5**. El ataque derivado es el **DISPARO**: sus
+dados son su **Combate a secas** (al disparar no hay bonificación, ver arriba) y su daño el de la tabla (los
+arcos, F+3 con la Fortaleza del bloque). ⚠ Deuda anotada: usada EN cuerpo a cuerpo, un arma de fuego daría
+Combate **+1** (p. 95), pero `CreatureAttack.attack` es un solo número y guarda el del disparo — en ese caso
+raro el director puede sumar el dado a mano en el modal; modelarlo pide un campo de bonificación c/c y que el
+modal mire el alcance, decisión aparte. Donde la tabla da a elegir, se elige lo genérico y queda anotado:
 
 | Bloque (especialidad impresa) | Arma | Dados (= Combate) | Daño |
 |---|---|---:|---:|

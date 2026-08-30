@@ -191,9 +191,10 @@ describe('catalogs', () => {
   });
   /**
    * RULES.md §8.6 (⚠ interpretación): los bloques humanos NO imprimen armas — la suya sale de su especialidad
-   * de Combate con la tabla de la p.97. Dados = su Combate A SECAS, porque la bonificación de un arma a
-   * distancia no aplica nunca (p.95 y p.97): así `attack − combat`, que viaja como `bonusDice`, queda en 0,
-   * igual que en la ficha de jugador (`ranged ? 0 : bonus`). El label reutiliza `catalog.weapons.*`.
+   * de Combate con la tabla de la p.97. El ataque derivado es el DISPARO: dados = su Combate A SECAS, porque
+   * al disparar no se suma bonificación (p.95–96) — así `attack − combat`, que viaja como `bonusDice`, queda
+   * en 0, igual que en la ficha de jugador (`ranged ? 0 : bonus`). El +1 de usar un arma de fuego EN c/c
+   * (p.95) no cabe en el único número y es deuda anotada en §8.6. El label reutiliza `catalog.weapons.*`.
    */
   it('las armas a distancia de los bloques humanos: derivadas de la especialidad con la tabla de la p.97 (§8.6)', () => {
     const armed: Record<string, { weapon: string; damage: number }> = {

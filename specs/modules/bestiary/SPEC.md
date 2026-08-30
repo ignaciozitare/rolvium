@@ -116,8 +116,9 @@ y abre `ui/TokenAttackModal.tsx`, portado 1:1 de `Modal/Atacar con el token`.
   armas (las líneas con «bonificación +1, daño 8, 35 balas» son de las fichas pregeneradas, pp. 26–35, y de
   la tabla de armas de la p.97). Lo que el bloque imprime es su **especialidad de Combate**, y de ahí sale
   el arma con la tabla — derivación ⚠ interpretación documentada en **RULES.md §8.6** (13 bloques con arma
-  a distancia, dados = su Combate a secas porque la bonificación no aplica a distancia; el Paramilitar
-  queda fuera: «Armas pesadas» no está en la tabla y no se inventan valores). Las armas derivadas reutilizan
+  a distancia, dados = su Combate a secas porque al disparar no se suma bonificación, p.95–96; el Paramilitar
+  queda fuera: «Armas pesadas» no está en la tabla y no se inventan valores). ⚠ Deuda: un arma de fuego
+  usada EN c/c daría +1 (p.95) y el dato sólo guarda el disparo — el director puede sumarlo a mano. Las armas derivadas reutilizan
   las claves `catalog.weapons.*` — nada nuevo que traducir. **A MANO sigue valiendo a distancia**: la mayor
   parte del catálogo sigue sin arma de disparo, y apagarlo es decisión aparte (deuda ya anotada).
 - **El daño**: el impreso de su caja si la tiene; si no, sin armas, que el libro paga con su Fortaleza (p.97).
