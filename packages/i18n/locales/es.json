@@ -878,6 +878,34 @@
     "solidWalls": {
       "on": "Paredes sólidas · los tokens no las atraviesan",
       "off": "Paredes atravesables · pulsa para hacerlas sólidas"
+    },
+    "layers": {
+      "title": "Capas",
+      "collapse": "Plegar capas",
+      "expand": "Desplegar capas",
+      "select": "Trabajar en la capa {{name}}",
+      "active": "Capa activa",
+      "kind": {
+        "terrain": "Terreno",
+        "objects": "Objetos",
+        "creatures": "Criaturas y personajes",
+        "dmNotes": "Notas del director"
+      },
+      "private": "Privada · no viaja",
+      "privateHint": "Los jugadores no reciben nada de esta capa.",
+      "untitled": "Terreno {{n}}",
+      "show": "Mostrar la capa {{name}}",
+      "hide": "Ocultar la capa {{name}} (deja de pintarse para todos)",
+      "lock": "Bloquear la capa {{name}}",
+      "unlock": "Desbloquear la capa {{name}}",
+      "hasMask": "Lleva máscara del pincel de transparencia",
+      "up": "Subir la capa",
+      "down": "Bajar la capa",
+      "delete": "Borrar la capa",
+      "deleteConfirm": "¿Borrar la capa «{{name}}»? Se van sus dibujos y sus luces; las fichas vuelven a su capa de siempre.",
+      "addTerrain": "+ Capa de terreno",
+      "heavy": "{{n}} capas de terreno · la escena empieza a pesar",
+      "empty": "Esta escena aún no tiene capas."
     }
   },
   "bestiary": {

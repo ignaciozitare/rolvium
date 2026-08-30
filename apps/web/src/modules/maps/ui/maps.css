@@ -195,3 +195,56 @@
 .mp-placing{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:10px;
   padding:6px 10px;background:var(--sys-gold);color:var(--sys-ink);font-size:var(--fs-xs);box-shadow:var(--sys-card-shadow);}
 .mp-marquee{fill:color-mix(in srgb,var(--sys-gold) 14%,transparent);stroke:var(--sys-gold);stroke-width:1;stroke-dasharray:4 3;pointer-events:none;}
+
+/* ── capas de contenido (rebanada 7) ─────────────────────────────────────────
+   Flota sobre el mapa, como la barra de trazo: una franja a lo ancho cuesta
+   altura de mapa, y eso ya se decidió en la rebanada 3. */
+.mp-layers{position:absolute;top:8px;right:8px;z-index:3;width:206px;max-height:calc(100% - 16px);overflow:auto;
+  display:flex;flex-direction:column;gap:3px;padding:6px;background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);}
+.mp-layers.collapsed{width:auto;}
+.mp-layers-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px;}
+.mp-layers-empty{margin:0;padding:4px;font-size:var(--fs-xs);}
+.mp-layers-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
+.mp-layer{display:flex;align-items:center;gap:4px;padding:2px 3px;}
+.mp-layer.on{background:var(--sys-ink);}
+.mp-layer.off .mp-layer-main{opacity:.5;}
+.mp-layer-main{flex:1;min-width:0;display:flex;align-items:center;gap:6px;border:none;background:transparent;padding:2px;cursor:pointer;text-align:left;color:var(--sys-ink-soft);}
+.mp-layer.on .mp-layer-main{color:var(--sys-paper-hi);}
+.mp-layer-thumb{width:26px;height:18px;object-fit:cover;flex-shrink:0;border:1px solid var(--sys-line);}
+.mp-layer-kind{flex-shrink:0;color:var(--sys-ink-dim);}
+.mp-layer.on .mp-layer-kind{color:var(--sys-paper-hi);}
+.mp-layer-name{min-width:0;display:flex;flex-direction:column;font-size:var(--fs-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* «Notas del director» no es una capa apagada: es un tipo, y se dice en el sitio. */
+.mp-layer-private{font-style:normal;font-size:var(--fs-2xs);letter-spacing:.08em;color:var(--sys-blood);}
+.mp-layer.on .mp-layer-private{color:var(--sys-gold);}
+.mp-layer-mask{color:var(--sys-gold);flex-shrink:0;}
+.mp-layers-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;
+  border:none;background:transparent;color:var(--sys-ink-dim);cursor:pointer;}
+.mp-layers-icon:hover:not(:disabled){background:color-mix(in srgb,var(--sys-ink) 10%,transparent);}
+.mp-layers-icon:disabled{opacity:.3;cursor:default;}
+.mp-layers-icon.locked{color:var(--sys-gold);}
+.mp-layer.on .mp-layers-icon{color:var(--sys-paper-hi);}
+.mp-layer.on .mp-layers-icon.locked{color:var(--sys-gold);}
+.mp-layer-actions{display:flex;align-items:center;gap:3px;padding:3px 4px;background:color-mix(in srgb,var(--sys-ink) 8%,transparent);}
+.mp-layer-actions-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-layers-add{width:100%;justify-content:center;}
+.mp-layers-warn{display:flex;align-items:center;gap:6px;margin:0;padding:4px 5px;font-size:var(--fs-2xs);line-height:var(--lh-normal);
+  color:var(--sys-ink-dim);background:color-mix(in srgb,var(--sys-gold) 15%,transparent);}
+.mp-layers-warn .material-symbols-outlined{color:var(--sys-gold);flex-shrink:0;}
+
+/* ── luces de ambiente (rebanada 7) ──────────────────────────────────────────
+   `screen` para que la luz SUME en vez de tapar el mapa. Nunca capturan el
+   ratón: son pintura, no objetos que estorben al dibujar. */
+.mp-light{mix-blend-mode:screen;pointer-events:none;}
+/* El RITMO lo trae el tipo de luz (`--mp-flicker` = cuánto baja el brillo; la
+   duración va inline). Dos formas: la respiración de un fuego y el golpe seco
+   de una bombilla estropeada. */
+@keyframes mp-flicker-soft{0%,100%{opacity:1}35%{opacity:calc(1 - var(--mp-flicker)*.6)}60%{opacity:calc(1 - var(--mp-flicker))}}
+@keyframes mp-flicker-sharp{0%,86%{opacity:1}88%{opacity:calc(1 - var(--mp-flicker))}90%{opacity:1}93%{opacity:calc(1 - var(--mp-flicker))}95%{opacity:1}}
+.mp-light.flicker-soft{animation:mp-flicker-soft linear infinite;}
+.mp-light.flicker-sharp{animation:mp-flicker-sharp linear infinite;}
+/* Con el movimiento reducido del sistema la luz se queda quieta a media luz:
+   nadie se marea por una decisión decorativa. */
+@media (prefers-reduced-motion:reduce){
+  .mp-light.flicker-soft,.mp-light.flicker-sharp{animation:none;opacity:calc(1 - var(--mp-flicker)/2);}
+}

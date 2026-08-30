@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
-import type { Drawing, DrawingKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
+import type { Drawing, DrawingKind, Layer, Light, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, TokenGlyph, WallShape } from './canvasLayers';
+import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
+import { isPainted, paintedLights, resolveLayer, terrainLayers } from '../domain/useCases/layerRules';
 
 export interface StrokeStyle { color: string; width: number }
 
@@ -13,6 +14,10 @@ interface Props {
   tokens: Token[];
   walls: Wall[];
   drawings: Drawing[];
+  /** Capas de contenido de la escena (rebanada 7). Vacío = como antes de que existieran. */
+  layers?: Layer[];
+  /** Luces de ambiente. Son PINTURA: no revelan niebla ni entran en el cálculo de visión. */
+  lights?: Light[];
   drags: Record<string, LiveDrag>;
   pin: LivePin | null;
   tool: Tool;
@@ -438,6 +443,16 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const blockers = p.isDm ? [] : moveBlockers(p.walls, p.scene);
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
+
+  /**
+   * Capas de contenido (rebanada 7). `dmSight` es lo que decide si esto se mira con ojos de director: con
+   * «ver como jugador» puesto, el director deja de ver la capa de notas — que es justo lo que la lente viene
+   * a comprobar. Una capa APAGADA no se pinta para nadie, ni siquiera para él: el ojo es el de Photoshop.
+   */
+  const layers = p.layers ?? [];
+  const hasTerrain = terrainLayers(layers).some(l => l.visible && l.imageUrl);
+  const drawingsShown = layers.length === 0 ? p.drawings : p.drawings.filter(d => isPainted(resolveLayer(layers, d.layerId, 'drawing'), dmSight));
+  const lightsShown = paintedLights(p.lights ?? [], layers, dmSight);
   /** Un PJ es un token con ficha de personaje detrás. Los PNJ del bestiario no la tienen. */
   const isPc = (tk: Token): boolean => tk.characterId !== null;
   const renderToken = (tk: Token): JSX.Element => {
@@ -488,7 +503,8 @@ export function MapCanvas(p: Props): JSX.Element {
       </defs>
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
         <g className="mp-layer-map" {...(playerSight ? { mask: url(fogIds.seen) } : {})} data-testid="mp-map">
-          <BackgroundLayer scene={p.scene} clipId={clipId} />
+          <BackgroundLayer scene={p.scene} clipId={clipId} imageHidden={hasTerrain} />
+          {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} />}
           <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} />
           {dmSight && fog && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
@@ -496,9 +512,11 @@ export function MapCanvas(p: Props): JSX.Element {
             {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={snap(hover.x, grid)} y2={snap(hover.y, grid)} className="mp-wall draft" />}
           </g>
           <g className="mp-layer-drawings" data-testid="mp-drawings">
-            {p.drawings.map(d => <DrawingShape key={d.id} d={d} />)}
+            {drawingsShown.map(d => <DrawingShape key={d.id} d={d} />)}
             {draft && <DrawingShape d={draft} draft />}
           </g>
+          {/* Encima del mapa y de los trazos, debajo de las fichas: la luz baña el suelo, no a la gente. */}
+          {lightsShown.length > 0 && <LightsLayer scene={p.scene} lights={lightsShown} />}
           {/* What was explored but is out of sight right now stays visible, only dimmed — «sigue ahí, apagado». */}
           {playerSight && hasVision && <rect {...sceneRect} className="mp-fog-dim" mask={url(fogIds.dim)} data-testid="mp-fog-dim" />}
         </g>

@@ -1,6 +1,7 @@
 import type { SceneVision } from '@rolvium/core';
-import type { Drawing, Scene, Token, Wall } from '../domain/entities/Scene';
+import type { Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
 import { cellsPath, initialsOf, openingGeometry, polygonPoints, tokenCenter } from '../domain/useCases/mapRules';
+import { conePath, flickerOf, lightRadiusPx, maskSrc, terrainLayers } from '../domain/useCases/layerRules';
 
 /** Presentational SVG pieces of the canvas (no pointer logic) — see MapCanvas.tsx. */
 
@@ -13,8 +14,14 @@ import { cellsPath, initialsOf, openingGeometry, polygonPoints, tokenCenter } fr
 const MASK_SHOW = '#ffffff';
 const MASK_HIDE = '#000000';
 
-export function BackgroundLayer({ scene, clipId }: { scene: Scene; clipId: string }): JSX.Element {
-  const { width, height, bgColor, bgImageUrl, bgTransform: tr } = scene;
+/**
+ * El color de base y —si la escena NO tiene capas de terreno— la foto de fondo de siempre.
+ * `imageHidden` es la regla de convivencia de la rebanada 7: con capas de terreno manda la capa y
+ * `bgImageUrl` se ignora, porque la migración subió esa foto a una capa pero dejó la columna en su sitio.
+ */
+export function BackgroundLayer({ scene, clipId, imageHidden = false }: { scene: Scene; clipId: string; imageHidden?: boolean }): JSX.Element {
+  const { width, height, bgColor, bgTransform: tr } = scene;
+  const bgImageUrl = imageHidden ? null : scene.bgImageUrl;
   return (
     <g className="mp-layer-bg" clipPath={`url(#${clipId})`}>
       <rect x={0} y={0} width={width} height={height} fill={bgColor} data-testid="mp-bg" />
@@ -167,5 +174,84 @@ export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
         <g filter={blur}>{cells && <path d={cells} fill={MASK_HIDE} />}</g>
       </mask>
     </>
+  );
+}
+
+// ── Rebanada 7: capas de terreno con máscara, y luces de ambiente ────────────
+
+/**
+ * Las capas de TERRENO, de abajo arriba, cada una con su máscara del pincel de transparencia.
+ *
+ * **Regla de convivencia con el fondo de siempre**: si la escena tiene alguna capa de terreno, manda la capa
+ * y `scene.bgImageUrl` se IGNORA. Está así porque la migración subió la foto de fondo de cada escena a una
+ * capa de terreno pero no vació la columna — pintar las dos sería pintar la misma foto dos veces, y vaciarla
+ * habría dejado las escenas en negro entre la migración y este despliegue. El color de base se pinta siempre:
+ * es lo que se ve donde no llega ninguna foto.
+ *
+ * La máscara es un PNG con brochazos NEGROS semitransparentes sobre nada. Dentro de un `<mask>` de SVG el
+ * valor es luminancia × alfa, así que va sobre un rectángulo BLANCO: donde no hay brochazo queda blanco (se
+ * ve entero), un brochazo a fuerza máxima deja negro (no se ve) y a media, gris (translúcido). La foto
+ * original no se toca en ningún momento — de ahí que siempre se pueda volver atrás.
+ */
+export function TerrainLayers({ scene, layers, clipId }: { scene: Scene; layers: readonly Layer[]; clipId: string }): JSX.Element {
+  const terrain = terrainLayers(layers).filter(l => l.visible && l.imageUrl);
+  return (
+    <g className="mp-layer-terrain" clipPath={`url(#${clipId})`} data-testid="mp-terrain">
+      {terrain.map(l => {
+        const mask = maskSrc(l);
+        const maskId = `mp-mask-${l.id}`;
+        const tr = l.transform;
+        const box = tr.mode === 'custom'
+          ? { x: tr.x, y: tr.y, width: scene.width * tr.scale, height: scene.height * tr.scale, preserveAspectRatio: 'xMinYMin meet' }
+          : { x: 0, y: 0, width: scene.width, height: scene.height, preserveAspectRatio: tr.mode === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet' };
+        return (
+          <g key={l.id} data-layer-id={l.id} data-testid="mp-terrain-layer">
+            {mask && (
+              <mask id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={scene.width} height={scene.height}>
+                <rect x={0} y={0} width={scene.width} height={scene.height} fill={MASK_SHOW} />
+                <image href={mask} x={0} y={0} width={scene.width} height={scene.height} preserveAspectRatio="none" data-testid="mp-terrain-mask" />
+              </mask>
+            )}
+            <image href={l.imageUrl!} {...box} {...(mask ? { mask: `url(#${maskId})` } : {})} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+/**
+ * Las luces de ambiente. HOY SON PINTURA: no revelan niebla, no cambian lo que ve nadie y no entran en el
+ * cálculo de visión del servidor. Lo único que hacen además de estar quietas es PARPADEAR, porque animar
+ * también es pintar (dueño, 2026-08-31) — y el ritmo lo pone el tipo de luz, no un control aparte.
+ *
+ * El degradado va de opaco en el centro a transparente en el borde, y se compone en modo `screen` (en CSS)
+ * para que sume luz en vez de tapar el mapa.
+ */
+export function LightsLayer({ scene, lights }: { scene: Scene; lights: readonly Light[] }): JSX.Element {
+  return (
+    <g className="mp-layer-lights" data-testid="mp-lights">
+      <defs>
+        {lights.map(l => (
+          <radialGradient key={l.id} id={`mp-light-${l.id}`}>
+            <stop offset="0%" stopColor={l.color} stopOpacity={0.65} />
+            <stop offset="55%" stopColor={l.color} stopOpacity={0.25} />
+            <stop offset="100%" stopColor={l.color} stopOpacity={0} />
+          </radialGradient>
+        ))}
+      </defs>
+      {lights.map(l => {
+        const r = lightRadiusPx(l, scene.grid);
+        const rhythm = flickerOf(l);
+        const fill = `url(#mp-light-${l.id})`;
+        const style = rhythm
+          ? ({ animationDuration: `${rhythm.periodMs}ms`, '--mp-flicker': String(rhythm.depth) } as React.CSSProperties)
+          : undefined;
+        const common = { className: `mp-light ${rhythm ? (rhythm.sharp ? 'flicker-sharp' : 'flicker-soft') : ''}`, fill, style, 'data-light-id': l.id, 'data-testid': 'mp-light' };
+        if (l.shape === 'cone') return <path key={l.id} d={conePath(l, r)} {...common} />;
+        if (l.shape === 'square') return <rect key={l.id} x={l.x - r} y={l.y - r} width={r * 2} height={r * 2} {...common} />;
+        return <circle key={l.id} cx={l.x} cy={l.y} r={r} {...common} />;
+      })}
+    </g>
   );
 }

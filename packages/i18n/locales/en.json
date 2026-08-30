@@ -878,6 +878,34 @@
     "solidWalls": {
       "on": "Solid walls · tokens cannot pass through",
       "off": "Walls let tokens through · click to make them solid"
+    },
+    "layers": {
+      "title": "Layers",
+      "collapse": "Collapse layers",
+      "expand": "Expand layers",
+      "select": "Work on the {{name}} layer",
+      "active": "Active layer",
+      "kind": {
+        "terrain": "Terrain",
+        "objects": "Objects",
+        "creatures": "Creatures and characters",
+        "dmNotes": "GM notes"
+      },
+      "private": "Private · never sent",
+      "privateHint": "Players receive nothing from this layer.",
+      "untitled": "Terrain {{n}}",
+      "show": "Show the {{name}} layer",
+      "hide": "Hide the {{name}} layer (it stops being painted for everyone)",
+      "lock": "Lock the {{name}} layer",
+      "unlock": "Unlock the {{name}} layer",
+      "hasMask": "Has a transparency brush mask",
+      "up": "Move the layer up",
+      "down": "Move the layer down",
+      "delete": "Delete the layer",
+      "deleteConfirm": "Delete the “{{name}}” layer? Its drawings and lights go with it; tokens return to their usual layer.",
+      "addTerrain": "+ Terrain layer",
+      "heavy": "{{n}} terrain layers · the scene is getting heavy",
+      "empty": "This scene has no layers yet."
     }
   },
   "bestiary": {
