@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { GameSystem, RollVisibility } from '@rolvium/core';
 import type { OpenRollRequestsInput } from '../domain/entities/RollRequestAsk';
@@ -19,6 +19,8 @@ interface Props {
    * la mitad de pedir tiradas. Sus tiradas para sí mismo siguen abajo, en el lanzador de siempre.
    */
   ask?: { system: GameSystem; targets: AskTarget[]; onAsk: (input: Omit<OpenRollRequestsInput, 'campaignId'>) => Promise<boolean> };
+  /** Debajo del panel de pedir: la sección de encuentros de la escena (la monta la mesa, no este módulo). */
+  extra?: ReactNode;
 }
 const VISIBILITIES: RollVisibility[] = ['table', 'dm', 'secret'];
 const QUANTITIES = Array.from({ length: MAX_FREE_DICE }, (_, i) => i + 1);
@@ -28,7 +30,7 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(ma
  * Lanzador de dados (rolvium.pen PL/Lanzador flotante): floating, draggable by its header, NOT modal — the table
  * stays usable underneath. Tap a quantity = roll that many dice of that kind, with the chosen visibility + modifier.
  */
-export function DiceRoller({ campaignId, onClose, rolls = defaultRolls, initial, ask }: Props): JSX.Element {
+export function DiceRoller({ campaignId, onClose, rolls = defaultRolls, initial, ask, extra }: Props): JSX.Element {
   const { t } = useTranslation();
   const [visibility, setVisibility] = useState<RollVisibility>('table');
   const [modifier, setModifier] = useState(0);
@@ -71,7 +73,7 @@ export function DiceRoller({ campaignId, onClose, rolls = defaultRolls, initial,
   }, [busy, modifier, visibility, rolls, campaignId, t]);
 
   return (
-    <section className="dc-roller" role="dialog" aria-modal="false" aria-label={t('dice.roller.title')} style={{ left: pos.x, top: pos.y }}>
+    <section className={`dc-roller ${ask ? 'dc-roller-dm' : ''}`} role="dialog" aria-modal="false" aria-label={t('dice.roller.title')} style={{ left: pos.x, top: pos.y }}>
       <div className="dc-roller-head" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} data-testid="dice-roller-handle">
         <span className="dc-roller-head-l">
           <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }} aria-label={t('dice.roller.drag')}>drag_indicator</span>
@@ -80,6 +82,7 @@ export function DiceRoller({ campaignId, onClose, rolls = defaultRolls, initial,
         <button type="button" className="dc-roller-x" onClick={onClose} aria-label={t('dice.roller.close')}><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>close</span></button>
       </div>
       {ask && <DmAskPanel system={ask.system} targets={ask.targets} onAsk={ask.onAsk} />}
+      {extra}
       <div className="dc-roller-vis" role="group" aria-label={t('dice.roller.visibility')}>
         {VISIBILITIES.map(v => <button key={v} type="button" aria-pressed={visibility === v} onClick={() => setVisibility(v)}>{t(`dice.roller.${v}`)}</button>)}
       </div>

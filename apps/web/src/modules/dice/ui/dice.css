@@ -163,3 +163,7 @@
 /* El aviso «Tirada pedida»: mismo papel que el de «te atacan», con el filete y el título en ORO (el .pen nuevo). */
 .dc-ask-alert{border-left-color:var(--sys-gold);}
 .dc-ask-alert .dc-atk-head,.dc-ask-alert .dc-atk-title{color:var(--sys-gold);}
+
+/* El lanzador del DIRECTOR es más ancho, como lo dibuja el .pen (corrección del dueño, 2026-08-23):
+   el mismo ancho que los papeles de la mesa (avisos y modal de atacar). */
+.dc-roller.dc-roller-dm{width:372px;}

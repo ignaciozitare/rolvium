@@ -157,4 +157,39 @@ describe('SupabaseMapsRepo — realtime', () => {
     repo.broadcast('sc-1', ev);
     expect(channel.send).toHaveBeenCalledTimes(1);
   });
+
+  /**
+   * DOS SUSCRIPTORES A LA MISMA ESCENA (revisión del 2026-08-23): los encuentros del lanzador
+   * (`DmEncounters`) conviven con `useScene`. Con un canal por suscriptor, el mapa por `sceneId` se pisaba
+   * — cerrar el lanzador dejaba `broadcast()` mudo con la escena abierta — y dos joins al mismo topic en el
+   * mismo socket hacen que Phoenix cierre el primero. UN canal real, y se quita cuando se va el ÚLTIMO.
+   */
+  it('regresión · dos suscriptores a la misma escena comparten UN canal, y soltar uno no deja mudo al otro', () => {
+    const m = createSupabaseMock();
+    const handlers: { filter: Record<string, string>; cb: (p: unknown) => void }[] = [];
+    const channel = { on: vi.fn((_t: string, filter: Record<string, string>, cb: (p: unknown) => void) => { handlers.push({ filter, cb }); return channel; }), subscribe: vi.fn(() => channel), send: vi.fn() };
+    const client = { ...m.client, channel: vi.fn(() => channel), removeChannel: vi.fn() };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    const a = { onToken: vi.fn() };
+    const b = { onToken: vi.fn() };
+    const offA = repo.subscribe('sc-1', a);
+    const offB = repo.subscribe('sc-1', b);
+    expect(client.channel).toHaveBeenCalledTimes(1); // un solo topic scene:sc-1 — nada de joins duplicados
+    // un cambio de token les llega a LOS DOS
+    handlers[1]!.cb({ eventType: 'UPDATE', new: TOKEN_ROW, old: { id: 'tk-1' } });
+    expect(a.onToken).toHaveBeenCalledTimes(1);
+    expect(b.onToken).toHaveBeenCalledTimes(1);
+    // se va uno (cerrar el lanzador): el canal SIGUE — el otro recibe y el broadcast no se queda mudo
+    offB();
+    expect(client.removeChannel).not.toHaveBeenCalled();
+    handlers[1]!.cb({ eventType: 'UPDATE', new: TOKEN_ROW, old: { id: 'tk-1' } });
+    expect(a.onToken).toHaveBeenCalledTimes(2);
+    expect(b.onToken).toHaveBeenCalledTimes(1);
+    const ev = { type: 'pin.focused' as const, campaignId: 'c1', sceneId: 'sc-1', x: 1, y: 2, by: 'u-gm' };
+    repo.broadcast('sc-1', ev);
+    expect(channel.send).toHaveBeenCalledTimes(1);
+    // se va el último: ahora sí se quita el canal
+    offA();
+    expect(client.removeChannel).toHaveBeenCalledWith(channel);
+  });
 });

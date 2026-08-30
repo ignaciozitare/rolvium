@@ -1031,6 +1031,16 @@
       "withWhat": "What does it attack with?",
       "hand": "Bare hands",
       "chipDamage": "damage {{n}}"
+    },
+    "panel": {
+      "title": "Encounters in the scene · {{n}}",
+      "add": "Add",
+      "empty": "No creatures in the scene.",
+      "rename": "Rename",
+      "expand": "Expand {{name}}",
+      "sub": "Resistance {{resistance}} · protection {{protection}}",
+      "others": "Other rolls",
+      "othersHint": "Press and hold one to pick the difficulty, same as with the players."
     }
   }
 }

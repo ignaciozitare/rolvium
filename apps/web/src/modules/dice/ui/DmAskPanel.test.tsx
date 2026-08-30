@@ -57,6 +57,22 @@ describe('DmAskPanel — «¿A quién le pides la tirada?» (.pen columna 4)', (
     }));
   });
 
+  /** Corrección del dueño (2026-08-23): antes sólo cerraba clicando fuera del panel ENTERO. */
+  it('el desplegable de dificultad se cierra al clicar fuera de él — también dentro del panel', async () => {
+    const u = userEvent.setup();
+    setup();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Fortaleza' }));
+    expect(await screen.findByRole('menu')).toBeInTheDocument();
+    // un clic en un chip de objetivo: dentro del panel, fuera del desplegable
+    await u.click(screen.getByRole('button', { name: 'Karen' }));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    // y Escape también lo cierra
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Combate' }));
+    expect(await screen.findByRole('menu')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
   it('sin nadie marcado no se pide: lo dice y se queda', async () => {
     const u = userEvent.setup();
     const { onAsk } = setup();

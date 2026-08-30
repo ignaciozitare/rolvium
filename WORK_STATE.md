@@ -29,7 +29,23 @@ app** («no tengo tiempo... súbelo a producción») — su verificación sigue 
 - **El espejo, lado servidor** (sin UI: gated en el visto bueno de las 3 pantallas dibujadas).
 - Tablas del combate creadas y sin consumidor todavía (siguiente rebanada).
 
-### 🗣 FEEDBACK DEL DUEÑO SOBRE EL PANEL (2026-08-23, antes de apagar — LO PRIMERO de la próxima sesión)
+### ✅ LAS TRES CORRECCIONES DEL PANEL — HECHAS (2026-08-23, rama `fix/panel-correcciones`, review 9.ª ronda)
+1. **Encuentros de la escena en el panel** (`bestiary/ui/DmEncounters.tsx`): «Encuentros en la escena · N»
+   COLAPSADO por defecto; filas con iniciales, nombre + lápiz (mote en el token, el bloque original se
+   conserva debajo), Resistencia · protección · página, ATACAR (modal del token con blancos medidos) y
+   desplegar-uno-cierra-otro; dentro, las 7 características y sus chips de «otras tiradas» con el
+   mantener-pulsado. Montado en el hueco `extra` del lanzador desde TablePage; «+ Añadir» → pestaña Bestiario.
+2. **Panel ancho como el diseño**: `.dc-roller-dm{width:372px}` (el ancho de los papeles).
+3. **El desplegable se cierra al clicar fuera**: gesto extraído a `DifficultyHold` (compartido), cierre por
+   instancia + Escape, pinado.
+**El review cazó y arregló dos fallos de verdad**: dos menús abiertos a la vez entre padres, y —serio— la
+segunda suscripción a la misma escena PISABA el canal de realtime: con el lanzador abierto, cerrar el panel
+dejaba MUDOS los arrastres del director hacia la mesa. Ahora el repo multiplexa: un canal por escena con
+refcount. **681 tests web · audit 0 hard · build limpio. SIN merge: falta la prueba del dueño.**
+Deuda anotada: Enter no confirma el renombrado (sólo el check) · tercer consumidor de DifficultyHold →
+revisar ubicación.
+
+### (histórico) 🗣 FEEDBACK DEL DUEÑO SOBRE EL PANEL (2026-08-23, antes de apagar)
 El panel de pedir tiradas **le gusta**. Tres correcciones suyas, con sus palabras:
 1. **Faltan los ENCUENTROS de la escena en el panel, COLAPSADOS y desplegables** («en el diseño te había
    pedido que aparezcan colapsados los encuentros de la escena y puedas desplegarlos, y eso lo obviaste»)

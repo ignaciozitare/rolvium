@@ -76,7 +76,16 @@ function toChange<R extends { id: string }, T>(p: Change, map: (r: R) => T): Row
 
 /** `maps_*` under RLS + realtime on channel `scene:{sceneId}` (postgres_changes + broadcast for drag / pin). */
 export class SupabaseMapsRepo implements MapsPort {
-  private readonly channels = new Map<string, RealtimeChannel>();
+  /**
+   * UN canal real por escena, con la lista de quienes escuchan. Desde que los encuentros del lanzador
+   * (`DmEncounters`) conviven con `useScene` sobre la MISMA escena hay dos suscriptores a la vez, y con un
+   * canal por suscriptor pasaban dos cosas (revisión del 2026-08-23): el mapa por `sceneId` se PISABA — al
+   * cerrar el lanzador, su unsubscribe borraba la entrada y `broadcast()` se quedaba mudo con la escena aún
+   * abierta (los arrastres del director dejaban de llegar a la mesa) — y dos joins al mismo topic en el
+   * mismo socket hacen que Phoenix cierre el primero. El topic tiene que seguir siendo `scene:{id}` a secas:
+   * el broadcast entre navegadores viaja por topic, un sufijo único lo rompería.
+   */
+  private readonly channels = new Map<string, { channel: RealtimeChannel; handlers: Set<MapsLiveHandlers> }>();
   constructor(private readonly db: SupabaseClient) {}
 
   private async me(): Promise<string> {
@@ -216,20 +225,35 @@ export class SupabaseMapsRepo implements MapsPort {
 
   // ── realtime ──
   subscribe(sceneId: string, h: MapsLiveHandlers): Unsubscribe {
-    const channel: RealtimeChannel = this.db.channel(`scene:${sceneId}`);
-    const byScene = { event: '*' as const, schema: 'public', filter: `scene_id=eq.${sceneId}` };
-    channel
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'maps_scenes', filter: `id=eq.${sceneId}` }, (p: Change) => h.onScene?.(toChange<SceneRow, Scene>(p, mapSceneRow)))
-      .on('postgres_changes', { ...byScene, table: 'maps_tokens' }, (p: Change) => h.onToken?.(toChange<TokenRow, Token>(p, mapTokenRow)))
-      .on('postgres_changes', { ...byScene, table: 'maps_walls' }, (p: Change) => h.onWall?.(toChange<WallRow, Wall>(p, mapWallRow)))
-      .on('postgres_changes', { ...byScene, table: 'maps_drawings' }, (p: Change) => h.onDrawing?.(toChange<DrawingRow, Drawing>(p, mapDrawingRow)))
-      .on('broadcast', { event: 'map' }, (msg: { payload: MapsLiveEvent }) => h.onEvent?.(msg.payload))
-      .subscribe();
-    this.channels.set(sceneId, channel);
-    return () => { if (this.channels.get(sceneId) === channel) this.channels.delete(sceneId); void this.db.removeChannel(channel); };
+    let entry = this.channels.get(sceneId);
+    if (!entry) {
+      const handlers = new Set<MapsLiveHandlers>();
+      const each = (fn: (x: MapsLiveHandlers) => void) => handlers.forEach(fn);
+      const channel: RealtimeChannel = this.db.channel(`scene:${sceneId}`);
+      const byScene = { event: '*' as const, schema: 'public', filter: `scene_id=eq.${sceneId}` };
+      channel
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'maps_scenes', filter: `id=eq.${sceneId}` }, (p: Change) => { const c = toChange<SceneRow, Scene>(p, mapSceneRow); each(x => x.onScene?.(c)); })
+        .on('postgres_changes', { ...byScene, table: 'maps_tokens' }, (p: Change) => { const c = toChange<TokenRow, Token>(p, mapTokenRow); each(x => x.onToken?.(c)); })
+        .on('postgres_changes', { ...byScene, table: 'maps_walls' }, (p: Change) => { const c = toChange<WallRow, Wall>(p, mapWallRow); each(x => x.onWall?.(c)); })
+        .on('postgres_changes', { ...byScene, table: 'maps_drawings' }, (p: Change) => { const c = toChange<DrawingRow, Drawing>(p, mapDrawingRow); each(x => x.onDrawing?.(c)); })
+        .on('broadcast', { event: 'map' }, (msg: { payload: MapsLiveEvent }) => each(x => x.onEvent?.(msg.payload)))
+        .subscribe();
+      entry = { channel, handlers };
+      this.channels.set(sceneId, entry);
+    }
+    const mine = entry;
+    mine.handlers.add(h);
+    return () => {
+      mine.handlers.delete(h);
+      // El canal se quita sólo cuando se va el ÚLTIMO: quitarlo antes dejaba mudo al que quedaba.
+      if (mine.handlers.size === 0 && this.channels.get(sceneId) === mine) {
+        this.channels.delete(sceneId);
+        void this.db.removeChannel(mine.channel);
+      }
+    };
   }
   broadcast(sceneId: string, event: MapsLiveEvent): void {
-    const ch = this.channels.get(sceneId);
+    const ch = this.channels.get(sceneId)?.channel;
     if (ch) void ch.send({ type: 'broadcast', event: 'map', payload: event });
   }
 }
