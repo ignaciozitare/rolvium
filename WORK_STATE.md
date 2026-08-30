@@ -14,9 +14,76 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31, justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31 (tarde), justo debajo.**
 
-## 🟢 PUNTO EXACTO — 2026-08-31: HANDOFF · v0.4.0 EN PRODUCCIÓN · REBANADA 7 ESPECIFICADA Y SIN CONSTRUIR
+## 🟢 PUNTO EXACTO — 2026-08-31 (tarde): REBANADA 7 · EL MODELO DE DATOS, HECHO Y PROBADO
+
+### 📍 Estado exacto
+- **El MCP de Pencil CONECTA** (`get_app_state`): `rolvium.pen` abierto, 53 lienzos, 25 componentes. Lo que
+  tumbó la sesión anterior está resuelto — **ya se puede diseñar**.
+- **DBA Agent de la rebanada 7: TERMINADO.** Migración
+  `supabase/migrations/20260831120000_maps_layers_lights.sql`, aplicada **SÓLO EN LOCAL** (`db:reset` limpio).
+  ⚠ **En la nube NO se ha tocado nada** — hace falta permiso explícito del dueño, como la vez anterior.
+- **`specs/modules/maps/SPEC.md` actualizada**: § «Modelo de datos → Rebanada 7» completa, y §7.1 con la
+  aclaración del ojo. Sin código de aplicación todavía.
+- Rama: **`main`, sin commit**. La migración y la spec están sin commitear.
+
+### 🔑 LA ACLARACIÓN DEL DUEÑO QUE DECIDIÓ EL MODELO (2026-08-31)
+Preguntado por qué esperaba del ojo de una capa, contestó literal: *«las capas son para cada escena, es un
+recurso para lograr cosas graficas. como en photoshop o cualquier otra herramienta de edicion, incluso tengo
+que poder enviar elementos a distintas capas»*. De ahí salen las dos reglas que gobiernan todo:
+1. **El ojo es el de Photoshop**: una capa apagada **no se pinta para nadie**, tampoco para el director. NO es
+   privacidad. Por eso «Notas del director» es un **tipo** y no una capa apagada.
+2. **Cualquier elemento se manda a cualquier capa** → `layer_id` en dibujos, fichas y luces.
+
+### ✅ Decisiones del modelo (las gordas)
+- **LA MÁSCARA DEL PINCEL SE GUARDA COMO UN PNG**, en el bucket `backgrounds` que ya existe
+  (`{campaignId}/masks/{layerId}.png`); en la capa sólo vive el puntero + `mask_version`. **NO como trazos en
+  JSONB** (que es lo que hace el pincel de niebla, el precedente que había que mirar): la niebla es sí/no y un
+  polígono la describe; este pincel tiene **fuerza regulable**, así que cada punto guarda *cuánto* se ve. Como
+  trazos habría que repintar miles con degradado en cada fotograma y la lista crecería sin techo viajando
+  entera por realtime. **Un PNG pesa lo mismo con una pincelada que con diez mil.** La foto original nunca se
+  toca. Sin política de almacenamiento nueva.
+- **Dos tablas**: `maps_layers` (tipo, nombre, orden, `visible`, `locked` + foto/encaje/máscara sólo en
+  terreno) y `maps_lights` (forma, tipo, posición, giro, apertura del cono, color, parpadeo, **`range_m` y
+  `casts_shadow` guardados desde el día 1 aunque no se lean**).
+- **Tres capas fijas por escena** (objetos, criaturas, notas del director), garantizadas por índice único +
+  disparador en cada escena nueva. **Terreno sin límite.** Nombre vacío en las fijas: se rotulan por i18n.
+- **Borrar una capa** se lleva sus dibujos y luces, **pero NO las fichas** (vuelven a su capa natural): perder
+  el personaje de un jugador por borrar una capa decorativa sería un desastre silencioso.
+- **`layer_id` vacío = «su capa natural»** → nada de lo que ya existe hubo que rellenar.
+- **La foto de fondo de las escenas de hoy sube a capa de terreno** (el dueño espera verla en la lista).
+  `bg_image_url` NO se borra: queda de respaldo. **Regla para quien pinte: si la escena tiene alguna capa de
+  terreno, manda la capa y `bg_image_url` se ignora.** Así no se pinta dos veces ni antes ni después.
+- **`layer_id` entró en el guard de fichas**: un jugador sigue moviendo sólo `x`/`y`.
+
+### 🔒 Comprobado, no supuesto
+- `db:reset` limpio · `db lint --level error` **0 resultados** · `npm run audit` **0 hard**.
+- **8 pruebas de comportamiento** contra la base local (capas fijas, segunda capa fija rechazada, dos terrenos
+  conviviendo, imagen sólo en terreno, borrado de capa, relleno idempotente, borrar escena sin bloqueos).
+- **Pruebas de RLS consultando COMO EL JUGADOR DE VERDAD** (rol `authenticated` + su sesión, sin usar el admin
+  porque `is_admin()` taparía cualquier fuga): de una escena con capa apagada y capa de notas, al jugador le
+  llegan **sólo** las capas/fichas/dibujos/luces que se le pintan, y no puede crear capas, colocar luces ni
+  dibujar en las notas del director. El director lo ve todo.
+
+### ⏭ EL SIGUIENTE PASO CONCRETO
+**Design Agent en el `.pen`** (el MCP conecta): panel de capas, pincel de transparencia con fuerza, editor de
+luces, selector de «ver con los ojos de», y las tres zonas de niebla. **Nada de UI antes del `.pen`.**
+Antes, si se quiere, Scaffold Agent para el esqueleto de `Layer`/`Light` en el módulo `maps` (que ya existe).
+
+### 🚫 Ojo con esto
+- ⚠ **El bulto de una ficha en penumbra NO puede viajar por RLS** (decide filas enteras, no columnas): lo manda
+  la API con `service_role`, recortado a posición y tamaño. Escrito en la migración y en la spec para que nadie
+  «arregle» la política de `maps_tokens` abriéndola — eso sería justo el agujero que el spec prohíbe.
+- ⚠ **Ya existe `apps/web/src/modules/maps/ui/canvasLayers.tsx`**, que son las capas del MOTOR (orden de
+  pintado). Las nuevas son capas de CONTENIDO. Cuidado con el choque de nombres al construir.
+- ⚠ **La review de esta tanda está PENDIENTE**: es SQL puro y sin código de aplicación todavía. Pasarla cuando
+  exista el código de la rebanada, junto con la QA.
+- Deuda de siempre, no tocada: las funciones SQL no tienen banco de pruebas automático en el repo.
+
+---
+
+## 🟢 (histórico) 2026-08-31: HANDOFF · v0.4.0 EN PRODUCCIÓN · REBANADA 7 ESPECIFICADA Y SIN CONSTRUIR
 
 ### 🔴 POR QUÉ SE ABRE UN CHAT NUEVO
 **El servidor MCP de Pencil se desconectó de la sesión** (`CONNECTION_CLOSED`). Primero fallaba con «A file

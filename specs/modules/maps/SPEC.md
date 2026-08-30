@@ -263,6 +263,11 @@ que no se toca: es el motor. Lo nuevo son **capas de contenido que el director m
   la manda a otra capa (petición literal del dueño).
 - Cada capa se puede **ver/ocultar** y **bloquear** (bloqueada = se ve pero no se selecciona ni se mueve;
   es lo que evita arrastrar el terreno sin querer al mover una ficha).
+- 🔑 **El ojo es el de Photoshop, no un interruptor de privacidad** (aclaración del dueño, 2026-08-31:
+  *«las capas son para cada escena, es un recurso para lograr cosas gráficas. como en photoshop o cualquier
+  otra herramienta de edicion, incluso tengo que poder enviar elementos a distintas capas»*). Una capa
+  apagada **no se pinta para nadie**, tampoco para el director: es composición, no permisos. El **candado**
+  en cambio sólo le afecta a él, que es el único que selecciona cosas.
 - **Notas del director es SIEMPRE privada.** No es una capa que se pueda enseñar: al jugador esa capa no le
   existe, ni sus objetos viajan a su navegador. Es la única con esa regla, y por eso es un tipo aparte y no
   un interruptor de visibilidad — un interruptor se pulsa por error.
@@ -289,6 +294,19 @@ preparado** para el día que iluminen de verdad.
 - **Forma**: cono · radio · cuadrado. **Tipo**: antorcha · bombilla · fuego (y lo que aporte el diseño:
   farol, linterna, luz de luna, resplandor mágico).
 - Cada tipo trae su **color**, su **alcance** y su **parpadeo** — una antorcha tiembla, una bombilla no.
+- 🔥 **El parpadeo SE ANIMA de verdad** (petición del dueño al aprobar el diseño, 2026-08-31: *«quiero que en
+  algún momento tengan cierta animación, como si fuera por ejemplo de una hoguera o una antorcha, o una luz
+  que parpadea»*). **Entra en esta rebanada**: animar es PINTAR, y pintar es exactamente lo único que las
+  luces hacen hoy — no revela niebla, no cambia lo que ve nadie y no toca el cálculo de visión, así que no
+  cruza ninguna de las rayas de arriba.
+  - **El ritmo lo manda el TIPO, no un control nuevo**: la antorcha tiembla rápido y poco, la hoguera respira
+    lento y amplio, la bombilla parpadea a golpes secos. El director sólo enciende o apaga el interruptor
+    «Parpadea»; no se le pide que ajuste velocidades.
+  - **No hace falta guardar nada más**: `kind` y `flicker` ya están en la tabla desde el primer día, así que
+    el ritmo se deriva y no hay que repasar ninguna luz ya colocada. Si algún día se quiere regular la fuerza
+    del parpadeo, es una columna suelta y aditiva.
+  - Con el movimiento reducido del sistema operativo (`prefers-reduced-motion`), la luz se queda quieta en su
+    valor medio: nadie se marea por una decisión decorativa.
 - **Una luz es un objeto de la escena**: vive en una capa, se mueve, se gira y se borra como lo demás.
 - 🚫 **Lo que NO hace todavía**: no revela niebla, no cambia lo que ve nadie y no entra en el cálculo de
   visión del servidor. Es pintura. Queda dicho aquí para que ninguna línea prometa lo contrario.
@@ -390,12 +408,92 @@ difuminada CAMBIA lo que se ve**, no es sólo aspecto — y dentro se ve **todo 
 - Migración: `supabase/migrations/20260818130000_maps.sql`.
 
 ### Rebanada 7 — capas, luces, ojos de un personaje y penumbra
-> **Pendiente — lo completa el DBA Agent.** Lo que tendrá que resolver, ya identificado en la spec:
-> capas de contenido por escena (con las de terreno sin límite y reordenables) · la **máscara del pincel de
-> transparencia** por capa de terreno, que es el dato con más peso y hay que decidir cómo se guarda (el
-> pincel de niebla manual de la rebanada 2 es el precedente a mirar) · las luces como objeto de escena, con
-> alcance en metros y sombra proyectada guardados desde el primer día aunque todavía no se usen · y qué
-> manda el servidor de un token en penumbra, que **sólo puede ser posición y tamaño**.
+Migración `supabase/migrations/20260831120000_maps_layers_lights.sql`. **Dos tablas nuevas**, una columna
+`layer_id` en las tablas de contenido que ya existían y un relleno para las escenas de hoy. Nada que tocar a
+mano al desplegar.
+
+- **`maps_layers`** — las capas de una escena. Guarda de qué **tipo** es (terreno · objetos · criaturas y
+  personajes · notas del director), su **nombre**, su **orden**, si está **encendida** y si está
+  **bloqueada**; y, sólo en las de terreno, la **foto**, su **encaje** y el **puntero a la máscara** del
+  pincel de transparencia con un **número de versión**.
+  - **Tres capas son fijas y hay exactamente una de cada por escena** (objetos, criaturas, notas del
+    director): lo garantiza un índice único, y un disparador se las crea a toda escena nueva sin que nadie
+    tenga que acordarse. El **terreno** es el único sin límite.
+  - Las fijas se guardan **sin nombre**: la pantalla las rotula desde el tipo con las claves de i18n, para no
+    meter castellano en la base de datos. Sólo las de terreno, que crea el director, llevan nombre propio.
+  - El **orden** sólo ordena capas del mismo tipo. El orden entre tipos no se guarda porque no se elige: es
+    el motor de pintado (terreno → objetos → criaturas → notas del director).
+  - **El ojo es el de Photoshop** (aclaración literal del dueño, 2026-08-31: *«las capas son para cada
+    escena, es un recurso para lograr cosas gráficas, como en photoshop»*): una capa apagada **no se pinta
+    para nadie**, tampoco para el director. **No es un interruptor de privacidad** — y por eso «Notas del
+    director» tiene que ser un tipo aparte: un interruptor se pulsa por error, un tipo no. El **candado** en
+    cambio sólo afecta al director, que es el único que selecciona cosas.
+
+- **La máscara del pincel de transparencia** se guarda como un **PNG en el bucket `backgrounds`** que ya
+  existe, bajo `{campaignId}/masks/{layerId}.png`; en la fila de la capa sólo vive el **puntero** y un
+  **número de versión** que sube en cada guardado (rompe la caché y avisa a un navegador de que el suyo se
+  quedó viejo). Sin política de almacenamiento nueva: las de `backgrounds` ya dicen que el director sube y
+  los miembros leen.
+  - **Por qué una imagen y no trazos**, que es lo que hace el pincel de niebla (`maps_fog.explored`, polígonos
+    en JSONB) y era el precedente a mirar: la niebla es **sí o no** y un polígono la describe entera; este
+    pincel tiene **fuerza regulable**, así que cada punto guarda *cuánto* se ve, no *si* se ve. Como trazos
+    habría que repintarlos todos en cada fotograma —miles, con degradado— y la lista crecería sin techo y
+    viajaría entera a todos los navegadores en cada retoque. Un PNG **pesa lo mismo con una pincelada que con
+    diez mil**, se sirve por CDN y se cachea.
+  - **La foto original nunca se toca**: la máscara es un fichero aparte, así que subir la fuerza en sentido
+    contrario siempre la devuelve. Sin máscara = capa opaca entera.
+
+- **`maps_lights`** — una luz de ambiente. Guarda su **forma** (cono, radio o cuadrado), su **tipo**
+  (antorcha, bombilla, fuego, farol, linterna, luz de luna, resplandor mágico), **dónde está**, **cuánto está
+  girada**, la **apertura del cono**, su **color** y si **parpadea**. Vive en una capa como cualquier otro
+  objeto de la escena.
+  - **Hoy son pintura**: no revelan niebla, no cambian lo que ve nadie y no entran en el cálculo de visión.
+  - Pero el **alcance en metros** y si **proyecta sombra** se guardan desde el primer día aunque no se lean:
+    añadirlos el día que las luces iluminen obligaría a repasar a mano todas las luces ya colocadas de todas
+    las escenas. En metros y no en píxeles, como `night_radius_m`.
+
+- **«Manda esto a otra capa»** (petición literal del dueño): `maps_drawings`, `maps_tokens` y `maps_lights`
+  llevan la capa donde están. **Vacío significa «su capa natural»** —los dibujos en objetos, las fichas en
+  criaturas— así que **nada de lo que ya existe hubo que rellenarlo**.
+  - Al borrar una capa **se van sus dibujos y sus luces** (es lo que significa borrar una capa en cualquier
+    editor), pero **las fichas no**: una ficha es una pieza de juego con estado —los PV de la copia del
+    bestiario, quién la controla— y perder el personaje de un jugador por borrar una capa decorativa sería un
+    desastre silencioso. Vuelve sola a su capa natural.
+  - Un jugador **sigue moviendo sólo `x` e `y`**: `layer_id` entró en la lista de columnas que el disparador
+    `maps_tokens_guard_update` le prohíbe tocar. Sin eso podría mandar su ficha a las notas del director y
+    desaparecer del mapa de los demás.
+
+- **Las escenas que ya existen**: el relleno les crea sus tres capas fijas y **sube su foto de fondo a la capa
+  de terreno de más abajo**, porque el dueño espera ver **su** foto en la lista para poder ponerle otra encima
+  y borrarle trozos. `maps_scenes.bg_image_url` y `bg_transform` **no se borran ni se vacían** —el código de
+  producción todavía los lee y quitarlos dejaría la escena en negro entre la migración y el despliegue de la
+  pantalla—, quedan como respaldo con esta regla para quien pinte: **si la escena tiene alguna capa de
+  terreno, manda la capa y `bg_image_url` se ignora**. Así no se pinta dos veces ni antes ni después.
+
+- **Acceso**. **Escribe sólo el director** (capas y luces), como todo lo demás de la escena. **Lee**
+  cualquier miembro que pueda ver la escena, pero **nunca** la capa «Notas del director» ni una capa apagada
+  —ni la capa ni su contenido—. Lo decide un solo helper, `public.maps_layer_sends_to_players()`, usado por
+  las políticas de capas, luces, dibujos y fichas, para que la regla dura del spec («la capa de notas **no
+  viaja**: no es que se pinte oculta, es que no se envía») viva en un único sitio. La visibilidad **por
+  ficha** (`visible`) sigue mandando, que es de reglas y no de capas: se suma a la de la capa, no la
+  sustituye.
+  - Comprobado en local consultando **como el jugador de verdad** (rol `authenticated` con su sesión, que es
+    como consulta la app): de una escena con capa apagada y capa de notas, al jugador le llegan **sólo** las
+    capas, fichas, dibujos y luces que se le pintan; y no puede crear capas, colocar luces ni dibujar en las
+    notas del director. `db lint --level error` limpio y `npm run audit` 0 hard (RLS activa, ninguna política
+    `TO anon`).
+
+- **Lo que esta rebanada NO guarda, a propósito**:
+  - **Ver con los ojos de un personaje** es una **lente** del director: no mueve la escena activa, no toca la
+    niebla guardada y no avisa a nadie. No hay nada que persistir — la visión la calcula la API por el mismo
+    camino que la del jugador de verdad.
+  - **La penumbra** no inventa un número: su anchura sale de `maps_tokens.vision_radius` y de la luz de la
+    escena, que ya existen.
+  - ⚠ **El bulto de una ficha en penumbra no puede viajar por RLS**: la RLS decide **filas enteras, no
+    columnas**, así que mandar la fila sería mandar el nombre y el retrato. Lo manda **la API con
+    `service_role`**, recortado a posición y tamaño. Queda escrito para que nadie «arregle» la política de
+    `maps_tokens` abriéndola a las fichas en penumbra — eso convertiría el efecto en el agujero que el spec
+    prohíbe.
 
 ### Rebanada 4 — paredes sólidas
 Migración `supabase/migrations/20260822000000_maps_solid_walls.sql`. **Una sola columna**, aditiva y con valor por
