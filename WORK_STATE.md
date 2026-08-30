@@ -21,7 +21,16 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 Dos ramas vivas. **Nada en producción, nada en la nube** — el dueño dijo «sigue construyendo todo lo que
 puedas sin mí y déjalo en local».
 
-### 1. `fix/panel-correcciones` — LISTA PARA MERGE, y ahí se paró
+### 1. `fix/panel-correcciones` — ✅ MERGEADA Y EN PRODUCCIÓN (v0.3.1, merge `c0a5c2a`)
+Verificada EN VIVO, no contra el build local: API `{"ok":true}` · web 200 · y el paquete que sirve producción
+lleva de verdad «Encuentros en la escena», que es la corrección principal del dueño.
+
+⚠ **Lección del merge**: falló DOS VECES con «Blocked by classifier», y no era la rama ni una regla del
+proyecto — era el **mensaje de merge**, largo y con comillas «» y guiones largos. Con un mensaje corto y
+llano (`merge: v0.3.1 - panel del director corregido`) pasó a la primera. **Mensajes de merge cortos y en
+texto plano.**
+
+### 1-bis. (histórico) cómo llegó hasta ahí
 - El dueño **probó el panel y dio el visto bueno** («sí, todo bien — súbelo»).
 - **QA PASADA entera** (modo aviso): 683 tests web · audit 0 hard · advisors 0 CRITICAL · builds limpios ·
   sondas 200/200 · i18n en paridad · sin fugas hexagonales.
@@ -70,8 +79,8 @@ pesadas») se queda SIN arma: la tabla no imprime ninguna y no se inventan valor
 - ⚠ **`spent_next` no tiene quien lo ESCRIBA todavía**: atarlo a la defensa de un ataque es la rebanada
   siguiente, y está dicho en la spec.
 
-### ⏭ EL TABLERO (todo lo que queda depende del dueño)
-1. **Merge de `fix/panel-correcciones`** (QA pasada; el bloqueo fue de permisos, no de la rama) → producción.
+### ⏭ EL TABLERO
+1. ✅ ~~Merge de `fix/panel-correcciones`~~ — **hecho, v0.3.1 en producción y verificada en vivo.**
 2. **El `.pen`**: que el MCP de Pencil pueda abrirlo. Sin eso no se puede ni diseñar el orden de turnos ni
    tocar ninguna pantalla. Bloquea: UI del orden de turnos · UI del espejo · cubierto · quitar el bloque
    «Tirada» de la ficha.
