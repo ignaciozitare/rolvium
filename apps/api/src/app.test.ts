@@ -5,7 +5,9 @@ import type { FastifyInstance } from 'fastify';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { ownDiceForStat, type SheetData } from '@rolvium/core';
 import type { RollCommitInput } from './domain/roll/IRollRepository.js';
+import type { OpenCombatInput } from './domain/combat/ICombatRepository.js';
 import type { OpenAttackInput } from './domain/attack/IAttackRepository.js';
+import type { OpenCombatInput } from './domain/combat/ICombatRepository.js';
 import { fakeMapsRepo } from './application/maps/fakeMapsRepo.js';
 
 const ADMIN: UserProfile = { id: '11111111-1111-4111-8111-111111111111', name: 'Root', email: 'root@rolvium.test', avatarUrl: null, roleId: 'r-admin', role: 'admin', permissions: { modules: [], admin: {} }, active: true, createdAt: '' };
@@ -22,7 +24,10 @@ const ATTACK_ID = '99999999-9999-4999-8999-999999999999';
 const REQUEST_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const MIRROR_ID = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 const BATCH_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const COMBAT_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const SLOT_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const opened: OpenAttackInput[] = [];
+const openedCombats: OpenCombatInput[] = [];
 const openedRequests: { actorId: string; targetCharacterIds: string[]; stat: string }[] = [];
 const openedMirror: { actorId: string; targetTokenId: string }[] = [];
 const closedRequests: { id: string; rollId: string | null; status: string }[] = [];
@@ -87,6 +92,20 @@ const makeDeps = (): AppDeps => ({
           ? { id, campaignId: CAMP_ID, targetCharacterId: null, attackerCharacterId: CHAR_ID, createdBy: PLAYER.id, dice: 4, request: attackRequest(), status: 'pending' as const }
           : null,
       close: async (id, rollId, status) => { closedAttacks.push({ id, rollId, status }); },
+    },
+    // El orden de turnos (p.92-94): abrir/pasar/cerrar son del director; adelantarse, del dueño del puesto.
+    combats: {
+      open: async (i) => { if (i.actorId !== ADMIN.id) throw Object.assign(new Error('not_dm'), { code: 'FORBIDDEN' }); openedCombats.push(i); return { id: COMBAT_ID }; },
+      next: async (id, actor) => {
+        if (actor !== ADMIN.id || id !== COMBAT_ID) throw Object.assign(new Error('not_active'), { code: 'FORBIDDEN' });
+        return { position: 1, round: 1 };
+      },
+      close: async (id, actor) => { if (actor !== ADMIN.id || id !== COMBAT_ID) throw Object.assign(new Error('not_active'), { code: 'FORBIDDEN' }); },
+      advance: async (id, actor, slot) => {
+        if (actor !== PLAYER.id || id !== COMBAT_ID || slot !== SLOT_ID) throw Object.assign(new Error('not_owner'), { code: 'FORBIDDEN' });
+        return 2;
+      },
+      findSlot: async (id) => (id === SLOT_ID ? { id, combatId: COMBAT_ID, campaignId: CAMP_ID, position: 3, characterId: CHAR_ID } : null),
     },
     rolls: {
       commit: async (input) => {
@@ -520,5 +539,70 @@ describe('POST /attacks/:id/answer', () => {
     const r = await post(app, `/attacks/${ATTACK_ID}/answer`, 'player', { defence: 0 });
     expect(r.statusCode).toBe(200);
     expect(committed[before]?.request.groups.some(g => g.tag === 'opposition')).toBe(false);
+  });
+});
+
+/**
+ * Canarios de RUTA del orden de turnos. Van aparte de los del caso de uso por la lección del arrastre: un
+ * esquema zod puede parsear con fallback silencioso y dejar la tubería apagada en producción SIN error,
+ * con los tests del caso de uso en verde. Aquí se entra por HTTP, como entra el navegador.
+ */
+describe('POST /combats — el orden de turnos', () => {
+  const candidate = (key: string, destiny: number, combat: number) =>
+    ({ key, tokenId: null, characterId: null, name: key, stats: { destiny, combat } });
+
+  it('el director lo abre y el SERVIDOR devuelve el orden', async () => {
+    const before = openedCombats.length;
+    const r = await post(app, '/combats', 'admin', {
+      campaignId: CAMP_ID, sceneId: SCENE_ID, systemId: 'plenilunio',
+      candidates: [candidate('hambriento', 1, 3), candidate('ogro', 6, 4)],
+    });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data.order).toEqual(['ogro', 'hambriento']);
+    // Y los puestos llegan al repo YA ORDENADOS: SQL no reordena nada.
+    expect(openedCombats[before]?.slots.map(s => s.name)).toEqual(['ogro', 'hambriento']);
+  });
+
+  it('un jugador no abre combates', async () => {
+    const r = await post(app, '/combats', 'player', {
+      campaignId: CAMP_ID, sceneId: SCENE_ID, systemId: 'plenilunio', candidates: [candidate('ogro', 6, 4)],
+    });
+    expect(r.statusCode).toBe(403);
+  });
+
+  /** El empate que el manual manda preguntarle al director sale por HTTP como 409 con los grupos. */
+  it('un empate que el sistema no deshace contesta 409 UNDECIDED con los grupos', async () => {
+    const r = await post(app, '/combats', 'admin', {
+      campaignId: CAMP_ID, sceneId: SCENE_ID, systemId: 'plenilunio',
+      candidates: [candidate('ogro', 4, 9), candidate('harpia', 4, 3)],
+    });
+    expect(r.statusCode).toBe(409);
+    expect(r.json().error.code).toBe('UNDECIDED');
+    expect(r.json().undecided).toEqual([['ogro', 'harpia']]);
+  });
+
+  it('con el desempate del director, se abre en el orden que él eligió', async () => {
+    const r = await post(app, '/combats', 'admin', {
+      campaignId: CAMP_ID, sceneId: SCENE_ID, systemId: 'plenilunio',
+      candidates: [candidate('ogro', 4, 9), candidate('harpia', 4, 3)], tiebreak: ['harpia', 'ogro'],
+    });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data.order).toEqual(['harpia', 'ogro']);
+  });
+
+  it('pasar turno y cerrar son del director', async () => {
+    expect((await post(app, `/combats/${COMBAT_ID}/next`, 'admin', {})).statusCode).toBe(200);
+    expect((await post(app, `/combats/${COMBAT_ID}/next`, 'player', {})).statusCode).toBe(403);
+    expect((await post(app, `/combats/${COMBAT_ID}/close`, 'admin', {})).statusCode).toBe(200);
+    expect((await post(app, `/combats/${COMBAT_ID}/close`, 'player', {})).statusCode).toBe(403);
+  });
+
+  it('adelantarse gana un puesto y le cobra un punto de Fortuna a su ficha', async () => {
+    const before = saved.length;
+    const r = await post(app, `/combats/${COMBAT_ID}/advance`, 'player', { slotId: SLOT_ID });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data).toEqual({ position: 2, fortune: 0 });
+    // La ficha se guarda de verdad: Karen entra con Fortuna 1 y sale con 0.
+    expect(saved[before]?.patch.data['fortune']).toBe(0);
   });
 });

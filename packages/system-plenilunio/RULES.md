@@ -283,8 +283,20 @@ Costes (p. 91):
 ## 5. Combate (pp. 92–97)
 
 ### 5.1 Turnos y orden (p. 92–93)
-Orden por **Destino** descendente; empate: PJ antes que PNJ; entre PJ, mayor Combate; si persiste, decide el DJ.
+Orden por **Destino** descendente; empate: PJ antes que PNJ; **entre PJ**, mayor Combate; si persiste, decide el DJ.
 1 Fortuna → adelantar el turno (el nuevo orden se mantiene).
+
+⚠ El literal del libro condiciona el tercer escalón y es fácil leerlo de más: «**Si el empate es entre
+personajes jugadores**, va primero el que tenga mayor puntuación de Combate». Dos PNJ empatados a Destino
+**no** los desempata su Combate — caen directos en «el director de juego decide quién precede y quién va
+después». Darles el criterio de los PJ sería escribirle una regla al manual.
+
+⚠ **Cuánto se adelanta con 1 Fortuna: el libro NO lo dice.** Ni la p.89 («adelantar el turno en el que le
+toca actuar a su personaje») ni la p.92 dan una cantidad. Interpretación: **un puesto por punto**, que es la
+lectura más corta de «adelantar el turno» y además escala sola (tres sitios cuestan tres puntos, en vez de
+que un solo punto valga por saltar a la cabeza). Y no se salta por encima de quien está actuando ni de los
+que ya actuaron esta ronda: lo que se gana es el sitio de justo delante. Lo que sí es del libro es que **el
+sitio nuevo se queda**: «el nuevo orden de actuación se mantendrá durante el resto del combate».
 
 ### 5.2 Cuerpo a cuerpo (p. 93–95)
 Conflicto Combate vs Combate. El defensor elige cuántos dados de Combate gasta en defenderse; los gastados se restan de

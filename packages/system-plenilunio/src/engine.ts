@@ -315,7 +315,9 @@ export function turnOrder(a: TurnParticipant, b: TurnParticipant): number {
   if (destiny !== 0) return destiny;
   if (a.isPlayerCharacter !== b.isPlayerCharacter) return a.isPlayerCharacter ? -1 : 1;
   if (!a.isPlayerCharacter) return 0;
-  return num(b.sheet.combat, 0) - num(a.sheet.combat, 0);
+  // `statOf` y no `num`: en la ficha de un personaje el Combate es un objeto `{value, specialties}` y en el
+  // bloque de una criatura un número pelado. Leerlo a pelo daba 0 a los dos y los dejaba SIEMPRE empatados.
+  return statOf(b.sheet, 'combat').value - statOf(a.sheet, 'combat').value;
 }
 
 /** Builds the RollRequest for a stat: own dice = stat − health penalty + extra + bonus; Destiny and opposition groups tagged. */

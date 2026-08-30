@@ -722,6 +722,20 @@ describe('turnOrder — el orden de actuación (p.92)', () => {
     expect(order([who('a', 5, 4, true), who('b', 5, 4, true)]).undecided).toEqual([['a', 'b']]);
   });
 
+  /**
+   * El Combate viene en DOS formas —objeto `{value, specialties}` en la ficha de un personaje, número pelado
+   * en el bloque de una criatura— y hay que leer las dos. Leyéndolo a pelo, dos PJ salían siempre empatados
+   * y el combate no se podía abrir sin que el director desempatara a mano. Lo cazó el test del caso de uso.
+   */
+  it('lee el Combate tanto de una ficha de personaje como de un bloque de criatura', () => {
+    const conFicha = (id: string, combat: number): TurnParticipant =>
+      ({ id, sheet: { destiny: 5, combat: { value: combat, specialties: [] } }, isPlayerCharacter: true });
+    expect(order([conFicha('karen', 3), conFicha('marta', 6)]).order).toEqual(['marta', 'karen']);
+    expect(order([conFicha('karen', 3), conFicha('marta', 6)]).undecided).toEqual([]);
+    // Y mezclando las dos formas, el número pelado se compara igual.
+    expect(order([conFicha('karen', 3), who('soum', 5, 6, true)]).order).toEqual(['soum', 'karen']);
+  });
+
   it('una ficha sin Destino cuenta como 0 y va la última, no rompe el orden', () => {
     const sinDestino: TurnParticipant = { id: 'x', sheet: {}, isPlayerCharacter: false };
     expect(order([sinDestino, who('a', 1, 1, false)]).order).toEqual(['a', 'x']);
