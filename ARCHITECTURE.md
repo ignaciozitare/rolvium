@@ -36,7 +36,7 @@ events** — never by importing another hexagon's `infra/`. Game systems are
 | H10 | `realtime` (cross-cutting, no UI) | one channel per campaign (`postgres_changes` / `broadcast` / `presence`) and the in-table **event bus** | used by H3–H9 |
 | H11 | `notifications` (future) | e-mails: invitations, next session, summaries | H1, H2 |
 | HX | `packages/system-plenilunio`, `packages/system-<other>` | implement the `GameSystem` port: `sheetSchema`, catalogs, manual references, `VisualTheme`, engine (derived stats, dice pool, resolve, damage, progression, shared resources), generator steps, **own i18n locales** | nothing inward; consumed through `packages/core` |
-| — | `packages/core` | shared ports and types: `GameSystem`, `SharedResource`, `RollRequest/RollResult`, table event types, the maps vision contract (`SceneVision`, `sightRadiusPx`) | everyone |
+| — | `packages/core` | shared ports and types: `GameSystem`, `SharedResource`, `RollRequest/RollResult`, table event types, the maps vision contract (`SceneVision`, `sightRadiusPx`), the turn-order contract (`Engine.turnOrder` + `orderTurns`/`TurnParticipant`/`TurnOrder` — the comparator may return `0` meaning "the system cannot break this tie", surfaced as `undecided` instead of being invented away) | everyone |
 | — | `packages/ui` | Rolvium components + neutral table primitives (Sheet/`Hoja`, Tooltip, floating Modal). The game "look" comes in through the theme's CSS variables, never through per-system components | everyone |
 | — | `packages/i18n` | platform locales; **the whole platform is multi-language** (es/en today). UI strings are keys, never literals; system packages ship their own locale files under the same mechanism | everyone |
 
@@ -106,7 +106,14 @@ same transaction; `IRollRepository`/`SupabaseRollRepo`) → `result.effects.patc
 `roll`, returning `{ id, request, dice, result, rolledAt, effectsApplied?, sheet? }`), `POST /scenes/:id/vision` and
 `POST /scenes/:id/fog` (maps H7: `application/maps/{vision,sceneVision}` — line of sight swept against EVERY wall with the
 service role, explored cells persisted in `maps_fog`; the DM's brush writes on every player at once. The browser cannot
-compute this: RLS never sends it a hidden wall, so asking the server IS the boundary), `POST /admin/users`,
+compute this: RLS never sends it a hidden wall, so asking the server IS the boundary),
+`POST /combats` + `/combats/:id/{next,close,advance}` (dice H6 turn order: `application/combats/combat` —
+**the server decides the order** with `orderTurns` from `@rolvium/core`, never the caller; a player character's
+sheet is read from the DB so `stats` sent for that slot are ignored. Opening answers **409 `UNDECIDED`** with the
+tied groups rather than inventing an order, because the rule literally ends at "the DM decides" (p.92–93); the app
+re-sends his answer in `tiebreak`. `domain/combat/ICombatRepository` → `SupabaseCombatRepo` over four API-only
+`SECURITY DEFINER` functions, which re-check the caller in SQL and take a `FOR UPDATE` row lock on the combat),
+`POST /admin/users`,
 `POST /admin/users/:id/password`, `DELETE /admin/users/:id` (all `/admin` routes require
 `manage_users` via `application/authorize.ts`).
 

@@ -111,10 +111,16 @@ y abre `ui/TokenAttackModal.tsx`, portado 1:1 de `Modal/Atacar con el token`.
   tirada. Con un solo ataque impreso (o ninguno) la fila no sale. Dibujado en el `.pen` (ejemplo Soum).
   Selección en **rojo sangre**, como todo el circuito de atacar (decisión del dueño, 2026-08-22).
 - **Regla p.95** («sin ellas simplemente no se puede atacar a distancia»): a distancia se apagan los ataques
-  de c/c; el dato vive en `CreatureAttack.ranged`. ⚠ **Hueco de datos anotado**: ningún bloque copiado lleva
-  aún sus armas de fuego (el libro las imprime con bonificación y daño en los bloques humanos — rifle
-  automático, escopeta galga…); mientras dure, A MANO sigue valiendo a distancia para no dejar a las
-  criaturas del catálogo sin disparo. La pasada de datos con el PDF delante va con la tanda del panel.
+  de c/c; el dato vive en `CreatureAttack.ranged`. **Pasada de datos HECHA (2026-08-30)** — y al hacerla con
+  el PDF delante salió que la premisa que estaba escrita aquí era FALSA: los bloques humanos **no** imprimen
+  armas (las líneas con «bonificación +1, daño 8, 35 balas» son de las fichas pregeneradas, pp. 26–35, y de
+  la tabla de armas de la p.97). Lo que el bloque imprime es su **especialidad de Combate**, y de ahí sale
+  el arma con la tabla — derivación ⚠ interpretación documentada en **RULES.md §8.6** (13 bloques con arma
+  a distancia, dados = su Combate a secas porque al disparar no se suma bonificación, p.95–96; el Paramilitar
+  queda fuera: «Armas pesadas» no está en la tabla y no se inventan valores). ⚠ Deuda: un arma de fuego
+  usada EN c/c daría +1 (p.95) y el dato sólo guarda el disparo — el director puede sumarlo a mano. Las armas derivadas reutilizan
+  las claves `catalog.weapons.*` — nada nuevo que traducir. **A MANO sigue valiendo a distancia**: la mayor
+  parte del catálogo sigue sin arma de disparo, y apagarlo es decisión aparte (deuda ya anotada).
 - **El daño**: el impreso de su caja si la tiene; si no, sin armas, que el libro paga con su Fortaleza (p.97).
 - **La criatura sale del bloque del que se colocó el token**: del catálogo si es del manual (`bestiaryRef`), de
   la fila del director si es propia (`bestiaryEntryId`). El nombre es el DEL TOKEN.

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { orderTurns, type TurnParticipant } from '@rolvium/core';
 import {
   applyArmour, applyDamage, attackDamage, autoSuccessOptions, blastDamage, blastDice, blastReach, canBeAttackedPhysically, catchBreath, classify,
   degreeKey, derived, engine, incorporealStat, poolFor, progressionApply, progressionCost, reload,
-  resolve, resolveAction, rest, sharedResources, spendAmmo, venomDamage, actions, extraDiceMax, readOptions, BLAST_DIFFICULTY, EXTRA_DICE_MAX, XP_COSTS, DESTINY_POOL, STAT_MAX, SYSTEM_ID,
+  resolve, resolveAction, rest, sharedResources, spendAmmo, turnOrder, venomDamage, actions, extraDiceMax, readOptions, BLAST_DIFFICULTY, EXTRA_DICE_MAX, XP_COSTS, DESTINY_POOL, STAT_MAX, SYSTEM_ID,
 } from './engine';
 import { newSheet, type StatValue } from './schema';
 import { STAT_IDS } from './catalogs';
@@ -676,5 +677,67 @@ describe('capacidades de criatura (p.107–108)', () => {
     expect(r.detail.autoSuccesses).toBe(2);
     expect(r.detail.ownHits).toBe(3);       // 1 triunfo + 2 automáticos
     expect(r.detail.damage).toBe(9);        // 1 triunfo × (4 + 3) + 2 automáticos × 1
+  });
+});
+
+/**
+ * El orden de actuación (p.92). Se prueba la regla ENTERA porque el libro la escribe en cuatro escalones y
+ * el tercero tiene una condición que es fácil perder de vista: el Combate desempata SÓLO entre PJ.
+ */
+describe('turnOrder — el orden de actuación (p.92)', () => {
+  const who = (id: string, destiny: number, combat: number, isPlayerCharacter: boolean): TurnParticipant =>
+    ({ id, sheet: { destiny, combat }, isPlayerCharacter });
+  const order = (list: TurnParticipant[]) => orderTurns({ engine }, list);
+
+  it('manda el Destino, de mayor a menor', () => {
+    // El ejemplo del propio libro: Sophie (Destino 5) actúa antes que el mutante (3).
+    expect(order([who('mutante', 3, 3, false), who('sophie', 5, 5, true)]).order).toEqual(['sophie', 'mutante']);
+  });
+
+  it('a igual Destino, el PJ va antes que el PNJ', () => {
+    const r = order([who('ogro', 4, 9, false), who('karen', 4, 2, true)]);
+    // Y el Combate del ogro (9 contra 2) no le sirve de nada: el bando desempata ANTES.
+    expect(r.order).toEqual(['karen', 'ogro']);
+    expect(r.undecided).toEqual([]);
+  });
+
+  it('entre PJ con el mismo Destino, va antes el de mayor Combate', () => {
+    const r = order([who('luz', 6, 3, true), who('soum', 6, 5, true)]);
+    expect(r.order).toEqual(['soum', 'luz']);
+    expect(r.undecided).toEqual([]);
+  });
+
+  /**
+   * El escalón que el libro condiciona: «**si el empate es entre personajes jugadores**, va primero el que
+   * tenga mayor puntuación de Combate». Dos criaturas empatadas a Destino NO las desempata su Combate — el
+   * manual manda ahí al director. Darles el criterio de los PJ sería escribirle una regla al libro.
+   */
+  it('dos PNJ empatados a Destino NO los desempata el Combate: decide el director', () => {
+    const r = order([who('ogro', 4, 9, false), who('harpia', 4, 3, false)]);
+    expect(r.undecided).toEqual([['ogro', 'harpia']]);
+    expect(turnOrder(who('ogro', 4, 9, false), who('harpia', 4, 3, false))).toBe(0);
+  });
+
+  it('dos PJ con el mismo Destino Y el mismo Combate quedan para que decida el director', () => {
+    expect(order([who('a', 5, 4, true), who('b', 5, 4, true)]).undecided).toEqual([['a', 'b']]);
+  });
+
+  /**
+   * El Combate viene en DOS formas —objeto `{value, specialties}` en la ficha de un personaje, número pelado
+   * en el bloque de una criatura— y hay que leer las dos. Leyéndolo a pelo, dos PJ salían siempre empatados
+   * y el combate no se podía abrir sin que el director desempatara a mano. Lo cazó el test del caso de uso.
+   */
+  it('lee el Combate tanto de una ficha de personaje como de un bloque de criatura', () => {
+    const conFicha = (id: string, combat: number): TurnParticipant =>
+      ({ id, sheet: { destiny: 5, combat: { value: combat, specialties: [] } }, isPlayerCharacter: true });
+    expect(order([conFicha('karen', 3), conFicha('marta', 6)]).order).toEqual(['marta', 'karen']);
+    expect(order([conFicha('karen', 3), conFicha('marta', 6)]).undecided).toEqual([]);
+    // Y mezclando las dos formas, el número pelado se compara igual.
+    expect(order([conFicha('karen', 3), who('soum', 5, 6, true)]).order).toEqual(['soum', 'karen']);
+  });
+
+  it('una ficha sin Destino cuenta como 0 y va la última, no rompe el orden', () => {
+    const sinDestino: TurnParticipant = { id: 'x', sheet: {}, isPlayerCharacter: false };
+    expect(order([sinDestino, who('a', 1, 1, false)]).order).toEqual(['a', 'x']);
   });
 });

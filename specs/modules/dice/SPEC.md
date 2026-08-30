@@ -208,6 +208,12 @@ turno siguiente. El dueño eligió construir el orden entero en vez de fingirlo 
   Combate**; si aún persiste, **decide el director** (la app le pregunta cuál va antes). Literal de p.92–93,
   RULES.md §5.1. **El director NO reordena a mano** — el mando que el libro le da es desempatar, y sólo ese
   (decisión del dueño: dejar arrastrar libremente convierte la regla del Destino en una sugerencia).
+  - ⚠ Ojo al literal, que se lee mal con facilidad: el desempate por Combate es **sólo entre PJ**. Dos
+    criaturas con el mismo Destino **no** las desempata su Combate — van directas al «decide el director».
+  - **CONSTRUIDO (lado servidor, 2026-08-30)**: la regla la declara el SISTEMA (`Engine.turnOrder`, opcional,
+    como `tokenCells`) y `orderTurns` de `@rolvium/core` la aplica en las dos orillas. El comparador puede
+    devolver **0**, que no es un fallo sino el hueco del manual: `orderTurns` saca esos grupos en `undecided`
+    y **nadie los coloca por su cuenta**.
 - **Siguiente turno** y **cerrar el combate** los lleva el director.
 - **Adelantarse cuesta 1 Fortuna** (p.89 uso 5, p.92) y **el sitio nuevo se queda** para el resto del
   combate: «el nuevo orden se mantiene».
@@ -381,6 +387,35 @@ sitio nuevo se queda», p.92), a quién le toca y la ronda; `spent_next` son los
 siguiente (defensas y adelantos, p.94). El orden lo VE toda la mesa; lo mueve la API (el director pulsa
 siguiente/cerrar; el adelantarse del jugador paga su Fortuna en el mismo paso). En el realtime: el turno se
 mueve en todas las pantallas.
+
+**Las cuatro operaciones — CONSTRUIDAS (lado servidor, 2026-08-30)**, migración
+`20260830120000_dice_combat_functions.sql` (aplicada en LOCAL **y en la nube** el 2026-08-31 con permiso del
+dueño; ⚠ el sello de la nube es `20260830222940`, no el del fichero). Las tablas estaban
+desde el 22 de agosto sin consumidor; esto es su segunda mitad. API-only (`service_role`), guardias
+cruzadas en el caso de uso Y en SQL, como el resto de la tanda:
+
+| Ruta | Quién | Qué hace |
+|---|---|---|
+| `POST /combats` | director | Abre. **El orden lo pone el SERVIDOR** con `orderTurns`. |
+| `POST /combats/:id/next` | director | Pasa el turno; al dar la vuelta sube la ronda. |
+| `POST /combats/:id/close` | director | Lo cierra. |
+| `POST /combats/:id/advance` | dueño del puesto | Gana un puesto y paga **1 Fortuna**. |
+
+- **Abrir puede contestar `409 UNDECIDED`** con los grupos empatados. No es un error de quien llama: es el
+  final de la regla, y la app tiene que preguntárselo al director y reenviar su respuesta en `tiebreak`. Un
+  grupo sólo se da por resuelto si el desempate nombra a **todos** los suyos — con dos de tres, el tercero
+  seguiría colocado por orden de llegada, que no lo ha decidido nadie.
+- **La ficha de un personaje la lee el servidor**, y lo que el cliente mande en `stats` para ese puesto se
+  ignora: si no, quien llama se pondría el primero diciendo que tiene Destino 99. Los valores de las
+  **criaturas** sí los pone el director — mismo perímetro que sus tiradas (deuda ya anotada en bestiario).
+- **Quién es «personaje jugador»** para el desempate se DEDUCE: quien abre es el director, así que un
+  personaje de otro dueño es de un jugador. ⚠ Un PNJ aliado llevado por un jugador cuenta aquí como PJ; es
+  la misma zona gris de «pedir tirada» y se decide con ella.
+- **`spent_next` se salda** cuando el turno pasa: la deuda era del turno que acaba de gastarse (p.94). Aún
+  **no hay quien la ESCRIBA** — atarla a la defensa de un ataque es la rebanada siguiente.
+- ⚠ **Adelantarse: el libro no dice cuánto.** Se gana **un puesto por punto** (⚠ interpretación, RULES.md
+  §5.1) y no se puede saltar por encima de quien actúa ni de los que ya actuaron.
+- **Sin UI**: el `.pen` no dibuja el orden de turnos, y no se toca pantalla sin diseño aprobado.
 
 **Ponerse a cubierto — sin tabla**: es un estado del token en la escena y vive en `maps_tokens.state`
 (el JSONB que ya existe y ya viaja por el realtime de tokens). Lo escribe la API al resolver la tirada de

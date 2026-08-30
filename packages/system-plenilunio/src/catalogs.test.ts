@@ -189,6 +189,37 @@ describe('catalogs', () => {
       expect(a.damage, `${b.id} daño`).toBeGreaterThan(0);
     }
   });
+  /**
+   * RULES.md §8.6 (⚠ interpretación): los bloques humanos NO imprimen armas — la suya sale de su especialidad
+   * de Combate con la tabla de la p.97. El ataque derivado es el DISPARO: dados = su Combate A SECAS, porque
+   * al disparar no se suma bonificación (p.95–96) — así `attack − combat`, que viaja como `bonusDice`, queda
+   * en 0, igual que en la ficha de jugador (`ranged ? 0 : bonus`). El +1 de usar un arma de fuego EN c/c
+   * (p.95) no cabe en el único número y es deuda anotada en §8.6. El label reutiliza `catalog.weapons.*`.
+   */
+  it('las armas a distancia de los bloques humanos: derivadas de la especialidad con la tabla de la p.97 (§8.6)', () => {
+    const armed: Record<string, { weapon: string; damage: number }> = {
+      scavenger: { weapon: 'crossbow', damage: 5 }, diane: { weapon: 'crossbow', damage: 5 },
+      gangster: { weapon: 'smg', damage: 8 }, silhouette: { weapon: 'smg', damage: 8 },
+      jihadist: { weapon: 'assaultRifle', damage: 8 },
+      dimaGang: { weapon: 'shotgun12', damage: 9 },
+      // El arco hace F+3 con la Fortaleza del bloque: los dos arqueros tienen Fortaleza 2 → daño 5.
+      edenSeeker: { weapon: 'compoundBow', damage: 5 }, newOrderFollower: { weapon: 'compoundBow', damage: 5 },
+      occultNetizen: { weapon: 'pistol9mm', damage: 6 }, miyamotoSoldier: { weapon: 'pistol9mm', damage: 6 },
+      ramirez: { weapon: 'pistol9mm', damage: 6 }, jellybean: { weapon: 'pistol9mm', damage: 6 },
+      bigDima: { weapon: 'pistol9mm', damage: 6 },
+    };
+    for (const [id, x] of Object.entries(armed)) {
+      const block = BESTIARY.find(b => b.id === id)!;
+      expect(block.data.attacks, id).toEqual([
+        { label: `catalog.weapons.${x.weapon}`, attack: block.data.stats.combat, damage: x.damage, ranged: true },
+      ]);
+    }
+    // El Paramilitar («Armas pesadas») queda SIN arma: la tabla de la p.97 no imprime ninguna y no se inventa.
+    expect(BESTIARY.find(b => b.id === 'paramilitary')?.data.attacks).toEqual([]);
+    // Y la marca no se cuela en los ataques impresos de los bloques en caja: todos son cuerpo a cuerpo.
+    for (const id of ['nathael', 'luz', 'soum', 'nergal', 'samael', 'lucifer', 'baal', 'gabriel', 'marduk', 'adam', 'luzMalefic'])
+      for (const a of BESTIARY.find(b => b.id === id)!.data.attacks) expect(a.ranged, id).toBeUndefined();
+  });
   it('las quince capacidades del libro, con nombre y resumen en los dos idiomas', () => {
     expect(CAPABILITY_IDS).toHaveLength(15);
     expect(new Set(CAPABILITY_IDS).size).toBe(15);

@@ -283,8 +283,20 @@ Costes (p. 91):
 ## 5. Combate (pp. 92–97)
 
 ### 5.1 Turnos y orden (p. 92–93)
-Orden por **Destino** descendente; empate: PJ antes que PNJ; entre PJ, mayor Combate; si persiste, decide el DJ.
+Orden por **Destino** descendente; empate: PJ antes que PNJ; **entre PJ**, mayor Combate; si persiste, decide el DJ.
 1 Fortuna → adelantar el turno (el nuevo orden se mantiene).
+
+⚠ El literal del libro condiciona el tercer escalón y es fácil leerlo de más: «**Si el empate es entre
+personajes jugadores**, va primero el que tenga mayor puntuación de Combate». Dos PNJ empatados a Destino
+**no** los desempata su Combate — caen directos en «el director de juego decide quién precede y quién va
+después». Darles el criterio de los PJ sería escribirle una regla al manual.
+
+⚠ **Cuánto se adelanta con 1 Fortuna: el libro NO lo dice.** Ni la p.89 («adelantar el turno en el que le
+toca actuar a su personaje») ni la p.92 dan una cantidad. Interpretación: **un puesto por punto**, que es la
+lectura más corta de «adelantar el turno» y además escala sola (tres sitios cuestan tres puntos, en vez de
+que un solo punto valga por saltar a la cabeza). Y no se salta por encima de quien está actuando ni de los
+que ya actuaron esta ronda: lo que se gana es el sitio de justo delante. Lo que sí es del libro es que **el
+sitio nuevo se queda**: «el nuevo orden de actuación se mantendrá durante el resto del combate».
 
 ### 5.2 Cuerpo a cuerpo (p. 93–95)
 Conflicto Combate vs Combate. El defensor elige cuántos dados de Combate gasta en defenderse; los gastados se restan de
@@ -854,6 +866,47 @@ cuál aplica —no se aplican solas por característica, porque el garrote no si
 De los **133 nombres distintos** que usa el bestiario, **104 ya existen** en la lista de especialidades de jugador y
 reutilizan su clave; sólo **30** son propias de criatura (Garrote, Mordisco, Picado de garras, Uñas y dientes…).
 El **mutante no tiene ninguna**: el libro no le imprime bloque (§8.4).
+
+### 8.6 Las armas de los bloques humanos — ⚠ interpretación (p. 25, p. 95, p. 97, p. 209)
+**Los bloques en lista NO imprimen armas** (comprobado sobre el PDF el 2026-08-30: los de las pp. 44–74 traen
+características con especialidades, Aguante y Destino, y nada más). Las líneas de armas con «bonificación +1,
+daño 8, 35 balas» que la spec recordaba «en los bloques humanos» son en realidad de las **fichas pregeneradas**
+(pp. 26–35) y de la **tabla de armas** del §5.5 (p. 97) — no del bestiario.
+
+Lo que el libro sí da para cruzar bloque y arma:
+- **p. 25 (equipo inicial)**: «Un arma que se corresponda con su especialidad de combate» — y «es su concepto y
+  sus especialidades los que deberían dar las pistas» del equipamiento.
+- **p. 209**: el Salteador «elige las armas de la tabla» de la p. 97 — el propio libro monta un bloque con la tabla.
+- **p. 95 y p. 97**: al DISPARAR nadie suma bonificación (§5.3: las armas a distancia no dan dados extra; la
+  nota de la tabla: «la bonificación de Combate solo se aplica en alcance cuerpo a cuerpo»). El «+1» que la
+  tabla imprime a las armas de fuego es su bonificación EN cuerpo a cuerpo: «las armas de fuego añaden un dado
+  a la puntuación de Combate cuando se usan a distancia cuerpo a cuerpo» (p. 95); arcos y ballestas «no
+  proporcionan bonificación» ni pegados (p. 95).
+
+⚠ interpretación: **cada bloque humano cuya especialidad de Combate impresa nombra un tipo de arma a distancia
+lleva UN arma de ese tipo, con los valores de la tabla del §5.5**. El ataque derivado es el **DISPARO**: sus
+dados son su **Combate a secas** (al disparar no hay bonificación, ver arriba) y su daño el de la tabla (los
+arcos, F+3 con la Fortaleza del bloque). ⚠ Deuda anotada: usada EN cuerpo a cuerpo, un arma de fuego daría
+Combate **+1** (p. 95), pero `CreatureAttack.attack` es un solo número y guarda el del disparo — en ese caso
+raro el director puede sumar el dado a mano en el modal; modelarlo pide un campo de bonificación c/c y que el
+modal mire el alcance, decisión aparte. Donde la tabla da a elegir, se elige lo genérico y queda anotado:
+
+| Bloque (especialidad impresa) | Arma | Dados (= Combate) | Daño |
+|---|---|---:|---:|
+| Carroñera · Diane (Ballestas) | Ballesta | 3 | 5 |
+| Mafioso · Silhouette (Subfusiles) | Subfusil | 3 | 8 |
+| Yihadista (Rifles) | Rifle de asalto ⚠ elegido sobre el de francotirador | 3 | 8 |
+| Miembro de la banda de Big Dima (Escopetas) | Escopeta galga 12 ⚠ elegida sobre la 10 | 4 | 9 |
+| Buscador del Edén · Nuevo Orden (Arcos) | Arco compuesto | 1 | F 2 + 3 = 5 |
+| Internauta ocultista · Jellybean (Armas cortas) | Pistola de 9 mm ⚠ elegida sobre el revólver | 1 | 6 |
+| Soldado Miyamoto (Armas cortas) | Pistola de 9 mm | 3 | 6 |
+| Ramírez · Big Dima (Armas cortas) | Pistola de 9 mm | 4 | 6 |
+
+⚠ «Armas cortas» se lee como armas de fuego cortas (pistolas): la lista de especialidades ya cubre aparte las
+hojas («Navajas y cuchillos», «Espadas»…) y ninguna otra cubre las pistolas.
+**El Paramilitar («Armas pesadas») queda SIN arma a distancia**: la tabla de la p. 97 no imprime ninguna arma
+pesada y no se inventan valores (mismo criterio que el mutante, §8.4). Los bloques con especialidad de Combate
+cuerpo a cuerpo no cambian: pegan A MANO, que el libro paga con la Fortaleza (p. 97).
 
 ---
 

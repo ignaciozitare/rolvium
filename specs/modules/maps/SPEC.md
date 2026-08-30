@@ -19,6 +19,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   Las dos deudas que la rebanada 3 se dejó (la puerta que parte el muro y el disco de abrir al pasar el ratón) se
   construyeron el 2026-08-19, antes de empezarla.
 - **Rebanada 6 — pendiente**: galería de componentes (muebles, árboles…) para construir mapas dentro de la app.
+- **Rebanada 7 — ESTE SPEC** (§ «Rebanada 7»): **capas del mapa** (con varias de terreno y pincel de
+  transparencia), **luces de ambiente**, **ver la escena con los ojos de un personaje** y la **niebla
+  degradada**. Confirmada por el dueño el 2026-08-31, y va **ANTES que la 5 y la 6** (decisión suya del mismo
+  día): es donde pasa la partida y es lo que menos se ha tocado desde que lo pidió (2026-08-20).
 
 ## What the user can do
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
@@ -239,6 +243,113 @@ de ser un dibujo para empezar a ser un sitio (dueño, 2026-08-22: «que los toke
 Distancia máxima de movimiento por turno · empujar a otro token · terreno difícil · diagonales ·
 **colisión entre tokens** (que un token choque con otro token, no con un muro).
 
+## Rebanada 7 — capas, luces de ambiente, ojos de un personaje y niebla degradada
+
+Cuatro de las siete peticiones de la escena que el dueño dejó escritas el 2026-08-20. Las otras tres
+—el modal de fondo descolocado, las imágenes sueltas y los fondos animados— **no entran**: las dos últimas
+dependen de las capas y se replantean cuando existan.
+
+**El orden lo fijó el dueño (2026-08-31): las CAPAS primero.** Una luz vive en una capa y una imagen suelta
+también; montarlas antes evita rehacerlas después.
+
+### 7.1 · Capas del mapa
+
+Hasta hoy «capas» en este spec era el ORDEN EN QUE SE PINTA (fondo → muros → dibujos → tokens → niebla),
+que no se toca: es el motor. Lo nuevo son **capas de contenido que el director maneja**.
+
+- **Cuatro tipos**, elegidos por el dueño: **Terreno** · **Objetos** · **Criaturas y personajes** ·
+  **Notas del director**.
+- **Se dibuja y se coloca en la capa ACTIVA.** Con el **botón derecho sobre cualquier cosa**, un desplegable
+  la manda a otra capa (petición literal del dueño).
+- Cada capa se puede **ver/ocultar** y **bloquear** (bloqueada = se ve pero no se selecciona ni se mueve;
+  es lo que evita arrastrar el terreno sin querer al mover una ficha).
+- **Notas del director es SIEMPRE privada.** No es una capa que se pueda enseñar: al jugador esa capa no le
+  existe, ni sus objetos viajan a su navegador. Es la única con esa regla, y por eso es un tipo aparte y no
+  un interruptor de visibilidad — un interruptor se pulsa por error.
+- **Criaturas y personajes conserva lo que ya hay**: se pinta por encima del resto y sigue mandando la
+  visibilidad por token (`visible`), que es de reglas y no de capas.
+
+#### El terreno lleva VARIAS capas, y un pincel de transparencia (dueño, 2026-08-31)
+Idea suya, y es la pieza con más jugo de la rebanada: *«que pueda poner dos fotos de fondo y con un pincel
+jugar con pintar transparencias o cosas para lograr efectos chulos»*.
+
+- **Sin límite de capas de terreno.** Se añaden, se quitan y se reordenan desde una lista.
+- **Pincel con FUERZA regulable**, no un borrador: a fuerza máxima borra del todo la capa de arriba y asoma
+  la de abajo; a media la deja translúcida, para mezclas suaves entre las dos fotos.
+- Es una **máscara por capa**, no un recorte de la imagen: la foto original nunca se toca, así que siempre se
+  puede volver atrás subiendo la fuerza del pincel en sentido contrario.
+- ⚠ **Aviso, no bloqueo**: el dueño eligió «sin límite» a sabiendas. Muchas capas con máscara pesan; la app
+  avisa cuando la escena se vuelva pesada en vez de impedirlo.
+
+### 7.2 · Luces — de ambiente AHORA, que iluminen DESPUÉS
+
+**Decisión del dueño (2026-08-31)**: se construye el aspecto y la colocación, y **el dato se guarda ya
+preparado** para el día que iluminen de verdad.
+
+- **Forma**: cono · radio · cuadrado. **Tipo**: antorcha · bombilla · fuego (y lo que aporte el diseño:
+  farol, linterna, luz de luna, resplandor mágico).
+- Cada tipo trae su **color**, su **alcance** y su **parpadeo** — una antorcha tiembla, una bombilla no.
+- **Una luz es un objeto de la escena**: vive en una capa, se mueve, se gira y se borra como lo demás.
+- 🚫 **Lo que NO hace todavía**: no revela niebla, no cambia lo que ve nadie y no entra en el cálculo de
+  visión del servidor. Es pintura. Queda dicho aquí para que ninguna línea prometa lo contrario.
+- ✅ **Lo que hay que dejar listo para después**: alcance en metros (no en píxeles) y si la luz **proyecta
+  sombra** contra los muros. Los dos se guardan desde el primer día aunque no se usen — añadirlos luego
+  obligaría a repasar todas las luces ya colocadas de todas las escenas.
+
+### 7.3 · Ver la escena con los ojos de un personaje
+
+⚠ **La mitad ya existe**: el interruptor genérico «ver como jugador» está construido (`playerView` en
+`CanvasControls`) y lo que hace es quitarle al director sus privilegios — los muros dorados, el velo azul y
+las fichas ocultas. Se queda tal cual.
+
+**Lo nuevo**: elegir **un personaje concreto** y ver la escena tal y como la ve él, con SU niebla y SU
+visión. El dueño pidió las dos cosas (2026-08-31).
+
+- Selector de personaje en los controles del lienzo, junto al interruptor de siempre.
+- Es **sólo del director** y **no cambia nada para nadie**: no mueve la escena activa, no toca la niebla
+  guardada, no avisa al jugador. Es una lente, no un modo.
+- Sale rotulado en pantalla —«VIENDO COMO: Karen»— para que no se confunda con la vista propia. La etiqueta
+  «VISTA DE DIRECTOR» que ya existe cambia a ésta mientras dure.
+- **La visión la calcula el servidor**, con el mismo camino que la del jugador de verdad: si se recalculase
+  en el navegador del director, lo que él ve y lo que ve el jugador podrían discrepar, que es justo lo que
+  esta herramienta viene a comprobar.
+
+### 7.4 · La niebla se degrada, y en la penumbra se ve a medias
+
+Hoy la visión termina en un borde duro y se nota mucho. **Decisión del dueño (2026-08-31): la franja
+difuminada CAMBIA lo que se ve**, no es sólo aspecto — y dentro se ve **todo difuminado, fichas incluidas**.
+
+- Tres zonas, no dos: **clara** (lo de siempre) · **penumbra** (la franja nueva) · **negro**.
+- En la penumbra el terreno y los muros se ven difuminados, y una criatura o un personaje aparece como un
+  **bulto sin identidad**: sin nombre, sin retrato y sin poder abrir su ficha. Se sabe que **hay alguien**,
+  no quién.
+- 🔒 **Cómo se hace sin filtrar nada** (y esto es una decisión, no un detalle): hoy una ficha que no ves
+  **no existe** en tu navegador. Para pintar un bulto hay que mandarte algo, así que el servidor manda
+  **sólo posición y tamaño**, nunca el nombre, el retrato, el identificador ni la ficha. Un jugador curioso
+  que mire lo que le llega verá exactamente lo mismo que ve en pantalla: un bulto. Hacerlo de otro modo
+  —mandar la ficha entera y difuminarla al pintar— convertiría el efecto en un agujero.
+- El ancho de la penumbra sale de lo que ya existe (`vision_radius` del token y la luz de la escena); no se
+  inventa un número nuevo.
+
+### Reglas y límites de esta rebanada
+- **Todo lo de aquí es del DIRECTOR**, salvo lo que se ve: un jugador no crea capas, ni luces, ni cambia de
+  vista. Lo único que le llega es el resultado.
+- **Nada de esto cambia una regla del manual.** Las luces no iluminan todavía y la penumbra no da ni quita
+  dados: quien está en penumbra no dispara mejor ni peor. El día que las luces iluminen, eso sí será una
+  decisión de reglas y volverá a pasar por aquí.
+- **La capa de notas del director no viaja al navegador de un jugador.** No es que se pinte oculta: no se
+  envía.
+- El pincel de transparencia **no destruye la imagen**: la máscara es un dato aparte y siempre reversible.
+
+### Fuera de alcance (de esta rebanada)
+- **Que las luces iluminen de verdad** — decisión explícita del dueño para más adelante.
+- **Imágenes sueltas movibles** y **fondos animados** (GIF/vídeo por enlace): esperan a que existan las
+  capas, porque lo primero que hay que decidir es en qué capa caen.
+- **El modal de «subir imagen de fondo» descolocado**: es un fallo de colocación y va suelto, no aquí.
+- **Deshacer/rehacer**, **rejilla más fina** y **muros a mano alzada**: peticiones de mapas del 2026-08-19,
+  no de las siete de la escena.
+
+
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
   muros con `visible_players=false` no viajan al cliente del jugador (RLS). **Esta es la frontera de seguridad**: si la
@@ -277,6 +388,14 @@ Distancia máxima de movimiento por turno · empujar a otro token · terreno dif
 - **`maps_images`**: biblioteca de fondos de la campaña (bucket público `backgrounds/{campaignId}/…`, 10 MB, sólo el director sube).
 - Realtime: `maps_scenes/walls/tokens/drawings/fog` en la publicación; el arrastre va por broadcast y la posición final se persiste.
 - Migración: `supabase/migrations/20260818130000_maps.sql`.
+
+### Rebanada 7 — capas, luces, ojos de un personaje y penumbra
+> **Pendiente — lo completa el DBA Agent.** Lo que tendrá que resolver, ya identificado en la spec:
+> capas de contenido por escena (con las de terreno sin límite y reordenables) · la **máscara del pincel de
+> transparencia** por capa de terreno, que es el dato con más peso y hay que decidir cómo se guarda (el
+> pincel de niebla manual de la rebanada 2 es el precedente a mirar) · las luces como objeto de escena, con
+> alcance en metros y sombra proyectada guardados desde el primer día aunque todavía no se usen · y qué
+> manda el servidor de un token en penumbra, que **sólo puede ser posición y tamaño**.
 
 ### Rebanada 4 — paredes sólidas
 Migración `supabase/migrations/20260822000000_maps_solid_walls.sql`. **Una sola columna**, aditiva y con valor por

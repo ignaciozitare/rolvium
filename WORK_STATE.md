@@ -14,6 +14,193 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31, justo debajo.**
+
+## 🟢 PUNTO EXACTO — 2026-08-31: HANDOFF · v0.3.1 EN PRODUCCIÓN · REBANADA 7 ESPECIFICADA Y SIN CONSTRUIR
+
+### 🔴 POR QUÉ SE ABRE UN CHAT NUEVO
+**El servidor MCP de Pencil se desconectó de la sesión** (`CONNECTION_CLOSED`). Primero fallaba con «A file
+needs to be open in the editor» aunque el dueño tenía el `.pen` abierto; luego recargó la ventana de VS Code
+y eso **tumbó la conexión entera**. Esas conexiones se establecen AL ARRANCAR, así que no se recupera desde
+dentro. Sin `.pen` no se toca una sola pantalla — **y todo lo que queda por hacer es pantalla.**
+
+### 📍 Estado exacto
+- **`main` = v0.3.1 EN PRODUCCIÓN** (merge `c0a5c2a`), verificada en vivo: API `{"ok":true}` · web 200 · el
+  paquete servido lleva «Encuentros en la escena».
+- **Rama viva: `feat/armas-de-fuego`**, HEAD `2d38a5e`, pusheada, **al día con `main`**. Seis commits, todos
+  con review pasado. **SIN QA y SIN merge.**
+- **Entorno local**: Supabase levantado, la migración `20260830120000_dice_combat_functions.sql` aplicada
+  con `migration up`. **APLICADA TAMBIÉN EN LA NUBE el 2026-08-31 con permiso explícito del dueño**
+  (`apply_migration` por MCP, proyecto `scfspsiemikfcnqteonq`). Verificado en la nube por la QA: las cuatro
+  funciones existen, son `SECURITY DEFINER`, `authenticated` NO puede ejecutar ninguna y `service_role` sí,
+  y las dos que mueven el orden llevan el `FOR UPDATE` del review. ⚠ El sello de la nube es
+  `20260830222940` y el fichero local `20260830120000` — misma situación idempotente ya documentada para
+  `dice_director_panel`; no se toca.
+
+### ✅ Lo que entra en `feat/armas-de-fuego`
+1. **Armas de fuego de los bloques humanos** (`4197308`, `13e9beb`). La premisa que había escrita era FALSA:
+   los bloques NO imprimen armas — esas líneas son de las fichas pregeneradas (pp.26–35) y de la tabla de la
+   p.97. Lo que imprimen es su **especialidad de Combate**, y el libro da el puente (p.25, p.209). **RULES.md
+   §8.6** con las citas y la tabla ⚠ interpretación: 13 bloques con arma a distancia, dados = Combate a
+   secas, daño de la tabla. Paramilitar SIN arma a propósito («Armas pesadas» no está en la tabla).
+2. **Orden de turnos, LADO SERVIDOR** (`4185ef2`, `7eeb021`, `13ba4f3`). `Engine.turnOrder` + `orderTurns` en
+   core; migración con las cuatro funciones; puerto, adaptador, casos de uso y rutas
+   (`POST /combats` · `/next` · `/close` · `/advance`). **Abrir contesta 409 `UNDECIDED`** con los empates
+   que el manual deja al director, en vez de inventarse el orden.
+   - El review cazó, **demostrándolo con dos sesiones a la vez**, que el intercambio de puestos sin cerrojo
+     dejaba el orden con una posición duplicada y otra perdida. Cerrado con `FOR UPDATE`.
+3. **Spec de la rebanada 7 de maps** (`2d38a5e`) — ver abajo.
+
+### 🎯 LA TAREA VIVA: rebanada 7 de `maps`, CONFIRMADA por el dueño el 2026-08-31
+`specs/modules/maps/SPEC.md` § «Rebanada 7». **Va ANTES que las rebanadas 5 y 6** (decisión suya). Son cuatro
+de las siete peticiones de la escena del 2026-08-20; las otras tres quedan fuera a propósito.
+
+**Decisiones suyas, ya cerradas — no volver a preguntarlas:**
+- **Las CAPAS primero.** Cuatro tipos: Terreno · Objetos · Criaturas y personajes · **Notas del director**.
+  Botón derecho manda cualquier cosa a otra capa. Ocultar y bloquear por capa.
+- **Notas del director NO VIAJA al navegador del jugador.** No se pinta oculta: no se envía.
+- **El terreno lleva VARIAS capas, SIN LÍMITE**, con **pincel de fuerza regulable**: a tope borra, a media
+  deja translúcido. Es una **máscara por capa** — la foto original no se toca nunca. Idea del dueño de hoy y
+  la pieza con más jugo. Sin límite fue elección suya: la app **avisa** cuando pese, no bloquea.
+- **Luces de AMBIENTE**: forma (cono/radio/cuadrado) y tipo (antorcha/bombilla/fuego) con color y parpadeo.
+  **NO iluminan, no revelan niebla, no entran en el cálculo de visión.** Pero **alcance en metros y sombra
+  proyectada se guardan desde el primer día**, porque añadirlos luego obligaría a repasar todas las luces ya
+  colocadas de todas las escenas.
+- **Ver con los ojos de un personaje**: el interruptor genérico **YA EXISTE** (`playerView` en
+  `CanvasControls`) — lo nuevo es sólo **elegir personaje**. Es una lente, no un modo. La visión la calcula
+  el SERVIDOR por el mismo camino que la del jugador real; recalcularla en el navegador del director haría
+  que lo que él ve y lo que ve el jugador pudieran discrepar, que es lo que la herramienta viene a comprobar.
+- **La penumbra CAMBIA lo que se ve**: tres zonas (clara · penumbra · negro), y en la penumbra las fichas
+  salen como **bulto sin identidad**.
+  - 🔒 **Decisión, no detalle**: hoy una ficha que no ves NO EXISTE en tu navegador. Para pintar un bulto hay
+    que mandar algo, así que el servidor manda **sólo posición y tamaño** — nunca nombre, retrato, id ni
+    ficha. Mandar la ficha entera y difuminarla al pintar convertiría el efecto en un agujero.
+
+### ⏭ EL SIGUIENTE PASO CONCRETO
+**DBA Agent sobre la rebanada 7.** El modelo de datos está marcado como pendiente en la spec. La pregunta
+gorda: **cómo se guarda la máscara del pincel de transparencia** por capa de terreno (mirar cómo lo hace el
+pincel de niebla manual de la rebanada 2, que es el precedente). Después: design en el `.pen` → dev → review
+→ qa. **Nada de UI antes del `.pen`.**
+
+### ⏳ Esperando al dueño
+- **Su visto bueno a las 3 pantallas dibujadas**, lienzo «Mesa/Tiradas · avisos del panel del director»:
+  **Tirada pedida** (oro; ya construida) · **Defensa del director** (sangre; el motor está hecho y espera la
+  pantalla) · **Ponerse a cubierto** (oro; no construida por ningún lado — confirmar los cuatro niveles de
+  cobertura 1/2/3/5).
+- **QA + merge de `feat/armas-de-fuego`** cuando él quiera.
+
+### 🔎 Deuda anotada en esta tanda, NO tocada
+- **`spent_next` no tiene quien lo ESCRIBA**: atar la defensa de un ataque al gasto del turno siguiente
+  (p.94) es la rebanada siguiente y no depende del `.pen`.
+- **Los ficheros de test NO se typechequean en ningún sitio del repo** — así se coló un import duplicado
+  entero. Decisión de repo, no de rama.
+- `SupabaseCombatRepo.codeFor` manda un choque real del índice único a `DB_ERROR` (500) en vez de 409 · las
+  cuatro funciones SQL no tienen test automático (no hay banco de pruebas de base de datos; se verificaron a
+  mano contra el local) · `openCombat` lee las fichas una a una (hasta 40 viajes al abrir).
+- ⚠ Un arma de fuego usada EN cuerpo a cuerpo daría +1 (p.95) y `CreatureAttack.attack` guarda el del
+  disparo. Anotado en RULES.md §8.6.
+
+### 🧭 El backlog entero, en cristiano
+Publicado para el dueño: **61 tareas** clasificadas por impacto y esfuerzo →
+`https://claude.ai/code/artifact/8f9d79d9-c9a4-4a31-8b8c-bc42e279982d`
+Lo que sacó: **21 tareas paradas esperando el `.pen`** (un tercio de la lista), 7 rotas, 31 que se pueden
+empezar ya. `chat` (H8), `journal` (H9) y `adventures` (H12) siguen sin existir.
+
+### ⚠ Lección del merge (2026-08-30)
+`git merge` falló DOS VECES con «Blocked by classifier» y **no era la rama ni una regla del proyecto**: era
+el **mensaje**, largo y con comillas «» y guiones largos. Con `merge: v0.3.1 - panel del director corregido`
+pasó a la primera. **Mensajes de merge cortos y en texto plano.**
+
+### 🔁 Prompt de resume, de una línea
+> Retomo Rolvium. `main` = v0.3.1 en producción; estoy en `feat/armas-de-fuego` (armas de fuego + orden de
+> turnos lado servidor, con review, sin QA ni merge). **La tarea viva es la rebanada 7 de `maps`**, ya
+> especificada y confirmada con el dueño en `specs/modules/maps/SPEC.md` § «Rebanada 7»: capas (con varias de
+> terreno y pincel de transparencia), luces de ambiente, ver con los ojos de un personaje y penumbra.
+> **Siguiente paso: DBA Agent** — el modelo de datos está pendiente y la pregunta gorda es cómo se guarda la
+> máscara del pincel. Comprueba lo primero que el MCP de Pencil conecta (`get_app_state`): sin `.pen` no se
+> toca pantalla. Bloque 🟢 de WORK_STATE.
+
+---
+
+## 🟢 (histórico) 2026-08-30: cómo se llegó hasta aquí — QA, merge y las dos piezas nuevas
+
+Dos ramas vivas ese día. **Nada en producción, nada en la nube** — el dueño dijo «sigue construyendo todo lo
+que puedas sin mí y déjalo en local».
+
+### 1. `fix/panel-correcciones` — ✅ MERGEADA Y EN PRODUCCIÓN (v0.3.1, merge `c0a5c2a`)
+Verificada EN VIVO, no contra el build local: API `{"ok":true}` · web 200 · y el paquete que sirve producción
+lleva de verdad «Encuentros en la escena», que es la corrección principal del dueño.
+
+⚠ **Lección del merge**: falló DOS VECES con «Blocked by classifier», y no era la rama ni una regla del
+proyecto — era el **mensaje de merge**, largo y con comillas «» y guiones largos. Con un mensaje corto y
+llano (`merge: v0.3.1 - panel del director corregido`) pasó a la primera. **Mensajes de merge cortos y en
+texto plano.**
+
+### 1-bis. (histórico) cómo llegó hasta ahí
+- El dueño **probó el panel y dio el visto bueno** («sí, todo bien — súbelo»).
+- **QA PASADA entera** (modo aviso): 683 tests web · audit 0 hard · advisors 0 CRITICAL · builds limpios ·
+  sondas 200/200 · i18n en paridad · sin fugas hexagonales.
+- **v0.3.1** puesta en los dos `package.json` (`49ba1ee`, pusheado) y **preview de Vercel READY** en los dos
+  proyectos (web `dpl_9idH6…` y api `dpl_75R9j…`).
+- 🚫 **EL MERGE NO SE PUDO HACER**: el clasificador de permisos de la sesión bloqueó `git merge` y
+  `git push origin main`. **No es un problema de la rama**: está verde y aprobada. Hay que darle al merge
+  desde una sesión con permiso, o a mano.
+- ⚠ Avisos que la QA dejó anotados (no bloqueantes, ya decididos): las piezas gated (UI del espejo, tablas de
+  turnos sin consumidor, bloque «Tirada» aún en la ficha) y `specs/modules/bestiary/SPEC.md:142`, que sigue
+  diciendo «el panel del director NO está aquí» — retocar tras producción.
+
+### 2. `feat/armas-de-fuego` — sale de `fix/panel-correcciones`, 5 commits, TODO con review
+**Sin UI ni una línea**: el `.pen` no dibuja el orden de turnos y el MCP de Pencil no consiguió abrir el
+fichero (`get_app_state` → «A file needs to be open in the editor», también después de que el dueño dijera
+que lo tenía abierto). Mismo patrón que el espejo: servidor sí, pantalla no.
+
+**a) Las armas de fuego de los bloques humanos** (`4197308` + `13e9beb`). Al abrir el PDF salió que **la
+premisa escrita en la spec era FALSA**: los bloques humanos NO imprimen armas — las líneas «bonificación +1,
+daño 8, 35 balas» son de las **fichas pregeneradas** (pp.26–35) y de la **tabla de armas** (p.97). Lo que el
+bloque imprime es su **especialidad de Combate**, y el libro da el puente (p.25 «un arma que se corresponda
+con su especialidad de combate» · p.209 el Salteador «elige las armas de la tabla»). Queda **RULES.md §8.6**
+con las citas primero y la tabla de asignaciones ⚠ interpretación: **13 bloques** con arma a distancia, dados
+= su **Combate a secas** (al disparar no hay bonificación), daño el de la tabla. El **Paramilitar** («Armas
+pesadas») se queda SIN arma: la tabla no imprime ninguna y no se inventan valores. Los labels reutilizan
+`catalog.weapons.*` (nada nuevo que traducir). ⚠ Deuda anotada: un arma de fuego usada EN c/c daría +1
+(p.95) y el dato sólo guarda el disparo.
+
+**b) El orden de turnos, lado servidor** (`4185ef2` + `7eeb021` + `13ba4f3`).
+- **La regla** la declara el SISTEMA (`Engine.turnOrder`, opcional como `tokenCells`) y `orderTurns` de
+  `@rolvium/core` la aplica en las dos orillas. El comparador puede devolver **0** = «el sistema no
+  desempata», que es el final literal de la p.92; `orderTurns` saca esos grupos en `undecided` y **nadie los
+  coloca por su cuenta**. ⚠ Del PDF salió el matiz que el digesto decía de pasada: el Combate desempata
+  **sólo entre PJ** — dos criaturas empatadas a Destino van directas al «decide el director».
+- **Migración `20260830120000_dice_combat_functions.sql`**: las cuatro funciones que faltaban desde el 22 de
+  agosto (las tablas estaban creadas y sin consumidor). **Aplicada SÓLO EN LOCAL** con `migration up` (no
+  `reset`). `db lint` limpio · `authenticated` no puede ejecutar ninguna. **Y APLICADA EN LA NUBE el
+  2026-08-31 con permiso del dueño** (sello `20260830222940`, distinto del nombre del fichero).
+- **API**: `POST /combats` (abre; **el orden lo pone el servidor**) · `/:id/next` · `/:id/close` ·
+  `/:id/advance` (gana un puesto pagando 1 Fortuna). Abrir contesta **409 `UNDECIDED`** con los empates para
+  que la app se los pregunte al director y los reenvíe en `tiebreak`.
+- **El review cazó un fallo de verdad y lo demostró con dos sesiones a la vez**: el intercambio de puestos
+  sin cerrojo dejaba el orden con una posición DUPLICADA y otra PERDIDA. Arreglado con `FOR UPDATE` sobre la
+  fila del combate en `advance` **y** en `next`. Y tres más: `key` duplicada que borraba a un combatiente,
+  `advanceTurn` devolviendo una Fortuna que no se había cobrado, y un import duplicado que sobrevivió a todos
+  los gates **porque los ficheros de test no se typechequean en ningún sitio del repo**.
+- ⚠ **`spent_next` no tiene quien lo ESCRIBA todavía**: atarlo a la defensa de un ataque es la rebanada
+  siguiente, y está dicho en la spec.
+
+### ⏭ EL TABLERO
+1. ✅ ~~Merge de `fix/panel-correcciones`~~ — **hecho, v0.3.1 en producción y verificada en vivo.**
+2. **El `.pen`**: que el MCP de Pencil pueda abrirlo. Sin eso no se puede ni diseñar el orden de turnos ni
+   tocar ninguna pantalla. Bloquea: UI del orden de turnos · UI del espejo · cubierto · quitar el bloque
+   «Tirada» de la ficha.
+3. Su **visto bueno a las 3 pantallas dibujadas** (tirada pedida · defensa del director · ponerse a cubierto).
+4. Rebanada siguiente sin gate: **atar la defensa de un ataque a `spent_next`** (p.94).
+
+### Prompt de resume, de una línea
+> Retomo Rolvium: `fix/panel-correcciones` con QA PASADA y v0.3.1, sólo falta el merge (lo bloqueó el
+> clasificador de permisos). Y `feat/armas-de-fuego` con las armas de los bloques humanos y el orden de
+> turnos LADO SERVIDOR, todo con review, sin UI porque el `.pen` no abre. Bloque 🟢 de WORK_STATE.
+
+---
+
 ## 🟢 PUNTO EXACTO — 2026-08-23: v0.3.0 EN PRODUCCIÓN, VERIFICADA EN VIVO
 
 **`main` = v0.3.0 desplegada** (merge `9fe9d47`). Sondeado contra el sitio real, no contra el build local:

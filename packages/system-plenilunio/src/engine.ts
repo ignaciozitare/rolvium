@@ -3,7 +3,7 @@
 // resolverAccion, describirGrado, damage/health, progression) plus the
 // `Engine` object required by the GameSystem port. No I/O, no randomness: the
 // platform generates dice on the server and calls `resolve`.
-import type { ActionDef, DiceGroup, Engine, ExtraDiceCap, RollRequest, RollResult, RolledDice, SharedResourceDef, SheetData, SheetPatch } from '@rolvium/core';
+import type { ActionDef, DiceGroup, Engine, ExtraDiceCap, RollRequest, RollResult, RolledDice, SharedResourceDef, SheetData, SheetPatch, TurnParticipant } from '@rolvium/core';
 import {
   GIFT_IDS, GIFT_MAX_LEVEL, HEALTH_LEVELS, MAX_GIFT_TRADES, RANGE_DIFFICULTY, RECOVERY, armourById, capabilityLevel, hasCapability,
   isMelee, isStatId, sizeMod, weaponById,
@@ -289,6 +289,35 @@ export const TOKEN_CELLS: Record<SizeId, number> = { tiny: 0.5, small: 0.75, med
 export function tokenCells(sheet: SheetData): number | null {
   const id = str(sheet.size, '');
   return (TOKEN_CELLS as Record<string, number | undefined>)[id] ?? null;
+}
+
+/**
+ * El orden de actuación de un combate (p.92, «Orden de actuación»), literal y en su orden:
+ *
+ *   «El orden de los turnos se determina según la puntuación de **Destino**… El primer turno corresponde al
+ *   personaje con el Destino más alto y siguen los demás en orden decreciente. En caso de empate, el turno de
+ *   un **personaje jugador es anterior** al de uno no jugador. **Si el empate es entre personajes jugadores**,
+ *   va primero el que tenga mayor puntuación de **Combate**. Y si el empate persiste, **el director de juego
+ *   decide** quién precede y quién va después.»
+ *
+ * Dos cosas que el libro dice y es fácil pasar por alto:
+ * - El desempate por **Combate es SÓLO entre personajes jugadores** («si el empate es entre personajes
+ *   jugadores»). Dos criaturas con el mismo Destino NO las desempata su Combate: caen directamente en el
+ *   «decide el director». Darles el mismo criterio que a los PJ sería escribirle una regla al libro.
+ * - **Devolver `0` es la respuesta correcta** cuando el empate persiste, no un fallo: es exactamente el hueco
+ *   que el manual le deja al director, y `orderTurns` lo saca aparte para que alguien lo pregunte.
+ *
+ * La Fortuna no entra aquí: adelantarse gastándola (p.89, p.92) mueve un puesto YA ordenado, no cambia el
+ * criterio con el que se ordenó.
+ */
+export function turnOrder(a: TurnParticipant, b: TurnParticipant): number {
+  const destiny = num(b.sheet.destiny, 0) - num(a.sheet.destiny, 0);
+  if (destiny !== 0) return destiny;
+  if (a.isPlayerCharacter !== b.isPlayerCharacter) return a.isPlayerCharacter ? -1 : 1;
+  if (!a.isPlayerCharacter) return 0;
+  // `statOf` y no `num`: en la ficha de un personaje el Combate es un objeto `{value, specialties}` y en el
+  // bloque de una criatura un número pelado. Leerlo a pelo daba 0 a los dos y los dejaba SIEMPRE empatados.
+  return statOf(b.sheet, 'combat').value - statOf(a.sheet, 'combat').value;
 }
 
 /** Builds the RollRequest for a stat: own dice = stat − health penalty + extra + bonus; Destiny and opposition groups tagged. */
@@ -626,6 +655,6 @@ export const engine: Engine = {
   poolFor, extraDiceMax, tokenCells, resolve, applyDamage,
   progression: { cost: progressionCost, apply: progressionApply },
   sharedResources, actions,
-  explain,
+  explain, turnOrder,
 };
 
