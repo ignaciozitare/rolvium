@@ -855,6 +855,42 @@ De los **133 nombres distintos** que usa el bestiario, **104 ya existen** en la 
 reutilizan su clave; sólo **30** son propias de criatura (Garrote, Mordisco, Picado de garras, Uñas y dientes…).
 El **mutante no tiene ninguna**: el libro no le imprime bloque (§8.4).
 
+### 8.6 Las armas de los bloques humanos — ⚠ interpretación (p. 25, p. 95, p. 97, p. 209)
+**Los bloques en lista NO imprimen armas** (comprobado sobre el PDF el 2026-08-30: los de las pp. 44–74 traen
+características con especialidades, Aguante y Destino, y nada más). Las líneas de armas con «bonificación +1,
+daño 8, 35 balas» que la spec recordaba «en los bloques humanos» son en realidad de las **fichas pregeneradas**
+(pp. 26–35) y de la **tabla de armas** del §5.5 (p. 97) — no del bestiario.
+
+Lo que el libro sí da para cruzar bloque y arma:
+- **p. 25 (equipo inicial)**: «Un arma que se corresponda con su especialidad de combate» — y «es su concepto y
+  sus especialidades los que deberían dar las pistas» del equipamiento.
+- **p. 209**: el Salteador «elige las armas de la tabla» de la p. 97 — el propio libro monta un bloque con la tabla.
+- **p. 95 y p. 97**: un arma a distancia no da bonificación NUNCA — ni al disparar («la bonificación de Combate
+  solo se aplica en alcance cuerpo a cuerpo») ni usada pegado («pueden usarse a distancia cuerpo a cuerpo, pero
+  no proporcionan bonificación»).
+
+⚠ interpretación: **cada bloque humano cuya especialidad de Combate impresa nombra un tipo de arma a distancia
+lleva UN arma de ese tipo, con los valores de la tabla del §5.5**. Sus dados de ataque son su **Combate a secas**
+(ver arriba: la bonificación no aplica en armas a distancia) y su daño el de la tabla (los arcos, F+3 con la
+Fortaleza del bloque). Donde la tabla da a elegir, se elige lo genérico y queda anotado:
+
+| Bloque (especialidad impresa) | Arma | Dados (= Combate) | Daño |
+|---|---|---:|---:|
+| Carroñera · Diane (Ballestas) | Ballesta | 3 | 5 |
+| Mafioso · Silhouette (Subfusiles) | Subfusil | 3 | 8 |
+| Yihadista (Rifles) | Rifle de asalto ⚠ elegido sobre el de francotirador | 3 | 8 |
+| Miembro de la banda de Big Dima (Escopetas) | Escopeta galga 12 ⚠ elegida sobre la 10 | 4 | 9 |
+| Buscador del Edén · Nuevo Orden (Arcos) | Arco compuesto | 1 | F 2 + 3 = 5 |
+| Internauta ocultista · Jellybean (Armas cortas) | Pistola de 9 mm ⚠ elegida sobre el revólver | 1 | 6 |
+| Soldado Miyamoto (Armas cortas) | Pistola de 9 mm | 3 | 6 |
+| Ramírez · Big Dima (Armas cortas) | Pistola de 9 mm | 4 | 6 |
+
+⚠ «Armas cortas» se lee como armas de fuego cortas (pistolas): la lista de especialidades ya cubre aparte las
+hojas («Navajas y cuchillos», «Espadas»…) y ninguna otra cubre las pistolas.
+**El Paramilitar («Armas pesadas») queda SIN arma a distancia**: la tabla de la p. 97 no imprime ninguna arma
+pesada y no se inventan valores (mismo criterio que el mutante, §8.4). Los bloques con especialidad de Combate
+cuerpo a cuerpo no cambian: pegan A MANO, que el libro paga con la Fortaleza (p. 97).
+
 ---
 
 ## 9. Mapa página → clave `references.ts`

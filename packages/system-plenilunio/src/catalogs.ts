@@ -209,14 +209,24 @@ export interface CreatureAttack {
   fortuneCost?: number;
   /**
    * Es un ataque A DISTANCIA (p.95: «sin ellas simplemente no se puede atacar a distancia»). Ausente = cuerpo
-   * a cuerpo. Hoy ningún bloque copiado lo lleva —todos los ataques impresos del catálogo son de c/c—; los
-   * bloques humanos con armas de fuego (rifle automático, escopeta galga…) imprimen sus armas con
-   * bonificación y daño, y copiarlos con el PDF delante es la pasada de datos anotada en la spec del panel.
+   * a cuerpo. Los ataques impresos de los bloques en caja son todos de c/c; los de los bloques humanos salen
+   * DERIVADOS de su especialidad de Combate con la tabla de la p.97 (los bloques no imprimen armas — RULES.md
+   * §8.6, ⚠ interpretación), y son los únicos que llevan esta marca.
    */
   ranged?: boolean;
 }
 const at = (key: string, attack: number, damage: number, fortuneCost?: number): CreatureAttack =>
   ({ label: `catalog.creatureAttacks.${key}`, attack, damage, ...(fortuneCost === undefined ? {} : { fortuneCost }) });
+/**
+ * El arma A DISTANCIA de un bloque humano (RULES.md §8.6): el arma de la tabla de la p.97 que nombra su
+ * especialidad de Combate. `attack` es su Combate A SECAS —la bonificación de un arma a distancia no aplica
+ * nunca (p.95 y p.97)— así que `attack - combat` (lo que viaja como `bonusDice`) queda en 0, calcado al flujo
+ * de la ficha de jugador (`ranged ? 0 : bonus`). El label reutiliza la clave del catálogo de armas: mismo
+ * nombre traducido en las dos lenguas y sin segunda verdad de valores. No coincide con ningún `WEAPONS.id`
+ * a secas, así que el gasto de munición de una ficha (`spendAmmo` busca por id) no puede dispararse por error.
+ */
+const rat = (weaponId: string, attack: number, damage: number): CreatureAttack =>
+  ({ label: `catalog.weapons.${weaponId}`, attack, damage, ranged: true });
 
 // ─── Bestiario: bloques del manual, copiados uno a uno ───────────────────────
 /**
@@ -393,37 +403,37 @@ export const BESTIARY = [
   b('azelias', { stats: st(6, 7, 4, 3, 5, 5, 5), endurance: 10, destiny: 8, abilities: ['Alado', 'Aura 2', 'Disfraz terrenal', 'Ira solar 3'], capabilities: [c('winged'), c('aura', 2), c('earthlyDisguise'), c('solarWrath', 3)], page: 132 }),
   // Humanos hostiles y figuras de la ambientación (pp. 44–74, 98)
   b('mutant', { stats: { fortitude: 3, combat: 3, will: 1 }, endurance: 4, destiny: 0, protection: 2, abilities: ['Piel curtida'], page: 98 }),
-  b('scavenger', { stats: st(3, 3, 3, 2, 2, 3, 2), endurance: 6, destiny: 1, page: 74 }),
+  b('scavenger', { stats: st(3, 3, 3, 2, 2, 3, 2), endurance: 6, destiny: 1, attacks: [rat('crossbow', 3, 5)], page: 74 }),
   b('wanderer', { stats: st(2, 1, 3, 3, 1, 4, 3), endurance: 5, destiny: 4, page: 69 }),
-  b('gangster', { stats: st(2, 3, 1, 3, 1, 3, 2), endurance: 3, destiny: 1, page: 62 }),
-  b('jihadist', { stats: st(2, 3, 3, 2, 3, 2, 2), endurance: 5, destiny: 2, page: 62 }),
+  b('gangster', { stats: st(2, 3, 1, 3, 1, 3, 2), endurance: 3, destiny: 1, attacks: [rat('smg', 3, 8)], page: 62 }),
+  b('jihadist', { stats: st(2, 3, 3, 2, 3, 2, 2), endurance: 5, destiny: 2, attacks: [rat('assaultRifle', 3, 8)], page: 62 }),
   b('dragon', { stats: st(3, 2, 3, 2, 1, 2, 1), endurance: 6, destiny: 1, page: 63 }),
   b('latinGang', { stats: st(3, 2, 2, 3, 1, 2, 1), endurance: 5, destiny: 1, page: 61 }),
   b('paramilitary', { stats: st(3, 3, 1, 3, 1, 2, 2), endurance: 4, destiny: 2, page: 61 }),
-  b('edenSeeker', { stats: st(2, 1, 2, 2, 3, 2, 2), endurance: 4, destiny: 1, page: 61 }),
+  b('edenSeeker', { stats: st(2, 1, 2, 2, 3, 2, 2), endurance: 4, destiny: 1, attacks: [rat('compoundBow', 1, 5)], page: 61 }),
   b('kibbutzMember', { stats: st(1, 1, 2, 2, 3, 3, 2), endurance: 3, destiny: 2, page: 61 }),
   b('paradiseMartyr', { stats: st(2, 2, 2, 3, 3, 2, 2), endurance: 4, destiny: 2, page: 57 }),
-  b('occultNetizen', { stats: st(2, 1, 2, 2, 3, 2, 3), endurance: 4, destiny: 1, page: 59 }),
-  b('dimaGang', { stats: st(3, 4, 2, 3, 1, 2, 3), endurance: 5, destiny: 1, page: 59 }),
-  b('newOrderFollower', { stats: st(2, 1, 3, 2, 2, 2, 3), endurance: 5, destiny: 1, page: 59 }),
+  b('occultNetizen', { stats: st(2, 1, 2, 2, 3, 2, 3), endurance: 4, destiny: 1, attacks: [rat('pistol9mm', 1, 6)], page: 59 }),
+  b('dimaGang', { stats: st(3, 4, 2, 3, 1, 2, 3), endurance: 5, destiny: 1, attacks: [rat('shotgun12', 4, 9)], page: 59 }),
+  b('newOrderFollower', { stats: st(2, 1, 3, 2, 2, 2, 3), endurance: 5, destiny: 1, attacks: [rat('compoundBow', 1, 5)], page: 59 }),
   b('illuminatiCharlatan', { stats: st(2, 1, 1, 3, 3, 3, 3), endurance: 5, destiny: 1, page: 63 }),
-  b('miyamotoSoldier', { stats: st(2, 3, 2, 3, 2, 2, 1), endurance: 4, destiny: 1, page: 64 }),
+  b('miyamotoSoldier', { stats: st(2, 3, 2, 3, 2, 2, 1), endurance: 4, destiny: 1, attacks: [rat('pistol9mm', 3, 6)], page: 64 }),
   b('littleTokyoThug', { stats: st(3, 3, 2, 2, 3, 1, 1), endurance: 5, destiny: 2, page: 65 }),
   b('cannibalCook', { stats: st(2, 3, 1, 3, 2, 1, 1), endurance: 3, destiny: 7, page: 69 }),
   b('maggie', { stats: st(2, 1, 3, 3, 3, 3, 1), endurance: 5, destiny: 7, page: 68 }),
   b('fluteFool', { stats: st(4, 1, 3, 1, 2, 1, 4), endurance: 7, destiny: 4, page: 69 }),
-  b('ramirez', { stats: st(4, 4, 2, 4, 2, 2, 2), endurance: 6, destiny: 2, page: 69 }),
-  b('jellybean', { stats: st(2, 1, 2, 2, 2, 3, 4), endurance: 4, destiny: 3, page: 74 }),
+  b('ramirez', { stats: st(4, 4, 2, 4, 2, 2, 2), endurance: 6, destiny: 2, attacks: [rat('pistol9mm', 4, 6)], page: 69 }),
+  b('jellybean', { stats: st(2, 1, 2, 2, 2, 3, 4), endurance: 4, destiny: 3, attacks: [rat('pistol9mm', 1, 6)], page: 74 }),
   b('hermes', { stats: st(1, 1, 3, 3, 2, 2, 4), endurance: 4, destiny: 4, page: 67 }),
   b('judith', { stats: st(2, 1, 3, 3, 1, 4, 3), endurance: 5, destiny: 4, page: 67 }),
   b('henryPutnam', { stats: st(1, 2, 4, 3, 4, 3, 2), endurance: 5, destiny: 8, page: 44 }),
   b('dorcy', { stats: st(2, 1, 3, 1, 3, 3, 1), endurance: 5, destiny: 6, page: 44 }),
-  b('silhouette', { stats: st(3, 3, 1, 2, 2, 2, 1), endurance: 4, destiny: 1, page: 57 }),
-  b('bigDima', { stats: st(4, 4, 3, 4, 3, 3, 4), endurance: 7, destiny: 7, page: 59 }),
+  b('silhouette', { stats: st(3, 3, 1, 2, 2, 2, 1), endurance: 4, destiny: 1, attacks: [rat('smg', 3, 8)], page: 57 }),
+  b('bigDima', { stats: st(4, 4, 3, 4, 3, 3, 4), endurance: 7, destiny: 7, attacks: [rat('pistol9mm', 4, 6)], page: 59 }),
   b('thirteenMoonsSister', { stats: st(4, 5, 3, 4, 4, 2, 3), endurance: 7, destiny: 4, abilities: ['Defensa de acero 2', 'Movimientos felinos 2'], page: 67 }),
   b('jacobite', { stats: st(2, 2, 3, 1, 2, 3, 2), endurance: 6, destiny: 1, page: 67 }),
   b('george', { stats: st(3, 3, 1, 3, 2, 2, 1), endurance: 4, destiny: 7, page: 68 }),
-  b('diane', { stats: st(2, 3, 3, 3, 3, 2, 2), endurance: 5, destiny: 2, page: 74 }),
+  b('diane', { stats: st(2, 3, 3, 3, 3, 2, 2), endurance: 5, destiny: 2, attacks: [rat('crossbow', 3, 5)], page: 74 }),
   b('allenDallas', { stats: st(2, 1, 3, 3, 4, 1, 5), endurance: 5, destiny: 7, page: 74 }),
   /**
    * Los doce bloques EN CAJA (RULES.md §8.0): los once personajes con nombre, que el libro imprime en cajas de
