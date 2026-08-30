@@ -18,6 +18,7 @@ import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { SegmentBar } from './SegmentBar';
 import { CanvasControls } from './CanvasControls';
+import { LayersPanel } from './LayersPanel';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
@@ -117,6 +118,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
 
   const scene = isDm ? scenes?.find(s => s.id === selectedId) ?? null : playerScene;
   const st = useScene(repo, scene, userId, vision);
+  /**
+   * La capa ACTIVA: donde se dibuja y se coloca (rebanada 7). Sólo el director tiene panel, así que un
+   * jugador la deja siempre vacía y todo lo suyo cae en su capa natural, igual que antes de que existieran.
+   */
+  const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
+  const [layersOpen, setLayersOpen] = useState(true);
   const live = st.scene;
   const viewport = () => ({ width: stageRef.current?.clientWidth ?? 0, height: stageRef.current?.clientHeight ?? 0 });
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
@@ -306,15 +313,15 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           onDice={() => onOpenDice?.()} diceOpen={diceOpen}
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
-          <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
+          <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
             playerView={playerView} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
             onAddText={async at => {
               const text = await dialog.prompt(t('maps.text.prompt'));
-              if (text?.trim()) run(st.addDrawing({ sceneId: live.id, campaignId, kind: 'text', data: { x: at.x, y: at.y, text: text.trim() }, color: stroke.color, width: stroke.width }));
+              if (text?.trim()) run(st.addDrawing({ sceneId: live.id, campaignId, kind: 'text', data: { x: at.x, y: at.y, text: text.trim() }, color: stroke.color, width: stroke.width, layerId: activeLayerId }));
             }}
             onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))} onServerCorrection={st.serverCorrection} onDragBound={st.dragBound}
-            onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width }))}
+            onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width, layerId: activeLayerId }))}
             onErase={id => run(st.eraseDrawing(id))}
             onAddWall={(a, b) => {
               // A door or a window drawn over a wall CUTS it instead of stacking on top of it (planOpening).
@@ -350,6 +357,27 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll()) : undefined}
               tool={tool}
               {...(isDm && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})} />
+          )}
+          {/*
+            * El panel de capas es del DIRECTOR y desaparece con «ver como jugador»: la lente sirve para ver
+            * lo que ve el otro, y un jugador no tiene capas. Flota sobre el mapa, como las demás barras
+            * desde la rebanada 3 — una franja a lo ancho cuesta altura de mapa.
+            */}
+          {isDm && !playerView && (
+            <LayersPanel layers={st.layers} activeId={activeLayerId} collapsed={!layersOpen} onCollapse={() => setLayersOpen(o => !o)}
+              onActivate={l => setActiveLayerId(l.id)}
+              onToggleVisible={l => run(st.patchLayer(l.id, { visible: !l.visible }))}
+              onToggleLocked={l => run(st.patchLayer(l.id, { locked: !l.locked }))}
+              onReorder={(l, dir) => run(st.reorderLayer(l.id, dir))}
+              onAddTerrain={async () => {
+                const name = await dialog.prompt(t('maps.layers.newName'));
+                if (name?.trim()) { const created = await st.addTerrainLayer({ name: name.trim() }); if (created) setActiveLayerId(created.id); }
+              }}
+              onRemove={async l => {
+                if (!(await dialog.confirm(t('maps.layers.deleteConfirm', { name: l.name || t('maps.layers.kind.terrain') })))) return;
+                if (activeLayerId === l.id) setActiveLayerId(null);
+                run(st.removeLayer(l.id));
+              }} />
           )}
           {isDm && (tool === 'wall' || selectedWall) && (
             <SegmentBar wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}

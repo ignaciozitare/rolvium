@@ -905,7 +905,8 @@
       "deleteConfirm": "¿Borrar la capa «{{name}}»? Se van sus dibujos y sus luces; las fichas vuelven a su capa de siempre.",
       "addTerrain": "+ Capa de terreno",
       "heavy": "{{n}} capas de terreno · la escena empieza a pesar",
-      "empty": "Esta escena aún no tiene capas."
+      "empty": "Esta escena aún no tiene capas.",
+      "newName": "Nombre de la capa de terreno"
     }
   },
   "bestiary": {

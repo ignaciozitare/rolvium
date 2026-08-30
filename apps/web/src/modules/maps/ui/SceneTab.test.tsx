@@ -3,7 +3,7 @@ import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../.
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
-import { fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, KAREN_DATA, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
+import { fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
 import { SceneTab } from './SceneTab';
 
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -803,5 +803,77 @@ describe('<SceneTab> — una criatura que llega ya elegida desde el Bestiario', 
     // y sigue colocando de verdad, que es lo que se estaba perdiendo
     fireEvent.pointerDown(canvas(), { clientX: 3 * G + 3, clientY: 4 * G + 3, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ name: 'Ogro' }));
+  });
+});
+
+/**
+ * El panel de capas dentro de la escena de verdad (rebanada 7). Lo que se prueba aquí es la CONEXIÓN —el
+ * panel por dentro tiene su propio test—: de quién es, cuándo desaparece, y que lo que se dibuja cae en la
+ * capa activa, que es lo que el dueño pidió con «se dibuja y se coloca en la capa ACTIVA».
+ */
+describe('<SceneTab> capas (rebanada 7)', () => {
+  const withLayers = () => fakeMapsRepo({
+    scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [], drawings: [],
+    layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS],
+    lights: [LIGHT_TORCH],
+  });
+
+  it('es del director: el jugador no lo ve, y «ver como jugador» se lo quita a él también', async () => {
+    const repo = withLayers();
+    mount('player', repo);
+    await waitFor(() => expect(screen.getByText(/Almacén de Queens · tu visión/)).toBeInTheDocument());
+    expect(screen.queryByRole('complementary', { name: 'Capas' })).not.toBeInTheDocument();
+    document.body.innerHTML = '';
+
+    const u = userEvent.setup();
+    mount('dm', withLayers());
+    expect(await screen.findByRole('complementary', { name: 'Capas' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    expect(screen.queryByRole('complementary', { name: 'Capas' })).not.toBeInTheDocument();
+  });
+
+  it('el ojo de una capa se guarda, y apagarla la quita del lienzo', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    expect(within(canvas()).getAllByTestId('mp-terrain-layer')).toHaveLength(2);
+    await u.click(screen.getByRole('button', { name: 'Ocultar la capa Musgo (deja de pintarse para todos)' }));
+    await waitFor(() => expect(repo.layerUpdates).toEqual([{ id: 'ly-moss', patch: { visible: false } }]));
+    await waitFor(() => expect(within(canvas()).getAllByTestId('mp-terrain-layer')).toHaveLength(1));
+  });
+
+  it('lo que se dibuja cae en la capa ACTIVA', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
+    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: 4 * G, clientY: 4 * G, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(svg, { clientX: 6 * G, clientY: 5 * G, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+    await waitFor(() => expect(repo.drawings.at(-1)).toMatchObject({ kind: 'stroke', layerId: 'ly-moss' }));
+  });
+
+  it('sin capa activa se dibuja donde siempre, como antes de que existieran las capas', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: 4 * G, clientY: 4 * G, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(svg, { clientX: 6 * G, clientY: 5 * G, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+    await waitFor(() => expect(repo.drawings.at(-1)).toMatchObject({ kind: 'stroke', layerId: null }));
+  });
+
+  /** Las luces son pintura: se pintan, y no piden la visión de nuevo. */
+  it('las luces de la escena se pintan en el lienzo', async () => {
+    mount('dm', withLayers());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    expect(within(canvas()).getAllByTestId('mp-light')).toHaveLength(1);
   });
 });

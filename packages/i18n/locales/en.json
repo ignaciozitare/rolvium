@@ -905,7 +905,8 @@
       "deleteConfirm": "Delete the “{{name}}” layer? Its drawings and lights go with it; tokens return to their usual layer.",
       "addTerrain": "+ Terrain layer",
       "heavy": "{{n}} terrain layers · the scene is getting heavy",
-      "empty": "This scene has no layers yet."
+      "empty": "This scene has no layers yet.",
+      "newName": "Name of the terrain layer"
     }
   },
   "bestiary": {
