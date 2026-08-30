@@ -1,5 +1,5 @@
 import type { TableEvent } from '@rolvium/core';
-import type { CreateSceneInput, Drawing, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
+import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
 
 export type Unsubscribe = () => void;
 
@@ -11,6 +11,9 @@ export interface MapsLiveHandlers {
   onToken?: (change: RowChange<Token>) => void;
   onWall?: (change: RowChange<Wall>) => void;
   onDrawing?: (change: RowChange<Drawing>) => void;
+  /** Capas de contenido y luces de ambiente (rebanada 7). Un jugador nunca recibe las de «Notas del director». */
+  onLayer?: (change: RowChange<Layer>) => void;
+  onLight?: (change: RowChange<Light>) => void;
   /**
    * Token drag in progress · focus pin from another device · `fog.updated` = «what you can see may have changed,
    * ask the server again». That last one MUST travel by broadcast: `postgres_changes` applies each subscriber's
@@ -59,6 +62,30 @@ export interface MapsPort {
   removeMyDrawings(sceneId: string): Promise<void>;
   /** DM: every stroke in the scene. */
   removeAllDrawings(sceneId: string): Promise<void>;
+  // layers (rebanada 7) — las escribe SÓLO el director
+  listLayers(sceneId: string): Promise<Layer[]>;
+  /**
+   * DM only. Las tres capas fijas las crea un disparador al nacer la escena, así que por aquí sólo pasan
+   * las de TERRENO, que son las únicas sin límite.
+   */
+  addLayer(input: NewLayer): Promise<Layer>;
+  updateLayer(id: string, patch: LayerPatch): Promise<void>;
+  /** DM only. Se lleva los dibujos y las luces de esa capa; las FICHAS vuelven a su capa natural. */
+  removeLayer(id: string): Promise<void>;
+  /**
+   * DM only. Sube el PNG de la máscara del pincel a `backgrounds/{campaignId}/masks/{layerId}.png` y deja
+   * el puntero + la versión nueva en la fila. La foto original de la capa no se toca nunca.
+   */
+  saveMask(layer: Pick<Layer, 'id' | 'campaignId' | 'maskVersion'>, png: Blob): Promise<Layer>;
+  /** DM only. Quita la máscara: la capa vuelve a ser opaca entera. */
+  clearMask(layer: Pick<Layer, 'id' | 'campaignId'>): Promise<void>;
+
+  // lights (rebanada 7) — HOY SON PINTURA: no revelan niebla ni entran en el cálculo de visión
+  listLights(sceneId: string): Promise<Light[]>;
+  addLight(input: NewLight): Promise<Light>;
+  updateLight(id: string, patch: LightPatch): Promise<void>;
+  removeLight(id: string): Promise<void>;
+
   // realtime (channel `scene:{sceneId}` — separate from the table's `campaign:{id}` channel)
   subscribe(sceneId: string, handlers: MapsLiveHandlers): Unsubscribe;
   /** Sends an ephemeral event on the scene channel opened by `subscribe` (no-op if not subscribed). */

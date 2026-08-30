@@ -80,8 +80,14 @@ export interface Token {
   controlledBy: string | null;
   visionRadius: number | null;
   state: Record<string, unknown>;
+  /**
+   * Capa donde está (rebanada 7). `null` = su capa natural, «Criaturas y personajes» — que es donde vive
+   * todo lo colocado antes, así que no hubo que rellenar nada al migrar. Un jugador NO puede cambiarla: el
+   * disparador `maps_tokens_guard_update` la tiene en la lista de columnas prohibidas.
+   */
+  layerId: string | null;
 }
-export type NewToken = Omit<Token, 'id'>;
+export type NewToken = Omit<Token, 'id' | 'layerId'> & { layerId?: string | null };
 export type TokenPatch = Partial<Omit<Token, 'id' | 'sceneId' | 'campaignId'>>;
 
 export type DrawingKind = 'stroke' | 'line' | 'rect' | 'circle' | 'text';
@@ -90,11 +96,94 @@ export type DrawingData =
   | { x1: number; y1: number; x2: number; y2: number }   // line / rect (bbox)
   | { cx: number; cy: number; r: number }                // circle
   | { x: number; y: number; text: string };              // text
-export interface Drawing { id: string; sceneId: string; campaignId: string; authorId: string; kind: DrawingKind; data: DrawingData; color: string; width: number; createdAt: string }
-export type NewDrawing = Omit<Drawing, 'id' | 'authorId' | 'createdAt'>;
+export interface Drawing { id: string; sceneId: string; campaignId: string; authorId: string; kind: DrawingKind; data: DrawingData; color: string; width: number; createdAt: string;
+  /** Capa donde está (rebanada 7). `null` = su capa natural, «Objetos». Borrar una capa se lleva sus dibujos. */
+  layerId: string | null }
+export type NewDrawing = Omit<Drawing, 'id' | 'authorId' | 'createdAt' | 'layerId'> & { layerId?: string | null };
 
 /** Campaign background library entry (bucket `backgrounds/{campaignId}/…`). */
 export interface ImageAsset { id: string; campaignId: string; name: string; url: string; createdAt: string }
 
 /** Row-level change coming from realtime. `row` is null on DELETE (only the id travels). */
 export interface RowChange<T> { type: 'INSERT' | 'UPDATE' | 'DELETE'; id: string; row: T | null }
+
+// ── Rebanada 7 — capas de contenido, terreno con máscara y luces de ambiente ──
+// Espejo de `supabase/migrations/20260831120000_maps_layers_lights.sql`.
+
+/**
+ * Los cuatro tipos de capa. Ojo: NO es el orden de pintado del motor (fondo → muros → dibujos → tokens →
+ * niebla), que no se toca. Estas son las capas que el DIRECTOR maneja.
+ * `terrain` es el único sin límite; de los otros tres hay exactamente uno por escena (índice único + disparador).
+ */
+export type LayerKind = 'terrain' | 'objects' | 'creatures' | 'dm_notes';
+
+export interface Layer {
+  id: string;
+  sceneId: string;
+  campaignId: string;
+  kind: LayerKind;
+  /** Vacío en las tres fijas: la pantalla las rotula desde `kind` con i18n, para no meter idioma en la BD. */
+  name: string;
+  /** Ordena entre capas DEL MISMO tipo — hoy sólo el terreno tiene más de una. */
+  sortOrder: number;
+  /**
+   * El ojo de Photoshop: apagada NO SE PINTA PARA NADIE, tampoco para el director. Es composición, no
+   * privacidad — por eso «Notas del director» es un tipo aparte (dueño, 2026-08-31).
+   */
+  visible: boolean;
+  /** Se ve pero no se selecciona ni se mueve. Sólo afecta al director: un jugador no selecciona nada. */
+  locked: boolean;
+  /** Sólo terreno: la foto de esta capa y su encaje (misma forma que `Scene.bgTransform`). */
+  imageUrl: string | null;
+  transform: BgTransform;
+  /**
+   * Sólo terreno: PNG de la máscara del pincel de transparencia en `backgrounds/{campaignId}/masks/{layerId}.png`.
+   * `null` = sin máscara = capa opaca entera. La foto original nunca se toca.
+   */
+  maskUrl: string | null;
+  /** Sube en cada guardado: rompe la caché (`?v=N`) y delata al navegador que se quedó viejo. */
+  maskVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface NewLayer { sceneId: string; campaignId: string; kind: LayerKind; name?: string; sortOrder?: number; imageUrl?: string | null; transform?: BgTransform }
+export type LayerPatch = Partial<Pick<Layer, 'name' | 'sortOrder' | 'visible' | 'locked' | 'imageUrl' | 'transform' | 'maskUrl' | 'maskVersion'>>;
+
+/** Forma de la luz. `cone` usa además `coneAngle`; en las otras dos se ignora. */
+export type LightShape = 'cone' | 'radius' | 'square';
+/** Qué clase de luz es. Manda el color, el alcance por defecto y —lo que pidió el dueño— el RITMO del parpadeo. */
+export type LightKind = 'torch' | 'bulb' | 'fire' | 'lantern' | 'flashlight' | 'moonlight' | 'magic';
+
+/**
+ * Una luz de ambiente. HOY ES PINTURA: no revela niebla, no cambia lo que ve nadie y no entra en el cálculo
+ * de visión. Sí se ANIMA cuando `flicker` está puesto — animar es pintar (dueño, 2026-08-31).
+ */
+export interface Light {
+  id: string;
+  sceneId: string;
+  campaignId: string;
+  /** Vive en una capa como cualquier objeto. `null` = la capa natural (objetos). */
+  layerId: string | null;
+  shape: LightShape;
+  kind: LightKind;
+  /** Centro de la luz, en px de escena. */
+  x: number;
+  y: number;
+  /** Grados, para orientar el cono. */
+  rotation: number;
+  /** Apertura del cono en grados. Sin ella un cono no está definido. */
+  coneAngle: number;
+  color: string;
+  flicker: boolean;
+  /**
+   * Alcance en METROS (la unidad de la mesa), como `Scene.nightRadiusM`. Se guarda desde el primer día
+   * aunque todavía no se lea: añadirlo después obligaría a repasar todas las luces ya colocadas.
+   */
+  rangeM: number;
+  /** Ídem: si el día que ilumine proyectará sombra contra los muros. */
+  castsShadow: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export type NewLight = Omit<Light, 'id' | 'createdAt' | 'updatedAt'>;
+export type LightPatch = Partial<Omit<Light, 'id' | 'sceneId' | 'campaignId' | 'createdAt' | 'updatedAt'>>;

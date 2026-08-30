@@ -1,12 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseMock } from '../../../../tests/helpers/supabaseMock';
-import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapSceneRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
+import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapLayerRow, mapSceneRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
 
 const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, lighting: 'day' as const, night_radius_m: 10, solid_walls: false, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
-const TOKEN_ROW = { id: 'tk-1', scene_id: 'sc-1', campaign_id: 'c1', character_id: 'ch-karen', bestiary_ref: null, bestiary_entry_id: null, name: 'Karen', image_url: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlled_by: 'u-pip', vision_radius: null, state: {} };
+const TOKEN_ROW = { id: 'tk-1', scene_id: 'sc-1', campaign_id: 'c1', character_id: 'ch-karen', bestiary_ref: null, bestiary_entry_id: null, name: 'Karen', image_url: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlled_by: 'u-pip', vision_radius: null, state: {}, layer_id: null };
 const WALL_ROW = { id: 'w-1', scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visible_players: false, kind: 'wall' as const, blocks_sight: true, blocks_move: true, is_open: false };
-const DRAWING_ROW = { id: 'd-1', scene_id: 'sc-1', campaign_id: 'c1', author_id: 'u-pip', kind: 'stroke' as const, data: { points: [[1, 2]] as [number, number][] }, color: '#c9a84c', width: 2, created_at: 't' };
+const LAYER_ROW = { id: 'ly-1', scene_id: 'sc-1', campaign_id: 'c1', kind: 'terrain' as const, name: 'Musgo', sort_order: 1, visible: true, locked: false, image_url: 'https://x/moss.png', transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, mask_url: 'https://x/masks/ly-1.png', mask_version: 3, created_at: 't', updated_at: 't' };
+const LIGHT_ROW = { id: 'li-1', scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius' as const, kind: 'torch' as const, x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false, created_at: 't', updated_at: 't' };
+const DRAWING_ROW = { id: 'd-1', scene_id: 'sc-1', campaign_id: 'c1', author_id: 'u-pip', kind: 'stroke' as const, data: { points: [[1, 2]] as [number, number][] }, color: '#c9a84c', width: 2, created_at: 't', layer_id: null };
 const IMAGE_ROW = { id: 'img-1', campaign_id: 'c1', name: 'Capilla', url: 'https://x/chapel.png', created_at: 't' };
 
 const withSession = (client: Record<string, unknown>, uid = 'u-pip') => ({ ...client, auth: { getSession: vi.fn().mockResolvedValue({ data: { session: { user: { id: uid } } } }) } });
@@ -22,7 +24,7 @@ describe('SupabaseMapsRepo — mappers', () => {
     expect(mapSceneRow({ ...SCENE_ROW, solid_walls: true }).solidWalls).toBe(true);
     expect(mapSceneRow({ ...SCENE_ROW, solid_walls: null as never }).solidWalls).toBe(false);
     expect(mapSceneRow({ ...SCENE_ROW, bg_transform: null as never, grid: null as never }).grid).toEqual({ size: 27, visible: true });
-    expect(mapTokenRow(TOKEN_ROW)).toMatchObject({ id: 'tk-1', sceneId: 'sc-1', characterId: 'ch-karen', controlledBy: 'u-pip', x: 10, y: 11, state: {} });
+    expect(mapTokenRow(TOKEN_ROW)).toMatchObject({ id: 'tk-1', sceneId: 'sc-1', characterId: 'ch-karen', controlledBy: 'u-pip', x: 10, y: 11, state: {}, layerId: null });
     // El enlace al encuentro propio (H5). Una fila escrita antes de la columna lo lee como «ninguno».
     expect(mapTokenRow({ ...TOKEN_ROW, bestiary_entry_id: 'be-9' }).bestiaryEntryId).toBe('be-9');
     expect(mapTokenRow({ ...TOKEN_ROW, bestiary_entry_id: null as never }).bestiaryEntryId).toBeNull();
@@ -112,7 +114,7 @@ describe('SupabaseMapsRepo — walls, tokens, drawings', () => {
     const m = createSupabaseMock({ tables: { maps_drawings: { data: DRAWING_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(withSession(m.client, 'u-pip') as unknown as SupabaseClient);
     const d = await repo.addDrawing({ sceneId: 'sc-1', campaignId: 'c1', kind: 'stroke', data: { points: [[1, 2]] }, color: '#c9a84c', width: 2 });
-    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', author_id: 'u-pip', kind: 'stroke', data: { points: [[1, 2]] }, color: '#c9a84c', width: 2 });
+    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', author_id: 'u-pip', kind: 'stroke', data: { points: [[1, 2]] }, color: '#c9a84c', width: 2, layer_id: null });
     expect(d.authorId).toBe('u-pip');
     await repo.removeMyDrawings('sc-1');
     expect(q(m, 1)['eq']).toHaveBeenCalledWith('scene_id', 'sc-1');
@@ -124,6 +126,73 @@ describe('SupabaseMapsRepo — walls, tokens, drawings', () => {
   });
 });
 
+describe('SupabaseMapsRepo — capas y luces (rebanada 7)', () => {
+  it('las capas se piden por escena y en orden, y sólo se insertan las de terreno', async () => {
+    const m = createSupabaseMock({ tables: { maps_layers: { data: LAYER_ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    const l = await repo.addLayer({ sceneId: 'sc-1', campaignId: 'c1', kind: 'terrain', name: 'Musgo', sortOrder: 1, imageUrl: 'https://x/moss.png' });
+    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', kind: 'terrain', name: 'Musgo', sort_order: 1, image_url: 'https://x/moss.png' });
+    expect(l).toMatchObject({ kind: 'terrain', name: 'Musgo', maskVersion: 3, transform: { mode: 'cover' } });
+    // Una capa sin encaje propio se guarda con el de la casa, no con `undefined`.
+    expect(mapLayerRow({ ...LAYER_ROW, transform: null as never, name: null as never, mask_version: null as never })).toMatchObject({ transform: { mode: 'cover', x: 0, y: 0, scale: 1 }, name: '', maskVersion: 0 });
+  });
+
+  it('el ojo y el candado viajan como columnas, y sólo las que se tocan', async () => {
+    const m = createSupabaseMock({ tables: { maps_layers: { data: LAYER_ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateLayer('ly-1', { visible: false });
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ visible: false });
+    await repo.updateLayer('ly-1', { locked: true, sortOrder: 2 });
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ locked: true, sort_order: 2 });
+  });
+
+  /**
+   * La máscara se sobreescribe SIEMPRE en la misma ruta, bajo la carpeta de la campaña —que es lo que mira
+   * la política del bucket— y lo que cambia en la fila es la versión: sin ella el CDN seguiría sirviendo la
+   * máscara vieja y el pincel parecería no hacer nada.
+   */
+  it('guardar la máscara sobreescribe el mismo PNG y sube la versión', async () => {
+    const m = createSupabaseMock({ tables: { maps_layers: { data: { ...LAYER_ROW, mask_version: 4 }, error: null } } });
+    const upload = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ upload, getPublicUrl: vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } })) })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    const png = new Blob(['x'], { type: 'image/png' });
+    const out = await repo.saveMask({ id: 'ly-1', campaignId: 'c1', maskVersion: 3 }, png);
+    expect(client.storage.from).toHaveBeenCalledWith(BACKGROUNDS_BUCKET);
+    expect(upload).toHaveBeenCalledWith('c1/masks/ly-1.png', png, expect.objectContaining({ upsert: true, contentType: 'image/png' }));
+    expect(m.updateSpy).toHaveBeenCalledWith({ mask_url: 'https://x/c1/masks/ly-1.png', mask_version: 4 });
+    expect(out.maskVersion).toBe(4);
+  });
+
+  /**
+   * La fila se vacía ANTES que el fichero: si el borrado del PNG falla, la capa ya se ve entera y lo único
+   * que queda por detrás es un fichero huérfano. Al revés, un borrado a medias dejaría una capa apuntando a
+   * una máscara que ya no existe.
+   */
+  it('quitar la máscara vacía la fila y borra el fichero de la campaña', async () => {
+    const m = createSupabaseMock({ tables: { maps_layers: { data: LAYER_ROW, error: null } } });
+    const remove = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ remove })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    await repo.clearMask({ id: 'ly-1', campaignId: 'c1' });
+    expect(m.updateSpy).toHaveBeenCalledWith({ mask_url: null });
+    expect(remove).toHaveBeenCalledWith(['c1/masks/ly-1.png']);
+  });
+
+  it('las luces mapean sus columnas, incluidas las que todavía no se usan', async () => {
+    const m = createSupabaseMock({ tables: { maps_lights: { data: LIGHT_ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    const l = await repo.addLight({ sceneId: 'sc-1', campaignId: 'c1', layerId: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, coneAngle: 60, color: '#e8a24e', flicker: true, rangeM: 6, castsShadow: false });
+    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false });
+    // `rangeM` y `castsShadow` se guardan desde el primer día aunque todavía no iluminen.
+    expect(l).toMatchObject({ kind: 'torch', rangeM: 6, castsShadow: false, coneAngle: 60 });
+    await repo.updateLight('li-1', { flicker: false });
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ flicker: false });
+    await repo.updateLight('li-1', { layerId: 'ly-1', rangeM: 9 });
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ layer_id: 'ly-1', range_m: 9 });
+  });
+});
+
 describe('SupabaseMapsRepo — realtime', () => {
   it('subscribe opens scene:{id} with postgres_changes per table + broadcast; delivers mapped changes; broadcast sends on it; unsubscribe removes it', () => {
     const m = createSupabaseMock();
@@ -131,10 +200,10 @@ describe('SupabaseMapsRepo — realtime', () => {
     const channel = { on: vi.fn((type: string, filter: Record<string, string>, cb: (p: unknown) => void) => { handlers.push({ type, filter, cb }); return channel; }), subscribe: vi.fn(() => channel), send: vi.fn() };
     const client = { ...m.client, channel: vi.fn(() => channel), removeChannel: vi.fn() };
     const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
-    const h = { onScene: vi.fn(), onToken: vi.fn(), onWall: vi.fn(), onDrawing: vi.fn(), onEvent: vi.fn() };
+    const h = { onScene: vi.fn(), onToken: vi.fn(), onWall: vi.fn(), onDrawing: vi.fn(), onLayer: vi.fn(), onLight: vi.fn(), onEvent: vi.fn() };
     const off = repo.subscribe('sc-1', h);
     expect(client.channel).toHaveBeenCalledWith('scene:sc-1');
-    expect(handlers.map(x => x.filter.table ?? x.filter.event)).toEqual(['maps_scenes', 'maps_tokens', 'maps_walls', 'maps_drawings', 'map']);
+    expect(handlers.map(x => x.filter.table ?? x.filter.event)).toEqual(['maps_scenes', 'maps_tokens', 'maps_walls', 'maps_drawings', 'maps_layers', 'maps_lights', 'map']);
     expect(handlers[0]!.filter.filter).toBe('id=eq.sc-1');
     expect(handlers[1]!.filter.filter).toBe('scene_id=eq.sc-1');
     handlers[1]!.cb({ eventType: 'UPDATE', new: TOKEN_ROW, old: { id: 'tk-1' } });
@@ -145,8 +214,13 @@ describe('SupabaseMapsRepo — realtime', () => {
     expect(h.onScene).toHaveBeenCalledWith(expect.objectContaining({ id: 'sc-1', row: expect.objectContaining({ name: 'Almacén' }) }));
     handlers[2]!.cb({ eventType: 'INSERT', new: WALL_ROW, old: {} });
     expect(h.onWall).toHaveBeenCalledWith(expect.objectContaining({ type: 'INSERT', id: 'w-1' }));
+    // Rebanada 7: las capas y las luces llegan por el mismo canal, filtradas por escena.
+    handlers[4]!.cb({ eventType: 'INSERT', new: LAYER_ROW, old: {} });
+    expect(h.onLayer).toHaveBeenCalledWith(expect.objectContaining({ type: 'INSERT', id: 'ly-1', row: expect.objectContaining({ kind: 'terrain', maskVersion: 3 }) }));
+    handlers[5]!.cb({ eventType: 'UPDATE', new: LIGHT_ROW, old: { id: 'li-1' } });
+    expect(h.onLight).toHaveBeenCalledWith(expect.objectContaining({ id: 'li-1', row: expect.objectContaining({ kind: 'torch', rangeM: 6, castsShadow: false }) }));
     const ev = { type: 'pin.focused' as const, campaignId: 'c1', sceneId: 'sc-1', x: 1, y: 2, by: 'u-gm' };
-    handlers[4]!.cb({ payload: ev });
+    handlers[6]!.cb({ payload: ev });
     expect(h.onEvent).toHaveBeenCalledWith(ev);
     repo.broadcast('sc-1', ev);
     expect(channel.send).toHaveBeenCalledWith({ type: 'broadcast', event: 'map', payload: ev });

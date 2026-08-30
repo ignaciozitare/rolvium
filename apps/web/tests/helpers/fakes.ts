@@ -311,7 +311,7 @@ export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWat
 // ── maps ─────────────────────────────────────────────────────────────────────
 import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
 import type { SceneVision, VisionPort } from '@/modules/maps/domain/ports/VisionPort';
-import type { Drawing, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
+import type { Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
 
 export const SCENE_WAREHOUSE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Almacén de Queens', width: 1080, height: 675, bgColor: '#4a4a3e', bgImageUrl: null,
@@ -321,7 +321,7 @@ export const SCENE_WAREHOUSE: Scene = {
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };
 export const SCENE_TUNNELS: Scene = { ...SCENE_WAREHOUSE, id: 'sc-3', name: 'Túneles de servicio', sortOrder: 2, visiblePlayers: true };
 /** Karen's token: Pip controls it. */
-export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId: 'c1', characterId: 'ch-karen', bestiaryRef: null, bestiaryEntryId: null, name: 'Karen «K»', imageUrl: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlledBy: PLAYER_USER.id, visionRadius: null, state: {} };
+export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId: 'c1', characterId: 'ch-karen', bestiaryRef: null, bestiaryEntryId: null, name: 'Karen «K»', imageUrl: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlledBy: PLAYER_USER.id, visionRadius: null, state: {}, layerId: null };
 export const TOKEN_ELIAS: Token = { ...TOKEN_KAREN, id: 'tk-elias', characterId: 'ch-elias', name: 'Elías Vance', x: 8, y: 12, color: '#3a3a26', controlledBy: 'u-nix' };
 /** A hidden mutant placed by the DM (players never receive it). */
 export const TOKEN_MUTANT: Token = { ...TOKEN_KAREN, id: 'tk-mut', characterId: null, bestiaryRef: 'mutant', name: 'Mutante', x: 20, y: 9, color: null, visible: false, controlledBy: null, state: { resistance: 12 } };
@@ -331,21 +331,44 @@ export const WALL_VISIBLE: Wall = { ...WALL_1, id: 'w-2', x1: 270, y1: 540, x2: 
 export const WALL_DOOR: Wall = { ...WALL_1, id: 'w-door', x1: 540, y1: 216, x2: 540, y2: 324, kind: 'door' };
 /** A window: never cuts sight, only movement (spec § «Puertas y ventanas»). */
 export const WALL_WINDOW: Wall = { ...WALL_1, id: 'w-win', x1: 600, y1: 216, x2: 700, y2: 216, kind: 'window', blocksSight: false };
-export const DRAWING_MINE: Drawing = { id: 'd-1', sceneId: 'sc-1', campaignId: 'c1', authorId: PLAYER_USER.id, kind: 'stroke', data: { points: [[300, 300], [340, 280], [380, 300]] }, color: '#c9a84c', width: 2, createdAt: '2026-08-18T00:00:00Z' };
+export const DRAWING_MINE: Drawing = { id: 'd-1', sceneId: 'sc-1', campaignId: 'c1', authorId: PLAYER_USER.id, kind: 'stroke', data: { points: [[300, 300], [340, 280], [380, 300]] }, color: '#c9a84c', width: 2, createdAt: '2026-08-18T00:00:00Z', layerId: null };
 export const DRAWING_OTHER: Drawing = { ...DRAWING_MINE, id: 'd-2', authorId: 'u-nix', kind: 'rect', data: { x1: 450, y1: 500, x2: 510, y2: 540 }, color: '#b8452c' };
 export const IMAGE_CHAPEL: ImageAsset = { id: 'img-1', campaignId: 'c1', name: 'Capilla', url: 'https://x/backgrounds/c1/chapel.png', createdAt: '2026-08-18T00:00:00Z' };
 export const IMAGE_MARKET: ImageAsset = { id: 'img-2', campaignId: 'c1', name: 'Mercado', url: 'https://x/backgrounds/c1/market.png', createdAt: '2026-08-18T00:00:00Z' };
+
+// ── Rebanada 7: capas de contenido y luces de ambiente ──
+const LAYER_BASE = { sceneId: 'sc-1', campaignId: 'c1', name: '', sortOrder: 0, visible: true, locked: false, imageUrl: null, transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, maskUrl: null, maskVersion: 0, createdAt: '2026-08-31T00:00:00Z', updatedAt: '2026-08-31T00:00:00Z' };
+/** Las tres fijas van sin nombre: la pantalla las rotula desde `kind` con i18n. */
+export const LAYER_OBJECTS: Layer = { ...LAYER_BASE, id: 'ly-obj', kind: 'objects' };
+export const LAYER_CREATURES: Layer = { ...LAYER_BASE, id: 'ly-cre', kind: 'creatures' };
+/** La única que NO viaja al navegador de un jugador, pase lo que pase. */
+export const LAYER_NOTES: Layer = { ...LAYER_BASE, id: 'ly-dm', kind: 'dm_notes' };
+/** Terreno de más abajo, bloqueado: es el suelo y no se arrastra sin querer. */
+export const LAYER_FLOOR: Layer = { ...LAYER_BASE, id: 'ly-floor', kind: 'terrain', name: 'Suelo', sortOrder: 0, locked: true, imageUrl: 'https://x/backgrounds/c1/floor.png' };
+/** Terreno de encima, con máscara del pincel de transparencia. */
+export const LAYER_MOSS: Layer = { ...LAYER_BASE, id: 'ly-moss', kind: 'terrain', name: 'Musgo', sortOrder: 1, imageUrl: 'https://x/backgrounds/c1/moss.png', maskUrl: 'https://x/backgrounds/c1/masks/ly-moss.png', maskVersion: 3 };
+/** Terreno apagado: no se pinta para NADIE, tampoco para el director (el ojo de Photoshop). */
+export const LAYER_PUDDLES: Layer = { ...LAYER_BASE, id: 'ly-pud', kind: 'terrain', name: 'Charcos', sortOrder: 2, visible: false, imageUrl: 'https://x/backgrounds/c1/puddles.png' };
+export const LAYERS_ALL: Layer[] = [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS, LAYER_PUDDLES];
+
+const LIGHT_BASE = { sceneId: 'sc-1', campaignId: 'c1', layerId: null, rotation: 0, coneAngle: 60, castsShadow: false, createdAt: '2026-08-31T00:00:00Z', updatedAt: '2026-08-31T00:00:00Z' };
+export const LIGHT_TORCH: Light = { ...LIGHT_BASE, id: 'li-torch', shape: 'radius', kind: 'torch', x: 300, y: 200, color: '#e8a24e', flicker: true, rangeM: 6 };
+export const LIGHT_BULB: Light = { ...LIGHT_BASE, id: 'li-bulb', shape: 'square', kind: 'bulb', x: 600, y: 400, color: '#f0e6c8', flicker: false, rangeM: 4 };
+/** Una luz escondida en la capa de notas del director: no puede llegar a un jugador. */
+export const LIGHT_SECRET: Light = { ...LIGHT_BASE, id: 'li-secret', layerId: LAYER_NOTES.id, shape: 'cone', kind: 'flashlight', x: 800, y: 120, color: '#f2e4b8', flicker: false, rangeM: 9 };
 
 /**
  * In-memory MapsPort. Mutations are recorded; `emit(sceneId, …)` simulates realtime rows/events to subscribers;
  * `broadcasts` collects what I sent on the scene channel.
  */
-export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[] } = {}) {
+export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[] } = {}) {
   const scenes = (seed.scenes ?? [SCENE_WAREHOUSE]).map(s => ({ ...s }));
   const tokens = (seed.tokens ?? []).map(t => ({ ...t }));
   const walls = (seed.walls ?? []).map(w => ({ ...w }));
   const drawings = (seed.drawings ?? []).map(d => ({ ...d }));
   const images = (seed.images ?? []).map(i => ({ ...i }));
+  const layers = (seed.layers ?? []).map(l => ({ ...l }));
+  const lights = (seed.lights ?? []).map(l => ({ ...l }));
   const subs = new Map<string, Set<MapsLiveHandlers>>();
   const broadcasts: { sceneId: string; event: MapsLiveEvent }[] = [];
   const tokenUpdates: { id: string; patch: TokenPatch }[] = [];
@@ -357,12 +380,16 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const clearedMine: string[] = [];
   const clearedAll: string[] = [];
   const uploads: { campaignId: string; name: string }[] = [];
+  const layerUpdates: { id: string; patch: LayerPatch }[] = [];
+  const lightUpdates: { id: string; patch: LightPatch }[] = [];
+  const masksSaved: { layerId: string; bytes: number }[] = [];
+  const masksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, activated, removedDrawings, clearedMine, clearedAll, uploads,
+    scenes, tokens, walls, drawings, images, layers, lights, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, masksSaved, masksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
-    emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; event?: MapsLiveEvent }) => {
-      subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.event) h.onEvent?.(what.event); });
+    emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; event?: MapsLiveEvent }) => {
+      subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.event) h.onEvent?.(what.event); });
     },
     listScenes: async (cid: string) => scenes.filter(s => s.campaignId === cid),
     getScene: async (id: string) => scenes.find(s => s.id === id) ?? null,
@@ -379,14 +406,36 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     updateWallGeometry: async (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => { wallMoves.push({ id, at }); const w = walls.find(x => x.id === id); if (w) Object.assign(w, at); },
     removeWall: async (id: string) => { const i = walls.findIndex(w => w.id === id); if (i >= 0) walls.splice(i, 1); },
     listTokens: async (sid: string) => tokens.filter(t => t.sceneId === sid),
-    addToken: async (t: NewToken) => { const created: Token = { ...t, id: `tk-new-${++n}` }; tokens.push(created); return created; },
+    addToken: async (t: NewToken) => { const created: Token = { layerId: null, ...t, id: `tk-new-${++n}` }; tokens.push(created); return created; },
     updateToken: async (id: string, patch: TokenPatch) => { tokenUpdates.push({ id, patch }); const t = tokens.find(x => x.id === id); if (t) Object.assign(t, patch); },
     removeToken: async (id: string) => { const i = tokens.findIndex(t => t.id === id); if (i >= 0) tokens.splice(i, 1); },
     listDrawings: async (sid: string) => drawings.filter(d => d.sceneId === sid),
-    addDrawing: async (d: NewDrawing) => { const created: Drawing = { ...d, id: `d-new-${++n}`, authorId: PLAYER_USER.id, createdAt: '' }; drawings.push(created); return created; },
+    addDrawing: async (d: NewDrawing) => { const created: Drawing = { layerId: null, ...d, id: `d-new-${++n}`, authorId: PLAYER_USER.id, createdAt: '' }; drawings.push(created); return created; },
     removeDrawing: async (id: string) => { removedDrawings.push(id); const i = drawings.findIndex(d => d.id === id); if (i >= 0) drawings.splice(i, 1); },
     removeMyDrawings: async (sid: string) => { clearedMine.push(sid); for (let i = drawings.length - 1; i >= 0; i--) if (drawings[i]!.sceneId === sid && drawings[i]!.authorId === PLAYER_USER.id) drawings.splice(i, 1); },
     removeAllDrawings: async (sid: string) => { clearedAll.push(sid); for (let i = drawings.length - 1; i >= 0; i--) if (drawings[i]!.sceneId === sid) drawings.splice(i, 1); },
+    listLayers: async (sid: string) => layers.filter(l => l.sceneId === sid),
+    addLayer: async (l: NewLayer) => { const created: Layer = { ...LAYER_OBJECTS, ...l, name: l.name ?? '', sortOrder: l.sortOrder ?? 0, imageUrl: l.imageUrl ?? null, id: `ly-new-${++n}` }; layers.push(created); return created; },
+    updateLayer: async (id: string, patch: LayerPatch) => { layerUpdates.push({ id, patch }); const l = layers.find(x => x.id === id); if (l) Object.assign(l, patch); },
+    removeLayer: async (id: string) => {
+      const i = layers.findIndex(l => l.id === id); if (i >= 0) layers.splice(i, 1);
+      // Espeja el ON DELETE de la migración: los dibujos y las luces se van; las FICHAS vuelven a su capa natural.
+      for (let k = drawings.length - 1; k >= 0; k--) if (drawings[k]!.layerId === id) drawings.splice(k, 1);
+      for (let k = lights.length - 1; k >= 0; k--) if (lights[k]!.layerId === id) lights.splice(k, 1);
+      for (const t of tokens) if (t.layerId === id) t.layerId = null;
+    },
+    saveMask: async (layer: Pick<Layer, 'id' | 'campaignId' | 'maskVersion'>, png: Blob) => {
+      masksSaved.push({ layerId: layer.id, bytes: png.size });
+      const l = layers.find(x => x.id === layer.id);
+      const next = { maskUrl: `https://x/backgrounds/${layer.campaignId}/masks/${layer.id}.png`, maskVersion: layer.maskVersion + 1 };
+      if (l) Object.assign(l, next);
+      return { ...(l ?? LAYER_OBJECTS), ...next };
+    },
+    clearMask: async (layer: Pick<Layer, 'id' | 'campaignId'>) => { masksCleared.push(layer.id); const l = layers.find(x => x.id === layer.id); if (l) l.maskUrl = null; },
+    listLights: async (sid: string) => lights.filter(l => l.sceneId === sid),
+    addLight: async (l: NewLight) => { const created: Light = { ...l, id: `li-new-${++n}`, createdAt: '', updatedAt: '' }; lights.push(created); return created; },
+    updateLight: async (id: string, patch: LightPatch) => { lightUpdates.push({ id, patch }); const l = lights.find(x => x.id === id); if (l) Object.assign(l, patch); },
+    removeLight: async (id: string) => { const i = lights.findIndex(l => l.id === id); if (i >= 0) lights.splice(i, 1); },
     subscribe: (sid: string, h: MapsLiveHandlers) => { const set = subs.get(sid) ?? new Set<MapsLiveHandlers>(); set.add(h); subs.set(sid, set); return () => { set.delete(h); }; },
     broadcast: (sceneId: string, event: MapsLiveEvent) => { broadcasts.push({ sceneId, event }); },
   } satisfies MapsPort & Record<string, unknown>;
