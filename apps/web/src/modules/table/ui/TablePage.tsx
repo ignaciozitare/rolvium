@@ -7,7 +7,7 @@ import { SYSTEMS } from '@/systems/registry';
 import type { TablePort } from '../domain/ports/TablePort';
 import type { TableTab } from '../domain/entities/Table';
 import { tableRepo } from '../container';
-import { handOf, initialTabFor, isConnected, tabsFor } from '../domain/useCases/tableRules';
+import { handOf, initialTabFor, isConnected, tabsFor, askTargetsFrom } from '../domain/useCases/tableRules';
 import { useTable } from './useTable';
 import { SharedResourceBar } from './SharedResourceBar';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
@@ -20,6 +20,7 @@ import { rollsPort as defaultRolls, rollLog as defaultRollLog, attacksPort as de
 import { SidePanel } from '@/modules/dice/ui/SidePanel';
 import { DiceRoller } from '@/modules/dice/ui/DiceRoller';
 import { RollRequestWatcher } from '@/modules/dice/ui/RollRequestWatcher';
+import { DmEncounters } from '@/modules/bestiary/ui/DmEncounters';
 import type { RollRequestsPort } from '@/modules/dice/domain/ports/RollRequestsPort';
 import type { RollRequestWatchPort } from '@/modules/dice/domain/ports/RollRequestWatchPort';
 import type { AskTarget } from '@/modules/dice/ui/DmAskPanel';
@@ -31,7 +32,7 @@ import { SceneTab } from './tabs/SceneTab';
 import { BestiaryTab } from '@/modules/bestiary/ui/BestiaryTab';
 import { useBestiary } from '@/modules/bestiary/ui/useBestiary';
 import { toCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
-import type { CatalogItem } from '@rolvium/core';
+import type { CatalogItem, GameSystem, RollRequest } from '@rolvium/core';
 import type { MapsPort } from '@/modules/maps/domain/ports/MapsPort';
 import type { VisionPort } from '@/modules/maps/domain/ports/VisionPort';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
@@ -73,7 +74,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
     if (!dmCampaignId) return;
     let live = true;
     void charactersRepo.listByCampaign(dmCampaignId)
-      .then(list => { if (live) setAskTargets(list.filter(c => c.ownerId).map(c => ({ characterId: c.id, name: c.name }))); })
+      .then(list => { if (live) setAskTargets(askTargetsFrom(list, user?.id ?? '')); })
       .catch(() => undefined);
     return () => { live = false; };
   }, [dmCampaignId, charactersRepo]);
@@ -202,7 +203,16 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
           </aside>
         </div>
         {rollerOpen && <DiceRoller campaignId={campaign.id} rolls={rolls} onClose={() => setRollerOpen(false)}
-          {...(role === 'dm' ? { ask: { system, targets: askTargets, onAsk: ask } } : {})} />}
+          {...(role === 'dm' ? {
+            ask: { system, targets: askTargets, onAsk: ask },
+            extra: (
+              <DmLauncherEncounters campaignId={campaign.id} system={system} activeSceneId={activeSceneId}
+                                    {...(maps ? { maps } : {})} {...(bestiary ? { bestiary } : {})}
+                                    onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
+                                    onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })}
+                                    onOpenBestiary={() => { setTab('bestiary'); }} />
+            ),
+          } : {})} />}
         {/*
           «TE ATACA UN OGRO» (`.pen` columna 5). Vive aquí y no dentro de una pestaña porque el aviso le
           SALTA a quien le atacan esté donde esté: si estuviera en la escena, quien tenga abierta su ficha
@@ -260,4 +270,20 @@ function TableNotice({ icon, title }: { icon: string; title: string }): JSX.Elem
       <Link to="/campaigns" className="rv-nav-btn active" style={{ width: 'auto' }}>{t('common.back')}</Link>
     </div>
   );
+}
+
+/**
+ * Los encuentros del lanzador del director. Componente aparte por la regla de los hooks (sólo se monta
+ * siendo director) y porque los encuentros PROPIOS salen del Bestiario, igual que en la escena.
+ */
+function DmLauncherEncounters({ campaignId, system, activeSceneId, maps, bestiary, onRoll, onOpenAttack, onOpenBestiary }: {
+  campaignId: string; system: GameSystem; activeSceneId: string | null; maps?: MapsPort; bestiary?: BestiaryPort;
+  onRoll: (req: RollRequest) => Promise<unknown>;
+  onOpenAttack: (input: { sceneId: string | null; attackerTokenId: string; targetTokenId: string; attackerName: string; targetCharacterId: string; dice: number; request: RollRequest; campaignId?: string }) => Promise<unknown>;
+  onOpenBestiary: () => void;
+}): JSX.Element {
+  const { entries } = useBestiary({ campaignId, system, ...(bestiary ? { repo: bestiary } : {}) });
+  const extra = useMemo(() => entries.filter(e => e.origin !== 'manual').map(toCatalogItem), [entries]);
+  return <DmEncounters system={system} campaignId={campaignId} activeSceneId={activeSceneId} extraEncounters={extra}
+                       {...(maps ? { maps } : {})} onRoll={onRoll} onOpenAttack={onOpenAttack} onOpenBestiary={onOpenBestiary} />;
 }

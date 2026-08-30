@@ -272,3 +272,26 @@
 /* El botón de atacar va en sangre, no en tinta: es el único de la mesa que hace daño a alguien. */
 .bs-btn.bs-btn-atk { background: var(--sys-blood); border-color: var(--sys-blood); color: var(--sys-paper-hi); }
 .bs-btn.bs-btn-atk:hover { background: var(--sys-ink); border-color: var(--sys-ink); }
+
+/* ── «Encuentros en la escena» del panel del director (.pen columna 4) ─────── */
+.bs-enc{display:flex;flex-direction:column;border-bottom:1px solid var(--sys-line);}
+.bs-enc-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:none;border:0;cursor:pointer;color:var(--sys-ink-soft);}
+.bs-enc-title{font-family:var(--sys-font-body);font-size:var(--fs-2xs);font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
+.bs-enc-body{display:flex;flex-direction:column;gap:8px;padding:0 12px 10px;}
+.bs-enc-add{align-self:flex-start;font-family:var(--sys-font-body);font-size:var(--fs-2xs);letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;background:none;border:1px solid var(--sys-line);color:var(--sys-ink-soft);cursor:pointer;}
+.bs-enc-empty{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+.bs-enc-row{display:flex;flex-direction:column;gap:6px;}
+.bs-enc-line{display:flex;align-items:center;gap:7px;}
+.bs-enc-tok{flex:none;width:26px;height:26px;border-radius:50%;background:var(--sys-blood);color:var(--sys-paper-hi);display:inline-flex;align-items:center;justify-content:center;font-size:var(--fs-2xs);font-weight:700;letter-spacing:.04em;}
+.bs-enc-id{flex:1;min-width:0;display:flex;flex-direction:column;}
+.bs-enc-name{font-size:var(--fs-sm);color:var(--sys-ink);line-height:var(--lh-tight);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bs-enc-input{font-family:var(--sys-font-body);font-size:var(--fs-sm);color:var(--sys-ink);background:var(--sys-paper);border:1px solid var(--sys-border);padding:1px 4px;min-width:0;}
+.bs-enc-sub{font-size:var(--fs-2xs);color:var(--sys-ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bs-enc-icon{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:none;border:0;color:var(--sys-ink-soft);cursor:pointer;}
+.bs-enc-atk{flex:none;padding:3px 9px;font-size:var(--fs-2xs);}
+.bs-enc-detail{display:flex;flex-direction:column;gap:6px;padding:2px 0 4px 33px;}
+.bs-enc-stats{display:flex;gap:10px;flex-wrap:wrap;}
+.bs-enc-stat{display:inline-flex;flex-direction:column;align-items:center;min-width:26px;}
+.bs-enc-stat-n{font-size:var(--fs-lg);color:var(--sys-ink);line-height:var(--lh-tight);}
+.bs-enc-stat-l{font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;color:var(--sys-ink-dim);}
+.bs-enc-hint{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}

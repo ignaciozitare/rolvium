@@ -1031,6 +1031,16 @@
       "withWhat": "¿Con qué ataca?",
       "hand": "A mano",
       "chipDamage": "daño {{n}}"
+    },
+    "panel": {
+      "title": "Encuentros en la escena · {{n}}",
+      "add": "Añadir",
+      "empty": "No hay criaturas en la escena.",
+      "rename": "Renombrar",
+      "expand": "Desplegar {{name}}",
+      "sub": "Resistencia {{resistance}} · protección {{protection}}",
+      "others": "Otras tiradas",
+      "othersHint": "Mantén pulsada una para elegir dificultad, igual que con los jugadores."
     }
   }
 }
