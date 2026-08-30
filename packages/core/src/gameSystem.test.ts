@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ownDiceForStat } from './gameSystem';
-import type { Engine, SheetData } from './gameSystem';
+import { orderTurns, ownDiceForStat } from './gameSystem';
+import type { Engine, SheetData, TurnParticipant } from './gameSystem';
 import type { RollRequest } from './rolls';
 
 /**
@@ -60,5 +60,51 @@ describe('ownDiceForStat', () => {
   });
   it('una característica que el sistema no conoce no puede dar dados negativos', () => {
     expect(ownDiceForStat(system(), sheet({ penalty: 9 }), 'combat')).toBe(0);
+  });
+});
+
+describe('orderTurns', () => {
+  const p = (id: string, destiny: number, isPlayerCharacter = true): TurnParticipant =>
+    ({ id, sheet: { destiny }, isPlayerCharacter });
+  /** Un comparador de mentira con la forma del real: mayor primero, y `0` = «no sé desempatar». */
+  const byDestiny = (a: TurnParticipant, b: TurnParticipant) =>
+    Number(b.sheet['destiny']) - Number(a.sheet['destiny']);
+
+  it('ordena con el criterio del sistema', () => {
+    const r = orderTurns(system({ turnOrder: byDestiny }), [p('a', 3), p('b', 7), p('c', 5)]);
+    expect(r.order).toEqual(['b', 'c', 'a']);
+    expect(r.undecided).toEqual([]);
+  });
+
+  it('un sistema SIN regla de orden deja a todos como llegaron', () => {
+    const r = orderTurns(system(), [p('a', 3), p('b', 7)]);
+    expect(r.order).toEqual(['a', 'b']);
+    expect(r.undecided).toEqual([]);
+  });
+
+  /**
+   * El caso que justifica que esto no sea un `sort` a secas: `0` no es un fallo del sistema, es el hueco que
+   * el manual le deja a quien dirige. Si se perdiera, la plataforma estaría eligiendo por él en silencio.
+   */
+  it('saca aparte a los que el sistema dejó EMPATADOS, sin elegir por él', () => {
+    const r = orderTurns(system({ turnOrder: byDestiny }), [p('a', 5), p('b', 7), p('c', 5), p('d', 5)]);
+    expect(r.order).toEqual(['b', 'a', 'c', 'd']);
+    expect(r.undecided).toEqual([['a', 'c', 'd']]);
+  });
+
+  it('dos empates separados salen como dos grupos', () => {
+    const r = orderTurns(system({ turnOrder: byDestiny }), [p('a', 5), p('b', 8), p('c', 5), p('d', 8)]);
+    expect(r.undecided).toEqual([['b', 'd'], ['a', 'c']]);
+  });
+
+  /** Estable: dos empatados conservan el orden en que llegaron, así que el resultado no baila entre llamadas. */
+  it('el orden es estable y no muta la lista que le pasan', () => {
+    const input = [p('a', 5), p('c', 5), p('b', 5)];
+    expect(orderTurns(system({ turnOrder: byDestiny }), input).order).toEqual(['a', 'c', 'b']);
+    expect(input.map(x => x.id)).toEqual(['a', 'c', 'b']);
+  });
+
+  it('sin nadie dentro no se rompe', () => {
+    expect(orderTurns(system({ turnOrder: byDestiny }), [])).toEqual({ order: [], undecided: [] });
   });
 });

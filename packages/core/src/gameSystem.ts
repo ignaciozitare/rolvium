@@ -206,6 +206,72 @@ export interface Engine {
    * Opcional: un sistema que no lo declare simplemente no enseña desglose.
    */
   explain?: (roll: { request: RollRequest; dice: RolledDice; result: RollResult }, ts: (key: string) => string) => RollExplain | null;
+  /**
+   * En qué orden actúan los que entran a un combate. Lo declara el SISTEMA porque el criterio es una regla
+   * suya: la plataforma no sabe que en Plenilunio manda el Destino, ni que un PJ gana el empate a un PNJ.
+   *
+   * Contrato de comparador de toda la vida —negativo: `a` actúa antes; positivo: después—, con un matiz que
+   * es la razón de que esto no sea un simple `sort`: **`0` significa que el sistema NO puede desempatar**, y
+   * eso es un resultado legítimo, no un fallo. El manual de Plenilunio termina su regla diciendo que ahí
+   * «decide el director de juego» (p.92–93), así que la plataforma tiene que poder distinguir «van en este
+   * orden» de «estos dos están empatados y falta que alguien elija». `orderTurns` lo devuelve por separado.
+   *
+   * Opcional: un sistema que no lo declare no ordena, y quien entra se queda en el orden en que le pasaron.
+   */
+  turnOrder?: (a: TurnParticipant, b: TurnParticipant) => number;
+}
+
+// ─── Orden de turnos ─────────────────────────────────────────────────────────
+/** Uno de los que entran al combate, tal y como el sistema necesita verlo para ordenarlo. */
+export interface TurnParticipant {
+  /** Identificador del puesto. La plataforma lo pone y es lo que le devuelve el orden. */
+  id: string;
+  /** Su ficha: la del personaje, o la del bloque de la criatura. El sistema lee de aquí lo que le importe. */
+  sheet: SheetData;
+  /**
+   * Es el personaje de un JUGADOR (no un PNJ ni una criatura). Va aparte de la ficha porque no es un valor
+   * de juego: es quién lo lleva, y eso lo sabe la plataforma, no el sistema.
+   */
+  isPlayerCharacter: boolean;
+}
+
+export interface TurnOrder {
+  /** Los ids, ya en el orden en que actúan. */
+  order: string[];
+  /**
+   * Los grupos que el sistema dejó EMPATADOS (comparador `0`), cada uno con sus ids en el orden en que
+   * quedaron. Vacío si no hubo ninguno. Quien llama decide qué hacer con ellos —en Plenilunio, preguntarle
+   * al director (p.92–93)—; lo que no puede hacer la plataforma es elegir por su cuenta y llamarlo regla.
+   */
+  undecided: string[][];
+}
+
+/**
+ * Pone en orden a los que entran al combate, con el criterio del sistema.
+ *
+ * Vive en `core` y no en cada orilla por lo mismo que `ownDiceForStat`: lo van a usar el servidor (que crea
+ * los puestos) y el navegador (que enseña el orden antes de abrirlo), y no pueden discrepar.
+ *
+ * El orden es ESTABLE —`Array.prototype.sort` lo es desde ES2019—, así que dos empatados conservan el orden
+ * en que llegaron y el resultado es el mismo cada vez que se calcula. Los empates se detectan comparando
+ * cada uno con el siguiente YA ORDENADO: para una regla como la de Plenilunio (mismo Destino, mismo bando,
+ * mismo Combate) el empate es transitivo y agrupar vecinos los junta a todos.
+ */
+export function orderTurns(system: Pick<GameSystem, 'engine'>, participants: TurnParticipant[]): TurnOrder {
+  const cmp = system.engine.turnOrder;
+  if (!cmp) return { order: participants.map(p => p.id), undecided: [] };
+  const sorted = [...participants].sort(cmp);
+  const undecided: string[][] = [];
+  let run: TurnParticipant[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const tiedWithNext = i < sorted.length - 1 && cmp(sorted[i]!, sorted[i + 1]!) === 0;
+    if (tiedWithNext) run.push(sorted[i]!);
+    else {
+      if (run.length) { run.push(sorted[i]!); undecided.push(run.map(p => p.id)); }
+      run = [];
+    }
+  }
+  return { order: sorted.map(p => p.id), undecided };
 }
 
 // ─── Generator ───────────────────────────────────────────────────────────────
