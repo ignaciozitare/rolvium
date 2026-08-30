@@ -19,10 +19,16 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   Las dos deudas que la rebanada 3 se dejó (la puerta que parte el muro y el disco de abrir al pasar el ratón) se
   construyeron el 2026-08-19, antes de empezarla.
 - **Rebanada 6 — pendiente**: galería de componentes (muebles, árboles…) para construir mapas dentro de la app.
-- **Rebanada 7 — ESTE SPEC** (§ «Rebanada 7»): **capas del mapa** (con varias de terreno y pincel de
-  transparencia), **luces de ambiente**, **ver la escena con los ojos de un personaje** y la **niebla
-  degradada**. Confirmada por el dueño el 2026-08-31, y va **ANTES que la 5 y la 6** (decisión suya del mismo
-  día): es donde pasa la partida y es lo que menos se ha tocado desde que lo pidió (2026-08-20).
+- **Rebanada 7 — A MEDIAS** (§ «Rebanada 7»). Confirmada por el dueño el 2026-08-31, y va **ANTES que la 5 y
+  la 6** (decisión suya del mismo día): es donde pasa la partida y es lo que menos se ha tocado desde que lo
+  pidió (2026-08-20).
+  - ✅ **HECHO** (2026-08-31): el modelo de datos entero · el **panel de capas** (ojo, candado, orden, borrar,
+    aviso de peso) · las **capas de terreno apiladas con su máscara** pintándose en el lienzo · las **luces de
+    ambiente** de punta a punta, con su herramienta, su editor y el **parpadeo animado** por tipo.
+  - ⏳ **PENDIENTE**: el **pincel de transparencia** en sí (pintar la máscara y subirla) · **elegir la foto**
+    de una capa de terreno (hoy la capa nace vacía; la foto sigue entrando por «Fondo del mapa») · **mandar
+    elementos a otra capa** con el botón derecho · **ver con los ojos de un personaje** · la **penumbra** en
+    tres zonas, que necesita además trabajo en la API.
 
 ## What the user can do
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.

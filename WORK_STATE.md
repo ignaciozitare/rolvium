@@ -14,9 +14,60 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31 (tarde), justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31 (noche), justo debajo.**
 
-## 🟢 PUNTO EXACTO — 2026-08-31 (tarde): REBANADA 7 · EL MODELO DE DATOS, HECHO Y PROBADO
+## 🟢 PUNTO EXACTO — 2026-08-31 (noche): REBANADA 7 · CAPAS Y LUCES CONSTRUIDAS · FALTA EL PINCEL
+
+> Tanda hecha SOLO, con el dueño durmiendo («me voy a dormir, avanza solo todo lo que puedas»).
+> **La nube y `main` no se han tocado.** Todo vive en `feat/maps-rebanada-7-capas-luces`.
+
+### 📍 Estado exacto
+- **Rama `feat/maps-rebanada-7-capas-luces`**, 5 commits, **sin mergear**. `main` sigue en v0.4.0.
+- **775 tests verdes · typecheck limpio · `npm run audit` 0 hard · `build:web` y `build:api` OK.**
+- **Migración aplicada SÓLO EN LOCAL.** ⚠ **La nube NO se ha tocado: hace falta permiso explícito del dueño.**
+- ⚠ **`rolvium.pen` SIGUE SIN GUARDAR EN DISCO** (última escritura: 30-ago 23:35). El diseño de la rebanada 7
+  vive en la caché del editor. **Lo primero al retomar: pedirle que guarde el tab (Cmd+S) y commitear el
+  `.pen`.** Hasta entonces el máster de diseño está en el aire.
+
+### ✅ LO QUE YA FUNCIONA
+1. **Modelo de datos entero** (`20260831120000_maps_layers_lights.sql`) — ver el bloque histórico de la tarde
+   para el detalle y el porqué de la máscara como PNG.
+2. **Panel de capas** (`LayersPanel.tsx`), flotando sobre el mapa: ojo, candado, etiqueta PRIVADA en las notas
+   del director, marca de máscara, subir/bajar/borrar sólo con terreno activo, aviso de peso, y todo con i18n
+   es/en. **Lo que se dibuja cae en la capa ACTIVA.**
+3. **Capas de terreno apiladas con su máscara**, pintándose en el lienzo (`TerrainLayers`). La máscara va
+   sobre un rectángulo blanco dentro del `<mask>` porque en SVG el valor es luminancia × alfa.
+4. **Luces de ambiente de punta a punta**: herramienta en la barra del director, colocar con un clic,
+   seleccionar, `LightEditor` con forma/tipo/color/parpadeo/alcance/sombra, y **el parpadeo ANIMADO** con el
+   ritmo de cada tipo (antorcha tiembla · hoguera respira · bombilla a golpes), quieto con
+   `prefers-reduced-motion`.
+
+### ⏳ LO QUE FALTA DE LA REBANADA 7
+- **El pincel de transparencia en sí**: pintar la máscara sobre el lienzo y subir el PNG. El dato, la ruta, la
+  versión, el tamaño reducido a 1024 y el `saveMask`/`clearMask` **ya están hechos y probados** — falta la
+  interacción y la barra flotante (ya diseñada en el `.pen`).
+- **Elegir la foto de una capa de terreno**: hoy «+ Capa de terreno» la crea con nombre pero VACÍA, y la foto
+  sigue entrando por el «Fondo del mapa» de siempre. Hay que atar el popover que ya existe a la capa activa.
+- **Mandar elementos a otra capa con el botón derecho** (el menú está diseñado en el `.pen`; el dato
+  `layer_id` ya viaja en fichas, dibujos y luces).
+- **Ver con los ojos de un personaje** y **la penumbra en tres zonas** — la penumbra necesita además trabajo
+  en `apps/api`: el bulto de una ficha NO puede viajar por RLS (decide filas, no columnas), lo manda la API
+  con `service_role` recortado a posición y tamaño.
+
+### 🚫 Deuda y avisos de esta tanda
+- ⚠ **La review NO se ha pasado** — el subagente de review y la QA siguen pendientes, y son obligatorios antes
+  de mergear. Lo que sí está: audit 0 hard, 775 tests, typecheck y las dos builds.
+- ⚠ **Choque de iconos**: «ver como jugador» usa el icono `layers` y ahora hay un panel de Capas de verdad.
+  Es de antes de esta tanda, pero ahora confunde. Decisión de diseño para el dueño.
+- El panel de capas y el editor de luces son **NEW (module-specific)**, no reutilizan `Btn` de `@rolvium/ui`:
+  son controles de lienzo de 13 px que siguen el patrón `.mp-tool` que ya existía en `Toolbar.tsx`. El hook de
+  `ui-reuse` avisa; la decisión está tomada a propósito.
+- Al `.pen` se le añadió una fila de acciones (subir/bajar/borrar) al panel de capas que el dueño **no vio**
+  al aprobar: la spec pedía reordenar y el lienzo no lo dibujaba. **Que lo mire.**
+
+---
+
+## 🟢 (histórico) 2026-08-31 (tarde): REBANADA 7 · EL MODELO DE DATOS, HECHO Y PROBADO
 
 ### 📍 Estado exacto
 - **El MCP de Pencil CONECTA** (`get_app_state`): `rolvium.pen` abierto, 53 lienzos, 25 componentes. Lo que
