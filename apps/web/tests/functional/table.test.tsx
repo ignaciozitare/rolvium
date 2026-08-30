@@ -7,7 +7,7 @@ import { TablePage } from '@/modules/table/ui/TablePage';
 import type { TablePort } from '@/modules/table/domain/ports/TablePort';
 import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
 import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, fakeAttacks, fakeRollRequests, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
-import { canTake, initialTabFor, tabsFor } from '@/modules/table/domain/useCases/tableRules';
+import { canTake, initialTabFor, tabsFor, askTargetsFrom } from '@/modules/table/domain/useCases/tableRules';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 
 const GM = { ...ADMIN_USER, id: 'dm-1', name: 'Laura', role: 'game_master' };
@@ -92,6 +92,15 @@ describe('table: rules', () => {
     expect(canTake(def, { value: 3, max: 10, perTakeMax: 5, hands: {} }, 'dm', 'u')).toBe(false);
     expect(canTake(def, { value: 0, max: 10, perTakeMax: 5, hands: {} }, 'player', 'u')).toBe(false);
     expect(canTake(def, { value: 3, max: 10, perTakeMax: 5, hands: { u: 5 } }, 'player', 'u')).toBe(false);
+  });
+});
+
+describe('askTargetsFrom — a quién puede pedirle una tirada el director', () => {
+  const pc = (id: string, ownerId: string | null, kind = 'pc') => ({ id, name: id, kind, ownerId });
+  /** Dueño, 2026-08-23: «me aparece a mí como DM que tire dados, eso está mal» — sus personajes, fuera. */
+  it('sólo los PJ de los JUGADORES: fuera los del propio director, los PNJ y los sin dueño', () => {
+    const list = [pc('karen', 'u-marta'), pc('mio', 'u-dm'), pc('pnj', 'u-marta', 'npc'), pc('libre', null)];
+    expect(askTargetsFrom(list, 'u-dm')).toEqual([{ characterId: 'karen', name: 'karen' }]);
   });
 });
 

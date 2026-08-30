@@ -38,3 +38,14 @@ export const canReset = (def: SharedResourceDef, role: TableRole): boolean => de
 
 /** Presence halo: connected members are shown with a green glow. */
 export const isConnected = (presence: { userId: string }[], userId: string): boolean => presence.some(p => p.userId === userId);
+
+/**
+ * A quién puede pedirle una tirada el director: los PERSONAJES DE LOS JUGADORES — PJ con dueño que no sea
+ * él. Sus propios personajes y los PNJ quedan fuera (dueño, 2026-08-23: «me aparece a mí como DM que tire
+ * dados, eso está mal»): pedirse una tirada a sí mismo no tiene sentido — para eso ya tiene el lanzador.
+ */
+export function askTargetsFrom(characters: readonly { id: string; name: string; kind: string; ownerId: string | null }[], dmId: string): { characterId: string; name: string }[] {
+  return characters
+    .filter(c => c.kind === 'pc' && c.ownerId && c.ownerId !== dmId)
+    .map(c => ({ characterId: c.id, name: c.name }));
+}

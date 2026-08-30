@@ -7,7 +7,7 @@ import { SYSTEMS } from '@/systems/registry';
 import type { TablePort } from '../domain/ports/TablePort';
 import type { TableTab } from '../domain/entities/Table';
 import { tableRepo } from '../container';
-import { handOf, initialTabFor, isConnected, tabsFor } from '../domain/useCases/tableRules';
+import { handOf, initialTabFor, isConnected, tabsFor, askTargetsFrom } from '../domain/useCases/tableRules';
 import { useTable } from './useTable';
 import { SharedResourceBar } from './SharedResourceBar';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
@@ -74,7 +74,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
     if (!dmCampaignId) return;
     let live = true;
     void charactersRepo.listByCampaign(dmCampaignId)
-      .then(list => { if (live) setAskTargets(list.filter(c => c.ownerId).map(c => ({ characterId: c.id, name: c.name }))); })
+      .then(list => { if (live) setAskTargets(askTargetsFrom(list, user?.id ?? '')); })
       .catch(() => undefined);
     return () => { live = false; };
   }, [dmCampaignId, charactersRepo]);

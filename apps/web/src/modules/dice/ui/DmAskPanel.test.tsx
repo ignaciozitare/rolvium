@@ -73,6 +73,20 @@ describe('DmAskPanel — «¿A quién le pides la tirada?» (.pen columna 4)', (
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
+  /** Con un solo jugador, marcarle encendía «A todos» solo — parecía decisión del panel (dueño, 2026-08-23). */
+  it('«A todos» no se enciende solo: marcar al único jugador no lo enciende, y pulsarlo sigue funcionando', async () => {
+    const u = userEvent.setup();
+    const { onAsk } = setup([TARGETS[0]!]);
+    await u.click(screen.getByRole('button', { name: 'Karen' }));
+    expect(screen.getByRole('button', { name: 'A todos' })).toHaveAttribute('aria-pressed', 'false');
+    // y pulsar «A todos» con todos marcados los DESMARCA: el panel vuelve a vacío y lo dice
+    await u.click(screen.getByRole('button', { name: 'A todos' }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Fortaleza' }));
+    await u.click(await screen.findByRole('menuitem', { name: 'Media · 2' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Marca antes a quién');
+    expect(onAsk).not.toHaveBeenCalled();
+  });
+
   it('sin nadie marcado no se pide: lo dice y se queda', async () => {
     const u = userEvent.setup();
     const { onAsk } = setup();

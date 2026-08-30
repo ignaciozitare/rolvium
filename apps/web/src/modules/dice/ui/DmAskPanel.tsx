@@ -35,7 +35,11 @@ export function DmAskPanel({ system, targets, onAsk }: Props): JSX.Element {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; err?: boolean } | null>(null);
 
-  const all = targets.length > 0 && selected.length === targets.length;
+  // «A todos» sólo se ENCIENDE con varios objetivos y todos marcados: con uno solo se encendía al marcar
+  // al único jugador y parecía que el panel lo había decidido por ti (dueño, 2026-08-23). Pulsar sigue
+  // marcando (o desmarcando) a todos, se encienda o no.
+  const all = targets.length > 1 && selected.length === targets.length;
+  const allSelected = targets.length > 0 && selected.length === targets.length;
   const toggle = (id: string) => setSelected(l => (l.includes(id) ? l.filter(x => x !== id) : [...l, id]));
 
   const fire = async (stat: string, difficulty: number) => {
@@ -61,7 +65,7 @@ export function DmAskPanel({ system, targets, onAsk }: Props): JSX.Element {
           </button>
         ))}
         <button type="button" className={`dc-ask-chip ${all ? 'on' : ''}`} aria-pressed={all} disabled={busy || targets.length === 0}
-                onClick={() => setSelected(all ? [] : targets.map(x => x.characterId))}>
+                onClick={() => setSelected(allSelected ? [] : targets.map(x => x.characterId))}>
           {t('dice.ask.everyone')}
         </button>
       </div>
