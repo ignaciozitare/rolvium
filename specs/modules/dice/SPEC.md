@@ -389,7 +389,8 @@ siguiente/cerrar; el adelantarse del jugador paga su Fortuna en el mismo paso). 
 mueve en todas las pantallas.
 
 **Las cuatro operaciones — CONSTRUIDAS (lado servidor, 2026-08-30)**, migración
-`20260830120000_dice_combat_functions.sql` (aplicada en LOCAL; **la nube sin tocar**). Las tablas estaban
+`20260830120000_dice_combat_functions.sql` (aplicada en LOCAL **y en la nube** el 2026-08-31 con permiso del
+dueño; ⚠ el sello de la nube es `20260830222940`, no el del fichero). Las tablas estaban
 desde el 22 de agosto sin consumidor; esto es su segunda mitad. API-only (`service_role`), guardias
 cruzadas en el caso de uso Y en SQL, como el resto de la tanda:
 

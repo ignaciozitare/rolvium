@@ -30,7 +30,12 @@ dentro. Sin `.pen` no se toca una sola pantalla — **y todo lo que queda por ha
 - **Rama viva: `feat/armas-de-fuego`**, HEAD `2d38a5e`, pusheada, **al día con `main`**. Seis commits, todos
   con review pasado. **SIN QA y SIN merge.**
 - **Entorno local**: Supabase levantado, la migración `20260830120000_dice_combat_functions.sql` aplicada
-  SÓLO EN LOCAL con `migration up`. **La nube NO la tiene y no se ha tocado.**
+  con `migration up`. **APLICADA TAMBIÉN EN LA NUBE el 2026-08-31 con permiso explícito del dueño**
+  (`apply_migration` por MCP, proyecto `scfspsiemikfcnqteonq`). Verificado en la nube por la QA: las cuatro
+  funciones existen, son `SECURITY DEFINER`, `authenticated` NO puede ejecutar ninguna y `service_role` sí,
+  y las dos que mueven el orden llevan el `FOR UPDATE` del review. ⚠ El sello de la nube es
+  `20260830222940` y el fichero local `20260830120000` — misma situación idempotente ya documentada para
+  `dice_director_panel`; no se toca.
 
 ### ✅ Lo que entra en `feat/armas-de-fuego`
 1. **Armas de fuego de los bloques humanos** (`4197308`, `13e9beb`). La premisa que había escrita era FALSA:
@@ -168,7 +173,8 @@ pesadas») se queda SIN arma: la tabla no imprime ninguna y no se inventan valor
   **sólo entre PJ** — dos criaturas empatadas a Destino van directas al «decide el director».
 - **Migración `20260830120000_dice_combat_functions.sql`**: las cuatro funciones que faltaban desde el 22 de
   agosto (las tablas estaban creadas y sin consumidor). **Aplicada SÓLO EN LOCAL** con `migration up` (no
-  `reset`). `db lint` limpio · `authenticated` no puede ejecutar ninguna. **La nube NO la tiene.**
+  `reset`). `db lint` limpio · `authenticated` no puede ejecutar ninguna. **Y APLICADA EN LA NUBE el
+  2026-08-31 con permiso del dueño** (sello `20260830222940`, distinto del nombre del fichero).
 - **API**: `POST /combats` (abre; **el orden lo pone el servidor**) · `/:id/next` · `/:id/close` ·
   `/:id/advance` (gana un puesto pagando 1 Fortuna). Abrir contesta **409 `UNDECIDED`** con los empates para
   que la app se los pregunte al director y los reenvíe en `tiebreak`.
