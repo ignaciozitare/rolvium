@@ -23,7 +23,7 @@ import { LightEditor } from './LightEditor';
 import { MaskBrushBar } from './MaskBrushBar';
 import { LayerMenu } from './LayerMenu';
 import { useMaskPainter } from './useMaskPainter';
-import { DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, newLightOf, type ElementKind, type MaskDirection } from '../domain/useCases/layerRules';
+import { clampMaskSize, DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, newLightOf, type ElementKind, type MaskDirection } from '../domain/useCases/layerRules';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
@@ -432,7 +432,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           )}
           {/* El pincel de transparencia necesita una capa de terreno donde pintar; si no la hay, se DICE. */}
           {isDm && !playerView && tool === 'mask' && (bgLayer
-            ? <MaskBrushBar layerName={bgLayer.name || t('maps.layers.kind.terrain')} size={maskSizeCells} onSize={setMaskSizeCells}
+            ? <MaskBrushBar layerName={bgLayer.name || t('maps.layers.kind.terrain')} size={maskSizeCells} onSize={n => setMaskSizeCells(clampMaskSize(n))}
                 strength={maskStrength} onStrength={setMaskStrength} hardness={maskHardness} onHardness={setMaskHardness}
                 direction={maskDir} onDirection={setMaskDir}
                 saving={mask.saving} onReset={() => run(mask.reset())} />

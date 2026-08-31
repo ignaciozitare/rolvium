@@ -16,13 +16,35 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔴 de 2026-08-31 (noche), justo debajo.**
 
-## 🔴 TRASPASO — 2026-08-31 (noche): EL PINCEL, HECHO Y REVISADO, CON 2 ARREGLOS PENDIENTES
+## 🔴 PUNTO EXACTO — 2026-09-01: LOS 2 ARREGLOS DEL PINCEL, HECHOS Y REVISADOS · FALTA GUARDAR EL `.pen`
 
 > Rama `feat/maps-rebanada-7-capas-luces`, **sin mergear**. `main` sigue en v0.4.0. **La nube NO se ha tocado.**
-> Cierre por el **guardia de contexto** (14 MB de transcripción, umbral 6). El review pasó pero NO pudo
-> aplicar sus dos arreglos porque el hook le bloqueó los `Edit`. **No se esquivó a propósito.**
+> Los dos arreglos que el guardia de contexto dejó a medias **están aplicados y el review volvió a pasar**.
 
-### 🔴 LO PRIMERO AL RETOMAR: LOS 2 ARREGLOS DEL REVIEW
+### ✅ LOS 2 ARREGLOS DEL REVIEW — APLICADOS (2026-09-01), SIN COMMITEAR
+1. **`clampMaskSize` ya se llama**: `SceneTab.tsx` línea 26 (import) y 435
+   (`onSize={n => setMaskSizeCells(clampMaskSize(n))}`). Sus 3 tests dejan de pasar por vacío.
+2. **El pin de alcance está escrito**: test `el tamaño de transparencia va aparte del de la niebla` dentro del
+   describe `<SceneTab> capas (rebanada 7)` de `SceneTab.test.tsx`.
+
+**Verde**: typecheck limpio · 891 tests (61 en `SceneTab.test.tsx`) · audit 0 hard, 13 warn preexistentes · build web + api.
+
+**Lo que el review de esta ronda añadió y hay que saber:**
+- Probó el pin con **mutaciones reales**. La fusión ingenua y la «astuta» ya fallaban, pero la **fusión de una
+  sola dirección** (la niebla arrastrando a la máscara) **pasaba**. Cerró el hueco con 2 líneas: ahora el test
+  también mueve el disco de niebla a «Tamaño 1» y comprueba que la transparencia sigue en 3.5. El pin es simétrico.
+- **⚠ DEUDA, decisión del dueño**: el *cableado* de `clampMaskSize` **no lo pinea ningún test y no es pineable
+  desde la interfaz** — el `<input type=range>` ya nace acotado (`min`=2, `max`=60) y jsdom, como el navegador,
+  sanea el valor antes de entregarlo: mandando `999` el manejador recibe 6.0. Quitando el envoltorio los 61 tests
+  siguen en verde. La *lógica* sí está pineada en `layerRules.test.ts` (rango, 0→MIN, 999→MAX, NaN→DEFAULT).
+  Pinear el cableado exigiría extraer el manejador de `SceneTab` — refactor fuera de lo pedido, **sin permiso**.
+
+### 🔴 LO PRIMERO AL RETOMAR — lo que sigue vivo
+- **GUARDAR `rolvium.pen` CON Cmd+S** (ver punto 2 de más abajo). Sigue sin escribirse en disco.
+- Contestar las **3 preguntas abiertas** del final de este bloque.
+- Decidir el **punto 3 (cosmético, «1.0 casillas»)** y **mirar la barra en pantalla (punto 4)**.
+
+### 📜 (histórico) El encargo tal como quedó escrito la noche del 2026-08-31
 El código del pincel está **hecho, commiteado y en verde** (840 tests, typecheck, audit 0 hard, build OK).
 Faltan sólo estos dos, los dos con el texto exacto ya escrito:
 
@@ -78,11 +100,9 @@ tiene `flex-wrap`, así que se parte en dos líneas en vez de desbordar — pero
 3. **La app se calla** cuando arrastras una capa y no se puede mover. Deuda acordada, sin permiso de tocar.
 
 ### 🔁 Prompt de resume, de una línea
-> Retomo Rolvium, rama `feat/maps-rebanada-7-capas-luces`. **Lo primero: los 2 arreglos del review del
-> pincel que quedaron pendientes por el guardia de contexto** (están escritos enteros en el bloque 🔴 de
-> WORK_STATE: llamar a `clampMaskSize` en `SceneTab.tsx` y añadir el test de que el tamaño de transparencia
-> va aparte del de niebla). Luego pásame el review. Y recuérdame que **guarde `rolvium.pen` con Cmd+S**, que
-> tengo 7 pantallas de diseño de la galería sin escribir en disco.
+> Retomo Rolvium, rama `feat/maps-rebanada-7-capas-luces`. Los 2 arreglos del pincel **ya están aplicados y
+> revisados, sin commitear**. Recuérdame **guardar `rolvium.pen` con Cmd+S** (7 pantallas de la galería sin
+> escribir en disco) y pregúntame las 3 preguntas abiertas del bloque 🔴 antes de tocar nada más.
 
 ## 🟢 PUNTO EXACTO — 2026-08-31 (tarde, 3): EL TEST PENDIENTE, CERRADO · TOOLTIPS DIAGNOSTICADOS
 

@@ -935,6 +935,32 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     expect(within(bar as HTMLElement).getByText('Musgo')).toBeInTheDocument();
   });
 
+  /**
+   * PIN DE DECISIÓN: el tamaño del pincel de transparencia es CONTINUO y vive APARTE del de la niebla, que
+   * son cuatro discos fijos. El dueño pidió el gradual sólo para éste. Si alguien «ordena» el código y los
+   * junta reusando `brush`, la niebla se queda con un tamaño que ninguno de sus cuatro discos puede marcar:
+   * este test es lo único que se entera.
+   */
+  it('el tamaño de transparencia va aparte del de la niebla', async () => {
+    const u = userEvent.setup();
+    mount('dm', withLayers());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
+    expect(screen.getByText('1.2 casillas')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('slider', { name: 'Tamaño del pincel' }), { target: { value: '35' } });
+    expect(await screen.findByText('3.5 casillas')).toBeInTheDocument();
+    // La niebla sigue en su disco de siempre…
+    await u.click(screen.getByRole('button', { name: 'Revelar' }));
+    expect(await screen.findByRole('radio', { name: 'Tamaño 3' })).toBeChecked();
+    // …y moverle el disco a la niebla tampoco arrastra al de transparencia (la fusión de una sola dirección).
+    await u.click(screen.getByRole('radio', { name: 'Tamaño 1' }));
+    expect(await screen.findByRole('radio', { name: 'Tamaño 1' })).toBeChecked();
+    // …y al volver, la transparencia conserva el suyo.
+    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    expect(await screen.findByText('3.5 casillas')).toBeInTheDocument();
+  });
+
   it('retocar y borrar la luz seleccionada llega al repositorio', async () => {
     const u = userEvent.setup();
     const repo = withLayers();
