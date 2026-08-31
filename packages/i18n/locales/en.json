@@ -909,7 +909,13 @@
       "addTerrain": "+ Terrain layer",
       "heavy": "{{n}} terrain layers · the scene is getting heavy",
       "empty": "This scene has no layers yet.",
-      "newName": "Name of the terrain layer"
+      "newName": "Name of the terrain layer",
+      "sendTo": "Send to layer",
+      "element": {
+        "token": "Token",
+        "drawing": "Drawing",
+        "light": "Light"
+      }
     },
     "lights": {
       "title": "Ambient light",

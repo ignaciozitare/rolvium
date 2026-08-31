@@ -251,6 +251,11 @@ export class SupabaseMapsRepo implements MapsPort {
     const { error } = await this.db.from('maps_drawings').delete().eq('scene_id', sceneId).eq('author_id', me);
     this.fail(error);
   }
+  /** DM only (RLS `maps_drawings_dm_update`): lo único que se edita de un trazo es en qué capa está. */
+  async updateDrawingLayer(id: string, layerId: string | null): Promise<void> {
+    const { error } = await this.db.from('maps_drawings').update({ layer_id: layerId }).eq('id', id);
+    this.fail(error);
+  }
   async removeAllDrawings(sceneId: string): Promise<void> {
     const { error } = await this.db.from('maps_drawings').delete().eq('scene_id', sceneId);
     this.fail(error);

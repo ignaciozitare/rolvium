@@ -295,3 +295,11 @@
 /* El aviso de que hace falta una capa: se dice, no se deja el pincel mudo. */
 .mp-mask-needs{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:3;padding:6px 10px;
   background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);font-size:var(--fs-xs);color:var(--sys-ink-dim);}
+
+/* ── menú «mandar a la capa» (rebanada 7) ── */
+.mp-layermenu{min-width:190px;padding:5px;}
+.mp-layermenu-head{display:flex;align-items:center;gap:6px;padding:4px 5px;border-bottom:1px solid var(--sys-line);margin-bottom:4px;color:var(--sys-ink-dim);}
+.mp-layermenu-name{font-size:var(--fs-xs);color:var(--sys-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-layermenu-label{display:block;padding:2px 5px;}
+.mp-layermenu .mp-menu-item.on{background:var(--sys-ink-soft);color:var(--sys-paper-hi);}
+.mp-layermenu-check{margin-left:auto;color:var(--sys-gold);}

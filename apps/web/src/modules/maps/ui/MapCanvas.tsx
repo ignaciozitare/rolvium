@@ -5,7 +5,7 @@ import type { Drawing, DrawingKind, Layer, Light, Scene, Token, Wall, WallKind }
 import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
-import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers } from '../domain/useCases/layerRules';
+import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 
 export interface StrokeStyle { color: string; width: number }
 
@@ -69,6 +69,11 @@ interface Props {
   onDeleteSelection?: () => void;
   /** Right-click on empty ground with nothing pending: where to open the quick menu (canvas px + scene point). */
   onContextMenu?: (at: { x: number; y: number }, scene: Point) => void;
+  /**
+   * DM, botón derecho SOBRE algo: «mándalo a otra capa» (petición literal del dueño). Si el clic cae en el
+   * suelo vacío no se llama y sigue mandando `onContextMenu`, que es el menú de la vista.
+   */
+  onElementMenu?: (at: { x: number; y: number }, element: { kind: ElementKind; id: string; name: string; layerId: string | null }) => void;
   /** Any press on the canvas dismisses whatever popover is open. */
   onCloseMenus?: () => void;
   /** Tokens caught by dragging a box with Seleccionar. */
@@ -421,13 +426,34 @@ export function MapCanvas(p: Props): JSX.Element {
   };
 
   /**
+   * Qué hay bajo el puntero, mirando de arriba abajo igual que se pinta: primero las fichas, luego las luces
+   * y por último los trazos. Sin este orden, un trazo grande debajo de una ficha se llevaría el clic.
+   */
+  const elementAt = (s: Point): { kind: ElementKind; id: string; name: string; layerId: string | null } | null => {
+    const tk = [...tokensShown].reverse().find(t => {
+      const c = tokenCenter(t, grid);
+      return Math.hypot(c.x - s.x, c.y - s.y) <= tokenRadiusPx(t, grid);
+    });
+    if (tk) return { kind: 'token', id: tk.id, name: tk.name, layerId: tk.layerId };
+    const li = [...lightsShown].reverse().find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12, lightRadiusPx(l, p.scene.grid) * 0.25));
+    if (li) return { kind: 'light', id: li.id, name: '', layerId: li.layerId };
+    const d = hitTest(drawingsShown, s, 6 / p.view.zoom);
+    if (d) return { kind: 'drawing', id: d.id, name: '', layerId: d.layerId };
+    return null;
+  };
+
+  /**
    * Right button: first it ends whatever is half-drawn (a chained wall, a measure) — same job as Escape, but
    * without moving your hand. On empty ground with nothing pending it opens the quick menu instead.
    */
   const onRightClick = (e: ReactPointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
     e.preventDefault();
     if (wallStart || measure || gesture) { setWallStart(null); setMeasure(null); setGesture(null); return; }
-    p.onContextMenu?.(local(e), toScene(e));
+    // Sobre algo, el menú es de ESE algo; en el suelo vacío, el de la vista. Sólo el director mueve capas.
+    const s = toScene(e);
+    const el = dmSight ? elementAt(s) : null;
+    if (el) { p.onElementMenu?.(local(e), el); return; }
+    p.onContextMenu?.(local(e), s);
   };
 
   const onUp = () => {

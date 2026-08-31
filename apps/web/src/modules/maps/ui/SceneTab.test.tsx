@@ -950,3 +950,68 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     expect(screen.queryByRole('group', { name: /^Luz:/ })).not.toBeInTheDocument();
   });
 });
+
+/**
+ * «Botón derecho sobre cualquier cosa → mándala a otra capa», petición literal del dueño. Se prueba en la
+ * escena de verdad porque lo que importa es la CONEXIÓN: que el clic derecho encuentre lo que hay debajo y
+ * que el cambio llegue a la tabla que toca según de qué sea.
+ */
+describe('<SceneTab> mandar a otra capa (rebanada 7)', () => {
+  const withStuff = () => fakeMapsRepo({
+    scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [], drawings: [DRAWING_MINE], images: [IMAGE_CHAPEL],
+    layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS], lights: [LIGHT_TORCH],
+  });
+  /** TOKEN_KAREN vive en la casilla (10, 11) y mide 1: su centro cae en el medio de esa casilla. */
+  const KAREN_AT = { x: 10.5 * G, y: 11.5 * G };
+
+  it('el menú sale sobre la ficha, con su nombre y la capa donde está marcada', async () => {
+    mount('dm', withStuff());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.contextMenu(canvas(), { clientX: KAREN_AT.x, clientY: KAREN_AT.y });
+    const menu = await screen.findByRole('menu', { name: 'Mandar a la capa' });
+    expect(within(menu).getByText('Karen «K»')).toBeInTheDocument();
+    // Nunca se movió, así que la marcada es su capa natural: Criaturas y personajes.
+    expect(within(menu).getByRole('menuitem', { name: /Criaturas y personajes/ })).toHaveClass('on');
+  });
+
+  it('mandar la ficha a las notas del director la guarda ahí', async () => {
+    const u = userEvent.setup();
+    const repo = withStuff();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.contextMenu(canvas(), { clientX: KAREN_AT.x, clientY: KAREN_AT.y });
+    await screen.findByRole('menu', { name: 'Mandar a la capa' });
+    await u.click(screen.getByRole('menuitem', { name: /Notas del director/ }));
+    await waitFor(() => expect(repo.tokenUpdates.at(-1)).toEqual({ id: 'tk-karen', patch: { layerId: 'ly-dm' } }));
+    expect(screen.queryByRole('menu', { name: 'Mandar a la capa' })).not.toBeInTheDocument();
+  });
+
+  it('un trazo se manda por su propio camino, no por el de las fichas', async () => {
+    const u = userEvent.setup();
+    const repo = withStuff();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    // DRAWING_MINE es un trazo que pasa por (300, 300).
+    fireEvent.contextMenu(canvas(), { clientX: 300, clientY: 300 });
+    await screen.findByRole('menu', { name: 'Mandar a la capa' });
+    await u.click(screen.getByRole('menuitem', { name: /Musgo/ }));
+    await waitFor(() => expect(repo.drawings.find(d => d.id === DRAWING_MINE.id)!.layerId).toBe('ly-moss'));
+    expect(repo.tokenUpdates).toEqual([]);
+  });
+
+  /** En el suelo vacío el botón derecho sigue siendo el menú de la VISTA, como antes de esta rebanada. */
+  it('en el suelo vacío sigue saliendo el menú de siempre', async () => {
+    mount('dm', withStuff());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.contextMenu(canvas(), { clientX: 30 * G, clientY: 20 * G });
+    expect(await screen.findByRole('menu', { name: 'Acciones rápidas' })).toBeInTheDocument();
+    expect(screen.queryByRole('menu', { name: 'Mandar a la capa' })).not.toBeInTheDocument();
+  });
+
+  it('un jugador no manda nada a ninguna capa', async () => {
+    mount('player', withStuff());
+    await waitFor(() => expect(screen.getByText(/Almacén de Queens · tu visión/)).toBeInTheDocument());
+    fireEvent.contextMenu(canvas(), { clientX: KAREN_AT.x, clientY: KAREN_AT.y });
+    expect(screen.queryByRole('menu', { name: 'Mandar a la capa' })).not.toBeInTheDocument();
+  });
+});

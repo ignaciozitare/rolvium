@@ -62,6 +62,8 @@ export interface MapsPort {
   removeMyDrawings(sceneId: string): Promise<void>;
   /** DM: every stroke in the scene. */
   removeAllDrawings(sceneId: string): Promise<void>;
+  /** DM: manda un trazo a otra capa (rebanada 7). Lo único que se edita de un dibujo. */
+  updateDrawingLayer(id: string, layerId: string | null): Promise<void>;
   // layers (rebanada 7) — las escribe SÓLO el director
   listLayers(sceneId: string): Promise<Layer[]>;
   /**

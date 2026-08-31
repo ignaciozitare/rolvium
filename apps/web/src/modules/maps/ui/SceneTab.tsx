@@ -21,8 +21,9 @@ import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
 import { MaskBrushBar } from './MaskBrushBar';
+import { LayerMenu } from './LayerMenu';
 import { useMaskPainter } from './useMaskPainter';
-import { DEFAULT_MASK_STRENGTH, newLightOf, type MaskDirection } from '../domain/useCases/layerRules';
+import { DEFAULT_MASK_STRENGTH, newLightOf, type ElementKind, type MaskDirection } from '../domain/useCases/layerRules';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
@@ -132,6 +133,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [selectedLightId, setSelectedLightId] = useState<string | null>(null);
   const [maskStrength, setMaskStrength] = useState(DEFAULT_MASK_STRENGTH);
   const [maskDir, setMaskDir] = useState<MaskDirection>('erase');
+  /** «Botón derecho sobre cualquier cosa → mándala a otra capa». */
+  const [layerMenu, setLayerMenu] = useState<{ at: Point; element: { kind: ElementKind; id: string; name: string; layerId: string | null } } | null>(null);
   const live = st.scene;
   const viewport = () => ({ width: stageRef.current?.clientWidth ?? 0, height: stageRef.current?.clientHeight ?? 0 });
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
@@ -370,7 +373,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             }}
             selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
-            onContextMenu={(at, pt) => { closeOverlays('quick'); setQuickMenu({ at, scene: pt }); }}
+            onContextMenu={(at, pt) => { closeOverlays('quick'); setLayerMenu(null); setQuickMenu({ at, scene: pt }); }}
+            onElementMenu={(at, element) => { closeOverlays('quick'); setQuickMenu(null); setLayerMenu({ at, element }); }}
             onDeleteSelection={deleteSelection}
             onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))} />
           {isDm && (
@@ -441,6 +445,16 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               {t('maps.place.now', { name: ts(encounter.label) })}
               <button type="button" className="tb-btn tb-btn-xs" onClick={() => { setEncounter(null); setTool('select'); }}>{t('common.cancel')}</button>
             </div>
+          )}
+          {layerMenu && (
+            <LayerMenu at={layerMenu.at} element={layerMenu.element} layers={st.layers}
+              onPick={layerId => {
+                const { kind, id } = layerMenu.element;
+                if (kind === 'token') run(st.patchToken(id, { layerId }));
+                else if (kind === 'light') run(st.patchLight(id, { layerId }));
+                else run(st.patchDrawingLayer(id, layerId));
+              }}
+              onClose={() => setLayerMenu(null)} />
           )}
           {quickMenu && (
             <div className="mp-pop mp-quick" role="menu" aria-label={t('maps.quick.title')} style={{ left: quickMenu.at.x, top: quickMenu.at.y }}>

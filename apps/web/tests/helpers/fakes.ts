@@ -414,6 +414,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     removeDrawing: async (id: string) => { removedDrawings.push(id); const i = drawings.findIndex(d => d.id === id); if (i >= 0) drawings.splice(i, 1); },
     removeMyDrawings: async (sid: string) => { clearedMine.push(sid); for (let i = drawings.length - 1; i >= 0; i--) if (drawings[i]!.sceneId === sid && drawings[i]!.authorId === PLAYER_USER.id) drawings.splice(i, 1); },
     removeAllDrawings: async (sid: string) => { clearedAll.push(sid); for (let i = drawings.length - 1; i >= 0; i--) if (drawings[i]!.sceneId === sid) drawings.splice(i, 1); },
+    updateDrawingLayer: async (id: string, layerId: string | null) => { const d = drawings.find(x => x.id === id); if (d) d.layerId = layerId; },
     listLayers: async (sid: string) => layers.filter(l => l.sceneId === sid),
     addLayer: async (l: NewLayer) => { const created: Layer = { ...LAYER_OBJECTS, ...l, name: l.name ?? '', sortOrder: l.sortOrder ?? 0, imageUrl: l.imageUrl ?? null, id: `ly-new-${++n}` }; layers.push(created); return created; },
     updateLayer: async (id: string, patch: LayerPatch) => { layerUpdates.push({ id, patch }); const l = layers.find(x => x.id === id); if (l) Object.assign(l, patch); },

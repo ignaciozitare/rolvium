@@ -264,6 +264,15 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   }, [vision, sceneId, announceVision]);
   // ── capas y luces (rebanada 7) ──
   /** Sólo el director. Las tres fijas las crea un disparador al nacer la escena: por aquí sólo pasa TERRENO. */
+  /**
+   * Mandar un TRAZO a otra capa. Los dibujos no tenían actualización hasta ahora —se ponían y se borraban—,
+   * y la RLS ya la permite al director (`maps_drawings_dm_update`, de la rebanada 1).
+   */
+  const patchDrawingLayer = useCallback(async (id: string, layerId: string | null) => {
+    setDrawings(l => l.map(d => (d.id === id ? { ...d, layerId } : d)));
+    await repo.updateDrawingLayer(id, layerId);
+  }, [repo]);
+
   const addTerrainLayer = useCallback(async (over: Partial<Pick<Layer, 'name' | 'imageUrl'>> = {}) => {
     if (!sceneId || !live) return null;
     const created = await repo.addLayer({ sceneId, campaignId: live.campaignId, kind: 'terrain', sortOrder: nextTerrainSortOrder(layers), ...over });
@@ -326,7 +335,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
     dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin,
     refreshVision, paintFog, paintAllFog, serverCorrection,
-    addTerrainLayer, patchLayer, removeLayer, reorderLayer, saveMask, clearMask, addLight, patchLight, removeLight,
-  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, saveMask, clearMask, addLight, patchLight, removeLight]);
+    addTerrainLayer, patchLayer, removeLayer, reorderLayer, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
+  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer]);
 }
 export type SceneState = ReturnType<typeof useScene>;
