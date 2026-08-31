@@ -77,10 +77,6 @@ export const nextTerrainSortOrder = (layers: readonly Layer[]): number =>
   terrainLayers(layers).reduce((max, l) => Math.max(max, l.sortOrder), -1) + 1;
 
 /**
- * Subir o bajar una capa de terreno: devuelve SÓLO las filas que cambian de orden, para no reescribir la
- * lista entera en cada clic. Vacío si ya está en el extremo.
- */
-/**
  * ¿Hay dos capas de terreno con el MISMO número de orden? Entonces repartir los números que ya existen no
  * arregla nada: intercambiar dos números iguales escribe lo mismo y la capa no se mueve — el arrastre queda
  * mudo y los botones de subir y bajar se quedan muertos DANDO EL GUARDADO POR BUENO, que es peor.
@@ -95,12 +91,21 @@ const tiedSortOrder = (list: readonly Layer[]): boolean =>
 /**
  * Renumera la franja de terreno de 0 en adelante en el orden pedido. Es la única forma de deshacer un empate
  * sin tocar la base de datos. Sigue escribiendo SÓLO las filas que cambian de número.
+ *
+ * EXIGE que `after` sea una PERMUTACIÓN de `before` — los mismos ids, sólo que en otro orden. Los dos sitios
+ * que la llaman la cumplen por construcción (parten de `[...list]` y se limitan a mover una posición), y por
+ * eso el `!` de abajo no miente. Con un id de más revienta en el acto, que es lo que se quiere: renumerar una
+ * franja incompleta dejaría a la capa ausente con su número viejo y podría FABRICAR el empate que esto cura.
  */
 const renumber = (before: readonly Layer[], after: readonly Layer[]): { id: string; sortOrder: number }[] =>
   after
     .map((l, i) => ({ id: l.id, sortOrder: i }))
     .filter(m => before.find(l => l.id === m.id)!.sortOrder !== m.sortOrder);
 
+/**
+ * Subir o bajar una capa de terreno: devuelve SÓLO las filas que cambian de orden, para no reescribir la
+ * lista entera en cada clic. Vacío si ya está en el extremo.
+ */
 export function reorderTerrain(layers: readonly Layer[], id: string, dir: 'up' | 'down'): { id: string; sortOrder: number }[] {
   const list = terrainLayers(layers);
   const i = list.findIndex(l => l.id === id);
