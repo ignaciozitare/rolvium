@@ -22,8 +22,8 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 > **La nube y `main` no se han tocado.** Todo vive en `feat/maps-rebanada-7-capas-luces`.
 
 ### 📍 Estado exacto
-- **Rama `feat/maps-rebanada-7-capas-luces`**, 7 commits, **sin mergear**. `main` sigue en v0.4.0.
-- **781 tests verdes · typecheck limpio · `npm run audit` 0 hard · `build:web` y `build:api` OK.**
+- **Rama `feat/maps-rebanada-7-capas-luces`**, 11 commits, **sin mergear**. `main` sigue en v0.4.0.
+- **815 tests web + 193 api · typecheck limpio · `npm run audit` 0 hard · `build:web` y `build:api` OK.**
 - **Migración aplicada SÓLO EN LOCAL.** ⚠ **La nube NO se ha tocado: hace falta permiso explícito del dueño.**
 - ⚠ **`rolvium.pen` SIGUE SIN GUARDAR EN DISCO** (última escritura: 30-ago 23:35). El diseño de la rebanada 7
   vive en la caché del editor. **Lo primero al retomar: pedirle que guarde el tab (Cmd+S) y commitear el
@@ -43,16 +43,29 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
    `prefers-reduced-motion`.
 5. **Darle foto a una capa de terreno**: «Fondo del mapa» apunta a la capa activa cuando hay una
    (EXTEND retrocompatible de `BackgroundPopover`). Sin esto «+ Capa de terreno» parecía no hacer nada.
+6. **El pincel de transparencia**, con sus DOS SENTIDOS (borrar / devolver). Pinta en un lienzo propio fuera
+   de pantalla y sube el PNG **al soltar**, no en cada movimiento.
+7. **Botón derecho → mandar cualquier cosa a otra capa** (fichas, luces y trazos).
+8. **Ver con los ojos de un personaje**, calculado en el SERVIDOR y sin guardar nada — si se recalculase en
+   el navegador del director, lo suyo y lo del jugador podrían discrepar, que es lo que viene a comprobar.
+
+### 🛑 EL HALLAZGO QUE HAY QUE DECIDIR: la penumbra no puede hacer lo que promete
+La spec decidió que en la penumbra el servidor mandaría **sólo posición y tamaño** de una ficha, «porque hoy
+una ficha que no ves NO EXISTE en tu navegador». **Eso sólo vale para las fichas marcadas OCULTAS.** Una ficha
+normal fuera de tu línea de visión **ya llega entera** —nombre, retrato, id y estado— a todos los jugadores:
+la RLS de `maps_tokens` no sabe de líneas de visión (`visible AND maps_scene_visible AND ...`), y lo que la
+esconde es la niebla **al pintar**. Comprobado en la política y en `MapCanvas` (`tokenMask` es una máscara de
+SVG; las fichas de PJ ni eso).
+
+**Por eso se paró aquí en vez de construirla**: añadir un «bulto» con sólo posición y tamaño mientras la fila
+entera sigue viajando no protege nada — sería teatro. Taparlo de verdad es otra rebanada y es **decisión del
+dueño**: dejar de servir `maps_tokens` a los jugadores por RLS y pasarlas por la API recortadas por visión, lo
+que obliga además a rehacer cómo llegan los cambios en vivo. La parte VISUAL (tres zonas + bulto sin cara) sí
+se puede construir aparte, diciendo en voz alta que es un efecto y no una protección.
 
 ### ⏳ LO QUE FALTA DE LA REBANADA 7
-- **El pincel de transparencia en sí**: pintar la máscara sobre el lienzo y subir el PNG. El dato, la ruta, la
-  versión, el tamaño reducido a 1024 y el `saveMask`/`clearMask` **ya están hechos y probados** — falta la
-  interacción y la barra flotante (ya diseñada en el `.pen`).
-- **Mandar elementos a otra capa con el botón derecho** (el menú está diseñado en el `.pen`; el dato
-  `layer_id` ya viaja en fichas, dibujos y luces).
-- **Ver con los ojos de un personaje** y **la penumbra en tres zonas** — la penumbra necesita además trabajo
-  en `apps/api`: el bulto de una ficha NO puede viajar por RLS (decide filas, no columnas), lo manda la API
-  con `service_role` recortado a posición y tamaño.
+- **Sólo la penumbra**, y está BLOQUEADA por el hallazgo de arriba: hace falta que el dueño decida.
+  Todo lo demás de la rebanada 7 está construido.
 
 ### 🚫 Deuda y avisos de esta tanda
 - ⚠ **La review NO se ha pasado** — el subagente de review y la QA siguen pendientes, y son obligatorios antes

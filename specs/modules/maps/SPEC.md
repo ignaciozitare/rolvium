@@ -25,9 +25,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   - ✅ **HECHO** (2026-08-31): el modelo de datos entero · el **panel de capas** (ojo, candado, orden, borrar,
     aviso de peso) · las **capas de terreno apiladas con su máscara** pintándose en el lienzo · las **luces de
     ambiente** de punta a punta, con su herramienta, su editor y el **parpadeo animado** por tipo.
-  - ⏳ **PENDIENTE**: el **pincel de transparencia** en sí (pintar la máscara y subirla) · **mandar elementos a
-    otra capa** con el botón derecho · **ver con los ojos de un personaje** · la **penumbra** en tres zonas,
-    que necesita además trabajo en la API.
+  - ✅ **HECHO también** (2026-08-31, noche): el **pincel de transparencia** con sus dos sentidos · **mandar
+    elementos a otra capa** con el botón derecho · **ver con los ojos de un personaje**, calculado en el
+    servidor.
+  - 🛑 **BLOQUEADA la penumbra**: su premisa de privacidad no se sostiene hoy — ver el aviso en § 7.4.
 
 ## What the user can do
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
@@ -353,6 +354,23 @@ difuminada CAMBIA lo que se ve**, no es sólo aspecto — y dentro se ve **todo 
   —mandar la ficha entera y difuminarla al pintar— convertiría el efecto en un agujero.
 - El ancho de la penumbra sale de lo que ya existe (`vision_radius` del token y la luz de la escena); no se
   inventa un número nuevo.
+
+> 🛑 **BLOQUEADA — la premisa de arriba NO SE SOSTIENE HOY** (encontrado al construir, 2026-08-31).
+>
+> La decisión 🔒 dice «hoy una ficha que no ves no existe en tu navegador». **Eso sólo es cierto de las fichas
+> que el director marca OCULTAS.** Una ficha normal que simplemente está fuera de tu línea de visión **sí
+> llega entera** al navegador de todos los jugadores —nombre, retrato, identificador y estado— porque la RLS
+> de `maps_tokens` no sabe de líneas de visión: sólo mira `visible` y que puedas ver la escena. Lo que la
+> esconde es la niebla AL PINTAR, no el envío.
+>
+> Es decir: **el agujero que la penumbra quería evitar ya está abierto un paso antes.** Añadir un «bulto» con
+> sólo posición y tamaño mientras la fila entera sigue viajando no protegería nada; sería teatro.
+>
+> **Taparlo de verdad es otra rebanada, y es decisión del dueño**: hay que dejar de servir `maps_tokens` a los
+> jugadores por RLS y pasarlas por la API recortadas por visión, lo que además obliga a rehacer cómo llegan
+> los cambios en vivo (hoy los jugadores se suscriben a la tabla). Mientras tanto, la parte VISUAL de la
+> penumbra —las tres zonas y el bulto sin cara— se puede construir, pero hay que decir en voz alta que es un
+> efecto, no una protección.
 
 ### Reglas y límites de esta rebanada
 - **Todo lo de aquí es del DIRECTOR**, salvo lo que se ve: un jugador no crea capas, ni luces, ni cambia de
