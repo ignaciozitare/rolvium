@@ -115521,7 +115521,7 @@
       "y": 2600,
       "name": "PL/Barra de herramientas · con Piezas",
       "width": 300,
-      "height": 740,
+      "height": 771,
       "fill": "#00000000",
       "layout": "none",
       "children": [
@@ -115755,6 +115755,28 @@
             },
             {
               "type": "frame",
+              "id": "qIvv4",
+              "name": "H/Texto",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "midGJ",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "title",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
               "id": "UDwvG",
               "name": "H/Borrar",
               "width": 36,
@@ -115888,6 +115910,28 @@
                   "icon": "image",
                   "library": "Material Symbols Outlined",
                   "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "D0Ce0E",
+              "name": "H/Pincel de transparencia",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "y0PVS",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "opacity",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
                 }
               ]
             },
