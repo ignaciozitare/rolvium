@@ -1,10 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { FogCell } from '@rolvium/core';
-import type { IMapsRepository, SceneRecord, TableRole, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
+import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, ScenePropRecord, TableRole, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
 
 interface SceneRow { id: string; campaign_id: string; width: number; height: number; grid: { size?: number } | null; fog_mode: SceneRecord['fogMode']; lighting: SceneRecord['lighting']; night_radius_m: number; solid_walls: boolean }
 interface WallRow { id: string; x1: number; y1: number; x2: number; y2: number; blocks_sight: boolean; blocks_move: boolean; is_open: boolean }
 interface TokenRow { id: string; x: number; y: number; size: number; controlled_by: string | null }
+interface LightRow { id: string; layer_id: string | null; x: number; y: number; rotation: number; shape: LightRecord['shape']; cone_angle: number; range_m: number; casts_shadow: boolean }
+interface LayerRow { id: string; kind: LayerRecord['kind']; visible: boolean }
+interface ScenePropRow { id: string; layer_id: string | null; x: number; y: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: ScenePropRecord['blockShape']; block_w: number; block_h: number; block_dx: number; block_dy: number }
 
 const DEFAULT_GRID = 27;
 /** Rows may hold anything jsonb; keep only well-formed integer pairs. */
@@ -41,6 +44,33 @@ export class SupabaseMapsRepo implements IMapsRepository {
     const { data, error } = await this.db.from('maps_tokens').select('id, x, y, size, controlled_by').eq('scene_id', sceneId);
     this.fail(error);
     return ((data ?? []) as unknown as TokenRow[]).map(r => ({ id: r.id, x: r.x, y: r.y, size: r.size, controlledBy: r.controlled_by }));
+  }
+
+  async listLights(sceneId: string): Promise<LightRecord[]> {
+    const { data, error } = await this.db.from('maps_lights').select('id, layer_id, x, y, rotation, shape, cone_angle, range_m, casts_shadow').eq('scene_id', sceneId);
+    this.fail(error);
+    return ((data ?? []) as unknown as LightRow[]).map(r => ({
+      id: r.id, layerId: r.layer_id, x: r.x, y: r.y, rotation: r.rotation,
+      shape: r.shape, coneAngle: r.cone_angle, rangeM: r.range_m, castsShadow: r.casts_shadow,
+    }));
+  }
+
+  async listLayers(sceneId: string): Promise<LayerRecord[]> {
+    const { data, error } = await this.db.from('maps_layers').select('id, kind, visible').eq('scene_id', sceneId);
+    this.fail(error);
+    return ((data ?? []) as unknown as LayerRow[]).map(r => ({ id: r.id, kind: r.kind, visible: r.visible }));
+  }
+
+  async listSightBlockingProps(sceneId: string): Promise<ScenePropRecord[]> {
+    const { data, error } = await this.db.from('maps_scene_props')
+      .select('id, layer_id, x, y, rotation, blocks_sight, blocks_move, block_shape, block_w, block_h, block_dx, block_dy')
+      .eq('scene_id', sceneId).eq('blocks_sight', true);
+    this.fail(error);
+    return ((data ?? []) as unknown as ScenePropRow[]).map(r => ({
+      id: r.id, layerId: r.layer_id, x: r.x, y: r.y, rotation: r.rotation,
+      blocksSight: r.blocks_sight, blocksMove: r.blocks_move, blockShape: r.block_shape,
+      blockW: r.block_w, blockH: r.block_h, blockDx: r.block_dx, blockDy: r.block_dy,
+    }));
   }
 
   async roleOf(campaignId: string, userId: string): Promise<TableRole | null> {

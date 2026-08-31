@@ -10,7 +10,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -18,6 +18,12 @@ import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { SegmentBar } from './SegmentBar';
 import { CanvasControls } from './CanvasControls';
+import { LayersPanel } from './LayersPanel';
+import { LightEditor } from './LightEditor';
+import { MaskBrushBar } from './MaskBrushBar';
+import { LayerMenu } from './LayerMenu';
+import { useMaskPainter } from './useMaskPainter';
+import { clampMaskSize, DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, newLightOf, type ElementKind, type MaskDirection } from '../domain/useCases/layerRules';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
@@ -116,7 +122,34 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   }, [repo, campaignId, isDm, activeSceneId]);
 
   const scene = isDm ? scenes?.find(s => s.id === selectedId) ?? null : playerScene;
-  const st = useScene(repo, scene, userId, vision);
+  /**
+   * «Ver con los ojos de un personaje» (rebanada 7): la ficha por cuyos ojos mira el director. Es una LENTE,
+   * no un modo — no mueve la escena activa, no toca la niebla guardada y no avisa al jugador.
+   */
+  const [seeAsTokenId, setSeeAsTokenId] = useState<string | null>(null);
+  const st = useScene(repo, scene, userId, vision, seeAsTokenId);
+  /**
+   * La capa ACTIVA: donde se dibuja y se coloca (rebanada 7). Sólo el director tiene panel, así que un
+   * jugador la deja siempre vacía y todo lo suyo cae en su capa natural, igual que antes de que existieran.
+   */
+  const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
+  const [layersOpen, setLayersOpen] = useState(true);
+  /** Mirar por los ojos de alguien implica dejar de ver como director: si no, no comprobaría nada. */
+  const seeAsToken = st.tokens.find(t => t.id === seeAsTokenId) ?? null;
+  const asPlayer = playerView || !!seeAsToken;
+  /** La luz que se está retocando. Es pintura: seleccionarla no cambia nada para nadie. */
+  const [selectedLightId, setSelectedLightId] = useState<string | null>(null);
+  const [maskStrength, setMaskStrength] = useState(DEFAULT_MASK_STRENGTH);
+  const [maskDir, setMaskDir] = useState<MaskDirection>('erase');
+  /**
+   * El pincel de transparencia lleva SU tamaño, continuo y en casillas, y su dureza. No comparte el `brush`
+   * de la niebla a propósito: allí son cuatro discos y aquí el dueño lo pidió gradual, así que compartirlo
+   * habría dejado la niebla con un tamaño que ninguno de sus discos puede representar.
+   */
+  const [maskSizeCells, setMaskSizeCells] = useState(DEFAULT_MASK_SIZE);
+  const [maskHardness, setMaskHardness] = useState(DEFAULT_MASK_HARDNESS);
+  /** «Botón derecho sobre cualquier cosa → mándala a otra capa». */
+  const [layerMenu, setLayerMenu] = useState<{ at: Point; element: { kind: ElementKind; id: string; name: string; layerId: string | null } } | null>(null);
   const live = st.scene;
   const viewport = () => ({ width: stageRef.current?.clientWidth ?? 0, height: stageRef.current?.clientHeight ?? 0 });
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
@@ -258,6 +291,18 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     });
   }, [selectedToken, st.tokens, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
+  const selectedLight = st.lights.find(l => l.id === selectedLightId) ?? null;
+  /**
+   * «Fondo del mapa» toca la CAPA DE TERRENO ACTIVA cuando hay una, y la escena cuando no. Es lo que hace que
+   * «+ Capa de terreno» sirva de algo: sin esto la capa nacía vacía y no había manera de darle foto.
+   */
+  const bgLayer = st.layers.find(l => l.id === activeLayerId && l.kind === 'terrain') ?? null;
+  /**
+   * El pincel de transparencia pinta sobre un lienzo propio fuera de pantalla; la foto de la capa no se toca.
+   * `useMemo` en las dependencias porque si no el hook se rehace en cada render y pierde lo pintado.
+   */
+  const maskDeps = useMemo(() => ({ saveMask: st.saveMask, clearMask: st.clearMask }), [st.saveMask, st.clearMask]);
+  const mask = useMaskPainter(live, bgLayer, maskDeps);
 
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
   const deleteSelection = () => {
@@ -306,15 +351,15 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           onDice={() => onOpenDice?.()} diceOpen={diceOpen}
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
-          <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
-            playerView={playerView} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
+          <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
+            playerView={asPlayer} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
             onAddText={async at => {
               const text = await dialog.prompt(t('maps.text.prompt'));
-              if (text?.trim()) run(st.addDrawing({ sceneId: live.id, campaignId, kind: 'text', data: { x: at.x, y: at.y, text: text.trim() }, color: stroke.color, width: stroke.width }));
+              if (text?.trim()) run(st.addDrawing({ sceneId: live.id, campaignId, kind: 'text', data: { x: at.x, y: at.y, text: text.trim() }, color: stroke.color, width: stroke.width, layerId: activeLayerId }));
             }}
             onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))} onServerCorrection={st.serverCorrection} onDragBound={st.dragBound}
-            onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width }))}
+            onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width, layerId: activeLayerId }))}
             onErase={id => run(st.eraseDrawing(id))}
             onAddWall={(a, b) => {
               // A door or a window drawn over a wall CUTS it instead of stacking on top of it (planOpening).
@@ -325,6 +370,15 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             }}
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
+            selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
+            maskLayerId={bgLayer?.id ?? null} maskPreview={mask.preview}
+            onPaintMask={(from, to) => mask.paint(from, to, brushRadius(maskSizeCells, live.grid.size), maskStrength, maskDir, maskHardness)}
+            onPaintMaskEnd={() => run(mask.flush())}
+            onPlaceLight={async at => {
+              // Nace con lo que trae su tipo; el editor se abre solo para retocarla sin buscarla.
+              const created = await st.addLight(newLightOf('torch', at, { id: live.id, campaignId }, activeLayerId));
+              setSelectedLightId(created.id);
+            }}
             onPin={pt => { st.focusPin(pt); setView(v => centerOn(v, pt, viewport())); }}
             placing={!!encounter || !!pendingPc}
             placingSize={pendingPc ? cellsOfSheet(pendingPc.data) : encounter ? cellsOfEntry(encounter) : DEFAULT_TOKEN_CELLS}
@@ -334,7 +388,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             }}
             selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
-            onContextMenu={(at, pt) => { closeOverlays('quick'); setQuickMenu({ at, scene: pt }); }}
+            onContextMenu={(at, pt) => { closeOverlays('quick'); setLayerMenu(null); setQuickMenu({ at, scene: pt }); }}
+            onElementMenu={(at, element) => { closeOverlays('quick'); setQuickMenu(null); setLayerMenu({ at, element }); }}
             onDeleteSelection={deleteSelection}
             onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))} />
           {isDm && (
@@ -343,13 +398,50 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               <span className="tb-italic">{t('maps.dmCounts', { walls: String(st.walls.filter(w => w.kind === 'wall').length), doors: String(st.walls.filter(w => w.kind === 'door').length), windows: String(st.walls.filter(w => w.kind === 'window').length), hidden: String(hiddenCount) })} · {bgName}</span>
             </div>
           )}
-          <span className="mp-canvas-label">{isDm && !playerView
+          <span className={`mp-canvas-label ${seeAsToken ? 'seeas' : ''}`}>{seeAsToken
+            ? `${t('maps.seeAs.banner', { name: seeAsToken.name })} · ${t('maps.seeAs.note')}`
+            : isDm && !playerView
             ? `${t('maps.dmView')}${live.fogMode === 'vision' ? ` · ${t('maps.fog.byVision')}` : ''}${isBrush(tool) ? ` · ${t(`maps.brush.${tool}`)}` : ''}`
-            : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
+              : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
           {(isDraw(tool) || (isDm && isBrush(tool))) && (
             <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll()) : undefined}
               tool={tool}
               {...(isDm && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})} />
+          )}
+          {/*
+            * El panel de capas es del DIRECTOR y desaparece con «ver como jugador»: la lente sirve para ver
+            * lo que ve el otro, y un jugador no tiene capas. Flota sobre el mapa, como las demás barras
+            * desde la rebanada 3 — una franja a lo ancho cuesta altura de mapa.
+            */}
+          {isDm && !playerView && (
+            <LayersPanel layers={st.layers} activeId={activeLayerId} collapsed={!layersOpen} onCollapse={() => setLayersOpen(o => !o)}
+              onActivate={l => setActiveLayerId(l.id)}
+              onToggleVisible={l => run(st.patchLayer(l.id, { visible: !l.visible }))}
+              onToggleLocked={l => run(st.patchLayer(l.id, { locked: !l.locked }))}
+              onReorder={(l, dir) => run(st.reorderLayer(l.id, dir))}
+              onReorderTo={(id, targetId) => run(st.reorderLayerTo(id, targetId))}
+              onAddTerrain={async () => {
+                const name = await dialog.prompt(t('maps.layers.newName'));
+                if (name?.trim()) { const created = await st.addTerrainLayer({ name: name.trim() }); if (created) setActiveLayerId(created.id); }
+              }}
+              onRemove={async l => {
+                if (!(await dialog.confirm(t('maps.layers.deleteConfirm', { name: l.name || t('maps.layers.kind.terrain') })))) return;
+                if (activeLayerId === l.id) setActiveLayerId(null);
+                run(st.removeLayer(l.id));
+              }} />
+          )}
+          {/* El pincel de transparencia necesita una capa de terreno donde pintar; si no la hay, se DICE. */}
+          {isDm && !playerView && tool === 'mask' && (bgLayer
+            ? <MaskBrushBar layerName={bgLayer.name || t('maps.layers.kind.terrain')} size={maskSizeCells} onSize={n => setMaskSizeCells(clampMaskSize(n))}
+                strength={maskStrength} onStrength={setMaskStrength} hardness={maskHardness} onHardness={setMaskHardness}
+                direction={maskDir} onDirection={setMaskDir}
+                saving={mask.saving} onReset={() => run(mask.reset())} />
+            : <p className="mp-mask-needs">{t('maps.mask.needsLayer')}</p>)}
+          {isDm && !playerView && selectedLight && (
+            <LightEditor light={selectedLight}
+              onChange={patch => run(st.patchLight(selectedLight.id, patch))}
+              onRemove={() => { setSelectedLightId(null); run(st.removeLight(selectedLight.id)); }}
+              onClose={() => setSelectedLightId(null)} />
           )}
           {isDm && (tool === 'wall' || selectedWall) && (
             <SegmentBar wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
@@ -373,6 +465,16 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               {t('maps.place.now', { name: ts(encounter.label) })}
               <button type="button" className="tb-btn tb-btn-xs" onClick={() => { setEncounter(null); setTool('select'); }}>{t('common.cancel')}</button>
             </div>
+          )}
+          {layerMenu && (
+            <LayerMenu at={layerMenu.at} element={layerMenu.element} layers={st.layers}
+              onPick={layerId => {
+                const { kind, id } = layerMenu.element;
+                if (kind === 'token') run(st.patchToken(id, { layerId }));
+                else if (kind === 'light') run(st.patchLight(id, { layerId }));
+                else run(st.patchDrawingLayer(id, layerId));
+              }}
+              onClose={() => setLayerMenu(null)} />
           )}
           {quickMenu && (
             <div className="mp-pop mp-quick" role="menu" aria-label={t('maps.quick.title')} style={{ left: quickMenu.at.x, top: quickMenu.at.y }}>
@@ -435,14 +537,20 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             <EncounterMenu entries={bestiary} labelOf={e => ts(e.label)} selectedId={encounter?.id ?? null} onSelect={setEncounter} onClose={() => setTool('select')} />
           )}
           {isDm && bgOpen && (
-            <BackgroundPopover scene={live} images={images}
+            <BackgroundPopover scene={live} layer={bgLayer} images={images}
               onColor={hex => run(patchScene(live.id, { bgColor: hex }))}
-              onImage={url => run(patchScene(live.id, { bgImageUrl: url }))}
-              onTransform={tr => run(patchScene(live.id, { bgTransform: tr }))}
-              onUpload={async f => { const img = await repo.uploadImage(campaignId, f, f.name.replace(/\.[^.]+$/, '')); setImages(l => [img, ...(l ?? [])]); await patchScene(live.id, { bgImageUrl: img.url }); }}
+              onImage={url => run(bgLayer ? st.patchLayer(bgLayer.id, { imageUrl: url }) : patchScene(live.id, { bgImageUrl: url }))}
+              onTransform={tr => run(bgLayer ? st.patchLayer(bgLayer.id, { transform: tr }) : patchScene(live.id, { bgTransform: tr }))}
+              onUpload={async f => {
+                const img = await repo.uploadImage(campaignId, f, f.name.replace(/\.[^.]+$/, ''));
+                setImages(l => [img, ...(l ?? [])]);
+                await (bgLayer ? st.patchLayer(bgLayer.id, { imageUrl: img.url }) : patchScene(live.id, { bgImageUrl: img.url }));
+              }}
               onClose={() => setBgOpen(false)} />
           )}
           <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView} scene={live}
+            seeAsOptions={st.tokens.filter(tk => tk.characterId).map(tk => ({ id: tk.id, name: tk.name }))}
+            seeAsTokenId={seeAsTokenId} onSeeAs={setSeeAsTokenId}
             onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}
             onLighting={lighting => run(patchScene(live.id, { lighting }))}
             onSolidWalls={solidWalls => run(patchScene(live.id, { solidWalls }))}

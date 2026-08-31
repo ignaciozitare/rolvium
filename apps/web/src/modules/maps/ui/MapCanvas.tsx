@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
-import type { Drawing, DrawingKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
+import type { Drawing, DrawingKind, Layer, Light, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, TokenGlyph, WallShape } from './canvasLayers';
+import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
+import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 
 export interface StrokeStyle { color: string; width: number }
 
@@ -13,6 +14,10 @@ interface Props {
   tokens: Token[];
   walls: Wall[];
   drawings: Drawing[];
+  /** Capas de contenido de la escena (rebanada 7). Vacío = como antes de que existieran. */
+  layers?: Layer[];
+  /** Luces de ambiente. Son PINTURA: no revelan niebla ni entran en el cálculo de visión. */
+  lights?: Light[];
   drags: Record<string, LiveDrag>;
   pin: LivePin | null;
   tool: Tool;
@@ -45,11 +50,30 @@ interface Props {
   onToggleWall: (wall: Wall) => void;
   /** DM: paint the fog at a scene point with the current brush radius (scene px). */
   onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => void;
+  /** DM, herramienta Luz: coloca una luz de ambiente donde se pinchó (px de escena). */
+  onPlaceLight?: (at: Point) => void;
+  /**
+   * DM, pincel de transparencia: pinta la máscara de la capa de terreno activa, de `from` a `to` en px de
+   * escena. `null` en `maskLayerId` = no hay capa donde pintar y el pincel no hace nada.
+   */
+  maskLayerId?: string | null;
+  onPaintMask?: (from: Point, to: Point) => void;
+  onPaintMaskEnd?: () => void;
+  /** La máscara EN VIVO mientras se pinta, antes de que suba. Se pinta en lugar de la guardada. */
+  maskPreview?: string | null;
+  /** DM: la luz que se está editando. Es pintura, así que seleccionarla no cambia nada para nadie. */
+  selectedLightId?: string | null;
+  onSelectLight?: (id: string | null) => void;
   onPin: (p: Point) => void;
   /** Suprimir / Del over the selection (DM). */
   onDeleteSelection?: () => void;
   /** Right-click on empty ground with nothing pending: where to open the quick menu (canvas px + scene point). */
   onContextMenu?: (at: { x: number; y: number }, scene: Point) => void;
+  /**
+   * DM, botón derecho SOBRE algo: «mándalo a otra capa» (petición literal del dueño). Si el clic cae en el
+   * suelo vacío no se llama y sigue mandando `onContextMenu`, que es el menú de la vista.
+   */
+  onElementMenu?: (at: { x: number; y: number }, element: { kind: ElementKind; id: string; name: string; layerId: string | null }) => void;
   /** Any press on the canvas dismisses whatever popover is open. */
   onCloseMenus?: () => void;
   /** Tokens caught by dragging a box with Seleccionar. */
@@ -76,6 +100,8 @@ type Gesture =
   | { kind: 'token'; id: string; start: Point; origin: Point; moved: boolean }
   | { kind: 'draw'; tool: DrawTool; start: Point; points: [number, number][]; last: Point }
   | { kind: 'brush'; op: 'reveal' | 'hide' }
+  /** Pincel de transparencia: pinta la máscara de una capa de terreno. `last` encadena el trazo sin lunares. */
+  | { kind: 'mask'; last: Point }
   | { kind: 'wallEdit'; id: string; grab: 'a' | 'b' | 'whole'; start: Point; origin: { x1: number; y1: number; x2: number; y2: number } }
   | { kind: 'marquee'; start: Point; last: Point }
   | { kind: 'measure' };
@@ -210,6 +236,19 @@ export function MapCanvas(p: Props): JSX.Element {
     // Se coloca CENTRADO donde se pulsa y sin pegarse a la rejilla, igual que se mueve.
     if (e.button === 0 && p.placing && p.onPlace) { p.onPlace(tokenPointAt(s, grid, p.placingSize)); return; }
     if (e.button === 0 && p.tool === 'select') {
+      /**
+       * Una LUZ también se selecciona con Seleccionar (dueño, 2026-08-31: «una vez puesta una luz no me deja
+       * seleccionarla nuevamente para editarla»). Antes sólo se podía con la herramienta Luz, y ahí un clic
+       * un pelo fuera de su disco COLOCA otra luz en vez de abrir la que querías — así que en la práctica no
+       * había forma fiable de volver a una. Va antes que el muro porque es un blanco pequeño y encima de él.
+       */
+      const light = dmSight ? lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12, lightRadiusPx(l, p.scene.grid) * 0.25)) : null;
+      if (light) {
+        p.onSelectToken(null);
+        p.onSelectWall?.(null);
+        p.onSelectLight?.(light.id);
+        return;
+      }
       // Seleccionar: pick a segment (DM only) and grab it, or clear everything.
       const wall = dmSight ? hitWall(p.walls, s, 10 / p.view.zoom) : null;
       if (wall) {
@@ -223,6 +262,8 @@ export function MapCanvas(p: Props): JSX.Element {
       }
       p.onSelectToken(null);
       p.onSelectWall?.(null);
+      // Pinchar en vacío suelta TODO, la luz incluida: es la forma de cerrar su editor sin buscar la X.
+      p.onSelectLight?.(null);
       setGesture({ kind: 'marquee', start: s, last: s });
       svgRef.current?.setPointerCapture?.(e.pointerId);
       return;
@@ -234,6 +275,18 @@ export function MapCanvas(p: Props): JSX.Element {
       case 'text': p.onAddText?.(s); return;
       case 'measure': setMeasure({ a: s, b: s }); setGesture({ kind: 'measure' }); svgRef.current?.setPointerCapture?.(e.pointerId); return;
       case 'pin': p.onPin(s); return;
+      /**
+       * Colocar una luz es un clic y ya: no arrastra, no encadena y no toca la niebla — es pintura. Si el
+       * clic cae sobre una luz que ya existe, la SELECCIONA en vez de apilar otra encima, que es lo que
+       * pasaría si no se mirase antes.
+       */
+      case 'light': {
+        if (!dmSight) return;
+        const hit = lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12, lightRadiusPx(l, p.scene.grid) * 0.25));
+        if (hit) { p.onSelectLight?.(hit.id); return; }
+        p.onPlaceLight?.(s);
+        return;
+      }
       case 'erase': { const hit = hitTest(p.drawings, s, 6 / p.view.zoom); if (hit && canEraseDrawing(hit, p.me, p.isDm)) p.onErase(hit.id); return; }
       case 'wall': {
         if (!dmSight) return;
@@ -247,6 +300,13 @@ export function MapCanvas(p: Props): JSX.Element {
           return;
         }
         setWallStart(q);
+        return;
+      }
+      case 'mask': {
+        if (!dmSight || !p.maskLayerId) return;
+        p.onPaintMask?.(s, s);
+        setGesture({ kind: 'mask', last: s });
+        svgRef.current?.setPointerCapture?.(e.pointerId);
         return;
       }
       case 'reveal':
@@ -370,9 +430,31 @@ export function MapCanvas(p: Props): JSX.Element {
       // and wakes the whole table through `fog.updated`. One per pointermove would be ~60 a second.
       const now = Date.now();
       if (now - lastPaint.current >= PAINT_HZ_MS) { lastPaint.current = now; p.onPaintFog({ ...s, radius: brushRadius(p.brush, grid) }, gesture.op); }
+    } else if (gesture.kind === 'mask') {
+      // Sin límite de ritmo: esto pinta en un lienzo del propio navegador. Lo que cuesta —subir el PNG— pasa
+      // UNA vez al soltar, no en cada movimiento.
+      p.onPaintMask?.(gesture.last, s);
+      setGesture({ kind: 'mask', last: s });
     } else if (gesture.kind === 'measure' && measure) {
       setMeasure({ a: measure.a, b: s });
     }
+  };
+
+  /**
+   * Qué hay bajo el puntero, mirando de arriba abajo igual que se pinta: primero las fichas, luego las luces
+   * y por último los trazos. Sin este orden, un trazo grande debajo de una ficha se llevaría el clic.
+   */
+  const elementAt = (s: Point): { kind: ElementKind; id: string; name: string; layerId: string | null } | null => {
+    const tk = [...tokensShown].reverse().find(t => {
+      const c = tokenCenter(t, grid);
+      return Math.hypot(c.x - s.x, c.y - s.y) <= tokenRadiusPx(t, grid);
+    });
+    if (tk) return { kind: 'token', id: tk.id, name: tk.name, layerId: tk.layerId };
+    const li = [...lightsShown].reverse().find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12, lightRadiusPx(l, p.scene.grid) * 0.25));
+    if (li) return { kind: 'light', id: li.id, name: '', layerId: li.layerId };
+    const d = hitTest(drawingsShown, s, 6 / p.view.zoom);
+    if (d) return { kind: 'drawing', id: d.id, name: '', layerId: d.layerId };
+    return null;
   };
 
   /**
@@ -382,7 +464,11 @@ export function MapCanvas(p: Props): JSX.Element {
   const onRightClick = (e: ReactPointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
     e.preventDefault();
     if (wallStart || measure || gesture) { setWallStart(null); setMeasure(null); setGesture(null); return; }
-    p.onContextMenu?.(local(e), toScene(e));
+    // Sobre algo, el menú es de ESE algo; en el suelo vacío, el de la vista. Sólo el director mueve capas.
+    const s = toScene(e);
+    const el = dmSight ? elementAt(s) : null;
+    if (el) { p.onElementMenu?.(local(e), el); return; }
+    p.onContextMenu?.(local(e), s);
   };
 
   const onUp = () => {
@@ -393,6 +479,8 @@ export function MapCanvas(p: Props): JSX.Element {
       if (w) p.onToggleWall(w);
     }
     if (!gesture) return;
+    // El PNG de la máscara sube UNA vez, al soltar: un guardado por pincelada, no cien.
+    if (gesture.kind === 'mask') { setGesture(null); p.onPaintMaskEnd?.(); return; }
     if (gesture.kind === 'wallEdit') {
       const at = wallDragTo(gesture.origin, gesture.grab, gesture.start, hover ?? gesture.start, grid);
       const moved = at.x1 !== gesture.origin.x1 || at.y1 !== gesture.origin.y1 || at.x2 !== gesture.origin.x2 || at.y2 !== gesture.origin.y2;
@@ -438,6 +526,16 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const blockers = p.isDm ? [] : moveBlockers(p.walls, p.scene);
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
+
+  /**
+   * Capas de contenido (rebanada 7). `dmSight` es lo que decide si esto se mira con ojos de director: con
+   * «ver como jugador» puesto, el director deja de ver la capa de notas — que es justo lo que la lente viene
+   * a comprobar. Una capa APAGADA no se pinta para nadie, ni siquiera para él: el ojo es el de Photoshop.
+   */
+  const layers = p.layers ?? [];
+  const hasTerrain = terrainLayers(layers).some(l => l.visible && l.imageUrl);
+  const drawingsShown = layers.length === 0 ? p.drawings : p.drawings.filter(d => isPainted(resolveLayer(layers, d.layerId, 'drawing'), dmSight));
+  const lightsShown = paintedLights(p.lights ?? [], layers, dmSight);
   /** Un PJ es un token con ficha de personaje detrás. Los PNJ del bestiario no la tienen. */
   const isPc = (tk: Token): boolean => tk.characterId !== null;
   const renderToken = (tk: Token): JSX.Element => {
@@ -488,7 +586,8 @@ export function MapCanvas(p: Props): JSX.Element {
       </defs>
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
         <g className="mp-layer-map" {...(playerSight ? { mask: url(fogIds.seen) } : {})} data-testid="mp-map">
-          <BackgroundLayer scene={p.scene} clipId={clipId} />
+          <BackgroundLayer scene={p.scene} clipId={clipId} imageHidden={hasTerrain} />
+          {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} />}
           <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} />
           {dmSight && fog && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
@@ -496,9 +595,18 @@ export function MapCanvas(p: Props): JSX.Element {
             {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={snap(hover.x, grid)} y2={snap(hover.y, grid)} className="mp-wall draft" />}
           </g>
           <g className="mp-layer-drawings" data-testid="mp-drawings">
-            {p.drawings.map(d => <DrawingShape key={d.id} d={d} />)}
+            {drawingsShown.map(d => <DrawingShape key={d.id} d={d} />)}
             {draft && <DrawingShape d={draft} draft />}
           </g>
+          {/* Encima del mapa y de los trazos, debajo de las fichas: la luz baña el suelo, no a la gente. */}
+          {lightsShown.length > 0 && <LightsLayer scene={p.scene} lights={lightsShown} {...(fog?.lit ? { lit: fog.lit } : {})} />}
+          {/* El aro de la luz seleccionada y su zona de clic. Sólo para el director: es mobiliario de edición. */}
+          {dmSight && p.tool === 'light' && lightsShown.map(l => (
+            <g key={`hit-${l.id}`}>
+              <circle cx={l.x} cy={l.y} r={14} className="mp-light-hit" data-light-hit={l.id} />
+              {p.selectedLightId === l.id && <circle cx={l.x} cy={l.y} r={18} className="mp-light-sel" data-testid="mp-light-sel" />}
+            </g>
+          ))}
           {/* What was explored but is out of sight right now stays visible, only dimmed — «sigue ahí, apagado». */}
           {playerSight && hasVision && <rect {...sceneRect} className="mp-fog-dim" mask={url(fogIds.dim)} data-testid="mp-fog-dim" />}
         </g>

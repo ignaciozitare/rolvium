@@ -40,6 +40,44 @@ describe('SupabaseMapsRepo (service role)', () => {
     ]);
   });
 
+  /**
+   * Las luces y las capas se leen con `service_role`, es decir SIN filtrar: el caso de uso necesita también
+   * la luz de una capa apagada o de notas del director para decidir a quién alumbra. Filtrar aquí sería
+   * decidir dos veces y en el sitio equivocado.
+   */
+  it('reads every light with the geometry that decides what it lights', async () => {
+    const rows = [
+      { id: 'li-1', layer_id: null, x: 300, y: 200, rotation: 15, shape: 'cone', cone_angle: 45, range_m: 6, casts_shadow: true },
+      { id: 'li-2', layer_id: 'ly-9', x: 10, y: 20, rotation: 0, shape: 'radius', cone_angle: 60, range_m: 3, casts_shadow: false },
+    ];
+    expect(await new SupabaseMapsRepo(fakeDb({ maps_lights: rows }).db).listLights('sc-1')).toEqual([
+      { id: 'li-1', layerId: null, x: 300, y: 200, rotation: 15, shape: 'cone', coneAngle: 45, rangeM: 6, castsShadow: true },
+      { id: 'li-2', layerId: 'ly-9', x: 10, y: 20, rotation: 0, shape: 'radius', coneAngle: 60, rangeM: 3, castsShadow: false },
+    ]);
+    expect(await new SupabaseMapsRepo(fakeDb({}).db).listLights('sc-1')).toEqual([]);
+  });
+
+  it('reads the layers with what decides whether they paint at all', async () => {
+    const rows = [{ id: 'ly-1', kind: 'objects', visible: true }, { id: 'ly-2', kind: 'dm_notes', visible: false }];
+    expect(await new SupabaseMapsRepo(fakeDb({ maps_layers: rows }).db).listLayers('sc-1')).toEqual([
+      { id: 'ly-1', kind: 'objects', visible: true },
+      { id: 'ly-2', kind: 'dm_notes', visible: false },
+    ]);
+  });
+
+  /**
+   * Rebanada 6: sólo las piezas que ESTORBAN LA VISTA. Una escena puede tener cien macetas y ninguna cambia
+   * lo que se ve; traerlas todas sería barrerla entera en cada movimiento de una ficha.
+   */
+  it('reads only the placed props that block sight', async () => {
+    const rows = [{ id: 'sp-1', layer_id: 'ly-7', x: 300, y: 200, rotation: 15, blocks_sight: true, blocks_move: false, block_shape: 'circle', block_w: 90, block_h: 90, block_dx: 4, block_dy: -6 }];
+    const m = fakeDb({ maps_scene_props: rows });
+    expect(await new SupabaseMapsRepo(m.db).listSightBlockingProps('sc-1')).toEqual([
+      { id: 'sp-1', layerId: 'ly-7', x: 300, y: 200, rotation: 15, blocksSight: true, blocksMove: false, blockShape: 'circle', blockW: 90, blockH: 90, blockDx: 4, blockDy: -6 },
+    ]);
+    expect(await new SupabaseMapsRepo(fakeDb({}).db).listSightBlockingProps('sc-1')).toEqual([]);
+  });
+
   it('reads the table role and the player list from campaigns_members', async () => {
     expect(await new SupabaseMapsRepo(fakeDb({ campaigns_members: { role: 'dm' } }).db).roleOf('c1', 'u-dm')).toBe('dm');
     expect(await new SupabaseMapsRepo(fakeDb({}).db).roleOf('c1', 'u-x')).toBeNull();

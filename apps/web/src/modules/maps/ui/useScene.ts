@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SceneVision } from '@rolvium/core';
-import type { Drawing, NewDrawing, NewToken, NewWall, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
+import type { Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewToken, NewWall, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import { wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
+import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
 
 export interface LiveDrag { tokenId: string; x: number; y: number }
 export interface LivePin { x: number; y: number; by: string; at: number }
@@ -35,11 +36,18 @@ const VISION_CONTACT_HZ_MS = 50; // ~20 Hz
  * player is not allowed to see the row of a hidden door — so a `fog.updated` broadcast (no RLS) says «ask again»
  * and every client refetches its own (specs/modules/maps/SPEC.md § «Rebanada 2 — luz y aberturas»).
  */
-export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision?: VisionPort) {
+export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision?: VisionPort,
+  /**
+   * «Ver con los ojos de este personaje» (rebanada 7): la ficha por cuyos ojos mira el DIRECTOR. `null` = su
+   * propia vista. Es una lente — la calcula el servidor y no guarda nada.
+   */
+  seeAsTokenId: string | null = null) {
   const sceneId = scene?.id ?? null;
   const [tokens, setTokens] = useState<Token[]>([]);
   const [walls, setWalls] = useState<Wall[]>([]);
   const [drawings, setDrawings] = useState<Drawing[]>([]);
+  const [layers, setLayers] = useState<Layer[]>([]);
+  const [lights, setLights] = useState<Light[]>([]);
   const [live, setLive] = useState<Scene | null>(scene);
   const [drags, setDrags] = useState<Record<string, LiveDrag>>({});
   const [pin, setPin] = useState<LivePin | null>(null);
@@ -55,17 +63,25 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   useEffect(() => { setLive(scene); }, [scene]);
 
   useEffect(() => {
-    if (!sceneId) { setTokens([]); setWalls([]); setDrawings([]); setStatus('ready'); return; }
+    if (!sceneId) { setTokens([]); setWalls([]); setDrawings([]); setLayers([]); setLights([]); setStatus('ready'); return; }
     let alive = true;
     setStatus('loading');
-    void Promise.all([repo.listTokens(sceneId), repo.listWalls(sceneId), repo.listDrawings(sceneId)])
-      .then(([t, w, d]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setStatus('ready'); })
+    void Promise.all([repo.listTokens(sceneId), repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId)])
+      .then(([t, w, d, ly, li]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setStatus('ready'); })
       .catch(() => { if (alive) setStatus('error'); });
     const off = repo.subscribe(sceneId, {
       onScene: c => { if (c.type === 'DELETE') setLive(null); else if (c.row) setLive(c.row); },
       onToken: c => { setTokens(l => applyChange(l, c)); if (c.type !== 'INSERT') setDrags(d => { if (!d[c.id]) return d; const n = { ...d }; delete n[c.id]; return n; }); },
       onWall: c => setWalls(l => applyChange(l, c)),
       onDrawing: c => setDrawings(l => applyChange(l, c)),
+      /**
+       * Capas y luces (rebanada 7). Desde § 7.2 una luz SÍ entra en el cálculo de visión —alumbra, y se
+       * recorta contra los muros—, así que un cambio suyo tiene que volver a preguntar. No se pide aquí sino
+       * a través de `lightKey`/`layerKey` más abajo, para que valga igual cuando el cambio lo hace este
+       * mismo navegador y no llega por el canal en vivo.
+       */
+      onLayer: c => setLayers(l => applyChange(l, c)),
+      onLight: c => setLights(l => applyChange(l, c)),
       onEvent: (e: MapsLiveEvent) => {
         if (e.type === 'token.moved') {
           if (e.final) setDrags(d => { const n = { ...d }; delete n[e.tokenId]; return n; });
@@ -91,9 +107,9 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     visionTimer.current = window.setTimeout(() => {
       visionTimer.current = null;
       const seq = ++visionSeq.current;
-      void vision.refresh(sceneId).then(next => { if (seq === visionSeq.current) setFog(next); }).catch(() => undefined);
+      void vision.refresh(sceneId, undefined, { asTokenId: seeAsTokenId }).then(next => { if (seq === visionSeq.current) setFog(next); }).catch(() => undefined);
     }, 0);
-  }, [vision, sceneId]);
+  }, [vision, sceneId, seeAsTokenId]);
   useEffect(() => () => { if (visionTimer.current !== null) window.clearTimeout(visionTimer.current); }, []);
   useEffect(() => { refreshVisionRef.current = refreshVision; }, [refreshVision]);
 
@@ -106,8 +122,15 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   /** Light, fog mode and walls all change what is visible; so does any of MY tokens moving. */
   const myTokenKey = tokens.filter(t => t.controlledBy === me).map(t => `${t.id}:${t.x}:${t.y}:${t.size}`).join('|');
   const wallKey = walls.map(w => `${w.id}:${w.isOpen ? 1 : 0}:${w.blocksSight ? 1 : 0}`).join('|');
+  /**
+   * Y desde § 7.2, las luces: mover una, cambiarle el alcance o la forma, o apagarle la sombra, cambia lo
+   * que se ve. Sólo lo que altera la GEOMETRÍA del charco — el color y el parpadeo son pintura y no valen
+   * una ida y vuelta. La capa entra porque apagarla apaga la luz que vive en ella.
+   */
+  const lightKey = lights.map(l => `${l.id}:${l.x}:${l.y}:${l.rotation}:${l.shape}:${l.coneAngle}:${l.rangeM}:${l.castsShadow ? 1 : 0}:${l.layerId ?? ''}`).join('|');
+  const layerKey = layers.map(l => `${l.id}:${l.visible ? 1 : 0}:${l.kind}`).join('|');
   /** One effect, so entering the scene costs ONE round trip and every later cause costs one more. */
-  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, live?.lighting, live?.nightRadiusM, live?.fogMode]);
+  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, lightKey, layerKey, live?.lighting, live?.nightRadiusM, live?.fogMode]);
 
   /**
    * La niebla SIGUE al token mientras se arrastra, en vez de dar un salto al soltarlo (dueño, 2026-08-22).
@@ -252,6 +275,80 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     if (seq === visionSeq.current) setFog(next);
     announceVision();
   }, [vision, sceneId, announceVision]);
+  // ── capas y luces (rebanada 7) ──
+  /** Sólo el director. Las tres fijas las crea un disparador al nacer la escena: por aquí sólo pasa TERRENO. */
+  /**
+   * Mandar un TRAZO a otra capa. Los dibujos no tenían actualización hasta ahora —se ponían y se borraban—,
+   * y la RLS ya la permite al director (`maps_drawings_dm_update`, de la rebanada 1).
+   */
+  const patchDrawingLayer = useCallback(async (id: string, layerId: string | null) => {
+    setDrawings(l => l.map(d => (d.id === id ? { ...d, layerId } : d)));
+    await repo.updateDrawingLayer(id, layerId);
+  }, [repo]);
+
+  const addTerrainLayer = useCallback(async (over: Partial<Pick<Layer, 'name' | 'imageUrl'>> = {}) => {
+    if (!sceneId || !live) return null;
+    const created = await repo.addLayer({ sceneId, campaignId: live.campaignId, kind: 'terrain', sortOrder: nextTerrainSortOrder(layers), ...over });
+    setLayers(l => (l.some(x => x.id === created.id) ? l : [...l, created]));
+    return created;
+  }, [repo, sceneId, live, layers]);
+  const patchLayer = useCallback(async (id: string, patch: LayerPatch) => {
+    setLayers(l => l.map(x => (x.id === id ? { ...x, ...patch } : x)));
+    await repo.updateLayer(id, patch);
+  }, [repo]);
+  /**
+   * Borrar una capa se lleva sus dibujos y sus luces —lo hace la base de datos con ON DELETE CASCADE— pero
+   * las FICHAS vuelven a su capa natural en vez de desaparecer: perder el personaje de un jugador por borrar
+   * una capa decorativa sería un desastre silencioso. Aquí se espeja para que la pantalla no mienta hasta que
+   * llegue el realtime.
+   */
+  const removeLayer = useCallback(async (id: string) => {
+    setLayers(l => l.filter(x => x.id !== id));
+    setDrawings(l => l.filter(d => d.layerId !== id));
+    setLights(l => l.filter(x => x.layerId !== id));
+    setTokens(l => l.map(t => (t.layerId === id ? { ...t, layerId: null } : t)));
+    await repo.removeLayer(id);
+  }, [repo]);
+  /** Subir o bajar una capa de terreno: sólo se escriben las dos filas que cambian de sitio. */
+  const reorderLayer = useCallback(async (id: string, dir: 'up' | 'down') => {
+    const moves = reorderTerrain(layers, id, dir);
+    if (moves.length === 0) return;
+    setLayers(l => l.map(x => { const m = moves.find(v => v.id === x.id); return m ? { ...x, sortOrder: m.sortOrder } : x; }));
+    await Promise.all(moves.map(m => repo.updateLayer(m.id, { sortOrder: m.sortOrder })));
+  }, [repo, layers]);
+  /**
+   * Soltar una capa encima de otra. Comparte camino con subir/bajar a propósito: las dos calculan qué filas
+   * cambian de sitio y escriben SÓLO ésas, así que arrastrar tres posiciones cuesta lo mismo que darle tres
+   * veces al botón, y ni un viaje más.
+   */
+  const reorderLayerTo = useCallback(async (id: string, targetId: string) => {
+    const moves = reorderTerrainTo(layers, id, targetId);
+    if (moves.length === 0) return;
+    setLayers(l => l.map(x => { const m = moves.find(v => v.id === x.id); return m ? { ...x, sortOrder: m.sortOrder } : x; }));
+    await Promise.all(moves.map(m => repo.updateLayer(m.id, { sortOrder: m.sortOrder })));
+  }, [repo, layers]);
+  /** El pincel de transparencia: sube el PNG y sube la versión. La foto de la capa no se toca nunca. */
+  const saveMask = useCallback(async (layer: Layer, png: Blob) => {
+    const next = await repo.saveMask(layer, png);
+    setLayers(l => l.map(x => (x.id === next.id ? next : x)));
+    return next;
+  }, [repo]);
+  const clearMask = useCallback(async (layer: Layer) => {
+    setLayers(l => l.map(x => (x.id === layer.id ? { ...x, maskUrl: null } : x)));
+    await repo.clearMask(layer);
+  }, [repo]);
+
+  const addLight = useCallback(async (l: NewLight) => {
+    const created = await repo.addLight(l);
+    setLights(list => (list.some(x => x.id === created.id) ? list : [...list, created]));
+    return created;
+  }, [repo]);
+  const patchLight = useCallback(async (id: string, patch: LightPatch) => {
+    setLights(list => list.map(x => (x.id === id ? { ...x, ...patch } : x)));
+    await repo.updateLight(id, patch);
+  }, [repo]);
+  const removeLight = useCallback(async (id: string) => { setLights(list => list.filter(x => x.id !== id)); await repo.removeLight(id); }, [repo]);
+
   const focusPin = useCallback((p: Point) => {
     if (!sceneId || !live) return;
     repo.broadcast(sceneId, { type: 'pin.focused', campaignId: live.campaignId, sceneId, x: p.x, y: p.y, by: me });
@@ -259,9 +356,10 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   }, [repo, sceneId, live, me]);
 
   return useMemo(() => ({
-    scene: live, tokens, walls, drawings, drags, pin, status, fog,
+    scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
     dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin,
     refreshVision, paintFog, paintAllFog, serverCorrection,
-  }), [live, tokens, walls, drawings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection]);
+    addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
+  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer]);
 }
 export type SceneState = ReturnType<typeof useScene>;

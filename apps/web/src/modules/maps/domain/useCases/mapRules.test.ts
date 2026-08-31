@@ -3,7 +3,7 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells,
+  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -351,6 +351,13 @@ describe('light and fog helpers', () => {
     expect(polygonPoints([[0, 0], [10, 5]])).toBe('0,0 10,5');
     expect(cellsPath([[0, 0], [2, 1]], 27)).toBe('M0 0h27v27h-27zM54 27h27v27h-27z');
     expect(cellsPath([], 27)).toBe('');
+  });
+  /** Los charcos de luz llegan partidos (§ 7.2) y van en UN path: dos polígonos sueltos dejan costura. */
+  it('varios polígonos caben en un solo path, y los degenerados se caen', () => {
+    expect(polygonsPath([[[0, 0], [10, 0], [10, 10]], [[20, 20], [30, 20], [30, 30]]]))
+      .toBe('M0 0L10 0L10 10ZM20 20L30 20L30 30Z');
+    expect(polygonsPath([[[0, 0], [10, 0]]])).toBe('');
+    expect(polygonsPath([])).toBe('');
   });
   it('the fog brush tools are the ones that paint, and nothing is «próximamente» any more', () => {
     expect(isBrush('reveal')).toBe(true);

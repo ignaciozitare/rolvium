@@ -48,6 +48,8 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   // un sitio distinto: el director no tiene ficha propia, así que empieza en la escena.
   const [chosenTab, setTab] = useState<TableTab | null>(null);
   const [rollerOpen, setRollerOpen] = useState(false);
+  /** El panel lateral se pliega para dejarle el ancho al mapa (dueño, 2026-08-31). Mismo gesto que la reserva de la cabecera. */
+  const [sideOpen, setSideOpen] = useState(true);
   /** The shared-resource bar floats over the tab and can be folded away: on the scene it was eating map. */
   const [resOpen, setResOpen] = useState(true);
   /** Sheet the DM opened from «El grupo» (null = my own). */
@@ -198,8 +200,12 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}
           </main>
-          <aside className="tb-side">
-            <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} />
+          <aside className={`tb-side ${sideOpen ? '' : 'folded'}`}>
+            <button type="button" className="tb-side-fold" aria-expanded={sideOpen}
+              aria-label={sideOpen ? t('table.side.hide') : t('table.side.show')} onClick={() => setSideOpen(o => !o)}>
+              <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{sideOpen ? 'chevron_right' : 'chevron_left'}</span>
+            </button>
+            {sideOpen && <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog} />}
           </aside>
         </div>
         {rollerOpen && <DiceRoller campaignId={campaign.id} rolls={rolls} onClose={() => setRollerOpen(false)}

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
-import { DRAWING_MINE, DRAWING_OTHER, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
+import { DRAWING_MINE, DRAWING_OTHER, LAYERS_ALL, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES, LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import type { Tool } from '../domain/useCases/mapRules';
 import { MapCanvas } from './MapCanvas';
-import { FOG_FEATHER } from './canvasLayers';
+import { FOG_FEATHER, lightFeather } from './canvasLayers';
 
 // jsdom has no PointerEvent: a MouseEvent with pointerId is enough for the canvas handlers.
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -13,7 +13,7 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onMoveWall: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
@@ -27,6 +27,97 @@ function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
 const down = (el: Element, x: number, y: number, button = 0) => fireEvent.pointerDown(el, { clientX: x, clientY: y, pointerId: 1, button });
 const move = (el: Element, x: number, y: number) => fireEvent.pointerMove(el, { clientX: x, clientY: y, pointerId: 1 });
 const up = (el: Element) => fireEvent.pointerUp(el, { pointerId: 1 });
+
+describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
+  /**
+   * Regla de convivencia: si la escena tiene capas de terreno, MANDA LA CAPA y `bgImageUrl` se ignora. La
+   * migración subió la foto de fondo a una capa pero dejó la columna en su sitio, así que sin esta regla se
+   * pintaría la misma foto dos veces.
+   */
+  it('con capas de terreno se pinta la capa y NO la foto de fondo de siempre', () => {
+    const { svg } = mount({ scene: SCENE_CHAPEL, isDm: true, me: 'u-gm', layers: LAYERS_ALL });
+    expect(within(svg).queryByTestId('mp-bg-image')).not.toBeInTheDocument();
+    // El color de base se pinta siempre: es lo que se ve donde no llega ninguna foto.
+    expect(within(svg).getByTestId('mp-bg')).toBeInTheDocument();
+    const painted = within(svg).getAllByTestId('mp-terrain-layer');
+    // «Charcos» está apagada: no se pinta ni para el director. El ojo es el de Photoshop.
+    expect(painted.map(g => g.getAttribute('data-layer-id'))).toEqual([LAYER_FLOOR.id, LAYER_MOSS.id]);
+  });
+
+  it('sin capas de terreno todo sigue como antes', () => {
+    const { svg } = mount({ scene: SCENE_CHAPEL, isDm: true, me: 'u-gm', layers: [LAYER_OBJECTS, LAYER_NOTES] });
+    expect(within(svg).getByTestId('mp-bg-image')).toBeInTheDocument();
+    expect(within(svg).queryByTestId('mp-terrain-layer')).not.toBeInTheDocument();
+  });
+
+  /**
+   * La máscara del pincel va sobre un rectángulo BLANCO dentro del `<mask>`: en SVG el valor es luminancia ×
+   * alfa, así que sin él un PNG casi transparente escondería la capa entera en vez de dejarla verse.
+   */
+  it('la capa con máscara la aplica, con la versión pegada para no servir la vieja', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL });
+    const moss = within(svg).getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_MOSS.id)!;
+    const mask = moss.querySelector('mask')!;
+    expect(mask.querySelector('rect')).toHaveAttribute('fill', '#ffffff');
+    expect(within(moss).getByTestId('mp-terrain-mask')).toHaveAttribute('href', 'https://x/backgrounds/c1/masks/ly-moss.png?v=3');
+    expect(moss.querySelectorAll('image')[1]).toHaveAttribute('mask', `url(#mp-mask-${LAYER_MOSS.id})`);
+    // El suelo no lleva máscara: se pinta entero, sin `mask`.
+    const floor = within(svg).getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_FLOOR.id)!;
+    expect(floor.querySelector('mask')).toBeNull();
+    expect(floor.querySelector('image')).not.toHaveAttribute('mask');
+  });
+
+  it('las luces se pintan por forma y con su alcance en metros', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL, lights: [LIGHT_TORCH, LIGHT_BULB] });
+    const lights = within(svg).getAllByTestId('mp-light');
+    expect(lights).toHaveLength(2);
+    expect(lights[0]!.tagName.toLowerCase()).toBe('circle');
+    expect(lights[1]!.tagName.toLowerCase()).toBe('rect');
+    expect(lights[0]).toHaveAttribute('fill', `url(#mp-light-${LIGHT_TORCH.id})`);
+    // Más metros, más radio.
+    expect(Number(lights[0]!.getAttribute('r'))).toBeGreaterThan(Number(lights[1]!.getAttribute('width')) / 2);
+  });
+
+  /**
+   * Petición del dueño al aprobar el diseño: que parpadeen. Animar es PINTAR, que es lo único que las luces
+   * hacen hoy — no revelan niebla ni entran en el cálculo de visión. El ritmo lo pone el TIPO.
+   */
+  it('la antorcha parpadea con el ritmo de su tipo; la bombilla apagada se queda quieta', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH, LIGHT_BULB] });
+    const [torch, bulb] = within(svg).getAllByTestId('mp-light');
+    expect(torch).toHaveClass('flicker-soft');
+    expect(torch).toHaveStyle({ animationDuration: '220ms' });
+    expect(bulb!.getAttribute('class')).not.toMatch(/flicker/);
+    expect(bulb).not.toHaveStyle({ animationDuration: '2600ms' });
+  });
+
+  it('una bombilla estropeada da golpes secos, no una respiración', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_BULB, flicker: true }] });
+    expect(within(svg).getByTestId('mp-light')).toHaveClass('flicker-sharp');
+  });
+
+  /** Lo de la capa de notas del director NO viaja: ni la luz ni el trazo que vivan en ella. */
+  it('la luz escondida en las notas del director es sólo del director', () => {
+    const lights = [LIGHT_TORCH, LIGHT_SECRET];
+    const dm = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL, lights });
+    expect(within(dm.svg).getAllByTestId('mp-light')).toHaveLength(2);
+    dm.unmount();
+    const player = mount({ layers: LAYERS_ALL, lights });
+    expect(within(player.svg).getAllByTestId('mp-light')).toHaveLength(1);
+  });
+
+  it('«ver como jugador» le quita al director lo que un jugador no recibiría', () => {
+    const { svg, rerender } = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL, lights: [LIGHT_TORCH, LIGHT_SECRET] });
+    expect(within(svg).getAllByTestId('mp-light')).toHaveLength(2);
+    rerender({ isDm: true, me: 'u-gm', playerView: true, layers: LAYERS_ALL, lights: [LIGHT_TORCH, LIGHT_SECRET] });
+    expect(within(svg).getAllByTestId('mp-light')).toHaveLength(1);
+  });
+
+  it('un dibujo en una capa apagada no se pinta para nadie', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL, drawings: [{ ...DRAWING_MINE, layerId: LAYER_PUDDLES.id }, DRAWING_OTHER] });
+    expect(within(svg).getByTestId('mp-drawings').querySelectorAll('[data-drawing-id]')).toHaveLength(1);
+  });
+});
 
 describe('<MapCanvas> layers', () => {
   it('player: background colour + grid, only visible walls, visible tokens (hidden absent), every drawing', () => {
@@ -169,6 +260,97 @@ describe('<MapCanvas> wheel', () => {
 
 // ── slice 2: fog, light and openings ─────────────────────────────────────────
 const FOG = { vision: [[[0, 0], [540, 0], [540, 675], [0, 675]]] as [number, number][][], explored: [[0, 0], [1, 0]] as [number, number][], radiusPx: null };
+
+/** Un charco cuadrado alrededor de la antorcha, como el que contesta el servidor ya recortado. */
+const LIT_TORCH = { id: LIGHT_TORCH.id, parts: [[[260, 160], [340, 160], [340, 240], [260, 240]]] as [number, number][][] };
+
+/**
+ * Dueño, 2026-08-31: «una vez puesta una luz no me deja seleccionarla nuevamente para editarla». Sólo se
+ * podía con la herramienta Luz, y ahí un clic un pelo fuera de su disco COLOCA otra luz en vez de abrir la
+ * que querías — así que en la práctica no había vuelta atrás.
+ */
+describe('<MapCanvas> volver a una luz ya puesta', () => {
+  it('Seleccionar la coge, y pinchar en vacío la suelta', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', lights: [LIGHT_TORCH] });
+    down(svg, LIGHT_TORCH.x, LIGHT_TORCH.y);
+    up(svg);
+    expect(cb.onSelectLight).toHaveBeenCalledWith(LIGHT_TORCH.id);
+
+    down(svg, LIGHT_TORCH.x + 400, LIGHT_TORCH.y + 300);
+    up(svg);
+    expect(cb.onSelectLight).toHaveBeenLastCalledWith(null);
+  });
+
+  it('a un jugador no le deja coger ninguna: son mobiliario de edición del director', () => {
+    const { svg, cb } = mount({ isDm: false, tool: 'select', lights: [LIGHT_TORCH] });
+    down(svg, LIGHT_TORCH.x, LIGHT_TORCH.y);
+    up(svg);
+    expect(cb.onSelectLight).not.toHaveBeenCalledWith(LIGHT_TORCH.id);
+  });
+});
+
+describe('<MapCanvas> luces recortadas (§ 7.2)', () => {
+  it('el resplandor se recorta a lo que la luz alumbra de verdad', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH], fog: { ...FOG, lit: [LIT_TORCH] } });
+    expect(within(svg).getByTestId('mp-light')).toHaveAttribute('mask', `url(#mp-litmask-${LIGHT_TORCH.id})`);
+    expect(svg.querySelector(`mask#mp-litmask-${LIGHT_TORCH.id} path`)).toBeInTheDocument();
+  });
+
+  /**
+   * Dueño, 2026-08-31, viendo un cono: «cuidado con los bordes del cono que no sean una línea dura». El
+   * recorte es una tijera, así que sin difuminar la sombra de una pared y los dos lados del cono salían
+   * trazados con regla. Se difumina la MÁSCARA, no la luz.
+   */
+  it('el borde de la luz se difumina SIEMPRE, haya recorte del servidor o no', () => {
+    const conRecorte = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH], fog: { ...FOG, lit: [LIT_TORCH] } });
+    expect(conRecorte.svg.querySelector(`mask#mp-litmask-${LIGHT_TORCH.id} g[filter]`)).toBeInTheDocument();
+    expect(conRecorte.svg.querySelector(`filter#mp-lightblur-${LIGHT_TORCH.id} feGaussianBlur`)).toBeInTheDocument();
+  });
+
+  it('y también sin respuesta del servidor: ahí la máscara es la propia forma, difuminada', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH], fog: null });
+    expect(within(svg).getByTestId('mp-light')).toHaveAttribute('mask', `url(#mp-litmask-${LIGHT_TORCH.id})`);
+    expect(svg.querySelector(`mask#mp-litmask-${LIGHT_TORCH.id} circle`)).toBeInTheDocument();
+  });
+
+  it('el difuminado crece con el alcance: una antorcha no lleva el borde de un foco', () => {
+    expect(lightFeather(30)).toBeLessThan(lightFeather(300));
+    // Y nunca baja de un mínimo: una luz diminuta con 0 de difuminado volvería a tener canto.
+    expect(lightFeather(1)).toBeGreaterThanOrEqual(5);
+  });
+
+  it('una luz que no alumbra nada que este espectador vea no se pinta: el resplandor la delataría', () => {
+    const { svg } = mount({ isDm: false, lights: [LIGHT_TORCH, LIGHT_BULB], fog: { ...FOG, lit: [LIT_TORCH] } });
+    const shown = within(svg).getAllByTestId('mp-light');
+    expect(shown).toHaveLength(1);
+    expect(shown[0]).toHaveAttribute('data-light-id', LIGHT_TORCH.id);
+  });
+
+  /**
+   * El caso que se escapaba: el servidor manda la lista VACÍA («se calculó, y no te alcanza ninguna») y hay
+   * que apagarlas todas. Si se confundiera con «todavía no hay respuesta», el resplandor de una antorcha que
+   * este jugador no ve quedaría flotando sobre su niebla y delataría dónde está.
+   */
+  it('con la lista vacía no se pinta ningún resplandor: no es lo mismo que «aún no hay respuesta»', () => {
+    const { svg } = mount({ isDm: false, lights: [LIGHT_TORCH, LIGHT_BULB], fog: { ...FOG, lit: [] } });
+    expect(within(svg).queryAllByTestId('mp-light')).toHaveLength(0);
+  });
+
+  it('mientras el servidor no ha contestado la luz se pinta entera, sin recorte — igual que la niebla', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH], fog: null });
+    expect(within(svg).getByTestId('mp-light')).toHaveAttribute('mask', `url(#mp-litmask-${LIGHT_TORCH.id})`);
+  });
+
+  it('lo alumbrado cuenta como visto en niebla «visión»', () => {
+    const { svg } = mount({ fog: { ...FOG, lit: [LIT_TORCH] } });
+    expect(within(svg).getByTestId('mp-fog-lit')).toBeInTheDocument();
+  });
+
+  it('en niebla «manual» la luz llega, pero no revela nada: ahí manda el pincel del director', () => {
+    const { svg } = mount({ scene: { ...SCENE_WAREHOUSE, fogMode: 'manual' }, fog: { ...FOG, vision: [], lit: [LIT_TORCH] } });
+    expect(within(svg).queryByTestId('mp-fog-lit')).not.toBeInTheDocument();
+  });
+});
 
 describe('<MapCanvas> fog', () => {
   it('without an answer from the API yet the scene draws unfogged — no black flash', () => {

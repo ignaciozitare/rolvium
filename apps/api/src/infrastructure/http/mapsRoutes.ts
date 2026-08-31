@@ -19,6 +19,8 @@ const VisionBody = z.object({
     /** Desde dónde sale el barrido: la posición ACTUAL del token en el navegador. Sin él, la guardada. */
     from: z.object({ x: z.number().finite(), y: z.number().finite() }).optional(),
   }).optional(),
+  /** «Ver con los ojos de»: el director pide lo que vería ESA ficha. Se ignora para quien no lo sea. */
+  asTokenId: z.string().uuid().optional(),
 });
 
 const STATUS: Record<VisionErrorCode, number> = { NOT_FOUND: 404, FORBIDDEN: 403 };
@@ -41,6 +43,7 @@ export async function mapsRoutes(app: FastifyInstance, opts: Opts): Promise<void
     const r = await computeSceneVision(opts, {
       sceneId: p.data.sceneId, userId: request.identity.userId,
       ...(at.success && at.data.at ? { at: at.data.at } : {}),
+      ...(at.success && at.data.asTokenId ? { asTokenId: at.data.asTokenId } : {}),
     });
     if (!r.ok) return reply.status(STATUS[r.code]).send({ ok: false, error: { code: r.code, message: r.code.toLowerCase() } });
     return reply.send({ ok: true, data: r.data });

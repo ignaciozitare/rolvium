@@ -269,3 +269,246 @@ describe('paintSceneFog', () => {
     expect(maps.fog[PIP]!.some(([x, y]) => x === 9 && y === 9)).toBe(true);
   });
 });
+
+/**
+ * «Ver la escena con los ojos de un personaje» (rebanada 7). Se calcula AQUÍ y no en el navegador del
+ * director a propósito: si se recalculase allí, lo que él ve y lo que ve el jugador de verdad podrían
+ * discrepar — y comprobar justamente eso es para lo que sirve la herramienta.
+ */
+describe('computeSceneVision — ver con los ojos de un personaje', () => {
+  const lens = (over = {}) => computeSceneVision({ maps: seed(over) }, { sceneId: SCENE, userId: DM, asTokenId: PIP_TOKEN.id });
+
+  it('le da al director el MISMO polígono que al jugador que controla la ficha', async () => {
+    const mine = await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: PIP });
+    const asPip = await lens();
+    expect(asPip.ok && mine.ok).toBe(true);
+    if (!asPip.ok || !mine.ok) return;
+    expect(asPip.data.vision).toEqual(mine.data.vision);
+    // Y no es el «todo» del director: al otro lado del muro no se ve.
+    expect(asPip.data.vision).toHaveLength(1);
+    expect(pointInPolygon({ x: 200, y: 135 }, asPip.data.vision[0]!)).toBe(false);
+  });
+
+  it('enseña la niebla explorada DEL JUGADOR, no la unión del director', async () => {
+    const r = await lens({ fog: { [PIP]: [[0, 0]], [NIX]: [[9, 9], [8, 8]] } });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.explored).toEqual([[0, 0]]);
+  });
+
+  /** Es una LENTE: mirar por los ojos de alguien no le explora el mapa a nadie. */
+  it('no guarda nada', async () => {
+    const repo = seed({ fog: { [PIP]: [] } });
+    await computeSceneVision({ maps: repo }, { sceneId: SCENE, userId: DM, asTokenId: PIP_TOKEN.id });
+    expect(repo.fog[PIP]).toEqual([]);
+    // El jugador pidiendo lo suyo SÍ guarda: se comprueba que el doble no está roto.
+    await computeSceneVision({ maps: repo }, { sceneId: SCENE, userId: PIP });
+    expect(repo.fog[PIP]!.length).toBeGreaterThan(0);
+  });
+
+  it('una ficha que no existe en la escena es un 404, no una vista en blanco', async () => {
+    expect(await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: DM, asTokenId: 'tk-fantasma' })).toEqual({ ok: false, code: 'NOT_FOUND' });
+  });
+
+  it('respeta el modo de niebla de la escena, como lo respetaría el jugador', async () => {
+    const manual = await computeSceneVision({ maps: seed({ scene: { fogMode: 'manual' }, fog: { [PIP]: [[1, 1]] } }) }, { sceneId: SCENE, userId: DM, asTokenId: PIP_TOKEN.id });
+    expect(manual.ok && manual.data.vision).toEqual([]);
+    expect(manual.ok && manual.data.explored).toEqual([[1, 1]]);
+    const off = await computeSceneVision({ maps: seed({ scene: { fogMode: 'off' } }) }, { sceneId: SCENE, userId: DM, asTokenId: PIP_TOKEN.id });
+    expect(off.ok && off.data.explored.length).toBe(100); // 270/27 = 10 × 10 casillas
+  });
+
+  /** Sin lente, el director sigue viéndolo todo: la herramienta no le cambia su vista de siempre. */
+  it('sin lente el director sigue con su unión de lo explorado y sin polígono', async () => {
+    const r = await computeSceneVision({ maps: seed({ fog: { [PIP]: [[0, 0]], [NIX]: [[9, 9]] } }) }, { sceneId: SCENE, userId: DM });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.vision).toEqual([]);
+    expect(r.data.explored).toHaveLength(2);
+  });
+
+  /** La lente es SÓLO del director: a un jugador el parámetro no le abre los ojos de otro. */
+  it('un jugador que la pide no ve más de lo suyo', async () => {
+    const other = { id: 'tk-nix', x: 8, y: 5, size: 1, controlledBy: NIX };
+    const r = await computeSceneVision({ maps: seed({ tokens: [PIP_TOKEN, other] }) }, { sceneId: SCENE, userId: PIP, asTokenId: other.id });
+    const mine = await computeSceneVision({ maps: seed({ tokens: [PIP_TOKEN, other] }) }, { sceneId: SCENE, userId: PIP });
+    expect(r.ok && mine.ok).toBe(true);
+    if (!r.ok || !mine.ok) return;
+    expect(r.data.vision).toEqual(mine.data.vision);
+  });
+});
+
+// ── Rebanada 7 · § 7.2 «Las luces iluminan de verdad» ───────────────────────
+
+const LIGHT = {
+  id: 'li-1', layerId: null, x: 100, y: 135, rotation: 0,
+  shape: 'radius' as const, coneAngle: 60, rangeM: 6.75, castsShadow: true,   // 6,75 m ÷ 1,5 × 27 px = 121,5 px
+};
+const inLit = (p: { x: number; y: number }, lit: { parts: [number, number][][] }[] | undefined): boolean =>
+  (lit ?? []).some(l => l.parts.some(poly => pointInPolygon(p, poly)));
+
+describe('luces que iluminan de verdad (§ 7.2)', () => {
+  it('la luz se para en el muro: no alumbra al otro lado', async () => {
+    const maps = seed({ lights: [LIGHT] });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: DM });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(inLit({ x: 120, y: 135 }, r.data.lit)).toBe(true);
+    expect(inLit({ x: 200, y: 135 }, r.data.lit)).toBe(false);
+  });
+
+  it('con la sombra apagada sí la atraviesa: es el resplandor mágico, y sigue siendo elección del director', async () => {
+    const maps = seed({ lights: [{ ...LIGHT, castsShadow: false }] });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: DM });
+    if (!r.ok) return;
+    expect(inLit({ x: 200, y: 135 }, r.data.lit)).toBe(true);
+  });
+
+  it('una escena sin luces no contesta el campo: vacío y «no hay luces» no son lo mismo', async () => {
+    const r = await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: PIP });
+    if (!r.ok) return;
+    expect(r.data.lit).toBeUndefined();
+  });
+
+  /**
+   * LA REGLA DEL DUEÑO, literal: «si un personaje entra en un pasillo y mira al fondo donde su línea no
+   * llega pero hay una luz, sólo ve lo que está iluminado. Lo que hay en medio no se ve».
+   *
+   * Pasillo de 600 px entre dos muros. El personaje está en la boca con 3 m de alcance (40 px) y hay una
+   * antorcha al fondo, a 500 px. Los tres puntos que importan: lo de cerca se ve por alcance, lo del fondo
+   * por la luz, y LO DE EN MEDIO SIGUE NEGRO aunque tenga línea de vista limpia hasta él.
+   */
+  it('la luz NO alarga tu línea de visión: se ve el fondo iluminado y lo de en medio sigue a oscuras', async () => {
+    const maps = fakeMapsRepo({
+      roles: ROLES,
+      scene: { width: 600, height: 200, gridSize: 20, fogMode: 'vision', lighting: 'night', nightRadiusM: 3 },
+      walls: [
+        { id: 'w-top', x1: 0, y1: 80, x2: 600, y2: 80, blocksSight: true, blocksMove: true, isOpen: false },
+        { id: 'w-bottom', x1: 0, y1: 120, x2: 600, y2: 120, blocksSight: true, blocksMove: true, isOpen: false },
+      ],
+      tokens: [{ id: 'tk-pip', x: 1, y: 4, size: 1, controlledBy: PIP }],   // centro (30, 90), dentro del pasillo
+      lights: [{ ...LIGHT, x: 500, y: 100, rangeM: 3 }],                    // 3 m ÷ 1,5 × 20 px = 40 px
+    });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    const seenAt = (p: { x: number; y: number }): boolean =>
+      r.data.vision.some(poly => pointInPolygon(p, poly)) || inLit(p, r.data.lit);
+
+    expect(seenAt({ x: 45, y: 100 })).toBe(true);     // cerca: entra por su alcance
+    expect(seenAt({ x: 250, y: 100 })).toBe(false);   // EN MEDIO: línea de vista limpia, pero ni alcance ni luz
+    expect(seenAt({ x: 500, y: 100 })).toBe(true);    // al fondo: no llega su vista, pero llega la antorcha
+
+    // Y lo alumbrado se recuerda como todo lo demás (§ 7.2, punto 4).
+    const key = (c: [number, number]): string => `${c[0]},${c[1]}`;
+    const explored = new Set(r.data.explored.map(key));
+    expect(explored.has(key([25, 5]))).toBe(true);    // la casilla del fondo iluminado, ya explorada
+    expect(explored.has(key([12, 5]))).toBe(false);   // la de en medio, no
+  });
+
+  /**
+   * El motivo de que esto viva en el servidor. Al jugador no le llegan los muros secretos, así que un charco
+   * de luz recortado en su navegador —o mandado entero— le dibujaría por dónde corta la sombra.
+   */
+  it('al jugador la luz le llega cortada por lo que ve; al director, entera', async () => {
+    const common = {
+      roles: ROLES,
+      scene: { width: 270, height: 270, gridSize: 27, fogMode: 'vision' as const },
+      // Medio muro: deja pasar la vista por debajo de y = 120, y esconde lo de arriba.
+      walls: [{ id: 'w-half', x1: 135, y1: 0, x2: 135, y2: 120, blocksSight: true, blocksMove: true, isOpen: false }],
+      tokens: [{ id: 'tk-pip', x: 1, y: 6, size: 1, controlledBy: PIP }],   // centro (40,5, 175,5)
+      lights: [{ ...LIGHT, x: 200, y: 60, rangeM: 4.5 }],                   // 4,5 m ÷ 1,5 × 27 px = 81 px
+    };
+    const asPlayer = await computeSceneVision({ maps: fakeMapsRepo(common) }, { sceneId: SCENE, userId: PIP });
+    const asDm = await computeSceneVision({ maps: fakeMapsRepo(common) }, { sceneId: SCENE, userId: DM });
+    if (!asPlayer.ok || !asDm.ok) return;
+
+    // El director conoce todos los muros: recibe el charco entero, con su sombra.
+    expect(inLit({ x: 200, y: 60 }, asDm.data.lit)).toBe(true);
+    // El jugador tiene el medio muro delante: eso no le llega ni siquiera dibujado en el borde de la luz.
+    expect(inLit({ x: 200, y: 60 }, asPlayer.data.lit)).toBe(false);
+    // Lo que sí alcanza a ver por debajo del muro, sí.
+    expect(inLit({ x: 200, y: 130 }, asPlayer.data.lit)).toBe(true);
+  });
+
+  /**
+   * Sin ojos no hay nada que enseñarle — pero el campo VIAJA, vacío. Un `undefined` aquí significaría «esta
+   * escena no tiene luces» y el navegador pintaría los resplandores enteros: el de una antorcha que este
+   * jugador no alcanza a ver quedaría flotando sobre su niebla, delatando dónde está.
+   */
+  it('un jugador sin ninguna ficha recibe la lista VACÍA, no el campo ausente', async () => {
+    const maps = seed({ lights: [LIGHT] });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: NIX });
+    if (!r.ok) return;
+    expect(r.data.lit).toEqual([]);
+  });
+
+  /** Lo mismo con ficha: si ninguna luz le alcanza, la lista llega vacía y le apaga TODOS los resplandores. */
+  it('una luz que no alumbra nada de lo que el jugador ve llega como lista vacía, no como campo ausente', async () => {
+    const maps = fakeMapsRepo({
+      roles: ROLES,
+      scene: { width: 600, height: 200, gridSize: 20, fogMode: 'vision', lighting: 'night', nightRadiusM: 3 },
+      // Muro macizo entre la ficha y la antorcha: no ve ni un tramo del charco.
+      walls: [{ id: 'w-solid', x1: 300, y1: 0, x2: 300, y2: 200, blocksSight: true, blocksMove: true, isOpen: false }],
+      tokens: [{ id: 'tk-pip', x: 1, y: 4, size: 1, controlledBy: PIP }],
+      lights: [{ ...LIGHT, x: 500, y: 100, rangeM: 3 }],
+    });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    if (!r.ok) return;
+    expect(r.data.lit).toEqual([]);
+  });
+
+  it('una capa apagada apaga su luz para todos; la de notas del director sólo alumbra para él', async () => {
+    const layers = [
+      { id: 'ly-off', kind: 'objects' as const, visible: false },
+      { id: 'ly-dm', kind: 'dm_notes' as const, visible: true },
+    ];
+    const lights = [
+      { ...LIGHT, id: 'li-off', layerId: 'ly-off' },
+      { ...LIGHT, id: 'li-dm', layerId: 'ly-dm' },
+      { ...LIGHT, id: 'li-open', layerId: null },
+    ];
+    const dm = await computeSceneVision({ maps: seed({ lights, layers }) }, { sceneId: SCENE, userId: DM });
+    const pip = await computeSceneVision({ maps: seed({ lights, layers }) }, { sceneId: SCENE, userId: PIP });
+    if (!dm.ok || !pip.ok) return;
+    expect((dm.data.lit ?? []).map(l => l.id).sort()).toEqual(['li-dm', 'li-open']);
+    expect((pip.data.lit ?? []).map(l => l.id)).toEqual(['li-open']);
+  });
+
+  it('con la niebla en manual la luz llega —para recortarse contra los muros— pero no explora nada', async () => {
+    const maps = seed({ scene: { fogMode: 'manual' }, lights: [LIGHT], fog: { [PIP]: [[0, 0]] } });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    if (!r.ok) return;
+    expect(inLit({ x: 120, y: 135 }, r.data.lit)).toBe(true);
+    expect(r.data.explored).toEqual([[0, 0]]);   // sólo lo que pintó el director
+  });
+
+  it('con la niebla apagada la luz va entera: el director quitó el secreto a propósito', async () => {
+    const maps = seed({ scene: { fogMode: 'off' }, lights: [{ ...LIGHT, x: 200, y: 60, rangeM: 4.5 }] });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    if (!r.ok) return;
+    expect(inLit({ x: 200, y: 60 }, r.data.lit)).toBe(true);
+  });
+
+  it('la lente «ver con los ojos de» mira las luces con SUS ojos, no con los del director', async () => {
+    const maps = fakeMapsRepo({
+      roles: ROLES,
+      scene: { width: 270, height: 270, gridSize: 27, fogMode: 'vision' },
+      walls: [{ id: 'w-half', x1: 135, y1: 0, x2: 135, y2: 120, blocksSight: true, blocksMove: true, isOpen: false }],
+      tokens: [{ id: 'tk-pip', x: 1, y: 6, size: 1, controlledBy: PIP }],
+      lights: [{ ...LIGHT, x: 200, y: 60, rangeM: 4.5 }],
+    });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: DM, asTokenId: 'tk-pip' });
+    if (!r.ok) return;
+    expect(inLit({ x: 200, y: 60 }, r.data.lit)).toBe(false);   // lo mismo que ve el jugador, ni un píxel más
+  });
+
+  it('el pincel del director contesta también las luces: su respuesta reemplaza la niebla entera', async () => {
+    const maps = seed({ lights: [LIGHT] });
+    const r = await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'reveal', at: { x: 30, y: 30, radius: 20 } });
+    if (!r.ok) return;
+    expect(inLit({ x: 120, y: 135 }, r.data.lit)).toBe(true);
+    expect(inLit({ x: 200, y: 135 }, r.data.lit)).toBe(false);
+  });
+});

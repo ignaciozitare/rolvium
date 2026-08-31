@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { fakeMapsRepo, fakeVisionPort, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN } from '../../../../tests/helpers/fakes';
+import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN } from '../../../../tests/helpers/fakes';
+import { newLightOf } from '../domain/useCases/layerRules';
 import { useScene } from './useScene';
 
 /**
@@ -77,5 +78,140 @@ describe('useScene · paredes sólidas, el ciclo entero', () => {
     expect(result.current.dragBound(TOKEN_KAREN.id)).toBeNull();
     // y la posición final se persiste donde se soltó
     expect(repo.tokenUpdates.at(-1)).toEqual({ id: TOKEN_KAREN.id, patch: { x: WALL_X, y: LIBRE.y } });
+  });
+});
+
+/**
+ * Capas y luces (rebanada 7). Lo que se prueba aquí, y no en el dominio, es la CONVIVENCIA con lo que ya
+ * había: que cargarlas no rompe el resto, que el borrado espeja lo que hace la base de datos, y —lo más
+ * importante— que NADA de esto pide visión de nuevo: una capa es composición y una luz es pintura.
+ */
+describe('useScene — capas y luces', () => {
+  const seedLayers = () => fakeMapsRepo({ tokens: [TOKEN_KAREN], layers: [LAYER_OBJECTS, LAYER_FLOOR, LAYER_MOSS], lights: [LIGHT_TORCH], drawings: [{ ...DRAWING_MINE, layerId: LAYER_MOSS.id }] });
+
+  it('carga capas y luces con el resto de la escena', async () => {
+    const repo = seedLayers();
+    const r = await mount(repo, fakeVisionPort());
+    expect(r.current.layers.map(l => l.id)).toEqual(['ly-obj', 'ly-floor', 'ly-moss']);
+    expect(r.current.lights.map(l => l.id)).toEqual(['li-torch']);
+  });
+
+  it('la capa nueva de terreno se coloca encima de las que ya hay', async () => {
+    const repo = seedLayers();
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addTerrainLayer({ name: 'Niebla baja' }); });
+    const created = repo.layers.at(-1)!;
+    expect(created).toMatchObject({ kind: 'terrain', name: 'Niebla baja', sortOrder: 2 });
+    expect(r.current.layers.some(l => l.id === created.id)).toBe(true);
+  });
+
+  /**
+   * Espeja el ON DELETE de la migración: los dibujos y las luces de esa capa se van con ella, pero las
+   * FICHAS vuelven a su capa natural. Perder el personaje de un jugador por borrar una capa decorativa
+   * sería un desastre silencioso.
+   */
+  it('borrar una capa se lleva sus dibujos y sus luces, pero no sus fichas', async () => {
+    const repo = fakeMapsRepo({
+      tokens: [{ ...TOKEN_KAREN, layerId: LAYER_MOSS.id }], layers: [LAYER_OBJECTS, LAYER_MOSS],
+      lights: [{ ...LIGHT_TORCH, layerId: LAYER_MOSS.id }], drawings: [{ ...DRAWING_MINE, layerId: LAYER_MOSS.id }],
+    });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.removeLayer(LAYER_MOSS.id); });
+    expect(r.current.layers.map(l => l.id)).toEqual(['ly-obj']);
+    expect(r.current.drawings).toHaveLength(0);
+    expect(r.current.lights).toHaveLength(0);
+    expect(r.current.tokens[0]).toMatchObject({ id: TOKEN_KAREN.id, layerId: null });
+  });
+
+  it('reordenar escribe sólo las dos filas que cambian de sitio', async () => {
+    const repo = seedLayers();
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.reorderLayer(LAYER_MOSS.id, 'down'); });
+    expect(repo.layerUpdates).toEqual([{ id: 'ly-moss', patch: { sortOrder: 0 } }, { id: 'ly-floor', patch: { sortOrder: 1 } }]);
+    // Tras el intercambio, «Musgo» es la de más abajo: bajarla otra vez no escribe nada — no se promete un
+    // movimiento que no pasa.
+    repo.layerUpdates.length = 0;
+    await act(async () => { await r.current.reorderLayer(LAYER_MOSS.id, 'down'); });
+    expect(repo.layerUpdates).toEqual([]);
+  });
+
+  it('guardar la máscara sube la versión, y quitarla deja la capa entera', async () => {
+    const repo = seedLayers();
+    const r = await mount(repo, fakeVisionPort());
+    const moss = r.current.layers.find(l => l.id === LAYER_MOSS.id)!;
+    const before = moss.maskVersion;
+    await act(async () => { await r.current.saveMask(moss, new Blob(['x'])); });
+    expect(repo.masksSaved).toEqual([{ layerId: 'ly-moss', bytes: 1 }]);
+    expect(r.current.layers.find(l => l.id === LAYER_MOSS.id)!.maskVersion).toBe(before + 1);
+    await act(async () => { await r.current.clearMask(moss); });
+    expect(r.current.layers.find(l => l.id === LAYER_MOSS.id)!.maskUrl).toBeNull();
+  });
+
+  it('las luces se ponen, se retocan y se quitan', async () => {
+    const repo = seedLayers();
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addLight(newLightOf('fire', { x: 100, y: 200 }, SCENE_WAREHOUSE)); });
+    const fire = repo.lights.at(-1)!;
+    expect(fire).toMatchObject({ kind: 'fire', x: 100, y: 200, flicker: true, castsShadow: true });
+    await act(async () => { await r.current.patchLight(fire.id, { flicker: false }); });
+    expect(r.current.lights.find(l => l.id === fire.id)!.flicker).toBe(false);
+    await act(async () => { await r.current.removeLight(fire.id); });
+    expect(r.current.lights.some(l => l.id === fire.id)).toBe(false);
+  });
+
+  /**
+   * ESTE ES EL DÍA que anunciaba la versión anterior de este test («si un día una luz ilumina de verdad,
+   * esto tendrá que cambiar A PROPÓSITO»). Desde § 7.2 una luz alumbra y se recorta contra los muros, así
+   * que mover una, cambiarle el alcance o la forma, o apagarle la sombra, cambia lo que se ve y hay que
+   * volver a preguntar. Lo que NO vuelve a preguntar es la pintura pura: el color y el parpadeo.
+   */
+  it('cambiar la GEOMETRÍA de una luz vuelve a pedir la visión', async () => {
+    const repo = seedLayers();
+    const vision = fakeVisionPort();
+    const r = await mount(repo, vision);
+    const before = vision.calls.length;
+    await act(async () => { await r.current.patchLight(LIGHT_TORCH.id, { rangeM: 12 }); });
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(before));
+  });
+
+  it('su color y su parpadeo NO la piden: eso es pintura y no cambia lo que se ve', async () => {
+    const repo = seedLayers();
+    const vision = fakeVisionPort();
+    const r = await mount(repo, vision);
+    const before = vision.calls.length;
+    await act(async () => { await r.current.patchLight(LIGHT_TORCH.id, { color: '#c9a84c', flicker: false }); });
+    // La consulta va en un `setTimeout(0)`: hay que dejar pasar el turno para poder afirmar que NO llega.
+    await act(async () => { await new Promise(res => setTimeout(res, 0)); });
+    expect(vision.calls.length).toBe(before);
+  });
+
+  it('apagar la capa donde vive una luz también la pide: la capa apagada apaga la luz', async () => {
+    const repo = seedLayers();
+    const vision = fakeVisionPort();
+    const r = await mount(repo, vision);
+    const before = vision.calls.length;
+    await act(async () => { await r.current.patchLayer(LAYER_MOSS.id, { visible: false }); });
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(before));
+  });
+
+  /** Y nada de esto avisa a la mesa por su cuenta: el cambio de la fila ya viaja por el canal en vivo. */
+  it('ninguno de esos cambios emite un aviso suelto a la mesa', async () => {
+    const repo = seedLayers();
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => {
+      await r.current.addTerrainLayer();
+      await r.current.addLight(newLightOf('torch', { x: 1, y: 2 }, SCENE_WAREHOUSE));
+    });
+    expect(repo.broadcasts).toEqual([]);
+  });
+
+  /** Y llegan por realtime como todo lo demás, sin recargar la escena. */
+  it('una capa que cambia en otro navegador llega por el canal de la escena', async () => {
+    const repo = seedLayers();
+    const r = await mount(repo, fakeVisionPort());
+    act(() => { repo.emit('sc-1', { layer: { type: 'UPDATE', id: LAYER_MOSS.id, row: { ...LAYER_MOSS, visible: false } } }); });
+    expect(r.current.layers.find(l => l.id === LAYER_MOSS.id)!.visible).toBe(false);
+    act(() => { repo.emit('sc-1', { light: { type: 'DELETE', id: LIGHT_TORCH.id, row: null } }); });
+    expect(r.current.lights).toHaveLength(0);
   });
 });

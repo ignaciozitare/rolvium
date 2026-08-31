@@ -1,6 +1,7 @@
-import type { SceneVision } from '@rolvium/core';
-import type { Drawing, Scene, Token, Wall } from '../domain/entities/Scene';
-import { cellsPath, initialsOf, openingGeometry, polygonPoints, tokenCenter } from '../domain/useCases/mapRules';
+import type { LitLight, SceneVision } from '@rolvium/core';
+import type { Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
+import { cellsPath, initialsOf, openingGeometry, polygonPoints, polygonsPath, tokenCenter } from '../domain/useCases/mapRules';
+import { conePath, flickerOf, lightRadiusPx, maskSrc, terrainLayers } from '../domain/useCases/layerRules';
 
 /** Presentational SVG pieces of the canvas (no pointer logic) — see MapCanvas.tsx. */
 
@@ -13,8 +14,14 @@ import { cellsPath, initialsOf, openingGeometry, polygonPoints, tokenCenter } fr
 const MASK_SHOW = '#ffffff';
 const MASK_HIDE = '#000000';
 
-export function BackgroundLayer({ scene, clipId }: { scene: Scene; clipId: string }): JSX.Element {
-  const { width, height, bgColor, bgImageUrl, bgTransform: tr } = scene;
+/**
+ * El color de base y —si la escena NO tiene capas de terreno— la foto de fondo de siempre.
+ * `imageHidden` es la regla de convivencia de la rebanada 7: con capas de terreno manda la capa y
+ * `bgImageUrl` se ignora, porque la migración subió esa foto a una capa pero dejó la columna en su sitio.
+ */
+export function BackgroundLayer({ scene, clipId, imageHidden = false }: { scene: Scene; clipId: string; imageHidden?: boolean }): JSX.Element {
+  const { width, height, bgColor, bgTransform: tr } = scene;
+  const bgImageUrl = imageHidden ? null : scene.bgImageUrl;
   return (
     <g className="mp-layer-bg" clipPath={`url(#${clipId})`}>
       <rect x={0} y={0} width={width} height={height} fill={bgColor} data-testid="mp-bg" />
@@ -130,6 +137,15 @@ export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
   const cells = cellsPath(fog.explored, scene.grid.size);
   const full = { x: 0, y: 0, width: scene.width, height: scene.height };
   const polys = fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_SHOW} />);
+  /**
+   * Lo que alumbran las luces cuenta como VISTO, y sólo en niebla «visión» (§ 7.2). El servidor ya lo mandó
+   * recortado contra tu línea de vista, así que sumarlo aquí es la regla del dueño tal cual: ves un punto si
+   * tienes línea de vista Y (te queda dentro de tu alcance O lo alcanza una luz).
+   *
+   * En «manual» manda el pincel del director y en «off» ya se ve todo, así que ahí las luces siguen llegando
+   * —hacen falta para recortar su resplandor contra los muros— pero no revelan nada por su cuenta.
+   */
+  const litParts = scene.fogMode === 'vision' ? polygonsPath((fog.lit ?? []).flatMap(l => l.parts)) : '';
   const feather = fogFeather(scene.lighting);
   const blurId = `${ids.seen}-feather`;
   const blur = `url(#${blurId})`;
@@ -150,16 +166,21 @@ export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
         <g filter={blur}>
           {cells && <path d={cells} fill={MASK_SHOW} />}
           {polys}
+          {litParts && <path d={litParts} fill={MASK_SHOW} data-testid="mp-fog-lit" />}
         </g>
       </mask>
       <mask id={ids.lit} maskUnits="userSpaceOnUse" {...full}>
         <rect {...wide} fill={MASK_HIDE} />
-        <g filter={blur}>{polys}</g>
+        <g filter={blur}>
+          {polys}
+          {litParts && <path d={litParts} fill={MASK_SHOW} />}
+        </g>
       </mask>
       <mask id={ids.dim} maskUnits="userSpaceOnUse" {...full}>
         <rect {...wide} fill={MASK_SHOW} />
         <g filter={blur}>
           {fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_HIDE} />)}
+          {litParts && <path d={litParts} fill={MASK_HIDE} />}
         </g>
       </mask>
       <mask id={ids.unexplored} maskUnits="userSpaceOnUse" {...full}>
@@ -167,5 +188,150 @@ export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
         <g filter={blur}>{cells && <path d={cells} fill={MASK_HIDE} />}</g>
       </mask>
     </>
+  );
+}
+
+// ── Rebanada 7: capas de terreno con máscara, y luces de ambiente ────────────
+
+/**
+ * Las capas de TERRENO, de abajo arriba, cada una con su máscara del pincel de transparencia.
+ *
+ * **Regla de convivencia con el fondo de siempre**: si la escena tiene alguna capa de terreno, manda la capa
+ * y `scene.bgImageUrl` se IGNORA. Está así porque la migración subió la foto de fondo de cada escena a una
+ * capa de terreno pero no vació la columna — pintar las dos sería pintar la misma foto dos veces, y vaciarla
+ * habría dejado las escenas en negro entre la migración y este despliegue. El color de base se pinta siempre:
+ * es lo que se ve donde no llega ninguna foto.
+ *
+ * La máscara es un PNG con brochazos NEGROS semitransparentes sobre nada. Dentro de un `<mask>` de SVG el
+ * valor es luminancia × alfa, así que va sobre un rectángulo BLANCO: donde no hay brochazo queda blanco (se
+ * ve entero), un brochazo a fuerza máxima deja negro (no se ve) y a media, gris (translúcido). La foto
+ * original no se toca en ningún momento — de ahí que siempre se pueda volver atrás.
+ */
+export function TerrainLayers({ scene, layers, clipId, preview = null }: { scene: Scene; layers: readonly Layer[]; clipId: string;
+  /** La máscara EN VIVO de la capa que se está pintando: manda sobre la guardada hasta que ésta suba. */
+  preview?: { layerId: string; href: string | null } | null }): JSX.Element {
+  const terrain = terrainLayers(layers).filter(l => l.visible && l.imageUrl);
+  return (
+    <g className="mp-layer-terrain" clipPath={`url(#${clipId})`} data-testid="mp-terrain">
+      {terrain.map(l => {
+        const mask = preview && preview.layerId === l.id ? preview.href : maskSrc(l);
+        const maskId = `mp-mask-${l.id}`;
+        const tr = l.transform;
+        const box = tr.mode === 'custom'
+          ? { x: tr.x, y: tr.y, width: scene.width * tr.scale, height: scene.height * tr.scale, preserveAspectRatio: 'xMinYMin meet' }
+          : { x: 0, y: 0, width: scene.width, height: scene.height, preserveAspectRatio: tr.mode === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet' };
+        return (
+          <g key={l.id} data-layer-id={l.id} data-testid="mp-terrain-layer">
+            {mask && (
+              <mask id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={scene.width} height={scene.height}>
+                <rect x={0} y={0} width={scene.width} height={scene.height} fill={MASK_SHOW} />
+                <image href={mask} x={0} y={0} width={scene.width} height={scene.height} preserveAspectRatio="none" data-testid="mp-terrain-mask" />
+              </mask>
+            )}
+            <image href={l.imageUrl!} {...box} {...(mask ? { mask: `url(#${maskId})` } : {})} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+/**
+ * Las luces de ambiente. HOY SON PINTURA: no revelan niebla, no cambian lo que ve nadie y no entran en el
+ * cálculo de visión del servidor. Lo único que hacen además de estar quietas es PARPADEAR, porque animar
+ * también es pintar (dueño, 2026-08-31) — y el ritmo lo pone el tipo de luz, no un control aparte.
+ *
+ * El degradado va de opaco en el centro a transparente en el borde, y se compone en modo `screen` (en CSS)
+ * para que sume luz en vez de tapar el mapa.
+ */
+/**
+ * `lit` es lo que el servidor contestó que alumbra CADA luz, ya recortado contra los muros y contra lo que
+ * este espectador alcanza a ver (§ 7.2). Tres casos, y los tres importan:
+ *
+ *  - `undefined` — todavía no ha contestado (o la escena no tiene ninguna luz que calcular): se pinta el
+ *    resplandor entero, como antes. Es lo mismo que hace el resto del lienzo mientras no hay niebla: enseñar
+ *    de más un instante es mejor que un parpadeo negro.
+ *  - la luz SÍ está en la lista: su resplandor se recorta a lo que alumbra de verdad. Esto es lo que hace que
+ *    una antorcha deje de iluminar al otro lado de la pared.
+ *  - la luz NO está: no alumbra nada que este espectador pueda ver, así que no se pinta. Pintarla igual
+ *    dejaría el resplandor flotando sobre la niebla, delatando que ahí hay una luz.
+ */
+/** La forma de una luz —cono, cuadrado o radio— como nodo de SVG. Se pinta dos veces: la luz y su máscara. */
+function lightShape(l: Light, r: number, props: Record<string, unknown>): JSX.Element {
+  if (l.shape === 'cone') return <path d={conePath(l, r)} {...props} />;
+  if (l.shape === 'square') return <rect x={l.x - r} y={l.y - r} width={r * 2} height={r * 2} {...props} />;
+  return <circle cx={l.x} cy={l.y} r={r} {...props} />;
+}
+
+/**
+ * Lo BORROSO que es el borde de una luz, en px de escena. Existe por una queja del dueño (2026-08-31, sobre
+ * un cono: «cuidado con los bordes del cono que no sean una línea dura»).
+ *
+ * Un borde de luz no es un canto: se apaga. Y desde § 7.2 el resplandor va RECORTADO —contra los muros y
+ * contra lo que el que mira alcanza a ver—, y un recorte es por definición una tijera: sin difuminar, la
+ * sombra de una pared y los dos lados del cono salían como rayas trazadas con regla.
+ *
+ * Se difumina la MÁSCARA y no la luz: el color no se ensucia, lo único que se suaviza es dónde deja de
+ * llegar. Es la misma solución que la niebla usa desde la rebanada 2, y por el mismo motivo.
+ *
+ * Proporcional al alcance: una antorcha de dos metros con el difuminado de un foco de treinta no se vería.
+ */
+export const lightFeather = (radius: number): number => Math.max(5, radius * 0.13);
+
+export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: readonly Light[]; lit?: readonly LitLight[] }): JSX.Element {
+  const shown = lights.map(l => ({ light: l, parts: lit?.find(x => x.id === l.id)?.parts ?? null }))
+    .filter(({ parts }) => !lit || parts !== null);
+  return (
+    <g className="mp-layer-lights" data-testid="mp-lights">
+      <defs>
+        {shown.map(({ light: l }) => (
+          <radialGradient key={l.id} id={`mp-light-${l.id}`}>
+            <stop offset="0%" stopColor={l.color} stopOpacity={0.65} />
+            <stop offset="55%" stopColor={l.color} stopOpacity={0.25} />
+            <stop offset="100%" stopColor={l.color} stopOpacity={0} />
+          </radialGradient>
+        ))}
+        {shown.map(({ light: l }) => {
+          const f = lightFeather(lightRadiusPx(l, scene.grid));
+          return (
+            <filter key={l.id} id={`mp-lightblur-${l.id}`} x="-50%" y="-50%" width="200%" height="200%" filterUnits="objectBoundingBox">
+              <feGaussianBlur stdDeviation={f} />
+            </filter>
+          );
+        })}
+        {shown.map(({ light: l, parts }) => {
+          const r = lightRadiusPx(l, scene.grid);
+          const f = lightFeather(r);
+          // La máscara se pinta con MARGEN: un desenfoque que acaba en el filo de su caja se come su propio borde.
+          const pad = r * 1.6 + f * 4;
+          return (
+            <mask key={l.id} id={`mp-litmask-${l.id}`} maskUnits="userSpaceOnUse" x={l.x - pad} y={l.y - pad} width={pad * 2} height={pad * 2}>
+              <g filter={`url(#mp-lightblur-${l.id})`}>
+                {parts
+                  ? <path d={polygonsPath(parts)} fill={MASK_SHOW} />
+                  : lightShape(l, r, { fill: MASK_SHOW })}
+              </g>
+            </mask>
+          );
+        })}
+      </defs>
+      {shown.map(({ light: l }) => {
+        const r = lightRadiusPx(l, scene.grid);
+        const rhythm = flickerOf(l);
+        const style = rhythm
+          ? ({ animationDuration: `${rhythm.periodMs}ms`, '--mp-flicker': String(rhythm.depth) } as React.CSSProperties)
+          : undefined;
+        return lightShape(l, r, {
+          key: l.id,
+          className: `mp-light ${rhythm ? (rhythm.sharp ? 'flicker-sharp' : 'flicker-soft') : ''}`,
+          fill: `url(#mp-light-${l.id})`,
+          style,
+          // SIEMPRE enmascarada, haya recorte del servidor o no: es lo que le quita el canto al borde.
+          mask: `url(#mp-litmask-${l.id})`,
+          'data-light-id': l.id,
+          'data-testid': 'mp-light',
+        });
+      })}
+    </g>
   );
 }

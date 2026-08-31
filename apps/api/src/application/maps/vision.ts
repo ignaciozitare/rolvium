@@ -1,4 +1,4 @@
-import type { FogCell, VisionPolygon } from '@rolvium/core';
+import type { FogCell, VisionPoint, VisionPolygon } from '@rolvium/core';
 
 /**
  * Line-of-sight geometry. Pure: no I/O, no framework, no game rules — it only knows points and segments.
@@ -138,4 +138,158 @@ export function unionCells(...lists: FogCell[][]): FogCell[] {
 export function subtractCells(base: FogCell[], remove: FogCell[]): FogCell[] {
   const gone = new Set(remove.map(cellKey));
   return base.filter(c => !gone.has(cellKey(c)));
+}
+
+// ── Rebanada 7 · § 7.2: las luces se recortan contra los muros ──────────────
+
+/**
+ * Una luz como la ve la GEOMETRÍA: ni color, ni parpadeo, ni tipo. Sólo dónde está, hasta dónde llega y con
+ * qué forma. Lo demás es pintura y vive en el navegador.
+ */
+export interface LightShape {
+  origin: Point;
+  /** Alcance en px de escena. */
+  radius: number;
+  shape: 'radius' | 'cone' | 'square';
+  /** Hacia dónde apunta el cono, en grados (0 = a la derecha), igual que en el lienzo. */
+  rotation: number;
+  /** Apertura del cono, en grados. Se ignora en `radius` y en `square`. */
+  coneAngle: number;
+  /** Si la luz se corta contra los muros. Apagado atraviesa paredes: un resplandor mágico, no una antorcha. */
+  castsShadow: boolean;
+}
+
+/** Ángulo equivalente en (−π, π], para poder comparar «está dentro del cono» sin el salto de −π a π. */
+function wrapPi(a: number): number {
+  const t = (a + Math.PI) % (2 * Math.PI);
+  return (t < 0 ? t + 2 * Math.PI : t) - Math.PI;
+}
+
+/** Hasta dónde llega la FORMA de la luz en una dirección, sin contar muros. */
+function shapeReach(light: LightShape, angle: number): number {
+  if (light.shape !== 'square') return light.radius;
+  // Un cuadrado es un cuadrado: en diagonal alcanza más lejos que de frente, y así se pinta en el lienzo.
+  return light.radius / Math.max(Math.abs(Math.cos(angle)), Math.abs(Math.sin(angle)), EPS);
+}
+
+/**
+ * El charco que alumbra una luz: el MISMO barrido de rayos que `visionPolygon`, pero desde la luz y limitado
+ * a su forma. Con `castsShadow` cada rayo se para en el primer muro —es lo que hace que la luz no pase al
+ * otro lado de la pared—; sin él la forma sale entera.
+ */
+export function lightPolygon(light: LightShape, segments: Segment[]): VisionPolygon {
+  if (!(light.radius > 0)) return [];
+  const full = light.shape !== 'cone' || light.coneAngle >= 360;
+  const half = full ? Math.PI : (Math.min(360, Math.max(1, light.coneAngle)) * Math.PI) / 360;
+  const centre = (light.rotation * Math.PI) / 180;
+
+  // Los ángulos se llevan RELATIVOS al centro del cono: así «cae dentro» es una comparación y no un caso
+  // de borde cada vez que el sector cruza el −π.
+  const rel: number[] = [];
+  const keep = (r: number): void => { if (full || Math.abs(r) <= half) rel.push(r); };
+  for (const s of segments) {
+    for (const p of [s.a, s.b]) {
+      const base = wrapPi(Math.atan2(p.y - light.origin.y, p.x - light.origin.x) - centre);
+      keep(base - CORNER_NUDGE); keep(base); keep(base + CORNER_NUDGE);
+    }
+  }
+  // Un arco proporcional a la apertura, para que el borde salga redondo y no en estrella.
+  const steps = Math.max(8, Math.round((ARC_RAYS * half) / Math.PI));
+  for (let i = 0; i <= steps; i++) keep(-half + (2 * half * i) / steps);
+  rel.sort((a, b) => a - b);
+
+  const points: VisionPolygon = [];
+  // Un cono es un trozo de tarta y se cierra POR LA LUZ; si no, sus dos lados rectos no existirían.
+  if (!full) points.push([light.origin.x, light.origin.y]);
+  for (const r of rel) {
+    const angle = centre + r;
+    const dx = Math.cos(angle), dy = Math.sin(angle);
+    let best = shapeReach(light, angle);
+    if (light.castsShadow) {
+      for (const s of segments) {
+        const t = rayHit(light.origin, dx, dy, s);
+        if (t !== null && t < best) best = t;
+      }
+    }
+    points.push([light.origin.x + dx * best, light.origin.y + dy * best]);
+  }
+  return points;
+}
+
+/** Área con signo. Su valor absoluto descarta astillas; su signo dice hacia qué lado gira el polígono. */
+export function signedArea(poly: VisionPolygon): number {
+  let a = 0;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    a += poly[j]![0] * poly[i]![1] - poly[i]![0] * poly[j]![1];
+  }
+  return a / 2;
+}
+
+/** Corte de una arista con la recta del recorte, interpolando por la distancia con signo a esa recta. */
+const crossing = (p: VisionPoint, q: VisionPoint, dp: number, dq: number): VisionPoint => {
+  const t = dp / (dp - dq);
+  return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+};
+
+/**
+ * Sutherland–Hodgman: recorta `subject` (de la forma que sea) contra `clip`, que **tiene que ser convexo**.
+ * Aquí `clip` es siempre un triángulo, así que la condición se cumple por construcción.
+ */
+export function clipToConvex(subject: VisionPolygon, clip: VisionPolygon): VisionPolygon {
+  if (subject.length < 3 || clip.length < 3) return [];
+  const side = signedArea(clip) >= 0 ? 1 : -1;
+  let out = subject;
+  for (let i = 0, j = clip.length - 1; i < clip.length && out.length > 0; j = i++) {
+    const [ax, ay] = clip[j]!, [bx, by] = clip[i]!;
+    const depth = (p: VisionPoint): number => side * ((bx - ax) * (p[1] - ay) - (by - ay) * (p[0] - ax));
+    const next: VisionPolygon = [];
+    for (let k = 0, m = out.length - 1; k < out.length; m = k++) {
+      const cur = out[k]!, prev = out[m]!;
+      const dCur = depth(cur), dPrev = depth(prev);
+      if (dCur >= 0) {
+        if (dPrev < 0) next.push(crossing(prev, cur, dPrev, dCur));
+        next.push(cur);
+      } else if (dPrev >= 0) {
+        next.push(crossing(prev, cur, dPrev, dCur));
+      }
+    }
+    out = next;
+  }
+  return out;
+}
+
+/** Astillas por debajo de esto se tiran: son subpíxeles del propio redondeo, no trozos de luz. */
+const MIN_PART_AREA = 1e-3;
+
+const boxOf = (poly: VisionPolygon): [number, number, number, number] => {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y] of poly) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  return [x0, y0, x1, y1];
+};
+const boxesMiss = (a: [number, number, number, number], b: [number, number, number, number]): boolean =>
+  a[2] < b[0] || b[2] < a[0] || a[3] < b[1] || b[3] < a[1];
+
+/**
+ * `subject` ∩ «lo que se ve desde `centre`», donde `star` es el polígono de visión desde ese punto.
+ *
+ * Un polígono de visión es una ESTRELLA alrededor de su origen —sus vértices salen ya ordenados por ángulo—,
+ * así que los triángulos (origen, vértice, siguiente) lo embaldosan enteros, sin huecos ni solapes. Y un
+ * triángulo es convexo, que es lo único que Sutherland–Hodgman necesita. De ahí que el corte salga exacto
+ * sin traerse una librería de recorte de polígonos.
+ *
+ * Devuelve VARIOS trozos a propósito: la sombra de una columna parte el charco de luz en dos, y forzarlo a
+ * ser uno solo lo cerraría por donde no toca.
+ */
+export function clipToStar(subject: VisionPolygon, centre: Point, star: VisionPolygon): VisionPolygon[] {
+  if (subject.length < 3 || star.length < 3) return [];
+  const box = boxOf(subject);
+  const parts: VisionPolygon[] = [];
+  for (let i = 0, j = star.length - 1; i < star.length; j = i++) {
+    const tri: VisionPolygon = [[centre.x, centre.y], star[j]!, star[i]!];
+    // La luz suele abarcar un ángulo pequeño visto desde el ojo: casi todos los triángulos ni la rozan.
+    if (boxesMiss(box, boxOf(tri))) continue;
+    const piece = clipToConvex(subject, tri);
+    if (piece.length >= 3 && Math.abs(signedArea(piece)) > MIN_PART_AREA) parts.push(piece);
+  }
+  return parts;
 }

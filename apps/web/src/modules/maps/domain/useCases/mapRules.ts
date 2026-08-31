@@ -13,10 +13,10 @@ export interface View { zoom: number; panX: number; panY: number }
  * `select` replaced `move` in slice 3: choosing and editing is a tool, panning is NOT — it is a modifier
  * (space bar or middle button) so it works from every tool (specs/modules/maps/SPEC.md § «Rebanada 3»).
  */
-export type Tool = 'select' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'text' | 'erase' | 'wall' | 'reveal' | 'hide' | 'encounter';
+export type Tool = 'select' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'text' | 'erase' | 'wall' | 'reveal' | 'hide' | 'mask' | 'light' | 'encounter';
 
 export const PLAYER_TOOLS: Tool[] = ['select', 'measure', 'pin', 'pencil', 'line', 'rect', 'circle', 'text', 'erase'];
-export const DM_TOOLS: Tool[] = ['wall', 'reveal', 'hide', 'encounter'];
+export const DM_TOOLS: Tool[] = ['wall', 'reveal', 'hide', 'mask', 'light', 'encounter'];
 /** Tools that exist in the design but not yet in code; the toolbar greys them out. Empty since slice 2 shipped the fog brush. */
 export const TOOLS_NOT_YET: Tool[] = [];
 /** The reveal/hide brush paints on the fog instead of drawing. */
@@ -283,6 +283,16 @@ export const wallPiece = (host: Wall, at: Segment): NewWall => ({
 // ── fog & vision (drawn from what the API answers; never computed here) ──────
 /** `"x,y x,y …"` for an SVG `<polygon points>`. */
 export const polygonPoints = (poly: VisionPolygon): string => poly.map(([x, y]) => `${x},${y}`).join(' ');
+/**
+ * Varios polígonos en UN solo `path`. Pintarlos como `<polygon>` sueltos deja una COSTURA clara donde dos
+ * trozos comparten borde: el antialias de cada uno cubre ese píxel a medias y las dos mitades no suman una.
+ * Dentro de un único `path` el relleno los une antes de rasterizar, y la costura no llega a existir.
+ *
+ * Los charcos de luz llegan partidos a propósito (§ 7.2: la sombra de una columna parte uno en dos), así que
+ * esto es la forma normal de pintarlos, no un apaño.
+ */
+export const polygonsPath = (polys: readonly VisionPolygon[]): string =>
+  polys.filter(p => p.length >= 3).map(p => `M${p.map(([x, y]) => `${x} ${y}`).join('L')}Z`).join('');
 /** One `<path d>` for a whole set of explored cells — one element instead of a rect per cell. */
 export const cellsPath = (cells: FogCell[], grid: number): string =>
   cells.map(([cx, cy]) => `M${cx * grid} ${cy * grid}h${grid}v${grid}h${-grid}z`).join('');

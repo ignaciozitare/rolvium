@@ -1,5 +1,5 @@
 import type { TableEvent } from '@rolvium/core';
-import type { CreateSceneInput, Drawing, ImageAsset, NewDrawing, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
+import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewSceneProp, NewToken, NewWall, Prop, PropPatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
 
 export type Unsubscribe = () => void;
 
@@ -11,6 +11,13 @@ export interface MapsLiveHandlers {
   onToken?: (change: RowChange<Token>) => void;
   onWall?: (change: RowChange<Wall>) => void;
   onDrawing?: (change: RowChange<Drawing>) => void;
+  /** Capas de contenido y luces de ambiente (rebanada 7). Un jugador nunca recibe las de «Notas del director». */
+  onLayer?: (change: RowChange<Layer>) => void;
+  onLight?: (change: RowChange<Light>) => void;
+  /** La BIBLIOTECA de piezas: cambia por campaña, no por escena, pero llega por el mismo canal. */
+  onProp?: (change: RowChange<Prop>) => void;
+  /** Lo PLANTADO en esta escena. */
+  onSceneProp?: (change: RowChange<SceneProp>) => void;
   /**
    * Token drag in progress · focus pin from another device · `fog.updated` = «what you can see may have changed,
    * ask the server again». That last one MUST travel by broadcast: `postgres_changes` applies each subscriber's
@@ -59,6 +66,53 @@ export interface MapsPort {
   removeMyDrawings(sceneId: string): Promise<void>;
   /** DM: every stroke in the scene. */
   removeAllDrawings(sceneId: string): Promise<void>;
+  /** DM: manda un trazo a otra capa (rebanada 7). Lo único que se edita de un dibujo. */
+  updateDrawingLayer(id: string, layerId: string | null): Promise<void>;
+  // layers (rebanada 7) — las escribe SÓLO el director
+  listLayers(sceneId: string): Promise<Layer[]>;
+  /**
+   * DM only. Las tres capas fijas las crea un disparador al nacer la escena, así que por aquí sólo pasan
+   * las de TERRENO, que son las únicas sin límite.
+   */
+  addLayer(input: NewLayer): Promise<Layer>;
+  updateLayer(id: string, patch: LayerPatch): Promise<void>;
+  /** DM only. Se lleva los dibujos y las luces de esa capa; las FICHAS vuelven a su capa natural. */
+  removeLayer(id: string): Promise<void>;
+  /**
+   * DM only. Sube el PNG de la máscara del pincel a `backgrounds/{campaignId}/masks/{layerId}.png` y deja
+   * el puntero + la versión nueva en la fila. La foto original de la capa no se toca nunca.
+   */
+  saveMask(layer: Pick<Layer, 'id' | 'campaignId' | 'maskVersion'>, png: Blob): Promise<Layer>;
+  /** DM only. Quita la máscara: la capa vuelve a ser opaca entera. */
+  clearMask(layer: Pick<Layer, 'id' | 'campaignId'>): Promise<void>;
+
+  // lights (rebanada 7) — desde § 7.2 alumbran de verdad y entran en el cálculo de visión (del servidor)
+  listLights(sceneId: string): Promise<Light[]>;
+  addLight(input: NewLight): Promise<Light>;
+  updateLight(id: string, patch: LightPatch): Promise<void>;
+  removeLight(id: string): Promise<void>;
+
+  // ── piezas (rebanada 6) ───────────────────────────────────────────────────
+  // Dos familias, y la separación ES la regla: la BIBLIOTECA es de la campaña y existe para usarse; lo
+  // PLANTADO vive en una escena. Borrar de la biblioteca no toca lo plantado.
+
+  /** La biblioteca de la campaña MÁS el catálogo de la app (las piezas sin campaña). DM only. */
+  listProps(campaignId: string): Promise<Prop[]>;
+  /**
+   * DM only. Sube la foto y crea la pieza. Recibe el fichero ya elegido: comprimir es del camino único de
+   * imágenes (`specs/core/images/SPEC.md`), no de este adaptador.
+   */
+  addProp(input: NewProp, image: Blob): Promise<Prop>;
+  /** DM only. También es por donde se guarda la escala que la pieza RECUERDA (§ 6.4). */
+  updateProp(id: string, patch: PropPatch): Promise<void>;
+  /** DM only. NO borra lo ya plantado en los mapas: ésos se quedan con su copia de la foto. */
+  removeProp(id: string): Promise<void>;
+
+  listSceneProps(sceneId: string): Promise<SceneProp[]>;
+  addSceneProp(input: NewSceneProp): Promise<SceneProp>;
+  updateSceneProp(id: string, patch: ScenePropPatch): Promise<void>;
+  removeSceneProp(id: string): Promise<void>;
+
   // realtime (channel `scene:{sceneId}` — separate from the table's `campaign:{id}` channel)
   subscribe(sceneId: string, handlers: MapsLiveHandlers): Unsubscribe;
   /** Sends an ephemeral event on the scene channel opened by `subscribe` (no-op if not subscribed). */

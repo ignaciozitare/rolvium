@@ -10,6 +10,12 @@ export type VisionPolygon = VisionPoint[];
 /** An explored grid cell `[x, y]` (cell coordinates, not px). */
 export type FogCell = [number, number];
 
+/**
+ * El charco de luz de UNA luz, en px de escena: la forma que alumbra de verdad una vez descontados los muros
+ * y lo que quien pregunta no alcanza a ver. `id` es el de `maps_lights`, para poder recortar su resplandor.
+ */
+export interface LitLight { id: string; parts: VisionPolygon[] }
+
 /** What `POST /scenes/:id/vision` and `POST /scenes/:id/fog` answer, for whoever asked. */
 export interface SceneVision {
   /** Current line of sight, one polygon per token the caller controls. Empty for the DM and for `manual`/`off` fog. */
@@ -18,6 +24,21 @@ export interface SceneVision {
   explored: FogCell[];
   /** Sight radius applied, in scene px; `null` when unlimited (day). */
   radiusPx: number | null;
+  /**
+   * Lo que ALUMBRA cada luz de la escena, ya recortado contra los muros (§ 7.2 «Las luces iluminan de
+   * verdad»). Se calcula en el servidor y NUNCA se manda entero: lo que viaja ya viene cortado también por
+   * la línea de vista de quien pregunta, así que la silueta de un muro secreto no se cuela por la forma de
+   * su sombra. Al director, que conoce todos los muros, se le manda la luz completa.
+   *
+   * Cada luz trae VARIOS trozos porque el corte contra la vista puede partirla en dos (una columna en medio
+   * del charco de luz). Se pintan como un solo `path`, no como polígonos sueltos: trozos que se tocan,
+   * pintados por separado sobre una máscara, dejan una costura clara en el borde compartido.
+   *
+   * Una lista VACÍA y el campo AUSENTE no son lo mismo, y el navegador actúa distinto en cada uno: vacía es
+   * «se calculó, y a ti no te alcanza ninguna» y apaga todos los resplandores; ausente es «esta escena no
+   * tiene luces / todavía no hay respuesta» y los pinta enteros.
+   */
+  lit?: LitLight[];
   /**
    * Dónde puede estar de verdad el token que se está arrastrando, en CASILLAS, cuando la escena tiene las
    * paredes sólidas: la posición pedida ya corregida contra TODOS los muros — también los secretos, que al

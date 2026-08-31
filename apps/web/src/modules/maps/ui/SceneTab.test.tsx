@@ -3,7 +3,7 @@ import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../.
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
-import { fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, KAREN_DATA, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
+import { fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
 import { SceneTab } from './SceneTab';
 
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -803,5 +803,289 @@ describe('<SceneTab> — una criatura que llega ya elegida desde el Bestiario', 
     // y sigue colocando de verdad, que es lo que se estaba perdiendo
     fireEvent.pointerDown(canvas(), { clientX: 3 * G + 3, clientY: 4 * G + 3, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.tokens.at(-1)).toMatchObject({ name: 'Ogro' }));
+  });
+});
+
+/**
+ * El panel de capas dentro de la escena de verdad (rebanada 7). Lo que se prueba aquí es la CONEXIÓN —el
+ * panel por dentro tiene su propio test—: de quién es, cuándo desaparece, y que lo que se dibuja cae en la
+ * capa activa, que es lo que el dueño pidió con «se dibuja y se coloca en la capa ACTIVA».
+ */
+describe('<SceneTab> capas (rebanada 7)', () => {
+  const withLayers = () => fakeMapsRepo({
+    scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [], drawings: [], images: [IMAGE_CHAPEL],
+    layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS],
+    lights: [LIGHT_TORCH],
+  });
+
+  it('es del director: el jugador no lo ve, y «ver como jugador» se lo quita a él también', async () => {
+    const repo = withLayers();
+    mount('player', repo);
+    await waitFor(() => expect(screen.getByText(/Almacén de Queens · tu visión/)).toBeInTheDocument());
+    expect(screen.queryByRole('complementary', { name: 'Capas' })).not.toBeInTheDocument();
+    document.body.innerHTML = '';
+
+    const u = userEvent.setup();
+    mount('dm', withLayers());
+    expect(await screen.findByRole('complementary', { name: 'Capas' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    expect(screen.queryByRole('complementary', { name: 'Capas' })).not.toBeInTheDocument();
+  });
+
+  it('el ojo de una capa se guarda, y apagarla la quita del lienzo', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    expect(within(canvas()).getAllByTestId('mp-terrain-layer')).toHaveLength(2);
+    await u.click(screen.getByRole('button', { name: 'Ocultar la capa Musgo (deja de pintarse para todos)' }));
+    await waitFor(() => expect(repo.layerUpdates).toEqual([{ id: 'ly-moss', patch: { visible: false } }]));
+    await waitFor(() => expect(within(canvas()).getAllByTestId('mp-terrain-layer')).toHaveLength(1));
+  });
+
+  it('lo que se dibuja cae en la capa ACTIVA', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
+    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: 4 * G, clientY: 4 * G, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(svg, { clientX: 6 * G, clientY: 5 * G, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+    await waitFor(() => expect(repo.drawings.at(-1)).toMatchObject({ kind: 'stroke', layerId: 'ly-moss' }));
+  });
+
+  it('sin capa activa se dibuja donde siempre, como antes de que existieran las capas', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: 4 * G, clientY: 4 * G, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(svg, { clientX: 6 * G, clientY: 5 * G, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+    await waitFor(() => expect(repo.drawings.at(-1)).toMatchObject({ kind: 'stroke', layerId: null }));
+  });
+
+  /** Las luces son pintura: se pintan, y no piden la visión de nuevo. */
+  it('las luces de la escena se pintan en el lienzo', async () => {
+    mount('dm', withLayers());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    expect(within(canvas()).getAllByTestId('mp-light')).toHaveLength(1);
+  });
+
+  it('la herramienta Luz coloca una donde se pincha y abre su editor', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Luz de ambiente' }));
+    fireEvent.pointerDown(canvas(), { clientX: 9 * G, clientY: 7 * G, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.lights).toHaveLength(2));
+    expect(repo.lights.at(-1)).toMatchObject({ kind: 'torch', flicker: true, rangeM: 6, castsShadow: true, x: 9 * G, y: 7 * G });
+    // Y se abre solo para retocarla, sin tener que buscarla.
+    expect(await screen.findByRole('group', { name: 'Luz: Antorcha' })).toBeInTheDocument();
+  });
+
+  /**
+   * Lo que hace que «+ Capa de terreno» sirva de algo: con una capa de terreno activa, «Fondo del mapa» toca
+   * la foto DE LA CAPA. Sin esto la capa nacía vacía y parecía que el botón no hacía nada.
+   */
+  it('con una capa de terreno activa, «Fondo del mapa» le pone la foto a ELLA', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
+    await u.click(screen.getByRole('button', { name: 'Fondo del mapa' }));
+    expect(await screen.findByRole('dialog', { name: 'Foto de la capa «Musgo»' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: IMAGE_CHAPEL.name }));
+    await waitFor(() => expect(repo.layerUpdates.at(-1)).toEqual({ id: 'ly-moss', patch: { imageUrl: IMAGE_CHAPEL.url } }));
+    // Y la escena NO se ha tocado: la foto es de la capa.
+    expect(repo.sceneUpdates.some(u2 => 'bgImageUrl' in u2.patch)).toBe(false);
+  });
+
+  it('sin capa de terreno activa sigue siendo el fondo de la escena', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Fondo del mapa' }));
+    expect(await screen.findByRole('dialog', { name: 'Fondo del mapa' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: IMAGE_CHAPEL.name }));
+    await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { bgImageUrl: IMAGE_CHAPEL.url } }));
+  });
+
+  /**
+   * El pincel de transparencia necesita una capa de terreno donde pintar. Sin ella no se queda mudo: lo dice.
+   */
+  it('el pincel avisa si no hay capa de terreno donde pintar, y aparece cuando la hay', async () => {
+    const u = userEvent.setup();
+    mount('dm', withLayers());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    expect(screen.getByText('Elige una capa de terreno en el panel de capas para pintar en ella.')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
+    const bar = screen.getByRole('radio', { name: 'Borrar' }).closest('.mp-maskbar')!;
+    expect(within(bar as HTMLElement).getByRole('slider', { name: 'Fuerza' })).toBeInTheDocument();
+    // La barra dice en qué capa se pinta: el pincel no vale para todas a la vez.
+    expect(within(bar as HTMLElement).getByText('Musgo')).toBeInTheDocument();
+  });
+
+  /**
+   * PIN DE DECISIÓN: el tamaño del pincel de transparencia es CONTINUO y vive APARTE del de la niebla, que
+   * son cuatro discos fijos. El dueño pidió el gradual sólo para éste. Si alguien «ordena» el código y los
+   * junta reusando `brush`, la niebla se queda con un tamaño que ninguno de sus cuatro discos puede marcar:
+   * este test es lo único que se entera.
+   */
+  it('el tamaño de transparencia va aparte del de la niebla', async () => {
+    const u = userEvent.setup();
+    mount('dm', withLayers());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
+    expect(screen.getByText('1.2 casillas')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('slider', { name: 'Tamaño del pincel' }), { target: { value: '35' } });
+    expect(await screen.findByText('3.5 casillas')).toBeInTheDocument();
+    // La niebla sigue en su disco de siempre…
+    await u.click(screen.getByRole('button', { name: 'Revelar' }));
+    expect(await screen.findByRole('radio', { name: 'Tamaño 3' })).toBeChecked();
+    // …y moverle el disco a la niebla tampoco arrastra al de transparencia (la fusión de una sola dirección).
+    await u.click(screen.getByRole('radio', { name: 'Tamaño 1' }));
+    expect(await screen.findByRole('radio', { name: 'Tamaño 1' })).toBeChecked();
+    // …y al volver, la transparencia conserva el suyo.
+    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    expect(await screen.findByText('3.5 casillas')).toBeInTheDocument();
+  });
+
+  it('retocar y borrar la luz seleccionada llega al repositorio', async () => {
+    const u = userEvent.setup();
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Luz de ambiente' }));
+    fireEvent.pointerDown(canvas(), { clientX: 9 * G, clientY: 7 * G, pointerId: 1, button: 0 });
+    await screen.findByRole('group', { name: 'Luz: Antorcha' });
+    await u.click(screen.getByRole('radio', { name: 'Hoguera' }));
+    await waitFor(() => expect(repo.lightUpdates.at(-1)).toMatchObject({ patch: { kind: 'fire' } }));
+    await u.click(screen.getByRole('button', { name: 'Borrar la luz' }));
+    await waitFor(() => expect(repo.lights).toHaveLength(1));
+    expect(screen.queryByRole('group', { name: /^Luz:/ })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * «Botón derecho sobre cualquier cosa → mándala a otra capa», petición literal del dueño. Se prueba en la
+ * escena de verdad porque lo que importa es la CONEXIÓN: que el clic derecho encuentre lo que hay debajo y
+ * que el cambio llegue a la tabla que toca según de qué sea.
+ */
+describe('<SceneTab> mandar a otra capa (rebanada 7)', () => {
+  const withStuff = () => fakeMapsRepo({
+    scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [], drawings: [DRAWING_MINE], images: [IMAGE_CHAPEL],
+    layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS], lights: [LIGHT_TORCH],
+  });
+  /** TOKEN_KAREN vive en la casilla (10, 11) y mide 1: su centro cae en el medio de esa casilla. */
+  const KAREN_AT = { x: 10.5 * G, y: 11.5 * G };
+
+  it('el menú sale sobre la ficha, con su nombre y la capa donde está marcada', async () => {
+    mount('dm', withStuff());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.contextMenu(canvas(), { clientX: KAREN_AT.x, clientY: KAREN_AT.y });
+    const menu = await screen.findByRole('menu', { name: 'Mandar a la capa' });
+    expect(within(menu).getByText('Karen «K»')).toBeInTheDocument();
+    // Nunca se movió, así que la marcada es su capa natural: Criaturas y personajes.
+    expect(within(menu).getByRole('menuitem', { name: /Criaturas y personajes/ })).toHaveClass('on');
+  });
+
+  it('mandar la ficha a las notas del director la guarda ahí', async () => {
+    const u = userEvent.setup();
+    const repo = withStuff();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.contextMenu(canvas(), { clientX: KAREN_AT.x, clientY: KAREN_AT.y });
+    await screen.findByRole('menu', { name: 'Mandar a la capa' });
+    await u.click(screen.getByRole('menuitem', { name: /Notas del director/ }));
+    await waitFor(() => expect(repo.tokenUpdates.at(-1)).toEqual({ id: 'tk-karen', patch: { layerId: 'ly-dm' } }));
+    expect(screen.queryByRole('menu', { name: 'Mandar a la capa' })).not.toBeInTheDocument();
+  });
+
+  it('un trazo se manda por su propio camino, no por el de las fichas', async () => {
+    const u = userEvent.setup();
+    const repo = withStuff();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    // DRAWING_MINE es un trazo que pasa por (300, 300).
+    fireEvent.contextMenu(canvas(), { clientX: 300, clientY: 300 });
+    await screen.findByRole('menu', { name: 'Mandar a la capa' });
+    await u.click(screen.getByRole('menuitem', { name: /Musgo/ }));
+    await waitFor(() => expect(repo.drawings.find(d => d.id === DRAWING_MINE.id)!.layerId).toBe('ly-moss'));
+    expect(repo.tokenUpdates).toEqual([]);
+  });
+
+  /** En el suelo vacío el botón derecho sigue siendo el menú de la VISTA, como antes de esta rebanada. */
+  it('en el suelo vacío sigue saliendo el menú de siempre', async () => {
+    mount('dm', withStuff());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.contextMenu(canvas(), { clientX: 30 * G, clientY: 20 * G });
+    expect(await screen.findByRole('menu', { name: 'Acciones rápidas' })).toBeInTheDocument();
+    expect(screen.queryByRole('menu', { name: 'Mandar a la capa' })).not.toBeInTheDocument();
+  });
+
+  it('un jugador no manda nada a ninguna capa', async () => {
+    mount('player', withStuff());
+    await waitFor(() => expect(screen.getByText(/Almacén de Queens · tu visión/)).toBeInTheDocument());
+    fireEvent.contextMenu(canvas(), { clientX: KAREN_AT.x, clientY: KAREN_AT.y });
+    expect(screen.queryByRole('menu', { name: 'Mandar a la capa' })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * «Ver con los ojos de un personaje» (rebanada 7). La visión la calcula el SERVIDOR por el mismo camino que
+ * la del jugador de verdad: si se recalculase en el navegador del director, lo que él ve y lo que ve el
+ * jugador podrían discrepar, que es justo lo que la herramienta viene a comprobar.
+ */
+describe('<SceneTab> ver con los ojos de un personaje (rebanada 7)', () => {
+  it('el selector sale sólo para el director, y sólo con personajes en la escena', async () => {
+    mount('player');
+    await waitFor(() => expect(screen.getByText(/Almacén de Queens · tu visión/)).toBeInTheDocument());
+    expect(screen.queryByRole('combobox', { name: 'Ver con los ojos de' })).not.toBeInTheDocument();
+    document.body.innerHTML = '';
+    mount('dm');
+    expect(await screen.findByRole('combobox', { name: 'Ver con los ojos de' })).toBeInTheDocument();
+  });
+
+  it('elegir un personaje se lo pide AL SERVIDOR, con su ficha', async () => {
+    const u = userEvent.setup();
+    const vision = fakeVisionPort();
+    mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    const picker = await screen.findByRole('combobox', { name: 'Ver con los ojos de' });
+    await u.selectOptions(picker, 'tk-karen');
+    await waitFor(() => expect(vision.calls.some(c => c.op === 'refresh' && c.asTokenId === 'tk-karen')).toBe(true));
+  });
+
+  it('lo dice en pantalla y le quita al director sus privilegios', async () => {
+    const u = userEvent.setup();
+    mount('dm');
+    const picker = await screen.findByRole('combobox', { name: 'Ver con los ojos de' });
+    // Antes: vista de director, con los muros y las fichas ocultas.
+    expect(screen.getByText(/Vista de director/)).toBeInTheDocument();
+    await waitFor(() => expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).toBeInTheDocument());
+    await u.selectOptions(picker, 'tk-karen');
+    expect(screen.getByText(/Viendo como Karen «K»/)).toBeInTheDocument();
+    expect(screen.getByText(/es una lente: no cambia nada para nadie/)).toBeInTheDocument();
+    // Y deja de ver lo que un jugador no vería.
+    await waitFor(() => expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).not.toBeInTheDocument());
+  });
+
+  it('volver a «mi vista» le devuelve la de director', async () => {
+    const u = userEvent.setup();
+    mount('dm');
+    const picker = await screen.findByRole('combobox', { name: 'Ver con los ojos de' });
+    await u.selectOptions(picker, 'tk-karen');
+    await u.selectOptions(picker, '');
+    expect(screen.getByText(/Vista de director/)).toBeInTheDocument();
   });
 });

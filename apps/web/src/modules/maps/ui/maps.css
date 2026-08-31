@@ -122,14 +122,19 @@
    punta de la pantalla que lo abre (dueño, prueba de la app). Mismo hueco que sus dos vecinos de esa esquina,
    `.mp-pcmenu` y `.mp-encounter`: arrancan en 60px para no taparle la etiqueta al lienzo (`.mp-canvas-label`,
    top:8px), que es la que dice si mandas tú o se ve la niebla. */
-.mp-bgpop{top:60px;left:8px;width:340px;max-height:calc(100% - 70px);overflow:auto;}
+/* Nunca scroll HORIZONTAL: el ancho es fijo y el diseño de rolvium.pen no tiene barra lateral abajo. */
+.mp-bgpop{top:60px;left:8px;width:340px;max-height:calc(100% - 70px);overflow-y:auto;overflow-x:hidden;}
 .mp-hexrow{display:flex;align-items:center;gap:8px;}
 .mp-hex-swatch{width:16px;height:16px;border:1px solid var(--sys-line);}
 .mp-hex{width:96px;font-family:inherit;font-size:var(--fs-sm);padding:4px 8px;border:1px solid var(--sys-line);background:transparent;color:var(--sys-ink);}
 .mp-hint{font-size:var(--fs-xs);}
 .mp-error{margin:0;color:var(--sys-blood);font-size:var(--fs-xs);}
 .mp-lib{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.mp-lib-item{display:flex;flex-direction:column;gap:4px;padding:0;border:none;background:transparent;cursor:pointer;font-family:inherit;color:var(--sys-ink-soft);text-align:left;}
+/* `min-width:0` NO es decoración: una celda de rejilla no baja de su contenido mínimo, así que un nombre
+   largo sin espacios —el identificador de un fichero subido— estiraba la columna, la rejilla se pasaba
+   de los 340 px y salía una barra horizontal que el diseño no tiene (visto por el dueño, 2026-08-31).
+   Con esto el recorte con puntos suspensivos de `.mp-lib-name` por fin se aplica. */
+.mp-lib-item{display:flex;flex-direction:column;gap:4px;padding:0;border:none;background:transparent;cursor:pointer;font-family:inherit;color:var(--sys-ink-soft);text-align:left;min-width:0;}
 .mp-lib-thumb{display:flex;align-items:center;justify-content:center;height:56px;background:var(--sys-steel) center/cover;border:2px solid transparent;}
 .mp-lib-thumb.none{background:var(--sys-paper-lo);}
 .mp-lib-item.on .mp-lib-thumb{border-color:var(--sys-gold);}
@@ -195,3 +200,130 @@
 .mp-placing{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:10px;
   padding:6px 10px;background:var(--sys-gold);color:var(--sys-ink);font-size:var(--fs-xs);box-shadow:var(--sys-card-shadow);}
 .mp-marquee{fill:color-mix(in srgb,var(--sys-gold) 14%,transparent);stroke:var(--sys-gold);stroke-width:1;stroke-dasharray:4 3;pointer-events:none;}
+
+/* ── capas de contenido (rebanada 7) ─────────────────────────────────────────
+   Flota sobre el mapa, como la barra de trazo: una franja a lo ancho cuesta
+   altura de mapa, y eso ya se decidió en la rebanada 3. */
+.mp-layers{position:absolute;top:8px;right:8px;z-index:3;width:206px;max-height:calc(100% - 16px);overflow:auto;
+  display:flex;flex-direction:column;gap:3px;padding:6px;background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);}
+.mp-layers.collapsed{width:auto;}
+.mp-layers-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px;}
+.mp-layers-empty{margin:0;padding:4px;font-size:var(--fs-xs);}
+.mp-layers-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
+.mp-layer{display:flex;align-items:center;gap:4px;padding:2px 3px;}
+.mp-layer.on{background:var(--sys-ink);}
+.mp-layer.off .mp-layer-main{opacity:.5;}
+/* Arrastrar el orden. El asa es una PISTA, no el único sitio por donde se agarra: la fila entera arrastra,
+   que es lo que espera la mano. La línea dorada marca dónde va a caer, y sólo aparece mientras se arrastra. */
+.mp-layer.draggable{cursor:grab;}
+.mp-layer.dragging{opacity:.45;cursor:grabbing;}
+.mp-layer.over{box-shadow:inset 0 2px 0 var(--sys-gold);}
+.mp-layer-grip{color:var(--sys-ink-dim);flex-shrink:0;}
+.mp-layer-main{flex:1;min-width:0;display:flex;align-items:center;gap:6px;border:none;background:transparent;padding:2px;cursor:pointer;text-align:left;color:var(--sys-ink-soft);}
+.mp-layer.on .mp-layer-main{color:var(--sys-paper-hi);}
+.mp-layer-thumb{width:26px;height:18px;object-fit:cover;flex-shrink:0;border:1px solid var(--sys-line);}
+.mp-layer-kind{flex-shrink:0;color:var(--sys-ink-dim);}
+.mp-layer.on .mp-layer-kind{color:var(--sys-paper-hi);}
+.mp-layer-name{min-width:0;display:flex;flex-direction:column;font-size:var(--fs-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* «Notas del director» no es una capa apagada: es un tipo, y se dice en el sitio. */
+.mp-layer-private{font-style:normal;font-size:var(--fs-2xs);letter-spacing:.08em;color:var(--sys-blood);}
+.mp-layer.on .mp-layer-private{color:var(--sys-gold);}
+.mp-layer-mask{color:var(--sys-gold);flex-shrink:0;}
+.mp-layers-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;
+  border:none;background:transparent;color:var(--sys-ink-dim);cursor:pointer;}
+.mp-layers-icon:hover:not(:disabled){background:color-mix(in srgb,var(--sys-ink) 10%,transparent);}
+.mp-layers-icon:disabled{opacity:.3;cursor:default;}
+.mp-layers-icon.locked{color:var(--sys-gold);}
+.mp-layer.on .mp-layers-icon{color:var(--sys-paper-hi);}
+.mp-layer.on .mp-layers-icon.locked{color:var(--sys-gold);}
+.mp-layer-actions{display:flex;align-items:center;gap:3px;padding:3px 4px;background:color-mix(in srgb,var(--sys-ink) 8%,transparent);}
+.mp-layer-actions-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-layers-add{width:100%;justify-content:center;}
+.mp-layers-warn{display:flex;align-items:center;gap:6px;margin:0;padding:4px 5px;font-size:var(--fs-2xs);line-height:var(--lh-normal);
+  color:var(--sys-ink-dim);background:color-mix(in srgb,var(--sys-gold) 15%,transparent);}
+.mp-layers-warn .material-symbols-outlined{color:var(--sys-gold);flex-shrink:0;}
+
+/* ── luces de ambiente (rebanada 7) ──────────────────────────────────────────
+   `screen` para que la luz SUME en vez de tapar el mapa. Nunca capturan el
+   ratón: son pintura, no objetos que estorben al dibujar. */
+.mp-light{mix-blend-mode:screen;pointer-events:none;}
+/* El RITMO lo trae el tipo de luz (`--mp-flicker` = cuánto baja el brillo; la
+   duración va inline). Dos formas: la respiración de un fuego y el golpe seco
+   de una bombilla estropeada. */
+@keyframes mp-flicker-soft{0%,100%{opacity:1}35%{opacity:calc(1 - var(--mp-flicker)*.6)}60%{opacity:calc(1 - var(--mp-flicker))}}
+@keyframes mp-flicker-sharp{0%,86%{opacity:1}88%{opacity:calc(1 - var(--mp-flicker))}90%{opacity:1}93%{opacity:calc(1 - var(--mp-flicker))}95%{opacity:1}}
+.mp-light.flicker-soft{animation:mp-flicker-soft linear infinite;}
+.mp-light.flicker-sharp{animation:mp-flicker-sharp linear infinite;}
+/* Con el movimiento reducido del sistema la luz se queda quieta a media luz:
+   nadie se marea por una decisión decorativa. */
+@media (prefers-reduced-motion:reduce){
+  .mp-light.flicker-soft,.mp-light.flicker-sharp{animation:none;opacity:calc(1 - var(--mp-flicker)/2);}
+}
+
+/* ── editor de una luz (rebanada 7) ──────────────────────────────────────────
+   Flota sobre el mapa, junto al panel de capas. Reutiliza `.mp-swatch` y
+   `.tb-rotulo`, que ya existían. */
+.mp-light-editor{position:absolute;top:8px;right:222px;z-index:4;width:264px;max-height:calc(100% - 16px);overflow:auto;
+  display:flex;flex-direction:column;gap:10px;padding:10px;background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);}
+.mp-light-head{display:flex;align-items:center;gap:7px;}
+/* La cabecera es el asa. `touch-action:none` es obligatorio: sin él el navegador se queda el gesto para
+   desplazar y el panel no se mueve en pantalla táctil. */
+.mp-light-head.mp-drag{cursor:grab;touch-action:none;user-select:none;}
+.mp-light-head.mp-drag:active{cursor:grabbing;}
+.mp-light-grip{color:var(--sys-ink-dim);}
+.mp-light-head-icon{color:var(--sys-gold);}
+.mp-light-title{flex:1;font-size:var(--fs-sm);color:var(--sys-ink);}
+.mp-light-preview{height:64px;background:var(--sys-ink);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.mp-light-halo{width:110px;height:110px;border-radius:50%;opacity:.85;}
+.mp-light-group{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;}
+.mp-light-group legend{padding:0;}
+.mp-light-seg{display:flex;gap:4px;}
+.mp-light-opt{flex:1;padding:4px 6px;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;
+  background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
+.mp-light-opt.on{background:var(--sys-ink);color:var(--sys-paper-hi);border-color:var(--sys-ink);}
+.mp-light-kinds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.mp-light-kind{display:inline-flex;align-items:center;gap:4px;padding:4px 6px;font-family:inherit;font-size:var(--fs-2xs);
+  background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
+.mp-light-kind.on{background:var(--sys-gold);color:var(--sys-ink);border-color:var(--sys-gold);}
+.mp-light-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mp-light-colors{display:flex;gap:5px;}
+.mp-light-check{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--sys-ink-soft);cursor:pointer;}
+.mp-light-check input{accent-color:var(--sys-ink);}
+/* Que se anima de verdad no se ve en un interruptor apagado: se dice. */
+.mp-light-animates{padding:1px 5px;font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;background:var(--sys-gold);color:var(--sys-ink);}
+.mp-light-range{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--sys-ink-soft);}
+.mp-light-range input{width:64px;font-family:inherit;font-size:var(--fs-xs);padding:2px 4px;background:transparent;color:var(--sys-ink);border:1px solid var(--sys-line);}
+.mp-light-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+.mp-light-value{color:var(--sys-ink);}
+.mp-light-note{display:flex;align-items:flex-start;gap:6px;margin:0;padding:6px;font-size:var(--fs-2xs);line-height:var(--lh-normal);
+  color:var(--sys-ink-dim);background:color-mix(in srgb,var(--sys-gold) 15%,transparent);}
+.mp-light-note .material-symbols-outlined{color:var(--sys-gold);flex-shrink:0;}
+/* La luz seleccionada: un aro para saber cuál se está tocando. */
+.mp-light-sel{fill:none;stroke:var(--sys-gold);stroke-width:2;stroke-dasharray:5 4;pointer-events:none;}
+.mp-light-hit{fill:transparent;cursor:pointer;}
+
+/* ── barra del pincel de transparencia (rebanada 7) ── */
+.mp-maskbar{max-width:calc(100% - 16px);}
+.mp-mask-layer{font-size:var(--fs-xs);color:var(--sys-ink);}
+.mp-mask-dirs{display:flex;gap:3px;}
+.mp-mask-strength{display:inline-flex;align-items:center;gap:6px;}
+.mp-mask-strength input{width:110px;accent-color:var(--sys-ink);}
+/* El aviso de que hace falta una capa: se dice, no se deja el pincel mudo. */
+.mp-mask-needs{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:3;padding:6px 10px;
+  background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);font-size:var(--fs-xs);color:var(--sys-ink-dim);}
+
+/* ── menú «mandar a la capa» (rebanada 7) ── */
+.mp-layermenu{min-width:190px;padding:5px;}
+.mp-layermenu-head{display:flex;align-items:center;gap:6px;padding:4px 5px;border-bottom:1px solid var(--sys-line);margin-bottom:4px;color:var(--sys-ink-dim);}
+.mp-layermenu-name{font-size:var(--fs-xs);color:var(--sys-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-layermenu-label{display:block;padding:2px 5px;}
+.mp-layermenu .mp-menu-item.on{background:var(--sys-ink-soft);color:var(--sys-paper-hi);}
+.mp-layermenu-check{margin-left:auto;color:var(--sys-gold);}
+
+/* ── «ver con los ojos de» (rebanada 7) ── */
+.mp-seeas{display:flex;flex-direction:column;gap:2px;padding:4px 5px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
+.mp-seeas.on{outline:2px solid var(--sys-gold);}
+.mp-seeas-label{font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink-dim);}
+.mp-seeas-select{font-family:inherit;font-size:var(--fs-xs);max-width:130px;padding:2px 3px;background:transparent;color:var(--sys-ink);border:1px solid var(--sys-line);}
+/* El rótulo del lienzo, cuando el director mira por los ojos de alguien. */
+.mp-canvas-label.seeas{color:var(--sys-gold);}

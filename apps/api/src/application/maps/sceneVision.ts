@@ -1,6 +1,6 @@
-import { circleClearance, sightRadiusPx, slideCircle, type FogCell, type SceneVision, type VisionPolygon } from '@rolvium/core';
-import type { IMapsRepository, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
-import { allCells, boundsSegments, cellsInDisc, cellsInPolygons, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
+import { circleClearance, sightRadiusPx, slideCircle, type FogCell, type LitLight, type SceneVision, type VisionPolygon } from '@rolvium/core';
+import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
+import { allCells, boundsSegments, cellsInDisc, cellsInPolygons, clipToStar, lightPolygon, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
 
 export type VisionErrorCode = 'NOT_FOUND' | 'FORBIDDEN';
 export type VisionOutcome = { ok: true; data: SceneVision } | { ok: false; code: VisionErrorCode };
@@ -23,6 +23,63 @@ export const tokenOrigin = (t: Pick<TokenRecord, 'x' | 'y' | 'size'>, grid: numb
 export const tokensOf = (tokens: TokenRecord[], userId: string): TokenRecord[] => tokens.filter(t => t.controlledBy === userId);
 
 /**
+ * ¿Se pinta lo que vive en esta capa? Misma verdad que el helper SQL `public.maps_layer_sends_to_players` y
+ * que `isPainted` del navegador. Hace falta otra vez AQUÍ porque el servidor lee con `service_role` y ve
+ * todas las filas, también las de una capa apagada o de notas del director: filtrar es cosa suya.
+ */
+const layerPaints = (layers: LayerRecord[], layerId: string | null, isDm: boolean): boolean => {
+  if (!layerId) return true;                    // NULL = la capa natural de su tipo; ésa siempre se pinta
+  const layer = layers.find(l => l.id === layerId);
+  if (!layer) return true;                      // capa borrada: la luz cae en su capa natural
+  if (!layer.visible) return false;             // el ojo de Photoshop apaga para TODOS, director incluido
+  return layer.kind !== 'dm_notes' || isDm;
+};
+
+/**
+ * Lo que ALUMBRA cada luz, recortado contra los muros y contra lo que quien pregunta alcanza a ver
+ * (specs/modules/maps/SPEC.md § 7.2 «Las luces iluminan de verdad»).
+ *
+ * `eyes === null` es «sin límite de vista»: el director, que conoce todos los muros, y la niebla apagada,
+ * donde el director quitó el secreto a propósito. Con ojos, cada charco se corta contra la línea de vista de
+ * cada uno — y ese corte es la razón de que esto viva en el servidor: a un jugador no le llegan los muros
+ * secretos, así que la silueta de la sombra los delataría por dónde corta.
+ */
+function litLights(
+  lights: LightRecord[], layers: LayerRecord[], segments: Segment[],
+  scene: Pick<SceneRecord, 'gridSize'>, isDm: boolean, eyes: Point[] | null,
+): LitLight[] {
+  if (lights.length === 0) return [];
+  // La línea de vista SIN límite de alcance, una vez por ojo: es contra ella contra la que se corta la luz.
+  const stars = eyes?.map(eye => ({ eye, star: visionPolygon(eye, segments) })) ?? null;
+  const out: LitLight[] = [];
+  for (const l of lights) {
+    if (!layerPaints(layers, l.layerId, isDm)) continue;
+    const radius = sightRadiusPx('night', l.rangeM, scene.gridSize) ?? 0;
+    const poly = lightPolygon({
+      origin: { x: l.x, y: l.y }, radius, shape: l.shape,
+      rotation: l.rotation, coneAngle: l.coneAngle, castsShadow: l.castsShadow,
+    }, segments);
+    if (poly.length < 3) continue;
+    if (!stars) { out.push({ id: l.id, parts: [poly] }); continue; }
+    const parts = stars.flatMap(({ eye, star }) => clipToStar(poly, eye, star));
+    if (parts.length > 0) out.push({ id: l.id, parts });
+  }
+  return out;
+}
+
+/**
+ * `lit` viaja SIEMPRE que la escena tenga alguna luz, aunque a quien pregunta no le alumbre ninguna. Los dos
+ * casos dicen cosas distintas y el navegador actúa distinto en cada uno:
+ *
+ *  - lista VACÍA = «se calculó, y no te alcanza ni una» → se apagan todos los resplandores.
+ *  - campo AUSENTE = «esta escena no tiene luces / todavía no hay respuesta» → se pintan enteros.
+ *
+ * Colapsar el primero en el segundo dejaba el resplandor de una antorcha lejana flotando sobre la niebla de
+ * un jugador que no alcanza a ver ni un tramo de ella — justo el chivatazo que § 7.2 viene a evitar.
+ */
+const litField = (lit: LitLight[], lights: LightRecord[]): { lit?: LitLight[] } => (lights.length > 0 ? { lit } : {});
+
+/**
  * Recomputes what `userId` can see in the scene and remembers it.
  *
  * A player gets one polygon per token they control plus their own explored cells, which grow with what they just saw.
@@ -43,7 +100,19 @@ export async function computeSceneVision(
    * pregunta CONTROLA — se cruza contra su propia lista, así que pedir la visión desde el token de otro no
    * enseña nada que no fuera suyo.
    */
-  input: { sceneId: string; userId: string; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } | undefined } },
+  input: {
+    sceneId: string; userId: string;
+    at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } | undefined };
+    /**
+     * «Ver la escena con los ojos de un personaje» (rebanada 7). SÓLO para el director: contesta lo que
+     * vería el token indicado, con su niebla y su visión.
+     *
+     * Se calcula AQUÍ y no en su navegador a propósito: si se recalculase allí, lo que él ve y lo que ve el
+     * jugador de verdad podrían discrepar — y comprobar justamente eso es para lo que sirve la herramienta.
+     * Es una LENTE: no guarda nada, no toca lo explorado de nadie y no mueve la escena activa.
+     */
+    asTokenId?: string;
+  },
 ): Promise<VisionOutcome> {
   const scene = await deps.maps.getScene(input.sceneId);
   if (!scene) return { ok: false, code: 'NOT_FOUND' };
@@ -52,9 +121,41 @@ export async function computeSceneVision(
 
   const radiusPx = sightRadiusPx(scene.lighting, scene.nightRadiusM, scene.gridSize);
 
+  /**
+   * Las luces se leen en CUALQUIER modo de niebla: que una antorcha no atraviese una pared es geometría y no
+   * niebla, y el director puede apagar la niebla sin querer de paso que la antorcha ilumine la habitación de
+   * al lado. Las capas sólo hacen falta si hay alguna luz en ellas, así que una escena sin luces no paga por
+   * esto más que una lectura.
+   */
+  const lights = await deps.maps.listLights(scene.id);
+  const layers = lights.length > 0 ? await deps.maps.listLayers(scene.id) : [];
+  const wallSegments = async (): Promise<Segment[]> => sightSegments(await deps.maps.listWalls(scene.id), scene);
+
   if (role === 'dm') {
+    if (input.asTokenId) {
+      const tokens = await deps.maps.listTokens(scene.id);
+      const tk = tokens.find(t => t.id === input.asTokenId);
+      if (!tk) return { ok: false, code: 'NOT_FOUND' };
+      // Lo explorado que se enseña es el del JUGADOR que controla la ficha: su memoria, no la del director.
+      const explored = tk.controlledBy ? await deps.maps.getExplored(scene.id, tk.controlledBy) : [];
+      const eye = tokenOrigin(tk, scene.gridSize);
+      const segments = lights.length > 0 || scene.fogMode === 'vision' ? await wallSegments() : [];
+      /**
+       * La lente mira con SUS ojos también para las luces, y sin los privilegios del director (`isDm` en
+       * falso). Si el charco se calculase como el del director, la herramienta enseñaría de más justo en lo
+       * que viene a comprobar: que lo que él ve y lo que ve el jugador coinciden.
+       */
+      const lit = litLights(lights, layers, segments, scene, false, scene.fogMode === 'off' ? null : [eye]);
+      if (scene.fogMode === 'off') return { ok: true, data: { vision: [], explored: allCells(scene.gridSize, scene.width, scene.height), radiusPx, ...litField(lit, lights) } };
+      if (scene.fogMode === 'manual') return { ok: true, data: { vision: [], explored, radiusPx, ...litField(lit, lights) } };
+      const poly = visionPolygon(eye, segments, radiusPx ?? Infinity);
+      // No se guarda NADA: mirar por los ojos de alguien no le explora el mapa.
+      return { ok: true, data: { vision: poly.length >= 3 ? [poly] : [], explored, radiusPx, ...litField(lit, lights) } };
+    }
     const rows = await deps.maps.listExplored(scene.id);
-    return { ok: true, data: { vision: [], explored: unionCells(...rows), radiusPx } };
+    // El director conoce TODOS los muros: su luz se recorta contra ellos, pero no hay vista contra la que cortarla.
+    const lit = litLights(lights, layers, lights.length > 0 ? await wallSegments() : [], scene, true, null);
+    return { ok: true, data: { vision: [], explored: unionCells(...rows), radiusPx, ...litField(lit, lights) } };
   }
 
   const stored = await deps.maps.getExplored(scene.id, input.userId);
@@ -71,10 +172,11 @@ export async function computeSceneVision(
    * niebla es un botón que el director tiene al lado del de paredes sólidas. La primera versión corregía sólo
    * en modo «vision» —los `return` de «off» y «manual» salían antes de cargar los muros— y un ajuste de
    * niebla apagaba las paredes en silencio. La geometría se carga sólo cuando hace falta: siempre en
-   * «vision» (las líneas de vista la necesitan), y en los otros modos sólo si hay un `at` que corregir con
+   * «vision» (las líneas de vista la necesitan), siempre que la escena tenga luces (una luz se recorta
+   * contra los muros en cualquier modo, § 7.2), y en los otros casos sólo si hay un `at` que corregir con
    * las paredes sólidas encendidas — apagadas, `corrected` sale `null` igual y sobran las dos lecturas.
    */
-  const [walls, tokens] = (at && scene.solidWalls) || scene.fogMode === 'vision'
+  const [walls, tokens] = (at && scene.solidWalls) || scene.fogMode === 'vision' || lights.length > 0
     ? await Promise.all([deps.maps.listWalls(scene.id), deps.maps.listTokens(scene.id)])
     : [[], []];
   const dragged = at ? tokensOf(tokens, input.userId).find(t => t.id === at.tokenId) ?? null : null;
@@ -115,24 +217,43 @@ export async function computeSceneVision(
     if (Math.abs(cx - at.x) > tol || Math.abs(cy - at.y) > tol) corrected = { tokenId: at.tokenId, x: cx, y: cy };
   }
 
-  if (scene.fogMode === 'off') {
-    return { ok: true, data: { vision: [], explored: allCells(scene.gridSize, scene.width, scene.height), radiusPx, corrected, clearance } };
-  }
-  if (scene.fogMode === 'manual') return { ok: true, data: { vision: [], explored: stored, radiusPx, corrected, clearance } };
-
   const segments = sightSegments(walls, scene);
   const applied = corrected ?? at;
   const mine = tokensOf(tokens, input.userId).map(t => (applied && t.id === applied.tokenId ? { ...t, x: applied.x, y: applied.y } : t));
+  /**
+   * Las luces se calculan ANTES del modo de niebla, y desde la posición PROVISIONAL si se está arrastrando:
+   * el charco tiene que seguir al token igual que la niebla, o al mover se quedaría un fotograma atrás.
+   *
+   * Con la niebla apagada la luz va entera —el director quitó el secreto a propósito—; en «visión» y en
+   * «manual» va recortada por la línea de vista de quien pregunta, que es lo que impide que la silueta de un
+   * muro secreto viaje dibujada en el borde de una sombra.
+   */
+  const lit = litLights(
+    lights, layers, segments, scene, false,
+    scene.fogMode === 'off' ? null : mine.map(t => tokenOrigin(t, scene.gridSize)),
+  );
+
+  if (scene.fogMode === 'off') {
+    return { ok: true, data: { vision: [], explored: allCells(scene.gridSize, scene.width, scene.height), radiusPx, corrected, clearance, ...litField(lit, lights) } };
+  }
+  if (scene.fogMode === 'manual') return { ok: true, data: { vision: [], explored: stored, radiusPx, corrected, clearance, ...litField(lit, lights) } };
+
   const vision: VisionPolygon[] = mine
     .map(t => visionPolygon(tokenOrigin(t, scene.gridSize), segments, radiusPx ?? Infinity))
     .filter(p => p.length >= 3);
 
-  const seen = cellsInPolygons(vision, scene.gridSize, scene.width, scene.height);
+  /**
+   * § 7.2, regla del dueño, literal: **LA LUZ NO ALARGA TU LÍNEA DE VISIÓN**. Lo alumbrado ya viene cortado
+   * contra tu línea de vista, así que sumarlo aquí es exactamente «ves un punto si tienes línea de vista
+   * hasta él Y (te queda dentro de tu alcance O lo alcanza una luz)». Lo de en medio del pasillo —fuera de
+   * tu alcance y sin luz encima— sigue negro, porque no entra ni por una vía ni por la otra.
+   */
+  const seen = cellsInPolygons([...vision, ...lit.flatMap(l => l.parts)], scene.gridSize, scene.width, scene.height);
   const explored = unionCells(stored, seen);
   // Con posición provisional NO se escribe: es una consulta de «qué vería si lo suelto aquí». Lo explorado se
   // devuelve igual, para que la pantalla ya lo pinte, y se guarda al soltar por el camino de siempre.
   if (!at && explored.length !== stored.length) await deps.maps.saveExplored(scene.id, scene.campaignId, input.userId, explored);
-  return { ok: true, data: { vision, explored, radiusPx, corrected, clearance } };
+  return { ok: true, data: { vision, explored, radiusPx, corrected, clearance, ...litField(lit, lights) } };
 }
 
 export interface PaintInput {
@@ -169,5 +290,14 @@ export async function paintSceneFog(deps: Deps, input: PaintInput): Promise<Visi
     return cells;
   }));
 
-  return { ok: true, data: { vision: [], explored: unionCells(...next), radiusPx: sightRadiusPx(scene.lighting, scene.nightRadiusM, scene.gridSize) } };
+  /**
+   * El pincel contesta TAMBIÉN las luces, aunque no las toque: la respuesta reemplaza entera la niebla que
+   * tiene el navegador del director, así que omitirlas le apagaría el recorte de los charcos hasta la
+   * siguiente consulta. Es del director: van completas, recortadas sólo contra los muros.
+   */
+  const lights = await deps.maps.listLights(scene.id);
+  const lit = lights.length > 0
+    ? litLights(lights, await deps.maps.listLayers(scene.id), sightSegments(await deps.maps.listWalls(scene.id), scene), scene, true, null)
+    : [];
+  return { ok: true, data: { vision: [], explored: unionCells(...next), radiusPx: sightRadiusPx(scene.lighting, scene.nightRadiusM, scene.gridSize), ...litField(lit, lights) } };
 }

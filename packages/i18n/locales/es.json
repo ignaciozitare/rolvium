@@ -324,6 +324,10 @@
         "forbidden": "Solo el director puede hacer eso.",
         "unknown": "No se ha podido cambiar la reserva."
       }
+    },
+    "side": {
+      "hide": "Ocultar el panel lateral",
+      "show": "Mostrar el panel lateral"
     }
   },
   "identity": {
@@ -748,7 +752,8 @@
       "offsetY": "Desplazamiento Y",
       "empty": "Sube el primer plano de la campaña.",
       "uploadError": "No se pudo subir la imagen.",
-      "close": "Cerrar"
+      "close": "Cerrar",
+      "layerTitle": "Foto de la capa «{{name}}»"
     },
     "stroke": {
       "label": "Trazo",
@@ -772,7 +777,9 @@
       "encounter": "Encuentro",
       "soon": "próximamente",
       "select": "Seleccionar",
-      "text": "Texto"
+      "text": "Texto",
+      "light": "Luz de ambiente",
+      "mask": "Pincel de transparencia"
     },
     "toolbar": "Herramientas del lienzo",
     "controls": {
@@ -878,6 +885,99 @@
     "solidWalls": {
       "on": "Paredes sólidas · los tokens no las atraviesan",
       "off": "Paredes atravesables · pulsa para hacerlas sólidas"
+    },
+    "layers": {
+      "title": "Capas",
+      "collapse": "Plegar capas",
+      "expand": "Desplegar capas",
+      "select": "Trabajar en la capa {{name}}",
+      "active": "Capa activa",
+      "kind": {
+        "terrain": "Terreno",
+        "objects": "Objetos",
+        "creatures": "Criaturas y personajes",
+        "dmNotes": "Notas del director"
+      },
+      "private": "Privada · no viaja",
+      "privateHint": "Los jugadores no reciben nada de esta capa.",
+      "untitled": "Terreno {{n}}",
+      "show": "Mostrar la capa {{name}}",
+      "hide": "Ocultar la capa {{name}} (deja de pintarse para todos)",
+      "lock": "Bloquear la capa {{name}}",
+      "unlock": "Desbloquear la capa {{name}}",
+      "hasMask": "Lleva máscara del pincel de transparencia",
+      "up": "Subir la capa",
+      "down": "Bajar la capa",
+      "delete": "Borrar la capa",
+      "deleteConfirm": "¿Borrar la capa «{{name}}»? Se van sus dibujos y sus luces; las fichas vuelven a su capa de siempre.",
+      "addTerrain": "+ Capa de terreno",
+      "heavy": "{{n}} capas de terreno · la escena empieza a pesar",
+      "dragOnlyTerrain": "Sólo se reordenan las capas de terreno: las demás tienen su sitio fijo.",
+      "dragNeedsTwo": "Hace falta más de una capa de terreno para poder reordenarlas.",
+      "empty": "Esta escena aún no tiene capas.",
+      "newName": "Nombre de la capa de terreno",
+      "sendTo": "Mandar a la capa",
+      "element": {
+        "token": "Ficha",
+        "drawing": "Trazo",
+        "light": "Luz"
+      },
+      "drag": "Arrastra para cambiar el orden"
+    },
+    "lights": {
+      "title": "Luz de ambiente",
+      "place": "Coloca una luz donde pinches",
+      "select": "Luz: {{kind}}",
+      "shape": "Forma",
+      "shapes": {
+        "cone": "Cono",
+        "radius": "Radio",
+        "square": "Cuadrado"
+      },
+      "kind": "Tipo",
+      "kinds": {
+        "torch": "Antorcha",
+        "bulb": "Bombilla",
+        "fire": "Hoguera",
+        "lantern": "Farol",
+        "flashlight": "Linterna",
+        "moonlight": "Luz de luna",
+        "magic": "Arcano"
+      },
+      "color": "Color y parpadeo",
+      "colorN": "Color {{n}}",
+      "flicker": "Parpadea",
+      "animates": "Se anima",
+      "prepared": "Alcance y sombra",
+      "range": "Alcance en metros",
+      "shadow": "Proyecta sombra",
+      "cone": "Apertura del cono en grados",
+      "delete": "Borrar la luz",
+      "note": "Se agarra por la cabecera y se mueve donde no estorbe; la X lo cierra sin borrar la luz. La luz alumbra de verdad: se recorta contra los muros y no pasa al otro lado. El tipo manda el ritmo del parpadeo — la antorcha tiembla, la hoguera respira, la bombilla da golpes secos.",
+      "close": "Cerrar el editor",
+      "move": "Mover el editor",
+      "rotation": "Hacia dónde apunta"
+    },
+    "mask": {
+      "label": "Pincel · transparencia",
+      "direction": "Sentido del pincel",
+      "erase": "Borrar",
+      "restore": "Devolver",
+      "strength": "Fuerza",
+      "hint": "el TAMAÑO es lo ancho de la pincelada · la FUERZA es cuánto borra · la DUREZA es el BORDE: a la izquierda se difumina, a la derecha corta a filo · la foto original nunca se toca",
+      "reset": "Restaurar toda",
+      "saving": "guardando…",
+      "needsLayer": "Elige una capa de terreno en el panel de capas para pintar en ella.",
+      "size": "Tamaño del pincel",
+      "sizeCells": "{{n}} casillas",
+      "sizeCell": "1 casilla",
+      "hardness": "Dureza del borde"
+    },
+    "seeAs": {
+      "label": "Ver con los ojos de",
+      "none": "Mi vista",
+      "banner": "Viendo como {{name}}",
+      "note": "es una lente: no cambia nada para nadie"
     }
   },
   "bestiary": {
