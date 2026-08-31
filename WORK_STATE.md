@@ -16,12 +16,12 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔴 de 2026-08-31 (noche), justo debajo.**
 
-## 🔴 PUNTO EXACTO — 2026-09-01: LOS 2 ARREGLOS DEL PINCEL, HECHOS Y REVISADOS · FALTA GUARDAR EL `.pen`
+## 🟢 PUNTO EXACTO — 2026-08-31 (cierre): LOS 2 ARREGLOS DEL PINCEL, HECHOS Y REVISADOS · `.pen` GUARDADO
 
 > Rama `feat/maps-rebanada-7-capas-luces`, **sin mergear**. `main` sigue en v0.4.0. **La nube NO se ha tocado.**
 > Los dos arreglos que el guardia de contexto dejó a medias **están aplicados y el review volvió a pasar**.
 
-### ✅ LOS 2 ARREGLOS DEL REVIEW — APLICADOS (2026-09-01), SIN COMMITEAR
+### ✅ LOS 2 ARREGLOS DEL REVIEW — APLICADOS Y COMMITEADOS (`109cd66`)
 1. **`clampMaskSize` ya se llama**: `SceneTab.tsx` línea 26 (import) y 435
    (`onSize={n => setMaskSizeCells(clampMaskSize(n))}`). Sus 3 tests dejan de pasar por vacío.
 2. **El pin de alcance está escrito**: test `el tamaño de transparencia va aparte del de la niebla` dentro del
@@ -39,8 +39,13 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
   siguen en verde. La *lógica* sí está pineada en `layerRules.test.ts` (rango, 0→MIN, 999→MAX, NaN→DEFAULT).
   Pinear el cableado exigiría extraer el manejador de `SceneTab` — refactor fuera de lo pedido, **sin permiso**.
 
+### ✅ EL `.pen` YA ESTÁ EN DISCO Y COMMITEADO (2026-08-31, 19:45)
+El dueño le dio a Cmd+S. Verificados uno a uno en el archivo guardado los 5 frames de la cuarta ronda:
+`w7sTC0` (Catálogo 1440×900) · `NAAEV` (Sello activo 1010×81) · `DCs6S` (Subir en lote 540×470) ·
+`SNlGp` (Barra con Piezas 300×740) · `lWBaU` (Panel de pieza 238×599). Ninguno falta.
+**Siguen SIN APROBAR por él** — están guardados, no bendecidos.
+
 ### 🔴 LO PRIMERO AL RETOMAR — lo que sigue vivo
-- **GUARDAR `rolvium.pen` CON Cmd+S** (ver punto 2 de más abajo). Sigue sin escribirse en disco.
 - Contestar las **3 preguntas abiertas** del final de este bloque.
 - Decidir el **punto 3 (cosmético, «1.0 casillas»)** y **mirar la barra en pantalla (punto 4)**.
 
