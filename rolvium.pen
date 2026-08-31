@@ -110640,7 +110640,7 @@
                   "id": "vTOeq",
                   "name": "Fila/Mazmorra propia",
                   "width": "fill_container",
-                  "fill": "$pl-sangre",
+                  "fill": "$pl-tinta",
                   "cornerRadius": 2,
                   "gap": 8,
                   "padding": [
@@ -114629,7 +114629,7 @@
                   "type": "frame",
                   "id": "WvPcI",
                   "name": "Seg/MUCHAS",
-                  "fill": "$pl-sangre",
+                  "fill": "$pl-tinta",
                   "padding": [
                     7,
                     13
@@ -115800,19 +115800,28 @@
               "name": "H/Piezas",
               "width": 36,
               "height": 36,
-              "fill": "$pl-sangre",
+              "fill": "$pl-oro",
               "justifyContent": "center",
               "alignItems": "center",
               "children": [
                 {
-                  "type": "icon",
-                  "id": "d8foq",
-                  "name": "I",
+                  "type": "path",
+                  "id": "kM4CT",
+                  "name": "I/Piezas · plantar",
+                  "geometry": "M10.7 1.3l2.6 0 0 3.2 2 0-3.3 3.9-3.3-3.9 2 0 0-3.2z m-0.47 8.1l-1 0.57m-0.76 0.43l-1 0.57m6.3-1.57l1 0.57m0.76 0.43l1 0.57m-9.83 0.43l1 0.57m0.77 0.43l1 0.57m0.76 0.43l1 0.57m6.07-2.57l-1 0.57m-0.77 0.43l-1 0.57m-0.76 0.43l-1 0.57m-0.77 0.43l0 1.13m0 0.87l0 1.13m0 0.87l0 1.13m-5.3-8.13l0 1.13m0 0.87l0 1.13m0 0.87l0 1.13m10.6-5.13l0 1.13m0 0.87l0 1.13m0 0.87l0 1.13m-10.6 0.87l1 0.57m0.77 0.43l1 0.57m0.76 0.43l1 0.57m6.07-2.57l-1 0.57m-0.77 0.43l-1 0.57m-0.76 0.43l-1 0.57m-7.97-4.47l-1.9 1.7 1.9 1.7m14.4-3.4l1.9 1.7-1.9 1.7m-10.73 2.1l3.53 2.4 3.53-2.4",
+                  "viewBox": [
+                    0,
+                    0,
+                    24,
+                    24
+                  ],
+                  "fill": "#00000000",
                   "width": 20,
                   "height": 20,
-                  "icon": "chair",
-                  "library": "Material Symbols Outlined",
-                  "fill": "$pl-papel-alto"
+                  "stroke": "$pl-papel-alto",
+                  "strokeWidth": 1.5,
+                  "strokeLinejoin": "round",
+                  "strokeLinecap": "round"
                 }
               ]
             },
@@ -116948,7 +116957,7 @@
               "id": "jAPhQ",
               "name": "Seg/MUCHAS",
               "width": "fill_container",
-              "fill": "$pl-sangre",
+              "fill": "$pl-tinta",
               "padding": [
                 7,
                 0

@@ -45,9 +45,56 @@ El dueño le dio a Cmd+S. Verificados uno a uno en el archivo guardado los 5 fra
 `SNlGp` (Barra con Piezas 300×740) · `lWBaU` (Panel de pieza 238×599). Ninguno falta.
 **Siguen SIN APROBAR por él** — están guardados, no bendecidos.
 
+### ✅ LAS 3 PREGUNTAS ABIERTAS, CONTESTADAS POR ÉL (2026-08-31, noche)
+
+**1 · Color de la herramienta activa → el rojo NO es para herramientas.** Sus palabras: el `pl-sangre` es
+«para el jugador, para las reglas, planilla de personajes, botones de acción». La regla queda:
+**rojo = acción · negro = selección · oro = herramienta activa del director.**
+> ⚠ La nota anterior decía «hoy es negra» y estaba INCOMPLETA: `maps.css` tiene DOS reglas —
+> `.mp-tool.on{background:var(--sys-ink)}` (herramientas de todos) y `.mp-tool.dm.on{background:var(--sys-gold)}`
+> (las del director, ya en oro). No había que cambiar código: el `.pen` era el que se salía.
+>
+> **Auditados los 6 rojos de las pantallas nuevas.** Bien puestos (acciones, intactos): `HEjiW` Subir ·
+> `tl0Jq` Añadir. Corregidos: `hxPzr` H/Piezas → `$pl-oro` (herramienta activa) · `vTOeq` Fila/Mazmorra
+> propia → `$pl-tinta` (era la ÚNICA fila rellena de las 11 del rail, o sea selección) · `jAPhQ` y `WvPcI`
+> Seg/MUCHAS → `$pl-tinta` (elegir entre UNA y MUCHAS es selección).
+
+**2 · Propagar el orden a las 8 pantallas de escena → NO HABÍA NADA QUE PROPAGAR.**
+> ⚠ La nota anterior también estaba equivocada. Se buscaron los botones `H/` en todo el documento:
+> **la única barra dibujada en el `.pen` es `SNlGp`**, y ya tenía su orden. Las 8 pantallas de escena
+> (`uXK3T`, `h3Q3NN`, `sFipl`, `qP47r`, `uBAwb`, `b9LRve`, `ORZJD`, `yZDqm`) son pantallas de bloques:
+> usan el componente genérico `PL/Hoja` (320×84) como hueco del mapa y tienen **2 iconos en total, cero
+> botones de herramienta**. No dibujan la barra.
+>
+> Lo que sí se hizo: **reordenar el CÓDIGO** (`Toolbar.tsx`) al criterio del dueño, con test que lo sujeta.
+
+**3 · Icono de Piezas → su propio dibujo** (`~/Documents/Developer/Rolvium context/object.png`, copiado al
+repo como `apps/web/public/icons/piezas-origen.png`). El PNG es 1254×1254 **sin transparencia y a dos
+colores**, así que no vale de icono tal cual: redibujado como `path` vectorial de un solo color
+(`$pl-papel-alto`), 20×20 como el resto. **El dueño lo retocó después a mano en el editor — NO pisarlo.**
+> ⚠ Aprendido: en este formato **no existe `strokeDasharray`**; los punteados se dibujan rayita a rayita
+> generando la geometría. Y `Get` **elide el `geometry` de los paths** salvo con `{includePathGeometry:true}`.
+
+### ✅ EL ORDEN DE LA BARRA DEL DIRECTOR, EN EL CÓDIGO (`Toolbar.tsx`)
+**Luz · Muro · Imágenes · Pincel ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ**
+Los botones de panel (Imágenes, Colocar PJ) van ahora **intercalados**, no apilados al final: `dmPanels` se
+partió en `bgPanel` y `placePcPanel`.
+- **`Piezas` NO se añadió al código a propósito**: abre la galería, que es la rebanada 6 y no está construida.
+  Un botón que no abre nada es peor que ningún botón. Entra con la galería.
+- **El `Pincel de transparencia` se colocó detrás de Imágenes** (los dos trabajan sobre la foto de la capa).
+  Se le propuso dos veces y no lo objetó, pero **no lo confirmó explícitamente**.
+- **Test que lo sujeta**: `el bloque del director va en el orden que fijó el dueño` en `controls.test.tsx`.
+  **Verificado por mutación**: con el orden viejo el test FALLA; restaurado, verde. Los otros asserts del
+  fichero sólo miraban que los botones ESTUVIERAN, no en qué orden.
+
 ### 🔴 LO PRIMERO AL RETOMAR — lo que sigue vivo
-- Contestar las **3 preguntas abiertas** del final de este bloque.
+- **PREGUNTA SIN CONTESTAR**: al dibujo de la barra (`SNlGp`) le faltan **dos botones que el código SÍ tiene**:
+  **Texto** y **Pincel de transparencia**. Hoy el código tiene 8 botones de director y el dibujo 7.
+  ¿Se añaden al dibujo, o se quita alguno del código?
+- **PENDIENTE DE ARREGLAR, ya autorizado por él («arréglalo»)**: la app **se calla** cuando arrastras una capa
+  y no se puede mover. Sin empezar.
 - Decidir el **punto 3 (cosmético, «1.0 casillas»)** y **mirar la barra en pantalla (punto 4)**.
+- Las 5 pantallas de la galería **siguen sin aprobar** por él.
 
 ### 📜 (histórico) El encargo tal como quedó escrito la noche del 2026-08-31
 El código del pincel está **hecho, commiteado y en verde** (840 tests, typecheck, audit 0 hard, build OK).

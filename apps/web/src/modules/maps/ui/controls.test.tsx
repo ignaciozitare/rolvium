@@ -23,7 +23,7 @@ describe('<Toolbar>', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Lápiz' }));
     expect(onChange).toHaveBeenCalledWith('pencil');
     rerender(<Toolbar tool="wall" isDm onChange={onChange} onDice={onDice} onPlacePc={onPlacePc} onBackground={onBackground} />);
-    // + DIRECTOR: Muro · Revelar · Ocultar · Pincel de transparencia · Luz de ambiente · Encuentro · Colocar PJ · Fondo del mapa
+    // + DIRECTOR: Luz · Muro · Fondo del mapa · Pincel de transparencia ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ
     expect(screen.getAllByRole('button')).toHaveLength(18);
     // El pincel y la luz entran en el bloque del director: son cosa suya (rebanada 7).
     expect(screen.getByRole('button', { name: 'Pincel de transparencia' })).toBeInTheDocument();
@@ -42,6 +42,24 @@ describe('<Toolbar>', () => {
     expect(tips.map(t => t.textContent)).toContain('Muro');
     expect(tips.every(t => t.getAttribute('aria-hidden') === 'true')).toBe(true);
     expect(screen.getByRole('button', { name: 'Muro' })).not.toHaveAttribute('title');
+  });
+
+  /**
+   * PIN DEL ORDEN DEL BLOQUE DE DIRECTOR, fijado por el dueño el 31-ago-2026: «ponlo arriba de los muros y
+   * ventanas, y debajo de muros y ventanas el de imágenes… le demos coherencia al orden». El criterio es
+   * agrupar primero lo que CONSTRUYE la escena, luego la niebla, luego el juego. Los botones de panel
+   * (Fondo del mapa, Colocar PJ) van intercalados a propósito, no apilados al final como antes.
+   *
+   * Sin este test, «ordenar» el componente devuelve el orden viejo y nadie se entera: los otros asserts de
+   * este fichero sólo miran que los botones ESTÉN, no en qué orden.
+   */
+  it('el bloque del director va en el orden que fijó el dueño', () => {
+    renderWithProviders(<Toolbar tool="select" isDm onChange={vi.fn()} onDice={vi.fn()} onPlacePc={vi.fn()} onBackground={vi.fn()} />);
+    const names = screen.getAllByRole('button').map(b => b.getAttribute('aria-label'));
+    expect(names.slice(-8)).toEqual([
+      'Luz de ambiente', 'Muro', 'Fondo del mapa', 'Pincel de transparencia',
+      'Revelar', 'Ocultar', 'Encuentro', 'Colocar PJ',
+    ]);
   });
 });
 
