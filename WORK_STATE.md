@@ -16,7 +16,76 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31 (cierre), justo debajo.**
 
-## 🟢 PUNTO EXACTO — 2026-08-31 (noche): LAS LUCES YA NO ATRAVIESAN LAS PAREDES · REBANADA 7 ENTERA
+## 🟢 PUNTO EXACTO — 2026-08-31 (tarde/noche): CIERRE POR CONTEXTO LLENO
+
+> Rama `feat/maps-rebanada-7-capas-luces`, **sin mergear**. `main` sigue en v0.4.0. **La nube NO se ha tocado.**
+> Local levantado y probado por el dueño durante toda la sesión.
+> **873 tests web · 218 api · `npm run audit` 0 hard · las dos compilaciones OK.**
+
+### 🔴 LO PRIMERO AL RETOMAR: PEDIRLE EL Cmd+S DE `rolvium.pen`
+El `.pen` en disco es de las **16:05**. Después de esa hora se crearon frames que **sólo viven en la caché del
+editor**, y sin guardar **no se pueden ni ver ni commitear**:
+- `PL/Editor de pieza` · `PL/Sello activo` · `PL/Fondo · a qué capa` (rebanada 6, sin aprobar aún)
+- Y en `PL/Luz de ambiente`: el **asa** de arrastre y la **X**, más la nota corregida.
+
+⚠ **Cómo se detecta el problema** (costó media hora): las capturas del MCP de Pencil se renderizan **desde el
+fichero en disco**. Si algo nuevo sale EN BLANCO y lo viejo sale bien, no es un fallo de diseño: es que falta
+el Cmd+S. `stat -f '%Sm' rolvium.pen` lo confirma en un segundo.
+
+### ✅ LO QUE SE CERRÓ ESTA SESIÓN
+1. **§ 7.2 — las luces no atraviesan las paredes.** Entero, en el servidor y para todos. `lightPolygon` +
+   `clipToStar` (abanico de triángulos + Sutherland–Hodgman, sin librerías). La regla del dueño («la luz NO
+   alarga tu línea de visión») tiene test propio con el caso del pasillo.
+2. **`casts_shadow` viene encendida** y se encendieron las luces ya puestas (`20260831190000`).
+3. **Rebanada 6 · galería de piezas**: spec confirmada (§ Rebanada 6), modelo de datos y migración
+   (`20260831200000`, dos tablas), y el andamiaje —entidades, `propRules`, puerto y adaptadores de los dos
+   lados—. **SIN PANTALLAS: falta que apruebe el diseño.**
+4. **Seis arreglos que salieron de que él lo probara**, todos con test:
+   - El editor de luces **no se podía cerrar ni mover** → X, Escape y arrastre por la cabecera.
+   - Una luz puesta **no se podía volver a coger** → se coge con Seleccionar; pinchar en vacío la suelta.
+   - **Scroll horizontal** en la biblioteca de fondos → `min-width:0` en la celda (un nombre largo sin
+     espacios estiraba la columna y el recorte nunca entraba).
+   - **Ocultar la barra lateral** derecha, con pestaña que nunca desaparece.
+   - **El cono no se podía girar** → mando «Hacia dónde apunta».
+   - **El borde del cono era una raya** → máscara difuminada, proporcional al alcance.
+5. **Arrastrar el orden de las capas**, conviviendo con subir/bajar.
+
+### ⏭ LA TAREA VIVA: EL CONO QUE GIRA SOLO («como una sirena»)
+Petición del dueño (2026-08-31). Se le ofrecieron tres caminos y **eligió el caro a sabiendas: «la niebla
+sigue al haz»** — el aviso de que era el caro estaba escrito en la propia opción.
+
+🔑 **PERO NO HACE FALTA QUE SEA CARO, y esto es lo importante que no se puede perder:** el barrido es
+**determinista**. No hay que recalcular nada por fotograma. Se calculan **N rotaciones del cono de una vez**
+(24 o 36 pasos), cada una ya recortada contra los muros y contra la línea de vista, se mandan **todas juntas**
+con el periodo de giro, y **el navegador va pasando de una a otra** sincronizado con el reloj. El servidor
+sólo recalcula cuando algo cambia de verdad, igual que ahora. Coste: N polígonos pequeños en la respuesta en
+vez de uno. Nada de «recalcular varias veces por segundo para siempre».
+
+Lo que hace falta montar:
+- **Datos**: dos columnas en `maps_lights` (gira sí/no, y el periodo). Aditivas.
+- **Servidor**: en `litLights`, si la luz gira, devolver la lista de N charcos en vez de uno.
+- **Navegador**: animar cuál se pinta, con reloj compartido para que todos vean el mismo barrido.
+- **Explorado**: una vuelta entera acaba explorando el círculo. Es correcto y no hay que forzarlo.
+- Pasa por spec (§ 7.2), DBA y diseño antes del código, como todo.
+
+### 🧾 EL SUSTO DE LOS DATOS (resuelto, no perder la conclusión)
+Dijo que «los usuarios, personajes y campañas ya no se ven». **No se ha perdido nada por nuestra parte**: las
+dos migraciones son aditivas y se evitó a propósito el comando que rehace la base. En la base hay 3 usuarios
+(los del arranque, todos nacidos el **30-ago 22:58**, que es la firma de un rehacer), la campaña «test» y su
+escena creadas **hoy 14:06** con `admin@rolvium.local` de director, y **cero** personajes, bestiario y fichas
+—desde siempre en esta base—. Se le pidió entrar con `admin@rolvium.local` y decir qué falta exactamente.
+**Quedó sin respuesta suya: hay que retomarlo.**
+
+### 🔁 Prompt de resume, de una línea
+> Retomo Rolvium, rama `feat/maps-rebanada-7-capas-luces`, sin mergear y con la nube sin tocar. **Lo primero:
+> pídeme el Cmd+S de `rolvium.pen`**, que hay frames de la rebanada 6 sin guardar y sin ellos no puedes ni
+> enseñármelos. Luego: aprobar el diseño de la galería de piezas y construirla, y el **cono que gira como una
+> sirena** — elegí que la niebla siga al haz, y en el bloque 🟢 está apuntado cómo hacerlo barato. Y quedó
+> pendiente que te diga qué datos echo en falta en local.
+
+---
+
+## 🟢 (histórico) 2026-08-31 (noche): LAS LUCES YA NO ATRAVIESAN LAS PAREDES · REBANADA 7 ENTERA
 
 > Rama `feat/maps-rebanada-7-capas-luces`, **sin mergear**. `main` sigue en v0.4.0.
 > **La nube NO se ha tocado.** El local está levantado y probado.
