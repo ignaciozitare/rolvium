@@ -42,7 +42,8 @@ export function MaskBrushBar({ layerName, size, onSize, strength, onStrength, ha
         <span className="tb-rotulo">{t('maps.mask.size')}</span>
         <input type="range" min={MASK_SIZE_MIN * 10} max={MASK_SIZE_MAX * 10} step={1} value={Math.round(size * 10)} aria-label={t('maps.mask.size')}
           onChange={e => onSize(Number(e.target.value) / 10)} />
-        <span className="mp-light-value">{t('maps.mask.sizeCells', { n: size.toFixed(1) })}</span>
+        {/* En el uno exacto no se dice «1.0 casillas»: ni el decimal ni el plural pintan nada ahí. */}
+        <span className="mp-light-value">{size === 1 ? t('maps.mask.sizeCell') : t('maps.mask.sizeCells', { n: size.toFixed(1) })}</span>
       </label>
       <label className="mp-mask-strength">
         <span className="tb-rotulo">{t('maps.mask.strength')}</span>

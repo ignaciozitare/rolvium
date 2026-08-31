@@ -43,6 +43,13 @@ describe('<MaskBrushBar>', () => {
     expect(cb.onSize).toHaveBeenCalledWith(3.5);
   });
 
+  /** En el uno exacto no se dice «1.0 casillas»: ni el decimal ni el plural pintan nada ahí. */
+  it('en el uno exacto dice «1 casilla», en singular y sin decimal', () => {
+    mount({ size: 1 });
+    expect(screen.getByText('1 casilla')).toBeInTheDocument();
+    expect(screen.queryByText('1.0 casillas')).not.toBeInTheDocument();
+  });
+
   /** La dureza es el BORDE, y va aparte de la fuerza: son dos deslizadores distintos, no uno. */
   it('la dureza del borde es su propio mando, separado de la fuerza', () => {
     const cb = mount({ hardness: 0.4 });

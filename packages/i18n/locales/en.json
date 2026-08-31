@@ -970,6 +970,7 @@
       "needsLayer": "Pick a terrain layer in the layers panel to paint on it.",
       "size": "Brush size",
       "sizeCells": "{{n}} cells",
+      "sizeCell": "1 cell",
       "hardness": "Edge hardness"
     },
     "seeAs": {

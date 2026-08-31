@@ -117,11 +117,42 @@ donde la fila dice «Notas del director» (en inglés peor), así que se quitó 
 
 **Los 6 tests nuevos, verificados POR MUTACIÓN uno a uno** — quitando cada arreglo, falla su test.
 
+### ✅ EL EMPATE, CERRADO EN LA BASE (migración `20260831210000_maps_layers_sort_order_en_la_base.sql`)
+Orden suya: «que tejado mío ni que nada hazlo tú». El `sort_order` del terreno lo asigna ahora **la base**
+con un disparador `BEFORE INSERT` + cerrojo `pg_advisory_xact_lock` por escena. El valor que mande el cliente
+se ignora a propósito: era la fuente del empate. Incluye el arreglo de los empates que ya existieran.
+
+> ⚠ **NO SE PUSO ÍNDICE ÚNICO, y es a propósito — no repetir el intento.** Reordenar escribe cada fila con un
+> UPDATE independiente (`Promise.all` en `useScene`), así que un intercambio A(0)↔B(1) pasa por un instante
+> con las dos filas iguales: un índice único lo rechazaría y **rompería el reordenar**. En PostgreSQL un
+> índice único parcial no se puede diferir (`DEFERRABLE` sólo existe en constraints y una constraint no
+> admite `WHERE`). Está razonado dentro del propio fichero de migración.
+
+**Aplicada y probada SÓLO EN LOCAL** (`docker exec supabase_db_rolvium psql`), sin `db:reset`. Verificado:
+tres altas pidiendo todas el `0` recibieron `1, 2, 3`; cero empates en la tabla; y un intercambio con dos
+filas compartiendo número momentáneamente **se acepta**, o sea que el reordenar sigue vivo.
+🔴 **SIN DESPLEGAR A LA NUBE** — eso es acción de producción y no se hizo.
+
+### ✅ MIRADO EN LA APP DE VERDAD (Playwright sobre la web local)
+El aviso al arrastrar, comprobado en pantalla con dos capas de terreno: **antes de arrastrar no hay nada ·
+al arrastrar sale «Sólo se reordenan las capas de terreno: las demás tienen su sitio fijo.» · al soltar
+desaparece.** Una sola caja, texto en tres líneas, sin desbordar el panel.
+> Se creó una capa `ZZ mirar` para poder verlo y **se borró después**: la base quedó como estaba
+> (3 escenas, 11 capas, Karen en pie, «Las dos salas» con sólo `Suelo(0)`). No se hizo `db:reset`.
+
+### ✅ LOS DOS BOTONES QUE FALTABAN, AÑADIDOS AL DIBUJO
+`H/Texto` (icono `title`) entre Círculo y Borrar · `H/Pincel de transparencia` (icono `opacity`) detrás de
+Fondo del mapa. El marco `SNlGp` se agrandó de 740 a 771 de alto porque la barra se salía.
+Ahora el dibujo = el código + `Piezas` (que sigue fuera del código hasta que exista la galería).
+🔴 **PENDIENTE DE Cmd+S**: esto está en el editor, NO en disco.
+
+### ✅ «1.0 casillas» → «1 casilla»
+Clave nueva `maps.mask.sizeCell` en es y en; en el uno exacto no se enseña ni el decimal ni el plural.
+
 ### 🔴 LO PRIMERO AL RETOMAR — lo que sigue vivo
-- **PREGUNTA SIN CONTESTAR**: al dibujo de la barra (`SNlGp`) le faltan **dos botones que el código SÍ tiene**:
-  **Texto** y **Pincel de transparencia**. Hoy el código tiene 8 botones de director y el dibujo 7.
-  ¿Se añaden al dibujo, o se quita alguno del código?
-- **DECISIÓN PENDIENTE**: ¿migración para el índice único de `sort_order` del terreno? (ver 🔴 de arriba)
+- **GUARDAR el `.pen` con Cmd+S**: los dos botones nuevos de la barra no están en disco.
+- **Desplegar la migración a la nube** cuando él lo diga (hoy sólo está en local).
+- Las 5 pantallas de la galería **siguen sin aprobar** por él.
 - Decidir el **punto 3 (cosmético, «1.0 casillas»)** y **mirar la barra en pantalla (punto 4)**.
 - Las 5 pantallas de la galería **siguen sin aprobar** por él.
 

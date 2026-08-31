@@ -970,6 +970,7 @@
       "needsLayer": "Elige una capa de terreno en el panel de capas para pintar en ella.",
       "size": "Tamaño del pincel",
       "sizeCells": "{{n}} casillas",
+      "sizeCell": "1 casilla",
       "hardness": "Dureza del borde"
     },
     "seeAs": {
