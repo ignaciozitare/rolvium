@@ -1406,6 +1406,46 @@ localDrag ?? origin`, con id de gesto). Deuda anotada por el review, no tocada: 
 
 ---
 
+## 🟢 v0.5.0 EN PRODUCCIÓN — 2026-09-01 (madrugada), verificada en vivo
+
+> Él se fue a dormir con el encargo «sube a prod, no mates los datos de prod» y «sigue todo lo que puedas».
+> Está hecho y comprobado contra el sitio real, no contra el build local. **`main` = `29a5a0f`.**
+
+### Lo que hay ahora mismo en pie
+- **Web** `https://rolvium.vercel.app` → 200, y el bundle que sirve **lleva el código nuevo**: comprobadas
+  dentro las cinco cadenas nuevas («las demás tienen su sitio fijo», «Hace falta más de una capa de terreno»,
+  «Pincel de transparencia», «Dureza del borde», «1 casilla»).
+- **API** `https://rolvium-api.vercel.app/health` → `{"ok":true}`. `POST /scenes/:id/vision` y `/fog` → **401**
+  (existen y piden sesión). ⚠ Ojo: la ruta es `/scenes/...`, NO `/maps/...` — probar `/maps/vision` da 404 y
+  parece una avería que no lo es.
+- **Los dos despliegues de Vercel en `target: production` y `READY`** sobre `29a5a0f`
+  (`dpl_4fJp7Eb1UiSimSKcZdVEDVdq7Kns` web · `dpl_CtCUncvcBjg2amkzKHCjgf8PCzWH` api).
+- **Base de producción**: las 4 migraciones aplicadas, **cero pérdidas de datos** (ver el bloque de más abajo),
+  0 tablas sin RLS, 0 políticas `TO anon`, y `get_advisors` sin un solo ERROR/CRITICAL.
+
+### Cómo se llegó (la puerta se cumplió entera)
+Review pasado **tres veces** · QA pasada · **los dos previews de Vercel en verde sobre `07f3a12` ANTES del
+merge** (regla del proyecto: el build local no basta) · 901 tests, typecheck limpio, audit 0 hard.
+Merge `--no-ff` de 30 commits, y `main` vuelto a verificar en verde antes de empujar.
+
+### 🔴 LO ÚNICO QUE FALTA, Y NO LO PUEDO HACER YO
+**Probarlo con sus ojos y con su cuenta.** No entré a producción: no tengo su contraseña y no es algo que
+deba hacer aunque la tuviera. Lo que se puede afirmar es que la app se sirve, responde y lleva el código
+nuevo; lo que NO se ha visto es la rebanada 7 funcionando con datos suyos.
+Cuando la abra, lo primero que conviene mirar:
+1. La escena vieja debe salir **igual que siempre** — su foto de fondo es ahora la capa de terreno de abajo.
+2. El panel de **Capas** con sus 4 capas, y el aviso al arrastrar una que no se puede mover.
+3. El **pincel de transparencia** con dureza y tamaño continuo.
+4. El orden nuevo de la barra del director: Luz · Muro · Imágenes · Pincel ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ.
+
+### 🔴 Y lo que sigue abierto de antes
+- **Las 5 pantallas de la galería siguen SIN APROBAR** por él (están guardadas y commiteadas, no bendecidas).
+- **Rebanada 6 (Piezas) está a medias y sin pantalla**: esquema + puerto + repo (todo ya en producción), cero
+  interfaz. El SPEC ya lo dice. El botón `Piezas` está dibujado en el `.pen` y **fuera del código a propósito**.
+- **Deuda de privacidad preexistente y consentida** (spec § 7.4): las fichas fuera de la línea de visión de un
+  jugador viajan enteras a su navegador y sólo las tapa la niebla al pintar. Viene de la rebanada 1.
+- **Siguiente rebanada**: la 5 (movimiento máximo por turno, configurable por sistema).
+
 ## 🔴 PUNTO EXACTO — 2026-08-21/22: el dueño PROBÓ la app · LAS 4, HECHAS · falta MIRARLO
 
 Rama **`fix/municion-y-preguntas`** (sale de `main`, que ya tiene la columna 5 en producción).
