@@ -283,6 +283,16 @@ export const wallPiece = (host: Wall, at: Segment): NewWall => ({
 // ── fog & vision (drawn from what the API answers; never computed here) ──────
 /** `"x,y x,y …"` for an SVG `<polygon points>`. */
 export const polygonPoints = (poly: VisionPolygon): string => poly.map(([x, y]) => `${x},${y}`).join(' ');
+/**
+ * Varios polígonos en UN solo `path`. Pintarlos como `<polygon>` sueltos deja una COSTURA clara donde dos
+ * trozos comparten borde: el antialias de cada uno cubre ese píxel a medias y las dos mitades no suman una.
+ * Dentro de un único `path` el relleno los une antes de rasterizar, y la costura no llega a existir.
+ *
+ * Los charcos de luz llegan partidos a propósito (§ 7.2: la sombra de una columna parte uno en dos), así que
+ * esto es la forma normal de pintarlos, no un apaño.
+ */
+export const polygonsPath = (polys: readonly VisionPolygon[]): string =>
+  polys.filter(p => p.length >= 3).map(p => `M${p.map(([x, y]) => `${x} ${y}`).join('L')}Z`).join('');
 /** One `<path d>` for a whole set of explored cells — one element instead of a rect per cell. */
 export const cellsPath = (cells: FogCell[], grid: number): string =>
   cells.map(([cx, cy]) => `M${cx * grid} ${cy * grid}h${grid}v${grid}h${-grid}z`).join('');

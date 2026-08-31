@@ -152,7 +152,7 @@ describe('useScene — capas y luces', () => {
     const r = await mount(repo, fakeVisionPort());
     await act(async () => { await r.current.addLight(newLightOf('fire', { x: 100, y: 200 }, SCENE_WAREHOUSE)); });
     const fire = repo.lights.at(-1)!;
-    expect(fire).toMatchObject({ kind: 'fire', x: 100, y: 200, flicker: true, castsShadow: false });
+    expect(fire).toMatchObject({ kind: 'fire', x: 100, y: 200, flicker: true, castsShadow: true });
     await act(async () => { await r.current.patchLight(fire.id, { flicker: false }); });
     expect(r.current.lights.find(l => l.id === fire.id)!.flicker).toBe(false);
     await act(async () => { await r.current.removeLight(fire.id); });
@@ -160,21 +160,48 @@ describe('useScene — capas y luces', () => {
   });
 
   /**
-   * La prueba que de verdad importa: nada de esto vuelve a pedir la visión al servidor. Si un día una luz
-   * ilumina de verdad, eso será una decisión de reglas y este test tendrá que cambiar A PROPÓSITO.
+   * ESTE ES EL DÍA que anunciaba la versión anterior de este test («si un día una luz ilumina de verdad,
+   * esto tendrá que cambiar A PROPÓSITO»). Desde § 7.2 una luz alumbra y se recorta contra los muros, así
+   * que mover una, cambiarle el alcance o la forma, o apagarle la sombra, cambia lo que se ve y hay que
+   * volver a preguntar. Lo que NO vuelve a preguntar es la pintura pura: el color y el parpadeo.
    */
-  it('ni las capas ni las luces piden la visión de nuevo: son composición y pintura', async () => {
+  it('cambiar la GEOMETRÍA de una luz vuelve a pedir la visión', async () => {
     const repo = seedLayers();
     const vision = fakeVisionPort();
     const r = await mount(repo, vision);
     const before = vision.calls.length;
+    await act(async () => { await r.current.patchLight(LIGHT_TORCH.id, { rangeM: 12 }); });
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(before));
+  });
+
+  it('su color y su parpadeo NO la piden: eso es pintura y no cambia lo que se ve', async () => {
+    const repo = seedLayers();
+    const vision = fakeVisionPort();
+    const r = await mount(repo, vision);
+    const before = vision.calls.length;
+    await act(async () => { await r.current.patchLight(LIGHT_TORCH.id, { color: '#c9a84c', flicker: false }); });
+    // La consulta va en un `setTimeout(0)`: hay que dejar pasar el turno para poder afirmar que NO llega.
+    await act(async () => { await new Promise(res => setTimeout(res, 0)); });
+    expect(vision.calls.length).toBe(before);
+  });
+
+  it('apagar la capa donde vive una luz también la pide: la capa apagada apaga la luz', async () => {
+    const repo = seedLayers();
+    const vision = fakeVisionPort();
+    const r = await mount(repo, vision);
+    const before = vision.calls.length;
+    await act(async () => { await r.current.patchLayer(LAYER_MOSS.id, { visible: false }); });
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(before));
+  });
+
+  /** Y nada de esto avisa a la mesa por su cuenta: el cambio de la fila ya viaja por el canal en vivo. */
+  it('ninguno de esos cambios emite un aviso suelto a la mesa', async () => {
+    const repo = seedLayers();
+    const r = await mount(repo, fakeVisionPort());
     await act(async () => {
-      await r.current.patchLayer(LAYER_MOSS.id, { visible: false });
       await r.current.addTerrainLayer();
       await r.current.addLight(newLightOf('torch', { x: 1, y: 2 }, SCENE_WAREHOUSE));
-      await r.current.patchLight(LIGHT_TORCH.id, { rangeM: 12 });
     });
-    expect(vision.calls.length).toBe(before);
     expect(repo.broadcasts).toEqual([]);
   });
 

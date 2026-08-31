@@ -1,6 +1,6 @@
-import type { SceneVision } from '@rolvium/core';
+import type { LitLight, SceneVision } from '@rolvium/core';
 import type { Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
-import { cellsPath, initialsOf, openingGeometry, polygonPoints, tokenCenter } from '../domain/useCases/mapRules';
+import { cellsPath, initialsOf, openingGeometry, polygonPoints, polygonsPath, tokenCenter } from '../domain/useCases/mapRules';
 import { conePath, flickerOf, lightRadiusPx, maskSrc, terrainLayers } from '../domain/useCases/layerRules';
 
 /** Presentational SVG pieces of the canvas (no pointer logic) — see MapCanvas.tsx. */
@@ -137,6 +137,15 @@ export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
   const cells = cellsPath(fog.explored, scene.grid.size);
   const full = { x: 0, y: 0, width: scene.width, height: scene.height };
   const polys = fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_SHOW} />);
+  /**
+   * Lo que alumbran las luces cuenta como VISTO, y sólo en niebla «visión» (§ 7.2). El servidor ya lo mandó
+   * recortado contra tu línea de vista, así que sumarlo aquí es la regla del dueño tal cual: ves un punto si
+   * tienes línea de vista Y (te queda dentro de tu alcance O lo alcanza una luz).
+   *
+   * En «manual» manda el pincel del director y en «off» ya se ve todo, así que ahí las luces siguen llegando
+   * —hacen falta para recortar su resplandor contra los muros— pero no revelan nada por su cuenta.
+   */
+  const litParts = scene.fogMode === 'vision' ? polygonsPath((fog.lit ?? []).flatMap(l => l.parts)) : '';
   const feather = fogFeather(scene.lighting);
   const blurId = `${ids.seen}-feather`;
   const blur = `url(#${blurId})`;
@@ -157,16 +166,21 @@ export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
         <g filter={blur}>
           {cells && <path d={cells} fill={MASK_SHOW} />}
           {polys}
+          {litParts && <path d={litParts} fill={MASK_SHOW} data-testid="mp-fog-lit" />}
         </g>
       </mask>
       <mask id={ids.lit} maskUnits="userSpaceOnUse" {...full}>
         <rect {...wide} fill={MASK_HIDE} />
-        <g filter={blur}>{polys}</g>
+        <g filter={blur}>
+          {polys}
+          {litParts && <path d={litParts} fill={MASK_SHOW} />}
+        </g>
       </mask>
       <mask id={ids.dim} maskUnits="userSpaceOnUse" {...full}>
         <rect {...wide} fill={MASK_SHOW} />
         <g filter={blur}>
           {fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_HIDE} />)}
+          {litParts && <path d={litParts} fill={MASK_HIDE} />}
         </g>
       </mask>
       <mask id={ids.unexplored} maskUnits="userSpaceOnUse" {...full}>
@@ -230,26 +244,44 @@ export function TerrainLayers({ scene, layers, clipId, preview = null }: { scene
  * El degradado va de opaco en el centro a transparente en el borde, y se compone en modo `screen` (en CSS)
  * para que sume luz en vez de tapar el mapa.
  */
-export function LightsLayer({ scene, lights }: { scene: Scene; lights: readonly Light[] }): JSX.Element {
+/**
+ * `lit` es lo que el servidor contestó que alumbra CADA luz, ya recortado contra los muros y contra lo que
+ * este espectador alcanza a ver (§ 7.2). Tres casos, y los tres importan:
+ *
+ *  - `undefined` — todavía no ha contestado (o la escena no tiene ninguna luz que calcular): se pinta el
+ *    resplandor entero, como antes. Es lo mismo que hace el resto del lienzo mientras no hay niebla: enseñar
+ *    de más un instante es mejor que un parpadeo negro.
+ *  - la luz SÍ está en la lista: su resplandor se recorta a lo que alumbra de verdad. Esto es lo que hace que
+ *    una antorcha deje de iluminar al otro lado de la pared.
+ *  - la luz NO está: no alumbra nada que este espectador pueda ver, así que no se pinta. Pintarla igual
+ *    dejaría el resplandor flotando sobre la niebla, delatando que ahí hay una luz.
+ */
+export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: readonly Light[]; lit?: readonly LitLight[] }): JSX.Element {
+  const shown = lights.map(l => ({ light: l, parts: lit?.find(x => x.id === l.id)?.parts ?? null }))
+    .filter(({ parts }) => !lit || parts !== null);
   return (
     <g className="mp-layer-lights" data-testid="mp-lights">
       <defs>
-        {lights.map(l => (
+        {shown.map(({ light: l }) => (
           <radialGradient key={l.id} id={`mp-light-${l.id}`}>
             <stop offset="0%" stopColor={l.color} stopOpacity={0.65} />
             <stop offset="55%" stopColor={l.color} stopOpacity={0.25} />
             <stop offset="100%" stopColor={l.color} stopOpacity={0} />
           </radialGradient>
         ))}
+        {shown.map(({ light: l, parts }) => (parts
+          ? <clipPath key={l.id} id={`mp-lit-${l.id}`}><path d={polygonsPath(parts)} /></clipPath>
+          : null))}
       </defs>
-      {lights.map(l => {
+      {shown.map(({ light: l, parts }) => {
         const r = lightRadiusPx(l, scene.grid);
         const rhythm = flickerOf(l);
         const fill = `url(#mp-light-${l.id})`;
         const style = rhythm
           ? ({ animationDuration: `${rhythm.periodMs}ms`, '--mp-flicker': String(rhythm.depth) } as React.CSSProperties)
           : undefined;
-        const common = { className: `mp-light ${rhythm ? (rhythm.sharp ? 'flicker-sharp' : 'flicker-soft') : ''}`, fill, style, 'data-light-id': l.id, 'data-testid': 'mp-light' };
+        const clip = parts ? { clipPath: `url(#mp-lit-${l.id})` } : {};
+        const common = { className: `mp-light ${rhythm ? (rhythm.sharp ? 'flicker-sharp' : 'flicker-soft') : ''}`, fill, style, ...clip, 'data-light-id': l.id, 'data-testid': 'mp-light' };
         if (l.shape === 'cone') return <path key={l.id} d={conePath(l, r)} {...common} />;
         if (l.shape === 'square') return <rect key={l.id} x={l.x - r} y={l.y - r} width={r * 2} height={r * 2} {...common} />;
         return <circle key={l.id} cx={l.x} cy={l.y} r={r} {...common} />;

@@ -30,8 +30,8 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
     servidor.
   - 🛑 **BLOQUEADA la penumbra**: su premisa de privacidad no se sostiene hoy — ver el aviso en § 7.4. El
     dueño lo dio por bueno y decidió **dejar las fichas como están** (2026-08-31): no se toca cómo llegan.
-  - ⏭ **SIGUIENTE**: que las luces **no atraviesen los muros** y entren en la visión con las reglas del
-    § 7.2 «Las luces iluminan de verdad». Es lo único vivo de la rebanada.
+  - ✅ **HECHO** (2026-08-31, cierre): las luces **ya no atraviesan los muros** y entran en la visión con las
+    reglas del § 7.2 «Las luces iluminan de verdad», calculadas en el servidor y para todos.
 
 ## What the user can do
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
@@ -298,7 +298,8 @@ jugar con pintar transparencias o cosas para lograr efectos chulos»*.
 ### 7.2 · Luces — de ambiente AHORA, que iluminen DESPUÉS
 
 **Decisión del dueño (2026-08-31)**: se construye el aspecto y la colocación, y **el dato se guarda ya
-preparado** para el día que iluminen de verdad.
+preparado** para el día que iluminen de verdad. Ese día llegó el mismo 31 de agosto: ver «CÓMO QUEDÓ
+CONSTRUIDO» al final de este apartado.
 
 - **Forma**: cono · radio · cuadrado. **Tipo**: antorcha · bombilla · fuego (y lo que aporte el diseño:
   farol, linterna, luz de luna, resplandor mágico).
@@ -348,9 +349,42 @@ explorado de siempre.
 
 **5. Lo que sigue sin hacer**: nada de esto da ni quita dados. Estar iluminado o a oscuras no cambia una
 tirada — eso sería una regla del manual y tendría que salir del libro, no de aquí.
-- ✅ **Lo que hay que dejar listo para después**: alcance en metros (no en píxeles) y si la luz **proyecta
-  sombra** contra los muros. Los dos se guardan desde el primer día aunque no se usen — añadirlos luego
-  obligaría a repasar todas las luces ya colocadas de todas las escenas.
+- ✅ **Lo que había que dejar listo para después**: alcance en metros (no en píxeles) y si la luz **proyecta
+  sombra** contra los muros. Los dos se guardaron desde el primer día aunque no se usaran — añadirlos luego
+  habría obligado a repasar todas las luces ya colocadas de todas las escenas. Salió bien: al llegar el día,
+  ninguna luz hubo que repasarla.
+
+#### ✅ CÓMO QUEDÓ CONSTRUIDO (2026-08-31, cierre)
+
+**El motor no era nuevo.** `visionPolygon` ya recortaba un polígono desde un punto contra los muros; hacía
+falta lo mismo desde la LUZ, más su forma (cono, radio, cuadrado). Eso es `lightPolygon`.
+
+**El corte contra la vista se hace en el servidor, y sin traer ninguna librería.** El polígono de visión es
+una ESTRELLA alrededor del ojo —sus vértices salen ordenados por ángulo—, así que los triángulos
+(ojo, vértice, siguiente) lo embaldosan enteros; y contra un triángulo, que es convexo, el recorte clásico de
+Sutherland–Hodgman es exacto. De ahí salen los trozos que viajan. Un charco puede llegar **partido en varios**
+a propósito: la sombra de una columna lo corta en dos, y cerrarlo sería mentir.
+
+**Lo que viaja es sólo el resultado.** A un jugador nunca le llega el polígono entero de una luz: le llega ya
+cortado por SU línea de vista. Si le llegase entero, la forma de la sombra le dibujaría un muro secreto sin
+necesidad de verlo. Al director, que conoce todos los muros, le llega completo.
+
+**Dos decisiones que hubo que tomar para que esto funcionara:**
+
+1. 🔦 **`casts_shadow` pasa a venir ENCENDIDA**, y se encendieron las luces ya colocadas
+   (`20260831190000_maps_lights_cast_shadow_on.sql`). Nació apagada porque nadie la leía; dejarla así habría
+   dejado el arreglo sin efecto, y el dueño dio por hecho que una antorcha NO ilumina al otro lado de la
+   pared. Lo raro —un resplandor mágico que atraviesa la piedra— es lo que merece un interruptor, y el
+   interruptor sigue estando ahí para eso.
+2. 🌫 **Con la niebla en «manual» y en «off» la luz se recorta igual contra los muros, pero no revela nada
+   por su cuenta.** En «manual» manda el pincel del director y en «off» ya se ve todo; añadir un revelado por
+   luz cambiaría lo que esos dos modos significan. La luz sigue llegando en ambos porque **recortarla contra
+   la pared es geometría, no niebla**: el director puede apagar la niebla sin querer de paso que la antorcha
+   ilumine la habitación de al lado. En «off» va entera —ahí el director quitó el secreto a propósito—; en
+   «manual» va cortada por la vista, como en «visión».
+
+**Lo que sigue sin estar** (y no es olvido): el resplandor se recorta con el borde de lo que alumbra, pero **no
+proyecta la sombra de una ficha ni de un objeto** — sólo los muros cortan. Y sigue sin dar ni quitar dados.
 
 ### 7.3 · Ver la escena con los ojos de un personaje
 

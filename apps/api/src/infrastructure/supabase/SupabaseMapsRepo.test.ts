@@ -40,6 +40,31 @@ describe('SupabaseMapsRepo (service role)', () => {
     ]);
   });
 
+  /**
+   * Las luces y las capas se leen con `service_role`, es decir SIN filtrar: el caso de uso necesita también
+   * la luz de una capa apagada o de notas del director para decidir a quién alumbra. Filtrar aquí sería
+   * decidir dos veces y en el sitio equivocado.
+   */
+  it('reads every light with the geometry that decides what it lights', async () => {
+    const rows = [
+      { id: 'li-1', layer_id: null, x: 300, y: 200, rotation: 15, shape: 'cone', cone_angle: 45, range_m: 6, casts_shadow: true },
+      { id: 'li-2', layer_id: 'ly-9', x: 10, y: 20, rotation: 0, shape: 'radius', cone_angle: 60, range_m: 3, casts_shadow: false },
+    ];
+    expect(await new SupabaseMapsRepo(fakeDb({ maps_lights: rows }).db).listLights('sc-1')).toEqual([
+      { id: 'li-1', layerId: null, x: 300, y: 200, rotation: 15, shape: 'cone', coneAngle: 45, rangeM: 6, castsShadow: true },
+      { id: 'li-2', layerId: 'ly-9', x: 10, y: 20, rotation: 0, shape: 'radius', coneAngle: 60, rangeM: 3, castsShadow: false },
+    ]);
+    expect(await new SupabaseMapsRepo(fakeDb({}).db).listLights('sc-1')).toEqual([]);
+  });
+
+  it('reads the layers with what decides whether they paint at all', async () => {
+    const rows = [{ id: 'ly-1', kind: 'objects', visible: true }, { id: 'ly-2', kind: 'dm_notes', visible: false }];
+    expect(await new SupabaseMapsRepo(fakeDb({ maps_layers: rows }).db).listLayers('sc-1')).toEqual([
+      { id: 'ly-1', kind: 'objects', visible: true },
+      { id: 'ly-2', kind: 'dm_notes', visible: false },
+    ]);
+  });
+
   it('reads the table role and the player list from campaigns_members', async () => {
     expect(await new SupabaseMapsRepo(fakeDb({ campaigns_members: { role: 'dm' } }).db).roleOf('c1', 'u-dm')).toBe('dm');
     expect(await new SupabaseMapsRepo(fakeDb({}).db).roleOf('c1', 'u-x')).toBeNull();

@@ -885,7 +885,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     await u.click(screen.getByRole('button', { name: 'Luz de ambiente' }));
     fireEvent.pointerDown(canvas(), { clientX: 9 * G, clientY: 7 * G, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.lights).toHaveLength(2));
-    expect(repo.lights.at(-1)).toMatchObject({ kind: 'torch', flicker: true, rangeM: 6, castsShadow: false, x: 9 * G, y: 7 * G });
+    expect(repo.lights.at(-1)).toMatchObject({ kind: 'torch', flicker: true, rangeM: 6, castsShadow: true, x: 9 * G, y: 7 * G });
     // Y se abre solo para retocarla, sin tener que buscarla.
     expect(await screen.findByRole('group', { name: 'Luz: Antorcha' })).toBeInTheDocument();
   });

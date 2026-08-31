@@ -16,7 +16,61 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31 (cierre), justo debajo.**
 
-## 🟢 PUNTO EXACTO — 2026-08-31 (cierre): REBANADA 7 CASI ENTERA · TOCA QUE LAS LUCES NO ATRAVIESEN MUROS
+## 🟢 PUNTO EXACTO — 2026-08-31 (noche): LAS LUCES YA NO ATRAVIESAN LAS PAREDES · REBANADA 7 ENTERA
+
+> Rama `feat/maps-rebanada-7-capas-luces`, **sin mergear**. `main` sigue en v0.4.0.
+> **La nube NO se ha tocado.** El local está levantado y probado.
+
+### ✅ LO QUE SE HIZO EN ESTA TANDA
+La tarea que quedaba viva: **que las luces no atraviesen los muros**, con las reglas de
+`specs/modules/maps/SPEC.md` § 7.2. Hecho entero, en el servidor y para todos.
+
+1. **La luz se recorta contra los muros** — `lightPolygon` en `apps/api/src/application/maps/vision.ts`:
+   el mismo barrido de rayos que la visión, pero desde la luz, y con su forma (cono · radio · cuadrado).
+2. **Y contra la línea de vista de quien pregunta** — `clipToStar`. El polígono de visión es una estrella
+   alrededor del ojo, así que se parte en abanico de triángulos y contra un triángulo el recorte clásico de
+   Sutherland–Hodgman es exacto. **Sin traer ninguna librería.**
+3. 🔑 **LA LUZ NO ALARGA LA LÍNEA DE VISIÓN** (la regla del dueño). Hay un test que fija el pasillo entero:
+   se ve lo cercano por alcance, se ve el fondo por la antorcha, y **lo de en medio sigue negro**.
+4. **Lo alumbrado se recuerda** como explorado, por el camino de siempre.
+5. **El resplandor del lienzo también se recorta** (`clipPath` por luz en `canvasLayers.tsx`). Una luz que no
+   alumbra nada que este espectador vea **no se pinta**: el resplandor flotando sobre la niebla la delataría.
+
+### 🔧 DOS DECISIONES QUE SE TOMARON (avisadas al dueño, no preguntadas)
+- 🔦 **`casts_shadow` pasa a venir ENCENDIDA** y se encendieron las luces ya colocadas — migración
+  `20260831190000_maps_lights_cast_shadow_on.sql`. Nació apagada porque nadie la leía; dejarla así habría
+  dejado el arreglo sin efecto. El interruptor sigue ahí para lo raro (un resplandor mágico que atraviesa
+  la piedra).
+- 🌫 **En niebla «manual» y «off» la luz se recorta igual contra los muros, pero no revela nada por su
+  cuenta.** Recortar es geometría, no niebla; revelar sí cambiaría lo que significan esos dos modos.
+
+### 🐛 EL FALLO QUE PILLÓ LA REVISIÓN (ya arreglado, merece recordarse)
+`litField` omitía el campo cuando la escena tenía luces pero **ninguna alcanzaba al jugador**. El navegador lee
+«campo ausente» como «el servidor aún no ha contestado» y pinta el resplandor ENTERO — justo el chivatazo que
+§ 7.2 viene a evitar. Ahora el campo viaja siempre que la escena tenga alguna luz, y **una lista vacía es una
+respuesta de verdad**: «no te alcanza ninguna». Con test en las dos orillas.
+
+### 📊 Estado comprobado
+- **825 tests web + 217 api** · `npm run audit` **0 hard** · `build:web` y `build:api` OK · revisión PASSED.
+- **Migración aplicada SÓLO EN LOCAL** (`supabase migration up --local`). ⚠ La nube sigue intacta.
+- `rolvium.pen` **sí está en disco y commiteado**: guardado el 31-ago a las 12:37 y recogido en `49313e1`.
+  El traspaso anterior lo daba por pendiente por error. **Ya no hay nada que pedirle al dueño ahí.**
+
+### ⏳ SIGUIENTE PASO CONCRETO
+El dueño tiene que **probarlo en el local** (una antorcha pegada a un muro, mirando desde el otro lado). Si le
+vale: `/qa` → aplicar la migración en la nube → merge. **Nada de eso se hace sin que lo diga.**
+
+### 🚫 Notas / deuda anotada, NO tocada
+- La verdad de «¿esta capa se pinta?» vive ahora en **tres sitios**: el helper SQL
+  `public.maps_layer_sends_to_players`, `isPainted` en el navegador y `layerPaints` en la API. Son tres líneas
+  cada uno y los tres tienen comentario cruzado, pero es una candidata clara a `packages/core` el día que se
+  toque de verdad. **No se unificó**: era refactor fuera de lo pedido.
+- El resplandor se corta contra los MUROS. **Una ficha o un objeto no proyectan sombra.** No es olvido.
+- La penumbra (§ 7.4) **sigue bloqueada** y las fichas se quedan como están: decisión cerrada del dueño.
+
+---
+
+## 🟢 (histórico) 2026-08-31 (cierre): REBANADA 7 CASI ENTERA · TOCABA QUE LAS LUCES NO ATRAVESARAN MUROS
 
 > **Chat cerrado por lleno.** Rama `feat/maps-rebanada-7-capas-luces`, 12 commits, **sin mergear**.
 > `main` sigue en v0.4.0. **La nube NO se ha tocado.**

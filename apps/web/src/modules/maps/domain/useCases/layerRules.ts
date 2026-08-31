@@ -188,7 +188,9 @@ export function newLightOf(kind: LightKind, at: { x: number; y: number }, scene:
   return {
     sceneId: scene.id, campaignId: scene.campaignId, layerId, shape: p.shape, kind,
     x: at.x, y: at.y, rotation: 0, coneAngle: p.coneAngle, color: p.color, flicker: p.flicker,
-    rangeM: p.rangeM, castsShadow: false,
+    // Una luz nace proyectando sombra: lo normal es que la piedra la pare (§ 7.2). El interruptor del
+    // editor está para lo excepcional —un resplandor mágico que atraviesa el muro—, no para lo corriente.
+    rangeM: p.rangeM, castsShadow: true,
   };
 }
 

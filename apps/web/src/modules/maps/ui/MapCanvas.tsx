@@ -584,7 +584,7 @@ export function MapCanvas(p: Props): JSX.Element {
             {draft && <DrawingShape d={draft} draft />}
           </g>
           {/* Encima del mapa y de los trazos, debajo de las fichas: la luz baña el suelo, no a la gente. */}
-          {lightsShown.length > 0 && <LightsLayer scene={p.scene} lights={lightsShown} />}
+          {lightsShown.length > 0 && <LightsLayer scene={p.scene} lights={lightsShown} {...(fog?.lit ? { lit: fog.lit } : {})} />}
           {/* El aro de la luz seleccionada y su zona de clic. Sólo para el director: es mobiliario de edición. */}
           {dmSight && p.tool === 'light' && lightsShown.map(l => (
             <g key={`hit-${l.id}`}>

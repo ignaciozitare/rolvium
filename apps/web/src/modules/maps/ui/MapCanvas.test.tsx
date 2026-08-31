@@ -261,6 +261,49 @@ describe('<MapCanvas> wheel', () => {
 // ── slice 2: fog, light and openings ─────────────────────────────────────────
 const FOG = { vision: [[[0, 0], [540, 0], [540, 675], [0, 675]]] as [number, number][][], explored: [[0, 0], [1, 0]] as [number, number][], radiusPx: null };
 
+/** Un charco cuadrado alrededor de la antorcha, como el que contesta el servidor ya recortado. */
+const LIT_TORCH = { id: LIGHT_TORCH.id, parts: [[[260, 160], [340, 160], [340, 240], [260, 240]]] as [number, number][][] };
+
+describe('<MapCanvas> luces recortadas (§ 7.2)', () => {
+  it('el resplandor se recorta a lo que la luz alumbra de verdad', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH], fog: { ...FOG, lit: [LIT_TORCH] } });
+    expect(within(svg).getByTestId('mp-light')).toHaveAttribute('clip-path', `url(#mp-lit-${LIGHT_TORCH.id})`);
+    expect(svg.querySelector(`clipPath#mp-lit-${LIGHT_TORCH.id} path`)).toBeInTheDocument();
+  });
+
+  it('una luz que no alumbra nada que este espectador vea no se pinta: el resplandor la delataría', () => {
+    const { svg } = mount({ isDm: false, lights: [LIGHT_TORCH, LIGHT_BULB], fog: { ...FOG, lit: [LIT_TORCH] } });
+    const shown = within(svg).getAllByTestId('mp-light');
+    expect(shown).toHaveLength(1);
+    expect(shown[0]).toHaveAttribute('data-light-id', LIGHT_TORCH.id);
+  });
+
+  /**
+   * El caso que se escapaba: el servidor manda la lista VACÍA («se calculó, y no te alcanza ninguna») y hay
+   * que apagarlas todas. Si se confundiera con «todavía no hay respuesta», el resplandor de una antorcha que
+   * este jugador no ve quedaría flotando sobre su niebla y delataría dónde está.
+   */
+  it('con la lista vacía no se pinta ningún resplandor: no es lo mismo que «aún no hay respuesta»', () => {
+    const { svg } = mount({ isDm: false, lights: [LIGHT_TORCH, LIGHT_BULB], fog: { ...FOG, lit: [] } });
+    expect(within(svg).queryAllByTestId('mp-light')).toHaveLength(0);
+  });
+
+  it('mientras el servidor no ha contestado la luz se pinta entera, sin recorte — igual que la niebla', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH], fog: null });
+    expect(within(svg).getByTestId('mp-light')).not.toHaveAttribute('clip-path');
+  });
+
+  it('lo alumbrado cuenta como visto en niebla «visión»', () => {
+    const { svg } = mount({ fog: { ...FOG, lit: [LIT_TORCH] } });
+    expect(within(svg).getByTestId('mp-fog-lit')).toBeInTheDocument();
+  });
+
+  it('en niebla «manual» la luz llega, pero no revela nada: ahí manda el pincel del director', () => {
+    const { svg } = mount({ scene: { ...SCENE_WAREHOUSE, fogMode: 'manual' }, fog: { ...FOG, vision: [], lit: [LIT_TORCH] } });
+    expect(within(svg).queryByTestId('mp-fog-lit')).not.toBeInTheDocument();
+  });
+});
+
 describe('<MapCanvas> fog', () => {
   it('without an answer from the API yet the scene draws unfogged — no black flash', () => {
     const { svg } = mount({ fog: null });

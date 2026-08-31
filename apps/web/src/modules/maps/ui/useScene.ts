@@ -75,9 +75,10 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       onWall: c => setWalls(l => applyChange(l, c)),
       onDrawing: c => setDrawings(l => applyChange(l, c)),
       /**
-       * Capas y luces (rebanada 7). NO tocan `refreshVision`: una capa es composición y una luz es pintura —
-       * no revelan niebla ni entran en el cálculo de visión. El día que las luces iluminen, eso sí será una
-       * decisión de reglas y volverá a pasar por el spec.
+       * Capas y luces (rebanada 7). Desde § 7.2 una luz SÍ entra en el cálculo de visión —alumbra, y se
+       * recorta contra los muros—, así que un cambio suyo tiene que volver a preguntar. No se pide aquí sino
+       * a través de `lightKey`/`layerKey` más abajo, para que valga igual cuando el cambio lo hace este
+       * mismo navegador y no llega por el canal en vivo.
        */
       onLayer: c => setLayers(l => applyChange(l, c)),
       onLight: c => setLights(l => applyChange(l, c)),
@@ -121,8 +122,15 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   /** Light, fog mode and walls all change what is visible; so does any of MY tokens moving. */
   const myTokenKey = tokens.filter(t => t.controlledBy === me).map(t => `${t.id}:${t.x}:${t.y}:${t.size}`).join('|');
   const wallKey = walls.map(w => `${w.id}:${w.isOpen ? 1 : 0}:${w.blocksSight ? 1 : 0}`).join('|');
+  /**
+   * Y desde § 7.2, las luces: mover una, cambiarle el alcance o la forma, o apagarle la sombra, cambia lo
+   * que se ve. Sólo lo que altera la GEOMETRÍA del charco — el color y el parpadeo son pintura y no valen
+   * una ida y vuelta. La capa entra porque apagarla apaga la luz que vive en ella.
+   */
+  const lightKey = lights.map(l => `${l.id}:${l.x}:${l.y}:${l.rotation}:${l.shape}:${l.coneAngle}:${l.rangeM}:${l.castsShadow ? 1 : 0}:${l.layerId ?? ''}`).join('|');
+  const layerKey = layers.map(l => `${l.id}:${l.visible ? 1 : 0}:${l.kind}`).join('|');
   /** One effect, so entering the scene costs ONE round trip and every later cause costs one more. */
-  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, live?.lighting, live?.nightRadiusM, live?.fogMode]);
+  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, lightKey, layerKey, live?.lighting, live?.nightRadiusM, live?.fogMode]);
 
   /**
    * La niebla SIGUE al token mientras se arrastra, en vez de dar un salto al soltarlo (dueño, 2026-08-22).

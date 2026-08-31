@@ -183,8 +183,9 @@ describe('las luces de ambiente', () => {
   it('una luz nueva nace con lo del tipo y en el sitio donde se pinchó', () => {
     const l = newLightOf('flashlight', { x: 120, y: 340 }, SCENE_WAREHOUSE);
     expect(l).toMatchObject({ sceneId: 'sc-1', campaignId: 'c1', kind: 'flashlight', shape: 'cone', x: 120, y: 340, rangeM: 9, layerId: null });
-    // Lo que se guarda «para más adelante» arranca en falso, nunca indefinido.
-    expect(l.castsShadow).toBe(false);
+    // Desde § 7.2 una luz nace PROYECTANDO sombra: lo corriente es que la piedra la pare, y el
+    // interruptor del editor queda para lo raro (un resplandor mágico que atraviesa el muro).
+    expect(l.castsShadow).toBe(true);
   });
 
   it('el alcance se mide en metros, como el resto de la mesa', () => {
