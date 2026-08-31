@@ -431,7 +431,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           {isDm && !playerView && selectedLight && (
             <LightEditor light={selectedLight}
               onChange={patch => run(st.patchLight(selectedLight.id, patch))}
-              onRemove={() => { setSelectedLightId(null); run(st.removeLight(selectedLight.id)); }} />
+              onRemove={() => { setSelectedLightId(null); run(st.removeLight(selectedLight.id)); }}
+              onClose={() => setSelectedLightId(null)} />
           )}
           {isDm && (tool === 'wall' || selectedWall) && (
             <SegmentBar wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}

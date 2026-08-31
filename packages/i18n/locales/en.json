@@ -324,6 +324,10 @@
         "forbidden": "Only the game master can do that.",
         "unknown": "Could not change the pool."
       }
+    },
+    "side": {
+      "hide": "Hide the side panel",
+      "show": "Show the side panel"
     }
   },
   "identity": {
@@ -941,12 +945,14 @@
       "colorN": "Colour {{n}}",
       "flicker": "Flickers",
       "animates": "Animated",
-      "prepared": "Range and shadow · saved already",
+      "prepared": "Range and shadow",
       "range": "Range in metres",
       "shadow": "Casts shadow",
       "cone": "Cone aperture in degrees",
       "delete": "Delete the light",
-      "note": "Today a light is paint: it reveals no fog and changes what nobody sees. But it does move — the type sets the rhythm: a torch trembles, a bonfire breathes, a bulb blinks in bursts. Range and shadow are stored from day one, for the day it truly lights."
+      "note": "Drag it by the header to get it out of the way; the X closes it without deleting the light. The light really lights: it is clipped by walls and does not spill to the other side. The kind sets the flicker rhythm — a torch trembles, a bonfire breathes, a bulb snaps.",
+      "close": "Close the editor",
+      "move": "Move the editor"
     },
     "mask": {
       "label": "Brush · transparency",

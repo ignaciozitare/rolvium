@@ -13,7 +13,7 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onMoveWall: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
@@ -263,6 +263,31 @@ const FOG = { vision: [[[0, 0], [540, 0], [540, 675], [0, 675]]] as [number, num
 
 /** Un charco cuadrado alrededor de la antorcha, como el que contesta el servidor ya recortado. */
 const LIT_TORCH = { id: LIGHT_TORCH.id, parts: [[[260, 160], [340, 160], [340, 240], [260, 240]]] as [number, number][][] };
+
+/**
+ * Dueño, 2026-08-31: «una vez puesta una luz no me deja seleccionarla nuevamente para editarla». Sólo se
+ * podía con la herramienta Luz, y ahí un clic un pelo fuera de su disco COLOCA otra luz en vez de abrir la
+ * que querías — así que en la práctica no había vuelta atrás.
+ */
+describe('<MapCanvas> volver a una luz ya puesta', () => {
+  it('Seleccionar la coge, y pinchar en vacío la suelta', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', lights: [LIGHT_TORCH] });
+    down(svg, LIGHT_TORCH.x, LIGHT_TORCH.y);
+    up(svg);
+    expect(cb.onSelectLight).toHaveBeenCalledWith(LIGHT_TORCH.id);
+
+    down(svg, LIGHT_TORCH.x + 400, LIGHT_TORCH.y + 300);
+    up(svg);
+    expect(cb.onSelectLight).toHaveBeenLastCalledWith(null);
+  });
+
+  it('a un jugador no le deja coger ninguna: son mobiliario de edición del director', () => {
+    const { svg, cb } = mount({ isDm: false, tool: 'select', lights: [LIGHT_TORCH] });
+    down(svg, LIGHT_TORCH.x, LIGHT_TORCH.y);
+    up(svg);
+    expect(cb.onSelectLight).not.toHaveBeenCalledWith(LIGHT_TORCH.id);
+  });
+});
 
 describe('<MapCanvas> luces recortadas (§ 7.2)', () => {
   it('el resplandor se recorta a lo que la luz alumbra de verdad', () => {

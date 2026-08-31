@@ -122,14 +122,19 @@
    punta de la pantalla que lo abre (dueño, prueba de la app). Mismo hueco que sus dos vecinos de esa esquina,
    `.mp-pcmenu` y `.mp-encounter`: arrancan en 60px para no taparle la etiqueta al lienzo (`.mp-canvas-label`,
    top:8px), que es la que dice si mandas tú o se ve la niebla. */
-.mp-bgpop{top:60px;left:8px;width:340px;max-height:calc(100% - 70px);overflow:auto;}
+/* Nunca scroll HORIZONTAL: el ancho es fijo y el diseño de rolvium.pen no tiene barra lateral abajo. */
+.mp-bgpop{top:60px;left:8px;width:340px;max-height:calc(100% - 70px);overflow-y:auto;overflow-x:hidden;}
 .mp-hexrow{display:flex;align-items:center;gap:8px;}
 .mp-hex-swatch{width:16px;height:16px;border:1px solid var(--sys-line);}
 .mp-hex{width:96px;font-family:inherit;font-size:var(--fs-sm);padding:4px 8px;border:1px solid var(--sys-line);background:transparent;color:var(--sys-ink);}
 .mp-hint{font-size:var(--fs-xs);}
 .mp-error{margin:0;color:var(--sys-blood);font-size:var(--fs-xs);}
 .mp-lib{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.mp-lib-item{display:flex;flex-direction:column;gap:4px;padding:0;border:none;background:transparent;cursor:pointer;font-family:inherit;color:var(--sys-ink-soft);text-align:left;}
+/* `min-width:0` NO es decoración: una celda de rejilla no baja de su contenido mínimo, así que un nombre
+   largo sin espacios —el identificador de un fichero subido— estiraba la columna, la rejilla se pasaba
+   de los 340 px y salía una barra horizontal que el diseño no tiene (visto por el dueño, 2026-08-31).
+   Con esto el recorte con puntos suspensivos de `.mp-lib-name` por fin se aplica. */
+.mp-lib-item{display:flex;flex-direction:column;gap:4px;padding:0;border:none;background:transparent;cursor:pointer;font-family:inherit;color:var(--sys-ink-soft);text-align:left;min-width:0;}
 .mp-lib-thumb{display:flex;align-items:center;justify-content:center;height:56px;background:var(--sys-steel) center/cover;border:2px solid transparent;}
 .mp-lib-thumb.none{background:var(--sys-paper-lo);}
 .mp-lib-item.on .mp-lib-thumb{border-color:var(--sys-gold);}
@@ -255,6 +260,11 @@
 .mp-light-editor{position:absolute;top:8px;right:222px;z-index:4;width:264px;max-height:calc(100% - 16px);overflow:auto;
   display:flex;flex-direction:column;gap:10px;padding:10px;background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);}
 .mp-light-head{display:flex;align-items:center;gap:7px;}
+/* La cabecera es el asa. `touch-action:none` es obligatorio: sin él el navegador se queda el gesto para
+   desplazar y el panel no se mueve en pantalla táctil. */
+.mp-light-head.mp-drag{cursor:grab;touch-action:none;user-select:none;}
+.mp-light-head.mp-drag:active{cursor:grabbing;}
+.mp-light-grip{color:var(--sys-ink-dim);}
 .mp-light-head-icon{color:var(--sys-gold);}
 .mp-light-title{flex:1;font-size:var(--fs-sm);color:var(--sys-ink);}
 .mp-light-preview{height:64px;background:var(--sys-ink);display:flex;align-items:center;justify-content:center;overflow:hidden;}

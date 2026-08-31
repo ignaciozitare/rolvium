@@ -290,6 +290,27 @@ describe('table chrome — dónde vive cada cosa tras la rebanada 3', () => {
     expect(within(nav).getByRole('button', { name: 'Escena' })).toBeInTheDocument();
   });
 
+  /**
+   * Dueño, 2026-08-31: «quiero que le agregues un ocultar a la barra lateral derecha de los dados y eso».
+   * El panel se pliega para darle el ancho al mapa, pero la pestaña para volver NUNCA se va: un panel que
+   * desaparece sin dejar rastro no se recupera.
+   */
+  it('el panel lateral se pliega y se despliega, y su pestaña nunca desaparece', async () => {
+    const u = userEvent.setup();
+    mount(PLAYER_USER, fakeTableRepo('player'), fakeCharactersRepo([CHARACTER_KAREN]), fakeRollsPort(), fakeRollLog([ROLL_FREE]));
+    expect(await screen.findByText('2D10 · Nix')).toBeInTheDocument();
+
+    await u.click(screen.getByRole('button', { name: 'Ocultar el panel lateral' }));
+    expect(screen.queryByText('2D10 · Nix')).not.toBeInTheDocument();
+    const volver = screen.getByRole('button', { name: 'Mostrar el panel lateral' });
+    expect(volver).toBeInTheDocument();
+    expect(volver.closest('.tb-side')).toHaveClass('folded');
+
+    await u.click(volver);
+    expect(await screen.findByText('2D10 · Nix')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ocultar el panel lateral' }).closest('.tb-side')).not.toHaveClass('folded');
+  });
+
   it('la Reserva de Destino se sienta en la cabecera blanca, junto al nombre del sistema', async () => {
     mount(PLAYER_USER, fakeTableRepo('player'));
     const head = await screen.findByRole('banner');

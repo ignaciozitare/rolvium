@@ -92,9 +92,15 @@
 .tb-res-fold{display:inline-flex;border:none;padding:6px 2px;cursor:pointer;line-height:0;flex-shrink:0;
   background:transparent;color:var(--sys-ink-dim);}
 .tb-side{width:264px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;min-height:0;}
+/* Plegado: el panel se va y deja su ancho al mapa, pero NUNCA desaparece del todo — se queda la pestaña
+   para volver a abrirlo. Un panel que se esconde sin dejar rastro no se recupera. */
+.tb-side.folded{width:auto;}
+.tb-side-fold{align-self:flex-end;display:inline-flex;border:none;padding:6px 2px;cursor:pointer;line-height:0;
+  background:transparent;color:var(--sys-ink-dim);}
+.tb-side-fold:hover{color:var(--sys-ink);}
 .tb-hoja{background:var(--sys-card);box-shadow:var(--sys-card-shadow);padding:16px;}
 .tb-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 16px;text-align:center;color:var(--sys-ink-soft);font-weight:500;}
 .tb-state{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--tx);}
 /* The scene is the one tab that must never scroll: it fills what the row gives it. */
 .tb-main:has(.mp-root){overflow:hidden;}
-@media (max-width:900px){.tb-root{overflow-y:auto;}.tb-body{flex-direction:column;}.tb-side{width:100%;}.tb-main:has(.mp-root){overflow:visible;}}
+@media (max-width:900px){.tb-root{overflow-y:auto;}.tb-body{flex-direction:column;}.tb-side{width:100%;}.tb-side.folded{width:100%;}.tb-main:has(.mp-root){overflow:visible;}}

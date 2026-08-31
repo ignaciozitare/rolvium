@@ -236,6 +236,19 @@ export function MapCanvas(p: Props): JSX.Element {
     // Se coloca CENTRADO donde se pulsa y sin pegarse a la rejilla, igual que se mueve.
     if (e.button === 0 && p.placing && p.onPlace) { p.onPlace(tokenPointAt(s, grid, p.placingSize)); return; }
     if (e.button === 0 && p.tool === 'select') {
+      /**
+       * Una LUZ también se selecciona con Seleccionar (dueño, 2026-08-31: «una vez puesta una luz no me deja
+       * seleccionarla nuevamente para editarla»). Antes sólo se podía con la herramienta Luz, y ahí un clic
+       * un pelo fuera de su disco COLOCA otra luz en vez de abrir la que querías — así que en la práctica no
+       * había forma fiable de volver a una. Va antes que el muro porque es un blanco pequeño y encima de él.
+       */
+      const light = dmSight ? lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12, lightRadiusPx(l, p.scene.grid) * 0.25)) : null;
+      if (light) {
+        p.onSelectToken(null);
+        p.onSelectWall?.(null);
+        p.onSelectLight?.(light.id);
+        return;
+      }
       // Seleccionar: pick a segment (DM only) and grab it, or clear everything.
       const wall = dmSight ? hitWall(p.walls, s, 10 / p.view.zoom) : null;
       if (wall) {
@@ -249,6 +262,8 @@ export function MapCanvas(p: Props): JSX.Element {
       }
       p.onSelectToken(null);
       p.onSelectWall?.(null);
+      // Pinchar en vacío suelta TODO, la luz incluida: es la forma de cerrar su editor sin buscar la X.
+      p.onSelectLight?.(null);
       setGesture({ kind: 'marquee', start: s, last: s });
       svgRef.current?.setPointerCapture?.(e.pointerId);
       return;

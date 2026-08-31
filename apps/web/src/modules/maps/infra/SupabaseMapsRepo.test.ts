@@ -302,15 +302,15 @@ describe('SupabaseMapsRepo — la biblioteca de piezas', () => {
 
   it('subir una pieza pone la foto y la fila bajo el MISMO id, en el bucket de fondos', async () => {
     const m = createSupabaseMock({ tables: { maps_props: { data: PROP_ROW, error: null } } });
-    const client = withSession(m.client, 'u-gm');
     const bucket = { upload: vi.fn().mockResolvedValue({ error: null }), getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://x/subida.webp' } })) };
-    (client.storage as { from: ReturnType<typeof vi.fn> }).from = vi.fn(() => bucket);
+    const storage = { from: vi.fn(() => bucket) };
+    const client = { ...withSession(m.client, 'u-gm'), storage };
     await new SupabaseMapsRepo(client as unknown as SupabaseClient).addProp({
       campaignId: 'c1', name: 'Roble', category: 'vegetation', imageUrl: '', naturalWidth: 200, naturalHeight: 300,
       defaultScale: 1.5, defaultBlocksSight: true, defaultBlocksMove: false, defaultBlockShape: 'circle', uploadedBy: null,
     }, new Blob(['x'], { type: 'image/webp' }));
 
-    expect((client.storage as { from: ReturnType<typeof vi.fn> }).from).toHaveBeenCalledWith(BACKGROUNDS_BUCKET);
+    expect(storage.from).toHaveBeenCalledWith(BACKGROUNDS_BUCKET);
     const path = bucket.upload.mock.calls[0]![0] as string;
     expect(path).toMatch(/^c1\/props\/[0-9a-f-]{36}\.webp$/);
     const inserted = m.insertSpy.mock.calls[0]![0] as Record<string, unknown>;
@@ -336,9 +336,8 @@ describe('SupabaseMapsRepo — la biblioteca de piezas', () => {
 
   it('borrar de la biblioteca NO toca el bucket: es lo que deja vivas las ya plantadas', async () => {
     const m = createSupabaseMock({ tables: { maps_props: { data: null, error: null } } });
-    const client = withSession(m.client, 'u-gm');
     const bucket = { remove: vi.fn().mockResolvedValue({ error: null }) };
-    (client.storage as { from: ReturnType<typeof vi.fn> }).from = vi.fn(() => bucket);
+    const client = { ...withSession(m.client, 'u-gm'), storage: { from: vi.fn(() => bucket) } };
     await new SupabaseMapsRepo(client as unknown as SupabaseClient).removeProp('pr-1');
     expect(m.deleteSpy).toHaveBeenCalled();
     expect(bucket.remove).not.toHaveBeenCalled();
