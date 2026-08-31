@@ -774,7 +774,8 @@
       "soon": "coming soon",
       "select": "Select",
       "text": "Text",
-      "light": "Ambient light"
+      "light": "Ambient light",
+      "mask": "Transparency brush"
     },
     "toolbar": "Canvas tools",
     "controls": {
@@ -940,6 +941,17 @@
       "cone": "Cone aperture in degrees",
       "delete": "Delete the light",
       "note": "Today a light is paint: it reveals no fog and changes what nobody sees. But it does move — the type sets the rhythm: a torch trembles, a bonfire breathes, a bulb blinks in bursts. Range and shadow are stored from day one, for the day it truly lights."
+    },
+    "mask": {
+      "label": "Brush · transparency",
+      "direction": "Brush direction",
+      "erase": "Erase",
+      "restore": "Restore",
+      "strength": "Strength",
+      "hint": "at full strength it erases and the layer below shows through · at half it goes translucent · the original photo is never touched",
+      "reset": "Restore all",
+      "saving": "saving…",
+      "needsLayer": "Pick a terrain layer in the layers panel to paint on it."
     }
   },
   "bestiary": {

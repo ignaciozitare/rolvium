@@ -774,7 +774,8 @@
       "soon": "próximamente",
       "select": "Seleccionar",
       "text": "Texto",
-      "light": "Luz de ambiente"
+      "light": "Luz de ambiente",
+      "mask": "Pincel de transparencia"
     },
     "toolbar": "Herramientas del lienzo",
     "controls": {
@@ -940,6 +941,17 @@
       "cone": "Apertura del cono en grados",
       "delete": "Borrar la luz",
       "note": "Hoy la luz es pintura: no revela niebla ni cambia lo que ve nadie. Pero sí se mueve — el tipo manda el ritmo: la antorcha tiembla, la hoguera respira, la bombilla parpadea a golpes. El alcance y la sombra se guardan desde ya para el día que ilumine de verdad."
+    },
+    "mask": {
+      "label": "Pincel · transparencia",
+      "direction": "Sentido del pincel",
+      "erase": "Borrar",
+      "restore": "Devolver",
+      "strength": "Fuerza",
+      "hint": "a tope borra del todo y asoma la capa de abajo · a media la deja translúcida · la foto original nunca se toca",
+      "reset": "Restaurar toda",
+      "saving": "guardando…",
+      "needsLayer": "Elige una capa de terreno en el panel de capas para pintar en ella."
     }
   },
   "bestiary": {

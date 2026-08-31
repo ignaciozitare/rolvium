@@ -2,7 +2,7 @@ import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import { DM_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '../domain/useCases/mapRules';
 
-const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: 'fence', reveal: 'visibility', hide: 'visibility_off', light: 'wb_incandescent', encounter: 'swords' };
+const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: 'fence', reveal: 'visibility', hide: 'visibility_off', mask: 'opacity', light: 'wb_incandescent', encounter: 'swords' };
 
 /** Actions that open a panel instead of changing the cursor: they are buttons, not tools. */
 interface Action { id: 'dice' | 'placePc' | 'background'; icon: string; onClick: () => void; on?: boolean }
@@ -70,7 +70,7 @@ export function Toolbar(p: Props): JSX.Element {
       </div>
       {p.isDm && (
         <div className="mp-tool-group dm">
-          {tools(['wall', 'reveal', 'hide', 'light'])}
+          {tools(['wall', 'reveal', 'hide', 'mask', 'light'])}
           <span className="mp-tool-sep" aria-hidden />
           {tools(['encounter'])}
           {actions(dmPanels)}

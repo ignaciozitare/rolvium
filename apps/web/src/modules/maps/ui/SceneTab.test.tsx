@@ -919,6 +919,22 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { bgImageUrl: IMAGE_CHAPEL.url } }));
   });
 
+  /**
+   * El pincel de transparencia necesita una capa de terreno donde pintar. Sin ella no se queda mudo: lo dice.
+   */
+  it('el pincel avisa si no hay capa de terreno donde pintar, y aparece cuando la hay', async () => {
+    const u = userEvent.setup();
+    mount('dm', withLayers());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    expect(screen.getByText('Elige una capa de terreno en el panel de capas para pintar en ella.')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
+    const bar = screen.getByRole('radio', { name: 'Borrar' }).closest('.mp-maskbar')!;
+    expect(within(bar as HTMLElement).getByRole('slider', { name: 'Fuerza' })).toBeInTheDocument();
+    // La barra dice en qué capa se pinta: el pincel no vale para todas a la vez.
+    expect(within(bar as HTMLElement).getByText('Musgo')).toBeInTheDocument();
+  });
+
   it('retocar y borrar la luz seleccionada llega al repositorio', async () => {
     const u = userEvent.setup();
     const repo = withLayers();

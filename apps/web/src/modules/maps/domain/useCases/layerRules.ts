@@ -110,6 +110,39 @@ export const clampStrength = (v: number): number => Math.min(1, Math.max(0, Numb
 export const strengthLabel = (v: number): string => `${Math.round(clampStrength(v) * 100)} %`;
 
 /**
+ * El pincel tiene DOS SENTIDOS, como el de la niebla tiene Revelar y Ocultar. Es lo que hace verdad la
+ * promesa del spec: «la foto original no se toca, siempre se puede volver atrás subiendo la fuerza del
+ * pincel en sentido contrario». `erase` quita la capa y asoma la de abajo; `restore` la devuelve.
+ */
+export type MaskDirection = 'erase' | 'restore';
+export const MASK_DIRECTIONS: MaskDirection[] = ['erase', 'restore'];
+
+/**
+ * De píxeles de ESCENA a píxeles de la MÁSCARA, que se guarda reducida (ver `maskSize`). Sin esto, pintar en
+ * una esquina del mapa dejaría el brochazo en otra parte de la máscara.
+ */
+export function toMaskPoint(p: { x: number; y: number }, scene: { width: number; height: number }, size: { width: number; height: number }): { x: number; y: number } {
+  return { x: (p.x * size.width) / scene.width, y: (p.y * size.height) / scene.height };
+}
+
+/**
+ * Los puntos donde se estampa el pincel a lo largo de un arrastre. A mano alzada el ratón salta, y estampar
+ * sólo en los extremos dejaría el trazo a lunares; se rellena cada `step` píxeles.
+ * Devuelve SIEMPRE al menos el punto de llegada, para que un clic suelto también pinte.
+ */
+export function strokeDots(from: { x: number; y: number }, to: { x: number; y: number }, step: number): { x: number; y: number }[] {
+  const d = Math.hypot(to.x - from.x, to.y - from.y);
+  const n = Math.floor(d / Math.max(0.5, step));
+  const dots: { x: number; y: number }[] = [];
+  for (let i = 1; i <= n; i++) dots.push({ x: from.x + ((to.x - from.x) * i) / n, y: from.y + ((to.y - from.y) * i) / n });
+  if (dots.length === 0 || dots[dots.length - 1]!.x !== to.x || dots[dots.length - 1]!.y !== to.y) dots.push({ x: to.x, y: to.y });
+  return dots;
+}
+
+/** El pincel se estampa cada cuarto de su radio: menos deja bandas, más cuesta sin verse. */
+export const MASK_STEP_RATIO = 0.25;
+
+/**
  * La máscara no se guarda al tamaño del mapa: con el lado largo a 1024 sobra para una mezcla suave y el PNG
  * pesa una fracción. Es una decisión de peso, no de calidad — el degradado del pincel es ancho de por sí.
  */

@@ -7,7 +7,7 @@ import {
   canEditIn, clampRangeM, clampStrength, conePath, DEFAULT_MASK_STRENGTH, LIGHT_COLORS, MAX_RANGE_M, MIN_RANGE_M, FIXED_LAYER_KINDS, FLICKER, flickerOf, isFixedKind, isPainted,
   layerOfKind, layerSendsToPlayers, LIGHT_KINDS, LIGHT_PRESETS, LIGHT_SHAPES, lightRadiusPx, maskPath, maskSize, MASK_MAX_SIDE,
   maskSrc, newLightOf, nextTerrainSortOrder, paintedLights, paintOrder, panelOrder, rangeLabelM, reorderTerrain,
-  strengthLabel, TERRAIN_WARN_AT, terrainLayers, terrainOverweight,
+  strengthLabel, strokeDots, TERRAIN_WARN_AT, terrainLayers, terrainOverweight, toMaskPoint, MASK_DIRECTIONS,
 } from './layerRules';
 
 const ids = (ls: { id: string }[]): string[] => ls.map(l => l.id);
@@ -273,5 +273,41 @@ describe('la paleta y el alcance de las luces', () => {
     expect(clampRangeM(6.3)).toBe(6.5);
     expect(clampRangeM(0)).toBe(MIN_RANGE_M);
     expect(clampRangeM(999)).toBe(MAX_RANGE_M);
+  });
+});
+
+describe('el pincel de transparencia', () => {
+  /**
+   * Los dos sentidos son lo que hace verdad la promesa del spec: la foto original no se toca y siempre se
+   * puede volver atrás. Sin `restore` el pincel sería un borrador de un solo viaje.
+   */
+  it('tiene dos sentidos: quitar y devolver', () => {
+    expect(MASK_DIRECTIONS).toEqual(['erase', 'restore']);
+  });
+
+  it('lleva el punto de la escena a su sitio en la máscara reducida', () => {
+    const size = maskSize(SCENE_WAREHOUSE); // 1080x675 → 1024x640
+    expect(toMaskPoint({ x: 0, y: 0 }, SCENE_WAREHOUSE, size)).toEqual({ x: 0, y: 0 });
+    const far = toMaskPoint({ x: SCENE_WAREHOUSE.width, y: SCENE_WAREHOUSE.height }, SCENE_WAREHOUSE, size);
+    expect(far).toEqual({ x: size.width, y: size.height });
+    // El centro sigue siendo el centro: si no, pintar en una esquina dejaría el brochazo en otra parte.
+    const mid = toMaskPoint({ x: 540, y: 337.5 }, SCENE_WAREHOUSE, size);
+    expect(mid.x).toBeCloseTo(size.width / 2, 5);
+    expect(mid.y).toBeCloseTo(size.height / 2, 5);
+  });
+
+  it('rellena el arrastre para que el trazo no salga a lunares', () => {
+    const dots = strokeDots({ x: 0, y: 0 }, { x: 100, y: 0 }, 10);
+    expect(dots).toHaveLength(10);
+    expect(dots.at(-1)).toEqual({ x: 100, y: 0 });
+    for (let i = 1; i < dots.length; i++) expect(Math.hypot(dots[i]!.x - dots[i - 1]!.x, dots[i]!.y - dots[i - 1]!.y)).toBeCloseTo(10, 5);
+  });
+
+  it('un clic suelto también estampa, sin arrastrar nada', () => {
+    expect(strokeDots({ x: 7, y: 9 }, { x: 7, y: 9 }, 10)).toEqual([{ x: 7, y: 9 }]);
+  });
+
+  it('un paso absurdo no cuelga el navegador', () => {
+    expect(strokeDots({ x: 0, y: 0 }, { x: 3, y: 0 }, 0).length).toBeLessThanOrEqual(7);
   });
 });

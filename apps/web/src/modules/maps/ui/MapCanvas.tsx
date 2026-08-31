@@ -52,6 +52,15 @@ interface Props {
   onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => void;
   /** DM, herramienta Luz: coloca una luz de ambiente donde se pinchó (px de escena). */
   onPlaceLight?: (at: Point) => void;
+  /**
+   * DM, pincel de transparencia: pinta la máscara de la capa de terreno activa, de `from` a `to` en px de
+   * escena. `null` en `maskLayerId` = no hay capa donde pintar y el pincel no hace nada.
+   */
+  maskLayerId?: string | null;
+  onPaintMask?: (from: Point, to: Point) => void;
+  onPaintMaskEnd?: () => void;
+  /** La máscara EN VIVO mientras se pinta, antes de que suba. Se pinta en lugar de la guardada. */
+  maskPreview?: string | null;
   /** DM: la luz que se está editando. Es pintura, así que seleccionarla no cambia nada para nadie. */
   selectedLightId?: string | null;
   onSelectLight?: (id: string | null) => void;
@@ -86,6 +95,8 @@ type Gesture =
   | { kind: 'token'; id: string; start: Point; origin: Point; moved: boolean }
   | { kind: 'draw'; tool: DrawTool; start: Point; points: [number, number][]; last: Point }
   | { kind: 'brush'; op: 'reveal' | 'hide' }
+  /** Pincel de transparencia: pinta la máscara de una capa de terreno. `last` encadena el trazo sin lunares. */
+  | { kind: 'mask'; last: Point }
   | { kind: 'wallEdit'; id: string; grab: 'a' | 'b' | 'whole'; start: Point; origin: { x1: number; y1: number; x2: number; y2: number } }
   | { kind: 'marquee'; start: Point; last: Point }
   | { kind: 'measure' };
@@ -271,6 +282,13 @@ export function MapCanvas(p: Props): JSX.Element {
         setWallStart(q);
         return;
       }
+      case 'mask': {
+        if (!dmSight || !p.maskLayerId) return;
+        p.onPaintMask?.(s, s);
+        setGesture({ kind: 'mask', last: s });
+        svgRef.current?.setPointerCapture?.(e.pointerId);
+        return;
+      }
       case 'reveal':
       case 'hide': {
         if (!dmSight) return;
@@ -392,6 +410,11 @@ export function MapCanvas(p: Props): JSX.Element {
       // and wakes the whole table through `fog.updated`. One per pointermove would be ~60 a second.
       const now = Date.now();
       if (now - lastPaint.current >= PAINT_HZ_MS) { lastPaint.current = now; p.onPaintFog({ ...s, radius: brushRadius(p.brush, grid) }, gesture.op); }
+    } else if (gesture.kind === 'mask') {
+      // Sin límite de ritmo: esto pinta en un lienzo del propio navegador. Lo que cuesta —subir el PNG— pasa
+      // UNA vez al soltar, no en cada movimiento.
+      p.onPaintMask?.(gesture.last, s);
+      setGesture({ kind: 'mask', last: s });
     } else if (gesture.kind === 'measure' && measure) {
       setMeasure({ a: measure.a, b: s });
     }
@@ -415,6 +438,8 @@ export function MapCanvas(p: Props): JSX.Element {
       if (w) p.onToggleWall(w);
     }
     if (!gesture) return;
+    // El PNG de la máscara sube UNA vez, al soltar: un guardado por pincelada, no cien.
+    if (gesture.kind === 'mask') { setGesture(null); p.onPaintMaskEnd?.(); return; }
     if (gesture.kind === 'wallEdit') {
       const at = wallDragTo(gesture.origin, gesture.grab, gesture.start, hover ?? gesture.start, grid);
       const moved = at.x1 !== gesture.origin.x1 || at.y1 !== gesture.origin.y1 || at.x2 !== gesture.origin.x2 || at.y2 !== gesture.origin.y2;
@@ -521,7 +546,7 @@ export function MapCanvas(p: Props): JSX.Element {
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
         <g className="mp-layer-map" {...(playerSight ? { mask: url(fogIds.seen) } : {})} data-testid="mp-map">
           <BackgroundLayer scene={p.scene} clipId={clipId} imageHidden={hasTerrain} />
-          {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} />}
+          {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} />}
           <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} />
           {dmSight && fog && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">

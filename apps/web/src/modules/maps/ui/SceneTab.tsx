@@ -10,7 +10,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -20,7 +20,9 @@ import { SegmentBar } from './SegmentBar';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
-import { newLightOf } from '../domain/useCases/layerRules';
+import { MaskBrushBar } from './MaskBrushBar';
+import { useMaskPainter } from './useMaskPainter';
+import { DEFAULT_MASK_STRENGTH, newLightOf, type MaskDirection } from '../domain/useCases/layerRules';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
@@ -128,6 +130,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [layersOpen, setLayersOpen] = useState(true);
   /** La luz que se está retocando. Es pintura: seleccionarla no cambia nada para nadie. */
   const [selectedLightId, setSelectedLightId] = useState<string | null>(null);
+  const [maskStrength, setMaskStrength] = useState(DEFAULT_MASK_STRENGTH);
+  const [maskDir, setMaskDir] = useState<MaskDirection>('erase');
   const live = st.scene;
   const viewport = () => ({ width: stageRef.current?.clientWidth ?? 0, height: stageRef.current?.clientHeight ?? 0 });
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
@@ -275,6 +279,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
    * «+ Capa de terreno» sirva de algo: sin esto la capa nacía vacía y no había manera de darle foto.
    */
   const bgLayer = st.layers.find(l => l.id === activeLayerId && l.kind === 'terrain') ?? null;
+  /**
+   * El pincel de transparencia pinta sobre un lienzo propio fuera de pantalla; la foto de la capa no se toca.
+   * `useMemo` en las dependencias porque si no el hook se rehace en cada render y pierde lo pintado.
+   */
+  const maskDeps = useMemo(() => ({ saveMask: st.saveMask, clearMask: st.clearMask }), [st.saveMask, st.clearMask]);
+  const mask = useMaskPainter(live, bgLayer, maskDeps);
 
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
   const deleteSelection = () => {
@@ -343,6 +353,9 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
+            maskLayerId={bgLayer?.id ?? null} maskPreview={mask.preview}
+            onPaintMask={(from, to) => mask.paint(from, to, brushRadius(brush, live.grid.size), maskStrength, maskDir)}
+            onPaintMaskEnd={() => run(mask.flush())}
             onPlaceLight={async at => {
               // Nace con lo que trae su tipo; el editor se abre solo para retocarla sin buscarla.
               const created = await st.addLight(newLightOf('torch', at, { id: live.id, campaignId }, activeLayerId));
@@ -395,6 +408,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
                 run(st.removeLayer(l.id));
               }} />
           )}
+          {/* El pincel de transparencia necesita una capa de terreno donde pintar; si no la hay, se DICE. */}
+          {isDm && !playerView && tool === 'mask' && (bgLayer
+            ? <MaskBrushBar layerName={bgLayer.name || t('maps.layers.kind.terrain')} size={brush} onSize={setBrush}
+                strength={maskStrength} onStrength={setMaskStrength} direction={maskDir} onDirection={setMaskDir}
+                saving={mask.saving} onReset={() => run(mask.reset())} />
+            : <p className="mp-mask-needs">{t('maps.mask.needsLayer')}</p>)}
           {isDm && !playerView && selectedLight && (
             <LightEditor light={selectedLight}
               onChange={patch => run(st.patchLight(selectedLight.id, patch))}

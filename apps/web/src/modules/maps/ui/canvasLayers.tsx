@@ -193,12 +193,14 @@ export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
  * ve entero), un brochazo a fuerza máxima deja negro (no se ve) y a media, gris (translúcido). La foto
  * original no se toca en ningún momento — de ahí que siempre se pueda volver atrás.
  */
-export function TerrainLayers({ scene, layers, clipId }: { scene: Scene; layers: readonly Layer[]; clipId: string }): JSX.Element {
+export function TerrainLayers({ scene, layers, clipId, preview = null }: { scene: Scene; layers: readonly Layer[]; clipId: string;
+  /** La máscara EN VIVO de la capa que se está pintando: manda sobre la guardada hasta que ésta suba. */
+  preview?: { layerId: string; href: string | null } | null }): JSX.Element {
   const terrain = terrainLayers(layers).filter(l => l.visible && l.imageUrl);
   return (
     <g className="mp-layer-terrain" clipPath={`url(#${clipId})`} data-testid="mp-terrain">
       {terrain.map(l => {
-        const mask = maskSrc(l);
+        const mask = preview && preview.layerId === l.id ? preview.href : maskSrc(l);
         const maskId = `mp-mask-${l.id}`;
         const tr = l.transform;
         const box = tr.mode === 'custom'
