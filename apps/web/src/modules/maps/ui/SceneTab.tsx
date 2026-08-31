@@ -412,6 +412,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               onToggleVisible={l => run(st.patchLayer(l.id, { visible: !l.visible }))}
               onToggleLocked={l => run(st.patchLayer(l.id, { locked: !l.locked }))}
               onReorder={(l, dir) => run(st.reorderLayer(l.id, dir))}
+              onReorderTo={(id, targetId) => run(st.reorderLayerTo(id, targetId))}
               onAddTerrain={async () => {
                 const name = await dialog.prompt(t('maps.layers.newName'));
                 if (name?.trim()) { const created = await st.addTerrainLayer({ name: name.trim() }); if (created) setActiveLayerId(created.id); }

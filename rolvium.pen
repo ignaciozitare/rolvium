@@ -14699,6 +14699,16 @@
               "children": [
                 {
                   "type": "icon",
+                  "id": "H5bhJN",
+                  "name": "Asa",
+                  "width": 14,
+                  "height": 14,
+                  "icon": "drag_indicator",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "icon",
                   "id": "iefRW",
                   "name": "I",
                   "width": 16,
@@ -14726,6 +14736,16 @@
                   "width": 14,
                   "height": 14,
                   "icon": "delete",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "icon",
+                  "id": "R8f0sZ",
+                  "name": "Cerrar",
+                  "width": 14,
+                  "height": 14,
+                  "icon": "close",
                   "library": "Material Symbols Outlined",
                   "fill": "$pl-tinta-tenue"
                 }
@@ -15291,7 +15311,7 @@
                   "fill": "$pl-tinta-tenue",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "ALCANCE Y SOMBRA · SE GUARDAN YA",
+                  "content": "ALCANCE Y SOMBRA",
                   "fontFamily": "$font-plenilunio",
                   "fontSize": 7.5,
                   "fontWeight": "normal",
@@ -15404,7 +15424,7 @@
                   "fill": "$pl-tinta-tenue",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "Hoy la luz es pintura: no revela niebla ni cambia lo que ve nadie. Pero SÍ se mueve — el tipo manda el ritmo: la antorcha tiembla, la hoguera respira, la bombilla parpadea a golpes. El alcance y la sombra se guardan desde ya para el día que ilumine de verdad.",
+                  "content": "Se agarra por la cabecera y se mueve donde no estorbe, y la X lo cierra sin borrar la luz. Desde § 7.2 la luz ALUMBRA de verdad: se recorta contra los muros y entra en el cálculo de visión, que hace el servidor.",
                   "lineHeight": 1.3,
                   "fontFamily": "$font-plenilunio",
                   "fontSize": 9,
@@ -108742,7 +108762,7 @@
               "id": "RlXEa",
               "name": "L",
               "fill": "$pl-tinta-tenue",
-              "content": "8 PIEZAS",
+              "content": "PIEZAS · 8",
               "fontFamily": "$font-plenilunio",
               "fontSize": 7.5,
               "fontWeight": "normal",
@@ -109311,6 +109331,821 @@
               "textGrowth": "fixed-width",
               "width": "fill_container",
               "content": "Elige una y el sello se queda puesto: cada clic planta otra. Cada pieza recuerda la última escala que le diste. Borrar una de aquí NO borra las que ya pusiste en los mapas.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "dRg3U",
+      "x": 10743,
+      "y": 1442,
+      "name": "PL/Editor de pieza",
+      "reusable": true,
+      "width": 280,
+      "fill": "#f2f0eaee",
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "#13131059",
+        "offset": {
+          "x": 0,
+          "y": 3
+        },
+        "blur": 14
+      },
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 10,
+      "children": [
+        {
+          "type": "frame",
+          "id": "NBPVe",
+          "name": "Head",
+          "width": "fill_container",
+          "gap": 7,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "N19w4z",
+              "name": "I",
+              "width": 16,
+              "height": 16,
+              "icon": "chair",
+              "library": "Material Symbols Outlined",
+              "fill": "$pl-oro"
+            },
+            {
+              "type": "text",
+              "id": "N85bx",
+              "name": "T",
+              "fill": "$pl-tinta",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Silla",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "icon",
+              "id": "yJT8Q",
+              "name": "Borrar",
+              "width": 14,
+              "height": 14,
+              "icon": "delete",
+              "library": "Material Symbols Outlined",
+              "fill": "$pl-tinta-tenue"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "lanpP",
+          "name": "Vista previa",
+          "clip": true,
+          "width": "fill_container",
+          "height": 72,
+          "fill": "$pl-tinta",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "bBlSm",
+              "name": "I",
+              "width": 38,
+              "height": 38,
+              "icon": "chair",
+              "library": "Material Symbols Outlined",
+              "fill": "$pl-papel"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "QV3sO",
+          "name": "S/TAMAÑO Y GIRO",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 5,
+          "children": [
+            {
+              "type": "text",
+              "id": "Wk93t",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "TAMAÑO Y GIRO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "osZD3",
+              "name": "Fila",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "o8GLO",
+                  "name": "Stepper",
+                  "stroke": "$pl-borde",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "gap": 6,
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZEow4",
+                      "name": "V",
+                      "fill": "$pl-tinta",
+                      "content": "1,4 ×",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "Spy8p",
+                      "name": "Mas",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "unfold_more",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "SRN7F",
+                  "name": "Stepper",
+                  "stroke": "$pl-borde",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "gap": 6,
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "PpMQT",
+                      "name": "V",
+                      "fill": "$pl-tinta",
+                      "content": "15°",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "nV3hr",
+                      "name": "Mas",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "unfold_more",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-tenue"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "mUwOK",
+                  "name": "Hint",
+                  "fill": "$pl-tinta-tenue",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "se recuerda",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "fd8tY",
+          "name": "S/ESTORBA",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 5,
+          "children": [
+            {
+              "type": "text",
+              "id": "fjctm",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "ESTORBA",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "nW5Sp",
+              "name": "Check/Corta la vista",
+              "width": "fill_container",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "MzqH8",
+                  "name": "Box",
+                  "fill": "$pl-tinta",
+                  "width": 13,
+                  "height": 13,
+                  "stroke": "$pl-tinta",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner"
+                },
+                {
+                  "type": "text",
+                  "id": "WuDxF",
+                  "name": "L",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Corta la vista",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "f1KVV",
+              "name": "Check/Corta el paso",
+              "width": "fill_container",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "MQEBy",
+                  "name": "Box",
+                  "fill": "#00000000",
+                  "width": 13,
+                  "height": 13,
+                  "stroke": "$pl-tinta-suave",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner"
+                },
+                {
+                  "type": "text",
+                  "id": "XEXK1",
+                  "name": "L",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Corta el paso",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "U4NIP",
+              "name": "Segmentos",
+              "width": "fill_container",
+              "gap": 4,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "P6ss1",
+                  "name": "Op/RECTÁNGULO",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "stroke": "$pl-borde",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    6
+                  ],
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "PsOkx",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "RECTÁNGULO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Q1IyH",
+                  "name": "Op/CÍRCULO",
+                  "width": "fill_container",
+                  "fill": "$pl-tinta",
+                  "padding": [
+                    4,
+                    6
+                  ],
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "EH2MK",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "CÍRCULO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.2
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "uH9lY",
+          "name": "Nota",
+          "width": "fill_container",
+          "fill": "#8a703826",
+          "gap": 6,
+          "padding": 6,
+          "children": [
+            {
+              "type": "icon",
+              "id": "lFvYJ",
+              "name": "I",
+              "width": 12,
+              "height": 12,
+              "icon": "info",
+              "library": "Material Symbols Outlined",
+              "fill": "$pl-oro"
+            },
+            {
+              "type": "text",
+              "id": "ZyJ4M",
+              "name": "T",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Lo que estorba es esa forma simple encima de la pieza, no su silueta. Y lo que corta la vista corta también la luz: una columna proyecta su sombra sola.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "B6trm",
+      "x": 392,
+      "y": 7479,
+      "name": "PL/Sello activo",
+      "reusable": true,
+      "width": 600,
+      "fill": "#cbc9c080",
+      "layout": "vertical",
+      "gap": 7,
+      "padding": [
+        8,
+        10
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "HdWvH",
+          "name": "Controles",
+          "width": "fill_container",
+          "gap": 14,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "eTyqo",
+              "name": "Rotulo",
+              "fill": "$pl-tinta-suave",
+              "content": "SELLO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 8.5,
+              "fontWeight": "normal",
+              "letterSpacing": 2
+            },
+            {
+              "type": "frame",
+              "id": "ybBKV",
+              "name": "Pieza",
+              "fill": "$pl-oro",
+              "gap": 5,
+              "padding": [
+                4,
+                8
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "q2zv7",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "chair",
+                  "library": "Material Symbols Outlined",
+                  "fill": "#1a1508"
+                },
+                {
+                  "type": "text",
+                  "id": "bUNyu",
+                  "name": "T",
+                  "fill": "#1a1508",
+                  "content": "Silla",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "EyFWy",
+              "name": "Tamaño",
+              "stroke": "$pl-borde",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "gap": 6,
+              "padding": [
+                3,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "oPCm2",
+                  "name": "V",
+                  "fill": "$pl-tinta",
+                  "content": "1,4 ×",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "icon",
+                  "id": "QTTkC",
+                  "name": "Mas",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "unfold_more",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OHw2T",
+              "name": "Capa",
+              "width": "fill_container",
+              "gap": 5,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "GM3w2",
+                  "name": "I",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "layers",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "oBD4o",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "cae en Objetos",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "DQePR",
+              "name": "Soltar",
+              "stroke": "$pl-borde",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "gap": 5,
+              "padding": [
+                4,
+                9
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "M5giaN",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "content": "SOLTAR",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 8.5,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1.2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "vKdnf",
+          "name": "Pista",
+          "fill": "$pl-tinta-tenue",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "cada clic planta otra y el sello se queda puesto · Esc lo suelta · el tamaño que pongas aquí se lo queda la pieza para la próxima vez",
+          "lineHeight": 1.3,
+          "fontFamily": "$font-plenilunio",
+          "fontSize": 9.5,
+          "fontWeight": "normal",
+          "fontStyle": "italic"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "fnZL8",
+      "x": 11103,
+      "y": 1442,
+      "name": "PL/Fondo · a qué capa",
+      "reusable": true,
+      "width": 280,
+      "fill": "#f2f0eaee",
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "#13131059",
+        "offset": {
+          "x": 0,
+          "y": 3
+        },
+        "blur": 14
+      },
+      "layout": "vertical",
+      "gap": 8,
+      "padding": 10,
+      "children": [
+        {
+          "type": "text",
+          "id": "U5Ovc",
+          "name": "L",
+          "fill": "$pl-tinta-tenue",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "A QUÉ CAPA",
+          "fontFamily": "$font-plenilunio",
+          "fontSize": 7.5,
+          "fontWeight": "normal",
+          "letterSpacing": 1.5
+        },
+        {
+          "type": "frame",
+          "id": "jj2nk",
+          "name": "Lista",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 3,
+          "children": [
+            {
+              "type": "frame",
+              "id": "nBbXc",
+              "name": "Op/Fondo de la escena",
+              "width": "fill_container",
+              "fill": "#00000000",
+              "gap": 6,
+              "padding": [
+                4,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "PwthV",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "wallpaper",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "iahzo",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Fondo de la escena",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "n6kNyM",
+              "name": "Op/Terreno · Suelo",
+              "width": "fill_container",
+              "fill": "$pl-tinta",
+              "gap": 6,
+              "padding": [
+                4,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "MNj8k",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "layers",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                },
+                {
+                  "type": "text",
+                  "id": "a6E2WQ",
+                  "name": "T",
+                  "fill": "$pl-papel-alto",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Terreno · Suelo",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "icon",
+                  "id": "HD8CR",
+                  "name": "Check",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "check",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OeFHa",
+              "name": "Op/Terreno · Musgo",
+              "width": "fill_container",
+              "fill": "#00000000",
+              "gap": 6,
+              "padding": [
+                4,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "ETsg4",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "layers",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "wEJ4X",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Terreno · Musgo",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "yq6dW",
+              "name": "Op/Terreno · Charcos",
+              "width": "fill_container",
+              "fill": "#00000000",
+              "gap": 6,
+              "padding": [
+                4,
+                7
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "tvOXT",
+                  "name": "I",
+                  "width": 13,
+                  "height": 13,
+                  "icon": "layers",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                },
+                {
+                  "type": "text",
+                  "id": "T2wX5",
+                  "name": "T",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Terreno · Charcos",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Y5rRe",
+          "name": "Nota",
+          "width": "fill_container",
+          "fill": "#8a703826",
+          "gap": 6,
+          "padding": 6,
+          "children": [
+            {
+              "type": "icon",
+              "id": "HR875",
+              "name": "I",
+              "width": 12,
+              "height": 12,
+              "icon": "info",
+              "library": "Material Symbols Outlined",
+              "fill": "$pl-oro"
+            },
+            {
+              "type": "text",
+              "id": "t6SrPM",
+              "name": "T",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Antes la foto caía en la capa que tuvieras activa, sin decírtelo. Ahora la eliges. Lo demás de esta ventana —color de base, biblioteca, encaje— no cambia.",
               "lineHeight": 1.3,
               "fontFamily": "$font-plenilunio",
               "fontSize": 9,

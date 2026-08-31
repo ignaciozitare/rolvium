@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import type { Layer, LayerKind } from '../domain/entities/Scene';
@@ -14,6 +15,12 @@ interface Props {
   onToggleVisible: (layer: Layer) => void;
   onToggleLocked: (layer: Layer) => void;
   onReorder: (layer: Layer, dir: 'up' | 'down') => void;
+  /**
+   * Soltar una capa de terreno encima de otra (dueño, 2026-08-31: «necesito poder arrastrar el orden de las
+   * capas»). Convive con subir/bajar, no lo sustituye: los botones siguen siendo la vía precisa y la única
+   * que funciona sin ratón.
+   */
+  onReorderTo: (id: string, targetId: string) => void;
   onAddTerrain: () => void;
   onRemove: (layer: Layer) => void;
   collapsed?: boolean;
@@ -30,8 +37,12 @@ interface Props {
  *  · **El candado sólo le afecta a él**: un jugador no selecciona nada, así que bloquear es una ayuda de
  *    edición, no un permiso.
  */
-export function LayersPanel({ layers, activeId, onActivate, onToggleVisible, onToggleLocked, onReorder, onAddTerrain, onRemove, collapsed = false, onCollapse }: Props): JSX.Element {
+export function LayersPanel({ layers, activeId, onActivate, onToggleVisible, onToggleLocked, onReorder, onReorderTo, onAddTerrain, onRemove, collapsed = false, onCollapse }: Props): JSX.Element {
   const { t } = useTranslation();
+  /** Sólo el TERRENO se ordena: las otras tres son fijas y su sitio lo pone el motor, no el director. */
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const endDrag = (): void => { setDragId(null); setOverId(null); };
   const rows = panelOrder(layers);
   const terrain = terrainLayers(layers);
   const active = layers.find(l => l.id === activeId) ?? null;
@@ -58,7 +69,17 @@ export function LayersPanel({ layers, activeId, onActivate, onToggleVisible, onT
           const name = nameOf(l);
           const on = l.id === activeId;
           return (
-            <li key={l.id} className={`mp-layer ${on ? 'on' : ''} ${l.visible ? '' : 'off'}`} data-layer-id={l.id} data-layer-kind={l.kind}>
+            <li key={l.id} data-layer-id={l.id} data-layer-kind={l.kind}
+              className={`mp-layer ${on ? 'on' : ''} ${l.visible ? '' : 'off'} ${l.kind === 'terrain' ? 'draggable' : ''} ${dragId === l.id ? 'dragging' : ''} ${overId === l.id ? 'over' : ''}`}
+              draggable={l.kind === 'terrain'}
+              onDragStart={e => { if (l.kind !== 'terrain') return; setDragId(l.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', l.id); }}
+              onDragEnd={endDrag}
+              onDragOver={e => { if (l.kind !== 'terrain' || !dragId || dragId === l.id) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOverId(l.id); }}
+              onDragLeave={() => setOverId(o => (o === l.id ? null : o))}
+              onDrop={e => { e.preventDefault(); if (l.kind === 'terrain' && dragId && dragId !== l.id) onReorderTo(dragId, l.id); endDrag(); }}>
+              {l.kind === 'terrain' && (
+                <span className="material-symbols-outlined mp-layer-grip" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true" title={t('maps.layers.drag')}>drag_indicator</span>
+              )}
               <button type="button" className="mp-layers-icon" aria-label={t(l.visible ? 'maps.layers.hide' : 'maps.layers.show', { name })} aria-pressed={l.visible}
                 onClick={() => onToggleVisible(l)}>
                 <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>{l.visible ? 'visibility' : 'visibility_off'}</span>

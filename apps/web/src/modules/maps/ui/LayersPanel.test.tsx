@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderWithProviders, screen } from '../../../../tests/helpers/render';
+import { renderWithProviders, screen, fireEvent } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { LAYERS_ALL, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES } from '../../../../tests/helpers/fakes';
 import { LayersPanel } from './LayersPanel';
 
 function mount(over: Partial<React.ComponentProps<typeof LayersPanel>> = {}) {
-  const cb = { onActivate: vi.fn(), onToggleVisible: vi.fn(), onToggleLocked: vi.fn(), onReorder: vi.fn(), onAddTerrain: vi.fn(), onRemove: vi.fn(), onCollapse: vi.fn() };
+  const cb = { onActivate: vi.fn(), onToggleVisible: vi.fn(), onToggleLocked: vi.fn(), onReorder: vi.fn(), onReorderTo: vi.fn(), onAddTerrain: vi.fn(), onRemove: vi.fn(), onCollapse: vi.fn() };
   renderWithProviders(<LayersPanel layers={LAYERS_ALL} activeId="ly-moss" {...cb} {...over} />);
   return cb;
 }
@@ -135,5 +135,59 @@ describe('<LayersPanel>', () => {
   it('una escena sin capas lo dice en vez de quedarse en blanco', () => {
     mount({ layers: [], activeId: null });
     expect(screen.getByText('Esta escena aún no tiene capas.')).toBeInTheDocument();
+  });
+});
+
+
+/**
+ * Dueño, 2026-08-31: «necesito poder arrastrar el orden de las capas». Sólo el TERRENO se ordena a mano: las
+ * otras tres son fijas —una y sólo una por escena— y su sitio en la pila lo pone el motor. Los botones de
+ * subir y bajar SIGUEN estando: son la vía precisa y la única que funciona sin ratón.
+ */
+describe('<LayersPanel> · arrastrar el orden', () => {
+  const row = (id: string): HTMLElement => screen.getAllByRole('listitem').find(li => li.dataset.layerId === id)!;
+  const drag = (fromId: string, toId: string): void => {
+    const data = { effectAllowed: '', dropEffect: '', setData: vi.fn(), getData: () => fromId };
+    fireEvent.dragStart(row(fromId), { dataTransfer: data });
+    fireEvent.dragOver(row(toId), { dataTransfer: data });
+    fireEvent.drop(row(toId), { dataTransfer: data });
+  };
+
+  it('sólo el terreno se arrastra; las tres fijas no', () => {
+    mount();
+    for (const id of [LAYER_FLOOR.id, LAYER_MOSS.id, LAYER_PUDDLES.id]) expect(row(id)).toHaveAttribute('draggable', 'true');
+    for (const id of [LAYER_OBJECTS.id, LAYER_NOTES.id]) expect(row(id)).toHaveAttribute('draggable', 'false');
+  });
+
+  it('soltar una capa sobre otra pide el cambio de orden', () => {
+    const cb = mount();
+    drag(LAYER_PUDDLES.id, LAYER_FLOOR.id);
+    expect(cb.onReorderTo).toHaveBeenCalledWith(LAYER_PUDDLES.id, LAYER_FLOOR.id);
+  });
+
+  it('mientras arrastras se marca dónde va a caer, y al soltar la marca se va', () => {
+    mount();
+    const data = { effectAllowed: '', dropEffect: '', setData: vi.fn(), getData: () => LAYER_PUDDLES.id };
+    fireEvent.dragStart(row(LAYER_PUDDLES.id), { dataTransfer: data });
+    fireEvent.dragOver(row(LAYER_FLOOR.id), { dataTransfer: data });
+    expect(row(LAYER_FLOOR.id)).toHaveClass('over');
+    expect(row(LAYER_PUDDLES.id)).toHaveClass('dragging');
+    fireEvent.drop(row(LAYER_FLOOR.id), { dataTransfer: data });
+    expect(row(LAYER_FLOOR.id)).not.toHaveClass('over');
+    expect(row(LAYER_PUDDLES.id)).not.toHaveClass('dragging');
+  });
+
+  it('soltarla sobre sí misma o sobre una capa fija no pide nada', () => {
+    const cb = mount();
+    drag(LAYER_MOSS.id, LAYER_MOSS.id);
+    drag(LAYER_MOSS.id, LAYER_OBJECTS.id);
+    expect(cb.onReorderTo).not.toHaveBeenCalled();
+  });
+
+  it('y los botones de subir y bajar siguen ahí: arrastrar no es la única forma', () => {
+    const cb = mount({ activeId: LAYER_MOSS.id });
+    expect(screen.getByRole('button', { name: 'Subir la capa' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Bajar la capa' }));
+    expect(cb.onReorder).toHaveBeenCalled();
   });
 });

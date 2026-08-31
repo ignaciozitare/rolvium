@@ -919,7 +919,8 @@
         "token": "Token",
         "drawing": "Drawing",
         "light": "Light"
-      }
+      },
+      "drag": "Drag to reorder"
     },
     "lights": {
       "title": "Ambient light",
@@ -952,7 +953,8 @@
       "delete": "Delete the light",
       "note": "Drag it by the header to get it out of the way; the X closes it without deleting the light. The light really lights: it is clipped by walls and does not spill to the other side. The kind sets the flicker rhythm — a torch trembles, a bonfire breathes, a bulb snaps.",
       "close": "Close the editor",
-      "move": "Move the editor"
+      "move": "Move the editor",
+      "rotation": "Direction it points"
     },
     "mask": {
       "label": "Brush · transparency",

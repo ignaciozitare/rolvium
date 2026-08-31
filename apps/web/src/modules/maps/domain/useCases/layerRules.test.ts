@@ -7,7 +7,7 @@ import {
   canEditIn, clampRangeM, clampStrength, conePath, DEFAULT_MASK_STRENGTH, LIGHT_COLORS, MAX_RANGE_M, MIN_RANGE_M, FIXED_LAYER_KINDS, FLICKER, flickerOf, isFixedKind, isPainted,
   layerOfKind, layerSendsToPlayers, LIGHT_KINDS, LIGHT_PRESETS, LIGHT_SHAPES, lightRadiusPx, maskPath, maskSize, MASK_MAX_SIDE,
   maskSrc, newLightOf, nextTerrainSortOrder, paintedLights, paintOrder, panelOrder, rangeLabelM, reorderTerrain,
-  strengthLabel, strokeDots, TERRAIN_WARN_AT, terrainLayers, terrainOverweight, toMaskPoint, MASK_DIRECTIONS,
+  strengthLabel, strokeDots, TERRAIN_WARN_AT, terrainLayers, terrainOverweight, toMaskPoint, MASK_DIRECTIONS, reorderTerrainTo,
 } from './layerRules';
 
 const ids = (ls: { id: string }[]): string[] => ls.map(l => l.id);
@@ -310,5 +310,48 @@ describe('el pincel de transparencia', () => {
 
   it('un paso absurdo no cuelga el navegador', () => {
     expect(strokeDots({ x: 0, y: 0 }, { x: 3, y: 0 }, 0).length).toBeLessThanOrEqual(7);
+  });
+});
+
+
+/**
+ * Dueño, 2026-08-31: «necesito poder arrastrar el orden de las capas». Soltar una encima de otra es el mismo
+ * resultado que darle a subir o bajar varias veces, en un solo gesto. Convive con los botones, no los
+ * sustituye: siguen siendo la vía precisa y la única que funciona sin ratón.
+ */
+describe('reorderTerrainTo — soltar una capa encima de otra', () => {
+  // En orden de PINTADO: Suelo(0) · Musgo(1) · Charcos(2). El panel se ve al revés.
+  const L = LAYERS_ALL;
+
+  it('mueve la arrastrada al sitio de la otra y corre las de en medio', () => {
+    // Charcos (arriba del todo) cae sobre Suelo (abajo del todo): pasa a ser el primero en pintarse.
+    const moves = reorderTerrainTo(L, LAYER_PUDDLES.id, LAYER_FLOOR.id);
+    expect(moves).toEqual([
+      { id: LAYER_PUDDLES.id, sortOrder: 0 },
+      { id: LAYER_FLOOR.id, sortOrder: 1 },
+      { id: LAYER_MOSS.id, sortOrder: 2 },
+    ]);
+  });
+
+  it('devuelve SÓLO las filas que cambian: dos vecinas que se cruzan no mueven a la tercera', () => {
+    const moves = reorderTerrainTo(L, LAYER_MOSS.id, LAYER_FLOOR.id);
+    expect(moves.map(m => m.id).sort()).toEqual([LAYER_FLOOR.id, LAYER_MOSS.id].sort());
+    expect(moves.find(m => m.id === LAYER_PUDDLES.id)).toBeUndefined();
+  });
+
+  it('soltar una capa donde ya estaba no escribe nada', () => {
+    expect(reorderTerrainTo(L, LAYER_MOSS.id, LAYER_MOSS.id)).toEqual([]);
+  });
+
+  it('ignora lo que no es terreno y lo que no existe: las otras tres capas no se ordenan a mano', () => {
+    expect(reorderTerrainTo(L, LAYER_OBJECTS.id, LAYER_FLOOR.id)).toEqual([]);
+    expect(reorderTerrainTo(L, LAYER_FLOOR.id, LAYER_OBJECTS.id)).toEqual([]);
+    expect(reorderTerrainTo(L, 'ly-fantasma', LAYER_FLOOR.id)).toEqual([]);
+  });
+
+  it('el resultado es el mismo que ir dando a subir, que es lo que promete el gesto', () => {
+    const arrastrando = reorderTerrainTo(L, LAYER_FLOOR.id, LAYER_PUDDLES.id);
+    const aplicado = L.map(l => { const m = arrastrando.find(v => v.id === l.id); return m ? { ...l, sortOrder: m.sortOrder } : l; });
+    expect(terrainLayers(aplicado).map(l => l.name)).toEqual(['Musgo', 'Charcos', 'Suelo']);
   });
 });

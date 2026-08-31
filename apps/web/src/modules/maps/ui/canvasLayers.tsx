@@ -256,6 +256,28 @@ export function TerrainLayers({ scene, layers, clipId, preview = null }: { scene
  *  - la luz NO está: no alumbra nada que este espectador pueda ver, así que no se pinta. Pintarla igual
  *    dejaría el resplandor flotando sobre la niebla, delatando que ahí hay una luz.
  */
+/** La forma de una luz —cono, cuadrado o radio— como nodo de SVG. Se pinta dos veces: la luz y su máscara. */
+function lightShape(l: Light, r: number, props: Record<string, unknown>): JSX.Element {
+  if (l.shape === 'cone') return <path d={conePath(l, r)} {...props} />;
+  if (l.shape === 'square') return <rect x={l.x - r} y={l.y - r} width={r * 2} height={r * 2} {...props} />;
+  return <circle cx={l.x} cy={l.y} r={r} {...props} />;
+}
+
+/**
+ * Lo BORROSO que es el borde de una luz, en px de escena. Existe por una queja del dueño (2026-08-31, sobre
+ * un cono: «cuidado con los bordes del cono que no sean una línea dura»).
+ *
+ * Un borde de luz no es un canto: se apaga. Y desde § 7.2 el resplandor va RECORTADO —contra los muros y
+ * contra lo que el que mira alcanza a ver—, y un recorte es por definición una tijera: sin difuminar, la
+ * sombra de una pared y los dos lados del cono salían como rayas trazadas con regla.
+ *
+ * Se difumina la MÁSCARA y no la luz: el color no se ensucia, lo único que se suaviza es dónde deja de
+ * llegar. Es la misma solución que la niebla usa desde la rebanada 2, y por el mismo motivo.
+ *
+ * Proporcional al alcance: una antorcha de dos metros con el difuminado de un foco de treinta no se vería.
+ */
+export const lightFeather = (radius: number): number => Math.max(5, radius * 0.13);
+
 export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: readonly Light[]; lit?: readonly LitLight[] }): JSX.Element {
   const shown = lights.map(l => ({ light: l, parts: lit?.find(x => x.id === l.id)?.parts ?? null }))
     .filter(({ parts }) => !lit || parts !== null);
@@ -269,22 +291,46 @@ export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: read
             <stop offset="100%" stopColor={l.color} stopOpacity={0} />
           </radialGradient>
         ))}
-        {shown.map(({ light: l, parts }) => (parts
-          ? <clipPath key={l.id} id={`mp-lit-${l.id}`}><path d={polygonsPath(parts)} /></clipPath>
-          : null))}
+        {shown.map(({ light: l }) => {
+          const f = lightFeather(lightRadiusPx(l, scene.grid));
+          return (
+            <filter key={l.id} id={`mp-lightblur-${l.id}`} x="-50%" y="-50%" width="200%" height="200%" filterUnits="objectBoundingBox">
+              <feGaussianBlur stdDeviation={f} />
+            </filter>
+          );
+        })}
+        {shown.map(({ light: l, parts }) => {
+          const r = lightRadiusPx(l, scene.grid);
+          const f = lightFeather(r);
+          // La máscara se pinta con MARGEN: un desenfoque que acaba en el filo de su caja se come su propio borde.
+          const pad = r * 1.6 + f * 4;
+          return (
+            <mask key={l.id} id={`mp-litmask-${l.id}`} maskUnits="userSpaceOnUse" x={l.x - pad} y={l.y - pad} width={pad * 2} height={pad * 2}>
+              <g filter={`url(#mp-lightblur-${l.id})`}>
+                {parts
+                  ? <path d={polygonsPath(parts)} fill={MASK_SHOW} />
+                  : lightShape(l, r, { fill: MASK_SHOW })}
+              </g>
+            </mask>
+          );
+        })}
       </defs>
-      {shown.map(({ light: l, parts }) => {
+      {shown.map(({ light: l }) => {
         const r = lightRadiusPx(l, scene.grid);
         const rhythm = flickerOf(l);
-        const fill = `url(#mp-light-${l.id})`;
         const style = rhythm
           ? ({ animationDuration: `${rhythm.periodMs}ms`, '--mp-flicker': String(rhythm.depth) } as React.CSSProperties)
           : undefined;
-        const clip = parts ? { clipPath: `url(#mp-lit-${l.id})` } : {};
-        const common = { className: `mp-light ${rhythm ? (rhythm.sharp ? 'flicker-sharp' : 'flicker-soft') : ''}`, fill, style, ...clip, 'data-light-id': l.id, 'data-testid': 'mp-light' };
-        if (l.shape === 'cone') return <path key={l.id} d={conePath(l, r)} {...common} />;
-        if (l.shape === 'square') return <rect key={l.id} x={l.x - r} y={l.y - r} width={r * 2} height={r * 2} {...common} />;
-        return <circle key={l.id} cx={l.x} cy={l.y} r={r} {...common} />;
+        return lightShape(l, r, {
+          key: l.id,
+          className: `mp-light ${rhythm ? (rhythm.sharp ? 'flicker-sharp' : 'flicker-soft') : ''}`,
+          fill: `url(#mp-light-${l.id})`,
+          style,
+          // SIEMPRE enmascarada, haya recorte del servidor o no: es lo que le quita el canto al borde.
+          mask: `url(#mp-litmask-${l.id})`,
+          'data-light-id': l.id,
+          'data-testid': 'mp-light',
+        });
       })}
     </g>
   );

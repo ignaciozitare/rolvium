@@ -3,7 +3,7 @@ import { renderWithProviders, screen, fireEvent, within } from '../../../../test
 import { DRAWING_MINE, DRAWING_OTHER, LAYERS_ALL, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES, LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import type { Tool } from '../domain/useCases/mapRules';
 import { MapCanvas } from './MapCanvas';
-import { FOG_FEATHER } from './canvasLayers';
+import { FOG_FEATHER, lightFeather } from './canvasLayers';
 
 // jsdom has no PointerEvent: a MouseEvent with pointerId is enough for the canvas handlers.
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -292,8 +292,31 @@ describe('<MapCanvas> volver a una luz ya puesta', () => {
 describe('<MapCanvas> luces recortadas (§ 7.2)', () => {
   it('el resplandor se recorta a lo que la luz alumbra de verdad', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH], fog: { ...FOG, lit: [LIT_TORCH] } });
-    expect(within(svg).getByTestId('mp-light')).toHaveAttribute('clip-path', `url(#mp-lit-${LIGHT_TORCH.id})`);
-    expect(svg.querySelector(`clipPath#mp-lit-${LIGHT_TORCH.id} path`)).toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-light')).toHaveAttribute('mask', `url(#mp-litmask-${LIGHT_TORCH.id})`);
+    expect(svg.querySelector(`mask#mp-litmask-${LIGHT_TORCH.id} path`)).toBeInTheDocument();
+  });
+
+  /**
+   * Dueño, 2026-08-31, viendo un cono: «cuidado con los bordes del cono que no sean una línea dura». El
+   * recorte es una tijera, así que sin difuminar la sombra de una pared y los dos lados del cono salían
+   * trazados con regla. Se difumina la MÁSCARA, no la luz.
+   */
+  it('el borde de la luz se difumina SIEMPRE, haya recorte del servidor o no', () => {
+    const conRecorte = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH], fog: { ...FOG, lit: [LIT_TORCH] } });
+    expect(conRecorte.svg.querySelector(`mask#mp-litmask-${LIGHT_TORCH.id} g[filter]`)).toBeInTheDocument();
+    expect(conRecorte.svg.querySelector(`filter#mp-lightblur-${LIGHT_TORCH.id} feGaussianBlur`)).toBeInTheDocument();
+  });
+
+  it('y también sin respuesta del servidor: ahí la máscara es la propia forma, difuminada', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH], fog: null });
+    expect(within(svg).getByTestId('mp-light')).toHaveAttribute('mask', `url(#mp-litmask-${LIGHT_TORCH.id})`);
+    expect(svg.querySelector(`mask#mp-litmask-${LIGHT_TORCH.id} circle`)).toBeInTheDocument();
+  });
+
+  it('el difuminado crece con el alcance: una antorcha no lleva el borde de un foco', () => {
+    expect(lightFeather(30)).toBeLessThan(lightFeather(300));
+    // Y nunca baja de un mínimo: una luz diminuta con 0 de difuminado volvería a tener canto.
+    expect(lightFeather(1)).toBeGreaterThanOrEqual(5);
   });
 
   it('una luz que no alumbra nada que este espectador vea no se pinta: el resplandor la delataría', () => {
@@ -315,7 +338,7 @@ describe('<MapCanvas> luces recortadas (§ 7.2)', () => {
 
   it('mientras el servidor no ha contestado la luz se pinta entera, sin recorte — igual que la niebla', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH], fog: null });
-    expect(within(svg).getByTestId('mp-light')).not.toHaveAttribute('clip-path');
+    expect(within(svg).getByTestId('mp-light')).toHaveAttribute('mask', `url(#mp-litmask-${LIGHT_TORCH.id})`);
   });
 
   it('lo alumbrado cuenta como visto en niebla «visión»', () => {

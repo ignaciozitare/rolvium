@@ -91,6 +91,27 @@ export function reorderTerrain(layers: readonly Layer[], id: string, dir: 'up' |
   return [{ id: a.id, sortOrder: b.sortOrder }, { id: b.id, sortOrder: a.sortOrder }];
 }
 
+/**
+ * Soltar una capa de terreno ENCIMA de otra: la arrastrada pasa a ocupar el sitio de la otra y las de en
+ * medio se corren. Es el mismo resultado que dar a subir o bajar varias veces, en un solo gesto.
+ *
+ * Los sitios no se recalculan desde cero: se REPARTEN los `sortOrder` que ya existían, en orden. Así el
+ * hueco entre dos capas sigue siendo el que era, y sólo viajan a la base de datos las filas que de verdad
+ * han cambiado de sitio — soltar una capa donde ya estaba no escribe nada.
+ */
+export function reorderTerrainTo(layers: readonly Layer[], id: string, targetId: string): { id: string; sortOrder: number }[] {
+  const list = terrainLayers(layers);
+  const from = list.findIndex(l => l.id === id);
+  const to = list.findIndex(l => l.id === targetId);
+  if (from < 0 || to < 0 || from === to) return [];
+  const next = [...list];
+  next.splice(to, 0, ...next.splice(from, 1));
+  const slots = list.map(l => l.sortOrder).sort((a, b) => a - b);
+  return next
+    .map((l, i) => ({ id: l.id, sortOrder: slots[i]! }))
+    .filter(m => list.find(l => l.id === m.id)!.sortOrder !== m.sortOrder);
+}
+
 // ── La máscara del pincel de transparencia ───────────────────────────────────
 
 /** Dónde vive el PNG de la máscara. `foldername[1]` sigue siendo la campaña, que es lo que mira la política. */

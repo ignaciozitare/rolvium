@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, fireEvent } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { LIGHT_BULB, LIGHT_TORCH } from '../../../../tests/helpers/fakes';
+import { LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH } from '../../../../tests/helpers/fakes';
 import { LightEditor } from './LightEditor';
 
 // jsdom no trae PointerEvent: un MouseEvent con pointerId basta para los gestos, como en MapCanvas.test.
@@ -148,5 +148,32 @@ describe('<LightEditor> · salir y apartarlo', () => {
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Borrar la luz' }), { button: 0, clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 300, clientY: 300, pointerId: 1 });
     expect(panel).toHaveStyle({ transform: 'translate(0px, 0px)' });
+  });
+});
+
+
+/**
+ * Dueño, 2026-08-31: «el cono tengo para ajustar el ángulo de iluminación pero no lo puedo rotar». La
+ * apertura sin la dirección no sirve: un foco que sólo puede mirar a la derecha no es un foco. `rotation` ya
+ * se guardaba y ya la leía el recorte contra los muros; lo que faltaba era poder tocarla.
+ */
+describe('<LightEditor> · el cono apunta a algún lado', () => {
+  it('un cono trae apertura Y dirección, y la dirección se guarda', () => {
+    const cb = mount(LIGHT_SECRET);
+    expect(screen.getByRole('slider', { name: 'Apertura del cono en grados' })).toBeInTheDocument();
+    const dir = screen.getByRole('slider', { name: 'Hacia dónde apunta' });
+    fireEvent.change(dir, { target: { value: '135' } });
+    expect(cb.onChange).toHaveBeenCalledWith({ rotation: 135 });
+  });
+
+  it('una luz de radio no enseña ninguna de las dos: no hay hacia dónde apuntar una bombilla', () => {
+    mount(LIGHT_TORCH);
+    expect(screen.queryByRole('slider', { name: 'Apertura del cono en grados' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', { name: 'Hacia dónde apunta' })).not.toBeInTheDocument();
+  });
+
+  it('una dirección guardada fuera de la vuelta se enseña dentro de ella', () => {
+    mount({ ...LIGHT_SECRET, rotation: -90 });
+    expect(screen.getByText('270°')).toBeInTheDocument();
   });
 });

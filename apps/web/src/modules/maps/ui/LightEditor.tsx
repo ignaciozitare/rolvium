@@ -101,11 +101,25 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
           ))}
         </div>
         {light.shape === 'cone' && (
-          <label className="mp-light-row">
-            <span className="mp-light-label">{t('maps.lights.cone')}</span>
-            <input type="range" min={10} max={300} step={5} value={light.coneAngle} aria-label={t('maps.lights.cone')} onChange={e => onChange({ coneAngle: Number(e.target.value) })} />
-            <span className="mp-light-value">{Math.round(light.coneAngle)}°</span>
-          </label>
+          <>
+            <label className="mp-light-row">
+              <span className="mp-light-label">{t('maps.lights.cone')}</span>
+              <input type="range" min={10} max={300} step={5} value={light.coneAngle} aria-label={t('maps.lights.cone')} onChange={e => onChange({ coneAngle: Number(e.target.value) })} />
+              <span className="mp-light-value">{Math.round(light.coneAngle)}°</span>
+            </label>
+            {/*
+              * Hacia dónde APUNTA el cono. La apertura sin la dirección no sirve de nada: un foco que sólo
+              * puede mirar a la derecha no es un foco (dueño, 2026-08-31). `rotation` se guardaba desde el
+              * primer día y ya la lee el recorte contra los muros; lo único que faltaba era poder tocarla.
+              * En vuelta entera, porque 0 y 360 son el mismo sitio y así el deslizador no tiene tope raro.
+              */}
+            <label className="mp-light-row">
+              <span className="mp-light-label">{t('maps.lights.rotation')}</span>
+              <input type="range" min={0} max={355} step={5} value={((light.rotation % 360) + 360) % 360} aria-label={t('maps.lights.rotation')}
+                onChange={e => onChange({ rotation: Number(e.target.value) })} />
+              <span className="mp-light-value">{Math.round(((light.rotation % 360) + 360) % 360)}°</span>
+            </label>
+          </>
         )}
       </fieldset>
 

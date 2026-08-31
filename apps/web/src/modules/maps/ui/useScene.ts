@@ -4,7 +4,7 @@ import type { Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLigh
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import { wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
-import { nextTerrainSortOrder, reorderTerrain } from '../domain/useCases/layerRules';
+import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
 
 export interface LiveDrag { tokenId: string; x: number; y: number }
 export interface LivePin { x: number; y: number; by: string; at: number }
@@ -316,6 +316,17 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     setLayers(l => l.map(x => { const m = moves.find(v => v.id === x.id); return m ? { ...x, sortOrder: m.sortOrder } : x; }));
     await Promise.all(moves.map(m => repo.updateLayer(m.id, { sortOrder: m.sortOrder })));
   }, [repo, layers]);
+  /**
+   * Soltar una capa encima de otra. Comparte camino con subir/bajar a propósito: las dos calculan qué filas
+   * cambian de sitio y escriben SÓLO ésas, así que arrastrar tres posiciones cuesta lo mismo que darle tres
+   * veces al botón, y ni un viaje más.
+   */
+  const reorderLayerTo = useCallback(async (id: string, targetId: string) => {
+    const moves = reorderTerrainTo(layers, id, targetId);
+    if (moves.length === 0) return;
+    setLayers(l => l.map(x => { const m = moves.find(v => v.id === x.id); return m ? { ...x, sortOrder: m.sortOrder } : x; }));
+    await Promise.all(moves.map(m => repo.updateLayer(m.id, { sortOrder: m.sortOrder })));
+  }, [repo, layers]);
   /** El pincel de transparencia: sube el PNG y sube la versión. La foto de la capa no se toca nunca. */
   const saveMask = useCallback(async (layer: Layer, png: Blob) => {
     const next = await repo.saveMask(layer, png);
@@ -348,7 +359,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
     dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin,
     refreshVision, paintFog, paintAllFog, serverCorrection,
-    addTerrainLayer, patchLayer, removeLayer, reorderLayer, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer]);
+    addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
+  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer]);
 }
 export type SceneState = ReturnType<typeof useScene>;

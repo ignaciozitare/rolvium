@@ -919,7 +919,8 @@
         "token": "Ficha",
         "drawing": "Trazo",
         "light": "Luz"
-      }
+      },
+      "drag": "Arrastra para cambiar el orden"
     },
     "lights": {
       "title": "Luz de ambiente",
@@ -952,7 +953,8 @@
       "delete": "Borrar la luz",
       "note": "Se agarra por la cabecera y se mueve donde no estorbe; la X lo cierra sin borrar la luz. La luz alumbra de verdad: se recorta contra los muros y no pasa al otro lado. El tipo manda el ritmo del parpadeo — la antorcha tiembla, la hoguera respira, la bombilla da golpes secos.",
       "close": "Cerrar el editor",
-      "move": "Mover el editor"
+      "move": "Mover el editor",
+      "rotation": "Hacia dónde apunta"
     },
     "mask": {
       "label": "Pincel · transparencia",
