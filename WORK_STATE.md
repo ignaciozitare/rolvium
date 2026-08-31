@@ -97,6 +97,29 @@ cada una ya recortada contra muros y línea de vista, se mandan todas juntas con
 navegador va pasando de una a otra con reloj compartido. Nada de recalcular por fotograma.
 Datos: dos columnas aditivas en `maps_lights` (gira sí/no, periodo).
 
+### 🟡 FALSA ALARMA RESUELTA: «la luz traspasa la pared» (2026-08-31, al final de la sesión)
+Mandó una captura con la luz atravesando un muro: «esto estaba solucionado». **§ 7.2 NO está roto.**
+Lo que pasaba: **se le habían caído los dos servidores** (`:3001` y `:5173` sin un solo proceso vivo).
+El recorte de la luz lo calcula el SERVIDOR (`apps/api/src/application/maps/sceneVision.ts`), y cuando la
+respuesta no llega el navegador **pinta las luces enteras** — está puesto así a propósito («campo AUSENTE
+= todavía no hay respuesta → se pintan enteros»). De ahí también el «No se pudo guardar el cambio en el
+mapa» de su barra de abajo. Se le levantaron los dos (200 y 200) y se le dijo que recargara.
+
+Segundo hallazgo, ese sí real: **la escena que estaba mirando (campaña `254e5415-…`, la «test» de hoy)
+tiene SÓLO 3 muros**, los tres pegados en un trozo pequeño de abajo en el centro (x 648–972, y 675–837).
+Todo el torreón que se ve es DIBUJO DE LA FOTO, sin pared detrás — así que ahí la luz va a seguir
+atravesándolo todo por muy bien que se calcule. Y las tres antorchas están **a 2, 9 y 15 píxeles** de ese
+único muro horizontal: una luz encima de una pared siempre parece que la traspasa. Se le mandó a probar
+en la campaña recuperada `8f506705-…`, que tiene el escenario hecho a propósito (dos salas + puerta).
+
+### 🔧 DEUDA NUEVA DE ESE SUSTO (anotada, NO tocada)
+1. **Un servidor muerto se ve IDÉNTICO a la función rota.** El fallback de pintar la luz entera cuando no
+   hay respuesta le hizo creer que se había roto lo de las paredes. Debería avisar de que no hay respuesta
+   —o no pintar resplandor— en vez de mentir en silencio. Ojo al cambiarlo: el comentario de `litField`
+   explica por qué «lista vacía» y «campo ausente» tienen que seguir siendo casos DISTINTOS.
+2. **La barra de estado dice «sin imagen» teniendo foto puesta.** La lee de `scene.bg_image_url`, pero
+   desde la rebanada 7 la imagen vive en la CAPA de terreno. Cosmético pero despista.
+
 ### 🚫 Deuda anotada, NO tocada
 - El **avatar recuperado está roto** (70 bytes): `avatars/9e090109-…/avatar.png`. No se ha metido en el
   seed a propósito. Y hay un fondo suelto de una tercera campaña (`199e9205-…`) que tampoco se ha usado.
@@ -112,7 +135,8 @@ Datos: dos columnas aditivas en `maps_lights` (gira sí/no, periodo).
 > **los tooltips de las herramientas** (el diseño ya existe, `PL/Tooltip herramienta`), que **apruebe la
 > galería de piezas** (los PNG están en `~/Desktop/Rolvium-disenos-galeria`, enséñaselos desde ahí), y
 > **especificar las habitaciones rápidas tipo Dungeon Scrawl** — sin copiarles la interfaz, paredes
-> opacas, la foto de fondo como textura de suelo. El cono que gira sigue en la cola detrás de eso.
+> opacas, la foto de fondo como textura de suelo. El cono que gira sigue en la cola detrás de eso. Y hay
+> deuda nueva anotada del susto de «la luz traspasa la pared» (era que se le cayeron los servidores).
 
 ---
 
