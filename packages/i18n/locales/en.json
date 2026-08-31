@@ -912,6 +912,8 @@
       "deleteConfirm": "Delete the “{{name}}” layer? Its drawings and lights go with it; tokens return to their usual layer.",
       "addTerrain": "+ Terrain layer",
       "heavy": "{{n}} terrain layers · the scene is getting heavy",
+      "dragOnlyTerrain": "Only terrain layers can be reordered: the rest have a fixed place.",
+      "dragNeedsTwo": "You need more than one terrain layer before you can reorder them.",
       "empty": "This scene has no layers yet.",
       "newName": "Name of the terrain layer",
       "sendTo": "Send to layer",

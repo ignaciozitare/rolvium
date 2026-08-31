@@ -87,12 +87,41 @@ partió en `bgPanel` y `placePcPanel`.
   **Verificado por mutación**: con el orden viejo el test FALLA; restaurado, verde. Los otros asserts del
   fichero sólo miraban que los botones ESTUVIERAN, no en qué orden.
 
+### ✅ «LA APP SE CALLA AL ARRASTRAR UNA CAPA» — ARREGLADO, Y ERAN DOS FALLOS, NO UNO
+
+**A · El silencio del gesto** (lo que él vio). El panel ya impedía casi todo (`draggable` sólo en el terreno,
+botones desactivados en los extremos), así que el mudo real es soltar una capa de terreno sobre una fila FIJA:
+`onDragOver` no hace `preventDefault()` ahí, el navegador rebota la capa y `drop` no se dispara nunca.
+→ Mientras arrastras, el panel DICE el motivo, distinguiendo los dos casos (`dragNeedsTwo` si hay menos de dos
+capas de terreno, si no `dragOnlyTerrain`). Reutiliza `.mp-layers-warn`, que YA existía en ese panel: cero CSS
+nuevo. **No pasó por el `.pen`** por eso — reutiliza, no inventa. Él lo sabe; queda pendiente dibujarlo si quiere.
+
+**B · EL EMPATE — el fallo de verdad, lo encontró el review.** Si dos capas de terreno acaban con el MISMO
+`sort_order`, repartir los números que ya existen escribe lo mismo que había:
+- arrastrar → `moves.length === 0` → `return` mudo en `useScene`;
+- **subir/bajar → PEOR: `moves.length` es 2, se escribe en la BD, `run()` da el guardado por bueno y no se
+  mueve nada.** Auditar el `return` nunca lo habría encontrado.
+→ `reorderTerrain` y `reorderTerrainTo` renumeran la franja de 0 en adelante cuando detectan repetidos
+(`tiedSortOrder` + `renumber`). **Sin empate el camino de siempre NO se toca** — hay test que lo fija.
+
+> 🔴 **LA CAUSA DE RAÍZ SIGUE VIVA Y ÉL LO SABE.** `sort_order` no tiene índice único para el terreno
+> (`20260831120000_maps_layers_lights.sql:58`, el índice único excluye `kind = 'terrain'` a propósito) y el
+> número lo calcula el CLIENTE en `nextTerrainSortOrder` (`useScene.ts:291`, `max + 1`): **dos pestañas del
+> mismo director piden a la vez y se llevan el mismo número.** La app ahora se recupera sola en cuanto
+> reordenas, pero cerrarlo del todo **pide una migración**, y NO se hizo — sin permiso explícito.
+
+**Arreglados además tres defectos del propio aviso, encontrados por el review:** se quedaba clavado si otro
+director borraba por realtime la capa arrastrada (`dragend` llega a un nodo desprendido y React no lo enruta) ·
+dos cajas doradas apiladas a partir de 3 capas (`terrainOverweight` ya es cierto) · la copia nombraba «Notas»
+donde la fila dice «Notas del director» (en inglés peor), así que se quitó la lista de nombres.
+
+**Los 6 tests nuevos, verificados POR MUTACIÓN uno a uno** — quitando cada arreglo, falla su test.
+
 ### 🔴 LO PRIMERO AL RETOMAR — lo que sigue vivo
 - **PREGUNTA SIN CONTESTAR**: al dibujo de la barra (`SNlGp`) le faltan **dos botones que el código SÍ tiene**:
   **Texto** y **Pincel de transparencia**. Hoy el código tiene 8 botones de director y el dibujo 7.
   ¿Se añaden al dibujo, o se quita alguno del código?
-- **PENDIENTE DE ARREGLAR, ya autorizado por él («arréglalo»)**: la app **se calla** cuando arrastras una capa
-  y no se puede mover. Sin empezar.
+- **DECISIÓN PENDIENTE**: ¿migración para el índice único de `sort_order` del terreno? (ver 🔴 de arriba)
 - Decidir el **punto 3 (cosmético, «1.0 casillas»)** y **mirar la barra en pantalla (punto 4)**.
 - Las 5 pantallas de la galería **siguen sin aprobar** por él.
 

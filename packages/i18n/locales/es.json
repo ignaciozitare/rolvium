@@ -912,6 +912,8 @@
       "deleteConfirm": "¿Borrar la capa «{{name}}»? Se van sus dibujos y sus luces; las fichas vuelven a su capa de siempre.",
       "addTerrain": "+ Capa de terreno",
       "heavy": "{{n}} capas de terreno · la escena empieza a pesar",
+      "dragOnlyTerrain": "Sólo se reordenan las capas de terreno: las demás tienen su sitio fijo.",
+      "dragNeedsTwo": "Hace falta más de una capa de terreno para poder reordenarlas.",
       "empty": "Esta escena aún no tiene capas.",
       "newName": "Nombre de la capa de terreno",
       "sendTo": "Mandar a la capa",

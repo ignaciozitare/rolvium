@@ -358,6 +358,46 @@ describe('reorderTerrainTo — soltar una capa encima de otra', () => {
 });
 
 /**
+ * EL EMPATE. `sort_order` no tiene índice único para el terreno y el número lo calcula el navegador
+ * (`nextTerrainSortOrder` = max + 1), así que dos pestañas del mismo director se llevan el MISMO número.
+ * Con un empate, repartir los números que ya existen escribe lo mismo que había: el arrastre se quedaba mudo
+ * y los botones de subir y bajar se quedaban muertos DANDO EL GUARDADO POR BUENO, que es lo peor de los dos.
+ * La salida es renumerar la franja de 0 en adelante.
+ */
+describe('capas de terreno con el mismo número de orden (dos pestañas a la vez)', () => {
+  // Musgo y Charcos empatados a 1. En orden de pintado: Suelo(0) · Musgo(1) · Charcos(1).
+  const EMPATE = [LAYER_OBJECTS, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS, { ...LAYER_PUDDLES, sortOrder: 1 }];
+  const aplicar = (moves: { id: string; sortOrder: number }[]): string[] => {
+    const next = EMPATE.map(l => { const m = moves.find(v => v.id === l.id); return m ? { ...l, sortOrder: m.sortOrder } : l; });
+    return terrainLayers(next).map(l => l.name);
+  };
+
+  it('arrastrar SÍ mueve la capa, en vez de quedarse mudo', () => {
+    const moves = reorderTerrainTo(EMPATE, LAYER_FLOOR.id, LAYER_PUDDLES.id);
+    expect(moves.length).toBeGreaterThan(0);
+    expect(aplicar(moves)).toEqual(['Musgo', 'Charcos', 'Suelo']);
+  });
+
+  it('subir SÍ mueve la capa, en vez de escribir lo mismo y dar el guardado por bueno', () => {
+    const moves = reorderTerrain(EMPATE, LAYER_MOSS.id, 'up');
+    expect(moves.length).toBeGreaterThan(0);
+    expect(aplicar(moves)).toEqual(['Suelo', 'Charcos', 'Musgo']);
+  });
+
+  it('al deshacer el empate los números quedan sin repetir, así que no vuelve a pasar', () => {
+    const moves = reorderTerrain(EMPATE, LAYER_MOSS.id, 'up');
+    const next = EMPATE.map(l => { const m = moves.find(v => v.id === l.id); return m ? { ...l, sortOrder: m.sortOrder } : l; });
+    const orders = terrainLayers(next).map(l => l.sortOrder);
+    expect(new Set(orders).size).toBe(orders.length);
+  });
+
+  /** Sin empate no cambia nada: se siguen repartiendo los huecos que ya había, sin renumerar de más. */
+  it('sin empate el camino de siempre no se toca', () => {
+    expect(reorderTerrain(LAYERS_ALL, 'ly-moss', 'up')).toEqual([{ id: 'ly-moss', sortOrder: 2 }, { id: 'ly-pud', sortOrder: 1 }]);
+  });
+});
+
+/**
  * La DUREZA del pincel de transparencia. Existe porque antes el borde estaba escrito a fuego en
  * `useMaskPainter` (`0 → a`, `0.6 → 0.75a`, `1 → 0`) y no había forma de cambiarlo: el dueño pidió elegirlo
  * «como en Inkarnate» y avisó de que no lo confundiéramos con la fuerza — «la dureza es por los BORDES».

@@ -80,6 +80,27 @@ export const nextTerrainSortOrder = (layers: readonly Layer[]): number =>
  * Subir o bajar una capa de terreno: devuelve SÓLO las filas que cambian de orden, para no reescribir la
  * lista entera en cada clic. Vacío si ya está en el extremo.
  */
+/**
+ * ¿Hay dos capas de terreno con el MISMO número de orden? Entonces repartir los números que ya existen no
+ * arregla nada: intercambiar dos números iguales escribe lo mismo y la capa no se mueve — el arrastre queda
+ * mudo y los botones de subir y bajar se quedan muertos DANDO EL GUARDADO POR BUENO, que es peor.
+ *
+ * El empate es posible de verdad, no teórico: `sort_order` no tiene índice único para el terreno (la
+ * migración lo excluye a propósito) y el número lo calcula el navegador con `nextTerrainSortOrder` (max + 1),
+ * así que dos pestañas del mismo director piden a la vez y se llevan el mismo.
+ */
+const tiedSortOrder = (list: readonly Layer[]): boolean =>
+  new Set(list.map(l => l.sortOrder)).size !== list.length;
+
+/**
+ * Renumera la franja de terreno de 0 en adelante en el orden pedido. Es la única forma de deshacer un empate
+ * sin tocar la base de datos. Sigue escribiendo SÓLO las filas que cambian de número.
+ */
+const renumber = (before: readonly Layer[], after: readonly Layer[]): { id: string; sortOrder: number }[] =>
+  after
+    .map((l, i) => ({ id: l.id, sortOrder: i }))
+    .filter(m => before.find(l => l.id === m.id)!.sortOrder !== m.sortOrder);
+
 export function reorderTerrain(layers: readonly Layer[], id: string, dir: 'up' | 'down'): { id: string; sortOrder: number }[] {
   const list = terrainLayers(layers);
   const i = list.findIndex(l => l.id === id);
@@ -88,7 +109,10 @@ export function reorderTerrain(layers: readonly Layer[], id: string, dir: 'up' |
   const j = dir === 'up' ? i + 1 : i - 1;
   if (j < 0 || j >= list.length) return [];
   const a = list[i]!, b = list[j]!;
-  return [{ id: a.id, sortOrder: b.sortOrder }, { id: b.id, sortOrder: a.sortOrder }];
+  if (!tiedSortOrder(list)) return [{ id: a.id, sortOrder: b.sortOrder }, { id: b.id, sortOrder: a.sortOrder }];
+  const next = [...list];
+  next[i] = b; next[j] = a;
+  return renumber(list, next);
 }
 
 /**
@@ -106,6 +130,8 @@ export function reorderTerrainTo(layers: readonly Layer[], id: string, targetId:
   if (from < 0 || to < 0 || from === to) return [];
   const next = [...list];
   next.splice(to, 0, ...next.splice(from, 1));
+  // Con empates, repartir los huecos que ya existían deja la capa donde estaba y el gesto no hace nada.
+  if (tiedSortOrder(list)) return renumber(list, next);
   const slots = list.map(l => l.sortOrder).sort((a, b) => a - b);
   return next
     .map((l, i) => ({ id: l.id, sortOrder: slots[i]! }))

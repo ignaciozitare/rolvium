@@ -44,6 +44,12 @@ export function LayersPanel({ layers, activeId, onActivate, onToggleVisible, onT
   const [overId, setOverId] = useState<string | null>(null);
   const endDrag = (): void => { setDragId(null); setOverId(null); };
   const rows = panelOrder(layers);
+  /**
+   * Que la fila arrastrada SIGA existiendo es parte de estar arrastrando: si otro director borra esa capa a
+   * media faena, su `dragend` llega a un nodo ya desprendido, React no lo enruta y `dragId` se quedaría
+   * puesto para siempre — el aviso no se iría nunca. Es el fallo inverso al que arregla.
+   */
+  const dragging = dragId !== null && layers.some(l => l.id === dragId);
   const terrain = terrainLayers(layers);
   const active = layers.find(l => l.id === activeId) ?? null;
   const nameOf = (l: Layer): string => l.name || (l.kind === 'terrain' ? t('maps.layers.untitled', { n: String(terrain.findIndex(x => x.id === l.id) + 1) }) : t(`maps.layers.kind.${KIND_KEY[l.kind]}`));
@@ -129,8 +135,25 @@ export function LayersPanel({ layers, activeId, onActivate, onToggleVisible, onT
 
       <button type="button" className="tb-btn tb-btn-xs mp-layers-add" onClick={onAddTerrain}>{t('maps.layers.addTerrain')}</button>
 
-      {/* AVISA, no bloquea: «sin límite» fue elección del dueño a sabiendas de que muchas capas pesan. */}
-      {terrainOverweight(layers) && (
+      {/*
+        La app NO se calla cuando el gesto no puede funcionar (petición del dueño). Mientras arrastras, el
+        panel DICE por qué las otras filas no te la aceptan: el navegador se limita a rebotar la capa —no
+        dispara `drop` sobre una fila fija— y sin esto no hay forma de saber si es una avería o una regla.
+        Se distinguen los dos motivos: no hay sitio donde soltarla, o el sitio no admite terreno.
+      */}
+      {dragging && (
+        <p className="mp-layers-warn" role="status">
+          <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">info</span>
+          {t(terrain.length < 2 ? 'maps.layers.dragNeedsTwo' : 'maps.layers.dragOnlyTerrain')}
+        </p>
+      )}
+
+      {/*
+        AVISA, no bloquea: «sin límite» fue elección del dueño a sabiendas de que muchas capas pesan.
+        Se calla mientras arrastras: a partir de tres capas los dos avisos son ciertos a la vez y se apilaban
+        dos cajas doradas iguales en un panel estrecho. Manda el que responde al gesto que estás haciendo.
+      */}
+      {!dragging && terrainOverweight(layers) && (
         <p className="mp-layers-warn">
           <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">warning</span>
           {t('maps.layers.heavy', { n: String(terrain.length) })}

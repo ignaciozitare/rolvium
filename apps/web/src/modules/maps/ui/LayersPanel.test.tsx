@@ -184,6 +184,53 @@ describe('<LayersPanel> · arrastrar el orden', () => {
     expect(cb.onReorderTo).not.toHaveBeenCalled();
   });
 
+  /**
+   * PIN: LA APP NO SE CALLA. Petición literal del dueño — arrastrabas una capa sobre una fila fija, el
+   * navegador la rebotaba (nunca dispara `drop` ahí) y no había forma de saber si era una avería o una regla.
+   * El aviso vive sólo mientras dura el gesto: fuera de él sería ruido permanente en un panel estrecho.
+   */
+  it('mientras arrastras DICE por qué las filas fijas no la aceptan, y al soltar se calla', () => {
+    mount();
+    const data = { effectAllowed: '', dropEffect: '', setData: vi.fn(), getData: () => LAYER_PUDDLES.id };
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    fireEvent.dragStart(row(LAYER_PUDDLES.id), { dataTransfer: data });
+    expect(screen.getByRole('status')).toHaveTextContent('Sólo se reordenan las capas de terreno');
+    fireEvent.dragEnd(row(LAYER_PUDDLES.id), { dataTransfer: data });
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  /** Los dos motivos son distintos y el aviso no los mezcla: aquí no hay sitio, no es que la fila no valga. */
+  it('con una sola capa de terreno dice que no hay dónde soltarla', () => {
+    mount({ layers: [LAYER_NOTES, LAYER_OBJECTS, LAYER_FLOOR] });
+    const data = { effectAllowed: '', dropEffect: '', setData: vi.fn(), getData: () => LAYER_FLOOR.id };
+    fireEvent.dragStart(row(LAYER_FLOOR.id), { dataTransfer: data });
+    expect(screen.getByRole('status')).toHaveTextContent('Hace falta más de una capa de terreno');
+  });
+
+  /**
+   * El fallo INVERSO al que arregla el aviso: si otro director borra por realtime la capa que estás
+   * arrastrando, su `dragend` llega a un nodo ya desprendido, React no lo enruta y el aviso se quedaría
+   * clavado para siempre. Que la fila siga existiendo es parte de estar arrastrando.
+   */
+  it('si la capa arrastrada desaparece a media faena, el aviso se va solo', () => {
+    const cb = { onActivate: vi.fn(), onToggleVisible: vi.fn(), onToggleLocked: vi.fn(), onReorder: vi.fn(), onReorderTo: vi.fn(), onAddTerrain: vi.fn(), onRemove: vi.fn(), onCollapse: vi.fn() };
+    const { rerender } = renderWithProviders(<LayersPanel layers={LAYERS_ALL} activeId="ly-moss" {...cb} />);
+    fireEvent.dragStart(row(LAYER_PUDDLES.id), { dataTransfer: { effectAllowed: '', dropEffect: '', setData: vi.fn(), getData: () => LAYER_PUDDLES.id } });
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    rerender(<LayersPanel layers={LAYERS_ALL.filter(l => l.id !== LAYER_PUDDLES.id)} activeId="ly-moss" {...cb} />);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  /** Dos cajas doradas iguales apiladas en un panel estrecho no ayudan: mientras arrastras manda el gesto. */
+  it('el aviso de «la escena pesa» se calla mientras arrastras', () => {
+    mount();
+    expect(screen.getByText(/la escena empieza a pesar/)).toBeInTheDocument();
+    fireEvent.dragStart(row(LAYER_PUDDLES.id), { dataTransfer: { effectAllowed: '', dropEffect: '', setData: vi.fn(), getData: () => LAYER_PUDDLES.id } });
+    expect(screen.queryByText(/la escena empieza a pesar/)).not.toBeInTheDocument();
+    fireEvent.dragEnd(row(LAYER_PUDDLES.id), { dataTransfer: { effectAllowed: '', dropEffect: '', setData: vi.fn(), getData: () => LAYER_PUDDLES.id } });
+    expect(screen.getByText(/la escena empieza a pesar/)).toBeInTheDocument();
+  });
+
   it('y los botones de subir y bajar siguen ahí: arrastrar no es la única forma', () => {
     const cb = mount({ activeId: LAYER_MOSS.id });
     expect(screen.getByRole('button', { name: 'Subir la capa' })).toBeInTheDocument();
