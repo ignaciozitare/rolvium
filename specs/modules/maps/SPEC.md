@@ -18,9 +18,16 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Rebanada 5 — pendiente**: movimiento máximo por turno, configurable **por sistema** (toca el puerto `GameSystem`).
   Las dos deudas que la rebanada 3 se dejó (la puerta que parte el muro y el disco de abrir al pasar el ratón) se
   construyeron el 2026-08-19, antes de empezarla.
-- **Rebanada 6 — ESTE SPEC** (§ «Rebanada 6»): **galería de piezas** (muebles, árboles…) para construir mapas
-  dentro de la app. Confirmada por el dueño el 2026-08-31, **después** de la 7 y **antes** de la 5: sin capas no
-  había dónde meter las piezas, y ahora que existen es lo que falta para montar un mapa sin salir de Rolvium.
+- **Rebanada 6 — A MEDIAS, SIN PANTALLA** (§ «Rebanada 6»): **galería de piezas** (muebles, árboles…) para
+  construir mapas dentro de la app. Confirmada por el dueño el 2026-08-31, **después** de la 7 y **antes** de la
+  5: sin capas no había dónde meter las piezas, y ahora que existen es lo que falta para montar un mapa sin
+  salir de Rolvium.
+  > ⚠ **Está construida de abajo arriba y le falta TODA la interfaz.** Ya existen y están en producción: el
+  > esquema (`maps_props`, `maps_scene_props`), `propRules.ts` con sus tests, los 8 métodos del puerto
+  > `MapsPort` y su implementación entera en `SupabaseMapsRepo` con realtime. **No existe ni la galería, ni el
+  > botón que la abre, ni forma de plantar una pieza.** Es inerte y no molesta —las tablas están vacías y nada
+  > puede llegar a ellas—, pero que nadie dé la rebanada por hecha. El botón `Piezas` está dibujado en
+  > `rolvium.pen` y **deliberadamente NO está en el código**: un botón que no abre nada es peor que ninguno.
 - **Rebanada 7 — A MEDIAS** (§ «Rebanada 7»). Confirmada por el dueño el 2026-08-31, y va **ANTES que la 5 y
   la 6** (decisión suya del mismo día): es donde pasa la partida y es lo que menos se ha tocado desde que lo
   pidió (2026-08-20).

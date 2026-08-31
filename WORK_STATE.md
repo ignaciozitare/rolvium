@@ -27,7 +27,7 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 2. **El pin de alcance está escrito**: test `el tamaño de transparencia va aparte del de la niebla` dentro del
    describe `<SceneTab> capas (rebanada 7)` de `SceneTab.test.tsx`.
 
-**Verde**: typecheck limpio · 891 tests (61 en `SceneTab.test.tsx`) · audit 0 hard, 13 warn preexistentes · build web + api.
+**Verde**: typecheck limpio · 901 tests (61 en `SceneTab.test.tsx`) · audit 0 hard, 13 warn preexistentes · build web + api.
 
 **Lo que el review de esta ronda añadió y hay que saber:**
 - Probó el pin con **mutaciones reales**. La fusión ingenua y la «astuta» ya fallaban, pero la **fusión de una
@@ -149,10 +149,32 @@ Ahora el dibujo = el código + `Piezas` (que sigue fuera del código hasta que e
 ### ✅ «1.0 casillas» → «1 casilla»
 Clave nueva `maps.mask.sizeCell` en es y en; en el uno exacto no se enseña ni el decimal ni el plural.
 
+### ✅ PRODUCCIÓN AL DÍA — 2026-09-01 (madrugada). Orden suya: «sube a prod, no mates los datos de prod»
+
+**La base de producción (`scfspsiemikfcnqteonq`) iba CUATRO migraciones por detrás, no una.** Le faltaba el
+esquema entero de capas y luces. Aplicadas en orden: `maps_layers_lights` · `maps_lights_cast_shadow_on` ·
+`maps_props` · `maps_layers_sort_order_en_la_base`.
+
+**Foto de datos antes y después — cero pérdidas:** usuarios 3=3 · campañas 1=1 · personajes 2=2 ·
+auditoría de fichas 160=160 · escenas 1=1 · fichas 5=5 · paredes 20=20 · imágenes 1=1 · tiradas 39=39.
+La escena que ya existía recibió sus 4 capas, y su `bg_image_url` pasó a ser la capa de terreno de más abajo
+(la foto NO se borró de `maps_scenes`: el código viejo la seguía leyendo).
+`get_advisors` de seguridad: **cero ERROR/CRITICAL**. 0 tablas sin RLS · 0 políticas `TO anon`.
+
+> 🔑 **POR QUÉ EL CÓDIGO VIEJO NO SE ROMPIÓ con el esquema nuevo** (lo confirmó QA, y su razón es mejor que la
+> mía): **`SupabaseMapsRepo` nunca usa `select('*')`** — todas sus consultas llevan lista de columnas fijada
+> (`SCENE_COLS`, `TOKEN_COLS`, `WALL_COLS`). Producción no es que tolere `layer_id`: **es que no lo pide.**
+> Y además **todo cambio de RLS de esta rama ESTRECHA, nunca abre**: cada política reescrita sólo añade un
+> `AND sends_to_players(layer_id)` a la rama del jugador, y como `sends_to_players(NULL)` es `TRUE`, sobre los
+> datos de hoy es literalmente un no-op. Añadir un `AND` no puede abrir un agujero.
+
 ### 🔴 LO PRIMERO AL RETOMAR — lo que sigue vivo
-- **GUARDAR el `.pen` con Cmd+S**: los dos botones nuevos de la barra no están en disco.
-- **Desplegar la migración a la nube** cuando él lo diga (hoy sólo está en local).
 - Las 5 pantallas de la galería **siguen sin aprobar** por él.
+- **Rebanada 6 está a medias y sin pantalla** (esquema + puerto + repo, cero interfaz). Ya está marcado así en
+  `specs/modules/maps/SPEC.md`, que lo daba por hecho.
+- **Deuda de privacidad preexistente y consentida** (spec § 7.4): las fichas fuera de la línea de visión de un
+  jugador **siguen viajando enteras** a su navegador —nombre, retrato, estado— y sólo las tapa la niebla al
+  pintar. Viene de la rebanada 1, esta rama no la empeoró, y él la aceptó el 2026-08-31.
 - Decidir el **punto 3 (cosmético, «1.0 casillas»)** y **mirar la barra en pantalla (punto 4)**.
 - Las 5 pantallas de la galería **siguen sin aprobar** por él.
 
