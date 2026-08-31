@@ -1,5 +1,5 @@
 import type { FogCell } from '@rolvium/core';
-import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, TableRole, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
+import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, ScenePropRecord, TableRole, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
 
 export interface FakeMapsSeed {
   scene?: Partial<SceneRecord>;
@@ -7,6 +7,7 @@ export interface FakeMapsSeed {
   tokens?: TokenRecord[];
   lights?: LightRecord[];
   layers?: LayerRecord[];
+  props?: ScenePropRecord[];
   roles?: Record<string, TableRole>;
   fog?: Record<string, FogCell[]>;
 }
@@ -21,6 +22,7 @@ export function fakeMapsRepo(seed: FakeMapsSeed = {}): IMapsRepository & { fog: 
   const tokens = seed.tokens ?? [];
   const lights = seed.lights ?? [];
   const layers = seed.layers ?? [];
+  const props = seed.props ?? [];
   const roles = seed.roles ?? {};
   const fog: Record<string, FogCell[]> = { ...seed.fog };
   return {
@@ -30,6 +32,7 @@ export function fakeMapsRepo(seed: FakeMapsSeed = {}): IMapsRepository & { fog: 
     listTokens: async () => tokens,
     listLights: async () => lights,
     listLayers: async () => layers,
+    listSightBlockingProps: async () => props.filter(p => p.blocksSight),
     roleOf: async (cid, uid) => (cid === scene.campaignId ? roles[uid] ?? null : null),
     listPlayerIds: async () => Object.entries(roles).filter(([, r]) => r === 'player').map(([id]) => id),
     getExplored: async (_s, uid) => fog[uid] ?? [],

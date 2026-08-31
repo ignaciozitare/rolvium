@@ -155,8 +155,9 @@ export type LightShape = 'cone' | 'radius' | 'square';
 export type LightKind = 'torch' | 'bulb' | 'fire' | 'lantern' | 'flashlight' | 'moonlight' | 'magic';
 
 /**
- * Una luz de ambiente. HOY ES PINTURA: no revela niebla, no cambia lo que ve nadie y no entra en el cálculo
- * de visión. Sí se ANIMA cuando `flicker` está puesto — animar es pintar (dueño, 2026-08-31).
+ * Una luz de ambiente. Desde § 7.2 ALUMBRA DE VERDAD: se recorta contra los muros, entra en el cálculo de
+ * visión (que hace el servidor) y lo que alumbra se recuerda como explorado. Y se ANIMA cuando `flicker`
+ * está puesto — animar es pintar (dueño, 2026-08-31).
  */
 export interface Light {
   id: string;
@@ -187,3 +188,78 @@ export interface Light {
 }
 export type NewLight = Omit<Light, 'id' | 'createdAt' | 'updatedAt'>;
 export type LightPatch = Partial<Omit<Light, 'id' | 'sceneId' | 'campaignId' | 'createdAt' | 'updatedAt'>>;
+
+// ── Rebanada 6 · galería de piezas ──────────────────────────────────────────
+
+/** Las seis categorías las trae la app: cerradas, no etiquetas libres (elección del dueño, 2026-08-31). */
+export type PropCategory = 'furniture' | 'vegetation' | 'floors' | 'doors' | 'markers' | 'misc';
+/** La forma que ESTORBA de una pieza. Simple a propósito: la silueta real de un PNG es cara y da errores raros. */
+export type BlockShape = 'rect' | 'circle';
+
+/**
+ * Una pieza de la BIBLIOTECA: existe para usarse, y no está en ningún mapa. Guarda además lo que la pieza
+ * RECUERDA — la última escala con la que se usó (§ 6.4) y con qué estorbo nace una copia suya (§ 6.5).
+ */
+export interface Prop {
+  id: string;
+  /** `null` = pieza DEL CATÁLOGO DE LA APP; con valor = pieza de esa campaña (§ 6.1). */
+  campaignId: string | null;
+  name: string;
+  category: PropCategory;
+  imageUrl: string;
+  /** Tamaño del fichero ya subido, en px: con él y la escala sale la huella sin esperar a que cargue. */
+  naturalWidth: number;
+  naturalHeight: number;
+  /**
+   * LA ESCALA QUE SE RECUERDA. Un solo número y no un ancho y un alto: la escala mantiene la proporción, así
+   * que redimensionar no puede deformar la pieza. Se reescribe tanto al plantar con otro tamaño como al
+   * redimensionar una ya plantada — los dos caminos por los que se «pone» una escala.
+   */
+  defaultScale: number;
+  /** Con qué estorbo NACE una copia. Se copian al plantar; a partir de ahí manda la plantada. */
+  defaultBlocksSight: boolean;
+  defaultBlocksMove: boolean;
+  defaultBlockShape: BlockShape;
+  uploadedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export type NewProp = Omit<Prop, 'id' | 'createdAt' | 'updatedAt'>;
+export type PropPatch = Partial<Omit<Prop, 'id' | 'campaignId' | 'createdAt' | 'updatedAt'>>;
+
+/**
+ * Una pieza YA PLANTADA en un mapa. Se lleva su propia copia de la foto y del nombre a propósito: es lo que
+ * hace cumplir la regla «borrar una pieza de la biblioteca no borra las ya puestas en los mapas», porque
+ * `propId` puede quedarse en `null` sin que esto se rompa.
+ */
+export interface SceneProp {
+  id: string;
+  sceneId: string;
+  campaignId: string;
+  /** Vive en una capa como cualquier objeto. `null` = la capa natural (objetos). */
+  layerId: string | null;
+  /** De qué pieza de la biblioteca salió. `null` = ya no está en la biblioteca; esto sigue entero. */
+  propId: string | null;
+  imageUrl: string;
+  name: string;
+  /** Centro de la pieza, en px de escena. */
+  x: number;
+  y: number;
+  /** Huella en px de escena: sale del tamaño natural por la escala. */
+  width: number;
+  height: number;
+  /** Grados, como el resto del lienzo. */
+  rotation: number;
+  blocksSight: boolean;
+  blocksMove: boolean;
+  blockShape: BlockShape;
+  /** La forma que estorba, en px de escena y relativa al CENTRO. En `circle`, `blockW` es el DIÁMETRO. */
+  blockW: number;
+  blockH: number;
+  blockDx: number;
+  blockDy: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export type NewSceneProp = Omit<SceneProp, 'id' | 'createdAt' | 'updatedAt'>;
+export type ScenePropPatch = Partial<Omit<SceneProp, 'id' | 'sceneId' | 'campaignId' | 'createdAt' | 'updatedAt'>>;

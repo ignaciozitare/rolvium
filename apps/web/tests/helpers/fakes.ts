@@ -311,7 +311,7 @@ export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWat
 // ── maps ─────────────────────────────────────────────────────────────────────
 import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
 import type { SceneVision, VisionPort } from '@/modules/maps/domain/ports/VisionPort';
-import type { Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewToken, NewWall, RowChange, Scene, ScenePatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
+import type { Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewSceneProp, NewToken, NewWall, Prop, PropPatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
 
 export const SCENE_WAREHOUSE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Almacén de Queens', width: 1080, height: 675, bgColor: '#4a4a3e', bgImageUrl: null,
@@ -361,7 +361,7 @@ export const LIGHT_SECRET: Light = { ...LIGHT_BASE, id: 'li-secret', layerId: LA
  * In-memory MapsPort. Mutations are recorded; `emit(sceneId, …)` simulates realtime rows/events to subscribers;
  * `broadcasts` collects what I sent on the scene channel.
  */
-export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[] } = {}) {
+export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[]; props?: Prop[]; sceneProps?: SceneProp[] } = {}) {
   const scenes = (seed.scenes ?? [SCENE_WAREHOUSE]).map(s => ({ ...s }));
   const tokens = (seed.tokens ?? []).map(t => ({ ...t }));
   const walls = (seed.walls ?? []).map(w => ({ ...w }));
@@ -369,6 +369,8 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const images = (seed.images ?? []).map(i => ({ ...i }));
   const layers = (seed.layers ?? []).map(l => ({ ...l }));
   const lights = (seed.lights ?? []).map(l => ({ ...l }));
+  const props = (seed.props ?? []).map(p => ({ ...p }));
+  const sceneProps = (seed.sceneProps ?? []).map(p => ({ ...p }));
   const subs = new Map<string, Set<MapsLiveHandlers>>();
   const broadcasts: { sceneId: string; event: MapsLiveEvent }[] = [];
   const tokenUpdates: { id: string; patch: TokenPatch }[] = [];
@@ -382,14 +384,17 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const uploads: { campaignId: string; name: string }[] = [];
   const layerUpdates: { id: string; patch: LayerPatch }[] = [];
   const lightUpdates: { id: string; patch: LightPatch }[] = [];
+  const propUpdates: { id: string; patch: PropPatch }[] = [];
+  const scenePropUpdates: { id: string; patch: ScenePropPatch }[] = [];
+  const propUploads: { name: string; bytes: number }[] = [];
   const masksSaved: { layerId: string; bytes: number }[] = [];
   const masksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, masksSaved, masksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
-    emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; event?: MapsLiveEvent }) => {
-      subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.event) h.onEvent?.(what.event); });
+    emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
+      subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
     },
     listScenes: async (cid: string) => scenes.filter(s => s.campaignId === cid),
     getScene: async (id: string) => scenes.find(s => s.id === id) ?? null,
@@ -423,6 +428,8 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
       // Espeja el ON DELETE de la migración: los dibujos y las luces se van; las FICHAS vuelven a su capa natural.
       for (let k = drawings.length - 1; k >= 0; k--) if (drawings[k]!.layerId === id) drawings.splice(k, 1);
       for (let k = lights.length - 1; k >= 0; k--) if (lights[k]!.layerId === id) lights.splice(k, 1);
+      // Lo plantado en la capa se va con ella, como los dibujos y las luces (CASCADE en la migración).
+      for (let k = sceneProps.length - 1; k >= 0; k--) if (sceneProps[k]!.layerId === id) sceneProps.splice(k, 1);
       for (const t of tokens) if (t.layerId === id) t.layerId = null;
     },
     saveMask: async (layer: Pick<Layer, 'id' | 'campaignId' | 'maskVersion'>, png: Blob) => {
@@ -437,6 +444,25 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     addLight: async (l: NewLight) => { const created: Light = { ...l, id: `li-new-${++n}`, createdAt: '', updatedAt: '' }; lights.push(created); return created; },
     updateLight: async (id: string, patch: LightPatch) => { lightUpdates.push({ id, patch }); const l = lights.find(x => x.id === id); if (l) Object.assign(l, patch); },
     removeLight: async (id: string) => { const i = lights.findIndex(l => l.id === id); if (i >= 0) lights.splice(i, 1); },
+    // ── piezas (rebanada 6) ──
+    listProps: async (cid: string) => props.filter(p => p.campaignId === cid || p.campaignId === null),
+    addProp: async (p: NewProp, image: Blob) => {
+      propUploads.push({ name: p.name, bytes: image.size });
+      const created: Prop = { ...p, id: `pr-new-${++n}`, imageUrl: `https://x/backgrounds/${p.campaignId}/props/pr-new-${n}.webp`, createdAt: '', updatedAt: '' };
+      props.push(created);
+      return created;
+    },
+    updateProp: async (id: string, patch: PropPatch) => { propUpdates.push({ id, patch }); const p = props.find(x => x.id === id); if (p) Object.assign(p, patch); },
+    /** Como el de verdad: se va de la biblioteca y lo plantado SE QUEDA, sólo pierde el enlace. */
+    removeProp: async (id: string) => {
+      const i = props.findIndex(p => p.id === id);
+      if (i >= 0) props.splice(i, 1);
+      for (const sp of sceneProps) if (sp.propId === id) sp.propId = null;
+    },
+    listSceneProps: async (sid: string) => sceneProps.filter(p => p.sceneId === sid),
+    addSceneProp: async (p: NewSceneProp) => { const created: SceneProp = { ...p, id: `sp-new-${++n}`, createdAt: '', updatedAt: '' }; sceneProps.push(created); return created; },
+    updateSceneProp: async (id: string, patch: ScenePropPatch) => { scenePropUpdates.push({ id, patch }); const p = sceneProps.find(x => x.id === id); if (p) Object.assign(p, patch); },
+    removeSceneProp: async (id: string) => { const i = sceneProps.findIndex(p => p.id === id); if (i >= 0) sceneProps.splice(i, 1); },
     subscribe: (sid: string, h: MapsLiveHandlers) => { const set = subs.get(sid) ?? new Set<MapsLiveHandlers>(); set.add(h); subs.set(sid, set); return () => { set.delete(h); }; },
     broadcast: (sceneId: string, event: MapsLiveEvent) => { broadcasts.push({ sceneId, event }); },
   } satisfies MapsPort & Record<string, unknown>;
