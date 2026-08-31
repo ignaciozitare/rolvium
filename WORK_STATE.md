@@ -14,9 +14,64 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31 (noche), justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31 (cierre), justo debajo.**
 
-## 🟢 PUNTO EXACTO — 2026-08-31 (noche): REBANADA 7 · CAPAS Y LUCES CONSTRUIDAS · FALTA EL PINCEL
+## 🟢 PUNTO EXACTO — 2026-08-31 (cierre): REBANADA 7 CASI ENTERA · TOCA QUE LAS LUCES NO ATRAVIESEN MUROS
+
+> **Chat cerrado por lleno.** Rama `feat/maps-rebanada-7-capas-luces`, 12 commits, **sin mergear**.
+> `main` sigue en v0.4.0. **La nube NO se ha tocado.**
+
+### 🔴 LO PRIMERO AL RETOMAR
+1. **LEVANTAR EL LOCAL.** El dueño dijo que no le funciona. La base de datos **sí está levantada** y con la
+   migración de la rebanada 7 puesta (`20260831120000`); lo que falta son los servidores:
+   ```
+   npm run db:status          # comprobar (si está caído: npm run db:start)
+   npm run dev:api            # en una terminal
+   npm run dev:web            # en otra
+   ```
+   Si sigue sin ir, mirar las variables de entorno de `apps/web` y `apps/api`.
+2. **PEDIRLE QUE GUARDE `rolvium.pen` (Cmd+S).** Sigue sin escribirse en disco desde el 30-ago 23:35. El
+   diseño de la rebanada 7 (panel de capas, barra del pincel con sus dos sentidos, editor de luces, menú de
+   mandar a capa, penumbra) vive en la caché del editor. **Hasta que lo guarde no se puede commitear.**
+
+### ⏭ LA TAREA VIVA: QUE LAS LUCES NO ATRAVIESEN LAS PAREDES
+El dueño lo probó y preguntó: *«las luces no iluminan del otro lado de los muros, ¿correcto?»*. Hoy **sí lo
+hacen** — la luz es una mancha pintada que no sabe dónde están los muros. **Eligió el camino 3: bien hecho, en
+el servidor y para todos.** Las reglas están escritas en `specs/modules/maps/SPEC.md` § 7.2 «🔦 Las luces
+iluminan de verdad». Resumen:
+- **La luz se recorta contra los muros**, con el mismo polígono que la visión pero desde la luz. Lo enciende
+  `casts_shadow`, que ya se guardaba sin que nadie lo leyera.
+- **En el SERVIDOR**: a un jugador no le llegan los muros secretos, y una sombra calculada en su navegador los
+  delataría por dónde corta.
+- 🔑 **LA LUZ NO ALARGA TU LÍNEA DE VISIÓN** (regla suya): *ves un punto si tienes línea de vista hasta él Y
+  (te queda dentro de tu alcance O lo alcanza una luz)*. En el pasillo: ves el fondo iluminado, y **lo de en
+  medio sigue negro** porque ni tu rango ni la luz llegan ahí.
+- Lo alumbrado se recuerda como todo lo demás: al dejar de mirar, pasa a explorado-y-apagado.
+- No da ni quita dados. Eso sería regla del manual.
+
+**Por qué NO es caro** (el dueño preguntó, con razón): el motor ya existe — `visionPolygon` en
+`apps/api/src/application/maps/` recorta un polígono desde un punto contra los muros, y es exactamente lo que
+hace falta desde la luz. Lo que hay que montar es: leer las luces en `computeSceneVision`, calcular un
+polígono por luz con `casts_shadow`, unirlo a lo que el jugador puede ver con la regla de arriba, y mandarlo
+en la misma respuesta (es igual para todos, así que no multiplica el coste por jugador). En la primera
+respuesta se recomendó el camino 2 (sombras sólo para el director) por prudencia; **el dueño tenía razón y el
+3 es el correcto**.
+
+### 🔒 DECISIÓN CERRADA: LAS FICHAS SE QUEDAN COMO ESTÁN
+Sobre el hallazgo de la penumbra (abajo), el dueño dijo: *«lo de los tokens sí es un problema, déjalos como
+estaban»*. **No se toca cómo llegan las fichas a los jugadores.** La penumbra sigue BLOQUEADA y el agujero
+queda anotado y aceptado a sabiendas, no olvidado.
+
+### 🔁 Prompt de resume, de una línea
+> Retomo Rolvium, rama `feat/maps-rebanada-7-capas-luces` (12 commits, sin mergear, `main` en v0.4.0 y la nube
+> sin tocar). **Primero levanta el local** (`npm run db:status`, `dev:api`, `dev:web`) y **pídeme que guarde
+> `rolvium.pen` con Cmd+S**, que sigue sin estar en disco. La tarea viva: **que las luces no atraviesen las
+> paredes**, en el servidor y para todos, con las reglas de `specs/modules/maps/SPEC.md` § 7.2 «Las luces
+> iluminan de verdad» — ojo a que **la luz NO alarga la línea de visión**. Bloque 🟢 de WORK_STATE.
+
+---
+
+## 🟢 (histórico) 2026-08-31 (noche): REBANADA 7 · CAPAS Y LUCES CONSTRUIDAS
 
 > Tanda hecha SOLO, con el dueño durmiendo («me voy a dormir, avanza solo todo lo que puedas»).
 > **La nube y `main` no se han tocado.** Todo vive en `feat/maps-rebanada-7-capas-luces`.

@@ -28,7 +28,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   - ✅ **HECHO también** (2026-08-31, noche): el **pincel de transparencia** con sus dos sentidos · **mandar
     elementos a otra capa** con el botón derecho · **ver con los ojos de un personaje**, calculado en el
     servidor.
-  - 🛑 **BLOQUEADA la penumbra**: su premisa de privacidad no se sostiene hoy — ver el aviso en § 7.4.
+  - 🛑 **BLOQUEADA la penumbra**: su premisa de privacidad no se sostiene hoy — ver el aviso en § 7.4. El
+    dueño lo dio por bueno y decidió **dejar las fichas como están** (2026-08-31): no se toca cómo llegan.
+  - ⏭ **SIGUIENTE**: que las luces **no atraviesen los muros** y entren en la visión con las reglas del
+    § 7.2 «Las luces iluminan de verdad». Es lo único vivo de la rebanada.
 
 ## What the user can do
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
@@ -314,8 +317,37 @@ preparado** para el día que iluminen de verdad.
   - Con el movimiento reducido del sistema operativo (`prefers-reduced-motion`), la luz se queda quieta en su
     valor medio: nadie se marea por una decisión decorativa.
 - **Una luz es un objeto de la escena**: vive en una capa, se mueve, se gira y se borra como lo demás.
-- 🚫 **Lo que NO hace todavía**: no revela niebla, no cambia lo que ve nadie y no entra en el cálculo de
-  visión del servidor. Es pintura. Queda dicho aquí para que ninguna línea prometa lo contrario.
+- 🚫 **Lo que NO hacía en la primera versión** (construida el 2026-08-31): no revelaba niebla, no cambiaba lo
+  que ve nadie y no entraba en el cálculo de visión. Era pintura, y **atravesaba las paredes**.
+
+#### 🔦 LAS LUCES ILUMINAN DE VERDAD — decisión del dueño, 2026-08-31 (noche)
+Al probar la primera versión preguntó: *«las luces no iluminan del otro lado de los muros, ¿correcto?»*. Hoy
+sí lo hacen, y **eso está mal**. Se corrige, y de paso entran en la visión con reglas propias.
+
+**1. La luz se corta contra los muros.** El mismo recorte que la visión —el polígono desde un punto contra los
+segmentos que cortan la vista— pero desde la LUZ en vez de desde los ojos. `casts_shadow`, que ya se guardaba
+sin que nadie lo leyera, es lo que enciende esto por luz.
+
+**2. Se calcula en el SERVIDOR, para todos.** No en el navegador: a un jugador **no le llegan los muros
+secretos**, así que una sombra calculada en su pantalla los delataría por dónde corta. Es la misma razón por
+la que la visión vive allí, y reaprovecha el mismo motor.
+
+**3. LA LUZ NO ALARGA TU LÍNEA DE VISIÓN** (regla del dueño, literal): *«si un personaje entra en un pasillo y
+mira al fondo donde su línea no llega pero hay una luz, sólo ve lo que está iluminado — o la sombra que
+provoque al final del pasillo. Lo que hay en medio no se ve, o porque la luz no llega o porque su rango no
+llega»*. En una frase:
+
+> **Ves un punto si tienes línea de vista hasta él Y (te queda dentro de tu alcance O lo alcanza una luz).**
+
+Lo de en medio del pasillo —fuera de tu alcance y sin luz encima— **sigue negro**, aunque veas iluminado el
+fondo. No es un degradado ni un «se ve un poco»: o llega luz a ese punto, o no llega.
+
+**4. Lo alumbrado se recuerda como todo lo demás.** Cuando el personaje deja de mirar, esa zona pasa a
+explorada-y-apagada, igual que cualquier sitio donde estuviste y ya no estás. No hay regla nueva: es lo
+explorado de siempre.
+
+**5. Lo que sigue sin hacer**: nada de esto da ni quita dados. Estar iluminado o a oscuras no cambia una
+tirada — eso sería una regla del manual y tendría que salir del libro, no de aquí.
 - ✅ **Lo que hay que dejar listo para después**: alcance en metros (no en píxeles) y si la luz **proyecta
   sombra** contra los muros. Los dos se guardan desde el primer día aunque no se usen — añadirlos luego
   obligaría a repasar todas las luces ya colocadas de todas las escenas.
