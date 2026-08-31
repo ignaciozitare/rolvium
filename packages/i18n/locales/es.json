@@ -958,6 +958,12 @@
       "reset": "Restaurar toda",
       "saving": "guardando…",
       "needsLayer": "Elige una capa de terreno en el panel de capas para pintar en ella."
+    },
+    "seeAs": {
+      "label": "Ver con los ojos de",
+      "none": "Mi vista",
+      "banner": "Viendo como {{name}}",
+      "note": "es una lente: no cambia nada para nadie"
     }
   },
   "bestiary": {

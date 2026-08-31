@@ -36,7 +36,12 @@ const VISION_CONTACT_HZ_MS = 50; // ~20 Hz
  * player is not allowed to see the row of a hidden door — so a `fog.updated` broadcast (no RLS) says «ask again»
  * and every client refetches its own (specs/modules/maps/SPEC.md § «Rebanada 2 — luz y aberturas»).
  */
-export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision?: VisionPort) {
+export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision?: VisionPort,
+  /**
+   * «Ver con los ojos de este personaje» (rebanada 7): la ficha por cuyos ojos mira el DIRECTOR. `null` = su
+   * propia vista. Es una lente — la calcula el servidor y no guarda nada.
+   */
+  seeAsTokenId: string | null = null) {
   const sceneId = scene?.id ?? null;
   const [tokens, setTokens] = useState<Token[]>([]);
   const [walls, setWalls] = useState<Wall[]>([]);
@@ -101,9 +106,9 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     visionTimer.current = window.setTimeout(() => {
       visionTimer.current = null;
       const seq = ++visionSeq.current;
-      void vision.refresh(sceneId).then(next => { if (seq === visionSeq.current) setFog(next); }).catch(() => undefined);
+      void vision.refresh(sceneId, undefined, { asTokenId: seeAsTokenId }).then(next => { if (seq === visionSeq.current) setFog(next); }).catch(() => undefined);
     }, 0);
-  }, [vision, sceneId]);
+  }, [vision, sceneId, seeAsTokenId]);
   useEffect(() => () => { if (visionTimer.current !== null) window.clearTimeout(visionTimer.current); }, []);
   useEffect(() => { refreshVisionRef.current = refreshVision; }, [refreshVision]);
 

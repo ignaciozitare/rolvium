@@ -958,6 +958,12 @@
       "reset": "Restore all",
       "saving": "saving…",
       "needsLayer": "Pick a terrain layer in the layers panel to paint on it."
+    },
+    "seeAs": {
+      "label": "See through the eyes of",
+      "none": "My own view",
+      "banner": "Seeing as {{name}}",
+      "note": "it is a lens: it changes nothing for anyone"
     }
   },
   "bestiary": {

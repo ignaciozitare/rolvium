@@ -1015,3 +1015,51 @@ describe('<SceneTab> mandar a otra capa (rebanada 7)', () => {
     expect(screen.queryByRole('menu', { name: 'Mandar a la capa' })).not.toBeInTheDocument();
   });
 });
+
+/**
+ * «Ver con los ojos de un personaje» (rebanada 7). La visión la calcula el SERVIDOR por el mismo camino que
+ * la del jugador de verdad: si se recalculase en el navegador del director, lo que él ve y lo que ve el
+ * jugador podrían discrepar, que es justo lo que la herramienta viene a comprobar.
+ */
+describe('<SceneTab> ver con los ojos de un personaje (rebanada 7)', () => {
+  it('el selector sale sólo para el director, y sólo con personajes en la escena', async () => {
+    mount('player');
+    await waitFor(() => expect(screen.getByText(/Almacén de Queens · tu visión/)).toBeInTheDocument());
+    expect(screen.queryByRole('combobox', { name: 'Ver con los ojos de' })).not.toBeInTheDocument();
+    document.body.innerHTML = '';
+    mount('dm');
+    expect(await screen.findByRole('combobox', { name: 'Ver con los ojos de' })).toBeInTheDocument();
+  });
+
+  it('elegir un personaje se lo pide AL SERVIDOR, con su ficha', async () => {
+    const u = userEvent.setup();
+    const vision = fakeVisionPort();
+    mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    const picker = await screen.findByRole('combobox', { name: 'Ver con los ojos de' });
+    await u.selectOptions(picker, 'tk-karen');
+    await waitFor(() => expect(vision.calls.some(c => c.op === 'refresh' && c.asTokenId === 'tk-karen')).toBe(true));
+  });
+
+  it('lo dice en pantalla y le quita al director sus privilegios', async () => {
+    const u = userEvent.setup();
+    mount('dm');
+    const picker = await screen.findByRole('combobox', { name: 'Ver con los ojos de' });
+    // Antes: vista de director, con los muros y las fichas ocultas.
+    expect(screen.getByText(/Vista de director/)).toBeInTheDocument();
+    await waitFor(() => expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).toBeInTheDocument());
+    await u.selectOptions(picker, 'tk-karen');
+    expect(screen.getByText(/Viendo como Karen «K»/)).toBeInTheDocument();
+    expect(screen.getByText(/es una lente: no cambia nada para nadie/)).toBeInTheDocument();
+    // Y deja de ver lo que un jugador no vería.
+    await waitFor(() => expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).not.toBeInTheDocument());
+  });
+
+  it('volver a «mi vista» le devuelve la de director', async () => {
+    const u = userEvent.setup();
+    mount('dm');
+    const picker = await screen.findByRole('combobox', { name: 'Ver con los ojos de' });
+    await u.selectOptions(picker, 'tk-karen');
+    await u.selectOptions(picker, '');
+    expect(screen.getByText(/Vista de director/)).toBeInTheDocument();
+  });
+});

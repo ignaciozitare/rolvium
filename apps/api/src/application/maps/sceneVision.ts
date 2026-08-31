@@ -43,7 +43,19 @@ export async function computeSceneVision(
    * pregunta CONTROLA — se cruza contra su propia lista, así que pedir la visión desde el token de otro no
    * enseña nada que no fuera suyo.
    */
-  input: { sceneId: string; userId: string; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } | undefined } },
+  input: {
+    sceneId: string; userId: string;
+    at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } | undefined };
+    /**
+     * «Ver la escena con los ojos de un personaje» (rebanada 7). SÓLO para el director: contesta lo que
+     * vería el token indicado, con su niebla y su visión.
+     *
+     * Se calcula AQUÍ y no en su navegador a propósito: si se recalculase allí, lo que él ve y lo que ve el
+     * jugador de verdad podrían discrepar — y comprobar justamente eso es para lo que sirve la herramienta.
+     * Es una LENTE: no guarda nada, no toca lo explorado de nadie y no mueve la escena activa.
+     */
+    asTokenId?: string;
+  },
 ): Promise<VisionOutcome> {
   const scene = await deps.maps.getScene(input.sceneId);
   if (!scene) return { ok: false, code: 'NOT_FOUND' };
@@ -53,6 +65,18 @@ export async function computeSceneVision(
   const radiusPx = sightRadiusPx(scene.lighting, scene.nightRadiusM, scene.gridSize);
 
   if (role === 'dm') {
+    if (input.asTokenId) {
+      const tokens = await deps.maps.listTokens(scene.id);
+      const tk = tokens.find(t => t.id === input.asTokenId);
+      if (!tk) return { ok: false, code: 'NOT_FOUND' };
+      // Lo explorado que se enseña es el del JUGADOR que controla la ficha: su memoria, no la del director.
+      const explored = tk.controlledBy ? await deps.maps.getExplored(scene.id, tk.controlledBy) : [];
+      if (scene.fogMode === 'off') return { ok: true, data: { vision: [], explored: allCells(scene.gridSize, scene.width, scene.height), radiusPx } };
+      if (scene.fogMode === 'manual') return { ok: true, data: { vision: [], explored, radiusPx } };
+      const poly = visionPolygon(tokenOrigin(tk, scene.gridSize), sightSegments(await deps.maps.listWalls(scene.id), scene), radiusPx ?? Infinity);
+      // No se guarda NADA: mirar por los ojos de alguien no le explora el mapa.
+      return { ok: true, data: { vision: poly.length >= 3 ? [poly] : [], explored, radiusPx } };
+    }
     const rows = await deps.maps.listExplored(scene.id);
     return { ok: true, data: { vision: [], explored: unionCells(...rows), radiusPx } };
   }
