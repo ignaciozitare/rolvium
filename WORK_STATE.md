@@ -14,9 +14,109 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31 (cierre), justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31 (tarde, 2), justo debajo.**
 
-## 🟢 PUNTO EXACTO — 2026-08-31 (tarde/noche): CIERRE POR CONTEXTO LLENO
+## 🟢 PUNTO EXACTO — 2026-08-31 (tarde, 2): EL BORRADO DE LOS DATOS, EXPLICADO Y REPARADO
+
+> Rama `feat/maps-rebanada-7-capas-luces`, **sin mergear**. `main` sigue en v0.4.0.
+> **La nube NO se ha tocado** (sólo una consulta de LECTURA a producción, para comprobar que Karen no
+> estaba allí; no lo estaba). Cierre por el guardia de contexto, con un test pendiente de escribir.
+
+### 🔴 LO PRIMERO AL RETOMAR: EL TEST QUE QUEDÓ BLOQUEADO
+El guardia de traspaso saltó justo al ir a escribirlo. **Está redactado entero**, sólo hay que copiarlo:
+- Borrador: `~/Desktop/Rolvium-imagenes-recuperadas/_test-pendiente-seed-test-data.test.ts.txt`
+- Destino: `apps/web/tests/regression/seed-test-data.test.ts`
+- Comprueba 4 cosas sobre `supabase/seed.sql`: (1) la ficha de Karen valida contra `sheetSchema`,
+  (2) su presupuesto de creación cuadra (`budgetOf().available === 0`), (3) siguen los ids originales
+  de campaña y personaje, (4) **toda URL de imagen del seed tiene su fila de `storage.objects` en el
+  mismo seed** — que es justo el fallo que dejó a los cuatro PNJs sin retrato.
+- Después: `npm -w apps/web run test:regression`, y el review.
+
+### 🧨 QUÉ PASÓ DE VERDAD CON LOS DATOS (el dueño tenía razón, yo me equivoqué esta mañana)
+El **31-ago a las 00:58** se ejecutó `npm run db:reset` en local, para meter la migración de capas y
+luces de la rebanada 7. Ese comando **borra la base entera**. Con ella se fueron la campaña, Karen
+Sinclair, el bestiario y el mapa con sus paredes.
+
+Las pruebas, por si alguien vuelve a dudar:
+- El **volumen** `supabase_db_rolvium` se creó el **31-ago 00:58:32**. Los otros once contenedores son
+  de las **16:27 del 30-ago**: se rehizo SÓLO la base.
+- Las tres cuentas nacieron **14 s después**. `seed.sql` usa `now()`, no fechas fijas, así que esa
+  marca ES la del reset.
+- Línea 267 de este fichero, escrita esa noche: «migración aplicada SÓLO EN LOCAL (`db:reset` limpio)».
+
+**Y la regla ya estaba escrita** (líneas 1022 y 1676): «con `supabase migration up --local`, **no** con
+`db reset`, para no borrarle los datos de prueba al dueño». Se saltó igual. **Esa mañana además se le
+dijo que «no se había perdido nada por nuestra parte»: era falso.** La lección, y por eso el arreglo es
+un fichero y no una nota: *una regla que depende de que alguien se acuerde no es una regla.*
+
+### ✅ LO QUE SE REPARÓ (hecho y comprobado)
+1. **`supabase/seed.sql` +161 líneas**: campaña `8f506705-…` y **Karen `3af4f238-…` con sus ids
+   ORIGINALES**, los dos miembros, 4 entradas de bestiario, escena «Las dos salas» (7 muros + 1 puerta,
+   2 luces, 4 capas), 2 fichas en escena y los 3 fondos. **Todo vuelve solo en cada `db:reset`.**
+2. **Las imágenes NUNCA se perdieron.** El volumen de Storage es del **17-ago** y el reset no lo tocó:
+   los 12 ficheros seguían en `/mnt/stub/stub`. Lo que se perdió fueron las FILAS de `storage.objects`.
+   El seed las rehace → **las 7 sirven con HTTP 200 y su tamaño exacto** (comprobado con `curl`).
+3. **Los 4 PNJs vuelven con su retrato y su id original**, porque el id de cada entrada estaba en la
+   RUTA de su imagen (`tokens/…/bestiary/<id>/<fichero>.webp`). Nombres puestos por lo que se ve en cada
+   imagen (los originales se perdieron): «Centinela de la muralla», «Paladín del sol», «Capitán joven»,
+   «Puerta que grita». **Que los renombre a su gusto.**
+4. **La ficha de Karen se generó con `newSheet()` y se validó**: `validateSheet` **0 fallos**,
+   presupuesto **25/25 puntos y 3/3 de dones** (preset legendario, Aguante 6 → 18 casillas).
+5. **Copia de las 12 imágenes** en `~/Desktop/Rolvium-imagenes-recuperadas`, por si acaso.
+6. **Idempotente, comprobado**: el seed se pasó dos veces seguidas sin duplicar nada. Las capas fijas
+   NO se insertan (las crea el disparador `maps_scenes_seed_layers`, con índice único por escena); sólo
+   se inserta la de terreno. Muros/luces/fichas/fotos van dentro de un `DO $seed$` con guardia.
+
+### ❌ LO QUE NO VUELVE
+Las fichas originales (la Karen de verdad), las entradas de bestiario tal y como él las escribió, y el
+trazado exacto de su mapa. **No hay copia**: se miraron volúmenes sueltos, contenedores parados y
+`supabase/.temp/`. Lo del seed es una reconstrucción, no la original.
+**En producción tampoco estaba**: la nube tiene la campaña «Test» del 19-ago con dos personajes
+llamados «Random». Karen sólo vivió en local.
+
+### 📥 LA COLA DEL DUEÑO — TRES COSAS PEDIDAS HOY, NINGUNA EMPEZADA
+1. **Tooltips en las herramientas** (pedido mientras probaba): «ha desaparecido los tooltips o si nunca
+   estuvieron, en las herramientas tiene que estar el nombre de qué es cada cosa». **Ojo: el diseño YA
+   existe** — componente `YQHKf · PL/Tooltip herramienta` en `rolvium.pen`. O se rompió o nunca se
+   conectó. **Empezar por aquí: es pequeño y lo tiene delante.**
+2. **Habitaciones y mazmorras rápidas**, estilo *Dungeon Scrawl* (mandó dos capturas). Elegir tipo de
+   habitación/mazmorra, dibujar cuadrados o círculos y que la monte sola. **Las paredes generadas son
+   opacas: no dejan pasar ni visión ni luz.** La foto de fondo hace de **textura de suelo** de las
+   habitaciones. **Regla explícita suya: NO copiar su interfaz** — seguimos con la nuestra y le vamos
+   añadiendo la funcionalidad. Pasa por spec → DBA → diseño antes de código.
+3. **Galería de piezas (rebanada 6): SIGUE SIN APROBAR.** Los cuatro PNG están en
+   `~/Desktop/Rolvium-disenos-galeria` (`1 - Galeria de piezas`, `2 - Editor de pieza`,
+   `3 - Sello activo`, `4 - Fondo, a que capa`). **Aviso para el próximo chat: al exportarlos la primera
+   vez se dejaron en `.disenos-galeria`, una carpeta oculta, y él no los encontraba. No repetir.**
+   El `.pen` ESTÁ guardado y commiteado: los frames se renderizan bien, no hace falta pedirle Cmd+S.
+
+### ⏭ Y SIGUE VIVO DE ANTES: EL CONO QUE GIRA («como una sirena»)
+Sin empezar. Eligió **«la niebla sigue al haz»**, y el apunte de cómo hacerlo barato sigue intacto en el
+bloque de más abajo: el barrido es **determinista**, se calculan **N rotaciones de una vez** (24–36),
+cada una ya recortada contra muros y línea de vista, se mandan todas juntas con el periodo de giro, y el
+navegador va pasando de una a otra con reloj compartido. Nada de recalcular por fotograma.
+Datos: dos columnas aditivas en `maps_lights` (gira sí/no, periodo).
+
+### 🚫 Deuda anotada, NO tocada
+- El **avatar recuperado está roto** (70 bytes): `avatars/9e090109-…/avatar.png`. No se ha metido en el
+  seed a propósito. Y hay un fondo suelto de una tercera campaña (`199e9205-…`) que tampoco se ha usado.
+- **`npm run db:reset` sigue siendo un pie de cañón.** Ahora ya no borra los datos de prueba, pero
+  borraría cualquier cosa NUEVA que él cree en la app y no esté copiada al seed. **Decirle siempre:
+  «lo que crees a mano en local, si lo quieres conservar, hay que copiarlo al seed».**
+
+### 🔁 Prompt de resume, de una línea
+> Retomo Rolvium, rama `feat/maps-rebanada-7-capas-luces`, sin mergear y con la nube sin tocar. **Lo
+> primero: copia el test que quedó a medias** (está en
+> `~/Desktop/Rolvium-imagenes-recuperadas/_test-pendiente-seed-test-data.test.ts.txt` → va a
+> `apps/web/tests/regression/seed-test-data.test.ts`), pásalo y haz el review. Luego, por este orden:
+> **los tooltips de las herramientas** (el diseño ya existe, `PL/Tooltip herramienta`), que **apruebe la
+> galería de piezas** (los PNG están en `~/Desktop/Rolvium-disenos-galeria`, enséñaselos desde ahí), y
+> **especificar las habitaciones rápidas tipo Dungeon Scrawl** — sin copiarles la interfaz, paredes
+> opacas, la foto de fondo como textura de suelo. El cono que gira sigue en la cola detrás de eso.
+
+---
+
+## 🟢 (histórico) 2026-08-31 (tarde/noche): CIERRE POR CONTEXTO LLENO
 
 > Rama `feat/maps-rebanada-7-capas-luces`, **sin mergear**. `main` sigue en v0.4.0. **La nube NO se ha tocado.**
 > Local levantado y probado por el dueño durante toda la sesión.
