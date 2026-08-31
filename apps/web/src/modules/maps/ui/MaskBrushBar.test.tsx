@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { MaskBrushBar } from './MaskBrushBar';
 
 function mount(over: Partial<React.ComponentProps<typeof MaskBrushBar>> = {}) {
-  const cb = { onSize: vi.fn(), onStrength: vi.fn(), onDirection: vi.fn(), onReset: vi.fn() };
-  renderWithProviders(<MaskBrushBar layerName="Musgo" size={3} strength={0.6} direction="erase" {...cb} {...over} />);
+  const cb = { onSize: vi.fn(), onStrength: vi.fn(), onHardness: vi.fn(), onDirection: vi.fn(), onReset: vi.fn() };
+  renderWithProviders(<MaskBrushBar layerName="Musgo" size={1.2} strength={0.6} hardness={0.4} direction="erase" {...cb} {...over} />);
   return cb;
 }
 
@@ -31,12 +31,24 @@ describe('<MaskBrushBar>', () => {
     expect(cb.onStrength).toHaveBeenCalledWith(0.25);
   });
 
-  it('el tamaño se elige entre los de siempre', async () => {
-    const u = userEvent.setup();
+  /**
+   * El dueño lo pidió así de claro: «tamaño de pincel lo quiero gradual, no me sirve eso» — «eso» eran los
+   * cuatro discos. Este test fija que no vuelvan: si alguien los repone, aquí ya no hay deslizador.
+   */
+  it('el tamaño es un deslizador continuo, no cuatro discos', () => {
     const cb = mount();
-    expect(screen.getByRole('radio', { name: 'Tamaño 3' })).toHaveAttribute('aria-checked', 'true');
-    await u.click(screen.getByRole('radio', { name: 'Tamaño 1' }));
-    expect(cb.onSize).toHaveBeenCalledWith(1);
+    expect(screen.getByText('1.2 casillas')).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /^Tamaño \d$/ })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('slider', { name: 'Tamaño del pincel' }), { target: { value: '35' } });
+    expect(cb.onSize).toHaveBeenCalledWith(3.5);
+  });
+
+  /** La dureza es el BORDE, y va aparte de la fuerza: son dos deslizadores distintos, no uno. */
+  it('la dureza del borde es su propio mando, separado de la fuerza', () => {
+    const cb = mount({ hardness: 0.4 });
+    fireEvent.change(screen.getByRole('slider', { name: 'Dureza del borde' }), { target: { value: '90' } });
+    expect(cb.onHardness).toHaveBeenCalledWith(0.9);
+    expect(cb.onStrength).not.toHaveBeenCalled();
   });
 
   it('recuerda que la foto original no se toca', () => {

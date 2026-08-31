@@ -14,7 +14,286 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 de 2026-08-31 (tarde, 2), justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔴 de 2026-08-31 (noche), justo debajo.**
+
+## 🔴 TRASPASO — 2026-08-31 (noche): EL PINCEL, HECHO Y REVISADO, CON 2 ARREGLOS PENDIENTES
+
+> Rama `feat/maps-rebanada-7-capas-luces`, **sin mergear**. `main` sigue en v0.4.0. **La nube NO se ha tocado.**
+> Cierre por el **guardia de contexto** (14 MB de transcripción, umbral 6). El review pasó pero NO pudo
+> aplicar sus dos arreglos porque el hook le bloqueó los `Edit`. **No se esquivó a propósito.**
+
+### 🔴 LO PRIMERO AL RETOMAR: LOS 2 ARREGLOS DEL REVIEW
+El código del pincel está **hecho, commiteado y en verde** (840 tests, typecheck, audit 0 hard, build OK).
+Faltan sólo estos dos, los dos con el texto exacto ya escrito:
+
+**1 · `clampMaskSize` es código MUERTO y su test pasa por vacío.**
+Está exportada en `layerRules.ts` y tiene 3 tests, pero **nadie la llama**. Lo único que limita el rango hoy
+son el `min`/`max` del `<input type=range>`. Arreglo de una línea en `SceneTab.tsx` (~línea 435), añadiendo
+`clampMaskSize` al import de la línea 26:
+```tsx
+onSize={n => setMaskSizeCells(clampMaskSize(n))}
+```
+Riesgo cero: para cualquier valor del deslizador devuelve lo mismo; sólo añade la red contra NaN.
+
+**2 · Falta el pin de la decisión de alcance** (que el tamaño de transparencia va APARTE del de niebla).
+Hoy no hay nada en el repo que lo fije: si alguien «ordena» el código reusando `brush`, la niebla se queda
+con un tamaño que ninguno de sus cuatro discos puede marcar y **ningún test se entera**. El review dejó el
+test escrito entero; va dentro del `describe` que tiene `withLayers` (~línea 815 de `SceneTab.test.tsx`):
+```tsx
+it('el tamaño de transparencia va aparte del de la niebla', async () => {
+  const u = userEvent.setup();
+  mount('dm', withLayers());
+  await screen.findByRole('complementary', { name: 'Capas' });
+  await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+  await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
+  expect(screen.getByText('1.2 casillas')).toBeInTheDocument();
+  fireEvent.change(screen.getByRole('slider', { name: 'Tamaño del pincel' }), { target: { value: '35' } });
+  expect(await screen.findByText('3.5 casillas')).toBeInTheDocument();
+  await u.click(screen.getByRole('button', { name: 'Revelar' }));
+  expect(await screen.findByRole('radio', { name: 'Tamaño 3' })).toBeChecked();
+  await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+  expect(await screen.findByText('3.5 casillas')).toBeInTheDocument();
+});
+```
+**3 · Cosmético que él verá**: `"{{n}} casillas"` dice «1.0 casillas» en singular. Una palabra.
+**4 · Ojo en la verificación visual**: la barra ya lleva 3 deslizadores + sentidos + aviso. `.mp-strokebar`
+tiene `flex-wrap`, así que se parte en dos líneas en vez de desbordar — pero hay que MIRARLO.
+
+### ✅ LO QUE SE HIZO ESTA SESIÓN (todo commiteado menos el `.pen`)
+1. **Test del seed** (`seed-test-data.test.ts`) — el rescate de Karen. Review encontró que **daba verde en
+   falso** en el assert de las imágenes; corregido. 4/4.
+2. **Diseño de la galería de piezas, RE-HECHO ENTERO** tras rechazarlo él y mandar capturas de Inkarnate.
+   7 frames nuevos en `rolvium.pen` (ver bloque de más abajo). **⚠ SIGUE SIN GUARDAR EN DISCO: hace falta
+   que él le dé Cmd+S a la pestaña de `rolvium.pen`.** Hasta entonces NO se puede commitear el diseño y
+   **si se cierra el editor se pierde todo el trabajo de diseño del día.** ES LO MÁS URGENTE.
+3. **Pincel: DUREZA + TAMAÑO CONTINUO** — programado, revisado, en verde. Los tres valores del degradado
+   dejan de estar escritos a fuego. La niebla NO se tocó (estado propio para la transparencia).
+
+### ❓ PREGUNTAS ABIERTAS QUE ÉL NO HA CONTESTADO (no decidir por él)
+1. **¿Se cambia a rojo la herramienta ACTIVA de la barra en todo el código y en las 8 pantallas de escena?**
+   Hoy es negra (`.mp-tool.on{background:var(--sys-ink)}` en `maps.css`). En los frames nuevos ya es roja,
+   así que **conviven dos criterios**. Preguntado dos veces, sin respuesta.
+2. **¿Se propaga a las 8 pantallas de escena del `.pen`** el orden nuevo de la barra y el botón `H/Piezas`?
+   Preguntado, sin respuesta. Sin eso el diseño maestro queda desfasado.
+3. **La app se calla** cuando arrastras una capa y no se puede mover. Deuda acordada, sin permiso de tocar.
+
+### 🔁 Prompt de resume, de una línea
+> Retomo Rolvium, rama `feat/maps-rebanada-7-capas-luces`. **Lo primero: los 2 arreglos del review del
+> pincel que quedaron pendientes por el guardia de contexto** (están escritos enteros en el bloque 🔴 de
+> WORK_STATE: llamar a `clampMaskSize` en `SceneTab.tsx` y añadir el test de que el tamaño de transparencia
+> va aparte del de niebla). Luego pásame el review. Y recuérdame que **guarde `rolvium.pen` con Cmd+S**, que
+> tengo 7 pantallas de diseño de la galería sin escribir en disco.
+
+## 🟢 PUNTO EXACTO — 2026-08-31 (tarde, 3): EL TEST PENDIENTE, CERRADO · TOOLTIPS DIAGNOSTICADOS
+
+> Rama `feat/maps-rebanada-7-capas-luces`, **sin mergear**. `main` sigue en v0.4.0. **La nube NO se ha tocado.**
+
+### ✅ HECHO: el test que quedó bloqueado (`seed-test-data.test.ts`)
+Copiado del borrador a `apps/web/tests/regression/seed-test-data.test.ts`. **Pasa: 4/4.** Suite entera
+**87 ficheros / 827 tests** en verde, `typecheck` limpio, `npm run audit` 0 violaciones duras.
+
+Tres cambios sobre el borrador, ninguno cosmético:
+1. **La ruta al seed.** El borrador usaba `fileURLToPath(new URL(..., import.meta.url))`, que revienta bajo
+   jsdom (`TypeError: The URL must be of scheme file`). Se pasó al patrón que YA usan
+   `bg-library-no-hscroll.test.ts` y `sheet-standalone-scroll.test.tsx`: `resolve(__dirname, '../../../../supabase/seed.sql')`.
+2. **`JSON.parse(json![1])` no compilaba** (`noUncheckedIndexedAccess`). Venía así del borrador. Arreglado
+   con `?.[1]` + `toBeDefined()`. **Ojo con esto: lo cazó el review, no los tests ni el build.**
+3. **El assert 4 daba VERDE EN FALSO** — y es justo el que existe para cazar el 404 de los PNJs. Los dos
+   lados usaban vocabularios distintos de bucket: `([a-z]+)` al leer las URLs y una lista fija
+   `(avatars|tokens|backgrounds)` al leer las filas. **Cualquier bucket con guion, dígito o guion bajo se
+   caía de la comprobación EN SILENCIO.** Ahora los dos lados usan el mismo patrón y las filas se leen
+   sólo dentro del `INSERT INTO storage.objects` acotado (fuera hay tuplas `('uuid','uuid')` de
+   `campaigns_members` que si no se colaban como ficheros).
+4. **Assert 2 apretado**: era `giftsSpent <= giftPoints` (flojo: Karen podía perder un don y seguir en
+   verde). Comprobado que de verdad va 3/3, así que ahora es `toBe`. Si pierde un don, salta.
+
+**Comprobado que el test MUERDE**, no que pasa por vacío: se metió a propósito una imagen sin fila de
+storage y falló con el mensaje correcto; después `supabase/seed.sql` quedó **byte a byte idéntico**
+(sha256 verificado). El seed NO se ha tocado en toda la sesión.
+
+### 🔬 TOOLTIPS: diagnosticado, NO arreglado todavía
+**No se borraron y no faltan.** `Toolbar.tsx` ya envuelve cada botón en `<Tooltip>`, el componente existe
+en `packages/ui` y corresponde al diseño `PL/Tooltip herramienta` del `.pen`. Lo que pasa:
+
+> `maps.css` línea 32 — `.mp-toolbar{…;overflow:auto;}` — y el globo se dibuja en
+> `left:calc(100% + 8px)`, es decir **fuera del borde derecho de la barra. El `overflow` lo recorta.**
+
+Entró el **19-ago en el commit `e3cfd36d`** (rebanada 3, «una sola barra de herramientas»). Nadie lo notó.
+
+**El mismo fallo, sin detectar, en dos sitios más**: `.mp-layers` (panel de capas, `LayersPanel.tsx` usa
+Tooltip) y `.mp-rail-list` (lista de escenas, `ScenesMenu.tsx`), los dos con `overflow:auto`.
+
+⚠ **La trampa al arreglarlo**: `overflow-x:visible` + `overflow-y:auto` **no existe en CSS** — si un eje
+no es `visible`, el otro se computa a `auto`. Así que no vale con tocar el eje. Y la barra **sí necesita
+scroll de verdad**: para el director son 18 botones ≈ 610 px, que no caben en un portátil de 800 px de
+alto. Las salidas reales son (a) que el globo salga de la capa que lo recorta (posición fija / top layer,
+lo que obliga a que `Tooltip` deje de ser sólo-CSS — su docblock dice explícitamente «never needs state, a
+portal or a listener», escrito cuando nada lo recortaba), o (b) que la barra deje de recortar y se resuelva
+el desbordamiento de otra forma. **Decidir con la app delante, no a ciegas.** Test: pin de CSS al estilo
+`bg-library-no-hscroll.test.ts` (jsdom no tiene layout, así que se fija la causa, no el píxel).
+
+### 📥 COLA DEL DUEÑO — actualizada hoy
+1. **Tooltips** — diagnosticado arriba. **Siguiente cosa a construir.**
+2. **Galería de piezas (rebanada 6): RECHAZADA Y A REDISEÑAR.** Se le abrieron los 4 PNG desde
+   `~/Desktop/Rolvium-disenos-galeria` (carpeta visible, no la oculta de la otra vez). Respondió mandando
+   **dos capturas de Inkarnate** (`inkarnate.com/maps/edit/…`): «**quiero un diseño más así, ya yo después
+   me encargo de subir contenido**». **NO construir el diseño viejo.**
+   Lo que tiene Inkarnate y lo nuestro NO: catálogo **a pantalla completa** con árbol de paquetes a la
+   izquierda **y el número de piezas de cada uno** (Artisans 180, Castle 2.0 279, Dungeons 99…); secciones
+   **agrupadas y plegables** con rejilla muy densa y **la ilustración real, no un icono**; **slider de
+   tamaño de miniatura**; ordenar / agrupar / **+ Add Filter**; **variantes por pieza** («1 / 6» y un
+   numerito en la esquina de la miniatura); **Recientes y Favoritos**; **Place One | Many | Auto** con
+   **Área y Densidad** (plantar veinte árboles de una pasada) y **Auto Select**; panel de **Objetos** con
+   todo lo colocado; y **Upload en primer plano**.
+   El panel de pieza de ahí lleva además: escala, rotación **con dado de aleatorio**, subcapa, voltear
+   H/V, opacidad, sombra, modo de fusión y desenfoque.
+   ⚠ **«Ya me encargo yo de subir contenido» es la clave del rediseño**: la galería arranca **VACÍA** y se
+   llena con lo suyo. Manda la **subida en lote**, que él pueda **crear y organizar sus propios paquetes
+   y categorías**, y que la rejilla aguante **cientos de piezas**. No hay que dibujar arte.
+   **✅ DECIDIDO POR ÉL (31-ago, tarde 3), sus palabras:** «el estilo es el nuestro de rolvium, lo que te
+   digo es que usemos ese **layout** para agregar objetos. **haz primero el diseño**, pero **no lo tires en
+   cualquier lado del `.pen`: ponlo junto a las otras vistas de esto**».
+   → De Inkarnate se coge **la disposición y la densidad**, NADA del aspecto: sigue Candlelit Grimoire
+   (pergamino, dorado, serifa), con la rejilla de piezas sobre oscuro porque así se ve el arte.
+   → **Los frames nuevos van PEGADOS a los de la galería que ya están en `rolvium.pen`**, no en un hueco
+   cualquiera del lienzo.
+   → **Las CUATRO cosas entran en la primera versión**: (a) subida en lote + paquetes/categorías propias
+   con su contador, (b) catálogo denso a pantalla completa con buscador, agrupado y slider de miniatura,
+   (c) **plantar muchas de una vez con área y densidad**, (d) recientes y favoritos.
+
+   **🎨 DISEÑADO YA (31-ago, tarde 3) — 5 frames nuevos en `rolvium.pen`, pegados a la derecha de las
+   vistas de galería que ya estaban, en la misma banda del lienzo (x≈15554, y≈1442–2600):**
+   - `w7sTC0` **PL/Galería · Catálogo a pantalla completa** (1440×900) — rail de paquetes con contador,
+     Recientes/Favoritos, Nuevo paquete, buscador, Subir piezas, Agrupar/Ordenar, slider de miniatura,
+     4 secciones plegables, rejilla de 8 por fila, numerito de variantes y punto dorado de «tuya».
+   - `lWBaU` **PL/Panel de pieza · mientras plantas** (238×579) — **el panel lateral tipo Stamp Tool**:
+     vista previa, Recientes/Favoritos, ESCALA, GIRO (con dado de aleatorio), a qué capa, UNA|MUCHAS,
+     y el bloque de ÁREA/DENSIDAD + giro y tamaño al azar.
+   - `SNlGp` **PL/Barra de herramientas · con Piezas** — la barra clonada con el **botón nuevo `H/Piezas`**
+     y su tooltip abierto. **ORDEN DEL BLOQUE DE DIRECTOR REDEFINIDO POR ÉL** (31-ago): «estás tirando el
+     botón al final y no tiene sentido, ponlo arriba de los muros y ventanas, y debajo de muros y ventanas
+     el de imágenes, y debajo del de objetos el de las luces, **le demos coherencia al orden**».
+     → Queda: **Piezas · Luces · Muros y ventanas · Imágenes** ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ.
+     El criterio es **agrupar primero lo que CONSTRUYE la escena**, luego la niebla, luego el juego.
+     Convención de la barra, confirmada leyendo el `.pen`: **activo = fondo `pl-tinta` + icono
+     `pl-papel-alto`; inactivo = fondo transparente + icono `pl-oro`.**
+   - `DCs6S` **PL/Subir piezas en lote** (540×470) — zona de arrastre, a qué paquete, lista con progreso.
+   - `NAAEV` **PL/Sello activo · plantar muchas** — la barrita del lienzo, con UNA|MUCHAS y área/densidad.
+   PNG exportados a `~/Desktop/Rolvium-disenos-galeria-v2` (carpeta VISIBLE).
+   ⚠ **PENDIENTE DE APROBAR y PENDIENTE DE Cmd+S**: el `.pen` no está en disco hasta que él lo guarde,
+   así que **no se ha commiteado**.
+   **🔴 DOS FALLOS SUYOS QUE HUBO QUE CORREGIR SOBRE LA MARCHA, no repetirlos:**
+   1. «el que va en la barra de herramientas no lo veo» — se había diseñado la ventana pero **no el botón
+      que la abre**. Hoy `mapRules.ts` NO tiene herramienta de piezas: `Tool` va de `select` a `encounter`.
+      **Hay que añadir `props`/`piezas` a `Tool` + `DM_TOOLS` + icono + clave i18n.**
+   2. «este menú no lo veo» (mandó recortada la captura del *Stamp Tool*) — faltaba **el panel lateral**;
+      se había hecho sólo la barrita horizontal. Ya está.
+   3. «estás tirando el botón al final y no tiene sentido» — el botón nuevo se había puesto al final de la
+      barra por comodidad, sin pensar el orden. Ver arriba el orden que él fijó.
+   ⚠ **CONSECUENCIA PENDIENTE DE DECIDIR**: el orden nuevo vive SÓLO en el frame `SNlGp`. **Las ~8 pantallas
+   de escena del `.pen` siguen con la barra vieja** (`uXK3T`, `h3Q3NN`, `sFipl`, `qP47r`, `uBAwb`, `b9LRve`,
+   `ORZJD`, `yZDqm`) y el código también. Se le preguntó si propagarlo de una vez; **no propagar sin su ok**
+   (son pantallas ya aprobadas). Si dice que sí: reordenar es mecánico (`Move` por nombre) + añadir
+   `H/Piezas` y el separador en cada una.
+   **📥 CUARTA RONDA DE CAMBIOS (31-ago, sus palabras) — ya aplicados al `.pen`:**
+   - «el recientes ten en cuenta que **entren más iconos y que se pueda scrolear**» → la tira de recientes
+     pasa de 5×2 a **6×3 con barra de scroll** a la derecha.
+   - «recuerda que hay que **guardar la última escala de los componentes**» → ya estaba en el spec (§ 6.3) y
+     en el texto de la galería; ahora se ve además en el panel: **ESCALA · «se recuerda»**.
+   - «que se pueda **arrastrar el modal de la barra**» → el panel lleva **agarre (`drag_indicator`)** en su
+     cabecera. Se arrastra por ahí.
+   - «**Los botones en rojo**» → auditados uno a uno. En `pl-sangre`: **Subir piezas**, **Añadir 4 piezas**
+     y el segmento **MUCHAS**. Siguen en claro **Nuevo paquete** y **Cancelar** (secundarios) y en NEGRO la
+     **fila del paquete elegido** y el **botón activo de la barra**, porque ahí el negro es SELECCIÓN, no
+     botón — es la convención de toda la app. **Pendiente de que confirme si quiere la selección también
+     en rojo.**
+   → Queda FUERA de la v1, anotado: variantes por pieza («1/6»), opacidad, sombra, modo de fusión,
+   desenfoque, subcapa, voltear H/V y el panel de Objetos.
+3. **Habitaciones rápidas tipo Dungeon Scrawl** — sin empezar. Sin copiar su interfaz, paredes generadas
+   **opacas** (ni visión ni luz), la foto de fondo como **textura de suelo**. Pasa por spec → DBA → diseño.
+4. **NUEVO (pedido hoy) — seleccionar, mover y escalar lo dibujado.** Palabras suyas: «cuando dibujo como
+   en la captura tengo que poder seleccionar las cosas y escalarlos desde sus nodos o moverlos, a las luces
+   también las tengo que poder mover, **el escalado ya está resuelto**». Lectura: sobre las formas dibujadas
+   (los rectángulos de su captura) faltan **seleccionar** y **mover**, y **tiradores en los nodos**; el
+   escalado como tal ya está hecho. Y **las luces se tienen que poder arrastrar**. Necesita spec.
+5. **El cono que gira** — sigue vivo y él lo ha vuelto a pedir hoy con sus palabras: «la luz que gira
+   automáticamente para dar el **efecto de alarma tipo Alien**». **Es el mismo punto que «como una sirena»**,
+   no uno nuevo. Eligió «la niebla sigue al haz» y el apunte de cómo hacerlo barato sigue intacto más abajo:
+   barrido determinista, N rotaciones (24–36) calculadas de una vez y ya recortadas contra muros, mandadas
+   juntas con el periodo, y el navegador pasando de una a otra con reloj compartido. **Nada de recalcular
+   por fotograma.** Datos: dos columnas aditivas en `maps_lights` (gira sí/no, periodo).
+
+### 🎨 REGLA DE DISEÑO QUE SE HABÍA PERDIDO (31-ago): BOTONES EN ROJO SANGRE
+«no quiero botones negros, **hazlos rojos sangre como los otros**». El «como te dije» quiere decir que ya
+lo había pedido y se perdió. Botón de acción → **`pl-sangre` (#6e2418)** con texto `pl-papel-alto`. El
+**negro (`pl-tinta`) se reserva para selección** (fila de paquete elegida, chip activo) y para el fondo
+oscuro sobre el que se ve el arte. `pl-sangre` ya era el color de acción en el resto de la app (tags de
+rol, dado de fracaso, «Reiniciar»). Guardado también en la memoria del agente.
+
+### 🖌️ EL PINCEL: QUÉ FALTABA DE VERDAD (31-ago, tras mirar el código)
+
+**Corrección a lo que se le dijo primero.** Se le contestó «está hecho» sin analizar su captura de Inkarnate;
+él lo llamó, con razón: *«creo que no le diste ni un segundo de análisis a la captura que te di»*. Lo hecho
+es **el efecto** (que asome la capa de abajo). Los **mandos del pincel** son más pobres que los de Inkarnate.
+
+**1 · LA DUREZA NO EXISTE — confirmado en el código.** `useMaskPainter.ts` líneas 96-99: el degradado radial
+tiene las paradas **escritas a fuego** (`0 → a`, `0.6 → a*0.75`, `1 → 0`). Siempre el mismo borde medio
+difuminado; no se puede endurecer ni suavizar. Lo que SÍ tiene: sentido (Borrar/Devolver), **tamaño**
+(`BRUSH_SIZES`, los puntitos), **fuerza** 5-100 % y «Restaurar toda».
+→ **DISEÑADO YA**: frame `f2N67t` **«PL/Barra pincel · CON DUREZA»** (1044×67, en `~/Desktop/Rolvium-disenos-
+galeria-v2/6 - Pincel con DUREZA.png`). La fila queda: sentido · **TAMAÑO** · **FUERZA** · **DUREZA**.
+**Pendiente de su ok.**
+→ **SEGUNDA RONDA sobre esta barra (sus palabras): «botones negros no, tamaño de pincel lo quiero gradual
+no me sirve eso, entiendes que la dureza es por los bordes no?»**
+  - **TAMAÑO deja de ser 4 puntitos y pasa a SER UN DESLIZADOR continuo.** «No me sirve eso.» Al programar:
+    `BRUSH_SIZES` (presets) → **valor continuo**. Es un cambio de verdad, no cosmético.
+  - **Botones negros, TERCERA VEZ que lo dice.** Auditadas las 6 pantallas nuevas: ya no queda ni un botón
+    ni un estado activo en negro. Pasan a `pl-sangre`: `S/BORRAR`, `Seg/MUCHAS` (las dos barras),
+    **`Fila/Mazmorra propia`** (la fila del paquete elegido) y **`H/Piezas`** (la herramienta activa de la
+    barra). Lo único que sigue en `pl-tinta` es **texto** (títulos y valores) y el **fondo oscuro de las
+    miniaturas de arte**, que no se pulsan. ⚠ **Consecuencia sin resolver**: en las 8 pantallas de escena
+    del `.pen` y en el CÓDIGO, la herramienta activa sigue pintándose NEGRA (`.mp-tool.on{background:var(--sys-ink)}`
+    en `maps.css`). O se cambia en todas o quedan dos criterios. **Preguntado, sin respuesta todavía.**
+  - **Sí, dureza = BORDE.** Confirmado y escrito en la pista de la barra para que no se confunda con fuerza.
+→ Al programarlo: abrir las tres paradas del degradado para que las mande la dureza, pasar el tamaño a
+continuo, y guardar ambos como se guarda la fuerza. `DEFAULT_MASK_STRENGTH` ya existe en `layerRules.ts`;
+harán falta sus gemelas.
+
+**2 · «NO PUEDO REORDENAR LAS CAPAS» — NO ERA UN BUG.** Se comprobó en su base LOCAL (sólo lectura):
+**las tres escenas (`Las dos salas`, `test`, `test2`) tienen UNA sola capa de terreno.** Reordenar sólo mueve
+las de terreno (`objects`/`creatures`/`dm_notes` son `FIXED_LAYER_KINDS`, clavadas a propósito), así que con
+una sola **no hay con qué intercambiarla y arrastrar no hace nada**. El dominio (`reorderTerrain`,
+`reorderTerrainTo`), el repo (`layerPatchRow` mapea `sortOrder`→`sort_order`) y la RLS
+(`maps_layers_dm_write`) están BIEN y con tests.
+**Y es la misma causa de que el pincel le pareciera flojo**: con una capa de terreno, al borrar no asoma
+ninguna foto debajo. Se le dijo que le dé a **«+ Capa de terreno»** al pie del panel de CAPAS.
+→ ❌ **DEUDA REAL que sale de aquí**: la app **se calla**. Arrastras y no pasa nada, sin explicar por qué.
+Debería decir «necesitas otra capa de terreno para poder reordenar». Es el mismo pecado que el del servidor
+caído: fallar en silencio. **No tocado.**
+
+### 🖌️ EL EFECTO EN SÍ (asomar la capa de abajo) YA ESTABA HECHO
+Pidió (31-ago): *«quiero un pincel así para las texturas de fondos, donde poder dibujar por ejemplo sobre un
+fondo de tierra que se vea el fondo de agua por detrás. Esto lo tenemos más o menos hecho»*.
+**No es «más o menos»: está HECHO y es suyo de origen.** Es el **pincel de transparencia** de la rebanada 7
+(`specs/modules/maps/SPEC.md` § «El terreno lleva VARIAS capas, y un pincel de transparencia», líneas 288-297,
+marcado ✅ HECHO en la línea 30, la noche del 30→31 de agosto). Nace de su propia idea: *«que pueda poner dos
+fotos de fondo y con un pincel jugar con pintar transparencias»*.
+- Código: `useMaskPainter.ts` + `MaskBrushBar.tsx` + `layerRules.ts`. Herramienta `mask` (icono `opacity`).
+- Hace EXACTAMENTE su ejemplo: dos capas de terreno, y el pincel borra la de arriba para que asome la de
+  abajo. **La foto original NUNCA se toca** — la máscara es un dato aparte y es reversible con el sentido
+  contrario del pincel.
+- **Hay que enseñárselo en la app corriendo**, no darlo por sabido: probablemente no ha dado con el botón.
+- Lo que SÍ podría faltar para parecerse a Inkarnate: **dureza/suavidad y forma del pincel**, y pintar CON
+  una textura (no sólo borrar). Eso sí sería nuevo. **Preguntar antes de construirlo.**
+- ⚠ El `.pen` va por detrás aquí: la barra dibujada NO tiene el botón de máscara que el código sí tiene.
+
+### 🔧 DEUDA NUEVA DE HOY (anotada, NO tocada)
+1. **`npm run typecheck` no está enganchado a NINGÚN comando de build ni de test.** `build:web` es un
+   `vite build` pelado y vitest tampoco comprueba tipos, así que **un error de tipos llega a un preview
+   verde sin que nadie se entere** — es exactamente como sobrevivió el `JSON.parse(json![1])` de arriba.
+   Vale la pena meterlo en la puerta de pre-merge. **No se ha tocado: no era el alcance de hoy.**
+2. Sigue la deuda del susto de la luz (servidor muerto ≈ función rota; «sin imagen» teniendo foto), y la
+   de `db:reset`, en el bloque de más abajo. Sin cambios.
 
 ## 🟢 PUNTO EXACTO — 2026-08-31 (tarde, 2): EL BORRADO DE LOS DATOS, EXPLICADO Y REPARADO
 

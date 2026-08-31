@@ -962,10 +962,13 @@
       "erase": "Borrar",
       "restore": "Devolver",
       "strength": "Fuerza",
-      "hint": "a tope borra del todo y asoma la capa de abajo · a media la deja translúcida · la foto original nunca se toca",
+      "hint": "el TAMAÑO es lo ancho de la pincelada · la FUERZA es cuánto borra · la DUREZA es el BORDE: a la izquierda se difumina, a la derecha corta a filo · la foto original nunca se toca",
       "reset": "Restaurar toda",
       "saving": "guardando…",
-      "needsLayer": "Elige una capa de terreno en el panel de capas para pintar en ella."
+      "needsLayer": "Elige una capa de terreno en el panel de capas para pintar en ella.",
+      "size": "Tamaño del pincel",
+      "sizeCells": "{{n}} casillas",
+      "hardness": "Dureza del borde"
     },
     "seeAs": {
       "label": "Ver con los ojos de",

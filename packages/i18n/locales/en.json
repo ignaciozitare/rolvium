@@ -962,10 +962,13 @@
       "erase": "Erase",
       "restore": "Restore",
       "strength": "Strength",
-      "hint": "at full strength it erases and the layer below shows through · at half it goes translucent · the original photo is never touched",
+      "hint": "SIZE is how wide the stroke is · STRENGTH is how much it erases · HARDNESS is the EDGE: soft on the left, crisp on the right · the original photo is never touched",
       "reset": "Restore all",
       "saving": "saving…",
-      "needsLayer": "Pick a terrain layer in the layers panel to paint on it."
+      "needsLayer": "Pick a terrain layer in the layers panel to paint on it.",
+      "size": "Brush size",
+      "sizeCells": "{{n}} cells",
+      "hardness": "Edge hardness"
     },
     "seeAs": {
       "label": "See through the eyes of",

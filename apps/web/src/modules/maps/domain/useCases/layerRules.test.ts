@@ -8,6 +8,7 @@ import {
   layerOfKind, layerSendsToPlayers, LIGHT_KINDS, LIGHT_PRESETS, LIGHT_SHAPES, lightRadiusPx, maskPath, maskSize, MASK_MAX_SIDE,
   maskSrc, newLightOf, nextTerrainSortOrder, paintedLights, paintOrder, panelOrder, rangeLabelM, reorderTerrain,
   strengthLabel, strokeDots, TERRAIN_WARN_AT, terrainLayers, terrainOverweight, toMaskPoint, MASK_DIRECTIONS, reorderTerrainTo,
+  clampHardness, clampMaskSize, DEFAULT_MASK_SIZE, hardnessLabel, maskStops, MASK_SIZE_MAX, MASK_SIZE_MIN,
 } from './layerRules';
 
 const ids = (ls: { id: string }[]): string[] => ls.map(l => l.id);
@@ -353,5 +354,79 @@ describe('reorderTerrainTo — soltar una capa encima de otra', () => {
     const arrastrando = reorderTerrainTo(L, LAYER_FLOOR.id, LAYER_PUDDLES.id);
     const aplicado = L.map(l => { const m = arrastrando.find(v => v.id === l.id); return m ? { ...l, sortOrder: m.sortOrder } : l; });
     expect(terrainLayers(aplicado).map(l => l.name)).toEqual(['Musgo', 'Charcos', 'Suelo']);
+  });
+});
+
+/**
+ * La DUREZA del pincel de transparencia. Existe porque antes el borde estaba escrito a fuego en
+ * `useMaskPainter` (`0 → a`, `0.6 → 0.75a`, `1 → 0`) y no había forma de cambiarlo: el dueño pidió elegirlo
+ * «como en Inkarnate» y avisó de que no lo confundiéramos con la fuerza — «la dureza es por los BORDES».
+ */
+describe('maskStops — la dureza manda el borde, no la fuerza', () => {
+  it('a dureza 0 el brochazo se difumina desde el centro mismo', () => {
+    expect(maskStops(1, 0)).toEqual([{ at: 0, alpha: 1 }, { at: 0, alpha: 1 }, { at: 1, alpha: 0 }]);
+  });
+
+  it('a tope el disco opaco llega casi al borde: corta a filo', () => {
+    const [, medio, fuera] = maskStops(1, 1);
+    expect(medio).toEqual({ at: 0.98, alpha: 1 });
+    expect(fuera).toEqual({ at: 1, alpha: 0 });
+  });
+
+  /** Un círculo del todo duro deja el recorte a tijera, y lo que se pidió es MEZCLAR dos fotos. */
+  it('nunca llega a ser un círculo perfectamente duro', () => {
+    for (const h of [1, 1.5, 99]) expect(maskStops(1, h)[1]!.at).toBeLessThan(1);
+  });
+
+  it('la dureza mueve el borde y la fuerza la opacidad: son cosas distintas', () => {
+    const suave = maskStops(0.5, 0.2);
+    const duro = maskStops(0.5, 0.9);
+    expect(suave[1]!.at).toBeLessThan(duro[1]!.at);
+    expect(suave[0]!.alpha).toBe(duro[0]!.alpha);
+    expect(maskStops(0.25, 0.5)[0]!.alpha).toBe(0.25);
+  });
+
+  it('el borde exterior siempre acaba transparente, pase lo que pase', () => {
+    for (const [f, d] of [[0, 0], [1, 1], [0.3, 0.7], [-5, -5], [9, 9]]) {
+      const st = maskStops(f!, d!);
+      expect(st[st.length - 1]).toEqual({ at: 1, alpha: 0 });
+      expect(st.map(x => x.at)).toEqual([...st.map(x => x.at)].sort((a, b) => a - b));
+    }
+  });
+
+  it('aguanta basura sin romper el degradado', () => {
+    expect(maskStops(Number.NaN, Number.NaN)).toEqual([{ at: 0, alpha: 0 }, { at: 0, alpha: 0 }, { at: 1, alpha: 0 }]);
+  });
+
+  it('hardnessLabel lo enseña en porcentaje', () => {
+    expect(hardnessLabel(0.4)).toBe('40 %');
+    expect(hardnessLabel(2)).toBe('100 %');
+  });
+});
+
+/**
+ * El TAMAÑO de ESTE pincel es continuo y va aparte de `BRUSH_SIZES`, los cuatro discos de la niebla: el
+ * dueño pidió «gradual, no me sirve eso» para el de transparencia, y sólo para él.
+ */
+describe('clampMaskSize — tamaño continuo, en casillas', () => {
+  it('deja pasar los valores intermedios, que es la gracia', () => {
+    for (const v of [0.3, 1.2, 2.5, 4.75]) expect(clampMaskSize(v)).toBe(v);
+  });
+
+  it('no se sale de sus topes', () => {
+    expect(clampMaskSize(0)).toBe(MASK_SIZE_MIN);
+    expect(clampMaskSize(999)).toBe(MASK_SIZE_MAX);
+  });
+
+  it('con basura se queda en el de partida en vez de romper la pincelada', () => {
+    expect(clampMaskSize(Number.NaN)).toBe(DEFAULT_MASK_SIZE);
+    expect(DEFAULT_MASK_SIZE).toBeGreaterThanOrEqual(MASK_SIZE_MIN);
+    expect(DEFAULT_MASK_SIZE).toBeLessThanOrEqual(MASK_SIZE_MAX);
+  });
+
+  it('clampHardness se queda entre 0 y 1', () => {
+    expect(clampHardness(-1)).toBe(0);
+    expect(clampHardness(0.5)).toBe(0.5);
+    expect(clampHardness(4)).toBe(1);
   });
 });

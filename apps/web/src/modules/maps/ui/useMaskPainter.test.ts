@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { LAYER_FLOOR, LAYER_MOSS, SCENE_WAREHOUSE } from '../../../../tests/helpers/fakes';
-import { maskSize } from '../domain/useCases/layerRules';
+import { DEFAULT_MASK_HARDNESS, maskSize } from '../domain/useCases/layerRules';
 import { useMaskPainter } from './useMaskPainter';
 
 /**
@@ -59,23 +59,40 @@ describe('useMaskPainter', () => {
   /** Los dos sentidos son los dos modos de composición: es lo que hace verdad «volver atrás». */
   it('borrar pinta encima y devolver borra lo pintado', () => {
     const { result } = mount();
-    act(() => { result.current.paint({ x: 100, y: 100 }, { x: 100, y: 100 }, 27, 1, 'erase'); });
+    act(() => { result.current.paint({ x: 100, y: 100 }, { x: 100, y: 100 }, 27, 1, 'erase', DEFAULT_MASK_HARDNESS); });
     expect(ctx.ops.at(-1)).toBe('source-over');
-    act(() => { result.current.paint({ x: 100, y: 100 }, { x: 100, y: 100 }, 27, 1, 'restore'); });
+    act(() => { result.current.paint({ x: 100, y: 100 }, { x: 100, y: 100 }, 27, 1, 'restore', DEFAULT_MASK_HARDNESS); });
     expect(ctx.ops.at(-1)).toBe('destination-out');
   });
 
   it('la fuerza es la opacidad del brochazo, y el borde va suave', () => {
     const { result } = mount();
-    act(() => { result.current.paint({ x: 100, y: 100 }, { x: 100, y: 100 }, 27, 0.5, 'erase'); });
+    act(() => { result.current.paint({ x: 100, y: 100 }, { x: 100, y: 100 }, 27, 0.5, 'erase', DEFAULT_MASK_HARDNESS); });
     expect(ctx.stops[0]).toEqual([0, 'rgba(0,0,0,0.5)']);
     // Y muere en transparente: un círculo duro dejaría el recorte a tijera, y lo que se pidió es MEZCLAR.
     expect(ctx.stops.at(-1)).toEqual([1, 'rgba(0,0,0,0)']);
   });
 
+  /**
+   * La DUREZA es el BORDE, y hasta hoy estaba escrita a fuego aquí mismo: el degradado iba siempre
+   * `0 → a`, `0.6 → 0.75a`, `1 → 0`. El dueño pidió elegirla, así que este test fija que de verdad la manda
+   * el mando y no una constante.
+   */
+  it('la dureza mueve el borde del brochazo, y la fuerza se queda igual', () => {
+    const { result } = mount();
+    act(() => { result.current.paint({ x: 100, y: 100 }, { x: 100, y: 100 }, 27, 0.5, 'erase', 0); });
+    const suave = ctx.stops[1]![0];
+    act(() => { result.current.paint({ x: 100, y: 100 }, { x: 100, y: 100 }, 27, 0.5, 'erase', 1); });
+    const duro = ctx.stops[1]![0];
+    expect(suave).toBeLessThan(duro);
+    expect(duro).toBeLessThan(1);
+    // La opacidad del centro es cosa de la FUERZA: la dureza no la toca.
+    expect(ctx.stops[0]).toEqual([0, 'rgba(0,0,0,0.5)']);
+  });
+
   it('la fuerza no se sale de 0..1 aunque le llegue basura', () => {
     const { result } = mount();
-    act(() => { result.current.paint({ x: 10, y: 10 }, { x: 10, y: 10 }, 27, 5, 'erase'); });
+    act(() => { result.current.paint({ x: 10, y: 10 }, { x: 10, y: 10 }, 27, 5, 'erase', DEFAULT_MASK_HARDNESS); });
     expect(ctx.stops[0]).toEqual([0, 'rgba(0,0,0,1)']);
   });
 
@@ -83,21 +100,21 @@ describe('useMaskPainter', () => {
   it('pinta en las coordenadas de la MÁSCARA, no en las de la escena', () => {
     const size = maskSize(SCENE_WAREHOUSE);
     const { result } = mount();
-    act(() => { result.current.paint({ x: SCENE_WAREHOUSE.width, y: SCENE_WAREHOUSE.height }, { x: SCENE_WAREHOUSE.width, y: SCENE_WAREHOUSE.height }, 27, 1, 'erase'); });
+    act(() => { result.current.paint({ x: SCENE_WAREHOUSE.width, y: SCENE_WAREHOUSE.height }, { x: SCENE_WAREHOUSE.width, y: SCENE_WAREHOUSE.height }, 27, 1, 'erase', DEFAULT_MASK_HARDNESS); });
     expect(ctx.arcs.at(-1)!.x).toBeCloseTo(size.width, 5);
     expect(ctx.arcs.at(-1)!.y).toBeCloseTo(size.height, 5);
   });
 
   it('un arrastre largo se rellena para no salir a lunares', () => {
     const { result } = mount();
-    act(() => { result.current.paint({ x: 0, y: 0 }, { x: 400, y: 0 }, 27, 1, 'erase'); });
+    act(() => { result.current.paint({ x: 0, y: 0 }, { x: 400, y: 0 }, 27, 1, 'erase', DEFAULT_MASK_HARDNESS); });
     expect(ctx.arcs.length).toBeGreaterThan(10);
   });
 
   /** Un guardado por pincelada, no cien: subir el PNG en cada `pointermove` sería insostenible. */
   it('pintar NO sube nada; sólo lo hace el soltar', async () => {
     const { result, d } = mount();
-    act(() => { result.current.paint({ x: 10, y: 10 }, { x: 40, y: 40 }, 27, 1, 'erase'); });
+    act(() => { result.current.paint({ x: 10, y: 10 }, { x: 40, y: 40 }, 27, 1, 'erase', DEFAULT_MASK_HARDNESS); });
     expect(d.saveMask).not.toHaveBeenCalled();
     await act(async () => { await result.current.flush(); });
     expect(d.saveMask).toHaveBeenCalledWith(LAYER_MOSS, BLOB);
@@ -111,7 +128,7 @@ describe('useMaskPainter', () => {
 
   it('la vista previa se actualiza al pintar, sin esperar a que suba', async () => {
     const { result } = mount();
-    act(() => { result.current.paint({ x: 10, y: 10 }, { x: 40, y: 40 }, 27, 1, 'erase'); });
+    act(() => { result.current.paint({ x: 10, y: 10 }, { x: 40, y: 40 }, 27, 1, 'erase', DEFAULT_MASK_HARDNESS); });
     await waitFor(() => expect(result.current.preview).toBe('data:image/png;base64,PINTADO'));
   });
 
@@ -125,14 +142,14 @@ describe('useMaskPainter', () => {
 
   it('sin capa activa el pincel no hace nada, en vez de reventar', () => {
     const { result, d } = mount(null as never);
-    act(() => { result.current.paint({ x: 1, y: 1 }, { x: 2, y: 2 }, 27, 1, 'erase'); });
+    act(() => { result.current.paint({ x: 1, y: 1 }, { x: 2, y: 2 }, 27, 1, 'erase', DEFAULT_MASK_HARDNESS); });
     expect(ctx?.arcs ?? []).toHaveLength(0);
     expect(d.saveMask).not.toHaveBeenCalled();
   });
 
   it('sin escena activa tampoco: el director aún no ha activado ninguna', () => {
     const { result } = mount(LAYER_MOSS, deps(), null as never);
-    act(() => { result.current.paint({ x: 1, y: 1 }, { x: 2, y: 2 }, 27, 1, 'erase'); });
+    act(() => { result.current.paint({ x: 1, y: 1 }, { x: 2, y: 2 }, 27, 1, 'erase', DEFAULT_MASK_HARDNESS); });
     expect(result.current.preview).toBe('https://x/backgrounds/c1/masks/ly-moss.png?v=3');
   });
 });

@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Layer, Scene } from '../domain/entities/Scene';
-import { MASK_STEP_RATIO, maskSize, maskSrc, strokeDots, toMaskPoint, type MaskDirection } from '../domain/useCases/layerRules';
+import { MASK_STEP_RATIO, maskSize, maskSrc, maskStops, strokeDots, toMaskPoint, type MaskDirection } from '../domain/useCases/layerRules';
 
 interface Point { x: number; y: number }
 
 export interface MaskPainter {
   /** Lo que hay que pintar AHORA MISMO en el lienzo, sin esperar a que suba nada. `null` = sin máscara. */
   preview: string | null;
-  /** Estampa el pincel desde un punto hasta otro, en px de ESCENA. */
-  paint: (from: Point, to: Point, radiusScenePx: number, strength: number, dir: MaskDirection) => void;
+  /** Estampa el pincel desde un punto hasta otro, en px de ESCENA. `hardness` es el BORDE, no la fuerza. */
+  paint: (from: Point, to: Point, radiusScenePx: number, strength: number, dir: MaskDirection, hardness: number) => void;
   /** Sube el PNG. Se llama al soltar el ratón, no en cada movimiento. */
   flush: () => Promise<void>;
   /** Quita la máscara entera: la capa vuelve a verse completa. */
@@ -82,7 +82,7 @@ export function useMaskPainter(scene: Scene | null, layer: Layer | null, deps: {
     return () => { alive = false; };
   }, [layerId, canvasOf, repaintPreview, layer]);
 
-  const paint = useCallback((from: Point, to: Point, radiusScenePx: number, strength: number, dir: MaskDirection) => {
+  const paint = useCallback((from: Point, to: Point, radiusScenePx: number, strength: number, dir: MaskDirection, hardness: number) => {
     const c = canvasOf();
     const ctx = c?.getContext?.('2d') ?? null;
     if (!c || !ctx || !layer || !scene) return;
@@ -92,11 +92,10 @@ export function useMaskPainter(scene: Scene | null, layer: Layer | null, deps: {
     ctx.save();
     ctx.globalCompositeOperation = dir === 'erase' ? 'source-over' : 'destination-out';
     for (const dot of strokeDots(toMaskPoint(from, scene, size), toMaskPoint(to, scene, size), r * MASK_STEP_RATIO)) {
-      // Borde suave: un círculo duro deja el recorte a tijera y lo que se pidió es MEZCLAR dos fotos.
+      // El borde lo manda la DUREZA (`maskStops`), no una constante: a 0 se difumina desde el centro y a
+      // tope corta a filo. Antes estaba escrito aquí a fuego y no había forma de cambiarlo.
       const g = ctx.createRadialGradient(dot.x, dot.y, 0, dot.x, dot.y, r);
-      g.addColorStop(0, `rgba(0,0,0,${a})`);
-      g.addColorStop(0.6, `rgba(0,0,0,${a * 0.75})`);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
+      for (const s of maskStops(a, hardness)) g.addColorStop(s.at, `rgba(0,0,0,${s.alpha})`);
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(dot.x, dot.y, r, 0, Math.PI * 2);

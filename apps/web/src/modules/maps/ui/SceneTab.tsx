@@ -23,7 +23,7 @@ import { LightEditor } from './LightEditor';
 import { MaskBrushBar } from './MaskBrushBar';
 import { LayerMenu } from './LayerMenu';
 import { useMaskPainter } from './useMaskPainter';
-import { DEFAULT_MASK_STRENGTH, newLightOf, type ElementKind, type MaskDirection } from '../domain/useCases/layerRules';
+import { DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, newLightOf, type ElementKind, type MaskDirection } from '../domain/useCases/layerRules';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
@@ -141,6 +141,13 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [selectedLightId, setSelectedLightId] = useState<string | null>(null);
   const [maskStrength, setMaskStrength] = useState(DEFAULT_MASK_STRENGTH);
   const [maskDir, setMaskDir] = useState<MaskDirection>('erase');
+  /**
+   * El pincel de transparencia lleva SU tamaño, continuo y en casillas, y su dureza. No comparte el `brush`
+   * de la niebla a propósito: allí son cuatro discos y aquí el dueño lo pidió gradual, así que compartirlo
+   * habría dejado la niebla con un tamaño que ninguno de sus discos puede representar.
+   */
+  const [maskSizeCells, setMaskSizeCells] = useState(DEFAULT_MASK_SIZE);
+  const [maskHardness, setMaskHardness] = useState(DEFAULT_MASK_HARDNESS);
   /** «Botón derecho sobre cualquier cosa → mándala a otra capa». */
   const [layerMenu, setLayerMenu] = useState<{ at: Point; element: { kind: ElementKind; id: string; name: string; layerId: string | null } } | null>(null);
   const live = st.scene;
@@ -365,7 +372,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
             maskLayerId={bgLayer?.id ?? null} maskPreview={mask.preview}
-            onPaintMask={(from, to) => mask.paint(from, to, brushRadius(brush, live.grid.size), maskStrength, maskDir)}
+            onPaintMask={(from, to) => mask.paint(from, to, brushRadius(maskSizeCells, live.grid.size), maskStrength, maskDir, maskHardness)}
             onPaintMaskEnd={() => run(mask.flush())}
             onPlaceLight={async at => {
               // Nace con lo que trae su tipo; el editor se abre solo para retocarla sin buscarla.
@@ -425,8 +432,9 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           )}
           {/* El pincel de transparencia necesita una capa de terreno donde pintar; si no la hay, se DICE. */}
           {isDm && !playerView && tool === 'mask' && (bgLayer
-            ? <MaskBrushBar layerName={bgLayer.name || t('maps.layers.kind.terrain')} size={brush} onSize={setBrush}
-                strength={maskStrength} onStrength={setMaskStrength} direction={maskDir} onDirection={setMaskDir}
+            ? <MaskBrushBar layerName={bgLayer.name || t('maps.layers.kind.terrain')} size={maskSizeCells} onSize={setMaskSizeCells}
+                strength={maskStrength} onStrength={setMaskStrength} hardness={maskHardness} onHardness={setMaskHardness}
+                direction={maskDir} onDirection={setMaskDir}
                 saving={mask.saving} onReset={() => run(mask.reset())} />
             : <p className="mp-mask-needs">{t('maps.mask.needsLayer')}</p>)}
           {isDm && !playerView && selectedLight && (

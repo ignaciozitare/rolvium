@@ -131,6 +131,45 @@ export const clampStrength = (v: number): number => Math.min(1, Math.max(0, Numb
 export const strengthLabel = (v: number): string => `${Math.round(clampStrength(v) * 100)} %`;
 
 /**
+ * TAMAÑO del pincel de transparencia, en CASILLAS y **continuo**.
+ *
+ * Va aparte de `BRUSH_SIZES` (los cuatro discos del pincel de niebla) a propósito: el dueño pidió el tamaño
+ * «gradual, no me sirve eso» para ESTE pincel, y tocar la constante compartida le habría cambiado también la
+ * niebla, que nadie pidió.
+ */
+export const MASK_SIZE_MIN = 0.2;
+export const MASK_SIZE_MAX = 6;
+export const DEFAULT_MASK_SIZE = 1.2;
+export const clampMaskSize = (v: number): number =>
+  Math.min(MASK_SIZE_MAX, Math.max(MASK_SIZE_MIN, Number.isFinite(v) ? v : DEFAULT_MASK_SIZE));
+
+/**
+ * DUREZA del borde, de 0 a 1. **Es el BORDE, no la fuerza ni el tamaño** (los tres se confundían y el dueño
+ * lo dejó claro): a 0 el brochazo se difumina desde el centro, a 1 corta a filo.
+ */
+export const DEFAULT_MASK_HARDNESS = 0.4;
+export const clampHardness = (v: number): number => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
+export const hardnessLabel = (v: number): string => `${Math.round(clampHardness(v) * 100)} %`;
+
+/** Una parada del degradado radial del pincel: a qué distancia del centro (0 = centro, 1 = borde) y con qué opacidad. */
+export interface MaskStop { at: number; alpha: number }
+
+/**
+ * Las paradas del degradado con el que se estampa el pincel.
+ *
+ * Antes estaban ESCRITAS A FUEGO en `useMaskPainter` (`0 → a`, `0.6 → 0.75a`, `1 → 0`), así que el borde era
+ * siempre el mismo y no había forma de endurecerlo ni de suavizarlo. Ahora las manda la dureza:
+ * el disco opaco llega hasta `dureza` y de ahí al borde se desvanece. Se topa en 0.98 para que a dureza
+ * máxima siga quedando un pelo de degradado — un círculo del todo duro deja el recorte a tijera, y lo que se
+ * pidió es MEZCLAR dos fotos.
+ */
+export function maskStops(strength: number, hardness: number): MaskStop[] {
+  const alpha = clampStrength(strength);
+  const plateau = Math.min(0.98, clampHardness(hardness));
+  return [{ at: 0, alpha }, { at: plateau, alpha }, { at: 1, alpha: 0 }];
+}
+
+/**
  * El pincel tiene DOS SENTIDOS, como el de la niebla tiene Revelar y Ocultar. Es lo que hace verdad la
  * promesa del spec: «la foto original no se toca, siempre se puede volver atrás subiendo la fuerza del
  * pincel en sentido contrario». `erase` quita la capa y asoma la de abajo; `restore` la devuelve.
