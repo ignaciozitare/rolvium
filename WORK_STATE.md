@@ -14,7 +14,78 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟠 de 2026-09-01, justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔵 de cierre, justo debajo.**
+
+## 🔵 CIERRE DE SESIÓN — 2026-09-01, noche. TRASPASO A CHAT NUEVO
+
+> **Orden suya al cerrar: «no borres nada».** Vale para TODO: no podar este fichero, **no borrar sus dos
+> muros**, **no borrar los dos PJ de prueba**, no borrar nada de su mapa. Sólo él puede pedirlo, y por escrito.
+
+### 📍 DÓNDE ESTÁ TODO
+- Rama **`sonda-de-prueba`**, 13 commits por delante de `main`. **NADA subido a GitHub, NADA desplegado.**
+  `main` sigue intacto en `v0.5.0`.
+- Árbol limpio. **`rolvium.pen` ya está guardado y commiteado** (`c61f18a`) — él pulsó Cmd+S.
+- Comprobado al cerrar: **1350 tests** (944 web · 220 api · 29 core · 16 ui · 141 plenilunio) · typecheck web y
+  api limpios · `npm run audit` **0 hard** · `build:web` y `build:api` en verde.
+
+### 🚨 LO QUE PUEDE ROMPER PRODUCCIÓN SI NO SE MIRA — LEER ANTES DE DESPLEGAR
+1. **Producción NO tiene la columna `maps_lights.spin_ms`** (comprobado el 2026-09-01). El código nuevo la
+   PIDE en el `select` de luces, en la web y en la api. **Si el código sube antes que la migración, las luces
+   revientan en producción.** Orden obligatorio: **primero `20260901120000_maps_lights_spin.sql`, después el
+   despliegue.**
+2. **Las versiones de las migraciones en producción NO coinciden con los nombres de fichero del repo**:
+   producción guarda `pjs_de_prueba` como versión `20260901213805`, y el fichero del repo es
+   `20260901180000_pjs_de_prueba.sql`. Ya pasaba con las anteriores. Ojo con `supabase db push`, que compara
+   por versión y puede querer reaplicar o quejarse de orden — puede hacer falta `--include-all`.
+3. **La migración de los PJ de prueba YA está aplicada en producción** (por el MCP). Es idempotente, así que
+   reaplicarla no duplica a nadie.
+
+### ✅ QUÉ SE CONSTRUYÓ ESTA SESIÓN (todo en la rama, todo en verde)
+| | Qué | Estado |
+|---|---|---|
+| 🎭 | **La sonda de prueba** (§ 7.3): «ver como jugador» suelta una ficha genérica que él arrastra y enseña lo que vería un jugador desde ahí. Sin desplegable. Icono `theater_comedy`, elegido por él. | hecho |
+| 🚨 | **La luz que gira** (§ 7.2), la que llevaba reclamando: interruptor + vuelta, sólo con cono. | hecho |
+| 🔦 | **El cono de luz**: el borde ya no es una raya y el brillo nace en el vértice, no en el centro. | hecho |
+| 💬 | **Tooltips** en todos los botones de sólo icono; los de la barra no se veían (la barra scrollea y recortaba el globo) y se quedaban pegados al hacer clic. | hecho |
+| 🐞 | **La puerta**: `planOpening` corta TODOS los muros que pisa, no sólo el más largo. | hecho |
+| 🧹 | **La lente por personaje, borrada entera** + limpieza A y B del barrido. | hecho |
+| 🧱 | **La sonda choca** contra los muros, con la MISMA función que frena a una ficha. | hecho |
+| ⏱ | **Freno de la sonda**: pedía visión 60 veces por segundo; ahora ~7, como una ficha. | hecho |
+| 🏗 | **«Builder»** (antes «Muro») con SU icono (`public/icons/builder.png`, de su PNG, sin fondo). | hecho |
+| 🎭 | **Dos PJ de prueba** (`Elías Vane`, `Nix Corbeau`) en local Y producción, por migración idempotente. | hecho |
+| 🗂 | **El `.pen` ordenado por recorrido**, 13 bandas rotuladas. | hecho |
+
+### 🔴 LO QUE HAY QUE PREGUNTARLE / QUE FALTA
+1. **PROBARLO CON SUS OJOS.** Está todo en verde pero **nadie lo ha visto funcionando de verdad**: no tengo su
+   contraseña. Lo que hay que mirar: la sonda (que choque y que la niebla la siga), el barrido de la luz que
+   gira, el borde del cono, los tooltips y el icono de Builder.
+2. **Sus dos muros** encima de la puerta abierta (escena suya, x=621: puerta 405→540 + muros 405→513 y
+   513→540). El código ya evita que se repita, pero **sus datos siguen igual y él dijo «no borres nada»**.
+   Preguntar antes de tocar.
+3. **La luz que gira**: eligió «la niebla sigue al haz» y lo que sigue al haz es el BRILLO — lo explorado se
+   revela en el círculo desde el primer momento. A los segundos es idéntico. **Falta que diga si le vale.**
+   Sector a sector obliga a las N rotaciones en el servidor. Está escrito en § 7.2.
+4. **`/review` NO se ha lanzado** en toda la sesión: la instrucción de arranque de ese chat prohibía llamar a
+   subagentes sin que él lo pidiera. **Hay que lanzarlo antes de QA.**
+5. **QA + los dos previews de Vercel en verde + merge**, y sólo entonces producción — con la migración de
+   `spin_ms` PRIMERO. Él decidió: **todo sube junto**, la sonda + el borrado de la lente + la puerta.
+6. **FALLO C, «está todo lentísimo»: sin cerrar.** El freno de la sonda era una parte, pero no se ha medido.
+   Pistas que siguen sin mirar: `listLights` se pide en CADA petición de visión aunque no haya luces, y el
+   repo de web ganó 227 líneas de suscripciones realtime. **Medir antes de tocar** (contar peticiones a
+   `/scenes/:id/vision` al arrastrar).
+7. **Rebanada 6 (piezas)**: decisión suya de hoy — **se construye justo después de esto**. No se borra nada.
+8. **«Builder» es sólo el nombre**: dentro sigue siendo la herramienta de muros. El generador de
+   construcciones que él quiere meter ahí **está sin empezar** y necesita su spec.
+
+### 🔁 PROMPT DE RESUME, DE UNA LÍNEA
+> Rolvium, retomo en la rama `sonda-de-prueba` (13 commits, sin subir, `main` intacto). Lee el bloque 🔵 de
+> `WORK_STATE.md`. **No borres nada.** Está construido y en verde: la sonda de prueba, la luz que gira, el
+> arreglo del cono y de la puerta, los tooltips, «Builder» con mi icono y dos PJ de prueba en local y
+> producción. **Lo primero: lanza `/review`**, y avísame de lo que salga. Antes de desplegar, ojo: producción
+> NO tiene la columna `spin_ms` y el código la pide — la migración va PRIMERO. Y tengo pendiente decirte tres
+> cosas: si te dejo borrar los dos muros de mi escena, si me vale el barrido de la luz tal como está, y qué
+> hacemos con el «va lentísimo».
+
 
 ## 🟠 PUNTO EXACTO — 2026-09-01: LA LENTE, BORRADA · LA PUERTA, ARREGLADA · LIMPIEZA A+B HECHA
 
