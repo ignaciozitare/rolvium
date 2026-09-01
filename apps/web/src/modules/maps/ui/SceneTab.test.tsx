@@ -1087,6 +1087,46 @@ describe('<SceneTab> capas (rebanada 7)', () => {
   });
 
   /**
+   * 🌫 EL VELO GRIS, DE PUNTA A PUNTA (dueño, 2026-09-02: «al dm le falta un desactivar esa capa gris para
+   * él, para que pueda ver bien»). El botón está probado por su lado y el lienzo por el suyo, pero los dos
+   * podrían pasar mientras `SceneTab` se olvidase de conectarlos — que es EXACTAMENTE la clase de fallo que
+   * él vio esta noche con el pincel. Así que se prueba el cable: pulsar el botón y mirar el lienzo.
+   */
+  it('el director se quita el velo gris y el lienzo se lo quita de verdad, y puede volver a ponérselo', async () => {
+    const u = userEvent.setup();
+    mount('dm');
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await waitFor(() => expect(within(canvas()).queryByTestId('mp-fog-veil')).not.toBeNull());
+    await u.click(screen.getByRole('button', { name: 'Velo del director: puesto' }));
+    await waitFor(() => expect(within(canvas()).queryByTestId('mp-fog-veil')).toBeNull());
+    // Y vuelve: es un «déjame mirar un momento», no un interruptor de ida.
+    await u.click(screen.getByRole('button', { name: 'Velo del director: quitado' }));
+    await waitFor(() => expect(within(canvas()).queryByTestId('mp-fog-veil')).not.toBeNull());
+  });
+
+  /**
+   * 🔒 Y no toca la escena: es una preferencia de SU pantalla. Si esto acabara escribiéndose, viajaría a los
+   * jugadores por `postgres_changes` y les cambiaría la niebla a todos sin que nadie lo hubiera pedido.
+   */
+  it('quitarse el velo no escribe nada en la escena ni avisa a nadie', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm');
+    await screen.findByRole('complementary', { name: 'Capas' });
+    const antes = repo.sceneUpdates.length, avisos = repo.broadcasts.length;
+    await u.click(screen.getByRole('button', { name: 'Velo del director: puesto' }));
+    await waitFor(() => expect(within(canvas()).queryByTestId('mp-fog-veil')).toBeNull());
+    expect(repo.sceneUpdates).toHaveLength(antes);
+    expect(repo.broadcasts).toHaveLength(avisos);
+  });
+
+  /** A un jugador no se le ofrece, y su niebla negra sigue donde estaba: el velo gris nunca fue suyo. */
+  it('un jugador no tiene ese botón', async () => {
+    mount('player');
+    await screen.findByText(/Almacén de Queens/);
+    expect(screen.queryByRole('button', { name: /Velo del director/ })).toBeNull();
+  });
+
+  /**
    * 🔒 Suprimir no puede confundirse de víctima: elegir un muro SUELTA la luz. Si no, la luz se quedaba
    * elegida sin que nada lo dijera y Suprimir borraba la luz en vez del segmento que acababas de pinchar.
    */

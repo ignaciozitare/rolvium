@@ -126,6 +126,29 @@ describe('SupabaseMapsRepo — walls, tokens, drawings', () => {
     await repo.removeDrawing('d-1');
     expect(q(m, 3)['eq']).toHaveBeenCalledWith('id', 'd-1');
   });
+
+  /**
+   * ✏️ MOVER UN TRAZO, contra la base de verdad (dueño, 2026-09-02: «los textos líneas formas etc deberían
+   * poder seleccionarse y mover y borrarse como cualquier cosa»). El doble de `fakes.ts` guarda lo que le
+   * pidan y siempre dice que sí, así que no prueba nada de la consulta: aquí se ata que se escribe SÓLO
+   * `data`, en la fila que es, y que un rechazo de la base LLEGA como error en vez de tragarse en silencio.
+   */
+  it('mover un trazo escribe sólo sus coordenadas, en su fila, y un «no» de la base se nota', async () => {
+    const m = createSupabaseMock({ tables: { maps_drawings: { data: DRAWING_ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateDrawingData('d-1', { x1: 470, y1: 530, x2: 530, y2: 570 });
+    // Ni el color, ni el grosor, ni la capa: mover cambia dónde está y nada más.
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ data: { x1: 470, y1: 530, x2: 530, y2: 570 } });
+    expect(q(m, 0)['eq']).toHaveBeenCalledWith('id', 'd-1');
+    /**
+     * 🔒 Mover es del director porque lo manda la RLS (`maps_drawings_dm_update`), no la pantalla. Si algún
+     * día la interfaz se equivocara y dejara arrastrar a un jugador, esto tiene que romper a la vista — no
+     * dejar el trazo movido en pantalla y quieto en la base.
+     */
+    const bad = createSupabaseMock({ tables: { maps_drawings: { data: null, error: new Error('new row violates row-level security policy for table "maps_drawings"') } } });
+    await expect(new SupabaseMapsRepo(bad.client as unknown as SupabaseClient).updateDrawingData('d-1', { x1: 0, y1: 0, x2: 1, y2: 1 }))
+      .rejects.toThrow(/row-level security/);
+  });
 });
 
 describe('SupabaseMapsRepo — capas y luces (rebanada 7)', () => {
