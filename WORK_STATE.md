@@ -21,6 +21,60 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 > Rama **`sonda-de-prueba`**. `main` NO se ha tocado. **Nada de esto ha ido a producción** — decisión suya de
 > hoy: «espera y sube todo junto» con la sonda.
 
+### 🔁 SEGUNDA TANDA DEL 2026-09-01 — probando la app en local, cuatro quejas suyas
+
+Todo esto salió de él mirando la app corriendo. **Nada subido, nada desplegado.** Commits `09abf8d`,
+`499cbff`, `ce2afb8`.
+
+**1 · «no me entero con los botones que hay» → TOOLTIPS. ✅**
+Los iconos sueltos de la escena llevaban el `title` del navegador o nada. Ahora usan el `Tooltip` del
+sistema: los 8 controles de la esquina · ojo, candado, subir, bajar, borrar y plegar del panel de capas ·
+plegar y añadir del rail · borrar y cerrar del editor de luz · las aspas de Fondo y Encuentro · la papelera
+de la barra de segmento. **Fuera a propósito**: el interruptor de tema del shell (el `Tooltip` se tiñe con
+`--sys-*`, que sólo existen dentro de la mesa) y los círculos de color (un globo que diga «Color 3» no añade
+nada).
+
+**2 · «esta barra no tiene tooltips» + «si hago click queda activado» → LOS DOS, ARREGLADOS. ✅**
+- La barra de herramientas **sí los tenía** desde hacía semanas y no se veía ni uno: `.mp-toolbar` lleva
+  `overflow:auto` (y `.mp-layers` también) y eso **RECORTA** un globo colocado en absoluto. Ahora va
+  `position: fixed` con las coordenadas calculadas contra la ventana, que es lo que lo saca del recorte.
+  ⚠️ **Regla que no se puede perder**: cualquier tooltip dentro de algo que scrollee necesita esto.
+- Se quedaba colgado tras pulsar porque el CSS lo enseñaba con `:focus-within`, y un clic también deja el
+  foco puesto. Ahora la visibilidad la lleva el componente: ratón encima, o teclado (`:focus-visible`, no
+  cualquier foco), y se va al salir o al pulsar. La API del componente NO cambia.
+
+**3 · «las luces cónicas sigue teniendo el borde duro» + «la luz brillante debería salir del vértice». ✅**
+Eran dos fallos de verdad y llevaban tiempo:
+- **Borde**: se pintaba el cono y se le ponía encima su propia silueta difuminada. Multiplicar una forma por
+  su propio borde borroso **no difumina**: en el filo la máscara vale la mitad y fuera no hay nada pintado,
+  así que saltaba de media a cero de golpe. Ahora **se pinta la caja entera y la forma vive en la máscara**,
+  la única que decide dónde acaba. De paso la región del desenfoque pasa a px de escena con margen.
+- **Brillo**: el `radialGradient` no decía unidades → se medía contra la CAJA del objeto, y en un cono el
+  punto brillante caía en mitad del triángulo. Ahora `userSpaceOnUse` centrado en la luz, radio = su alcance.
+- 3 tests de regresión + el de formas actualizado (la forma se comprueba ahora en la máscara).
+
+**4 · «el botón de ver como jugador… me debería dejar poner un token donde quiera para probar». 🔄 SPEC
+CORREGIDO, DISEÑO A MEDIAS.**
+- **La sonda YA NO es un botón nuevo**: cuelga de **«Ver como jugador»**. Encenderlo quita privilegios *y*
+  suelta la sonda; apagarlo se la lleva. Un botón menos en una barra que él ya ve saturada. § 7.3 reescrito.
+- El botón «Sonda» que se había dibujado en el `.pen` **se ha borrado**, y el frame `JRbTf` con él.
+- **PENDIENTE SUYO: elegir el icono.** Hoy es `layers` y «no se entiende». Tres candidatos dibujados en
+  `rolvium.pen`, frame **«PL/Ver como jugador · icono, 3 candidatos»** (`Ny7dg`), apagado y encendido:
+  `person_search` · `preview` · `theater_comedy`.
+
+### 🔴 LO QUE SIGUE FALTANDO Y ÉL LO HA RECLAMADO: LA LUZ QUE GIRA
+> «Sigue faltando la luz que gira que te pedí.» **Tiene razón: no está empezada.** Pedida el 2026-08-31,
+> eligió **«la niebla sigue al haz»**. El plan barato sigue escrito y sigue siendo válido:
+
+- El barrido es **determinista**: se calculan **N rotaciones del cono de una vez** (24–36), cada una ya
+  recortada contra muros y línea de vista, se mandan **todas juntas** con el periodo, y el navegador va
+  pasando de una a otra con reloj compartido. **Nada de recalcular por fotograma.**
+- **Datos**: dos columnas aditivas en `maps_lights` (gira sí/no, periodo) → pasa por DBA.
+- **Servidor**: en `litLights`, si la luz gira, devolver N charcos en vez de uno.
+- **Navegador**: animar cuál se pinta.
+- **Explorado**: una vuelta entera acaba explorando el círculo. Es correcto, no hay que forzarlo.
+- Pasa por **spec (§ 7.2) → DBA → diseño → código**, como todo. **Es la tarea grande que queda.**
+
 ### 🔴 LO PRIMERO AL RETOMAR — dos cosas que sólo puede contestar él
 1. **APROBAR EL DISEÑO de la sonda en `rolvium.pen`** (§ 7.3). Sin su «ok» **no se escribe una línea de UI**.
    Frames nuevos: `k5Ig5` «Mesa/Plenilunio · Escena · Director · sonda de prueba» y `JRbTf` «PL/Barra de

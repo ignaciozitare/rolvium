@@ -448,12 +448,20 @@ jugador desde ese punto**. No hay desplegable y no hay que elegir personaje.
   que un jugador no conoce, así que si la línea de vista se recalculase allí, lo que ve él y lo que ve el
   jugador podrían discrepar — y comprobar exactamente eso es para lo que sirve la sonda.
 
-#### Dónde vive el botón
-- En el **bloque de director de la barra**, con la niebla: `Revelar · Ocultar · Sonda`. El criterio del orden
-  es el que fijó el dueño el 31-ago —primero lo que CONSTRUYE la escena, luego la niebla, luego el juego— y la
-  sonda es de comprobar la niebla. Ese orden lo sujeta el test `controls.test.tsx`.
-- Es un botón que **se queda pulsado** (encendido / apagado), no una herramienta que cambia el cursor: la sonda
-  se arrastra con «Seleccionar», como todo lo demás del mapa.
+#### Dónde vive: NO es un botón nuevo — cuelga de «Ver como jugador»
+> 🔄 Corregido el 2026-09-01 por el dueño, viendo la app en local: «el botón de ver como jugador… me debería
+> dejar poner un token donde quiera para probar». Antes se había planeado un botón «Sonda» propio en el bloque
+> de director de la barra; **se descarta**. Un botón menos, y la historia queda entera en un solo sitio.
+
+- **«Ver como jugador» (`playerView`, en los controles del lienzo) ES la sonda.** Al encenderlo: se le quitan
+  al director sus privilegios —lo que ya hacía— **y además** aparece la sonda en el mapa, que él arrastra.
+  Al apagarlo, la sonda desaparece y con ella su memoria.
+- **Su icono cambia**: hoy es `layers` y no dice nada («no se entiende el icono, busquemos otro»). El icono
+  nuevo se elige en `rolvium.pen` y lo aprueba el dueño antes de tocar código.
+- La sonda se arrastra con **«Seleccionar»**, como todo lo demás del mapa: no hace falta ninguna herramienta
+  nueva y el cursor no cambia.
+- **La barra de herramientas no crece.** El orden del bloque de director que el dueño fijó el 31-ago se queda
+  como está, y su test (`controls.test.tsx`) sigue valiendo tal cual.
 
 #### Fuera de alcance (a propósito)
 - Varias sondas a la vez, y recordar dónde la dejaste la última vez.
