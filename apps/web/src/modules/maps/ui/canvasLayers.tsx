@@ -281,56 +281,82 @@ export const lightFeather = (radius: number): number => Math.max(5, radius * 0.1
 export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: readonly Light[]; lit?: readonly LitLight[] }): JSX.Element {
   const shown = lights.map(l => ({ light: l, parts: lit?.find(x => x.id === l.id)?.parts ?? null }))
     .filter(({ parts }) => !lit || parts !== null);
+  /** La caja que ocupa una luz: su forma más el margen que necesita el desenfoque para no comerse su propio borde. */
+  const boxOf = (l: Light): { r: number; f: number; pad: number } => {
+    const r = lightRadiusPx(l, scene.grid);
+    const f = lightFeather(r);
+    return { r, f, pad: r * 1.6 + f * 4 };
+  };
   return (
     <g className="mp-layer-lights" data-testid="mp-lights">
       <defs>
-        {shown.map(({ light: l }) => (
-          <radialGradient key={l.id} id={`mp-light-${l.id}`}>
-            <stop offset="0%" stopColor={l.color} stopOpacity={0.65} />
-            <stop offset="55%" stopColor={l.color} stopOpacity={0.25} />
-            <stop offset="100%" stopColor={l.color} stopOpacity={0} />
-          </radialGradient>
-        ))}
         {shown.map(({ light: l }) => {
-          const f = lightFeather(lightRadiusPx(l, scene.grid));
+          const { r } = boxOf(l);
+          /**
+           * El degradado va en COORDENADAS DE LA ESCENA y centrado en la luz, no en la caja de su forma
+           * (dueño, 2026-09-01: «la luz brillante debería salir del vértice del cono, no aparecer en el centro
+           * del mismo como ahora»). Por omisión un `radialGradient` se mide contra la caja del objeto, así que
+           * en un cono el punto brillante caía en mitad del triángulo — a media pared, en vez de en la antorcha.
+           */
           return (
-            <filter key={l.id} id={`mp-lightblur-${l.id}`} x="-50%" y="-50%" width="200%" height="200%" filterUnits="objectBoundingBox">
+            <radialGradient key={l.id} id={`mp-light-${l.id}`} gradientUnits="userSpaceOnUse" cx={l.x} cy={l.y} r={r}>
+              <stop offset="0%" stopColor={l.color} stopOpacity={0.65} />
+              <stop offset="55%" stopColor={l.color} stopOpacity={0.25} />
+              <stop offset="100%" stopColor={l.color} stopOpacity={0} />
+            </radialGradient>
+          );
+        })}
+        {shown.map(({ light: l }) => {
+          const { f, pad } = boxOf(l);
+          // La región del filtro va en px de escena y con el mismo margen que la máscara: un desenfoque que
+          // acaba en el filo de su región se recorta a sí mismo y devuelve el canto que veníamos a quitar.
+          return (
+            <filter key={l.id} id={`mp-lightblur-${l.id}`} filterUnits="userSpaceOnUse"
+              x={l.x - pad} y={l.y - pad} width={pad * 2} height={pad * 2}>
               <feGaussianBlur stdDeviation={f} />
             </filter>
           );
         })}
         {shown.map(({ light: l, parts }) => {
-          const r = lightRadiusPx(l, scene.grid);
-          const f = lightFeather(r);
-          // La máscara se pinta con MARGEN: un desenfoque que acaba en el filo de su caja se come su propio borde.
-          const pad = r * 1.6 + f * 4;
+          const { r, pad } = boxOf(l);
           return (
             <mask key={l.id} id={`mp-litmask-${l.id}`} maskUnits="userSpaceOnUse" x={l.x - pad} y={l.y - pad} width={pad * 2} height={pad * 2}>
               <g filter={`url(#mp-lightblur-${l.id})`}>
                 {parts
-                  ? <path d={polygonsPath(parts)} fill={MASK_SHOW} />
-                  : lightShape(l, r, { fill: MASK_SHOW })}
+                  ? <path d={polygonsPath(parts)} fill={MASK_SHOW} data-testid="mp-light-shape" />
+                  : lightShape(l, r, { fill: MASK_SHOW, 'data-testid': 'mp-light-shape' })}
               </g>
             </mask>
           );
         })}
       </defs>
       {shown.map(({ light: l }) => {
-        const r = lightRadiusPx(l, scene.grid);
+        const { pad } = boxOf(l);
         const rhythm = flickerOf(l);
         const style = rhythm
           ? ({ animationDuration: `${rhythm.periodMs}ms`, '--mp-flicker': String(rhythm.depth) } as React.CSSProperties)
           : undefined;
-        return lightShape(l, r, {
-          key: l.id,
-          className: `mp-light ${rhythm ? (rhythm.sharp ? 'flicker-sharp' : 'flicker-soft') : ''}`,
-          fill: `url(#mp-light-${l.id})`,
-          style,
-          // SIEMPRE enmascarada, haya recorte del servidor o no: es lo que le quita el canto al borde.
-          mask: `url(#mp-litmask-${l.id})`,
-          'data-light-id': l.id,
-          'data-testid': 'mp-light',
-        });
+        /**
+         * Lo que se PINTA es la caja entera, y la forma la pone la MÁSCARA — no al revés (dueño, 2026-09-01:
+         * «las luces cónicas sigue teniendo el borde duro»).
+         *
+         * Antes se pintaba el cono y se le ponía encima su propia silueta difuminada. Multiplicar una forma por
+         * su propio borde borroso no difumina nada: justo en el filo la máscara vale la mitad y fuera no hay
+         * nada que pintar, así que el resultado saltaba de medio a cero de golpe — una raya, más tenue pero
+         * raya. Pintando de sobra y dejando que la máscara sea la única que decide dónde acaba, el apagón
+         * ocurre entero dentro de lo pintado y el borde sale como tiene que salir: apagándose.
+         *
+         * No se sale de su alcance por pintar de más: el degradado ya llega a cero en el radio de la luz.
+         */
+        return (
+          <rect key={l.id} x={l.x - pad} y={l.y - pad} width={pad * 2} height={pad * 2}
+            className={`mp-light ${rhythm ? (rhythm.sharp ? 'flicker-sharp' : 'flicker-soft') : ''}`}
+            fill={`url(#mp-light-${l.id})`}
+            style={style}
+            mask={`url(#mp-litmask-${l.id})`}
+            data-light-id={l.id}
+            data-testid="mp-light" />
+        );
       })}
     </g>
   );

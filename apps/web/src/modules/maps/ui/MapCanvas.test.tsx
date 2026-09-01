@@ -67,15 +67,28 @@ describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
     expect(floor.querySelector('image')).not.toHaveAttribute('mask');
   });
 
+  /**
+   * La FORMA de una luz vive en su máscara, no en lo que se pinta: se pinta de sobra y la máscara —difuminada—
+   * es la única que decide dónde acaba. Pintar la forma y taparla con su propia silueta borrosa dejaba el
+   * borde duro que el dueño reclamó dos veces (2026-08-31 y 2026-09-01).
+   */
   it('las luces se pintan por forma y con su alcance en metros', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL, lights: [LIGHT_TORCH, LIGHT_BULB] });
     const lights = within(svg).getAllByTestId('mp-light');
     expect(lights).toHaveLength(2);
-    expect(lights[0]!.tagName.toLowerCase()).toBe('circle');
-    expect(lights[1]!.tagName.toLowerCase()).toBe('rect');
     expect(lights[0]).toHaveAttribute('fill', `url(#mp-light-${LIGHT_TORCH.id})`);
-    // Más metros, más radio.
-    expect(Number(lights[0]!.getAttribute('r'))).toBeGreaterThan(Number(lights[1]!.getAttribute('width')) / 2);
+    expect(lights[0]).toHaveAttribute('mask', `url(#mp-litmask-${LIGHT_TORCH.id})`);
+    // La forma, dentro de la máscara: la antorcha es un radio, la bombilla un cuadrado.
+    const shapes = svg.querySelectorAll('[data-testid="mp-light-shape"]');
+    expect(shapes[0]!.tagName.toLowerCase()).toBe('circle');
+    expect(shapes[1]!.tagName.toLowerCase()).toBe('rect');
+    // Más metros, más radio — y el degradado nace en la LUZ, en coordenadas de escena, no en el centro de su caja.
+    const g0 = svg.querySelector(`#mp-light-${LIGHT_TORCH.id}`)!;
+    const g1 = svg.querySelector(`#mp-light-${LIGHT_BULB.id}`)!;
+    expect(g0).toHaveAttribute('gradientUnits', 'userSpaceOnUse');
+    expect(g0).toHaveAttribute('cx', String(LIGHT_TORCH.x));
+    expect(g0).toHaveAttribute('cy', String(LIGHT_TORCH.y));
+    expect(Number(g0.getAttribute('r'))).toBeGreaterThan(Number(g1.getAttribute('r')));
   });
 
   /**
