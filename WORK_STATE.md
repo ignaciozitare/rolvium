@@ -100,6 +100,67 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 > hacemos con el «va lentísimo».
 
 
+## 🟢 NOCHE DEL 2026-09-02: LA SEGUNDA MITAD — NIEBLA, TRAZOS Y EL GENERADOR (spec, no interfaz)
+
+> Se fue a dormir dos veces esta noche, las dos diciendo **«sigue»**. Sigue en pie **«no borres nada»**.
+> **NADA subido a GitHub, NADA desplegado, `main` intacto.** Cuatro commits nuevos en la rama.
+
+### 🔴 LO PRIMERO AL LEVANTARSE: TRES COSAS QUE SÓLO PUEDE CONTESTAR ÉL
+1. **El generador de habitaciones NO TIENE DISEÑO.** Dijo «el generador que tenemos diseñado» — lo busqué
+   antes de escribir una línea: **no hay componente ni frame en `rolvium.pen`**, no hay nada en el historial
+   (el único «generador» del repo es el de personajes) y en este fichero aparece tres veces, las tres como
+   «sin empezar». Lo que mandó en su día fueron **dos capturas de Dungeon Scrawl como referencia**, que no es
+   un diseño. → **Hay que preguntarle si quiere diseño primero o tirar sin él.**
+2. **El spec del generador está escrito y SIN CONFIRMAR**, con **cinco preguntas** suyas dentro
+   (`specs/modules/maps/SPEC.md` § «Rebanada 8»): puertas automáticas o no · qué pasa cuando dos salas se
+   tocan · qué significa «la foto de fondo hace de textura de suelo» (dos lecturas, una casi gratis y otra
+   una capa por habitación) · qué tipos hacen falta · si los muros generados nacen visibles para el jugador.
+3. **Sigue sin probarlo nadie con sus ojos** salvo lo que él mismo vio anoche.
+
+### ✅ LO CONSTRUIDO EN ESTA SEGUNDA MITAD
+| | Qué | Cómo |
+|---|---|---|
+| 🌫 | **El pincel de niebla no hacía NADA** | Y no era de anoche. Está escrito para pintar «sobre lo explorado de cada JUGADOR», y su campaña `test` tiene **1 director y 0 jugadores** — el estado normal montando una escena. Lista vacía → ni una escritura. Y su velo gris se calcula como «lo que los jugadores han explorado»: sin jugadores, gris para siempre. `maps_fog` tenía **0 filas**. Ahora el director entra en el reparto. |
+| 🌫 | **Quitarse el velo gris** | Interruptor nuevo, sólo suyo: no toca la escena, no viaja, no se guarda, ningún jugador se entera. |
+| 🖱 | **«Seleccionar», primera del botón derecho** | Con separador. La vuelta a casa desde cualquier herramienta. |
+| ✏️ | **Trazos: elegir, mover y borrar** | Halo dorado (no cambio de color: el color es del que lo hizo). Se mira el ÚLTIMO, como se pinta, para no robarle el clic a fichas, luces ni muros. Mover guarda los puntos ya desplazados — si no, al recargar volvía a su sitio. |
+| 🏗 | **Motor del generador** | `domain/useCases/roomRules.ts`: rectángulo y círculo → lados de muro pegados a la rejilla. **Sin interfaz, a propósito.** |
+
+**Comprobado al cerrar**: typecheck web y api limpios · **1232 tests** (959 regression+src · 12 smoke · 38
+functional · 223 api · 29 core · 16 ui · 141 plenilunio) · `npm run audit` **0 hard, 13 warn** (los mismos de
+siempre) · `build:web` y `build:api` en verde.
+
+### 🔒 DECISIONES DE ESTA NOCHE QUE NO HAY QUE DESHACER SIN PREGUNTARLE
+- **Nada que GIRE puede llevar un filtro colgando.** Un desenfoque gaussiano sobre algo que gira se rehace en
+  cada fotograma y fue lo que le puso el mapa entero a saltos. El filo del haz se DIBUJA en capas. Hay test.
+- **Mover un trazo es sólo del director**, porque la RLS de `maps_drawings` sólo deja actualizar al director.
+  No es un capricho de la pantalla. Si quiere que un jugador mueva el suyo → **política nueva, decisión suya**.
+- **Las imágenes de 1,8 MB se quedan** donde están. Cerrado por él: «no quiero perder ninguna imagen».
+- **Una habitación no es una entidad nueva**: produce muros de los de siempre. Sin tabla y sin migración.
+
+### 🚨 EL DESPLIEGUE: SIGUEN SIENDO DOS MIGRACIONES, Y VAN PRIMERO
+1. `20260901120000_maps_lights_spin.sql` — `spin_ms`
+2. `20260902010000_maps_lights_intensity.sql` — `intensity` (10–200)
+
+**Las dos las nombra la web en su `select`.** Si el código sube antes, no fallan «las luces»: **se cae la
+niebla entera para todos**. Ya aplicadas en LOCAL esta noche (sin `db:reset`, sólo añadir columna; sus 10
+luces intactas y todas a 100). Ojo con `supabase db push`: puede necesitar `--include-all`.
+
+### ⏳ SU COLA, COMO QUEDA
+1. **Generador de habitaciones**: confirmar spec + decidir si hace falta diseño. El motor ya está.
+2. **Tiradores en los nodos para escalar lo dibujado** — lo pidió junto con «seleccionar y mover» (que ya
+   está hecho). **El escalado sigue sin tiradores.** Él dijo «el escalado ya está resuelto»; hay que aclarar
+   qué quiso decir.
+3. **QA + los dos previews + merge**, y sólo entonces producción, con las dos migraciones delante.
+4. **Rebanada 6 (piezas)** y **«Builder»** como generador de construcciones de verdad.
+
+### 🔁 PROMPT DE RESUME
+> Rolvium, retomo en `sonda-de-prueba`. Lee el bloque 🟢 de `WORK_STATE.md`. **No borres nada.** Anoche se
+> arregló el pincel de niebla (mi campaña no tiene jugadores y por eso no hacía nada), se puede quitar el
+> velo gris, y los trazos ya se eligen, mueven y borran. El generador de habitaciones tiene spec y motor pero
+> **NO tiene diseño y el spec está sin confirmar: tengo cinco preguntas que contestar**. Antes de desplegar,
+> **DOS migraciones van primero** o revienta la niebla en producción.
+
 ## 🟣 NOCHE DEL 2026-09-01 → 02: SUS CINCO RESPUESTAS, Y CUATRO COSAS CONSTRUIDAS SIN ÉL
 
 > Se fue a dormir con el encargo literal: **«avanza con estas cosas que no me necesitas, mañana lo quiero ver
