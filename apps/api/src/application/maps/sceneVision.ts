@@ -55,8 +55,16 @@ function litLights(
   for (const l of lights) {
     if (!layerPaints(layers, l.layerId, isDm)) continue;
     const radius = sightRadiusPx('night', l.rangeM, scene.gridSize) ?? 0;
+    /**
+     * 🚨 UN CONO QUE GIRA MANDA EL CÍRCULO ENTERO, y el navegador rota encima la ventana con forma de cono
+     * (§ 7.2 «la luz que gira»). No es un atajo: el recorte contra los muros es RADIAL —cada rayo se corta en
+     * la primera pared— así que «cono girado a θ, recortado» es exactamente «círculo recortado ∩ sector de θ».
+     * Descomponerlo así cuesta lo mismo que una luz quieta; calcular aquí las 24 rotaciones costaría 24 veces
+     * más en CADA petición de visión, y el dueño ya se quejó de que «está todo lentísimo».
+     */
+    const spinning = (l.spinMs ?? 0) > 0 && l.shape === 'cone';
     const poly = lightPolygon({
-      origin: { x: l.x, y: l.y }, radius, shape: l.shape,
+      origin: { x: l.x, y: l.y }, radius, shape: spinning ? 'radius' : l.shape,
       rotation: l.rotation, coneAngle: l.coneAngle, castsShadow: l.castsShadow,
     }, segments);
     if (poly.length < 3) continue;

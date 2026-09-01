@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import type { Light, LightKind, LightPatch, LightShape } from '../domain/entities/Scene';
-import { clampRangeM, flickerOf, LIGHT_COLORS, LIGHT_KINDS, LIGHT_SHAPES, MAX_RANGE_M, MIN_RANGE_M, rangeLabelM, RANGE_STEP_M } from '../domain/useCases/layerRules';
+import { clampRangeM, clampSpinMs, DEFAULT_SPIN_MS, flickerOf, LIGHT_COLORS, LIGHT_KINDS, LIGHT_SHAPES, MAX_RANGE_M, MAX_SPIN_MS, MIN_RANGE_M, MIN_SPIN_MS, rangeLabelM, RANGE_STEP_M, spinLabelS, SPIN_STEP_MS } from '../domain/useCases/layerRules';
 
 const KIND_ICON: Record<LightKind, string> = {
   torch: 'local_fire_department', bulb: 'lightbulb', fire: 'fireplace', lantern: 'wb_twilight',
@@ -124,6 +124,25 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
                 onChange={e => onChange({ rotation: Number(e.target.value) })} />
               <span className="mp-light-value">{Math.round(((light.rotation % 360) + 360) % 360)}°</span>
             </label>
+            {/*
+              * QUE GIRE SOLA, «como una sirena» (§ 7.2, petición del dueño del 2026-08-31). Sólo aquí, con
+              * el cono: un radio ya alumbra en redondo y un cuadrado girando no significa nada.
+              *
+              * Un interruptor y un periodo, pero UN solo dato: `spinMs = 0` es «quieta». Guardar además un
+              * «gira sí/no» sería decir lo mismo dos veces y acabaría mintiendo.
+              */}
+            <label className="mp-light-check">
+              <input type="checkbox" checked={light.spinMs > 0} onChange={e => onChange({ spinMs: e.target.checked ? DEFAULT_SPIN_MS : 0 })} />
+              {t('maps.lights.spin')}
+            </label>
+            {light.spinMs > 0 && (
+              <label className="mp-light-row">
+                <span className="mp-light-label">{t('maps.lights.spinPeriod')}</span>
+                <input type="range" min={MIN_SPIN_MS} max={MAX_SPIN_MS} step={SPIN_STEP_MS} value={light.spinMs} aria-label={t('maps.lights.spinPeriod')}
+                  onChange={e => onChange({ spinMs: clampSpinMs(Number(e.target.value)) })} />
+                <span className="mp-light-value">{spinLabelS(light.spinMs)}</span>
+              </label>
+            )}
           </>
         )}
       </fieldset>

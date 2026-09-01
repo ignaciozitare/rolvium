@@ -184,8 +184,8 @@ describe('SupabaseMapsRepo — capas y luces (rebanada 7)', () => {
   it('las luces mapean sus columnas, incluidas las que todavía no se usan', async () => {
     const m = createSupabaseMock({ tables: { maps_lights: { data: LIGHT_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    const l = await repo.addLight({ sceneId: 'sc-1', campaignId: 'c1', layerId: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, coneAngle: 60, color: '#e8a24e', flicker: true, rangeM: 6, castsShadow: false });
-    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false });
+    const l = await repo.addLight({ sceneId: 'sc-1', campaignId: 'c1', layerId: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, coneAngle: 60, color: '#e8a24e', flicker: true, rangeM: 6, castsShadow: false, spinMs: 0 });
+    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false, spin_ms: 0 });
     // `rangeM` y `castsShadow` se guardan desde el primer día aunque todavía no iluminen.
     expect(l).toMatchObject({ kind: 'torch', rangeM: 6, castsShadow: false, coneAngle: 60 });
     await repo.updateLight('li-1', { flicker: false });

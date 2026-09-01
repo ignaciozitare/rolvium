@@ -501,6 +501,44 @@ describe('luces que iluminan de verdad (§ 7.2)', () => {
     expect(inLit({ x: 200, y: 60 }, r.data.lit)).toBe(true);
   });
 
+  /**
+   * 🚨 LA LUZ QUE GIRA (§ 7.2). Un cono que gira manda el CÍRCULO ENTERO recortado y el barrido lo hace el
+   * navegador rotando encima una ventana. No es un atajo: el recorte contra los muros es RADIAL, así que
+   * «cono girado a θ, recortado» es «círculo recortado ∩ sector de θ». Calcular aquí las 24 rotaciones
+   * costaría 24 veces más en CADA petición de visión, y el dueño ya se quejó de que va lentísimo.
+   */
+  it('un cono que gira manda el círculo entero, no el cono de este instante', async () => {
+    const cone = { ...LIGHT, x: 100, y: 135, shape: 'cone' as const, coneAngle: 40, rotation: 0, rangeM: 4.5 };
+    const detras = { x: 100, y: 60 };   // a 75 px por encima de la luz: fuera de un cono que apunta a la derecha
+    const quieto = await computeSceneVision({ maps: seed({ scene: { fogMode: 'off' }, lights: [cone] }) }, { sceneId: SCENE, userId: PIP });
+    const girando = await computeSceneVision({ maps: seed({ scene: { fogMode: 'off' }, lights: [{ ...cone, spinMs: 4000 }] }) }, { sceneId: SCENE, userId: PIP });
+    if (!quieto.ok || !girando.ok) return;
+    expect(inLit(detras, quieto.data.lit)).toBe(false);    // quieto: el cono no mira ahí
+    expect(inLit(detras, girando.data.lit)).toBe(true);     // girando: el barrido acaba pasando por ahí
+  });
+
+  it('girar NO le da permiso para atravesar la piedra: el círculo va recortado igual', async () => {
+    const maps = fakeMapsRepo({
+      roles: ROLES,
+      scene: { width: 270, height: 270, gridSize: 27, fogMode: 'off' },
+      walls: [{ id: 'w-half', x1: 135, y1: 0, x2: 135, y2: 270, blocksSight: true, blocksMove: true, isOpen: false }],
+      tokens: [{ id: 'tk-pip', x: 1, y: 5, size: 1, controlledBy: PIP }],
+      lights: [{ ...LIGHT, x: 100, y: 135, shape: 'cone', coneAngle: 40, rangeM: 9, spinMs: 4000 }],
+    });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    if (!r.ok) return;
+    expect(inLit({ x: 100, y: 135 }, r.data.lit)).toBe(true);    // a este lado del muro, alumbra
+    expect(inLit({ x: 200, y: 135 }, r.data.lit)).toBe(false);   // al otro, no
+  });
+
+  it('sólo gira un CONO: un radio con periodo puesto sigue siendo un radio', async () => {
+    const radio = { ...LIGHT, x: 100, y: 135, shape: 'radius' as const, rangeM: 4.5 };
+    const a = await computeSceneVision({ maps: seed({ scene: { fogMode: 'off' }, lights: [radio] }) }, { sceneId: SCENE, userId: PIP });
+    const b = await computeSceneVision({ maps: seed({ scene: { fogMode: 'off' }, lights: [{ ...radio, spinMs: 4000 }] }) }, { sceneId: SCENE, userId: PIP });
+    if (!a.ok || !b.ok) return;
+    expect(b.data.lit).toEqual(a.data.lit);
+  });
+
   it('el pincel del director contesta también las luces: su respuesta reemplaza la niebla entera', async () => {
     const maps = seed({ lights: [LIGHT] });
     const r = await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'reveal', at: { x: 30, y: 30, radius: 20 } });

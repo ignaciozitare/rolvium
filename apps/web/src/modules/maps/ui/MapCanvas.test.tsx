@@ -789,6 +789,42 @@ describe('<MapCanvas> Seleccionar edita muros', () => {
  * producción y dejaba el mapa en negro. No es una ficha: no está en `maps_tokens`, no la ve ningún jugador,
  * no sale en ninguna lista y se pinta ENCIMA de la niebla porque es mobiliario de la pantalla del director.
  */
+/**
+ * 🚨 LA LUZ QUE GIRA (§ 7.2, «como una sirena»). El servidor manda el CÍRCULO entero ya recortado y el
+ * barrido se hace aquí, rotando encima una ventana con forma de cono. Es exacto —el recorte contra los muros
+ * es radial— y cuesta lo mismo que una luz quieta, en vez de 24 veces más en cada petición de visión.
+ */
+describe('<MapCanvas> la luz que gira', () => {
+  const SIREN = { ...LIGHT_SECRET, id: 'li-siren', layerId: null, shape: 'cone' as const, spinMs: 4000 };
+
+  it('una luz quieta no monta ninguna ventana que gire', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH] });
+    expect(svg.querySelector('[data-testid="mp-light-spin"]')).toBeNull();
+  });
+
+  it('un cono que gira monta la ventana, con su periodo y girando la vuelta entera', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [SIREN] });
+    const spin = svg.querySelector('[data-testid="mp-light-spin"]')!;
+    expect(spin.getAttribute('data-spin-ms')).toBe('4000');
+    const anim = spin.querySelector('animateTransform')!;
+    expect(anim.getAttribute('type')).toBe('rotate');
+    expect(anim.getAttribute('dur')).toBe('4000ms');
+    expect(anim.getAttribute('repeatCount')).toBe('indefinite');
+    // Gira alrededor de la LUZ, no del centro de la caja del cono: por eso el ángulo lleva su x/y detrás.
+    expect(anim.getAttribute('from')).toBe(`0 ${SIREN.x} ${SIREN.y}`);
+    expect(anim.getAttribute('to')).toBe(`360 ${SIREN.x} ${SIREN.y}`);
+    // La fase sale del reloj: todos en la mesa ven el haz en el mismo sitio, entren cuando entren.
+    expect(Number(anim.getAttribute('begin')!.replace('ms', ''))).toBeLessThanOrEqual(0);
+    // Y el charco se pinta a través de ella: la ventana recorta, no reemplaza.
+    expect(svg.querySelector(`#mp-litmask-${SIREN.id} g[mask]`)!.getAttribute('mask')).toBe(`url(#mp-litspin-${SIREN.id})`);
+  });
+
+  it('sólo gira un CONO: un radio ya alumbra en redondo', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, spinMs: 4000 }] });
+    expect(svg.querySelector('[data-testid="mp-light-spin"]')).toBeNull();
+  });
+});
+
 describe('<MapCanvas> la sonda de prueba', () => {
   const at = { x: 5 * G, y: 5 * G };
 

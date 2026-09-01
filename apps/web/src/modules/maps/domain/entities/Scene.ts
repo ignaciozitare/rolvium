@@ -183,6 +183,13 @@ export interface Light {
   rangeM: number;
   /** Ídem: si el día que ilumine proyectará sombra contra los muros. */
   castsShadow: boolean;
+  /**
+   * LA LUZ QUE GIRA (§ 7.2, «como una sirena»): milisegundos que tarda una VUELTA ENTERA. `0` = no gira.
+   *
+   * Uno y no dos campos —un «gira sí/no» aparte del periodo— porque serían dos formas de decir lo mismo y
+   * tarde o temprano una mentiría. Sólo significa algo con `shape: 'cone'`: un radio ya alumbra en redondo.
+   */
+  spinMs: number;
   createdAt: string;
   updatedAt: string;
 }

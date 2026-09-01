@@ -351,7 +351,7 @@ export const LAYER_MOSS: Layer = { ...LAYER_BASE, id: 'ly-moss', kind: 'terrain'
 export const LAYER_PUDDLES: Layer = { ...LAYER_BASE, id: 'ly-pud', kind: 'terrain', name: 'Charcos', sortOrder: 2, visible: false, imageUrl: 'https://x/backgrounds/c1/puddles.png' };
 export const LAYERS_ALL: Layer[] = [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS, LAYER_PUDDLES];
 
-const LIGHT_BASE = { sceneId: 'sc-1', campaignId: 'c1', layerId: null, rotation: 0, coneAngle: 60, castsShadow: false, createdAt: '2026-08-31T00:00:00Z', updatedAt: '2026-08-31T00:00:00Z' };
+const LIGHT_BASE = { sceneId: 'sc-1', campaignId: 'c1', layerId: null, rotation: 0, coneAngle: 60, castsShadow: false, spinMs: 0, createdAt: '2026-08-31T00:00:00Z', updatedAt: '2026-08-31T00:00:00Z' };
 export const LIGHT_TORCH: Light = { ...LIGHT_BASE, id: 'li-torch', shape: 'radius', kind: 'torch', x: 300, y: 200, color: '#e8a24e', flicker: true, rangeM: 6 };
 export const LIGHT_BULB: Light = { ...LIGHT_BASE, id: 'li-bulb', shape: 'square', kind: 'bulb', x: 600, y: 400, color: '#f0e6c8', flicker: false, rangeM: 4 };
 /** Una luz escondida en la capa de notas del director: no puede llegar a un jugador. */

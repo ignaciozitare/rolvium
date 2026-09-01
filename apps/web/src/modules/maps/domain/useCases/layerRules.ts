@@ -273,6 +273,22 @@ export const MIN_RANGE_M = 0.5;
 export const MAX_RANGE_M = 60;
 export const clampRangeM = (v: number): number => Math.min(MAX_RANGE_M, Math.max(MIN_RANGE_M, Math.round(v / RANGE_STEP_M) * RANGE_STEP_M));
 
+/**
+ * LA LUZ QUE GIRA (§ 7.2). `spinMs` es lo que tarda una VUELTA ENTERA; `0` es «quieta».
+ *
+ * Los topes son los mismos que sujeta la base (`maps_lights_spin_ms_ck`), y están por algo: por debajo de
+ * medio segundo el barrido es un parpadeo epiléptico, y por encima de un minuto no se nota que gire.
+ */
+export const MIN_SPIN_MS = 500;
+export const MAX_SPIN_MS = 60000;
+export const SPIN_STEP_MS = 250;
+/** Cuatro segundos por vuelta: lo que tarda el faro de un coche de policía, que es la imagen que él dio. */
+export const DEFAULT_SPIN_MS = 4000;
+export const clampSpinMs = (v: number): number =>
+  Math.min(MAX_SPIN_MS, Math.max(MIN_SPIN_MS, Math.round(v / SPIN_STEP_MS) * SPIN_STEP_MS));
+/** «4 s» — en segundos, que es como se habla de una vuelta, no en milisegundos. */
+export const spinLabelS = (ms: number): string => `${Math.round(ms / 100) / 10} s`;
+
 export function newLightOf(kind: LightKind, at: { x: number; y: number }, scene: { id: string; campaignId: string }, layerId: string | null = null): NewLight {
   const p = LIGHT_PRESETS[kind];
   return {
@@ -280,7 +296,8 @@ export function newLightOf(kind: LightKind, at: { x: number; y: number }, scene:
     x: at.x, y: at.y, rotation: 0, coneAngle: p.coneAngle, color: p.color, flicker: p.flicker,
     // Una luz nace proyectando sombra: lo normal es que la piedra la pare (§ 7.2). El interruptor del
     // editor está para lo excepcional —un resplandor mágico que atraviesa el muro—, no para lo corriente.
-    rangeM: p.rangeM, castsShadow: true,
+    // Y nace QUIETA: girar es lo excepcional, y encima sólo tiene sentido en un cono (§ 7.2).
+    rangeM: p.rangeM, castsShadow: true, spinMs: 0,
   };
 }
 

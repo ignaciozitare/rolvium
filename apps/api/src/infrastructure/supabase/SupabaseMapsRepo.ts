@@ -5,7 +5,7 @@ import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, ScenePropR
 interface SceneRow { id: string; campaign_id: string; width: number; height: number; grid: { size?: number } | null; fog_mode: SceneRecord['fogMode']; lighting: SceneRecord['lighting']; night_radius_m: number; solid_walls: boolean }
 interface WallRow { id: string; x1: number; y1: number; x2: number; y2: number; blocks_sight: boolean; blocks_move: boolean; is_open: boolean }
 interface TokenRow { id: string; x: number; y: number; size: number; controlled_by: string | null }
-interface LightRow { id: string; layer_id: string | null; x: number; y: number; rotation: number; shape: LightRecord['shape']; cone_angle: number; range_m: number; casts_shadow: boolean }
+interface LightRow { id: string; layer_id: string | null; x: number; y: number; rotation: number; shape: LightRecord['shape']; cone_angle: number; range_m: number; casts_shadow: boolean; spin_ms: number }
 interface LayerRow { id: string; kind: LayerRecord['kind']; visible: boolean }
 interface ScenePropRow { id: string; layer_id: string | null; x: number; y: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: ScenePropRecord['blockShape']; block_w: number; block_h: number; block_dx: number; block_dy: number }
 
@@ -47,11 +47,12 @@ export class SupabaseMapsRepo implements IMapsRepository {
   }
 
   async listLights(sceneId: string): Promise<LightRecord[]> {
-    const { data, error } = await this.db.from('maps_lights').select('id, layer_id, x, y, rotation, shape, cone_angle, range_m, casts_shadow').eq('scene_id', sceneId);
+    const { data, error } = await this.db.from('maps_lights').select('id, layer_id, x, y, rotation, shape, cone_angle, range_m, casts_shadow, spin_ms').eq('scene_id', sceneId);
     this.fail(error);
     return ((data ?? []) as unknown as LightRow[]).map(r => ({
       id: r.id, layerId: r.layer_id, x: r.x, y: r.y, rotation: r.rotation,
       shape: r.shape, coneAngle: r.cone_angle, rangeM: r.range_m, castsShadow: r.casts_shadow,
+      spinMs: r.spin_ms ?? 0,
     }));
   }
 

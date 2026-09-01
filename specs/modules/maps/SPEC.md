@@ -401,6 +401,40 @@ necesidad de verlo. Al director, que conoce todos los muros, le llega completo.
 **Lo que sigue sin estar** (y no es olvido): el resplandor se recorta con el borde de lo que alumbra, pero **no
 proyecta la sombra de una ficha ni de un objeto** — sólo los muros cortan. Y sigue sin dar ni quitar dados.
 
+#### 🚨 LA LUZ QUE GIRA («como una sirena») — pedida el 2026-08-31, construida el 2026-09-01
+
+Una luz de cono puede **girar sola**, dando vueltas como el faro de un coche de policía. El director la
+enciende y le pone el periodo (lo que tarda una vuelta entera); a partir de ahí gira sin que nadie la toque y
+**todos en la mesa la ven en la misma posición**, porque la fase sale del reloj y no de cuándo entró cada uno.
+
+- **Sólo un cono gira.** Un radio ya alumbra en redondo y un cuadrado girando no significa nada, así que el
+  interruptor sólo sale con la forma «cono».
+- **El haz barre, y lo que barrió queda explorado.** Una vuelta entera acaba explorando el círculo entero, y
+  eso es correcto: lo que la sonda enseña después es el mapa recordado, con el haz brillante encima.
+- **Sigue sin alargar la línea de visión** (§ 7.2, regla del dueño): girar no cambia esa regla ni ninguna otra
+  del manual.
+- **Sigue sin atravesar muros**: el charco se recorta contra la geometría igual que el de una luz quieta.
+
+> 🔑 **Cómo se hace SIN que cueste caro, y esto es una decisión, no un detalle.**
+> El plan original era calcular **N rotaciones del cono** en el servidor (24–36) y mandarlas todas. No hace
+> falta: el recorte contra los muros es **radial** —cada rayo se corta en la primera pared— así que
+> «cono girado a θ, recortado» es exactamente «círculo entero recortado **∩** el sector de θ». Es decir:
+>
+> - **el servidor manda el CÍRCULO ENTERO recortado, una sola vez** (el mismo coste que una luz quieta), y
+> - **el navegador rota encima una ventana con forma de cono**, con la fase sacada del reloj.
+>
+> Sale más barato que hoy en vez de 24 veces más caro, el barrido es continuo en vez de a saltos, y la
+> respuesta no engorda. Importa: el dueño ya se quejó de que «está todo lentísimo».
+>
+> ⚠ **Lo que esto cambia respecto de lo que él eligió**: pidió que «la niebla siga al haz», y aquí lo que
+> sigue al haz es el BRILLO — lo explorado se revela en el círculo desde el primer momento en vez de ir
+> apareciendo por sectores. A los pocos segundos el resultado es idéntico (lo explorado no se borra nunca),
+> pero **queda dicho en voz alta**: si quiere que la niebla vaya sector a sector, eso sí obliga a las N
+> rotaciones en el servidor y a pagar su coste.
+
+**Modelo de datos**: **una sola columna** en `maps_lights`, `spin_ms` (entero, 0 = no gira). Un interruptor y
+un periodo en dos columnas serían dos formas de decir lo mismo y una de ellas acabaría mintiendo.
+
 ### 7.3 · La sonda de prueba — «¿qué vería un jugador desde aquí?»
 
 > 🔄 **Reescrito el 2026-09-01. Sustituye ENTERO al «ver con los ojos de ‹personaje›»**, que llegó a

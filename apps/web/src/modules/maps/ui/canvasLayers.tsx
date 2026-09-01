@@ -278,6 +278,12 @@ function lightShape(l: Light, r: number, props: Record<string, unknown>): JSX.El
  */
 export const lightFeather = (radius: number): number => Math.max(5, radius * 0.13);
 
+/**
+ * ¿Esta luz GIRA? (§ 7.2). Sólo un cono: un radio ya alumbra en redondo y un cuadrado girando no dice nada.
+ * `spinMs` es lo que tarda una vuelta entera; `0` es «quieta».
+ */
+export const spins = (l: Pick<Light, 'shape' | 'spinMs'>): boolean => l.shape === 'cone' && (l.spinMs ?? 0) > 0;
+
 export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: readonly Light[]; lit?: readonly LitLight[] }): JSX.Element {
   const shown = lights.map(l => ({ light: l, parts: lit?.find(x => x.id === l.id)?.parts ?? null }))
     .filter(({ parts }) => !lit || parts !== null);
@@ -317,14 +323,40 @@ export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: read
             </filter>
           );
         })}
+        {shown.filter(({ light: l }) => spins(l)).map(({ light: l }) => {
+          const { r, pad } = boxOf(l);
+          /**
+           * LA VENTANA QUE GIRA (§ 7.2 «la luz que gira», petición del dueño: «como una sirena»).
+           *
+           * El servidor manda el CÍRCULO entero ya recortado contra los muros, y el barrido se hace aquí
+           * rotando encima esta ventana con forma de cono. Es exacto, no un apaño: el recorte contra la
+           * piedra es radial —cada rayo se corta en la primera pared—, así que «cono girado a θ, recortado»
+           * es «círculo recortado ∩ sector de θ». Calcular las 24 rotaciones en el servidor costaría 24 veces
+           * más en CADA petición de visión, y él ya se quejó de que «está todo lentísimo».
+           *
+           * `animateTransform` con `rotate ángulo cx cy` gira alrededor de la LUZ sin depender de dónde caiga
+           * la caja del cono. Y el `begin` negativo saca la fase del reloj: todos en la mesa ven el haz
+           * apuntando al mismo sitio, entren cuando entren.
+           */
+          return (
+            <mask key={l.id} id={`mp-litspin-${l.id}`} maskUnits="userSpaceOnUse" x={l.x - pad} y={l.y - pad} width={pad * 2} height={pad * 2}>
+              <g data-testid="mp-light-spin" data-spin-ms={l.spinMs}>
+                <path d={conePath(l, r * 1.6)} fill={MASK_SHOW} />
+                <animateTransform attributeName="transform" type="rotate" repeatCount="indefinite"
+                  from={`0 ${l.x} ${l.y}`} to={`360 ${l.x} ${l.y}`} dur={`${l.spinMs}ms`} begin={`-${Date.now() % l.spinMs}ms`} />
+              </g>
+            </mask>
+          );
+        })}
         {shown.map(({ light: l, parts }) => {
           const { r, pad } = boxOf(l);
+          const pool = parts
+            ? <path d={polygonsPath(parts)} fill={MASK_SHOW} data-testid="mp-light-shape" />
+            : lightShape(l, r, { fill: MASK_SHOW, 'data-testid': 'mp-light-shape' });
           return (
             <mask key={l.id} id={`mp-litmask-${l.id}`} maskUnits="userSpaceOnUse" x={l.x - pad} y={l.y - pad} width={pad * 2} height={pad * 2}>
               <g filter={`url(#mp-lightblur-${l.id})`}>
-                {parts
-                  ? <path d={polygonsPath(parts)} fill={MASK_SHOW} data-testid="mp-light-shape" />
-                  : lightShape(l, r, { fill: MASK_SHOW, 'data-testid': 'mp-light-shape' })}
+                {spins(l) ? <g mask={`url(#mp-litspin-${l.id})`}>{pool}</g> : pool}
               </g>
             </mask>
           );

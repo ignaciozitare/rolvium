@@ -9,6 +9,7 @@ import {
   maskSrc, newLightOf, nextTerrainSortOrder, paintedLights, paintOrder, panelOrder, rangeLabelM, reorderTerrain,
   strengthLabel, strokeDots, TERRAIN_WARN_AT, terrainLayers, terrainOverweight, toMaskPoint, MASK_DIRECTIONS, reorderTerrainTo,
   clampHardness, clampMaskSize, DEFAULT_MASK_SIZE, hardnessLabel, maskStops, MASK_SIZE_MAX, MASK_SIZE_MIN,
+  clampSpinMs, DEFAULT_SPIN_MS, MAX_SPIN_MS, MIN_SPIN_MS, spinLabelS,
 } from './layerRules';
 
 const ids = (ls: { id: string }[]): string[] => ls.map(l => l.id);
@@ -468,5 +469,30 @@ describe('clampMaskSize — tamaño continuo, en casillas', () => {
     expect(clampHardness(-1)).toBe(0);
     expect(clampHardness(0.5)).toBe(0.5);
     expect(clampHardness(4)).toBe(1);
+  });
+});
+
+/**
+ * LA LUZ QUE GIRA (§ 7.2, «como una sirena»). Un solo dato: `spinMs = 0` es quieta. Los topes son los mismos
+ * que sujeta la base (`maps_lights_spin_ms_ck`) — por debajo de medio segundo es un parpadeo epiléptico y por
+ * encima de un minuto no se nota que gire.
+ */
+describe('el periodo de giro', () => {
+  it('se ajusta al paso y respeta los topes de la base', () => {
+    expect(clampSpinMs(4000)).toBe(4000);
+    expect(clampSpinMs(4100)).toBe(4000);
+    expect(clampSpinMs(4130)).toBe(4250);
+    expect(clampSpinMs(0)).toBe(MIN_SPIN_MS);
+    expect(clampSpinMs(-9000)).toBe(MIN_SPIN_MS);
+    expect(clampSpinMs(999999)).toBe(MAX_SPIN_MS);
+  });
+  it('se rotula en SEGUNDOS, que es como se habla de una vuelta', () => {
+    expect(spinLabelS(4000)).toBe('4 s');
+    expect(spinLabelS(1500)).toBe('1.5 s');
+  });
+  it('una luz nace QUIETA: girar es lo excepcional', () => {
+    expect(newLightOf('torch', { x: 0, y: 0 }, SCENE_WAREHOUSE).spinMs).toBe(0);
+    // Y el valor por defecto al encenderlo es la vuelta de un faro de coche de policía.
+    expect(DEFAULT_SPIN_MS).toBe(4000);
   });
 });

@@ -186,3 +186,32 @@ describe('<LightEditor> · el cono apunta a algún lado', () => {
     expect(screen.getByText('270°')).toBeInTheDocument();
   });
 });
+
+/** 🚨 «Que gire sola», § 7.2. Sólo con el cono, y un solo dato: `spinMs = 0` es quieta. */
+describe('<LightEditor> la luz que gira', () => {
+  it('el interruptor NO sale con un radio: girar sólo significa algo en un cono', () => {
+    mount(LIGHT_TORCH);
+    expect(screen.queryByRole('checkbox', { name: 'Que gire sola' })).not.toBeInTheDocument();
+  });
+
+  it('encenderlo pone la vuelta por defecto, y apagarlo la deja en cero', async () => {
+    const u = userEvent.setup();
+    const cb = mount({ ...LIGHT_SECRET, shape: 'cone', spinMs: 0 });
+    await u.click(screen.getByRole('checkbox', { name: 'Que gire sola' }));
+    expect(cb.onChange).toHaveBeenCalledWith({ spinMs: 4000 });
+    document.body.innerHTML = '';
+    const cb2 = mount({ ...LIGHT_SECRET, shape: 'cone', spinMs: 4000 });
+    await u.click(screen.getByRole('checkbox', { name: 'Que gire sola' }));
+    expect(cb2.onChange).toHaveBeenCalledWith({ spinMs: 0 });
+  });
+
+  it('la vuelta sólo se puede tocar si gira, y se rotula en segundos', () => {
+    mount({ ...LIGHT_SECRET, shape: 'cone', spinMs: 0 });
+    expect(screen.queryByRole('slider', { name: 'Vuelta' })).not.toBeInTheDocument();
+    document.body.innerHTML = '';
+    const cb = mount({ ...LIGHT_SECRET, shape: 'cone', spinMs: 4000 });
+    expect(screen.getByText('4 s')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('slider', { name: 'Vuelta' }), { target: { value: '2000' } });
+    expect(cb.onChange).toHaveBeenLastCalledWith({ spinMs: 2000 });
+  });
+});
