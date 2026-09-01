@@ -14,7 +14,111 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔴 de 2026-08-31 (noche), justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟠 de 2026-09-01, justo debajo.**
+
+## 🟠 PUNTO EXACTO — 2026-09-01: LA LENTE, BORRADA · LA PUERTA, ARREGLADA · LIMPIEZA A+B HECHA
+
+> Rama **`sonda-de-prueba`**. `main` NO se ha tocado. **Nada de esto ha ido a producción** — decisión suya de
+> hoy: «espera y sube todo junto» con la sonda.
+
+### 🔴 LO PRIMERO AL RETOMAR — dos cosas que sólo puede contestar él
+1. **APROBAR EL DISEÑO de la sonda en `rolvium.pen`** (§ 7.3). Sin su «ok» **no se escribe una línea de UI**.
+   Frames nuevos: `k5Ig5` «Mesa/Plenilunio · Escena · Director · sonda de prueba» y `JRbTf` «PL/Barra de
+   herramientas · con Sonda».
+   ⚠ **Y guardarlo con Cmd+S**: el MCP de Pencil NO escribe en disco. Sin su Cmd+S no hay nada que commitear.
+2. **SUS DOS MUROS.** El arreglo del código evita que vuelva a pasar, pero **su mapa sigue con los tres
+   segmentos** (puerta 621,405→540 abierta + muros 405→513 y 513→540). Hay que borrar esos dos muros de SU
+   escena y **eso es dato suyo: pedírselo**. Él ya dijo «no toques los datos de mi mapa sin pedírmelo».
+
+### ✅ SUS DOS PREGUNTAS, CONTESTADAS HOY
+- **¿Quito el desplegable roto de producción ya?** → **NO.** «Espera y sube todo junto» con la sonda. El
+  borrado vive en la rama. Mientras tanto sigue el parche manual: quitar la lente a mano abajo a la derecha.
+  ⚠ Ojo: ese desplegable ya NO existe en la rama, así que el parche manual sólo aplica a lo que hay en prod.
+- **¿Qué hago con la rebanada 6 (piezas)?** → **Se construye JUSTO DESPUÉS de la sonda y de la puerta.** No se
+  borra NADA: ni las 12 funciones de `propRules.ts`, ni los métodos del puerto, ni las dos tablas vacías de
+  producción. Fecha anotada en el SPEC de maps, en el bloque de la rebanada 6.
+
+### ✅ 1 · EL SPEC DE LA SONDA, REESCRITO (§ 7.3 de `specs/modules/maps/SPEC.md`)
+La lente «ver con los ojos de ‹personaje›» **ya no existe en el spec**. La sustituye la **sonda de prueba**:
+icono en la barra → suelta una ficha genérica sin dueño → se arrastra → la pantalla enseña lo que vería un
+jugador desde ahí. Decisiones ya cerradas y escritas (no volver a preguntarlas):
+- **No es una ficha**: no va a `maps_tokens`, no la ve nadie, se va al apagarla / cambiar de escena / recargar.
+- **Alcance**: el de la escena (día sin límite, noche `night_radius_m`). No se inventa número nuevo.
+- **La memoria la lleva el NAVEGADOR** mientras la sonda está puesta y se tira al quitarla. **Cero escrituras.**
+- **El servidor** deja de pedir `asTokenId` y pasará a aceptar **un punto `{x, y}`**. Eso está en el spec, **NO
+  construido todavía** — la rama hoy sólo BORRA la lente.
+- Actualizados también: `specs/SPEC.md`, el titular de la rebanada 7 y el modelo de datos (queda escrito POR QUÉ
+  el mapa salía negro, para que nadie vuelva a atar esta herramienta a la memoria guardada de nadie).
+
+### ✅ 2 · EL DISEÑO, MONTADO EN `rolvium.pen` (pendiente de su ok + Cmd+S)
+- **`JRbTf`** — la barra con el botón nuevo: icono **`preview`**, en el bloque del director **con la niebla**:
+  `Revelar · Ocultar · Sonda`. Se queda pulsado (negro, `$pl-tinta`), no cambia el cursor.
+- **`k5Ig5`** — la escena con la sonda puesta: la ficha genérica (círculo oscuro con aro dorado y el icono
+  `preview`) dentro del cono de visión, con la pista «arrástrala», el cartel **«SONDA DE PRUEBA · lo que vería
+  un jugador desde aquí · no cambia nada para nadie · no se guarda nada»**, y la barra con Sonda encendida.
+- **`uBAwb`** (el frame viejo de la lente) **renombrado** para que el master no mienta: dice que la lente se
+  borró y que la penumbra sigue bloqueada.
+- 🐞 **Aviso para el próximo que edite el `.pen`**: en esta sesión el preview de Pencil colocaba los hijos de
+  los nodos creados con `Insert` **50 px más abajo** y salían recortados. Con `Copy` de un nodo existente +
+  `Update` de sus hijos sale bien. Si vuelve a pasar, ése es el camino.
+- **Sin variante clara/oscura, a propósito**: dentro de una campaña manda el tema del sistema.
+
+### ✅ 3 · EL FALLO DE LA PUERTA — REPRODUCIDO Y ARREGLADO (el código; su mapa NO)
+Reproducido primero con tests de `planOpening`, como pidió. **Eran DOS caminos distintos, no uno:**
+
+| | qué pasa | estado |
+|---|---|---|
+| **A** | Una puerta dibujada de un tirón **sobre dos muros seguidos** sólo partía **uno**: la puerta se **encogía en silencio** hasta el muro más largo y el resto seguía macizo. | ✅ **ARREGLADO** |
+| **B** | Un **muro dibujado ENCIMA de una puerta** ya existente se apila y la deja ciega sin avisar. | 🔴 **SIN ARREGLAR — decisión suya** |
+
+- **El arreglo (A)**: `planOpening` ahora corta **TODOS** los muros que pisa, no sólo el que más se apoya, y el
+  vano se estira sobre la **unión** de lo que hay debajo, así que sale del tamaño que se dibujó. Cada muro se
+  corta **sobre su propia recta** (un resto no se mueve ni un pelo). `OpeningPlan.split` (uno) pasa a
+  **`OpeningPlan.splits`** (varios); `useScene.addWall` aplica todos los cortes y borra todos los anfitriones.
+- **Por qué B no se arregla aquí**: **no es un fallo de cálculo, es una decisión de producto y es suya.** Al
+  dibujar un muro sobre una puerta, o el muro se parte contra el vano, o se rechaza el trazo, o se queda como
+  hoy. Hasta que elija, la spec manda («un muro nunca parte a otro»). **B es el que explica sus datos.**
+  Queda **anclado con `it.fails`** en `mapRules.test.ts`: pasa mientras el fallo viva y REVIENTA el día que
+  alguien lo arregle, que es justo el aviso que hace falta.
+- Tests nuevos: 2 en `mapRules.test.ts` + 1 en `useScene.test.ts` (que los dos cortes se APLICAN de verdad).
+
+### ✅ 4 · LIMPIEZA — APARTADOS A Y B, HECHOS (verificando símbolo a símbolo)
+**A · la lente, borrada entera.** `asTokenId` fuera de `mapsRoutes.ts` (esquema) y de `sceneVision.ts` (la rama
+entera del director) · `seeAsTokenId`/`seeAsOptions`/`onSeeAs`/`asPlayer` fuera de `SceneTab.tsx` · el
+desplegable fuera de `CanvasControls.tsx` · el parámetro fuera de `HttpVisionAdapter.ts` y del puerto
+`VisionPort` · las 4 claves `maps.seeAs.*` fuera de es y en · el CSS `.mp-seeas*` y `.mp-canvas-label.seeas` ·
+el `opts` del doble `fakeVisionPort` · y sus tests en `sceneVision.test.ts`, `SceneTab.test.tsx`.
+> ⚠ **Dos falsos positivos del barrido, comprobados**: en `controls.test.tsx` **no había nada** de la lente; y
+> el `asPlayer` de `sceneVision.test.ts` (líneas ~423) es una variable local de un test de LUCES — **no se tocó**.
+> Se conservó a propósito el test «el director ve la unión de lo explorado y sin polígono», que no es de la lente.
+
+**B · los 16 símbolos del barrido: NINGUNO era código muerto.** Todos se usaban dentro de su propio fichero —
+justo el falso positivo del que avisaba la nota. Reparto:
+- **Borrados (2)**, sin una sola referencia en ningún sitio: `LAYER_KINDS` (`layerRules.ts`) y `SceneState`
+  (`useScene.ts`).
+- **Dejan de exportarse (7)**, sólo se usan dentro de su fichero: `NATURAL_LAYER`, `PAINT_BAND`
+  (`layerRules.ts`) · `fogFeather` (`canvasLayers.tsx`) · `mapImageRow`, `mapLightRow` (`SupabaseMapsRepo.ts`) ·
+  `cellKey`, `signedArea` (`vision.ts` de la api).
+- **SE QUEDAN exportados (7), y no es olvido**: son el tipo de la firma de una función pública, así que
+  esconderlos dejaría un API que el consumidor no puede nombrar — `MaskPainter`, `VisionOutcome`, `PaintInput`,
+  `OpeningPlan`, `FlickerRhythm`, `MaskStop`, `FakeMapsSeed`.
+
+### 📊 Comprobado
+`npm -w apps/web run test` **900 ✓** · `npm -w apps/api run test` **211 ✓** · typecheck web y api limpios ·
+`npm run audit` **0 hard** (13 warn, todos preexistentes: 1 de `#ffffff` en `canvasLayers.tsx` y 12 de ui-reuse).
+
+### ⏳ SIGUIENTE PASO CONCRETO
+**Esperar su «ok» al diseño.** Con el ok: construir la sonda (navegador guarda la memoria; el servidor acepta
+`{x, y}`), sus tests, `/review`, `/qa`, previews de Vercel en verde, y **subir la sonda + el borrado de la
+lente + el arreglo de la puerta EN UN SOLO DESPLIEGUE**. Después, rebanada 6 (piezas).
+
+### 🚫 Deuda anotada, NO tocada
+- **FALLO C — «está todo lentísimo»**: sin diagnosticar, sigue igual. Pistas en el bloque 🔴🔴 de más abajo
+  (`listLights` en cada petición de visión; 227 líneas de suscripciones realtime nuevas). **Medir antes de tocar.**
+- **`/review` NO se ha lanzado** en esta sesión: la instrucción de arranque de este chat prohíbe llamar a
+  subagentes sin que él lo pida. El código va sin la revisión que manda CLAUDE.md — **lanzar `/review` antes de QA**.
+- `cd packages/core && npx tsc --noEmit` sigue fallando en `gameSystem.test.ts` (preexistente, ya falla en `main`).
+
 
 ## 🟢 PUNTO EXACTO — 2026-08-31 (cierre): LOS 2 ARREGLOS DEL PINCEL, HECHOS Y REVISADOS · `.pen` GUARDADO
 
