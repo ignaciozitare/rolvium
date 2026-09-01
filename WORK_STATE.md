@@ -101,6 +101,46 @@ typecheck web y api limpios · `npm run audit` **0 hard** · **`build:web` y `bu
 sus servidores de local siguen en pie (`:3001` `{"ok":true}` y `:5173` 200) y la ruta de visión contesta 401,
 que es «existe y pide sesión».
 
+### ✅ CUARTA TANDA — lo que vio probando en local (commit `e11f3e6`)
+
+**🧱 «el user dummy traspasa las paredes» — ARREGLADO, y sospechaba de código duplicado.**
+No lo había: `MapCanvas` deja los bloqueadores **vacíos para el director** («no choca nunca», decisión suya
+del 2026-08-22) y la sonda heredó esa excepción. Ahora la sonda —y sólo ella— usa `moveBlockers` +
+`slideToken` → `slideCircle` de `@rolvium/core`, **la única función de choque que hay en toda la app**, la
+misma que usa el servidor. Con las paredes atravesables la sonda atraviesa: simular es copiar, no ser más
+estricto. Esto cierra la contrapartida que aquel comentario daba por inevitable («el director no puede probar
+en su pantalla lo que siente un jugador»).
+
+**⏱ «las sombras no se ajustan dinámicamente» — ERA UN FALLO MÍO, y no el motor.**
+Arrastrar la sonda pedía la visión en **cada movimiento del ratón (~60/s)**; arrastrar una ficha va frenado a
+~7 Hz desde la rebanada 2. 60 peticiones por segundo llegaban tarde y desordenadas, `visionSeq` tiraba casi
+todas y la niebla parecía no seguirla. Ahora **mismo freno**, con cola en el borde de salida para que la
+última posición siempre se pregunte.
+
+> 🔑 **PARA ZANJAR LA SOSPECHA DE FONDO, con la prueba a mano**: `visionPolygon` existe UNA vez y vive sólo en
+> `apps/api`. El navegador **no calcula visión en ningún sitio** — sólo pinta lo que le contestan. Y todo lo
+> que la sonda añadió a `sceneVision.ts` está **dentro de `if (role === 'dm')`**: la ruta del jugador no tiene
+> una línea tocada (`git diff 5b1fff6 HEAD -- apps/api/src/application/maps/sceneVision.ts` lo enseña).
+
+**🏗 «Builder» con su icono.** El botón «Muro» de la barra pasa a llamarse **Builder** (ahí entrará el
+generador de construcciones) y usa **su dibujo**: `Rolvium context/walls doors and windows.png` → fondo
+quitado, recortado y centrado → `apps/web/public/icons/builder.png` (el original queda al lado como
+`builder-origen.png`, igual que se hizo con `piezas-origen.png`). Va de **máscara** y no de `<img>` para que
+se tiña con el botón: si no, el dibujo, que es oscuro, desaparecería sobre el negro del seleccionado.
+⚠ El **tipo de segmento** (muro · puerta · ventana) sigue llamándose «muro»: eso es qué dibujas, no el botón.
+
+**🎭 Dos PJ de prueba — 🚫 NO BORRAR.** `Elías Vane` y `Nix Corbeau`, por **migración idempotente**
+(`20260901180000_pjs_de_prueba.sql`), aplicada **en local Y en producción**. Las hojas no se inventan: se
+copian de un PJ ya válido de cada base y sólo cambia el texto; en el segundo se intercambian valores entre
+características conservando cada especialidad con la suya, así la suma no cambia y el presupuesto del sistema
+sigue cuadrando. Comprobado con `validateSheet` del propio sistema.
+
+**🗂 El `.pen`, reordenado POR RECORRIDO** (el primer orden que puse era el mío y lo rechazó, con razón):
+`1 ENTRAR · 2 CAMPAÑAS · 3 CREAR PERSONAJE · 4 LA MESA · 5 LA ESCENA · 6 PIEZAS · 7 BESTIARIO ·
+8 MIS PERSONAJES · 9 SISTEMAS · 10 MI CUENTA · 11 ESTADOS · 12 COMPONENTES · 13 NOTAS`. Cada banda lleva un
+rótulo grande en el lienzo y el orden de las capas coincide con el del lienzo. Lo nuevo de hoy son **las dos
+primeras de la banda 5**.
+
 ### 🔴 LO PRIMERO AL RETOMAR — lo que sólo puede contestar él
 1. **GUARDAR `rolvium.pen` CON Cmd+S.** El MCP de Pencil NO escribe en disco: sin su Cmd+S el dibujo no se
    puede commitear y el master se queda desfasado respecto al código, que ya está construido. Frames tocados:
