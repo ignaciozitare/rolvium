@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, fireEvent } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH } from '../../../../tests/helpers/fakes';
+import { LIGHT_COLORS } from '../domain/useCases/layerRules';
 import { LightEditor } from './LightEditor';
 
 // jsdom no trae PointerEvent: un MouseEvent con pointerId basta para los gestos, como en MapCanvas.test.
@@ -61,7 +62,7 @@ describe('<LightEditor>', () => {
     const cb = mount();
     expect(screen.getByRole('radio', { name: 'Color 1' })).toHaveAttribute('aria-checked', 'true');
     await u.click(screen.getByRole('radio', { name: 'Color 5' }));
-    expect(cb.onChange).toHaveBeenCalledWith({ color: '#a97fe0' });
+    expect(cb.onChange).toHaveBeenCalledWith({ color: LIGHT_COLORS[4] });
   });
 
   /**
@@ -213,5 +214,69 @@ describe('<LightEditor> la luz que gira', () => {
     expect(screen.getByText('4 s')).toBeInTheDocument();
     fireEvent.change(screen.getByRole('slider', { name: 'Vuelta' }), { target: { value: '2000' } });
     expect(cb.onChange).toHaveBeenLastCalledWith({ spinMs: 2000 });
+  });
+});
+
+
+/**
+ * 🕯 LA BARRA DE INTENSIDAD (§ 7.2, dueño 2026-09-01: «cada una además del alcance color etc necesita una
+ * barra de intensidad»). Cuánto CANTA la luz, que no es cuánto ILUMINA: eso es el alcance y sigue aparte.
+ */
+describe('<LightEditor> la intensidad', () => {
+  it('la barra sale en todas las luces, con su valor escrito al lado', () => {
+    for (const light of [LIGHT_TORCH, LIGHT_BULB, { ...LIGHT_SECRET, shape: 'cone' as const }]) {
+      document.body.innerHTML = '';
+      mount({ ...light, intensity: 60 });
+      expect(screen.getByRole('slider', { name: 'Intensidad' })).toHaveValue('60');
+      expect(screen.getByText('60 %')).toBeInTheDocument();
+    }
+  });
+
+  it('moverla avisa con el valor nuevo', () => {
+    const cb = mount({ ...LIGHT_TORCH, intensity: 100 });
+    fireEvent.change(screen.getByRole('slider', { name: 'Intensidad' }), { target: { value: '35' } });
+    expect(cb.onChange).toHaveBeenCalledWith({ intensity: 35 });
+  });
+
+  it('no deja apagarla del todo ni pasarse: una luz invisible parece borrada', () => {
+    const cb = mount({ ...LIGHT_TORCH, intensity: 100 });
+    const bar = screen.getByRole('slider', { name: 'Intensidad' });
+    expect(bar).toHaveAttribute('min', '10');
+    // El techo es 200: 100 es «como se pintaba siempre», y por encima está el margen que él pidió.
+    expect(bar).toHaveAttribute('max', '200');
+    fireEvent.change(bar, { target: { value: '0' } });
+    expect(cb.onChange).toHaveBeenLastCalledWith({ intensity: 10 });
+    fireEvent.change(bar, { target: { value: '900' } });
+    expect(cb.onChange).toHaveBeenLastCalledWith({ intensity: 200 });
+  });
+
+  it('es cosa distinta del alcance: las dos conviven y no se pisan', () => {
+    mount({ ...LIGHT_TORCH, intensity: 50, rangeM: 6 });
+    expect(screen.getByRole('slider', { name: 'Intensidad' })).toHaveValue('50');
+    expect(screen.getByRole('spinbutton', { name: 'Alcance en metros' })).toHaveValue(6);
+  });
+});
+
+
+/**
+ * 🎨 LA PALETA (dueño, 2026-09-02: «debería poder elegir más colores, no solo esos»). Doce en vez de seis.
+ */
+describe('<LightEditor> la paleta de colores', () => {
+  it('ofrece los doce, cada uno con su puesto', () => {
+    mount();
+    expect(LIGHT_COLORS).toHaveLength(12);
+    for (let i = 0; i < LIGHT_COLORS.length; i++) {
+      expect(screen.getByRole('radio', { name: `Color ${i + 1}` })).toBeInTheDocument();
+    }
+  });
+
+  /**
+   * 🔒 Los seis de siempre SIGUEN en la paleta. Si uno desapareciera, una luz ya guardada con ese color se
+   * quedaría con un color que el director ya no puede volver a elegir — y él dijo «no borres nada».
+   */
+  it('no se ha perdido ninguno de los seis originales', () => {
+    for (const c of ['#e8a24e', '#f0e6c8', '#e07a3c', '#e0625c', '#a97fe0', '#9fb6d4']) {
+      expect(LIGHT_COLORS).toContain(c);
+    }
   });
 });

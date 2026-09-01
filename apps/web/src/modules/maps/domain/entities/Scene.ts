@@ -190,6 +190,15 @@ export interface Light {
    * tarde o temprano una mentiría. Sólo significa algo con `shape: 'cone'`: un radio ya alumbra en redondo.
    */
   spinMs: number;
+  /**
+   * CUÁNTO CANTA, en porcentaje (§ 7.2, «intensidad por luz», petición del dueño 2026-09-01). `100` es
+   * exactamente como se pintaban las luces antes de que esto existiera.
+   *
+   * No confundir con `rangeM`, que es cuánto ILUMINA. Son cosas distintas a propósito: una vela tenue sigue
+   * alumbrando su rincón entero. Esto es SÓLO pintura — decisión suya del 2026-09-01: una luz al 10 % revela
+   * el mismo terreno que al 100 %, así que la api ni la pide ni la necesita.
+   */
+  intensity: number;
   createdAt: string;
   updatedAt: string;
 }

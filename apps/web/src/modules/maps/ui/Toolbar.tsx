@@ -5,8 +5,16 @@ import { DM_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '../domain/useC
 /**
  * «Builder» no usa un icono de Material: usa el DIBUJO DEL DUEÑO (`apps/web/public/icons/builder.png`, sacado
  * de su «walls doors and windows.png», al que se le quitó el fondo). Se reconoce porque empieza por `/`.
+ *
+ * Lo que se PINTA es `builder-mask.png`, no el dibujo original (dueño, 2026-09-01: «el icono se ve muy
+ * claro respecto a los otros»). El motivo, medido: el dibujo son trazos finos y muy suavizados —de sus 16 384
+ * píxeles sólo 725 son opacos del todo—, así que al encogerlo a `--icon-sm` el navegador promedia trazo con
+ * transparencia y **la máscara no pasaba de 152 sobre 255**: el icono nunca llegaba a teñirse del color del
+ * botón, y al lado de un Material Symbol —que a ese tamaño sí llega a 255— se veía descolorido.
+ * `builder-mask.png` es SU MISMO dibujo con el alfa engordado 2 px y las medias tintas levantadas, que a
+ * tamaño real lo deja en 252. **El original no se ha tocado** y sigue en la carpeta.
  */
-const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: '/icons/builder.png', reveal: 'visibility', hide: 'visibility_off', mask: 'opacity', light: 'wb_incandescent', encounter: 'swords' };
+const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: '/icons/builder-mask.png', reveal: 'visibility', hide: 'visibility_off', mask: 'opacity', light: 'wb_incandescent', encounter: 'swords' };
 const esImagen = (icon: string): boolean => icon.startsWith('/');
 
 /** Actions that open a panel instead of changing the cursor: they are buttons, not tools. */

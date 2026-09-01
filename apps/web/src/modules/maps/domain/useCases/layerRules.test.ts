@@ -10,6 +10,8 @@ import {
   strengthLabel, strokeDots, TERRAIN_WARN_AT, terrainLayers, terrainOverweight, toMaskPoint, MASK_DIRECTIONS, reorderTerrainTo,
   clampHardness, clampMaskSize, DEFAULT_MASK_SIZE, hardnessLabel, maskStops, MASK_SIZE_MAX, MASK_SIZE_MIN,
   clampSpinMs, DEFAULT_SPIN_MS, MAX_SPIN_MS, MIN_SPIN_MS, spinLabelS,
+  clampIntensity, DEFAULT_INTENSITY, intensityFactor, intensityLabel, MAX_INTENSITY, MIN_INTENSITY,
+  beamCones, BEAM_LAYERS,
 } from './layerRules';
 
 const ids = (ls: { id: string }[]): string[] => ls.map(l => l.id);
@@ -494,5 +496,74 @@ describe('el periodo de giro', () => {
     expect(newLightOf('torch', { x: 0, y: 0 }, SCENE_WAREHOUSE).spinMs).toBe(0);
     // Y el valor por defecto al encenderlo es la vuelta de un faro de coche de policía.
     expect(DEFAULT_SPIN_MS).toBe(4000);
+  });
+});
+
+
+/**
+ * 🕯 INTENSIDAD (§ 7.2). Cuánto CANTA una luz. Los topes son los mismos que sujeta la base
+ * (`maps_lights_intensity_ck`): ni 0 —parecería borrada— ni más de 100 —quemaría el mapa a blanco—.
+ */
+describe('la intensidad de una luz', () => {
+  it('se queda dentro de los topes y se pega al escalón de la barra', () => {
+    expect(clampIntensity(60)).toBe(60);
+    expect(clampIntensity(0)).toBe(MIN_INTENSITY);
+    expect(clampIntensity(-40)).toBe(MIN_INTENSITY);
+    expect(clampIntensity(999)).toBe(MAX_INTENSITY);
+    expect(clampIntensity(63)).toBe(65);
+  });
+
+  it('lo que multiplica a lo pintado: 1 a plena intensidad, y proporcional al bajarla', () => {
+    expect(intensityFactor({ intensity: 100 })).toBe(1);
+    expect(intensityFactor({ intensity: 40 })).toBeCloseTo(0.4);
+    // Una luz vieja, guardada antes de que la columna existiera, se pinta como siempre se pintó.
+    expect(intensityFactor({})).toBe(1);
+  });
+
+  it('una luz nace a plena intensidad: se pide la luz de siempre, no una a medias', () => {
+    const l = newLightOf('torch', { x: 10, y: 20 }, { id: 'sc-1', campaignId: 'c1' });
+    expect(l.intensity).toBe(DEFAULT_INTENSITY);
+    expect(l.intensity).toBe(100);
+  });
+
+  it('«60 %» es como se escribe al lado de la barra', () => {
+    expect(intensityLabel(60)).toBe('60 %');
+    expect(intensityLabel(0)).toBe('10 %');
+  });
+});
+
+
+/**
+ * ⚡ EL FILO DEL HAZ, DIBUJADO EN CAPAS. Nació de dos quejas suyas seguidas: con desenfoque el mapa iba a
+ * saltos («no es fluida, igual que el movimiento del token») y sin él el haz cantaba («se ven los conos
+ * duros»). Las capas dan filo suave a coste de rellenos planos.
+ */
+describe('el haz de una luz que gira', () => {
+  const l = { x: 100, y: 100, rotation: 0, coneAngle: 60 };
+
+  it('la opacidad acumulada sube en rampa EXACTA y el centro queda opaco del todo', () => {
+    const capas = beamCones(l, 50);
+    expect(capas).toHaveLength(BEAM_LAYERS);
+    // Acumulado tras la capa i = (i+1)/N, que es lo que consigue `1/(N-i)` sobre lo ya pintado.
+    let acumulado = 0;
+    capas.forEach((c, i) => {
+      acumulado = acumulado + (1 - acumulado) * c.opacity;
+      expect(acumulado).toBeCloseTo((i + 1) / BEAM_LAYERS, 10);
+    });
+    expect(acumulado).toBeCloseTo(1, 10);
+  });
+
+  it('va de fuera adentro: la primera capa es la más ancha y la última la más estrecha', () => {
+    const anchos = [12, 60, 200].map(coneAngle => beamCones({ ...l, coneAngle }, 50).map(c => c.d));
+    for (const ds of anchos) expect(new Set(ds).size).toBe(BEAM_LAYERS);
+    // El difuminado es proporcional al cono, con tope: un haz estrecho no se queda sin centro.
+    const estrecho = beamCones({ ...l, coneAngle: 12 }, 50);
+    expect(estrecho[BEAM_LAYERS - 1]!.d).not.toBe(estrecho[0]!.d);
+  });
+
+  it('un cono más ancho no se difumina sin límite', () => {
+    // 30 % de 200° serían 60° de difuminado, que ya no parece un haz: se topa en 12.
+    const anchisimo = beamCones({ ...l, coneAngle: 200 }, 50);
+    expect(anchisimo).toHaveLength(BEAM_LAYERS);
   });
 });

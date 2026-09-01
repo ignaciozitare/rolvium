@@ -77,6 +77,19 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 8. **«Builder» es sólo el nombre**: dentro sigue siendo la herramienta de muros. El generador de
    construcciones que él quiere meter ahí **está sin empezar** y necesita su spec.
 
+9. **🆕 QUEJA SUYA (2026-09-01, al retomar): «sigo sin poder seleccionar una luz y moverla».** Sin cerrar,
+   **sin tocar código**. Lo comprobado leyendo el código, para el que lo retome:
+   - **Seleccionar** una luz sí está implementado y desde las dos herramientas — con **Luz** (`MapCanvas.tsx`,
+     `case 'light'`) y desde **Seleccionar** (arreglo del 2026-08-31). El radio de acierto es
+     `Math.max(12, radio * 0.25)` **en px de escena, sin dividir por el zoom**: alejado, el blanco se queda
+     minúsculo en pantalla. Sospecha nº 1.
+   - El **aro de selección** (`mp-light-sel`) y su disco de clic sólo se PINTAN con la herramienta Luz activa.
+     Con Seleccionar la luz se elige pero **no se ve ninguna señal** de que esté elegida. Sospecha nº 2.
+   - **Moverla NO existe**: no hay ningún gesto de arrastre para luces en todo el módulo (hay `wallEdit`,
+     `marquee`, `draw`, `measure`… ninguno para luz). Esto **no es un fallo, es algo que nunca se construyó**
+     → necesita spec antes de tocarlo.
+   - Pendiente de que él diga si le falla **seleccionar**, **mover**, o las dos.
+
 ### 🔁 PROMPT DE RESUME, DE UNA LÍNEA
 > Rolvium, retomo en la rama `sonda-de-prueba` (13 commits, sin subir, `main` intacto). Lee el bloque 🔵 de
 > `WORK_STATE.md`. **No borres nada.** Está construido y en verde: la sonda de prueba, la luz que gira, el
@@ -86,6 +99,65 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 > cosas: si te dejo borrar los dos muros de mi escena, si me vale el barrido de la luz tal como está, y qué
 > hacemos con el «va lentísimo».
 
+
+## 🟣 NOCHE DEL 2026-09-01 → 02: SUS CINCO RESPUESTAS, Y CUATRO COSAS CONSTRUIDAS SIN ÉL
+
+> Se fue a dormir con el encargo literal: **«avanza con estas cosas que no me necesitas, mañana lo quiero ver
+> construido, si terminas sigue con lo que puedas sin mí»**. Sigue en pie **«no borres nada»**.
+> **NADA se ha subido, NADA se ha desplegado, `main` sigue intacto.** Construir sí; desplegar no, porque eso
+> necesita su QA y las migraciones.
+
+### ✅ SUS CINCO RESPUESTAS (ya no hay que volver a preguntárselas)
+1. **Los dos muros de su escena → LOS QUITA ÉL.** No se tocan. El fallo que los provocó ya está arreglado.
+2. **El barrido de la luz que gira → NO le vale**: «no gira, tiene que estar girando todo el tiempo y solo
+   gira un poco mientras muevo el token y luego para». **Era un fallo de verdad. Arreglado esta noche.**
+3. **«Va lentísimo» → «está mejor».** No se mide nada por ahora. Queda apuntado por si vuelve.
+4. **La luz → «no lo puedo arrastrar, me debería mostrar algo que la seleccione a cuál seleccione y que me
+   deje moverla».** Construido esta noche.
+5. **Las imágenes de 1,8 MB → SE QUEDAN TODAS**, donde están: «no quiero perder ninguna imagen, para que sea
+   más fácil todo». **Decisión cerrada** — no volver a proponer moverlas ni borrarlas.
+
+### 🆕 LO QUE SE CONSTRUYÓ ESTA NOCHE (todo en la rama, sin commitear aún al escribir esto)
+| | Qué | Cómo se arregló |
+|---|---|---|
+| 🎨 | **El icono de Builder se veía descolorido** | Medido, no adivinado: de sus 16 384 píxeles sólo 725 son opacos, así que al encogerlo a tamaño de barra la máscara **no pasaba de 152 sobre 255** y nunca llegaba a teñirse del color del botón. Se generó `builder-mask.png` —SU MISMO dibujo con el alfa engordado 2 px— que a tamaño real llega a 252. **Su `builder.png` original NO se ha tocado.** |
+| 🚨 | **La luz que gira no giraba** | La orden de girar estaba bien, pero vivía **dentro de la máscara**, y un navegador no repinta un elemento porque su máscara se mueva. Por eso sólo avanzaba mientras él arrastraba un token (que fuerza repintados) y se congelaba al soltar. Ahora el haz se pinta como objeto de verdad y el charco hace de máscara — misma cuenta, al revés. Borde suave conservado. |
+| 🔦 | **Elegir una luz y moverla** | Eran TRES cosas: el aro sólo se pintaba con la herramienta Luz (con Seleccionar la elegía a ciegas); el blanco al que acertar se medía en px de escena y **se encogía al alejarse**; y arrastrar una luz **no existía**. Las tres, hechas. |
+| 🕯 | **Barra de intensidad por luz** | Nueva columna `intensity` (10–100, por defecto 100). **Es SÓLO pintura**: decisión suya — una luz al 10 % revela el mismo terreno que al 100 %, así que la api ni la pide. Al 100 % ninguna luz ya colocada cambia de aspecto. |
+
+**Comprobado al cerrar**: typecheck web y api limpios · **1371 tests** (965 web · 220 api · 29 core · 16 ui ·
+141 plenilunio) · `npm run audit` **0 hard, 13 warn** (los mismos 13 de antes) · `build:web` y `build:api` en
+verde · `specs/modules/maps/SPEC.md` § 7.2 actualizado con las cuatro cosas.
+
+### 🚨 EL DESPLIEGUE, QUE AHORA TIENE **DOS** MIGRACIONES POR DELANTE
+Antes había una trampa; ahora hay dos, y la misma regla vale para las dos:
+1. `20260901120000_maps_lights_spin.sql` — `spin_ms`
+2. `20260902010000_maps_lights_intensity.sql` — `intensity` ← **nueva de esta noche**
+
+**Las dos las PIDE la web en su `select`. Si el código sube antes que las migraciones, revienta.** Con
+`spin_ms` el destrozo es total —se cae la niebla entera para todos, no sólo las luces—; con `intensity`,
+igual. **Orden obligatorio: las dos migraciones PRIMERO, el código después.** Y ojo con `supabase db push`,
+que compara por versión y puede necesitar `--include-all` (las versiones de producción no coinciden con los
+nombres de fichero del repo).
+
+### 🔴 LO QUE SIGUE ESPERÁNDOLE A ÉL
+1. **PROBARLO CON SUS OJOS.** Sigue sin poder probarse nada: no tengo su contraseña. Lo de esta noche que hay
+   que mirar: **que el haz gire solo, sin tocar nada** (el fallo que él vio), el icono de Builder al lado de
+   los otros, elegir una luz con Seleccionar y arrastrarla, y la barra de intensidad.
+2. **El spec de la intensidad** se dio por bueno con lo que él pidió y las tres preguntas que dejé sin
+   contestar se resolvieron con el criterio más conservador: **10 %–100 %** (no se puede apagar del todo ni
+   subir por encima de lo de hoy) y **sin vuelta al `.pen`**, porque es una barra idéntica a las tres que ya
+   hay en ese panel y él ya aprobó ese patrón. **Si algo de eso no le gusta, se cambia.**
+3. **QA + los dos previews de Vercel + merge**, y sólo entonces producción, con las dos migraciones delante.
+4. **Rebanada 6 (piezas)**: decisión suya, se construye después de esto.
+5. **«Builder» sigue siendo sólo el nombre**: dentro es la herramienta de muros. El generador de
+   construcciones sigue sin empezar y necesita su spec.
+
+### 🔁 PROMPT DE RESUME
+> Rolvium, retomo en `sonda-de-prueba`. Lee el bloque 🟣 de `WORK_STATE.md`. **No borres nada.** Anoche se
+> arregló que la luz gire de verdad, el icono de Builder, y se construyó mover una luz y la barra de
+> intensidad. Antes de desplegar: **DOS migraciones van primero** (`spin_ms` e `intensity`), o revienta la
+> niebla en producción.
 
 ## 🟠 PUNTO EXACTO — 2026-09-01: LA LENTE, BORRADA · LA PUERTA, ARREGLADA · LIMPIEZA A+B HECHA
 

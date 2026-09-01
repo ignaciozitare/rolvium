@@ -9,7 +9,7 @@ interface WallRow { id: string; scene_id: string; campaign_id: string; x1: numbe
 interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; bestiary_entry_id: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown>; layer_id: string | null }
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string; layer_id: string | null }
 interface LayerRow { id: string; scene_id: string; campaign_id: string; kind: LayerKind; name: string; sort_order: number; visible: boolean; locked: boolean; image_url: string | null; transform: BgTransform; mask_url: string | null; mask_version: number; created_at: string; updated_at: string }
-interface LightRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; shape: LightShape; kind: LightKind; x: number; y: number; rotation: number; cone_angle: number; color: string; flicker: boolean; range_m: number; casts_shadow: boolean; spin_ms: number; created_at: string; updated_at: string }
+interface LightRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; shape: LightShape; kind: LightKind; x: number; y: number; rotation: number; cone_angle: number; color: string; flicker: boolean; range_m: number; casts_shadow: boolean; spin_ms: number; intensity: number; created_at: string; updated_at: string }
 interface ImageRow { id: string; campaign_id: string; name: string; url: string; created_at: string }
 interface PropRow { id: string; campaign_id: string | null; name: string; category: PropCategory; image_url: string; natural_width: number; natural_height: number; default_scale: number; default_blocks_sight: boolean; default_blocks_move: boolean; default_block_shape: BlockShape; uploaded_by: string | null; created_at: string; updated_at: string }
 interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; created_at: string; updated_at: string }
@@ -21,7 +21,7 @@ const DEFAULT_NIGHT_RADIUS_M = 10;
 const TOKEN_COLS = 'id, scene_id, campaign_id, character_id, bestiary_ref, bestiary_entry_id, name, image_url, x, y, size, color, visible, controlled_by, vision_radius, state, layer_id';
 const DRAWING_COLS = 'id, scene_id, campaign_id, author_id, kind, data, color, width, created_at, layer_id';
 const LAYER_COLS = 'id, scene_id, campaign_id, kind, name, sort_order, visible, locked, image_url, transform, mask_url, mask_version, created_at, updated_at';
-const LIGHT_COLS = 'id, scene_id, campaign_id, layer_id, shape, kind, x, y, rotation, cone_angle, color, flicker, range_m, casts_shadow, spin_ms, created_at, updated_at';
+const LIGHT_COLS = 'id, scene_id, campaign_id, layer_id, shape, kind, x, y, rotation, cone_angle, color, flicker, range_m, casts_shadow, spin_ms, intensity, created_at, updated_at';
 const PROP_COLS = 'id, campaign_id, name, category, image_url, natural_width, natural_height, default_scale, default_blocks_sight, default_blocks_move, default_block_shape, uploaded_by, created_at, updated_at';
 const SCENE_PROP_COLS = 'id, scene_id, campaign_id, layer_id, prop_id, image_url, name, x, y, width, height, rotation, blocks_sight, blocks_move, block_shape, block_w, block_h, block_dx, block_dy, created_at, updated_at';
 /** La máscara del pincel vive en el bucket de fondos, bajo la carpeta de la campaña: la política ya lo cubre. */
@@ -63,7 +63,7 @@ export const mapLayerRow = (r: LayerRow): Layer => ({
 const mapLightRow = (r: LightRow): Light => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, layerId: r.layer_id, shape: r.shape, kind: r.kind,
   x: r.x, y: r.y, rotation: r.rotation, coneAngle: r.cone_angle, color: r.color, flicker: r.flicker,
-  rangeM: r.range_m, castsShadow: r.casts_shadow, spinMs: r.spin_ms ?? 0, createdAt: r.created_at, updatedAt: r.updated_at,
+  rangeM: r.range_m, castsShadow: r.casts_shadow, spinMs: r.spin_ms ?? 0, intensity: r.intensity ?? 100, createdAt: r.created_at, updatedAt: r.updated_at,
 });
 export const mapPropRow = (r: PropRow): Prop => ({
   id: r.id, campaignId: r.campaign_id, name: r.name, category: r.category, imageUrl: r.image_url,
@@ -105,7 +105,7 @@ function layerPatchRow(p: LayerPatch): Record<string, unknown> {
   return row;
 }
 function lightPatchRow(p: LightPatch): Record<string, unknown> {
-  const map: Record<string, string> = { layerId: 'layer_id', shape: 'shape', kind: 'kind', x: 'x', y: 'y', rotation: 'rotation', coneAngle: 'cone_angle', color: 'color', flicker: 'flicker', rangeM: 'range_m', castsShadow: 'casts_shadow', spinMs: 'spin_ms' };
+  const map: Record<string, string> = { layerId: 'layer_id', shape: 'shape', kind: 'kind', x: 'x', y: 'y', rotation: 'rotation', coneAngle: 'cone_angle', color: 'color', flicker: 'flicker', rangeM: 'range_m', castsShadow: 'casts_shadow', spinMs: 'spin_ms', intensity: 'intensity' };
   const row: Record<string, unknown> = {};
   for (const [k, col] of Object.entries(map)) { const v = (p as Record<string, unknown>)[k]; if (v !== undefined) row[col] = v; }
   return row;

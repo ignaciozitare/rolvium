@@ -99,6 +99,8 @@ interface Props {
   onSelectWall?: (id: string | null) => void;
   /** New endpoints after dragging the segment or one of its vertices (already grid-snapped). */
   onMoveWall?: (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => void;
+  /** Mover una luz ya puesta. Sin esto una luz se coloca y ya no se despega (dueño, 2026-09-01). */
+  onMoveLight?: (id: string, at: Point) => void;
 }
 
 type Gesture =
@@ -109,6 +111,8 @@ type Gesture =
   /** Pincel de transparencia: pinta la máscara de una capa de terreno. `last` encadena el trazo sin lunares. */
   | { kind: 'mask'; last: Point }
   | { kind: 'wallEdit'; id: string; grab: 'a' | 'b' | 'whole'; start: Point; origin: { x1: number; y1: number; x2: number; y2: number } }
+  /** Arrastrando una luz ya colocada. Se mueve entera: una luz no tiene extremos que agarrar. */
+  | { kind: 'lightMove'; id: string; start: Point; origin: Point; moved: boolean }
   | { kind: 'marquee'; start: Point; last: Point }
   | { kind: 'measure' }
   /** Arrastrando la sonda de prueba. No lleva id: sólo hay una y no es de nadie. */
@@ -117,6 +121,15 @@ type Gesture =
 type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
 /** Tools whose press opens a gesture, so the open/close disc can wait for the release instead of stealing it. */
 const DISC_TOOLS: Tool[] = ['select', 'measure', 'pencil', 'line', 'rect', 'circle'];
+/**
+ * Dónde se ve el aro de una luz y su disco de clic. Son las dos herramientas desde las que se puede elegir
+ * una: con Luz, desde siempre; con Seleccionar, desde el arreglo del 2026-08-31. Antes el aro sólo se pintaba
+ * con Luz, así que con Seleccionar la elegías A CIEGAS —se abría su editor sin que nada en el mapa dijera
+ * cuál— y él lo dijo tal cual (2026-09-01): «me debería mostrar algo que la seleccione a cuál seleccione».
+ */
+const LIGHT_PICK_TOOLS: Tool[] = ['light', 'select'];
+/** El radio, EN PÍXELES DE PANTALLA, del disco que se pinta sobre una luz y por el que se la agarra. */
+const LIGHT_HANDLE_R = 14;
 const DRAW_TOOLS: Record<string, DrawTool> = { pencil: 'stroke', line: 'line', rect: 'rect', circle: 'circle' };
 const PIN_MS = 2500;
 /** Centésima de casilla: suficiente para que el movimiento se vea libre y no manda 14 decimales por la red. */
@@ -155,6 +168,8 @@ export function MapCanvas(p: Props): JSX.Element {
   /** Space held = pan, from ANY tool (the middle button already did this). Panning is a modifier, not a tool. */
   const [spacePan, setSpacePan] = useState(false);
   const [wallDraft, setWallDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  /** Dónde se está viendo la luz mientras se arrastra. Igual que `wallDraft`: se pinta ya, se guarda al soltar. */
+  const [lightDraft, setLightDraft] = useState<{ id: string; x: number; y: number } | null>(null);
   /** In a ref so the key listener never has to be re-bound as the selection changes. */
   const onDeleteRef = useRef<() => void>(() => {});
   /** A press that started on the open/close disc, until the pointer moves far enough to make it a drag. */
@@ -185,7 +200,7 @@ export function MapCanvas(p: Props): JSX.Element {
     const onControl = (t: EventTarget | null): boolean =>
       !!(t as HTMLElement | null)?.closest?.('button, a[href], input, select, textarea, summary, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="radio"], [role="tab"], [contenteditable="true"]');
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setWallStart(null); setGesture(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); return; }
+      if (e.key === 'Escape') { setWallStart(null); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); return; }
       if (e.key === ' ' && !typing(e.target) && !onControl(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
     };
@@ -203,6 +218,12 @@ export function MapCanvas(p: Props): JSX.Element {
     return { x: e.clientX - (r?.left ?? 0), y: e.clientY - (r?.top ?? 0) };
   }, []);
   const toScene = useCallback((e: { clientX: number; clientY: number }): Point => canvasToScene(local(e), p.view), [local, p.view]);
+  /**
+   * ¿Esta pulsación cae dentro del disco que se PINTA sobre una luz? Es el radio del propio disco
+   * (`LIGHT_HANDLE_R`), así que se agarra exactamente lo que se ve — ni más ni menos.
+   */
+  const grabsLight = (l: { x: number; y: number }, at: Point): boolean =>
+    Math.hypot(l.x - at.x, l.y - at.y) <= LIGHT_HANDLE_R / p.view.zoom;
 
   /**
    * Zoom must be a NATIVE listener with `{ passive: false }`: React registers `wheel` passively, so
@@ -228,6 +249,7 @@ export function MapCanvas(p: Props): JSX.Element {
     // One selection at a time: leaving a segment selected would stack «Segmento» and the token bar on the same
     // spot over the canvas, and Suprimir would delete the segment instead of the token you just picked.
     p.onSelectWall?.(null);
+    p.onSelectLight?.(null);
     if (!canMoveToken(tok, p.me, p.isDm)) return;
     svgRef.current?.setPointerCapture?.(e.pointerId);
     setGesture({ kind: 'token', id: tok.id, start: toScene(e), origin: { x: tok.x, y: tok.y }, moved: false });
@@ -261,17 +283,32 @@ export function MapCanvas(p: Props): JSX.Element {
        * un pelo fuera de su disco COLOCA otra luz en vez de abrir la que querías — así que en la práctica no
        * había forma fiable de volver a una. Va antes que el muro porque es un blanco pequeño y encima de él.
        */
-      const light = dmSight ? lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12, lightRadiusPx(l, p.scene.grid) * 0.25)) : null;
+      const light = dmSight ? lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12 / p.view.zoom, lightRadiusPx(l, p.scene.grid) * 0.25)) : null;
       if (light) {
         p.onSelectToken(null);
         p.onSelectWall?.(null);
         p.onSelectLight?.(light.id);
+        /**
+         * ELEGIR es generoso; AGARRAR exige acertar el disco que se ve.
+         *
+         * Elegir una luz perdona un clic un poco fuera —una luz es un blanco pequeño y con la herramienta Luz
+         * fallar significa COLOCAR otra encima—, y ese margen crece con el tamaño de la luz. Pero arrastrar no
+         * puede perdonar tanto: con una luz de nueve metros, ese margen llega lejísimos, y una pulsación en lo
+         * que parece suelo vacío la movería sin que nadie entienda por qué. Así que sólo se agarra dentro del
+         * disco que de verdad está pintado.
+         */
+        if (grabsLight(light, s)) {
+          setGesture({ kind: 'lightMove', id: light.id, start: s, origin: { x: light.x, y: light.y }, moved: false });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+        }
         return;
       }
       // Seleccionar: pick a segment (DM only) and grab it, or clear everything.
       const wall = dmSight ? hitWall(p.walls, s, 10 / p.view.zoom) : null;
       if (wall) {
         p.onSelectToken(null);
+        // Suelta la luz: si no, quedaría elegida sin verse y Suprimir borraría la luz en vez del segmento.
+        p.onSelectLight?.(null);
         p.onSelectWall?.(wall.id);
         const near = (x: number, y: number) => Math.hypot(s.x - x, s.y - y) <= 12 / p.view.zoom;
         const grab = near(wall.x1, wall.y1) ? 'a' : near(wall.x2, wall.y2) ? 'b' : 'whole';
@@ -301,8 +338,15 @@ export function MapCanvas(p: Props): JSX.Element {
        */
       case 'light': {
         if (!dmSight) return;
-        const hit = lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12, lightRadiusPx(l, p.scene.grid) * 0.25));
-        if (hit) { p.onSelectLight?.(hit.id); return; }
+        const hit = lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12 / p.view.zoom, lightRadiusPx(l, p.scene.grid) * 0.25));
+        if (hit) {
+          p.onSelectLight?.(hit.id);
+          if (grabsLight(hit, s)) {
+            setGesture({ kind: 'lightMove', id: hit.id, start: s, origin: { x: hit.x, y: hit.y }, moved: false });
+            svgRef.current?.setPointerCapture?.(e.pointerId);
+          }
+          return;
+        }
         p.onPlaceLight?.(s);
         return;
       }
@@ -445,6 +489,11 @@ export function MapCanvas(p: Props): JSX.Element {
       setGesture({ ...gesture, last: s });
     } else if (gesture.kind === 'wallEdit') {
       setWallDraft(wallDragTo(gesture.origin, gesture.grab, gesture.start, s, grid));
+    } else if (gesture.kind === 'lightMove') {
+      // Libre, sin pegarse a la rejilla: una luz no ocupa casilla, y él ya pidió que arrastrar no dependa de
+      // la grilla (2026-08-21, sobre las fichas). Se pinta al momento; el guardado espera a que suelte.
+      setLightDraft({ id: gesture.id, x: gesture.origin.x + (s.x - gesture.start.x), y: gesture.origin.y + (s.y - gesture.start.y) });
+      if (!gesture.moved) setGesture({ ...gesture, moved: true });
     } else if (gesture.kind === 'brush') {
       // Same rate limit as the token drag: every call is a round trip that rewrites the fog row of EVERY player
       // and wakes the whole table through `fog.updated`. One per pointermove would be ~60 a second.
@@ -470,7 +519,7 @@ export function MapCanvas(p: Props): JSX.Element {
       return Math.hypot(c.x - s.x, c.y - s.y) <= tokenRadiusPx(t, grid);
     });
     if (tk) return { kind: 'token', id: tk.id, name: tk.name, layerId: tk.layerId };
-    const li = [...lightsShown].reverse().find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12, lightRadiusPx(l, p.scene.grid) * 0.25));
+    const li = [...lightsShown].reverse().find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12 / p.view.zoom, lightRadiusPx(l, p.scene.grid) * 0.25));
     if (li) return { kind: 'light', id: li.id, name: '', layerId: li.layerId };
     const d = hitTest(drawingsShown, s, 6 / p.view.zoom);
     if (d) return { kind: 'drawing', id: d.id, name: '', layerId: d.layerId };
@@ -483,7 +532,7 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const onRightClick = (e: ReactPointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
     e.preventDefault();
-    if (wallStart || measure || gesture) { setWallStart(null); setMeasure(null); setGesture(null); return; }
+    if (wallStart || measure || gesture) { setWallStart(null); setMeasure(null); setGesture(null); setLightDraft(null); return; }
     // Sobre algo, el menú es de ESE algo; en el suelo vacío, el de la vista. Sólo el director mueve capas.
     const s = toScene(e);
     const el = dmSight ? elementAt(s) : null;
@@ -508,6 +557,19 @@ export function MapCanvas(p: Props): JSX.Element {
       const moved = at.x1 !== gesture.origin.x1 || at.y1 !== gesture.origin.y1 || at.x2 !== gesture.origin.x2 || at.y2 !== gesture.origin.y2;
       if (moved) p.onMoveWall?.(gesture.id, at);
       setWallDraft(null);
+      setGesture(null);
+      return;
+    }
+    if (gesture.kind === 'lightMove') {
+      /**
+       * Un clic sin arrastre NO guarda nada: seleccionar una luz para abrir su editor es lo más normal del
+       * mundo, y escribir en la base de datos por cada clic sobraría. El umbral es el mismo que usa el
+       * marco de selección.
+       */
+      if (gesture.moved && lightDraft && Math.hypot(lightDraft.x - gesture.origin.x, lightDraft.y - gesture.origin.y) > 1) {
+        p.onMoveLight?.(gesture.id, { x: round2(lightDraft.x), y: round2(lightDraft.y) });
+      }
+      setLightDraft(null);
       setGesture(null);
       return;
     }
@@ -570,7 +632,12 @@ export function MapCanvas(p: Props): JSX.Element {
   const layers = p.layers ?? [];
   const hasTerrain = terrainLayers(layers).some(l => l.visible && l.imageUrl);
   const drawingsShown = layers.length === 0 ? p.drawings : p.drawings.filter(d => isPainted(resolveLayer(layers, d.layerId, 'drawing'), dmSight));
-  const lightsShown = paintedLights(p.lights ?? [], layers, dmSight);
+  /**
+   * Mientras se arrastra una luz se pinta donde va el dedo, no donde está guardada: el resplandor, su aro y
+   * su disco de clic salen todos de esta lista, así que con cambiarla aquí se mueve el conjunto de una pieza.
+   */
+  const lightsAll = paintedLights(p.lights ?? [], layers, dmSight);
+  const lightsShown = lightDraft ? lightsAll.map(l => (l.id === lightDraft.id ? { ...l, x: lightDraft.x, y: lightDraft.y } : l)) : lightsAll;
   /** Un PJ es un token con ficha de personaje detrás. Los PNJ del bestiario no la tienen. */
   const isPc = (tk: Token): boolean => tk.characterId !== null;
   const renderToken = (tk: Token): JSX.Element => {
@@ -636,10 +703,10 @@ export function MapCanvas(p: Props): JSX.Element {
           {/* Encima del mapa y de los trazos, debajo de las fichas: la luz baña el suelo, no a la gente. */}
           {lightsShown.length > 0 && <LightsLayer scene={p.scene} lights={lightsShown} {...(fog?.lit ? { lit: fog.lit } : {})} />}
           {/* El aro de la luz seleccionada y su zona de clic. Sólo para el director: es mobiliario de edición. */}
-          {dmSight && p.tool === 'light' && lightsShown.map(l => (
+          {dmSight && LIGHT_PICK_TOOLS.includes(p.tool) && lightsShown.map(l => (
             <g key={`hit-${l.id}`}>
-              <circle cx={l.x} cy={l.y} r={14} className="mp-light-hit" data-light-hit={l.id} />
-              {p.selectedLightId === l.id && <circle cx={l.x} cy={l.y} r={18} className="mp-light-sel" data-testid="mp-light-sel" />}
+              <circle cx={l.x} cy={l.y} r={LIGHT_HANDLE_R / p.view.zoom} className="mp-light-hit" data-light-hit={l.id} />
+              {p.selectedLightId === l.id && <circle cx={l.x} cy={l.y} r={18 / p.view.zoom} className="mp-light-sel" data-testid="mp-light-sel" />}
             </g>
           ))}
           {/* What was explored but is out of sight right now stays visible, only dimmed — «sigue ahí, apagado». */}

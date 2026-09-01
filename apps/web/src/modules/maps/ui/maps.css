@@ -118,6 +118,7 @@
 .mp-menu-item:hover{background:color-mix(in srgb,var(--sys-ink) 10%,transparent);}
 .mp-menu-item:disabled{opacity:.45;cursor:default;}
 .mp-menu-item.danger{color:var(--sys-blood);}
+.mp-menu-sep{display:block;height:1px;margin:4px 8px;background:var(--sys-line);}
 /* Pegado a SU botón, que está en la barra de la izquierda: estaba clavado a la derecha, o sea en la otra
    punta de la pantalla que lo abre (dueño, prueba de la app). Mismo hueco que sus dos vecinos de esa esquina,
    `.mp-pcmenu` y `.mp-encounter`: arrancan en 60px para no taparle la etiqueta al lienzo (`.mp-canvas-label`,
@@ -288,7 +289,8 @@
   background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
 .mp-light-kind.on{background:var(--sys-gold);color:var(--sys-ink);border-color:var(--sys-gold);}
 .mp-light-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.mp-light-colors{display:flex;gap:5px;}
+/* Doce colores en dos filas de seis: en una sola fila no caben en el panel (dueño, 2026-09-02: «debería poder elegir más colores, no solo esos»). */
+.mp-light-colors{display:grid;grid-template-columns:repeat(6,20px);gap:5px;}
 .mp-light-check{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--sys-ink-soft);cursor:pointer;}
 .mp-light-check input{accent-color:var(--sys-ink);}
 /* Que se anima de verdad no se ve en un interruptor apagado: se dice. */
@@ -301,8 +303,8 @@
   color:var(--sys-ink-dim);background:color-mix(in srgb,var(--sys-gold) 15%,transparent);}
 .mp-light-note .material-symbols-outlined{color:var(--sys-gold);flex-shrink:0;}
 /* La luz seleccionada: un aro para saber cuál se está tocando. */
-.mp-light-sel{fill:none;stroke:var(--sys-gold);stroke-width:2;stroke-dasharray:5 4;pointer-events:none;}
-.mp-light-hit{fill:transparent;cursor:pointer;}
+.mp-light-sel{fill:none;stroke:var(--sys-gold);stroke-width:2;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;pointer-events:none;}
+.mp-light-hit{fill:transparent;cursor:move;}
 
 /* ── barra del pincel de transparencia (rebanada 7) ── */
 .mp-maskbar{max-width:calc(100% - 16px);}

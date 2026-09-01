@@ -13,7 +13,7 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onMoveLight: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
@@ -815,8 +815,60 @@ describe('<MapCanvas> la luz que gira', () => {
     expect(anim.getAttribute('to')).toBe(`360 ${SIREN.x} ${SIREN.y}`);
     // La fase sale del reloj: todos en la mesa ven el haz en el mismo sitio, entren cuando entren.
     expect(Number(anim.getAttribute('begin')!.replace('ms', ''))).toBeLessThanOrEqual(0);
-    // Y el charco se pinta a través de ella: la ventana recorta, no reemplaza.
-    expect(svg.querySelector(`#mp-litmask-${SIREN.id} g[mask]`)!.getAttribute('mask')).toBe(`url(#mp-litspin-${SIREN.id})`);
+    // Y el charco recorta el haz: el haz se pinta A TRAVÉS de la máscara del charco, no al revés.
+    expect(spin.closest('[data-testid="mp-light"]')!.getAttribute('mask')).toBe(`url(#mp-litmask-${SIREN.id})`);
+  });
+
+  /**
+   * 🐞 EL PIN DEL FALLO QUE ÉL VIO (2026-09-01: «no gira, tiene que estar girando todo el tiempo y solo gira
+   * un poco mientras muevo el token y luego para»).
+   *
+   * La orden de girar estaba bien puesta —periodo correcto, `repeatCount="indefinite"`— pero vivía DENTRO de
+   * una `<mask>`, y un navegador no repinta un elemento porque algo se mueva dentro de su máscara. Sólo
+   * avanzaba de refilón cuando otra cosa obligaba al mapa a repintarse: arrastrar una ficha. Por eso el test
+   * no mira los atributos (que ya estaban bien), sino DÓNDE cuelga la animación.
+   */
+  it('el haz gira en lo que se PINTA, no dentro de una máscara (si no, el navegador no lo repinta)', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [SIREN] });
+    const spin = svg.querySelector('[data-testid="mp-light-spin"]')!;
+    expect(spin.closest('mask')).toBeNull();
+    expect(spin.closest('defs')).toBeNull();
+    expect(spin.closest('[data-testid="mp-light"]')).not.toBeNull();
+    // Y lo que da vueltas es el cono pintado con el color de la luz, no una silueta en blanco de máscara.
+    expect(spin.querySelector('path')!.getAttribute('fill')).toBe(`url(#mp-light-${SIREN.id})`);
+  });
+
+  /**
+   * ⚡ EL PIN DEL COSTE. Un desenfoque gaussiano sobre algo que gira hay que rehacerlo en CADA fotograma; con
+   * dos conos girando eso se comió el presupuesto y él vio irse a saltos la niebla y las fichas
+   * (2026-09-02). El filo suave lo ponen ahora capas de relleno plano. Si alguien vuelve a colgar un filtro
+   * del haz, este test cae.
+   */
+  it('el haz se difumina con capas, NO con un filtro: un desenfoque por fotograma se lleva la fluidez', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [SIREN] });
+    const capas = [...svg.querySelectorAll('[data-testid="mp-light-spin"] path')];
+    expect(capas.length).toBeGreaterThan(1);
+    for (const c of capas) expect(c.getAttribute('filter')).toBeNull();
+    // De fuera adentro, cada capa un poco más opaca, y la de dentro tapa del todo.
+    const opacidades = capas.map(c => Number(c.getAttribute('fill-opacity')));
+    expect(opacidades[opacidades.length - 1]).toBe(1);
+    expect(opacidades[0]).toBeLessThan(1);
+  });
+
+  it('la fase no se recalcula al repintar: cambiar `begin` reiniciaría la vuelta en cada actualización', () => {
+    const { svg, rerender } = mount({ isDm: true, me: 'u-gm', lights: [SIREN] });
+    const begin = svg.querySelector('[data-testid="mp-light-spin"] animateTransform')!.getAttribute('begin');
+    rerender({ isDm: true, me: 'u-gm', lights: [SIREN], selectedTokenIds: ['tk-karen'] });
+    expect(svg.querySelector('[data-testid="mp-light-spin"] animateTransform')!.getAttribute('begin')).toBe(begin);
+  });
+
+  it('el charco de una sirena es REDONDO aunque sea un cono: si no, el haz gira dentro de una rendija', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [SIREN] });
+    // Es lo mismo que decide el servidor cuando una luz gira (`sceneVision.ts`, shape: 'radius').
+    expect(svg.querySelector(`#mp-litmask-${SIREN.id} circle[data-testid="mp-light-shape"]`)).not.toBeNull();
+    document.body.innerHTML = '';
+    const quieta = mount({ isDm: true, me: 'u-gm', lights: [{ ...SIREN, id: 'li-quieta', spinMs: 0 }] });
+    expect(quieta.svg.querySelector('#mp-litmask-li-quieta path[data-testid="mp-light-shape"]')).not.toBeNull();
   });
 
   it('sólo gira un CONO: un radio ya alumbra en redondo', () => {
@@ -942,5 +994,104 @@ describe('<MapCanvas> selección por área', () => {
     down(svg, 120, 90);
     expect(cb.onAddText).toHaveBeenCalledWith({ x: 120, y: 90 });
     expect(cb.onAddDrawing).not.toHaveBeenCalled();
+  });
+});
+
+
+/**
+ * 🔦 ELEGIR UNA LUZ Y MOVERLA (dueño, 2026-09-01: «no lo puedo arrastrar, me debería mostrar algo que la
+ * seleccione a cuál seleccione y que me deje moverla»). Eran dos cosas: el aro sólo se pintaba con la
+ * herramienta Luz —con Seleccionar la elegías a ciegas— y arrastrarla no existía en absoluto.
+ */
+describe('<MapCanvas> elegir una luz y moverla', () => {
+  const LAMP = { ...LIGHT_TORCH, id: 'li-lamp', x: 800, y: 120 };
+  const dm = { isDm: true, me: 'u-gm', lights: [LAMP] };
+
+  it('el aro y el disco de clic se ven también con Seleccionar, no sólo con Luz', () => {
+    for (const tool of ['light', 'select'] as Tool[]) {
+      document.body.innerHTML = '';
+      const { svg } = mount({ ...dm, tool, selectedLightId: LAMP.id });
+      expect(svg.querySelector('[data-testid="mp-light-sel"]')).not.toBeNull();
+      expect(svg.querySelector(`[data-light-hit="${LAMP.id}"]`)).not.toBeNull();
+    }
+  });
+
+  it('con una herramienta que no elige luces no se pinta ningún aro', () => {
+    const { svg } = mount({ ...dm, tool: 'pencil', selectedLightId: LAMP.id });
+    expect(svg.querySelector('[data-testid="mp-light-sel"]')).toBeNull();
+  });
+
+  it('arrastrarla la mueve, y se guarda donde se soltó', () => {
+    const { svg, cb } = mount({ ...dm, tool: 'select' });
+    down(svg, LAMP.x, LAMP.y);
+    expect(cb.onSelectLight).toHaveBeenCalledWith(LAMP.id);
+    move(svg, LAMP.x + 40, LAMP.y + 30);
+    up(svg);
+    expect(cb.onMoveLight).toHaveBeenCalledWith(LAMP.id, { x: LAMP.x + 40, y: LAMP.y + 30 });
+  });
+
+  it('también se arrastra con la herramienta Luz, y sin colocar otra encima', () => {
+    const { svg, cb } = mount({ ...dm, tool: 'light', onPlaceLight: vi.fn() });
+    down(svg, LAMP.x, LAMP.y);
+    move(svg, LAMP.x - 25, LAMP.y);
+    up(svg);
+    expect(cb.onMoveLight).toHaveBeenCalledWith(LAMP.id, { x: LAMP.x - 25, y: LAMP.y });
+  });
+
+  it('un clic sin arrastre la elige pero NO guarda nada: abrir su editor no es moverla', () => {
+    const { svg, cb } = mount({ ...dm, tool: 'select' });
+    down(svg, LAMP.x, LAMP.y);
+    up(svg);
+    expect(cb.onSelectLight).toHaveBeenCalledWith(LAMP.id);
+    expect(cb.onMoveLight).not.toHaveBeenCalled();
+  });
+
+  it('mientras se arrastra, el resplandor va con el dedo — no se queda donde estaba guardada', () => {
+    const { svg } = mount({ ...dm, tool: 'select' });
+    down(svg, LAMP.x, LAMP.y);
+    move(svg, LAMP.x + 60, LAMP.y);
+    expect(svg.querySelector(`[data-light-hit="${LAMP.id}"]`)!.getAttribute('cx')).toBe(String(LAMP.x + 60));
+  });
+
+  /**
+   * El blanco al que hay que acertar es de tamaño de PANTALLA, no de escena: medido en px de escena, alejarse
+   * lo encogía hasta hacerlo imposible de pinchar — que es la mitad de por qué él no podía elegir una luz.
+   */
+  it('el blanco no se encoge al alejarse: mantiene su tamaño en pantalla', () => {
+    const { svg } = mount({ ...dm, tool: 'select', selectedLightId: LAMP.id, view: { zoom: 2, panX: 0, panY: 0 } });
+    expect(svg.querySelector(`[data-light-hit="${LAMP.id}"]`)!.getAttribute('r')).toBe('7');
+    expect(svg.querySelector('[data-testid="mp-light-sel"]')!.getAttribute('r')).toBe('9');
+  });
+});
+
+/** 🕯 INTENSIDAD (§ 7.2): multiplica lo que se PINTA y nada más. Al 100 % nada cambia respecto a antes. */
+describe('<MapCanvas> la intensidad de una luz', () => {
+  const stops = (svg: Element, id: string): number[] =>
+    [...svg.querySelectorAll(`#mp-light-${id} stop`)].map(s => Number(s.getAttribute('stop-opacity')));
+
+  it('al 100 % se pinta exactamente como antes de que la barra existiera', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, intensity: 100 }] });
+    expect(stops(svg, LIGHT_TORCH.id)).toEqual([0.65, 0.25, 0]);
+  });
+
+  it('por encima de 100 sigue subiendo: el centro se topa en opaco y lo que crece es el núcleo', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, intensity: 200 }] });
+    const [centro, medio] = stops(svg, LIGHT_TORCH.id);
+    expect(centro).toBe(1);                 // más opaco que opaco no existe
+    expect(medio).toBe(0.5);                // …pero el brillo llega mucho más lejos que al 100 %
+    expect(medio).toBeGreaterThan(0.25);
+  });
+
+  it('bajarla apaga el resplandor de forma proporcional', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, intensity: 40 }] });
+    expect(stops(svg, LIGHT_TORCH.id)).toEqual([0.65 * 0.4, 0.25 * 0.4, 0]);
+  });
+
+  it('NO cambia hasta dónde llega la luz: el charco es el mismo al 10 % que al 100 %', () => {
+    const tenue = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, intensity: 10 }] });
+    const d = tenue.svg.querySelector(`#mp-litmask-${LIGHT_TORCH.id} [data-testid="mp-light-shape"]`)!.getAttribute('r');
+    document.body.innerHTML = '';
+    const plena = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, intensity: 100 }] });
+    expect(plena.svg.querySelector(`#mp-litmask-${LIGHT_TORCH.id} [data-testid="mp-light-shape"]`)!.getAttribute('r')).toBe(d);
   });
 });

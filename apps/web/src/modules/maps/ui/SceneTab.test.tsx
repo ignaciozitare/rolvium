@@ -975,6 +975,83 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     await waitFor(() => expect(repo.lights).toHaveLength(1));
     expect(screen.queryByRole('group', { name: /^Luz:/ })).not.toBeInTheDocument();
   });
+
+  /**
+   * 🔦 ARRASTRAR UNA LUZ LLEGA A LA TABLA (dueño, 2026-09-01: «no lo puedo arrastrar … y que me deje
+   * moverla»). El lienzo por dentro ya tiene su test —que avisa—; lo que se prueba aquí es la CONEXIÓN: que
+   * ese aviso acabe escrito en `maps_lights`. Sin esta pieza la luz se movía en pantalla y volvía a su sitio
+   * al recargar, que es exactamente el fallo que él vería.
+   */
+  it('arrastrar una luz por el lienzo guarda su nueva posición', async () => {
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    const svg = canvas();
+    // LIGHT_TORCH vive en (300, 200) px de escena, y con Seleccionar —la herramienta de siempre— se agarra.
+    fireEvent.pointerDown(svg, { clientX: 300, clientY: 200, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(svg, { clientX: 360, clientY: 245, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+    await waitFor(() => expect(repo.lightUpdates.at(-1)).toEqual({ id: LIGHT_TORCH.id, patch: { x: 360, y: 245 } }));
+  });
+
+  /** Y un clic sin arrastre sólo la elige: abrir su editor no puede escribir en la base de datos. */
+  it('pinchar una luz sin arrastrarla abre su editor y no guarda nada', async () => {
+    const repo = withLayers();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 200, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    expect(await screen.findByRole('group', { name: 'Luz: Antorcha' })).toBeInTheDocument();
+    expect(repo.lightUpdates).toEqual([]);
+  });
+
+  /**
+   * 🗑 BORRAR UNA LUZ ELEGIDA (dueño, 2026-09-02: «si la selecciono a la luz y toco la tecla suprimir o botón
+   * derecho eliminar la luz se tiene que borrar»). Antes Suprimir sólo sabía de muros y fichas.
+   */
+  it('con una luz elegida, Suprimir la borra', async () => {
+    const repo = withLayers();
+    const antes = repo.lights.length;
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 200, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await screen.findByRole('group', { name: 'Luz: Antorcha' });
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.lights).toHaveLength(antes - 1));
+    expect(repo.lights.some(l => l.id === LIGHT_TORCH.id)).toBe(false);
+    // Y su editor se va con ella: dejarlo abierto sobre algo que ya no existe es un panel fantasma.
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Luz: Antorcha' })).toBeNull());
+  });
+
+  it('con el botón derecho sobre una luz, el menú ofrece borrarla', async () => {
+    const repo = withLayers();
+    const antes = repo.lights.length;
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.contextMenu(canvas(), { clientX: 300, clientY: 200 });
+    const borrar = await screen.findByRole('menuitem', { name: 'Borrar la luz' });
+    fireEvent.click(borrar);
+    await waitFor(() => expect(repo.lights).toHaveLength(antes - 1));
+  });
+
+  /**
+   * 🔒 Suprimir no puede confundirse de víctima: elegir un muro SUELTA la luz. Si no, la luz se quedaba
+   * elegida sin que nada lo dijera y Suprimir borraba la luz en vez del segmento que acababas de pinchar.
+   */
+  it('elegir un muro suelta la luz, y entonces Suprimir borra el muro', async () => {
+    const repo = withLayers();
+    const luces = repo.lights.length;
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 200, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await screen.findByRole('group', { name: 'Luz: Antorcha' });
+    fireEvent.pointerDown(canvas(), { clientX: 272, clientY: 380, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.lights).toHaveLength(luces));
+  });
 });
 
 /**

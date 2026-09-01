@@ -923,6 +923,11 @@
       "empty": "Esta escena aún no tiene capas.",
       "newName": "Nombre de la capa de terreno",
       "sendTo": "Mandar a la capa",
+      "remove": {
+        "light": "Borrar la luz",
+        "token": "Borrar la ficha",
+        "drawing": "Borrar el trazo"
+      },
       "element": {
         "token": "Ficha",
         "drawing": "Trazo",
@@ -955,6 +960,7 @@
       "color": "Color y parpadeo",
       "colorN": "Color {{n}}",
       "flicker": "Parpadea",
+      "intensity": "Intensidad",
       "animates": "Se anima",
       "prepared": "Alcance y sombra",
       "range": "Alcance en metros",

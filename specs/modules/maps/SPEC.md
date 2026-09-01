@@ -435,6 +435,124 @@ enciende y le pone el periodo (lo que tarda una vuelta entera); a partir de ahí
 **Modelo de datos**: **una sola columna** en `maps_lights`, `spin_ms` (entero, 0 = no gira). Un interruptor y
 un periodo en dos columnas serían dos formas de decir lo mismo y una de ellas acabaría mintiendo.
 
+##### 🐞 Y NO GIRABA — arreglado el 2026-09-01 (noche)
+
+Al probarlo dijo: *«no gira, tiene que estar girando todo el tiempo y solo gira un poco mientras muevo el
+token y luego para»*. Tenía razón, y el fallo era fino:
+
+La orden de girar estaba **bien puesta** —periodo correcto, vuelta entera, «para siempre»—, pero vivía
+**dentro de la máscara** que recorta la luz. Y un navegador **no vuelve a pintar un elemento porque algo se
+haya movido dentro de su máscara**: la animación corría, pero nadie repintaba. El haz sólo avanzaba de
+refilón cuando otra cosa obligaba al mapa a repintarse —arrastrar una ficha, justo lo que él hacía— y se
+congelaba al soltar.
+
+**El arreglo, sin perder el borde suave.** El haz se pinta ahora como un objeto de verdad, en el árbol que se
+ve, y es el CHARCO el que hace de máscara — al revés que antes. La cuenta es la misma («círculo recortado ∩
+sector de θ» da igual por qué lado se mire), pero lo que se mueve es algo visible y el navegador sí lo
+repinta. El borde del haz sigue sin ser una raya: lleva el mismo desenfoque que las demás luces, y ahí
+difumina de verdad porque difumina **lo pintado**, no una silueta multiplicada por sí misma.
+
+Dos cosas más que salieron de ahí:
+- **La fase se calcula una sola vez por luz.** Cambiar el «empezó hace tanto» en una animación que corre la
+  REINICIA, y este lienzo se repinta con cada actualización de visión: el haz habría dado un salto atrás
+  varias veces por segundo. Se guarda, y se recalcula sólo si él cambia la velocidad.
+- **El charco de una sirena es REDONDO aunque la luz sea un cono**, también cuando se dibuja sin datos del
+  servidor (niebla apagada). Es lo que ya hacía el servidor; el navegador no lo hacía, y el haz giraba dentro
+  de una rendija con la forma del cono quieto.
+
+⚠ **Sigue pendiente de que lo vea él**: los tests comprueban dónde cuelga la animación, que es lo que estaba
+mal. Que el navegador repinte de verdad no lo puede comprobar un test.
+
+##### ⚡ Y AL GIRAR DE VERDAD, SE FUE LA FLUIDEZ — el filo del haz, en capas (2026-09-02)
+
+Arreglado el giro, llegó la queja siguiente: *«la niebla hace saltos raros, no es fluida, igual que el
+movimiento del token»*. Causa: estas luces pasaron de **no repintarse nunca** —ése era el fallo— a repintarse
+60 veces por segundo, y el filo del haz lo ponía un **desenfoque gaussiano**, que hay que REHACER en cada
+fotograma sobre una caja del tamaño de la luz. Su escena tiene **dos conos girando, uno a media vuelta por
+segundo**: eso se come el presupuesto del fotograma, y cuando eso pasa se va a saltos **todo** lo que se
+pinta — la niebla y las fichas incluidas. Por eso las dos quejas eran una sola cosa.
+
+Quitar el desenfoque devolvió la fluidez y trajo la queja de al lado: *«se ven los conos duros»*. Así que el
+filo **se dibuja en vez de emborronarse**: unos pocos conos encajados, del más ancho al más estrecho, cada uno
+un poco más opaco. Son rellenos planos —lo más barato que hace un navegador— y la rampa es exacta: dándole a
+la capa `i` una opacidad de `1/(N-i)`, lo acumulado sale justo `(i+1)/N`, con el centro opaco del todo.
+
+> 🔒 **Regla que no se puede perder**: nada que GIRE puede llevar un filtro colgando. El difuminado va en algo
+> quieto —la máscara del charco, que se calcula una vez— o se dibuja. Hay un test que cae si alguien vuelve a
+> colgar un filtro del haz.
+
+#### 🔦 ELEGIR UNA LUZ Y MOVERLA — pedido y construido el 2026-09-01 (noche)
+
+Queja suya, literal: *«no lo puedo arrastrar, me debería mostrar algo que la seleccione a cuál seleccione y
+que me deje moverla»*. Eran **tres** cosas, no una:
+
+1. **El aro no se veía.** Elegir una luz con **Seleccionar** funcionaba desde el 2026-08-31, pero el aro que
+   dice «ésta» y su disco de clic **sólo se pintaban con la herramienta Luz**. Con Seleccionar la elegías a
+   ciegas: se abría su editor y nada en el mapa decía cuál. Ahora el aro sale con las **dos** herramientas
+   desde las que se puede elegir una — y con ninguna más, que un aro de algo que no puedes tocar estorba.
+2. **El blanco se encogía al alejarse.** La zona a la que hay que acertar se medía en píxeles de ESCENA, así
+   que con el mapa alejado quedaba minúscula en pantalla y era imposible acertarle. Ahora el aro y su disco
+   mantienen su tamaño **en pantalla**, pase lo que pase con el zoom.
+3. **Arrastrar una luz no existía.** Se podían arrastrar fichas y muros; una luz, no. Ahora se agarra y se
+   mueve, con el mismo gesto que un muro: **elegirla y moverla son el mismo gesto, no dos**.
+
+- **Libre, sin pegarse a la rejilla**: una luz no ocupa casilla. Se pinta al momento mientras se arrastra
+  —resplandor, aro y disco van juntos— y **se guarda al soltar**, no en cada movimiento.
+- **Un clic sin arrastre NO guarda nada.** Elegir una luz para abrir su editor es lo más normal del mundo y no
+  puede escribir en la base de datos cada vez.
+- **Es cosa del director**, como todo lo de este apartado.
+
+#### 🕯 INTENSIDAD POR LUZ — pedida y construida el 2026-09-01 (noche)
+
+Petición suya: *«cada una además del alcance color etc necesita una barra de intensidad»*. Una barra más en
+el editor de luz, junto al color.
+
+Separa dos cosas que hasta hoy iban juntas:
+
+| | Qué es | Ya existía |
+|---|---|---|
+| **Alcance** (`range_m`) | cuánto **ILUMINA** — sí cambia lo que se ve | sí |
+| **Intensidad** (`intensity`) | cuánto **CANTA** — sólo cómo se pinta | **nueva** |
+
+Antes, la única forma de que una luz cantase menos era hacerla más pequeña, y no es lo mismo: una vela tenue
+sigue alumbrando su rincón entero.
+
+- 🔒 **NO cambia lo que nadie ve.** Decisión suya del 2026-09-01, elegida sobre la alternativa: **una luz al
+  10 % revela exactamente el mismo terreno que al 100 %**. Respeta la regla que él mismo fijó en § 7.2 —«o
+  llega luz a ese punto, o no llega; no es un degradado»— y por eso **la api ni la pide ni la necesita**: el
+  cálculo de visión y de sombras no la mira. Vive sólo en lo que se pinta.
+- 🔒 **Ninguna luz ya colocada cambia de aspecto.** Nace a **100 %**, que es exactamente como se pintaban antes
+  de que la columna existiera. Misma jugada que salió bien con `range_m` y `casts_shadow`.
+- **De 10 % a 200 %**, con **100 % = como se pintaba siempre**. El suelo no es 0 a propósito: una luz invisible
+  es una luz que crees haber borrado y no lo está — para eso está la papelera. El techo se subió a 200 el
+  2026-09-02, al probarlo: *«la escala de luminosidad queda corta, el máximo tendría que ser más brillante»*.
+  El 100 NO se movió — moverlo cambiaría de aspecto todas sus luces ya puestas; lo que se abrió es el margen
+  por arriba.
+  - Por encima de 100 el centro llega a opaco enseguida (más opaco que opaco no existe), así que lo que sigue
+    creciendo es **el ancho del núcleo brillante**, que es lo que de verdad se lee como «más luz».
+- **Se lleva bien con el parpadeo**: la intensidad va en el degradado, no en la opacidad del elemento, que es
+  justo lo que anima el parpadeo. Una antorcha al 30 % sigue temblando, sólo que suave.
+- **Es de cada luz**, no de la capa ni de la escena.
+- **En todas las luces**: cono, radio y cuadrado, y en todos los tipos.
+
+#### 🎨 DOCE COLORES, NO SEIS — 2026-09-02
+
+*«Debería poder elegir más colores, no solo esos.»* La paleta pasa de 6 a 12, en tres familias de cuatro:
+**cálidos** (fuego, vela, brasa, farol) · **fríos** (luna, hielo, agua profunda, niebla verdosa) ·
+**antinaturales** (magia, veneno, sangre, fuego fatuo), para lo que no debería estar ahí.
+
+> 🔒 **Los seis originales siguen en la paleta, todos.** Si uno desapareciera, una luz ya guardada con ese
+> color se quedaría con un color que el director ya no podría volver a elegir. Hay un test que lo sujeta.
+
+Se ven en **dos filas de seis**: en una sola no caben en el panel.
+
+**Modelo de datos**: una columna en `maps_lights`, `intensity` (entero 10–200, por defecto 100), con su
+`CHECK`. Aditiva; no toca RLS —el reparto de `maps_lights` ya es el que hace falta— y no la lee la api.
+
+> 🚨 **Al desplegar**: como `spin_ms`, esta columna **la pide la web en su `select`**. La migración va PRIMERO
+> y el código después. Las dos migraciones nuevas —`spin_ms` e `intensity`— tienen que estar aplicadas en
+> producción antes de que suba nada de código.
+
 ### 7.3 · La sonda de prueba — «¿qué vería un jugador desde aquí?»
 
 > 🔄 **Reescrito el 2026-09-01. Sustituye ENTERO al «ver con los ojos de ‹personaje›»**, que llegó a

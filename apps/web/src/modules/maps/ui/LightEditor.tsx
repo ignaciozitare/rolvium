@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import type { Light, LightKind, LightPatch, LightShape } from '../domain/entities/Scene';
-import { clampRangeM, clampSpinMs, DEFAULT_SPIN_MS, flickerOf, LIGHT_COLORS, LIGHT_KINDS, LIGHT_SHAPES, MAX_RANGE_M, MAX_SPIN_MS, MIN_RANGE_M, MIN_SPIN_MS, rangeLabelM, RANGE_STEP_M, spinLabelS, SPIN_STEP_MS } from '../domain/useCases/layerRules';
+import { clampIntensity, clampRangeM, clampSpinMs, DEFAULT_SPIN_MS, flickerOf, INTENSITY_STEP, intensityLabel, LIGHT_COLORS, LIGHT_KINDS, LIGHT_SHAPES, MAX_INTENSITY, MAX_RANGE_M, MAX_SPIN_MS, MIN_INTENSITY, MIN_RANGE_M, MIN_SPIN_MS, rangeLabelM, RANGE_STEP_M, spinLabelS, SPIN_STEP_MS } from '../domain/useCases/layerRules';
 
 const KIND_ICON: Record<LightKind, string> = {
   torch: 'local_fire_department', bulb: 'lightbulb', fire: 'fireplace', lantern: 'wb_twilight',
@@ -175,6 +175,17 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
           {/* Se dice que se anima de verdad: es lo que el dueño pidió y no se ve en un interruptor apagado. */}
           {animated && <span className="mp-light-animates">{t('maps.lights.animates')}</span>}
         </div>
+        {/*
+          * INTENSIDAD (§ 7.2, petición del dueño 2026-09-01). Va en «Color» y no en «Se guardan ya» porque
+          * esto SÍ se ve en el mapa al momento: es cuánto canta la luz. Cuánto ILUMINA es el alcance, y está
+          * abajo con lo demás. La barra es la misma de siempre —cono, rotación, vuelta—, no una nueva.
+          */}
+        <label className="mp-light-row">
+          <span className="mp-light-label">{t('maps.lights.intensity')}</span>
+          <input type="range" min={MIN_INTENSITY} max={MAX_INTENSITY} step={INTENSITY_STEP} value={light.intensity} aria-label={t('maps.lights.intensity')}
+            onChange={e => onChange({ intensity: clampIntensity(Number(e.target.value)) })} />
+          <span className="mp-light-value">{intensityLabel(light.intensity)}</span>
+        </label>
       </fieldset>
 
       {/*

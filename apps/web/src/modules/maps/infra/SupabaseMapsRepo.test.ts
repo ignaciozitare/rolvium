@@ -184,14 +184,21 @@ describe('SupabaseMapsRepo — capas y luces (rebanada 7)', () => {
   it('las luces mapean sus columnas, incluidas las que todavía no se usan', async () => {
     const m = createSupabaseMock({ tables: { maps_lights: { data: LIGHT_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    const l = await repo.addLight({ sceneId: 'sc-1', campaignId: 'c1', layerId: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, coneAngle: 60, color: '#e8a24e', flicker: true, rangeM: 6, castsShadow: false, spinMs: 0 });
-    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false, spin_ms: 0 });
+    const l = await repo.addLight({ sceneId: 'sc-1', campaignId: 'c1', layerId: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, coneAngle: 60, color: '#e8a24e', flicker: true, rangeM: 6, castsShadow: false, spinMs: 0, intensity: 100 });
+    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false, spin_ms: 0, intensity: 100 });
     // `rangeM` y `castsShadow` se guardan desde el primer día aunque todavía no iluminen.
     expect(l).toMatchObject({ kind: 'torch', rangeM: 6, castsShadow: false, coneAngle: 60 });
+    // Una fila vieja —sin las columnas nuevas— no revienta: se lee como «quieta y a plena intensidad».
+    expect(l).toMatchObject({ spinMs: 0, intensity: 100 });
     await repo.updateLight('li-1', { flicker: false });
     expect(m.updateSpy).toHaveBeenLastCalledWith({ flicker: false });
     await repo.updateLight('li-1', { layerId: 'ly-1', rangeM: 9 });
     expect(m.updateSpy).toHaveBeenLastCalledWith({ layer_id: 'ly-1', range_m: 9 });
+    // La INTENSIDAD viaja por su propia columna, y mover una luz guarda x e y — las dos cosas nuevas de hoy.
+    await repo.updateLight('li-1', { intensity: 40 });
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ intensity: 40 });
+    await repo.updateLight('li-1', { x: 120.5, y: 88.25 });
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ x: 120.5, y: 88.25 });
   });
 });
 

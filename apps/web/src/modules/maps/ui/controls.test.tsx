@@ -53,7 +53,13 @@ describe('<Toolbar>', () => {
     const btn = screen.getByRole('button', { name: 'Builder' });
     const img = btn.querySelector('[data-testid="mp-tool-img"]') as HTMLElement;
     expect(img).toBeInTheDocument();
-    expect(img.style.maskImage || img.style.webkitMaskImage).toContain('/icons/builder.png');
+    /**
+     * Lo que se pinta es `builder-mask.png`, el mismo dibujo del dueño con el alfa engordado. Su PNG original
+     * sigue en la carpeta sin tocar: a tamaño real sus trazos no pasaban de 152 sobre 255, así que el icono
+     * nunca llegaba a teñirse del color del botón y se veía descolorido al lado de los de Material
+     * (dueño, 2026-09-01: «el icono se ve muy claro respecto a los otros»).
+     */
+    expect(img.style.maskImage || img.style.webkitMaskImage).toContain('/icons/builder-mask.png');
     // Y ya no es el «fence» de Material.
     expect(btn.querySelector('.material-symbols-outlined')).toBeNull();
   });

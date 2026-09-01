@@ -308,8 +308,11 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const mask = useMaskPainter(live, bgLayer, maskDeps);
 
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
+  const removeLight = (id: string) => { setSelectedLightId(cur => (cur === id ? null : cur)); run(st.removeLight(id)); };
   const deleteSelection = () => {
     if (!isDm) return;
+    // La LUZ va primero porque elegirla suelta lo demás: si hay una elegida, es LO elegido (dueño, 2026-09-02).
+    if (selectedLight) { removeLight(selectedLight.id); return; }
     if (selectedWall) { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); return; }
     if (selectedTokens.length) { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }
   };
@@ -374,6 +377,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
+            onMoveLight={(id, at) => run(st.patchLight(id, at))}
             maskLayerId={bgLayer?.id ?? null} maskPreview={mask.preview}
             onPaintMask={(from, to) => mask.paint(from, to, brushRadius(maskSizeCells, live.grid.size), maskStrength, maskDir, maskHardness)}
             onPaintMaskEnd={() => run(mask.flush())}
@@ -443,7 +447,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           {isDm && !playerView && selectedLight && (
             <LightEditor light={selectedLight}
               onChange={patch => run(st.patchLight(selectedLight.id, patch))}
-              onRemove={() => { setSelectedLightId(null); run(st.removeLight(selectedLight.id)); }}
+              onRemove={() => removeLight(selectedLight.id)}
               onClose={() => setSelectedLightId(null)} />
           )}
           {isDm && (tool === 'wall' || selectedWall) && (
@@ -471,6 +475,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           )}
           {layerMenu && (
             <LayerMenu at={layerMenu.at} element={layerMenu.element} layers={st.layers}
+              {...(layerMenu.element.kind === 'light' ? { onRemove: () => removeLight(layerMenu.element.id) } : {})}
               onPick={layerId => {
                 const { kind, id } = layerMenu.element;
                 if (kind === 'token') run(st.patchToken(id, { layerId }));

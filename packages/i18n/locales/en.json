@@ -923,6 +923,11 @@
       "empty": "This scene has no layers yet.",
       "newName": "Name of the terrain layer",
       "sendTo": "Send to layer",
+      "remove": {
+        "light": "Delete light",
+        "token": "Delete token",
+        "drawing": "Delete drawing"
+      },
       "element": {
         "token": "Token",
         "drawing": "Drawing",
@@ -955,6 +960,7 @@
       "color": "Colour and flicker",
       "colorN": "Colour {{n}}",
       "flicker": "Flickers",
+      "intensity": "Brightness",
       "animates": "Animated",
       "prepared": "Range and shadow",
       "range": "Range in metres",
