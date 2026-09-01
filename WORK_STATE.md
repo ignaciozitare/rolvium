@@ -1460,6 +1460,35 @@ El desplegable roto sigue vivo. **Lo más barato y honesto es QUITARLO** (él ya
 pequeño, en vez de arreglar algo que se va a borrar. Preguntárselo: «¿lo quito ya de producción mientras
 construimos la sonda?». Él ya sabe que puede seguir trabajando con sólo quitar la lente a mano.
 
+### 🧹 LIMPIEZA — ENCARGO SUYO: «¿en todo esto está limpiar el código y no tener mierdas dando vueltas
+### provenientes de este despliegue?»
+
+Sí. Barrido hecho el 2026-09-01 (grep de exports contra usos, coste cero).
+⚠ **El barrido tiene falsos positivos**: excluye el fichero que define el símbolo, así que un ayudante usado
+sólo dentro de su propio fichero sale marcado. **Verificar cada uno antes de borrar, no fiarse de la lista.**
+
+**A · Se va SIN preguntar cuando se borre el desplegable de la lente** (es basura por definición):
+`asTokenId` en `mapsRoutes.ts` (esquema del cuerpo) y en `sceneVision.ts` (la rama entera) · `seeAsTokenId`,
+`seeAsOptions`, `onSeeAs` y `asPlayer` en `SceneTab.tsx` · el desplegable en `CanvasControls.tsx` · el
+parámetro en `HttpVisionAdapter.ts` y en el puerto `VisionPort` · las claves i18n `maps.seeAs.*` en es y en ·
+sus tests en `sceneVision.test.ts`, `SceneTab.test.tsx` y `controls.test.tsx` · § 7.3 del SPEC de maps.
+
+**B · Exportado y sin un solo importador fuera de su fichero** (comprobar y, o se borra, o se deja de exportar):
+`MaskPainter` (`useMaskPainter.ts`) · `SceneState` (`useScene.ts`) · `VisionOutcome` y `PaintInput`
+(`sceneVision.ts`) · `OpeningPlan` (`mapRules.ts`) · `FlickerRhythm`, `MaskStop`, `LAYER_KINDS`,
+`NATURAL_LAYER`, `PAINT_BAND` (`layerRules.ts`) · `fogFeather` (`canvasLayers.tsx`) · `mapImageRow` y
+`mapLightRow` (`SupabaseMapsRepo.ts`) · `FakeMapsSeed` (`fakeMapsRepo.ts`) · `cellKey` y `signedArea`
+(`vision.ts` de la api).
+
+**C · 🔴 DECISIÓN SUYA — LA REBANADA 6 (PIEZAS) ENTERA ESTÁ SIN USAR.** No es un descuido, es andamio
+deliberado: `propRules.ts` con **12 funciones exportadas que sólo tocan sus propios tests**
+(`MAX_SCALE`, `MIN_SCALE`, `PROP_CATEGORIES`, `clampScale`, `duplicateProp`, `filterProps`, `footprintOf`,
+`isAppProp`, `matchesQuery`, `plantProp`, `scaleChanged`, `scaleOfWidth`), más `mapPropRow` y
+`mapScenePropRow`, más los 8 métodos del puerto y su implementación con realtime, más **dos tablas ya en
+producción** (`maps_props`, `maps_scene_props`) vacías y sin forma de llegar a ellas.
+**Preguntárselo tal cual: ¿se construye la galería pronto y se queda, o se quita y vuelve cuando toque?**
+Lo que NO vale es dejarlo sin fecha. (Lo mismo señaló QA por su cuenta antes del merge.)
+
 ### 🐞 FALLO B — LA PUERTA ABIERTA NO DEJA VER (aparte, más pequeño, y también real)
 Él: «ahí está la puerta abierta y no puede ver». **Tiene razón, y no es la niebla: son los datos.**
 En esa escena hay tres segmentos en la MISMA línea:
