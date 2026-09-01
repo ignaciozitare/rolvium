@@ -1406,6 +1406,95 @@ localDrag ?? origin`, con id de gesto). Deuda anotada por el review, no tocada: 
 
 ---
 
+## 🔴🔴 PRODUCCIÓN ROTA — LA LENTE DEJA EL MAPA EN NEGRO. DIAGNOSTICADO Y CON EL ARREGLO ESCRITO
+
+> **Lo primero al abrir el chat nuevo. El dueño está bloqueado y enfadado, con razón: se mergeó esto.**
+> Él eligió **arreglar, no revertir** («2»). Cierre de la sesión anterior por el guardia de contexto (7,8 MB)
+> con los edits de código ya bloqueados — por eso el arreglo está escrito y NO aplicado.
+
+### 🩹 PARCHE INMEDIATO QUE YA SE LE DIJO (no volver a explicárselo)
+Quitar la lente: abajo a la derecha, «SEE THROUGH THE EYES OF» → volver a su vista. La vista normal de
+director **no está tocada** por este despliegue, así que con eso trabaja.
+
+### 🐞 FALLO A — LA LENTE PINTA EL MAPA EN NEGRO (es el gordo, es el que él vio)
+
+**Síntomas suyos, literales:** «has roto la niebla de guerra», «si muevo el token de una habitación a otra el
+resto se oscurece por completo», «ya no es dinámica hace saltos».
+
+**Causa, con pruebas:**
+1. `SceneTab.tsx:139` → `const asPlayer = playerView || !!seeAsToken;` y en la 355 eso se pasa como
+   `playerView={asPlayer}`. **La lente se trata EXACTAMENTE igual que «ver como jugador».**
+2. En `MapCanvas.tsx`: `dmSight = p.isDm && !p.playerView` → false con la lente → `playerSight` true →
+   línea ~588 `<g className="mp-layer-map" mask={url(fogIds.seen)}>`. `seen` = **explorado ∪ visión**, así que
+   **lo no explorado NO SE PINTA: queda en negro**, no velado.
+3. `sceneVision.ts:140` → `const explored = tk.controlledBy ? await getExplored(scene.id, tk.controlledBy) : []`.
+4. **Un director NUNCA acumula explorado**: `sceneVision.ts:255` sólo guarda en la rama de JUGADOR
+   (`if (!at && explored.length !== stored.length) saveExplored(...)`), y la rama `role === 'dm'` retorna antes.
+
+**Comprobado en la base de producción**: la escena `6223197b-e6ea-4a2a-bac6-286599e8c97a` («sfahafh») tiene
+**`maps_fog` con 0 filas** (nada explorado por nadie) y la ficha «Random» la controla `...0001`, que es él, el
+director. Explorado = `[]` → el mapa entero en negro salvo el cono. Y como el cono se recalcula al mover,
+«hace saltos» y no queda memoria detrás.
+
+**⚠ Esto NO es una regresión de la vista normal**: la rama `role === 'dm'` de `sceneVision` sólo ganó `lit` en
+este despliegue. La lente es FUNCIONALIDAD NUEVA que nació mal.
+
+#### El arreglo, ya diseñado (aplicarlo tal cual)
+La lente es una herramienta del DIRECTOR sobre su propia pantalla — su propio cartel lo dice, «cambia nada
+para nadie». No debe recortar el mapa: debe **pintar el mapa siempre** y **velar lo que el personaje no ve**.
+
+1. **`MapCanvas.tsx`**, en `Props`, prop nueva `lens?: boolean` (documentar por qué NO es `playerView`).
+2. `const lens = !!p.lens;`
+3. `const playerSight = !!fog && !dmSight;` → **`&& !lens`** (así el mapa no se enmascara nunca en la lente).
+4. `tokenMask`: cambiar `playerSight ? …` por **`(playerSight || lens) ? …`** (las fichas sí se recortan a lo
+   que el personaje ve: es lo informativo de la lente).
+5. El velo, línea ~592: `{dmSight && fog && <rect … mask={url(fogIds.unexplored)} …/>}` →
+   **`{(dmSight || lens) && fog && <rect … mask={url(lens ? fogIds.dim : fogIds.unexplored)} …/>}`**
+   `dim` ya está definido como «todo menos la visión actual» (`canvasLayers.tsx` ~182), que es justo el velo
+   que hace falta. Con visión vacía vela todo, **pero nunca deja negro**.
+6. **`SceneTab.tsx:355`**: añadir `lens={!!seeAsToken}` (dejar `playerView={asPlayer}` como está — `asPlayer`
+   sólo se usa ahí, comprobado).
+7. **Tests** (obligatorio, y verificarlos por mutación como el resto de la sesión): con la lente puesta y
+   `explored: []`, `mp-map` **NO** lleva `mask`, y existe `mp-fog-veil`. Sin lente y como jugador, sigue
+   llevándola. Fichero: `MapCanvas.test.tsx`.
+
+### 🐞 FALLO B — LA PUERTA ABIERTA NO DEJA VER (aparte, más pequeño, y también real)
+Él: «ahí está la puerta abierta y no puede ver». **Tiene razón, y no es la niebla: son los datos.**
+En esa escena hay tres segmentos en la MISMA línea:
+
+| tipo | desde | hasta | |
+|---|---|---|---|
+| **puerta** | 621,405 | 621,540 | **abierta** |
+| muro | 621,405 | 621,513 | macizo |
+| muro | 621,513 | 621,540 | macizo |
+
+Los dos muros tapan **exactamente** el hueco de la puerta, así que abrirla no hace nada. `sightSegments`
+(`sceneVision.ts:11`) filtra bien (`blocksSight && !isOpen`): **el fallo no está ahí, está en quien creó esos
+dos muros** — el partido del muro al dibujar una puerta encima (`planOpening` en `mapRules.ts` +
+`addWall`/`wallPiece` en `useScene.ts`). Los «restos» del muro anfitrión salieron cubriendo el hueco en vez de
+dejarlo. **Reproducirlo con un test de `planOpening` ANTES de tocar nada.**
+
+Medido ejecutando `visionPolygon` real contra sus datos reales: quitando esos dos muros el área visible pasa
+de **1.116.508 a 1.196.727 px² (+7%)**. Es real pero pequeño: **no es la causa del negro grande**, no
+confundirlos.
+
+> 🔴 **NO se han tocado sus muros.** Arreglar el código primero; la limpieza de esos dos segmentos en su base
+> es dato suyo y **hay que pedírsela**, no hacerla por las buenas.
+
+### 🐞 FALLO C — «está todo lentísimo» — SIN DIAGNOSTICAR
+No se llegó. Pistas ya descartadas: las claves `lightKey`/`layerKey` del efecto de visión
+(`useScene.ts:130-133`) son cadenas por VALOR, no cambian de identidad, así que no disparan un storm.
+Pistas sin mirar: `listLights` se pide ahora en **cada** petición de visión (`sceneVision.ts` ~127) aunque no
+haya luces; y el repo de web ganó 227 líneas de suscripciones realtime (capas, luces, piezas) sobre el canal
+multiplexado por escena — si el recuento de suscriptores falla, los canales se recrean y eso da tirones.
+**Medirlo antes de tocarlo** (contar peticiones a `/scenes/:id/vision` al arrastrar una ficha).
+
+### 🔁 Prompt de resume, de una línea
+> Rolvium, URGENTE: producción v0.5.0 tiene la lente «ver con los ojos de» pintando el mapa en negro. El
+> diagnóstico y el arreglo exacto están en el bloque 🔴🔴 de WORK_STATE (fallos A, B y C). Aplica el A tal como
+> está escrito, con sus tests y verificándolos por mutación, luego reproduce el B con un test de `planOpening`,
+> y despliega. El dueño eligió arreglar y no revertir.
+
 ## 🟢 v0.5.0 EN PRODUCCIÓN — 2026-09-01 (madrugada), verificada en vivo
 
 > Él se fue a dormir con el encargo «sube a prod, no mates los datos de prod» y «sigue todo lo que puedas».
