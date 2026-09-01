@@ -10,6 +10,15 @@ function mount(over: Partial<React.ComponentProps<typeof ScenesMenu>> = {}) {
   return cb;
 }
 
+describe('<ScenesMenu> — los iconos dicen qué hacen', () => {
+  it('plegar el rail lleva tooltip, y sale a la derecha porque el rail vive pegado al borde izquierdo', () => {
+    mount();
+    const tip = [...document.querySelectorAll('.rv-tip')].find(x => x.textContent === 'Plegar escenas');
+    expect(tip).toBeDefined();
+    expect(tip?.getAttribute('data-placement')).toBe('right');
+  });
+});
+
 describe('<ScenesMenu>', () => {
   it('chips with miniature; the active one is marked; clicking another chip selects it; «+ Escena» prompts a name and creates', async () => {
     const u = userEvent.setup();

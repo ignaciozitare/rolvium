@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
+import { Tooltip } from '@rolvium/ui';
 import type { Light, LightKind, LightPatch, LightShape } from '../domain/entities/Scene';
 import { clampRangeM, flickerOf, LIGHT_COLORS, LIGHT_KINDS, LIGHT_SHAPES, MAX_RANGE_M, MIN_RANGE_M, rangeLabelM, RANGE_STEP_M } from '../domain/useCases/layerRules';
 
@@ -79,12 +80,16 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
         <span className="material-symbols-outlined mp-light-grip" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">drag_indicator</span>
         <span className="material-symbols-outlined mp-light-head-icon" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">{KIND_ICON[light.kind]}</span>
         <span className="mp-light-title">{t('maps.lights.title')}</span>
-        <button type="button" className="mp-layers-icon" aria-label={t('maps.lights.delete')} onClick={onRemove}>
-          <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>delete</span>
-        </button>
-        <button type="button" className="mp-layers-icon" aria-label={t('maps.lights.close')} onClick={onClose}>
-          <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>close</span>
-        </button>
+        <Tooltip label={t('maps.lights.delete')} placement="top">
+          <button type="button" className="mp-layers-icon" aria-label={t('maps.lights.delete')} onClick={onRemove}>
+            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>delete</span>
+          </button>
+        </Tooltip>
+        <Tooltip label={t('maps.lights.close')} placement="top">
+          <button type="button" className="mp-layers-icon" aria-label={t('maps.lights.close')} onClick={onClose}>
+            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>close</span>
+          </button>
+        </Tooltip>
       </div>
 
       <div className="mp-light-preview" aria-hidden="true">

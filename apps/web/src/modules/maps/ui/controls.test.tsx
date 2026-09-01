@@ -123,6 +123,34 @@ describe('<CanvasControls>', () => {
   });
 });
 
+/**
+ * TODOS los botones de sólo icono de la escena llevan el `Tooltip` del sistema, no el `title` del navegador
+ * (dueño, 2026-09-01: «no me entero con los botones que hay»). El nativo tarda casi un segundo, cae donde
+ * quiere y no sigue el look de la mesa. Sin este test, quitar un `Tooltip` «al ordenar» no rompe nada visible.
+ */
+describe('los botones de sólo icono dicen su nombre al pasar el ratón', () => {
+  const tips = (): string[] => [...document.querySelectorAll('.rv-tip')].map(x => x.textContent ?? '');
+
+  it('los controles del lienzo: los ocho tienen tooltip y ninguno usa el `title` del navegador', () => {
+    const p = { onZoomIn: vi.fn(), onZoomOut: vi.fn(), onCenter: vi.fn(), onToggleWalls: vi.fn(), onTogglePlayerView: vi.fn(), showWalls: true, playerView: false, onSolidWalls: vi.fn(), onFogMode: vi.fn(), onLighting: vi.fn() };
+    renderWithProviders(<CanvasControls {...p} isDm scene={SCENE_WAREHOUSE} />);
+    for (const name of ['Acercar', 'Alejar', 'Centrar', 'Ver/ocultar muros', 'Ver como jugador']) {
+      expect(tips()).toContain(name);
+      expect(screen.getByRole('button', { name })).not.toHaveAttribute('title');
+    }
+    // La pila vive pegada al borde derecho, así que el rótulo sale a la IZQUIERDA o se saldría de la pantalla.
+    expect([...document.querySelectorAll('.rv-tip')].every(x => x.getAttribute('data-placement') === 'left')).toBe(true);
+    // El nombre accesible sigue siendo el del botón: el globo es sólo la mitad visual.
+    expect([...document.querySelectorAll('.rv-tip')].every(x => x.getAttribute('aria-hidden') === 'true')).toBe(true);
+  });
+
+  it('«Quitar segmento», que era una papelera muda, ya se presenta', () => {
+    renderWithProviders(<SegmentBar wall={WALL_1} kind="wall" onKind={vi.fn()} onRemove={vi.fn()} />);
+    expect(tips()).toContain('Quitar segmento');
+    expect(screen.getByRole('button', { name: 'Quitar segmento' })).not.toHaveAttribute('title');
+  });
+});
+
 describe('<EncounterMenu>', () => {
   it('lists the system bestiary with Res/Prot, filters by search, selects an entry, closes', async () => {
     const u = userEvent.setup();

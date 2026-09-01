@@ -1,4 +1,5 @@
 import { useTranslation } from '@rolvium/i18n';
+import { Tooltip } from '@rolvium/ui';
 import type { Scene } from '../domain/entities/Scene';
 import { nightLabelM } from '../domain/useCases/mapRules';
 
@@ -19,11 +20,18 @@ interface Props {
   onSolidWalls?: (solid: boolean) => void;
 }
 
+/**
+ * El nombre sale en un `Tooltip`, NO en el `title` del navegador: el nativo tarda casi un segundo, cae donde
+ * quiere y no sigue el look del sistema, así que estos botones eran ocho iconos sin nombre (dueño, 2026-09-01:
+ * «no me entero con los botones que hay»). Va a la IZQUIERDA porque la pila vive pegada al borde derecho.
+ */
 function Ctl({ icon, label, onClick, on }: { icon: string; label: string; onClick: () => void; on?: boolean }): JSX.Element {
   return (
-    <button type="button" className={`mp-ctl ${on ? 'on' : ''}`} aria-label={label} title={label} aria-pressed={on} onClick={onClick}>
-      <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{icon}</span>
-    </button>
+    <Tooltip label={label} placement="left">
+      <button type="button" className={`mp-ctl ${on ? 'on' : ''}`} aria-label={label} aria-pressed={on} onClick={onClick}>
+        <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{icon}</span>
+      </button>
+    </Tooltip>
   );
 }
 

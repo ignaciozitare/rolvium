@@ -229,6 +229,8 @@
 .mp-layer-private{font-style:normal;font-size:var(--fs-2xs);letter-spacing:.08em;color:var(--sys-blood);}
 .mp-layer.on .mp-layer-private{color:var(--sys-gold);}
 .mp-layer-mask{color:var(--sys-gold);flex-shrink:0;}
+/* El envoltorio del Tooltip pasa a ser el hijo flex: hereda el «no te encojas» del botón. */
+.mp-layers .rv-tip-wrap,.mp-layer-actions .rv-tip-wrap,.mp-controls .rv-tip-wrap{flex-shrink:0;}
 .mp-layers-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;
   border:none;background:transparent;color:var(--sys-ink-dim);cursor:pointer;}
 .mp-layers-icon:hover:not(:disabled){background:color-mix(in srgb,var(--sys-ink) 10%,transparent);}

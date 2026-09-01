@@ -1,4 +1,5 @@
 import { useTranslation } from '@rolvium/i18n';
+import { Tooltip } from '@rolvium/ui';
 import type { Wall, WallKind } from '../domain/entities/Scene';
 import { WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
 
@@ -39,9 +40,11 @@ export function SegmentBar({ wall, kind, onKind, onVisible, onToggleOpen, onRemo
         <button type="button" className="tb-btn tb-btn-xs" onClick={onToggleOpen}>{wall.isOpen ? t('maps.wall.close') : t('maps.wall.open')}</button>
       )}
       {wall && onRemove && (
-        <button type="button" className="mp-segbar-del" aria-label={t('maps.wall.remove')} onClick={onRemove}>
-          <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>delete</span>
-        </button>
+        <Tooltip label={t('maps.wall.remove')} placement="top">
+          <button type="button" className="mp-segbar-del" aria-label={t('maps.wall.remove')} onClick={onRemove}>
+            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>delete</span>
+          </button>
+        </Tooltip>
       )}
       {!wall && <span className="mp-stroke-note tb-italic tb-dim">{t('maps.wall.toggleHint')}</span>}
     </div>

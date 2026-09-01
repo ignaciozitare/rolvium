@@ -11,6 +11,13 @@ function mount(over: Partial<React.ComponentProps<typeof BackgroundPopover>> = {
   return { ...r, cb };
 }
 
+describe('<BackgroundPopover> — los iconos dicen qué hacen', () => {
+  it('la aspa de cerrar lleva tooltip', () => {
+    mount();
+    expect([...document.querySelectorAll('.rv-tip')].map(x => x.textContent)).toContain('Cerrar');
+  });
+});
+
 describe('<BackgroundPopover>', () => {
   it('base colour: swatch click and a valid hex change the scene colour; invalid hex is ignored', async () => {
     const u = userEvent.setup();

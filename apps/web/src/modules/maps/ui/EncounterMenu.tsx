@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
+import { Tooltip } from '@rolvium/ui';
 import type { CatalogItem } from '@rolvium/core';
 import { filterEntries, initialsOf } from '../domain/useCases/mapRules';
 
@@ -15,7 +16,9 @@ export function EncounterMenu({ entries, labelOf, selectedId, onSelect, onClose 
       <div className="mp-pop-head">
         <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>swords</span>
         <span className="mp-pop-title">{t('maps.encounter.title')}</span>
-        <button type="button" className="mp-pop-x" aria-label={t('common.close')} onClick={onClose}><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>close</span></button>
+        <Tooltip label={t('common.close')} placement="left">
+          <button type="button" className="mp-pop-x" aria-label={t('common.close')} onClick={onClose}><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>close</span></button>
+        </Tooltip>
       </div>
       <label className="mp-search"><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>search</span>
         <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder={t('maps.encounter.search')} aria-label={t('maps.encounter.search')} />

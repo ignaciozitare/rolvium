@@ -17,6 +17,15 @@ function mount(light = LIGHT_TORCH) {
   return cb;
 }
 
+describe('<LightEditor> — los iconos dicen qué hacen', () => {
+  it('borrar y cerrar llevan tooltip', () => {
+    mount();
+    const tips = [...document.querySelectorAll('.rv-tip')].map(x => x.textContent ?? '');
+    expect(tips).toContain('Borrar la luz');
+    expect(tips).toContain('Cerrar el editor');
+  });
+});
+
 describe('<LightEditor>', () => {
   it('marca la forma y el tipo de la luz que se está tocando', () => {
     mount();
