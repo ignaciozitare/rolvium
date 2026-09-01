@@ -1521,12 +1521,18 @@ multiplexado por escena — si el recuento de suscriptores falla, los canales se
 **Medirlo antes de tocarlo** (contar peticiones a `/scenes/:id/vision` al arrastrar una ficha).
 
 ### 🔁 Prompt de resume, de una línea
-> Rolvium: bloque 🔴🔴 de WORK_STATE. **NO arregles la lente actual — se borra.** El encargo nuevo es una
-> SONDA de prueba: un icono en la barra que suelta un token genérico que él arrastra y que enseña lo que vería
-> un jugador desde ahí, sin desplegable. Empieza por Spec y por el diseño en `rolvium.pen` con capturas para
-> aprobar, y sólo después código. Ya está decidido: la sonda no se guarda en la base y la memoria la lleva el
-> navegador mientras esté puesta. Pregúntale sólo si quita ya el desplegable roto de producción. Aparte queda
-> el fallo B (la puerta), que sí es un arreglo de verdad.
+> Rolvium, retomo. Lee el bloque 🔴🔴 de WORK_STATE y haz esto, en este orden:
+> **1)** NO arregles la lente «ver con los ojos de» — se BORRA entera. La sustituye una **sonda de prueba**: un
+> icono en la barra que suelta un token genérico que yo arrastro y que enseña lo que vería un jugador desde
+> ahí. Sin desplegable. **Ya está decidido y no me lo vuelvas a preguntar: la sonda NO se guarda en la base, la
+> memoria la lleva el navegador mientras esté puesta.** Empieza por el Spec y por el diseño en `rolvium.pen`
+> con capturas para que yo lo apruebe; código sólo después.
+> **2)** El fallo de la puerta: dos muros macizos tapando el hueco de una puerta abierta. Reprodúcelo primero
+> con un test de `planOpening`, y no toques los datos de mi mapa sin pedírmelo.
+> **3)** La limpieza del bloque 🧹: los apartados A y B hazlos sin preguntar, verificando antes cada símbolo
+> porque el barrido tiene falsos positivos.
+> Pregúntame sólo dos cosas: si quito ya el desplegable roto de producción, y qué hago con la rebanada 6
+> (piezas), que son 12 funciones sin usar y dos tablas vacías en producción.
 
 ## 🟢 v0.5.0 EN PRODUCCIÓN — 2026-09-01 (madrugada), verificada en vivo
 
