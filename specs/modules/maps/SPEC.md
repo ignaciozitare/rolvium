@@ -819,6 +819,65 @@ regla que pidió el dueño.**
 - **No hay bucket nuevo.** Las fotos van al bucket `backgrounds` que ya existe, bajo `{campaña}/props/…`, con
   el mismo precedente que las máscaras del pincel de transparencia.
 
+## Rebanada 8 — habitaciones rápidas (el «generador» de Builder)
+
+> 🟡 **ESTE APARTADO ESTÁ SIN CONFIRMAR POR EL DUEÑO.** Escrito la noche del 2026-09-02 a partir de lo único
+> que hay registrado de él (`WORK_STATE.md`, dos peticiones suyas) porque pidió avanzar mientras dormía.
+> **Antes de tocar una sola línea de interfaz hay que: (1) que confirme este spec, y (2) que haya diseño en
+> `rolvium.pen` aprobado por él.** Lo que sí está construido es el MOTOR —la geometría, sin pantalla—, que no
+> depende de ninguna de las decisiones abiertas de abajo.
+>
+> ⚠ **Y un aviso honesto**: él dijo «el generador de habitaciones que tenemos diseñado». **No hay diseño.**
+> Ni componente en el `.pen`, ni frame, ni nada en el historial; en `WORK_STATE.md` aparece tres veces y las
+> tres como «sin empezar, pasa por spec → DBA → diseño antes de código». Lo que sí mandó fueron **dos
+> capturas de Dungeon Scrawl como referencia**, que no es lo mismo que un diseño.
+
+### Qué es
+Dentro de **Builder** —que hoy es sólo la herramienta de muros— poder **dibujar un cuadrado o un círculo y que
+la habitación se monte sola**, con sus paredes ya puestas, en vez de trazar segmento a segmento.
+
+### Lo que él dijo, literal y sin interpretar
+- Habitaciones y mazmorras rápidas **estilo Dungeon Scrawl** (mandó dos capturas).
+- Elegir **tipo** de habitación/mazmorra, **dibujar cuadrados o círculos**, y que **la monte sola**.
+- 🔒 **Las paredes generadas son OPACAS: no dejan pasar ni visión ni luz.**
+- 🔒 **La foto de fondo hace de TEXTURA DE SUELO** de las habitaciones.
+- 🔒 **NO copiar su interfaz.** Regla explícita suya: seguimos con la nuestra y le vamos añadiendo la
+  funcionalidad.
+
+### Reglas que se derivan de lo anterior
+- **Una habitación no es una entidad nueva: es un atajo que produce MUROS de los de siempre.** Un muro normal
+  ya es exactamente lo que él pidió —`blocksSight: true, blocksMove: true`— y las luces ya se recortan contra
+  él. Así, lo generado se edita, se abre, se parte y se borra con todo lo que ya existe, y **no hace falta
+  ninguna tabla ni ninguna migración**. Es la decisión que menos deuda deja.
+- **Lo generado queda suelto.** Una vez puesta la habitación, sus paredes son paredes: mover una no mueve las
+  demás. Es coherente con que no haya entidad «habitación», y evita prometer un agrupado que no existe.
+- **Se pega a la rejilla**, como el resto de Builder.
+
+### 🟠 LO QUE HACE FALTA QUE ÉL DECIDA (y por qué no lo decido yo)
+1. **¿Puertas automáticas?** Una habitación cerrada sin puertas no se puede usar. ¿Se abre un hueco donde él
+   pinche después, o el generador pone una puerta por pared, o ninguna y ya las abre a mano con el disco que
+   ya existe? *Sospecha: ninguna automática — abrir una puerta ya es un gesto suyo de un clic.*
+2. **¿Qué pasa cuando dos habitaciones se tocan?** ¿Se funden las paredes comunes, se quedan las dos, o la
+   nueva parte a la vieja? *Esto cambia el motor, no sólo la pantalla.*
+3. **La textura de suelo.** «La foto de fondo hace de textura de suelo» puede querer decir dos cosas muy
+   distintas: (a) el suelo de la habitación **enseña** el fondo y **fuera** se tapa, o (b) se recorta una copia
+   del fondo dentro de la habitación como una capa de terreno. La (a) es casi gratis con lo que ya hay; la (b)
+   es una capa nueva por habitación.
+4. **Qué «tipos» hay.** Él dijo «elegir tipo de habitación/mazmorra». Hoy el motor sabe hacer **rectángulo** y
+   **círculo**. ¿Hacen falta más (pasillo, cruz, sala con columnas), o con esos dos empieza?
+5. **¿Los muros generados nacen visibles para el jugador?** Los muros tienen ese interruptor y aquí importa.
+
+### Modelo de datos
+**Ninguno nuevo.** Se escriben filas en `maps_walls` con `kind: 'wall'`, que es lo que ya hace la herramienta.
+Si alguna de las decisiones de arriba obliga a agrupar (fundir, mover la habitación entera), **entonces** haría
+falta DBA — y sería una decisión suya, no un efecto colateral.
+
+### Estado
+- ✅ **Motor construido y probado** (`domain/useCases/roomRules.ts`): rectángulo y círculo → segmentos de muro,
+  pegados a la rejilla, sin pantalla y sin tocar nada de lo que ya funciona.
+- ⛔ **Interfaz: SIN EMPEZAR, y a propósito.** Falta su confirmación de este spec y el diseño en el `.pen`.
+
+
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
   muros con `visible_players=false` no viajan al cliente del jugador (RLS). **Esta es la frontera de seguridad**: si la
