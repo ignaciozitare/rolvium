@@ -101,6 +101,11 @@ interface Props {
   onMoveWall?: (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => void;
   /** Mover una luz ya puesta. Sin esto una luz se coloca y ya no se despega (dueño, 2026-09-01). */
   onMoveLight?: (id: string, at: Point) => void;
+  /**
+   * Si se le pinta al DIRECTOR el velo gris de lo no explorado. `false` se lo quita — sólo a él y sólo en su
+   * pantalla: no toca la escena, no viaja y un jugador no se entera. Por omisión va puesto, como siempre.
+   */
+  fogVeil?: boolean;
 }
 
 type Gesture =
@@ -691,7 +696,7 @@ export function MapCanvas(p: Props): JSX.Element {
           <BackgroundLayer scene={p.scene} clipId={clipId} imageHidden={hasTerrain} />
           {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} />}
           <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} />
-          {dmSight && fog && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
+          {dmSight && fog && p.fogVeil !== false && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
             {wallsShown.map(w => <WallShape key={w.id} wall={w} selected={w.id === p.selectedWallId} draft={wallDraft && w.id === p.selectedWallId ? wallDraft : null} />)}
             {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={snap(hover.x, grid)} y2={snap(hover.y, grid)} className="mp-wall draft" />}

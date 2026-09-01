@@ -18,6 +18,13 @@ interface Props {
   onLighting?: (lighting: 'day' | 'night') => void;
   /** Paredes sólidas: si los tokens atraviesan los muros en esta escena (rebanada 4). */
   onSolidWalls?: (solid: boolean) => void;
+  /**
+   * El VELO GRIS del director, encendido o apagado. Es SUYO y de nadie más: no toca la escena, no viaja y no
+   * cambia lo que ve un jugador — es «déjame ver el mapa limpio un momento» (dueño, 2026-09-02: «al dm le
+   * falta un desactivar esa capa gris para él, para que pueda ver bien»).
+   */
+  fogVeil?: boolean;
+  onToggleFogVeil?: () => void;
 }
 
 /**
@@ -63,6 +70,15 @@ export function CanvasControls(p: Props): JSX.Element {
       )}
       {p.isDm && p.scene && p.onFogMode && (
         <Ctl icon={auto ? 'cloud' : 'cloud_off'} on={auto} label={t('maps.fog.auto')} onClick={() => p.onFogMode?.(auto ? 'manual' : 'vision')} />
+      )}
+      {/*
+        * Quitarse el velo gris. Va JUNTO a la niebla porque es de lo que habla, pero no es lo mismo y por eso
+        * lo dice la etiqueta: la niebla de al lado cambia LA ESCENA para todos; esto sólo cambia lo que ve él
+        * en su pantalla, ahora mismo. Nada de esto se guarda ni viaja.
+        */}
+      {p.isDm && p.onToggleFogVeil && (
+        <Ctl icon={p.fogVeil === false ? 'filter_drama' : 'foggy'} on={p.fogVeil !== false}
+          label={p.fogVeil === false ? t('maps.fog.veilOff') : t('maps.fog.veilOn')} onClick={p.onToggleFogVeil} />
       )}
       {p.isDm && <span className="mp-ctl-sep" aria-hidden />}
       <Ctl icon="zoom_in" label={t('maps.controls.zoomIn')} onClick={p.onZoomIn} />

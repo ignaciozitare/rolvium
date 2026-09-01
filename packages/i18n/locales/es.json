@@ -845,7 +845,9 @@
     },
     "fog": {
       "auto": "Niebla automática por visión",
-      "byVision": "Niebla por visión"
+      "byVision": "Niebla por visión",
+      "veilOn": "Velo del director: puesto",
+      "veilOff": "Velo del director: quitado"
     },
     "light": {
       "label": "Luz de la escena",

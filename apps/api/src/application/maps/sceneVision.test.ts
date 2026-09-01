@@ -260,6 +260,37 @@ describe('paintSceneFog', () => {
     expect(maps.fog[NIX]).toHaveLength(100);
   });
 
+  /**
+   * 🐞 EL PIN DEL FALLO QUE ÉL VIO (2026-09-02: «el botón de revelar u ocultar no funcionan… debería ir
+   * eliminando esa capa gris en la vista del dm»). Su campaña tenía UN director y CERO jugadores —el estado
+   * normal mientras montas una escena—, así que el pincel recorría una lista vacía y no escribía nada: era
+   * inerte, y su velo gris, que es la unión de lo explorado por todos, no podía menguar jamás.
+   */
+  it('sin jugadores en la campaña, el pincel SIGUE pintando: la brochada del director cuenta', async () => {
+    const maps = seed({ roles: { [DM]: 'dm' } });
+    const r = await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'reveal', all: true });
+    if (!r.ok) throw new Error('expected ok');
+    expect(r.data.explored).toHaveLength(100);
+    expect(maps.fog[DM]).toHaveLength(100);
+  });
+
+  it('con jugadores, el director se suma a ellos y no se cuenta dos veces', async () => {
+    const maps = seed();
+    await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'reveal', all: true });
+    expect(maps.fog[DM]).toHaveLength(100);
+    expect(maps.fog[PIP]).toHaveLength(100);
+    expect(maps.fog[NIX]).toHaveLength(100);
+  });
+
+  it('ocultar también le quita lo suyo al director: el velo vuelve donde él lo pide', async () => {
+    const maps = seed({ roles: { [DM]: 'dm' } });
+    await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'reveal', all: true });
+    const r = await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'hide', at: { x: 13.5, y: 13.5, radius: 20 } });
+    if (!r.ok) throw new Error('expected ok');
+    expect(maps.fog[DM]!.some(([x, y]) => x === 0 && y === 0)).toBe(false);
+    expect(r.data.explored.some(([x, y]) => x === 0 && y === 0)).toBe(false);
+  });
+
   it('the brush hides only the cells under it', async () => {
     const maps = seed();
     await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'reveal', all: true });

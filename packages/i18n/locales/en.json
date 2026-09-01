@@ -845,7 +845,9 @@
     },
     "fog": {
       "auto": "Automatic fog by line of sight",
-      "byVision": "Fog by line of sight"
+      "byVision": "Fog by line of sight",
+      "veilOn": "DM veil: on",
+      "veilOff": "DM veil: off"
     },
     "light": {
       "label": "Scene light",

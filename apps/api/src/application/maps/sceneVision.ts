@@ -282,6 +282,18 @@ export interface PaintInput {
 /**
  * The DM's brush. Writes on the explored cells of EVERY player of the campaign at once (spec: «pinta sobre lo
  * explorado de todos los jugadores»), and answers with the DM's union so their veil updates in the same round trip.
+ *
+ * 🐞 Y TAMBIÉN SOBRE LA DEL PROPIO DIRECTOR (dueño, 2026-09-02: «el botón de revelar o ocultar no funcionan,
+ * debería ir eliminando esa capa gris en la vista del dm»).
+ *
+ * Sin esto el pincel era literalmente INERTE en una campaña sin jugadores — que es el estado normal mientras
+ * se monta una escena, y era el suyo: un director, cero jugadores. La lista de jugadores venía vacía, el
+ * bucle no escribía en ninguna parte y la respuesta era la unión de nada. Su velo gris, que se calcula como
+ * «lo que los jugadores han explorado», no podía menguar nunca porque no había jugadores que exploraran.
+ *
+ * Meter al director en el reparto lo arregla sin cambiar lo que el velo significa: sigue siendo la unión de
+ * lo explorado por todos, y lo que se añade es una intención EXPLÍCITA suya de revelar. No le da visión —su
+ * rama sigue devolviendo `vision: []`—, sólo hace que su propia brochada cuente.
  */
 export async function paintSceneFog(deps: Deps, input: PaintInput): Promise<VisionOutcome> {
   const scene = await deps.maps.getScene(input.sceneId);
@@ -295,7 +307,8 @@ export async function paintSceneFog(deps: Deps, input: PaintInput): Promise<Visi
       ? cellsInDisc(input.at, input.at.radius, scene.gridSize, scene.width, scene.height)
       : [];
 
-  const players = await deps.maps.listPlayerIds(scene.campaignId);
+  // El director entra en el reparto, y sin duplicarse si además figurase como jugador.
+  const players = [...new Set([...await deps.maps.listPlayerIds(scene.campaignId), input.userId])];
   const next = await Promise.all(players.map(async playerId => {
     const current = await deps.maps.getExplored(scene.id, playerId);
     const cells = input.op === 'reveal' ? unionCells(current, painted) : subtractCells(current, painted);

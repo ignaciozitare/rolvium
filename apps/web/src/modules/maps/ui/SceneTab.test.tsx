@@ -677,6 +677,12 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     const menu = await screen.findByRole('menu', { name: 'Acciones rápidas' });
     // centrar sólo para mí no molesta a nadie; centrar para todos sí manda el pin
     expect(within(menu).getByRole('menuitem', { name: /Centrar mi vista aquí/ })).toBeInTheDocument();
+    /**
+     * «Seleccionar» es la PRIMERA (dueño, 2026-09-02). Es la vuelta a casa desde cualquier herramienta, y
+     * arriba del todo porque es lo que más se busca; el orden importa y por eso se comprueba el orden.
+     */
+    const items = within(menu).getAllByRole('menuitem');
+    expect(items[0]).toHaveTextContent('Seleccionar');
     expect(within(menu).getByRole('menuitem', { name: /Centrar la vista de todos/ })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: 'Centrar' })).toBeInTheDocument();   // ajustar a la pantalla
     await userEvent.setup().click(within(menu).getByRole('menuitem', { name: /Lanzador de dados/ }));

@@ -107,6 +107,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [railFolded, setRailFolded] = useState(false);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [quickMenu, setQuickMenu] = useState<{ at: Point; scene: Point } | null>(null);
+  /**
+   * El velo gris del director, encendido o apagado. Vive AQUÍ y no en la escena a propósito: es una
+   * preferencia de su pantalla, no un ajuste de la partida — no se guarda, no viaja y al recargar vuelve
+   * puesto. Un jugador no se entera de nada (dueño, 2026-09-02).
+   */
+  const [fogVeil, setFogVeil] = useState(true);
   const stageRef = useRef<HTMLDivElement>(null);
 
   // ── load: DM lists; player follows the active scene ──
@@ -378,6 +384,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
             onMoveLight={(id, at) => run(st.patchLight(id, at))}
+            fogVeil={fogVeil}
             maskLayerId={bgLayer?.id ?? null} maskPreview={mask.preview}
             onPaintMask={(from, to) => mask.paint(from, to, brushRadius(maskSizeCells, live.grid.size), maskStrength, maskDir, maskHardness)}
             onPaintMaskEnd={() => run(mask.flush())}
@@ -486,6 +493,17 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           )}
           {quickMenu && (
             <div className="mp-pop mp-quick" role="menu" aria-label={t('maps.quick.title')} style={{ left: quickMenu.at.x, top: quickMenu.at.y }}>
+              {/*
+                * «Seleccionar» ARRIBA DEL TODO (dueño, 2026-09-02: «al botón derecho agrégale como primera
+                * opción la de seleccionar»). Es la vuelta a casa: se dibuja o se pinta con una herramienta y
+                * se quiere volver a poder coger cosas sin ir hasta la barra. Se marca cuando ya lo está, para
+                * que no parezca que no hizo nada.
+                */}
+              <button type="button" role="menuitem" className={`mp-menu-item ${tool === 'select' ? 'on' : ''}`}
+                onClick={() => { closeOverlays(); setTool('select'); setQuickMenu(null); }}>
+                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>arrow_selector_tool</span>{t('maps.tool.select')}
+              </button>
+              <span className="mp-menu-sep" aria-hidden />
               <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { setView(v => centerOn(v, quickMenu.scene, viewport())); setQuickMenu(null); }}>
                 <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>my_location</span>{t('maps.quick.centerMe')}
               </button>
@@ -558,6 +576,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           )}
           <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView} scene={live}
             onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}
+            fogVeil={fogVeil} onToggleFogVeil={() => setFogVeil(v => !v)}
             onLighting={lighting => run(patchScene(live.id, { lighting }))}
             onSolidWalls={solidWalls => run(patchScene(live.id, { solidWalls }))}
             onZoomIn={() => setView(v => zoomAt(v, ZOOM_STEP, viewCenter()))} onZoomOut={() => setView(v => zoomAt(v, 1 / ZOOM_STEP, viewCenter()))}

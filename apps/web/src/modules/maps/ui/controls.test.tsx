@@ -277,3 +277,30 @@ describe('<CanvasControls> — la luz y la niebla como iconos, no como barra', (
     expect(screen.getByRole('button', { name: 'Acercar' })).toBeInTheDocument();
   });
 });
+
+
+/**
+ * 🌫 QUITARSE EL VELO GRIS (dueño, 2026-09-02: «al dm le falta un desactivar esa capa gris para él, para que
+ * pueda ver bien»). Es SUYO: no toca la escena, no viaja y un jugador no se entera.
+ */
+describe('<CanvasControls> el velo del director', () => {
+  const base = { onZoomIn: vi.fn(), onZoomOut: vi.fn(), onCenter: vi.fn(), showWalls: true, onToggleWalls: vi.fn(), playerView: false, onTogglePlayerView: vi.fn() };
+
+  it('el director lo puede quitar y volver a poner, y la etiqueta dice cuál es', async () => {
+    const u = userEvent.setup();
+    const onToggleFogVeil = vi.fn();
+    renderWithProviders(<CanvasControls {...base} isDm fogVeil onToggleFogVeil={onToggleFogVeil} />);
+    await u.click(screen.getByRole('button', { name: 'Velo del director: puesto' }));
+    expect(onToggleFogVeil).toHaveBeenCalledTimes(1);
+  });
+
+  it('quitado, lo dice', () => {
+    renderWithProviders(<CanvasControls {...base} isDm fogVeil={false} onToggleFogVeil={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Velo del director: quitado' })).toBeInTheDocument();
+  });
+
+  it('a un jugador no se le ofrece: no es suyo', () => {
+    renderWithProviders(<CanvasControls {...base} isDm={false} fogVeil onToggleFogVeil={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Velo del director/ })).toBeNull();
+  });
+});

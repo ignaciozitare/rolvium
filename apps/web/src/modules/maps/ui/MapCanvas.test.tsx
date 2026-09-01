@@ -1095,3 +1095,26 @@ describe('<MapCanvas> la intensidad de una luz', () => {
     expect(plena.svg.querySelector(`#mp-litmask-${LIGHT_TORCH.id} [data-testid="mp-light-shape"]`)!.getAttribute('r')).toBe(d);
   });
 });
+
+
+/** 🌫 El velo gris del director se puede quitar — y sólo se lo quita a ÉL. */
+describe('<MapCanvas> el velo del director', () => {
+  const fog = { vision: [], explored: [[0, 0] as [number, number]], radiusPx: null, lit: [] };
+
+  it('por omisión se pinta, como siempre', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', fog });
+    expect(svg.querySelector('[data-testid="mp-fog-veil"]')).not.toBeNull();
+  });
+
+  it('apagado, desaparece', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', fog, fogVeil: false });
+    expect(svg.querySelector('[data-testid="mp-fog-veil"]')).toBeNull();
+  });
+
+  it('lo que ve un JUGADOR no cambia: el velo gris nunca fue suyo', () => {
+    const { svg } = mount({ isDm: false, fog, fogVeil: false });
+    expect(svg.querySelector('[data-testid="mp-fog-veil"]')).toBeNull();
+    // Al jugador lo que le tapa es la niebla negra, y esa sigue en su sitio.
+    expect(svg.querySelector('[data-testid="mp-map"]')!.getAttribute('mask')).toContain('mp-seen');
+  });
+});
