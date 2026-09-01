@@ -1455,17 +1455,28 @@ memoria arreglada, enmascarar es lo CORRECTO — es justo lo que ve el jugador.
 Que la rama de la lente haga **lo mismo** que la del jugador: calcular `seen` con `cellsInPolygons` y devolver
 `unionCells(stored, seen)`.
 
-🔴 **UNA DECISIÓN DEL DUEÑO, PREGUNTÁRSELA ANTES DE PROGRAMAR — ¿la lente GUARDA?**
-- **Guardar** (fidelidad total con el jugador, y es lo que él pidió con «exactamente igual»): la memoria crece
-  y persiste, así que la sala anterior se queda puesta. **Consecuencia: mirar por los ojos de un personaje le
-  hace crecer la niebla de verdad a ese jugador.** Defendible —el personaje estaba ahí de todos modos— pero
-  **el cartel de la pantalla promete hoy lo contrario** («es una lente: no cambia nada para nadie») y habría
-  que reescribirlo, y también el comentario `// No se guarda NADA`.
-- **No guardar**: no basta con el `unionCells`. Sin persistencia cada respuesta vuelve a partir de lo guardado
-  y la sala anterior se apagaría igual — habría que acumular en el navegador mientras la lente esté abierta.
-  Más trabajo, y la memoria se pierde al cerrarla.
+✅ **DECIDIDO POR ÉL (2026-09-01), NO VOLVER A PREGUNTARLO.** Sus palabras: «guarda qué? que quede en
+memoria, si es sólo para probar». → **LA LENTE NO ESCRIBE EN LA BASE.** La memoria vive mientras la lente esté
+abierta y se tira al cerrarla. El cartel de pantalla («es una lente: no cambia nada para nadie») y el comentario
+`// No se guarda NADA` **se quedan como están: siguen siendo verdad.**
 
-**Recomendación**: guardar, y reescribir el cartel. Es lo que él espera y lo que hace la herramienta honesta.
+#### Las dos piezas, y son pequeñas
+1. **Servidor** — `sceneVision.ts`, rama `if (input.asTokenId)` (~140). Hacer lo mismo que la rama del jugador
+   MENOS el guardado:
+   ```ts
+   const seen = cellsInPolygons([...(poly.length >= 3 ? [poly] : []), ...lit.flatMap(l => l.parts)],
+                                scene.gridSize, scene.width, scene.height);
+   return { ok: true, data: { vision: poly.length >= 3 ? [poly] : [], explored: unionCells(explored, seen), ... } };
+   ```
+   Sin `saveExplored`. Ojo: `cellsInPolygons` y `unionCells` ya están importados en ese fichero.
+2. **Navegador** — `useScene.ts`. Hoy cada respuesta de visión REEMPLAZA `fog`. Mientras `seeAsTokenId` no sea
+   `null`, hay que **acumular** `fog.explored` entre respuestas (unión), y **vaciar el acumulado** cuando
+   `seeAsTokenId` cambia o se pone a `null`. Sin esto, el punto 1 solo no arregla el «al pasar de una
+   habitación a otra la primera se apaga»: cada respuesta volvería a partir de lo guardado, que es vacío.
+
+**NO tocar** `SceneTab.tsx:139` (`asPlayer`) ni el enmascarado de `MapCanvas.tsx:588`: con la memoria
+arreglada, enmascarar el mapa contra `explorado ∪ visión` es lo CORRECTO — es exactamente lo que ve el jugador,
+que es lo que él pidió.
 
 **Tests** (obligatorio, verificar por mutación): con la lente sobre una ficha, lo que se acaba de ver entra en
 `explored`; y al mover la ficha a otra sala, la primera **sigue en `explored`**. Fichero:
@@ -1503,10 +1514,11 @@ multiplexado por escena — si el recuento de suscriptores falla, los canales se
 **Medirlo antes de tocarlo** (contar peticiones a `/scenes/:id/vision` al arrastrar una ficha).
 
 ### 🔁 Prompt de resume, de una línea
-> Rolvium, URGENTE: producción v0.5.0 tiene la lente «ver con los ojos de» pintando el mapa en negro. El
-> diagnóstico y el arreglo exacto están en el bloque 🔴🔴 de WORK_STATE (fallos A, B y C). Aplica el A tal como
-> está escrito, con sus tests y verificándolos por mutación, luego reproduce el B con un test de `planOpening`,
-> y despliega. El dueño eligió arreglar y no revertir.
+> Rolvium, URGENTE: producción v0.5.0 tiene la lente «ver con los ojos de» pintando el mapa en negro porque no
+> acumula memoria. Bloque 🔴🔴 de WORK_STATE: aplica el fallo A entero (servidor + navegador) — **ya está
+> decidido que NO se guarda en la base, la memoria es sólo mientras la lente esté abierta, no volver a
+> preguntarlo** —, con sus tests y verificándolos por mutación. Luego el fallo B (la puerta) reproduciéndolo
+> antes con un test de `planOpening`. Despliega al terminar. Él eligió arreglar, no revertir.
 
 ## 🟢 v0.5.0 EN PRODUCCIÓN — 2026-09-01 (madrugada), verificada en vivo
 
