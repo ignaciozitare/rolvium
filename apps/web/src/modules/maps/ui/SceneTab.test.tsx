@@ -1100,6 +1100,17 @@ describe('<SceneTab> la sonda de prueba (rebanada 7 · § 7.3)', () => {
     await waitFor(() => expect(probeOf(vision).some(c => c.probe!.x === first.x + 7 * G)).toBe(true));
   });
 
+  it('cambiar de escena se la lleva: sus coordenadas no significan nada en la escena nueva', async () => {
+    const u = userEvent.setup();
+    mount('dm');
+    await screen.findByText(/Vista de director/);
+    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    await within(canvas()).findByRole('img', { name: 'Sonda de prueba' });
+    await u.click(screen.getByRole('button', { name: 'Ver escena Capilla sin techo' }));
+    await waitFor(() => expect(within(canvas()).queryByRole('img', { name: 'Sonda de prueba' })).not.toBeInTheDocument());
+    expect(screen.getByText(/Vista de director/)).toBeInTheDocument();
+  });
+
   it('apagarla se la lleva y devuelve la vista de director', async () => {
     const u = userEvent.setup();
     mount('dm');

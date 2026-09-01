@@ -152,7 +152,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const viewport = () => ({ width: stageRef.current?.clientWidth ?? 0, height: stageRef.current?.clientHeight ?? 0 });
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
 
-  useEffect(() => { if (live) setView(fitView(live, viewport())); setSelectedTokenIds([]); setEncounter(null); }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  /**
+   * Al cambiar de escena la sonda SE VA, y con ella «ver como jugador» (§ 7.3: «se va al apagar la sonda, al
+   * cambiar de escena o al recargar»). Dejarla puesta la plantaría en las coordenadas de la escena anterior,
+   * que en la nueva no significan nada.
+   */
+  useEffect(() => { if (live) setView(fitView(live, viewport())); setSelectedTokenIds([]); setEncounter(null); setProbe(null); setPlayerView(false); }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Whoever accepts the pin centres on it — including the one who dropped it, which is what «enfoque» means.
   useEffect(() => { if (st.pin) setView(v => centerOn(v, st.pin!, viewport())); }, [st.pin]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (tool !== 'encounter') { setEncounter(null); setArmedFromBestiary(false); } }, [tool]);
