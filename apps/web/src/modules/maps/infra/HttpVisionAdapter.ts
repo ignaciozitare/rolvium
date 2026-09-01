@@ -7,8 +7,9 @@ export class HttpVisionAdapter implements VisionPort {
   private post(sceneId: string, path: 'vision' | 'fog', body?: unknown): Promise<SceneVision> {
     return apiFetch<SceneVision>(`/scenes/${sceneId}/${path}`, { method: 'POST', ...(body ? { body: JSON.stringify(body) } : {}) });
   }
-  refresh(sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }): Promise<SceneVision> {
-    return this.post(sceneId, 'vision', at ? { at } : undefined);
+  refresh(sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }, opts?: { probe?: { x: number; y: number } }): Promise<SceneVision> {
+    const body = { ...(at ? { at } : {}), ...(opts?.probe ? { probe: opts.probe } : {}) };
+    return this.post(sceneId, 'vision', Object.keys(body).length > 0 ? body : undefined);
   }
   paint(sceneId: string, op: 'reveal' | 'hide', at: { x: number; y: number; radius: number }): Promise<SceneVision> {
     return this.post(sceneId, 'fog', { op, at });

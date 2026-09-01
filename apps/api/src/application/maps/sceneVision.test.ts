@@ -270,6 +270,73 @@ describe('paintSceneFog', () => {
   });
 });
 
+/**
+ * LA SONDA DE PRUEBA (§ 7.3). Sustituye a la lente por personaje que llegó a producción y dejaba el mapa en
+ * negro. La diferencia de fondo: la lente pedía la memoria del DUEÑO de una ficha y un director no acumula
+ * memoria nunca, así que llegaba vacía; una sonda **no tiene dueño** y contesta lo que se ve DESDE EL PUNTO.
+ */
+describe('computeSceneVision — la sonda de prueba', () => {
+  const probe = (at: { x: number; y: number }, over = {}) =>
+    computeSceneVision({ maps: seed(over) }, { sceneId: SCENE, userId: DM, probe: at });
+
+  it('contesta lo mismo que vería un jugador plantado en ese punto', async () => {
+    // El token de Pip está en la casilla (2,5) → su centro cae en (67.5, 148.5).
+    const mine = await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: PIP });
+    const r = await probe({ x: 67.5, y: 148.5 });
+    expect(r.ok && mine.ok).toBe(true);
+    if (!r.ok || !mine.ok) return;
+    expect(r.data.vision).toEqual(mine.data.vision);
+    // Y no es el «todo» del director: al otro lado del muro no se ve.
+    expect(r.data.vision).toHaveLength(1);
+    expect(pointInPolygon({ x: 200, y: 135 }, r.data.vision[0]!)).toBe(false);
+  });
+
+  /** 🔴 EL FALLO QUE TIRÓ LA LENTE: sin dueño no hay memoria que pedir, así que esto NO puede salir vacío. */
+  it('NO devuelve el mapa en negro: contesta lo que se ve desde ahí, no la memoria de nadie', async () => {
+    const r = await probe({ x: 67.5, y: 148.5 }, { fog: {} });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.explored.length).toBeGreaterThan(0);
+    expect(r.data.vision.length).toBeGreaterThan(0);
+  });
+
+  /** La memoria la acumula el NAVEGADOR: aquí se contesta sólo lo de ESTE punto, y moverse cambia la respuesta. */
+  it('lo explorado que contesta es lo de ESE punto, no una memoria que crece sola', async () => {
+    // A este lado del muro y al otro: la respuesta tiene que cambiar, o no estaría mirando desde el punto.
+    const a = await probe({ x: 67.5, y: 148.5 });
+    const b = await probe({ x: 200, y: 148.5 });
+    if (!a.ok || !b.ok) return;
+    expect(a.data.explored.every(([cx]) => cx < 5)).toBe(true);
+    expect(b.data.explored.every(([cx]) => cx >= 5)).toBe(true);
+  });
+
+  it('no guarda NADA: mirar desde un punto no le explora el mapa a nadie', async () => {
+    const maps = seed({ fog: { [PIP]: [] } });
+    await computeSceneVision({ maps }, { sceneId: SCENE, userId: DM, probe: { x: 67.5, y: 148.5 } });
+    expect(maps.fog[PIP]).toEqual([]);
+    // El jugador pidiendo lo suyo SÍ guarda: se comprueba que el doble no está roto.
+    await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    expect(maps.fog[PIP]!.length).toBeGreaterThan(0);
+  });
+
+  it('respeta el modo de niebla: apagada lo enseña todo, y en manual enseña lo que el pincel reveló', async () => {
+    const off = await probe({ x: 67.5, y: 148.5 }, { scene: { fogMode: 'off' } });
+    expect(off.ok && off.data.explored.length).toBe(100); // 270/27 = 10 × 10 casillas
+    // En manual no hay visión para nadie: lo que un jugador ve es lo que el director reveló. Negro sería mentir.
+    const manual = await probe({ x: 67.5, y: 148.5 }, { scene: { fogMode: 'manual' }, fog: { [PIP]: [[1, 1]], [NIX]: [[2, 2]] } });
+    expect(manual.ok && manual.data.vision).toEqual([]);
+    expect(manual.ok && manual.data.explored).toHaveLength(2);
+  });
+
+  /** La sonda es SÓLO del director: a un jugador el parámetro no le enseña nada de más. */
+  it('un jugador que la pide no ve más de lo suyo', async () => {
+    const r = await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: PIP, probe: { x: 800, y: 40 } });
+    const mine = await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: PIP });
+    if (!r.ok || !mine.ok) return;
+    expect(r.data.vision).toEqual(mine.data.vision);
+  });
+});
+
 /** El director, sin lente ninguna: lo suyo de siempre — la unión de lo explorado y ningún polígono. */
 describe('computeSceneVision — la vista del director', () => {
   it('el director ve la unión de lo explorado y sin polígono', async () => {

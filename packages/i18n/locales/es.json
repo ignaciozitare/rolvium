@@ -782,6 +782,12 @@
       "mask": "Pincel de transparencia"
     },
     "toolbar": "Herramientas del lienzo",
+    "probe": {
+      "label": "Sonda de prueba",
+      "hint": "arrástrala",
+      "banner": "SONDA DE PRUEBA · lo que vería un jugador desde aquí",
+      "note": "no cambia nada para nadie · nada se guarda"
+    },
     "controls": {
       "label": "Controles del lienzo",
       "zoomIn": "Acercar",

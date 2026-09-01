@@ -322,3 +322,16 @@
 .mp-layermenu .mp-menu-item.on{background:var(--sys-ink-soft);color:var(--sys-paper-hi);}
 .mp-layermenu-check{margin-left:auto;color:var(--sys-gold);}
 
+
+/* ── La sonda de prueba (§ 7.3) ──
+   Mobiliario del director, no una ficha: por eso se pinta en la capa de UI, encima de la niebla, y por eso
+   lleva el aro punteado — para que no se confunda ni un segundo con un token de verdad. */
+.mp-probe{cursor:grab;}
+.mp-probe:active{cursor:grabbing;}
+.mp-probe-body{fill:var(--sys-ink);fill-opacity:.9;}
+.mp-probe-ring{fill:none;stroke:var(--sys-gold);stroke-width:2;stroke-dasharray:5 4;}
+.mp-probe-icon{fill:var(--sys-gold);font-size:var(--icon-sm);pointer-events:none;}
+.mp-probe-hint{fill:var(--sys-paper-hi);font-size:var(--fs-2xs);font-style:italic;pointer-events:none;
+  paint-order:stroke;stroke:var(--sys-ink);stroke-width:3px;stroke-linejoin:round;}
+/* El rótulo del lienzo mientras la sonda está puesta. */
+.mp-canvas-label.probe{color:var(--sys-gold);}

@@ -3,7 +3,7 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells,
+  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -497,6 +497,20 @@ describe('planOpening — una abertura NUNCA puede quedar tapada por un muro mac
     const door = { ...WALL_1, id: 'w-door', kind: 'door' as const, isOpen: true, x1: 621, y1: 405, x2: 621, y2: 540 };
     const plan = planOpening([door], { x: 621, y: 405 }, { x: 621, y: 513 }, 'wall');
     expect(covers(plan.opening, door)).toBe(false);
+  });
+});
+
+/** La memoria de la sonda la une el NAVEGADOR mientras está puesta (§ 7.3), así que este helper vive aquí. */
+describe('unionCells', () => {
+  it('une sin repetir y conserva el orden de llegada', () => {
+    expect(unionCells([[0, 0], [1, 0]], [[1, 0], [2, 0]])).toEqual([[0, 0], [1, 0], [2, 0]]);
+  });
+  it('con una sola lista la devuelve tal cual, y sin listas devuelve vacío', () => {
+    expect(unionCells([[3, 4]])).toEqual([[3, 4]]);
+    expect(unionCells()).toEqual([]);
+  });
+  it('no confunde (1,10) con (11,0): la clave lleva separador', () => {
+    expect(unionCells([[1, 10]], [[11, 0]])).toHaveLength(2);
   });
 });
 

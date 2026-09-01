@@ -103,6 +103,18 @@ export async function computeSceneVision(
   input: {
     sceneId: string; userId: string;
     at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } | undefined };
+    /**
+     * LA SONDA DE PRUEBA (§ 7.3). Un punto en px de escena, SÓLO del director: «qué vería un jugador desde
+     * aquí». Sustituye a la lente por personaje que llegó a producción y dejaba el mapa en negro —aquella
+     * pedía la memoria del DUEÑO de una ficha, y un director no acumula memoria nunca—. Una sonda **no tiene
+     * dueño**, así que no hay memoria que pedir: se contesta lo que se ve DESDE AHÍ y la acumula el navegador.
+     *
+     * Se calcula aquí y no en su navegador por lo de siempre: a él le llegan muros que un jugador no conoce,
+     * y comprobar que lo que ve él y lo que ve el jugador coinciden es justo para lo que sirve la sonda.
+     *
+     * **No escribe una sola fila.**
+     */
+    probe?: { x: number; y: number };
   },
 ): Promise<VisionOutcome> {
   const scene = await deps.maps.getScene(input.sceneId);
@@ -123,6 +135,28 @@ export async function computeSceneVision(
   const wallSegments = async (): Promise<Segment[]> => sightSegments(await deps.maps.listWalls(scene.id), scene);
 
   if (role === 'dm') {
+    if (input.probe) {
+      const eye = { x: input.probe.x, y: input.probe.y };
+      const segments = lights.length > 0 || scene.fogMode === 'vision' ? await wallSegments() : [];
+      /**
+       * La sonda mira SIN los privilegios del director (`isDm` en falso) también para las luces: si el charco
+       * se calculase como el suyo, la herramienta enseñaría de más justo en lo que viene a comprobar.
+       */
+      const lit = litLights(lights, layers, segments, scene, false, scene.fogMode === 'off' ? null : [eye]);
+      if (scene.fogMode === 'off') return { ok: true, data: { vision: [], explored: allCells(scene.gridSize, scene.width, scene.height), radiusPx, ...litField(lit, lights) } };
+      // Con niebla MANUAL no hay visión que calcular para nadie: lo que un jugador ve es lo que el pincel del
+      // director reveló, y eso es la unión que él ya tiene. Devolverle negro sería mentir, no simular.
+      if (scene.fogMode === 'manual') return { ok: true, data: { vision: [], explored: unionCells(...await deps.maps.listExplored(scene.id)), radiusPx, ...litField(lit, lights) } };
+      const poly = visionPolygon(eye, segments, radiusPx ?? Infinity);
+      const vision = poly.length >= 3 ? [poly] : [];
+      /**
+       * `explored` es lo que se ve DESDE ESTE PUNTO, no una memoria: el navegador va uniendo lo de cada
+       * respuesta mientras la sonda esté puesta y lo tira al quitarla (§ 7.3, decisión del dueño). Aquí no se
+       * guarda nada — ni con `saveExplored` ni de ninguna otra forma.
+       */
+      const seen = cellsInPolygons([...vision, ...lit.flatMap(l => l.parts)], scene.gridSize, scene.width, scene.height);
+      return { ok: true, data: { vision, explored: seen, radiusPx, ...litField(lit, lights) } };
+    }
     const rows = await deps.maps.listExplored(scene.id);
     // El director conoce TODOS los muros: su luz se recorta contra ellos, pero no hay vista contra la que cortarla.
     const lit = litLights(lights, layers, lights.length > 0 ? await wallSegments() : [], scene, true, null);

@@ -330,6 +330,20 @@ export const polygonsPath = (polys: readonly VisionPolygon[]): string =>
 /** One `<path d>` for a whole set of explored cells — one element instead of a rect per cell. */
 export const cellsPath = (cells: FogCell[], grid: number): string =>
   cells.map(([cx, cy]) => `M${cx * grid} ${cy * grid}h${grid}v${grid}h${-grid}z`).join('');
+/**
+ * Une casillas exploradas sin repetir, conservando el orden de llegada.
+ *
+ * Hace falta AQUÍ, en el navegador, sólo por la sonda de prueba (§ 7.3): el servidor contesta lo que se ve
+ * desde el punto donde está la sonda —no una memoria—, así que quien la va acumulando mientras el director la
+ * arrastra es esta pantalla, y la tira al quitarla. Para todo lo demás la memoria la lleva el servidor.
+ */
+export function unionCells(...lists: readonly FogCell[][]): FogCell[] {
+  const seen = new Set<string>();
+  const out: FogCell[] = [];
+  for (const list of lists) for (const c of list) { const k = `${c[0]},${c[1]}`; if (!seen.has(k)) { seen.add(k); out.push(c); } }
+  return out;
+}
+
 /** Brush radius in scene px for a size taken from `BRUSH_SIZES`. */
 export const brushRadius = (size: number, grid: number): number => size * grid;
 /** Night sight radius of a scene in scene px, or `null` by day. Same helper the API uses. */

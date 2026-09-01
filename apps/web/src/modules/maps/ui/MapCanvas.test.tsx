@@ -784,6 +784,55 @@ describe('<MapCanvas> Seleccionar edita muros', () => {
   });
 });
 
+/**
+ * LA SONDA DE PRUEBA (§ 7.3), atada a «ver como jugador». Sustituye a la lente por personaje que llegó a
+ * producción y dejaba el mapa en negro. No es una ficha: no está en `maps_tokens`, no la ve ningún jugador,
+ * no sale en ninguna lista y se pinta ENCIMA de la niebla porque es mobiliario de la pantalla del director.
+ */
+describe('<MapCanvas> la sonda de prueba', () => {
+  const at = { x: 5 * G, y: 5 * G };
+
+  it('sin sonda no se pinta nada; con sonda sale con su nombre', () => {
+    const { svg, rerender } = mount({ isDm: true, me: 'u-gm' });
+    expect(within(svg).queryByTestId('mp-probe')).not.toBeInTheDocument();
+    rerender({ isDm: true, me: 'u-gm', probe: at });
+    expect(within(svg).getByRole('img', { name: 'Sonda de prueba' })).toBeInTheDocument();
+  });
+
+  it('se arrastra con Seleccionar, y va contando dónde está mientras se mueve', () => {
+    const onProbeMove = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', probe: at, onProbeMove });
+    down(svg, at.x, at.y);
+    move(svg, at.x + 40, at.y + 20);
+    expect(onProbeMove).toHaveBeenLastCalledWith({ x: at.x + 40, y: at.y + 20 });
+    move(svg, at.x + 80, at.y);
+    expect(onProbeMove).toHaveBeenLastCalledWith({ x: at.x + 80, y: at.y });
+    up(svg);
+    // Soltarla no guarda nada: no es una ficha, así que ni se mueve ni se persiste ningún token.
+    move(svg, 0, 0);
+    expect(onProbeMove).toHaveBeenCalledTimes(2);
+  });
+
+  it('agarrarla NO selecciona lo que haya debajo: gana ella, que es lo único que hay que mover', () => {
+    const onProbeMove = vi.fn();
+    // La sonda, justo encima del token de Karen.
+    const centre = { x: (TOKEN_KAREN.x + TOKEN_KAREN.size / 2) * G, y: (TOKEN_KAREN.y + TOKEN_KAREN.size / 2) * G };
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', probe: centre, onProbeMove });
+    down(svg, centre.x, centre.y);
+    move(svg, centre.x + 30, centre.y);
+    expect(onProbeMove).toHaveBeenCalled();
+    expect(cb.onDragToken).not.toHaveBeenCalled();
+  });
+
+  it('un clic lejos de ella no la agarra', () => {
+    const onProbeMove = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', probe: at, onProbeMove });
+    down(svg, at.x + 200, at.y + 200);
+    move(svg, at.x + 210, at.y + 200);
+    expect(onProbeMove).not.toHaveBeenCalled();
+  });
+});
+
 describe('<MapCanvas> teclado y botón derecho', () => {
   it('Suprimir borra lo seleccionado; escribiendo en un campo no borra nada', () => {
     const { cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', selectedWallId: 'w-1', walls: [WALL_1] });

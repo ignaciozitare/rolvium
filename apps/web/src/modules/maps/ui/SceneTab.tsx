@@ -122,7 +122,13 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   }, [repo, campaignId, isDm, activeSceneId]);
 
   const scene = isDm ? scenes?.find(s => s.id === selectedId) ?? null : playerScene;
-  const st = useScene(repo, scene, userId, vision);
+  /**
+   * LA SONDA DE PRUEBA (§ 7.3): dónde está puesta, en px de escena. Va atada a «ver como jugador» — encenderlo
+   * la suelta, apagarlo se la lleva (dueño, 2026-09-01: «me debería dejar poner un token donde quiera para
+   * probar»). No es una ficha: no se guarda, no la ve nadie y no sale en ninguna lista.
+   */
+  const [probe, setProbe] = useState<Point | null>(null);
+  const st = useScene(repo, scene, userId, vision, probe);
   /**
    * La capa ACTIVA: donde se dibuja y se coloca (rebanada 7). Sólo el director tiene panel, así que un
    * jugador la deja siempre vacía y todo lo suyo cae en su capa natural, igual que antes de que existieran.
@@ -344,7 +350,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
-            playerView={playerView} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
+            playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
             onAddText={async at => {
               const text = await dialog.prompt(t('maps.text.prompt'));
@@ -390,7 +396,9 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               <span className="tb-italic">{t('maps.dmCounts', { walls: String(st.walls.filter(w => w.kind === 'wall').length), doors: String(st.walls.filter(w => w.kind === 'door').length), windows: String(st.walls.filter(w => w.kind === 'window').length), hidden: String(hiddenCount) })} · {bgName}</span>
             </div>
           )}
-          <span className="mp-canvas-label">{isDm && !playerView
+          <span className={`mp-canvas-label ${isDm && playerView ? 'probe' : ''}`}>{isDm && playerView
+            ? `${t('maps.probe.banner')} · ${t('maps.probe.note')}`
+            : isDm && !playerView
             ? `${t('maps.dmView')}${live.fogMode === 'vision' ? ` · ${t('maps.fog.byVision')}` : ''}${isBrush(tool) ? ` · ${t(`maps.brush.${tool}`)}` : ''}`
               : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
           {(isDraw(tool) || (isDm && isBrush(tool))) && (
@@ -543,7 +551,14 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onLighting={lighting => run(patchScene(live.id, { lighting }))}
             onSolidWalls={solidWalls => run(patchScene(live.id, { solidWalls }))}
             onZoomIn={() => setView(v => zoomAt(v, ZOOM_STEP, viewCenter()))} onZoomOut={() => setView(v => zoomAt(v, 1 / ZOOM_STEP, viewCenter()))}
-            onCenter={() => setView(fitView(live, viewport()))} onToggleWalls={() => setShowWalls(w => !w)} onTogglePlayerView={() => setPlayerView(v => !v)} />
+            onCenter={() => setView(fitView(live, viewport()))} onToggleWalls={() => setShowWalls(w => !w)}
+            onTogglePlayerView={() => {
+              // Encender «ver como jugador» SUELTA la sonda en mitad de lo que se está mirando; apagarlo se la
+              // lleva, y con ella la memoria que llevaba acumulada (§ 7.3). No queda nada guardado.
+              const next = !playerView;
+              setPlayerView(next);
+              setProbe(next ? canvasToScene(viewCenter(), view) : null);
+            }} />
         </div>
       </div>
       {failed && <p className="mp-foot mp-foot-err" role="alert">{t('maps.saveFailed')}</p>}

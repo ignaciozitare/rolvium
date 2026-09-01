@@ -1041,3 +1041,74 @@ describe('<SceneTab> mandar a otra capa (rebanada 7)', () => {
     expect(screen.queryByRole('menu', { name: 'Mandar a la capa' })).not.toBeInTheDocument();
   });
 });
+
+/**
+ * LA SONDA DE PRUEBA (§ 7.3), de punta a punta. Va atada a «ver como jugador» por petición literal del dueño
+ * (2026-09-01): «el botón de ver como jugador… me debería dejar poner un token donde quiera para probar».
+ *
+ * Sustituye a la lente por personaje que llegó a producción y dejaba el mapa en negro. **La diferencia que no
+ * se puede perder**: aquella pedía la memoria del DUEÑO de una ficha y un director no acumula memoria nunca,
+ * así que llegaba vacía. Una sonda no tiene dueño: se pide la visión DESDE UN PUNTO.
+ */
+describe('<SceneTab> la sonda de prueba (rebanada 7 · § 7.3)', () => {
+  const probeOf = (vision: ReturnType<typeof fakeVisionPort>) => vision.calls.filter(c => c.op === 'refresh' && c.probe);
+
+  it('un jugador no la tiene: el botón entero es del director', async () => {
+    mount('player');
+    await screen.findByText(/Almacén de Queens · tu visión/);
+    expect(screen.queryByRole('button', { name: 'Ver como jugador' })).not.toBeInTheDocument();
+  });
+
+  it('encenderla la suelta en el mapa y le pide la visión AL SERVIDOR, con el punto', async () => {
+    const u = userEvent.setup();
+    const vision = fakeVisionPort();
+    mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    await screen.findByText(/Vista de director/);
+    expect(within(canvas()).queryByRole('img', { name: 'Sonda de prueba' })).not.toBeInTheDocument();
+
+    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    expect(await within(canvas()).findByRole('img', { name: 'Sonda de prueba' })).toBeInTheDocument();
+    await waitFor(() => expect(probeOf(vision).length).toBeGreaterThan(0));
+    expect(probeOf(vision)[0]!.probe).toEqual(expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }));
+  });
+
+  it('lo dice en pantalla, y deja de enseñarle lo que un jugador no vería', async () => {
+    const u = userEvent.setup();
+    mount('dm');
+    await screen.findByText(/Vista de director/);
+    await waitFor(() => expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).toBeInTheDocument());
+
+    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    expect(screen.getByText(/SONDA DE PRUEBA · lo que vería un jugador desde aquí/)).toBeInTheDocument();
+    expect(screen.getByText(/nada se guarda/)).toBeInTheDocument();
+    await waitFor(() => expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).not.toBeInTheDocument());
+  });
+
+  it('arrastrarla vuelve a preguntar por el punto NUEVO', async () => {
+    const u = userEvent.setup();
+    const vision = fakeVisionPort();
+    mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    await screen.findByText(/Vista de director/);
+    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    await within(canvas()).findByRole('img', { name: 'Sonda de prueba' });
+    await waitFor(() => expect(probeOf(vision).length).toBeGreaterThan(0));
+    const first = probeOf(vision)[0]!.probe!;
+
+    fireEvent.pointerDown(canvas(), { clientX: first.x, clientY: first.y, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(canvas(), { clientX: first.x + 7 * G, clientY: first.y + 3 * G, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await waitFor(() => expect(probeOf(vision).some(c => c.probe!.x === first.x + 7 * G)).toBe(true));
+  });
+
+  it('apagarla se la lleva y devuelve la vista de director', async () => {
+    const u = userEvent.setup();
+    mount('dm');
+    await screen.findByText(/Vista de director/);
+    const btn = screen.getByRole('button', { name: 'Ver como jugador' });
+    await u.click(btn);
+    await within(canvas()).findByRole('img', { name: 'Sonda de prueba' });
+    await u.click(btn);
+    await waitFor(() => expect(within(canvas()).queryByRole('img', { name: 'Sonda de prueba' })).not.toBeInTheDocument());
+    expect(screen.getByText(/Vista de director/)).toBeInTheDocument();
+  });
+});

@@ -484,11 +484,15 @@ export const EXPLORED_2x2: SceneVision['explored'] = [[0, 0], [0, 1], [1, 0], [1
  */
 export function fakeVisionPort(seed: Partial<SceneVision> = {}, correct?: (at: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }) => { x: number; y: number } | null) {
   const state: SceneVision = { vision: VISION_LEFT, explored: EXPLORED_2x2, radiusPx: null, ...seed };
-  const calls: { op: string; sceneId: string; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } } | { x: number; y: number; radius: number } }[] = [];
+  const calls: { op: string; sceneId: string; probe?: { x: number; y: number }; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } } | { x: number; y: number; radius: number } }[] = [];
   return {
     state, calls,
-    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }) => {
-      calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}) });
+    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }, opts?: { probe?: { x: number; y: number } }) => {
+      // `probe` es la sonda de prueba (§ 7.3): se apunta para poder atar que la visión se pide AL SERVIDOR.
+      calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}), ...(opts?.probe ? { probe: opts.probe } : {}) });
+      // Con la sonda, el servidor contesta lo que se ve DESDE ESE PUNTO: aquí, una casilla distinta por punto,
+      // que es lo justo para poder comprobar que el navegador las va uniendo.
+      if (opts?.probe) return { ...state, explored: [[Math.round(opts.probe.x), Math.round(opts.probe.y)] as [number, number]] };
       const cut = at && correct ? correct(at) : null;
       // Como el real: recortado → pegado al muro, holgura 0; si cabía, un disco grande alrededor.
       return { ...state, corrected: cut && at ? { tokenId: at.tokenId, ...cut } : null, clearance: at ? (cut ? 0 : 100) : null };

@@ -121,6 +121,45 @@ describe('useScene · una abertura parte TODOS los muros que pisa', () => {
   });
 });
 
+/**
+ * LA MEMORIA DE LA SONDA (§ 7.3), decisión cerrada del dueño: «que quede en memoria, si es sólo para probar».
+ * El servidor contesta lo que se ve DESDE EL PUNTO —no una memoria— y quien la acumula es esta pantalla,
+ * que la tira al quitar la sonda. **Nada de esto se escribe en la base.**
+ */
+describe('useScene · la sonda de prueba acumula su memoria aquí, y la tira al quitarla', () => {
+  /** El doble contesta una casilla por punto, que es lo justo para ver si se van uniendo. */
+  const mountProbe = async (probe: { x: number; y: number } | null, vision = fakeVisionPort()) => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const { result, rerender } = renderHook(({ p }: { p: { x: number; y: number } | null }) => useScene(repo, SCENE_WAREHOUSE, PLAYER_USER.id, vision, p), { initialProps: { p: probe } });
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.fog).not.toBeNull());
+    return { result, rerender, vision };
+  };
+
+  it('moverla UNE lo que se ve en cada punto, en vez de reemplazarlo', async () => {
+    const { result, rerender } = await mountProbe({ x: 10, y: 10 });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10]]));
+    rerender({ p: { x: 20, y: 20 } });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10], [20, 20]]));
+    rerender({ p: { x: 30, y: 30 } });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10], [20, 20], [30, 30]]));
+  });
+
+  it('quitarla TIRA la memoria: no se queda nada colgado de la sesión anterior', async () => {
+    const { result, rerender } = await mountProbe({ x: 10, y: 10 });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10]]));
+    rerender({ p: null });                       // se apaga «ver como jugador»
+    await waitFor(() => expect(result.current.fog!.explored).not.toEqual([[10, 10]]));
+    rerender({ p: { x: 40, y: 40 } });           // se vuelve a encender: empieza de cero
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[40, 40]]));
+  });
+
+  it('sin sonda no se toca nada: lo explorado es lo que conteste el servidor', async () => {
+    const { result } = await mountProbe(null);
+    expect(result.current.fog!.explored).toEqual(fakeVisionPort().state.explored);
+  });
+});
+
 describe('useScene — capas y luces', () => {
   const seedLayers = () => fakeMapsRepo({ tokens: [TOKEN_KAREN], layers: [LAYER_OBJECTS, LAYER_FLOOR, LAYER_MOSS], lights: [LIGHT_TORCH], drawings: [{ ...DRAWING_MINE, layerId: LAYER_MOSS.id }] });
 

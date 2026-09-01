@@ -69,7 +69,15 @@ export function CanvasControls(p: Props): JSX.Element {
       <Ctl icon="zoom_out" label={t('maps.controls.zoomOut')} onClick={p.onZoomOut} />
       <Ctl icon="center_focus_strong" label={t('maps.controls.center')} onClick={p.onCenter} />
       {p.isDm && <Ctl icon={p.showWalls ? 'visibility' : 'visibility_off'} label={t('maps.controls.walls')} onClick={p.onToggleWalls} on={p.showWalls} />}
-      {p.isDm && <Ctl icon="layers" label={t('maps.controls.playerView')} onClick={p.onTogglePlayerView} on={p.playerView} />}
+      {/*
+        * «Ver como jugador» ES la sonda de prueba (§ 7.3): al encenderlo se le quitan al director sus
+        * privilegios Y aparece en el mapa una ficha genérica que él arrastra para ver qué se vería desde ahí.
+        *
+        * El icono es `theater_comedy` —las máscaras del teatro, «ponerse en el papel de otro»— y lo eligió el
+        * dueño el 2026-09-01 entre tres candidatos dibujados en `rolvium.pen`. Antes era `layers`, que no
+        * decía nada («no se entiende el icono, busquemos otro»), y además chocaba con el panel de capas.
+        */}
+      {p.isDm && <Ctl icon="theater_comedy" label={t('maps.controls.playerView')} onClick={p.onTogglePlayerView} on={p.playerView} />}
     </div>
   );
 }

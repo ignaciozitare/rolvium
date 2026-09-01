@@ -18,6 +18,13 @@ describe('HttpVisionAdapter', () => {
     expect(apiFetch).toHaveBeenCalledWith('/scenes/sc-1/vision', { method: 'POST' });
   });
 
+  /** La sonda de prueba (§ 7.3): un PUNTO, no una ficha. Es la diferencia que evita el mapa en negro. */
+  it('`refresh` con sonda manda el punto en el cuerpo', async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce(VISION);
+    await new HttpVisionAdapter().refresh('sc-1', undefined, { probe: { x: 120, y: 80 } });
+    expect(apiFetch).toHaveBeenCalledWith('/scenes/sc-1/vision', { method: 'POST', body: JSON.stringify({ probe: { x: 120, y: 80 } }) });
+  });
+
   it('`paint` POSTs the brush disc to /scenes/:id/fog', async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce({ ...VISION, vision: [] });
     const res = await new HttpVisionAdapter().paint('sc-1', 'hide', { x: 100, y: 200, radius: 81 });

@@ -87,6 +87,12 @@ interface Props {
   /** Encounter / PC placement (cell coordinates); only wired while something is pending. */
   onPlace?: (cell: Point) => void;
   selectedTokenIds: string[];
+  /**
+   * LA SONDA DE PRUEBA (§ 7.3): dónde está, o `null` si no está puesta. Va atada a «ver como jugador». No es
+   * una ficha —no se guarda, no la ve nadie, no sale en ninguna lista— y se arrastra con Seleccionar.
+   */
+  probe?: Point | null;
+  onProbeMove?: (at: Point) => void;
   onSelectToken: (id: string | null) => void;
   /** DM, Seleccionar: the segment being edited and its handles. */
   selectedWallId?: string | null;
@@ -104,7 +110,9 @@ type Gesture =
   | { kind: 'mask'; last: Point }
   | { kind: 'wallEdit'; id: string; grab: 'a' | 'b' | 'whole'; start: Point; origin: { x1: number; y1: number; x2: number; y2: number } }
   | { kind: 'marquee'; start: Point; last: Point }
-  | { kind: 'measure' };
+  | { kind: 'measure' }
+  /** Arrastrando la sonda de prueba. No lleva id: sólo hay una y no es de nadie. */
+  | { kind: 'probe' };
 
 type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
 /** Tools whose press opens a gesture, so the open/close disc can wait for the release instead of stealing it. */
@@ -119,6 +127,8 @@ const round2 = (v: number): number => Math.round(v * 100) / 100;
  * eventos/s son ~20 casillas/s de cierre — invisible en el arrastre normal, suave cuando hay hueco.
  */
 const CATCH_UP_CELLS = 0.35;
+/** Lo grande que es la sonda de prueba en px de escena. Una ficha normal mide una casilla y media. */
+const PROBE_R = 17;
 /** Brush paints per second, matching the token drag's `DRAG_HZ_MS` (useScene.ts). */
 const PAINT_HZ_MS = 50;
 
@@ -237,6 +247,15 @@ export function MapCanvas(p: Props): JSX.Element {
     if (e.button === 0 && p.placing && p.onPlace) { p.onPlace(tokenPointAt(s, grid, p.placingSize)); return; }
     if (e.button === 0 && p.tool === 'select') {
       /**
+       * La SONDA se agarra antes que nada: es mobiliario del director, se pinta encima de todo y es lo único
+       * que hay que poder mover mientras se mira la escena con los ojos de un jugador.
+       */
+      if (p.probe && Math.hypot(p.probe.x - s.x, p.probe.y - s.y) <= PROBE_R + 4 / p.view.zoom) {
+        setGesture({ kind: 'probe' });
+        svgRef.current?.setPointerCapture?.(e.pointerId);
+        return;
+      }
+      /**
        * Una LUZ también se selecciona con Seleccionar (dueño, 2026-08-31: «una vez puesta una luz no me deja
        * seleccionarla nuevamente para editarla»). Antes sólo se podía con la herramienta Luz, y ahí un clic
        * un pelo fuera de su disco COLOCA otra luz en vez de abrir la que querías — así que en la práctica no
@@ -330,6 +349,7 @@ export function MapCanvas(p: Props): JSX.Element {
     // never to the disc. This is what keeps Seleccionar able to grab a one-cell door the disc sits right on top of.
     if (discPress.current && Math.hypot(s.x - discPress.current.at.x, s.y - discPress.current.at.y) > 4 / p.view.zoom) discPress.current = null;
     if (!gesture) return;
+    if (gesture.kind === 'probe') { p.onProbeMove?.(s); return; }
     if (gesture.kind === 'pan') {
       const l = local(e);
       p.onViewChange({ ...gesture.origin, panX: gesture.origin.panX + l.x - gesture.start.x, panY: gesture.origin.panY + l.y - gesture.start.y });
@@ -479,6 +499,8 @@ export function MapCanvas(p: Props): JSX.Element {
       if (w) p.onToggleWall(w);
     }
     if (!gesture) return;
+    // La sonda no guarda nada al soltar: no es una ficha. Sólo se deja de arrastrar.
+    if (gesture.kind === 'probe') { setGesture(null); return; }
     // El PNG de la máscara sube UNA vez, al soltar: un guardado por pincelada, no cien.
     if (gesture.kind === 'mask') { setGesture(null); p.onPaintMaskEnd?.(); return; }
     if (gesture.kind === 'wallEdit') {
@@ -659,6 +681,20 @@ export function MapCanvas(p: Props): JSX.Element {
           {pinShown && (
             <g className="mp-pin" transform={`translate(${pinShown.x} ${pinShown.y})`} data-testid="mp-pin" aria-label={t('maps.canvas.pin', { name: p.nameOf(pinShown.by) })}>
               <circle r={14} className="mp-pin-ring" /><circle r={4} className="mp-pin-dot" />
+            </g>
+          )}
+          {/*
+            * LA SONDA DE PRUEBA (§ 7.3). Va en la capa de UI y NO entre las fichas a propósito: no es una
+            * ficha —no está en `maps_tokens`, no la ve ningún jugador y no sale en ninguna lista—, es
+            * mobiliario de la pantalla del director. Por eso tampoco la tapa la niebla: se pinta encima.
+            */}
+          {p.probe && (
+            <g className="mp-probe" data-testid="mp-probe" transform={`translate(${p.probe.x} ${p.probe.y})`}
+              role="img" aria-label={t('maps.probe.label')}>
+              <circle r={PROBE_R} className="mp-probe-body" />
+              <circle r={PROBE_R} className="mp-probe-ring" />
+              <text className="material-symbols-outlined mp-probe-icon" textAnchor="middle" dominantBaseline="central">theater_comedy</text>
+              <text className="mp-probe-hint" y={PROBE_R + 13} textAnchor="middle">{t('maps.probe.hint')}</text>
             </g>
           )}
         </g>

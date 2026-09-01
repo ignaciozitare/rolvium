@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { SceneVision } from '@rolvium/core';
+import type { FogCell, SceneVision } from '@rolvium/core';
 import type { Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewToken, NewWall, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
+import { unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
 import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
 
 export interface LiveDrag { tokenId: string; x: number; y: number }
@@ -37,7 +37,12 @@ const VISION_CONTACT_HZ_MS = 50; // ~20 Hz
  * and every client refetches its own (specs/modules/maps/SPEC.md § «Rebanada 2 — luz y aberturas»).
  */
 export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision?: VisionPort,
-) {
+  /**
+   * LA SONDA DE PRUEBA (§ 7.3): dónde está puesta, en px de escena, o `null` si no lo está. Sólo del director.
+   * Mientras esté puesta, la visión que se pide es la de ESE PUNTO y **la memoria la lleva este navegador**:
+   * el servidor contesta lo que se ve desde ahí y aquí se va uniendo. Al quitarla, se tira.
+   */
+  probe: { x: number; y: number } | null = null) {
   const sceneId = scene?.id ?? null;
   const [tokens, setTokens] = useState<Token[]>([]);
   const [walls, setWalls] = useState<Wall[]>([]);
@@ -55,6 +60,18 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   /** Answers can overtake each other; only the newest request may write. */
   const visionSeq = useRef(0);
   const visionTimer = useRef<number | null>(null);
+  /** Lo que la sonda lleva visto. Vive aquí y NO en la base: se tira al quitarla o al cambiar de escena. */
+  const probeSeen = useRef<FogCell[]>([]);
+  const probeKey = probe ? `${probe.x}:${probe.y}` : '';
+  const probeOn = probe !== null;
+  /** En un ref: mover la sonda no puede rehacer la suscripción de tiempo real ni la petición en vuelo. */
+  const probeRef = useRef(probe);
+  useEffect(() => { probeRef.current = probe; }, [probe]);
+  const withProbeMemory = useCallback((next: SceneVision): SceneVision => {
+    if (!probeRef.current) return next;
+    probeSeen.current = unionCells(probeSeen.current, next.explored);
+    return { ...next, explored: probeSeen.current };
+  }, []);
 
   useEffect(() => { setLive(scene); }, [scene]);
 
@@ -103,9 +120,10 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     visionTimer.current = window.setTimeout(() => {
       visionTimer.current = null;
       const seq = ++visionSeq.current;
-      void vision.refresh(sceneId).then(next => { if (seq === visionSeq.current) setFog(next); }).catch(() => undefined);
+      void vision.refresh(sceneId, undefined, probeRef.current ? { probe: probeRef.current } : undefined)
+        .then(next => { if (seq === visionSeq.current) setFog(withProbeMemory(next)); }).catch(() => undefined);
     }, 0);
-  }, [vision, sceneId]);
+  }, [vision, sceneId, withProbeMemory]);
   useEffect(() => () => { if (visionTimer.current !== null) window.clearTimeout(visionTimer.current); }, []);
   useEffect(() => { refreshVisionRef.current = refreshVision; }, [refreshVision]);
 
@@ -115,6 +133,11 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   }, [repo, sceneId, live, me]);
 
   useEffect(() => { setFog(null); }, [sceneId]);
+  /**
+   * La memoria de la sonda se acumula AQUÍ y se tira entera al quitarla o al cambiar de escena (§ 7.3,
+   * decisión cerrada del dueño: «que quede en memoria, si es sólo para probar»). Nada de esto se escribe.
+   */
+  useEffect(() => { probeSeen.current = []; }, [sceneId, probeOn]);
   /** Light, fog mode and walls all change what is visible; so does any of MY tokens moving. */
   const myTokenKey = tokens.filter(t => t.controlledBy === me).map(t => `${t.id}:${t.x}:${t.y}:${t.size}`).join('|');
   const wallKey = walls.map(w => `${w.id}:${w.isOpen ? 1 : 0}:${w.blocksSight ? 1 : 0}`).join('|');
@@ -126,7 +149,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const lightKey = lights.map(l => `${l.id}:${l.x}:${l.y}:${l.rotation}:${l.shape}:${l.coneAngle}:${l.rangeM}:${l.castsShadow ? 1 : 0}:${l.layerId ?? ''}`).join('|');
   const layerKey = layers.map(l => `${l.id}:${l.visible ? 1 : 0}:${l.kind}`).join('|');
   /** One effect, so entering the scene costs ONE round trip and every later cause costs one more. */
-  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, lightKey, layerKey, live?.lighting, live?.nightRadiusM, live?.fogMode]);
+  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, lightKey, layerKey, probeKey, live?.lighting, live?.nightRadiusM, live?.fogMode]);
 
   /**
    * La niebla SIGUE al token mientras se arrastra, en vez de dar un salto al soltarlo (dueño, 2026-08-22).
