@@ -1416,47 +1416,60 @@ localDrag ?? origin`, con id de gesto). Deuda anotada por el review, no tocada: 
 Quitar la lente: abajo a la derecha, «SEE THROUGH THE EYES OF» → volver a su vista. La vista normal de
 director **no está tocada** por este despliegue, así que con eso trabaja.
 
-### 🐞 FALLO A — LA LENTE PINTA EL MAPA EN NEGRO (es el gordo, es el que él vio)
+### 🐞 FALLO A — LA LENTE NO TIENE MEMORIA (corregido el 2026-09-01 por el dueño; la 1.ª versión era falsa)
+
+> ⚠ **LEER ESTO ANTES QUE NADA.** El primer diagnóstico decía que había que dejar de enmascarar el mapa y
+> poner un velo. **Estaba MAL y lo corrigió él**: «tendría que comportarse exactamente igual que el jugador que
+> selecciones, eso ya lo tienes construido, ¿por qué funciona mal?». Tenía razón. Aquel arreglo tapaba el
+> síntoma y además rompía la promesa de la herramienta. **No implementarlo.**
 
 **Síntomas suyos, literales:** «has roto la niebla de guerra», «si muevo el token de una habitación a otra el
 resto se oscurece por completo», «ya no es dinámica hace saltos».
 
-**Causa, con pruebas:**
-1. `SceneTab.tsx:139` → `const asPlayer = playerView || !!seeAsToken;` y en la 355 eso se pasa como
-   `playerView={asPlayer}`. **La lente se trata EXACTAMENTE igual que «ver como jugador».**
-2. En `MapCanvas.tsx`: `dmSight = p.isDm && !p.playerView` → false con la lente → `playerSight` true →
-   línea ~588 `<g className="mp-layer-map" mask={url(fogIds.seen)}>`. `seen` = **explorado ∪ visión**, así que
-   **lo no explorado NO SE PINTA: queda en negro**, no velado.
-3. `sceneVision.ts:140` → `const explored = tk.controlledBy ? await getExplored(scene.id, tk.controlledBy) : []`.
-4. **Un director NUNCA acumula explorado**: `sceneVision.ts:255` sólo guarda en la rama de JUGADOR
-   (`if (!at && explored.length !== stored.length) saveExplored(...)`), y la rama `role === 'dm'` retorna antes.
+**La causa, puestas las dos ramas de `sceneVision.ts` una al lado de la otra:**
 
-**Comprobado en la base de producción**: la escena `6223197b-e6ea-4a2a-bac6-286599e8c97a` («sfahafh») tiene
-**`maps_fog` con 0 filas** (nada explorado por nadie) y la ficha «Random» la controla `...0001`, que es él, el
-director. Explorado = `[]` → el mapa entero en negro salvo el cono. Y como el cono se recalcula al mover,
-«hace saltos» y no queda memoria detrás.
+Rama del JUGADOR (~252), la que funciona:
+```ts
+const seen = cellsInPolygons([...vision, ...lit.flatMap(l => l.parts)], scene.gridSize, scene.width, scene.height);
+const explored = unionCells(stored, seen);          // SUMA lo que acaba de ver
+if (!at && explored.length !== stored.length) await deps.maps.saveExplored(...);   // y lo GUARDA
+```
 
-**⚠ Esto NO es una regresión de la vista normal**: la rama `role === 'dm'` de `sceneVision` sólo ganó `lit` en
-este despliegue. La lente es FUNCIONALIDAD NUEVA que nació mal.
+Rama de la LENTE (~140), la rota:
+```ts
+const explored = tk.controlledBy ? await deps.maps.getExplored(scene.id, tk.controlledBy) : [];
+const poly = visionPolygon(eye, segments, radiusPx ?? Infinity);
+// No se guarda NADA: mirar por los ojos de alguien no le explora el mapa.
+return { ok: true, data: { vision: [poly], explored, ... } };   // NUNCA hace unionCells(stored, seen)
+```
 
-#### El arreglo, ya diseñado (aplicarlo tal cual)
-La lente es una herramienta del DIRECTOR sobre su propia pantalla — su propio cartel lo dice, «cambia nada
-para nadie». No debe recortar el mapa: debe **pintar el mapa siempre** y **velar lo que el personaje no ve**.
+**La lente nunca suma lo que está viendo ni lo guarda: no acumula memoria.** Por eso al mover la ficha la sala
+anterior se apaga entera — para la lente nunca estuvo ahí. Y en su caso `maps_fog` tiene **0 filas** (nadie ha
+explorado nada nunca, porque un director no acumula), así que el punto de partida es negro absoluto.
 
-1. **`MapCanvas.tsx`**, en `Props`, prop nueva `lens?: boolean` (documentar por qué NO es `playerView`).
-2. `const lens = !!p.lens;`
-3. `const playerSight = !!fog && !dmSight;` → **`&& !lens`** (así el mapa no se enmascara nunca en la lente).
-4. `tokenMask`: cambiar `playerSight ? …` por **`(playerSight || lens) ? …`** (las fichas sí se recortan a lo
-   que el personaje ve: es lo informativo de la lente).
-5. El velo, línea ~592: `{dmSight && fog && <rect … mask={url(fogIds.unexplored)} …/>}` →
-   **`{(dmSight || lens) && fog && <rect … mask={url(lens ? fogIds.dim : fogIds.unexplored)} …/>}`**
-   `dim` ya está definido como «todo menos la visión actual» (`canvasLayers.tsx` ~182), que es justo el velo
-   que hace falta. Con visión vacía vela todo, **pero nunca deja negro**.
-6. **`SceneTab.tsx:355`**: añadir `lens={!!seeAsToken}` (dejar `playerView={asPlayer}` como está — `asPlayer`
-   sólo se usa ahí, comprobado).
-7. **Tests** (obligatorio, y verificarlos por mutación como el resto de la sesión): con la lente puesta y
-   `explored: []`, `mp-map` **NO** lleva `mask`, y existe `mp-fog-veil`. Sin lente y como jugador, sigue
-   llevándola. Fichero: `MapCanvas.test.tsx`.
+**El mapa se pinta negro y no velado** porque `SceneTab.tsx:139` mete la lente en `asPlayer`, y en
+`MapCanvas.tsx:588` eso enmascara el mapa contra `explorado ∪ visión`. **Ese trozo no hay que tocarlo**: con la
+memoria arreglada, enmascarar es lo CORRECTO — es justo lo que ve el jugador.
+
+#### El arreglo
+Que la rama de la lente haga **lo mismo** que la del jugador: calcular `seen` con `cellsInPolygons` y devolver
+`unionCells(stored, seen)`.
+
+🔴 **UNA DECISIÓN DEL DUEÑO, PREGUNTÁRSELA ANTES DE PROGRAMAR — ¿la lente GUARDA?**
+- **Guardar** (fidelidad total con el jugador, y es lo que él pidió con «exactamente igual»): la memoria crece
+  y persiste, así que la sala anterior se queda puesta. **Consecuencia: mirar por los ojos de un personaje le
+  hace crecer la niebla de verdad a ese jugador.** Defendible —el personaje estaba ahí de todos modos— pero
+  **el cartel de la pantalla promete hoy lo contrario** («es una lente: no cambia nada para nadie») y habría
+  que reescribirlo, y también el comentario `// No se guarda NADA`.
+- **No guardar**: no basta con el `unionCells`. Sin persistencia cada respuesta vuelve a partir de lo guardado
+  y la sala anterior se apagaría igual — habría que acumular en el navegador mientras la lente esté abierta.
+  Más trabajo, y la memoria se pierde al cerrarla.
+
+**Recomendación**: guardar, y reescribir el cartel. Es lo que él espera y lo que hace la herramienta honesta.
+
+**Tests** (obligatorio, verificar por mutación): con la lente sobre una ficha, lo que se acaba de ver entra en
+`explored`; y al mover la ficha a otra sala, la primera **sigue en `explored`**. Fichero:
+`apps/api/src/application/maps/sceneVision.test.ts`, que ya tiene la sección de la lente.
 
 ### 🐞 FALLO B — LA PUERTA ABIERTA NO DEJA VER (aparte, más pequeño, y también real)
 Él: «ahí está la puerta abierta y no puede ver». **Tiene razón, y no es la niebla: son los datos.**
