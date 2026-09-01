@@ -62,25 +62,54 @@ CORREGIDO, DISEÑO A MEDIAS.**
   `rolvium.pen`, frame **«PL/Ver como jugador · icono, 3 candidatos»** (`Ny7dg`), apagado y encendido:
   `person_search` · `preview` · `theater_comedy`.
 
-### 🔴 LO QUE SIGUE FALTANDO Y ÉL LO HA RECLAMADO: LA LUZ QUE GIRA
-> «Sigue faltando la luz que gira que te pedí.» **Tiene razón: no está empezada.** Pedida el 2026-08-31,
-> eligió **«la niebla sigue al haz»**. El plan barato sigue escrito y sigue siendo válido:
+### ✅ TERCERA TANDA — «sigue con todo esto, tengo que salir, lo quiero listo para la vuelta»
 
-- El barrido es **determinista**: se calculan **N rotaciones del cono de una vez** (24–36), cada una ya
-  recortada contra muros y línea de vista, se mandan **todas juntas** con el periodo, y el navegador va
-  pasando de una a otra con reloj compartido. **Nada de recalcular por fotograma.**
-- **Datos**: dos columnas aditivas en `maps_lights` (gira sí/no, periodo) → pasa por DBA.
-- **Servidor**: en `litLights`, si la luz gira, devolver N charcos en vez de uno.
-- **Navegador**: animar cuál se pinta.
-- **Explorado**: una vuelta entera acaba explorando el círculo. Es correcto, no hay que forzarlo.
-- Pasa por **spec (§ 7.2) → DBA → diseño → código**, como todo. **Es la tarea grande que queda.**
+Vía libre suya. Commits `5e040ba` (sonda) y `bf3c95c` (luz que gira). **Sigue todo en local, sin subir.**
 
-### 🔴 LO PRIMERO AL RETOMAR — dos cosas que sólo puede contestar él
-1. **APROBAR EL DISEÑO de la sonda en `rolvium.pen`** (§ 7.3). Sin su «ok» **no se escribe una línea de UI**.
-   Frames nuevos: `k5Ig5` «Mesa/Plenilunio · Escena · Director · sonda de prueba» y `JRbTf` «PL/Barra de
-   herramientas · con Sonda».
-   ⚠ **Y guardarlo con Cmd+S**: el MCP de Pencil NO escribe en disco. Sin su Cmd+S no hay nada que commitear.
-2. **SUS DOS MUROS.** El arreglo del código evita que vuelva a pasar, pero **su mapa sigue con los tres
+#### ✅ LA SONDA DE PRUEBA, CONSTRUIDA ENTERA (§ 7.3)
+- **«Ver como jugador» ES la sonda.** Encenderlo quita privilegios *y* suelta una ficha genérica en el centro
+  de lo que estés mirando; se arrastra con Seleccionar; apagarlo se la lleva. **Icono `theater_comedy`**,
+  elegido por él entre tres candidatos.
+- **Servidor**: `computeSceneVision` acepta `probe: {x, y}`. Niebla apagada → lo enseña todo; **manual → lo
+  que el pincel reveló** (devolverle negro sería mentir, no simular); visión → el polígono desde el punto.
+  **No escribe una sola fila.**
+- **La memoria la lleva el navegador** (`useScene`) y **se tira** al apagarla o al cambiar de escena.
+- 🔑 **Por qué el negro no puede volver**: la lente vieja pedía `getExplored(escena, dueño-de-la-ficha)` y un
+  director no acumula memoria nunca. Una sonda **no tiene dueño**. Hay test que lo sujeta.
+- La sonda se pinta en la capa de UI, encima de la niebla, con aro punteado para que no parezca una ficha.
+
+#### ✅ LA LUZ QUE GIRA, CONSTRUIDA ENTERA (§ 7.2) — la que llevaba reclamando
+- Interruptor «Que gire sola» + vuelta, **sólo con forma cono**, en el editor de luz. Por defecto 4 s.
+- **Datos**: UNA columna, `maps_lights.spin_ms` (0 = quieta), con CHECK 500–60000 ms.
+  **Migración aplicada en local con `supabase migration up` (NUNCA `db reset`) y verificada**: 3 usuarios,
+  3 escenas, 10 luces, 25 muros y 3 fichas antes y después; RLS de `maps_lights` intacta.
+- 🔑 **LA DECISIÓN QUE NO SE PUEDE PERDER**: el plan escrito era calcular 24–36 rotaciones en el SERVIDOR.
+  **No hace falta.** El recorte contra los muros es RADIAL, así que «cono girado a θ, recortado» = «círculo
+  recortado ∩ sector de θ». Por eso el servidor manda **el círculo entero una sola vez** (mismo coste que una
+  luz quieta) y el navegador **rota encima una ventana con forma de cono** (`animateTransform`, fase sacada
+  del reloj para que todos vean el haz en el mismo sitio). Barato, continuo y sin engordar la respuesta.
+- ⚠️ **LO ÚNICO QUE HAY QUE PREGUNTARLE DE ESTO**: él eligió «la niebla sigue al haz», y lo que sigue al haz
+  aquí es el **brillo** — lo explorado se revela en el círculo desde el primer momento en vez de ir saliendo
+  por sectores. A los pocos segundos es idéntico. Si lo quiere sector a sector, eso sí obliga a las N
+  rotaciones en el servidor y a pagar su coste. **Está escrito en el spec, § 7.2.**
+- 💡 **Para probarlo nada más volver**: ya tiene un cono en su escena (la luz `df5a1c8d…`, forma cono,
+  rotación 180). Seleccionarla con Seleccionar → «Que gire sola».
+
+#### 📊 Comprobado en esta tanda
+`npm test` **1344 ✓** en los cinco paquetes (938 web · 220 api · 29 core · 16 ui · 141 plenilunio) ·
+typecheck web y api limpios · `npm run audit` **0 hard** · **`build:web` y `build:api` los dos en verde** ·
+sus servidores de local siguen en pie (`:3001` `{"ok":true}` y `:5173` 200) y la ruta de visión contesta 401,
+que es «existe y pide sesión».
+
+### 🔴 LO PRIMERO AL RETOMAR — lo que sólo puede contestar él
+1. **GUARDAR `rolvium.pen` CON Cmd+S.** El MCP de Pencil NO escribe en disco: sin su Cmd+S el dibujo no se
+   puede commitear y el master se queda desfasado respecto al código, que ya está construido. Frames tocados:
+   `k5Ig5` (escena con la sonda) · `Ny7dg` (los 3 iconos candidatos) · `o4oM8f` (editor de luz, con «que gire
+   sola») · `VuUKc` (controles, con el botón nuevo) · `uBAwb` renombrado.
+2. **PROBARLO CON SUS OJOS.** Está todo construido y en verde, pero **no lo ha visto nadie en pantalla**: no
+   tengo su contraseña para entrar. Lo que hay que mirar: la sonda al encender «ver como jugador», el barrido
+   de la luz que gira, el borde del cono y los tooltips.
+3. **SUS DOS MUROS.** El arreglo del código evita que vuelva a pasar, pero **su mapa sigue con los tres
    segmentos** (puerta 621,405→540 abierta + muros 405→513 y 513→540). Hay que borrar esos dos muros de SU
    escena y **eso es dato suyo: pedírselo**. Él ya dijo «no toques los datos de mi mapa sin pedírmelo».
 
