@@ -154,6 +154,28 @@ describe('useScene · la sonda de prueba acumula su memoria aquí, y la tira al 
     await waitFor(() => expect(result.current.fog!.explored).toEqual([[40, 40]]));
   });
 
+  /**
+   * EL FRENO. Arrastrar la sonda pide la visión al servidor, y un `pointermove` dispara ~60 veces por segundo.
+   * Sin freno se le mandaban 60 peticiones por segundo, llegaban tarde y desordenadas, y en pantalla la niebla
+   * parecía no seguir a la sonda (dueño, 2026-09-01). Va al mismo ritmo que arrastrar una ficha: ~7 Hz.
+   */
+  it('arrastrarla NO manda una petición por cada píxel: va frenada como la ficha de un jugador', async () => {
+    const vision = fakeVisionPort();
+    const { rerender } = await mountProbe({ x: 0, y: 0 }, vision);
+    const antes = vision.calls.filter(c => c.probe).length;
+    // 20 posiciones seguidas, como un arrastre real.
+    for (let i = 1; i <= 20; i++) rerender({ p: { x: i, y: i } });
+    await waitFor(() => expect(vision.calls.filter(c => c.probe).length).toBeGreaterThan(antes));
+    expect(vision.calls.filter(c => c.probe).length - antes).toBeLessThan(20);
+  });
+
+  it('y aun así la ÚLTIMA posición siempre se pregunta: soltar no deja la niebla una posición atrás', async () => {
+    const vision = fakeVisionPort();
+    const { rerender } = await mountProbe({ x: 0, y: 0 }, vision);
+    for (let i = 1; i <= 8; i++) rerender({ p: { x: i * 10, y: 0 } });
+    await waitFor(() => expect(vision.calls.filter(c => c.probe).some(c => c.probe!.x === 80)).toBe(true));
+  });
+
   it('sin sonda no se toca nada: lo explorado es lo que conteste el servidor', async () => {
     const { result } = await mountProbe(null);
     expect(result.current.fog!.explored).toEqual(fakeVisionPort().state.explored);

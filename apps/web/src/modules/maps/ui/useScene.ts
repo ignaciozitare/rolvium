@@ -149,7 +149,31 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const lightKey = lights.map(l => `${l.id}:${l.x}:${l.y}:${l.rotation}:${l.shape}:${l.coneAngle}:${l.rangeM}:${l.castsShadow ? 1 : 0}:${l.layerId ?? ''}`).join('|');
   const layerKey = layers.map(l => `${l.id}:${l.visible ? 1 : 0}:${l.kind}`).join('|');
   /** One effect, so entering the scene costs ONE round trip and every later cause costs one more. */
-  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, lightKey, layerKey, probeKey, live?.lighting, live?.nightRadiusM, live?.fogMode]);
+  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, lightKey, layerKey, probeOn, live?.lighting, live?.nightRadiusM, live?.fogMode]);
+  /**
+   * ARRASTRAR LA SONDA VA CON EL MISMO FRENO QUE ARRASTRAR UNA FICHA, y esto no es un adorno.
+   *
+   * Mover la sonda cambia lo que se ve, así que hay que volver a preguntar; pero un `pointermove` dispara
+   * ~60 veces por segundo y cada pregunta es una ida y vuelta al servidor que además calcula geometría.
+   * Sin freno se le mandaban 60 peticiones por segundo: llegaban tarde y desordenadas, `visionSeq` tiraba
+   * casi todas, y en pantalla la niebla parecía NO seguir a la sonda (dueño, 2026-09-01: «las sombras no se
+   * comportan como en el modo jugador, que se van ajustando de manera dinámica»). Ese era el fallo, no el
+   * motor: el de la ficha del jugador ya iba frenado a ~7 Hz desde la rebanada 2 y aquí faltaba copiarlo.
+   *
+   * Con cola en el borde de salida: la ÚLTIMA posición se pregunta siempre, aunque caiga dentro de la
+   * ventana del freno. Si no, soltar la sonda podía dejar la niebla en la penúltima posición.
+   */
+  const probeTick = useRef(0);
+  const probeTimer = useRef<number | null>(null);
+  useEffect(() => {
+    if (!probeKey) return;
+    const ask = (): void => { probeTick.current = Date.now(); refreshVisionRef.current(); };
+    const desde = Date.now() - probeTick.current;
+    if (desde >= VISION_DRAG_HZ_MS) { ask(); return; }
+    if (probeTimer.current !== null) window.clearTimeout(probeTimer.current);
+    probeTimer.current = window.setTimeout(ask, VISION_DRAG_HZ_MS - desde);
+    return () => { if (probeTimer.current !== null) window.clearTimeout(probeTimer.current); };
+  }, [probeKey]);
 
   /**
    * La niebla SIGUE al token mientras se arrastra, en vez de dar un salto al soltarlo (dueño, 2026-08-22).

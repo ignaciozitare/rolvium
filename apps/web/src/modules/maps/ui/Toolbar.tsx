@@ -2,7 +2,12 @@ import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import { DM_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '../domain/useCases/mapRules';
 
-const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: 'fence', reveal: 'visibility', hide: 'visibility_off', mask: 'opacity', light: 'wb_incandescent', encounter: 'swords' };
+/**
+ * «Builder» no usa un icono de Material: usa el DIBUJO DEL DUEÑO (`apps/web/public/icons/builder.png`, sacado
+ * de su «walls doors and windows.png», al que se le quitó el fondo). Se reconoce porque empieza por `/`.
+ */
+const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: '/icons/builder.png', reveal: 'visibility', hide: 'visibility_off', mask: 'opacity', light: 'wb_incandescent', encounter: 'swords' };
+const esImagen = (icon: string): boolean => icon.startsWith('/');
 
 /** Actions that open a panel instead of changing the cursor: they are buttons, not tools. */
 interface Action { id: 'dice' | 'placePc' | 'background'; icon: string; onClick: () => void; on?: boolean }
@@ -25,7 +30,14 @@ function Btn({ label, icon, on, dm, disabled, onClick }: { label: string; icon: 
   return (
     <Tooltip label={label}>
       <button type="button" className={`mp-tool ${on ? 'on' : ''} ${dm ? 'dm' : ''}`} aria-pressed={on} aria-label={label} disabled={disabled} onClick={onClick}>
-        <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{icon}</span>
+        {esImagen(icon)
+          /*
+           * Va de MÁSCARA y no de `<img>`: el color lo pone el botón (`currentColor`), así que se tiñe solo
+           * cuando la herramienta está seleccionada —fondo negro, icono claro— igual que todos sus vecinos.
+           * Con un `<img>` el dibujo, que es oscuro, desaparecería sobre el negro justo al elegirlo.
+           */
+          ? <span className="mp-tool-img" data-testid="mp-tool-img" style={{ maskImage: `url(${icon})`, WebkitMaskImage: `url(${icon})` }} />
+          : <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{icon}</span>}
       </button>
     </Tooltip>
   );

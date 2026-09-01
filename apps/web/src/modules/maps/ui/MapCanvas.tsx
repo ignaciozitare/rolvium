@@ -349,7 +349,7 @@ export function MapCanvas(p: Props): JSX.Element {
     // never to the disc. This is what keeps Seleccionar able to grab a one-cell door the disc sits right on top of.
     if (discPress.current && Math.hypot(s.x - discPress.current.at.x, s.y - discPress.current.at.y) > 4 / p.view.zoom) discPress.current = null;
     if (!gesture) return;
-    if (gesture.kind === 'probe') { p.onProbeMove?.(s); return; }
+    if (gesture.kind === 'probe') { p.onProbeMove?.(p.probe ? slideToken(p.probe, s, PROBE_R, probeBlockers) : s); return; }
     if (gesture.kind === 'pan') {
       const l = local(e);
       p.onViewChange({ ...gesture.origin, panX: gesture.origin.panX + l.x - gesture.start.x, panY: gesture.origin.panY + l.y - gesture.start.y });
@@ -547,6 +547,19 @@ export function MapCanvas(p: Props): JSX.Element {
    * cuenta de jugador.
    */
   const blockers = p.isDm ? [] : moveBlockers(p.walls, p.scene);
+  /**
+   * …salvo LA SONDA DE PRUEBA, que sí choca (dueño, 2026-09-01: «no funciona bien el user dummy, traspasa las
+   * paredes»). Y es la misma función, `moveBlockers` + `slideToken` → `slideCircle` de `@rolvium/core`, la
+   * única que decide un choque en toda la app: no hay una segunda física ni aquí ni en el servidor.
+   *
+   * La sonda simula a un JUGADOR, así que tiene que sentir lo que siente él. Esto cierra justamente la
+   * contrapartida que el comentario de arriba daba por inevitable desde el 2026-08-22 —«el director no puede
+   * probar en su pantalla lo que siente un jugador»—: ahora sí puede, y para eso está la sonda.
+   *
+   * Si el interruptor de paredes sólidas está APAGADO, `moveBlockers` devuelve vacío y la sonda atraviesa —
+   * como atravesaría el jugador. Simular es copiar lo que pasa, no ser más estricto que la escena.
+   */
+  const probeBlockers = moveBlockers(p.walls, p.scene);
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
 
   /**

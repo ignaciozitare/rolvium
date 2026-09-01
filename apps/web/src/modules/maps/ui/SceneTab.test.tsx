@@ -232,7 +232,7 @@ describe('<SceneTab> DM', () => {
     const repo = mount('dm');
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
     const karen = await within(canvas()).findByRole('img', { name: 'Token Karen «K»' });
-    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
     fireEvent.pointerDown(canvas(), { clientX: 27, clientY: 27, pointerId: 1, button: 0 });
     fireEvent.pointerDown(canvas(), { clientX: 81, clientY: 27, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.walls).toHaveLength(2));
@@ -377,7 +377,7 @@ describe('<SceneTab> failures', () => {
     repo.addWall = async () => { throw new Error('rls'); };
     mount('dm', repo);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
-    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
     fireEvent.pointerDown(canvas(), { clientX: 27, clientY: 27, pointerId: 1, button: 0 });
     fireEvent.pointerDown(canvas(), { clientX: 81, clientY: 27, pointerId: 1, button: 0 });
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo guardar el cambio en el mapa');
@@ -420,7 +420,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
     const u = userEvent.setup();
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [] }));
     await screen.findByText(/Almacén de Queens/);
-    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
 
     // default: a plain wall
     fireEvent.pointerDown(canvas(), { clientX: 2 * G, clientY: 2 * G, pointerId: 1, button: 0 });
@@ -457,7 +457,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
     // WALL_1 es vertical en x = 270 (10 casillas), de y = 216 (8) a y = 540 (20)
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [WALL_1] }));
     await screen.findByText(/Almacén de Queens/);
-    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
     await u.click(screen.getByRole('radio', { name: 'Puerta' }));
     fireEvent.pointerDown(canvas(), { clientX: 10 * G, clientY: 10 * G, pointerId: 1, button: 0 });
     fireEvent.pointerDown(canvas(), { clientX: 10 * G, clientY: 12 * G, pointerId: 1, button: 0 });
@@ -477,7 +477,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
     const removeWall = repo.removeWall;
     repo.removeWall = async (id: string) => { whenRemoved.push(repo.walls.map(w => w.id)); await removeWall(id); };
     await screen.findByText(/Almacén de Queens/);
-    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
     await u.click(screen.getByRole('radio', { name: 'Puerta' }));
     fireEvent.pointerDown(canvas(), { clientX: 10 * G, clientY: 10 * G, pointerId: 1, button: 0 });
     fireEvent.pointerDown(canvas(), { clientX: 10 * G, clientY: 12 * G, pointerId: 1, button: 0 });
@@ -643,7 +643,7 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     await u.click(screen.getByRole('button', { name: 'Lápiz' }));
     expect(stage().querySelector('.mp-strokebar')).not.toBeNull();   // «Trazo», sobre el mapa
 
-    await u.click(screen.getByRole('button', { name: 'Muro' }));
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
     expect(stage().querySelector('.mp-strokebar')).toBeNull();
     expect(stage().querySelector('.mp-segbar')).not.toBeNull();      // «Segmento», sobre el mapa
 

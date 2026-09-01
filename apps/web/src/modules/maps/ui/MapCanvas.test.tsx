@@ -860,6 +860,31 @@ describe('<MapCanvas> la sonda de prueba', () => {
     expect(cb.onDragToken).not.toHaveBeenCalled();
   });
 
+  /**
+   * 🧱 LA SONDA CHOCA CONTRA LOS MUROS (dueño, 2026-09-01: «no funciona bien el user dummy, traspasa las
+   * paredes»). Simula a un jugador, así que siente lo que siente él — y con la MISMA función que frena a un
+   * token, `moveBlockers` + `slideToken`. El director sigue sin chocar con nada; la excepción es sólo ella.
+   */
+  it('no atraviesa un muro cuando la escena tiene las paredes sólidas', () => {
+    const onProbeMove = vi.fn();
+    // WALL_1 es vertical en x=270, de y=216 a y=540. La sonda arranca a su izquierda y empuja hacia la derecha.
+    const scene = { ...SCENE_WAREHOUSE, solidWalls: true };
+    const { svg } = mount({ isDm: true, me: 'u-gm', scene, walls: [WALL_1], probe: { x: 200, y: 400 }, onProbeMove });
+    down(svg, 200, 400);
+    move(svg, 400, 400);
+    const dejada = onProbeMove.mock.calls.at(-1)![0];
+    expect(dejada.x).toBeLessThan(270);   // se queda a este lado de la pared
+  });
+
+  it('…y la atraviesa si la escena tiene las paredes atravesables: simular es copiar, no ser más estricto', () => {
+    const onProbeMove = vi.fn();
+    const scene = { ...SCENE_WAREHOUSE, solidWalls: false };
+    const { svg } = mount({ isDm: true, me: 'u-gm', scene, walls: [WALL_1], probe: { x: 200, y: 400 }, onProbeMove });
+    down(svg, 200, 400);
+    move(svg, 400, 400);
+    expect(onProbeMove).toHaveBeenLastCalledWith({ x: 400, y: 400 });
+  });
+
   it('un clic lejos de ella no la agarra', () => {
     const onProbeMove = vi.fn();
     const { svg } = mount({ isDm: true, me: 'u-gm', probe: at, onProbeMove });

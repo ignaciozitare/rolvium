@@ -335,3 +335,9 @@
   paint-order:stroke;stroke:var(--sys-ink);stroke-width:3px;stroke-linejoin:round;}
 /* El rótulo del lienzo mientras la sonda está puesta. */
 .mp-canvas-label.probe{color:var(--sys-gold);}
+
+/* El icono propio de «Builder»: la imagen es la MÁSCARA y el color lo pone el botón, así se tiñe
+   igual que un Material Symbol cuando la herramienta está seleccionada. */
+.mp-tool-img{display:block;width:var(--icon-sm);height:var(--icon-sm);background-color:currentColor;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;
+  -webkit-mask-size:contain;mask-size:contain;}

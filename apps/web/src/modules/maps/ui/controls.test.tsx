@@ -32,16 +32,30 @@ describe('<Toolbar>', () => {
     expect(onPlacePc).toHaveBeenCalled();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Fondo del mapa' }));
     expect(onBackground).toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Muro' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Builder' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Revelar' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Ocultar' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Encuentro' })).toBeEnabled();
     // the name is a Tooltip, not the browser's `title`: instant, placed, and following the system's look.
     // It is aria-hidden on purpose — the button's aria-label already carries the accessible name.
     const tips = [...document.querySelectorAll('.rv-tip')];
-    expect(tips.map(t => t.textContent)).toContain('Muro');
+    expect(tips.map(t => t.textContent)).toContain('Builder');
     expect(tips.every(t => t.getAttribute('aria-hidden') === 'true')).toBe(true);
-    expect(screen.getByRole('button', { name: 'Muro' })).not.toHaveAttribute('title');
+    expect(screen.getByRole('button', { name: 'Builder' })).not.toHaveAttribute('title');
+  });
+
+  /**
+   * «Builder» (antes «Muro») usa el DIBUJO DEL DUEÑO, no un icono de Material — y va de máscara para que se
+   * tiña con el botón: con un `<img>` el dibujo, que es oscuro, desaparecería sobre el negro del seleccionado.
+   */
+  it('Builder lleva el icono propio, como máscara para que se tiña con el botón', () => {
+    renderWithProviders(<Toolbar tool="select" isDm onChange={vi.fn()} onDice={vi.fn()} onPlacePc={vi.fn()} onBackground={vi.fn()} />);
+    const btn = screen.getByRole('button', { name: 'Builder' });
+    const img = btn.querySelector('[data-testid="mp-tool-img"]') as HTMLElement;
+    expect(img).toBeInTheDocument();
+    expect(img.style.maskImage || img.style.webkitMaskImage).toContain('/icons/builder.png');
+    // Y ya no es el «fence» de Material.
+    expect(btn.querySelector('.material-symbols-outlined')).toBeNull();
   });
 
   /**
@@ -57,7 +71,7 @@ describe('<Toolbar>', () => {
     renderWithProviders(<Toolbar tool="select" isDm onChange={vi.fn()} onDice={vi.fn()} onPlacePc={vi.fn()} onBackground={vi.fn()} />);
     const names = screen.getAllByRole('button').map(b => b.getAttribute('aria-label'));
     expect(names.slice(-8)).toEqual([
-      'Luz de ambiente', 'Muro', 'Fondo del mapa', 'Pincel de transparencia',
+      'Luz de ambiente', 'Builder', 'Fondo del mapa', 'Pincel de transparencia',
       'Revelar', 'Ocultar', 'Encuentro', 'Colocar PJ',
     ]);
   });
@@ -203,7 +217,7 @@ describe('<SegmentBar> — el tipo de segmento vive sobre el mapa, no en una bar
   it('con la herramienta Muro y nada seleccionado elige lo que se dibujará', async () => {
     const onKind = vi.fn();
     renderWithProviders(<SegmentBar wall={null} kind="wall" onKind={onKind} />);
-    expect(screen.getByRole('radio', { name: 'Muro' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Muro' })).toBeChecked();   // el TIPO de segmento sigue llamándose Muro; lo que se renombró es el botón de la barra
     expect(screen.getByText('dibuja una puerta o una ventana sobre un muro y lo parte · pasa el ratón por una para abrirla o cerrarla')).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole('radio', { name: 'Ventana' }));
     expect(onKind).toHaveBeenCalledWith('window');

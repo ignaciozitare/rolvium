@@ -771,7 +771,7 @@
       "rect": "Box",
       "circle": "Circle",
       "erase": "Erase",
-      "wall": "Wall",
+      "wall": "Builder",
       "reveal": "Reveal",
       "hide": "Hide",
       "encounter": "Encounter",
