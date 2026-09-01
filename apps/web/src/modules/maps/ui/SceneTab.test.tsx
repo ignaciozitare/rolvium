@@ -1046,6 +1046,45 @@ describe('<SceneTab> capas (rebanada 7)', () => {
    * seleccionarse y mover y borrarse como cualquier cosa»). Aquí se prueba la CONEXIÓN: que el arrastre y el
    * Suprimir acaben escritos, no sólo pintados. Sin esto el trazo volvía a su sitio al recargar.
    */
+  /**
+   * 🐞 EL PIN DE «no funcionan las herramientas de dibujo que tocaste» (dueño, 2026-09-02, tras añadir
+   * elegir/mover/borrar trazos).
+   *
+   * Lo que había probado no bastaba: los tests del lienzo le PASAN la herramienta como propiedad, así que
+   * prueban el lienzo pero no que pulsar el botón de la barra llegue a dibujar. Aquí se pulsa el botón de
+   * verdad y se dibuja de verdad, de punta a punta hasta la base.
+   */
+  it('pulsar Lápiz y arrastrar dibuja de verdad — el botón, el lienzo y la base, enteros', async () => {
+    const u = userEvent.setup();
+    const repo = withDrawings();
+    const antes = repo.drawings.length;
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: 700, clientY: 700, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(svg, { clientX: 720, clientY: 715, pointerId: 1 });
+    fireEvent.pointerMove(svg, { clientX: 740, clientY: 730, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+    await waitFor(() => expect(repo.drawings).toHaveLength(antes + 1));
+    expect(repo.drawings.at(-1)).toMatchObject({ kind: 'stroke' });
+  });
+
+  it('pulsar Caja y arrastrar dibuja un rectángulo', async () => {
+    const u = userEvent.setup();
+    const repo = withDrawings();
+    const antes = repo.drawings.length;
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Caja' }));
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: 700, clientY: 700, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(svg, { clientX: 780, clientY: 760, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+    await waitFor(() => expect(repo.drawings).toHaveLength(antes + 1));
+    expect(repo.drawings.at(-1)).toMatchObject({ kind: 'rect' });
+  });
+
   const withDrawings = () => fakeMapsRepo({
     scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [], drawings: [DRAWING_MINE, DRAWING_OTHER], images: [IMAGE_CHAPEL],
     layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS],
