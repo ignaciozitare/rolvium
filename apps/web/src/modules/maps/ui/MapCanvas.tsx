@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Layer, Light, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
@@ -106,6 +106,14 @@ interface Props {
    * pantalla: no toca la escena, no viaja y un jugador no se entera. Por omisión va puesto, como siempre.
    */
   fogVeil?: boolean;
+  /**
+   * EL TRAZO ELEGIDO (dueño, 2026-09-02: «los textos líneas formas etc deberían poder seleccionarse y mover
+   * y borrarse como cualquier cosa»). Hasta hoy un trazo se ponía y se borraba con la goma, nada más.
+   */
+  selectedDrawingId?: string | null;
+  onSelectDrawing?: (id: string | null) => void;
+  /** Mover un trazo: sus coordenadas ya desplazadas. Sólo el director (lo manda la RLS, no la pantalla). */
+  onMoveDrawing?: (id: string, data: Drawing['data']) => void;
 }
 
 type Gesture =
@@ -118,6 +126,8 @@ type Gesture =
   | { kind: 'wallEdit'; id: string; grab: 'a' | 'b' | 'whole'; start: Point; origin: { x1: number; y1: number; x2: number; y2: number } }
   /** Arrastrando una luz ya colocada. Se mueve entera: una luz no tiene extremos que agarrar. */
   | { kind: 'lightMove'; id: string; start: Point; origin: Point; moved: boolean }
+  /** Arrastrando un trazo. Lleva el desplazamiento, no un origen: cada forma guarda sus puntos a su manera. */
+  | { kind: 'drawingMove'; id: string; start: Point; moved: boolean }
   | { kind: 'marquee'; start: Point; last: Point }
   | { kind: 'measure' }
   /** Arrastrando la sonda de prueba. No lleva id: sólo hay una y no es de nadie. */
@@ -175,6 +185,8 @@ export function MapCanvas(p: Props): JSX.Element {
   const [wallDraft, setWallDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   /** Dónde se está viendo la luz mientras se arrastra. Igual que `wallDraft`: se pinta ya, se guarda al soltar. */
   const [lightDraft, setLightDraft] = useState<{ id: string; x: number; y: number } | null>(null);
+  /** Cuánto se lleva movido el trazo que se arrastra. Se pinta ya; se guarda al soltar. */
+  const [drawingDraft, setDrawingDraft] = useState<{ id: string; dx: number; dy: number } | null>(null);
   /** In a ref so the key listener never has to be re-bound as the selection changes. */
   const onDeleteRef = useRef<() => void>(() => {});
   /** A press that started on the open/close disc, until the pointer moves far enough to make it a drag. */
@@ -205,7 +217,7 @@ export function MapCanvas(p: Props): JSX.Element {
     const onControl = (t: EventTarget | null): boolean =>
       !!(t as HTMLElement | null)?.closest?.('button, a[href], input, select, textarea, summary, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="radio"], [role="tab"], [contenteditable="true"]');
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setWallStart(null); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); return; }
+      if (e.key === 'Escape') { setWallStart(null); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); return; }
       if (e.key === ' ' && !typing(e.target) && !onControl(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
     };
@@ -255,6 +267,7 @@ export function MapCanvas(p: Props): JSX.Element {
     // spot over the canvas, and Suprimir would delete the segment instead of the token you just picked.
     p.onSelectWall?.(null);
     p.onSelectLight?.(null);
+    p.onSelectDrawing?.(null);
     if (!canMoveToken(tok, p.me, p.isDm)) return;
     svgRef.current?.setPointerCapture?.(e.pointerId);
     setGesture({ kind: 'token', id: tok.id, start: toScene(e), origin: { x: tok.x, y: tok.y }, moved: false });
@@ -292,6 +305,7 @@ export function MapCanvas(p: Props): JSX.Element {
       if (light) {
         p.onSelectToken(null);
         p.onSelectWall?.(null);
+        p.onSelectDrawing?.(null);
         p.onSelectLight?.(light.id);
         /**
          * ELEGIR es generoso; AGARRAR exige acertar el disco que se ve.
@@ -312,8 +326,9 @@ export function MapCanvas(p: Props): JSX.Element {
       const wall = dmSight ? hitWall(p.walls, s, 10 / p.view.zoom) : null;
       if (wall) {
         p.onSelectToken(null);
-        // Suelta la luz: si no, quedaría elegida sin verse y Suprimir borraría la luz en vez del segmento.
+        // Suelta la luz y el trazo: si no, quedaría algo elegido sin verse y Suprimir se confundiría de víctima.
         p.onSelectLight?.(null);
+        p.onSelectDrawing?.(null);
         p.onSelectWall?.(wall.id);
         const near = (x: number, y: number) => Math.hypot(s.x - x, s.y - y) <= 12 / p.view.zoom;
         const grab = near(wall.x1, wall.y1) ? 'a' : near(wall.x2, wall.y2) ? 'b' : 'whole';
@@ -321,10 +336,30 @@ export function MapCanvas(p: Props): JSX.Element {
         svgRef.current?.setPointerCapture?.(e.pointerId);
         return;
       }
+      /**
+       * Y por último el TRAZO (dueño, 2026-09-02: «los textos líneas formas etc deberían poder seleccionarse
+       * y mover y borrarse como cualquier cosa»). Va el ÚLTIMO de todos a propósito, que es el mismo orden en
+       * el que se pinta: un trazo grande debajo de una ficha, de una luz o de un muro no puede robarles el
+       * clic. Se elige con la tolerancia de la goma, que ya estaba afinada para acertarle a una línea fina.
+       */
+      const drawing = hitTest(drawingsShown, s, 6 / p.view.zoom);
+      if (drawing) {
+        p.onSelectToken(null);
+        p.onSelectWall?.(null);
+        p.onSelectLight?.(null);
+        p.onSelectDrawing?.(drawing.id);
+        // Arrastrar es del director, como manda la RLS de `maps_drawings`. Un jugador lo elige y lo ve, nada más.
+        if (canMoveDrawing(drawing, p.me, p.isDm)) {
+          setGesture({ kind: 'drawingMove', id: drawing.id, start: s, moved: false });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+        }
+        return;
+      }
       p.onSelectToken(null);
       p.onSelectWall?.(null);
-      // Pinchar en vacío suelta TODO, la luz incluida: es la forma de cerrar su editor sin buscar la X.
+      // Pinchar en vacío suelta TODO, la luz y el trazo incluidos: es la forma de soltar sin buscar una X.
       p.onSelectLight?.(null);
+      p.onSelectDrawing?.(null);
       setGesture({ kind: 'marquee', start: s, last: s });
       svgRef.current?.setPointerCapture?.(e.pointerId);
       return;
@@ -494,6 +529,9 @@ export function MapCanvas(p: Props): JSX.Element {
       setGesture({ ...gesture, last: s });
     } else if (gesture.kind === 'wallEdit') {
       setWallDraft(wallDragTo(gesture.origin, gesture.grab, gesture.start, s, grid));
+    } else if (gesture.kind === 'drawingMove') {
+      setDrawingDraft({ id: gesture.id, dx: s.x - gesture.start.x, dy: s.y - gesture.start.y });
+      if (!gesture.moved) setGesture({ ...gesture, moved: true });
     } else if (gesture.kind === 'lightMove') {
       // Libre, sin pegarse a la rejilla: una luz no ocupa casilla, y él ya pidió que arrastrar no dependa de
       // la grilla (2026-08-21, sobre las fichas). Se pinta al momento; el guardado espera a que suelte.
@@ -537,7 +575,7 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const onRightClick = (e: ReactPointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
     e.preventDefault();
-    if (wallStart || measure || gesture) { setWallStart(null); setMeasure(null); setGesture(null); setLightDraft(null); return; }
+    if (wallStart || measure || gesture) { setWallStart(null); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); return; }
     // Sobre algo, el menú es de ESE algo; en el suelo vacío, el de la vista. Sólo el director mueve capas.
     const s = toScene(e);
     const el = dmSight ? elementAt(s) : null;
@@ -562,6 +600,16 @@ export function MapCanvas(p: Props): JSX.Element {
       const moved = at.x1 !== gesture.origin.x1 || at.y1 !== gesture.origin.y1 || at.x2 !== gesture.origin.x2 || at.y2 !== gesture.origin.y2;
       if (moved) p.onMoveWall?.(gesture.id, at);
       setWallDraft(null);
+      setGesture(null);
+      return;
+    }
+    if (gesture.kind === 'drawingMove') {
+      // Un clic sin arrastre sólo lo ELIGE. Escribir en la base por cada clic sobraría, igual que con la luz.
+      const d = drawingsShown.find(x => x.id === gesture.id);
+      if (gesture.moved && drawingDraft && d && Math.hypot(drawingDraft.dx, drawingDraft.dy) > 1) {
+        p.onMoveDrawing?.(gesture.id, translateDrawing(d, drawingDraft.dx, drawingDraft.dy));
+      }
+      setDrawingDraft(null);
       setGesture(null);
       return;
     }
@@ -702,7 +750,12 @@ export function MapCanvas(p: Props): JSX.Element {
             {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={snap(hover.x, grid)} y2={snap(hover.y, grid)} className="mp-wall draft" />}
           </g>
           <g className="mp-layer-drawings" data-testid="mp-drawings">
-            {drawingsShown.map(d => <DrawingShape key={d.id} d={d} />)}
+            {drawingsShown.map(d => (
+              <DrawingShape key={d.id}
+                d={drawingDraft?.id === d.id ? { ...d, data: translateDrawing(d, drawingDraft.dx, drawingDraft.dy) } : d}
+                selected={d.id === p.selectedDrawingId}
+                movable={p.tool === 'select' && canMoveDrawing(d, p.me, p.isDm)} />
+            ))}
             {draft && <DrawingShape d={draft} draft />}
           </g>
           {/* Encima del mapa y de los trazos, debajo de las fichas: la luz baña el suelo, no a la gente. */}

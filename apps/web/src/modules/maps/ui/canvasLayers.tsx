@@ -46,9 +46,9 @@ export function GridLayer({ scene, patternId }: { scene: Scene; patternId: strin
   );
 }
 
-export function DrawingShape({ d, draft = false }: { d: Pick<Drawing, 'kind' | 'data' | 'color' | 'width'> & { id?: string }; draft?: boolean }): JSX.Element | null {
+export function DrawingShape({ d, draft = false, selected = false, movable = false }: { d: Pick<Drawing, 'kind' | 'data' | 'color' | 'width'> & { id?: string }; draft?: boolean; selected?: boolean; movable?: boolean }): JSX.Element | null {
   const data = d.data as Record<string, unknown>;
-  const common = { stroke: d.color, strokeWidth: d.width, fill: 'none', className: `mp-drawing ${draft ? 'draft' : ''}`, 'data-drawing-id': d.id, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  const common = { stroke: d.color, strokeWidth: d.width, fill: 'none', className: `mp-drawing ${draft ? 'draft' : ''} ${selected ? 'selected' : ''} ${movable ? 'movable' : ''}`, 'data-drawing-id': d.id, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   switch (d.kind) {
     case 'stroke': {
       const pts = (data.points as [number, number][]) ?? [];
@@ -61,7 +61,7 @@ export function DrawingShape({ d, draft = false }: { d: Pick<Drawing, 'kind' | '
       return <rect x={Math.min(x1, x2)} y={Math.min(y1, y2)} width={Math.abs(x2 - x1)} height={Math.abs(y2 - y1)} {...common} />;
     }
     case 'circle': return <circle cx={data.cx as number} cy={data.cy as number} r={data.r as number} {...common} />;
-    case 'text': return <text x={data.x as number} y={data.y as number} fill={d.color} className="mp-drawing mp-drawing-text" data-drawing-id={d.id}>{String(data.text ?? '')}</text>;
+    case 'text': return <text x={data.x as number} y={data.y as number} fill={d.color} className={`${common.className} mp-drawing-text`} data-drawing-id={d.id}>{String(data.text ?? '')}</text>;
     default: return null;
   }
 }

@@ -13,7 +13,7 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onMoveLight: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onMoveLight: vi.fn(), onSelectDrawing: vi.fn(), onMoveDrawing: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
@@ -1116,5 +1116,71 @@ describe('<MapCanvas> el velo del director', () => {
     expect(svg.querySelector('[data-testid="mp-fog-veil"]')).toBeNull();
     // Al jugador lo que le tapa es la niebla negra, y esa sigue en su sitio.
     expect(svg.querySelector('[data-testid="mp-map"]')!.getAttribute('mask')).toContain('mp-seen');
+  });
+});
+
+
+/**
+ * ✏️ ELEGIR, MOVER Y BORRAR UN TRAZO (dueño, 2026-09-02: «los textos líneas formas etc deberían poder
+ * seleccionarse y mover y borrarse como cualquier cosa»). Hasta hoy un trazo se ponía y se borraba con la
+ * goma: no se podía ni elegir.
+ */
+describe('<MapCanvas> elegir y mover un trazo', () => {
+  // DRAWING_MINE es un garabato que pasa por (300,300); DRAWING_OTHER, una caja en (450,500)-(510,540).
+  const dm = { isDm: true, me: 'u-gm', tool: 'select' as Tool };
+
+  it('pinchar un trazo lo elige, y se le nota', () => {
+    const { svg, cb, rerender } = mount(dm);
+    down(svg, 300, 300); up(svg);
+    expect(cb.onSelectDrawing).toHaveBeenCalledWith(DRAWING_MINE.id);
+    rerender({ ...dm, selectedDrawingId: DRAWING_MINE.id });
+    expect(svg.querySelector(`[data-drawing-id="${DRAWING_MINE.id}"]`)!.getAttribute('class')).toContain('selected');
+  });
+
+  it('arrastrarlo lo mueve, y lo que se guarda son sus puntos ya desplazados', () => {
+    const { svg, cb } = mount(dm);
+    down(svg, 450, 500);
+    move(svg, 470, 530);
+    up(svg);
+    expect(cb.onMoveDrawing).toHaveBeenCalledWith(DRAWING_OTHER.id, { x1: 470, y1: 530, x2: 530, y2: 570 });
+  });
+
+  it('un clic sin arrastre lo elige y no guarda nada', () => {
+    const { svg, cb } = mount(dm);
+    down(svg, 450, 500); up(svg);
+    expect(cb.onSelectDrawing).toHaveBeenCalledWith(DRAWING_OTHER.id);
+    expect(cb.onMoveDrawing).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🔒 Un JUGADOR lo elige pero no lo arrastra: la RLS de `maps_drawings` sólo deja actualizar al director, y
+   * enseñarle que arrastra para que la base se lo rechace sería mentirle.
+   */
+  it('un jugador puede elegirlo, pero no moverlo', () => {
+    const { svg, cb } = mount({ tool: 'select', me: PLAYER_USER.id, isDm: false });
+    down(svg, 450, 500);
+    move(svg, 470, 530);
+    up(svg);
+    expect(cb.onSelectDrawing).toHaveBeenCalledWith(DRAWING_OTHER.id);
+    expect(cb.onMoveDrawing).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🔒 El orden importa: el trazo se mira el ÚLTIMO, igual que se pinta el primero. Un garabato grande debajo
+   * de una ficha o de un muro no puede robarles el clic.
+   */
+  it('un muro encima de un trazo se lleva el clic, no el trazo', () => {
+    const { svg, cb } = mount({ ...dm, walls: [WALL_1] });
+    down(svg, 272, 380); up(svg);
+    expect(cb.onSelectWall).toHaveBeenCalledWith(WALL_1.id);
+    expect(cb.onSelectDrawing).toHaveBeenCalledWith(null);
+  });
+
+  it('elegir un trazo suelta lo que hubiera elegido antes', () => {
+    const { svg, cb } = mount(dm);
+    down(svg, 300, 300); up(svg);
+    expect(cb.onSelectToken).toHaveBeenCalledWith(null);
+    expect(cb.onSelectWall).toHaveBeenCalledWith(null);
+    expect(cb.onSelectLight).toHaveBeenCalledWith(null);
   });
 });

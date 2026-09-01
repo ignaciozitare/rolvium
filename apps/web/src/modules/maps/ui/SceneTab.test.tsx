@@ -1042,6 +1042,51 @@ describe('<SceneTab> capas (rebanada 7)', () => {
   });
 
   /**
+   * ✏️ Y LO MISMO CON UN TRAZO (dueño, 2026-09-02: «los textos líneas formas etc deberían poder
+   * seleccionarse y mover y borrarse como cualquier cosa»). Aquí se prueba la CONEXIÓN: que el arrastre y el
+   * Suprimir acaben escritos, no sólo pintados. Sin esto el trazo volvía a su sitio al recargar.
+   */
+  const withDrawings = () => fakeMapsRepo({
+    scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], walls: [], drawings: [DRAWING_MINE, DRAWING_OTHER], images: [IMAGE_CHAPEL],
+    layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS],
+    lights: [LIGHT_TORCH],
+  });
+
+  it('arrastrar un trazo guarda sus puntos ya movidos', async () => {
+    const repo = withDrawings();
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    const svg = canvas();
+    // DRAWING_OTHER es una caja de (450,500) a (510,540).
+    fireEvent.pointerDown(svg, { clientX: 450, clientY: 500, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(svg, { clientX: 470, clientY: 530, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+    await waitFor(() => expect(repo.drawingMoves.at(-1)).toEqual({ id: DRAWING_OTHER.id, data: { x1: 470, y1: 530, x2: 530, y2: 570 } }));
+  });
+
+  it('con un trazo elegido, Suprimir lo borra', async () => {
+    const repo = withDrawings();
+    const antes = repo.drawings.length;
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.pointerDown(canvas(), { clientX: 450, clientY: 500, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.drawings).toHaveLength(antes - 1));
+    expect(repo.drawings.some(d => d.id === DRAWING_OTHER.id)).toBe(false);
+  });
+
+  it('con el botón derecho sobre un trazo, el menú ofrece borrarlo', async () => {
+    const repo = withDrawings();
+    const antes = repo.drawings.length;
+    mount('dm', repo);
+    await screen.findByRole('complementary', { name: 'Capas' });
+    fireEvent.contextMenu(canvas(), { clientX: 450, clientY: 500 });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Borrar el trazo' }));
+    await waitFor(() => expect(repo.drawings).toHaveLength(antes - 1));
+  });
+
+  /**
    * 🔒 Suprimir no puede confundirse de víctima: elegir un muro SUELTA la luz. Si no, la luz se quedaba
    * elegida sin que nada lo dijera y Suprimir borraba la luz en vez del segmento que acababas de pinchar.
    */

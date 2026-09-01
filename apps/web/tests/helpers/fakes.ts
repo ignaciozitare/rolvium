@@ -384,6 +384,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const uploads: { campaignId: string; name: string }[] = [];
   const layerUpdates: { id: string; patch: LayerPatch }[] = [];
   const lightUpdates: { id: string; patch: LightPatch }[] = [];
+  const drawingMoves: { id: string; data: Drawing['data'] }[] = [];
   const propUpdates: { id: string; patch: PropPatch }[] = [];
   const scenePropUpdates: { id: string; patch: ScenePropPatch }[] = [];
   const propUploads: { name: string; bytes: number }[] = [];
@@ -391,7 +392,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const masksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -420,6 +421,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     removeMyDrawings: async (sid: string) => { clearedMine.push(sid); for (let i = drawings.length - 1; i >= 0; i--) if (drawings[i]!.sceneId === sid && drawings[i]!.authorId === PLAYER_USER.id) drawings.splice(i, 1); },
     removeAllDrawings: async (sid: string) => { clearedAll.push(sid); for (let i = drawings.length - 1; i >= 0; i--) if (drawings[i]!.sceneId === sid) drawings.splice(i, 1); },
     updateDrawingLayer: async (id: string, layerId: string | null) => { const d = drawings.find(x => x.id === id); if (d) d.layerId = layerId; },
+    updateDrawingData: async (id: string, data: Drawing['data']) => { drawingMoves.push({ id, data }); const d = drawings.find(x => x.id === id); if (d) d.data = data; },
     listLayers: async (sid: string) => layers.filter(l => l.sceneId === sid),
     addLayer: async (l: NewLayer) => { const created: Layer = { ...LAYER_OBJECTS, ...l, name: l.name ?? '', sortOrder: l.sortOrder ?? 0, imageUrl: l.imageUrl ?? null, id: `ly-new-${++n}` }; layers.push(created); return created; },
     updateLayer: async (id: string, patch: LayerPatch) => { layerUpdates.push({ id, patch }); const l = layers.find(x => x.id === id); if (l) Object.assign(l, patch); },

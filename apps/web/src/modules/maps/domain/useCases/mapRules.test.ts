@@ -3,7 +3,7 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells,
+  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -522,5 +522,46 @@ describe('el disco de abrir al pasar el ratón', () => {
   });
   it('el disco se pone en el centro del vano', () => {
     expect(midpoint({ x1: 0, y1: 54, x2: 100, y2: 154 })).toEqual({ x: 50, y: 104 });
+  });
+});
+
+
+/**
+ * ✏️ MOVER Y BORRAR UN TRAZO (dueño, 2026-09-02: «los textos líneas formas etc deberían poder seleccionarse y
+ * mover y borrarse como cualquier cosa»). Cada forma guarda sus puntos a su manera, así que se traducen una
+ * por una: lo que se mueve tiene que quedar MOVIDO en la base, o al recargar vuelve a su sitio.
+ */
+describe('mover un trazo', () => {
+  it('un garabato mueve todos sus puntos', () => {
+    const d = { kind: 'stroke' as const, data: { points: [[10, 20], [30, 40]] as [number, number][] } };
+    expect(translateDrawing(d, 5, -3)).toEqual({ points: [[15, 17], [35, 37]] });
+  });
+
+  it('una línea y una caja mueven sus dos esquinas, sin cambiar de tamaño', () => {
+    const d = { kind: 'rect' as const, data: { x1: 0, y1: 0, x2: 10, y2: 20 } };
+    expect(translateDrawing(d, 3, 4)).toEqual({ x1: 3, y1: 4, x2: 13, y2: 24 });
+  });
+
+  it('un círculo mueve su centro y CONSERVA el radio', () => {
+    const d = { kind: 'circle' as const, data: { cx: 100, cy: 100, r: 25 } };
+    expect(translateDrawing(d, -10, 10)).toEqual({ cx: 90, cy: 110, r: 25 });
+  });
+
+  it('un texto mueve su sitio y conserva lo que dice', () => {
+    const d = { kind: 'text' as const, data: { x: 5, y: 5, text: 'Trampa' } };
+    expect(translateDrawing(d, 1, 2)).toEqual({ x: 6, y: 7, text: 'Trampa' });
+  });
+
+  /**
+   * 🔒 Mover es SÓLO del director, y no por gusto de la interfaz: la RLS de `maps_drawings` sólo deja
+   * actualizar al director. Dejar que un jugador arrastre su propio trazo para que la base se lo rechace
+   * sería mentirle. Borrar es otra cosa y sigue su regla de siempre: el tuyo, o cualquiera si eres director.
+   */
+  it('mover es del director; borrar sigue siendo «el mío o el de cualquiera si mando yo»', () => {
+    const mio = { authorId: 'u-pip' };
+    expect(canMoveDrawing(mio, 'u-pip', false)).toBe(false);
+    expect(canMoveDrawing(mio, 'u-pip', true)).toBe(true);
+    expect(canEraseDrawing(mio, 'u-pip', false)).toBe(true);
+    expect(canEraseDrawing({ authorId: 'u-nix' }, 'u-pip', false)).toBe(false);
   });
 });

@@ -68,6 +68,8 @@ export interface MapsPort {
   removeAllDrawings(sceneId: string): Promise<void>;
   /** DM: manda un trazo a otra capa (rebanada 7). Lo único que se edita de un dibujo. */
   updateDrawingLayer(id: string, layerId: string | null): Promise<void>;
+  /** Mover un trazo: sus coordenadas ya desplazadas. Sólo el director, como manda su RLS. */
+  updateDrawingData(id: string, data: Drawing['data']): Promise<void>;
   // layers (rebanada 7) — las escribe SÓLO el director
   listLayers(sceneId: string): Promise<Layer[]>;
   /**

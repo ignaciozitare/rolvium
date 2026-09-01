@@ -333,6 +333,15 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     await repo.updateDrawingLayer(id, layerId);
   }, [repo]);
 
+  /**
+   * Mover un trazo: se pinta ya en su sitio nuevo y se guarda. Optimista como todo lo de aquí — el arrastre
+   * ya enseñó dónde iba a caer, así que esperar a la respuesta sólo produciría un parpadeo hacia atrás.
+   */
+  const moveDrawing = useCallback(async (id: string, data: Drawing['data']) => {
+    setDrawings(l => l.map(d => (d.id === id ? { ...d, data } : d)));
+    await repo.updateDrawingData(id, data);
+  }, [repo]);
+
   const addTerrainLayer = useCallback(async (over: Partial<Pick<Layer, 'name' | 'imageUrl'>> = {}) => {
     if (!sceneId || !live) return null;
     const created = await repo.addLayer({ sceneId, campaignId: live.campaignId, kind: 'terrain', sortOrder: nextTerrainSortOrder(layers), ...over });
@@ -405,7 +414,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
     dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin,
-    refreshVision, paintFog, paintAllFog, serverCorrection,
+    refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer]);
+  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }

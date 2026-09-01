@@ -294,6 +294,10 @@ export class SupabaseMapsRepo implements MapsPort {
     const { error } = await this.db.from('maps_drawings').update({ layer_id: layerId }).eq('id', id);
     this.fail(error);
   }
+  async updateDrawingData(id: string, data: Drawing['data']): Promise<void> {
+    const { error } = await this.db.from('maps_drawings').update({ data }).eq('id', id);
+    this.fail(error);
+  }
   async removeAllDrawings(sceneId: string): Promise<void> {
     const { error } = await this.db.from('maps_drawings').delete().eq('scene_id', sceneId);
     this.fail(error);

@@ -1,6 +1,6 @@
 import { METRES_PER_CELL, sightRadiusPx, slideCircle, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
 import type { Character } from '@/modules/characters/domain/entities/Character';
-import type { Drawing, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
+import type { Drawing, DrawingData, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
 
 export { METRES_PER_CELL } from '@rolvium/core';
 
@@ -377,6 +377,35 @@ export function hitDrawing(d: Pick<Drawing, 'kind' | 'data' | 'width'>, p: Point
 export function hitTest(drawings: Drawing[], p: Point, tol?: number): Drawing | null {
   for (let i = drawings.length - 1; i >= 0; i--) if (hitDrawing(drawings[i]!, p, tol)) return drawings[i]!;
   return null;
+}
+
+/**
+ * MOVER UN TRAZO: sus coordenadas, desplazadas (dueño, 2026-09-02: «los textos líneas formas etc deberían
+ * poder seleccionarse y mover y borrarse como cualquier cosa»).
+ *
+ * Cada forma guarda sus puntos a su manera, así que se traduce cada una por separado en vez de inventar un
+ * `transform` en el SVG: lo que se mueve tiene que quedar MOVIDO en la base, o al recargar vuelve a su sitio.
+ * El grosor, el color y el texto no se tocan — esto sólo cambia dónde está.
+ */
+export function translateDrawing(d: Pick<Drawing, 'kind' | 'data'>, dx: number, dy: number): DrawingData {
+  const data = d.data as Record<string, unknown>;
+  if (d.kind === 'stroke') {
+    const pts = (data.points as [number, number][] | undefined) ?? [];
+    return { points: pts.map(([x, y]) => [x + dx, y + dy] as [number, number]) };
+  }
+  if (d.kind === 'circle') return { cx: (data.cx as number) + dx, cy: (data.cy as number) + dy, r: data.r as number };
+  if (d.kind === 'text') return { x: (data.x as number) + dx, y: (data.y as number) + dy, text: String(data.text ?? '') };
+  return { x1: (data.x1 as number) + dx, y1: (data.y1 as number) + dy, x2: (data.x2 as number) + dx, y2: (data.y2 as number) + dy };
+}
+
+/**
+ * Quién puede MOVER un trazo. Hoy sólo el director, y no es un capricho de la interfaz: la RLS de
+ * `maps_drawings` sólo deja actualizar al director (`maps_drawings_dm_update`). Enseñar a un jugador que
+ * arrastra su propio trazo para que la base se lo rechace sería mentirle. Si algún día se quiere, es una
+ * política nueva y una decisión del dueño — no un cambio de esta función.
+ */
+export function canMoveDrawing(_d: Pick<Drawing, 'authorId'>, _me: string | null, isDm: boolean): boolean {
+  return isDm;
 }
 
 /** Shape data of a two-point tool (line/rect/circle) between `a` and `b`. */

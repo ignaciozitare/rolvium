@@ -113,6 +113,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
    * puesto. Un jugador no se entera de nada (dueño, 2026-09-02).
    */
   const [fogVeil, setFogVeil] = useState(true);
+  /** El trazo elegido: un texto, una línea, una caja, un círculo o un garabato (dueño, 2026-09-02). */
+  const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
   // ── load: DM lists; player follows the active scene ──
@@ -315,10 +317,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
 
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
   const removeLight = (id: string) => { setSelectedLightId(cur => (cur === id ? null : cur)); run(st.removeLight(id)); };
+  const removeDrawing = (id: string) => { setSelectedDrawingId(cur => (cur === id ? null : cur)); run(st.eraseDrawing(id)); };
   const deleteSelection = () => {
     if (!isDm) return;
     // La LUZ va primero porque elegirla suelta lo demás: si hay una elegida, es LO elegido (dueño, 2026-09-02).
     if (selectedLight) { removeLight(selectedLight.id); return; }
+    if (selectedDrawingId) { removeDrawing(selectedDrawingId); return; }
     if (selectedWall) { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); return; }
     if (selectedTokens.length) { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }
   };
@@ -384,6 +388,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
             onMoveLight={(id, at) => run(st.patchLight(id, at))}
+            selectedDrawingId={selectedDrawingId} onSelectDrawing={setSelectedDrawingId}
+            onMoveDrawing={(id, data) => run(st.moveDrawing(id, data))}
             fogVeil={fogVeil}
             maskLayerId={bgLayer?.id ?? null} maskPreview={mask.preview}
             onPaintMask={(from, to) => mask.paint(from, to, brushRadius(maskSizeCells, live.grid.size), maskStrength, maskDir, maskHardness)}
@@ -483,6 +489,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           {layerMenu && (
             <LayerMenu at={layerMenu.at} element={layerMenu.element} layers={st.layers}
               {...(layerMenu.element.kind === 'light' ? { onRemove: () => removeLight(layerMenu.element.id) } : {})}
+              {...(layerMenu.element.kind === 'drawing' ? { onRemove: () => removeDrawing(layerMenu.element.id) } : {})}
               onPick={layerId => {
                 const { kind, id } = layerMenu.element;
                 if (kind === 'token') run(st.patchToken(id, { layerId }));

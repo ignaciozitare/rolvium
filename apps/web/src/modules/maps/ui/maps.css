@@ -85,6 +85,9 @@
 .mp-brush{fill:color-mix(in srgb,var(--sys-gold) 18%,transparent);stroke:var(--sys-gold);stroke-width:1;pointer-events:none;}
 .mp-brush.hide{fill:color-mix(in srgb,var(--sys-ink) 22%,transparent);stroke:var(--sys-ink-soft);}
 .mp-drawing.draft{opacity:.7;}
+/* Elegido: un halo dorado alrededor, NO un cambio de color — el color del trazo es del que lo hizo. */
+.mp-drawing.selected{filter:drop-shadow(0 0 3px var(--sys-gold)) drop-shadow(0 0 6px var(--sys-gold));}
+.mp-drawing.movable{cursor:move;}
 .mp-drawing-text{font-family:var(--sys-font-body);font-size:16px;}
 .mp-token{cursor:default;}
 .mp-token.movable{cursor:grab;}
