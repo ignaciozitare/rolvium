@@ -1416,71 +1416,49 @@ localDrag ?? origin`, con id de gesto). Deuda anotada por el review, no tocada: 
 Quitar la lente: abajo a la derecha, «SEE THROUGH THE EYES OF» → volver a su vista. La vista normal de
 director **no está tocada** por este despliegue, así que con eso trabaja.
 
-### 🐞 FALLO A — LA LENTE NO TIENE MEMORIA (corregido el 2026-09-01 por el dueño; la 1.ª versión era falsa)
+### 🔄 FALLO A — **ANULADO Y SUSTITUIDO POR UN ENCARGO NUEVO (2026-09-01)**
 
-> ⚠ **LEER ESTO ANTES QUE NADA.** El primer diagnóstico decía que había que dejar de enmascarar el mapa y
-> poner un velo. **Estaba MAL y lo corrigió él**: «tendría que comportarse exactamente igual que el jugador que
-> selecciones, eso ya lo tienes construido, ¿por qué funciona mal?». Tenía razón. Aquel arreglo tapaba el
-> síntoma y además rompía la promesa de la herramienta. **No implementarlo.**
+> 🛑 **NO ARREGLAR LA LENTE ACTUAL. SE BORRA.** Sería reparar código que él acaba de tirar. Lo que sigue
+> sustituye entero al plan anterior.
 
-**Síntomas suyos, literales:** «has roto la niebla de guerra», «si muevo el token de una habitación a otra el
-resto se oscurece por completo», «ya no es dinámica hace saltos».
+**Sus palabras, literales:** «esto no tiene que mirar como un personaje en concreto, necesito un token test y
+poder moverlo y ya uno generico, un icono y ya no un desplegable».
 
-**La causa, puestas las dos ramas de `sceneVision.ts` una al lado de la otra:**
+#### Qué quiere
+Una **sonda de prueba**: un botón con icono en la barra que suelta un **token genérico** en el mapa, que él
+**arrastra**, y mientras lo mueve ve **lo que vería un jugador desde ahí**. Fuera el desplegable
+«ver con los ojos de ‹personaje›».
 
-Rama del JUGADOR (~252), la que funciona:
-```ts
-const seen = cellsInPolygons([...vision, ...lit.flatMap(l => l.parts)], scene.gridSize, scene.width, scene.height);
-const explored = unionCells(stored, seen);          // SUMA lo que acaba de ver
-if (!at && explored.length !== stored.length) await deps.maps.saveExplored(...);   // y lo GUARDA
-```
+#### Por qué esto ARREGLA el fallo en vez de esquivarlo
+El negro venía de `getExplored(scene, tk.controlledBy)`: la lente pedía la memoria del DUEÑO de la ficha, y un
+director no acumula memoria nunca → vacío → negro. **Con una sonda genérica no hay dueño**: la memoria es del
+navegador y vive mientras la sonda esté puesta, que es justo lo que él decidió («que quede en memoria, si es
+sólo para probar»). Desaparece toda la maquinaria de `asTokenId` + `controlledBy` + `getExplored`.
 
-Rama de la LENTE (~140), la rota:
-```ts
-const explored = tk.controlledBy ? await deps.maps.getExplored(scene.id, tk.controlledBy) : [];
-const poly = visionPolygon(eye, segments, radiusPx ?? Infinity);
-// No se guarda NADA: mirar por los ojos de alguien no le explora el mapa.
-return { ok: true, data: { vision: [poly], explored, ... } };   // NUNCA hace unionCells(stored, seen)
-```
+#### Cómo queda (decisiones tomadas por defecto — si alguna le chirría, que lo diga; no bloquear por esto)
+- **La sonda NO es una ficha de verdad**: no se guarda en `maps_tokens`, no la ve ningún jugador, no sale en
+  ninguna lista. Es mobiliario de la pantalla del director. Se va al apagar la sonda o al cambiar de escena.
+- **Alcance de vista**: el de la escena, como cualquier ficha (día = sin límite, noche = `night_radius_m`).
+  No inventar un número nuevo.
+- **La pantalla se comporta como la de un jugador**: mapa enmascarado contra `explorado ∪ visión`, que es lo
+  que él pidió. **La memoria la acumula el NAVEGADOR** entre respuestas mientras la sonda está puesta, y se
+  tira al quitarla. **Nada se escribe en la base.** El cartel («no cambia nada para nadie») sigue siendo verdad.
+- **Servidor**: la petición de visión deja de necesitar `asTokenId` y pasa a aceptar un punto `{x, y}`. La rama
+  `if (input.asTokenId)` de `sceneVision.ts` se sustituye por una que calcula `visionPolygon` desde ese punto,
+  **sin tocar la base**.
 
-**La lente nunca suma lo que está viendo ni lo guarda: no acumula memoria.** Por eso al mover la ficha la sala
-anterior se apaga entera — para la lente nunca estuvo ahí. Y en su caso `maps_fog` tiene **0 filas** (nadie ha
-explorado nada nunca, porque un director no acumula), así que el punto de partida es negro absoluto.
+#### Antes de programar NADA
+1. **Spec Agent**: § «Rebanada 7 · 7.3» de `specs/modules/maps/SPEC.md` describe hoy la lente por personaje.
+   Hay que reescribirla — es un cambio de funcionalidad, no un arreglo.
+2. **Design Agent en `rolvium.pen`**: el botón nuevo de la barra (icono + tooltip) y el aspecto de la sonda en
+   el lienzo. **Regla del proyecto: nada de UI antes de que él apruebe el diseño con capturas.** Ojo al orden
+   de la barra, que él fijó el 31-ago y tiene test que lo sujeta (`controls.test.tsx`).
+3. Sólo entonces, código y tests.
 
-**El mapa se pinta negro y no velado** porque `SceneTab.tsx:139` mete la lente en `asPlayer`, y en
-`MapCanvas.tsx:588` eso enmascara el mapa contra `explorado ∪ visión`. **Ese trozo no hay que tocarlo**: con la
-memoria arreglada, enmascarar es lo CORRECTO — es justo lo que ve el jugador.
-
-#### El arreglo
-Que la rama de la lente haga **lo mismo** que la del jugador: calcular `seen` con `cellsInPolygons` y devolver
-`unionCells(stored, seen)`.
-
-✅ **DECIDIDO POR ÉL (2026-09-01), NO VOLVER A PREGUNTARLO.** Sus palabras: «guarda qué? que quede en
-memoria, si es sólo para probar». → **LA LENTE NO ESCRIBE EN LA BASE.** La memoria vive mientras la lente esté
-abierta y se tira al cerrarla. El cartel de pantalla («es una lente: no cambia nada para nadie») y el comentario
-`// No se guarda NADA` **se quedan como están: siguen siendo verdad.**
-
-#### Las dos piezas, y son pequeñas
-1. **Servidor** — `sceneVision.ts`, rama `if (input.asTokenId)` (~140). Hacer lo mismo que la rama del jugador
-   MENOS el guardado:
-   ```ts
-   const seen = cellsInPolygons([...(poly.length >= 3 ? [poly] : []), ...lit.flatMap(l => l.parts)],
-                                scene.gridSize, scene.width, scene.height);
-   return { ok: true, data: { vision: poly.length >= 3 ? [poly] : [], explored: unionCells(explored, seen), ... } };
-   ```
-   Sin `saveExplored`. Ojo: `cellsInPolygons` y `unionCells` ya están importados en ese fichero.
-2. **Navegador** — `useScene.ts`. Hoy cada respuesta de visión REEMPLAZA `fog`. Mientras `seeAsTokenId` no sea
-   `null`, hay que **acumular** `fog.explored` entre respuestas (unión), y **vaciar el acumulado** cuando
-   `seeAsTokenId` cambia o se pone a `null`. Sin esto, el punto 1 solo no arregla el «al pasar de una
-   habitación a otra la primera se apaga»: cada respuesta volvería a partir de lo guardado, que es vacío.
-
-**NO tocar** `SceneTab.tsx:139` (`asPlayer`) ni el enmascarado de `MapCanvas.tsx:588`: con la memoria
-arreglada, enmascarar el mapa contra `explorado ∪ visión` es lo CORRECTO — es exactamente lo que ve el jugador,
-que es lo que él pidió.
-
-**Tests** (obligatorio, verificar por mutación): con la lente sobre una ficha, lo que se acaba de ver entra en
-`explored`; y al mover la ficha a otra sala, la primera **sigue en `explored`**. Fichero:
-`apps/api/src/application/maps/sceneVision.test.ts`, que ya tiene la sección de la lente.
+#### Mientras tanto, en producción
+El desplegable roto sigue vivo. **Lo más barato y honesto es QUITARLO** (él ya no lo quiere) en un cambio
+pequeño, en vez de arreglar algo que se va a borrar. Preguntárselo: «¿lo quito ya de producción mientras
+construimos la sonda?». Él ya sabe que puede seguir trabajando con sólo quitar la lente a mano.
 
 ### 🐞 FALLO B — LA PUERTA ABIERTA NO DEJA VER (aparte, más pequeño, y también real)
 Él: «ahí está la puerta abierta y no puede ver». **Tiene razón, y no es la niebla: son los datos.**
@@ -1514,11 +1492,12 @@ multiplexado por escena — si el recuento de suscriptores falla, los canales se
 **Medirlo antes de tocarlo** (contar peticiones a `/scenes/:id/vision` al arrastrar una ficha).
 
 ### 🔁 Prompt de resume, de una línea
-> Rolvium, URGENTE: producción v0.5.0 tiene la lente «ver con los ojos de» pintando el mapa en negro porque no
-> acumula memoria. Bloque 🔴🔴 de WORK_STATE: aplica el fallo A entero (servidor + navegador) — **ya está
-> decidido que NO se guarda en la base, la memoria es sólo mientras la lente esté abierta, no volver a
-> preguntarlo** —, con sus tests y verificándolos por mutación. Luego el fallo B (la puerta) reproduciéndolo
-> antes con un test de `planOpening`. Despliega al terminar. Él eligió arreglar, no revertir.
+> Rolvium: bloque 🔴🔴 de WORK_STATE. **NO arregles la lente actual — se borra.** El encargo nuevo es una
+> SONDA de prueba: un icono en la barra que suelta un token genérico que él arrastra y que enseña lo que vería
+> un jugador desde ahí, sin desplegable. Empieza por Spec y por el diseño en `rolvium.pen` con capturas para
+> aprobar, y sólo después código. Ya está decidido: la sonda no se guarda en la base y la memoria la lleva el
+> navegador mientras esté puesta. Pregúntale sólo si quita ya el desplegable roto de producción. Aparte queda
+> el fallo B (la puerta), que sí es un arreglo de verdad.
 
 ## 🟢 v0.5.0 EN PRODUCCIÓN — 2026-09-01 (madrugada), verificada en vivo
 
