@@ -17,13 +17,6 @@ interface Props {
   onLighting?: (lighting: 'day' | 'night') => void;
   /** Paredes sólidas: si los tokens atraviesan los muros en esta escena (rebanada 4). */
   onSolidWalls?: (solid: boolean) => void;
-  /**
-   * «Ver con los ojos de un personaje» (rebanada 7): las fichas por cuyos ojos puede mirar el director, y
-   * cuál está puesta. Es una LENTE, no un modo: no cambia nada para nadie ni toca la escena activa.
-   */
-  seeAsOptions?: { id: string; name: string }[];
-  seeAsTokenId?: string | null;
-  onSeeAs?: (tokenId: string | null) => void;
 }
 
 function Ctl({ icon, label, onClick, on }: { icon: string; label: string; onClick: () => void; on?: boolean }): JSX.Element {
@@ -45,19 +38,6 @@ export function CanvasControls(p: Props): JSX.Element {
   const auto = p.scene?.fogMode === 'vision';
   return (
     <div className="mp-controls" role="group" aria-label={t('maps.controls.label')}>
-      {/*
-        * El selector va junto al interruptor de siempre, que es donde el dueño lo pidió. Sale sólo si hay
-        * fichas por cuyos ojos mirar: un desplegable vacío no dice nada.
-        */}
-      {p.isDm && p.onSeeAs && (p.seeAsOptions?.length ?? 0) > 0 && (
-        <label className={`mp-seeas ${p.seeAsTokenId ? 'on' : ''}`}>
-          <span className="mp-seeas-label">{t('maps.seeAs.label')}</span>
-          <select className="mp-seeas-select" aria-label={t('maps.seeAs.label')} value={p.seeAsTokenId ?? ''} onChange={e => p.onSeeAs?.(e.target.value || null)}>
-            <option value="">{t('maps.seeAs.none')}</option>
-            {p.seeAsOptions?.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-          </select>
-        </label>
-      )}
       {p.isDm && p.scene && p.onLighting && (
         <Ctl icon={night ? 'dark_mode' : 'light_mode'} on={night}
           label={night ? t('maps.light.night', { m: nightLabelM(p.scene) }) : t('maps.light.day')}

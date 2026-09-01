@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN } from '../../../../tests/helpers/fakes';
+import type { Wall } from '../domain/entities/Scene';
+import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN, WALL_1 } from '../../../../tests/helpers/fakes';
 import { newLightOf } from '../domain/useCases/layerRules';
 import { useScene } from './useScene';
 
@@ -86,6 +87,40 @@ describe('useScene · paredes sólidas, el ciclo entero', () => {
  * había: que cargarlas no rompe el resto, que el borrado espeja lo que hace la base de datos, y —lo más
  * importante— que NADA de esto pide visión de nuevo: una capa es composición y una luz es pintura.
  */
+/**
+ * La puerta que se dibuja de un tirón sobre DOS muros seguidos (dueño, 2026-09-01: «ahí está la puerta abierta
+ * y no puede ver»). `planOpening` planea los dos cortes; lo que se ata aquí es que `addWall` los APLICA los
+ * dos: si sólo se aplicase el primero, el otro muro seguiría macizo tapando el vano.
+ */
+describe('useScene · una abertura parte TODOS los muros que pisa', () => {
+  const solid = (id: string, y1: number, y2: number): Wall =>
+    ({ ...WALL_1, id, sceneId: SCENE_WAREHOUSE.id, x1: 621, y1, x2: 621, y2 });
+
+  it('se crean los trozos que sobran de cada muro y salen los dos anfitriones', async () => {
+    const a = solid('w-a', 405, 513), b = solid('w-b', 513, 540);
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], walls: [a, b] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await waitFor(() => expect(result.current.walls).toHaveLength(2));
+
+    const door = { sceneId: SCENE_WAREHOUSE.id, campaignId: SCENE_WAREHOUSE.campaignId, x1: 621, y1: 432, x2: 621, y2: 540, visiblePlayers: false, kind: 'door' as const, blocksSight: true, blocksMove: true, isOpen: false };
+    await act(async () => {
+      await result.current.addWall(door, [
+        { host: a, pieces: [{ x1: 621, y1: 405, x2: 621, y2: 432 }] },
+        { host: b, pieces: [] },
+      ]);
+    });
+
+    const ids = result.current.walls.map(w => w.id);
+    expect(ids).not.toContain('w-a');
+    expect(ids).not.toContain('w-b');
+    // el trozo que sobra del primero + la puerta; del segundo no sobra nada
+    expect(result.current.walls).toHaveLength(2);
+    expect(result.current.walls.filter(w => w.kind === 'wall')).toEqual([expect.objectContaining({ y1: 405, y2: 432, blocksSight: true })]);
+    expect(result.current.walls.filter(w => w.kind === 'door')).toHaveLength(1);
+    expect(repo.walls.map(w => w.id)).toEqual(ids);
+  });
+});
+
 describe('useScene — capas y luces', () => {
   const seedLayers = () => fakeMapsRepo({ tokens: [TOKEN_KAREN], layers: [LAYER_OBJECTS, LAYER_FLOOR, LAYER_MOSS], lights: [LIGHT_TORCH], drawings: [{ ...DRAWING_MINE, layerId: LAYER_MOSS.id }] });
 

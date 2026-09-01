@@ -404,8 +404,8 @@ describe('planOpening — una puerta dibujada sobre un muro lo parte', () => {
   it('el tramo solapado se convierte en la abertura y el muro queda en los dos trozos que sobran', () => {
     const plan = planOpening([host], { x: 81, y: 54 }, { x: 135, y: 54 }, 'door');
     expect(plan.opening).toEqual({ x1: 81, y1: 54, x2: 135, y2: 54 });
-    expect(plan.split!.host.id).toBe('w-host');
-    expect(plan.split!.pieces).toEqual([
+    expect(plan.splits[0]!.host.id).toBe('w-host');
+    expect(plan.splits[0]!.pieces).toEqual([
       { x1: 0, y1: 54, x2: 81, y2: 54 },
       { x1: 135, y1: 54, x2: 270, y2: 54 },
     ]);
@@ -414,30 +414,30 @@ describe('planOpening — una puerta dibujada sobre un muro lo parte', () => {
     // dibujada 3 px por debajo y desbordando por la izquierda — se pega al muro y se recorta contra su extremo
     const plan = planOpening([host], { x: -40, y: 57 }, { x: 108, y: 51 }, 'window');
     expect(plan.opening).toEqual({ x1: 0, y1: 54, x2: 108, y2: 54 });
-    expect(plan.split!.pieces).toEqual([{ x1: 108, y1: 54, x2: 270, y2: 54 }]); // el trozo de longitud cero no se guarda
+    expect(plan.splits[0]!.pieces).toEqual([{ x1: 108, y1: 54, x2: 270, y2: 54 }]); // el trozo de longitud cero no se guarda
   });
   it('sin muro debajo se crea suelta, como hasta ahora', () => {
     const plan = planOpening([host], { x: 0, y: 500 }, { x: 54, y: 500 }, 'door');
-    expect(plan).toEqual({ opening: { x1: 0, y1: 500, x2: 54, y2: 500 }, split: null });
+    expect(plan).toEqual({ opening: { x1: 0, y1: 500, x2: 54, y2: 500 }, splits: [] });
   });
   it('un muro nunca parte a otro, y una abertura no parte a otra abertura', () => {
-    expect(planOpening([host], { x: 81, y: 54 }, { x: 135, y: 54 }, 'wall').split).toBeNull();
+    expect(planOpening([host], { x: 81, y: 54 }, { x: 135, y: 54 }, 'wall').splits).toEqual([]);
     const door = { ...host, id: 'w-d', kind: 'door' as const };
-    expect(planOpening([door], { x: 81, y: 54 }, { x: 135, y: 54 }, 'window').split).toBeNull();
+    expect(planOpening([door], { x: 81, y: 54 }, { x: 135, y: 54 }, 'window').splits).toEqual([]);
   });
   it('rozar un extremo o un punto no parte nada; una abertura de longitud cero tampoco', () => {
-    expect(planOpening([host], { x: -54, y: 54 }, { x: 0, y: 54 }, 'door').split).toBeNull();
-    expect(planOpening([host], { x: 81, y: 54 }, { x: 81, y: 54 }, 'door').split).toBeNull();
+    expect(planOpening([host], { x: -54, y: 54 }, { x: 0, y: 54 }, 'door').splits).toEqual([]);
+    expect(planOpening([host], { x: 81, y: 54 }, { x: 81, y: 54 }, 'door').splits).toEqual([]);
   });
   it('parte el muro sobre el que más se apoya, aunque haya varios candidatos', () => {
     const short = { ...host, id: 'w-short', x1: 81, y1: 56, x2: 135, y2: 56 };
     const plan = planOpening([short, host], { x: 27, y: 54 }, { x: 216, y: 54 }, 'door');
-    expect(plan.split!.host.id).toBe('w-host');
+    expect(plan.splits[0]!.host.id).toBe('w-host');
   });
   it('el trozo que no se guarda se lo queda la abertura: partir nunca deja una rendija de nada en el extremo', () => {
     // el sobrante de la izquierda mide 0,4 px — por debajo del mínimo, así que no se guarda
     const plan = planOpening([host], { x: 0.4, y: 54 }, { x: 135, y: 54 }, 'door');
-    expect(plan.split!.pieces).toEqual([{ x1: 135, y1: 54, x2: 270, y2: 54 }]);
+    expect(plan.splits[0]!.pieces).toEqual([{ x1: 135, y1: 54, x2: 270, y2: 54 }]);
     // …y la abertura llega hasta el extremo del muro, no hasta donde se dibujó
     expect(plan.opening).toEqual({ x1: 0, y1: 54, x2: 135, y2: 54 });
   });
@@ -445,7 +445,7 @@ describe('planOpening — una puerta dibujada sobre un muro lo parte', () => {
     const diag = { ...WALL_1, id: 'w-diag', x1: 0, y1: 0, x2: 100, y2: 100 };
     const plan = planOpening([diag], { x: 20, y: 20 }, { x: 40, y: 40 }, 'door');
     expect(plan.opening).toEqual({ x1: 20, y1: 20, x2: 40, y2: 40 });
-    expect(plan.split!.pieces).toEqual([{ x1: 0, y1: 0, x2: 20, y2: 20 }, { x1: 40, y1: 40, x2: 100, y2: 100 }]);
+    expect(plan.splits[0]!.pieces).toEqual([{ x1: 0, y1: 0, x2: 20, y2: 20 }, { x1: 40, y1: 40, x2: 100, y2: 100 }]);
   });
   it('los trozos que sobran heredan todo lo que era el muro menos su geometría', () => {
     const visible = { ...host, visiblePlayers: true };
@@ -454,6 +454,49 @@ describe('planOpening — una puerta dibujada sobre un muro lo parte', () => {
       kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false,
       x1: 0, y1: 54, x2: 81, y2: 54,
     });
+  });
+});
+
+/**
+ * 🐞 EL FALLO DE LA PUERTA (dueño, 2026-09-01): «ahí está la puerta abierta y no puede ver».
+ *
+ * En su escena hay TRES segmentos en la misma recta vertical x=621: una puerta ABIERTA de y=405 a y=540, y
+ * dos muros macizos, 405→513 y 513→540, que tapan EXACTAMENTE el hueco de la puerta. `sightSegments` filtra
+ * bien (`blocksSight && !isOpen`): el fallo está en quien creó esos muros, no en la niebla.
+ *
+ * Estos dos tests reproducen los dos caminos que, desde la interfaz, dejan un muro macizo encima de una
+ * abertura. Son los datos reales de su mapa.
+ */
+describe('planOpening — una abertura NUNCA puede quedar tapada por un muro macizo (fallo del 2026-09-01)', () => {
+  const solid = (id: string, y1: number, y2: number) => ({ ...WALL_1, id, x1: 621, y1, x2: 621, y2 });
+  /** ¿Queda algún muro macizo pisando el hueco? Es la única pregunta que importa aquí. */
+  const covers = (w: { y1: number; y2: number }, op: { y1: number; y2: number }): boolean =>
+    Math.min(w.y1, w.y2) < Math.max(op.y1, op.y2) && Math.max(w.y1, w.y2) > Math.min(op.y1, op.y2);
+
+  it('una puerta dibujada sobre DOS muros seguidos sólo parte uno: el resto del hueco se encoge en silencio', () => {
+    const a = solid('w-a', 405, 513), b = solid('w-b', 513, 540);
+    const plan = planOpening([a, b], { x: 621, y: 405 }, { x: 621, y: 540 }, 'door');
+    // Se dibujó una puerta de 405 a 540 y eso es lo que tiene que salir, no una recortada al muro más largo.
+    expect(plan.opening).toEqual({ x1: 621, y1: 405, x2: 621, y2: 540 });
+    // Lo que queda macizo después del corte: los trozos que sobreviven a cada muro partido, más los que nadie tocó.
+    const cut = new Set(plan.splits.map(s => s.host.id));
+    const solidAfter = [...plan.splits.flatMap(s => s.pieces), ...[a, b].filter(w => !cut.has(w.id))];
+    expect(solidAfter.filter(w => covers(w, plan.opening))).toEqual([]);
+  });
+
+  /**
+   * 📌 ANCLA DE UN FALLO CONOCIDO, NO ARREGLADO — `it.fails` pasa mientras el fallo siga vivo y REVIENTA el día
+   * que alguien lo arregle, que es justo el aviso que hace falta. Es el camino que explica los datos reales de
+   * su escena: la puerta de 405 a 540 sigue entera y encima hay dos muros macizos.
+   *
+   * No se arregla aquí porque **no es un fallo de cálculo, es una decisión de producto** y es del dueño: al
+   * dibujar un muro sobre una puerta, o el muro se parte contra el vano, o se rechaza el trazo, o se queda como
+   * hoy. Hasta que él elija, `planOpening` conserva su regla escrita en la spec: «un muro nunca parte a otro».
+   */
+  it.fails('🔴 SIN ARREGLAR: un muro dibujado ENCIMA de una puerta ya existente la deja ciega sin avisar', () => {
+    const door = { ...WALL_1, id: 'w-door', kind: 'door' as const, isOpen: true, x1: 621, y1: 405, x2: 621, y2: 540 };
+    const plan = planOpening([door], { x: 621, y: 405 }, { x: 621, y: 513 }, 'wall');
+    expect(covers(plan.opening, door)).toBe(false);
   });
 });
 

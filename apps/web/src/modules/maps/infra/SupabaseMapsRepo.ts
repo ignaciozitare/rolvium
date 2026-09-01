@@ -60,7 +60,7 @@ export const mapLayerRow = (r: LayerRow): Layer => ({
   visible: r.visible, locked: r.locked, imageUrl: r.image_url, transform: r.transform ?? DEFAULT_TRANSFORM,
   maskUrl: r.mask_url, maskVersion: r.mask_version ?? 0, createdAt: r.created_at, updatedAt: r.updated_at,
 });
-export const mapLightRow = (r: LightRow): Light => ({
+const mapLightRow = (r: LightRow): Light => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, layerId: r.layer_id, shape: r.shape, kind: r.kind,
   x: r.x, y: r.y, rotation: r.rotation, coneAngle: r.cone_angle, color: r.color, flicker: r.flicker,
   rangeM: r.range_m, castsShadow: r.casts_shadow, createdAt: r.created_at, updatedAt: r.updated_at,
@@ -110,7 +110,7 @@ function lightPatchRow(p: LightPatch): Record<string, unknown> {
   for (const [k, col] of Object.entries(map)) { const v = (p as Record<string, unknown>)[k]; if (v !== undefined) row[col] = v; }
   return row;
 }
-export const mapImageRow = (r: ImageRow): ImageAsset => ({ id: r.id, campaignId: r.campaign_id, name: r.name, url: r.url, createdAt: r.created_at });
+const mapImageRow = (r: ImageRow): ImageAsset => ({ id: r.id, campaignId: r.campaign_id, name: r.name, url: r.url, createdAt: r.created_at });
 
 function scenePatchRow(p: ScenePatch): Record<string, unknown> {
   const row: Record<string, unknown> = {};

@@ -222,13 +222,21 @@ export interface Segment { x1: number; y1: number; x2: number; y2: number }
 /** Leftovers this short are the zero-length ends of a cut: the spec says they are not saved. */
 const MIN_PIECE = 0.5;
 
+export interface WallSplit {
+  /** The wall the opening was cut out of. */
+  host: Wall;
+  /** What survives of it once the hole is taken out. Empty means the whole wall became the opening. */
+  pieces: Segment[];
+}
 export interface OpeningPlan {
   /** Where the opening lands: on the host's line when there is a wall underneath, exactly as drawn when there is not. */
   opening: Segment;
-  /** The wall the opening was cut out of and what survives of it, or `null` when nothing was underneath. */
-  split: { host: Wall; pieces: Segment[] } | null;
+  /**
+   * EVERY wall the opening was cut out of, and what survives of each. Empty when nothing was underneath.
+   * `splits[0]` is the wall the opening leans on most — the one whose line the opening is projected onto.
+   */
+  splits: WallSplit[];
 }
-export type WallSplit = NonNullable<OpeningPlan['split']>;
 
 /**
  * Where a door or a window drawn between `a` and `b` really goes
@@ -239,19 +247,25 @@ export type WallSplit = NonNullable<OpeningPlan['split']>;
  * The opening is projected onto the host's line so it can never sit a hair off — a crooked one would keep the
  * wall cutting sight along its sides, which is the same bug wearing a different hat.
  *
+ * 🐞 Y se cortan TODOS los muros que pisa, no sólo aquel sobre el que más se apoya (dueño, 2026-09-01: «ahí
+ * está la puerta abierta y no puede ver»). Cortando uno solo, una puerta dibujada de un tirón sobre dos muros
+ * seguidos se encogía en silencio hasta el más largo y el resto seguía macizo tapando el hueco: en pantalla
+ * una puerta abierta, en la geometría una pared. El vano se estira sobre la UNIÓN de lo que hay debajo, así
+ * que sale del tamaño que se dibujó.
+ *
  * A plain wall never cuts anything (you are building, not opening), and neither does an opening drawn over
  * another opening: masonry is what gets holes.
  */
 export function planOpening(walls: Wall[], a: Point, b: Point, kind: WallKind, tol = 8): OpeningPlan {
   const opening: Segment = { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
-  if (kind === 'wall' || (a.x === b.x && a.y === b.y)) return { opening, split: null };
-  let best: { host: Wall; len: number; s0: number; s1: number; off: number } | null = null;
+  if (kind === 'wall' || (a.x === b.x && a.y === b.y)) return { opening, splits: [] };
+  const unit = (w: Wall, len: number): Point => ({ x: (w.x2 - w.x1) / len, y: (w.y2 - w.y1) / len });
+  const cands: { host: Wall; len: number; overlap: number; off: number }[] = [];
   for (const host of walls) {
     if (host.kind !== 'wall') continue;
-    const dx = host.x2 - host.x1, dy = host.y2 - host.y1;
-    const len = Math.hypot(dx, dy);
+    const len = Math.hypot(host.x2 - host.x1, host.y2 - host.y1);
     if (len < MIN_PIECE) continue;
-    const d = { x: dx / len, y: dy / len };
+    const d = unit(host, len);
     const along = (q: Point): number => (q.x - host.x1) * d.x + (q.y - host.y1) * d.y;
     const off = (q: Point): number => Math.abs((q.x - host.x1) * -d.y + (q.y - host.y1) * d.x);
     const worst = Math.max(off(a), off(b));
@@ -259,19 +273,39 @@ export function planOpening(walls: Wall[], a: Point, b: Point, kind: WallKind, t
     const s0 = Math.max(0, Math.min(along(a), along(b)));
     const s1 = Math.min(len, Math.max(along(a), along(b)));
     if (s1 - s0 <= MIN_PIECE) continue;              // it only grazes an end: nothing to cut
-    // Longest overlap wins; between two equal ones, the wall it sits flattest on.
-    if (!best || s1 - s0 > best.s1 - best.s0 || (s1 - s0 === best.s1 - best.s0 && worst < best.off)) best = { host, len, s0, s1, off: worst };
+    cands.push({ host, len, overlap: s1 - s0, off: worst });
   }
-  if (!best) return { opening, split: null };
-  const { host, len } = best;
+  if (cands.length === 0) return { opening, splits: [] };
+  // Longest overlap wins the projection; between two equal ones, the wall it sits flattest on.
+  const primary = cands.reduce((best, c) => (c.overlap > best.overlap || (c.overlap === best.overlap && c.off < best.off) ? c : best));
+  const { host, len } = primary;
+  const d = unit(host, len);
+  const along = (q: Point): number => (q.x - host.x1) * d.x + (q.y - host.y1) * d.y;
   const at = (s: number): Point => ({ x: host.x1 + (host.x2 - host.x1) * (s / len), y: host.y1 + (host.y2 - host.y1) * (s / len) });
-  const seg = (from: number, to: number): Segment => { const p = at(from), q = at(to); return { x1: p.x, y1: p.y, x2: q.x, y2: q.y }; };
+  const seg = (p: Point, q: Point): Segment => ({ x1: p.x, y1: p.y, x2: q.x, y2: q.y });
+  // How far the masonry underneath reaches, measured on the primary's line: the opening may grow along all of
+  // it, and not one pixel further — a door drawn sloppily past the end of the wall still stops at the wall.
+  const ends = cands.flatMap(c => [along({ x: c.host.x1, y: c.host.y1 }), along({ x: c.host.x2, y: c.host.y2 })]);
+  const u0 = Math.min(...ends), u1 = Math.max(...ends);
+  const clamp = (s: number): number => Math.max(u0, Math.min(u1, s));
+  const s0 = clamp(Math.min(along(a), along(b))), s1 = clamp(Math.max(along(a), along(b)));
   // A leftover shorter than MIN_PIECE is not saved, so the OPENING has to take that stub: otherwise dropping it
   // would leave a sub-pixel slit of nothing at the wall's end — a hole, which is exactly what this must never make.
-  const from = best.s0 > MIN_PIECE ? best.s0 : 0;
-  const to = len - best.s1 > MIN_PIECE ? best.s1 : len;
-  const pieces = ([[0, from], [to, len]] as const).filter(([a0, b0]) => b0 > a0).map(([a0, b0]) => seg(a0, b0));
-  return { opening: seg(from, to), split: { host, pieces } };
+  const from = s0 - u0 > MIN_PIECE ? s0 : u0;
+  const to = u1 - s1 > MIN_PIECE ? s1 : u1;
+  const p0 = at(from), p1 = at(to);
+  // Each wall is cut on ITS OWN line, never on the primary's: a leftover must not shift a hair sideways.
+  const cut = (c: { host: Wall; len: number }): WallSplit => {
+    const cd = unit(c.host, c.len);
+    const k = (q: Point): number => (q.x - c.host.x1) * cd.x + (q.y - c.host.y1) * cd.y;
+    const pt = (s: number): Point => ({ x: c.host.x1 + (c.host.x2 - c.host.x1) * (s / c.len), y: c.host.y1 + (c.host.y2 - c.host.y1) * (s / c.len) });
+    const k0 = Math.min(k(p0), k(p1)), k1 = Math.max(k(p0), k(p1));
+    const pieces = ([[0, Math.min(c.len, k0)], [Math.max(0, k1), c.len]] as const)
+      .filter(([x, y]) => y - x > MIN_PIECE)
+      .map(([x, y]) => seg(pt(x), pt(y)));
+    return { host: c.host, pieces };
+  };
+  return { opening: seg(p0, p1), splits: [cut(primary), ...cands.filter(c => c !== primary).map(cut)] };
 }
 
 /** A leftover of a split keeps everything the host wall was — only its geometry is new. */

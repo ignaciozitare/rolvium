@@ -28,6 +28,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   > botón que la abre, ni forma de plantar una pieza.** Es inerte y no molesta —las tablas están vacías y nada
   > puede llegar a ellas—, pero que nadie dé la rebanada por hecha. El botón `Piezas` está dibujado en
   > `rolvium.pen` y **deliberadamente NO está en el código**: un botón que no abre nada es peor que ninguno.
+  > ✅ **FECHA PUESTA (decisión del dueño, 2026-09-01)**: el andamio **se queda** y la galería **se construye
+  > justo después de la sonda de prueba (§ 7.3) y del arreglo de la puerta**. No se borra nada — ni las 12
+  > funciones de `propRules.ts`, ni los métodos del puerto, ni las dos tablas vacías de producción. Queda así
+  > cerrado el «no vale dejarlo sin fecha» que señalaron QA y la limpieza del 2026-09-01.
 - **Rebanada 7 — A MEDIAS** (§ «Rebanada 7»). Confirmada por el dueño el 2026-08-31, y va **ANTES que la 5 y
   la 6** (decisión suya del mismo día): es donde pasa la partida y es lo que menos se ha tocado desde que lo
   pidió (2026-08-20).
@@ -35,8 +39,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
     aviso de peso) · las **capas de terreno apiladas con su máscara** pintándose en el lienzo · las **luces de
     ambiente** de punta a punta, con su herramienta, su editor y el **parpadeo animado** por tipo.
   - ✅ **HECHO también** (2026-08-31, noche): el **pincel de transparencia** con sus dos sentidos · **mandar
-    elementos a otra capa** con el botón derecho · **ver con los ojos de un personaje**, calculado en el
-    servidor.
+    elementos a otra capa** con el botón derecho.
+  - 🔄 **REESCRITA § 7.3** (2026-09-01): la lente «ver con los ojos de ‹personaje›» se construyó la noche del
+    31-ago, llegó a producción y **dejaba el mapa en negro**. El dueño mandó **borrarla entera** y la sustituye
+    la **sonda de prueba** (§ 7.3). El código de la lente se retira; la sonda está sin construir.
   - 🛑 **BLOQUEADA la penumbra**: su premisa de privacidad no se sostiene hoy — ver el aviso en § 7.4. El
     dueño lo dio por bueno y decidió **dejar las fichas como están** (2026-08-31): no se toca cómo llegan.
   - ✅ **HECHO** (2026-08-31, cierre): las luces **ya no atraviesan los muros** y entran en la visión con las
@@ -261,7 +267,7 @@ de ser un dibujo para empezar a ser un sitio (dueño, 2026-08-22: «que los toke
 Distancia máxima de movimiento por turno · empujar a otro token · terreno difícil · diagonales ·
 **colisión entre tokens** (que un token choque con otro token, no con un muro).
 
-## Rebanada 7 — capas, luces de ambiente, ojos de un personaje y niebla degradada
+## Rebanada 7 — capas, luces de ambiente, sonda de prueba y niebla degradada
 
 Cuatro de las siete peticiones de la escena que el dueño dejó escritas el 2026-08-20. Las otras tres
 —el modal de fondo descolocado, las imágenes sueltas y los fondos animados— **no entran**: las dos últimas
@@ -395,23 +401,64 @@ necesidad de verlo. Al director, que conoce todos los muros, le llega completo.
 **Lo que sigue sin estar** (y no es olvido): el resplandor se recorta con el borde de lo que alumbra, pero **no
 proyecta la sombra de una ficha ni de un objeto** — sólo los muros cortan. Y sigue sin dar ni quitar dados.
 
-### 7.3 · Ver la escena con los ojos de un personaje
+### 7.3 · La sonda de prueba — «¿qué vería un jugador desde aquí?»
 
-⚠ **La mitad ya existe**: el interruptor genérico «ver como jugador» está construido (`playerView` en
-`CanvasControls`) y lo que hace es quitarle al director sus privilegios — los muros dorados, el velo azul y
-las fichas ocultas. Se queda tal cual.
+> 🔄 **Reescrito el 2026-09-01. Sustituye ENTERO al «ver con los ojos de ‹personaje›»**, que llegó a
+> producción, dejó el mapa en negro y el dueño mandó **borrar, no arreglar**. Sus palabras: «esto no tiene que
+> mirar como un personaje en concreto, necesito un token test y poder moverlo y ya uno generico, un icono y ya
+> no un desplegable».
 
-**Lo nuevo**: elegir **un personaje concreto** y ver la escena tal y como la ve él, con SU niebla y SU
-visión. El dueño pidió las dos cosas (2026-08-31).
+⚠ **La mitad ya existe y se queda tal cual**: el interruptor genérico «ver como jugador» (`playerView` en
+`CanvasControls`) le quita al director sus privilegios — los muros dorados, el velo azul y las fichas ocultas.
+No se toca.
 
-- Selector de personaje en los controles del lienzo, junto al interruptor de siempre.
-- Es **sólo del director** y **no cambia nada para nadie**: no mueve la escena activa, no toca la niebla
-  guardada, no avisa al jugador. Es una lente, no un modo.
-- Sale rotulado en pantalla —«VIENDO COMO: Karen»— para que no se confunda con la vista propia. La etiqueta
-  «VISTA DE DIRECTOR» que ya existe cambia a ésta mientras dure.
-- **La visión la calcula el servidor**, con el mismo camino que la del jugador de verdad: si se recalculase
-  en el navegador del director, lo que él ve y lo que ve el jugador podrían discrepar, que es justo lo que
-  esta herramienta viene a comprobar.
+**Lo nuevo**: un botón con icono en la barra del director suelta en el mapa una **sonda** —una ficha genérica,
+sin nombre y sin dueño— que el director **arrastra**; mientras la mueve, la pantalla enseña **lo que vería un
+jugador desde ese punto**. No hay desplegable y no hay que elegir personaje.
+
+#### Qué es y qué no es
+- **No es una ficha.** No se guarda en `maps_tokens`, no la ve ningún jugador, no sale en ninguna lista ni en
+  ningún encuentro y no cuenta para ninguna regla. Es mobiliario de la pantalla del director.
+- **Se va sola**: al apagar la sonda, al cambiar de escena o al recargar la página. No sobrevive a nada.
+- **Es una lente, no un modo**: no mueve la escena activa, no toca la niebla guardada de nadie y no avisa a
+  ningún jugador. El cartel de la pantalla lo dice mientras dure.
+
+#### Qué se ve mientras la sonda está puesta
+- La pantalla se comporta como la de un jugador: el mapa enmascarado contra **explorado ∪ visión**, con los
+  privilegios del director apagados — los mismos que apaga «ver como jugador».
+- **Alcance de vista: el de la escena**, como cualquier ficha — de día sin límite, de noche `night_radius_m`.
+  No se inventa un número nuevo ni se le pide uno al director.
+- Las luces se recortan contra la línea de vista de la sonda, igual que para un jugador (§ 7.2).
+
+#### La memoria la lleva el navegador, y NADA se guarda
+> Decisión del dueño, cerrada el 2026-09-01: «que quede en memoria, si es sólo para probar». No volver a
+> preguntarla.
+
+- Lo que la sonda ha ido viendo se acumula **en el navegador del director** mientras la sonda esté puesta, y se
+  **tira al quitarla**. **No se escribe una sola fila en la base.**
+- Por eso el cartel «no cambia nada para nadie» sigue siendo verdad — y por eso **el mapa en negro no puede
+  volver**. El fallo que llegó a producción era pedir la memoria del DUEÑO de la ficha
+  (`getExplored(escena, controlledBy)`): un director no acumula memoria nunca, así que llegaba vacía y el mapa
+  salía todo negro. Una sonda **no tiene dueño**, así que no hay a quién pedirle una memoria que no existe.
+
+#### Cómo se pide la visión
+- La petición de visión **deja de necesitar una ficha** (`asTokenId`) y pasa a aceptar **un punto** `{x, y}` en
+  píxeles de escena. El servidor contesta la visión desde ese punto y **no guarda nada**.
+- **Se sigue calculando en el servidor**, por la razón de siempre: al navegador del director le llegan muros
+  que un jugador no conoce, así que si la línea de vista se recalculase allí, lo que ve él y lo que ve el
+  jugador podrían discrepar — y comprobar exactamente eso es para lo que sirve la sonda.
+
+#### Dónde vive el botón
+- En el **bloque de director de la barra**, con la niebla: `Revelar · Ocultar · Sonda`. El criterio del orden
+  es el que fijó el dueño el 31-ago —primero lo que CONSTRUYE la escena, luego la niebla, luego el juego— y la
+  sonda es de comprobar la niebla. Ese orden lo sujeta el test `controls.test.tsx`.
+- Es un botón que **se queda pulsado** (encendido / apagado), no una herramienta que cambia el cursor: la sonda
+  se arrastra con «Seleccionar», como todo lo demás del mapa.
+
+#### Fuera de alcance (a propósito)
+- Varias sondas a la vez, y recordar dónde la dejaste la última vez.
+- **Ver la memoria REAL de un jugador concreto** — es justo lo que se acaba de borrar. Si algún día hace falta,
+  vuelve como rebanada propia y con la lección aprendida escrita arriba.
 
 ### 7.4 · La niebla se degrada, y en la penumbra se ve a medias
 
@@ -728,9 +775,13 @@ mano al desplegar.
     `TO anon`).
 
 - **Lo que esta rebanada NO guarda, a propósito**:
-  - **Ver con los ojos de un personaje** es una **lente** del director: no mueve la escena activa, no toca la
-    niebla guardada y no avisa a nadie. No hay nada que persistir — la visión la calcula la API por el mismo
-    camino que la del jugador de verdad.
+  - **La sonda de prueba** (§ 7.3) no guarda **nada**: ni la sonda, ni dónde la dejaste, ni lo que vio. No es
+    una fila de `maps_tokens` y no toca la niebla de nadie. Lo explorado que enseña lo acumula el NAVEGADOR
+    mientras la sonda está puesta y se tira al quitarla. La visión sí la calcula la API —desde un punto
+    `{x, y}`, no desde una ficha—, y esa petición tampoco escribe.
+  - 🧨 **Y queda escrito por qué**: la versión anterior («ver con los ojos de ‹personaje›») pedía
+    `getExplored(escena, dueño-de-la-ficha)` y con un director eso viene vacío → mapa negro en producción.
+    Que nadie vuelva a atar esta herramienta a la memoria guardada de NADIE.
   - **La penumbra** no inventa un número: su anchura sale de `maps_tokens.vision_radius` y de la luz de la
     escena, que ya existen.
   - ⚠ **El bulto de una ficha en penumbra no puede viajar por RLS**: la RLS decide **filas enteras, no

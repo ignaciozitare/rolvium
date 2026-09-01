@@ -122,21 +122,13 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   }, [repo, campaignId, isDm, activeSceneId]);
 
   const scene = isDm ? scenes?.find(s => s.id === selectedId) ?? null : playerScene;
-  /**
-   * «Ver con los ojos de un personaje» (rebanada 7): la ficha por cuyos ojos mira el director. Es una LENTE,
-   * no un modo — no mueve la escena activa, no toca la niebla guardada y no avisa al jugador.
-   */
-  const [seeAsTokenId, setSeeAsTokenId] = useState<string | null>(null);
-  const st = useScene(repo, scene, userId, vision, seeAsTokenId);
+  const st = useScene(repo, scene, userId, vision);
   /**
    * La capa ACTIVA: donde se dibuja y se coloca (rebanada 7). Sólo el director tiene panel, así que un
    * jugador la deja siempre vacía y todo lo suyo cae en su capa natural, igual que antes de que existieran.
    */
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
   const [layersOpen, setLayersOpen] = useState(true);
-  /** Mirar por los ojos de alguien implica dejar de ver como director: si no, no comprobaría nada. */
-  const seeAsToken = st.tokens.find(t => t.id === seeAsTokenId) ?? null;
-  const asPlayer = playerView || !!seeAsToken;
   /** La luz que se está retocando. Es pintura: seleccionarla no cambia nada para nadie. */
   const [selectedLightId, setSelectedLightId] = useState<string | null>(null);
   const [maskStrength, setMaskStrength] = useState(DEFAULT_MASK_STRENGTH);
@@ -352,7 +344,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
-            playerView={asPlayer} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
+            playerView={playerView} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
             onAddText={async at => {
               const text = await dialog.prompt(t('maps.text.prompt'));
@@ -366,7 +358,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               // It also inherits whether the players could see that wall: otherwise their plan grows a gap
               // exactly where the doorway is.
               const plan = planOpening(st.walls, a, b, wallKind);
-              run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.split?.host.visiblePlayers ?? false, ...newWallOf(wallKind) }, plan.split));
+              run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind) }, plan.splits));
             }}
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
@@ -398,9 +390,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               <span className="tb-italic">{t('maps.dmCounts', { walls: String(st.walls.filter(w => w.kind === 'wall').length), doors: String(st.walls.filter(w => w.kind === 'door').length), windows: String(st.walls.filter(w => w.kind === 'window').length), hidden: String(hiddenCount) })} · {bgName}</span>
             </div>
           )}
-          <span className={`mp-canvas-label ${seeAsToken ? 'seeas' : ''}`}>{seeAsToken
-            ? `${t('maps.seeAs.banner', { name: seeAsToken.name })} · ${t('maps.seeAs.note')}`
-            : isDm && !playerView
+          <span className="mp-canvas-label">{isDm && !playerView
             ? `${t('maps.dmView')}${live.fogMode === 'vision' ? ` · ${t('maps.fog.byVision')}` : ''}${isBrush(tool) ? ` · ${t(`maps.brush.${tool}`)}` : ''}`
               : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
           {(isDraw(tool) || (isDm && isBrush(tool))) && (
@@ -549,8 +539,6 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               onClose={() => setBgOpen(false)} />
           )}
           <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView} scene={live}
-            seeAsOptions={st.tokens.filter(tk => tk.characterId).map(tk => ({ id: tk.id, name: tk.name }))}
-            seeAsTokenId={seeAsTokenId} onSeeAs={setSeeAsTokenId}
             onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}
             onLighting={lighting => run(patchScene(live.id, { lighting }))}
             onSolidWalls={solidWalls => run(patchScene(live.id, { solidWalls }))}

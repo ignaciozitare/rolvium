@@ -972,12 +972,6 @@
       "sizeCells": "{{n}} casillas",
       "sizeCell": "1 casilla",
       "hardness": "Dureza del borde"
-    },
-    "seeAs": {
-      "label": "Ver con los ojos de",
-      "none": "Mi vista",
-      "banner": "Viendo como {{name}}",
-      "note": "es una lente: no cambia nada para nadie"
     }
   },
   "bestiary": {

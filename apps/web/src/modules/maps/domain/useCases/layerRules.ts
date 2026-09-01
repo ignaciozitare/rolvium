@@ -9,7 +9,6 @@ import type { GridSettings, Layer, LayerKind, Light, LightKind, LightShape, NewL
 
 // ── Capas ────────────────────────────────────────────────────────────────────
 
-export const LAYER_KINDS: LayerKind[] = ['terrain', 'objects', 'creatures', 'dm_notes'];
 /** Las tres de las que hay exactamente una por escena. El terreno es el único sin límite. */
 export const FIXED_LAYER_KINDS: LayerKind[] = ['objects', 'creatures', 'dm_notes'];
 export const isFixedKind = (k: LayerKind): boolean => FIXED_LAYER_KINDS.includes(k);
@@ -18,7 +17,7 @@ export const isFixedKind = (k: LayerKind): boolean => FIXED_LAYER_KINDS.includes
  * En qué franja pinta cada tipo. NO se guarda porque no se elige: es el motor. Lo que el director ordena es
  * el terreno entre sí (`sortOrder`), y para eso están las flechas del panel.
  */
-export const PAINT_BAND: Record<LayerKind, number> = { terrain: 0, objects: 1, creatures: 2, dm_notes: 3 };
+const PAINT_BAND: Record<LayerKind, number> = { terrain: 0, objects: 1, creatures: 2, dm_notes: 3 };
 
 const byBandThenOrder = (a: Layer, b: Layer): number =>
   PAINT_BAND[a.kind] - PAINT_BAND[b.kind] || a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt);
@@ -35,7 +34,7 @@ export const layerOfKind = (layers: readonly Layer[], kind: LayerKind): Layer | 
 
 /** Qué se coloca por defecto en cada capa cuando su `layerId` viene vacío. */
 export type ElementKind = 'drawing' | 'token' | 'light';
-export const NATURAL_LAYER: Record<ElementKind, LayerKind> = { drawing: 'objects', token: 'creatures', light: 'objects' };
+const NATURAL_LAYER: Record<ElementKind, LayerKind> = { drawing: 'objects', token: 'creatures', light: 'objects' };
 
 /**
  * La capa en la que está de verdad un elemento. `layerId` vacío significa «su capa natural», que es lo que

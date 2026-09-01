@@ -37,11 +37,7 @@ const VISION_CONTACT_HZ_MS = 50; // ~20 Hz
  * and every client refetches its own (specs/modules/maps/SPEC.md § «Rebanada 2 — luz y aberturas»).
  */
 export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision?: VisionPort,
-  /**
-   * «Ver con los ojos de este personaje» (rebanada 7): la ficha por cuyos ojos mira el DIRECTOR. `null` = su
-   * propia vista. Es una lente — la calcula el servidor y no guarda nada.
-   */
-  seeAsTokenId: string | null = null) {
+) {
   const sceneId = scene?.id ?? null;
   const [tokens, setTokens] = useState<Token[]>([]);
   const [walls, setWalls] = useState<Wall[]>([]);
@@ -107,9 +103,9 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     visionTimer.current = window.setTimeout(() => {
       visionTimer.current = null;
       const seq = ++visionSeq.current;
-      void vision.refresh(sceneId, undefined, { asTokenId: seeAsTokenId }).then(next => { if (seq === visionSeq.current) setFog(next); }).catch(() => undefined);
+      void vision.refresh(sceneId).then(next => { if (seq === visionSeq.current) setFog(next); }).catch(() => undefined);
     }, 0);
-  }, [vision, sceneId, seeAsTokenId]);
+  }, [vision, sceneId]);
   useEffect(() => () => { if (visionTimer.current !== null) window.clearTimeout(visionTimer.current); }, []);
   useEffect(() => { refreshVisionRef.current = refreshVision; }, [refreshVision]);
 
@@ -231,18 +227,22 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const clearMine = useCallback(async () => { if (!sceneId) return; setDrawings(l => l.filter(d => d.authorId !== me)); await repo.removeMyDrawings(sceneId); }, [repo, sceneId, me]);
   const clearAll = useCallback(async () => { if (!sceneId) return; setDrawings([]); await repo.removeAllDrawings(sceneId); }, [repo, sceneId]);
   /**
-   * DM: a new segment. When it is an opening drawn over a wall (`split`, planned by `mapRules.planOpening`) the
-   * wall is REPLACED: its leftovers go in first and the host comes out last, so a failure halfway leaves the wall
-   * whole and overlapping — never a hole in the plan nobody asked for.
+   * DM: a new segment. When it is an opening drawn over walls (`splits`, planned by `mapRules.planOpening`) each
+   * of those walls is REPLACED: the leftovers go in first and the hosts come out last, so a failure halfway
+   * leaves the masonry whole and overlapping — never a hole in the plan nobody asked for.
+   *
+   * Son VARIOS y no uno: una puerta dibujada de un tirón sobre dos muros seguidos tiene que partirlos los dos,
+   * o el que sobrevive se queda macizo tapando el vano (dueño, 2026-09-01).
    */
-  const addWall = useCallback(async (w: NewWall, split?: WallSplit | null) => {
-    const pieces = split ? await Promise.all(split.pieces.map(pc => repo.addWall(wallPiece(split.host, pc)))) : [];
+  const addWall = useCallback(async (w: NewWall, splits: WallSplit[] = []) => {
+    const pieces = await Promise.all(splits.flatMap(s => s.pieces.map(pc => repo.addWall(wallPiece(s.host, pc)))));
     const created = await repo.addWall(w);
-    if (split) await repo.removeWall(split.host.id);
+    for (const s of splits) await repo.removeWall(s.host.id);
     setWalls(l => {
       const fresh = [...pieces, created];
-      // Realtime may have brought any of these back already; the host is gone either way.
-      return [...l.filter(x => x.id !== split?.host.id && !fresh.some(f => f.id === x.id)), ...fresh];
+      const hosts = new Set(splits.map(s => s.host.id));
+      // Realtime may have brought any of these back already; the hosts are gone either way.
+      return [...l.filter(x => !hosts.has(x.id) && !fresh.some(f => f.id === x.id)), ...fresh];
     });
     announceVision();
     return created;
@@ -362,4 +362,3 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
   }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer]);
 }
-export type SceneState = ReturnType<typeof useScene>;

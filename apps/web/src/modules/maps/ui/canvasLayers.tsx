@@ -125,7 +125,7 @@ interface FogProps { scene: Scene; fog: SceneVision; ids: { seen: string; lit: s
  * dónde deja de verse.
  */
 export const FOG_FEATHER = { day: 5, night: 22 } as const;
-export const fogFeather = (lighting: Scene['lighting']): number => (lighting === 'night' ? FOG_FEATHER.night : FOG_FEATHER.day);
+const fogFeather = (lighting: Scene['lighting']): number => (lighting === 'night' ? FOG_FEATHER.night : FOG_FEATHER.day);
 
 /**
  * The masks the fog is painted with. Everything comes from the API — this only turns polygons and cells into SVG.

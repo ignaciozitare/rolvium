@@ -972,12 +972,6 @@
       "sizeCells": "{{n}} cells",
       "sizeCell": "1 cell",
       "hardness": "Edge hardness"
-    },
-    "seeAs": {
-      "label": "See through the eyes of",
-      "none": "My own view",
-      "banner": "Seeing as {{name}}",
-      "note": "it is a lens: it changes nothing for anyone"
     }
   },
   "bestiary": {

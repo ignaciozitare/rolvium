@@ -16,15 +16,7 @@ export interface VisionPort {
    * «qué verías si lo sueltas aquí» y NO guarda nada. Sirve para que la niebla siga al token en vez de saltar
    * al soltarlo. Sin `at`, es el refresco normal y sí se guarda lo explorado.
    */
-  refresh(sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }, opts?: {
-    /**
-     * «Ver con los ojos de este personaje» (rebanada 7). SÓLO el director. Es una LENTE: no guarda nada, no
-     * toca la niebla de nadie y no mueve la escena activa. La calcula el SERVIDOR por el mismo camino que la
-     * del jugador de verdad — recalcularla aquí haría que lo que ve el director y lo que ve el jugador
-     * pudieran discrepar, que es justo lo que la herramienta viene a comprobar.
-     */
-    asTokenId?: string | null;
-  }): Promise<SceneVision>;
+  refresh(sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }): Promise<SceneVision>;
   /** DM brush: reveal or hide a disc (scene px) on every player's explored cells at once. */
   paint(sceneId: string, op: 'reveal' | 'hide', at: { x: number; y: number; radius: number }): Promise<SceneVision>;
   /** DM: «Revelar todo» / «Ocultar todo» for the whole scene. */

@@ -320,10 +320,3 @@
 .mp-layermenu .mp-menu-item.on{background:var(--sys-ink-soft);color:var(--sys-paper-hi);}
 .mp-layermenu-check{margin-left:auto;color:var(--sys-gold);}
 
-/* ── «ver con los ojos de» (rebanada 7) ── */
-.mp-seeas{display:flex;flex-direction:column;gap:2px;padding:4px 5px;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
-.mp-seeas.on{outline:2px solid var(--sys-gold);}
-.mp-seeas-label{font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink-dim);}
-.mp-seeas-select{font-family:inherit;font-size:var(--fs-xs);max-width:130px;padding:2px 3px;background:transparent;color:var(--sys-ink);border:1px solid var(--sys-line);}
-/* El rótulo del lienzo, cuando el director mira por los ojos de alguien. */
-.mp-canvas-label.seeas{color:var(--sys-gold);}

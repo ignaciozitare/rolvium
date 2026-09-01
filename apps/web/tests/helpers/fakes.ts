@@ -484,12 +484,11 @@ export const EXPLORED_2x2: SceneVision['explored'] = [[0, 0], [0, 1], [1, 0], [1
  */
 export function fakeVisionPort(seed: Partial<SceneVision> = {}, correct?: (at: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }) => { x: number; y: number } | null) {
   const state: SceneVision = { vision: VISION_LEFT, explored: EXPLORED_2x2, radiusPx: null, ...seed };
-  const calls: { op: string; sceneId: string; asTokenId?: string | null; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } } | { x: number; y: number; radius: number } }[] = [];
+  const calls: { op: string; sceneId: string; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } } | { x: number; y: number; radius: number } }[] = [];
   return {
     state, calls,
-    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }, opts?: { asTokenId?: string | null }) => {
-      // `asTokenId` es la lente del director: se apunta para poder atar que la visión se pide AL SERVIDOR.
-      calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}), ...(opts?.asTokenId ? { asTokenId: opts.asTokenId } : {}) });
+    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }) => {
+      calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}) });
       const cut = at && correct ? correct(at) : null;
       // Como el real: recortado → pegado al muro, holgura 0; si cabía, un disco grande alrededor.
       return { ...state, corrected: cut && at ? { tokenId: at.tokenId, ...cut } : null, clearance: at ? (cut ? 0 : 100) : null };
