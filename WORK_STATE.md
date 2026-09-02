@@ -100,6 +100,55 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 > hacemos con el «va lentísimo».
 
 
+## 🔵 TRASPASO A CHAT NUEVO — 2026-09-02, noche cerrada
+
+> ⛔ **LAS IMÁGENES DEJARON DE FUNCIONAR EN ESE CHAT, EN LOS DOS SENTIDOS.** Sus capturas fueron rechazadas
+> por la API (tres veces) y al final tampoco se podían leer PNG exportados, ni reducidos a 610×1200. **Por eso
+> se corta aquí**: lo que queda es diseño, y el diseño sin poder verse ni enseñarse no se puede hacer.
+> En un chat nuevo vuelven a funcionar.
+
+### 🔴 LO PRIMERO EN EL CHAT NUEVO
+1. **Pedirle la captura de las «pseudo texturas base»** — preguntó «¿puedes agregar estas opciones, como las
+   de la herramienta que te pasé, a nivel pseudo texturas base?» y la imagen no llegó nunca. **Sin verla no
+   se puede contestar.** Que la mande a menos de 1200 px de lado, o que la deje en
+   `Escritorio / Rolvium-constructor-habitaciones /` y se lee desde disco.
+2. **El diseño de Builder va por el TERCER intento.** Los dos primeros los tumbó. Todas sus correcciones
+   están en `specs/modules/maps/SPEC.md` § «Rebanada 8» → «CORRECCIONES SUYAS DEL 2026-09-02». **Leerlas
+   antes de dibujar nada.**
+3. **La aclaración que lo cambia todo**: son **dos maneras que CONVIVEN** — marcar muros sobre una foto
+   importada (lo de hoy, no se toca) y dibujar el mapa dentro de la app (lo nuevo). Las texturas sólo tienen
+   sentido en la segunda. Está escrito en el spec.
+
+### 📍 CÓMO ESTÁ EL DISEÑO AHORA MISMO (en `rolvium.pen`, banda 5, final de la fila)
+- `PL/Builder · panel ← NUEVO 02-09 (v2)` (`xp8CX`) — el intento vivo. Ya lleva: nombre **Builder**, muro ·
+  puerta · ventana intactos, formas ampliadas (a mano, recta, rectángulo, círculo, polígono, a pulso),
+  botones de acción en **rojo sangre**, y el flujo de textura por sala en dos pasos.
+- **Le sigue faltando**, y él lo dijo: el icono suyo en la cabecera (en el `.pen` no se puede encoger su
+  dibujo de líneas sin que desaparezca — en la app ya está resuelto con `builder-mask.png`), y que se note en
+  qué modo estás (foto vs dibujar aquí).
+- `... DESCARTADO 02-09` (`k3kiE`, `nUBs1`, `P1E65`, `Po3BK`) — el primer intento, apartado a x=20200. **No
+  se ha borrado**: que decida él si lo quita.
+- ⚠️ **El `.pen` NO está guardado en disco**: el MCP no escribe, hace falta su Cmd+S. Nada de esto está
+  commiteado.
+
+### ✅ LO QUE SÍ QUEDÓ CERRADO Y EN VERDE ESTA NOCHE (código, 27 commits, nada subido)
+La sonda se pone donde él pincha · el pincel de niebla arreglado · el velo gris quitable · «Seleccionar» en
+el botón derecho · los trazos se eligen, mueven y borran · las herramientas del director apagadas viendo como
+jugador · luces (girar, intensidad 10–200, doce colores, mover, borrar) · icono de Builder arreglado.
+**976 tests · audit 0 hard · las dos apps compilan.**
+
+### 🚨 SIN TOCAR Y PENDIENTE
+- **DOS migraciones van antes que el código** (`spin_ms`, `intensity`) o revienta la niebla en producción.
+- **QA → previews → merge → producción.** Nada de eso se ha hecho.
+- **«Está un pelín lento»** — dicho por él, aparcado por él («ya lo veremos»).
+- Las **siete preguntas** del spec del generador, sin contestar.
+
+### 🔁 PROMPT DE RESUME
+> Rolvium, chat nuevo. Rama `sonda-de-prueba`, 27 commits sin subir, `main` intacto. Lee el bloque 🔵 de
+> `WORK_STATE.md` y luego `specs/modules/maps/SPEC.md` § «Rebanada 8» entera, sobre todo «CORRECCIONES SUYAS
+> DEL 2026-09-02». Vamos con el diseño de **Builder** (no es una herramienta nueva: es el Builder de hoy con
+> el generador sumado). Te voy a mandar una captura de las texturas base que en el chat anterior no llegó.
+
 ## 🟢 NOCHE DEL 2026-09-02: LA SEGUNDA MITAD — NIEBLA, TRAZOS Y EL GENERADOR (spec, no interfaz)
 
 > Se fue a dormir dos veces esta noche, las dos diciendo **«sigue»**. Sigue en pie **«no borres nada»**.

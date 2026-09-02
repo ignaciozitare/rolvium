@@ -902,6 +902,53 @@ Son **dos cosas en capas**:
 > **No la decido yo.** La (b) es mucho más barata y reaprovecha lo construido; la (a) es la que de verdad
 > hace lo que él describe.
 
+### 🔴 CORRECCIONES SUYAS DEL 2026-09-02 (noche) — DOS DISEÑOS RECHAZADOS
+
+Le enseñé dos intentos y tumbó los dos. Lo que dijo, literal, y lo que significa:
+
+1. **«No se llama constructor de habitaciones: es el mismo Builder que pone hoy los muros, puertas y ventanas,
+   que se le suma todo esto.»** → **No es una herramienta nueva.** Es **Builder**, el de siempre, con esto
+   añadido. Muro · Puerta · Ventana siguen exactamente donde están, y la barra «Segmento» que ya existe
+   convive con el panel. El nombre del panel es **Builder**.
+2. **«Utiliza el icono que habíamos quedado.»** → `apps/web/public/icons/builder-mask.png`, su dibujo. Ya está
+   en la app. No se discute ni se sustituye por un Material Symbol.
+3. **«Respeta los colores de los botones.»** → **Rojo sangre = ACCIÓN, negro = SELECCIÓN.** En el primer
+   intento puse «Cambiar» y «+ Subir» como texto suelto: son acciones y van en `pl-sangre`.
+4. **«Falta el tema de aberturas, y tiene que ser compatible con lo ya creado.»** → Puertas y ventanas se
+   siguen abriendo con el mismo disco de siempre y `planOpening` sigue partiendo los muros que pisa. El
+   generador no puede traer un camino paralelo.
+5. **«Rectángulos y círculos te quedas corto: ¿y si quiero poner una pared inclinada?»** → El motor de hoy
+   (`roomRules.ts`) sólo sabe rectángulo y círculo. **Se queda corto.** Hacen falta al menos: pared suelta a
+   cualquier ángulo, **polígono** (habitación de N lados) y trazado **a pulso**.
+6. **«No me queda claro, si quiero cambiar la textura de una habitación, cómo lo hago.»** → El flujo de la
+   textura por sala no se entendía. Tiene que estar dicho en pasos, en el propio panel.
+7. **«No sé si te están faltando herramientas en esto.»** → Sí faltan; ver el punto 5. Queda abierto.
+
+> 🔑 **Y LA ACLARACIÓN MÁS IMPORTANTE DE TODAS** (suya, esa misma noche):
+>
+> *«En el caso de estos muros tienen que comportarse como los muros que usamos para marcar sobre las fotos
+> para la niebla de guerra dinámica, pero no debes eliminar lo que hicimos: convive, son cosas distintas. Uno
+> es hacer mapas en la aplicación y otro es marcar sobre fotos importadas las habitaciones.»*
+>
+> Son **DOS MANERAS DE TRABAJAR QUE CONVIVEN**, y ninguna sustituye a la otra:
+>
+> | | Qué es | Qué hay hoy |
+> |---|---|---|
+> | **A · Marcar sobre una foto** | Traes una imagen de mapa y marcas encima dónde están los muros, para la niebla dinámica | **Construido y en uso.** Es lo que Builder hace hoy. NO SE TOCA. |
+> | **B · Dibujar el mapa en la app** | No hay foto: las salas se levantan aquí, con sus texturas de pared y suelo | **Sin construir.** Es lo nuevo. |
+>
+> - **Los muros que genera B se comportan EXACTAMENTE como los de A** — cortan la vista y la luz, se abren en
+>   puerta, se parten. Son la misma fila de `maps_walls`. Esto confirma la decisión de que una habitación no
+>   necesita entidad propia para las PAREDES.
+> - **Las texturas sólo tienen sentido en B.** Marcando sobre una foto, el suelo ya lo pone la foto. El panel
+>   tiene que dejar claro en cuál de las dos estás, o la mitad de los controles no significa nada.
+
+### ⏳ BLOQUEADO: LAS «PSEUDO TEXTURAS BASE»
+Preguntó: *«¿puedes agregar estas opciones, como las de la herramienta que te pasé, a nivel pseudo texturas
+base?»* — con una captura. **La captura no llegó nunca: la API rechazó las tres que mandó por tamaño, y a
+mitad de sesión dejaron de funcionar las imágenes en los dos sentidos.** Queda SIN CONTESTAR y es lo primero
+que hay que retomar en un chat nuevo, donde las imágenes vuelven a funcionar.
+
 ### 🟠 LO QUE HACE FALTA QUE ÉL DECIDA (y por qué no lo decido yo)
 1. **¿Puertas automáticas?** Una habitación cerrada sin puertas no se puede usar. ¿Se abre un hueco donde él
    pinche después, o el generador pone una puerta por pared, o ninguna y ya las abre a mano con el disco que
