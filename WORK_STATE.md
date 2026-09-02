@@ -130,6 +130,17 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 functional · 223 api · 29 core · 16 ui · 141 plenilunio) · `npm run audit` **0 hard, 13 warn** (los mismos de
 siempre) · `build:web` y `build:api` en verde.
 
+### ⚠️ UN SUSTO QUE NO ERA UN FALLO — apuntado para no repetirlo
+Al probar los trazos dijo **«no funcionan las herramientas de dibujo que tocaste»**. **No había fallo**: era
+el paquete viejo en su navegador. Se resolvió con una **recarga forzada** (`Cmd+Shift+R`).
+
+Pasó justo después de tocar **traducciones y CSS**, que es cuando el recargado en caliente de Vite se queda
+a medias más fácilmente. **Antes de buscar el fallo en el código, pedirle una recarga forzada.**
+
+De aquel rato salió algo que sí se queda: **dos tests que pulsan el botón del Lápiz y de la Caja de verdad**
+y dibujan hasta la base. Los que había le pasaban la herramienta al lienzo a mano — probaban el lienzo, no
+que el botón de la barra acabara dibujando. Ese hueco ya no está.
+
 ### 🔒 DECISIONES DE ESTA NOCHE QUE NO HAY QUE DESHACER SIN PREGUNTARLE
 - **Nada que GIRE puede llevar un filtro colgando.** Un desenfoque gaussiano sobre algo que gira se rehace en
   cada fotograma y fue lo que le puso el mapa entero a saltos. El filo del haz se DIBUJA en capas. Hay test.
