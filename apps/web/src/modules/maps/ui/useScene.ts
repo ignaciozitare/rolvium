@@ -72,6 +72,25 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     probeSeen.current = unionCells(probeSeen.current, next.explored);
     return { ...next, explored: probeSeen.current };
   }, []);
+  /**
+   * 🔒 CON LA SONDA PUESTA, SÓLO UNA RESPUESTA DE LA SONDA PINTA LA NIEBLA.
+   *
+   * Sin esta regla, cualquier otra pregunta de visión —arrastrar un token, pintar con el pincel— le borraba
+   * la vista de la sonda al director, porque a él el servidor le contesta «todo lo explorado por TODOS», y eso
+   * no es lo que la sonda viene a enseñar. Se veía tal cual (dueño, 2026-09-02): la sonda puesta enseñaba el
+   * mapa a oscuras, bien, y al tocar un token «ya activa todo como si hubiera pasado».
+   *
+   * El fallo llevaba ahí desde que existe la sonda; lo que lo destapó fue arreglar el pincel de niebla. Antes,
+   * su campaña no tenía jugadores, así que «lo explorado por todos» venía VACÍO y pisar la niebla con eso no
+   * se notaba. En cuanto el director pasó a tener su propia fila, esa respuesta traía el mapa entero.
+   *
+   * Lo que NO se toca: la corrección de posición del servidor sigue leyéndose igual, porque de eso depende que
+   * un token no atraviese un muro. Aquí sólo se decide quién puede pintar la niebla.
+   */
+  const applyFog = useCallback((next: SceneVision, fromProbe = false): void => {
+    if (probeRef.current && !fromProbe) return;
+    setFog(withProbeMemory(next));
+  }, [withProbeMemory]);
 
   useEffect(() => { setLive(scene); }, [scene]);
 
@@ -121,9 +140,9 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       visionTimer.current = null;
       const seq = ++visionSeq.current;
       void vision.refresh(sceneId, undefined, probeRef.current ? { probe: probeRef.current } : undefined)
-        .then(next => { if (seq === visionSeq.current) setFog(withProbeMemory(next)); }).catch(() => undefined);
+        .then(next => { if (seq === visionSeq.current) applyFog(next, true); }).catch(() => undefined);
     }, 0);
-  }, [vision, sceneId, withProbeMemory]);
+  }, [vision, sceneId, applyFog]);
   useEffect(() => () => { if (visionTimer.current !== null) window.clearTimeout(visionTimer.current); }, []);
   useEffect(() => { refreshVisionRef.current = refreshVision; }, [refreshVision]);
 
@@ -232,7 +251,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       const from = m && m.tokenId === tokenId ? { from: { x: m.x, y: m.y } } : {};
       void vision.refresh(sceneId, { tokenId, x: asked.x, y: asked.y, ...from }).then(next => {
         if (seq !== visionSeq.current) return;
-        setFog(next);
+        applyFog(next);
         /**
          * La palabra final sobre DÓNDE puede estar el token es del servidor: es el único que tiene todos los
          * muros, incluidos los secretos, que a este navegador no le llegan. Si nos corrige, se obedece —
@@ -248,7 +267,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     if (now - lastSent.current < DRAG_HZ_MS) return;
     lastSent.current = now;
     repo.broadcast(sceneId, { type: 'token.moved', campaignId: live.campaignId, sceneId, tokenId, x, y, final: false });
-  }, [repo, sceneId, live, vision, tokens, me]);
+  }, [repo, sceneId, live, vision, tokens, me, applyFog]);
 
   const moveToken = useCallback(async (tokenId: string, x: number, y: number) => {
     if (!sceneId || !live) return;
@@ -312,16 +331,16 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     if (!sceneId || !vision) return;
     const seq = ++visionSeq.current;
     const next = await vision.paint(sceneId, op, at);
-    if (seq === visionSeq.current) setFog(next);
+    if (seq === visionSeq.current) applyFog(next);
     announceVision();
-  }, [vision, sceneId, announceVision]);
+  }, [vision, sceneId, announceVision, applyFog]);
   const paintAllFog = useCallback(async (op: 'reveal' | 'hide') => {
     if (!sceneId || !vision) return;
     const seq = ++visionSeq.current;
     const next = await vision.paintAll(sceneId, op);
-    if (seq === visionSeq.current) setFog(next);
+    if (seq === visionSeq.current) applyFog(next);
     announceVision();
-  }, [vision, sceneId, announceVision]);
+  }, [vision, sceneId, announceVision, applyFog]);
   // ── capas y luces (rebanada 7) ──
   /** Sólo el director. Las tres fijas las crea un disparador al nacer la escena: por aquí sólo pasa TERRENO. */
   /**

@@ -145,6 +145,42 @@ describe('useScene · la sonda de prueba acumula su memoria aquí, y la tira al 
     await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10], [20, 20], [30, 30]]));
   });
 
+  /**
+   * 🐞 EL PIN DE «si le hago click ya activa todo como si hubiera pasado» (dueño, 2026-09-02, con la sonda
+   * puesta y el mapa a oscuras, correcto, hasta que tocaba un token).
+   *
+   * Cualquier OTRA pregunta de visión —arrastrar un token, el pincel— se hace sin decir que la sonda está
+   * puesta, y al director el servidor le contesta «todo lo explorado por TODOS». Esa respuesta se pintaba
+   * encima y le borraba la vista de la sonda de un plumazo.
+   *
+   * El fallo llevaba ahí desde que existe la sonda. Lo destapó arreglar el pincel de niebla: hasta entonces
+   * su campaña no tenía jugadores, «lo explorado por todos» venía VACÍO, y pisar la niebla con nada no se
+   * notaba. El doble de aquí contesta un 2×2 sin sonda y una casilla con ella, que es justo la diferencia.
+   */
+  it('con la sonda puesta, arrastrar un token NO le pisa la vista', async () => {
+    const { result, vision } = await mountProbe({ x: 10, y: 10 });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10]]));
+    await act(async () => { result.current.dragToken(TOKEN_KAREN.id, 100, 100, { x: 100, y: 100 }); });
+    await waitFor(() => expect(vision.calls.some(c => c.at && !c.probe)).toBe(true));
+    expect(result.current.fog!.explored).toEqual([[10, 10]]);
+  });
+
+  it('con la sonda puesta, el pincel tampoco le pisa la vista', async () => {
+    const { result } = await mountProbe({ x: 10, y: 10 });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10]]));
+    await act(async () => { await result.current.paintFog({ x: 50, y: 50, radius: 30 }, 'reveal'); });
+    expect(result.current.fog!.explored).toEqual([[10, 10]]);
+    await act(async () => { await result.current.paintAllFog('reveal'); });
+    expect(result.current.fog!.explored).toEqual([[10, 10]]);
+  });
+
+  /** Y sin sonda todo sigue exactamente como estaba: quien pinta la niebla es la respuesta que llega. */
+  it('sin sonda, arrastrar un token SÍ actualiza la niebla, como siempre', async () => {
+    const { result } = await mountProbe(null);
+    await act(async () => { result.current.dragToken(TOKEN_KAREN.id, 100, 100, { x: 100, y: 100 }); });
+    await waitFor(() => expect(result.current.fog!.explored.length).toBeGreaterThan(1));
+  });
+
   it('quitarla TIRA la memoria: no se queda nada colgado de la sesión anterior', async () => {
     const { result, rerender } = await mountProbe({ x: 10, y: 10 });
     await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10]]));
