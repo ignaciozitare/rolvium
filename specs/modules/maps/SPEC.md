@@ -853,6 +853,41 @@ la habitación se monte sola**, con sus paredes ya puestas, en vez de trazar seg
   demás. Es coherente con que no haya entidad «habitación», y evita prometer un agrupado que no existe.
 - **Se pega a la rejilla**, como el resto de Builder.
 
+### 🎨 LAS TEXTURAS — ampliación suya del 2026-09-02 (y lo que rompe)
+
+Mandó una captura de Dungeon Scrawl y recordó: *«recuerda que te pedí que te bases en esta herramienta»* —
+**basarse en lo que HACE, no copiar su interfaz**, que es exactamente lo que ya estaba escrito. Y añadió el
+requisito que faltaba:
+
+> *«Esto de base se tienen que poder elegir dos backgrounds, uno para la textura interna de las paredes y
+> otro para el fondo de los pisos, pero si quiero luego dar una textura distinta por habitación para el piso
+> o paredes necesito una herramienta para poder pintar ese piso con esa textura.»*
+
+Son **dos cosas en capas**:
+1. **Dos texturas de base, para toda la escena**: una para el **relleno de las paredes** y otra para el
+   **suelo**. Es lo que en su captura son el color de pared y el color de suelo, pero con imagen.
+2. **Una textura DISTINTA por habitación**, encima de las de base, **pintada con una herramienta** — no
+   elegida en un desplegable: él quiere pintar el suelo de *esa* sala con *esa* textura.
+
+> 🛑 **ESTO ROMPE UNA CONCLUSIÓN QUE YO HABÍA DADO POR BUENA, y hay que decirlo.**
+>
+> Escribí más arriba que «una habitación no es una entidad nueva: es un atajo que produce muros de los de
+> siempre», y que por eso no hacía falta ni tabla ni migración. **Con texturas por habitación eso deja de
+> sostenerse**: para darle a *una sala* un suelo distinto hay que saber **qué suelo es el de esa sala**, y hoy
+> no hay nada que diga dónde acaba una habitación y empieza la de al lado — sólo hay muros sueltos.
+>
+> O sea que aparece una decisión de modelo de datos que antes no existía, y es suya:
+> - **(a) La habitación pasa a ser una entidad** con su contorno guardado, y las texturas cuelgan de ella.
+>   Es lo que menos sorpresas da luego (mover una sala entera, borrarla, cambiarle el suelo) y lo que más se
+>   parece a lo que hace la herramienta de la captura. **Necesita tabla y migración → pasa por el DBA.**
+> - **(b) No hay habitación: el suelo se pinta como se pinta hoy la máscara de una capa de terreno.** La
+>   textura se aplica con un pincel sobre una capa, sin que nadie sepa qué es «una sala». Cuesta mucho menos
+>   —la maquinaria de capas de terreno con máscara YA EXISTE (§ 7.1)— pero entonces «por habitación» es una
+>   forma de hablar: la precisión la pone su pulso, no el generador.
+>
+> **No la decido yo.** La (b) es mucho más barata y reaprovecha lo construido; la (a) es la que de verdad
+> hace lo que él describe.
+
 ### 🟠 LO QUE HACE FALTA QUE ÉL DECIDA (y por qué no lo decido yo)
 1. **¿Puertas automáticas?** Una habitación cerrada sin puertas no se puede usar. ¿Se abre un hueco donde él
    pinche después, o el generador pone una puerta por pared, o ninguna y ya las abre a mano con el disco que
@@ -866,16 +901,26 @@ la habitación se monte sola**, con sus paredes ya puestas, en vez de trazar seg
 4. **Qué «tipos» hay.** Él dijo «elegir tipo de habitación/mazmorra». Hoy el motor sabe hacer **rectángulo** y
    **círculo**. ¿Hacen falta más (pasillo, cruz, sala con columnas), o con esos dos empieza?
 5. **¿Los muros generados nacen visibles para el jugador?** Los muros tienen ese interruptor y aquí importa.
+6. **🆕 ¿Habitación como entidad, o pintar el suelo a mano?** La decisión (a)/(b) del apartado de texturas.
+   Es la más gorda de las seis: la (a) obliga a tabla, migración y DBA; la (b) reaprovecha las capas de
+   terreno que ya existen y se puede empezar mañana.
+7. **🆕 ¿Las dos texturas de base son de la ESCENA o de la campaña?** Si son de la escena, cada mapa lleva las
+   suyas; si son de la campaña, se eligen una vez y valen para todas. La segunda es menos trabajo para él y
+   menos flexible.
 
 ### Modelo de datos
-**Ninguno nuevo.** Se escriben filas en `maps_walls` con `kind: 'wall'`, que es lo que ya hace la herramienta.
-Si alguna de las decisiones de arriba obliga a agrupar (fundir, mover la habitación entera), **entonces** haría
-falta DBA — y sería una decisión suya, no un efecto colateral.
+**Para las paredes, ninguno nuevo**: se escriben filas en `maps_walls` con `kind: 'wall'`, que es lo que ya
+hace la herramienta.
+
+**Para las texturas, depende de su respuesta a la pregunta 6.** Con la opción (b) tampoco hace falta nada
+nuevo —las capas de terreno con máscara ya existen (§ 7.1)—; con la (a) sí: una tabla de habitaciones con su
+contorno, y las texturas colgando de ella. **En cuanto conteste, esto pasa por el DBA antes de tocar código.**
 
 ### Estado
 - ✅ **Motor construido y probado** (`domain/useCases/roomRules.ts`): rectángulo y círculo → segmentos de muro,
   pegados a la rejilla, sin pantalla y sin tocar nada de lo que ya funciona.
 - ⛔ **Interfaz: SIN EMPEZAR, y a propósito.** Falta su confirmación de este spec y el diseño en el `.pen`.
+- ⛔ **Las texturas, sin empezar**: dependen de la pregunta 6, que es de modelo de datos y es suya.
 
 
 ## Rules & limits

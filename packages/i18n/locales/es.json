@@ -779,7 +779,8 @@
       "select": "Seleccionar",
       "text": "Texto",
       "light": "Luz de ambiente",
-      "mask": "Pincel de transparencia"
+      "mask": "Pincel de transparencia",
+      "notInPlayerView": "no mientras ves como jugador"
     },
     "toolbar": "Herramientas del lienzo",
     "probe": {

@@ -363,7 +363,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     <section className="mp-root">
       <div className="mp-stage-row">
         {scenesRail}
-        <Toolbar tool={tool} isDm={isDm} onChange={next => { closeOverlays(next === 'encounter' ? 'encounter' : undefined); setTool(next); }}
+        <Toolbar tool={tool} isDm={isDm} playerView={playerView} onChange={next => { closeOverlays(next === 'encounter' ? 'encounter' : undefined); setTool(next); }}
           onDice={() => onOpenDice?.()} diceOpen={diceOpen}
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
@@ -423,10 +423,17 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             : isDm && !playerView
             ? `${t('maps.dmView')}${live.fogMode === 'vision' ? ` · ${t('maps.fog.byVision')}` : ''}${isBrush(tool) ? ` · ${t(`maps.brush.${tool}`)}` : ''}`
               : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
-          {(isDraw(tool) || (isDm && isBrush(tool))) && (
+          {/*
+            * El pincel de niebla NO se ofrece viendo como jugador (dueño, 2026-09-02: «directamente no
+            * funciona el ocultar o revelar»). Y no es que se rompiera: el lienzo lo ignora desde siempre en
+            * ese modo —`if (!dmSight) return`, igual que Muro y Luz—, porque «ver como jugador» le quita al
+            * director sus privilegios y pintar la niebla es uno. Lo que estaba mal era OFRECERLO: la barra
+            * salía, se pintaba con ella y no pasaba nada.
+            */}
+          {(isDraw(tool) || (isDm && !playerView && isBrush(tool))) && (
             <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll()) : undefined}
               tool={tool}
-              {...(isDm && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})} />
+              {...(isDm && !playerView && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})} />
           )}
           {/*
             * El panel de capas es del DIRECTOR y desaparece con «ver como jugador»: la lente sirve para ver

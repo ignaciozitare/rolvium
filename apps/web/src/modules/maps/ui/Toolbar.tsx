@@ -23,6 +23,14 @@ interface Action { id: 'dice' | 'placePc' | 'background'; icon: string; onClick:
 interface Props {
   tool: Tool;
   isDm: boolean;
+  /**
+   * «Ver como jugador» puesto. Las herramientas del director se enseñan APAGADAS, no se esconden: ese modo
+   * ya les quitaba el efecto en el lienzo (`if (!dmSight) return` en Muro, Luz y el pincel de niebla), pero
+   * la barra las seguía ofreciendo — se pintaba con ellas y no pasaba nada, que es peor que no poder
+   * (dueño, 2026-09-02: «directamente no funciona el ocultar o revelar»). Apagadas y no escondidas para que
+   * la barra no baile de sitio al entrar y salir del modo.
+   */
+  playerView?: boolean;
   onChange: (tool: Tool) => void;
   /** «Lanzador de dados» — the first button of all (specs/modules/maps/SPEC.md § «Rebanada 3»). */
   onDice: () => void;
@@ -70,9 +78,12 @@ function Btn({ label, icon, on, dm, disabled, onClick }: { label: string; icon: 
  */
 export function Toolbar(p: Props): JSX.Element {
   const { t } = useTranslation();
-  const label = (id: Tool) => (TOOLS_NOT_YET.includes(id) ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.soon')}` : t(`maps.tool.${id}`));
+  const dormida = (id: Tool): boolean => !!p.playerView && DM_TOOLS.includes(id);
+  const label = (id: Tool) => (TOOLS_NOT_YET.includes(id)
+    ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.soon')}`
+    : dormida(id) ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.notInPlayerView')}` : t(`maps.tool.${id}`));
   const tools = (ids: Tool[]) => ids.filter(x => p.isDm || PLAYER_TOOLS.includes(x)).map(id => (
-    <Btn key={id} label={label(id)} icon={ICONS[id]} on={p.tool === id} dm={DM_TOOLS.includes(id)} disabled={TOOLS_NOT_YET.includes(id)}
+    <Btn key={id} label={label(id)} icon={ICONS[id]} on={p.tool === id} dm={DM_TOOLS.includes(id)} disabled={TOOLS_NOT_YET.includes(id) || dormida(id)}
       onClick={() => p.onChange(p.tool === id ? 'select' : id)} />
   ));
   const actions = (list: Action[]) => list.map(a => (

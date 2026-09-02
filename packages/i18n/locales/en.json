@@ -779,7 +779,8 @@
       "select": "Select",
       "text": "Text",
       "light": "Ambient light",
-      "mask": "Transparency brush"
+      "mask": "Transparency brush",
+      "notInPlayerView": "not while viewing as a player"
     },
     "toolbar": "Canvas tools",
     "probe": {

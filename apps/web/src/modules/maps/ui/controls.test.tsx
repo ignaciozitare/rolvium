@@ -6,6 +6,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { SCENE_WAREHOUSE, WALL_1, WALL_DOOR } from '../../../../tests/helpers/fakes';
 import { STROKE_COLORS } from '../domain/useCases/mapRules';
 import { Toolbar } from './Toolbar';
+import type { Tool } from '../domain/useCases/mapRules';
 import { StrokeBar } from './StrokeBar';
 import { CanvasControls } from './CanvasControls';
 import { EncounterMenu } from './EncounterMenu';
@@ -302,5 +303,39 @@ describe('<CanvasControls> el velo del director', () => {
   it('a un jugador no se le ofrece: no es suyo', () => {
     renderWithProviders(<CanvasControls {...base} isDm={false} fogVeil onToggleFogVeil={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /Velo del director/ })).toBeNull();
+  });
+});
+
+
+/**
+ * 🐞 «DIRECTAMENTE NO FUNCIONA EL OCULTAR O REVELAR» (dueño, 2026-09-02, con la sonda puesta).
+ *
+ * No se había roto: el lienzo ignora las herramientas del director en ese modo DESDE SIEMPRE —«ver como
+ * jugador» le quita los privilegios y pintar la niebla es uno—, pero la barra las seguía ofreciendo. Se
+ * pintaba con ellas y no pasaba nada, que es peor que no poder.
+ */
+describe('<Toolbar> viendo como jugador', () => {
+  const props = { tool: 'select' as Tool, onChange: vi.fn(), onDice: vi.fn() };
+
+  it('las del director salen APAGADAS, y dicen por qué', () => {
+    renderWithProviders(<Toolbar {...props} isDm playerView />);
+    for (const name of [/^Builder/, /^Luz/, /^Revelar/, /^Ocultar/]) {
+      const btn = screen.getByRole('button', { name });
+      expect(btn).toBeDisabled();
+      expect(btn.getAttribute('aria-label')).toContain('no mientras ves como jugador');
+    }
+  });
+
+  it('las de siempre siguen a mano: mirar como un jugador no es quedarse manco', () => {
+    renderWithProviders(<Toolbar {...props} isDm playerView />);
+    for (const name of ['Seleccionar', 'Medir', 'Lápiz']) {
+      expect(screen.getByRole('button', { name })).toBeEnabled();
+    }
+  });
+
+  it('sin ese modo, las del director están disponibles como siempre', () => {
+    renderWithProviders(<Toolbar {...props} isDm />);
+    expect(screen.getByRole('button', { name: /^Revelar/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^Luz/ })).toBeEnabled();
   });
 });
