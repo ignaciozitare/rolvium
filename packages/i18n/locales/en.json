@@ -787,7 +787,8 @@
       "label": "Test probe",
       "hint": "drag it",
       "banner": "TEST PROBE · what a player would see from here",
-      "note": "it changes nothing for anyone · nothing is saved"
+      "note": "it changes nothing for anyone · nothing is saved",
+      "place": "Click on the map where you want to test · the probe goes there"
     },
     "controls": {
       "label": "Canvas controls",

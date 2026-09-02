@@ -296,6 +296,21 @@ export function MapCanvas(p: Props): JSX.Element {
         return;
       }
       /**
+       * Y SE PONE DONDE ÉL PINCHE (dueño, 2026-09-02: «déjame poner el token donde quiera, no lo pongas
+       * automáticamente en el centro, si no la prueba es una mierda»).
+       *
+       * Antes «ver como jugador» la soltaba en mitad de lo que estuviera mirando, y desde ahí había que
+       * arrastrarla — que con el mapa alejado es un viaje. Ahora encender el modo NO la coloca: el primer
+       * clic la pone, y cualquier clic posterior en el suelo la muda. Arrastrarla sigue igual: el disco de
+       * arriba se queda con la pulsación antes de llegar aquí, así que pinchar SOBRE ella la agarra en vez
+       * de moverla a donde ya está.
+       *
+       * Va después del disco de la sonda y antes de todo lo demás porque en este modo el director no tiene
+       * privilegios: no hay muros ni luces que elegir, así que nada más se disputa este clic. Las fichas sí,
+       * pero ésas se llevan la pulsación en su propio elemento, antes de llegar al lienzo.
+       */
+      if (p.playerView && p.onProbeMove) { p.onProbeMove(s); return; }
+      /**
        * Una LUZ también se selecciona con Seleccionar (dueño, 2026-08-31: «una vez puesta una luz no me deja
        * seleccionarla nuevamente para editarla»). Antes sólo se podía con la herramienta Luz, y ahí un clic
        * un pelo fuera de su disco COLOCA otra luz en vez de abrir la que querías — así que en la práctica no

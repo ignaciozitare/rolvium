@@ -13,7 +13,7 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onMoveLight: vi.fn(), onSelectDrawing: vi.fn(), onMoveDrawing: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onMoveLight: vi.fn(), onSelectDrawing: vi.fn(), onMoveDrawing: vi.fn(), onProbeMove: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
@@ -1182,5 +1182,42 @@ describe('<MapCanvas> elegir y mover un trazo', () => {
     expect(cb.onSelectToken).toHaveBeenCalledWith(null);
     expect(cb.onSelectWall).toHaveBeenCalledWith(null);
     expect(cb.onSelectLight).toHaveBeenCalledWith(null);
+  });
+});
+
+
+/**
+ * 🎭 LA SONDA SE PONE DONDE ÉL PINCHE (dueño, 2026-09-02: «déjame poner el token donde quiera, no lo pongas
+ * automáticamente en el centro, si no la prueba es una mierda»). Antes caía en mitad de lo que se estuviera
+ * mirando y había que arrastrarla hasta el sitio que de verdad importa.
+ */
+describe('<MapCanvas> poner la sonda donde uno quiera', () => {
+  const dm = { isDm: true, me: 'u-gm', playerView: true, tool: 'select' as Tool };
+
+  it('sin sonda puesta, un clic en el mapa la pone ahí', () => {
+    const { svg, cb } = mount({ ...dm, probe: null });
+    down(svg, 640, 480); up(svg);
+    expect(cb.onProbeMove).toHaveBeenCalledWith({ x: 640, y: 480 });
+  });
+
+  it('ya puesta, un clic en otro sitio la muda: no hay que arrastrarla media pantalla', () => {
+    const { svg, cb } = mount({ ...dm, probe: { x: 100, y: 100 } });
+    down(svg, 700, 300); up(svg);
+    expect(cb.onProbeMove).toHaveBeenCalledWith({ x: 700, y: 300 });
+  });
+
+  /** 🔒 Pinchar SOBRE ella la agarra para arrastrar, no la «mueve a donde ya está». */
+  it('pinchar encima de la sonda la agarra, y arrastrarla la lleva', () => {
+    const { svg, cb } = mount({ ...dm, probe: { x: 100, y: 100 } });
+    down(svg, 100, 100);
+    expect(cb.onProbeMove).not.toHaveBeenCalled();
+    move(svg, 160, 140);
+    expect(cb.onProbeMove).toHaveBeenCalled();
+  });
+
+  it('fuera de «ver como jugador» un clic en el suelo NO pone ninguna sonda', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', probe: null });
+    down(svg, 640, 480); up(svg);
+    expect(cb.onProbeMove).not.toHaveBeenCalled();
   });
 });

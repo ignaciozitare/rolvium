@@ -787,7 +787,8 @@
       "label": "Sonda de prueba",
       "hint": "arrástrala",
       "banner": "SONDA DE PRUEBA · lo que vería un jugador desde aquí",
-      "note": "no cambia nada para nadie · nada se guarda"
+      "note": "no cambia nada para nadie · nada se guarda",
+      "place": "Pincha en el mapa donde quieras probar · la sonda se pone ahí"
     },
     "controls": {
       "label": "Controles del lienzo",

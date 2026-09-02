@@ -419,7 +419,9 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             </div>
           )}
           <span className={`mp-canvas-label ${isDm && playerView ? 'probe' : ''}`}>{isDm && playerView
-            ? `${t('maps.probe.banner')} · ${t('maps.probe.note')}`
+            ? probe
+              ? `${t('maps.probe.banner')} · ${t('maps.probe.note')}`
+              : t('maps.probe.place')
             : isDm && !playerView
             ? `${t('maps.dmView')}${live.fogMode === 'vision' ? ` · ${t('maps.fog.byVision')}` : ''}${isBrush(tool) ? ` · ${t(`maps.brush.${tool}`)}` : ''}`
               : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
@@ -596,11 +598,21 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onZoomIn={() => setView(v => zoomAt(v, ZOOM_STEP, viewCenter()))} onZoomOut={() => setView(v => zoomAt(v, 1 / ZOOM_STEP, viewCenter()))}
             onCenter={() => setView(fitView(live, viewport()))} onToggleWalls={() => setShowWalls(w => !w)}
             onTogglePlayerView={() => {
-              // Encender «ver como jugador» SUELTA la sonda en mitad de lo que se está mirando; apagarlo se la
-              // lleva, y con ella la memoria que llevaba acumulada (§ 7.3). No queda nada guardado.
+              /**
+               * Encender «ver como jugador» NO coloca la sonda: la pone ÉL, con un clic donde quiera (dueño,
+               * 2026-09-02: «déjame poner el token donde quiera, no lo pongas automáticamente en el centro,
+               * si no la prueba es una mierda»). Antes caía en mitad de lo que se estuviera mirando y desde
+               * ahí tocaba arrastrarla, que con el mapa alejado es un viaje — y el sitio que importa para
+               * probar casi nunca es el centro de la pantalla.
+               *
+               * Apagarlo se la lleva, y con ella la memoria que llevaba acumulada (§ 7.3). Nada se guarda.
+               */
               const next = !playerView;
               setPlayerView(next);
-              setProbe(next ? canvasToScene(viewCenter(), view) : null);
+              setProbe(null);
+              // Y con Seleccionar en la mano: si se entrase con el Lápiz puesto, el clic que tiene que poner
+              // la sonda se lo llevaría el lápiz y parecería que el modo no hace nada.
+              if (next) setTool('select');
             }} />
         </div>
       </div>

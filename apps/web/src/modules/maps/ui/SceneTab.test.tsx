@@ -1259,6 +1259,17 @@ describe('<SceneTab> mandar a otra capa (rebanada 7)', () => {
  */
 describe('<SceneTab> la sonda de prueba (rebanada 7 · § 7.3)', () => {
   const probeOf = (vision: ReturnType<typeof fakeVisionPort>) => vision.calls.filter(c => c.op === 'refresh' && c.probe);
+  /**
+   * Encender el modo YA NO la coloca: la pone él con un clic (dueño, 2026-09-02, «déjame poner el token donde
+   * quiera, no lo pongas automáticamente en el centro, si no la prueba es una mierda»). Este ayudante hace
+   * las dos cosas —encender y pinchar— porque casi todos los tests de aquí abajo la quieren ya puesta.
+   */
+  const ponerSonda = async (u: ReturnType<typeof userEvent.setup>, at = { x: 300, y: 400 }) => {
+    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    fireEvent.pointerDown(canvas(), { clientX: at.x, clientY: at.y, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    return at;
+  };
 
   it('un jugador no la tiene: el botón entero es del director', async () => {
     mount('player');
@@ -1266,7 +1277,11 @@ describe('<SceneTab> la sonda de prueba (rebanada 7 · § 7.3)', () => {
     expect(screen.queryByRole('button', { name: 'Ver como jugador' })).not.toBeInTheDocument();
   });
 
-  it('encenderla la suelta en el mapa y le pide la visión AL SERVIDOR, con el punto', async () => {
+  /**
+   * 🎭 ENCENDER EL MODO NO LA COLOCA — la pone él donde pincha. Antes caía en mitad de lo que se estuviera
+   * mirando y había que arrastrarla hasta el sitio que de verdad importa, que con el mapa alejado es un viaje.
+   */
+  it('encenderla NO la suelta sola: pide que pinches, y se pone donde pinches', async () => {
     const u = userEvent.setup();
     const vision = fakeVisionPort();
     mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
@@ -1274,9 +1289,29 @@ describe('<SceneTab> la sonda de prueba (rebanada 7 · § 7.3)', () => {
     expect(within(canvas()).queryByRole('img', { name: 'Sonda de prueba' })).not.toBeInTheDocument();
 
     await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    // Encendido pero sin sonda: no hay ficha en el mapa y la pantalla dice qué hacer.
+    expect(within(canvas()).queryByRole('img', { name: 'Sonda de prueba' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Pincha en el mapa donde quieras probar/)).toBeInTheDocument();
+    expect(probeOf(vision)).toHaveLength(0);
+
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 400, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
     expect(await within(canvas()).findByRole('img', { name: 'Sonda de prueba' })).toBeInTheDocument();
     await waitFor(() => expect(probeOf(vision).length).toBeGreaterThan(0));
-    expect(probeOf(vision)[0]!.probe).toEqual(expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }));
+    // Y le pide al SERVIDOR la visión de ESE punto, el que él eligió — no de uno inventado.
+    expect(probeOf(vision).at(-1)!.probe).toEqual({ x: 300, y: 400 });
+  });
+
+  it('ya puesta, otro clic la muda de sitio sin tener que arrastrarla', async () => {
+    const u = userEvent.setup();
+    const vision = fakeVisionPort();
+    mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
+    await screen.findByText(/Vista de director/);
+    await ponerSonda(u);
+    await waitFor(() => expect(probeOf(vision).length).toBeGreaterThan(0));
+    fireEvent.pointerDown(canvas(), { clientX: 800, clientY: 200, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await waitFor(() => expect(probeOf(vision).some(c => c.probe!.x === 800 && c.probe!.y === 200)).toBe(true));
   });
 
   it('lo dice en pantalla, y deja de enseñarle lo que un jugador no vería', async () => {
@@ -1285,7 +1320,7 @@ describe('<SceneTab> la sonda de prueba (rebanada 7 · § 7.3)', () => {
     await screen.findByText(/Vista de director/);
     await waitFor(() => expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).toBeInTheDocument());
 
-    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    await ponerSonda(u);
     expect(screen.getByText(/SONDA DE PRUEBA · lo que vería un jugador desde aquí/)).toBeInTheDocument();
     expect(screen.getByText(/nada se guarda/)).toBeInTheDocument();
     await waitFor(() => expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).not.toBeInTheDocument());
@@ -1296,10 +1331,10 @@ describe('<SceneTab> la sonda de prueba (rebanada 7 · § 7.3)', () => {
     const vision = fakeVisionPort();
     mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
     await screen.findByText(/Vista de director/);
-    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    await ponerSonda(u);
     await within(canvas()).findByRole('img', { name: 'Sonda de prueba' });
     await waitFor(() => expect(probeOf(vision).length).toBeGreaterThan(0));
-    const first = probeOf(vision)[0]!.probe!;
+    const first = probeOf(vision).at(-1)!.probe!;
 
     fireEvent.pointerDown(canvas(), { clientX: first.x, clientY: first.y, pointerId: 1, button: 0 });
     fireEvent.pointerMove(canvas(), { clientX: first.x + 7 * G, clientY: first.y + 3 * G, pointerId: 1 });
@@ -1311,7 +1346,7 @@ describe('<SceneTab> la sonda de prueba (rebanada 7 · § 7.3)', () => {
     const u = userEvent.setup();
     mount('dm');
     await screen.findByText(/Vista de director/);
-    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
+    await ponerSonda(u);
     await within(canvas()).findByRole('img', { name: 'Sonda de prueba' });
     await u.click(screen.getByRole('button', { name: 'Ver escena Capilla sin techo' }));
     await waitFor(() => expect(within(canvas()).queryByRole('img', { name: 'Sonda de prueba' })).not.toBeInTheDocument());
@@ -1322,10 +1357,9 @@ describe('<SceneTab> la sonda de prueba (rebanada 7 · § 7.3)', () => {
     const u = userEvent.setup();
     mount('dm');
     await screen.findByText(/Vista de director/);
-    const btn = screen.getByRole('button', { name: 'Ver como jugador' });
-    await u.click(btn);
+    await ponerSonda(u);
     await within(canvas()).findByRole('img', { name: 'Sonda de prueba' });
-    await u.click(btn);
+    await u.click(screen.getByRole('button', { name: 'Ver como jugador' }));
     await waitFor(() => expect(within(canvas()).queryByRole('img', { name: 'Sonda de prueba' })).not.toBeInTheDocument());
     expect(screen.getByText(/Vista de director/)).toBeInTheDocument();
   });

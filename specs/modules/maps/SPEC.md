@@ -600,6 +600,20 @@ jugador desde ese punto**. No hay desplegable y no hay que elegir personaje.
   que un jugador no conoce, así que si la línea de vista se recalculase allí, lo que ve él y lo que ve el
   jugador podrían discrepar — y comprobar exactamente eso es para lo que sirve la sonda.
 
+#### 🎭 LA PONE ÉL, DONDE PINCHE — corregido el 2026-09-02
+
+Nació soltándose sola en mitad de lo que el director estuviera mirando. Al probarlo: *«déjame poner el token
+donde quiera, no lo pongas automáticamente en el centro, si no la prueba es una mierda»*. Tenía razón —el
+sitio que importa para probar casi nunca es el centro de la pantalla, y desde ahí tocaba arrastrarla, que con
+el mapa alejado es un viaje.
+
+- **Encender «ver como jugador» ya NO la coloca.** Enciende el modo y la pantalla pide: *«pincha en el mapa
+  donde quieras probar»*.
+- **El primer clic la pone. Cualquier clic posterior en el suelo la muda.** Arrastrarla sigue igual: pinchar
+  SOBRE ella la agarra, en vez de mudarla a donde ya está.
+- **Al encender el modo, la herramienta pasa a Seleccionar.** Si se entrase con el Lápiz en la mano, el clic
+  que tiene que poner la sonda se lo llevaría el lápiz y parecería que el modo no hace nada.
+
 #### Dónde vive: NO es un botón nuevo — cuelga de «Ver como jugador»
 > 🔄 Corregido el 2026-09-01 por el dueño, viendo la app en local: «el botón de ver como jugador… me debería
 > dejar poner un token donde quiera para probar». Antes se había planeado un botón «Sonda» propio en el bloque
