@@ -257,6 +257,15 @@ export class SupabaseMapsRepo implements MapsPort {
     this.fail(error);
   }
   /**
+   * BORRAR UN GRUPO ENTERO (§ «EL GRUPO»). Un solo DELETE: media sala borrada es una sala abierta, y por el
+   * hueco se cuela la visión — el mismo agujero que ya nos mordió al escribirla muro a muro.
+   */
+  async removeWalls(ids: string[]): Promise<void> {
+    if (!ids.length) return;
+    const { error } = await this.db.from('maps_walls').delete().in('id', ids);
+    this.fail(error);
+  }
+  /**
    * ATAR O DESATAR MUROS (§ «EL GRUPO»). Un solo UPDATE con `in`: o quedan todos atados o ninguno, porque
    * media selección agrupada y la otra media suelta no es un estado que él pueda entender ni deshacer.
    */

@@ -62,6 +62,8 @@ export interface MapsPort {
    * Es UNA sentencia: agrupar media selección y dejar la otra media suelta no es un estado que exista.
    */
   setWallsGroup(ids: string[], groupId: string | null): Promise<void>;
+  /** DM: borra varios muros de una vez — el grupo entero con Suprimir (§ «EL GRUPO»). */
+  removeWalls(ids: string[]): Promise<void>;
   /**
    * DM: la geometría de varios muros a la vez — mover o estirar un grupo entero (§ «EL GRUPO»).
    * Va aparte de `updateWallGeometry` porque un grupo a medio mover deja la forma rota en la base.

@@ -62,6 +62,37 @@ describe('<MapCanvas> el GRUPO se coge, se mueve y se estira', () => {
   });
 
   /**
+   * 🔒 EL DOBLE CLIC DE VERDAD, sin `detail` (dueño, 2026-09-03: «*no funciona EL DOBLE CLICK*»). En el
+   * navegador `pointerdown` trae `detail: 0` —el contador de clics lo llevan `mousedown`/`click`—, así que el
+   * test pasaba metiéndoselo a mano mientras en pantalla estaba muerto. Aquí se hacen DOS clics normales
+   * seguidos, que es lo que hace él.
+   */
+  it('dos clics normales seguidos sobre el mismo muro entran dentro', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    down(svg, 60, 0); up(svg);
+    expect(cb2.onSelectWall).not.toHaveBeenCalledWith('g-a');
+    down(svg, 60, 0); up(svg);
+    expect(cb2.onSelectWall).toHaveBeenCalledWith('g-a');
+  });
+
+  it('dos clics en muros DISTINTOS no son un doble clic', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    down(svg, 60, 0); up(svg);
+    down(svg, 200, 60); up(svg);
+    expect(cb2.onSelectWall).not.toHaveBeenCalledWith('g-b');
+  });
+
+  /** 🔒 Y Suprimir borra el GRUPO ENTERO, no un muro: «*no me deja borrarlos*». */
+  it('Suprimir con el grupo cogido lo borra entero', () => {
+    const cb2 = { onDeleteSelection: vi.fn() };
+    mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    fireEvent.keyDown(window, { key: 'Delete' });
+    expect(cb2.onDeleteSelection).toHaveBeenCalled();
+  });
+
+  /**
    * 🔒 «*puedo seleccionar el círculo, puedo escalarlo y modificarlo pero no moverlo*» (dueño, 2026-09-03).
    * El segundo clic de un arrastre cuenta como DOBLE clic para el navegador, así que decidir «doble clic =
    * entrar» en la pulsación hacía que ir a mover el grupo entrase al muro suelto. Se decide al SOLTAR.

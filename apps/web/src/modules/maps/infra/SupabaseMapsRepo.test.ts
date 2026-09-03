@@ -141,13 +141,24 @@ describe('SupabaseMapsRepo — walls, tokens, drawings', () => {
     expect(m.updateSpy).toHaveBeenLastCalledWith({ group_id: null });
   });
 
+  /** 🔒 Media sala borrada es una sala ABIERTA: por el hueco se cuela la visión. Va en un solo DELETE. */
+  it('walls: borrar un grupo entero va en un solo DELETE', async () => {
+    const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.removeWalls(['w-1', 'w-2', 'w-3']);
+    expect(m.deleteSpy).toHaveBeenCalledTimes(1);
+    expect(q(m)['in']).toHaveBeenCalledWith('id', ['w-1', 'w-2', 'w-3']);
+  });
+
   it('walls: sin muros no toca la base', async () => {
     const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
     await repo.setWallsGroup([], 'g-7');
     await repo.updateWallsGeometry([]);
+    await repo.removeWalls([]);
     expect(m.updateSpy).not.toHaveBeenCalled();
     expect(m.upsertSpy).not.toHaveBeenCalled();
+    expect(m.deleteSpy).not.toHaveBeenCalled();
   });
 
   /** 🔒 Mover un grupo es UNA escritura: a medio mover, la forma queda rota y por el hueco se cuela la visión. */

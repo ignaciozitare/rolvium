@@ -348,6 +348,16 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     await repo.setWallsGroup(ids, groupId);
     return groupId;
   }, [repo]);
+  /**
+   * BORRAR EL GRUPO ENTERO con Suprimir (§ «EL GRUPO»). De una vez: media sala borrada es una sala abierta y
+   * por ahí se cuela la visión, que es el mismo agujero que ya arreglamos al escribirla.
+   */
+  const removeWalls = useCallback(async (ids: string[]) => {
+    if (!ids.length) return;
+    setWalls(l => l.filter(w => !ids.includes(w.id)));
+    await repo.removeWalls(ids);
+    announceVision();
+  }, [repo, announceVision]);
   /** SOLTAR: deshace el grupo y deja los muros sueltos, cada uno por su cuenta. La geometría no se toca. */
   const ungroupWalls = useCallback(async (groupId: string) => {
     const ids = walls.filter(w => w.groupId === groupId).map(w => w.id);
@@ -485,8 +495,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
-    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWall, patchWall, patchWallGeometry, focusPin,
+    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }

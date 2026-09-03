@@ -210,6 +210,13 @@ export function MapCanvas(p: Props): JSX.Element {
   const [wallDraft, setWallDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   /** Dónde se está viendo el GRUPO mientras se arrastra. Como `wallDraft`: se pinta ya, se guarda al soltar. */
   const [groupDraft, setGroupDraft] = useState<Map<string, WallAt> | null>(null);
+  /**
+   * EL DOBLE CLIC, detectado a mano. **`e.detail` vale 0 en `pointerdown`** —el contador de clics lo llevan
+   * `mousedown`/`click`, no los eventos de puntero—, así que fiarse de él dejaba el doble clic muerto en el
+   * navegador aunque el test pasara (dueño, 2026-09-03: «*no funciona EL DOBLE CLICK*»). Se mira que sea el
+   * MISMO muro, poco después y sin haber movido la mano.
+   */
+  const ultimoToque = useRef<{ id: string; t: number; x: number; y: number } | null>(null);
   /** La sala que se está levantando, ya en lados. Se pinta mientras se arrastra y se guarda al soltar. */
   const [roomDraft, setRoomDraft] = useState<RoomSide[]>([]);
   /** Los vértices que lleva puestos el polígono. Se cierra pinchando otra vez sobre el primero. */
@@ -409,7 +416,12 @@ export function MapCanvas(p: Props): JSX.Element {
           }
           // Los ids van DENTRO del gesto: si dependiera de la prop, el primer arrastre tras elegir movería
           // la selección vieja, que en ese instante todavía está vacía.
-          setGesture({ kind: 'groupXf', handle: null, origin: wallBounds(grupo)!, ids: grupo.map(g => g.id), start: s, moved: false, wallId: wall.id, dbl: e.detail >= 2 });
+          const ahora = Date.now();
+          const previo = ultimoToque.current;
+          const doble = e.detail >= 2 || (!!previo && previo.id === wall.id && ahora - previo.t < 400
+            && Math.hypot(s.x - previo.x, s.y - previo.y) <= 8 / p.view.zoom);
+          ultimoToque.current = { id: wall.id, t: ahora, x: s.x, y: s.y };
+          setGesture({ kind: 'groupXf', handle: null, origin: wallBounds(grupo)!, ids: grupo.map(g => g.id), start: s, moved: false, wallId: wall.id, dbl: doble });
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }

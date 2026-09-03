@@ -337,6 +337,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     // La LUZ va primero porque elegirla suelta lo demás: si hay una elegida, es LO elegido (dueño, 2026-09-02).
     if (selectedLight) { removeLight(selectedLight.id); return; }
     if (selectedDrawingId) { removeDrawing(selectedDrawingId); return; }
+    // EL GRUPO antes que el muro suelto: si hay una pieza cogida, ESO es lo elegido y se borra entera.
+    if (selectedWallIds.length > 1) { run(st.removeWalls(selectedWallIds)); setSelectedWallIds([]); return; }
     if (selectedWall) { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); return; }
     if (selectedTokens.length) { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }
   };

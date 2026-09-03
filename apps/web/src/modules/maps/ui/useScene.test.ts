@@ -231,6 +231,21 @@ describe('useScene · Builder levanta la sala de una vez', () => {
     await waitFor(() => expect(vision.calls.length).toBeGreaterThan(antes));
   });
 
+  /** 🔒 «no me deja borrarlos». Suprimir con el grupo cogido lo borra ENTERO, y en una sola escritura. */
+  it('borra el grupo entero de una vez, y avisa a la visión', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const vision = fakeVisionPort({});
+    const result = await mount(repo, vision);
+    await act(async () => { await result.current.addRoom(sala); });
+    const ids = repo.walls.map(w => w.id);
+    const antes = vision.calls.length;
+    await act(async () => { await result.current.removeWalls(ids); });
+    expect(repo.wallBatchRemoves).toEqual([ids]);
+    expect(repo.walls).toHaveLength(0);
+    expect(result.current.walls).toHaveLength(0);
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(antes));
+  });
+
   /** Un gesto demasiado pequeño llega aquí como lista vacía: no se escribe nada ni se molesta al servidor. */
   it('una sala vacía no escribe nada', async () => {
     const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
