@@ -40,9 +40,36 @@ DBA antes de una línea de código.** Con ella entran las dos secciones del pane
 propósito: «ESTILO DE LA MAZMORRA» (los preajustes) y las dos texturas base — el interruptor de modo, que ya
 está construido, es su sitio.
 
-### 🎨 DEUDA DE DISEÑO
-El **menú desplegable de las seis herramientas de dibujo NO está en `rolvium.pen`**: lo describió por escrito y
-pidió terminar y subir. Queda por dibujar.
+### 🎨 DEUDA DE DISEÑO — SALDADA
+El menú desplegable de las seis herramientas **ya está dibujado en `rolvium.pen`**:
+`PL/Barra · LAS SEIS DE DIBUJAR EN UN ICONO ← NUEVO 03-09` (**`b4RHYS`**), en la banda 5 al lado de los frames
+del panel v3. Enseña la barra con el botón activo y el menú desplegado a su lado, más la nota de por qué.
+> ⚠️ **El `.pen` NO está guardado en disco**: el MCP no escribe, hace falta su **Cmd+S** en el tab de
+> `rolvium.pen`. Hasta entonces no hay nada que commitear del diseño.
+
+### 💻 CORRIENDO EN LOCAL AHORA MISMO
+- Web → `http://localhost:5173` · API → `http://localhost:3001` (`/health` responde `{"ok":true}`)
+- Supabase local levantado, y **con las tres columnas** (`spin_ms`, `intensity`, `group_id`), igual que producción.
+- Se levanta con `npm run dev:api` y `npm run dev:web`. Si los puertos están cogidos, hay una instancia vieja:
+  matarla antes, o Vite se va al 5174 y el navegador enseña lo de antes.
+
+### 🔁 PROMPT DE RESUME DEL CHAT NUEVO — USAR ESTE
+
+> Rolvium, chat nuevo. **Todo lo anterior está en `main` y en producción**, verificado en vivo; no queda nada
+> pendiente de subir ni ninguna migración sin aplicar. Lee el bloque 🟢 de `WORK_STATE.md` (2026-09-03, cierre).
+>
+> **Empezamos el CONSTRUCTOR DE SALAS.** Eso es la pregunta 6 del spec, que YA está contestada por mí: la sala
+> es una entidad con su suelo, el suelo base se hereda del momento de dibujar, y encima van el pincel de
+> textura y las capas con transparencia que ya existen — la sala mete un suelo DEBAJO, no reemplaza nada.
+> Lee `specs/modules/maps/SPEC.md` § «Rebanada 8», sobre todo «✅ RESUELTO: LAS PSEUDO TEXTURAS BASE» y la
+> pregunta 6.
+>
+> **El orden es obligatorio: Spec → DBA (tabla + migración) → Diseño en el `.pen` aprobado con capturas → sólo
+> entonces código.** Con la tabla entran las dos secciones del panel v3 que están sin maquetar a propósito:
+> «ESTILO DE LA MAZMORRA» (los preajustes, que ponen LAS DOS texturas base de golpe) y las dos texturas base.
+> El interruptor de modo del panel ya está construido y es su sitio.
+>
+> La app corre en local: `npm run dev:api` y `npm run dev:web` → `localhost:5173` contra Supabase local.
 
 ## 🔵 SESIÓN 2026-09-03 — BUILDER v3 MAQUETADO
 
