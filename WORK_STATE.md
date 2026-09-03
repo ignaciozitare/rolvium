@@ -306,12 +306,20 @@ Dibujar una sala **no añade suelo, quita pared**. Si esto se entiende al revés
    nueva forma… si se tocan se solapan*». El muro compartido **desaparece** y los muros salen del contorno de
    la **UNIÓN**. Tocarse sin solaparse también funde.
 2. **Pero cada forma se recuerda por separado** (elección suya): la unión **se calcula, no se destruye**. Se
-   puede coger un rectángulo, moverlo o borrarlo, y las demás recuperan su forma. → los muros de la base son
-   **derivados**: mover una forma obliga a recalcular el contorno y reescribirlos.
+   puede coger un rectángulo, moverlo o borrarlo, y las demás recuperan su forma.
 3. **Vale para CUALQUIER forma**, no sólo el rectángulo: círculo, polígono y trazo a pulso, las mismas reglas.
-4. **Muros y puertas nacen VISIBLES para los jugadores** en el modo «dibujar aquí» — el muro ES el dibujo.
-   ⚠️ En «sobre una foto» siguen naciendo **ocultos**: ahí son marcas para la niebla. No mezclarlo.
-5. **Ninguna puerta automática**: se abren con el disco de siempre (`planOpening`) sobre el contorno de la unión.
+4. 🔴 **LOS MUROS DE UNA SALA NO SON LOS MUROS DE SIEMPRE** (corrección suya del 2026-09-04, y tumba algo que
+   el spec daba por confirmado). «*los muros de las habitaciones son los que se ven y tienen física, con las
+   colisiones, luces etc; no estoy hablando de los muros con los que venimos trabajando*».
+   - **Mismo comportamiento, entidad distinta.** El de siempre es una **marca invisible** sobre una foto; el de
+     una sala es **un objeto que se ve**, con grosor, textura y sombra — **ES el mapa**.
+   - **La sala NO genera filas de `maps_walls`**: su contorno **es** el muro. Nada de filas derivadas que
+     reescribir al mover una forma.
+   - **Se ven, y no hay interruptor**: aquí «visible» no es la casilla `visible_players`. Se dibujan y punto.
+     El botón que se subió el 03-09 es del modo «sobre una foto» y sólo de él.
+   - ⛔ **`maps_walls` NO SE TOCA**: tabla, RLS y comportamiento se quedan como están.
+5. **Ninguna puerta automática**: mismo disco de siempre, pero el agujero se anota **sobre el contorno**, no
+   partiendo una fila de muro — porque no hay fila.
 6. **Sombra corta desde el contorno hacia DENTRO del suelo.** Es pintura y nada más: no tapa, no estorba, no
    entra en visión ni en luces. En un muro fundido **no hay sombra**, que es lo que hace que dos salas se lean
    como una.
@@ -328,8 +336,14 @@ Lo que la tabla tiene que poder guardar (detallado en el spec, § «Modelo de da
 - **La FORMA de cada trazo, no la unión**: tipo, geometría y **orden de llegada** (hace falta para la regla de
   «manda la más vieja»).
 - **Su suelo**, heredado del momento de dibujar.
-- **Las dos texturas base van en `maps_scenes`**, no en la sala: son de la escena.
-- ⚠️ **Mirar `maps_walls.group_id` ANTES de inventar una atadura nueva**: ya ata los muros de un gesto.
+- **Las dos texturas base y el grosor del muro van en `maps_scenes`**, no en la sala: son de la escena.
+- **Las aberturas**, como huecos anotados sobre el contorno: dónde empieza, dónde acaba, abierto o cerrado.
+- ⚠️ **`maps_walls.group_id` NO hace falta aquí**: ata muros del modo A y ahí se queda. No forzarlo.
+
+### 🔨 Y EL TRABAJO DE FONDO, QUE NO ES DE TABLA SINO DE SERVIDOR
+`sceneVision.ts` **sólo conoce `maps_walls`**. Tiene que pasar a mirar **las DOS fuentes** —filas marcadas y
+contornos de salas— para la visión, las colisiones y el recorte de las luces. Es lo más gordo de esta tanda y
+es fácil que se subestime, porque no se ve en pantalla.
 
 ### 🚧 LO QUE HAY QUE CONSTRUIR DESPUÉS (para dimensionar)
 Motor de **unión de formas** (hoy `roomRules.ts` sólo devuelve los lados de UNA figura) · las dos texturas base
@@ -345,9 +359,14 @@ modo · el relleno de pared y la sombra en el lienzo.
 > `specs/modules/maps/SPEC.md` § «Rebanada 8», y sobre todo § «Cómo se levanta una sala». **No me hagas
 > ninguna de las siete preguntas de ese apartado: están todas contestadas.**
 >
-> Lo que no puedes equivocarte: **el suelo no se pone encima, se ve por el AGUJERO** — la textura de pared
-> rellena la escena entera y cada sala abre un hueco. Y **las salas SE FUNDEN**, nunca se apilan, pero cada
-> forma se recuerda por separado para poder moverla o borrarla después.
+> **Tres cosas en las que no puedes equivocarte:**
+> 1. **El suelo no se pone encima, se ve por el AGUJERO** — la textura de pared rellena la escena entera y cada
+>    sala abre un hueco.
+> 2. **Las salas SE FUNDEN**, nunca se apilan, pero cada forma se recuerda por separado para poder moverla o
+>    borrarla después.
+> 3. **Los muros de una sala NO son los `maps_walls` de siempre.** Mismo comportamiento (vista, colisiones,
+>    luces), entidad distinta: el de siempre es una marca invisible sobre una foto, el de la sala es un objeto
+>    que se ve y que ES el mapa. `maps_walls` no se toca.
 >
 > El orden es obligatorio: **DBA (tabla + migración) → diseño en el `.pen` aprobado con capturas → sólo
 > entonces código.** Nada de interfaz antes del `.pen`.
