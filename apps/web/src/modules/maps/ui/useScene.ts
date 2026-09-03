@@ -583,6 +583,19 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     await repo.updateWall(id, patch);
     announceVision();
   }, [repo, announceVision]);
+  /**
+   * TODOS LOS MUROS DE LA ESCENA, ENSEÑADOS O ESCONDIDOS A LOS JUGADORES DE GOLPE (petición suya del
+   * 2026-09-03). Se pinta al momento y se escribe por escena, no muro a muro.
+   *
+   * Avisa a la mesa (`announceVision`) porque cambia lo que le LLEGA a un jugador: la RLS sólo le manda los
+   * muros con `visible_players`, así que sin el aviso seguiría con los de antes hasta recargar.
+   */
+  const setAllWallsVisible = useCallback(async (visible: boolean) => {
+    if (!sceneId) return;
+    setWalls(l => l.map(w => ({ ...w, visiblePlayers: visible })));
+    await repo.setAllWallsVisible(sceneId, visible);
+    announceVision();
+  }, [repo, sceneId, announceVision]);
   /** DM, Seleccionar: the segment moved or a vertex was stretched — geometry only, but it changes every sightline. */
   const patchWallGeometry = useCallback(async (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => {
     setWalls(l => l.map(w => (w.id === id ? { ...w, ...at } : w)));
@@ -695,8 +708,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
-    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, history,
+    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }

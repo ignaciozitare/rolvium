@@ -65,6 +65,16 @@ export interface MapsPort {
   /** DM: borra varios muros de una vez — el grupo entero con Suprimir (§ «EL GRUPO»). */
   removeWalls(ids: string[]): Promise<void>;
   /**
+   * DM: enseña —o esconde— TODOS los muros de una escena a los jugadores de golpe (petición suya,
+   * 2026-09-03: «agrega un botón para que los jugadores puedan ver las líneas de los muros»).
+   *
+   * Existe aparte de `updateWall` porque marcarlos uno a uno era justo lo que él quería dejar de hacer, y
+   * porque va por ESCENA y no por lista de ids: lo que pide el botón es «todos los de este mapa», incluidos
+   * los que este navegador no tenga cargados todavía. Una sola sentencia; a medio camino la mesa vería unas
+   * paredes sí y otras no.
+   */
+  setAllWallsVisible(sceneId: string, visible: boolean): Promise<void>;
+  /**
    * DM: la geometría de varios muros a la vez — mover o estirar un grupo entero (§ «EL GRUPO»).
    * Va aparte de `updateWallGeometry` porque un grupo a medio mover deja la forma rota en la base.
    */

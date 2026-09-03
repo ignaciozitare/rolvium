@@ -637,6 +637,56 @@ describe('useScene — capas y luces', () => {
  * El doble de aquí no resuelve nada por su cuenta: se resuelve a mano, que es la única forma de reproducir
  * «la siguiente petición sale antes de que llegue la anterior» sin depender de relojes ni de la red.
  */
+/**
+ * 🧱 ENSEÑARLE LOS MUROS A LOS JUGADORES, TODOS DE GOLPE (dueño, 2026-09-03). Va por ESCENA y en una sola
+ * escritura: marcarlos uno a uno era justo lo que él quería dejar de hacer, y a medio camino la mesa vería
+ * unas paredes sí y otras no.
+ */
+describe('useScene · los muros, enseñados a los jugadores de golpe', () => {
+  const conMuros = () => fakeMapsRepo({ walls: [WALL_1, { ...WALL_1, id: 'w-9', visiblePlayers: true }] });
+
+  it('los pone todos visibles de una vez, y lo pinta al momento', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    expect(r.current.walls.some(w => !w.visiblePlayers)).toBe(true);
+    await act(async () => { await r.current.setAllWallsVisible(true); });
+    expect(r.current.walls.every(w => w.visiblePlayers)).toBe(true);
+    expect(repo.wallVisibilitySweeps).toEqual([{ sceneId: 'sc-1', visible: true }]);
+  });
+
+  it('y los vuelve a esconder', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await r.current.setAllWallsVisible(false); });
+    expect(r.current.walls.every(w => !w.visiblePlayers)).toBe(true);
+    expect(repo.wallVisibilitySweeps).toEqual([{ sceneId: 'sc-1', visible: false }]);
+  });
+
+  /**
+   * UNA sentencia, no una por muro: es lo que impide que la mesa vea media pared si algo falla a mitad, y es
+   * la razón por la que este método existe aparte de `updateWall`.
+   */
+  it('escribe UNA vez, no una por muro', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await r.current.setAllWallsVisible(true); });
+    expect(repo.wallVisibilitySweeps).toHaveLength(1);
+    expect(repo.wallUpdates).toEqual([]);
+  });
+
+  /**
+   * Y AVISA A LA MESA. Sin esto, a un jugador le siguen llegando los muros de antes hasta que recargue: la RLS
+   * sólo le manda los que tienen `visible_players`, así que cambiar la columna sin avisar no se ve.
+   */
+  it('avisa a la mesa de que lo que se ve ha cambiado', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    const antes = repo.broadcasts.length;
+    await act(async () => { await r.current.setAllWallsVisible(true); });
+    expect(repo.broadcasts.slice(antes).some(b => b.event.type === 'fog.updated')).toBe(true);
+  });
+});
+
 describe('useScene · la niebla mientras se arrastra, con el servidor lento', () => {
   type Deferred = (cells: [number, number][], over?: Partial<SceneVision>) => void;
   function slowVisionPort() {

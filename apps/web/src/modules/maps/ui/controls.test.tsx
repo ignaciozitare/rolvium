@@ -272,6 +272,60 @@ describe('<CanvasControls> — la luz y la niebla como iconos, no como barra', (
 
 
 /**
+ * 🧱 ENSEÑARLE LOS MUROS A LOS JUGADORES, TODOS DE GOLPE (dueño, 2026-09-03: «agrega un botón para que los
+ * jugadores puedan ver las líneas de los muros»). Es un ajuste de la ESCENA, no una vista suya: se guarda y lo
+ * ve toda la mesa. Por eso vive con la luz, las paredes sólidas y la niebla, y no con el velo.
+ */
+describe('<CanvasControls> los muros, enseñados a los jugadores', () => {
+  const base = { onZoomIn: vi.fn(), onZoomOut: vi.fn(), onCenter: vi.fn(), showWalls: true, onToggleWalls: vi.fn(), playerView: false, onTogglePlayerView: vi.fn() };
+
+  it('apagado dice que no los ven y al pulsar pide enseñarlos', async () => {
+    const u = userEvent.setup();
+    const onWallsToPlayers = vi.fn();
+    renderWithProviders(<CanvasControls {...base} isDm wallsToPlayers={false} onWallsToPlayers={onWallsToPlayers} />);
+    const b = screen.getByRole('button', { name: 'Los jugadores no ven los muros · pulsa para enseñárselos' });
+    expect(b).toHaveAttribute('aria-pressed', 'false');
+    await u.click(b);
+    expect(onWallsToPlayers).toHaveBeenCalledWith(true);
+  });
+
+  it('encendido dice que SÍ los ven y al pulsar pide ocultarlos', async () => {
+    const u = userEvent.setup();
+    const onWallsToPlayers = vi.fn();
+    renderWithProviders(<CanvasControls {...base} isDm wallsToPlayers onWallsToPlayers={onWallsToPlayers} />);
+    const b = screen.getByRole('button', { name: 'Los jugadores VEN los muros · pulsa para ocultárselos' });
+    expect(b).toHaveAttribute('aria-pressed', 'true');
+    await u.click(b);
+    expect(onWallsToPlayers).toHaveBeenCalledWith(false);
+  });
+
+  /**
+   * El icono es un DIBUJO nuestro y va de MÁSCARA, no de `<img>`: encendido el fondo es negro y con una imagen
+   * el dibujo se quedaría negro sobre negro. Y son DOS dibujos distintos —ladrillos y puntos—, que es
+   * exactamente lo que él pidió; con uno solo el botón no diría nada por sí mismo.
+   */
+  it('el icono es la pared dibujada, y cambia de ladrillos a puntos según el estado', () => {
+    const { rerender } = renderWithProviders(<CanvasControls {...base} isDm wallsToPlayers onWallsToPlayers={vi.fn()} />);
+    const mask = (): string => (screen.getByRole('button', { name: /ven los muros/i }).querySelector('[data-testid="mp-ctl-img"]') as HTMLElement).style.maskImage;
+    expect(mask()).toContain('/icons/wall-bricks.svg');
+    rerender(<CanvasControls {...base} isDm wallsToPlayers={false} onWallsToPlayers={vi.fn()} />);
+    expect(mask()).toContain('/icons/wall-dotted.svg');
+    expect(screen.getByRole('button', { name: /ven los muros/i }).querySelector('.material-symbols-outlined')).toBeNull();
+  });
+
+  it('a un jugador no se le ofrece: es un ajuste del director', () => {
+    renderWithProviders(<CanvasControls {...base} isDm={false} wallsToPlayers onWallsToPlayers={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /jugadores.*muros|muros.*jugadores/ })).toBeNull();
+  });
+
+  /** Sin la pareja de propiedades no se monta: es lo que deja el botón fuera cuando la escena no tiene muros. */
+  it('sin el callback no aparece', () => {
+    renderWithProviders(<CanvasControls {...base} isDm />);
+    expect(screen.queryByRole('button', { name: /ven los muros/ })).toBeNull();
+  });
+});
+
+/**
  * 🌫 QUITARSE EL VELO GRIS (dueño, 2026-09-02: «al dm le falta un desactivar esa capa gris para él, para que
  * pueda ver bien»). Es SUYO: no toca la escena, no viaja y un jugador no se entera.
  */

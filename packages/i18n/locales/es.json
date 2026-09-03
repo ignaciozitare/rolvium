@@ -853,6 +853,10 @@
       "veilOn": "Velo del director: puesto",
       "veilOff": "Velo del director: quitado"
     },
+    "wallsToPlayers": {
+      "on": "Los jugadores VEN los muros · pulsa para ocultárselos",
+      "off": "Los jugadores no ven los muros · pulsa para enseñárselos"
+    },
     "light": {
       "label": "Luz de la escena",
       "day": "Día",

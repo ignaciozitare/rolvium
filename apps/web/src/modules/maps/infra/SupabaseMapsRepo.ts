@@ -275,6 +275,17 @@ export class SupabaseMapsRepo implements MapsPort {
     this.fail(error);
   }
   /**
+   * TODOS LOS MUROS DE LA ESCENA, VISIBLES O NO, DE UNA VEZ (petición suya del 2026-09-03).
+   *
+   * Filtra por `scene_id` y NO por una lista de ids a propósito: así alcanza también a los muros que este
+   * navegador no tenga cargados. La RLS ya sólo deja escribir al director (`maps_walls_dm_write`), así que
+   * no hace falta comprobar nada más aquí — y no se puede: quien no sea director no actualizará ni una fila.
+   */
+  async setAllWallsVisible(sceneId: string, visible: boolean): Promise<void> {
+    const { error } = await this.db.from('maps_walls').update({ visible_players: visible }).eq('scene_id', sceneId);
+    this.fail(error);
+  }
+  /**
    * MOVER O ESTIRAR UN GRUPO ENTERO (§ «EL GRUPO»). Un `upsert` de filas completas, que es una sola sentencia:
    * un grupo a medio mover deja la forma rota en la base y el hueco por el que se cuela la visión.
    *

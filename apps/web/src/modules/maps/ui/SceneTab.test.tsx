@@ -3,7 +3,7 @@ import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../.
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
-import { fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, IMAGE_CHAPEL } from '../../../../tests/helpers/fakes';
+import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
 import { SceneTab } from './SceneTab';
 
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -423,6 +423,27 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
     const repo = mount('dm', seed());
     await u.click(await screen.findByRole('button', { name: 'Niebla automática por visión · se abre sola al moverse las fichas; pulsa para manual' }));
     await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { fogMode: 'manual' } }));
+  });
+
+  /**
+   * 🧱 EL BOTÓN DE ENSEÑARLE LOS MUROS A LOS JUGADORES. El estado SALE de los muros —«¿están todos
+   * visibles?»— y no de una columna nueva: él ya puede marcar un muro suelto desde el panel de Builder, y un
+   * interruptor guardado aparte se contradiría con lo que se ve en cuanto lo hiciera.
+   */
+  it('DM: el botón dice que NO los ven mientras quede uno oculto, y al pulsarlo los pone todos', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1, WALL_VISIBLE] }));
+    const b = await screen.findByRole('button', { name: 'Los jugadores no ven los muros · pulsa para enseñárselos' });
+    await u.click(b);
+    await waitFor(() => expect(repo.wallVisibilitySweeps).toEqual([{ sceneId: 'sc-1', visible: true }]));
+    await screen.findByRole('button', { name: 'Los jugadores VEN los muros · pulsa para ocultárselos' });
+  });
+
+  /** Sin muros no hay nada que enseñar ni que esconder: un botón que no hace nada sólo hace dudar. */
+  it('DM: sin muros en la escena, el botón no se ofrece', async () => {
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByRole('button', { name: 'Acercar' });
+    expect(screen.queryByRole('button', { name: /ven los muros/i })).toBeNull();
   });
 
   it('DM: the Muro tool draws whatever type the picker says, with the flags of that type', async () => {
