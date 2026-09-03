@@ -98,8 +98,20 @@ Segunda queja suya, ya con la niebla explicada. **No era el código: era la geog
   responde 500 por falta de variables y que el proyecto web no existe todavía).
 - ✅ Verificado en un preview real: build correcto, `/health` 200 y la cabecera ya dice `cdg1::fra1::`.
 - 📌 Esto es lo que contesta el **«está un pelín lento»** que él había aparcado dos veces (bloques de más abajo).
-- ⚠️ **No se puede confirmar en producción hasta que esto entre en `main`**: el `/health` de producción sigue
-  diciendo `iad1` porque aún corre el código viejo. Comprobar la cabecera **después** del despliegue.
+- ✅ **CONFIRMADO EN PRODUCCIÓN** (2026-09-03, 18:14). `main` = `417b4fa`, desplegado por Vercel él solo.
+  - `https://rolvium-api.vercel.app/health` → **`x-vercel-id: cdg1::fra1::`** y `{"ok":true}`.
+  - La web nueva publicada (`/assets/index-COZrKkdv.js`) **con las dos etiquetas dentro**, comprobadas en el
+    bundle servido, no en el local.
+  - **El número, medido sobre sus propias peticiones de visión** (`responseTime` de los registros):
+
+    | | Antes (`iad1`) | Después (`fra1`) |
+    |---|---|---|
+    | mínimo | 0,59 s | **0,13 s** |
+    | mediana | ~0,81 s | **~0,17 s** |
+    | máximo | 1,23 s | **0,30 s** |
+
+    ≈ **5× más rápido, ~0,64 s menos por respuesta.** Y como el navegador pide varias por segundo mientras se
+    arrastra una ficha, ahí es donde se nota de verdad.
 
 ### 🔎 EL SIGUIENTE ESCALÓN, ENCONTRADO Y **NO TOCADO** (decisión suya, con el número delante)
 `apps/api/handler-entry.ts` llama a `buildApp()` **en cada petición**: reconstruye Fastify, sus plugins y sus
