@@ -835,16 +835,19 @@ regla que pidió el dueño.**
 
 ## Rebanada 8 — habitaciones rápidas (el «generador» de Builder)
 
-> 🟡 **ESTE APARTADO ESTÁ SIN CONFIRMAR POR EL DUEÑO.** Escrito la noche del 2026-09-02 a partir de lo único
-> que hay registrado de él (`WORK_STATE.md`, dos peticiones suyas) porque pidió avanzar mientras dormía.
-> **Antes de tocar una sola línea de interfaz hay que: (1) que confirme este spec, y (2) que haya diseño en
-> `rolvium.pen` aprobado por él.** Lo que sí está construido es el MOTOR —la geometría, sin pantalla—, que no
-> depende de ninguna de las decisiones abiertas de abajo.
+> 🟢 **CONFIRMADO POR EL DUEÑO Y CERRADO (2026-09-04).** Este apartado se escribió a ciegas la noche del
+> 2026-09-02 —él pidió avanzar mientras dormía— y llevaba siete preguntas abiertas. **Ya no queda ninguna**:
+> las contestó todas entre el 2026-09-03 y el 2026-09-04, y lo que no contestó él está decidido y marcado
+> como decisión mía revisable. La pieza que lo cambia todo es § «Cómo se levanta una sala».
 >
-> ⚠ **Y un aviso honesto**: él dijo «el generador de habitaciones que tenemos diseñado». **No hay diseño.**
-> Ni componente en el `.pen`, ni frame, ni nada en el historial; en `WORK_STATE.md` aparece tres veces y las
-> tres como «sin empezar, pasa por spec → DBA → diseño antes de código». Lo que sí mandó fueron **dos
-> capturas de Dungeon Scrawl como referencia**, que no es lo mismo que un diseño.
+> **Qué hay construido y qué no:**
+> - ✅ El **motor de geometría** (`roomRules.ts`): las seis formas, sin pantalla.
+> - ✅ El **panel v3** de Builder, con el interruptor de modo y las seis formas.
+> - ❌ **La sala como entidad**: no existe. Ni tabla, ni migración, ni las dos texturas, ni los preajustes, ni
+>   la unión de formas, ni la sombra. **Es lo que viene ahora, y empieza por el DBA.**
+>
+> ⛔ **El orden sigue siendo obligatorio**: spec (esto, ya cerrado) → DBA (tabla + migración) → diseño en
+> `rolvium.pen` aprobado con capturas → y sólo entonces código.
 
 ### Qué es
 Dentro de **Builder** —que hoy es sólo la herramienta de muros— poder **dibujar un cuadrado o un círculo y que
@@ -995,19 +998,103 @@ rejilla. Es exactamente la capa que faltaba encima de lo ya escrito:
   - Entra `Trazo a mano`, con el **contorno del muro tembloroso**, y sale `Gris clásico`, que era el menos
     distinguible de la lista. Si él lo quiere de vuelta, la rejilla crece a diez.
 
-### 🟠 LO QUE HACE FALTA QUE ÉL DECIDA (y por qué no lo decido yo)
-1. **¿Puertas automáticas?** Una habitación cerrada sin puertas no se puede usar. ¿Se abre un hueco donde él
-   pinche después, o el generador pone una puerta por pared, o ninguna y ya las abre a mano con el disco que
-   ya existe? *Sospecha: ninguna automática — abrir una puerta ya es un gesto suyo de un clic.*
-2. **¿Qué pasa cuando dos habitaciones se tocan?** ¿Se funden las paredes comunes, se quedan las dos, o la
-   nueva parte a la vieja? *Esto cambia el motor, no sólo la pantalla.*
-3. **La textura de suelo.** «La foto de fondo hace de textura de suelo» puede querer decir dos cosas muy
-   distintas: (a) el suelo de la habitación **enseña** el fondo y **fuera** se tapa, o (b) se recorta una copia
-   del fondo dentro de la habitación como una capa de terreno. La (a) es casi gratis con lo que ya hay; la (b)
-   es una capa nueva por habitación.
-4. **Qué «tipos» hay.** Él dijo «elegir tipo de habitación/mazmorra». Hoy el motor sabe hacer **rectángulo** y
-   **círculo**. ¿Hacen falta más (pasillo, cruz, sala con columnas), o con esos dos empieza?
-5. **¿Los muros generados nacen visibles para el jugador?** Los muros tienen ese interruptor y aquí importa.
+### ✅ CÓMO SE LEVANTA UNA SALA — CERRADO POR ÉL (2026-09-04)
+
+Sus palabras, que son la fuente de todo lo de abajo:
+
+> «*quiero que el constructor de habitaciones haga un rectángulo y me lo ponga con el piso por defecto que
+> elegimos y el relleno del resto con la textura que definimos para las paredes. Si hago otro rectángulo y se
+> solapa que se fusione dando la nueva forma, nunca se apilan, si se tocan se solapan. Luego tienes que ver
+> cómo pondremos puertas aquí, éstas sí que serán visibles para los jugadores. Lo mismo pasa con cualquier
+> forma geométrica que ponga. Una vez tengamos esto listo ya veremos los pinceles para pintar sobre esto.
+> Otra cosa: desde las caras interiores de cada muro quiero una pequeña sombra hacia adentro para darle
+> efecto chulo.*»
+
+#### 1 · Qué pinta una sala: DOS texturas, y el suelo es el AGUJERO
+La sala no es «un suelo puesto encima del mapa». Es al revés, y es la vuelta de tuerca que hay que entender:
+
+- **La textura de PARED rellena TODO lo que no es sala.** Es la roca maciza de la que está excavada la
+  mazmorra: cubre la escena entera de borde a borde.
+- **La textura de SUELO se ve por los AGUJEROS que abren las salas** en ese relleno.
+- O sea: dibujar una sala **no añade** una mancha de suelo, **quita** un trozo de pared.
+
+Eso es exactamente lo que hace la herramienta en la que él se basa, y es lo que hace que dos salas pegadas se
+lean como una mazmorra y no como dos alfombras. Además ahorra el problema de «¿y qué se ve en los bordes?»: no
+hay bordes, hay roca.
+
+- 🔒 **Sólo en el modo «Dibujar aquí».** Marcando sobre una foto no se rellena nada: el dibujo lo pone la foto.
+- El suelo de cada sala es **el que estuviera puesto al empezar el trazo** (pregunta 6, ya cerrada), y cambiar
+  el preajuste después **no repinta** lo ya levantado (decisión suya del 2026-09-03).
+
+#### 2 · Las salas SE FUSIONAN, nunca se apilan
+Dos formas que se tocan o se solapan **son una sola forma**: la unión de las dos. El muro compartido
+**desaparece**, porque por ahí se pasa.
+
+- Los muros salen del **CONTORNO de la unión**, no del contorno de cada forma. Ése es el cambio de motor:
+  hoy `roomRules.ts` devuelve los lados de UNA figura; ahora hay que unir figuras y sacar el borde del
+  resultado.
+- «Se tocan» incluye **tocarse sin solaparse** (lado con lado): él dice «*si se tocan se solapan*», así que
+  dos rectángulos pegados por una cara también se funden y esa cara se abre.
+- ✅ **CADA FORMA SE SIGUE RECORDANDO POR SEPARADO** (elección suya). Se ven fusionadas, pero por dentro son
+  N rectángulos/círculos/polígonos: se puede coger uno, moverlo o borrarlo, y las demás recuperan su forma.
+  La unión **se calcula, no se destruye**.
+  - Consecuencia que hay que aceptar: los muros de la base son **derivados**. Al mover una forma hay que
+    recalcular el contorno y reescribir los muros del conjunto.
+  - Consecuencia buena: deshacer y rehacer siguen funcionando sobre las formas, que es lo que él manipula.
+- **Vale para cualquier forma**, no sólo el rectángulo: círculo, polígono y trazo a pulso siguen la misma regla
+  («*lo mismo pasa con cualquier forma geométrica que ponga*»).
+
+#### 3 · Muros y puertas: VISIBLES para los jugadores
+- ✅ **Las puertas nacen visibles** — suyo, literal: «*éstas sí que serán visibles para los jugadores*».
+- ✅ **Y los muros también** (elección suya del 2026-09-04). Dibujando el mapa en Rolvium, **el muro ES el
+  dibujo**: esconderlo dejaría al jugador mirando una mancha de suelo flotando en el vacío.
+- 🔒 **Esto NO toca el modo «sobre una foto»**, donde el muro sigue naciendo oculto porque ahí es una marca
+  para la niebla y el dibujo lo pone la foto. Son los dos modos que conviven, otra vez.
+- **Las puertas se abren con el disco de siempre** (`planOpening`), sobre el contorno de la unión. No se
+  inventa un camino paralelo — era su corrección nº 4 del 2026-09-02 y sigue mandando. Ninguna puerta
+  automática.
+
+#### 4 · La sombra hacia adentro
+> «*desde las caras interiores de cada muro quiero una pequeña sombra hacia adentro para darle efecto chulo*»
+
+Una sombra corta proyectada **desde el contorno hacia el interior del suelo**, como si la roca tuviera canto.
+Es **pintura y nada más**: no tapa, no estorba, no entra en el cálculo de visión ni en el de las luces.
+
+- Va por **dentro** del agujero, no por fuera: por fuera está la roca, y ahí no se vería.
+- Sigue el contorno de la UNIÓN, así que en un muro compartido que ha desaparecido **no hay sombra** — que es
+  justo lo que hace que dos salas fundidas se lean como una sola.
+
+#### 5 · Lo que NO entra en esta tanda
+- **Los pinceles para pintar encima**, dicho por él: «*una vez tengamos esto listo ya veremos los pinceles*».
+- Restar formas (excavar un hueco dentro de una sala). Nadie lo ha pedido; se apunta porque el motor de unión
+  lo deja a tiro.
+
+#### 🟠 DECISIONES QUE TOMO YO AQUÍ (porque él pidió cerrar el spec sin preguntas abiertas)
+Todas revisables, y ninguna bloquea el DBA:
+1. **Al fundirse dos salas con suelos distintos, manda la MÁS VIEJA.** La nueva forma está «ampliando» la que
+   ya estaba. Hoy es inofensivo —sin pincel, todas comparten el suelo base—, y sólo empezará a notarse cuando
+   llegue el pincel de la tanda siguiente.
+2. **La sombra es fija, no configurable**: profundidad de un tercio de casilla, atada a la rejilla para que no
+   cambie al acercar o alejar. Un ajuste más en el panel no lo pidió nadie.
+3. **Dos salas que se funden siguen siendo dos filas**, no una: es lo que hace posible separarlas después,
+   que es lo que él eligió.
+4. **El relleno de pared se pinta por DEBAJO de las capas de terreno** que ya existen (§ 7.1), igual que el
+   suelo de la sala. Una capa con transparencia sigue mandando encima de todo esto.
+
+### ✅ LAS SIETE PREGUNTAS, TODAS CERRADAS (ninguna abierta — orden suya del 2026-09-04)
+1. **¿Puertas automáticas?** → **NINGUNA.** La sala se levanta cerrada y él abre los vanos con el disco de
+   siempre. Confirmado por él al decir «tienes que ver cómo pondremos puertas aquí»: las pone él.
+2. **¿Qué pasa cuando dos habitaciones se tocan?** → ✅ **SE FUNDEN** (2026-09-04). «*si hago otro rectángulo y
+   se solapa que se fusione dando la nueva forma, nunca se apilan*». El muro compartido desaparece y los muros
+   salen del contorno de la UNIÓN. Cada forma se sigue recordando por separado. Ver § «Cómo se levanta una sala».
+3. **La textura de suelo.** → ✅ **Cerrada por la vuelta de tuerca del 2026-09-04**: la pregunta partía de que
+   el suelo se «pone encima», y es al revés. La textura de PARED rellena todo, y el suelo se ve por el AGUJERO
+   que abre la sala. Ni (a) ni (b): el fondo de la escena deja de pintar el suelo en este modo.
+4. **Qué «tipos» hay.** → ✅ **Las SEIS formas ya construidas** (a mano · recta · rectángulo · círculo ·
+   polígono · a pulso), y todas siguen las mismas reglas: «*lo mismo pasa con cualquier forma geométrica que
+   ponga*». No hacen falta tipos con nombre (pasillo, cruz): salen de las formas.
+5. **¿Los muros generados nacen visibles para el jugador?** → ✅ **SÍ, VISIBLES** (2026-09-04), muros y puertas.
+   Dibujando aquí el muro ES el dibujo. En el modo «sobre una foto» siguen naciendo ocultos.
 6. **✅ RESUELTA (2026-09-03) — LA SALA LLEVA SU SUELO.** Sus palabras: «*sí, lleva su suelo pero con un
    matiz: tiene de base el suelo que seleccionas cuando comienzas a dibujar, luego puedo poner con un pincel
    otra textura a ese suelo, o pongo otra capa y juego ahí con transparencias, lo que me haga falta*».
@@ -1021,9 +1108,13 @@ rejilla. Es exactamente la capa que faltaba encima de lo ya escrito:
    - ⛔ **Va tabla + migración, y pasa por el DBA antes de una línea de código de salas.**
    - 🔒 **Esto es del modo «Dibujar aquí» y de nadie más.** Marcando sobre una foto no hay suelo que guardar:
      el suelo es la foto.
-7. **🆕 ¿Las dos texturas de base son de la ESCENA o de la campaña?** Si son de la escena, cada mapa lleva las
-   suyas; si son de la campaña, se eligen una vez y valen para todas. La segunda es menos trabajo para él y
-   menos flexible.
+7. **¿Las dos texturas de base son de la ESCENA o de la campaña?** → ✅ **DE CADA MAPA** (2026-09-03). Sus
+   palabras al elegirlo: una cripta y un bosque no se parecen en nada. Cada escena lleva las suyas y cambiar
+   unas no toca las demás.
+
+> 🔒 **No queda ninguna pregunta abierta en esta rebanada.** Orden suya del 2026-09-04: «*no me dejes preguntas
+> abiertas aquí*». Lo que no había contestado él está decidido y marcado como **decisión mía revisable** en
+> § «Cómo se levanta una sala» → «Decisiones que tomo yo aquí». **El spec está cerrado y listo para el DBA.**
 
 ### ↩️ DESHACER Y REHACER (construido el 2026-09-03)
 
@@ -1074,8 +1165,20 @@ ya hace la herramienta.
 sobrevivir a recargar. Es una marca compartida en `maps_walls`, no una tabla de salas. **Pasa por el DBA antes
 de tocar código.**
 
-**Para la SALA con su suelo (pregunta 6, ya contestada)**: tabla de habitaciones con su contorno y su textura
-base, con las capas de terreno existentes por encima. **Pasa por el DBA antes de tocar código.**
+**Para la SALA (preguntas 2, 3, 5, 6 y 7, todas cerradas)**: tabla de habitaciones. Lo que el DBA tiene que
+poder guardar, con lo cerrado el 2026-09-04:
+
+- **La FORMA de cada trazo, no la unión.** Él eligió que cada rectángulo/círculo/polígono se recuerde por
+  separado para poder moverlo o borrarlo después; la unión se CALCULA al pintar. Así que la fila es una forma:
+  su tipo, su geometría y su orden de llegada (hace falta: al fundirse suelos distintos manda la más vieja).
+- **Su suelo**, heredado del momento de dibujar y quieto desde entonces.
+- **Las DOS texturas base son de la ESCENA**, no de la sala ni de la campaña: van en `maps_scenes`.
+- **Los muros siguen siendo `maps_walls` normales** y son DERIVADOS del contorno de la unión: mover una forma
+  obliga a recalcularlos. Nacen `visible_players: true` en este modo — al revés que marcando sobre una foto.
+- ⚠️ **Mirar `group_id` antes de inventar nada.** `maps_walls.group_id` YA ATA los muros de un gesto: puede que
+  la sala cuelgue de él en vez de crear una atadura nueva.
+
+**Pasa por el DBA antes de tocar una línea de código.**
 
 ### 🎨 EL DISEÑO v3 (2026-09-03) — ✅ MAQUETADO (`BuilderPanel`)
 
@@ -1164,13 +1267,18 @@ que se distinga de un vistazo un rayado de un relleno. Y los dos rayados pasan a
   motor de visión de la API (una sala tapa la vista desde fuera y la contiene desde dentro, y un vano la
   deja pasar) y otro de regresión que comprueba que **no hay ninguna marca** que distinga una sala generada
   de un muro marcado a mano sobre una foto.
-- 🟠 **Decisiones tomadas al construir, revisables por él**:
-  - Los muros generados **nacen ocultos al jugador** (`visiblePlayers: false`), como cualquier muro nuevo.
-    Es la pregunta 5 de abajo, contestada por coherencia con lo que ya había.
+- 🟠 **Decisiones que tomé yo al construir, y que ÉL YA HA REVISADO el 2026-09-04.** Se dejan aquí con su
+  corrección al lado porque conviene ver qué se dio por bueno sin preguntar y en qué se falló:
+  - ~~Los muros generados **nacen ocultos al jugador**~~ → ❌ **CORREGIDO POR ÉL: nacen VISIBLES.** Ver
+    § «Cómo se levanta una sala», más abajo. Lo di por bueno «por coherencia con lo que ya había», y la
+    coherencia era falsa: lo que ya había es el modo de MARCAR SOBRE UNA FOTO, donde el muro es una marca
+    invisible porque el dibujo lo pone la foto. Dibujando aquí, el muro **es** el dibujo.
   - **Ninguna puerta automática** (pregunta 1): la sala se levanta cerrada y él abre los vanos con el disco
-    de siempre. Es lo que ya sospechaba el spec.
-  - **Dos salas que se tocan no se funden** (pregunta 2): quedan los dos muros. Es lo que menos promete y
-    lo que se puede cambiar después sin romper nada.
+    de siempre. ✅ **Sigue en pie**, y él lo confirma al decir «tienes que ver cómo pondremos puertas aquí».
+  - ~~**Dos salas que se tocan no se funden**: quedan los dos muros~~ → ❌ **CORREGIDO POR ÉL: SE FUNDEN.**
+    «*si hago otro rectángulo y se solapa que se fusione dando la nueva forma, nunca se apilan*». Era la
+    pregunta 2, y la contesté yo con el argumento de «es lo que menos promete»; él quiere justo lo que
+    promete más. Ver § «Cómo se levanta una sala».
 - 🎨 **Diseño v3 en `rolvium.pen`, RECHAZADO por él** (2026-09-03). Lo dio por zanjado con un «ve
   construyendo y después vemos», así que la interfaz de arriba se ha construido con la barra que ya existía,
   sin inventar pantalla nueva. Las miniaturas de estilo siguen sin gustarle y **el panel de preajustes no se
