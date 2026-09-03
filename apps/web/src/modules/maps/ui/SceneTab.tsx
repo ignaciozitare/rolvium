@@ -349,6 +349,20 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   }, [selectedToken, st.tokens, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
   /**
+   * EL BOTÓN DE ENSEÑARLE LOS MUROS A LOS JUGADORES (petición suya, 2026-09-03).
+   *
+   * El estado SALE DE LOS MUROS —«¿están todos visibles?»— y no de una columna nueva en la escena: él ya puede
+   * marcar un muro suelto desde el panel de Builder, así que un interruptor guardado aparte se contradiría con
+   * lo que se ve en cuanto lo hiciera. Sin muros no se ofrece: no hay nada que enseñar ni que esconder, y un
+   * botón que no hace nada sólo sirve para dudar de si funciona.
+   *
+   * Va en un objeto que se esparce sobre `CanvasControls` para no repetir la condición en dos propiedades.
+   */
+  const wallsToPlayers = st.walls.length === 0 ? {} : {
+    wallsToPlayers: st.walls.every(w => w.visiblePlayers),
+    onWallsToPlayers: (visible: boolean) => run(st.setAllWallsVisible(visible)),
+  };
+  /**
    * ¿Lo cogido está ATADO? Sólo si TODOS comparten el mismo grupo. Media selección atada y media suelta se
    * ofrece como «agrupar», que es lo único que tiene sentido hacer con ella.
    */
@@ -712,6 +726,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView} scene={live}
             onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}
             fogVeil={fogVeil} onToggleFogVeil={() => setFogVeil(v => !v)}
+            {...wallsToPlayers}
             onLighting={lighting => run(patchScene(live.id, { lighting }))}
             onSolidWalls={solidWalls => run(patchScene(live.id, { solidWalls }))}
             onZoomIn={() => setView(v => zoomAt(v, ZOOM_STEP, viewCenter()))} onZoomOut={() => setView(v => zoomAt(v, 1 / ZOOM_STEP, viewCenter()))}

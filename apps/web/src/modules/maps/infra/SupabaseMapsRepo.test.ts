@@ -141,6 +141,23 @@ describe('SupabaseMapsRepo — walls, tokens, drawings', () => {
     expect(m.updateSpy).toHaveBeenLastCalledWith({ group_id: null });
   });
 
+  /**
+   * 🧱 TODOS LOS MUROS DE LA ESCENA, VISIBLES DE GOLPE (dueño, 2026-09-03). Filtra por `scene_id` y NO por una
+   * lista de ids A PROPÓSITO: así alcanza también a los muros que este navegador no tenga cargados. Si algún
+   * día alguien lo «arregla» pasándole ids, el botón dejaría de enseñar los que no estén en pantalla y nadie
+   * se enteraría — por eso el filtro va atado aquí.
+   */
+  it('walls: enseñarlos a los jugadores va por ESCENA y en un solo UPDATE', async () => {
+    const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.setAllWallsVisible('sc-1', true);
+    expect(m.updateSpy).toHaveBeenCalledTimes(1);
+    expect(m.updateSpy).toHaveBeenCalledWith({ visible_players: true });
+    expect(q(m)['eq']).toHaveBeenCalledWith('scene_id', 'sc-1');
+    await repo.setAllWallsVisible('sc-1', false);
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ visible_players: false });
+  });
+
   /** 🔒 Media sala borrada es una sala ABIERTA: por el hueco se cuela la visión. Va en un solo DELETE. */
   it('walls: borrar un grupo entero va en un solo DELETE', async () => {
     const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });

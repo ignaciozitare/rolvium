@@ -130118,6 +130118,3197 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "b4RHYS",
+      "x": 19027,
+      "y": 6938,
+      "name": "PL/Barra · LAS SEIS DE DIBUJAR EN UN ICONO  ←  NUEVO 03-09",
+      "width": 300,
+      "height": 700,
+      "fill": "#00000000",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "Uu7wC",
+          "x": 0,
+          "y": 0,
+          "name": "Herramientas",
+          "fill": "#f2f0eacc",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131040",
+            "offset": {
+              "x": 0,
+              "y": 2
+            },
+            "blur": 8
+          },
+          "layout": "vertical",
+          "gap": 2,
+          "padding": 4,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "G20BBb",
+              "name": "R",
+              "fill": "$pl-tinta-tenue",
+              "content": "JUEGO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 6.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "u2cb5",
+              "name": "H/Dados",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "Y2q4G",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "casino",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OR7O0",
+              "name": "H/Seleccionar",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "Jq1Sj",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "arrow_selector_tool",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "t7eXe",
+              "name": "H/Medir",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "y8AYfx",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "straighten",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tivuR",
+              "name": "H/Pin",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "n9Bcx",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "location_on",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "of6Lp",
+              "name": "Sep",
+              "fill": "$pl-borde",
+              "width": 28,
+              "height": 1
+            },
+            {
+              "type": "text",
+              "id": "Utho3",
+              "name": "R",
+              "fill": "$pl-tinta-tenue",
+              "content": "LIENZO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 6.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "AGkBC",
+              "name": "H/Dibujar",
+              "width": 36,
+              "height": 36,
+              "fill": "$pl-tinta",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "ELtmJ",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "edit",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-papel-alto"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "j3VDd",
+              "name": "Sep",
+              "fill": "$pl-oro",
+              "width": 28,
+              "height": 2
+            },
+            {
+              "type": "text",
+              "id": "a82TW6",
+              "name": "R",
+              "fill": "$pl-tinta-tenue",
+              "content": "DIRECTOR",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 6.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "B8qdvf",
+              "name": "H/Luz",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "FOhL5",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "wb_incandescent",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "UV9U1",
+              "name": "H/Builder",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "FXSM7",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "fence",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pyEmQ",
+              "name": "H/Fondo del mapa",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "EZjNi",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "image",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GvGUa",
+              "name": "H/Pincel de transparencia",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "tr9XK",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "opacity",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "ai136",
+              "name": "Sep",
+              "fill": "$pl-borde",
+              "width": 28,
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "tqBgV",
+              "name": "H/Revelar",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "sqM5L",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "visibility",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Nfz2E",
+              "name": "H/Ocultar",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "SyKeD",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "visibility_off",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "U0wx3",
+              "name": "Sep",
+              "fill": "$pl-borde",
+              "width": 28,
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "M5Yyk",
+              "name": "H/Encuentro",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "IY8q0",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "swords",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "I1mx1",
+              "name": "H/Colocar PJ",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "hGdpy",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "person_add",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "glcF1",
+          "x": 50,
+          "y": 179,
+          "name": "Menú de dibujo",
+          "width": 150,
+          "fill": "#f2f0eaf5",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#1313108c",
+            "offset": {
+              "x": 0,
+              "y": 6
+            },
+            "blur": 18
+          },
+          "layout": "vertical",
+          "padding": [
+            4,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "WqdK2",
+              "name": "M/Lápiz",
+              "width": "fill_container",
+              "fill": "$pl-tinta",
+              "gap": 8,
+              "padding": [
+                6,
+                11
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "T1cIM",
+                  "name": "I",
+                  "width": 15,
+                  "height": 15,
+                  "icon": "edit",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-papel-alto"
+                },
+                {
+                  "type": "text",
+                  "id": "orBHZ",
+                  "name": "T",
+                  "fill": "$pl-papel-alto",
+                  "content": "Lápiz",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "qi6pr",
+              "name": "M/Línea",
+              "width": "fill_container",
+              "fill": "#00000000",
+              "gap": 8,
+              "padding": [
+                6,
+                11
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "Nf4Fk",
+                  "name": "I",
+                  "width": 15,
+                  "height": 15,
+                  "icon": "horizontal_rule",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                },
+                {
+                  "type": "text",
+                  "id": "Qtof5",
+                  "name": "T",
+                  "fill": "$pl-tinta",
+                  "content": "Línea",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "e5KPQf",
+              "name": "M/Caja",
+              "width": "fill_container",
+              "fill": "#00000000",
+              "gap": 8,
+              "padding": [
+                6,
+                11
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "ThJf7",
+                  "name": "I",
+                  "width": 15,
+                  "height": 15,
+                  "icon": "crop_square",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                },
+                {
+                  "type": "text",
+                  "id": "k1ay6Z",
+                  "name": "T",
+                  "fill": "$pl-tinta",
+                  "content": "Caja",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eNoNz",
+              "name": "M/Círculo",
+              "width": "fill_container",
+              "fill": "#00000000",
+              "gap": 8,
+              "padding": [
+                6,
+                11
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "x4QQo",
+                  "name": "I",
+                  "width": 15,
+                  "height": 15,
+                  "icon": "circle",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                },
+                {
+                  "type": "text",
+                  "id": "xlaQK",
+                  "name": "T",
+                  "fill": "$pl-tinta",
+                  "content": "Círculo",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Es464",
+              "name": "M/Texto",
+              "width": "fill_container",
+              "fill": "#00000000",
+              "gap": 8,
+              "padding": [
+                6,
+                11
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "BRO2a",
+                  "name": "I",
+                  "width": 15,
+                  "height": 15,
+                  "icon": "title",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                },
+                {
+                  "type": "text",
+                  "id": "BUvO7",
+                  "name": "T",
+                  "fill": "$pl-tinta",
+                  "content": "Texto",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "QZ4dW",
+              "name": "M/Borrar",
+              "width": "fill_container",
+              "fill": "#00000000",
+              "gap": 8,
+              "padding": [
+                6,
+                11
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "DVSOq",
+                  "name": "I",
+                  "width": 15,
+                  "height": 15,
+                  "icon": "ink_eraser",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                },
+                {
+                  "type": "text",
+                  "id": "ESX0n",
+                  "name": "T",
+                  "fill": "$pl-tinta",
+                  "content": "Borrar",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "U2H25",
+          "x": 0,
+          "y": 560,
+          "name": "Nota",
+          "width": 290,
+          "fill": "#8a703826",
+          "gap": 6,
+          "padding": 8,
+          "children": [
+            {
+              "type": "icon",
+              "id": "MmXUi",
+              "name": "I",
+              "width": 12,
+              "height": 12,
+              "icon": "info",
+              "library": "Material Symbols Outlined",
+              "fill": "$pl-oro"
+            },
+            {
+              "type": "text",
+              "id": "sQhO8",
+              "name": "T",
+              "fill": "#000000",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Seis botones se comían seis alturas de barra sobre un mapa que quiere todo el alto que le den. Ahora es UNO, y el menú sale a su lado. El icono enseña la herramienta PUESTA —aquí el lápiz—, o el genérico si no hay ninguna: sin eso no habría forma de saber con qué estás dibujando sin abrir el menú. Se cierra al elegir, con Escape y pinchando fuera.",
+              "lineHeight": 1.45,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 8,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "bGroR",
+      "x": 21220,
+      "y": 6938,
+      "name": "PL/Controles del lienzo  ←  NUEVO 03-09: ENSEÑAR LOS MUROS A LOS JUGADORES",
+      "width": 760,
+      "height": 941,
+      "fill": "#00000000",
+      "layout": "none",
+      "children": [
+        {
+          "type": "text",
+          "id": "Hp0LU",
+          "x": 0,
+          "y": 0,
+          "name": "Titulo",
+          "fill": "$pl-tinta",
+          "content": "CONTROLES DEL LIENZO · abajo a la derecha del mapa",
+          "fontFamily": "$font-plenilunio",
+          "fontSize": 15,
+          "fontWeight": "normal",
+          "letterSpacing": 1.4
+        },
+        {
+          "type": "text",
+          "id": "w2QXs",
+          "x": 0,
+          "y": 26,
+          "name": "Sub",
+          "fill": "$pl-tinta-suave",
+          "textGrowth": "fixed-width",
+          "width": 700,
+          "content": "Hasta hoy esta pila NO estaba en el .pen: se construyó en código en la rebanada 3. Queda dibujada aquí tal como es, con el botón nuevo en su sitio.",
+          "lineHeight": 1.45,
+          "fontFamily": "$font-body",
+          "fontSize": 11,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "mRbP0",
+          "x": 0,
+          "y": 74,
+          "name": "Mapa (fondo de referencia)",
+          "clip": true,
+          "width": 340,
+          "height": 470,
+          "fill": "$pl-fondo",
+          "layout": "none",
+          "children": [
+            {
+              "type": "frame",
+              "id": "MZq8z",
+              "x": 290,
+              "y": 22,
+              "name": "Pila de controles",
+              "fill": "$pl-papel-alto",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#13131040",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
+              },
+              "layout": "vertical",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Uqb7w",
+                  "name": "Luz de la escena",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "$pl-tinta",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "aoE5c",
+                      "name": "I",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "dark_mode",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fbmLl",
+                  "name": "Paredes sólidas",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "$pl-tinta",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "aCi0v",
+                      "name": "I",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "shield",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gqLtX",
+                  "name": "Niebla automática",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "$pl-tinta",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "DfVr8",
+                      "name": "I",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "cloud",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DJV8O",
+                  "name": "← NUEVO · Muros para los jugadores",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "#00000000",
+                  "stroke": "$pl-sangre",
+                  "strokeWidth": 2,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "NrNp0",
+                      "name": "Pared punteada",
+                      "width": 22,
+                      "height": 20,
+                      "fill": "#00000000",
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "SiM8F",
+                          "x": 0,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "XzUyq",
+                          "x": 0,
+                          "y": 18.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "DxbAn",
+                          "x": 3,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "vR8aO",
+                          "x": 3,
+                          "y": 18.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "FU4Qx",
+                          "x": 6,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "y2EcrW",
+                          "x": 6,
+                          "y": 18.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "SdBsP",
+                          "x": 9,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "H61OK4",
+                          "x": 9,
+                          "y": 18.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "o3ogbj",
+                          "x": 12,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Jamng",
+                          "x": 12,
+                          "y": 18.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "tmzT5",
+                          "x": 15,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "x5M9K",
+                          "x": 15,
+                          "y": 18.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "e8orb",
+                          "x": 18,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Tw20F",
+                          "x": 18,
+                          "y": 18.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "XyuRe",
+                          "x": 0,
+                          "y": 3,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "t5Op6p",
+                          "x": 20.5,
+                          "y": 3,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "z2MTV2",
+                          "x": 0,
+                          "y": 6,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "prbz2",
+                          "x": 20.5,
+                          "y": 6,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "llYm1",
+                          "x": 0,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "OrA26",
+                          "x": 20.5,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "yT1B9",
+                          "x": 0,
+                          "y": 12,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "BklUt",
+                          "x": 20.5,
+                          "y": 12,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "O5nCZ",
+                          "x": 0,
+                          "y": 15,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "mOaKc",
+                          "x": 20.5,
+                          "y": 15,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "OfJe3",
+                          "x": 3,
+                          "y": 6.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "LbzT3",
+                          "x": 3,
+                          "y": 12.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "dw8Br",
+                          "x": 6,
+                          "y": 6.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Cgc0C",
+                          "x": 6,
+                          "y": 12.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "RjnUH",
+                          "x": 9,
+                          "y": 6.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "zAd35",
+                          "x": 9,
+                          "y": 12.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "jeA11",
+                          "x": 12,
+                          "y": 6.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Y4NFJS",
+                          "x": 12,
+                          "y": 12.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "hFoNf",
+                          "x": 15,
+                          "y": 6.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "ecTss",
+                          "x": 15,
+                          "y": 12.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "kLz6z",
+                          "x": 10.5,
+                          "y": 2,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "bFe3m",
+                          "x": 10.5,
+                          "y": 4,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "DLcKD",
+                          "x": 4.5,
+                          "y": 8.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "HSOjZ",
+                          "x": 4.5,
+                          "y": 10.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "e5p2tP",
+                          "x": 16,
+                          "y": 8.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "sWclu",
+                          "x": 16,
+                          "y": 10.5,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "dp4yG",
+                          "x": 10.5,
+                          "y": 15,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "UZGXv",
+                          "x": 10.5,
+                          "y": 17,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 1.5,
+                          "height": 1.5
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MlT7h",
+                  "name": "Velo del director",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "$pl-tinta",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "j7SHn",
+                      "name": "I",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "foggy",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    }
+                  ]
+                },
+                {
+                  "type": "rectangle",
+                  "id": "H36HRH",
+                  "name": "Sep",
+                  "fill": "$pl-linea",
+                  "width": 24,
+                  "height": 1
+                },
+                {
+                  "type": "frame",
+                  "id": "dwy3g",
+                  "name": "Acercar",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "#00000000",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "eIdHk",
+                      "name": "I",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "zoom_in",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MXWi9",
+                  "name": "Alejar",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "#00000000",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "b9aA8",
+                      "name": "I",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "zoom_out",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "FkVMY",
+                  "name": "Centrar",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "#00000000",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "WdcvG",
+                      "name": "I",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "center_focus_strong",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vx8kR",
+                  "name": "Ver/ocultar muros (suyo)",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "#00000000",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "V0axP",
+                      "name": "I",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "visibility",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "D7dljh",
+                  "name": "Ver como jugador",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "#00000000",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "C84Kl",
+                      "name": "I",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "theater_comedy",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OtmOx",
+              "x": 60,
+              "y": 100,
+              "name": "Señal · AQUÍ ESTÁ EL NUEVO",
+              "fill": "$pl-sangre",
+              "gap": 8,
+              "padding": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lBFCW",
+                  "name": "T",
+                  "fill": "$pl-papel-alto",
+                  "content": "ESTE ES EL NUEVO",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 12,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "icon",
+                  "id": "WBktN",
+                  "name": "Flecha",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "arrow_forward",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-papel-alto"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ZfuO8",
+          "x": 372,
+          "y": 74,
+          "name": "Qué hace el botón nuevo",
+          "width": 388,
+          "fill": "$pl-papel",
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "WysKX",
+              "name": "T",
+              "fill": "$pl-tinta",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "EL BOTÓN NUEVO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 12,
+              "fontWeight": "normal",
+              "letterSpacing": 1.4
+            },
+            {
+              "type": "text",
+              "id": "M0qRpj",
+              "name": "Q",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Enseña TODOS los muros de esta escena a los jugadores de golpe, en vez de marcarlos uno a uno. Es un ajuste de la escena: se guarda y lo ve toda la mesa.",
+              "lineHeight": 1.5,
+              "fontFamily": "$font-body",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "BEjHZ",
+              "name": "Apagado",
+              "width": "fill_container",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "HxoXH",
+                  "name": "Btn",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "#00000000",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "sGaTI",
+                      "name": "Pared punteada",
+                      "width": 30,
+                      "height": 28,
+                      "fill": "#00000000",
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "C1687",
+                          "x": 0,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "X1T9WW",
+                          "x": 0,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "OgEUT",
+                          "x": 4,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "kVVu0",
+                          "x": 4,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "zGpMV",
+                          "x": 8,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "F6jSW",
+                          "x": 8,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "YS5nx",
+                          "x": 12,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "d0sQkk",
+                          "x": 12,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "I6RDqc",
+                          "x": 16,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "eTgW7",
+                          "x": 16,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Mmq5k",
+                          "x": 20,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "WLYvE",
+                          "x": 20,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Nme60",
+                          "x": 24,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "rVzND",
+                          "x": 24,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "S4Pfq",
+                          "x": 28,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "YeGgA",
+                          "x": 28,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "FxjeP",
+                          "x": 0,
+                          "y": 4,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "TodkF",
+                          "x": 28,
+                          "y": 4,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "HHaFJ",
+                          "x": 0,
+                          "y": 8,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "yxfu8",
+                          "x": 28,
+                          "y": 8,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "H3T5v",
+                          "x": 0,
+                          "y": 12,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "o6tVh",
+                          "x": 28,
+                          "y": 12,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "WBfRP",
+                          "x": 0,
+                          "y": 16,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "q0N8wu",
+                          "x": 28,
+                          "y": 16,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "N7ozfj",
+                          "x": 0,
+                          "y": 20,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "mtRUT",
+                          "x": 28,
+                          "y": 20,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "cPWZe",
+                          "x": 4,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "TKWbr",
+                          "x": 4,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "HabKN",
+                          "x": 8,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "EgEeY",
+                          "x": 8,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "MNJyi",
+                          "x": 12,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "pfsTW",
+                          "x": 12,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "QvCpG",
+                          "x": 16,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "JDJYU",
+                          "x": 16,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "gBvKe",
+                          "x": 20,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "t33wa",
+                          "x": 20,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "VGWND",
+                          "x": 24,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "kYI8b",
+                          "x": 24,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "OMEz5",
+                          "x": 15,
+                          "y": 2,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Mx9Lk",
+                          "x": 15,
+                          "y": 6,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "foiCI",
+                          "x": 7,
+                          "y": 11,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "pVxoJ",
+                          "x": 7,
+                          "y": 15,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "NJd0h",
+                          "x": 23,
+                          "y": 11,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "thXgJ",
+                          "x": 23,
+                          "y": 15,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "FGh1G",
+                          "x": 15,
+                          "y": 20,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "XfiJI",
+                          "x": 15,
+                          "y": 24,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "UZfEj",
+                  "name": "L",
+                  "fill": "$pl-tinta",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "APAGADO · «Los jugadores no ven los muros — pulsa para enseñárselos»",
+                  "lineHeight": 1.45,
+                  "fontFamily": "$font-body",
+                  "fontSize": 10.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "kjIRT",
+              "name": "Encendido",
+              "width": "fill_container",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "zTqi7",
+                  "name": "Btn",
+                  "width": 34,
+                  "height": 34,
+                  "fill": "$pl-tinta",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ggW20",
+                      "name": "Ladrillos",
+                      "width": 30,
+                      "height": 28,
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "FKaWR",
+                          "name": "Fila",
+                          "height": 8,
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "jJhMn",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 14,
+                              "height": 8
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "Yk7WO",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 14,
+                              "height": 8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ZG7V5",
+                          "name": "Fila",
+                          "height": 8,
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "RqIkM",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 6,
+                              "height": 8
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "m3ICt",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 14,
+                              "height": 8
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "OcyG1",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 6,
+                              "height": 8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "XZqGC",
+                          "name": "Fila",
+                          "height": 8,
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "qrF1E",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 14,
+                              "height": 8
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "P5KBkQ",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 14,
+                              "height": 8
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "PzLIA",
+                  "name": "L",
+                  "fill": "$pl-tinta",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "ENCENDIDO · «Los jugadores ven los muros — pulsa para ocultárselos»",
+                  "lineHeight": 1.45,
+                  "fontFamily": "$font-body",
+                  "fontSize": 10.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "K1wCJ",
+              "name": "Sep",
+              "fill": "$pl-linea",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "text",
+              "id": "gLhSa",
+              "name": "P",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "POR QUÉ AHÍ: sus vecinos de arriba (luz, paredes sólidas, niebla) son lo mismo — ajustes de ESTA escena que pone el director y que cambian lo que ve el jugador. El velo va después porque ése sólo le afecta a él.",
+              "lineHeight": 1.5,
+              "fontFamily": "$font-body",
+              "fontSize": 10,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "ZI9jf",
+              "name": "P2",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "LA ETIQUETA DICE EL ESTADO Y LO QUE PASA AL PULSAR, como paredes sólidas y como la niebla desde hoy. Es la regla que se saltó el botón de la niebla y costó media tarde.",
+              "lineHeight": 1.5,
+              "fontFamily": "$font-body",
+              "fontSize": 10,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "rMzPt",
+          "x": 0,
+          "y": 566,
+          "name": "ELIGE EL ICONO",
+          "width": 420,
+          "fill": "$pl-papel",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 18,
+          "children": [
+            {
+              "type": "text",
+              "id": "Dk7Od",
+              "name": "T",
+              "fill": "$pl-tinta",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "ELIGE EL ICONO · el que propongo es el primero",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 14,
+              "fontWeight": "normal",
+              "letterSpacing": 1.4
+            },
+            {
+              "type": "text",
+              "id": "FwByT",
+              "name": "S",
+              "fill": "$pl-tinta-suave",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Cada uno se enseña apagado (papel) y encendido (negro), que es como se verá de verdad. Dime un número y lo cambio.",
+              "lineHeight": 1.45,
+              "fontFamily": "$font-body",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "zEMLK",
+              "name": "Opciones",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "RQhKM",
+                  "name": "1 · public",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "W7Tjc",
+                      "name": "N",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 78,
+                      "content": "1 · public",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.8
+                    },
+                    {
+                      "type": "frame",
+                      "id": "K5ONyZ",
+                      "name": "Par",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "o5xx0f",
+                          "name": "Apagado",
+                          "width": 52,
+                          "height": 52,
+                          "fill": "$pl-papel-alto",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "U62f7",
+                              "name": "I",
+                              "width": 30,
+                              "height": 30,
+                              "icon": "public_off",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-suave"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "jlep2",
+                          "name": "Encendido",
+                          "width": 52,
+                          "height": 52,
+                          "fill": "$pl-tinta",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "JOgvv",
+                              "name": "I",
+                              "width": 30,
+                              "height": 30,
+                              "icon": "public",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel-alto"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "Adwmk",
+                      "name": "Nota",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "«lo ve todo el mundo». Mi propuesta.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ttqBd",
+                  "name": "2 · groups",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "e8mUQ",
+                      "name": "N",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 78,
+                      "content": "2 · groups",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.8
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hyyRY",
+                      "name": "Par",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "e0jZVQ",
+                          "name": "Apagado",
+                          "width": 52,
+                          "height": 52,
+                          "fill": "$pl-papel-alto",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "i3LD5",
+                              "name": "I",
+                              "width": 30,
+                              "height": 30,
+                              "icon": "group_off",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-suave"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "CHf3v",
+                          "name": "Encendido",
+                          "width": 52,
+                          "height": 52,
+                          "fill": "$pl-tinta",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "R6DInV",
+                              "name": "I",
+                              "width": 30,
+                              "height": 30,
+                              "icon": "groups",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel-alto"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "S3TXAR",
+                      "name": "Nota",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "personas. OJO: ya es la capa de criaturas.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "sTsOh",
+                  "name": "3 · fence",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Vb25I",
+                      "name": "N",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 78,
+                      "content": "3 · fence",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.8
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZWP5a",
+                      "name": "Par",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "a7lF40",
+                          "name": "Apagado",
+                          "width": 52,
+                          "height": 52,
+                          "fill": "$pl-papel-alto",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "nTAAS",
+                              "name": "I",
+                              "width": 30,
+                              "height": 30,
+                              "icon": "fence",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-suave"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qIxMN",
+                          "name": "Encendido",
+                          "width": 52,
+                          "height": 52,
+                          "fill": "$pl-tinta",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "ADi8R",
+                              "name": "I",
+                              "width": 30,
+                              "height": 30,
+                              "icon": "fence",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel-alto"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "JR3eV",
+                      "name": "Nota",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "una valla: habla de MUROS, no de gente.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mZQ4B",
+                  "name": "4 · share",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dS0S1",
+                      "name": "N",
+                      "fill": "$pl-tinta",
+                      "textGrowth": "fixed-width",
+                      "width": 78,
+                      "content": "4 · share",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.8
+                    },
+                    {
+                      "type": "frame",
+                      "id": "CSbyG",
+                      "name": "Par",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "lFRnb",
+                          "name": "Apagado",
+                          "width": 52,
+                          "height": 52,
+                          "fill": "$pl-papel-alto",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "A99Ux0",
+                              "name": "I",
+                              "width": 30,
+                              "height": 30,
+                              "icon": "share_off",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-suave"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "S3yj8",
+                          "name": "Encendido",
+                          "width": 52,
+                          "height": 52,
+                          "fill": "$pl-tinta",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "NLMFW",
+                              "name": "I",
+                              "width": 30,
+                              "height": 30,
+                              "icon": "share",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel-alto"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "C8Hf8p",
+                      "name": "Nota",
+                      "fill": "$pl-tinta-suave",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "compartir. Genérico pero se entiende.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": 9.5,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "PPr72",
+          "x": 440,
+          "y": 565,
+          "name": "PRUEBA · la pared de ladrillos",
+          "width": 300,
+          "fill": "$pl-papel",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 18,
+          "children": [
+            {
+              "type": "text",
+              "id": "FnCkC",
+              "name": "T",
+              "fill": "$pl-tinta",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "5 · LA PARED (dibujada, no de Material)",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 12,
+              "fontWeight": "normal",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "mgBkP",
+              "name": "apagado = punteada · encendido = ladrillos",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "YqPOb",
+                  "name": "Apagado",
+                  "width": 52,
+                  "height": 52,
+                  "fill": "$pl-papel-alto",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "yI1Us",
+                      "name": "Pared punteada",
+                      "width": 30,
+                      "height": 28,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "Y8Wfs",
+                          "x": 0,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "JHroO",
+                          "x": 0,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "RZfdZ",
+                          "x": 4,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "frkZs",
+                          "x": 4,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "NtpmZ",
+                          "x": 8,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "DThiA",
+                          "x": 8,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Wb6Kq",
+                          "x": 12,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "hxXeZ",
+                          "x": 12,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "ihbY9",
+                          "x": 16,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "x6eU55",
+                          "x": 16,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Y8XbWp",
+                          "x": 20,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "e1SSh0",
+                          "x": 20,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "UmQJn",
+                          "x": 24,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "cAXDy",
+                          "x": 24,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "wRO0a",
+                          "x": 28,
+                          "y": 0,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "IkmlL",
+                          "x": 28,
+                          "y": 26,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "XY60g",
+                          "x": 0,
+                          "y": 4,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "doj8g",
+                          "x": 28,
+                          "y": 4,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "d22i5",
+                          "x": 0,
+                          "y": 8,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "H1cwa",
+                          "x": 28,
+                          "y": 8,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "HSjfA",
+                          "x": 0,
+                          "y": 12,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "CxbhP",
+                          "x": 28,
+                          "y": 12,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "P5R1D",
+                          "x": 0,
+                          "y": 16,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "wXxY8",
+                          "x": 28,
+                          "y": 16,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "no4LU",
+                          "x": 0,
+                          "y": 20,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "skJ50",
+                          "x": 28,
+                          "y": 20,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "ieFFD",
+                          "x": 4,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "fzOsU",
+                          "x": 4,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "mZpP8",
+                          "x": 8,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Zsc5o",
+                          "x": 8,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "RfsVo",
+                          "x": 12,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "OLEgZ",
+                          "x": 12,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "x0umNj",
+                          "x": 16,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "wGWT5",
+                          "x": 16,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "qPuTz",
+                          "x": 20,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "oQtFW",
+                          "x": 20,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "h7XUgY",
+                          "x": 24,
+                          "y": 9,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "R457t",
+                          "x": 24,
+                          "y": 18,
+                          "name": "p",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "D6zxz",
+                          "x": 14,
+                          "y": 3,
+                          "name": "junta",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "wwWto",
+                          "x": 8,
+                          "y": 12,
+                          "name": "junta",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "lCV2c",
+                          "x": 8,
+                          "y": 15,
+                          "name": "junta",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "adw8K",
+                          "x": 20,
+                          "y": 12,
+                          "name": "junta",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "x4Nhl",
+                          "x": 20,
+                          "y": 15,
+                          "name": "junta",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "geBqf",
+                          "x": 14,
+                          "y": 24,
+                          "name": "junta",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "TP3EO",
+                          "x": 14,
+                          "y": 20,
+                          "name": "junta",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "qosiP",
+                          "x": 14,
+                          "y": 7,
+                          "name": "junta",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "ddsQ4",
+                          "x": 28,
+                          "y": 23,
+                          "name": "junta",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "BWXbt",
+                          "x": 0,
+                          "y": 23,
+                          "name": "junta",
+                          "fill": "$pl-tinta-suave",
+                          "width": 2,
+                          "height": 2
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ARRZb",
+                  "name": "Encendido",
+                  "width": 52,
+                  "height": 52,
+                  "fill": "$pl-tinta",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "H5ui1O",
+                      "name": "Ladrillos",
+                      "width": 30,
+                      "height": 28,
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "gBLFD",
+                          "name": "Fila",
+                          "height": 8,
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "lC8ha",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 14,
+                              "height": 8
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "U5l4pM",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 14,
+                              "height": 8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "m5j6Wg",
+                          "name": "Fila",
+                          "height": 8,
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "LU7YC",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 6,
+                              "height": 8
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "oUi6J",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 14,
+                              "height": 8
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "dbOLb",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 6,
+                              "height": 8
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "QIGfY",
+                          "name": "Fila",
+                          "height": 8,
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "kWkFn",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 14,
+                              "height": 8
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "wMQ56",
+                              "name": "L",
+                              "fill": "$pl-papel-alto",
+                              "width": 14,
+                              "height": 8
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "s60hnI",
+                  "name": "L",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "apagado = punteada · encendido = ladrillos",
+                  "lineHeight": 1.4,
+                  "fontFamily": "$font-body",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {

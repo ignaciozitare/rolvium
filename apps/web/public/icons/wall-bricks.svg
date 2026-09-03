@@ -1,0 +1,27 @@
+<!--
+  MURO VISIBLE PARA LOS JUGADORES — la pared maciza, en aparejo a soga.
+
+  Elegido por el dueño el 2026-09-03: «me gustaría una pared: cuando se ven los muros que se vean los
+  ladrillos, y cuando no se ven que esté la pared dibujada con puntos». Descartó los cuatro candidatos de
+  Material Symbols que se le enseñaron (globo, personas, valla, compartir), y este par NO existe en Material.
+
+  Diseño 1:1 con `rolvium.pen` → frame `PL/Controles del lienzo` (bGroR), nodo «Ladrillos».
+
+  Se usa como MÁSCARA CSS, no como <img>: el color lo pone el botón (`currentColor`), así que se tiñe solo
+  cuando está encendido —fondo negro, dibujo en papel—. Por eso las formas van en negro opaco sobre
+  transparente: lo que manda en una máscara es el alfa.
+
+  Su pareja apagada es `wall-dotted.svg`, y las dos tienen que seguir siendo LA MISMA pared: mismo contorno,
+  mismas hiladas y las juntas en el mismo sitio. Si se toca una, se toca la otra.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000">
+  <rect x="0" y="2" width="11" height="6" />
+  <rect x="13" y="2" width="11" height="6" />
+
+  <rect x="0" y="10" width="5" height="6" />
+  <rect x="7" y="10" width="10" height="6" />
+  <rect x="19" y="10" width="5" height="6" />
+
+  <rect x="0" y="18" width="11" height="6" />
+  <rect x="13" y="18" width="11" height="6" />
+</svg>

@@ -377,6 +377,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const sceneUpdates: { id: string; patch: ScenePatch }[] = [];
   const wallUpdates: { id: string; patch: WallPatch }[] = [];
   const wallMoves: { id: string; at: { x1: number; y1: number; x2: number; y2: number } }[] = [];
+  const wallVisibilitySweeps: { sceneId: string; visible: boolean }[] = [];
   const wallGroupings: { ids: string[]; groupId: string | null }[] = [];
   const wallBatchMoves: string[][] = [];
   const wallBatchRemoves: string[][] = [];
@@ -395,7 +396,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const masksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -418,6 +419,9 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     removeWall: async (id: string) => { const i = walls.findIndex(w => w.id === id); if (i >= 0) walls.splice(i, 1); },
     removeWalls: async (ids: string[]) => { wallBatchRemoves.push(ids); for (let i = walls.length - 1; i >= 0; i--) if (ids.includes(walls[i]!.id)) walls.splice(i, 1); },
     setWallsGroup: async (ids: string[], groupId: string | null) => { wallGroupings.push({ ids, groupId }); for (const w of walls) if (ids.includes(w.id)) w.groupId = groupId; },
+    // Enseñar o esconder TODOS los muros de una escena a los jugadores, de una vez. Se apunta cada llamada
+    // para poder atar que va por ESCENA y en UNA sentencia, que es lo que evita que la mesa vea media pared.
+    setAllWallsVisible: async (sid: string, visible: boolean) => { wallVisibilitySweeps.push({ sceneId: sid, visible }); for (const w of walls) if (w.sceneId === sid) w.visiblePlayers = visible },
     updateWallsGeometry: async (batch: Wall[]) => { wallBatchMoves.push(batch.map(w => w.id)); for (const b of batch) { const w = walls.find(x => x.id === b.id); if (w) Object.assign(w, { x1: b.x1, y1: b.y1, x2: b.x2, y2: b.y2 }); } },
     listTokens: async (sid: string) => tokens.filter(t => t.sceneId === sid),
     addToken: async (t: NewToken) => { const created: Token = { layerId: null, ...t, id: `tk-new-${++n}` }; tokens.push(created); return created; },

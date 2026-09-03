@@ -25,6 +25,16 @@ interface Props {
    */
   fogVeil?: boolean;
   onToggleFogVeil?: () => void;
+  /**
+   * LOS MUROS, ENSEÑADOS A LOS JUGADORES (petición suya, 2026-09-03: «agrega un botón para que los jugadores
+   * puedan ver las líneas de los muros»). Encendido = TODOS los muros de la escena están visibles para ellos.
+   *
+   * El estado no se guarda en ninguna columna de la escena: SALE DE LOS MUROS. Es «¿están todos visibles?»,
+   * que es la única verdad que hay — inventar un interruptor aparte crearía dos fuentes que se contradicen en
+   * cuanto él marque un muro suelto a mano desde el panel de Builder, que es algo que ya puede hacer.
+   */
+  wallsToPlayers?: boolean;
+  onWallsToPlayers?: (visible: boolean) => void;
 }
 
 /**
@@ -36,7 +46,14 @@ function Ctl({ icon, label, onClick, on }: { icon: string; label: string; onClic
   return (
     <Tooltip label={label} placement="left">
       <button type="button" className={`mp-ctl ${on ? 'on' : ''}`} aria-label={label} aria-pressed={on} onClick={onClick}>
-        <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{icon}</span>
+        {/*
+          * Un icono que empieza por `/` es un DIBUJO nuestro y no un Material Symbol, igual que en la barra de
+          * herramientas. Va de MÁSCARA y no de `<img>` porque el color lo pone el botón: encendido, el fondo es
+          * negro y el dibujo tiene que salir en papel — con un `<img>` se quedaría negro sobre negro.
+          */}
+        {icon.startsWith('/')
+          ? <span className="mp-tool-img" data-testid="mp-ctl-img" style={{ maskImage: `url(${icon})`, WebkitMaskImage: `url(${icon})` }} />
+          : <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{icon}</span>}
       </button>
     </Tooltip>
   );
@@ -78,6 +95,21 @@ export function CanvasControls(p: Props): JSX.Element {
       {p.isDm && p.scene && p.onFogMode && (
         <Ctl icon={auto ? 'cloud' : 'cloud_off'} on={auto} label={auto ? t('maps.fog.autoOn') : t('maps.fog.autoOff')}
           onClick={() => p.onFogMode?.(auto ? 'manual' : 'vision')} />
+      )}
+      {/*
+        * ENSEÑARLE LOS MUROS A LOS JUGADORES, todos de golpe. Va aquí, con la luz, las paredes sólidas y la
+        * niebla, porque es de su misma familia: un ajuste de ESTA escena que pone el director y que cambia lo
+        * que ve el jugador. El velo de abajo ya no lo es —ése sólo le afecta a él—, y por eso queda después.
+        *
+        * El icono es un DIBUJO nuestro, no un Material Symbol: él pidió una pared, «cuando se ven los muros
+        * que se vean los ladrillos y cuando no, la pared dibujada con puntos» (2026-09-03), y ese par no
+        * existe en Material. Las dos mitades son LA MISMA pared —mismo contorno, mismas hiladas, mismas
+        * juntas—, que es lo que hace que se lean como el mismo botón encendido y apagado.
+        */}
+      {p.isDm && p.onWallsToPlayers && (
+        <Ctl icon={p.wallsToPlayers ? '/icons/wall-bricks.svg' : '/icons/wall-dotted.svg'} on={p.wallsToPlayers}
+          label={p.wallsToPlayers ? t('maps.wallsToPlayers.on') : t('maps.wallsToPlayers.off')}
+          onClick={() => p.onWallsToPlayers?.(!p.wallsToPlayers)} />
       )}
       {/*
         * Quitarse el velo gris. Va JUNTO a la niebla porque es de lo que habla, pero no es lo mismo y por eso

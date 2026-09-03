@@ -853,6 +853,10 @@
       "veilOn": "DM veil: on",
       "veilOff": "DM veil: off"
     },
+    "wallsToPlayers": {
+      "on": "Players CAN see the walls · click to hide them",
+      "off": "Players cannot see the walls · click to show them"
+    },
     "light": {
       "label": "Scene light",
       "day": "Day",

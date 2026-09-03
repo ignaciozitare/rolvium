@@ -1,0 +1,24 @@
+<!--
+  MURO OCULTO A LOS JUGADORES — LA MISMA pared, dibujada con puntos.
+
+  Pareja de `wall-bricks.svg`. Lo que la hace legible es que es la misma pared y no un recuadro cualquiera:
+  mismo contorno, las mismas tres hiladas y las juntas verticales en el mismo sitio que los ladrillos macizos
+  (a soga: una junta arriba en el centro, dos en la hilada del medio, una abajo en el centro). En el primer
+  intento la versión apagada era un rectángulo con dos rayas y no se leía como la de al lado apagada.
+
+  Se usa como MÁSCARA CSS igual que su pareja, así que el trazo va en negro opaco: en una máscara manda el
+  alfa, no el color. Los puntos son `stroke-dasharray`, no decenas de cuadraditos.
+
+  Si se toca la geometría de una, se toca la de la otra.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.6" stroke-dasharray="1.6 1.9" stroke-linecap="round">
+  <rect x="0.8" y="2.8" width="22.4" height="20.4" />
+
+  <line x1="0.8" y1="9" x2="23.2" y2="9" />
+  <line x1="0.8" y1="17" x2="23.2" y2="17" />
+
+  <line x1="12" y1="2.8" x2="12" y2="9" />
+  <line x1="6" y1="9" x2="6" y2="17" />
+  <line x1="18" y1="9" x2="18" y2="17" />
+  <line x1="12" y1="17" x2="12" y2="23.2" />
+</svg>

@@ -637,6 +637,124 @@ describe('useScene — capas y luces', () => {
  * El doble de aquí no resuelve nada por su cuenta: se resuelve a mano, que es la única forma de reproducir
  * «la siguiente petición sale antes de que llegue la anterior» sin depender de relojes ni de la red.
  */
+/**
+ * 🧱 ENSEÑARLE LOS MUROS A LOS JUGADORES, TODOS DE GOLPE (dueño, 2026-09-03). Va por ESCENA y en una sola
+ * escritura: marcarlos uno a uno era justo lo que él quería dejar de hacer, y a medio camino la mesa vería
+ * unas paredes sí y otras no.
+ */
+describe('useScene · los muros, enseñados a los jugadores de golpe', () => {
+  const conMuros = () => fakeMapsRepo({ walls: [WALL_1, { ...WALL_1, id: 'w-9', visiblePlayers: true }] });
+
+  it('los pone todos visibles de una vez, y lo pinta al momento', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    expect(r.current.walls.some(w => !w.visiblePlayers)).toBe(true);
+    await act(async () => { await r.current.setAllWallsVisible(true); });
+    expect(r.current.walls.every(w => w.visiblePlayers)).toBe(true);
+    expect(repo.wallVisibilitySweeps).toEqual([{ sceneId: 'sc-1', visible: true }]);
+  });
+
+  it('y los vuelve a esconder', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await r.current.setAllWallsVisible(false); });
+    expect(r.current.walls.every(w => !w.visiblePlayers)).toBe(true);
+    expect(repo.wallVisibilitySweeps).toEqual([{ sceneId: 'sc-1', visible: false }]);
+  });
+
+  /**
+   * UNA sentencia, no una por muro: es lo que impide que la mesa vea media pared si algo falla a mitad, y es
+   * la razón por la que este método existe aparte de `updateWall`.
+   */
+  it('escribe UNA vez, no una por muro', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await r.current.setAllWallsVisible(true); });
+    expect(repo.wallVisibilitySweeps).toHaveLength(1);
+    expect(repo.wallUpdates).toEqual([]);
+  });
+
+  /**
+   * 🔴 Y AVISA CON `walls.updated`, NO con `fog.updated`. Fue el fallo que bloqueó el review el 2026-09-03: el
+   * botón sólo funcionaba en el sentido de ENSEÑAR.
+   *
+   * `fog.updated` hace que el otro repregunte la VISIÓN, y esa respuesta no lleva muros — además, esconder un
+   * muro no mueve una sola línea de vista. Lo que cambia es lo que el jugador tiene derecho a que le manden, y
+   * de eso sólo se entera volviendo a PEDIR los muros. Por el aviso de fila no puede llegarle: al esconderlo,
+   * la fila nueva ya no pasa su RLS y no recibe nada, así que se quedaba dibujando la pared.
+   */
+  it('avisa con `walls.updated` en los DOS sentidos, no con el de la niebla', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    const tipos = (desde: number) => repo.broadcasts.slice(desde).map(b => b.event.type);
+
+    let antes = repo.broadcasts.length;
+    await act(async () => { await r.current.setAllWallsVisible(true); });
+    expect(tipos(antes)).toEqual(['walls.updated']);
+
+    antes = repo.broadcasts.length;
+    await act(async () => { await r.current.setAllWallsVisible(false); });
+    expect(tipos(antes)).toEqual(['walls.updated']);
+  });
+
+  /**
+   * 🔒 LA REGLA VALE TAMBIÉN DE UNO EN UNO. Marcar o desmarcar la casilla «visible para los jugadores» de UN
+   * muro en el panel de Builder va por `patchWall`, y tenía el mismo agujero: al esconderlo, el jugador no
+   * recibía nada y lo seguía dibujando. Venía de antes de esta tanda.
+   */
+  it('cambiar la visibilidad de UN muro también avisa con `walls.updated`', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    const antes = repo.broadcasts.length;
+    await act(async () => { await r.current.patchWall(WALL_1.id, { visiblePlayers: true }); });
+    expect(repo.broadcasts.slice(antes).map(b => b.event.type)).toContain('walls.updated');
+  });
+
+  /** Pero abrir una puerta NO lo manda: eso sí mueve la línea de vista y viaja con la respuesta de visión. */
+  it('abrir una puerta NO manda `walls.updated`: para eso ya está el aviso de la niebla', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    const antes = repo.broadcasts.length;
+    await act(async () => { await r.current.patchWall(WALL_1.id, { isOpen: true }); });
+    const tipos = repo.broadcasts.slice(antes).map(b => b.event.type);
+    expect(tipos).toContain('fog.updated');
+    expect(tipos).not.toContain('walls.updated');
+  });
+
+  /**
+   * 🏁 Y LA RE-LISTA LLEVA GUARDA DE ORDEN. Cada respuesta es una FOTO COMPLETA: si la vieja aterriza detrás
+   * de la nueva, pisa la buena y deja dibujando muros que ya deberían estar ocultos. Dos avisos dentro de una
+   * ida y vuelta es justo pulsar el botón dos veces seguidas.
+   */
+  it('dos avisos seguidos: manda la respuesta MÁS NUEVA, aunque llegue antes la vieja', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    const pendientes: ((w: Wall[]) => void)[] = [];
+    repo.listWalls = (() => new Promise<Wall[]>(res => { pendientes.push(res); })) as typeof repo.listWalls;
+
+    const aviso = { type: 'walls.updated' as const, campaignId: 'c1', sceneId: 'sc-1', userId: 'otro' };
+    act(() => { repo.emit('sc-1', { event: aviso }); });
+    act(() => { repo.emit('sc-1', { event: aviso }); });
+    await waitFor(() => expect(pendientes).toHaveLength(2));
+
+    // Llega la SEGUNDA (la buena) y luego la primera, ya caducada.
+    await act(async () => { pendientes[1]!([{ ...WALL_1, id: 'nuevo' }]); await Promise.resolve(); });
+    await waitFor(() => expect(r.current.walls.map(w => w.id)).toEqual(['nuevo']));
+    await act(async () => { pendientes[0]!([{ ...WALL_1, id: 'viejo' }]); await Promise.resolve(); });
+    expect(r.current.walls.map(w => w.id)).toEqual(['nuevo']);
+  });
+
+  /** Y el que lo recibe vuelve a PEDIR los muros: es la única forma de enterarse de que uno ha dejado de serlo. */
+  it('al recibir `walls.updated` de otro, se vuelven a pedir los muros', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    repo.walls.length = 0;
+    repo.walls.push({ ...WALL_1, id: 'w-nuevo' });
+    act(() => { repo.emit('sc-1', { event: { type: 'walls.updated', campaignId: 'c1', sceneId: 'sc-1', userId: 'otro' } }); });
+    await waitFor(() => expect(r.current.walls.map(w => w.id)).toEqual(['w-nuevo']));
+  });
+});
+
 describe('useScene · la niebla mientras se arrastra, con el servidor lento', () => {
   type Deferred = (cells: [number, number][], over?: Partial<SceneVision>) => void;
   function slowVisionPort() {

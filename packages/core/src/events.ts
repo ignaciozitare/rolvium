@@ -5,6 +5,18 @@ export type TableEvent =
   | { type: 'resource.changed'; campaignId: string; resourceId: string; value: number }
   | { type: 'token.moved'; campaignId: string; sceneId: string; tokenId: string; x: number; y: number; final: boolean }
   | { type: 'fog.updated'; campaignId: string; sceneId: string; userId: string }
+  /**
+   * «Los muros de esta escena han cambiado de dueño: vuelve a pedirlos.»
+   *
+   * TIENE que viajar por BROADCAST y no por el aviso de fila. Los avisos de fila aplican la RLS de cada
+   * suscriptor, así que al pasar un muro a oculto el jugador NO recibe nada —la fila nueva ya no le pertenece—
+   * y se queda con la copia vieja, dibujando una pared que ya no debería ver. El sentido de ESCONDER no
+   * llegaba nunca (cazado por el review, 2026-09-03). El broadcast no filtra, así que cruza en los dos.
+   *
+   * Y no se puede sustituir por `fog.updated`: la respuesta de visión no lleva muros, y ocultar un muro no
+   * cambia una sola línea de vista — lo que cambia es lo que el jugador tiene DERECHO a que le manden.
+   */
+  | { type: 'walls.updated'; campaignId: string; sceneId: string; userId: string }
   | { type: 'message.created'; campaignId: string; messageId: string }
   | { type: 'pin.focused'; campaignId: string; sceneId: string; x: number; y: number; by: string }
   | { type: 'scene.activated'; campaignId: string; sceneId: string };
