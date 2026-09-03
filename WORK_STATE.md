@@ -174,6 +174,14 @@ nunca se había subido a GitHub. Los dos previews de Vercel salieron en verde so
 - API → `https://rolvium-api-git-sonda-de-prueba-ignaciozitare-9429s-projects.vercel.app`
 - ⚠️ Los dos están detrás del acceso de Vercel: sólo se abren con su cuenta iniciada.
 
+### 🕓 BACKLOG NUEVO (suyo, 2026-09-03)
+- **Deshacer/rehacer para fichas, dibujos y luces.** Hoy cubre sólo muros y salas. Él: «*el segundo punto
+  anótalo en el backlog*».
+- ✅ **Ya decidido y NO hay que volver a preguntarlo**: el historial **vive en memoria y muere al recargar**
+  («*me parece bien que quede en memoria*»).
+- 🔴 **ABIERTA, esperando su decisión**: al mover un nodo el movimiento **se pega a la rejilla** y él quiere
+  libertad. Sus tres opciones: rejilla mucho más fina · un candado de pegar/no pegar · las dos.
+
 ### 🛑 LO ÚNICO QUE FALTA, Y NO LO PUEDO HACER YO
 
 **A la base le faltan TRES columnas**, y **el clasificador del entorno me bloquea cualquier cambio de esquema**

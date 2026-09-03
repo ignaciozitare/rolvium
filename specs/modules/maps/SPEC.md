@@ -1025,6 +1025,22 @@ rejilla. Es exactamente la capa que faltaba encima de lo ya escrito:
    suyas; si son de la campaña, se eligen una vez y valen para todas. La segunda es menos trabajo para él y
    menos flexible.
 
+### ↩️ DESHACER Y REHACER (construido el 2026-09-03)
+
+Pedido el **2026-08-19**, aparcado dos veces como «fuera de alcance» y reclamado por él: «*el deshacer y el
+inverso no funciona, no sé si se construyó pero estaba en las cosas que hay que hacer*». Tenía razón.
+
+- **Cmd+Z / Ctrl+Z** deshace · **+ Mayúsculas** rehace. Sólo el director, y no dispara escribiendo en un campo.
+- **Cubre las acciones de Builder**: levantar una sala, borrar, mover o estirar un grupo, agrupar y soltar.
+- **Cada paso sabe deshacerse Y rehacerse a sí mismo** (`useHistory`). No se guarda una foto de la escena
+  —serían cientos de muros por paso y pisaría lo que hayan hecho los demás—, sólo la vuelta atrás de ESE
+  cambio. Las pilas van en `ref`: con estado de React, dos Ctrl+Z seguidos deshacían el mismo paso dos veces,
+  y deshacer escribe en la base.
+- ✅ **APROBADO POR ÉL (2026-09-03): el historial vive en la pantalla y muere al recargar.** «*me parece bien
+  que quede en memoria*». Guardarlo obligaría a la base y podría desandar lo que otro hizo después.
+- 🕓 **EN EL BACKLOG, decisión suya del 2026-09-03**: extender deshacer/rehacer a **fichas, dibujos y luces**.
+  Hoy sólo cubre muros y salas, que es donde está trabajando.
+
 ### 🧩 EL GRUPO — modo «Sobre una foto» (decidido el 2026-09-03)
 
 > **Esto NO son salas y no tiene nada que ver con la pregunta 6.** Marcando muros sobre una foto no hay suelo,
