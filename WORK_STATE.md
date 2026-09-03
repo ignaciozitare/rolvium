@@ -16,6 +16,115 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔵 de cierre, justo debajo.**
 
+## 🔴 2026-09-03 (tarde) — «LA NIEBLA DINÁMICA NO VA»: NO ESTABA ROTA, ESTABA APAGADA
+
+Aviso suyo a media sesión: «*lo que está en producción no funciona, ten cuidado de no coger ese código, que la
+niebla dinámica y varias funciones no van*». Marcó: niebla **«se ve todo tapado y no se abre»**, y además luces,
+capas y Builder. Se paró el constructor de salas para esto, por orden suya.
+
+### 🔎 QUÉ SE COMPROBÓ (antes de tocar nada)
+- ✅ API viva (`/health` ok) · web sirviendo el bundle nuevo · apunta al Supabase y a la API correctos.
+- ✅ Producción sirve **el último commit** (`a519912`), no un despliegue viejo.
+- ✅ Las tres migraciones, aplicadas en producción.
+- ✅ **Cero errores en la API**: en 2 h, 214 respuestas 200 y 50 de 204, ni un 4xx ni un 5xx. El endpoint de
+  visión se llama y responde.
+- ✅ El local, conducido con Playwright (`admin@rolvium.local`): la mesa carga, se ve el mapa, las capas y la
+  barra, **sin un solo error de JavaScript**.
+
+### 🎯 LA CAUSA, CON LA PRUEBA
+Sus **dos escenas de producción** (`test`, `sfahafh`) estaban en **`fog_mode = 'manual'` con CERO zonas
+destapadas** (`maps_fog` vacío) y **cero luces**.
+
+- El servidor, en manual, **no calcula visión**: `apps/api/src/application/maps/sceneVision.ts:252` devuelve
+  `vision: []` y sólo lo que haya pintado el pincel del director — que era nada.
+- Al director se le pinta además **un velo sobre todo lo NO explorado**
+  (`apps/web/src/modules/maps/ui/MapCanvas.tsx:1094`). Con nada explorado, el velo es **el mapa entero**.
+- Y en «ver como jugador» el mapa va enmascarado del todo → negro.
+- 🔑 Con el mapa así, **las luces, las capas y el Builder parecen muertos también**. Un solo fallo explicaba los
+  cuatro síntomas.
+
+> ⚠️ **El valor por defecto en la base es `vision`**, así que las escenas se cambiaron a manual en algún clic.
+
+### 🐞 EL DEFECTO DE VERDAD, Y ARREGLADO
+El botón de la niebla usaba `t('maps.fog.auto')` **en los dos estados**: ni delataba si estaba encendida, ni
+decía qué pasaba al pulsar. Sus dos vecinos de la misma pila sí lo dicen (`maps.solidWalls.on/off`,
+`maps.fog.veilOn/veilOff`), y hay un comentario justo encima explicando por qué hay que decirlo: «*de un icono
+no se deduce qué pasa al pulsarlo*». El botón de al lado se saltaba su propia regla.
+
+- Rama **`fix/niebla-el-boton-no-decia-el-estado`**, cuatro commits (`6d410b0`, `25d1937`, `58cf452` y el de
+  rendimiento `37e6c80`, más abajo). **`main` intacto.**
+- `maps.fog.auto` → **`autoOn` / `autoOff`**, en es y en en, con la forma de `solidWalls`: estado + consecuencia,
+  y **las dos mitades dicen qué pasa al pulsar** (pega del review: encendida es justo el estado desde el que se
+  apagó sin querer).
+- Test nuevo del **estado apagado**, que es el que faltaba y el que habría cazado esto.
+- ✅ Verde: **1209 regression web (97 ficheros)** · **226 api** · typecheck web+api · audit 0 hard / 13 warn
+  (todos preexistentes) · review pasado.
+- ✅ Verificado en la app corriendo: la etiqueta sale bien y no hay errores de JS.
+
+### ⏳ LO QUE FALTA (dos cosas, y una es suya)
+1. **SUYA, y no espera al despliegue**: en cada escena de producción, pulsar el **botón de la nube tachada** de
+   la pila de abajo a la derecha. Eso devuelve la niebla dinámica ya. *(Se intentó hacerlo por SQL desde aquí y
+   **el permiso quedó bloqueado**: escribir en la base de producción necesita su visto bueno explícito.)*
+2. **Volver a mirar luces, capas y Builder DESPUÉS de eso.** Con el mapa entero bajo el velo no se puede saber
+   si fallaban de verdad. Producción tiene **0 luces guardadas**: o no llegó a crear ninguna ahí, o no se
+   guardaron — sin comprobar.
+3. Esta rama necesita **QA → merge → despliegue** para que el botón deje de engañar. No urge: el paso 1 arregla
+   lo que él ve.
+
+### 📌 DEUDA ANOTADA, NO TOCADA
+- `packages/i18n/src/index.tsx:39` exporta un tipo `TranslationKey` calculado que **no usa nadie**. Atarlo a la
+  firma de `t()` habría convertido este renombrado en un error de compilación en vez de un `grep`. Con
+  `translate()` devolviendo la clave tal cual cuando falla, una clave muerta **pasa typecheck y llega a
+  producción** como texto crudo en pantalla.
+- `specs/modules/maps/SPEC.md:95` cita la etiqueta vieja y además dice «barra de Opciones DJ», que dejó de ser
+  cierto en la rebanada 3. Las dos correcciones, en un solo retoque del spec cuando esto esté en producción.
+  ⚠️ Ojo: el arreglo de abajo **añade** deriva a esa misma línea — ahora la etiqueta cambia según el estado, así
+  que el spec cita un texto que ya no existe en ninguno de los dos. El retoque pendiente cubre las tres cosas.
+
+## 🐌 2026-09-03 (noche) — «FUNCIONA PERO ES ESTÚPIDAMENTE LENTO»: LA FUNCIÓN CORRÍA EN WASHINGTON
+
+Segunda queja suya, ya con la niebla explicada. **No era el código: era la geografía.**
+
+- Medido en producción: `x-vercel-id: cdg1::iad1::…` — el borde le atendía en **París**, pero la función corría
+  en **Washington** (`iad1`, el valor por omisión de Vercel) y la base de datos está en **Frankfurt**
+  (`eu-central-1`).
+- Cada respuesta de visión hace **cuatro consultas SEGUIDAS** (escena → rol → luces → explorado), y las cuatro
+  cruzaban el Atlántico. **0,6–1,2 s por respuesta**, con el navegador pidiendo varias por segundo mientras se
+  arrastra una ficha → llegaban tarde y desordenadas.
+- Arreglo, commit `37e6c80`: `apps/api/vercel.json` fija **`"regions": ["fra1"]`**. Una línea.
+- El **porqué vive en `ARCHITECTURE.md`** (§ «La función de la api vive en Frankfurt»), porque JSON no admite
+  comentarios. Ahí queda dicha la regla derivada: **la api va SIEMPRE en la misma región que Supabase.**
+- De paso se corrigieron dos frases de `ARCHITECTURE.md` que habían dejado de ser ciertas (decía que la api
+  responde 500 por falta de variables y que el proyecto web no existe todavía).
+- ✅ Verificado en un preview real: build correcto, `/health` 200 y la cabecera ya dice `cdg1::fra1::`.
+- 📌 Esto es lo que contesta el **«está un pelín lento»** que él había aparcado dos veces (bloques de más abajo).
+- ⚠️ **No se puede confirmar en producción hasta que esto entre en `main`**: el `/health` de producción sigue
+  diciendo `iad1` porque aún corre el código viejo. Comprobar la cabecera **después** del despliegue.
+
+### 🔎 EL SIGUIENTE ESCALÓN, ENCONTRADO Y **NO TOCADO** (decisión suya, con el número delante)
+`apps/api/handler-entry.ts` llama a `buildApp()` **en cada petición**: reconstruye Fastify, sus plugins y sus
+rutas cada vez, incluso con la función caliente. Con el viaje a Washington esto era ruido; ahora pasa a ser una
+parte apreciable de lo que queda (`/health`, que NO toca la base, sigue en ~170 ms desde España).
+
+Se arregla memorizando la app entre invocaciones, que son tres líneas — pero **toca el camino por el que pasa
+todo** y `handler-entry.ts` no tiene un solo test. **Medir primero en producción** con `responseTime` de los
+registros, y decidir con el dato. No se ha tocado a propósito: no es lo que él pidió.
+
+## 🧱 CONSTRUCTOR DE SALAS — DECISIONES SUYAS YA TOMADAS (no volver a preguntarlas)
+
+Se alcanzó a preguntarle antes de parar. **Las tres están contestadas por él**:
+
+1. **Las dos texturas base son DE CADA MAPA**, no de la campaña. «Una cripta y un bosque no se parecen en nada.»
+2. **Alcance de esta tanda**: los preajustes + las dos texturas base + **que cada sala se quede con su suelo**.
+   El **pincel para repintar el suelo de UNA sala** queda para la tanda siguiente.
+3. ⛔ **Cambiar el preajuste NO repinta las salas ya levantadas.** Se le ofreció la opción de que repintara todo
+   y la rechazó en redondo («*como que repinta las salas, nooooo*»). Manda lo que ya decía el spec: **el suelo se
+   hereda del momento de dibujar y se queda quieto**; el preajuste sólo afecta a lo que se levante a partir de
+   entonces.
+
+> El orden sigue siendo obligatorio y no se ha empezado: **Spec → DBA (tabla + migración) → diseño en el `.pen`
+> aprobado con capturas → sólo entonces código.**
+
 ## 🟢 2026-09-03, CIERRE — TODO EN `main` Y EN PRODUCCIÓN
 
 **`main` = `445b735`.** Rama `sonda-de-prueba` (40 commits) mergeada y subida. Vercel despliega `main` a

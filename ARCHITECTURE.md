@@ -145,7 +145,22 @@ See `specs/core/testing/SPEC.md`. Helpers in `apps/web/tests/helpers/` (`renderW
 ## Deployment
 Vercel: web project (static, rewrites to index.html) + api project (Build Output API v3
 via `apps/api/bundle.mjs`, function `/api/_handler`). Health: `GET /health`.
-Hosted Supabase is **live**: project `scfspsiemikfcnqteonq` (`Rolvium` org, free tier, eu-central-1), all 11
-migrations applied, `get_advisors` clean of CRITICAL. The **api project exists** on Vercel
-(https://rolvium-api.vercel.app, git-connected so a push to `main` redeploys it) but answers 500 until its env vars
-are set; the **web project does not exist yet**. See WORK_STATE.md § «Pendiente del dueño» for the exact values.
+Hosted Supabase is **live**: project `scfspsiemikfcnqteonq` (`Rolvium` org, free tier, eu-central-1), all
+migrations applied, `get_advisors` clean of CRITICAL. Both Vercel projects are **live and git-connected**, so a
+push to `main` redeploys them: api https://rolvium-api.vercel.app · web https://rolvium.vercel.app.
+
+### 🌍 La función de la api vive en Frankfurt (`fra1`), y no es un capricho
+`apps/api/vercel.json` fija `"regions": ["fra1"]`. **JSON no admite comentarios, así que la razón vive aquí.**
+
+Medido el 2026-09-03, con el dueño diciendo que la niebla iba «estúpidamente lenta»: la cabecera de respuesta
+era `x-vercel-id: cdg1::iad1::…` — el borde que le atendía estaba en **París**, pero la función corría en
+**Washington** (`iad1`, el valor por omisión de Vercel), mientras la base de datos está en **Frankfurt**.
+
+Cada respuesta de visión hace **cuatro consultas SEGUIDAS** a la base (escena → rol → luces → explorado), y
+cada una cruzaba el Atlántico ida y vuelta. Medido en producción: **entre 0,6 y 1,2 s por respuesta**, y el
+navegador manda varias por segundo mientras se arrastra una ficha, así que las respuestas llegaban tarde y
+desordenadas y la niebla parecía ir a rastras.
+
+> ⚠️ **Regla que se deriva:** la función de la api tiene que vivir SIEMPRE en la misma región que Supabase. Si
+> algún día se mueve el proyecto de Supabase, esta línea se mueve con él — si no, la lentitud vuelve entera y
+> sin avisar, porque nada falla: sólo tarda.

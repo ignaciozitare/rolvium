@@ -68,8 +68,16 @@ export function CanvasControls(p: Props): JSX.Element {
           label={p.scene.solidWalls ? t('maps.solidWalls.on') : t('maps.solidWalls.off')}
           onClick={() => p.onSolidWalls?.(!p.scene!.solidWalls)} />
       )}
+      {/*
+        * La niebla, con la MISMA regla que las paredes sólidas de arriba: la etiqueta dice en qué estado está
+        * y qué pasa al pulsar. Decía «Niebla automática por visión» en los DOS estados, y de ahí salió el fallo
+        * del 2026-09-03: las dos escenas de producción acabaron en `manual` sin que el dueño lo notara, y en
+        * manual el servidor no calcula visión (`sceneVision.ts`, `vision: []`), así que el mapa se quedaba
+        * entero tapado y no se abría — parecía que la niebla dinámica estuviera rota, y sólo estaba apagada.
+        */}
       {p.isDm && p.scene && p.onFogMode && (
-        <Ctl icon={auto ? 'cloud' : 'cloud_off'} on={auto} label={t('maps.fog.auto')} onClick={() => p.onFogMode?.(auto ? 'manual' : 'vision')} />
+        <Ctl icon={auto ? 'cloud' : 'cloud_off'} on={auto} label={auto ? t('maps.fog.autoOn') : t('maps.fog.autoOff')}
+          onClick={() => p.onFogMode?.(auto ? 'manual' : 'vision')} />
       )}
       {/*
         * Quitarse el velo gris. Va JUNTO a la niebla porque es de lo que habla, pero no es lo mismo y por eso

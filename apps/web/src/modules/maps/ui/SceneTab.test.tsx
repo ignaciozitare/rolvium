@@ -421,7 +421,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
   it('DM: «Niebla automática por visión» switches the scene between `vision` and `manual`', async () => {
     const u = userEvent.setup();
     const repo = mount('dm', seed());
-    await u.click(await screen.findByRole('button', { name: 'Niebla automática por visión' }));
+    await u.click(await screen.findByRole('button', { name: 'Niebla automática por visión · se abre sola al moverse las fichas; pulsa para manual' }));
     await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { fogMode: 'manual' } }));
   });
 

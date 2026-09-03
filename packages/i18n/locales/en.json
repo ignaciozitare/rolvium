@@ -847,7 +847,8 @@
       "hide": "Hide brush"
     },
     "fog": {
-      "auto": "Automatic fog by line of sight",
+      "autoOn": "Automatic fog by line of sight · opens as tokens move; click for manual",
+      "autoOff": "Manual fog · only your brush opens it; click for automatic",
       "byVision": "Fog by line of sight",
       "veilOn": "DM veil: on",
       "veilOff": "DM veil: off"
