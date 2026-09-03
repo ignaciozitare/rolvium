@@ -170,6 +170,26 @@ describe('<MapCanvas> el GRUPO se coge, se mueve y se estira', () => {
     expect(batch[1]!.y2).toBeCloseTo(300, 6);
   });
 
+  /**
+   * 🔒 «*cuando hago click en un segmento de un círculo se mueve hacia un lado*» (dueño, 2026-09-03). Un clic
+   * normal mueve el ratón uno o dos píxeles; sin zona muerta, cada clic empujaba el grupo Y lo escribía.
+   */
+  it('el temblor de un clic normal NO mueve el grupo', () => {
+    const cb2 = { onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    down(svg, 60, 0); move(svg, 62, 1); move(svg, 61, 2); up(svg);
+    expect(cb2.onTransformWalls).not.toHaveBeenCalled();
+    expect(within(svg).queryByTestId('mp-group-sel')).toBeInTheDocument();
+  });
+
+  it('y con el temblor de por medio, el doble clic sigue entrando al muro', () => {
+    const cb2 = { onSelectWall: vi.fn(), onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    down(svg, 60, 0); move(svg, 61, 1); up(svg);
+    down(svg, 60, 0); move(svg, 62, 0); up(svg);
+    expect(cb2.onSelectWall).toHaveBeenCalledWith('g-a');
+  });
+
   it('un clic sin arrastre no escribe nada: sólo elige', () => {
     const cb2 = { onTransformWalls: vi.fn() };
     const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });

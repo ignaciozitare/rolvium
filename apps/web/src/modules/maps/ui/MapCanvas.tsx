@@ -162,6 +162,12 @@ type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
 /** Tools whose press opens a gesture, so the open/close disc can wait for the release instead of stealing it. */
 const DISC_TOOLS: Tool[] = ['select', 'measure', 'pencil', 'line', 'rect', 'circle'];
 /**
+ * ZONA MUERTA antes de que arrastrar cuente como arrastrar, en px de pantalla. Un clic normal mueve el ratón
+ * uno o dos píxeles, así que sin esto CADA clic sobre un grupo lo empujaba de lado — y encima lo escribía en
+ * la base (dueño, 2026-09-03: «*cuando hago click en un segmento de un círculo se mueve hacia un lado*»).
+ */
+const DEAD_ZONE_PX = 4;
+/**
  * Dónde se ve el aro de una luz y su disco de clic. Son las dos herramientas desde las que se puede elegir
  * una: con Luz, desde siempre; con Seleccionar, desde el arreglo del 2026-08-31. Antes el aro sólo se pintaba
  * con Luz, así que con Seleccionar la elegías A CIEGAS —se abría su editor sin que nada en el mapa dijera
@@ -665,12 +671,15 @@ export function MapCanvas(p: Props): JSX.Element {
       setGesture({ ...gesture, points });
       setRoomDraft(freehandSides(points, grid));
     } else if (gesture.kind === 'groupXf') {
-      const sel = p.walls.filter(w => gesture.ids.includes(w.id));
-      const batch = gesture.handle
-        ? scaleWallsTo(sel, gesture.origin, resizeRect(gesture.origin, gesture.handle, s))
-        : moveWalls(sel, s.x - gesture.start.x, s.y - gesture.start.y);
-      setGroupDraft(new Map(batch.map(b => [b.id, b])));
-      if (!gesture.moved) setGesture({ ...gesture, moved: true });
+      // Hasta salir de la zona muerta esto es un CLIC, no un arrastre: ni se pinta ni se guarda nada.
+      if (gesture.moved || Math.hypot(s.x - gesture.start.x, s.y - gesture.start.y) > DEAD_ZONE_PX / p.view.zoom) {
+        const sel = p.walls.filter(w => gesture.ids.includes(w.id));
+        const batch = gesture.handle
+          ? scaleWallsTo(sel, gesture.origin, resizeRect(gesture.origin, gesture.handle, s))
+          : moveWalls(sel, s.x - gesture.start.x, s.y - gesture.start.y);
+        setGroupDraft(new Map(batch.map(b => [b.id, b])));
+        if (!gesture.moved) setGesture({ ...gesture, moved: true });
+      }
     } else if (gesture.kind === 'wallEdit') {
       setWallDraft(wallDragTo(gesture.origin, gesture.grab, gesture.start, s, grid));
     } else if (gesture.kind === 'drawingMove') {
