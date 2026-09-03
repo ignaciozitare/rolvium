@@ -847,7 +847,7 @@
       "hide": "Pincel ocultar"
     },
     "fog": {
-      "autoOn": "Niebla automática por visión · se abre sola al moverse",
+      "autoOn": "Niebla automática por visión · se abre sola al moverse las fichas; pulsa para manual",
       "autoOff": "Niebla manual · sólo la abre tu pincel; pulsa para automática",
       "byVision": "Niebla por visión",
       "veilOn": "Velo del director: puesto",

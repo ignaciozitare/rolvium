@@ -234,7 +234,7 @@ describe('<CanvasControls> — la luz y la niebla como iconos, no como barra', (
     const stack = screen.getByRole('group', { name: 'Controles del lienzo' });
     await u.click(within(stack).getByRole('button', { name: 'Día' }));
     expect(onLighting).toHaveBeenCalledWith('night');
-    const fog = within(stack).getByRole('button', { name: 'Niebla automática por visión · se abre sola al moverse' });
+    const fog = within(stack).getByRole('button', { name: 'Niebla automática por visión · se abre sola al moverse las fichas; pulsa para manual' });
     expect(fog).toHaveAttribute('aria-pressed', 'true');
     await u.click(fog);
     expect(onFogMode).toHaveBeenCalledWith('manual');
