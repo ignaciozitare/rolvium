@@ -82,7 +82,16 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * las que llegan en orden pintan todas, tarde lo que tarde el servidor.
    */
   const visionSeq = useRef(0);
-  /** El número de la última respuesta que SÍ pintó. Todo lo que no lo supere, se descarta. */
+  /**
+   * El número más alto que YA PASÓ LA GUARDA. Todo lo que no lo supere, se descarta.
+   *
+   * NO es exactamente «lo último que se pintó», y la diferencia importa: con la sonda puesta `applyFog` se
+   * traga las respuestas que no son suyas y aun así avanzan este número, y `moveToken` quema uno sin pedir
+   * nada para invalidar lo que esté en vuelo. Consecuencia conocida, heredada de la guarda vieja y NO
+   * arreglada aquí: con la sonda puesta Y un token arrastrándose a la vez, una respuesta de la sonda que
+   * aterrice detrás de una del arrastre se descarta, y la vista de la sonda se queda quieta hasta la
+   * siguiente pregunta. Se arregla el día que `applyFog` devuelva si pintó y sólo entonces se avance.
+   */
   const visionApplied = useRef(0);
   const visionTimer = useRef<number | null>(null);
   /** Lo que la sonda lleva visto. Vive aquí y NO en la base: se tira al quitarla o al cambiar de escena. */
@@ -307,6 +316,18 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     setTokens(l => l.map(t => (t.id === tokenId ? { ...t, x, y } : t)));
     repo.broadcast(sceneId, { type: 'token.moved', campaignId: live.campaignId, sceneId, tokenId, x, y, final: true });
     await repo.updateToken(tokenId, { x, y });
+    /**
+     * Y SE VUELVE A PREGUNTAR SIEMPRE, aunque se suelte en el mismo sitio del que se cogió.
+     *
+     * El refresco de después de soltar lo dispara `myTokenKey`, que es la posición GUARDADA: soltar donde ya
+     * estaba no cambia esa cadena, el efecto no se re-ejecuta y nadie repregunta. Antes daba igual —con la
+     * guarda vieja ninguna respuesta del arrastre había pintado— pero ahora sí pintan, así que la niebla se
+     * quedaba clavada en una posición intermedia del arrastre (lo cazó el review de esta misma tanda).
+     *
+     * No cuesta una ida y vuelta de más: `refreshVision` se agrupa en un `setTimeout(0)` y cancela el
+     * anterior, así que cuando el efecto TAMBIÉN dispara, las dos se funden en una sola pregunta.
+     */
+    refreshVisionRef.current();
     // My own vision follows the token through the effect below; the DM's union of explored does not, so announce it.
     announceVision();
   }, [repo, sceneId, live, announceVision]);
