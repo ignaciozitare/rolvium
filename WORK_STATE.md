@@ -154,6 +154,39 @@ cobertura, y confirmado que **el camino viejo no se ha tocado** (`planOpening` i
 > (2026-09-03). Los cuatro fallos de la revisión están arreglados y verdes, pero **sin commitear** y **sin
 > pasar `/review`**. Lanza el review, y si sale limpio commitea la tanda de Builder.
 
+### 🟢 2026-09-03, NOCHE — CONSTRUIDO, SUBIDO Y DESPLEGADO (por primera vez)
+
+**EL GRUPO, construido entero** (§ «EL GRUPO» del spec). Un clic coge la pieza · doble clic entra al muro
+suelto · se mueve · **se escala por ocho tiradores** · el área coge muros y no sólo fichas · «Agrupar» ata a
+mano lo viejo y «Soltar» lo deshace.
+- `groupRules.ts` (18 tests) · `MapsPort.setWallsGroup` y `updateWallsGeometry` · `useScene.groupWalls`,
+  `ungroupWalls`, `transformWalls` · `MapCanvas` (gesto `groupXf`, marco y tiradores) · `SegmentBar` (la fila)
+  · claves `maps.group.*` en es y en · migración `20260903120000_maps_walls_group.sql`.
+- Diseñado antes en `rolvium.pen`: `PL/Builder · GRUPO cogido · en el mapa` (`M5z1UB`),
+  `PL/Builder · panel · GRUPO cogido` (`CvkXT`), `PL/Builder · panel · VARIOS MUROS cogidos` (`tS9zl`).
+
+**Dos commits**: `300a647` (los cuatro arreglos + el cimiento) y `5e9aea2` (el grupo).
+**Verde**: typecheck web+api · 1059 regression · 12 smoke · 38 functional · 226 api · audit 0 hard · los dos builds.
+
+**🚀 LA RAMA ESTÁ SUBIDA.** Era la respuesta a su «sigue sin funcionar»: no había NADA desplegado, la rama
+nunca se había subido a GitHub. Los dos previews de Vercel salieron en verde solos:
+- Web → `https://rolvium-git-sonda-de-prueba-ignaciozitare-9429s-projects.vercel.app`
+- API → `https://rolvium-api-git-sonda-de-prueba-ignaciozitare-9429s-projects.vercel.app`
+- ⚠️ Los dos están detrás del acceso de Vercel: sólo se abren con su cuenta iniciada.
+
+### 🛑 LO ÚNICO QUE FALTA, Y NO LO PUEDO HACER YO
+
+**A la base le faltan TRES columnas**, y **el clasificador del entorno me bloquea cualquier cambio de esquema**
+(`apply_migration` denegado, y también el CLI de Supabase). Comprobado contra
+`supabase_migrations.schema_migrations`: lo último aplicado es `20260901213805 pjs_de_prueba`. Pendientes,
+exactamente tres, todas **aditivas y con guardas** (`IF NOT EXISTS` / `duplicate_object`):
+1. `20260901120000_maps_lights_spin.sql` → `maps_lights.spin_ms`
+2. `20260902010000_maps_lights_intensity.sql` → `maps_lights.intensity`
+3. `20260903120000_maps_walls_group.sql` → `maps_walls.group_id`
+
+**Hasta que entren, el preview falla**: las luces y la niebla revientan (el código pide columnas que no
+existen) y **el grupo no sobrevive a recargar**. Él tiene que autorizarlo o aplicarlo.
+
 ### 🟣 SESIÓN DEL 2026-09-03, TARDE — LO QUE ÉL CORRIGIÓ Y DECIDIÓ
 
 Probó Builder sobre una foto de mapa y saltaron dos cosas, las dos mías:
