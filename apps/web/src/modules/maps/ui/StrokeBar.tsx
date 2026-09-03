@@ -18,7 +18,7 @@ interface Props {
 /**
  * The bar above the canvas follows the active tool. Drawing → «Trazo» (thickness · colours · clear); the DM's
  * reveal/hide → «Pincel» (brush size + the two «todo» buttons, rolvium.pen `uXK3T`). Choosing what kind of segment
- * to draw is NOT here: it rides `SegmentBar`, floating over the map, because a full-width bar costs map height.
+ * to draw is NOT here: it lives in the Builder panel (`BuilderPanel`), which floats over the map.
  */
 export function StrokeBar({ value, onChange, onClearMine, onClearAll, tool = 'pencil', brush, onBrush, onRevealAll, onHideAll }: Props): JSX.Element {
   const { t } = useTranslation();

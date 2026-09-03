@@ -1077,7 +1077,7 @@ de tocar código.**
 **Para la SALA con su suelo (pregunta 6, ya contestada)**: tabla de habitaciones con su contorno y su textura
 base, con las capas de terreno existentes por encima. **Pasa por el DBA antes de tocar código.**
 
-### 🎨 EL DISEÑO v3 (2026-09-03) — pendiente de su ok
+### 🎨 EL DISEÑO v3 (2026-09-03) — ✅ MAQUETADO (`BuilderPanel`)
 
 Tercer intento, en `rolvium.pen`, banda 5. **Dos frames, porque el panel cambia según el modo:**
 
@@ -1093,7 +1093,7 @@ Qué corrige respecto del v2, correción por corrección:
 | 2 · «el icono que habíamos quedado» | `builder-mask.png`, el suyo de verdad, metido como relleno de imagen en la cabecera |
 | 3 · «respeta los colores» | Rojo sangre sólo en acciones (`CAMBIAR`, `+ SUBIR`, `QUITAR`); negro sólo en lo seleccionado |
 | 4 · «falta el tema de aberturas» | Fila de siempre + nota explícita de que se abren con el mismo disco |
-| 5 · «te quedas corto con rectángulos» | Seis formas: a mano · recta · rectángulo · círculo · polígono · a pulso |
+| 5 · «te quedas corto con rectángulos» | Seis formas: a mano · recta · rectángulo · círculo · polígono · a pulso — **las seis construidas** |
 | 6 · «no me queda claro cómo cambio la textura» | Tres niveles visibles en el propio panel: preajuste → las dos base → pincel por sala, con los dos pasos escritos |
 | 7 · «no sé si faltan herramientas» | Abierto todavía; con las seis formas y los tres niveles, lo que falte ya se ve sobre el panel |
 | 🔑 «son dos maneras que conviven» | **Sección nueva arriba del todo**, con dos miniaturas de verdad: una foto con muros marcados encima, y una sala levantada en la app. Es lo primero que se ve al abrir el panel |
@@ -1105,7 +1105,13 @@ que se distinga de un vistazo un rayado de un relleno. Y los dos rayados pasan a
 `Trazo a mano` con el contorno tembloroso.
 
 ### Estado
-- ✅ **Motor completo** (`domain/useCases/roomRules.ts`): rectángulo, círculo, **polígono** y **a pulso**.
+- ✅ **Motor completo** (`domain/useCases/roomRules.ts`): **recta suelta**, rectángulo, círculo, **polígono** y
+  **a pulso**.
+  - **Recta suelta** (`lineSide`, construida el 2026-09-03 a petición suya): se arrastra de un punto a otro y
+    sale **UN muro y sólo uno**. Es la hermana de «a mano» —lo mismo, pero de un tirón— y la única forma que
+    NO monta una sala, así que va por `onAddWall`, el camino de siempre: una puerta o una ventana dibujada de
+    un tirón sobre un muro lo sigue partiendo con `planOpening`. Y **no nace atada a ningún grupo**: un muro
+    solo no es un grupo. Por debajo de media casilla no se escribe nada — eso es un resbalón, no una pared.
   - **Polígono**: los VÉRTICES se pegan a la rejilla, los LADOS no → una pared puede ir a cualquier ángulo
     (su punto 5) y a la vez dos salas contiguas encajan sin rendijas de medio píxel por donde se cuela la vista.
   - **A pulso**: NO se pega a la rejilla —pegado saldría una escalera— y se limpia el temblor del ratón, o
@@ -1126,10 +1132,33 @@ que se distinga de un vistazo un rayado de un relleno. Y los dos rayados pasan a
   - **Una sala se escribe de una vez** (`MapsPort.addWalls`, un `insert` de varias filas): entran todos sus
     muros o no entra ninguno. Muro a muro, si fallaba el enésimo la sala quedaba **abierta** y por ese hueco se
     colaba la visión, avisando sólo con el banner genérico (corregido el 2026-09-03).
-- ✅ **Interfaz construida**: la barra «Segmento» (que es Builder) lleva ahora la fila de formas —
-  segmento · rectángulo · círculo · polígono · a pulso— y el lienzo pinta la sala mientras se levanta.
-  **El Builder de siempre no se ha movido**: sin tocar la forma sigue siendo clic a clic, y puertas y
-  ventanas siguen partiendo muros con `planOpening`. Hay test que lo sujeta.
+- ✅ **INTERFAZ: EL PANEL v3, MAQUETADO** (`ui/BuilderPanel.tsx`), y **la barra flotante vieja ya no se
+  monta**. Orden suya del 2026-09-03: «*ya es hora que dejes esto maqueteado en el menú que va y que dejes de
+  agregar cosas en este*». Lo que lleva dentro, en el orden del diseño:
+  1. **Cabecera** con SU icono (`builder-mask.png`, de máscara para que lo tiña el panel), el nombre y la X.
+     Se agarra por la cabecera y se aparta, como el editor de luces — de hecho el asa se extrajo a
+     `ui/useDragPanel.ts` y ahora la comparten los dos paneles. **No se queda con Escape** a propósito:
+     dibujando un polígono, Escape es para cancelar el polígono.
+  2. **«EN QUÉ ESTOY TRABAJANDO · LAS DOS CONVIVEN»** — el interruptor `photo` / `draw`, con las dos
+     miniaturas dibujadas (una foto con muros marcados encima · una sala levantada con su rejilla).
+     ⚠️ Hoy cambia la NOTA del panel y es el sitio donde entrarán los preajustes; no cambia lo que hacen
+     muro, puerta, ventana ni las formas, porque en el diseño son iguales en los dos modos.
+     Vive en la pantalla, no en la escena (como el velo del director): no guarda nada.
+  3. **«QUÉ LEVANTO · LO DE SIEMPRE, INTACTO»** — muro · puerta · ventana, con la nota del disco.
+  4. **«CON QUÉ FORMA»** — **las SEIS del diseño**, en sus dos filas de tres: a mano · recta · rectángulo,
+     y debajo círculo · polígono · a pulso.
+  5. **El candado de la rejilla** (abajo).
+  6. **«LO QUE TENGO COGIDO»** — el grupo (`CvkXT`), los muros sueltos (`tS9zl`) y, con un muro elegido, todo
+     lo que hacía la barra vieja: visible para jugadores, abrir/cerrar y borrar. Sólo aparece con algo cogido.
+  7. **La nota**, que cambia con el modo.
+  - **Colocado entre «con qué forma» y «lo que tengo cogido»** y no al final como en la lista del traspaso:
+    «lo que tengo cogido» aparece y desaparece, y con el candado debajo el candado bailaría de sitio en cada
+    clic. Revisable por él.
+  - **El Builder de siempre no se ha movido**: sin tocar la forma sigue siendo clic a clic, y puertas y
+    ventanas siguen partiendo muros con `planOpening`. Hay test que lo sujeta.
+  - La forma `segment` se rotula **«A mano»**, como en el diseño (antes «Segmento»).
+  - 🗑 `ui/SegmentBar.tsx` **queda en el árbol sin montarse en ningún sitio**, con un aviso en cabecera de que
+    no se le cuelgue nada nuevo. Se deja para que él decida si se borra: nada depende ya de ella.
 - ✅ **La niebla funciona con lo levantado aquí**, que era el requisito con nombre. Dos tests: uno en el
   motor de visión de la API (una sala tapa la vista desde fuera y la contiene desde dentro, y un vano la
   deja pasar) y otro de regresión que comprueba que **no hay ninguna marca** que distinga una sala generada
@@ -1145,7 +1174,147 @@ que se distinga de un vistazo un rayado de un relleno. Y los dos rayados pasan a
   construyendo y después vemos», así que la interfaz de arriba se ha construido con la barra que ya existía,
   sin inventar pantalla nueva. Las miniaturas de estilo siguen sin gustarle y **el panel de preajustes no se
   ha construido**.
-- ⛔ **Las texturas, sin empezar**: dependen de la pregunta 6, que es de modelo de datos y es suya.
+- ⛔ **Las texturas y los preajustes, sin maquetar**: piden tabla de habitaciones + migración + DBA, y van en
+  su propia tanda. El interruptor de modo del panel es el sitio donde entrarán.
+
+### 🔒 EL CANDADO DE PEGAR A LA REJILLA (aprobado el 2026-09-03: «*tira*»)
+
+Viene de que al mover un nodo el movimiento se pegaba a la rejilla y él quería libertad. Se le propusieron
+tres condiciones y las aceptó; el motor está en `domain/useCases/snapRules.ts` y las tres tienen test.
+
+1. ~~Empieza CERRADO.~~ **Empieza ABIERTO** — corregido por él el 2026-09-03 después de probarlo: «*el pegado
+   a la rejilla debería estar desactivado por defecto*». Se le había propuesto lo contrario, para no cambiarle
+   nada, y decidió al revés: marcando muros sobre una foto la rejilla no le sirve, porque los muros de la foto
+   no caen en múltiplos de nada. Echándolo, el comportamiento es el de siempre, sin una sola diferencia.
+2. **Vale para TODO Builder**, no sólo para los nodos: el muro que se dibuja (`builderPoint`), los vértices
+   del polígono, el rectángulo y el círculo (`roomSides`/`polygonSides` reciben un `step`, que es `grid` con
+   el candado cerrado y `0` con el candado abierto) y el nodo que se arrastra (`wallDragTo` + `anchorEnd`).
+   - ⚠️ **«A pulso» no pasa por el candado**, a propósito: nunca se pegó a la rejilla, porque un trazo libre
+     cuadriculado sale como una escalera.
+3. **Abierto, las puntas se pegan a las PUNTAS DE OTROS MUROS** que tengan a menos de `END_SNAP_PX` (12 px de
+   escena, medidos en pantalla: con el mapa alejado el imán no puede tirar de medio mapa). Sin esto, «libre»
+   acaba siendo «lleno de rendijas», y por una rendija de medio píxel se cuela la visión — que es justo para
+   lo que servía pegarse a la rejilla. El muro que se está editando queda fuera del imán, o una punta se
+   pegaría a la suya.
+   - Moviendo el muro ENTERO no se pega nada: pegar una sola punta lo torcería en vez de moverlo.
+   - El rectángulo y el círculo van libres con el candado abierto, pero **sin imán**: son formas cerradas, así
+     que no dejan rendijas por donde colarse. Se puede añadir si él lo pide.
+
+🚫 **Descartado afinar la rejilla**, y él lo aceptó: la rejilla ES el metro de la mesa —movimiento, tamaño de
+ficha, alcance de una luz, la regla— y tocarla mueve todo el juego. Además no arreglaría nada: los muros de
+una foto no caen en múltiplos de nada.
+
+### ✏️ EL ÁREA COGE TAMBIÉN LOS TRAZOS (2026-09-03)
+
+«*El arrastrar y seleccionar no funciona con las formas simples de líneas, texto, círculo y cuadrado*». El
+área ya cogía fichas y muros; los trazos se habían quedado fuera. Ahora `mapRules.drawingsInRect` los coge, y
+el puñado **se mueve junto y se borra junto**.
+
+- Cada forma guarda sus datos a su manera, así que el único sitio que sabe medirlas todas es `drawingBounds`.
+  El **texto** se mide con el mismo cuadro aproximado que ya usaba `hitDrawing` para acertarle: es aproximado,
+  pero es EL MISMO, así que elegir y pinchar coinciden.
+- Se coge lo que cae **entero** dentro, igual que con los muros: rozar media línea con el marco no es elegirla.
+- **Sólo los que se pueden mover**: a un jugador no le sirve de nada cogerlos, porque la RLS de `maps_drawings`
+  no le deja moverlos.
+- Agarrar UNO del puñado los mueve TODOS y **no suelta la selección** — soltarla por tocar uno sería perder el
+  trabajo de haberlos cogido. Pinchando cualquier otro, se coge ése y sólo ése, como siempre.
+
+### 🎨 LAS SEIS DE DIBUJAR, EN UN SOLO ICONO (2026-09-03)
+
+«*Quiero que todas estas sean un solo icono y cuando hagas click despliegue al lado un menú con las opciones
+de dibujo libre, para ahorrar espacio en la barra de herramientas*». Lápiz · Línea · Caja · Círculo · Texto ·
+Borrar ocupaban seis alturas de barra sobre un mapa que quiere todo el alto que le den.
+
+- El icono **enseña la herramienta puesta** (con Lápiz activo se ve el lápiz), o `draw` si no hay ninguna. Sin
+  eso no habría forma de saber con qué estás dibujando sin abrir el menú.
+- El menú va `fixed` y medido sobre el botón: la barra tiene `overflow:auto` y uno absoluto se recortaría
+  contra ella — el mismo motivo por el que los paneles se pasan a `fixed` al agarrarlos.
+- Se cierra al elegir, con Escape, y pinchando fuera. Volver a elegir la que ya está puesta la apaga, igual
+  que cualquier otra herramienta de la barra.
+- 🎨 **No está en `rolvium.pen`**: lo describió él por escrito y pidió terminarlo y subir. Queda por dibujar.
+
+### 🔗 LOS NODOS SON UNA CADENA (2026-09-03)
+
+«*Me separa los segmentos de la figura original, los nodos deberían ser como una cadena a menos que yo elija
+que no*». Arrastrar una punta se lleva las puntas de los demás muros que estaban **en ese mismo sitio**
+(`groupRules.chainWalls`, tolerancia `NODE_WELD_PX` = 1,5 px). Sin esto, mover un nodo de un círculo o de una
+sala **abre la figura**, y por ese hueco se cuela la visión.
+
+- **Va PUESTO por omisión** («a menos que yo elija que no»), y se quita desde el panel.
+- **Es por SITIO, no por grupo**: el imán del candado existe precisamente para juntar puntas de muros que no
+  van en el mismo grupo, y una cadena que sólo funcionara dentro del grupo dejaría fuera todo lo que él lleva
+  marcado sobre fotos.
+- Arrastrando el muro ENTERO se sueldan sus DOS puntas, que es lo que mantiene cerrada la figura cuando lo que
+  se mueve es un lado completo. El lado de enfrente no se toca: mover un lado no es mover el grupo.
+- Se mide contra las coordenadas de ANTES de mover nada, o la segunda punta se pegaría a donde acaba de llegar
+  la primera.
+- Se guarda **de una sola escritura** con el muro (`onTransformWalls`): media figura movida y media quieta es
+  un hueco, el mismo agujero que ya nos mordió con `addRoom`.
+
+### 🫱 ANDAR POR DENTRO DEL GRUPO (2026-09-03)
+
+Dos correcciones suyas seguidas, las dos sobre lo mismo: entrar en un grupo tenía que ser un ESTADO, no un
+clic suelto.
+
+1. «*Si selecciono un nodo y quiero seleccionar otro tengo que volver a hacer doble click, eso está mal: una
+   vez estoy dentro del grupo, a menos que haga click en otra cosa fuera del grupo, no tiene que pedirme que
+   entre de nuevo*». Se mira **si lo cogido es DEL grupo**, no si es ESE muro (`groupRules.insideGroup`).
+2. «*Una vez dentro del grupo debería poder no sólo seleccionar un vector sino arrastrar y seleccionar en
+   grupo cosas; ahora si hago click fuera del foco del grupo dejando el botón apretado y arrastro, se sale del
+   grupo*». Estando dentro, el área coge de ESE grupo **lo que pilló y nada más**
+   (`withWholeGroups(…, porDentro)`); inflarlo al grupo entero era lo que te echaba fuera. Los demás grupos
+   siguen viniéndose enteros, porque en ésos no estás dentro.
+
+**Se está DENTRO** con un muro suelto elegido **o** con un puñado del grupo cogido, siempre que no sea el
+grupo entero — con el grupo entero cogido no estás dentro, estás manejando la pieza.
+
+### ⌘A COGERLO TODO (2026-09-03)
+
+«*No me deja seleccionar todos los nodos*». **Ctrl/Cmd + A** coge todos los muros de la escena; desde ahí se
+mueven y se estiran como un grupo, y Suprimir los borra. Sólo el director y sólo con los muros a la vista —no
+se coge lo que no se ve—, y escribiendo en un campo no se le roba el atajo. El panel lo dice, y siempre a la
+vista: dentro de «lo que tengo cogido» no serviría, porque esa sección sólo aparece cuando ya has cogido algo.
+
+### 🪟 LOS PANELES SE SALEN DEL MAPA (2026-09-03)
+
+«*Los modales de las herramientas están confinados dentro del mapa, deberían estar por donde quiera*». El
+lienzo recorta lo que se sale de él (`.mp-stage{overflow:hidden}`) y eso no se puede quitar: es lo que impide
+que el mapa se derrame sobre el resto de la pantalla. Así que `useDragPanel` mide el panel **en el momento en
+que se agarra** y lo pasa a `position:fixed` en ese mismo sitio: cero salto al empezar el gesto, y desde ahí
+va por toda la ventana. Vale para el panel de Builder y para el editor de luces, que comparten el asa.
+
+### 🆕 AÑADIR UN NODO CON DOBLE CLIC (2026-09-03)
+
+Sus palabras: «*si tengo un vector y le hago doble click en alguna parte de la linea tiene que agregar otro
+nodo*». Es partir el muro en dos por ese punto, y la maquinaria ya existía: `wallPiece`, el mismo que usa
+`planOpening` para meter una puerta.
+
+- `mapRules.splitWallAt(wall, at)` proyecta el punto SOBRE la línea (un doble clic nunca cae exactamente
+  encima, y el nodo tiene que nacer en el muro o quedaría un codo) y devuelve dos cosas: el muro viejo
+  acortado (`keep`) y el trozo nuevo (`piece`). Devuelve `null` si el punto cae a menos de `MIN_NODE_GAP`
+  (4 px) de una punta: ahí ya hay un nodo.
+- **El trozo nuevo hereda todo lo del viejo** —tipo, si lo ven los jugadores, si está abierto— **y su grupo**:
+  partir un lado de una sala no puede echarlo de la sala.
+- **El trozo nuevo se escribe ANTES de acortar el viejo** (`useScene.splitWall`), y deshacer lo hace al revés
+  (primero devuelve el largo, después quita el trozo). Es la misma regla que ya sigue `addWall` con los vanos:
+  si algo falla a mitad, la pared se queda entera y solapada — nunca con un hueco por el que se cuele la
+  visión. Entra en el historial de deshacer/rehacer como un paso más.
+
+**Cómo convive con el doble clic que ya existía** — decidido por él, «primero entra, luego el nodo»:
+
+| Dónde haces doble clic | Qué pasa |
+|---|---|
+| Un muro **suelto** (sin grupo) | Pone el nodo ahí |
+| Un muro **de un grupo** en el que aún no has entrado | **Entra** al muro suelto, como hasta ahora |
+| Ese mismo muro, **ya dentro** | Pone el nodo ahí |
+
+- ⚠️ Se decide **al soltar**, no al pulsar: el segundo clic de un arrastre cuenta como doble, así que mirarlo
+  en la pulsación convertía un movimiento en un nodo. Si hubo arrastre, era mover.
+- 🔧 **Corregido en la misma tanda**: «quieto» se mide por **lo que viajó el dedo**, no por si la geometría
+  cambió. Los muros de un **círculo** y los de un trazo **a pulso** no caen en la rejilla, así que con el
+  candado cerrado el propio clic los recuadraba y el doble clic contaba como movimiento: en vez del nodo, el
+  muro daba un tirón a la casilla. Un clic SUELTO sobre ese mismo muro lo sigue recuadrando, como siempre —
+  eso no se ha tocado. Dos tests lo sujetan.
 
 
 ## Rules & limits

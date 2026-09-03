@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
+import { renderWithProviders, screen, fireEvent, waitFor, within } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
@@ -10,22 +10,25 @@ import type { Tool } from '../domain/useCases/mapRules';
 import { StrokeBar } from './StrokeBar';
 import { CanvasControls } from './CanvasControls';
 import { EncounterMenu } from './EncounterMenu';
-import { SegmentBar } from './SegmentBar';
+import { BuilderPanel } from './BuilderPanel';
 
 describe('<Toolbar>', () => {
   it('three labelled blocks: Dados abre el lanzador y va primero; el jugador no ve el bloque de director; Fondo y Colocar PJ son botones de panel, no herramientas', async () => {
     const onChange = vi.fn(), onDice = vi.fn(), onPlacePc = vi.fn(), onBackground = vi.fn();
     const { rerender } = renderWithProviders(<Toolbar tool="select" isDm={false} onChange={onChange} onDice={onDice} />);
-    // juego: Dados + Seleccionar · Medir · Pin  ·  lienzo: Lápiz · Línea · Caja · Círculo · Texto · Borrar
-    expect(screen.getAllByRole('button')).toHaveLength(10);
+    // juego: Dados + Seleccionar · Medir · Pin  ·  lienzo: UN icono, «Dibujar», con las seis dentro
+    expect(screen.getAllByRole('button')).toHaveLength(5);
     expect(screen.getByRole('button', { name: 'Seleccionar' })).toHaveAttribute('aria-pressed', 'true');
     await userEvent.setup().click(screen.getByRole('button', { name: 'Lanzador de dados' }));
     expect(onDice).toHaveBeenCalled();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Lápiz' }));
+    // Las seis de dibujar viven tras un icono, para no comerse el alto de la barra (dueño, 2026-09-03).
+    const u0 = userEvent.setup();
+    await u0.click(screen.getByRole('button', { name: 'Dibujar' }));
+    await u0.click(await screen.findByRole('menuitemradio', { name: 'Lápiz' }));
     expect(onChange).toHaveBeenCalledWith('pencil');
     rerender(<Toolbar tool="wall" isDm onChange={onChange} onDice={onDice} onPlacePc={onPlacePc} onBackground={onBackground} />);
     // + DIRECTOR: Luz · Muro · Fondo del mapa · Pincel de transparencia ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ
-    expect(screen.getAllByRole('button')).toHaveLength(18);
+    expect(screen.getAllByRole('button')).toHaveLength(13);
     // El pincel y la luz entran en el bloque del director: son cosa suya (rebanada 7).
     expect(screen.getByRole('button', { name: 'Pincel de transparencia' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Luz de ambiente' })).toBeInTheDocument();
@@ -166,7 +169,8 @@ describe('los botones de sólo icono dicen su nombre al pasar el ratón', () => 
   });
 
   it('«Quitar segmento», que era una papelera muda, ya se presenta', () => {
-    renderWithProviders(<SegmentBar wall={WALL_1} kind="wall" onKind={vi.fn()} onRemove={vi.fn()} />);
+    renderWithProviders(<BuilderPanel mode="photo" wall={WALL_1} kind="wall" shape="segment" snapGrid={false} chainNodes
+      onMode={vi.fn()} onKind={vi.fn()} onShape={vi.fn()} onSnapGrid={vi.fn()} onChainNodes={vi.fn()} onClose={vi.fn()} onRemove={vi.fn()} />);
     expect(tips()).toContain('Quitar segmento');
     expect(screen.getByRole('button', { name: 'Quitar segmento' })).not.toHaveAttribute('title');
   });
@@ -217,37 +221,6 @@ describe('<StrokeBar> as the fog brush', () => {
     renderWithProviders(<StrokeBar value={{ color: STROKE_COLORS[1], width: 2 }} onChange={vi.fn()} onClearMine={vi.fn()} tool="reveal" />);
     expect(screen.getByRole('slider', { name: 'Grosor del trazo' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Revelar todo' })).not.toBeInTheDocument();
-  });
-});
-
-describe('<SegmentBar> — el tipo de segmento vive sobre el mapa, no en una barra a lo ancho', () => {
-  it('con la herramienta Muro y nada seleccionado elige lo que se dibujará', async () => {
-    const onKind = vi.fn();
-    renderWithProviders(<SegmentBar wall={null} kind="wall" onKind={onKind} />);
-    expect(screen.getByRole('radio', { name: 'Muro' })).toBeChecked();   // el TIPO de segmento sigue llamándose Muro; lo que se renombró es el botón de la barra
-    expect(screen.getByText('dibuja una puerta o una ventana sobre un muro y lo parte · pasa el ratón por una para abrirla o cerrarla')).toBeInTheDocument();
-    await userEvent.setup().click(screen.getByRole('radio', { name: 'Ventana' }));
-    expect(onKind).toHaveBeenCalledWith('window');
-    // sin segmento seleccionado no hay nada que borrar ni que abrir
-    expect(screen.queryByRole('button', { name: 'Quitar segmento' })).not.toBeInTheDocument();
-  });
-
-  it('con un segmento seleccionado cambia su tipo, su visibilidad, lo abre y lo borra', async () => {
-    const u = userEvent.setup();
-    const cb = { onKind: vi.fn(), onVisible: vi.fn(), onToggleOpen: vi.fn(), onRemove: vi.fn() };
-    renderWithProviders(<SegmentBar wall={WALL_DOOR} kind="door" {...cb} />);
-    expect(screen.getByRole('radio', { name: 'Puerta' })).toBeChecked();
-    await u.click(screen.getByRole('checkbox', { name: 'visible para jugadores' }));
-    expect(cb.onVisible).toHaveBeenCalledWith(true);
-    await u.click(screen.getByRole('button', { name: 'Abrir' }));
-    expect(cb.onToggleOpen).toHaveBeenCalled();
-    await u.click(screen.getByRole('button', { name: 'Quitar segmento' }));
-    expect(cb.onRemove).toHaveBeenCalled();
-  });
-
-  it('un muro liso no se abre: no ofrece el botón', () => {
-    renderWithProviders(<SegmentBar wall={WALL_1} kind="wall" onKind={vi.fn()} onToggleOpen={vi.fn()} />);
-    expect(screen.queryByRole('button', { name: /Abrir|Cerrar/ })).not.toBeInTheDocument();
   });
 });
 
@@ -326,10 +299,16 @@ describe('<Toolbar> viendo como jugador', () => {
     }
   });
 
-  it('las de siempre siguen a mano: mirar como un jugador no es quedarse manco', () => {
+  it('las de siempre siguen a mano: mirar como un jugador no es quedarse manco', async () => {
     renderWithProviders(<Toolbar {...props} isDm playerView />);
-    for (const name of ['Seleccionar', 'Medir', 'Lápiz']) {
+    for (const name of ['Seleccionar', 'Medir', 'Dibujar']) {
       expect(screen.getByRole('button', { name })).toBeEnabled();
+    }
+    // Y dentro del icono de dibujar siguen estando las seis, ninguna apagada.
+    const u = userEvent.setup();
+    await u.click(screen.getByRole('button', { name: 'Dibujar' }));
+    for (const name of ['Lápiz', 'Línea', 'Caja', 'Círculo', 'Texto', 'Borrar']) {
+      expect(await screen.findByRole('menuitemradio', { name })).toBeEnabled();
     }
   });
 
@@ -337,5 +316,62 @@ describe('<Toolbar> viendo como jugador', () => {
     renderWithProviders(<Toolbar {...props} isDm />);
     expect(screen.getByRole('button', { name: /^Revelar/ })).toBeEnabled();
     expect(screen.getByRole('button', { name: /^Luz/ })).toBeEnabled();
+  });
+});
+
+/**
+ * ✏️ LAS SEIS DE DIBUJAR, EN UN ICONO (dueño, 2026-09-03: «*quiero que todas estas sean un solo icono y
+ * cuando hagas click despliegue al lado un menú con las opciones de dibujo libre, para ahorrar espacio en la
+ * barra de herramientas*»).
+ */
+describe('<Toolbar> · las seis de dibujar en un icono', () => {
+  const props = { onChange: vi.fn(), onDice: vi.fn() };
+
+  it('un solo botón en la barra, y las seis dentro del menú', async () => {
+    renderWithProviders(<Toolbar {...props} tool="select" isDm={false} />);
+    for (const name of ['Lápiz', 'Línea', 'Caja', 'Círculo', 'Texto', 'Borrar']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    }
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Dibujar' }));
+    const menu = await screen.findByRole('menu', { name: 'Dibujar' });
+    expect(within(menu).getAllByRole('menuitemradio')).toHaveLength(6);
+  });
+
+  it('elegir una la pone y cierra el menú', async () => {
+    const onChange = vi.fn();
+    const u = userEvent.setup();
+    renderWithProviders(<Toolbar {...props} onChange={onChange} tool="select" isDm={false} />);
+    await u.click(screen.getByRole('button', { name: 'Dibujar' }));
+    await u.click(await screen.findByRole('menuitemradio', { name: 'Círculo' }));
+    expect(onChange).toHaveBeenCalledWith('circle');
+    expect(screen.queryByRole('menu', { name: 'Dibujar' })).not.toBeInTheDocument();
+  });
+
+  /** Sin esto no habría forma de saber con qué estás dibujando sin abrir el menú. */
+  it('el icono enseña la herramienta puesta, y el botón se ve encendido', async () => {
+    renderWithProviders(<Toolbar {...props} tool="pencil" isDm={false} />);
+    const btn = screen.getByRole('button', { name: 'Dibujar' });
+    expect(btn).toHaveClass('on');
+    expect(btn.textContent).toContain('edit');            // el icono del Lápiz, no el genérico
+    await userEvent.setup().click(btn);
+    expect(await screen.findByRole('menuitemradio', { name: 'Lápiz' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('volver a elegir la que ya está puesta la apaga, como cualquier otra herramienta', async () => {
+    const onChange = vi.fn();
+    const u = userEvent.setup();
+    renderWithProviders(<Toolbar {...props} onChange={onChange} tool="pencil" isDm={false} />);
+    await u.click(screen.getByRole('button', { name: 'Dibujar' }));
+    await u.click(await screen.findByRole('menuitemradio', { name: 'Lápiz' }));
+    expect(onChange).toHaveBeenCalledWith('select');
+  });
+
+  it('Escape cierra el menú', async () => {
+    const u = userEvent.setup();
+    renderWithProviders(<Toolbar {...props} tool="select" isDm={false} />);
+    await u.click(screen.getByRole('button', { name: 'Dibujar' }));
+    await screen.findByRole('menu', { name: 'Dibujar' });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('menu', { name: 'Dibujar' })).not.toBeInTheDocument());
   });
 });

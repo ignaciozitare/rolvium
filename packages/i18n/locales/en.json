@@ -780,7 +780,8 @@
       "text": "Text",
       "light": "Ambient light",
       "mask": "Transparency brush",
-      "notInPlayerView": "not while viewing as a player"
+      "notInPlayerView": "not while viewing as a player",
+      "draw": "Draw"
     },
     "toolbar": "Canvas tools",
     "probe": {
@@ -994,14 +995,17 @@
     "room": {
       "shapeOf": "Shape",
       "shape": {
-        "segment": "Segment",
+        "segment": "By hand",
+        "line": "Straight",
         "rect": "Rectangle",
         "circle": "Circle",
         "poly": "Polygon",
         "free": "Freehand"
       },
       "polyHint": "one click, one corner · click the first one again to close the room",
-      "dragHint": "drag to raise the room · it is built when you let go"
+      "dragHint": "drag to raise the room · it is built when you let go",
+      "chainHint": "one click, one point · they chain up, and the wall carries on where the last one ended",
+      "lineHint": "drag from one point to another · one wall comes out, and only one"
     },
     "group": {
       "countGrouped": "Group · {{n}} walls",
@@ -1017,7 +1021,44 @@
       "remove": "the deletion",
       "move": "the move",
       "group": "grouping",
-      "ungroup": "ungrouping"
+      "ungroup": "ungrouping",
+      "split": "the node"
+    },
+    "builder": {
+      "title": "Builder",
+      "move": "Move the panel",
+      "close": "Close Builder",
+      "mode": {
+        "label": "What I am working on · both live together",
+        "photo": "On a photo",
+        "photoSub": "I mark the walls on top",
+        "draw": "Draw here",
+        "drawSub": "I raise the rooms"
+      },
+      "what": {
+        "label": "What I raise · the usual, untouched",
+        "hint": "they open with the same disc: hover a door or a window"
+      },
+      "snap": {
+        "label": "Snap to the grid",
+        "on": "Snapped to the grid",
+        "off": "Free",
+        "hintOn": "everything lands on the cells, as always · open it to go free",
+        "hintOff": "free, but endpoints stick to other walls’ endpoints so no slits are left"
+      },
+      "nodeHint": "double-click on its line adds a node there",
+      "note": {
+        "photo": "Marking on a photo, the floor already comes from the photo: that is why there are no textures or presets here. Wall, door and window work exactly as always.",
+        "draw": "Builder is the same one as always. Either way what goes up are normal WALLS: they cut sight and light, they open into doors and they are deleted one by one. The dungeon style and the two base textures are not in yet."
+      },
+      "chain": {
+        "label": "The nodes",
+        "on": "Chained",
+        "off": "Loose",
+        "hintOn": "moving one endpoint takes the neighbouring ones along, so the shape does not open up",
+        "hintOff": "every endpoint on its own · careful: the shape can be left open"
+      },
+      "selectAll": "Ctrl/Cmd + A takes every wall"
     }
   },
   "bestiary": {

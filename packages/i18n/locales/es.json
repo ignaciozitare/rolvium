@@ -780,7 +780,8 @@
       "text": "Texto",
       "light": "Luz de ambiente",
       "mask": "Pincel de transparencia",
-      "notInPlayerView": "no mientras ves como jugador"
+      "notInPlayerView": "no mientras ves como jugador",
+      "draw": "Dibujar"
     },
     "toolbar": "Herramientas del lienzo",
     "probe": {
@@ -994,14 +995,17 @@
     "room": {
       "shapeOf": "Con qué forma",
       "shape": {
-        "segment": "Segmento",
+        "segment": "A mano",
+        "line": "Recta",
         "rect": "Rectángulo",
         "circle": "Círculo",
         "poly": "Polígono",
         "free": "A pulso"
       },
       "polyHint": "un clic, un vértice · pincha otra vez sobre el primero para cerrar la sala",
-      "dragHint": "arrastra para levantar la sala · se monta al soltar"
+      "dragHint": "arrastra para levantar la sala · se monta al soltar",
+      "chainHint": "un clic, un punto · se encadenan, y la pared sigue donde acabó la anterior",
+      "lineHint": "arrastra de un punto a otro · sale un muro, y sólo uno"
     },
     "group": {
       "countGrouped": "Grupo · {{n}} muros",
@@ -1017,7 +1021,44 @@
       "remove": "el borrado",
       "move": "el movimiento",
       "group": "agrupar",
-      "ungroup": "soltar"
+      "ungroup": "soltar",
+      "split": "el nodo"
+    },
+    "builder": {
+      "title": "Builder",
+      "move": "Mover el panel",
+      "close": "Cerrar Builder",
+      "mode": {
+        "label": "En qué estoy trabajando · las dos conviven",
+        "photo": "Sobre una foto",
+        "photoSub": "marco los muros encima",
+        "draw": "Dibujar aquí",
+        "drawSub": "levanto las salas"
+      },
+      "what": {
+        "label": "Qué levanto · lo de siempre, intacto",
+        "hint": "se abren con el mismo disco: pasa el ratón por una puerta o una ventana"
+      },
+      "snap": {
+        "label": "Pegar a la rejilla",
+        "on": "Pegado a la rejilla",
+        "off": "Libre",
+        "hintOn": "todo cae en las casillas, como siempre · ábrelo para ir libre",
+        "hintOff": "libre, pero las puntas se pegan a las puntas de otros muros para no dejar rendijas"
+      },
+      "nodeHint": "doble clic sobre su línea añade un nodo ahí",
+      "note": {
+        "photo": "Marcando sobre una foto el suelo ya lo pone la foto: por eso aquí no hay texturas ni preajustes. Muro, puerta y ventana funcionan igual que siempre.",
+        "draw": "Builder es el de siempre. En los dos casos se levantan MUROS normales: cortan la vista y la luz, se abren en puerta y se borran uno a uno. El estilo de la mazmorra y las dos texturas base todavía no están puestos."
+      },
+      "chain": {
+        "label": "Los nodos",
+        "on": "En cadena",
+        "off": "Sueltos",
+        "hintOn": "mover una punta se lleva las de al lado, así la figura no se abre",
+        "hintOff": "cada punta va por su cuenta · cuidado: la figura puede quedar abierta"
+      },
+      "selectAll": "Ctrl/Cmd + A coge todos los muros"
     }
   },
   "bestiary": {

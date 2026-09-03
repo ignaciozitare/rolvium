@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupOf, handleAt, HANDLE_KEYS, MIN_GROUP_PX, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups } from './groupRules';
+import { chainWalls, groupInsideOf, groupOf, handleAt, HANDLE_KEYS, insideGroup, MIN_GROUP_PX, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups } from './groupRules';
 import type { Wall } from '../entities/Scene';
 
 /**
@@ -178,5 +178,116 @@ describe('el grupo es UNA cosa', () => {
     const todos = [...cuadrado('g1'), muro('z', 500, 500, 600, 500)];
     expect(groupOf(todos, todos[0]!)).toHaveLength(4);
     expect(groupOf(todos, todos[4]!)).toEqual([todos[4]]);
+  });
+});
+
+/**
+ * 🔗 LOS NODOS SON UNA CADENA — «*me separa los segmentos de la figura original, los nodos deberían ser como
+ * una cadena a menos que yo elija que no*» (dueño, 2026-09-03).
+ */
+describe('chainWalls — arrastrar una punta se lleva las que estaban ahí', () => {
+  const lado = muro;
+  /** Un cuadrado, de los que deja el rectángulo de Builder. La esquina (0,0) la comparten `a` y `d`. */
+  const cuadrado = [lado('a', 0, 0, 200, 0, 'g1'), lado('b', 200, 0, 200, 150, 'g1'), lado('c', 200, 150, 0, 150, 'g1'), lado('d', 0, 150, 0, 0, 'g1')];
+
+  it('moviendo la punta A del lado de arriba, el lado de la izquierda la sigue', () => {
+    const at = { x1: 30, y1: 20, x2: 200, y2: 0 };
+    const cadena = chainWalls(cuadrado, 'a', { x1: 0, y1: 0, x2: 200, y2: 0 }, at, 'a');
+    // Sólo el lado `d`, que es el que tocaba esa esquina — y sólo por su punta B.
+    expect(cadena).toEqual([{ id: 'd', x1: 0, y1: 150, x2: 30, y2: 20 }]);
+  });
+
+  it('el muro que se arrastra NUNCA sale en la cadena: eso lo escribe quien llama', () => {
+    const cadena = chainWalls(cuadrado, 'a', { x1: 0, y1: 0, x2: 200, y2: 0 }, { x1: 30, y1: 20, x2: 200, y2: 0 }, 'a');
+    expect(cadena.some(c => c.id === 'a')).toBe(false);
+  });
+
+  it('arrastrando el lado ENTERO se sueldan sus DOS puntas: la figura no se abre por ningún lado', () => {
+    const at = { x1: 0, y1: 40, x2: 200, y2: 40 };
+    const cadena = chainWalls(cuadrado, 'a', { x1: 0, y1: 0, x2: 200, y2: 0 }, at, 'whole');
+    expect(cadena.map(c => c.id).sort()).toEqual(['b', 'd']);
+    expect(cadena.find(c => c.id === 'b')).toEqual({ id: 'b', x1: 200, y1: 40, x2: 200, y2: 150 });
+    expect(cadena.find(c => c.id === 'd')).toEqual({ id: 'd', x1: 0, y1: 150, x2: 0, y2: 40 });
+  });
+
+  it('el lado de enfrente no se toca: mover un lado no es mover el grupo', () => {
+    const cadena = chainWalls(cuadrado, 'a', { x1: 0, y1: 0, x2: 200, y2: 0 }, { x1: 0, y1: 40, x2: 200, y2: 40 }, 'whole');
+    expect(cadena.some(c => c.id === 'c')).toBe(false);
+  });
+
+  /** La cadena es por SITIO, no por grupo: el imán del candado junta puntas de muros que no van juntos. */
+  it('suelda también muros de grupos distintos, si sus puntas están en el mismo sitio', () => {
+    const pegado = lado('otro', 0, 0, 0, -90, 'g9');
+    const cadena = chainWalls([...cuadrado, pegado], 'a', { x1: 0, y1: 0, x2: 200, y2: 0 }, { x1: 30, y1: 20, x2: 200, y2: 0 }, 'a');
+    expect(cadena.map(c => c.id).sort()).toEqual(['d', 'otro']);
+  });
+
+  it('una punta que no coincide con nada no arrastra a nadie', () => {
+    const cadena = chainWalls(cuadrado, 'a', { x1: 200, y1: 0, x2: 0, y2: 0 }, { x1: 200, y1: 0, x2: 999, y2: 999 }, 'b');
+    // (0,0) sí la tocaba `d`; se comprueba el caso contrario con una esquina que no existe.
+    expect(chainWalls(cuadrado, 'a', { x1: 77, y1: 77, x2: 200, y2: 0 }, { x1: 90, y1: 90, x2: 200, y2: 0 }, 'a')).toEqual([]);
+    expect(cadena.map(c => c.id)).toEqual(['d']);
+  });
+
+  /** Se mide contra el ANTES: si no, la segunda punta se pegaría a donde acaba de llegar la primera. */
+  it('se mide contra las coordenadas de antes de mover nada', () => {
+    const degenerado = [lado('a', 0, 0, 100, 0, 'g1'), lado('z', 0, 0, 100, 0, 'g1')];
+    const cadena = chainWalls(degenerado, 'a', { x1: 0, y1: 0, x2: 100, y2: 0 }, { x1: 50, y1: 0, x2: 150, y2: 0 }, 'whole');
+    expect(cadena).toEqual([{ id: 'z', x1: 50, y1: 0, x2: 150, y2: 0 }]);
+  });
+});
+
+/**
+ * 🫱 ANDAR POR DENTRO DEL GRUPO — sus dos quejas del 2026-09-03: «*si selecciono un nodo y quiero seleccionar
+ * otro tengo que volver a hacer doble click*» y «*una vez dentro del grupo debería poder no sólo seleccionar
+ * un vector sino arrastrar y seleccionar en grupo cosas*».
+ */
+describe('insideGroup y groupInsideOf — cuándo estoy trabajando por dentro', () => {
+  const sala = cuadrado('g1');
+
+  it('con un muro suelto del grupo elegido, estoy dentro', () => {
+    expect(insideGroup(sala, 'a', [])).toBe(true);
+    expect(groupInsideOf(sala, 'a', [])).toBe('g1');
+  });
+
+  /** La segunda manera de andar por dentro: un puñado cogido con el área. Sin esto, arrastrar te echaba fuera. */
+  it('con un PUÑADO del grupo cogido, sigo dentro', () => {
+    expect(insideGroup(sala, null, ['a', 'b'])).toBe(true);
+    expect(groupInsideOf(sala, null, ['a', 'b'])).toBe('g1');
+  });
+
+  it('con el grupo ENTERO cogido no estoy dentro: estoy manejando la pieza', () => {
+    expect(insideGroup(sala, null, ['a', 'b', 'c', 'd'])).toBe(false);
+    expect(groupInsideOf(sala, null, ['a', 'b', 'c', 'd'])).toBeNull();
+  });
+
+  it('sin nada cogido, fuera', () => {
+    expect(insideGroup(sala, null, [])).toBe(false);
+    expect(groupInsideOf(sala, null, [])).toBeNull();
+  });
+
+  it('un muro suelto no es un grupo en el que se pueda entrar', () => {
+    const libre = [muro('x', 0, 0, 50, 0, null)];
+    expect(insideGroup(libre, 'x', [])).toBe(false);
+    expect(groupInsideOf(libre, 'x', [])).toBeNull();
+  });
+});
+
+describe('withWholeGroups por dentro del grupo', () => {
+  const sala = cuadrado('g1');
+
+  it('por fuera el grupo se viene entero: pillar dos trae los cuatro', () => {
+    expect(withWholeGroups(sala, [sala[0]!, sala[1]!]).map(w => w.id).sort()).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  /** 🔑 Dentro, el área coge lo que pilló y nada más: inflarlo al grupo entero era lo que te echaba fuera. */
+  it('por dentro coge sólo lo que pilló', () => {
+    expect(withWholeGroups(sala, [sala[0]!, sala[1]!], 'g1').map(w => w.id).sort()).toEqual(['a', 'b']);
+  });
+
+  it('los OTROS grupos siguen viniéndose enteros: en ésos no estoy dentro', () => {
+    const otro = [muro('o-a', 400, 400, 500, 400, 'g2'), muro('o-b', 500, 400, 500, 500, 'g2')];
+    const todos = [...sala, ...otro];
+    expect(withWholeGroups(todos, [sala[0]!, otro[0]!], 'g1').map(w => w.id).sort()).toEqual(['a', 'o-a', 'o-b']);
   });
 });

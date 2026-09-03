@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import type { Light, LightKind, LightPatch, LightShape } from '../domain/entities/Scene';
+import { useDragPanel } from './useDragPanel';
 import { clampIntensity, clampRangeM, clampSpinMs, DEFAULT_SPIN_MS, flickerOf, INTENSITY_STEP, intensityLabel, LIGHT_COLORS, LIGHT_KINDS, LIGHT_SHAPES, MAX_INTENSITY, MAX_RANGE_M, MAX_SPIN_MS, MIN_INTENSITY, MIN_RANGE_M, MIN_SPIN_MS, rangeLabelM, RANGE_STEP_M, spinLabelS, SPIN_STEP_MS } from '../domain/useCases/layerRules';
 
 const KIND_ICON: Record<LightKind, string> = {
@@ -22,33 +23,6 @@ interface Props {
 }
 
 /**
- * Arrastrar el panel por su cabecera. Devuelve un DESPLAZAMIENTO, no una posición: el panel sigue anclado
- * donde lo deja el CSS y sólo se corre desde ahí, así que no hay dos sitios peleándose por dónde va.
- *
- * Vive aquí y no en un sitio compartido porque hoy sólo lo usa este panel. El día que un segundo lo necesite
- * se extrae, con dos consumidores reales delante y no antes.
- */
-function useDragPanel(): { offset: { x: number; y: number }; handlers: Record<string, (e: React.PointerEvent<HTMLElement>) => void> } {
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const from = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null);
-  const onPointerDown = (e: React.PointerEvent<HTMLElement>): void => {
-    // Los botones de la cabecera mandan sobre el arrastre: borrar y cerrar tienen que poder pulsarse.
-    if (e.button !== 0 || (e.target as HTMLElement).closest('button')) return;
-    from.current = { px: e.clientX, py: e.clientY, ox: offset.x, oy: offset.y };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  };
-  const onPointerMove = (e: React.PointerEvent<HTMLElement>): void => {
-    const f = from.current;
-    if (f) setOffset({ x: f.ox + e.clientX - f.px, y: f.oy + e.clientY - f.py });
-  };
-  const onPointerUp = (e: React.PointerEvent<HTMLElement>): void => {
-    from.current = null;
-    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-  };
-  return { offset, handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp } };
-}
-
-/**
  * El editor de una luz de ambiente (rolvium.pen · «Escena · Director · luces de ambiente»).
  *
  * Se agarra por la cabecera y se aparta, y la X lo cierra sin borrar la luz: con la herramienta de luces un
@@ -63,7 +37,7 @@ function useDragPanel(): { offset: { x: number; y: number }; handlers: Record<st
  */
 export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.Element {
   const { t } = useTranslation();
-  const { offset, handlers } = useDragPanel();
+  const { ref, style, handlers } = useDragPanel<HTMLDivElement>();
   // Escape cierra, como cualquier panel flotante de la app. Es la salida que se busca a ciegas.
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose(); };
@@ -74,7 +48,7 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
   const animated = !!flickerOf(light);
 
   return (
-    <div className="mp-light-editor" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
+    <div className="mp-light-editor" ref={ref} style={style}
       role="group" aria-label={t('maps.lights.select', { kind: kindLabel(light.kind) })}>
       <div className="mp-light-head mp-drag" title={t('maps.lights.move')} {...handlers}>
         <span className="material-symbols-outlined mp-light-grip" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">drag_indicator</span>

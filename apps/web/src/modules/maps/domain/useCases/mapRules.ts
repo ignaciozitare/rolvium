@@ -65,6 +65,11 @@ export function centerOn(v: View, p: Point, viewport: { width: number; height: n
 
 // ── grid ─────────────────────────────────────────────────────────────────────
 export const snap = (v: number, grid: number): number => Math.round(v / grid) * grid;
+/**
+ * Lo mismo que `snap`, pero con el paso a 0 (o menos) devuelve el valor TAL CUAL. Es el candado de Builder:
+ * cerrado se pega a la rejilla como toda la vida, abierto no redondea ni un píxel (ver `snapRules.ts`).
+ */
+export const snapStep = (v: number, step: number): number => (step > 0 ? snap(v, step) : v);
 /** Scene px → cell (floor). */
 export const cellOf = (px: number, grid: number): number => Math.floor(px / grid);
 /** Cell of a token centred on a scene point (token top-left in cells). */
@@ -314,6 +319,44 @@ export const wallPiece = (host: Wall, at: Segment): NewWall => ({
   kind: host.kind, blocksSight: host.blocksSight, blocksMove: host.blocksMove, isOpen: host.isOpen, ...at,
 });
 
+/**
+ * Un nodo pegado a la punta no es un nodo: ahí ya hay uno. Por debajo de esto no se parte — quedaría un
+ * muñón invisible que sólo estorba al arrastrar. En px de escena (con la rejilla en 27, ~un séptimo de casilla).
+ */
+export const MIN_NODE_GAP = 4;
+
+/**
+ * El punto de la línea de `w` más cercano a `p`: su proyección, acotada a los dos extremos. Un doble clic
+ * nunca cae exactamente encima de la línea, y el nodo tiene que nacer SOBRE el muro o quedaría un codo.
+ */
+export function pointOnWall(w: Segment, p: Point): Point {
+  const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
+  const len2 = dx * dx + dy * dy;
+  if (len2 < 0.000001) return { x: w.x1, y: w.y1 };
+  const k = Math.max(0, Math.min(1, ((p.x - w.x1) * dx + (p.y - w.y1) * dy) / len2));
+  return { x: w.x1 + dx * k, y: w.y1 + dy * k };
+}
+
+/**
+ * AÑADIR UN NODO — «si tengo un vector y le hago doble click en alguna parte de la linea tiene que agregar
+ * otro nodo» (dueño, 2026-09-03). Es partir el muro en dos por ese punto, que es exactamente lo que ya hace
+ * `planOpening` para meter una puerta: se reaprovecha `wallPiece`, no se inventa nada.
+ *
+ * El muro de siempre SE QUEDA y sólo se le acorta la punta (`keep`); el trozo de después nace como muro nuevo
+ * (`piece`) heredando todo lo suyo — tipo, si lo ven los jugadores, si está abierto — y **su grupo**: partir
+ * un lado de una sala no puede echarlo fuera de la sala.
+ *
+ * Devuelve `null` cuando el punto cae pegado a una punta: ahí no hay nodo que añadir.
+ */
+export function splitWallAt(w: Wall, at: Point, min = MIN_NODE_GAP): { keep: Segment; piece: NewWall } | null {
+  const q = pointOnWall(w, at);
+  if (Math.hypot(q.x - w.x1, q.y - w.y1) < min || Math.hypot(q.x - w.x2, q.y - w.y2) < min) return null;
+  return {
+    keep: { x1: w.x1, y1: w.y1, x2: q.x, y2: q.y },
+    piece: { ...wallPiece(w, { x1: q.x, y1: q.y, x2: w.x2, y2: w.y2 }), groupId: w.groupId },
+  };
+}
+
 // ── fog & vision (drawn from what the API answers; never computed here) ──────
 /** `"x,y x,y …"` for an SVG `<polygon points>`. */
 export const polygonPoints = (poly: VisionPolygon): string => poly.map(([x, y]) => `${x},${y}`).join(' ');
@@ -469,6 +512,8 @@ export function filterEntries<T>(items: T[], query: string, labelOf: (t: T) => s
  * Where a segment lands while it is being dragged with Seleccionar: grabbing an endpoint stretches that end,
  * grabbing anywhere else moves the whole thing. Everything snaps to the grid, like drawing does, so an edited
  * wall keeps lining up with the plan.
+ *
+ * `step` es el candado (`snapRules.ts`): por omisión la rejilla, que es lo de siempre; a 0 el nodo va libre.
  */
 export function wallDragTo(
   origin: { x1: number; y1: number; x2: number; y2: number },
@@ -476,11 +521,12 @@ export function wallDragTo(
   from: Point,
   to: Point,
   grid: number,
+  step: number = grid,
 ): { x1: number; y1: number; x2: number; y2: number } {
   const dx = to.x - from.x, dy = to.y - from.y;
-  if (grab === 'a') return { ...origin, x1: snap(origin.x1 + dx, grid), y1: snap(origin.y1 + dy, grid) };
-  if (grab === 'b') return { ...origin, x2: snap(origin.x2 + dx, grid), y2: snap(origin.y2 + dy, grid) };
-  const sx = snap(origin.x1 + dx, grid) - origin.x1, sy = snap(origin.y1 + dy, grid) - origin.y1;
+  if (grab === 'a') return { ...origin, x1: snapStep(origin.x1 + dx, step), y1: snapStep(origin.y1 + dy, step) };
+  if (grab === 'b') return { ...origin, x2: snapStep(origin.x2 + dx, step), y2: snapStep(origin.y2 + dy, step) };
+  const sx = snapStep(origin.x1 + dx, step) - origin.x1, sy = snapStep(origin.y1 + dy, step) - origin.y1;
   return { x1: origin.x1 + sx, y1: origin.y1 + sy, x2: origin.x2 + sx, y2: origin.y2 + sy };
 }
 
@@ -492,6 +538,46 @@ export const isDraw = (t: Tool): boolean => DRAW_TOOLS.includes(t);
 export function rectFrom(a: Point, b: Point): { x: number; y: number; w: number; h: number } {
   return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
 }
+/**
+ * La CAJA de un trazo, en px de escena. Cada forma guarda sus datos a su manera, así que el único sitio que
+ * sabe medirlas todas es éste.
+ *
+ * El texto se mide a ojo —no hay forma de saber cuánto ocupa sin pintarlo— con el mismo cuadro que ya usaba
+ * `hitDrawing` para acertarle: es aproximado, pero es EL MISMO aproximado, así que elegir y pinchar coinciden.
+ */
+export function drawingBounds(d: Pick<Drawing, 'kind' | 'data'>): { x: number; y: number; w: number; h: number } {
+  const data = d.data as Record<string, unknown>;
+  if (d.kind === 'stroke') {
+    const pts = (data.points as [number, number][] | undefined) ?? [];
+    if (!pts.length) return { x: 0, y: 0, w: 0, h: 0 };
+    const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+    return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+  }
+  if (d.kind === 'circle') {
+    const cx = data.cx as number, cy = data.cy as number, r = data.r as number;
+    return { x: cx - r, y: cy - r, w: r * 2, h: r * 2 };
+  }
+  if (d.kind === 'text') return { x: data.x as number, y: (data.y as number) - 16, w: 120, h: 16 };
+  const x1 = data.x1 as number, y1 = data.y1 as number, x2 = data.x2 as number, y2 = data.y2 as number;
+  return rectFrom({ x: x1, y: y1 }, { x: x2, y: y2 });
+}
+
+/**
+ * LOS TRAZOS QUE COGE EL ÁREA — «*el arrastrar y seleccionar no funciona con las formas simples de líneas,
+ * texto, círculo y cuadrado*» (dueño, 2026-09-03). El área ya cogía fichas y muros; los trazos se habían
+ * quedado fuera.
+ *
+ * Se coge lo que cae ENTERO dentro, igual que con los muros: rozar media línea con el marco no es elegirla,
+ * y con el criterio de «lo que toque» arrastrar sobre un mapa lleno se lo llevaría casi todo.
+ */
+export function drawingsInRect(drawings: readonly Drawing[], a: Point, b: Point): Drawing[] {
+  const r = rectFrom(a, b);
+  return drawings.filter(d => {
+    const c = drawingBounds(d);
+    return c.x >= r.x && c.y >= r.y && c.x + c.w <= r.x + r.w && c.y + c.h <= r.y + r.h;
+  });
+}
+
 /** Tokens whose centre falls inside the marquee — «mantener pulsado y seleccionar por área». */
 export function tokensInRect(tokens: Token[], a: Point, b: Point, grid: number): string[] {
   const r = rectFrom(a, b);

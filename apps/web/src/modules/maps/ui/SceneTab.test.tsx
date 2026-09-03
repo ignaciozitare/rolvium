@@ -17,6 +17,14 @@ const MEMBERS: CampaignMember[] = [
 const seed = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE, SCENE_CHAPEL], tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1], drawings: [DRAWING_MINE, DRAWING_OTHER], images: [IMAGE_CHAPEL] });
 const G = SCENE_WAREHOUSE.grid.size;
 const canvas = () => screen.getByRole('application', { name: 'Lienzo de la escena' });
+/**
+ * Las seis de dibujar viven tras UN icono desde el 2026-09-03 («*quiero que todas estas sean un solo icono*»):
+ * se abre el menú y se elige dentro. Un ayudante para no repetir los dos clics en cada test.
+ */
+const dibujo = async (u: ReturnType<typeof userEvent.setup>, name: string): Promise<void> => {
+  await u.click(screen.getByRole('button', { name: 'Dibujar' }));
+  await u.click(await screen.findByRole('menuitemradio', { name }));
+};
 
 /** Vision always comes from the API — the tests inject a fake port so nothing here ever computes it. */
 function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision = fakeVisionPort()) {
@@ -35,7 +43,8 @@ describe('<SceneTab> player', () => {
     await waitFor(() => expect(within(canvas()).getAllByRole('img', { name: /^Token/ })).toHaveLength(2));
     expect(within(canvas()).queryByRole('img', { name: /Mutante/ })).not.toBeInTheDocument();
     expect(within(canvas()).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(0);
-    expect(screen.getByRole('toolbar', { name: 'Herramientas del lienzo' }).querySelectorAll('button')).toHaveLength(10); // 9 herramientas + Dados
+    // 4 herramientas + Dados: las seis de dibujar se plegaron en un solo icono (dueño, 2026-09-03).
+    expect(screen.getByRole('toolbar', { name: 'Herramientas del lienzo' }).querySelectorAll('button')).toHaveLength(5);
     expect(screen.getByText(/Los muros no se dibujan/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Fondo del mapa' })).not.toBeInTheDocument();
     expect(screen.getByText('Almacén de Queens · tu visión')).toBeInTheDocument();
@@ -53,7 +62,7 @@ describe('<SceneTab> player', () => {
     expect(repo.broadcasts.some(b => b.event.type === 'fog.updated')).toBe(true);
     expect(repo.broadcasts[0]!.sceneId).toBe('sc-1');
     const u = userEvent.setup();
-    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    await dibujo(u, 'Lápiz');
     await u.click(screen.getByRole('radio', { name: 'Color 3' }));
     fireEvent.pointerDown(canvas(), { clientX: 10, clientY: 10, pointerId: 1, button: 0 });
     fireEvent.pointerMove(canvas(), { clientX: 30, clientY: 20, pointerId: 1 });
@@ -61,7 +70,7 @@ describe('<SceneTab> player', () => {
     await waitFor(() => expect(repo.drawings).toHaveLength(3));
     expect(repo.drawings[2]).toMatchObject({ sceneId: 'sc-1', campaignId: 'c1', kind: 'stroke', color: '#b8452c', width: 2, data: { points: [[10, 10], [30, 20]] } });
     await waitFor(() => expect(within(canvas()).getByTestId('mp-drawings').querySelectorAll('[data-drawing-id]')).toHaveLength(3));
-    await u.click(screen.getByRole('button', { name: 'Borrar' }));
+    await dibujo(u, 'Borrar');
     fireEvent.pointerDown(canvas(), { clientX: 320, clientY: 290, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.removedDrawings).toEqual(['d-1']));
     fireEvent.pointerDown(canvas(), { clientX: 450, clientY: 520, pointerId: 1, button: 0 }); // someone else's rect: stays
@@ -247,7 +256,7 @@ describe('<SceneTab> DM', () => {
     await waitFor(() => expect(repo.tokenUpdates).toContainEqual({ id: 'tk-karen', patch: { visible: true } }));
     await u.click(within(bar).getByRole('button', { name: 'Quitar de la escena' }));
     await waitFor(() => expect(repo.tokens.some(t => t.id === 'tk-karen')).toBe(false));
-    await u.click(screen.getByRole('button', { name: 'Lápiz' }));   // la barra de Trazo sólo aparece con herramienta de dibujo
+    await dibujo(u, 'Lápiz');   // la barra de Trazo sólo aparece con herramienta de dibujo
     await u.click(await screen.findByRole('button', { name: 'Limpiar todos' }));
     await waitFor(() => expect(repo.clearedAll).toEqual(['sc-1']));
     await u.click(screen.getByRole('button', { name: '+ Escena' }));
@@ -638,20 +647,20 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
 
     // Seleccionar: ninguna barra
     expect(stage().querySelector('.mp-strokebar')).toBeNull();
-    expect(stage().querySelector('.mp-segbar')).toBeNull();
+    expect(stage().querySelector('.mp-builder')).toBeNull();
 
-    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    await dibujo(u, 'Lápiz');
     expect(stage().querySelector('.mp-strokebar')).not.toBeNull();   // «Trazo», sobre el mapa
 
     await u.click(screen.getByRole('button', { name: 'Builder' }));
     expect(stage().querySelector('.mp-strokebar')).toBeNull();
-    expect(stage().querySelector('.mp-segbar')).not.toBeNull();      // «Segmento», sobre el mapa
+    expect(stage().querySelector('.mp-builder')).not.toBeNull();     // el panel de Builder, sobre el mapa
 
     await u.click(screen.getByRole('button', { name: 'Revelar' }));
     expect(stage().querySelector('.mp-brushbar')).not.toBeNull();    // «Pincel», sobre el mapa
   });
 
-  it('cambiar de herramienta suelta la selección: «Segmento» no se queda pisando a «Trazo»', async () => {
+  it('cambiar de herramienta suelta la selección: el panel de Builder no se queda pisando a «Trazo»', async () => {
     const u = userEvent.setup();
     mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1] }));
     await screen.findByText(/Almacén de Queens/);
@@ -660,11 +669,11 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
     fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1 + 2, clientY: 380, pointerId: 1, button: 0 });
     fireEvent.pointerUp(canvas(), { pointerId: 1 });
-    await screen.findByRole('toolbar', { name: 'Segmento' });
+    await screen.findByRole('group', { name: 'Builder' });
 
-    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    await dibujo(u, 'Lápiz');
     expect(stage().querySelector('.mp-strokebar')).not.toBeNull();
-    expect(stage().querySelector('.mp-segbar')).toBeNull();          // las dos flotan en el mismo sitio
+    expect(stage().querySelector('.mp-builder')).toBeNull();         // los dos flotan sobre el mismo mapa
     expect(stage().querySelector('.mp-wall-handles')).toBeNull();     // ni tiradores de un muro que ya no editas
   });
 
@@ -696,7 +705,7 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
     fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1 + 2, clientY: 380, pointerId: 1, button: 0 });
-    await screen.findByRole('toolbar', { name: 'Segmento' });
+    await screen.findByRole('group', { name: 'Builder' });
     fireEvent.keyDown(window, { key: 'Delete' });
     await waitFor(() => expect(repo.walls).toHaveLength(0));
   });
@@ -712,10 +721,167 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
     fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1 + 2, clientY: 380, pointerId: 1, button: 0 });
     fireEvent.pointerUp(canvas(), { pointerId: 1 });
-    await screen.findByRole('toolbar', { name: 'Segmento' });
+    await screen.findByRole('group', { name: 'Builder' });
     fireEvent.contextMenu(canvas(), { clientX: 700, clientY: 100 });
     await u.click(within(await screen.findByRole('menu', { name: 'Acciones rápidas' })).getByRole('menuitem', { name: /Eliminar/ }));
     await waitFor(() => expect(repo.walls).toHaveLength(0));
+  });
+});
+
+/**
+ * EL PANEL DE BUILDER v3 montado de verdad sobre la escena (`rolvium.pen` · `ePNCc`). Orden del dueño del
+ * 2026-09-03: se acabó colgar cosas de la barra flotante vieja.
+ */
+describe('<SceneTab> el panel de Builder v3', () => {
+  const dblDown = (el: Element, x: number, y: number) => fireEvent.pointerDown(el, { clientX: x, clientY: y, pointerId: 1, button: 0, detail: 2 });
+
+  it('con Builder se abre el panel, con su icono y sus secciones', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    expect(within(panel).getByRole('radiogroup', { name: /En qué estoy trabajando/ })).toBeInTheDocument();
+    expect(within(panel).getByRole('radiogroup', { name: 'Tipo de segmento' })).toBeInTheDocument();
+    expect(within(panel).getByRole('radiogroup', { name: 'Con qué forma' })).toBeInTheDocument();
+    // Arranca ABIERTO, por orden suya: «el pegado a la rejilla debería estar desactivado por defecto».
+    expect(within(panel).getByRole('button', { name: /Libre/ })).toBeInTheDocument();
+  });
+
+  it('cerrar el panel vuelve a Seleccionar y suelta lo que hubiera cogido', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    await screen.findByRole('group', { name: 'Builder' });
+    await u.click(screen.getByRole('button', { name: 'Cerrar Builder' }));
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Builder' })).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Seleccionar' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  /**
+   * 🔒 EL CANDADO, de punta a punta. Cerrado (lo de siempre) el muro cuadra a la casilla; abierto cae donde
+   * se pinchó. Es la primera condición que él puso: sin abrirlo, nada cambia.
+   */
+  it('de serie el muro cae donde se pinchó; echando el candado se cuadra a la casilla', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+
+    // Como viene de serie —candado ABIERTO— el muro cae exactamente donde se pinchó.
+    fireEvent.pointerDown(canvas(), { clientX: 500, clientY: 611, pointerId: 1, button: 0 });
+    fireEvent.pointerDown(canvas(), { clientX: 613, clientY: 611, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.walls).toHaveLength(1));
+    expect(repo.walls[0]).toMatchObject({ x1: 500, y1: 611, x2: 613, y2: 611 });
+
+    // Escape corta la cadena: si no, el clic siguiente encadena otro muro desde donde acabó el anterior.
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await u.click(screen.getByRole('button', { name: /Libre/ }));
+    // Echado el candado, 4*G+5 cuadra a 4*G.
+    fireEvent.pointerDown(canvas(), { clientX: 4 * G + 5, clientY: 4 * G, pointerId: 1, button: 0 });
+    fireEvent.pointerDown(canvas(), { clientX: 8 * G, clientY: 4 * G, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.walls).toHaveLength(2));
+    expect(repo.walls[1]).toMatchObject({ x1: 4 * G, y1: 4 * G, x2: 8 * G, y2: 4 * G });
+  });
+
+  /**
+   * 🆕 EL NODO POR DOBLE CLIC, de punta a punta: un muro entra, dos salen, y el hueco no existe en ningún
+   * momento porque el trozo nuevo se escribe ANTES de acortar el viejo.
+   */
+  it('doble clic sobre la línea de un muro lo parte en dos', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+
+    // WALL_1 es vertical de (270,216) a (270,540): se pincha por la mitad.
+    dblDown(canvas(), WALL_1.x1, 378);
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+
+    await waitFor(() => expect(repo.walls).toHaveLength(2));
+    expect(repo.walls.find(w => w.id === WALL_1.id)).toMatchObject({ y1: 216, y2: 378 });
+    expect(repo.walls.find(w => w.id !== WALL_1.id)).toMatchObject({ y1: 378, y2: 540 });
+  });
+});
+
+/**
+ * 🤝 SELECCIONAR Y BUILDER VIVEN JUNTAS — «*si tengo una herramienta y selecciono la herramienta de selección
+ * no tiene que cerrar los modales abiertos, viven juntas, porque si quiero mover algo no indica que deje de
+ * trabajar con un muro*» (dueño, 2026-09-03).
+ */
+describe('<SceneTab> Seleccionar y Builder viven juntas', () => {
+  it('pasar de Builder a Seleccionar NO cierra el panel', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    await screen.findByRole('group', { name: 'Builder' });
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    // Sigue ahí: mover algo no es dejar de trabajar con un muro.
+    expect(screen.getByRole('group', { name: 'Builder' })).toBeInTheDocument();
+  });
+
+  it('y al revés: con un muro cogido, pasar a Builder no lo suelta', async () => {
+    const u = userEvent.setup();
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1 + 2, clientY: 380, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await screen.findByText('Lo que tengo cogido');
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    expect(screen.getByText('Lo que tengo cogido')).toBeInTheDocument();
+  });
+
+  /** Cualquier OTRA herramienta sí recoge los paneles: flotan sobre el mismo mapa y se pisarían. */
+  it('cualquier otra herramienta sí lo cierra', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    await screen.findByRole('group', { name: 'Builder' });
+    await dibujo(u, 'Lápiz');
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Builder' })).not.toBeInTheDocument());
+  });
+});
+
+/**
+ * 🔗 LA CADENA, de punta a punta: mover un nodo de una sala no la abre. Es su queja del 2026-09-03 («*me
+ * separa los segmentos de la figura original*»).
+ */
+describe('<SceneTab> los nodos en cadena', () => {
+  /** Un cuadrado atado, como el que deja el rectángulo de Builder. La esquina (2G,2G) la comparten dos lados. */
+  const lado = (id: string, x1: number, y1: number, x2: number, y2: number) => ({ ...WALL_1, id, x1, y1, x2, y2, groupId: 'g1' });
+  const sala = [
+    lado('s-a', 2 * G, 2 * G, 8 * G, 2 * G), lado('s-b', 8 * G, 2 * G, 8 * G, 7 * G),
+    lado('s-c', 8 * G, 7 * G, 2 * G, 7 * G), lado('s-d', 2 * G, 7 * G, 2 * G, 2 * G),
+  ];
+
+  it('arrastrar una esquina se lleva los dos lados que la tocaban', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: sala }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+
+    // Entrar al lado de arriba (doble clic), y desde dentro agarrar su esquina de la izquierda y moverla.
+    fireEvent.pointerDown(canvas(), { clientX: 5 * G, clientY: 2 * G, pointerId: 1, button: 0, detail: 2 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await screen.findByText('Lo que tengo cogido');
+
+    fireEvent.pointerDown(canvas(), { clientX: 2 * G, clientY: 2 * G, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(canvas(), { clientX: 4 * G, clientY: 4 * G, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+
+    // El lado de arriba y el de la izquierda acaban compartiendo la esquina NUEVA: la sala sigue cerrada.
+    await waitFor(() => {
+      const a = repo.walls.find(w => w.id === 's-a')!;
+      const d = repo.walls.find(w => w.id === 's-d')!;
+      expect({ x: a.x1, y: a.y1 }).toEqual({ x: 4 * G, y: 4 * G });
+      expect({ x: d.x2, y: d.y2 }).toEqual({ x: 4 * G, y: 4 * G });
+    });
+    // Y el lado de enfrente no se ha movido: mover una esquina no es mover la sala.
+    expect(repo.walls.find(w => w.id === 's-c')).toMatchObject({ x1: 8 * G, y1: 7 * G, x2: 2 * G, y2: 7 * G });
   });
 });
 
@@ -855,7 +1021,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     mount('dm', repo);
     await screen.findByRole('complementary', { name: 'Capas' });
     await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
-    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    await dibujo(u, 'Lápiz');
     const svg = canvas();
     fireEvent.pointerDown(svg, { clientX: 4 * G, clientY: 4 * G, pointerId: 1, button: 0 });
     fireEvent.pointerMove(svg, { clientX: 6 * G, clientY: 5 * G, pointerId: 1 });
@@ -868,7 +1034,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const repo = withLayers();
     mount('dm', repo);
     await screen.findByRole('complementary', { name: 'Capas' });
-    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    await dibujo(u, 'Lápiz');
     const svg = canvas();
     fireEvent.pointerDown(svg, { clientX: 4 * G, clientY: 4 * G, pointerId: 1, button: 0 });
     fireEvent.pointerMove(svg, { clientX: 6 * G, clientY: 5 * G, pointerId: 1 });
@@ -1060,7 +1226,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const antes = repo.drawings.length;
     mount('dm', repo);
     await screen.findByRole('complementary', { name: 'Capas' });
-    await u.click(screen.getByRole('button', { name: 'Lápiz' }));
+    await dibujo(u, 'Lápiz');
     const svg = canvas();
     fireEvent.pointerDown(svg, { clientX: 700, clientY: 700, pointerId: 1, button: 0 });
     fireEvent.pointerMove(svg, { clientX: 720, clientY: 715, pointerId: 1 });
@@ -1076,7 +1242,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const antes = repo.drawings.length;
     mount('dm', repo);
     await screen.findByRole('complementary', { name: 'Capas' });
-    await u.click(screen.getByRole('button', { name: 'Caja' }));
+    await dibujo(u, 'Caja');
     const svg = canvas();
     fireEvent.pointerDown(svg, { clientX: 700, clientY: 700, pointerId: 1, button: 0 });
     fireEvent.pointerMove(svg, { clientX: 780, clientY: 760, pointerId: 1 });

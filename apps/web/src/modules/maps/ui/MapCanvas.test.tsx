@@ -131,19 +131,49 @@ describe('<MapCanvas> el GRUPO se coge, se mueve y se estira', () => {
     expect(cb2.onSelectWalls).not.toHaveBeenCalledWith(['h-a', 'h-b']);
   });
 
-  it('y arrastrar por el medio del muro elegido lo mueve a él, no al grupo', () => {
+  /**
+   * Arrastrar por el medio del muro elegido lo mueve A ÉL y no al grupo — pero **se lleva las puntas de sus
+   * dos vecinos**, o la figura se abriría por los dos lados (la cadena, pedida el 2026-09-03). Son tres muros
+   * de los cuatro: el de enfrente no se toca, y por eso esto no es «mover el grupo».
+   */
+  it('y arrastrar por el medio del muro elegido lo mueve a él y a las puntas de sus vecinos, no al grupo', () => {
     const cb2 = { onMoveWall: vi.fn(), onTransformWalls: vi.fn() };
     const { svg } = mount({ ...dmSel, selectedWallId: 'g-a', ...cb2 });
+    down(svg, 60, 0); move(svg, 100, 40); up(svg);
+    expect(cb2.onMoveWall).not.toHaveBeenCalled();
+    const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string }[];
+    expect(batch.map(b => b.id).sort()).toEqual(['g-a', 'g-b', 'g-d']);
+  });
+
+  /** Con la cadena quitada vuelve a moverse solo, que es lo que él puede elegir: «a menos que yo elija que no». */
+  it('con la cadena quitada, el muro elegido se mueve solo', () => {
+    const cb2 = { onMoveWall: vi.fn(), onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallId: 'g-a', chainNodes: false, ...cb2 });
     down(svg, 60, 0); move(svg, 100, 40); up(svg);
     expect(cb2.onMoveWall).toHaveBeenCalledTimes(1);
     expect(cb2.onTransformWalls).not.toHaveBeenCalled();
   });
 
-  it('pinchar OTRO muro del grupo vuelve a coger el grupo entero', () => {
-    const cb2 = { onSelectWalls: vi.fn() };
+  /**
+   * 🔑 UNA VEZ DENTRO, SE QUEDA DENTRO (dueño, 2026-09-03: «*si selecciono un nodo y quiero seleccionar otro
+   * tengo que volver a hacer doble click, eso está mal*»). Pinchar otro muro DEL MISMO grupo coge ese muro,
+   * no vuelve a coger el grupo entero.
+   */
+  it('ya dentro, pinchar OTRO muro del grupo coge ESE muro y no el grupo entero', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
     const { svg } = mount({ ...dmSel, selectedWallId: 'g-a', ...cb2 });
     down(svg, 200, 60);
-    expect(cb2.onSelectWalls).toHaveBeenCalledWith(['g-a', 'g-b', 'g-c', 'g-d']);
+    expect(cb2.onSelectWall).toHaveBeenCalledWith('g-b');
+    expect(cb2.onSelectWalls).not.toHaveBeenCalledWith(['g-a', 'g-b', 'g-c', 'g-d']);
+  });
+
+  /** Y se SALE pinchando algo de fuera: un muro de otro grupo vuelve a cogerse entero. */
+  it('pinchando un muro de OTRO grupo se sale, y ese otro se coge entero', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const otro = [lado('o-a', 400, 400, 600, 400, 'g2'), lado('o-b', 600, 400, 600, 500, 'g2')];
+    const { svg } = mount({ ...dmSel, walls: [...grupo, ...otro], selectedWallId: 'g-a', ...cb2 });
+    down(svg, 500, 400);
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith(['o-a', 'o-b']);
   });
 
   it('un muro suelto se coge solo, sin arrastrar a nadie', () => {
@@ -1550,5 +1580,309 @@ describe('<MapCanvas> Builder levanta salas enteras', () => {
     const { svg } = mount({ ...dm, playerView: true, wallShape: 'rect', ...cb2 });
     down(svg, 0, 0); move(svg, 200, 150); up(svg);
     expect(cb2.onAddRoom).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * 🔒 EL CANDADO DE PEGAR A LA REJILLA (§ «Rebanada 8»), aprobado por el dueño el 2026-09-03 con sus tres
+ * condiciones. Aquí se sujetan las tres sobre el lienzo, que es donde se notan.
+ */
+describe('<MapCanvas> el candado de la rejilla', () => {
+  const dmWall = { tool: 'wall' as const, isDm: true, me: 'u-gm' };
+
+  /** 1ª condición: sin tocarlo, Builder dibuja EXACTAMENTE como antes de que el candado existiera. */
+  it('cerrado (lo de siempre) el muro cae en la casilla', () => {
+    const { svg, cb } = mount({ ...dmWall });
+    down(svg, 28, 26); down(svg, 80, 26);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: G, y: G }, { x: 3 * G, y: G });
+  });
+
+  it('abierto, el muro cae donde se pinchó y no en la casilla', () => {
+    const { svg, cb } = mount({ ...dmWall, snapGrid: false, walls: [] });
+    down(svg, 28, 26); down(svg, 80, 26);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: 28, y: 26 }, { x: 80, y: 26 });
+  });
+
+  /**
+   * 3ª condición, y la que hace que el candado sirva de algo: sin el imán, «libre» acaba siendo «lleno de
+   * rendijas» y por una rendija de medio píxel se cuela la visión.
+   */
+  it('abierto, la punta se pega a la punta de otro muro que tenga cerca', () => {
+    // WALL_1 empieza en (270,216): pinchando a cuatro píxeles, el muro nuevo arranca EXACTAMENTE de ahí.
+    const { svg, cb } = mount({ ...dmWall, snapGrid: false });
+    down(svg, 274, 219); down(svg, 400, 400);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: 270, y: 216 }, { x: 400, y: 400 });
+  });
+
+  /** El candado vale para TODO Builder, no sólo para dibujar: también para el nodo que se arrastra. */
+  it('abierto, el nodo que se arrastra se queda donde lo sueltas', () => {
+    const suelto = { ...WALL_1, id: 'w-libre', x1: 100, y1: 100, x2: 300, y2: 100, groupId: null };
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [suelto], snapGrid: false, selectedWallId: 'w-libre' });
+    down(svg, 100, 100);                 // agarra la punta A
+    move(svg, 104, 107);
+    up(svg);
+    expect(cb.onMoveWall).toHaveBeenCalledWith('w-libre', { x1: 104, y1: 107, x2: 300, y2: 100 });
+  });
+});
+
+/**
+ * 🆕 AÑADIR UN NODO — «*si tengo un vector y le hago doble click en alguna parte de la linea tiene que
+ * agregar otro nodo*» (dueño, 2026-09-03).
+ *
+ * 🔑 CÓMO CONVIVE con el doble clic que ya existía, decidido por él: «primero entra, luego el nodo». Sobre un
+ * muro de un grupo en el que aún no has entrado, el doble clic ENTRA (lo de siempre); ya dentro —o sobre un
+ * muro suelto, que no tiene dónde entrar— el doble clic pone el nodo.
+ */
+describe('<MapCanvas> el doble clic sobre la línea añade un nodo', () => {
+  // En la rejilla (múltiplos de 27), como nace cualquier muro de Builder con el candado cerrado.
+  const suelto = { ...WALL_1, id: 'w-libre', x1: 4 * G, y1: 4 * G, x2: 12 * G, y2: 4 * G, groupId: null };
+  const lado = (id: string, x1: number, y1: number, x2: number, y2: number) => ({ ...WALL_1, id, x1, y1, x2, y2, groupId: 'g1' });
+  const grupo = [lado('g-a', 0, 0, 200, 0), lado('g-b', 200, 0, 200, 150), lado('g-c', 200, 150, 0, 150), lado('g-d', 0, 150, 0, 0)];
+  const dbl = (el: Element, x: number, y: number) => fireEvent.pointerDown(el, { clientX: x, clientY: y, pointerId: 1, button: 0, detail: 2 });
+
+  it('sobre un muro SUELTO, el doble clic quieto parte el muro por ahí', () => {
+    const onSplitWall = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [suelto], onSplitWall });
+    dbl(svg, 8 * G, 4 * G); up(svg);
+    expect(onSplitWall).toHaveBeenCalledWith('w-libre', { x: 8 * G, y: 4 * G });
+  });
+
+  /** ⚠️ El segundo clic de un arrastre cuenta como doble: si hubo movimiento, era mover, no poner un nodo. */
+  it('arrastrando NO nace ningún nodo: eso era mover el muro', () => {
+    const onSplitWall = vi.fn();
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [suelto], onSplitWall });
+    dbl(svg, 8 * G, 4 * G);
+    move(svg, 8 * G, 6 * G);
+    up(svg);
+    expect(onSplitWall).not.toHaveBeenCalled();
+    expect(cb.onMoveWall).toHaveBeenCalled();
+  });
+
+  /** Su decisión, primera mitad: dentro de un grupo el primer doble clic sigue ENTRANDO, como hasta ahora. */
+  it('sobre un muro de un grupo en el que no has entrado, el doble clic entra y NO pone nodo', () => {
+    const onSplitWall = vi.fn();
+    const onSelectWall = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: grupo, onSplitWall, onSelectWall });
+    dbl(svg, 60, 0); up(svg);
+    expect(onSelectWall).toHaveBeenCalledWith('g-a');
+    expect(onSplitWall).not.toHaveBeenCalled();
+  });
+
+  /** Su decisión, segunda mitad: ya dentro, el doble clic siguiente sí pone el nodo. */
+  it('una vez dentro del grupo, el doble clic ya parte el muro', () => {
+    const onSplitWall = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: grupo, selectedWallId: 'g-a', onSplitWall });
+    dbl(svg, 60, 0); up(svg);
+    expect(onSplitWall).toHaveBeenCalledWith('g-a', { x: 60, y: 0 });
+  });
+
+  /**
+   * 🔴 Fallo cazado al repasar la deuda: los muros de un CÍRCULO y los de un trazo A PULSO no caen en la
+   * rejilla, así que con el candado cerrado el propio clic los recuadraba y el doble clic contaba como
+   * movimiento — en vez del nodo, el muro daba un tirón a la casilla. Ahora «quieto» se mide por lo que
+   * viajó el dedo, no por si la geometría cambió.
+   */
+  it('en un muro que NO cae en la rejilla —los de un círculo— el nodo también nace', () => {
+    const onSplitWall = vi.fn();
+    const torcido = { ...WALL_1, id: 'w-circ', x1: 103, y1: 97, x2: 311, y2: 154, groupId: null };
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [torcido], onSplitWall });
+    dbl(svg, 207, 125); up(svg);
+    expect(onSplitWall).toHaveBeenCalledWith('w-circ', { x: 207, y: 125 });
+    // Y no se ha ido de tirón a la casilla por el camino.
+    expect(cb.onMoveWall).not.toHaveBeenCalled();
+  });
+
+  /** Un clic SUELTO en ese mismo muro sigue recuadrándolo, como toda la vida: eso no se ha tocado. */
+  it('un clic suelto en ese muro torcido lo sigue recuadrando, como siempre', () => {
+    const onSplitWall = vi.fn();
+    const torcido = { ...WALL_1, id: 'w-circ', x1: 103, y1: 97, x2: 311, y2: 154, groupId: null };
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [torcido], onSplitWall });
+    down(svg, 207, 125); up(svg);
+    expect(onSplitWall).not.toHaveBeenCalled();
+    expect(cb.onMoveWall).toHaveBeenCalled();
+  });
+
+  it('un clic normal no parte nada: sólo elige', () => {
+    const onSplitWall = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [suelto], onSplitWall });
+    down(svg, 8 * G, 4 * G); up(svg);
+    expect(onSplitWall).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * ➖ LA RECTA SUELTA — la sexta forma del diseño v3, pedida por él el 2026-09-03. Es la hermana de «a mano»:
+ * lo mismo, pero de un tirón. Y la única que NO monta una sala: sale un muro y sólo uno.
+ */
+describe('<MapCanvas> la recta suelta', () => {
+  const dmLine = { tool: 'wall' as const, isDm: true, me: 'u-gm', wallShape: 'line' as const, walls: [] };
+
+  it('se arrastra y sale UN muro, por el camino de siempre', () => {
+    const { svg, cb } = mount({ ...dmLine });
+    down(svg, 4 * G, 4 * G);
+    move(svg, 9 * G, 4 * G);
+    up(svg);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: 4 * G, y: 4 * G }, { x: 9 * G, y: 4 * G });
+  });
+
+  /** 🔑 No es una sala: si fuera por `onAddRoom` nacería atada en un grupo, y un muro solo no es un grupo. */
+  it('NO pasa por el camino de las salas', () => {
+    const onAddRoom = vi.fn();
+    const { svg } = mount({ ...dmLine, onAddRoom });
+    down(svg, 4 * G, 4 * G); move(svg, 9 * G, 4 * G); up(svg);
+    expect(onAddRoom).not.toHaveBeenCalled();
+  });
+
+  it('se ve crecer mientras se arrastra', () => {
+    const { svg } = mount({ ...dmLine });
+    down(svg, 4 * G, 4 * G);
+    move(svg, 9 * G, 4 * G);
+    expect(within(svg).getByTestId('mp-walls').querySelectorAll('.mp-wall.draft')).toHaveLength(1);
+  });
+
+  it('un clic sin arrastre no deja nada: eso es un resbalón', () => {
+    const { svg, cb } = mount({ ...dmLine });
+    down(svg, 4 * G, 4 * G); up(svg);
+    expect(cb.onAddWall).not.toHaveBeenCalled();
+  });
+
+  /** Va en diagonal, que es media razón de ser de la forma: «¿y si quiero poner una pared inclinada?». */
+  it('vale en diagonal', () => {
+    const { svg, cb } = mount({ ...dmLine });
+    down(svg, 0, 0); move(svg, 4 * G, 2 * G); up(svg);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: 0, y: 0 }, { x: 4 * G, y: 2 * G });
+  });
+
+  it('con el candado abierto cae donde se suelta, y no en la casilla', () => {
+    const { svg, cb } = mount({ ...dmLine, snapGrid: false });
+    down(svg, 103, 97); move(svg, 311, 154); up(svg);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: 103, y: 97 }, { x: 311, y: 154 });
+  });
+});
+
+/**
+ * ⌘A COGERLO TODO — «*no me deja seleccionar todos los nodos*» (dueño, 2026-09-03). Desde ahí se mueven y se
+ * estiran como un grupo, y Suprimir los borra.
+ */
+describe('<MapCanvas> coger todos los muros', () => {
+  const dmSel = { isDm: true, me: 'u-gm', tool: 'select' as const };
+
+  it('Ctrl + A coge todos los muros de la escena', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    mount({ ...dmSel, ...cb2 });
+    fireEvent.keyDown(window, { key: 'a', ctrlKey: true });
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith(['w-1', 'w-2']);
+    // Y suelta el muro suelto: o tienes UNO y editas sus puntas, o tienes TODOS y los mueves.
+    expect(cb2.onSelectWall).toHaveBeenCalledWith(null);
+  });
+
+  it('Cmd + A hace lo mismo, que es el atajo del Mac', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    mount({ ...dmSel, ...cb2 });
+    fireEvent.keyDown(window, { key: 'a', metaKey: true });
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith(['w-1', 'w-2']);
+  });
+
+  it('una «a» a secas no coge nada: es una letra, no un atajo', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    mount({ ...dmSel, ...cb2 });
+    fireEvent.keyDown(window, { key: 'a' });
+    expect(cb2.onSelectWalls).not.toHaveBeenCalled();
+  });
+
+  /** Escribiendo en un campo, Ctrl+A es «selecciona todo el texto» y no se le puede robar. */
+  it('escribiendo en un campo no roba el atajo', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    mount({ ...dmSel, ...cb2 });
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: 'a', ctrlKey: true });
+    expect(cb2.onSelectWalls).not.toHaveBeenCalled();
+    input.remove();
+  });
+
+  it('un jugador no coge muros: no son suyos', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    mount({ tool: 'select', isDm: false, ...cb2 });
+    fireEvent.keyDown(window, { key: 'a', ctrlKey: true });
+    expect(cb2.onSelectWalls).not.toHaveBeenCalled();
+  });
+
+  it('con los muros escondidos tampoco: no se coge lo que no se ve', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    mount({ ...dmSel, showWalls: false, ...cb2 });
+    fireEvent.keyDown(window, { key: 'a', ctrlKey: true });
+    expect(cb2.onSelectWalls).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * ✏️ ARRASTRAR Y SELECCIONAR TRAZOS — «*el arrastrar y seleccionar no funciona con las formas simples de
+ * líneas, texto, círculo y cuadrado*» (dueño, 2026-09-03). El área cogía fichas y muros; los trazos no.
+ */
+describe('<MapCanvas> el área coge también los trazos', () => {
+  const dm = { isDm: true, me: 'u-gm', tool: 'select' as const, walls: [], tokens: [] };
+  const traz = (id: string, kind: 'line' | 'rect' | 'circle' | 'text', data: unknown) =>
+    ({ ...DRAWING_MINE, id, kind, data } as typeof DRAWING_MINE);
+  /** Las cuatro formas simples que él nombró, todas dentro de un cuadro de 200×200. */
+  const cuatro = [
+    traz('t-linea', 'line', { x1: 20, y1: 20, x2: 60, y2: 60 }),
+    traz('t-caja', 'rect', { x1: 80, y1: 20, x2: 140, y2: 60 }),
+    traz('t-circulo', 'circle', { cx: 60, cy: 120, r: 20 }),
+    traz('t-texto', 'text', { x: 20, y: 180, text: 'Trampa' }),
+  ];
+
+  it('arrastrando por encima se cogen las cuatro formas simples', () => {
+    const onSelectDrawings = vi.fn();
+    const { svg } = mount({ ...dm, drawings: cuatro, onSelectDrawings });
+    down(svg, 0, 0); move(svg, 400, 400); up(svg);
+    expect(onSelectDrawings).toHaveBeenCalledWith(['t-linea', 't-caja', 't-circulo', 't-texto']);
+  });
+
+  it('deja fuera lo que sólo asoma por el marco', () => {
+    const onSelectDrawings = vi.fn();
+    const fuera = traz('t-fuera', 'line', { x1: 60, y1: 60, x2: 900, y2: 900 });
+    const { svg } = mount({ ...dm, drawings: [cuatro[0]!, fuera], onSelectDrawings });
+    down(svg, 0, 0); move(svg, 200, 200); up(svg);
+    expect(onSelectDrawings).toHaveBeenCalledWith(['t-linea']);
+  });
+
+  /** Un jugador puede VER los trazos, pero moverlos es del director (RLS de `maps_drawings`). */
+  it('un jugador no los coge: no podría hacer nada con ellos', () => {
+    const onSelectDrawings = vi.fn();
+    const { svg } = mount({ tool: 'select', isDm: false, me: 'u-pip', walls: [], tokens: [], drawings: cuatro, onSelectDrawings });
+    down(svg, 0, 0); move(svg, 400, 400); up(svg);
+    expect(onSelectDrawings).toHaveBeenCalledWith([]);
+  });
+
+  it('agarrar uno del puñado los mueve TODOS, y no suelta la selección', () => {
+    const onMoveDrawings = vi.fn();
+    const onSelectDrawing = vi.fn();
+    const ids = cuatro.map(d => d.id);
+    const { svg } = mount({ ...dm, drawings: cuatro, selectedDrawingIds: ids, onMoveDrawings, onSelectDrawing });
+    down(svg, 40, 40); move(svg, 90, 70); up(svg);
+    expect(onMoveDrawings).toHaveBeenCalledTimes(1);
+    expect((onMoveDrawings.mock.calls[0]![0] as { id: string }[]).map(b => b.id).sort()).toEqual([...ids].sort());
+    // Agarrar uno de un puñado no puede tirar el trabajo de haberlos cogido.
+    expect(onSelectDrawing).not.toHaveBeenCalled();
+  });
+
+  it('pinchando un trazo de FUERA del puñado se coge ése y sólo ése', () => {
+    const onSelectDrawing = vi.fn();
+    const onSelectDrawings = vi.fn();
+    const { svg } = mount({ ...dm, drawings: cuatro, selectedDrawingIds: ['t-circulo', 't-texto'], onSelectDrawing, onSelectDrawings });
+    down(svg, 40, 40);
+    expect(onSelectDrawing).toHaveBeenCalledWith('t-linea');
+    expect(onSelectDrawings).toHaveBeenCalledWith([]);
+  });
+
+  it('uno solo sigue moviéndose por su camino de siempre', () => {
+    const onMoveDrawing = vi.fn();
+    const onMoveDrawings = vi.fn();
+    const { svg } = mount({ ...dm, drawings: [cuatro[0]!], onMoveDrawing, onMoveDrawings });
+    down(svg, 40, 40); move(svg, 90, 70); up(svg);
+    expect(onMoveDrawing).toHaveBeenCalledTimes(1);
+    expect(onMoveDrawings).not.toHaveBeenCalled();
   });
 });

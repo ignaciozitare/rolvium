@@ -129,12 +129,42 @@ export function wallsInRect(walls: Wall[], a: Point, b: Point): Wall[] {
 /**
  * Un grupo se coge entero o no se coge. Si el área pilló tres muros de un círculo de once, se vienen los once:
  * el grupo es UNA cosa, y media cosa cogida no es nada que él pueda mover con sentido.
+ *
+ * 🔑 `porDentro` es la excepción, y es la que pidió el 2026-09-03: «*una vez dentro del grupo debería poder no
+ * sólo seleccionar un vector sino arrastrar y seleccionar en grupo cosas*». Estando DENTRO de un grupo, el
+ * área coge de ÉL exactamente los muros que pilló y no lo infla al grupo entero — que era lo que en la
+ * práctica te echaba fuera. Los demás grupos siguen viniéndose enteros: en ésos no estás dentro.
  */
-export function withWholeGroups(all: Wall[], picked: Wall[]): Wall[] {
-  const groups = new Set(picked.map(w => w.groupId).filter((g): g is string => !!g));
+export function withWholeGroups(all: Wall[], picked: Wall[], porDentro: string | null = null): Wall[] {
+  const groups = new Set(picked.map(w => w.groupId).filter((g): g is string => !!g && g !== porDentro));
   if (!groups.size) return picked;
   const ids = new Set(picked.map(w => w.id));
   return [...picked, ...all.filter(w => w.groupId && groups.has(w.groupId) && !ids.has(w.id))];
+}
+
+/**
+ * ¿ESTOY DENTRO DE ESTE GRUPO? Lo estoy si lo que tengo cogido es DE él pero no es él entero: entré con doble
+ * clic y ando trabajando por dentro. Vale para las dos maneras de andar por dentro — un muro suelto elegido, o
+ * un puñado cogido con el área.
+ *
+ * Con el grupo ENTERO cogido no estoy dentro, estoy manejando la pieza: ahí un clic mueve la pieza.
+ */
+export function insideGroup(grupo: readonly Wall[], selectedId: string | null, selectedIds: readonly string[]): boolean {
+  if (grupo.length < 2) return false;
+  const ids = new Set(grupo.map(w => w.id));
+  if (selectedId && ids.has(selectedId)) return true;
+  const dentro = selectedIds.filter(id => ids.has(id));
+  return dentro.length > 0 && dentro.length < grupo.length;
+}
+
+/** En qué grupo estoy trabajando por dentro, o `null`. Lo necesita el área para no inflarlo al grupo entero. */
+export function groupInsideOf(all: Wall[], selectedId: string | null, selectedIds: readonly string[]): string | null {
+  const byId = new Map(all.map(w => [w.id, w]));
+  const candidato = (selectedId ? byId.get(selectedId)?.groupId : null)
+    ?? selectedIds.map(id => byId.get(id)?.groupId).find((g): g is string => !!g)
+    ?? null;
+  if (!candidato) return null;
+  return insideGroup(all.filter(w => w.groupId === candidato), selectedId, selectedIds) ? candidato : null;
 }
 
 /** Los muros del grupo de este muro. Sin grupo, él solo: un muro suelto es un conjunto de uno. */
@@ -145,4 +175,51 @@ export function groupOf(all: Wall[], wall: Wall): Wall[] {
 /** Un identificador de grupo nuevo. Va aquí para que la pantalla no tenga que saber de qué forma es. */
 export function newGroupId(): string {
   return crypto.randomUUID();
+}
+
+/**
+ * Cuánto pueden separarse dos puntas para que cuenten como EL MISMO NODO, en px de escena. Pequeño a
+ * propósito: es para soldar puntas que ya coinciden —las de una sala, las que juntó el imán del candado—,
+ * no para pegar cosas que están cerca.
+ */
+export const NODE_WELD_PX = 1.5;
+
+/**
+ * LOS NODOS SON UNA CADENA (dueño, 2026-09-03: «*me separa los segmentos de la figura original, los nodos
+ * deberían ser como una cadena a menos que yo elija que no*»).
+ *
+ * Al arrastrar una punta, las puntas de los demás muros que estaban EN ESE MISMO SITIO se van con ella. Sin
+ * esto, mover un nodo de un círculo o de una sala **abre la figura**: en pantalla se ve el hueco, y por ese
+ * hueco se cuela la visión.
+ *
+ * Se mide contra las coordenadas de ANTES de mover nada, o la segunda punta se pegaría a donde acaba de
+ * llegar la primera. Y arrastrando el muro entero se sueldan las dos, que es lo que mantiene cerrada la
+ * figura cuando lo que se mueve es un lado completo.
+ *
+ * `id` es el muro que se está arrastrando: ése lo escribe quien llama, no esta función.
+ */
+export function chainWalls(
+  walls: readonly Wall[],
+  id: string,
+  origin: { x1: number; y1: number; x2: number; y2: number },
+  at: { x1: number; y1: number; x2: number; y2: number },
+  grab: 'a' | 'b' | 'whole',
+  tol = NODE_WELD_PX,
+): WallAt[] {
+  const nodos: { from: Point; to: Point }[] = [];
+  if (grab !== 'b') nodos.push({ from: { x: origin.x1, y: origin.y1 }, to: { x: at.x1, y: at.y1 } });
+  if (grab !== 'a') nodos.push({ from: { x: origin.x2, y: origin.y2 }, to: { x: at.x2, y: at.y2 } });
+  const pegado = (px: number, py: number, q: Point): boolean => Math.hypot(px - q.x, py - q.y) <= tol;
+  const out: WallAt[] = [];
+  for (const w of walls) {
+    if (w.id === id) continue;
+    const next: WallAt = { id: w.id, x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 };
+    let tocado = false;
+    for (const n of nodos) {
+      if (pegado(w.x1, w.y1, n.from)) { next.x1 = n.to.x; next.y1 = n.to.y; tocado = true; }
+      if (pegado(w.x2, w.y2, n.from)) { next.x2 = n.to.x; next.y2 = n.to.y; tocado = true; }
+    }
+    if (tocado) out.push(next);
+  }
+  return out;
 }

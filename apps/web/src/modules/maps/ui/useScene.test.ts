@@ -290,6 +290,67 @@ describe('useScene · Builder levanta la sala de una vez', () => {
     expect(repo.walls[0]!.x1).toBe(x0 + 90);
   });
 
+  /**
+   * 🆕 AÑADIR UN NODO (dueño, 2026-09-03). El muro se parte en dos por donde pinchó: el viejo se acorta y
+   * nace un trozo nuevo desde ahí.
+   */
+  it('partir un muro deja dos, y el trozo nuevo hereda el grupo de la sala', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const arriba = repo.walls.find(w => w.x1 === 0 && w.y1 === 0 && w.x2 === 270)!;
+    const g = arriba.groupId;
+
+    await act(async () => { await result.current.splitWall(arriba, { x: 135, y: 0 }); });
+
+    expect(repo.walls).toHaveLength(5);
+    expect(repo.walls.find(w => w.id === arriba.id)).toMatchObject({ x1: 0, y1: 0, x2: 135, y2: 0 });
+    const trozo = repo.walls.find(w => w.x1 === 135 && w.y1 === 0)!;
+    expect(trozo).toMatchObject({ x2: 270, y2: 0, groupId: g, kind: 'wall' });
+    // Los dos trozos juntos siguen siendo el mismo lado: la sala no se ha abierto por ningún sitio.
+    expect(new Set(repo.walls.map(w => w.groupId)).size).toBe(1);
+  });
+
+  it('pinchando pegado a una punta no se parte nada: ahí ya hay un nodo', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const arriba = repo.walls.find(w => w.x1 === 0 && w.y1 === 0 && w.x2 === 270)!;
+    let salida: unknown = 'sin llamar';
+    await act(async () => { salida = await result.current.splitWall(arriba, { x: 1, y: 0 }); });
+    expect(salida).toBeNull();
+    expect(repo.walls).toHaveLength(4);
+  });
+
+  it('deshacer el nodo devuelve el muro entero; rehacerlo lo vuelve a partir', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const arriba = repo.walls.find(w => w.x1 === 0 && w.y1 === 0 && w.x2 === 270)!;
+    await act(async () => { await result.current.splitWall(arriba, { x: 135, y: 0 }); });
+    expect(repo.walls).toHaveLength(5);
+
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls).toHaveLength(4);
+    expect(repo.walls.find(w => w.id === arriba.id)).toMatchObject({ x1: 0, y1: 0, x2: 270, y2: 0 });
+
+    await act(async () => { await result.current.history.redo(); });
+    expect(repo.walls).toHaveLength(5);
+    expect(repo.walls.find(w => w.id === arriba.id)).toMatchObject({ x2: 135, y2: 0 });
+  });
+
+  /** La visión la calcula el servidor: partir un muro cambia la geometría y hay que decírselo. */
+  it('partir avisa al servidor de que la visión ha cambiado', async () => {
+    const vision = fakeVisionPort({});
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, vision);
+    await act(async () => { await result.current.addRoom(sala); });
+    const antes = vision.calls.length;
+    const arriba = repo.walls.find(w => w.x1 === 0 && w.y1 === 0 && w.x2 === 270)!;
+    await act(async () => { await result.current.splitWall(arriba, { x: 135, y: 0 }); });
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(antes));
+  });
+
   it('deshacer agrupar los deja sueltos otra vez, y deshacer soltar los vuelve a atar', async () => {
     const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
     const result = await mount(repo, fakeVisionPort({}));

@@ -358,3 +358,58 @@
 .mp-groupbar{display:flex;align-items:center;gap:var(--sp-sm);}
 .mp-groupbar-n{font-size:var(--fs-2xs);letter-spacing:.06em;text-transform:uppercase;color:var(--tx);background:var(--sf3);padding:2px var(--sp-sm);border-radius:var(--r);}
 .mp-groupbar-hint{font-size:var(--fs-2xs);color:var(--tx3);font-style:italic;}
+
+/* ── EL PANEL DE BUILDER v3 (rolvium.pen · ePNCc · zpsjH · CvkXT · tS9zl) ─────
+   Misma familia que `.mp-light-editor`: flota sobre el mapa, se agarra por la
+   cabecera y reutiliza `.tb-rotulo`, `.mp-light-check` y `.mp-groupbar-n`.
+   Ancho 300, el del diseño. */
+.mp-builder{position:absolute;top:8px;left:8px;z-index:4;width:300px;max-height:calc(100% - 16px);overflow:auto;
+  display:flex;flex-direction:column;gap:10px;padding:10px;
+  background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);color:var(--sys-ink);}
+.mp-builder-head{display:flex;align-items:center;gap:7px;}
+/* `touch-action:none` es obligatorio: sin él el navegador se queda el gesto y el panel no se mueve al tacto. */
+.mp-builder-head.mp-drag{cursor:grab;touch-action:none;user-select:none;}
+.mp-builder-head.mp-drag:active{cursor:grabbing;}
+.mp-builder-grip{color:var(--sys-ink-dim);}
+/* Su dibujo, de máscara: el color lo pone el panel, así que no se pierde sobre el papel claro. */
+.mp-builder-icon{width:16px;height:16px;background:var(--sys-ink);
+  mask-size:contain;mask-repeat:no-repeat;mask-position:center;
+  -webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;}
+.mp-builder-title{flex:1;font-size:var(--fs-sm);color:var(--sys-ink);}
+.mp-builder-group{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;}
+.mp-builder-group legend{padding:0;}
+.mp-builder-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mp-builder-hint{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);line-height:var(--lh-normal);}
+/* Las dos maneras, una al lado de la otra y dibujadas: lo primero que se ve del panel. */
+.mp-builder-modes{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.mp-builder-mode{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;font-family:inherit;
+  background:color-mix(in srgb,var(--sys-paper-lo) 48%,transparent);color:var(--sys-ink-soft);border:none;cursor:pointer;}
+.mp-builder-mode.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
+.mp-builder-mode-t{font-size:var(--fs-xs);}
+.mp-builder-mode-s{font-size:var(--fs-2xs);color:inherit;opacity:.72;text-align:center;line-height:var(--lh-normal);}
+.mp-builder-mini{width:44px;height:30px;}
+.mp-builder-mini-photo{fill:var(--sys-ink);}
+.mp-builder-mini-mark line{stroke:var(--sys-gold);stroke-width:2.5;stroke-linecap:round;}
+.mp-builder-mini-floor{fill:var(--sys-paper);}
+.mp-builder-mini-grid line{stroke:var(--sys-line);stroke-width:.6;}
+.mp-builder-mini-wall{fill:none;stroke:var(--sys-ink);stroke-width:2.5;}
+.mp-builder-seg{display:flex;gap:4px;}
+.mp-builder-shapes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.mp-builder-opt{flex:1;padding:4px 6px;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;
+  background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
+.mp-builder-opt.on{background:var(--sys-ink);color:var(--sys-paper-hi);border-color:var(--sys-ink);}
+/* El candado. Cerrado es lo de siempre, así que se enseña en calma; abierto canta en oro, porque cambia el gesto. */
+.mp-builder-lock{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;font-family:inherit;font-size:var(--fs-xs);
+  background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
+.mp-builder-lock.on{background:transparent;color:var(--sys-ink);border-color:var(--sys-border);}
+.mp-builder-lock:not(.on){background:var(--sys-gold);color:var(--sys-ink);border-color:var(--sys-gold);}
+.mp-builder-note{display:flex;align-items:flex-start;gap:6px;margin:0;padding:6px;font-size:var(--fs-2xs);line-height:var(--lh-normal);
+  color:var(--sys-ink-dim);background:color-mix(in srgb,var(--sys-gold) 15%,transparent);}
+.mp-builder-note .material-symbols-outlined{color:var(--sys-gold);flex-shrink:0;}
+
+/* ── las seis de dibujar, en un icono con su menú al lado ────────────────────
+   El menú va `fixed` desde el componente (la barra recorta con `overflow:auto`),
+   así que aquí sólo se le da forma. */
+.mp-drawtools{position:relative;display:flex;flex-direction:column;}
+.mp-drawmenu{min-width:150px;padding:4px 0;}
+.mp-drawmenu .mp-menu-item.on{background:var(--sys-ink);color:var(--sys-paper-hi);}

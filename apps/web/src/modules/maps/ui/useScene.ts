@@ -3,7 +3,7 @@ import type { FogCell, SceneVision } from '@rolvium/core';
 import type { Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewToken, NewWall, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
+import { splitWallAt, unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
 import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
 import { newGroupId } from '../domain/useCases/groupRules';
 import { useHistory, type History } from './useHistory';
@@ -403,6 +403,25 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     announceVision();
   }, [repo, announceVision]);
   const removeWallRaw = useCallback(async (id: string) => { setWalls(l => l.filter(w => w.id !== id)); await repo.removeWall(id); announceVision(); }, [repo, announceVision]);
+  /** La geometría de un muro, sin apilar nada en el historial. La usan partir y su vuelta atrás. */
+  const wallGeometryRaw = useCallback(async (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => {
+    setWalls(l => l.map(w => (w.id === id ? { ...w, ...at } : w)));
+    await repo.updateWallGeometry(id, at);
+    announceVision();
+  }, [repo, announceVision]);
+  /**
+   * PARTIR UN MURO POR UN PUNTO: el nodo nuevo del doble clic (§ «Rebanada 8»).
+   *
+   * ⚠️ El trozo nuevo entra ANTES de acortar el muro viejo, y no al revés. Es la misma regla que ya sigue
+   * `addWall` con los vanos: si algo falla a mitad, la pared se queda ENTERA y solapada — nunca con un hueco
+   * por el que se cuele la visión.
+   */
+  const splitWallRaw = useCallback(async (id: string, plan: NonNullable<ReturnType<typeof splitWallAt>>) => {
+    const piece = await repo.addWall(plan.piece);
+    setWalls(l => (l.some(x => x.id === piece.id) ? l : [...l, piece]));
+    await wallGeometryRaw(id, plan.keep);
+    return piece;
+  }, [repo, wallGeometryRaw]);
 
   /**
    * ↩️ DESHACER Y REHACER (§ «Rebanada 8»). Petición suya del 2026-08-19, aparcada dos veces y reclamada el
@@ -470,6 +489,28 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       redo: async () => { await transformWallsRaw(despues); },
     });
   }, [transformWallsRaw, push]);
+
+  /**
+   * AÑADIR UN NODO — «*si tengo un vector y le hago doble click en alguna parte de la linea tiene que agregar
+   * otro nodo*» (dueño, 2026-09-03). El muro se parte en dos por ahí; el trozo nuevo hereda su grupo, así que
+   * partir un lado de una sala no lo echa de la sala.
+   *
+   * Devuelve `null` sin tocar nada cuando el punto cae pegado a una punta: ahí ya hay un nodo.
+   */
+  const splitWall = useCallback(async (w: Wall, at: Point) => {
+    const plan = splitWallAt(w, at);
+    if (!plan) return null;
+    const antes = { x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 };
+    let piece = await splitWallRaw(w.id, plan);
+    push({
+      label: 'maps.history.split',
+      // Al revés que al partir: primero se devuelve el muro a su largo —vuelve a solapar— y sólo después se
+      // quita el trozo. Así deshacer tampoco abre un hueco, ni por un instante.
+      undo: async () => { await wallGeometryRaw(w.id, antes); await removeWallsRaw([piece.id]); },
+      redo: async () => { const back = await restoreWalls([piece]); piece = back[0] ?? piece; await wallGeometryRaw(w.id, plan.keep); },
+    });
+    return piece;
+  }, [splitWallRaw, wallGeometryRaw, removeWallsRaw, restoreWalls, push]);
 
   const groupWalls = useCallback(async (ids: string[]) => {
     const antes = wallsRef.current.filter(w => ids.includes(w.id)).map(w => ({ id: w.id, groupId: w.groupId }));
@@ -616,8 +657,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
-    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, history,
+    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }

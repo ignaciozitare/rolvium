@@ -1,6 +1,7 @@
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
-import { DM_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '../domain/useCases/mapRules';
+import { DM_TOOLS, DRAW_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '../domain/useCases/mapRules';
 
 /**
  * «Builder» no usa un icono de Material: usa el DIBUJO DEL DUEÑO (`apps/web/public/icons/builder.png`, sacado
@@ -60,6 +61,64 @@ function Btn({ label, icon, on, dm, disabled, onClick }: { label: string; icon: 
 }
 
 /**
+ * LAS SEIS DE DIBUJAR, EN UN SOLO ICONO (dueño, 2026-09-03: «*quiero que todas estas sean un solo icono y
+ * cuando hagas click despliegue al lado un menú con las opciones de dibujo libre, para ahorrar espacio en la
+ * barra de herramientas*»). Seis botones ocupaban seis alturas de barra sobre un mapa que quiere todo el
+ * alto que le den.
+ *
+ * El icono ENSEÑA LA HERRAMIENTA PUESTA: con Lápiz activo se ve el lápiz, no un icono genérico. Si no, no
+ * habría forma de saber con qué estás dibujando sin abrir el menú.
+ *
+ * El menú va `fixed` y medido sobre el botón: la barra tiene `overflow:auto`, así que uno absoluto se
+ * recortaría contra ella — el mismo motivo por el que los paneles se pasan a `fixed` al agarrarlos.
+ */
+function DrawTools({ tool, label, onChange }: { tool: Tool; label: (id: Tool) => string; onChange: (t: Tool) => void }): JSX.Element {
+  const { t } = useTranslation();
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const activa = DRAW_TOOLS.includes(tool) ? tool : null;
+
+  useEffect(() => {
+    if (!at) return undefined;
+    const fuera = (e: Event): void => { if (!box.current?.contains(e.target as Node)) setAt(null); };
+    const tecla = (e: KeyboardEvent): void => { if (e.key === 'Escape') setAt(null); };
+    window.addEventListener('pointerdown', fuera);
+    window.addEventListener('keydown', tecla);
+    return () => { window.removeEventListener('pointerdown', fuera); window.removeEventListener('keydown', tecla); };
+  }, [at]);
+
+  const abrir = (e: React.MouseEvent<HTMLButtonElement>): void => {
+    if (at) { setAt(null); return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    // Al lado, pegado a su derecha y a su misma altura: es donde él lo pidió, «al lado».
+    setAt({ x: r.right + 4, y: r.top });
+  };
+
+  return (
+    <div className="mp-drawtools" ref={box}>
+      <Tooltip label={t('maps.tool.draw')}>
+        <button type="button" className={`mp-tool ${activa ? 'on' : ''}`} aria-haspopup="menu" aria-expanded={!!at}
+          aria-label={t('maps.tool.draw')} onClick={abrir}>
+          <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{activa ? ICONS[activa] : 'draw'}</span>
+        </button>
+      </Tooltip>
+      {at && (
+        <div className="mp-pop mp-drawmenu" role="menu" aria-label={t('maps.tool.draw')} style={{ position: 'fixed', left: at.x, top: at.y }}>
+          {DRAW_TOOLS.map(id => (
+            <button key={id} type="button" role="menuitemradio" aria-checked={tool === id}
+              className={`mp-menu-item ${tool === id ? 'on' : ''}`}
+              onClick={() => { onChange(tool === id ? 'select' : id); setAt(null); }}>
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>{ICONS[id]}</span>
+              {label(id)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * The single vertical bar of the scene, in three labelled blocks (rolvium.pen · «Escena · Director»):
  *
  *   play    Dados · Seleccionar · Medir · Pin        — what you touch while playing
@@ -104,7 +163,7 @@ export function Toolbar(p: Props): JSX.Element {
         {tools(['select', 'measure', 'pin'])}
       </div>
       <div className="mp-tool-group">
-        {tools(['pencil', 'line', 'rect', 'circle', 'text', 'erase'])}
+        <DrawTools tool={p.tool} label={label} onChange={p.onChange} />
       </div>
       {p.isDm && (
         <div className="mp-tool-group dm">

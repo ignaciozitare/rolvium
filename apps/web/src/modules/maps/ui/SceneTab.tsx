@@ -16,8 +16,8 @@ import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
 import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
-import { SegmentBar } from './SegmentBar';
-import { type RoomShape } from '../domain/useCases/roomRules';
+import { BuilderPanel } from './BuilderPanel';
+import { type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
@@ -107,6 +107,37 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [wallKind, setWallKind] = useState<WallKind>('wall');
   /** Con qué forma levanta Builder. Arranca en `segment`: el Builder de siempre, sin sorpresas (§ «Rebanada 8»). */
   const [wallShape, setWallShape] = useState<RoomShape>('segment');
+  /**
+   * EN QUÉ ESTÁ TRABAJANDO (diseño v3). Arranca en «sobre una foto», que es lo que él lleva haciendo: marcar
+   * los muros encima de un mapa hecho con otra herramienta.
+   *
+   * Vive en la pantalla y NO en la escena, igual que el velo del director: hoy sólo decide qué ofrece el
+   * panel, no cambia ni un dato de la partida. El día que traiga preajustes y texturas —tabla de habitaciones,
+   * migración y DBA de por medio— se mirará si tiene que guardarse.
+   */
+  const [builderMode, setBuilderMode] = useState<BuilderMode>('photo');
+  /**
+   * EL CANDADO DE LA REJILLA. Arranca ABIERTO por orden suya del 2026-09-03: «*el pegado a la rejilla debería
+   * estar desactivado por defecto*». Se le había propuesto lo contrario —empezar cerrado, para no cambiarle
+   * nada— y probándolo decidió al revés: marcando muros sobre una foto, la rejilla no le sirve de nada porque
+   * los muros de la foto no caen en múltiplos de nada.
+   *
+   * Abierto NO es «libre a secas»: las puntas siguen pegándose a las puntas de otros muros cercanos, o
+   * quedarían rendijas por las que se cuela la visión (`snapRules`).
+   */
+  const [snapGrid, setSnapGrid] = useState(false);
+  /**
+   * LOS NODOS EN CADENA (dueño, 2026-09-03: «*los nodos deberían ser como una cadena a menos que yo elija que
+   * no*»). Arranca PUESTO, que es lo que pidió: mover una punta se lleva las que estaban en ese mismo sitio,
+   * así que arrastrar el nodo de una sala no la abre.
+   */
+  const [chainNodes, setChainNodes] = useState(true);
+  /**
+   * SI EL PANEL DE BUILDER ESTÁ ABIERTO. Es un estado propio y no «¿la herramienta es Builder?» porque
+   * Seleccionar y Builder VIVEN JUNTAS (dueño, 2026-09-03): pasar a Seleccionar para mover algo no puede
+   * cerrarle el panel con el que está trabajando. Lo cierra la X, o irse a cualquier otra herramienta.
+   */
+  const [builderOpen, setBuilderOpen] = useState(false);
   const [railFolded, setRailFolded] = useState(false);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   /** EL GRUPO (§ «EL GRUPO»): los muros cogidos como una pieza. Es otra cosa que el muro suelto que se edita. */
@@ -120,6 +151,11 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [fogVeil, setFogVeil] = useState(true);
   /** El trazo elegido: un texto, una línea, una caja, un círculo o un garabato (dueño, 2026-09-02). */
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null);
+  /**
+   * VARIOS TRAZOS COGIDOS con el área (dueño, 2026-09-03: «*el arrastrar y seleccionar no funciona con las
+   * formas simples de líneas, texto, círculo y cuadrado*»). Se mueven juntos y Suprimir los borra juntos.
+   */
+  const [selectedDrawingIds, setSelectedDrawingIds] = useState<string[]>([]);
   const stageRef = useRef<HTMLDivElement>(null);
 
   // ── load: DM lists; player follows the active scene ──
@@ -190,9 +226,14 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     setArmedFromBestiary(true);
     onArmed?.();
   }, [armEncounter, live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Only Seleccionar owns a selection. Carrying it into another tool stacks «Segmento» / the token bar on top of
-  // «Trazo» — all three float at the same spot over the canvas — and leaves Suprimir armed on an invisible target.
-  useEffect(() => { if (tool !== 'select') { setSelectedWallId(null); setSelectedTokenIds([]); } }, [tool]);
+  /**
+   * La selección es de Seleccionar y de BUILDER, que viven juntas (dueño, 2026-09-03: «*si tengo una
+   * herramienta y selecciono la herramienta de selección no tiene que cerrar los modales abiertos, viven
+   * juntas, porque si quiero mover algo no indica que deje de trabajar con un muro*»). Llevarla a cualquier
+   * OTRA herramienta sí la suelta: apilaba la barra del token sobre «Trazo» —las dos flotan en el mismo
+   * sitio— y dejaba a Suprimir apuntando a algo que no se ve.
+   */
+  useEffect(() => { if (tool !== 'select' && tool !== 'wall') { setSelectedWallId(null); setSelectedTokenIds([]); setSelectedDrawingIds([]); } }, [tool]);
   useEffect(() => { if (live) { setPendingPc(null); setPcMenu(false); } }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nameOf = useCallback((uid: string) => members.find(m => m.userId === uid)?.name ?? uid, [members]);
@@ -336,6 +377,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     if (!isDm) return;
     // La LUZ va primero porque elegirla suelta lo demás: si hay una elegida, es LO elegido (dueño, 2026-09-02).
     if (selectedLight) { removeLight(selectedLight.id); return; }
+    // Varios trazos cogidos con el área se borran juntos; uno solo sigue por su camino de siempre.
+    if (selectedDrawingIds.length > 1) { selectedDrawingIds.forEach(id => removeDrawing(id)); setSelectedDrawingIds([]); return; }
     if (selectedDrawingId) { removeDrawing(selectedDrawingId); return; }
     // EL GRUPO antes que el muro suelto: si hay una pieza cogida, ESO es lo elegido y se borra entera.
     if (selectedWallIds.length > 1) { run(st.removeWalls(selectedWallIds)); setSelectedWallIds([]); return; }
@@ -399,12 +442,21 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     <section className="mp-root">
       <div className="mp-stage-row">
         {scenesRail}
-        <Toolbar tool={tool} isDm={isDm} playerView={playerView} onChange={next => { closeOverlays(next === 'encounter' ? 'encounter' : undefined); setTool(next); }}
+        {/*
+          * Pasar a SELECCIONAR no cierra nada: es la otra mitad de Builder, no una salida. Cualquier otra
+          * herramienta sí recoge los paneles, que flotan sobre el mismo mapa.
+          */}
+        <Toolbar tool={tool} isDm={isDm} playerView={playerView} onChange={next => {
+            if (next !== 'select') closeOverlays(next === 'encounter' ? 'encounter' : undefined);
+            if (next === 'wall') setBuilderOpen(true);
+            else if (next !== 'select') setBuilderOpen(false);
+            setTool(next);
+          }}
           onDice={() => onOpenDice?.()} diceOpen={diceOpen}
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
-            playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} wallShape={wallShape} view={view} onViewChange={setView} nameOf={nameOf}
+            playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} wallShape={wallShape} snapGrid={snapGrid} chainNodes={chainNodes} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
             onAddText={async at => {
               const text = await dialog.prompt(t('maps.text.prompt'));
@@ -430,7 +482,9 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
             onMoveLight={(id, at) => run(st.patchLight(id, at))}
             selectedDrawingId={selectedDrawingId} onSelectDrawing={setSelectedDrawingId}
+            selectedDrawingIds={selectedDrawingIds} onSelectDrawings={setSelectedDrawingIds}
             onMoveDrawing={(id, data) => run(st.moveDrawing(id, data))}
+            onMoveDrawings={batch => batch.forEach(b => run(st.moveDrawing(b.id, b.data)))}
             fogVeil={fogVeil}
             maskLayerId={bgLayer?.id ?? null} maskPreview={mask.preview}
             onPaintMask={(from, to) => mask.paint(from, to, brushRadius(maskSizeCells, live.grid.size), maskStrength, maskDir, maskHardness)}
@@ -457,7 +511,13 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onContextMenu={(at, pt) => { closeOverlays('quick'); setLayerMenu(null); setQuickMenu({ at, scene: pt }); }}
             onElementMenu={(at, element) => { closeOverlays('quick'); setQuickMenu(null); setLayerMenu({ at, element }); }}
             onDeleteSelection={deleteSelection}
-            onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))} />
+            onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))}
+            /*
+             * AÑADIR UN NODO: doble clic sobre la línea de un muro lo parte en dos por ahí (dueño,
+             * 2026-09-03). Dentro de un grupo el PRIMER doble clic sigue entrando al muro suelto, como
+             * hasta ahora, y es el siguiente el que pone el nodo — su decisión: «primero entra, luego el nodo».
+             */
+            onSplitWall={(id, at) => { const w = st.walls.find(x => x.id === id); if (w) run(st.splitWall(w, at)); }} />
           {isDm && (
             <div className="mp-dmtag" role="group" aria-label={t('maps.dmOptions')}>
               <span className="mp-dm-tag">{t('maps.dmOnly')}</span>
@@ -518,13 +578,22 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               onRemove={() => removeLight(selectedLight.id)}
               onClose={() => setSelectedLightId(null)} />
           )}
-          {isDm && (tool === 'wall' || selectedWall || selectedWallIds.length > 1) && (
-            <SegmentBar wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
+          {/*
+            * EL PANEL DE BUILDER v3, y ya no la barra flotante vieja — orden suya del 2026-09-03: «*ya es hora
+            * que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este*».
+            */}
+          {isDm && (builderOpen || selectedWall || selectedWallIds.length > 1) && (
+            <BuilderPanel mode={builderMode} onMode={setBuilderMode}
+              wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
               onKind={k => (selectedWall ? run(st.patchWall(selectedWall.id, { kind: k, ...WALL_FLAGS[k] })) : setWallKind(k))}
               shape={wallShape} onShape={setWallShape}
+              snapGrid={snapGrid} onSnapGrid={setSnapGrid}
+              chainNodes={chainNodes} onChainNodes={setChainNodes}
               groupCount={selectedWallIds.length} grouped={grupoCogido !== null}
               onGroup={() => run(st.groupWalls(selectedWallIds))}
               onUngroup={() => { if (grupoCogido) { run(st.ungroupWalls(grupoCogido)); setSelectedWallIds([]); } }}
+              // Cerrar el panel es salir de Builder: vuelve a Seleccionar y suelta lo que hubiera cogido.
+              onClose={() => { setBuilderOpen(false); setTool('select'); setSelectedWallId(null); setSelectedWallIds([]); }}
               {...(selectedWall ? {
                 onVisible: (v: boolean) => run(st.patchWall(selectedWall.id, { visiblePlayers: v })),
                 onToggleOpen: () => run(st.patchWall(selectedWall.id, { isOpen: !selectedWall.isOpen })),

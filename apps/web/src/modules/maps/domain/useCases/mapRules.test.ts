@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import type { Drawing } from '../entities/Scene';
 import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1 } from '../../../../../tests/helpers/fakes';
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
+  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -563,5 +564,111 @@ describe('mover un trazo', () => {
     expect(canMoveDrawing(mio, 'u-pip', true)).toBe(true);
     expect(canEraseDrawing(mio, 'u-pip', false)).toBe(true);
     expect(canEraseDrawing({ authorId: 'u-nix' }, 'u-pip', false)).toBe(false);
+  });
+});
+
+/**
+ * AÑADIR UN NODO — «*si tengo un vector y le hago doble click en alguna parte de la linea tiene que agregar
+ * otro nodo*» (dueño, 2026-09-03). Partir un muro por un punto, reaprovechando `wallPiece`.
+ */
+describe('splitWallAt — el nodo nuevo parte el muro en dos', () => {
+  /** Un muro horizontal de 100 px, para que las cuentas se lean de un vistazo. */
+  const muro = { ...WALL_1, x1: 0, y1: 0, x2: 100, y2: 0 };
+
+  it('parte por donde se pinchó: el viejo se acorta y el trozo nuevo sigue desde ahí', () => {
+    const plan = splitWallAt(muro, { x: 40, y: 0 });
+    expect(plan).not.toBeNull();
+    expect(plan!.keep).toEqual({ x1: 0, y1: 0, x2: 40, y2: 0 });
+    expect(plan!.piece).toMatchObject({ x1: 40, y1: 0, x2: 100, y2: 0 });
+  });
+
+  /** El doble clic nunca cae exactamente sobre la línea: el nodo nace SOBRE el muro, no donde apuntó el ratón. */
+  it('el punto se proyecta sobre la línea: pinchando al lado, el nodo cae en el muro', () => {
+    const plan = splitWallAt(muro, { x: 40, y: 7 });
+    expect(plan!.keep).toEqual({ x1: 0, y1: 0, x2: 40, y2: 0 });
+    expect(plan!.piece).toMatchObject({ x1: 40, y1: 0 });
+  });
+
+  /** 🔑 Partir un lado de una sala no puede echarlo de la sala: el trozo nuevo hereda el grupo. */
+  it('el trozo nuevo hereda el grupo, el tipo y si lo ven los jugadores', () => {
+    const puerta = { ...muro, kind: 'door' as const, isOpen: true, visiblePlayers: true, groupId: 'g-sala' };
+    const plan = splitWallAt(puerta, { x: 50, y: 0 });
+    expect(plan!.piece).toMatchObject({ kind: 'door', isOpen: true, visiblePlayers: true, groupId: 'g-sala' });
+  });
+
+  it('pegado a una punta no parte nada: ahí ya hay un nodo', () => {
+    expect(splitWallAt(muro, { x: 1, y: 0 })).toBeNull();
+    expect(splitWallAt(muro, { x: 99.5, y: 0 })).toBeNull();
+  });
+
+  it('un muro de largo cero no se parte', () => {
+    expect(splitWallAt({ ...muro, x2: 0, y2: 0 }, { x: 0, y: 0 })).toBeNull();
+  });
+
+  it('pointOnWall acota a los extremos: apuntando más allá del final, el punto es el final', () => {
+    expect(pointOnWall(muro, { x: 500, y: 30 })).toEqual({ x: 100, y: 0 });
+    expect(pointOnWall(muro, { x: -500, y: 30 })).toEqual({ x: 0, y: 0 });
+  });
+});
+
+/**
+ * EL CANDADO abierto llega hasta el nodo que se arrastra. Con `step` a 0 no se redondea nada; sin pasarlo,
+ * `wallDragTo` sigue haciendo exactamente lo de siempre (los tests de arriba lo sujetan).
+ */
+describe('wallDragTo y snapStep con el candado abierto', () => {
+  it('snapStep sin paso devuelve el valor tal cual; con paso redondea como `snap`', () => {
+    expect(snapStep(100.4, 0)).toBe(100.4);
+    expect(snapStep(100.4, -1)).toBe(100.4);
+    expect(snapStep(100, 27)).toBe(108);
+  });
+
+  it('con el candado abierto la punta cae donde la sueltas, sin tirón a la casilla', () => {
+    const origin = { x1: 27, y1: 54, x2: 135, y2: 54 };
+    expect(wallDragTo(origin, 'a', { x: 27, y: 54 }, { x: 31, y: 57 }, 27, 0))
+      .toEqual({ x1: 31, y1: 57, x2: 135, y2: 54 });
+  });
+});
+
+/**
+ * ✏️ EL ÁREA COGE TAMBIÉN LOS TRAZOS — «*el arrastrar y seleccionar no funciona con las formas simples de
+ * líneas, texto, círculo y cuadrado*» (dueño, 2026-09-03). Cogía fichas y muros; los trazos se quedaban fuera.
+ */
+describe('drawingBounds y drawingsInRect — el área coge los trazos', () => {
+  const d = (id: string, kind: Drawing['kind'], data: Drawing['data']): Drawing =>
+    ({ ...DRAWING_MINE, id, kind, data });
+
+  it('mide cada forma por su cuenta, que cada una guarda sus datos a su manera', () => {
+    expect(drawingBounds(d('l', 'line', { x1: 10, y1: 40, x2: 60, y2: 20 }))).toEqual({ x: 10, y: 20, w: 50, h: 20 });
+    expect(drawingBounds(d('r', 'rect', { x1: 60, y1: 40, x2: 10, y2: 20 }))).toEqual({ x: 10, y: 20, w: 50, h: 20 });
+    expect(drawingBounds(d('c', 'circle', { cx: 50, cy: 50, r: 20 }))).toEqual({ x: 30, y: 30, w: 40, h: 40 });
+    expect(drawingBounds(d('s', 'stroke', { points: [[10, 10], [30, 5], [20, 40]] }))).toEqual({ x: 10, y: 5, w: 20, h: 35 });
+  });
+
+  it('un garabato vacío no ocupa nada, y no revienta', () => {
+    expect(drawingBounds(d('s', 'stroke', { points: [] }))).toEqual({ x: 0, y: 0, w: 0, h: 0 });
+  });
+
+  /** Se coge lo que cae ENTERO dentro, igual que con los muros: rozar media línea no es elegirla. */
+  it('coge lo que cae entero dentro, y deja fuera lo que sólo asoma', () => {
+    const dentro = d('dentro', 'line', { x1: 20, y1: 20, x2: 60, y2: 60 });
+    const asoma = d('asoma', 'line', { x1: 60, y1: 60, x2: 400, y2: 400 });
+    const ids = drawingsInRect([dentro, asoma], { x: 0, y: 0 }, { x: 100, y: 100 }).map(x => x.id);
+    expect(ids).toEqual(['dentro']);
+  });
+
+  it('el marco vale dibujado desde cualquier esquina', () => {
+    const uno = d('uno', 'circle', { cx: 50, cy: 50, r: 10 });
+    expect(drawingsInRect([uno], { x: 100, y: 100 }, { x: 0, y: 0 })).toHaveLength(1);
+  });
+
+  it('coge las cuatro formas simples de una tacada — que es justo lo que él echaba en falta', () => {
+    const todos = [
+      d('linea', 'line', { x1: 10, y1: 10, x2: 40, y2: 40 }),
+      d('caja', 'rect', { x1: 50, y1: 10, x2: 90, y2: 40 }),
+      d('circulo', 'circle', { cx: 50, cy: 70, r: 15 }),
+      d('texto', 'text', { x: 10, y: 60, text: 'Trampa' }),
+    ];
+    const ids = drawingsInRect(todos, { x: 0, y: 0 }, { x: 200, y: 200 }).map(x => x.id);
+    expect(ids).toEqual(['linea', 'caja', 'circulo', 'texto']);
   });
 });

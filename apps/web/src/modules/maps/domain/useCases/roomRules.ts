@@ -1,4 +1,4 @@
-import { snap, type Point } from './mapRules';
+import { snapStep, type Point } from './mapRules';
 
 /**
  * EL MOTOR DE LAS HABITACIONES RÁPIDAS (specs/modules/maps/SPEC.md § «Rebanada 8»).
@@ -34,12 +34,15 @@ export const MIN_ROOM_CELLS = 1;
  * El lado del rectángulo que va de `a` a `b`, pegado a la rejilla y siempre bien orientado — se dibuje de la
  * esquina que se dibuje. Los cuatro lados se devuelven en orden, dando la vuelta: arriba, derecha, abajo,
  * izquierda. Cerrar el circuito importa, porque una sala con un lado suelto no detiene ni la vista ni el paso.
+ *
+ * Con el candado abierto (`step` a 0) no se redondea nada; `grid` sigue siendo el metro con el que se mide si
+ * la sala es demasiado pequeña, que eso no depende del candado.
  */
-function rectSides(a: Point, b: Point, grid: number): RoomSide[] {
-  const x1 = snap(Math.min(a.x, b.x), grid);
-  const y1 = snap(Math.min(a.y, b.y), grid);
-  const x2 = snap(Math.max(a.x, b.x), grid);
-  const y2 = snap(Math.max(a.y, b.y), grid);
+function rectSides(a: Point, b: Point, grid: number, step: number): RoomSide[] {
+  const x1 = snapStep(Math.min(a.x, b.x), step);
+  const y1 = snapStep(Math.min(a.y, b.y), step);
+  const x2 = snapStep(Math.max(a.x, b.x), step);
+  const y2 = snapStep(Math.max(a.y, b.y), step);
   if (x2 - x1 < grid * MIN_ROOM_CELLS || y2 - y1 < grid * MIN_ROOM_CELLS) return [];
   return [
     { x1, y1, x2, y2: y1 },
@@ -62,10 +65,11 @@ export function circleSegments(radius: number, grid: number): number {
 
 /**
  * El polígono de la habitación redonda. El radio se pega a la rejilla —no el centro, que es donde él pinchó—
- * para que dos círculos del mismo tamaño salgan idénticos y encajen entre sí.
+ * para que dos círculos del mismo tamaño salgan idénticos y encajen entre sí. Con el candado abierto el radio
+ * es el que salga del gesto.
  */
-function circleSides(center: Point, edge: Point, grid: number): RoomSide[] {
-  const radius = snap(Math.hypot(edge.x - center.x, edge.y - center.y), grid);
+function circleSides(center: Point, edge: Point, grid: number, step: number): RoomSide[] {
+  const radius = snapStep(Math.hypot(edge.x - center.x, edge.y - center.y), step);
   if (radius < grid * MIN_ROOM_CELLS) return [];
   const n = circleSegments(radius, grid);
   const at = (i: number): Point => ({
@@ -86,8 +90,8 @@ function circleSides(center: Point, edge: Point, grid: number): RoomSide[] {
  * Devuelve la lista vacía si el gesto es demasiado pequeño para ser una sala — quien llame a esto no tiene que
  * acordarse de comprobarlo, y así un clic sin arrastre no ensucia la escena con muros diminutos.
  */
-export function roomSides(kind: RoomKind, a: Point, b: Point, grid: number): RoomSide[] {
-  return kind === 'circle' ? circleSides(a, b, grid) : rectSides(a, b, grid);
+export function roomSides(kind: RoomKind, a: Point, b: Point, grid: number, step: number = grid): RoomSide[] {
+  return kind === 'circle' ? circleSides(a, b, grid, step) : rectSides(a, b, grid, step);
 }
 
 /**
@@ -105,21 +109,66 @@ export function isClosed(sides: RoomSide[]): boolean {
 }
 
 /**
+ * LAS DOS MANERAS DE TRABAJAR, Y CONVIVEN (diseño v3 · `rolvium.pen` frames `ePNCc` y `zpsjH`).
+ *
+ * `photo` = marcar los muros ENCIMA de una foto que ya trae el suelo pintado. `draw` = levantar aquí la sala.
+ * Es lo primero del panel porque mezclarlas fue el fallo de la sesión anterior: se le preguntaba por salas
+ * mientras él marcaba muros sobre una foto («*estás mezclando estas dos opciones*», 2026-09-03).
+ *
+ * ⚠️ Hoy el interruptor NO cambia lo que hacen muro, puerta, ventana ni las formas: en el diseño son iguales
+ * en los dos modos. Lo que cambia es qué OFRECE el panel — los preajustes y las dos texturas base sólo tienen
+ * sentido dibujando aquí, porque marcando sobre una foto el suelo ya lo pone la foto. Esas secciones están sin
+ * construir a propósito (piden tabla de habitaciones + migración + DBA), y este interruptor es su sitio.
+ */
+export type BuilderMode = 'photo' | 'draw';
+export const BUILDER_MODES: BuilderMode[] = ['photo', 'draw'];
+
+/**
  * LAS FORMAS DE BUILDER (corrección suya del 2026-09-02: «rectángulos y círculos te quedas corto: ¿y si
  * quiero poner una pared inclinada?»).
  *
  * `segment` es el Builder de siempre —clic a clic, encadenando— y NO pasa por este motor: se queda tal cual
  * está, que es lo que él pidió que no se tocara. Las otras cuatro sí montan la sala de una vez.
  */
-export type RoomShape = 'segment' | 'rect' | 'circle' | 'poly' | 'free';
-export const ROOM_SHAPES: RoomShape[] = ['segment', 'rect', 'circle', 'poly', 'free'];
-/** Se dibujan arrastrando de un punto a otro. */
+export type RoomShape = 'segment' | 'line' | 'rect' | 'circle' | 'poly' | 'free';
+/**
+ * En el orden del diseño v3, que se lee en dos filas de tres: a mano · recta · rectángulo, y debajo
+ * círculo · polígono · a pulso.
+ */
+export const ROOM_SHAPES: RoomShape[] = ['segment', 'line', 'rect', 'circle', 'poly', 'free'];
+/** Se dibujan arrastrando de un punto a otro y sale una SALA (cerrada). */
 export const isDragShape = (s: RoomShape): s is 'rect' | 'circle' => s === 'rect' || s === 'circle';
+/**
+ * LA RECTA SUELTA — la sexta forma del diseño, y la única que no monta una sala: sale UN muro y sólo uno.
+ *
+ * Es la hermana de «a mano»: lo mismo, pero de un tirón en vez de clic a clic. Existe porque una pared sola
+ * —el tabique de un pasillo, la valla de un corral— no es una habitación, y encadenar a clics para poner un
+ * único muro obliga a acordarse de cortar la cadena con Escape.
+ */
+export const isLineShape = (s: RoomShape): s is 'line' => s === 'line';
 /** Se dibujan encadenando puntos: el polígono a clics, el pulso arrastrando. */
 export const isPathShape = (s: RoomShape): s is 'poly' | 'free' => s === 'poly' || s === 'free';
 
 /** Menos de tres vértices no encierran nada: son una línea, y una línea no es una habitación. */
 export const MIN_RING_POINTS = 3;
+
+/**
+ * Lo más corto que puede ser una recta suelta, en casillas. Por debajo de media casilla no es una pared: es
+ * un resbalón del ratón, y un muro de tres píxeles sólo deja basura que hay que buscar para borrar.
+ */
+export const MIN_LINE_CELLS = 0.5;
+
+/**
+ * LA RECTA SUELTA, en un muro. `a` y `b` llegan YA resueltos por el candado (`snapRules.builderPoint`), igual
+ * que los dos clics del Builder de siempre: aquí sólo se decide si el gesto da para una pared.
+ *
+ * Devuelve `null` si es demasiado corta, así que quien llame a esto no tiene que acordarse de comprobarlo —
+ * y un clic sin arrastre no ensucia la escena.
+ */
+export function lineSide(a: Point, b: Point, grid: number): RoomSide | null {
+  if (Math.hypot(b.x - a.x, b.y - a.y) < grid * MIN_LINE_CELLS) return null;
+  return { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
+}
 
 /** El anillo de puntos, convertido en lados. El último cierra contra el primero — sin eso no es una sala. */
 function ringSides(ring: Point[]): RoomSide[] {
@@ -168,12 +217,12 @@ function enclosesArea(ring: Point[], grid: number): boolean {
 /**
  * POLÍGONO — la habitación de N lados, y la respuesta a su «¿y si quiero poner una pared inclinada?».
  *
- * Los VÉRTICES se pegan a la rejilla; los LADOS no. Así una pared puede ir a cualquier ángulo (que es lo que
+ * Los VÉRTICES se pegan a la rejilla (con el candado cerrado); los LADOS no. Así una pared puede ir a cualquier ángulo (que es lo que
  * él pedía) y a la vez dos salas contiguas encajan sin dejar rendijas de medio píxel por donde se cuela la
  * visión — que es para lo que servía pegarse a la rejilla.
  */
-export function polygonSides(points: Point[], grid: number): RoomSide[] {
-  const ring = dedupe(points.map(p => ({ x: snap(p.x, grid), y: snap(p.y, grid) })), grid / 2);
+export function polygonSides(points: Point[], grid: number, step: number = grid): RoomSide[] {
+  const ring = dedupe(points.map(p => ({ x: snapStep(p.x, step), y: snapStep(p.y, step) })), grid / 2);
   if (ring.length < MIN_RING_POINTS || !enclosesArea(ring, grid)) return [];
   return ringSides(ring);
 }

@@ -137,18 +137,23 @@ describe('<LightEditor> · salir y apartarlo', () => {
     expect(cb.onRemove).not.toHaveBeenCalled();
   });
 
-  it('se arrastra por la cabecera y el panel se corre con el ratón', () => {
+  /**
+   * Se arrastra por la cabecera, y **sale del mapa**: el lienzo recorta lo que se sale de él, así que al
+   * agarrarlo el panel pasa a `fixed` y desde ahí va por toda la ventana (dueño, 2026-09-03).
+   */
+  it('se arrastra por la cabecera, sale del mapa y se corre con el ratón', () => {
     mount();
-    const panel = screen.getByRole('group', { name: /Luz/ });
+    const panel = screen.getByRole('group', { name: /Luz/ }) as HTMLElement;
     const head = panel.querySelector('.mp-light-head') as HTMLElement;
-    expect(panel).toHaveStyle({ transform: 'translate(0px, 0px)' });
+    expect(panel.style.position).toBe('');            // sin tocarlo, lo coloca el CSS
     fireEvent.pointerDown(head, { button: 0, clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 160, clientY: 130, pointerId: 1 });
-    expect(panel).toHaveStyle({ transform: 'translate(60px, 30px)' });
+    expect(panel.style.position).toBe('fixed');
+    expect([panel.style.left, panel.style.top]).toEqual(['60px', '30px']);
     // Al soltar se queda donde lo dejaste: mover no es un gesto que se deshaga solo.
     fireEvent.pointerUp(head, { pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 400, clientY: 400, pointerId: 1 });
-    expect(panel).toHaveStyle({ transform: 'translate(60px, 30px)' });
+    expect([panel.style.left, panel.style.top]).toEqual(['60px', '30px']);
   });
 
   it('pulsar borrar o cerrar NO empieza un arrastre: los botones mandan sobre el asa', () => {
@@ -157,7 +162,7 @@ describe('<LightEditor> · salir y apartarlo', () => {
     const head = panel.querySelector('.mp-light-head') as HTMLElement;
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Borrar la luz' }), { button: 0, clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 300, clientY: 300, pointerId: 1 });
-    expect(panel).toHaveStyle({ transform: 'translate(0px, 0px)' });
+    expect((panel as HTMLElement).style.position).toBe('');
   });
 });
 

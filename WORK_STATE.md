@@ -16,9 +16,10 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔵 de cierre, justo debajo.**
 
-## 🔵 SESIÓN 2026-09-03 — EL DISEÑO DE BUILDER v3 (LO VIVO AHORA MISMO)
+## 🔵 SESIÓN 2026-09-03 — BUILDER v3 MAQUETADO (LO VIVO AHORA MISMO)
 
-> Rama `sonda-de-prueba`, **sin subir, `main` intacto**. Sigue en pie **«no borres nada»**.
+> Rama `sonda-de-prueba`, **subida a GitHub, `main` intacto**. Sigue en pie **«no borres nada»**.
+> **Lo último hecho está en «LOS TRES ENCARGOS, HECHOS», unas pantallas más abajo.**
 
 ### ✅ LO QUE SE RESOLVIÓ ESTA SESIÓN
 - **Llegó por fin la captura de las «pseudo texturas base».** Era el panel «Ajustes preestablecidos de
@@ -148,6 +149,14 @@ cobertura, y confirmado que **el camino viejo no se ha tocado** (`planOpening` i
 
 ### 🔁 PROMPT DE RESUME DEL CHAT NUEVO — USAR ESTE
 
+> Rolvium, chat nuevo. Rama `sonda-de-prueba`, `main` intacto. Lee el bloque 🔵 de `WORK_STATE.md`
+> (2026-09-03) y ve a «LOS TRES ENCARGOS, HECHOS». El panel v3, el candado y el nodo por doble clic están
+> construidos y verdes, pero **sin commitear** y **sin pasar `/review`**. Lanza el review, y si sale limpio
+> commitea la tanda. Después: las tres migraciones que faltan en la base (`spin_ms`, `intensity`, `group_id`),
+> que sin ellas el preview revienta.
+
+### 🔁 PROMPT DE RESUME (el que trajo este chat)
+
 > Rolvium, chat nuevo. Rama `sonda-de-prueba`, subida a GitHub, `main` intacto. Lee el bloque 🔵 de
 > `WORK_STATE.md` (2026-09-03) y ve directo a «LO PRIMERO DEL CHAT NUEVO». Su orden: **deja de colgar cosas de
 > la barra vieja y maqueta el panel v3** (`rolvium.pen`, frames `ePNCc` y `zpsjH`, más `CvkXT` y `tS9zl` para
@@ -184,7 +193,97 @@ nunca se había subido a GitHub. Los dos previews de Vercel salieron en verde so
 - API → `https://rolvium-api-git-sonda-de-prueba-ignaciozitare-9429s-projects.vercel.app`
 - ⚠️ Los dos están detrás del acceso de Vercel: sólo se abren con su cuenta iniciada.
 
-### 🔴 LO PRIMERO DEL CHAT NUEVO — SUS TRES ENCARGOS DEL CIERRE (2026-09-03)
+### ✅ 2026-09-03, CHAT NUEVO — LOS TRES ENCARGOS, HECHOS
+
+**1 · EL PANEL v3 ESTÁ MAQUETADO.** `apps/web/src/modules/maps/ui/BuilderPanel.tsx`, y **la barra flotante
+vieja (`SegmentBar`) ya no se monta en ningún sitio**. Dentro, en el orden del diseño: cabecera con SU icono +
+la X · «EN QUÉ ESTOY TRABAJANDO · LAS DOS CONVIVEN» con las dos miniaturas dibujadas · muro·puerta·ventana ·
+las cinco formas · el candado · «LO QUE TENGO COGIDO» (grupo, muros sueltos, y con un muro elegido todo lo que
+hacía la barra vieja) · la nota, que cambia con el modo. Se agarra por la cabecera y se aparta.
+- El asa de arrastrar se extrajo a `ui/useDragPanel.ts` y ahora la comparten Builder y el editor de luces —
+  lo pedía el propio comentario del código «*el día que un segundo lo necesite*».
+- La forma `segment` se rotula ahora **«A mano»**, como en el diseño.
+
+**2 · EL CANDADO, con sus tres condiciones.** Motor en `domain/useCases/snapRules.ts`. Empieza CERRADO (nada
+cambia hasta que lo abra) · vale para muro, polígono, rectángulo, círculo y nodo · abierto, las puntas se pegan
+a las puntas de otros muros a menos de 12 px. «A pulso» queda fuera a propósito.
+
+**3 · EL NODO POR DOBLE CLIC.** `mapRules.splitWallAt` + `useScene.splitWall`. **Su decisión, aplicada:
+«primero entra, luego el nodo»** — sobre un muro de un grupo el primer doble clic ENTRA (como hasta ahora) y
+el siguiente pone el nodo; sobre un muro suelto lo pone directamente. El trozo nuevo hereda el grupo, entra
+antes de acortar el viejo (nunca un hueco) y va al historial de deshacer.
+
+**Ficheros**: `BuilderPanel.tsx` (nuevo) · `snapRules.ts` (nuevo) · `useDragPanel.ts` (nuevo) · `mapRules.ts`
+· `roomRules.ts` · `MapCanvas.tsx` · `useScene.ts` · `SceneTab.tsx` · `LightEditor.tsx` (sólo el import del
+asa) · `maps.css` · claves `maps.builder.*` en es y en · `specs/modules/maps/SPEC.md`.
+**Tests nuevos**: `BuilderPanel.test.tsx` (18) · `snapRules.test.ts` (12) · más bloques en `mapRules.test.ts`,
+`roomRules.test.ts`, `MapCanvas.test.tsx`, `useScene.test.ts` y `SceneTab.test.tsx`.
+
+**➖ LA RECTA SUELTA, construida** (él: «hazlo»). La sexta forma del diseño: se arrastra de un punto a otro y
+sale UN muro y sólo uno — la hermana de «a mano», pero de un tirón. Va por el camino de siempre, así que una
+puerta dibujada así sigue partiendo el muro de debajo, y no nace atada a ningún grupo. Vale en diagonal y
+obedece al candado. `roomRules.lineSide` + gesto `line` en `MapCanvas`. Con esto **el panel ya enseña las seis
+formas del diseño, en sus dos filas de tres**.
+
+### ✅ ÚLTIMA TANDA ANTES DE SUBIR (2026-09-03, noche)
+
+| Su encargo | Qué se hizo |
+|---|---|
+| «*el arrastrar y seleccionar no funciona con las formas simples de líneas, texto, círculo y cuadrado*» | `drawingBounds` + `drawingsInRect`: el área coge los trazos, y el puñado se mueve junto y se borra junto. Agarrar uno de los cogidos los mueve todos sin soltar la selección |
+| «*quiero que todas estas sean un solo icono y cuando hagas click despliegue al lado un menú*» | Las seis de dibujar plegadas en un icono con menú al lado (`DrawTools` en `Toolbar.tsx`). El icono enseña la herramienta puesta. Se cierra al elegir, con Escape y pinchando fuera |
+| «*SegmentBar.tsx sigue ahí esperando tu palabra → ¿qué es esto?*» | **BORRADA**, con su test. Su único test que no cubría ya `BuilderPanel.test.tsx` (el tooltip de «Quitar segmento») se mudó al panel |
+| «*sube todo a prod*» | **Las tres migraciones pendientes, APLICADAS en producción** (`spin_ms`, `intensity`, `group_id`). `get_advisors` sin nada crítico nuevo |
+
+⚠️ **El icono de dibujar NO está en `rolvium.pen`**: lo describió él por escrito y pidió terminar y subir.
+Queda por dibujar cuando se retome el diseño.
+
+### ✅ SUS CORRECCIONES DE LA MISMA TARDE, TODAS HECHAS (2026-09-03)
+
+Probó el panel y salieron seis cosas. Las seis están construidas y verdes.
+
+| Su queja | Qué se hizo |
+|---|---|
+| «*si selecciono la herramienta de selección no tiene que cerrar los modales abiertos, viven juntas*» | El panel tiene **estado propio** (`builderOpen`), no «¿la herramienta es Builder?». Pasar a Seleccionar no cierra nada, y con un muro cogido pasar a Builder no lo suelta. Cualquier OTRA herramienta sí recoge los paneles |
+| «*si selecciono un nodo y quiero seleccionar otro tengo que volver a hacer doble click*» | Estar DENTRO es **del grupo**, no del muro (`insideGroup`). Se sale pinchando algo de fuera |
+| «*no me deja seleccionar todos los nodos*» | **Ctrl/Cmd + A** coge todos los muros. El panel lo dice, y siempre a la vista |
+| «*me separa los segmentos de la figura original, los nodos deberían ser como una cadena*» | **La cadena** (`chainWalls`): arrastrar una punta se lleva las que estaban en ese mismo sitio. **Puesta por omisión**, y se quita desde el panel. Es por SITIO, no por grupo |
+| «*una vez dentro del grupo debería poder arrastrar y seleccionar en grupo cosas*» | Dentro, el área coge de ese grupo **lo que pilló y nada más**. Inflarlo al grupo entero era lo que te echaba fuera |
+| «*los modales están confinados dentro del mapa, deberían estar por donde quiera*» | Al agarrarlo, el panel se mide y pasa a `fixed` en ese mismo sitio: cero salto, y luego va por toda la ventana. Vale para Builder y para el editor de luces |
+| «*el pegado a la rejilla debería estar desactivado por defecto*» | El candado **arranca ABIERTO**. Es al revés de lo que se le propuso el 2026-09-03 por la mañana («empieza cerrado»), y manda esto |
+| «*pon el logo que tenemos en el .pen como favicon*» | `index.html` no tenía NINGÚN `rel="icon"`. Ahora apunta a `public/brand/mark.svg` —la marca del `.pen`, la misma que ya usan la barra, el login y la mesa—, más `apple-touch-icon`. Test que lo pincha |
+
+**Ficheros de esta tanda**: `groupRules.ts` (`chainWalls`, `insideGroup`, `groupInsideOf`, `withWholeGroups`
+con excepción) · `MapCanvas.tsx` · `BuilderPanel.tsx` · `SceneTab.tsx` · `useDragPanel.ts` (reescrito: mide y
+pasa a `fixed`) · `LightEditor.tsx` · `index.html` · claves `maps.builder.chain.*` y `selectAll` ·
+`tests/regression/favicon-es-la-marca.test.ts` (nuevo) + bloques en `groupRules.test.ts`, `MapCanvas.test.tsx`,
+`BuilderPanel.test.tsx`, `SceneTab.test.tsx`, `LightEditor.test.tsx`.
+
+**Arreglado al repasar la deuda**: en los muros de un **círculo** o de un trazo **a pulso** —que no caen en la
+rejilla— el doble clic no ponía el nodo: recuadraba el muro. «Quieto» se mide ahora por lo que viajó el dedo,
+no por si la geometría cambió. Un clic suelto sigue recuadrando, como siempre. Dos tests nuevos.
+
+**Verde al cerrar**: typecheck web+api · **1197 regression** (eran 1059) · 12 smoke · 38 functional · 226 api ·
+`npm run audit` **0 hard / 16 warn** (ninguno nuevo: 3 emojis en comentarios viejos, 1 `#fff` y 12 de ui-reuse,
+todos de antes) · `build:web` y `build:api`.
+
+**Decisiones tomadas al maquetar — revisables por él**:
+1. **El candado va entre «con qué forma» y «lo que tengo cogido»**, no al final. «Lo que tengo cogido» aparece
+   y desaparece, y con el candado debajo el candado bailaría de sitio en cada clic.
+2. **`SegmentBar.tsx` NO se ha borrado**: se queda en el árbol, sin montarse, con un aviso en cabecera de que
+   no se le cuelgue nada nuevo. Se deja para que él diga si se borra — nada depende ya de ella.
+3. **El interruptor de modo no guarda nada** (vive en la pantalla, como el velo del director) y hoy sólo cambia
+   la nota del panel: es el sitio donde entrarán los preajustes.
+4. **El rectángulo y el círculo con el candado abierto van libres pero sin imán** en las esquinas: son formas
+   cerradas, no dejan rendijas. Se añade si lo pide.
+
+**⚠️ Sin hacer, y a propósito**:
+- **`/review` sin lanzar**: este chat viene con la instrucción de no lanzar subagentes, igual que el anterior.
+- **Nada commiteado**: todo en el árbol de trabajo.
+- **«ESTILO DE LA MAZMORRA» y las dos texturas base, sin maquetar** — lo dice el propio encargo: piden tabla de
+  habitaciones + migración + DBA, y van en su propia tanda.
+- ~~La sexta forma, «RECTA» suelta, sin motor.~~ ✅ **CONSTRUIDA** (ver abajo).
+
+### 🔴 EL ENCARGO ORIGINAL (2026-09-03) — para poder comparar
 
 **1 · «Ya es hora que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este.»**
 > **ORDEN CLARA: se acabó colgar cosas de la barra vieja `SegmentBar`.** Hay que MAQUETAR EL PANEL v3 de
@@ -224,8 +323,8 @@ puertas y ventanas — se reaprovecha, no se inventa.
   anótalo en el backlog*».
 - ✅ **Ya decidido y NO hay que volver a preguntarlo**: el historial **vive en memoria y muere al recargar**
   («*me parece bien que quede en memoria*»).
-- 🔴 **ABIERTA, esperando su decisión**: al mover un nodo el movimiento **se pega a la rejilla** y él quiere
-  libertad. Sus tres opciones: rejilla mucho más fina · un candado de pegar/no pegar · las dos.
+- ~~🔴 ABIERTA: al mover un nodo el movimiento se pega a la rejilla y él quiere libertad.~~ ✅ **CERRADA el
+  2026-09-03**: eligió el **candado**, y está construido. La rejilla más fina quedó descartada por él.
 
 ### 🛑 LO ÚNICO QUE FALTA, Y NO LO PUEDO HACER YO
 

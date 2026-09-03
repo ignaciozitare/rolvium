@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Layer, Light, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { freehandSides, isDragShape, MIN_RING_POINTS, polygonSides, roomSides, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
-import { groupOf, handleAt as handlePoint, HANDLE_KEYS, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
+import { freehandSides, isDragShape, isLineShape, lineSide, MIN_RING_POINTS, polygonSides, roomSides, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
+import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 
@@ -100,6 +101,23 @@ interface Props {
   probe?: Point | null;
   onProbeMove?: (at: Point) => void;
   onSelectToken: (id: string | null) => void;
+  /**
+   * EL CANDADO DE LA REJILLA (§ «Rebanada 8»). Cerrado —lo de siempre, y con lo que arranca— Builder se pega
+   * a la rejilla exactamente igual que hasta hoy. Abierto, el gesto va libre y sólo las PUNTAS se pegan a las
+   * puntas de otros muros que tengan cerca, para no dejar rendijas por las que se cuele la visión.
+   */
+  snapGrid?: boolean;
+  /**
+   * LOS NODOS SON UNA CADENA. Arrastrar una punta se lleva las puntas de los muros que estaban en ese mismo
+   * sitio, así que mover un nodo de una sala no la abre. Por omisión SÍ, que es lo que él pidió: «los nodos
+   * deberían ser como una cadena a menos que yo elija que no».
+   */
+  chainNodes?: boolean;
+  /**
+   * AÑADIR UN NODO por doble clic sobre la línea de un muro. `at` es el punto donde pinchó, en px de escena;
+   * quién es el muro y por dónde se parte lo decide el dominio (`mapRules.splitWallAt`).
+   */
+  onSplitWall?: (id: string, at: Point) => void;
   /** DM, Seleccionar: the segment being edited and its handles. */
   selectedWallId?: string | null;
   onSelectWall?: (id: string | null) => void;
@@ -128,6 +146,14 @@ interface Props {
    */
   selectedDrawingId?: string | null;
   onSelectDrawing?: (id: string | null) => void;
+  /**
+   * VARIOS TRAZOS COGIDOS con el área — «*el arrastrar y seleccionar no funciona con las formas simples de
+   * líneas, texto, círculo y cuadrado*» (dueño, 2026-09-03). Se mueven juntos y se borran juntos.
+   */
+  selectedDrawingIds?: string[];
+  onSelectDrawings?: (ids: string[]) => void;
+  /** Mover VARIOS trazos de una vez: cada uno con sus coordenadas ya desplazadas. */
+  onMoveDrawings?: (batch: { id: string; data: Drawing['data'] }[]) => void;
   /** Mover un trazo: sus coordenadas ya desplazadas. Sólo el director (lo manda la RLS, no la pantalla). */
   onMoveDrawing?: (id: string, data: Drawing['data']) => void;
 }
@@ -139,13 +165,16 @@ type Gesture =
   | { kind: 'brush'; op: 'reveal' | 'hide' }
   /** Pincel de transparencia: pinta la máscara de una capa de terreno. `last` encadena el trazo sin lunares. */
   | { kind: 'mask'; last: Point }
-  | { kind: 'wallEdit'; id: string; grab: 'a' | 'b' | 'whole'; start: Point; origin: { x1: number; y1: number; x2: number; y2: number } }
+  | { kind: 'wallEdit'; id: string; grab: 'a' | 'b' | 'whole'; start: Point; origin: { x1: number; y1: number; x2: number; y2: number }; dbl: boolean }
   /** Arrastrando una luz ya colocada. Se mueve entera: una luz no tiene extremos que agarrar. */
   | { kind: 'lightMove'; id: string; start: Point; origin: Point; moved: boolean }
   /** Arrastrando un trazo. Lleva el desplazamiento, no un origen: cada forma guarda sus puntos a su manera. */
-  | { kind: 'drawingMove'; id: string; start: Point; moved: boolean }
+  /** `ids` son TODOS los que se mueven: el que se agarró, y los demás si venía de una selección por área. */
+  | { kind: 'drawingMove'; id: string; ids: string[]; start: Point; moved: boolean }
   /** Levantando una sala a rastras: rectángulo y círculo. `start` es la primera esquina, o el centro. */
   | { kind: 'room'; shape: 'rect' | 'circle'; start: Point }
+  /** LA RECTA SUELTA: se arrastra y sale UN muro. No es una sala, así que va por el camino de siempre. */
+  | { kind: 'line'; start: Point }
   /** Levantando una sala a pulso: los puntos por donde va pasando la mano. */
   | { kind: 'roomFree'; points: Point[] }
   /**
@@ -153,7 +182,11 @@ type Gesture =
    * Guarda el marco de partida porque escalar es llevar los muros de un marco a otro, no ir sumando tirones.
    */
   | { kind: 'groupXf'; handle: HandleKey | null; origin: Rect; ids: string[]; start: Point; moved: boolean; wallId: string | null; dbl: boolean }
-  | { kind: 'marquee'; start: Point; last: Point }
+  /**
+   * El área. `porDentro` es el grupo en el que se estaba trabajando al empezar el gesto: dentro de un grupo el
+   * área coge de él lo que pilla y no infla al grupo entero, que era lo que te echaba fuera.
+   */
+  | { kind: 'marquee'; start: Point; last: Point; porDentro: string | null }
   | { kind: 'measure' }
   /** Arrastrando la sonda de prueba. No lleva id: sólo hay una y no es de nadie. */
   | { kind: 'probe' };
@@ -233,11 +266,23 @@ export function MapCanvas(p: Props): JSX.Element {
   const [drawingDraft, setDrawingDraft] = useState<{ id: string; dx: number; dy: number } | null>(null);
   /** In a ref so the key listener never has to be re-bound as the selection changes. */
   const onDeleteRef = useRef<() => void>(() => {});
+  /** COGERLO TODO con Ctrl/Cmd + A. Por referencia, como el borrar: el oyente del teclado se monta una vez. */
+  const cogerTodoRef = useRef<() => void>(() => {});
   /** A press that started on the open/close disc, until the pointer moves far enough to make it a drag. */
   const discPress = useRef<{ id: string; at: Point } | null>(null);
   const lastPaint = useRef(0);
   const grid = p.scene.grid.size;
   const dmSight = p.isDm && !p.playerView;
+  /**
+   * EL CANDADO, resuelto en un sitio y usado por los tres caminos de Builder: el muro que se dibuja, el
+   * vértice del polígono y el nodo que se arrastra. Cerrado por omisión, así que sin tocarlo todo se comporta
+   * igual que antes de que existiera.
+   */
+  const candado = p.snapGrid ?? true;
+  const paso = stepOf(grid, candado);
+  /** El imán de las puntas se mide en píxeles de PANTALLA: con el mapa alejado no puede tirar de medio mapa. */
+  const imán = END_SNAP_PX / p.view.zoom;
+  const anclar = (q: Point, skipId?: string): Point => builderPoint(q, grid, candado, p.walls, imán, skipId);
 
   useEffect(() => {
     if (!p.pin) { setPinShown(null); return; }
@@ -249,6 +294,17 @@ export function MapCanvas(p: Props): JSX.Element {
   /** Cambiar de forma a media sala la descarta: los vértices de un polígono no valen para un círculo. */
   useEffect(() => { setPolyPoints([]); setRoomDraft([]); setWallStart(null); }, [p.wallShape]);
   useEffect(() => { onDeleteRef.current = () => p.onDeleteSelection?.(); });
+  useEffect(() => {
+    cogerTodoRef.current = () => {
+      if (!dmSight || !p.showWalls || !p.walls.length) return;
+      // Se suelta el muro suelto: o se tiene UNO cogido y se editan sus puntas, o se tienen TODOS y se mueven.
+      p.onSelectWall?.(null);
+      p.onSelectToken(null);
+      p.onSelectLight?.(null);
+      p.onSelectDrawing?.(null);
+      p.onSelectWalls?.(p.walls.map(w => w.id));
+    };
+  });
   useEffect(() => {
     /** Never steal the space bar from someone typing a scene name or a text drawing. */
     const typing = (t: EventTarget | null): boolean => {
@@ -266,6 +322,11 @@ export function MapCanvas(p: Props): JSX.Element {
       if (e.key === 'Escape') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); setGroupDraft(null); p.onSelectWalls?.([]); return; }
       if (e.key === ' ' && !typing(e.target) && !onControl(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
+      /**
+       * COGERLO TODO — «*no me deja seleccionar todos los nodos*» (dueño, 2026-09-03). Ctrl/Cmd + A coge todos
+       * los muros de la escena; desde ahí se mueven y se estiran como un grupo, y Suprimir los borra.
+       */
+      if ((e.key === 'a' || e.key === 'A') && (e.metaKey || e.ctrlKey) && !typing(e.target)) { e.preventDefault(); cogerTodoRef.current(); }
     };
     const onKeyUp = (e: KeyboardEvent) => { if (e.key === ' ') setSpacePan(false); };
     /** Alt-tabbing away with space down would leave the canvas stuck in pan mode. */
@@ -407,12 +468,31 @@ export function MapCanvas(p: Props): JSX.Element {
          */
         const grupo = groupOf(p.walls, wall);
         /**
-         * ⚠️ YA ESTOY DENTRO. Si este muro es el que está elegido suelto —se entró con doble clic—, el clic es
-         * para EDITARLO: agarrar una de sus puntas y moverla. Sin esto, `groupOf` volvía a devolver el grupo
-         * entero y cada clic te sacaba fuera otra vez, así que las puntas no había forma de cogerlas (dueño,
-         * 2026-09-03: «*no puedo seleccionar los nodos para moverlos*»). Se sale pinchando otro muro o el vacío.
+         * ⚠️ YA ESTOY DENTRO. Si se entró con doble clic, el clic es para EDITAR: agarrar una punta y moverla.
+         * Sin esto, `groupOf` volvía a devolver el grupo entero y cada clic te sacaba fuera otra vez, así que
+         * las puntas no había forma de cogerlas (dueño, 2026-09-03: «*no puedo seleccionar los nodos*»).
+         *
+         * CLAVE: DENTRO ES DEL GRUPO, NO DEL MURO (dueño, 2026-09-03: «*si selecciono un nodo y quiero seleccionar
+         * otro tengo que volver a hacer doble click, eso está mal*»). Mirando sólo si el muro elegido era ESTE
+         * muro, pasar al de al lado —del mismo grupo— te echaba fuera y había que volver a entrar. Basta con
+         * que el muro elegido pertenezca a este grupo: se sale pinchando algo de FUERA del grupo, o el vacío.
          */
-        const dentro = p.selectedWallId === wall.id;
+        const dentro = insideGroup(grupo, p.selectedWallId ?? null, p.selectedWallIds ?? []);
+        /**
+         * ¿DOBLE CLIC? Se decide aquí arriba y vale para los dos caminos, porque el doble clic hace dos cosas
+         * distintas según dónde estés — y así lo eligió el dueño (2026-09-03, «primero entra, luego el nodo»):
+         *
+         * · sobre un muro de un GRUPO en el que aún no has entrado → ENTRA al muro suelto, como hasta ahora;
+         * · sobre un muro suelto, o sobre el que ya tienes cogido dentro del grupo → AÑADE UN NODO ahí.
+         *
+         * Se mira el reloj además de `e.detail` porque el navegador no cuenta como doble un clic que cambia de
+         * elemento por medio, y aquí el primero de los dos suele cambiar la selección.
+         */
+        const ahora = Date.now();
+        const previo = ultimoToque.current;
+        const doble = e.detail >= 2 || (!!previo && previo.id === wall.id && ahora - previo.t < 400
+          && Math.hypot(s.x - previo.x, s.y - previo.y) <= 8 / p.view.zoom);
+        ultimoToque.current = { id: wall.id, t: ahora, x: s.x, y: s.y };
         if (grupo.length > 1 && !dentro) {
           /**
            * ⚠️ ARRASTRAR SIEMPRE MUEVE; el doble clic sólo entra SI NO SE ARRASTRA — se decide al soltar, no
@@ -429,11 +509,6 @@ export function MapCanvas(p: Props): JSX.Element {
           }
           // Los ids van DENTRO del gesto: si dependiera de la prop, el primer arrastre tras elegir movería
           // la selección vieja, que en ese instante todavía está vacía.
-          const ahora = Date.now();
-          const previo = ultimoToque.current;
-          const doble = e.detail >= 2 || (!!previo && previo.id === wall.id && ahora - previo.t < 400
-            && Math.hypot(s.x - previo.x, s.y - previo.y) <= 8 / p.view.zoom);
-          ultimoToque.current = { id: wall.id, t: ahora, x: s.x, y: s.y };
           setGesture({ kind: 'groupXf', handle: null, origin: wallBounds(grupo)!, ids: grupo.map(g => g.id), start: s, moved: false, wallId: wall.id, dbl: doble });
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
@@ -446,7 +521,7 @@ export function MapCanvas(p: Props): JSX.Element {
         p.onSelectWall?.(wall.id);
         const near = (x: number, y: number) => Math.hypot(s.x - x, s.y - y) <= 12 / p.view.zoom;
         const grab = near(wall.x1, wall.y1) ? 'a' : near(wall.x2, wall.y2) ? 'b' : 'whole';
-        setGesture({ kind: 'wallEdit', id: wall.id, grab, start: s, origin: { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 } });
+        setGesture({ kind: 'wallEdit', id: wall.id, grab, start: s, origin: { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 }, dbl: doble });
         svgRef.current?.setPointerCapture?.(e.pointerId);
         return;
       }
@@ -461,10 +536,18 @@ export function MapCanvas(p: Props): JSX.Element {
         p.onSelectToken(null);
         p.onSelectWall?.(null);
         p.onSelectLight?.(null);
-        p.onSelectDrawing?.(drawing.id);
+        /**
+         * Si el trazo es UNO DE LOS COGIDOS por el área, la selección no se toca y se mueven TODOS: agarrar
+         * uno de un puñado para moverlo es lo que uno espera, y soltar los demás por tocar uno sería perder
+         * el trabajo de haberlos cogido. Pinchando cualquier otro, se coge ése y sólo ése, como siempre.
+         */
+        const cogidos = p.selectedDrawingIds ?? [];
+        const enGrupo = cogidos.length > 1 && cogidos.includes(drawing.id);
+        if (!enGrupo) { p.onSelectDrawings?.([]); p.onSelectDrawing?.(drawing.id); }
         // Arrastrar es del director, como manda la RLS de `maps_drawings`. Un jugador lo elige y lo ve, nada más.
         if (canMoveDrawing(drawing, p.me, p.isDm)) {
-          setGesture({ kind: 'drawingMove', id: drawing.id, start: s, moved: false });
+          const ids = enGrupo ? cogidos.filter(id => drawingsShown.some(x => x.id === id)) : [drawing.id];
+          setGesture({ kind: 'drawingMove', id: drawing.id, ids, start: s, moved: false });
           svgRef.current?.setPointerCapture?.(e.pointerId);
         }
         return;
@@ -474,8 +557,10 @@ export function MapCanvas(p: Props): JSX.Element {
       // Pinchar en vacío suelta TODO, la luz, el trazo y el grupo: es la forma de soltar sin buscar una X.
       p.onSelectLight?.(null);
       p.onSelectDrawing?.(null);
+      p.onSelectDrawings?.([]);
       p.onSelectWalls?.([]);
-      setGesture({ kind: 'marquee', start: s, last: s });
+      // Se apunta ANTES de soltar la selección: al levantar el dedo ya no habría de dónde saberlo.
+      setGesture({ kind: 'marquee', start: s, last: s, porDentro: groupInsideOf(p.walls, p.selectedWallId ?? null, p.selectedWallIds ?? []) });
       svgRef.current?.setPointerCapture?.(e.pointerId);
       return;
     }
@@ -515,6 +600,16 @@ export function MapCanvas(p: Props): JSX.Element {
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
+        /**
+         * LA RECTA SUELTA: se arrastra de un punto a otro y sale UN muro. Va por `onAddWall`, el camino de
+         * siempre, y no por el de las salas: así una puerta o una ventana dibujada de un tirón sobre un muro
+         * lo sigue partiendo con `planOpening`, exactamente igual que con el Builder clic a clic.
+         */
+        if (isLineShape(shape)) {
+          setGesture({ kind: 'line', start: anclar(s) });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
         // A pulso: se va guardando por dónde pasa la mano.
         if (shape === 'free') {
           setGesture({ kind: 'roomFree', points: [s] });
@@ -524,13 +619,13 @@ export function MapCanvas(p: Props): JSX.Element {
         // Polígono: un clic, un vértice. Se cierra pinchando otra vez encima del primero — el gesto que ya
         // conoce todo el mundo, y así no hace falta un botón aparte ni un doble clic que compita con nada.
         if (shape === 'poly') {
-          const v = { x: snap(s.x, grid), y: snap(s.y, grid) };
+          const v = anclar(s);
           const first = polyPoints[0];
           // Menos de media casilla, no una entera: los vértices están pegados a la rejilla, así que el vecino
           // de al lado cae a exactamente `grid` del primero y con el tope en `grid` cerraba la sala en vez de
           // poner el vértice — imposible hacer una L cuya última esquina caiga junto a la primera.
           if (first && polyPoints.length >= MIN_RING_POINTS && Math.hypot(v.x - first.x, v.y - first.y) <= grid * 0.75) {
-            p.onAddRoom?.(polygonSides(polyPoints, grid));
+            p.onAddRoom?.(polygonSides(polyPoints, grid, paso));
             setPolyPoints([]);
             return;
           }
@@ -539,7 +634,7 @@ export function MapCanvas(p: Props): JSX.Element {
         }
         // Muro only BUILDS. Opening a door is the hover disc's job, which is what unblocks starting a wall next
         // to a door — that click used to open it instead (specs/modules/maps/SPEC.md § «Rebanada 3»).
-        const q = { x: snap(s.x, grid), y: snap(s.y, grid) };
+        const q = anclar(s);
         if (wallStart) {
           p.onAddWall(wallStart, q);
           // A door or a window is ONE segment: chaining would drop a second one where you did not ask for it.
@@ -671,8 +766,12 @@ export function MapCanvas(p: Props): JSX.Element {
       setGesture(gesture.tool === 'stroke' ? { ...gesture, points: [...gesture.points, [s.x, s.y]], last: s } : { ...gesture, last: s });
     } else if (gesture.kind === 'marquee') {
       setGesture({ ...gesture, last: s });
+    } else if (gesture.kind === 'line') {
+      // Se pinta con el mismo borrador que las salas: es un lado, y un lado ya sabe dibujarse.
+      const side = lineSide(gesture.start, anclar(s), grid);
+      setRoomDraft(side ? [side] : []);
     } else if (gesture.kind === 'room') {
-      setRoomDraft(roomSides(gesture.shape, gesture.start, s, grid));
+      setRoomDraft(roomSides(gesture.shape, gesture.start, s, grid, paso));
     } else if (gesture.kind === 'roomFree') {
       const points = [...gesture.points, s];
       setGesture({ ...gesture, points });
@@ -688,7 +787,14 @@ export function MapCanvas(p: Props): JSX.Element {
         if (!gesture.moved) setGesture({ ...gesture, moved: true });
       }
     } else if (gesture.kind === 'wallEdit') {
-      setWallDraft(wallDragTo(gesture.origin, gesture.grab, gesture.start, s, grid));
+      // El candado manda también aquí: cerrado, a la rejilla como siempre; abierto, libre y con la punta
+      // pegándose a la de otro muro cercano. El propio muro queda fuera del imán o se pegaría a sí mismo.
+      const suelto = wallDragTo(gesture.origin, gesture.grab, gesture.start, s, grid, paso);
+      const at = candado ? suelto : anchorEnd(suelto, gesture.grab, p.walls, imán, gesture.id);
+      setWallDraft(at);
+      // LA CADENA: las puntas que estaban en el mismo sitio se van con ésta, así que la figura no se abre.
+      const cadena = p.chainNodes === false ? [] : chainWalls(p.walls, gesture.id, gesture.origin, at, gesture.grab);
+      setGroupDraft(cadena.length ? new Map(cadena.map(c => [c.id, c])) : null);
     } else if (gesture.kind === 'drawingMove') {
       setDrawingDraft({ id: gesture.id, dx: s.x - gesture.start.x, dy: s.y - gesture.start.y });
       if (!gesture.moved) setGesture({ ...gesture, moved: true });
@@ -757,26 +863,53 @@ export function MapCanvas(p: Props): JSX.Element {
     if (gesture.kind === 'mask') { setGesture(null); p.onPaintMaskEnd?.(); return; }
     // La sala se escribe al soltar, no mientras se arrastra: si no, cada píxel del gesto sería una escritura.
     if (gesture.kind === 'room') {
-      p.onAddRoom?.(roomSides(gesture.shape, gesture.start, hover ?? gesture.start, grid));
+      p.onAddRoom?.(roomSides(gesture.shape, gesture.start, hover ?? gesture.start, grid, paso));
       setRoomDraft([]); setGesture(null); return;
     }
     if (gesture.kind === 'roomFree') {
       p.onAddRoom?.(freehandSides(gesture.points, grid));
       setRoomDraft([]); setGesture(null); return;
     }
+    if (gesture.kind === 'line') {
+      const side = lineSide(gesture.start, hover ? anclar(hover) : gesture.start, grid);
+      if (side) p.onAddWall({ x: side.x1, y: side.y1 }, { x: side.x2, y: side.y2 });
+      setRoomDraft([]); setGesture(null); return;
+    }
     if (gesture.kind === 'wallEdit') {
-      const at = wallDragTo(gesture.origin, gesture.grab, gesture.start, hover ?? gesture.start, grid);
+      const suelto = wallDragTo(gesture.origin, gesture.grab, gesture.start, hover ?? gesture.start, grid, paso);
+      const at = candado ? suelto : anchorEnd(suelto, gesture.grab, p.walls, imán, gesture.id);
       const moved = at.x1 !== gesture.origin.x1 || at.y1 !== gesture.origin.y1 || at.x2 !== gesture.origin.x2 || at.y2 !== gesture.origin.y2;
-      if (moved) p.onMoveWall?.(gesture.id, at);
+      /**
+       * AÑADIR UN NODO. Doble clic QUIETO sobre la línea: si hubo arrastre era un movimiento, y el segundo
+       * clic de un arrastre cuenta como doble — mirarlo al soltar es lo único que distingue las dos cosas.
+       * Dónde cae el nodo (y si cabe) lo decide `splitWallAt`; aquí sólo se le pasa dónde pinchó.
+       *
+       * OJO: QUIETO se mide por lo que VIAJÓ EL DEDO, no por si la geometría cambió. Un muro que no cae en la
+       * rejilla —los de un círculo y los de un trazo a pulso no caen— se recuadra con el candado cerrado en
+       * cuanto se pulsa, y eso hacía que un doble clic contase como movimiento: en vez del nodo, el muro daba
+       * un tirón a la casilla. El umbral es el mismo del grupo y del marco de selección.
+       */
+      const viajó = !!hover && Math.hypot(hover.x - gesture.start.x, hover.y - gesture.start.y) > DEAD_ZONE_PX / p.view.zoom;
+      /**
+       * LA CADENA se guarda CON el muro y de una sola escritura (`onTransformWalls`): media figura movida y
+       * media quieta es un hueco, y es el mismo agujero por el que se colaba la visión con `addRoom`.
+       */
+      const cadena = p.chainNodes === false ? [] : chainWalls(p.walls, gesture.id, gesture.origin, at, gesture.grab);
+      if (!viajó && gesture.dbl) p.onSplitWall?.(gesture.id, gesture.start);
+      else if (moved && cadena.length) p.onTransformWalls?.([{ id: gesture.id, ...at }, ...cadena]);
+      else if (moved) p.onMoveWall?.(gesture.id, at);
+      setGroupDraft(null);
       setWallDraft(null);
       setGesture(null);
       return;
     }
     if (gesture.kind === 'drawingMove') {
       // Un clic sin arrastre sólo lo ELIGE. Escribir en la base por cada clic sobraría, igual que con la luz.
-      const d = drawingsShown.find(x => x.id === gesture.id);
-      if (gesture.moved && drawingDraft && d && Math.hypot(drawingDraft.dx, drawingDraft.dy) > 1) {
-        p.onMoveDrawing?.(gesture.id, translateDrawing(d, drawingDraft.dx, drawingDraft.dy));
+      if (gesture.moved && drawingDraft && Math.hypot(drawingDraft.dx, drawingDraft.dy) > 1) {
+        const movidos = drawingsShown.filter(x => gesture.ids.includes(x.id));
+        // Varios de una vez cuando venían de una selección por área; uno solo sigue por su camino de siempre.
+        if (gesture.ids.length > 1) p.onMoveDrawings?.(movidos.map(x => ({ id: x.id, data: translateDrawing(x, drawingDraft.dx, drawingDraft.dy) })));
+        else if (movidos[0]) p.onMoveDrawing?.(gesture.id, translateDrawing(movidos[0], drawingDraft.dx, drawingDraft.dy));
       }
       setDrawingDraft(null);
       setGesture(null);
@@ -816,8 +949,19 @@ export function MapCanvas(p: Props): JSX.Element {
          * EL ÁREA COGE TAMBIÉN MUROS, no sólo fichas — «*no puedo arrastrar y seleccionar por grupo*». Y un
          * grupo se coge entero: pillar tres muros de un círculo se trae los once, porque media cosa cogida no
          * es nada que se pueda mover con sentido.
+         *
+         * DENTRO de un grupo, la excepción: de ÉL se coge lo que se pilló y nada más (`porDentro`). Inflarlo
+         * al grupo entero era lo que te echaba fuera en cuanto arrastrabas (dueño, 2026-09-03: «*una vez
+         * dentro del grupo debería poder no sólo seleccionar un vector sino arrastrar y seleccionar en grupo
+         * cosas*»).
          */
-        if (dmSight && p.showWalls) p.onSelectWalls?.(withWholeGroups(p.walls, wallsInRect(p.walls, gesture.start, gesture.last)).map(w => w.id));
+        if (dmSight && p.showWalls) p.onSelectWalls?.(withWholeGroups(p.walls, wallsInRect(p.walls, gesture.start, gesture.last), gesture.porDentro).map(w => w.id));
+        /**
+         * Y LOS TRAZOS — «*el arrastrar y seleccionar no funciona con las formas simples de líneas, texto,
+         * círculo y cuadrado*». Sólo los que se pueden mover: a un jugador no le sirve de nada cogerlos.
+         */
+        p.onSelectDrawings?.(drawingsInRect(drawingsShown, gesture.start, gesture.last)
+          .filter(d => canMoveDrawing(d, p.me, p.isDm)).map(d => d.id));
       }
       setGesture(null);
       return;
@@ -928,6 +1072,8 @@ export function MapCanvas(p: Props): JSX.Element {
   const hoverOpening = dmSight && hover && !gesture && !wallStart && !p.placing && DISC_TOOLS.includes(p.tool)
     ? hitOpening(wallsShown, hover, 14 / p.view.zoom) : null;
   const handleAt = wallDraft ?? (selectedWall ? { x1: selectedWall.x1, y1: selectedWall.y1, x2: selectedWall.x2, y2: selectedWall.y2 } : { x1: 0, y1: 0, x2: 0, y2: 0 });
+  /** Los trazos que se están arrastrando ahora mismo: uno, o el puñado entero que se cogió con el área. */
+  const moviendo = new Set(gesture?.kind === 'drawingMove' ? gesture.ids : []);
 
   return (
     <svg ref={svgRef} className="mp-svg" data-tool={p.tool} style={{ cursor }} aria-label={t('maps.canvas.label')} role="application"
@@ -948,18 +1094,18 @@ export function MapCanvas(p: Props): JSX.Element {
                 selected={w.id === p.selectedWallId || (p.selectedWallIds ?? []).includes(w.id)}
                 draft={groupDraft?.get(w.id) ?? (wallDraft && w.id === p.selectedWallId ? wallDraft : null)} />
             ))}
-            {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={snap(hover.x, grid)} y2={snap(hover.y, grid)} className="mp-wall draft" />}
+            {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={anclar(hover).x} y2={anclar(hover).y} className="mp-wall draft" />}
             {roomDraft.map((r, i) => <line key={`room-${i}`} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} className="mp-wall draft" />)}
             {p.tool === 'wall' && polyPoints.map((v, i) => {
-              const next = polyPoints[i + 1] ?? (hover ? { x: snap(hover.x, grid), y: snap(hover.y, grid) } : v);
+              const next = polyPoints[i + 1] ?? (hover ? anclar(hover) : v);
               return <line key={`poly-${i}`} x1={v.x} y1={v.y} x2={next.x} y2={next.y} className="mp-wall draft" />;
             })}
           </g>
           <g className="mp-layer-drawings" data-testid="mp-drawings">
             {drawingsShown.map(d => (
               <DrawingShape key={d.id}
-                d={drawingDraft?.id === d.id ? { ...d, data: translateDrawing(d, drawingDraft.dx, drawingDraft.dy) } : d}
-                selected={d.id === p.selectedDrawingId}
+                d={moviendo.has(d.id) && drawingDraft ? { ...d, data: translateDrawing(d, drawingDraft.dx, drawingDraft.dy) } : d}
+                selected={d.id === p.selectedDrawingId || (p.selectedDrawingIds ?? []).includes(d.id)}
                 movable={p.tool === 'select' && canMoveDrawing(d, p.me, p.isDm)} />
             ))}
             {draft && <DrawingShape d={draft} draft />}

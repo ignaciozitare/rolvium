@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { circleSegments, freehandSides, isClosed, isDragShape, isPathShape, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing } from './roomRules';
+import { BUILDER_MODES, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing } from './roomRules';
 
 /**
  * 🏗 EL MOTOR DE LAS HABITACIONES RÁPIDAS (§ «Rebanada 8»). Sólo geometría: la pantalla no existe todavía
@@ -252,11 +252,75 @@ describe('a pulso, con curvas — que es para lo que existe', () => {
 });
 
 describe('qué forma se dibuja cómo', () => {
-  it('rectángulo y círculo se arrastran; polígono y pulso encadenan puntos; segmento no pasa por el motor', () => {
-    expect(ROOM_SHAPES).toEqual(['segment', 'rect', 'circle', 'poly', 'free']);
+  it('rectángulo y círculo se arrastran; polígono y pulso encadenan puntos; segmento y recta no pasan por el motor de salas', () => {
+    // El orden es el del diseño v3, y se lee en dos filas de tres.
+    expect(ROOM_SHAPES).toEqual(['segment', 'line', 'rect', 'circle', 'poly', 'free']);
     expect(ROOM_SHAPES.filter(isDragShape)).toEqual(['rect', 'circle']);
     expect(ROOM_SHAPES.filter(isPathShape)).toEqual(['poly', 'free']);
-    expect(isDragShape('segment')).toBe(false);
-    expect(isPathShape('segment')).toBe(false);
+    expect(ROOM_SHAPES.filter(isLineShape)).toEqual(['line']);
+    for (const s of ['segment', 'line'] as const) {
+      expect(isDragShape(s)).toBe(false);
+      expect(isPathShape(s)).toBe(false);
+    }
+  });
+});
+
+/**
+ * LA RECTA SUELTA — la sexta forma del diseño v3, pedida por él el 2026-09-03. La única que NO monta una
+ * sala: sale un muro y sólo uno, por el camino de siempre.
+ */
+describe('lineSide — la recta suelta', () => {
+  it('un arrastre da un muro, tal cual, de un punto al otro', () => {
+    expect(lineSide({ x: 27, y: 54 }, { x: 135, y: 54 }, 27)).toEqual({ x1: 27, y1: 54, x2: 135, y2: 54 });
+  });
+
+  it('vale en diagonal: una pared puede ir a cualquier ángulo', () => {
+    expect(lineSide({ x: 0, y: 0 }, { x: 54, y: 27 }, 27)).toEqual({ x1: 0, y1: 0, x2: 54, y2: 27 });
+  });
+
+  it('un clic sin arrastre no deja nada: eso es un resbalón, no una pared', () => {
+    expect(lineSide({ x: 27, y: 54 }, { x: 27, y: 54 }, 27)).toBeNull();
+    expect(lineSide({ x: 27, y: 54 }, { x: 32, y: 54 }, 27)).toBeNull();
+  });
+
+  it('media casilla ya cuenta: es el tope, no un mínimo generoso', () => {
+    expect(lineSide({ x: 0, y: 0 }, { x: 14, y: 0 }, 27)).toEqual({ x1: 0, y1: 0, x2: 14, y2: 0 });
+  });
+});
+
+/**
+ * EL CANDADO llega a las formas por el `step`. Sin pasarlo, todo se comporta igual que siempre — que es la
+ * primera condición del dueño: cerrado, Builder no cambia.
+ */
+describe('las formas con el candado abierto', () => {
+  it('el rectángulo deja de cuadrar a la casilla, pero sigue midiendo el mínimo en casillas', () => {
+    const libre = roomSides('rect', { x: 10, y: 10 }, { x: 100, y: 70 }, 27, 0);
+    expect(libre[0]).toEqual({ x1: 10, y1: 10, x2: 100, y2: 10 });
+    // Y sigue sin dejar montar una sala más pequeña que una casilla, candado o no candado.
+    expect(roomSides('rect', { x: 10, y: 10 }, { x: 20, y: 20 }, 27, 0)).toEqual([]);
+  });
+
+  it('el círculo se queda con el radio del gesto en vez de redondearlo', () => {
+    const libre = roomSides('circle', { x: 0, y: 0 }, { x: 40, y: 0 }, 27, 0);
+    expect(Math.hypot(libre[0]!.x1, libre[0]!.y1)).toBeCloseTo(40, 6);
+    // Cerrado (lo de siempre): 40 redondea a 27, la casilla más cercana.
+    const pegado = roomSides('circle', { x: 0, y: 0 }, { x: 40, y: 0 }, 27);
+    expect(Math.hypot(pegado[0]!.x1, pegado[0]!.y1)).toBeCloseTo(27, 6);
+  });
+
+  it('los vértices del polígono se quedan donde se pincharon', () => {
+    const pts = [{ x: 5, y: 5 }, { x: 95, y: 8 }, { x: 50, y: 90 }];
+    expect(polygonSides(pts, 27, 0)[0]).toEqual({ x1: 5, y1: 5, x2: 95, y2: 8 });
+  });
+
+  it('sin pasar `step` todo sigue pegado a la rejilla: el candado nace cerrado', () => {
+    expect(roomSides('rect', { x: 10, y: 10 }, { x: 100, y: 70 }, 27)[0]).toEqual({ x1: 0, y1: 0, x2: 108, y2: 0 });
+    expect(polygonSides([{ x: 5, y: 5 }, { x: 95, y: 8 }, { x: 50, y: 90 }], 27)[0]).toEqual({ x1: 0, y1: 0, x2: 108, y2: 0 });
+  });
+});
+
+describe('las dos maneras de trabajar, y conviven', () => {
+  it('son exactamente dos: sobre una foto y dibujar aquí', () => {
+    expect(BUILDER_MODES).toEqual(['photo', 'draw']);
   });
 });
