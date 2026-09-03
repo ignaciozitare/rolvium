@@ -387,7 +387,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   };
 
   /**
-   * ↩️ CTRL+Z / CMD+Z para deshacer, y con MAYÚSCULAS para rehacer (§ «Rebanada 8»). Petición suya del
+   * CTRL+Z / CMD+Z para deshacer, y con MAYÚSCULAS para rehacer (§ «Rebanada 8»). Petición suya del
    * 2026-08-19, reclamada el 2026-09-03: «*el deshacer y el inverso no funciona*».
    *
    * Sólo el director: los muros y las salas son suyos, y un jugador no tiene nada que deshacer aquí. Y no

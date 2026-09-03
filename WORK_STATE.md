@@ -234,6 +234,12 @@ formas del diseño, en sus dos filas de tres**.
 | «*SegmentBar.tsx sigue ahí esperando tu palabra → ¿qué es esto?*» | **BORRADA**, con su test. Su único test que no cubría ya `BuilderPanel.test.tsx` (el tooltip de «Quitar segmento») se mudó al panel |
 | «*sube todo a prod*» | **Las tres migraciones pendientes, APLICADAS en producción** (`spin_ms`, `intensity`, `group_id`). `get_advisors` sin nada crítico nuevo |
 
+**🚦 QA bloqueó una vez, y con razón**: `LayerMenu.tsx` llevaba desde el 2026-09-02 un camino que **borra**
+luces y trazos (`onRemove`) **sin un solo test**. Escrito ahora: `LayerMenu.test.tsx`, 11 tests. Y de paso las
+tres contradicciones que cazó, arregladas: el docblock de `snapRules` y el valor por omisión de `MapCanvas`
+decían «empieza cerrado» cuando el candado arranca ABIERTO, y el spec seguía diciendo que `SegmentBar` se
+quedaba en el árbol. Los tres avisos de emoji del audit eran NUEVOS de esta tanda, no de siempre: quitados.
+
 ⚠️ **El icono de dibujar NO está en `rolvium.pen`**: lo describió él por escrito y pidió terminar y subir.
 Queda por dibujar cuando se retome el diseño.
 
@@ -262,7 +268,7 @@ pasa a `fixed`) · `LightEditor.tsx` · `index.html` · claves `maps.builder.cha
 rejilla— el doble clic no ponía el nodo: recuadraba el muro. «Quieto» se mide ahora por lo que viajó el dedo,
 no por si la geometría cambió. Un clic suelto sigue recuadrando, como siempre. Dos tests nuevos.
 
-**Verde al cerrar**: typecheck web+api · **1197 regression** (eran 1059) · 12 smoke · 38 functional · 226 api ·
+**Verde al cerrar**: typecheck web+api · **1208 regression** (eran 1059) · 12 smoke · 38 functional · 226 api ·
 `npm run audit` **0 hard / 16 warn** (ninguno nuevo: 3 emojis en comentarios viejos, 1 `#fff` y 12 de ui-reuse,
 todos de antes) · `build:web` y `build:api`.
 

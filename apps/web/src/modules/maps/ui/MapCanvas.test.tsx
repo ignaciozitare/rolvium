@@ -478,7 +478,7 @@ describe('<MapCanvas> tools', () => {
     expect(cb.onPin).toHaveBeenCalledWith({ x: 12, y: 34 });
   });
   it('wall (DM): click-click chains grid-snapped segments, Escape ends; players get nothing; el encuentro cae CENTRADO donde se pulsa', () => {
-    const { svg, cb, rerender } = mount({ tool: 'wall', isDm: true, me: 'u-gm' });
+    const { svg, cb, rerender } = mount({ tool: 'wall', isDm: true, me: 'u-gm', snapGrid: true });
     down(svg, 28, 26); down(svg, 80, 26); down(svg, 80, 110);
     expect(cb.onAddWall).toHaveBeenNthCalledWith(1, { x: G, y: G }, { x: 3 * G, y: G });
     expect(cb.onAddWall).toHaveBeenNthCalledWith(2, { x: 3 * G, y: G }, { x: 3 * G, y: 4 * G });
@@ -1591,8 +1591,8 @@ describe('<MapCanvas> el candado de la rejilla', () => {
   const dmWall = { tool: 'wall' as const, isDm: true, me: 'u-gm' };
 
   /** 1ª condición: sin tocarlo, Builder dibuja EXACTAMENTE como antes de que el candado existiera. */
-  it('cerrado (lo de siempre) el muro cae en la casilla', () => {
-    const { svg, cb } = mount({ ...dmWall });
+  it('echado el candado, el muro cae en la casilla', () => {
+    const { svg, cb } = mount({ ...dmWall, snapGrid: true });
     down(svg, 28, 26); down(svg, 80, 26);
     expect(cb.onAddWall).toHaveBeenCalledWith({ x: G, y: G }, { x: 3 * G, y: G });
   });
@@ -1693,10 +1693,10 @@ describe('<MapCanvas> el doble clic sobre la línea añade un nodo', () => {
   });
 
   /** Un clic SUELTO en ese mismo muro sigue recuadrándolo, como toda la vida: eso no se ha tocado. */
-  it('un clic suelto en ese muro torcido lo sigue recuadrando, como siempre', () => {
+  it('con el candado echado, un clic suelto en ese muro torcido lo sigue recuadrando', () => {
     const onSplitWall = vi.fn();
     const torcido = { ...WALL_1, id: 'w-circ', x1: 103, y1: 97, x2: 311, y2: 154, groupId: null };
-    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [torcido], onSplitWall });
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [torcido], snapGrid: true, onSplitWall });
     down(svg, 207, 125); up(svg);
     expect(onSplitWall).not.toHaveBeenCalled();
     expect(cb.onMoveWall).toHaveBeenCalled();

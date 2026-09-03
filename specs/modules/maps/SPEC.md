@@ -1157,7 +1157,7 @@ que se distinga de un vistazo un rayado de un relleno. Y los dos rayados pasan a
   - **El Builder de siempre no se ha movido**: sin tocar la forma sigue siendo clic a clic, y puertas y
     ventanas siguen partiendo muros con `planOpening`. Hay test que lo sujeta.
   - La forma `segment` se rotula **«A mano»**, como en el diseño (antes «Segmento»).
-  - 🗑 `ui/SegmentBar.tsx` **queda en el árbol sin montarse en ningún sitio**, con un aviso en cabecera de que
+  - 🗑 `ui/SegmentBar.tsx` **queda en el árbol sin montarse en ningún sitio**, con un aviso en cabecera de que`SegmentBar.tsx` **se ha borrado** (con su test), por orden suya del 2026-09-03. Lo que hacía lo cubre entero `BuilderPanel.test.tsx`.
     no se le cuelgue nada nuevo. Se deja para que él decida si se borra: nada depende ya de ella.
 - ✅ **La niebla funciona con lo levantado aquí**, que era el requisito con nombre. Dos tests: uno en el
   motor de visión de la API (una sala tapa la vista desde fuera y la contiene desde dentro, y un vano la

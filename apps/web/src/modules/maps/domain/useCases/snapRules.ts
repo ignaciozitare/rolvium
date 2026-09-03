@@ -6,8 +6,10 @@ import type { Wall } from '../entities/Scene';
  *
  * Aprobado por el dueño el 2026-09-03 —«*tira*»— con tres condiciones, y las tres viven aquí:
  *
- * 1. **Empieza CERRADO.** Con el candado echado Builder se comporta EXACTAMENTE como hasta hoy: `snap` a la
- *    rejilla y nada más. Nadie se encuentra la herramienta cambiada sin haberla tocado.
+ * 1. **Empieza ABIERTO.** Se le propuso lo contrario —empezar cerrado, para no cambiarle nada— y probándolo
+ *    decidió al revés (2026-09-03: «*el pegado a la rejilla debería estar desactivado por defecto*»): marcando
+ *    muros sobre una foto la rejilla no le sirve, porque los muros de la foto no caen en múltiplos de nada.
+ *    Echando el candado, el comportamiento es el de siempre, sin una sola diferencia.
  * 2. **Vale para todo Builder**, no sólo para los nodos: los muros que se dibujan, los vértices del polígono
  *    y las puntas que se arrastran. Un candado que sólo valiera para una de las tres no serviría de nada.
  * 3. **Abierto, las puntas se pegan a las PUNTAS DE OTROS MUROS** que tengan cerca. Sin esto, «libre» acaba

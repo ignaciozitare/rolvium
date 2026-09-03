@@ -275,10 +275,14 @@ export function MapCanvas(p: Props): JSX.Element {
   const dmSight = p.isDm && !p.playerView;
   /**
    * EL CANDADO, resuelto en un sitio y usado por los tres caminos de Builder: el muro que se dibuja, el
-   * vértice del polígono y el nodo que se arrastra. Cerrado por omisión, así que sin tocarlo todo se comporta
-   * igual que antes de que existiera.
+   * vértice del polígono y el nodo que se arrastra.
+   *
+   * Va ABIERTO si nadie dice lo contrario, igual que arranca la escena (dueño, 2026-09-03: «*el pegado a la
+   * rejilla debería estar desactivado por defecto*»). Hoy `SceneTab` es el único que lo monta y siempre pasa
+   * la prop, así que esto sólo decide en los tests — pero decidir al revés que la app es cómo se cuelan los
+   * fallos que nadie ve venir.
    */
-  const candado = p.snapGrid ?? true;
+  const candado = p.snapGrid ?? false;
   const paso = stepOf(grid, candado);
   /** El imán de las puntas se mide en píxeles de PANTALLA: con el mapa alejado no puede tirar de medio mapa. */
   const imán = END_SNAP_PX / p.view.zoom;
@@ -468,7 +472,7 @@ export function MapCanvas(p: Props): JSX.Element {
          */
         const grupo = groupOf(p.walls, wall);
         /**
-         * ⚠️ YA ESTOY DENTRO. Si se entró con doble clic, el clic es para EDITAR: agarrar una punta y moverla.
+         * OJO: YA ESTOY DENTRO. Si se entró con doble clic, el clic es para EDITAR: agarrar una punta y moverla.
          * Sin esto, `groupOf` volvía a devolver el grupo entero y cada clic te sacaba fuera otra vez, así que
          * las puntas no había forma de cogerlas (dueño, 2026-09-03: «*no puedo seleccionar los nodos*»).
          *
@@ -495,7 +499,7 @@ export function MapCanvas(p: Props): JSX.Element {
         ultimoToque.current = { id: wall.id, t: ahora, x: s.x, y: s.y };
         if (grupo.length > 1 && !dentro) {
           /**
-           * ⚠️ ARRASTRAR SIEMPRE MUEVE; el doble clic sólo entra SI NO SE ARRASTRA — se decide al soltar, no
+           * OJO: ARRASTRAR SIEMPRE MUEVE; el doble clic sólo entra SI NO SE ARRASTRA — se decide al soltar, no
            * aquí (dueño, 2026-09-03: «*puedo seleccionar el círculo, puedo escalarlo y modificarlo pero no
            * moverlo*»). Antes se miraba `e.detail` en la pulsación, y como el segundo clic de un arrastre
            * cuenta como doble, ir a mover el grupo entraba al muro suelto en vez de moverlo.
