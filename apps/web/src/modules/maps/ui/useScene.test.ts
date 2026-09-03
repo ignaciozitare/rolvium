@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import type { SceneVision } from '@rolvium/core';
 import type { Wall } from '../domain/entities/Scene';
 import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN, WALL_1 } from '../../../../tests/helpers/fakes';
 import { newLightOf } from '../domain/useCases/layerRules';
@@ -620,5 +621,185 @@ describe('useScene — capas y luces', () => {
     expect(r.current.layers.find(l => l.id === LAYER_MOSS.id)!.visible).toBe(false);
     act(() => { repo.emit('sc-1', { light: { type: 'DELETE', id: LIGHT_TORCH.id, row: null } }); });
     expect(r.current.lights).toHaveLength(0);
+  });
+});
+
+/**
+ * 🌫 LA NIEBLA SE QUEDABA QUIETA HASTA SOLTAR, Y SÓLO EN PRODUCCIÓN (dueño, 2026-09-03: «en local es fluido,
+ * en prod actualiza cuando suelto el botón, no va mostrando el lugar mientras arrastro»).
+ *
+ * La guarda contra respuestas desordenadas era «sólo puede pintar la ÚLTIMA petición hecha». Arrastrando se
+ * pide una cada 140 ms; si el servidor tarda MÁS que eso, cuando la respuesta de A llega ya se pidió B, así
+ * que A se tiraba — y B se tiraba por C, y así todas. Sólo al soltar, cuando se deja de pedir, la última
+ * podía pintar. En local la respuesta tarda ~5 ms y siempre gana la carrera, por eso allí no se veía: el
+ * fallo no estaba en el motor de niebla sino en la CARRERA, y sólo se manifiesta con latencia real.
+ *
+ * El doble de aquí no resuelve nada por su cuenta: se resuelve a mano, que es la única forma de reproducir
+ * «la siguiente petición sale antes de que llegue la anterior» sin depender de relojes ni de la red.
+ */
+describe('useScene · la niebla mientras se arrastra, con el servidor lento', () => {
+  type Deferred = (cells: [number, number][], over?: Partial<SceneVision>) => void;
+  function slowVisionPort() {
+    const pending: Deferred[] = [];
+    const port = {
+      pending,
+      refresh: () => new Promise<SceneVision>(resolve => {
+        pending.push((cells, over) => resolve({ vision: [], explored: cells, radiusPx: null, corrected: null, clearance: null, ...over }));
+      }),
+      paint: () => new Promise<SceneVision>(resolve => {
+        pending.push((cells, over) => resolve({ vision: [], explored: cells, radiusPx: null, corrected: null, clearance: null, ...over }));
+      }),
+      paintAll: () => new Promise<SceneVision>(resolve => {
+        pending.push((cells, over) => resolve({ vision: [], explored: cells, radiusPx: null, corrected: null, clearance: null, ...over }));
+      }),
+    };
+    return port as unknown as ReturnType<typeof fakeVisionPort> & { pending: Deferred[] };
+  }
+  /** Resuelve la enésima petición que sigue en vuelo, con una casilla que la identifica. */
+  const settle = async (v: { pending: Deferred[] }, i: number, cell: [number, number], over?: Partial<SceneVision>) => {
+    await act(async () => { v.pending[i]!([cell], over); await Promise.resolve(); });
+  };
+  /** Como contesta el servidor cuando recorta: pegado al muro y sin holgura alrededor. */
+  const recorte = (x: number): Partial<SceneVision> => ({ corrected: { tokenId: TOKEN_KAREN.id, x, y: 11 }, clearance: 0 });
+  const explored = (r: Hook) => r.current.fog?.explored;
+
+  /**
+   * Devuelve el hook y `base`: EL ÍNDICE DE LA PRIMERA PREGUNTA DEL ARRASTRE.
+   *
+   * No es siempre 1. Entrar en la escena puede soltar UNA pregunta o DOS —la del montaje y la que dispara la
+   * llegada de los tokens—, según si el `setTimeout(0)` con que se agrupan alcanza a dispararse antes de que
+   * React vuelva a correr el efecto. Es una carrera de verdad y sale a cara o cruz: dando por hecho que la
+   * del arrastre era la 1 el fichero fallaba ~1 pasada de cada 6, resolviendo un refresco en lugar del
+   * arrastre. Así que se contestan TODAS las de la entrada y se cuenta desde donde se hayan quedado.
+   */
+  async function mountSlow(v: ReturnType<typeof slowVisionPort>) {
+    // El repo se crea UNA vez y fuera del render: dentro nacería uno nuevo en cada pasada y el efecto que
+    // carga la escena se reharía sin parar, dejándola en «loading» para siempre.
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const { result } = renderHook(() => useScene(repo, SCENE_WAREHOUSE, PLAYER_USER.id, v));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(v.pending.length).toBeGreaterThan(0));
+    for (let hechas = 0; hechas < v.pending.length;) {
+      const hasta = v.pending.length;
+      for (let i = hechas; i < hasta; i++) await settle(v, i, [0, 0]);
+      hechas = hasta;                                    // contestar una puede destapar otra: se repasa
+    }
+    await waitFor(() => expect(result.current.fog).not.toBeNull());
+    return { result, base: v.pending.length };
+  }
+  const drag = async (r: Hook, x: number) => {
+    now += 150; // pasa el freno de 140 ms
+    await act(async () => { r.current.dragToken(TOKEN_KAREN.id, x, 11, { x, y: 11 }); });
+  };
+
+  it('pinta cada respuesta aunque la SIGUIENTE petición ya haya salido — el fallo de «sólo al soltar»', async () => {
+    const v = slowVisionPort();
+    const { result: r, base } = await mountSlow(v);
+
+    // Dos tirones seguidos: la segunda pregunta sale con la primera todavía en vuelo, que es exactamente lo
+    // que pasa en producción con 170 ms de respuesta y 140 ms de freno.
+    await drag(r, 14);
+    await drag(r, 16);
+    expect(v.pending).toHaveLength(base + 2); // las de entrar + las dos del arrastre
+
+    // Llega la PRIMERA. Con el fallo se descartaba por no ser «la última pedida», y la niebla se quedaba
+    // clavada en [0,0] hasta soltar. Tiene que pintar.
+    await settle(v, base, [14, 11]);
+    expect(explored(r)).toEqual([[14, 11]]);
+
+    // Y la segunda pinta encima, sin haber soltado el botón en ningún momento.
+    await settle(v, base + 1, [16, 11]);
+    expect(explored(r)).toEqual([[16, 11]]);
+  });
+
+  it('pero una respuesta VIEJA que adelanta a una nueva sigue sin pintar', async () => {
+    const v = slowVisionPort();
+    const { result: r, base } = await mountSlow(v);
+    await drag(r, 14);
+    await drag(r, 16);
+
+    // Llega antes la SEGUNDA (la más nueva)…
+    await settle(v, base + 1, [16, 11]);
+    expect(explored(r)).toEqual([[16, 11]]);
+    // …y después la primera, ya caducada: no puede devolver la niebla atrás.
+    await settle(v, base, [14, 11]);
+    expect(explored(r)).toEqual([[16, 11]]);
+  });
+
+  /**
+   * 🔁 REGRESIÓN QUE METIÓ ESTE MISMO ARREGLO, cazada por el review.
+   *
+   * El refresco de después de soltar lo dispara `myTokenKey`, que es la posición GUARDADA. Si se suelta la
+   * ficha donde ya estaba, esa cadena no cambia, el efecto no se re-ejecuta y NADIE repregunta. Antes daba
+   * igual —ninguna respuesta del arrastre había pintado— pero ahora sí pintan, así que la niebla se quedaba
+   * congelada en una posición intermedia del arrastre, con la ficha en su sitio de siempre.
+   */
+  it('soltar DONDE YA ESTABA vuelve a preguntar igual: la niebla no se queda a medio arrastre', async () => {
+    const v = slowVisionPort();
+    const { result: r, base } = await mountSlow(v);
+
+    await drag(r, 14);
+    await settle(v, base, [14, 11]);          // el arrastre ya pintó una posición intermedia
+    expect(explored(r)).toEqual([[14, 11]]);
+
+    // Y se suelta EXACTAMENTE donde TOKEN_KAREN estaba (10, 11): `myTokenKey` no cambia.
+    await act(async () => { await r.current.moveToken(TOKEN_KAREN.id, TOKEN_KAREN.x, TOKEN_KAREN.y); });
+    // Aun así tiene que salir una pregunta nueva…
+    await waitFor(() => expect(v.pending.length).toBeGreaterThan(base + 1));
+    // …y su respuesta tiene que pintar, devolviendo la niebla al sitio real de la ficha.
+    await settle(v, v.pending.length - 1, [10, 11]);
+    expect(explored(r)).toEqual([[10, 11]]);
+  });
+
+  it('soltar el token invalida lo que quedara en vuelo: no repinta con la posición vieja', async () => {
+    const v = slowVisionPort();
+    const { result: r, base } = await mountSlow(v);
+    await drag(r, 14);
+    await act(async () => { await r.current.moveToken(TOKEN_KAREN.id, 16, 11); });
+    // La respuesta del arrastre aterriza DESPUÉS de soltar: se tira, o la niebla volvería al sitio anterior.
+    await settle(v, base, [14, 11]);
+    expect(explored(r)).toEqual([[0, 0]]);
+  });
+
+  /**
+   * 🧱 Y LO QUE SE ARREGLA DE PROPINA: LOS MUROS VOLVÍAN A SER DE PAPEL EN PRODUCCIÓN.
+   *
+   * Por la misma guarda se tiraba la respuesta ENTERA, no sólo su niebla: dentro va la corrección del
+   * servidor (`corrected`, la única autoridad sobre dónde puede estar el token, porque es el único que ve
+   * los muros secretos) y el disco libre (`clearance`, lo que `MapCanvas` usa para no pintar más allá).
+   * Con el servidor lento no se escribía NINGUNA de las dos en todo el arrastre: el token seguía al dedo a
+   * ciegas, cruzaba el muro, y al soltar se guardaba al otro lado — `moveToken` persiste lo que hubiera
+   * pintado. En local nunca se vio porque allí la respuesta gana la carrera siempre.
+   */
+  it('la corrección del servidor y el disco libre llegan DURANTE el arrastre, no sólo al soltar', async () => {
+    const v = slowVisionPort();
+    const { result: r, base } = await mountSlow(v);
+    await drag(r, 14);
+    await drag(r, 16);
+
+    // Contesta la PRIMERA con la segunda todavía en vuelo: con el fallo esto se tiraba y el arrastre se
+    // quedaba sin corrección y sin disco hasta que se soltaba el botón.
+    await settle(v, base, [14, 11], recorte(12));
+    expect(r.current.serverCorrection(TOKEN_KAREN.id)).toEqual({ x: 12, y: 11 });
+    expect(r.current.dragBound(TOKEN_KAREN.id)).toEqual({ x: 12, y: 11, clearance: 0 });
+
+    // Y la siguiente la actualiza, que es lo que encadena el barrido del servidor de un eslabón al otro.
+    await settle(v, base + 1, [16, 11], recorte(13));
+    expect(r.current.serverCorrection(TOKEN_KAREN.id)).toEqual({ x: 13, y: 11 });
+    expect(r.current.dragBound(TOKEN_KAREN.id)).toEqual({ x: 13, y: 11, clearance: 0 });
+  });
+
+  it('y una corrección VIEJA que adelanta a una nueva tampoco puede mover el ancla hacia atrás', async () => {
+    const v = slowVisionPort();
+    const { result: r, base } = await mountSlow(v);
+    await drag(r, 14);
+    await drag(r, 16);
+
+    await settle(v, base + 1, [16, 11], recorte(13));
+    expect(r.current.serverCorrection(TOKEN_KAREN.id)).toEqual({ x: 13, y: 11 });
+    // La caducada llega después: si escribiera, el barrido del tick siguiente saldría de un sitio ya pasado.
+    await settle(v, base, [14, 11], recorte(12));
+    expect(r.current.serverCorrection(TOKEN_KAREN.id)).toEqual({ x: 13, y: 11 });
+    expect(r.current.dragBound(TOKEN_KAREN.id)).toEqual({ x: 13, y: 11, clearance: 0 });
   });
 });

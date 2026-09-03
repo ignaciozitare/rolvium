@@ -16,6 +16,53 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔵 de cierre, justo debajo.**
 
+## 🌫 2026-09-03 (cierre) — «EN PROD LA NIEBLA SÓLO SE PINTA AL SOLTAR EL BOTÓN»
+
+Queja suya, ya con la api en Frankfurt: «*en local es fluido, en prod actualiza cuando suelto el botón, no va
+mostrando el lugar mientras arrastro*». **No era el motor de niebla: era una carrera que sólo se pierde con
+latencia real.**
+
+### 🎯 LA CAUSA
+`useScene` numera cada petición de visión. La guarda contra respuestas desordenadas era **«sólo puede pintar la
+ÚLTIMA petición hecha»** (`seq === visionSeq.current`). Arrastrando se pregunta cada **140 ms**; si la respuesta
+tarda **más**, cuando llega A ya salió B → A se tira, B se tira por C, y así **todas** hasta que se suelta. En
+local la respuesta tarda ~5 ms y siempre gana la carrera; en producción son ~170 ms —ya con `fra1`— y siguen
+siendo más que 140.
+
+### ✅ EL ARREGLO — rama `fix/la-niebla-solo-pintaba-al-soltar` (`1cb01ce`, `45d24f8`)
+- **Dos números en vez de uno**: `visionApplied` además de `visionSeq`. Se pinta si `seq > visionApplied`, no si
+  `seq === visionSeq`. El desorden se sigue tirando; lo que llega en orden pinta, tarde lo que tarde el servidor.
+- Aplicado a los **cinco sitios** que compartían la guarda; en `moveToken` la invalidación pasa a ser
+  `visionApplied.current = ++visionSeq.current` (con la guarda nueva, subir sólo `visionSeq` ya no invalida nada).
+- **`moveToken` repregunta SIEMPRE** (`refreshVisionRef.current()`): el refresco de después de soltar lo dispara
+  `myTokenKey`, que es la posición GUARDADA, así que **soltar donde ya estabas no repreguntaba** y la niebla se
+  quedaba clavada a medio arrastre. Regresión que metió el primer commit y que cazó el review.
+- 🧱 **De propina, los muros vuelven a ser sólidos en producción.** La guarda tiraba la respuesta ENTERA, no sólo
+  su niebla: dentro van `corrected` y `clearance`. Con el servidor lento no se escribía ninguna de las dos en
+  todo el arrastre → el token cruzaba el muro y `moveToken` lo guardaba al otro lado.
+- **Sólo dos ficheros**, `useScene.ts` y `useScene.test.ts`. **Ni una línea de pintado, de estilos, de i18n ni de
+  base de datos. Sin migraciones.**
+
+### 🔬 QA (2026-09-03) — PASADO, MERGE APROBADO
+- **1215 regression web (97 ficheros)** · 226 api · 12 smoke · 38 functional · 29 core · 16 ui · 141 plenilunio ·
+  typecheck web+api · `build:web` y `build:api` · audit **0 hard / 13 warn** (los 13 de siempre, ninguno de aquí)
+  · i18n en sync · advisors de Supabase **0 CRITICAL** · `/health` 200 y la web 200.
+- **La intermitencia que preocupaba, cerrada**: el bloque de tests nuevo daba por hecho que la primera pregunta
+  del arrastre era la nº 1, y entrar en la escena suelta UNA o DOS según una carrera real. Ya corregido por el
+  review (se contestan todas las de la entrada). Comprobado con **40 pasadas del fichero + 13 de la suite
+  entera: 0 fallos**.
+- **Mutación, cuatro direcciones**: restaurar la guarda vieja → caen 2 · quitar el `refreshVisionRef` de
+  `moveToken` → cae 1 · dejar la invalidación en `++visionSeq` → cae 1 · quitar la guarda del todo → caen 3.
+  Las tres líneas del arreglo están atadas por tests que fallan de verdad si se revierten.
+- **No cuesta una ida y vuelta más**: medido, 1 petición por soltada, no 2 (se funden en el `setTimeout(0)`).
+
+### 📌 DEUDA ANOTADA, NO TOCADA (no empeora — la guarda nueva descarta ESTRICTAMENTE MENOS que la vieja)
+- `applyFog` puede negarse a pintar con la sonda puesta y aun así `visionApplied` avanza, así que con **sonda +
+  arrastre a la vez** una respuesta de la sonda que aterrice detrás de una del arrastre se descarta y la vista de
+  la sonda se queda quieta hasta la siguiente pregunta. Se arregla el día que `applyFog` devuelva si pintó.
+- El spec (`specs/modules/maps/SPEC.md`) describe el comportamiento correcto («resbala pegado a la pared», niebla
+  dinámica) pero **no cuenta que en producción no pasaba**. Retoque pendiente junto con los tres de la línea 95.
+
 ## 🔴 2026-09-03 (tarde) — «LA NIEBLA DINÁMICA NO VA»: NO ESTABA ROTA, ESTABA APAGADA
 
 Aviso suyo a media sesión: «*lo que está en producción no funciona, ten cuidado de no coger ese código, que la

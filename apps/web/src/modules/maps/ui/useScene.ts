@@ -66,8 +66,33 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const lastSent = useRef(0);
   /** Set below; kept in a ref so the realtime subscription never has to be torn down when the callback changes. */
   const refreshVisionRef = useRef<() => void>(() => {});
-  /** Answers can overtake each other; only the newest request may write. */
+  /**
+   * Las respuestas se adelantan unas a otras, así que cada petición lleva número y sólo se pinta lo que NO
+   * sea más viejo que lo ya pintado.
+   *
+   * ⚠️ ANTES la guarda era «sólo puede pintar la ÚLTIMA petición hecha» (`seq === visionSeq.current`), y eso
+   * MATABA LA NIEBLA ENTERA EN CUANTO EL SERVIDOR TARDABA MÁS QUE EL FRENO (140 ms). Arrastrando: se pide A
+   * en t=0 y llega en t≈170, pero en t=140 ya se pidió B, así que A se tiraba; luego se tiraba B por culpa
+   * de C, y así todas. La niebla sólo aparecía **al soltar**, que es cuando se deja de pedir y la última por
+   * fin puede pintar. En local no se veía porque la respuesta tarda ~5 ms —menos que el freno— y siempre
+   * llegaba antes que la siguiente petición (dueño, 2026-09-03: «en local es fluido, en prod actualiza
+   * cuando suelto el botón»).
+   *
+   * Con dos números el desorden se sigue tirando —una respuesta vieja que adelanta a una nueva no pinta— y
+   * las que llegan en orden pintan todas, tarde lo que tarde el servidor.
+   */
   const visionSeq = useRef(0);
+  /**
+   * El número más alto que YA PASÓ LA GUARDA. Todo lo que no lo supere, se descarta.
+   *
+   * NO es exactamente «lo último que se pintó», y la diferencia importa: con la sonda puesta `applyFog` se
+   * traga las respuestas que no son suyas y aun así avanzan este número, y `moveToken` quema uno sin pedir
+   * nada para invalidar lo que esté en vuelo. Consecuencia conocida, heredada de la guarda vieja y NO
+   * arreglada aquí: con la sonda puesta Y un token arrastrándose a la vez, una respuesta de la sonda que
+   * aterrice detrás de una del arrastre se descarta, y la vista de la sonda se queda quieta hasta la
+   * siguiente pregunta. Se arregla el día que `applyFog` devuelva si pintó y sólo entonces se avance.
+   */
+  const visionApplied = useRef(0);
   const visionTimer = useRef<number | null>(null);
   /** Lo que la sonda lleva visto. Vive aquí y NO en la base: se tira al quitarla o al cambiar de escena. */
   const probeSeen = useRef<FogCell[]>([]);
@@ -149,7 +174,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       visionTimer.current = null;
       const seq = ++visionSeq.current;
       void vision.refresh(sceneId, undefined, probeRef.current ? { probe: probeRef.current } : undefined)
-        .then(next => { if (seq === visionSeq.current) applyFog(next, true); }).catch(() => undefined);
+        .then(next => { if (seq > visionApplied.current) { visionApplied.current = seq; applyFog(next, true); } }).catch(() => undefined);
     }, 0);
   }, [vision, sceneId, applyFog]);
   useEffect(() => () => { if (visionTimer.current !== null) window.clearTimeout(visionTimer.current); }, []);
@@ -259,7 +284,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       const m = motionRef.current;
       const from = m && m.tokenId === tokenId ? { from: { x: m.x, y: m.y } } : {};
       void vision.refresh(sceneId, { tokenId, x: asked.x, y: asked.y, ...from }).then(next => {
-        if (seq !== visionSeq.current) return;
+        if (seq <= visionApplied.current) return;
+        visionApplied.current = seq;
         applyFog(next);
         /**
          * La palabra final sobre DÓNDE puede estar el token es del servidor: es el único que tiene todos los
@@ -286,10 +312,22 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     // Y se invalida cualquier respuesta EN VUELO: si aterrizara después de este limpiado re-sembraría la
     // cadena con el ancla del arrastre que acaba de terminar (review, 3.ª ronda). La niebla no pierde nada:
     // el refresco de después de soltar (efecto de `myTokenKey`) trae la suya con un número más alto.
-    ++visionSeq.current;
+    visionApplied.current = ++visionSeq.current;
     setTokens(l => l.map(t => (t.id === tokenId ? { ...t, x, y } : t)));
     repo.broadcast(sceneId, { type: 'token.moved', campaignId: live.campaignId, sceneId, tokenId, x, y, final: true });
     await repo.updateToken(tokenId, { x, y });
+    /**
+     * Y SE VUELVE A PREGUNTAR SIEMPRE, aunque se suelte en el mismo sitio del que se cogió.
+     *
+     * El refresco de después de soltar lo dispara `myTokenKey`, que es la posición GUARDADA: soltar donde ya
+     * estaba no cambia esa cadena, el efecto no se re-ejecuta y nadie repregunta. Antes daba igual —con la
+     * guarda vieja ninguna respuesta del arrastre había pintado— pero ahora sí pintan, así que la niebla se
+     * quedaba clavada en una posición intermedia del arrastre (lo cazó el review de esta misma tanda).
+     *
+     * No cuesta una ida y vuelta de más: `refreshVision` se agrupa en un `setTimeout(0)` y cancela el
+     * anterior, así que cuando el efecto TAMBIÉN dispara, las dos se funden en una sola pregunta.
+     */
+    refreshVisionRef.current();
     // My own vision follows the token through the effect below; the DM's union of explored does not, so announce it.
     announceVision();
   }, [repo, sceneId, live, announceVision]);
@@ -556,14 +594,14 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     if (!sceneId || !vision) return;
     const seq = ++visionSeq.current;
     const next = await vision.paint(sceneId, op, at);
-    if (seq === visionSeq.current) applyFog(next);
+    if (seq > visionApplied.current) { visionApplied.current = seq; applyFog(next); }
     announceVision();
   }, [vision, sceneId, announceVision, applyFog]);
   const paintAllFog = useCallback(async (op: 'reveal' | 'hide') => {
     if (!sceneId || !vision) return;
     const seq = ++visionSeq.current;
     const next = await vision.paintAll(sceneId, op);
-    if (seq === visionSeq.current) applyFog(next);
+    if (seq > visionApplied.current) { visionApplied.current = seq; applyFog(next); }
     announceVision();
   }, [vision, sceneId, announceVision, applyFog]);
   // ── capas y luces (rebanada 7) ──
