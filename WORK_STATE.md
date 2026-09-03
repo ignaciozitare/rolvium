@@ -16,7 +16,35 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔵 de cierre, justo debajo.**
 
-## 🔵 SESIÓN 2026-09-03 — BUILDER v3 MAQUETADO (LO VIVO AHORA MISMO)
+## 🟢 2026-09-03, CIERRE — TODO EN `main` Y EN PRODUCCIÓN
+
+**`main` = `445b735`.** Rama `sonda-de-prueba` (40 commits) mergeada y subida. Vercel despliega `main` a
+producción él solo: no hubo que promocionar nada a mano.
+
+- ✅ **Comprobado EN VIVO**: `rolvium-api.vercel.app/health` → `{"ok":true}`, y `rolvium.vercel.app` sirviendo
+  el bundle nuevo con el favicon dentro (`<link rel="icon" … /brand/mark.svg">`).
+- ✅ **QA pasada**, y bloqueó una vez con razón: `LayerMenu` borraba luces y trazos sin un solo test. Escritos
+  once. Y tres comentarios que mentían sobre el candado, corregidos.
+- ✅ **Previews verdes** (web y api) sobre `a9223d7` ANTES del merge, como manda la regla.
+- ✅ **Las tres migraciones, aplicadas en producción** (`spin_ms`, `intensity`, `group_id`). `get_advisors` sin
+  nada crítico nuevo. **Ya no queda ninguna migración pendiente.**
+- ✅ **Verde**: typecheck web+api · 1208 regression (97 ficheros) · 12 smoke · 38 functional · 226 api ·
+  audit 0 hard / 13 warn (todos preexistentes) · los dos builds.
+
+### ⏭️ LO SIGUIENTE, DICHO POR ÉL
+> «*comenzaremos a trabajar sobre el constructor de salas*»
+
+Eso es la **pregunta 6, que ya está contestada**: la sala ES una entidad con su suelo, heredado del momento de
+dibujar, y encima el pincel de textura y las capas con transparencia que ya existen. ⛔ **Tabla + migración +
+DBA antes de una línea de código.** Con ella entran las dos secciones del panel v3 que están sin maquetar a
+propósito: «ESTILO DE LA MAZMORRA» (los preajustes) y las dos texturas base — el interruptor de modo, que ya
+está construido, es su sitio.
+
+### 🎨 DEUDA DE DISEÑO
+El **menú desplegable de las seis herramientas de dibujo NO está en `rolvium.pen`**: lo describió por escrito y
+pidió terminar y subir. Queda por dibujar.
+
+## 🔵 SESIÓN 2026-09-03 — BUILDER v3 MAQUETADO
 
 > Rama `sonda-de-prueba`, **subida a GitHub, `main` intacto**. Sigue en pie **«no borres nada»**.
 > **Lo último hecho está en «LOS TRES ENCARGOS, HECHOS», unas pantallas más abajo.**
