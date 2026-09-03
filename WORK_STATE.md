@@ -291,57 +291,69 @@ registros, y decidir con el dato. No se ha tocado a propósito: no es lo que él
    ruido; ahora es una parte apreciable de los ~0,17 s que quedan. Medir en producción y decidir con el número.
 
 
-## 🧱 LO SIGUIENTE DE VERDAD — EL CONSTRUCTOR DE SALAS
+## 🧱 LO SIGUIENTE — EL CONSTRUCTOR DE SALAS · **SPEC CERRADO, EMPIEZA EL DBA**
 
-Es la **pregunta 6** de `specs/modules/maps/SPEC.md` § «Rebanada 8», **ya contestada por él**: la sala ES una
-entidad con su suelo; el suelo base se hereda del momento de dibujar; y encima siguen mandando el pincel de
-textura y las capas con transparencia que ya existen — **la sala mete un suelo DEBAJO, no reemplaza nada**.
+📖 **Todo está en `specs/modules/maps/SPEC.md` § «Rebanada 8»**, que quedó **cerrado el 2026-09-04**: las siete
+preguntas contestadas y ninguna abierta, por orden suya («*no me dejes preguntas abiertas aquí*»).
 
-### ⛔ EL ORDEN ES OBLIGATORIO Y NO SE HA EMPEZADO
-```
-Spec  →  DBA (tabla + migración)  →  Diseño en el .pen aprobado con capturas  →  y sólo entonces código
-```
+### 🔑 LA VUELTA DE TUERCA QUE HAY QUE ENTENDER ANTES DE NADA
+**El suelo no se pone encima: se ve por el AGUJERO.** La textura de PARED rellena la escena entera —es la roca
+de la que está excavada la mazmorra— y cada sala **abre un hueco** por el que asoma la textura de SUELO.
+Dibujar una sala **no añade suelo, quita pared**. Si esto se entiende al revés, todo lo demás sale mal.
 
-### ✅ LAS TRES DECISIONES QUE YA DIO (2026-09-03) — NO VOLVER A PREGUNTARLAS
-1. **Las dos texturas base son DE CADA MAPA**, no de la campaña. «Una cripta y un bosque no se parecen en nada.»
-   *(Esto cierra la pregunta 7 del spec, que estaba abierta.)*
-2. **Alcance de esta tanda**: los preajustes + las dos texturas base + **que cada sala se quede con su suelo**.
-   El **pincel para repintar el suelo de UNA sala** queda para la tanda siguiente.
-3. ⛔ **Cambiar el preajuste NO repinta las salas ya levantadas.** Se le ofreció que repintara todo y lo rechazó
-   en redondo («*como que repinta las salas, nooooo*»). Manda lo que ya decía el spec: **el suelo se hereda del
-   momento de dibujar y se queda quieto**; el preajuste sólo afecta a lo que se levante a partir de entonces.
+### ✅ LO QUE ÉL CERRÓ (2026-09-04) — no volver a preguntarlo
+1. **Las salas SE FUNDEN, nunca se apilan.** «*si hago otro rectángulo y se solapa que se fusione dando la
+   nueva forma… si se tocan se solapan*». El muro compartido **desaparece** y los muros salen del contorno de
+   la **UNIÓN**. Tocarse sin solaparse también funde.
+2. **Pero cada forma se recuerda por separado** (elección suya): la unión **se calcula, no se destruye**. Se
+   puede coger un rectángulo, moverlo o borrarlo, y las demás recuperan su forma. → los muros de la base son
+   **derivados**: mover una forma obliga a recalcular el contorno y reescribirlos.
+3. **Vale para CUALQUIER forma**, no sólo el rectángulo: círculo, polígono y trazo a pulso, las mismas reglas.
+4. **Muros y puertas nacen VISIBLES para los jugadores** en el modo «dibujar aquí» — el muro ES el dibujo.
+   ⚠️ En «sobre una foto» siguen naciendo **ocultos**: ahí son marcas para la niebla. No mezclarlo.
+5. **Ninguna puerta automática**: se abren con el disco de siempre (`planOpening`) sobre el contorno de la unión.
+6. **Sombra corta desde el contorno hacia DENTRO del suelo.** Es pintura y nada más: no tapa, no estorba, no
+   entra en visión ni en luces. En un muro fundido **no hay sombra**, que es lo que hace que dos salas se lean
+   como una.
+7. **Los pinceles para pintar encima, en la tanda SIGUIENTE.** «*una vez tengamos esto listo ya veremos*».
+8. Y de antes: **texturas base por MAPA** · **el suelo se hereda al dibujar y se queda quieto** · **cambiar el
+   preajuste NO repinta lo ya levantado**.
 
-### 📋 LO QUE ENTRA CON LA TABLA
-Las **dos secciones del panel v3 que están sin maquetar a propósito** (`ui/BuilderPanel.tsx`):
-- **«ESTILO DE LA MAZMORRA»** — los nueve preajustes, que ponen **LAS DOS texturas base de golpe**.
-- **Las dos texturas base** — relleno de pared y suelo por separado, o una foto suya (`+ Subir`).
-- **El interruptor de modo del panel ya está construido y es su sitio.** Marcando sobre una foto se caen los
-  tres: ahí el suelo lo pone la foto.
+### 🟠 CUATRO DECISIONES MÍAS, revisables (están en el spec, marcadas como tales)
+Suelos distintos al fundirse → manda la más vieja · sombra fija de un tercio de casilla · dos salas fundidas
+siguen siendo dos filas · el relleno de pared va por debajo de las capas de terreno.
 
-### 🚧 LO QUE HAY QUE RESOLVER EN EL SPEC ANTES DEL DBA
-- Qué es exactamente «una textura»: uno de los nueve estilos dibujados, o una foto suya. Los dos, y hay que
-  decidir cómo se guarda esa pareja.
-- Si la sala guarda su suelo **copiado** o **apuntando** al de la escena (la decisión 3 empuja a copiado).
-- Cómo se ata la sala a sus muros. Ojo: **el `group_id` de `maps_walls` YA EXISTE** y ata los muros de un
-  gesto — mirar si la sala cuelga de él en vez de inventar otra atadura.
-- Qué pasa al borrar una sala, y qué manda cuando dos se solapan.
+### ⏭️ EL SIGUIENTE PASO CONCRETO: **EL DBA**
+Lo que la tabla tiene que poder guardar (detallado en el spec, § «Modelo de datos»):
+- **La FORMA de cada trazo, no la unión**: tipo, geometría y **orden de llegada** (hace falta para la regla de
+  «manda la más vieja»).
+- **Su suelo**, heredado del momento de dibujar.
+- **Las dos texturas base van en `maps_scenes`**, no en la sala: son de la escena.
+- ⚠️ **Mirar `maps_walls.group_id` ANTES de inventar una atadura nueva**: ya ata los muros de un gesto.
 
-### 🔁 PROMPT DE RESUME PARA EL CHAT NUEVO — USAR ESTE
+### 🚧 LO QUE HAY QUE CONSTRUIR DESPUÉS (para dimensionar)
+Motor de **unión de formas** (hoy `roomRules.ts` sólo devuelve los lados de UNA figura) · las dos texturas base
+y los nueve preajustes en el panel v3, que están **sin maquetar a propósito** y cuyo sitio es el interruptor de
+modo · el relleno de pared y la sombra en el lienzo.
 
-> Rolvium, chat nuevo. Lee el bloque 🚦 de `WORK_STATE.md` (2026-09-03): **todo lo de ayer está en `main` y en
-> producción, verificado en vivo.** No reabras lo del radio de visión: está cerrado por él.
+### 🔁 EL COMANDO PARA EL CHAT NUEVO — COPIAR Y PEGAR TAL CUAL
+
+> Rolvium, chat nuevo. Lee el bloque 🚦 y el 🧱 de `WORK_STATE.md`. **Todo lo anterior está en `main` y en
+> producción, verificado en vivo**; no queda nada pendiente de subir ni ninguna migración sin aplicar.
 >
-> El botón «enseñar los muros a los jugadores» está **HECHO Y MERGEADO** (`63c397c`). **No lo reabras.**
+> **Empezamos EL CONSTRUCTOR DE SALAS, y toca el DBA.** El spec está **CERRADO**: lee
+> `specs/modules/maps/SPEC.md` § «Rebanada 8», y sobre todo § «Cómo se levanta una sala». **No me hagas
+> ninguna de las siete preguntas de ese apartado: están todas contestadas.**
 >
-> Y lo gordo: **empezamos el CONSTRUCTOR DE SALAS**. Lee `specs/modules/maps/SPEC.md` § «Rebanada 8», sobre
-> todo «✅ RESUELTO: LAS PSEUDO TEXTURAS BASE» y la pregunta 6. **Mis tres decisiones ya están tomadas y están
-> en el bloque 🧱 del WORK_STATE — no me las vuelvas a preguntar.** El orden es obligatorio: Spec → DBA (tabla
-> + migración) → diseño en el `.pen` aprobado con capturas → sólo entonces código.
+> Lo que no puedes equivocarte: **el suelo no se pone encima, se ve por el AGUJERO** — la textura de pared
+> rellena la escena entera y cada sala abre un hueco. Y **las salas SE FUNDEN**, nunca se apilan, pero cada
+> forma se recuerda por separado para poder moverla o borrarla después.
 >
-> La app corre en local con `npm run dev:api` y `npm run dev:web` → `localhost:5173` contra Supabase local.
-> ⚠️ Nunca `db:reset`.
-
----
+> El orden es obligatorio: **DBA (tabla + migración) → diseño en el `.pen` aprobado con capturas → sólo
+> entonces código.** Nada de interfaz antes del `.pen`.
+>
+> La app corre en local: `npm run dev:api` y `npm run dev:web` → `localhost:5173` contra Supabase local.
+> ⚠️ **Nunca `db:reset`**: borra sus datos.
 
 ## 🧱 (histórico) CONSTRUCTOR DE SALAS — DECISIONES SUYAS YA TOMADAS (no volver a preguntarlas)
 
