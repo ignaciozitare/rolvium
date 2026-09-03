@@ -1002,6 +1002,15 @@
       },
       "polyHint": "un clic, un vértice · pincha otra vez sobre el primero para cerrar la sala",
       "dragHint": "arrastra para levantar la sala · se monta al soltar"
+    },
+    "group": {
+      "countGrouped": "Grupo · {{n}} muros",
+      "countLoose": "{{n}} muros sueltos",
+      "group": "Agrupar",
+      "ungroup": "Soltar",
+      "held": "Lo que tengo cogido",
+      "hintGrouped": "doble clic entra a un muro",
+      "hintLoose": "los coges arrastrando por encima"
     }
   },
   "bestiary": {

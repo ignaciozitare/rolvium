@@ -109,6 +109,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [wallShape, setWallShape] = useState<RoomShape>('segment');
   const [railFolded, setRailFolded] = useState(false);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
+  /** EL GRUPO (§ «EL GRUPO»): los muros cogidos como una pieza. Es otra cosa que el muro suelto que se edita. */
+  const [selectedWallIds, setSelectedWallIds] = useState<string[]>([]);
   const [quickMenu, setQuickMenu] = useState<{ at: Point; scene: Point } | null>(null);
   /**
    * El velo gris del director, encendido o apagado. Vive AQUÍ y no en la escena a propósito: es una
@@ -305,6 +307,15 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     });
   }, [selectedToken, st.tokens, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
+  /**
+   * ¿Lo cogido está ATADO? Sólo si TODOS comparten el mismo grupo. Media selección atada y media suelta se
+   * ofrece como «agrupar», que es lo único que tiene sentido hacer con ella.
+   */
+  const grupoCogido = ((): string | null => {
+    const cogidos = st.walls.filter(w => selectedWallIds.includes(w.id));
+    const g = cogidos[0]?.groupId ?? null;
+    return g && cogidos.length > 1 && cogidos.every(w => w.groupId === g) ? g : null;
+  })();
   const selectedLight = st.lights.find(l => l.id === selectedLightId) ?? null;
   /**
    * «Fondo del mapa» toca la CAPA DE TERRENO ACTIVA cuando hay una, y la escena cuando no. Es lo que hace que
@@ -416,6 +427,11 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             }}
             selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
+            selectedWallIds={selectedWallIds} onSelectWalls={setSelectedWallIds}
+            onTransformWalls={batch => {
+              const byId = new Map(batch.map(b => [b.id, b]));
+              run(st.transformWalls(st.walls.filter(w => byId.has(w.id)).map(w => ({ ...w, ...byId.get(w.id)! }))));
+            }}
             onContextMenu={(at, pt) => { closeOverlays('quick'); setLayerMenu(null); setQuickMenu({ at, scene: pt }); }}
             onElementMenu={(at, element) => { closeOverlays('quick'); setQuickMenu(null); setLayerMenu({ at, element }); }}
             onDeleteSelection={deleteSelection}
@@ -480,10 +496,13 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               onRemove={() => removeLight(selectedLight.id)}
               onClose={() => setSelectedLightId(null)} />
           )}
-          {isDm && (tool === 'wall' || selectedWall) && (
+          {isDm && (tool === 'wall' || selectedWall || selectedWallIds.length > 1) && (
             <SegmentBar wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
               onKind={k => (selectedWall ? run(st.patchWall(selectedWall.id, { kind: k, ...WALL_FLAGS[k] })) : setWallKind(k))}
               shape={wallShape} onShape={setWallShape}
+              groupCount={selectedWallIds.length} grouped={grupoCogido !== null}
+              onGroup={() => run(st.groupWalls(selectedWallIds))}
+              onUngroup={() => { if (grupoCogido) { run(st.ungroupWalls(grupoCogido)); setSelectedWallIds([]); } }}
               {...(selectedWall ? {
                 onVisible: (v: boolean) => run(st.patchWall(selectedWall.id, { visiblePlayers: v })),
                 onToggleOpen: () => run(st.patchWall(selectedWall.id, { isOpen: !selectedWall.isOpen })),

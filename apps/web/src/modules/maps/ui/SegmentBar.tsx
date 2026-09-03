@@ -12,6 +12,14 @@ interface Props {
   /** Con qué forma levanta. Sólo mientras se construye: con un segmento elegido se edita ESE, no el siguiente. */
   shape?: RoomShape;
   onShape?: (shape: RoomShape) => void;
+  /**
+   * EL GRUPO (§ «EL GRUPO»): cuántos muros hay cogidos y si están atados entre sí. Con menos de dos no se
+   * enseña nada — un muro solo no es un grupo, y la fila estorbaría en el 99 % de los clics.
+   */
+  groupCount?: number;
+  grouped?: boolean;
+  onGroup?: () => void;
+  onUngroup?: () => void;
   onVisible?: (visible: boolean) => void;
   onToggleOpen?: () => void;
   onRemove?: () => void;
@@ -24,11 +32,20 @@ interface Props {
  * segment selected it changes what that one IS, whether the players see it, whether it is open, and deletes it.
  * It lives over the map and not on a bar above it because a full-width bar costs height the map wants.
  */
-export function SegmentBar({ wall, kind, onKind, shape, onShape, onVisible, onToggleOpen, onRemove }: Props): JSX.Element {
+export function SegmentBar({ wall, kind, onKind, shape, onShape, groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove }: Props): JSX.Element {
   const { t } = useTranslation();
   return (
     <div className="mp-segbar" role="toolbar" aria-label={t('maps.wall.segment')}>
       <span className="tb-rotulo">{t('maps.wall.segment')}</span>
+      {groupCount > 1 && (
+        <span className="mp-groupbar" role="group" aria-label={t('maps.group.held')}>
+          <span className="mp-groupbar-n">{grouped ? t('maps.group.countGrouped', { n: String(groupCount) }) : t('maps.group.countLoose', { n: String(groupCount) })}</span>
+          <button type="button" className="tb-btn tb-btn-xs tb-btn-danger" onClick={() => (grouped ? onUngroup?.() : onGroup?.())}>
+            {grouped ? t('maps.group.ungroup') : t('maps.group.group')}
+          </button>
+          <span className="mp-groupbar-hint">{grouped ? t('maps.group.hintGrouped') : t('maps.group.hintLoose')}</span>
+        </span>
+      )}
       <span className="mp-kinds" role="radiogroup" aria-label={t('maps.wall.kindOf')}>
         {WALL_KINDS.map(k => (
           <button key={k} type="button" role="radio" aria-checked={kind === k} className={`mp-seg ${kind === k ? 'on' : ''}`} onClick={() => onKind(k)}>{t(`maps.wall.kind.${k}`)}</button>

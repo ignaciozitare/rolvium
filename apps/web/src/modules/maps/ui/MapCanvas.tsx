@@ -5,6 +5,7 @@ import type { Drawing, DrawingKind, Layer, Light, Scene, Token, Wall, WallKind }
 import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { freehandSides, isDragShape, MIN_RING_POINTS, polygonSides, roomSides, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { groupOf, handleAt as handlePoint, HANDLE_KEYS, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 
@@ -104,6 +105,16 @@ interface Props {
   onSelectWall?: (id: string | null) => void;
   /** New endpoints after dragging the segment or one of its vertices (already grid-snapped). */
   onMoveWall?: (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => void;
+  /**
+   * EL GRUPO (§ «EL GRUPO»): los muros cogidos como UNA pieza. Vacío = no hay ninguno cogido.
+   *
+   * Va aparte de `selectedWallId` a propósito: ese es el muro suelto que se edita por sus puntas, y esto es la
+   * pieza entera que se mueve y se estira. Son dos cosas y se ven distinto.
+   */
+  selectedWallIds?: string[];
+  onSelectWalls?: (ids: string[]) => void;
+  /** El grupo movido o estirado: los muros con su geometría nueva, para guardarlos de una sola vez. */
+  onTransformWalls?: (batch: WallAt[]) => void;
   /** Mover una luz ya puesta. Sin esto una luz se coloca y ya no se despega (dueño, 2026-09-01). */
   onMoveLight?: (id: string, at: Point) => void;
   /**
@@ -137,6 +148,11 @@ type Gesture =
   | { kind: 'room'; shape: 'rect' | 'circle'; start: Point }
   /** Levantando una sala a pulso: los puntos por donde va pasando la mano. */
   | { kind: 'roomFree'; points: Point[] }
+  /**
+   * Moviendo o estirando un GRUPO. Con `handle` a null se mueve entero; con tirador se estira por ese lado.
+   * Guarda el marco de partida porque escalar es llevar los muros de un marco a otro, no ir sumando tirones.
+   */
+  | { kind: 'groupXf'; handle: HandleKey | null; origin: Rect; start: Point; moved: boolean }
   | { kind: 'marquee'; start: Point; last: Point }
   | { kind: 'measure' }
   /** Arrastrando la sonda de prueba. No lleva id: sólo hay una y no es de nadie. */
@@ -192,6 +208,8 @@ export function MapCanvas(p: Props): JSX.Element {
   /** Space held = pan, from ANY tool (the middle button already did this). Panning is a modifier, not a tool. */
   const [spacePan, setSpacePan] = useState(false);
   const [wallDraft, setWallDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  /** Dónde se está viendo el GRUPO mientras se arrastra. Como `wallDraft`: se pinta ya, se guarda al soltar. */
+  const [groupDraft, setGroupDraft] = useState<Map<string, WallAt> | null>(null);
   /** La sala que se está levantando, ya en lados. Se pinta mientras se arrastra y se guarda al soltar. */
   const [roomDraft, setRoomDraft] = useState<RoomSide[]>([]);
   /** Los vértices que lleva puestos el polígono. Se cierra pinchando otra vez sobre el primero. */
@@ -232,7 +250,7 @@ export function MapCanvas(p: Props): JSX.Element {
     const onControl = (t: EventTarget | null): boolean =>
       !!(t as HTMLElement | null)?.closest?.('button, a[href], input, select, textarea, summary, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="radio"], [role="tab"], [contenteditable="true"]');
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); return; }
+      if (e.key === 'Escape') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); setGroupDraft(null); p.onSelectWalls?.([]); return; }
       if (e.key === ' ' && !typing(e.target) && !onControl(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
     };
@@ -352,9 +370,40 @@ export function MapCanvas(p: Props): JSX.Element {
         }
         return;
       }
+      /**
+       * EL GRUPO, primero de todo: los tiradores se pintan ENCIMA de los muros y tienen que robarles el clic.
+       * Si no, agarrar una esquina que cae justo sobre un muro entraría a editar ese muro en vez de estirar.
+       */
+      const cogidos = p.walls.filter(w => (p.selectedWallIds ?? []).includes(w.id));
+      const marco = cogidos.length > 1 ? wallBounds(cogidos) : null;
+      if (marco) {
+        const k = HANDLE_KEYS.find(h => { const q = handlePoint(marco, h); return Math.hypot(s.x - q.x, s.y - q.y) <= 9 / p.view.zoom; });
+        if (k) {
+          setGesture({ kind: 'groupXf', handle: k, origin: marco, start: s, moved: false });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
+      }
       // Seleccionar: pick a segment (DM only) and grab it, or clear everything.
       const wall = dmSight ? hitWall(p.walls, s, 10 / p.view.zoom) : null;
       if (wall) {
+        /**
+         * UN CLIC COGE EL GRUPO ENTERO; el DOBLE CLIC entra dentro y ya coge el muro suelto. Es literalmente lo
+         * que pidió el 2026-09-03: «*debería poder seleccionarlo entero y luego con doble clic por pedacitos,
+         * si no, cuando esté en medio de otras cosas no se podrá mover*».
+         */
+        const grupo = groupOf(p.walls, wall);
+        if (grupo.length > 1 && e.detail < 2) {
+          p.onSelectToken(null);
+          p.onSelectLight?.(null);
+          p.onSelectDrawing?.(null);
+          p.onSelectWall?.(null);
+          p.onSelectWalls?.(grupo.map(g => g.id));
+          setGesture({ kind: 'groupXf', handle: null, origin: wallBounds(grupo)!, start: s, moved: false });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
+        p.onSelectWalls?.([]);
         p.onSelectToken(null);
         // Suelta la luz y el trazo: si no, quedaría algo elegido sin verse y Suprimir se confundiría de víctima.
         p.onSelectLight?.(null);
@@ -387,9 +436,10 @@ export function MapCanvas(p: Props): JSX.Element {
       }
       p.onSelectToken(null);
       p.onSelectWall?.(null);
-      // Pinchar en vacío suelta TODO, la luz y el trazo incluidos: es la forma de soltar sin buscar una X.
+      // Pinchar en vacío suelta TODO, la luz, el trazo y el grupo: es la forma de soltar sin buscar una X.
       p.onSelectLight?.(null);
       p.onSelectDrawing?.(null);
+      p.onSelectWalls?.([]);
       setGesture({ kind: 'marquee', start: s, last: s });
       svgRef.current?.setPointerCapture?.(e.pointerId);
       return;
@@ -592,6 +642,13 @@ export function MapCanvas(p: Props): JSX.Element {
       const points = [...gesture.points, s];
       setGesture({ ...gesture, points });
       setRoomDraft(freehandSides(points, grid));
+    } else if (gesture.kind === 'groupXf') {
+      const sel = p.walls.filter(w => (p.selectedWallIds ?? []).includes(w.id));
+      const batch = gesture.handle
+        ? scaleWallsTo(sel, gesture.origin, resizeRect(gesture.origin, gesture.handle, s))
+        : moveWalls(sel, s.x - gesture.start.x, s.y - gesture.start.y);
+      setGroupDraft(new Map(batch.map(b => [b.id, b])));
+      if (!gesture.moved) setGesture({ ...gesture, moved: true });
     } else if (gesture.kind === 'wallEdit') {
       setWallDraft(wallDragTo(gesture.origin, gesture.grab, gesture.start, s, grid));
     } else if (gesture.kind === 'drawingMove') {
@@ -700,10 +757,25 @@ export function MapCanvas(p: Props): JSX.Element {
       setGesture(null);
       return;
     }
+    if (gesture.kind === 'groupXf') {
+      // Un clic sin arrastre sólo elige: no hay nada que guardar, y guardarlo escribiría en balde en cada clic.
+      if (gesture.moved && groupDraft?.size) p.onTransformWalls?.([...groupDraft.values()]);
+      setGroupDraft(null);
+      setGesture(null);
+      return;
+    }
     if (gesture.kind === 'marquee') {
       const ids = tokensInRect(tokensShown, gesture.start, gesture.last, grid);
       // A click without a drag is not a marquee — it already cleared the selection on the way down.
-      if (Math.hypot(gesture.last.x - gesture.start.x, gesture.last.y - gesture.start.y) > 4) p.onMarquee?.(ids);
+      if (Math.hypot(gesture.last.x - gesture.start.x, gesture.last.y - gesture.start.y) > 4) {
+        p.onMarquee?.(ids);
+        /**
+         * EL ÁREA COGE TAMBIÉN MUROS, no sólo fichas — «*no puedo arrastrar y seleccionar por grupo*». Y un
+         * grupo se coge entero: pillar tres muros de un círculo se trae los once, porque media cosa cogida no
+         * es nada que se pueda mover con sentido.
+         */
+        if (dmSight && p.showWalls) p.onSelectWalls?.(withWholeGroups(p.walls, wallsInRect(p.walls, gesture.start, gesture.last)).map(w => w.id));
+      }
       setGesture(null);
       return;
     }
@@ -729,6 +801,14 @@ export function MapCanvas(p: Props): JSX.Element {
   };
 
   const wallsShown = dmSight ? (p.showWalls ? p.walls : []) : p.walls.filter(w => w.visiblePlayers);
+  /**
+   * EL MARCO DEL GRUPO. Sale de dónde están los muros AHORA MISMO —el borrador mientras se arrastra, la
+   * posición guardada si no—, así que el marco y los tiradores siguen a la mano en vez de quedarse atrás.
+   */
+  const grupoCogido = (p.selectedWallIds ?? []).length > 1
+    ? wallsShown.filter(w => p.selectedWallIds!.includes(w.id)).map(w => ({ ...w, ...(groupDraft?.get(w.id) ?? {}) }))
+    : [];
+  const grupoMarco = dmSight ? wallBounds(grupoCogido) : null;
   /**
    * Los muros que hoy cortan el paso en esta escena. Vacío cuando el interruptor está apagado — y **vacío
    * siempre para el director**, que no choca nunca (decisión del dueño, 2026-08-22). Su contrapartida, dicha
@@ -820,7 +900,11 @@ export function MapCanvas(p: Props): JSX.Element {
           <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} />
           {dmSight && fog && p.fogVeil !== false && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
-            {wallsShown.map(w => <WallShape key={w.id} wall={w} selected={w.id === p.selectedWallId} draft={wallDraft && w.id === p.selectedWallId ? wallDraft : null} />)}
+            {wallsShown.map(w => (
+              <WallShape key={w.id} wall={w}
+                selected={w.id === p.selectedWallId || (p.selectedWallIds ?? []).includes(w.id)}
+                draft={groupDraft?.get(w.id) ?? (wallDraft && w.id === p.selectedWallId ? wallDraft : null)} />
+            ))}
             {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={snap(hover.x, grid)} y2={snap(hover.y, grid)} className="mp-wall draft" />}
             {roomDraft.map((r, i) => <line key={`room-${i}`} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} className="mp-wall draft" />)}
             {p.tool === 'wall' && polyPoints.map((v, i) => {
@@ -866,6 +950,17 @@ export function MapCanvas(p: Props): JSX.Element {
           {gesture?.kind === 'marquee' && (
             <rect className="mp-marquee" data-testid="mp-marquee"
               {...(({ x, y, w, h }) => ({ x, y, width: w, height: h }))(rectFrom(gesture.start, gesture.last))} />
+          )}
+          {grupoMarco && (
+            <g className="mp-group-sel" data-testid="mp-group-sel">
+              <rect className="mp-group-box" x={grupoMarco.x} y={grupoMarco.y} width={grupoMarco.w} height={grupoMarco.h} />
+              {HANDLE_KEYS.map(k => {
+                const q = handlePoint(grupoMarco, k);
+                const lado = 8 / p.view.zoom;
+                return <rect key={k} className="mp-group-handle" data-testid={`mp-group-handle-${k}`}
+                  x={q.x - lado / 2} y={q.y - lado / 2} width={lado} height={lado} />;
+              })}
+            </g>
           )}
           {dmSight && isBrush(p.tool) && hover && (
             <circle cx={hover.x} cy={hover.y} r={brushPx} className={`mp-brush ${p.tool}`} data-testid="mp-brush" />

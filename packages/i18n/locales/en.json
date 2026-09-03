@@ -1002,6 +1002,15 @@
       },
       "polyHint": "one click, one corner · click the first one again to close the room",
       "dragHint": "drag to raise the room · it is built when you let go"
+    },
+    "group": {
+      "countGrouped": "Group · {{n}} walls",
+      "countLoose": "{{n}} loose walls",
+      "group": "Group",
+      "ungroup": "Ungroup",
+      "held": "What is selected",
+      "hintGrouped": "double-click to enter a single wall",
+      "hintLoose": "drag over them to pick them up"
     }
   },
   "bestiary": {

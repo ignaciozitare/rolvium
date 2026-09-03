@@ -28,6 +28,106 @@ const down = (el: Element, x: number, y: number, button = 0) => fireEvent.pointe
 const move = (el: Element, x: number, y: number) => fireEvent.pointerMove(el, { clientX: x, clientY: y, pointerId: 1 });
 const up = (el: Element) => fireEvent.pointerUp(el, { pointerId: 1 });
 
+/**
+ * 🧩 EL GRUPO (§ «EL GRUPO»), pedido el 2026-09-03 probando Builder sobre una foto de mapa: «*no puedo
+ * arrastrar y seleccionar por grupo*» · «*debería poder seleccionarlo entero y luego con doble clic por
+ * pedacitos, si no, cuando esté en medio de otras cosas no se podrá mover*» · «*cuando lo seleccione debería
+ * poder escalarlo*».
+ *
+ * 🔑 NO son habitaciones: sobre una foto no hay suelo ni textura, hay muros.
+ */
+describe('<MapCanvas> el GRUPO se coge, se mueve y se estira', () => {
+  const lado = (id: string, x1: number, y1: number, x2: number, y2: number, groupId: string | null = 'g1') =>
+    ({ ...WALL_1, id, x1, y1, x2, y2, groupId });
+  /** Un cuadrado agrupado, de los que deja el rectángulo de Builder. */
+  const grupo = [lado('g-a', 0, 0, 200, 0), lado('g-b', 200, 0, 200, 150), lado('g-c', 200, 150, 0, 150), lado('g-d', 0, 150, 0, 0)];
+  const dmSel = { isDm: true, me: 'u-gm', tool: 'select' as const, walls: grupo };
+  const dblDown = (el: Element, x: number, y: number) => fireEvent.pointerDown(el, { clientX: x, clientY: y, pointerId: 1, button: 0, detail: 2 });
+
+  it('un clic sobre un muro del grupo coge los CUATRO, no el muro suelto', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    down(svg, 100, 0);
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith(['g-a', 'g-b', 'g-c', 'g-d']);
+    expect(cb2.onSelectWall).not.toHaveBeenCalledWith('g-a');
+  });
+
+  /** 🔒 Lo que pidió con nombre: entrar al pedacito. Sin esto, un muro dentro de un grupo es inalcanzable. */
+  it('el doble clic entra dentro y coge el muro suelto', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    dblDown(svg, 100, 0);
+    expect(cb2.onSelectWall).toHaveBeenCalledWith('g-a');
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith([]);
+  });
+
+  it('un muro suelto se coge solo, sin arrastrar a nadie', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, walls: [lado('libre', 0, 0, 200, 0, null)], ...cb2 });
+    down(svg, 100, 0);
+    expect(cb2.onSelectWall).toHaveBeenCalledWith('libre');
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith([]);
+  });
+
+  it('con el grupo cogido se ve el marco y sus ocho tiradores', () => {
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id) });
+    expect(within(svg).getByTestId('mp-group-sel')).toBeInTheDocument();
+    for (const k of ['tl', 't', 'tr', 'l', 'r', 'bl', 'b', 'br']) {
+      expect(within(svg).getByTestId(`mp-group-handle-${k}`)).toBeInTheDocument();
+    }
+  });
+
+  it('el jugador no ve ni marco ni tiradores: los muros no son suyos', () => {
+    const { svg } = mount({ tool: 'select', walls: grupo, selectedWallIds: grupo.map(w => w.id) });
+    expect(within(svg).queryByTestId('mp-group-sel')).toBeNull();
+  });
+
+  it('arrastrar dentro del grupo lo mueve entero, y se guarda de una vez al soltar', () => {
+    const cb2 = { onTransformWalls: vi.fn(), onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    // A media casilla del tirador de arriba: si se pincha justo en (100,0) manda el tirador y esto estiraría.
+    down(svg, 60, 0); move(svg, 110, 40); up(svg);
+    expect(cb2.onTransformWalls).toHaveBeenCalledTimes(1);
+    const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string; x1: number; y1: number }[];
+    expect(batch).toHaveLength(4);
+    expect(batch[0]).toMatchObject({ id: 'g-a', x1: 50, y1: 40 });
+  });
+
+  /** 🔒 Estirar por un tirador: el lado de enfrente se queda clavado y la forma se conserva. */
+  it('arrastrar un tirador lo estira', () => {
+    const cb2 = { onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    down(svg, 200, 150); move(svg, 400, 300); up(svg);
+    const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string; x1: number; y1: number; x2: number; y2: number }[];
+    expect(batch).toHaveLength(4);
+    expect(batch[0]).toMatchObject({ id: 'g-a', x1: 0, y1: 0, x2: 400, y2: 0 });
+    expect(batch[1]).toMatchObject({ id: 'g-b', x2: 400, y2: 300 });
+  });
+
+  it('un clic sin arrastre no escribe nada: sólo elige', () => {
+    const cb2 = { onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    down(svg, 60, 0); up(svg);
+    expect(cb2.onTransformWalls).not.toHaveBeenCalled();
+  });
+
+  /** 🔒 Su queja literal: «no puedo arrastrar y seleccionar por grupo». El área cogía SÓLO fichas. */
+  it('arrastrar por área coge muros, no sólo fichas', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, walls: [lado('libre', 20, 20, 120, 20, null)], ...cb2 });
+    down(svg, 400, 400); move(svg, 0, 0); up(svg);
+    expect(cb2.onSelectWalls).toHaveBeenLastCalledWith(['libre']);
+  });
+
+  it('pillar un trozo del grupo se trae el grupo entero', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    // Rodea del todo el lado de abajo — y sólo ése: por eso se trae los otros tres, no por rozarlos.
+    down(svg, 400, 400); move(svg, 0, 140); up(svg);
+    expect((cb2.onSelectWalls.mock.calls.at(-1)![0] as string[]).sort()).toEqual(['g-a', 'g-b', 'g-c', 'g-d']);
+  });
+});
+
 describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
   /**
    * Regla de convivencia: si la escena tiene capas de terreno, MANDA LA CAPA y `bgImageUrl` se ignora. La

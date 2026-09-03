@@ -346,3 +346,15 @@
 .mp-tool-img{display:block;width:var(--icon-sm);height:var(--icon-sm);background-color:currentColor;
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;
   -webkit-mask-size:contain;mask-size:contain;}
+
+/**
+ * EL GRUPO COGIDO (§ «EL GRUPO»). El marco NO es una caja de bordes: es un tinte, como manda el sistema —la
+ * jerarquía sale del tono, no de las líneas—. Los tiradores sí son sólidos porque son sitios donde pinchar.
+ */
+.mp-group-box{fill:color-mix(in srgb,var(--ac) 10%,transparent);stroke:var(--ac);stroke-width:1;stroke-opacity:.55;pointer-events:none;}
+.mp-group-handle{fill:var(--sf3);stroke:var(--tx);stroke-width:1;pointer-events:none;}
+
+/** La fila del GRUPO dentro de «Segmento»: cuántos hay cogidos, la acción, y la pista de qué hacer. */
+.mp-groupbar{display:flex;align-items:center;gap:var(--sp-sm);}
+.mp-groupbar-n{font-size:var(--fs-2xs);letter-spacing:.06em;text-transform:uppercase;color:var(--tx);background:var(--sf3);padding:2px var(--sp-sm);border-radius:var(--r);}
+.mp-groupbar-hint{font-size:var(--fs-2xs);color:var(--tx3);font-style:italic;}
