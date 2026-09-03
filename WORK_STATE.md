@@ -40,6 +40,10 @@ supiera (la guarda tiraba la respuesta entera, y dentro viajaban `corrected` y `
 
 ## 🧱 HECHO Y EN PRODUCCIÓN — BOTÓN «ENSEÑAR LOS MUROS A LOS JUGADORES» (`main` = `63c397c`)
 
+> ✅ **Verificado en vivo (2026-09-04, 00:50)**: paquete nuevo `index-Dhr703HE.js` con las dos etiquetas y
+> `walls.updated` dentro · `/icons/wall-bricks.svg` y `/icons/wall-dotted.svg` sirviendo 200 · api en `fra1`.
+> **Lo único que falta es que él lo mire con dos navegadores**, que es donde se ve lo que ningún test cubre.
+
 Pedido suyo: «*agrega un botón para que los jugadores puedan ver las líneas de los muros*».
 
 **Qué es, decidido por él**: un interruptor **del director** que pone **todos los muros de la escena** visibles
