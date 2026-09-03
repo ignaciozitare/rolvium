@@ -697,6 +697,53 @@ describe('useScene · los muros, enseñados a los jugadores de golpe', () => {
     expect(tipos(antes)).toEqual(['walls.updated']);
   });
 
+  /**
+   * 🔒 LA REGLA VALE TAMBIÉN DE UNO EN UNO. Marcar o desmarcar la casilla «visible para los jugadores» de UN
+   * muro en el panel de Builder va por `patchWall`, y tenía el mismo agujero: al esconderlo, el jugador no
+   * recibía nada y lo seguía dibujando. Venía de antes de esta tanda.
+   */
+  it('cambiar la visibilidad de UN muro también avisa con `walls.updated`', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    const antes = repo.broadcasts.length;
+    await act(async () => { await r.current.patchWall(WALL_1.id, { visiblePlayers: true }); });
+    expect(repo.broadcasts.slice(antes).map(b => b.event.type)).toContain('walls.updated');
+  });
+
+  /** Pero abrir una puerta NO lo manda: eso sí mueve la línea de vista y viaja con la respuesta de visión. */
+  it('abrir una puerta NO manda `walls.updated`: para eso ya está el aviso de la niebla', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    const antes = repo.broadcasts.length;
+    await act(async () => { await r.current.patchWall(WALL_1.id, { isOpen: true }); });
+    const tipos = repo.broadcasts.slice(antes).map(b => b.event.type);
+    expect(tipos).toContain('fog.updated');
+    expect(tipos).not.toContain('walls.updated');
+  });
+
+  /**
+   * 🏁 Y LA RE-LISTA LLEVA GUARDA DE ORDEN. Cada respuesta es una FOTO COMPLETA: si la vieja aterriza detrás
+   * de la nueva, pisa la buena y deja dibujando muros que ya deberían estar ocultos. Dos avisos dentro de una
+   * ida y vuelta es justo pulsar el botón dos veces seguidas.
+   */
+  it('dos avisos seguidos: manda la respuesta MÁS NUEVA, aunque llegue antes la vieja', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    const pendientes: ((w: Wall[]) => void)[] = [];
+    repo.listWalls = (() => new Promise<Wall[]>(res => { pendientes.push(res); })) as typeof repo.listWalls;
+
+    const aviso = { type: 'walls.updated' as const, campaignId: 'c1', sceneId: 'sc-1', userId: 'otro' };
+    act(() => { repo.emit('sc-1', { event: aviso }); });
+    act(() => { repo.emit('sc-1', { event: aviso }); });
+    await waitFor(() => expect(pendientes).toHaveLength(2));
+
+    // Llega la SEGUNDA (la buena) y luego la primera, ya caducada.
+    await act(async () => { pendientes[1]!([{ ...WALL_1, id: 'nuevo' }]); await Promise.resolve(); });
+    await waitFor(() => expect(r.current.walls.map(w => w.id)).toEqual(['nuevo']));
+    await act(async () => { pendientes[0]!([{ ...WALL_1, id: 'viejo' }]); await Promise.resolve(); });
+    expect(r.current.walls.map(w => w.id)).toEqual(['nuevo']);
+  });
+
   /** Y el que lo recibe vuelve a PEDIR los muros: es la única forma de enterarse de que uno ha dejado de serlo. */
   it('al recibir `walls.updated` de otro, se vuelven a pedir los muros', async () => {
     const repo = conMuros();

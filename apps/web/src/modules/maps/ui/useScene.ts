@@ -93,6 +93,12 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * siguiente pregunta. Se arregla el día que `applyFog` devuelva si pintó y sólo entonces se avance.
    */
   const visionApplied = useRef(0);
+  /**
+   * Lo mismo, para las re-listas de muros que dispara `walls.updated`. Fuera del efecto a propósito: así
+   * sobreviven al remontaje cuando se cambia de escena.
+   */
+  const wallsSeq = useRef(0);
+  const wallsApplied = useRef(0);
   const visionTimer = useRef<number | null>(null);
   /** Lo que la sonda lleva visto. Vive aquí y NO en la base: se tira al quitarla o al cambiar de escena. */
   const probeSeen = useRef<FogCell[]>([]);
@@ -166,7 +172,22 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
          * Re-listar cubre además el barrido grande, donde los avisos fila a fila pueden perderse por el camino.
          */
         else if (e.type === 'walls.updated' && e.userId !== me) {
-          void repo.listWalls(e.sceneId).then(w => { if (alive) setWalls(w); }).catch(() => undefined);
+          /**
+           * Con la MISMA guarda de dos números que la visión, y por la misma razón: cada respuesta es una FOTO
+           * COMPLETA de un instante, así que si la vieja aterriza detrás de la nueva pisa la buena y deja
+           * dibujando muros que ya deberían estar ocultos. Dos avisos dentro de una ida y vuelta es
+           * exactamente la cadencia de pulsar el botón dos veces seguidas.
+           *
+           * ⚠️ Ojo con CUÁL de las dos formas se copia: la guarda «sólo vale la última pedida» es la que mató
+           * la niebla entera en producción (ver `visionApplied`, arriba). Ésta es la buena — se aplica lo que
+           * sea MÁS NUEVO QUE LO YA APLICADO, así que lo desordenado se tira y lo demás entra.
+           */
+          const seq = ++wallsSeq.current;
+          void repo.listWalls(e.sceneId).then(w => {
+            if (!alive || seq <= wallsApplied.current) return;
+            wallsApplied.current = seq;
+            setWalls(w);
+          }).catch(() => undefined);
         }
       },
     });
@@ -595,7 +616,23 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     setWalls(l => l.map(w => (w.id === id ? { ...w, ...patch } : w)));
     await repo.updateWall(id, patch);
     announceVision();
-  }, [repo, announceVision]);
+    /**
+     * Y SI LO QUE CAMBIÓ ES QUIÉN PUEDE VERLO, además hay que decir «volved a pedir los muros».
+     *
+     * `announceVision` vale para `isOpen` y `blocksSight`, que SÍ mueven el polígono y viajan dentro de la
+     * respuesta de visión. Pero `visiblePlayers` no mueve ninguna línea de vista: cambia lo que el jugador
+     * tiene DERECHO a que le manden, y de eso el aviso de fila no le entera al esconder — la fila nueva ya no
+     * pasa su RLS y no recibe nada (§ Realtime del spec).
+     *
+     * Es el mismo fallo que tenía el botón de enseñarlos todos, pero de uno en uno: desmarcabas la casilla de
+     * un muro en el panel de Builder y el jugador lo seguía dibujando. Venía de antes de esta tanda; se
+     * arregla aquí porque es la regla que esta misma tanda acaba de dejar escrita en el spec, y un spec que el
+     * código de al lado incumple deja de valer para nada.
+     */
+    if (patch.visiblePlayers !== undefined && sceneId && live) {
+      repo.broadcast(sceneId, { type: 'walls.updated', campaignId: live.campaignId, sceneId, userId: me });
+    }
+  }, [repo, announceVision, sceneId, live, me]);
   /**
    * TODOS LOS MUROS DE LA ESCENA, ENSEÑADOS O ESCONDIDOS A LOS JUGADORES DE GOLPE (petición suya del
    * 2026-09-03). Se pinta al momento y se escribe por escena, no muro a muro.
