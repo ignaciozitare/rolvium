@@ -345,6 +345,15 @@ Lo que la tabla tiene que poder guardar (detallado en el spec, § «Modelo de da
 contornos de salas— para la visión, las colisiones y el recorte de las luces. Es lo más gordo de esta tanda y
 es fácil que se subestime, porque no se ve en pantalla.
 
+### 📝 Y UNA NOTA DE PANTALLA QUE HABRÁ QUE CORREGIR CON ESTO
+El pie del panel de Builder (`maps.builder.note.draw`, en es y en en) dice hoy: «*Builder es el mismo de
+siempre. En los dos casos lo que se levanta son MUROS normales: cortan vista y luz, se abren en puerta y se
+borran uno a uno. El estilo de la mazmorra y las dos texturas base no están todavía.*»
+
+**Hoy es verdad** —las salas no existen—, pero **deja de serlo en cuanto esto se construya**: en «dibujar
+aquí» ya no serán muros normales ni se borrarán uno a uno. Corregirla en la misma tanda, o el panel pasa a
+mentir en pantalla.
+
 ### 🚧 LO QUE HAY QUE CONSTRUIR DESPUÉS (para dimensionar)
 Motor de **unión de formas** (hoy `roomRules.ts` sólo devuelve los lados de UNA figura) · las dos texturas base
 y los nueve preajustes en el panel v3, que están **sin maquetar a propósito** y cuyo sitio es el interruptor de
