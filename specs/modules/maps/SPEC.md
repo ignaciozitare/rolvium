@@ -940,9 +940,12 @@ Le enseñé dos intentos y tumbó los dos. Lo que dijo, literal, y lo que signif
 > | **A · Marcar sobre una foto** | Traes una imagen de mapa y marcas encima dónde están los muros, para la niebla dinámica | **Construido y en uso.** Es lo que Builder hace hoy. NO SE TOCA. |
 > | **B · Dibujar el mapa en la app** | No hay foto: las salas se levantan aquí, con sus texturas de pared y suelo | **Sin construir.** Es lo nuevo. |
 >
-> - **Los muros que genera B se comportan EXACTAMENTE como los de A** — cortan la vista y la luz, se abren en
->   puerta, se parten. Son la misma fila de `maps_walls`. Esto confirma la decisión de que una habitación no
->   necesita entidad propia para las PAREDES.
+> - **Los muros que genera B se COMPORTAN igual que los de A** — cortan la vista y la luz, frenan a las fichas
+>   y se abren en puerta.
+>   - ❌ ~~Son la misma fila de `maps_walls`. Esto confirma que una habitación no necesita entidad propia para
+>     las PAREDES.~~ **CORREGIDO POR ÉL el 2026-09-04**: *«ojo que estos muros no son los otros… no estoy
+>     hablando de los muros con los que venimos trabajando»*. **Mismo comportamiento, entidad distinta.** Ver
+>     § «Los muros de una sala NO son los muros de siempre», más abajo.
 > - **Las texturas sólo tienen sentido en B.** Marcando sobre una foto, el suelo ya lo pone la foto. El panel
 >   tiene que dejar claro en cuál de las dos estás, o la mitad de los controles no significa nada.
 >
@@ -1030,9 +1033,10 @@ hay bordes, hay roca.
 Dos formas que se tocan o se solapan **son una sola forma**: la unión de las dos. El muro compartido
 **desaparece**, porque por ahí se pasa.
 
-- Los muros salen del **CONTORNO de la unión**, no del contorno de cada forma. Ése es el cambio de motor:
-  hoy `roomRules.ts` devuelve los lados de UNA figura; ahora hay que unir figuras y sacar el borde del
-  resultado.
+- El muro es el **CONTORNO de la unión**, no el de cada forma. Ése es el cambio de motor: hoy `roomRules.ts`
+  devuelve los lados de UNA figura; ahora hay que unir figuras y sacar el borde del resultado.
+  ⚠️ **Y ese contorno NO se escribe como filas de `maps_walls`**: es el muro de la sala, otra entidad. Ver
+  § «Los muros de una sala NO son los muros de siempre».
 - «Se tocan» incluye **tocarse sin solaparse** (lado con lado): él dice «*si se tocan se solapan*», así que
   dos rectángulos pegados por una cara también se funden y esa cara se abre.
 - ✅ **CADA FORMA SE SIGUE RECORDANDO POR SEPARADO** (elección suya). Se ven fusionadas, pero por dentro son
@@ -1044,15 +1048,18 @@ Dos formas que se tocan o se solapan **son una sola forma**: la unión de las do
 - **Vale para cualquier forma**, no sólo el rectángulo: círculo, polígono y trazo a pulso siguen la misma regla
   («*lo mismo pasa con cualquier forma geométrica que ponga*»).
 
-#### 3 · Muros y puertas: VISIBLES para los jugadores
-- ✅ **Las puertas nacen visibles** — suyo, literal: «*éstas sí que serán visibles para los jugadores*».
-- ✅ **Y los muros también** (elección suya del 2026-09-04). Dibujando el mapa en Rolvium, **el muro ES el
-  dibujo**: esconderlo dejaría al jugador mirando una mancha de suelo flotando en el vacío.
+#### 3 · Muros y puertas: SE VEN, y no hay interruptor que lo cambie
+- ✅ **Las puertas se ven** — suyo, literal: «*éstas sí que serán visibles para los jugadores*».
+- ✅ **Y los muros también.** Dibujando el mapa en Rolvium **el muro ES el dibujo**: esconderlo dejaría al
+  jugador mirando una mancha de suelo flotando en el vacío.
+- ⚠️ **Ojo con cómo se implementa**: aquí «visible» **no** es la casilla `visible_players` de `maps_walls`. Un
+  muro de sala **no tiene interruptor de visibilidad**, igual que no lo tiene el suelo: se dibuja y ya. El
+  botón «enseñar los muros a los jugadores» es del modo A y sólo de él.
 - 🔒 **Esto NO toca el modo «sobre una foto»**, donde el muro sigue naciendo oculto porque ahí es una marca
   para la niebla y el dibujo lo pone la foto. Son los dos modos que conviven, otra vez.
-- **Las puertas se abren con el disco de siempre** (`planOpening`), sobre el contorno de la unión. No se
-  inventa un camino paralelo — era su corrección nº 4 del 2026-09-02 y sigue mandando. Ninguna puerta
-  automática.
+- **Las puertas las abre el disco de siempre**, con el mismo gesto — era su corrección nº 4 del 2026-09-02 y
+  sigue mandando. Lo que cambia es **dónde se guarda el agujero**: no es un `planOpening` que parte una fila de
+  muro, porque no hay fila; es un hueco anotado sobre el contorno. Ninguna puerta automática.
 
 #### 4 · La sombra hacia adentro
 > «*desde las caras interiores de cada muro quiero una pequeña sombra hacia adentro para darle efecto chulo*»
@@ -1080,6 +1087,52 @@ Todas revisables, y ninguna bloquea el DBA:
    que es lo que él eligió.
 4. **El relleno de pared se pinta por DEBAJO de las capas de terreno** que ya existen (§ 7.1), igual que el
    suelo de la sala. Una capa con transparencia sigue mandando encima de todo esto.
+
+### 🧱 LOS MUROS DE UNA SALA **NO** SON LOS MUROS DE SIEMPRE (corrección suya, 2026-09-04)
+
+> «*ojo que estos muros no son los otros: los muros de las habitaciones son los que se ven y tienen física, con
+> las colisiones, luces, etc. No estoy hablando de los muros con los que venimos trabajando.*»
+
+**Mismo comportamiento, entidad distinta.** Son dos cosas que hacen lo mismo y no se parecen en nada:
+
+| | **Muro marcado (`maps_walls`)** | **Muro de una sala** |
+|---|---|---|
+| Qué es | Una **marca invisible** encima de una foto | **Un objeto que se ve**: la roca entre dos huecos |
+| Para qué | Decirle a la niebla dónde hay pared en una imagen traída de fuera | **ES el mapa**: lo que se dibuja y lo que se mira |
+| Aspecto | Una línea, y sólo para el director | **Grosor, textura de pared y sombra hacia dentro** |
+| De dónde sale | Él lo traza a mano, segmento a segmento | Del **contorno de la unión** de las formas |
+| Se edita | Punta a punta, se parte, se borra suelto | **No se toca directamente**: se mueve o se borra la FORMA |
+| Dónde vive | Filas de `maps_walls` | Con la sala. **No son filas de `maps_walls`.** |
+
+#### Lo que SÍ comparten: la física, entera
+Cortan la vista · **frenan a las fichas** (paredes sólidas) · recortan las luces · aguantan puertas y ventanas.
+Eso no se negocia: ya lo dejó dicho el 2026-09-03 —«*la niebla de batalla debe funcionar con estas
+construcciones también*»— y ahora añade las colisiones y las luces con todas las letras.
+
+#### 🔴 LO QUE ESTO ROMPE, Y HAY QUE DECIRLO
+El spec daba por bueno que una sala **no necesitaba entidad propia para sus paredes** porque «son la misma fila
+de `maps_walls`». **Eso se cae.** Consecuencias, todas para el DBA:
+
+1. **La sala no «genera muros».** Su contorno **es** el muro. No se escriben filas derivadas en `maps_walls`
+   que luego haya que reescribir cada vez que se mueva una forma — que además era el punto flojo del plan
+   anterior.
+2. **El cálculo de visión, colisión y luz tiene que mirar DOS fuentes**: las filas de `maps_walls` (modo A) y
+   los contornos de las salas (modo B). Hoy `sceneVision.ts` sólo conoce la primera. **Es el trabajo de fondo
+   de esta tanda**, y va en el servidor, que es el único que lo puede decidir.
+3. **Las aberturas de una sala no pueden ser un `planOpening` sobre una fila de muro**, porque no hay fila. Son
+   **huecos anotados sobre el contorno**: dónde empieza, dónde acaba, y si está abierto o cerrado. El gesto del
+   director es el mismo disco de siempre; lo que cambia es dónde se guarda el agujero.
+4. **«Nacen visibles para los jugadores» significa otra cosa aquí.** No es la casilla `visible_players` de
+   `maps_walls`: es que **se dibujan, y punto**. Un muro de sala no tiene interruptor de visibilidad, igual que
+   no lo tiene el suelo. El botón «enseñar los muros a los jugadores» —construido el 2026-09-03— **es del modo
+   A y sólo de él**.
+5. **`maps_walls` NO SE TOCA.** Su tabla, su RLS y su comportamiento se quedan exactamente como están. Es la
+   regla suya de siempre: los dos modos conviven y ninguno pisa al otro.
+
+#### 🟠 Decisión mía, revisable (para no dejar preguntas abiertas)
+**El grosor del muro es una propiedad de la ESCENA, no de cada sala**, y va con las dos texturas base. Un mapa
+con paredes de grosores distintos según la sala se lee como un error de dibujo, no como una decisión. Si él lo
+quiere por sala, se mueve la columna sin romper nada de lo demás.
 
 ### ✅ LAS SIETE PREGUNTAS, TODAS CERRADAS (ninguna abierta — orden suya del 2026-09-04)
 1. **¿Puertas automáticas?** → **NINGUNA.** La sala se levanta cerrada y él abre los vanos con el disco de
@@ -1173,10 +1226,17 @@ poder guardar, con lo cerrado el 2026-09-04:
   su tipo, su geometría y su orden de llegada (hace falta: al fundirse suelos distintos manda la más vieja).
 - **Su suelo**, heredado del momento de dibujar y quieto desde entonces.
 - **Las DOS texturas base son de la ESCENA**, no de la sala ni de la campaña: van en `maps_scenes`.
-- **Los muros siguen siendo `maps_walls` normales** y son DERIVADOS del contorno de la unión: mover una forma
-  obliga a recalcularlos. Nacen `visible_players: true` en este modo — al revés que marcando sobre una foto.
-- ⚠️ **Mirar `group_id` antes de inventar nada.** `maps_walls.group_id` YA ATA los muros de un gesto: puede que
-  la sala cuelgue de él en vez de crear una atadura nueva.
+- 🔴 **Los muros de la sala NO son filas de `maps_walls`** (corrección suya del 2026-09-04). Su contorno **es**
+  el muro: se ve, tiene grosor y textura, y hace la física. No hay filas derivadas que reescribir al mover una
+  forma. `maps_walls` se queda intacta para el modo A.
+- **Las aberturas de una sala** son huecos anotados sobre el contorno (dónde empieza, dónde acaba, abierto o
+  cerrado), no `planOpening` sobre una fila.
+- **El grosor del muro va en la escena**, con las dos texturas base (decisión mía, revisable).
+- ⚠️ **`maps_walls.group_id` ya no hace falta para esto.** Ata los muros de un gesto en el modo A y ahí se
+  queda; una sala no lo necesita porque no genera esas filas. **No forzarlo.**
+- 🔨 **Y lo más gordo, que no es de la tabla sino del servidor**: `sceneVision.ts` sólo conoce `maps_walls`.
+  Tiene que pasar a mirar **las dos fuentes** —filas marcadas y contornos de salas— para la visión, las
+  colisiones y el recorte de las luces. Es el trabajo de fondo de esta tanda.
 
 **Pasa por el DBA antes de tocar una línea de código.**
 
