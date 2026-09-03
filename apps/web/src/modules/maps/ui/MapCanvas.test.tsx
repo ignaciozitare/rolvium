@@ -1221,3 +1221,117 @@ describe('<MapCanvas> poner la sonda donde uno quiera', () => {
     expect(cb.onProbeMove).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * 🏗 LAS FORMAS DE BUILDER (§ «Rebanada 8», corrección suya del 2026-09-02: «rectángulos y círculos te quedas
+ * corto: ¿y si quiero poner una pared inclinada?»).
+ *
+ * Lo primero que sujetan estos tests no es lo nuevo: es que **el Builder de siempre no se ha movido**. Él lo
+ * pidió con todas las letras — «es el mismo Builder que pone hoy los muros, puertas y ventanas».
+ */
+describe('<MapCanvas> Builder levanta salas enteras', () => {
+  const dm = { isDm: true, me: 'u-gm', tool: 'wall' as Tool, walls: [] };
+
+  it('sin elegir forma sigue siendo el Builder de siempre: clic a clic, encadenando', () => {
+    const onAddRoom = vi.fn();
+    const { svg, cb } = mount({ ...dm, onAddRoom });
+    down(svg, 0, 0);
+    expect(cb.onAddWall).not.toHaveBeenCalled();
+    down(svg, 200, 0);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+    expect(onAddRoom).not.toHaveBeenCalled();
+  });
+
+  it('rectángulo: se arrastra y salen sus cuatro lados, cerrados', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'rect', ...cb2 });
+    down(svg, 0, 0); move(svg, 200, 150); up(svg);
+    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
+    const sides = cb2.onAddRoom.mock.calls[0]![0] as { x1: number; y1: number; x2: number; y2: number }[];
+    expect(sides).toHaveLength(4);
+    expect(sides[3]!.x2).toBe(sides[0]!.x1);
+    expect(sides[3]!.y2).toBe(sides[0]!.y1);
+  });
+
+  it('círculo: se arrastra del centro al borde y sale un anillo de muros', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'circle', ...cb2 });
+    down(svg, 200, 200); move(svg, 320, 200); up(svg);
+    expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBeGreaterThanOrEqual(8);
+  });
+
+  it('polígono: un clic un vértice, y se cierra pinchando otra vez sobre el primero', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
+    down(svg, 0, 0); down(svg, 200, 0); down(svg, 200, 150);
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+    down(svg, 3, 4);                                       // de vuelta al primero: cierra
+    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
+    expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBe(3);
+  });
+
+  /**
+   * 🔒 Un vértice PEGADO al primero tiene que poder ponerse. Los vértices van a la rejilla, así que el vecino
+   * de al lado cae a exactamente una casilla del primero: con el tope de cierre en `grid` ese clic cerraba la
+   * sala en vez de colocar la esquina, y una L cuyo último vértice cae junto al primero era imposible.
+   */
+  it('polígono: una esquina a una casilla del primer vértice se pone, no cierra la sala', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
+    down(svg, 0, 0); down(svg, G * 4, 0); down(svg, G * 4, G * 2); down(svg, G * 2, G * 2); down(svg, G * 2, G);
+    down(svg, 0, G);                                       // pegado al primero, pero NO es el primero
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+    down(svg, 0, 0);                                       // ahora sí: encima del primero
+    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
+    expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBe(6);
+  });
+
+  it('a pulso: la sala sale con la forma de la mano, sin un muro por cada pixel', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', ...cb2 });
+    down(svg, 0, 0);
+    for (const [x, y] of [[50, 0], [100, 0], [150, 0], [150, 50], [150, 100], [150, 150], [100, 150], [50, 150], [0, 150], [0, 100], [0, 50]]) move(svg, x!, y!);
+    up(svg);
+    const sides = cb2.onAddRoom.mock.calls[0]![0] as unknown[];
+    expect(sides.length).toBeGreaterThanOrEqual(3);
+    expect(sides.length).toBeLessThan(12);
+  });
+
+  it('la sala se ve crecer mientras se arrastra, y no se guarda hasta soltar', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'rect', ...cb2 });
+    down(svg, 0, 0); move(svg, 200, 150);
+    expect(within(svg).getByTestId('mp-walls').querySelectorAll('.mp-wall.draft')).toHaveLength(4);
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+  });
+
+  /** 🔒 Un polígono a medias se tira, no se monta a medias: una sala abierta no detiene ni la vista ni el paso. */
+  it('Escape y el botón derecho tiran el polígono a medias sin levantar nada', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
+    down(svg, 0, 0); down(svg, 200, 0);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(within(svg).getByTestId('mp-walls').querySelectorAll('.mp-wall.draft')).toHaveLength(0);
+    down(svg, 0, 0); down(svg, 200, 0);
+    fireEvent.contextMenu(svg, { clientX: 200, clientY: 0 });
+    down(svg, 3, 4);
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+  });
+
+  it('cambiar de forma a media sala descarta lo empezado', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg, rerender } = mount({ ...dm, wallShape: 'poly', ...cb2 });
+    down(svg, 0, 0); down(svg, 200, 0); down(svg, 200, 150);
+    rerender({ ...dm, wallShape: 'rect', ...cb2 });
+    down(svg, 3, 4);
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+  });
+
+  /** Viendo como jugador, el director no levanta nada: sus herramientas están apagadas (regresión del 02-09). */
+  it('viendo como jugador no se levanta ninguna sala', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, playerView: true, wallShape: 'rect', ...cb2 });
+    down(svg, 0, 0); move(svg, 200, 150); up(svg);
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+  });
+});

@@ -5,7 +5,7 @@ import { maskPath } from '../domain/useCases/layerRules';
 import { propPath } from '../domain/useCases/propRules';
 
 interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; created_at: string; updated_at: string }
-interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean }
+interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean; group_id: string | null }
 interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; bestiary_entry_id: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown>; layer_id: string | null }
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string; layer_id: string | null }
 interface LayerRow { id: string; scene_id: string; campaign_id: string; kind: LayerKind; name: string; sort_order: number; visible: boolean; locked: boolean; image_url: string | null; transform: BgTransform; mask_url: string | null; mask_version: number; created_at: string; updated_at: string }
@@ -15,7 +15,7 @@ interface PropRow { id: string; campaign_id: string | null; name: string; catego
 interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; created_at: string; updated_at: string }
 
 const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, created_at, updated_at';
-const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, kind, blocks_sight, blocks_move, is_open';
+const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, kind, blocks_sight, blocks_move, is_open, group_id';
 /** Defaults mirror the migration, so a row written before slice 2 still reads as a plain closed wall. */
 const DEFAULT_NIGHT_RADIUS_M = 10;
 const TOKEN_COLS = 'id, scene_id, campaign_id, character_id, bestiary_ref, bestiary_entry_id, name, image_url, x, y, size, color, visible, controlled_by, vision_radius, state, layer_id';
@@ -39,12 +39,18 @@ export const mapSceneRow = (r: SceneRow): Scene => ({
 export const mapWallRow = (r: WallRow): Wall => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, visiblePlayers: r.visible_players,
   kind: r.kind ?? 'wall', blocksSight: r.blocks_sight ?? true, blocksMove: r.blocks_move ?? true, isOpen: r.is_open ?? false,
+  groupId: r.group_id ?? null,
 });
 function wallPatchRow(p: WallPatch): Record<string, unknown> {
   const map: Record<string, string> = { visiblePlayers: 'visible_players', kind: 'kind', blocksSight: 'blocks_sight', blocksMove: 'blocks_move', isOpen: 'is_open' };
   const row: Record<string, unknown> = {};
   for (const [k, col] of Object.entries(map)) { const v = (p as Record<string, unknown>)[k]; if (v !== undefined) row[col] = v; }
   return row;
+}
+
+/** Las columnas de un muro nuevo. Las comparten el alta de uno y la de una sala entera. */
+function wallInsertRow(w: NewWall): Record<string, unknown> {
+  return { scene_id: w.sceneId, campaign_id: w.campaignId, x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2, group_id: w.groupId ?? null, ...wallPatchRow(w) };
 }
 export const mapTokenRow = (r: TokenRow): Token => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, characterId: r.character_id, bestiaryRef: r.bestiary_ref,
@@ -229,13 +235,48 @@ export class SupabaseMapsRepo implements MapsPort {
   }
   async addWall(w: NewWall): Promise<Wall> {
     const { data, error } = await this.db.from('maps_walls')
-      .insert({ scene_id: w.sceneId, campaign_id: w.campaignId, x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2, ...wallPatchRow(w) })
+      .insert(wallInsertRow(w))
       .select(WALL_COLS).single();
     this.fail(error);
     return mapWallRow(data as unknown as WallRow);
   }
+  /**
+   * UNA SALA ENTERA, EN UN SOLO INSERT (§ «Rebanada 8»). No es una optimización: escribiendo los muros uno a
+   * uno, si el enésimo falla se quedan puestos los anteriores y la sala queda ABIERTA — y por ese hueco se
+   * cuela la visión sin que nada lo cante. Un `insert` de varias filas es una sola sentencia: entran todas o
+   * no entra ninguna.
+   */
+  async addWalls(ws: NewWall[]): Promise<Wall[]> {
+    if (!ws.length) return [];
+    const { data, error } = await this.db.from('maps_walls').insert(ws.map(wallInsertRow)).select(WALL_COLS);
+    this.fail(error);
+    return ((data ?? []) as unknown as WallRow[]).map(mapWallRow);
+  }
   async updateWallGeometry(id: string, at: { x1: number; y1: number; x2: number; y2: number }): Promise<void> {
     const { error } = await this.db.from('maps_walls').update(at).eq('id', id);
+    this.fail(error);
+  }
+  /**
+   * ATAR O DESATAR MUROS (§ «EL GRUPO»). Un solo UPDATE con `in`: o quedan todos atados o ninguno, porque
+   * media selección agrupada y la otra media suelta no es un estado que él pueda entender ni deshacer.
+   */
+  async setWallsGroup(ids: string[], groupId: string | null): Promise<void> {
+    if (!ids.length) return;
+    const { error } = await this.db.from('maps_walls').update({ group_id: groupId }).in('id', ids);
+    this.fail(error);
+  }
+  /**
+   * MOVER O ESTIRAR UN GRUPO ENTERO (§ «EL GRUPO»). Un `upsert` de filas completas, que es una sola sentencia:
+   * un grupo a medio mover deja la forma rota en la base y el hueco por el que se cuela la visión.
+   *
+   * Van las filas enteras y no sólo las cuatro coordenadas porque un `upsert` parcial tendría que poder
+   * INSERTAR, y ahí faltarían las columnas obligatorias. Escribe el director y sólo él, así que no hay carrera
+   * que perder.
+   */
+  async updateWallsGeometry(walls: Wall[]): Promise<void> {
+    if (!walls.length) return;
+    const rows = walls.map(w => ({ id: w.id, ...wallInsertRow(w) }));
+    const { error } = await this.db.from('maps_walls').upsert(rows);
     this.fail(error);
   }
   /** DM only (RLS): opening or closing a door/window is an UPDATE on the segment. */

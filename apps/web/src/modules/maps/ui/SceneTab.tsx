@@ -17,6 +17,7 @@ import { MapCanvas, type StrokeStyle } from './MapCanvas';
 import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { SegmentBar } from './SegmentBar';
+import { type RoomShape } from '../domain/useCases/roomRules';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
@@ -104,6 +105,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [brush, setBrush] = useState<number>(DEFAULT_BRUSH);
   const [wallKind, setWallKind] = useState<WallKind>('wall');
+  /** Con qué forma levanta Builder. Arranca en `segment`: el Builder de siempre, sin sorpresas (§ «Rebanada 8»). */
+  const [wallShape, setWallShape] = useState<RoomShape>('segment');
   const [railFolded, setRailFolded] = useState(false);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [quickMenu, setQuickMenu] = useState<{ at: Point; scene: Point } | null>(null);
@@ -368,7 +371,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
-            playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
+            playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} wallShape={wallShape} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
             onAddText={async at => {
               const text = await dialog.prompt(t('maps.text.prompt'));
@@ -383,6 +386,11 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               // exactly where the doorway is.
               const plan = planOpening(st.walls, a, b, wallKind);
               run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind) }, plan.splits));
+            }}
+            onAddRoom={sides => {
+              // Una sala son MUROS de los de siempre (§ «Rebanada 8»): opacos, y ocultos al jugador como
+              // cualquier muro nuevo. Las puertas las abre él después, con el mismo disco.
+              run(st.addRoom(sides.map(sd => ({ sceneId: live.id, campaignId, ...sd, visiblePlayers: false, ...newWallOf('wall') }))));
             }}
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
@@ -475,6 +483,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           {isDm && (tool === 'wall' || selectedWall) && (
             <SegmentBar wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
               onKind={k => (selectedWall ? run(st.patchWall(selectedWall.id, { kind: k, ...WALL_FLAGS[k] })) : setWallKind(k))}
+              shape={wallShape} onShape={setWallShape}
               {...(selectedWall ? {
                 onVisible: (v: boolean) => run(st.patchWall(selectedWall.id, { visiblePlayers: v })),
                 onToggleOpen: () => run(st.patchWall(selectedWall.id, { isOpen: !selectedWall.isOpen })),

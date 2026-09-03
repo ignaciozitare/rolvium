@@ -4,6 +4,7 @@ import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Layer, Light, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, snap, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
+import { freehandSides, isDragShape, MIN_RING_POINTS, polygonSides, roomSides, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 
@@ -33,6 +34,8 @@ interface Props {
   brush: number;
   /** What the Muro tool draws next. Only a plain wall chains click-to-click; an opening is one segment and stop. */
   wallKind?: WallKind;
+  /** Con qué forma levanta Builder. `segment` es el de siempre —clic a clic— y no cambia (§ «Rebanada 8»). */
+  wallShape?: RoomShape;
   view: View;
   onViewChange: (v: View) => void;
   nameOf: (userId: string) => string;
@@ -46,6 +49,8 @@ interface Props {
   onAddDrawing: (kind: DrawingKind, data: Drawing['data']) => void;
   onErase: (id: string) => void;
   onAddWall: (a: Point, b: Point) => void;
+  /** Una sala entera de una vez: sus lados, ya en px de escena y listos para ser muros. */
+  onAddRoom?: (sides: RoomSide[]) => void;
   /** DM: open or close the door/window that was clicked. */
   onToggleWall: (wall: Wall) => void;
   /** DM: paint the fog at a scene point with the current brush radius (scene px). */
@@ -128,6 +133,10 @@ type Gesture =
   | { kind: 'lightMove'; id: string; start: Point; origin: Point; moved: boolean }
   /** Arrastrando un trazo. Lleva el desplazamiento, no un origen: cada forma guarda sus puntos a su manera. */
   | { kind: 'drawingMove'; id: string; start: Point; moved: boolean }
+  /** Levantando una sala a rastras: rectángulo y círculo. `start` es la primera esquina, o el centro. */
+  | { kind: 'room'; shape: 'rect' | 'circle'; start: Point }
+  /** Levantando una sala a pulso: los puntos por donde va pasando la mano. */
+  | { kind: 'roomFree'; points: Point[] }
   | { kind: 'marquee'; start: Point; last: Point }
   | { kind: 'measure' }
   /** Arrastrando la sonda de prueba. No lleva id: sólo hay una y no es de nadie. */
@@ -183,6 +192,10 @@ export function MapCanvas(p: Props): JSX.Element {
   /** Space held = pan, from ANY tool (the middle button already did this). Panning is a modifier, not a tool. */
   const [spacePan, setSpacePan] = useState(false);
   const [wallDraft, setWallDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  /** La sala que se está levantando, ya en lados. Se pinta mientras se arrastra y se guarda al soltar. */
+  const [roomDraft, setRoomDraft] = useState<RoomSide[]>([]);
+  /** Los vértices que lleva puestos el polígono. Se cierra pinchando otra vez sobre el primero. */
+  const [polyPoints, setPolyPoints] = useState<Point[]>([]);
   /** Dónde se está viendo la luz mientras se arrastra. Igual que `wallDraft`: se pinta ya, se guarda al soltar. */
   const [lightDraft, setLightDraft] = useState<{ id: string; x: number; y: number } | null>(null);
   /** Cuánto se lleva movido el trazo que se arrastra. Se pinta ya; se guarda al soltar. */
@@ -201,7 +214,9 @@ export function MapCanvas(p: Props): JSX.Element {
     const id = window.setTimeout(() => setPinShown(null), PIN_MS);
     return () => window.clearTimeout(id);
   }, [p.pin]);
-  useEffect(() => { if (p.tool !== 'wall') setWallStart(null); if (p.tool !== 'measure') setMeasure(null); }, [p.tool]);
+  useEffect(() => { if (p.tool !== 'wall') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); } if (p.tool !== 'measure') setMeasure(null); }, [p.tool]);
+  /** Cambiar de forma a media sala la descarta: los vértices de un polígono no valen para un círculo. */
+  useEffect(() => { setPolyPoints([]); setRoomDraft([]); setWallStart(null); }, [p.wallShape]);
   useEffect(() => { onDeleteRef.current = () => p.onDeleteSelection?.(); });
   useEffect(() => {
     /** Never steal the space bar from someone typing a scene name or a text drawing. */
@@ -217,7 +232,7 @@ export function MapCanvas(p: Props): JSX.Element {
     const onControl = (t: EventTarget | null): boolean =>
       !!(t as HTMLElement | null)?.closest?.('button, a[href], input, select, textarea, summary, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="radio"], [role="tab"], [contenteditable="true"]');
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setWallStart(null); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); return; }
+      if (e.key === 'Escape') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); return; }
       if (e.key === ' ' && !typing(e.target) && !onControl(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
     };
@@ -408,6 +423,35 @@ export function MapCanvas(p: Props): JSX.Element {
       case 'erase': { const hit = hitTest(p.drawings, s, 6 / p.view.zoom); if (hit && canEraseDrawing(hit, p.me, p.isDm)) p.onErase(hit.id); return; }
       case 'wall': {
         if (!dmSight) return;
+        const shape = p.wallShape ?? 'segment';
+        // Rectángulo y círculo se arrastran: la sala se ve crecer y se guarda al soltar.
+        if (isDragShape(shape)) {
+          setGesture({ kind: 'room', shape, start: s });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
+        // A pulso: se va guardando por dónde pasa la mano.
+        if (shape === 'free') {
+          setGesture({ kind: 'roomFree', points: [s] });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
+        // Polígono: un clic, un vértice. Se cierra pinchando otra vez encima del primero — el gesto que ya
+        // conoce todo el mundo, y así no hace falta un botón aparte ni un doble clic que compita con nada.
+        if (shape === 'poly') {
+          const v = { x: snap(s.x, grid), y: snap(s.y, grid) };
+          const first = polyPoints[0];
+          // Menos de media casilla, no una entera: los vértices están pegados a la rejilla, así que el vecino
+          // de al lado cae a exactamente `grid` del primero y con el tope en `grid` cerraba la sala en vez de
+          // poner el vértice — imposible hacer una L cuya última esquina caiga junto a la primera.
+          if (first && polyPoints.length >= MIN_RING_POINTS && Math.hypot(v.x - first.x, v.y - first.y) <= grid * 0.75) {
+            p.onAddRoom?.(polygonSides(polyPoints, grid));
+            setPolyPoints([]);
+            return;
+          }
+          setPolyPoints([...polyPoints, v]);
+          return;
+        }
         // Muro only BUILDS. Opening a door is the hover disc's job, which is what unblocks starting a wall next
         // to a door — that click used to open it instead (specs/modules/maps/SPEC.md § «Rebanada 3»).
         const q = { x: snap(s.x, grid), y: snap(s.y, grid) };
@@ -542,6 +586,12 @@ export function MapCanvas(p: Props): JSX.Element {
       setGesture(gesture.tool === 'stroke' ? { ...gesture, points: [...gesture.points, [s.x, s.y]], last: s } : { ...gesture, last: s });
     } else if (gesture.kind === 'marquee') {
       setGesture({ ...gesture, last: s });
+    } else if (gesture.kind === 'room') {
+      setRoomDraft(roomSides(gesture.shape, gesture.start, s, grid));
+    } else if (gesture.kind === 'roomFree') {
+      const points = [...gesture.points, s];
+      setGesture({ ...gesture, points });
+      setRoomDraft(freehandSides(points, grid));
     } else if (gesture.kind === 'wallEdit') {
       setWallDraft(wallDragTo(gesture.origin, gesture.grab, gesture.start, s, grid));
     } else if (gesture.kind === 'drawingMove') {
@@ -590,7 +640,7 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const onRightClick = (e: ReactPointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
     e.preventDefault();
-    if (wallStart || measure || gesture) { setWallStart(null); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); return; }
+    if (wallStart || measure || gesture || polyPoints.length) { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); return; }
     // Sobre algo, el menú es de ESE algo; en el suelo vacío, el de la vista. Sólo el director mueve capas.
     const s = toScene(e);
     const el = dmSight ? elementAt(s) : null;
@@ -610,6 +660,15 @@ export function MapCanvas(p: Props): JSX.Element {
     if (gesture.kind === 'probe') { setGesture(null); return; }
     // El PNG de la máscara sube UNA vez, al soltar: un guardado por pincelada, no cien.
     if (gesture.kind === 'mask') { setGesture(null); p.onPaintMaskEnd?.(); return; }
+    // La sala se escribe al soltar, no mientras se arrastra: si no, cada píxel del gesto sería una escritura.
+    if (gesture.kind === 'room') {
+      p.onAddRoom?.(roomSides(gesture.shape, gesture.start, hover ?? gesture.start, grid));
+      setRoomDraft([]); setGesture(null); return;
+    }
+    if (gesture.kind === 'roomFree') {
+      p.onAddRoom?.(freehandSides(gesture.points, grid));
+      setRoomDraft([]); setGesture(null); return;
+    }
     if (gesture.kind === 'wallEdit') {
       const at = wallDragTo(gesture.origin, gesture.grab, gesture.start, hover ?? gesture.start, grid);
       const moved = at.x1 !== gesture.origin.x1 || at.y1 !== gesture.origin.y1 || at.x2 !== gesture.origin.x2 || at.y2 !== gesture.origin.y2;
@@ -763,6 +822,11 @@ export function MapCanvas(p: Props): JSX.Element {
           <g className="mp-layer-walls" data-testid="mp-walls">
             {wallsShown.map(w => <WallShape key={w.id} wall={w} selected={w.id === p.selectedWallId} draft={wallDraft && w.id === p.selectedWallId ? wallDraft : null} />)}
             {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={snap(hover.x, grid)} y2={snap(hover.y, grid)} className="mp-wall draft" />}
+            {roomDraft.map((r, i) => <line key={`room-${i}`} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} className="mp-wall draft" />)}
+            {p.tool === 'wall' && polyPoints.map((v, i) => {
+              const next = polyPoints[i + 1] ?? (hover ? { x: snap(hover.x, grid), y: snap(hover.y, grid) } : v);
+              return <line key={`poly-${i}`} x1={v.x} y1={v.y} x2={next.x} y2={next.y} className="mp-wall draft" />;
+            })}
           </g>
           <g className="mp-layer-drawings" data-testid="mp-drawings">
             {drawingsShown.map(d => (

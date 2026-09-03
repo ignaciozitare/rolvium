@@ -325,7 +325,7 @@ export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId:
 export const TOKEN_ELIAS: Token = { ...TOKEN_KAREN, id: 'tk-elias', characterId: 'ch-elias', name: 'Elías Vance', x: 8, y: 12, color: '#3a3a26', controlledBy: 'u-nix' };
 /** A hidden mutant placed by the DM (players never receive it). */
 export const TOKEN_MUTANT: Token = { ...TOKEN_KAREN, id: 'tk-mut', characterId: null, bestiaryRef: 'mutant', name: 'Mutante', x: 20, y: 9, color: null, visible: false, controlledBy: null, state: { resistance: 12 } };
-export const WALL_1: Wall = { id: 'w-1', sceneId: 'sc-1', campaignId: 'c1', x1: 270, y1: 216, x2: 270, y2: 540, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false };
+export const WALL_1: Wall = { id: 'w-1', sceneId: 'sc-1', campaignId: 'c1', x1: 270, y1: 216, x2: 270, y2: 540, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, groupId: null };
 export const WALL_VISIBLE: Wall = { ...WALL_1, id: 'w-2', x1: 270, y1: 540, x2: 540, y2: 540, visiblePlayers: true };
 /** A closed door across the corridor: cuts sight and movement until the DM opens it. */
 export const WALL_DOOR: Wall = { ...WALL_1, id: 'w-door', x1: 540, y1: 216, x2: 540, y2: 324, kind: 'door' };
@@ -377,6 +377,8 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const sceneUpdates: { id: string; patch: ScenePatch }[] = [];
   const wallUpdates: { id: string; patch: WallPatch }[] = [];
   const wallMoves: { id: string; at: { x1: number; y1: number; x2: number; y2: number } }[] = [];
+  const wallGroupings: { ids: string[]; groupId: string | null }[] = [];
+  const wallBatchMoves: string[][] = [];
   const activated: (string | null)[] = [];
   const removedDrawings: string[] = [];
   const clearedMine: string[] = [];
@@ -392,7 +394,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const masksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallBatchMoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -407,10 +409,14 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     uploadImage: async (campaignId: string, _file: Blob, name: string) => { uploads.push({ campaignId, name }); const img: ImageAsset = { id: `img-new-${++n}`, campaignId, name, url: `https://x/backgrounds/${campaignId}/${name}.png`, createdAt: '' }; images.unshift(img); return img; },
     removeImage: async (id: string) => { const i = images.findIndex(x => x.id === id); if (i >= 0) images.splice(i, 1); },
     listWalls: async (sid: string) => walls.filter(w => w.sceneId === sid),
-    addWall: async (w: NewWall) => { const created: Wall = { ...w, id: `w-new-${++n}` }; walls.push(created); return created; },
+    addWall: async (w: NewWall) => { const created: Wall = { groupId: null, ...w, id: `w-new-${++n}` }; walls.push(created); return created; },
+    // Todas o ninguna, como el INSERT de varias filas del adaptador real.
+    addWalls: async (ws: NewWall[]) => { const made = ws.map(w => ({ groupId: null, ...w, id: `w-new-${++n}` }) as Wall); walls.push(...made); return made; },
     updateWall: async (id: string, patch: WallPatch) => { wallUpdates.push({ id, patch }); const w = walls.find(x => x.id === id); if (w) Object.assign(w, patch); },
     updateWallGeometry: async (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => { wallMoves.push({ id, at }); const w = walls.find(x => x.id === id); if (w) Object.assign(w, at); },
     removeWall: async (id: string) => { const i = walls.findIndex(w => w.id === id); if (i >= 0) walls.splice(i, 1); },
+    setWallsGroup: async (ids: string[], groupId: string | null) => { wallGroupings.push({ ids, groupId }); for (const w of walls) if (ids.includes(w.id)) w.groupId = groupId; },
+    updateWallsGeometry: async (batch: Wall[]) => { wallBatchMoves.push(batch.map(w => w.id)); for (const b of batch) { const w = walls.find(x => x.id === b.id); if (w) Object.assign(w, { x1: b.x1, y1: b.y1, x2: b.x2, y2: b.y2 }); } },
     listTokens: async (sid: string) => tokens.filter(t => t.sceneId === sid),
     addToken: async (t: NewToken) => { const created: Token = { layerId: null, ...t, id: `tk-new-${++n}` }; tokens.push(created); return created; },
     updateToken: async (id: string, patch: TokenPatch) => { tokenUpdates.push({ id, patch }); const t = tokens.find(x => x.id === id); if (t) Object.assign(t, patch); },

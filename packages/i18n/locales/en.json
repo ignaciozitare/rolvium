@@ -990,6 +990,18 @@
       "sizeCells": "{{n}} cells",
       "sizeCell": "1 cell",
       "hardness": "Edge hardness"
+    },
+    "room": {
+      "shapeOf": "Shape",
+      "shape": {
+        "segment": "Segment",
+        "rect": "Rectangle",
+        "circle": "Circle",
+        "poly": "Polygon",
+        "free": "Freehand"
+      },
+      "polyHint": "one click, one corner · click the first one again to close the room",
+      "dragHint": "drag to raise the room · it is built when you let go"
     }
   },
   "bestiary": {

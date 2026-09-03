@@ -52,8 +52,17 @@ export interface Wall {
   blocksSight: boolean;
   blocksMove: boolean;
   isOpen: boolean;
+  /**
+   * EL GRUPO (§ «Rebanada 8»): ata entre sí los muros que salieron de UN gesto, o que el director juntó a mano.
+   * `null` = muro suelto, que es lo que son todos los de antes de que esto existiera.
+   *
+   * 🔑 NO es una habitación. Marcando sobre una foto no hay suelo ni textura: hay muros. Un círculo son once
+   * muros que para él son UNA cosa, y puede acabar siendo una sala, un pilar o un estanque — al grupo le da igual.
+   */
+  groupId: string | null;
 }
-export type NewWall = Omit<Wall, 'id'>;
+/** Al crear, el grupo es opcional: un muro suelto no lo lleva, y el camino de siempre no tuvo que enterarse. */
+export type NewWall = Omit<Wall, 'id' | 'groupId'> & { groupId?: string | null };
 export type WallPatch = Partial<Pick<Wall, 'visiblePlayers' | 'kind' | 'blocksSight' | 'blocksMove' | 'isOpen'>>;
 
 /** A PC or a bestiary instance. `x`/`y`/`size` are in grid cells (top-left cell). */

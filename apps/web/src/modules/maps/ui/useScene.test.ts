@@ -122,6 +122,126 @@ describe('useScene · una abertura parte TODOS los muros que pisa', () => {
 });
 
 /**
+ * 🏗 UNA SALA ENTERA DE GOLPE (§ «Rebanada 8»). Lo que se ata aquí es lo que el dueño pidió con nombre el
+ * 2026-09-03: que la niebla funcione igual con lo levantado en Builder. Sale gratis porque son muros normales
+ * —sin tabla propia, sin marca propia— pero «sale gratis» es justo lo que se rompe sin que nadie se entere.
+ */
+describe('useScene · Builder levanta la sala de una vez', () => {
+  const lado = (x1: number, y1: number, x2: number, y2: number) =>
+    ({ sceneId: SCENE_WAREHOUSE.id, campaignId: SCENE_WAREHOUSE.campaignId, x1, y1, x2, y2, visiblePlayers: false, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false });
+  const sala = [lado(0, 0, 270, 0), lado(270, 0, 270, 189), lado(270, 189, 0, 189), lado(0, 189, 0, 0)];
+
+  it('los cuatro lados acaban en la base y en la pantalla, opacos', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+
+    expect(result.current.walls).toHaveLength(4);
+    expect(repo.walls).toHaveLength(4);
+    for (const w of result.current.walls) {
+      expect(w.blocksSight).toBe(true);
+      expect(w.blocksMove).toBe(true);
+      expect(w.kind).toBe('wall');
+    }
+  });
+
+  /** La visión se calcula en el servidor: si nadie se lo cuenta, la sala nueva no tapa nada hasta el refresco. */
+  it('avisa al servidor de que la visión ha cambiado', async () => {
+    const vision = fakeVisionPort({});
+    const result = await mount(fakeMapsRepo({ tokens: [TOKEN_KAREN] }), vision);
+    const antes = vision.calls.length;
+    await act(async () => { await result.current.addRoom(sala); });
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(antes));
+  });
+
+  /**
+   * 🔒 O la sala entera o nada. Escribiendo muro a muro, si fallaba el enésimo se quedaban puestos los
+   * anteriores: la sala quedaba ABIERTA, la visión se colaba por el hueco y lo único que avisaba era el
+   * banner genérico de error. Ahora es una sola escritura, así que no hay estado intermedio que se quede.
+   */
+  it('si la escritura falla, no queda media sala abierta', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    repo.addWalls = async () => { throw new Error('sin conexión'); };
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await expect(result.current.addRoom(sala)).rejects.toThrow('sin conexión'); });
+    expect(repo.walls).toHaveLength(0);
+    expect(result.current.walls).toHaveLength(0);
+  });
+
+  /**
+   * 🧩 EL GRUPO (§ «EL GRUPO»), pedido por él el 2026-09-03 sobre una foto de mapa: los once muros del círculo
+   * son UNA cosa. Aquí se ata que nacen atados — de ahí sale que un clic los coja todos.
+   */
+  it('los muros de un gesto nacen atados entre sí, con el mismo grupo', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const grupos = new Set(repo.walls.map(w => w.groupId));
+    expect(grupos.size).toBe(1);
+    expect([...grupos][0]).toBeTruthy();
+  });
+
+  it('dos gestos son dos grupos distintos: no se contagian', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    await act(async () => { await result.current.addRoom(sala.map(s => ({ ...s, x1: s.x1 + 400, x2: s.x2 + 400 }))); });
+    expect(new Set(repo.walls.map(w => w.groupId)).size).toBe(2);
+  });
+
+  /** 🔒 Su elección: sin agrupar a mano, todo lo que lleva meses marcando se quedaba fuera del invento. */
+  it('agrupa a mano muros que ya estaban sueltos, y los suelta otra vez', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addWall(sala[0]!); await result.current.addWall(sala[1]!); });
+    const ids = repo.walls.map(w => w.id);
+    let grupo: string | null = null;
+    await act(async () => { grupo = await result.current.groupWalls(ids); });
+    expect(grupo).toBeTruthy();
+    expect(repo.walls.every(w => w.groupId === grupo)).toBe(true);
+    expect(repo.wallGroupings[0]).toEqual({ ids, groupId: grupo });
+
+    await act(async () => { await result.current.ungroupWalls(grupo!); });
+    expect(repo.walls.every(w => w.groupId === null)).toBe(true);
+  });
+
+  it('un muro solo no forma grupo: hacen falta dos', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addWall(sala[0]!); });
+    let grupo: string | null = 'x';
+    await act(async () => { grupo = await result.current.groupWalls([repo.walls[0]!.id]); });
+    expect(grupo).toBeNull();
+    expect(repo.wallGroupings).toHaveLength(0);
+  });
+
+  /** 🔒 Mover o estirar el grupo va en UNA escritura: a medio mover queda la forma rota y se cuela la visión. */
+  it('mueve el grupo entero de una vez, y avisa a la visión', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const vision = fakeVisionPort({});
+    const result = await mount(repo, vision);
+    await act(async () => { await result.current.addRoom(sala); });
+    const antes = vision.calls.length;
+    const movidos = repo.walls.map(w => ({ ...w, x1: w.x1 + 50, x2: w.x2 + 50 }));
+    await act(async () => { await result.current.transformWalls(movidos); });
+    expect(repo.wallBatchMoves).toHaveLength(1);
+    expect(repo.wallBatchMoves[0]).toHaveLength(4);
+    expect(repo.walls[0]!.x1).toBe(sala[0]!.x1 + 50);
+    expect(result.current.walls[0]!.x1).toBe(sala[0]!.x1 + 50);
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(antes));
+  });
+
+  /** Un gesto demasiado pequeño llega aquí como lista vacía: no se escribe nada ni se molesta al servidor. */
+  it('una sala vacía no escribe nada', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom([]); });
+    expect(repo.walls).toHaveLength(0);
+    expect(result.current.walls).toHaveLength(0);
+  });
+});
+
+/**
  * LA MEMORIA DE LA SONDA (§ 7.3), decisión cerrada del dueño: «que quede en memoria, si es sólo para probar».
  * El servidor contesta lo que se ve DESDE EL PUNTO —no una memoria— y quien la acumula es esta pantalla,
  * que la tira al quitar la sonda. **Nada de esto se escribe en la base.**

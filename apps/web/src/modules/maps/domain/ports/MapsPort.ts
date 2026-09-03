@@ -47,11 +47,26 @@ export interface MapsPort {
   // walls
   listWalls(sceneId: string): Promise<Wall[]>;
   addWall(input: NewWall): Promise<Wall>;
+  /**
+   * DM: UNA SALA ENTERA de una vez (§ «Rebanada 8»). Existe aparte de `addWall` porque una sala a la que le
+   * falta un lado NO es una sala: por el hueco se cuela la visión. Entran todos sus muros o no entra ninguno.
+   */
+  addWalls(inputs: NewWall[]): Promise<Wall[]>;
   /** DM only: open/close a door or window, or change what a segment is. */
   updateWall(id: string, patch: WallPatch): Promise<void>;
   /** DM only: the segment was moved or a vertex stretched with Seleccionar. */
   updateWallGeometry(id: string, at: { x1: number; y1: number; x2: number; y2: number }): Promise<void>;
   removeWall(id: string): Promise<void>;
+  /**
+   * DM: ata o desata un puñado de muros (§ «EL GRUPO»). `groupId` a `null` los deja sueltos otra vez.
+   * Es UNA sentencia: agrupar media selección y dejar la otra media suelta no es un estado que exista.
+   */
+  setWallsGroup(ids: string[], groupId: string | null): Promise<void>;
+  /**
+   * DM: la geometría de varios muros a la vez — mover o estirar un grupo entero (§ «EL GRUPO»).
+   * Va aparte de `updateWallGeometry` porque un grupo a medio mover deja la forma rota en la base.
+   */
+  updateWallsGeometry(walls: Wall[]): Promise<void>;
   // tokens
   listTokens(sceneId: string): Promise<Token[]>;
   addToken(input: NewToken): Promise<Token>;

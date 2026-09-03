@@ -5,6 +5,7 @@ import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import { unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
 import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
+import { newGroupId } from '../domain/useCases/groupRules';
 
 export interface LiveDrag { tokenId: string; x: number; y: number }
 export interface LivePin { x: number; y: number; by: string; at: number }
@@ -313,6 +314,58 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     announceVision();
     return created;
   }, [repo, announceVision]);
+  /**
+   * UNA HABITACIÓN DE GOLPE (§ «Rebanada 8»): N muros normales escritos de una vez.
+   *
+   * No hay entidad «habitación», a propósito — lo levantado se edita, se abre en puerta, se parte y se borra
+   * muro a muro con todo lo que ya existe, y la niebla lo tiene en cuenta sin enterarse de que salió de aquí.
+   *
+   * Y no pasa por `planOpening`: una sala se LEVANTA, no abre huecos. Las puertas las abre él después, con el
+   * mismo disco de siempre.
+   */
+  const addRoom = useCallback(async (sides: NewWall[]) => {
+    if (!sides.length) return [];
+    // 🧩 Los muros de UN gesto nacen ATADOS (§ «EL GRUPO»): once muros en círculo son una cosa, y de ahí sale
+    // que un clic los coja todos y que se muevan y se estiren juntos. Un muro suelto sigue naciendo suelto —
+    // el Builder de siempre, clic a clic, no pasa por aquí y no se ha tocado.
+    const groupId = newGroupId();
+    // De una sola vez, y a propósito: uno a uno, si falla el enésimo lado la sala se queda ABIERTA y por ahí
+    // se cuela la visión, avisando sólo con el banner genérico. `addWalls` los mete todos o ninguno.
+    const created = await repo.addWalls(sides.map(w => ({ ...w, groupId })));
+    // Realtime may have brought any of them back already while the batch was in flight.
+    setWalls(l => [...l.filter(x => !created.some(c => c.id === x.id)), ...created]);
+    announceVision();
+    return created;
+  }, [repo, announceVision]);
+  /**
+   * ATAR A MANO lo que ya estaba marcado (§ «EL GRUPO»). Su elección del 2026-09-03: sin esto, todos los muros
+   * que lleva meses marcando sobre fotos se quedaban fuera del invento para siempre.
+   */
+  const groupWalls = useCallback(async (ids: string[]) => {
+    if (ids.length < 2) return null;
+    const groupId = newGroupId();
+    setWalls(l => l.map(w => (ids.includes(w.id) ? { ...w, groupId } : w)));
+    await repo.setWallsGroup(ids, groupId);
+    return groupId;
+  }, [repo]);
+  /** SOLTAR: deshace el grupo y deja los muros sueltos, cada uno por su cuenta. La geometría no se toca. */
+  const ungroupWalls = useCallback(async (groupId: string) => {
+    const ids = walls.filter(w => w.groupId === groupId).map(w => w.id);
+    if (!ids.length) return;
+    setWalls(l => l.map(w => (w.groupId === groupId ? { ...w, groupId: null } : w)));
+    await repo.setWallsGroup(ids, null);
+  }, [repo, walls]);
+  /**
+   * MOVER O ESTIRAR un grupo entero (§ «EL GRUPO»). Una sola escritura: un grupo a medio mover deja la forma
+   * rota y el hueco por el que se cuela la visión — el mismo fallo que ya nos mordió con `addRoom`.
+   */
+  const transformWalls = useCallback(async (batch: Wall[]) => {
+    if (!batch.length) return;
+    const byId = new Map(batch.map(w => [w.id, w]));
+    setWalls(l => l.map(w => byId.get(w.id) ?? w));
+    await repo.updateWallsGeometry(batch);
+    announceVision();
+  }, [repo, announceVision]);
   const removeWall = useCallback(async (id: string) => { setWalls(l => l.filter(w => w.id !== id)); await repo.removeWall(id); announceVision(); }, [repo, announceVision]);
   /** DM: open/close a door or window. The players cannot learn it from `postgres_changes`, so this announces it. */
   const patchWall = useCallback(async (id: string, patch: WallPatch) => {
@@ -432,8 +485,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
-    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin,
+    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWall, patchWall, patchWallGeometry, focusPin,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }

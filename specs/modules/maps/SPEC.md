@@ -942,12 +942,58 @@ Le enseñé dos intentos y tumbó los dos. Lo que dijo, literal, y lo que signif
 >   necesita entidad propia para las PAREDES.
 > - **Las texturas sólo tienen sentido en B.** Marcando sobre una foto, el suelo ya lo pone la foto. El panel
 >   tiene que dejar claro en cuál de las dos estás, o la mitad de los controles no significa nada.
+>
+> ✅ **CONFIRMADO POR ÉL el 2026-09-03**, con estas palabras: *«los muros, puertas y ventanas de ahora quedan
+> como están a nivel funcional; los utilizo en el caso de que diseñe un mapa con otra herramienta, lo importe
+> y marque los muros, puertas y ventanas. El constructor que estamos haciendo ahora es para hacer mapas
+> relativamente sencillos en Rolvium, y la niebla de batalla debe funcionar con estas construcciones
+> también.»*
+>
+> 🔒 De ahí salen dos cosas que ya no se discuten:
+> - **A no se toca a nivel funcional.** Ni una línea. Es la vía para mapas traídos de fuera.
+> - **La niebla de guerra tiene que funcionar igual con lo levantado en B.** Sale gratis por la decisión de
+>   que una habitación produce **muros normales** (`maps_walls`, `blocksSight`/`blocksMove`): la visión se
+>   calcula en el servidor contra todos los muros, sin mirar quién los puso. **Es un requisito con nombre, y
+>   por tanto lleva test propio**: una sala generada tapa la vista exactamente igual que un muro marcado a
+>   mano sobre una foto.
 
-### ⏳ BLOQUEADO: LAS «PSEUDO TEXTURAS BASE»
+### ✅ RESUELTO: LAS «PSEUDO TEXTURAS BASE» SON PREAJUSTES (captura recibida el 2026-09-03)
+
 Preguntó: *«¿puedes agregar estas opciones, como las de la herramienta que te pasé, a nivel pseudo texturas
-base?»* — con una captura. **La captura no llegó nunca: la API rechazó las tres que mandó por tamaño, y a
-mitad de sesión dejaron de funcionar las imágenes en los dos sentidos.** Queda SIN CONTESTAR y es lo primero
-que hay que retomar en un chat nuevo, donde las imágenes vuelven a funcionar.
+base?»* La captura llegó por fin: es el panel **«Ajustes preestablecidos de mazmorra»** de Dungeon Scrawl —
+una rejilla de miniaturas, cada una enseñando **la esquina de una sala de verdad** (relleno de la pared +
+suelo + rejilla), con nombre debajo: *Classic Hatching · Old School Module · Ancient Map · Gray Hatching ·
+Interior Wall Fill · Rough Cavern · Classic Gray · Simple Walls · Black and White · Fog of War*.
+
+**Qué significa, traducido a nuestro modelo:** un preajuste **no es una textura**, es **la pareja de texturas
+base de golpe** — rellena a la vez el relleno de pared y el suelo de toda la escena, y de paso cómo se ve la
+rejilla. Es exactamente la capa que faltaba encima de lo ya escrito:
+
+| Nivel | Qué elige | Alcance |
+|---|---|---|
+| **1 · Preajuste** | Las dos de golpe, con un clic | Toda la escena |
+| **2 · Las dos texturas base** | Pared y suelo por separado, o una foto suya (`+ Subir`) | Toda la escena |
+| **3 · Una sala distinta** | Se pinta encima con el pincel, en dos pasos | Una habitación |
+
+**Decisiones que se toman aquí** (y que el diseño v3 ya refleja):
+- Los preajustes son **nuestros y en castellano**, no una copia de sus nombres — regla suya de no copiar su
+  interfaz: *Rayado clásico · Módulo antiguo · Mapa antiguo · Rayado gris · Muro relleno · Caverna · Gris
+  clásico · Muros simples · Tinta*. Nueve, en rejilla de 3×3, como en su captura.
+- La miniatura **enseña una esquina de sala montada**, no un cuadrado de color: es lo que hace legible la
+  diferencia entre «rayado» y «relleno» de un vistazo.
+- Un preajuste **rellena** los dos huecos de nivel 2; en cuanto él cambie uno a mano, manda el suyo. El
+  preajuste no bloquea nada.
+- «Fog of War» de su captura **no se copia**: la niebla ya es nuestra (§ Rebanada 2 y § 7.4) y no es un
+  estilo de dibujo.
+- 🖌 **AL MENOS UN ESTILO TIENE QUE SER DE TRAZO A MANO ALZADA.** Corrección suya del 2026-09-03 viendo el
+  primer intento de la rejilla: *«todos los trazos de todos los estilos son realmente rectos, ninguno parece
+  a mano alzada; no digo que todos tengan que ser así pero al menos uno sí»*. Y mandó el lienzo de Dungeon
+  Scrawl a tamaño grande: el «Classic Hatching» **no es un rayado de tiralíneas**, son **trazos cortos,
+  gruesos y desiguales** apelotonados contra el muro, con el borde de fuera irregular. Eso es lo que hay que
+  reproducir, no líneas paralelas perfectas.
+  - `Rayado clásico` y `Rayado gris` pasan a trazo corto irregular (ángulo y largo con variación).
+  - Entra `Trazo a mano`, con el **contorno del muro tembloroso**, y sale `Gris clásico`, que era el menos
+    distinguible de la lista. Si él lo quiere de vuelta, la rejilla crece a diez.
 
 ### 🟠 LO QUE HACE FALTA QUE ÉL DECIDA (y por qué no lo decido yo)
 1. **¿Puertas automáticas?** Una habitación cerrada sin puertas no se puede usar. ¿Se abre un hueco donde él
@@ -962,25 +1008,127 @@ que hay que retomar en un chat nuevo, donde las imágenes vuelven a funcionar.
 4. **Qué «tipos» hay.** Él dijo «elegir tipo de habitación/mazmorra». Hoy el motor sabe hacer **rectángulo** y
    **círculo**. ¿Hacen falta más (pasillo, cruz, sala con columnas), o con esos dos empieza?
 5. **¿Los muros generados nacen visibles para el jugador?** Los muros tienen ese interruptor y aquí importa.
-6. **🆕 ¿Habitación como entidad, o pintar el suelo a mano?** La decisión (a)/(b) del apartado de texturas.
-   Es la más gorda de las seis: la (a) obliga a tabla, migración y DBA; la (b) reaprovecha las capas de
-   terreno que ya existen y se puede empezar mañana.
+6. **✅ RESUELTA (2026-09-03) — LA SALA LLEVA SU SUELO.** Sus palabras: «*sí, lleva su suelo pero con un
+   matiz: tiene de base el suelo que seleccionas cuando comienzas a dibujar, luego puedo poner con un pincel
+   otra textura a ese suelo, o pongo otra capa y juego ahí con transparencias, lo que me haga falta*».
+   - **Una sala ES una entidad**, con su contorno y su suelo. Se acabó la opción (b).
+   - **El suelo base no se elige después: se hereda del momento de dibujar.** La textura que esté puesta
+     cuando empieza el trazo es la que se queda. Por eso los **preajustes** tienen sentido — eligen las dos
+     texturas base de golpe y a partir de ahí todo lo que levante sale con ellas.
+   - **Encima del suelo base NO se inventa nada nuevo**: el pincel de textura y las **capas de terreno con
+     transparencia que ya existen** (§ 7.1) siguen siendo el camino para todo lo demás. La sala mete un suelo
+     DEBAJO de lo que ya había; no lo reemplaza.
+   - ⛔ **Va tabla + migración, y pasa por el DBA antes de una línea de código de salas.**
+   - 🔒 **Esto es del modo «Dibujar aquí» y de nadie más.** Marcando sobre una foto no hay suelo que guardar:
+     el suelo es la foto.
 7. **🆕 ¿Las dos texturas de base son de la ESCENA o de la campaña?** Si son de la escena, cada mapa lleva las
    suyas; si son de la campaña, se eligen una vez y valen para todas. La segunda es menos trabajo para él y
    menos flexible.
 
-### Modelo de datos
-**Para las paredes, ninguno nuevo**: se escriben filas en `maps_walls` con `kind: 'wall'`, que es lo que ya
-hace la herramienta.
+### 🧩 EL GRUPO — modo «Sobre una foto» (decidido el 2026-09-03)
 
-**Para las texturas, depende de su respuesta a la pregunta 6.** Con la opción (b) tampoco hace falta nada
-nuevo —las capas de terreno con máscara ya existen (§ 7.1)—; con la (a) sí: una tabla de habitaciones con su
-contorno, y las texturas colgando de ella. **En cuanto conteste, esto pasa por el DBA antes de tocar código.**
+> **Esto NO son salas y no tiene nada que ver con la pregunta 6.** Marcando muros sobre una foto no hay suelo,
+> ni textura, ni preajuste: hay muros. Confundir las dos cosas fue el error de la sesión anterior y es lo que
+> hizo que el interruptor de modo se quedara sin construir «por culpa de la 6», cuando no dependía de ella.
+
+Lo que pidió, con la herramienta del círculo puesta sobre una foto de mapa: «*no puedo arrastrar y seleccionar
+por grupo*» · «*debería poder seleccionarlo entero y luego con doble clic por pedacitos, si no, cuando esté en
+medio de otras cosas no se podrá mover*» · «*cuando lo seleccione debería poder escalarlo*».
+
+- **Qué es un grupo**: los muros que salen de UN gesto. Un círculo son once muros y para él son **una cosa**.
+  Puede acabar siendo el contorno de una sala, un pilar o un estanque — al grupo le da igual, y por eso **no
+  se llama sala**. Nombre elegido por él: **«Grupo»**.
+- **Un clic coge el grupo entero. Doble clic entra dentro** y ya se coge el muro suelto, como hoy.
+- **Cogido, se mueve y SE ESCALA.** Escalar afecta sólo a la geometría de sus muros; puertas y ventanas que
+  vivan en ellos se mantienen en proporción.
+- **Se guarda.** Tiene que aguantar abrir una puerta, mover una pared, recargar y volver mañana. Adivinarlo
+  cada vez mirando qué muros se tocan se rompe justo cuando más se usa.
+- **Se puede agrupar a mano** (elección suya): coge varios muros por área y los ata él. Sin eso, todo lo que ya
+  tiene marcado en sus mapas se quedaba suelto para siempre.
+- **La selección por área tiene que coger muros.** Hoy `tokensInRect` coge **sólo fichas**
+  (`MapCanvas.tsx`, gesto `marquee`) — no está roto, es que nunca se hizo para muros.
+- 🎨 **Sin dibujar todavía**: cómo se ve un grupo cogido (marco, tiradores para escalar, qué enseña la barra
+  mientras). No está en el v3 y va al `.pen` antes de tocar código.
+
+### Modelo de datos
+**Para las paredes sueltas, ninguno nuevo**: se escriben filas en `maps_walls` con `kind: 'wall'`, que es lo que
+ya hace la herramienta.
+
+**Para el GRUPO, sí hace falta algo**: los muros de un mismo gesto tienen que quedar atados, y tiene que
+sobrevivir a recargar. Es una marca compartida en `maps_walls`, no una tabla de salas. **Pasa por el DBA antes
+de tocar código.**
+
+**Para la SALA con su suelo (pregunta 6, ya contestada)**: tabla de habitaciones con su contorno y su textura
+base, con las capas de terreno existentes por encima. **Pasa por el DBA antes de tocar código.**
+
+### 🎨 EL DISEÑO v3 (2026-09-03) — pendiente de su ok
+
+Tercer intento, en `rolvium.pen`, banda 5. **Dos frames, porque el panel cambia según el modo:**
+
+- `PL/Builder · panel ← v3 (modo + preajustes)` (`ePNCc`) — modo **«Dibujar aquí»**, el panel entero (300×650).
+- `PL/Builder · panel ← v3 · modo SOBRE UNA FOTO` (`zpsjH`) — el mismo panel marcando sobre una foto: se
+  caen los preajustes, las dos texturas base y el pincel de sala, porque ahí el suelo lo pone la foto.
+
+Qué corrige respecto del v2, correción por corrección:
+
+| Suya | Cómo queda en el v3 |
+|---|---|
+| 1 · «es el mismo Builder» | Se llama **Builder**; muro · puerta · ventana intactos y con la nota «se abren con el mismo disco» al lado |
+| 2 · «el icono que habíamos quedado» | `builder-mask.png`, el suyo de verdad, metido como relleno de imagen en la cabecera |
+| 3 · «respeta los colores» | Rojo sangre sólo en acciones (`CAMBIAR`, `+ SUBIR`, `QUITAR`); negro sólo en lo seleccionado |
+| 4 · «falta el tema de aberturas» | Fila de siempre + nota explícita de que se abren con el mismo disco |
+| 5 · «te quedas corto con rectángulos» | Seis formas: a mano · recta · rectángulo · círculo · polígono · a pulso |
+| 6 · «no me queda claro cómo cambio la textura» | Tres niveles visibles en el propio panel: preajuste → las dos base → pincel por sala, con los dos pasos escritos |
+| 7 · «no sé si faltan herramientas» | Abierto todavía; con las seis formas y los tres niveles, lo que falte ya se ve sobre el panel |
+| 🔑 «son dos maneras que conviven» | **Sección nueva arriba del todo**, con dos miniaturas de verdad: una foto con muros marcados encima, y una sala levantada en la app. Es lo primero que se ve al abrir el panel |
+
+**Segunda pasada del 2026-09-03**, después de que dijera que la rejilla era «un adefesio»: las miniaturas ya no
+son un marco de cuadro con un borde alrededor, sino **la esquina de un mapa** — el muro entra en L por arriba
+y por la izquierda y el suelo se sale por abajo y por la derecha, con su rejilla de casillas. Es lo que hace
+que se distinga de un vistazo un rayado de un relleno. Y los dos rayados pasan a **trazo a mano**, más
+`Trazo a mano` con el contorno tembloroso.
 
 ### Estado
-- ✅ **Motor construido y probado** (`domain/useCases/roomRules.ts`): rectángulo y círculo → segmentos de muro,
-  pegados a la rejilla, sin pantalla y sin tocar nada de lo que ya funciona.
-- ⛔ **Interfaz: SIN EMPEZAR, y a propósito.** Falta su confirmación de este spec y el diseño en el `.pen`.
+- ✅ **Motor completo** (`domain/useCases/roomRules.ts`): rectángulo, círculo, **polígono** y **a pulso**.
+  - **Polígono**: los VÉRTICES se pegan a la rejilla, los LADOS no → una pared puede ir a cualquier ángulo
+    (su punto 5) y a la vez dos salas contiguas encajan sin rendijas de medio píxel por donde se cuela la vista.
+  - **A pulso**: NO se pega a la rejilla —pegado saldría una escalera— y se limpia el temblor del ratón, o
+    cada trazo dejaría cientos de muros que recalcular en cada refresco de la visión.
+    - 🔧 **Corregido el 2026-09-03**: la limpieza medía cada punto contra la cuerda de sus **dos vecinos
+      inmediatos**. En una recta funciona; en una CURVA cada punto está prácticamente encima de esa cuerda, así
+      que no se guardaba ninguno y la red de seguridad devolvía **el trazo crudo entero** — la guarda que debía
+      acotar los muros era justo lo que los dejaba sin acotar. Con la rejilla en 27, un círculo a pulso de
+      radio 4 casillas escribía **75 muros**; de 15, **282**. Ahora es **Ramer–Douglas–Peucker**: se mide
+      contra la cuerda del tramo COMPLETO y el anillo se parte por sus dos cabos (el primer punto y el más
+      lejano a él), que es lo que le da extremos a una curva cerrada. Los mismos trazos salen hoy en **11** y
+      **16** muros, y el número lo acota la tolerancia, no el tamaño de la sala. Y se ha quitado la vuelta del trazo crudo: lo que se resuelve en menos de tres vértices es
+      una raya, y `freehandSides` la rechaza. Lo sujetan cinco tests de **trazo redondeado** — el agujero era
+      que el único trazo de prueba era un cuadrado, todo lados rectos.
+  - **Polígono, cierre**: se cierra pinchando sobre el primer vértice, con el tope en **media casilla**. Con el
+    tope en una casilla entera el vecino en cruz —que cae a exactamente `grid`— cerraba la sala en vez de poner
+    el vértice, y una L cuya última esquina cae junto a la primera era imposible (corregido el 2026-09-03).
+  - **Una sala se escribe de una vez** (`MapsPort.addWalls`, un `insert` de varias filas): entran todos sus
+    muros o no entra ninguno. Muro a muro, si fallaba el enésimo la sala quedaba **abierta** y por ese hueco se
+    colaba la visión, avisando sólo con el banner genérico (corregido el 2026-09-03).
+- ✅ **Interfaz construida**: la barra «Segmento» (que es Builder) lleva ahora la fila de formas —
+  segmento · rectángulo · círculo · polígono · a pulso— y el lienzo pinta la sala mientras se levanta.
+  **El Builder de siempre no se ha movido**: sin tocar la forma sigue siendo clic a clic, y puertas y
+  ventanas siguen partiendo muros con `planOpening`. Hay test que lo sujeta.
+- ✅ **La niebla funciona con lo levantado aquí**, que era el requisito con nombre. Dos tests: uno en el
+  motor de visión de la API (una sala tapa la vista desde fuera y la contiene desde dentro, y un vano la
+  deja pasar) y otro de regresión que comprueba que **no hay ninguna marca** que distinga una sala generada
+  de un muro marcado a mano sobre una foto.
+- 🟠 **Decisiones tomadas al construir, revisables por él**:
+  - Los muros generados **nacen ocultos al jugador** (`visiblePlayers: false`), como cualquier muro nuevo.
+    Es la pregunta 5 de abajo, contestada por coherencia con lo que ya había.
+  - **Ninguna puerta automática** (pregunta 1): la sala se levanta cerrada y él abre los vanos con el disco
+    de siempre. Es lo que ya sospechaba el spec.
+  - **Dos salas que se tocan no se funden** (pregunta 2): quedan los dos muros. Es lo que menos promete y
+    lo que se puede cambiar después sin romper nada.
+- 🎨 **Diseño v3 en `rolvium.pen`, RECHAZADO por él** (2026-09-03). Lo dio por zanjado con un «ve
+  construyendo y después vemos», así que la interfaz de arriba se ha construido con la barra que ya existía,
+  sin inventar pantalla nueva. Las miniaturas de estilo siguen sin gustarle y **el panel de preajustes no se
+  ha construido**.
 - ⛔ **Las texturas, sin empezar**: dependen de la pregunta 6, que es de modelo de datos y es suya.
 
 

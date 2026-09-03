@@ -39,7 +39,7 @@ describe('tokenGapCells — la distancia de un ataque (p.92/p.95)', () => {
 
 describe('paredes sólidas: `slideToken`, `moveBlockers`, `tokenRadiusPx`', () => {
   /** Un muro vertical en x = 100, de y 0 a 200. */
-  const muro = { id: 'w', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 100, y2: 200, visiblePlayers: true, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false };
+  const muro = { id: 'w', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 100, y2: 200, visiblePlayers: true, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false, groupId: null };
   const R = 10;
 
   it('cruzar el muro avanza hasta quedarse PEGADO a este lado; sin muros pasa entero', () => {

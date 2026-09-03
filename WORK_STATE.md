@@ -16,6 +16,196 @@ por turno, configurable por sistema) → rebanada 5 (galería de props) → `cha
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔵 de cierre, justo debajo.**
 
+## 🔵 SESIÓN 2026-09-03 — EL DISEÑO DE BUILDER v3 (LO VIVO AHORA MISMO)
+
+> Rama `sonda-de-prueba`, **sin subir, `main` intacto**. Sigue en pie **«no borres nada»**.
+
+### ✅ LO QUE SE RESOLVIÓ ESTA SESIÓN
+- **Llegó por fin la captura de las «pseudo texturas base».** Era el panel «Ajustes preestablecidos de
+  mazmorra» de Dungeon Scrawl: una rejilla de miniaturas, cada una con la esquina de una sala (relleno de
+  pared + suelo + rejilla). Traducido: **un preajuste pone LAS DOS texturas base de golpe**. Queda escrito y
+  cerrado en `specs/modules/maps/SPEC.md` § «Rebanada 8» → «✅ RESUELTO: LAS PSEUDO TEXTURAS BASE».
+- **Builder v3 diseñado**, con las siete correcciones suyas del 02-09 aplicadas una a una (la tabla está en
+  el spec). Dos frames, porque el panel cambia según el modo:
+  - `PL/Builder · panel ← v3 (modo + preajustes)` — **`ePNCc`**, modo «Dibujar aquí», 300×650.
+  - `PL/Builder · panel ← v3 · modo SOBRE UNA FOTO` — **`zpsjH`**, el panel corto.
+- **Lo nuevo de verdad frente al v2**: arriba del todo, «EN QUÉ ESTOY TRABAJANDO», con las dos maneras que
+  CONVIVEN dibujadas de verdad (una foto con muros marcados encima · una sala levantada aquí). Marcando
+  sobre foto se caen preajustes, texturas base y pincel de sala, porque ahí el suelo lo pone la foto.
+- **Su icono, el de verdad**, en la cabecera: `builder-mask.png` metido como relleno de imagen. Ya no es un
+  Material Symbol genérico ni su dibujo de líneas encogido hasta desaparecer.
+- PNG a tamaño grande en `Escritorio / Rolvium-constructor-habitaciones /`:
+  `Builder v3 - DIBUJAR AQUI.png` y `Builder v3 - SOBRE UNA FOTO.png`.
+
+### 🔁 TRES CORRECCIONES SUYAS SOBRE EL v3, YA APLICADAS (2026-09-03)
+1. **«Esto que me pones en el .pen es un adefesio»** — las miniaturas eran un marco de cuadro. Ahora son
+   **la esquina de un mapa**: el muro entra en L por arriba y por la izquierda, el suelo se sale por abajo y
+   por la derecha, con su rejilla de casillas.
+2. **«Todos los trazos son rectos, ninguno parece a mano alzada»** — entra `Trazo a mano` (contorno
+   tembloroso) y sale `Gris clásico`, el menos distinguible. Si lo quiere de vuelta, la rejilla crece a diez.
+3. **«Dime en qué se parecen las texturas de las rayitas entre sí»** — tenía razón: eran **el mismo garabato
+   con distinto color**, y a los dos les faltaba lo esencial. En su herramienta las rayitas viven **dentro de
+   un muro de grosor fijo**, peinadas en la misma dirección; las mías estaban desparramadas por todo el
+   exterior.
+4. **«El rayado sigue mal, y muy mal, no es tan difícil»** + **«que no, que paralelas ni nada»** — mandó un
+   zoom del muro de verdad. **La forma correcta, medida sobre su foto**: trazos **cortos y gruesos anclados
+   en la línea del muro**, saliendo hacia fuera, **en grupitos de 3-5 que comparten inclinación** y cambian de
+   grupo a grupo (así es como hachura una mano), con el **borde de fuera desigual** y la **línea sólida** en
+   la cara de dentro. **No** son paralelas, **no** son un peine regular y **no** son un garabato repartido por
+   todo el exterior — los tres intentos anteriores. `Muro relleno` es lo mismo pero **dentro** de la banda,
+   como su «Interior Wall Fill».
+   - ⚠️ Detalle del `.pen`: un `path` con `fill:"#00000000"` **pinta el trazo lavado, en gris**. Sin la
+     propiedad `fill` sale del color que le pongas. Costó una pasada entera.
+5. **«El trazo a mano es demasiado irregular, ¿no viste la foto?»** — tenía razón otra vez: en su foto la
+   línea es **casi recta**, con un temblor finísimo, como tirada a mano con regla. La mía ondulaba como un
+   gusano. Amplitud bajada de 1,5 a 0,5 y tramos más largos.
+
+> 📌 **La lección, para no repetirla**: cuando mande una referencia, **medir contra la referencia** antes de
+> enseñar nada — no aproximar de memoria. Tres pasadas perdidas por eso.
+
+### ✅ CONFIRMADO POR ÉL — YA NO SE DISCUTE
+- Muros, puertas y ventanas de hoy **quedan como están a nivel funcional**: son la vía para mapas hechos con
+  otra herramienta, importados y marcados encima.
+- El constructor nuevo es para **mapas relativamente sencillos hechos en Rolvium**.
+- **La niebla de batalla tiene que funcionar también con lo construido aquí.** Sale gratis (son muros
+  normales), pero es un requisito con nombre y **lleva test propio**.
+
+### 🏗 CONSTRUIDO ESTA NOCHE — LAS FORMAS DE BUILDER (él: «ve construyendo y después vemos»)
+
+Tumbó el diseño v3 y mandó construir. Se ha construido **lo único que no depende de sus preguntas abiertas**:
+
+| | Qué |
+|---|---|
+| 🔺 | **Polígono** — un clic un vértice, se cierra pinchando otra vez sobre el primero. Vértices en la rejilla, lados a cualquier ángulo: **ahí está la «pared inclinada»** que pedía |
+| ✍️ | **A pulso** — se arrastra y la sala sale con la forma de la mano. No se pega a la rejilla (saldría una escalera) y se limpia el temblor, o cada trazo dejaría cientos de muros |
+| ▭ | **Rectángulo y círculo** — ya estaban en el motor; ahora se arrastran sobre el mapa y se ven crecer |
+| 🧱 | **El Builder de siempre NO se ha movido** — sin tocar la forma sigue siendo clic a clic, y puertas y ventanas siguen partiendo muros. Con test que lo sujeta |
+| 🌫 | **La niebla funciona con lo levantado aquí** — su requisito con nombre. Dos tests: la sala tapa la vista en el motor de la API, y no hay ninguna marca que distinga una sala generada de un muro marcado a mano |
+
+**Ficheros**: `roomRules.ts` · `MapCanvas.tsx` · `SegmentBar.tsx` · `SceneTab.tsx` · `useScene.ts` (+ sus
+tests, `SegmentBar.test.tsx` nuevo) · `vision.test.ts` en la API · `tests/regression/sala-generada-es-un-muro-normal.test.ts` · claves `maps.room.*` en es y en.
+
+**Verde al cerrar**: typecheck web+api · **1011 regression** · 12 smoke · 38 functional · 226 api ·
+`npm run audit` 0 hard / 13 warn (los de siempre) · `build:web` y `build:api`.
+
+**Tres decisiones tomadas al construir, por coherencia con lo que ya había — revisables por él**:
+1. Los muros generados **nacen ocultos al jugador**, como cualquier muro nuevo (pregunta 5).
+2. **Ninguna puerta automática**: la sala se levanta cerrada y él abre los vanos con el disco (pregunta 1).
+3. **Dos salas que se tocan no se funden**: quedan los dos muros (pregunta 2).
+
+**SIN construir, y a propósito**: preajustes, texturas base, textura por sala y el interruptor foto/dibujar.
+Todo eso cuelga de la **pregunta 6**, que es de modelo de datos y sólo la contesta él.
+
+### ✅ ARREGLADO EL 2026-09-03 (chat nuevo) — «A PULSO» YA SE PUEDE USAR
+
+El fallo que el candado de contexto dejó sin tocar la noche anterior, más las tres cosas menores de la misma
+revisión. Todo arreglado y con test que lo sujeta.
+
+**1 · `simplifyRing` no simplificaba curvas — el gordo.**
+- **Qué pasaba**: medía cada punto contra la cuerda de sus **dos vecinos inmediatos**. En una curva suave cada
+  punto está prácticamente encima de esa cuerda, así que no guardaba ninguno y la red de seguridad devolvía
+  **el trazo crudo entero**. La guarda que debía acotar los muros era justo lo que los dejaba sin acotar.
+- **El arreglo**: **Ramer–Douglas–Peucker** de verdad — se mide contra la cuerda del tramo COMPLETO, y el
+  anillo se parte por sus dos cabos (el primer punto y el más lejano a él), que es lo que le da extremos a una
+  curva cerrada. Fuera la vuelta del trazo crudo: menos de tres vértices es una raya, y `freehandSides` la
+  rechaza.
+- **Medido, el mismo trazo por los dos caminos, con la rejilla en 27**: círculo a pulso de radio 4 casillas,
+  **75 muros → 11**; de 8 casillas, **150 → 16**; de 15, **282 → 16**. El número queda acotado por la
+  tolerancia, no por lo grande que sea la sala — que es justo lo que faltaba.
+- **El agujero de los tests, tapado**: el único trazo de prueba era un **cuadrado**, todo lados rectos, donde
+  hasta el filtro malo acertaba. Hay ahora cinco tests de **trazo redondeado**; cuatro de ellos fallan contra
+  el código viejo (comprobado a mano volviendo a ponerlo).
+
+**2 · El polígono ya deja poner un vértice pegado al primero.** El cierre usaba `<= grid` y el vecino en cruz
+cae a exactamente `grid`: ese clic cerraba la sala en vez de poner la esquina, y una **L** cuya última esquina
+cae junto a la primera era imposible. Ahora el tope es media casilla (`grid * 0.75`). Test que lo pincha, y
+comprobado que falla contra el código viejo.
+
+**3 · Una sala ya no puede quedarse con un boquete.** `addRoom` escribía los muros uno a uno con `Promise.all`:
+si fallaba el enésimo, los anteriores se quedaban puestos, **la sala quedaba abierta y por ahí se colaba la
+visión**, avisando sólo con el banner genérico. Ahora hay `MapsPort.addWalls` — un `insert` de varias filas,
+una sola sentencia: **entran todos o ninguno**.
+> 🟠 **Decisión tomada, revisable por él**: se resolvió con un método NUEVO al lado del que ya había.
+> `addWall` no se ha tocado, así que muros, puertas y ventanas siguen exactamente igual; sólo `addRoom` usa el
+> lote. Era la opción aditiva, sin romper nada de lo que ya funcionaba.
+
+**4 · El título de un test de `SegmentBar.test.tsx`** decía «las seis formas» y comprueba cinco. Corregido —
+era sólo el título; las seis son las del diseño, las construidas son cinco.
+
+**Ficheros tocados**: `roomRules.ts` · `MapsPort.ts` · `SupabaseMapsRepo.ts` · `useScene.ts` · `MapCanvas.tsx`
+(+ `roomRules.test.ts`, `SupabaseMapsRepo.test.ts`, `useScene.test.ts`, `MapCanvas.test.tsx`,
+`SegmentBar.test.tsx`, `tests/helpers/fakes.ts`) · `specs/modules/maps/SPEC.md`.
+
+**Verde al cerrar**: typecheck web+api · **1020 regression** (eran 1011) · 12 smoke · 38 functional · 226 api ·
+`npm run audit` 0 hard / 13 warn (los de siempre) · `build:web` y `build:api`.
+
+**⚠️ Sin hacer, a propósito**: no se ha lanzado el subagente de **review** — este chat venía con la instrucción
+de no lanzar subagentes. Queda `/review` pendiente antes de dar la tanda por cerrada. Y **nada commiteado**:
+todo el trabajo de Builder sigue en el árbol de trabajo, sin commit.
+
+**Todo lo demás de la revisión, limpio**: hexagonal, seguridad, RLS (no hay migración, correcto), i18n es/en,
+cobertura, y confirmado que **el camino viejo no se ha tocado** (`planOpening` intacto, `segment` por defecto).
+
+### 🔁 PROMPT DE RESUME DEL CHAT NUEVO
+> ✅ Hecho el 2026-09-03: `simplifyRing` con Ramer–Douglas–Peucker, el cierre del polígono y el lote de
+> `addRoom`. Lo que queda de esta tanda:
+>
+> Rolvium, chat nuevo. Rama `sonda-de-prueba`, `main` intacto. Lee el bloque 🔵 de `WORK_STATE.md`
+> (2026-09-03). Los cuatro fallos de la revisión están arreglados y verdes, pero **sin commitear** y **sin
+> pasar `/review`**. Lanza el review, y si sale limpio commitea la tanda de Builder.
+
+### 🟣 SESIÓN DEL 2026-09-03, TARDE — LO QUE ÉL CORRIGIÓ Y DECIDIÓ
+
+Probó Builder sobre una foto de mapa y saltaron dos cosas, las dos mías:
+
+**1 · ESTABA MEZCLANDO LOS DOS MODOS.** Su diseño v3 lo dice en la primera línea —«las dos conviven»— y son
+cosas distintas: **Sobre una foto** marca muros encima; **Dibujar aquí** levanta salas. Yo le pregunté por
+salas mientras él marcaba muros sobre una foto. De ahí el «*estás mezclando estas dos opciones*».
+
+**2 · EL INTERRUPTOR DE MODO NO SE CONSTRUYÓ, Y NO HABÍA EXCUSA.** El bloque de arriba dice que se quedó fuera
+«porque cuelga de la pregunta 6». **Es falso, lo apunté mal yo**: de la 6 cuelgan los preajustes, las texturas
+base y el pincel de sala. El interruptor —lo único que impide que los modos se mezclen— no dependía de nada.
+Por eso en pantalla hay una barra sola con todo revuelto y él dijo «*sigues sin seguir el puto diseño*».
+
+**3 · ✅ CONTESTADA LA PREGUNTA 6, la que llevaba días parada.** Sus palabras: «*sí, lleva su suelo pero con un
+matiz: tiene de base el suelo que seleccionas cuando comienzas a dibujar, luego puedo poner con un pincel otra
+textura a ese suelo, o pongo otra capa y juego ahí con transparencias*».
+- La sala **es una entidad con su suelo**. El suelo base **se hereda del momento de dibujar**, no se elige
+  después — por eso los preajustes tienen sentido.
+- Encima **no se inventa nada**: pincel de textura y capas de terreno con transparencia, las que ya existen.
+  La sala mete un suelo DEBAJO; no reemplaza nada.
+- ⛔ Tabla + migración + **DBA antes de una línea de código de salas**.
+
+**4 · ✅ DECIDIDO EL «GRUPO» (modo sobre foto, NO toca la 6).** Los muros de un gesto quedan atados. Un clic
+coge el grupo, doble clic entra al muro suelto, y cogido **se mueve y se escala**. Se guarda. Y puede
+**agrupar a mano por área** los muros que ya tiene marcados, para que su trabajo viejo no se quede fuera.
+- Nombre elegido por él: **«Grupo»** (descartados pieza · trazo · contorno).
+- La selección por área hoy coge **sólo fichas** — no está rota, nunca se hizo para muros.
+- ⛔ Marca compartida en `maps_walls` + **DBA** antes de código.
+- 🎨 **Falta dibujar en el `.pen`**: cómo se ve un grupo cogido (marco, tiradores de escalar, qué enseña la
+  barra). No está en el v3.
+
+Todo esto está escrito en `specs/modules/maps/SPEC.md` (§ «EL GRUPO» y pregunta 6).
+
+### 🔴 LO SIGUIENTE, Y SÓLO PUEDE CONTESTARLO ÉL
+1. **¿Aprueba el v3?** Sin su ok no se toca una línea de interfaz.
+2. **⚠️ El `.pen` NO está guardado en disco**: el MCP no escribe, hace falta su **Cmd+S** en el tab de
+   `rolvium.pen`. Hasta entonces no hay nada que commitear del diseño.
+3. **De las siete preguntas, la 6 ya está contestada** (arriba). Siguen abiertas la 1, 2, 3, 4, 5 y 7 — pero
+   ninguna bloquea el modo «Sobre una foto», que es lo que él está usando.
+
+### 🚨 SIGUE PENDIENTE DE ANTES (no se ha tocado nada de esto)
+- **DOS migraciones van antes que el código** (`spin_ms`, `intensity`) o revienta la niebla en producción.
+- **QA → previews → merge → producción.** Nada hecho. 27 commits en la rama.
+- **«Está un pelín lento»** — aparcado por él.
+- ~~Al motor (`roomRules.ts`) le faltan las formas del punto 5: recta suelta, polígono y a pulso.~~ ✅ Hecho
+  el 2026-09-03 (polígono y a pulso construidos y corregidos). Queda sólo la **recta suelta**.
+
+### 🔁 PROMPT DE RESUME
+> Rolvium, chat nuevo. Rama `sonda-de-prueba`, sin subir, `main` intacto. Lee el bloque 🔵 de
+> `WORK_STATE.md` (sesión 2026-09-03) y `specs/modules/maps/SPEC.md` § «Rebanada 8». El diseño de Builder v3
+> está hecho y esperando mi ok.
+
 ## 🔵 CIERRE DE SESIÓN — 2026-09-01, noche. TRASPASO A CHAT NUEVO
 
 > **Orden suya al cerrar: «no borres nada».** Vale para TODO: no podar este fichero, **no borrar sus dos

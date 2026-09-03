@@ -1364,3 +1364,49 @@ describe('<SceneTab> la sonda de prueba (rebanada 7 · § 7.3)', () => {
     expect(screen.getByText(/Vista de director/)).toBeInTheDocument();
   });
 });
+
+/**
+ * 🏗 BUILDER, DE PUNTA A PUNTA (§ «Rebanada 8»): elegir la forma en la barra, arrastrar sobre el lienzo y que
+ * la sala acabe en la base como muros de los de siempre. Los tests de más abajo prueban cada pieza por
+ * separado; éste prueba que están enchufadas entre sí, que es donde se cae todo.
+ */
+describe('<SceneTab> Builder levanta una sala', () => {
+  const openBuilder = async (u: ReturnType<typeof userEvent.setup>) => {
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    return screen.getByRole('radiogroup', { name: 'Con qué forma' });
+  };
+
+  it('rectángulo: se arrastra sobre el mapa y sus cuatro lados quedan guardados, opacos', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm');
+    await waitFor(() => expect(repo.walls).toHaveLength(1));
+    await u.click(within(await openBuilder(u)).getByRole('radio', { name: 'Rectángulo' }));
+
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(svg, { clientX: G * 8, clientY: G * 6, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+
+    await waitFor(() => expect(repo.walls).toHaveLength(5));       // el que ya había + los cuatro lados
+    const nuevos = repo.walls.filter(w => w.id !== WALL_1.id);
+    expect(nuevos).toHaveLength(4);
+    for (const w of nuevos) {
+      expect(w.kind).toBe('wall');
+      expect(w.blocksSight).toBe(true);
+      expect(w.visiblePlayers).toBe(false);                        // como cualquier muro nuevo
+    }
+  });
+
+  /** 🔒 Lo que él pidió que NO se tocara: con la forma de siempre, Builder sigue poniendo muros clic a clic. */
+  it('sin tocar la forma, Builder sigue siendo el de siempre: clic a clic', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm');
+    await waitFor(() => expect(repo.walls).toHaveLength(1));
+    await openBuilder(u);
+
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
+    fireEvent.pointerDown(svg, { clientX: G * 4, clientY: 0, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.walls).toHaveLength(2));
+  });
+});
