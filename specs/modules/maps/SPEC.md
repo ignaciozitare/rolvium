@@ -1493,3 +1493,13 @@ muros cerrados que cortan vista y paso, que es justo lo que hacen hoy, así que 
   caso normal. Por eso abrir una puerta no puede llegar «sola» por la tabla. Lo que viaja es un **`broadcast`**
   (`fog.updated` en el canal `scene:{id}`, sin RLS) que dice «vuelve a pedir tu visión»; cada cliente llama entonces al
   servidor y recibe su polígono recalculado. Al director sí le llegan los dos caminos porque él ve todas las filas.
+  - 🔴 **Y la misma trampa muerde al REVÉS, que costó un bloqueo del review el 2026-09-03.** Un muro que pasa a
+    OCULTO tampoco genera evento para el jugador: la fila nueva ya no pasa su RLS, y **no hay DELETE** porque la
+    fila sigue existiendo. O sea que su copia local se queda con el muro y **lo sigue dibujando**. Enseñar
+    llegaba; esconder no llegaba nunca.
+  - Por eso existe **`walls.updated`** (broadcast, canal `scene:{id}`): dice «vuelve a PEDIR los muros», y quien
+    lo recibe re-lista con `listWalls`. No vale `fog.updated`: la respuesta de visión **no lleva muros**, y
+    esconder un muro no mueve una sola línea de vista — lo que cambia es lo que el jugador tiene DERECHO a que le
+    manden. Re-listar cubre además el barrido grande, donde los avisos fila a fila pueden perderse.
+  - 🔒 **Regla que se deriva**: cualquier cosa que cambie `visible_players` tiene que mandar `walls.updated`.
+    Escribir la columna y callarse deja a la mesa viendo lo de antes.

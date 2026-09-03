@@ -675,15 +675,36 @@ describe('useScene · los muros, enseñados a los jugadores de golpe', () => {
   });
 
   /**
-   * Y AVISA A LA MESA. Sin esto, a un jugador le siguen llegando los muros de antes hasta que recargue: la RLS
-   * sólo le manda los que tienen `visible_players`, así que cambiar la columna sin avisar no se ve.
+   * 🔴 Y AVISA CON `walls.updated`, NO con `fog.updated`. Fue el fallo que bloqueó el review el 2026-09-03: el
+   * botón sólo funcionaba en el sentido de ENSEÑAR.
+   *
+   * `fog.updated` hace que el otro repregunte la VISIÓN, y esa respuesta no lleva muros — además, esconder un
+   * muro no mueve una sola línea de vista. Lo que cambia es lo que el jugador tiene derecho a que le manden, y
+   * de eso sólo se entera volviendo a PEDIR los muros. Por el aviso de fila no puede llegarle: al esconderlo,
+   * la fila nueva ya no pasa su RLS y no recibe nada, así que se quedaba dibujando la pared.
    */
-  it('avisa a la mesa de que lo que se ve ha cambiado', async () => {
+  it('avisa con `walls.updated` en los DOS sentidos, no con el de la niebla', async () => {
     const repo = conMuros();
     const r = await mount(repo, fakeVisionPort({}));
-    const antes = repo.broadcasts.length;
+    const tipos = (desde: number) => repo.broadcasts.slice(desde).map(b => b.event.type);
+
+    let antes = repo.broadcasts.length;
     await act(async () => { await r.current.setAllWallsVisible(true); });
-    expect(repo.broadcasts.slice(antes).some(b => b.event.type === 'fog.updated')).toBe(true);
+    expect(tipos(antes)).toEqual(['walls.updated']);
+
+    antes = repo.broadcasts.length;
+    await act(async () => { await r.current.setAllWallsVisible(false); });
+    expect(tipos(antes)).toEqual(['walls.updated']);
+  });
+
+  /** Y el que lo recibe vuelve a PEDIR los muros: es la única forma de enterarse de que uno ha dejado de serlo. */
+  it('al recibir `walls.updated` de otro, se vuelven a pedir los muros', async () => {
+    const repo = conMuros();
+    const r = await mount(repo, fakeVisionPort({}));
+    repo.walls.length = 0;
+    repo.walls.push({ ...WALL_1, id: 'w-nuevo' });
+    act(() => { repo.emit('sc-1', { event: { type: 'walls.updated', campaignId: 'c1', sceneId: 'sc-1', userId: 'otro' } }); });
+    await waitFor(() => expect(r.current.walls.map(w => w.id)).toEqual(['w-nuevo']));
   });
 });
 

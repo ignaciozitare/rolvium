@@ -155,6 +155,19 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
         } else if (e.type === 'pin.focused' && e.by !== me) setPin({ x: e.x, y: e.y, by: e.by, at: Date.now() });
         // Someone opened a door, moved a token or painted the fog: refetch mine. Never re-broadcast — that would loop.
         else if (e.type === 'fog.updated' && e.userId !== me) refreshVisionRef.current();
+        /**
+         * LOS MUROS HAN CAMBIADO DE DUEÑO: hay que volver a PEDIRLOS, no sólo repreguntar la visión.
+         *
+         * Se re-lista entero en vez de aplicar un cambio de fila porque es la única forma de enterarse de que
+         * un muro ha dejado de ser tuyo: el aviso de fila aplica la RLS del que escucha, así que al ocultar un
+         * muro al jugador NO le llega nada y su copia se queda dibujando una pared que ya no debería ver
+         * (cazado por el review, 2026-09-03: el botón sólo funcionaba en el sentido de ENSEÑAR).
+         *
+         * Re-listar cubre además el barrido grande, donde los avisos fila a fila pueden perderse por el camino.
+         */
+        else if (e.type === 'walls.updated' && e.userId !== me) {
+          void repo.listWalls(e.sceneId).then(w => { if (alive) setWalls(w); }).catch(() => undefined);
+        }
       },
     });
     return () => { alive = false; off(); setDrags({}); setPin(null); };
@@ -587,15 +600,17 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * TODOS LOS MUROS DE LA ESCENA, ENSEÑADOS O ESCONDIDOS A LOS JUGADORES DE GOLPE (petición suya del
    * 2026-09-03). Se pinta al momento y se escribe por escena, no muro a muro.
    *
-   * Avisa a la mesa (`announceVision`) porque cambia lo que le LLEGA a un jugador: la RLS sólo le manda los
-   * muros con `visible_players`, así que sin el aviso seguiría con los de antes hasta recargar.
+   * Avisa con `walls.updated` y NO con `announceVision`, que es lo que hacía y era mentira: la respuesta de
+   * visión no lleva muros, y esconder un muro no cambia una sola línea de vista — lo que cambia es lo que el
+   * jugador tiene DERECHO a que le manden. Sin el aviso bueno, ESCONDER no llegaba: el aviso de fila aplica la
+   * RLS del que escucha, así que al jugador no le llega nada y se queda dibujando la pared (review, 2026-09-03).
    */
   const setAllWallsVisible = useCallback(async (visible: boolean) => {
-    if (!sceneId) return;
+    if (!sceneId || !live) return;
     setWalls(l => l.map(w => ({ ...w, visiblePlayers: visible })));
     await repo.setAllWallsVisible(sceneId, visible);
-    announceVision();
-  }, [repo, sceneId, announceVision]);
+    repo.broadcast(sceneId, { type: 'walls.updated', campaignId: live.campaignId, sceneId, userId: me });
+  }, [repo, sceneId, live, me]);
   /** DM, Seleccionar: the segment moved or a vertex was stretched — geometry only, but it changes every sightline. */
   const patchWallGeometry = useCallback(async (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => {
     setWalls(l => l.map(w => (w.id === id ? { ...w, ...at } : w)));

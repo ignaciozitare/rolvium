@@ -4,7 +4,7 @@ import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, L
 export type Unsubscribe = () => void;
 
 /** Ephemeral events that travel by broadcast on the scene channel (never persisted). */
-export type MapsLiveEvent = Extract<TableEvent, { type: 'token.moved' | 'pin.focused' | 'fog.updated' }>;
+export type MapsLiveEvent = Extract<TableEvent, { type: 'token.moved' | 'pin.focused' | 'fog.updated' | 'walls.updated' }>;
 
 export interface MapsLiveHandlers {
   onScene?: (change: RowChange<Scene>) => void;
@@ -72,6 +72,10 @@ export interface MapsPort {
    * porque va por ESCENA y no por lista de ids: lo que pide el botón es «todos los de este mapa», incluidos
    * los que este navegador no tenga cargados todavía. Una sola sentencia; a medio camino la mesa vería unas
    * paredes sí y otras no.
+   *
+   * ⚠️ Escribir esto NO basta para que la mesa se entere: hay que mandar además un `walls.updated` por
+   * broadcast. El aviso de fila aplica la RLS de cada suscriptor, así que al ESCONDER un muro el jugador no
+   * recibe nada y se queda con la copia vieja.
    */
   setAllWallsVisible(sceneId: string, visible: boolean): Promise<void>;
   /**

@@ -280,6 +280,9 @@ export class SupabaseMapsRepo implements MapsPort {
    * Filtra por `scene_id` y NO por una lista de ids a propósito: así alcanza también a los muros que este
    * navegador no tenga cargados. La RLS ya sólo deja escribir al director (`maps_walls_dm_write`), así que
    * no hace falta comprobar nada más aquí — y no se puede: quien no sea director no actualizará ni una fila.
+   *
+   * ⚠️ Quien llame a esto tiene que mandar además un `walls.updated`: los avisos de fila no cruzan en el
+   * sentido de esconder, porque la fila nueva ya no pasa la RLS del jugador.
    */
   async setAllWallsVisible(sceneId: string, visible: boolean): Promise<void> {
     const { error } = await this.db.from('maps_walls').update({ visible_players: visible }).eq('scene_id', sceneId);
