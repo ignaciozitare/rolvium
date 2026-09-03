@@ -51,7 +51,8 @@ decía qué pasaba al pulsar. Sus dos vecinos de la misma pila sí lo dicen (`ma
 `maps.fog.veilOn/veilOff`), y hay un comentario justo encima explicando por qué hay que decirlo: «*de un icono
 no se deduce qué pasa al pulsarlo*». El botón de al lado se saltaba su propia regla.
 
-- Rama **`fix/niebla-el-boton-no-decia-el-estado`**, dos commits (`6d410b0`, `25d1937`). **`main` intacto.**
+- Rama **`fix/niebla-el-boton-no-decia-el-estado`**, cuatro commits (`6d410b0`, `25d1937`, `58cf452` y el de
+  rendimiento `37e6c80`, más abajo). **`main` intacto.**
 - `maps.fog.auto` → **`autoOn` / `autoOff`**, en es y en en, con la forma de `solidWalls`: estado + consecuencia,
   y **las dos mitades dicen qué pasa al pulsar** (pega del review: encendida es justo el estado desde el que se
   apagó sin querer).
@@ -77,6 +78,37 @@ no se deduce qué pasa al pulsarlo*». El botón de al lado se saltaba su propia
   producción** como texto crudo en pantalla.
 - `specs/modules/maps/SPEC.md:95` cita la etiqueta vieja y además dice «barra de Opciones DJ», que dejó de ser
   cierto en la rebanada 3. Las dos correcciones, en un solo retoque del spec cuando esto esté en producción.
+  ⚠️ Ojo: el arreglo de abajo **añade** deriva a esa misma línea — ahora la etiqueta cambia según el estado, así
+  que el spec cita un texto que ya no existe en ninguno de los dos. El retoque pendiente cubre las tres cosas.
+
+## 🐌 2026-09-03 (noche) — «FUNCIONA PERO ES ESTÚPIDAMENTE LENTO»: LA FUNCIÓN CORRÍA EN WASHINGTON
+
+Segunda queja suya, ya con la niebla explicada. **No era el código: era la geografía.**
+
+- Medido en producción: `x-vercel-id: cdg1::iad1::…` — el borde le atendía en **París**, pero la función corría
+  en **Washington** (`iad1`, el valor por omisión de Vercel) y la base de datos está en **Frankfurt**
+  (`eu-central-1`).
+- Cada respuesta de visión hace **cuatro consultas SEGUIDAS** (escena → rol → luces → explorado), y las cuatro
+  cruzaban el Atlántico. **0,6–1,2 s por respuesta**, con el navegador pidiendo varias por segundo mientras se
+  arrastra una ficha → llegaban tarde y desordenadas.
+- Arreglo, commit `37e6c80`: `apps/api/vercel.json` fija **`"regions": ["fra1"]`**. Una línea.
+- El **porqué vive en `ARCHITECTURE.md`** (§ «La función de la api vive en Frankfurt»), porque JSON no admite
+  comentarios. Ahí queda dicha la regla derivada: **la api va SIEMPRE en la misma región que Supabase.**
+- De paso se corrigieron dos frases de `ARCHITECTURE.md` que habían dejado de ser ciertas (decía que la api
+  responde 500 por falta de variables y que el proyecto web no existe todavía).
+- ✅ Verificado en un preview real: build correcto, `/health` 200 y la cabecera ya dice `cdg1::fra1::`.
+- 📌 Esto es lo que contesta el **«está un pelín lento»** que él había aparcado dos veces (bloques de más abajo).
+- ⚠️ **No se puede confirmar en producción hasta que esto entre en `main`**: el `/health` de producción sigue
+  diciendo `iad1` porque aún corre el código viejo. Comprobar la cabecera **después** del despliegue.
+
+### 🔎 EL SIGUIENTE ESCALÓN, ENCONTRADO Y **NO TOCADO** (decisión suya, con el número delante)
+`apps/api/handler-entry.ts` llama a `buildApp()` **en cada petición**: reconstruye Fastify, sus plugins y sus
+rutas cada vez, incluso con la función caliente. Con el viaje a Washington esto era ruido; ahora pasa a ser una
+parte apreciable de lo que queda (`/health`, que NO toca la base, sigue en ~170 ms desde España).
+
+Se arregla memorizando la app entre invocaciones, que son tres líneas — pero **toca el camino por el que pasa
+todo** y `handler-entry.ts` no tiene un solo test. **Medir primero en producción** con `responseTime` de los
+registros, y decidir con el dato. No se ha tocado a propósito: no es lo que él pidió.
 
 ## 🧱 CONSTRUCTOR DE SALAS — DECISIONES SUYAS YA TOMADAS (no volver a preguntarlas)
 

@@ -145,7 +145,7 @@ See `specs/core/testing/SPEC.md`. Helpers in `apps/web/tests/helpers/` (`renderW
 ## Deployment
 Vercel: web project (static, rewrites to index.html) + api project (Build Output API v3
 via `apps/api/bundle.mjs`, function `/api/_handler`). Health: `GET /health`.
-Hosted Supabase is **live**: project `scfspsiemikfcnqteonq` (`Rolvium` org, free tier, eu-central-1), all 11
+Hosted Supabase is **live**: project `scfspsiemikfcnqteonq` (`Rolvium` org, free tier, eu-central-1), all
 migrations applied, `get_advisors` clean of CRITICAL. Both Vercel projects are **live and git-connected**, so a
 push to `main` redeploys them: api https://rolvium-api.vercel.app · web https://rolvium.vercel.app.
 
