@@ -9,7 +9,6 @@ import type { GridSettings, Layer, LayerKind, Light, LightKind, LightShape, NewL
 
 // ── Capas ────────────────────────────────────────────────────────────────────
 
-export const LAYER_KINDS: LayerKind[] = ['terrain', 'objects', 'creatures', 'dm_notes'];
 /** Las tres de las que hay exactamente una por escena. El terreno es el único sin límite. */
 export const FIXED_LAYER_KINDS: LayerKind[] = ['objects', 'creatures', 'dm_notes'];
 export const isFixedKind = (k: LayerKind): boolean => FIXED_LAYER_KINDS.includes(k);
@@ -18,7 +17,7 @@ export const isFixedKind = (k: LayerKind): boolean => FIXED_LAYER_KINDS.includes
  * En qué franja pinta cada tipo. NO se guarda porque no se elige: es el motor. Lo que el director ordena es
  * el terreno entre sí (`sortOrder`), y para eso están las flechas del panel.
  */
-export const PAINT_BAND: Record<LayerKind, number> = { terrain: 0, objects: 1, creatures: 2, dm_notes: 3 };
+const PAINT_BAND: Record<LayerKind, number> = { terrain: 0, objects: 1, creatures: 2, dm_notes: 3 };
 
 const byBandThenOrder = (a: Layer, b: Layer): number =>
   PAINT_BAND[a.kind] - PAINT_BAND[b.kind] || a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt);
@@ -35,7 +34,7 @@ export const layerOfKind = (layers: readonly Layer[], kind: LayerKind): Layer | 
 
 /** Qué se coloca por defecto en cada capa cuando su `layerId` viene vacío. */
 export type ElementKind = 'drawing' | 'token' | 'light';
-export const NATURAL_LAYER: Record<ElementKind, LayerKind> = { drawing: 'objects', token: 'creatures', light: 'objects' };
+const NATURAL_LAYER: Record<ElementKind, LayerKind> = { drawing: 'objects', token: 'creatures', light: 'objects' };
 
 /**
  * La capa en la que está de verdad un elemento. `layerId` vacío significa «su capa natural», que es lo que
@@ -267,12 +266,86 @@ export const LIGHT_PRESETS: Record<LightKind, { color: string; rangeM: number; f
  * La paleta de las luces. Son valores que se GUARDAN en la fila, como `STROKE_COLORS` o `BG_COLORS`: por eso
  * viven en el dominio y no como variables de CSS — una variable cambia con el tema y estos no pueden.
  */
-export const LIGHT_COLORS = ['#e8a24e', '#f0e6c8', '#e07a3c', '#e0625c', '#a97fe0', '#9fb6d4'] as const;
+export const LIGHT_COLORS = [
+  // Cálidos: fuego, vela, brasa, farol.
+  '#e8a24e', '#f0e6c8', '#e07a3c', '#c0452f',
+  // Fríos: luna, hielo, agua profunda, niebla verdosa.
+  '#9fb6d4', '#7fd4d0', '#4a7fc0', '#8fc79a',
+  // Antinaturales: magia, veneno, sangre, fuego fatuo. Para lo que no debería estar ahí.
+  '#a97fe0', '#7fd45c', '#e0625c', '#d98ec4',
+] as const;
 /** El alcance se toca en pasos de medio metro: es como se habla en la mesa. */
 export const RANGE_STEP_M = 0.5;
 export const MIN_RANGE_M = 0.5;
 export const MAX_RANGE_M = 60;
 export const clampRangeM = (v: number): number => Math.min(MAX_RANGE_M, Math.max(MIN_RANGE_M, Math.round(v / RANGE_STEP_M) * RANGE_STEP_M));
+
+/**
+ * LA LUZ QUE GIRA (§ 7.2). `spinMs` es lo que tarda una VUELTA ENTERA; `0` es «quieta».
+ *
+ * Los topes son los mismos que sujeta la base (`maps_lights_spin_ms_ck`), y están por algo: por debajo de
+ * medio segundo el barrido es un parpadeo epiléptico, y por encima de un minuto no se nota que gire.
+ */
+export const MIN_SPIN_MS = 500;
+export const MAX_SPIN_MS = 60000;
+export const SPIN_STEP_MS = 250;
+/** Cuatro segundos por vuelta: lo que tarda el faro de un coche de policía, que es la imagen que él dio. */
+export const DEFAULT_SPIN_MS = 4000;
+export const clampSpinMs = (v: number): number =>
+  Math.min(MAX_SPIN_MS, Math.max(MIN_SPIN_MS, Math.round(v / SPIN_STEP_MS) * SPIN_STEP_MS));
+/** «4 s» — en segundos, que es como se habla de una vuelta, no en milisegundos. */
+export const spinLabelS = (ms: number): string => `${Math.round(ms / 100) / 10} s`;
+
+/**
+ * INTENSIDAD (§ 7.2). Cuánto CANTA la luz, no cuánto ilumina — eso es `rangeM` y no se toca aquí.
+ *
+ * Los topes son los que sujeta la base (`maps_lights_intensity_ck`) y están por algo: el suelo no es 0
+ * porque una luz invisible es una luz que crees haber borrado y no lo está —para eso está la papelera—, y no
+ * se pasa de 100 para no quemar el mapa a blanco. `100` = como se pintaba antes de que esto existiera, así
+ * que ninguna luz ya colocada cambia de aspecto.
+ */
+export const MIN_INTENSITY = 10;
+/**
+ * El tope pasa de 100 a 200 (dueño, 2026-09-02: «la escala de luminosidad queda corta, el máximo tendría que
+ * ser más brillante»). `100` sigue siendo «como se pintaba antes de que esto existiera» —eso NO se mueve, o
+ * cambiarían de aspecto todas sus luces ya puestas—; lo que se abre es el margen por ARRIBA.
+ */
+export const MAX_INTENSITY = 200;
+export const INTENSITY_STEP = 5;
+export const DEFAULT_INTENSITY = 100;
+export const clampIntensity = (v: number): number =>
+  Math.min(MAX_INTENSITY, Math.max(MIN_INTENSITY, Math.round(v / INTENSITY_STEP) * INTENSITY_STEP));
+/** «60 %» — el mismo idioma que la barra. */
+export const intensityLabel = (v: number): string => `${clampIntensity(v)} %`;
+/**
+ * Lo que multiplica a lo que se pinta. Se saca aquí, y no en el lienzo, para que el día que alguien cambie
+ * la escala (que no sea lineal, por ejemplo) haya un solo sitio donde tocarla.
+ */
+export const intensityFactor = (l: { intensity?: number }): number => clampIntensity(l.intensity ?? DEFAULT_INTENSITY) / 100;
+
+/**
+ * EL HAZ DE UNA LUZ QUE GIRA, EN CAPAS — y por qué no lleva desenfoque (dueño, 2026-09-02: primero «la niebla
+ * hace saltos raros, no es fluida», y luego «se ven los conos duros»). Había que darle las dos cosas.
+ *
+ * Un desenfoque gaussiano sobre algo que gira hay que REHACERLO en cada fotograma, sobre una caja del tamaño
+ * de la luz; con dos conos girando eso se come el presupuesto del fotograma y se va a saltos todo lo que se
+ * pinta. Pero el filo limpio tampoco vale: contra la oscuridad canta.
+ *
+ * Así que el filo se dibuja, no se emborrona: unos pocos conos encajados, del más ancho al más estrecho, cada
+ * uno un poco más opaco. Son cuatro rellenos planos —lo más barato que sabe hacer un navegador— y el
+ * resultado es una rampa EXACTA: dándole al de dentro `1/(N-i)` de opacidad, lo acumulado en la capa `i` sale
+ * justo `(i+1)/N`. El centro queda opaco del todo y el borde se apaga por escalones tan finos que no se ven.
+ */
+export const BEAM_LAYERS = 5;
+export function beamCones(l: Pick<Light, 'x' | 'y' | 'rotation' | 'coneAngle'>, radius: number): { d: string; opacity: number }[] {
+  // Lo que se difumina el filo, en grados. Proporcional al cono —un haz estrecho con el filo de uno ancho se
+  // quedaría sin centro— y con tope, que un difuminado enorme deja de parecer un haz.
+  const feather = Math.min(12, l.coneAngle * 0.3);
+  return Array.from({ length: BEAM_LAYERS }, (_, i) => ({
+    d: conePath({ ...l, coneAngle: l.coneAngle - (feather * i) / (BEAM_LAYERS - 1) }, radius),
+    opacity: 1 / (BEAM_LAYERS - i),
+  }));
+}
 
 export function newLightOf(kind: LightKind, at: { x: number; y: number }, scene: { id: string; campaignId: string }, layerId: string | null = null): NewLight {
   const p = LIGHT_PRESETS[kind];
@@ -281,7 +354,9 @@ export function newLightOf(kind: LightKind, at: { x: number; y: number }, scene:
     x: at.x, y: at.y, rotation: 0, coneAngle: p.coneAngle, color: p.color, flicker: p.flicker,
     // Una luz nace proyectando sombra: lo normal es que la piedra la pare (§ 7.2). El interruptor del
     // editor está para lo excepcional —un resplandor mágico que atraviesa el muro—, no para lo corriente.
-    rangeM: p.rangeM, castsShadow: true,
+    // Y nace QUIETA: girar es lo excepcional, y encima sólo tiene sentido en un cono (§ 7.2).
+    // Y nace a plena intensidad: lo que se pide al colocar una luz es la luz de siempre, no una a medias.
+    rangeM: p.rangeM, castsShadow: true, spinMs: 0, intensity: DEFAULT_INTENSITY,
   };
 }
 

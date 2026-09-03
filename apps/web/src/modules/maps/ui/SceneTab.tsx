@@ -16,7 +16,8 @@ import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
 import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
-import { SegmentBar } from './SegmentBar';
+import { BuilderPanel } from './BuilderPanel';
+import { type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
@@ -104,9 +105,57 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [brush, setBrush] = useState<number>(DEFAULT_BRUSH);
   const [wallKind, setWallKind] = useState<WallKind>('wall');
+  /** Con qué forma levanta Builder. Arranca en `segment`: el Builder de siempre, sin sorpresas (§ «Rebanada 8»). */
+  const [wallShape, setWallShape] = useState<RoomShape>('segment');
+  /**
+   * EN QUÉ ESTÁ TRABAJANDO (diseño v3). Arranca en «sobre una foto», que es lo que él lleva haciendo: marcar
+   * los muros encima de un mapa hecho con otra herramienta.
+   *
+   * Vive en la pantalla y NO en la escena, igual que el velo del director: hoy sólo decide qué ofrece el
+   * panel, no cambia ni un dato de la partida. El día que traiga preajustes y texturas —tabla de habitaciones,
+   * migración y DBA de por medio— se mirará si tiene que guardarse.
+   */
+  const [builderMode, setBuilderMode] = useState<BuilderMode>('photo');
+  /**
+   * EL CANDADO DE LA REJILLA. Arranca ABIERTO por orden suya del 2026-09-03: «*el pegado a la rejilla debería
+   * estar desactivado por defecto*». Se le había propuesto lo contrario —empezar cerrado, para no cambiarle
+   * nada— y probándolo decidió al revés: marcando muros sobre una foto, la rejilla no le sirve de nada porque
+   * los muros de la foto no caen en múltiplos de nada.
+   *
+   * Abierto NO es «libre a secas»: las puntas siguen pegándose a las puntas de otros muros cercanos, o
+   * quedarían rendijas por las que se cuela la visión (`snapRules`).
+   */
+  const [snapGrid, setSnapGrid] = useState(false);
+  /**
+   * LOS NODOS EN CADENA (dueño, 2026-09-03: «*los nodos deberían ser como una cadena a menos que yo elija que
+   * no*»). Arranca PUESTO, que es lo que pidió: mover una punta se lleva las que estaban en ese mismo sitio,
+   * así que arrastrar el nodo de una sala no la abre.
+   */
+  const [chainNodes, setChainNodes] = useState(true);
+  /**
+   * SI EL PANEL DE BUILDER ESTÁ ABIERTO. Es un estado propio y no «¿la herramienta es Builder?» porque
+   * Seleccionar y Builder VIVEN JUNTAS (dueño, 2026-09-03): pasar a Seleccionar para mover algo no puede
+   * cerrarle el panel con el que está trabajando. Lo cierra la X, o irse a cualquier otra herramienta.
+   */
+  const [builderOpen, setBuilderOpen] = useState(false);
   const [railFolded, setRailFolded] = useState(false);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
+  /** EL GRUPO (§ «EL GRUPO»): los muros cogidos como una pieza. Es otra cosa que el muro suelto que se edita. */
+  const [selectedWallIds, setSelectedWallIds] = useState<string[]>([]);
   const [quickMenu, setQuickMenu] = useState<{ at: Point; scene: Point } | null>(null);
+  /**
+   * El velo gris del director, encendido o apagado. Vive AQUÍ y no en la escena a propósito: es una
+   * preferencia de su pantalla, no un ajuste de la partida — no se guarda, no viaja y al recargar vuelve
+   * puesto. Un jugador no se entera de nada (dueño, 2026-09-02).
+   */
+  const [fogVeil, setFogVeil] = useState(true);
+  /** El trazo elegido: un texto, una línea, una caja, un círculo o un garabato (dueño, 2026-09-02). */
+  const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null);
+  /**
+   * VARIOS TRAZOS COGIDOS con el área (dueño, 2026-09-03: «*el arrastrar y seleccionar no funciona con las
+   * formas simples de líneas, texto, círculo y cuadrado*»). Se mueven juntos y Suprimir los borra juntos.
+   */
+  const [selectedDrawingIds, setSelectedDrawingIds] = useState<string[]>([]);
   const stageRef = useRef<HTMLDivElement>(null);
 
   // ── load: DM lists; player follows the active scene ──
@@ -123,20 +172,18 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
 
   const scene = isDm ? scenes?.find(s => s.id === selectedId) ?? null : playerScene;
   /**
-   * «Ver con los ojos de un personaje» (rebanada 7): la ficha por cuyos ojos mira el director. Es una LENTE,
-   * no un modo — no mueve la escena activa, no toca la niebla guardada y no avisa al jugador.
+   * LA SONDA DE PRUEBA (§ 7.3): dónde está puesta, en px de escena. Va atada a «ver como jugador» — encenderlo
+   * la suelta, apagarlo se la lleva (dueño, 2026-09-01: «me debería dejar poner un token donde quiera para
+   * probar»). No es una ficha: no se guarda, no la ve nadie y no sale en ninguna lista.
    */
-  const [seeAsTokenId, setSeeAsTokenId] = useState<string | null>(null);
-  const st = useScene(repo, scene, userId, vision, seeAsTokenId);
+  const [probe, setProbe] = useState<Point | null>(null);
+  const st = useScene(repo, scene, userId, vision, probe);
   /**
    * La capa ACTIVA: donde se dibuja y se coloca (rebanada 7). Sólo el director tiene panel, así que un
    * jugador la deja siempre vacía y todo lo suyo cae en su capa natural, igual que antes de que existieran.
    */
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
   const [layersOpen, setLayersOpen] = useState(true);
-  /** Mirar por los ojos de alguien implica dejar de ver como director: si no, no comprobaría nada. */
-  const seeAsToken = st.tokens.find(t => t.id === seeAsTokenId) ?? null;
-  const asPlayer = playerView || !!seeAsToken;
   /** La luz que se está retocando. Es pintura: seleccionarla no cambia nada para nadie. */
   const [selectedLightId, setSelectedLightId] = useState<string | null>(null);
   const [maskStrength, setMaskStrength] = useState(DEFAULT_MASK_STRENGTH);
@@ -154,7 +201,12 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const viewport = () => ({ width: stageRef.current?.clientWidth ?? 0, height: stageRef.current?.clientHeight ?? 0 });
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
 
-  useEffect(() => { if (live) setView(fitView(live, viewport())); setSelectedTokenIds([]); setEncounter(null); }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  /**
+   * Al cambiar de escena la sonda SE VA, y con ella «ver como jugador» (§ 7.3: «se va al apagar la sonda, al
+   * cambiar de escena o al recargar»). Dejarla puesta la plantaría en las coordenadas de la escena anterior,
+   * que en la nueva no significan nada.
+   */
+  useEffect(() => { if (live) setView(fitView(live, viewport())); setSelectedTokenIds([]); setEncounter(null); setProbe(null); setPlayerView(false); }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Whoever accepts the pin centres on it — including the one who dropped it, which is what «enfoque» means.
   useEffect(() => { if (st.pin) setView(v => centerOn(v, st.pin!, viewport())); }, [st.pin]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (tool !== 'encounter') { setEncounter(null); setArmedFromBestiary(false); } }, [tool]);
@@ -174,9 +226,14 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     setArmedFromBestiary(true);
     onArmed?.();
   }, [armEncounter, live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Only Seleccionar owns a selection. Carrying it into another tool stacks «Segmento» / the token bar on top of
-  // «Trazo» — all three float at the same spot over the canvas — and leaves Suprimir armed on an invisible target.
-  useEffect(() => { if (tool !== 'select') { setSelectedWallId(null); setSelectedTokenIds([]); } }, [tool]);
+  /**
+   * La selección es de Seleccionar y de BUILDER, que viven juntas (dueño, 2026-09-03: «*si tengo una
+   * herramienta y selecciono la herramienta de selección no tiene que cerrar los modales abiertos, viven
+   * juntas, porque si quiero mover algo no indica que deje de trabajar con un muro*»). Llevarla a cualquier
+   * OTRA herramienta sí la suelta: apilaba la barra del token sobre «Trazo» —las dos flotan en el mismo
+   * sitio— y dejaba a Suprimir apuntando a algo que no se ve.
+   */
+  useEffect(() => { if (tool !== 'select' && tool !== 'wall') { setSelectedWallId(null); setSelectedTokenIds([]); setSelectedDrawingIds([]); } }, [tool]);
   useEffect(() => { if (live) { setPendingPc(null); setPcMenu(false); } }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nameOf = useCallback((uid: string) => members.find(m => m.userId === uid)?.name ?? uid, [members]);
@@ -291,6 +348,15 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     });
   }, [selectedToken, st.tokens, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
+  /**
+   * ¿Lo cogido está ATADO? Sólo si TODOS comparten el mismo grupo. Media selección atada y media suelta se
+   * ofrece como «agrupar», que es lo único que tiene sentido hacer con ella.
+   */
+  const grupoCogido = ((): string | null => {
+    const cogidos = st.walls.filter(w => selectedWallIds.includes(w.id));
+    const g = cogidos[0]?.groupId ?? null;
+    return g && cogidos.length > 1 && cogidos.every(w => w.groupId === g) ? g : null;
+  })();
   const selectedLight = st.lights.find(l => l.id === selectedLightId) ?? null;
   /**
    * «Fondo del mapa» toca la CAPA DE TERRENO ACTIVA cuando hay una, y la escena cuando no. Es lo que hace que
@@ -305,11 +371,40 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const mask = useMaskPainter(live, bgLayer, maskDeps);
 
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
+  const removeLight = (id: string) => { setSelectedLightId(cur => (cur === id ? null : cur)); run(st.removeLight(id)); };
+  const removeDrawing = (id: string) => { setSelectedDrawingId(cur => (cur === id ? null : cur)); run(st.eraseDrawing(id)); };
   const deleteSelection = () => {
     if (!isDm) return;
+    // La LUZ va primero porque elegirla suelta lo demás: si hay una elegida, es LO elegido (dueño, 2026-09-02).
+    if (selectedLight) { removeLight(selectedLight.id); return; }
+    // Varios trazos cogidos con el área se borran juntos; uno solo sigue por su camino de siempre.
+    if (selectedDrawingIds.length > 1) { selectedDrawingIds.forEach(id => removeDrawing(id)); setSelectedDrawingIds([]); return; }
+    if (selectedDrawingId) { removeDrawing(selectedDrawingId); return; }
+    // EL GRUPO antes que el muro suelto: si hay una pieza cogida, ESO es lo elegido y se borra entera.
+    if (selectedWallIds.length > 1) { run(st.removeWalls(selectedWallIds)); setSelectedWallIds([]); return; }
     if (selectedWall) { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); return; }
     if (selectedTokens.length) { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }
   };
+
+  /**
+   * CTRL+Z / CMD+Z para deshacer, y con MAYÚSCULAS para rehacer (§ «Rebanada 8»). Petición suya del
+   * 2026-08-19, reclamada el 2026-09-03: «*el deshacer y el inverso no funciona*».
+   *
+   * Sólo el director: los muros y las salas son suyos, y un jugador no tiene nada que deshacer aquí. Y no
+   * dispara mientras se escribe en un campo, o Ctrl+Z dentro del nombre de una escena borraría un muro.
+   */
+  useEffect(() => {
+    if (!isDm) return undefined;
+    const escribiendo = (el: EventTarget | null): boolean =>
+      !!(el as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]');
+    const onKey = (e: KeyboardEvent): void => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z' || escribiendo(e.target)) return;
+      e.preventDefault();
+      void (e.shiftKey ? st.history.redo() : st.history.undo());
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isDm, st.history]);
 
   if (status === 'loading') return <section className="tb-hoja tb-placeholder">{t('maps.loading')}</section>;
   if (status === 'error') return <section className="tb-hoja tb-placeholder">{t('maps.error')}</section>;
@@ -347,12 +442,21 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     <section className="mp-root">
       <div className="mp-stage-row">
         {scenesRail}
-        <Toolbar tool={tool} isDm={isDm} onChange={next => { closeOverlays(next === 'encounter' ? 'encounter' : undefined); setTool(next); }}
+        {/*
+          * Pasar a SELECCIONAR no cierra nada: es la otra mitad de Builder, no una salida. Cualquier otra
+          * herramienta sí recoge los paneles, que flotan sobre el mismo mapa.
+          */}
+        <Toolbar tool={tool} isDm={isDm} playerView={playerView} onChange={next => {
+            if (next !== 'select') closeOverlays(next === 'encounter' ? 'encounter' : undefined);
+            if (next === 'wall') setBuilderOpen(true);
+            else if (next !== 'select') setBuilderOpen(false);
+            setTool(next);
+          }}
           onDice={() => onOpenDice?.()} diceOpen={diceOpen}
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
           <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
-            playerView={asPlayer} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} view={view} onViewChange={setView} nameOf={nameOf}
+            playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} wallShape={wallShape} snapGrid={snapGrid} chainNodes={chainNodes} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
             onAddText={async at => {
               const text = await dialog.prompt(t('maps.text.prompt'));
@@ -366,11 +470,22 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               // It also inherits whether the players could see that wall: otherwise their plan grows a gap
               // exactly where the doorway is.
               const plan = planOpening(st.walls, a, b, wallKind);
-              run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.split?.host.visiblePlayers ?? false, ...newWallOf(wallKind) }, plan.split));
+              run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind) }, plan.splits));
+            }}
+            onAddRoom={sides => {
+              // Una sala son MUROS de los de siempre (§ «Rebanada 8»): opacos, y ocultos al jugador como
+              // cualquier muro nuevo. Las puertas las abre él después, con el mismo disco.
+              run(st.addRoom(sides.map(sd => ({ sceneId: live.id, campaignId, ...sd, visiblePlayers: false, ...newWallOf('wall') }))));
             }}
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
             onPaintFog={(at, op) => run(st.paintFog(at, op))}
             selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
+            onMoveLight={(id, at) => run(st.patchLight(id, at))}
+            selectedDrawingId={selectedDrawingId} onSelectDrawing={setSelectedDrawingId}
+            selectedDrawingIds={selectedDrawingIds} onSelectDrawings={setSelectedDrawingIds}
+            onMoveDrawing={(id, data) => run(st.moveDrawing(id, data))}
+            onMoveDrawings={batch => batch.forEach(b => run(st.moveDrawing(b.id, b.data)))}
+            fogVeil={fogVeil}
             maskLayerId={bgLayer?.id ?? null} maskPreview={mask.preview}
             onPaintMask={(from, to) => mask.paint(from, to, brushRadius(maskSizeCells, live.grid.size), maskStrength, maskDir, maskHardness)}
             onPaintMaskEnd={() => run(mask.flush())}
@@ -388,25 +503,45 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             }}
             selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
+            selectedWallIds={selectedWallIds} onSelectWalls={setSelectedWallIds}
+            onTransformWalls={batch => {
+              const byId = new Map(batch.map(b => [b.id, b]));
+              run(st.transformWalls(st.walls.filter(w => byId.has(w.id)).map(w => ({ ...w, ...byId.get(w.id)! }))));
+            }}
             onContextMenu={(at, pt) => { closeOverlays('quick'); setLayerMenu(null); setQuickMenu({ at, scene: pt }); }}
             onElementMenu={(at, element) => { closeOverlays('quick'); setQuickMenu(null); setLayerMenu({ at, element }); }}
             onDeleteSelection={deleteSelection}
-            onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))} />
+            onMoveWall={(id, at) => run(st.patchWallGeometry(id, at))}
+            /*
+             * AÑADIR UN NODO: doble clic sobre la línea de un muro lo parte en dos por ahí (dueño,
+             * 2026-09-03). Dentro de un grupo el PRIMER doble clic sigue entrando al muro suelto, como
+             * hasta ahora, y es el siguiente el que pone el nodo — su decisión: «primero entra, luego el nodo».
+             */
+            onSplitWall={(id, at) => { const w = st.walls.find(x => x.id === id); if (w) run(st.splitWall(w, at)); }} />
           {isDm && (
             <div className="mp-dmtag" role="group" aria-label={t('maps.dmOptions')}>
               <span className="mp-dm-tag">{t('maps.dmOnly')}</span>
               <span className="tb-italic">{t('maps.dmCounts', { walls: String(st.walls.filter(w => w.kind === 'wall').length), doors: String(st.walls.filter(w => w.kind === 'door').length), windows: String(st.walls.filter(w => w.kind === 'window').length), hidden: String(hiddenCount) })} · {bgName}</span>
             </div>
           )}
-          <span className={`mp-canvas-label ${seeAsToken ? 'seeas' : ''}`}>{seeAsToken
-            ? `${t('maps.seeAs.banner', { name: seeAsToken.name })} · ${t('maps.seeAs.note')}`
+          <span className={`mp-canvas-label ${isDm && playerView ? 'probe' : ''}`}>{isDm && playerView
+            ? probe
+              ? `${t('maps.probe.banner')} · ${t('maps.probe.note')}`
+              : t('maps.probe.place')
             : isDm && !playerView
             ? `${t('maps.dmView')}${live.fogMode === 'vision' ? ` · ${t('maps.fog.byVision')}` : ''}${isBrush(tool) ? ` · ${t(`maps.brush.${tool}`)}` : ''}`
               : `${t('maps.playerVision', { name: live.name })}${live.lighting === 'night' ? ` · ${t('maps.light.night', { m: String(live.nightRadiusM) })}` : ''}`}</span>
-          {(isDraw(tool) || (isDm && isBrush(tool))) && (
+          {/*
+            * El pincel de niebla NO se ofrece viendo como jugador (dueño, 2026-09-02: «directamente no
+            * funciona el ocultar o revelar»). Y no es que se rompiera: el lienzo lo ignora desde siempre en
+            * ese modo —`if (!dmSight) return`, igual que Muro y Luz—, porque «ver como jugador» le quita al
+            * director sus privilegios y pintar la niebla es uno. Lo que estaba mal era OFRECERLO: la barra
+            * salía, se pintaba con ella y no pasaba nada.
+            */}
+          {(isDraw(tool) || (isDm && !playerView && isBrush(tool))) && (
             <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll()) : undefined}
               tool={tool}
-              {...(isDm && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})} />
+              {...(isDm && !playerView && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})} />
           )}
           {/*
             * El panel de capas es del DIRECTOR y desaparece con «ver como jugador»: la lente sirve para ver
@@ -440,12 +575,25 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           {isDm && !playerView && selectedLight && (
             <LightEditor light={selectedLight}
               onChange={patch => run(st.patchLight(selectedLight.id, patch))}
-              onRemove={() => { setSelectedLightId(null); run(st.removeLight(selectedLight.id)); }}
+              onRemove={() => removeLight(selectedLight.id)}
               onClose={() => setSelectedLightId(null)} />
           )}
-          {isDm && (tool === 'wall' || selectedWall) && (
-            <SegmentBar wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
+          {/*
+            * EL PANEL DE BUILDER v3, y ya no la barra flotante vieja — orden suya del 2026-09-03: «*ya es hora
+            * que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este*».
+            */}
+          {isDm && (builderOpen || selectedWall || selectedWallIds.length > 1) && (
+            <BuilderPanel mode={builderMode} onMode={setBuilderMode}
+              wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
               onKind={k => (selectedWall ? run(st.patchWall(selectedWall.id, { kind: k, ...WALL_FLAGS[k] })) : setWallKind(k))}
+              shape={wallShape} onShape={setWallShape}
+              snapGrid={snapGrid} onSnapGrid={setSnapGrid}
+              chainNodes={chainNodes} onChainNodes={setChainNodes}
+              groupCount={selectedWallIds.length} grouped={grupoCogido !== null}
+              onGroup={() => run(st.groupWalls(selectedWallIds))}
+              onUngroup={() => { if (grupoCogido) { run(st.ungroupWalls(grupoCogido)); setSelectedWallIds([]); } }}
+              // Cerrar el panel es salir de Builder: vuelve a Seleccionar y suelta lo que hubiera cogido.
+              onClose={() => { setBuilderOpen(false); setTool('select'); setSelectedWallId(null); setSelectedWallIds([]); }}
               {...(selectedWall ? {
                 onVisible: (v: boolean) => run(st.patchWall(selectedWall.id, { visiblePlayers: v })),
                 onToggleOpen: () => run(st.patchWall(selectedWall.id, { isOpen: !selectedWall.isOpen })),
@@ -468,6 +616,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           )}
           {layerMenu && (
             <LayerMenu at={layerMenu.at} element={layerMenu.element} layers={st.layers}
+              {...(layerMenu.element.kind === 'light' ? { onRemove: () => removeLight(layerMenu.element.id) } : {})}
+              {...(layerMenu.element.kind === 'drawing' ? { onRemove: () => removeDrawing(layerMenu.element.id) } : {})}
               onPick={layerId => {
                 const { kind, id } = layerMenu.element;
                 if (kind === 'token') run(st.patchToken(id, { layerId }));
@@ -478,6 +628,17 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           )}
           {quickMenu && (
             <div className="mp-pop mp-quick" role="menu" aria-label={t('maps.quick.title')} style={{ left: quickMenu.at.x, top: quickMenu.at.y }}>
+              {/*
+                * «Seleccionar» ARRIBA DEL TODO (dueño, 2026-09-02: «al botón derecho agrégale como primera
+                * opción la de seleccionar»). Es la vuelta a casa: se dibuja o se pinta con una herramienta y
+                * se quiere volver a poder coger cosas sin ir hasta la barra. Se marca cuando ya lo está, para
+                * que no parezca que no hizo nada.
+                */}
+              <button type="button" role="menuitem" className={`mp-menu-item ${tool === 'select' ? 'on' : ''}`}
+                onClick={() => { closeOverlays(); setTool('select'); setQuickMenu(null); }}>
+                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>arrow_selector_tool</span>{t('maps.tool.select')}
+              </button>
+              <span className="mp-menu-sep" aria-hidden />
               <button type="button" role="menuitem" className="mp-menu-item" onClick={() => { setView(v => centerOn(v, quickMenu.scene, viewport())); setQuickMenu(null); }}>
                 <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>my_location</span>{t('maps.quick.centerMe')}
               </button>
@@ -549,13 +710,29 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               onClose={() => setBgOpen(false)} />
           )}
           <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView} scene={live}
-            seeAsOptions={st.tokens.filter(tk => tk.characterId).map(tk => ({ id: tk.id, name: tk.name }))}
-            seeAsTokenId={seeAsTokenId} onSeeAs={setSeeAsTokenId}
             onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}
+            fogVeil={fogVeil} onToggleFogVeil={() => setFogVeil(v => !v)}
             onLighting={lighting => run(patchScene(live.id, { lighting }))}
             onSolidWalls={solidWalls => run(patchScene(live.id, { solidWalls }))}
             onZoomIn={() => setView(v => zoomAt(v, ZOOM_STEP, viewCenter()))} onZoomOut={() => setView(v => zoomAt(v, 1 / ZOOM_STEP, viewCenter()))}
-            onCenter={() => setView(fitView(live, viewport()))} onToggleWalls={() => setShowWalls(w => !w)} onTogglePlayerView={() => setPlayerView(v => !v)} />
+            onCenter={() => setView(fitView(live, viewport()))} onToggleWalls={() => setShowWalls(w => !w)}
+            onTogglePlayerView={() => {
+              /**
+               * Encender «ver como jugador» NO coloca la sonda: la pone ÉL, con un clic donde quiera (dueño,
+               * 2026-09-02: «déjame poner el token donde quiera, no lo pongas automáticamente en el centro,
+               * si no la prueba es una mierda»). Antes caía en mitad de lo que se estuviera mirando y desde
+               * ahí tocaba arrastrarla, que con el mapa alejado es un viaje — y el sitio que importa para
+               * probar casi nunca es el centro de la pantalla.
+               *
+               * Apagarlo se la lleva, y con ella la memoria que llevaba acumulada (§ 7.3). Nada se guarda.
+               */
+              const next = !playerView;
+              setPlayerView(next);
+              setProbe(null);
+              // Y con Seleccionar en la mano: si se entrase con el Lápiz puesto, el clic que tiene que poner
+              // la sonda se lo llevaría el lápiz y parecería que el modo no hace nada.
+              if (next) setTool('select');
+            }} />
         </div>
       </div>
       {failed && <p className="mp-foot mp-foot-err" role="alert">{t('maps.saveFailed')}</p>}

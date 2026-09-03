@@ -58,9 +58,11 @@ export function LayersPanel({ layers, activeId, onActivate, onToggleVisible, onT
     <div className="mp-layers-head">
       <span className="tb-rotulo">{t('maps.layers.title')}</span>
       {onCollapse && (
-        <button type="button" className="mp-layers-icon" aria-label={t(collapsed ? 'maps.layers.expand' : 'maps.layers.collapse')} aria-expanded={!collapsed} onClick={onCollapse}>
-          <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{collapsed ? 'right_panel_open' : 'right_panel_close'}</span>
-        </button>
+        <Tooltip label={t(collapsed ? 'maps.layers.expand' : 'maps.layers.collapse')} placement="left">
+          <button type="button" className="mp-layers-icon" aria-label={t(collapsed ? 'maps.layers.expand' : 'maps.layers.collapse')} aria-expanded={!collapsed} onClick={onCollapse}>
+            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{collapsed ? 'right_panel_open' : 'right_panel_close'}</span>
+          </button>
+        </Tooltip>
       )}
     </div>
   );
@@ -86,10 +88,12 @@ export function LayersPanel({ layers, activeId, onActivate, onToggleVisible, onT
               {l.kind === 'terrain' && (
                 <span className="material-symbols-outlined mp-layer-grip" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true" title={t('maps.layers.drag')}>drag_indicator</span>
               )}
-              <button type="button" className="mp-layers-icon" aria-label={t(l.visible ? 'maps.layers.hide' : 'maps.layers.show', { name })} aria-pressed={l.visible}
-                onClick={() => onToggleVisible(l)}>
-                <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>{l.visible ? 'visibility' : 'visibility_off'}</span>
-              </button>
+              <Tooltip label={t(l.visible ? 'maps.layers.hide' : 'maps.layers.show', { name })} placement="left">
+                <button type="button" className="mp-layers-icon" aria-label={t(l.visible ? 'maps.layers.hide' : 'maps.layers.show', { name })} aria-pressed={l.visible}
+                  onClick={() => onToggleVisible(l)}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>{l.visible ? 'visibility' : 'visibility_off'}</span>
+                </button>
+              </Tooltip>
               <button type="button" className="mp-layer-main" aria-pressed={on} aria-label={t('maps.layers.select', { name })} onClick={() => onActivate(l)}>
                 {l.kind === 'terrain' && l.imageUrl
                   ? <img className="mp-layer-thumb" src={l.imageUrl} alt="" aria-hidden="true" />
@@ -104,10 +108,12 @@ export function LayersPanel({ layers, activeId, onActivate, onToggleVisible, onT
                   <span className="material-symbols-outlined mp-layer-mask" style={{ fontSize: 'var(--icon-xs)' }} aria-label={t('maps.layers.hasMask')} role="img">brush</span>
                 </Tooltip>
               )}
-              <button type="button" className={`mp-layers-icon ${l.locked ? 'locked' : ''}`} aria-label={t(l.locked ? 'maps.layers.unlock' : 'maps.layers.lock', { name })} aria-pressed={l.locked}
-                onClick={() => onToggleLocked(l)}>
-                <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>{l.locked ? 'lock' : 'lock_open_right'}</span>
-              </button>
+              <Tooltip label={t(l.locked ? 'maps.layers.unlock' : 'maps.layers.lock', { name })} placement="left">
+                <button type="button" className={`mp-layers-icon ${l.locked ? 'locked' : ''}`} aria-label={t(l.locked ? 'maps.layers.unlock' : 'maps.layers.lock', { name })} aria-pressed={l.locked}
+                  onClick={() => onToggleLocked(l)}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>{l.locked ? 'lock' : 'lock_open_right'}</span>
+                </button>
+              </Tooltip>
             </li>
           );
         })}
@@ -121,15 +127,19 @@ export function LayersPanel({ layers, activeId, onActivate, onToggleVisible, onT
         <div className="mp-layer-actions">
           <span className="tb-rotulo mp-layer-actions-name">{nameOf(active)}</span>
           {(['up', 'down'] as const).map(dir => (
-            <button key={dir} type="button" className="mp-layers-icon" aria-label={t(`maps.layers.${dir}`)}
-              disabled={dir === 'up' ? terrain[terrain.length - 1]?.id === active.id : terrain[0]?.id === active.id}
-              onClick={() => onReorder(active, dir)}>
-              <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>{dir === 'up' ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
-            </button>
+            <Tooltip key={dir} label={t(`maps.layers.${dir}`)} placement="top">
+              <button type="button" className="mp-layers-icon" aria-label={t(`maps.layers.${dir}`)}
+                disabled={dir === 'up' ? terrain[terrain.length - 1]?.id === active.id : terrain[0]?.id === active.id}
+                onClick={() => onReorder(active, dir)}>
+                <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>{dir === 'up' ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
+              </button>
+            </Tooltip>
           ))}
-          <button type="button" className="mp-layers-icon" aria-label={t('maps.layers.delete')} onClick={() => onRemove(active)}>
-            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>delete</span>
-          </button>
+          <Tooltip label={t('maps.layers.delete')} placement="top">
+            <button type="button" className="mp-layers-icon" aria-label={t('maps.layers.delete')} onClick={() => onRemove(active)}>
+              <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>delete</span>
+            </button>
+          </Tooltip>
         </div>
       )}
 

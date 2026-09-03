@@ -1,8 +1,22 @@
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
-import { DM_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '../domain/useCases/mapRules';
+import { DM_TOOLS, DRAW_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '../domain/useCases/mapRules';
 
-const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: 'fence', reveal: 'visibility', hide: 'visibility_off', mask: 'opacity', light: 'wb_incandescent', encounter: 'swords' };
+/**
+ * «Builder» no usa un icono de Material: usa el DIBUJO DEL DUEÑO (`apps/web/public/icons/builder.png`, sacado
+ * de su «walls doors and windows.png», al que se le quitó el fondo). Se reconoce porque empieza por `/`.
+ *
+ * Lo que se PINTA es `builder-mask.png`, no el dibujo original (dueño, 2026-09-01: «el icono se ve muy
+ * claro respecto a los otros»). El motivo, medido: el dibujo son trazos finos y muy suavizados —de sus 16 384
+ * píxeles sólo 725 son opacos del todo—, así que al encogerlo a `--icon-sm` el navegador promedia trazo con
+ * transparencia y **la máscara no pasaba de 152 sobre 255**: el icono nunca llegaba a teñirse del color del
+ * botón, y al lado de un Material Symbol —que a ese tamaño sí llega a 255— se veía descolorido.
+ * `builder-mask.png` es SU MISMO dibujo con el alfa engordado 2 px y las medias tintas levantadas, que a
+ * tamaño real lo deja en 252. **El original no se ha tocado** y sigue en la carpeta.
+ */
+const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: '/icons/builder-mask.png', reveal: 'visibility', hide: 'visibility_off', mask: 'opacity', light: 'wb_incandescent', encounter: 'swords' };
+const esImagen = (icon: string): boolean => icon.startsWith('/');
 
 /** Actions that open a panel instead of changing the cursor: they are buttons, not tools. */
 interface Action { id: 'dice' | 'placePc' | 'background'; icon: string; onClick: () => void; on?: boolean }
@@ -10,6 +24,14 @@ interface Action { id: 'dice' | 'placePc' | 'background'; icon: string; onClick:
 interface Props {
   tool: Tool;
   isDm: boolean;
+  /**
+   * «Ver como jugador» puesto. Las herramientas del director se enseñan APAGADAS, no se esconden: ese modo
+   * ya les quitaba el efecto en el lienzo (`if (!dmSight) return` en Muro, Luz y el pincel de niebla), pero
+   * la barra las seguía ofreciendo — se pintaba con ellas y no pasaba nada, que es peor que no poder
+   * (dueño, 2026-09-02: «directamente no funciona el ocultar o revelar»). Apagadas y no escondidas para que
+   * la barra no baile de sitio al entrar y salir del modo.
+   */
+  playerView?: boolean;
   onChange: (tool: Tool) => void;
   /** «Lanzador de dados» — the first button of all (specs/modules/maps/SPEC.md § «Rebanada 3»). */
   onDice: () => void;
@@ -25,9 +47,74 @@ function Btn({ label, icon, on, dm, disabled, onClick }: { label: string; icon: 
   return (
     <Tooltip label={label}>
       <button type="button" className={`mp-tool ${on ? 'on' : ''} ${dm ? 'dm' : ''}`} aria-pressed={on} aria-label={label} disabled={disabled} onClick={onClick}>
-        <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{icon}</span>
+        {esImagen(icon)
+          /*
+           * Va de MÁSCARA y no de `<img>`: el color lo pone el botón (`currentColor`), así que se tiñe solo
+           * cuando la herramienta está seleccionada —fondo negro, icono claro— igual que todos sus vecinos.
+           * Con un `<img>` el dibujo, que es oscuro, desaparecería sobre el negro justo al elegirlo.
+           */
+          ? <span className="mp-tool-img" data-testid="mp-tool-img" style={{ maskImage: `url(${icon})`, WebkitMaskImage: `url(${icon})` }} />
+          : <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{icon}</span>}
       </button>
     </Tooltip>
+  );
+}
+
+/**
+ * LAS SEIS DE DIBUJAR, EN UN SOLO ICONO (dueño, 2026-09-03: «*quiero que todas estas sean un solo icono y
+ * cuando hagas click despliegue al lado un menú con las opciones de dibujo libre, para ahorrar espacio en la
+ * barra de herramientas*»). Seis botones ocupaban seis alturas de barra sobre un mapa que quiere todo el
+ * alto que le den.
+ *
+ * El icono ENSEÑA LA HERRAMIENTA PUESTA: con Lápiz activo se ve el lápiz, no un icono genérico. Si no, no
+ * habría forma de saber con qué estás dibujando sin abrir el menú.
+ *
+ * El menú va `fixed` y medido sobre el botón: la barra tiene `overflow:auto`, así que uno absoluto se
+ * recortaría contra ella — el mismo motivo por el que los paneles se pasan a `fixed` al agarrarlos.
+ */
+function DrawTools({ tool, label, onChange }: { tool: Tool; label: (id: Tool) => string; onChange: (t: Tool) => void }): JSX.Element {
+  const { t } = useTranslation();
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const activa = DRAW_TOOLS.includes(tool) ? tool : null;
+
+  useEffect(() => {
+    if (!at) return undefined;
+    const fuera = (e: Event): void => { if (!box.current?.contains(e.target as Node)) setAt(null); };
+    const tecla = (e: KeyboardEvent): void => { if (e.key === 'Escape') setAt(null); };
+    window.addEventListener('pointerdown', fuera);
+    window.addEventListener('keydown', tecla);
+    return () => { window.removeEventListener('pointerdown', fuera); window.removeEventListener('keydown', tecla); };
+  }, [at]);
+
+  const abrir = (e: React.MouseEvent<HTMLButtonElement>): void => {
+    if (at) { setAt(null); return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    // Al lado, pegado a su derecha y a su misma altura: es donde él lo pidió, «al lado».
+    setAt({ x: r.right + 4, y: r.top });
+  };
+
+  return (
+    <div className="mp-drawtools" ref={box}>
+      <Tooltip label={t('maps.tool.draw')}>
+        <button type="button" className={`mp-tool ${activa ? 'on' : ''}`} aria-haspopup="menu" aria-expanded={!!at}
+          aria-label={t('maps.tool.draw')} onClick={abrir}>
+          <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{activa ? ICONS[activa] : 'draw'}</span>
+        </button>
+      </Tooltip>
+      {at && (
+        <div className="mp-pop mp-drawmenu" role="menu" aria-label={t('maps.tool.draw')} style={{ position: 'fixed', left: at.x, top: at.y }}>
+          {DRAW_TOOLS.map(id => (
+            <button key={id} type="button" role="menuitemradio" aria-checked={tool === id}
+              className={`mp-menu-item ${tool === id ? 'on' : ''}`}
+              onClick={() => { onChange(tool === id ? 'select' : id); setAt(null); }}>
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>{ICONS[id]}</span>
+              {label(id)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -50,9 +137,12 @@ function Btn({ label, icon, on, dm, disabled, onClick }: { label: string; icon: 
  */
 export function Toolbar(p: Props): JSX.Element {
   const { t } = useTranslation();
-  const label = (id: Tool) => (TOOLS_NOT_YET.includes(id) ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.soon')}` : t(`maps.tool.${id}`));
+  const dormida = (id: Tool): boolean => !!p.playerView && DM_TOOLS.includes(id);
+  const label = (id: Tool) => (TOOLS_NOT_YET.includes(id)
+    ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.soon')}`
+    : dormida(id) ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.notInPlayerView')}` : t(`maps.tool.${id}`));
   const tools = (ids: Tool[]) => ids.filter(x => p.isDm || PLAYER_TOOLS.includes(x)).map(id => (
-    <Btn key={id} label={label(id)} icon={ICONS[id]} on={p.tool === id} dm={DM_TOOLS.includes(id)} disabled={TOOLS_NOT_YET.includes(id)}
+    <Btn key={id} label={label(id)} icon={ICONS[id]} on={p.tool === id} dm={DM_TOOLS.includes(id)} disabled={TOOLS_NOT_YET.includes(id) || dormida(id)}
       onClick={() => p.onChange(p.tool === id ? 'select' : id)} />
   ));
   const actions = (list: Action[]) => list.map(a => (
@@ -73,7 +163,7 @@ export function Toolbar(p: Props): JSX.Element {
         {tools(['select', 'measure', 'pin'])}
       </div>
       <div className="mp-tool-group">
-        {tools(['pencil', 'line', 'rect', 'circle', 'text', 'erase'])}
+        <DrawTools tool={p.tool} label={label} onChange={p.onChange} />
       </div>
       {p.isDm && (
         <div className="mp-tool-group dm">

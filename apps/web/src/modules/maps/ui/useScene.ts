@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { SceneVision } from '@rolvium/core';
+import type { FogCell, SceneVision } from '@rolvium/core';
 import type { Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewToken, NewWall, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
+import { splitWallAt, unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
 import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
+import { newGroupId } from '../domain/useCases/groupRules';
+import { useHistory, type History } from './useHistory';
 
 export interface LiveDrag { tokenId: string; x: number; y: number }
 export interface LivePin { x: number; y: number; by: string; at: number }
@@ -38,13 +40,21 @@ const VISION_CONTACT_HZ_MS = 50; // ~20 Hz
  */
 export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision?: VisionPort,
   /**
-   * «Ver con los ojos de este personaje» (rebanada 7): la ficha por cuyos ojos mira el DIRECTOR. `null` = su
-   * propia vista. Es una lente — la calcula el servidor y no guarda nada.
+   * LA SONDA DE PRUEBA (§ 7.3): dónde está puesta, en px de escena, o `null` si no lo está. Sólo del director.
+   * Mientras esté puesta, la visión que se pide es la de ESE PUNTO y **la memoria la lleva este navegador**:
+   * el servidor contesta lo que se ve desde ahí y aquí se va uniendo. Al quitarla, se tira.
    */
-  seeAsTokenId: string | null = null) {
+  probe: { x: number; y: number } | null = null) {
   const sceneId = scene?.id ?? null;
   const [tokens, setTokens] = useState<Token[]>([]);
   const [walls, setWalls] = useState<Wall[]>([]);
+  /**
+   * Los muros de AHORA MISMO, para las vueltas atrás del historial. Un `useCallback` se queda con los muros del
+   * render en que nació, y la foto de «cómo estaba antes» tiene que ser la de justo antes de escribir — si no,
+   * deshacer devuelve la escena a un estado que ya no existía.
+   */
+  const wallsRef = useRef<Wall[]>([]);
+  wallsRef.current = walls;
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [layers, setLayers] = useState<Layer[]>([]);
   const [lights, setLights] = useState<Light[]>([]);
@@ -59,6 +69,37 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   /** Answers can overtake each other; only the newest request may write. */
   const visionSeq = useRef(0);
   const visionTimer = useRef<number | null>(null);
+  /** Lo que la sonda lleva visto. Vive aquí y NO en la base: se tira al quitarla o al cambiar de escena. */
+  const probeSeen = useRef<FogCell[]>([]);
+  const probeKey = probe ? `${probe.x}:${probe.y}` : '';
+  const probeOn = probe !== null;
+  /** En un ref: mover la sonda no puede rehacer la suscripción de tiempo real ni la petición en vuelo. */
+  const probeRef = useRef(probe);
+  useEffect(() => { probeRef.current = probe; }, [probe]);
+  const withProbeMemory = useCallback((next: SceneVision): SceneVision => {
+    if (!probeRef.current) return next;
+    probeSeen.current = unionCells(probeSeen.current, next.explored);
+    return { ...next, explored: probeSeen.current };
+  }, []);
+  /**
+   * 🔒 CON LA SONDA PUESTA, SÓLO UNA RESPUESTA DE LA SONDA PINTA LA NIEBLA.
+   *
+   * Sin esta regla, cualquier otra pregunta de visión —arrastrar un token, pintar con el pincel— le borraba
+   * la vista de la sonda al director, porque a él el servidor le contesta «todo lo explorado por TODOS», y eso
+   * no es lo que la sonda viene a enseñar. Se veía tal cual (dueño, 2026-09-02): la sonda puesta enseñaba el
+   * mapa a oscuras, bien, y al tocar un token «ya activa todo como si hubiera pasado».
+   *
+   * El fallo llevaba ahí desde que existe la sonda; lo que lo destapó fue arreglar el pincel de niebla. Antes,
+   * su campaña no tenía jugadores, así que «lo explorado por todos» venía VACÍO y pisar la niebla con eso no
+   * se notaba. En cuanto el director pasó a tener su propia fila, esa respuesta traía el mapa entero.
+   *
+   * Lo que NO se toca: la corrección de posición del servidor sigue leyéndose igual, porque de eso depende que
+   * un token no atraviese un muro. Aquí sólo se decide quién puede pintar la niebla.
+   */
+  const applyFog = useCallback((next: SceneVision, fromProbe = false): void => {
+    if (probeRef.current && !fromProbe) return;
+    setFog(withProbeMemory(next));
+  }, [withProbeMemory]);
 
   useEffect(() => { setLive(scene); }, [scene]);
 
@@ -107,9 +148,10 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     visionTimer.current = window.setTimeout(() => {
       visionTimer.current = null;
       const seq = ++visionSeq.current;
-      void vision.refresh(sceneId, undefined, { asTokenId: seeAsTokenId }).then(next => { if (seq === visionSeq.current) setFog(next); }).catch(() => undefined);
+      void vision.refresh(sceneId, undefined, probeRef.current ? { probe: probeRef.current } : undefined)
+        .then(next => { if (seq === visionSeq.current) applyFog(next, true); }).catch(() => undefined);
     }, 0);
-  }, [vision, sceneId, seeAsTokenId]);
+  }, [vision, sceneId, applyFog]);
   useEffect(() => () => { if (visionTimer.current !== null) window.clearTimeout(visionTimer.current); }, []);
   useEffect(() => { refreshVisionRef.current = refreshVision; }, [refreshVision]);
 
@@ -119,6 +161,11 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   }, [repo, sceneId, live, me]);
 
   useEffect(() => { setFog(null); }, [sceneId]);
+  /**
+   * La memoria de la sonda se acumula AQUÍ y se tira entera al quitarla o al cambiar de escena (§ 7.3,
+   * decisión cerrada del dueño: «que quede en memoria, si es sólo para probar»). Nada de esto se escribe.
+   */
+  useEffect(() => { probeSeen.current = []; }, [sceneId, probeOn]);
   /** Light, fog mode and walls all change what is visible; so does any of MY tokens moving. */
   const myTokenKey = tokens.filter(t => t.controlledBy === me).map(t => `${t.id}:${t.x}:${t.y}:${t.size}`).join('|');
   const wallKey = walls.map(w => `${w.id}:${w.isOpen ? 1 : 0}:${w.blocksSight ? 1 : 0}`).join('|');
@@ -130,7 +177,31 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const lightKey = lights.map(l => `${l.id}:${l.x}:${l.y}:${l.rotation}:${l.shape}:${l.coneAngle}:${l.rangeM}:${l.castsShadow ? 1 : 0}:${l.layerId ?? ''}`).join('|');
   const layerKey = layers.map(l => `${l.id}:${l.visible ? 1 : 0}:${l.kind}`).join('|');
   /** One effect, so entering the scene costs ONE round trip and every later cause costs one more. */
-  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, lightKey, layerKey, live?.lighting, live?.nightRadiusM, live?.fogMode]);
+  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, lightKey, layerKey, probeOn, live?.lighting, live?.nightRadiusM, live?.fogMode]);
+  /**
+   * ARRASTRAR LA SONDA VA CON EL MISMO FRENO QUE ARRASTRAR UNA FICHA, y esto no es un adorno.
+   *
+   * Mover la sonda cambia lo que se ve, así que hay que volver a preguntar; pero un `pointermove` dispara
+   * ~60 veces por segundo y cada pregunta es una ida y vuelta al servidor que además calcula geometría.
+   * Sin freno se le mandaban 60 peticiones por segundo: llegaban tarde y desordenadas, `visionSeq` tiraba
+   * casi todas, y en pantalla la niebla parecía NO seguir a la sonda (dueño, 2026-09-01: «las sombras no se
+   * comportan como en el modo jugador, que se van ajustando de manera dinámica»). Ese era el fallo, no el
+   * motor: el de la ficha del jugador ya iba frenado a ~7 Hz desde la rebanada 2 y aquí faltaba copiarlo.
+   *
+   * Con cola en el borde de salida: la ÚLTIMA posición se pregunta siempre, aunque caiga dentro de la
+   * ventana del freno. Si no, soltar la sonda podía dejar la niebla en la penúltima posición.
+   */
+  const probeTick = useRef(0);
+  const probeTimer = useRef<number | null>(null);
+  useEffect(() => {
+    if (!probeKey) return;
+    const ask = (): void => { probeTick.current = Date.now(); refreshVisionRef.current(); };
+    const desde = Date.now() - probeTick.current;
+    if (desde >= VISION_DRAG_HZ_MS) { ask(); return; }
+    if (probeTimer.current !== null) window.clearTimeout(probeTimer.current);
+    probeTimer.current = window.setTimeout(ask, VISION_DRAG_HZ_MS - desde);
+    return () => { if (probeTimer.current !== null) window.clearTimeout(probeTimer.current); };
+  }, [probeKey]);
 
   /**
    * La niebla SIGUE al token mientras se arrastra, en vez de dar un salto al soltarlo (dueño, 2026-08-22).
@@ -189,7 +260,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       const from = m && m.tokenId === tokenId ? { from: { x: m.x, y: m.y } } : {};
       void vision.refresh(sceneId, { tokenId, x: asked.x, y: asked.y, ...from }).then(next => {
         if (seq !== visionSeq.current) return;
-        setFog(next);
+        applyFog(next);
         /**
          * La palabra final sobre DÓNDE puede estar el token es del servidor: es el único que tiene todos los
          * muros, incluidos los secretos, que a este navegador no le llegan. Si nos corrige, se obedece —
@@ -205,7 +276,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     if (now - lastSent.current < DRAG_HZ_MS) return;
     lastSent.current = now;
     repo.broadcast(sceneId, { type: 'token.moved', campaignId: live.campaignId, sceneId, tokenId, x, y, final: false });
-  }, [repo, sceneId, live, vision, tokens, me]);
+  }, [repo, sceneId, live, vision, tokens, me, applyFog]);
 
   const moveToken = useCallback(async (tokenId: string, x: number, y: number) => {
     if (!sceneId || !live) return;
@@ -231,23 +302,243 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const clearMine = useCallback(async () => { if (!sceneId) return; setDrawings(l => l.filter(d => d.authorId !== me)); await repo.removeMyDrawings(sceneId); }, [repo, sceneId, me]);
   const clearAll = useCallback(async () => { if (!sceneId) return; setDrawings([]); await repo.removeAllDrawings(sceneId); }, [repo, sceneId]);
   /**
-   * DM: a new segment. When it is an opening drawn over a wall (`split`, planned by `mapRules.planOpening`) the
-   * wall is REPLACED: its leftovers go in first and the host comes out last, so a failure halfway leaves the wall
-   * whole and overlapping — never a hole in the plan nobody asked for.
+   * DM: a new segment. When it is an opening drawn over walls (`splits`, planned by `mapRules.planOpening`) each
+   * of those walls is REPLACED: the leftovers go in first and the hosts come out last, so a failure halfway
+   * leaves the masonry whole and overlapping — never a hole in the plan nobody asked for.
+   *
+   * Son VARIOS y no uno: una puerta dibujada de un tirón sobre dos muros seguidos tiene que partirlos los dos,
+   * o el que sobrevive se queda macizo tapando el vano (dueño, 2026-09-01).
    */
-  const addWall = useCallback(async (w: NewWall, split?: WallSplit | null) => {
-    const pieces = split ? await Promise.all(split.pieces.map(pc => repo.addWall(wallPiece(split.host, pc)))) : [];
+  const addWall = useCallback(async (w: NewWall, splits: WallSplit[] = []) => {
+    const pieces = await Promise.all(splits.flatMap(s => s.pieces.map(pc => repo.addWall(wallPiece(s.host, pc)))));
     const created = await repo.addWall(w);
-    if (split) await repo.removeWall(split.host.id);
+    for (const s of splits) await repo.removeWall(s.host.id);
     setWalls(l => {
       const fresh = [...pieces, created];
-      // Realtime may have brought any of these back already; the host is gone either way.
-      return [...l.filter(x => x.id !== split?.host.id && !fresh.some(f => f.id === x.id)), ...fresh];
+      const hosts = new Set(splits.map(s => s.host.id));
+      // Realtime may have brought any of these back already; the hosts are gone either way.
+      return [...l.filter(x => !hosts.has(x.id) && !fresh.some(f => f.id === x.id)), ...fresh];
     });
     announceVision();
     return created;
   }, [repo, announceVision]);
-  const removeWall = useCallback(async (id: string) => { setWalls(l => l.filter(w => w.id !== id)); await repo.removeWall(id); announceVision(); }, [repo, announceVision]);
+  /**
+   * UNA HABITACIÓN DE GOLPE (§ «Rebanada 8»): N muros normales escritos de una vez.
+   *
+   * No hay entidad «habitación», a propósito — lo levantado se edita, se abre en puerta, se parte y se borra
+   * muro a muro con todo lo que ya existe, y la niebla lo tiene en cuenta sin enterarse de que salió de aquí.
+   *
+   * Y no pasa por `planOpening`: una sala se LEVANTA, no abre huecos. Las puertas las abre él después, con el
+   * mismo disco de siempre.
+   */
+  /**
+   * Vuelve a meter en la base unos muros que se habían borrado, conservando su grupo. Es la vuelta atrás de
+   * borrar. Los ids son NUEVOS —la fila anterior ya no existe—, y por eso quien apila el paso se queda con los
+   * nuevos: si no, un rehacer posterior borraría filas que ya no están.
+   */
+  const restoreWalls = useCallback(async (ws: Wall[]): Promise<Wall[]> => {
+    if (!ws.length) return [];
+    const back = await repo.addWalls(ws.map(({ id: _id, ...rest }) => rest));
+    setWalls(l => [...l.filter(x => !back.some(b => b.id === x.id)), ...back]);
+    announceVision();
+    return back;
+  }, [repo, announceVision]);
+  const addRoomRaw = useCallback(async (sides: NewWall[]) => {
+    if (!sides.length) return [];
+    // 🧩 Los muros de UN gesto nacen ATADOS (§ «EL GRUPO»): once muros en círculo son una cosa, y de ahí sale
+    // que un clic los coja todos y que se muevan y se estiren juntos. Un muro suelto sigue naciendo suelto —
+    // el Builder de siempre, clic a clic, no pasa por aquí y no se ha tocado.
+    const groupId = newGroupId();
+    // De una sola vez, y a propósito: uno a uno, si falla el enésimo lado la sala se queda ABIERTA y por ahí
+    // se cuela la visión, avisando sólo con el banner genérico. `addWalls` los mete todos o ninguno.
+    const created = await repo.addWalls(sides.map(w => ({ ...w, groupId })));
+    // Realtime may have brought any of them back already while the batch was in flight.
+    setWalls(l => [...l.filter(x => !created.some(c => c.id === x.id)), ...created]);
+    announceVision();
+    return created;
+  }, [repo, announceVision]);
+  /**
+   * ATAR A MANO lo que ya estaba marcado (§ «EL GRUPO»). Su elección del 2026-09-03: sin esto, todos los muros
+   * que lleva meses marcando sobre fotos se quedaban fuera del invento para siempre.
+   */
+  const groupWallsRaw = useCallback(async (ids: string[]) => {
+    if (ids.length < 2) return null;
+    const groupId = newGroupId();
+    setWalls(l => l.map(w => (ids.includes(w.id) ? { ...w, groupId } : w)));
+    await repo.setWallsGroup(ids, groupId);
+    return groupId;
+  }, [repo]);
+  /**
+   * BORRAR EL GRUPO ENTERO con Suprimir (§ «EL GRUPO»). De una vez: media sala borrada es una sala abierta y
+   * por ahí se cuela la visión, que es el mismo agujero que ya arreglamos al escribirla.
+   */
+  const removeWallsRaw = useCallback(async (ids: string[]) => {
+    if (!ids.length) return;
+    setWalls(l => l.filter(w => !ids.includes(w.id)));
+    await repo.removeWalls(ids);
+    announceVision();
+  }, [repo, announceVision]);
+  /** SOLTAR: deshace el grupo y deja los muros sueltos, cada uno por su cuenta. La geometría no se toca. */
+  const ungroupWallsRaw = useCallback(async (groupId: string) => {
+    const ids = walls.filter(w => w.groupId === groupId).map(w => w.id);
+    if (!ids.length) return;
+    setWalls(l => l.map(w => (w.groupId === groupId ? { ...w, groupId: null } : w)));
+    await repo.setWallsGroup(ids, null);
+  }, [repo, walls]);
+  /** Poner (o quitar) el grupo de unos muros concretos. Lo usan las vueltas atrás de agrupar y de soltar. */
+  const setGroupRaw = useCallback(async (ids: string[], groupId: string | null) => {
+    if (!ids.length) return;
+    setWalls(l => l.map(w => (ids.includes(w.id) ? { ...w, groupId } : w)));
+    await repo.setWallsGroup(ids, groupId);
+  }, [repo]);
+  /**
+   * MOVER O ESTIRAR un grupo entero (§ «EL GRUPO»). Una sola escritura: un grupo a medio mover deja la forma
+   * rota y el hueco por el que se cuela la visión — el mismo fallo que ya nos mordió con `addRoom`.
+   */
+  const transformWallsRaw = useCallback(async (batch: Wall[]) => {
+    if (!batch.length) return;
+    const byId = new Map(batch.map(w => [w.id, w]));
+    setWalls(l => l.map(w => byId.get(w.id) ?? w));
+    await repo.updateWallsGeometry(batch);
+    announceVision();
+  }, [repo, announceVision]);
+  const removeWallRaw = useCallback(async (id: string) => { setWalls(l => l.filter(w => w.id !== id)); await repo.removeWall(id); announceVision(); }, [repo, announceVision]);
+  /** La geometría de un muro, sin apilar nada en el historial. La usan partir y su vuelta atrás. */
+  const wallGeometryRaw = useCallback(async (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => {
+    setWalls(l => l.map(w => (w.id === id ? { ...w, ...at } : w)));
+    await repo.updateWallGeometry(id, at);
+    announceVision();
+  }, [repo, announceVision]);
+  /**
+   * PARTIR UN MURO POR UN PUNTO: el nodo nuevo del doble clic (§ «Rebanada 8»).
+   *
+   * ⚠️ El trozo nuevo entra ANTES de acortar el muro viejo, y no al revés. Es la misma regla que ya sigue
+   * `addWall` con los vanos: si algo falla a mitad, la pared se queda ENTERA y solapada — nunca con un hueco
+   * por el que se cuele la visión.
+   */
+  const splitWallRaw = useCallback(async (id: string, plan: NonNullable<ReturnType<typeof splitWallAt>>) => {
+    const piece = await repo.addWall(plan.piece);
+    setWalls(l => (l.some(x => x.id === piece.id) ? l : [...l, piece]));
+    await wallGeometryRaw(id, plan.keep);
+    return piece;
+  }, [repo, wallGeometryRaw]);
+
+  /**
+   * ↩️ DESHACER Y REHACER (§ «Rebanada 8»). Petición suya del 2026-08-19, aparcada dos veces y reclamada el
+   * 2026-09-03: «*el deshacer y el inverso no funciona*».
+   *
+   * 🔑 Cada acción de Builder se envuelve aquí y se apila con SU vuelta atrás. Las de arriba, las `…Raw`, son
+   * las que hacen el trabajo y NO apilan: si apilaran, deshacer un paso metería otro paso y no se saldría
+   * nunca del bucle.
+   *
+   * ⚠️ Los ids CAMBIAN al deshacer un borrado —la fila anterior ya no existe, se escribe una nueva—, así que
+   * cada paso se queda con los ids nuevos en una variable propia. Sin eso, el segundo rehacer iría a por filas
+   * que ya no están.
+   */
+  const history = useHistory();
+  const { push } = history;
+
+  const addRoom = useCallback(async (sides: NewWall[]) => {
+    const created = await addRoomRaw(sides);
+    if (!created.length) return created;
+    let vivos = created;
+    push({
+      label: 'maps.history.room',
+      undo: async () => { await removeWallsRaw(vivos.map(w => w.id)); },
+      redo: async () => { vivos = await restoreWalls(vivos); },
+    });
+    return created;
+  }, [addRoomRaw, removeWallsRaw, restoreWalls, push]);
+
+  const removeWalls = useCallback(async (ids: string[]) => {
+    const antes = wallsRef.current.filter(w => ids.includes(w.id)).map(w => ({ ...w }));
+    await removeWallsRaw(ids);
+    if (!antes.length) return;
+    let borrados = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { borrados = await restoreWalls(borrados); },
+      redo: async () => { await removeWallsRaw(borrados.map(w => w.id)); },
+    });
+  }, [removeWallsRaw, restoreWalls, push]);
+
+  const removeWall = useCallback(async (id: string) => {
+    const hallado = wallsRef.current.find(w => w.id === id);
+    const antes = hallado ? { ...hallado } : undefined;
+    await removeWallRaw(id);
+    if (!antes) return;
+    let borrado = [antes];
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { borrado = await restoreWalls(borrado); },
+      redo: async () => { await removeWallsRaw(borrado.map(w => w.id)); },
+    });
+  }, [removeWallRaw, removeWallsRaw, restoreWalls, push]);
+
+  const transformWalls = useCallback(async (batch: Wall[]) => {
+    if (!batch.length) return;
+    // La foto de ANTES, para poder devolverlos a su sitio. Es geometría: los ids no se mueven.
+    // 🔒 COPIADA, no referenciada: guardando la referencia, escribir el movimiento pisaba la propia foto y
+    // deshacer devolvía los muros justo a donde ya estaban.
+    const antes = wallsRef.current.filter(w => batch.some(b => b.id === w.id)).map(w => ({ ...w }));
+    const despues = batch.map(w => ({ ...w }));
+    await transformWallsRaw(batch);
+    push({
+      label: 'maps.history.move',
+      undo: async () => { await transformWallsRaw(antes); },
+      redo: async () => { await transformWallsRaw(despues); },
+    });
+  }, [transformWallsRaw, push]);
+
+  /**
+   * AÑADIR UN NODO — «*si tengo un vector y le hago doble click en alguna parte de la linea tiene que agregar
+   * otro nodo*» (dueño, 2026-09-03). El muro se parte en dos por ahí; el trozo nuevo hereda su grupo, así que
+   * partir un lado de una sala no lo echa de la sala.
+   *
+   * Devuelve `null` sin tocar nada cuando el punto cae pegado a una punta: ahí ya hay un nodo.
+   */
+  const splitWall = useCallback(async (w: Wall, at: Point) => {
+    const plan = splitWallAt(w, at);
+    if (!plan) return null;
+    const antes = { x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 };
+    let piece = await splitWallRaw(w.id, plan);
+    push({
+      label: 'maps.history.split',
+      // Al revés que al partir: primero se devuelve el muro a su largo —vuelve a solapar— y sólo después se
+      // quita el trozo. Así deshacer tampoco abre un hueco, ni por un instante.
+      undo: async () => { await wallGeometryRaw(w.id, antes); await removeWallsRaw([piece.id]); },
+      redo: async () => { const back = await restoreWalls([piece]); piece = back[0] ?? piece; await wallGeometryRaw(w.id, plan.keep); },
+    });
+    return piece;
+  }, [splitWallRaw, wallGeometryRaw, removeWallsRaw, restoreWalls, push]);
+
+  const groupWalls = useCallback(async (ids: string[]) => {
+    const antes = wallsRef.current.filter(w => ids.includes(w.id)).map(w => ({ id: w.id, groupId: w.groupId }));
+    const groupId = await groupWallsRaw(ids);
+    if (!groupId) return null;
+    push({
+      label: 'maps.history.group',
+      // Cada muro vuelve al grupo que tenía, que no tiene por qué ser el mismo para todos.
+      undo: async () => {
+        for (const g of new Set(antes.map(a => a.groupId))) {
+          await setGroupRaw(antes.filter(a => a.groupId === g).map(a => a.id), g);
+        }
+      },
+      redo: async () => { await setGroupRaw(ids, groupId); },
+    });
+    return groupId;
+  }, [groupWallsRaw, setGroupRaw, push]);
+
+  const ungroupWalls = useCallback(async (groupId: string) => {
+    const ids = wallsRef.current.filter(w => w.groupId === groupId).map(w => w.id);
+    await ungroupWallsRaw(groupId);
+    if (!ids.length) return;
+    push({
+      label: 'maps.history.ungroup',
+      undo: async () => { await setGroupRaw(ids, groupId); },
+      redo: async () => { await setGroupRaw(ids, null); },
+    });
+  }, [ungroupWallsRaw, setGroupRaw, push]);
   /** DM: open/close a door or window. The players cannot learn it from `postgres_changes`, so this announces it. */
   const patchWall = useCallback(async (id: string, patch: WallPatch) => {
     setWalls(l => l.map(w => (w.id === id ? { ...w, ...patch } : w)));
@@ -265,16 +556,16 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     if (!sceneId || !vision) return;
     const seq = ++visionSeq.current;
     const next = await vision.paint(sceneId, op, at);
-    if (seq === visionSeq.current) setFog(next);
+    if (seq === visionSeq.current) applyFog(next);
     announceVision();
-  }, [vision, sceneId, announceVision]);
+  }, [vision, sceneId, announceVision, applyFog]);
   const paintAllFog = useCallback(async (op: 'reveal' | 'hide') => {
     if (!sceneId || !vision) return;
     const seq = ++visionSeq.current;
     const next = await vision.paintAll(sceneId, op);
-    if (seq === visionSeq.current) setFog(next);
+    if (seq === visionSeq.current) applyFog(next);
     announceVision();
-  }, [vision, sceneId, announceVision]);
+  }, [vision, sceneId, announceVision, applyFog]);
   // ── capas y luces (rebanada 7) ──
   /** Sólo el director. Las tres fijas las crea un disparador al nacer la escena: por aquí sólo pasa TERRENO. */
   /**
@@ -284,6 +575,15 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const patchDrawingLayer = useCallback(async (id: string, layerId: string | null) => {
     setDrawings(l => l.map(d => (d.id === id ? { ...d, layerId } : d)));
     await repo.updateDrawingLayer(id, layerId);
+  }, [repo]);
+
+  /**
+   * Mover un trazo: se pinta ya en su sitio nuevo y se guarda. Optimista como todo lo de aquí — el arrastre
+   * ya enseñó dónde iba a caer, así que esperar a la respuesta sólo produciría un parpadeo hacia atrás.
+   */
+  const moveDrawing = useCallback(async (id: string, data: Drawing['data']) => {
+    setDrawings(l => l.map(d => (d.id === id ? { ...d, data } : d)));
+    await repo.updateDrawingData(id, data);
   }, [repo]);
 
   const addTerrainLayer = useCallback(async (over: Partial<Pick<Layer, 'name' | 'imageUrl'>> = {}) => {
@@ -357,9 +657,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
-    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin,
-    refreshVision, paintFog, paintAllFog, serverCorrection,
+    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, history,
+    refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer]);
+  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }
-export type SceneState = ReturnType<typeof useScene>;

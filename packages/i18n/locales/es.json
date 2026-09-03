@@ -771,7 +771,7 @@
       "rect": "Caja",
       "circle": "Círculo",
       "erase": "Borrar",
-      "wall": "Muro",
+      "wall": "Builder",
       "reveal": "Revelar",
       "hide": "Ocultar",
       "encounter": "Encuentro",
@@ -779,9 +779,18 @@
       "select": "Seleccionar",
       "text": "Texto",
       "light": "Luz de ambiente",
-      "mask": "Pincel de transparencia"
+      "mask": "Pincel de transparencia",
+      "notInPlayerView": "no mientras ves como jugador",
+      "draw": "Dibujar"
     },
     "toolbar": "Herramientas del lienzo",
+    "probe": {
+      "label": "Sonda de prueba",
+      "hint": "arrástrala",
+      "banner": "SONDA DE PRUEBA · lo que vería un jugador desde aquí",
+      "note": "no cambia nada para nadie · nada se guarda",
+      "place": "Pincha en el mapa donde quieras probar · la sonda se pone ahí"
+    },
     "controls": {
       "label": "Controles del lienzo",
       "zoomIn": "Acercar",
@@ -839,7 +848,9 @@
     },
     "fog": {
       "auto": "Niebla automática por visión",
-      "byVision": "Niebla por visión"
+      "byVision": "Niebla por visión",
+      "veilOn": "Velo del director: puesto",
+      "veilOff": "Velo del director: quitado"
     },
     "light": {
       "label": "Luz de la escena",
@@ -917,6 +928,11 @@
       "empty": "Esta escena aún no tiene capas.",
       "newName": "Nombre de la capa de terreno",
       "sendTo": "Mandar a la capa",
+      "remove": {
+        "light": "Borrar la luz",
+        "token": "Borrar la ficha",
+        "drawing": "Borrar el trazo"
+      },
       "element": {
         "token": "Ficha",
         "drawing": "Trazo",
@@ -928,6 +944,8 @@
       "title": "Luz de ambiente",
       "place": "Coloca una luz donde pinches",
       "select": "Luz: {{kind}}",
+      "spin": "Que gire sola",
+      "spinPeriod": "Vuelta",
       "shape": "Forma",
       "shapes": {
         "cone": "Cono",
@@ -947,6 +965,7 @@
       "color": "Color y parpadeo",
       "colorN": "Color {{n}}",
       "flicker": "Parpadea",
+      "intensity": "Intensidad",
       "animates": "Se anima",
       "prepared": "Alcance y sombra",
       "range": "Alcance en metros",
@@ -973,11 +992,73 @@
       "sizeCell": "1 casilla",
       "hardness": "Dureza del borde"
     },
-    "seeAs": {
-      "label": "Ver con los ojos de",
-      "none": "Mi vista",
-      "banner": "Viendo como {{name}}",
-      "note": "es una lente: no cambia nada para nadie"
+    "room": {
+      "shapeOf": "Con qué forma",
+      "shape": {
+        "segment": "A mano",
+        "line": "Recta",
+        "rect": "Rectángulo",
+        "circle": "Círculo",
+        "poly": "Polígono",
+        "free": "A pulso"
+      },
+      "polyHint": "un clic, un vértice · pincha otra vez sobre el primero para cerrar la sala",
+      "dragHint": "arrastra para levantar la sala · se monta al soltar",
+      "chainHint": "un clic, un punto · se encadenan, y la pared sigue donde acabó la anterior",
+      "lineHint": "arrastra de un punto a otro · sale un muro, y sólo uno"
+    },
+    "group": {
+      "countGrouped": "Grupo · {{n}} muros",
+      "countLoose": "{{n}} muros sueltos",
+      "group": "Agrupar",
+      "ungroup": "Soltar",
+      "held": "Lo que tengo cogido",
+      "hintGrouped": "doble clic entra a un muro",
+      "hintLoose": "los coges arrastrando por encima"
+    },
+    "history": {
+      "room": "la sala",
+      "remove": "el borrado",
+      "move": "el movimiento",
+      "group": "agrupar",
+      "ungroup": "soltar",
+      "split": "el nodo"
+    },
+    "builder": {
+      "title": "Builder",
+      "move": "Mover el panel",
+      "close": "Cerrar Builder",
+      "mode": {
+        "label": "En qué estoy trabajando · las dos conviven",
+        "photo": "Sobre una foto",
+        "photoSub": "marco los muros encima",
+        "draw": "Dibujar aquí",
+        "drawSub": "levanto las salas"
+      },
+      "what": {
+        "label": "Qué levanto · lo de siempre, intacto",
+        "hint": "se abren con el mismo disco: pasa el ratón por una puerta o una ventana"
+      },
+      "snap": {
+        "label": "Pegar a la rejilla",
+        "on": "Pegado a la rejilla",
+        "off": "Libre",
+        "hintOn": "todo cae en las casillas, como siempre · ábrelo para ir libre",
+        "hintOff": "libre, pero las puntas se pegan a las puntas de otros muros para no dejar rendijas"
+      },
+      "nodeHint": "doble clic sobre su línea añade un nodo ahí",
+      "note": {
+        "photo": "Marcando sobre una foto el suelo ya lo pone la foto: por eso aquí no hay texturas ni preajustes. Muro, puerta y ventana funcionan igual que siempre.",
+        "draw": "Builder es el de siempre. En los dos casos se levantan MUROS normales: cortan la vista y la luz, se abren en puerta y se borran uno a uno. El estilo de la mazmorra y las dos texturas base todavía no están puestos."
+      },
+      "chain": {
+        "label": "Los nodos",
+        "on": "En cadena",
+        "off": "Sueltos",
+        "hintOn": "mover una punta se lleva las de al lado, así la figura no se abre",
+        "hintOff": "cada punta va por su cuenta · cuidado: la figura puede quedar abierta"
+      },
+      "selectAll": "Ctrl/Cmd + A coge todos los muros"
     }
   },
   "bestiary": {

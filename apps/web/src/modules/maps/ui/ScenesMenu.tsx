@@ -39,9 +39,11 @@ export function ScenesMenu(p: Props): JSX.Element {
     <div className={`mp-rail ${p.collapsed ? 'collapsed' : ''}`} role="group" aria-label={t('maps.scenes.title')}>
       <div className="mp-rail-head">
         {!p.collapsed && <span className="tb-rotulo">{t('maps.scenes.title')}</span>}
-        <button type="button" className="mp-rail-fold" aria-expanded={!p.collapsed} aria-label={p.collapsed ? t('maps.scenes.expand') : t('maps.scenes.collapse')} onClick={p.onToggleCollapsed}>
-          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>{p.collapsed ? 'left_panel_open' : 'left_panel_close'}</span>
-        </button>
+        <Tooltip label={p.collapsed ? t('maps.scenes.expand') : t('maps.scenes.collapse')} placement="right">
+          <button type="button" className="mp-rail-fold" aria-expanded={!p.collapsed} aria-label={p.collapsed ? t('maps.scenes.expand') : t('maps.scenes.collapse')} onClick={p.onToggleCollapsed}>
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>{p.collapsed ? 'left_panel_open' : 'left_panel_close'}</span>
+          </button>
+        </Tooltip>
       </div>
       <ul className="mp-rail-list">
         {p.scenes.map(s => {
@@ -69,9 +71,11 @@ export function ScenesMenu(p: Props): JSX.Element {
           );
         })}
       </ul>
-      <button type="button" className="mp-rail-add" onClick={() => void create()} aria-label={t('maps.scenes.add')}>
-        {p.collapsed ? <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>add</span> : t('maps.scenes.add')}
-      </button>
+      <Tooltip label={t('maps.scenes.add')} placement="right">
+        <button type="button" className="mp-rail-add" onClick={() => void create()} aria-label={t('maps.scenes.add')}>
+          {p.collapsed ? <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>add</span> : t('maps.scenes.add')}
+        </button>
+      </Tooltip>
     </div>
   );
 }

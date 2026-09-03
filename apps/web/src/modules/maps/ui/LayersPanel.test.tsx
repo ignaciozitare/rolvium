@@ -12,6 +12,21 @@ function mount(over: Partial<React.ComponentProps<typeof LayersPanel>> = {}) {
 
 const rowNames = (): string[] => screen.getAllByRole('listitem').map(li => li.getAttribute('data-layer-kind') ?? '');
 
+/** Ojo, candado, subir, bajar, borrar y plegar eran seis iconos sin nombre (dueño, 2026-09-01). */
+describe('<LayersPanel> — los iconos dicen qué hacen', () => {
+  it('el ojo, el candado, subir/bajar y borrar llevan tooltip', () => {
+    mount();
+    const tips = [...document.querySelectorAll('.rv-tip')].map(x => x.textContent ?? '');
+    expect(tips).toContain('Ocultar la capa Musgo (deja de pintarse para todos)');
+    expect(tips).toContain('Bloquear la capa Musgo');
+    expect(tips).toContain('Borrar la capa');
+    expect(tips).toContain('Subir la capa');
+    expect(tips).toContain('Bajar la capa');
+    expect(tips).toContain('Plegar capas');
+    expect(screen.getByRole('button', { name: 'Borrar la capa' })).not.toHaveAttribute('title');
+  });
+});
+
 describe('<LayersPanel>', () => {
   it('se lee de arriba abajo al revés que el pintado: notas, criaturas, objetos y luego el terreno', () => {
     mount();

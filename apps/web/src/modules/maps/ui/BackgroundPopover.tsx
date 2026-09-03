@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { ColorPicker } from '@rolvium/ui';
+import { ColorPicker, Tooltip } from '@rolvium/ui';
 import type { BgFit, BgTransform, ImageAsset, Layer, Scene } from '../domain/entities/Scene';
 import { BG_COLORS } from '../domain/useCases/mapRules';
 
@@ -44,7 +44,9 @@ export function BackgroundPopover({ scene, layer = null, images, onColor, onImag
     <div className="mp-pop mp-bgpop" role="dialog" aria-label={title}>
       <div className="mp-pop-head">
         <span className="mp-pop-title">{title}</span>
-        <button type="button" className="mp-pop-x" aria-label={t('maps.bg.close')} onClick={onClose}><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>close</span></button>
+        <Tooltip label={t('maps.bg.close')} placement="left">
+          <button type="button" className="mp-pop-x" aria-label={t('maps.bg.close')} onClick={onClose}><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>close</span></button>
+        </Tooltip>
       </div>
       <div className="mp-pop-body">
         {/* El color de base es de la ESCENA: se ve donde no llega ninguna foto, así que no aparece al tocar una capa. */}

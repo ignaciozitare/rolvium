@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN } from '../../../../tests/helpers/fakes';
+import type { Wall } from '../domain/entities/Scene';
+import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN, WALL_1 } from '../../../../tests/helpers/fakes';
 import { newLightOf } from '../domain/useCases/layerRules';
 import { useScene } from './useScene';
 
@@ -86,6 +87,412 @@ describe('useScene · paredes sólidas, el ciclo entero', () => {
  * había: que cargarlas no rompe el resto, que el borrado espeja lo que hace la base de datos, y —lo más
  * importante— que NADA de esto pide visión de nuevo: una capa es composición y una luz es pintura.
  */
+/**
+ * La puerta que se dibuja de un tirón sobre DOS muros seguidos (dueño, 2026-09-01: «ahí está la puerta abierta
+ * y no puede ver»). `planOpening` planea los dos cortes; lo que se ata aquí es que `addWall` los APLICA los
+ * dos: si sólo se aplicase el primero, el otro muro seguiría macizo tapando el vano.
+ */
+describe('useScene · una abertura parte TODOS los muros que pisa', () => {
+  const solid = (id: string, y1: number, y2: number): Wall =>
+    ({ ...WALL_1, id, sceneId: SCENE_WAREHOUSE.id, x1: 621, y1, x2: 621, y2 });
+
+  it('se crean los trozos que sobran de cada muro y salen los dos anfitriones', async () => {
+    const a = solid('w-a', 405, 513), b = solid('w-b', 513, 540);
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], walls: [a, b] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await waitFor(() => expect(result.current.walls).toHaveLength(2));
+
+    const door = { sceneId: SCENE_WAREHOUSE.id, campaignId: SCENE_WAREHOUSE.campaignId, x1: 621, y1: 432, x2: 621, y2: 540, visiblePlayers: false, kind: 'door' as const, blocksSight: true, blocksMove: true, isOpen: false };
+    await act(async () => {
+      await result.current.addWall(door, [
+        { host: a, pieces: [{ x1: 621, y1: 405, x2: 621, y2: 432 }] },
+        { host: b, pieces: [] },
+      ]);
+    });
+
+    const ids = result.current.walls.map(w => w.id);
+    expect(ids).not.toContain('w-a');
+    expect(ids).not.toContain('w-b');
+    // el trozo que sobra del primero + la puerta; del segundo no sobra nada
+    expect(result.current.walls).toHaveLength(2);
+    expect(result.current.walls.filter(w => w.kind === 'wall')).toEqual([expect.objectContaining({ y1: 405, y2: 432, blocksSight: true })]);
+    expect(result.current.walls.filter(w => w.kind === 'door')).toHaveLength(1);
+    expect(repo.walls.map(w => w.id)).toEqual(ids);
+  });
+});
+
+/**
+ * 🏗 UNA SALA ENTERA DE GOLPE (§ «Rebanada 8»). Lo que se ata aquí es lo que el dueño pidió con nombre el
+ * 2026-09-03: que la niebla funcione igual con lo levantado en Builder. Sale gratis porque son muros normales
+ * —sin tabla propia, sin marca propia— pero «sale gratis» es justo lo que se rompe sin que nadie se entere.
+ */
+describe('useScene · Builder levanta la sala de una vez', () => {
+  const lado = (x1: number, y1: number, x2: number, y2: number) =>
+    ({ sceneId: SCENE_WAREHOUSE.id, campaignId: SCENE_WAREHOUSE.campaignId, x1, y1, x2, y2, visiblePlayers: false, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false });
+  const sala = [lado(0, 0, 270, 0), lado(270, 0, 270, 189), lado(270, 189, 0, 189), lado(0, 189, 0, 0)];
+
+  it('los cuatro lados acaban en la base y en la pantalla, opacos', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+
+    expect(result.current.walls).toHaveLength(4);
+    expect(repo.walls).toHaveLength(4);
+    for (const w of result.current.walls) {
+      expect(w.blocksSight).toBe(true);
+      expect(w.blocksMove).toBe(true);
+      expect(w.kind).toBe('wall');
+    }
+  });
+
+  /** La visión se calcula en el servidor: si nadie se lo cuenta, la sala nueva no tapa nada hasta el refresco. */
+  it('avisa al servidor de que la visión ha cambiado', async () => {
+    const vision = fakeVisionPort({});
+    const result = await mount(fakeMapsRepo({ tokens: [TOKEN_KAREN] }), vision);
+    const antes = vision.calls.length;
+    await act(async () => { await result.current.addRoom(sala); });
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(antes));
+  });
+
+  /**
+   * 🔒 O la sala entera o nada. Escribiendo muro a muro, si fallaba el enésimo se quedaban puestos los
+   * anteriores: la sala quedaba ABIERTA, la visión se colaba por el hueco y lo único que avisaba era el
+   * banner genérico de error. Ahora es una sola escritura, así que no hay estado intermedio que se quede.
+   */
+  it('si la escritura falla, no queda media sala abierta', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    repo.addWalls = async () => { throw new Error('sin conexión'); };
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await expect(result.current.addRoom(sala)).rejects.toThrow('sin conexión'); });
+    expect(repo.walls).toHaveLength(0);
+    expect(result.current.walls).toHaveLength(0);
+  });
+
+  /**
+   * 🧩 EL GRUPO (§ «EL GRUPO»), pedido por él el 2026-09-03 sobre una foto de mapa: los once muros del círculo
+   * son UNA cosa. Aquí se ata que nacen atados — de ahí sale que un clic los coja todos.
+   */
+  it('los muros de un gesto nacen atados entre sí, con el mismo grupo', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const grupos = new Set(repo.walls.map(w => w.groupId));
+    expect(grupos.size).toBe(1);
+    expect([...grupos][0]).toBeTruthy();
+  });
+
+  it('dos gestos son dos grupos distintos: no se contagian', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    await act(async () => { await result.current.addRoom(sala.map(s => ({ ...s, x1: s.x1 + 400, x2: s.x2 + 400 }))); });
+    expect(new Set(repo.walls.map(w => w.groupId)).size).toBe(2);
+  });
+
+  /** 🔒 Su elección: sin agrupar a mano, todo lo que lleva meses marcando se quedaba fuera del invento. */
+  it('agrupa a mano muros que ya estaban sueltos, y los suelta otra vez', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addWall(sala[0]!); await result.current.addWall(sala[1]!); });
+    const ids = repo.walls.map(w => w.id);
+    let grupo: string | null = null;
+    await act(async () => { grupo = await result.current.groupWalls(ids); });
+    expect(grupo).toBeTruthy();
+    expect(repo.walls.every(w => w.groupId === grupo)).toBe(true);
+    expect(repo.wallGroupings[0]).toEqual({ ids, groupId: grupo });
+
+    await act(async () => { await result.current.ungroupWalls(grupo!); });
+    expect(repo.walls.every(w => w.groupId === null)).toBe(true);
+  });
+
+  it('un muro solo no forma grupo: hacen falta dos', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addWall(sala[0]!); });
+    let grupo: string | null = 'x';
+    await act(async () => { grupo = await result.current.groupWalls([repo.walls[0]!.id]); });
+    expect(grupo).toBeNull();
+    expect(repo.wallGroupings).toHaveLength(0);
+  });
+
+  /** 🔒 Mover o estirar el grupo va en UNA escritura: a medio mover queda la forma rota y se cuela la visión. */
+  it('mueve el grupo entero de una vez, y avisa a la visión', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const vision = fakeVisionPort({});
+    const result = await mount(repo, vision);
+    await act(async () => { await result.current.addRoom(sala); });
+    const antes = vision.calls.length;
+    const movidos = repo.walls.map(w => ({ ...w, x1: w.x1 + 50, x2: w.x2 + 50 }));
+    await act(async () => { await result.current.transformWalls(movidos); });
+    expect(repo.wallBatchMoves).toHaveLength(1);
+    expect(repo.wallBatchMoves[0]).toHaveLength(4);
+    expect(repo.walls[0]!.x1).toBe(sala[0]!.x1 + 50);
+    expect(result.current.walls[0]!.x1).toBe(sala[0]!.x1 + 50);
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(antes));
+  });
+
+  /** 🔒 «no me deja borrarlos». Suprimir con el grupo cogido lo borra ENTERO, y en una sola escritura. */
+  it('borra el grupo entero de una vez, y avisa a la visión', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const vision = fakeVisionPort({});
+    const result = await mount(repo, vision);
+    await act(async () => { await result.current.addRoom(sala); });
+    const ids = repo.walls.map(w => w.id);
+    const antes = vision.calls.length;
+    await act(async () => { await result.current.removeWalls(ids); });
+    expect(repo.wallBatchRemoves).toEqual([ids]);
+    expect(repo.walls).toHaveLength(0);
+    expect(result.current.walls).toHaveLength(0);
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(antes));
+  });
+
+  /**
+   * ↩️ DESHACER Y REHACER (§ «Rebanada 8»). Petición suya del 2026-08-19, aparcada dos veces y reclamada el
+   * 2026-09-03: «*el deshacer y el inverso no funciona, estaba en las cosas que hay que hacer*».
+   */
+  it('deshacer una sala la quita de la base; rehacerla la vuelve a poner', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    expect(repo.walls).toHaveLength(4);
+
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls).toHaveLength(0);
+
+    await act(async () => { await result.current.history.redo(); });
+    expect(repo.walls).toHaveLength(4);
+    // Y vuelven atadas entre sí: deshacer no puede romper el grupo.
+    expect(new Set(repo.walls.map(w => w.groupId)).size).toBe(1);
+  });
+
+  /** 🔒 Deshacer un borrado devuelve los muros con TODO lo suyo: su grupo y su geometría. */
+  it('deshacer un borrado devuelve los muros donde estaban', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const antes = repo.walls.map(w => ({ x1: w.x1, y1: w.y1, groupId: w.groupId }));
+    await act(async () => { await result.current.removeWalls(repo.walls.map(w => w.id)); });
+    expect(repo.walls).toHaveLength(0);
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls.map(w => ({ x1: w.x1, y1: w.y1, groupId: w.groupId }))).toEqual(antes);
+  });
+
+  it('deshacer un movimiento devuelve el grupo a su sitio', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const x0 = repo.walls[0]!.x1;
+    await act(async () => { await result.current.transformWalls(repo.walls.map(w => ({ ...w, x1: w.x1 + 90, x2: w.x2 + 90 }))); });
+    expect(repo.walls[0]!.x1).toBe(x0 + 90);
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls[0]!.x1).toBe(x0);
+    await act(async () => { await result.current.history.redo(); });
+    expect(repo.walls[0]!.x1).toBe(x0 + 90);
+  });
+
+  /**
+   * 🆕 AÑADIR UN NODO (dueño, 2026-09-03). El muro se parte en dos por donde pinchó: el viejo se acorta y
+   * nace un trozo nuevo desde ahí.
+   */
+  it('partir un muro deja dos, y el trozo nuevo hereda el grupo de la sala', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const arriba = repo.walls.find(w => w.x1 === 0 && w.y1 === 0 && w.x2 === 270)!;
+    const g = arriba.groupId;
+
+    await act(async () => { await result.current.splitWall(arriba, { x: 135, y: 0 }); });
+
+    expect(repo.walls).toHaveLength(5);
+    expect(repo.walls.find(w => w.id === arriba.id)).toMatchObject({ x1: 0, y1: 0, x2: 135, y2: 0 });
+    const trozo = repo.walls.find(w => w.x1 === 135 && w.y1 === 0)!;
+    expect(trozo).toMatchObject({ x2: 270, y2: 0, groupId: g, kind: 'wall' });
+    // Los dos trozos juntos siguen siendo el mismo lado: la sala no se ha abierto por ningún sitio.
+    expect(new Set(repo.walls.map(w => w.groupId)).size).toBe(1);
+  });
+
+  it('pinchando pegado a una punta no se parte nada: ahí ya hay un nodo', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const arriba = repo.walls.find(w => w.x1 === 0 && w.y1 === 0 && w.x2 === 270)!;
+    let salida: unknown = 'sin llamar';
+    await act(async () => { salida = await result.current.splitWall(arriba, { x: 1, y: 0 }); });
+    expect(salida).toBeNull();
+    expect(repo.walls).toHaveLength(4);
+  });
+
+  it('deshacer el nodo devuelve el muro entero; rehacerlo lo vuelve a partir', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const arriba = repo.walls.find(w => w.x1 === 0 && w.y1 === 0 && w.x2 === 270)!;
+    await act(async () => { await result.current.splitWall(arriba, { x: 135, y: 0 }); });
+    expect(repo.walls).toHaveLength(5);
+
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls).toHaveLength(4);
+    expect(repo.walls.find(w => w.id === arriba.id)).toMatchObject({ x1: 0, y1: 0, x2: 270, y2: 0 });
+
+    await act(async () => { await result.current.history.redo(); });
+    expect(repo.walls).toHaveLength(5);
+    expect(repo.walls.find(w => w.id === arriba.id)).toMatchObject({ x2: 135, y2: 0 });
+  });
+
+  /** La visión la calcula el servidor: partir un muro cambia la geometría y hay que decírselo. */
+  it('partir avisa al servidor de que la visión ha cambiado', async () => {
+    const vision = fakeVisionPort({});
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, vision);
+    await act(async () => { await result.current.addRoom(sala); });
+    const antes = vision.calls.length;
+    const arriba = repo.walls.find(w => w.x1 === 0 && w.y1 === 0 && w.x2 === 270)!;
+    await act(async () => { await result.current.splitWall(arriba, { x: 135, y: 0 }); });
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(antes));
+  });
+
+  it('deshacer agrupar los deja sueltos otra vez, y deshacer soltar los vuelve a atar', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addWall(sala[0]!); await result.current.addWall(sala[1]!); });
+    const ids = repo.walls.map(w => w.id);
+    await act(async () => { await result.current.groupWalls(ids); });
+    const g = repo.walls[0]!.groupId;
+    expect(g).toBeTruthy();
+
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls.every(w => w.groupId === null)).toBe(true);
+
+    await act(async () => { await result.current.history.redo(); });
+    expect(repo.walls.every(w => w.groupId === g)).toBe(true);
+
+    await act(async () => { await result.current.ungroupWalls(g!); });
+    expect(repo.walls.every(w => w.groupId === null)).toBe(true);
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls.every(w => w.groupId === g)).toBe(true);
+  });
+
+  /** 🔒 Deshacer varias veces seguidas desanda de verdad, paso a paso. */
+  it('deshace varias acciones seguidas, en orden inverso', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    await act(async () => { await result.current.addRoom(sala.map(s => ({ ...s, x1: s.x1 + 400, x2: s.x2 + 400 }))); });
+    expect(repo.walls).toHaveLength(8);
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls).toHaveLength(4);
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls).toHaveLength(0);
+    expect(result.current.history.canUndo).toBe(false);
+  });
+
+  /** Un gesto demasiado pequeño llega aquí como lista vacía: no se escribe nada ni se molesta al servidor. */
+  it('una sala vacía no escribe nada', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom([]); });
+    expect(repo.walls).toHaveLength(0);
+    expect(result.current.walls).toHaveLength(0);
+  });
+});
+
+/**
+ * LA MEMORIA DE LA SONDA (§ 7.3), decisión cerrada del dueño: «que quede en memoria, si es sólo para probar».
+ * El servidor contesta lo que se ve DESDE EL PUNTO —no una memoria— y quien la acumula es esta pantalla,
+ * que la tira al quitar la sonda. **Nada de esto se escribe en la base.**
+ */
+describe('useScene · la sonda de prueba acumula su memoria aquí, y la tira al quitarla', () => {
+  /** El doble contesta una casilla por punto, que es lo justo para ver si se van uniendo. */
+  const mountProbe = async (probe: { x: number; y: number } | null, vision = fakeVisionPort()) => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const { result, rerender } = renderHook(({ p }: { p: { x: number; y: number } | null }) => useScene(repo, SCENE_WAREHOUSE, PLAYER_USER.id, vision, p), { initialProps: { p: probe } });
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await waitFor(() => expect(result.current.fog).not.toBeNull());
+    return { result, rerender, vision };
+  };
+
+  it('moverla UNE lo que se ve en cada punto, en vez de reemplazarlo', async () => {
+    const { result, rerender } = await mountProbe({ x: 10, y: 10 });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10]]));
+    rerender({ p: { x: 20, y: 20 } });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10], [20, 20]]));
+    rerender({ p: { x: 30, y: 30 } });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10], [20, 20], [30, 30]]));
+  });
+
+  /**
+   * 🐞 EL PIN DE «si le hago click ya activa todo como si hubiera pasado» (dueño, 2026-09-02, con la sonda
+   * puesta y el mapa a oscuras, correcto, hasta que tocaba un token).
+   *
+   * Cualquier OTRA pregunta de visión —arrastrar un token, el pincel— se hace sin decir que la sonda está
+   * puesta, y al director el servidor le contesta «todo lo explorado por TODOS». Esa respuesta se pintaba
+   * encima y le borraba la vista de la sonda de un plumazo.
+   *
+   * El fallo llevaba ahí desde que existe la sonda. Lo destapó arreglar el pincel de niebla: hasta entonces
+   * su campaña no tenía jugadores, «lo explorado por todos» venía VACÍO, y pisar la niebla con nada no se
+   * notaba. El doble de aquí contesta un 2×2 sin sonda y una casilla con ella, que es justo la diferencia.
+   */
+  it('con la sonda puesta, arrastrar un token NO le pisa la vista', async () => {
+    const { result, vision } = await mountProbe({ x: 10, y: 10 });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10]]));
+    await act(async () => { result.current.dragToken(TOKEN_KAREN.id, 100, 100, { x: 100, y: 100 }); });
+    await waitFor(() => expect(vision.calls.some(c => c.at && !c.probe)).toBe(true));
+    expect(result.current.fog!.explored).toEqual([[10, 10]]);
+  });
+
+  it('con la sonda puesta, el pincel tampoco le pisa la vista', async () => {
+    const { result } = await mountProbe({ x: 10, y: 10 });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10]]));
+    await act(async () => { await result.current.paintFog({ x: 50, y: 50, radius: 30 }, 'reveal'); });
+    expect(result.current.fog!.explored).toEqual([[10, 10]]);
+    await act(async () => { await result.current.paintAllFog('reveal'); });
+    expect(result.current.fog!.explored).toEqual([[10, 10]]);
+  });
+
+  /** Y sin sonda todo sigue exactamente como estaba: quien pinta la niebla es la respuesta que llega. */
+  it('sin sonda, arrastrar un token SÍ actualiza la niebla, como siempre', async () => {
+    const { result } = await mountProbe(null);
+    await act(async () => { result.current.dragToken(TOKEN_KAREN.id, 100, 100, { x: 100, y: 100 }); });
+    await waitFor(() => expect(result.current.fog!.explored.length).toBeGreaterThan(1));
+  });
+
+  it('quitarla TIRA la memoria: no se queda nada colgado de la sesión anterior', async () => {
+    const { result, rerender } = await mountProbe({ x: 10, y: 10 });
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[10, 10]]));
+    rerender({ p: null });                       // se apaga «ver como jugador»
+    await waitFor(() => expect(result.current.fog!.explored).not.toEqual([[10, 10]]));
+    rerender({ p: { x: 40, y: 40 } });           // se vuelve a encender: empieza de cero
+    await waitFor(() => expect(result.current.fog!.explored).toEqual([[40, 40]]));
+  });
+
+  /**
+   * EL FRENO. Arrastrar la sonda pide la visión al servidor, y un `pointermove` dispara ~60 veces por segundo.
+   * Sin freno se le mandaban 60 peticiones por segundo, llegaban tarde y desordenadas, y en pantalla la niebla
+   * parecía no seguir a la sonda (dueño, 2026-09-01). Va al mismo ritmo que arrastrar una ficha: ~7 Hz.
+   */
+  it('arrastrarla NO manda una petición por cada píxel: va frenada como la ficha de un jugador', async () => {
+    const vision = fakeVisionPort();
+    const { rerender } = await mountProbe({ x: 0, y: 0 }, vision);
+    const antes = vision.calls.filter(c => c.probe).length;
+    // 20 posiciones seguidas, como un arrastre real.
+    for (let i = 1; i <= 20; i++) rerender({ p: { x: i, y: i } });
+    await waitFor(() => expect(vision.calls.filter(c => c.probe).length).toBeGreaterThan(antes));
+    expect(vision.calls.filter(c => c.probe).length - antes).toBeLessThan(20);
+  });
+
+  it('y aun así la ÚLTIMA posición siempre se pregunta: soltar no deja la niebla una posición atrás', async () => {
+    const vision = fakeVisionPort();
+    const { rerender } = await mountProbe({ x: 0, y: 0 }, vision);
+    for (let i = 1; i <= 8; i++) rerender({ p: { x: i * 10, y: 0 } });
+    await waitFor(() => expect(vision.calls.filter(c => c.probe).some(c => c.probe!.x === 80)).toBe(true));
+  });
+
+  it('sin sonda no se toca nada: lo explorado es lo que conteste el servidor', async () => {
+    const { result } = await mountProbe(null);
+    expect(result.current.fog!.explored).toEqual(fakeVisionPort().state.explored);
+  });
+});
+
 describe('useScene — capas y luces', () => {
   const seedLayers = () => fakeMapsRepo({ tokens: [TOKEN_KAREN], layers: [LAYER_OBJECTS, LAYER_FLOOR, LAYER_MOSS], lights: [LIGHT_TORCH], drawings: [{ ...DRAWING_MINE, layerId: LAYER_MOSS.id }] });
 

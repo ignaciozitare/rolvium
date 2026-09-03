@@ -260,6 +260,37 @@ describe('paintSceneFog', () => {
     expect(maps.fog[NIX]).toHaveLength(100);
   });
 
+  /**
+   * 🐞 EL PIN DEL FALLO QUE ÉL VIO (2026-09-02: «el botón de revelar u ocultar no funcionan… debería ir
+   * eliminando esa capa gris en la vista del dm»). Su campaña tenía UN director y CERO jugadores —el estado
+   * normal mientras montas una escena—, así que el pincel recorría una lista vacía y no escribía nada: era
+   * inerte, y su velo gris, que es la unión de lo explorado por todos, no podía menguar jamás.
+   */
+  it('sin jugadores en la campaña, el pincel SIGUE pintando: la brochada del director cuenta', async () => {
+    const maps = seed({ roles: { [DM]: 'dm' } });
+    const r = await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'reveal', all: true });
+    if (!r.ok) throw new Error('expected ok');
+    expect(r.data.explored).toHaveLength(100);
+    expect(maps.fog[DM]).toHaveLength(100);
+  });
+
+  it('con jugadores, el director se suma a ellos y no se cuenta dos veces', async () => {
+    const maps = seed();
+    await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'reveal', all: true });
+    expect(maps.fog[DM]).toHaveLength(100);
+    expect(maps.fog[PIP]).toHaveLength(100);
+    expect(maps.fog[NIX]).toHaveLength(100);
+  });
+
+  it('ocultar también le quita lo suyo al director: el velo vuelve donde él lo pide', async () => {
+    const maps = seed({ roles: { [DM]: 'dm' } });
+    await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'reveal', all: true });
+    const r = await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'hide', at: { x: 13.5, y: 13.5, radius: 20 } });
+    if (!r.ok) throw new Error('expected ok');
+    expect(maps.fog[DM]!.some(([x, y]) => x === 0 && y === 0)).toBe(false);
+    expect(r.data.explored.some(([x, y]) => x === 0 && y === 0)).toBe(false);
+  });
+
   it('the brush hides only the cells under it', async () => {
     const maps = seed();
     await paintSceneFog({ maps }, { sceneId: SCENE, userId: DM, op: 'reveal', all: true });
@@ -271,70 +302,80 @@ describe('paintSceneFog', () => {
 });
 
 /**
- * «Ver la escena con los ojos de un personaje» (rebanada 7). Se calcula AQUÍ y no en el navegador del
- * director a propósito: si se recalculase allí, lo que él ve y lo que ve el jugador de verdad podrían
- * discrepar — y comprobar justamente eso es para lo que sirve la herramienta.
+ * LA SONDA DE PRUEBA (§ 7.3). Sustituye a la lente por personaje que llegó a producción y dejaba el mapa en
+ * negro. La diferencia de fondo: la lente pedía la memoria del DUEÑO de una ficha y un director no acumula
+ * memoria nunca, así que llegaba vacía; una sonda **no tiene dueño** y contesta lo que se ve DESDE EL PUNTO.
  */
-describe('computeSceneVision — ver con los ojos de un personaje', () => {
-  const lens = (over = {}) => computeSceneVision({ maps: seed(over) }, { sceneId: SCENE, userId: DM, asTokenId: PIP_TOKEN.id });
+describe('computeSceneVision — la sonda de prueba', () => {
+  const probe = (at: { x: number; y: number }, over = {}) =>
+    computeSceneVision({ maps: seed(over) }, { sceneId: SCENE, userId: DM, probe: at });
 
-  it('le da al director el MISMO polígono que al jugador que controla la ficha', async () => {
+  it('contesta lo mismo que vería un jugador plantado en ese punto', async () => {
+    // El token de Pip está en la casilla (2,5) → su centro cae en (67.5, 148.5).
     const mine = await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: PIP });
-    const asPip = await lens();
-    expect(asPip.ok && mine.ok).toBe(true);
-    if (!asPip.ok || !mine.ok) return;
-    expect(asPip.data.vision).toEqual(mine.data.vision);
+    const r = await probe({ x: 67.5, y: 148.5 });
+    expect(r.ok && mine.ok).toBe(true);
+    if (!r.ok || !mine.ok) return;
+    expect(r.data.vision).toEqual(mine.data.vision);
     // Y no es el «todo» del director: al otro lado del muro no se ve.
-    expect(asPip.data.vision).toHaveLength(1);
-    expect(pointInPolygon({ x: 200, y: 135 }, asPip.data.vision[0]!)).toBe(false);
+    expect(r.data.vision).toHaveLength(1);
+    expect(pointInPolygon({ x: 200, y: 135 }, r.data.vision[0]!)).toBe(false);
   });
 
-  it('enseña la niebla explorada DEL JUGADOR, no la unión del director', async () => {
-    const r = await lens({ fog: { [PIP]: [[0, 0]], [NIX]: [[9, 9], [8, 8]] } });
+  /** 🔴 EL FALLO QUE TIRÓ LA LENTE: sin dueño no hay memoria que pedir, así que esto NO puede salir vacío. */
+  it('NO devuelve el mapa en negro: contesta lo que se ve desde ahí, no la memoria de nadie', async () => {
+    const r = await probe({ x: 67.5, y: 148.5 }, { fog: {} });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.data.explored).toEqual([[0, 0]]);
+    expect(r.data.explored.length).toBeGreaterThan(0);
+    expect(r.data.vision.length).toBeGreaterThan(0);
   });
 
-  /** Es una LENTE: mirar por los ojos de alguien no le explora el mapa a nadie. */
-  it('no guarda nada', async () => {
-    const repo = seed({ fog: { [PIP]: [] } });
-    await computeSceneVision({ maps: repo }, { sceneId: SCENE, userId: DM, asTokenId: PIP_TOKEN.id });
-    expect(repo.fog[PIP]).toEqual([]);
+  /** La memoria la acumula el NAVEGADOR: aquí se contesta sólo lo de ESTE punto, y moverse cambia la respuesta. */
+  it('lo explorado que contesta es lo de ESE punto, no una memoria que crece sola', async () => {
+    // A este lado del muro y al otro: la respuesta tiene que cambiar, o no estaría mirando desde el punto.
+    const a = await probe({ x: 67.5, y: 148.5 });
+    const b = await probe({ x: 200, y: 148.5 });
+    if (!a.ok || !b.ok) return;
+    expect(a.data.explored.every(([cx]) => cx < 5)).toBe(true);
+    expect(b.data.explored.every(([cx]) => cx >= 5)).toBe(true);
+  });
+
+  it('no guarda NADA: mirar desde un punto no le explora el mapa a nadie', async () => {
+    const maps = seed({ fog: { [PIP]: [] } });
+    await computeSceneVision({ maps }, { sceneId: SCENE, userId: DM, probe: { x: 67.5, y: 148.5 } });
+    expect(maps.fog[PIP]).toEqual([]);
     // El jugador pidiendo lo suyo SÍ guarda: se comprueba que el doble no está roto.
-    await computeSceneVision({ maps: repo }, { sceneId: SCENE, userId: PIP });
-    expect(repo.fog[PIP]!.length).toBeGreaterThan(0);
+    await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    expect(maps.fog[PIP]!.length).toBeGreaterThan(0);
   });
 
-  it('una ficha que no existe en la escena es un 404, no una vista en blanco', async () => {
-    expect(await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: DM, asTokenId: 'tk-fantasma' })).toEqual({ ok: false, code: 'NOT_FOUND' });
-  });
-
-  it('respeta el modo de niebla de la escena, como lo respetaría el jugador', async () => {
-    const manual = await computeSceneVision({ maps: seed({ scene: { fogMode: 'manual' }, fog: { [PIP]: [[1, 1]] } }) }, { sceneId: SCENE, userId: DM, asTokenId: PIP_TOKEN.id });
-    expect(manual.ok && manual.data.vision).toEqual([]);
-    expect(manual.ok && manual.data.explored).toEqual([[1, 1]]);
-    const off = await computeSceneVision({ maps: seed({ scene: { fogMode: 'off' } }) }, { sceneId: SCENE, userId: DM, asTokenId: PIP_TOKEN.id });
+  it('respeta el modo de niebla: apagada lo enseña todo, y en manual enseña lo que el pincel reveló', async () => {
+    const off = await probe({ x: 67.5, y: 148.5 }, { scene: { fogMode: 'off' } });
     expect(off.ok && off.data.explored.length).toBe(100); // 270/27 = 10 × 10 casillas
+    // En manual no hay visión para nadie: lo que un jugador ve es lo que el director reveló. Negro sería mentir.
+    const manual = await probe({ x: 67.5, y: 148.5 }, { scene: { fogMode: 'manual' }, fog: { [PIP]: [[1, 1]], [NIX]: [[2, 2]] } });
+    expect(manual.ok && manual.data.vision).toEqual([]);
+    expect(manual.ok && manual.data.explored).toHaveLength(2);
   });
 
-  /** Sin lente, el director sigue viéndolo todo: la herramienta no le cambia su vista de siempre. */
-  it('sin lente el director sigue con su unión de lo explorado y sin polígono', async () => {
+  /** La sonda es SÓLO del director: a un jugador el parámetro no le enseña nada de más. */
+  it('un jugador que la pide no ve más de lo suyo', async () => {
+    const r = await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: PIP, probe: { x: 800, y: 40 } });
+    const mine = await computeSceneVision({ maps: seed() }, { sceneId: SCENE, userId: PIP });
+    if (!r.ok || !mine.ok) return;
+    expect(r.data.vision).toEqual(mine.data.vision);
+  });
+});
+
+/** El director, sin lente ninguna: lo suyo de siempre — la unión de lo explorado y ningún polígono. */
+describe('computeSceneVision — la vista del director', () => {
+  it('el director ve la unión de lo explorado y sin polígono', async () => {
     const r = await computeSceneVision({ maps: seed({ fog: { [PIP]: [[0, 0]], [NIX]: [[9, 9]] } }) }, { sceneId: SCENE, userId: DM });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.data.vision).toEqual([]);
     expect(r.data.explored).toHaveLength(2);
-  });
-
-  /** La lente es SÓLO del director: a un jugador el parámetro no le abre los ojos de otro. */
-  it('un jugador que la pide no ve más de lo suyo', async () => {
-    const other = { id: 'tk-nix', x: 8, y: 5, size: 1, controlledBy: NIX };
-    const r = await computeSceneVision({ maps: seed({ tokens: [PIP_TOKEN, other] }) }, { sceneId: SCENE, userId: PIP, asTokenId: other.id });
-    const mine = await computeSceneVision({ maps: seed({ tokens: [PIP_TOKEN, other] }) }, { sceneId: SCENE, userId: PIP });
-    expect(r.ok && mine.ok).toBe(true);
-    if (!r.ok || !mine.ok) return;
-    expect(r.data.vision).toEqual(mine.data.vision);
   });
 });
 
@@ -491,17 +532,42 @@ describe('luces que iluminan de verdad (§ 7.2)', () => {
     expect(inLit({ x: 200, y: 60 }, r.data.lit)).toBe(true);
   });
 
-  it('la lente «ver con los ojos de» mira las luces con SUS ojos, no con los del director', async () => {
+  /**
+   * 🚨 LA LUZ QUE GIRA (§ 7.2). Un cono que gira manda el CÍRCULO ENTERO recortado y el barrido lo hace el
+   * navegador rotando encima una ventana. No es un atajo: el recorte contra los muros es RADIAL, así que
+   * «cono girado a θ, recortado» es «círculo recortado ∩ sector de θ». Calcular aquí las 24 rotaciones
+   * costaría 24 veces más en CADA petición de visión, y el dueño ya se quejó de que va lentísimo.
+   */
+  it('un cono que gira manda el círculo entero, no el cono de este instante', async () => {
+    const cone = { ...LIGHT, x: 100, y: 135, shape: 'cone' as const, coneAngle: 40, rotation: 0, rangeM: 4.5 };
+    const detras = { x: 100, y: 60 };   // a 75 px por encima de la luz: fuera de un cono que apunta a la derecha
+    const quieto = await computeSceneVision({ maps: seed({ scene: { fogMode: 'off' }, lights: [cone] }) }, { sceneId: SCENE, userId: PIP });
+    const girando = await computeSceneVision({ maps: seed({ scene: { fogMode: 'off' }, lights: [{ ...cone, spinMs: 4000 }] }) }, { sceneId: SCENE, userId: PIP });
+    if (!quieto.ok || !girando.ok) return;
+    expect(inLit(detras, quieto.data.lit)).toBe(false);    // quieto: el cono no mira ahí
+    expect(inLit(detras, girando.data.lit)).toBe(true);     // girando: el barrido acaba pasando por ahí
+  });
+
+  it('girar NO le da permiso para atravesar la piedra: el círculo va recortado igual', async () => {
     const maps = fakeMapsRepo({
       roles: ROLES,
-      scene: { width: 270, height: 270, gridSize: 27, fogMode: 'vision' },
-      walls: [{ id: 'w-half', x1: 135, y1: 0, x2: 135, y2: 120, blocksSight: true, blocksMove: true, isOpen: false }],
-      tokens: [{ id: 'tk-pip', x: 1, y: 6, size: 1, controlledBy: PIP }],
-      lights: [{ ...LIGHT, x: 200, y: 60, rangeM: 4.5 }],
+      scene: { width: 270, height: 270, gridSize: 27, fogMode: 'off' },
+      walls: [{ id: 'w-half', x1: 135, y1: 0, x2: 135, y2: 270, blocksSight: true, blocksMove: true, isOpen: false }],
+      tokens: [{ id: 'tk-pip', x: 1, y: 5, size: 1, controlledBy: PIP }],
+      lights: [{ ...LIGHT, x: 100, y: 135, shape: 'cone', coneAngle: 40, rangeM: 9, spinMs: 4000 }],
     });
-    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: DM, asTokenId: 'tk-pip' });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
     if (!r.ok) return;
-    expect(inLit({ x: 200, y: 60 }, r.data.lit)).toBe(false);   // lo mismo que ve el jugador, ni un píxel más
+    expect(inLit({ x: 100, y: 135 }, r.data.lit)).toBe(true);    // a este lado del muro, alumbra
+    expect(inLit({ x: 200, y: 135 }, r.data.lit)).toBe(false);   // al otro, no
+  });
+
+  it('sólo gira un CONO: un radio con periodo puesto sigue siendo un radio', async () => {
+    const radio = { ...LIGHT, x: 100, y: 135, shape: 'radius' as const, rangeM: 4.5 };
+    const a = await computeSceneVision({ maps: seed({ scene: { fogMode: 'off' }, lights: [radio] }) }, { sceneId: SCENE, userId: PIP });
+    const b = await computeSceneVision({ maps: seed({ scene: { fogMode: 'off' }, lights: [{ ...radio, spinMs: 4000 }] }) }, { sceneId: SCENE, userId: PIP });
+    if (!a.ok || !b.ok) return;
+    expect(b.data.lit).toEqual(a.data.lit);
   });
 
   it('el pincel del director contesta también las luces: su respuesta reemplaza la niebla entera', async () => {

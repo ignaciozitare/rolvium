@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Wall } from '../domain/entities/Scene';
 import { createSupabaseMock } from '../../../../tests/helpers/supabaseMock';
 import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapLayerRow, mapPropRow, mapSceneRow, mapScenePropRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
 
 const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, lighting: 'day' as const, night_radius_m: 10, solid_walls: false, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
 const TOKEN_ROW = { id: 'tk-1', scene_id: 'sc-1', campaign_id: 'c1', character_id: 'ch-karen', bestiary_ref: null, bestiary_entry_id: null, name: 'Karen', image_url: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlled_by: 'u-pip', vision_radius: null, state: {}, layer_id: null };
-const WALL_ROW = { id: 'w-1', scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visible_players: false, kind: 'wall' as const, blocks_sight: true, blocks_move: true, is_open: false };
+const WALL_ROW = { id: 'w-1', scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visible_players: false, kind: 'wall' as const, blocks_sight: true, blocks_move: true, is_open: false, group_id: null };
 const LAYER_ROW = { id: 'ly-1', scene_id: 'sc-1', campaign_id: 'c1', kind: 'terrain' as const, name: 'Musgo', sort_order: 1, visible: true, locked: false, image_url: 'https://x/moss.png', transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, mask_url: 'https://x/masks/ly-1.png', mask_version: 3, created_at: 't', updated_at: 't' };
 const LIGHT_ROW = { id: 'li-1', scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius' as const, kind: 'torch' as const, x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false, created_at: 't', updated_at: 't' };
 const DRAWING_ROW = { id: 'd-1', scene_id: 'sc-1', campaign_id: 'c1', author_id: 'u-pip', kind: 'stroke' as const, data: { points: [[1, 2]] as [number, number][] }, color: '#c9a84c', width: 2, created_at: 't', layer_id: null };
@@ -94,12 +95,85 @@ describe('SupabaseMapsRepo — walls, tokens, drawings', () => {
     const m = createSupabaseMock({ tables: { maps_walls: { data: WALL_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
     const w = await repo.addWall({ sceneId: 'sc-1', campaignId: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false });
-    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, visible_players: false, kind: 'wall', blocks_sight: true, blocks_move: true, is_open: false });
+    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, group_id: null, visible_players: false, kind: 'wall', blocks_sight: true, blocks_move: true, is_open: false });
     expect(w.id).toBe('w-1');
     await repo.removeWall('w-1');
     expect(m.deleteSpy).toHaveBeenCalled();
     expect(q(m, 1)['eq']).toHaveBeenCalledWith('id', 'w-1');
   });
+  /**
+   * 🔒 Una sala entra de una vez. Muro a muro, si el enésimo falla se quedan puestos los anteriores y la sala
+   * queda ABIERTA: por ese hueco se cuela la visión sin que nada lo cante. Un `insert` de varias filas es una
+   * sola sentencia, así que entran todas o ninguna.
+   */
+  it('walls: una sala entera se escribe en UN solo insert, con todas sus filas', async () => {
+    const m = createSupabaseMock({ tables: { maps_walls: { data: [WALL_ROW, WALL_ROW], error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    const lado = (x1: number, y1: number, x2: number, y2: number) =>
+      ({ sceneId: 'sc-1', campaignId: 'c1', x1, y1, x2, y2, visiblePlayers: false, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false });
+    const salidos = await repo.addWalls([lado(0, 0, 10, 0), lado(10, 0, 10, 10)]);
+    expect(m.insertSpy).toHaveBeenCalledTimes(1);
+    expect(m.insertSpy).toHaveBeenCalledWith([
+      { scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, group_id: null, visible_players: false, kind: 'wall', blocks_sight: true, blocks_move: true, is_open: false },
+      { scene_id: 'sc-1', campaign_id: 'c1', x1: 10, y1: 0, x2: 10, y2: 10, group_id: null, visible_players: false, kind: 'wall', blocks_sight: true, blocks_move: true, is_open: false },
+    ]);
+    expect(salidos).toHaveLength(2);
+  });
+
+  it('walls: una sala vacía no toca la base', async () => {
+    const m = createSupabaseMock({ tables: { maps_walls: { data: [], error: null } } });
+    expect(await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).addWalls([])).toEqual([]);
+    expect(m.insertSpy).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🧩 EL GRUPO (§ «EL GRUPO»). Atar y desatar es UNA sentencia: media selección agrupada y la otra media
+   * suelta no es un estado que él pueda entender ni deshacer.
+   */
+  it('walls: atar y desatar un puñado de muros va en un solo UPDATE', async () => {
+    const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.setWallsGroup(['w-1', 'w-2', 'w-3'], 'g-7');
+    expect(m.updateSpy).toHaveBeenCalledTimes(1);
+    expect(m.updateSpy).toHaveBeenCalledWith({ group_id: 'g-7' });
+    expect(q(m)['in']).toHaveBeenCalledWith('id', ['w-1', 'w-2', 'w-3']);
+    await repo.setWallsGroup(['w-1'], null);
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ group_id: null });
+  });
+
+  /** 🔒 Media sala borrada es una sala ABIERTA: por el hueco se cuela la visión. Va en un solo DELETE. */
+  it('walls: borrar un grupo entero va en un solo DELETE', async () => {
+    const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.removeWalls(['w-1', 'w-2', 'w-3']);
+    expect(m.deleteSpy).toHaveBeenCalledTimes(1);
+    expect(q(m)['in']).toHaveBeenCalledWith('id', ['w-1', 'w-2', 'w-3']);
+  });
+
+  it('walls: sin muros no toca la base', async () => {
+    const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.setWallsGroup([], 'g-7');
+    await repo.updateWallsGeometry([]);
+    await repo.removeWalls([]);
+    expect(m.updateSpy).not.toHaveBeenCalled();
+    expect(m.upsertSpy).not.toHaveBeenCalled();
+    expect(m.deleteSpy).not.toHaveBeenCalled();
+  });
+
+  /** 🔒 Mover un grupo es UNA escritura: a medio mover, la forma queda rota y por el hueco se cuela la visión. */
+  it('walls: mover o estirar un grupo entero va en una sola escritura', async () => {
+    const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    const w = (id: string, x1: number): Wall => ({ id, sceneId: 'sc-1', campaignId: 'c1', x1, y1: 0, x2: x1 + 10, y2: 0, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, groupId: 'g-7' });
+    await repo.updateWallsGeometry([w('w-1', 5), w('w-2', 40)]);
+    expect(m.upsertSpy).toHaveBeenCalledTimes(1);
+    const filas = m.upsertSpy.mock.calls[0]![0] as Record<string, unknown>[];
+    expect(filas).toHaveLength(2);
+    expect(filas[0]).toMatchObject({ id: 'w-1', x1: 5, x2: 15, group_id: 'g-7' });
+    expect(filas[1]).toMatchObject({ id: 'w-2', x1: 40, group_id: 'g-7' });
+  });
+
   it('tokens: insert maps every column, updateToken sends only the given columns (x/y for a player move)', async () => {
     const m = createSupabaseMock({ tables: { maps_tokens: { data: TOKEN_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
@@ -125,6 +199,29 @@ describe('SupabaseMapsRepo — walls, tokens, drawings', () => {
     expect(q(m, 2)['eq']).toHaveBeenCalledTimes(1);
     await repo.removeDrawing('d-1');
     expect(q(m, 3)['eq']).toHaveBeenCalledWith('id', 'd-1');
+  });
+
+  /**
+   * ✏️ MOVER UN TRAZO, contra la base de verdad (dueño, 2026-09-02: «los textos líneas formas etc deberían
+   * poder seleccionarse y mover y borrarse como cualquier cosa»). El doble de `fakes.ts` guarda lo que le
+   * pidan y siempre dice que sí, así que no prueba nada de la consulta: aquí se ata que se escribe SÓLO
+   * `data`, en la fila que es, y que un rechazo de la base LLEGA como error en vez de tragarse en silencio.
+   */
+  it('mover un trazo escribe sólo sus coordenadas, en su fila, y un «no» de la base se nota', async () => {
+    const m = createSupabaseMock({ tables: { maps_drawings: { data: DRAWING_ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateDrawingData('d-1', { x1: 470, y1: 530, x2: 530, y2: 570 });
+    // Ni el color, ni el grosor, ni la capa: mover cambia dónde está y nada más.
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ data: { x1: 470, y1: 530, x2: 530, y2: 570 } });
+    expect(q(m, 0)['eq']).toHaveBeenCalledWith('id', 'd-1');
+    /**
+     * 🔒 Mover es del director porque lo manda la RLS (`maps_drawings_dm_update`), no la pantalla. Si algún
+     * día la interfaz se equivocara y dejara arrastrar a un jugador, esto tiene que romper a la vista — no
+     * dejar el trazo movido en pantalla y quieto en la base.
+     */
+    const bad = createSupabaseMock({ tables: { maps_drawings: { data: null, error: new Error('new row violates row-level security policy for table "maps_drawings"') } } });
+    await expect(new SupabaseMapsRepo(bad.client as unknown as SupabaseClient).updateDrawingData('d-1', { x1: 0, y1: 0, x2: 1, y2: 1 }))
+      .rejects.toThrow(/row-level security/);
   });
 });
 
@@ -184,14 +281,21 @@ describe('SupabaseMapsRepo — capas y luces (rebanada 7)', () => {
   it('las luces mapean sus columnas, incluidas las que todavía no se usan', async () => {
     const m = createSupabaseMock({ tables: { maps_lights: { data: LIGHT_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    const l = await repo.addLight({ sceneId: 'sc-1', campaignId: 'c1', layerId: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, coneAngle: 60, color: '#e8a24e', flicker: true, rangeM: 6, castsShadow: false });
-    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false });
+    const l = await repo.addLight({ sceneId: 'sc-1', campaignId: 'c1', layerId: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, coneAngle: 60, color: '#e8a24e', flicker: true, rangeM: 6, castsShadow: false, spinMs: 0, intensity: 100 });
+    expect(m.insertSpy).toHaveBeenCalledWith({ scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius', kind: 'torch', x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false, spin_ms: 0, intensity: 100 });
     // `rangeM` y `castsShadow` se guardan desde el primer día aunque todavía no iluminen.
     expect(l).toMatchObject({ kind: 'torch', rangeM: 6, castsShadow: false, coneAngle: 60 });
+    // Una fila vieja —sin las columnas nuevas— no revienta: se lee como «quieta y a plena intensidad».
+    expect(l).toMatchObject({ spinMs: 0, intensity: 100 });
     await repo.updateLight('li-1', { flicker: false });
     expect(m.updateSpy).toHaveBeenLastCalledWith({ flicker: false });
     await repo.updateLight('li-1', { layerId: 'ly-1', rangeM: 9 });
     expect(m.updateSpy).toHaveBeenLastCalledWith({ layer_id: 'ly-1', range_m: 9 });
+    // La INTENSIDAD viaja por su propia columna, y mover una luz guarda x e y — las dos cosas nuevas de hoy.
+    await repo.updateLight('li-1', { intensity: 40 });
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ intensity: 40 });
+    await repo.updateLight('li-1', { x: 120.5, y: 88.25 });
+    expect(m.updateSpy).toHaveBeenLastCalledWith({ x: 120.5, y: 88.25 });
   });
 });
 

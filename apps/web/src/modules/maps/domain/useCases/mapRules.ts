@@ -1,6 +1,6 @@
 import { METRES_PER_CELL, sightRadiusPx, slideCircle, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
 import type { Character } from '@/modules/characters/domain/entities/Character';
-import type { Drawing, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
+import type { Drawing, DrawingData, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
 
 export { METRES_PER_CELL } from '@rolvium/core';
 
@@ -65,6 +65,11 @@ export function centerOn(v: View, p: Point, viewport: { width: number; height: n
 
 // ── grid ─────────────────────────────────────────────────────────────────────
 export const snap = (v: number, grid: number): number => Math.round(v / grid) * grid;
+/**
+ * Lo mismo que `snap`, pero con el paso a 0 (o menos) devuelve el valor TAL CUAL. Es el candado de Builder:
+ * cerrado se pega a la rejilla como toda la vida, abierto no redondea ni un píxel (ver `snapRules.ts`).
+ */
+export const snapStep = (v: number, step: number): number => (step > 0 ? snap(v, step) : v);
 /** Scene px → cell (floor). */
 export const cellOf = (px: number, grid: number): number => Math.floor(px / grid);
 /** Cell of a token centred on a scene point (token top-left in cells). */
@@ -222,13 +227,21 @@ export interface Segment { x1: number; y1: number; x2: number; y2: number }
 /** Leftovers this short are the zero-length ends of a cut: the spec says they are not saved. */
 const MIN_PIECE = 0.5;
 
+export interface WallSplit {
+  /** The wall the opening was cut out of. */
+  host: Wall;
+  /** What survives of it once the hole is taken out. Empty means the whole wall became the opening. */
+  pieces: Segment[];
+}
 export interface OpeningPlan {
   /** Where the opening lands: on the host's line when there is a wall underneath, exactly as drawn when there is not. */
   opening: Segment;
-  /** The wall the opening was cut out of and what survives of it, or `null` when nothing was underneath. */
-  split: { host: Wall; pieces: Segment[] } | null;
+  /**
+   * EVERY wall the opening was cut out of, and what survives of each. Empty when nothing was underneath.
+   * `splits[0]` is the wall the opening leans on most — the one whose line the opening is projected onto.
+   */
+  splits: WallSplit[];
 }
-export type WallSplit = NonNullable<OpeningPlan['split']>;
 
 /**
  * Where a door or a window drawn between `a` and `b` really goes
@@ -239,19 +252,25 @@ export type WallSplit = NonNullable<OpeningPlan['split']>;
  * The opening is projected onto the host's line so it can never sit a hair off — a crooked one would keep the
  * wall cutting sight along its sides, which is the same bug wearing a different hat.
  *
+ * 🐞 Y se cortan TODOS los muros que pisa, no sólo aquel sobre el que más se apoya (dueño, 2026-09-01: «ahí
+ * está la puerta abierta y no puede ver»). Cortando uno solo, una puerta dibujada de un tirón sobre dos muros
+ * seguidos se encogía en silencio hasta el más largo y el resto seguía macizo tapando el hueco: en pantalla
+ * una puerta abierta, en la geometría una pared. El vano se estira sobre la UNIÓN de lo que hay debajo, así
+ * que sale del tamaño que se dibujó.
+ *
  * A plain wall never cuts anything (you are building, not opening), and neither does an opening drawn over
  * another opening: masonry is what gets holes.
  */
 export function planOpening(walls: Wall[], a: Point, b: Point, kind: WallKind, tol = 8): OpeningPlan {
   const opening: Segment = { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
-  if (kind === 'wall' || (a.x === b.x && a.y === b.y)) return { opening, split: null };
-  let best: { host: Wall; len: number; s0: number; s1: number; off: number } | null = null;
+  if (kind === 'wall' || (a.x === b.x && a.y === b.y)) return { opening, splits: [] };
+  const unit = (w: Wall, len: number): Point => ({ x: (w.x2 - w.x1) / len, y: (w.y2 - w.y1) / len });
+  const cands: { host: Wall; len: number; overlap: number; off: number }[] = [];
   for (const host of walls) {
     if (host.kind !== 'wall') continue;
-    const dx = host.x2 - host.x1, dy = host.y2 - host.y1;
-    const len = Math.hypot(dx, dy);
+    const len = Math.hypot(host.x2 - host.x1, host.y2 - host.y1);
     if (len < MIN_PIECE) continue;
-    const d = { x: dx / len, y: dy / len };
+    const d = unit(host, len);
     const along = (q: Point): number => (q.x - host.x1) * d.x + (q.y - host.y1) * d.y;
     const off = (q: Point): number => Math.abs((q.x - host.x1) * -d.y + (q.y - host.y1) * d.x);
     const worst = Math.max(off(a), off(b));
@@ -259,19 +278,39 @@ export function planOpening(walls: Wall[], a: Point, b: Point, kind: WallKind, t
     const s0 = Math.max(0, Math.min(along(a), along(b)));
     const s1 = Math.min(len, Math.max(along(a), along(b)));
     if (s1 - s0 <= MIN_PIECE) continue;              // it only grazes an end: nothing to cut
-    // Longest overlap wins; between two equal ones, the wall it sits flattest on.
-    if (!best || s1 - s0 > best.s1 - best.s0 || (s1 - s0 === best.s1 - best.s0 && worst < best.off)) best = { host, len, s0, s1, off: worst };
+    cands.push({ host, len, overlap: s1 - s0, off: worst });
   }
-  if (!best) return { opening, split: null };
-  const { host, len } = best;
+  if (cands.length === 0) return { opening, splits: [] };
+  // Longest overlap wins the projection; between two equal ones, the wall it sits flattest on.
+  const primary = cands.reduce((best, c) => (c.overlap > best.overlap || (c.overlap === best.overlap && c.off < best.off) ? c : best));
+  const { host, len } = primary;
+  const d = unit(host, len);
+  const along = (q: Point): number => (q.x - host.x1) * d.x + (q.y - host.y1) * d.y;
   const at = (s: number): Point => ({ x: host.x1 + (host.x2 - host.x1) * (s / len), y: host.y1 + (host.y2 - host.y1) * (s / len) });
-  const seg = (from: number, to: number): Segment => { const p = at(from), q = at(to); return { x1: p.x, y1: p.y, x2: q.x, y2: q.y }; };
+  const seg = (p: Point, q: Point): Segment => ({ x1: p.x, y1: p.y, x2: q.x, y2: q.y });
+  // How far the masonry underneath reaches, measured on the primary's line: the opening may grow along all of
+  // it, and not one pixel further — a door drawn sloppily past the end of the wall still stops at the wall.
+  const ends = cands.flatMap(c => [along({ x: c.host.x1, y: c.host.y1 }), along({ x: c.host.x2, y: c.host.y2 })]);
+  const u0 = Math.min(...ends), u1 = Math.max(...ends);
+  const clamp = (s: number): number => Math.max(u0, Math.min(u1, s));
+  const s0 = clamp(Math.min(along(a), along(b))), s1 = clamp(Math.max(along(a), along(b)));
   // A leftover shorter than MIN_PIECE is not saved, so the OPENING has to take that stub: otherwise dropping it
   // would leave a sub-pixel slit of nothing at the wall's end — a hole, which is exactly what this must never make.
-  const from = best.s0 > MIN_PIECE ? best.s0 : 0;
-  const to = len - best.s1 > MIN_PIECE ? best.s1 : len;
-  const pieces = ([[0, from], [to, len]] as const).filter(([a0, b0]) => b0 > a0).map(([a0, b0]) => seg(a0, b0));
-  return { opening: seg(from, to), split: { host, pieces } };
+  const from = s0 - u0 > MIN_PIECE ? s0 : u0;
+  const to = u1 - s1 > MIN_PIECE ? s1 : u1;
+  const p0 = at(from), p1 = at(to);
+  // Each wall is cut on ITS OWN line, never on the primary's: a leftover must not shift a hair sideways.
+  const cut = (c: { host: Wall; len: number }): WallSplit => {
+    const cd = unit(c.host, c.len);
+    const k = (q: Point): number => (q.x - c.host.x1) * cd.x + (q.y - c.host.y1) * cd.y;
+    const pt = (s: number): Point => ({ x: c.host.x1 + (c.host.x2 - c.host.x1) * (s / c.len), y: c.host.y1 + (c.host.y2 - c.host.y1) * (s / c.len) });
+    const k0 = Math.min(k(p0), k(p1)), k1 = Math.max(k(p0), k(p1));
+    const pieces = ([[0, Math.min(c.len, k0)], [Math.max(0, k1), c.len]] as const)
+      .filter(([x, y]) => y - x > MIN_PIECE)
+      .map(([x, y]) => seg(pt(x), pt(y)));
+    return { host: c.host, pieces };
+  };
+  return { opening: seg(p0, p1), splits: [cut(primary), ...cands.filter(c => c !== primary).map(cut)] };
 }
 
 /** A leftover of a split keeps everything the host wall was — only its geometry is new. */
@@ -279,6 +318,44 @@ export const wallPiece = (host: Wall, at: Segment): NewWall => ({
   sceneId: host.sceneId, campaignId: host.campaignId, visiblePlayers: host.visiblePlayers,
   kind: host.kind, blocksSight: host.blocksSight, blocksMove: host.blocksMove, isOpen: host.isOpen, ...at,
 });
+
+/**
+ * Un nodo pegado a la punta no es un nodo: ahí ya hay uno. Por debajo de esto no se parte — quedaría un
+ * muñón invisible que sólo estorba al arrastrar. En px de escena (con la rejilla en 27, ~un séptimo de casilla).
+ */
+export const MIN_NODE_GAP = 4;
+
+/**
+ * El punto de la línea de `w` más cercano a `p`: su proyección, acotada a los dos extremos. Un doble clic
+ * nunca cae exactamente encima de la línea, y el nodo tiene que nacer SOBRE el muro o quedaría un codo.
+ */
+export function pointOnWall(w: Segment, p: Point): Point {
+  const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
+  const len2 = dx * dx + dy * dy;
+  if (len2 < 0.000001) return { x: w.x1, y: w.y1 };
+  const k = Math.max(0, Math.min(1, ((p.x - w.x1) * dx + (p.y - w.y1) * dy) / len2));
+  return { x: w.x1 + dx * k, y: w.y1 + dy * k };
+}
+
+/**
+ * AÑADIR UN NODO — «si tengo un vector y le hago doble click en alguna parte de la linea tiene que agregar
+ * otro nodo» (dueño, 2026-09-03). Es partir el muro en dos por ese punto, que es exactamente lo que ya hace
+ * `planOpening` para meter una puerta: se reaprovecha `wallPiece`, no se inventa nada.
+ *
+ * El muro de siempre SE QUEDA y sólo se le acorta la punta (`keep`); el trozo de después nace como muro nuevo
+ * (`piece`) heredando todo lo suyo — tipo, si lo ven los jugadores, si está abierto — y **su grupo**: partir
+ * un lado de una sala no puede echarlo fuera de la sala.
+ *
+ * Devuelve `null` cuando el punto cae pegado a una punta: ahí no hay nodo que añadir.
+ */
+export function splitWallAt(w: Wall, at: Point, min = MIN_NODE_GAP): { keep: Segment; piece: NewWall } | null {
+  const q = pointOnWall(w, at);
+  if (Math.hypot(q.x - w.x1, q.y - w.y1) < min || Math.hypot(q.x - w.x2, q.y - w.y2) < min) return null;
+  return {
+    keep: { x1: w.x1, y1: w.y1, x2: q.x, y2: q.y },
+    piece: { ...wallPiece(w, { x1: q.x, y1: q.y, x2: w.x2, y2: w.y2 }), groupId: w.groupId },
+  };
+}
 
 // ── fog & vision (drawn from what the API answers; never computed here) ──────
 /** `"x,y x,y …"` for an SVG `<polygon points>`. */
@@ -296,6 +373,20 @@ export const polygonsPath = (polys: readonly VisionPolygon[]): string =>
 /** One `<path d>` for a whole set of explored cells — one element instead of a rect per cell. */
 export const cellsPath = (cells: FogCell[], grid: number): string =>
   cells.map(([cx, cy]) => `M${cx * grid} ${cy * grid}h${grid}v${grid}h${-grid}z`).join('');
+/**
+ * Une casillas exploradas sin repetir, conservando el orden de llegada.
+ *
+ * Hace falta AQUÍ, en el navegador, sólo por la sonda de prueba (§ 7.3): el servidor contesta lo que se ve
+ * desde el punto donde está la sonda —no una memoria—, así que quien la va acumulando mientras el director la
+ * arrastra es esta pantalla, y la tira al quitarla. Para todo lo demás la memoria la lleva el servidor.
+ */
+export function unionCells(...lists: readonly FogCell[][]): FogCell[] {
+  const seen = new Set<string>();
+  const out: FogCell[] = [];
+  for (const list of lists) for (const c of list) { const k = `${c[0]},${c[1]}`; if (!seen.has(k)) { seen.add(k); out.push(c); } }
+  return out;
+}
+
 /** Brush radius in scene px for a size taken from `BRUSH_SIZES`. */
 export const brushRadius = (size: number, grid: number): number => size * grid;
 /** Night sight radius of a scene in scene px, or `null` by day. Same helper the API uses. */
@@ -329,6 +420,35 @@ export function hitDrawing(d: Pick<Drawing, 'kind' | 'data' | 'width'>, p: Point
 export function hitTest(drawings: Drawing[], p: Point, tol?: number): Drawing | null {
   for (let i = drawings.length - 1; i >= 0; i--) if (hitDrawing(drawings[i]!, p, tol)) return drawings[i]!;
   return null;
+}
+
+/**
+ * MOVER UN TRAZO: sus coordenadas, desplazadas (dueño, 2026-09-02: «los textos líneas formas etc deberían
+ * poder seleccionarse y mover y borrarse como cualquier cosa»).
+ *
+ * Cada forma guarda sus puntos a su manera, así que se traduce cada una por separado en vez de inventar un
+ * `transform` en el SVG: lo que se mueve tiene que quedar MOVIDO en la base, o al recargar vuelve a su sitio.
+ * El grosor, el color y el texto no se tocan — esto sólo cambia dónde está.
+ */
+export function translateDrawing(d: Pick<Drawing, 'kind' | 'data'>, dx: number, dy: number): DrawingData {
+  const data = d.data as Record<string, unknown>;
+  if (d.kind === 'stroke') {
+    const pts = (data.points as [number, number][] | undefined) ?? [];
+    return { points: pts.map(([x, y]) => [x + dx, y + dy] as [number, number]) };
+  }
+  if (d.kind === 'circle') return { cx: (data.cx as number) + dx, cy: (data.cy as number) + dy, r: data.r as number };
+  if (d.kind === 'text') return { x: (data.x as number) + dx, y: (data.y as number) + dy, text: String(data.text ?? '') };
+  return { x1: (data.x1 as number) + dx, y1: (data.y1 as number) + dy, x2: (data.x2 as number) + dx, y2: (data.y2 as number) + dy };
+}
+
+/**
+ * Quién puede MOVER un trazo. Hoy sólo el director, y no es un capricho de la interfaz: la RLS de
+ * `maps_drawings` sólo deja actualizar al director (`maps_drawings_dm_update`). Enseñar a un jugador que
+ * arrastra su propio trazo para que la base se lo rechace sería mentirle. Si algún día se quiere, es una
+ * política nueva y una decisión del dueño — no un cambio de esta función.
+ */
+export function canMoveDrawing(_d: Pick<Drawing, 'authorId'>, _me: string | null, isDm: boolean): boolean {
+  return isDm;
 }
 
 /** Shape data of a two-point tool (line/rect/circle) between `a` and `b`. */
@@ -392,6 +512,8 @@ export function filterEntries<T>(items: T[], query: string, labelOf: (t: T) => s
  * Where a segment lands while it is being dragged with Seleccionar: grabbing an endpoint stretches that end,
  * grabbing anywhere else moves the whole thing. Everything snaps to the grid, like drawing does, so an edited
  * wall keeps lining up with the plan.
+ *
+ * `step` es el candado (`snapRules.ts`): por omisión la rejilla, que es lo de siempre; a 0 el nodo va libre.
  */
 export function wallDragTo(
   origin: { x1: number; y1: number; x2: number; y2: number },
@@ -399,11 +521,12 @@ export function wallDragTo(
   from: Point,
   to: Point,
   grid: number,
+  step: number = grid,
 ): { x1: number; y1: number; x2: number; y2: number } {
   const dx = to.x - from.x, dy = to.y - from.y;
-  if (grab === 'a') return { ...origin, x1: snap(origin.x1 + dx, grid), y1: snap(origin.y1 + dy, grid) };
-  if (grab === 'b') return { ...origin, x2: snap(origin.x2 + dx, grid), y2: snap(origin.y2 + dy, grid) };
-  const sx = snap(origin.x1 + dx, grid) - origin.x1, sy = snap(origin.y1 + dy, grid) - origin.y1;
+  if (grab === 'a') return { ...origin, x1: snapStep(origin.x1 + dx, step), y1: snapStep(origin.y1 + dy, step) };
+  if (grab === 'b') return { ...origin, x2: snapStep(origin.x2 + dx, step), y2: snapStep(origin.y2 + dy, step) };
+  const sx = snapStep(origin.x1 + dx, step) - origin.x1, sy = snapStep(origin.y1 + dy, step) - origin.y1;
   return { x1: origin.x1 + sx, y1: origin.y1 + sy, x2: origin.x2 + sx, y2: origin.y2 + sy };
 }
 
@@ -415,6 +538,46 @@ export const isDraw = (t: Tool): boolean => DRAW_TOOLS.includes(t);
 export function rectFrom(a: Point, b: Point): { x: number; y: number; w: number; h: number } {
   return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
 }
+/**
+ * La CAJA de un trazo, en px de escena. Cada forma guarda sus datos a su manera, así que el único sitio que
+ * sabe medirlas todas es éste.
+ *
+ * El texto se mide a ojo —no hay forma de saber cuánto ocupa sin pintarlo— con el mismo cuadro que ya usaba
+ * `hitDrawing` para acertarle: es aproximado, pero es EL MISMO aproximado, así que elegir y pinchar coinciden.
+ */
+export function drawingBounds(d: Pick<Drawing, 'kind' | 'data'>): { x: number; y: number; w: number; h: number } {
+  const data = d.data as Record<string, unknown>;
+  if (d.kind === 'stroke') {
+    const pts = (data.points as [number, number][] | undefined) ?? [];
+    if (!pts.length) return { x: 0, y: 0, w: 0, h: 0 };
+    const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+    return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+  }
+  if (d.kind === 'circle') {
+    const cx = data.cx as number, cy = data.cy as number, r = data.r as number;
+    return { x: cx - r, y: cy - r, w: r * 2, h: r * 2 };
+  }
+  if (d.kind === 'text') return { x: data.x as number, y: (data.y as number) - 16, w: 120, h: 16 };
+  const x1 = data.x1 as number, y1 = data.y1 as number, x2 = data.x2 as number, y2 = data.y2 as number;
+  return rectFrom({ x: x1, y: y1 }, { x: x2, y: y2 });
+}
+
+/**
+ * LOS TRAZOS QUE COGE EL ÁREA — «*el arrastrar y seleccionar no funciona con las formas simples de líneas,
+ * texto, círculo y cuadrado*» (dueño, 2026-09-03). El área ya cogía fichas y muros; los trazos se habían
+ * quedado fuera.
+ *
+ * Se coge lo que cae ENTERO dentro, igual que con los muros: rozar media línea con el marco no es elegirla,
+ * y con el criterio de «lo que toque» arrastrar sobre un mapa lleno se lo llevaría casi todo.
+ */
+export function drawingsInRect(drawings: readonly Drawing[], a: Point, b: Point): Drawing[] {
+  const r = rectFrom(a, b);
+  return drawings.filter(d => {
+    const c = drawingBounds(d);
+    return c.x >= r.x && c.y >= r.y && c.x + c.w <= r.x + r.w && c.y + c.h <= r.y + r.h;
+  });
+}
+
 /** Tokens whose centre falls inside the marquee — «mantener pulsado y seleccionar por área». */
 export function tokensInRect(tokens: Token[], a: Point, b: Point, grid: number): string[] {
   const r = rectFrom(a, b);

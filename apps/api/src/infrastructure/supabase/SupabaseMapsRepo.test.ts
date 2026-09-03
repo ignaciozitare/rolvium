@@ -47,12 +47,12 @@ describe('SupabaseMapsRepo (service role)', () => {
    */
   it('reads every light with the geometry that decides what it lights', async () => {
     const rows = [
-      { id: 'li-1', layer_id: null, x: 300, y: 200, rotation: 15, shape: 'cone', cone_angle: 45, range_m: 6, casts_shadow: true },
-      { id: 'li-2', layer_id: 'ly-9', x: 10, y: 20, rotation: 0, shape: 'radius', cone_angle: 60, range_m: 3, casts_shadow: false },
+      { id: 'li-1', layer_id: null, x: 300, y: 200, rotation: 15, shape: 'cone', cone_angle: 45, range_m: 6, casts_shadow: true, spin_ms: 4000 },
+      { id: 'li-2', layer_id: 'ly-9', x: 10, y: 20, rotation: 0, shape: 'radius', cone_angle: 60, range_m: 3, casts_shadow: false, spin_ms: 0 },
     ];
     expect(await new SupabaseMapsRepo(fakeDb({ maps_lights: rows }).db).listLights('sc-1')).toEqual([
-      { id: 'li-1', layerId: null, x: 300, y: 200, rotation: 15, shape: 'cone', coneAngle: 45, rangeM: 6, castsShadow: true },
-      { id: 'li-2', layerId: 'ly-9', x: 10, y: 20, rotation: 0, shape: 'radius', coneAngle: 60, rangeM: 3, castsShadow: false },
+      { id: 'li-1', layerId: null, x: 300, y: 200, rotation: 15, shape: 'cone', coneAngle: 45, rangeM: 6, castsShadow: true, spinMs: 4000 },
+      { id: 'li-2', layerId: 'ly-9', x: 10, y: 20, rotation: 0, shape: 'radius', coneAngle: 60, rangeM: 3, castsShadow: false, spinMs: 0 },
     ]);
     expect(await new SupabaseMapsRepo(fakeDb({}).db).listLights('sc-1')).toEqual([]);
   });

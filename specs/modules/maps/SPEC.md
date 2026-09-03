@@ -28,6 +28,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   > botón que la abre, ni forma de plantar una pieza.** Es inerte y no molesta —las tablas están vacías y nada
   > puede llegar a ellas—, pero que nadie dé la rebanada por hecha. El botón `Piezas` está dibujado en
   > `rolvium.pen` y **deliberadamente NO está en el código**: un botón que no abre nada es peor que ninguno.
+  > ✅ **FECHA PUESTA (decisión del dueño, 2026-09-01)**: el andamio **se queda** y la galería **se construye
+  > justo después de la sonda de prueba (§ 7.3) y del arreglo de la puerta**. No se borra nada — ni las 12
+  > funciones de `propRules.ts`, ni los métodos del puerto, ni las dos tablas vacías de producción. Queda así
+  > cerrado el «no vale dejarlo sin fecha» que señalaron QA y la limpieza del 2026-09-01.
 - **Rebanada 7 — A MEDIAS** (§ «Rebanada 7»). Confirmada por el dueño el 2026-08-31, y va **ANTES que la 5 y
   la 6** (decisión suya del mismo día): es donde pasa la partida y es lo que menos se ha tocado desde que lo
   pidió (2026-08-20).
@@ -35,8 +39,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
     aviso de peso) · las **capas de terreno apiladas con su máscara** pintándose en el lienzo · las **luces de
     ambiente** de punta a punta, con su herramienta, su editor y el **parpadeo animado** por tipo.
   - ✅ **HECHO también** (2026-08-31, noche): el **pincel de transparencia** con sus dos sentidos · **mandar
-    elementos a otra capa** con el botón derecho · **ver con los ojos de un personaje**, calculado en el
-    servidor.
+    elementos a otra capa** con el botón derecho.
+  - 🔄 **REESCRITA § 7.3** (2026-09-01): la lente «ver con los ojos de ‹personaje›» se construyó la noche del
+    31-ago, llegó a producción y **dejaba el mapa en negro**. El dueño mandó **borrarla entera** y la sustituye
+    la **sonda de prueba** (§ 7.3). El código de la lente se retira; la sonda está sin construir.
   - 🛑 **BLOQUEADA la penumbra**: su premisa de privacidad no se sostiene hoy — ver el aviso en § 7.4. El
     dueño lo dio por bueno y decidió **dejar las fichas como están** (2026-08-31): no se toca cómo llegan.
   - ✅ **HECHO** (2026-08-31, cierre): las luces **ya no atraviesan los muros** y entran en la visión con las
@@ -261,7 +267,7 @@ de ser un dibujo para empezar a ser un sitio (dueño, 2026-08-22: «que los toke
 Distancia máxima de movimiento por turno · empujar a otro token · terreno difícil · diagonales ·
 **colisión entre tokens** (que un token choque con otro token, no con un muro).
 
-## Rebanada 7 — capas, luces de ambiente, ojos de un personaje y niebla degradada
+## Rebanada 7 — capas, luces de ambiente, sonda de prueba y niebla degradada
 
 Cuatro de las siete peticiones de la escena que el dueño dejó escritas el 2026-08-20. Las otras tres
 —el modal de fondo descolocado, las imágenes sueltas y los fondos animados— **no entran**: las dos últimas
@@ -395,23 +401,238 @@ necesidad de verlo. Al director, que conoce todos los muros, le llega completo.
 **Lo que sigue sin estar** (y no es olvido): el resplandor se recorta con el borde de lo que alumbra, pero **no
 proyecta la sombra de una ficha ni de un objeto** — sólo los muros cortan. Y sigue sin dar ni quitar dados.
 
-### 7.3 · Ver la escena con los ojos de un personaje
+#### 🚨 LA LUZ QUE GIRA («como una sirena») — pedida el 2026-08-31, construida el 2026-09-01
 
-⚠ **La mitad ya existe**: el interruptor genérico «ver como jugador» está construido (`playerView` en
-`CanvasControls`) y lo que hace es quitarle al director sus privilegios — los muros dorados, el velo azul y
-las fichas ocultas. Se queda tal cual.
+Una luz de cono puede **girar sola**, dando vueltas como el faro de un coche de policía. El director la
+enciende y le pone el periodo (lo que tarda una vuelta entera); a partir de ahí gira sin que nadie la toque y
+**todos en la mesa la ven en la misma posición**, porque la fase sale del reloj y no de cuándo entró cada uno.
 
-**Lo nuevo**: elegir **un personaje concreto** y ver la escena tal y como la ve él, con SU niebla y SU
-visión. El dueño pidió las dos cosas (2026-08-31).
+- **Sólo un cono gira.** Un radio ya alumbra en redondo y un cuadrado girando no significa nada, así que el
+  interruptor sólo sale con la forma «cono».
+- **El haz barre, y lo que barrió queda explorado.** Una vuelta entera acaba explorando el círculo entero, y
+  eso es correcto: lo que la sonda enseña después es el mapa recordado, con el haz brillante encima.
+- **Sigue sin alargar la línea de visión** (§ 7.2, regla del dueño): girar no cambia esa regla ni ninguna otra
+  del manual.
+- **Sigue sin atravesar muros**: el charco se recorta contra la geometría igual que el de una luz quieta.
 
-- Selector de personaje en los controles del lienzo, junto al interruptor de siempre.
-- Es **sólo del director** y **no cambia nada para nadie**: no mueve la escena activa, no toca la niebla
-  guardada, no avisa al jugador. Es una lente, no un modo.
-- Sale rotulado en pantalla —«VIENDO COMO: Karen»— para que no se confunda con la vista propia. La etiqueta
-  «VISTA DE DIRECTOR» que ya existe cambia a ésta mientras dure.
-- **La visión la calcula el servidor**, con el mismo camino que la del jugador de verdad: si se recalculase
-  en el navegador del director, lo que él ve y lo que ve el jugador podrían discrepar, que es justo lo que
-  esta herramienta viene a comprobar.
+> 🔑 **Cómo se hace SIN que cueste caro, y esto es una decisión, no un detalle.**
+> El plan original era calcular **N rotaciones del cono** en el servidor (24–36) y mandarlas todas. No hace
+> falta: el recorte contra los muros es **radial** —cada rayo se corta en la primera pared— así que
+> «cono girado a θ, recortado» es exactamente «círculo entero recortado **∩** el sector de θ». Es decir:
+>
+> - **el servidor manda el CÍRCULO ENTERO recortado, una sola vez** (el mismo coste que una luz quieta), y
+> - **el navegador rota encima una ventana con forma de cono**, con la fase sacada del reloj.
+>
+> Sale más barato que hoy en vez de 24 veces más caro, el barrido es continuo en vez de a saltos, y la
+> respuesta no engorda. Importa: el dueño ya se quejó de que «está todo lentísimo».
+>
+> ⚠ **Lo que esto cambia respecto de lo que él eligió**: pidió que «la niebla siga al haz», y aquí lo que
+> sigue al haz es el BRILLO — lo explorado se revela en el círculo desde el primer momento en vez de ir
+> apareciendo por sectores. A los pocos segundos el resultado es idéntico (lo explorado no se borra nunca),
+> pero **queda dicho en voz alta**: si quiere que la niebla vaya sector a sector, eso sí obliga a las N
+> rotaciones en el servidor y a pagar su coste.
+
+**Modelo de datos**: **una sola columna** en `maps_lights`, `spin_ms` (entero, 0 = no gira). Un interruptor y
+un periodo en dos columnas serían dos formas de decir lo mismo y una de ellas acabaría mintiendo.
+
+##### 🐞 Y NO GIRABA — arreglado el 2026-09-01 (noche)
+
+Al probarlo dijo: *«no gira, tiene que estar girando todo el tiempo y solo gira un poco mientras muevo el
+token y luego para»*. Tenía razón, y el fallo era fino:
+
+La orden de girar estaba **bien puesta** —periodo correcto, vuelta entera, «para siempre»—, pero vivía
+**dentro de la máscara** que recorta la luz. Y un navegador **no vuelve a pintar un elemento porque algo se
+haya movido dentro de su máscara**: la animación corría, pero nadie repintaba. El haz sólo avanzaba de
+refilón cuando otra cosa obligaba al mapa a repintarse —arrastrar una ficha, justo lo que él hacía— y se
+congelaba al soltar.
+
+**El arreglo, sin perder el borde suave.** El haz se pinta ahora como un objeto de verdad, en el árbol que se
+ve, y es el CHARCO el que hace de máscara — al revés que antes. La cuenta es la misma («círculo recortado ∩
+sector de θ» da igual por qué lado se mire), pero lo que se mueve es algo visible y el navegador sí lo
+repinta. El borde del haz sigue sin ser una raya: lleva el mismo desenfoque que las demás luces, y ahí
+difumina de verdad porque difumina **lo pintado**, no una silueta multiplicada por sí misma.
+
+Dos cosas más que salieron de ahí:
+- **La fase se calcula una sola vez por luz.** Cambiar el «empezó hace tanto» en una animación que corre la
+  REINICIA, y este lienzo se repinta con cada actualización de visión: el haz habría dado un salto atrás
+  varias veces por segundo. Se guarda, y se recalcula sólo si él cambia la velocidad.
+- **El charco de una sirena es REDONDO aunque la luz sea un cono**, también cuando se dibuja sin datos del
+  servidor (niebla apagada). Es lo que ya hacía el servidor; el navegador no lo hacía, y el haz giraba dentro
+  de una rendija con la forma del cono quieto.
+
+⚠ **Sigue pendiente de que lo vea él**: los tests comprueban dónde cuelga la animación, que es lo que estaba
+mal. Que el navegador repinte de verdad no lo puede comprobar un test.
+
+##### ⚡ Y AL GIRAR DE VERDAD, SE FUE LA FLUIDEZ — el filo del haz, en capas (2026-09-02)
+
+Arreglado el giro, llegó la queja siguiente: *«la niebla hace saltos raros, no es fluida, igual que el
+movimiento del token»*. Causa: estas luces pasaron de **no repintarse nunca** —ése era el fallo— a repintarse
+60 veces por segundo, y el filo del haz lo ponía un **desenfoque gaussiano**, que hay que REHACER en cada
+fotograma sobre una caja del tamaño de la luz. Su escena tiene **dos conos girando, uno a media vuelta por
+segundo**: eso se come el presupuesto del fotograma, y cuando eso pasa se va a saltos **todo** lo que se
+pinta — la niebla y las fichas incluidas. Por eso las dos quejas eran una sola cosa.
+
+Quitar el desenfoque devolvió la fluidez y trajo la queja de al lado: *«se ven los conos duros»*. Así que el
+filo **se dibuja en vez de emborronarse**: unos pocos conos encajados, del más ancho al más estrecho, cada uno
+un poco más opaco. Son rellenos planos —lo más barato que hace un navegador— y la rampa es exacta: dándole a
+la capa `i` una opacidad de `1/(N-i)`, lo acumulado sale justo `(i+1)/N`, con el centro opaco del todo.
+
+> 🔒 **Regla que no se puede perder**: nada que GIRE puede llevar un filtro colgando. El difuminado va en algo
+> quieto —la máscara del charco, que se calcula una vez— o se dibuja. Hay un test que cae si alguien vuelve a
+> colgar un filtro del haz.
+
+#### 🔦 ELEGIR UNA LUZ Y MOVERLA — pedido y construido el 2026-09-01 (noche)
+
+Queja suya, literal: *«no lo puedo arrastrar, me debería mostrar algo que la seleccione a cuál seleccione y
+que me deje moverla»*. Eran **tres** cosas, no una:
+
+1. **El aro no se veía.** Elegir una luz con **Seleccionar** funcionaba desde el 2026-08-31, pero el aro que
+   dice «ésta» y su disco de clic **sólo se pintaban con la herramienta Luz**. Con Seleccionar la elegías a
+   ciegas: se abría su editor y nada en el mapa decía cuál. Ahora el aro sale con las **dos** herramientas
+   desde las que se puede elegir una — y con ninguna más, que un aro de algo que no puedes tocar estorba.
+2. **El blanco se encogía al alejarse.** La zona a la que hay que acertar se medía en píxeles de ESCENA, así
+   que con el mapa alejado quedaba minúscula en pantalla y era imposible acertarle. Ahora el aro y su disco
+   mantienen su tamaño **en pantalla**, pase lo que pase con el zoom.
+3. **Arrastrar una luz no existía.** Se podían arrastrar fichas y muros; una luz, no. Ahora se agarra y se
+   mueve, con el mismo gesto que un muro: **elegirla y moverla son el mismo gesto, no dos**.
+
+- **Libre, sin pegarse a la rejilla**: una luz no ocupa casilla. Se pinta al momento mientras se arrastra
+  —resplandor, aro y disco van juntos— y **se guarda al soltar**, no en cada movimiento.
+- **Un clic sin arrastre NO guarda nada.** Elegir una luz para abrir su editor es lo más normal del mundo y no
+  puede escribir en la base de datos cada vez.
+- **Es cosa del director**, como todo lo de este apartado.
+
+#### 🕯 INTENSIDAD POR LUZ — pedida y construida el 2026-09-01 (noche)
+
+Petición suya: *«cada una además del alcance color etc necesita una barra de intensidad»*. Una barra más en
+el editor de luz, junto al color.
+
+Separa dos cosas que hasta hoy iban juntas:
+
+| | Qué es | Ya existía |
+|---|---|---|
+| **Alcance** (`range_m`) | cuánto **ILUMINA** — sí cambia lo que se ve | sí |
+| **Intensidad** (`intensity`) | cuánto **CANTA** — sólo cómo se pinta | **nueva** |
+
+Antes, la única forma de que una luz cantase menos era hacerla más pequeña, y no es lo mismo: una vela tenue
+sigue alumbrando su rincón entero.
+
+- 🔒 **NO cambia lo que nadie ve.** Decisión suya del 2026-09-01, elegida sobre la alternativa: **una luz al
+  10 % revela exactamente el mismo terreno que al 100 %**. Respeta la regla que él mismo fijó en § 7.2 —«o
+  llega luz a ese punto, o no llega; no es un degradado»— y por eso **la api ni la pide ni la necesita**: el
+  cálculo de visión y de sombras no la mira. Vive sólo en lo que se pinta.
+- 🔒 **Ninguna luz ya colocada cambia de aspecto.** Nace a **100 %**, que es exactamente como se pintaban antes
+  de que la columna existiera. Misma jugada que salió bien con `range_m` y `casts_shadow`.
+- **De 10 % a 200 %**, con **100 % = como se pintaba siempre**. El suelo no es 0 a propósito: una luz invisible
+  es una luz que crees haber borrado y no lo está — para eso está la papelera. El techo se subió a 200 el
+  2026-09-02, al probarlo: *«la escala de luminosidad queda corta, el máximo tendría que ser más brillante»*.
+  El 100 NO se movió — moverlo cambiaría de aspecto todas sus luces ya puestas; lo que se abrió es el margen
+  por arriba.
+  - Por encima de 100 el centro llega a opaco enseguida (más opaco que opaco no existe), así que lo que sigue
+    creciendo es **el ancho del núcleo brillante**, que es lo que de verdad se lee como «más luz».
+- **Se lleva bien con el parpadeo**: la intensidad va en el degradado, no en la opacidad del elemento, que es
+  justo lo que anima el parpadeo. Una antorcha al 30 % sigue temblando, sólo que suave.
+- **Es de cada luz**, no de la capa ni de la escena.
+- **En todas las luces**: cono, radio y cuadrado, y en todos los tipos.
+
+#### 🎨 DOCE COLORES, NO SEIS — 2026-09-02
+
+*«Debería poder elegir más colores, no solo esos.»* La paleta pasa de 6 a 12, en tres familias de cuatro:
+**cálidos** (fuego, vela, brasa, farol) · **fríos** (luna, hielo, agua profunda, niebla verdosa) ·
+**antinaturales** (magia, veneno, sangre, fuego fatuo), para lo que no debería estar ahí.
+
+> 🔒 **Los seis originales siguen en la paleta, todos.** Si uno desapareciera, una luz ya guardada con ese
+> color se quedaría con un color que el director ya no podría volver a elegir. Hay un test que lo sujeta.
+
+Se ven en **dos filas de seis**: en una sola no caben en el panel.
+
+**Modelo de datos**: una columna en `maps_lights`, `intensity` (entero 10–200, por defecto 100), con su
+`CHECK`. Aditiva; no toca RLS —el reparto de `maps_lights` ya es el que hace falta— y no la lee la api.
+
+> 🚨 **Al desplegar**: como `spin_ms`, esta columna **la pide la web en su `select`**. La migración va PRIMERO
+> y el código después. Las dos migraciones nuevas —`spin_ms` e `intensity`— tienen que estar aplicadas en
+> producción antes de que suba nada de código.
+
+### 7.3 · La sonda de prueba — «¿qué vería un jugador desde aquí?»
+
+> 🔄 **Reescrito el 2026-09-01. Sustituye ENTERO al «ver con los ojos de ‹personaje›»**, que llegó a
+> producción, dejó el mapa en negro y el dueño mandó **borrar, no arreglar**. Sus palabras: «esto no tiene que
+> mirar como un personaje en concreto, necesito un token test y poder moverlo y ya uno generico, un icono y ya
+> no un desplegable».
+
+⚠ **La mitad ya existe y se queda tal cual**: el interruptor genérico «ver como jugador» (`playerView` en
+`CanvasControls`) le quita al director sus privilegios — los muros dorados, el velo azul y las fichas ocultas.
+No se toca.
+
+**Lo nuevo**: un botón con icono en la barra del director suelta en el mapa una **sonda** —una ficha genérica,
+sin nombre y sin dueño— que el director **arrastra**; mientras la mueve, la pantalla enseña **lo que vería un
+jugador desde ese punto**. No hay desplegable y no hay que elegir personaje.
+
+#### Qué es y qué no es
+- **No es una ficha.** No se guarda en `maps_tokens`, no la ve ningún jugador, no sale en ninguna lista ni en
+  ningún encuentro y no cuenta para ninguna regla. Es mobiliario de la pantalla del director.
+- **Se va sola**: al apagar la sonda, al cambiar de escena o al recargar la página. No sobrevive a nada.
+- **Es una lente, no un modo**: no mueve la escena activa, no toca la niebla guardada de nadie y no avisa a
+  ningún jugador. El cartel de la pantalla lo dice mientras dure.
+
+#### Qué se ve mientras la sonda está puesta
+- La pantalla se comporta como la de un jugador: el mapa enmascarado contra **explorado ∪ visión**, con los
+  privilegios del director apagados — los mismos que apaga «ver como jugador».
+- **Alcance de vista: el de la escena**, como cualquier ficha — de día sin límite, de noche `night_radius_m`.
+  No se inventa un número nuevo ni se le pide uno al director.
+- Las luces se recortan contra la línea de vista de la sonda, igual que para un jugador (§ 7.2).
+
+#### La memoria la lleva el navegador, y NADA se guarda
+> Decisión del dueño, cerrada el 2026-09-01: «que quede en memoria, si es sólo para probar». No volver a
+> preguntarla.
+
+- Lo que la sonda ha ido viendo se acumula **en el navegador del director** mientras la sonda esté puesta, y se
+  **tira al quitarla**. **No se escribe una sola fila en la base.**
+- Por eso el cartel «no cambia nada para nadie» sigue siendo verdad — y por eso **el mapa en negro no puede
+  volver**. El fallo que llegó a producción era pedir la memoria del DUEÑO de la ficha
+  (`getExplored(escena, controlledBy)`): un director no acumula memoria nunca, así que llegaba vacía y el mapa
+  salía todo negro. Una sonda **no tiene dueño**, así que no hay a quién pedirle una memoria que no existe.
+
+#### Cómo se pide la visión
+- La petición de visión **deja de necesitar una ficha** (`asTokenId`) y pasa a aceptar **un punto** `{x, y}` en
+  píxeles de escena. El servidor contesta la visión desde ese punto y **no guarda nada**.
+- **Se sigue calculando en el servidor**, por la razón de siempre: al navegador del director le llegan muros
+  que un jugador no conoce, así que si la línea de vista se recalculase allí, lo que ve él y lo que ve el
+  jugador podrían discrepar — y comprobar exactamente eso es para lo que sirve la sonda.
+
+#### 🎭 LA PONE ÉL, DONDE PINCHE — corregido el 2026-09-02
+
+Nació soltándose sola en mitad de lo que el director estuviera mirando. Al probarlo: *«déjame poner el token
+donde quiera, no lo pongas automáticamente en el centro, si no la prueba es una mierda»*. Tenía razón —el
+sitio que importa para probar casi nunca es el centro de la pantalla, y desde ahí tocaba arrastrarla, que con
+el mapa alejado es un viaje.
+
+- **Encender «ver como jugador» ya NO la coloca.** Enciende el modo y la pantalla pide: *«pincha en el mapa
+  donde quieras probar»*.
+- **El primer clic la pone. Cualquier clic posterior en el suelo la muda.** Arrastrarla sigue igual: pinchar
+  SOBRE ella la agarra, en vez de mudarla a donde ya está.
+- **Al encender el modo, la herramienta pasa a Seleccionar.** Si se entrase con el Lápiz en la mano, el clic
+  que tiene que poner la sonda se lo llevaría el lápiz y parecería que el modo no hace nada.
+
+#### Dónde vive: NO es un botón nuevo — cuelga de «Ver como jugador»
+> 🔄 Corregido el 2026-09-01 por el dueño, viendo la app en local: «el botón de ver como jugador… me debería
+> dejar poner un token donde quiera para probar». Antes se había planeado un botón «Sonda» propio en el bloque
+> de director de la barra; **se descarta**. Un botón menos, y la historia queda entera en un solo sitio.
+
+- **«Ver como jugador» (`playerView`, en los controles del lienzo) ES la sonda.** Al encenderlo: se le quitan
+  al director sus privilegios —lo que ya hacía— **y además** aparece la sonda en el mapa, que él arrastra.
+  Al apagarlo, la sonda desaparece y con ella su memoria.
+- **Su icono cambia**: hoy es `layers` y no dice nada («no se entiende el icono, busquemos otro»). El icono
+  nuevo se elige en `rolvium.pen` y lo aprueba el dueño antes de tocar código.
+- La sonda se arrastra con **«Seleccionar»**, como todo lo demás del mapa: no hace falta ninguna herramienta
+  nueva y el cursor no cambia.
+- **La barra de herramientas no crece.** El orden del bloque de director que el dueño fijó el 31-ago se queda
+  como está, y su test (`controls.test.tsx`) sigue valiendo tal cual.
+
+#### Fuera de alcance (a propósito)
+- Varias sondas a la vez, y recordar dónde la dejaste la última vez.
+- **Ver la memoria REAL de un jugador concreto** — es justo lo que se acaba de borrar. Si algún día hace falta,
+  vuelve como rebanada propia y con la lección aprendida escrita arriba.
 
 ### 7.4 · La niebla se degrada, y en la penumbra se ve a medias
 
@@ -612,6 +833,491 @@ regla que pidió el dueño.**
 - **No hay bucket nuevo.** Las fotos van al bucket `backgrounds` que ya existe, bajo `{campaña}/props/…`, con
   el mismo precedente que las máscaras del pincel de transparencia.
 
+## Rebanada 8 — habitaciones rápidas (el «generador» de Builder)
+
+> 🟡 **ESTE APARTADO ESTÁ SIN CONFIRMAR POR EL DUEÑO.** Escrito la noche del 2026-09-02 a partir de lo único
+> que hay registrado de él (`WORK_STATE.md`, dos peticiones suyas) porque pidió avanzar mientras dormía.
+> **Antes de tocar una sola línea de interfaz hay que: (1) que confirme este spec, y (2) que haya diseño en
+> `rolvium.pen` aprobado por él.** Lo que sí está construido es el MOTOR —la geometría, sin pantalla—, que no
+> depende de ninguna de las decisiones abiertas de abajo.
+>
+> ⚠ **Y un aviso honesto**: él dijo «el generador de habitaciones que tenemos diseñado». **No hay diseño.**
+> Ni componente en el `.pen`, ni frame, ni nada en el historial; en `WORK_STATE.md` aparece tres veces y las
+> tres como «sin empezar, pasa por spec → DBA → diseño antes de código». Lo que sí mandó fueron **dos
+> capturas de Dungeon Scrawl como referencia**, que no es lo mismo que un diseño.
+
+### Qué es
+Dentro de **Builder** —que hoy es sólo la herramienta de muros— poder **dibujar un cuadrado o un círculo y que
+la habitación se monte sola**, con sus paredes ya puestas, en vez de trazar segmento a segmento.
+
+### Lo que él dijo, literal y sin interpretar
+- Habitaciones y mazmorras rápidas **estilo Dungeon Scrawl** (mandó dos capturas).
+- Elegir **tipo** de habitación/mazmorra, **dibujar cuadrados o círculos**, y que **la monte sola**.
+- 🔒 **Las paredes generadas son OPACAS: no dejan pasar ni visión ni luz.**
+- 🔒 **La foto de fondo hace de TEXTURA DE SUELO** de las habitaciones.
+- 🔒 **NO copiar su interfaz.** Regla explícita suya: seguimos con la nuestra y le vamos añadiendo la
+  funcionalidad.
+
+### Reglas que se derivan de lo anterior
+- **Una habitación no es una entidad nueva: es un atajo que produce MUROS de los de siempre.** Un muro normal
+  ya es exactamente lo que él pidió —`blocksSight: true, blocksMove: true`— y las luces ya se recortan contra
+  él. Así, lo generado se edita, se abre, se parte y se borra con todo lo que ya existe, y **no hace falta
+  ninguna tabla ni ninguna migración**. Es la decisión que menos deuda deja.
+- **Lo generado queda suelto.** Una vez puesta la habitación, sus paredes son paredes: mover una no mueve las
+  demás. Es coherente con que no haya entidad «habitación», y evita prometer un agrupado que no existe.
+- **Se pega a la rejilla**, como el resto de Builder.
+
+### 🎨 LAS TEXTURAS — ampliación suya del 2026-09-02 (y lo que rompe)
+
+Mandó una captura de Dungeon Scrawl y recordó: *«recuerda que te pedí que te bases en esta herramienta»* —
+**basarse en lo que HACE, no copiar su interfaz**, que es exactamente lo que ya estaba escrito. Y añadió el
+requisito que faltaba:
+
+> *«Esto de base se tienen que poder elegir dos backgrounds, uno para la textura interna de las paredes y
+> otro para el fondo de los pisos, pero si quiero luego dar una textura distinta por habitación para el piso
+> o paredes necesito una herramienta para poder pintar ese piso con esa textura.»*
+
+Son **dos cosas en capas**:
+1. **Dos texturas de base, para toda la escena**: una para el **relleno de las paredes** y otra para el
+   **suelo**. Es lo que en su captura son el color de pared y el color de suelo, pero con imagen.
+2. **Una textura DISTINTA por habitación**, encima de las de base, **pintada con una herramienta** — no
+   elegida en un desplegable: él quiere pintar el suelo de *esa* sala con *esa* textura.
+
+> 🛑 **ESTO ROMPE UNA CONCLUSIÓN QUE YO HABÍA DADO POR BUENA, y hay que decirlo.**
+>
+> Escribí más arriba que «una habitación no es una entidad nueva: es un atajo que produce muros de los de
+> siempre», y que por eso no hacía falta ni tabla ni migración. **Con texturas por habitación eso deja de
+> sostenerse**: para darle a *una sala* un suelo distinto hay que saber **qué suelo es el de esa sala**, y hoy
+> no hay nada que diga dónde acaba una habitación y empieza la de al lado — sólo hay muros sueltos.
+>
+> O sea que aparece una decisión de modelo de datos que antes no existía, y es suya:
+> - **(a) La habitación pasa a ser una entidad** con su contorno guardado, y las texturas cuelgan de ella.
+>   Es lo que menos sorpresas da luego (mover una sala entera, borrarla, cambiarle el suelo) y lo que más se
+>   parece a lo que hace la herramienta de la captura. **Necesita tabla y migración → pasa por el DBA.**
+> - **(b) No hay habitación: el suelo se pinta como se pinta hoy la máscara de una capa de terreno.** La
+>   textura se aplica con un pincel sobre una capa, sin que nadie sepa qué es «una sala». Cuesta mucho menos
+>   —la maquinaria de capas de terreno con máscara YA EXISTE (§ 7.1)— pero entonces «por habitación» es una
+>   forma de hablar: la precisión la pone su pulso, no el generador.
+>
+> **No la decido yo.** La (b) es mucho más barata y reaprovecha lo construido; la (a) es la que de verdad
+> hace lo que él describe.
+
+### 🔴 CORRECCIONES SUYAS DEL 2026-09-02 (noche) — DOS DISEÑOS RECHAZADOS
+
+Le enseñé dos intentos y tumbó los dos. Lo que dijo, literal, y lo que significa:
+
+1. **«No se llama constructor de habitaciones: es el mismo Builder que pone hoy los muros, puertas y ventanas,
+   que se le suma todo esto.»** → **No es una herramienta nueva.** Es **Builder**, el de siempre, con esto
+   añadido. Muro · Puerta · Ventana siguen exactamente donde están, y la barra «Segmento» que ya existe
+   convive con el panel. El nombre del panel es **Builder**.
+2. **«Utiliza el icono que habíamos quedado.»** → `apps/web/public/icons/builder-mask.png`, su dibujo. Ya está
+   en la app. No se discute ni se sustituye por un Material Symbol.
+3. **«Respeta los colores de los botones.»** → **Rojo sangre = ACCIÓN, negro = SELECCIÓN.** En el primer
+   intento puse «Cambiar» y «+ Subir» como texto suelto: son acciones y van en `pl-sangre`.
+4. **«Falta el tema de aberturas, y tiene que ser compatible con lo ya creado.»** → Puertas y ventanas se
+   siguen abriendo con el mismo disco de siempre y `planOpening` sigue partiendo los muros que pisa. El
+   generador no puede traer un camino paralelo.
+5. **«Rectángulos y círculos te quedas corto: ¿y si quiero poner una pared inclinada?»** → El motor de hoy
+   (`roomRules.ts`) sólo sabe rectángulo y círculo. **Se queda corto.** Hacen falta al menos: pared suelta a
+   cualquier ángulo, **polígono** (habitación de N lados) y trazado **a pulso**.
+6. **«No me queda claro, si quiero cambiar la textura de una habitación, cómo lo hago.»** → El flujo de la
+   textura por sala no se entendía. Tiene que estar dicho en pasos, en el propio panel.
+7. **«No sé si te están faltando herramientas en esto.»** → Sí faltan; ver el punto 5. Queda abierto.
+
+> 🔑 **Y LA ACLARACIÓN MÁS IMPORTANTE DE TODAS** (suya, esa misma noche):
+>
+> *«En el caso de estos muros tienen que comportarse como los muros que usamos para marcar sobre las fotos
+> para la niebla de guerra dinámica, pero no debes eliminar lo que hicimos: convive, son cosas distintas. Uno
+> es hacer mapas en la aplicación y otro es marcar sobre fotos importadas las habitaciones.»*
+>
+> Son **DOS MANERAS DE TRABAJAR QUE CONVIVEN**, y ninguna sustituye a la otra:
+>
+> | | Qué es | Qué hay hoy |
+> |---|---|---|
+> | **A · Marcar sobre una foto** | Traes una imagen de mapa y marcas encima dónde están los muros, para la niebla dinámica | **Construido y en uso.** Es lo que Builder hace hoy. NO SE TOCA. |
+> | **B · Dibujar el mapa en la app** | No hay foto: las salas se levantan aquí, con sus texturas de pared y suelo | **Sin construir.** Es lo nuevo. |
+>
+> - **Los muros que genera B se comportan EXACTAMENTE como los de A** — cortan la vista y la luz, se abren en
+>   puerta, se parten. Son la misma fila de `maps_walls`. Esto confirma la decisión de que una habitación no
+>   necesita entidad propia para las PAREDES.
+> - **Las texturas sólo tienen sentido en B.** Marcando sobre una foto, el suelo ya lo pone la foto. El panel
+>   tiene que dejar claro en cuál de las dos estás, o la mitad de los controles no significa nada.
+>
+> ✅ **CONFIRMADO POR ÉL el 2026-09-03**, con estas palabras: *«los muros, puertas y ventanas de ahora quedan
+> como están a nivel funcional; los utilizo en el caso de que diseñe un mapa con otra herramienta, lo importe
+> y marque los muros, puertas y ventanas. El constructor que estamos haciendo ahora es para hacer mapas
+> relativamente sencillos en Rolvium, y la niebla de batalla debe funcionar con estas construcciones
+> también.»*
+>
+> 🔒 De ahí salen dos cosas que ya no se discuten:
+> - **A no se toca a nivel funcional.** Ni una línea. Es la vía para mapas traídos de fuera.
+> - **La niebla de guerra tiene que funcionar igual con lo levantado en B.** Sale gratis por la decisión de
+>   que una habitación produce **muros normales** (`maps_walls`, `blocksSight`/`blocksMove`): la visión se
+>   calcula en el servidor contra todos los muros, sin mirar quién los puso. **Es un requisito con nombre, y
+>   por tanto lleva test propio**: una sala generada tapa la vista exactamente igual que un muro marcado a
+>   mano sobre una foto.
+
+### ✅ RESUELTO: LAS «PSEUDO TEXTURAS BASE» SON PREAJUSTES (captura recibida el 2026-09-03)
+
+Preguntó: *«¿puedes agregar estas opciones, como las de la herramienta que te pasé, a nivel pseudo texturas
+base?»* La captura llegó por fin: es el panel **«Ajustes preestablecidos de mazmorra»** de Dungeon Scrawl —
+una rejilla de miniaturas, cada una enseñando **la esquina de una sala de verdad** (relleno de la pared +
+suelo + rejilla), con nombre debajo: *Classic Hatching · Old School Module · Ancient Map · Gray Hatching ·
+Interior Wall Fill · Rough Cavern · Classic Gray · Simple Walls · Black and White · Fog of War*.
+
+**Qué significa, traducido a nuestro modelo:** un preajuste **no es una textura**, es **la pareja de texturas
+base de golpe** — rellena a la vez el relleno de pared y el suelo de toda la escena, y de paso cómo se ve la
+rejilla. Es exactamente la capa que faltaba encima de lo ya escrito:
+
+| Nivel | Qué elige | Alcance |
+|---|---|---|
+| **1 · Preajuste** | Las dos de golpe, con un clic | Toda la escena |
+| **2 · Las dos texturas base** | Pared y suelo por separado, o una foto suya (`+ Subir`) | Toda la escena |
+| **3 · Una sala distinta** | Se pinta encima con el pincel, en dos pasos | Una habitación |
+
+**Decisiones que se toman aquí** (y que el diseño v3 ya refleja):
+- Los preajustes son **nuestros y en castellano**, no una copia de sus nombres — regla suya de no copiar su
+  interfaz: *Rayado clásico · Módulo antiguo · Mapa antiguo · Rayado gris · Muro relleno · Caverna · Gris
+  clásico · Muros simples · Tinta*. Nueve, en rejilla de 3×3, como en su captura.
+- La miniatura **enseña una esquina de sala montada**, no un cuadrado de color: es lo que hace legible la
+  diferencia entre «rayado» y «relleno» de un vistazo.
+- Un preajuste **rellena** los dos huecos de nivel 2; en cuanto él cambie uno a mano, manda el suyo. El
+  preajuste no bloquea nada.
+- «Fog of War» de su captura **no se copia**: la niebla ya es nuestra (§ Rebanada 2 y § 7.4) y no es un
+  estilo de dibujo.
+- 🖌 **AL MENOS UN ESTILO TIENE QUE SER DE TRAZO A MANO ALZADA.** Corrección suya del 2026-09-03 viendo el
+  primer intento de la rejilla: *«todos los trazos de todos los estilos son realmente rectos, ninguno parece
+  a mano alzada; no digo que todos tengan que ser así pero al menos uno sí»*. Y mandó el lienzo de Dungeon
+  Scrawl a tamaño grande: el «Classic Hatching» **no es un rayado de tiralíneas**, son **trazos cortos,
+  gruesos y desiguales** apelotonados contra el muro, con el borde de fuera irregular. Eso es lo que hay que
+  reproducir, no líneas paralelas perfectas.
+  - `Rayado clásico` y `Rayado gris` pasan a trazo corto irregular (ángulo y largo con variación).
+  - Entra `Trazo a mano`, con el **contorno del muro tembloroso**, y sale `Gris clásico`, que era el menos
+    distinguible de la lista. Si él lo quiere de vuelta, la rejilla crece a diez.
+
+### 🟠 LO QUE HACE FALTA QUE ÉL DECIDA (y por qué no lo decido yo)
+1. **¿Puertas automáticas?** Una habitación cerrada sin puertas no se puede usar. ¿Se abre un hueco donde él
+   pinche después, o el generador pone una puerta por pared, o ninguna y ya las abre a mano con el disco que
+   ya existe? *Sospecha: ninguna automática — abrir una puerta ya es un gesto suyo de un clic.*
+2. **¿Qué pasa cuando dos habitaciones se tocan?** ¿Se funden las paredes comunes, se quedan las dos, o la
+   nueva parte a la vieja? *Esto cambia el motor, no sólo la pantalla.*
+3. **La textura de suelo.** «La foto de fondo hace de textura de suelo» puede querer decir dos cosas muy
+   distintas: (a) el suelo de la habitación **enseña** el fondo y **fuera** se tapa, o (b) se recorta una copia
+   del fondo dentro de la habitación como una capa de terreno. La (a) es casi gratis con lo que ya hay; la (b)
+   es una capa nueva por habitación.
+4. **Qué «tipos» hay.** Él dijo «elegir tipo de habitación/mazmorra». Hoy el motor sabe hacer **rectángulo** y
+   **círculo**. ¿Hacen falta más (pasillo, cruz, sala con columnas), o con esos dos empieza?
+5. **¿Los muros generados nacen visibles para el jugador?** Los muros tienen ese interruptor y aquí importa.
+6. **✅ RESUELTA (2026-09-03) — LA SALA LLEVA SU SUELO.** Sus palabras: «*sí, lleva su suelo pero con un
+   matiz: tiene de base el suelo que seleccionas cuando comienzas a dibujar, luego puedo poner con un pincel
+   otra textura a ese suelo, o pongo otra capa y juego ahí con transparencias, lo que me haga falta*».
+   - **Una sala ES una entidad**, con su contorno y su suelo. Se acabó la opción (b).
+   - **El suelo base no se elige después: se hereda del momento de dibujar.** La textura que esté puesta
+     cuando empieza el trazo es la que se queda. Por eso los **preajustes** tienen sentido — eligen las dos
+     texturas base de golpe y a partir de ahí todo lo que levante sale con ellas.
+   - **Encima del suelo base NO se inventa nada nuevo**: el pincel de textura y las **capas de terreno con
+     transparencia que ya existen** (§ 7.1) siguen siendo el camino para todo lo demás. La sala mete un suelo
+     DEBAJO de lo que ya había; no lo reemplaza.
+   - ⛔ **Va tabla + migración, y pasa por el DBA antes de una línea de código de salas.**
+   - 🔒 **Esto es del modo «Dibujar aquí» y de nadie más.** Marcando sobre una foto no hay suelo que guardar:
+     el suelo es la foto.
+7. **🆕 ¿Las dos texturas de base son de la ESCENA o de la campaña?** Si son de la escena, cada mapa lleva las
+   suyas; si son de la campaña, se eligen una vez y valen para todas. La segunda es menos trabajo para él y
+   menos flexible.
+
+### ↩️ DESHACER Y REHACER (construido el 2026-09-03)
+
+Pedido el **2026-08-19**, aparcado dos veces como «fuera de alcance» y reclamado por él: «*el deshacer y el
+inverso no funciona, no sé si se construyó pero estaba en las cosas que hay que hacer*». Tenía razón.
+
+- **Cmd+Z / Ctrl+Z** deshace · **+ Mayúsculas** rehace. Sólo el director, y no dispara escribiendo en un campo.
+- **Cubre las acciones de Builder**: levantar una sala, borrar, mover o estirar un grupo, agrupar y soltar.
+- **Cada paso sabe deshacerse Y rehacerse a sí mismo** (`useHistory`). No se guarda una foto de la escena
+  —serían cientos de muros por paso y pisaría lo que hayan hecho los demás—, sólo la vuelta atrás de ESE
+  cambio. Las pilas van en `ref`: con estado de React, dos Ctrl+Z seguidos deshacían el mismo paso dos veces,
+  y deshacer escribe en la base.
+- ✅ **APROBADO POR ÉL (2026-09-03): el historial vive en la pantalla y muere al recargar.** «*me parece bien
+  que quede en memoria*». Guardarlo obligaría a la base y podría desandar lo que otro hizo después.
+- 🕓 **EN EL BACKLOG, decisión suya del 2026-09-03**: extender deshacer/rehacer a **fichas, dibujos y luces**.
+  Hoy sólo cubre muros y salas, que es donde está trabajando.
+
+### 🧩 EL GRUPO — modo «Sobre una foto» (decidido el 2026-09-03)
+
+> **Esto NO son salas y no tiene nada que ver con la pregunta 6.** Marcando muros sobre una foto no hay suelo,
+> ni textura, ni preajuste: hay muros. Confundir las dos cosas fue el error de la sesión anterior y es lo que
+> hizo que el interruptor de modo se quedara sin construir «por culpa de la 6», cuando no dependía de ella.
+
+Lo que pidió, con la herramienta del círculo puesta sobre una foto de mapa: «*no puedo arrastrar y seleccionar
+por grupo*» · «*debería poder seleccionarlo entero y luego con doble clic por pedacitos, si no, cuando esté en
+medio de otras cosas no se podrá mover*» · «*cuando lo seleccione debería poder escalarlo*».
+
+- **Qué es un grupo**: los muros que salen de UN gesto. Un círculo son once muros y para él son **una cosa**.
+  Puede acabar siendo el contorno de una sala, un pilar o un estanque — al grupo le da igual, y por eso **no
+  se llama sala**. Nombre elegido por él: **«Grupo»**.
+- **Un clic coge el grupo entero. Doble clic entra dentro** y ya se coge el muro suelto, como hoy.
+- **Cogido, se mueve y SE ESCALA.** Escalar afecta sólo a la geometría de sus muros; puertas y ventanas que
+  vivan en ellos se mantienen en proporción.
+- **Se guarda.** Tiene que aguantar abrir una puerta, mover una pared, recargar y volver mañana. Adivinarlo
+  cada vez mirando qué muros se tocan se rompe justo cuando más se usa.
+- **Se puede agrupar a mano** (elección suya): coge varios muros por área y los ata él. Sin eso, todo lo que ya
+  tiene marcado en sus mapas se quedaba suelto para siempre.
+- **La selección por área tiene que coger muros.** Hoy `tokensInRect` coge **sólo fichas**
+  (`MapCanvas.tsx`, gesto `marquee`) — no está roto, es que nunca se hizo para muros.
+- 🎨 **Sin dibujar todavía**: cómo se ve un grupo cogido (marco, tiradores para escalar, qué enseña la barra
+  mientras). No está en el v3 y va al `.pen` antes de tocar código.
+
+### Modelo de datos
+**Para las paredes sueltas, ninguno nuevo**: se escriben filas en `maps_walls` con `kind: 'wall'`, que es lo que
+ya hace la herramienta.
+
+**Para el GRUPO, sí hace falta algo**: los muros de un mismo gesto tienen que quedar atados, y tiene que
+sobrevivir a recargar. Es una marca compartida en `maps_walls`, no una tabla de salas. **Pasa por el DBA antes
+de tocar código.**
+
+**Para la SALA con su suelo (pregunta 6, ya contestada)**: tabla de habitaciones con su contorno y su textura
+base, con las capas de terreno existentes por encima. **Pasa por el DBA antes de tocar código.**
+
+### 🎨 EL DISEÑO v3 (2026-09-03) — ✅ MAQUETADO (`BuilderPanel`)
+
+Tercer intento, en `rolvium.pen`, banda 5. **Dos frames, porque el panel cambia según el modo:**
+
+- `PL/Builder · panel ← v3 (modo + preajustes)` (`ePNCc`) — modo **«Dibujar aquí»**, el panel entero (300×650).
+- `PL/Builder · panel ← v3 · modo SOBRE UNA FOTO` (`zpsjH`) — el mismo panel marcando sobre una foto: se
+  caen los preajustes, las dos texturas base y el pincel de sala, porque ahí el suelo lo pone la foto.
+
+Qué corrige respecto del v2, correción por corrección:
+
+| Suya | Cómo queda en el v3 |
+|---|---|
+| 1 · «es el mismo Builder» | Se llama **Builder**; muro · puerta · ventana intactos y con la nota «se abren con el mismo disco» al lado |
+| 2 · «el icono que habíamos quedado» | `builder-mask.png`, el suyo de verdad, metido como relleno de imagen en la cabecera |
+| 3 · «respeta los colores» | Rojo sangre sólo en acciones (`CAMBIAR`, `+ SUBIR`, `QUITAR`); negro sólo en lo seleccionado |
+| 4 · «falta el tema de aberturas» | Fila de siempre + nota explícita de que se abren con el mismo disco |
+| 5 · «te quedas corto con rectángulos» | Seis formas: a mano · recta · rectángulo · círculo · polígono · a pulso — **las seis construidas** |
+| 6 · «no me queda claro cómo cambio la textura» | Tres niveles visibles en el propio panel: preajuste → las dos base → pincel por sala, con los dos pasos escritos |
+| 7 · «no sé si faltan herramientas» | Abierto todavía; con las seis formas y los tres niveles, lo que falte ya se ve sobre el panel |
+| 🔑 «son dos maneras que conviven» | **Sección nueva arriba del todo**, con dos miniaturas de verdad: una foto con muros marcados encima, y una sala levantada en la app. Es lo primero que se ve al abrir el panel |
+
+**Segunda pasada del 2026-09-03**, después de que dijera que la rejilla era «un adefesio»: las miniaturas ya no
+son un marco de cuadro con un borde alrededor, sino **la esquina de un mapa** — el muro entra en L por arriba
+y por la izquierda y el suelo se sale por abajo y por la derecha, con su rejilla de casillas. Es lo que hace
+que se distinga de un vistazo un rayado de un relleno. Y los dos rayados pasan a **trazo a mano**, más
+`Trazo a mano` con el contorno tembloroso.
+
+### Estado
+- ✅ **Motor completo** (`domain/useCases/roomRules.ts`): **recta suelta**, rectángulo, círculo, **polígono** y
+  **a pulso**.
+  - **Recta suelta** (`lineSide`, construida el 2026-09-03 a petición suya): se arrastra de un punto a otro y
+    sale **UN muro y sólo uno**. Es la hermana de «a mano» —lo mismo, pero de un tirón— y la única forma que
+    NO monta una sala, así que va por `onAddWall`, el camino de siempre: una puerta o una ventana dibujada de
+    un tirón sobre un muro lo sigue partiendo con `planOpening`. Y **no nace atada a ningún grupo**: un muro
+    solo no es un grupo. Por debajo de media casilla no se escribe nada — eso es un resbalón, no una pared.
+  - **Polígono**: los VÉRTICES se pegan a la rejilla, los LADOS no → una pared puede ir a cualquier ángulo
+    (su punto 5) y a la vez dos salas contiguas encajan sin rendijas de medio píxel por donde se cuela la vista.
+  - **A pulso**: NO se pega a la rejilla —pegado saldría una escalera— y se limpia el temblor del ratón, o
+    cada trazo dejaría cientos de muros que recalcular en cada refresco de la visión.
+    - 🔧 **Corregido el 2026-09-03**: la limpieza medía cada punto contra la cuerda de sus **dos vecinos
+      inmediatos**. En una recta funciona; en una CURVA cada punto está prácticamente encima de esa cuerda, así
+      que no se guardaba ninguno y la red de seguridad devolvía **el trazo crudo entero** — la guarda que debía
+      acotar los muros era justo lo que los dejaba sin acotar. Con la rejilla en 27, un círculo a pulso de
+      radio 4 casillas escribía **75 muros**; de 15, **282**. Ahora es **Ramer–Douglas–Peucker**: se mide
+      contra la cuerda del tramo COMPLETO y el anillo se parte por sus dos cabos (el primer punto y el más
+      lejano a él), que es lo que le da extremos a una curva cerrada. Los mismos trazos salen hoy en **11** y
+      **16** muros, y el número lo acota la tolerancia, no el tamaño de la sala. Y se ha quitado la vuelta del trazo crudo: lo que se resuelve en menos de tres vértices es
+      una raya, y `freehandSides` la rechaza. Lo sujetan cinco tests de **trazo redondeado** — el agujero era
+      que el único trazo de prueba era un cuadrado, todo lados rectos.
+  - **Polígono, cierre**: se cierra pinchando sobre el primer vértice, con el tope en **media casilla**. Con el
+    tope en una casilla entera el vecino en cruz —que cae a exactamente `grid`— cerraba la sala en vez de poner
+    el vértice, y una L cuya última esquina cae junto a la primera era imposible (corregido el 2026-09-03).
+  - **Una sala se escribe de una vez** (`MapsPort.addWalls`, un `insert` de varias filas): entran todos sus
+    muros o no entra ninguno. Muro a muro, si fallaba el enésimo la sala quedaba **abierta** y por ese hueco se
+    colaba la visión, avisando sólo con el banner genérico (corregido el 2026-09-03).
+- ✅ **INTERFAZ: EL PANEL v3, MAQUETADO** (`ui/BuilderPanel.tsx`), y **la barra flotante vieja ya no se
+  monta**. Orden suya del 2026-09-03: «*ya es hora que dejes esto maqueteado en el menú que va y que dejes de
+  agregar cosas en este*». Lo que lleva dentro, en el orden del diseño:
+  1. **Cabecera** con SU icono (`builder-mask.png`, de máscara para que lo tiña el panel), el nombre y la X.
+     Se agarra por la cabecera y se aparta, como el editor de luces — de hecho el asa se extrajo a
+     `ui/useDragPanel.ts` y ahora la comparten los dos paneles. **No se queda con Escape** a propósito:
+     dibujando un polígono, Escape es para cancelar el polígono.
+  2. **«EN QUÉ ESTOY TRABAJANDO · LAS DOS CONVIVEN»** — el interruptor `photo` / `draw`, con las dos
+     miniaturas dibujadas (una foto con muros marcados encima · una sala levantada con su rejilla).
+     ⚠️ Hoy cambia la NOTA del panel y es el sitio donde entrarán los preajustes; no cambia lo que hacen
+     muro, puerta, ventana ni las formas, porque en el diseño son iguales en los dos modos.
+     Vive en la pantalla, no en la escena (como el velo del director): no guarda nada.
+  3. **«QUÉ LEVANTO · LO DE SIEMPRE, INTACTO»** — muro · puerta · ventana, con la nota del disco.
+  4. **«CON QUÉ FORMA»** — **las SEIS del diseño**, en sus dos filas de tres: a mano · recta · rectángulo,
+     y debajo círculo · polígono · a pulso.
+  5. **El candado de la rejilla** (abajo).
+  6. **«LO QUE TENGO COGIDO»** — el grupo (`CvkXT`), los muros sueltos (`tS9zl`) y, con un muro elegido, todo
+     lo que hacía la barra vieja: visible para jugadores, abrir/cerrar y borrar. Sólo aparece con algo cogido.
+  7. **La nota**, que cambia con el modo.
+  - **Colocado entre «con qué forma» y «lo que tengo cogido»** y no al final como en la lista del traspaso:
+    «lo que tengo cogido» aparece y desaparece, y con el candado debajo el candado bailaría de sitio en cada
+    clic. Revisable por él.
+  - **El Builder de siempre no se ha movido**: sin tocar la forma sigue siendo clic a clic, y puertas y
+    ventanas siguen partiendo muros con `planOpening`. Hay test que lo sujeta.
+  - La forma `segment` se rotula **«A mano»**, como en el diseño (antes «Segmento»).
+  - 🗑 `ui/SegmentBar.tsx` **se ha borrado** (con su test), por orden suya del 2026-09-03. Lo que hacía lo
+    cubre entero `BuilderPanel.test.tsx`; su único test que no estaba ya cubierto —el globo de «Quitar
+    segmento»— se mudó a `controls.test.tsx`.
+- ✅ **La niebla funciona con lo levantado aquí**, que era el requisito con nombre. Dos tests: uno en el
+  motor de visión de la API (una sala tapa la vista desde fuera y la contiene desde dentro, y un vano la
+  deja pasar) y otro de regresión que comprueba que **no hay ninguna marca** que distinga una sala generada
+  de un muro marcado a mano sobre una foto.
+- 🟠 **Decisiones tomadas al construir, revisables por él**:
+  - Los muros generados **nacen ocultos al jugador** (`visiblePlayers: false`), como cualquier muro nuevo.
+    Es la pregunta 5 de abajo, contestada por coherencia con lo que ya había.
+  - **Ninguna puerta automática** (pregunta 1): la sala se levanta cerrada y él abre los vanos con el disco
+    de siempre. Es lo que ya sospechaba el spec.
+  - **Dos salas que se tocan no se funden** (pregunta 2): quedan los dos muros. Es lo que menos promete y
+    lo que se puede cambiar después sin romper nada.
+- 🎨 **Diseño v3 en `rolvium.pen`, RECHAZADO por él** (2026-09-03). Lo dio por zanjado con un «ve
+  construyendo y después vemos», así que la interfaz de arriba se ha construido con la barra que ya existía,
+  sin inventar pantalla nueva. Las miniaturas de estilo siguen sin gustarle y **el panel de preajustes no se
+  ha construido**.
+- ⛔ **Las texturas y los preajustes, sin maquetar**: piden tabla de habitaciones + migración + DBA, y van en
+  su propia tanda. El interruptor de modo del panel es el sitio donde entrarán.
+
+### 🔒 EL CANDADO DE PEGAR A LA REJILLA (aprobado el 2026-09-03: «*tira*»)
+
+Viene de que al mover un nodo el movimiento se pegaba a la rejilla y él quería libertad. Se le propusieron
+tres condiciones y las aceptó; el motor está en `domain/useCases/snapRules.ts` y las tres tienen test.
+
+1. ~~Empieza CERRADO.~~ **Empieza ABIERTO** — corregido por él el 2026-09-03 después de probarlo: «*el pegado
+   a la rejilla debería estar desactivado por defecto*». Se le había propuesto lo contrario, para no cambiarle
+   nada, y decidió al revés: marcando muros sobre una foto la rejilla no le sirve, porque los muros de la foto
+   no caen en múltiplos de nada. Echándolo, el comportamiento es el de siempre, sin una sola diferencia.
+2. **Vale para TODO Builder**, no sólo para los nodos: el muro que se dibuja (`builderPoint`), los vértices
+   del polígono, el rectángulo y el círculo (`roomSides`/`polygonSides` reciben un `step`, que es `grid` con
+   el candado cerrado y `0` con el candado abierto) y el nodo que se arrastra (`wallDragTo` + `anchorEnd`).
+   - ⚠️ **«A pulso» no pasa por el candado**, a propósito: nunca se pegó a la rejilla, porque un trazo libre
+     cuadriculado sale como una escalera.
+3. **Abierto, las puntas se pegan a las PUNTAS DE OTROS MUROS** que tengan a menos de `END_SNAP_PX` (12 px de
+   escena, medidos en pantalla: con el mapa alejado el imán no puede tirar de medio mapa). Sin esto, «libre»
+   acaba siendo «lleno de rendijas», y por una rendija de medio píxel se cuela la visión — que es justo para
+   lo que servía pegarse a la rejilla. El muro que se está editando queda fuera del imán, o una punta se
+   pegaría a la suya.
+   - Moviendo el muro ENTERO no se pega nada: pegar una sola punta lo torcería en vez de moverlo.
+   - El rectángulo y el círculo van libres con el candado abierto, pero **sin imán**: son formas cerradas, así
+     que no dejan rendijas por donde colarse. Se puede añadir si él lo pide.
+
+🚫 **Descartado afinar la rejilla**, y él lo aceptó: la rejilla ES el metro de la mesa —movimiento, tamaño de
+ficha, alcance de una luz, la regla— y tocarla mueve todo el juego. Además no arreglaría nada: los muros de
+una foto no caen en múltiplos de nada.
+
+### ✏️ EL ÁREA COGE TAMBIÉN LOS TRAZOS (2026-09-03)
+
+«*El arrastrar y seleccionar no funciona con las formas simples de líneas, texto, círculo y cuadrado*». El
+área ya cogía fichas y muros; los trazos se habían quedado fuera. Ahora `mapRules.drawingsInRect` los coge, y
+el puñado **se mueve junto y se borra junto**.
+
+- Cada forma guarda sus datos a su manera, así que el único sitio que sabe medirlas todas es `drawingBounds`.
+  El **texto** se mide con el mismo cuadro aproximado que ya usaba `hitDrawing` para acertarle: es aproximado,
+  pero es EL MISMO, así que elegir y pinchar coinciden.
+- Se coge lo que cae **entero** dentro, igual que con los muros: rozar media línea con el marco no es elegirla.
+- **Sólo los que se pueden mover**: a un jugador no le sirve de nada cogerlos, porque la RLS de `maps_drawings`
+  no le deja moverlos.
+- Agarrar UNO del puñado los mueve TODOS y **no suelta la selección** — soltarla por tocar uno sería perder el
+  trabajo de haberlos cogido. Pinchando cualquier otro, se coge ése y sólo ése, como siempre.
+
+### 🎨 LAS SEIS DE DIBUJAR, EN UN SOLO ICONO (2026-09-03)
+
+«*Quiero que todas estas sean un solo icono y cuando hagas click despliegue al lado un menú con las opciones
+de dibujo libre, para ahorrar espacio en la barra de herramientas*». Lápiz · Línea · Caja · Círculo · Texto ·
+Borrar ocupaban seis alturas de barra sobre un mapa que quiere todo el alto que le den.
+
+- El icono **enseña la herramienta puesta** (con Lápiz activo se ve el lápiz), o `draw` si no hay ninguna. Sin
+  eso no habría forma de saber con qué estás dibujando sin abrir el menú.
+- El menú va `fixed` y medido sobre el botón: la barra tiene `overflow:auto` y uno absoluto se recortaría
+  contra ella — el mismo motivo por el que los paneles se pasan a `fixed` al agarrarlos.
+- Se cierra al elegir, con Escape, y pinchando fuera. Volver a elegir la que ya está puesta la apaga, igual
+  que cualquier otra herramienta de la barra.
+- 🎨 **No está en `rolvium.pen`**: lo describió él por escrito y pidió terminarlo y subir. Queda por dibujar.
+
+### 🔗 LOS NODOS SON UNA CADENA (2026-09-03)
+
+«*Me separa los segmentos de la figura original, los nodos deberían ser como una cadena a menos que yo elija
+que no*». Arrastrar una punta se lleva las puntas de los demás muros que estaban **en ese mismo sitio**
+(`groupRules.chainWalls`, tolerancia `NODE_WELD_PX` = 1,5 px). Sin esto, mover un nodo de un círculo o de una
+sala **abre la figura**, y por ese hueco se cuela la visión.
+
+- **Va PUESTO por omisión** («a menos que yo elija que no»), y se quita desde el panel.
+- **Es por SITIO, no por grupo**: el imán del candado existe precisamente para juntar puntas de muros que no
+  van en el mismo grupo, y una cadena que sólo funcionara dentro del grupo dejaría fuera todo lo que él lleva
+  marcado sobre fotos.
+- Arrastrando el muro ENTERO se sueldan sus DOS puntas, que es lo que mantiene cerrada la figura cuando lo que
+  se mueve es un lado completo. El lado de enfrente no se toca: mover un lado no es mover el grupo.
+- Se mide contra las coordenadas de ANTES de mover nada, o la segunda punta se pegaría a donde acaba de llegar
+  la primera.
+- Se guarda **de una sola escritura** con el muro (`onTransformWalls`): media figura movida y media quieta es
+  un hueco, el mismo agujero que ya nos mordió con `addRoom`.
+
+### 🫱 ANDAR POR DENTRO DEL GRUPO (2026-09-03)
+
+Dos correcciones suyas seguidas, las dos sobre lo mismo: entrar en un grupo tenía que ser un ESTADO, no un
+clic suelto.
+
+1. «*Si selecciono un nodo y quiero seleccionar otro tengo que volver a hacer doble click, eso está mal: una
+   vez estoy dentro del grupo, a menos que haga click en otra cosa fuera del grupo, no tiene que pedirme que
+   entre de nuevo*». Se mira **si lo cogido es DEL grupo**, no si es ESE muro (`groupRules.insideGroup`).
+2. «*Una vez dentro del grupo debería poder no sólo seleccionar un vector sino arrastrar y seleccionar en
+   grupo cosas; ahora si hago click fuera del foco del grupo dejando el botón apretado y arrastro, se sale del
+   grupo*». Estando dentro, el área coge de ESE grupo **lo que pilló y nada más**
+   (`withWholeGroups(…, porDentro)`); inflarlo al grupo entero era lo que te echaba fuera. Los demás grupos
+   siguen viniéndose enteros, porque en ésos no estás dentro.
+
+**Se está DENTRO** con un muro suelto elegido **o** con un puñado del grupo cogido, siempre que no sea el
+grupo entero — con el grupo entero cogido no estás dentro, estás manejando la pieza.
+
+### ⌘A COGERLO TODO (2026-09-03)
+
+«*No me deja seleccionar todos los nodos*». **Ctrl/Cmd + A** coge todos los muros de la escena; desde ahí se
+mueven y se estiran como un grupo, y Suprimir los borra. Sólo el director y sólo con los muros a la vista —no
+se coge lo que no se ve—, y escribiendo en un campo no se le roba el atajo. El panel lo dice, y siempre a la
+vista: dentro de «lo que tengo cogido» no serviría, porque esa sección sólo aparece cuando ya has cogido algo.
+
+### 🪟 LOS PANELES SE SALEN DEL MAPA (2026-09-03)
+
+«*Los modales de las herramientas están confinados dentro del mapa, deberían estar por donde quiera*». El
+lienzo recorta lo que se sale de él (`.mp-stage{overflow:hidden}`) y eso no se puede quitar: es lo que impide
+que el mapa se derrame sobre el resto de la pantalla. Así que `useDragPanel` mide el panel **en el momento en
+que se agarra** y lo pasa a `position:fixed` en ese mismo sitio: cero salto al empezar el gesto, y desde ahí
+va por toda la ventana. Vale para el panel de Builder y para el editor de luces, que comparten el asa.
+
+### 🆕 AÑADIR UN NODO CON DOBLE CLIC (2026-09-03)
+
+Sus palabras: «*si tengo un vector y le hago doble click en alguna parte de la linea tiene que agregar otro
+nodo*». Es partir el muro en dos por ese punto, y la maquinaria ya existía: `wallPiece`, el mismo que usa
+`planOpening` para meter una puerta.
+
+- `mapRules.splitWallAt(wall, at)` proyecta el punto SOBRE la línea (un doble clic nunca cae exactamente
+  encima, y el nodo tiene que nacer en el muro o quedaría un codo) y devuelve dos cosas: el muro viejo
+  acortado (`keep`) y el trozo nuevo (`piece`). Devuelve `null` si el punto cae a menos de `MIN_NODE_GAP`
+  (4 px) de una punta: ahí ya hay un nodo.
+- **El trozo nuevo hereda todo lo del viejo** —tipo, si lo ven los jugadores, si está abierto— **y su grupo**:
+  partir un lado de una sala no puede echarlo de la sala.
+- **El trozo nuevo se escribe ANTES de acortar el viejo** (`useScene.splitWall`), y deshacer lo hace al revés
+  (primero devuelve el largo, después quita el trozo). Es la misma regla que ya sigue `addWall` con los vanos:
+  si algo falla a mitad, la pared se queda entera y solapada — nunca con un hueco por el que se cuele la
+  visión. Entra en el historial de deshacer/rehacer como un paso más.
+
+**Cómo convive con el doble clic que ya existía** — decidido por él, «primero entra, luego el nodo»:
+
+| Dónde haces doble clic | Qué pasa |
+|---|---|
+| Un muro **suelto** (sin grupo) | Pone el nodo ahí |
+| Un muro **de un grupo** en el que aún no has entrado | **Entra** al muro suelto, como hasta ahora |
+| Ese mismo muro, **ya dentro** | Pone el nodo ahí |
+
+- ⚠️ Se decide **al soltar**, no al pulsar: el segundo clic de un arrastre cuenta como doble, así que mirarlo
+  en la pulsación convertía un movimiento en un nodo. Si hubo arrastre, era mover.
+- 🔧 **Corregido en la misma tanda**: «quieto» se mide por **lo que viajó el dedo**, no por si la geometría
+  cambió. Los muros de un **círculo** y los de un trazo **a pulso** no caen en la rejilla, así que con el
+  candado cerrado el propio clic los recuadraba y el doble clic contaba como movimiento: en vez del nodo, el
+  muro daba un tirón a la casilla. Un clic SUELTO sobre ese mismo muro lo sigue recuadrando, como siempre —
+  eso no se ha tocado. Dos tests lo sujetan.
+
+
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
   muros con `visible_players=false` no viajan al cliente del jugador (RLS). **Esta es la frontera de seguridad**: si la
@@ -728,9 +1434,13 @@ mano al desplegar.
     `TO anon`).
 
 - **Lo que esta rebanada NO guarda, a propósito**:
-  - **Ver con los ojos de un personaje** es una **lente** del director: no mueve la escena activa, no toca la
-    niebla guardada y no avisa a nadie. No hay nada que persistir — la visión la calcula la API por el mismo
-    camino que la del jugador de verdad.
+  - **La sonda de prueba** (§ 7.3) no guarda **nada**: ni la sonda, ni dónde la dejaste, ni lo que vio. No es
+    una fila de `maps_tokens` y no toca la niebla de nadie. Lo explorado que enseña lo acumula el NAVEGADOR
+    mientras la sonda está puesta y se tira al quitarla. La visión sí la calcula la API —desde un punto
+    `{x, y}`, no desde una ficha—, y esa petición tampoco escribe.
+  - 🧨 **Y queda escrito por qué**: la versión anterior («ver con los ojos de ‹personaje›») pedía
+    `getExplored(escena, dueño-de-la-ficha)` y con un director eso viene vacío → mapa negro en producción.
+    Que nadie vuelva a atar esta herramienta a la memoria guardada de NADIE.
   - **La penumbra** no inventa un número: su anchura sale de `maps_tokens.vision_radius` y de la luz de la
     escena, que ya existen.
   - ⚠ **El bulto de una ficha en penumbra no puede viajar por RLS**: la RLS decide **filas enteras, no

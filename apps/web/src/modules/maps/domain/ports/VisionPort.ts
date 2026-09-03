@@ -18,12 +18,12 @@ export interface VisionPort {
    */
   refresh(sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }, opts?: {
     /**
-     * «Ver con los ojos de este personaje» (rebanada 7). SÓLO el director. Es una LENTE: no guarda nada, no
-     * toca la niebla de nadie y no mueve la escena activa. La calcula el SERVIDOR por el mismo camino que la
-     * del jugador de verdad — recalcularla aquí haría que lo que ve el director y lo que ve el jugador
-     * pudieran discrepar, que es justo lo que la herramienta viene a comprobar.
+     * LA SONDA DE PRUEBA (§ 7.3). Un punto en px de escena, SÓLO del director: «qué vería un jugador desde
+     * aquí». La calcula el SERVIDOR por el mismo camino que la del jugador de verdad —recalcularla aquí haría
+     * que lo que ve él y lo que ve el jugador pudieran discrepar, que es justo lo que viene a comprobar— y
+     * **no guarda nada**: lo que contesta es lo que se ve DESDE ESE PUNTO, y la memoria la une el navegador.
      */
-    asTokenId?: string | null;
+    probe?: { x: number; y: number };
   }): Promise<SceneVision>;
   /** DM brush: reveal or hide a disc (scene px) on every player's explored cells at once. */
   paint(sceneId: string, op: 'reveal' | 'hide', at: { x: number; y: number; radius: number }): Promise<SceneVision>;

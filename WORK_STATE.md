@@ -14,7 +14,879 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔴 de 2026-08-31 (noche), justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔵 de cierre, justo debajo.**
+
+## 🔵 SESIÓN 2026-09-03 — BUILDER v3 MAQUETADO (LO VIVO AHORA MISMO)
+
+> Rama `sonda-de-prueba`, **subida a GitHub, `main` intacto**. Sigue en pie **«no borres nada»**.
+> **Lo último hecho está en «LOS TRES ENCARGOS, HECHOS», unas pantallas más abajo.**
+
+### ✅ LO QUE SE RESOLVIÓ ESTA SESIÓN
+- **Llegó por fin la captura de las «pseudo texturas base».** Era el panel «Ajustes preestablecidos de
+  mazmorra» de Dungeon Scrawl: una rejilla de miniaturas, cada una con la esquina de una sala (relleno de
+  pared + suelo + rejilla). Traducido: **un preajuste pone LAS DOS texturas base de golpe**. Queda escrito y
+  cerrado en `specs/modules/maps/SPEC.md` § «Rebanada 8» → «✅ RESUELTO: LAS PSEUDO TEXTURAS BASE».
+- **Builder v3 diseñado**, con las siete correcciones suyas del 02-09 aplicadas una a una (la tabla está en
+  el spec). Dos frames, porque el panel cambia según el modo:
+  - `PL/Builder · panel ← v3 (modo + preajustes)` — **`ePNCc`**, modo «Dibujar aquí», 300×650.
+  - `PL/Builder · panel ← v3 · modo SOBRE UNA FOTO` — **`zpsjH`**, el panel corto.
+- **Lo nuevo de verdad frente al v2**: arriba del todo, «EN QUÉ ESTOY TRABAJANDO», con las dos maneras que
+  CONVIVEN dibujadas de verdad (una foto con muros marcados encima · una sala levantada aquí). Marcando
+  sobre foto se caen preajustes, texturas base y pincel de sala, porque ahí el suelo lo pone la foto.
+- **Su icono, el de verdad**, en la cabecera: `builder-mask.png` metido como relleno de imagen. Ya no es un
+  Material Symbol genérico ni su dibujo de líneas encogido hasta desaparecer.
+- PNG a tamaño grande en `Escritorio / Rolvium-constructor-habitaciones /`:
+  `Builder v3 - DIBUJAR AQUI.png` y `Builder v3 - SOBRE UNA FOTO.png`.
+
+### 🔁 TRES CORRECCIONES SUYAS SOBRE EL v3, YA APLICADAS (2026-09-03)
+1. **«Esto que me pones en el .pen es un adefesio»** — las miniaturas eran un marco de cuadro. Ahora son
+   **la esquina de un mapa**: el muro entra en L por arriba y por la izquierda, el suelo se sale por abajo y
+   por la derecha, con su rejilla de casillas.
+2. **«Todos los trazos son rectos, ninguno parece a mano alzada»** — entra `Trazo a mano` (contorno
+   tembloroso) y sale `Gris clásico`, el menos distinguible. Si lo quiere de vuelta, la rejilla crece a diez.
+3. **«Dime en qué se parecen las texturas de las rayitas entre sí»** — tenía razón: eran **el mismo garabato
+   con distinto color**, y a los dos les faltaba lo esencial. En su herramienta las rayitas viven **dentro de
+   un muro de grosor fijo**, peinadas en la misma dirección; las mías estaban desparramadas por todo el
+   exterior.
+4. **«El rayado sigue mal, y muy mal, no es tan difícil»** + **«que no, que paralelas ni nada»** — mandó un
+   zoom del muro de verdad. **La forma correcta, medida sobre su foto**: trazos **cortos y gruesos anclados
+   en la línea del muro**, saliendo hacia fuera, **en grupitos de 3-5 que comparten inclinación** y cambian de
+   grupo a grupo (así es como hachura una mano), con el **borde de fuera desigual** y la **línea sólida** en
+   la cara de dentro. **No** son paralelas, **no** son un peine regular y **no** son un garabato repartido por
+   todo el exterior — los tres intentos anteriores. `Muro relleno` es lo mismo pero **dentro** de la banda,
+   como su «Interior Wall Fill».
+   - ⚠️ Detalle del `.pen`: un `path` con `fill:"#00000000"` **pinta el trazo lavado, en gris**. Sin la
+     propiedad `fill` sale del color que le pongas. Costó una pasada entera.
+5. **«El trazo a mano es demasiado irregular, ¿no viste la foto?»** — tenía razón otra vez: en su foto la
+   línea es **casi recta**, con un temblor finísimo, como tirada a mano con regla. La mía ondulaba como un
+   gusano. Amplitud bajada de 1,5 a 0,5 y tramos más largos.
+
+> 📌 **La lección, para no repetirla**: cuando mande una referencia, **medir contra la referencia** antes de
+> enseñar nada — no aproximar de memoria. Tres pasadas perdidas por eso.
+
+### ✅ CONFIRMADO POR ÉL — YA NO SE DISCUTE
+- Muros, puertas y ventanas de hoy **quedan como están a nivel funcional**: son la vía para mapas hechos con
+  otra herramienta, importados y marcados encima.
+- El constructor nuevo es para **mapas relativamente sencillos hechos en Rolvium**.
+- **La niebla de batalla tiene que funcionar también con lo construido aquí.** Sale gratis (son muros
+  normales), pero es un requisito con nombre y **lleva test propio**.
+
+### 🏗 CONSTRUIDO ESTA NOCHE — LAS FORMAS DE BUILDER (él: «ve construyendo y después vemos»)
+
+Tumbó el diseño v3 y mandó construir. Se ha construido **lo único que no depende de sus preguntas abiertas**:
+
+| | Qué |
+|---|---|
+| 🔺 | **Polígono** — un clic un vértice, se cierra pinchando otra vez sobre el primero. Vértices en la rejilla, lados a cualquier ángulo: **ahí está la «pared inclinada»** que pedía |
+| ✍️ | **A pulso** — se arrastra y la sala sale con la forma de la mano. No se pega a la rejilla (saldría una escalera) y se limpia el temblor, o cada trazo dejaría cientos de muros |
+| ▭ | **Rectángulo y círculo** — ya estaban en el motor; ahora se arrastran sobre el mapa y se ven crecer |
+| 🧱 | **El Builder de siempre NO se ha movido** — sin tocar la forma sigue siendo clic a clic, y puertas y ventanas siguen partiendo muros. Con test que lo sujeta |
+| 🌫 | **La niebla funciona con lo levantado aquí** — su requisito con nombre. Dos tests: la sala tapa la vista en el motor de la API, y no hay ninguna marca que distinga una sala generada de un muro marcado a mano |
+
+**Ficheros**: `roomRules.ts` · `MapCanvas.tsx` · `SegmentBar.tsx` · `SceneTab.tsx` · `useScene.ts` (+ sus
+tests, `SegmentBar.test.tsx` nuevo) · `vision.test.ts` en la API · `tests/regression/sala-generada-es-un-muro-normal.test.ts` · claves `maps.room.*` en es y en.
+
+**Verde al cerrar**: typecheck web+api · **1011 regression** · 12 smoke · 38 functional · 226 api ·
+`npm run audit` 0 hard / 13 warn (los de siempre) · `build:web` y `build:api`.
+
+**Tres decisiones tomadas al construir, por coherencia con lo que ya había — revisables por él**:
+1. Los muros generados **nacen ocultos al jugador**, como cualquier muro nuevo (pregunta 5).
+2. **Ninguna puerta automática**: la sala se levanta cerrada y él abre los vanos con el disco (pregunta 1).
+3. **Dos salas que se tocan no se funden**: quedan los dos muros (pregunta 2).
+
+**SIN construir, y a propósito**: preajustes, texturas base, textura por sala y el interruptor foto/dibujar.
+Todo eso cuelga de la **pregunta 6**, que es de modelo de datos y sólo la contesta él.
+
+### ✅ ARREGLADO EL 2026-09-03 (chat nuevo) — «A PULSO» YA SE PUEDE USAR
+
+El fallo que el candado de contexto dejó sin tocar la noche anterior, más las tres cosas menores de la misma
+revisión. Todo arreglado y con test que lo sujeta.
+
+**1 · `simplifyRing` no simplificaba curvas — el gordo.**
+- **Qué pasaba**: medía cada punto contra la cuerda de sus **dos vecinos inmediatos**. En una curva suave cada
+  punto está prácticamente encima de esa cuerda, así que no guardaba ninguno y la red de seguridad devolvía
+  **el trazo crudo entero**. La guarda que debía acotar los muros era justo lo que los dejaba sin acotar.
+- **El arreglo**: **Ramer–Douglas–Peucker** de verdad — se mide contra la cuerda del tramo COMPLETO, y el
+  anillo se parte por sus dos cabos (el primer punto y el más lejano a él), que es lo que le da extremos a una
+  curva cerrada. Fuera la vuelta del trazo crudo: menos de tres vértices es una raya, y `freehandSides` la
+  rechaza.
+- **Medido, el mismo trazo por los dos caminos, con la rejilla en 27**: círculo a pulso de radio 4 casillas,
+  **75 muros → 11**; de 8 casillas, **150 → 16**; de 15, **282 → 16**. El número queda acotado por la
+  tolerancia, no por lo grande que sea la sala — que es justo lo que faltaba.
+- **El agujero de los tests, tapado**: el único trazo de prueba era un **cuadrado**, todo lados rectos, donde
+  hasta el filtro malo acertaba. Hay ahora cinco tests de **trazo redondeado**; cuatro de ellos fallan contra
+  el código viejo (comprobado a mano volviendo a ponerlo).
+
+**2 · El polígono ya deja poner un vértice pegado al primero.** El cierre usaba `<= grid` y el vecino en cruz
+cae a exactamente `grid`: ese clic cerraba la sala en vez de poner la esquina, y una **L** cuya última esquina
+cae junto a la primera era imposible. Ahora el tope es media casilla (`grid * 0.75`). Test que lo pincha, y
+comprobado que falla contra el código viejo.
+
+**3 · Una sala ya no puede quedarse con un boquete.** `addRoom` escribía los muros uno a uno con `Promise.all`:
+si fallaba el enésimo, los anteriores se quedaban puestos, **la sala quedaba abierta y por ahí se colaba la
+visión**, avisando sólo con el banner genérico. Ahora hay `MapsPort.addWalls` — un `insert` de varias filas,
+una sola sentencia: **entran todos o ninguno**.
+> 🟠 **Decisión tomada, revisable por él**: se resolvió con un método NUEVO al lado del que ya había.
+> `addWall` no se ha tocado, así que muros, puertas y ventanas siguen exactamente igual; sólo `addRoom` usa el
+> lote. Era la opción aditiva, sin romper nada de lo que ya funcionaba.
+
+**4 · El título de un test de `SegmentBar.test.tsx`** decía «las seis formas» y comprueba cinco. Corregido —
+era sólo el título; las seis son las del diseño, las construidas son cinco.
+
+**Ficheros tocados**: `roomRules.ts` · `MapsPort.ts` · `SupabaseMapsRepo.ts` · `useScene.ts` · `MapCanvas.tsx`
+(+ `roomRules.test.ts`, `SupabaseMapsRepo.test.ts`, `useScene.test.ts`, `MapCanvas.test.tsx`,
+`SegmentBar.test.tsx`, `tests/helpers/fakes.ts`) · `specs/modules/maps/SPEC.md`.
+
+**Verde al cerrar**: typecheck web+api · **1020 regression** (eran 1011) · 12 smoke · 38 functional · 226 api ·
+`npm run audit` 0 hard / 13 warn (los de siempre) · `build:web` y `build:api`.
+
+**⚠️ Sin hacer, a propósito**: no se ha lanzado el subagente de **review** — este chat venía con la instrucción
+de no lanzar subagentes. Queda `/review` pendiente antes de dar la tanda por cerrada. Y **nada commiteado**:
+todo el trabajo de Builder sigue en el árbol de trabajo, sin commit.
+
+**Todo lo demás de la revisión, limpio**: hexagonal, seguridad, RLS (no hay migración, correcto), i18n es/en,
+cobertura, y confirmado que **el camino viejo no se ha tocado** (`planOpening` intacto, `segment` por defecto).
+
+### 🔁 PROMPT DE RESUME DEL CHAT NUEVO — USAR ESTE
+
+> Rolvium, chat nuevo. Rama `sonda-de-prueba`, `main` intacto. Lee el bloque 🔵 de `WORK_STATE.md`
+> (2026-09-03) y ve a «LOS TRES ENCARGOS, HECHOS». El panel v3, el candado y el nodo por doble clic están
+> construidos y verdes, pero **sin commitear** y **sin pasar `/review`**. Lanza el review, y si sale limpio
+> commitea la tanda. Después: las tres migraciones que faltan en la base (`spin_ms`, `intensity`, `group_id`),
+> que sin ellas el preview revienta.
+
+### 🔁 PROMPT DE RESUME (el que trajo este chat)
+
+> Rolvium, chat nuevo. Rama `sonda-de-prueba`, subida a GitHub, `main` intacto. Lee el bloque 🔵 de
+> `WORK_STATE.md` (2026-09-03) y ve directo a «LO PRIMERO DEL CHAT NUEVO». Su orden: **deja de colgar cosas de
+> la barra vieja y maqueta el panel v3** (`rolvium.pen`, frames `ePNCc` y `zpsjH`, más `CvkXT` y `tS9zl` para
+> el grupo). Dentro va el **candado de pegar/no pegar a la rejilla**, ya aprobado con sus tres condiciones. Y
+> luego el **doble clic sobre la línea añade un nodo** — pregúntale antes cómo convive con el doble clic que
+> hoy entra al muro dentro de un grupo. La app corre en local: `localhost:5173` contra Supabase local, que ya
+> tiene las tres columnas.
+
+### 🔁 PROMPT DE RESUME (viejo)
+> ✅ Hecho el 2026-09-03: `simplifyRing` con Ramer–Douglas–Peucker, el cierre del polígono y el lote de
+> `addRoom`. Lo que queda de esta tanda:
+>
+> Rolvium, chat nuevo. Rama `sonda-de-prueba`, `main` intacto. Lee el bloque 🔵 de `WORK_STATE.md`
+> (2026-09-03). Los cuatro fallos de la revisión están arreglados y verdes, pero **sin commitear** y **sin
+> pasar `/review`**. Lanza el review, y si sale limpio commitea la tanda de Builder.
+
+### 🟢 2026-09-03, NOCHE — CONSTRUIDO, SUBIDO Y DESPLEGADO (por primera vez)
+
+**EL GRUPO, construido entero** (§ «EL GRUPO» del spec). Un clic coge la pieza · doble clic entra al muro
+suelto · se mueve · **se escala por ocho tiradores** · el área coge muros y no sólo fichas · «Agrupar» ata a
+mano lo viejo y «Soltar» lo deshace.
+- `groupRules.ts` (18 tests) · `MapsPort.setWallsGroup` y `updateWallsGeometry` · `useScene.groupWalls`,
+  `ungroupWalls`, `transformWalls` · `MapCanvas` (gesto `groupXf`, marco y tiradores) · `SegmentBar` (la fila)
+  · claves `maps.group.*` en es y en · migración `20260903120000_maps_walls_group.sql`.
+- Diseñado antes en `rolvium.pen`: `PL/Builder · GRUPO cogido · en el mapa` (`M5z1UB`),
+  `PL/Builder · panel · GRUPO cogido` (`CvkXT`), `PL/Builder · panel · VARIOS MUROS cogidos` (`tS9zl`).
+
+**Dos commits**: `300a647` (los cuatro arreglos + el cimiento) y `5e9aea2` (el grupo).
+**Verde**: typecheck web+api · 1059 regression · 12 smoke · 38 functional · 226 api · audit 0 hard · los dos builds.
+
+**🚀 LA RAMA ESTÁ SUBIDA.** Era la respuesta a su «sigue sin funcionar»: no había NADA desplegado, la rama
+nunca se había subido a GitHub. Los dos previews de Vercel salieron en verde solos:
+- Web → `https://rolvium-git-sonda-de-prueba-ignaciozitare-9429s-projects.vercel.app`
+- API → `https://rolvium-api-git-sonda-de-prueba-ignaciozitare-9429s-projects.vercel.app`
+- ⚠️ Los dos están detrás del acceso de Vercel: sólo se abren con su cuenta iniciada.
+
+### ✅ 2026-09-03, CHAT NUEVO — LOS TRES ENCARGOS, HECHOS
+
+**1 · EL PANEL v3 ESTÁ MAQUETADO.** `apps/web/src/modules/maps/ui/BuilderPanel.tsx`, y **la barra flotante
+vieja (`SegmentBar`) ya no se monta en ningún sitio**. Dentro, en el orden del diseño: cabecera con SU icono +
+la X · «EN QUÉ ESTOY TRABAJANDO · LAS DOS CONVIVEN» con las dos miniaturas dibujadas · muro·puerta·ventana ·
+las cinco formas · el candado · «LO QUE TENGO COGIDO» (grupo, muros sueltos, y con un muro elegido todo lo que
+hacía la barra vieja) · la nota, que cambia con el modo. Se agarra por la cabecera y se aparta.
+- El asa de arrastrar se extrajo a `ui/useDragPanel.ts` y ahora la comparten Builder y el editor de luces —
+  lo pedía el propio comentario del código «*el día que un segundo lo necesite*».
+- La forma `segment` se rotula ahora **«A mano»**, como en el diseño.
+
+**2 · EL CANDADO, con sus tres condiciones.** Motor en `domain/useCases/snapRules.ts`. Empieza CERRADO (nada
+cambia hasta que lo abra) · vale para muro, polígono, rectángulo, círculo y nodo · abierto, las puntas se pegan
+a las puntas de otros muros a menos de 12 px. «A pulso» queda fuera a propósito.
+
+**3 · EL NODO POR DOBLE CLIC.** `mapRules.splitWallAt` + `useScene.splitWall`. **Su decisión, aplicada:
+«primero entra, luego el nodo»** — sobre un muro de un grupo el primer doble clic ENTRA (como hasta ahora) y
+el siguiente pone el nodo; sobre un muro suelto lo pone directamente. El trozo nuevo hereda el grupo, entra
+antes de acortar el viejo (nunca un hueco) y va al historial de deshacer.
+
+**Ficheros**: `BuilderPanel.tsx` (nuevo) · `snapRules.ts` (nuevo) · `useDragPanel.ts` (nuevo) · `mapRules.ts`
+· `roomRules.ts` · `MapCanvas.tsx` · `useScene.ts` · `SceneTab.tsx` · `LightEditor.tsx` (sólo el import del
+asa) · `maps.css` · claves `maps.builder.*` en es y en · `specs/modules/maps/SPEC.md`.
+**Tests nuevos**: `BuilderPanel.test.tsx` (18) · `snapRules.test.ts` (12) · más bloques en `mapRules.test.ts`,
+`roomRules.test.ts`, `MapCanvas.test.tsx`, `useScene.test.ts` y `SceneTab.test.tsx`.
+
+**➖ LA RECTA SUELTA, construida** (él: «hazlo»). La sexta forma del diseño: se arrastra de un punto a otro y
+sale UN muro y sólo uno — la hermana de «a mano», pero de un tirón. Va por el camino de siempre, así que una
+puerta dibujada así sigue partiendo el muro de debajo, y no nace atada a ningún grupo. Vale en diagonal y
+obedece al candado. `roomRules.lineSide` + gesto `line` en `MapCanvas`. Con esto **el panel ya enseña las seis
+formas del diseño, en sus dos filas de tres**.
+
+### ✅ ÚLTIMA TANDA ANTES DE SUBIR (2026-09-03, noche)
+
+| Su encargo | Qué se hizo |
+|---|---|
+| «*el arrastrar y seleccionar no funciona con las formas simples de líneas, texto, círculo y cuadrado*» | `drawingBounds` + `drawingsInRect`: el área coge los trazos, y el puñado se mueve junto y se borra junto. Agarrar uno de los cogidos los mueve todos sin soltar la selección |
+| «*quiero que todas estas sean un solo icono y cuando hagas click despliegue al lado un menú*» | Las seis de dibujar plegadas en un icono con menú al lado (`DrawTools` en `Toolbar.tsx`). El icono enseña la herramienta puesta. Se cierra al elegir, con Escape y pinchando fuera |
+| «*SegmentBar.tsx sigue ahí esperando tu palabra → ¿qué es esto?*» | **BORRADA**, con su test. Su único test que no cubría ya `BuilderPanel.test.tsx` (el tooltip de «Quitar segmento») se mudó al panel |
+| «*sube todo a prod*» | **Las tres migraciones pendientes, APLICADAS en producción** (`spin_ms`, `intensity`, `group_id`). `get_advisors` sin nada crítico nuevo |
+
+**🚦 QA bloqueó una vez, y con razón**: `LayerMenu.tsx` llevaba desde el 2026-09-02 un camino que **borra**
+luces y trazos (`onRemove`) **sin un solo test**. Escrito ahora: `LayerMenu.test.tsx`, 11 tests. Y de paso las
+tres contradicciones que cazó, arregladas: el docblock de `snapRules` y el valor por omisión de `MapCanvas`
+decían «empieza cerrado» cuando el candado arranca ABIERTO, y el spec seguía diciendo que `SegmentBar` se
+quedaba en el árbol. Los tres avisos de emoji del audit eran NUEVOS de esta tanda, no de siempre: quitados.
+
+⚠️ **El icono de dibujar NO está en `rolvium.pen`**: lo describió él por escrito y pidió terminar y subir.
+Queda por dibujar cuando se retome el diseño.
+
+### ✅ SUS CORRECCIONES DE LA MISMA TARDE, TODAS HECHAS (2026-09-03)
+
+Probó el panel y salieron seis cosas. Las seis están construidas y verdes.
+
+| Su queja | Qué se hizo |
+|---|---|
+| «*si selecciono la herramienta de selección no tiene que cerrar los modales abiertos, viven juntas*» | El panel tiene **estado propio** (`builderOpen`), no «¿la herramienta es Builder?». Pasar a Seleccionar no cierra nada, y con un muro cogido pasar a Builder no lo suelta. Cualquier OTRA herramienta sí recoge los paneles |
+| «*si selecciono un nodo y quiero seleccionar otro tengo que volver a hacer doble click*» | Estar DENTRO es **del grupo**, no del muro (`insideGroup`). Se sale pinchando algo de fuera |
+| «*no me deja seleccionar todos los nodos*» | **Ctrl/Cmd + A** coge todos los muros. El panel lo dice, y siempre a la vista |
+| «*me separa los segmentos de la figura original, los nodos deberían ser como una cadena*» | **La cadena** (`chainWalls`): arrastrar una punta se lleva las que estaban en ese mismo sitio. **Puesta por omisión**, y se quita desde el panel. Es por SITIO, no por grupo |
+| «*una vez dentro del grupo debería poder arrastrar y seleccionar en grupo cosas*» | Dentro, el área coge de ese grupo **lo que pilló y nada más**. Inflarlo al grupo entero era lo que te echaba fuera |
+| «*los modales están confinados dentro del mapa, deberían estar por donde quiera*» | Al agarrarlo, el panel se mide y pasa a `fixed` en ese mismo sitio: cero salto, y luego va por toda la ventana. Vale para Builder y para el editor de luces |
+| «*el pegado a la rejilla debería estar desactivado por defecto*» | El candado **arranca ABIERTO**. Es al revés de lo que se le propuso el 2026-09-03 por la mañana («empieza cerrado»), y manda esto |
+| «*pon el logo que tenemos en el .pen como favicon*» | `index.html` no tenía NINGÚN `rel="icon"`. Ahora apunta a `public/brand/mark.svg` —la marca del `.pen`, la misma que ya usan la barra, el login y la mesa—, más `apple-touch-icon`. Test que lo pincha |
+
+**Ficheros de esta tanda**: `groupRules.ts` (`chainWalls`, `insideGroup`, `groupInsideOf`, `withWholeGroups`
+con excepción) · `MapCanvas.tsx` · `BuilderPanel.tsx` · `SceneTab.tsx` · `useDragPanel.ts` (reescrito: mide y
+pasa a `fixed`) · `LightEditor.tsx` · `index.html` · claves `maps.builder.chain.*` y `selectAll` ·
+`tests/regression/favicon-es-la-marca.test.ts` (nuevo) + bloques en `groupRules.test.ts`, `MapCanvas.test.tsx`,
+`BuilderPanel.test.tsx`, `SceneTab.test.tsx`, `LightEditor.test.tsx`.
+
+**Arreglado al repasar la deuda**: en los muros de un **círculo** o de un trazo **a pulso** —que no caen en la
+rejilla— el doble clic no ponía el nodo: recuadraba el muro. «Quieto» se mide ahora por lo que viajó el dedo,
+no por si la geometría cambió. Un clic suelto sigue recuadrando, como siempre. Dos tests nuevos.
+
+**Verde al cerrar**: typecheck web+api · **1208 regression** (eran 1059) · 12 smoke · 38 functional · 226 api ·
+`npm run audit` **0 hard / 16 warn** (ninguno nuevo: 3 emojis en comentarios viejos, 1 `#fff` y 12 de ui-reuse,
+todos de antes) · `build:web` y `build:api`.
+
+**Decisiones tomadas al maquetar — revisables por él**:
+1. **El candado va entre «con qué forma» y «lo que tengo cogido»**, no al final. «Lo que tengo cogido» aparece
+   y desaparece, y con el candado debajo el candado bailaría de sitio en cada clic.
+2. **`SegmentBar.tsx` NO se ha borrado**: se queda en el árbol, sin montarse, con un aviso en cabecera de que
+   no se le cuelgue nada nuevo. Se deja para que él diga si se borra — nada depende ya de ella.
+3. **El interruptor de modo no guarda nada** (vive en la pantalla, como el velo del director) y hoy sólo cambia
+   la nota del panel: es el sitio donde entrarán los preajustes.
+4. **El rectángulo y el círculo con el candado abierto van libres pero sin imán** en las esquinas: son formas
+   cerradas, no dejan rendijas. Se añade si lo pide.
+
+**⚠️ Sin hacer, y a propósito**:
+- **`/review` sin lanzar**: este chat viene con la instrucción de no lanzar subagentes, igual que el anterior.
+- **Nada commiteado**: todo en el árbol de trabajo.
+- **«ESTILO DE LA MAZMORRA» y las dos texturas base, sin maquetar** — lo dice el propio encargo: piden tabla de
+  habitaciones + migración + DBA, y van en su propia tanda.
+- ~~La sexta forma, «RECTA» suelta, sin motor.~~ ✅ **CONSTRUIDA** (ver abajo).
+
+### 🔴 EL ENCARGO ORIGINAL (2026-09-03) — para poder comparar
+
+**1 · «Ya es hora que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este.»**
+> **ORDEN CLARA: se acabó colgar cosas de la barra vieja `SegmentBar`.** Hay que MAQUETAR EL PANEL v3 de
+> verdad, el que lleva dibujado y aprobado en `rolvium.pen` desde hace dos días, y meter ahí lo nuevo.
+- Frames: `PL/Builder · panel ← v3 (modo + preajustes)` = **`ePNCc`** · `… modo SOBRE UNA FOTO` = **`zpsjH`**.
+- Y los tres del grupo, que también van dentro: `M5z1UB` (el grupo en el mapa), `CvkXT` (panel · grupo
+  cogido), `tS9zl` (panel · varios muros cogidos).
+- **Qué se maqueta ahora**: la cabecera con su icono · el interruptor **«EN QUÉ ESTOY TRABAJANDO · LAS DOS
+  CONVIVEN»** (sobre una foto / dibujar aquí) · muro·puerta·ventana · las formas · la fila del GRUPO · y el
+  candado nuevo.
+- **Qué NO se maqueta todavía**: «ESTILO DE LA MAZMORRA» y las texturas base. La pregunta 6 ya está
+  contestada, pero eso pide tabla de habitaciones + migración + DBA, y va en su propia tanda.
+- ⚠️ El interruptor de modo **NO depende de nada**: que se quedara sin construir fue un error de apunte mío,
+  ya corregido más abajo.
+
+**2 · ✅ APROBADO EL CANDADO de pegar/no pegar a la rejilla.** Él: «*tira*». Se le propusieron y aceptó estas
+tres condiciones:
+- **Empieza CERRADO** (como se comporta hoy), así no le cambia nada hasta que lo abra.
+- **Vale para todo Builder**: nodos, muros y polígono. No sólo para los nodos.
+- **Abierto, los extremos se pegan a las PUNTAS DE OTROS MUROS** que tengan cerca. Sin eso, «libre» se
+  convierte en «lleno de rendijas» y por una rendija de medio píxel se cuela la visión.
+- 🚫 **Descartado hacer la rejilla más fina**, y él lo aceptó: la rejilla **es el metro** —movimiento, tamaño
+  de fichas, alcance de luces, la regla— y afinarla toca todo el juego. Además no arreglaría nada: los muros
+  de una foto no caen en múltiplos de nada.
+- Va **dentro del panel v3**, no en la barra vieja (encargo 1).
+
+**3 · 🆕 DOBLE CLIC SOBRE LA LÍNEA DE UN MURO = AÑADIR UN NODO AHÍ.** Sus palabras: «*si tengo un vector y le
+hago doble click en alguna parte de la linea tiene que agregar otro nodo*». Es partir el muro en dos por ese
+punto. **Ya existe la maquinaria**: `wallPiece` y el partido de `planOpening` hacen exactamente eso para
+puertas y ventanas — se reaprovecha, no se inventa.
+- ⚠️ **Ojo al choque**: hoy el doble clic sobre un muro de un grupo ENTRA al muro suelto. Hay que decidir cómo
+  conviven: lo más probable es que dentro del grupo (ya entrado) el doble clic añada nodo, y fuera siga
+  entrando. **Preguntárselo antes de construir.**
+
+### 🕓 BACKLOG NUEVO (suyo, 2026-09-03)
+- **Deshacer/rehacer para fichas, dibujos y luces.** Hoy cubre sólo muros y salas. Él: «*el segundo punto
+  anótalo en el backlog*».
+- ✅ **Ya decidido y NO hay que volver a preguntarlo**: el historial **vive en memoria y muere al recargar**
+  («*me parece bien que quede en memoria*»).
+- ~~🔴 ABIERTA: al mover un nodo el movimiento se pega a la rejilla y él quiere libertad.~~ ✅ **CERRADA el
+  2026-09-03**: eligió el **candado**, y está construido. La rejilla más fina quedó descartada por él.
+
+### 🛑 LO ÚNICO QUE FALTA, Y NO LO PUEDO HACER YO
+
+**A la base le faltan TRES columnas**, y **el clasificador del entorno me bloquea cualquier cambio de esquema**
+(`apply_migration` denegado, y también el CLI de Supabase). Comprobado contra
+`supabase_migrations.schema_migrations`: lo último aplicado es `20260901213805 pjs_de_prueba`. Pendientes,
+exactamente tres, todas **aditivas y con guardas** (`IF NOT EXISTS` / `duplicate_object`):
+1. `20260901120000_maps_lights_spin.sql` → `maps_lights.spin_ms`
+2. `20260902010000_maps_lights_intensity.sql` → `maps_lights.intensity`
+3. `20260903120000_maps_walls_group.sql` → `maps_walls.group_id`
+
+**Hasta que entren, el preview falla**: las luces y la niebla revientan (el código pide columnas que no
+existen) y **el grupo no sobrevive a recargar**. Él tiene que autorizarlo o aplicarlo.
+
+### 🟣 SESIÓN DEL 2026-09-03, TARDE — LO QUE ÉL CORRIGIÓ Y DECIDIÓ
+
+Probó Builder sobre una foto de mapa y saltaron dos cosas, las dos mías:
+
+**1 · ESTABA MEZCLANDO LOS DOS MODOS.** Su diseño v3 lo dice en la primera línea —«las dos conviven»— y son
+cosas distintas: **Sobre una foto** marca muros encima; **Dibujar aquí** levanta salas. Yo le pregunté por
+salas mientras él marcaba muros sobre una foto. De ahí el «*estás mezclando estas dos opciones*».
+
+**2 · EL INTERRUPTOR DE MODO NO SE CONSTRUYÓ, Y NO HABÍA EXCUSA.** El bloque de arriba dice que se quedó fuera
+«porque cuelga de la pregunta 6». **Es falso, lo apunté mal yo**: de la 6 cuelgan los preajustes, las texturas
+base y el pincel de sala. El interruptor —lo único que impide que los modos se mezclen— no dependía de nada.
+Por eso en pantalla hay una barra sola con todo revuelto y él dijo «*sigues sin seguir el puto diseño*».
+
+**3 · ✅ CONTESTADA LA PREGUNTA 6, la que llevaba días parada.** Sus palabras: «*sí, lleva su suelo pero con un
+matiz: tiene de base el suelo que seleccionas cuando comienzas a dibujar, luego puedo poner con un pincel otra
+textura a ese suelo, o pongo otra capa y juego ahí con transparencias*».
+- La sala **es una entidad con su suelo**. El suelo base **se hereda del momento de dibujar**, no se elige
+  después — por eso los preajustes tienen sentido.
+- Encima **no se inventa nada**: pincel de textura y capas de terreno con transparencia, las que ya existen.
+  La sala mete un suelo DEBAJO; no reemplaza nada.
+- ⛔ Tabla + migración + **DBA antes de una línea de código de salas**.
+
+**4 · ✅ DECIDIDO EL «GRUPO» (modo sobre foto, NO toca la 6).** Los muros de un gesto quedan atados. Un clic
+coge el grupo, doble clic entra al muro suelto, y cogido **se mueve y se escala**. Se guarda. Y puede
+**agrupar a mano por área** los muros que ya tiene marcados, para que su trabajo viejo no se quede fuera.
+- Nombre elegido por él: **«Grupo»** (descartados pieza · trazo · contorno).
+- La selección por área hoy coge **sólo fichas** — no está rota, nunca se hizo para muros.
+- ⛔ Marca compartida en `maps_walls` + **DBA** antes de código.
+- 🎨 **Falta dibujar en el `.pen`**: cómo se ve un grupo cogido (marco, tiradores de escalar, qué enseña la
+  barra). No está en el v3.
+
+Todo esto está escrito en `specs/modules/maps/SPEC.md` (§ «EL GRUPO» y pregunta 6).
+
+### 🔴 LO SIGUIENTE, Y SÓLO PUEDE CONTESTARLO ÉL
+1. **¿Aprueba el v3?** Sin su ok no se toca una línea de interfaz.
+2. **⚠️ El `.pen` NO está guardado en disco**: el MCP no escribe, hace falta su **Cmd+S** en el tab de
+   `rolvium.pen`. Hasta entonces no hay nada que commitear del diseño.
+3. **De las siete preguntas, la 6 ya está contestada** (arriba). Siguen abiertas la 1, 2, 3, 4, 5 y 7 — pero
+   ninguna bloquea el modo «Sobre una foto», que es lo que él está usando.
+
+### 🚨 SIGUE PENDIENTE DE ANTES (no se ha tocado nada de esto)
+- **DOS migraciones van antes que el código** (`spin_ms`, `intensity`) o revienta la niebla en producción.
+- **QA → previews → merge → producción.** Nada hecho. 27 commits en la rama.
+- **«Está un pelín lento»** — aparcado por él.
+- ~~Al motor (`roomRules.ts`) le faltan las formas del punto 5: recta suelta, polígono y a pulso.~~ ✅ Hecho
+  el 2026-09-03 (polígono y a pulso construidos y corregidos). Queda sólo la **recta suelta**.
+
+### 🔁 PROMPT DE RESUME
+> Rolvium, chat nuevo. Rama `sonda-de-prueba`, sin subir, `main` intacto. Lee el bloque 🔵 de
+> `WORK_STATE.md` (sesión 2026-09-03) y `specs/modules/maps/SPEC.md` § «Rebanada 8». El diseño de Builder v3
+> está hecho y esperando mi ok.
+
+## 🔵 CIERRE DE SESIÓN — 2026-09-01, noche. TRASPASO A CHAT NUEVO
+
+> **Orden suya al cerrar: «no borres nada».** Vale para TODO: no podar este fichero, **no borrar sus dos
+> muros**, **no borrar los dos PJ de prueba**, no borrar nada de su mapa. Sólo él puede pedirlo, y por escrito.
+
+### 📍 DÓNDE ESTÁ TODO
+- Rama **`sonda-de-prueba`**, 13 commits por delante de `main`. **NADA subido a GitHub, NADA desplegado.**
+  `main` sigue intacto en `v0.5.0`.
+- Árbol limpio. **`rolvium.pen` ya está guardado y commiteado** (`c61f18a`) — él pulsó Cmd+S.
+- Comprobado al cerrar: **1350 tests** (944 web · 220 api · 29 core · 16 ui · 141 plenilunio) · typecheck web y
+  api limpios · `npm run audit` **0 hard** · `build:web` y `build:api` en verde.
+
+### 🚨 LO QUE PUEDE ROMPER PRODUCCIÓN SI NO SE MIRA — LEER ANTES DE DESPLEGAR
+1. **Producción NO tiene la columna `maps_lights.spin_ms`** (comprobado el 2026-09-01). El código nuevo la
+   PIDE en el `select` de luces, en la web y en la api. **Si el código sube antes que la migración, las luces
+   revientan en producción.** Orden obligatorio: **primero `20260901120000_maps_lights_spin.sql`, después el
+   despliegue.**
+2. **Las versiones de las migraciones en producción NO coinciden con los nombres de fichero del repo**:
+   producción guarda `pjs_de_prueba` como versión `20260901213805`, y el fichero del repo es
+   `20260901180000_pjs_de_prueba.sql`. Ya pasaba con las anteriores. Ojo con `supabase db push`, que compara
+   por versión y puede querer reaplicar o quejarse de orden — puede hacer falta `--include-all`.
+3. **La migración de los PJ de prueba YA está aplicada en producción** (por el MCP). Es idempotente, así que
+   reaplicarla no duplica a nadie.
+
+### ✅ QUÉ SE CONSTRUYÓ ESTA SESIÓN (todo en la rama, todo en verde)
+| | Qué | Estado |
+|---|---|---|
+| 🎭 | **La sonda de prueba** (§ 7.3): «ver como jugador» suelta una ficha genérica que él arrastra y enseña lo que vería un jugador desde ahí. Sin desplegable. Icono `theater_comedy`, elegido por él. | hecho |
+| 🚨 | **La luz que gira** (§ 7.2), la que llevaba reclamando: interruptor + vuelta, sólo con cono. | hecho |
+| 🔦 | **El cono de luz**: el borde ya no es una raya y el brillo nace en el vértice, no en el centro. | hecho |
+| 💬 | **Tooltips** en todos los botones de sólo icono; los de la barra no se veían (la barra scrollea y recortaba el globo) y se quedaban pegados al hacer clic. | hecho |
+| 🐞 | **La puerta**: `planOpening` corta TODOS los muros que pisa, no sólo el más largo. | hecho |
+| 🧹 | **La lente por personaje, borrada entera** + limpieza A y B del barrido. | hecho |
+| 🧱 | **La sonda choca** contra los muros, con la MISMA función que frena a una ficha. | hecho |
+| ⏱ | **Freno de la sonda**: pedía visión 60 veces por segundo; ahora ~7, como una ficha. | hecho |
+| 🏗 | **«Builder»** (antes «Muro») con SU icono (`public/icons/builder.png`, de su PNG, sin fondo). | hecho |
+| 🎭 | **Dos PJ de prueba** (`Elías Vane`, `Nix Corbeau`) en local Y producción, por migración idempotente. | hecho |
+| 🗂 | **El `.pen` ordenado por recorrido**, 13 bandas rotuladas. | hecho |
+
+### 🔴 LO QUE HAY QUE PREGUNTARLE / QUE FALTA
+1. **PROBARLO CON SUS OJOS.** Está todo en verde pero **nadie lo ha visto funcionando de verdad**: no tengo su
+   contraseña. Lo que hay que mirar: la sonda (que choque y que la niebla la siga), el barrido de la luz que
+   gira, el borde del cono, los tooltips y el icono de Builder.
+2. **Sus dos muros** encima de la puerta abierta (escena suya, x=621: puerta 405→540 + muros 405→513 y
+   513→540). El código ya evita que se repita, pero **sus datos siguen igual y él dijo «no borres nada»**.
+   Preguntar antes de tocar.
+3. **La luz que gira**: eligió «la niebla sigue al haz» y lo que sigue al haz es el BRILLO — lo explorado se
+   revela en el círculo desde el primer momento. A los segundos es idéntico. **Falta que diga si le vale.**
+   Sector a sector obliga a las N rotaciones en el servidor. Está escrito en § 7.2.
+4. **`/review` NO se ha lanzado** en toda la sesión: la instrucción de arranque de ese chat prohibía llamar a
+   subagentes sin que él lo pidiera. **Hay que lanzarlo antes de QA.**
+5. **QA + los dos previews de Vercel en verde + merge**, y sólo entonces producción — con la migración de
+   `spin_ms` PRIMERO. Él decidió: **todo sube junto**, la sonda + el borrado de la lente + la puerta.
+6. **FALLO C, «está todo lentísimo»: sin cerrar.** El freno de la sonda era una parte, pero no se ha medido.
+   Pistas que siguen sin mirar: `listLights` se pide en CADA petición de visión aunque no haya luces, y el
+   repo de web ganó 227 líneas de suscripciones realtime. **Medir antes de tocar** (contar peticiones a
+   `/scenes/:id/vision` al arrastrar).
+7. **Rebanada 6 (piezas)**: decisión suya de hoy — **se construye justo después de esto**. No se borra nada.
+8. **«Builder» es sólo el nombre**: dentro sigue siendo la herramienta de muros. El generador de
+   construcciones que él quiere meter ahí **está sin empezar** y necesita su spec.
+
+9. **🆕 QUEJA SUYA (2026-09-01, al retomar): «sigo sin poder seleccionar una luz y moverla».** Sin cerrar,
+   **sin tocar código**. Lo comprobado leyendo el código, para el que lo retome:
+   - **Seleccionar** una luz sí está implementado y desde las dos herramientas — con **Luz** (`MapCanvas.tsx`,
+     `case 'light'`) y desde **Seleccionar** (arreglo del 2026-08-31). El radio de acierto es
+     `Math.max(12, radio * 0.25)` **en px de escena, sin dividir por el zoom**: alejado, el blanco se queda
+     minúsculo en pantalla. Sospecha nº 1.
+   - El **aro de selección** (`mp-light-sel`) y su disco de clic sólo se PINTAN con la herramienta Luz activa.
+     Con Seleccionar la luz se elige pero **no se ve ninguna señal** de que esté elegida. Sospecha nº 2.
+   - **Moverla NO existe**: no hay ningún gesto de arrastre para luces en todo el módulo (hay `wallEdit`,
+     `marquee`, `draw`, `measure`… ninguno para luz). Esto **no es un fallo, es algo que nunca se construyó**
+     → necesita spec antes de tocarlo.
+   - Pendiente de que él diga si le falla **seleccionar**, **mover**, o las dos.
+
+### 🔁 PROMPT DE RESUME, DE UNA LÍNEA
+> Rolvium, retomo en la rama `sonda-de-prueba` (13 commits, sin subir, `main` intacto). Lee el bloque 🔵 de
+> `WORK_STATE.md`. **No borres nada.** Está construido y en verde: la sonda de prueba, la luz que gira, el
+> arreglo del cono y de la puerta, los tooltips, «Builder» con mi icono y dos PJ de prueba en local y
+> producción. **Lo primero: lanza `/review`**, y avísame de lo que salga. Antes de desplegar, ojo: producción
+> NO tiene la columna `spin_ms` y el código la pide — la migración va PRIMERO. Y tengo pendiente decirte tres
+> cosas: si te dejo borrar los dos muros de mi escena, si me vale el barrido de la luz tal como está, y qué
+> hacemos con el «va lentísimo».
+
+
+## 🔵 TRASPASO A CHAT NUEVO — 2026-09-02, noche cerrada
+
+> ⛔ **LAS IMÁGENES DEJARON DE FUNCIONAR EN ESE CHAT, EN LOS DOS SENTIDOS.** Sus capturas fueron rechazadas
+> por la API (tres veces) y al final tampoco se podían leer PNG exportados, ni reducidos a 610×1200. **Por eso
+> se corta aquí**: lo que queda es diseño, y el diseño sin poder verse ni enseñarse no se puede hacer.
+> En un chat nuevo vuelven a funcionar.
+
+### 🔴 LO PRIMERO EN EL CHAT NUEVO
+1. **Pedirle la captura de las «pseudo texturas base»** — preguntó «¿puedes agregar estas opciones, como las
+   de la herramienta que te pasé, a nivel pseudo texturas base?» y la imagen no llegó nunca. **Sin verla no
+   se puede contestar.** Que la mande a menos de 1200 px de lado, o que la deje en
+   `Escritorio / Rolvium-constructor-habitaciones /` y se lee desde disco.
+2. **El diseño de Builder va por el TERCER intento.** Los dos primeros los tumbó. Todas sus correcciones
+   están en `specs/modules/maps/SPEC.md` § «Rebanada 8» → «CORRECCIONES SUYAS DEL 2026-09-02». **Leerlas
+   antes de dibujar nada.**
+3. **La aclaración que lo cambia todo**: son **dos maneras que CONVIVEN** — marcar muros sobre una foto
+   importada (lo de hoy, no se toca) y dibujar el mapa dentro de la app (lo nuevo). Las texturas sólo tienen
+   sentido en la segunda. Está escrito en el spec.
+
+### 📍 CÓMO ESTÁ EL DISEÑO AHORA MISMO (en `rolvium.pen`, banda 5, final de la fila)
+- `PL/Builder · panel ← NUEVO 02-09 (v2)` (`xp8CX`) — el intento vivo. Ya lleva: nombre **Builder**, muro ·
+  puerta · ventana intactos, formas ampliadas (a mano, recta, rectángulo, círculo, polígono, a pulso),
+  botones de acción en **rojo sangre**, y el flujo de textura por sala en dos pasos.
+- **Le sigue faltando**, y él lo dijo: el icono suyo en la cabecera (en el `.pen` no se puede encoger su
+  dibujo de líneas sin que desaparezca — en la app ya está resuelto con `builder-mask.png`), y que se note en
+  qué modo estás (foto vs dibujar aquí).
+- `... DESCARTADO 02-09` (`k3kiE`, `nUBs1`, `P1E65`, `Po3BK`) — el primer intento, apartado a x=20200. **No
+  se ha borrado**: que decida él si lo quita.
+- ⚠️ **El `.pen` NO está guardado en disco**: el MCP no escribe, hace falta su Cmd+S. Nada de esto está
+  commiteado.
+
+### ✅ LO QUE SÍ QUEDÓ CERRADO Y EN VERDE ESTA NOCHE (código, 27 commits, nada subido)
+La sonda se pone donde él pincha · el pincel de niebla arreglado · el velo gris quitable · «Seleccionar» en
+el botón derecho · los trazos se eligen, mueven y borran · las herramientas del director apagadas viendo como
+jugador · luces (girar, intensidad 10–200, doce colores, mover, borrar) · icono de Builder arreglado.
+**976 tests · audit 0 hard · las dos apps compilan.**
+
+### 🚨 SIN TOCAR Y PENDIENTE
+- **DOS migraciones van antes que el código** (`spin_ms`, `intensity`) o revienta la niebla en producción.
+- **QA → previews → merge → producción.** Nada de eso se ha hecho.
+- **«Está un pelín lento»** — dicho por él, aparcado por él («ya lo veremos»).
+- Las **siete preguntas** del spec del generador, sin contestar.
+
+### 🔁 PROMPT DE RESUME
+> Rolvium, chat nuevo. Rama `sonda-de-prueba`, 27 commits sin subir, `main` intacto. Lee el bloque 🔵 de
+> `WORK_STATE.md` y luego `specs/modules/maps/SPEC.md` § «Rebanada 8» entera, sobre todo «CORRECCIONES SUYAS
+> DEL 2026-09-02». Vamos con el diseño de **Builder** (no es una herramienta nueva: es el Builder de hoy con
+> el generador sumado). Te voy a mandar una captura de las texturas base que en el chat anterior no llegó.
+
+## 🟢 NOCHE DEL 2026-09-02: LA SEGUNDA MITAD — NIEBLA, TRAZOS Y EL GENERADOR (spec, no interfaz)
+
+> Se fue a dormir dos veces esta noche, las dos diciendo **«sigue»**. Sigue en pie **«no borres nada»**.
+> **NADA subido a GitHub, NADA desplegado, `main` intacto.** Cuatro commits nuevos en la rama.
+
+### 🔴 LO PRIMERO AL LEVANTARSE: TRES COSAS QUE SÓLO PUEDE CONTESTAR ÉL
+1. **El generador de habitaciones NO TIENE DISEÑO.** Dijo «el generador que tenemos diseñado» — lo busqué
+   antes de escribir una línea: **no hay componente ni frame en `rolvium.pen`**, no hay nada en el historial
+   (el único «generador» del repo es el de personajes) y en este fichero aparece tres veces, las tres como
+   «sin empezar». Lo que mandó en su día fueron **dos capturas de Dungeon Scrawl como referencia**, que no es
+   un diseño. → **Hay que preguntarle si quiere diseño primero o tirar sin él.**
+2. **El spec del generador está escrito y SIN CONFIRMAR**, con **cinco preguntas** suyas dentro
+   (`specs/modules/maps/SPEC.md` § «Rebanada 8»): puertas automáticas o no · qué pasa cuando dos salas se
+   tocan · qué significa «la foto de fondo hace de textura de suelo» (dos lecturas, una casi gratis y otra
+   una capa por habitación) · qué tipos hacen falta · si los muros generados nacen visibles para el jugador.
+3. **Sigue sin probarlo nadie con sus ojos** salvo lo que él mismo vio anoche.
+
+### ✅ LO CONSTRUIDO EN ESTA SEGUNDA MITAD
+| | Qué | Cómo |
+|---|---|---|
+| 🌫 | **El pincel de niebla no hacía NADA** | Y no era de anoche. Está escrito para pintar «sobre lo explorado de cada JUGADOR», y su campaña `test` tiene **1 director y 0 jugadores** — el estado normal montando una escena. Lista vacía → ni una escritura. Y su velo gris se calcula como «lo que los jugadores han explorado»: sin jugadores, gris para siempre. `maps_fog` tenía **0 filas**. Ahora el director entra en el reparto. |
+| 🌫 | **Quitarse el velo gris** | Interruptor nuevo, sólo suyo: no toca la escena, no viaja, no se guarda, ningún jugador se entera. |
+| 🖱 | **«Seleccionar», primera del botón derecho** | Con separador. La vuelta a casa desde cualquier herramienta. |
+| ✏️ | **Trazos: elegir, mover y borrar** | Halo dorado (no cambio de color: el color es del que lo hizo). Se mira el ÚLTIMO, como se pinta, para no robarle el clic a fichas, luces ni muros. Mover guarda los puntos ya desplazados — si no, al recargar volvía a su sitio. |
+| 🏗 | **Motor del generador** | `domain/useCases/roomRules.ts`: rectángulo y círculo → lados de muro pegados a la rejilla. **Sin interfaz, a propósito.** |
+
+**Comprobado al cerrar**: typecheck web y api limpios · **1232 tests** (959 regression+src · 12 smoke · 38
+functional · 223 api · 29 core · 16 ui · 141 plenilunio) · `npm run audit` **0 hard, 13 warn** (los mismos de
+siempre) · `build:web` y `build:api` en verde.
+
+### ⚠️ UN SUSTO QUE NO ERA UN FALLO — apuntado para no repetirlo
+Al probar los trazos dijo **«no funcionan las herramientas de dibujo que tocaste»**. **No había fallo**: era
+el paquete viejo en su navegador. Se resolvió con una **recarga forzada** (`Cmd+Shift+R`).
+
+Pasó justo después de tocar **traducciones y CSS**, que es cuando el recargado en caliente de Vite se queda
+a medias más fácilmente. **Antes de buscar el fallo en el código, pedirle una recarga forzada.**
+
+De aquel rato salió algo que sí se queda: **dos tests que pulsan el botón del Lápiz y de la Caja de verdad**
+y dibujan hasta la base. Los que había le pasaban la herramienta al lienzo a mano — probaban el lienzo, no
+que el botón de la barra acabara dibujando. Ese hueco ya no está.
+
+### 🔒 DECISIONES DE ESTA NOCHE QUE NO HAY QUE DESHACER SIN PREGUNTARLE
+- **Nada que GIRE puede llevar un filtro colgando.** Un desenfoque gaussiano sobre algo que gira se rehace en
+  cada fotograma y fue lo que le puso el mapa entero a saltos. El filo del haz se DIBUJA en capas. Hay test.
+- **Mover un trazo es sólo del director**, porque la RLS de `maps_drawings` sólo deja actualizar al director.
+  No es un capricho de la pantalla. Si quiere que un jugador mueva el suyo → **política nueva, decisión suya**.
+- **Las imágenes de 1,8 MB se quedan** donde están. Cerrado por él: «no quiero perder ninguna imagen».
+- **Una habitación no es una entidad nueva**: produce muros de los de siempre. Sin tabla y sin migración.
+
+### 🚨 EL DESPLIEGUE: SIGUEN SIENDO DOS MIGRACIONES, Y VAN PRIMERO
+1. `20260901120000_maps_lights_spin.sql` — `spin_ms`
+2. `20260902010000_maps_lights_intensity.sql` — `intensity` (10–200)
+
+**Las dos las nombra la web en su `select`.** Si el código sube antes, no fallan «las luces»: **se cae la
+niebla entera para todos**. Ya aplicadas en LOCAL esta noche (sin `db:reset`, sólo añadir columna; sus 10
+luces intactas y todas a 100). Ojo con `supabase db push`: puede necesitar `--include-all`.
+
+### ⏳ SU COLA, COMO QUEDA
+1. **Generador de habitaciones**: confirmar spec + decidir si hace falta diseño. El motor ya está.
+2. **Tiradores en los nodos para escalar lo dibujado** — lo pidió junto con «seleccionar y mover» (que ya
+   está hecho). **El escalado sigue sin tiradores.** Él dijo «el escalado ya está resuelto»; hay que aclarar
+   qué quiso decir.
+3. **QA + los dos previews + merge**, y sólo entonces producción, con las dos migraciones delante.
+4. **Rebanada 6 (piezas)** y **«Builder»** como generador de construcciones de verdad.
+
+### 🔁 PROMPT DE RESUME
+> Rolvium, retomo en `sonda-de-prueba`. Lee el bloque 🟢 de `WORK_STATE.md`. **No borres nada.** Anoche se
+> arregló el pincel de niebla (mi campaña no tiene jugadores y por eso no hacía nada), se puede quitar el
+> velo gris, y los trazos ya se eligen, mueven y borran. El generador de habitaciones tiene spec y motor pero
+> **NO tiene diseño y el spec está sin confirmar: tengo cinco preguntas que contestar**. Antes de desplegar,
+> **DOS migraciones van primero** o revienta la niebla en producción.
+
+## 🟣 NOCHE DEL 2026-09-01 → 02: SUS CINCO RESPUESTAS, Y CUATRO COSAS CONSTRUIDAS SIN ÉL
+
+> Se fue a dormir con el encargo literal: **«avanza con estas cosas que no me necesitas, mañana lo quiero ver
+> construido, si terminas sigue con lo que puedas sin mí»**. Sigue en pie **«no borres nada»**.
+> **NADA se ha subido, NADA se ha desplegado, `main` sigue intacto.** Construir sí; desplegar no, porque eso
+> necesita su QA y las migraciones.
+
+### ✅ SUS CINCO RESPUESTAS (ya no hay que volver a preguntárselas)
+1. **Los dos muros de su escena → LOS QUITA ÉL.** No se tocan. El fallo que los provocó ya está arreglado.
+2. **El barrido de la luz que gira → NO le vale**: «no gira, tiene que estar girando todo el tiempo y solo
+   gira un poco mientras muevo el token y luego para». **Era un fallo de verdad. Arreglado esta noche.**
+3. **«Va lentísimo» → «está mejor».** No se mide nada por ahora. Queda apuntado por si vuelve.
+4. **La luz → «no lo puedo arrastrar, me debería mostrar algo que la seleccione a cuál seleccione y que me
+   deje moverla».** Construido esta noche.
+5. **Las imágenes de 1,8 MB → SE QUEDAN TODAS**, donde están: «no quiero perder ninguna imagen, para que sea
+   más fácil todo». **Decisión cerrada** — no volver a proponer moverlas ni borrarlas.
+
+### 🆕 LO QUE SE CONSTRUYÓ ESTA NOCHE (todo en la rama, sin commitear aún al escribir esto)
+| | Qué | Cómo se arregló |
+|---|---|---|
+| 🎨 | **El icono de Builder se veía descolorido** | Medido, no adivinado: de sus 16 384 píxeles sólo 725 son opacos, así que al encogerlo a tamaño de barra la máscara **no pasaba de 152 sobre 255** y nunca llegaba a teñirse del color del botón. Se generó `builder-mask.png` —SU MISMO dibujo con el alfa engordado 2 px— que a tamaño real llega a 252. **Su `builder.png` original NO se ha tocado.** |
+| 🚨 | **La luz que gira no giraba** | La orden de girar estaba bien, pero vivía **dentro de la máscara**, y un navegador no repinta un elemento porque su máscara se mueva. Por eso sólo avanzaba mientras él arrastraba un token (que fuerza repintados) y se congelaba al soltar. Ahora el haz se pinta como objeto de verdad y el charco hace de máscara — misma cuenta, al revés. Borde suave conservado. |
+| 🔦 | **Elegir una luz y moverla** | Eran TRES cosas: el aro sólo se pintaba con la herramienta Luz (con Seleccionar la elegía a ciegas); el blanco al que acertar se medía en px de escena y **se encogía al alejarse**; y arrastrar una luz **no existía**. Las tres, hechas. |
+| 🕯 | **Barra de intensidad por luz** | Nueva columna `intensity` (10–100, por defecto 100). **Es SÓLO pintura**: decisión suya — una luz al 10 % revela el mismo terreno que al 100 %, así que la api ni la pide. Al 100 % ninguna luz ya colocada cambia de aspecto. |
+
+**Comprobado al cerrar**: typecheck web y api limpios · **1371 tests** (965 web · 220 api · 29 core · 16 ui ·
+141 plenilunio) · `npm run audit` **0 hard, 13 warn** (los mismos 13 de antes) · `build:web` y `build:api` en
+verde · `specs/modules/maps/SPEC.md` § 7.2 actualizado con las cuatro cosas.
+
+### 🚨 EL DESPLIEGUE, QUE AHORA TIENE **DOS** MIGRACIONES POR DELANTE
+Antes había una trampa; ahora hay dos, y la misma regla vale para las dos:
+1. `20260901120000_maps_lights_spin.sql` — `spin_ms`
+2. `20260902010000_maps_lights_intensity.sql` — `intensity` ← **nueva de esta noche**
+
+**Las dos las PIDE la web en su `select`. Si el código sube antes que las migraciones, revienta.** Con
+`spin_ms` el destrozo es total —se cae la niebla entera para todos, no sólo las luces—; con `intensity`,
+igual. **Orden obligatorio: las dos migraciones PRIMERO, el código después.** Y ojo con `supabase db push`,
+que compara por versión y puede necesitar `--include-all` (las versiones de producción no coinciden con los
+nombres de fichero del repo).
+
+### 🔴 LO QUE SIGUE ESPERÁNDOLE A ÉL
+1. **PROBARLO CON SUS OJOS.** Sigue sin poder probarse nada: no tengo su contraseña. Lo de esta noche que hay
+   que mirar: **que el haz gire solo, sin tocar nada** (el fallo que él vio), el icono de Builder al lado de
+   los otros, elegir una luz con Seleccionar y arrastrarla, y la barra de intensidad.
+2. **El spec de la intensidad** se dio por bueno con lo que él pidió y las tres preguntas que dejé sin
+   contestar se resolvieron con el criterio más conservador: **10 %–100 %** (no se puede apagar del todo ni
+   subir por encima de lo de hoy) y **sin vuelta al `.pen`**, porque es una barra idéntica a las tres que ya
+   hay en ese panel y él ya aprobó ese patrón. **Si algo de eso no le gusta, se cambia.**
+3. **QA + los dos previews de Vercel + merge**, y sólo entonces producción, con las dos migraciones delante.
+4. **Rebanada 6 (piezas)**: decisión suya, se construye después de esto.
+5. **«Builder» sigue siendo sólo el nombre**: dentro es la herramienta de muros. El generador de
+   construcciones sigue sin empezar y necesita su spec.
+
+### 🔁 PROMPT DE RESUME
+> Rolvium, retomo en `sonda-de-prueba`. Lee el bloque 🟣 de `WORK_STATE.md`. **No borres nada.** Anoche se
+> arregló que la luz gire de verdad, el icono de Builder, y se construyó mover una luz y la barra de
+> intensidad. Antes de desplegar: **DOS migraciones van primero** (`spin_ms` e `intensity`), o revienta la
+> niebla en producción.
+
+## 🟠 PUNTO EXACTO — 2026-09-01: LA LENTE, BORRADA · LA PUERTA, ARREGLADA · LIMPIEZA A+B HECHA
+
+> Rama **`sonda-de-prueba`**. `main` NO se ha tocado. **Nada de esto ha ido a producción** — decisión suya de
+> hoy: «espera y sube todo junto» con la sonda.
+
+### 🔁 SEGUNDA TANDA DEL 2026-09-01 — probando la app en local, cuatro quejas suyas
+
+Todo esto salió de él mirando la app corriendo. **Nada subido, nada desplegado.** Commits `09abf8d`,
+`499cbff`, `ce2afb8`.
+
+**1 · «no me entero con los botones que hay» → TOOLTIPS. ✅**
+Los iconos sueltos de la escena llevaban el `title` del navegador o nada. Ahora usan el `Tooltip` del
+sistema: los 8 controles de la esquina · ojo, candado, subir, bajar, borrar y plegar del panel de capas ·
+plegar y añadir del rail · borrar y cerrar del editor de luz · las aspas de Fondo y Encuentro · la papelera
+de la barra de segmento. **Fuera a propósito**: el interruptor de tema del shell (el `Tooltip` se tiñe con
+`--sys-*`, que sólo existen dentro de la mesa) y los círculos de color (un globo que diga «Color 3» no añade
+nada).
+
+**2 · «esta barra no tiene tooltips» + «si hago click queda activado» → LOS DOS, ARREGLADOS. ✅**
+- La barra de herramientas **sí los tenía** desde hacía semanas y no se veía ni uno: `.mp-toolbar` lleva
+  `overflow:auto` (y `.mp-layers` también) y eso **RECORTA** un globo colocado en absoluto. Ahora va
+  `position: fixed` con las coordenadas calculadas contra la ventana, que es lo que lo saca del recorte.
+  ⚠️ **Regla que no se puede perder**: cualquier tooltip dentro de algo que scrollee necesita esto.
+- Se quedaba colgado tras pulsar porque el CSS lo enseñaba con `:focus-within`, y un clic también deja el
+  foco puesto. Ahora la visibilidad la lleva el componente: ratón encima, o teclado (`:focus-visible`, no
+  cualquier foco), y se va al salir o al pulsar. La API del componente NO cambia.
+
+**3 · «las luces cónicas sigue teniendo el borde duro» + «la luz brillante debería salir del vértice». ✅**
+Eran dos fallos de verdad y llevaban tiempo:
+- **Borde**: se pintaba el cono y se le ponía encima su propia silueta difuminada. Multiplicar una forma por
+  su propio borde borroso **no difumina**: en el filo la máscara vale la mitad y fuera no hay nada pintado,
+  así que saltaba de media a cero de golpe. Ahora **se pinta la caja entera y la forma vive en la máscara**,
+  la única que decide dónde acaba. De paso la región del desenfoque pasa a px de escena con margen.
+- **Brillo**: el `radialGradient` no decía unidades → se medía contra la CAJA del objeto, y en un cono el
+  punto brillante caía en mitad del triángulo. Ahora `userSpaceOnUse` centrado en la luz, radio = su alcance.
+- 3 tests de regresión + el de formas actualizado (la forma se comprueba ahora en la máscara).
+
+**4 · «el botón de ver como jugador… me debería dejar poner un token donde quiera para probar». 🔄 SPEC
+CORREGIDO, DISEÑO A MEDIAS.**
+- **La sonda YA NO es un botón nuevo**: cuelga de **«Ver como jugador»**. Encenderlo quita privilegios *y*
+  suelta la sonda; apagarlo se la lleva. Un botón menos en una barra que él ya ve saturada. § 7.3 reescrito.
+- El botón «Sonda» que se había dibujado en el `.pen` **se ha borrado**, y el frame `JRbTf` con él.
+- **PENDIENTE SUYO: elegir el icono.** Hoy es `layers` y «no se entiende». Tres candidatos dibujados en
+  `rolvium.pen`, frame **«PL/Ver como jugador · icono, 3 candidatos»** (`Ny7dg`), apagado y encendido:
+  `person_search` · `preview` · `theater_comedy`.
+
+### ✅ TERCERA TANDA — «sigue con todo esto, tengo que salir, lo quiero listo para la vuelta»
+
+Vía libre suya. Commits `5e040ba` (sonda) y `bf3c95c` (luz que gira). **Sigue todo en local, sin subir.**
+
+#### ✅ LA SONDA DE PRUEBA, CONSTRUIDA ENTERA (§ 7.3)
+- **«Ver como jugador» ES la sonda.** Encenderlo quita privilegios *y* suelta una ficha genérica en el centro
+  de lo que estés mirando; se arrastra con Seleccionar; apagarlo se la lleva. **Icono `theater_comedy`**,
+  elegido por él entre tres candidatos.
+- **Servidor**: `computeSceneVision` acepta `probe: {x, y}`. Niebla apagada → lo enseña todo; **manual → lo
+  que el pincel reveló** (devolverle negro sería mentir, no simular); visión → el polígono desde el punto.
+  **No escribe una sola fila.**
+- **La memoria la lleva el navegador** (`useScene`) y **se tira** al apagarla o al cambiar de escena.
+- 🔑 **Por qué el negro no puede volver**: la lente vieja pedía `getExplored(escena, dueño-de-la-ficha)` y un
+  director no acumula memoria nunca. Una sonda **no tiene dueño**. Hay test que lo sujeta.
+- La sonda se pinta en la capa de UI, encima de la niebla, con aro punteado para que no parezca una ficha.
+
+#### ✅ LA LUZ QUE GIRA, CONSTRUIDA ENTERA (§ 7.2) — la que llevaba reclamando
+- Interruptor «Que gire sola» + vuelta, **sólo con forma cono**, en el editor de luz. Por defecto 4 s.
+- **Datos**: UNA columna, `maps_lights.spin_ms` (0 = quieta), con CHECK 500–60000 ms.
+  **Migración aplicada en local con `supabase migration up` (NUNCA `db reset`) y verificada**: 3 usuarios,
+  3 escenas, 10 luces, 25 muros y 3 fichas antes y después; RLS de `maps_lights` intacta.
+- 🔑 **LA DECISIÓN QUE NO SE PUEDE PERDER**: el plan escrito era calcular 24–36 rotaciones en el SERVIDOR.
+  **No hace falta.** El recorte contra los muros es RADIAL, así que «cono girado a θ, recortado» = «círculo
+  recortado ∩ sector de θ». Por eso el servidor manda **el círculo entero una sola vez** (mismo coste que una
+  luz quieta) y el navegador **rota encima una ventana con forma de cono** (`animateTransform`, fase sacada
+  del reloj para que todos vean el haz en el mismo sitio). Barato, continuo y sin engordar la respuesta.
+- ⚠️ **LO ÚNICO QUE HAY QUE PREGUNTARLE DE ESTO**: él eligió «la niebla sigue al haz», y lo que sigue al haz
+  aquí es el **brillo** — lo explorado se revela en el círculo desde el primer momento en vez de ir saliendo
+  por sectores. A los pocos segundos es idéntico. Si lo quiere sector a sector, eso sí obliga a las N
+  rotaciones en el servidor y a pagar su coste. **Está escrito en el spec, § 7.2.**
+- 💡 **Para probarlo nada más volver**: ya tiene un cono en su escena (la luz `df5a1c8d…`, forma cono,
+  rotación 180). Seleccionarla con Seleccionar → «Que gire sola».
+
+#### 📊 Comprobado en esta tanda
+`npm test` **1344 ✓** en los cinco paquetes (938 web · 220 api · 29 core · 16 ui · 141 plenilunio) ·
+typecheck web y api limpios · `npm run audit` **0 hard** · **`build:web` y `build:api` los dos en verde** ·
+sus servidores de local siguen en pie (`:3001` `{"ok":true}` y `:5173` 200) y la ruta de visión contesta 401,
+que es «existe y pide sesión».
+
+### ✅ CUARTA TANDA — lo que vio probando en local (commit `e11f3e6`)
+
+**🧱 «el user dummy traspasa las paredes» — ARREGLADO, y sospechaba de código duplicado.**
+No lo había: `MapCanvas` deja los bloqueadores **vacíos para el director** («no choca nunca», decisión suya
+del 2026-08-22) y la sonda heredó esa excepción. Ahora la sonda —y sólo ella— usa `moveBlockers` +
+`slideToken` → `slideCircle` de `@rolvium/core`, **la única función de choque que hay en toda la app**, la
+misma que usa el servidor. Con las paredes atravesables la sonda atraviesa: simular es copiar, no ser más
+estricto. Esto cierra la contrapartida que aquel comentario daba por inevitable («el director no puede probar
+en su pantalla lo que siente un jugador»).
+
+**⏱ «las sombras no se ajustan dinámicamente» — ERA UN FALLO MÍO, y no el motor.**
+Arrastrar la sonda pedía la visión en **cada movimiento del ratón (~60/s)**; arrastrar una ficha va frenado a
+~7 Hz desde la rebanada 2. 60 peticiones por segundo llegaban tarde y desordenadas, `visionSeq` tiraba casi
+todas y la niebla parecía no seguirla. Ahora **mismo freno**, con cola en el borde de salida para que la
+última posición siempre se pregunte.
+
+> 🔑 **PARA ZANJAR LA SOSPECHA DE FONDO, con la prueba a mano**: `visionPolygon` existe UNA vez y vive sólo en
+> `apps/api`. El navegador **no calcula visión en ningún sitio** — sólo pinta lo que le contestan. Y todo lo
+> que la sonda añadió a `sceneVision.ts` está **dentro de `if (role === 'dm')`**: la ruta del jugador no tiene
+> una línea tocada (`git diff 5b1fff6 HEAD -- apps/api/src/application/maps/sceneVision.ts` lo enseña).
+
+**🏗 «Builder» con su icono.** El botón «Muro» de la barra pasa a llamarse **Builder** (ahí entrará el
+generador de construcciones) y usa **su dibujo**: `Rolvium context/walls doors and windows.png` → fondo
+quitado, recortado y centrado → `apps/web/public/icons/builder.png` (el original queda al lado como
+`builder-origen.png`, igual que se hizo con `piezas-origen.png`). Va de **máscara** y no de `<img>` para que
+se tiña con el botón: si no, el dibujo, que es oscuro, desaparecería sobre el negro del seleccionado.
+⚠ El **tipo de segmento** (muro · puerta · ventana) sigue llamándose «muro»: eso es qué dibujas, no el botón.
+
+**🎭 Dos PJ de prueba — 🚫 NO BORRAR.** `Elías Vane` y `Nix Corbeau`, por **migración idempotente**
+(`20260901180000_pjs_de_prueba.sql`), aplicada **en local Y en producción**. Las hojas no se inventan: se
+copian de un PJ ya válido de cada base y sólo cambia el texto; en el segundo se intercambian valores entre
+características conservando cada especialidad con la suya, así la suma no cambia y el presupuesto del sistema
+sigue cuadrando. Comprobado con `validateSheet` del propio sistema.
+
+**🗂 El `.pen`, reordenado POR RECORRIDO** (el primer orden que puse era el mío y lo rechazó, con razón):
+`1 ENTRAR · 2 CAMPAÑAS · 3 CREAR PERSONAJE · 4 LA MESA · 5 LA ESCENA · 6 PIEZAS · 7 BESTIARIO ·
+8 MIS PERSONAJES · 9 SISTEMAS · 10 MI CUENTA · 11 ESTADOS · 12 COMPONENTES · 13 NOTAS`. Cada banda lleva un
+rótulo grande en el lienzo y el orden de las capas coincide con el del lienzo. Lo nuevo de hoy son **las dos
+primeras de la banda 5**.
+
+### 🔴 LO PRIMERO AL RETOMAR — lo que sólo puede contestar él
+1. **GUARDAR `rolvium.pen` CON Cmd+S.** El MCP de Pencil NO escribe en disco: sin su Cmd+S el dibujo no se
+   puede commitear y el master se queda desfasado respecto al código, que ya está construido. Frames tocados:
+   `k5Ig5` (escena con la sonda) · `Ny7dg` (los 3 iconos candidatos) · `o4oM8f` (editor de luz, con «que gire
+   sola») · `VuUKc` (controles, con el botón nuevo) · `uBAwb` renombrado.
+2. **PROBARLO CON SUS OJOS.** Está todo construido y en verde, pero **no lo ha visto nadie en pantalla**: no
+   tengo su contraseña para entrar. Lo que hay que mirar: la sonda al encender «ver como jugador», el barrido
+   de la luz que gira, el borde del cono y los tooltips.
+3. **SUS DOS MUROS.** El arreglo del código evita que vuelva a pasar, pero **su mapa sigue con los tres
+   segmentos** (puerta 621,405→540 abierta + muros 405→513 y 513→540). Hay que borrar esos dos muros de SU
+   escena y **eso es dato suyo: pedírselo**. Él ya dijo «no toques los datos de mi mapa sin pedírmelo».
+
+### ✅ SUS DOS PREGUNTAS, CONTESTADAS HOY
+- **¿Quito el desplegable roto de producción ya?** → **NO.** «Espera y sube todo junto» con la sonda. El
+  borrado vive en la rama. Mientras tanto sigue el parche manual: quitar la lente a mano abajo a la derecha.
+  ⚠ Ojo: ese desplegable ya NO existe en la rama, así que el parche manual sólo aplica a lo que hay en prod.
+- **¿Qué hago con la rebanada 6 (piezas)?** → **Se construye JUSTO DESPUÉS de la sonda y de la puerta.** No se
+  borra NADA: ni las 12 funciones de `propRules.ts`, ni los métodos del puerto, ni las dos tablas vacías de
+  producción. Fecha anotada en el SPEC de maps, en el bloque de la rebanada 6.
+
+### ✅ 1 · EL SPEC DE LA SONDA, REESCRITO (§ 7.3 de `specs/modules/maps/SPEC.md`)
+La lente «ver con los ojos de ‹personaje›» **ya no existe en el spec**. La sustituye la **sonda de prueba**:
+icono en la barra → suelta una ficha genérica sin dueño → se arrastra → la pantalla enseña lo que vería un
+jugador desde ahí. Decisiones ya cerradas y escritas (no volver a preguntarlas):
+- **No es una ficha**: no va a `maps_tokens`, no la ve nadie, se va al apagarla / cambiar de escena / recargar.
+- **Alcance**: el de la escena (día sin límite, noche `night_radius_m`). No se inventa número nuevo.
+- **La memoria la lleva el NAVEGADOR** mientras la sonda está puesta y se tira al quitarla. **Cero escrituras.**
+- **El servidor** deja de pedir `asTokenId` y pasará a aceptar **un punto `{x, y}`**. Eso está en el spec, **NO
+  construido todavía** — la rama hoy sólo BORRA la lente.
+- Actualizados también: `specs/SPEC.md`, el titular de la rebanada 7 y el modelo de datos (queda escrito POR QUÉ
+  el mapa salía negro, para que nadie vuelva a atar esta herramienta a la memoria guardada de nadie).
+
+### ✅ 2 · EL DISEÑO, MONTADO EN `rolvium.pen` (pendiente de su ok + Cmd+S)
+- **`JRbTf`** — la barra con el botón nuevo: icono **`preview`**, en el bloque del director **con la niebla**:
+  `Revelar · Ocultar · Sonda`. Se queda pulsado (negro, `$pl-tinta`), no cambia el cursor.
+- **`k5Ig5`** — la escena con la sonda puesta: la ficha genérica (círculo oscuro con aro dorado y el icono
+  `preview`) dentro del cono de visión, con la pista «arrástrala», el cartel **«SONDA DE PRUEBA · lo que vería
+  un jugador desde aquí · no cambia nada para nadie · no se guarda nada»**, y la barra con Sonda encendida.
+- **`uBAwb`** (el frame viejo de la lente) **renombrado** para que el master no mienta: dice que la lente se
+  borró y que la penumbra sigue bloqueada.
+- 🐞 **Aviso para el próximo que edite el `.pen`**: en esta sesión el preview de Pencil colocaba los hijos de
+  los nodos creados con `Insert` **50 px más abajo** y salían recortados. Con `Copy` de un nodo existente +
+  `Update` de sus hijos sale bien. Si vuelve a pasar, ése es el camino.
+- **Sin variante clara/oscura, a propósito**: dentro de una campaña manda el tema del sistema.
+
+### ✅ 3 · EL FALLO DE LA PUERTA — REPRODUCIDO Y ARREGLADO (el código; su mapa NO)
+Reproducido primero con tests de `planOpening`, como pidió. **Eran DOS caminos distintos, no uno:**
+
+| | qué pasa | estado |
+|---|---|---|
+| **A** | Una puerta dibujada de un tirón **sobre dos muros seguidos** sólo partía **uno**: la puerta se **encogía en silencio** hasta el muro más largo y el resto seguía macizo. | ✅ **ARREGLADO** |
+| **B** | Un **muro dibujado ENCIMA de una puerta** ya existente se apila y la deja ciega sin avisar. | 🔴 **SIN ARREGLAR — decisión suya** |
+
+- **El arreglo (A)**: `planOpening` ahora corta **TODOS** los muros que pisa, no sólo el que más se apoya, y el
+  vano se estira sobre la **unión** de lo que hay debajo, así que sale del tamaño que se dibujó. Cada muro se
+  corta **sobre su propia recta** (un resto no se mueve ni un pelo). `OpeningPlan.split` (uno) pasa a
+  **`OpeningPlan.splits`** (varios); `useScene.addWall` aplica todos los cortes y borra todos los anfitriones.
+- **Por qué B no se arregla aquí**: **no es un fallo de cálculo, es una decisión de producto y es suya.** Al
+  dibujar un muro sobre una puerta, o el muro se parte contra el vano, o se rechaza el trazo, o se queda como
+  hoy. Hasta que elija, la spec manda («un muro nunca parte a otro»). **B es el que explica sus datos.**
+  Queda **anclado con `it.fails`** en `mapRules.test.ts`: pasa mientras el fallo viva y REVIENTA el día que
+  alguien lo arregle, que es justo el aviso que hace falta.
+- Tests nuevos: 2 en `mapRules.test.ts` + 1 en `useScene.test.ts` (que los dos cortes se APLICAN de verdad).
+
+### ✅ 4 · LIMPIEZA — APARTADOS A Y B, HECHOS (verificando símbolo a símbolo)
+**A · la lente, borrada entera.** `asTokenId` fuera de `mapsRoutes.ts` (esquema) y de `sceneVision.ts` (la rama
+entera del director) · `seeAsTokenId`/`seeAsOptions`/`onSeeAs`/`asPlayer` fuera de `SceneTab.tsx` · el
+desplegable fuera de `CanvasControls.tsx` · el parámetro fuera de `HttpVisionAdapter.ts` y del puerto
+`VisionPort` · las 4 claves `maps.seeAs.*` fuera de es y en · el CSS `.mp-seeas*` y `.mp-canvas-label.seeas` ·
+el `opts` del doble `fakeVisionPort` · y sus tests en `sceneVision.test.ts`, `SceneTab.test.tsx`.
+> ⚠ **Dos falsos positivos del barrido, comprobados**: en `controls.test.tsx` **no había nada** de la lente; y
+> el `asPlayer` de `sceneVision.test.ts` (líneas ~423) es una variable local de un test de LUCES — **no se tocó**.
+> Se conservó a propósito el test «el director ve la unión de lo explorado y sin polígono», que no es de la lente.
+
+**B · los 16 símbolos del barrido: NINGUNO era código muerto.** Todos se usaban dentro de su propio fichero —
+justo el falso positivo del que avisaba la nota. Reparto:
+- **Borrados (2)**, sin una sola referencia en ningún sitio: `LAYER_KINDS` (`layerRules.ts`) y `SceneState`
+  (`useScene.ts`).
+- **Dejan de exportarse (7)**, sólo se usan dentro de su fichero: `NATURAL_LAYER`, `PAINT_BAND`
+  (`layerRules.ts`) · `fogFeather` (`canvasLayers.tsx`) · `mapImageRow`, `mapLightRow` (`SupabaseMapsRepo.ts`) ·
+  `cellKey`, `signedArea` (`vision.ts` de la api).
+- **SE QUEDAN exportados (7), y no es olvido**: son el tipo de la firma de una función pública, así que
+  esconderlos dejaría un API que el consumidor no puede nombrar — `MaskPainter`, `VisionOutcome`, `PaintInput`,
+  `OpeningPlan`, `FlickerRhythm`, `MaskStop`, `FakeMapsSeed`.
+
+### 📊 Comprobado
+`npm -w apps/web run test` **900 ✓** · `npm -w apps/api run test` **211 ✓** · typecheck web y api limpios ·
+`npm run audit` **0 hard** (13 warn, todos preexistentes: 1 de `#ffffff` en `canvasLayers.tsx` y 12 de ui-reuse).
+
+### ⏳ SIGUIENTE PASO CONCRETO
+**Esperar su «ok» al diseño.** Con el ok: construir la sonda (navegador guarda la memoria; el servidor acepta
+`{x, y}`), sus tests, `/review`, `/qa`, previews de Vercel en verde, y **subir la sonda + el borrado de la
+lente + el arreglo de la puerta EN UN SOLO DESPLIEGUE**. Después, rebanada 6 (piezas).
+
+### 🚫 Deuda anotada, NO tocada
+- **FALLO C — «está todo lentísimo»**: sin diagnosticar, sigue igual. Pistas en el bloque 🔴🔴 de más abajo
+  (`listLights` en cada petición de visión; 227 líneas de suscripciones realtime nuevas). **Medir antes de tocar.**
+- **`/review` NO se ha lanzado** en esta sesión: la instrucción de arranque de este chat prohíbe llamar a
+  subagentes sin que él lo pida. El código va sin la revisión que manda CLAUDE.md — **lanzar `/review` antes de QA**.
+- `cd packages/core && npx tsc --noEmit` sigue fallando en `gameSystem.test.ts` (preexistente, ya falla en `main`).
+
 
 ## 🟢 PUNTO EXACTO — 2026-08-31 (cierre): LOS 2 ARREGLOS DEL PINCEL, HECHOS Y REVISADOS · `.pen` GUARDADO
 

@@ -52,8 +52,17 @@ export interface Wall {
   blocksSight: boolean;
   blocksMove: boolean;
   isOpen: boolean;
+  /**
+   * EL GRUPO (§ «Rebanada 8»): ata entre sí los muros que salieron de UN gesto, o que el director juntó a mano.
+   * `null` = muro suelto, que es lo que son todos los de antes de que esto existiera.
+   *
+   * 🔑 NO es una habitación. Marcando sobre una foto no hay suelo ni textura: hay muros. Un círculo son once
+   * muros que para él son UNA cosa, y puede acabar siendo una sala, un pilar o un estanque — al grupo le da igual.
+   */
+  groupId: string | null;
 }
-export type NewWall = Omit<Wall, 'id'>;
+/** Al crear, el grupo es opcional: un muro suelto no lo lleva, y el camino de siempre no tuvo que enterarse. */
+export type NewWall = Omit<Wall, 'id' | 'groupId'> & { groupId?: string | null };
 export type WallPatch = Partial<Pick<Wall, 'visiblePlayers' | 'kind' | 'blocksSight' | 'blocksMove' | 'isOpen'>>;
 
 /** A PC or a bestiary instance. `x`/`y`/`size` are in grid cells (top-left cell). */
@@ -183,6 +192,22 @@ export interface Light {
   rangeM: number;
   /** Ídem: si el día que ilumine proyectará sombra contra los muros. */
   castsShadow: boolean;
+  /**
+   * LA LUZ QUE GIRA (§ 7.2, «como una sirena»): milisegundos que tarda una VUELTA ENTERA. `0` = no gira.
+   *
+   * Uno y no dos campos —un «gira sí/no» aparte del periodo— porque serían dos formas de decir lo mismo y
+   * tarde o temprano una mentiría. Sólo significa algo con `shape: 'cone'`: un radio ya alumbra en redondo.
+   */
+  spinMs: number;
+  /**
+   * CUÁNTO CANTA, en porcentaje (§ 7.2, «intensidad por luz», petición del dueño 2026-09-01). `100` es
+   * exactamente como se pintaban las luces antes de que esto existiera.
+   *
+   * No confundir con `rangeM`, que es cuánto ILUMINA. Son cosas distintas a propósito: una vela tenue sigue
+   * alumbrando su rincón entero. Esto es SÓLO pintura — decisión suya del 2026-09-01: una luz al 10 % revela
+   * el mismo terreno que al 100 %, así que la api ni la pide ni la necesita.
+   */
+  intensity: number;
   createdAt: string;
   updatedAt: string;
 }

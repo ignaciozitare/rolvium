@@ -1,7 +1,7 @@
 import type { LitLight, SceneVision } from '@rolvium/core';
 import type { Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
 import { cellsPath, initialsOf, openingGeometry, polygonPoints, polygonsPath, tokenCenter } from '../domain/useCases/mapRules';
-import { conePath, flickerOf, lightRadiusPx, maskSrc, terrainLayers } from '../domain/useCases/layerRules';
+import { beamCones, conePath, flickerOf, intensityFactor, lightRadiusPx, maskSrc, terrainLayers } from '../domain/useCases/layerRules';
 
 /** Presentational SVG pieces of the canvas (no pointer logic) — see MapCanvas.tsx. */
 
@@ -46,9 +46,9 @@ export function GridLayer({ scene, patternId }: { scene: Scene; patternId: strin
   );
 }
 
-export function DrawingShape({ d, draft = false }: { d: Pick<Drawing, 'kind' | 'data' | 'color' | 'width'> & { id?: string }; draft?: boolean }): JSX.Element | null {
+export function DrawingShape({ d, draft = false, selected = false, movable = false }: { d: Pick<Drawing, 'kind' | 'data' | 'color' | 'width'> & { id?: string }; draft?: boolean; selected?: boolean; movable?: boolean }): JSX.Element | null {
   const data = d.data as Record<string, unknown>;
-  const common = { stroke: d.color, strokeWidth: d.width, fill: 'none', className: `mp-drawing ${draft ? 'draft' : ''}`, 'data-drawing-id': d.id, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  const common = { stroke: d.color, strokeWidth: d.width, fill: 'none', className: `mp-drawing ${draft ? 'draft' : ''} ${selected ? 'selected' : ''} ${movable ? 'movable' : ''}`, 'data-drawing-id': d.id, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   switch (d.kind) {
     case 'stroke': {
       const pts = (data.points as [number, number][]) ?? [];
@@ -61,7 +61,7 @@ export function DrawingShape({ d, draft = false }: { d: Pick<Drawing, 'kind' | '
       return <rect x={Math.min(x1, x2)} y={Math.min(y1, y2)} width={Math.abs(x2 - x1)} height={Math.abs(y2 - y1)} {...common} />;
     }
     case 'circle': return <circle cx={data.cx as number} cy={data.cy as number} r={data.r as number} {...common} />;
-    case 'text': return <text x={data.x as number} y={data.y as number} fill={d.color} className="mp-drawing mp-drawing-text" data-drawing-id={d.id}>{String(data.text ?? '')}</text>;
+    case 'text': return <text x={data.x as number} y={data.y as number} fill={d.color} className={`${common.className} mp-drawing-text`} data-drawing-id={d.id}>{String(data.text ?? '')}</text>;
     default: return null;
   }
 }
@@ -125,7 +125,7 @@ interface FogProps { scene: Scene; fog: SceneVision; ids: { seen: string; lit: s
  * dónde deja de verse.
  */
 export const FOG_FEATHER = { day: 5, night: 22 } as const;
-export const fogFeather = (lighting: Scene['lighting']): number => (lighting === 'night' ? FOG_FEATHER.night : FOG_FEATHER.day);
+const fogFeather = (lighting: Scene['lighting']): number => (lighting === 'night' ? FOG_FEATHER.night : FOG_FEATHER.day);
 
 /**
  * The masks the fog is painted with. Everything comes from the API — this only turns polygons and cells into SVG.
@@ -278,59 +278,178 @@ function lightShape(l: Light, r: number, props: Record<string, unknown>): JSX.El
  */
 export const lightFeather = (radius: number): number => Math.max(5, radius * 0.13);
 
+/**
+ * ¿Esta luz GIRA? (§ 7.2). Sólo un cono: un radio ya alumbra en redondo y un cuadrado girando no dice nada.
+ * `spinMs` es lo que tarda una vuelta entera; `0` es «quieta».
+ */
+export const spins = (l: Pick<Light, 'shape' | 'spinMs'>): boolean => l.shape === 'cone' && (l.spinMs ?? 0) > 0;
+
+/**
+ * LA FASE DEL BARRIDO, CALCULADA UNA SOLA VEZ POR LUZ.
+ *
+ * `begin` negativo significa «esto empezó hace tanto», y sacarlo del reloj es lo que pone a todos los de la
+ * mesa mirando el haz en el mismo sitio, entren cuando entren. Pero el valor NO puede recalcularse en cada
+ * pintada: cambiar `begin` en una animación que está corriendo la REINICIA, y este componente se vuelve a
+ * pintar con cada actualización de visión —el haz daría un salto atrás varias veces por segundo—. Guardado
+ * aquí, el atributo sale idéntico en cada pintada, React no lo toca y la animación no se entera.
+ *
+ * La clave lleva el periodo: si él cambia la velocidad en el editor, la fase se recalcula, que es justo lo
+ * que hay que hacer. Y se podan las luces que ya no están para que esto no crezca sin fin.
+ */
+const spinPhase = new Map<string, string>();
+function beginOf(l: Light): string {
+  const key = `${l.id}:${l.spinMs}`;
+  let begin = spinPhase.get(key);
+  if (begin === undefined) { begin = `-${Date.now() % l.spinMs}ms`; spinPhase.set(key, begin); }
+  return begin;
+}
+function prunePhases(lights: readonly Light[]): void {
+  if (spinPhase.size <= lights.length) return;
+  const live = new Set(lights.filter(spins).map(l => `${l.id}:${l.spinMs}`));
+  for (const key of spinPhase.keys()) if (!live.has(key)) spinPhase.delete(key);
+}
+
 export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: readonly Light[]; lit?: readonly LitLight[] }): JSX.Element {
   const shown = lights.map(l => ({ light: l, parts: lit?.find(x => x.id === l.id)?.parts ?? null }))
     .filter(({ parts }) => !lit || parts !== null);
+  prunePhases(lights);
+  /** La caja que ocupa una luz: su forma más el margen que necesita el desenfoque para no comerse su propio borde. */
+  const boxOf = (l: Light): { r: number; f: number; pad: number } => {
+    const r = lightRadiusPx(l, scene.grid);
+    const f = lightFeather(r);
+    return { r, f, pad: r * 1.6 + f * 4 };
+  };
   return (
     <g className="mp-layer-lights" data-testid="mp-lights">
       <defs>
-        {shown.map(({ light: l }) => (
-          <radialGradient key={l.id} id={`mp-light-${l.id}`}>
-            <stop offset="0%" stopColor={l.color} stopOpacity={0.65} />
-            <stop offset="55%" stopColor={l.color} stopOpacity={0.25} />
-            <stop offset="100%" stopColor={l.color} stopOpacity={0} />
-          </radialGradient>
-        ))}
         {shown.map(({ light: l }) => {
-          const f = lightFeather(lightRadiusPx(l, scene.grid));
+          const { r } = boxOf(l);
+          /**
+           * El degradado va en COORDENADAS DE LA ESCENA y centrado en la luz, no en la caja de su forma
+           * (dueño, 2026-09-01: «la luz brillante debería salir del vértice del cono, no aparecer en el centro
+           * del mismo como ahora»). Por omisión un `radialGradient` se mide contra la caja del objeto, así que
+           * en un cono el punto brillante caía en mitad del triángulo — a media pared, en vez de en la antorcha.
+           */
+          /**
+           * La INTENSIDAD (§ 7.2) multiplica lo que se pinta, y nada más. Al 100 % los números son los
+           * mismos que había antes de que la barra existiera, así que ninguna luz ya colocada cambia.
+           *
+           * Va en el degradado y no en la opacidad del elemento a propósito: ahí se llevaría por delante el
+           * PARPADEO, que anima justo esa opacidad. Así una antorcha al 30 % sigue temblando, sólo que suave.
+           */
+          const k = intensityFactor(l);
+          /**
+           * Se topan en 1 porque más opaco que opaco no existe. Por eso subir el brillo por encima de 100 %
+           * no sólo sube el centro —que llega a tope enseguida—: ENSANCHA el núcleo brillante, que es lo que
+           * de verdad se ve como «más luz» (dueño, 2026-09-02: «el máximo tendría que ser más brillante»).
+           */
+          const cap = (v: number): number => Math.min(1, v);
           return (
-            <filter key={l.id} id={`mp-lightblur-${l.id}`} x="-50%" y="-50%" width="200%" height="200%" filterUnits="objectBoundingBox">
+            <radialGradient key={l.id} id={`mp-light-${l.id}`} gradientUnits="userSpaceOnUse" cx={l.x} cy={l.y} r={r}>
+              <stop offset="0%" stopColor={l.color} stopOpacity={cap(0.65 * k)} />
+              <stop offset="55%" stopColor={l.color} stopOpacity={cap(0.25 * k)} />
+              <stop offset="100%" stopColor={l.color} stopOpacity={0} />
+            </radialGradient>
+          );
+        })}
+        {shown.map(({ light: l }) => {
+          const { f, pad } = boxOf(l);
+          // La región del filtro va en px de escena y con el mismo margen que la máscara: un desenfoque que
+          // acaba en el filo de su región se recorta a sí mismo y devuelve el canto que veníamos a quitar.
+          return (
+            <filter key={l.id} id={`mp-lightblur-${l.id}`} filterUnits="userSpaceOnUse"
+              x={l.x - pad} y={l.y - pad} width={pad * 2} height={pad * 2}>
               <feGaussianBlur stdDeviation={f} />
             </filter>
           );
         })}
         {shown.map(({ light: l, parts }) => {
-          const r = lightRadiusPx(l, scene.grid);
-          const f = lightFeather(r);
-          // La máscara se pinta con MARGEN: un desenfoque que acaba en el filo de su caja se come su propio borde.
-          const pad = r * 1.6 + f * 4;
+          const { r, pad } = boxOf(l);
+          /**
+           * El CHARCO de la luz: hasta dónde llega, ya recortado contra los muros y contra lo que alcanza a
+           * ver quien mira. Es lo único que decide la forma; el barrido de una luz que gira NO se mete aquí
+           * (ver «LA VENTANA QUE GIRA», abajo, en lo que se pinta).
+           *
+           * Sin datos del servidor —niebla apagada— se dibuja la forma a mano, y una luz que GIRA se dibuja
+           * REDONDA aunque sea un cono: es lo mismo que hace el servidor (`sceneVision.ts`, `shape: 'radius'`
+           * cuando gira), porque el charco de una sirena es todo el círculo que acaba barriendo. Recortarlo
+           * al cono quieto dejaría el haz girando dentro de una rendija.
+           */
+          const pool = parts
+            ? <path d={polygonsPath(parts)} fill={MASK_SHOW} data-testid="mp-light-shape" />
+            : spins(l)
+              ? <circle cx={l.x} cy={l.y} r={r} fill={MASK_SHOW} data-testid="mp-light-shape" />
+              : lightShape(l, r, { fill: MASK_SHOW, 'data-testid': 'mp-light-shape' });
           return (
             <mask key={l.id} id={`mp-litmask-${l.id}`} maskUnits="userSpaceOnUse" x={l.x - pad} y={l.y - pad} width={pad * 2} height={pad * 2}>
-              <g filter={`url(#mp-lightblur-${l.id})`}>
-                {parts
-                  ? <path d={polygonsPath(parts)} fill={MASK_SHOW} />
-                  : lightShape(l, r, { fill: MASK_SHOW })}
-              </g>
+              <g filter={`url(#mp-lightblur-${l.id})`}>{pool}</g>
             </mask>
           );
         })}
       </defs>
       {shown.map(({ light: l }) => {
-        const r = lightRadiusPx(l, scene.grid);
+        const { r, pad } = boxOf(l);
         const rhythm = flickerOf(l);
         const style = rhythm
           ? ({ animationDuration: `${rhythm.periodMs}ms`, '--mp-flicker': String(rhythm.depth) } as React.CSSProperties)
           : undefined;
-        return lightShape(l, r, {
-          key: l.id,
-          className: `mp-light ${rhythm ? (rhythm.sharp ? 'flicker-sharp' : 'flicker-soft') : ''}`,
-          fill: `url(#mp-light-${l.id})`,
-          style,
-          // SIEMPRE enmascarada, haya recorte del servidor o no: es lo que le quita el canto al borde.
-          mask: `url(#mp-litmask-${l.id})`,
-          'data-light-id': l.id,
-          'data-testid': 'mp-light',
-        });
+        const cls = `mp-light ${rhythm ? (rhythm.sharp ? 'flicker-sharp' : 'flicker-soft') : ''}`;
+        /**
+         * LA VENTANA QUE GIRA (§ 7.2, «como una sirena»).
+         *
+         * El haz se PINTA aquí, en el árbol de verdad, y no dentro de la máscara — que es donde estaba y por
+         * lo que no giraba (dueño, 2026-09-01: «solo gira un poco mientras muevo el token y luego para»).
+         * Un navegador NO vuelve a pintar un elemento porque se haya movido algo dentro de su máscara: la
+         * orden de girar se cumplía, pero nadie repintaba, así que el haz sólo avanzaba de refilón cuando
+         * otra cosa —arrastrar una ficha— obligaba al mapa a repintarse, y se congelaba al soltar.
+         *
+         * La cuenta no cambia: el servidor manda el CÍRCULO entero ya recortado contra los muros y aquí se
+         * cruza con el cono girado. Da igual el orden —«círculo recortado ∩ sector θ» es lo mismo mirado del
+         * derecho o del revés—, pero pintando el cono el que se mueve es un objeto visible y el navegador sí
+         * lo repinta. Calcular las vueltas en el servidor costaría N veces más en CADA petición de visión, y
+         * él ya se quejó de que «está todo lentísimo».
+         *
+         * EL FILO DEL HAZ SE DIBUJA, NO SE EMBORRONA — `beamCones`, y ahí está el porqué. En dos quejas
+         * suyas seguidas: primero «la niebla hace saltos raros, no es fluida», y al quitar el desenfoque para
+         * arreglarlo, «se ven los conos duros». Las capas dan las dos cosas: filo suave y coste plano.
+         *
+         * Y se pinta justo hasta su alcance, no un 60 % más: el degradado ya llega a cero ahí, así que pintar
+         * de más era área que el navegador rellenaba en cada fotograma sin que se viera nada.
+         */
+        if (spins(l)) {
+          return (
+            <g key={l.id} className={cls} style={style} mask={`url(#mp-litmask-${l.id})`} data-light-id={l.id} data-testid="mp-light">
+              <g data-testid="mp-light-spin" data-spin-ms={l.spinMs}>
+                <animateTransform attributeName="transform" type="rotate" repeatCount="indefinite"
+                  from={`0 ${l.x} ${l.y}`} to={`360 ${l.x} ${l.y}`} dur={`${l.spinMs}ms`} begin={beginOf(l)} />
+                {beamCones(l, r * 1.05).map((c, i) => (
+                  <path key={i} d={c.d} fill={`url(#mp-light-${l.id})`} fillOpacity={c.opacity} />
+                ))}
+              </g>
+            </g>
+          );
+        }
+        /**
+         * Lo que se PINTA es la caja entera, y la forma la pone la MÁSCARA — no al revés (dueño, 2026-09-01:
+         * «las luces cónicas sigue teniendo el borde duro»).
+         *
+         * Antes se pintaba el cono y se le ponía encima su propia silueta difuminada. Multiplicar una forma por
+         * su propio borde borroso no difumina nada: justo en el filo la máscara vale la mitad y fuera no hay
+         * nada que pintar, así que el resultado saltaba de medio a cero de golpe — una raya, más tenue pero
+         * raya. Pintando de sobra y dejando que la máscara sea la única que decide dónde acaba, el apagón
+         * ocurre entero dentro de lo pintado y el borde sale como tiene que salir: apagándose.
+         *
+         * No se sale de su alcance por pintar de más: el degradado ya llega a cero en el radio de la luz.
+         */
+        return (
+          <rect key={l.id} x={l.x - pad} y={l.y - pad} width={pad * 2} height={pad * 2}
+            className={cls}
+            fill={`url(#mp-light-${l.id})`}
+            style={style}
+            mask={`url(#mp-litmask-${l.id})`}
+            data-light-id={l.id}
+            data-testid="mp-light" />
+        );
       })}
     </g>
   );

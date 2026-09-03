@@ -126,7 +126,7 @@ export function cellsInDisc(centre: Point, radius: number, grid: number, width: 
   return out;
 }
 
-export const cellKey = (c: FogCell): string => `${c[0]},${c[1]}`;
+const cellKey = (c: FogCell): string => `${c[0]},${c[1]}`;
 /** Set union of explored cells (order is irrelevant; duplicates are dropped). */
 export function unionCells(...lists: FogCell[][]): FogCell[] {
   const seen = new Set<string>();
@@ -217,7 +217,7 @@ export function lightPolygon(light: LightShape, segments: Segment[]): VisionPoly
 }
 
 /** Área con signo. Su valor absoluto descarta astillas; su signo dice hacia qué lado gira el polígono. */
-export function signedArea(poly: VisionPolygon): number {
+function signedArea(poly: VisionPolygon): number {
   let a = 0;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     a += poly[j]![0] * poly[i]![1] - poly[i]![0] * poly[j]![1];

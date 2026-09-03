@@ -325,7 +325,7 @@ export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId:
 export const TOKEN_ELIAS: Token = { ...TOKEN_KAREN, id: 'tk-elias', characterId: 'ch-elias', name: 'Elías Vance', x: 8, y: 12, color: '#3a3a26', controlledBy: 'u-nix' };
 /** A hidden mutant placed by the DM (players never receive it). */
 export const TOKEN_MUTANT: Token = { ...TOKEN_KAREN, id: 'tk-mut', characterId: null, bestiaryRef: 'mutant', name: 'Mutante', x: 20, y: 9, color: null, visible: false, controlledBy: null, state: { resistance: 12 } };
-export const WALL_1: Wall = { id: 'w-1', sceneId: 'sc-1', campaignId: 'c1', x1: 270, y1: 216, x2: 270, y2: 540, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false };
+export const WALL_1: Wall = { id: 'w-1', sceneId: 'sc-1', campaignId: 'c1', x1: 270, y1: 216, x2: 270, y2: 540, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, groupId: null };
 export const WALL_VISIBLE: Wall = { ...WALL_1, id: 'w-2', x1: 270, y1: 540, x2: 540, y2: 540, visiblePlayers: true };
 /** A closed door across the corridor: cuts sight and movement until the DM opens it. */
 export const WALL_DOOR: Wall = { ...WALL_1, id: 'w-door', x1: 540, y1: 216, x2: 540, y2: 324, kind: 'door' };
@@ -351,7 +351,7 @@ export const LAYER_MOSS: Layer = { ...LAYER_BASE, id: 'ly-moss', kind: 'terrain'
 export const LAYER_PUDDLES: Layer = { ...LAYER_BASE, id: 'ly-pud', kind: 'terrain', name: 'Charcos', sortOrder: 2, visible: false, imageUrl: 'https://x/backgrounds/c1/puddles.png' };
 export const LAYERS_ALL: Layer[] = [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES, LAYER_FLOOR, LAYER_MOSS, LAYER_PUDDLES];
 
-const LIGHT_BASE = { sceneId: 'sc-1', campaignId: 'c1', layerId: null, rotation: 0, coneAngle: 60, castsShadow: false, createdAt: '2026-08-31T00:00:00Z', updatedAt: '2026-08-31T00:00:00Z' };
+const LIGHT_BASE = { sceneId: 'sc-1', campaignId: 'c1', layerId: null, rotation: 0, coneAngle: 60, castsShadow: false, spinMs: 0, intensity: 100, createdAt: '2026-08-31T00:00:00Z', updatedAt: '2026-08-31T00:00:00Z' };
 export const LIGHT_TORCH: Light = { ...LIGHT_BASE, id: 'li-torch', shape: 'radius', kind: 'torch', x: 300, y: 200, color: '#e8a24e', flicker: true, rangeM: 6 };
 export const LIGHT_BULB: Light = { ...LIGHT_BASE, id: 'li-bulb', shape: 'square', kind: 'bulb', x: 600, y: 400, color: '#f0e6c8', flicker: false, rangeM: 4 };
 /** Una luz escondida en la capa de notas del director: no puede llegar a un jugador. */
@@ -377,6 +377,9 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const sceneUpdates: { id: string; patch: ScenePatch }[] = [];
   const wallUpdates: { id: string; patch: WallPatch }[] = [];
   const wallMoves: { id: string; at: { x1: number; y1: number; x2: number; y2: number } }[] = [];
+  const wallGroupings: { ids: string[]; groupId: string | null }[] = [];
+  const wallBatchMoves: string[][] = [];
+  const wallBatchRemoves: string[][] = [];
   const activated: (string | null)[] = [];
   const removedDrawings: string[] = [];
   const clearedMine: string[] = [];
@@ -384,6 +387,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const uploads: { campaignId: string; name: string }[] = [];
   const layerUpdates: { id: string; patch: LayerPatch }[] = [];
   const lightUpdates: { id: string; patch: LightPatch }[] = [];
+  const drawingMoves: { id: string; data: Drawing['data'] }[] = [];
   const propUpdates: { id: string; patch: PropPatch }[] = [];
   const scenePropUpdates: { id: string; patch: ScenePropPatch }[] = [];
   const propUploads: { name: string; bytes: number }[] = [];
@@ -391,7 +395,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const masksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -406,10 +410,15 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     uploadImage: async (campaignId: string, _file: Blob, name: string) => { uploads.push({ campaignId, name }); const img: ImageAsset = { id: `img-new-${++n}`, campaignId, name, url: `https://x/backgrounds/${campaignId}/${name}.png`, createdAt: '' }; images.unshift(img); return img; },
     removeImage: async (id: string) => { const i = images.findIndex(x => x.id === id); if (i >= 0) images.splice(i, 1); },
     listWalls: async (sid: string) => walls.filter(w => w.sceneId === sid),
-    addWall: async (w: NewWall) => { const created: Wall = { ...w, id: `w-new-${++n}` }; walls.push(created); return created; },
+    addWall: async (w: NewWall) => { const created: Wall = { groupId: null, ...w, id: `w-new-${++n}` }; walls.push(created); return created; },
+    // Todas o ninguna, como el INSERT de varias filas del adaptador real.
+    addWalls: async (ws: NewWall[]) => { const made = ws.map(w => ({ groupId: null, ...w, id: `w-new-${++n}` }) as Wall); walls.push(...made); return made; },
     updateWall: async (id: string, patch: WallPatch) => { wallUpdates.push({ id, patch }); const w = walls.find(x => x.id === id); if (w) Object.assign(w, patch); },
     updateWallGeometry: async (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => { wallMoves.push({ id, at }); const w = walls.find(x => x.id === id); if (w) Object.assign(w, at); },
     removeWall: async (id: string) => { const i = walls.findIndex(w => w.id === id); if (i >= 0) walls.splice(i, 1); },
+    removeWalls: async (ids: string[]) => { wallBatchRemoves.push(ids); for (let i = walls.length - 1; i >= 0; i--) if (ids.includes(walls[i]!.id)) walls.splice(i, 1); },
+    setWallsGroup: async (ids: string[], groupId: string | null) => { wallGroupings.push({ ids, groupId }); for (const w of walls) if (ids.includes(w.id)) w.groupId = groupId; },
+    updateWallsGeometry: async (batch: Wall[]) => { wallBatchMoves.push(batch.map(w => w.id)); for (const b of batch) { const w = walls.find(x => x.id === b.id); if (w) Object.assign(w, { x1: b.x1, y1: b.y1, x2: b.x2, y2: b.y2 }); } },
     listTokens: async (sid: string) => tokens.filter(t => t.sceneId === sid),
     addToken: async (t: NewToken) => { const created: Token = { layerId: null, ...t, id: `tk-new-${++n}` }; tokens.push(created); return created; },
     updateToken: async (id: string, patch: TokenPatch) => { tokenUpdates.push({ id, patch }); const t = tokens.find(x => x.id === id); if (t) Object.assign(t, patch); },
@@ -420,6 +429,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     removeMyDrawings: async (sid: string) => { clearedMine.push(sid); for (let i = drawings.length - 1; i >= 0; i--) if (drawings[i]!.sceneId === sid && drawings[i]!.authorId === PLAYER_USER.id) drawings.splice(i, 1); },
     removeAllDrawings: async (sid: string) => { clearedAll.push(sid); for (let i = drawings.length - 1; i >= 0; i--) if (drawings[i]!.sceneId === sid) drawings.splice(i, 1); },
     updateDrawingLayer: async (id: string, layerId: string | null) => { const d = drawings.find(x => x.id === id); if (d) d.layerId = layerId; },
+    updateDrawingData: async (id: string, data: Drawing['data']) => { drawingMoves.push({ id, data }); const d = drawings.find(x => x.id === id); if (d) d.data = data; },
     listLayers: async (sid: string) => layers.filter(l => l.sceneId === sid),
     addLayer: async (l: NewLayer) => { const created: Layer = { ...LAYER_OBJECTS, ...l, name: l.name ?? '', sortOrder: l.sortOrder ?? 0, imageUrl: l.imageUrl ?? null, id: `ly-new-${++n}` }; layers.push(created); return created; },
     updateLayer: async (id: string, patch: LayerPatch) => { layerUpdates.push({ id, patch }); const l = layers.find(x => x.id === id); if (l) Object.assign(l, patch); },
@@ -484,12 +494,15 @@ export const EXPLORED_2x2: SceneVision['explored'] = [[0, 0], [0, 1], [1, 0], [1
  */
 export function fakeVisionPort(seed: Partial<SceneVision> = {}, correct?: (at: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }) => { x: number; y: number } | null) {
   const state: SceneVision = { vision: VISION_LEFT, explored: EXPLORED_2x2, radiusPx: null, ...seed };
-  const calls: { op: string; sceneId: string; asTokenId?: string | null; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } } | { x: number; y: number; radius: number } }[] = [];
+  const calls: { op: string; sceneId: string; probe?: { x: number; y: number }; at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } } | { x: number; y: number; radius: number } }[] = [];
   return {
     state, calls,
-    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }, opts?: { asTokenId?: string | null }) => {
-      // `asTokenId` es la lente del director: se apunta para poder atar que la visión se pide AL SERVIDOR.
-      calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}), ...(opts?.asTokenId ? { asTokenId: opts.asTokenId } : {}) });
+    refresh: async (sceneId: string, at?: { tokenId: string; x: number; y: number; from?: { x: number; y: number } }, opts?: { probe?: { x: number; y: number } }) => {
+      // `probe` es la sonda de prueba (§ 7.3): se apunta para poder atar que la visión se pide AL SERVIDOR.
+      calls.push({ op: 'refresh', sceneId, ...(at ? { at } : {}), ...(opts?.probe ? { probe: opts.probe } : {}) });
+      // Con la sonda, el servidor contesta lo que se ve DESDE ESE PUNTO: aquí, una casilla distinta por punto,
+      // que es lo justo para poder comprobar que el navegador las va uniendo.
+      if (opts?.probe) return { ...state, explored: [[Math.round(opts.probe.x), Math.round(opts.probe.y)] as [number, number]] };
       const cut = at && correct ? correct(at) : null;
       // Como el real: recortado → pegado al muro, holgura 0; si cabía, un disco grande alrededor.
       return { ...state, corrected: cut && at ? { tokenId: at.tokenId, ...cut } : null, clearance: at ? (cut ? 0 : 100) : null };

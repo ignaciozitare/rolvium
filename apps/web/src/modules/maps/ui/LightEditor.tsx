@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from '@rolvium/i18n';
+import { Tooltip } from '@rolvium/ui';
 import type { Light, LightKind, LightPatch, LightShape } from '../domain/entities/Scene';
-import { clampRangeM, flickerOf, LIGHT_COLORS, LIGHT_KINDS, LIGHT_SHAPES, MAX_RANGE_M, MIN_RANGE_M, rangeLabelM, RANGE_STEP_M } from '../domain/useCases/layerRules';
+import { useDragPanel } from './useDragPanel';
+import { clampIntensity, clampRangeM, clampSpinMs, DEFAULT_SPIN_MS, flickerOf, INTENSITY_STEP, intensityLabel, LIGHT_COLORS, LIGHT_KINDS, LIGHT_SHAPES, MAX_INTENSITY, MAX_RANGE_M, MAX_SPIN_MS, MIN_INTENSITY, MIN_RANGE_M, MIN_SPIN_MS, rangeLabelM, RANGE_STEP_M, spinLabelS, SPIN_STEP_MS } from '../domain/useCases/layerRules';
 
 const KIND_ICON: Record<LightKind, string> = {
   torch: 'local_fire_department', bulb: 'lightbulb', fire: 'fireplace', lantern: 'wb_twilight',
@@ -21,33 +23,6 @@ interface Props {
 }
 
 /**
- * Arrastrar el panel por su cabecera. Devuelve un DESPLAZAMIENTO, no una posición: el panel sigue anclado
- * donde lo deja el CSS y sólo se corre desde ahí, así que no hay dos sitios peleándose por dónde va.
- *
- * Vive aquí y no en un sitio compartido porque hoy sólo lo usa este panel. El día que un segundo lo necesite
- * se extrae, con dos consumidores reales delante y no antes.
- */
-function useDragPanel(): { offset: { x: number; y: number }; handlers: Record<string, (e: React.PointerEvent<HTMLElement>) => void> } {
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const from = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null);
-  const onPointerDown = (e: React.PointerEvent<HTMLElement>): void => {
-    // Los botones de la cabecera mandan sobre el arrastre: borrar y cerrar tienen que poder pulsarse.
-    if (e.button !== 0 || (e.target as HTMLElement).closest('button')) return;
-    from.current = { px: e.clientX, py: e.clientY, ox: offset.x, oy: offset.y };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  };
-  const onPointerMove = (e: React.PointerEvent<HTMLElement>): void => {
-    const f = from.current;
-    if (f) setOffset({ x: f.ox + e.clientX - f.px, y: f.oy + e.clientY - f.py });
-  };
-  const onPointerUp = (e: React.PointerEvent<HTMLElement>): void => {
-    from.current = null;
-    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-  };
-  return { offset, handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp } };
-}
-
-/**
  * El editor de una luz de ambiente (rolvium.pen · «Escena · Director · luces de ambiente»).
  *
  * Se agarra por la cabecera y se aparta, y la X lo cierra sin borrar la luz: con la herramienta de luces un
@@ -62,7 +37,7 @@ function useDragPanel(): { offset: { x: number; y: number }; handlers: Record<st
  */
 export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.Element {
   const { t } = useTranslation();
-  const { offset, handlers } = useDragPanel();
+  const { ref, style, handlers } = useDragPanel<HTMLDivElement>();
   // Escape cierra, como cualquier panel flotante de la app. Es la salida que se busca a ciegas.
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose(); };
@@ -73,18 +48,22 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
   const animated = !!flickerOf(light);
 
   return (
-    <div className="mp-light-editor" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
+    <div className="mp-light-editor" ref={ref} style={style}
       role="group" aria-label={t('maps.lights.select', { kind: kindLabel(light.kind) })}>
       <div className="mp-light-head mp-drag" title={t('maps.lights.move')} {...handlers}>
         <span className="material-symbols-outlined mp-light-grip" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">drag_indicator</span>
         <span className="material-symbols-outlined mp-light-head-icon" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">{KIND_ICON[light.kind]}</span>
         <span className="mp-light-title">{t('maps.lights.title')}</span>
-        <button type="button" className="mp-layers-icon" aria-label={t('maps.lights.delete')} onClick={onRemove}>
-          <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>delete</span>
-        </button>
-        <button type="button" className="mp-layers-icon" aria-label={t('maps.lights.close')} onClick={onClose}>
-          <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>close</span>
-        </button>
+        <Tooltip label={t('maps.lights.delete')} placement="top">
+          <button type="button" className="mp-layers-icon" aria-label={t('maps.lights.delete')} onClick={onRemove}>
+            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>delete</span>
+          </button>
+        </Tooltip>
+        <Tooltip label={t('maps.lights.close')} placement="top">
+          <button type="button" className="mp-layers-icon" aria-label={t('maps.lights.close')} onClick={onClose}>
+            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>close</span>
+          </button>
+        </Tooltip>
       </div>
 
       <div className="mp-light-preview" aria-hidden="true">
@@ -119,6 +98,25 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
                 onChange={e => onChange({ rotation: Number(e.target.value) })} />
               <span className="mp-light-value">{Math.round(((light.rotation % 360) + 360) % 360)}°</span>
             </label>
+            {/*
+              * QUE GIRE SOLA, «como una sirena» (§ 7.2, petición del dueño del 2026-08-31). Sólo aquí, con
+              * el cono: un radio ya alumbra en redondo y un cuadrado girando no significa nada.
+              *
+              * Un interruptor y un periodo, pero UN solo dato: `spinMs = 0` es «quieta». Guardar además un
+              * «gira sí/no» sería decir lo mismo dos veces y acabaría mintiendo.
+              */}
+            <label className="mp-light-check">
+              <input type="checkbox" checked={light.spinMs > 0} onChange={e => onChange({ spinMs: e.target.checked ? DEFAULT_SPIN_MS : 0 })} />
+              {t('maps.lights.spin')}
+            </label>
+            {light.spinMs > 0 && (
+              <label className="mp-light-row">
+                <span className="mp-light-label">{t('maps.lights.spinPeriod')}</span>
+                <input type="range" min={MIN_SPIN_MS} max={MAX_SPIN_MS} step={SPIN_STEP_MS} value={light.spinMs} aria-label={t('maps.lights.spinPeriod')}
+                  onChange={e => onChange({ spinMs: clampSpinMs(Number(e.target.value)) })} />
+                <span className="mp-light-value">{spinLabelS(light.spinMs)}</span>
+              </label>
+            )}
           </>
         )}
       </fieldset>
@@ -151,6 +149,17 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
           {/* Se dice que se anima de verdad: es lo que el dueño pidió y no se ve en un interruptor apagado. */}
           {animated && <span className="mp-light-animates">{t('maps.lights.animates')}</span>}
         </div>
+        {/*
+          * INTENSIDAD (§ 7.2, petición del dueño 2026-09-01). Va en «Color» y no en «Se guardan ya» porque
+          * esto SÍ se ve en el mapa al momento: es cuánto canta la luz. Cuánto ILUMINA es el alcance, y está
+          * abajo con lo demás. La barra es la misma de siempre —cono, rotación, vuelta—, no una nueva.
+          */}
+        <label className="mp-light-row">
+          <span className="mp-light-label">{t('maps.lights.intensity')}</span>
+          <input type="range" min={MIN_INTENSITY} max={MAX_INTENSITY} step={INTENSITY_STEP} value={light.intensity} aria-label={t('maps.lights.intensity')}
+            onChange={e => onChange({ intensity: clampIntensity(Number(e.target.value)) })} />
+          <span className="mp-light-value">{intensityLabel(light.intensity)}</span>
+        </label>
       </fieldset>
 
       {/*

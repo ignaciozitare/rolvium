@@ -13,7 +13,7 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onMoveLight: vi.fn(), onSelectDrawing: vi.fn(), onMoveDrawing: vi.fn(), onProbeMove: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
@@ -27,6 +27,253 @@ function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
 const down = (el: Element, x: number, y: number, button = 0) => fireEvent.pointerDown(el, { clientX: x, clientY: y, pointerId: 1, button });
 const move = (el: Element, x: number, y: number) => fireEvent.pointerMove(el, { clientX: x, clientY: y, pointerId: 1 });
 const up = (el: Element) => fireEvent.pointerUp(el, { pointerId: 1 });
+
+/**
+ * 🧩 EL GRUPO (§ «EL GRUPO»), pedido el 2026-09-03 probando Builder sobre una foto de mapa: «*no puedo
+ * arrastrar y seleccionar por grupo*» · «*debería poder seleccionarlo entero y luego con doble clic por
+ * pedacitos, si no, cuando esté en medio de otras cosas no se podrá mover*» · «*cuando lo seleccione debería
+ * poder escalarlo*».
+ *
+ * 🔑 NO son habitaciones: sobre una foto no hay suelo ni textura, hay muros.
+ */
+describe('<MapCanvas> el GRUPO se coge, se mueve y se estira', () => {
+  const lado = (id: string, x1: number, y1: number, x2: number, y2: number, groupId: string | null = 'g1') =>
+    ({ ...WALL_1, id, x1, y1, x2, y2, groupId });
+  /** Un cuadrado agrupado, de los que deja el rectángulo de Builder. */
+  const grupo = [lado('g-a', 0, 0, 200, 0), lado('g-b', 200, 0, 200, 150), lado('g-c', 200, 150, 0, 150), lado('g-d', 0, 150, 0, 0)];
+  const dmSel = { isDm: true, me: 'u-gm', tool: 'select' as const, walls: grupo };
+  const dblDown = (el: Element, x: number, y: number) => fireEvent.pointerDown(el, { clientX: x, clientY: y, pointerId: 1, button: 0, detail: 2 });
+
+  it('un clic sobre un muro del grupo coge los CUATRO, no el muro suelto', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    down(svg, 100, 0);
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith(['g-a', 'g-b', 'g-c', 'g-d']);
+    expect(cb2.onSelectWall).not.toHaveBeenCalledWith('g-a');
+  });
+
+  /** 🔒 Lo que pidió con nombre: entrar al pedacito. Sin esto, un muro dentro de un grupo es inalcanzable. */
+  it('el doble clic QUIETO entra dentro y coge el muro suelto', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    dblDown(svg, 60, 0); up(svg);
+    expect(cb2.onSelectWall).toHaveBeenCalledWith('g-a');
+    expect(cb2.onSelectWalls).toHaveBeenLastCalledWith([]);
+  });
+
+  /**
+   * 🔒 EL DOBLE CLIC DE VERDAD, sin `detail` (dueño, 2026-09-03: «*no funciona EL DOBLE CLICK*»). En el
+   * navegador `pointerdown` trae `detail: 0` —el contador de clics lo llevan `mousedown`/`click`—, así que el
+   * test pasaba metiéndoselo a mano mientras en pantalla estaba muerto. Aquí se hacen DOS clics normales
+   * seguidos, que es lo que hace él.
+   */
+  it('dos clics normales seguidos sobre el mismo muro entran dentro', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    down(svg, 60, 0); up(svg);
+    expect(cb2.onSelectWall).not.toHaveBeenCalledWith('g-a');
+    down(svg, 60, 0); up(svg);
+    expect(cb2.onSelectWall).toHaveBeenCalledWith('g-a');
+  });
+
+  it('dos clics en muros DISTINTOS no son un doble clic', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    down(svg, 60, 0); up(svg);
+    down(svg, 200, 60); up(svg);
+    expect(cb2.onSelectWall).not.toHaveBeenCalledWith('g-b');
+  });
+
+  /** 🔒 Y Suprimir borra el GRUPO ENTERO, no un muro: «*no me deja borrarlos*». */
+  it('Suprimir con el grupo cogido lo borra entero', () => {
+    const cb2 = { onDeleteSelection: vi.fn() };
+    mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    fireEvent.keyDown(window, { key: 'Delete' });
+    expect(cb2.onDeleteSelection).toHaveBeenCalled();
+  });
+
+  /**
+   * 🔒 «*puedo seleccionar el círculo, puedo escalarlo y modificarlo pero no moverlo*» (dueño, 2026-09-03).
+   * El segundo clic de un arrastre cuenta como DOBLE clic para el navegador, así que decidir «doble clic =
+   * entrar» en la pulsación hacía que ir a mover el grupo entrase al muro suelto. Se decide al SOLTAR.
+   */
+  it('arrastrar mueve el grupo aunque el navegador lo cuente como doble clic', () => {
+    const cb2 = { onTransformWalls: vi.fn(), onSelectWall: vi.fn(), onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    dblDown(svg, 60, 0); move(svg, 110, 40); up(svg);
+    expect(cb2.onTransformWalls).toHaveBeenCalledTimes(1);
+    expect(cb2.onSelectWall).not.toHaveBeenCalledWith('g-a');
+  });
+
+  /** 🔒 Y mover funciona a la primera, sin haberlo elegido antes: los ids viajan dentro del gesto. */
+  it('se mueve a la primera, en el mismo gesto que lo elige', () => {
+    const cb2 = { onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    down(svg, 60, 0); move(svg, 110, 40); up(svg);
+    const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string; x1: number; y1: number }[];
+    expect(batch).toHaveLength(4);
+    expect(batch[0]).toMatchObject({ id: 'g-a', x1: 50, y1: 40 });
+  });
+
+  /**
+   * 🔒 «*no puedo seleccionar los nodos para moverlos*» (dueño, 2026-09-03). Tras entrar con doble clic, el
+   * muro sigue teniendo su `groupId`, así que el siguiente clic volvía a coger el grupo entero y las puntas
+   * eran inalcanzables. Estando dentro, el clic edita ESE muro.
+   */
+  it('dentro del grupo se puede agarrar una punta del muro y moverla', () => {
+    // Una L, para que la punta libre sea de UN solo muro y no haya duda de cuál se está pinchando.
+    const ele = [lado('h-a', 0, 0, 100, 0), lado('h-b', 100, 0, 100, 100)];
+    const cb2 = { onMoveWall: vi.fn(), onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, walls: ele, selectedWallId: 'h-a', ...cb2 });
+    down(svg, 0, 0); move(svg, 40, 30); up(svg);
+    expect(cb2.onMoveWall).toHaveBeenCalledTimes(1);
+    expect(cb2.onMoveWall.mock.calls[0]![0]).toBe('h-a');
+    expect(cb2.onSelectWalls).not.toHaveBeenCalledWith(['h-a', 'h-b']);
+  });
+
+  /**
+   * Arrastrar por el medio del muro elegido lo mueve A ÉL y no al grupo — pero **se lleva las puntas de sus
+   * dos vecinos**, o la figura se abriría por los dos lados (la cadena, pedida el 2026-09-03). Son tres muros
+   * de los cuatro: el de enfrente no se toca, y por eso esto no es «mover el grupo».
+   */
+  it('y arrastrar por el medio del muro elegido lo mueve a él y a las puntas de sus vecinos, no al grupo', () => {
+    const cb2 = { onMoveWall: vi.fn(), onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallId: 'g-a', ...cb2 });
+    down(svg, 60, 0); move(svg, 100, 40); up(svg);
+    expect(cb2.onMoveWall).not.toHaveBeenCalled();
+    const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string }[];
+    expect(batch.map(b => b.id).sort()).toEqual(['g-a', 'g-b', 'g-d']);
+  });
+
+  /** Con la cadena quitada vuelve a moverse solo, que es lo que él puede elegir: «a menos que yo elija que no». */
+  it('con la cadena quitada, el muro elegido se mueve solo', () => {
+    const cb2 = { onMoveWall: vi.fn(), onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallId: 'g-a', chainNodes: false, ...cb2 });
+    down(svg, 60, 0); move(svg, 100, 40); up(svg);
+    expect(cb2.onMoveWall).toHaveBeenCalledTimes(1);
+    expect(cb2.onTransformWalls).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🔑 UNA VEZ DENTRO, SE QUEDA DENTRO (dueño, 2026-09-03: «*si selecciono un nodo y quiero seleccionar otro
+   * tengo que volver a hacer doble click, eso está mal*»). Pinchar otro muro DEL MISMO grupo coge ese muro,
+   * no vuelve a coger el grupo entero.
+   */
+  it('ya dentro, pinchar OTRO muro del grupo coge ESE muro y no el grupo entero', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallId: 'g-a', ...cb2 });
+    down(svg, 200, 60);
+    expect(cb2.onSelectWall).toHaveBeenCalledWith('g-b');
+    expect(cb2.onSelectWalls).not.toHaveBeenCalledWith(['g-a', 'g-b', 'g-c', 'g-d']);
+  });
+
+  /** Y se SALE pinchando algo de fuera: un muro de otro grupo vuelve a cogerse entero. */
+  it('pinchando un muro de OTRO grupo se sale, y ese otro se coge entero', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const otro = [lado('o-a', 400, 400, 600, 400, 'g2'), lado('o-b', 600, 400, 600, 500, 'g2')];
+    const { svg } = mount({ ...dmSel, walls: [...grupo, ...otro], selectedWallId: 'g-a', ...cb2 });
+    down(svg, 500, 400);
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith(['o-a', 'o-b']);
+  });
+
+  it('un muro suelto se coge solo, sin arrastrar a nadie', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    const { svg } = mount({ ...dmSel, walls: [lado('libre', 0, 0, 200, 0, null)], ...cb2 });
+    down(svg, 100, 0);
+    expect(cb2.onSelectWall).toHaveBeenCalledWith('libre');
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith([]);
+  });
+
+  it('con el grupo cogido se ve el marco y sus ocho tiradores', () => {
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id) });
+    expect(within(svg).getByTestId('mp-group-sel')).toBeInTheDocument();
+    for (const k of ['tl', 't', 'tr', 'l', 'r', 'bl', 'b', 'br']) {
+      expect(within(svg).getByTestId(`mp-group-handle-${k}`)).toBeInTheDocument();
+    }
+  });
+
+  it('el jugador no ve ni marco ni tiradores: los muros no son suyos', () => {
+    const { svg } = mount({ tool: 'select', walls: grupo, selectedWallIds: grupo.map(w => w.id) });
+    expect(within(svg).queryByTestId('mp-group-sel')).toBeNull();
+  });
+
+  it('arrastrar dentro del grupo lo mueve entero, y se guarda de una vez al soltar', () => {
+    const cb2 = { onTransformWalls: vi.fn(), onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    // A media casilla del tirador de arriba: si se pincha justo en (100,0) manda el tirador y esto estiraría.
+    down(svg, 60, 0); move(svg, 110, 40); up(svg);
+    expect(cb2.onTransformWalls).toHaveBeenCalledTimes(1);
+    const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string; x1: number; y1: number }[];
+    expect(batch).toHaveLength(4);
+    expect(batch[0]).toMatchObject({ id: 'g-a', x1: 50, y1: 40 });
+  });
+
+  /** 🔒 Estirar por un tirador: el lado de enfrente se queda clavado y la forma se conserva. */
+  it('arrastrar un tirador lo estira', () => {
+    const cb2 = { onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    // La esquina guarda la proporción: 200→400 es el doble de ancho, así que 150→300 de alto.
+    down(svg, 200, 150); move(svg, 400, 300); up(svg);
+    const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string; x1: number; y1: number; x2: number; y2: number }[];
+    expect(batch).toHaveLength(4);
+    expect(batch[0]).toMatchObject({ id: 'g-a', x1: 0, y1: 0, x2: 400, y2: 0 });
+    expect(batch[1]).toMatchObject({ id: 'g-b', x2: 400, y2: 300 });
+  });
+
+  /** 🔒 Su corrección: «los nodos de las esquinas deberían escalarlo manteniendo proporciones». */
+  it('una esquina guarda la proporción aunque se arrastre torcido', () => {
+    const cb2 = { onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    // Se tira mucho a lo ancho y casi nada a lo alto: el alto tiene que seguir al ancho igualmente.
+    down(svg, 200, 150); move(svg, 400, 160); up(svg);
+    const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string; x1: number; y1: number; x2: number; y2: number }[];
+    expect(batch[0]).toMatchObject({ id: 'g-a', x2: 400 });
+    expect(batch[1]!.y2).toBeCloseTo(300, 6);
+  });
+
+  /**
+   * 🔒 «*cuando hago click en un segmento de un círculo se mueve hacia un lado*» (dueño, 2026-09-03). Un clic
+   * normal mueve el ratón uno o dos píxeles; sin zona muerta, cada clic empujaba el grupo Y lo escribía.
+   */
+  it('el temblor de un clic normal NO mueve el grupo', () => {
+    const cb2 = { onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    down(svg, 60, 0); move(svg, 62, 1); move(svg, 61, 2); up(svg);
+    expect(cb2.onTransformWalls).not.toHaveBeenCalled();
+    expect(within(svg).queryByTestId('mp-group-sel')).toBeInTheDocument();
+  });
+
+  it('y con el temblor de por medio, el doble clic sigue entrando al muro', () => {
+    const cb2 = { onSelectWall: vi.fn(), onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    down(svg, 60, 0); move(svg, 61, 1); up(svg);
+    down(svg, 60, 0); move(svg, 62, 0); up(svg);
+    expect(cb2.onSelectWall).toHaveBeenCalledWith('g-a');
+  });
+
+  it('un clic sin arrastre no escribe nada: sólo elige', () => {
+    const cb2 = { onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    down(svg, 60, 0); up(svg);
+    expect(cb2.onTransformWalls).not.toHaveBeenCalled();
+  });
+
+  /** 🔒 Su queja literal: «no puedo arrastrar y seleccionar por grupo». El área cogía SÓLO fichas. */
+  it('arrastrar por área coge muros, no sólo fichas', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, walls: [lado('libre', 20, 20, 120, 20, null)], ...cb2 });
+    down(svg, 400, 400); move(svg, 0, 0); up(svg);
+    expect(cb2.onSelectWalls).toHaveBeenLastCalledWith(['libre']);
+  });
+
+  it('pillar un trozo del grupo se trae el grupo entero', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    // Rodea del todo el lado de abajo — y sólo ése: por eso se trae los otros tres, no por rozarlos.
+    down(svg, 400, 400); move(svg, 0, 140); up(svg);
+    expect((cb2.onSelectWalls.mock.calls.at(-1)![0] as string[]).sort()).toEqual(['g-a', 'g-b', 'g-c', 'g-d']);
+  });
+});
 
 describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
   /**
@@ -67,15 +314,28 @@ describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
     expect(floor.querySelector('image')).not.toHaveAttribute('mask');
   });
 
+  /**
+   * La FORMA de una luz vive en su máscara, no en lo que se pinta: se pinta de sobra y la máscara —difuminada—
+   * es la única que decide dónde acaba. Pintar la forma y taparla con su propia silueta borrosa dejaba el
+   * borde duro que el dueño reclamó dos veces (2026-08-31 y 2026-09-01).
+   */
   it('las luces se pintan por forma y con su alcance en metros', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL, lights: [LIGHT_TORCH, LIGHT_BULB] });
     const lights = within(svg).getAllByTestId('mp-light');
     expect(lights).toHaveLength(2);
-    expect(lights[0]!.tagName.toLowerCase()).toBe('circle');
-    expect(lights[1]!.tagName.toLowerCase()).toBe('rect');
     expect(lights[0]).toHaveAttribute('fill', `url(#mp-light-${LIGHT_TORCH.id})`);
-    // Más metros, más radio.
-    expect(Number(lights[0]!.getAttribute('r'))).toBeGreaterThan(Number(lights[1]!.getAttribute('width')) / 2);
+    expect(lights[0]).toHaveAttribute('mask', `url(#mp-litmask-${LIGHT_TORCH.id})`);
+    // La forma, dentro de la máscara: la antorcha es un radio, la bombilla un cuadrado.
+    const shapes = svg.querySelectorAll('[data-testid="mp-light-shape"]');
+    expect(shapes[0]!.tagName.toLowerCase()).toBe('circle');
+    expect(shapes[1]!.tagName.toLowerCase()).toBe('rect');
+    // Más metros, más radio — y el degradado nace en la LUZ, en coordenadas de escena, no en el centro de su caja.
+    const g0 = svg.querySelector(`#mp-light-${LIGHT_TORCH.id}`)!;
+    const g1 = svg.querySelector(`#mp-light-${LIGHT_BULB.id}`)!;
+    expect(g0).toHaveAttribute('gradientUnits', 'userSpaceOnUse');
+    expect(g0).toHaveAttribute('cx', String(LIGHT_TORCH.x));
+    expect(g0).toHaveAttribute('cy', String(LIGHT_TORCH.y));
+    expect(Number(g0.getAttribute('r'))).toBeGreaterThan(Number(g1.getAttribute('r')));
   });
 
   /**
@@ -218,7 +478,7 @@ describe('<MapCanvas> tools', () => {
     expect(cb.onPin).toHaveBeenCalledWith({ x: 12, y: 34 });
   });
   it('wall (DM): click-click chains grid-snapped segments, Escape ends; players get nothing; el encuentro cae CENTRADO donde se pulsa', () => {
-    const { svg, cb, rerender } = mount({ tool: 'wall', isDm: true, me: 'u-gm' });
+    const { svg, cb, rerender } = mount({ tool: 'wall', isDm: true, me: 'u-gm', snapGrid: true });
     down(svg, 28, 26); down(svg, 80, 26); down(svg, 80, 110);
     expect(cb.onAddWall).toHaveBeenNthCalledWith(1, { x: G, y: G }, { x: 3 * G, y: G });
     expect(cb.onAddWall).toHaveBeenNthCalledWith(2, { x: 3 * G, y: G }, { x: 3 * G, y: 4 * G });
@@ -771,6 +1031,168 @@ describe('<MapCanvas> Seleccionar edita muros', () => {
   });
 });
 
+/**
+ * LA SONDA DE PRUEBA (§ 7.3), atada a «ver como jugador». Sustituye a la lente por personaje que llegó a
+ * producción y dejaba el mapa en negro. No es una ficha: no está en `maps_tokens`, no la ve ningún jugador,
+ * no sale en ninguna lista y se pinta ENCIMA de la niebla porque es mobiliario de la pantalla del director.
+ */
+/**
+ * 🚨 LA LUZ QUE GIRA (§ 7.2, «como una sirena»). El servidor manda el CÍRCULO entero ya recortado y el
+ * barrido se hace aquí, rotando encima una ventana con forma de cono. Es exacto —el recorte contra los muros
+ * es radial— y cuesta lo mismo que una luz quieta, en vez de 24 veces más en cada petición de visión.
+ */
+describe('<MapCanvas> la luz que gira', () => {
+  const SIREN = { ...LIGHT_SECRET, id: 'li-siren', layerId: null, shape: 'cone' as const, spinMs: 4000 };
+
+  it('una luz quieta no monta ninguna ventana que gire', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [LIGHT_TORCH] });
+    expect(svg.querySelector('[data-testid="mp-light-spin"]')).toBeNull();
+  });
+
+  it('un cono que gira monta la ventana, con su periodo y girando la vuelta entera', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [SIREN] });
+    const spin = svg.querySelector('[data-testid="mp-light-spin"]')!;
+    expect(spin.getAttribute('data-spin-ms')).toBe('4000');
+    const anim = spin.querySelector('animateTransform')!;
+    expect(anim.getAttribute('type')).toBe('rotate');
+    expect(anim.getAttribute('dur')).toBe('4000ms');
+    expect(anim.getAttribute('repeatCount')).toBe('indefinite');
+    // Gira alrededor de la LUZ, no del centro de la caja del cono: por eso el ángulo lleva su x/y detrás.
+    expect(anim.getAttribute('from')).toBe(`0 ${SIREN.x} ${SIREN.y}`);
+    expect(anim.getAttribute('to')).toBe(`360 ${SIREN.x} ${SIREN.y}`);
+    // La fase sale del reloj: todos en la mesa ven el haz en el mismo sitio, entren cuando entren.
+    expect(Number(anim.getAttribute('begin')!.replace('ms', ''))).toBeLessThanOrEqual(0);
+    // Y el charco recorta el haz: el haz se pinta A TRAVÉS de la máscara del charco, no al revés.
+    expect(spin.closest('[data-testid="mp-light"]')!.getAttribute('mask')).toBe(`url(#mp-litmask-${SIREN.id})`);
+  });
+
+  /**
+   * 🐞 EL PIN DEL FALLO QUE ÉL VIO (2026-09-01: «no gira, tiene que estar girando todo el tiempo y solo gira
+   * un poco mientras muevo el token y luego para»).
+   *
+   * La orden de girar estaba bien puesta —periodo correcto, `repeatCount="indefinite"`— pero vivía DENTRO de
+   * una `<mask>`, y un navegador no repinta un elemento porque algo se mueva dentro de su máscara. Sólo
+   * avanzaba de refilón cuando otra cosa obligaba al mapa a repintarse: arrastrar una ficha. Por eso el test
+   * no mira los atributos (que ya estaban bien), sino DÓNDE cuelga la animación.
+   */
+  it('el haz gira en lo que se PINTA, no dentro de una máscara (si no, el navegador no lo repinta)', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [SIREN] });
+    const spin = svg.querySelector('[data-testid="mp-light-spin"]')!;
+    expect(spin.closest('mask')).toBeNull();
+    expect(spin.closest('defs')).toBeNull();
+    expect(spin.closest('[data-testid="mp-light"]')).not.toBeNull();
+    // Y lo que da vueltas es el cono pintado con el color de la luz, no una silueta en blanco de máscara.
+    expect(spin.querySelector('path')!.getAttribute('fill')).toBe(`url(#mp-light-${SIREN.id})`);
+  });
+
+  /**
+   * ⚡ EL PIN DEL COSTE. Un desenfoque gaussiano sobre algo que gira hay que rehacerlo en CADA fotograma; con
+   * dos conos girando eso se comió el presupuesto y él vio irse a saltos la niebla y las fichas
+   * (2026-09-02). El filo suave lo ponen ahora capas de relleno plano. Si alguien vuelve a colgar un filtro
+   * del haz, este test cae.
+   */
+  it('el haz se difumina con capas, NO con un filtro: un desenfoque por fotograma se lleva la fluidez', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [SIREN] });
+    const capas = [...svg.querySelectorAll('[data-testid="mp-light-spin"] path')];
+    expect(capas.length).toBeGreaterThan(1);
+    for (const c of capas) expect(c.getAttribute('filter')).toBeNull();
+    // De fuera adentro, cada capa un poco más opaca, y la de dentro tapa del todo.
+    const opacidades = capas.map(c => Number(c.getAttribute('fill-opacity')));
+    expect(opacidades[opacidades.length - 1]).toBe(1);
+    expect(opacidades[0]).toBeLessThan(1);
+  });
+
+  it('la fase no se recalcula al repintar: cambiar `begin` reiniciaría la vuelta en cada actualización', () => {
+    const { svg, rerender } = mount({ isDm: true, me: 'u-gm', lights: [SIREN] });
+    const begin = svg.querySelector('[data-testid="mp-light-spin"] animateTransform')!.getAttribute('begin');
+    rerender({ isDm: true, me: 'u-gm', lights: [SIREN], selectedTokenIds: ['tk-karen'] });
+    expect(svg.querySelector('[data-testid="mp-light-spin"] animateTransform')!.getAttribute('begin')).toBe(begin);
+  });
+
+  it('el charco de una sirena es REDONDO aunque sea un cono: si no, el haz gira dentro de una rendija', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [SIREN] });
+    // Es lo mismo que decide el servidor cuando una luz gira (`sceneVision.ts`, shape: 'radius').
+    expect(svg.querySelector(`#mp-litmask-${SIREN.id} circle[data-testid="mp-light-shape"]`)).not.toBeNull();
+    document.body.innerHTML = '';
+    const quieta = mount({ isDm: true, me: 'u-gm', lights: [{ ...SIREN, id: 'li-quieta', spinMs: 0 }] });
+    expect(quieta.svg.querySelector('#mp-litmask-li-quieta path[data-testid="mp-light-shape"]')).not.toBeNull();
+  });
+
+  it('sólo gira un CONO: un radio ya alumbra en redondo', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, spinMs: 4000 }] });
+    expect(svg.querySelector('[data-testid="mp-light-spin"]')).toBeNull();
+  });
+});
+
+describe('<MapCanvas> la sonda de prueba', () => {
+  const at = { x: 5 * G, y: 5 * G };
+
+  it('sin sonda no se pinta nada; con sonda sale con su nombre', () => {
+    const { svg, rerender } = mount({ isDm: true, me: 'u-gm' });
+    expect(within(svg).queryByTestId('mp-probe')).not.toBeInTheDocument();
+    rerender({ isDm: true, me: 'u-gm', probe: at });
+    expect(within(svg).getByRole('img', { name: 'Sonda de prueba' })).toBeInTheDocument();
+  });
+
+  it('se arrastra con Seleccionar, y va contando dónde está mientras se mueve', () => {
+    const onProbeMove = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', probe: at, onProbeMove });
+    down(svg, at.x, at.y);
+    move(svg, at.x + 40, at.y + 20);
+    expect(onProbeMove).toHaveBeenLastCalledWith({ x: at.x + 40, y: at.y + 20 });
+    move(svg, at.x + 80, at.y);
+    expect(onProbeMove).toHaveBeenLastCalledWith({ x: at.x + 80, y: at.y });
+    up(svg);
+    // Soltarla no guarda nada: no es una ficha, así que ni se mueve ni se persiste ningún token.
+    move(svg, 0, 0);
+    expect(onProbeMove).toHaveBeenCalledTimes(2);
+  });
+
+  it('agarrarla NO selecciona lo que haya debajo: gana ella, que es lo único que hay que mover', () => {
+    const onProbeMove = vi.fn();
+    // La sonda, justo encima del token de Karen.
+    const centre = { x: (TOKEN_KAREN.x + TOKEN_KAREN.size / 2) * G, y: (TOKEN_KAREN.y + TOKEN_KAREN.size / 2) * G };
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', probe: centre, onProbeMove });
+    down(svg, centre.x, centre.y);
+    move(svg, centre.x + 30, centre.y);
+    expect(onProbeMove).toHaveBeenCalled();
+    expect(cb.onDragToken).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🧱 LA SONDA CHOCA CONTRA LOS MUROS (dueño, 2026-09-01: «no funciona bien el user dummy, traspasa las
+   * paredes»). Simula a un jugador, así que siente lo que siente él — y con la MISMA función que frena a un
+   * token, `moveBlockers` + `slideToken`. El director sigue sin chocar con nada; la excepción es sólo ella.
+   */
+  it('no atraviesa un muro cuando la escena tiene las paredes sólidas', () => {
+    const onProbeMove = vi.fn();
+    // WALL_1 es vertical en x=270, de y=216 a y=540. La sonda arranca a su izquierda y empuja hacia la derecha.
+    const scene = { ...SCENE_WAREHOUSE, solidWalls: true };
+    const { svg } = mount({ isDm: true, me: 'u-gm', scene, walls: [WALL_1], probe: { x: 200, y: 400 }, onProbeMove });
+    down(svg, 200, 400);
+    move(svg, 400, 400);
+    const dejada = onProbeMove.mock.calls.at(-1)![0];
+    expect(dejada.x).toBeLessThan(270);   // se queda a este lado de la pared
+  });
+
+  it('…y la atraviesa si la escena tiene las paredes atravesables: simular es copiar, no ser más estricto', () => {
+    const onProbeMove = vi.fn();
+    const scene = { ...SCENE_WAREHOUSE, solidWalls: false };
+    const { svg } = mount({ isDm: true, me: 'u-gm', scene, walls: [WALL_1], probe: { x: 200, y: 400 }, onProbeMove });
+    down(svg, 200, 400);
+    move(svg, 400, 400);
+    expect(onProbeMove).toHaveBeenLastCalledWith({ x: 400, y: 400 });
+  });
+
+  it('un clic lejos de ella no la agarra', () => {
+    const onProbeMove = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', probe: at, onProbeMove });
+    down(svg, at.x + 200, at.y + 200);
+    move(svg, at.x + 210, at.y + 200);
+    expect(onProbeMove).not.toHaveBeenCalled();
+  });
+});
+
 describe('<MapCanvas> teclado y botón derecho', () => {
   it('Suprimir borra lo seleccionado; escribiendo en un campo no borra nada', () => {
     const { cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', selectedWallId: 'w-1', walls: [WALL_1] });
@@ -819,5 +1241,648 @@ describe('<MapCanvas> selección por área', () => {
     down(svg, 120, 90);
     expect(cb.onAddText).toHaveBeenCalledWith({ x: 120, y: 90 });
     expect(cb.onAddDrawing).not.toHaveBeenCalled();
+  });
+});
+
+
+/**
+ * 🔦 ELEGIR UNA LUZ Y MOVERLA (dueño, 2026-09-01: «no lo puedo arrastrar, me debería mostrar algo que la
+ * seleccione a cuál seleccione y que me deje moverla»). Eran dos cosas: el aro sólo se pintaba con la
+ * herramienta Luz —con Seleccionar la elegías a ciegas— y arrastrarla no existía en absoluto.
+ */
+describe('<MapCanvas> elegir una luz y moverla', () => {
+  const LAMP = { ...LIGHT_TORCH, id: 'li-lamp', x: 800, y: 120 };
+  const dm = { isDm: true, me: 'u-gm', lights: [LAMP] };
+
+  it('el aro y el disco de clic se ven también con Seleccionar, no sólo con Luz', () => {
+    for (const tool of ['light', 'select'] as Tool[]) {
+      document.body.innerHTML = '';
+      const { svg } = mount({ ...dm, tool, selectedLightId: LAMP.id });
+      expect(svg.querySelector('[data-testid="mp-light-sel"]')).not.toBeNull();
+      expect(svg.querySelector(`[data-light-hit="${LAMP.id}"]`)).not.toBeNull();
+    }
+  });
+
+  it('con una herramienta que no elige luces no se pinta ningún aro', () => {
+    const { svg } = mount({ ...dm, tool: 'pencil', selectedLightId: LAMP.id });
+    expect(svg.querySelector('[data-testid="mp-light-sel"]')).toBeNull();
+  });
+
+  it('arrastrarla la mueve, y se guarda donde se soltó', () => {
+    const { svg, cb } = mount({ ...dm, tool: 'select' });
+    down(svg, LAMP.x, LAMP.y);
+    expect(cb.onSelectLight).toHaveBeenCalledWith(LAMP.id);
+    move(svg, LAMP.x + 40, LAMP.y + 30);
+    up(svg);
+    expect(cb.onMoveLight).toHaveBeenCalledWith(LAMP.id, { x: LAMP.x + 40, y: LAMP.y + 30 });
+  });
+
+  it('también se arrastra con la herramienta Luz, y sin colocar otra encima', () => {
+    const { svg, cb } = mount({ ...dm, tool: 'light', onPlaceLight: vi.fn() });
+    down(svg, LAMP.x, LAMP.y);
+    move(svg, LAMP.x - 25, LAMP.y);
+    up(svg);
+    expect(cb.onMoveLight).toHaveBeenCalledWith(LAMP.id, { x: LAMP.x - 25, y: LAMP.y });
+  });
+
+  it('un clic sin arrastre la elige pero NO guarda nada: abrir su editor no es moverla', () => {
+    const { svg, cb } = mount({ ...dm, tool: 'select' });
+    down(svg, LAMP.x, LAMP.y);
+    up(svg);
+    expect(cb.onSelectLight).toHaveBeenCalledWith(LAMP.id);
+    expect(cb.onMoveLight).not.toHaveBeenCalled();
+  });
+
+  it('mientras se arrastra, el resplandor va con el dedo — no se queda donde estaba guardada', () => {
+    const { svg } = mount({ ...dm, tool: 'select' });
+    down(svg, LAMP.x, LAMP.y);
+    move(svg, LAMP.x + 60, LAMP.y);
+    expect(svg.querySelector(`[data-light-hit="${LAMP.id}"]`)!.getAttribute('cx')).toBe(String(LAMP.x + 60));
+  });
+
+  /**
+   * El blanco al que hay que acertar es de tamaño de PANTALLA, no de escena: medido en px de escena, alejarse
+   * lo encogía hasta hacerlo imposible de pinchar — que es la mitad de por qué él no podía elegir una luz.
+   */
+  it('el blanco no se encoge al alejarse: mantiene su tamaño en pantalla', () => {
+    const { svg } = mount({ ...dm, tool: 'select', selectedLightId: LAMP.id, view: { zoom: 2, panX: 0, panY: 0 } });
+    expect(svg.querySelector(`[data-light-hit="${LAMP.id}"]`)!.getAttribute('r')).toBe('7');
+    expect(svg.querySelector('[data-testid="mp-light-sel"]')!.getAttribute('r')).toBe('9');
+  });
+});
+
+/** 🕯 INTENSIDAD (§ 7.2): multiplica lo que se PINTA y nada más. Al 100 % nada cambia respecto a antes. */
+describe('<MapCanvas> la intensidad de una luz', () => {
+  const stops = (svg: Element, id: string): number[] =>
+    [...svg.querySelectorAll(`#mp-light-${id} stop`)].map(s => Number(s.getAttribute('stop-opacity')));
+
+  it('al 100 % se pinta exactamente como antes de que la barra existiera', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, intensity: 100 }] });
+    expect(stops(svg, LIGHT_TORCH.id)).toEqual([0.65, 0.25, 0]);
+  });
+
+  it('por encima de 100 sigue subiendo: el centro se topa en opaco y lo que crece es el núcleo', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, intensity: 200 }] });
+    const [centro, medio] = stops(svg, LIGHT_TORCH.id);
+    expect(centro).toBe(1);                 // más opaco que opaco no existe
+    expect(medio).toBe(0.5);                // …pero el brillo llega mucho más lejos que al 100 %
+    expect(medio).toBeGreaterThan(0.25);
+  });
+
+  it('bajarla apaga el resplandor de forma proporcional', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, intensity: 40 }] });
+    expect(stops(svg, LIGHT_TORCH.id)).toEqual([0.65 * 0.4, 0.25 * 0.4, 0]);
+  });
+
+  it('NO cambia hasta dónde llega la luz: el charco es el mismo al 10 % que al 100 %', () => {
+    const tenue = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, intensity: 10 }] });
+    const d = tenue.svg.querySelector(`#mp-litmask-${LIGHT_TORCH.id} [data-testid="mp-light-shape"]`)!.getAttribute('r');
+    document.body.innerHTML = '';
+    const plena = mount({ isDm: true, me: 'u-gm', lights: [{ ...LIGHT_TORCH, intensity: 100 }] });
+    expect(plena.svg.querySelector(`#mp-litmask-${LIGHT_TORCH.id} [data-testid="mp-light-shape"]`)!.getAttribute('r')).toBe(d);
+  });
+});
+
+
+/** 🌫 El velo gris del director se puede quitar — y sólo se lo quita a ÉL. */
+describe('<MapCanvas> el velo del director', () => {
+  const fog = { vision: [], explored: [[0, 0] as [number, number]], radiusPx: null, lit: [] };
+
+  it('por omisión se pinta, como siempre', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', fog });
+    expect(svg.querySelector('[data-testid="mp-fog-veil"]')).not.toBeNull();
+  });
+
+  it('apagado, desaparece', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', fog, fogVeil: false });
+    expect(svg.querySelector('[data-testid="mp-fog-veil"]')).toBeNull();
+  });
+
+  it('lo que ve un JUGADOR no cambia: el velo gris nunca fue suyo', () => {
+    const { svg } = mount({ isDm: false, fog, fogVeil: false });
+    expect(svg.querySelector('[data-testid="mp-fog-veil"]')).toBeNull();
+    // Al jugador lo que le tapa es la niebla negra, y esa sigue en su sitio.
+    expect(svg.querySelector('[data-testid="mp-map"]')!.getAttribute('mask')).toContain('mp-seen');
+  });
+});
+
+
+/**
+ * ✏️ ELEGIR, MOVER Y BORRAR UN TRAZO (dueño, 2026-09-02: «los textos líneas formas etc deberían poder
+ * seleccionarse y mover y borrarse como cualquier cosa»). Hasta hoy un trazo se ponía y se borraba con la
+ * goma: no se podía ni elegir.
+ */
+describe('<MapCanvas> elegir y mover un trazo', () => {
+  // DRAWING_MINE es un garabato que pasa por (300,300); DRAWING_OTHER, una caja en (450,500)-(510,540).
+  const dm = { isDm: true, me: 'u-gm', tool: 'select' as Tool };
+
+  it('pinchar un trazo lo elige, y se le nota', () => {
+    const { svg, cb, rerender } = mount(dm);
+    down(svg, 300, 300); up(svg);
+    expect(cb.onSelectDrawing).toHaveBeenCalledWith(DRAWING_MINE.id);
+    rerender({ ...dm, selectedDrawingId: DRAWING_MINE.id });
+    expect(svg.querySelector(`[data-drawing-id="${DRAWING_MINE.id}"]`)!.getAttribute('class')).toContain('selected');
+  });
+
+  it('arrastrarlo lo mueve, y lo que se guarda son sus puntos ya desplazados', () => {
+    const { svg, cb } = mount(dm);
+    down(svg, 450, 500);
+    move(svg, 470, 530);
+    up(svg);
+    expect(cb.onMoveDrawing).toHaveBeenCalledWith(DRAWING_OTHER.id, { x1: 470, y1: 530, x2: 530, y2: 570 });
+  });
+
+  it('un clic sin arrastre lo elige y no guarda nada', () => {
+    const { svg, cb } = mount(dm);
+    down(svg, 450, 500); up(svg);
+    expect(cb.onSelectDrawing).toHaveBeenCalledWith(DRAWING_OTHER.id);
+    expect(cb.onMoveDrawing).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🔒 Un JUGADOR lo elige pero no lo arrastra: la RLS de `maps_drawings` sólo deja actualizar al director, y
+   * enseñarle que arrastra para que la base se lo rechace sería mentirle.
+   */
+  it('un jugador puede elegirlo, pero no moverlo', () => {
+    const { svg, cb } = mount({ tool: 'select', me: PLAYER_USER.id, isDm: false });
+    down(svg, 450, 500);
+    move(svg, 470, 530);
+    up(svg);
+    expect(cb.onSelectDrawing).toHaveBeenCalledWith(DRAWING_OTHER.id);
+    expect(cb.onMoveDrawing).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🔒 El orden importa: el trazo se mira el ÚLTIMO, igual que se pinta el primero. Un garabato grande debajo
+   * de una ficha o de un muro no puede robarles el clic.
+   */
+  it('un muro encima de un trazo se lleva el clic, no el trazo', () => {
+    const { svg, cb } = mount({ ...dm, walls: [WALL_1] });
+    down(svg, 272, 380); up(svg);
+    expect(cb.onSelectWall).toHaveBeenCalledWith(WALL_1.id);
+    expect(cb.onSelectDrawing).toHaveBeenCalledWith(null);
+  });
+
+  it('elegir un trazo suelta lo que hubiera elegido antes', () => {
+    const { svg, cb } = mount(dm);
+    down(svg, 300, 300); up(svg);
+    expect(cb.onSelectToken).toHaveBeenCalledWith(null);
+    expect(cb.onSelectWall).toHaveBeenCalledWith(null);
+    expect(cb.onSelectLight).toHaveBeenCalledWith(null);
+  });
+});
+
+
+/**
+ * 🎭 LA SONDA SE PONE DONDE ÉL PINCHE (dueño, 2026-09-02: «déjame poner el token donde quiera, no lo pongas
+ * automáticamente en el centro, si no la prueba es una mierda»). Antes caía en mitad de lo que se estuviera
+ * mirando y había que arrastrarla hasta el sitio que de verdad importa.
+ */
+describe('<MapCanvas> poner la sonda donde uno quiera', () => {
+  const dm = { isDm: true, me: 'u-gm', playerView: true, tool: 'select' as Tool };
+
+  it('sin sonda puesta, un clic en el mapa la pone ahí', () => {
+    const { svg, cb } = mount({ ...dm, probe: null });
+    down(svg, 640, 480); up(svg);
+    expect(cb.onProbeMove).toHaveBeenCalledWith({ x: 640, y: 480 });
+  });
+
+  it('ya puesta, un clic en otro sitio la muda: no hay que arrastrarla media pantalla', () => {
+    const { svg, cb } = mount({ ...dm, probe: { x: 100, y: 100 } });
+    down(svg, 700, 300); up(svg);
+    expect(cb.onProbeMove).toHaveBeenCalledWith({ x: 700, y: 300 });
+  });
+
+  /** 🔒 Pinchar SOBRE ella la agarra para arrastrar, no la «mueve a donde ya está». */
+  it('pinchar encima de la sonda la agarra, y arrastrarla la lleva', () => {
+    const { svg, cb } = mount({ ...dm, probe: { x: 100, y: 100 } });
+    down(svg, 100, 100);
+    expect(cb.onProbeMove).not.toHaveBeenCalled();
+    move(svg, 160, 140);
+    expect(cb.onProbeMove).toHaveBeenCalled();
+  });
+
+  it('fuera de «ver como jugador» un clic en el suelo NO pone ninguna sonda', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', probe: null });
+    down(svg, 640, 480); up(svg);
+    expect(cb.onProbeMove).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * 🏗 LAS FORMAS DE BUILDER (§ «Rebanada 8», corrección suya del 2026-09-02: «rectángulos y círculos te quedas
+ * corto: ¿y si quiero poner una pared inclinada?»).
+ *
+ * Lo primero que sujetan estos tests no es lo nuevo: es que **el Builder de siempre no se ha movido**. Él lo
+ * pidió con todas las letras — «es el mismo Builder que pone hoy los muros, puertas y ventanas».
+ */
+describe('<MapCanvas> Builder levanta salas enteras', () => {
+  const dm = { isDm: true, me: 'u-gm', tool: 'wall' as Tool, walls: [] };
+
+  it('sin elegir forma sigue siendo el Builder de siempre: clic a clic, encadenando', () => {
+    const onAddRoom = vi.fn();
+    const { svg, cb } = mount({ ...dm, onAddRoom });
+    down(svg, 0, 0);
+    expect(cb.onAddWall).not.toHaveBeenCalled();
+    down(svg, 200, 0);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+    expect(onAddRoom).not.toHaveBeenCalled();
+  });
+
+  it('rectángulo: se arrastra y salen sus cuatro lados, cerrados', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'rect', ...cb2 });
+    down(svg, 0, 0); move(svg, 200, 150); up(svg);
+    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
+    const sides = cb2.onAddRoom.mock.calls[0]![0] as { x1: number; y1: number; x2: number; y2: number }[];
+    expect(sides).toHaveLength(4);
+    expect(sides[3]!.x2).toBe(sides[0]!.x1);
+    expect(sides[3]!.y2).toBe(sides[0]!.y1);
+  });
+
+  it('círculo: se arrastra del centro al borde y sale un anillo de muros', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'circle', ...cb2 });
+    down(svg, 200, 200); move(svg, 320, 200); up(svg);
+    expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBeGreaterThanOrEqual(8);
+  });
+
+  it('polígono: un clic un vértice, y se cierra pinchando otra vez sobre el primero', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
+    down(svg, 0, 0); down(svg, 200, 0); down(svg, 200, 150);
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+    down(svg, 3, 4);                                       // de vuelta al primero: cierra
+    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
+    expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBe(3);
+  });
+
+  /**
+   * 🔒 Un vértice PEGADO al primero tiene que poder ponerse. Los vértices van a la rejilla, así que el vecino
+   * de al lado cae a exactamente una casilla del primero: con el tope de cierre en `grid` ese clic cerraba la
+   * sala en vez de colocar la esquina, y una L cuyo último vértice cae junto al primero era imposible.
+   */
+  it('polígono: una esquina a una casilla del primer vértice se pone, no cierra la sala', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
+    down(svg, 0, 0); down(svg, G * 4, 0); down(svg, G * 4, G * 2); down(svg, G * 2, G * 2); down(svg, G * 2, G);
+    down(svg, 0, G);                                       // pegado al primero, pero NO es el primero
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+    down(svg, 0, 0);                                       // ahora sí: encima del primero
+    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
+    expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBe(6);
+  });
+
+  it('a pulso: la sala sale con la forma de la mano, sin un muro por cada pixel', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', ...cb2 });
+    down(svg, 0, 0);
+    for (const [x, y] of [[50, 0], [100, 0], [150, 0], [150, 50], [150, 100], [150, 150], [100, 150], [50, 150], [0, 150], [0, 100], [0, 50]]) move(svg, x!, y!);
+    up(svg);
+    const sides = cb2.onAddRoom.mock.calls[0]![0] as unknown[];
+    expect(sides.length).toBeGreaterThanOrEqual(3);
+    expect(sides.length).toBeLessThan(12);
+  });
+
+  it('la sala se ve crecer mientras se arrastra, y no se guarda hasta soltar', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'rect', ...cb2 });
+    down(svg, 0, 0); move(svg, 200, 150);
+    expect(within(svg).getByTestId('mp-walls').querySelectorAll('.mp-wall.draft')).toHaveLength(4);
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+  });
+
+  /** 🔒 Un polígono a medias se tira, no se monta a medias: una sala abierta no detiene ni la vista ni el paso. */
+  it('Escape y el botón derecho tiran el polígono a medias sin levantar nada', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
+    down(svg, 0, 0); down(svg, 200, 0);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(within(svg).getByTestId('mp-walls').querySelectorAll('.mp-wall.draft')).toHaveLength(0);
+    down(svg, 0, 0); down(svg, 200, 0);
+    fireEvent.contextMenu(svg, { clientX: 200, clientY: 0 });
+    down(svg, 3, 4);
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+  });
+
+  it('cambiar de forma a media sala descarta lo empezado', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg, rerender } = mount({ ...dm, wallShape: 'poly', ...cb2 });
+    down(svg, 0, 0); down(svg, 200, 0); down(svg, 200, 150);
+    rerender({ ...dm, wallShape: 'rect', ...cb2 });
+    down(svg, 3, 4);
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+  });
+
+  /** Viendo como jugador, el director no levanta nada: sus herramientas están apagadas (regresión del 02-09). */
+  it('viendo como jugador no se levanta ninguna sala', () => {
+    const cb2 = { onAddRoom: vi.fn() };
+    const { svg } = mount({ ...dm, playerView: true, wallShape: 'rect', ...cb2 });
+    down(svg, 0, 0); move(svg, 200, 150); up(svg);
+    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * 🔒 EL CANDADO DE PEGAR A LA REJILLA (§ «Rebanada 8»), aprobado por el dueño el 2026-09-03 con sus tres
+ * condiciones. Aquí se sujetan las tres sobre el lienzo, que es donde se notan.
+ */
+describe('<MapCanvas> el candado de la rejilla', () => {
+  const dmWall = { tool: 'wall' as const, isDm: true, me: 'u-gm' };
+
+  /** 1ª condición: sin tocarlo, Builder dibuja EXACTAMENTE como antes de que el candado existiera. */
+  it('echado el candado, el muro cae en la casilla', () => {
+    const { svg, cb } = mount({ ...dmWall, snapGrid: true });
+    down(svg, 28, 26); down(svg, 80, 26);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: G, y: G }, { x: 3 * G, y: G });
+  });
+
+  it('abierto, el muro cae donde se pinchó y no en la casilla', () => {
+    const { svg, cb } = mount({ ...dmWall, snapGrid: false, walls: [] });
+    down(svg, 28, 26); down(svg, 80, 26);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: 28, y: 26 }, { x: 80, y: 26 });
+  });
+
+  /**
+   * 3ª condición, y la que hace que el candado sirva de algo: sin el imán, «libre» acaba siendo «lleno de
+   * rendijas» y por una rendija de medio píxel se cuela la visión.
+   */
+  it('abierto, la punta se pega a la punta de otro muro que tenga cerca', () => {
+    // WALL_1 empieza en (270,216): pinchando a cuatro píxeles, el muro nuevo arranca EXACTAMENTE de ahí.
+    const { svg, cb } = mount({ ...dmWall, snapGrid: false });
+    down(svg, 274, 219); down(svg, 400, 400);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: 270, y: 216 }, { x: 400, y: 400 });
+  });
+
+  /** El candado vale para TODO Builder, no sólo para dibujar: también para el nodo que se arrastra. */
+  it('abierto, el nodo que se arrastra se queda donde lo sueltas', () => {
+    const suelto = { ...WALL_1, id: 'w-libre', x1: 100, y1: 100, x2: 300, y2: 100, groupId: null };
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [suelto], snapGrid: false, selectedWallId: 'w-libre' });
+    down(svg, 100, 100);                 // agarra la punta A
+    move(svg, 104, 107);
+    up(svg);
+    expect(cb.onMoveWall).toHaveBeenCalledWith('w-libre', { x1: 104, y1: 107, x2: 300, y2: 100 });
+  });
+});
+
+/**
+ * 🆕 AÑADIR UN NODO — «*si tengo un vector y le hago doble click en alguna parte de la linea tiene que
+ * agregar otro nodo*» (dueño, 2026-09-03).
+ *
+ * 🔑 CÓMO CONVIVE con el doble clic que ya existía, decidido por él: «primero entra, luego el nodo». Sobre un
+ * muro de un grupo en el que aún no has entrado, el doble clic ENTRA (lo de siempre); ya dentro —o sobre un
+ * muro suelto, que no tiene dónde entrar— el doble clic pone el nodo.
+ */
+describe('<MapCanvas> el doble clic sobre la línea añade un nodo', () => {
+  // En la rejilla (múltiplos de 27), como nace cualquier muro de Builder con el candado cerrado.
+  const suelto = { ...WALL_1, id: 'w-libre', x1: 4 * G, y1: 4 * G, x2: 12 * G, y2: 4 * G, groupId: null };
+  const lado = (id: string, x1: number, y1: number, x2: number, y2: number) => ({ ...WALL_1, id, x1, y1, x2, y2, groupId: 'g1' });
+  const grupo = [lado('g-a', 0, 0, 200, 0), lado('g-b', 200, 0, 200, 150), lado('g-c', 200, 150, 0, 150), lado('g-d', 0, 150, 0, 0)];
+  const dbl = (el: Element, x: number, y: number) => fireEvent.pointerDown(el, { clientX: x, clientY: y, pointerId: 1, button: 0, detail: 2 });
+
+  it('sobre un muro SUELTO, el doble clic quieto parte el muro por ahí', () => {
+    const onSplitWall = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [suelto], onSplitWall });
+    dbl(svg, 8 * G, 4 * G); up(svg);
+    expect(onSplitWall).toHaveBeenCalledWith('w-libre', { x: 8 * G, y: 4 * G });
+  });
+
+  /** ⚠️ El segundo clic de un arrastre cuenta como doble: si hubo movimiento, era mover, no poner un nodo. */
+  it('arrastrando NO nace ningún nodo: eso era mover el muro', () => {
+    const onSplitWall = vi.fn();
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [suelto], onSplitWall });
+    dbl(svg, 8 * G, 4 * G);
+    move(svg, 8 * G, 6 * G);
+    up(svg);
+    expect(onSplitWall).not.toHaveBeenCalled();
+    expect(cb.onMoveWall).toHaveBeenCalled();
+  });
+
+  /** Su decisión, primera mitad: dentro de un grupo el primer doble clic sigue ENTRANDO, como hasta ahora. */
+  it('sobre un muro de un grupo en el que no has entrado, el doble clic entra y NO pone nodo', () => {
+    const onSplitWall = vi.fn();
+    const onSelectWall = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: grupo, onSplitWall, onSelectWall });
+    dbl(svg, 60, 0); up(svg);
+    expect(onSelectWall).toHaveBeenCalledWith('g-a');
+    expect(onSplitWall).not.toHaveBeenCalled();
+  });
+
+  /** Su decisión, segunda mitad: ya dentro, el doble clic siguiente sí pone el nodo. */
+  it('una vez dentro del grupo, el doble clic ya parte el muro', () => {
+    const onSplitWall = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: grupo, selectedWallId: 'g-a', onSplitWall });
+    dbl(svg, 60, 0); up(svg);
+    expect(onSplitWall).toHaveBeenCalledWith('g-a', { x: 60, y: 0 });
+  });
+
+  /**
+   * 🔴 Fallo cazado al repasar la deuda: los muros de un CÍRCULO y los de un trazo A PULSO no caen en la
+   * rejilla, así que con el candado cerrado el propio clic los recuadraba y el doble clic contaba como
+   * movimiento — en vez del nodo, el muro daba un tirón a la casilla. Ahora «quieto» se mide por lo que
+   * viajó el dedo, no por si la geometría cambió.
+   */
+  it('en un muro que NO cae en la rejilla —los de un círculo— el nodo también nace', () => {
+    const onSplitWall = vi.fn();
+    const torcido = { ...WALL_1, id: 'w-circ', x1: 103, y1: 97, x2: 311, y2: 154, groupId: null };
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [torcido], onSplitWall });
+    dbl(svg, 207, 125); up(svg);
+    expect(onSplitWall).toHaveBeenCalledWith('w-circ', { x: 207, y: 125 });
+    // Y no se ha ido de tirón a la casilla por el camino.
+    expect(cb.onMoveWall).not.toHaveBeenCalled();
+  });
+
+  /** Un clic SUELTO en ese mismo muro sigue recuadrándolo, como toda la vida: eso no se ha tocado. */
+  it('con el candado echado, un clic suelto en ese muro torcido lo sigue recuadrando', () => {
+    const onSplitWall = vi.fn();
+    const torcido = { ...WALL_1, id: 'w-circ', x1: 103, y1: 97, x2: 311, y2: 154, groupId: null };
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [torcido], snapGrid: true, onSplitWall });
+    down(svg, 207, 125); up(svg);
+    expect(onSplitWall).not.toHaveBeenCalled();
+    expect(cb.onMoveWall).toHaveBeenCalled();
+  });
+
+  it('un clic normal no parte nada: sólo elige', () => {
+    const onSplitWall = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [suelto], onSplitWall });
+    down(svg, 8 * G, 4 * G); up(svg);
+    expect(onSplitWall).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * ➖ LA RECTA SUELTA — la sexta forma del diseño v3, pedida por él el 2026-09-03. Es la hermana de «a mano»:
+ * lo mismo, pero de un tirón. Y la única que NO monta una sala: sale un muro y sólo uno.
+ */
+describe('<MapCanvas> la recta suelta', () => {
+  const dmLine = { tool: 'wall' as const, isDm: true, me: 'u-gm', wallShape: 'line' as const, walls: [] };
+
+  it('se arrastra y sale UN muro, por el camino de siempre', () => {
+    const { svg, cb } = mount({ ...dmLine });
+    down(svg, 4 * G, 4 * G);
+    move(svg, 9 * G, 4 * G);
+    up(svg);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: 4 * G, y: 4 * G }, { x: 9 * G, y: 4 * G });
+  });
+
+  /** 🔑 No es una sala: si fuera por `onAddRoom` nacería atada en un grupo, y un muro solo no es un grupo. */
+  it('NO pasa por el camino de las salas', () => {
+    const onAddRoom = vi.fn();
+    const { svg } = mount({ ...dmLine, onAddRoom });
+    down(svg, 4 * G, 4 * G); move(svg, 9 * G, 4 * G); up(svg);
+    expect(onAddRoom).not.toHaveBeenCalled();
+  });
+
+  it('se ve crecer mientras se arrastra', () => {
+    const { svg } = mount({ ...dmLine });
+    down(svg, 4 * G, 4 * G);
+    move(svg, 9 * G, 4 * G);
+    expect(within(svg).getByTestId('mp-walls').querySelectorAll('.mp-wall.draft')).toHaveLength(1);
+  });
+
+  it('un clic sin arrastre no deja nada: eso es un resbalón', () => {
+    const { svg, cb } = mount({ ...dmLine });
+    down(svg, 4 * G, 4 * G); up(svg);
+    expect(cb.onAddWall).not.toHaveBeenCalled();
+  });
+
+  /** Va en diagonal, que es media razón de ser de la forma: «¿y si quiero poner una pared inclinada?». */
+  it('vale en diagonal', () => {
+    const { svg, cb } = mount({ ...dmLine });
+    down(svg, 0, 0); move(svg, 4 * G, 2 * G); up(svg);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: 0, y: 0 }, { x: 4 * G, y: 2 * G });
+  });
+
+  it('con el candado abierto cae donde se suelta, y no en la casilla', () => {
+    const { svg, cb } = mount({ ...dmLine, snapGrid: false });
+    down(svg, 103, 97); move(svg, 311, 154); up(svg);
+    expect(cb.onAddWall).toHaveBeenCalledWith({ x: 103, y: 97 }, { x: 311, y: 154 });
+  });
+});
+
+/**
+ * ⌘A COGERLO TODO — «*no me deja seleccionar todos los nodos*» (dueño, 2026-09-03). Desde ahí se mueven y se
+ * estiran como un grupo, y Suprimir los borra.
+ */
+describe('<MapCanvas> coger todos los muros', () => {
+  const dmSel = { isDm: true, me: 'u-gm', tool: 'select' as const };
+
+  it('Ctrl + A coge todos los muros de la escena', () => {
+    const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
+    mount({ ...dmSel, ...cb2 });
+    fireEvent.keyDown(window, { key: 'a', ctrlKey: true });
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith(['w-1', 'w-2']);
+    // Y suelta el muro suelto: o tienes UNO y editas sus puntas, o tienes TODOS y los mueves.
+    expect(cb2.onSelectWall).toHaveBeenCalledWith(null);
+  });
+
+  it('Cmd + A hace lo mismo, que es el atajo del Mac', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    mount({ ...dmSel, ...cb2 });
+    fireEvent.keyDown(window, { key: 'a', metaKey: true });
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith(['w-1', 'w-2']);
+  });
+
+  it('una «a» a secas no coge nada: es una letra, no un atajo', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    mount({ ...dmSel, ...cb2 });
+    fireEvent.keyDown(window, { key: 'a' });
+    expect(cb2.onSelectWalls).not.toHaveBeenCalled();
+  });
+
+  /** Escribiendo en un campo, Ctrl+A es «selecciona todo el texto» y no se le puede robar. */
+  it('escribiendo en un campo no roba el atajo', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    mount({ ...dmSel, ...cb2 });
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: 'a', ctrlKey: true });
+    expect(cb2.onSelectWalls).not.toHaveBeenCalled();
+    input.remove();
+  });
+
+  it('un jugador no coge muros: no son suyos', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    mount({ tool: 'select', isDm: false, ...cb2 });
+    fireEvent.keyDown(window, { key: 'a', ctrlKey: true });
+    expect(cb2.onSelectWalls).not.toHaveBeenCalled();
+  });
+
+  it('con los muros escondidos tampoco: no se coge lo que no se ve', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    mount({ ...dmSel, showWalls: false, ...cb2 });
+    fireEvent.keyDown(window, { key: 'a', ctrlKey: true });
+    expect(cb2.onSelectWalls).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * ✏️ ARRASTRAR Y SELECCIONAR TRAZOS — «*el arrastrar y seleccionar no funciona con las formas simples de
+ * líneas, texto, círculo y cuadrado*» (dueño, 2026-09-03). El área cogía fichas y muros; los trazos no.
+ */
+describe('<MapCanvas> el área coge también los trazos', () => {
+  const dm = { isDm: true, me: 'u-gm', tool: 'select' as const, walls: [], tokens: [] };
+  const traz = (id: string, kind: 'line' | 'rect' | 'circle' | 'text', data: unknown) =>
+    ({ ...DRAWING_MINE, id, kind, data } as typeof DRAWING_MINE);
+  /** Las cuatro formas simples que él nombró, todas dentro de un cuadro de 200×200. */
+  const cuatro = [
+    traz('t-linea', 'line', { x1: 20, y1: 20, x2: 60, y2: 60 }),
+    traz('t-caja', 'rect', { x1: 80, y1: 20, x2: 140, y2: 60 }),
+    traz('t-circulo', 'circle', { cx: 60, cy: 120, r: 20 }),
+    traz('t-texto', 'text', { x: 20, y: 180, text: 'Trampa' }),
+  ];
+
+  it('arrastrando por encima se cogen las cuatro formas simples', () => {
+    const onSelectDrawings = vi.fn();
+    const { svg } = mount({ ...dm, drawings: cuatro, onSelectDrawings });
+    down(svg, 0, 0); move(svg, 400, 400); up(svg);
+    expect(onSelectDrawings).toHaveBeenCalledWith(['t-linea', 't-caja', 't-circulo', 't-texto']);
+  });
+
+  it('deja fuera lo que sólo asoma por el marco', () => {
+    const onSelectDrawings = vi.fn();
+    const fuera = traz('t-fuera', 'line', { x1: 60, y1: 60, x2: 900, y2: 900 });
+    const { svg } = mount({ ...dm, drawings: [cuatro[0]!, fuera], onSelectDrawings });
+    down(svg, 0, 0); move(svg, 200, 200); up(svg);
+    expect(onSelectDrawings).toHaveBeenCalledWith(['t-linea']);
+  });
+
+  /** Un jugador puede VER los trazos, pero moverlos es del director (RLS de `maps_drawings`). */
+  it('un jugador no los coge: no podría hacer nada con ellos', () => {
+    const onSelectDrawings = vi.fn();
+    const { svg } = mount({ tool: 'select', isDm: false, me: 'u-pip', walls: [], tokens: [], drawings: cuatro, onSelectDrawings });
+    down(svg, 0, 0); move(svg, 400, 400); up(svg);
+    expect(onSelectDrawings).toHaveBeenCalledWith([]);
+  });
+
+  it('agarrar uno del puñado los mueve TODOS, y no suelta la selección', () => {
+    const onMoveDrawings = vi.fn();
+    const onSelectDrawing = vi.fn();
+    const ids = cuatro.map(d => d.id);
+    const { svg } = mount({ ...dm, drawings: cuatro, selectedDrawingIds: ids, onMoveDrawings, onSelectDrawing });
+    down(svg, 40, 40); move(svg, 90, 70); up(svg);
+    expect(onMoveDrawings).toHaveBeenCalledTimes(1);
+    expect((onMoveDrawings.mock.calls[0]![0] as { id: string }[]).map(b => b.id).sort()).toEqual([...ids].sort());
+    // Agarrar uno de un puñado no puede tirar el trabajo de haberlos cogido.
+    expect(onSelectDrawing).not.toHaveBeenCalled();
+  });
+
+  it('pinchando un trazo de FUERA del puñado se coge ése y sólo ése', () => {
+    const onSelectDrawing = vi.fn();
+    const onSelectDrawings = vi.fn();
+    const { svg } = mount({ ...dm, drawings: cuatro, selectedDrawingIds: ['t-circulo', 't-texto'], onSelectDrawing, onSelectDrawings });
+    down(svg, 40, 40);
+    expect(onSelectDrawing).toHaveBeenCalledWith('t-linea');
+    expect(onSelectDrawings).toHaveBeenCalledWith([]);
+  });
+
+  it('uno solo sigue moviéndose por su camino de siempre', () => {
+    const onMoveDrawing = vi.fn();
+    const onMoveDrawings = vi.fn();
+    const { svg } = mount({ ...dm, drawings: [cuatro[0]!], onMoveDrawing, onMoveDrawings });
+    down(svg, 40, 40); move(svg, 90, 70); up(svg);
+    expect(onMoveDrawing).toHaveBeenCalledTimes(1);
+    expect(onMoveDrawings).not.toHaveBeenCalled();
   });
 });

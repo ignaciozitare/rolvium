@@ -41,6 +41,8 @@ export interface LightRecord {
   /** Alcance en METROS, como se guarda; a px lo pasa `sightRadiusPx` con la rejilla de la escena. */
   rangeM: number;
   castsShadow: boolean;
+  /** § 7.2 «la luz que gira»: ms de una vuelta entera, `0` = quieta. Sólo cuenta con `shape: 'cone'`. */
+  spinMs: number;
 }
 
 /**

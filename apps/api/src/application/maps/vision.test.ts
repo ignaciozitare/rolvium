@@ -160,3 +160,40 @@ describe('clipToConvex / clipToStar', () => {
     expect(inAny({ x: 200, y: 135 }, parts)).toBe(false);              // fuera del alcance de la luz
   });
 });
+
+/**
+ * 🔒 «La niebla de batalla debe funcionar con estas construcciones también» — requisito del dueño del
+ * 2026-09-03 sobre las salas que levanta Builder (specs/modules/maps/SPEC.md § «Rebanada 8»).
+ *
+ * Una sala generada llega aquí como lo que es: un anillo cerrado de segmentos de `maps_walls`, idénticos a
+ * los que él marca a mano sobre una foto importada. Este test lo comprueba desde los dos lados de la pared.
+ */
+describe('una sala levantada por Builder tapa la vista como cualquier muro', () => {
+  const bounds = boundsSegments(540, 540);
+  /** Los cuatro lados de un rectángulo, tal y como los devuelve `roomRules.roomSides('rect', …)`. */
+  const sala = ([[135, 135, 405, 135], [405, 135, 405, 405], [405, 405, 135, 405], [135, 405, 135, 135]] as const)
+    .map(([x1, y1, x2, y2]) => ({ a: { x: x1, y: y1 }, b: { x: x2, y: y2 } }));
+
+  it('desde dentro se ve la sala entera y nada de fuera', () => {
+    const poly = visionPolygon({ x: 270, y: 270 }, [...sala, ...bounds]);
+    expect(pointInPolygon({ x: 380, y: 270 }, poly)).toBe(true);
+    expect(pointInPolygon({ x: 500, y: 270 }, poly)).toBe(false);
+  });
+
+  it('desde fuera no se ve nada de dentro', () => {
+    const poly = visionPolygon({ x: 40, y: 270 }, [...sala, ...bounds]);
+    expect(pointInPolygon({ x: 100, y: 270 }, poly)).toBe(true);
+    expect(pointInPolygon({ x: 270, y: 270 }, poly)).toBe(false);
+  });
+
+  /** Abrir una puerta en un lado es quitar ese trozo: la vista pasa por el vano, como en cualquier muro. */
+  it('con un vano abierto en un lado, la vista pasa por él', () => {
+    const conVano = [
+      { a: { x: 135, y: 135 }, b: { x: 135, y: 240 } },
+      { a: { x: 135, y: 300 }, b: { x: 135, y: 405 } },
+      ...sala.slice(0, 3),
+    ];
+    const poly = visionPolygon({ x: 40, y: 270 }, [...conVano, ...bounds]);
+    expect(pointInPolygon({ x: 270, y: 270 }, poly)).toBe(true);
+  });
+});

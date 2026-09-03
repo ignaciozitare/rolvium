@@ -12,6 +12,12 @@ interface Props {
   element: { kind: ElementKind; id: string; name: string; layerId: string | null };
   layers: Layer[];
   onPick: (layerId: string) => void;
+  /**
+   * Borrar el elemento desde aquí. OPCIONAL a propósito: hoy sólo lo pasa la LUZ (dueño, 2026-09-02: «si la
+   * selecciono a la luz y toco la tecla suprimir o botón derecho eliminar la luz se tiene que borrar»). Las
+   * fichas ya se borran con Suprimir y los trazos con la goma; si algún día se quiere aquí, se pasa y ya.
+   */
+  onRemove?: () => void;
   onClose: () => void;
 }
 
@@ -22,7 +28,7 @@ interface Props {
  * Sale la lista ENTERA, notas del director incluida: mandar algo ahí es justamente cómo se esconde de la
  * mesa sin borrarlo. La capa donde está ahora se marca — y si nunca se movió, la marcada es su capa natural.
  */
-export function LayerMenu({ at, element, layers, onPick, onClose }: Props): JSX.Element {
+export function LayerMenu({ at, element, layers, onPick, onRemove, onClose }: Props): JSX.Element {
   const { t } = useTranslation();
   const current = resolveLayer(layers, element.layerId, element.kind);
   const nameOf = (l: Layer): string => l.name || t(`maps.layers.kind.${KIND_KEY[l.kind]}`);
@@ -40,6 +46,15 @@ export function LayerMenu({ at, element, layers, onPick, onClose }: Props): JSX.
           {current?.id === l.id && <span className="material-symbols-outlined mp-layermenu-check" aria-hidden style={{ fontSize: 'var(--icon-xs)' }}>check</span>}
         </button>
       ))}
+      {onRemove && (
+        <>
+          <span className="mp-menu-sep" aria-hidden />
+          <button type="button" role="menuitem" className="mp-menu-item danger" onClick={() => { onRemove(); onClose(); }}>
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>delete</span>
+            {t(`maps.layers.remove.${element.kind}`)}
+          </button>
+        </>
+      )}
     </div>
   );
 }

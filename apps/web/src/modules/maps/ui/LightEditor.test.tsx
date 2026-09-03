@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, fireEvent } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH } from '../../../../tests/helpers/fakes';
+import { LIGHT_COLORS } from '../domain/useCases/layerRules';
 import { LightEditor } from './LightEditor';
 
 // jsdom no trae PointerEvent: un MouseEvent con pointerId basta para los gestos, como en MapCanvas.test.
@@ -16,6 +17,15 @@ function mount(light = LIGHT_TORCH) {
   renderWithProviders(<LightEditor light={light} {...cb} />);
   return cb;
 }
+
+describe('<LightEditor> — los iconos dicen qué hacen', () => {
+  it('borrar y cerrar llevan tooltip', () => {
+    mount();
+    const tips = [...document.querySelectorAll('.rv-tip')].map(x => x.textContent ?? '');
+    expect(tips).toContain('Borrar la luz');
+    expect(tips).toContain('Cerrar el editor');
+  });
+});
 
 describe('<LightEditor>', () => {
   it('marca la forma y el tipo de la luz que se está tocando', () => {
@@ -52,7 +62,7 @@ describe('<LightEditor>', () => {
     const cb = mount();
     expect(screen.getByRole('radio', { name: 'Color 1' })).toHaveAttribute('aria-checked', 'true');
     await u.click(screen.getByRole('radio', { name: 'Color 5' }));
-    expect(cb.onChange).toHaveBeenCalledWith({ color: '#a97fe0' });
+    expect(cb.onChange).toHaveBeenCalledWith({ color: LIGHT_COLORS[4] });
   });
 
   /**
@@ -127,18 +137,23 @@ describe('<LightEditor> · salir y apartarlo', () => {
     expect(cb.onRemove).not.toHaveBeenCalled();
   });
 
-  it('se arrastra por la cabecera y el panel se corre con el ratón', () => {
+  /**
+   * Se arrastra por la cabecera, y **sale del mapa**: el lienzo recorta lo que se sale de él, así que al
+   * agarrarlo el panel pasa a `fixed` y desde ahí va por toda la ventana (dueño, 2026-09-03).
+   */
+  it('se arrastra por la cabecera, sale del mapa y se corre con el ratón', () => {
     mount();
-    const panel = screen.getByRole('group', { name: /Luz/ });
+    const panel = screen.getByRole('group', { name: /Luz/ }) as HTMLElement;
     const head = panel.querySelector('.mp-light-head') as HTMLElement;
-    expect(panel).toHaveStyle({ transform: 'translate(0px, 0px)' });
+    expect(panel.style.position).toBe('');            // sin tocarlo, lo coloca el CSS
     fireEvent.pointerDown(head, { button: 0, clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 160, clientY: 130, pointerId: 1 });
-    expect(panel).toHaveStyle({ transform: 'translate(60px, 30px)' });
+    expect(panel.style.position).toBe('fixed');
+    expect([panel.style.left, panel.style.top]).toEqual(['60px', '30px']);
     // Al soltar se queda donde lo dejaste: mover no es un gesto que se deshaga solo.
     fireEvent.pointerUp(head, { pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 400, clientY: 400, pointerId: 1 });
-    expect(panel).toHaveStyle({ transform: 'translate(60px, 30px)' });
+    expect([panel.style.left, panel.style.top]).toEqual(['60px', '30px']);
   });
 
   it('pulsar borrar o cerrar NO empieza un arrastre: los botones mandan sobre el asa', () => {
@@ -147,7 +162,7 @@ describe('<LightEditor> · salir y apartarlo', () => {
     const head = panel.querySelector('.mp-light-head') as HTMLElement;
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Borrar la luz' }), { button: 0, clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 300, clientY: 300, pointerId: 1 });
-    expect(panel).toHaveStyle({ transform: 'translate(0px, 0px)' });
+    expect((panel as HTMLElement).style.position).toBe('');
   });
 });
 
@@ -175,5 +190,98 @@ describe('<LightEditor> · el cono apunta a algún lado', () => {
   it('una dirección guardada fuera de la vuelta se enseña dentro de ella', () => {
     mount({ ...LIGHT_SECRET, rotation: -90 });
     expect(screen.getByText('270°')).toBeInTheDocument();
+  });
+});
+
+/** 🚨 «Que gire sola», § 7.2. Sólo con el cono, y un solo dato: `spinMs = 0` es quieta. */
+describe('<LightEditor> la luz que gira', () => {
+  it('el interruptor NO sale con un radio: girar sólo significa algo en un cono', () => {
+    mount(LIGHT_TORCH);
+    expect(screen.queryByRole('checkbox', { name: 'Que gire sola' })).not.toBeInTheDocument();
+  });
+
+  it('encenderlo pone la vuelta por defecto, y apagarlo la deja en cero', async () => {
+    const u = userEvent.setup();
+    const cb = mount({ ...LIGHT_SECRET, shape: 'cone', spinMs: 0 });
+    await u.click(screen.getByRole('checkbox', { name: 'Que gire sola' }));
+    expect(cb.onChange).toHaveBeenCalledWith({ spinMs: 4000 });
+    document.body.innerHTML = '';
+    const cb2 = mount({ ...LIGHT_SECRET, shape: 'cone', spinMs: 4000 });
+    await u.click(screen.getByRole('checkbox', { name: 'Que gire sola' }));
+    expect(cb2.onChange).toHaveBeenCalledWith({ spinMs: 0 });
+  });
+
+  it('la vuelta sólo se puede tocar si gira, y se rotula en segundos', () => {
+    mount({ ...LIGHT_SECRET, shape: 'cone', spinMs: 0 });
+    expect(screen.queryByRole('slider', { name: 'Vuelta' })).not.toBeInTheDocument();
+    document.body.innerHTML = '';
+    const cb = mount({ ...LIGHT_SECRET, shape: 'cone', spinMs: 4000 });
+    expect(screen.getByText('4 s')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('slider', { name: 'Vuelta' }), { target: { value: '2000' } });
+    expect(cb.onChange).toHaveBeenLastCalledWith({ spinMs: 2000 });
+  });
+});
+
+
+/**
+ * 🕯 LA BARRA DE INTENSIDAD (§ 7.2, dueño 2026-09-01: «cada una además del alcance color etc necesita una
+ * barra de intensidad»). Cuánto CANTA la luz, que no es cuánto ILUMINA: eso es el alcance y sigue aparte.
+ */
+describe('<LightEditor> la intensidad', () => {
+  it('la barra sale en todas las luces, con su valor escrito al lado', () => {
+    for (const light of [LIGHT_TORCH, LIGHT_BULB, { ...LIGHT_SECRET, shape: 'cone' as const }]) {
+      document.body.innerHTML = '';
+      mount({ ...light, intensity: 60 });
+      expect(screen.getByRole('slider', { name: 'Intensidad' })).toHaveValue('60');
+      expect(screen.getByText('60 %')).toBeInTheDocument();
+    }
+  });
+
+  it('moverla avisa con el valor nuevo', () => {
+    const cb = mount({ ...LIGHT_TORCH, intensity: 100 });
+    fireEvent.change(screen.getByRole('slider', { name: 'Intensidad' }), { target: { value: '35' } });
+    expect(cb.onChange).toHaveBeenCalledWith({ intensity: 35 });
+  });
+
+  it('no deja apagarla del todo ni pasarse: una luz invisible parece borrada', () => {
+    const cb = mount({ ...LIGHT_TORCH, intensity: 100 });
+    const bar = screen.getByRole('slider', { name: 'Intensidad' });
+    expect(bar).toHaveAttribute('min', '10');
+    // El techo es 200: 100 es «como se pintaba siempre», y por encima está el margen que él pidió.
+    expect(bar).toHaveAttribute('max', '200');
+    fireEvent.change(bar, { target: { value: '0' } });
+    expect(cb.onChange).toHaveBeenLastCalledWith({ intensity: 10 });
+    fireEvent.change(bar, { target: { value: '900' } });
+    expect(cb.onChange).toHaveBeenLastCalledWith({ intensity: 200 });
+  });
+
+  it('es cosa distinta del alcance: las dos conviven y no se pisan', () => {
+    mount({ ...LIGHT_TORCH, intensity: 50, rangeM: 6 });
+    expect(screen.getByRole('slider', { name: 'Intensidad' })).toHaveValue('50');
+    expect(screen.getByRole('spinbutton', { name: 'Alcance en metros' })).toHaveValue(6);
+  });
+});
+
+
+/**
+ * 🎨 LA PALETA (dueño, 2026-09-02: «debería poder elegir más colores, no solo esos»). Doce en vez de seis.
+ */
+describe('<LightEditor> la paleta de colores', () => {
+  it('ofrece los doce, cada uno con su puesto', () => {
+    mount();
+    expect(LIGHT_COLORS).toHaveLength(12);
+    for (let i = 0; i < LIGHT_COLORS.length; i++) {
+      expect(screen.getByRole('radio', { name: `Color ${i + 1}` })).toBeInTheDocument();
+    }
+  });
+
+  /**
+   * 🔒 Los seis de siempre SIGUEN en la paleta. Si uno desapareciera, una luz ya guardada con ese color se
+   * quedaría con un color que el director ya no puede volver a elegir — y él dijo «no borres nada».
+   */
+  it('no se ha perdido ninguno de los seis originales', () => {
+    for (const c of ['#e8a24e', '#f0e6c8', '#e07a3c', '#e0625c', '#a97fe0', '#9fb6d4']) {
+      expect(LIGHT_COLORS).toContain(c);
+    }
   });
 });
