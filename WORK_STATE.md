@@ -14,7 +14,66 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 **SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
 por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🔵 de cierre, justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🚦 «DÓNDE ESTAMOS AHORA MISMO», justo debajo.**
+
+## 🚦 2026-09-03 — DÓNDE ESTAMOS AHORA MISMO (leer esto primero)
+
+**Todo lo de hoy está en `main` y en producción, verificado en vivo.** Tres quejas suyas, tres causas
+distintas, las tres arregladas y desplegadas:
+
+| Lo que dijo | Qué era de verdad | Dónde está |
+|---|---|---|
+| «la niebla dinámica no va» | **Estaba apagada**, no rota: sus dos escenas en `fog_mode = 'manual'` | ✅ producción |
+| «es estúpidamente lento» | La función en **Washington**, la base en **Frankfurt** | ✅ producción · 0,81 s → 0,17 s |
+| «va a saltos, actualiza al soltar» | Una **carrera**: se descartaban TODAS las respuestas del arrastre | ✅ producción |
+
+De propina, con la tercera **vuelven las paredes sólidas**, que llevaban muertas en producción sin que nadie lo
+supiera (la guarda tiraba la respuesta entera, y dentro viajaban `corrected` y `clearance`).
+
+### ✅ CERRADO Y NO SE VUELVE A TOCAR (decisión suya, 2026-09-03)
+> «*el token ve en un radio, no como local, ¿por qué lo cambias?*» → **No se cambió nada del cálculo de visión.**
+> El radio es el ajuste **«Noche · 10 m»** de la escena `sfahafh`; de día sólo limitan los muros. El local tiene
+> exactamente los mismos ajustes. Nunca lo había visto porque hasta ese día esas escenas estaban en niebla
+> manual, donde el servidor **no calcula visión ninguna**. Él lo zanjó con «**lo dejemos así**». ⛔ No reabrir.
+
+---
+
+## 🔨 ENCARGO EN CURSO — BOTÓN «ENSEÑAR LOS MUROS A LOS JUGADORES»
+
+Pedido suyo: «*agrega un botón para que los jugadores puedan ver las líneas de los muros*».
+
+**Qué es, decidido por él**: un interruptor **del director** que pone **todos los muros de la escena** visibles
+para los jugadores de una vez, en vez de marcarlos uno a uno. Es un ajuste de la escena: **se guarda y lo ve
+toda la mesa**. Vuelto a pulsar, los oculta.
+> Descartadas por él: que el botón fuera del jugador (un interruptor local en su pantalla), y la mezcla de ambos.
+
+### 📐 ESTADO: DISEÑO HECHO, **PENDIENTE DE QUE ÉL LO APRUEBE**
+- Frame nuevo en `rolvium.pen`: **`PL/Controles del lienzo ← NUEVO 03-09: ENSEÑAR LOS MUROS A LOS JUGADORES`**
+  (**`bGroR`**), con la pila (`MZq8z`) y la explicación (`ZfuO8`).
+- 🔎 **Hallazgo: la pila de controles del lienzo NO estaba en el `.pen`** — se construyó en código en la
+  rebanada 3 sin pasar por diseño. Queda dibujada ahora **tal como es de verdad**, leída del CSS
+  (`.mp-controls` = `--sys-paper-hi`; `.mp-ctl.on` = fondo `--sys-ink`, icono `--sys-paper-hi`; separador
+  `--sys-line`). Eso tapa un agujero viejo del master, no sólo el botón nuevo.
+- **Sitio elegido**: entre la niebla y el velo. Sus vecinos de arriba (luz · paredes sólidas · niebla) son lo
+  mismo —ajustes de ESTA escena que pone el director y que cambian lo que ve el jugador—; el velo va después
+  porque ése sólo le afecta a él.
+- **Icono propuesto: `public` / `public_off`.** Es lo más discutible del diseño y está para que él lo vete.
+  No se pudo reutilizar ninguno: `visibility` ya es su propio ver/ocultar muros, `groups` es la capa de
+  criaturas y `theater_comedy` es «ver como jugador».
+- **Etiquetas**, con la forma que hoy ya cumplen paredes sólidas y niebla (estado + qué pasa al pulsar):
+  - apagado → «Los jugadores no ven los muros — pulsa para enseñárselos»
+  - encendido → «Los jugadores ven los muros — pulsa para ocultárselos»
+- ⚠️ **NO hay claro/oscuro que verificar**: dentro de la mesa manda el tema del sistema (regla suya).
+
+### ⏭️ LO QUE FALTA PARA CONSTRUIRLO
+1. **Que él apruebe el diseño** (y sobre todo el icono).
+2. **Que guarde `rolvium.pen` con Cmd+S** — el MCP no escribe en disco; sin su guardado no hay blueprint que
+   commitear. Comprobar `ls -la rolvium.pen` antes de dar por bueno nada.
+3. **Sin migración**: la columna `visible_players` de `maps_walls` **ya existe**. Hace falta una escritura en
+   bloque por escena en `SupabaseMapsRepo` (un `update … eq('scene_id', …)`), su puerto en `MapsPort`, y el
+   interruptor en `CanvasControls`. Con test, y el estado sale de si TODOS los muros están ya visibles.
+
+---
 
 ## 🌫 2026-09-03 (cierre) — «EN PROD LA NIEBLA SÓLO SE PINTA AL SOLTAR EL BOTÓN»
 
@@ -179,7 +238,60 @@ Se arregla memorizando la app entre invocaciones, que son tres líneas — pero 
 todo** y `handler-entry.ts` no tiene un solo test. **Medir primero en producción** con `responseTime` de los
 registros, y decidir con el dato. No se ha tocado a propósito: no es lo que él pidió.
 
-## 🧱 CONSTRUCTOR DE SALAS — DECISIONES SUYAS YA TOMADAS (no volver a preguntarlas)
+## 🧱 LO SIGUIENTE DE VERDAD — EL CONSTRUCTOR DE SALAS
+
+Es la **pregunta 6** de `specs/modules/maps/SPEC.md` § «Rebanada 8», **ya contestada por él**: la sala ES una
+entidad con su suelo; el suelo base se hereda del momento de dibujar; y encima siguen mandando el pincel de
+textura y las capas con transparencia que ya existen — **la sala mete un suelo DEBAJO, no reemplaza nada**.
+
+### ⛔ EL ORDEN ES OBLIGATORIO Y NO SE HA EMPEZADO
+```
+Spec  →  DBA (tabla + migración)  →  Diseño en el .pen aprobado con capturas  →  y sólo entonces código
+```
+
+### ✅ LAS TRES DECISIONES QUE YA DIO (2026-09-03) — NO VOLVER A PREGUNTARLAS
+1. **Las dos texturas base son DE CADA MAPA**, no de la campaña. «Una cripta y un bosque no se parecen en nada.»
+   *(Esto cierra la pregunta 7 del spec, que estaba abierta.)*
+2. **Alcance de esta tanda**: los preajustes + las dos texturas base + **que cada sala se quede con su suelo**.
+   El **pincel para repintar el suelo de UNA sala** queda para la tanda siguiente.
+3. ⛔ **Cambiar el preajuste NO repinta las salas ya levantadas.** Se le ofreció que repintara todo y lo rechazó
+   en redondo («*como que repinta las salas, nooooo*»). Manda lo que ya decía el spec: **el suelo se hereda del
+   momento de dibujar y se queda quieto**; el preajuste sólo afecta a lo que se levante a partir de entonces.
+
+### 📋 LO QUE ENTRA CON LA TABLA
+Las **dos secciones del panel v3 que están sin maquetar a propósito** (`ui/BuilderPanel.tsx`):
+- **«ESTILO DE LA MAZMORRA»** — los nueve preajustes, que ponen **LAS DOS texturas base de golpe**.
+- **Las dos texturas base** — relleno de pared y suelo por separado, o una foto suya (`+ Subir`).
+- **El interruptor de modo del panel ya está construido y es su sitio.** Marcando sobre una foto se caen los
+  tres: ahí el suelo lo pone la foto.
+
+### 🚧 LO QUE HAY QUE RESOLVER EN EL SPEC ANTES DEL DBA
+- Qué es exactamente «una textura»: uno de los nueve estilos dibujados, o una foto suya. Los dos, y hay que
+  decidir cómo se guarda esa pareja.
+- Si la sala guarda su suelo **copiado** o **apuntando** al de la escena (la decisión 3 empuja a copiado).
+- Cómo se ata la sala a sus muros. Ojo: **el `group_id` de `maps_walls` YA EXISTE** y ata los muros de un
+  gesto — mirar si la sala cuelga de él en vez de inventar otra atadura.
+- Qué pasa al borrar una sala, y qué manda cuando dos se solapan.
+
+### 🔁 PROMPT DE RESUME PARA EL CHAT NUEVO — USAR ESTE
+
+> Rolvium, chat nuevo. Lee el bloque 🚦 de `WORK_STATE.md` (2026-09-03): **todo lo de ayer está en `main` y en
+> producción, verificado en vivo.** No reabras lo del radio de visión: está cerrado por él.
+>
+> Hay **un encargo a medias**: el botón «enseñar los muros a los jugadores». El diseño está hecho en
+> `rolvium.pen` (`bGroR`) y **falta que yo lo apruebe y guarde el `.pen`**. Pregúntamelo antes de tocar código.
+>
+> Y lo gordo: **empezamos el CONSTRUCTOR DE SALAS**. Lee `specs/modules/maps/SPEC.md` § «Rebanada 8», sobre
+> todo «✅ RESUELTO: LAS PSEUDO TEXTURAS BASE» y la pregunta 6. **Mis tres decisiones ya están tomadas y están
+> en el bloque 🧱 del WORK_STATE — no me las vuelvas a preguntar.** El orden es obligatorio: Spec → DBA (tabla
+> + migración) → diseño en el `.pen` aprobado con capturas → sólo entonces código.
+>
+> La app corre en local con `npm run dev:api` y `npm run dev:web` → `localhost:5173` contra Supabase local.
+> ⚠️ Nunca `db:reset`.
+
+---
+
+## 🧱 (histórico) CONSTRUCTOR DE SALAS — DECISIONES SUYAS YA TOMADAS (no volver a preguntarlas)
 
 Se alcanzó a preguntarle antes de parar. **Las tres están contestadas por él**:
 
