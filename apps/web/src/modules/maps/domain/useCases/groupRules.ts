@@ -59,20 +59,34 @@ export function handleAt(r: Rect, k: HandleKey): Point {
 
 /**
  * El marco nuevo al arrastrar un tirador hasta `to`. El lado de enfrente queda clavado —es el ancla— y sólo se
- * mueve el que se agarra. Un tirador de en medio no toca el otro eje: agarrar el lado derecho estira a lo
- * ancho y deja la altura como estaba.
+ * mueve el que se agarra.
+ *
+ * 🔒 **LAS ESQUINAS GUARDAN LAS PROPORCIONES** (dueño, 2026-09-03: «*los nodos de las esquinas deberían
+ * escalarlo manteniendo proporciones*»). Una esquina agarra las dos direcciones a la vez, así que estirar
+ * libre por ahí deforma la sala sin querer — y un círculo deformado deja de ser un círculo. Manda el eje que
+ * más se ha arrastrado, y el otro le sigue. Los tiradores de EN MEDIO sí estiran libre en su única dirección,
+ * que es justo para lo que están: agarrar el lado derecho ensancha y deja la altura como estaba.
  */
 export function resizeRect(r: Rect, k: HandleKey, to: Point): Rect {
   const west = k === 'tl' || k === 'l' || k === 'bl';
   const east = k === 'tr' || k === 'r' || k === 'br';
   const north = k === 'tl' || k === 't' || k === 'tr';
   const south = k === 'bl' || k === 'b' || k === 'br';
-  let { x, y, w, h } = r;
-  if (west) { const right = r.x + r.w; x = Math.min(to.x, right - MIN_GROUP_PX); w = right - x; }
-  if (east) { w = Math.max(to.x - r.x, MIN_GROUP_PX); }
-  if (north) { const bottom = r.y + r.h; y = Math.min(to.y, bottom - MIN_GROUP_PX); h = bottom - y; }
-  if (south) { h = Math.max(to.y - r.y, MIN_GROUP_PX); }
-  return { x, y, w, h };
+  let w = west ? r.x + r.w - to.x : east ? to.x - r.x : r.w;
+  let h = north ? r.y + r.h - to.y : south ? to.y - r.y : r.h;
+  if ((west || east) && (north || south) && r.w > EPS && r.h > EPS) {
+    const sx = w / r.w;
+    const sy = h / r.h;
+    // El eje que más se ha movido manda; el tope mínimo se aplica al conjunto, o la proporción se rompería.
+    const seguido = Math.abs(sx - 1) > Math.abs(sy - 1) ? sx : sy;
+    const factor = Math.max(seguido, MIN_GROUP_PX / r.w, MIN_GROUP_PX / r.h);
+    w = r.w * factor;
+    h = r.h * factor;
+  } else {
+    w = Math.max(w, MIN_GROUP_PX);
+    h = Math.max(h, MIN_GROUP_PX);
+  }
+  return { x: west ? r.x + r.w - w : r.x, y: north ? r.y + r.h - h : r.y, w, h };
 }
 
 /**

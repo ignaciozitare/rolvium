@@ -152,7 +152,7 @@ type Gesture =
    * Moviendo o estirando un GRUPO. Con `handle` a null se mueve entero; con tirador se estira por ese lado.
    * Guarda el marco de partida porque escalar es llevar los muros de un marco a otro, no ir sumando tirones.
    */
-  | { kind: 'groupXf'; handle: HandleKey | null; origin: Rect; start: Point; moved: boolean }
+  | { kind: 'groupXf'; handle: HandleKey | null; origin: Rect; ids: string[]; start: Point; moved: boolean; wallId: string | null; dbl: boolean }
   | { kind: 'marquee'; start: Point; last: Point }
   | { kind: 'measure' }
   /** Arrastrando la sonda de prueba. No lleva id: sólo hay una y no es de nadie. */
@@ -379,7 +379,7 @@ export function MapCanvas(p: Props): JSX.Element {
       if (marco) {
         const k = HANDLE_KEYS.find(h => { const q = handlePoint(marco, h); return Math.hypot(s.x - q.x, s.y - q.y) <= 9 / p.view.zoom; });
         if (k) {
-          setGesture({ kind: 'groupXf', handle: k, origin: marco, start: s, moved: false });
+          setGesture({ kind: 'groupXf', handle: k, origin: marco, ids: cogidos.map(w => w.id), start: s, moved: false, wallId: null, dbl: false });
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
@@ -393,13 +393,23 @@ export function MapCanvas(p: Props): JSX.Element {
          * si no, cuando esté en medio de otras cosas no se podrá mover*».
          */
         const grupo = groupOf(p.walls, wall);
-        if (grupo.length > 1 && e.detail < 2) {
-          p.onSelectToken(null);
-          p.onSelectLight?.(null);
-          p.onSelectDrawing?.(null);
-          p.onSelectWall?.(null);
-          p.onSelectWalls?.(grupo.map(g => g.id));
-          setGesture({ kind: 'groupXf', handle: null, origin: wallBounds(grupo)!, start: s, moved: false });
+        if (grupo.length > 1) {
+          /**
+           * ⚠️ ARRASTRAR SIEMPRE MUEVE; el doble clic sólo entra SI NO SE ARRASTRA — se decide al soltar, no
+           * aquí (dueño, 2026-09-03: «*puedo seleccionar el círculo, puedo escalarlo y modificarlo pero no
+           * moverlo*»). Antes se miraba `e.detail` en la pulsación, y como el segundo clic de un arrastre
+           * cuenta como doble, ir a mover el grupo entraba al muro suelto en vez de moverlo.
+           */
+          if (!grupo.every(g => (p.selectedWallIds ?? []).includes(g.id))) {
+            p.onSelectToken(null);
+            p.onSelectLight?.(null);
+            p.onSelectDrawing?.(null);
+            p.onSelectWall?.(null);
+            p.onSelectWalls?.(grupo.map(g => g.id));
+          }
+          // Los ids van DENTRO del gesto: si dependiera de la prop, el primer arrastre tras elegir movería
+          // la selección vieja, que en ese instante todavía está vacía.
+          setGesture({ kind: 'groupXf', handle: null, origin: wallBounds(grupo)!, ids: grupo.map(g => g.id), start: s, moved: false, wallId: wall.id, dbl: e.detail >= 2 });
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
@@ -643,7 +653,7 @@ export function MapCanvas(p: Props): JSX.Element {
       setGesture({ ...gesture, points });
       setRoomDraft(freehandSides(points, grid));
     } else if (gesture.kind === 'groupXf') {
-      const sel = p.walls.filter(w => (p.selectedWallIds ?? []).includes(w.id));
+      const sel = p.walls.filter(w => gesture.ids.includes(w.id));
       const batch = gesture.handle
         ? scaleWallsTo(sel, gesture.origin, resizeRect(gesture.origin, gesture.handle, s))
         : moveWalls(sel, s.x - gesture.start.x, s.y - gesture.start.y);
@@ -760,6 +770,11 @@ export function MapCanvas(p: Props): JSX.Element {
     if (gesture.kind === 'groupXf') {
       // Un clic sin arrastre sólo elige: no hay nada que guardar, y guardarlo escribiría en balde en cada clic.
       if (gesture.moved && groupDraft?.size) p.onTransformWalls?.([...groupDraft.values()]);
+      else if (gesture.dbl && gesture.wallId) {
+        // Doble clic QUIETO: entra dentro y coge el muro suelto. Si hubo arrastre, era un movimiento.
+        p.onSelectWalls?.([]);
+        p.onSelectWall?.(gesture.wallId);
+      }
       setGroupDraft(null);
       setGesture(null);
       return;

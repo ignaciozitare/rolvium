@@ -53,12 +53,35 @@ describe('<MapCanvas> el GRUPO se coge, se mueve y se estira', () => {
   });
 
   /** 🔒 Lo que pidió con nombre: entrar al pedacito. Sin esto, un muro dentro de un grupo es inalcanzable. */
-  it('el doble clic entra dentro y coge el muro suelto', () => {
+  it('el doble clic QUIETO entra dentro y coge el muro suelto', () => {
     const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
     const { svg } = mount({ ...dmSel, ...cb2 });
-    dblDown(svg, 100, 0);
+    dblDown(svg, 60, 0); up(svg);
     expect(cb2.onSelectWall).toHaveBeenCalledWith('g-a');
-    expect(cb2.onSelectWalls).toHaveBeenCalledWith([]);
+    expect(cb2.onSelectWalls).toHaveBeenLastCalledWith([]);
+  });
+
+  /**
+   * 🔒 «*puedo seleccionar el círculo, puedo escalarlo y modificarlo pero no moverlo*» (dueño, 2026-09-03).
+   * El segundo clic de un arrastre cuenta como DOBLE clic para el navegador, así que decidir «doble clic =
+   * entrar» en la pulsación hacía que ir a mover el grupo entrase al muro suelto. Se decide al SOLTAR.
+   */
+  it('arrastrar mueve el grupo aunque el navegador lo cuente como doble clic', () => {
+    const cb2 = { onTransformWalls: vi.fn(), onSelectWall: vi.fn(), onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    dblDown(svg, 60, 0); move(svg, 110, 40); up(svg);
+    expect(cb2.onTransformWalls).toHaveBeenCalledTimes(1);
+    expect(cb2.onSelectWall).not.toHaveBeenCalledWith('g-a');
+  });
+
+  /** 🔒 Y mover funciona a la primera, sin haberlo elegido antes: los ids viajan dentro del gesto. */
+  it('se mueve a la primera, en el mismo gesto que lo elige', () => {
+    const cb2 = { onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, ...cb2 });
+    down(svg, 60, 0); move(svg, 110, 40); up(svg);
+    const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string; x1: number; y1: number }[];
+    expect(batch).toHaveLength(4);
+    expect(batch[0]).toMatchObject({ id: 'g-a', x1: 50, y1: 40 });
   });
 
   it('un muro suelto se coge solo, sin arrastrar a nadie', () => {
@@ -97,11 +120,23 @@ describe('<MapCanvas> el GRUPO se coge, se mueve y se estira', () => {
   it('arrastrar un tirador lo estira', () => {
     const cb2 = { onTransformWalls: vi.fn() };
     const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    // La esquina guarda la proporción: 200→400 es el doble de ancho, así que 150→300 de alto.
     down(svg, 200, 150); move(svg, 400, 300); up(svg);
     const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string; x1: number; y1: number; x2: number; y2: number }[];
     expect(batch).toHaveLength(4);
     expect(batch[0]).toMatchObject({ id: 'g-a', x1: 0, y1: 0, x2: 400, y2: 0 });
     expect(batch[1]).toMatchObject({ id: 'g-b', x2: 400, y2: 300 });
+  });
+
+  /** 🔒 Su corrección: «los nodos de las esquinas deberían escalarlo manteniendo proporciones». */
+  it('una esquina guarda la proporción aunque se arrastre torcido', () => {
+    const cb2 = { onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallIds: grupo.map(w => w.id), ...cb2 });
+    // Se tira mucho a lo ancho y casi nada a lo alto: el alto tiene que seguir al ancho igualmente.
+    down(svg, 200, 150); move(svg, 400, 160); up(svg);
+    const batch = cb2.onTransformWalls.mock.calls[0]![0] as { id: string; x1: number; y1: number; x2: number; y2: number }[];
+    expect(batch[0]).toMatchObject({ id: 'g-a', x2: 400 });
+    expect(batch[1]!.y2).toBeCloseTo(300, 6);
   });
 
   it('un clic sin arrastre no escribe nada: sólo elige', () => {

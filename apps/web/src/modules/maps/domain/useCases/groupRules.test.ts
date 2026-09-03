@@ -43,7 +43,29 @@ describe('estirar por un tirador', () => {
 
   it('el lado de enfrente se queda clavado', () => {
     expect(resizeRect(r, 'br', { x: 150, y: 120 })).toEqual({ x: 0, y: 0, w: 150, h: 120 });
-    expect(resizeRect(r, 'tl', { x: -50, y: -20 })).toEqual({ x: -50, y: -20, w: 150, h: 100 });
+    // Por arriba a la izquierda el ancla es la esquina de abajo a la derecha: (100,80) no se mueve.
+    const tl = resizeRect(r, 'tl', { x: -50, y: -20 });
+    expect(tl.x + tl.w).toBe(100);
+    expect(tl.y + tl.h).toBe(80);
+  });
+
+  /**
+   * 🔒 LAS ESQUINAS GUARDAN LAS PROPORCIONES (dueño, 2026-09-03: «*los nodos de las esquinas deberían
+   * escalarlo manteniendo proporciones*»). Estirar libre por una esquina deforma la sala, y un círculo
+   * deformado deja de ser un círculo.
+   */
+  it('una esquina escala manteniendo la proporción: manda el eje que más se arrastra', () => {
+    // Se tira mucho a lo ancho (×1,5) y poco a lo alto (×1,05): manda el ancho y la altura le sigue.
+    const e = resizeRect(r, 'br', { x: 150, y: 84 });
+    expect(e.w / e.h).toBeCloseTo(r.w / r.h, 6);
+    expect(e.w).toBeCloseTo(150, 6);
+    expect(e.h).toBeCloseTo(120, 6);
+  });
+
+  it('un tirador de en medio NO guarda proporción: para eso está', () => {
+    const e = resizeRect(r, 'r', { x: 300, y: 0 });
+    expect(e.w).toBe(300);
+    expect(e.h).toBe(80);
   });
 
   /** 🔒 Agarrar un lado NO toca el otro eje: estirar a lo ancho deja la altura como estaba. */
@@ -57,11 +79,16 @@ describe('estirar por un tirador', () => {
    * contrario deja una forma imposible de recuperar a mano.
    */
   it('no se puede estrujar más allá del mínimo, ni darle la vuelta', () => {
-    expect(resizeRect(r, 'br', { x: -500, y: -500 })).toEqual({ x: 0, y: 0, w: MIN_GROUP_PX, h: MIN_GROUP_PX });
+    // Por una esquina el tope respeta la proporción: se para cuando el lado CORTO llega al mínimo.
+    const chico = resizeRect(r, 'br', { x: -500, y: -500 });
+    expect(Math.min(chico.w, chico.h)).toBeCloseTo(MIN_GROUP_PX, 6);
+    expect(chico.w / chico.h).toBeCloseTo(r.w / r.h, 6);
     const alReves = resizeRect(r, 'tl', { x: 500, y: 500 });
-    expect(alReves.w).toBe(MIN_GROUP_PX);
-    expect(alReves.h).toBe(MIN_GROUP_PX);
-    expect(alReves.x).toBe(100 - MIN_GROUP_PX);
+    expect(Math.min(alReves.w, alReves.h)).toBeCloseTo(MIN_GROUP_PX, 6);
+    expect(alReves.x + alReves.w).toBeCloseTo(100, 6);
+    expect(alReves.y + alReves.h).toBeCloseTo(80, 6);
+    // Y por un lado suelto, el mínimo es el de siempre.
+    expect(resizeRect(r, 'r', { x: -500, y: 0 }).w).toBe(MIN_GROUP_PX);
   });
 });
 
