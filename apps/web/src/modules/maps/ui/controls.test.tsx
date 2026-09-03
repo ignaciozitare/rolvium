@@ -234,10 +234,28 @@ describe('<CanvasControls> — la luz y la niebla como iconos, no como barra', (
     const stack = screen.getByRole('group', { name: 'Controles del lienzo' });
     await u.click(within(stack).getByRole('button', { name: 'Día' }));
     expect(onLighting).toHaveBeenCalledWith('night');
-    const fog = within(stack).getByRole('button', { name: 'Niebla automática por visión' });
+    const fog = within(stack).getByRole('button', { name: 'Niebla automática por visión · se abre sola al moverse' });
     expect(fog).toHaveAttribute('aria-pressed', 'true');
     await u.click(fog);
     expect(onFogMode).toHaveBeenCalledWith('manual');
+  });
+
+  /**
+   * 🌫 EL FALLO DEL 2026-09-03. Las dos escenas de producción estaban en `manual` con cero zonas destapadas, y
+   * en manual el servidor devuelve `vision: []` (`sceneVision.ts`): el mapa se quedaba entero tapado y no se
+   * abría. Parecía la niebla dinámica rota y sólo estaba APAGADA — el botón decía «Niebla automática por
+   * visión» tanto encendida como apagada, así que ni delataba el estado ni avisaba de lo que hacía al pulsar.
+   */
+  it('apagada lo DICE, y no repite la etiqueta de encendida', async () => {
+    const u = userEvent.setup();
+    const onFogMode = vi.fn();
+    renderWithProviders(<CanvasControls {...base} isDm scene={{ ...SCENE_WAREHOUSE, fogMode: 'manual' }} onFogMode={onFogMode} onLighting={vi.fn()} />);
+    const stack = screen.getByRole('group', { name: 'Controles del lienzo' });
+    expect(within(stack).queryByRole('button', { name: /se abre sola al moverse/ })).toBeNull();
+    const fog = within(stack).getByRole('button', { name: 'Niebla manual · sólo la abre tu pincel; pulsa para automática' });
+    expect(fog).toHaveAttribute('aria-pressed', 'false');
+    await u.click(fog);
+    expect(onFogMode).toHaveBeenCalledWith('vision');
   });
 
   it('de noche el icono lo dice con los metros, y el jugador no ve ninguno de los dos', async () => {
@@ -247,7 +265,7 @@ describe('<CanvasControls> — la luz y la niebla como iconos, no como barra', (
     document.body.innerHTML = '';
     renderWithProviders(<CanvasControls {...base} isDm={false} scene={SCENE_WAREHOUSE} onFogMode={vi.fn()} onLighting={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /Día|Noche/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Niebla automática por visión' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Niebla/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Acercar' })).toBeInTheDocument();
   });
 });
