@@ -57,16 +57,26 @@ toda la mesa**. Vuelto a pulsar, los oculta.
 - **Sitio elegido**: entre la niebla y el velo. Sus vecinos de arriba (luz · paredes sólidas · niebla) son lo
   mismo —ajustes de ESTA escena que pone el director y que cambian lo que ve el jugador—; el velo va después
   porque ése sólo le afecta a él.
-- **Icono propuesto: `public` / `public_off`.** Es lo más discutible del diseño y está para que él lo vete.
-  No se pudo reutilizar ninguno: `visibility` ya es su propio ver/ocultar muros, `groups` es la capa de
-  criaturas y `theater_comedy` es «ver como jugador».
+- **EL ICONO ES UNA PARED, Y LO ELIGIÓ ÉL** (2026-09-03): «*me gustaría una pared: cuando se ven los muros que
+  se vean los ladrillos, y cuando no se ven que esté la pared dibujada con puntos*». Propuse `public` (un globo)
+  y lo rechazó; también se le enseñaron `groups`, `fence` y `share` en una tabla comparativa (`rMzPt`), y
+  ninguno. **Manda la pared.**
+  - **Encendido** = pared de ladrillos maciza (aparejo a soga: dos hiladas enteras y una partida en medio).
+  - **Apagado** = LA MISMA pared, dibujada con puntos — mismo contorno, mismas hiladas, mismas juntas. Que sea
+    la misma pared en los dos estados es la mitad de la idea; si no, parece un recuadro y unos ladrillos.
+  - ⚠️ **NO es un Material Symbol: no existe ese par.** Está dibujado con rectángulos en el `.pen`
+    (`NrNp0` en la pila; `sGaTI` y `ggW20` en el cartel). Al construirlo hay que llevarlo como **SVG en línea o
+    como máscara PNG**, igual que el icono de Builder (`builder-mask.png`), que ya es la excepción con
+    precedente a la regla de «sólo Material Symbols». De máscara, para que se tiña con el botón: encendido el
+    fondo es negro y el dibujo tiene que ir en papel.
 - **Etiquetas**, con la forma que hoy ya cumplen paredes sólidas y niebla (estado + qué pasa al pulsar):
   - apagado → «Los jugadores no ven los muros — pulsa para enseñárselos»
   - encendido → «Los jugadores ven los muros — pulsa para ocultárselos»
 - ⚠️ **NO hay claro/oscuro que verificar**: dentro de la mesa manda el tema del sistema (regla suya).
 
 ### ⏭️ LO QUE FALTA PARA CONSTRUIRLO
-1. **Que él apruebe el diseño** (y sobre todo el icono).
+1. **Que él apruebe el diseño.** El icono ya está decidido por él (la pared); falta el visto bueno al conjunto
+   y al sitio (entre la niebla y el velo).
 2. **Que guarde `rolvium.pen` con Cmd+S** — el MCP no escribe en disco; sin su guardado no hay blueprint que
    commitear. Comprobar `ls -la rolvium.pen` antes de dar por bueno nada.
 3. **Sin migración**: la columna `visible_players` de `maps_walls` **ya existe**. Hace falta una escritura en
