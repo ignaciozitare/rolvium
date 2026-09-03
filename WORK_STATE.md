@@ -38,7 +38,7 @@ supiera (la guarda tiraba la respuesta entera, y dentro viajaban `corrected` y `
 
 ---
 
-## 🔨 ENCARGO EN CURSO — BOTÓN «ENSEÑAR LOS MUROS A LOS JUGADORES»
+## 🧱 HECHO — BOTÓN «ENSEÑAR LOS MUROS A LOS JUGADORES» (rama `feat/muros-visibles-para-jugadores`)
 
 Pedido suyo: «*agrega un botón para que los jugadores puedan ver las líneas de los muros*».
 
@@ -47,7 +47,7 @@ para los jugadores de una vez, en vez de marcarlos uno a uno. Es un ajuste de la
 toda la mesa**. Vuelto a pulsar, los oculta.
 > Descartadas por él: que el botón fuera del jugador (un interruptor local en su pantalla), y la mezcla de ambos.
 
-### 📐 ESTADO: DISEÑO HECHO, **PENDIENTE DE QUE ÉL LO APRUEBE**
+### 📐 EL DISEÑO — APROBADO POR ÉL Y GUARDADO (`8ee932a`)
 - Frame nuevo en `rolvium.pen`: **`PL/Controles del lienzo ← NUEVO 03-09: ENSEÑAR LOS MUROS A LOS JUGADORES`**
   (**`bGroR`**), con la pila (`MZq8z`) y la explicación (`ZfuO8`).
 - 🔎 **Hallazgo: la pila de controles del lienzo NO estaba en el `.pen`** — se construyó en código en la
@@ -74,14 +74,33 @@ toda la mesa**. Vuelto a pulsar, los oculta.
   - encendido → «Los jugadores ven los muros — pulsa para ocultárselos»
 - ⚠️ **NO hay claro/oscuro que verificar**: dentro de la mesa manda el tema del sistema (regla suya).
 
-### ⏭️ LO QUE FALTA PARA CONSTRUIRLO
-1. **Que él apruebe el diseño.** El icono ya está decidido por él (la pared); falta el visto bueno al conjunto
-   y al sitio (entre la niebla y el velo).
-2. **Que guarde `rolvium.pen` con Cmd+S** — el MCP no escribe en disco; sin su guardado no hay blueprint que
-   commitear. Comprobar `ls -la rolvium.pen` antes de dar por bueno nada.
-3. **Sin migración**: la columna `visible_players` de `maps_walls` **ya existe**. Hace falta una escritura en
-   bloque por escena en `SupabaseMapsRepo` (un `update … eq('scene_id', …)`), su puerto en `MapsPort`, y el
-   interruptor en `CanvasControls`. Con test, y el estado sale de si TODOS los muros están ya visibles.
+### ✅ CONSTRUIDO — 4 commits, **sin migración** (`visible_players` de `maps_walls` ya existía)
+1. **`MapsPort.setAllWallsVisible(sceneId, visible)`** + adaptador: `update({visible_players}).eq('scene_id', …)`.
+   Va por **ESCENA y no por lista de ids** a propósito: así alcanza los muros que este navegador no tenga
+   cargados, y en UNA sentencia — a medio camino la mesa vería unas paredes sí y otras no.
+2. **`walls.updated`, evento NUEVO en `TableEvent`** (`packages/core`) — es el corazón de la rama. Los avisos de
+   fila aplican la RLS de cada suscriptor, así que al **ESCONDER** un muro al jugador **no le llega nada** y lo
+   seguía dibujando: enseñar llegaba, esconder no llegaba nunca. Cazado por el review (`05b9c7c`). Comprobado
+   con dos navegadores contra la app: antes 7/7/7 muros (enseñar/ocultar/enseñar), ahora **7/0/7**.
+3. **La re-lista lleva guarda de orden de DOS números** (`wallsSeq`/`wallsApplied`), la misma forma que
+   `visionApplied` — no la de «sólo vale la última pedida», que es la que mató la niebla en producción.
+4. **`patchWall` con `visiblePlayers` también manda `walls.updated`.** Esto era **PREEXISTENTE** (`f39b787`, ya
+   en main), no una regresión de esta rama: desmarcabas la casilla de UN muro en el panel de Builder y el
+   jugador lo seguía dibujando. Se arregla aquí porque incumplía la regla que esta misma rama acaba de dejar
+   escrita en el spec.
+5. **El icono son dos SVG dibujados a mano** (`apps/web/public/icons/wall-bricks.svg` · `wall-dotted.svg`),
+   pintados como **máscara CSS** (`.mp-tool-img`, el mismo camino que el icono de Builder). Las dos mitades son
+   LA MISMA pared; si se toca una, se toca la otra.
+6. **`specs/modules/maps/SPEC.md`**: la trampa de `postgres_changes` documentada ahora en los DOS sentidos, con
+   la regla derivada — *cualquier cosa que cambie `visible_players` tiene que mandar `walls.updated`*.
+
+> ⚠️ **Lo que el spec todavía NO tiene** (lo dejó dicho QA, 2026-09-03): el spec documenta la regla de realtime,
+> pero **no hay entrada funcional que describa el botón en sí** — qué es, que vive en los controles del lienzo
+> entre la niebla y el velo, que es sólo del director, que el estado SALE de los muros («¿están todos
+> visibles?») y no de una columna nueva, y que sin muros no se ofrece. La lista de la rebanada 1 (§ «Controles
+> del lienzo», línea 65) sigue diciendo sólo «acercar, alejar, centrar; DJ ver/ocultar paredes y ver como
+> jugador» — ya estaba vieja antes de esta rama (le faltan luz, paredes sólidas, niebla y velo). **No bloquea el
+> merge**; es deuda de spec que conviene saldar de una vez para los cinco controles a la vez, no sólo éste.
 
 ---
 
@@ -288,8 +307,9 @@ Las **dos secciones del panel v3 que están sin maquetar a propósito** (`ui/Bui
 > Rolvium, chat nuevo. Lee el bloque 🚦 de `WORK_STATE.md` (2026-09-03): **todo lo de ayer está en `main` y en
 > producción, verificado en vivo.** No reabras lo del radio de visión: está cerrado por él.
 >
-> Hay **un encargo a medias**: el botón «enseñar los muros a los jugadores». El diseño está hecho en
-> `rolvium.pen` (`bGroR`) y **falta que yo lo apruebe y guarde el `.pen`**. Pregúntamelo antes de tocar código.
+> El botón «enseñar los muros a los jugadores» está **HECHO** (rama `feat/muros-visibles-para-jugadores`, 4
+> commits, sin migración): diseño aprobado, `walls.updated` nuevo en `TableEvent`, y QA pasado. **No lo
+> reabras.** Si sigue sin mergear, sólo falta el merge a `main`.
 >
 > Y lo gordo: **empezamos el CONSTRUCTOR DE SALAS**. Lee `specs/modules/maps/SPEC.md` § «Rebanada 8», sobre
 > todo «✅ RESUELTO: LAS PSEUDO TEXTURAS BASE» y la pregunta 6. **Mis tres decisiones ya están tomadas y están
