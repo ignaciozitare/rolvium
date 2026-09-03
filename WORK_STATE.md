@@ -38,7 +38,7 @@ supiera (la guarda tiraba la respuesta entera, y dentro viajaban `corrected` y `
 
 ---
 
-## 🧱 HECHO — BOTÓN «ENSEÑAR LOS MUROS A LOS JUGADORES» (rama `feat/muros-visibles-para-jugadores`)
+## 🧱 HECHO Y EN PRODUCCIÓN — BOTÓN «ENSEÑAR LOS MUROS A LOS JUGADORES» (`main` = `63c397c`)
 
 Pedido suyo: «*agrega un botón para que los jugadores puedan ver las líneas de los muros*».
 
@@ -267,6 +267,26 @@ Se arregla memorizando la app entre invocaciones, que son tres líneas — pero 
 todo** y `handler-entry.ts` no tiene un solo test. **Medir primero en producción** con `responseTime` de los
 registros, y decidir con el dato. No se ha tocado a propósito: no es lo que él pidió.
 
+### 📌 DEUDA QUE DEJÓ ESTA TANDA, ANOTADA Y SIN TOCAR
+1. **Los BORRADOS de muros probablemente tienen la misma trampa, por un tercer lado.** `removeWall` /
+   `removeWalls` son DELETE, y ninguna migración pone `REPLICA IDENTITY FULL`: sin eso la base no puede evaluar
+   la RLS contra la fila ya borrada, así que **los eventos de borrado seguramente tampoco llegan** a los
+   suscriptores con RLS. Es exactamente el mismo agujero que se acaba de cerrar para «esconder». Merece su
+   propia mirada y probablemente una migración. *(Lo levantó el review, 2026-09-03.)*
+2. **El spec describe la REGLA pero no el BOTÓN.** Y la lista de controles del lienzo (§ rebanada 1, línea 65)
+   lleva vieja desde antes: dice sólo «acercar, alejar, centrar; DJ ver/ocultar paredes y ver como jugador», y
+   le faltan **luz, paredes sólidas, niebla, velo** y ahora el de los muros. Saldarlo **de una vez para los
+   cinco**, no parcheando uno. *(Lo levantó QA.)*
+3. **`listWalls` no pagina** contra el `max_rows = 1000` de Supabase. Afecta a la visión y a Builder, no sólo a
+   esto: pasadas las 1000 paredes, la lista se trunca en silencio.
+4. **`esImagen(icon)` está escrito dos veces**, en `Toolbar.tsx` y ahora en `CanvasControls.tsx`. Dos
+   ortografías de una misma regla, en el mismo módulo.
+5. **La sonda + un arrastre a la vez**: una respuesta de la sonda que aterrice detrás de una del arrastre se
+   descarta y la vista de la sonda se queda quieta. Se arregla el día que `applyFog` devuelva si pintó.
+6. **`apps/api/handler-entry.ts` reconstruye la aplicación en cada petición.** Con el viaje a Washington era
+   ruido; ahora es una parte apreciable de los ~0,17 s que quedan. Medir en producción y decidir con el número.
+
+
 ## 🧱 LO SIGUIENTE DE VERDAD — EL CONSTRUCTOR DE SALAS
 
 Es la **pregunta 6** de `specs/modules/maps/SPEC.md` § «Rebanada 8», **ya contestada por él**: la sala ES una
@@ -307,9 +327,7 @@ Las **dos secciones del panel v3 que están sin maquetar a propósito** (`ui/Bui
 > Rolvium, chat nuevo. Lee el bloque 🚦 de `WORK_STATE.md` (2026-09-03): **todo lo de ayer está en `main` y en
 > producción, verificado en vivo.** No reabras lo del radio de visión: está cerrado por él.
 >
-> El botón «enseñar los muros a los jugadores» está **HECHO** (rama `feat/muros-visibles-para-jugadores`, 4
-> commits, sin migración): diseño aprobado, `walls.updated` nuevo en `TableEvent`, y QA pasado. **No lo
-> reabras.** Si sigue sin mergear, sólo falta el merge a `main`.
+> El botón «enseñar los muros a los jugadores» está **HECHO Y MERGEADO** (`63c397c`). **No lo reabras.**
 >
 > Y lo gordo: **empezamos el CONSTRUCTOR DE SALAS**. Lee `specs/modules/maps/SPEC.md` § «Rebanada 8», sobre
 > todo «✅ RESUELTO: LAS PSEUDO TEXTURAS BASE» y la pregunta 6. **Mis tres decisiones ya están tomadas y están
