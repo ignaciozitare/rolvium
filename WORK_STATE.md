@@ -146,7 +146,17 @@ todo el trabajo de Builder sigue en el árbol de trabajo, sin commit.
 **Todo lo demás de la revisión, limpio**: hexagonal, seguridad, RLS (no hay migración, correcto), i18n es/en,
 cobertura, y confirmado que **el camino viejo no se ha tocado** (`planOpening` intacto, `segment` por defecto).
 
-### 🔁 PROMPT DE RESUME DEL CHAT NUEVO
+### 🔁 PROMPT DE RESUME DEL CHAT NUEVO — USAR ESTE
+
+> Rolvium, chat nuevo. Rama `sonda-de-prueba`, subida a GitHub, `main` intacto. Lee el bloque 🔵 de
+> `WORK_STATE.md` (2026-09-03) y ve directo a «LO PRIMERO DEL CHAT NUEVO». Su orden: **deja de colgar cosas de
+> la barra vieja y maqueta el panel v3** (`rolvium.pen`, frames `ePNCc` y `zpsjH`, más `CvkXT` y `tS9zl` para
+> el grupo). Dentro va el **candado de pegar/no pegar a la rejilla**, ya aprobado con sus tres condiciones. Y
+> luego el **doble clic sobre la línea añade un nodo** — pregúntale antes cómo convive con el doble clic que
+> hoy entra al muro dentro de un grupo. La app corre en local: `localhost:5173` contra Supabase local, que ya
+> tiene las tres columnas.
+
+### 🔁 PROMPT DE RESUME (viejo)
 > ✅ Hecho el 2026-09-03: `simplifyRing` con Ramer–Douglas–Peucker, el cierre del polígono y el lote de
 > `addRoom`. Lo que queda de esta tanda:
 >
@@ -173,6 +183,41 @@ nunca se había subido a GitHub. Los dos previews de Vercel salieron en verde so
 - Web → `https://rolvium-git-sonda-de-prueba-ignaciozitare-9429s-projects.vercel.app`
 - API → `https://rolvium-api-git-sonda-de-prueba-ignaciozitare-9429s-projects.vercel.app`
 - ⚠️ Los dos están detrás del acceso de Vercel: sólo se abren con su cuenta iniciada.
+
+### 🔴 LO PRIMERO DEL CHAT NUEVO — SUS TRES ENCARGOS DEL CIERRE (2026-09-03)
+
+**1 · «Ya es hora que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este.»**
+> **ORDEN CLARA: se acabó colgar cosas de la barra vieja `SegmentBar`.** Hay que MAQUETAR EL PANEL v3 de
+> verdad, el que lleva dibujado y aprobado en `rolvium.pen` desde hace dos días, y meter ahí lo nuevo.
+- Frames: `PL/Builder · panel ← v3 (modo + preajustes)` = **`ePNCc`** · `… modo SOBRE UNA FOTO` = **`zpsjH`**.
+- Y los tres del grupo, que también van dentro: `M5z1UB` (el grupo en el mapa), `CvkXT` (panel · grupo
+  cogido), `tS9zl` (panel · varios muros cogidos).
+- **Qué se maqueta ahora**: la cabecera con su icono · el interruptor **«EN QUÉ ESTOY TRABAJANDO · LAS DOS
+  CONVIVEN»** (sobre una foto / dibujar aquí) · muro·puerta·ventana · las formas · la fila del GRUPO · y el
+  candado nuevo.
+- **Qué NO se maqueta todavía**: «ESTILO DE LA MAZMORRA» y las texturas base. La pregunta 6 ya está
+  contestada, pero eso pide tabla de habitaciones + migración + DBA, y va en su propia tanda.
+- ⚠️ El interruptor de modo **NO depende de nada**: que se quedara sin construir fue un error de apunte mío,
+  ya corregido más abajo.
+
+**2 · ✅ APROBADO EL CANDADO de pegar/no pegar a la rejilla.** Él: «*tira*». Se le propusieron y aceptó estas
+tres condiciones:
+- **Empieza CERRADO** (como se comporta hoy), así no le cambia nada hasta que lo abra.
+- **Vale para todo Builder**: nodos, muros y polígono. No sólo para los nodos.
+- **Abierto, los extremos se pegan a las PUNTAS DE OTROS MUROS** que tengan cerca. Sin eso, «libre» se
+  convierte en «lleno de rendijas» y por una rendija de medio píxel se cuela la visión.
+- 🚫 **Descartado hacer la rejilla más fina**, y él lo aceptó: la rejilla **es el metro** —movimiento, tamaño
+  de fichas, alcance de luces, la regla— y afinarla toca todo el juego. Además no arreglaría nada: los muros
+  de una foto no caen en múltiplos de nada.
+- Va **dentro del panel v3**, no en la barra vieja (encargo 1).
+
+**3 · 🆕 DOBLE CLIC SOBRE LA LÍNEA DE UN MURO = AÑADIR UN NODO AHÍ.** Sus palabras: «*si tengo un vector y le
+hago doble click en alguna parte de la linea tiene que agregar otro nodo*». Es partir el muro en dos por ese
+punto. **Ya existe la maquinaria**: `wallPiece` y el partido de `planOpening` hacen exactamente eso para
+puertas y ventanas — se reaprovecha, no se inventa.
+- ⚠️ **Ojo al choque**: hoy el doble clic sobre un muro de un grupo ENTRA al muro suelto. Hay que decidir cómo
+  conviven: lo más probable es que dentro del grupo (ya entrado) el doble clic añada nodo, y fuera siga
+  entrando. **Preguntárselo antes de construir.**
 
 ### 🕓 BACKLOG NUEVO (suyo, 2026-09-03)
 - **Deshacer/rehacer para fichas, dibujos y luces.** Hoy cubre sólo muros y salas. Él: «*el segundo punto
