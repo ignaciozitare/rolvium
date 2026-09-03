@@ -343,6 +343,26 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     if (selectedTokens.length) { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }
   };
 
+  /**
+   * ↩️ CTRL+Z / CMD+Z para deshacer, y con MAYÚSCULAS para rehacer (§ «Rebanada 8»). Petición suya del
+   * 2026-08-19, reclamada el 2026-09-03: «*el deshacer y el inverso no funciona*».
+   *
+   * Sólo el director: los muros y las salas son suyos, y un jugador no tiene nada que deshacer aquí. Y no
+   * dispara mientras se escribe en un campo, o Ctrl+Z dentro del nombre de una escena borraría un muro.
+   */
+  useEffect(() => {
+    if (!isDm) return undefined;
+    const escribiendo = (el: EventTarget | null): boolean =>
+      !!(el as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]');
+    const onKey = (e: KeyboardEvent): void => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z' || escribiendo(e.target)) return;
+      e.preventDefault();
+      void (e.shiftKey ? st.history.redo() : st.history.undo());
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isDm, st.history]);
+
   if (status === 'loading') return <section className="tb-hoja tb-placeholder">{t('maps.loading')}</section>;
   if (status === 'error') return <section className="tb-hoja tb-placeholder">{t('maps.error')}</section>;
 

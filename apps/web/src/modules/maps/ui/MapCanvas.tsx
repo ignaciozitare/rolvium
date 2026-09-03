@@ -406,7 +406,14 @@ export function MapCanvas(p: Props): JSX.Element {
          * si no, cuando esté en medio de otras cosas no se podrá mover*».
          */
         const grupo = groupOf(p.walls, wall);
-        if (grupo.length > 1) {
+        /**
+         * ⚠️ YA ESTOY DENTRO. Si este muro es el que está elegido suelto —se entró con doble clic—, el clic es
+         * para EDITARLO: agarrar una de sus puntas y moverla. Sin esto, `groupOf` volvía a devolver el grupo
+         * entero y cada clic te sacaba fuera otra vez, así que las puntas no había forma de cogerlas (dueño,
+         * 2026-09-03: «*no puedo seleccionar los nodos para moverlos*»). Se sale pinchando otro muro o el vacío.
+         */
+        const dentro = p.selectedWallId === wall.id;
+        if (grupo.length > 1 && !dentro) {
           /**
            * ⚠️ ARRASTRAR SIEMPRE MUEVE; el doble clic sólo entra SI NO SE ARRASTRA — se decide al soltar, no
            * aquí (dueño, 2026-09-03: «*puedo seleccionar el círculo, puedo escalarlo y modificarlo pero no

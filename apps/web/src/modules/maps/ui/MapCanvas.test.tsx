@@ -115,6 +115,37 @@ describe('<MapCanvas> el GRUPO se coge, se mueve y se estira', () => {
     expect(batch[0]).toMatchObject({ id: 'g-a', x1: 50, y1: 40 });
   });
 
+  /**
+   * 🔒 «*no puedo seleccionar los nodos para moverlos*» (dueño, 2026-09-03). Tras entrar con doble clic, el
+   * muro sigue teniendo su `groupId`, así que el siguiente clic volvía a coger el grupo entero y las puntas
+   * eran inalcanzables. Estando dentro, el clic edita ESE muro.
+   */
+  it('dentro del grupo se puede agarrar una punta del muro y moverla', () => {
+    // Una L, para que la punta libre sea de UN solo muro y no haya duda de cuál se está pinchando.
+    const ele = [lado('h-a', 0, 0, 100, 0), lado('h-b', 100, 0, 100, 100)];
+    const cb2 = { onMoveWall: vi.fn(), onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, walls: ele, selectedWallId: 'h-a', ...cb2 });
+    down(svg, 0, 0); move(svg, 40, 30); up(svg);
+    expect(cb2.onMoveWall).toHaveBeenCalledTimes(1);
+    expect(cb2.onMoveWall.mock.calls[0]![0]).toBe('h-a');
+    expect(cb2.onSelectWalls).not.toHaveBeenCalledWith(['h-a', 'h-b']);
+  });
+
+  it('y arrastrar por el medio del muro elegido lo mueve a él, no al grupo', () => {
+    const cb2 = { onMoveWall: vi.fn(), onTransformWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallId: 'g-a', ...cb2 });
+    down(svg, 60, 0); move(svg, 100, 40); up(svg);
+    expect(cb2.onMoveWall).toHaveBeenCalledTimes(1);
+    expect(cb2.onTransformWalls).not.toHaveBeenCalled();
+  });
+
+  it('pinchar OTRO muro del grupo vuelve a coger el grupo entero', () => {
+    const cb2 = { onSelectWalls: vi.fn() };
+    const { svg } = mount({ ...dmSel, selectedWallId: 'g-a', ...cb2 });
+    down(svg, 200, 60);
+    expect(cb2.onSelectWalls).toHaveBeenCalledWith(['g-a', 'g-b', 'g-c', 'g-d']);
+  });
+
   it('un muro suelto se coge solo, sin arrastrar a nadie', () => {
     const cb2 = { onSelectWalls: vi.fn(), onSelectWall: vi.fn() };
     const { svg } = mount({ ...dmSel, walls: [lado('libre', 0, 0, 200, 0, null)], ...cb2 });

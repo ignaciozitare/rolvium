@@ -246,6 +246,85 @@ describe('useScene · Builder levanta la sala de una vez', () => {
     await waitFor(() => expect(vision.calls.length).toBeGreaterThan(antes));
   });
 
+  /**
+   * ↩️ DESHACER Y REHACER (§ «Rebanada 8»). Petición suya del 2026-08-19, aparcada dos veces y reclamada el
+   * 2026-09-03: «*el deshacer y el inverso no funciona, estaba en las cosas que hay que hacer*».
+   */
+  it('deshacer una sala la quita de la base; rehacerla la vuelve a poner', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    expect(repo.walls).toHaveLength(4);
+
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls).toHaveLength(0);
+
+    await act(async () => { await result.current.history.redo(); });
+    expect(repo.walls).toHaveLength(4);
+    // Y vuelven atadas entre sí: deshacer no puede romper el grupo.
+    expect(new Set(repo.walls.map(w => w.groupId)).size).toBe(1);
+  });
+
+  /** 🔒 Deshacer un borrado devuelve los muros con TODO lo suyo: su grupo y su geometría. */
+  it('deshacer un borrado devuelve los muros donde estaban', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const antes = repo.walls.map(w => ({ x1: w.x1, y1: w.y1, groupId: w.groupId }));
+    await act(async () => { await result.current.removeWalls(repo.walls.map(w => w.id)); });
+    expect(repo.walls).toHaveLength(0);
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls.map(w => ({ x1: w.x1, y1: w.y1, groupId: w.groupId }))).toEqual(antes);
+  });
+
+  it('deshacer un movimiento devuelve el grupo a su sitio', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    const x0 = repo.walls[0]!.x1;
+    await act(async () => { await result.current.transformWalls(repo.walls.map(w => ({ ...w, x1: w.x1 + 90, x2: w.x2 + 90 }))); });
+    expect(repo.walls[0]!.x1).toBe(x0 + 90);
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls[0]!.x1).toBe(x0);
+    await act(async () => { await result.current.history.redo(); });
+    expect(repo.walls[0]!.x1).toBe(x0 + 90);
+  });
+
+  it('deshacer agrupar los deja sueltos otra vez, y deshacer soltar los vuelve a atar', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addWall(sala[0]!); await result.current.addWall(sala[1]!); });
+    const ids = repo.walls.map(w => w.id);
+    await act(async () => { await result.current.groupWalls(ids); });
+    const g = repo.walls[0]!.groupId;
+    expect(g).toBeTruthy();
+
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls.every(w => w.groupId === null)).toBe(true);
+
+    await act(async () => { await result.current.history.redo(); });
+    expect(repo.walls.every(w => w.groupId === g)).toBe(true);
+
+    await act(async () => { await result.current.ungroupWalls(g!); });
+    expect(repo.walls.every(w => w.groupId === null)).toBe(true);
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls.every(w => w.groupId === g)).toBe(true);
+  });
+
+  /** 🔒 Deshacer varias veces seguidas desanda de verdad, paso a paso. */
+  it('deshace varias acciones seguidas, en orden inverso', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoom(sala); });
+    await act(async () => { await result.current.addRoom(sala.map(s => ({ ...s, x1: s.x1 + 400, x2: s.x2 + 400 }))); });
+    expect(repo.walls).toHaveLength(8);
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls).toHaveLength(4);
+    await act(async () => { await result.current.history.undo(); });
+    expect(repo.walls).toHaveLength(0);
+    expect(result.current.history.canUndo).toBe(false);
+  });
+
   /** Un gesto demasiado pequeño llega aquí como lista vacía: no se escribe nada ni se molesta al servidor. */
   it('una sala vacía no escribe nada', async () => {
     const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });

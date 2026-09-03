@@ -1011,6 +1011,13 @@
       "held": "What is selected",
       "hintGrouped": "double-click to enter a single wall",
       "hintLoose": "drag over them to pick them up"
+    },
+    "history": {
+      "room": "the room",
+      "remove": "the deletion",
+      "move": "the move",
+      "group": "grouping",
+      "ungroup": "ungrouping"
     }
   },
   "bestiary": {

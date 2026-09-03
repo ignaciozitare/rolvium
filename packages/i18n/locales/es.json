@@ -1011,6 +1011,13 @@
       "held": "Lo que tengo cogido",
       "hintGrouped": "doble clic entra a un muro",
       "hintLoose": "los coges arrastrando por encima"
+    },
+    "history": {
+      "room": "la sala",
+      "remove": "el borrado",
+      "move": "el movimiento",
+      "group": "agrupar",
+      "ungroup": "soltar"
     }
   },
   "bestiary": {

@@ -6,6 +6,7 @@ import type { VisionPort } from '../domain/ports/VisionPort';
 import { unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
 import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
 import { newGroupId } from '../domain/useCases/groupRules';
+import { useHistory, type History } from './useHistory';
 
 export interface LiveDrag { tokenId: string; x: number; y: number }
 export interface LivePin { x: number; y: number; by: string; at: number }
@@ -47,6 +48,13 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const sceneId = scene?.id ?? null;
   const [tokens, setTokens] = useState<Token[]>([]);
   const [walls, setWalls] = useState<Wall[]>([]);
+  /**
+   * Los muros de AHORA MISMO, para las vueltas atrás del historial. Un `useCallback` se queda con los muros del
+   * render en que nació, y la foto de «cómo estaba antes» tiene que ser la de justo antes de escribir — si no,
+   * deshacer devuelve la escena a un estado que ya no existía.
+   */
+  const wallsRef = useRef<Wall[]>([]);
+  wallsRef.current = walls;
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [layers, setLayers] = useState<Layer[]>([]);
   const [lights, setLights] = useState<Light[]>([]);
@@ -323,7 +331,19 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * Y no pasa por `planOpening`: una sala se LEVANTA, no abre huecos. Las puertas las abre él después, con el
    * mismo disco de siempre.
    */
-  const addRoom = useCallback(async (sides: NewWall[]) => {
+  /**
+   * Vuelve a meter en la base unos muros que se habían borrado, conservando su grupo. Es la vuelta atrás de
+   * borrar. Los ids son NUEVOS —la fila anterior ya no existe—, y por eso quien apila el paso se queda con los
+   * nuevos: si no, un rehacer posterior borraría filas que ya no están.
+   */
+  const restoreWalls = useCallback(async (ws: Wall[]): Promise<Wall[]> => {
+    if (!ws.length) return [];
+    const back = await repo.addWalls(ws.map(({ id: _id, ...rest }) => rest));
+    setWalls(l => [...l.filter(x => !back.some(b => b.id === x.id)), ...back]);
+    announceVision();
+    return back;
+  }, [repo, announceVision]);
+  const addRoomRaw = useCallback(async (sides: NewWall[]) => {
     if (!sides.length) return [];
     // 🧩 Los muros de UN gesto nacen ATADOS (§ «EL GRUPO»): once muros en círculo son una cosa, y de ahí sale
     // que un clic los coja todos y que se muevan y se estiren juntos. Un muro suelto sigue naciendo suelto —
@@ -341,7 +361,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * ATAR A MANO lo que ya estaba marcado (§ «EL GRUPO»). Su elección del 2026-09-03: sin esto, todos los muros
    * que lleva meses marcando sobre fotos se quedaban fuera del invento para siempre.
    */
-  const groupWalls = useCallback(async (ids: string[]) => {
+  const groupWallsRaw = useCallback(async (ids: string[]) => {
     if (ids.length < 2) return null;
     const groupId = newGroupId();
     setWalls(l => l.map(w => (ids.includes(w.id) ? { ...w, groupId } : w)));
@@ -352,31 +372,132 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * BORRAR EL GRUPO ENTERO con Suprimir (§ «EL GRUPO»). De una vez: media sala borrada es una sala abierta y
    * por ahí se cuela la visión, que es el mismo agujero que ya arreglamos al escribirla.
    */
-  const removeWalls = useCallback(async (ids: string[]) => {
+  const removeWallsRaw = useCallback(async (ids: string[]) => {
     if (!ids.length) return;
     setWalls(l => l.filter(w => !ids.includes(w.id)));
     await repo.removeWalls(ids);
     announceVision();
   }, [repo, announceVision]);
   /** SOLTAR: deshace el grupo y deja los muros sueltos, cada uno por su cuenta. La geometría no se toca. */
-  const ungroupWalls = useCallback(async (groupId: string) => {
+  const ungroupWallsRaw = useCallback(async (groupId: string) => {
     const ids = walls.filter(w => w.groupId === groupId).map(w => w.id);
     if (!ids.length) return;
     setWalls(l => l.map(w => (w.groupId === groupId ? { ...w, groupId: null } : w)));
     await repo.setWallsGroup(ids, null);
   }, [repo, walls]);
+  /** Poner (o quitar) el grupo de unos muros concretos. Lo usan las vueltas atrás de agrupar y de soltar. */
+  const setGroupRaw = useCallback(async (ids: string[], groupId: string | null) => {
+    if (!ids.length) return;
+    setWalls(l => l.map(w => (ids.includes(w.id) ? { ...w, groupId } : w)));
+    await repo.setWallsGroup(ids, groupId);
+  }, [repo]);
   /**
    * MOVER O ESTIRAR un grupo entero (§ «EL GRUPO»). Una sola escritura: un grupo a medio mover deja la forma
    * rota y el hueco por el que se cuela la visión — el mismo fallo que ya nos mordió con `addRoom`.
    */
-  const transformWalls = useCallback(async (batch: Wall[]) => {
+  const transformWallsRaw = useCallback(async (batch: Wall[]) => {
     if (!batch.length) return;
     const byId = new Map(batch.map(w => [w.id, w]));
     setWalls(l => l.map(w => byId.get(w.id) ?? w));
     await repo.updateWallsGeometry(batch);
     announceVision();
   }, [repo, announceVision]);
-  const removeWall = useCallback(async (id: string) => { setWalls(l => l.filter(w => w.id !== id)); await repo.removeWall(id); announceVision(); }, [repo, announceVision]);
+  const removeWallRaw = useCallback(async (id: string) => { setWalls(l => l.filter(w => w.id !== id)); await repo.removeWall(id); announceVision(); }, [repo, announceVision]);
+
+  /**
+   * ↩️ DESHACER Y REHACER (§ «Rebanada 8»). Petición suya del 2026-08-19, aparcada dos veces y reclamada el
+   * 2026-09-03: «*el deshacer y el inverso no funciona*».
+   *
+   * 🔑 Cada acción de Builder se envuelve aquí y se apila con SU vuelta atrás. Las de arriba, las `…Raw`, son
+   * las que hacen el trabajo y NO apilan: si apilaran, deshacer un paso metería otro paso y no se saldría
+   * nunca del bucle.
+   *
+   * ⚠️ Los ids CAMBIAN al deshacer un borrado —la fila anterior ya no existe, se escribe una nueva—, así que
+   * cada paso se queda con los ids nuevos en una variable propia. Sin eso, el segundo rehacer iría a por filas
+   * que ya no están.
+   */
+  const history = useHistory();
+  const { push } = history;
+
+  const addRoom = useCallback(async (sides: NewWall[]) => {
+    const created = await addRoomRaw(sides);
+    if (!created.length) return created;
+    let vivos = created;
+    push({
+      label: 'maps.history.room',
+      undo: async () => { await removeWallsRaw(vivos.map(w => w.id)); },
+      redo: async () => { vivos = await restoreWalls(vivos); },
+    });
+    return created;
+  }, [addRoomRaw, removeWallsRaw, restoreWalls, push]);
+
+  const removeWalls = useCallback(async (ids: string[]) => {
+    const antes = wallsRef.current.filter(w => ids.includes(w.id)).map(w => ({ ...w }));
+    await removeWallsRaw(ids);
+    if (!antes.length) return;
+    let borrados = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { borrados = await restoreWalls(borrados); },
+      redo: async () => { await removeWallsRaw(borrados.map(w => w.id)); },
+    });
+  }, [removeWallsRaw, restoreWalls, push]);
+
+  const removeWall = useCallback(async (id: string) => {
+    const hallado = wallsRef.current.find(w => w.id === id);
+    const antes = hallado ? { ...hallado } : undefined;
+    await removeWallRaw(id);
+    if (!antes) return;
+    let borrado = [antes];
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { borrado = await restoreWalls(borrado); },
+      redo: async () => { await removeWallsRaw(borrado.map(w => w.id)); },
+    });
+  }, [removeWallRaw, removeWallsRaw, restoreWalls, push]);
+
+  const transformWalls = useCallback(async (batch: Wall[]) => {
+    if (!batch.length) return;
+    // La foto de ANTES, para poder devolverlos a su sitio. Es geometría: los ids no se mueven.
+    // 🔒 COPIADA, no referenciada: guardando la referencia, escribir el movimiento pisaba la propia foto y
+    // deshacer devolvía los muros justo a donde ya estaban.
+    const antes = wallsRef.current.filter(w => batch.some(b => b.id === w.id)).map(w => ({ ...w }));
+    const despues = batch.map(w => ({ ...w }));
+    await transformWallsRaw(batch);
+    push({
+      label: 'maps.history.move',
+      undo: async () => { await transformWallsRaw(antes); },
+      redo: async () => { await transformWallsRaw(despues); },
+    });
+  }, [transformWallsRaw, push]);
+
+  const groupWalls = useCallback(async (ids: string[]) => {
+    const antes = wallsRef.current.filter(w => ids.includes(w.id)).map(w => ({ id: w.id, groupId: w.groupId }));
+    const groupId = await groupWallsRaw(ids);
+    if (!groupId) return null;
+    push({
+      label: 'maps.history.group',
+      // Cada muro vuelve al grupo que tenía, que no tiene por qué ser el mismo para todos.
+      undo: async () => {
+        for (const g of new Set(antes.map(a => a.groupId))) {
+          await setGroupRaw(antes.filter(a => a.groupId === g).map(a => a.id), g);
+        }
+      },
+      redo: async () => { await setGroupRaw(ids, groupId); },
+    });
+    return groupId;
+  }, [groupWallsRaw, setGroupRaw, push]);
+
+  const ungroupWalls = useCallback(async (groupId: string) => {
+    const ids = wallsRef.current.filter(w => w.groupId === groupId).map(w => w.id);
+    await ungroupWallsRaw(groupId);
+    if (!ids.length) return;
+    push({
+      label: 'maps.history.ungroup',
+      undo: async () => { await setGroupRaw(ids, groupId); },
+      redo: async () => { await setGroupRaw(ids, null); },
+    });
+  }, [ungroupWallsRaw, setGroupRaw, push]);
   /** DM: open/close a door or window. The players cannot learn it from `postgres_changes`, so this announces it. */
   const patchWall = useCallback(async (id: string, patch: WallPatch) => {
     setWalls(l => l.map(w => (w.id === id ? { ...w, ...patch } : w)));
@@ -495,8 +616,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
-    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin,
+    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }
