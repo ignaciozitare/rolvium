@@ -56,6 +56,16 @@ siendo más que 140.
   Las tres líneas del arreglo están atadas por tests que fallan de verdad si se revierten.
 - **No cuesta una ida y vuelta más**: medido, 1 petición por soltada, no 2 (se funden en el `setTimeout(0)`).
 
+### ✅ EN PRODUCCIÓN Y COMPROBADO (2026-09-03, 19:00) — `main` = `bf58f75`
+- Web nueva servida: `/assets/index-Dmv0031R.js`, con las etiquetas de niebla dentro del bundle publicado.
+- API viva y **sigue en Frankfurt**: `x-vercel-id: cdg1::fra1::` · `{"ok":true}`.
+- Registros tras el despliegue: **sólo 200 y 204, ni un 4xx ni un 5xx**.
+
+> 🖐 **LO ÚNICO QUE FALTA ES QUE ÉL LO MIRE**, y hay UNA cosa que ningún test puede dar por buena:
+> **las paredes sólidas nunca se han visto funcionar en producción.** Arrastrar una ficha CONTRA un muro y
+> comprobar que frena y resbala pegada a él. Lo demás (la niebla siguiendo a la ficha, el botón que dice el
+> modo) está atado por tests; esto es comportamiento que la latencia mantenía muerto desde siempre.
+
 ### 📌 DEUDA ANOTADA, NO TOCADA (no empeora — la guarda nueva descarta ESTRICTAMENTE MENOS que la vieja)
 - `applyFog` puede negarse a pintar con la sonda puesta y aun así `visionApplied` avanza, así que con **sonda +
   arrastre a la vez** una respuesta de la sonda que aterrice detrás de una del arrastre se descarta y la vista de
