@@ -1,10 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { FogCell } from '@rolvium/core';
-import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, ScenePropRecord, TableRole, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
+import type { IMapsRepository, LayerRecord, LightRecord, RoomOpeningRecord, RoomRecord, SceneRecord, ScenePropRecord, TableRole, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
 
 interface SceneRow { id: string; campaign_id: string; width: number; height: number; grid: { size?: number } | null; fog_mode: SceneRecord['fogMode']; lighting: SceneRecord['lighting']; night_radius_m: number; solid_walls: boolean }
 interface WallRow { id: string; x1: number; y1: number; x2: number; y2: number; blocks_sight: boolean; blocks_move: boolean; is_open: boolean }
 interface TokenRow { id: string; x: number; y: number; size: number; controlled_by: string | null }
+interface RoomRow { id: string; kind?: RoomRecord['kind']; points: [number, number][] }
+interface RoomOpeningRow { x1: number; y1: number; x2: number; y2: number; kind: RoomOpeningRecord['kind']; is_open: boolean }
 interface LightRow { id: string; layer_id: string | null; x: number; y: number; rotation: number; shape: LightRecord['shape']; cone_angle: number; range_m: number; casts_shadow: boolean; spin_ms: number }
 interface LayerRow { id: string; kind: LayerRecord['kind']; visible: boolean }
 interface ScenePropRow { id: string; layer_id: string | null; x: number; y: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: ScenePropRecord['blockShape']; block_w: number; block_h: number; block_dx: number; block_dy: number }
@@ -38,6 +40,25 @@ export class SupabaseMapsRepo implements IMapsRepository {
     const { data, error } = await this.db.from('maps_walls').select('id, x1, y1, x2, y2, blocks_sight, blocks_move, is_open').eq('scene_id', sceneId);
     this.fail(error);
     return ((data ?? []) as unknown as WallRow[]).map(r => ({ id: r.id, x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, blocksSight: r.blocks_sight, blocksMove: r.blocks_move, isOpen: r.is_open }));
+  }
+
+  /**
+   * LAS SALAS (rebanada 8). No se leen de `maps_walls` y no hay que buscarlas ahí: son otra entidad, y su
+   * CONTORNO —que se calcula al vuelo— es el muro.
+   *
+   * ⚠️ Se piden DE LA MÁS VIEJA A LA MÁS NUEVA y ese orden **es dato**: decide quién manda cuando un muro y
+   * una sala se pisan. Ordenarlas de otra forma cambiaría el mapa.
+   */
+  async listRooms(sceneId: string): Promise<RoomRecord[]> {
+    const { data, error } = await this.db.from('maps_rooms').select('id, kind, points').eq('scene_id', sceneId).order('created_at', { ascending: true });
+    this.fail(error);
+    return ((data ?? []) as unknown as RoomRow[]).map(r => ({ id: r.id, kind: r.kind ?? 'room', points: (r.points ?? []) as [number, number][] }));
+  }
+
+  async listRoomOpenings(sceneId: string): Promise<RoomOpeningRecord[]> {
+    const { data, error } = await this.db.from('maps_room_openings').select('x1, y1, x2, y2, kind, is_open').eq('scene_id', sceneId);
+    this.fail(error);
+    return ((data ?? []) as unknown as RoomOpeningRow[]).map(r => ({ x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, kind: r.kind, isOpen: r.is_open }));
   }
 
   async listTokens(sceneId: string): Promise<TokenRecord[]> {

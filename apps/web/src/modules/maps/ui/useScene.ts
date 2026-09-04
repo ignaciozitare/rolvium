@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FogCell, SceneVision } from '@rolvium/core';
-import type { Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewToken, NewWall, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
+import type { Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewRoom, NewRoomOpening, NewToken, NewWall, Room, RoomKind, RoomOpening, RoomShapeKind, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import { splitWallAt, unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
@@ -55,9 +55,18 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    */
   const wallsRef = useRef<Wall[]>([]);
   wallsRef.current = walls;
+  /** La lista viva de salas, para que un paso de deshacer sepa qué había justo antes de borrar. */
+  const roomsRef = useRef<Room[]>([]);
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [layers, setLayers] = useState<Layer[]>([]);
   const [lights, setLights] = useState<Light[]>([]);
+  /**
+   * LAS SALAS (rebanada 8). Cada fila es UNA FORMA, no la unión: lo fundido se calcula al pintar.
+   * Llegan a TODA la mesa, jugadores incluidos — una sala ES el dibujo del mapa, no una marca del director.
+   */
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomOpenings, setRoomOpenings] = useState<RoomOpening[]>([]);
+  roomsRef.current = rooms;
   const [live, setLive] = useState<Scene | null>(scene);
   const [drags, setDrags] = useState<Record<string, LiveDrag>>({});
   const [pin, setPin] = useState<LivePin | null>(null);
@@ -135,11 +144,11 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   useEffect(() => { setLive(scene); }, [scene]);
 
   useEffect(() => {
-    if (!sceneId) { setTokens([]); setWalls([]); setDrawings([]); setLayers([]); setLights([]); setStatus('ready'); return; }
+    if (!sceneId) { setTokens([]); setWalls([]); setDrawings([]); setLayers([]); setLights([]); setRooms([]); setRoomOpenings([]); setStatus('ready'); return; }
     let alive = true;
     setStatus('loading');
-    void Promise.all([repo.listTokens(sceneId), repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId)])
-      .then(([t, w, d, ly, li]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setStatus('ready'); })
+    void Promise.all([repo.listTokens(sceneId), repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId), repo.listRooms(sceneId), repo.listRoomOpenings(sceneId)])
+      .then(([t, w, d, ly, li, rm, ro]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setStatus('ready'); })
       .catch(() => { if (alive) setStatus('error'); });
     const off = repo.subscribe(sceneId, {
       onScene: c => { if (c.type === 'DELETE') setLive(null); else if (c.row) setLive(c.row); },
@@ -154,6 +163,13 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
        */
       onLayer: c => setLayers(l => applyChange(l, c)),
       onLight: c => setLights(l => applyChange(l, c)),
+      /**
+       * Las salas cambian lo que se VE y lo que se PUEDE ATRAVESAR, así que un cambio suyo obliga a volver
+       * a preguntar la visión — igual que un muro. Va por `roomKey`, más abajo, para que valga también
+       * cuando el cambio lo hace este mismo navegador y no llega por el canal en vivo.
+       */
+      onRoom: c => setRooms(l => applyChange(l, c)),
+      onRoomOpening: c => setRoomOpenings(l => applyChange(l, c)),
       onEvent: (e: MapsLiveEvent) => {
         if (e.type === 'token.moved') {
           if (e.final) setDrags(d => { const n = { ...d }; delete n[e.tokenId]; return n; });
@@ -235,8 +251,15 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    */
   const lightKey = lights.map(l => `${l.id}:${l.x}:${l.y}:${l.rotation}:${l.shape}:${l.coneAngle}:${l.rangeM}:${l.castsShadow ? 1 : 0}:${l.layerId ?? ''}`).join('|');
   const layerKey = layers.map(l => `${l.id}:${l.visible ? 1 : 0}:${l.kind}`).join('|');
+  /**
+   * Y las SALAS (rebanada 8): su contorno corta la vista, frena a las fichas y recorta las luces igual que un
+   * muro marcado. Entra la geometría entera —mover un vértice cambia el contorno de la unión— y entran los
+   * vanos, porque abrir una puerta es justo lo que cambia lo que se ve.
+   */
+  const roomKey = rooms.map(r => `${r.id}:${r.points.length}:${r.points.flat().join(',')}`).join('|')
+    + '#' + roomOpenings.map(o => `${o.id}:${o.x1},${o.y1},${o.x2},${o.y2}:${o.kind}:${o.isOpen ? 1 : 0}`).join('|');
   /** One effect, so entering the scene costs ONE round trip and every later cause costs one more. */
-  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, lightKey, layerKey, probeOn, live?.lighting, live?.nightRadiusM, live?.fogMode]);
+  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, roomKey, lightKey, layerKey, probeOn, live?.lighting, live?.nightRadiusM, live?.fogMode]);
   /**
    * ARRASTRAR LA SONDA VA CON EL MISMO FRENO QUE ARRASTRAR UNA FICHA, y esto no es un adorno.
    *
@@ -522,6 +545,95 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     return created;
   }, [addRoomRaw, removeWallsRaw, restoreWalls, push]);
 
+  /**
+   * LEVANTAR UNA SALA (rebanada 8) — el modo «Dibujar aquí».
+   *
+   * 🔑 No escribe NI UN MURO. Lo que se guarda es la FORMA; el contorno —que es el muro de verdad— se calcula
+   * al pintar y al mirar, con el mismo `roomOutline` en los dos lados. Así, cuando él mueva o borre una forma,
+   * no hay filas derivadas que reescribir, que era el punto flojo del plan anterior.
+   *
+   * El suelo se HEREDA del momento de dibujar y se queda quieto: se copia aquí lo que la escena tenga puesto
+   * ahora mismo. Cambiar el preajuste después no repinta esta sala — orden suya del 2026-09-03, en redondo.
+   */
+  const addRoomShape = useCallback(async (shape: RoomShapeKind, points: [number, number][], kind: RoomKind = 'room') => {
+    if (!sceneId || !live || points.length < 3) return null;
+    const input: NewRoom = {
+      sceneId, campaignId: live.campaignId, kind, shape, points,
+      floorPreset: live.roomPreset,
+      /**
+       * 🐞 `null` = «esta sala NO tiene suelo propio», y entonces manda la textura del mapa (`floorUrlOf`).
+       *
+       * Antes se congelaba aquí la textura del momento, y por eso una sala dibujada antes de subirla se
+       * quedaba con el color del preajuste para siempre — su fallo del 2026-09-04: «*si no selecciono la
+       * textura del piso en el momento cero no la carga*». El PREAJUSTE sí se congela, que es lo que él
+       * ordenó («*como que repinta las salas, nooooo*»); la textura es del mapa. Esta columna se rellenará
+       * cuando llegue el pincel de repintar el suelo de UNA sala, que es la tanda siguiente.
+       */
+      floorUrl: null,
+    };
+    const created = await repo.addRoom(input);
+    setRooms(l => (l.some(x => x.id === created.id) ? l : [...l, created]));
+    announceVision();
+    let vivo = created;
+    push({
+      label: kind === 'fill' ? 'maps.history.roomFill' : 'maps.history.room',
+      undo: async () => { setRooms(l => l.filter(x => x.id !== vivo.id)); await repo.removeRoom(vivo.id); announceVision(); },
+      // El id es NUEVO: la fila anterior ya no existe. Quien apila el paso se queda con el nuevo, o un
+      // rehacer posterior borraría una fila que ya no está — mismo cuidado que con los muros restaurados.
+      redo: async () => { vivo = await repo.addRoom(input); setRooms(l => [...l, vivo]); announceVision(); },
+    });
+    return created;
+  }, [repo, sceneId, live, push, announceVision]);
+
+  const removeRoom = useCallback(async (id: string) => {
+    const antes = roomsRef.current.find(r => r.id === id);
+    setRooms(l => l.filter(x => x.id !== id));
+    await repo.removeRoom(id);
+    announceVision();
+    if (!antes) return;
+    let vivo = antes;
+    push({
+      label: 'maps.history.roomDelete',
+      redo: async () => { setRooms(l => l.filter(x => x.id !== vivo.id)); await repo.removeRoom(vivo.id); announceVision(); },
+      undo: async () => {
+        vivo = await repo.addRoom({ sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, shape: antes.shape, points: antes.points, floorPreset: antes.floorPreset, floorUrl: antes.floorUrl });
+        setRooms(l => [...l, vivo]);
+        announceVision();
+      },
+    });
+  }, [repo, push, announceVision]);
+
+  /** Mover o estirar una forma. Las demás recuperan su contorno solas: la unión se calcula, no se guarda. */
+  const moveRoom = useCallback(async (id: string, points: [number, number][]) => {
+    setRooms(l => l.map(r => (r.id === id ? { ...r, points } : r)));
+    await repo.updateRoomPoints(id, points);
+    announceVision();
+  }, [repo, announceVision]);
+
+  /**
+   * ABRIR UN VANO SOBRE EL CONTORNO. El gesto es el mismo disco de siempre; lo que cambia es dónde se guarda
+   * el agujero: no parte una fila de muro —no hay fila—, se anota el TRAMO sobre el contorno.
+   */
+  const addRoomOpening = useCallback(async (o: Omit<NewRoomOpening, 'sceneId' | 'campaignId'>) => {
+    if (!sceneId || !live) return null;
+    const created = await repo.addRoomOpening({ ...o, sceneId, campaignId: live.campaignId });
+    setRoomOpenings(l => (l.some(x => x.id === created.id) ? l : [...l, created]));
+    announceVision();
+    return created;
+  }, [repo, sceneId, live, announceVision]);
+
+  const toggleRoomOpening = useCallback(async (id: string, isOpen: boolean) => {
+    setRoomOpenings(l => l.map(o => (o.id === id ? { ...o, isOpen } : o)));
+    await repo.updateRoomOpening(id, { isOpen });
+    announceVision();
+  }, [repo, announceVision]);
+
+  const removeRoomOpening = useCallback(async (id: string) => {
+    setRoomOpenings(l => l.filter(o => o.id !== id));
+    await repo.removeRoomOpening(id);
+    announceVision();
+  }, [repo, announceVision]);
+
   const removeWalls = useCallback(async (ids: string[]) => {
     const antes = wallsRef.current.filter(w => ids.includes(w.id)).map(w => ({ ...w }));
     await removeWallsRaw(ids);
@@ -759,9 +871,9 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   }, [repo, sceneId, live, me]);
 
   return useMemo(() => ({
-    scene: live, tokens, walls, drawings, layers, lights, drags, pin, status, fog,
-    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
+    scene: live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog,
+    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }

@@ -921,3 +921,100 @@ describe('useScene · la niebla mientras se arrastra, con el servidor lento', ()
     expect(r.current.dragBound(TOKEN_KAREN.id)).toEqual({ x: 13, y: 11, clearance: 0 });
   });
 });
+
+/**
+ * ── REBANADA 8: LEVANTAR UNA SALA ──
+ *
+ * Lo que estos tests sujetan es la corrección suya del 2026-09-04, que tumbó lo que el spec daba por bueno:
+ * **el muro de una sala NO es un `maps_walls`**. Levantar una sala guarda UNA FORMA y no escribe ni una fila
+ * de muro; el contorno —que es el muro de verdad— se calcula al pintar y al mirar.
+ */
+describe('useScene — las salas (rebanada 8)', () => {
+  const CUADRADO: [number, number][] = [[0, 0], [100, 0], [100, 100], [0, 100]];
+
+  it('guarda la FORMA y no escribe NI UN MURO', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoomShape('rect', CUADRADO); });
+    expect(result.current.rooms).toHaveLength(1);
+    expect(result.current.rooms[0]!.points).toEqual(CUADRADO);
+    expect(result.current.rooms[0]!.shape).toBe('rect');
+    // ⛔ `maps_walls` no se toca: es la regla de que los dos modos conviven y ninguno pisa al otro.
+    expect(result.current.walls).toHaveLength(0);
+  });
+
+  /**
+   * EL PREAJUSTE SE CONGELA; LA TEXTURA NO. Dos reglas suyas, y son distintas a propósito:
+   *  · «*como que repinta las salas, nooooo*» (2026-09-03) → el preajuste se queda con la sala.
+   *  · «*si no selecciono la textura del piso en el momento cero no la carga*» (2026-09-04) → la textura es
+   *    del mapa y llega a todas, incluidas las dibujadas antes de subirla.
+   * Por eso `floorUrl` nace en `null`: «esta sala no tiene suelo PROPIO todavía». Lo tendrá cuando llegue el
+   * pincel de repintarla, que es la tanda siguiente.
+   */
+  it('la sala congela el PREAJUSTE, pero no se queda con la textura del mapa', async () => {
+    const escena = { ...SCENE_WAREHOUSE, roomPreset: 'cavern' as const, floorTextureUrl: 'https://x/musgo.png' };
+    const repo = fakeMapsRepo({ scenes: [escena], tokens: [TOKEN_KAREN] });
+    const { result } = renderHook(() => useScene(repo, escena, PLAYER_USER.id, fakeVisionPort({})));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await act(async () => { await result.current.addRoomShape('circle', CUADRADO); });
+    expect(result.current.rooms[0]!.floorPreset).toBe('cavern');
+    expect(result.current.rooms[0]!.floorUrl).toBeNull();
+  });
+
+  it('un gesto que no encierra nada no guarda nada', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoomShape('poly', [[0, 0], [10, 0]]); });
+    expect(result.current.rooms).toHaveLength(0);
+  });
+
+  /** Deshacer y rehacer trabajan sobre LA FORMA, que es lo que él manipula (§ «Deshacer y rehacer»). */
+  it('deshacer quita la sala y rehacer la devuelve', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoomShape('rect', CUADRADO); });
+    await act(async () => { await result.current.history.undo(); });
+    expect(result.current.rooms).toHaveLength(0);
+    await act(async () => { await result.current.history.redo(); });
+    expect(result.current.rooms).toHaveLength(1);
+    expect(result.current.rooms[0]!.points).toEqual(CUADRADO);
+  });
+
+  it('mover una forma no toca a las demás: la unión se calcula, no se guarda', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoomShape('rect', CUADRADO); });
+    await act(async () => { await result.current.addRoomShape('rect', [[200, 0], [300, 0], [300, 100], [200, 100]]); });
+    const id = result.current.rooms[0]!.id;
+    await act(async () => { await result.current.moveRoom(id, [[50, 50], [150, 50], [150, 150], [50, 150]]); });
+    expect(result.current.rooms[0]!.points[0]).toEqual([50, 50]);
+    expect(result.current.rooms[1]!.points[0]).toEqual([200, 0]);
+  });
+
+  it('borrar una sala se deshace, y el borrado no arrastra muros', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], walls: [WALL_1] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoomShape('rect', CUADRADO); });
+    const id = result.current.rooms[0]!.id;
+    await act(async () => { await result.current.removeRoom(id); });
+    expect(result.current.rooms).toHaveLength(0);
+    expect(result.current.walls).toHaveLength(1);      // el muro marcado sigue donde estaba
+    await act(async () => { await result.current.history.undo(); });
+    expect(result.current.rooms).toHaveLength(1);
+  });
+
+  /** Los vanos van sobre el CONTORNO, no partiendo una fila: el disco de siempre, otra entidad debajo. */
+  it('abre un vano y lo abre y cierra sin tocar ningún muro', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoomShape('rect', CUADRADO); });
+    await act(async () => { await result.current.addRoomOpening({ x1: 40, y1: 0, x2: 60, y2: 0, kind: 'door', isOpen: false }); });
+    expect(result.current.roomOpenings).toHaveLength(1);
+    const id = result.current.roomOpenings[0]!.id;
+    await act(async () => { await result.current.toggleRoomOpening(id, true); });
+    expect(result.current.roomOpenings[0]!.isOpen).toBe(true);
+    await act(async () => { await result.current.removeRoomOpening(id); });
+    expect(result.current.roomOpenings).toHaveLength(0);
+    expect(result.current.walls).toHaveLength(0);
+  });
+});

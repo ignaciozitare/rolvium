@@ -1,8 +1,9 @@
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
-import type { Wall, WallKind } from '../domain/entities/Scene';
+import { ROOM_PRESETS, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
+import { DEFAULT_TEXTURE_SCALE, styleOf } from '../domain/useCases/roomStyles';
 import { WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
-import { BUILDER_MODES, ROOM_SHAPES, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { BUILDER_MODES, BUILD_KINDS, ROOM_SHAPES, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { useDragPanel } from './useDragPanel';
 
 interface Props {
@@ -13,6 +14,12 @@ interface Props {
   wall: Wall | null;
   kind: WallKind;
   onKind: (kind: WallKind) => void;
+  /**
+   * QUÉ LEVANTA EL GESTO, y sólo en «Dibujar aquí»: excavar una sala, rellenar un muro, o abrir un vano.
+   * En «sobre una foto» esta fila no existe — allí manda `kind`, que no se ha tocado.
+   */
+  buildKind?: BuildKind;
+  onBuildKind?: (kind: BuildKind) => void;
   shape: RoomShape;
   onShape: (shape: RoomShape) => void;
   /** El candado. Cerrado (lo de siempre) se pega a la rejilla; abierto va libre. */
@@ -21,6 +28,31 @@ interface Props {
   /** Los nodos en cadena: mover una punta se lleva las de al lado, así la figura no se abre. */
   chainNodes: boolean;
   onChainNodes: (chain: boolean) => void;
+  /**
+   * ── LO DE LA REBANADA 8, y SÓLO en «Dibujar aquí» ──
+   * Marcando sobre una foto no hay nada que elegir: el suelo lo pone la foto. Por eso estas secciones
+   * aparecen y desaparecen con el interruptor de modo, que es exactamente el sitio que el spec les guardaba.
+   */
+  preset?: RoomPreset;
+  onPreset?: (preset: RoomPreset) => void;
+  wallTextureUrl?: string | null;
+  floorTextureUrl?: string | null;
+  /** Subir una foto suya para una de las dos texturas base, o quitarla y volver al preajuste. */
+  onTexture?: (which: 'wall' | 'floor') => void;
+  onClearTexture?: (which: 'wall' | 'floor') => void;
+  /** El grosor del muro, EN CASILLAS: así no cambia al acercar ni con otra rejilla. */
+  thickness?: number;
+  onThickness?: (cells: number) => void;
+  /**
+   * CUÁNTO MIDE UN AZULEJO de cada textura, en casillas (petición suya del 2026-09-04: «*tengo una textura de
+   * mosaicos que quedan muy grandes*»). `onTextureScale` va EN VIVO mientras arrastra —el mapa y la muestra se
+   * repintan a la vez, que es el «previo» que pidió— y `onTextureScaleEnd` es el que guarda, al soltar. Mismo
+   * reparto que el pincel de transparencia: pintar es continuo, guardar es una vez.
+   */
+  wallScale?: number;
+  floorScale?: number;
+  onTextureScale?: (which: 'wall' | 'floor', cells: number) => void;
+  onTextureScaleEnd?: () => void;
   /** Cuántos muros hay cogidos y si están atados entre sí (§ «EL GRUPO»). */
   groupCount?: number;
   grouped?: boolean;
@@ -46,12 +78,15 @@ interface Props {
  * lo cierra. No se queda con la tecla Escape a propósito — dibujando un polígono, Escape es para cancelar el
  * polígono, no para cerrar el panel.
  *
- * PENDIENTE, y a propósito: «ESTILO DE LA MAZMORRA» (los preajustes) y las dos texturas base.
- * Piden tabla de habitaciones, migración y DBA antes de una línea de código; el interruptor de modo de arriba
- * es el sitio donde entrarán.
+ * Desde la rebanada 8 lleva además «EL ESTILO DE LA MAZMORRA» —los nueve preajustes— y «LAS DOS TEXTURAS
+ * BASE», que aparecen SÓLO con el interruptor en «Dibujar aquí»: marcando sobre una foto el suelo lo pone la
+ * foto y esos controles no significarían nada. Era el sitio que el spec les guardaba.
  */
 export function BuilderPanel({
-  mode, onMode, wall, kind, onKind, shape, onShape, snapGrid, onSnapGrid, chainNodes, onChainNodes,
+  mode, onMode, wall, kind, onKind, buildKind = 'room', onBuildKind, shape, onShape, snapGrid, onSnapGrid, chainNodes, onChainNodes,
+  preset = 'hatch', onPreset, wallTextureUrl = null, floorTextureUrl = null, onTexture, onClearTexture,
+  thickness = 0.22, onThickness,
+  wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd,
   groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, onClose,
 }: Props): JSX.Element {
   const { t } = useTranslation();
@@ -94,23 +129,38 @@ export function BuilderPanel({
 
       {/* ── QUÉ LEVANTO · LO DE SIEMPRE, INTACTO ── */}
       <fieldset className="mp-builder-group">
-        <legend className="tb-rotulo">{t('maps.builder.what.label')}</legend>
+        <legend className="tb-rotulo">{t(mode === 'draw' ? 'maps.room.build.label' : 'maps.builder.what.label')}</legend>
+        {/*
+          * Dibujando aquí son CUATRO y no tres: una sala excava el hueco y un muro lo rellena — «*los muros
+          * serán relleno de esos huecos*» (dueño, 2026-09-04). Sobre una foto sigue habiendo tres, intactas.
+          */}
         <div className="mp-builder-seg" role="radiogroup" aria-label={t('maps.wall.kindOf')}>
-          {WALL_KINDS.map(k => (
-            <button key={k} type="button" role="radio" aria-checked={kind === k}
-              className={`mp-builder-opt ${kind === k ? 'on' : ''}`} onClick={() => onKind(k)}>
-              {t(`maps.wall.kind.${k}`)}
-            </button>
-          ))}
+          {mode === 'draw'
+            ? BUILD_KINDS.map(k => (
+              <button key={k} type="button" role="radio" aria-checked={buildKind === k}
+                className={`mp-builder-opt ${buildKind === k ? 'on' : ''}`} onClick={() => onBuildKind?.(k)}>
+                {t(`maps.room.build.${k}`)}
+              </button>
+            ))
+            : WALL_KINDS.map(k => (
+              <button key={k} type="button" role="radio" aria-checked={kind === k}
+                className={`mp-builder-opt ${kind === k ? 'on' : ''}`} onClick={() => onKind(k)}>
+                {t(`maps.wall.kind.${k}`)}
+              </button>
+            ))}
         </div>
-        <p className="mp-builder-hint">{t('maps.builder.what.hint')}</p>
+        <p className="mp-builder-hint">{t(mode === 'draw' ? 'maps.room.build.hint' : 'maps.builder.what.hint')}</p>
       </fieldset>
 
       {/* ── CON QUÉ FORMA ── */}
       <fieldset className="mp-builder-group">
         <legend className="tb-rotulo">{t('maps.room.shapeOf')}</legend>
         <div className="mp-builder-shapes" role="radiogroup" aria-label={t('maps.room.shapeOf')}>
-          {ROOM_SHAPES.map(s => (
+          {/*
+            * Dibujando aquí sólo salen las formas que PUEDEN levantar lo elegido: una raya no encierra nada,
+            * así que no aparece con SALA (pega suya del 2026-09-04). Sobre una foto salen las seis, intactas.
+            */}
+          {(mode === 'draw' ? shapesFor(buildKind) : ROOM_SHAPES).map(s => (
             <button key={s} type="button" role="radio" aria-checked={shape === s}
               className={`mp-builder-opt ${shape === s ? 'on' : ''}`} onClick={() => onShape(s)}>
               {t(`maps.room.shape.${s}`)}
@@ -119,6 +169,86 @@ export function BuilderPanel({
         </div>
         <p className="mp-builder-hint">{shapeHint(shape, t)}</p>
       </fieldset>
+
+      {/*
+        * ── EL ESTILO DE LA MAZMORRA ── Los nueve preajustes (`rolvium.pen` · `ePNCc` § S/PREAJUSTES).
+        *
+        * Un preajuste NO es una textura: son LAS DOS TEXTURAS BASE DE GOLPE — la roca de la que está excavada
+        * la mazmorra y el suelo que asoma por los agujeros. Y no bloquea nada: en cuanto él suba una foto
+        * suya, manda la suya.
+        *
+        * Sólo en «Dibujar aquí». Marcando sobre una foto el suelo lo pone la foto, y la mitad de estos
+        * controles no significaría nada — que fue el fallo que él señaló: «estás mezclando estas dos opciones».
+        */}
+      {mode === 'draw' && (
+        <fieldset className="mp-builder-group">
+          <legend className="tb-rotulo">{t('maps.room.preset.label')}</legend>
+          <div className="mp-builder-presets" role="radiogroup" aria-label={t('maps.room.preset.label')}>
+            {ROOM_PRESETS.map(k => (
+              <button key={k} type="button" role="radio" aria-checked={preset === k}
+                className={`mp-builder-preset ${preset === k ? 'on' : ''}`} onClick={() => onPreset?.(k)}
+                data-testid={`mp-preset-${k}`}>
+                <PresetMini preset={k} />
+                <span className="mp-builder-preset-t">{t(`maps.room.preset.${k}`)}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mp-builder-hint">{t('maps.room.preset.hint')}</p>
+        </fieldset>
+      )}
+
+      {/*
+        * ── LAS DOS TEXTURAS BASE Y EL GROSOR ── Son DE ESTA ESCENA, no de la campaña: «*una cripta y un
+        * bosque no se parecen en nada*» (dueño, 2026-09-03). Cambiarlas NO repinta las salas ya levantadas:
+        * cada una se llevó su suelo el día que se dibujó.
+        */}
+      {mode === 'draw' && (
+        <fieldset className="mp-builder-group">
+          <legend className="tb-rotulo">{t('maps.room.textures.label')}</legend>
+          <p className="mp-builder-hint">{t('maps.room.textures.hint')}</p>
+          {([['wall', wallTextureUrl, wallScale], ['floor', floorTextureUrl, floorScale]] as const).map(([which, url, escala]) => (
+            <div key={which} className="mp-builder-texblock">
+              <div className="mp-builder-tex">
+                <TextureSwatch url={url} cells={escala}
+                  fallback={which === 'wall' ? styleOf(preset).rock : styleOf(preset).floor} />
+                <span className="mp-builder-tex-n">{url ? t('maps.room.textures.own') : t(`maps.room.preset.${preset}`)}</span>
+                {/* Rojo sangre = ACCIÓN (su corrección nº 3 del 2026-09-02). El negro es sólo lo seleccionado. */}
+                <button type="button" className="tb-btn tb-btn-xs tb-btn-danger" onClick={() => onTexture?.(which)}>
+                  {t(url ? 'maps.room.textures.change' : 'maps.room.textures.upload')}
+                </button>
+                {url && (
+                  <button type="button" className="tb-btn tb-btn-xs tb-btn-danger" onClick={() => onClearTexture?.(which)}>
+                    {t('maps.room.textures.remove')}
+                  </button>
+                )}
+              </div>
+              {/*
+                * EL AZULEJO. Sólo con una foto puesta: el preajuste pinta con color, y un color no se escala.
+                * Arrastrar repinta el mapa Y la muestra en vivo; se guarda al soltar.
+                */}
+              {url && (
+                <div className="mp-builder-thick">
+                  <span className="mp-builder-tex-n">{t(`maps.room.tile.${which}`)}</span>
+                  <input type="range" min={0.25} max={20} step={0.25} value={escala}
+                    aria-label={t(`maps.room.tile.${which}`)}
+                    onChange={e => onTextureScale?.(which, Number(e.target.value))}
+                    onPointerUp={() => onTextureScaleEnd?.()}
+                    onKeyUp={() => onTextureScaleEnd?.()}
+                    onBlur={() => onTextureScaleEnd?.()} />
+                  <span className="mp-builder-thick-v">{escala}</span>
+                </div>
+              )}
+            </div>
+          ))}
+          <div className="mp-builder-thick">
+            <span className="mp-builder-tex-n">{t('maps.room.thickness')}</span>
+            <input type="range" min={0.08} max={0.6} step={0.02} value={thickness}
+              aria-label={t('maps.room.thickness')}
+              onChange={e => onThickness?.(Number(e.target.value))} />
+            <span className="mp-builder-thick-v">{Math.round(thickness * 100)}</span>
+          </div>
+        </fieldset>
+      )}
 
       {/*
         * ── EL CANDADO ── Aprobado por él el 2026-09-03 («*tira*») con sus tres condiciones: empieza cerrado,
@@ -244,5 +374,66 @@ function MiniRoom(): JSX.Element {
       </g>
       <rect className="mp-builder-mini-wall" x="7" y="6" width="30" height="18" />
     </svg>
+  );
+}
+
+/**
+ * LA MINIATURA DE UN PREAJUSTE: **la esquina de una sala montada**, no un cuadrado de color.
+ *
+ * Segunda pasada del 2026-09-03, después de que él dijera que la primera rejilla era «*un adefesio*»: el muro
+ * entra en L por arriba y por la izquierda, el suelo se sale por abajo y por la derecha, y lleva su rejilla.
+ * Es lo que hace que se distinga de un vistazo un RAYADO de un RELLENO — que era justo lo que no se veía.
+ */
+function PresetMini({ preset }: { preset: RoomPreset }): JSX.Element {
+  const st = styleOf(preset);
+  const W = 88, H = 52, FX = 15, FY = 13;
+  const hatchId = `mp-mini-hatch-${preset}`;
+  // La L del muro: por el techo del suelo y por su costado izquierdo. El resto se sale del recuadro.
+  const corner = `M ${FX} ${H} L ${FX} ${FY} L ${W} ${FY}`;
+  const wobbly = `M ${FX} ${H} L ${FX - 1.4} ${FY + 12} L ${FX + 1.2} ${FY + 1} L ${FX + 13} ${FY - 1.3} L ${W} ${FY + 1.1}`;
+  return (
+    <svg className="mp-builder-preset-mini" viewBox={`0 0 ${W} ${H}`} aria-hidden="true" preserveAspectRatio="none">
+      {st.hatch && (
+        <defs>
+          <pattern id={hatchId} width={5} height={9} patternUnits="userSpaceOnUse" patternTransform="rotate(-38)">
+            <line x1={1} y1={0} x2={1} y2={5.5} stroke={st.hatch} strokeWidth={1.1} strokeLinecap="round" />
+            <line x1={3} y1={3} x2={3} y2={8} stroke={st.hatch} strokeWidth={0.9} strokeLinecap="round" />
+          </pattern>
+        </defs>
+      )}
+      <rect x={0} y={0} width={W} height={H} fill={st.rock} />
+      {st.hatch && <path d={corner} fill="none" stroke={`url(#${hatchId})`} strokeWidth={13} />}
+      {st.band && <path d={corner} fill="none" stroke={st.band} strokeWidth={9} />}
+      <rect x={FX} y={FY} width={W - FX} height={H - FY} fill={st.floor} />
+      <g stroke="var(--rm-shadow)" strokeWidth={0.5} opacity={0.35}>
+        {[26, 37, 48, 59, 70, 81].map(x => <line key={x} x1={x} y1={FY} x2={x} y2={H} />)}
+        {[24, 35, 46].map(y => <line key={y} x1={FX} y1={y} x2={W} y2={y} />)}
+      </g>
+      <path d={st.wobble ? wobbly : corner} fill="none" stroke={st.wall} strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/**
+ * LA MUESTRA DE UNA TEXTURA — y es el «previo» que él pidió el 2026-09-04: «*tener un previo de cómo iría
+ * quedando cuando la escale*».
+ *
+ * No enseña la foto: enseña **cuántos azulejos entran en una casilla**, que es lo único que hace falta decidir.
+ * Por eso la muestra vale exactamente TRES CASILLAS de ancho y lleva la rejilla dibujada encima: con un
+ * mosaico a 0,5 se ven seis por casilla y a 8 se ve un trozo de uno. Sin la rejilla detrás, un cuadrado con
+ * una foto dentro no dice nada — que es lo que había antes.
+ */
+const SWATCH_CELLS = 3;
+const SWATCH_W = 66;
+function TextureSwatch({ url, cells, fallback }: { url: string | null; cells: number; fallback: string }): JSX.Element {
+  const cellPx = SWATCH_W / SWATCH_CELLS;
+  const tile = Math.max(2, cellPx * cells);
+  return (
+    <span className="mp-builder-tex-swatch" data-testid="mp-tex-swatch" aria-hidden="true"
+      style={url
+        ? { backgroundImage: `url(${url})`, backgroundSize: `${tile}px ${tile}px`, backgroundRepeat: 'repeat' }
+        : { background: fallback }}>
+      <span className="mp-builder-tex-grid" style={{ backgroundSize: `${cellPx}px ${cellPx}px` }} />
+    </span>
   );
 }

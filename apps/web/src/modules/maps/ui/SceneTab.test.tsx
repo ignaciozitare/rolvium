@@ -769,6 +769,61 @@ describe('<SceneTab> el panel de Builder v3', () => {
     expect(within(panel).getByRole('button', { name: /Libre/ })).toBeInTheDocument();
   });
 
+  /**
+   * REBANADA 8 · SUBIR UNA DE LAS DOS TEXTURAS BASE, de punta a punta.
+   *
+   * Va por el camino de siempre —el bucket de fondos de la campaña— y no por uno nuevo: una textura de pared
+   * es una imagen de campaña como cualquier otra, y así queda además en su biblioteca para reusarla en otro
+   * mapa. Lo que sujeta este test es que el botón de la ROCA escribe en `wallTextureUrl` y no en el fondo del
+   * mapa ni en el suelo: son tres columnas distintas y el selector de fichero es UNO, compartido.
+   */
+  it('en «Dibujar aquí», subir una textura la guarda en la escena — y sólo en la que se pidió', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', seed());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    // Marcando sobre una foto no hay texturas que elegir: el suelo lo pone la foto.
+    expect(within(panel).queryByText('Las dos texturas base')).not.toBeInTheDocument();
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+
+    const bloque = (await screen.findByText('Las dos texturas base')).closest('fieldset')!;
+    const [roca] = within(bloque).getAllByRole('button', { name: '+ Subir' });
+    await u.click(roca!);
+    const input = screen.getByTestId('mp-room-texture-input') as HTMLInputElement;
+    await u.upload(input, new File(['x'], 'roca.png', { type: 'image/png' }));
+
+    await waitFor(() => expect(repo.uploads).toContainEqual({ campaignId: 'c1', name: 'roca' }));
+    await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { wallTextureUrl: 'https://x/backgrounds/c1/roca.png' } }));
+    // Ni el fondo del mapa ni el suelo se han tocado: el selector es uno, pero sabe a cuál de los dos va.
+    expect(repo.sceneUpdates.some(x => 'bgImageUrl' in x.patch || 'floorTextureUrl' in x.patch)).toBe(false);
+  });
+
+  /** Quitar la foto devuelve el mando al preajuste — «el preajuste rellena, no bloquea». */
+  it('quitar la textura la borra de la escena y vuelve a mandar el preajuste', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [{ ...SCENE_WAREHOUSE, wallTextureUrl: 'https://x/roca.png' }] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    const bloque = (await screen.findByText('Las dos texturas base')).closest('fieldset')!;
+    await u.click(within(bloque).getByRole('button', { name: 'Quitar' }));
+    await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { wallTextureUrl: null } }));
+  });
+
+  /** El preajuste elige las DOS texturas base de golpe, y es de la escena: cada mapa el suyo. */
+  it('elegir un preajuste lo guarda en la escena', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', seed());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    await u.click(await screen.findByTestId('mp-preset-ink'));
+    await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { roomPreset: 'ink' } }));
+  });
+
   it('cerrar el panel vuelve a Seleccionar y suelta lo que hubiera cogido', async () => {
     const u = userEvent.setup();
     mount('dm', seed());

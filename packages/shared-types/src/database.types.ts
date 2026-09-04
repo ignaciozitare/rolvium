@@ -1014,6 +1014,7 @@ export type Database = {
           created_at: string
           flicker: boolean
           id: string
+          intensity: number
           kind: string
           layer_id: string | null
           range_m: number
@@ -1033,6 +1034,7 @@ export type Database = {
           created_at?: string
           flicker?: boolean
           id?: string
+          intensity?: number
           kind?: string
           layer_id?: string | null
           range_m?: number
@@ -1052,6 +1054,7 @@ export type Database = {
           created_at?: string
           flicker?: boolean
           id?: string
+          intensity?: number
           kind?: string
           layer_id?: string | null
           range_m?: number
@@ -1149,6 +1152,117 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maps_room_openings: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          is_open: boolean
+          kind: string
+          scene_id: string
+          updated_at: string
+          x1: number
+          x2: number
+          y1: number
+          y2: number
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          is_open?: boolean
+          kind?: string
+          scene_id: string
+          updated_at?: string
+          x1: number
+          x2: number
+          y1: number
+          y2: number
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          is_open?: boolean
+          kind?: string
+          scene_id?: string
+          updated_at?: string
+          x1?: number
+          x2?: number
+          y1?: number
+          y2?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maps_room_openings_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maps_room_openings_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "maps_scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maps_rooms: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          floor_preset: string
+          floor_url: string | null
+          id: string
+          kind: string
+          points: Json
+          scene_id: string
+          shape: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          floor_preset?: string
+          floor_url?: string | null
+          id?: string
+          kind?: string
+          points: Json
+          scene_id: string
+          shape?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          floor_preset?: string
+          floor_url?: string | null
+          id?: string
+          kind?: string
+          points?: Json
+          scene_id?: string
+          shape?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maps_rooms_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maps_rooms_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "maps_scenes"
             referencedColumns: ["id"]
           },
         ]
@@ -1262,6 +1376,8 @@ export type Database = {
           campaign_id: string
           created_at: string
           created_by: string | null
+          floor_texture_scale: number
+          floor_texture_url: string | null
           fog_mode: string
           grid: Json
           height: number
@@ -1269,10 +1385,14 @@ export type Database = {
           lighting: string
           name: string
           night_radius_m: number
+          room_preset: string
           solid_walls: boolean
           sort_order: number
           updated_at: string
           visible_players: boolean
+          wall_texture_scale: number
+          wall_texture_url: string | null
+          wall_thickness: number
           width: number
         }
         Insert: {
@@ -1282,6 +1402,8 @@ export type Database = {
           campaign_id: string
           created_at?: string
           created_by?: string | null
+          floor_texture_scale?: number
+          floor_texture_url?: string | null
           fog_mode?: string
           grid?: Json
           height?: number
@@ -1289,10 +1411,14 @@ export type Database = {
           lighting?: string
           name: string
           night_radius_m?: number
+          room_preset?: string
           solid_walls?: boolean
           sort_order?: number
           updated_at?: string
           visible_players?: boolean
+          wall_texture_scale?: number
+          wall_texture_url?: string | null
+          wall_thickness?: number
           width?: number
         }
         Update: {
@@ -1302,6 +1428,8 @@ export type Database = {
           campaign_id?: string
           created_at?: string
           created_by?: string | null
+          floor_texture_scale?: number
+          floor_texture_url?: string | null
           fog_mode?: string
           grid?: Json
           height?: number
@@ -1309,10 +1437,14 @@ export type Database = {
           lighting?: string
           name?: string
           night_radius_m?: number
+          room_preset?: string
           solid_walls?: boolean
           sort_order?: number
           updated_at?: string
           visible_players?: boolean
+          wall_texture_scale?: number
+          wall_texture_url?: string | null
+          wall_thickness?: number
           width?: number
         }
         Relationships: [
@@ -1326,6 +1458,47 @@ export type Database = {
           {
             foreignKeyName: "maps_scenes_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maps_textures: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+          tile_cells: number
+          updated_at: string
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          tile_cells?: number
+          updated_at?: string
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          tile_cells?: number
+          updated_at?: string
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maps_textures_uploaded_by_fkey"
+            columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1447,6 +1620,7 @@ export type Database = {
           blocks_sight: boolean
           campaign_id: string
           created_at: string
+          group_id: string | null
           id: string
           is_open: boolean
           kind: string
@@ -1462,6 +1636,7 @@ export type Database = {
           blocks_sight?: boolean
           campaign_id: string
           created_at?: string
+          group_id?: string | null
           id?: string
           is_open?: boolean
           kind?: string
@@ -1477,6 +1652,7 @@ export type Database = {
           blocks_sight?: boolean
           campaign_id?: string
           created_at?: string
+          group_id?: string | null
           id?: string
           is_open?: boolean
           kind?: string

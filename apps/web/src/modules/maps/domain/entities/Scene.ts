@@ -31,11 +31,38 @@ export interface Scene {
   solidWalls: boolean;
   sortOrder: number;
   visiblePlayers: boolean;
+  /**
+   * LAS DOS TEXTURAS BASE Y EL GROSOR SON DE LA ESCENA (rebanada 8), no de la sala ni de la campaña. Suyo,
+   * 2026-09-03: «*una cripta y un bosque no se parecen en nada*» → de cada MAPA.
+   *
+   * `roomPreset` elige las dos de golpe; las dos URL, si las hay, mandan sobre él.
+   *
+   * ⚠️ **El PREAJUSTE se congela en cada sala al dibujarla** (orden suya del 2026-09-03: «*como que repinta
+   * las salas, nooooo*»), pero **las TEXTURAS son del mapa y se aplican a todas**. No es una incoherencia:
+   * son dos cosas distintas y él las pidió distintas — corrección suya del 2026-09-04 probándolo, «*si no
+   * selecciono la textura del piso en el momento cero no la carga*». Una sala sólo tendrá suelo PROPIO
+   * cuando llegue el pincel de repintarla, que es la tanda siguiente.
+   */
+  roomPreset: RoomPreset;
+  wallTextureUrl: string | null;
+  floorTextureUrl: string | null;
+  /** EN CASILLAS, no en px: el muro se ve igual de grueso con la rejilla en 15 que en 60. */
+  wallThickness: number;
+  /**
+   * CUÁNTO MIDE UN AZULEJO de cada textura, EN CASILLAS (petición suya del 2026-09-04 probando el
+   * constructor: «*tengo una textura de mosaicos que quedan muy grandes, necesito escalar la textura*»).
+   *
+   * 🔑 Una textura NO es una foto de fondo: **se repite**, no se estira. Estirada de borde a borde del mapa
+   * —que es lo que hacía antes— un mosaico de 40 px sale del tamaño del mapa entero. Y va en casillas por lo
+   * mismo que el grosor: «dos casillas por azulejo» se ve igual con cualquier rejilla y a cualquier zoom.
+   */
+  wallTextureScale: number;
+  floorTextureScale: number;
   createdAt: string;
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers'>>;
+export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale'>>;
 
 /** What a segment is. The three types collapse into two flags — see `blocksSightNow` / `blocksMoveNow` in mapRules. */
 export type WallKind = 'wall' | 'door' | 'window';
@@ -288,3 +315,99 @@ export interface SceneProp {
 }
 export type NewSceneProp = Omit<SceneProp, 'id' | 'createdAt' | 'updatedAt'>;
 export type ScenePropPatch = Partial<Omit<SceneProp, 'id' | 'sceneId' | 'campaignId' | 'createdAt' | 'updatedAt'>>;
+
+// ── Rebanada 8 · LAS SALAS ──────────────────────────────────────────────────
+// Espejo de `supabase/migrations/20260904120000_maps_rooms.sql`.
+//
+// 🔑 El suelo NO se pone encima: SE VE POR EL AGUJERO. La textura de pared rellena la escena entera y cada
+// sala abre un hueco. Dibujar una sala no añade suelo, quita pared.
+//
+// 🔴 Y el muro de una sala NO es un `Wall`. Mismo comportamiento (corta la vista, frena a las fichas, recorta
+// las luces) y entidad distinta: el `Wall` es una marca invisible sobre una foto traída de fuera; el de la
+// sala es un objeto que SE VE y que ES el mapa. Su contorno se CALCULA (`roomOutline`, en `@rolvium/core`):
+// no hay filas derivadas que reescribir cuando él mueva una forma.
+
+/** Los nueve preajustes del diseño (`rolvium.pen` · `ePNCc` § PREAJUSTES). Nuestros y en castellano. */
+export type RoomPreset = 'hatch' | 'module' | 'ancient' | 'hatch_gray' | 'fill' | 'cavern' | 'simple' | 'ink' | 'hand';
+export const ROOM_PRESETS: RoomPreset[] = ['hatch', 'module', 'ancient', 'hatch_gray', 'fill', 'cavern', 'hand', 'simple', 'ink'];
+
+/** Con qué gesto se levantó la sala. No cambia cómo se funde: todas las formas siguen las mismas reglas. */
+export type RoomShapeKind = 'rect' | 'circle' | 'poly' | 'free';
+
+/**
+ * QUÉ HACE UNA FORMA CON LA ROCA — y son las dos únicas cosas que se pueden hacer (suyo, 2026-09-04: «*los
+ * muros serán relleno de esos huecos*»):
+ *  · `room` — EXCAVA: abre un hueco y por él se ve el suelo. Es una habitación.
+ *  · `fill` — RELLENA: devuelve roca al hueco. Es un tabique, un pilar, o corregir un borde que quedó torcido.
+ *
+ * No hay una entidad «muro de sala» aparte: es la misma forma con el signo cambiado, y por eso comparte
+ * tabla, formas, rejilla, deshacer y el motor que calcula el contorno.
+ */
+export type RoomKind = 'room' | 'fill';
+
+/**
+ * UNA FORMA, no la unión. Él eligió que cada rectángulo/círculo/polígono se recuerde por separado para poder
+ * cogerlo, moverlo o borrarlo después; lo que se ve fundido se calcula al pintar.
+ */
+export interface Room {
+  id: string;
+  sceneId: string;
+  campaignId: string;
+  /** Si excava o si rellena. Todo lo demás de la fila significa lo mismo en los dos casos. */
+  kind: RoomKind;
+  shape: RoomShapeKind;
+  /** El anillo, en px de escena. Cerrado implícitamente: el último punto vuelve al primero. */
+  points: [number, number][];
+  /**
+   * SU SUELO, heredado del momento de dibujar y quieto desde entonces. Cambiar el preajuste de la escena NO
+   * lo repinta — orden suya del 2026-09-03, en redondo: «*como que repinta las salas, nooooo*».
+   */
+  floorPreset: RoomPreset;
+  floorUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export type NewRoom = Omit<Room, 'id' | 'createdAt' | 'updatedAt'>;
+
+/**
+ * UN VANO ANOTADO SOBRE EL CONTORNO. No es un `planOpening` sobre una fila de muro, porque no hay fila: es el
+ * tramo (de dónde a dónde) donde el contorno se abre. Va por ESCENA y no colgado de una sala porque el
+ * contorno es el de la UNIÓN, y un vano puede caer justo donde dos salas se funden.
+ */
+export interface RoomOpening {
+  id: string;
+  sceneId: string;
+  campaignId: string;
+  x1: number; y1: number; x2: number; y2: number;
+  kind: 'door' | 'window';
+  isOpen: boolean;
+}
+export type NewRoomOpening = Omit<RoomOpening, 'id'>;
+
+// ── Rebanada 8 · EL CATÁLOGO DE TEXTURAS ────────────────────────────────────
+// Espejo de `supabase/migrations/20260904180000_maps_textures.sql`.
+//
+// 🔑 SON DE LA HERRAMIENTA, NO DE UNA CAMPAÑA (suyo, 2026-09-04: «*ten en cuenta que las texturas sirven para
+// toda la herramienta, no son por usuario*»). Se sube una vez y sirve en todos los mapas de todas las
+// campañas — al revés que `ImageAsset`, que es la biblioteca de fondos DE la campaña.
+
+/** Cerradas, como las de las piezas: las etiquetas libres obligan a etiquetar bien o no se encuentra nada. */
+export type TextureCategory = 'stone' | 'wood' | 'tile' | 'earth' | 'grass' | 'water' | 'misc';
+export const TEXTURE_CATEGORIES: TextureCategory[] = ['stone', 'wood', 'tile', 'earth', 'grass', 'water', 'misc'];
+
+export interface Texture {
+  id: string;
+  name: string;
+  category: TextureCategory;
+  url: string;
+  /**
+   * Cuánto mide un azulejo de ESTA textura, en casillas. Es una SUGERENCIA que se copia a la escena al
+   * elegirla: un mosaico fino y unas losas grandes no quieren el mismo tamaño, y hacerle ajustar el
+   * deslizador cada vez sería repetir un trabajo que ya hizo una vez.
+   */
+  tileCells: number;
+  uploadedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export type NewTexture = Omit<Texture, 'id' | 'createdAt' | 'updatedAt'>;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { CatalogItem, GameSystem, RollRequest, SheetData } from '@rolvium/core';
-import { UserAvatar, useDialog } from '@rolvium/ui';
+import { Modal, UserAvatar, useDialog } from '@rolvium/ui';
 import type { CampaignMember, TableRole } from '@/modules/campaigns/domain/entities/Campaign';
 import type { Character } from '@/modules/characters/domain/entities/Character';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
@@ -17,7 +17,8 @@ import { MapCanvas, type StrokeStyle } from './MapCanvas';
 import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { BuilderPanel } from './BuilderPanel';
-import { type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { defaultShapeFor, isOpeningKind, MIN_FILL_CELLS, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { wallWidthPx } from '../domain/useCases/roomStyles';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
@@ -117,6 +118,11 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
    */
   const [builderMode, setBuilderMode] = useState<BuilderMode>('photo');
   /**
+   * QUÉ LEVANTA EL GESTO dibujando aquí: excavar una sala, rellenar un muro, o abrir un vano. Sólo cuenta en
+   * «Dibujar aquí»; sobre una foto manda `wallKind`, que no se ha tocado.
+   */
+  const [buildKind, setBuildKind] = useState<BuildKind>('room');
+  /**
    * EL CANDADO DE LA REJILLA. Arranca ABIERTO por orden suya del 2026-09-03: «*el pegado a la rejilla debería
    * estar desactivado por defecto*». Se le había propuesto lo contrario —empezar cerrado, para no cambiarle
    * nada— y probándolo decidió al revés: marcando muros sobre una foto, la rejilla no le sirve de nada porque
@@ -197,7 +203,16 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   const [maskHardness, setMaskHardness] = useState(DEFAULT_MASK_HARDNESS);
   /** «Botón derecho sobre cualquier cosa → mándala a otra capa». */
   const [layerMenu, setLayerMenu] = useState<{ at: Point; element: { kind: ElementKind; id: string; name: string; layerId: string | null } } | null>(null);
+  /**
+   * EL PREVIO EN VIVO DE LA ESCALA DE TEXTURA (petición suya del 2026-09-04: «*tener un previo de cómo iría
+   * quedando cuando la escale*»). Mientras arrastra el deslizador el mapa se repinta con este valor **sin
+   * escribir en la base**; al soltar se guarda UNA vez. Mismo reparto que el pincel de transparencia: pintar
+   * es continuo, guardar es una vez.
+   */
+  const [texDraft, setTexDraft] = useState<{ wallTextureScale?: number; floorTextureScale?: number } | null>(null);
   const live = st.scene;
+  /** Lo que se PINTA: la escena de verdad más el borrador de la escala que él esté arrastrando ahora mismo. */
+  const shown = live && texDraft ? { ...live, ...texDraft } : live;
   const viewport = () => ({ width: stageRef.current?.clientWidth ?? 0, height: stageRef.current?.clientHeight ?? 0 });
   const viewCenter = (): Point => { const vp = viewport(); return { x: vp.width / 2, y: vp.height / 2 }; };
 
@@ -241,6 +256,27 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
     setScenes(l => l?.map(s => (s.id === id ? { ...s, ...patch } : s)) ?? l);
     await repo.updateScene(id, patch);
   }, [repo]);
+  /**
+   * SUBIR UNA DE LAS DOS TEXTURAS BASE (rebanada 8). Va por el camino de siempre —el bucket de fondos de la
+   * campaña— y no por uno nuevo: una textura de pared es una imagen de campaña como cualquier otra, y así
+   * queda además en su biblioteca para reusarla en otro mapa.
+   *
+   * Cambiar la textura NO repinta las salas ya levantadas: cada una se llevó su suelo el día que se dibujó.
+   */
+  const texInput = useRef<HTMLInputElement | null>(null);
+  /**
+   * EL CATÁLOGO DE TEXTURAS (petición suya del 2026-09-04): «*las texturas se tienen que alimentar de un
+   * catálogo, no que si quieres cambiarla sólo te permita subirlas… ¿quedarán infinitas texturas?*». Tenía
+   * razón: con sólo «subir», reusar una foto obligaba a subirla otra vez y la biblioteca crecía sin fin.
+   *
+   * No hace falta biblioteca nueva: es la MISMA de la campaña que ya usa el fondo del mapa (`listImages`),
+   * y una textura no deja de ser una imagen de campaña. Así lo que suba aquí le sirve en cualquier mapa.
+   */
+  const [texPicker, setTexPicker] = useState<'wall' | 'floor' | null>(null);
+  const pickTexture = useCallback(async (which: 'wall' | 'floor') => {
+    setTexPicker(which);
+    if (images === null) setImages(await repo.listImages(campaignId).catch(() => []));
+  }, [images, repo, campaignId]);
   /**
    * Sobre el mapa sólo puede haber UNA cosa abierta a la vez. El dueño los vio abiertos a la vez al probar la
    * app —«Colocar encuentro» y «Fondo del mapa» tapándose— porque cada uno tenía su interruptor y ninguno
@@ -469,7 +505,8 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
           onDice={() => onOpenDice?.()} diceOpen={diceOpen}
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
-          <MapCanvas scene={live} tokens={st.tokens} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
+          {/* El lienzo pinta `shown`: la escena más el borrador de la escala que él esté arrastrando ahora. */}
+          <MapCanvas scene={shown!} tokens={st.tokens} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
             playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} wallShape={wallShape} snapGrid={snapGrid} chainNodes={chainNodes} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
             onAddText={async at => {
@@ -480,11 +517,34 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width, layerId: activeLayerId }))}
             onErase={id => run(st.eraseDrawing(id))}
             onAddWall={(a, b) => {
+              /**
+               * DIBUJANDO AQUÍ, UNA RAYA NO ES UN MURO MARCADO — es geometría de la mazmorra (dueño,
+               * 2026-09-04). Según lo que tenga elegido:
+               *  · Puerta / Ventana → un VANO anotado sobre el contorno. No parte ninguna fila porque no hay
+               *    fila: el muro de una sala es su contorno.
+               *  · lo demás → un MURO DE RELLENO, o sea la raya con el grosor de la escena. Una raya no
+               *    encierra nada y sola no podría tapar.
+               */
+              if (builderMode === 'draw') {
+                if (isOpeningKind(buildKind)) {
+                  run(st.addRoomOpening({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, kind: buildKind, isOpen: false }));
+                } else {
+                  const tira = wallStripe(a, b, wallWidthPx(live), live.grid.size);
+                  if (tira.length) run(st.addRoomShape('rect', tira, 'fill'));
+                }
+                return;
+              }
               // A door or a window drawn over a wall CUTS it instead of stacking on top of it (planOpening).
               // It also inherits whether the players could see that wall: otherwise their plan grows a gap
               // exactly where the doorway is.
               const plan = planOpening(st.walls, a, b, wallKind);
               run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind) }, plan.splits));
+            }}
+            rooms={st.rooms} roomOpenings={st.roomOpenings} builderMode={builderMode}
+            {...(builderMode === 'draw' && buildKind === 'wall' ? { minShapeCells: MIN_FILL_CELLS } : {})}
+            onAddRoomShape={(shape, points) => {
+              // Una SALA excava y un MURO rellena: la misma forma con el signo cambiado (dueño, 2026-09-04).
+              run(st.addRoomShape(shape, points, buildKind === 'wall' ? 'fill' : 'room'));
             }}
             onAddRoom={sides => {
               // Una sala son MUROS de los de siempre (§ «Rebanada 8»): opacos, y ocultos al jugador como
@@ -596,13 +656,51 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             * EL PANEL DE BUILDER v3, y ya no la barra flotante vieja — orden suya del 2026-09-03: «*ya es hora
             * que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este*».
             */}
-          {isDm && (builderOpen || selectedWall || selectedWallIds.length > 1) && (
+          {isDm && (builderOpen || selectedWall || selectedWallIds.length > 1) && (<>
+            {/* El selector de fichero: escondido, lo dispara «+ Subir» dentro del catálogo. */}
+            <input type="file" accept="image/*" ref={texInput} hidden data-testid="mp-room-texture-input"
+              onChange={async e => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (!f || !texPicker) return;
+                const img = await repo.uploadImage(campaignId, f, f.name.replace(/\.[^.]+$/, ''));
+                setImages(l => [img, ...(l ?? [])]);
+                await patchScene(live.id, texPicker === 'wall' ? { wallTextureUrl: img.url } : { floorTextureUrl: img.url });
+                setTexPicker(null);
+              }} />
             <BuilderPanel mode={builderMode} onMode={setBuilderMode}
               wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
-              onKind={k => (selectedWall ? run(st.patchWall(selectedWall.id, { kind: k, ...WALL_FLAGS[k] })) : setWallKind(k))}
-              shape={wallShape} onShape={setWallShape}
+              buildKind={buildKind}
+              onBuildKind={k => {
+                setTool('wall');
+                setBuildKind(k);
+                // Si la forma que tenía elegida no puede levantar lo nuevo —una raya no hace una sala—, se
+                // cae sola a una que sí. Dejarla puesta sería prometer un gesto que no iba a hacer nada.
+                if (!shapesFor(k).includes(wallShape)) setWallShape(defaultShapeFor(k));
+              }}
+              onKind={k => {
+                // Elegir QUÉ se levanta es elegir dibujar: la herramienta pasa a Builder sola. Sin esto, con
+                // Seleccionar activo tocabas «Puerta» y seguías seleccionando — «*es super anti intuitivo*»
+                // (dueño, 2026-09-04).
+                setTool('wall');
+                if (selectedWall) run(st.patchWall(selectedWall.id, { kind: k, ...WALL_FLAGS[k] }));
+                else setWallKind(k);
+              }}
+              shape={wallShape} onShape={s => { setTool('wall'); setWallShape(s); }}
               snapGrid={snapGrid} onSnapGrid={setSnapGrid}
               chainNodes={chainNodes} onChainNodes={setChainNodes}
+              preset={live.roomPreset} onPreset={k => run(patchScene(live.id, { roomPreset: k }))}
+              wallTextureUrl={live.wallTextureUrl} floorTextureUrl={live.floorTextureUrl}
+              onTexture={which => void pickTexture(which)}
+              onClearTexture={which => run(patchScene(live.id, which === 'wall' ? { wallTextureUrl: null } : { floorTextureUrl: null }))}
+              thickness={live.wallThickness} onThickness={v => run(patchScene(live.id, { wallThickness: v }))}
+              wallScale={shown!.wallTextureScale} floorScale={shown!.floorTextureScale}
+              onTextureScale={(which, cells) => setTexDraft(d => ({ ...d, [which === 'wall' ? 'wallTextureScale' : 'floorTextureScale']: cells }))}
+              onTextureScaleEnd={() => {
+                // Se guarda lo que quedó en pantalla, y sólo si de verdad cambió algo.
+                if (texDraft) run(patchScene(live.id, texDraft));
+                setTexDraft(null);
+              }}
               groupCount={selectedWallIds.length} grouped={grupoCogido !== null}
               onGroup={() => run(st.groupWalls(selectedWallIds))}
               onUngroup={() => { if (grupoCogido) { run(st.ungroupWalls(grupoCogido)); setSelectedWallIds([]); } }}
@@ -613,7 +711,31 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
                 onToggleOpen: () => run(st.patchWall(selectedWall.id, { isOpen: !selectedWall.isOpen })),
                 onRemove: () => { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); },
               } : {})} />
-          )}
+            {texPicker && (
+              <Modal onClose={() => setTexPicker(null)} title={t(`maps.room.catalog.${texPicker}`)}>
+                <p className="mp-builder-hint">{t('maps.room.catalog.hint')}</p>
+                <div className="mp-texcat" data-testid="mp-texcat">
+                  {(images ?? []).map(img => (
+                    <button key={img.id} type="button" className="mp-texcat-item" title={img.name}
+                      onClick={() => {
+                        run(patchScene(live.id, texPicker === 'wall' ? { wallTextureUrl: img.url } : { floorTextureUrl: img.url }));
+                        setTexPicker(null);
+                      }}>
+                      <span className="mp-texcat-mini" style={{ backgroundImage: `url(${img.url})` }} />
+                      <span className="mp-texcat-n">{img.name}</span>
+                    </button>
+                  ))}
+                </div>
+                {(images ?? []).length === 0 && <p className="mp-builder-hint">{t('maps.room.catalog.empty')}</p>}
+                <div className="mp-builder-row">
+                  {/* Rojo sangre = acción. Subir es lo que AÑADE al catálogo; elegir de la rejilla no sube nada. */}
+                  <button type="button" className="tb-btn tb-btn-xs tb-btn-danger" onClick={() => texInput.current?.click()}>
+                    {t('maps.room.textures.upload')}
+                  </button>
+                </div>
+              </Modal>
+            )}
+          </>)}
           {pendingPc && (
             <div className="mp-placing" role="status">
               {t('maps.place.now', { name: pendingPc.name })}

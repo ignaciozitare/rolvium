@@ -31,6 +31,17 @@ export const ROOM_KINDS: RoomKind[] = ['rect', 'circle'];
 export const MIN_ROOM_CELLS = 1;
 
 /**
+ * …PERO UN MURO NO ES UNA SALA, y ese mismo mínimo lo hacía imposible de dibujar.
+ *
+ * Fallo suyo del 2026-09-04: «*si hago click para crear un muro muy cerca de otro muro no me deja ponerlo, es
+ * como que hay un límite que has puesto*». Lo había. Un tabique mide una fracción de casilla —el grosor de la
+ * escena ronda un quinto— así que pedirle una casilla entera era pedirle que no fuera un muro. Sigue habiendo
+ * un mínimo, porque un rectángulo de dos píxeles es un resbalón del ratón y no un tabique; sólo que el mínimo
+ * de un muro es el grosor de un muro.
+ */
+export const MIN_FILL_CELLS = 0.1;
+
+/**
  * El lado del rectángulo que va de `a` a `b`, pegado a la rejilla y siempre bien orientado — se dibuje de la
  * esquina que se dibuje. Los cuatro lados se devuelven en orden, dando la vuelta: arriba, derecha, abajo,
  * izquierda. Cerrar el circuito importa, porque una sala con un lado suelto no detiene ni la vista ni el paso.
@@ -38,12 +49,12 @@ export const MIN_ROOM_CELLS = 1;
  * Con el candado abierto (`step` a 0) no se redondea nada; `grid` sigue siendo el metro con el que se mide si
  * la sala es demasiado pequeña, que eso no depende del candado.
  */
-function rectSides(a: Point, b: Point, grid: number, step: number): RoomSide[] {
+function rectSides(a: Point, b: Point, grid: number, step: number, min: number): RoomSide[] {
   const x1 = snapStep(Math.min(a.x, b.x), step);
   const y1 = snapStep(Math.min(a.y, b.y), step);
   const x2 = snapStep(Math.max(a.x, b.x), step);
   const y2 = snapStep(Math.max(a.y, b.y), step);
-  if (x2 - x1 < grid * MIN_ROOM_CELLS || y2 - y1 < grid * MIN_ROOM_CELLS) return [];
+  if (x2 - x1 < grid * min || y2 - y1 < grid * min) return [];
   return [
     { x1, y1, x2, y2: y1 },
     { x1: x2, y1, x2, y2 },
@@ -68,9 +79,9 @@ export function circleSegments(radius: number, grid: number): number {
  * para que dos círculos del mismo tamaño salgan idénticos y encajen entre sí. Con el candado abierto el radio
  * es el que salga del gesto.
  */
-function circleSides(center: Point, edge: Point, grid: number, step: number): RoomSide[] {
+function circleSides(center: Point, edge: Point, grid: number, step: number, min: number): RoomSide[] {
   const radius = snapStep(Math.hypot(edge.x - center.x, edge.y - center.y), step);
-  if (radius < grid * MIN_ROOM_CELLS) return [];
+  if (radius < grid * min) return [];
   const n = circleSegments(radius, grid);
   const at = (i: number): Point => ({
     x: center.x + radius * Math.cos((2 * Math.PI * i) / n),
@@ -90,8 +101,8 @@ function circleSides(center: Point, edge: Point, grid: number, step: number): Ro
  * Devuelve la lista vacía si el gesto es demasiado pequeño para ser una sala — quien llame a esto no tiene que
  * acordarse de comprobarlo, y así un clic sin arrastre no ensucia la escena con muros diminutos.
  */
-export function roomSides(kind: RoomKind, a: Point, b: Point, grid: number, step: number = grid): RoomSide[] {
-  return kind === 'circle' ? circleSides(a, b, grid, step) : rectSides(a, b, grid, step);
+export function roomSides(kind: RoomKind, a: Point, b: Point, grid: number, step: number = grid, min: number = MIN_ROOM_CELLS): RoomSide[] {
+  return kind === 'circle' ? circleSides(a, b, grid, step, min) : rectSides(a, b, grid, step, min);
 }
 
 /**
@@ -204,14 +215,14 @@ function distanceToLine(p: Point, a: Point, b: Point): number {
  * ¿Encierra superficie? Tres puntos en línea recta pasan todas las comprobaciones de arriba y aun así no son
  * una habitación. El área del polígono (fórmula del cordón de zapato) lo dice de una vez.
  */
-function enclosesArea(ring: Point[], grid: number): boolean {
+function enclosesArea(ring: Point[], grid: number, min: number): boolean {
   let twice = 0;
   for (let i = 0; i < ring.length; i++) {
     const p = ring[i]!;
     const q = ring[(i + 1) % ring.length]!;
     twice += p.x * q.y - q.x * p.y;
   }
-  return Math.abs(twice) / 2 >= grid * grid * MIN_ROOM_CELLS;
+  return Math.abs(twice) / 2 >= grid * grid * min;
 }
 
 /**
@@ -221,9 +232,9 @@ function enclosesArea(ring: Point[], grid: number): boolean {
  * él pedía) y a la vez dos salas contiguas encajan sin dejar rendijas de medio píxel por donde se cuela la
  * visión — que es para lo que servía pegarse a la rejilla.
  */
-export function polygonSides(points: Point[], grid: number, step: number = grid): RoomSide[] {
+export function polygonSides(points: Point[], grid: number, step: number = grid, min: number = MIN_ROOM_CELLS): RoomSide[] {
   const ring = dedupe(points.map(p => ({ x: snapStep(p.x, step), y: snapStep(p.y, step) })), grid / 2);
-  if (ring.length < MIN_RING_POINTS || !enclosesArea(ring, grid)) return [];
+  if (ring.length < MIN_RING_POINTS || !enclosesArea(ring, grid, min)) return [];
   return ringSides(ring);
 }
 
@@ -234,9 +245,9 @@ export function polygonSides(points: Point[], grid: number, step: number = grid)
  * libre pegado a la rejilla sale como una escalera. Lo que sí se hace es limpiar el temblor: el ratón manda
  * cientos de puntos y cada uno sería un muro más que calcular en cada refresco de la visión.
  */
-export function freehandSides(points: Point[], grid: number): RoomSide[] {
+export function freehandSides(points: Point[], grid: number, min: number = MIN_ROOM_CELLS): RoomSide[] {
   const ring = simplifyRing(dedupe(points, grid / 4), grid / 3);
-  if (ring.length < MIN_RING_POINTS || !enclosesArea(ring, grid)) return [];
+  if (ring.length < MIN_RING_POINTS || !enclosesArea(ring, grid, min)) return [];
   return ringSides(ring);
 }
 
@@ -294,3 +305,65 @@ export function simplifyRing(ring: Point[], flatness: number): Point[] {
   // `head` acaba en el ancla lejana y `tail` vuelve al principio: se quitan los dos puntos repetidos.
   return [...head.slice(0, -1), ...tail.slice(0, -1)];
 }
+
+/**
+ * QUÉ LEVANTA EL GESTO EN EL MODO «DIBUJAR AQUÍ» (petición suya del 2026-09-04: «*así como genero
+ * habitaciones necesito generar muros para corregir o lo que sea*»).
+ *
+ * 🔑 Y la clave es suya, literal: «*hoy tomamos como que las habitaciones son huecos en el muro, entonces los
+ * muros serán relleno de esos huecos*». Así que son las mismas formas con el signo cambiado:
+ *
+ *  · `room`   — EXCAVA. Abre el hueco por el que se ve el suelo. Es lo que había hasta hoy.
+ *  · `wall`   — RELLENA. Devuelve roca: un tabique, un pilar, o corregir un borde que quedó torcido.
+ *  · `door` / `window` — abren un VANO sobre el contorno, con el mismo gesto de siempre.
+ *
+ * En «sobre una foto» esta lista no aparece: allí manda `WALL_KINDS`, que no se ha tocado.
+ */
+export type BuildKind = 'room' | 'wall' | 'door' | 'window';
+export const BUILD_KINDS: BuildKind[] = ['room', 'wall', 'door', 'window'];
+/** Los dos que abren un hueco en una pared que ya existe, en vez de levantar geometría nueva. */
+export const isOpeningKind = (k: BuildKind): k is 'door' | 'window' => k === 'door' || k === 'window';
+
+/**
+ * UN MURO DIBUJADO DE UN TRAZO, como forma que rellena.
+ *
+ * Una raya no encierra nada, así que no puede rellenar por sí sola: se le da el grosor del muro de la escena y
+ * sale el rectángulo que de verdad tapa. `t` es ese grosor en px, el mismo con el que se pinta el canto — así
+ * el tabique que él dibuja mide lo mismo que las paredes que ya había.
+ *
+ * Devuelve la lista vacía si el gesto es demasiado corto para ser una pared, igual que `lineSide`.
+ */
+export function wallStripe(a: Point, b: Point, t: number, grid: number): [number, number][] {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.hypot(dx, dy);
+  if (len < grid * MIN_LINE_CELLS) return [];
+  const nx = (-dy / len) * (t / 2), ny = (dx / len) * (t / 2);
+  return [
+    [a.x + nx, a.y + ny],
+    [b.x + nx, b.y + ny],
+    [b.x - nx, b.y - ny],
+    [a.x - nx, a.y - ny],
+  ];
+}
+
+/**
+ * QUÉ FORMAS TIENEN SENTIDO PARA LO QUE SE ESTÁ LEVANTANDO (pega suya del 2026-09-04, mirando el panel con
+ * SALA elegida: «*esto, a mano, pulso y recta aquí no hace falta, ¿no?*»).
+ *
+ * Tenía razón en lo que importa: **una raya no encierra nada, así que no puede ser una sala**. Enseñar el
+ * botón igualmente es prometer un gesto que no va a hacer nada.
+ *
+ *  · `room` — sólo las CUATRO que encierran área: rectángulo, círculo, polígono y a pulso. «A mano» y «recta»
+ *    no cierran, así que se caen.
+ *  · `wall` — LAS SEIS. Una raya sí es un muro (se le da el grosor de la escena, `wallStripe`) y un área es un
+ *    bloque de roca. Es donde «a mano» y «recta» son de verdad útiles: corregir un borde, cerrar un pasillo.
+ *  · `door` / `window` — sólo las dos que TRAZAN una raya: un vano se abre cruzando la pared, no rodeándola.
+ */
+export function shapesFor(kind: BuildKind): RoomShape[] {
+  if (isOpeningKind(kind)) return ['segment', 'line'];
+  if (kind === 'wall') return ROOM_SHAPES;
+  return ['rect', 'circle', 'poly', 'free'];
+}
+
+/** La forma con la que arranca cada cosa, y a la que se cae si la elegida deja de tener sentido. */
+export const defaultShapeFor = (kind: BuildKind): RoomShape => (isOpeningKind(kind) ? 'line' : 'rect');

@@ -1010,7 +1010,47 @@
       "polyHint": "un clic, un vértice · pincha otra vez sobre el primero para cerrar la sala",
       "dragHint": "arrastra para levantar la sala · se monta al soltar",
       "chainHint": "un clic, un punto · se encadenan, y la pared sigue donde acabó la anterior",
-      "lineHint": "arrastra de un punto a otro · sale un muro, y sólo uno"
+      "lineHint": "arrastra de un punto a otro · sale un muro, y sólo uno",
+      "preset": {
+        "label": "Estilo de la mazmorra",
+        "hint": "Elige de golpe la roca y el suelo. No repinta lo ya levantado: cada sala se quedó con el suyo.",
+        "hatch": "Rayado clásico",
+        "module": "Módulo antiguo",
+        "ancient": "Mapa antiguo",
+        "hatch_gray": "Rayado gris",
+        "fill": "Muro relleno",
+        "cavern": "Caverna",
+        "hand": "Trazo a mano",
+        "simple": "Muros simples",
+        "ink": "Tinta"
+      },
+      "textures": {
+        "label": "Las dos texturas base",
+        "hint": "La de pared rellena el mapa entero; la de suelo asoma por el hueco que abre cada sala.",
+        "own": "Foto tuya",
+        "change": "Cambiar",
+        "upload": "+ Subir",
+        "remove": "Quitar"
+      },
+      "thickness": "Grosor del muro",
+      "tile": {
+        "wall": "Azulejo · pared",
+        "floor": "Azulejo · suelo"
+      },
+      "build": {
+        "label": "Qué levanto · excavar o rellenar",
+        "hint": "SALA excava el hueco · MURO lo rellena · las aberturas, con el mismo disco",
+        "room": "Sala",
+        "wall": "Muro",
+        "door": "Puerta",
+        "window": "Ventana"
+      },
+      "catalog": {
+        "wall": "Textura de pared",
+        "floor": "Textura de suelo",
+        "hint": "Elige una de tu biblioteca, o sube una nueva. La biblioteca es de la campaña: lo que subas aquí te vale en cualquier mapa.",
+        "empty": "Todavía no has subido ninguna imagen a esta campaña."
+      }
     },
     "group": {
       "countGrouped": "Grupo · {{n}} muros",
@@ -1027,7 +1067,9 @@
       "move": "el movimiento",
       "group": "agrupar",
       "ungroup": "soltar",
-      "split": "el nodo"
+      "split": "el nodo",
+      "roomDelete": "Borrar sala",
+      "roomFill": "el muro"
     },
     "builder": {
       "title": "Builder",
@@ -1054,7 +1096,7 @@
       "nodeHint": "doble clic sobre su línea añade un nodo ahí",
       "note": {
         "photo": "Marcando sobre una foto el suelo ya lo pone la foto: por eso aquí no hay texturas ni preajustes. Muro, puerta y ventana funcionan igual que siempre.",
-        "draw": "Builder es el de siempre. En los dos casos se levantan MUROS normales: cortan la vista y la luz, se abren en puerta y se borran uno a uno. El estilo de la mazmorra y las dos texturas base todavía no están puestos."
+        "draw": "Dibujando aquí, lo que levantas son SALAS: la textura de pared rellena el mapa y cada sala abre un hueco por el que se ve el suelo. Se funden al tocarse, sus muros se ven y las puertas se abren con el mismo disco. Para borrar o mover una, coges la forma."
       },
       "chain": {
         "label": "Los nodos",

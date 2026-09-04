@@ -35,13 +35,18 @@ export function BackgroundLayer({ scene, clipId, imageHidden = false }: { scene:
   );
 }
 
-export function GridLayer({ scene, patternId }: { scene: Scene; patternId: string }): JSX.Element | null {
+/**
+ * `maskId` (rebanada 8): con salas levantadas, la rejilla se recorta al AGUJERO que abren — fuera no hay
+ * suelo que cuadricular, hay roca maciza, y una rejilla cruzando la pared se lee como un fallo de dibujo.
+ * Sin salas no llega máscara y la rejilla se pinta entera, exactamente como hasta hoy.
+ */
+export function GridLayer({ scene, patternId, maskId }: { scene: Scene; patternId: string; maskId?: string }): JSX.Element | null {
   if (!scene.grid.visible) return null;
   const g = scene.grid.size;
   return (
     <>
       <defs><pattern id={patternId} width={g} height={g} patternUnits="userSpaceOnUse"><path d={`M ${g} 0 L 0 0 0 ${g}`} className="mp-grid-line" fill="none" /></pattern></defs>
-      <rect x={0} y={0} width={scene.width} height={scene.height} fill={`url(#${patternId})`} data-testid="mp-grid" />
+      <rect x={0} y={0} width={scene.width} height={scene.height} fill={`url(#${patternId})`} data-testid="mp-grid" {...(maskId ? { mask: `url(#${maskId})` } : {})} />
     </>
   );
 }

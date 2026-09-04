@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
-import type { Drawing, DrawingKind, Layer, Light, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
+import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { freehandSides, isDragShape, isLineShape, lineSide, MIN_RING_POINTS, polygonSides, roomSides, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { freehandSides, isDragShape, isLineShape, lineSide, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
+import { RoomsLayer, roomMaskIds } from './roomsLayer';
+import { ringFromSides, roomWallsOf } from '../domain/useCases/roomStyles';
+import { roomMoveSegments } from '@rolvium/core';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 
 export interface StrokeStyle { color: string; width: number }
@@ -53,6 +56,22 @@ interface Props {
   onAddWall: (a: Point, b: Point) => void;
   /** Una sala entera de una vez: sus lados, ya en px de escena y listos para ser muros. */
   onAddRoom?: (sides: RoomSide[]) => void;
+  /**
+   * LAS SALAS (rebanada 8). Existen aparte de `onAddRoom` porque son otra cosa: aquél escribe MUROS de los de
+   * siempre —marcas invisibles sobre una foto, el modo A— y esto guarda una FORMA, cuyo contorno ES el mapa.
+   * Con el interruptor en «Dibujar aquí» manda éste; sobre una foto, el otro. Los dos conviven.
+   */
+  rooms?: Room[];
+  roomOpenings?: RoomOpening[];
+  /** En qué modo está Builder. Sin él, todo sigue funcionando como el modo «sobre una foto» de siempre. */
+  builderMode?: BuilderMode;
+  onAddRoomShape?: (shape: RoomShapeKind, points: [number, number][]) => void;
+  /**
+   * LO MÁS PEQUEÑO QUE PUEDE SER LA FORMA, en casillas. Una SALA pide una casilla entera —menos que eso es un
+   * resbalón del ratón—, pero un MURO mide una fracción, así que con el mínimo de sala era imposible de
+   * dibujar: «*si hago click para crear un muro muy cerca de otro no me deja ponerlo*» (dueño, 2026-09-04).
+   */
+  minShapeCells?: number;
   /** DM: open or close the door/window that was clicked. */
   onToggleWall: (wall: Wall) => void;
   /** DM: paint the fog at a scene point with the current brush radius (scene px). */
@@ -284,9 +303,26 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const candado = p.snapGrid ?? false;
   const paso = stepOf(grid, candado);
+  const minForma = p.minShapeCells ?? MIN_ROOM_CELLS;
   /** El imán de las puntas se mide en píxeles de PANTALLA: con el mapa alejado no puede tirar de medio mapa. */
   const imán = END_SNAP_PX / p.view.zoom;
   const anclar = (q: Point, skipId?: string): Point => builderPoint(q, grid, candado, p.walls, imán, skipId);
+
+  /**
+   * ADÓNDE VA LO QUE SE ACABA DE DIBUJAR — y aquí es donde conviven las dos maneras de trabajar.
+   *
+   * · «Sobre una foto» (modo A) → MUROS de los de siempre. No se toca nada: es lo que hace hoy.
+   * · «Dibujar aquí» (modo B)   → UNA SALA: se guarda la FORMA, y su contorno es el muro. No se escribe ni
+   *   una fila en `maps_walls`, porque el muro de una sala no es un muro marcado (§ «Los muros de una sala
+   *   NO son los muros de siempre»).
+   *
+   * Los lados llegan ya en orden dando la vuelta, así que el anillo es la primera punta de cada uno.
+   */
+  const commitRoom = (sides: RoomSide[], shape: RoomShapeKind): void => {
+    if (!sides.length) return;
+    if (p.builderMode === 'draw' && p.onAddRoomShape) p.onAddRoomShape(shape, ringFromSides(sides));
+    else p.onAddRoom?.(sides);
+  };
 
   useEffect(() => {
     if (!p.pin) { setPinShown(null); return; }
@@ -629,7 +665,7 @@ export function MapCanvas(p: Props): JSX.Element {
           // de al lado cae a exactamente `grid` del primero y con el tope en `grid` cerraba la sala en vez de
           // poner el vértice — imposible hacer una L cuya última esquina caiga junto a la primera.
           if (first && polyPoints.length >= MIN_RING_POINTS && Math.hypot(v.x - first.x, v.y - first.y) <= grid * 0.75) {
-            p.onAddRoom?.(polygonSides(polyPoints, grid, paso));
+            commitRoom(polygonSides(polyPoints, grid, paso, minForma), 'poly');
             setPolyPoints([]);
             return;
           }
@@ -775,11 +811,11 @@ export function MapCanvas(p: Props): JSX.Element {
       const side = lineSide(gesture.start, anclar(s), grid);
       setRoomDraft(side ? [side] : []);
     } else if (gesture.kind === 'room') {
-      setRoomDraft(roomSides(gesture.shape, gesture.start, s, grid, paso));
+      setRoomDraft(roomSides(gesture.shape, gesture.start, s, grid, paso, minForma));
     } else if (gesture.kind === 'roomFree') {
       const points = [...gesture.points, s];
       setGesture({ ...gesture, points });
-      setRoomDraft(freehandSides(points, grid));
+      setRoomDraft(freehandSides(points, grid, minForma));
     } else if (gesture.kind === 'groupXf') {
       // Hasta salir de la zona muerta esto es un CLIC, no un arrastre: ni se pinta ni se guarda nada.
       if (gesture.moved || Math.hypot(s.x - gesture.start.x, s.y - gesture.start.y) > DEAD_ZONE_PX / p.view.zoom) {
@@ -867,11 +903,11 @@ export function MapCanvas(p: Props): JSX.Element {
     if (gesture.kind === 'mask') { setGesture(null); p.onPaintMaskEnd?.(); return; }
     // La sala se escribe al soltar, no mientras se arrastra: si no, cada píxel del gesto sería una escritura.
     if (gesture.kind === 'room') {
-      p.onAddRoom?.(roomSides(gesture.shape, gesture.start, hover ?? gesture.start, grid, paso));
+      commitRoom(roomSides(gesture.shape, gesture.start, hover ?? gesture.start, grid, paso, minForma), gesture.shape);
       setRoomDraft([]); setGesture(null); return;
     }
     if (gesture.kind === 'roomFree') {
-      p.onAddRoom?.(freehandSides(gesture.points, grid));
+      commitRoom(freehandSides(gesture.points, grid, minForma), 'free');
       setRoomDraft([]); setGesture(null); return;
     }
     if (gesture.kind === 'line') {
@@ -1006,7 +1042,20 @@ export function MapCanvas(p: Props): JSX.Element {
    * en la spec: el director no puede probar en su pantalla lo que siente un jugador; se mira entrando con una
    * cuenta de jugador.
    */
-  const blockers = p.isDm ? [] : moveBlockers(p.walls, p.scene);
+  const rooms = p.rooms ?? [];
+  const roomOpenings = p.roomOpenings ?? [];
+  /**
+   * 🧱 Y LAS SALAS FRENAN IGUAL (su aviso del 2026-09-04: «*le falta la física a los muros*»).
+   *
+   * El contorno de una sala NO es una fila de `maps_walls`, así que `moveBlockers` —que sólo mira muros
+   * marcados— no lo veía y una ficha lo atravesaba como si no existiera. Mismo comportamiento, entidad
+   * distinta: se suman aquí, y lo que decide el choque sigue siendo `slideToken` → `slideCircle`, la única
+   * física de la app. Un vano abierto ya viene descontado del contorno, así que por la puerta se pasa.
+   *
+   * Respeta el interruptor de la escena igual que los muros: con las paredes sólidas apagadas, nada frena.
+   */
+  const roomBlockers = p.scene.solidWalls ? roomMoveSegments(roomWallsOf(rooms, roomOpenings)) : [];
+  const blockers = p.isDm ? [] : [...moveBlockers(p.walls, p.scene), ...roomBlockers];
   /**
    * …salvo LA SONDA DE PRUEBA, que sí choca (dueño, 2026-09-01: «no funciona bien el user dummy, traspasa las
    * paredes»). Y es la misma función, `moveBlockers` + `slideToken` → `slideCircle` de `@rolvium/core`, la
@@ -1019,7 +1068,7 @@ export function MapCanvas(p: Props): JSX.Element {
    * Si el interruptor de paredes sólidas está APAGADO, `moveBlockers` devuelve vacío y la sonda atraviesa —
    * como atravesaría el jugador. Simular es copiar lo que pasa, no ser más estricto que la escena.
    */
-  const probeBlockers = moveBlockers(p.walls, p.scene);
+  const probeBlockers = [...moveBlockers(p.walls, p.scene), ...roomBlockers];
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
 
   /**
@@ -1029,6 +1078,7 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const layers = p.layers ?? [];
   const hasTerrain = terrainLayers(layers).some(l => l.visible && l.imageUrl);
+  const roomIds = roomMaskIds(p.scene.id);
   const drawingsShown = layers.length === 0 ? p.drawings : p.drawings.filter(d => isPainted(resolveLayer(layers, d.layerId, 'drawing'), dmSight));
   /**
    * Mientras se arrastra una luz se pinta donde va el dedo, no donde está guardada: el resplandor, su aro y
@@ -1089,8 +1139,18 @@ export function MapCanvas(p: Props): JSX.Element {
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
         <g className="mp-layer-map" {...(playerSight ? { mask: url(fogIds.seen) } : {})} data-testid="mp-map">
           <BackgroundLayer scene={p.scene} clipId={clipId} imageHidden={hasTerrain} />
+          {/*
+            * LAS SALAS, por DEBAJO de las capas de terreno (decisión mía, revisable, § «Decisiones que tomo
+            * yo aquí»): la roca y el suelo son el cimiento del mapa, y una capa con transparencia sigue
+            * mandando encima de todo esto.
+            */}
+          <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} />
           {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} />}
-          <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} />
+          {/*
+            * Con salas levantadas la rejilla se recorta al AGUJERO: fuera no hay suelo que cuadricular, hay
+            * roca maciza. Sin salas no hay máscara y la rejilla se pinta entera, exactamente como hasta hoy.
+            */}
+          <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} {...(rooms.length > 0 ? { maskId: roomIds.hole } : {})} />
           {dmSight && fog && p.fogVeil !== false && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
             {wallsShown.map(w => (

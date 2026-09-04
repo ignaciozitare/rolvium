@@ -11,12 +11,210 @@ gestión del director) · `table` (H3) · `characters` (H4) · `dice` (H6) · `m
 `maps` **rebanada 3** (rediseño de la escena a pantalla completa, Seleccionar, aberturas, Texto) construida en la
 sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corriendo.
 
-**SIGUIENTE:** terminar el despliegue (faltan variables de entorno en Vercel, ver abajo) → rebanada 4 (movimiento máx.
-por turno, configurable por sistema) → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9) → `bestiary` (H5).
+`maps` **rebanada 8** — EL CONSTRUCTOR DE SALAS — construida entera la noche del 03→04 de septiembre.
+
+**SIGUIENTE:** que él MIRE las salas en pantalla → coger/mover/borrar una sala con el ratón (pide `.pen`) →
+los pinceles para repintar el suelo de UNA sala → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9).
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🚦 «DÓNDE ESTAMOS AHORA MISMO», justo debajo.**
 
-## 🚦 2026-09-03 — DÓNDE ESTAMOS AHORA MISMO (leer esto primero)
+## 🟢 2026-09-04 (tarde) — TRASPASO A CHAT NUEVO · el guardia de contexto saltó a media tarea
+
+**Todo lo de abajo COMPILA y está en verde** (1357 web · 246 api · 61 core · 16 · 141 · los dos builds ·
+`audit` 0 hard). **Nada commiteado**: el árbol tiene ~40 ficheros tocados.
+
+### ✅ TERMINADO Y PROBADO POR ÉL
+- El constructor de salas entero (ver bloques de más abajo).
+- **Muros de relleno** (`maps_rooms.kind`), puertas y ventanas dibujando aquí, y **manda lo último dibujado**.
+- Texturas en azulejo con escala y muestra en vivo.
+- El suelo del mapa llega a las salas dibujadas antes de subirlo.
+- Los negros del cromo → rojo sangre, en el CSS **y en el `.pen`**.
+- Elegir forma/qué levanto activa Builder solo.
+- Cada opción enseña sólo las formas que puede levantar.
+- 🐞 **La caché de esquema de PostgREST** (ver bloque de abajo): las migraciones ya llevan el `NOTIFY`.
+- 🐞 **El mínimo de tamaño de un MURO** — «*si hago click para crear un muro muy cerca de otro no me deja*».
+  Era `MIN_ROOM_CELLS = 1`: se le pedía una casilla entera a algo que mide un quinto. Ahora un relleno usa
+  `MIN_FILL_CELLS = 0.1` (`minShapeCells` en `MapCanvas`, lo pasa `SceneTab` cuando levanta MURO).
+
+### ⏳ A MEDIAS — **EL CATÁLOGO DE TEXTURAS**, y es lo primero del chat nuevo
+Su encargo, literal: «*el botón de cambiar debería abrir un catálogo donde estén CLASIFICADAS como en el
+catálogo de objetos que ya tenemos diseñado*» · «*las texturas sirven para toda la herramienta, no son por
+usuario*».
+
+**Hecho ya (y compilando):**
+- ✅ Migración `20260904180000_maps_textures.sql`, **aplicada**. Tabla `maps_textures` con `category` cerrada
+  (stone·wood·tile·earth·grass·water·misc) y `tile_cells`. RLS: lee cualquiera con cuenta, sube cualquiera,
+  borra sólo lo suyo. **Sus 3 texturas ya subidas se copiaron dentro**, así que no perdió nada.
+- ✅ Entidad `Texture` + `TEXTURE_CATEGORIES` en `Scene.ts`.
+- ✅ Puerto: `listTextures` / `addTexture` / `removeTexture`, implementados en `SupabaseMapsRepo` y en el
+  doble de tests (`tests/helpers/fakes.ts`).
+- ✅ Diseño en el `.pen`: frame **`sO0GV` «PL/Catálogo de texturas»**, instancia de la galería de piezas con
+  las categorías y la nota cambiadas.
+
+**FALTA (por eso él «sigue sin ver el catálogo»):**
+1. ❌ El componente `ui/TextureCatalog.tsx` — se quedó a medio escribir cuando saltó el guardia. Estaba
+   modelado sobre `sO0GV`: buscador, chips de categoría, rejilla con las miniaturas **repetidas al tamaño que
+   cada textura recuerda** (`tileCells`), y «+ Subir» dentro que sube a la categoría elegida.
+2. ❌ Cambiar `SceneTab`: hoy sigue abriendo el **modal plano viejo** con `images` (la biblioteca de fondos DE
+   LA CAMPAÑA). Hay que sustituirlo por `<TextureCatalog>`, y al elegir una textura copiar además su
+   `tileCells` a `wallTextureScale` / `floorTextureScale` de la escena.
+3. ❌ Quitar de `SceneTab` el `texInput` viejo y la carga de `images` para texturas.
+4. ❌ i18n: `maps.room.catalog.search`, `.categories`, `.uploadTo` y `maps.room.catalog.cat.{all,stone,wood,
+   tile,earth,grass,water,misc}`. Ya existen `.wall`, `.floor`, `.hint`, `.empty`.
+5. ❌ CSS: `.mp-texcat-wrap`, `.mp-texcat-search`, `.mp-texcat-cats` (las de `.mp-texcat*` ya están).
+6. ❌ Tests del catálogo, y de `MIN_FILL_CELLS`.
+
+### 🐞 PENDIENTE, DICHO POR ÉL AL CERRAR: **CON LAS SALAS PASA LO MISMO**
+Sus palabras: «*si hago click para crear un muro muy cerca de otro muro no me deja ponerlo, es como que hay
+un límite que has puesto*» → y al rato: **«*con las salas pasa lo mismo*»**.
+
+- El arreglo de esta tarde bajó el mínimo **sólo para los muros de relleno** (`MIN_FILL_CELLS = 0.1`, que
+  `SceneTab` pasa como `minShapeCells` cuando levanta MURO). **Una SALA sigue con `MIN_ROOM_CELLS = 1`**, así
+  que un rectángulo de menos de una casilla de lado no se guarda y él no ve nada pasar.
+- ⚠️ **No está diagnosticado del todo**: el mínimo es la sospecha buena, pero hay que reproducirlo antes de
+  tocar nada — el candado de la rejilla (`snapRules.builderPoint`) también puede estar cuadrando las dos
+  puntas al mismo sitio cuando dibuja pegado a algo, y entonces el gesto sale de largo cero. Mirar los dos.
+- 🟠 **Y hay una decisión suya detrás**: ¿puede una sala ser más pequeña que una casilla? El mínimo de una
+  casilla se puso para que un clic sin arrastre no ensuciara la escena con salas diminutas. Si él quiere
+  salas de media casilla, se baja el mínimo y se acepta esa basura; si no, hay que avisarle en pantalla de
+  por qué no se guardó, porque hoy no se guarda **en silencio** — y eso es lo peor de las dos opciones.
+
+### 📌 Dos cosas suyas que hay que atender en el chat nuevo
+- **La nota del `.pen` y el bloque «CAMBIAR EL SUELO DE UNA SALA · DOS PASOS»**: ya corregidos en el master,
+  pero **él tiene que guardar el `.pen` con Cmd+S** o se pierden.
+- **El pincel para repintar el suelo de UNA sala sigue sin construir** (es la tanda siguiente, dicho por él).
+
+### 🔁 EL COMANDO PARA EL CHAT NUEVO — COPIAR Y PEGAR TAL CUAL
+
+> Rolvium, chat nuevo. Lee el bloque 🟢 «TRASPASO A CHAT NUEVO» de `WORK_STATE.md`. **Nada está commiteado**:
+> el árbol tiene el constructor de salas entero funcionando y verde, y el catálogo de texturas a medias.
+>
+> **Dos cosas, en este orden.** Primero el fallo del bloque 🐞: **no deja crear ni muros ni salas pegados a
+> algo**, y con las salas sigue pasando. Reprodúcelo antes de tocar (mínimo de tamaño y candado de rejilla son
+> los dos sospechosos) y, si hace falta decidir si una sala puede medir menos de una casilla, pregúntaselo
+> **con lo que se ve en pantalla, sin nombres inventados**.
+>
+> Después, **termina el CATÁLOGO DE TEXTURAS**: los seis puntos de la lista «FALTA» de ese bloque. El diseño ya está aprobado en `rolvium.pen`, frame `sO0GV`; la tabla `maps_textures` ya existe y ya
+> tiene sus texturas dentro. **No inventes pantalla**: es la galería de piezas con texturas.
+>
+> Tres cosas que no puedes olvidar: las texturas son **de la herramienta**, no de la campaña · al elegir una,
+> su `tileCells` se copia a la escala de la escena · en el cromo de la mesa **no se usa negro**, lo activo va
+> en rojo sangre.
+>
+> La app corre en local: `npm run dev:api` y `npm run dev:web` → `localhost:5173`. ⚠️ Nunca `db:reset`.
+> ⚠️ Y si algo «no se ve» justo después de una migración, mira primero la caché de esquema de PostgREST.
+
+## 🚦 2026-09-04 — CÓMO SE LLEGÓ HASTA AQUÍ (mañana y tarde)
+
+**EL CONSTRUCTOR DE SALAS ESTÁ CONSTRUIDO ENTERO Y CORRIENDO EN LOCAL.** Se hizo mientras él dormía, con su
+permiso explícito («*tira con esto, tienes los diseños y el spec, me voy a dormir, cuando me levante quiero
+probarlo*»). **Nada está commiteado todavía**: el árbol tiene los cambios sin subir, a la espera de que él lo
+mire.
+
+### ✅ Lo que ya funciona
+| Pieza | Dónde |
+|---|---|
+| Tabla `maps_rooms` + `maps_room_openings` + 4 columnas de escena | `supabase/migrations/20260904120000_maps_rooms.sql`, **aplicada en local** |
+| Motor de unión de formas (se funden, el tabique se cae) | `packages/core/src/rooms.ts` · 17 tests |
+| Los nueve preajustes y las dos texturas base en el panel | `ui/BuilderPanel.tsx` · colores en `RolviumApp.css` (`--rm-*`) |
+| Roca, agujero, muro, rayado y sombra en el lienzo | `ui/roomsLayer.tsx` |
+| Niebla, colisiones y luces mirando LAS DOS FUENTES | `apps/api/.../sceneVision.ts` · 14 tests propios |
+
+### 🔍 LA REVISIÓN ENCONTRÓ TRES FALLOS REALES, Y ESTÁN ARREGLADOS
+1. **Pared fantasma según el orden en que se dibujaron las salas.** Un mismo tramo repetido TRES veces se
+   resolvía por parejas, y según con quién emparejase primero se quedaba una pared cruzando la habitación
+   fundida. Ahora se mira el montón entero de una vez. Con el candado cerrado eso no es raro: es lo normal.
+2. **Dos salas dibujadas al revés se anulaban en el DIBUJO.** La máscara SVG cuenta vueltas, así que un
+   polígono trazado en sentido contrario abría un islote de roca DENTRO de la sala fundida. Se endereza con
+   el mismo `orientRing` que usa el cálculo, para que dibujo y física no puedan discrepar.
+3. **Dos suelos con fotos de nombre parecido compartían máscara** (`roca.1.png` / `roca1.png`) y cada sala se
+   pintaba con el suelo de la otra.
+
+### ⏱ Y UN CUARTO, DE RENDIMIENTO, QUE MEDÍ YO
+Fundir 60 salas cuesta **~21 ms**, y el lienzo se repinta muchas veces por segundo. Se recalculaba en CADA
+pintada: la queja de «está todo lentísimo» esperando a repetirse, y de las que no se ven con dos salas de
+prueba. Memorizado en `RoomsLayer`, con test que lo sujeta.
+
+**Verificado:** `npm run test` entero en verde (**1340 web · 246 api · 50 core · 16 · 141**) · `typecheck` limpio ·
+`build:web` y `build:api` compilan · `npm run audit` 0 hard · la base acepta el insert real (probado dentro de
+una transacción y revertido: cero filas nuevas, no se le tocó ni un dato).
+
+**Servidores en pie:** API en `localhost:3001` (`/health` responde) y web en `localhost:5173`.
+
+### ⏳ LO ÚNICO QUE FALTA, Y ESTÁ DICHO A PROPÓSITO
+**No hay gesto para COGER una sala ya levantada** (moverla o borrarla con el ratón). Por debajo sí existe
+—`moveRoom` y `removeRoom` en `useScene`, con su deshacer y sus tests—, pero **no hay pantalla**: el spec dice
+que «cómo se ve una sala cogida» va al `.pen` antes que al código, igual que el grupo. Mientras tanto, la
+vuelta atrás es **Cmd+Z**, que sí cubre las salas.
+
+### 🟠 LAS CUATRO DECISIONES MÍAS, PENDIENTES DE SU VISTO BUENO
+Suelos distintos al fundirse → manda la más vieja · sombra fija de un tercio de casilla · dos salas fundidas
+siguen siendo dos filas · el relleno de pared va por debajo de las capas de terreno. Y una quinta, de la
+corrección del 04: **el grosor del muro es de la ESCENA, no de cada sala**.
+
+### 📄 Resumen para él, con dibujos
+https://claude.ai/code/artifact/034a655a-0618-4b8c-9fbb-8d02d608fd0d — los nueve estilos, cómo se funden las
+salas y los pasos para probarlo.
+
+### 🧪 LO QUE SALIÓ AL PROBARLO ÉL (2026-09-04, despierto y con la app delante)
+| Lo que dijo | Qué era | Estado |
+|---|---|---|
+| «si no selecciono la textura del piso en el momento cero no la carga» | Fallo: la sala congelaba la textura al dibujarse | ✅ la textura es del MAPA y llega a todas; el preajuste sigue congelado |
+| «necesito escalar la textura, los mosaicos quedan muy grandes» | La textura se ESTIRABA en vez de repetirse | ✅ se repite en azulejos, escala en casillas, con muestra y previo en vivo |
+| «le falta la física a los muros» | Fallo: el freno del navegador sólo miraba `maps_walls` | ✅ suma los contornos de sala; misma física, un vano abierto deja pasar |
+
+⚠️ **Su criterio para la física, literal: «*tiene que funcionar igual que los otros muros que uso sobre las
+fotos*».** Así que la regla del 2026-08-22 (**el director no choca nunca**) NO se toca: vale igual para las
+dos clases de muro. Y aviso para el futuro: **le molestan las preguntas con nombres inventados** — «me mareas
+y termino decidiendo mierdas porque te inventas nombres que la mitad de las veces no sé de qué me hablas».
+
+### 🔁 SEGUNDA RONDA CON ÉL DELANTE (2026-09-04, tarde)
+| Lo que dijo | Qué se hizo |
+|---|---|
+| «necesito generar muros para corregir · las habitaciones son huecos, los muros serán relleno de esos huecos» | Motor reescrito: un mapa son DOS listas, lo excavado y lo rellenado. Columna `maps_rooms.kind` (`room`/`fill`). Cuarta opción **SALA · MURO · PUERTA · VENTANA** en el panel |
+| «faltan las puertas y ventanas» | Dibujando aquí, una raya con Puerta/Ventana abre un VANO sobre el contorno (antes escribía un muro marcado, que ahí no pinta nada) |
+| «las texturas se tienen que alimentar de un catálogo… ¿quedarán infinitas texturas?» | Tenía razón: «Cambiar» abre ahora la biblioteca de la campaña —la MISMA del fondo del mapa— con «+ Subir» dentro |
+| «si tengo Seleccionar y toco Rectángulo tiene que quedar Builder, es super anti-intuitivo» | Elegir forma o qué levantas activa Builder solo |
+| «a mano, pulso y recta aquí no hace falta, ¿no?» | Medio sí: una raya no encierra nada. Cada opción enseña sólo las formas que pueden levantarla (`shapesFor`) |
+| «para la vista del director no usábamos negros» | ⚠️ **Fallo repetido.** El segmento activo iba en tinta, en el CSS **y en el `.pen`** (de donde lo copié). Arreglados los dos → `pl-sangre` |
+
+⚠️ **El `.pen` está corregido pero SIN GUARDAR**: hace falta su Cmd+S.
+
+### 🐞 Y EL FALLO QUE MÁS COSTÓ ENCONTRAR: LA CACHÉ DE ESQUEMA DE POSTGREST
+«*No funciona hacer rectángulos de salas… no sé si los has metido en otra capa o qué*». **No era el código
+ni la base: era la API.** PostgREST se guarda el esquema EN CACHÉ al arrancar, y `supabase migration up` no
+la refresca. La columna `kind` no existía para él, así que **toda** consulta que la nombra fallaba: ni
+cargaba las salas —de ahí el mapa vacío— ni dejaba guardar un muro.
+
+- Arreglado en el momento con `NOTIFY pgrst, 'reload schema';`.
+- 🔒 **Y para que no vuelva a pasar**, las tres migraciones de hoy lo llevan dentro. Toda migración que
+  añada una columna debe acabar con ese NOTIFY.
+- 🩺 **Cómo se reconoce**: la base perfecta por `psql`, la pantalla vacía, y `docker logs supabase_rest_rolvium`
+  sin ninguna recarga posterior a la migración.
+
+### 🔢 LA REGLA QUE MANDA AHORA: **LO ÚLTIMO DIBUJADO ES LO ÚLTIMO PINTADO**
+Se arregló en DOS pasos, y el primero se quedó corto — él lo cazó en cinco minutos:
+1. El **contorno** pasó a respetar el orden (`roomOutline` con lista ordenada de `{ring, dig}`).
+2. ❌ Pero **el suelo no**: se agrupaba por textura y los muros se restaban TODOS al final, así que una sala
+   dibujada encima de un muro nunca llegaba a enseñar su suelo. «*El muro nuevo funciona como otro muro
+   distinto del anterior, cuando pinto una sala nueva no lo afecta. La has cagado aquí.*» ✅ Ahora el lienzo
+   pinta **capa a capa en orden** (`capasDe`): una sala pinta su suelo, un muro repinta roca. Las seguidas
+   que pintan lo mismo se juntan, para no pagar veinte recortes por veinte salas iguales.
+
+🟠 **Y esto TUMBA una decisión mía anterior**: «al fundirse dos salas con suelos distintos manda la más
+vieja». Ya no: **manda la última dibujada**, que es lo que él acaba de exigir para los muros y no tendría
+sentido que fuera al revés para los suelos.
+
+### 🔢 (histórico) el primer intento del motor
+La primera versión resolvía el mapa como «todo lo excavado menos todo lo rellenado», y así un muro ganaba
+SIEMPRE: dibujar una sala encima de un muro no hacía nada. Ahora las formas van en **orden de llegada** y
+cada una manda sobre lo que hubiera debajo, como en cualquier herramienta de dibujo. `roomOutline` recibe
+una lista ordenada de `{ring, dig}`; el orden de `created_at` **es dato**, no metadato.
+
+### ⏭️ EL SIGUIENTE PASO CONCRETO
+Que **él lo mire en `localhost:5173`**. Con lo que diga: commit + review/QA + merge, o arreglos primero.
+
+## 🚦 (histórico) 2026-09-03 — DÓNDE ESTÁBAMOS AYER
 
 **Todo lo de hoy está en `main` y en producción, verificado en vivo.** Tres quejas suyas, tres causas
 distintas, las tres arregladas y desplegadas:
@@ -291,7 +489,7 @@ registros, y decidir con el dato. No se ha tocado a propósito: no es lo que él
    ruido; ahora es una parte apreciable de los ~0,17 s que quedan. Medir en producción y decidir con el número.
 
 
-## 🧱 LO SIGUIENTE — EL CONSTRUCTOR DE SALAS · **SPEC CERRADO, EMPIEZA EL DBA**
+## 🧱 (histórico, YA CONSTRUIDO el 2026-09-04) EL CONSTRUCTOR DE SALAS · el encargo tal como se recibió
 
 📖 **Todo está en `specs/modules/maps/SPEC.md` § «Rebanada 8»**, que quedó **cerrado el 2026-09-04**: las siete
 preguntas contestadas y ninguna abierta, por orden suya («*no me dejes preguntas abiertas aquí*»).
@@ -330,6 +528,61 @@ Dibujar una sala **no añade suelo, quita pared**. Si esto se entiende al revés
 ### 🟠 CUATRO DECISIONES MÍAS, revisables (están en el spec, marcadas como tales)
 Suelos distintos al fundirse → manda la más vieja · sombra fija de un tercio de casilla · dos salas fundidas
 siguen siendo dos filas · el relleno de pared va por debajo de las capas de terreno.
+
+### 🧪 LO QUE SALIÓ AL PROBARLO ÉL (2026-09-04, despierto y con la app delante)
+| Lo que dijo | Qué era | Estado |
+|---|---|---|
+| «si no selecciono la textura del piso en el momento cero no la carga» | Fallo: la sala congelaba la textura al dibujarse | ✅ la textura es del MAPA y llega a todas; el preajuste sigue congelado |
+| «necesito escalar la textura, los mosaicos quedan muy grandes» | La textura se ESTIRABA en vez de repetirse | ✅ se repite en azulejos, escala en casillas, con muestra y previo en vivo |
+| «le falta la física a los muros» | Fallo: el freno del navegador sólo miraba `maps_walls` | ✅ suma los contornos de sala; misma física, un vano abierto deja pasar |
+
+⚠️ **Su criterio para la física, literal: «*tiene que funcionar igual que los otros muros que uso sobre las
+fotos*».** Así que la regla del 2026-08-22 (**el director no choca nunca**) NO se toca: vale igual para las
+dos clases de muro. Y aviso para el futuro: **le molestan las preguntas con nombres inventados** — «me mareas
+y termino decidiendo mierdas porque te inventas nombres que la mitad de las veces no sé de qué me hablas».
+
+### 🔁 SEGUNDA RONDA CON ÉL DELANTE (2026-09-04, tarde)
+| Lo que dijo | Qué se hizo |
+|---|---|
+| «necesito generar muros para corregir · las habitaciones son huecos, los muros serán relleno de esos huecos» | Motor reescrito: un mapa son DOS listas, lo excavado y lo rellenado. Columna `maps_rooms.kind` (`room`/`fill`). Cuarta opción **SALA · MURO · PUERTA · VENTANA** en el panel |
+| «faltan las puertas y ventanas» | Dibujando aquí, una raya con Puerta/Ventana abre un VANO sobre el contorno (antes escribía un muro marcado, que ahí no pinta nada) |
+| «las texturas se tienen que alimentar de un catálogo… ¿quedarán infinitas texturas?» | Tenía razón: «Cambiar» abre ahora la biblioteca de la campaña —la MISMA del fondo del mapa— con «+ Subir» dentro |
+| «si tengo Seleccionar y toco Rectángulo tiene que quedar Builder, es super anti-intuitivo» | Elegir forma o qué levantas activa Builder solo |
+| «a mano, pulso y recta aquí no hace falta, ¿no?» | Medio sí: una raya no encierra nada. Cada opción enseña sólo las formas que pueden levantarla (`shapesFor`) |
+| «para la vista del director no usábamos negros» | ⚠️ **Fallo repetido.** El segmento activo iba en tinta, en el CSS **y en el `.pen`** (de donde lo copié). Arreglados los dos → `pl-sangre` |
+
+⚠️ **El `.pen` está corregido pero SIN GUARDAR**: hace falta su Cmd+S.
+
+### 🐞 Y EL FALLO QUE MÁS COSTÓ ENCONTRAR: LA CACHÉ DE ESQUEMA DE POSTGREST
+«*No funciona hacer rectángulos de salas… no sé si los has metido en otra capa o qué*». **No era el código
+ni la base: era la API.** PostgREST se guarda el esquema EN CACHÉ al arrancar, y `supabase migration up` no
+la refresca. La columna `kind` no existía para él, así que **toda** consulta que la nombra fallaba: ni
+cargaba las salas —de ahí el mapa vacío— ni dejaba guardar un muro.
+
+- Arreglado en el momento con `NOTIFY pgrst, 'reload schema';`.
+- 🔒 **Y para que no vuelva a pasar**, las tres migraciones de hoy lo llevan dentro. Toda migración que
+  añada una columna debe acabar con ese NOTIFY.
+- 🩺 **Cómo se reconoce**: la base perfecta por `psql`, la pantalla vacía, y `docker logs supabase_rest_rolvium`
+  sin ninguna recarga posterior a la migración.
+
+### 🔢 LA REGLA QUE MANDA AHORA: **LO ÚLTIMO DIBUJADO ES LO ÚLTIMO PINTADO**
+Se arregló en DOS pasos, y el primero se quedó corto — él lo cazó en cinco minutos:
+1. El **contorno** pasó a respetar el orden (`roomOutline` con lista ordenada de `{ring, dig}`).
+2. ❌ Pero **el suelo no**: se agrupaba por textura y los muros se restaban TODOS al final, así que una sala
+   dibujada encima de un muro nunca llegaba a enseñar su suelo. «*El muro nuevo funciona como otro muro
+   distinto del anterior, cuando pinto una sala nueva no lo afecta. La has cagado aquí.*» ✅ Ahora el lienzo
+   pinta **capa a capa en orden** (`capasDe`): una sala pinta su suelo, un muro repinta roca. Las seguidas
+   que pintan lo mismo se juntan, para no pagar veinte recortes por veinte salas iguales.
+
+🟠 **Y esto TUMBA una decisión mía anterior**: «al fundirse dos salas con suelos distintos manda la más
+vieja». Ya no: **manda la última dibujada**, que es lo que él acaba de exigir para los muros y no tendría
+sentido que fuera al revés para los suelos.
+
+### 🔢 (histórico) el primer intento del motor
+La primera versión resolvía el mapa como «todo lo excavado menos todo lo rellenado», y así un muro ganaba
+SIEMPRE: dibujar una sala encima de un muro no hacía nada. Ahora las formas van en **orden de llegada** y
+cada una manda sobre lo que hubiera debajo, como en cualquier herramienta de dibujo. `roomOutline` recibe
+una lista ordenada de `{ring, dig}`; el orden de `created_at` **es dato**, no metadato.
 
 ### ⏭️ EL SIGUIENTE PASO CONCRETO: **EL DBA**
 Lo que la tabla tiene que poder guardar (detallado en el spec, § «Modelo de datos»):

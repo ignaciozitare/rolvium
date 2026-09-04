@@ -48,6 +48,17 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   - ✅ **HECHO** (2026-08-31, cierre): las luces **ya no atraviesan los muros** y entran en la visión con las
     reglas del § 7.2 «Las luces iluminan de verdad», calculadas en el servidor y para todos.
 
+- **Rebanada 8 — EL CONSTRUCTOR DE SALAS · CONSTRUIDA** (2026-09-04, § «Rebanada 8»). El modo **«Dibujar aquí»**
+  de Builder: se arrastra una forma y sale una habitación montada, con su suelo, su muro y su sombra. Las salas
+  **se funden** al tocarse y cada forma se sigue recordando por separado.
+  - ✅ **HECHO** (2026-09-04): tabla `maps_rooms` + `maps_room_openings` y las cuatro columnas de escena
+    (migración `20260904120000_maps_rooms.sql`) · el **motor de unión** en `@rolvium/core` (`rooms.ts`) ·
+    los **nueve preajustes** y las **dos texturas base** en el panel · el lienzo (roca, agujero, muro, rayado y
+    sombra) · y **la visión, las colisiones y las luces mirando LAS DOS FUENTES** en el servidor.
+  - ⏳ **Falta que lo mire el dueño en pantalla**, y con él las cuatro decisiones mías marcadas como revisables.
+  - 🔜 **Siguiente tanda, dicha por él**: «*una vez tengamos esto listo ya veremos los pinceles*» — repintar el
+    suelo de UNA sala. Y coger, mover y borrar una forma ya levantada, que hoy sólo existe por debajo.
+
 ## What the user can do
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
 - **Fondo del mapa** (popover, solo DJ): **color de base** (muestras + hex + cuentagotas; se ve donde no llega la
@@ -843,11 +854,14 @@ regla que pidió el dueño.**
 > **Qué hay construido y qué no:**
 > - ✅ El **motor de geometría** (`roomRules.ts`): las seis formas, sin pantalla.
 > - ✅ El **panel v3** de Builder, con el interruptor de modo y las seis formas.
-> - ❌ **La sala como entidad**: no existe. Ni tabla, ni migración, ni las dos texturas, ni los preajustes, ni
->   la unión de formas, ni la sombra. **Es lo que viene ahora, y empieza por el DBA.**
+> - ✅ **LA SALA COMO ENTIDAD — CONSTRUIDA EL 2026-09-04.** Tabla y migración, las dos texturas base, los nueve
+>   preajustes, el motor de unión, la sombra, y la visión y las colisiones mirando LAS DOS FUENTES. El detalle
+>   está en § «Estado», al final de la rebanada.
+> - ⏳ **Sin mirar por él todavía**, y con él las cuatro decisiones mías marcadas como revisables.
 >
-> ⛔ **El orden sigue siendo obligatorio**: spec (esto, ya cerrado) → DBA (tabla + migración) → diseño en
-> `rolvium.pen` aprobado con capturas → y sólo entonces código.
+> El orden se cumplió: spec cerrado → DBA (migración `20260904120000_maps_rooms.sql`) → el diseño, que **ya
+> estaba maquetado y aprobado** en `rolvium.pen` (`ePNCc`, secciones `S/PREAJUSTES` y `S/TEXTURAS BASE`) →
+> código.
 
 ### Qué es
 Dentro de **Builder** —que hoy es sólo la herramienta de muros— poder **dibujar un cuadrado o un círculo y que
@@ -1078,7 +1092,12 @@ Es **pintura y nada más**: no tapa, no estorba, no entra en el cálculo de visi
 
 #### 🟠 DECISIONES QUE TOMO YO AQUÍ (porque él pidió cerrar el spec sin preguntas abiertas)
 Todas revisables, y ninguna bloquea el DBA:
-1. **Al fundirse dos salas con suelos distintos, manda la MÁS VIEJA.** La nueva forma está «ampliando» la que
+1. ❌ ~~**Al fundirse dos salas con suelos distintos, manda la MÁS VIEJA.**~~ **TUMBADA el 2026-09-04**: manda
+   **la ÚLTIMA dibujada**, como en cualquier herramienta de dibujo. Salió al construir los muros de relleno —
+   «*el muro nuevo funciona como otro muro distinto del anterior, cuando pinto una sala nueva no lo afecta*»— y
+   una vez que el orden manda para la roca, no puede ir al revés para el suelo. Lo que sigue es el argumento
+   viejo, que ya no aplica:
+1. ~~**Al fundirse dos salas con suelos distintos, manda la MÁS VIEJA.**~~ La nueva forma está «ampliando» la que
    ya estaba. Hoy es inofensivo —sin pincel, todas comparten el suelo base—, y sólo empezará a notarse cuando
    llegue el pincel de la tanda siguiente.
 2. **La sombra es fija, no configurable**: profundidad de un tercio de casilla, atada a la rejilla para que no
@@ -1343,8 +1362,94 @@ que se distinga de un vistazo un rayado de un relleno. Y los dos rayados pasan a
   construyendo y después vemos», así que la interfaz de arriba se ha construido con la barra que ya existía,
   sin inventar pantalla nueva. Las miniaturas de estilo siguen sin gustarle y **el panel de preajustes no se
   ha construido**.
-- ⛔ **Las texturas y los preajustes, sin maquetar**: piden tabla de habitaciones + migración + DBA, y van en
-  su propia tanda. El interruptor de modo del panel es el sitio donde entrarán.
+- ✅ **LAS TEXTURAS Y LOS PREAJUSTES, CONSTRUIDOS** (2026-09-04). Estaban maquetados y aprobados en el `.pen`
+  (`ePNCc` → `S/PREAJUSTES` y `S/TEXTURAS BASE`) y entraron donde decía el spec: colgando del interruptor de
+  modo, y **sólo en «Dibujar aquí»** — marcando sobre una foto no aparecen, porque ahí el suelo lo pone la foto.
+
+### ✅ LA SALA, CONSTRUIDA (2026-09-04) — qué se hizo y dónde vive
+
+- **La base** (`supabase/migrations/20260904120000_maps_rooms.sql`, aplicada en local): `maps_rooms` —una fila
+  es UNA FORMA, con su anillo de puntos, su suelo heredado y su orden de llegada— y `maps_room_openings`, los
+  vanos anotados sobre el contorno. Más cuatro columnas en `maps_scenes`: el preajuste, las dos texturas base
+  y el grosor **en casillas**. RLS: lee quien ve la escena (sin condición de `visible_players`, porque la sala
+  ES el dibujo), escribe sólo el director. ⛔ **`maps_walls` no se tocó.**
+- **El motor de unión** (`packages/core/src/rooms.ts`, 17 tests). Vive en `core` y no en el navegador porque lo
+  usan LOS DOS lados y tienen que sacar el mismo contorno: el navegador para pintar, el servidor para la
+  niebla. Tres pasos: partir cada lado por donde lo cruza o lo toca otro · tirar lo que queda tapado dentro de
+  otra forma · y de los tramos repetidos, tirar los dos si van en sentidos contrarios (tabique) o dejar uno si
+  van en el mismo (borde común de dos salas solapadas). No hace falta el polígono de la unión, sólo su borde.
+- **El lienzo** (`ui/roomsLayer.tsx`): dos máscaras y nada más — la roca cubre la escena con las salas en
+  negro, el suelo asoma sólo por ellas. Con máscaras y no con relleno par-impar a propósito: par-impar es un
+  XOR y dos salas solapadas se volverían roca justo donde se cruzan. Encima, la banda y el rayado recortados
+  contra la roca, la sombra recortada contra el agujero, y el muro. La **rejilla se recorta al agujero** cuando
+  hay salas: fuera hay roca, no suelo que cuadricular.
+- **Los nueve estilos** (`domain/useCases/roomStyles.ts`): ni un color vive ahí. Los valores están en
+  `RolviumApp.css` como variables `--rm-*`, que es el único sitio donde pueden vivir — y hay un test que
+  impide que alguien meta un hex a mano.
+- **El servidor** (`sceneVision.ts`): `sightSegments` acepta ahora los contornos de sala además de los muros
+  marcados, y `roomGeometry` los calcula con el MISMO `roomWalls` del navegador. Entra en las cuatro ramas:
+  director, jugador, sonda y pincel de niebla; y las colisiones de paredes sólidas suman los contornos a los
+  muros. Es el trabajo de fondo de la tanda, y lo sujetan 14 tests propios (`rooms.vision.test.ts`).
+- **La nota del panel** (`maps.builder.note.draw`, es y en) **se corrigió en la misma tanda**: decía que aquí
+  se levantan «MUROS normales» y eso pasó a ser mentira en cuanto las salas existieron.
+
+#### 🐞 Tres fallos que cazó el Review, y lo que enseñan
+1. **El tramo repetido TRES veces.** El motor resolvía los duplicados por parejas y el resultado dependía del
+   orden de `created_at`: emparejando primero las dos de sentidos contrarios, la tercera se quedaba de pie
+   cruzando la habitación fundida. Ahora se resuelve el montón entero de golpe. Con el candado cerrado, que
+   tres lados caigan en la misma coordenada exacta **es lo normal**, no una rareza.
+2. **El dibujo y el cálculo casi discrepan.** `roomOutline` endereza los anillos por dentro, pero la máscara
+   SVG los recibía crudos — y la regla de relleno de SVG cuenta vueltas: dos anillos en sentidos contrarios
+   **se anulan donde se solapan**, dejando un islote de roca dentro de la sala. Un rectángulo y un círculo
+   salen siempre bien orientados, pero **un polígono o un trazo a pulso salen como venga la mano**. Se arregló
+   exportando `orientRing` y usándolo también al pintar: una sola función, no dos parecidas.
+3. **El id de la máscara del suelo salía de limpiar la URL**, así que `roca.1.png` y `roca1.png` colisionaban
+   y cada sala se pintaba con el suelo de la otra. Sale del índice del grupo.
+
+#### ⏱ Y el coste, medido
+Fundir las formas es comparar cada lado con todos los demás: **~21 ms con 60 salas**. El lienzo se repinta
+muchas veces por segundo (niebla, arrastre de fichas), así que `RoomsLayer` lo **memoriza** y sólo recalcula
+cuando cambian las salas o sus vanos. Hay test que lo sujeta — es un fallo que no se ve con dos salas de
+prueba y que aparece justo cuando el mapa ya está montado.
+
+### 🧪 LO QUE SALIÓ AL PROBARLO (2026-09-04, él con la app delante)
+
+Tres cosas, y las tres arregladas en el momento.
+
+**1 · «*si no selecciono la textura del piso en el momento cero no la carga*»** → era un fallo. Al dibujar, la
+sala congelaba la textura del momento, así que una sala levantada ANTES de subir la foto se quedaba con el
+color del preajuste para siempre.
+- **El PREAJUSTE se congela** (su orden del 2026-09-03 sigue en pie) pero **la TEXTURA es del mapa y llega a
+  todas las salas**. `floor_url` a `null` no es «sin suelo»: es «esta sala no tiene uno PROPIO todavía»
+  (`floorUrlOf`). Lo tendrá cuando llegue el pincel de repintarla.
+
+**2 · «*necesito que la textura se pueda escalar… tengo mosaicos que quedan muy grandes*»** → la textura se
+pintaba como **una copia estirada** de borde a borde del mapa. Eso es lo correcto para una FOTO de fondo y lo
+peor posible para un AZULEJO: un mosaico de 40 px salía del tamaño del mapa entero.
+- Ahora **se repite**, y lo que se guarda es cuánto mide un azulejo, **en casillas**
+  (`wall_texture_scale` / `floor_texture_scale`, migración `20260904140000`). Una por textura: son dos fotos
+  distintas y no hay motivo para atarlas.
+- **Y con previo**, que es lo que pidió: la muestra del panel vale tres casillas de ancho y lleva la rejilla
+  encima, así que enseña cuántos azulejos entran en una casilla. El mapa se repinta EN VIVO mientras arrastra
+  y se guarda al soltar — mismo reparto que el pincel de transparencia.
+- ⛔ Esto **no toca** `bg_image_url` ni las fotos de las capas de terreno: ésas sí son fotos y se siguen
+  encajando con Cubrir / Encajar / Reposicionar.
+
+**3 · «*le falta la física a los muros*»** → era un fallo, y de los que no se ven: la niebla YA respetaba las
+salas (eso lo calcula el servidor) pero **el freno del navegador no**, porque `moveBlockers` sólo miraba
+`maps_walls`. Se veía la pared y se pasaba a través.
+- Arreglado sumando los contornos a lo que frena, con la misma `slideToken` → `slideCircle` de siempre: no hay
+  una segunda física. Un vano abierto ya viene descontado del contorno, así que por la puerta se pasa.
+- 🔒 **Y NADA MÁS**: su criterio, literal, fue «*tiene que funcionar igual que los otros muros que uso sobre
+  las fotos*». La regla del 2026-08-22 —**el director no choca nunca**— se queda como está, porque vale igual
+  para las dos clases de muro. Quien quiera comprobar la física usa la sonda (§ 7.3), que sí choca.
+
+#### 🔜 Lo que esta tanda deja fuera, a propósito
+- **Los pinceles para pintar encima**, dicho por él: «*una vez tengamos esto listo ya veremos*».
+- **Coger, mover y borrar una forma ya levantada desde la pantalla**: el puerto y el estado ya lo hacen
+  (`moveRoom`, `removeRoom`, con su deshacer), pero **no hay todavía gesto en el lienzo** que lo dispare. Es lo
+  primero de la tanda siguiente.
+- **Restar formas** (excavar un hueco dentro de una sala). Nadie lo ha pedido.
 
 ### 🔒 EL CANDADO DE PEGAR A LA REJILLA (aprobado el 2026-09-03: «*tira*»)
 

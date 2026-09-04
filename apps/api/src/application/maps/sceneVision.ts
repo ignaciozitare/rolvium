@@ -1,4 +1,4 @@
-import { circleClearance, sightRadiusPx, slideCircle, type FogCell, type LitLight, type SceneVision, type VisionPolygon } from '@rolvium/core';
+import { circleClearance, roomMoveSegments, roomSightSegments, roomWalls, sightRadiusPx, slideCircle, type BlockSegment, type FogCell, type LitLight, type RoomPart, type SceneVision, type VisionPolygon } from '@rolvium/core';
 import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
 import { allCells, boundsSegments, cellsInDisc, cellsInPolygons, clipToStar, lightPolygon, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
 
@@ -7,12 +7,41 @@ export type VisionOutcome = { ok: true; data: SceneVision } | { ok: false; code:
 
 interface Deps { maps: IMapsRepository }
 
-/** Blocking geometry: the scene's own walls plus its four sides, so no ray escapes the map. */
-export function sightSegments(walls: WallRecord[], scene: Pick<SceneRecord, 'width' | 'height'>): Segment[] {
+/**
+ * Blocking geometry: the scene's own walls plus its four sides, so no ray escapes the map.
+ *
+ * 🔴 Y DESDE LA REBANADA 8, LAS DOS FUENTES (§ «Los muros de una sala NO son los muros de siempre»). `rooms`
+ * son los contornos de las salas, que NO viven en `maps_walls` y aun así cortan la vista exactamente igual:
+ * uno es una marca invisible sobre una foto traída de fuera, el otro ES el mapa dibujado aquí. Mismo
+ * comportamiento, entidad distinta — y por eso llegan por separado en vez de disfrazarse de `WallRecord`.
+ *
+ * Que esto viva en el servidor es lo de siempre y sigue mandando: a un jugador no le llegan los muros que no
+ * debe conocer, así que la geometría la decide quien la tiene entera.
+ */
+export function sightSegments(walls: WallRecord[], scene: Pick<SceneRecord, 'width' | 'height'>, rooms: readonly Segment[] = []): Segment[] {
   const blocking = walls
     .filter(w => w.blocksSight && !w.isOpen)
     .map(w => ({ a: { x: w.x1, y: w.y1 }, b: { x: w.x2, y: w.y2 } }));
-  return [...blocking, ...boundsSegments(scene.width, scene.height)];
+  return [...blocking, ...rooms, ...boundsSegments(scene.width, scene.height)];
+}
+
+/** Un tramo de `@rolvium/core` en el par de puntos con el que trabaja el motor de visión. */
+const toSegment = ([x1, y1, x2, y2]: BlockSegment): Segment => ({ a: { x: x1, y: y1 }, b: { x: x2, y: y2 } });
+
+/**
+ * EL CONTORNO DE LAS SALAS, ya fundido y ya troceado por sus vanos.
+ *
+ * Se calcula con `roomWalls`, **el mismo motor que usa el navegador para pintarlas**. Una segunda
+ * implementación aquí daría una sala que se ve de una forma y tapa de otra, y ese fallo no se nota hasta que
+ * alguien está jugando.
+ */
+export async function roomGeometry(maps: IMapsRepository, sceneId: string): Promise<{ sight: Segment[]; move: BlockSegment[] }> {
+  const [rooms, openings] = await Promise.all([maps.listRooms(sceneId), maps.listRoomOpenings(sceneId)]);
+  if (rooms.length === 0) return { sight: [], move: [] };
+  // En ORDEN de llegada y con su signo: la última forma que él dibujó manda, igual que al pintar.
+  const parts: RoomPart[] = rooms.map(r => ({ ring: r.points.map(([x, y]) => ({ x, y })), dig: r.kind !== 'fill' }));
+  const walls = roomWalls(parts, openings);
+  return { sight: roomSightSegments(walls).map(toSegment), move: roomMoveSegments(walls) };
 }
 
 /** Centre of a token in scene px (`x`/`y` are the top-left cell). */
@@ -140,7 +169,15 @@ export async function computeSceneVision(
    */
   const lights = await deps.maps.listLights(scene.id);
   const layers = lights.length > 0 ? await deps.maps.listLayers(scene.id) : [];
-  const wallSegments = async (): Promise<Segment[]> => sightSegments(await deps.maps.listWalls(scene.id), scene);
+  /**
+   * LA GEOMETRÍA QUE TAPA, DE LAS DOS FUENTES (rebanada 8): las filas marcadas de `maps_walls` (modo A) y los
+   * CONTORNOS DE LAS SALAS (modo B). Hasta hoy esto sólo conocía la primera, y una sala levantada en Rolvium
+   * no habría tapado nada — que es el trabajo de fondo de esta tanda, y el que no se ve en pantalla.
+   */
+  const wallSegments = async (): Promise<Segment[]> => {
+    const [walls, geom] = await Promise.all([deps.maps.listWalls(scene.id), roomGeometry(deps.maps, scene.id)]);
+    return sightSegments(walls, scene, geom.sight);
+  };
 
   if (role === 'dm') {
     if (input.probe) {
@@ -189,15 +226,23 @@ export async function computeSceneVision(
    * contra los muros en cualquier modo, § 7.2), y en los otros casos sólo si hay un `at` que corregir con
    * las paredes sólidas encendidas — apagadas, `corrected` sale `null` igual y sobran las dos lecturas.
    */
-  const [walls, tokens] = (at && scene.solidWalls) || scene.fogMode === 'vision' || lights.length > 0
-    ? await Promise.all([deps.maps.listWalls(scene.id), deps.maps.listTokens(scene.id)])
-    : [[], []];
+  const [walls, tokens, roomGeom] = (at && scene.solidWalls) || scene.fogMode === 'vision' || lights.length > 0
+    ? await Promise.all([deps.maps.listWalls(scene.id), deps.maps.listTokens(scene.id), roomGeometry(deps.maps, scene.id)])
+    : [[], [], { sight: [], move: [] } as Awaited<ReturnType<typeof roomGeometry>>];
   const dragged = at ? tokensOf(tokens, input.userId).find(t => t.id === at.tokenId) ?? null : null;
   let corrected: SceneVision['corrected'] = null;
   let clearance: SceneVision['clearance'] = null;
   if (at && dragged && scene.solidWalls) {
     const radius = (dragged.size * scene.gridSize) / 2;
-    const blockers = walls.filter(w => w.blocksMove && !w.isOpen).map(w => [w.x1, w.y1, w.x2, w.y2] as const);
+    /**
+     * Y las salas FRENAN IGUAL (§ «Lo que SÍ comparten: la física, entera»). Su contorno es roca: no hace
+     * falta mirar ningún `blocksMove`, porque una pared dibujada aquí no tiene la opción de dejar pasar.
+     * Lo único que abre paso es un vano abierto, y eso ya viene descontado del contorno.
+     */
+    const blockers = [
+      ...walls.filter(w => w.blocksMove && !w.isOpen).map(w => [w.x1, w.y1, w.x2, w.y2] as const),
+      ...roomGeom.move,
+    ];
     /**
      * El barrido sale de `from` — la última posición que ESTE MISMO cálculo contestó en el tick anterior del
      * arrastre, que el navegador devuelve tal cual — y no de la posición guardada al empezar. Anclarlo al
@@ -230,7 +275,7 @@ export async function computeSceneVision(
     if (Math.abs(cx - at.x) > tol || Math.abs(cy - at.y) > tol) corrected = { tokenId: at.tokenId, x: cx, y: cy };
   }
 
-  const segments = sightSegments(walls, scene);
+  const segments = sightSegments(walls, scene, roomGeom.sight);
   const applied = corrected ?? at;
   const mine = tokensOf(tokens, input.userId).map(t => (applied && t.id === applied.tokenId ? { ...t, x: applied.x, y: applied.y } : t));
   /**
@@ -323,7 +368,7 @@ export async function paintSceneFog(deps: Deps, input: PaintInput): Promise<Visi
    */
   const lights = await deps.maps.listLights(scene.id);
   const lit = lights.length > 0
-    ? litLights(lights, await deps.maps.listLayers(scene.id), sightSegments(await deps.maps.listWalls(scene.id), scene), scene, true, null)
+    ? litLights(lights, await deps.maps.listLayers(scene.id), sightSegments(await deps.maps.listWalls(scene.id), scene, (await roomGeometry(deps.maps, scene.id)).sight), scene, true, null)
     : [];
   return { ok: true, data: { vision: [], explored: unionCells(...next), radiusPx: sightRadiusPx(scene.lighting, scene.nightRadiusM, scene.gridSize), ...litField(lit, lights) } };
 }

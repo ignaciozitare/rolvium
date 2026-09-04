@@ -1,5 +1,8 @@
 import type { TableEvent } from '@rolvium/core';
-import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewSceneProp, NewToken, NewWall, Prop, PropPatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
+import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
+
+/** Lo único que se edita de un vano: si está abierto, y qué es. Su sitio no cambia — para eso se mueve la forma. */
+export type RoomOpeningPatch = Partial<Pick<RoomOpening, 'kind' | 'isOpen'>>;
 
 export type Unsubscribe = () => void;
 
@@ -18,6 +21,9 @@ export interface MapsLiveHandlers {
   onProp?: (change: RowChange<Prop>) => void;
   /** Lo PLANTADO en esta escena. */
   onSceneProp?: (change: RowChange<SceneProp>) => void;
+  /** Las salas y sus vanos (rebanada 8). Llegan a TODA la mesa: la sala es el dibujo del mapa. */
+  onRoom?: (change: RowChange<Room>) => void;
+  onRoomOpening?: (change: RowChange<RoomOpening>) => void;
   /**
    * Token drag in progress · focus pin from another device · `fog.updated` = «what you can see may have changed,
    * ask the server again». That last one MUST travel by broadcast: `postgres_changes` applies each subscriber's
@@ -145,6 +151,34 @@ export interface MapsPort {
   addSceneProp(input: NewSceneProp): Promise<SceneProp>;
   updateSceneProp(id: string, patch: ScenePropPatch): Promise<void>;
   removeSceneProp(id: string): Promise<void>;
+
+  // ── salas (rebanada 8) ────────────────────────────────────────────────────
+  // Una fila es UNA FORMA, no la unión: él eligió que cada rectángulo se siga recordando por separado para
+  // poder moverlo o borrarlo después. Lo fundido se calcula al pintar (`roomOutline`, en `@rolvium/core`).
+  // Y NO se escriben muros derivados en `maps_walls`: el contorno ES el muro.
+
+  /** De la más vieja a la más nueva — el orden ES la regla de qué suelo manda cuando dos se funden. */
+  listRooms(sceneId: string): Promise<Room[]>;
+  addRoom(input: NewRoom): Promise<Room>;
+  /** Mover o estirar una forma. Nada que reescribir además: el contorno se recalcula solo. */
+  updateRoomPoints(id: string, points: [number, number][]): Promise<void>;
+  removeRoom(id: string): Promise<void>;
+
+  // ── el catálogo de texturas (rebanada 8) ──────────────────────────────────
+  // De la HERRAMIENTA, no de una campaña: se sube una vez y sirve en todos los mapas.
+
+  listTextures(): Promise<Texture[]>;
+  /** Sube la foto y la registra en el catálogo. La fila queda a nombre de quien la sube. */
+  addTexture(input: Omit<NewTexture, 'url' | 'uploadedBy'>, image: Blob, campaignId: string): Promise<Texture>;
+  /** Sólo las tuyas: que otro te quite una textura que estás usando en un mapa sería un desastre silencioso. */
+  removeTexture(id: string): Promise<void>;
+
+  /** Los vanos, anotados sobre el contorno de la UNIÓN — por eso van por escena y no colgados de una sala. */
+  listRoomOpenings(sceneId: string): Promise<RoomOpening[]>;
+  addRoomOpening(input: NewRoomOpening): Promise<RoomOpening>;
+  /** Abrir y cerrar una puerta: el mismo disco de siempre, sobre otra entidad. */
+  updateRoomOpening(id: string, patch: RoomOpeningPatch): Promise<void>;
+  removeRoomOpening(id: string): Promise<void>;
 
   // realtime (channel `scene:{sceneId}` — separate from the table's `campaign:{id}` channel)
   subscribe(sceneId: string, handlers: MapsLiveHandlers): Unsubscribe;

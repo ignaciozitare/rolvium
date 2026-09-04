@@ -1,20 +1,31 @@
 import type { RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
-import type { BgTransform, BlockShape, CreateSceneInput, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
-import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, Unsubscribe } from '../domain/ports/MapsPort';
+import type { BgTransform, BlockShape, CreateSceneInput, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPatch, Room, RoomKind, RoomOpening, RoomPreset, RoomShapeKind, Texture, TextureCategory, NewTexture, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
+import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, RoomOpeningPatch, Unsubscribe } from '../domain/ports/MapsPort';
 import { maskPath } from '../domain/useCases/layerRules';
 import { propPath } from '../domain/useCases/propRules';
 
-interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; created_at: string; updated_at: string }
+interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; /* rebanada 8 — opcionales a propósito: una fila escrita antes de la migración no las trae, y el mapeador ya las defiende con su valor de serie */ room_preset?: RoomPreset; wall_texture_url?: string | null; floor_texture_url?: string | null; wall_thickness?: number; wall_texture_scale?: number; floor_texture_scale?: number; created_at: string; updated_at: string }
 interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean; group_id: string | null }
 interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; bestiary_entry_id: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown>; layer_id: string | null }
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string; layer_id: string | null }
 interface LayerRow { id: string; scene_id: string; campaign_id: string; kind: LayerKind; name: string; sort_order: number; visible: boolean; locked: boolean; image_url: string | null; transform: BgTransform; mask_url: string | null; mask_version: number; created_at: string; updated_at: string }
 interface LightRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; shape: LightShape; kind: LightKind; x: number; y: number; rotation: number; cone_angle: number; color: string; flicker: boolean; range_m: number; casts_shadow: boolean; spin_ms: number; intensity: number; created_at: string; updated_at: string }
+interface RoomRow { id: string; scene_id: string; campaign_id: string; kind?: RoomKind; shape: RoomShapeKind; points: [number, number][]; floor_preset: RoomPreset; floor_url: string | null; created_at: string; updated_at: string }
+interface RoomOpeningRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; kind: 'door' | 'window'; is_open: boolean }
 interface ImageRow { id: string; campaign_id: string; name: string; url: string; created_at: string }
+interface TextureRow { id: string; name: string; category: TextureCategory; url: string; tile_cells: number; uploaded_by: string | null; created_at: string; updated_at: string }
 interface PropRow { id: string; campaign_id: string | null; name: string; category: PropCategory; image_url: string; natural_width: number; natural_height: number; default_scale: number; default_blocks_sight: boolean; default_blocks_move: boolean; default_block_shape: BlockShape; uploaded_by: string | null; created_at: string; updated_at: string }
 interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; created_at: string; updated_at: string }
 
-const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, created_at, updated_at';
+const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, created_at, updated_at';
+const ROOM_COLS = 'id, scene_id, campaign_id, kind, shape, points, floor_preset, floor_url, created_at, updated_at';
+const ROOM_OPENING_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, kind, is_open';
+const TEXTURE_COLS = 'id, name, category, url, tile_cells, uploaded_by, created_at, updated_at';
+/** Espejo de la migración: una escena de antes de la rebanada 8 se lee con el preajuste y el grosor de serie. */
+const DEFAULT_ROOM_PRESET: RoomPreset = 'hatch';
+const DEFAULT_WALL_THICKNESS = 0.22;
+/** Un azulejo grande, que es lo que menos sorprende al subir una foto cualquiera. En CASILLAS. */
+const DEFAULT_TEXTURE_SCALE = 4;
 const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, kind, blocks_sight, blocks_move, is_open, group_id';
 /** Defaults mirror the migration, so a row written before slice 2 still reads as a plain closed wall. */
 const DEFAULT_NIGHT_RADIUS_M = 10;
@@ -34,7 +45,33 @@ export const mapSceneRow = (r: SceneRow): Scene => ({
   lighting: r.lighting ?? 'day', nightRadiusM: r.night_radius_m ?? DEFAULT_NIGHT_RADIUS_M,
   // Una escena guardada antes de la rebanada 4 no trae la columna: se lee como «no sólidas», que es como estaba.
   solidWalls: r.solid_walls ?? false,
-  sortOrder: r.sort_order, visiblePlayers: r.visible_players, createdAt: r.created_at, updatedAt: r.updated_at,
+  sortOrder: r.sort_order, visiblePlayers: r.visible_players,
+  // Rebanada 8: una escena anterior no trae estas columnas y se lee con el preajuste de serie — ninguna sala
+  // levantada cambia de aspecto por esto, porque sin salas no hay nada que pintar.
+  roomPreset: r.room_preset ?? DEFAULT_ROOM_PRESET,
+  wallTextureUrl: r.wall_texture_url ?? null,
+  floorTextureUrl: r.floor_texture_url ?? null,
+  wallThickness: r.wall_thickness ?? DEFAULT_WALL_THICKNESS,
+  wallTextureScale: r.wall_texture_scale ?? DEFAULT_TEXTURE_SCALE,
+  floorTextureScale: r.floor_texture_scale ?? DEFAULT_TEXTURE_SCALE,
+  createdAt: r.created_at, updatedAt: r.updated_at,
+});
+export const mapRoomRow = (r: RoomRow): Room => ({
+  id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id,
+  // Una fila escrita antes de que existieran los rellenos es una SALA, que es lo que era.
+  kind: r.kind ?? 'room', shape: r.shape ?? 'rect',
+  points: (r.points ?? []) as [number, number][],
+  floorPreset: r.floor_preset ?? DEFAULT_ROOM_PRESET, floorUrl: r.floor_url ?? null,
+  createdAt: r.created_at, updatedAt: r.updated_at,
+});
+export const mapTextureRow = (r: TextureRow): Texture => ({
+  id: r.id, name: r.name, category: r.category ?? 'misc', url: r.url,
+  tileCells: r.tile_cells ?? 4, uploadedBy: r.uploaded_by ?? null,
+  createdAt: r.created_at, updatedAt: r.updated_at,
+});
+export const mapRoomOpeningRow = (r: RoomOpeningRow): RoomOpening => ({
+  id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id,
+  x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, kind: r.kind ?? 'door', isOpen: r.is_open ?? false,
 });
 export const mapWallRow = (r: WallRow): Wall => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, visiblePlayers: r.visible_players,
@@ -131,6 +168,14 @@ function scenePatchRow(p: ScenePatch): Record<string, unknown> {
   if (p.lighting !== undefined) row.lighting = p.lighting;
   if (p.nightRadiusM !== undefined) row.night_radius_m = p.nightRadiusM;
   if (p.solidWalls !== undefined) row.solid_walls = p.solidWalls;
+  // Rebanada 8 — las dos texturas base, el preajuste y el grosor son DE LA ESCENA («una cripta y un bosque
+  // no se parecen en nada»). Cambiarlos no repinta ninguna sala ya levantada: cada una se llevó su suelo.
+  if (p.roomPreset !== undefined) row.room_preset = p.roomPreset;
+  if (p.wallTextureUrl !== undefined) row.wall_texture_url = p.wallTextureUrl;
+  if (p.floorTextureUrl !== undefined) row.floor_texture_url = p.floorTextureUrl;
+  if (p.wallThickness !== undefined) row.wall_thickness = p.wallThickness;
+  if (p.wallTextureScale !== undefined) row.wall_texture_scale = p.wallTextureScale;
+  if (p.floorTextureScale !== undefined) row.floor_texture_scale = p.floorTextureScale;
   if (p.sortOrder !== undefined) row.sort_order = p.sortOrder;
   if (p.visiblePlayers !== undefined) row.visible_players = p.visiblePlayers;
   return row;
@@ -499,6 +544,80 @@ export class SupabaseMapsRepo implements MapsPort {
     this.fail(error);
   }
 
+  // ── salas (rebanada 8) ──
+  // Una fila es UNA FORMA. Aquí no se escribe ni un muro: el contorno se calcula al pintar y al mirar.
+  async listRooms(sceneId: string): Promise<Room[]> {
+    // De la más vieja a la más nueva: el orden ES la regla de qué suelo manda cuando dos se funden.
+    const { data, error } = await this.db.from('maps_rooms').select(ROOM_COLS).eq('scene_id', sceneId).order('created_at', { ascending: true });
+    this.fail(error);
+    return (data as RoomRow[] ?? []).map(mapRoomRow);
+  }
+  async addRoom(r: NewRoom): Promise<Room> {
+    const { data, error } = await this.db.from('maps_rooms').insert({
+      scene_id: r.sceneId, campaign_id: r.campaignId, kind: r.kind, shape: r.shape, points: r.points,
+      floor_preset: r.floorPreset, floor_url: r.floorUrl,
+    }).select(ROOM_COLS).single();
+    this.fail(error);
+    return mapRoomRow(data as RoomRow);
+  }
+  async updateRoomPoints(id: string, points: [number, number][]): Promise<void> {
+    const { error } = await this.db.from('maps_rooms').update({ points }).eq('id', id);
+    this.fail(error);
+  }
+  async removeRoom(id: string): Promise<void> {
+    const { error } = await this.db.from('maps_rooms').delete().eq('id', id);
+    this.fail(error);
+  }
+  async listRoomOpenings(sceneId: string): Promise<RoomOpening[]> {
+    const { data, error } = await this.db.from('maps_room_openings').select(ROOM_OPENING_COLS).eq('scene_id', sceneId);
+    this.fail(error);
+    return (data as RoomOpeningRow[] ?? []).map(mapRoomOpeningRow);
+  }
+  async addRoomOpening(o: NewRoomOpening): Promise<RoomOpening> {
+    const { data, error } = await this.db.from('maps_room_openings').insert({
+      scene_id: o.sceneId, campaign_id: o.campaignId, x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2, kind: o.kind, is_open: o.isOpen,
+    }).select(ROOM_OPENING_COLS).single();
+    this.fail(error);
+    return mapRoomOpeningRow(data as RoomOpeningRow);
+  }
+  async updateRoomOpening(id: string, patch: RoomOpeningPatch): Promise<void> {
+    const row: Record<string, unknown> = {};
+    if (patch.kind !== undefined) row.kind = patch.kind;
+    if (patch.isOpen !== undefined) row.is_open = patch.isOpen;
+    const { error } = await this.db.from('maps_room_openings').update(row).eq('id', id);
+    this.fail(error);
+  }
+  async removeRoomOpening(id: string): Promise<void> {
+    const { error } = await this.db.from('maps_room_openings').delete().eq('id', id);
+    this.fail(error);
+  }
+
+  // ── el catálogo de texturas (rebanada 8) ──
+  // De la HERRAMIENTA, no de una campaña: ni se filtra por campaña ni se pasa una. La foto sí se sube bajo la
+  // carpeta de la campaña, que es la que las políticas del bucket ya cubren — y el bucket sirve las imágenes
+  // públicas, así que el sitio del fichero no limita quién puede verla.
+  async listTextures(): Promise<Texture[]> {
+    const { data, error } = await this.db.from('maps_textures').select(TEXTURE_COLS).order('created_at', { ascending: false });
+    this.fail(error);
+    return (data as TextureRow[] ?? []).map(mapTextureRow);
+  }
+  async addTexture(input: Omit<NewTexture, 'url' | 'uploadedBy'>, image: Blob, campaignId: string): Promise<Texture> {
+    const me = await this.me();
+    const path = `${campaignId}/textures/${crypto.randomUUID()}.png`;
+    const { error: upErr } = await this.db.storage.from(BACKGROUNDS_BUCKET).upload(path, image, { upsert: false, contentType: image.type || 'image/png', cacheControl: '3600' });
+    this.fail(upErr);
+    const url = this.db.storage.from(BACKGROUNDS_BUCKET).getPublicUrl(path).data.publicUrl;
+    const { data, error } = await this.db.from('maps_textures')
+      .insert({ name: input.name, category: input.category, tile_cells: input.tileCells, url, uploaded_by: me })
+      .select(TEXTURE_COLS).single();
+    this.fail(error);
+    return mapTextureRow(data as TextureRow);
+  }
+  async removeTexture(id: string): Promise<void> {
+    const { error } = await this.db.from('maps_textures').delete().eq('id', id);
+    this.fail(error);
+  }
+
   // ── realtime ──
   subscribe(sceneId: string, h: MapsLiveHandlers): Unsubscribe {
     let entry = this.channels.get(sceneId);
@@ -515,6 +634,8 @@ export class SupabaseMapsRepo implements MapsPort {
         .on('postgres_changes', { ...byScene, table: 'maps_layers' }, (p: Change) => { const c = toChange<LayerRow, Layer>(p, mapLayerRow); each(x => x.onLayer?.(c)); })
         .on('postgres_changes', { ...byScene, table: 'maps_lights' }, (p: Change) => { const c = toChange<LightRow, Light>(p, mapLightRow); each(x => x.onLight?.(c)); })
         .on('postgres_changes', { ...byScene, table: 'maps_scene_props' }, (p: Change) => { const c = toChange<ScenePropRow, SceneProp>(p, mapScenePropRow); each(x => x.onSceneProp?.(c)); })
+        .on('postgres_changes', { ...byScene, table: 'maps_rooms' }, (p: Change) => { const c = toChange<RoomRow, Room>(p, mapRoomRow); each(x => x.onRoom?.(c)); })
+        .on('postgres_changes', { ...byScene, table: 'maps_room_openings' }, (p: Change) => { const c = toChange<RoomOpeningRow, RoomOpening>(p, mapRoomOpeningRow); each(x => x.onRoomOpening?.(c)); })
         .on('broadcast', { event: 'map' }, (msg: { payload: MapsLiveEvent }) => each(x => x.onEvent?.(msg.payload)))
         .subscribe();
       entry = { channel, handlers };

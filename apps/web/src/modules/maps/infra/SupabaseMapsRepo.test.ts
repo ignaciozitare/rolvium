@@ -323,10 +323,11 @@ describe('SupabaseMapsRepo — realtime', () => {
     const channel = { on: vi.fn((type: string, filter: Record<string, string>, cb: (p: unknown) => void) => { handlers.push({ type, filter, cb }); return channel; }), subscribe: vi.fn(() => channel), send: vi.fn() };
     const client = { ...m.client, channel: vi.fn(() => channel), removeChannel: vi.fn() };
     const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
-    const h = { onScene: vi.fn(), onToken: vi.fn(), onWall: vi.fn(), onDrawing: vi.fn(), onLayer: vi.fn(), onLight: vi.fn(), onSceneProp: vi.fn(), onEvent: vi.fn() };
+    const h = { onScene: vi.fn(), onToken: vi.fn(), onWall: vi.fn(), onDrawing: vi.fn(), onLayer: vi.fn(), onLight: vi.fn(), onSceneProp: vi.fn(), onRoom: vi.fn(), onRoomOpening: vi.fn(), onEvent: vi.fn() };
     const off = repo.subscribe('sc-1', h);
     expect(client.channel).toHaveBeenCalledWith('scene:sc-1');
-    expect(handlers.map(x => x.filter.table ?? x.filter.event)).toEqual(['maps_scenes', 'maps_tokens', 'maps_walls', 'maps_drawings', 'maps_layers', 'maps_lights', 'maps_scene_props', 'map']);
+    // Rebanada 8: las SALAS y sus vanos viajan por el mismo canal — son el dibujo del mapa y llegan a toda la mesa.
+    expect(handlers.map(x => x.filter.table ?? x.filter.event)).toEqual(['maps_scenes', 'maps_tokens', 'maps_walls', 'maps_drawings', 'maps_layers', 'maps_lights', 'maps_scene_props', 'maps_rooms', 'maps_room_openings', 'map']);
     expect(handlers[0]!.filter.filter).toBe('id=eq.sc-1');
     expect(handlers[1]!.filter.filter).toBe('scene_id=eq.sc-1');
     handlers[1]!.cb({ eventType: 'UPDATE', new: TOKEN_ROW, old: { id: 'tk-1' } });
@@ -345,8 +346,14 @@ describe('SupabaseMapsRepo — realtime', () => {
     // Rebanada 6: lo plantado también, por el mismo canal y con el mismo filtro de escena.
     handlers[6]!.cb({ eventType: 'INSERT', new: SCENE_PROP_ROW, old: {} });
     expect(h.onSceneProp).toHaveBeenCalledWith(expect.objectContaining({ type: 'INSERT', id: 'sp-1', row: expect.objectContaining({ name: 'Roble', blocksSight: true, blockShape: 'circle' }) }));
+    // Rebanada 8: las SALAS y sus vanos, por el mismo canal. Llegan a TODA la mesa —jugadores incluidos—
+    // porque una sala ES el dibujo del mapa, no una marca del director que haya que esconder.
+    handlers[7]!.cb({ eventType: 'INSERT', new: { id: 'rm-1', scene_id: 'sc-1', campaign_id: 'c1', shape: 'rect', points: [[0, 0], [10, 0], [10, 10], [0, 10]], floor_preset: 'hatch', floor_url: null, created_at: '', updated_at: '' }, old: {} });
+    expect(h.onRoom).toHaveBeenCalledWith(expect.objectContaining({ type: 'INSERT', id: 'rm-1', row: expect.objectContaining({ shape: 'rect', floorPreset: 'hatch' }) }));
+    handlers[8]!.cb({ eventType: 'UPDATE', new: { id: 'ro-1', scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, kind: 'door', is_open: true }, old: { id: 'ro-1' } });
+    expect(h.onRoomOpening).toHaveBeenCalledWith(expect.objectContaining({ id: 'ro-1', row: expect.objectContaining({ kind: 'door', isOpen: true }) }));
     const ev = { type: 'pin.focused' as const, campaignId: 'c1', sceneId: 'sc-1', x: 1, y: 2, by: 'u-gm' };
-    handlers[7]!.cb({ payload: ev });
+    handlers[9]!.cb({ payload: ev });
     expect(h.onEvent).toHaveBeenCalledWith(ev);
     repo.broadcast('sc-1', ev);
     expect(channel.send).toHaveBeenCalledWith({ type: 'broadcast', event: 'map', payload: ev });
@@ -486,5 +493,75 @@ describe('SupabaseMapsRepo — lo plantado en la escena', () => {
 
     await repo2.removeSceneProp('sp-1');
     expect(m2.deleteSpy).toHaveBeenCalled();
+  });
+});
+
+/**
+ * ── LAS SALAS (rebanada 8) ──
+ *
+ * Una fila es UNA FORMA, no la unión: él eligió que cada rectángulo se recuerde por separado para poder
+ * moverlo o borrarlo después. Y nada de esto escribe en `maps_walls`: el contorno de una sala no es una fila
+ * de muro (§ «Los muros de una sala NO son los muros de siempre»).
+ */
+const ROOM_ROW = { id: 'rm-1', scene_id: 'sc-1', campaign_id: 'c1', kind: 'room' as const, shape: 'rect' as const, points: [[0, 0], [10, 0], [10, 10], [0, 10]] as [number, number][], floor_preset: 'cavern' as const, floor_url: null, created_at: 't', updated_at: 't' };
+const OPENING_ROW = { id: 'ro-1', scene_id: 'sc-1', campaign_id: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, kind: 'door' as const, is_open: false };
+
+describe('SupabaseMapsRepo — las salas', () => {
+  it('las lee de la MÁS VIEJA a la más nueva: el orden es la regla de qué suelo manda al fundirse', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: [ROOM_ROW], error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    const rooms = await repo.listRooms('sc-1');
+    expect(m.fromSpy).toHaveBeenCalledWith('maps_rooms');
+    expect(q(m)['eq']).toHaveBeenCalledWith('scene_id', 'sc-1');
+    expect(q(m)['order']).toHaveBeenCalledWith('created_at', { ascending: true });
+    expect(rooms[0]).toMatchObject({ id: 'rm-1', shape: 'rect', floorPreset: 'cavern', floorUrl: null });
+    expect(rooms[0]!.points).toEqual([[0, 0], [10, 0], [10, 10], [0, 10]]);
+  });
+
+  it('guarda la forma con su suelo heredado, y NO escribe ningún muro', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: ROOM_ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect', points: [[0, 0], [10, 0], [10, 10], [0, 10]], floorPreset: 'cavern', floorUrl: null });
+    expect(q(m)['insert']).toHaveBeenCalledWith(expect.objectContaining({ scene_id: 'sc-1', kind: 'room', shape: 'rect', floor_preset: 'cavern' }));
+    expect(m.fromSpy).not.toHaveBeenCalledWith('maps_walls');
+  });
+
+  it('mover una forma reescribe sus puntos y nada más: el contorno se recalcula solo', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateRoomPoints('rm-1', [[5, 5], [15, 5], [15, 15]]);
+    expect(q(m)['update']).toHaveBeenCalledWith({ points: [[5, 5], [15, 5], [15, 15]] });
+    expect(q(m)['eq']).toHaveBeenCalledWith('id', 'rm-1');
+    await repo.removeRoom('rm-1');
+    expect(q(m, 1)['delete']).toHaveBeenCalled();
+  });
+
+  it('los vanos van por ESCENA, porque el contorno es el de la UNIÓN', async () => {
+    const m = createSupabaseMock({ tables: { maps_room_openings: { data: [OPENING_ROW], error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    expect(await repo.listRoomOpenings('sc-1')).toEqual([{ id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, kind: 'door', isOpen: false }]);
+    expect(q(m)['eq']).toHaveBeenCalledWith('scene_id', 'sc-1');
+  });
+
+  it('abrir y cerrar un vano sólo toca `is_open` — el sitio no se mueve, para eso se mueve la forma', async () => {
+    const m = createSupabaseMock({ tables: { maps_room_openings: { data: OPENING_ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.addRoomOpening({ sceneId: 'sc-1', campaignId: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, kind: 'door', isOpen: false });
+    expect(q(m)['insert']).toHaveBeenCalledWith(expect.objectContaining({ kind: 'door', is_open: false }));
+    await repo.updateRoomOpening('ro-1', { isOpen: true });
+    expect(q(m, 1)['update']).toHaveBeenCalledWith({ is_open: true });
+    await repo.removeRoomOpening('ro-1');
+    expect(q(m, 2)['delete']).toHaveBeenCalled();
+  });
+
+  it('el preajuste, las dos texturas y el grosor se guardan EN LA ESCENA', async () => {
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateScene('sc-1', { roomPreset: 'ink', wallTextureUrl: 'https://x/roca.png', floorTextureUrl: null, wallThickness: 0.4 });
+    expect(q(m)['update']).toHaveBeenCalledWith(expect.objectContaining({ room_preset: 'ink', wall_texture_url: 'https://x/roca.png', floor_texture_url: null, wall_thickness: 0.4 }));
+  });
+
+  it('una escena escrita antes de la rebanada 8 se lee con el preajuste de serie', () => {
+    expect(mapSceneRow(SCENE_ROW)).toMatchObject({ roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22 });
   });
 });
