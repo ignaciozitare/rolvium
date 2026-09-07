@@ -125007,7 +125007,7 @@
                   "id": "oqRgY",
                   "name": "M/Dibujar aquí · ACTIVO",
                   "width": "fill_container",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "layout": "vertical",
                   "gap": 4,
                   "padding": 6,
@@ -125125,7 +125125,7 @@
               "fill": "$pl-tinta-tenue",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "QUÉ LEVANTO · LO DE SIEMPRE, INTACTO",
+              "content": "QUÉ LEVANTO · EXCAVAR O RELLENAR",
               "fontFamily": "$font-plenilunio",
               "fontSize": 7.5,
               "fontWeight": "normal",
@@ -125141,9 +125141,32 @@
               "children": [
                 {
                   "type": "frame",
+                  "id": "IPoqx",
+                  "name": "S/SALA · ACTIVO",
+                  "fill": "$pl-sangre",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "d89xq",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "SALA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
                   "id": "D2Wb9I",
                   "name": "S/MURO",
-                  "fill": "$pl-tinta",
+                  "fill": "#00000000",
                   "padding": [
                     3,
                     7
@@ -125153,7 +125176,7 @@
                       "type": "text",
                       "id": "sTDkV",
                       "name": "T",
-                      "fill": "$pl-papel-alto",
+                      "fill": "$pl-tinta-suave",
                       "content": "MURO",
                       "fontFamily": "$font-plenilunio",
                       "fontSize": 8,
@@ -125215,7 +125238,7 @@
                   "fill": "$pl-tinta-tenue",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "se abren con el mismo disco",
+                  "content": "SALA excava · MURO rellena",
                   "fontFamily": "$font-plenilunio",
                   "fontSize": 7.5,
                   "fontWeight": "normal",
@@ -125304,7 +125327,7 @@
                   "type": "frame",
                   "id": "Thdor",
                   "name": "S/RECTÁNGULO",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "padding": [
                     3,
                     7
@@ -127002,7 +127025,7 @@
               "fill": "$pl-tinta-tenue",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "las pone el preajuste · CAMBIAR para usar una foto tuya",
+              "content": "las pone el preajuste · CAMBIAR para usar una foto tuya · se REPITEN en azulejos",
               "fontFamily": "$font-plenilunio",
               "fontSize": 8,
               "fontWeight": "normal",
@@ -127073,6 +127096,56 @@
                       "letterSpacing": 1.1
                     }
                   ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tzS2t",
+              "name": "Fila · azulejo PARED",
+              "width": "fill_container",
+              "gap": 7,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "M6w9WI",
+                  "name": "L",
+                  "fill": "$pl-tinta-tenue",
+                  "content": "AZULEJO · PARED",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 7.5,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1.1
+                },
+                {
+                  "type": "frame",
+                  "id": "icigE",
+                  "name": "Slider",
+                  "width": "fill_container",
+                  "height": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 3,
+                      "id": "PQFy6",
+                      "name": "Pista",
+                      "fill": "#13131024",
+                      "width": "fill_container",
+                      "height": 5
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "UWnyC",
+                  "name": "V",
+                  "fill": "$pl-tinta-suave",
+                  "content": "4",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -127185,6 +127258,56 @@
                       "letterSpacing": 1.1
                     }
                   ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "fX2B3",
+              "name": "Fila · azulejo SUELO",
+              "width": "fill_container",
+              "gap": 7,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "j28Xo",
+                  "name": "L",
+                  "fill": "$pl-tinta-tenue",
+                  "content": "AZULEJO · SUELO",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 7.5,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1.1
+                },
+                {
+                  "type": "frame",
+                  "id": "GWFdD",
+                  "name": "Slider",
+                  "width": "fill_container",
+                  "height": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 3,
+                      "id": "GKyL5",
+                      "name": "Pista",
+                      "fill": "#13131024",
+                      "width": "fill_container",
+                      "height": 5
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "Bc808",
+                  "name": "V",
+                  "fill": "$pl-tinta-suave",
+                  "content": "2",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -127391,7 +127514,7 @@
                   "fill": "$pl-tinta-tenue",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "1 · elige la textura      2 · pincha dentro de la sala",
+                  "content": "1 · abre el catálogo y elige   2 · pincha dentro de la sala",
                   "fontFamily": "$font-plenilunio",
                   "fontSize": 8,
                   "fontWeight": "normal"
@@ -127449,7 +127572,7 @@
               "fill": "$pl-tinta-tenue",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "Builder es el de siempre. Marcar los muros sobre una FOTO sigue igual y no se toca. Dibujar aquí es lo nuevo, y las texturas sólo pintan en ese modo. En los dos casos se levantan MUROS normales: cortan la vista y la luz, se abren en puerta y se borran uno a uno.",
+              "content": "Sobre una FOTO, igual que siempre y sin tocar nada. Dibujando aquí levantas SALAS: la textura de pared rellena el mapa y cada sala abre un hueco. Se funden al tocarse, y lo último que dibujas manda sobre lo de debajo.",
               "lineHeight": 1.3,
               "fontFamily": "$font-plenilunio",
               "fontSize": 9,
@@ -127569,7 +127692,7 @@
                   "id": "Cb7hz",
                   "name": "M/Sobre una foto",
                   "width": "fill_container",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "layout": "vertical",
                   "gap": 4,
                   "padding": 6,
@@ -127812,7 +127935,7 @@
                   "type": "frame",
                   "id": "OCCPF",
                   "name": "S/MURO",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "padding": [
                     3,
                     7
@@ -127973,7 +128096,7 @@
                   "type": "frame",
                   "id": "g3olFV",
                   "name": "S/RECTÁNGULO",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "padding": [
                     3,
                     7
@@ -128741,7 +128864,7 @@
                   "id": "mWAV6",
                   "name": "M/Sobre una foto",
                   "width": "fill_container",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "layout": "vertical",
                   "gap": 4,
                   "padding": 6,
@@ -128984,7 +129107,7 @@
                   "type": "frame",
                   "id": "JBQxa",
                   "name": "S/MURO",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "padding": [
                     3,
                     7
@@ -129178,7 +129301,7 @@
                   "type": "frame",
                   "id": "cgKjR",
                   "name": "S/CÍRCULO",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "padding": [
                     3,
                     7
@@ -129485,7 +129608,7 @@
                   "id": "kk90f",
                   "name": "M/Sobre una foto",
                   "width": "fill_container",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "layout": "vertical",
                   "gap": 4,
                   "padding": 6,
@@ -129728,7 +129851,7 @@
                   "type": "frame",
                   "id": "IjzwD",
                   "name": "S/MURO",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "padding": [
                     3,
                     7
@@ -129922,7 +130045,7 @@
                   "type": "frame",
                   "id": "DY5Vs",
                   "name": "S/CÍRCULO",
-                  "fill": "$pl-tinta",
+                  "fill": "$pl-sangre",
                   "padding": [
                     3,
                     7
@@ -133309,6 +133432,49 @@
           ]
         }
       ]
+    },
+    {
+      "id": "sO0GV",
+      "type": "ref",
+      "ref": "CxQv7",
+      "name": "PL/Catálogo de texturas",
+      "x": 19407,
+      "y": 6938,
+      "descendants": {
+        "JoBi0": {
+          "content": "Texturas"
+        },
+        "PEG5P": {
+          "content": "Buscar por nombre…"
+        },
+        "glHue": {
+          "content": "PIEDRA"
+        },
+        "iJFdk": {
+          "content": "MADERA"
+        },
+        "m7atVo": {
+          "content": "BALDOSA"
+        },
+        "HDEMN": {
+          "content": "TIERRA"
+        },
+        "q8IkKN": {
+          "content": "HIERBA"
+        },
+        "ZfB2c": {
+          "content": "AGUA"
+        },
+        "RlXEa": {
+          "content": "TEXTURAS · 3"
+        },
+        "lctwc": {
+          "content": "el punto marca las que trae Rolvium · las demás las habéis subido vosotros"
+        },
+        "n5OZh": {
+          "content": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone como textura base de esta escena, con su tamaño de baldosa."
+        }
+      }
     }
   ],
   "themes": {

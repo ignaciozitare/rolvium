@@ -11,98 +11,159 @@ gestión del director) · `table` (H3) · `characters` (H4) · `dice` (H6) · `m
 `maps` **rebanada 3** (rediseño de la escena a pantalla completa, Seleccionar, aberturas, Texto) construida en la
 sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corriendo.
 
-`maps` **rebanada 8** — EL CONSTRUCTOR DE SALAS — construida entera la noche del 03→04 de septiembre.
+`maps` **rebanada 8** — EL CONSTRUCTOR DE SALAS — construida entera la noche del 03→04 de septiembre, y
+rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo de texturas**.
 
-**SIGUIENTE:** que él MIRE las salas en pantalla → coger/mover/borrar una sala con el ratón (pide `.pen`) →
-los pinceles para repintar el suelo de UNA sala → rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9).
+**SIGUIENTE:** que él MIRE en pantalla el arreglo y el catálogo → coger/mover/borrar una sala con el ratón
+(pide `.pen`) → el pincel para repintar el suelo de UNA sala → rebanada 5 (galería de props) → `chat` (H8) +
+`journal` (H9).
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🚦 «DÓNDE ESTAMOS AHORA MISMO», justo debajo.**
 
-## 🟢 2026-09-04 (tarde) — TRASPASO A CHAT NUEVO · el guardia de contexto saltó a media tarea
+## 🟢 2026-09-04 (noche) — EL FALLO DE «PEGADO A ALGO», CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO
 
-**Todo lo de abajo COMPILA y está en verde** (1357 web · 246 api · 61 core · 16 · 141 · los dos builds ·
-`audit` 0 hard). **Nada commiteado**: el árbol tiene ~40 ficheros tocados.
+**Todo verde**: `npm run test` **1392 web · 246 api · 61 core · 16 · 141** · `tsc` limpio · `audit` **0 hard** ·
+`build:web` y `build:api` compilan · review pasado. **Sin commitear**: el árbol tiene 14 ficheros tocados, 2
+nuevos y 1 migración nueva, a la espera de que él lo mire en pantalla.
 
-### ✅ TERMINADO Y PROBADO POR ÉL
-- El constructor de salas entero (ver bloques de más abajo).
-- **Muros de relleno** (`maps_rooms.kind`), puertas y ventanas dibujando aquí, y **manda lo último dibujado**.
-- Texturas en azulejo con escala y muestra en vivo.
-- El suelo del mapa llega a las salas dibujadas antes de subirlo.
-- Los negros del cromo → rojo sangre, en el CSS **y en el `.pen`**.
-- Elegir forma/qué levanto activa Builder solo.
-- Cada opción enseña sólo las formas que puede levantar.
-- 🐞 **La caché de esquema de PostgREST** (ver bloque de abajo): las migraciones ya llevan el `NOTIFY`.
-- 🐞 **El mínimo de tamaño de un MURO** — «*si hago click para crear un muro muy cerca de otro no me deja*».
-  Era `MIN_ROOM_CELLS = 1`: se le pedía una casilla entera a algo que mide un quinto. Ahora un relleno usa
-  `MIN_FILL_CELLS = 0.1` (`minShapeCells` en `MapCanvas`, lo pasa `SceneTab` cuando levanta MURO).
+### 🐞 EL FALLO ERAN TRES COSAS, NO UNA — y se reprodujeron las tres ANTES de tocar nada
+Su queja: «*no me deja crear un muro muy cerca de otro*» y «*con las salas pasa lo mismo*».
 
-### ⏳ A MEDIAS — **EL CATÁLOGO DE TEXTURAS**, y es lo primero del chat nuevo
-Su encargo, literal: «*el botón de cambiar debería abrir un catálogo donde estén CLASIFICADAS como en el
-catálogo de objetos que ya tenemos diseñado*» · «*las texturas sirven para toda la herramienta, no son por
-usuario*».
+| Causa | Qué pasaba | Arreglo |
+|---|---|---|
+| **El imán de las puntas** (`snapRules.builderPoint`) | Con el candado abierto, las DOS puntas del gesto se pegaban a la MISMA punta ajena → muro de largo cero, descartado en silencio. **Ésta era la de verdad**: pasaba *porque* dibujaba pegado a algo | `nearestEnd`/`builderPoint` reciben `avoid`: la segunda punta no puede caer donde cayó la primera. `MapCanvas` lo pasa en el clic encadenado, en la recta y en el vértice del polígono |
+| **El mínimo de una sala** (`MIN_ROOM_CELLS`) | Pedía una casilla entera de lado, así que un hueco estrecho entre dos salas no se podía rellenar | Baja al del muro (`MIN_FILL_CELLS`, 0.1) — **decisión suya**, ver abajo |
+| **El mínimo del muro de relleno** (`wallStripe`) | Seguía con el de una recta marcada sobre foto (media casilla). El arreglo de la tarde bajó el de las FORMAS, pero la raya se caía antes, aquí | `wallStripe` usa `MIN_FILL_CELLS`; `lineSide` recibe el mínimo por parámetro y `MapCanvas` pasa el del relleno dibujando aquí, el de siempre sobre foto |
 
-**Hecho ya (y compilando):**
-- ✅ Migración `20260904180000_maps_textures.sql`, **aplicada**. Tabla `maps_textures` con `category` cerrada
-  (stone·wood·tile·earth·grass·water·misc) y `tile_cells`. RLS: lee cualquiera con cuenta, sube cualquiera,
-  borra sólo lo suyo. **Sus 3 texturas ya subidas se copiaron dentro**, así que no perdió nada.
-- ✅ Entidad `Texture` + `TEXTURE_CATEGORIES` en `Scene.ts`.
-- ✅ Puerto: `listTextures` / `addTexture` / `removeTexture`, implementados en `SupabaseMapsRepo` y en el
-  doble de tests (`tests/helpers/fakes.ts`).
-- ✅ Diseño en el `.pen`: frame **`sO0GV` «PL/Catálogo de texturas»**, instancia de la galería de piezas con
-  las categorías y la nota cambiadas.
+✅ **El candado de la rejilla era el otro sospechoso y resultó estar BIEN**: cuadrando a la rejilla nada puede
+medir menos de una casilla, porque las dos esquinas caen en la misma línea. Se deja como está — pero ahora **se
+avisa**, que era el problema de verdad.
 
-**FALTA (por eso él «sigue sin ver el catálogo»):**
-1. ❌ El componente `ui/TextureCatalog.tsx` — se quedó a medio escribir cuando saltó el guardia. Estaba
-   modelado sobre `sO0GV`: buscador, chips de categoría, rejilla con las miniaturas **repetidas al tamaño que
-   cada textura recuerda** (`tileCells`), y «+ Subir» dentro que sube a la categoría elegida.
-2. ❌ Cambiar `SceneTab`: hoy sigue abriendo el **modal plano viejo** con `images` (la biblioteca de fondos DE
-   LA CAMPAÑA). Hay que sustituirlo por `<TextureCatalog>`, y al elegir una textura copiar además su
-   `tileCells` a `wallTextureScale` / `floorTextureScale` de la escena.
-3. ❌ Quitar de `SceneTab` el `texInput` viejo y la carga de `images` para texturas.
-4. ❌ i18n: `maps.room.catalog.search`, `.categories`, `.uploadTo` y `maps.room.catalog.cat.{all,stone,wood,
-   tile,earth,grass,water,misc}`. Ya existen `.wall`, `.floor`, `.hint`, `.empty`.
-5. ❌ CSS: `.mp-texcat-wrap`, `.mp-texcat-search`, `.mp-texcat-cats` (las de `.mp-texcat*` ya están).
-6. ❌ Tests del catálogo, y de `MIN_FILL_CELLS`.
+### 🟠 SU DECISIÓN, TOMADA CON LO QUE SE VE EN PANTALLA
+Se le enseñó que una sala tenía que ocupar una casilla entera y que por debajo no aparecía nada **ni se le
+decía nada**. Eligió: **«tan pequeña como un Muro»**, sabiendo el precio («*un resbalón puede dejarte una sala
+diminuta que borrar*»), **más el aviso en pantalla** cuando el gesto no levanta nada.
 
-### 🐞 PENDIENTE, DICHO POR ÉL AL CERRAR: **CON LAS SALAS PASA LO MISMO**
-Sus palabras: «*si hago click para crear un muro muy cerca de otro muro no me deja ponerlo, es como que hay
-un límite que has puesto*» → y al rato: **«*con las salas pasa lo mismo*»**.
+- `MIN_ROOM_CELLS = MIN_FILL_CELLS` — un solo número, a propósito: dos mínimos para la misma regla es cómo
+  volvió el fallo la primera vez. Por eso también **se quitó la prop `minShapeCells`** de `MapCanvas`.
+- **El aviso**: `onTooSmall(locked)` → `SceneTab` pinta la franja `.mp-placing` (la misma de «coloca la ficha»,
+  reutilizada) con DOS textos: gesto corto, o el candado manda. Se retira solo a los 2,6 s.
+- ⚠️ Ojo: hay **dos** caminos que descartan un gesto, y los dos avisan — el de `MapCanvas` (formas y recta) y
+  el de `SceneTab` (`wallStripe`, encadenando «A mano» dibujando aquí). El segundo lo cazó la revisión.
 
-- El arreglo de esta tarde bajó el mínimo **sólo para los muros de relleno** (`MIN_FILL_CELLS = 0.1`, que
-  `SceneTab` pasa como `minShapeCells` cuando levanta MURO). **Una SALA sigue con `MIN_ROOM_CELLS = 1`**, así
-  que un rectángulo de menos de una casilla de lado no se guarda y él no ve nada pasar.
-- ⚠️ **No está diagnosticado del todo**: el mínimo es la sospecha buena, pero hay que reproducirlo antes de
-  tocar nada — el candado de la rejilla (`snapRules.builderPoint`) también puede estar cuadrando las dos
-  puntas al mismo sitio cuando dibuja pegado a algo, y entonces el gesto sale de largo cero. Mirar los dos.
-- 🟠 **Y hay una decisión suya detrás**: ¿puede una sala ser más pequeña que una casilla? El mínimo de una
-  casilla se puso para que un clic sin arrastre no ensuciara la escena con salas diminutas. Si él quiere
-  salas de media casilla, se baja el mínimo y se acepta esa basura; si no, hay que avisarle en pantalla de
-  por qué no se guardó, porque hoy no se guarda **en silencio** — y eso es lo peor de las dos opciones.
+### ✅ EL CATÁLOGO DE TEXTURAS, TERMINADO (los seis puntos que faltaban)
+Diseño: `rolvium.pen` frame **`sO0GV`**. Tabla `maps_textures`, ya con sus texturas dentro.
 
-### 📌 Dos cosas suyas que hay que atender en el chat nuevo
-- **La nota del `.pen` y el bloque «CAMBIAR EL SUELO DE UNA SALA · DOS PASOS»**: ya corregidos en el master,
-  pero **él tiene que guardar el `.pen` con Cmd+S** o se pierden.
-- **El pincel para repintar el suelo de UNA sala sigue sin construir** (es la tanda siguiente, dicho por él).
+1. ✅ `ui/TextureCatalog.tsx` — buscador, **8 chips** de categoría, rejilla, subir dentro, borrar dentro.
+2. ✅ `SceneTab` ya **no abre la biblioteca de fondos de la campaña** para las texturas. Al elegir una, su
+   `tileCells` se copia a `wallTextureScale`/`floorTextureScale`.
+3. ✅ Fuera el `texInput` viejo apuntando a `uploadImage`: ahora sube al catálogo, a la categoría elegida.
+4. ✅ i18n es/en, con paridad comprobada.
+5. ✅ CSS `.mp-texcat-*` con **tokens de la APP** (el modal se pinta sobre `--sf`; mezclarlo con los `--sys-*`
+   de la mesa era lo que dejaba el texto invisible).
+6. ✅ Tests: `TextureCatalog.test.tsx` (14) + integración en `SceneTab` + los de `MIN_FILL_CELLS` y el imán.
 
-### 🔁 EL COMANDO PARA EL CHAT NUEVO — COPIAR Y PEGAR TAL CUAL
+**Las miniaturas se repiten al `tileCells` de cada textura** (`PREVIEW_CELLS = 4`): es lo único que deja ver si
+un mosaico va a quedar diminuto o gigante **antes** de ponerlo.
 
-> Rolvium, chat nuevo. Lee el bloque 🟢 «TRASPASO A CHAT NUEVO» de `WORK_STATE.md`. **Nada está commiteado**:
-> el árbol tiene el constructor de salas entero funcionando y verde, y el catálogo de texturas a medias.
+### 🔎 TRES COSAS QUE APARECIERON AL HACERLO, Y ESTÁN ARREGLADAS
+- 🐞 **«Mira el botón que está mal»** — tenía razón: la clase `tb-btn-danger` **no existe en el CSS**. Estaba en
+  4 sitios; caían al `tb-btn` de siempre (tinta sobre panel) y dentro del modal oscuro salían **invisibles**.
+  Ahora `tb-btn-blood`, que sí existe y sí es sangre.
+- 🐞 **Sus 3 texturas no se podían borrar.** La migración de rescate las metió con `uploaded_by` a NULL, y la
+  política de borrado es `uploaded_by = auth.uid()`. Migración nueva
+  `20260904210000_maps_textures_owner_backfill.sql`, **aplicada en local** (3 filas). Recupera el dueño de
+  `maps_images`; las que no se puedan emparejar se quedan sin dueño a propósito.
+- 🐞 Dos comentarios que **mentían** tras el cambio (uno decía que las texturas eran la biblioteca de la
+  campaña — justo lo que él paró). Quitados por la revisión.
+
+### 🔐 Y DESPUÉS: EL MENÚ DE LOS TRES PUNTOS, Y UN CAJÓN NUEVO EN EL MOTOR DE PERMISOS
+
+Pedido suyo, ya con el catálogo funcionando: «*donde está el borrar de la textura, unos … verticales que
+desplieguen un pequeño menú que diga borrar o categorizar y te deje elegir ahí mismo qué categoría es*» ·
+«*otra opción además de estas es renombrar*» · «*esto tiene que ser un permiso en el motor de permisos, no lo
+puede hacer cualquiera; por ahora ponle el permiso al admin y los dms*».
+
+Y el aviso que lo cambió todo: **«*cuidado con el tema roles, que tenemos un motor de roles y permisos en la
+herramienta, ojo con cagarla aquí*»**.
+
+#### 🪤 LA TRAMPA ERA REAL, Y SE COMPROBÓ ANTES DE TOCAR NADA
+`hasAnyAdminPermission` devuelve cierto ante CUALQUIER valor dentro de `permissions.admin`, y de ella cuelgan
+tres sitios: el nav de arriba (`RolviumApp`), el menú de usuario (`UserMenu`) y `AdminShell`. Meter ahí un
+permiso de herramienta y dárselo a `game_master` le habría puesto **«Administración» en el menú a todos los
+directores**, llevando a una **pantalla vacía** (ninguna de las tres secciones les toca).
+
+#### ✅ LA SOLUCIÓN: TRES CAJONES, Y EL DE ADMINISTRACIÓN NO SE TOCA
+| Cajón | Qué significa | Quién lo lee |
+|---|---|---|
+| `modules` | qué SECCIONES abre un rol | `has_module` / `hasModule` |
+| `admin` | administrar la plataforma | `has_permission` / `hasPermission` · **y sólo éste decide quién ve Administración** |
+| `tools` **(nuevo)** | usar una capacidad DENTRO de una herramienta | `has_tool` / `hasTool` |
+
+- Migración `20260904230000_tool_permissions.sql`, **aplicada en local**: amplía el CHECK de forma (tolerando
+  que `tools` falte), crea `has_tool`, concede `manage_textures` a `game_master`, y pasa INSERT/UPDATE/DELETE
+  de `maps_textures` de «sólo lo tuyo» a `has_tool('manage_textures')`. **SELECT sigue abierto.**
+- ⚠️ **Al rol `admin` NO se le escribe nada**: lo tiene por `is_admin()`, y `roles_guard_system` prohíbe tocar
+  sus permisos — un relleno general habría reventado la migración.
+- Pantalla de roles: tercer selector **«Permisos de Rolvium»**, un item por capacidad. Al crear una
+  herramienta nueva se añade su línea y ya se puede elegir qué rol la usa, sin tocar la pantalla.
+- `SceneTab` recibe `canManageTextures` como prop **obligatoria** (no opcional: un permiso que se olvida y por
+  omisión vale `false` deja al dueño sin botones sin que nadie se entere). La resuelve `TablePage`.
+- **Cepo de tests en tres niveles** —`permissions.test.ts`, `usePermissions.test.tsx`, `AdminRoles.test.tsx`—
+  para que nadie pueda volver a mover un permiso de herramienta al cajón de administración sin enterarse.
+
+#### 🐞 Y LA REVISIÓN ENCONTRÓ UN AGUJERO DE SEGURIDAD DE VERDAD
+`REVOKE EXECUTE … FROM anon` **no revocaba nada**: PostgreSQL concede EXECUTE a `PUBLIC` por defecto, así que
+`has_tool` quedaba publicada en `/rest/v1/rpc/has_tool` **para cualquiera sin sesión**. Es exactamente el
+mismo fallo que este repo ya corrigió una vez en `20260819020000_fix_function_grants.sql`. Arreglado con el
+patrón de sus hermanas (`REVOKE … FROM PUBLIC, anon` + `GRANT … TO authenticated, service_role`) y comprobado
+en la base: las cuatro funciones tienen hoy permisos idénticos.
+
+#### 📋 El menú
+**Renombrar · Clasificar · Eliminar.** Clasificar despliega las 8 categorías dentro del mismo menú
+(«*que te deje elegir ahí mismo*»). Eliminar confirma. Renombrar a vacío no guarda.
+El permiso cubre **subir, renombrar, clasificar y borrar**; **elegir** textura NO lo exige, o un jugador no
+podría jugar en un mapa con texturas.
+
+⚠️ **Ojo con la leyenda del catálogo**: desde que borrar es un permiso, quien lo tiene borra CUALQUIER textura,
+tenga dueño o no. El punto sólo dice de dónde salió cada una. La copia ya está corregida en la app y en el
+`.pen`; si en algún momento vuelve a hablar de «las tuyas», está mintiendo.
+
+### 📌 LO QUE HACE FALTA DE ÉL, EN ORDEN
+1. **MIRARLO EN PANTALLA** (`localhost:5173`): dibujar un muro pegado a otro, una sala estrecha entre dos
+   salas, abrir «Cambiar» en las dos texturas base, y el menú de los tres puntos de una textura.
+   Y en `/admin?mod=roles`: el bloque **«Permisos de Rolvium»** con «Gestionar texturas» dentro.
+2. **GUARDAR EL `.pen` CON Cmd+S.** Se le cambiaron la nota y la leyenda del frame `sO0GV` para que digan lo
+   mismo que la pantalla. Sin su Cmd+S se pierden. *(Sigue pendiente lo de la nota del panel de la sesión
+   anterior.)*
+3. **Decidir sobre dos huecos del `.pen`**, que no invento yo:
+   - El frame `sO0GV` tiene **7 chips de categoría y hacen falta 8** (falta VARIOS). Es una instancia de la
+     galería de piezas, que tenía 7. En código están las 8.
+   - **Borrar no está diseñado**: se construyó con el mismo lenguaje (icono en sangre sobre la miniatura, sólo
+     en las suyas), pero no ha pasado por el `.pen`.
+4. **Commitear**, cuando le valga lo que ve.
+
+### ⏳ LO SIGUIENTE, SIN EMPEZAR
+- **Coger/mover/borrar una sala con el ratón.** Por debajo existe (`moveRoom`/`removeRoom` con deshacer y
+  tests); no hay pantalla, y el spec dice que «cómo se ve una sala cogida» va al `.pen` primero.
+- **El pincel para repintar el suelo de UNA sala** (dicho por él: es la tanda siguiente).
+- **Reclasificar / renombrar una textura ya subida**: hoy las 3 suyas están en `misc` con `tile_cells` 4
+  porque la migración no podía adivinarlo, y no hay pantalla para cambiarlo. El puerto ya tiene el UPDATE con
+  su política de RLS. *(Deuda encontrada, no tocada.)*
+- **Deuda anotada por la revisión**: `modules/maps/ui/` usa clases `.tb-btn*` definidas en
+  `modules/table/ui/table.css`. Es de antes, y el fallo de `tb-btn-danger` es su síntoma: una clase que no
+  existe no avisa. Decidir aparte dónde viven las clases del cromo de la mesa.
+
+### 🔁 EL COMANDO PARA EL CHAT NUEVO, SI HACE FALTA
+
+> Rolvium, chat nuevo. Lee el bloque 🟢 de `WORK_STATE.md`. En la rama `feat/maps-constructor-salas` está el
+> constructor de salas commiteado, y **sin commitear** el arreglo del fallo de «pegado a algo» y el catálogo de
+> texturas terminado, todo verde y con review pasado. Lo que toca es lo que él vea al probarlo.
 >
-> **Dos cosas, en este orden.** Primero el fallo del bloque 🐞: **no deja crear ni muros ni salas pegados a
-> algo**, y con las salas sigue pasando. Reprodúcelo antes de tocar (mínimo de tamaño y candado de rejilla son
-> los dos sospechosos) y, si hace falta decidir si una sala puede medir menos de una casilla, pregúntaselo
-> **con lo que se ve en pantalla, sin nombres inventados**.
->
-> Después, **termina el CATÁLOGO DE TEXTURAS**: los seis puntos de la lista «FALTA» de ese bloque. El diseño ya está aprobado en `rolvium.pen`, frame `sO0GV`; la tabla `maps_textures` ya existe y ya
-> tiene sus texturas dentro. **No inventes pantalla**: es la galería de piezas con texturas.
->
-> Tres cosas que no puedes olvidar: las texturas son **de la herramienta**, no de la campaña · al elegir una,
-> su `tileCells` se copia a la escala de la escena · en el cromo de la mesa **no se usa negro**, lo activo va
-> en rojo sangre.
->
-> La app corre en local: `npm run dev:api` y `npm run dev:web` → `localhost:5173`. ⚠️ Nunca `db:reset`.
-> ⚠️ Y si algo «no se ve» justo después de una migración, mira primero la caché de esquema de PostgREST.
+> La app corre en local: `npm run dev:api` y `npm run dev:web` → `localhost:5173`. ⚠️ Nunca `db:reset`. ⚠️ Si
+> algo «no se ve» justo después de una migración, mira la caché de esquema de PostgREST. ⚠️ El `.pen` sólo lo
+> guarda él con Cmd+S.
+
 
 ## 🚦 2026-09-04 — CÓMO SE LLEGÓ HASTA AQUÍ (mañana y tarde)
 

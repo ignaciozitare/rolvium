@@ -1591,6 +1591,39 @@ nodo*». Es partir el muro en dos por ese punto, y la maquinaria ya existía: `w
   eso no se ha tocado. Dos tests lo sujetan.
 
 
+### 🎨 EL CATÁLOGO DE TEXTURAS (2026-09-04) — `rolvium.pen` frame `sO0GV`
+
+Petición suya: «*el botón de cambiar debería abrir un catálogo donde estén CLASIFICADAS como en el catálogo de
+objetos que ya tenemos diseñado*».
+
+🔑 **UNA TEXTURA NO ES UN FONDO, y no se mezclan** (corrección suya, mirando el modal viejo: «*los fondos de
+las escenas que subí antes y las texturas no son lo mismo; los fondos sí son por campaña —yo subo un mapa que
+dibujé y lo pongo aquí— pero las texturas son de un catálogo de texturas, no lo mezcles*»). Un fondo es
+`maps_images`, **de la campaña**; una textura es `maps_textures`, **de la herramienta**: se sube una vez y
+sirve en todos los mapas de todas las campañas.
+
+- Buscador por nombre · las 8 categorías (todas + las 7 cerradas) · rejilla.
+- Las miniaturas se **repiten al tamaño de baldosa que recuerda cada textura** (`tileCells` sobre un ancho de
+  4 casillas). Sin eso no hay forma de saber si un mosaico va a quedar diminuto antes de ponerlo.
+- **Al elegir una, su `tileCells` se copia** a `wallTextureScale` / `floorTextureScale` de la escena.
+- **Menú de los tres puntos** en cada textura (petición suya): **Renombrar · Clasificar · Eliminar**.
+  Clasificar despliega las categorías ahí mismo — «*que te deje elegir ahí mismo qué categoría es*».
+  Eliminar pide confirmación. Renombrar a vacío no guarda: sin nombre no se vuelve a encontrar.
+
+#### 🔒 Quién puede ordenarlo — el permiso `manage_textures`
+Orden suya: «*esto tiene que ser un permiso en el motor de permisos, no lo puede hacer cualquiera; por ahora
+ponle el permiso al admin y los dms*».
+
+- Vive en el cajón `tools` de los roles, **no** en `admin` (§ `specs/core/roles-permissions/SPEC.md`, y ahí
+  está el porqué: meterlo con los de administración le habría abierto «Administración» a todos los directores).
+- Cubre **subir, renombrar, clasificar y borrar**. Sin él no salen ni los tres puntos ni el botón de subir,
+  **ni siquiera sobre una textura que subiste tú** — decisión suya, preguntada con la pantalla delante.
+- **Elegir** una textura NO lo exige: si lo exigiera, un jugador no podría ni jugar en un mapa con texturas.
+- La barrera es la RLS (`has_tool('manage_textures')` en INSERT/UPDATE/DELETE de `maps_textures`); la pantalla
+  sólo esconde. `SELECT` sigue abierto a cualquiera con cuenta.
+- 🟠 **Sin construir todavía**: no hay pantalla para cambiar el `tileCells` de una textura ya subida (las
+  rescatadas por la migración entraron todas en `misc` con 4, porque adivinarlo sale mal más veces que bien).
+
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
   muros con `visible_players=false` no viajan al cliente del jugador (RLS). **Esta es la frontera de seguridad**: si la
