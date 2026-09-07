@@ -18,13 +18,22 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 (pide `.pen`) → el pincel para repintar el suelo de UNA sala → rebanada 5 (galería de props) → `chat` (H8) +
 `journal` (H9).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🚦 «DÓNDE ESTAMOS AHORA MISMO», justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 «EL FALLO DE "PEGADO A ALGO", CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO», justo debajo.**
 
 ## 🟢 2026-09-04 (noche) — EL FALLO DE «PEGADO A ALGO», CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO
 
-**Todo verde**: `npm run test` **1392 web · 246 api · 61 core · 16 · 141** · `tsc` limpio · `audit` **0 hard** ·
-`build:web` y `build:api` compilan · review pasado. **Sin commitear**: el árbol tiene 14 ficheros tocados, 2
-nuevos y 1 migración nueva, a la espera de que él lo mire en pantalla.
+**Todo verde**: `npm run test` **1425 web · 246 api · 61 core · 16 · 141** · `tsc` limpio · `audit` **0 hard** ·
+`build:web` y `build:api` compilan · review pasado · **QA pasado** (2026-09-07).
+
+**Estado real del árbol (2026-09-07):** TODO COMMITEADO y empujado. Rama `feat/maps-constructor-salas`
+= `cc13a55`, con la rebanada 8 en `a5e3420`. Nada pendiente de commitear. Falta el visto bueno en pantalla
+(claro/oscuro) y el merge a `main`.
+
+> 🔴 **SEIS MIGRACIONES PENDIENTES EN PRODUCCIÓN** (`scfspsiemikfcnqteonq` va por `20260903152258_maps_walls_group`).
+> Aplicar EN ESTE ORDEN, y **sólo el Deploy Agent con el visto bueno del dueño**:
+> `20260904120000_maps_rooms` · `20260904140000_maps_texture_scale` · `20260904160000_maps_rooms_kind` ·
+> `20260904180000_maps_textures` · `20260904210000_maps_textures_owner_backfill` · `20260904230000_tool_permissions`.
+> Todas aplicadas en local. QA las revisó: aditivas, RLS correcta, sin reescribir filas existentes.
 
 ### 🐞 EL FALLO ERAN TRES COSAS, NO UNA — y se reprodujeron las tres ANTES de tocar nada
 Su queja: «*no me deja crear un muro muy cerca de otro*» y «*con las salas pasa lo mismo*».

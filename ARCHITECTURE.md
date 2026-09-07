@@ -74,7 +74,7 @@ Naming: **code and ids in English**, UI copy through i18n keys, specs written in
 | `characters` (H4) | Player characters: `/characters` (mine by campaign + claim unassigned), `/characters/:id` (sheet in its own window, system-themed; DM read-only → «Editar»), generator, progression; the table's Ficha/El grupo/Crear personaje tabs («Mejorar» is a button inside the sheet, not a tab) | port `CharactersPort` (`SupabaseCharactersRepo`); rolls go through `dice`'s `RollsPort` (`container.ts` re-exports `rollsPort` from `@/modules/dice/container`); `domain/useCases/{characterRules,systemText,generatorRules}` (`tSys` = system locales lookup; `budgetAllows` = the wizard's budget guard, platform-side so the system only owns `GeneratorStep.budget`); UI `CharactersPage`, `CharacterSheetPage`, `CharacterSheetView` (+ `useCharacterSheet` autosave hook with audit origin), `GeneratorWizard`, `ProgressionPanel`; the neutral `<Sheet>` renderer lives in `@rolvium/ui` (schema-driven, `--sys-*` vars only) and the table hosts it via `modules/table/ui/tabs/*` |
 | `dice` (H6) | Rolls: `POST /rolls` (server dice + immutable log + sheet effects), the table's side panel (Registro · Chat · Notas · Bitácora placeholders) with the live roll log and the floating draggable «Lanzador de dados» (free d4…d100/Fudge, visibility Todos/Director/Secreta, modifier) | ports `RollsPort` (`HttpRollsAdapter` → `POST /rolls`, body `RollRequest & { campaignId }`), `RollLogPort` (`SupabaseRollLogRepo`: `dice_rolls` under RLS + `postgres_changes` INSERT on channel `campaign-rolls:<id>`); `container.ts` exports `rollsPort`, `rollLog`; `domain/useCases/rollRules` (`freeRollRequest`, `dieTone`, `describeRoll`); UI `SidePanel`, `RollLog`, `DiceRoller` (module-specific, `--sys-*` themed via `dice.css`), hosted by `modules/table/ui/TablePage` |
 | `bestiary` (H5) | Bestiario del director, pestaña `bestiary` de la mesa a pantalla completa: catálogo en rejilla con imagen grande, buscador sin acentos y filtros Todos/Manual/Propios/PNJ; encuentros propios (crear, editar, duplicar, borrar) con imagen a WebP; PNJ aliados con la ficha COMPLETA de personaje reutilizando `<Sheet>`; modal de la foto de la criatura. Las **45 criaturas del manual NO tienen fila**: son datos del paquete del sistema (`catalogs.bestiary`) y se unen al listado en memoria — el filtro «Manual» sale del catálogo y «Propios»/«PNJ» de la tabla. Instanciar en escena es cosa de `maps`: el token guarda su propia Resistencia y enlaza a la plantilla con `bestiary_entry_id` (ON DELETE SET NULL, para que borrar la plantilla no vacíe la escena) | puerto `BestiaryPort`; adaptador `SupabaseBestiaryRepo` (tabla `bestiary_entries` bajo RLS **sólo director**, bucket `tokens`); `container.ts` → `bestiaryRepo`; dominio `bestiaryRules` (une las dos fuentes, duplicar, ámbito, valores de juego); UI `BestiaryTab`, `EntryCard`, `EntrySheetModal`, `NpcSheetModal`, `PhotoModal`, `useBestiary` |
-| `maps` (H7) | Escena, full-screen: scenes (collapsible left rail), background, walls/doors/windows with vertex editing, tokens (PC/bestiary), drawings incl. text, measure, focus pin, zoom/pan (panning is a modifier — space or middle button — never a tool), **fog + line of sight computed by the API**, scene light (day/night); one toolbar in three blocks with the dice roller first, DM tools behind the gold separator | ports `MapsPort` (Supabase) and `VisionPort` (API); adapters `SupabaseMapsRepo` (tables `maps_*`, bucket `backgrounds`, `postgres_changes` + broadcast for drag/pin/`fog.updated`/`walls.updated`) and `HttpVisionAdapter` (`POST /scenes/:id/{vision,fog}`); `container.ts` → `mapsRepo`, `visionPort`; UI `SceneTab` (table tab `scene`), `MapCanvas` + `canvasLayers` (`WallShape`, `FogMasks`), `Toolbar`, `StrokeBar` (doubles as the fog brush and as the wall-type picker), `DmOptionsBar`, `ScenesMenu`, `BackgroundPopover`, `EncounterMenu`, `CanvasControls`, `useScene` |
+| `maps` (H7) | Escena, full-screen: scenes (collapsible left rail), background, walls/doors/windows with vertex editing, tokens (PC/bestiary), drawings incl. text, measure, focus pin, zoom/pan (panning is a modifier — space or middle button — never a tool), **fog + line of sight computed by the API**, scene light (day/night); **el constructor de salas** (formas cerradas que abren un agujero en el relleno de pared para que se vea el suelo, con aberturas anotadas sobre el contorno) y el **catálogo de texturas** de la herramienta, detrás del permiso `manage_textures`; one toolbar in three blocks with the dice roller first, DM tools behind the gold separator | ports `MapsPort` (Supabase) and `VisionPort` (API); adapters `SupabaseMapsRepo` (tables `maps_*`, bucket `backgrounds`, `postgres_changes` + broadcast for drag/pin/`fog.updated`/`walls.updated`) and `HttpVisionAdapter` (`POST /scenes/:id/{vision,fog}`); `container.ts` → `mapsRepo`, `visionPort`; UI `SceneTab` (table tab `scene`), `MapCanvas` + `canvasLayers` (`WallShape`, `FogMasks`), `Toolbar`, `StrokeBar` (doubles as the fog brush and as the wall-type picker), `BuilderPanel` + `RoomsLayer`, `TextureCatalog`, `DmOptionsBar`, `ScenesMenu`, `BackgroundPopover`, `EncounterMenu`, `CanvasControls`, `useScene` |
 | `systems` | `/systems` catalogue: installed packages (lazy-loaded through `systemRegistry`, facts + `--sys-*` themed preview) and coming-soon systems; UI-only, no infra/container | `ui/SystemsPage.tsx` (`packageFacts` pure helper), `ui/systems.css` |
 
 Game systems are also loaded in the API (`apps/api/src/infrastructure/systems.ts`, mirror of the web registry) so the
@@ -124,14 +124,32 @@ re-sends his answer in `tiebreak`. `domain/combat/ICombatRepository` → `Supaba
 - `public.users` (1:1 with `auth.users`, created by trigger from sign-up metadata `name/alias/locale`) → `role_id` → `public.roles`.
   Profile prefs: `alias`, `locale`, `theme_pref`. Sessions are read from `auth.sessions` through SECURITY DEFINER RPCs scoped
   to `auth.uid()`; avatars live in the public Storage bucket `avatars/{uid}/avatar.png` (owner-folder policies).
-- `roles.permissions` JSONB: `{ modules: string[], admin: { manage_users, manage_roles, manage_settings } }`.
+- `roles.permissions` JSONB, **three separate buckets**:
+  `{ modules: string[], admin: { manage_users, manage_roles, manage_settings }, tools?: { manage_textures } }`.
+  - `modules` — which SECTIONS a role can open.
+  - `admin` — administer the platform. **These, and only these, decide who sees the Administración area.**
+  - `tools` — use a capability INSIDE a tool. Optional: rows predating the bucket lack it, and the `admin`
+    role cannot be given one (its trigger forbids editing its permissions), so a missing key means «none».
+- 🔒 **A tool permission must NEVER be put in the `admin` bucket.** `hasAnyAdminPermission` returns true for
+  *any* truthy value in `admin`, and the top nav, the user menu and `AdminShell` all hang off it — so a tool
+  permission there, granted to game masters, puts an **Administración link leading to an empty page** in front
+  of every director. Verified before the `tools` bucket was added (2026-09-04); pinned at three levels by
+  `permissions.test.ts`, `usePermissions.test.tsx` and `AdminRoles.test.tsx`.
+- Permissions are granted **per role, never per user**. A user has exactly one role.
 - The `admin` role is system-locked (DB trigger) and bypasses every check.
 - Same rule in three places, always in sync:
-  - **DB** (`is_admin()`, `has_permission(key)`, `has_module(id)` SECURITY DEFINER helpers → RLS)
+  - **DB** (`is_admin()`, `has_permission(key)`, `has_module(id)`, `has_tool(key)` SECURITY DEFINER helpers → RLS)
   - **API** (`application/authorize.ts`)
   - **Web** (`shared/permissions/permissions.ts`) — only hides UI; never the security boundary.
-- Adding a permission: `AdminPermissionKey` in shared-types → `ADMIN_PERMISSIONS` in
+- Adding an ADMIN permission: `AdminPermissionKey` in shared-types → `ADMIN_PERMISSIONS` in
   `shared/modules/registry.ts` → i18n keys `admin.perm.*` → RLS predicates use it.
+- Adding a TOOL permission: `ToolPermissionKey` in shared-types → `TOOL_PERMISSIONS` in the registry →
+  i18n keys `admin.tool.*` → RLS predicates use `has_tool(key)`. It then shows up on its own in the
+  «Permisos de Rolvium» picker of the roles screen, grantable to any role without touching that screen.
+- ⚠️ New SECURITY DEFINER helpers must `REVOKE EXECUTE … FROM PUBLIC, anon` and then `GRANT … TO
+  authenticated, service_role`. `REVOKE … FROM anon` alone is a **no-op** — PostgreSQL grants EXECUTE to
+  PUBLIC by default, so the function stays callable with no session. This has bitten the repo twice
+  (`20260819020000_fix_function_grants.sql`, and `has_tool` in review, 2026-09-04).
 - Adding a module: `MODULES` in the registry → route in `AppRouter` → `modules/{id}/` →
   its tables' RLS use `has_module('{id}')`.
 
