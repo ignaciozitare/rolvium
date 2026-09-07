@@ -1157,6 +1157,12 @@
         "hintOff": "cada punta va por su cuenta · cuidado: la figura puede quedar abierta"
       },
       "selectAll": "Ctrl/Cmd + A coge todos los muros"
+    },
+    "tokenScale": {
+      "label": "TAMAÑO DE LAS FICHAS · TODA LA ESCENA",
+      "short": "TAMAÑO",
+      "hint": "para que quepan por los pasillos estrechos · la proporción entre tamaños no cambia",
+      "reading": "una ficha normal ocupa {cells} casillas"
     }
   },
   "bestiary": {

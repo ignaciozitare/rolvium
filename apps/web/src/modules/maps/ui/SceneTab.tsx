@@ -11,7 +11,7 @@ import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { DoorSettings, ImageAsset, Scene, ScenePatch, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { brushRadius, canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokensScaledIn, tokenAnchorShift, tokenPointStored, tokenSizeIn, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -246,7 +246,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * escribir en la base**; al soltar se guarda UNA vez. Mismo reparto que el pincel de transparencia: pintar
    * es continuo, guardar es una vez.
    */
-  const [texDraft, setTexDraft] = useState<{ wallTextureScale?: number; floorTextureScale?: number } | null>(null);
+  const [texDraft, setTexDraft] = useState<{ wallTextureScale?: number; floorTextureScale?: number; tokenScale?: number } | null>(null);
   const live = st.scene;
   /** Lo que se PINTA: la escena de verdad más el borrador de la escala que él esté arrastrando ahora mismo. */
   const shown = live && texDraft ? { ...live, ...texDraft } : live;
@@ -414,7 +414,51 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     () => [...(system.catalogs['bestiary'] ?? []), ...(extraEncounters ?? [])],
     [system, extraEncounters],
   );
-  const selectedTokens = st.tokens.filter(tk => selectedTokenIds.includes(tk.id));
+  /**
+   * ⭐ LAS FICHAS, YA VISTAS POR LA LENTE DE LA ESCENA. **Todo lo de esta pantalla usa ESTA lista**, nunca la
+   * cruda: el mapa, la selección y la distancia de un ataque. Si algo se saltara la lente, su cuenta saldría
+   * con el tamaño sin escalar y la ficha chocaría donde no se la ve.
+   *
+   * La barrita del tamaño (`scene.tokenScale`) no reescribe nada en la base: es esto, y sólo esto.
+   */
+  const fichas = useMemo(
+    () => (shown ? tokensScaledIn(st.tokens, shown) : st.tokens),
+    [st.tokens, shown],
+  );
+
+  /**
+   * ⭐ LA FRONTERA ENTRE LAS DOS CUENTAS, Y ESTÁ ENTERA AQUÍ.
+   *
+   * `x`/`y` guardan la ESQUINA de la ficha, así que al encogerla la lente corre esa esquina media diferencia
+   * de tamaño para que el CENTRO no se mueva (`tokenAnchorShift`). Consecuencia: el lienzo trabaja en la
+   * cuenta de la ficha ENCOGIDA, mientras que la base, el servidor y el resto de la app hablan en la cuenta
+   * de la ficha DE VERDAD.
+   *
+   * ⚠️ Todo lo que cruce por aquí hay que traducirlo, en los dos sentidos, y por eso está junto y no repartido:
+   *  · lo que SALE hacia el servidor o la base (arrastrar, soltar) se deshace el corrimiento;
+   *  · lo que ENTRA del servidor (su corrección, el disco libre) y de los demás jugadores (`drags`) se aplica.
+   * Con la barrita en el centro `d` vale 0 y esto es la identidad exacta: ni una escena de hoy cambia.
+   */
+  const corrimiento = useCallback((id: string): number => {
+    const cruda = st.tokens.find(t => t.id === id);
+    return cruda && shown ? tokenAnchorShift(cruda.size, shown.tokenScale) : 0;
+  }, [st.tokens, shown]);
+  /** De la esquina que se VE a la que se GUARDA. */
+  const aGuardar = useCallback((id: string, x: number, y: number): Point => {
+    const cruda = st.tokens.find(t => t.id === id);
+    return cruda && shown ? tokenPointStored({ x, y }, cruda.size, shown.tokenScale) : { x, y };
+  }, [st.tokens, shown]);
+  /** Y de la guardada a la que se VE, para lo que llega de fuera. */
+  const aPintar = useCallback((id: string, x: number, y: number): Point => {
+    const d = corrimiento(id);
+    return { x: x + d, y: y + d };
+  }, [corrimiento]);
+  /** Las posiciones que otros jugadores están arrastrando ahora mismo, traídas a la cuenta del lienzo. */
+  const drags = useMemo(() => {
+    if (!shown || (shown.tokenScale || 1) === 1) return st.drags;
+    return Object.fromEntries(Object.entries(st.drags).map(([id, d]) => [id, { ...d, ...aPintar(id, d.x, d.y) }]));
+  }, [st.drags, shown, aPintar]);
+  const selectedTokens = fichas.filter(tk => selectedTokenIds.includes(tk.id));
   const selectedToken = selectedTokens.length === 1 ? selectedTokens[0]! : null;
 
   /**
@@ -438,13 +482,13 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     if (!selectedToken || !live) return [];
     const grid = live.grid.size;
     const round1 = (n: number) => Math.round(n * 10) / 10;
-    return st.tokens.filter(tk => tk.characterId && tk.id !== selectedToken.id).map(tk => {
+    return fichas.filter(tk => tk.characterId && tk.id !== selectedToken.id).map(tk => {
       // El HUECO entre los cuerpos, no entre los centros: el libro mide si pueden TOCARSE (RULES.md §5.3).
       const cells = tokenGapCells(selectedToken, tk, grid);
       // `characterId!`: el filtro de arriba ya deja fuera los tokens que no son de un personaje.
       return { id: tk.id, name: tk.name, cells: round1(cells), metres: round1(cells * METRES_PER_CELL), characterId: tk.characterId! };
     });
-  }, [selectedToken, st.tokens, live]);
+  }, [selectedToken, fichas, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
   const selectedRoomOpening = st.roomOpenings.find(o => o.id === selectedRoomOpeningId) ?? null;
 
@@ -575,7 +619,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     );
   }
 
-  const hiddenCount = st.tokens.filter(tk => !tk.visible).length;
+  const hiddenCount = fichas.filter(tk => !tk.visible).length;
   const bgName = live.bgImageUrl ? (images?.find(i => i.url === live.bgImageUrl)?.name ?? live.bgImageUrl.split('/').pop() ?? '') : t('maps.noBackground');
   return (
     <section className="mp-root">
@@ -595,14 +639,17 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
           {...(isDm ? { onPlacePc: () => void openPcMenu(), placePcOpen: pcMenu, onBackground: () => void openBg(), backgroundOpen: bgOpen } : {})} />
         <div className="mp-stage" ref={stageRef}>
           {/* El lienzo pinta `shown`: la escena más el borrador de la escala que él esté arrastrando ahora. */}
-          <MapCanvas scene={shown!} tokens={st.tokens} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={st.drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
+          <MapCanvas scene={shown!} tokens={fichas} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
             playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} wallShape={wallShape} snapGrid={snapGrid} chainNodes={chainNodes} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
             onAddText={async at => {
               const text = await dialog.prompt(t('maps.text.prompt'));
               if (text?.trim()) run(st.addDrawing({ sceneId: live.id, campaignId, kind: 'text', data: { x: at.x, y: at.y, text: text.trim() }, color: stroke.color, width: stroke.width, layerId: activeLayerId }));
             }}
-            onDragToken={st.dragToken} onMoveToken={(id, x, y) => run(st.moveToken(id, x, y))} onServerCorrection={st.serverCorrection} onDragBound={st.dragBound}
+            onDragToken={(id, x, y, desired) => { const g = aGuardar(id, x, y); st.dragToken(id, g.x, g.y, aGuardar(id, desired.x, desired.y)); }}
+            onMoveToken={(id, x, y) => { const g = aGuardar(id, x, y); run(st.moveToken(id, g.x, g.y)); }}
+            onServerCorrection={id => { const c = st.serverCorrection(id); return c && aPintar(id, c.x, c.y); }}
+            onDragBound={id => { const b = st.dragBound(id); return b && { ...b, ...aPintar(id, b.x, b.y) }; }}
             onAddDrawing={(kind, data) => run(st.addDrawing({ sceneId: live.id, campaignId, kind, data, color: stroke.color, width: stroke.width, layerId: activeLayerId }))}
             onErase={id => run(st.eraseDrawing(id))}
             onAddWall={(a, b) => {
@@ -673,7 +720,12 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             }}
             onPin={pt => { st.focusPin(pt); setView(v => centerOn(v, pt, viewport())); }}
             placing={!!encounter || !!pendingPc}
-            placingSize={pendingPc ? cellsOfSheet(pendingPc.data) : encounter ? cellsOfEntry(encounter) : DEFAULT_TOKEN_CELLS}
+            // El tamaño con el que se COLOCA va por la lente, como todo lo demás. `placingSize` sólo sirve
+            // para pasar de dónde hace clic (el CENTRO) a lo que se guarda (la esquina), y esa cuenta resta
+            // medio cuerpo: si restara el tamaño sin encoger, la ficha caería descentrada del clic justo lo
+            // que la barrita le quita —media casilla larga en un ENORME—. Lo que se GUARDA sigue siendo el
+            // tamaño crudo de su ficha (`cellsOfSheet` / `cellsOfEntry` en `onPlace`): la lente no escribe.
+            placingSize={tokenSizeIn({ size: pendingPc ? cellsOfSheet(pendingPc.data) : encounter ? cellsOfEntry(encounter) : DEFAULT_TOKEN_CELLS }, shown!)}
             onPlace={at => {
               if (pendingPc) { run(placePcAt(pendingPc, at)); return; }
               if (encounter) run(st.addToken(tokenFromBestiary(encounter, ts(encounter.label), campaignId, live.id, at, cellsOfEntry(encounter))));
@@ -812,6 +864,15 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               onTextureScale={(which, cells) => setTexDraft(d => ({ ...d, [which === 'wall' ? 'wallTextureScale' : 'floorTextureScale']: cells }))}
               onTextureScaleEnd={() => {
                 // Se guarda lo que quedó en pantalla, y sólo si de verdad cambió algo.
+                if (texDraft) run(patchScene(live.id, texDraft));
+                setTexDraft(null);
+              }}
+              // La barrita del tamaño va por el MISMO borrador que las escalas de textura, y por el mismo
+              // motivo: mientras arrastra, `shown` lleva el valor de pantalla y TODAS las fichas encogen a la
+              // vez —el previo que él quiere ver—; al soltar se escribe UNA sola vez.
+              tokenScale={shown!.tokenScale}
+              onTokenScale={v => setTexDraft(d => ({ ...d, tokenScale: v }))}
+              onTokenScaleEnd={() => {
                 if (texDraft) run(patchScene(live.id, texDraft));
                 setTexDraft(null);
               }}
@@ -961,7 +1022,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               {pcs === null && <span className="tb-dim tb-italic">{t('common.loading')}</span>}
               {pcs?.length === 0 && <span className="tb-dim tb-italic">{t('characters.table.groupEmpty')}</span>}
               {pcs?.map(c => {
-                const placed = st.tokens.some(tk => tk.characterId === c.id);
+                const placed = fichas.some(tk => tk.characterId === c.id);
                 return <button key={c.id} type="button" role="menuitem" className="mp-menu-item" disabled={placed} onClick={() => pickPc(c)}>
                   <UserAvatar user={{ name: c.name, avatarUrl: characterAvatar(c, members.find(m => m.userId === c.ownerId)?.avatarUrl) }} size={22} />{c.name}{placed && <span className="tb-dim"> · {t('maps.place.already')}</span>}
                 </button>;

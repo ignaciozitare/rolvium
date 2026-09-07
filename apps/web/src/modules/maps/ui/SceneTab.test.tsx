@@ -344,6 +344,67 @@ describe('<SceneTab> DM', () => {
    * defensa, con los tokens casi tocándose en pantalla. El libro mide si pueden TOCARSE (p.92/p.95): el
    * hueco entre los cuerpos es 0,6 casillas (0,9 m) → cuerpo a cuerpo → ataque a la espera.
    */
+  /**
+   * LA BARRITA DEL TAMAÑO DE LAS FICHAS, DE PUNTA A PUNTA. Lo que este test sujeta no es el panel —eso ya lo
+   * mira `BuilderPanel.test`— sino que la lente LLEGA AL MAPA: la escena guarda un multiplicador, nadie
+   * reescribe la ficha, y el cuerpo que se pinta (y por tanto el que choca) sale ya encogido.
+   *
+   * Encargo suyo del 2026-09-07: «*si dibujan pasillos pequeños los tokens no pasarán… no quiero eliminar la
+   * colisión de los tokens, quiero reducir el tamaño*».
+   */
+  it('la barrita del tamaño encoge el CUERPO que se pinta, sin tocar la ficha guardada', async () => {
+    const radio = () => Number(canvas().querySelector('[data-token-id="tk-1"] circle')!.getAttribute('r'));
+
+    const normal = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1], tokens: [{ ...TOKEN_KAREN, id: 'tk-1', size: 1.5 }] });
+    const r1 = renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={normal} vision={fakeVisionPort()} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    const entero = radio();
+    r1.unmount();
+
+    // La MISMA ficha, de 1,5 casillas, en una escena con la barrita a la mitad.
+    const encogido = fakeMapsRepo({
+      scenes: [{ ...SCENE_WAREHOUSE, tokenScale: 0.5 }], walls: [WALL_1],
+      tokens: [{ ...TOKEN_KAREN, id: 'tk-1', size: 1.5 }],
+    });
+    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={encogido} vision={fakeVisionPort()} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+
+    // El cuerpo pintado encoge de verdad (el −1.5 del trazo hace que no sea exactamente la mitad).
+    expect(radio()).toBeLessThan(entero);
+    expect(radio()).toBeCloseTo((1.5 * 0.5 * SCENE_WAREHOUSE.grid.size) / 2 - 1.5, 6);
+  });
+
+  /**
+   * REGRESIÓN · COLOCAR TAMBIÉN PASA POR LA LENTE. Al soltar una ficha se guarda su ESQUINA, y para sacarla
+   * del punto donde se pulsa hay que restar medio cuerpo — el cuerpo que se VE, no el de la ficha. Con el
+   * tamaño sin encoger la ficha caía descentrada del clic justo lo que la barrita le quita (media casilla
+   * larga en un ENORME). Y lo que se GUARDA sigue siendo el tamaño crudo de su ficha: la lente no escribe.
+   */
+  it('regresión · con la barrita a la mitad la ficha cae centrada en el clic, y se guarda su tamaño CRUDO', async () => {
+    const u = userEvent.setup();
+    const repo = fakeMapsRepo({
+      scenes: [{ ...SCENE_WAREHOUSE, tokenScale: 0.5 }, SCENE_CHAPEL],
+      tokens: [TOKEN_KAREN], walls: [WALL_1],
+    });
+    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={repo} vision={fakeVisionPort()} />);
+
+    await u.click(await screen.findByRole('button', { name: 'Colocar PJ' }));
+    await u.click(await screen.findByRole('menuitem', { name: /Elías/ }));
+    fireEvent.pointerDown(canvas(), { clientX: 4 * G + 3, clientY: 7 * G + 3, pointerId: 1, button: 0 });
+
+    await waitFor(() => expect(repo.tokens.filter(t => t.characterId === 'ch-elias')).toHaveLength(1));
+    expect(repo.tokens.at(-1)).toMatchObject({
+      // El cuerpo que se ve mide 1,5 × 0,5 = 0,75, así que la esquina es 111/27 − 0,375 = 3,736.
+      // Sin la lente restaba 0,75 y la ficha caía 0,375 casillas arriba a la izquierda del clic.
+      x: expect.closeTo(3.736, 2), y: expect.closeTo(6.736, 2),
+      // ⚠️ Y su tamaño guardado es el ENTERO de su ficha: la barrita nunca reescribe `maps_tokens.size`.
+      size: 1.5,
+    });
+  });
+
   it('regresión · dos cuerpos grandes casi pegados son cuerpo a cuerpo: abre el ataque a la espera', async () => {
     const u = userEvent.setup();
     const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });

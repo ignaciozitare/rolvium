@@ -1405,6 +1405,7 @@ export type Database = {
           room_preset: string
           solid_walls: boolean
           sort_order: number
+          token_scale: number
           updated_at: string
           visible_players: boolean
           wall_texture_scale: number
@@ -1433,6 +1434,7 @@ export type Database = {
           room_preset?: string
           solid_walls?: boolean
           sort_order?: number
+          token_scale?: number
           updated_at?: string
           visible_players?: boolean
           wall_texture_scale?: number
@@ -1461,6 +1463,7 @@ export type Database = {
           room_preset?: string
           solid_walls?: boolean
           sort_order?: number
+          token_scale?: number
           updated_at?: string
           visible_players?: boolean
           wall_texture_scale?: number

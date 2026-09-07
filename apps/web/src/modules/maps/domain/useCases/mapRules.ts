@@ -83,6 +83,80 @@ export function tokenCellAt(p: Point, grid: number, size = 1): Point {
  * a través de `engine.tokenCells`.
  */
 export const DEFAULT_TOKEN_CELLS = 1.5;
+
+/**
+ * EL RECORRIDO DE LA BARRITA DEL TAMAÑO DE LAS FICHAS (specs/modules/maps/SPEC.md § «La barrita del tamaño
+ * de las fichas»). Continuo, no por saltos: «*el tamaño se configura no por saltos sino con una barrita
+ * progresiva*» (suyo, 2026-09-07).
+ *
+ * De la MITAD a UN CUARTO MÁS, arrancando en 1. Cerrado con él mirando lo que ocupa una ficha NORMAL en cada
+ * extremo: 0,75 casillas · 1,5 (hoy) · 1,88. A dos tercios ocupa **1 justa** y pasa por un pasillo de una
+ * casilla, que es el caso que lo motivó; un GRANDE sigue sin pasar, y así debe ser.
+ */
+export const TOKEN_SCALE = { min: 0.5, max: 1.25, def: 1 } as const;
+
+/**
+ * LO QUE OCUPA UNA FICHA **NORMAL** con la barrita en `scale`, en casillas y al décimo. Es el número que se
+ * enseña en el panel, y no el multiplicador: «×0,66» no le dice nada a nadie, «1 casilla» contesta sola la
+ * pregunta que motivó esto —¿pasa por un pasillo de una casilla?—. Decidido con él sobre el diseño.
+ */
+export const normalCellsAt = (scale: number): number =>
+  Math.round(DEFAULT_TOKEN_CELLS * (scale || TOKEN_SCALE.def) * 10) / 10;
+
+/**
+ * ⭐ EL ÚNICO SITIO DONDE SE APLICA EL MULTIPLICADOR. Todo lo que necesite saber lo que ocupa una ficha —el
+ * dibujo, la colisión, el radio, la distancia, el agarre del ratón— tiene que pasar por aquí.
+ *
+ * ⚠️ Y esto NO es una preferencia de estilo: si el dibujo y la colisión lo calculasen cada uno por su lado,
+ * el día que uno cambie el otro se queda atrás y la ficha choca donde no se la ve. Un solo sitio, una sola
+ * verdad.
+ *
+ * La escena guarda SÓLO el multiplicador: el `size` de cada ficha no se toca nunca (sigue siendo el que dice
+ * la ficha del personaje), así que la barrita se puede mover adelante y atrás sin degradar ningún dato.
+ */
+export const tokenSizeIn = (t: Pick<Token, 'size'>, scene: Pick<Scene, 'tokenScale'>): number =>
+  t.size * (scene.tokenScale || TOKEN_SCALE.def);
+
+/**
+ * LO QUE HAY QUE CORRER LA ESQUINA PARA QUE LA FICHA ENCOJA **EN SU SITIO**.
+ *
+ * `x`/`y` guardan la ESQUINA, no el centro. Encogiendo sólo el tamaño, la ficha se queda anclada por su
+ * esquina de arriba a la izquierda y su centro se va hacia allí — o sea, se aparta contra una pared justo
+ * cuando la estás encogiendo para que quepa por el pasillo. Corriendo la esquina media diferencia de tamaño,
+ * el CENTRO no se mueve ni un pelo (suyo, 2026-09-07: «*corrígelo*»).
+ *
+ * 🔑 Y sale gratis una cosa importante: si el centro pintado es el mismo que el guardado, la VISIÓN —que el
+ * servidor calcula desde `x + size/2`— sigue saliendo del sitio correcto sin tocar nada.
+ */
+export const tokenAnchorShift = (rawSize: number, scale: number): number =>
+  (rawSize - rawSize * (scale || TOKEN_SCALE.def)) / 2;
+
+/**
+ * Las MISMAS fichas con su tamaño efectivo ya puesto, y **sin moverse de sitio**. Es la forma de aplicar la
+ * lente UNA vez, en el borde, y que todo lo de dentro siga leyendo `t.size` y `t.x`/`t.y` como hasta ahora —
+ * sin tocar ni una firma ni una fórmula.
+ *
+ * ⚠️ Lo que sale de aquí es para PINTAR y para CALCULAR. **Nunca para guardar**: sus `x`/`y` están en la
+ * cuenta de la ficha ENCOGIDA. Lo que se escribe pasa antes por `tokenPointStored`, que deshace el corrimiento.
+ */
+export const tokensScaledIn = <T extends Pick<Token, 'size' | 'x' | 'y'>>(tokens: T[], scene: Pick<Scene, 'tokenScale'>): T[] =>
+  (scene.tokenScale || TOKEN_SCALE.def) === 1
+    ? tokens
+    : tokens.map(t => {
+      const d = tokenAnchorShift(t.size, scene.tokenScale);
+      return { ...t, size: tokenSizeIn(t, scene), x: t.x + d, y: t.y + d };
+    });
+
+/**
+ * DE LA ESQUINA QUE SE VE A LA QUE SE GUARDA — la inversa exacta de la lente.
+ *
+ * Todo lo que escriba una posición tiene que pasar por aquí: el lienzo trabaja con la ficha encogida, y
+ * guardar su esquina tal cual movería la ficha de verdad cada vez que se toca la barrita.
+ */
+export const tokenPointStored = (drawn: Point, rawSize: number, scale: number): Point => {
+  const d = tokenAnchorShift(rawSize, scale);
+  return { x: drawn.x - d, y: drawn.y - d };
+};
 /**
  * Dónde queda un token CENTRADO en un punto de la escena, en casillas y **sin pegarse a la rejilla**: la
  * esquina de un token de ancho `size` centrado en `p`. Devuelve fracciones a propósito.

@@ -20,6 +20,61 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 «EL FALLO DE "PEGADO A ALGO", CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO», justo debajo.**
 
+## 🔍 2026-09-07 (noche) — LA BARRITA DEL TAMAÑO DE LAS FICHAS · CONSTRUIDA, REVISADA, SIN COMMITEAR
+
+Rama **`feat/maps-puertas`** (las puertas ya están commiteadas en `10cfa00`). Esto es lo de encima y está
+**SIN COMMITEAR**, esperando sólo a que él **guarde el `.pen` con Cmd+S** — el diseño lo aprobó («*aprobado,
+construyelo*») pero el fichero sigue con fecha de las 17:27, o sea que las dos láminas no están en disco.
+
+Verde: web **1522** · api **249** · `tsc` en las dos apps **0 errores** · `audit` **0 hard** · `build:web` y
+`build:api` compilan · `db lint --level error` limpio.
+
+### 🎯 QUÉ ES
+Una barrita CONTINUA en el panel del constructor, **por escena**, que escala TODAS las fichas manteniendo la
+proporción entre los cinco tamaños. Salió de un problema suyo de mesa: «*si dibujan pasillos pequeños los
+tokens no pasarán, no quiero eliminar la colisión de los tokens, quiero reducir el tamaño*». Recorre de
+**0,5 a 1,25**, arranca en 1, y el número que enseña es **lo que ocupa una ficha normal en casillas** (1,5
+hoy · 1 a dos tercios), no el multiplicador — «×0,66» no le dice nada.
+
+Migración: `20260907170000_maps_token_scale.sql` (`maps_scenes.token_scale`). Aplicada en local con
+`supabase migration up --local`. ⚠️ **NUNCA `db:reset`**.
+
+### 🔑 LAS TRES DECISIONES QUE SUJETAN ESTO
+1. **Es una LENTE, no una reescritura.** `maps_tokens.size` no se toca jamás: se guarda sólo el multiplicador
+   en la escena y se aplica al pintar y al calcular. Reescribir habría perdido el tamaño original de cada
+   ficha y no habría vuelta atrás.
+2. **Encoge EN SU SITIO.** `x`/`y` guardan la ESQUINA, así que encogiendo sólo el tamaño la ficha se anclaba
+   por su esquina de arriba a la izquierda y se apartaba contra la pared — justo cuando la encoges para que
+   quepa. `tokenAnchorShift` corre la esquina media diferencia y el CENTRO no se mueve. Él lo pidió al verlo:
+   «*corrígelo*». **Y sale gratis lo de la visión**: si el centro pintado es el guardado, el ojo del servidor
+   ya sale del sitio correcto sin tocar el backend.
+3. **El freno del SERVIDOR encoge también.** `sceneVision.ts` calcula el radio con
+   `dragged.size * scene.tokenScale`. Sin esto la ficha se vería pequeña y **seguiría sin pasar**, porque
+   quien frena de verdad es el servidor (a un jugador no le llegan los muros secretos). Era la funcionalidad
+   entera. `SceneRecord` lleva `tokenScale` y el adaptador lo lee (una escena vieja = 1).
+
+> ⚠️ **LA FRONTERA DE LAS DOS CUENTAS ESTÁ ENTERA EN `SceneTab`** y tiene que seguir ahí. El lienzo trabaja en
+> la cuenta de la ficha ENCOGIDA; la base, el servidor y el resto de la app en la de la ficha DE VERDAD.
+> Cruzan cinco cosas y las cinco se traducen juntas: `onDragToken`, `onMoveToken`, `onServerCorrection`,
+> `onDragBound` y `drags`. Con la barrita en el centro el corrimiento es 0 y es la identidad exacta.
+
+### 🐞 LO QUE CAZÓ EL REVIEW (arreglado)
+- **La distancia de ataque** en `bestiary/ui/DmEncounters.tsx` medía sin la lente: con la barrita movida daba
+  dos fichas separadas como **pegadas**, o sea cuerpo a cuerpo desde lejos.
+- **Al colocar** una ficha caía descentrada del clic — casi dos casillas con una *enorme* a media barrita.
+
+### 📌 LO QUE FALTA
+1. **Que guarde el `.pen`** (Cmd+S) → commit del diseño + del código.
+2. Que la pruebe en un pasillo estrecho.
+3. Luego: «listo para merge» → QA → Deploy. ⚠️ En producción van **TRES migraciones y ANTES que el código**:
+   `20260907120000_maps_doors.sql` · `20260907150000_maps_door_texture.sql` · `20260907170000_maps_token_scale.sql`.
+
+### 🧾 DEUDA ANOTADA, NO TOCADA
+- `useScene.ts` arma `myTokenKey` con los tamaños crudos, así que mover la barrita no vuelve a pedir visión.
+  **Hoy es correcto** —el centro no se mueve, luego la visión no cambia— pero si algún día la barrita llegara
+  a mover el centro, esto habría que revisarlo.
+- `DoorLeaves` sigue aceptando un `thickness` que no le pasa nadie (ver el bloque de las puertas).
+
 ## 🚪 2026-09-07 — LAS PUERTAS · TERMINADAS, APROBADAS EN PANTALLA Y COMMITEADAS
 
 Rama **`feat/maps-puertas`**. El dibujo **ya le vale** («*vale ya esta bien*») y la tanda entera está

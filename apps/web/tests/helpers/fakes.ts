@@ -321,7 +321,7 @@ export const SCENE_WAREHOUSE: Scene = {
   // Rebanada 8: una escena nace con el preajuste de serie y sin foto propia — como la crea la migración.
   roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
   // Sin color ni textura propios de puerta: nulo = el trazo del muro, que es como nacen todas.
-  doorColor: null, doorTextureUrl: null,
+  doorColor: null, doorTextureUrl: null, tokenScale: 1,
   createdAt: '2026-08-18T00:00:00Z', updatedAt: '2026-08-18T00:00:00Z',
 };
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };

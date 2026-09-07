@@ -1157,6 +1157,12 @@
         "hintOff": "every endpoint on its own · careful: the shape can be left open"
       },
       "selectAll": "Ctrl/Cmd + A takes every wall"
+    },
+    "tokenScale": {
+      "label": "TOKEN SIZE · WHOLE SCENE",
+      "short": "SIZE",
+      "hint": "so they fit through narrow corridors · the ratio between sizes never changes",
+      "reading": "a normal token takes up {cells} squares"
     }
   },
   "bestiary": {

@@ -246,6 +246,73 @@ de ser un dibujo para empezar a ser un sitio (dueño, 2026-08-22: «que los toke
 - Choca **todo el cuerpo** del token, no su punto central: un gato (0,5 casillas) pasa por un hueco por el que
   un ogro (3,5) no cabe. Es la razón de que los tamaños de la p.25 existan.
 
+### La barrita del tamaño de las fichas (por escena)
+> Encargo suyo del 2026-09-07, salido de un problema real: «*si dibujan pasillos pequeños los tokens no
+> pasarán… no quiero eliminar la colisión de los tokens, quiero saber si podemos reducir el tamaño*». Y
+> después: «*el tamaño se configura no por saltos sino con una barrita progresiva… y por escena, no para
+> todo*».
+
+- **Una barrita CONTINUA en los ajustes de la escena**, no saltos. Sólo la mueve el **director**, como la
+  rejilla y el grosor del muro.
+- **Recorre de la MITAD a UN CUARTO MÁS**, y arranca en el centro — o sea, una escena nueva se ve exactamente
+  como se ve hoy y nadie nota el cambio hasta que toca la barrita.
+- **Afecta a TODAS las fichas de esa escena a la vez y al momento**, las ya colocadas incluidas («*en
+  todas*»). No es un ajuste que sólo valga para las nuevas: con fichas de dos tamaños conviviendo no se
+  resolvería el pasillo, que es el problema que lo motiva.
+- **Es UN SOLO multiplicador para los cinco tamaños**, así que la proporción entre diminuto, pequeño, normal,
+  grande y enorme **no cambia nunca**. Ésa es la condición que él puso: «*esto hay que respetarlo en tamaños…
+  que se mantenga la relación*».
+- **La colisión va sola detrás.** No se toca ninguna regla de choque: si la ficha encoge, su cuerpo encoge y
+  por eso pasa. Sigue chocando todo el cuerpo, como dice «El tamaño cuenta» aquí arriba.
+- **Cada escena con lo suyo.** No es de campaña ni global.
+
+Lo que ocupa cada tamaño en los extremos del recorrido:
+
+| Tamaño | Mitad | Dos tercios | Centro (hoy) | Un cuarto más |
+|---|---|---|---|---|
+| Diminuto | 0,25 | 0,33 | 0,5 | 0,63 |
+| Pequeño | 0,38 | 0,5 | 0,75 | 0,94 |
+| **Normal** | **0,75** | **1** | **1,5** | **1,88** |
+| Grande | 1,75 | 2,34 | 3,5 | 4,38 |
+| Enorme | 3,5 | 4,69 | 7 | 8,75 |
+
+A dos tercios una ficha **normal** ocupa **una casilla justa** y pasa por un pasillo de una — que es el caso
+que lo motivó. Un **grande** sigue sin pasar, y así debe ser: un ogro no cabe por un pasillo de una casilla.
+
+#### Por qué esto NO contradice el manual
+El libro (p.25) da **estaturas, no huellas en casillas**: la conversión a casillas y el aumento de
+legibilidad del 33% que fija el normal en 1,5 son **nuestros**, no suyos (`packages/system-plenilunio` ·
+`TOKEN_CELLS`, y RULES.md §1.6, donde ya está marcado como «⚠ interpretación»). Lo que **sí** es del libro
+son las **proporciones** entre los cinco tamaños, y la barrita las conserva intactas porque multiplica a
+todos por igual. Mover un multiplicador nuestro es legítimo; cambiar la relación entre tamaños no lo sería.
+
+#### Fuera de esta tanda
+- Cambiar el tamaño de **una ficha suelta** a mano.
+- Tocar de dónde sale el tamaño de cada personaje: sigue saliendo de **su ficha**, como hasta ahora.
+- Que la barrita afecte a la sonda del director, a las luces o a la regla de medir. No.
+
+#### Modelo de datos
+**No hay tabla nueva ni fila nueva: es UN dato más de la escena.** La escena gana un multiplicador del tamaño
+de las fichas, un número entre 0,5 y 1,25 que arranca en 1. Vive junto a los otros ajustes de aspecto que ya
+tiene la escena —la rejilla, el grosor del muro, la escala de las texturas, el color de la puerta—, que es
+exactamente la misma familia de cosas.
+
+**Lo que NO se toca, y es la decisión importante:** el tamaño que cada ficha lleva guardado desde que se
+colocó se queda intacto. La barrita **no reescribe las fichas**; se aplica encima, al pintarlas y al calcular
+con qué chocan. Se descartó lo contrario por dos motivos: cada roce de la barrita obligaría a reescribir
+todas las fichas del mapa, y el tamaño original de cada una se perdería para siempre, así que no habría vuelta
+atrás. Con este modelo la barrita es una **lente**: se puede mover adelante y atrás sin degradar nada.
+
+**Quién lo lee y quién lo escribe:** lo lee todo el que puede ver la escena —hace falta para pintarla bien— y
+lo escribe **sólo el director**. No hace falta ningún permiso nuevo: la escena ya tiene su control de acceso
+puesto desde el primer día y un dato suyo lo hereda. No se re-implementa el permiso por columna.
+
+**Escenas que ya existen:** ninguna cambia de aspecto. Todas arrancan en 1, que es como se ven hoy, y nadie
+nota nada hasta que toca la barrita.
+
+**Migración:** `supabase/migrations/20260907170000_maps_token_scale.sql`. Aplicada en local y verificada: el
+linter de seguridad no devuelve ni un error y la auditoría no da ninguna violación dura.
+
 ### Qué bloquea y qué no
 - Bloquea lo que ya lleva marcado `blocksMove`: **muros, ventanas y puertas cerradas**. Una **puerta abierta
   deja pasar** — `blocksMoveNow(w)` = `blocksMove && !isOpen`, el gemelo exacto de `blocksSightNow`, escrito en

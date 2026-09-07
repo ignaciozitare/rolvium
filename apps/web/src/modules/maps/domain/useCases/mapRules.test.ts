@@ -5,7 +5,7 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, DOOR_BAR_PX, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, doorTexturesUsed, quadPoints, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
+  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, DOOR_BAR_PX, TOKEN_SCALE, tokenSizeIn, tokensScaledIn, tokenAnchorShift, tokenPointStored, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, doorTexturesUsed, quadPoints, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -824,6 +824,99 @@ describe('doorTextureOf / doorPatternId / doorTexturesUsed', () => {
  * «*quiero que la puerta siempre tenga un pequeño trozo de muro centrado, es más estético que quede pegada
  * a los muros; tiene que ser tan largo como el grosor de la puerta de cada lado*».
  */
+/**
+ * LA BARRITA DEL TAMAÑO DE LAS FICHAS (specs/modules/maps/SPEC.md § «La barrita del tamaño de las fichas»).
+ *
+ * Lo que estos tests sujetan es la CONDICIÓN que él puso al pedirla: «*esto hay que respetarlo en tamaños…
+ * que se mantenga la relación de diminuto pequeño normal grande y enorme*». Y que sea UNA lente y no una
+ * reescritura, que es lo que permite mover la barrita adelante y atrás sin perder nada.
+ */
+describe('tokenSizeIn / tokensScaledIn — la lente del tamaño', () => {
+  const ficha = (size: number, x = 4, y = 6) => ({ id: 't1', size, x, y });
+  const escena = (tokenScale: number) => ({ tokenScale });
+
+  it('el recorrido es el que él cerró: de la mitad a un cuarto más, arrancando en 1', () => {
+    expect(TOKEN_SCALE).toEqual({ min: 0.5, max: 1.25, def: 1 });
+  });
+
+  it('a dos tercios una ficha NORMAL ocupa una casilla justa, que es lo que le hace pasar el pasillo', () => {
+    expect(tokenSizeIn(ficha(1.5), escena(2 / 3))).toBeCloseTo(1, 6);
+  });
+
+  it('un GRANDE sigue sin caber por un pasillo de una casilla, y así debe ser', () => {
+    expect(tokenSizeIn(ficha(3.5), escena(2 / 3))).toBeGreaterThan(1);
+  });
+
+  it('⭐ LA PROPORCIÓN DEL MANUAL NO CAMBIA: los cinco tamaños se multiplican por igual', () => {
+    const TAMAÑOS = [0.5, 0.75, 1.5, 3.5, 7];
+    for (const escala of [TOKEN_SCALE.min, 2 / 3, 1, TOKEN_SCALE.max]) {
+      const escalados = TAMAÑOS.map(t => tokenSizeIn(ficha(t), escena(escala)));
+      // Cada uno contra el NORMAL: si la relación se moviera, esto se rompe.
+      const normal = escalados[2]!;
+      for (let i = 0; i < TAMAÑOS.length; i++) {
+        expect(escalados[i]! / normal).toBeCloseTo(TAMAÑOS[i]! / 1.5, 10);
+      }
+    }
+  });
+
+  it('en el centro no toca NADA: devuelve la misma lista, sin copiar ni una ficha', () => {
+    const fichas = [ficha(1.5), ficha(3.5)];
+    expect(tokensScaledIn(fichas, escena(1))).toBe(fichas);
+  });
+
+  it('una escena sin barrita (`0` o sin dato) se comporta como el centro', () => {
+    expect(tokenSizeIn(ficha(1.5), { tokenScale: 0 })).toBe(1.5);
+    expect(tokenSizeIn(ficha(1.5), {} as { tokenScale: number })).toBe(1.5);
+  });
+
+  it('⚠️ NO reescribe las fichas de origen: la barrita es una lente, no un guardado', () => {
+    const fichas = [ficha(1.5)];
+    const vistas = tokensScaledIn(fichas, escena(0.5));
+    expect(vistas[0]!.size).toBe(0.75);
+    expect(fichas[0]!.size).toBe(1.5);     // la de verdad, intacta
+    expect(vistas[0]).not.toBe(fichas[0]); // y es otra, no la misma tocada
+  });
+
+  it('el resto de la ficha viaja entero: sólo cambian el tamaño y la esquina', () => {
+    const vistas = tokensScaledIn([{ id: 't1', size: 1.5, x: 3, y: 4, name: 'Karen' }], escena(0.5));
+    // La esquina se corre 0,375 (media diferencia de tamaño) para que el CENTRO no se mueva.
+    expect(vistas[0]).toEqual({ id: 't1', size: 0.75, x: 3.375, y: 4.375, name: 'Karen' });
+  });
+
+  /**
+   * ⭐ ENCOGER **EN SU SITIO**, que es lo que él pidió al ver el primer intento: «*corrígelo*».
+   *
+   * `x`/`y` guardan la ESQUINA, así que encogiendo sólo el tamaño la ficha se ancla por su esquina de arriba
+   * a la izquierda y se aparta contra una pared — justo cuando la estás encogiendo para que quepa por el
+   * pasillo. Y sale gratis una cosa importante: si el centro pintado es el mismo que el guardado, la VISIÓN
+   * que el servidor calcula desde `x + size/2` sigue saliendo del sitio correcto.
+   */
+  it('⭐ el CENTRO no se mueve ni un pelo, en todo el recorrido de la barrita', () => {
+    const centro = (t: { size: number; x: number; y: number }) => ({ x: t.x + t.size / 2, y: t.y + t.size / 2 });
+    const cruda = ficha(1.5, 10, 20);
+    for (const escala of [TOKEN_SCALE.min, 2 / 3, 1, TOKEN_SCALE.max]) {
+      const vista = tokensScaledIn([cruda], escena(escala))[0]!;
+      expect(centro(vista).x).toBeCloseTo(centro(cruda).x, 10);
+      expect(centro(vista).y).toBeCloseTo(centro(cruda).y, 10);
+    }
+  });
+
+  it('`tokenPointStored` deshace la lente EXACTAMENTE: lo que se ve vuelve a lo que se guarda', () => {
+    const cruda = ficha(3.5, 10, 20);
+    for (const escala of [TOKEN_SCALE.min, 2 / 3, 1, TOKEN_SCALE.max]) {
+      const vista = tokensScaledIn([cruda], escena(escala))[0]!;
+      const vuelta = tokenPointStored({ x: vista.x, y: vista.y }, cruda.size, escala);
+      expect(vuelta.x).toBeCloseTo(cruda.x, 10);
+      expect(vuelta.y).toBeCloseTo(cruda.y, 10);
+    }
+  });
+
+  it('en el centro el corrimiento es CERO: una escena de hoy no se mueve ni un píxel', () => {
+    expect(tokenAnchorShift(1.5, 1)).toBe(0);
+    expect(tokenPointStored({ x: 7, y: 9 }, 1.5, 1)).toEqual({ x: 7, y: 9 });
+  });
+});
+
 describe('doorSpan — la puerta no se pega a los muros', () => {
   const seg = { x1: 0, y1: 0, x2: 0, y2: 100 };
 

@@ -86,6 +86,55 @@ describe('computeSceneVision', () => {
     expect(pointInPolygon({ x: 220, y: 148 }, r.data.vision[0]!)).toBe(false);
   });
 
+  /**
+   * ⭐ LA BARRITA DEL TAMAÑO, DONDE DE VERDAD IMPORTA: EL FRENO DEL SERVIDOR.
+   *
+   * Encargo del dueño (2026-09-07): «*si dibujan pasillos pequeños los tokens no pasarán… quiero reducir el
+   * tamaño*». Quien frena es ESTE cálculo, no el navegador —a un jugador no le llegan los muros secretos—,
+   * así que si el freno no encogiera con la barrita, la ficha se vería pequeña y **seguiría sin pasar**: la
+   * funcionalidad entera no serviría de nada.
+   *
+   * La escena de prueba se parte con un muro vertical en x = 135 con un HUECO de una casilla (27 px) entre
+   * y = 108 e y = 135. Una ficha normal (1,5 casillas ≈ 40 px de cuerpo) no cabe por ahí; a media barrita
+   * (0,75 casillas ≈ 20 px) sí.
+   */
+  describe('la barrita del tamaño de las fichas', () => {
+    const PASILLO = [
+      { id: 'w-arriba', x1: 135, y1: 0, x2: 135, y2: 108, blocksSight: true, blocksMove: true, isOpen: false },
+      { id: 'w-abajo', x1: 135, y1: 135, x2: 135, y2: 270, blocksSight: true, blocksMove: true, isOpen: false },
+    ];
+    /** Enfilando el hueco: la ficha está a la izquierda, a la altura del pasillo, y pide cruzar al otro lado. */
+    const GRANDE = { id: 'tk-pip', x: 2, y: 3.75, size: 1.5, controlledBy: PIP };
+    const cruzar = (tokenScale: number) => computeSceneVision(
+      { maps: fakeMapsRepo({ roles: ROLES, tokens: [GRANDE], walls: PASILLO, scene: { solidWalls: true, tokenScale } }) },
+      { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 3.75 } },
+    );
+
+    it('a tamaño normal el servidor la FRENA: no cabe por el hueco de una casilla', async () => {
+      const r = await cruzar(1);
+      if (!r.ok) throw new Error('expected ok');
+      expect(r.data.corrected).not.toBeNull();
+      expect(r.data.corrected!.x).toBeLessThan(7);
+    });
+
+    it('⭐ con la barrita a la mitad el servidor la DEJA PASAR: es para lo que existe la barrita', async () => {
+      const r = await cruzar(0.5);
+      if (!r.ok) throw new Error('expected ok');
+      // Se calla, que es como este cálculo dice «cabía»: sólo contesta cuando ha tenido que recortar.
+      expect(r.data.corrected).toBeNull();
+    });
+
+    it('una escena sin barrita frena EXACTAMENTE como antes de que la barrita existiera', async () => {
+      const conUno = await cruzar(1);
+      const sinDato = await computeSceneVision(
+        { maps: fakeMapsRepo({ roles: ROLES, tokens: [GRANDE], walls: PASILLO, scene: { solidWalls: true, tokenScale: 0 } }) },
+        { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 3.75 } },
+      );
+      if (!conUno.ok || !sinDato.ok) throw new Error('expected ok');
+      expect(sinDato.data.corrected).toEqual(conUno.data.corrected);
+    });
+  });
+
   it('sin paredes sólidas no corrige nada: la escena se comporta como siempre', async () => {
     const maps = seed();
     const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });

@@ -295,6 +295,60 @@ describe('<BuilderPanel> las dos texturas base y el grosor', () => {
 });
 
 /**
+ * ── LA BARRITA DEL TAMAÑO DE LAS FICHAS ──
+ *
+ * Encargo suyo del 2026-09-07: «*si dibujan pasillos pequeños los tokens no pasarán… no quiero eliminar la
+ * colisión, quiero reducir el tamaño*», y «*el tamaño se configura no por saltos sino con una barrita
+ * progresiva*». Diseño aprobado en `rolvium.pen` · «PL/Builder · panel · TAMAÑO DE LAS FICHAS».
+ */
+describe('<BuilderPanel> — el tamaño de las fichas', () => {
+  const barra = () => screen.getByRole('slider', { name: 'TAMAÑO DE LAS FICHAS · TODA LA ESCENA' });
+
+  it('enseña LO QUE OCUPA UNA FICHA NORMAL, no el multiplicador: «×0,66» no dice nada', () => {
+    mount({ mode: 'draw', tokenScale: 1 });
+    expect(screen.getAllByText(/1,5/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/×/)).not.toBeInTheDocument();
+  });
+
+  it('a dos tercios enseña UNA casilla, que es la respuesta a «¿pasa por el pasillo?»', () => {
+    mount({ mode: 'draw', tokenScale: 2 / 3 });
+    expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  it('es CONTINUA y recorre de la mitad a un cuarto más, como él la pidió', () => {
+    mount({ mode: 'draw', tokenScale: 1 });
+    const b = barra();
+    expect(b).toHaveAttribute('min', '0.5');
+    expect(b).toHaveAttribute('max', '1.25');
+    // Un paso de 0,01 es lo que la hace progresiva y no de saltos.
+    expect(Number(b.getAttribute('step'))).toBeLessThanOrEqual(0.01);
+  });
+
+  it('mientras arrastra AVISA para el previo, y al soltar es cuando GUARDA', () => {
+    const onTokenScale = vi.fn(), onTokenScaleEnd = vi.fn();
+    mount({ mode: 'draw', tokenScale: 1, onTokenScale, onTokenScaleEnd });
+    fireEvent.change(barra(), { target: { value: '0.66' } });
+    expect(onTokenScale).toHaveBeenCalledWith(0.66);
+    // Todavía NO se ha guardado: sería una escritura por píxel de arrastre.
+    expect(onTokenScaleEnd).not.toHaveBeenCalled();
+    fireEvent.pointerUp(barra());
+    expect(onTokenScaleEnd).toHaveBeenCalled();
+  });
+
+  it('lleva la marca del centro, para volver a «como siempre» sin buscar', () => {
+    const { container } = mount({ mode: 'draw', tokenScale: 0.66 });
+    expect(barra()).toHaveAttribute('list', 'mp-token-scale-ticks');
+    const marca = container.querySelector('#mp-token-scale-ticks option');
+    expect(marca).toHaveAttribute('value', '1');
+  });
+
+  it('sale en los DOS modos: las fichas están tanto sobre una foto como levantando salas', () => {
+    mount({ mode: 'photo', tokenScale: 1 });
+    expect(barra()).toBeInTheDocument();
+  });
+});
+
+/**
  * ── EL AZULEJO Y SU MUESTRA ──
  *
  * Petición suya del 2026-09-04 probando el constructor: «*necesito que la textura se pueda escalar y tener un

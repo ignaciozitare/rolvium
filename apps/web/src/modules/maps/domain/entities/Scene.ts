@@ -69,11 +69,27 @@ export interface Scene {
   doorColor: string | null;
   /** La textura por defecto de TODAS las puertas de la escena. `null` = sin textura: manda el color. */
   doorTextureUrl: string | null;
+  /**
+   * CUÁNTO SE ENCOGEN O CRECEN TODAS LAS FICHAS DE ESTA ESCENA. `1` = como siempre.
+   *
+   * Encargo suyo del 2026-09-07, de un problema real de mesa: «*si dibujan pasillos pequeños los tokens no
+   * pasarán… no quiero eliminar la colisión, quiero reducir el tamaño*». Una ficha NORMAL ocupa 1,5 casillas
+   * y no cabe por un pasillo de una; a 2/3 ocupa 1 justa y pasa. Un GRANDE sigue sin pasar, y así debe ser.
+   *
+   * 🔑 ES UN SOLO MULTIPLICADOR PARA LOS CINCO TAMAÑOS, y ésa es la condición que él puso: «*esto hay que
+   * respetarlo en tamaños… que se mantenga la relación de diminuto pequeño normal grande y enorme*». El
+   * manual (p.25) fija PROPORCIONES, no huellas en casillas —el paso a casillas es interpretación nuestra,
+   * RULES.md §1.6—, así que escalar a todos por igual no lo contradice; cambiar la relación sí lo haría.
+   *
+   * ⚠️ NO reescribe el tamaño de ninguna ficha: es una LENTE. Se aplica en `tokenSizeIn` (`mapRules`), que
+   * es el único sitio donde se toca — y por el que pasan el dibujo Y la colisión, para que no se descuadren.
+   */
+  tokenScale: number;
   createdAt: string;
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor' | 'doorTextureUrl'>>;
+export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor' | 'doorTextureUrl' | 'tokenScale'>>;
 
 // ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps) ───────────────────────────
 // Espejo de `supabase/migrations/20260907120000_maps_doors.sql`.

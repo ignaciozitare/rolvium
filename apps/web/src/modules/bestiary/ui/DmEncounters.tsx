@@ -5,7 +5,7 @@ import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import type { MapsPort } from '@/modules/maps/domain/ports/MapsPort';
 import { mapsRepo } from '@/modules/maps/container';
 import type { Scene, Token } from '@/modules/maps/domain/entities/Scene';
-import { initialsOf, tokenGapCells, METRES_PER_CELL } from '@/modules/maps/domain/useCases/mapRules';
+import { initialsOf, tokenGapCells, tokensScaledIn, METRES_PER_CELL } from '@/modules/maps/domain/useCases/mapRules';
 import { STAT_IDS } from '@rolvium/system-plenilunio';
 import { DifficultyHold } from '@/modules/dice/ui/DifficultyHold';
 import type { BestiaryEntry } from '../domain/entities/BestiaryEntry';
@@ -70,7 +70,18 @@ export function DmEncounters({ system, maps = mapsRepo, campaignId, activeSceneI
     return () => { live = false; off(); };
   }, [maps, campaignId, activeSceneId, reload]);
 
-  const creatures = useMemo(() => tokens.filter(tk => !tk.characterId && (tk.bestiaryRef || tk.bestiaryEntryId)), [tokens]);
+  /**
+   * ⭐ LAS FICHAS, YA VISTAS POR LA LENTE DE LA ESCENA (specs § «La barrita del tamaño de las fichas»).
+   *
+   * Este panel mide la distancia de un ataque con `tokenGapCells`, que resta el RADIO de cada cuerpo — así
+   * que depende del tamaño y tiene que leerlo por la lente, igual que el mapa. Leyendo el token crudo, con
+   * la barrita fuera del centro este panel y el mapa —que se ven a la vez en la mesa del director— daban
+   * dos huecos distintos para las mismas dos fichas, y el que decide si el ataque es cuerpo a cuerpo era el
+   * de aquí: a media escala restaba 1,5 casillas de cuerpos en vez de 0,75, así que dos fichas pintadas
+   * separadas salían «tocándose». El invariante es que el dibujo y lo que se calcula usen el MISMO tamaño.
+   */
+  const fichas = useMemo(() => (scene ? tokensScaledIn(tokens, scene) : tokens), [tokens, scene]);
+  const creatures = useMemo(() => fichas.filter(tk => !tk.characterId && (tk.bestiaryRef || tk.bestiaryEntryId)), [fichas]);
   const night = scene?.lighting === 'night';
 
   const entryOf = useCallback((tk: Token): { entry: BestiaryEntry; blockName: string } | null => {
@@ -85,11 +96,11 @@ export function DmEncounters({ system, maps = mapsRepo, campaignId, activeSceneI
   const targetsFor = useCallback((attacker: Token): AttackTarget[] => {
     if (!scene) return [];
     const round1 = (n: number) => Math.round(n * 10) / 10;
-    return tokens.filter(tk => tk.characterId).map(tk => {
+    return fichas.filter(tk => tk.characterId).map(tk => {
       const cells = tokenGapCells(attacker, tk, scene.grid.size);
       return { id: tk.id, name: tk.name, cells: round1(cells), metres: round1(cells * METRES_PER_CELL), characterId: tk.characterId! };
     });
-  }, [tokens, scene]);
+  }, [fichas, scene]);
 
   if (!activeSceneId) return null;
   const attacking = attackingId ? creatures.find(tk => tk.id === attackingId) ?? null : null;

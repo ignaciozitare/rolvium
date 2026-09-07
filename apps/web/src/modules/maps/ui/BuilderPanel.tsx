@@ -2,7 +2,7 @@ import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import { DOOR_HINGES, DOOR_LEAVES, DOOR_SWINGS, ROOM_PRESETS, type DoorSettings, type RoomOpening, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
 import { DEFAULT_TEXTURE_SCALE, styleOf } from '../domain/useCases/roomStyles';
-import { DOOR_COLORS, WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
+import { DOOR_COLORS, normalCellsAt, TOKEN_SCALE, WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
 import { BUILDER_MODES, BUILD_KINDS, ROOM_SHAPES, isOpeningKind, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { useDragPanel } from './useDragPanel';
 
@@ -53,6 +53,15 @@ interface Props {
   floorScale?: number;
   onTextureScale?: (which: 'wall' | 'floor', cells: number) => void;
   onTextureScaleEnd?: () => void;
+  /**
+   * LA BARRITA DEL TAMAÑO DE LAS FICHAS DE LA ESCENA (specs § «La barrita del tamaño de las fichas»).
+   * Mismo trato que las escalas de textura: `onTokenScale` va pintando el previo mientras arrastra —todas
+   * las fichas encogen a la vez, que es lo que se quiere ver— y `onTokenScaleEnd` guarda al soltar, para no
+   * escribir en la base una vez por píxel.
+   */
+  tokenScale?: number;
+  onTokenScale?: (v: number) => void;
+  onTokenScaleEnd?: () => void;
   /** Cuántos muros hay cogidos y si están atados entre sí (§ «EL GRUPO»). */
   groupCount?: number;
   grouped?: boolean;
@@ -108,9 +117,12 @@ export function BuilderPanel({
   preset = 'hatch', onPreset, wallTextureUrl = null, floorTextureUrl = null, onTexture, onClearTexture,
   thickness = 0.22, onThickness,
   wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd,
+  tokenScale = TOKEN_SCALE.def, onTokenScale, onTokenScaleEnd,
   groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onDoorTexture, doorDraft, onClose,
 }: Props): JSX.Element {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  /** El número del panel, con la coma o el punto que toque según el idioma. */
+  const cellsOfNormal = (v: number): string => new Intl.NumberFormat(locale).format(normalCellsAt(v));
   const { ref, style, handlers } = useDragPanel<HTMLDivElement>();
   const held = groupCount > 1 || !!wall || !!roomOpening;
   /**
@@ -400,6 +412,45 @@ export function BuilderPanel({
           </div>
         </fieldset>
       )}
+
+      {/*
+        * ── EL TAMAÑO DE LAS FICHAS ── Encargo suyo del 2026-09-07: «*si dibujan pasillos pequeños los tokens
+        * no pasarán… quiero reducir el tamaño*», y con su condición, «*que se mantenga la relación de
+        * diminuto pequeño normal grande y enorme*». Por eso es UNA barrita para todos y no un tamaño por
+        * ficha: multiplica por igual, así que la proporción del manual no se toca.
+        *
+        * VA FUERA DEL `builderMode`, al contrario que las texturas: las fichas están en los dos modos, y el
+        * pasillo estrecho que lo motivó se puede dibujar tanto levantando salas como marcando muros.
+        *
+        * El número que se enseña NO es el multiplicador: es LO QUE OCUPA UNA FICHA NORMAL, en casillas. «×0,66»
+        * no le dice nada a nadie; «1 casilla» contesta sola la pregunta de si pasa por el pasillo. Aprobado
+        * así en `rolvium.pen` · «PL/Builder · panel · TAMAÑO DE LAS FICHAS».
+        */}
+      <fieldset className="mp-builder-group">
+        <legend className="tb-rotulo">{t('maps.tokenScale.label')}</legend>
+        <p className="mp-builder-hint">{t('maps.tokenScale.hint')}</p>
+        <div className="mp-builder-thick">
+          <span className="mp-builder-tex-n">{t('maps.tokenScale.short')}</span>
+          {/*
+            * LA MARCA DEL CENTRO, «como siempre», que la lámina aprobada pide para poder volver sin buscar.
+            * Va con `list`/`<datalist>`, que es como el navegador dibuja una muesca en un deslizador — y NO
+            * con estilos propios del carril: los otros deslizadores del panel son los nativos tal cual, y
+            * pintarle un carril a medida sólo a éste lo dejaría desentonando al lado del grosor del muro.
+            * Donde el navegador no dibuje la muesca no se pierde nada: el número sigue diciendo dónde está.
+            */}
+          <datalist id="mp-token-scale-ticks"><option value={TOKEN_SCALE.def} /></datalist>
+          <input type="range" min={TOKEN_SCALE.min} max={TOKEN_SCALE.max} step={0.01} value={tokenScale}
+            list="mp-token-scale-ticks"
+            aria-label={t('maps.tokenScale.label')}
+            aria-valuetext={t('maps.tokenScale.reading', { cells: cellsOfNormal(tokenScale) })}
+            onChange={e => onTokenScale?.(Number(e.target.value))}
+            onPointerUp={() => onTokenScaleEnd?.()}
+            onKeyUp={() => onTokenScaleEnd?.()}
+            onBlur={() => onTokenScaleEnd?.()} />
+          <span className="mp-builder-thick-v">{cellsOfNormal(tokenScale)}</span>
+        </div>
+        <p className="mp-builder-hint">{t('maps.tokenScale.reading', { cells: cellsOfNormal(tokenScale) })}</p>
+      </fieldset>
 
       {/*
         * ── EL CANDADO ── Aprobado por él el 2026-09-03 («*tira*») con sus tres condiciones: empieza cerrado,

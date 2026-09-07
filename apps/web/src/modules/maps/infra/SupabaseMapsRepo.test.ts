@@ -567,6 +567,19 @@ describe('SupabaseMapsRepo — las salas', () => {
   it('una escena escrita antes de la rebanada 8 se lee con el preajuste de serie', () => {
     expect(mapSceneRow(SCENE_ROW)).toMatchObject({ roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22 });
   });
+
+  it('la barrita del tamaño de las fichas se guarda EN LA ESCENA, no en cada ficha', async () => {
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateScene('sc-1', { tokenScale: 0.66 });
+    expect(q(m)['update']).toHaveBeenCalledWith(expect.objectContaining({ token_scale: 0.66 }));
+    // Y NADA de maps_tokens: la barrita es una lente, no reescribe el tamaño de ninguna ficha.
+    expect(m.fromSpy).not.toHaveBeenCalledWith('maps_tokens');
+  });
+
+  it('una escena escrita antes de la barrita se lee en 1: no cambia de aspecto', () => {
+    expect(mapSceneRow(SCENE_ROW)).toMatchObject({ tokenScale: 1 });
+  });
 });
 
 /**
