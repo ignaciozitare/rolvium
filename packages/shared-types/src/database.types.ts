@@ -1160,10 +1160,14 @@ export type Database = {
         Row: {
           campaign_id: string
           created_at: string
+          door_color: string | null
+          hinge: string
           id: string
           is_open: boolean
           kind: string
+          leaves: number
           scene_id: string
+          swing: string
           updated_at: string
           x1: number
           x2: number
@@ -1173,10 +1177,14 @@ export type Database = {
         Insert: {
           campaign_id: string
           created_at?: string
+          door_color?: string | null
+          hinge?: string
           id?: string
           is_open?: boolean
           kind?: string
+          leaves?: number
           scene_id: string
+          swing?: string
           updated_at?: string
           x1: number
           x2: number
@@ -1186,10 +1194,14 @@ export type Database = {
         Update: {
           campaign_id?: string
           created_at?: string
+          door_color?: string | null
+          hinge?: string
           id?: string
           is_open?: boolean
           kind?: string
+          leaves?: number
           scene_id?: string
+          swing?: string
           updated_at?: string
           x1?: number
           x2?: number
@@ -1376,6 +1388,7 @@ export type Database = {
           campaign_id: string
           created_at: string
           created_by: string | null
+          door_color: string | null
           floor_texture_scale: number
           floor_texture_url: string | null
           fog_mode: string
@@ -1402,6 +1415,7 @@ export type Database = {
           campaign_id: string
           created_at?: string
           created_by?: string | null
+          door_color?: string | null
           floor_texture_scale?: number
           floor_texture_url?: string | null
           fog_mode?: string
@@ -1428,6 +1442,7 @@ export type Database = {
           campaign_id?: string
           created_at?: string
           created_by?: string | null
+          door_color?: string | null
           floor_texture_scale?: number
           floor_texture_url?: string | null
           fog_mode?: string
@@ -1620,11 +1635,15 @@ export type Database = {
           blocks_sight: boolean
           campaign_id: string
           created_at: string
+          door_color: string | null
           group_id: string | null
+          hinge: string
           id: string
           is_open: boolean
           kind: string
+          leaves: number
           scene_id: string
+          swing: string
           visible_players: boolean
           x1: number
           x2: number
@@ -1636,11 +1655,15 @@ export type Database = {
           blocks_sight?: boolean
           campaign_id: string
           created_at?: string
+          door_color?: string | null
           group_id?: string | null
+          hinge?: string
           id?: string
           is_open?: boolean
           kind?: string
+          leaves?: number
           scene_id: string
+          swing?: string
           visible_players?: boolean
           x1: number
           x2: number
@@ -1652,11 +1675,15 @@ export type Database = {
           blocks_sight?: boolean
           campaign_id?: string
           created_at?: string
+          door_color?: string | null
           group_id?: string | null
+          hinge?: string
           id?: string
           is_open?: boolean
           kind?: string
+          leaves?: number
           scene_id?: string
+          swing?: string
           visible_players?: boolean
           x1?: number
           x2?: number
@@ -1886,6 +1913,7 @@ export type Database = {
       }
       has_module: { Args: { module_id: string }; Returns: boolean }
       has_permission: { Args: { perm: string }; Returns: boolean }
+      has_tool: { Args: { tool: string }; Returns: boolean }
       identity_my_sessions: {
         Args: never
         Returns: {

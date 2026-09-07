@@ -1638,8 +1638,10 @@ las aberturas de sala viven en `maps_room_openings`, así que ahí no llegaba. �
 encargo mayor. ✅ Las VENTANAS de sala ya estaban bien: dejan ver y no dejan pasar, y no hay que abrirlas.
 
 #### El dibujo
-- **Cerrada**: una **barra hueca de esquinas redondeadas** que ocupa el hueco, con el trazo del muro
-  parándose a cada lado (las jambas). Es lo de la captura.
+- **Cerrada**: una **barra hueca de ÁNGULOS RECTOS** que ocupa el hueco, con el trazo del muro
+  parándose a cada lado (las jambas). Es lo de la captura. ⚠ **Nada de cantos redondeados**: el primer
+  diseño los llevaba y él lo corrigió con la lámina delante (2026-09-07, «*la puerta tiene que tener
+  ángulos rectos no circulares*»).
 - **Abierta**: la hoja **girada 90°** desde su bisagra, como un plano de arquitecto — enseña de un vistazo
   hacia dónde abre. **Sin arco de barrido**: con muchas puertas juntas el mapa se llena de curvas (elegido
   por él, 2026-09-07).
@@ -1677,10 +1679,41 @@ cuatro combinaciones: es lo mismo y se entiende sin leer.
   es especial —la de hierro del jefe— se le cambia a esa sola.
 
 #### Modelo de datos
-> Pendiente — lo completa el DBA. Lo que se sabe: las mismas columnas nuevas en `maps_walls` y en
-> `maps_room_openings` (hojas, bisagra, lado, color propio), porque las dos ya llevan `kind` e `is_open` en
-> paralelo; más el color por defecto en `maps_scenes`. Todas aditivas y con valor por omisión, para que
-> ninguna puerta existente cambie de comportamiento.
+Migración `supabase/migrations/20260907120000_maps_doors.sql`, **aplicada en local**. **Puramente aditiva**: no
+crea tablas ni políticas, sólo columnas con valor por omisión sobre tres tablas que ya existían. Las siete
+puertas que él ya tiene puestas **no cambian de comportamiento** — los valores por defecto son exactamente lo
+que hacen hoy. El aspecto sí cambia, pero eso lo hace el dibujo nuevo, no la base, y es decisión suya.
+
+- **`maps_walls` y `maps_room_openings` ganan LAS MISMAS CUATRO COLUMNAS**, a propósito: una puerta de muro
+  suelto vive en una tabla y una de sala en la otra, y las dos ya llevaban `kind` e `is_open` en paralelo con
+  el mismo significado. Repetir el juego es lo que permite que el panel de la puerta y el disco de
+  abrir/cerrar sean **una sola pieza** para las dos — que es justo lo que hoy está roto.
+  - **Hojas** (`leaves`, 1 o 2, por defecto **1**): con dos se parte por la mitad y las dos giran a la vez.
+  - **Bisagra** (`hinge`, `start` o `end`, por defecto **`start`**): `start` es el extremo `(x1,y1)`, por donde
+    empezó a dibujar.
+  - **Lado** (`swing`, `left` o `right`, por defecto **`right`**): hacia dónde gira la hoja, medido sobre la
+    normal del segmento (`right` = +n con n = (-dy, dx), que es el lado hacia el que la saca hoy
+    `openingGeometry`). Se nombra por la **geometría** y no «adentro/afuera» a propósito: en un muro suelto
+    sobre una foto no hay dentro ni fuera, y el lado por defecto ya se decidió que fuese fijo, no calculado.
+  - **Color propio** (`door_color`, nulo por defecto): nulo = el de la escena, que es el caso normal.
+- **`maps_scenes` gana `door_color`** — el color de TODAS las puertas de la escena. **Nulo y no un hex
+  concreto**: nulo significa «el trazo del muro», que es de donde salen hoy. Clavar un color aquí obligaría a
+  que la base y el diseño dijeran lo mismo en dos sitios, y el día que el `.pen` cambie de tinta habría que
+  migrar todas las escenas para que no se quedaran con la vieja.
+- **Formas comprobadas en la base**: hojas fuera de {1,2}, bisagras y lados inventados y colores que no son un
+  hex (`rgb(1,2,3)`, `javascript:alert(1)`) los rechazan nueve `CHECK`, tres por tabla más el de la escena.
+- **Acceso: sin política nueva, porque las que hay ya lo dicen.** `maps_walls`, `maps_room_openings` y
+  `maps_scenes` tienen RLS activa con su `*_select` (el director siempre; el jugador si la escena le es
+  visible) y su `*_dm_write FOR ALL` — que es exactamente el reparto que piden estas columnas: **cómo es una
+  puerta lo decide quien levanta el mapa, y lo ve quien ve la escena**.
+- **Borrar una abertura de sala tampoco necesitó nada aquí**: la política es `FOR ALL` y el `GRANT` ya incluye
+  `DELETE` desde la rebanada 8. Lo que falta es que alguien llame a `removeRoomOpening`, y eso es código.
+- Realtime: las tres tablas ya estaban en la publicación. Sigue valiendo la regla de la rebanada 2 — lo que
+  cambia `visible_players` manda `walls.updated`, porque a un jugador no le llega el evento de un muro que
+  deja de poder ver.
+- Comprobado en local: `supabase db lint --local --level error` **limpio** y `npm run audit` **0 hard** (RLS
+  activa en las tres, ninguna política `TO anon`). Y `NOTIFY pgrst` al final de la migración, que sin él
+  PostgREST se queda con el esquema viejo y la pantalla sale vacía sin decir por qué.
 
 #### 🟠 Decisiones mías, revisables
 - **El lado por defecto es fijo, no calculado.** En una sala se podría deducir «hacia fuera», pero en un muro

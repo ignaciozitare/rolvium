@@ -49,7 +49,7 @@ y cerrar* · *tengo que poder elegir si la puerta es de una o dos hojas y si abr
 adentro o afuera (preseteado en algo, que no sea obligatorio configurarla)* · *si a la puerta se le puede
 poner un color o textura mejor*».
 
-**La captura** (Dungeon Scrawl): la puerta es una **barra hueca de esquinas redondeadas** que ocupa el hueco
+**La captura** (Dungeon Scrawl): la puerta es una **barra hueca de ÁNGULOS RECTOS** que ocupa el hueco
 del muro, con el trazo negro parándose a cada lado. Hoy se dibuja distinto —la línea del muro más dos
 marquitas en los extremos (`openingGeometry`, `mapRules.ts:224`)—, siempre de UNA hoja, con la bisagra
 siempre en el mismo extremo y abriendo siempre hacia el mismo lado.
@@ -63,8 +63,66 @@ siempre en el mismo extremo y abriendo siempre hacia el mismo lado.
 3. **Color/textura: uno para toda la escena, y por puerta si quiere cambiar una.**
 4. **Publicar lo de anoche ya**, sin esperar a las puertas. Hecho.
 
-**⏭️ SIGUIENTE PASO CONCRETO: el spec de las puertas**, y de ahí DBA → diseño en el `.pen` → construir.
-Ojo con el orden: es un cambio VISIBLE, así que el `.pen` va ANTES del código.
+**⏭️ SIGUIENTE PASO CONCRETO: el diseño de la puerta en el `.pen`.** El spec está cerrado y **el DBA ya está
+hecho** (bloque de abajo). Ojo con el orden: es un cambio VISIBLE, así que el `.pen` va ANTES del código.
+
+## 🚪 2026-09-07 (mediodía) — EL DBA DE LAS PUERTAS, HECHO · Y EL DISEÑO, PARADO ESPERÁNDOLE
+
+Rama **`feat/maps-puertas`** (sale de `main` = `fc01209`). **Sin commitear todavía.**
+
+### ✅ La migración: `supabase/migrations/20260907120000_maps_doors.sql`
+**Aplicada en local con `migration up`, NUNCA con `db:reset`** — sus 2 campañas, 3 usuarios, 7 texturas y 91
+salas siguen ahí, comprobado después de aplicarla.
+
+- **Las mismas cuatro columnas en `maps_walls` y en `maps_room_openings`**, a propósito: es lo que deja que el
+  panel de la puerta y el disco de abrir/cerrar sean UNA pieza para las dos, que es justo lo que hoy está roto.
+  **hojas** (`leaves`, 1|2, def. 1) · **bisagra** (`hinge`, start|end, def. start) · **lado** (`swing`,
+  left|right, def. right) · **color propio** (`door_color`, nulo = el de la escena).
+- **`maps_scenes.door_color`** — el color de todas las puertas de la escena. **Nulo y no un hex**: nulo
+  significa «el trazo del muro». Clavar un color aquí obligaría a que la base y el `.pen` dijeran lo mismo en
+  dos sitios, y el día que cambie la tinta habría que migrar todas las escenas.
+- `swing` se nombra por la **geometría** (`right` = +n con n = (-dy, dx), el lado hacia el que la saca hoy
+  `openingGeometry`) y no «adentro/afuera»: en un muro suelto sobre una foto no hay dentro ni fuera.
+- **Sus 7 puertas de hoy no cambian de comportamiento**: los valores por defecto son exactamente lo que hacen
+  ya. El ASPECTO sí cambiará, pero eso lo hace el dibujo nuevo y es decisión suya.
+- **Sin políticas nuevas**: las tres tablas ya tienen RLS con su `*_select` y su `*_dm_write FOR ALL`, que es
+  el reparto que estas columnas piden. **Borrar una abertura de sala tampoco necesitaba base**: la política es
+  `FOR ALL` y el GRANT ya incluye DELETE — falta que alguien llame a `removeRoomOpening`, y eso es código.
+- Comprobado: los **9 CHECK muerden** (hojas fuera de {1,2}, bisagras y lados inventados, `rgb(1,2,3)` y
+  `javascript:alert(1)` rechazados) y los valores buenos entran en las dos tablas ·
+  `supabase db lint --local --level error` **limpio** · `npm run audit` **0 hard** · `npm run typecheck` limpio.
+- `NOTIFY pgrst` al final, que sin él PostgREST se queda con el esquema viejo y la pantalla sale vacía.
+- `packages/shared-types/src/database.types.ts` regenerado: **+28 líneas y ninguna borrada**, sólo lo nuevo.
+- `specs/modules/maps/SPEC.md` — el «Modelo de datos» que decía «Pendiente, lo completa el DBA», relleno.
+
+### ✅ EL DISEÑO, APROBADO Y GUARDADO (2026-09-07, 13:58)
+Dos láminas nuevas en el `.pen`, al final de la fila «5 · LA ESCENA · mapas», en `x≈22100`:
+- **`wexID` · «PL/Puerta · el dibujo»** — ocho casillas: cerrada y abierta de una hoja, la bisagra en cada
+  extremo, abriendo a cada lado, cerrada y abierta de dos hojas, el color, y el disco.
+- **`phwDN` · «PL/Puerta · panel»** — HOJAS · BISAGRA · ABRE HACIA · COLOR, con vista previa y papelera.
+
+- 🔴 **CORRECCIÓN SUYA CON LA LÁMINA DELANTE: «*la puerta tiene que tener ángulos rectos no circulares*».**
+  El primer diseño llevaba cantos redondeados (venía del spec) y **está mal**. Ya cambiado en las dos láminas
+  y en el spec. Que no vuelva a colarse un `cornerRadius` en la puerta.
+- **REUSE, no invención**: el panel sale del molde de `LightEditor` / `PL/Builder · panel v3`. Lo activo va en
+  **`$pl-sangre`**, como los paneles nuevos del Builder — **no** en negro, que es el idioma viejo del panel de
+  luces (`o4oM8f`). El negro sigue siendo selección, la sangre acción.
+- **Sin variante clara/oscura, a propósito**: dentro de la mesa manda el tema del sistema (`--sys-*`), como
+  todas las demás láminas `PL/`.
+
+> 🪤 **LA TRAMPA DE ESTA SESIÓN, PARA NO REPETIRLA**: el MCP de Pencil no veía el fichero aunque `rolvium.pen`
+> estuviera abierto. El motivo es que **se engancha a UNA sola ventana de VS Code** (la que coge el socket
+> `~/.pencil/socket/`, que fue la tercera que abrió esa mañana), y había tres. Abrir el `.pen` desde la
+> terminal con el CLI **no sirve**. Si vuelve a pasar: mirar quién tiene dos descriptores del socket
+> (`lsof -U | grep pencil`) y abrir el `.pen` EN ESA ventana, o dejar una sola abierta.
+
+### ⏭️ SIGUIENTE: CONSTRUIR
+- El dibujo nuevo sustituye a `openingGeometry` (`mapRules.ts:224`) **para todas las puertas**.
+- El disco existe y funciona (`MapCanvas:1247`, `door_front`/`door_open`): hay que cambiar **a qué mira**
+  (`p.walls` en `MapCanvas:1046,1143`), no cómo se ve.
+- El panel de la puerta se hace copiando `LightEditor` (`useDragPanel`, X que cierra sin borrar, Escape).
+- **Borrar una abertura de sala**: `removeRoomOpening` ya existe en el puerto y en el repositorio y no la
+  llama nadie. Va en la papelera del panel.
 
 ## 🟢 2026-09-04 (noche) — EL FALLO DE «PEGADO A ALGO», CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO
 
