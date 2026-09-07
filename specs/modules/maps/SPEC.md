@@ -1624,6 +1624,71 @@ ponle el permiso al admin y los dms*».
 - 🟠 **Sin construir todavía**: no hay pantalla para cambiar el `tileCells` de una textura ya subida (las
   rescatadas por la migración entraron todas en `misc` con 4, porque adivinarlo sale mal más veces que bien).
 
+### 🚪 LAS PUERTAS, DE VERDAD (2026-09-07) — spec cerrado, SIN CONSTRUIR
+
+Encargo suyo, con captura de Dungeon Scrawl delante: «*las puertas se tienen que poner sobre un muro o un
+pasillo y aquí sí se tienen que ver para los jugadores. Las puertas se tienen que ver como en la captura. Y
+cuando el DM las abra se tienen que abrir y cerrar. Tengo que poder elegir si la puerta es de una o dos hojas
+y si abre para un lado o el otro, adentro o afuera (preseteado en algo, cosa de que no sea obligatorio
+configurarla). Si a la puerta se le puede poner un color o textura mejor*».
+
+**De dónde salió:** QA encontró que una puerta dibujada en una SALA nacía cerrada y no había forma de abrirla
+ni de borrarla. El disco de abrir/cerrar existe y funciona, pero busca en `p.walls` (`MapCanvas:1046,1143`) y
+las aberturas de sala viven en `maps_room_openings`, así que ahí no llegaba. Él convirtió el arreglo en un
+encargo mayor. ✅ Las VENTANAS de sala ya estaban bien: dejan ver y no dejan pasar, y no hay que abrirlas.
+
+#### El dibujo
+- **Cerrada**: una **barra hueca de esquinas redondeadas** que ocupa el hueco, con el trazo del muro
+  parándose a cada lado (las jambas). Es lo de la captura.
+- **Abierta**: la hoja **girada 90°** desde su bisagra, como un plano de arquitecto — enseña de un vistazo
+  hacia dónde abre. **Sin arco de barrido**: con muchas puertas juntas el mapa se llena de curvas (elegido
+  por él, 2026-09-07).
+- **Dos hojas**: se parte por la mitad y **las dos giran a la vez**, cada una desde su extremo. Un solo gesto
+  abre la puerta entera.
+- ⚠️ Esto **sustituye** al dibujo de hoy (`openingGeometry`, `mapRules.ts:224`: la línea del muro más dos
+  marquitas) **para TODAS las puertas**, las de sala y las de muro suelto. Él sabe que cambia el aspecto de
+  las que ya tiene puestas y lo prefiere a dos puertas distintas conviviendo en el mismo mapa.
+
+#### Lo que se puede elegir, y lo que vale por defecto
+| | Opciones | Por defecto |
+|---|---|---|
+| Hojas | una · dos | **una** |
+| Bisagra | un extremo · el otro | **el extremo por donde empezó a dibujar** |
+| Abre hacia | un lado · el otro | **un lado fijo**, se cambia de un clic |
+| Color | el de la escena · uno propio | **el de la escena** |
+
+🔑 **Configurarla NUNCA es obligatorio** (orden suya). Se dibuja y ya funciona; los cuatro ajustes están en el
+panel de la puerta seleccionada, cada uno a un clic. La bisagra y el lado son DOS interruptores, no un menú de
+cuatro combinaciones: es lo mismo y se entiende sin leer.
+
+#### Reglas
+- **Una puerta va SIEMPRE sobre un muro.** Dibujada donde no hay nada, no se guarda y avisa — con la franja
+  de «el gesto no levanta nada» que ya existe desde el arreglo de «pegado a algo».
+- **La puerta sigue la visibilidad de su muro** (elegido por él, y NO «se ve siempre»): si el muro está oculto
+  para los jugadores, la puerta también. En una SALA no hay interruptor de esconder, así que las de sala se
+  ven siempre de todas formas — que es lo que él pedía con «aquí sí se tienen que ver».
+- **Abrir y cerrar es del director**, con el mismo disco de siempre. Lo que hay que arreglar es que el disco
+  mire TAMBIÉN en las aberturas de sala, no sólo en `maps_walls`.
+- **Borrar una abertura de sala**, que hoy no se puede: `removeRoomOpening` ya existe en el puerto y en el
+  repositorio y no la llama nadie. Va en el panel, junto a los cuatro ajustes.
+- **Cerrada corta la vista y el paso. Abierta deja pasar las dos cosas.** No cambia: es lo que ya hace
+  `roomWalls` y lo pinean los tests de `packages/core/src/rooms.test.ts`.
+- **El color es de la ESCENA, con excepción por puerta** (elegido por él): por defecto todas iguales, y si una
+  es especial —la de hierro del jefe— se le cambia a esa sola.
+
+#### Modelo de datos
+> Pendiente — lo completa el DBA. Lo que se sabe: las mismas columnas nuevas en `maps_walls` y en
+> `maps_room_openings` (hojas, bisagra, lado, color propio), porque las dos ya llevan `kind` e `is_open` en
+> paralelo; más el color por defecto en `maps_scenes`. Todas aditivas y con valor por omisión, para que
+> ninguna puerta existente cambie de comportamiento.
+
+#### 🟠 Decisiones mías, revisables
+- **El lado por defecto es fijo, no calculado.** En una sala se podría deducir «hacia fuera», pero en un muro
+  suelto sobre una foto no hay dentro ni fuera, y dos comportamientos distintos para el mismo gesto se leen
+  como un fallo. Un clic lo cambia.
+- **La barra hueca se pinta con el color de la puerta y el trazo del muro**, no con una textura propia. Él
+  dijo «color o textura»; la textura se puede añadir después sobre la misma columna sin migrar otra vez.
+
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
   muros con `visible_players=false` no viajan al cliente del jugador (RLS). **Esta es la frontera de seguridad**: si la
