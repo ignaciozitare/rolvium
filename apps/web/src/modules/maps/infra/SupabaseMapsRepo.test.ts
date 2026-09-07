@@ -667,4 +667,16 @@ describe('SupabaseMapsRepo — cómo es cada puerta', () => {
     await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).updateScene('sc-1', { doorColor: '#8b1a1a' });
     expect(q(m)['update']).toHaveBeenCalledWith(expect.objectContaining({ door_color: '#8b1a1a' }));
   });
+
+  it('la TEXTURA de la puerta viaja igual, y una fila vieja se lee sin ella', async () => {
+    expect(mapWallRow(WALL_ROW).doorTextureUrl).toBeNull();
+    expect(mapWallRow({ ...WALL_ROW, door_texture_url: 'https://x/roble.png' }).doorTextureUrl).toBe('https://x/roble.png');
+    expect(mapSceneRow(SCENE_ROW).doorTextureUrl).toBeNull();
+    const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });
+    await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).updateWall('w-1', { doorTextureUrl: 'https://x/roble.png' });
+    expect(q(m)['update']).toHaveBeenCalledWith({ door_texture_url: 'https://x/roble.png' });
+    const e = createSupabaseMock({ tables: { maps_scenes: { data: null, error: null } } });
+    await new SupabaseMapsRepo(e.client as unknown as SupabaseClient).updateScene('sc-1', { doorTextureUrl: null });
+    expect(q(e)['update']).toHaveBeenCalledWith(expect.objectContaining({ door_texture_url: null }));
+  });
 });

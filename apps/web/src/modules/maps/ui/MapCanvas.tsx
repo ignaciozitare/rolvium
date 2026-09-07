@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Segment, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, doorTexturesUsed, type Point, type Segment, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
-import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
+import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
 import { ringFromSides, roomWallsOf } from '../domain/useCases/roomStyles';
 import { roomMoveSegments } from '@rolvium/core';
@@ -65,6 +65,13 @@ interface Props {
   roomOpenings?: RoomOpening[];
   /** En qué modo está Builder. Sin él, todo sigue funcionando como el modo «sobre una foto» de siempre. */
   builderMode?: BuilderMode;
+  /**
+   * QUÉ SE ESTÁ LEVANTANDO en el constructor de salas. Es OTRA cosa que `wallKind`, que es la clase del modo
+   * «sobre una foto»: en el constructor la clase vive aquí. Sin este dato el lienzo creía que siempre estaba
+   * poniendo un MURO y encadenaba —suyo, 2026-09-07: «*si pongo una puerta me haces poner otra puerta al
+   * lado como si fuera un muro del modo fotos*».
+   */
+  buildKind?: BuildKind;
   onAddRoomShape?: (shape: RoomShapeKind, points: [number, number][]) => void;
   /**
    * EL GESTO NO LEVANTÓ NADA, y hay que decirlo. Sin esto el fallo era mudo: se arrastraba corto, no aparecía
@@ -492,7 +499,19 @@ export function MapCanvas(p: Props): JSX.Element {
        * un pelo fuera de su disco COLOCA otra luz en vez de abrir la que querías — así que en la práctica no
        * había forma fiable de volver a una. Va antes que el muro porque es un blanco pequeño y encima de él.
        */
-      const light = dmSight ? lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12 / p.view.zoom, lightRadiusPx(l, p.scene.grid) * 0.25)) : null;
+      /**
+       * 🐞 …PERO NO SI DEBAJO HAY UN MURO O UN VANO (dueño, 2026-09-07: «*cuando hago click en una puerta me
+       * abre el modal de las luces*»).
+       *
+       * La generosidad de arriba es un CUARTO DEL RADIO de la luz, y el radio de una luz de ambiente grande
+       * son cientos de píxeles: dentro de ese círculo la luz se comía el clic de todo lo que hubiera debajo,
+       * y una puerta bajo una antorcha no se podía ni elegir ni configurar. Con algo debajo, la luz vuelve a
+       * exigir su disco de verdad (12 px), que es lo que se ve; en el vacío sigue perdonando como antes.
+       */
+      const debajo = dmSight ? (hitWall(p.walls, s, 10 / p.view.zoom) ?? hitWall(p.roomOpenings ?? [], s, 10 / p.view.zoom)) : null;
+      const holguraLuz = (l: Light): number =>
+        (debajo ? 12 / p.view.zoom : Math.max(12 / p.view.zoom, lightRadiusPx(l, p.scene.grid) * 0.25));
+      const light = dmSight ? lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= holguraLuz(l)) : null;
       if (light) {
         p.onSelectToken(null);
         p.onSelectWall?.(null);
@@ -726,8 +745,15 @@ export function MapCanvas(p: Props): JSX.Element {
         const q = anclar(s, undefined, wallStart);
         if (wallStart) {
           p.onAddWall(wallStart, q);
-          // A door or a window is ONE segment: chaining would drop a second one where you did not ask for it.
-          setWallStart(p.wallKind && p.wallKind !== 'wall' ? null : q);
+          /**
+           * UNA PUERTA O UNA VENTANA ES UN SOLO TRAMO: encadenar dejaría caer otra donde nadie la pidió.
+           *
+           * Y hay que mirar la clase QUE SE ESTÁ COLOCANDO, no siempre `wallKind`. En el constructor de salas
+           * la clase es `buildKind`; mirando sólo `wallKind` —que allí sigue valiendo «muro»— la puerta de
+           * sala SÍ encadenaba, y salía una segunda pegada a la primera (suyo, 2026-09-07).
+           */
+          const colocando = p.builderMode === 'draw' ? p.buildKind : p.wallKind;
+          setWallStart(colocando && colocando !== 'wall' ? null : q);
           return;
         }
         setWallStart(q);
@@ -989,7 +1015,13 @@ export function MapCanvas(p: Props): JSX.Element {
        * media quieta es un hueco, y es el mismo agujero por el que se colaba la visión con `addRoom`.
        */
       const cadena = p.chainNodes === false ? [] : chainWalls(p.walls, gesture.id, gesture.origin, at, gesture.grab);
-      if (!viajó && gesture.dbl) p.onSplitWall?.(gesture.id, gesture.start);
+      /**
+       * EL NODO POR DOBLE CLIC ES SÓLO DE UN MURO (dueño, 2026-09-07: «*por qué si le doy doble click a una
+       * puerta me crea un nodo al medio, eso es solo para los muros*»). Partir una puerta por la mitad deja
+       * dos medias puertas, que no es nada: un vano es UNA cosa de A a B. Los muros no se tocan.
+       */
+      const partible = p.walls.find(w => w.id === gesture.id)?.kind === 'wall';
+      if (!viajó && gesture.dbl && partible) p.onSplitWall?.(gesture.id, gesture.start);
       else if (moved && cadena.length) p.onTransformWalls?.([{ id: gesture.id, ...at }, ...cadena]);
       else if (moved) p.onMoveWall?.(gesture.id, at);
       setGroupDraft(null);
@@ -1194,6 +1226,11 @@ export function MapCanvas(p: Props): JSX.Element {
       <defs>
         <clipPath id={clipId}><rect x={0} y={0} width={p.scene.width} height={p.scene.height} /></clipPath>
         {fog && <FogMasks scene={p.scene} fog={fog} ids={fogIds} />}
+        {/*
+          * Los mosaicos de las puertas, uno por textura distinta de la escena — de los muros Y de las salas,
+          * porque las dos clases de puerta se pintan con el mismo trazo y piden el mismo `<pattern>`.
+          */}
+        <DoorTextureDefs urls={doorTexturesUsed([...wallsShown, ...roomOpenings], p.scene)} grid={p.scene.grid.size} />
       </defs>
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
         <g className="mp-layer-map" {...(playerSight ? { mask: url(fogIds.seen) } : {})} data-testid="mp-map">
@@ -1213,7 +1250,7 @@ export function MapCanvas(p: Props): JSX.Element {
           {dmSight && fog && p.fogVeil !== false && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
             {wallsShown.map(w => (
-              <WallShape key={w.id} wall={w} sceneDoorColor={p.scene.doorColor}
+              <WallShape key={w.id} wall={w} sceneDoorColor={p.scene.doorColor} sceneDoorTexture={p.scene.doorTextureUrl}
                 selected={w.id === p.selectedWallId || (p.selectedWallIds ?? []).includes(w.id)}
                 draft={groupDraft?.get(w.id) ?? (wallDraft && w.id === p.selectedWallId ? wallDraft : null)} />
             ))}

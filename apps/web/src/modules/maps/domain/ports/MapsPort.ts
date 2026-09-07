@@ -5,10 +5,10 @@ import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, L
  * Lo que se edita de un vano: si está abierto, qué es, y —desde «Las puertas, de verdad»— cómo es la puerta.
  * Su sitio no cambia: para eso se mueve la forma.
  *
- * Las cuatro de la puerta son LAS MISMAS que las de `WallPatch` a propósito: el panel que las toca es uno
+ * Las de la puerta son LAS MISMAS que las de `WallPatch` a propósito: el panel que las toca es uno
  * solo para las dos, que es lo que arregla que una puerta de sala no se pudiera ni abrir ni borrar.
  */
-export type RoomOpeningPatch = Partial<Pick<RoomOpening, 'kind' | 'isOpen' | 'leaves' | 'hinge' | 'swing' | 'doorColor'>>;
+export type RoomOpeningPatch = Partial<Pick<RoomOpening, 'kind' | 'isOpen' | 'leaves' | 'hinge' | 'swing' | 'doorColor' | 'doorTextureUrl'>>;
 
 export type Unsubscribe = () => void;
 

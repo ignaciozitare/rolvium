@@ -4,6 +4,7 @@ import * as core from '@rolvium/core';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { Room, RoomOpening, Scene } from '../domain/entities/Scene';
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
+import { DOOR_BAR_PX } from '../domain/useCases/mapRules';
 
 /**
  * LO QUE SE PINTA CUANDO SE LEVANTA UNA SALA (§ «Cómo se levanta una sala»).
@@ -16,7 +17,7 @@ import { RoomsLayer, roomMaskIds } from './roomsLayer';
 const SCENE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Cripta', width: 600, height: 400, bgColor: '#111111', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 30, visible: true }, fogMode: 'vision',
-  lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null,
+  lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null, doorTextureUrl: null,
   roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
   createdAt: '', updatedAt: '',
 };
@@ -219,12 +220,39 @@ describe('<RoomsLayer> — los vanos, anotados sobre el contorno', () => {
     const q = hoja()!;
     expect(q).toBeInTheDocument();
     expect(screen.getByTestId('mp-room-doors').querySelector('[data-opening-id="o1"]')!.getAttribute('data-open')).toBe('false');
-    // Cerrada la barra va A LO LARGO del muro: sus cuatro esquinas cubren el alto del vano (150→210).
+    /**
+     * Cerrada la barra va A LO LARGO del muro, pero SIN pegarse a él: deja un trocito de muro a cada lado
+     * (suyo, 2026-09-07). Así que cae DENTRO del vano (150→210), no de punta a punta.
+     */
     const ys = q.getAttribute('points')!.split(' ').map(p => Number(p.split(',')[1]));
-    expect(Math.min(...ys)).toBeCloseTo(150, 1);
-    expect(Math.max(...ys)).toBeCloseTo(210, 1);
+    expect(Math.min(...ys)).toBeGreaterThan(150);
+    expect(Math.max(...ys)).toBeLessThan(210);
+    // Y los dos trocitos están pintados, uno por lado.
+    expect(screen.getByTestId('mp-room-doors').querySelectorAll('[data-opening-id="o1"] .mp-door-stub')).toHaveLength(2);
     // Una hoja: un solo polígono.
     expect(hoja(1)).toBeNull();
+  });
+
+  /**
+   * LA DE SALA SE PINTA IGUAL QUE LA DE UN MURO SUELTO, y este test está para que nadie vuelva a afinarla
+   * sólo aquí. Se probaron tres variantes propias —a lo ancho de la roca, a dos tercios, y con el trazo
+   * encogido— y él las tumbó las tres mirándolas: «*¿por qué no pones las puertas anchas como en el modo
+   * foto? y te pedí que dejes los trozos de pared al costado*» (2026-09-07). El modo foto le vale tal cual.
+   */
+  const anchoHoja = (): number => { const xs = puntos(hoja()!).map(([x]) => x); return Math.max(...xs) - Math.min(...xs); };
+
+  it('la hoja va al ancho del modo foto, no a uno propio de las salas', () => {
+    mount([room('r1', 60, 60, 300, 300)], [opening()]);
+    expect(anchoHoja()).toBeCloseTo(DOOR_BAR_PX, 1);
+  });
+
+  it('los dos trocitos de pared de los costados se pintan, y con el mismo estilo que en un muro suelto', () => {
+    mount([room('r1', 60, 60, 300, 300)], [opening()]);
+    const trocitos = screen.getByTestId('mp-room-doors').querySelectorAll<SVGElement>('[data-opening-id="o1"] .mp-door-stub');
+    expect(trocitos).toHaveLength(2);
+    // Sin estilo propio encima: mandan `.mp-door-stub` y `.mp-door-leaf`, que son los del modo foto.
+    expect(trocitos[0]!.getAttribute('style')).toBeNull();
+    expect(hoja()!.getAttribute('style')).toBeNull();
   });
 
   it('abierta, la hoja gira 90° desde su bisagra y ahí ya no hay muro', () => {
@@ -234,7 +262,10 @@ describe('<RoomsLayer> — los vanos, anotados sobre el contorno', () => {
     // Girada, la hoja ya NO recorre el vano: arranca en la bisagra (y = 150) y se sale del muro en x.
     const pts = puntos(q);
     expect(Math.max(...pts.map(p => p[1]))).toBeLessThan(210);
-    expect(Math.max(...pts.map(p => p[0])) - Math.min(...pts.map(p => p[0]))).toBeCloseTo(60, 1);
+    // Sale perpendicular lo que mide la hoja: el vano (60) menos los dos trocitos de muro, así que menos.
+    const ancho = Math.max(...pts.map(p => p[0])) - Math.min(...pts.map(p => p[0]));
+    expect(ancho).toBeGreaterThan(0);
+    expect(ancho).toBeLessThan(60);
     // El tramo del vano no está en el camino de la roca: por ahí se pasa y se ve.
     expect(screen.getByTestId('mp-room-wall').getAttribute('d') ?? '').not.toContain('M 300 150 L 300 210');
   });
@@ -245,18 +276,69 @@ describe('<RoomsLayer> — los vanos, anotados sobre el contorno', () => {
       const pts = puntos(hoja(i)!);
       return Math.max(...pts.map(p => p[1])) - Math.min(...pts.map(p => p[1]));
     };
-    expect(largo(0)).toBeCloseTo(30, 1);
-    expect(largo(1)).toBeCloseTo(30, 1);
+    // Media hoja cada una: lo que mide la puerta (el vano menos los dos trocitos), partido por dos.
+    expect(largo(0)).toBeCloseTo(largo(1), 1);
+    expect(largo(0)).toBeGreaterThan(0);
+    expect(largo(0) + largo(1)).toBeLessThan(60);
   });
 
-  it('el color propio de la puerta manda sobre el de la escena', () => {
+  it('el color propio de la puerta manda sobre el de la escena, y RELLENA', () => {
     mount([room('r1', 60, 60, 300, 300)], [opening({ doorColor: '#8b1a1a' })]);
-    expect(hoja()!.getAttribute('style')).toContain('8b1a1a');
+    const estilo = hoja()!.getAttribute('style')!;
+    expect(estilo).toContain('8b1a1a');
+    expect(estilo).toContain('fill');
+  });
+
+  it('una puerta de sala también acepta textura, y la textura manda sobre el color', () => {
+    mount([room('r1', 60, 60, 300, 300)], [opening({ doorColor: '#8b1a1a', doorTextureUrl: 'https://x/roble.png' })]);
+    expect(hoja()!.getAttribute('style')).toContain('url(#');
+    expect(hoja()!.getAttribute('data-textured')).toBe('true');
   });
 
   it('una ventana lleva su travesaño', () => {
     mount([room('r1', 60, 60, 300, 300)], [opening({ kind: 'window' })]);
     expect(screen.getByTestId('mp-room-window')).toBeInTheDocument();
+  });
+
+  /**
+   * ⚠️ Y LA QUE NO CAYÓ EN EL CONTORNO SE PINTA IGUAL, DONDE ÉL LA PUSO.
+   *
+   * 🐞 Ésta era «*no pone las puertas*» (2026-09-07): `roomWalls` sólo anota los vanos cuyas DOS puntas
+   * rozan un lado del contorno, así que una puerta puesta a mano a un pelo de la pared se guardaba y **no
+   * se dibujaba**. Y la salida NO es exigirle que exista un muro —corrección suya: «*en el constructor de
+   * habitaciones no funciona así*»—, es dibujarla igual.
+   *
+   * Estos tres tests son el pin: sin la rama de `roomsLayer` la primera no aparece, y sin el `Set` de las
+   * que sí cayeron en el contorno la tercera saldría pintada dos veces.
+   */
+  /** En mitad del suelo de la sala (60,60)-(300,300): no roza ningún lado. */
+  const suelta = (over: Partial<RoomOpening> = {}): RoomOpening =>
+    opening({ id: 'o2', x1: 150, y1: 150, x2: 210, y2: 150, ...over });
+  const vano = (id: string) => screen.getByTestId('mp-room-doors').querySelectorAll(`[data-opening-id="${id}"]`);
+
+  it('una puerta que NO cae en el contorno se dibuja igual, y donde él la puso', () => {
+    mount([room('r1', 60, 60, 300, 300)], [suelta()]);
+    expect(vano('o2')).toHaveLength(1);
+    const q = screen.getByTestId('mp-room-doors').querySelector('[data-opening-id="o2"] [data-leaf="0"]')!;
+    // Su sitio es el suyo, no el de ninguna pared: la barra va a lo largo del trazo (x 150→210) y su
+    // grosor cae en perpendicular, repartido a los dos lados de y = 150.
+    const pts = q.getAttribute('points')!.split(' ').map(p => p.split(',').map(Number) as [number, number]);
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    expect(Math.min(...xs)).toBeGreaterThan(150);
+    expect(Math.max(...xs)).toBeLessThan(210);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(DOOR_BAR_PX, 1);
+    // Y con sus dos trocitos de muro, exactamente igual que una que sí cayó en el contorno.
+    expect(screen.getByTestId('mp-room-doors').querySelectorAll('[data-opening-id="o2"] .mp-door-stub')).toHaveLength(2);
+  });
+
+  it('la que sí cae en el contorno se pinta UNA vez, no dos', () => {
+    mount([room('r1', 60, 60, 300, 300)], [opening()]);
+    expect(vano('o1')).toHaveLength(1);
+  });
+
+  it('una VENTANA fuera del contorno no se dibuja: el repesque es sólo de puertas', () => {
+    mount([room('r1', 60, 60, 300, 300)], [suelta({ kind: 'window' })]);
+    expect(vano('o2')).toHaveLength(0);
   });
 });
 

@@ -67,11 +67,13 @@ export interface Scene {
    * defecto todas iguales, con excepción por puerta.
    */
   doorColor: string | null;
+  /** La textura por defecto de TODAS las puertas de la escena. `null` = sin textura: manda el color. */
+  doorTextureUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor'>>;
+export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor' | 'doorTextureUrl'>>;
 
 // ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps) ───────────────────────────
 // Espejo de `supabase/migrations/20260907120000_maps_doors.sql`.
@@ -98,11 +100,19 @@ export interface DoorSettings {
   swing: DoorSwing;
   /** `null` = el de la escena (`Scene.doorColor`), que es el caso normal y el de todas las que ya existen. */
   doorColor: string | null;
+  /**
+   * Textura propia de ESTA puerta — una url del catálogo (`maps_textures`), no un fichero nuevo: las
+   * texturas son de la herramienta y ya se suben y se ordenan en un sitio. `null` = la de la escena.
+   *
+   * ⚠️ MANDA SOBRE EL COLOR: si hay textura, el color no se ve. Pedido suyo del 2026-09-07 probándolo.
+   */
+  doorTextureUrl: string | null;
 }
-export const DEFAULT_DOOR: DoorSettings = { leaves: 1, hinge: 'start', swing: 'right', doorColor: null };
+export const DEFAULT_DOOR: DoorSettings = { leaves: 1, hinge: 'start', swing: 'right', doorColor: null, doorTextureUrl: null };
 export const DOOR_LEAVES: DoorLeaves[] = [1, 2];
 export const DOOR_HINGES: DoorHinge[] = ['start', 'end'];
-export const DOOR_SWINGS: DoorSwing[] = ['left', 'right'];
+/** `right` primero: es el de fábrica, y en pantalla se lee «Un lado · El otro», no al revés. */
+export const DOOR_SWINGS: DoorSwing[] = ['right', 'left'];
 
 /** What a segment is. The three types collapse into two flags — see `blocksSightNow` / `blocksMoveNow` in mapRules. */
 export type WallKind = 'wall' | 'door' | 'window';
@@ -134,7 +144,7 @@ export interface Wall extends DoorSettings {
  * pase se queda con `DEFAULT_DOOR` — que es lo que la base pone por omisión.
  */
 export type NewWall = Omit<Wall, 'id' | 'groupId' | keyof DoorSettings> & { groupId?: string | null } & Partial<DoorSettings>;
-export type WallPatch = Partial<Pick<Wall, 'visiblePlayers' | 'kind' | 'blocksSight' | 'blocksMove' | 'isOpen' | 'leaves' | 'hinge' | 'swing' | 'doorColor'>>;
+export type WallPatch = Partial<Pick<Wall, 'visiblePlayers' | 'kind' | 'blocksSight' | 'blocksMove' | 'isOpen' | 'leaves' | 'hinge' | 'swing' | 'doorColor' | 'doorTextureUrl'>>;
 
 /** A PC or a bestiary instance. `x`/`y`/`size` are in grid cells (top-left cell). */
 export interface Token {

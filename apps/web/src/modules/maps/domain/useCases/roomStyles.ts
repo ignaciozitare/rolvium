@@ -175,6 +175,50 @@ export const spansOf = (openings: readonly RoomOpening[]): RoomOpeningSpan[] =>
  * La caché es de UNA entrada y va por identidad de las listas: en cuanto React entrega otras —porque una sala
  * cambió— se recalcula. No hay nada que invalidar a mano ni forma de que se quede vieja.
  */
+/**
+ * EL VANO SE ENGANCHA A LA PARED MÁS CERCANA, o no se pone.
+ *
+ * 🐞 Suyo, 2026-09-07 con la app delante: «*no pone las puertas*». Y no era que no se guardaran: es que al
+ * PINTAR, `roomWalls` sólo se queda con los vanos cuyas DOS puntas caen a menos de `ROOM_EPS * 4` = **2 px**
+ * de un lado del contorno. A mano eso es una lotería, así que la fila se guardaba y no aparecía nada.
+ *
+ * La regla del spec es «*una puerta va SIEMPRE sobre un muro*», y la forma de cumplirla no es exigirle
+ * puntería de 2 px: es PROYECTAR el trazo sobre la pared que tenía a la vista —que es justo lo que
+ * `planOpening` hace desde la rebanada 2 con los muros marcados sobre una foto— y rechazarlo sólo cuando no
+ * hay ninguna cerca. Media casilla de tolerancia: lo que se perdona al arrastrar a lo largo de una pared.
+ *
+ * Devuelve el vano YA PUESTO SOBRE la pared, o `null` si ahí no había ninguna.
+ */
+export function snapSpanToOutline(rooms: readonly Room[], span: RoomOpeningSpan, tol: number): RoomOpeningSpan | null {
+  const a = { x: span.x1, y: span.y1 }, b = { x: span.x2, y: span.y2 };
+  /** El punto de `seg` más cercano a `p`, sin salirse del tramo. */
+  const clavar = (p: { x: number; y: number }, seg: BlockSegment): { x: number; y: number } => {
+    const [sx, sy, ex, ey] = seg;
+    const dx = ex - sx, dy = ey - sy;
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return { x: sx, y: sy };
+    const t = Math.max(0, Math.min(1, ((p.x - sx) * dx + (p.y - sy) * dy) / len2));
+    return { x: sx + dx * t, y: sy + dy * t };
+  };
+  const lejos = (p: { x: number; y: number }, seg: BlockSegment): number => {
+    const q = clavar(p, seg);
+    return Math.hypot(p.x - q.x, p.y - q.y);
+  };
+  let mejor: BlockSegment | null = null;
+  let mejorD = Infinity;
+  // Las DOS puntas tienen que estar cerca de la MISMA pared: con el máximo, un trazo cruzando el suelo en
+  // diagonal no se engancha a la primera pared que roce por un extremo.
+  for (const w of roomWalls(partsOf(rooms))) {
+    const d = Math.max(lejos(a, w.seg), lejos(b, w.seg));
+    if (d < mejorD) { mejorD = d; mejor = w.seg; }
+  }
+  if (!mejor || mejorD > tol) return null;
+  const pa = clavar(a, mejor), pb = clavar(b, mejor);
+  // Proyectado puede quedarse en nada (un trazo perpendicular a la pared): eso no es un vano.
+  if (Math.hypot(pb.x - pa.x, pb.y - pa.y) < 1) return null;
+  return { ...span, x1: pa.x, y1: pa.y, x2: pb.x, y2: pb.y };
+}
+
 let cacheSalas: { rooms: unknown; openings: unknown; walls: RoomWall[] } | null = null;
 export function roomWallsOf(rooms: readonly Room[], openings: readonly RoomOpening[]): RoomWall[] {
   if (cacheSalas && cacheSalas.rooms === rooms && cacheSalas.openings === openings) return cacheSalas.walls;

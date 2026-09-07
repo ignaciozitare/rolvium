@@ -1161,6 +1161,7 @@ export type Database = {
           campaign_id: string
           created_at: string
           door_color: string | null
+          door_texture_url: string | null
           hinge: string
           id: string
           is_open: boolean
@@ -1178,6 +1179,7 @@ export type Database = {
           campaign_id: string
           created_at?: string
           door_color?: string | null
+          door_texture_url?: string | null
           hinge?: string
           id?: string
           is_open?: boolean
@@ -1195,6 +1197,7 @@ export type Database = {
           campaign_id?: string
           created_at?: string
           door_color?: string | null
+          door_texture_url?: string | null
           hinge?: string
           id?: string
           is_open?: boolean
@@ -1389,6 +1392,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           door_color: string | null
+          door_texture_url: string | null
           floor_texture_scale: number
           floor_texture_url: string | null
           fog_mode: string
@@ -1416,6 +1420,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           door_color?: string | null
+          door_texture_url?: string | null
           floor_texture_scale?: number
           floor_texture_url?: string | null
           fog_mode?: string
@@ -1443,6 +1448,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           door_color?: string | null
+          door_texture_url?: string | null
           floor_texture_scale?: number
           floor_texture_url?: string | null
           fog_mode?: string
@@ -1636,6 +1642,7 @@ export type Database = {
           campaign_id: string
           created_at: string
           door_color: string | null
+          door_texture_url: string | null
           group_id: string | null
           hinge: string
           id: string
@@ -1656,6 +1663,7 @@ export type Database = {
           campaign_id: string
           created_at?: string
           door_color?: string | null
+          door_texture_url?: string | null
           group_id?: string | null
           hinge?: string
           id?: string
@@ -1676,6 +1684,7 @@ export type Database = {
           campaign_id?: string
           created_at?: string
           door_color?: string | null
+          door_texture_url?: string | null
           group_id?: string | null
           hinge?: string
           id?: string

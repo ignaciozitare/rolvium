@@ -30,9 +30,12 @@ const VISION_DRAG_HZ_MS = 140; // ~7 Hz
 const VISION_CONTACT_HZ_MS = 50; // ~20 Hz
 /**
  * Lo que en un muro es SÓLO cómo se ve, y por tanto no obliga a volver a preguntar la visión al servidor.
- * Las cuatro son las de la puerta (§ «Las puertas, de verdad»): ninguna mueve una línea de vista.
+ * Son las de la puerta (§ «Las puertas, de verdad»): ninguna mueve una línea de vista.
+ *
+ * ⚠️ AL AÑADIR UNA COLUMNA DE PUERTA, AÑÁDELA AQUÍ. Quedarse fuera no rompe nada visible: sólo hace que
+ * cada clic en ese control gaste una vuelta al servidor de balde. Le pasó a `doorTextureUrl` el 2026-09-07.
  */
-const SOLO_APARIENCIA: (keyof WallPatch)[] = ['leaves', 'hinge', 'swing', 'doorColor'];
+const SOLO_APARIENCIA: (keyof WallPatch)[] = ['leaves', 'hinge', 'swing', 'doorColor', 'doorTextureUrl'];
 
 /**
  * Loads a scene's tokens/walls/drawings, follows the scene channel and exposes the actions the
@@ -71,6 +74,9 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    */
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomOpenings, setRoomOpenings] = useState<RoomOpening[]>([]);
+  /** La lista viva de vanos, para que un paso de deshacer sepa qué había justo antes de borrar. */
+  const roomOpeningsRef = useRef<RoomOpening[]>([]);
+  roomOpeningsRef.current = roomOpenings;
   roomsRef.current = rooms;
   const [live, setLive] = useState<Scene | null>(scene);
   const [drags, setDrags] = useState<Record<string, LiveDrag>>({});
@@ -621,11 +627,25 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    */
   const addRoomOpening = useCallback(async (o: Omit<NewRoomOpening, 'sceneId' | 'campaignId'>) => {
     if (!sceneId || !live) return null;
-    const created = await repo.addRoomOpening({ ...o, sceneId, campaignId: live.campaignId });
+    const input: NewRoomOpening = { ...o, sceneId, campaignId: live.campaignId };
+    const created = await repo.addRoomOpening(input);
     setRoomOpenings(l => (l.some(x => x.id === created.id) ? l : [...l, created]));
     announceVision();
+    /**
+     * 🐞 Y APILA SU PASO DE DESHACER, que no lo hacía: «*el ctrl+z no funciona con las puertas*» (suyo,
+     * 2026-09-07). Un vano de sala era lo único que se dibujaba en Builder sin pasar por el historial, así
+     * que Ctrl+Z se saltaba la puerta y deshacía lo anterior — peor que no hacer nada.
+     *
+     * El id es NUEVO al rehacer: la fila anterior ya no existe. Se guarda el vivo, como en `addRoomShape`.
+     */
+    let vivo = created;
+    push({
+      label: o.kind === 'window' ? 'maps.history.window' : 'maps.history.door',
+      undo: async () => { setRoomOpenings(l => l.filter(x => x.id !== vivo.id)); await repo.removeRoomOpening(vivo.id); announceVision(); },
+      redo: async () => { vivo = await repo.addRoomOpening(input); setRoomOpenings(l => [...l, vivo]); announceVision(); },
+    });
     return created;
-  }, [repo, sceneId, live, announceVision]);
+  }, [repo, sceneId, live, push, announceVision]);
 
   const toggleRoomOpening = useCallback(async (id: string, isOpen: boolean) => {
     setRoomOpenings(l => l.map(o => (o.id === id ? { ...o, isOpen } : o)));
@@ -635,7 +655,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   /**
    * CÓMO ES UNA PUERTA DE SALA. Igual que `patchWall` con las suyas, y por el mismo motivo no pide visión:
-   * las cuatro son apariencia. Abrirla y cerrarla sigue siendo `toggleRoomOpening`, que sí la pide.
+   * todas son apariencia. Abrirla y cerrarla sigue siendo `toggleRoomOpening`, que sí la pide.
    */
   const patchRoomOpening = useCallback(async (id: string, patch: Partial<DoorSettings>) => {
     setRoomOpenings(l => l.map(o => (o.id === id ? { ...o, ...patch } : o)));
@@ -643,10 +663,24 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   }, [repo]);
 
   const removeRoomOpening = useCallback(async (id: string) => {
+    const antes = roomOpeningsRef.current.find(o => o.id === id);
     setRoomOpenings(l => l.filter(o => o.id !== id));
     await repo.removeRoomOpening(id);
     announceVision();
-  }, [repo, announceVision]);
+    // Borrar una puerta también se deshace: es la otra mitad de lo mismo.
+    if (!antes || !sceneId || !live) return;
+    let vivo = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => {
+        const { id: _viejo, ...sinId } = vivo;
+        vivo = await repo.addRoomOpening(sinId);
+        setRoomOpenings(l => [...l, vivo]);
+        announceVision();
+      },
+      redo: async () => { setRoomOpenings(l => l.filter(o => o.id !== vivo.id)); await repo.removeRoomOpening(vivo.id); announceVision(); },
+    });
+  }, [repo, sceneId, live, push, announceVision]);
 
   const removeWalls = useCallback(async (ids: string[]) => {
     const antes = wallsRef.current.filter(w => ids.includes(w.id)).map(w => ({ ...w }));
@@ -742,7 +776,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     setWalls(l => l.map(w => (w.id === id ? { ...w, ...patch } : w)));
     await repo.updateWall(id, patch);
     /**
-     * Las cuatro de la puerta —hojas, bisagra, lado y color— son APARIENCIA: no mueven una sola línea de
+     * Las de la puerta —hojas, bisagra, lado, color y textura— son APARIENCIA: no mueven una sola línea de
      * vista. Pedir visión por cada clic en el color sería una vuelta al servidor de balde, y él ya se quejó
      * una vez de que «está todo lentísimo». Lo que sí cambia lo que se ve es abrirla, y eso es `isOpen`.
      * A los jugadores el aspecto nuevo les llega igual, por el aviso de fila de `maps_walls`.

@@ -3,6 +3,7 @@ import { renderWithProviders, screen, within, fireEvent } from '../../../../test
 import userEvent from '@testing-library/user-event';
 import { WALL_1, WALL_DOOR } from '../../../../tests/helpers/fakes';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
+import { DOOR_COLORS } from '../domain/useCases/mapRules';
 import { BuilderPanel } from './BuilderPanel';
 
 // jsdom no trae PointerEvent: un MouseEvent con pointerId basta para los gestos, como en LightEditor.test.
@@ -370,9 +371,97 @@ describe('<BuilderPanel> qué levanto: sala o muro', () => {
  * que no sea obligatorio configurarla)*». Y el mismo panel sirve para una puerta de SALA, que es lo que
  * arregla el fallo de origen: una puerta dibujada en una sala no se podía ni abrir ni borrar.
  */
+/**
+ * «*dejaste como opciones el a mano, recta, círculo etc, en una puerta o ventana no tiene sentido*»
+ * (suyo, 2026-09-07 con la app delante). Un vano es siempre un tramo recto de A a B.
+ */
+describe('<BuilderPanel> las formas NO salen con una puerta o una ventana', () => {
+  it('dibujando aquí: con SALA o MURO sí, con PUERTA y VENTANA no', () => {
+    const { re } = mount({ mode: 'draw', buildKind: 'room' });
+    expect(screen.getByRole('radiogroup', { name: 'Con qué forma' })).toBeInTheDocument();
+    re({ mode: 'draw', buildKind: 'wall' });
+    expect(screen.getByRole('radiogroup', { name: 'Con qué forma' })).toBeInTheDocument();
+    for (const k of ['door', 'window'] as const) {
+      re({ mode: 'draw', buildKind: k });
+      expect(screen.queryByRole('radiogroup', { name: 'Con qué forma' })).not.toBeInTheDocument();
+    }
+  });
+
+  it('con un vano no queda NADA de muro ni de sala: ni estilo, ni texturas base, ni grosor', () => {
+    const { re } = mount({ mode: 'draw', buildKind: 'room', onPreset: vi.fn(), onTexture: vi.fn(), onThickness: vi.fn() });
+    expect(screen.getByText('Estilo de la mazmorra')).toBeInTheDocument();
+    expect(screen.getByText('Las dos texturas base')).toBeInTheDocument();
+    re({ mode: 'draw', buildKind: 'door', onPreset: vi.fn(), onTexture: vi.fn(), onThickness: vi.fn() });
+    expect(screen.queryByText('Estilo de la mazmorra')).not.toBeInTheDocument();
+    expect(screen.queryByText('Las dos texturas base')).not.toBeInTheDocument();
+    expect(screen.queryByText('Grosor del muro')).not.toBeInTheDocument();
+    // Pero lo que SÍ vale para dibujar un vano se queda: la rejilla y los nodos.
+    expect(screen.getByText('Pegar a la rejilla')).toBeInTheDocument();
+  });
+
+  it('y marcando sobre una foto, lo mismo: manda `kind`', () => {
+    const { re } = mount({ mode: 'photo', kind: 'wall' });
+    expect(screen.getByRole('radiogroup', { name: 'Con qué forma' })).toBeInTheDocument();
+    re({ mode: 'photo', kind: 'door' });
+    expect(screen.queryByRole('radiogroup', { name: 'Con qué forma' })).not.toBeInTheDocument();
+  });
+});
+
 describe('<BuilderPanel> cómo es la puerta cogida', () => {
   const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 0, y1: 0, x2: 0, y2: 60, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
   const fila = (nombre: string) => screen.getByRole('radiogroup', { name: nombre });
+
+  /**
+   * ── LA CORRECCIÓN DE CONCEPTO (suya, 2026-09-07: «*sólo me deja poner las propiedades de la puerta una
+   * vez creada, eso está como el culo*») ──
+   * Los ajustes salen al ELEGIR puerta, y la puerta nace ya así. Antes había que dibujarla y cogerla.
+   */
+  it('al elegir PUERTA salen sus ajustes ANTES de dibujar nada, sobre el borrador', async () => {
+    const onDoor = vi.fn();
+    mount({ mode: 'draw', buildKind: 'door', doorDraft: { ...DEFAULT_DOOR }, onDoor });
+    expect(screen.getByTestId('mp-door-opts')).toBeInTheDocument();
+    expect(screen.getByText('se dibuja ya así · y esto mismo edita la que tengas cogida')).toBeInTheDocument();
+    await userEvent.setup().click(within(fila('Hojas')).getByRole('radio', { name: 'Dos' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ leaves: 2 });
+  });
+
+  it('con una VENTANA elegida no hay ajustes: una ventana no se configura ni se abre', () => {
+    mount({ mode: 'draw', buildKind: 'window', doorDraft: { ...DEFAULT_DOOR }, onDoor: vi.fn() });
+    expect(screen.queryByTestId('mp-door-opts')).not.toBeInTheDocument();
+  });
+
+  /**
+   * ── Y EL BORRADOR NO SE CUELA EN LO QUE HAYA COGIDO ──
+   * Con algo cogido que NO es una puerta —una ventana de sala, un muro—, `onDoor` escribe en esa fila
+   * (así lo reparte `SceneTab`). Si además saliera el borrador, el panel enseñaría los valores de la
+   * próxima puerta y cada clic los escribiría en la ventana: mentiría dos veces y el borrador ni se
+   * enteraría. Con algo cogido que no es puerta, aquí no hay ajustes de puerta.
+   */
+  it('con una VENTANA o un MURO cogidos no sale el borrador, aunque «Puerta» esté elegido', () => {
+    const VENTANA = { ...VANO, kind: 'window' as const };
+    const { re } = mount({ mode: 'draw', buildKind: 'door', doorDraft: { ...DEFAULT_DOOR }, roomOpening: VENTANA, onDoor: vi.fn() });
+    expect(screen.queryByTestId('mp-door-opts')).not.toBeInTheDocument();
+    re({ mode: 'draw', buildKind: 'door', doorDraft: { ...DEFAULT_DOOR }, roomOpening: null, wall: WALL_1, onDoor: vi.fn() });
+    expect(screen.queryByTestId('mp-door-opts')).not.toBeInTheDocument();
+    // Sobre una foto es el mismo caso: `kind` viene del muro cogido, pero el vano cogido es una ventana.
+    re({ mode: 'photo', kind: 'door', doorDraft: { ...DEFAULT_DOOR }, roomOpening: VENTANA, onDoor: vi.fn() });
+    expect(screen.queryByTestId('mp-door-opts')).not.toBeInTheDocument();
+  });
+
+  it('con una puerta COGIDA el bloque es el mismo, pero sin la pista del borrador', () => {
+    mount({ wall: WALL_DOOR, onDoor: vi.fn() });
+    expect(screen.getByTestId('mp-door-opts')).toBeInTheDocument();
+    expect(screen.queryByText('se dibuja ya así · y esto mismo edita la que tengas cogida')).not.toBeInTheDocument();
+  });
+
+  it('los colores van en rejilla ordenada, no en una lista que se dobla sola', () => {
+    mount({ wall: WALL_DOOR, onDoor: vi.fn() });
+    const rejilla = screen.getByRole('radiogroup', { name: 'Color' });
+    expect(rejilla).toHaveClass('mp-door-colors');
+    // El de la escena PRIMERO, y detrás las familias en su orden.
+    expect(within(rejilla).getAllByRole('radio')[0]).toHaveAccessibleName('El de la escena');
+    expect(within(rejilla).getAllByRole('radio')).toHaveLength(DOOR_COLORS.length + 1);
+  });
 
   it('sin nada cogido no hay filas de puerta: el panel no se llena de ajustes que no tocan', () => {
     mount();
@@ -428,6 +517,22 @@ describe('<BuilderPanel> cómo es la puerta cogida', () => {
     // La papelera: `removeRoomOpening` existía y no la llamaba nadie.
     await u.click(screen.getByRole('button', { name: 'Quitar segmento' }));
     expect(onRemove).toHaveBeenCalled();
+  });
+
+  it('trae fila de TEXTURA, del mismo catálogo que la pared y el suelo', async () => {
+    const onDoorTexture = vi.fn(), onDoor = vi.fn();
+    const { re } = mount({ wall: WALL_DOOR, onDoor, onDoorTexture });
+    const u = userEvent.setup();
+    // El botón dice ELEGIR y no «+ Subir»: abre el catálogo, no sube nada (corrección suya del 2026-09-07).
+    expect(screen.queryByRole('button', { name: '+ Subir' })).not.toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Elegir' }));
+    expect(onDoorTexture).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Quitar' })).not.toBeInTheDocument();
+    // Con una puesta, se puede cambiar y quitar — y quitarla es dejarla a nulo.
+    re({ wall: { ...WALL_DOOR, doorTextureUrl: 'https://x/roble.png' }, onDoor, onDoorTexture });
+    expect(screen.getByRole('button', { name: 'Cambiar' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Quitar' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ doorTextureUrl: null });
   });
 
   it('un vano de sala NO trae el interruptor de esconder: la sala ES el dibujo del mapa', () => {

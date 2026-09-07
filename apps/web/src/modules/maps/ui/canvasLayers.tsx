@@ -1,6 +1,6 @@
 import type { LitLight, SceneVision } from '@rolvium/core';
 import type { DoorSettings, Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
-import { cellsPath, doorColorOf, doorQuads, initialsOf, openingGeometry, polygonPoints, polygonsPath, quadPoints, tokenCenter, type Segment } from '../domain/useCases/mapRules';
+import { cellsPath, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, initialsOf, openingGeometry, polygonPoints, polygonsPath, quadPoints, tokenCenter, type Segment } from '../domain/useCases/mapRules';
 import { beamCones, conePath, flickerOf, intensityFactor, lightRadiusPx, maskSrc, terrainLayers } from '../domain/useCases/layerRules';
 
 /** Presentational SVG pieces of the canvas (no pointer logic) — see MapCanvas.tsx. */
@@ -99,13 +99,52 @@ export function TokenGlyph({ token, grid, override, selected, movable, label, hi
  * girada 90° desde su bisagra. El hueco NO lleva línea de umbral: el muro ya se parte al abrir el vano
  * (`planOpening`), así que sus dos trozos son las jambas y pintar una raya encima volvería a taparlo.
  *
- * `color` viene resuelto de fuera (`doorColorOf`): `null` significa «el trazo del muro» y lo pone el CSS.
+ * `color` viene resuelto de fuera (`doorColorOf`). `null` significa «el trazo del muro» y lo pone el CSS: la
+ * barra se queda HUECA y se ve el suelo por dentro. Pero en cuanto tiene color propio se RELLENA de ese
+ * color (suyo, 2026-09-07 con la app delante: «*cuando le doy color se tiene que rellenar de ese color*»).
  */
-export function DoorLeaves({ seg, door, color, thickness }: { seg: Segment; door: DoorSettings & Pick<Wall, 'isOpen'>; color: string | null; thickness?: number }): JSX.Element {
+export function DoorLeaves({ seg, door, color, texture = null, thickness }: { seg: Segment; door: DoorSettings & Pick<Wall, 'isOpen'>; color: string | null; texture?: string | null; thickness?: number }): JSX.Element {
+  /** La textura MANDA sobre el color: si hay mosaico, el relleno es el mosaico y el canto se queda a tono. */
+  const style = texture
+    ? { fill: `url(#${doorPatternId(texture)})`, ...(color ? { stroke: color } : {}) }
+    : (color ? { stroke: color, fill: color } : undefined);
   return (
     <>
+      {/*
+        * LOS DOS TROCITOS DE MURO, uno a cada lado y del largo del grosor de la puerta (suyo, 2026-09-07:
+        * «*es más estético que quede pegada a los muros*», y otra vez ese día: «*te pedí que dejes los trozos
+        * de pared al costado*»). Van DEBAJO de la hoja, para que al abrirla el umbral siga leyéndose como
+        * pared, y SIEMPRE con `.mp-door-stub`: se llegó a poder pintarlos aparte para las salas y así es como
+        * dejaron de verse, fundidos con la roca. Un solo estilo para las dos clases de puerta.
+        */}
+      {doorSpan(seg, thickness).stubs.map(([p0, p1], i) => (
+        <line key={`stub${i}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} className="mp-door-stub" data-stub={i} />
+      ))}
       {doorQuads(seg, door, thickness).map((q, i) => (
-        <polygon key={i} points={quadPoints(q)} className="mp-door-leaf" style={color ? { stroke: color } : undefined} data-leaf={i} />
+        <polygon key={i} points={quadPoints(q)} className="mp-door-leaf" style={style} data-leaf={i} data-textured={texture ? 'true' : undefined} />
+      ))}
+    </>
+  );
+}
+
+/**
+ * Los `<pattern>` de las texturas de puerta, UNO por mosaico distinto de la escena.
+ *
+ * Van en el `<defs>` del lienzo y no dentro de cada puerta: un patrón por puerta sería repetir la misma
+ * imagen tantas veces como puertas haya. El id sale de la url (`doorPatternId`), así que cada puerta lo
+ * pide sin que nadie le pase un mapa.
+ *
+ * El azulejo mide UNA CASILLA: una puerta ocupa más o menos eso, y un mosaico de cuatro casillas —el de
+ * suelos y paredes— se vería como un color plano.
+ */
+export function DoorTextureDefs({ urls, grid }: { urls: readonly string[]; grid: number }): JSX.Element | null {
+  if (urls.length === 0) return null;
+  return (
+    <>
+      {urls.map(u => (
+        <pattern key={u} id={doorPatternId(u)} patternUnits="userSpaceOnUse" width={grid} height={grid}>
+          <image href={u} x={0} y={0} width={grid} height={grid} preserveAspectRatio="xMidYMid slice" />
+        </pattern>
       ))}
     </>
   );
@@ -116,7 +155,7 @@ export function DoorLeaves({ seg, door, color, thickness }: { seg: Segment; door
  * a window is steel between two jambs and never cuts sight — y la ventana NO se toca, que ya estaba bien
  * (rolvium.pen `uXK3T` · Muro / Ventana).
  */
-export function WallShape({ wall, selected = false, draft = null, sceneDoorColor = null }: { wall: Wall; selected?: boolean; draft?: { x1: number; y1: number; x2: number; y2: number } | null; sceneDoorColor?: string | null }): JSX.Element {
+export function WallShape({ wall, selected = false, draft = null, sceneDoorColor = null, sceneDoorTexture = null }: { wall: Wall; selected?: boolean; draft?: { x1: number; y1: number; x2: number; y2: number } | null; sceneDoorColor?: string | null; sceneDoorTexture?: string | null }): JSX.Element {
   const line = draft ?? { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 };
   const cls = `mp-wall ${wall.kind} ${wall.isOpen ? 'open' : ''} ${wall.visiblePlayers ? 'visible' : ''} ${selected ? 'selected' : ''}`;
   if (wall.kind === 'wall') return <line {...line} className={cls} data-wall-id={wall.id} data-wall-kind={wall.kind} />;
@@ -124,7 +163,8 @@ export function WallShape({ wall, selected = false, draft = null, sceneDoorColor
   if (wall.kind === 'door') {
     return (
       <g className={group} data-wall-id={wall.id} data-wall-kind={wall.kind} data-open={wall.isOpen ? 'true' : 'false'}>
-        <DoorLeaves seg={line} door={wall} color={doorColorOf(wall, { doorColor: sceneDoorColor })} />
+        <DoorLeaves seg={line} door={wall} color={doorColorOf(wall, { doorColor: sceneDoorColor })}
+          texture={doorTextureOf(wall, { doorTextureUrl: sceneDoorTexture })} />
       </g>
     );
   }

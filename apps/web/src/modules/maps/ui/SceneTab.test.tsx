@@ -744,6 +744,72 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
   const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 300, y1: 100, x2: 300, y2: 160, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
   const conSala = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [CUARTO], roomOpenings: [VANO] });
 
+  /**
+   * ── LA PUERTA NACE YA CONFIGURADA (corrección suya de concepto, 2026-09-07) ──
+   * Elegir PUERTA enseña sus ajustes; lo que se toque ahí es como saldrá la SIGUIENTE, sin tener que
+   * dibujarla, cogerla y volver. Antes «sólo me deja poner las propiedades una vez creada».
+   */
+  it('lo elegido en el panel es como NACE la puerta siguiente, sobre un muro', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    await u.click(await screen.findByRole('radio', { name: /Sobre una foto/ }));
+    await u.click(screen.getByRole('radio', { name: /^Puerta$/ }));
+    // Los ajustes están AHÍ, sin haber dibujado nada todavía.
+    const opts = await screen.findByTestId('mp-door-opts');
+    await u.click(within(opts).getByRole('radio', { name: 'Dos' }));
+    await u.click(within(opts).getByRole('radio', { name: 'El otro' }));
+
+    // Y ahora se dibuja: clic-clic sobre el muro que ya existe.
+    fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1, clientY: 300, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1, clientY: 360, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+
+    await waitFor(() => {
+      const puerta = repo.walls.find(w => w.kind === 'door');
+      expect(puerta).toMatchObject({ leaves: 2 });
+    });
+  });
+
+  /**
+   * ── Y POR LA OTRA VÍA, la de SALA ──
+   * Una puerta se crea por dos caminos distintos —`addWall` marcando sobre una foto y `addRoomOpening`
+   * dibujando aquí— y el borrador tiene que llegar a LOS DOS: si sólo llegara a uno, media herramienta
+   * seguiría obligando a dibujar la puerta y volver a por ella. Y a una VENTANA no le llega nunca: una
+   * ventana no se configura, así que heredar la mano de la puerta le metería datos que no son suyos.
+   */
+  it('el vano de SALA también nace con lo elegido — y la ventana no hereda nada', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [CUARTO], roomOpenings: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    await u.click(within(panel).getByRole('radio', { name: /^Puerta$/ }));
+    await u.click(within(await screen.findByTestId('mp-door-opts')).getByRole('radio', { name: 'Dos' }));
+
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 100, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 160, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await waitFor(() => expect(repo.roomOpenings[0]).toMatchObject({ kind: 'door', leaves: 2 }));
+
+    // Ahora una VENTANA, con el mismo borrador puesto: sus ajustes ni salen ni se le pegan.
+    await u.click(within(panel).getByRole('radio', { name: /^Ventana$/ }));
+    expect(screen.queryByTestId('mp-door-opts')).not.toBeInTheDocument();
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 200, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 260, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const ventanas = () => repo.roomOpenings.filter(o => o.kind === 'window');
+    await waitFor(() => expect(ventanas().length).toBeGreaterThan(0));
+    expect(ventanas().every(o => o.leaves === DEFAULT_DOOR.leaves)).toBe(true);
+    // Y la puerta sigue siendo UNA: cambiar de vano no reescribe la que ya estaba.
+    expect(repo.roomOpenings.filter(o => o.kind === 'door')).toHaveLength(1);
+  });
+
   it('una puerta de SALA se coge, se configura y se BORRA con Suprimir', async () => {
     const u = userEvent.setup();
     const repo = mount('dm', conSala());
@@ -1799,6 +1865,31 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
     // Sin foto puesta el botón se llama «+ Subir»; con una puesta, «Cambiar». Los dos abren el catálogo.
     await u.click(within(bloque).getAllByRole('button', { name: /Cambiar|\+ Subir/ })[0]!);
   };
+
+  /**
+   * ── LA TEXTURA DE LA PUERTA (suyo, 2026-09-07: «*te falta lo de la textura*») ──
+   * Sale del MISMO catálogo que la pared y el suelo, y se guarda en la puerta cogida — no en la escena.
+   */
+  it('la puerta cogida elige textura del mismo catálogo, y se le guarda a ELLA', async () => {
+    const u = userEvent.setup();
+    const puerta = { ...WALL_1, kind: 'door' as const };
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [puerta], textures: [TEX] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    fireEvent.pointerDown(canvas(), { clientX: puerta.x1 + 2, clientY: 380, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await screen.findByRole('group', { name: 'Builder' });
+
+    // La fila de textura de la PUERTA, no la de la pared de la sala.
+    const filaPuerta = screen.getByText('Textura').closest('.mp-builder-row')!;
+    await u.click(within(filaPuerta as HTMLElement).getByRole('button', { name: 'Elegir' }));
+    expect(await screen.findByText('Textura de la puerta')).toBeInTheDocument();
+    await u.click(within(screen.getByTestId('mp-texcat')).getByTitle('Losa mojada'));
+
+    await waitFor(() => expect(repo.wallUpdates.at(-1)?.patch).toEqual({ doorTextureUrl: TEX.url }));
+    // Y a la ESCENA no se le ha tocado la textura de pared: son cosas distintas.
+    expect(repo.sceneUpdates.some(x => 'wallTextureUrl' in x.patch)).toBe(false);
+  });
 
   it('trae las texturas del catálogo de la herramienta, con buscador y categorías', async () => {
     const u = userEvent.setup();

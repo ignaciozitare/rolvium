@@ -4,7 +4,7 @@ import {
   dugRooms, filledRooms, floorUrlOf, outlinePath, ringOf, ringPath, ringsOf, roomWallsOf, shadowDepthPx,
   styleOf, tilePx, wallWidthPx,
 } from '../domain/useCases/roomStyles';
-import { doorColorOf, type Segment } from '../domain/useCases/mapRules';
+import { doorColorOf, doorTextureOf, type Segment } from '../domain/useCases/mapRules';
 import { DoorLeaves } from './canvasLayers';
 
 
@@ -150,10 +150,25 @@ export function RoomsLayer({ scene, rooms, openings, ids, selectedOpeningId = nu
    * permite volver de un tramo a la fila donde vive cómo es esa puerta.
    */
   const porId = new Map(openings.map(o => [o.id, o]));
-  const puertas = walls
+  const sobreElContorno = walls
     .filter(w => w.kind === 'door' && w.openingId)
     .map(w => ({ seg: { x1: w.seg[0], y1: w.seg[1], x2: w.seg[2], y2: w.seg[3] }, o: porId.get(w.openingId!) }))
     .filter((x): x is { seg: Segment; o: RoomOpening } => !!x.o);
+  /**
+   * ⚠️ Y LAS QUE NO CAYERON EN EL CONTORNO SE PINTAN IGUAL, donde él las puso.
+   *
+   * 🐞 Ésta era «*no pone las puertas*» (2026-09-07): `roomWalls` sólo se queda con los vanos cuyas dos
+   * puntas rozan un lado, así que una puerta a un pelo de la pared se guardaba y **no se dibujaba**. Y la
+   * salida NO es exigirle que exista un muro —corrección suya: «*en el constructor de habitaciones no
+   * funciona así*»—, es dibujarla igual. Sobre el contorno abre el hueco de verdad; fuera de él es sólo
+   * dibujo, que es exactamente lo que él pidió al ponerla ahí.
+   */
+  const enContorno = new Set(sobreElContorno.map(x => x.o.id));
+  const puertas = [
+    ...sobreElContorno,
+    ...openings.filter(o => o.kind === 'door' && !enContorno.has(o.id))
+      .map(o => ({ seg: { x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2 }, o })),
+  ];
   /** La roca y el canto se dibujan también bajo los vanos CERRADOS: una puerta cerrada sigue siendo pared. */
   const carved = [solid, doorsClosed, windows].filter(Boolean).join(' ');
 
@@ -270,12 +285,19 @@ export function RoomsLayer({ scene, rooms, openings, ids, selectedOpeningId = nu
         {carved && <path d={carved} stroke={st.wall} strokeWidth={width} data-testid="mp-room-wall" />}
         {/* Una ventana: mismo hueco en la pared, con su travesaño. Deja ver y no deja pasar, como la de siempre. */}
         {windows && <path d={windows} className="mp-room-window" strokeWidth={width * 0.45} data-testid="mp-room-window" />}
-        {/* La puerta: la barra hueca, igual que en un muro suelto. Su grosor es el de la pared de la sala,
-            para que se meta en la banda de roca en vez de flotar sobre ella. */}
+        {/*
+          * LA PUERTA DE UNA SALA SE PINTA EXACTAMENTE IGUAL QUE LA DE UN MURO SUELTO. Sin grosor propio, sin
+          * trazo propio y sin trocitos de otro color: las mismas reglas y los mismos estilos.
+          *
+          * Orden suya del 2026-09-07 después de tres intentos míos de afinarlo aquí: «*¿por qué no pones las
+          * puertas anchas como en el modo foto? y te pedí que dejes los trozos de pared al costado*». El modo
+          * foto le vale tal cual, así que aquí no se inventa nada — `DoorLeaves` ya trae de serie el grosor
+          * (`DOOR_BAR_PX`), el trazo de `.mp-door-leaf` y los dos trocitos de muro de `.mp-door-stub`.
+          */}
         <g className="mp-room-doors" data-testid="mp-room-doors" strokeLinejoin="miter">
           {puertas.map(({ seg, o }) => (
             <g key={o.id} className={`mp-opening door ${o.isOpen ? 'open' : ''} ${o.id === selectedOpeningId ? 'selected' : ''}`} data-opening-id={o.id} data-open={o.isOpen ? 'true' : 'false'}>
-              <DoorLeaves seg={seg} door={o} color={doorColorOf(o, scene)} thickness={width} />
+              <DoorLeaves seg={seg} door={o} color={doorColorOf(o, scene)} texture={doorTextureOf(o, scene)} />
             </g>
           ))}
         </g>

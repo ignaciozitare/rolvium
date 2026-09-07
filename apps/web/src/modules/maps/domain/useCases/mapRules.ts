@@ -171,7 +171,14 @@ export const canOpen = (w: Pick<Wall, 'kind'>): boolean => w.kind !== 'wall';
  * No salen de `COLOR_PICKER_PALETTE` de `@rolvium/ui`: aquélla está pensada sobre los tokens de la APP y
  * esta paleta se ve sobre la MESA, que va con los `--sys-*` del sistema de juego.
  */
-export const DOOR_COLORS = ['#8a8f98', '#6e5a3a', '#8b1a1a', '#3f4a2e', '#d8cdb4'] as const;
+export const DOOR_COLORS = [
+  // Fila 1 — MADERAS, de clara a oscura (la primera casilla de esa fila es «el de la escena»)
+  '#a97c50', '#8b5a2b', '#6e5a3a', '#4a3524',
+  // Fila 2 — METALES Y PIEDRA
+  '#b08d57', '#8a8f98', '#5c6470', '#2f3338', '#1a1c1f',
+  // Fila 3 — TINTES, y un claro para la puerta de papel
+  '#8b1a1a', '#3f4a2e', '#2f4858', '#5c3a6e', '#efe6d6',
+] as const;
 export const blocksSightNow = (w: Pick<Wall, 'blocksSight' | 'isOpen'>): boolean => w.blocksSight && !w.isOpen;
 /** Lo que corta el PASO ahora mismo. Gemelo exacto de `blocksSightNow`: una puerta abierta deja pasar. */
 export const blocksMoveNow = (w: Pick<Wall, 'blocksMove' | 'isOpen'>): boolean => w.blocksMove && !w.isOpen;
@@ -254,10 +261,19 @@ export function openingGeometry(w: Pick<Wall, 'x1' | 'y1' | 'x2' | 'y2'>, jamb =
 /** Endpoints of a segment in scene px — the geometry of a wall without the row around it. */
 export interface Segment { x1: number; y1: number; x2: number; y2: number }
 
-/** Lo que mide de ancho la barra de una puerta de muro suelto, en px de escena. El muro va a 3 y la barra
- *  tiene que leerse por encima de él sin taparlo: es el grosor que tenía el trazo grueso de la puerta (7)
- *  más el aire de los dos cantos. */
-export const DOOR_BAR_PX = 11;
+/**
+ * LO QUE MIDE DE ANCHO LA BARRA DE UNA PUERTA, en px de escena. **La misma para todas**: las de un muro
+ * suelto y las de una sala, que se pintan igual (`roomsLayer`).
+ *
+ * El número es SUYO, dado mirando la pantalla y midiendo contra el muro: 11 → 7 el 2026-09-07 («*la puerta
+ * es muy gruesa*») y 7 → 5,5 ese mismo día, ya con la cifra exacta: «*si la línea son 3 px la puerta sea de
+ * 5,5*». No se toca sin que él lo diga y no se calcula a partir de nada — se probó atarlo al grosor de la
+ * roca de una sala, por arriba y por abajo, y lo tumbó las dos veces.
+ *
+ * A 5,5 con el trazo de 2.5 de `.mp-door-leaf` le quedan 3 px de hueco por dentro: se sigue viendo el suelo,
+ * que es lo que la hace HUECA y no una barra maciza.
+ */
+export const DOOR_BAR_PX = 5.5;
 
 /**
  * LA PUERTA, DIBUJADA (`rolvium.pen` · «PL/Puerta · el dibujo», aprobado por él el 2026-09-07).
@@ -273,7 +289,36 @@ export const DOOR_BAR_PX = 11;
  * Devuelve UN CUADRILÁTERO POR HOJA, en px de escena. Cuadriláteros y no un `<rect>` girado porque el muro
  * puede ir en cualquier ángulo y un rectángulo del SVG sólo sabe ir recto.
  */
-export function doorQuads(seg: Segment, door: DoorSettings & Pick<Wall, 'isOpen'>, thickness = DOOR_BAR_PX): Point[][] {
+/**
+ * EL HUECO NO SE OCUPA ENTERO: la puerta se queda corta y deja un TROCITO DE MURO a cada lado.
+ *
+ * Petición suya del 2026-09-07 con una captura: «*quiero que la puerta siempre tenga un pequeño trozo de
+ * muro centrado, es más estético que quede pegada a los muros; tiene que ser tan largo como el grosor de la
+ * puerta de cada lado*». O sea: el retranqueo mide lo mismo que el grosor de la barra.
+ *
+ * Se recorta a un tercio del vano para que una puerta estrecha no se quede sin hoja: con un hueco de dos
+ * grosores, los dos trocitos se la comerían entera.
+ */
+export function doorSpan(seg: Segment, thickness = DOOR_BAR_PX): { inner: Segment; stubs: [Point, Point][] } {
+  const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const d = { x: dx / len, y: dy / len };
+  /**
+   * ⚠️ EL TROCITO NO PUEDE COMERSE LA PUERTA. Mide el grosor de la barra, sí, pero como MUCHO un 15% del
+   * hueco por lado: una puerta de una casilla (27 px) con 7 px de trocito a cada lado se quedaba en 13 px de
+   * hoja —un cuadradito— y no se parecía en nada a su captura, donde la barra ocupa la mayor parte del vano.
+   */
+  const stub = Math.min(thickness, len * 0.15);
+  const at = (t: number): Point => ({ x: seg.x1 + d.x * t, y: seg.y1 + d.y * t });
+  const a = at(stub), b = at(len - stub);
+  return {
+    inner: { x1: a.x, y1: a.y, x2: b.x, y2: b.y },
+    stubs: [[{ x: seg.x1, y: seg.y1 }, a], [b, { x: seg.x2, y: seg.y2 }]],
+  };
+}
+
+export function doorQuads(segEntero: Segment, door: DoorSettings & Pick<Wall, 'isOpen'>, thickness = DOOR_BAR_PX): Point[][] {
+  const seg = doorSpan(segEntero, thickness).inner;
   const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
   const len = Math.hypot(dx, dy) || 1;
   const d = { x: dx / len, y: dy / len };
@@ -310,6 +355,29 @@ export const quadPoints = (q: readonly Point[]): string => q.map(p => `${Math.ro
  */
 export const doorColorOf = (door: Pick<DoorSettings, 'doorColor'>, scene: Pick<Scene, 'doorColor'>): string | null =>
   door.doorColor ?? scene.doorColor ?? null;
+
+/**
+ * Y con qué TEXTURA. Mismo reparto que el color —la suya, si no la de la escena— y **manda sobre él**:
+ * si hay textura, el color no se ve. Es lo que él pidió el 2026-09-07 probándolo, y la regla vive aquí
+ * sola para que no acabe repetida en los dos sitios que pintan puertas (muros sueltos y salas).
+ */
+export const doorTextureOf = (door: Pick<DoorSettings, 'doorTextureUrl'>, scene: Pick<Scene, 'doorTextureUrl'>): string | null =>
+  door.doorTextureUrl ?? scene.doorTextureUrl ?? null;
+
+/**
+ * El id del `<pattern>` de una textura de puerta, sacado de su propia url.
+ *
+ * Que salga de la url y no de un contador es lo que permite que el `<defs>` se monte en un sitio (una vez
+ * por mosaico distinto) y que cada puerta lo pida desde otro sin pasarse ningún mapa entre componentes.
+ */
+export const doorPatternId = (url: string): string =>
+  `mp-doortex-${Math.abs([...url].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7)).toString(36)}`;
+
+/** Los mosaicos distintos que hacen falta en esta escena: uno por url, sin repetir. */
+export const doorTexturesUsed = (
+  doors: readonly Pick<DoorSettings, 'doorTextureUrl'>[],
+  scene: Pick<Scene, 'doorTextureUrl'>,
+): string[] => [...new Set(doors.map(d => doorTextureOf(d, scene)).filter((u): u is string => !!u))];
 
 /** Leftovers this short are the zero-length ends of a cut: the spec says they are not saved. */
 const MIN_PIECE = 0.5;

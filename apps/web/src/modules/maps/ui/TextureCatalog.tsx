@@ -26,7 +26,11 @@ const PREVIEW_CELLS = 4;
 
 interface Props {
   /** Para cuál de las dos texturas base se está eligiendo. Sólo cambia el título. */
-  which: 'wall' | 'floor';
+  /**
+   * Para qué se está eligiendo: la pared de la sala, su suelo, o —desde el 2026-09-07— una PUERTA. Sólo
+   * cambia el título del modal: el catálogo es el mismo, que es todo el sentido de que sea de la herramienta.
+   */
+  which: 'wall' | 'floor' | 'door';
   /** `null` mientras se cargan: no es lo mismo «no hay ninguna» que «todavía no han llegado». */
   textures: Texture[] | null;
   /**
@@ -212,7 +216,13 @@ export function TextureCatalog({ which, textures, canManage, onPick, onUpload, o
         <p className="mp-texcat-note">
           <span className="mp-texcat-dot" aria-hidden="true" />{t('maps.room.catalog.legend')}
         </p>
-        <p className="mp-texcat-hint">{t('maps.room.catalog.hint')}</p>
+        {/*
+          * La pista dice QUÉ pasa al elegir una, y eso cambia con `which`: para una PUERTA no se pone «como
+          * textura base de esta escena, con su tamaño de baldosa» —va a la puerta, y el azulejo es de una
+          * casilla siempre—. Dejar la de siempre sería el mismo fallo que él ya cazó con el botón que decía
+          * «subir» sin subir nada (2026-09-07).
+          */}
+        <p className="mp-texcat-hint">{t(which === 'door' ? 'maps.room.catalog.doorHint' : 'maps.room.catalog.hint')}</p>
       </div>
     </Modal>
   );

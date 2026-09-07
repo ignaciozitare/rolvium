@@ -887,6 +887,8 @@
       "selected": "Segmento seleccionado"
     },
     "door": {
+      "section": "Cómo será la puerta",
+      "draftHint": "se dibuja ya así · y esto mismo edita la que tengas cogida",
       "leaves": "Hojas",
       "leavesOne": "Una",
       "leavesTwo": "Dos",
@@ -899,6 +901,9 @@
       "color": "Color",
       "colorScene": "El de la escena",
       "colorOwn": "Color propio {{hex}}",
+      "texture": "Textura",
+      "texturePick": "Elegir",
+      "textureChange": "Cambiar",
       "hint": "no hace falta configurarla: se dibuja y ya funciona"
     },
     "action": {
@@ -1069,6 +1074,7 @@
         "wall": "Textura de pared",
         "floor": "Textura de suelo",
         "hint": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone como textura base de esta escena, con su tamaño de baldosa.",
+        "doorHint": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone en la puerta, con el azulejo de una casilla.",
         "empty": "Ninguna textura con ese nombre en esta categoría.",
         "search": "Buscar por nombre…",
         "categories": "Categorías",
@@ -1089,7 +1095,8 @@
         "menu": "Opciones de «{{name}}»",
         "rename": "Renombrar",
         "categorize": "Clasificar",
-        "renamePrompt": "¿Cómo quieres que se llame esta textura?"
+        "renamePrompt": "¿Cómo quieres que se llame esta textura?",
+        "door": "Textura de la puerta"
       },
       "tooSmall": "El gesto se quedó corto: no se levantó nada. Arrastra un poco más.",
       "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla."
@@ -1111,7 +1118,9 @@
       "ungroup": "soltar",
       "split": "el nodo",
       "roomDelete": "Borrar sala",
-      "roomFill": "el muro"
+      "roomFill": "el muro",
+      "door": "la puerta",
+      "window": "la ventana"
     },
     "builder": {
       "title": "Builder",

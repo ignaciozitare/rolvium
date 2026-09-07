@@ -5,7 +5,7 @@ import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WARE
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, doorColorOf, doorQuads, quadPoints, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
+  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, DOOR_BAR_PX, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, doorTexturesUsed, quadPoints, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -687,6 +687,8 @@ describe('drawingBounds y drawingsInRect — el área coge los trazos', () => {
 describe('doorQuads — la barra hueca, y cómo gira', () => {
   const seg = { x1: 0, y1: 0, x2: 0, y2: 100 };
   const T = 10;
+  /** Con grosor 10 sobre un hueco de 100, cada trocito de muro mide 10: la hoja va de y=10 a y=90. */
+  const A = T, B = 100 - T, LARGO = B - A;
   const puerta = (over: Partial<typeof DEFAULT_DOOR> & { isOpen?: boolean } = {}) =>
     ({ ...DEFAULT_DOOR, isOpen: false, ...over });
   const caja = (q: { x: number; y: number }[]) => ({
@@ -700,8 +702,8 @@ describe('doorQuads — la barra hueca, y cómo gira', () => {
     // Cuatro esquinas: es un cuadrilátero, no una línea ni una curva.
     expect(qs[0]).toHaveLength(4);
     const b = caja(qs[0]!);
-    expect(b.y0).toBeCloseTo(0, 6);
-    expect(b.y1).toBeCloseTo(100, 6);
+    expect(b.y0).toBeCloseTo(A, 6);
+    expect(b.y1).toBeCloseTo(B, 6);
     expect(b.x0).toBeCloseTo(-T / 2, 6);
     expect(b.x1).toBeCloseTo(T / 2, 6);
   });
@@ -709,39 +711,39 @@ describe('doorQuads — la barra hueca, y cómo gira', () => {
   it('abierta: la hoja gira 90° y sale perpendicular, sin dejar nada tumbado en el hueco', () => {
     const b = caja(doorQuads(seg, puerta({ isOpen: true }), T)[0]!);
     // Ya no recorre los 100 px del vano: ahora los recorre a lo ANCHO.
-    expect(b.x1 - b.x0).toBeCloseTo(100, 6);
+    expect(b.x1 - b.x0).toBeCloseTo(LARGO, 6);
     expect(b.y1 - b.y0).toBeCloseTo(T, 6);
     // Y la franja queda CENTRADA en la bisagra, que con `start` es (0,0).
-    expect((b.y0 + b.y1) / 2).toBeCloseTo(0, 6);
+    expect((b.y0 + b.y1) / 2).toBeCloseTo(A, 6);
   });
 
   it('la bisagra elige de qué extremo cuelga', () => {
     const bStart = caja(doorQuads(seg, puerta({ isOpen: true, hinge: 'start' }), T)[0]!);
     const bEnd = caja(doorQuads(seg, puerta({ isOpen: true, hinge: 'end' }), T)[0]!);
-    expect((bStart.y0 + bStart.y1) / 2).toBeCloseTo(0, 6);
-    expect((bEnd.y0 + bEnd.y1) / 2).toBeCloseTo(100, 6);
+    expect((bStart.y0 + bStart.y1) / 2).toBeCloseTo(A, 6);
+    expect((bEnd.y0 + bEnd.y1) / 2).toBeCloseTo(B, 6);
   });
 
   it('el lado la saca por costados OPUESTOS, y `right` es el de siempre (+n)', () => {
     const der = caja(doorQuads(seg, puerta({ isOpen: true, swing: 'right' }), T)[0]!);
     const izq = caja(doorQuads(seg, puerta({ isOpen: true, swing: 'left' }), T)[0]!);
-    expect(der.x0).toBeCloseTo(-100, 6);
+    expect(der.x0).toBeCloseTo(-LARGO, 6);
     expect(der.x1).toBeCloseTo(0, 6);
     expect(izq.x0).toBeCloseTo(0, 6);
-    expect(izq.x1).toBeCloseTo(100, 6);
+    expect(izq.x1).toBeCloseTo(LARGO, 6);
   });
 
   it('dos hojas: se parte por la mitad y cada una cuelga de SU extremo, sin mirar la bisagra', () => {
     const cerradas = doorQuads(seg, puerta({ leaves: 2 }), T);
     expect(cerradas).toHaveLength(2);
     // Media puerta cada una, y juntas cubren el hueco entero.
-    expect(caja(cerradas[0]!)).toMatchObject({ y0: 0, y1: 50 });
-    expect(caja(cerradas[1]!)).toMatchObject({ y0: 50, y1: 100 });
+    expect(caja(cerradas[0]!)).toMatchObject({ y0: A, y1: A + LARGO / 2 });
+    expect(caja(cerradas[1]!)).toMatchObject({ y0: A + LARGO / 2, y1: B });
     // Abiertas giran LAS DOS, cada una desde su punta, y las dos hacia el mismo lado.
     const abiertas = doorQuads(seg, puerta({ leaves: 2, isOpen: true }), T);
-    expect((caja(abiertas[0]!).y0 + caja(abiertas[0]!).y1) / 2).toBeCloseTo(0, 6);
-    expect((caja(abiertas[1]!).y0 + caja(abiertas[1]!).y1) / 2).toBeCloseTo(100, 6);
-    for (const q of abiertas) expect(caja(q).x0).toBeCloseTo(-50, 6);
+    expect((caja(abiertas[0]!).y0 + caja(abiertas[0]!).y1) / 2).toBeCloseTo(A, 6);
+    expect((caja(abiertas[1]!).y0 + caja(abiertas[1]!).y1) / 2).toBeCloseTo(B, 6);
+    for (const q of abiertas) expect(caja(q).x0).toBeCloseTo(-LARGO / 2, 6);
     // Y con dos hojas la bisagra NO cambia nada: cada hoja ya tiene la suya.
     expect(doorQuads(seg, puerta({ leaves: 2, hinge: 'end' }), T)).toEqual(cerradas);
   });
@@ -780,5 +782,79 @@ describe('hitOpening llega también a los vanos de SALA', () => {
   });
   it('una ventana también contesta: se abre con el mismo disco', () => {
     expect(hitOpening([{ ...vano, kind: 'window' as const }], { x: 2, y: 50 }, 8)?.id).toBe('ro-1');
+  });
+});
+
+/**
+ * ── LA TEXTURA DE LA PUERTA (suyo, 2026-09-07 probando: «*te falta lo de la textura*») ──
+ * Mismo reparto que el color —la suya, si no la de la escena— y MANDA sobre él.
+ */
+describe('doorTextureOf / doorPatternId / doorTexturesUsed', () => {
+  const escena = { doorTextureUrl: null as string | null };
+  it('sin nada no hay textura; la de la escena vale para todas; la propia manda', () => {
+    expect(doorTextureOf({ doorTextureUrl: null }, escena)).toBeNull();
+    expect(doorTextureOf({ doorTextureUrl: null }, { doorTextureUrl: 'https://x/roble.png' })).toBe('https://x/roble.png');
+    expect(doorTextureOf({ doorTextureUrl: 'https://x/hierro.png' }, { doorTextureUrl: 'https://x/roble.png' })).toBe('https://x/hierro.png');
+  });
+
+  it('el id del patrón sale de la url: mismo mosaico, mismo id, y dos distintas no chocan', () => {
+    expect(doorPatternId('https://x/roble.png')).toBe(doorPatternId('https://x/roble.png'));
+    expect(doorPatternId('https://x/roble.png')).not.toBe(doorPatternId('https://x/hierro.png'));
+    // Tiene que valer como id de SVG: sin barras, sin puntos y sin signos.
+    expect(doorPatternId('https://x/roble.png')).toMatch(/^mp-doortex-[a-z0-9]+$/);
+  });
+
+  it('sólo se monta UN patrón por mosaico distinto, aunque haya diez puertas iguales', () => {
+    const puertas = [
+      { doorTextureUrl: 'https://x/roble.png' },
+      { doorTextureUrl: 'https://x/roble.png' },
+      { doorTextureUrl: 'https://x/hierro.png' },
+      { doorTextureUrl: null },
+    ];
+    expect(doorTexturesUsed(puertas, escena)).toEqual(['https://x/roble.png', 'https://x/hierro.png']);
+    // Sin ninguna propia, la de la escena cuenta una sola vez.
+    expect(doorTexturesUsed([{ doorTextureUrl: null }, { doorTextureUrl: null }], { doorTextureUrl: 'https://x/roble.png' }))
+      .toEqual(['https://x/roble.png']);
+    expect(doorTexturesUsed([{ doorTextureUrl: null }], escena)).toEqual([]);
+  });
+});
+
+/**
+ * ── EL TROCITO DE MURO A CADA LADO (suyo, 2026-09-07 con una captura) ──
+ * «*quiero que la puerta siempre tenga un pequeño trozo de muro centrado, es más estético que quede pegada
+ * a los muros; tiene que ser tan largo como el grosor de la puerta de cada lado*».
+ */
+describe('doorSpan — la puerta no se pega a los muros', () => {
+  const seg = { x1: 0, y1: 0, x2: 0, y2: 100 };
+
+  it('recorta el hueco por los dos lados, y cada trocito mide el grosor de la barra', () => {
+    const { inner, stubs } = doorSpan(seg, 10);
+    expect(inner).toEqual({ x1: 0, y1: 10, x2: 0, y2: 90 });
+    expect(stubs).toHaveLength(2);
+    expect(stubs[0]).toEqual([{ x: 0, y: 0 }, { x: 0, y: 10 }]);
+    expect(stubs[1]).toEqual([{ x: 0, y: 90 }, { x: 0, y: 100 }]);
+  });
+
+  it('en una puerta ESTRECHA el trocito se encoge: si no, se comería la hoja entera', () => {
+    // Hueco de 12 con grosor 10: dos trocitos de 10 no caben. Se quedan en el 15% del vano cada uno.
+    const { inner, stubs } = doorSpan({ x1: 0, y1: 0, x2: 0, y2: 12 }, 10);
+    expect(inner.y1).toBeCloseTo(1.8, 6);
+    expect(inner.y2).toBeCloseTo(10.2, 6);
+    expect(stubs[0]![1]!.y).toBeCloseTo(1.8, 6);
+    // Y la hoja se queda con el 70% del hueco: la barra manda, los trocitos acompañan.
+    expect(inner.y2 - inner.y1).toBeCloseTo(12 * 0.7, 6);
+  });
+
+  it('una puerta de UNA CASILLA sigue siendo una barra, no un cuadradito', () => {
+    const { inner } = doorSpan({ x1: 0, y1: 0, x2: 0, y2: 27 }, DOOR_BAR_PX);
+    // Más larga que gruesa, que es lo que la hace leerse como puerta.
+    expect(inner.y2 - inner.y1).toBeGreaterThan(DOOR_BAR_PX * 2);
+  });
+
+  it('la hoja se dibuja YA recortada: `doorQuads` mide el hueco menos los dos trocitos', () => {
+    const q = doorQuads(seg, { ...DEFAULT_DOOR, isOpen: false }, 10)[0]!;
+    const ys = q.map(p => p.y);
+    expect(Math.min(...ys)).toBeCloseTo(10, 6);
+    expect(Math.max(...ys)).toBeCloseTo(90, 6);
   });
 });

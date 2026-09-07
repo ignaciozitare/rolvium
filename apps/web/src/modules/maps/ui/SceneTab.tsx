@@ -7,7 +7,8 @@ import type { Character } from '@/modules/characters/domain/entities/Character';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
 import { characterAvatar } from '@/modules/characters/domain/useCases/characterRules';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
-import type { ImageAsset, Scene, ScenePatch, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
+import { DEFAULT_DOOR } from '../domain/entities/Scene';
+import type { DoorSettings, ImageAsset, Scene, ScenePatch, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import { brushRadius, canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
@@ -19,7 +20,7 @@ import { StrokeBar } from './StrokeBar';
 import { BuilderPanel } from './BuilderPanel';
 import { TextureCatalog } from './TextureCatalog';
 import { defaultShapeFor, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
-import { DEFAULT_TEXTURE_SCALE, wallWidthPx } from '../domain/useCases/roomStyles';
+import { DEFAULT_TEXTURE_SCALE, snapSpanToOutline, wallWidthPx } from '../domain/useCases/roomStyles';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
@@ -174,6 +175,16 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * dibujado, no se podía ni abrir ni borrar.
    */
   const [selectedRoomOpeningId, setSelectedRoomOpeningId] = useState<string | null>(null);
+  /**
+   * CÓMO SERÁ LA PRÓXIMA PUERTA (`rolvium.pen` · «PL/Builder · panel · PUERTA ELEGIDA», aprobado el
+   * 2026-09-07). Corrección suya, y de concepto: «*sólo me deja poner las propiedades de la puerta una vez
+   * creada, eso está como el culo*». Los ajustes salen al elegir PUERTA y la puerta **nace ya así**, como el
+   * estilo de la mazmorra decide cómo nace una sala. Cogiendo una ya puesta, los mismos controles la editan.
+   *
+   * No se guarda en la base: es la mano con la que se dibuja, no un dato de la escena — igual que el color
+   * del pincel de trazos. Al recargar vuelve a los valores de fábrica, que es lo que él espera.
+   */
+  const [doorDraft, setDoorDraft] = useState<DoorSettings>(DEFAULT_DOOR);
   const [quickMenu, setQuickMenu] = useState<{ at: Point; scene: Point } | null>(null);
   /**
    * El velo gris del director, encendido o apagado. Vive AQUÍ y no en la escena a propósito: es una
@@ -310,7 +321,11 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * que dibujé y lo pongo aquí— pero las texturas son de un catálogo de texturas, no lo mezcles*». Hoy son
    * dos cosas separadas: `images` es de ESTA campaña, `textures` es de la herramienta entera.
    */
-  const [texPicker, setTexPicker] = useState<'wall' | 'floor' | null>(null);
+  /**
+   * Para qué se está eligiendo textura. `door` entró el 2026-09-07 («*te falta lo de la textura*»): la
+   * puerta bebe del MISMO catálogo que la pared y el suelo, que es de la herramienta y ya está hecho.
+   */
+  const [texPicker, setTexPicker] = useState<'wall' | 'floor' | 'door' | null>(null);
   /**
    * EL CATÁLOGO DE TEXTURAS, y ya NO la biblioteca de fondos de la campaña (él, 2026-09-04: «*los fondos de
    * las escenas que subí antes y las texturas no son lo mismo… las texturas son de un catálogo de texturas,
@@ -324,17 +339,6 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * fino y unas losas grandes no quieren la misma escala, y hacerle mover el deslizador cada vez sería
    * repetirle un trabajo que ya hizo una vez, al subirla.
    */
-  const aplicarTextura = useCallback((tex: Texture) => {
-    if (!live || !texPicker) return;
-    run(patchScene(live.id, texPicker === 'wall'
-      ? { wallTextureUrl: tex.url, wallTextureScale: tex.tileCells }
-      : { floorTextureUrl: tex.url, floorTextureScale: tex.tileCells }));
-    setTexPicker(null);
-  }, [live, texPicker, run, patchScene]);
-  const pickTexture = useCallback(async (which: 'wall' | 'floor') => {
-    setTexPicker(which);
-    if (textures === null) setTextures(await repo.listTextures().catch(() => []));
-  }, [textures, repo]);
   /**
    * Sobre el mapa sólo puede haber UNA cosa abierta a la vez. El dueño los vio abiertos a la vez al probar la
    * app —«Colocar encuentro» y «Fondo del mapa» tapándose— porque cada uno tenía su interruptor y ninguno
@@ -443,6 +447,30 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   }, [selectedToken, st.tokens, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
   const selectedRoomOpening = st.roomOpenings.find(o => o.id === selectedRoomOpeningId) ?? null;
+
+  /**
+   * La textura de la PUERTA va a la puerta cogida si hay una, y a la escena si no — el mismo reparto que el
+   * color, que él eligió: por defecto todas iguales, y la de hierro del jefe se cambia sola. Y no copia
+   * `tileCells`: el azulejo de una puerta es de UNA casilla, porque una puerta mide más o menos eso.
+   */
+  const aplicarTexturaPuerta = useCallback((url: string | null) => {
+    if (selectedWall) { run(st.patchWall(selectedWall.id, { doorTextureUrl: url })); return; }
+    if (selectedRoomOpening) { run(st.patchRoomOpening(selectedRoomOpening.id, { doorTextureUrl: url })); return; }
+    // Sin nada cogido, la textura es la de la PRÓXIMA puerta: la que se está a punto de dibujar.
+    setDoorDraft(d => ({ ...d, doorTextureUrl: url }));
+  }, [selectedWall, selectedRoomOpening, run, st]);
+  const aplicarTextura = useCallback((tex: Texture) => {
+    if (!live || !texPicker) return;
+    if (texPicker === 'door') { aplicarTexturaPuerta(tex.url); setTexPicker(null); return; }
+    run(patchScene(live.id, texPicker === 'wall'
+      ? { wallTextureUrl: tex.url, wallTextureScale: tex.tileCells }
+      : { floorTextureUrl: tex.url, floorTextureScale: tex.tileCells }));
+    setTexPicker(null);
+  }, [live, texPicker, run, patchScene, aplicarTexturaPuerta]);
+  const pickTexture = useCallback(async (which: 'wall' | 'floor' | 'door') => {
+    setTexPicker(which);
+    if (textures === null) setTextures(await repo.listTextures().catch(() => []));
+  }, [textures, repo]);
   /**
    * EL BOTÓN DE ENSEÑARLE LOS MUROS A LOS JUGADORES (petición suya, 2026-09-03).
    *
@@ -588,7 +616,20 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                */
               if (builderMode === 'draw') {
                 if (isOpeningKind(buildKind)) {
-                  run(st.addRoomOpening({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, kind: buildKind, isOpen: false }));
+                  /**
+                   * ⚠️ AQUÍ NO SE EXIGE QUE HAYA UN MURO. Corrección suya del 2026-09-07: «*me estás pidiendo
+                   * que exista un muro para poner la puerta cuando en el caso del constructor de habitaciones
+                   * no funciona así*». En el constructor no hay filas de muro — la pared es el CONTORNO de lo
+                   * excavado— así que negarse era traer aquí la regla del modo foto, donde sí hay un muro que
+                   * recortar. Se pone donde él la puso y punto.
+                   *
+                   * Lo único que se conserva es el IMÁN: si hay una pared a mano, el trazo se clava en ella,
+                   * que es lo que hace que la puerta se vea metida en el muro en vez de a un pelo de él. La
+                   * tolerancia es el grosor del muro que se ve, porque es a lo que él apunta.
+                   */
+                  const crudo = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, kind: buildKind, isOpen: false };
+                  const vano = snapSpanToOutline(st.rooms, crudo, Math.max(live.grid.size / 2, wallWidthPx(live))) ?? crudo;
+                  run(st.addRoomOpening({ ...vano, ...(buildKind === 'door' ? doorDraft : {}) }));
                 } else {
                   const tira = wallStripe(a, b, wallWidthPx(live), live.grid.size);
                   if (tira.length) run(st.addRoomShape('rect', tira, 'fill'));
@@ -600,9 +641,9 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               // It also inherits whether the players could see that wall: otherwise their plan grows a gap
               // exactly where the doorway is.
               const plan = planOpening(st.walls, a, b, wallKind);
-              run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind) }, plan.splits));
+              run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind), ...(wallKind === 'door' ? doorDraft : {}) }, plan.splits));
             }}
-            rooms={st.rooms} roomOpenings={st.roomOpenings} builderMode={builderMode}
+            rooms={st.rooms} roomOpenings={st.roomOpenings} builderMode={builderMode} buildKind={buildKind}
             onTooSmall={locked => setAvisoCorto(locked ? 'snap' : 'short')}
             onAddRoomShape={(shape, points) => {
               // Una SALA excava y un MURO rellena: la misma forma con el signo cambiado (dueño, 2026-09-04).
@@ -754,6 +795,10 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                 setTool('wall');
                 if (selectedWall) run(st.patchWall(selectedWall.id, { kind: k, ...WALL_FLAGS[k] }));
                 else setWallKind(k);
+                // Y lo mismo que con `buildKind`: un vano es un tramo recto, así que la forma se cae a una
+                // que sirva. Sin esto quedaba un «círculo» elegido para una puerta, que no hace nada.
+                // (Las tres clases de muro son también `BuildKind`, así que `k` vale tal cual.)
+                if (!shapesFor(k).includes(wallShape)) setWallShape(defaultShapeFor(k));
               }}
               shape={wallShape} onShape={s => { setTool('wall'); setWallShape(s); }}
               snapGrid={snapGrid} onSnapGrid={setSnapGrid}
@@ -775,14 +820,30 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               onUngroup={() => { if (grupoCogido) { run(st.ungroupWalls(grupoCogido)); setSelectedWallIds([]); } }}
               // Cerrar el panel es salir de Builder: vuelve a Seleccionar y suelta lo que hubiera cogido.
               onClose={() => { setBuilderOpen(false); setTool('select'); setSelectedWallId(null); setSelectedWallIds([]); setSelectedRoomOpeningId(null); }}
+              /*
+               * Con una puerta COGIDA, `onDoor` la edita a ella; sin nada cogido, cambia el borrador — el
+               * mismo control para las dos cosas, que es lo que él aprobó en el `.pen`.
+               */
+              doorDraft={doorDraft}
+              {...(!selectedWall && !selectedRoomOpening ? {
+                /*
+                 * Tocar un ajuste ARMA la herramienta, como ya hacían «qué levanto» y «con qué forma»
+                 * (dueño, 2026-09-07: «*si selecciono una herramienta dentro de un modal quede el foco en
+                 * la herramienta, me tengo que volver a hacer click o sencillamente no funciona*»). Elegir
+                 * cómo será la puerta ES decir que vas a dibujar una.
+                 */
+                onDoor: (patch: Partial<DoorSettings>) => { setTool('wall'); setDoorDraft(d => ({ ...d, ...patch })); },
+                onDoorTexture: () => { setTool('wall'); void pickTexture('door'); },
+              } : {})}
               {...(selectedWall ? {
                 onVisible: (v: boolean) => run(st.patchWall(selectedWall.id, { visiblePlayers: v })),
                 onToggleOpen: () => run(st.patchWall(selectedWall.id, { isOpen: !selectedWall.isOpen })),
                 onRemove: () => { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); },
                 onDoor: (patch) => run(st.patchWall(selectedWall.id, patch)),
+                onDoorTexture: () => void pickTexture('door'),
               } : {})}
               /*
-               * EL VANO DE SALA usa los MISMOS controles del panel: abrir, borrar y los cuatro ajustes. Sin
+               * EL VANO DE SALA usa los MISMOS controles del panel: abrir, borrar y los ajustes de puerta. Sin
                * `onVisible`, que en una sala no hay nada que esconder — la sala ES el dibujo del mapa.
                */
               roomOpening={selectedRoomOpening}
@@ -790,6 +851,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                 onToggleOpen: () => run(st.toggleRoomOpening(selectedRoomOpening.id, !selectedRoomOpening.isOpen)),
                 onRemove: () => { run(st.removeRoomOpening(selectedRoomOpening.id)); setSelectedRoomOpeningId(null); },
                 onDoor: (patch) => run(st.patchRoomOpening(selectedRoomOpening.id, patch)),
+                onDoorTexture: () => void pickTexture('door'),
               } : {})} />
             {texPicker && (
               <TextureCatalog which={texPicker} textures={textures} canManage={puedeOrdenarTexturas}

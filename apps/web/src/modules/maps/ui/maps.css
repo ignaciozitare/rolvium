@@ -27,6 +27,16 @@
 /* «El de la escena» — el primero y el de serie de una puerta: no es un color propio, es heredar el trazo
    del muro, así que se pinta con el oro del muro y no con un hex de la paleta. */
 .mp-swatch-scene{background:var(--sys-gold);}
+/* LOS COLORES DE LA PUERTA, en rejilla FIJA de cinco por fila y ordenados por familia. Con una lista que se
+   dobla sola quedaban «todos los colores desordenados», que es lo que él vio y paró (2026-09-07). */
+.mp-door-colors{display:grid;grid-template-columns:repeat(5,20px);gap:4px;}
+/* LOS AJUSTES DE LA PUERTA: rótulo a la izquierda y BOTONES PEGADOS A LA DERECHA, para que las tres filas
+   —hojas, bisagra, lado— caigan alineadas entre sí. Con el rótulo empujándolos, cada fila arrancaba en un
+   sitio distinto y quedaban «los botones desalineados» (suyo, 2026-09-07). */
+.mp-door-opts .mp-builder-row{justify-content:flex-end;gap:6px;}
+.mp-door-opts .mp-builder-row > .tb-rotulo{margin-right:auto;}
+.mp-door-opts > .tb-rotulo{display:block;}
+.mp-door-opts .mp-door-colors{margin-left:auto;}
 .mp-stroke-note{font-size:var(--fs-xs);}
 /* stage */
 .mp-stage-row{display:flex;gap:10px;align-items:stretch;flex:1 1 auto;min-height:0;}
@@ -75,6 +85,9 @@
    con los cantos redondeados delante, así que aquí NUNCA va un `stroke-linejoin:round`.
    Sin `stroke` propio hereda el oro del muro, que es lo que significa un color de puerta nulo. */
 .mp-door-leaf{fill:none;stroke:var(--sys-gold);stroke-width:2.5;stroke-linejoin:miter;}
+/* Los dos trocitos de muro a los lados de la puerta: mismo trazo que el muro, y a tope (`butt`) para que
+   acaben exactamente donde empieza la hoja y no asomen por debajo. */
+.mp-door-stub{stroke:var(--sys-gold);stroke-width:3;stroke-linecap:butt;}
 .mp-opening.open .mp-door-leaf{opacity:.85;}
 .mp-wall-jamb{stroke:var(--sys-gold);stroke-width:3;stroke-linecap:round;}
 /* fog: the player gets black where the map is not, a dim veil over what is only remembered;
