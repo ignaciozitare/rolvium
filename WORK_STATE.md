@@ -20,6 +20,76 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 «EL FALLO DE "PEGADO A ALGO", CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO», justo debajo.**
 
+## 🚪 2026-09-07 — LAS PUERTAS · CONSTRUIDAS, PROBADAS POR ÉL, Y A FALTA DE UNA DECISIÓN SUYA
+
+Rama **`feat/maps-puertas`**. Commiteado hasta **`4bf1c1e`**; **la segunda tanda entera está SIN COMMITEAR**
+(27 ficheros tocados + la migración `20260907150000_maps_door_texture.sql`, que ya está aplicada en local).
+No se commitea a propósito: **el dibujo de la puerta todavía no le vale**, y ésa es la regla de la casa.
+
+Todo verde ahora mismo: `npm run test` **1493 web · 246 api · 64 core · 16 · 141** · `tsc` **0 errores** ·
+`audit` **0 hard** · `db lint --level error` limpio · `build:web` y `build:api` compilan.
+
+### ⛔ LO ÚNICO QUE BLOQUEA: ÉL TIENE QUE ELEGIR UN NÚMERO
+El dibujo de la puerta DENTRO DE UNA SALA no le convence («*está mal*», con captura: le sale una **barra
+maciza** de oro en vez de la hueca). Se le dibujaron **cuatro variantes a escala real** en el `.pen`, lámina
+**`WNJRg` · «PL/Puerta · CUÁL DE ESTAS»** (debajo del panel), y quedó en decir un número:
+
+| | Qué es |
+|---|---|
+| **1** | Hueca y del grosor de la roca |
+| **2** | Hueca y MÁS gruesa que la roca: sobresale por los dos lados |
+| **3** | Con los dos trocitos de roca a los lados y la hoja dentro |
+| **4** | Maciza (lo que sale hoy, y por eso está mal) |
+
+**Primera acción del chat nuevo: preguntarle el número y dejarlo así.** Lo que hay que tocar es
+`DOOR_BAR_PX` / el `thickness` que `roomsLayer` le pasa a `DoorLeaves` (hoy `wallWidthPx(scene) * 0.66`) y,
+si elige la 3, cómo se pintan los trocitos en una sala.
+
+> 🐞 **La pista de por qué sale maciza**: en su escena `wall_thickness = 0,22` casillas, así que la banda de
+> roca es fina y la hoja sale a `0,22 · grid · 0,66` ≈ **4 px**; con `stroke-width: 2.5` el trazo se come el
+> hueco y se ve rellena. Comprobado en su base: **ninguna de sus puertas tiene color ni textura**, así que no
+> es eso.
+
+### ✅ LO QUE SÍ ESTÁ HECHO Y FUNCIONA
+- **Dibujo nuevo** (`doorQuads` + `doorSpan` en `mapRules.ts`, `DoorLeaves` en `canvasLayers.tsx`): barra de
+  **ÁNGULOS RECTOS** —jamás `cornerRadius`—, abierta girada 90°, sin arco, una o dos hojas.
+- **Trocito de muro a cada lado** (`doorSpan`): mide el grosor de la barra, con tope del **15% del hueco** por
+  lado para que una puerta de una casilla no se quede en un cuadradito.
+- **El color RELLENA** la puerta; la **TEXTURA manda sobre el color** y sale del catálogo que ya existía
+  (`TextureCatalog`, ampliado a `which: 'door'`). Migración `20260907150000_maps_door_texture.sql`.
+- **Panel**: los ajustes salen **al ELEGIR PUERTA**, sobre un borrador (`doorDraft`), y la puerta **nace ya
+  así**; con una cogida, el mismo bloque la edita. Colores en **rejilla fija de 5 por familias**. Botón
+  «Elegir», no «Subir». Con un vano elegido desaparecen formas, estilo de mazmorra, texturas base y grosor.
+- **El disco abre las puertas de SALA** (era el fallo de origen) y **se pueden borrar**.
+- **Ctrl+Z** funciona con las puertas de sala (no apilaban paso: deshacía lo anterior).
+- **Una luz ya no roba el clic de una puerta** que tiene debajo.
+- **El doble clic no parte una puerta** (el nodo es sólo de muros; los muros no se tocaron).
+
+### 🚫 REGLAS QUE ÉL DEJÓ CLARAS Y NO SE PUEDEN VOLVER A ROMPER
+1. **En el constructor de habitaciones NO se exige que exista un muro** para poner una puerta: «*me estás
+   pidiendo que exista un muro cuando en el constructor no funciona así*». Se pone donde él la pone; lo único
+   que queda es un IMÁN que la clava en la pared si hay una cerca. **Y el modo FOTO no se toca**: ahí la
+   puerta sí recorta un muro, y funciona.
+2. **Ángulos rectos**, nunca cantos redondeados.
+3. Un vano de sala que no cae en el contorno **se dibuja igual**, donde él lo puso.
+
+### 🧨 TRES LECCIONES DE ESTA SESIÓN, PARA NO REPETIRLAS
+- **`tsc` DESPUÉS de escribir los tests, no antes.** Vitest transpila sin comprobar tipos y `build:web`
+  excluye los tests: 35 errores pasaron desapercibidos y los cazó el review. Se dio por limpio algo que no lo
+  estaba, y eso se le dijo a él. No vuelve a pasar.
+- **El servidor de desarrollo se queda con el paquete viejo.** Estuvo horas sirviendo lo de antes y él vio
+  «lo revertiste todo» cuando no se había revertido nada. Tras tocar i18n o CSS: **parar, borrar
+  `apps/web/node_modules/.vite`, y levantar otra vez** — y comprobarlo pidiendo el fichero al servidor.
+- **No afinar un dibujo a ciegas.** Se gastaron tres intentos ajustando números sin ver la pantalla. Cuando
+  la duda es visual, se dibuja en el `.pen` y se le enseña, que es la regla que este repo ya tenía escrita.
+
+### 📌 LO QUE HACE FALTA DE ÉL, EN ORDEN
+1. **El número de la variante** (1, 2, 3 o 4) de la lámina `WNJRg`.
+2. **Guardar el `.pen` con Cmd+S** — la lámina de las variantes y el panel corregido no están en disco.
+3. Cuando el dibujo le valga: **review** de la segunda tanda → **commit** → «listo para merge» → **QA** →
+   **Deploy**. ⚠️ En producción van **DOS migraciones**, y **antes** que el código:
+   `20260907120000_maps_doors.sql` y luego `20260907150000_maps_door_texture.sql`.
+
 ## 🚀 2026-09-07 — TODO ESO YA ESTÁ EN PRODUCCIÓN · Y EL ENCARGO NUEVO: LAS PUERTAS
 
 `main` = `c8e2e2b`. **Nada pendiente de subir y ninguna migración sin aplicar.**
