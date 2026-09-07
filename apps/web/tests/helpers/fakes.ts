@@ -376,6 +376,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const sceneProps = (seed.sceneProps ?? []).map(p => ({ ...p }));
   const rooms = (seed.rooms ?? []).map(r => ({ ...r }));
   const textures = (seed.textures ?? []).map(t => ({ ...t }));
+  const textureUpdates: { id: string; patch: { name?: string; category?: Texture['category'] } }[] = [];
   const roomOpenings = (seed.roomOpenings ?? []).map(o => ({ ...o }));
   const subs = new Map<string, Set<MapsLiveHandlers>>();
   const broadcasts: { sceneId: string; event: MapsLiveEvent }[] = [];
@@ -402,7 +403,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const masksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -489,6 +490,11 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
       const created: Texture = { ...t, id: `tx-new-${++n}`, url: `https://x/tex-${n}.png`, uploadedBy: 'u-gm', createdAt: '', updatedAt: '' };
       textures.unshift(created);
       return created;
+    },
+    updateTexture: async (id: string, patch: { name?: string; category?: Texture['category'] }) => {
+      const t = textures.find(x => x.id === id);
+      if (t) Object.assign(t, patch);
+      textureUpdates.push({ id, patch });
     },
     removeTexture: async (id: string) => { const i = textures.findIndex(t => t.id === id); if (i >= 0) textures.splice(i, 1); },
     // ── salas (rebanada 8): una fila es UNA FORMA; el contorno se calcula, no se guarda ──

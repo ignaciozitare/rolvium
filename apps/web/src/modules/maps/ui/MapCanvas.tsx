@@ -4,7 +4,7 @@ import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { freehandSides, isDragShape, isLineShape, lineSide, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
 import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
@@ -67,11 +67,11 @@ interface Props {
   builderMode?: BuilderMode;
   onAddRoomShape?: (shape: RoomShapeKind, points: [number, number][]) => void;
   /**
-   * LO MÁS PEQUEÑO QUE PUEDE SER LA FORMA, en casillas. Una SALA pide una casilla entera —menos que eso es un
-   * resbalón del ratón—, pero un MURO mide una fracción, así que con el mínimo de sala era imposible de
-   * dibujar: «*si hago click para crear un muro muy cerca de otro no me deja ponerlo*» (dueño, 2026-09-04).
+   * EL GESTO NO LEVANTÓ NADA, y hay que decirlo. Sin esto el fallo era mudo: se arrastraba corto, no aparecía
+   * nada y no había manera de saber por qué (dueño, 2026-09-04). `locked` distingue los dos porqués — el
+   * gesto se quedó corto, o el candado de la rejilla no deja nada más pequeño que una casilla.
    */
-  minShapeCells?: number;
+  onTooSmall?: (locked: boolean) => void;
   /** DM: open or close the door/window that was clicked. */
   onToggleWall: (wall: Wall) => void;
   /** DM: paint the fog at a scene point with the current brush radius (scene px). */
@@ -303,10 +303,25 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const candado = p.snapGrid ?? false;
   const paso = stepOf(grid, candado);
-  const minForma = p.minShapeCells ?? MIN_ROOM_CELLS;
+  /**
+   * EL MÍNIMO DE UNA FORMA CERRADA, y ya sólo hay UNO: desde su decisión del 2026-09-04 una sala puede ser tan
+   * estrecha como un muro, así que sobra el `minShapeCells` que `SceneTab` pasaba para bajárselo sólo al
+   * relleno. Dos mínimos distintos para la misma regla es cómo volvió el fallo la primera vez.
+   */
+  const minForma = MIN_ROOM_CELLS;
   /** El imán de las puntas se mide en píxeles de PANTALLA: con el mapa alejado no puede tirar de medio mapa. */
   const imán = END_SNAP_PX / p.view.zoom;
-  const anclar = (q: Point, skipId?: string): Point => builderPoint(q, grid, candado, p.walls, imán, skipId);
+  /**
+   * `evitar` es la punta que YA está puesta: el imán no puede volver a elegirla, o las dos puntas del gesto
+   * acabarían encima de la misma y el muro saldría de largo cero (§ `snapRules.SAME_POINT_PX`).
+   */
+  const anclar = (q: Point, skipId?: string, evitar?: Point | null): Point => builderPoint(q, grid, candado, p.walls, imán, skipId, evitar);
+  /**
+   * EL MÍNIMO DE UNA RAYA, y no vale lo mismo en los dos modos: marcando sobre una foto sale un muro de los
+   * de siempre (media casilla), y dibujando aquí sale un tabique de relleno, que mide una fracción de casilla.
+   * Con el de la foto puesto en los dos, un tabique corto se caía sin decir nada (fallo suyo del 2026-09-04).
+   */
+  const minRaya = p.builderMode === 'draw' ? MIN_FILL_CELLS : MIN_LINE_CELLS;
 
   /**
    * ADÓNDE VA LO QUE SE ACABA DE DIBUJAR — y aquí es donde conviven las dos maneras de trabajar.
@@ -319,7 +334,7 @@ export function MapCanvas(p: Props): JSX.Element {
    * Los lados llegan ya en orden dando la vuelta, así que el anillo es la primera punta de cada uno.
    */
   const commitRoom = (sides: RoomSide[], shape: RoomShapeKind): void => {
-    if (!sides.length) return;
+    if (!sides.length) { p.onTooSmall?.(candado); return; }
     if (p.builderMode === 'draw' && p.onAddRoomShape) p.onAddRoomShape(shape, ringFromSides(sides));
     else p.onAddRoom?.(sides);
   };
@@ -659,7 +674,7 @@ export function MapCanvas(p: Props): JSX.Element {
         // Polígono: un clic, un vértice. Se cierra pinchando otra vez encima del primero — el gesto que ya
         // conoce todo el mundo, y así no hace falta un botón aparte ni un doble clic que compita con nada.
         if (shape === 'poly') {
-          const v = anclar(s);
+          const v = anclar(s, undefined, polyPoints[polyPoints.length - 1] ?? null);
           const first = polyPoints[0];
           // Menos de media casilla, no una entera: los vértices están pegados a la rejilla, así que el vecino
           // de al lado cae a exactamente `grid` del primero y con el tope en `grid` cerraba la sala en vez de
@@ -674,7 +689,7 @@ export function MapCanvas(p: Props): JSX.Element {
         }
         // Muro only BUILDS. Opening a door is the hover disc's job, which is what unblocks starting a wall next
         // to a door — that click used to open it instead (specs/modules/maps/SPEC.md § «Rebanada 3»).
-        const q = anclar(s);
+        const q = anclar(s, undefined, wallStart);
         if (wallStart) {
           p.onAddWall(wallStart, q);
           // A door or a window is ONE segment: chaining would drop a second one where you did not ask for it.
@@ -808,7 +823,7 @@ export function MapCanvas(p: Props): JSX.Element {
       setGesture({ ...gesture, last: s });
     } else if (gesture.kind === 'line') {
       // Se pinta con el mismo borrador que las salas: es un lado, y un lado ya sabe dibujarse.
-      const side = lineSide(gesture.start, anclar(s), grid);
+      const side = lineSide(gesture.start, anclar(s, undefined, gesture.start), grid, minRaya);
       setRoomDraft(side ? [side] : []);
     } else if (gesture.kind === 'room') {
       setRoomDraft(roomSides(gesture.shape, gesture.start, s, grid, paso, minForma));
@@ -911,8 +926,9 @@ export function MapCanvas(p: Props): JSX.Element {
       setRoomDraft([]); setGesture(null); return;
     }
     if (gesture.kind === 'line') {
-      const side = lineSide(gesture.start, hover ? anclar(hover) : gesture.start, grid);
+      const side = lineSide(gesture.start, hover ? anclar(hover, undefined, gesture.start) : gesture.start, grid, minRaya);
       if (side) p.onAddWall({ x: side.x1, y: side.y1 }, { x: side.x2, y: side.y2 });
+      else p.onTooSmall?.(candado);
       setRoomDraft([]); setGesture(null); return;
     }
     if (gesture.kind === 'wallEdit') {
@@ -1158,10 +1174,10 @@ export function MapCanvas(p: Props): JSX.Element {
                 selected={w.id === p.selectedWallId || (p.selectedWallIds ?? []).includes(w.id)}
                 draft={groupDraft?.get(w.id) ?? (wallDraft && w.id === p.selectedWallId ? wallDraft : null)} />
             ))}
-            {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={anclar(hover).x} y2={anclar(hover).y} className="mp-wall draft" />}
+            {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={anclar(hover, undefined, wallStart).x} y2={anclar(hover, undefined, wallStart).y} className="mp-wall draft" />}
             {roomDraft.map((r, i) => <line key={`room-${i}`} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} className="mp-wall draft" />)}
             {p.tool === 'wall' && polyPoints.map((v, i) => {
-              const next = polyPoints[i + 1] ?? (hover ? anclar(hover) : v);
+              const next = polyPoints[i + 1] ?? (hover ? anclar(hover, undefined, polyPoints[polyPoints.length - 1] ?? null) : v);
               return <line key={`poly-${i}`} x1={v.x} y1={v.y} x2={next.x} y2={next.y} className="mp-wall draft" />;
             })}
           </g>

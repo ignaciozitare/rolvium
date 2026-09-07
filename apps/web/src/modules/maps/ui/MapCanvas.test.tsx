@@ -1961,3 +1961,70 @@ describe('<MapCanvas> el área coge también los trazos', () => {
     expect(onMoveDrawings).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * 🐞 «NO ME DEJA PONER UN MURO PEGADO A OTRO» (dueño, 2026-09-04), y lo mismo con las salas. Reproducido aquí
+ * antes de tocar nada: eran DOS causas distintas, y las dos dejaban la pantalla muda.
+ */
+describe('<MapCanvas> dibujar pegado a algo', () => {
+  const dm = { tool: 'wall' as const, isDm: true, me: 'u-gm' };
+
+  /** Causa 1: el imán. Los dos clics caían sobre la misma punta ajena y el muro salía de largo cero. */
+  it('dos clics junto a la MISMA punta ajena levantan un muro de verdad, no uno de largo cero', () => {
+    const { svg, cb } = mount({ ...dm, wallShape: 'segment', snapGrid: false });
+    down(svg, 274, 219); down(svg, 276, 222);
+    const [a, b] = cb.onAddWall.mock.calls[0] as [{ x: number; y: number }, { x: number; y: number }];
+    expect(a).toEqual({ x: 270, y: 216 });   // el primero sí se pega, que es para lo que existe el imán
+    expect(b).not.toEqual(a);                 // el segundo ya no puede caer encima
+  });
+
+  /** Causa 2: el mínimo. Una sala tenía que medir una casilla entera de lado. */
+  it('una sala tan estrecha como un muro se levanta, con el candado abierto', () => {
+    const cb2 = { onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'rect', builderMode: 'draw', snapGrid: false, ...cb2 });
+    down(svg, 100, 100); move(svg, 120, 120); up(svg);
+    expect(cb2.onAddRoomShape).toHaveBeenCalledTimes(1);
+  });
+
+  /** Y una raya corta dibujando aquí es un tabique, no una recta sobre foto: su mínimo es el del relleno. */
+  it('un tabique corto SÍ se dibuja en «dibujar aquí»', () => {
+    const { svg, cb } = mount({ ...dm, wallShape: 'line', builderMode: 'draw', snapGrid: false, walls: [] });
+    down(svg, 100, 100); move(svg, 108, 100); up(svg);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+  });
+
+  it('…y la misma raya corta sobre una foto sigue sin valer: ahí un muro mide media casilla', () => {
+    const { svg, cb } = mount({ ...dm, wallShape: 'line', builderMode: 'photo', snapGrid: false, walls: [] });
+    down(svg, 100, 100); move(svg, 108, 100); up(svg);
+    expect(cb.onAddWall).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🔒 Y LO PEOR DEL FALLO ERA EL SILENCIO. Su decisión del 2026-09-04: un clic sin arrastrar sigue sin
+   * dibujar nada, «*pero ahí sí te avisa en pantalla*».
+   */
+  it('un clic sin arrastre no levanta nada, y lo dice', () => {
+    const cb2 = { onAddRoomShape: vi.fn(), onTooSmall: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'rect', builderMode: 'draw', snapGrid: false, ...cb2 });
+    down(svg, 100, 100); up(svg);
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
+    expect(cb2.onTooSmall).toHaveBeenCalledWith(false);
+  });
+
+  /** Con el candado echado el porqué es OTRO, y el aviso tiene que poder distinguirlo. */
+  it('con el candado echado avisa de que manda la rejilla', () => {
+    const cb2 = { onAddRoomShape: vi.fn(), onTooSmall: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'rect', builderMode: 'draw', snapGrid: true, ...cb2 });
+    down(svg, 100, 100); move(svg, 105, 105); up(svg);
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
+    expect(cb2.onTooSmall).toHaveBeenCalledWith(true);
+  });
+
+  it('la recta que se queda corta también avisa', () => {
+    const cb2 = { onTooSmall: vi.fn() };
+    const { svg, cb } = mount({ ...dm, wallShape: 'line', builderMode: 'photo', snapGrid: false, walls: [], ...cb2 });
+    down(svg, 100, 100); move(svg, 103, 100); up(svg);
+    expect(cb.onAddWall).not.toHaveBeenCalled();
+    expect(cb2.onTooSmall).toHaveBeenCalledWith(false);
+  });
+});

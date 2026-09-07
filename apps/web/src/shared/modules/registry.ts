@@ -1,4 +1,4 @@
-import type { AdminPermissionKey, ModuleId } from '@rolvium/shared-types';
+import type { AdminPermissionKey, ModuleId, ToolPermissionKey } from '@rolvium/shared-types';
 
 /**
  * Registry of product modules. A module here = a sidebar entry + a value a
@@ -34,4 +34,15 @@ export const ADMIN_PERMISSIONS: { id: AdminPermissionKey; labelKey: string; desc
   { id: 'manage_users',    labelKey: 'admin.perm.manage_users',    descKey: 'admin.perm.manage_users_desc' },
   { id: 'manage_roles',    labelKey: 'admin.perm.manage_roles',    descKey: 'admin.perm.manage_roles_desc' },
   { id: 'manage_settings', labelKey: 'admin.perm.manage_settings', descKey: 'admin.perm.manage_settings_desc' },
+];
+
+/**
+ * PERMISOS DE HERRAMIENTA, con su item propio en la pantalla de roles y concedidos POR ROL (orden suya del
+ * 2026-09-04). Van en su propia lista porque NO abren «Administración» — ver `ToolPermissionKey`.
+ *
+ * Al crear una herramienta nueva que no pueda usar cualquiera, se añade aquí su línea y ya se puede elegir
+ * qué rol la usa, sin tocar nada más de la pantalla.
+ */
+export const TOOL_PERMISSIONS: { id: ToolPermissionKey; labelKey: string; descKey: string }[] = [
+  { id: 'manage_textures', labelKey: 'admin.tool.manage_textures', descKey: 'admin.tool.manage_textures_desc' },
 ];

@@ -6,7 +6,8 @@ interface RoleRow { id: string; name: string; description: string; is_system: bo
 
 export const mapRoleRow = (r: RoleRow): Role => ({
   id: r.id, name: r.name, description: r.description ?? '', isSystem: r.is_system,
-  permissions: { modules: r.permissions?.modules ?? [], admin: r.permissions?.admin ?? {} },
+  // `tools` viaja igual que los otros dos: olvidarlo aquí dejaría al rol sin sus permisos de herramienta.
+  permissions: { modules: r.permissions?.modules ?? [], admin: r.permissions?.admin ?? {}, tools: r.permissions?.tools ?? {} },
   createdAt: r.created_at,
 });
 

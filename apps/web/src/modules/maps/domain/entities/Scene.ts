@@ -411,3 +411,5 @@ export interface Texture {
   updatedAt: string;
 }
 export type NewTexture = Omit<Texture, 'id' | 'createdAt' | 'updatedAt'>;
+/** Lo único que se puede cambiar de una textura ya subida: cómo se llama y dónde está clasificada. */
+export type TexturePatch = Partial<Pick<Texture, 'name' | 'category'>>;

@@ -212,12 +212,18 @@ export function BuilderPanel({
                 <TextureSwatch url={url} cells={escala}
                   fallback={which === 'wall' ? styleOf(preset).rock : styleOf(preset).floor} />
                 <span className="mp-builder-tex-n">{url ? t('maps.room.textures.own') : t(`maps.room.preset.${preset}`)}</span>
-                {/* Rojo sangre = ACCIÓN (su corrección nº 3 del 2026-09-02). El negro es sólo lo seleccionado. */}
-                <button type="button" className="tb-btn tb-btn-xs tb-btn-danger" onClick={() => onTexture?.(which)}>
+                {/*
+                  * Rojo sangre = ACCIÓN (su corrección nº 3 del 2026-09-02). El negro es sólo lo seleccionado.
+                  * 🐞 …y hasta el 2026-09-04 esto NO era rojo: la clase que había, `tb-btn-danger`, no existe
+                  * en el CSS, así que estos botones caían al `tb-btn` de siempre —tinta sobre el panel— y
+                  * dentro del catálogo, que se pinta oscuro, el texto salía invisible. Él lo vio antes que
+                  * nadie: «*mira el botón que está mal*».
+                  */}
+                <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onTexture?.(which)}>
                   {t(url ? 'maps.room.textures.change' : 'maps.room.textures.upload')}
                 </button>
                 {url && (
-                  <button type="button" className="tb-btn tb-btn-xs tb-btn-danger" onClick={() => onClearTexture?.(which)}>
+                  <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onClearTexture?.(which)}>
                     {t('maps.room.textures.remove')}
                   </button>
                 )}
@@ -290,7 +296,7 @@ export function BuilderPanel({
           {groupCount > 1 && (
             <div className="mp-builder-row">
               <span className="mp-groupbar-n">{grouped ? t('maps.group.countGrouped', { n: String(groupCount) }) : t('maps.group.countLoose', { n: String(groupCount) })}</span>
-              <button type="button" className="tb-btn tb-btn-xs tb-btn-danger" onClick={() => (grouped ? onUngroup?.() : onGroup?.())}>
+              <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => (grouped ? onUngroup?.() : onGroup?.())}>
                 {grouped ? t('maps.group.ungroup') : t('maps.group.group')}
               </button>
             </div>

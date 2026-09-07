@@ -116,7 +116,12 @@
       "manage_settings_desc": "Platform-wide configuration"
     },
     "settingsTitle": "Settings",
-    "settingsEmpty": "There are no configurable settings yet."
+    "settingsEmpty": "There are no configurable settings yet.",
+    "toolsPicker": "Rolvium permissions",
+    "tool": {
+      "manage_textures": "Manage textures",
+      "manage_textures_desc": "Upload, rename, categorise and delete catalog textures. Without it they can only be picked."
+    }
   },
   "modules": {
     "home": "Home",
@@ -1048,9 +1053,31 @@
       "catalog": {
         "wall": "Wall texture",
         "floor": "Floor texture",
-        "hint": "Pick one from your library, or upload a new one. The library belongs to the campaign, so anything you upload here works on any map.",
-        "empty": "You have not uploaded any image to this campaign yet."
-      }
+        "hint": "These belong to the TOOL, not to your campaign: whatever you upload here works in all your maps. Pick one and it becomes this scene’s base texture, with its tile size.",
+        "empty": "No texture with that name in this category.",
+        "search": "Search by name…",
+        "categories": "Categories",
+        "count": "Textures · {{n}}",
+        "uploadTo": "Upload to {{cat}}",
+        "removeConfirm": "Delete the texture “{{name}}” from the catalog? Any map using it will be left without it.",
+        "legend": "the dot marks the ones Rolvium ships · the rest were uploaded by your group",
+        "cat": {
+          "all": "All",
+          "stone": "Stone",
+          "wood": "Wood",
+          "tile": "Tile",
+          "earth": "Earth",
+          "grass": "Grass",
+          "water": "Water",
+          "misc": "Misc"
+        },
+        "menu": "Options for “{{name}}”",
+        "rename": "Rename",
+        "categorize": "Categorise",
+        "renamePrompt": "What should this texture be called?"
+      },
+      "tooSmall": "The gesture came up short: nothing was built. Drag a little further.",
+      "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square."
     },
     "group": {
       "countGrouped": "Group · {{n}} walls",

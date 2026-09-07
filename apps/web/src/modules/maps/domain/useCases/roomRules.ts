@@ -25,21 +25,27 @@ export type RoomKind = 'rect' | 'circle';
 export const ROOM_KINDS: RoomKind[] = ['rect', 'circle'];
 
 /**
- * Lo más pequeño que puede ser una habitación, en casillas. Por debajo de una casilla no es una sala: es un
- * resbalón del ratón, y montar cuatro muros de dos píxeles sólo deja basura que hay que borrar a mano.
- */
-export const MIN_ROOM_CELLS = 1;
-
-/**
- * …PERO UN MURO NO ES UNA SALA, y ese mismo mínimo lo hacía imposible de dibujar.
+ * LO MÁS PEQUEÑO QUE PUEDE SER CUALQUIER COSA LEVANTADA AQUÍ, en casillas.
  *
  * Fallo suyo del 2026-09-04: «*si hago click para crear un muro muy cerca de otro muro no me deja ponerlo, es
  * como que hay un límite que has puesto*». Lo había. Un tabique mide una fracción de casilla —el grosor de la
- * escena ronda un quinto— así que pedirle una casilla entera era pedirle que no fuera un muro. Sigue habiendo
- * un mínimo, porque un rectángulo de dos píxeles es un resbalón del ratón y no un tabique; sólo que el mínimo
- * de un muro es el grosor de un muro.
+ * escena ronda un quinto— así que pedirle una casilla entera era pedirle que no fuera un muro.
+ *
+ * Sigue habiendo un mínimo, porque un clic sin arrastre es un resbalón del ratón y no un tabique; sólo que el
+ * mínimo es el grosor de un muro y no una casilla entera.
  */
 export const MIN_FILL_CELLS = 0.1;
+
+/**
+ * …Y UNA SALA MIDE LO MISMO QUE UN MURO. Decisión suya del 2026-09-04, con el fallo delante: se le enseñó que
+ * una sala tenía que ocupar UNA casilla entera de lado y que por debajo de eso no aparecía nada ni se le
+ * avisaba, y eligió «*tan pequeña como un Muro*» sabiendo lo que cuesta —un resbalón puede dejarle una sala
+ * diminuta que tendrá que borrar—. Antes valía 1, y por eso un hueco estrecho entre dos salas no se podía
+ * rellenar con otra sala.
+ *
+ * Es el MISMO número a propósito: dos constantes distintas para la misma regla es cómo vuelve el fallo.
+ */
+export const MIN_ROOM_CELLS = MIN_FILL_CELLS;
 
 /**
  * El lado del rectángulo que va de `a` a `b`, pegado a la rejilla y siempre bien orientado — se dibuje de la
@@ -176,8 +182,8 @@ export const MIN_LINE_CELLS = 0.5;
  * Devuelve `null` si es demasiado corta, así que quien llame a esto no tiene que acordarse de comprobarlo —
  * y un clic sin arrastre no ensucia la escena.
  */
-export function lineSide(a: Point, b: Point, grid: number): RoomSide | null {
-  if (Math.hypot(b.x - a.x, b.y - a.y) < grid * MIN_LINE_CELLS) return null;
+export function lineSide(a: Point, b: Point, grid: number, min: number = MIN_LINE_CELLS): RoomSide | null {
+  if (Math.hypot(b.x - a.x, b.y - a.y) < grid * min) return null;
   return { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
 }
 
@@ -336,7 +342,10 @@ export const isOpeningKind = (k: BuildKind): k is 'door' | 'window' => k === 'do
 export function wallStripe(a: Point, b: Point, t: number, grid: number): [number, number][] {
   const dx = b.x - a.x, dy = b.y - a.y;
   const len = Math.hypot(dx, dy);
-  if (len < grid * MIN_LINE_CELLS) return [];
+  // 🐞 El mínimo de un RELLENO, no el de una recta marcada sobre una foto (2026-09-04). Aquí seguía el de la
+  // foto —media casilla— y por eso un tabique corto seguía sin poder dibujarse aunque el mínimo de las formas
+  // ya se hubiera bajado: la raya se caía antes, en este `return []`, y sin decir nada.
+  if (len < grid * MIN_FILL_CELLS) return [];
   const nx = (-dy / len) * (t / 2), ny = (dx / len) * (t / 2);
   return [
     [a.x + nx, a.y + ny],

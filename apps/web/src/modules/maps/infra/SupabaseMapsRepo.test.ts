@@ -565,3 +565,57 @@ describe('SupabaseMapsRepo — las salas', () => {
     expect(mapSceneRow(SCENE_ROW)).toMatchObject({ roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22 });
   });
 });
+
+/**
+ * EL CATÁLOGO DE TEXTURAS — es de la HERRAMIENTA, no de una campaña, y desde el 2026-09-04 ordenarlo va
+ * detrás del permiso `manage_textures`. Quien deniega de verdad es la RLS (`has_tool('manage_textures')` en
+ * INSERT/UPDATE/DELETE de `maps_textures`); aquí se comprueba que el adaptador manda lo que debe y nada más.
+ */
+describe('SupabaseMapsRepo — el catálogo de texturas', () => {
+  it('renombrar manda sólo `name`, sin arrastrar la categoría', async () => {
+    const m = createSupabaseMock({ tables: { maps_textures: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateTexture('tx-1', { name: 'Losas húmedas' });
+    expect(m.fromSpy).toHaveBeenCalledWith('maps_textures');
+    expect(q(m)['update']).toHaveBeenCalledWith({ name: 'Losas húmedas' });
+    expect(q(m)['eq']).toHaveBeenCalledWith('id', 'tx-1');
+  });
+
+  it('clasificar manda sólo `category`, sin borrarle el nombre', async () => {
+    const m = createSupabaseMock({ tables: { maps_textures: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateTexture('tx-1', { category: 'stone' });
+    expect(q(m)['update']).toHaveBeenCalledWith({ category: 'stone' });
+  });
+
+  it('las dos a la vez viajan juntas, en snake_case de la tabla', async () => {
+    const m = createSupabaseMock({ tables: { maps_textures: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateTexture('tx-1', { name: 'Adoquín', category: 'tile' });
+    expect(q(m)['update']).toHaveBeenCalledWith({ name: 'Adoquín', category: 'tile' });
+  });
+
+  it('un `undefined` no se manda: mandarlo BORRARÍA el campo en la fila', async () => {
+    const m = createSupabaseMock({ tables: { maps_textures: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateTexture('tx-1', { name: 'Musgo', category: undefined });
+    expect(q(m)['update']).toHaveBeenCalledWith({ name: 'Musgo' });
+  });
+
+  it('si la RLS deniega, el error SUBE — no se finge que se guardó', async () => {
+    // Es el caso real de quien no tiene `manage_textures`: la base rechaza y la pantalla tiene que enterarse.
+    const m = createSupabaseMock({ tables: { maps_textures: { data: null, error: new Error('new row violates row-level security policy') } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await expect(repo.updateTexture('tx-1', { name: 'X' })).rejects.toThrow(/row-level security/);
+    const d = createSupabaseMock({ tables: { maps_textures: { data: null, error: new Error('rls') } } });
+    await expect(new SupabaseMapsRepo(d.client as unknown as SupabaseClient).removeTexture('tx-1')).rejects.toThrow('rls');
+  });
+
+  it('borrar apunta a la fila por id y nada más', async () => {
+    const m = createSupabaseMock({ tables: { maps_textures: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.removeTexture('tx-9');
+    expect(q(m)['delete']).toHaveBeenCalled();
+    expect(q(m)['eq']).toHaveBeenCalledWith('id', 'tx-9');
+  });
+});

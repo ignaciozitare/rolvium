@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Btn, DualPanelPicker, useDialog } from '@rolvium/ui';
 import { ADMIN_ROLE_NAME, type Role, type RolePermissions } from '@rolvium/shared-types';
-import { ADMIN_PERMISSIONS, GRANTABLE_MODULES } from '@/shared/modules/registry';
+import { ADMIN_PERMISSIONS, GRANTABLE_MODULES, TOOL_PERMISSIONS } from '@/shared/modules/registry';
 import { slugifyRoleName } from '@/shared/lib/utils';
 import type { RolePort } from '../domain/ports/RolePort';
 
@@ -47,6 +47,14 @@ export function AdminRoles({ roleRepo, readOnly = false }: Props): JSX.Element {
   };
   const toggleModule = (id: string) => sel && savePerms({ ...sel.permissions, modules: sel.permissions.modules.includes(id) ? sel.permissions.modules.filter(m => m !== id) : [...sel.permissions.modules, id] });
   const togglePerm = (id: string) => sel && savePerms({ ...sel.permissions, admin: { ...sel.permissions.admin, [id]: !sel.permissions.admin[id as keyof typeof sel.permissions.admin] } });
+  /**
+   * Los de HERRAMIENTA van a su propio cajón, `tools`, y por eso tienen su propio interruptor. Mezclarlos con
+   * los de arriba le abriría «Administración» a quien no le toca (§ `ToolPermissionKey`).
+   */
+  const toggleTool = (id: string) => sel && savePerms({
+    ...sel.permissions,
+    tools: { ...(sel.permissions.tools ?? {}), [id]: !(sel.permissions.tools ?? {})[id as keyof NonNullable<typeof sel.permissions.tools>] },
+  });
 
   const saveDescription = async (description: string) => {
     if (!sel || locked) return;
@@ -55,6 +63,7 @@ export function AdminRoles({ roleRepo, readOnly = false }: Props): JSX.Element {
   };
 
   const selectedPerms = ADMIN_PERMISSIONS.filter(p => sel?.permissions.admin[p.id]).map(p => p.id);
+  const selectedTools = TOOL_PERMISSIONS.filter(p => sel?.permissions.tools?.[p.id]).map(p => p.id);
 
   return (
     <div style={{ display: 'flex', gap: 20, height: '100%', minHeight: 0 }}>
@@ -108,6 +117,19 @@ export function AdminRoles({ roleRepo, readOnly = false }: Props): JSX.Element {
             selected={selectedPerms}
             onAdd={v => { if (!locked) togglePerm(v); }}
             onRemove={v => { if (!locked) togglePerm(v); }}
+            fillHeight
+            labelColumnWidth={200}
+          />
+          {/*
+            * PERMISOS DE ROLVIUM — las capacidades de las herramientas, cada una con su item (orden suya del
+            * 2026-09-04). Se conceden POR ROL, como todo lo de esta pantalla: nunca por usuario.
+            */}
+          <DualPanelPicker
+            label={t('admin.toolsPicker')}
+            allItems={TOOL_PERMISSIONS.map(p => ({ value: p.id, label: t(p.labelKey), hint: t(p.descKey) }))}
+            selected={selectedTools}
+            onAdd={v => { if (!locked) toggleTool(v); }}
+            onRemove={v => { if (!locked) toggleTool(v); }}
             fillHeight
             labelColumnWidth={200}
           />

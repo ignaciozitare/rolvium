@@ -7,7 +7,7 @@ import type { Character } from '@/modules/characters/domain/entities/Character';
 import type { CharactersPort } from '@/modules/characters/domain/ports/CharactersPort';
 import { characterAvatar } from '@/modules/characters/domain/useCases/characterRules';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
-import type { ImageAsset, Scene, ScenePatch, Wall, WallKind } from '../domain/entities/Scene';
+import type { ImageAsset, Scene, ScenePatch, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import { brushRadius, canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
@@ -17,8 +17,9 @@ import { MapCanvas, type StrokeStyle } from './MapCanvas';
 import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { BuilderPanel } from './BuilderPanel';
-import { defaultShapeFor, isOpeningKind, MIN_FILL_CELLS, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
-import { wallWidthPx } from '../domain/useCases/roomStyles';
+import { TextureCatalog } from './TextureCatalog';
+import { defaultShapeFor, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { DEFAULT_TEXTURE_SCALE, wallWidthPx } from '../domain/useCases/roomStyles';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
@@ -38,6 +39,15 @@ interface Props {
   role: TableRole;
   userId: string;
   system: GameSystem;
+  /**
+   * ¿PUEDE ORDENAR EL CATÁLOGO DE TEXTURAS? Es el permiso `manage_textures` del motor de roles, y llega por
+   * parámetro a propósito: `maps` no tiene por qué saber cómo se leen los permisos, igual que no sabe de
+   * dónde salen los encuentros. Quien lo resuelve es el caparazón de la mesa.
+   *
+   * OBLIGATORIA, no opcional: un permiso que se olvida y por omisión vale `false` deja al dueño sin sus
+   * botones sin que nadie se entere. Así el compilador obliga a decidirlo en cada sitio.
+   */
+  canManageTextures: boolean;
   /**
    * Encuentros PROPIOS del director (H5), ya con forma de `CatalogItem`. Llegan por parámetro y no de un
    * repositorio: `maps` no tiene por qué saber que existe el bestiario, igual que `EncounterMenu` no sabe de
@@ -76,9 +86,11 @@ interface Props {
 
 /** Gold, the second swatch of the persisted stroke palette (mapRules.STROKE_COLORS). */
 const DEFAULT_STROKE: StrokeStyle = { color: STROKE_COLORS[1], width: 2 };
+/** Cuánto se queda en pantalla el aviso de «el gesto no levantó nada». Lo justo para leerlo sin estorbar. */
+const AVISO_MS = 2600;
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
+export function SceneTab({ campaignId, role, userId, system, canManageTextures: puedeOrdenarTexturas, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -143,6 +155,14 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
    * Seleccionar y Builder VIVEN JUNTAS (dueño, 2026-09-03): pasar a Seleccionar para mover algo no puede
    * cerrarle el panel con el que está trabajando. Lo cierra la X, o irse a cualquier otra herramienta.
    */
+  /**
+   * EL AVISO DE QUE EL GESTO NO LEVANTÓ NADA (dueño, 2026-09-04, eligiendo bajar el mínimo de una sala: «*un
+   * clic sin arrastrar sigue sin dibujar nada, y ahí sí te avisa en pantalla*»).
+   *
+   * Antes esto pasaba EN SILENCIO y era lo peor del fallo: se arrastraba corto, no aparecía nada, y no había
+   * forma de saber si el mínimo, el candado o la app estaban rotos. Se borra solo, como el alfiler.
+   */
+  const [avisoCorto, setAvisoCorto] = useState<'short' | 'snap' | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [railFolded, setRailFolded] = useState(false);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
@@ -226,6 +246,15 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
   useEffect(() => { if (st.pin) setView(v => centerOn(v, st.pin!, viewport())); }, [st.pin]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (tool !== 'encounter') { setEncounter(null); setArmedFromBestiary(false); } }, [tool]);
   /**
+   * El aviso de «no se levantó nada» se retira solo: es una explicación de lo que acaba de pasar, no un
+   * estado. Se rearma en cada gesto fallido porque el estado cambia de `null` a valor otra vez.
+   */
+  useEffect(() => {
+    if (!avisoCorto) return;
+    const id = window.setTimeout(() => setAvisoCorto(null), AVISO_MS);
+    return () => window.clearTimeout(id);
+  }, [avisoCorto]);
+  /**
    * Armar lo que llega del Bestiario. Espera a que la escena exista: al llegar de otra pestaña este
    * componente monta con `live` a null y el efecto de `[live?.id]` limpia el encuentro justo después,
    * así que armar antes se perdía. Y hay que poner la herramienta en «encounter» o el efecto de `[tool]`
@@ -269,14 +298,37 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
    * catálogo, no que si quieres cambiarla sólo te permita subirlas… ¿quedarán infinitas texturas?*». Tenía
    * razón: con sólo «subir», reusar una foto obligaba a subirla otra vez y la biblioteca crecía sin fin.
    *
-   * No hace falta biblioteca nueva: es la MISMA de la campaña que ya usa el fondo del mapa (`listImages`),
-   * y una textura no deja de ser una imagen de campaña. Así lo que suba aquí le sirve en cualquier mapa.
+   * ⚠️ Y la primera respuesta a eso fue MALA: se reusó la biblioteca de fondos de la campaña, «que una
+   * textura no deja de ser una imagen». No lo es, y él lo paró en cuanto lo vio (2026-09-04): «*los fondos de
+   * las escenas que subí antes y las texturas no son lo mismo; los fondos sí son por campaña —yo subo un mapa
+   * que dibujé y lo pongo aquí— pero las texturas son de un catálogo de texturas, no lo mezcles*». Hoy son
+   * dos cosas separadas: `images` es de ESTA campaña, `textures` es de la herramienta entera.
    */
   const [texPicker, setTexPicker] = useState<'wall' | 'floor' | null>(null);
+  /**
+   * EL CATÁLOGO DE TEXTURAS, y ya NO la biblioteca de fondos de la campaña (él, 2026-09-04: «*los fondos de
+   * las escenas que subí antes y las texturas no son lo mismo… las texturas son de un catálogo de texturas,
+   * no lo mezcles*»). Van aparte de `images` a propósito: `images` es de ESTA campaña, esto es de la
+   * herramienta entera.
+   */
+  const [textures, setTextures] = useState<Texture[] | null>(null);
+  const [texUploadCat, setTexUploadCat] = useState<TextureCategory>('misc');
+  /**
+   * ELEGIR UNA TEXTURA copia además SU TAMAÑO DE BALDOSA a la escena (§ «El catálogo de texturas»). Un mosaico
+   * fino y unas losas grandes no quieren la misma escala, y hacerle mover el deslizador cada vez sería
+   * repetirle un trabajo que ya hizo una vez, al subirla.
+   */
+  const aplicarTextura = useCallback((tex: Texture) => {
+    if (!live || !texPicker) return;
+    run(patchScene(live.id, texPicker === 'wall'
+      ? { wallTextureUrl: tex.url, wallTextureScale: tex.tileCells }
+      : { floorTextureUrl: tex.url, floorTextureScale: tex.tileCells }));
+    setTexPicker(null);
+  }, [live, texPicker, run, patchScene]);
   const pickTexture = useCallback(async (which: 'wall' | 'floor') => {
     setTexPicker(which);
-    if (images === null) setImages(await repo.listImages(campaignId).catch(() => []));
-  }, [images, repo, campaignId]);
+    if (textures === null) setTextures(await repo.listTextures().catch(() => []));
+  }, [textures, repo]);
   /**
    * Sobre el mapa sólo puede haber UNA cosa abierta a la vez. El dueño los vio abiertos a la vez al probar la
    * app —«Colocar encuentro» y «Fondo del mapa» tapándose— porque cada uno tenía su interruptor y ninguno
@@ -531,6 +583,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
                 } else {
                   const tira = wallStripe(a, b, wallWidthPx(live), live.grid.size);
                   if (tira.length) run(st.addRoomShape('rect', tira, 'fill'));
+                  else setAvisoCorto(snapGrid ? 'snap' : 'short');
                 }
                 return;
               }
@@ -541,7 +594,7 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
               run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind) }, plan.splits));
             }}
             rooms={st.rooms} roomOpenings={st.roomOpenings} builderMode={builderMode}
-            {...(builderMode === 'draw' && buildKind === 'wall' ? { minShapeCells: MIN_FILL_CELLS } : {})}
+            onTooSmall={locked => setAvisoCorto(locked ? 'snap' : 'short')}
             onAddRoomShape={(shape, points) => {
               // Una SALA excava y un MURO rellena: la misma forma con el signo cambiado (dueño, 2026-09-04).
               run(st.addRoomShape(shape, points, buildKind === 'wall' ? 'fill' : 'room'));
@@ -657,16 +710,21 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
             * que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este*».
             */}
           {isDm && (builderOpen || selectedWall || selectedWallIds.length > 1) && (<>
-            {/* El selector de fichero: escondido, lo dispara «+ Subir» dentro del catálogo. */}
+            {/*
+              * El selector de fichero: escondido, lo dispara «Subir» DENTRO del catálogo. Sube al catálogo de
+              * la herramienta —no a la biblioteca de fondos de la campaña— y en la categoría que él tuviera
+              * elegida, que es la que llega en `texUploadCat`.
+              */}
             <input type="file" accept="image/*" ref={texInput} hidden data-testid="mp-room-texture-input"
               onChange={async e => {
                 const f = e.target.files?.[0];
                 e.target.value = '';
                 if (!f || !texPicker) return;
-                const img = await repo.uploadImage(campaignId, f, f.name.replace(/\.[^.]+$/, ''));
-                setImages(l => [img, ...(l ?? [])]);
-                await patchScene(live.id, texPicker === 'wall' ? { wallTextureUrl: img.url } : { floorTextureUrl: img.url });
-                setTexPicker(null);
+                const nueva = await repo.addTexture(
+                  { name: f.name.replace(/\.[^.]+$/, ''), category: texUploadCat, tileCells: DEFAULT_TEXTURE_SCALE },
+                  f, campaignId);
+                setTextures(l => [nueva, ...(l ?? [])]);
+                aplicarTextura(nueva);
               }} />
             <BuilderPanel mode={builderMode} onMode={setBuilderMode}
               wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
@@ -712,30 +770,26 @@ export function SceneTab({ campaignId, role, userId, system, members, activeScen
                 onRemove: () => { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); },
               } : {})} />
             {texPicker && (
-              <Modal onClose={() => setTexPicker(null)} title={t(`maps.room.catalog.${texPicker}`)}>
-                <p className="mp-builder-hint">{t('maps.room.catalog.hint')}</p>
-                <div className="mp-texcat" data-testid="mp-texcat">
-                  {(images ?? []).map(img => (
-                    <button key={img.id} type="button" className="mp-texcat-item" title={img.name}
-                      onClick={() => {
-                        run(patchScene(live.id, texPicker === 'wall' ? { wallTextureUrl: img.url } : { floorTextureUrl: img.url }));
-                        setTexPicker(null);
-                      }}>
-                      <span className="mp-texcat-mini" style={{ backgroundImage: `url(${img.url})` }} />
-                      <span className="mp-texcat-n">{img.name}</span>
-                    </button>
-                  ))}
-                </div>
-                {(images ?? []).length === 0 && <p className="mp-builder-hint">{t('maps.room.catalog.empty')}</p>}
-                <div className="mp-builder-row">
-                  {/* Rojo sangre = acción. Subir es lo que AÑADE al catálogo; elegir de la rejilla no sube nada. */}
-                  <button type="button" className="tb-btn tb-btn-xs tb-btn-danger" onClick={() => texInput.current?.click()}>
-                    {t('maps.room.textures.upload')}
-                  </button>
-                </div>
-              </Modal>
+              <TextureCatalog which={texPicker} textures={textures} canManage={puedeOrdenarTexturas}
+                onClose={() => setTexPicker(null)}
+                onPick={aplicarTextura}
+                onUpload={cat => { setTexUploadCat(cat); texInput.current?.click(); }}
+                onUpdate={async (tex, patch) => {
+                  await repo.updateTexture(tex.id, patch);
+                  setTextures(l => (l ?? []).map(x => (x.id === tex.id ? { ...x, ...patch } : x)));
+                }}
+                onRemove={async tex => {
+                  // Ya viene confirmado por él: el catálogo enseña el modal antes de llamar aquí.
+                  await repo.removeTexture(tex.id);
+                  setTextures(l => (l ?? []).filter(x => x.id !== tex.id));
+                }} />
             )}
           </>)}
+          {avisoCorto && (
+            <div className="mp-placing" role="status">
+              {t(avisoCorto === 'snap' ? 'maps.room.tooSmallSnap' : 'maps.room.tooSmall')}
+            </div>
+          )}
           {pendingPc && (
             <div className="mp-placing" role="status">
               {t('maps.place.now', { name: pendingPc.name })}

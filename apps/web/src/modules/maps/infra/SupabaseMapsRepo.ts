@@ -1,5 +1,5 @@
 import type { RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
-import type { BgTransform, BlockShape, CreateSceneInput, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPatch, Room, RoomKind, RoomOpening, RoomPreset, RoomShapeKind, Texture, TextureCategory, NewTexture, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
+import type { BgTransform, BlockShape, CreateSceneInput, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPatch, Room, RoomKind, RoomOpening, RoomPreset, RoomShapeKind, Texture, TextureCategory, NewTexture, TexturePatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, RoomOpeningPatch, Unsubscribe } from '../domain/ports/MapsPort';
 import { maskPath } from '../domain/useCases/layerRules';
 import { propPath } from '../domain/useCases/propRules';
@@ -612,6 +612,13 @@ export class SupabaseMapsRepo implements MapsPort {
       .select(TEXTURE_COLS).single();
     this.fail(error);
     return mapTextureRow(data as TextureRow);
+  }
+  async updateTexture(id: string, patch: TexturePatch): Promise<void> {
+    const row: Record<string, unknown> = {};
+    if (patch.name !== undefined) row.name = patch.name;
+    if (patch.category !== undefined) row.category = patch.category;
+    const { error } = await this.db.from('maps_textures').update(row).eq('id', id);
+    this.fail(error);
   }
   async removeTexture(id: string): Promise<void> {
     const { error } = await this.db.from('maps_textures').delete().eq('id', id);

@@ -1,5 +1,5 @@
 import type { TableEvent } from '@rolvium/core';
-import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
+import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, TexturePatch, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
 
 /** Lo único que se edita de un vano: si está abierto, y qué es. Su sitio no cambia — para eso se mueve la forma. */
 export type RoomOpeningPatch = Partial<Pick<RoomOpening, 'kind' | 'isOpen'>>;
@@ -170,7 +170,12 @@ export interface MapsPort {
   listTextures(): Promise<Texture[]>;
   /** Sube la foto y la registra en el catálogo. La fila queda a nombre de quien la sube. */
   addTexture(input: Omit<NewTexture, 'url' | 'uploadedBy'>, image: Blob, campaignId: string): Promise<Texture>;
-  /** Sólo las tuyas: que otro te quite una textura que estás usando en un mapa sería un desastre silencioso. */
+  /**
+   * Renombrar y reclasificar, que es lo que ofrece el menú de los tres puntos de cada textura (petición suya
+   * del 2026-09-04). Detrás del permiso `manage_textures`, igual que subir y borrar.
+   */
+  updateTexture(id: string, patch: TexturePatch): Promise<void>;
+  /** Detrás del permiso: ordenar el catálogo es cosa de admin y directores, no de cualquiera. */
   removeTexture(id: string): Promise<void>;
 
   /** Los vanos, anotados sobre el contorno de la UNIÓN — por eso van por escena y no colgados de una sala. */

@@ -450,10 +450,58 @@
                    linear-gradient(to bottom,var(--sys-line) 1px,transparent 1px);
   opacity:.5;}
 
-/* El catálogo de texturas: la biblioteca de imágenes de la campaña, la misma que el fondo del mapa. */
+/* ── EL CATÁLOGO DE TEXTURAS (rebanada 8, `rolvium.pen` frame sO0GV) ─────────
+   Se pinta con los tokens de la APP, no con los de la mesa: vive dentro del
+   `Modal` compartido, que se pinta sobre `--sf`. El modal viejo mezclaba los
+   dos y por eso su texto y su «+ Subir» salían en tinta negra sobre oscuro:
+   invisibles (fallo suyo del 2026-09-04, «mira el botón que está mal»).
+   La única isla de la paleta de la mesa es lo ACTIVO y lo que BORRA, en rojo
+   sangre — su regla: en el cromo de la mesa lo activo nunca va en negro. */
+.mp-texcat-wrap{display:flex;flex-direction:column;gap:12px;}
+.mp-texcat-search{width:100%;padding:8px 10px;border:none;border-radius:var(--r);background:var(--bg);
+  color:var(--tx);font-family:inherit;font-size:var(--fs-sm);}
+.mp-texcat-search::placeholder{color:var(--tx3);}
+.mp-texcat-search:focus-visible{outline:2px solid var(--ac);outline-offset:-2px;}
+.mp-texcat-cats{display:flex;flex-wrap:wrap;gap:5px;}
+.mp-texcat-cat{padding:4px 9px;border:none;border-radius:var(--r);background:var(--sf2);color:var(--tx2);
+  font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;}
+.mp-texcat-cat:hover{background:var(--sf3);color:var(--tx);}
+.mp-texcat-cat.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.mp-texcat-count{margin:0;font-size:var(--fs-2xs);letter-spacing:.15em;text-transform:uppercase;color:var(--tx3);}
 .mp-texcat{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;max-height:46vh;overflow-y:auto;}
-.mp-texcat-item{display:flex;flex-direction:column;gap:4px;padding:0;background:none;border:none;cursor:pointer;font-family:inherit;}
-.mp-texcat-mini{display:block;height:72px;border-radius:var(--r);background-size:cover;background-position:center;
+.mp-texcat-cell{position:relative;}
+.mp-texcat-item{display:flex;flex-direction:column;gap:4px;padding:0;width:100%;background:none;border:none;cursor:pointer;
+  font-family:inherit;text-align:left;}
+.mp-texcat-mini{display:block;height:72px;border-radius:var(--r);background-color:var(--sf2);background-position:center;
   outline:1px solid var(--bd);outline-offset:-1px;}
 .mp-texcat-item:hover .mp-texcat-mini{outline:2px solid var(--ac);outline-offset:-2px;}
-.mp-texcat-n{font-size:var(--fs-2xs);color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Subir es una pieza más de la rejilla, la primera, como en el diseño. */
+.mp-texcat-mini-add{display:flex;align-items:center;justify-content:center;background:var(--sf2);color:var(--tx3);}
+.mp-texcat-mini-add .material-symbols-outlined{font-size:var(--icon-md);}
+.mp-texcat-add:hover .mp-texcat-mini-add{color:var(--ac);}
+.mp-texcat-n{display:flex;align-items:center;gap:5px;font-size:var(--fs-2xs);color:var(--tx2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* El punto marca las que trae Rolvium: no son de nadie, y por eso no se borran. */
+.mp-texcat-dot{flex-shrink:0;width:6px;height:6px;border-radius:50%;background:var(--ac);}
+/* Los tres puntos: sólo con el permiso, y sólo asomando sobre la miniatura para no ensuciar la rejilla.
+   Van en el cajón oscuro de la app, no en los `--sys-*` de la mesa — el menú vive dentro del modal. */
+.mp-texcat-kebab{position:absolute;top:5px;right:5px;display:flex;padding:2px;border:none;border-radius:var(--r);
+  background:color-mix(in srgb,var(--sf3) 88%,transparent);color:var(--tx);cursor:pointer;opacity:0;}
+.mp-texcat-kebab .material-symbols-outlined{font-size:var(--icon-sm);}
+.mp-texcat-cell:hover .mp-texcat-kebab,.mp-texcat-kebab:focus-visible,.mp-texcat-kebab[aria-expanded="true"]{opacity:1;}
+/* El menú flota sobre la rejilla: cristal y sombra, como el resto de lo que flota. */
+.mp-texcat-menu{position:absolute;top:26px;right:5px;z-index:2;display:flex;flex-direction:column;min-width:140px;
+  padding:4px;border-radius:var(--r2);background:color-mix(in srgb,var(--sf3) 96%,transparent);
+  backdrop-filter:blur(20px);box-shadow:var(--shadow);}
+.mp-texcat-mi{display:flex;align-items:center;gap:8px;width:100%;padding:6px 9px;border:none;border-radius:var(--r);
+  background:transparent;color:var(--tx);font-family:inherit;font-size:var(--fs-2xs);cursor:pointer;text-align:left;}
+.mp-texcat-mi .material-symbols-outlined{font-size:var(--icon-xs);}
+.mp-texcat-mi:hover{background:var(--sf2);}
+/* Lo marcado va en sangre, nunca en negro: es la regla del cromo de la mesa. */
+.mp-texcat-mi.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.mp-texcat-mi.danger{color:var(--sys-blood);}
+.mp-texcat-mi.danger:hover{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.mp-texcat-misep{display:block;height:1px;margin:3px 6px;background:var(--bd);}
+.mp-texcat-note{display:flex;align-items:center;gap:6px;margin:0;font-size:var(--fs-2xs);color:var(--tx3);}
+.mp-texcat-hint{margin:0;padding:8px;border-radius:var(--r);background:var(--sf2);
+  font-size:var(--fs-2xs);font-style:italic;color:var(--tx2);line-height:var(--lh-normal);}
