@@ -20,6 +20,52 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 «EL FALLO DE "PEGADO A ALGO", CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO», justo debajo.**
 
+## 🚀 2026-09-07 — TODO ESO YA ESTÁ EN PRODUCCIÓN · Y EL ENCARGO NUEVO: LAS PUERTAS
+
+`main` = `c8e2e2b`. **Nada pendiente de subir y ninguna migración sin aplicar.**
+
+- **Las SEIS migraciones, aplicadas en producción ANTES que el código**, en orden. Comprobado en la base, no
+  de palabra: `game_master` tiene `manage_textures` y **cero permisos en `admin`** (por eso no se le abre
+  «Administración»), al rol `admin` no se le escribió nada, y `has_tool` no es llamable sin sesión.
+- ⚠️ **La sexta la bloqueó el clasificador de permisos** —es la que toca roles y RLS de producción— y él la
+  aprobó a mano cuando se relanzó. **Está bien que frene ahí**; no forzarlo nunca.
+- `get_advisors`: **cero ERROR**. Los 22 WARN son la familia de siempre (funciones `SECURITY DEFINER`
+  llamables con sesión, intencionado) más el de contraseñas filtradas, que ya estaba.
+- Verificado en el paquete QUE SIRVE producción: `Permisos de Rolvium`, `manage_textures`, `Clasificar` y
+  `maps_textures` están dentro. API en `fra1` a 0,13 s.
+- Review pasado en dos vueltas y QA pasada. El claro/oscuro **no hacía falta preguntarlo**: `RolviumApp.css`
+  no se tocó y el bloque nuevo de la pantalla de roles es el MISMO componente que ya está ahí dos veces.
+
+### 🚪 EL ENCARGO NUEVO — LAS PUERTAS, DE VERDAD (2026-09-07, con captura)
+
+Salió de un hallazgo de QA que se le contó y que él convirtió en encargo: una puerta dibujada en una SALA
+nacía cerrada y no había forma de abrirla ni de borrarla. **El disco de abrir/cerrar existe y funciona, pero
+busca en `p.walls` (`MapCanvas:1046,1143`) y las aberturas de sala viven en `maps_room_openings`**, así que
+ahí no llega. Las VENTANAS de sala sí están bien: dejan ver y no dejan pasar, y no hay que abrirlas nunca.
+
+Su encargo, literal: «*las puertas se tienen que poner sobre un muro o un pasillo* · *aquí sí se tienen que
+ver para los jugadores* · *se tienen que ver como en la captura* · *cuando el DM las abra se tienen que abrir
+y cerrar* · *tengo que poder elegir si la puerta es de una o dos hojas y si abre para un lado o el otro,
+adentro o afuera (preseteado en algo, que no sea obligatorio configurarla)* · *si a la puerta se le puede
+poner un color o textura mejor*».
+
+**La captura** (Dungeon Scrawl): la puerta es una **barra hueca de esquinas redondeadas** que ocupa el hueco
+del muro, con el trazo negro parándose a cada lado. Hoy se dibuja distinto —la línea del muro más dos
+marquitas en los extremos (`openingGeometry`, `mapRules.ts:224`)—, siempre de UNA hoja, con la bisagra
+siempre en el mismo extremo y abriendo siempre hacia el mismo lado.
+
+**LO QUE ÉL YA DECIDIÓ (2026-09-07, preguntado con la pantalla delante — no volver a preguntarlo):**
+1. **El dibujo nuevo vale para TODAS las puertas**, las de sala y las de muro normal. Sabe que eso cambia el
+   aspecto de las que ya tiene puestas; prefiere eso a dos puertas distintas conviviendo.
+2. **La puerta sigue la regla de visibilidad del muro donde está.** Eligió esto y NO «se ve siempre»: si el
+   muro está oculto para los jugadores, la puerta también. (En una SALA no hay interruptor de esconder, así
+   que las de sala se ven siempre de todas formas.)
+3. **Color/textura: uno para toda la escena, y por puerta si quiere cambiar una.**
+4. **Publicar lo de anoche ya**, sin esperar a las puertas. Hecho.
+
+**⏭️ SIGUIENTE PASO CONCRETO: el spec de las puertas**, y de ahí DBA → diseño en el `.pen` → construir.
+Ojo con el orden: es un cambio VISIBLE, así que el `.pen` va ANTES del código.
+
 ## 🟢 2026-09-04 (noche) — EL FALLO DE «PEGADO A ALGO», CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO
 
 **Todo verde**: `npm run test` **1425 web · 246 api · 61 core · 16 · 141** · `tsc` limpio · `audit` **0 hard** ·
