@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FogCell, SceneVision } from '@rolvium/core';
-import type { Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewRoom, NewRoomOpening, NewToken, NewWall, Room, RoomKind, RoomOpening, RoomShapeKind, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
+import type { DoorSettings, Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewRoom, NewRoomOpening, NewToken, NewWall, Room, RoomKind, RoomOpening, RoomShapeKind, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import { splitWallAt, unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
@@ -28,6 +28,11 @@ const VISION_DRAG_HZ_MS = 140; // ~7 Hz
  * y sólo se paga mientras se está en contacto — que es poco tiempo y pocos jugadores a la vez.
  */
 const VISION_CONTACT_HZ_MS = 50; // ~20 Hz
+/**
+ * Lo que en un muro es SÓLO cómo se ve, y por tanto no obliga a volver a preguntar la visión al servidor.
+ * Las cuatro son las de la puerta (§ «Las puertas, de verdad»): ninguna mueve una línea de vista.
+ */
+const SOLO_APARIENCIA: (keyof WallPatch)[] = ['leaves', 'hinge', 'swing', 'doorColor'];
 
 /**
  * Loads a scene's tokens/walls/drawings, follows the scene channel and exposes the actions the
@@ -628,6 +633,15 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     announceVision();
   }, [repo, announceVision]);
 
+  /**
+   * CÓMO ES UNA PUERTA DE SALA. Igual que `patchWall` con las suyas, y por el mismo motivo no pide visión:
+   * las cuatro son apariencia. Abrirla y cerrarla sigue siendo `toggleRoomOpening`, que sí la pide.
+   */
+  const patchRoomOpening = useCallback(async (id: string, patch: Partial<DoorSettings>) => {
+    setRoomOpenings(l => l.map(o => (o.id === id ? { ...o, ...patch } : o)));
+    await repo.updateRoomOpening(id, patch);
+  }, [repo]);
+
   const removeRoomOpening = useCallback(async (id: string) => {
     setRoomOpenings(l => l.filter(o => o.id !== id));
     await repo.removeRoomOpening(id);
@@ -727,7 +741,13 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const patchWall = useCallback(async (id: string, patch: WallPatch) => {
     setWalls(l => l.map(w => (w.id === id ? { ...w, ...patch } : w)));
     await repo.updateWall(id, patch);
-    announceVision();
+    /**
+     * Las cuatro de la puerta —hojas, bisagra, lado y color— son APARIENCIA: no mueven una sola línea de
+     * vista. Pedir visión por cada clic en el color sería una vuelta al servidor de balde, y él ya se quejó
+     * una vez de que «está todo lentísimo». Lo que sí cambia lo que se ve es abrirla, y eso es `isOpen`.
+     * A los jugadores el aspecto nuevo les llega igual, por el aviso de fila de `maps_walls`.
+     */
+    if (Object.keys(patch).some(k => !SOLO_APARIENCIA.includes(k as keyof WallPatch))) announceVision();
     /**
      * Y SI LO QUE CAMBIÓ ES QUIÉN PUEDE VERLO, además hay que decir «volved a pedir los muros».
      *
@@ -872,8 +892,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   return useMemo(() => ({
     scene: live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog,
-    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
+    dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }

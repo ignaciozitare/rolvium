@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
 import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
+import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { SceneTab } from './SceneTab';
 import { DEFAULT_TEXTURE_SCALE } from '../domain/useCases/roomStyles';
 
@@ -730,6 +731,45 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     await screen.findByRole('group', { name: 'Builder' });
     fireEvent.keyDown(window, { key: 'Delete' });
     await waitFor(() => expect(repo.walls).toHaveLength(0));
+  });
+
+  /**
+   * ── LAS PUERTAS, DE VERDAD ──
+   * El fallo que originó el encargo (QA, 2026-09-07): una puerta dibujada en una SALA no se podía ni abrir
+   * ni borrar. `removeRoomOpening` existía en el puerto y en el repositorio desde la rebanada 8 y NO LA
+   * LLAMABA NADIE. Esto ata el camino entero: cogerla con Seleccionar → el panel → Suprimir.
+   */
+  const CUARTO = { id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[0, 0], [300, 0], [300, 300], [0, 300]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null, createdAt: '', updatedAt: '' };
+  const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 300, y1: 100, x2: 300, y2: 160, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
+  const conSala = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [CUARTO], roomOpenings: [VANO] });
+
+  it('una puerta de SALA se coge, se configura y se BORRA con Suprimir', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', conSala());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    fireEvent.pointerDown(canvas(), { clientX: 301, clientY: 130, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    // El panel se abre con la puerta cogida, y trae sus cuatro ajustes.
+    await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(screen.getByRole('radiogroup', { name: 'Hojas' })).getByRole('radio', { name: 'Dos' }));
+    await waitFor(() => expect(repo.roomOpenings[0]).toMatchObject({ leaves: 2 }));
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.roomOpenings).toHaveLength(0));
+  });
+
+  it('el disco abre y cierra una puerta de sala, que era lo que no llegaba', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', conSala());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    fireEvent.pointerMove(canvas(), { clientX: 301, clientY: 130, pointerId: 1 });
+    const disco = await within(canvas()).findByTestId('mp-door-toggle');
+    expect(disco).toHaveAttribute('data-wall-id', 'ro-1');
+    fireEvent.pointerDown(disco, { clientX: 300, clientY: 130, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await waitFor(() => expect(repo.roomOpenings[0]!.isOpen).toBe(true));
   });
 
   it('el mismo borrar está en el menú del botón derecho, y sólo cuando hay algo elegido', async () => {

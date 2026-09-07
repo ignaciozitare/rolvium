@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, within, fireEvent } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { WALL_1, WALL_DOOR } from '../../../../tests/helpers/fakes';
+import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { BuilderPanel } from './BuilderPanel';
 
 // jsdom no trae PointerEvent: un MouseEvent con pointerId basta para los gestos, como en LightEditor.test.
@@ -358,5 +359,82 @@ describe('<BuilderPanel> qué levanto: sala o muro', () => {
     mount({ mode: 'draw', onBuildKind });
     await userEvent.setup().click(screen.getByRole('radio', { name: 'Muro' }));
     expect(onBuildKind).toHaveBeenCalledWith('wall');
+  });
+});
+
+/**
+ * ── LAS PUERTAS, DE VERDAD (`rolvium.pen` · «PL/Builder · panel · PUERTA cogida») ──
+ *
+ * Cuatro filas que salen SÓLO cuando lo cogido es una puerta. Su encargo del 2026-09-07: «*tengo que poder
+ * elegir si la puerta es de una o dos hojas y si abre para un lado o el otro (preseteado en algo, cosa de
+ * que no sea obligatorio configurarla)*». Y el mismo panel sirve para una puerta de SALA, que es lo que
+ * arregla el fallo de origen: una puerta dibujada en una sala no se podía ni abrir ni borrar.
+ */
+describe('<BuilderPanel> cómo es la puerta cogida', () => {
+  const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 0, y1: 0, x2: 0, y2: 60, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
+  const fila = (nombre: string) => screen.getByRole('radiogroup', { name: nombre });
+
+  it('sin nada cogido no hay filas de puerta: el panel no se llena de ajustes que no tocan', () => {
+    mount();
+    expect(screen.queryByRole('radiogroup', { name: 'Hojas' })).not.toBeInTheDocument();
+  });
+
+  it('un MURO liso o una VENTANA tampoco las traen: sólo una puerta se configura', () => {
+    const { re } = mount({ wall: WALL_1, onDoor: vi.fn() });
+    expect(screen.queryByRole('radiogroup', { name: 'Hojas' })).not.toBeInTheDocument();
+    re({ wall: { ...WALL_DOOR, kind: 'window' }, onDoor: vi.fn() });
+    expect(screen.queryByRole('radiogroup', { name: 'Hojas' })).not.toBeInTheDocument();
+  });
+
+  it('con una puerta cogida salen las cuatro, marcadas en lo que trae de fábrica', () => {
+    mount({ wall: WALL_DOOR, onDoor: vi.fn() });
+    expect(within(fila('Hojas')).getByRole('radio', { name: 'Una' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(fila('Bisagra')).getByRole('radio', { name: 'Un extremo' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(fila('Abre hacia')).getByRole('radio', { name: 'Un lado' })).toHaveAttribute('aria-checked', 'true');
+    // El color de serie es el de la ESCENA, no uno propio.
+    expect(within(fila('Color')).getByRole('radio', { name: 'El de la escena' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('cada interruptor manda su cambio, y sólo el suyo', async () => {
+    const onDoor = vi.fn();
+    const u = userEvent.setup();
+    const { re } = mount({ wall: WALL_DOOR, onDoor });
+    await u.click(within(fila('Hojas')).getByRole('radio', { name: 'Dos' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ leaves: 2 });
+    await u.click(within(fila('Bisagra')).getByRole('radio', { name: 'El otro' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ hinge: 'end' });
+    await u.click(within(fila('Abre hacia')).getByRole('radio', { name: 'El otro' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ swing: 'left' });
+    // Y volver al de la escena es poner el color a nulo, que es lo que significa «el trazo del muro».
+    re({ wall: { ...WALL_DOOR, doorColor: '#8b1a1a' }, onDoor });
+    await u.click(within(fila('Color')).getByRole('radio', { name: 'El de la escena' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ doorColor: null });
+  });
+
+  it('con DOS hojas la bisagra desaparece: cada hoja ya cuelga de su propio extremo', () => {
+    mount({ wall: { ...WALL_DOOR, leaves: 2 }, onDoor: vi.fn() });
+    expect(screen.getByRole('radiogroup', { name: 'Hojas' })).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Bisagra' })).not.toBeInTheDocument();
+  });
+
+  it('un VANO DE SALA se edita con los mismos controles, se abre y se BORRA', async () => {
+    const onDoor = vi.fn(), onToggleOpen = vi.fn(), onRemove = vi.fn();
+    mount({ roomOpening: VANO, onDoor, onToggleOpen, onRemove });
+    const u = userEvent.setup();
+    await u.click(within(fila('Hojas')).getByRole('radio', { name: 'Dos' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ leaves: 2 });
+    await u.click(screen.getByRole('button', { name: 'Abrir' }));
+    expect(onToggleOpen).toHaveBeenCalled();
+    // La papelera: `removeRoomOpening` existía y no la llamaba nadie.
+    await u.click(screen.getByRole('button', { name: 'Quitar segmento' }));
+    expect(onRemove).toHaveBeenCalled();
+  });
+
+  it('un vano de sala NO trae el interruptor de esconder: la sala ES el dibujo del mapa', () => {
+    const { re } = mount({ roomOpening: VANO, onDoor: vi.fn(), onVisible: vi.fn() });
+    expect(screen.queryByLabelText('visible para jugadores')).not.toBeInTheDocument();
+    // Un muro suelto sí lo trae, que es la diferencia.
+    re({ wall: WALL_DOOR, roomOpening: null, onDoor: vi.fn(), onVisible: vi.fn() });
+    expect(screen.getByLabelText('visible para jugadores')).toBeInTheDocument();
   });
 });

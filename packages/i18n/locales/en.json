@@ -886,6 +886,21 @@
       "close": "Close",
       "selected": "Selected segment"
     },
+    "door": {
+      "leaves": "Leaves",
+      "leavesOne": "One",
+      "leavesTwo": "Two",
+      "hinge": "Hinge",
+      "hingeStart": "One end",
+      "hingeEnd": "The other",
+      "swing": "Opens towards",
+      "swingA": "One side",
+      "swingB": "The other",
+      "color": "Colour",
+      "colorScene": "The scene's",
+      "colorOwn": "Own colour {{hex}}",
+      "hint": "you never have to set it up: draw it and it works"
+    },
     "action": {
       "dice": "Dice roller",
       "placePc": "Place PC",

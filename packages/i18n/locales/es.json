@@ -886,6 +886,21 @@
       "close": "Cerrar",
       "selected": "Segmento seleccionado"
     },
+    "door": {
+      "leaves": "Hojas",
+      "leavesOne": "Una",
+      "leavesTwo": "Dos",
+      "hinge": "Bisagra",
+      "hingeStart": "Un extremo",
+      "hingeEnd": "El otro",
+      "swing": "Abre hacia",
+      "swingA": "Un lado",
+      "swingB": "El otro",
+      "color": "Color",
+      "colorScene": "El de la escena",
+      "colorOwn": "Color propio {{hex}}",
+      "hint": "no hace falta configurarla: se dibuja y ya funciona"
+    },
     "action": {
       "dice": "Lanzador de dados",
       "placePc": "Colocar PJ",

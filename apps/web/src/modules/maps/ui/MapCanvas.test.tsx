@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
 import { DRAWING_MINE, DRAWING_OTHER, LAYERS_ALL, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES, LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import type { Tool } from '../domain/useCases/mapRules';
+import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { MapCanvas } from './MapCanvas';
 import { FOG_FEATHER, lightFeather } from './canvasLayers';
 
@@ -13,7 +14,7 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onMoveLight: vi.fn(), onSelectDrawing: vi.fn(), onMoveDrawing: vi.fn(), onProbeMove: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onMoveLight: vi.fn(), onSelectDrawing: vi.fn(), onMoveDrawing: vi.fn(), onProbeMove: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn(), onToggleRoomOpening: vi.fn(), onSelectRoomOpening: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
@@ -826,24 +827,116 @@ describe('<MapCanvas> fog', () => {
 });
 
 describe('<MapCanvas> openings', () => {
-  it('a door renders its jambs (and a dark core while closed), a window is its own segment, a plain wall stays one line', () => {
+  /**
+   * ── LAS PUERTAS, DE VERDAD (2026-09-07) ──
+   * El dibujo de hoy es la BARRA HUECA de ángulos rectos, y sustituyó a la línea con dos marquitas en TODAS
+   * las puertas. La VENTANA no se tocó: sigue siendo su segmento entre dos jambas.
+   * `WALL_DOOR` va de (540,216) a (540,324): vertical, 108 px de largo.
+   */
+  const hojasDe = (svg: HTMLElement, id = 'w-door') =>
+    within(svg).getByTestId('mp-walls').querySelector(`[data-wall-id="${id}"]`)!.querySelectorAll('.mp-door-leaf');
+  /** Las esquinas de una hoja, como pares `[x, y]` — en tuplas para que indexarlas siga siendo un número. */
+  const puntos = (el: Element): [number, number][] =>
+    el.getAttribute('points')!.split(' ').map(p => { const [x, y] = p.split(',').map(Number); return [x!, y!]; });
+
+  it('a door is a hollow bar lying in the gap, a window keeps its jambs, a plain wall stays one line', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', walls: [WALL_1, WALL_DOOR, WALL_WINDOW] });
     const walls = within(svg).getByTestId('mp-walls');
     expect(walls.querySelector('[data-wall-id="w-1"]')!.tagName).toBe('line');
     const door = walls.querySelector('[data-wall-id="w-door"]')!;
     expect(door.getAttribute('data-open')).toBe('false');
-    expect(door.querySelectorAll('.mp-wall-core')).toHaveLength(1);
-    expect(door.querySelectorAll('.mp-wall-jamb')).toHaveLength(2);
-    expect(door.querySelectorAll('.mp-wall-leaf')).toHaveLength(0);
-    expect(walls.querySelector('[data-wall-id="w-win"] .mp-wall')!.classList.contains('window')).toBe(true);
+    // Una hoja, y ni umbral ni marquitas: el muro ya se parte al abrir el vano, sus trozos son las jambas.
+    expect(door.querySelectorAll('.mp-door-leaf')).toHaveLength(1);
+    expect(door.querySelectorAll('.mp-wall-jamb')).toHaveLength(0);
+    expect(door.querySelectorAll('line')).toHaveLength(0);
+    // Cerrada, la barra va tumbada sobre el muro: cubre sus 108 px de largo.
+    const ys = puntos(door.querySelector('.mp-door-leaf')!).map(p => p[1]);
+    expect(Math.min(...ys)).toBeCloseTo(216, 1);
+    expect(Math.max(...ys)).toBeCloseTo(324, 1);
+    // La ventana, intacta.
+    const win = walls.querySelector('[data-wall-id="w-win"]')!;
+    expect(win.querySelector('.mp-wall')!.classList.contains('window')).toBe(true);
+    expect(win.querySelectorAll('.mp-wall-jamb')).toHaveLength(2);
   });
 
-  it('an open door drops the core and swings a leaf instead', () => {
+  it('an open door swings its leaf 90° out of the hinge, and never draws a sweep arc', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', walls: [{ ...WALL_DOOR, isOpen: true }] });
     const door = within(svg).getByTestId('mp-walls').querySelector('[data-wall-id="w-door"]')!;
     expect(door.getAttribute('data-open')).toBe('true');
-    expect(door.querySelectorAll('.mp-wall-core')).toHaveLength(0);
-    expect(door.querySelectorAll('.mp-wall-leaf')).toHaveLength(1);
+    const hojas = door.querySelectorAll('.mp-door-leaf');
+    expect(hojas).toHaveLength(1);
+    // Girada: ya no recorre el hueco a lo largo, sino que sale 108 px perpendicular al muro.
+    const pts = puntos(hojas[0]!);
+    expect(Math.max(...pts.map(p => p[0])) - Math.min(...pts.map(p => p[0]))).toBeCloseTo(108, 1);
+    // Sin arco de barrido: no hay un solo `path` ni `ellipse` dentro de la puerta (decisión suya).
+    expect(door.querySelectorAll('path, ellipse, circle')).toHaveLength(0);
+  });
+
+  it('DOS hojas se parten por la mitad, y la bisagra elige por qué extremo cuelga', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', walls: [{ ...WALL_DOOR, leaves: 2 as const }] });
+    const hojas = hojasDe(svg);
+    expect(hojas).toHaveLength(2);
+    for (const h of Array.from(hojas)) {
+      const ys = puntos(h).map(p => p[1]);
+      expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(54, 1);
+    }
+  });
+
+  it('la bisagra al otro extremo saca la hoja por el otro lado, y el color propio manda', () => {
+    const abierta = { ...WALL_DOOR, isOpen: true };
+    const { svg, rerender } = mount({ isDm: true, me: 'u-gm', walls: [{ ...abierta, hinge: 'start' as const }] });
+    /**
+     * Girada, la hoja reparte su GROSOR a lo largo del muro, así que su franja en `y` queda centrada en la
+     * bisagra — no arranca justo en ella. Por eso se mira el centro y no el extremo.
+     */
+    const bisagraY = () => { const ys = puntos(hojasDe(svg)[0]!).map(p => p[1]); return (Math.min(...ys) + Math.max(...ys)) / 2; };
+    expect(bisagraY()).toBeCloseTo(216, 1);
+    rerender({ walls: [{ ...abierta, hinge: 'end' as const }] });
+    expect(bisagraY()).toBeCloseTo(324, 1);
+    /**
+     * Y el lado: los dos valores sacan la hoja por costados OPUESTOS del muro (que está en x = 540).
+     * Cuál de los dos es «izquierda» en pantalla depende de en qué sentido se dibujó el muro —`right` es
+     * la normal +n del segmento, no la derecha de la pantalla—, así que lo que se fija aquí es que sean
+     * contrarios, que es la regla; atarlo a un lado concreto sería fijar el sentido del trazo.
+     */
+    rerender({ walls: [{ ...abierta, swing: 'left' as const }] });
+    const xIzq = puntos(hojasDe(svg)[0]!).map(p => p[0]);
+    rerender({ walls: [{ ...abierta, swing: 'right' as const }] });
+    const xDer = puntos(hojasDe(svg)[0]!).map(p => p[0]);
+    const fuera = (xs: number[]) => (Math.max(...xs) + Math.min(...xs)) / 2 - 540;
+    expect(Math.sign(fuera(xIzq))).toBe(-Math.sign(fuera(xDer)));
+    expect(Math.abs(fuera(xIzq))).toBeCloseTo(54, 1);
+    rerender({ walls: [{ ...WALL_DOOR, doorColor: '#8b1a1a' }] });
+    expect(hojasDe(svg)[0]!.getAttribute('style')).toContain('8b1a1a');
+  });
+
+  /**
+   * 🐞 EL FALLO QUE ORIGINÓ TODO EL ENCARGO (QA, 2026-09-07): una puerta dibujada en una SALA nacía cerrada y
+   * no había forma de abrirla ni de borrarla. El disco existía y funcionaba, pero buscaba sólo en `p.walls`,
+   * y las aberturas de sala viven en `maps_room_openings`. Estas dos pruebas son el cepo.
+   */
+  const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 300, y1: 200, x2: 300, y2: 300, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
+
+  it('el disco TAMBIÉN sale sobre una puerta de sala, y la abre por su propio camino', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [], roomOpenings: [VANO] });
+    move(svg, 301, 250);
+    const disc = within(svg).getByTestId('mp-door-toggle');
+    expect(disc).toHaveAttribute('data-wall-id', 'ro-1');
+    expect(disc).toHaveAttribute('aria-label', 'Abrir');
+    expect(disc).toHaveAttribute('transform', 'translate(300 250) scale(1)');
+    down(disc, 300, 250); up(svg);
+    // Por SU camino: no se cuela como si fuera un muro, que sería escribir en la tabla equivocada.
+    expect(cb.onToggleRoomOpening).toHaveBeenCalledWith(VANO);
+    expect(cb.onToggleWall).not.toHaveBeenCalled();
+  });
+
+  it('un vano de sala se COGE con Seleccionar, que es lo que abre su panel y su papelera', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [], roomOpenings: [VANO] });
+    down(svg, 301, 250); up(svg);
+    expect(cb.onSelectRoomOpening).toHaveBeenCalledWith('ro-1');
+    // Y pinchar en vacío lo suelta, como suelta todo lo demás.
+    down(svg, 20, 20); up(svg);
+    expect(cb.onSelectRoomOpening).toHaveBeenLastCalledWith(null);
   });
 
   it('Muro sólo construye: empezar un muro sobre una puerta ya no la abre (ése era el choque de la rebanada 2)', () => {

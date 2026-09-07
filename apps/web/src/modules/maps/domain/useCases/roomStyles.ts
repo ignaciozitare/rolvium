@@ -163,7 +163,7 @@ export const ringFromSides = (sides: readonly RoomSide[]): [number, number][] =>
 
 /** Los vanos guardados, como los quiere el motor. */
 export const spansOf = (openings: readonly RoomOpening[]): RoomOpeningSpan[] =>
-  openings.map(o => ({ x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2, kind: o.kind, isOpen: o.isOpen }));
+  openings.map(o => ({ id: o.id, x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2, kind: o.kind, isOpen: o.isOpen }));
 
 /**
  * EL CONTORNO DE LAS SALAS DE ESTA ESCENA, CALCULADO UNA SOLA VEZ.

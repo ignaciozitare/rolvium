@@ -168,6 +168,12 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   /** EL GRUPO (§ «EL GRUPO»): los muros cogidos como una pieza. Es otra cosa que el muro suelto que se edita. */
   const [selectedWallIds, setSelectedWallIds] = useState<string[]>([]);
+  /**
+   * EL VANO DE SALA COGIDO (§ «Las puertas, de verdad»). Va aparte del muro porque es otra tabla, y existe
+   * para que el panel pueda enseñar cómo es esa puerta y su papelera: hasta hoy un vano de sala, una vez
+   * dibujado, no se podía ni abrir ni borrar.
+   */
+  const [selectedRoomOpeningId, setSelectedRoomOpeningId] = useState<string | null>(null);
   const [quickMenu, setQuickMenu] = useState<{ at: Point; scene: Point } | null>(null);
   /**
    * El velo gris del director, encendido o apagado. Vive AQUÍ y no en la escena a propósito: es una
@@ -436,6 +442,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     });
   }, [selectedToken, st.tokens, live]);
   const selectedWall = st.walls.find(w => w.id === selectedWallId) ?? null;
+  const selectedRoomOpening = st.roomOpenings.find(o => o.id === selectedRoomOpeningId) ?? null;
   /**
    * EL BOTÓN DE ENSEÑARLE LOS MUROS A LOS JUGADORES (petición suya, 2026-09-03).
    *
@@ -485,6 +492,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     // EL GRUPO antes que el muro suelto: si hay una pieza cogida, ESO es lo elegido y se borra entera.
     if (selectedWallIds.length > 1) { run(st.removeWalls(selectedWallIds)); setSelectedWallIds([]); return; }
     if (selectedWall) { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); return; }
+    // El vano de sala: `removeRoomOpening` existía desde la rebanada 8 y no la llamaba nadie.
+    if (selectedRoomOpening) { run(st.removeRoomOpening(selectedRoomOpening.id)); setSelectedRoomOpeningId(null); return; }
     if (selectedTokens.length) { selectedTokens.forEach(tk => run(st.removeToken(tk.id))); setSelectedTokenIds([]); }
   };
 
@@ -631,6 +640,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             selectedTokenIds={selectedTokenIds} onSelectToken={id => setSelectedTokenIds(id ? [id] : [])} onMarquee={setSelectedTokenIds}
             selectedWallId={selectedWallId} onSelectWall={setSelectedWallId}
             selectedWallIds={selectedWallIds} onSelectWalls={setSelectedWallIds}
+            selectedRoomOpeningId={selectedRoomOpeningId} onSelectRoomOpening={setSelectedRoomOpeningId}
+            onToggleRoomOpening={o => run(st.toggleRoomOpening(o.id, !o.isOpen))}
             onTransformWalls={batch => {
               const byId = new Map(batch.map(b => [b.id, b]));
               run(st.transformWalls(st.walls.filter(w => byId.has(w.id)).map(w => ({ ...w, ...byId.get(w.id)! }))));
@@ -709,7 +720,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             * EL PANEL DE BUILDER v3, y ya no la barra flotante vieja — orden suya del 2026-09-03: «*ya es hora
             * que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este*».
             */}
-          {isDm && (builderOpen || selectedWall || selectedWallIds.length > 1) && (<>
+          {isDm && (builderOpen || selectedWall || selectedRoomOpening || selectedWallIds.length > 1) && (<>
             {/*
               * El selector de fichero: escondido, lo dispara «Subir» DENTRO del catálogo. Sube al catálogo de
               * la herramienta —no a la biblioteca de fondos de la campaña— y en la categoría que él tuviera
@@ -763,11 +774,22 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               onGroup={() => run(st.groupWalls(selectedWallIds))}
               onUngroup={() => { if (grupoCogido) { run(st.ungroupWalls(grupoCogido)); setSelectedWallIds([]); } }}
               // Cerrar el panel es salir de Builder: vuelve a Seleccionar y suelta lo que hubiera cogido.
-              onClose={() => { setBuilderOpen(false); setTool('select'); setSelectedWallId(null); setSelectedWallIds([]); }}
+              onClose={() => { setBuilderOpen(false); setTool('select'); setSelectedWallId(null); setSelectedWallIds([]); setSelectedRoomOpeningId(null); }}
               {...(selectedWall ? {
                 onVisible: (v: boolean) => run(st.patchWall(selectedWall.id, { visiblePlayers: v })),
                 onToggleOpen: () => run(st.patchWall(selectedWall.id, { isOpen: !selectedWall.isOpen })),
                 onRemove: () => { run(st.removeWall(selectedWall.id)); setSelectedWallId(null); },
+                onDoor: (patch) => run(st.patchWall(selectedWall.id, patch)),
+              } : {})}
+              /*
+               * EL VANO DE SALA usa los MISMOS controles del panel: abrir, borrar y los cuatro ajustes. Sin
+               * `onVisible`, que en una sala no hay nada que esconder — la sala ES el dibujo del mapa.
+               */
+              roomOpening={selectedRoomOpening}
+              {...(selectedRoomOpening ? {
+                onToggleOpen: () => run(st.toggleRoomOpening(selectedRoomOpening.id, !selectedRoomOpening.isOpen)),
+                onRemove: () => { run(st.removeRoomOpening(selectedRoomOpening.id)); setSelectedRoomOpeningId(null); },
+                onDoor: (patch) => run(st.patchRoomOpening(selectedRoomOpening.id, patch)),
               } : {})} />
             {texPicker && (
               <TextureCatalog which={texPicker} textures={textures} canManage={puedeOrdenarTexturas}

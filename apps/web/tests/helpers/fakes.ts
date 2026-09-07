@@ -311,6 +311,7 @@ export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWat
 // ── maps ─────────────────────────────────────────────────────────────────────
 import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
 import type { SceneVision, VisionPort } from '@/modules/maps/domain/ports/VisionPort';
+import { DEFAULT_DOOR } from '@/modules/maps/domain/entities/Scene';
 import type { Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
 import type { RoomOpeningPatch } from '@/modules/maps/domain/ports/MapsPort';
 
@@ -319,6 +320,8 @@ export const SCENE_WAREHOUSE: Scene = {
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false,
   // Rebanada 8: una escena nace con el preajuste de serie y sin foto propia — como la crea la migración.
   roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
+  // Sin color propio de puerta: nulo = el trazo del muro, que es como nacen todas.
+  doorColor: null,
   createdAt: '2026-08-18T00:00:00Z', updatedAt: '2026-08-18T00:00:00Z',
 };
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };
@@ -328,7 +331,7 @@ export const TOKEN_KAREN: Token = { id: 'tk-karen', sceneId: 'sc-1', campaignId:
 export const TOKEN_ELIAS: Token = { ...TOKEN_KAREN, id: 'tk-elias', characterId: 'ch-elias', name: 'Elías Vance', x: 8, y: 12, color: '#3a3a26', controlledBy: 'u-nix' };
 /** A hidden mutant placed by the DM (players never receive it). */
 export const TOKEN_MUTANT: Token = { ...TOKEN_KAREN, id: 'tk-mut', characterId: null, bestiaryRef: 'mutant', name: 'Mutante', x: 20, y: 9, color: null, visible: false, controlledBy: null, state: { resistance: 12 } };
-export const WALL_1: Wall = { id: 'w-1', sceneId: 'sc-1', campaignId: 'c1', x1: 270, y1: 216, x2: 270, y2: 540, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, groupId: null };
+export const WALL_1: Wall = { id: 'w-1', sceneId: 'sc-1', campaignId: 'c1', x1: 270, y1: 216, x2: 270, y2: 540, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, groupId: null, ...DEFAULT_DOOR };
 export const WALL_VISIBLE: Wall = { ...WALL_1, id: 'w-2', x1: 270, y1: 540, x2: 540, y2: 540, visiblePlayers: true };
 /** A closed door across the corridor: cuts sight and movement until the DM opens it. */
 export const WALL_DOOR: Wall = { ...WALL_1, id: 'w-door', x1: 540, y1: 216, x2: 540, y2: 324, kind: 'door' };
@@ -403,7 +406,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const masksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, rooms, roomOpenings, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -418,9 +421,9 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     uploadImage: async (campaignId: string, _file: Blob, name: string) => { uploads.push({ campaignId, name }); const img: ImageAsset = { id: `img-new-${++n}`, campaignId, name, url: `https://x/backgrounds/${campaignId}/${name}.png`, createdAt: '' }; images.unshift(img); return img; },
     removeImage: async (id: string) => { const i = images.findIndex(x => x.id === id); if (i >= 0) images.splice(i, 1); },
     listWalls: async (sid: string) => walls.filter(w => w.sceneId === sid),
-    addWall: async (w: NewWall) => { const created: Wall = { groupId: null, ...w, id: `w-new-${++n}` }; walls.push(created); return created; },
+    addWall: async (w: NewWall) => { const created: Wall = { groupId: null, ...DEFAULT_DOOR, ...w, id: `w-new-${++n}` }; walls.push(created); return created; },
     // Todas o ninguna, como el INSERT de varias filas del adaptador real.
-    addWalls: async (ws: NewWall[]) => { const made = ws.map(w => ({ groupId: null, ...w, id: `w-new-${++n}` }) as Wall); walls.push(...made); return made; },
+    addWalls: async (ws: NewWall[]) => { const made = ws.map(w => ({ groupId: null, ...DEFAULT_DOOR, ...w, id: `w-new-${++n}` }) as Wall); walls.push(...made); return made; },
     updateWall: async (id: string, patch: WallPatch) => { wallUpdates.push({ id, patch }); const w = walls.find(x => x.id === id); if (w) Object.assign(w, patch); },
     updateWallGeometry: async (id: string, at: { x1: number; y1: number; x2: number; y2: number }) => { wallMoves.push({ id, at }); const w = walls.find(x => x.id === id); if (w) Object.assign(w, at); },
     removeWall: async (id: string) => { const i = walls.findIndex(w => w.id === id); if (i >= 0) walls.splice(i, 1); },
@@ -503,7 +506,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     updateRoomPoints: async (id: string, points: [number, number][]) => { const r = rooms.find(x => x.id === id); if (r) r.points = points; },
     removeRoom: async (id: string) => { const i = rooms.findIndex(r => r.id === id); if (i >= 0) rooms.splice(i, 1); },
     listRoomOpenings: async (sid: string) => roomOpenings.filter(o => o.sceneId === sid),
-    addRoomOpening: async (o: NewRoomOpening) => { const created: RoomOpening = { ...o, id: `ro-new-${++n}` }; roomOpenings.push(created); return created; },
+    addRoomOpening: async (o: NewRoomOpening) => { const created: RoomOpening = { ...DEFAULT_DOOR, ...o, id: `ro-new-${++n}` }; roomOpenings.push(created); return created; },
     updateRoomOpening: async (id: string, patch: RoomOpeningPatch) => { const o = roomOpenings.find(x => x.id === id); if (o) Object.assign(o, patch); },
     removeRoomOpening: async (id: string) => { const i = roomOpenings.findIndex(o => o.id === id); if (i >= 0) roomOpenings.splice(i, 1); },
     subscribe: (sid: string, h: MapsLiveHandlers) => { const set = subs.get(sid) ?? new Set<MapsLiveHandlers>(); set.add(h); subs.set(sid, set); return () => { set.delete(h); }; },

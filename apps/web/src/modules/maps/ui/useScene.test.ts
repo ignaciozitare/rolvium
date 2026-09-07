@@ -1017,4 +1017,44 @@ describe('useScene — las salas (rebanada 8)', () => {
     expect(result.current.roomOpenings).toHaveLength(0);
     expect(result.current.walls).toHaveLength(0);
   });
+
+  /**
+   * ── LAS PUERTAS, DE VERDAD ──
+   * Cómo es una puerta —hojas, bisagra, lado, color— es APARIENCIA: no mueve una sola línea de vista. Por
+   * eso no se le vuelve a preguntar la visión al servidor, que es una ida y vuelta por clic y él ya se
+   * quejó una vez de que «está todo lentísimo». Lo que sí la cambia es ABRIRLA.
+   */
+  it('cambiar cómo es una puerta de sala se guarda, y NO gasta una vuelta al servidor', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const vision = fakeVisionPort({});
+    const result = await mount(repo, vision);
+    await act(async () => { await result.current.addRoomShape('rect', CUADRADO); });
+    await act(async () => { await result.current.addRoomOpening({ x1: 40, y1: 0, x2: 60, y2: 0, kind: 'door', isOpen: false }); });
+    const id = result.current.roomOpenings[0]!.id;
+    // Dejar que se apague lo que la CREACIÓN del vano dejó pedido: si no, se contaría su refresco como si
+    // fuera del cambio de apariencia.
+    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+    const antes = vision.calls.filter(c => c.op === 'refresh').length;
+    await act(async () => { await result.current.patchRoomOpening(id, { leaves: 2, swing: 'left', doorColor: '#8b1a1a' }); });
+    expect(result.current.roomOpenings[0]).toMatchObject({ leaves: 2, swing: 'left', doorColor: '#8b1a1a' });
+    expect(vision.calls.filter(c => c.op === 'refresh').length).toBe(antes);
+    // Y abrirla sí la pide, que es la mitad que de verdad cambia lo que se ve.
+    await act(async () => { await result.current.toggleRoomOpening(id, true); });
+    await waitFor(() => expect(vision.calls.filter(c => c.op === 'refresh').length).toBeGreaterThan(antes));
+  });
+
+  it('lo mismo con la puerta de un MURO: el color no pide visión, abrirla sí', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], walls: [{ ...WALL_1, kind: 'door' }] });
+    const vision = fakeVisionPort({});
+    const result = await mount(repo, vision);
+    await waitFor(() => expect(result.current.walls).toHaveLength(1));
+    const id = result.current.walls[0]!.id;
+    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+    const antes = vision.calls.filter(c => c.op === 'refresh').length;
+    await act(async () => { await result.current.patchWall(id, { leaves: 2, hinge: 'end' }); });
+    expect(result.current.walls[0]).toMatchObject({ leaves: 2, hinge: 'end' });
+    expect(vision.calls.filter(c => c.op === 'refresh').length).toBe(antes);
+    await act(async () => { await result.current.patchWall(id, { isOpen: true }); });
+    await waitFor(() => expect(vision.calls.filter(c => c.op === 'refresh').length).toBeGreaterThan(antes));
+  });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { Wall } from '../domain/entities/Scene';
 import { createSupabaseMock } from '../../../../tests/helpers/supabaseMock';
 import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapLayerRow, mapPropRow, mapSceneRow, mapScenePropRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
@@ -182,7 +183,7 @@ describe('SupabaseMapsRepo — walls, tokens, drawings', () => {
   it('walls: mover o estirar un grupo entero va en una sola escritura', async () => {
     const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    const w = (id: string, x1: number): Wall => ({ id, sceneId: 'sc-1', campaignId: 'c1', x1, y1: 0, x2: x1 + 10, y2: 0, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, groupId: 'g-7' });
+    const w = (id: string, x1: number): Wall => ({ id, sceneId: 'sc-1', campaignId: 'c1', x1, y1: 0, x2: x1 + 10, y2: 0, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, groupId: 'g-7', ...DEFAULT_DOOR });
     await repo.updateWallsGeometry([w('w-1', 5), w('w-2', 40)]);
     expect(m.upsertSpy).toHaveBeenCalledTimes(1);
     const filas = m.upsertSpy.mock.calls[0]![0] as Record<string, unknown>[];
@@ -539,7 +540,9 @@ describe('SupabaseMapsRepo — las salas', () => {
   it('los vanos van por ESCENA, porque el contorno es el de la UNIÓN', async () => {
     const m = createSupabaseMock({ tables: { maps_room_openings: { data: [OPENING_ROW], error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    expect(await repo.listRoomOpenings('sc-1')).toEqual([{ id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, kind: 'door', isOpen: false }]);
+    // Una fila escrita antes de «Las puertas, de verdad» no trae las cuatro columnas nuevas: se lee con
+    // DEFAULT_DOOR, que es exactamente lo que esa puerta hacía ya (una hoja, bisagra en la primera punta).
+    expect(await repo.listRoomOpenings('sc-1')).toEqual([{ id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 0, y1: 0, x2: 10, y2: 0, kind: 'door', isOpen: false, ...DEFAULT_DOOR }]);
     expect(q(m)['eq']).toHaveBeenCalledWith('scene_id', 'sc-1');
   });
 
@@ -617,5 +620,51 @@ describe('SupabaseMapsRepo — el catálogo de texturas', () => {
     await repo.removeTexture('tx-9');
     expect(q(m)['delete']).toHaveBeenCalled();
     expect(q(m)['eq']).toHaveBeenCalledWith('id', 'tx-9');
+  });
+});
+
+/**
+ * ── LAS PUERTAS, DE VERDAD (migración `20260907120000_maps_doors.sql`) ──
+ *
+ * Las MISMAS cuatro columnas en `maps_walls` y en `maps_room_openings`, y el color por defecto en la escena.
+ * Lo que estas pruebas fijan es lo que hace que no se rompa nada al desplegar: una fila escrita ANTES de la
+ * migración no trae las columnas, y tiene que leerse exactamente como se comportaba — una hoja, colgada del
+ * extremo por donde se empezó a dibujar, abriendo hacia el lado de siempre y sin color propio.
+ */
+describe('SupabaseMapsRepo — cómo es cada puerta', () => {
+  it('una fila SIN las columnas nuevas se lee con los valores de fábrica, no con basura', () => {
+    expect(mapWallRow(WALL_ROW)).toMatchObject(DEFAULT_DOOR);
+    expect(mapSceneRow(SCENE_ROW).doorColor).toBeNull();
+  });
+
+  it('una fila CON ellas se lee tal cual, y un valor imposible cae al de fábrica en vez de colarse', () => {
+    expect(mapWallRow({ ...WALL_ROW, leaves: 2, hinge: 'end', swing: 'left', door_color: '#8b1a1a' }))
+      .toMatchObject({ leaves: 2, hinge: 'end', swing: 'left', doorColor: '#8b1a1a' });
+    // La base ya lo impide con sus CHECK; esto es el cinturón del lado del cliente.
+    expect(mapWallRow({ ...WALL_ROW, leaves: 7, hinge: 'medio', swing: 'arriba' }))
+      .toMatchObject({ leaves: 1, hinge: 'start', swing: 'right' });
+  });
+
+  it('cambiar cómo es una puerta escribe SÓLO sus columnas, en snake_case', async () => {
+    const m = createSupabaseMock({ tables: { maps_walls: { data: null, error: null } } });
+    await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).updateWall('w-1', { leaves: 2, swing: 'left', doorColor: null });
+    expect(q(m)['update']).toHaveBeenCalledWith({ leaves: 2, swing: 'left', door_color: null });
+  });
+
+  it('un vano de sala guarda las mismas cuatro, y se puede BORRAR — que era lo que faltaba', async () => {
+    const m = createSupabaseMock({ tables: { maps_room_openings: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateRoomOpening('ro-1', { hinge: 'end', doorColor: '#8b1a1a' });
+    expect(q(m)['update']).toHaveBeenCalledWith({ hinge: 'end', door_color: '#8b1a1a' });
+    const d = createSupabaseMock({ tables: { maps_room_openings: { data: null, error: null } } });
+    await new SupabaseMapsRepo(d.client as unknown as SupabaseClient).removeRoomOpening('ro-1');
+    expect(q(d)['delete']).toHaveBeenCalled();
+    expect(q(d)['eq']).toHaveBeenCalledWith('id', 'ro-1');
+  });
+
+  it('el color por defecto de las puertas de la escena viaja en `door_color`', async () => {
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: null, error: null } } });
+    await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).updateScene('sc-1', { doorColor: '#8b1a1a' });
+    expect(q(m)['update']).toHaveBeenCalledWith(expect.objectContaining({ door_color: '#8b1a1a' }));
   });
 });

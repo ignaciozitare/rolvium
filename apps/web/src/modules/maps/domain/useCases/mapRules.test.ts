@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import { DEFAULT_DOOR } from '../entities/Scene';
 import type { Drawing } from '../entities/Scene';
 import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1 } from '../../../../../tests/helpers/fakes';
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
+  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, doorColorOf, doorQuads, quadPoints, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -40,7 +41,7 @@ describe('tokenGapCells — la distancia de un ataque (p.92/p.95)', () => {
 
 describe('paredes sólidas: `slideToken`, `moveBlockers`, `tokenRadiusPx`', () => {
   /** Un muro vertical en x = 100, de y 0 a 200. */
-  const muro = { id: 'w', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 100, y2: 200, visiblePlayers: true, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false, groupId: null };
+  const muro = { id: 'w', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 100, y2: 200, visiblePlayers: true, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false, groupId: null, ...DEFAULT_DOOR };
   const R = 10;
 
   it('cruzar el muro avanza hasta quedarse PEGADO a este lado; sin muros pasa entero', () => {
@@ -670,5 +671,114 @@ describe('drawingBounds y drawingsInRect — el área coge los trazos', () => {
     ];
     const ids = drawingsInRect(todos, { x: 0, y: 0 }, { x: 200, y: 200 }).map(x => x.id);
     expect(ids).toEqual(['linea', 'caja', 'circulo', 'texto']);
+  });
+});
+
+/**
+ * ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps · «El dibujo») ──
+ *
+ * Encargo suyo del 2026-09-07 con una captura de Dungeon Scrawl delante. La puerta pasa a ser una BARRA
+ * HUECA DE ÁNGULOS RECTOS metida en el hueco del muro; abierta, la hoja gira 90° desde su bisagra, y sin
+ * arco de barrido. Estas pruebas fijan la geometría, que es lo que él miró en pantalla y aprobó.
+ *
+ * El muro de trabajo va de (0,0) a (0,100): vertical, 100 px. Con d = (0,1), la normal es n = (-1,0), así
+ * que `swing: 'right'` (que es +n, el lado de siempre) saca la hoja hacia las x NEGATIVAS.
+ */
+describe('doorQuads — la barra hueca, y cómo gira', () => {
+  const seg = { x1: 0, y1: 0, x2: 0, y2: 100 };
+  const T = 10;
+  const puerta = (over: Partial<typeof DEFAULT_DOOR> & { isOpen?: boolean } = {}) =>
+    ({ ...DEFAULT_DOOR, isOpen: false, ...over });
+  const caja = (q: { x: number; y: number }[]) => ({
+    x0: Math.min(...q.map(p => p.x)), x1: Math.max(...q.map(p => p.x)),
+    y0: Math.min(...q.map(p => p.y)), y1: Math.max(...q.map(p => p.y)),
+  });
+
+  it('cerrada y de una hoja: la barra ocupa el hueco entero, con el grosor repartido a los lados', () => {
+    const qs = doorQuads(seg, puerta(), T);
+    expect(qs).toHaveLength(1);
+    // Cuatro esquinas: es un cuadrilátero, no una línea ni una curva.
+    expect(qs[0]).toHaveLength(4);
+    const b = caja(qs[0]!);
+    expect(b.y0).toBeCloseTo(0, 6);
+    expect(b.y1).toBeCloseTo(100, 6);
+    expect(b.x0).toBeCloseTo(-T / 2, 6);
+    expect(b.x1).toBeCloseTo(T / 2, 6);
+  });
+
+  it('abierta: la hoja gira 90° y sale perpendicular, sin dejar nada tumbado en el hueco', () => {
+    const b = caja(doorQuads(seg, puerta({ isOpen: true }), T)[0]!);
+    // Ya no recorre los 100 px del vano: ahora los recorre a lo ANCHO.
+    expect(b.x1 - b.x0).toBeCloseTo(100, 6);
+    expect(b.y1 - b.y0).toBeCloseTo(T, 6);
+    // Y la franja queda CENTRADA en la bisagra, que con `start` es (0,0).
+    expect((b.y0 + b.y1) / 2).toBeCloseTo(0, 6);
+  });
+
+  it('la bisagra elige de qué extremo cuelga', () => {
+    const bStart = caja(doorQuads(seg, puerta({ isOpen: true, hinge: 'start' }), T)[0]!);
+    const bEnd = caja(doorQuads(seg, puerta({ isOpen: true, hinge: 'end' }), T)[0]!);
+    expect((bStart.y0 + bStart.y1) / 2).toBeCloseTo(0, 6);
+    expect((bEnd.y0 + bEnd.y1) / 2).toBeCloseTo(100, 6);
+  });
+
+  it('el lado la saca por costados OPUESTOS, y `right` es el de siempre (+n)', () => {
+    const der = caja(doorQuads(seg, puerta({ isOpen: true, swing: 'right' }), T)[0]!);
+    const izq = caja(doorQuads(seg, puerta({ isOpen: true, swing: 'left' }), T)[0]!);
+    expect(der.x0).toBeCloseTo(-100, 6);
+    expect(der.x1).toBeCloseTo(0, 6);
+    expect(izq.x0).toBeCloseTo(0, 6);
+    expect(izq.x1).toBeCloseTo(100, 6);
+  });
+
+  it('dos hojas: se parte por la mitad y cada una cuelga de SU extremo, sin mirar la bisagra', () => {
+    const cerradas = doorQuads(seg, puerta({ leaves: 2 }), T);
+    expect(cerradas).toHaveLength(2);
+    // Media puerta cada una, y juntas cubren el hueco entero.
+    expect(caja(cerradas[0]!)).toMatchObject({ y0: 0, y1: 50 });
+    expect(caja(cerradas[1]!)).toMatchObject({ y0: 50, y1: 100 });
+    // Abiertas giran LAS DOS, cada una desde su punta, y las dos hacia el mismo lado.
+    const abiertas = doorQuads(seg, puerta({ leaves: 2, isOpen: true }), T);
+    expect((caja(abiertas[0]!).y0 + caja(abiertas[0]!).y1) / 2).toBeCloseTo(0, 6);
+    expect((caja(abiertas[1]!).y0 + caja(abiertas[1]!).y1) / 2).toBeCloseTo(100, 6);
+    for (const q of abiertas) expect(caja(q).x0).toBeCloseTo(-50, 6);
+    // Y con dos hojas la bisagra NO cambia nada: cada hoja ya tiene la suya.
+    expect(doorQuads(seg, puerta({ leaves: 2, hinge: 'end' }), T)).toEqual(cerradas);
+  });
+
+  it('un segmento de largo cero no revienta ni devuelve NaN', () => {
+    const q = doorQuads({ x1: 5, y1: 5, x2: 5, y2: 5 }, puerta(), T)[0]!;
+    for (const p of q) { expect(Number.isFinite(p.x)).toBe(true); expect(Number.isFinite(p.y)).toBe(true); }
+  });
+
+  it('`quadPoints` escribe el cuadrilátero como lo quiere un <polygon>, redondeado a dos decimales', () => {
+    expect(quadPoints([{ x: 1.234, y: 2 }, { x: 3, y: 4.567 }])).toBe('1.23,2 3,4.57');
+  });
+});
+
+describe('doorColorOf — el de la escena, con excepción por puerta', () => {
+  it('por defecto NO decide nada: nulo significa «el trazo del muro», y eso lo pone el CSS', () => {
+    expect(doorColorOf({ doorColor: null }, { doorColor: null })).toBeNull();
+  });
+  it('sin color propio manda el de la escena; con él, manda la puerta', () => {
+    expect(doorColorOf({ doorColor: null }, { doorColor: '#111111' })).toBe('#111111');
+    expect(doorColorOf({ doorColor: '#8b1a1a' }, { doorColor: '#111111' })).toBe('#8b1a1a');
+  });
+});
+
+/**
+ * 🐞 EL FALLO QUE ORIGINÓ EL ENCARGO: el disco de abrir/cerrar buscaba SÓLO en `maps_walls`, y las aberturas
+ * de sala viven en `maps_room_openings`. Una puerta dibujada en una sala nacía cerrada y no había forma de
+ * abrirla. `hitOpening` es genérico justo para eso: le da igual de qué tabla venga el segmento.
+ */
+describe('hitOpening llega también a los vanos de SALA', () => {
+  const vano = { id: 'ro-1', x1: 0, y1: 0, x2: 0, y2: 100, kind: 'door' as const, isOpen: false };
+  it('encuentra un vano de sala igual que un muro, y sigue sin contestar por una pared', () => {
+    expect(hitOpening([vano], { x: 2, y: 50 }, 8)?.id).toBe('ro-1');
+    expect(hitOpening([{ ...vano, kind: 'wall' as const }], { x: 2, y: 50 }, 8)).toBeNull();
+    expect(hitOpening([vano], { x: 40, y: 50 }, 8)).toBeNull();
+  });
+  it('una ventana también contesta: se abre con el mismo disco', () => {
+    expect(hitOpening([{ ...vano, kind: 'window' as const }], { x: 2, y: 50 }, 8)?.id).toBe('ro-1');
   });
 });

@@ -116,13 +116,38 @@ Dos láminas nuevas en el `.pen`, al final de la fila «5 · LA ESCENA · mapas�
 > terminal con el CLI **no sirve**. Si vuelve a pasar: mirar quién tiene dos descriptores del socket
 > (`lsof -U | grep pencil`) y abrir el `.pen` EN ESA ventana, o dejar una sola abierta.
 
-### ⏭️ SIGUIENTE: CONSTRUIR
-- El dibujo nuevo sustituye a `openingGeometry` (`mapRules.ts:224`) **para todas las puertas**.
-- El disco existe y funciona (`MapCanvas:1247`, `door_front`/`door_open`): hay que cambiar **a qué mira**
-  (`p.walls` en `MapCanvas:1046,1143`), no cómo se ve.
-- El panel de la puerta se hace copiando `LightEditor` (`useDragPanel`, X que cierra sin borrar, Escape).
-- **Borrar una abertura de sala**: `removeRoomOpening` ya existe en el puerto y en el repositorio y no la
-  llama nadie. Va en la papelera del panel.
+### ✅ CONSTRUIDO (2026-09-07) — falta que lo MIRE en pantalla
+
+Todo verde: `npm run test` **1458 web · 246 api · 64 core · 16 · 141** · `tsc` limpio · `audit` **0 hard** ·
+`build:web` y `build:api` compilan · `db lint --level error` limpio · **review pasado**.
+
+| Qué | Dónde |
+|---|---|
+| El dibujo nuevo | `doorQuads` en `mapRules.ts` (+ `quadPoints`, `doorColorOf`, `DOOR_COLORS`) |
+| Lo pinta | `DoorLeaves` en `canvasLayers.tsx` · `WallShape` para muros · `roomsLayer.tsx` para salas |
+| El disco, arreglado | `MapCanvas`: mira en muros **Y** vanos; `hitWall`/`hitOpening` ahora genéricos |
+| El panel | `BuilderPanel`: HOJAS · BISAGRA · ABRE HACIA · COLOR, sólo con una puerta cogida |
+| Borrar un vano de sala | `SceneTab` → `st.removeRoomOpening`, que existía y **no la llamaba nadie** |
+| Volver del tramo a la fila | `RoomOpeningSpan.id` / `RoomWall.openingId` en `packages/core/src/rooms.ts` |
+
+- ⚠️ **ÁNGULOS RECTOS**: `.mp-door-leaf` lleva `stroke-linejoin:miter` y **no hay un solo `cornerRadius`** en
+  todo el módulo. Es corrección suya con la lámina delante; si alguien mete un canto redondeado, está mal.
+- **La ventana no se ha tocado**: sigue con `openingGeometry` y sus dos jambas. Ya estaba bien.
+- **El color no pide visión al servidor** (`SOLO_APARIENCIA` en `useScene`): las cuatro de la puerta son
+  apariencia y no mueven una línea de vista. Abrirla sí la pide.
+- 🐞 **Lo que cazó el review y era de verdad**: las CINCO escrituras nuevas de vanos se saltaban `run()`, que
+  es lo que enciende el aviso de «no se pudo guardar». Con la pintada optimista, un fallo de guardado se
+  habría visto como un éxito. Arregladas las cinco.
+- 🐞 Y que `npm run typecheck` **no** estaba limpio cuando lo di por bueno: 35 errores en los tests nuevos que
+  `vitest` no ve (transpila sin comprobar tipos) y `build:web` tampoco (excluye tests). Sólo los caza `tsc`.
+  **Correr `tsc` DESPUÉS de escribir los tests, no antes.**
+
+### 📌 LO QUE HACE FALTA DE ÉL, EN ORDEN
+1. **MIRARLO EN PANTALLA** (`localhost:5173`, con `npm run dev:api` y `npm run dev:web`): dibujar una puerta
+   sobre un muro y sobre una SALA; abrirla y cerrarla con el disco en las dos; cogerla con Seleccionar y
+   probar las cuatro filas del panel; y borrar la de la sala, que antes no se podía.
+2. **Guardar el `.pen` con Cmd+S** si todavía no lo hizo tras el último cambio del panel.
+3. Cuando le valga: decir «listo para merge» → QA → Deploy (la migración va **antes** que el código).
 
 ## 🟢 2026-09-04 (noche) — EL FALLO DE «PEGADO A ALGO», CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO
 

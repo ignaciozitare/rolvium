@@ -1,6 +1,6 @@
 import { METRES_PER_CELL, sightRadiusPx, slideCircle, type BlockSegment, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
 import type { Character } from '@/modules/characters/domain/entities/Character';
-import type { Drawing, DrawingData, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
+import type { DoorSettings, Drawing, DrawingData, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
 
 export { METRES_PER_CELL } from '@rolvium/core';
 
@@ -162,6 +162,16 @@ export const newWallOf = (kind: WallKind): Pick<Wall, 'kind' | 'blocksSight' | '
   ({ kind, ...WALL_FLAGS[kind], isOpen: false });
 /** A `wall` is fixed shut; doors and windows can be opened. */
 export const canOpen = (w: Pick<Wall, 'kind'>): boolean => w.kind !== 'wall';
+
+/**
+ * Los colores propios que se le pueden poner a UNA puerta (§ «El color es de la escena, con excepción por
+ * puerta»). Cerrados y pocos a propósito: la excepción es «la de hierro del jefe», no una paleta entera —
+ * y el caso normal, que es heredar el de la escena, no está aquí porque es `null`.
+ *
+ * No salen de `COLOR_PICKER_PALETTE` de `@rolvium/ui`: aquélla está pensada sobre los tokens de la APP y
+ * esta paleta se ve sobre la MESA, que va con los `--sys-*` del sistema de juego.
+ */
+export const DOOR_COLORS = ['#8a8f98', '#6e5a3a', '#8b1a1a', '#3f4a2e', '#d8cdb4'] as const;
 export const blocksSightNow = (w: Pick<Wall, 'blocksSight' | 'isOpen'>): boolean => w.blocksSight && !w.isOpen;
 /** Lo que corta el PASO ahora mismo. Gemelo exacto de `blocksSightNow`: una puerta abierta deja pasar. */
 export const blocksMoveNow = (w: Pick<Wall, 'blocksMove' | 'isOpen'>): boolean => w.blocksMove && !w.isOpen;
@@ -200,9 +210,15 @@ export const moveBlockers = (walls: readonly Wall[], scene: Pick<Scene, 'solidWa
 /** El radio del cuerpo de un token en px de escena: su ancho en casillas, en píxeles, a la mitad. */
 export const tokenRadiusPx = (t: Pick<Token, 'size'>, grid: number): number => (t.size * grid) / 2;
 
-/** Nearest segment within `tol` scene px of `p` — how the DM picks a door to open. */
-export function hitWall(walls: Wall[], p: Point, tol = 8): Wall | null {
-  let best: Wall | null = null;
+/**
+ * Nearest segment within `tol` scene px of `p` — how the DM picks a door to open.
+ *
+ * Genérico sobre cualquier cosa que tenga dos puntas: un muro de `maps_walls` o un vano de sala de
+ * `maps_room_openings`. El disco de abrir tiene que alcanzar a los DOS —que es lo que estaba roto: una
+ * puerta dibujada en una sala nacía cerrada y no había forma de abrirla— y el cálculo es el mismo.
+ */
+export function hitWall<T extends Segment>(walls: readonly T[], p: Point, tol = 8): T | null {
+  let best: T | null = null;
   let bestDist = tol;
   for (const w of walls) {
     const d = segDist(p, { x: w.x1, y: w.y1 }, { x: w.x2, y: w.y2 });
@@ -212,14 +228,18 @@ export function hitWall(walls: Wall[], p: Point, tol = 8): Wall | null {
 }
 
 /** The door or the window under the pointer — what the hover disc opens. A plain wall never answers: it never opens. */
-export const hitOpening = (walls: Wall[], p: Point, tol = 8): Wall | null => hitWall(walls.filter(canOpen), p, tol);
+export const hitOpening = <T extends Segment & Pick<Wall, 'kind'>>(walls: readonly T[], p: Point, tol = 8): T | null =>
+  hitWall(walls.filter(canOpen), p, tol);
 /** Middle of a segment: where the open/close disc sits. */
 export const midpoint = (w: Segment): Point => ({ x: (w.x1 + w.x2) / 2, y: (w.y1 + w.y2) / 2 });
 
 /**
- * Where to draw a door's jambs and its swung leaf. `n` is the unit normal of the segment, `d` the unit direction.
- * A closed door is the segment itself plus a jamb tick at each end; an open one keeps the threshold faint and
- * swings a leaf out of one jamb (rolvium.pen `uXK3T` · «Puerta abierta»).
+ * Where to draw a WINDOW's jambs: un tick cruzado en cada punta del vano. `n` es la normal unitaria del
+ * segmento, `d` la dirección unitaria (rolvium.pen `uXK3T` · «Ventana»).
+ *
+ * ⚠️ Desde «Las puertas, de verdad» (2026-09-07) esto YA NO DIBUJA NINGUNA PUERTA: una puerta es la barra
+ * hueca de `doorQuads`, con sus hojas, su bisagra y su lado. La ventana no se tocó y sigue saliendo de aquí.
+ * `leaf` es lo que queda del dibujo viejo de la puerta abierta y hoy no lo pinta nadie.
  */
 export function openingGeometry(w: Pick<Wall, 'x1' | 'y1' | 'x2' | 'y2'>, jamb = 9): { jambA: [Point, Point]; jambB: [Point, Point]; leaf: [Point, Point] } {
   const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
@@ -233,6 +253,64 @@ export function openingGeometry(w: Pick<Wall, 'x1' | 'y1' | 'x2' | 'y2'>, jamb =
 
 /** Endpoints of a segment in scene px — the geometry of a wall without the row around it. */
 export interface Segment { x1: number; y1: number; x2: number; y2: number }
+
+/** Lo que mide de ancho la barra de una puerta de muro suelto, en px de escena. El muro va a 3 y la barra
+ *  tiene que leerse por encima de él sin taparlo: es el grosor que tenía el trazo grueso de la puerta (7)
+ *  más el aire de los dos cantos. */
+export const DOOR_BAR_PX = 11;
+
+/**
+ * LA PUERTA, DIBUJADA (`rolvium.pen` · «PL/Puerta · el dibujo», aprobado por él el 2026-09-07).
+ *
+ * Cerrada es una **barra hueca de ÁNGULOS RECTOS** metida en el hueco del muro —el trazo del muro se para a
+ * cada lado, que son las jambas—; abierta, la hoja **girada 90°** desde su bisagra, como un plano de
+ * arquitecto. **Sin arco de barrido**: con muchas puertas juntas el mapa se llena de curvas (elegido por él).
+ * Con DOS hojas se parte por la mitad y **las dos giran a la vez**, cada una desde su extremo — y entonces
+ * `hinge` no se lee, porque cada hoja ya tiene la suya.
+ *
+ * ⚠️ Nada de cantos redondeados: el primer diseño los llevaba y él lo corrigió con la lámina delante.
+ *
+ * Devuelve UN CUADRILÁTERO POR HOJA, en px de escena. Cuadriláteros y no un `<rect>` girado porque el muro
+ * puede ir en cualquier ángulo y un rectángulo del SVG sólo sabe ir recto.
+ */
+export function doorQuads(seg: Segment, door: DoorSettings & Pick<Wall, 'isOpen'>, thickness = DOOR_BAR_PX): Point[][] {
+  const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const d = { x: dx / len, y: dy / len };
+  const n = { x: -d.y, y: d.x };
+  const h = thickness / 2;
+  const s = door.swing === 'left' ? -1 : 1;
+  const A = { x: seg.x1, y: seg.y1 }, B = { x: seg.x2, y: seg.y2 };
+  /**
+   * Una hoja: cuelga de `hinge` y mide `length`. Cerrada va tumbada sobre el muro (`along`); abierta gira
+   * 90° y su eje pasa a ser la normal hacia el lado elegido, con el grosor repartido a lo largo del muro.
+   */
+  const leaf = (hinge: Point, along: Point, length: number): Point[] => {
+    const axis = door.isOpen ? { x: n.x * s, y: n.y * s } : along;
+    const cross = door.isOpen ? along : n;
+    const tip = { x: hinge.x + axis.x * length, y: hinge.y + axis.y * length };
+    return [
+      { x: hinge.x + cross.x * h, y: hinge.y + cross.y * h },
+      { x: tip.x + cross.x * h, y: tip.y + cross.y * h },
+      { x: tip.x - cross.x * h, y: tip.y - cross.y * h },
+      { x: hinge.x - cross.x * h, y: hinge.y - cross.y * h },
+    ];
+  };
+  const back = { x: -d.x, y: -d.y };
+  if (door.leaves === 2) return [leaf(A, d, len / 2), leaf(B, back, len / 2)];
+  return door.hinge === 'end' ? [leaf(B, back, len)] : [leaf(A, d, len)];
+}
+
+/** Un cuadrilátero como lo quiere el atributo `points` de un `<polygon>`. */
+export const quadPoints = (q: readonly Point[]): string => q.map(p => `${Math.round(p.x * 100) / 100},${Math.round(p.y * 100) / 100}`).join(' ');
+
+/**
+ * De qué color se pinta ESTA puerta: el suyo si lo tiene, si no el de la escena, y si tampoco `null` — que
+ * significa «el trazo del muro» y lo resuelve el CSS, no este código. Un solo sitio donde se decide.
+ */
+export const doorColorOf = (door: Pick<DoorSettings, 'doorColor'>, scene: Pick<Scene, 'doorColor'>): string | null =>
+  door.doorColor ?? scene.doorColor ?? null;
+
 /** Leftovers this short are the zero-length ends of a cut: the spec says they are not saved. */
 const MIN_PIECE = 0.5;
 

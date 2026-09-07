@@ -1,6 +1,6 @@
 import type { LitLight, SceneVision } from '@rolvium/core';
-import type { Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
-import { cellsPath, initialsOf, openingGeometry, polygonPoints, polygonsPath, tokenCenter } from '../domain/useCases/mapRules';
+import type { DoorSettings, Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
+import { cellsPath, doorColorOf, doorQuads, initialsOf, openingGeometry, polygonPoints, polygonsPath, quadPoints, tokenCenter, type Segment } from '../domain/useCases/mapRules';
 import { beamCones, conePath, flickerOf, intensityFactor, lightRadiusPx, maskSrc, terrainLayers } from '../domain/useCases/layerRules';
 
 /** Presentational SVG pieces of the canvas (no pointer logic) — see MapCanvas.tsx. */
@@ -93,20 +93,45 @@ export function TokenGlyph({ token, grid, override, selected, movable, label, hi
 }
 
 /**
- * A wall segment. `wall` is a plain gold line; a closed door adds a dark core between two jambs; an open one
- * keeps the threshold faint and swings its leaf out; a window is steel and never cuts sight
- * (rolvium.pen `uXK3T` · Muro / Puerta cerrada / Puerta abierta / Ventana).
+ * LA PUERTA, DIBUJADA (`rolvium.pen` · «PL/Puerta · el dibujo», aprobado el 2026-09-07).
+ *
+ * Una hoja por polígono: cerrada, la barra hueca de ángulos rectos tumbada en el hueco del muro; abierta,
+ * girada 90° desde su bisagra. El hueco NO lleva línea de umbral: el muro ya se parte al abrir el vano
+ * (`planOpening`), así que sus dos trozos son las jambas y pintar una raya encima volvería a taparlo.
+ *
+ * `color` viene resuelto de fuera (`doorColorOf`): `null` significa «el trazo del muro» y lo pone el CSS.
  */
-export function WallShape({ wall, selected = false, draft = null }: { wall: Wall; selected?: boolean; draft?: { x1: number; y1: number; x2: number; y2: number } | null }): JSX.Element {
+export function DoorLeaves({ seg, door, color, thickness }: { seg: Segment; door: DoorSettings & Pick<Wall, 'isOpen'>; color: string | null; thickness?: number }): JSX.Element {
+  return (
+    <>
+      {doorQuads(seg, door, thickness).map((q, i) => (
+        <polygon key={i} points={quadPoints(q)} className="mp-door-leaf" style={color ? { stroke: color } : undefined} data-leaf={i} />
+      ))}
+    </>
+  );
+}
+
+/**
+ * A wall segment. `wall` is a plain gold line; a door is the hollow bar above (§ «Las puertas, de verdad»);
+ * a window is steel between two jambs and never cuts sight — y la ventana NO se toca, que ya estaba bien
+ * (rolvium.pen `uXK3T` · Muro / Ventana).
+ */
+export function WallShape({ wall, selected = false, draft = null, sceneDoorColor = null }: { wall: Wall; selected?: boolean; draft?: { x1: number; y1: number; x2: number; y2: number } | null; sceneDoorColor?: string | null }): JSX.Element {
   const line = draft ?? { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 };
   const cls = `mp-wall ${wall.kind} ${wall.isOpen ? 'open' : ''} ${wall.visiblePlayers ? 'visible' : ''} ${selected ? 'selected' : ''}`;
   if (wall.kind === 'wall') return <line {...line} className={cls} data-wall-id={wall.id} data-wall-kind={wall.kind} />;
+  const group = `mp-opening ${wall.kind} ${wall.isOpen ? 'open' : ''} ${selected ? 'selected' : ''}`;
+  if (wall.kind === 'door') {
+    return (
+      <g className={group} data-wall-id={wall.id} data-wall-kind={wall.kind} data-open={wall.isOpen ? 'true' : 'false'}>
+        <DoorLeaves seg={line} door={wall} color={doorColorOf(wall, { doorColor: sceneDoorColor })} />
+      </g>
+    );
+  }
   const g = openingGeometry(line);
   return (
-    <g className={`mp-opening ${wall.kind} ${wall.isOpen ? 'open' : ''} ${selected ? 'selected' : ''}`} data-wall-id={wall.id} data-wall-kind={wall.kind} data-open={wall.isOpen ? 'true' : 'false'}>
+    <g className={group} data-wall-id={wall.id} data-wall-kind={wall.kind} data-open={wall.isOpen ? 'true' : 'false'}>
       <line {...line} className={cls} />
-      {wall.kind === 'door' && !wall.isOpen && <line {...line} className="mp-wall-core" />}
-      {wall.kind === 'door' && wall.isOpen && <line x1={g.leaf[0].x} y1={g.leaf[0].y} x2={g.leaf[1].x} y2={g.leaf[1].y} className="mp-wall-leaf" />}
       <line x1={g.jambA[0].x} y1={g.jambA[0].y} x2={g.jambA[1].x} y2={g.jambA[1].y} className="mp-wall-jamb" />
       <line x1={g.jambB[0].x} y1={g.jambB[0].y} x2={g.jambB[1].x} y2={g.jambB[1].y} className="mp-wall-jamb" />
     </g>

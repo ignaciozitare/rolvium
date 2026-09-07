@@ -5,11 +5,12 @@ import {
   shadowDepthPx, spansOf, styleOf, wallWidthPx,
 } from './roomStyles';
 import type { RoomSide } from './roomRules';
+import { DEFAULT_DOOR } from '../entities/Scene';
 
 const scene = (over: Partial<Scene> = {}): Scene => ({
   id: 'sc-1', campaignId: 'c1', name: 'Cripta', width: 600, height: 400, bgColor: '#111111', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 30, visible: true }, fogMode: 'vision',
-  lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false,
+  lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null,
   roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
   createdAt: '', updatedAt: '', ...over,
 });
@@ -101,8 +102,10 @@ describe('de las filas a la geometría', () => {
   });
 
   it('los vanos guardados viajan al motor tal cual', () => {
-    expect(spansOf([{ id: 'o', sceneId: 's', campaignId: 'c', x1: 1, y1: 2, x2: 3, y2: 4, kind: 'door', isOpen: true }]))
-      .toEqual([{ x1: 1, y1: 2, x2: 3, y2: 4, kind: 'door', isOpen: true }]);
+    expect(spansOf([{ id: 'o', sceneId: 's', campaignId: 'c', x1: 1, y1: 2, x2: 3, y2: 4, kind: 'door', isOpen: true, ...DEFAULT_DOOR }]))
+      // El `id` viaja desde «Las puertas, de verdad»: es lo que deja volver del tramo pintado a la fila que
+      // dice CÓMO es esa puerta. Sin él, el contorno no sabría cuántas hojas tiene ni hacia dónde abre.
+      .toEqual([{ id: 'o', x1: 1, y1: 2, x2: 3, y2: 4, kind: 'door', isOpen: true }]);
   });
 });
 

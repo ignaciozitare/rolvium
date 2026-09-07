@@ -4,6 +4,8 @@ import {
   dugRooms, filledRooms, floorUrlOf, outlinePath, ringOf, ringPath, ringsOf, roomWallsOf, shadowDepthPx,
   styleOf, tilePx, wallWidthPx,
 } from '../domain/useCases/roomStyles';
+import { doorColorOf, type Segment } from '../domain/useCases/mapRules';
+import { DoorLeaves } from './canvasLayers';
 
 
 /**
@@ -31,6 +33,8 @@ interface Props {
   scene: Scene;
   rooms: readonly Room[];
   openings: readonly RoomOpening[];
+  /** El vano cogido con Seleccionar, para marcarlo como se marca un muro cogido. */
+  selectedOpeningId?: string | null;
   /** Los ids de las máscaras, para que la rejilla pueda pedir la del agujero (ver `GridLayer`). */
   ids: RoomMaskIds;
 }
@@ -88,7 +92,7 @@ function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl'>):
   return out;
 }
 
-export function RoomsLayer({ scene, rooms, openings, ids }: Props): JSX.Element | null {
+export function RoomsLayer({ scene, rooms, openings, ids, selectedOpeningId = null }: Props): JSX.Element | null {
   /**
    * ⏱ EL CONTORNO SE CALCULA UNA VEZ POR CAMBIO, NO UNA VEZ POR PINTADA.
    *
@@ -136,6 +140,20 @@ export function RoomsLayer({ scene, rooms, openings, ids }: Props): JSX.Element 
   const doorsClosed = d(['door'], false);
   const doorsOpen = d(['door'], true);
   const windows = d(['window'], null);
+  /**
+   * LAS PUERTAS DE SALA SE PINTAN COMO LAS DE MURO SUELTO (§ «Las puertas, de verdad»): la misma barra
+   * hueca de ángulos rectos, con sus hojas, su bisagra y su lado. Decisión suya con la captura delante —
+   * prefiere que cambien las que ya tiene a que convivan dos puertas distintas en el mismo mapa.
+   *
+   * El tramo se toma del CONTORNO ya resuelto, no de las coordenadas crudas del vano: así la puerta cae
+   * exactamente sobre la pared aunque él haya movido la forma después de abrirla. `openingId` es lo que
+   * permite volver de un tramo a la fila donde vive cómo es esa puerta.
+   */
+  const porId = new Map(openings.map(o => [o.id, o]));
+  const puertas = walls
+    .filter(w => w.kind === 'door' && w.openingId)
+    .map(w => ({ seg: { x1: w.seg[0], y1: w.seg[1], x2: w.seg[2], y2: w.seg[3] }, o: porId.get(w.openingId!) }))
+    .filter((x): x is { seg: Segment; o: RoomOpening } => !!x.o);
   /** La roca y el canto se dibujan también bajo los vanos CERRADOS: una puerta cerrada sigue siendo pared. */
   const carved = [solid, doorsClosed, windows].filter(Boolean).join(' ');
 
@@ -252,10 +270,15 @@ export function RoomsLayer({ scene, rooms, openings, ids }: Props): JSX.Element 
         {carved && <path d={carved} stroke={st.wall} strokeWidth={width} data-testid="mp-room-wall" />}
         {/* Una ventana: mismo hueco en la pared, con su travesaño. Deja ver y no deja pasar, como la de siempre. */}
         {windows && <path d={windows} className="mp-room-window" strokeWidth={width * 0.45} data-testid="mp-room-window" />}
-        {/* Puerta cerrada: la hoja, más clara que la roca, para que se vea que ahí hay una puerta. */}
-        {doorsClosed && <path d={doorsClosed} className="mp-room-door" strokeWidth={width * 0.5} data-testid="mp-room-door" />}
-        {/* Puerta abierta: no hay pared, sólo el umbral marcado. Por ahí se pasa y se ve. */}
-        {doorsOpen && <path d={doorsOpen} className="mp-room-door-open" strokeWidth={width * 0.3} data-testid="mp-room-door-open" />}
+        {/* La puerta: la barra hueca, igual que en un muro suelto. Su grosor es el de la pared de la sala,
+            para que se meta en la banda de roca en vez de flotar sobre ella. */}
+        <g className="mp-room-doors" data-testid="mp-room-doors" strokeLinejoin="miter">
+          {puertas.map(({ seg, o }) => (
+            <g key={o.id} className={`mp-opening door ${o.isOpen ? 'open' : ''} ${o.id === selectedOpeningId ? 'selected' : ''}`} data-opening-id={o.id} data-open={o.isOpen ? 'true' : 'false'}>
+              <DoorLeaves seg={seg} door={o} color={doorColorOf(o, scene)} thickness={width} />
+            </g>
+          ))}
+        </g>
       </g>
     </g>
   );

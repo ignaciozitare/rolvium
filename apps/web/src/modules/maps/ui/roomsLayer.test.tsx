@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import * as core from '@rolvium/core';
+import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { Room, RoomOpening, Scene } from '../domain/entities/Scene';
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
 
@@ -15,7 +16,7 @@ import { RoomsLayer, roomMaskIds } from './roomsLayer';
 const SCENE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Cripta', width: 600, height: 400, bgColor: '#111111', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 30, visible: true }, fogMode: 'vision',
-  lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false,
+  lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null,
   roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
   createdAt: '', updatedAt: '',
 };
@@ -204,20 +205,53 @@ function vuelta(sub: string): number {
 
 describe('<RoomsLayer> — los vanos, anotados sobre el contorno', () => {
   const opening = (over: Partial<RoomOpening> = {}): RoomOpening => ({
-    id: 'o1', sceneId: 'sc-1', campaignId: 'c1', x1: 300, y1: 150, x2: 300, y2: 210, kind: 'door', isOpen: false, ...over,
+    id: 'o1', sceneId: 'sc-1', campaignId: 'c1', x1: 300, y1: 150, x2: 300, y2: 210, kind: 'door', isOpen: false, ...DEFAULT_DOOR, ...over,
   });
 
-  it('una puerta CERRADA se dibuja como puerta, y sigue siendo pared', () => {
+  /** El vano cae sobre el lado derecho de la sala (x = 300), de y 150 a y 210. */
+  const hoja = (i = 0) => screen.getByTestId('mp-room-doors').querySelector(`[data-opening-id="o1"] [data-leaf="${i}"]`);
+  /** Las esquinas de una hoja, como pares `[x, y]` — en tuplas para que indexarlas siga siendo un número. */
+  const puntos = (el: Element): [number, number][] =>
+    el.getAttribute('points')!.split(' ').map(p => { const [x, y] = p.split(',').map(Number); return [x!, y!]; });
+
+  it('una puerta CERRADA se dibuja como la barra hueca, tumbada en el hueco, y sigue siendo pared', () => {
     mount([room('r1', 60, 60, 300, 300)], [opening()]);
-    expect(screen.getByTestId('mp-room-door')).toBeInTheDocument();
-    expect(screen.queryByTestId('mp-room-door-open')).not.toBeInTheDocument();
+    const q = hoja()!;
+    expect(q).toBeInTheDocument();
+    expect(screen.getByTestId('mp-room-doors').querySelector('[data-opening-id="o1"]')!.getAttribute('data-open')).toBe('false');
+    // Cerrada la barra va A LO LARGO del muro: sus cuatro esquinas cubren el alto del vano (150→210).
+    const ys = q.getAttribute('points')!.split(' ').map(p => Number(p.split(',')[1]));
+    expect(Math.min(...ys)).toBeCloseTo(150, 1);
+    expect(Math.max(...ys)).toBeCloseTo(210, 1);
+    // Una hoja: un solo polígono.
+    expect(hoja(1)).toBeNull();
   });
 
-  it('abierta, se marca el umbral y ahí ya no hay muro', () => {
+  it('abierta, la hoja gira 90° desde su bisagra y ahí ya no hay muro', () => {
     mount([room('r1', 60, 60, 300, 300)], [opening({ isOpen: true })]);
-    expect(screen.getByTestId('mp-room-door-open')).toBeInTheDocument();
+    const q = hoja()!;
+    expect(screen.getByTestId('mp-room-doors').querySelector('[data-opening-id="o1"]')!.getAttribute('data-open')).toBe('true');
+    // Girada, la hoja ya NO recorre el vano: arranca en la bisagra (y = 150) y se sale del muro en x.
+    const pts = puntos(q);
+    expect(Math.max(...pts.map(p => p[1]))).toBeLessThan(210);
+    expect(Math.max(...pts.map(p => p[0])) - Math.min(...pts.map(p => p[0]))).toBeCloseTo(60, 1);
     // El tramo del vano no está en el camino de la roca: por ahí se pasa y se ve.
     expect(screen.getByTestId('mp-room-wall').getAttribute('d') ?? '').not.toContain('M 300 150 L 300 210');
+  });
+
+  it('DOS hojas se parten por la mitad, y abiertas giran las dos', () => {
+    mount([room('r1', 60, 60, 300, 300)], [opening({ leaves: 2 })]);
+    const largo = (i: number) => {
+      const pts = puntos(hoja(i)!);
+      return Math.max(...pts.map(p => p[1])) - Math.min(...pts.map(p => p[1]));
+    };
+    expect(largo(0)).toBeCloseTo(30, 1);
+    expect(largo(1)).toBeCloseTo(30, 1);
+  });
+
+  it('el color propio de la puerta manda sobre el de la escena', () => {
+    mount([room('r1', 60, 60, 300, 300)], [opening({ doorColor: '#8b1a1a' })]);
+    expect(hoja()!.getAttribute('style')).toContain('8b1a1a');
   });
 
   it('una ventana lleva su travesaño', () => {

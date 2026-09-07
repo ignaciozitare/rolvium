@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Segment, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
@@ -74,6 +74,18 @@ interface Props {
   onTooSmall?: (locked: boolean) => void;
   /** DM: open or close the door/window that was clicked. */
   onToggleWall: (wall: Wall) => void;
+  /**
+   * Abrir y cerrar una puerta DE SALA. Va aparte de `onToggleWall` porque vive en otra tabla
+   * (`maps_room_openings`), y su ausencia era el fallo: el disco sólo miraba en los muros, así que una
+   * puerta dibujada en una sala nacía cerrada y no había forma de abrirla.
+   */
+  onToggleRoomOpening?: (opening: RoomOpening) => void;
+  /**
+   * EL VANO DE SALA COGIDO. Va aparte de `selectedWallId` porque es otra tabla, y existe para que el panel
+   * pueda enseñar cómo es esa puerta y —lo que faltaba— su papelera: hoy un vano de sala no se puede borrar.
+   */
+  selectedRoomOpeningId?: string | null;
+  onSelectRoomOpening?: (id: string | null) => void;
   /** DM: paint the fog at a scene point with the current brush radius (scene px). */
   onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => void;
   /** DM, herramienta Luz: coloca una luz de ambiente donde se pinchó (px de escena). */
@@ -354,6 +366,7 @@ export function MapCanvas(p: Props): JSX.Element {
       if (!dmSight || !p.showWalls || !p.walls.length) return;
       // Se suelta el muro suelto: o se tiene UNO cogido y se editan sus puntas, o se tienen TODOS y se mueven.
       p.onSelectWall?.(null);
+      p.onSelectRoomOpening?.(null);
       p.onSelectToken(null);
       p.onSelectLight?.(null);
       p.onSelectDrawing?.(null);
@@ -428,6 +441,7 @@ export function MapCanvas(p: Props): JSX.Element {
     // One selection at a time: leaving a segment selected would stack «Segmento» and the token bar on the same
     // spot over the canvas, and Suprimir would delete the segment instead of the token you just picked.
     p.onSelectWall?.(null);
+    p.onSelectRoomOpening?.(null);
     p.onSelectLight?.(null);
     p.onSelectDrawing?.(null);
     if (!canMoveToken(tok, p.me, p.isDm)) return;
@@ -482,6 +496,7 @@ export function MapCanvas(p: Props): JSX.Element {
       if (light) {
         p.onSelectToken(null);
         p.onSelectWall?.(null);
+        p.onSelectRoomOpening?.(null);
         p.onSelectDrawing?.(null);
         p.onSelectLight?.(light.id);
         /**
@@ -560,6 +575,7 @@ export function MapCanvas(p: Props): JSX.Element {
             p.onSelectLight?.(null);
             p.onSelectDrawing?.(null);
             p.onSelectWall?.(null);
+            p.onSelectRoomOpening?.(null);
             p.onSelectWalls?.(grupo.map(g => g.id));
           }
           // Los ids van DENTRO del gesto: si dependiera de la prop, el primer arrastre tras elegir movería
@@ -574,10 +590,26 @@ export function MapCanvas(p: Props): JSX.Element {
         p.onSelectLight?.(null);
         p.onSelectDrawing?.(null);
         p.onSelectWall?.(wall.id);
+        p.onSelectRoomOpening?.(null);
         const near = (x: number, y: number) => Math.hypot(s.x - x, s.y - y) <= 12 / p.view.zoom;
         const grab = near(wall.x1, wall.y1) ? 'a' : near(wall.x2, wall.y2) ? 'b' : 'whole';
         setGesture({ kind: 'wallEdit', id: wall.id, grab, start: s, origin: { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 }, dbl: doble });
         svgRef.current?.setPointerCapture?.(e.pointerId);
+        return;
+      }
+      /**
+       * UN VANO DE SALA. Después del muro y antes del trazo: es igual de fino y se coge con la misma
+       * tolerancia, pero NO se arrastra — su sitio es el tramo anotado sobre el contorno, y se mueve
+       * moviendo la forma. Cogerlo es lo que abre su panel, y con él la papelera que hasta hoy no existía.
+       */
+      const opening = dmSight ? hitWall(p.roomOpenings ?? [], s, 10 / p.view.zoom) : null;
+      if (opening) {
+        p.onSelectToken(null);
+        p.onSelectWall?.(null);
+        p.onSelectWalls?.([]);
+        p.onSelectLight?.(null);
+        p.onSelectDrawing?.(null);
+        p.onSelectRoomOpening?.(opening.id);
         return;
       }
       /**
@@ -590,6 +622,7 @@ export function MapCanvas(p: Props): JSX.Element {
       if (drawing) {
         p.onSelectToken(null);
         p.onSelectWall?.(null);
+        p.onSelectRoomOpening?.(null);
         p.onSelectLight?.(null);
         /**
          * Si el trazo es UNO DE LOS COGIDOS por el área, la selección no se toca y se mueven TODOS: agarrar
@@ -609,6 +642,7 @@ export function MapCanvas(p: Props): JSX.Element {
       }
       p.onSelectToken(null);
       p.onSelectWall?.(null);
+      p.onSelectRoomOpening?.(null);
       // Pinchar en vacío suelta TODO, la luz, el trazo y el grupo: es la forma de soltar sin buscar una X.
       p.onSelectLight?.(null);
       p.onSelectDrawing?.(null);
@@ -910,6 +944,10 @@ export function MapCanvas(p: Props): JSX.Element {
     if (press) {
       const w = p.walls.find(x => x.id === press.id);
       if (w) p.onToggleWall(w);
+      else {
+        const o = (p.roomOpenings ?? []).find(x => x.id === press.id);
+        if (o) p.onToggleRoomOpening?.(o);
+      }
     }
     if (!gesture) return;
     // La sonda no guarda nada al soltar: no es una ficha. Sólo se deja de arrastrar.
@@ -1139,8 +1177,13 @@ export function MapCanvas(p: Props): JSX.Element {
    * press itself (Muro, Pin, Texto, Borrar, los pinceles) it would have to swallow that press, and swallowing is
    * how the rebanada 2 clash worked — so there it simply does not appear. Nor with something half-done.
    */
+  /**
+   * EL DISCO MIRA EN LOS DOS SITIOS: los muros sueltos y los vanos de sala. Los de sala no llevan
+   * `visible_players` —una sala ES el dibujo del mapa y se ve siempre— así que entran enteros.
+   */
+  const abribles: (Segment & Pick<Wall, 'id' | 'kind' | 'isOpen'>)[] = [...wallsShown, ...roomOpenings];
   const hoverOpening = dmSight && hover && !gesture && !wallStart && !p.placing && DISC_TOOLS.includes(p.tool)
-    ? hitOpening(wallsShown, hover, 14 / p.view.zoom) : null;
+    ? hitOpening(abribles, hover, 14 / p.view.zoom) : null;
   const handleAt = wallDraft ?? (selectedWall ? { x1: selectedWall.x1, y1: selectedWall.y1, x2: selectedWall.x2, y2: selectedWall.y2 } : { x1: 0, y1: 0, x2: 0, y2: 0 });
   /** Los trazos que se están arrastrando ahora mismo: uno, o el puñado entero que se cogió con el área. */
   const moviendo = new Set(gesture?.kind === 'drawingMove' ? gesture.ids : []);
@@ -1160,7 +1203,7 @@ export function MapCanvas(p: Props): JSX.Element {
             * yo aquí»): la roca y el suelo son el cimiento del mapa, y una capa con transparencia sigue
             * mandando encima de todo esto.
             */}
-          <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} />
+          <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} selectedOpeningId={p.selectedRoomOpeningId ?? null} />
           {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} />}
           {/*
             * Con salas levantadas la rejilla se recorta al AGUJERO: fuera no hay suelo que cuadricular, hay
@@ -1170,7 +1213,7 @@ export function MapCanvas(p: Props): JSX.Element {
           {dmSight && fog && p.fogVeil !== false && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
             {wallsShown.map(w => (
-              <WallShape key={w.id} wall={w}
+              <WallShape key={w.id} wall={w} sceneDoorColor={p.scene.doorColor}
                 selected={w.id === p.selectedWallId || (p.selectedWallIds ?? []).includes(w.id)}
                 draft={groupDraft?.get(w.id) ?? (wallDraft && w.id === p.selectedWallId ? wallDraft : null)} />
             ))}

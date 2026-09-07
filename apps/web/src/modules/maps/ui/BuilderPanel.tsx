@@ -1,8 +1,8 @@
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
-import { ROOM_PRESETS, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
+import { DOOR_HINGES, DOOR_LEAVES, DOOR_SWINGS, ROOM_PRESETS, type DoorSettings, type RoomOpening, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
 import { DEFAULT_TEXTURE_SCALE, styleOf } from '../domain/useCases/roomStyles';
-import { WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
+import { DOOR_COLORS, WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
 import { BUILDER_MODES, BUILD_KINDS, ROOM_SHAPES, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { useDragPanel } from './useDragPanel';
 
@@ -61,6 +61,19 @@ interface Props {
   onVisible?: (visible: boolean) => void;
   onToggleOpen?: () => void;
   onRemove?: () => void;
+  /**
+   * ── LAS PUERTAS, DE VERDAD ──
+   * El VANO DE SALA cogido. Va aparte de `wall` porque vive en otra tabla (`maps_room_openings`), y su
+   * ausencia era el fallo entero: una puerta dibujada en una sala no se podía ni abrir ni borrar. Se edita
+   * con los mismos controles — sin el interruptor de esconder, que una sala ES el dibujo del mapa y se ve
+   * siempre (§ «La puerta sigue la visibilidad de su muro»).
+   */
+  roomOpening?: RoomOpening | null;
+  /**
+   * Cambiar cómo es la puerta cogida: hojas, bisagra, lado y color. UNA sola función para las dos tablas —
+   * quien la pasa sabe a cuál escribir. Configurarla nunca es obligatorio: esto sólo se toca si él quiere.
+   */
+  onDoor?: (patch: Partial<DoorSettings>) => void;
   onClose: () => void;
 }
 
@@ -87,11 +100,18 @@ export function BuilderPanel({
   preset = 'hatch', onPreset, wallTextureUrl = null, floorTextureUrl = null, onTexture, onClearTexture,
   thickness = 0.22, onThickness,
   wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd,
-  groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, onClose,
+  groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onClose,
 }: Props): JSX.Element {
   const { t } = useTranslation();
   const { ref, style, handlers } = useDragPanel<HTMLDivElement>();
-  const held = groupCount > 1 || !!wall;
+  const held = groupCount > 1 || !!wall || !!roomOpening;
+  /**
+   * LA PUERTA COGIDA, venga de donde venga. Al panel le da igual si es un muro suelto o un vano de sala:
+   * los cuatro ajustes son los mismos y por eso las dos tablas llevan las mismas columnas.
+   * Una VENTANA no entra: no se configura ni se abre — ya estaba bien y no se toca.
+   */
+  const door: (DoorSettings & { isOpen: boolean }) | null =
+    wall?.kind === 'door' ? wall : roomOpening?.kind === 'door' ? roomOpening : null;
 
   return (
     <div className="mp-builder" ref={ref} style={style}
@@ -302,16 +322,17 @@ export function BuilderPanel({
             </div>
           )}
           {groupCount > 1 && <p className="mp-builder-hint">{grouped ? t('maps.group.hintGrouped') : t('maps.group.hintLoose')}</p>}
-          {wall && (
+          {(wall || roomOpening) && (
             <div className="mp-builder-row">
-              {onVisible && (
+              {/* Esconder es SÓLO de un muro suelto: una sala es el dibujo del mapa y se ve siempre. */}
+              {wall && onVisible && (
                 <label className="mp-light-check">
                   <input type="checkbox" checked={wall.visiblePlayers} onChange={e => onVisible(e.target.checked)} />
                   {t('maps.wall.visible')}
                 </label>
               )}
-              {onToggleOpen && canOpen(wall) && (
-                <button type="button" className="tb-btn tb-btn-xs" onClick={onToggleOpen}>{wall.isOpen ? t('maps.wall.close') : t('maps.wall.open')}</button>
+              {onToggleOpen && canOpen(wall ?? roomOpening!) && (
+                <button type="button" className="tb-btn tb-btn-xs" onClick={onToggleOpen}>{(wall ?? roomOpening!).isOpen ? t('maps.wall.close') : t('maps.wall.open')}</button>
               )}
               {onRemove && (
                 <Tooltip label={t('maps.wall.remove')} placement="top">
@@ -321,6 +342,55 @@ export function BuilderPanel({
                 </Tooltip>
               )}
             </div>
+          )}
+          {/*
+            * ── CÓMO ES ESTA PUERTA (`rolvium.pen` · «PL/Builder · panel · PUERTA cogida») ──
+            * Configurarla NUNCA es obligatorio (orden suya): nace de una hoja, colgada del extremo por donde
+            * la dibujó y abriendo hacia un lado fijo. La bisagra y el lado son DOS interruptores y no un menú
+            * de cuatro combinaciones: es lo mismo y se entiende sin leer.
+            */}
+          {door && onDoor && (
+            <>
+              <div className="mp-builder-row" role="radiogroup" aria-label={t('maps.door.leaves')}>
+                <span className="tb-rotulo">{t('maps.door.leaves')}</span>
+                {DOOR_LEAVES.map(n => (
+                  <button key={n} type="button" role="radio" aria-checked={door.leaves === n}
+                    className={`tb-btn tb-btn-xs ${door.leaves === n ? 'tb-btn-blood' : ''}`}
+                    onClick={() => onDoor({ leaves: n })}>{t(n === 1 ? 'maps.door.leavesOne' : 'maps.door.leavesTwo')}</button>
+                ))}
+              </div>
+              {/* La bisagra sólo se lee con UNA hoja: con dos, cada hoja cuelga ya de su propio extremo. */}
+              {door.leaves === 1 && (
+                <div className="mp-builder-row" role="radiogroup" aria-label={t('maps.door.hinge')}>
+                  <span className="tb-rotulo">{t('maps.door.hinge')}</span>
+                  {DOOR_HINGES.map(h => (
+                    <button key={h} type="button" role="radio" aria-checked={door.hinge === h}
+                      className={`tb-btn tb-btn-xs ${door.hinge === h ? 'tb-btn-blood' : ''}`}
+                      onClick={() => onDoor({ hinge: h })}>{t(h === 'start' ? 'maps.door.hingeStart' : 'maps.door.hingeEnd')}</button>
+                  ))}
+                </div>
+              )}
+              <div className="mp-builder-row" role="radiogroup" aria-label={t('maps.door.swing')}>
+                <span className="tb-rotulo">{t('maps.door.swing')}</span>
+                {DOOR_SWINGS.map(w => (
+                  <button key={w} type="button" role="radio" aria-checked={door.swing === w}
+                    className={`tb-btn tb-btn-xs ${door.swing === w ? 'tb-btn-blood' : ''}`}
+                    onClick={() => onDoor({ swing: w })}>{t(w === 'right' ? 'maps.door.swingA' : 'maps.door.swingB')}</button>
+                ))}
+              </div>
+              <div className="mp-builder-row" role="radiogroup" aria-label={t('maps.door.color')}>
+                <span className="tb-rotulo">{t('maps.door.color')}</span>
+                {/* El de la ESCENA es el primero y el de serie: por defecto todas iguales, y la de hierro
+                    del jefe se cambia sola (elegido por él). `null` = el trazo del muro. */}
+                <button type="button" role="radio" aria-checked={door.doorColor === null} aria-label={t('maps.door.colorScene')}
+                  className={`mp-swatch mp-swatch-scene ${door.doorColor === null ? 'on' : ''}`} onClick={() => onDoor({ doorColor: null })} />
+                {DOOR_COLORS.map(c => (
+                  <button key={c} type="button" role="radio" aria-checked={door.doorColor === c} aria-label={t('maps.door.colorOwn', { hex: c })}
+                    className={`mp-swatch ${door.doorColor === c ? 'on' : ''}`} style={{ background: c }} onClick={() => onDoor({ doorColor: c })} />
+                ))}
+              </div>
+              <p className="mp-builder-hint">{t('maps.door.hint')}</p>
+            </>
           )}
           {/* El nodo por doble clic sólo tiene sentido con un muro cogido: es donde se puede pinchar su línea. */}
           {wall && <p className="mp-builder-hint">{t('maps.builder.nodeHint')}</p>}
