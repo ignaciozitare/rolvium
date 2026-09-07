@@ -1,4 +1,4 @@
-import { METRES_PER_CELL, sightRadiusPx, slideCircle, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
+import { METRES_PER_CELL, sightRadiusPx, slideCircle, type BlockSegment, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
 import type { Character } from '@/modules/characters/domain/entities/Character';
 import type { Drawing, DrawingData, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
 
@@ -181,8 +181,17 @@ export const blocksMoveNow = (w: Pick<Wall, 'blocksMove' | 'isOpen'>): boolean =
  * Sólo geometría, sin estado ni I/O: quién choca y cuándo se decide fuera (el director nunca choca, y sólo
  * aplica si la escena lo tiene encendido).
  */
-export const slideToken = (from: Point, to: Point, radiusPx: number, blockers: readonly Wall[]): Point =>
-  slideCircle(from, to, radiusPx, blockers.map(w => [w.x1, w.y1, w.x2, w.y2] as const));
+/**
+ * Lo que corta el paso puede llegar de DOS SITIOS y hay que aceptar los dos: un muro marcado sobre una foto
+ * (`Wall`, modo A) y el contorno de una sala levantada aquí (un tramo suelto, modo B). Mismo comportamiento,
+ * entidad distinta — § «Los muros de una sala NO son los muros de siempre».
+ */
+export type MoveBlocker = Wall | BlockSegment;
+const toSegment = (b: MoveBlocker): BlockSegment =>
+  (Array.isArray(b) ? (b as BlockSegment) : [(b as Wall).x1, (b as Wall).y1, (b as Wall).x2, (b as Wall).y2] as const);
+
+export const slideToken = (from: Point, to: Point, radiusPx: number, blockers: readonly MoveBlocker[]): Point =>
+  slideCircle(from, to, radiusPx, blockers.map(toSegment));
 
 /** Los muros de la escena que hoy cortan el paso. Vacío si la escena no tiene las paredes sólidas. */
 export const moveBlockers = (walls: readonly Wall[], scene: Pick<Scene, 'solidWalls'>): Wall[] =>

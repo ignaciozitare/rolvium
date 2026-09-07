@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BUILDER_MODES, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing } from './roomRules';
+import { BUILDER_MODES, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_FILL_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing, wallStripe } from './roomRules';
 
 /**
  * 🏗 EL MOTOR DE LAS HABITACIONES RÁPIDAS (§ «Rebanada 8»). Sólo geometría: la pantalla no existe todavía
@@ -31,14 +31,28 @@ describe('habitación rectangular', () => {
   });
 
   /**
-   * 🔒 Un clic sin arrastre NO monta nada. Sin esto, un resbalón del ratón dejaba cuatro muros de dos píxeles
-   * que luego hay que ir a buscar y borrar a mano.
+   * 🔒 Un clic sin arrastre NO monta nada — pero UNA SALA PUEDE SER TAN ESTRECHA COMO UN MURO.
+   *
+   * Decisión suya del 2026-09-04, con el fallo delante: el mínimo era una casilla entera de lado, así que un
+   * hueco estrecho entre dos salas no se podía rellenar y no aparecía nada ni se le avisaba. Eligió bajarlo
+   * al grosor de un muro sabiendo el precio —un resbalón puede dejarle una sala diminuta que borrar—.
    */
-  it('un gesto más pequeño que una casilla no monta ninguna sala', () => {
-    expect(roomSides('rect', { x: 0, y: 0 }, { x: 5, y: 5 }, G)).toEqual([]);
+  it('un clic sin arrastre no monta nada, pero una sala del grosor de un muro sí', () => {
     expect(roomSides('rect', { x: 0, y: 0 }, { x: 0, y: 0 }, G)).toEqual([]);
-    // Justo en el mínimo sí monta: el tope es «menos de una casilla», no «una casilla».
-    expect(roomSides('rect', { x: 0, y: 0 }, { x: G * MIN_ROOM_CELLS, y: G * MIN_ROOM_CELLS }, G)).toHaveLength(4);
+    // Un quinto de casilla ES una sala desde su decisión: antes esto devolvía la lista vacía, en silencio.
+    // Con el candado ABIERTO, que es como arranca la escena (`step` a 0).
+    expect(roomSides('rect', { x: 0, y: 0 }, { x: 5, y: 5 }, G, 0)).toHaveLength(4);
+    /**
+     * 🔒 …y con el candado CERRADO sigue sin poder existir, a propósito: cuadrando a la rejilla las dos
+     * esquinas caen en la misma línea, así que una sala más estrecha que una casilla no cabe en el mundo que
+     * describe el candado. No es el mínimo, es el candado — el segundo sospechoso del fallo, y resultó ser
+     * comportamiento correcto. Por eso el aviso en pantalla importa: si no, esto pasa en silencio.
+     */
+    expect(roomSides('rect', { x: 0, y: 0 }, { x: 5, y: 5 }, G)).toEqual([]);
+    // Justo en el mínimo sí monta: el tope es «menos que el mínimo», no «el mínimo».
+    expect(roomSides('rect', { x: 0, y: 0 }, { x: G * MIN_ROOM_CELLS, y: G * MIN_ROOM_CELLS }, G, 0)).toHaveLength(4);
+    // Y por debajo del mínimo sigue sin montar: el resbalón de verdad se para igual.
+    expect(roomSides('rect', { x: 0, y: 0 }, { x: G * MIN_ROOM_CELLS * 0.5, y: G * MIN_ROOM_CELLS * 0.5 }, G, 0)).toEqual([]);
   });
 
   it('los lados van dando la vuelta, no en aspas', () => {
@@ -296,8 +310,10 @@ describe('las formas con el candado abierto', () => {
   it('el rectángulo deja de cuadrar a la casilla, pero sigue midiendo el mínimo en casillas', () => {
     const libre = roomSides('rect', { x: 10, y: 10 }, { x: 100, y: 70 }, 27, 0);
     expect(libre[0]).toEqual({ x1: 10, y1: 10, x2: 100, y2: 10 });
-    // Y sigue sin dejar montar una sala más pequeña que una casilla, candado o no candado.
-    expect(roomSides('rect', { x: 10, y: 10 }, { x: 20, y: 20 }, 27, 0)).toEqual([]);
+    // Y el mínimo sigue midiéndose en casillas, candado o no candado: un clic sin arrastre no monta nada.
+    expect(roomSides('rect', { x: 10, y: 10 }, { x: 10, y: 10 }, 27, 0)).toEqual([]);
+    // Con el candado abierto la sala estrecha sale exactamente donde se pinchó, sin cuadrar a nada.
+    expect(roomSides('rect', { x: 10, y: 10 }, { x: 20, y: 20 }, 27, 0)[0]).toEqual({ x1: 10, y1: 10, x2: 20, y2: 10 });
   });
 
   it('el círculo se queda con el radio del gesto en vez de redondearlo', () => {
@@ -322,5 +338,37 @@ describe('las formas con el candado abierto', () => {
 describe('las dos maneras de trabajar, y conviven', () => {
   it('son exactamente dos: sobre una foto y dibujar aquí', () => {
     expect(BUILDER_MODES).toEqual(['photo', 'draw']);
+  });
+});
+
+/**
+ * 🐞 UN MURO DE RELLENO NO MIDE LO QUE UNA RECTA MARCADA SOBRE UNA FOTO, y eso era la otra mitad del fallo
+ * del 2026-09-04. El mínimo de las FORMAS ya se había bajado al grosor de un muro, pero la raya se caía antes
+ * —dentro de `wallStripe`, con el mínimo de la foto— y por eso un tabique corto seguía sin poder dibujarse.
+ */
+describe('el mínimo de un muro de relleno', () => {
+  const G2 = 27;
+  const GROSOR = 6;
+
+  it('un tabique más corto que media casilla SÍ se puede levantar: es un relleno, no una recta sobre foto', () => {
+    // 8 px = menos de media casilla (13,5) y más que el grosor de un muro (2,7): antes salía la lista vacía.
+    expect(wallStripe({ x: 0, y: 0 }, { x: 8, y: 0 }, GROSOR, G2)).toHaveLength(4);
+  });
+
+  it('…pero un clic sin arrastre sigue sin levantar nada', () => {
+    expect(wallStripe({ x: 0, y: 0 }, { x: 0, y: 0 }, GROSOR, G2)).toEqual([]);
+    expect(wallStripe({ x: 0, y: 0 }, { x: 2, y: 0 }, GROSOR, G2)).toEqual([]);
+  });
+
+  it('el tabique corto conserva el grosor de la escena, que es lo que lo hace un muro', () => {
+    const tira = wallStripe({ x: 0, y: 0 }, { x: 8, y: 0 }, GROSOR, G2);
+    expect(Math.abs(tira[0]![1] - tira[3]![1])).toBeCloseTo(GROSOR, 6);
+  });
+
+  it('lineSide acepta el mínimo del relleno sin cambiar el de siempre', () => {
+    // Con el de siempre (media casilla) una raya de 8 px no es nada…
+    expect(lineSide({ x: 0, y: 0 }, { x: 8, y: 0 }, G2)).toBeNull();
+    // …y con el del relleno sí, que es lo que pasa dibujando aquí.
+    expect(lineSide({ x: 0, y: 0 }, { x: 8, y: 0 }, G2, MIN_FILL_CELLS)).toEqual({ x1: 0, y1: 0, x2: 8, y2: 0 });
   });
 });

@@ -75,3 +75,39 @@ describe('anchorEnd — la punta que se arrastra', () => {
     expect(anchorEnd({ x1: 0, y1: 0, x2: 40, y2: 40 }, 'b', MUROS)).toEqual({ x1: 0, y1: 0, x2: 40, y2: 40 });
   });
 });
+
+/**
+ * 🐞 EL IMÁN NO PUEDE ANULAR EL GESTO QUE ESTÁ AYUDANDO A COLOCAR.
+ *
+ * Su fallo del 2026-09-04: «*si hago click para crear un muro muy cerca de otro muro no me deja ponerlo, es
+ * como que hay un límite que has puesto*». No era un límite de tamaño: era este imán. Dibujando pegado a una
+ * punta ajena se tragaba las DOS puntas del gesto y las dejaba encima de la misma, así que el muro salía de
+ * largo cero y se caía sin decir nada. Reproducido antes de tocar nada, sobre el lienzo y aquí.
+ */
+describe('el imán y el gesto de largo cero', () => {
+  it('la segunda punta NO puede pegarse a donde ya se pegó la primera', () => {
+    // Las dos caen a menos de 12 px de (270,216), que es donde arranca WALL_1.
+    const a = builderPoint({ x: 274, y: 219 }, G, false, MUROS);
+    const b = builderPoint({ x: 276, y: 222 }, G, false, MUROS, END_SNAP_PX, undefined, a);
+    expect(a).toEqual({ x: 270, y: 216 });
+    // Sin `avoid`, `b` valdría lo mismo que `a` y el muro mediría cero.
+    expect(builderPoint({ x: 276, y: 222 }, G, false, MUROS)).toEqual(a);
+    expect(b).toEqual({ x: 276, y: 222 });
+  });
+
+  it('el imán sigue funcionando con OTRAS puntas: sólo se descarta la ya usada', () => {
+    // WALL_1 acaba en (270,540), que es donde empieza WALL_VISIBLE: pegarse ahí sigue estando bien.
+    const a = { x: 270, y: 216 };
+    expect(builderPoint({ x: 272, y: 537 }, G, false, MUROS, END_SNAP_PX, undefined, a)).toEqual({ x: 270, y: 540 });
+  });
+
+  it('sin `avoid` no cambia nada de lo de antes', () => {
+    expect(nearestEnd(MUROS, { x: 274, y: 219 })).toEqual({ x: 270, y: 216 });
+    expect(nearestEnd(MUROS, { x: 274, y: 219 }, END_SNAP_PX, undefined, null)).toEqual({ x: 270, y: 216 });
+  });
+
+  it('con el candado ECHADO el imán no pinta nada, y `avoid` tampoco', () => {
+    expect(builderPoint({ x: 274, y: 219 }, G, true, MUROS, END_SNAP_PX, undefined, { x: 270, y: 216 }))
+      .toEqual({ x: 270, y: 216 });
+  });
+});

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from '@rolvium/i18n';
 import { Badge, Crescent, UserAvatar } from '@rolvium/ui';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { usePermissions } from '@/shared/permissions/usePermissions';
 import { SYSTEMS } from '@/systems/registry';
 import type { TablePort } from '../domain/ports/TablePort';
 import type { TableTab } from '../domain/entities/Table';
@@ -43,6 +44,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   const { id = '' } = useParams();
   const { t, locale } = useTranslation();
   const { user } = useAuth();
+  const { canUse } = usePermissions();
   const { snap, system, status, patchResources } = useTable(id, repo);
   // `null` = todavía no ha elegido. El rol no se sabe hasta que carga la campaña, y cada uno aterriza en
   // un sitio distinto: el director no tiene ficha propia, así que empieza en la escena.
@@ -195,7 +197,12 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               {...(viewCharacterId ? { onBack: () => { setViewCharacterId(null); setTab('group'); } } : {})} />}
             {tab === 'create' && <CreateTab campaignId={campaign.id} system={system} role={role} repo={charactersRepo} onCancel={() => setTab('sheet')} onCreated={c => { setViewCharacterId(c.ownerId === user.id ? null : c.id); setTab('sheet'); }} />}
             {tab === 'group' && <GroupTab campaignId={campaign.id} system={system} members={members} repo={charactersRepo} onView={c => { setViewCharacterId(c.id); setTab('sheet'); }} />}
-            {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
+            {/*
+              * `canManageTextures` se resuelve AQUÍ, en el caparazón, y baja por parámetro: `maps` no tiene
+              * por qué saber cómo se leen los permisos. Es el permiso `manage_textures` del motor de roles,
+              * que se concede POR ROL desde «Permisos de Rolvium» en la pantalla de roles.
+              */}
+            {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} canManageTextures={canUse('manage_textures')} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
               onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
               onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}

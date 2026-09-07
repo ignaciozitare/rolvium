@@ -16,6 +16,7 @@ function fakeDb(rows: Record<string, unknown>) {
     const q: Record<string, unknown> = {};
     q.select = () => q;
     q.eq = () => q;
+    q.order = () => q;
     q.maybeSingle = async () => ({ data: Array.isArray(data) ? data[0] ?? null : data, error: null });
     q.upsert = upsert;
     q.then = (resolve: (v: unknown) => unknown) => resolve({ data, error: null });
@@ -55,6 +56,49 @@ describe('SupabaseMapsRepo (service role)', () => {
       { id: 'li-2', layerId: 'ly-9', x: 10, y: 20, rotation: 0, shape: 'radius', coneAngle: 60, rangeM: 3, castsShadow: false, spinMs: 0 },
     ]);
     expect(await new SupabaseMapsRepo(fakeDb({}).db).listLights('sc-1')).toEqual([]);
+  });
+
+  /**
+   * REBANADA 8 · LAS SALAS, y NO se leen de `maps_walls`.
+   *
+   * Es la mitad del invariante del que depende todo lo demás: `maps_walls` es una marca invisible sobre una
+   * foto traída de fuera y una sala ES el dibujo del mapa. Si esto un día volviese a buscar el contorno en
+   * `maps_walls`, la niebla dejaría de saber que la sala existe y el jugador vería a través de la roca.
+   *
+   * Aquí no hay `blocksSight` ni `visible_players` que traer: el contorno de una sala corta la vista SIEMPRE,
+   * y se calcula al vuelo desde las formas.
+   */
+  it('reads the rooms as SHAPES, from their own table and oldest first', async () => {
+    const { db, from } = fakeDb({
+      maps_rooms: [
+        { id: 'rm-1', points: [[0, 0], [100, 0], [100, 60], [0, 60]] },
+        { id: 'rm-2', points: [[100, 0], [200, 0], [200, 60], [100, 60]] },
+      ],
+    });
+    // Una fila sin `kind` es una SALA, que es lo que eran todas antes de que existieran los muros de relleno.
+    expect(await new SupabaseMapsRepo(db).listRooms('sc-1')).toEqual([
+      { id: 'rm-1', kind: 'room', points: [[0, 0], [100, 0], [100, 60], [0, 60]] },
+      { id: 'rm-2', kind: 'room', points: [[100, 0], [200, 0], [200, 60], [100, 60]] },
+    ]);
+    expect(from).toHaveBeenCalledWith('maps_rooms');
+    expect(from).not.toHaveBeenCalledWith('maps_walls');
+    // Una escena sin nada dibujado aquí no cuesta ni una fila.
+    expect(await new SupabaseMapsRepo(fakeDb({}).db).listRooms('sc-1')).toEqual([]);
+  });
+
+  it('reads the openings as SPANS over the outline, with what decides if they block', async () => {
+    const { db, from } = fakeDb({
+      maps_room_openings: [
+        { x1: 40, y1: 0, x2: 60, y2: 0, kind: 'door', is_open: true },
+        { x1: 0, y1: 20, x2: 0, y2: 40, kind: 'window', is_open: false },
+      ],
+    });
+    expect(await new SupabaseMapsRepo(db).listRoomOpenings('sc-1')).toEqual([
+      { x1: 40, y1: 0, x2: 60, y2: 0, kind: 'door', isOpen: true },
+      { x1: 0, y1: 20, x2: 0, y2: 40, kind: 'window', isOpen: false },
+    ]);
+    expect(from).toHaveBeenCalledWith('maps_room_openings');
+    expect(await new SupabaseMapsRepo(fakeDb({}).db).listRoomOpenings('sc-1')).toEqual([]);
   });
 
   it('reads the layers with what decides whether they paint at all', async () => {

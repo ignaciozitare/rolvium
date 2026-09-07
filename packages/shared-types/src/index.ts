@@ -20,14 +20,37 @@ export type AdminPermissionKey =
   | 'manage_roles'
   | 'manage_settings';
 
+/**
+ * PERMISOS DE HERRAMIENTA — usar una capacidad concreta DENTRO de una herramienta, que NO es lo mismo que
+ * administrar la plataforma.
+ *
+ * ⚠️ VIVEN APARTE DE `admin` A PROPÓSITO, y es la parte delicada de todo esto (aviso suyo del 2026-09-04:
+ * «*cuidado con el tema roles, que tenemos un motor de roles y permisos en la herramienta, ojo con cagarla
+ * aquí*»). Quién ve la sección «Administración» se decide con `hasAnyAdminPermission`, que pregunta «¿tiene
+ * ALGÚN permiso dentro de `admin`?». Meter aquí un permiso de herramienta y dárselo a los directores les
+ * habría puesto «Administración» en el menú a todos, y al entrar una pantalla vacía.
+ *
+ * Cada uno tiene su propio item en la pantalla de roles y se concede POR ROL, nunca por usuario (orden suya:
+ * «*cada permiso tiene que tener su item en permisos… y yo cuando cree una herramienta nueva pueda decidir
+ * qué rol la usa; los permisos nunca serán por usuario*»). Al añadir uno: esta unión, `TOOL_PERMISSIONS` en
+ * el registro, sus dos claves de i18n, y la política de RLS que lo exija con `has_tool(key)`.
+ */
+export type ToolPermissionKey =
+  | 'manage_textures';
+
 export interface RolePermissions {
   /** Modules the role can see/use. */
   modules: ModuleId[];
   /** Admin capabilities. Missing key === false. */
   admin: Partial<Record<AdminPermissionKey, boolean>>;
+  /**
+   * Tool capabilities. Missing key === false, y la clave entera puede faltar: las filas anteriores al cajón
+   * no la tienen, y el `admin` no se puede tocar para rellenársela (lo prohíbe `roles_guard_system`).
+   */
+  tools?: Partial<Record<ToolPermissionKey, boolean>>;
 }
 
-export const EMPTY_PERMISSIONS: RolePermissions = { modules: [], admin: {} };
+export const EMPTY_PERMISSIONS: RolePermissions = { modules: [], admin: {}, tools: {} };
 
 // ─── Role ────────────────────────────────────────────────────────────────────
 export interface Role {

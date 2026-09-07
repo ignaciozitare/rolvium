@@ -5,6 +5,7 @@ import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
 import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
 import { SceneTab } from './SceneTab';
+import { DEFAULT_TEXTURE_SCALE } from '../domain/useCases/roomStyles';
 
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
 (globalThis as unknown as { PointerEvent: unknown }).PointerEvent = FakePointerEvent;
@@ -27,8 +28,8 @@ const dibujo = async (u: ReturnType<typeof userEvent.setup>, name: string): Prom
 };
 
 /** Vision always comes from the API — the tests inject a fake port so nothing here ever computes it. */
-function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision = fakeVisionPort()) {
-  renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio} members={MEMBERS} activeSceneId={activeSceneId} charactersRepo={chars} repo={repo} vision={vision} />);
+function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision = fakeVisionPort(), canManageTextures = true) {
+  renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio} members={MEMBERS} activeSceneId={activeSceneId} charactersRepo={chars} repo={repo} vision={vision} canManageTextures={canManageTextures} />);
   return repo;
 }
 
@@ -173,7 +174,7 @@ describe('<SceneTab> DM', () => {
     const u = userEvent.setup();
     const repo = seed();
     renderWithProviders(
-      <SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+      <SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
                 charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={repo} vision={fakeVisionPort()}
                 extraEncounters={[{ id: 'be-9', label: 'Ogro con antorcha', ref: 'bestiary',
                                     data: { resistance: 30, protection: 3, origin: 'custom', entryId: 'be-9', tokenUrl: null } }]} />,
@@ -210,7 +211,7 @@ describe('<SceneTab> DM', () => {
     const repo = seed();
     const bigPc = { ...CHARACTER_OTHER, id: 'ch-ogro', name: 'Bram el Grande', data: { ...KAREN_DATA, name: 'Bram el Grande', size: 'large' } };
     renderWithProviders(
-      <SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+      <SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
                 charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, bigPc])} repo={repo} vision={fakeVisionPort()}
                 extraEncounters={[{ id: 'be-7', label: 'Dragón de Queens', ref: 'bestiary',
                                     data: { resistance: 30, protection: 0, origin: 'npc', entryId: 'be-7', tokenUrl: null,
@@ -279,7 +280,7 @@ describe('<SceneTab> DM', () => {
     const u = userEvent.setup();
     const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });
     const onOpenAttack = vi.fn().mockResolvedValue({ id: 'atk-1' });
-    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
       vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
@@ -317,7 +318,7 @@ describe('<SceneTab> DM', () => {
       scenes: [SCENE_WAREHOUSE], walls: [WALL_1],
       tokens: [TOKEN_KAREN, { ...TOKEN_MUTANT, x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, visible: true }],
     });
-    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={close}
       vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
@@ -350,7 +351,7 @@ describe('<SceneTab> DM', () => {
       scenes: [SCENE_WAREHOUSE], walls: [WALL_1],
       tokens: [{ ...TOKEN_KAREN, size: 1.5 }, { ...TOKEN_MUTANT, x: TOKEN_KAREN.x + 2.1, y: TOKEN_KAREN.y, size: 1.5, visible: true }],
     });
-    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={grandes}
       vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
@@ -367,7 +368,7 @@ describe('<SceneTab> DM', () => {
 
   /** Sin a dónde mandar el ataque a la espera, ATACAR no se ofrece: la mitad cuerpo a cuerpo moriría al pulsar. */
   it('sin `onOpenAttack` el botón ATACAR no aparece', async () => {
-    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
       vision={fakeVisionPort()} onRoll={vi.fn()} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
@@ -618,7 +619,7 @@ describe('<SceneTab> rebanada 3 — la cabecera desaparece y su contenido se rep
    */
   it('regresión · abrir ATACAR desde un token también cierra lo que hubiera abierto', async () => {
     const u = userEvent.setup();
-    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
       vision={fakeVisionPort()} onRoll={vi.fn().mockResolvedValue({ id: 'r-1' })} onOpenAttack={vi.fn().mockResolvedValue({ id: 'a-1' })} />);
     const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
@@ -700,7 +701,7 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
 
   it('el botón derecho en vacío ofrece pin y dados; el pin centra la vista de quien lo pone', async () => {
     const onOpenDice = vi.fn();
-    renderWithProviders(<SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={seed()} vision={fakeVisionPort()} onOpenDice={onOpenDice} />);
     await screen.findByText(/Almacén de Queens/);
     fireEvent.contextMenu(canvas(), { clientX: 120, clientY: 90 });
@@ -767,6 +768,70 @@ describe('<SceneTab> el panel de Builder v3', () => {
     expect(within(panel).getByRole('radiogroup', { name: 'Con qué forma' })).toBeInTheDocument();
     // Arranca ABIERTO, por orden suya: «el pegado a la rejilla debería estar desactivado por defecto».
     expect(within(panel).getByRole('button', { name: /Libre/ })).toBeInTheDocument();
+  });
+
+  /**
+   * REBANADA 8 · SUBIR UNA DE LAS DOS TEXTURAS BASE, de punta a punta.
+   *
+   * Va por el camino de siempre —el bucket de fondos de la campaña— y no por uno nuevo: una textura de pared
+   * es una imagen de campaña como cualquier otra, y así queda además en su biblioteca para reusarla en otro
+   * mapa. Lo que sujeta este test es que el botón de la ROCA escribe en `wallTextureUrl` y no en el fondo del
+   * mapa ni en el suelo: son tres columnas distintas y el selector de fichero es UNO, compartido.
+   */
+  it('en «Dibujar aquí», subir una textura la guarda en la escena — y sólo en la que se pidió', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', seed());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    // Marcando sobre una foto no hay texturas que elegir: el suelo lo pone la foto.
+    expect(within(panel).queryByText('Las dos texturas base')).not.toBeInTheDocument();
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+
+    const bloque = (await screen.findByText('Las dos texturas base')).closest('fieldset')!;
+    const [roca] = within(bloque).getAllByRole('button', { name: '+ Subir' });
+    await u.click(roca!);
+    const input = screen.getByTestId('mp-room-texture-input') as HTMLInputElement;
+    await u.upload(input, new File(['x'], 'roca.png', { type: 'image/png' }));
+
+    /**
+     * 🔑 SUBE AL CATÁLOGO DE LA HERRAMIENTA, NO A LA BIBLIOTECA DE LA CAMPAÑA (él, 2026-09-04: «*los fondos de
+     * las escenas que subí antes y las texturas no son lo mismo… no lo mezcles*»). Antes esto pasaba por
+     * `uploadImage`, que es la biblioteca de fondos DE la campaña: por eso las dos cosas se mezclaban.
+     */
+    await waitFor(() => expect(repo.textures.map(x => x.name)).toContain('roca'));
+    expect(repo.uploads).toHaveLength(0);
+    // Y al ponerla, su tamaño de baldosa viaja con ella a la escena: no hay que reajustar el deslizador.
+    await waitFor(() => expect(repo.sceneUpdates).toContainEqual({
+      id: 'sc-1', patch: { wallTextureUrl: 'https://x/tex-1.png', wallTextureScale: DEFAULT_TEXTURE_SCALE },
+    }));
+    // Ni el fondo del mapa ni el suelo se han tocado: el selector es uno, pero sabe a cuál de los dos va.
+    expect(repo.sceneUpdates.some(x => 'bgImageUrl' in x.patch || 'floorTextureUrl' in x.patch)).toBe(false);
+  });
+
+  /** Quitar la foto devuelve el mando al preajuste — «el preajuste rellena, no bloquea». */
+  it('quitar la textura la borra de la escena y vuelve a mandar el preajuste', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [{ ...SCENE_WAREHOUSE, wallTextureUrl: 'https://x/roca.png' }] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    const bloque = (await screen.findByText('Las dos texturas base')).closest('fieldset')!;
+    await u.click(within(bloque).getByRole('button', { name: 'Quitar' }));
+    await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { wallTextureUrl: null } }));
+  });
+
+  /** El preajuste elige las DOS texturas base de golpe, y es de la escena: cada mapa el suyo. */
+  it('elegir un preajuste lo guarda en la escena', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', seed());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    await u.click(await screen.findByTestId('mp-preset-ink'));
+    await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { roomPreset: 'ink' } }));
   });
 
   it('cerrar el panel vuelve a Seleccionar y suelta lo que hubiera cogido', async () => {
@@ -945,7 +1010,7 @@ describe('<SceneTab> — una criatura que llega ya elegida desde el Bestiario', 
   const mountArmed = (armEncounter: typeof OGRO | null, onArmed = vi.fn()) => {
     const repo = seed();
     renderWithProviders(
-      <SceneTab campaignId="c1" role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+      <SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
                 charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={repo} vision={fakeVisionPort()}
                 armEncounter={armEncounter} onArmed={onArmed} />,
     );
@@ -1595,5 +1660,168 @@ describe('<SceneTab> Builder levanta una sala', () => {
     fireEvent.pointerDown(svg, { clientX: 0, clientY: 0, pointerId: 1, button: 0 });
     fireEvent.pointerDown(svg, { clientX: G * 4, clientY: 0, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.walls).toHaveLength(2));
+  });
+});
+
+/**
+ * 🐞 EL AVISO DE QUE EL GESTO NO LEVANTÓ NADA (dueño, 2026-09-04). Lo peor del fallo «no me deja poner un muro
+ * pegado a otro» no era el mínimo: era que cuando no se levantaba nada, la pantalla no decía NADA.
+ */
+describe('<SceneTab> cuando el gesto no levanta nada, lo dice', () => {
+  const abrirBuilder = async (u: ReturnType<typeof userEvent.setup>) => {
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    return screen.getByRole('radiogroup', { name: 'Con qué forma' });
+  };
+
+  it('un clic sin arrastre con el rectángulo avisa en pantalla, y el aviso se va solo', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const u = userEvent.setup();
+    const repo = mount('dm');
+    await waitFor(() => expect(repo.walls).toHaveLength(1));
+    await u.click(within(await abrirBuilder(u)).getByRole('radio', { name: 'Rectángulo' }));
+
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: G * 3, clientY: G * 3, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+
+    const aviso = await screen.findByText(/no se levantó nada/i);
+    expect(aviso).toHaveAttribute('role', 'status');
+    expect(repo.walls).toHaveLength(1);                    // y efectivamente no se escribió nada
+
+    await vi.advanceTimersByTimeAsync(3000);
+    await waitFor(() => expect(screen.queryByText(/no se levantó nada/i)).not.toBeInTheDocument());
+    vi.useRealTimers();
+  });
+
+  /** Con el candado echado el porqué es otro, y el aviso tiene que decir CUÁL: manda la rejilla. */
+  it('con el candado de la rejilla echado, el aviso explica que manda la casilla', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm');
+    await waitFor(() => expect(repo.walls).toHaveLength(1));
+    const panel = await abrirBuilder(u);
+    await u.click(within(panel).getByRole('radio', { name: 'Rectángulo' }));
+    await u.click(screen.getByRole('button', { name: 'Libre' }));   // echa el candado: pasa a «Pegado a la rejilla»
+
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: G * 3, clientY: G * 3, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(svg, { clientX: G * 3 + 4, clientY: G * 3 + 4, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+
+    expect(await screen.findByText(/candado de la rejilla/i)).toBeInTheDocument();
+    expect(repo.walls).toHaveLength(1);
+  });
+
+  /**
+   * 🐞 EL ÚLTIMO SITIO DONDE EL FALLO SEGUÍA SIENDO MUDO. La cadena de «A mano» dibujando aquí no pasa por el
+   * `onTooSmall` del lienzo: el lienzo entrega los dos puntos y es SceneTab quien convierte la raya en tabique
+   * con `wallStripe` — y ese descarte vivía aquí, sin decir nada. Dos clics casi encima levantan un tabique de
+   * largo cero, y ahora también avisa.
+   */
+  it('dos clics casi encima con «A mano» dibujando aquí también avisan', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm');
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    // MURO, no SALA: una raya no encierra nada, así que «A mano» sólo sale con el muro elegido.
+    await u.click(within(panel).getByRole('radio', { name: 'Muro' }));
+    await u.click(within(panel).getByRole('radio', { name: 'A mano' }));
+
+    const svg = canvas();
+    fireEvent.pointerDown(svg, { clientX: G * 3, clientY: G * 3, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+    fireEvent.pointerDown(svg, { clientX: G * 3 + 2, clientY: G * 3, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+
+    expect(await screen.findByText(/no se levantó nada/i)).toBeInTheDocument();
+    // Y no ha escrito nada: dibujando aquí un tabique es una FORMA, así que los muros siguen como estaban.
+    expect(repo.walls).toHaveLength(1);
+  });
+});
+
+
+/**
+ * EL CATÁLOGO DE TEXTURAS, enchufado (§ «El catálogo de texturas»). Lo que él vio roto el 2026-09-04 era esto:
+ * «Cambiar» abría la biblioteca de FONDOS de la campaña —«*no hay filtro ni buscar ni nada*»— y las dos cosas
+ * se mezclaban. Aquí se sujeta que ya no.
+ */
+describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca de la campaña', () => {
+  const TEX = {
+    id: 'tx-losa', name: 'Losa mojada', category: 'stone' as const, url: 'https://x/losa.png',
+    tileCells: 2, uploadedBy: 'u-gm', createdAt: '', updatedAt: '',
+  };
+  const abrirTexturas = async (u: ReturnType<typeof userEvent.setup>) => {
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    const bloque = (await screen.findByText('Las dos texturas base')).closest('fieldset')!;
+    // Sin foto puesta el botón se llama «+ Subir»; con una puesta, «Cambiar». Los dos abren el catálogo.
+    await u.click(within(bloque).getAllByRole('button', { name: /Cambiar|\+ Subir/ })[0]!);
+  };
+
+  it('trae las texturas del catálogo de la herramienta, con buscador y categorías', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], images: [IMAGE_CHAPEL], textures: [TEX] }));
+    await screen.findByText(/Almacén de Queens/);
+    await abrirTexturas(u);
+
+    expect(await screen.findByRole('searchbox', { name: 'Buscar por nombre…' })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Categorías' })).toBeInTheDocument();
+    expect(within(screen.getByTestId('mp-texcat')).getByTitle('Losa mojada')).toBeInTheDocument();
+    // 🔑 Y el fondo de la campaña NO está aquí dentro: son dos cosas distintas.
+    expect(within(screen.getByTestId('mp-texcat')).queryByTitle(IMAGE_CHAPEL.name)).not.toBeInTheDocument();
+    expect(repo.uploads).toHaveLength(0);
+  });
+
+  /** 🔑 Al elegirla, su tamaño de baldosa viaja con ella: es lo que evita reajustar el deslizador cada vez. */
+  it('elegir una textura copia su tamaño de baldosa a la escena', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], textures: [TEX] }));
+    await screen.findByText(/Almacén de Queens/);
+    await abrirTexturas(u);
+    await u.click(await within(await screen.findByTestId('mp-texcat')).findByTitle('Losa mojada'));
+
+    await waitFor(() => expect(repo.sceneUpdates).toContainEqual({
+      id: 'sc-1', patch: { wallTextureUrl: 'https://x/losa.png', wallTextureScale: 2 },
+    }));
+  });
+
+  /** Borrar, con confirmación, desde el menú de los tres puntos (pedidos suyos del 2026-09-04). */
+  it('borrar una textura la quita del catálogo tras confirmar', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], textures: [TEX] }));
+    await screen.findByText(/Almacén de Queens/);
+    await abrirTexturas(u);
+    await u.click(await screen.findByRole('button', { name: 'Opciones de «Losa mojada»' }));
+    await u.click(await screen.findByRole('menuitem', { name: 'Eliminar' }));
+    await u.click(await screen.findByRole('button', { name: 'Eliminar' }));
+    await waitFor(() => expect(repo.textures).toHaveLength(0));
+  });
+
+  /** Clasificar escribe en la fila, no sólo en la pantalla. */
+  it('clasificar una textura desde el menú la guarda', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], textures: [TEX] }));
+    await screen.findByText(/Almacén de Queens/);
+    await abrirTexturas(u);
+    await u.click(await screen.findByRole('button', { name: 'Opciones de «Losa mojada»' }));
+    await u.click(await screen.findByRole('menuitem', { name: 'Clasificar' }));
+    await u.click(await screen.findByRole('menuitemradio', { name: 'Agua' }));
+    await waitFor(() => expect(repo.textureUpdates).toEqual([{ id: 'tx-losa', patch: { category: 'water' } }]));
+  });
+
+  /**
+   * 🔒 SIN EL PERMISO el catálogo se ve y se elige, pero no se toca. La barrera de verdad es la RLS
+   * (`has_tool('manage_textures')`); esto sujeta que la pantalla no ofrezca lo que la base va a denegar.
+   */
+  it('sin el permiso no salen ni los tres puntos ni subir', async () => {
+    const u = userEvent.setup();
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], textures: [TEX] }), 'sc-1', undefined, undefined, false);
+    await screen.findByText(/Almacén de Queens/);
+    await abrirTexturas(u);
+    expect(await screen.findByTestId('mp-texcat')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Opciones de/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Subir a/ })).not.toBeInTheDocument();
   });
 });

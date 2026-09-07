@@ -30,6 +30,17 @@ export interface SegmentAt { x1: number; y1: number; x2: number; y2: number }
 /** A cuánto tiene que estar la punta de otro muro para que se peguen, en px de escena. */
 export const END_SNAP_PX = 12;
 
+/**
+ * Cuándo dos puntos son EL MISMO punto, en px de escena.
+ *
+ * 🐞 Existe por su fallo del 2026-09-04 —«*no me deja crear un muro muy cerca de otro*»—, y era el imán, no
+ * el mínimo de tamaño: dibujando cerca de una punta ajena, el imán se tragaba las DOS puntas del gesto y las
+ * dejaba encima de la misma, así que el muro salía de largo cero y se caía sin decir nada. Un imán que puede
+ * anular el gesto que está ayudando a colocar no ayuda: por eso la segunda punta ya no puede pegarse a donde
+ * se pegó la primera.
+ */
+export const SAME_POINT_PX = 0.001;
+
 /** El paso al que se pega Builder: la rejilla con el candado cerrado, ninguno con el candado abierto. */
 export const stepOf = (grid: number, locked: boolean): number => (locked ? grid : 0);
 
@@ -37,12 +48,13 @@ export const stepOf = (grid: number, locked: boolean): number => (locked ? grid 
  * La punta de muro más cercana a `p`, o `null` si no hay ninguna a tiro. `skipId` deja fuera el muro que se
  * está editando: pegar una punta suya a la otra lo dejaría del revés o del largo de cero.
  */
-export function nearestEnd(walls: readonly Wall[], p: Point, tol = END_SNAP_PX, skipId?: string): Point | null {
+export function nearestEnd(walls: readonly Wall[], p: Point, tol = END_SNAP_PX, skipId?: string, avoid?: Point | null): Point | null {
   let best: Point | null = null;
   let bestD = tol;
   for (const w of walls) {
     if (w.id === skipId) continue;
     for (const q of [{ x: w.x1, y: w.y1 }, { x: w.x2, y: w.y2 }]) {
+      if (avoid && Math.hypot(q.x - avoid.x, q.y - avoid.y) < SAME_POINT_PX) continue;
       const d = Math.hypot(q.x - p.x, q.y - p.y);
       if (d <= bestD) { bestD = d; best = q; }
     }
@@ -61,9 +73,10 @@ export function builderPoint(
   walls: readonly Wall[],
   tol = END_SNAP_PX,
   skipId?: string,
+  avoid?: Point | null,
 ): Point {
   if (locked) return { x: snap(p.x, grid), y: snap(p.y, grid) };
-  return nearestEnd(walls, p, tol, skipId) ?? p;
+  return nearestEnd(walls, p, tol, skipId, avoid) ?? p;
 }
 
 /**

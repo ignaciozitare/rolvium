@@ -83,7 +83,9 @@ describe('<BuilderPanel> en qué estoy trabajando · las dos conviven', () => {
     const { re } = mount();
     expect(screen.getByText(/el suelo ya lo pone la foto/)).toBeInTheDocument();
     re({ mode: 'draw' });
-    expect(screen.getByText(/se levantan MUROS normales/)).toBeInTheDocument();
+    // Desde la rebanada 8 dibujar aquí NO levanta muros normales: levanta SALAS, y eso es lo que la nota
+    // tiene que decir. La nota vieja pasaba a mentir en pantalla en cuanto las salas existieran.
+    expect(screen.getByText(/lo que levantas son SALAS/)).toBeInTheDocument();
   });
 });
 
@@ -219,5 +221,142 @@ describe('<BuilderPanel> los nodos en cadena', () => {
   it('cuenta cómo coger todos los muros, que si no no se adivina', () => {
     mount();
     expect(screen.getByText(/coge todos los muros/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * ── REBANADA 8: EL ESTILO DE LA MAZMORRA Y LAS DOS TEXTURAS BASE ──
+ *
+ * Aparecen SÓLO en «Dibujar aquí». Marcando sobre una foto el suelo lo pone la foto, y enseñarlos ahí era
+ * literalmente el fallo que él señaló: «*estás mezclando estas dos opciones*».
+ */
+describe('<BuilderPanel> el estilo de la mazmorra (sólo dibujando aquí)', () => {
+  it('sobre una foto NO se ofrecen ni preajustes ni texturas', () => {
+    mount({ mode: 'photo' });
+    expect(screen.queryByText('Estilo de la mazmorra')).not.toBeInTheDocument();
+    expect(screen.queryByText('Las dos texturas base')).not.toBeInTheDocument();
+  });
+
+  it('dibujando aquí salen los NUEVE preajustes, en su rejilla', () => {
+    mount({ mode: 'draw' });
+    const grupo = screen.getByRole('radiogroup', { name: 'Estilo de la mazmorra' });
+    expect(within(grupo).getAllByRole('radio')).toHaveLength(9);
+    expect(within(grupo).getByText('Rayado clásico')).toBeInTheDocument();
+    expect(within(grupo).getByText('Trazo a mano')).toBeInTheDocument();
+  });
+
+  it('el elegido se marca, y pinchar otro lo avisa', async () => {
+    const onPreset = vi.fn();
+    mount({ mode: 'draw', preset: 'ink', onPreset });
+    expect(screen.getByTestId('mp-preset-ink')).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByTestId('mp-preset-hatch')).toHaveAttribute('aria-checked', 'false');
+    await userEvent.setup().click(screen.getByTestId('mp-preset-cavern'));
+    expect(onPreset).toHaveBeenCalledWith('cavern');
+  });
+
+  /** La miniatura es la ESQUINA DE UNA SALA MONTADA, no un cuadrado de color: fue su segunda corrección. */
+  it('cada preajuste enseña una miniatura, no un cuadrado de color', () => {
+    mount({ mode: 'draw' });
+    expect(screen.getByTestId('mp-preset-hatch').querySelector('svg.mp-builder-preset-mini')).not.toBeNull();
+  });
+});
+
+describe('<BuilderPanel> las dos texturas base y el grosor', () => {
+  it('sin foto propia enseña el nombre del preajuste, y ofrece subir una', () => {
+    mount({ mode: 'draw', preset: 'cavern' });
+    const fila = screen.getByText('Las dos texturas base').closest('fieldset')!;
+    expect(within(fila).getAllByText('Caverna')).toHaveLength(2);   // pared y suelo
+    expect(within(fila).getAllByRole('button', { name: '+ Subir' })).toHaveLength(2);
+  });
+
+  it('con una foto suya, manda la suya — y se puede quitar', async () => {
+    const onTexture = vi.fn(), onClearTexture = vi.fn();
+    mount({ mode: 'draw', wallTextureUrl: 'https://x/roca.png', onTexture, onClearTexture });
+    const fila = screen.getByText('Las dos texturas base').closest('fieldset')!;
+    expect(within(fila).getByText('Foto tuya')).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(within(fila).getByRole('button', { name: 'Cambiar' }));
+    expect(onTexture).toHaveBeenCalledWith('wall');
+    await user.click(within(fila).getByRole('button', { name: 'Quitar' }));
+    expect(onClearTexture).toHaveBeenCalledWith('wall');
+  });
+
+  /** El grosor va EN CASILLAS, no en píxeles: así el muro no cambia de aspecto con otra rejilla. */
+  it('el grosor se enseña en centésimas de casilla y avisa al moverlo', () => {
+    const onThickness = vi.fn();
+    mount({ mode: 'draw', thickness: 0.22, onThickness });
+    const slider = screen.getByRole('slider', { name: 'Grosor del muro' });
+    expect(screen.getByText('22')).toBeInTheDocument();
+    fireEvent.change(slider, { target: { value: '0.4' } });
+    expect(onThickness).toHaveBeenCalledWith(0.4);
+  });
+});
+
+/**
+ * ── EL AZULEJO Y SU MUESTRA ──
+ *
+ * Petición suya del 2026-09-04 probando el constructor: «*necesito que la textura se pueda escalar y tener un
+ * previo de cómo iría quedando cuando la escale, porque tengo una textura de mosaicos que quedan muy grandes*».
+ */
+describe('<BuilderPanel> escalar la textura', () => {
+  it('sin foto puesta NO hay escala que tocar: un color no se escala', () => {
+    mount({ mode: 'draw' });
+    expect(screen.queryByRole('slider', { name: 'Azulejo · pared' })).not.toBeInTheDocument();
+  });
+
+  it('con una foto sale el deslizador, y arrastrar avisa EN VIVO', () => {
+    const onTextureScale = vi.fn(), onTextureScaleEnd = vi.fn();
+    mount({ mode: 'draw', floorTextureUrl: 'https://x/mosaico.png', floorScale: 4, onTextureScale, onTextureScaleEnd });
+    const slider = screen.getByRole('slider', { name: 'Azulejo · suelo' });
+    fireEvent.change(slider, { target: { value: '0.5' } });
+    expect(onTextureScale).toHaveBeenCalledWith('floor', 0.5);
+    // Guardar es al SOLTAR, no en cada píxel del arrastre.
+    expect(onTextureScaleEnd).not.toHaveBeenCalled();
+    fireEvent.pointerUp(slider);
+    expect(onTextureScaleEnd).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * La muestra es el «previo»: enseña CUÁNTOS AZULEJOS ENTRAN EN UNA CASILLA, que es lo único que hay que
+   * decidir. Vale tres casillas de ancho, así que a escala 1 el azulejo mide un tercio de la muestra.
+   */
+  it('la muestra enseña el azulejo al tamaño que tendrá sobre la rejilla', () => {
+    const { re } = mount({ mode: 'draw', floorTextureUrl: 'https://x/mosaico.png', floorScale: 1 });
+    const muestra = () => screen.getAllByTestId('mp-tex-swatch').at(-1)!;
+    expect(muestra()).toHaveStyle({ backgroundSize: '22px 22px' });
+    re({ mode: 'draw', floorTextureUrl: 'https://x/mosaico.png', floorScale: 3 });
+    // El triple de casillas por azulejo → el azulejo llena la muestra entera.
+    expect(muestra()).toHaveStyle({ backgroundSize: '66px 66px' });
+  });
+});
+
+/**
+ * ── EXCAVAR O RELLENAR ──
+ *
+ * Suyo, 2026-09-04: «*hoy tomamos como que las habitaciones son huecos en el muro, entonces los muros serán
+ * relleno de esos huecos*». Dibujando aquí hay CUATRO cosas que levantar; sobre una foto siguen siendo tres.
+ */
+describe('<BuilderPanel> qué levanto: sala o muro', () => {
+  it('sobre una foto siguen siendo las tres de siempre, intactas', () => {
+    mount({ mode: 'photo' });
+    const grupo = screen.getByRole('radiogroup', { name: 'Tipo de segmento' });
+    expect(within(grupo).getAllByRole('radio')).toHaveLength(3);
+    expect(within(grupo).queryByText('Sala')).not.toBeInTheDocument();
+  });
+
+  it('dibujando aquí sale SALA la primera, porque excavar es lo normal', () => {
+    mount({ mode: 'draw' });
+    const grupo = screen.getByRole('radiogroup', { name: 'Tipo de segmento' });
+    const opciones = within(grupo).getAllByRole('radio');
+    expect(opciones).toHaveLength(4);
+    expect(opciones[0]).toHaveTextContent('Sala');
+    expect(opciones[0]).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('elegir MURO lo avisa', async () => {
+    const onBuildKind = vi.fn();
+    mount({ mode: 'draw', onBuildKind });
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'Muro' }));
+    expect(onBuildKind).toHaveBeenCalledWith('wall');
   });
 });

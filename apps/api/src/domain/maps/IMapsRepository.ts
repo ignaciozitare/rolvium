@@ -68,6 +68,22 @@ export interface ScenePropRecord {
   blockW: number; blockH: number; blockDx: number; blockDy: number;
 }
 
+/**
+ * UNA SALA, tal cual se guarda (rebanada 8): UNA FORMA, no la unión. El servidor la funde con las demás al
+ * calcular (`roomOutline`, en `@rolvium/core`) — el mismo motor que usa el navegador para pintarla, o la sala
+ * taparía de una forma y se vería de otra.
+ *
+ * `kind` dice si EXCAVA o si RELLENA, y llegan **en orden de llegada**: la última que él dibujó manda sobre
+ * lo que hubiera debajo, igual que al pintar.
+ *
+ * 🔴 Su contorno NO es una fila de `maps_walls` y no hay que buscarlo ahí. Son dos entidades distintas que se
+ * comportan igual: el `WallRecord` es una marca invisible sobre una foto traída de fuera; esto ES el mapa.
+ */
+export interface RoomRecord { id: string; kind: 'room' | 'fill'; points: [number, number][] }
+
+/** Un vano anotado SOBRE el contorno de la unión. No parte ninguna fila, porque no hay fila. */
+export interface RoomOpeningRecord { x1: number; y1: number; x2: number; y2: number; kind: 'door' | 'window'; isOpen: boolean }
+
 export type TableRole = 'dm' | 'player';
 
 /** Read side of `maps_*` with the service role: the server sees every wall, which is the whole point. */
@@ -75,6 +91,13 @@ export interface IMapsRepository {
   getScene(sceneId: string): Promise<SceneRecord | null>;
   /** Every wall of the scene, hidden ones included. */
   listWalls(sceneId: string): Promise<WallRecord[]>;
+  /**
+   * LAS SALAS de la escena, y sus vanos (rebanada 8). Van aparte de `listWalls` porque son OTRA ENTIDAD, no
+   * una variante: aquí no hay `visible_players` que filtrar ni `blocksSight` que mirar — el contorno de una
+   * sala corta la vista siempre, porque es roca.
+   */
+  listRooms(sceneId: string): Promise<RoomRecord[]>;
+  listRoomOpenings(sceneId: string): Promise<RoomOpeningRecord[]>;
   listTokens(sceneId: string): Promise<TokenRecord[]>;
   /** Toda luz de la escena, también las de una capa apagada o de notas del director: filtrar es del caso de uso. */
   listLights(sceneId: string): Promise<LightRecord[]>;

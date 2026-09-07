@@ -311,11 +311,14 @@ export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWat
 // ── maps ─────────────────────────────────────────────────────────────────────
 import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
 import type { SceneVision, VisionPort } from '@/modules/maps/domain/ports/VisionPort';
-import type { Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewSceneProp, NewToken, NewWall, Prop, PropPatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
+import type { Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
+import type { RoomOpeningPatch } from '@/modules/maps/domain/ports/MapsPort';
 
 export const SCENE_WAREHOUSE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Almacén de Queens', width: 1080, height: 675, bgColor: '#4a4a3e', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false,
+  // Rebanada 8: una escena nace con el preajuste de serie y sin foto propia — como la crea la migración.
+  roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
   createdAt: '2026-08-18T00:00:00Z', updatedAt: '2026-08-18T00:00:00Z',
 };
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };
@@ -361,7 +364,7 @@ export const LIGHT_SECRET: Light = { ...LIGHT_BASE, id: 'li-secret', layerId: LA
  * In-memory MapsPort. Mutations are recorded; `emit(sceneId, …)` simulates realtime rows/events to subscribers;
  * `broadcasts` collects what I sent on the scene channel.
  */
-export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[]; props?: Prop[]; sceneProps?: SceneProp[] } = {}) {
+export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[]; props?: Prop[]; sceneProps?: SceneProp[]; rooms?: Room[]; roomOpenings?: RoomOpening[]; textures?: Texture[] } = {}) {
   const scenes = (seed.scenes ?? [SCENE_WAREHOUSE]).map(s => ({ ...s }));
   const tokens = (seed.tokens ?? []).map(t => ({ ...t }));
   const walls = (seed.walls ?? []).map(w => ({ ...w }));
@@ -371,6 +374,10 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const lights = (seed.lights ?? []).map(l => ({ ...l }));
   const props = (seed.props ?? []).map(p => ({ ...p }));
   const sceneProps = (seed.sceneProps ?? []).map(p => ({ ...p }));
+  const rooms = (seed.rooms ?? []).map(r => ({ ...r }));
+  const textures = (seed.textures ?? []).map(t => ({ ...t }));
+  const textureUpdates: { id: string; patch: { name?: string; category?: Texture['category'] } }[] = [];
+  const roomOpenings = (seed.roomOpenings ?? []).map(o => ({ ...o }));
   const subs = new Map<string, Set<MapsLiveHandlers>>();
   const broadcasts: { sceneId: string; event: MapsLiveEvent }[] = [];
   const tokenUpdates: { id: string; patch: TokenPatch }[] = [];
@@ -396,7 +403,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const masksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -477,6 +484,28 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     addSceneProp: async (p: NewSceneProp) => { const created: SceneProp = { ...p, id: `sp-new-${++n}`, createdAt: '', updatedAt: '' }; sceneProps.push(created); return created; },
     updateSceneProp: async (id: string, patch: ScenePropPatch) => { scenePropUpdates.push({ id, patch }); const p = sceneProps.find(x => x.id === id); if (p) Object.assign(p, patch); },
     removeSceneProp: async (id: string) => { const i = sceneProps.findIndex(p => p.id === id); if (i >= 0) sceneProps.splice(i, 1); },
+    // ── el catálogo de texturas: de la HERRAMIENTA, no de una campaña ──
+    listTextures: async () => [...textures],
+    addTexture: async (t: Omit<NewTexture, 'url' | 'uploadedBy'>) => {
+      const created: Texture = { ...t, id: `tx-new-${++n}`, url: `https://x/tex-${n}.png`, uploadedBy: 'u-gm', createdAt: '', updatedAt: '' };
+      textures.unshift(created);
+      return created;
+    },
+    updateTexture: async (id: string, patch: { name?: string; category?: Texture['category'] }) => {
+      const t = textures.find(x => x.id === id);
+      if (t) Object.assign(t, patch);
+      textureUpdates.push({ id, patch });
+    },
+    removeTexture: async (id: string) => { const i = textures.findIndex(t => t.id === id); if (i >= 0) textures.splice(i, 1); },
+    // ── salas (rebanada 8): una fila es UNA FORMA; el contorno se calcula, no se guarda ──
+    listRooms: async (sid: string) => rooms.filter(r => r.sceneId === sid),
+    addRoom: async (r: NewRoom) => { const created: Room = { ...r, id: `rm-new-${++n}`, createdAt: '', updatedAt: '' }; rooms.push(created); return created; },
+    updateRoomPoints: async (id: string, points: [number, number][]) => { const r = rooms.find(x => x.id === id); if (r) r.points = points; },
+    removeRoom: async (id: string) => { const i = rooms.findIndex(r => r.id === id); if (i >= 0) rooms.splice(i, 1); },
+    listRoomOpenings: async (sid: string) => roomOpenings.filter(o => o.sceneId === sid),
+    addRoomOpening: async (o: NewRoomOpening) => { const created: RoomOpening = { ...o, id: `ro-new-${++n}` }; roomOpenings.push(created); return created; },
+    updateRoomOpening: async (id: string, patch: RoomOpeningPatch) => { const o = roomOpenings.find(x => x.id === id); if (o) Object.assign(o, patch); },
+    removeRoomOpening: async (id: string) => { const i = roomOpenings.findIndex(o => o.id === id); if (i >= 0) roomOpenings.splice(i, 1); },
     subscribe: (sid: string, h: MapsLiveHandlers) => { const set = subs.get(sid) ?? new Set<MapsLiveHandlers>(); set.add(h); subs.set(sid, set); return () => { set.delete(h); }; },
     broadcast: (sceneId: string, event: MapsLiveEvent) => { broadcasts.push({ sceneId, event }); },
   } satisfies MapsPort & Record<string, unknown>;

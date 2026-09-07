@@ -1,5 +1,5 @@
 import type { FogCell } from '@rolvium/core';
-import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, ScenePropRecord, TableRole, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
+import type { IMapsRepository, LayerRecord, LightRecord, RoomOpeningRecord, RoomRecord, SceneRecord, ScenePropRecord, TableRole, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
 
 export interface FakeMapsSeed {
   scene?: Partial<SceneRecord>;
@@ -8,6 +8,9 @@ export interface FakeMapsSeed {
   lights?: LightRecord[];
   layers?: LayerRecord[];
   props?: ScenePropRecord[];
+  /** Las salas de la rebanada 8: formas, no muros. Vacío = una escena sin nada dibujado aquí. */
+  rooms?: RoomRecord[];
+  roomOpenings?: RoomOpeningRecord[];
   roles?: Record<string, TableRole>;
   fog?: Record<string, FogCell[]>;
 }
@@ -23,12 +26,16 @@ export function fakeMapsRepo(seed: FakeMapsSeed = {}): IMapsRepository & { fog: 
   const lights = seed.lights ?? [];
   const layers = seed.layers ?? [];
   const props = seed.props ?? [];
+  const rooms = seed.rooms ?? [];
+  const roomOpenings = seed.roomOpenings ?? [];
   const roles = seed.roles ?? {};
   const fog: Record<string, FogCell[]> = { ...seed.fog };
   return {
     scene, fog,
     getScene: async id => (id === scene.id ? scene : null),
     listWalls: async () => walls,
+    listRooms: async () => rooms,
+    listRoomOpenings: async () => roomOpenings,
     listTokens: async () => tokens,
     listLights: async () => lights,
     listLayers: async () => layers,

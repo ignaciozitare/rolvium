@@ -6,5 +6,6 @@ export * from './gameSystem';
 export * from './rolls';
 export * from './events';
 export * from './maps';
+export * from './rooms';
 export * from './systemRegistry';
 export * from './sheetValidation';

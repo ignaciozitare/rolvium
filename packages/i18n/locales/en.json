@@ -116,7 +116,12 @@
       "manage_settings_desc": "Platform-wide configuration"
     },
     "settingsTitle": "Settings",
-    "settingsEmpty": "There are no configurable settings yet."
+    "settingsEmpty": "There are no configurable settings yet.",
+    "toolsPicker": "Rolvium permissions",
+    "tool": {
+      "manage_textures": "Manage textures",
+      "manage_textures_desc": "Upload, rename, categorise and delete catalog textures. Without it they can only be picked."
+    }
   },
   "modules": {
     "home": "Home",
@@ -1010,7 +1015,69 @@
       "polyHint": "one click, one corner · click the first one again to close the room",
       "dragHint": "drag to raise the room · it is built when you let go",
       "chainHint": "one click, one point · they chain up, and the wall carries on where the last one ended",
-      "lineHint": "drag from one point to another · one wall comes out, and only one"
+      "lineHint": "drag from one point to another · one wall comes out, and only one",
+      "preset": {
+        "label": "Dungeon style",
+        "hint": "Sets rock and floor in one click. It does not repaint what you already built: each room kept its own.",
+        "hatch": "Classic hatching",
+        "module": "Old module",
+        "ancient": "Ancient map",
+        "hatch_gray": "Grey hatching",
+        "fill": "Filled wall",
+        "cavern": "Cavern",
+        "hand": "Hand-drawn",
+        "simple": "Simple walls",
+        "ink": "Ink"
+      },
+      "textures": {
+        "label": "The two base textures",
+        "hint": "The wall one fills the whole map; the floor one shows through the hole each room opens.",
+        "own": "Your own photo",
+        "change": "Change",
+        "upload": "+ Upload",
+        "remove": "Remove"
+      },
+      "thickness": "Wall thickness",
+      "tile": {
+        "wall": "Tile · wall",
+        "floor": "Tile · floor"
+      },
+      "build": {
+        "label": "What I build · dig or fill",
+        "hint": "ROOM digs the hole · WALL fills it back · openings use the same disc",
+        "room": "Room",
+        "wall": "Wall",
+        "door": "Door",
+        "window": "Window"
+      },
+      "catalog": {
+        "wall": "Wall texture",
+        "floor": "Floor texture",
+        "hint": "These belong to the TOOL, not to your campaign: whatever you upload here works in all your maps. Pick one and it becomes this scene’s base texture, with its tile size.",
+        "empty": "No texture with that name in this category.",
+        "search": "Search by name…",
+        "categories": "Categories",
+        "count": "Textures · {{n}}",
+        "uploadTo": "Upload to {{cat}}",
+        "removeConfirm": "Delete the texture “{{name}}” from the catalog? Any map using it will be left without it.",
+        "legend": "the dot marks the ones Rolvium ships · the rest were uploaded by your group",
+        "cat": {
+          "all": "All",
+          "stone": "Stone",
+          "wood": "Wood",
+          "tile": "Tile",
+          "earth": "Earth",
+          "grass": "Grass",
+          "water": "Water",
+          "misc": "Misc"
+        },
+        "menu": "Options for “{{name}}”",
+        "rename": "Rename",
+        "categorize": "Categorise",
+        "renamePrompt": "What should this texture be called?"
+      },
+      "tooSmall": "The gesture came up short: nothing was built. Drag a little further.",
+      "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square."
     },
     "group": {
       "countGrouped": "Group · {{n}} walls",
@@ -1027,7 +1094,9 @@
       "move": "the move",
       "group": "grouping",
       "ungroup": "ungrouping",
-      "split": "the node"
+      "split": "the node",
+      "roomDelete": "Delete room",
+      "roomFill": "the wall"
     },
     "builder": {
       "title": "Builder",
@@ -1054,7 +1123,7 @@
       "nodeHint": "double-click on its line adds a node there",
       "note": {
         "photo": "Marking on a photo, the floor already comes from the photo: that is why there are no textures or presets here. Wall, door and window work exactly as always.",
-        "draw": "Builder is the same one as always. Either way what goes up are normal WALLS: they cut sight and light, they open into doors and they are deleted one by one. The dungeon style and the two base textures are not in yet."
+        "draw": "Drawing here you build ROOMS: the wall texture fills the map and each room opens a hole the floor shows through. They merge on contact, their walls are visible, and doors open with the same disc. To delete or move one, you grab the shape."
       },
       "chain": {
         "label": "The nodes",

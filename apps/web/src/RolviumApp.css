@@ -303,3 +303,43 @@ a{color:var(--ac2);text-decoration:none;}
 .rv-chars-meta dt{font-size:var(--fs-2xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);}
 .rv-chars-meta dd{margin:0;color:var(--tx2);}
 .rv-chars-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ============================================================================
+ * Rebanada 8 · LOS NUEVE PREAJUSTES DE MAZMORRA (rolvium.pen · frame ePNCc)
+ * ----------------------------------------------------------------------------
+ * Cada preajuste es LA PAREJA DE TEXTURAS BASE de una escena: la ROCA de la que
+ * está excavada la mazmorra (rellena todo lo que no es sala) y el SUELO que
+ * asoma por los agujeros que abren las salas.
+ *
+ * Están aquí y no en el módulo porque este fichero es el único sitio donde
+ * pueden vivir los valores concretos: así se retoca la paleta entera de la
+ * mazmorra sin abrir un componente. Los nombres de las variables los elige
+ * `domain/useCases/roomStyles.ts`, que no conoce ni un color.
+ *
+ * NO cambian con el tema claro/oscuro, a propósito: son el DIBUJO DEL MAPA, no
+ * el cromo de la aplicación. Un pergamino no se vuelve negro porque el director
+ * cambie de tema, y dentro de una campaña manda el tema del sistema.
+ * ========================================================================= */
+:root{
+  /* Rayado clásico — trazo corto y desigual apelotonado contra el muro */
+  --rm-hatch-rock:#efe9dd; --rm-hatch-floor:#d9d7c8; --rm-hatch-wall:#131310; --rm-hatch-hatch:#131310;
+  /* Módulo antiguo — el azul de los módulos impresos; el muro ES la mancha */
+  --rm-module-rock:#5f8fbe; --rm-module-floor:#f7f5ef; --rm-module-wall:#5f8fbe;
+  /* Mapa antiguo — sepia, con banda de muro maciza */
+  --rm-ancient-rock:#e8ddc4; --rm-ancient-floor:#f0e7d3; --rm-ancient-wall:#5e3a26; --rm-ancient-band:#8c5a3c;
+  /* Rayado gris — el mismo trazo a mano, en grafito */
+  --rm-hatch_gray-rock:#f2f0ea; --rm-hatch_gray-floor:#f7f5ef; --rm-hatch_gray-wall:#3b382f; --rm-hatch_gray-hatch:#7c7a72;
+  /* Muro relleno — banda clara y rayado fino por fuera */
+  --rm-fill-rock:#f7f5ef; --rm-fill-floor:#f7f5ef; --rm-fill-wall:#131310; --rm-fill-band:#e2e0d9; --rm-fill-hatch:#13131099;
+  /* Caverna — roca maciza sin canto marcado */
+  --rm-cavern-rock:#8a887e; --rm-cavern-floor:#e6e3da; --rm-cavern-wall:#6f6d64;
+  /* Trazo a mano — el contorno tiembla (su corrección del 2026-09-03) */
+  --rm-hand-rock:#f2f0ea; --rm-hand-floor:#f7f5ef; --rm-hand-wall:#131310;
+  /* Muros simples — línea limpia y nada más */
+  --rm-simple-rock:#f2f0ea; --rm-simple-floor:#f7f5ef; --rm-simple-wall:#131310;
+  /* Tinta — roca negra, suelo de papel */
+  --rm-ink-rock:#131310; --rm-ink-floor:#f7f5ef; --rm-ink-wall:#131310;
+
+  /* La sombra hacia adentro: pintura y nada más, igual en los nueve estilos. */
+  --rm-shadow:rgba(19,19,16,.42);
+}
