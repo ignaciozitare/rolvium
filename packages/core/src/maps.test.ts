@@ -102,4 +102,48 @@ describe('slideCircle / segSegDist — paredes sólidas (rebanada 4)', () => {
   it('quien YA estaba dentro de un muro no se queda encerrado', () => {
     expect(slideCircle({ x: 100, y: 100 }, { x: 105, y: 100 }, 10, [MURO])).toEqual({ x: 105, y: 100 });
   });
+
+  /**
+   * 🐞 EL TRABÓN DE LA ESQUINA (suyo, 2026-09-08: «*si toco una esquina se pega y sólo se destraba si muevo
+   * el puntero en la dirección contraria*»).
+   *
+   * El rebote proyectaba el movimiento sobrante a lo largo «del muro más cercano al punto de contacto», y en
+   * una esquina los dos están a la MISMA distancia: el desempate cogía siempre el primero de la lista, así
+   * que UNA de las dos salidas de cada esquina quedaba muerta y la otra funcionaba. Por eso el fallo parecía
+   * caprichoso. Los dos sentidos se prueban aquí: si vuelve el desempate, uno de los dos se queda a cero.
+   */
+  describe('la esquina no atrapa a nadie', () => {
+    const ESQUINA = [[0, 0, 600, 0], [0, 0, 0, 600]] as const; // muro de arriba y muro izquierdo
+    const R = 35;
+    const enLaEsquina = { x: 35.5, y: 35.5 };                  // aparcado en el vértice, a radio + holgura
+
+    it('con el dedo METIDO en el muro izquierdo, baja a lo largo de él', () => {
+      const r = slideCircle(enLaEsquina, { x: 10, y: 300 }, R, ESQUINA);
+      expect(r.x).toBeCloseTo(35.5, 2);
+      expect(r.y).toBeCloseTo(300, 2);
+    });
+
+    it('con el dedo METIDO en el muro de arriba, va a lo largo de él', () => {
+      const r = slideCircle(enLaEsquina, { x: 300, y: 10 }, R, ESQUINA);
+      expect(r.x).toBeCloseTo(300, 2);
+      expect(r.y).toBeCloseTo(35.5, 2);
+    });
+
+    it('y sigue sin poder cruzar: hacia fuera por el vértice se queda en la esquina', () => {
+      const r = slideCircle(enLaEsquina, { x: -100, y: -100 }, R, ESQUINA);
+      expect(r.x).toBeCloseTo(35.5, 2);
+      expect(r.y).toBeCloseTo(35.5, 2);
+    });
+  });
+
+  /**
+   * La otra mitad del mismo arreglo: perseguir el punto legal más cercano al dedo NO puede convertirse en un
+   * atajo para cruzar. Con el dedo al otro lado del muro, el punto legal más cercano cae también al otro
+   * lado — y el barrido lo rechaza igual que antes.
+   */
+  it('el punto legal más cercano nunca abre la pared: el dedo al otro lado sigue sin pasar', () => {
+    const r = slideCircle({ x: 50, y: 100 }, { x: 105, y: 100 }, 10, [MURO]);
+    expect(r.x).toBeCloseTo(89.5, 3);
+    expect(r.y).toBeCloseTo(100, 6);
+  });
 });

@@ -83,12 +83,18 @@ export interface ScenePoint { x: number; y: number }
 /** Un segmento que corta el paso, en px de escena. */
 export type BlockSegment = readonly [number, number, number, number];
 
-/** Distancia de un punto al segmento `a`–`b`. */
-function pointSegDist(p: ScenePoint, ax: number, ay: number, bx: number, by: number): number {
+/** El punto del segmento `a`–`b` más cercano a `p`. */
+function closestOnSeg(p: ScenePoint, ax: number, ay: number, bx: number, by: number): ScenePoint {
   const dx = bx - ax, dy = by - ay;
   const l2 = dx * dx + dy * dy;
   const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - ax) * dx + (p.y - ay) * dy) / l2));
-  return Math.hypot(p.x - (ax + t * dx), p.y - (ay + t * dy));
+  return { x: ax + t * dx, y: ay + t * dy };
+}
+
+/** Distancia de un punto al segmento `a`–`b`. */
+function pointSegDist(p: ScenePoint, ax: number, ay: number, bx: number, by: number): number {
+  const c = closestOnSeg(p, ax, ay, bx, by);
+  return Math.hypot(p.x - c.x, p.y - c.y);
 }
 
 /**
@@ -135,6 +141,46 @@ export function segSegDist(a1: ScenePoint, a2: ScenePoint, b1: ScenePoint, b2: S
  */
 const SLIDE_GAP = 0.5;
 
+/**
+ * El punto legal más cercano a `p`: el sitio al que se puede llevar de verdad un cuerpo de `pad` de radio
+ * cuando el DEDO se ha metido dentro de una pared.
+ *
+ * 🐞 De aquí salía el trabón de la esquina (suyo, 2026-09-08: «*si toco una esquina se pega y sólo se
+ * destraba si muevo el puntero en la dirección contraria*»). El bucle de rebotes de `slideCircle` proyectaba
+ * el movimiento sobrante «a lo largo del muro más cercano al punto de contacto», y **en una esquina los dos
+ * muros están a la misma distancia**: el desempate cogía siempre el mismo —el primero de la lista— así que
+ * una de las dos salidas de CADA esquina quedaba muerta. Medido: aparcado en la esquina de una sala, con el
+ * dedo metido en el muro izquierdo, bajar 300 px movía la ficha 0 px; hacia el otro lado resbalaba bien.
+ * Para desatascarla había que sacar el puntero de la pared, o sea moverlo en la dirección contraria.
+ *
+ * Preguntándole al dedo «¿cuál es el sitio legal más cercano a donde estás?» antes de barrer, la esquina
+ * deja de depender de ese desempate: se barre hacia un destino que YA es legal.
+ *
+ * Se resuelve empujando fuera del muro más violado y repitiendo: en una esquina las dos condiciones se
+ * turnan y convergen al vértice en un par de pasadas. Si el dedo cae justo ENCIMA de la línea no hay lado
+ * que deducir, así que se sale por el lado en el que está el cuerpo (`side`) — nunca al otro, que sería
+ * teletransportarlo a través de la pared.
+ */
+function nearestFree(p: ScenePoint, pad: number, blockers: readonly BlockSegment[], side: ScenePoint): ScenePoint {
+  let q = p;
+  for (let pass = 0; pass < 8; pass++) {
+    let worst = 1e-9;
+    let hit: ScenePoint | null = null;
+    for (const [x1, y1, x2, y2] of blockers) {
+      const c = closestOnSeg(q, x1, y1, x2, y2);
+      const gap = pad - Math.hypot(q.x - c.x, q.y - c.y);
+      if (gap > worst) { worst = gap; hit = c; }
+    }
+    if (!hit) return q;
+    let nx = q.x - hit.x, ny = q.y - hit.y;
+    let n = Math.hypot(nx, ny);
+    if (n < 1e-9) { nx = side.x - hit.x; ny = side.y - hit.y; n = Math.hypot(nx, ny); }
+    if (n < 1e-9) return q; // ni dedo ni cuerpo dan un lado: se deja como estaba y que decida el barrido
+    q = { x: hit.x + (nx / n) * pad, y: hit.y + (ny / n) * pad };
+  }
+  return q;
+}
+
 export function slideCircle(from: ScenePoint, to: ScenePoint, radius: number, blockers: readonly BlockSegment[]): ScenePoint {
   if (blockers.length === 0) return to;
   const distAt = (p: ScenePoint): number => Math.min(...blockers.map(([x1, y1, x2, y2]) => pointSegDist(p, x1, y1, x2, y2)));
@@ -150,7 +196,9 @@ export function slideCircle(from: ScenePoint, to: ScenePoint, radius: number, bl
   const lerp = (a: ScenePoint, b: ScenePoint, t: number): ScenePoint => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
   let pos = from;
-  let target = to;
+  // El destino que se persigue es el punto legal más cercano al dedo, no el dedo a pelo: ver `nearestFree`.
+  // Con el dedo en sitio libre esto devuelve el dedo tal cual y no cambia ni un píxel de lo de antes.
+  let target = nearestFree(to, pad, blockers, from);
   for (let bounce = 0; bounce < 3; bounce++) {
     if (clear(pos, target)) return target;
     // hasta dónde SÍ cabe por el camino recto
