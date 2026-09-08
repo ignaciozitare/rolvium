@@ -1,6 +1,6 @@
 import { METRES_PER_CELL, sightRadiusPx, slideCircle, type BlockSegment, type CatalogItem, type FogCell, type VisionPolygon } from '@rolvium/core';
 import type { Character } from '@/modules/characters/domain/entities/Character';
-import type { Drawing, DrawingData, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
+import type { DoorSettings, Drawing, DrawingData, DrawingKind, NewToken, NewWall, Scene, Token, Wall, WallKind } from '../entities/Scene';
 
 export { METRES_PER_CELL } from '@rolvium/core';
 
@@ -83,6 +83,80 @@ export function tokenCellAt(p: Point, grid: number, size = 1): Point {
  * a través de `engine.tokenCells`.
  */
 export const DEFAULT_TOKEN_CELLS = 1.5;
+
+/**
+ * EL RECORRIDO DE LA BARRITA DEL TAMAÑO DE LAS FICHAS (specs/modules/maps/SPEC.md § «La barrita del tamaño
+ * de las fichas»). Continuo, no por saltos: «*el tamaño se configura no por saltos sino con una barrita
+ * progresiva*» (suyo, 2026-09-07).
+ *
+ * De la MITAD a UN CUARTO MÁS, arrancando en 1. Cerrado con él mirando lo que ocupa una ficha NORMAL en cada
+ * extremo: 0,75 casillas · 1,5 (hoy) · 1,88. A dos tercios ocupa **1 justa** y pasa por un pasillo de una
+ * casilla, que es el caso que lo motivó; un GRANDE sigue sin pasar, y así debe ser.
+ */
+export const TOKEN_SCALE = { min: 0.5, max: 1.25, def: 1 } as const;
+
+/**
+ * LO QUE OCUPA UNA FICHA **NORMAL** con la barrita en `scale`, en casillas y al décimo. Es el número que se
+ * enseña en el panel, y no el multiplicador: «×0,66» no le dice nada a nadie, «1 casilla» contesta sola la
+ * pregunta que motivó esto —¿pasa por un pasillo de una casilla?—. Decidido con él sobre el diseño.
+ */
+export const normalCellsAt = (scale: number): number =>
+  Math.round(DEFAULT_TOKEN_CELLS * (scale || TOKEN_SCALE.def) * 10) / 10;
+
+/**
+ * ⭐ EL ÚNICO SITIO DONDE SE APLICA EL MULTIPLICADOR. Todo lo que necesite saber lo que ocupa una ficha —el
+ * dibujo, la colisión, el radio, la distancia, el agarre del ratón— tiene que pasar por aquí.
+ *
+ * ⚠️ Y esto NO es una preferencia de estilo: si el dibujo y la colisión lo calculasen cada uno por su lado,
+ * el día que uno cambie el otro se queda atrás y la ficha choca donde no se la ve. Un solo sitio, una sola
+ * verdad.
+ *
+ * La escena guarda SÓLO el multiplicador: el `size` de cada ficha no se toca nunca (sigue siendo el que dice
+ * la ficha del personaje), así que la barrita se puede mover adelante y atrás sin degradar ningún dato.
+ */
+export const tokenSizeIn = (t: Pick<Token, 'size'>, scene: Pick<Scene, 'tokenScale'>): number =>
+  t.size * (scene.tokenScale || TOKEN_SCALE.def);
+
+/**
+ * LO QUE HAY QUE CORRER LA ESQUINA PARA QUE LA FICHA ENCOJA **EN SU SITIO**.
+ *
+ * `x`/`y` guardan la ESQUINA, no el centro. Encogiendo sólo el tamaño, la ficha se queda anclada por su
+ * esquina de arriba a la izquierda y su centro se va hacia allí — o sea, se aparta contra una pared justo
+ * cuando la estás encogiendo para que quepa por el pasillo. Corriendo la esquina media diferencia de tamaño,
+ * el CENTRO no se mueve ni un pelo (suyo, 2026-09-07: «*corrígelo*»).
+ *
+ * 🔑 Y sale gratis una cosa importante: si el centro pintado es el mismo que el guardado, la VISIÓN —que el
+ * servidor calcula desde `x + size/2`— sigue saliendo del sitio correcto sin tocar nada.
+ */
+export const tokenAnchorShift = (rawSize: number, scale: number): number =>
+  (rawSize - rawSize * (scale || TOKEN_SCALE.def)) / 2;
+
+/**
+ * Las MISMAS fichas con su tamaño efectivo ya puesto, y **sin moverse de sitio**. Es la forma de aplicar la
+ * lente UNA vez, en el borde, y que todo lo de dentro siga leyendo `t.size` y `t.x`/`t.y` como hasta ahora —
+ * sin tocar ni una firma ni una fórmula.
+ *
+ * ⚠️ Lo que sale de aquí es para PINTAR y para CALCULAR. **Nunca para guardar**: sus `x`/`y` están en la
+ * cuenta de la ficha ENCOGIDA. Lo que se escribe pasa antes por `tokenPointStored`, que deshace el corrimiento.
+ */
+export const tokensScaledIn = <T extends Pick<Token, 'size' | 'x' | 'y'>>(tokens: T[], scene: Pick<Scene, 'tokenScale'>): T[] =>
+  (scene.tokenScale || TOKEN_SCALE.def) === 1
+    ? tokens
+    : tokens.map(t => {
+      const d = tokenAnchorShift(t.size, scene.tokenScale);
+      return { ...t, size: tokenSizeIn(t, scene), x: t.x + d, y: t.y + d };
+    });
+
+/**
+ * DE LA ESQUINA QUE SE VE A LA QUE SE GUARDA — la inversa exacta de la lente.
+ *
+ * Todo lo que escriba una posición tiene que pasar por aquí: el lienzo trabaja con la ficha encogida, y
+ * guardar su esquina tal cual movería la ficha de verdad cada vez que se toca la barrita.
+ */
+export const tokenPointStored = (drawn: Point, rawSize: number, scale: number): Point => {
+  const d = tokenAnchorShift(rawSize, scale);
+  return { x: drawn.x - d, y: drawn.y - d };
+};
 /**
  * Dónde queda un token CENTRADO en un punto de la escena, en casillas y **sin pegarse a la rejilla**: la
  * esquina de un token de ancho `size` centrado en `p`. Devuelve fracciones a propósito.
@@ -162,6 +236,23 @@ export const newWallOf = (kind: WallKind): Pick<Wall, 'kind' | 'blocksSight' | '
   ({ kind, ...WALL_FLAGS[kind], isOpen: false });
 /** A `wall` is fixed shut; doors and windows can be opened. */
 export const canOpen = (w: Pick<Wall, 'kind'>): boolean => w.kind !== 'wall';
+
+/**
+ * Los colores propios que se le pueden poner a UNA puerta (§ «El color es de la escena, con excepción por
+ * puerta»). Cerrados y pocos a propósito: la excepción es «la de hierro del jefe», no una paleta entera —
+ * y el caso normal, que es heredar el de la escena, no está aquí porque es `null`.
+ *
+ * No salen de `COLOR_PICKER_PALETTE` de `@rolvium/ui`: aquélla está pensada sobre los tokens de la APP y
+ * esta paleta se ve sobre la MESA, que va con los `--sys-*` del sistema de juego.
+ */
+export const DOOR_COLORS = [
+  // Fila 1 — MADERAS, de clara a oscura (la primera casilla de esa fila es «el de la escena»)
+  '#a97c50', '#8b5a2b', '#6e5a3a', '#4a3524',
+  // Fila 2 — METALES Y PIEDRA
+  '#b08d57', '#8a8f98', '#5c6470', '#2f3338', '#1a1c1f',
+  // Fila 3 — TINTES, y un claro para la puerta de papel
+  '#8b1a1a', '#3f4a2e', '#2f4858', '#5c3a6e', '#efe6d6',
+] as const;
 export const blocksSightNow = (w: Pick<Wall, 'blocksSight' | 'isOpen'>): boolean => w.blocksSight && !w.isOpen;
 /** Lo que corta el PASO ahora mismo. Gemelo exacto de `blocksSightNow`: una puerta abierta deja pasar. */
 export const blocksMoveNow = (w: Pick<Wall, 'blocksMove' | 'isOpen'>): boolean => w.blocksMove && !w.isOpen;
@@ -200,9 +291,15 @@ export const moveBlockers = (walls: readonly Wall[], scene: Pick<Scene, 'solidWa
 /** El radio del cuerpo de un token en px de escena: su ancho en casillas, en píxeles, a la mitad. */
 export const tokenRadiusPx = (t: Pick<Token, 'size'>, grid: number): number => (t.size * grid) / 2;
 
-/** Nearest segment within `tol` scene px of `p` — how the DM picks a door to open. */
-export function hitWall(walls: Wall[], p: Point, tol = 8): Wall | null {
-  let best: Wall | null = null;
+/**
+ * Nearest segment within `tol` scene px of `p` — how the DM picks a door to open.
+ *
+ * Genérico sobre cualquier cosa que tenga dos puntas: un muro de `maps_walls` o un vano de sala de
+ * `maps_room_openings`. El disco de abrir tiene que alcanzar a los DOS —que es lo que estaba roto: una
+ * puerta dibujada en una sala nacía cerrada y no había forma de abrirla— y el cálculo es el mismo.
+ */
+export function hitWall<T extends Segment>(walls: readonly T[], p: Point, tol = 8): T | null {
+  let best: T | null = null;
   let bestDist = tol;
   for (const w of walls) {
     const d = segDist(p, { x: w.x1, y: w.y1 }, { x: w.x2, y: w.y2 });
@@ -212,14 +309,18 @@ export function hitWall(walls: Wall[], p: Point, tol = 8): Wall | null {
 }
 
 /** The door or the window under the pointer — what the hover disc opens. A plain wall never answers: it never opens. */
-export const hitOpening = (walls: Wall[], p: Point, tol = 8): Wall | null => hitWall(walls.filter(canOpen), p, tol);
+export const hitOpening = <T extends Segment & Pick<Wall, 'kind'>>(walls: readonly T[], p: Point, tol = 8): T | null =>
+  hitWall(walls.filter(canOpen), p, tol);
 /** Middle of a segment: where the open/close disc sits. */
 export const midpoint = (w: Segment): Point => ({ x: (w.x1 + w.x2) / 2, y: (w.y1 + w.y2) / 2 });
 
 /**
- * Where to draw a door's jambs and its swung leaf. `n` is the unit normal of the segment, `d` the unit direction.
- * A closed door is the segment itself plus a jamb tick at each end; an open one keeps the threshold faint and
- * swings a leaf out of one jamb (rolvium.pen `uXK3T` · «Puerta abierta»).
+ * Where to draw a WINDOW's jambs: un tick cruzado en cada punta del vano. `n` es la normal unitaria del
+ * segmento, `d` la dirección unitaria (rolvium.pen `uXK3T` · «Ventana»).
+ *
+ * ⚠️ Desde «Las puertas, de verdad» (2026-09-07) esto YA NO DIBUJA NINGUNA PUERTA: una puerta es la barra
+ * hueca de `doorQuads`, con sus hojas, su bisagra y su lado. La ventana no se tocó y sigue saliendo de aquí.
+ * `leaf` es lo que queda del dibujo viejo de la puerta abierta y hoy no lo pinta nadie.
  */
 export function openingGeometry(w: Pick<Wall, 'x1' | 'y1' | 'x2' | 'y2'>, jamb = 9): { jambA: [Point, Point]; jambB: [Point, Point]; leaf: [Point, Point] } {
   const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
@@ -233,6 +334,125 @@ export function openingGeometry(w: Pick<Wall, 'x1' | 'y1' | 'x2' | 'y2'>, jamb =
 
 /** Endpoints of a segment in scene px — the geometry of a wall without the row around it. */
 export interface Segment { x1: number; y1: number; x2: number; y2: number }
+
+/**
+ * LO QUE MIDE DE ANCHO LA BARRA DE UNA PUERTA, en px de escena. **La misma para todas**: las de un muro
+ * suelto y las de una sala, que se pintan igual (`roomsLayer`).
+ *
+ * El número es SUYO, dado mirando la pantalla y midiendo contra el muro: 11 → 7 el 2026-09-07 («*la puerta
+ * es muy gruesa*») y 7 → 5,5 ese mismo día, ya con la cifra exacta: «*si la línea son 3 px la puerta sea de
+ * 5,5*». No se toca sin que él lo diga y no se calcula a partir de nada — se probó atarlo al grosor de la
+ * roca de una sala, por arriba y por abajo, y lo tumbó las dos veces.
+ *
+ * A 5,5 con el trazo de 2.5 de `.mp-door-leaf` le quedan 3 px de hueco por dentro: se sigue viendo el suelo,
+ * que es lo que la hace HUECA y no una barra maciza.
+ */
+export const DOOR_BAR_PX = 5.5;
+
+/**
+ * LA PUERTA, DIBUJADA (`rolvium.pen` · «PL/Puerta · el dibujo», aprobado por él el 2026-09-07).
+ *
+ * Cerrada es una **barra hueca de ÁNGULOS RECTOS** metida en el hueco del muro —el trazo del muro se para a
+ * cada lado, que son las jambas—; abierta, la hoja **girada 90°** desde su bisagra, como un plano de
+ * arquitecto. **Sin arco de barrido**: con muchas puertas juntas el mapa se llena de curvas (elegido por él).
+ * Con DOS hojas se parte por la mitad y **las dos giran a la vez**, cada una desde su extremo — y entonces
+ * `hinge` no se lee, porque cada hoja ya tiene la suya.
+ *
+ * ⚠️ Nada de cantos redondeados: el primer diseño los llevaba y él lo corrigió con la lámina delante.
+ *
+ * Devuelve UN CUADRILÁTERO POR HOJA, en px de escena. Cuadriláteros y no un `<rect>` girado porque el muro
+ * puede ir en cualquier ángulo y un rectángulo del SVG sólo sabe ir recto.
+ */
+/**
+ * EL HUECO NO SE OCUPA ENTERO: la puerta se queda corta y deja un TROCITO DE MURO a cada lado.
+ *
+ * Petición suya del 2026-09-07 con una captura: «*quiero que la puerta siempre tenga un pequeño trozo de
+ * muro centrado, es más estético que quede pegada a los muros; tiene que ser tan largo como el grosor de la
+ * puerta de cada lado*». O sea: el retranqueo mide lo mismo que el grosor de la barra.
+ *
+ * Se recorta a un tercio del vano para que una puerta estrecha no se quede sin hoja: con un hueco de dos
+ * grosores, los dos trocitos se la comerían entera.
+ */
+export function doorSpan(seg: Segment, thickness = DOOR_BAR_PX): { inner: Segment; stubs: [Point, Point][] } {
+  const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const d = { x: dx / len, y: dy / len };
+  /**
+   * ⚠️ EL TROCITO NO PUEDE COMERSE LA PUERTA. Mide el grosor de la barra, sí, pero como MUCHO un 15% del
+   * hueco por lado: una puerta de una casilla (27 px) con 7 px de trocito a cada lado se quedaba en 13 px de
+   * hoja —un cuadradito— y no se parecía en nada a su captura, donde la barra ocupa la mayor parte del vano.
+   */
+  const stub = Math.min(thickness, len * 0.15);
+  const at = (t: number): Point => ({ x: seg.x1 + d.x * t, y: seg.y1 + d.y * t });
+  const a = at(stub), b = at(len - stub);
+  return {
+    inner: { x1: a.x, y1: a.y, x2: b.x, y2: b.y },
+    stubs: [[{ x: seg.x1, y: seg.y1 }, a], [b, { x: seg.x2, y: seg.y2 }]],
+  };
+}
+
+export function doorQuads(segEntero: Segment, door: DoorSettings & Pick<Wall, 'isOpen'>, thickness = DOOR_BAR_PX): Point[][] {
+  const seg = doorSpan(segEntero, thickness).inner;
+  const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const d = { x: dx / len, y: dy / len };
+  const n = { x: -d.y, y: d.x };
+  const h = thickness / 2;
+  const s = door.swing === 'left' ? -1 : 1;
+  const A = { x: seg.x1, y: seg.y1 }, B = { x: seg.x2, y: seg.y2 };
+  /**
+   * Una hoja: cuelga de `hinge` y mide `length`. Cerrada va tumbada sobre el muro (`along`); abierta gira
+   * 90° y su eje pasa a ser la normal hacia el lado elegido, con el grosor repartido a lo largo del muro.
+   */
+  const leaf = (hinge: Point, along: Point, length: number): Point[] => {
+    const axis = door.isOpen ? { x: n.x * s, y: n.y * s } : along;
+    const cross = door.isOpen ? along : n;
+    const tip = { x: hinge.x + axis.x * length, y: hinge.y + axis.y * length };
+    return [
+      { x: hinge.x + cross.x * h, y: hinge.y + cross.y * h },
+      { x: tip.x + cross.x * h, y: tip.y + cross.y * h },
+      { x: tip.x - cross.x * h, y: tip.y - cross.y * h },
+      { x: hinge.x - cross.x * h, y: hinge.y - cross.y * h },
+    ];
+  };
+  const back = { x: -d.x, y: -d.y };
+  if (door.leaves === 2) return [leaf(A, d, len / 2), leaf(B, back, len / 2)];
+  return door.hinge === 'end' ? [leaf(B, back, len)] : [leaf(A, d, len)];
+}
+
+/** Un cuadrilátero como lo quiere el atributo `points` de un `<polygon>`. */
+export const quadPoints = (q: readonly Point[]): string => q.map(p => `${Math.round(p.x * 100) / 100},${Math.round(p.y * 100) / 100}`).join(' ');
+
+/**
+ * De qué color se pinta ESTA puerta: el suyo si lo tiene, si no el de la escena, y si tampoco `null` — que
+ * significa «el trazo del muro» y lo resuelve el CSS, no este código. Un solo sitio donde se decide.
+ */
+export const doorColorOf = (door: Pick<DoorSettings, 'doorColor'>, scene: Pick<Scene, 'doorColor'>): string | null =>
+  door.doorColor ?? scene.doorColor ?? null;
+
+/**
+ * Y con qué TEXTURA. Mismo reparto que el color —la suya, si no la de la escena— y **manda sobre él**:
+ * si hay textura, el color no se ve. Es lo que él pidió el 2026-09-07 probándolo, y la regla vive aquí
+ * sola para que no acabe repetida en los dos sitios que pintan puertas (muros sueltos y salas).
+ */
+export const doorTextureOf = (door: Pick<DoorSettings, 'doorTextureUrl'>, scene: Pick<Scene, 'doorTextureUrl'>): string | null =>
+  door.doorTextureUrl ?? scene.doorTextureUrl ?? null;
+
+/**
+ * El id del `<pattern>` de una textura de puerta, sacado de su propia url.
+ *
+ * Que salga de la url y no de un contador es lo que permite que el `<defs>` se monte en un sitio (una vez
+ * por mosaico distinto) y que cada puerta lo pida desde otro sin pasarse ningún mapa entre componentes.
+ */
+export const doorPatternId = (url: string): string =>
+  `mp-doortex-${Math.abs([...url].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7)).toString(36)}`;
+
+/** Los mosaicos distintos que hacen falta en esta escena: uno por url, sin repetir. */
+export const doorTexturesUsed = (
+  doors: readonly Pick<DoorSettings, 'doorTextureUrl'>[],
+  scene: Pick<Scene, 'doorTextureUrl'>,
+): string[] => [...new Set(doors.map(d => doorTextureOf(d, scene)).filter((u): u is string => !!u))];
+
 /** Leftovers this short are the zero-length ends of a cut: the spec says they are not saved. */
 const MIN_PIECE = 0.5;
 

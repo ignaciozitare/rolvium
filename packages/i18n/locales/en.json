@@ -886,6 +886,26 @@
       "close": "Close",
       "selected": "Selected segment"
     },
+    "door": {
+      "section": "What the door will be like",
+      "draftHint": "it is drawn like this from the start · and this same block edits the one you have selected",
+      "leaves": "Leaves",
+      "leavesOne": "One",
+      "leavesTwo": "Two",
+      "hinge": "Hinge",
+      "hingeStart": "One end",
+      "hingeEnd": "The other",
+      "swing": "Opens towards",
+      "swingA": "One side",
+      "swingB": "The other",
+      "color": "Colour",
+      "colorScene": "The scene's",
+      "colorOwn": "Own colour {{hex}}",
+      "texture": "Texture",
+      "texturePick": "Choose",
+      "textureChange": "Change",
+      "hint": "you never have to set it up: draw it and it works"
+    },
     "action": {
       "dice": "Dice roller",
       "placePc": "Place PC",
@@ -1034,6 +1054,7 @@
         "hint": "The wall one fills the whole map; the floor one shows through the hole each room opens.",
         "own": "Your own photo",
         "change": "Change",
+        "pick": "Choose",
         "upload": "+ Upload",
         "remove": "Remove"
       },
@@ -1054,6 +1075,7 @@
         "wall": "Wall texture",
         "floor": "Floor texture",
         "hint": "These belong to the TOOL, not to your campaign: whatever you upload here works in all your maps. Pick one and it becomes this scene’s base texture, with its tile size.",
+        "doorHint": "These belong to the TOOL, not to your campaign: whatever you upload here works in all your maps. Pick one and it goes on the door, tiled one square at a time.",
         "empty": "No texture with that name in this category.",
         "search": "Search by name…",
         "categories": "Categories",
@@ -1074,7 +1096,8 @@
         "menu": "Options for “{{name}}”",
         "rename": "Rename",
         "categorize": "Categorise",
-        "renamePrompt": "What should this texture be called?"
+        "renamePrompt": "What should this texture be called?",
+        "door": "Door texture"
       },
       "tooSmall": "The gesture came up short: nothing was built. Drag a little further.",
       "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square."
@@ -1096,7 +1119,9 @@
       "ungroup": "ungrouping",
       "split": "the node",
       "roomDelete": "Delete room",
-      "roomFill": "the wall"
+      "roomFill": "the wall",
+      "door": "the door",
+      "window": "the window"
     },
     "builder": {
       "title": "Builder",
@@ -1133,6 +1158,12 @@
         "hintOff": "every endpoint on its own · careful: the shape can be left open"
       },
       "selectAll": "Ctrl/Cmd + A takes every wall"
+    },
+    "tokenScale": {
+      "label": "TOKEN SIZE · WHOLE SCENE",
+      "short": "SIZE",
+      "hint": "so they fit through narrow corridors · the ratio between sizes never changes",
+      "reading": "a normal token takes up {cells} squares"
     }
   },
   "bestiary": {

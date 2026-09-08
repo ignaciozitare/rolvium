@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { ROOM_PRESETS, type RoomPreset, type Scene } from '../entities/Scene';
 import {
   outlinePath, ringFromSides, ringOf, ringPath, ringsOf, ROOM_STYLES, sceneTextures,
-  shadowDepthPx, spansOf, styleOf, wallWidthPx,
+  shadowDepthPx, snapSpanToOutline, spansOf, styleOf, wallWidthPx, roomWallsOf,
 } from './roomStyles';
 import type { RoomSide } from './roomRules';
+import type { RoomOpeningSpan } from '@rolvium/core';
+import type { Room } from '../entities/Scene';
+import { DEFAULT_DOOR } from '../entities/Scene';
 
 const scene = (over: Partial<Scene> = {}): Scene => ({
   id: 'sc-1', campaignId: 'c1', name: 'Cripta', width: 600, height: 400, bgColor: '#111111', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 30, visible: true }, fogMode: 'vision',
-  lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false,
+  lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null, doorTextureUrl: null, tokenScale: 1,
   roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
   createdAt: '', updatedAt: '', ...over,
 });
@@ -101,8 +104,10 @@ describe('de las filas a la geometría', () => {
   });
 
   it('los vanos guardados viajan al motor tal cual', () => {
-    expect(spansOf([{ id: 'o', sceneId: 's', campaignId: 'c', x1: 1, y1: 2, x2: 3, y2: 4, kind: 'door', isOpen: true }]))
-      .toEqual([{ x1: 1, y1: 2, x2: 3, y2: 4, kind: 'door', isOpen: true }]);
+    expect(spansOf([{ id: 'o', sceneId: 's', campaignId: 'c', x1: 1, y1: 2, x2: 3, y2: 4, kind: 'door', isOpen: true, ...DEFAULT_DOOR }]))
+      // El `id` viaja desde «Las puertas, de verdad»: es lo que deja volver del tramo pintado a la fila que
+      // dice CÓMO es esa puerta. Sin él, el contorno no sabría cuántas hojas tiene ni hacia dónde abre.
+      .toEqual([{ id: 'o', x1: 1, y1: 2, x2: 3, y2: 4, kind: 'door', isOpen: true }]);
   });
 });
 
@@ -133,5 +138,51 @@ describe('los caminos SVG', () => {
 
   it('sin temblor pedido, no tiembla aunque se le pase cantidad', () => {
     expect(outlinePath([[0, 0, 10, 0]], false, 5)).toBe('M 0 0 L 10 0');
+  });
+});
+
+/**
+ * ── «NO PONE LAS PUERTAS» (suyo, 2026-09-07 con la app delante) ──
+ *
+ * No era que no se guardaran: al PINTAR, sólo se dibujan los vanos cuyas dos puntas caen a 2 px de un lado
+ * del contorno, y a mano eso es una lotería. Ahora el trazo se PROYECTA sobre la pared que tenía a la vista.
+ */
+describe('snapSpanToOutline — la puerta se engancha a la pared', () => {
+  /** Una sala cuadrada de (0,0) a (100,100): sus lados son el contorno. */
+  const sala = (): Room => ({
+    id: 'r1', sceneId: 's', campaignId: 'c', kind: 'room', shape: 'rect',
+    points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null, createdAt: '', updatedAt: '',
+  });
+  const vano = (x1: number, y1: number, x2: number, y2: number): RoomOpeningSpan =>
+    ({ x1, y1, x2, y2, kind: 'door', isOpen: false });
+
+  it('un trazo A OJO cerca de la pared se clava en ella, y entonces SÍ se dibuja', () => {
+    // A 6 px por dentro del lado de arriba: antes se perdía; ahora se clava en y = 0.
+    const puesto = snapSpanToOutline([sala()], vano(30, 6, 70, 5), 15)!;
+    expect(puesto).not.toBeNull();
+    expect(puesto.y1).toBeCloseTo(0, 6);
+    expect(puesto.y2).toBeCloseTo(0, 6);
+    expect(puesto.x1).toBeCloseTo(30, 6);
+    expect(puesto.x2).toBeCloseTo(70, 6);
+    // Y ya proyectado, el motor que pinta sí lo reconoce como puerta — que es lo que fallaba.
+    expect(roomWallsOf([sala()], [{ id: 'o', sceneId: 's', campaignId: 'c', ...puesto, ...DEFAULT_DOOR }])
+      .some(w => w.kind === 'door')).toBe(true);
+  });
+
+  it('en mitad del suelo no se engancha a nada: ahí no hay pared', () => {
+    expect(snapSpanToOutline([sala()], vano(30, 40, 70, 60), 15)).toBeNull();
+  });
+
+  it('las DOS puntas tienen que estar cerca de la MISMA pared', () => {
+    // Una punta pegada al lado de arriba y la otra a media sala: no es un vano de esa pared.
+    expect(snapSpanToOutline([sala()], vano(30, 1, 70, 50), 15)).toBeNull();
+  });
+
+  it('un trazo perpendicular a la pared no deja vano: proyectado se queda en nada', () => {
+    expect(snapSpanToOutline([sala()], vano(50, 0, 50, 10), 15)).toBeNull();
+  });
+
+  it('sin salas no hay contorno al que engancharse', () => {
+    expect(snapSpanToOutline([], vano(30, 0, 70, 0), 15)).toBeNull();
   });
 });

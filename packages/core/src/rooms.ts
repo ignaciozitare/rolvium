@@ -52,6 +52,11 @@ export const fills = (...rings: RoomRing[]): RoomPart[] => rings.map(ring => ({ 
 
 /** Un vano anotado SOBRE el contorno: de dónde a dónde, y qué es. No parte ninguna fila — no hay fila. */
 export interface RoomOpeningSpan {
+  /**
+   * De qué vano salió, para que quien pinta pueda recuperar CÓMO es esa puerta (hojas, bisagra, lado,
+   * color). Opcional: el cálculo de visión no lo necesita y quien sólo quiere muros no tiene que inventarlo.
+   */
+  id?: string;
   x1: number; y1: number; x2: number; y2: number;
   kind: 'door' | 'window';
   isOpen: boolean;
@@ -65,6 +70,8 @@ export interface RoomWall {
   seg: BlockSegment;
   kind: 'wall' | 'door' | 'window';
   isOpen: boolean;
+  /** El vano del que salió este tramo, si salió de uno. La roca entre dos vanos no lleva ninguno. */
+  openingId?: string;
 }
 
 /**
@@ -324,16 +331,16 @@ export function roomWalls(parts: readonly RoomPart[], openings: readonly RoomOpe
     if (spans.length === 0) { out.push({ seg, kind: 'wall', isOpen: false }); continue; }
     spans.sort((x, y) => x.t0 - y.t0);
     const at = (t: number): ScenePoint => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
-    const piece = (t0: number, t1: number, kind: RoomWall['kind'], isOpen: boolean): void => {
+    const piece = (t0: number, t1: number, kind: RoomWall['kind'], isOpen: boolean, openingId?: string): void => {
       if (t1 - t0 <= 1e-6) return;
       const p0 = at(t0), p1 = at(t1);
-      out.push({ seg: [p0.x, p0.y, p1.x, p1.y], kind, isOpen });
+      out.push({ seg: [p0.x, p0.y, p1.x, p1.y], kind, isOpen, ...(openingId ? { openingId } : {}) });
     };
     let cursor = 0;
     for (const s of spans) {
       if (s.t0 < cursor) { cursor = Math.max(cursor, s.t1); continue; }  // vanos pisados: manda el primero
       piece(cursor, s.t0, 'wall', false);
-      piece(s.t0, s.t1, s.o.kind, s.o.isOpen);
+      piece(s.t0, s.t1, s.o.kind, s.o.isOpen, s.o.id);
       cursor = s.t1;
     }
     piece(cursor, 1, 'wall', false);

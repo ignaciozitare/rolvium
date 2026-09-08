@@ -327,3 +327,37 @@ describe('roomOutline — la última forma dibujada es la que manda', () => {
     expect(touches(out, { x: 60, y: 100 })).toBe(false);
   });
 });
+
+/**
+ * ── LAS PUERTAS, DE VERDAD ──
+ * El tramo del contorno tiene que poder decir DE QUÉ VANO salió: es lo único que permite volver de lo que se
+ * pinta a la fila que guarda cómo es esa puerta (hojas, bisagra, lado, color). Sin esto, una puerta de sala
+ * se dibujaría siempre igual, que es justo el aspecto que él mandó cambiar.
+ */
+describe('roomWalls — de qué vano salió cada tramo', () => {
+  const room: RoomRing = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }, { x: 0, y: 100 }];
+
+  it('el tramo del vano lleva su id; la roca de al lado no lleva ninguno', () => {
+    const walls = roomWalls(digs(room), [{ id: 'ro-7', x1: 40, y1: 0, x2: 60, y2: 0, kind: 'door', isOpen: false }]);
+    const puerta = walls.filter(w => w.kind === 'door');
+    expect(puerta).toHaveLength(1);
+    expect(puerta[0].openingId).toBe('ro-7');
+    expect(walls.filter(w => w.kind === 'wall').every(w => w.openingId === undefined)).toBe(true);
+  });
+
+  it('sin id el contorno sigue saliendo igual: quien no lo necesita no tiene que inventarlo', () => {
+    const walls = roomWalls(digs(room), [{ x1: 40, y1: 0, x2: 60, y2: 0, kind: 'door', isOpen: true }]);
+    const puerta = walls.find(w => w.kind === 'door')!;
+    expect(puerta.isOpen).toBe(true);
+    expect(puerta.openingId).toBeUndefined();
+  });
+
+  it('dos vanos en el mismo lado no se mezclan los ids', () => {
+    const walls = roomWalls(digs(room), [
+      { id: 'a', x1: 10, y1: 0, x2: 30, y2: 0, kind: 'door', isOpen: false },
+      { id: 'b', x1: 60, y1: 0, x2: 80, y2: 0, kind: 'window', isOpen: false },
+    ]);
+    expect(walls.find(w => w.kind === 'door')!.openingId).toBe('a');
+    expect(walls.find(w => w.kind === 'window')!.openingId).toBe('b');
+  });
+});

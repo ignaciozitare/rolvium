@@ -1,8 +1,14 @@
 import type { TableEvent } from '@rolvium/core';
 import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, TexturePatch, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
 
-/** Lo único que se edita de un vano: si está abierto, y qué es. Su sitio no cambia — para eso se mueve la forma. */
-export type RoomOpeningPatch = Partial<Pick<RoomOpening, 'kind' | 'isOpen'>>;
+/**
+ * Lo que se edita de un vano: si está abierto, qué es, y —desde «Las puertas, de verdad»— cómo es la puerta.
+ * Su sitio no cambia: para eso se mueve la forma.
+ *
+ * Las de la puerta son LAS MISMAS que las de `WallPatch` a propósito: el panel que las toca es uno
+ * solo para las dos, que es lo que arregla que una puerta de sala no se pudiera ni abrir ni borrar.
+ */
+export type RoomOpeningPatch = Partial<Pick<RoomOpening, 'kind' | 'isOpen' | 'leaves' | 'hinge' | 'swing' | 'doorColor' | 'doorTextureUrl'>>;
 
 export type Unsubscribe = () => void;
 

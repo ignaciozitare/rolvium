@@ -246,6 +246,73 @@ de ser un dibujo para empezar a ser un sitio (dueño, 2026-08-22: «que los toke
 - Choca **todo el cuerpo** del token, no su punto central: un gato (0,5 casillas) pasa por un hueco por el que
   un ogro (3,5) no cabe. Es la razón de que los tamaños de la p.25 existan.
 
+### La barrita del tamaño de las fichas (por escena)
+> Encargo suyo del 2026-09-07, salido de un problema real: «*si dibujan pasillos pequeños los tokens no
+> pasarán… no quiero eliminar la colisión de los tokens, quiero saber si podemos reducir el tamaño*». Y
+> después: «*el tamaño se configura no por saltos sino con una barrita progresiva… y por escena, no para
+> todo*».
+
+- **Una barrita CONTINUA en los ajustes de la escena**, no saltos. Sólo la mueve el **director**, como la
+  rejilla y el grosor del muro.
+- **Recorre de la MITAD a UN CUARTO MÁS**, y arranca en el centro — o sea, una escena nueva se ve exactamente
+  como se ve hoy y nadie nota el cambio hasta que toca la barrita.
+- **Afecta a TODAS las fichas de esa escena a la vez y al momento**, las ya colocadas incluidas («*en
+  todas*»). No es un ajuste que sólo valga para las nuevas: con fichas de dos tamaños conviviendo no se
+  resolvería el pasillo, que es el problema que lo motiva.
+- **Es UN SOLO multiplicador para los cinco tamaños**, así que la proporción entre diminuto, pequeño, normal,
+  grande y enorme **no cambia nunca**. Ésa es la condición que él puso: «*esto hay que respetarlo en tamaños…
+  que se mantenga la relación*».
+- **La colisión va sola detrás.** No se toca ninguna regla de choque: si la ficha encoge, su cuerpo encoge y
+  por eso pasa. Sigue chocando todo el cuerpo, como dice «El tamaño cuenta» aquí arriba.
+- **Cada escena con lo suyo.** No es de campaña ni global.
+
+Lo que ocupa cada tamaño en los extremos del recorrido:
+
+| Tamaño | Mitad | Dos tercios | Centro (hoy) | Un cuarto más |
+|---|---|---|---|---|
+| Diminuto | 0,25 | 0,33 | 0,5 | 0,63 |
+| Pequeño | 0,38 | 0,5 | 0,75 | 0,94 |
+| **Normal** | **0,75** | **1** | **1,5** | **1,88** |
+| Grande | 1,75 | 2,34 | 3,5 | 4,38 |
+| Enorme | 3,5 | 4,69 | 7 | 8,75 |
+
+A dos tercios una ficha **normal** ocupa **una casilla justa** y pasa por un pasillo de una — que es el caso
+que lo motivó. Un **grande** sigue sin pasar, y así debe ser: un ogro no cabe por un pasillo de una casilla.
+
+#### Por qué esto NO contradice el manual
+El libro (p.25) da **estaturas, no huellas en casillas**: la conversión a casillas y el aumento de
+legibilidad del 33% que fija el normal en 1,5 son **nuestros**, no suyos (`packages/system-plenilunio` ·
+`TOKEN_CELLS`, y RULES.md §1.6, donde ya está marcado como «⚠ interpretación»). Lo que **sí** es del libro
+son las **proporciones** entre los cinco tamaños, y la barrita las conserva intactas porque multiplica a
+todos por igual. Mover un multiplicador nuestro es legítimo; cambiar la relación entre tamaños no lo sería.
+
+#### Fuera de esta tanda
+- Cambiar el tamaño de **una ficha suelta** a mano.
+- Tocar de dónde sale el tamaño de cada personaje: sigue saliendo de **su ficha**, como hasta ahora.
+- Que la barrita afecte a la sonda del director, a las luces o a la regla de medir. No.
+
+#### Modelo de datos
+**No hay tabla nueva ni fila nueva: es UN dato más de la escena.** La escena gana un multiplicador del tamaño
+de las fichas, un número entre 0,5 y 1,25 que arranca en 1. Vive junto a los otros ajustes de aspecto que ya
+tiene la escena —la rejilla, el grosor del muro, la escala de las texturas, el color de la puerta—, que es
+exactamente la misma familia de cosas.
+
+**Lo que NO se toca, y es la decisión importante:** el tamaño que cada ficha lleva guardado desde que se
+colocó se queda intacto. La barrita **no reescribe las fichas**; se aplica encima, al pintarlas y al calcular
+con qué chocan. Se descartó lo contrario por dos motivos: cada roce de la barrita obligaría a reescribir
+todas las fichas del mapa, y el tamaño original de cada una se perdería para siempre, así que no habría vuelta
+atrás. Con este modelo la barrita es una **lente**: se puede mover adelante y atrás sin degradar nada.
+
+**Quién lo lee y quién lo escribe:** lo lee todo el que puede ver la escena —hace falta para pintarla bien— y
+lo escribe **sólo el director**. No hace falta ningún permiso nuevo: la escena ya tiene su control de acceso
+puesto desde el primer día y un dato suyo lo hereda. No se re-implementa el permiso por columna.
+
+**Escenas que ya existen:** ninguna cambia de aspecto. Todas arrancan en 1, que es como se ven hoy, y nadie
+nota nada hasta que toca la barrita.
+
+**Migración:** `supabase/migrations/20260907170000_maps_token_scale.sql`. Aplicada en local y verificada: el
+linter de seguridad no devuelve ni un error y la auditoría no da ninguna violación dura.
+
 ### Qué bloquea y qué no
 - Bloquea lo que ya lleva marcado `blocksMove`: **muros, ventanas y puertas cerradas**. Una **puerta abierta
   deja pasar** — `blocksMoveNow(w)` = `blocksMove && !isOpen`, el gemelo exacto de `blocksSightNow`, escrito en
@@ -1638,8 +1705,10 @@ las aberturas de sala viven en `maps_room_openings`, así que ahí no llegaba. �
 encargo mayor. ✅ Las VENTANAS de sala ya estaban bien: dejan ver y no dejan pasar, y no hay que abrirlas.
 
 #### El dibujo
-- **Cerrada**: una **barra hueca de esquinas redondeadas** que ocupa el hueco, con el trazo del muro
-  parándose a cada lado (las jambas). Es lo de la captura.
+- **Cerrada**: una **barra hueca de ÁNGULOS RECTOS** que ocupa el hueco, con el trazo del muro
+  parándose a cada lado (las jambas). Es lo de la captura. ⚠ **Nada de cantos redondeados**: el primer
+  diseño los llevaba y él lo corrigió con la lámina delante (2026-09-07, «*la puerta tiene que tener
+  ángulos rectos no circulares*»).
 - **Abierta**: la hoja **girada 90°** desde su bisagra, como un plano de arquitecto — enseña de un vistazo
   hacia dónde abre. **Sin arco de barrido**: con muchas puertas juntas el mapa se llena de curvas (elegido
   por él, 2026-09-07).
@@ -1677,17 +1746,61 @@ cuatro combinaciones: es lo mismo y se entiende sin leer.
   es especial —la de hierro del jefe— se le cambia a esa sola.
 
 #### Modelo de datos
-> Pendiente — lo completa el DBA. Lo que se sabe: las mismas columnas nuevas en `maps_walls` y en
-> `maps_room_openings` (hojas, bisagra, lado, color propio), porque las dos ya llevan `kind` e `is_open` en
-> paralelo; más el color por defecto en `maps_scenes`. Todas aditivas y con valor por omisión, para que
-> ninguna puerta existente cambie de comportamiento.
+Son **DOS** migraciones, y la segunda salió de que él revocara una decisión el mismo día (ver arriba):
+
+1. `supabase/migrations/20260907120000_maps_doors.sql` — hojas, bisagra, lado y color.
+2. `supabase/migrations/20260907150000_maps_door_texture.sql` — la **textura** de la puerta:
+   `door_texture_url` en `maps_walls`, `maps_room_openings` y `maps_scenes`, con el mismo patrón que el color
+   (uno para toda la escena, y por puerta si quiere cambiar una). La **textura manda sobre el color**.
+   Puramente aditiva, tres `ADD COLUMN IF NOT EXISTS` sobre tablas que ya tienen RLS, y hereda sus políticas.
+
+Migración `supabase/migrations/20260907120000_maps_doors.sql`, **aplicada en local**. **Puramente aditiva**: no
+crea tablas ni políticas, sólo columnas con valor por omisión sobre tres tablas que ya existían. Las siete
+puertas que él ya tiene puestas **no cambian de comportamiento** — los valores por defecto son exactamente lo
+que hacen hoy. El aspecto sí cambia, pero eso lo hace el dibujo nuevo, no la base, y es decisión suya.
+
+- **`maps_walls` y `maps_room_openings` ganan LAS MISMAS CUATRO COLUMNAS**, a propósito: una puerta de muro
+  suelto vive en una tabla y una de sala en la otra, y las dos ya llevaban `kind` e `is_open` en paralelo con
+  el mismo significado. Repetir el juego es lo que permite que el panel de la puerta y el disco de
+  abrir/cerrar sean **una sola pieza** para las dos — que es justo lo que hoy está roto.
+  - **Hojas** (`leaves`, 1 o 2, por defecto **1**): con dos se parte por la mitad y las dos giran a la vez.
+  - **Bisagra** (`hinge`, `start` o `end`, por defecto **`start`**): `start` es el extremo `(x1,y1)`, por donde
+    empezó a dibujar.
+  - **Lado** (`swing`, `left` o `right`, por defecto **`right`**): hacia dónde gira la hoja, medido sobre la
+    normal del segmento (`right` = +n con n = (-dy, dx), que es el lado hacia el que la saca hoy
+    `openingGeometry`). Se nombra por la **geometría** y no «adentro/afuera» a propósito: en un muro suelto
+    sobre una foto no hay dentro ni fuera, y el lado por defecto ya se decidió que fuese fijo, no calculado.
+  - **Color propio** (`door_color`, nulo por defecto): nulo = el de la escena, que es el caso normal.
+- **`maps_scenes` gana `door_color`** — el color de TODAS las puertas de la escena. **Nulo y no un hex
+  concreto**: nulo significa «el trazo del muro», que es de donde salen hoy. Clavar un color aquí obligaría a
+  que la base y el diseño dijeran lo mismo en dos sitios, y el día que el `.pen` cambie de tinta habría que
+  migrar todas las escenas para que no se quedaran con la vieja.
+- **Formas comprobadas en la base**: hojas fuera de {1,2}, bisagras y lados inventados y colores que no son un
+  hex (`rgb(1,2,3)`, `javascript:alert(1)`) los rechazan nueve `CHECK`, tres por tabla más el de la escena.
+- **Acceso: sin política nueva, porque las que hay ya lo dicen.** `maps_walls`, `maps_room_openings` y
+  `maps_scenes` tienen RLS activa con su `*_select` (el director siempre; el jugador si la escena le es
+  visible) y su `*_dm_write FOR ALL` — que es exactamente el reparto que piden estas columnas: **cómo es una
+  puerta lo decide quien levanta el mapa, y lo ve quien ve la escena**.
+- **Borrar una abertura de sala tampoco necesitó nada aquí**: la política es `FOR ALL` y el `GRANT` ya incluye
+  `DELETE` desde la rebanada 8. Lo que falta es que alguien llame a `removeRoomOpening`, y eso es código.
+- Realtime: las tres tablas ya estaban en la publicación. Sigue valiendo la regla de la rebanada 2 — lo que
+  cambia `visible_players` manda `walls.updated`, porque a un jugador no le llega el evento de un muro que
+  deja de poder ver.
+- Comprobado en local: `supabase db lint --local --level error` **limpio** y `npm run audit` **0 hard** (RLS
+  activa en las tres, ninguna política `TO anon`). Y `NOTIFY pgrst` al final de la migración, que sin él
+  PostgREST se queda con el esquema viejo y la pantalla sale vacía sin decir por qué.
 
 #### 🟠 Decisiones mías, revisables
 - **El lado por defecto es fijo, no calculado.** En una sala se podría deducir «hacia fuera», pero en un muro
   suelto sobre una foto no hay dentro ni fuera, y dos comportamientos distintos para el mismo gesto se leen
   como un fallo. Un clic lo cambia.
-- **La barra hueca se pinta con el color de la puerta y el trazo del muro**, no con una textura propia. Él
-  dijo «color o textura»; la textura se puede añadir después sobre la misma columna sin migrar otra vez.
+- ~~**La barra hueca se pinta con el color de la puerta y el trazo del muro**, no con una textura propia. Él
+  dijo «color o textura»; la textura se puede añadir después sobre la misma columna sin migrar otra vez.~~
+  **REVOCADA POR ÉL EL MISMO DÍA**, con la app delante: «*te falta lo de la textura*». Así que la puerta
+  **SÍ lleva textura propia**, y la textura **manda sobre el color**. Y la predicción de esa decisión salió
+  mal por partida doble: hizo falta **otra migración** (`20260907150000_maps_door_texture.sql`, columna
+  `door_texture_url` en `maps_walls`, `maps_room_openings` y `maps_scenes`), no valía la misma columna. Se
+  deja tachada y no borrada: la decisión existió y el motivo por el que cayó es lo que enseña.
 
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los

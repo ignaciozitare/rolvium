@@ -1017,4 +1017,92 @@ describe('useScene — las salas (rebanada 8)', () => {
     expect(result.current.roomOpenings).toHaveLength(0);
     expect(result.current.walls).toHaveLength(0);
   });
+
+  /**
+   * 🐞 «*el ctrl+z no funciona con las puertas*» (suyo, 2026-09-07). Un vano de sala era lo único que se
+   * dibujaba en Builder sin pasar por el historial: Ctrl+Z se lo saltaba y deshacía lo ANTERIOR, que es peor
+   * que no hacer nada.
+   */
+  it('poner y quitar una puerta de sala se deshace y se rehace', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const result = await mount(repo, fakeVisionPort({}));
+    await act(async () => { await result.current.addRoomShape('rect', CUADRADO); });
+    await act(async () => { await result.current.addRoomOpening({ x1: 40, y1: 0, x2: 60, y2: 0, kind: 'door', isOpen: false }); });
+    expect(result.current.roomOpenings).toHaveLength(1);
+
+    await act(async () => { await result.current.history.undo(); });
+    expect(result.current.roomOpenings).toHaveLength(0);
+    // Y la sala NO se ha ido con ella: el paso deshecho era el de la puerta, no el anterior.
+    expect(result.current.rooms).toHaveLength(1);
+
+    await act(async () => { await result.current.history.redo(); });
+    expect(result.current.roomOpenings).toHaveLength(1);
+
+    // Borrarla también se deshace.
+    const id = result.current.roomOpenings[0]!.id;
+    await act(async () => { await result.current.removeRoomOpening(id); });
+    expect(result.current.roomOpenings).toHaveLength(0);
+    await act(async () => { await result.current.history.undo(); });
+    expect(result.current.roomOpenings).toHaveLength(1);
+  });
+
+  /**
+   * ── LAS PUERTAS, DE VERDAD ──
+   * Cómo es una puerta —hojas, bisagra, lado, color— es APARIENCIA: no mueve una sola línea de vista. Por
+   * eso no se le vuelve a preguntar la visión al servidor, que es una ida y vuelta por clic y él ya se
+   * quejó una vez de que «está todo lentísimo». Lo que sí la cambia es ABRIRLA.
+   */
+  it('cambiar cómo es una puerta de sala se guarda, y NO gasta una vuelta al servidor', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const vision = fakeVisionPort({});
+    const result = await mount(repo, vision);
+    await act(async () => { await result.current.addRoomShape('rect', CUADRADO); });
+    await act(async () => { await result.current.addRoomOpening({ x1: 40, y1: 0, x2: 60, y2: 0, kind: 'door', isOpen: false }); });
+    const id = result.current.roomOpenings[0]!.id;
+    // Dejar que se apague lo que la CREACIÓN del vano dejó pedido: si no, se contaría su refresco como si
+    // fuera del cambio de apariencia.
+    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+    const antes = vision.calls.filter(c => c.op === 'refresh').length;
+    await act(async () => { await result.current.patchRoomOpening(id, { leaves: 2, swing: 'left', doorColor: '#8b1a1a' }); });
+    expect(result.current.roomOpenings[0]).toMatchObject({ leaves: 2, swing: 'left', doorColor: '#8b1a1a' });
+    expect(vision.calls.filter(c => c.op === 'refresh').length).toBe(antes);
+    // Y abrirla sí la pide, que es la mitad que de verdad cambia lo que se ve.
+    await act(async () => { await result.current.toggleRoomOpening(id, true); });
+    await waitFor(() => expect(vision.calls.filter(c => c.op === 'refresh').length).toBeGreaterThan(antes));
+  });
+
+  it('lo mismo con la puerta de un MURO: el color no pide visión, abrirla sí', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], walls: [{ ...WALL_1, kind: 'door' }] });
+    const vision = fakeVisionPort({});
+    const result = await mount(repo, vision);
+    await waitFor(() => expect(result.current.walls).toHaveLength(1));
+    const id = result.current.walls[0]!.id;
+    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+    const antes = vision.calls.filter(c => c.op === 'refresh').length;
+    await act(async () => { await result.current.patchWall(id, { leaves: 2, hinge: 'end' }); });
+    expect(result.current.walls[0]).toMatchObject({ leaves: 2, hinge: 'end' });
+    expect(vision.calls.filter(c => c.op === 'refresh').length).toBe(antes);
+    await act(async () => { await result.current.patchWall(id, { isOpen: true }); });
+    await waitFor(() => expect(vision.calls.filter(c => c.op === 'refresh').length).toBeGreaterThan(antes));
+  });
+
+  /**
+   * Y LA TEXTURA TAMPOCO (2026-09-07). Es la quinta de la puerta y es tan apariencia como el color: una foto
+   * de roble encima de la hoja no mueve una sola línea de vista. Si se quedara fuera de `SOLO_APARIENCIA`,
+   * cada clic en el catálogo sería una vuelta al servidor de balde — justo lo que se evitó con el color.
+   */
+  it('la TEXTURA de la puerta tampoco pide visión: es apariencia, como el color', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], walls: [{ ...WALL_1, kind: 'door' }] });
+    const vision = fakeVisionPort({});
+    const result = await mount(repo, vision);
+    await waitFor(() => expect(result.current.walls).toHaveLength(1));
+    const id = result.current.walls[0]!.id;
+    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+    const antes = vision.calls.filter(c => c.op === 'refresh').length;
+    const emitidos = repo.broadcasts.length;
+    await act(async () => { await result.current.patchWall(id, { doorTextureUrl: 'https://x/roble.png' }); });
+    expect(result.current.walls[0]).toMatchObject({ doorTextureUrl: 'https://x/roble.png' });
+    expect(vision.calls.filter(c => c.op === 'refresh').length).toBe(antes);
+    expect(repo.broadcasts.slice(emitidos).map(b => b.event.type)).not.toContain('fog.updated');
+  });
 });

@@ -58,11 +58,77 @@ export interface Scene {
    */
   wallTextureScale: number;
   floorTextureScale: number;
+  /**
+   * EL COLOR DE TODAS LAS PUERTAS DE ESTA ESCENA (§ «Las puertas, de verdad»). `null` = el trazo del muro,
+   * que es de donde salen hoy — y por eso es nulo y no un hex: clavar un color aquí obligaría a que la base
+   * y el diseño dijeran lo mismo en dos sitios, y el día que cambie la tinta habría que migrar cada escena.
+   *
+   * Una puerta suelta puede desmentirlo con su `doorColor` (la de hierro del jefe). Elegido por él: por
+   * defecto todas iguales, con excepción por puerta.
+   */
+  doorColor: string | null;
+  /** La textura por defecto de TODAS las puertas de la escena. `null` = sin textura: manda el color. */
+  doorTextureUrl: string | null;
+  /**
+   * CUÁNTO SE ENCOGEN O CRECEN TODAS LAS FICHAS DE ESTA ESCENA. `1` = como siempre.
+   *
+   * Encargo suyo del 2026-09-07, de un problema real de mesa: «*si dibujan pasillos pequeños los tokens no
+   * pasarán… no quiero eliminar la colisión, quiero reducir el tamaño*». Una ficha NORMAL ocupa 1,5 casillas
+   * y no cabe por un pasillo de una; a 2/3 ocupa 1 justa y pasa. Un GRANDE sigue sin pasar, y así debe ser.
+   *
+   * 🔑 ES UN SOLO MULTIPLICADOR PARA LOS CINCO TAMAÑOS, y ésa es la condición que él puso: «*esto hay que
+   * respetarlo en tamaños… que se mantenga la relación de diminuto pequeño normal grande y enorme*». El
+   * manual (p.25) fija PROPORCIONES, no huellas en casillas —el paso a casillas es interpretación nuestra,
+   * RULES.md §1.6—, así que escalar a todos por igual no lo contradice; cambiar la relación sí lo haría.
+   *
+   * ⚠️ NO reescribe el tamaño de ninguna ficha: es una LENTE. Se aplica en `tokenSizeIn` (`mapRules`), que
+   * es el único sitio donde se toca — y por el que pasan el dibujo Y la colisión, para que no se descuadren.
+   */
+  tokenScale: number;
   createdAt: string;
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale'>>;
+export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor' | 'doorTextureUrl' | 'tokenScale'>>;
+
+// ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps) ───────────────────────────
+// Espejo de `supabase/migrations/20260907120000_maps_doors.sql`.
+//
+// 🔑 EL MISMO JUEGO EN LAS DOS TABLAS, a propósito: una puerta de muro suelto vive en `maps_walls` y una de
+// sala en `maps_room_openings`. Repetirlo es lo que deja que el panel de la puerta y el disco de abrir sean
+// UNA sola pieza para las dos — que es justo lo que estaba roto: el disco sólo miraba en los muros.
+
+/** Una hoja, o dos que se parten por la mitad y giran a la vez, cada una desde su extremo. */
+export type DoorLeaves = 1 | 2;
+/** De qué extremo cuelga: `start` = `(x1,y1)`, por donde se empezó a dibujar. Sólo se lee con UNA hoja. */
+export type DoorHinge = 'start' | 'end';
+/**
+ * Hacia qué lado gira la hoja, medido sobre la normal del segmento (`right` = +n con n = (-dy, dx), que es
+ * el lado de siempre). Se nombra por la GEOMETRÍA y no «adentro/afuera» a propósito: en un muro suelto sobre
+ * una foto no hay dentro ni fuera, y el lado por defecto es FIJO, no calculado.
+ */
+export type DoorSwing = 'left' | 'right';
+
+/** Cómo es una puerta. Configurarla NUNCA es obligatorio: estos valores son los que trae de fábrica. */
+export interface DoorSettings {
+  leaves: DoorLeaves;
+  hinge: DoorHinge;
+  swing: DoorSwing;
+  /** `null` = el de la escena (`Scene.doorColor`), que es el caso normal y el de todas las que ya existen. */
+  doorColor: string | null;
+  /**
+   * Textura propia de ESTA puerta — una url del catálogo (`maps_textures`), no un fichero nuevo: las
+   * texturas son de la herramienta y ya se suben y se ordenan en un sitio. `null` = la de la escena.
+   *
+   * ⚠️ MANDA SOBRE EL COLOR: si hay textura, el color no se ve. Pedido suyo del 2026-09-07 probándolo.
+   */
+  doorTextureUrl: string | null;
+}
+export const DEFAULT_DOOR: DoorSettings = { leaves: 1, hinge: 'start', swing: 'right', doorColor: null, doorTextureUrl: null };
+export const DOOR_LEAVES: DoorLeaves[] = [1, 2];
+export const DOOR_HINGES: DoorHinge[] = ['start', 'end'];
+/** `right` primero: es el de fábrica, y en pantalla se lee «Un lado · El otro», no al revés. */
+export const DOOR_SWINGS: DoorSwing[] = ['right', 'left'];
 
 /** What a segment is. The three types collapse into two flags — see `blocksSightNow` / `blocksMoveNow` in mapRules. */
 export type WallKind = 'wall' | 'door' | 'window';
@@ -71,7 +137,7 @@ export type WallKind = 'wall' | 'door' | 'window';
  * Semantics (supabase/migrations/20260818140000_maps_vision.sql): cuts sight ⇔ `blocksSight && !isOpen`;
  * cuts movement ⇔ `blocksMove && !isOpen` (no effect until slice 3).
  */
-export interface Wall {
+export interface Wall extends DoorSettings {
   id: string; sceneId: string; campaignId: string;
   x1: number; y1: number; x2: number; y2: number;
   visiblePlayers: boolean;
@@ -88,9 +154,13 @@ export interface Wall {
    */
   groupId: string | null;
 }
-/** Al crear, el grupo es opcional: un muro suelto no lo lleva, y el camino de siempre no tuvo que enterarse. */
-export type NewWall = Omit<Wall, 'id' | 'groupId'> & { groupId?: string | null };
-export type WallPatch = Partial<Pick<Wall, 'visiblePlayers' | 'kind' | 'blocksSight' | 'blocksMove' | 'isOpen'>>;
+/**
+ * Al crear, el grupo es opcional: un muro suelto no lo lleva, y el camino de siempre no tuvo que enterarse.
+ * Y los ajustes de puerta también, por lo mismo: se dibuja y ya funciona (orden suya), así que quien no los
+ * pase se queda con `DEFAULT_DOOR` — que es lo que la base pone por omisión.
+ */
+export type NewWall = Omit<Wall, 'id' | 'groupId' | keyof DoorSettings> & { groupId?: string | null } & Partial<DoorSettings>;
+export type WallPatch = Partial<Pick<Wall, 'visiblePlayers' | 'kind' | 'blocksSight' | 'blocksMove' | 'isOpen' | 'leaves' | 'hinge' | 'swing' | 'doorColor' | 'doorTextureUrl'>>;
 
 /** A PC or a bestiary instance. `x`/`y`/`size` are in grid cells (top-left cell). */
 export interface Token {
@@ -374,7 +444,7 @@ export type NewRoom = Omit<Room, 'id' | 'createdAt' | 'updatedAt'>;
  * tramo (de dónde a dónde) donde el contorno se abre. Va por ESCENA y no colgado de una sala porque el
  * contorno es el de la UNIÓN, y un vano puede caer justo donde dos salas se funden.
  */
-export interface RoomOpening {
+export interface RoomOpening extends DoorSettings {
   id: string;
   sceneId: string;
   campaignId: string;
@@ -382,7 +452,7 @@ export interface RoomOpening {
   kind: 'door' | 'window';
   isOpen: boolean;
 }
-export type NewRoomOpening = Omit<RoomOpening, 'id'>;
+export type NewRoomOpening = Omit<RoomOpening, 'id' | keyof DoorSettings> & Partial<DoorSettings>;
 
 // ── Rebanada 8 · EL CATÁLOGO DE TEXTURAS ────────────────────────────────────
 // Espejo de `supabase/migrations/20260904180000_maps_textures.sql`.

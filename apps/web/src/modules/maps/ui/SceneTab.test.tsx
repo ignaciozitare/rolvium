@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
 import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
+import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { SceneTab } from './SceneTab';
 import { DEFAULT_TEXTURE_SCALE } from '../domain/useCases/roomStyles';
 
@@ -343,6 +344,67 @@ describe('<SceneTab> DM', () => {
    * defensa, con los tokens casi tocándose en pantalla. El libro mide si pueden TOCARSE (p.92/p.95): el
    * hueco entre los cuerpos es 0,6 casillas (0,9 m) → cuerpo a cuerpo → ataque a la espera.
    */
+  /**
+   * LA BARRITA DEL TAMAÑO DE LAS FICHAS, DE PUNTA A PUNTA. Lo que este test sujeta no es el panel —eso ya lo
+   * mira `BuilderPanel.test`— sino que la lente LLEGA AL MAPA: la escena guarda un multiplicador, nadie
+   * reescribe la ficha, y el cuerpo que se pinta (y por tanto el que choca) sale ya encogido.
+   *
+   * Encargo suyo del 2026-09-07: «*si dibujan pasillos pequeños los tokens no pasarán… no quiero eliminar la
+   * colisión de los tokens, quiero reducir el tamaño*».
+   */
+  it('la barrita del tamaño encoge el CUERPO que se pinta, sin tocar la ficha guardada', async () => {
+    const radio = () => Number(canvas().querySelector('[data-token-id="tk-1"] circle')!.getAttribute('r'));
+
+    const normal = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1], tokens: [{ ...TOKEN_KAREN, id: 'tk-1', size: 1.5 }] });
+    const r1 = renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={normal} vision={fakeVisionPort()} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    const entero = radio();
+    r1.unmount();
+
+    // La MISMA ficha, de 1,5 casillas, en una escena con la barrita a la mitad.
+    const encogido = fakeMapsRepo({
+      scenes: [{ ...SCENE_WAREHOUSE, tokenScale: 0.5 }], walls: [WALL_1],
+      tokens: [{ ...TOKEN_KAREN, id: 'tk-1', size: 1.5 }],
+    });
+    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={encogido} vision={fakeVisionPort()} />);
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+
+    // El cuerpo pintado encoge de verdad (el −1.5 del trazo hace que no sea exactamente la mitad).
+    expect(radio()).toBeLessThan(entero);
+    expect(radio()).toBeCloseTo((1.5 * 0.5 * SCENE_WAREHOUSE.grid.size) / 2 - 1.5, 6);
+  });
+
+  /**
+   * REGRESIÓN · COLOCAR TAMBIÉN PASA POR LA LENTE. Al soltar una ficha se guarda su ESQUINA, y para sacarla
+   * del punto donde se pulsa hay que restar medio cuerpo — el cuerpo que se VE, no el de la ficha. Con el
+   * tamaño sin encoger la ficha caía descentrada del clic justo lo que la barrita le quita (media casilla
+   * larga en un ENORME). Y lo que se GUARDA sigue siendo el tamaño crudo de su ficha: la lente no escribe.
+   */
+  it('regresión · con la barrita a la mitad la ficha cae centrada en el clic, y se guarda su tamaño CRUDO', async () => {
+    const u = userEvent.setup();
+    const repo = fakeMapsRepo({
+      scenes: [{ ...SCENE_WAREHOUSE, tokenScale: 0.5 }, SCENE_CHAPEL],
+      tokens: [TOKEN_KAREN], walls: [WALL_1],
+    });
+    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+      activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={repo} vision={fakeVisionPort()} />);
+
+    await u.click(await screen.findByRole('button', { name: 'Colocar PJ' }));
+    await u.click(await screen.findByRole('menuitem', { name: /Elías/ }));
+    fireEvent.pointerDown(canvas(), { clientX: 4 * G + 3, clientY: 7 * G + 3, pointerId: 1, button: 0 });
+
+    await waitFor(() => expect(repo.tokens.filter(t => t.characterId === 'ch-elias')).toHaveLength(1));
+    expect(repo.tokens.at(-1)).toMatchObject({
+      // El cuerpo que se ve mide 1,5 × 0,5 = 0,75, así que la esquina es 111/27 − 0,375 = 3,736.
+      // Sin la lente restaba 0,75 y la ficha caía 0,375 casillas arriba a la izquierda del clic.
+      x: expect.closeTo(3.736, 2), y: expect.closeTo(6.736, 2),
+      // ⚠️ Y su tamaño guardado es el ENTERO de su ficha: la barrita nunca reescribe `maps_tokens.size`.
+      size: 1.5,
+    });
+  });
+
   it('regresión · dos cuerpos grandes casi pegados son cuerpo a cuerpo: abre el ataque a la espera', async () => {
     const u = userEvent.setup();
     const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });
@@ -732,6 +794,111 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     await waitFor(() => expect(repo.walls).toHaveLength(0));
   });
 
+  /**
+   * ── LAS PUERTAS, DE VERDAD ──
+   * El fallo que originó el encargo (QA, 2026-09-07): una puerta dibujada en una SALA no se podía ni abrir
+   * ni borrar. `removeRoomOpening` existía en el puerto y en el repositorio desde la rebanada 8 y NO LA
+   * LLAMABA NADIE. Esto ata el camino entero: cogerla con Seleccionar → el panel → Suprimir.
+   */
+  const CUARTO = { id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[0, 0], [300, 0], [300, 300], [0, 300]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null, createdAt: '', updatedAt: '' };
+  const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 300, y1: 100, x2: 300, y2: 160, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
+  const conSala = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [CUARTO], roomOpenings: [VANO] });
+
+  /**
+   * ── LA PUERTA NACE YA CONFIGURADA (corrección suya de concepto, 2026-09-07) ──
+   * Elegir PUERTA enseña sus ajustes; lo que se toque ahí es como saldrá la SIGUIENTE, sin tener que
+   * dibujarla, cogerla y volver. Antes «sólo me deja poner las propiedades una vez creada».
+   */
+  it('lo elegido en el panel es como NACE la puerta siguiente, sobre un muro', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    await u.click(await screen.findByRole('radio', { name: /Sobre una foto/ }));
+    await u.click(screen.getByRole('radio', { name: /^Puerta$/ }));
+    // Los ajustes están AHÍ, sin haber dibujado nada todavía.
+    const opts = await screen.findByTestId('mp-door-opts');
+    await u.click(within(opts).getByRole('radio', { name: 'Dos' }));
+    await u.click(within(opts).getByRole('radio', { name: 'El otro' }));
+
+    // Y ahora se dibuja: clic-clic sobre el muro que ya existe.
+    fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1, clientY: 300, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    fireEvent.pointerDown(canvas(), { clientX: WALL_1.x1, clientY: 360, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+
+    await waitFor(() => {
+      const puerta = repo.walls.find(w => w.kind === 'door');
+      expect(puerta).toMatchObject({ leaves: 2 });
+    });
+  });
+
+  /**
+   * ── Y POR LA OTRA VÍA, la de SALA ──
+   * Una puerta se crea por dos caminos distintos —`addWall` marcando sobre una foto y `addRoomOpening`
+   * dibujando aquí— y el borrador tiene que llegar a LOS DOS: si sólo llegara a uno, media herramienta
+   * seguiría obligando a dibujar la puerta y volver a por ella. Y a una VENTANA no le llega nunca: una
+   * ventana no se configura, así que heredar la mano de la puerta le metería datos que no son suyos.
+   */
+  it('el vano de SALA también nace con lo elegido — y la ventana no hereda nada', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [CUARTO], roomOpenings: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    await u.click(within(panel).getByRole('radio', { name: /^Puerta$/ }));
+    await u.click(within(await screen.findByTestId('mp-door-opts')).getByRole('radio', { name: 'Dos' }));
+
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 100, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 160, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await waitFor(() => expect(repo.roomOpenings[0]).toMatchObject({ kind: 'door', leaves: 2 }));
+
+    // Ahora una VENTANA, con el mismo borrador puesto: sus ajustes ni salen ni se le pegan.
+    await u.click(within(panel).getByRole('radio', { name: /^Ventana$/ }));
+    expect(screen.queryByTestId('mp-door-opts')).not.toBeInTheDocument();
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 200, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    fireEvent.pointerDown(canvas(), { clientX: 300, clientY: 260, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    const ventanas = () => repo.roomOpenings.filter(o => o.kind === 'window');
+    await waitFor(() => expect(ventanas().length).toBeGreaterThan(0));
+    expect(ventanas().every(o => o.leaves === DEFAULT_DOOR.leaves)).toBe(true);
+    // Y la puerta sigue siendo UNA: cambiar de vano no reescribe la que ya estaba.
+    expect(repo.roomOpenings.filter(o => o.kind === 'door')).toHaveLength(1);
+  });
+
+  it('una puerta de SALA se coge, se configura y se BORRA con Suprimir', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', conSala());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    fireEvent.pointerDown(canvas(), { clientX: 301, clientY: 130, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    // El panel se abre con la puerta cogida, y trae sus cuatro ajustes.
+    await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(screen.getByRole('radiogroup', { name: 'Hojas' })).getByRole('radio', { name: 'Dos' }));
+    await waitFor(() => expect(repo.roomOpenings[0]).toMatchObject({ leaves: 2 }));
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.roomOpenings).toHaveLength(0));
+  });
+
+  it('el disco abre y cierra una puerta de sala, que era lo que no llegaba', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', conSala());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    fireEvent.pointerMove(canvas(), { clientX: 301, clientY: 130, pointerId: 1 });
+    const disco = await within(canvas()).findByTestId('mp-door-toggle');
+    expect(disco).toHaveAttribute('data-wall-id', 'ro-1');
+    fireEvent.pointerDown(disco, { clientX: 300, clientY: 130, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await waitFor(() => expect(repo.roomOpenings[0]!.isOpen).toBe(true));
+  });
+
   it('el mismo borrar está en el menú del botón derecho, y sólo cuando hay algo elegido', async () => {
     const u = userEvent.setup();
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1] }));
@@ -789,7 +956,7 @@ describe('<SceneTab> el panel de Builder v3', () => {
     await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
 
     const bloque = (await screen.findByText('Las dos texturas base')).closest('fieldset')!;
-    const [roca] = within(bloque).getAllByRole('button', { name: '+ Subir' });
+    const [roca] = within(bloque).getAllByRole('button', { name: 'Elegir' });
     await u.click(roca!);
     const input = screen.getByTestId('mp-room-texture-input') as HTMLInputElement;
     await u.upload(input, new File(['x'], 'roca.png', { type: 'image/png' }));
@@ -1756,9 +1923,35 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
     const panel = await screen.findByRole('group', { name: 'Builder' });
     await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
     const bloque = (await screen.findByText('Las dos texturas base')).closest('fieldset')!;
-    // Sin foto puesta el botón se llama «+ Subir»; con una puesta, «Cambiar». Los dos abren el catálogo.
-    await u.click(within(bloque).getAllByRole('button', { name: /Cambiar|\+ Subir/ })[0]!);
+    // Sin foto puesta el botón se llama «Elegir»; con una puesta, «Cambiar». Los dos abren el catálogo — y
+    // ninguno sube nada: eso se hace DENTRO (corrección suya, repetida, del 2026-09-07).
+    await u.click(within(bloque).getAllByRole('button', { name: /Cambiar|Elegir/ })[0]!);
   };
+
+  /**
+   * ── LA TEXTURA DE LA PUERTA (suyo, 2026-09-07: «*te falta lo de la textura*») ──
+   * Sale del MISMO catálogo que la pared y el suelo, y se guarda en la puerta cogida — no en la escena.
+   */
+  it('la puerta cogida elige textura del mismo catálogo, y se le guarda a ELLA', async () => {
+    const u = userEvent.setup();
+    const puerta = { ...WALL_1, kind: 'door' as const };
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [puerta], textures: [TEX] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    fireEvent.pointerDown(canvas(), { clientX: puerta.x1 + 2, clientY: 380, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await screen.findByRole('group', { name: 'Builder' });
+
+    // La fila de textura de la PUERTA, no la de la pared de la sala.
+    const filaPuerta = screen.getByText('Textura').closest('.mp-builder-row')!;
+    await u.click(within(filaPuerta as HTMLElement).getByRole('button', { name: 'Elegir' }));
+    expect(await screen.findByText('Textura de la puerta')).toBeInTheDocument();
+    await u.click(within(screen.getByTestId('mp-texcat')).getByTitle('Losa mojada'));
+
+    await waitFor(() => expect(repo.wallUpdates.at(-1)?.patch).toEqual({ doorTextureUrl: TEX.url }));
+    // Y a la ESCENA no se le ha tocado la textura de pared: son cosas distintas.
+    expect(repo.sceneUpdates.some(x => 'wallTextureUrl' in x.patch)).toBe(false);
+  });
 
   it('trae las texturas del catálogo de la herramienta, con buscador y categorías', async () => {
     const u = userEvent.setup();

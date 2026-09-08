@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { chainWalls, groupInsideOf, groupOf, handleAt, HANDLE_KEYS, insideGroup, MIN_GROUP_PX, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups } from './groupRules';
+import { DEFAULT_DOOR } from '../entities/Scene';
 import type { Wall } from '../entities/Scene';
 
 /**
@@ -10,7 +11,7 @@ import type { Wall } from '../entities/Scene';
  */
 const muro = (id: string, x1: number, y1: number, x2: number, y2: number, groupId: string | null = null): Wall => ({
   id, sceneId: 'sc-1', campaignId: 'c1', x1, y1, x2, y2,
-  visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, groupId,
+  visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, groupId, ...DEFAULT_DOOR,
 });
 
 /** Un cuadrado agrupado, como el que deja el rectángulo de Builder. */

@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import { DEFAULT_DOOR } from '../entities/Scene';
 import type { Drawing } from '../entities/Scene';
 import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1 } from '../../../../../tests/helpers/fakes';
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
-  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
+  blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, DOOR_BAR_PX, TOKEN_SCALE, tokenSizeIn, tokensScaledIn, tokenAnchorShift, tokenPointStored, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, doorTexturesUsed, quadPoints, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -40,7 +41,7 @@ describe('tokenGapCells — la distancia de un ataque (p.92/p.95)', () => {
 
 describe('paredes sólidas: `slideToken`, `moveBlockers`, `tokenRadiusPx`', () => {
   /** Un muro vertical en x = 100, de y 0 a 200. */
-  const muro = { id: 'w', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 100, y2: 200, visiblePlayers: true, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false, groupId: null };
+  const muro = { id: 'w', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 100, y2: 200, visiblePlayers: true, kind: 'wall' as const, blocksSight: true, blocksMove: true, isOpen: false, groupId: null, ...DEFAULT_DOOR };
   const R = 10;
 
   it('cruzar el muro avanza hasta quedarse PEGADO a este lado; sin muros pasa entero', () => {
@@ -670,5 +671,283 @@ describe('drawingBounds y drawingsInRect — el área coge los trazos', () => {
     ];
     const ids = drawingsInRect(todos, { x: 0, y: 0 }, { x: 200, y: 200 }).map(x => x.id);
     expect(ids).toEqual(['linea', 'caja', 'circulo', 'texto']);
+  });
+});
+
+/**
+ * ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps · «El dibujo») ──
+ *
+ * Encargo suyo del 2026-09-07 con una captura de Dungeon Scrawl delante. La puerta pasa a ser una BARRA
+ * HUECA DE ÁNGULOS RECTOS metida en el hueco del muro; abierta, la hoja gira 90° desde su bisagra, y sin
+ * arco de barrido. Estas pruebas fijan la geometría, que es lo que él miró en pantalla y aprobó.
+ *
+ * El muro de trabajo va de (0,0) a (0,100): vertical, 100 px. Con d = (0,1), la normal es n = (-1,0), así
+ * que `swing: 'right'` (que es +n, el lado de siempre) saca la hoja hacia las x NEGATIVAS.
+ */
+describe('doorQuads — la barra hueca, y cómo gira', () => {
+  const seg = { x1: 0, y1: 0, x2: 0, y2: 100 };
+  const T = 10;
+  /** Con grosor 10 sobre un hueco de 100, cada trocito de muro mide 10: la hoja va de y=10 a y=90. */
+  const A = T, B = 100 - T, LARGO = B - A;
+  const puerta = (over: Partial<typeof DEFAULT_DOOR> & { isOpen?: boolean } = {}) =>
+    ({ ...DEFAULT_DOOR, isOpen: false, ...over });
+  const caja = (q: { x: number; y: number }[]) => ({
+    x0: Math.min(...q.map(p => p.x)), x1: Math.max(...q.map(p => p.x)),
+    y0: Math.min(...q.map(p => p.y)), y1: Math.max(...q.map(p => p.y)),
+  });
+
+  it('cerrada y de una hoja: la barra ocupa el hueco entero, con el grosor repartido a los lados', () => {
+    const qs = doorQuads(seg, puerta(), T);
+    expect(qs).toHaveLength(1);
+    // Cuatro esquinas: es un cuadrilátero, no una línea ni una curva.
+    expect(qs[0]).toHaveLength(4);
+    const b = caja(qs[0]!);
+    expect(b.y0).toBeCloseTo(A, 6);
+    expect(b.y1).toBeCloseTo(B, 6);
+    expect(b.x0).toBeCloseTo(-T / 2, 6);
+    expect(b.x1).toBeCloseTo(T / 2, 6);
+  });
+
+  it('abierta: la hoja gira 90° y sale perpendicular, sin dejar nada tumbado en el hueco', () => {
+    const b = caja(doorQuads(seg, puerta({ isOpen: true }), T)[0]!);
+    // Ya no recorre los 100 px del vano: ahora los recorre a lo ANCHO.
+    expect(b.x1 - b.x0).toBeCloseTo(LARGO, 6);
+    expect(b.y1 - b.y0).toBeCloseTo(T, 6);
+    // Y la franja queda CENTRADA en la bisagra, que con `start` es (0,0).
+    expect((b.y0 + b.y1) / 2).toBeCloseTo(A, 6);
+  });
+
+  it('la bisagra elige de qué extremo cuelga', () => {
+    const bStart = caja(doorQuads(seg, puerta({ isOpen: true, hinge: 'start' }), T)[0]!);
+    const bEnd = caja(doorQuads(seg, puerta({ isOpen: true, hinge: 'end' }), T)[0]!);
+    expect((bStart.y0 + bStart.y1) / 2).toBeCloseTo(A, 6);
+    expect((bEnd.y0 + bEnd.y1) / 2).toBeCloseTo(B, 6);
+  });
+
+  it('el lado la saca por costados OPUESTOS, y `right` es el de siempre (+n)', () => {
+    const der = caja(doorQuads(seg, puerta({ isOpen: true, swing: 'right' }), T)[0]!);
+    const izq = caja(doorQuads(seg, puerta({ isOpen: true, swing: 'left' }), T)[0]!);
+    expect(der.x0).toBeCloseTo(-LARGO, 6);
+    expect(der.x1).toBeCloseTo(0, 6);
+    expect(izq.x0).toBeCloseTo(0, 6);
+    expect(izq.x1).toBeCloseTo(LARGO, 6);
+  });
+
+  it('dos hojas: se parte por la mitad y cada una cuelga de SU extremo, sin mirar la bisagra', () => {
+    const cerradas = doorQuads(seg, puerta({ leaves: 2 }), T);
+    expect(cerradas).toHaveLength(2);
+    // Media puerta cada una, y juntas cubren el hueco entero.
+    expect(caja(cerradas[0]!)).toMatchObject({ y0: A, y1: A + LARGO / 2 });
+    expect(caja(cerradas[1]!)).toMatchObject({ y0: A + LARGO / 2, y1: B });
+    // Abiertas giran LAS DOS, cada una desde su punta, y las dos hacia el mismo lado.
+    const abiertas = doorQuads(seg, puerta({ leaves: 2, isOpen: true }), T);
+    expect((caja(abiertas[0]!).y0 + caja(abiertas[0]!).y1) / 2).toBeCloseTo(A, 6);
+    expect((caja(abiertas[1]!).y0 + caja(abiertas[1]!).y1) / 2).toBeCloseTo(B, 6);
+    for (const q of abiertas) expect(caja(q).x0).toBeCloseTo(-LARGO / 2, 6);
+    // Y con dos hojas la bisagra NO cambia nada: cada hoja ya tiene la suya.
+    expect(doorQuads(seg, puerta({ leaves: 2, hinge: 'end' }), T)).toEqual(cerradas);
+  });
+
+  it('un segmento de largo cero no revienta ni devuelve NaN', () => {
+    const q = doorQuads({ x1: 5, y1: 5, x2: 5, y2: 5 }, puerta(), T)[0]!;
+    for (const p of q) { expect(Number.isFinite(p.x)).toBe(true); expect(Number.isFinite(p.y)).toBe(true); }
+  });
+
+  it('`quadPoints` escribe el cuadrilátero como lo quiere un <polygon>, redondeado a dos decimales', () => {
+    expect(quadPoints([{ x: 1.234, y: 2 }, { x: 3, y: 4.567 }])).toBe('1.23,2 3,4.57');
+  });
+});
+
+describe('doorColorOf — el de la escena, con excepción por puerta', () => {
+  it('por defecto NO decide nada: nulo significa «el trazo del muro», y eso lo pone el CSS', () => {
+    expect(doorColorOf({ doorColor: null }, { doorColor: null })).toBeNull();
+  });
+  it('sin color propio manda el de la escena; con él, manda la puerta', () => {
+    expect(doorColorOf({ doorColor: null }, { doorColor: '#111111' })).toBe('#111111');
+    expect(doorColorOf({ doorColor: '#8b1a1a' }, { doorColor: '#111111' })).toBe('#8b1a1a');
+  });
+});
+
+/**
+ * 🐞 EL FALLO QUE ORIGINÓ EL ENCARGO: el disco de abrir/cerrar buscaba SÓLO en `maps_walls`, y las aberturas
+ * de sala viven en `maps_room_openings`. Una puerta dibujada en una sala nacía cerrada y no había forma de
+ * abrirla. `hitOpening` es genérico justo para eso: le da igual de qué tabla venga el segmento.
+ */
+describe('hitOpening llega también a los vanos de SALA', () => {
+  const vano = { id: 'ro-1', x1: 0, y1: 0, x2: 0, y2: 100, kind: 'door' as const, isOpen: false };
+  it('encuentra un vano de sala igual que un muro, y sigue sin contestar por una pared', () => {
+    expect(hitOpening([vano], { x: 2, y: 50 }, 8)?.id).toBe('ro-1');
+    expect(hitOpening([{ ...vano, kind: 'wall' as const }], { x: 2, y: 50 }, 8)).toBeNull();
+    expect(hitOpening([vano], { x: 40, y: 50 }, 8)).toBeNull();
+  });
+  it('una ventana también contesta: se abre con el mismo disco', () => {
+    expect(hitOpening([{ ...vano, kind: 'window' as const }], { x: 2, y: 50 }, 8)?.id).toBe('ro-1');
+  });
+});
+
+/**
+ * ── LA TEXTURA DE LA PUERTA (suyo, 2026-09-07 probando: «*te falta lo de la textura*») ──
+ * Mismo reparto que el color —la suya, si no la de la escena— y MANDA sobre él.
+ */
+describe('doorTextureOf / doorPatternId / doorTexturesUsed', () => {
+  const escena = { doorTextureUrl: null as string | null };
+  it('sin nada no hay textura; la de la escena vale para todas; la propia manda', () => {
+    expect(doorTextureOf({ doorTextureUrl: null }, escena)).toBeNull();
+    expect(doorTextureOf({ doorTextureUrl: null }, { doorTextureUrl: 'https://x/roble.png' })).toBe('https://x/roble.png');
+    expect(doorTextureOf({ doorTextureUrl: 'https://x/hierro.png' }, { doorTextureUrl: 'https://x/roble.png' })).toBe('https://x/hierro.png');
+  });
+
+  it('el id del patrón sale de la url: mismo mosaico, mismo id, y dos distintas no chocan', () => {
+    expect(doorPatternId('https://x/roble.png')).toBe(doorPatternId('https://x/roble.png'));
+    expect(doorPatternId('https://x/roble.png')).not.toBe(doorPatternId('https://x/hierro.png'));
+    // Tiene que valer como id de SVG: sin barras, sin puntos y sin signos.
+    expect(doorPatternId('https://x/roble.png')).toMatch(/^mp-doortex-[a-z0-9]+$/);
+  });
+
+  it('sólo se monta UN patrón por mosaico distinto, aunque haya diez puertas iguales', () => {
+    const puertas = [
+      { doorTextureUrl: 'https://x/roble.png' },
+      { doorTextureUrl: 'https://x/roble.png' },
+      { doorTextureUrl: 'https://x/hierro.png' },
+      { doorTextureUrl: null },
+    ];
+    expect(doorTexturesUsed(puertas, escena)).toEqual(['https://x/roble.png', 'https://x/hierro.png']);
+    // Sin ninguna propia, la de la escena cuenta una sola vez.
+    expect(doorTexturesUsed([{ doorTextureUrl: null }, { doorTextureUrl: null }], { doorTextureUrl: 'https://x/roble.png' }))
+      .toEqual(['https://x/roble.png']);
+    expect(doorTexturesUsed([{ doorTextureUrl: null }], escena)).toEqual([]);
+  });
+});
+
+/**
+ * ── EL TROCITO DE MURO A CADA LADO (suyo, 2026-09-07 con una captura) ──
+ * «*quiero que la puerta siempre tenga un pequeño trozo de muro centrado, es más estético que quede pegada
+ * a los muros; tiene que ser tan largo como el grosor de la puerta de cada lado*».
+ */
+/**
+ * LA BARRITA DEL TAMAÑO DE LAS FICHAS (specs/modules/maps/SPEC.md § «La barrita del tamaño de las fichas»).
+ *
+ * Lo que estos tests sujetan es la CONDICIÓN que él puso al pedirla: «*esto hay que respetarlo en tamaños…
+ * que se mantenga la relación de diminuto pequeño normal grande y enorme*». Y que sea UNA lente y no una
+ * reescritura, que es lo que permite mover la barrita adelante y atrás sin perder nada.
+ */
+describe('tokenSizeIn / tokensScaledIn — la lente del tamaño', () => {
+  const ficha = (size: number, x = 4, y = 6) => ({ id: 't1', size, x, y });
+  const escena = (tokenScale: number) => ({ tokenScale });
+
+  it('el recorrido es el que él cerró: de la mitad a un cuarto más, arrancando en 1', () => {
+    expect(TOKEN_SCALE).toEqual({ min: 0.5, max: 1.25, def: 1 });
+  });
+
+  it('a dos tercios una ficha NORMAL ocupa una casilla justa, que es lo que le hace pasar el pasillo', () => {
+    expect(tokenSizeIn(ficha(1.5), escena(2 / 3))).toBeCloseTo(1, 6);
+  });
+
+  it('un GRANDE sigue sin caber por un pasillo de una casilla, y así debe ser', () => {
+    expect(tokenSizeIn(ficha(3.5), escena(2 / 3))).toBeGreaterThan(1);
+  });
+
+  it('⭐ LA PROPORCIÓN DEL MANUAL NO CAMBIA: los cinco tamaños se multiplican por igual', () => {
+    const TAMAÑOS = [0.5, 0.75, 1.5, 3.5, 7];
+    for (const escala of [TOKEN_SCALE.min, 2 / 3, 1, TOKEN_SCALE.max]) {
+      const escalados = TAMAÑOS.map(t => tokenSizeIn(ficha(t), escena(escala)));
+      // Cada uno contra el NORMAL: si la relación se moviera, esto se rompe.
+      const normal = escalados[2]!;
+      for (let i = 0; i < TAMAÑOS.length; i++) {
+        expect(escalados[i]! / normal).toBeCloseTo(TAMAÑOS[i]! / 1.5, 10);
+      }
+    }
+  });
+
+  it('en el centro no toca NADA: devuelve la misma lista, sin copiar ni una ficha', () => {
+    const fichas = [ficha(1.5), ficha(3.5)];
+    expect(tokensScaledIn(fichas, escena(1))).toBe(fichas);
+  });
+
+  it('una escena sin barrita (`0` o sin dato) se comporta como el centro', () => {
+    expect(tokenSizeIn(ficha(1.5), { tokenScale: 0 })).toBe(1.5);
+    expect(tokenSizeIn(ficha(1.5), {} as { tokenScale: number })).toBe(1.5);
+  });
+
+  it('⚠️ NO reescribe las fichas de origen: la barrita es una lente, no un guardado', () => {
+    const fichas = [ficha(1.5)];
+    const vistas = tokensScaledIn(fichas, escena(0.5));
+    expect(vistas[0]!.size).toBe(0.75);
+    expect(fichas[0]!.size).toBe(1.5);     // la de verdad, intacta
+    expect(vistas[0]).not.toBe(fichas[0]); // y es otra, no la misma tocada
+  });
+
+  it('el resto de la ficha viaja entero: sólo cambian el tamaño y la esquina', () => {
+    const vistas = tokensScaledIn([{ id: 't1', size: 1.5, x: 3, y: 4, name: 'Karen' }], escena(0.5));
+    // La esquina se corre 0,375 (media diferencia de tamaño) para que el CENTRO no se mueva.
+    expect(vistas[0]).toEqual({ id: 't1', size: 0.75, x: 3.375, y: 4.375, name: 'Karen' });
+  });
+
+  /**
+   * ⭐ ENCOGER **EN SU SITIO**, que es lo que él pidió al ver el primer intento: «*corrígelo*».
+   *
+   * `x`/`y` guardan la ESQUINA, así que encogiendo sólo el tamaño la ficha se ancla por su esquina de arriba
+   * a la izquierda y se aparta contra una pared — justo cuando la estás encogiendo para que quepa por el
+   * pasillo. Y sale gratis una cosa importante: si el centro pintado es el mismo que el guardado, la VISIÓN
+   * que el servidor calcula desde `x + size/2` sigue saliendo del sitio correcto.
+   */
+  it('⭐ el CENTRO no se mueve ni un pelo, en todo el recorrido de la barrita', () => {
+    const centro = (t: { size: number; x: number; y: number }) => ({ x: t.x + t.size / 2, y: t.y + t.size / 2 });
+    const cruda = ficha(1.5, 10, 20);
+    for (const escala of [TOKEN_SCALE.min, 2 / 3, 1, TOKEN_SCALE.max]) {
+      const vista = tokensScaledIn([cruda], escena(escala))[0]!;
+      expect(centro(vista).x).toBeCloseTo(centro(cruda).x, 10);
+      expect(centro(vista).y).toBeCloseTo(centro(cruda).y, 10);
+    }
+  });
+
+  it('`tokenPointStored` deshace la lente EXACTAMENTE: lo que se ve vuelve a lo que se guarda', () => {
+    const cruda = ficha(3.5, 10, 20);
+    for (const escala of [TOKEN_SCALE.min, 2 / 3, 1, TOKEN_SCALE.max]) {
+      const vista = tokensScaledIn([cruda], escena(escala))[0]!;
+      const vuelta = tokenPointStored({ x: vista.x, y: vista.y }, cruda.size, escala);
+      expect(vuelta.x).toBeCloseTo(cruda.x, 10);
+      expect(vuelta.y).toBeCloseTo(cruda.y, 10);
+    }
+  });
+
+  it('en el centro el corrimiento es CERO: una escena de hoy no se mueve ni un píxel', () => {
+    expect(tokenAnchorShift(1.5, 1)).toBe(0);
+    expect(tokenPointStored({ x: 7, y: 9 }, 1.5, 1)).toEqual({ x: 7, y: 9 });
+  });
+});
+
+describe('doorSpan — la puerta no se pega a los muros', () => {
+  const seg = { x1: 0, y1: 0, x2: 0, y2: 100 };
+
+  it('recorta el hueco por los dos lados, y cada trocito mide el grosor de la barra', () => {
+    const { inner, stubs } = doorSpan(seg, 10);
+    expect(inner).toEqual({ x1: 0, y1: 10, x2: 0, y2: 90 });
+    expect(stubs).toHaveLength(2);
+    expect(stubs[0]).toEqual([{ x: 0, y: 0 }, { x: 0, y: 10 }]);
+    expect(stubs[1]).toEqual([{ x: 0, y: 90 }, { x: 0, y: 100 }]);
+  });
+
+  it('en una puerta ESTRECHA el trocito se encoge: si no, se comería la hoja entera', () => {
+    // Hueco de 12 con grosor 10: dos trocitos de 10 no caben. Se quedan en el 15% del vano cada uno.
+    const { inner, stubs } = doorSpan({ x1: 0, y1: 0, x2: 0, y2: 12 }, 10);
+    expect(inner.y1).toBeCloseTo(1.8, 6);
+    expect(inner.y2).toBeCloseTo(10.2, 6);
+    expect(stubs[0]![1]!.y).toBeCloseTo(1.8, 6);
+    // Y la hoja se queda con el 70% del hueco: la barra manda, los trocitos acompañan.
+    expect(inner.y2 - inner.y1).toBeCloseTo(12 * 0.7, 6);
+  });
+
+  it('una puerta de UNA CASILLA sigue siendo una barra, no un cuadradito', () => {
+    const { inner } = doorSpan({ x1: 0, y1: 0, x2: 0, y2: 27 }, DOOR_BAR_PX);
+    // Más larga que gruesa, que es lo que la hace leerse como puerta.
+    expect(inner.y2 - inner.y1).toBeGreaterThan(DOOR_BAR_PX * 2);
+  });
+
+  it('la hoja se dibuja YA recortada: `doorQuads` mide el hueco menos los dos trocitos', () => {
+    const q = doorQuads(seg, { ...DEFAULT_DOOR, isOpen: false }, 10)[0]!;
+    const ys = q.map(p => p.y);
+    expect(Math.min(...ys)).toBeCloseTo(10, 6);
+    expect(Math.max(...ys)).toBeCloseTo(90, 6);
   });
 });

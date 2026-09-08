@@ -1,9 +1,12 @@
+import { memo } from 'react';
 import type { RoomWall } from '@rolvium/core';
 import type { Room, RoomOpening, RoomPreset, Scene } from '../domain/entities/Scene';
 import {
   dugRooms, filledRooms, floorUrlOf, outlinePath, ringOf, ringPath, ringsOf, roomWallsOf, shadowDepthPx,
   styleOf, tilePx, wallWidthPx,
 } from '../domain/useCases/roomStyles';
+import { doorColorOf, doorTextureOf, type Segment } from '../domain/useCases/mapRules';
+import { DoorLeaves } from './canvasLayers';
 
 
 /**
@@ -31,6 +34,8 @@ interface Props {
   scene: Scene;
   rooms: readonly Room[];
   openings: readonly RoomOpening[];
+  /** El vano cogido con Seleccionar, para marcarlo como se marca un muro cogido. */
+  selectedOpeningId?: string | null;
   /** Los ids de las máscaras, para que la rejilla pueda pedir la del agujero (ver `GridLayer`). */
   ids: RoomMaskIds;
 }
@@ -88,7 +93,21 @@ function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl'>):
   return out;
 }
 
-export function RoomsLayer({ scene, rooms, openings, ids }: Props): JSX.Element | null {
+/**
+ * ⚡ ENVUELTA EN `memo`, Y NO ES UN CAPRICHO (suyo, 2026-09-07: «*la sombra dinámica en local va lentísima
+ * cuando pruebo*»).
+ *
+ * Esta capa dibuja la mazmorra ENTERA: funde el contorno de todas las salas, le pone el temblor punto a
+ * punto, monta las capas de suelo y encima la sombra de adentro —un desenfoque de SVG sobre todo el
+ * contorno, dentro de una máscara—. Se repintaba en cada repintado del lienzo, y arrastrar una ficha repinta
+ * ~60 veces por segundo: todo ese trabajo se rehacía en cada fotograma del arrastre para acabar dibujando
+ * exactamente lo mismo que ya estaba en pantalla.
+ *
+ * Nada de lo que hay aquí depende de las fichas: sala, vano y escena. Con `memo` (y con las props estables
+ * desde `MapCanvas`) React ni entra en el cuerpo, y el arrastre va suelto. No cambia ni un píxel de lo que
+ * se ve.
+ */
+function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null }: Props): JSX.Element | null {
   /**
    * ⏱ EL CONTORNO SE CALCULA UNA VEZ POR CAMBIO, NO UNA VEZ POR PINTADA.
    *
@@ -136,6 +155,35 @@ export function RoomsLayer({ scene, rooms, openings, ids }: Props): JSX.Element 
   const doorsClosed = d(['door'], false);
   const doorsOpen = d(['door'], true);
   const windows = d(['window'], null);
+  /**
+   * LAS PUERTAS DE SALA SE PINTAN COMO LAS DE MURO SUELTO (§ «Las puertas, de verdad»): la misma barra
+   * hueca de ángulos rectos, con sus hojas, su bisagra y su lado. Decisión suya con la captura delante —
+   * prefiere que cambien las que ya tiene a que convivan dos puertas distintas en el mismo mapa.
+   *
+   * El tramo se toma del CONTORNO ya resuelto, no de las coordenadas crudas del vano: así la puerta cae
+   * exactamente sobre la pared aunque él haya movido la forma después de abrirla. `openingId` es lo que
+   * permite volver de un tramo a la fila donde vive cómo es esa puerta.
+   */
+  const porId = new Map(openings.map(o => [o.id, o]));
+  const sobreElContorno = walls
+    .filter(w => w.kind === 'door' && w.openingId)
+    .map(w => ({ seg: { x1: w.seg[0], y1: w.seg[1], x2: w.seg[2], y2: w.seg[3] }, o: porId.get(w.openingId!) }))
+    .filter((x): x is { seg: Segment; o: RoomOpening } => !!x.o);
+  /**
+   * ⚠️ Y LAS QUE NO CAYERON EN EL CONTORNO SE PINTAN IGUAL, donde él las puso.
+   *
+   * 🐞 Ésta era «*no pone las puertas*» (2026-09-07): `roomWalls` sólo se queda con los vanos cuyas dos
+   * puntas rozan un lado, así que una puerta a un pelo de la pared se guardaba y **no se dibujaba**. Y la
+   * salida NO es exigirle que exista un muro —corrección suya: «*en el constructor de habitaciones no
+   * funciona así*»—, es dibujarla igual. Sobre el contorno abre el hueco de verdad; fuera de él es sólo
+   * dibujo, que es exactamente lo que él pidió al ponerla ahí.
+   */
+  const enContorno = new Set(sobreElContorno.map(x => x.o.id));
+  const puertas = [
+    ...sobreElContorno,
+    ...openings.filter(o => o.kind === 'door' && !enContorno.has(o.id))
+      .map(o => ({ seg: { x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2 }, o })),
+  ];
   /** La roca y el canto se dibujan también bajo los vanos CERRADOS: una puerta cerrada sigue siendo pared. */
   const carved = [solid, doorsClosed, windows].filter(Boolean).join(' ');
 
@@ -252,11 +300,26 @@ export function RoomsLayer({ scene, rooms, openings, ids }: Props): JSX.Element 
         {carved && <path d={carved} stroke={st.wall} strokeWidth={width} data-testid="mp-room-wall" />}
         {/* Una ventana: mismo hueco en la pared, con su travesaño. Deja ver y no deja pasar, como la de siempre. */}
         {windows && <path d={windows} className="mp-room-window" strokeWidth={width * 0.45} data-testid="mp-room-window" />}
-        {/* Puerta cerrada: la hoja, más clara que la roca, para que se vea que ahí hay una puerta. */}
-        {doorsClosed && <path d={doorsClosed} className="mp-room-door" strokeWidth={width * 0.5} data-testid="mp-room-door" />}
-        {/* Puerta abierta: no hay pared, sólo el umbral marcado. Por ahí se pasa y se ve. */}
-        {doorsOpen && <path d={doorsOpen} className="mp-room-door-open" strokeWidth={width * 0.3} data-testid="mp-room-door-open" />}
+        {/*
+          * LA PUERTA DE UNA SALA SE PINTA EXACTAMENTE IGUAL QUE LA DE UN MURO SUELTO. Sin grosor propio, sin
+          * trazo propio y sin trocitos de otro color: las mismas reglas y los mismos estilos.
+          *
+          * Orden suya del 2026-09-07 después de tres intentos míos de afinarlo aquí: «*¿por qué no pones las
+          * puertas anchas como en el modo foto? y te pedí que dejes los trozos de pared al costado*». El modo
+          * foto le vale tal cual, así que aquí no se inventa nada — `DoorLeaves` ya trae de serie el grosor
+          * (`DOOR_BAR_PX`), el trazo de `.mp-door-leaf` y los dos trocitos de muro de `.mp-door-stub`.
+          */}
+        <g className="mp-room-doors" data-testid="mp-room-doors" strokeLinejoin="miter">
+          {puertas.map(({ seg, o }) => (
+            <g key={o.id} className={`mp-opening door ${o.isOpen ? 'open' : ''} ${o.id === selectedOpeningId ? 'selected' : ''}`} data-opening-id={o.id} data-open={o.isOpen ? 'true' : 'false'}>
+              <DoorLeaves seg={seg} door={o} color={doorColorOf(o, scene)} texture={doorTextureOf(o, scene)} />
+            </g>
+          ))}
+        </g>
       </g>
     </g>
   );
 }
+
+export const RoomsLayer = memo(RoomsLayerBase);
+RoomsLayer.displayName = 'RoomsLayer';

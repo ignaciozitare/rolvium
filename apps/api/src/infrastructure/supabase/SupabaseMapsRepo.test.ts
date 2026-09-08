@@ -28,7 +28,14 @@ function fakeDb(rows: Record<string, unknown>) {
 describe('SupabaseMapsRepo (service role)', () => {
   it('reads the scene with its light and grid, falling back to the default grid size', async () => {
     expect(await new SupabaseMapsRepo(fakeDb({ maps_scenes: SCENE_ROW }).db).getScene('sc-1'))
-      .toEqual({ id: 'sc-1', campaignId: 'c1', width: 1080, height: 675, gridSize: 27, fogMode: 'vision', lighting: 'night', nightRadiusM: 12, solidWalls: true });
+      .toEqual({ id: 'sc-1', campaignId: 'c1', width: 1080, height: 675, gridSize: 27, fogMode: 'vision', lighting: 'night', nightRadiusM: 12, solidWalls: true, tokenScale: 1 });
+    /**
+     * LA BARRITA DEL TAMAÑO LLEGA AL SERVIDOR, y no es cosmética: es él quien frena de verdad al arrastrar,
+     * así que sin este dato frenaría con el cuerpo sin encoger y la ficha no pasaría por el pasillo estrecho.
+     * Una escena de antes de la columna se lee en 1 y se frena como se frenaba.
+     */
+    expect((await new SupabaseMapsRepo(fakeDb({ maps_scenes: { ...SCENE_ROW, token_scale: 0.5 } }).db).getScene('sc-1'))?.tokenScale).toBe(0.5);
+    expect((await new SupabaseMapsRepo(fakeDb({ maps_scenes: { ...SCENE_ROW, token_scale: null } }).db).getScene('sc-1'))?.tokenScale).toBe(1);
     expect((await new SupabaseMapsRepo(fakeDb({ maps_scenes: { ...SCENE_ROW, grid: null } }).db).getScene('sc-1'))?.gridSize).toBe(27);
     expect(await new SupabaseMapsRepo(fakeDb({}).db).getScene('nope')).toBeNull();
   });

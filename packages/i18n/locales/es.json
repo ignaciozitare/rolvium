@@ -886,6 +886,26 @@
       "close": "Cerrar",
       "selected": "Segmento seleccionado"
     },
+    "door": {
+      "section": "Cómo será la puerta",
+      "draftHint": "se dibuja ya así · y esto mismo edita la que tengas cogida",
+      "leaves": "Hojas",
+      "leavesOne": "Una",
+      "leavesTwo": "Dos",
+      "hinge": "Bisagra",
+      "hingeStart": "Un extremo",
+      "hingeEnd": "El otro",
+      "swing": "Abre hacia",
+      "swingA": "Un lado",
+      "swingB": "El otro",
+      "color": "Color",
+      "colorScene": "El de la escena",
+      "colorOwn": "Color propio {{hex}}",
+      "texture": "Textura",
+      "texturePick": "Elegir",
+      "textureChange": "Cambiar",
+      "hint": "no hace falta configurarla: se dibuja y ya funciona"
+    },
     "action": {
       "dice": "Lanzador de dados",
       "placePc": "Colocar PJ",
@@ -1034,6 +1054,7 @@
         "hint": "La de pared rellena el mapa entero; la de suelo asoma por el hueco que abre cada sala.",
         "own": "Foto tuya",
         "change": "Cambiar",
+        "pick": "Elegir",
         "upload": "+ Subir",
         "remove": "Quitar"
       },
@@ -1054,6 +1075,7 @@
         "wall": "Textura de pared",
         "floor": "Textura de suelo",
         "hint": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone como textura base de esta escena, con su tamaño de baldosa.",
+        "doorHint": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone en la puerta, con el azulejo de una casilla.",
         "empty": "Ninguna textura con ese nombre en esta categoría.",
         "search": "Buscar por nombre…",
         "categories": "Categorías",
@@ -1074,7 +1096,8 @@
         "menu": "Opciones de «{{name}}»",
         "rename": "Renombrar",
         "categorize": "Clasificar",
-        "renamePrompt": "¿Cómo quieres que se llame esta textura?"
+        "renamePrompt": "¿Cómo quieres que se llame esta textura?",
+        "door": "Textura de la puerta"
       },
       "tooSmall": "El gesto se quedó corto: no se levantó nada. Arrastra un poco más.",
       "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla."
@@ -1096,7 +1119,9 @@
       "ungroup": "soltar",
       "split": "el nodo",
       "roomDelete": "Borrar sala",
-      "roomFill": "el muro"
+      "roomFill": "el muro",
+      "door": "la puerta",
+      "window": "la ventana"
     },
     "builder": {
       "title": "Builder",
@@ -1133,6 +1158,12 @@
         "hintOff": "cada punta va por su cuenta · cuidado: la figura puede quedar abierta"
       },
       "selectAll": "Ctrl/Cmd + A coge todos los muros"
+    },
+    "tokenScale": {
+      "label": "TAMAÑO DE LAS FICHAS · TODA LA ESCENA",
+      "short": "TAMAÑO",
+      "hint": "para que quepan por los pasillos estrechos · la proporción entre tamaños no cambia",
+      "reading": "una ficha normal ocupa {cells} casillas"
     }
   },
   "bestiary": {

@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import type { LitLight, SceneVision } from '@rolvium/core';
-import type { Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
-import { cellsPath, initialsOf, openingGeometry, polygonPoints, polygonsPath, tokenCenter } from '../domain/useCases/mapRules';
+import type { DoorSettings, Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
+import { cellsPath, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, initialsOf, openingGeometry, polygonPoints, polygonsPath, quadPoints, tokenCenter, type Segment } from '../domain/useCases/mapRules';
 import { beamCones, conePath, flickerOf, intensityFactor, lightRadiusPx, maskSrc, terrainLayers } from '../domain/useCases/layerRules';
 
 /** Presentational SVG pieces of the canvas (no pointer logic) — see MapCanvas.tsx. */
@@ -93,20 +94,85 @@ export function TokenGlyph({ token, grid, override, selected, movable, label, hi
 }
 
 /**
- * A wall segment. `wall` is a plain gold line; a closed door adds a dark core between two jambs; an open one
- * keeps the threshold faint and swings its leaf out; a window is steel and never cuts sight
- * (rolvium.pen `uXK3T` · Muro / Puerta cerrada / Puerta abierta / Ventana).
+ * LA PUERTA, DIBUJADA (`rolvium.pen` · «PL/Puerta · el dibujo», aprobado el 2026-09-07).
+ *
+ * Una hoja por polígono: cerrada, la barra hueca de ángulos rectos tumbada en el hueco del muro; abierta,
+ * girada 90° desde su bisagra. El hueco NO lleva línea de umbral: el muro ya se parte al abrir el vano
+ * (`planOpening`), así que sus dos trozos son las jambas y pintar una raya encima volvería a taparlo.
+ *
+ * `color` viene resuelto de fuera (`doorColorOf`). `null` significa «el trazo del muro» y lo pone el CSS: la
+ * barra se queda HUECA y se ve el suelo por dentro. Pero en cuanto tiene color propio se RELLENA de ese
+ * color (suyo, 2026-09-07 con la app delante: «*cuando le doy color se tiene que rellenar de ese color*»).
  */
-export function WallShape({ wall, selected = false, draft = null }: { wall: Wall; selected?: boolean; draft?: { x1: number; y1: number; x2: number; y2: number } | null }): JSX.Element {
+export function DoorLeaves({ seg, door, color, texture = null, thickness }: { seg: Segment; door: DoorSettings & Pick<Wall, 'isOpen'>; color: string | null; texture?: string | null; thickness?: number }): JSX.Element {
+  /** La textura MANDA sobre el color: si hay mosaico, el relleno es el mosaico y el canto se queda a tono. */
+  const style = texture
+    ? { fill: `url(#${doorPatternId(texture)})`, ...(color ? { stroke: color } : {}) }
+    : (color ? { stroke: color, fill: color } : undefined);
+  return (
+    <>
+      {/*
+        * LOS DOS TROCITOS DE MURO, uno a cada lado y del largo del grosor de la puerta (suyo, 2026-09-07:
+        * «*es más estético que quede pegada a los muros*», y otra vez ese día: «*te pedí que dejes los trozos
+        * de pared al costado*»). Van DEBAJO de la hoja, para que al abrirla el umbral siga leyéndose como
+        * pared, y SIEMPRE con `.mp-door-stub`: se llegó a poder pintarlos aparte para las salas y así es como
+        * dejaron de verse, fundidos con la roca. Un solo estilo para las dos clases de puerta.
+        */}
+      {doorSpan(seg, thickness).stubs.map(([p0, p1], i) => (
+        <line key={`stub${i}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} className="mp-door-stub" data-stub={i} />
+      ))}
+      {doorQuads(seg, door, thickness).map((q, i) => (
+        <polygon key={i} points={quadPoints(q)} className="mp-door-leaf" style={style} data-leaf={i} data-textured={texture ? 'true' : undefined} />
+      ))}
+    </>
+  );
+}
+
+/**
+ * Los `<pattern>` de las texturas de puerta, UNO por mosaico distinto de la escena.
+ *
+ * Van en el `<defs>` del lienzo y no dentro de cada puerta: un patrón por puerta sería repetir la misma
+ * imagen tantas veces como puertas haya. El id sale de la url (`doorPatternId`), así que cada puerta lo
+ * pide sin que nadie le pase un mapa.
+ *
+ * El azulejo mide UNA CASILLA: una puerta ocupa más o menos eso, y un mosaico de cuatro casillas —el de
+ * suelos y paredes— se vería como un color plano.
+ */
+export function DoorTextureDefs({ urls, grid }: { urls: readonly string[]; grid: number }): JSX.Element | null {
+  if (urls.length === 0) return null;
+  return (
+    <>
+      {urls.map(u => (
+        <pattern key={u} id={doorPatternId(u)} patternUnits="userSpaceOnUse" width={grid} height={grid}>
+          <image href={u} x={0} y={0} width={grid} height={grid} preserveAspectRatio="xMidYMid slice" />
+        </pattern>
+      ))}
+    </>
+  );
+}
+
+/**
+ * A wall segment. `wall` is a plain gold line; a door is the hollow bar above (§ «Las puertas, de verdad»);
+ * a window is steel between two jambs and never cuts sight — y la ventana NO se toca, que ya estaba bien
+ * (rolvium.pen `uXK3T` · Muro / Ventana).
+ */
+export function WallShape({ wall, selected = false, draft = null, sceneDoorColor = null, sceneDoorTexture = null }: { wall: Wall; selected?: boolean; draft?: { x1: number; y1: number; x2: number; y2: number } | null; sceneDoorColor?: string | null; sceneDoorTexture?: string | null }): JSX.Element {
   const line = draft ?? { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 };
   const cls = `mp-wall ${wall.kind} ${wall.isOpen ? 'open' : ''} ${wall.visiblePlayers ? 'visible' : ''} ${selected ? 'selected' : ''}`;
   if (wall.kind === 'wall') return <line {...line} className={cls} data-wall-id={wall.id} data-wall-kind={wall.kind} />;
+  const group = `mp-opening ${wall.kind} ${wall.isOpen ? 'open' : ''} ${selected ? 'selected' : ''}`;
+  if (wall.kind === 'door') {
+    return (
+      <g className={group} data-wall-id={wall.id} data-wall-kind={wall.kind} data-open={wall.isOpen ? 'true' : 'false'}>
+        <DoorLeaves seg={line} door={wall} color={doorColorOf(wall, { doorColor: sceneDoorColor })}
+          texture={doorTextureOf(wall, { doorTextureUrl: sceneDoorTexture })} />
+      </g>
+    );
+  }
   const g = openingGeometry(line);
   return (
-    <g className={`mp-opening ${wall.kind} ${wall.isOpen ? 'open' : ''} ${selected ? 'selected' : ''}`} data-wall-id={wall.id} data-wall-kind={wall.kind} data-open={wall.isOpen ? 'true' : 'false'}>
+    <g className={group} data-wall-id={wall.id} data-wall-kind={wall.kind} data-open={wall.isOpen ? 'true' : 'false'}>
       <line {...line} className={cls} />
-      {wall.kind === 'door' && !wall.isOpen && <line {...line} className="mp-wall-core" />}
-      {wall.kind === 'door' && wall.isOpen && <line x1={g.leaf[0].x} y1={g.leaf[0].y} x2={g.leaf[1].x} y2={g.leaf[1].y} className="mp-wall-leaf" />}
       <line x1={g.jambA[0].x} y1={g.jambA[0].y} x2={g.jambA[1].x} y2={g.jambA[1].y} className="mp-wall-jamb" />
       <line x1={g.jambB[0].x} y1={g.jambB[0].y} x2={g.jambB[1].x} y2={g.jambB[1].y} className="mp-wall-jamb" />
     </g>
@@ -138,7 +204,17 @@ const fogFeather = (lighting: Scene['lighting']): number => (lighting === 'night
  * `seen` = explored ∪ current vision (what exists at all for a player) · `lit` = current vision only (tokens) ·
  * `dim` = everything but the current vision (darkens the remembered part) · `unexplored` = the DM's blue veil.
  */
-export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
+/**
+ * ⚡ ENVUELTA EN `memo`, por lo mismo que `RoomsLayer` (suyo, 2026-09-07: «*la sombra dinámica en local va
+ * lentísima cuando pruebo*»). Aquí se arma el camino de TODAS las casillas exploradas y los polígonos de
+ * visión, y encima van en cuatro máscaras con desenfoque. En un mapa muy explorado eso cuesta más que la
+ * capa de salas — y se rehacía en CADA repintado del lienzo, o sea ~60 veces por segundo al arrastrar una
+ * ficha, aunque ni la escena ni la niebla hubieran cambiado.
+ *
+ * Con `memo` y con `ids` estable desde `MapCanvas` (era un objeto nuevo cada vez, y sin eso el `memo` no
+ * serviría de nada), arrastrar una ficha deja de tocar esto. No cambia ni un píxel de lo que se ve.
+ */
+function FogMasksBase({ scene, fog, ids }: FogProps): JSX.Element {
   const cells = cellsPath(fog.explored, scene.grid.size);
   const full = { x: 0, y: 0, width: scene.width, height: scene.height };
   const polys = fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_SHOW} />);
@@ -314,7 +390,10 @@ function prunePhases(lights: readonly Light[]): void {
   for (const key of spinPhase.keys()) if (!live.has(key)) spinPhase.delete(key);
 }
 
-export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: readonly Light[]; lit?: readonly LitLight[] }): JSX.Element {
+/**
+ * ⚡ Y ésta igual: una luz lleva su propio desenfoque, y tampoco depende de las fichas. Mismo trato.
+ */
+function LightsLayerBase({ scene, lights, lit }: { scene: Scene; lights: readonly Light[]; lit?: readonly LitLight[] }): JSX.Element {
   const shown = lights.map(l => ({ light: l, parts: lit?.find(x => x.id === l.id)?.parts ?? null }))
     .filter(({ parts }) => !lit || parts !== null);
   prunePhases(lights);
@@ -459,3 +538,12 @@ export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: read
     </g>
   );
 }
+
+/**
+ * Las capas CARAS del lienzo, envueltas para que arrastrar una ficha no las rehaga (§ el arreglo del
+ * 2026-09-07). Ninguna de las dos depende de las fichas.
+ */
+export const FogMasks = memo(FogMasksBase);
+FogMasks.displayName = 'FogMasks';
+export const LightsLayer = memo(LightsLayerBase);
+LightsLayer.displayName = 'LightsLayer';

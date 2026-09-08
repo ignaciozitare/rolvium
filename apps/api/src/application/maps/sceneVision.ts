@@ -233,7 +233,17 @@ export async function computeSceneVision(
   let corrected: SceneVision['corrected'] = null;
   let clearance: SceneVision['clearance'] = null;
   if (at && dragged && scene.solidWalls) {
-    const radius = (dragged.size * scene.gridSize) / 2;
+    /**
+     * EL FRENO VA CON EL CUERPO QUE SE VE, NO CON EL DE LA FICHA. La barrita del tamaño de la escena
+     * (`token_scale`) encoge las fichas para que quepan por los pasillos estrechos, y **es aquí donde tiene
+     * que notarse**: quien frena de verdad es el servidor, así que sin esto la ficha se vería pequeña y
+     * seguiría sin pasar. Era el encargo entero («*si dibujan pasillos pequeños los tokens no pasarán*»).
+     *
+     * Lo demás se queda con el tamaño de la ficha a propósito: `tokenOrigin` da el CENTRO, y el navegador
+     * encoge conservando el centro, así que el centro pintado y el guardado son el mismo punto. Y `cx`/`cy`
+     * de abajo vuelven del centro a la esquina que se GUARDA, que es la de la ficha sin encoger.
+     */
+    const radius = (dragged.size * (scene.tokenScale || 1) * scene.gridSize) / 2;
     /**
      * Y las salas FRENAN IGUAL (§ «Lo que SÍ comparten: la física, entera»). Su contorno es roca: no hace
      * falta mirar ningún `blocksMove`, porque una pared dibujada aquí no tiene la opción de dejar pasar.

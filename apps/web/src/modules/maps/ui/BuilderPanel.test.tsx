@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, within, fireEvent } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { WALL_1, WALL_DOOR } from '../../../../tests/helpers/fakes';
+import { DEFAULT_DOOR } from '../domain/entities/Scene';
+import { DOOR_COLORS } from '../domain/useCases/mapRules';
 import { BuilderPanel } from './BuilderPanel';
 
 // jsdom no trae PointerEvent: un MouseEvent con pointerId basta para los gestos, como en LightEditor.test.
@@ -266,7 +268,13 @@ describe('<BuilderPanel> las dos texturas base y el grosor', () => {
     mount({ mode: 'draw', preset: 'cavern' });
     const fila = screen.getByText('Las dos texturas base').closest('fieldset')!;
     expect(within(fila).getAllByText('Caverna')).toHaveLength(2);   // pared y suelo
-    expect(within(fila).getAllByRole('button', { name: '+ Subir' })).toHaveLength(2);
+    /**
+     * ELEGIR, NO SUBIR. Es la MISMA corrección que ya se le hizo a la puerta, y él la tuvo que repetir para
+     * las texturas base: «*ese botón no es para subir, es para elegir; luego ya dentro del modal se pueden
+     * subir*» (2026-09-07). El botón abre el CATÁLOGO; subir una foto se hace dentro.
+     */
+    expect(within(fila).getAllByRole('button', { name: 'Elegir' })).toHaveLength(2);
+    expect(within(fila).queryByRole('button', { name: '+ Subir' })).not.toBeInTheDocument();
   });
 
   it('con una foto suya, manda la suya — y se puede quitar', async () => {
@@ -289,6 +297,60 @@ describe('<BuilderPanel> las dos texturas base y el grosor', () => {
     expect(screen.getByText('22')).toBeInTheDocument();
     fireEvent.change(slider, { target: { value: '0.4' } });
     expect(onThickness).toHaveBeenCalledWith(0.4);
+  });
+});
+
+/**
+ * ── LA BARRITA DEL TAMAÑO DE LAS FICHAS ──
+ *
+ * Encargo suyo del 2026-09-07: «*si dibujan pasillos pequeños los tokens no pasarán… no quiero eliminar la
+ * colisión, quiero reducir el tamaño*», y «*el tamaño se configura no por saltos sino con una barrita
+ * progresiva*». Diseño aprobado en `rolvium.pen` · «PL/Builder · panel · TAMAÑO DE LAS FICHAS».
+ */
+describe('<BuilderPanel> — el tamaño de las fichas', () => {
+  const barra = () => screen.getByRole('slider', { name: 'TAMAÑO DE LAS FICHAS · TODA LA ESCENA' });
+
+  it('enseña LO QUE OCUPA UNA FICHA NORMAL, no el multiplicador: «×0,66» no dice nada', () => {
+    mount({ mode: 'draw', tokenScale: 1 });
+    expect(screen.getAllByText(/1,5/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/×/)).not.toBeInTheDocument();
+  });
+
+  it('a dos tercios enseña UNA casilla, que es la respuesta a «¿pasa por el pasillo?»', () => {
+    mount({ mode: 'draw', tokenScale: 2 / 3 });
+    expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  it('es CONTINUA y recorre de la mitad a un cuarto más, como él la pidió', () => {
+    mount({ mode: 'draw', tokenScale: 1 });
+    const b = barra();
+    expect(b).toHaveAttribute('min', '0.5');
+    expect(b).toHaveAttribute('max', '1.25');
+    // Un paso de 0,01 es lo que la hace progresiva y no de saltos.
+    expect(Number(b.getAttribute('step'))).toBeLessThanOrEqual(0.01);
+  });
+
+  it('mientras arrastra AVISA para el previo, y al soltar es cuando GUARDA', () => {
+    const onTokenScale = vi.fn(), onTokenScaleEnd = vi.fn();
+    mount({ mode: 'draw', tokenScale: 1, onTokenScale, onTokenScaleEnd });
+    fireEvent.change(barra(), { target: { value: '0.66' } });
+    expect(onTokenScale).toHaveBeenCalledWith(0.66);
+    // Todavía NO se ha guardado: sería una escritura por píxel de arrastre.
+    expect(onTokenScaleEnd).not.toHaveBeenCalled();
+    fireEvent.pointerUp(barra());
+    expect(onTokenScaleEnd).toHaveBeenCalled();
+  });
+
+  it('lleva la marca del centro, para volver a «como siempre» sin buscar', () => {
+    const { container } = mount({ mode: 'draw', tokenScale: 0.66 });
+    expect(barra()).toHaveAttribute('list', 'mp-token-scale-ticks');
+    const marca = container.querySelector('#mp-token-scale-ticks option');
+    expect(marca).toHaveAttribute('value', '1');
+  });
+
+  it('sale en los DOS modos: las fichas están tanto sobre una foto como levantando salas', () => {
+    mount({ mode: 'photo', tokenScale: 1 });
+    expect(barra()).toBeInTheDocument();
   });
 });
 
@@ -358,5 +420,186 @@ describe('<BuilderPanel> qué levanto: sala o muro', () => {
     mount({ mode: 'draw', onBuildKind });
     await userEvent.setup().click(screen.getByRole('radio', { name: 'Muro' }));
     expect(onBuildKind).toHaveBeenCalledWith('wall');
+  });
+});
+
+/**
+ * ── LAS PUERTAS, DE VERDAD (`rolvium.pen` · «PL/Builder · panel · PUERTA cogida») ──
+ *
+ * Cuatro filas que salen SÓLO cuando lo cogido es una puerta. Su encargo del 2026-09-07: «*tengo que poder
+ * elegir si la puerta es de una o dos hojas y si abre para un lado o el otro (preseteado en algo, cosa de
+ * que no sea obligatorio configurarla)*». Y el mismo panel sirve para una puerta de SALA, que es lo que
+ * arregla el fallo de origen: una puerta dibujada en una sala no se podía ni abrir ni borrar.
+ */
+/**
+ * «*dejaste como opciones el a mano, recta, círculo etc, en una puerta o ventana no tiene sentido*»
+ * (suyo, 2026-09-07 con la app delante). Un vano es siempre un tramo recto de A a B.
+ */
+describe('<BuilderPanel> las formas NO salen con una puerta o una ventana', () => {
+  it('dibujando aquí: con SALA o MURO sí, con PUERTA y VENTANA no', () => {
+    const { re } = mount({ mode: 'draw', buildKind: 'room' });
+    expect(screen.getByRole('radiogroup', { name: 'Con qué forma' })).toBeInTheDocument();
+    re({ mode: 'draw', buildKind: 'wall' });
+    expect(screen.getByRole('radiogroup', { name: 'Con qué forma' })).toBeInTheDocument();
+    for (const k of ['door', 'window'] as const) {
+      re({ mode: 'draw', buildKind: k });
+      expect(screen.queryByRole('radiogroup', { name: 'Con qué forma' })).not.toBeInTheDocument();
+    }
+  });
+
+  it('con un vano no queda NADA de muro ni de sala: ni estilo, ni texturas base, ni grosor', () => {
+    const { re } = mount({ mode: 'draw', buildKind: 'room', onPreset: vi.fn(), onTexture: vi.fn(), onThickness: vi.fn() });
+    expect(screen.getByText('Estilo de la mazmorra')).toBeInTheDocument();
+    expect(screen.getByText('Las dos texturas base')).toBeInTheDocument();
+    re({ mode: 'draw', buildKind: 'door', onPreset: vi.fn(), onTexture: vi.fn(), onThickness: vi.fn() });
+    expect(screen.queryByText('Estilo de la mazmorra')).not.toBeInTheDocument();
+    expect(screen.queryByText('Las dos texturas base')).not.toBeInTheDocument();
+    expect(screen.queryByText('Grosor del muro')).not.toBeInTheDocument();
+    // Pero lo que SÍ vale para dibujar un vano se queda: la rejilla y los nodos.
+    expect(screen.getByText('Pegar a la rejilla')).toBeInTheDocument();
+  });
+
+  it('y marcando sobre una foto, lo mismo: manda `kind`', () => {
+    const { re } = mount({ mode: 'photo', kind: 'wall' });
+    expect(screen.getByRole('radiogroup', { name: 'Con qué forma' })).toBeInTheDocument();
+    re({ mode: 'photo', kind: 'door' });
+    expect(screen.queryByRole('radiogroup', { name: 'Con qué forma' })).not.toBeInTheDocument();
+  });
+});
+
+describe('<BuilderPanel> cómo es la puerta cogida', () => {
+  const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 0, y1: 0, x2: 0, y2: 60, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
+  const fila = (nombre: string) => screen.getByRole('radiogroup', { name: nombre });
+
+  /**
+   * ── LA CORRECCIÓN DE CONCEPTO (suya, 2026-09-07: «*sólo me deja poner las propiedades de la puerta una
+   * vez creada, eso está como el culo*») ──
+   * Los ajustes salen al ELEGIR puerta, y la puerta nace ya así. Antes había que dibujarla y cogerla.
+   */
+  it('al elegir PUERTA salen sus ajustes ANTES de dibujar nada, sobre el borrador', async () => {
+    const onDoor = vi.fn();
+    mount({ mode: 'draw', buildKind: 'door', doorDraft: { ...DEFAULT_DOOR }, onDoor });
+    expect(screen.getByTestId('mp-door-opts')).toBeInTheDocument();
+    expect(screen.getByText('se dibuja ya así · y esto mismo edita la que tengas cogida')).toBeInTheDocument();
+    await userEvent.setup().click(within(fila('Hojas')).getByRole('radio', { name: 'Dos' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ leaves: 2 });
+  });
+
+  it('con una VENTANA elegida no hay ajustes: una ventana no se configura ni se abre', () => {
+    mount({ mode: 'draw', buildKind: 'window', doorDraft: { ...DEFAULT_DOOR }, onDoor: vi.fn() });
+    expect(screen.queryByTestId('mp-door-opts')).not.toBeInTheDocument();
+  });
+
+  /**
+   * ── Y EL BORRADOR NO SE CUELA EN LO QUE HAYA COGIDO ──
+   * Con algo cogido que NO es una puerta —una ventana de sala, un muro—, `onDoor` escribe en esa fila
+   * (así lo reparte `SceneTab`). Si además saliera el borrador, el panel enseñaría los valores de la
+   * próxima puerta y cada clic los escribiría en la ventana: mentiría dos veces y el borrador ni se
+   * enteraría. Con algo cogido que no es puerta, aquí no hay ajustes de puerta.
+   */
+  it('con una VENTANA o un MURO cogidos no sale el borrador, aunque «Puerta» esté elegido', () => {
+    const VENTANA = { ...VANO, kind: 'window' as const };
+    const { re } = mount({ mode: 'draw', buildKind: 'door', doorDraft: { ...DEFAULT_DOOR }, roomOpening: VENTANA, onDoor: vi.fn() });
+    expect(screen.queryByTestId('mp-door-opts')).not.toBeInTheDocument();
+    re({ mode: 'draw', buildKind: 'door', doorDraft: { ...DEFAULT_DOOR }, roomOpening: null, wall: WALL_1, onDoor: vi.fn() });
+    expect(screen.queryByTestId('mp-door-opts')).not.toBeInTheDocument();
+    // Sobre una foto es el mismo caso: `kind` viene del muro cogido, pero el vano cogido es una ventana.
+    re({ mode: 'photo', kind: 'door', doorDraft: { ...DEFAULT_DOOR }, roomOpening: VENTANA, onDoor: vi.fn() });
+    expect(screen.queryByTestId('mp-door-opts')).not.toBeInTheDocument();
+  });
+
+  it('con una puerta COGIDA el bloque es el mismo, pero sin la pista del borrador', () => {
+    mount({ wall: WALL_DOOR, onDoor: vi.fn() });
+    expect(screen.getByTestId('mp-door-opts')).toBeInTheDocument();
+    expect(screen.queryByText('se dibuja ya así · y esto mismo edita la que tengas cogida')).not.toBeInTheDocument();
+  });
+
+  it('los colores van en rejilla ordenada, no en una lista que se dobla sola', () => {
+    mount({ wall: WALL_DOOR, onDoor: vi.fn() });
+    const rejilla = screen.getByRole('radiogroup', { name: 'Color' });
+    expect(rejilla).toHaveClass('mp-door-colors');
+    // El de la escena PRIMERO, y detrás las familias en su orden.
+    expect(within(rejilla).getAllByRole('radio')[0]).toHaveAccessibleName('El de la escena');
+    expect(within(rejilla).getAllByRole('radio')).toHaveLength(DOOR_COLORS.length + 1);
+  });
+
+  it('sin nada cogido no hay filas de puerta: el panel no se llena de ajustes que no tocan', () => {
+    mount();
+    expect(screen.queryByRole('radiogroup', { name: 'Hojas' })).not.toBeInTheDocument();
+  });
+
+  it('un MURO liso o una VENTANA tampoco las traen: sólo una puerta se configura', () => {
+    const { re } = mount({ wall: WALL_1, onDoor: vi.fn() });
+    expect(screen.queryByRole('radiogroup', { name: 'Hojas' })).not.toBeInTheDocument();
+    re({ wall: { ...WALL_DOOR, kind: 'window' }, onDoor: vi.fn() });
+    expect(screen.queryByRole('radiogroup', { name: 'Hojas' })).not.toBeInTheDocument();
+  });
+
+  it('con una puerta cogida salen las cuatro, marcadas en lo que trae de fábrica', () => {
+    mount({ wall: WALL_DOOR, onDoor: vi.fn() });
+    expect(within(fila('Hojas')).getByRole('radio', { name: 'Una' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(fila('Bisagra')).getByRole('radio', { name: 'Un extremo' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(fila('Abre hacia')).getByRole('radio', { name: 'Un lado' })).toHaveAttribute('aria-checked', 'true');
+    // El color de serie es el de la ESCENA, no uno propio.
+    expect(within(fila('Color')).getByRole('radio', { name: 'El de la escena' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('cada interruptor manda su cambio, y sólo el suyo', async () => {
+    const onDoor = vi.fn();
+    const u = userEvent.setup();
+    const { re } = mount({ wall: WALL_DOOR, onDoor });
+    await u.click(within(fila('Hojas')).getByRole('radio', { name: 'Dos' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ leaves: 2 });
+    await u.click(within(fila('Bisagra')).getByRole('radio', { name: 'El otro' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ hinge: 'end' });
+    await u.click(within(fila('Abre hacia')).getByRole('radio', { name: 'El otro' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ swing: 'left' });
+    // Y volver al de la escena es poner el color a nulo, que es lo que significa «el trazo del muro».
+    re({ wall: { ...WALL_DOOR, doorColor: '#8b1a1a' }, onDoor });
+    await u.click(within(fila('Color')).getByRole('radio', { name: 'El de la escena' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ doorColor: null });
+  });
+
+  it('con DOS hojas la bisagra desaparece: cada hoja ya cuelga de su propio extremo', () => {
+    mount({ wall: { ...WALL_DOOR, leaves: 2 }, onDoor: vi.fn() });
+    expect(screen.getByRole('radiogroup', { name: 'Hojas' })).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Bisagra' })).not.toBeInTheDocument();
+  });
+
+  it('un VANO DE SALA se edita con los mismos controles, se abre y se BORRA', async () => {
+    const onDoor = vi.fn(), onToggleOpen = vi.fn(), onRemove = vi.fn();
+    mount({ roomOpening: VANO, onDoor, onToggleOpen, onRemove });
+    const u = userEvent.setup();
+    await u.click(within(fila('Hojas')).getByRole('radio', { name: 'Dos' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ leaves: 2 });
+    await u.click(screen.getByRole('button', { name: 'Abrir' }));
+    expect(onToggleOpen).toHaveBeenCalled();
+    // La papelera: `removeRoomOpening` existía y no la llamaba nadie.
+    await u.click(screen.getByRole('button', { name: 'Quitar segmento' }));
+    expect(onRemove).toHaveBeenCalled();
+  });
+
+  it('trae fila de TEXTURA, del mismo catálogo que la pared y el suelo', async () => {
+    const onDoorTexture = vi.fn(), onDoor = vi.fn();
+    const { re } = mount({ wall: WALL_DOOR, onDoor, onDoorTexture });
+    const u = userEvent.setup();
+    // El botón dice ELEGIR y no «+ Subir»: abre el catálogo, no sube nada (corrección suya del 2026-09-07).
+    expect(screen.queryByRole('button', { name: '+ Subir' })).not.toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Elegir' }));
+    expect(onDoorTexture).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Quitar' })).not.toBeInTheDocument();
+    // Con una puesta, se puede cambiar y quitar — y quitarla es dejarla a nulo.
+    re({ wall: { ...WALL_DOOR, doorTextureUrl: 'https://x/roble.png' }, onDoor, onDoorTexture });
+    expect(screen.getByRole('button', { name: 'Cambiar' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Quitar' }));
+    expect(onDoor).toHaveBeenLastCalledWith({ doorTextureUrl: null });
+  });
+
+  it('un vano de sala NO trae el interruptor de esconder: la sala ES el dibujo del mapa', () => {
+    const { re } = mount({ roomOpening: VANO, onDoor: vi.fn(), onVisible: vi.fn() });
+    expect(screen.queryByLabelText('visible para jugadores')).not.toBeInTheDocument();
+    // Un muro suelto sí lo trae, que es la diferencia.
+    re({ wall: WALL_DOOR, roomOpening: null, onDoor: vi.fn(), onVisible: vi.fn() });
+    expect(screen.getByLabelText('visible para jugadores')).toBeInTheDocument();
   });
 });

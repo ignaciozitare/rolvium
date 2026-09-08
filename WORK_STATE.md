@@ -20,6 +20,240 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 «EL FALLO DE "PEGADO A ALGO", CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO», justo debajo.**
 
+## 🔴 2026-09-08 — DÓNDE ESTAMOS, Y LO ÚNICO QUE QUEDA ABIERTO
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 🔴 de WORK_STATE.md. Queda el token que se pega al tocar una esquina.»
+
+### ESTADO
+- Rama **`feat/maps-puertas`**, tres commits: `10cfa00` (puertas) · `0c2580e` (tamaño de las fichas) ·
+  `6b29801` (tres arreglos). Árbol limpio.
+- **Él pidió desplegar el 2026-09-08 sabiendo que el trabón sigue**: «*no funciona del todo bien, todavía se
+  pega, pero podemos solucionarlo más adelante*». QA lanzada. Si esto se lee antes de que termine el
+  despliegue, comprobar primero `git log origin/main` y los advisors.
+- ⚠️ **TRES MIGRACIONES A PRODUCCIÓN, Y ANTES QUE EL CÓDIGO**, en este orden:
+  `20260907120000_maps_doors.sql` → `20260907150000_maps_door_texture.sql` → `20260907170000_maps_token_scale.sql`.
+- Servidor de desarrollo levantado con `npm run dev:web` (**no** `npm run dev`, ese script no existe).
+
+### 🐞 LO ÚNICO ABIERTO: EL TOKEN SE PEGA AL TOCAR UNA ESQUINA
+Suyo, 2026-09-08: «*si toco una esquina se pega y sólo se destraba si muevo el puntero en la dirección
+contraria*». Dice que **después del arreglo está peor que antes**.
+
+**NO EMPIECES POR DONDE EMPECÉ YO.** Esto ya está descartado, con pruebas, y volver a mirarlo es perder horas:
+- **Como DIRECTOR no hay nada que pueda frenar la ficha.** `MapCanvas`: `blockers = p.isDm ? [] : […]`, o sea
+  vacío a propósito. Y el servidor **no le contesta con correcciones a un director**: en
+  `apps/api/src/application/maps/sceneVision.ts` el bloque `if (role === 'dm')` abre en la línea 182 y
+  **todas** sus salidas retornan antes del cálculo de `corrected`/`clearance` (cierra en la 209). Con lo cual
+  `motionRef` se queda en `null` y no hay disco que recorte.
+- **Reproducido en test en sus condiciones exactas** —director, sala, paredes sólidas, arrastre de abajo
+  arriba hasta la esquina y luego de lado— y **la ficha sigue al ratón perfectamente**. También con muros
+  sueltos y con jugador. Los tests de diagnóstico se borraron; rehacerlos es trivial.
+- **No es el paquete viejo**: se arrancó limpio (`rm -rf apps/web/node_modules/.vite`) y se comprobó pidiéndole
+  los ficheros al servidor que servía el código nuevo.
+- El puntero **sí se captura** en el arrastre de ficha (`setPointerCapture`, `MapCanvas` ~455), así que no es
+  que se salgan los eventos por el borde.
+
+**POR DÓNDE SEGUIR, EN ESTE ORDEN:**
+1. **Se le dejó un CHIVATO en pantalla y él nunca llegó a mandar la captura.** Era una línea roja mientras
+   arrastras con `director / muros / disco / frena`. **Se quitó antes de commitear** (no podía ir a
+   producción). Volver a ponerlo es media hora y contesta la pregunta de golpe: si sale `muros:0 disco:-1
+   frena:0`, la ficha va exactamente donde va el ratón y el trabón **no es la física** — es otra cosa
+   (repintado, o lo que se ve ≠ lo que se guarda).
+2. **La SONDA DE PRUEBA sí choca** (`probeBlockers`, sin filtro de director, `MapCanvas:790`) y su síntoma es
+   EXACTAMENTE el suyo: para salir hay que volver por donde entraste. Preguntarle si lo que arrastra es una
+   ficha o la sonda. No se le llegó a preguntar.
+3. Si resulta ser la física: el problema de fondo es que **el ratón se mete dentro de la pared** y la ficha no
+   vuelve a moverse hasta que el ratón sale del radio del cuerpo — media ficha entera, en las dos direcciones
+   a la vez. Medido. La salida sería proyectar el ratón al punto legal más cercano en vez de dejar la ficha
+   en el último sitio.
+
+### 🧾 DEUDA ANOTADA
+- **`setHover` se dispara en CADA `pointermove`** y repinta el lienzo entero. Es lentitud real **pero no la
+  suya**: todo lo que lee `hover` está detrás de `dmSight`, así que a un DIRECTOR no le ahorra nada. Ayuda a
+  los jugadores. Es el cambio más delicado de los de rendimiento.
+- `maps.room.textures.upload` se quedó **sin usar** en los dos idiomas.
+- `DoorLeaves` acepta un `thickness` que no le pasa nadie.
+- `BestiaryTab.test.tsx › enseña las criaturas del manual junto a las propias` **parpadea** bajo carga
+  (`findByRole` con timeout de 1 s). No es de esta rama; morderá en QA algún día.
+
+## 🐞 2026-09-07 (noche) — TRES FALLOS SUYOS PROBANDO · ARREGLADOS Y COMMITEADOS (`6b29801`)
+
+Rama **`feat/maps-puertas`**. Review pasado. ⚠️ El primero **NO cierra lo que él ve**: sigue pegándose.
+Ver el bloque de arriba del todo.
+
+Verde: web **1530** · api **249** · `tsc` en las dos apps · `audit` **0 hard** · las dos compilan.
+
+### 1 · EL TOKEN CLAVADO EN LA ESQUINA
+«*cuando un token está en una esquina se queda pegado, hay que soltarlo y cogerlo de nuevo*».
+
+`circleClearance` deja el «disco libre» en CERO en cuanto el cuerpo queda pegado a un muro —y `slideCircle`
+aparca ahí a propósito, a `SLIDE_GAP` de la pared—, así que **cualquier frenazo** dejaba el disco a cero. El
+recorte de `MapCanvas` clavaba el pintado en ese punto: contra una pared se avanzaba a tirones, y en una
+ESQUINA `slideCircle` no puede resbalar, devuelve el mismo punto y el token no se movía más.
+
+> ⚖️ **EL ARREGLO TIENE DOS MITADES Y LAS DOS SON OBLIGATORIAS.**
+> `if (bound && (bound.clearance > 1e-6 || blockers.length === 0))`.
+> Soltar el disco a secas **reabría el fallo del 2026-08-22**, y lo cazó el review: con el disco a cero se
+> pinta `frenado`, que sólo frena contra los muros que ESTE navegador ve — y un jugador no ve ninguno (RLS,
+> 16 de 16 ocultos). Peor: «pegado a una pared en paralelo» deja el disco a cero en CADA tick, no sólo en la
+> esquina, así que no era un caso raro. Soltando dentro de la ventana de ~140 ms la posición se guardaba sin
+> que el servidor pudiera vetarla. Con `blockers.length === 0` el jugador ciego **sigue clavado como antes**
+> y sólo se suelta a quien tiene física propia a la que caer — que es su caso, porque el contorno de una sala
+> se dibuja en el navegador. Hay un test por cada mitad.
+
+### 2 · EL BOTÓN DE LAS TEXTURAS BASE: «ELEGIR», NO «+ SUBIR»
+«*ese botón no es para subir, es para elegir; luego ya dentro del modal se pueden subir*». Es la MISMA
+corrección que ya se le hizo a la textura de puerta y que no se llevó a las de pared y suelo. Clave nueva
+`maps.room.textures.pick`. ⚠️ `maps.room.textures.upload` se ha quedado sin usar.
+
+### 3 · EL RENDIMIENTO · «la sombra dinámica va lentísima»
+Él avisó: «*ojo con romper la sombra*». **No se ha tocado su dibujo**: mismo `filter`, mismo grosor, dentro de
+la misma máscara, y hay un test guardián.
+
+Lo que se arregló es que se rehacía de balde. `RoomsLayer`, `FogMasks` y `LightsLayer` van ahora en `memo`, y
+sus props se estabilizaron con `useMemo` en `MapCanvas` (`roomIds`, `fogIds`, `rooms`, `roomOpenings`,
+`blockers`, `probeBlockers`, `roomBlockers`, `lightsAll`, `lightsShown`). Sin lo segundo el `memo` no vale
+para nada, y **`roomIds`/`fogIds` eran los que de verdad rompían la memoización** (objetos literales nuevos
+en cada repintado).
+
+> 🧨 **UN TEST DE «NO SE REPINTA» QUE MIRA EL DOM NO PRUEBA NADA.** El primer guardián comprobaba que el nodo
+> del DOM fuera el mismo, y React reutiliza el nodo cuando no cambian los atributos — con `memo` o sin él.
+> Pasaba en verde con el `memo` borrado. Ahora se espía la primera función que llama el cuerpo del componente
+> (`roomWallsOf` para las salas, `cellsPath` para la niebla): si se llama, se repintó. Verificado borrando el
+> `memo` y viendo fallar.
+>
+> Y ojo con lo que se escribe al lado: el review corrigió DOS comentarios míos que explicaban un mecanismo
+> falso (que el navegador re-rasterizaba el desenfoque; no lo hace si React no toca atributos — el coste real
+> es JS: rehacer contornos, `wobble`, cadenas de `path` y reconciliar el subárbol 60 veces por segundo). En
+> este repo los comentarios se creen, así que un comentario equivocado es deuda.
+
+### 🧾 LO QUE **NO** SE TOCÓ, Y POR QUÉ
+- **`setHover` se dispara en CADA `pointermove`**, haya gesto o no, y repinta el lienzo entero. Es una causa
+  real de lentitud… **pero no la suya**: todo lo que lee `hover` (el pincel, el disco de abrir, el borrador
+  del muro) está detrás de `dmSight`, así que para un DIRECTOR no se ahorraría nada. Ayuda a los JUGADORES.
+  Es además el cambio más delicado de los cuatro. Queda para decidir aparte.
+- `BestiaryTab.test.tsx › enseña las criaturas del manual junto a las propias` **parpadeó una vez** bajo carga
+  y pasó sola al repetir: un `findByRole` con el timeout de 1 s. No es de este cambio, pero morderá en QA.
+
+## 🔍 2026-09-07 (noche) — LA BARRITA DEL TAMAÑO DE LAS FICHAS · COMMITEADA (`0c2580e`)
+
+Rama **`feat/maps-puertas`**. Diseño aprobado por él y `.pen` guardado; todo commiteado en `0c2580e`.
+
+Verde: web **1522** · api **249** · `tsc` en las dos apps **0 errores** · `audit` **0 hard** · `build:web` y
+`build:api` compilan · `db lint --level error` limpio.
+
+### 🎯 QUÉ ES
+Una barrita CONTINUA en el panel del constructor, **por escena**, que escala TODAS las fichas manteniendo la
+proporción entre los cinco tamaños. Salió de un problema suyo de mesa: «*si dibujan pasillos pequeños los
+tokens no pasarán, no quiero eliminar la colisión de los tokens, quiero reducir el tamaño*». Recorre de
+**0,5 a 1,25**, arranca en 1, y el número que enseña es **lo que ocupa una ficha normal en casillas** (1,5
+hoy · 1 a dos tercios), no el multiplicador — «×0,66» no le dice nada.
+
+Migración: `20260907170000_maps_token_scale.sql` (`maps_scenes.token_scale`). Aplicada en local con
+`supabase migration up --local`. ⚠️ **NUNCA `db:reset`**.
+
+### 🔑 LAS TRES DECISIONES QUE SUJETAN ESTO
+1. **Es una LENTE, no una reescritura.** `maps_tokens.size` no se toca jamás: se guarda sólo el multiplicador
+   en la escena y se aplica al pintar y al calcular. Reescribir habría perdido el tamaño original de cada
+   ficha y no habría vuelta atrás.
+2. **Encoge EN SU SITIO.** `x`/`y` guardan la ESQUINA, así que encogiendo sólo el tamaño la ficha se anclaba
+   por su esquina de arriba a la izquierda y se apartaba contra la pared — justo cuando la encoges para que
+   quepa. `tokenAnchorShift` corre la esquina media diferencia y el CENTRO no se mueve. Él lo pidió al verlo:
+   «*corrígelo*». **Y sale gratis lo de la visión**: si el centro pintado es el guardado, el ojo del servidor
+   ya sale del sitio correcto sin tocar el backend.
+3. **El freno del SERVIDOR encoge también.** `sceneVision.ts` calcula el radio con
+   `dragged.size * scene.tokenScale`. Sin esto la ficha se vería pequeña y **seguiría sin pasar**, porque
+   quien frena de verdad es el servidor (a un jugador no le llegan los muros secretos). Era la funcionalidad
+   entera. `SceneRecord` lleva `tokenScale` y el adaptador lo lee (una escena vieja = 1).
+
+> ⚠️ **LA FRONTERA DE LAS DOS CUENTAS ESTÁ ENTERA EN `SceneTab`** y tiene que seguir ahí. El lienzo trabaja en
+> la cuenta de la ficha ENCOGIDA; la base, el servidor y el resto de la app en la de la ficha DE VERDAD.
+> Cruzan cinco cosas y las cinco se traducen juntas: `onDragToken`, `onMoveToken`, `onServerCorrection`,
+> `onDragBound` y `drags`. Con la barrita en el centro el corrimiento es 0 y es la identidad exacta.
+
+### 🐞 LO QUE CAZÓ EL REVIEW (arreglado)
+- **La distancia de ataque** en `bestiary/ui/DmEncounters.tsx` medía sin la lente: con la barrita movida daba
+  dos fichas separadas como **pegadas**, o sea cuerpo a cuerpo desde lejos.
+- **Al colocar** una ficha caía descentrada del clic — casi dos casillas con una *enorme* a media barrita.
+
+### 📌 LO QUE FALTA
+1. **Que guarde el `.pen`** (Cmd+S) → commit del diseño + del código.
+2. Que la pruebe en un pasillo estrecho.
+3. Luego: «listo para merge» → QA → Deploy. ⚠️ En producción van **TRES migraciones y ANTES que el código**:
+   `20260907120000_maps_doors.sql` · `20260907150000_maps_door_texture.sql` · `20260907170000_maps_token_scale.sql`.
+
+### 🧾 DEUDA ANOTADA, NO TOCADA
+- `useScene.ts` arma `myTokenKey` con los tamaños crudos, así que mover la barrita no vuelve a pedir visión.
+  **Hoy es correcto** —el centro no se mueve, luego la visión no cambia— pero si algún día la barrita llegara
+  a mover el centro, esto habría que revisarlo.
+- `DoorLeaves` sigue aceptando un `thickness` que no le pasa nadie (ver el bloque de las puertas).
+
+## 🚪 2026-09-07 — LAS PUERTAS · TERMINADAS, APROBADAS EN PANTALLA Y COMMITEADAS
+
+Rama **`feat/maps-puertas`**. El dibujo **ya le vale** («*vale ya esta bien*») y la tanda entera está
+commiteada, con **review pasado**. Falta sólo que él diga «listo para merge» → QA → Deploy.
+
+Todo verde: `vitest` **1499** en apps/web · `tsc` **0 errores** · `audit` **0 hard** · i18n 1071/1071 ·
+`build:web` y `build:api` compilan · RLS sin hallazgos.
+
+### 📌 LO QUE FALTA, EN ORDEN
+1. **Que él diga «listo para merge»** → QA (subagente) → Deploy.
+2. ⚠️ En producción van **DOS migraciones, y ANTES que el código**, en este orden:
+   `20260907120000_maps_doors.sql` y luego `20260907150000_maps_door_texture.sql`.
+3. **Guardar el `.pen` con Cmd+S** — sigue sin estar en disco la lámina de las variantes ni el panel
+   corregido. El MCP no escribe en disco: sin su Cmd+S no hay nada que commitear.
+
+### 🎯 EL NÚMERO DE LA PUERTA — ES SUYO Y NO SE CALCULA
+**`DOOR_BAR_PX = 5.5`** (`domain/useCases/mapRules.ts`). Lo dio él midiendo en pantalla: «*si la línea son
+3 px la puerta sea de 5,5*». La línea del muro son 3.
+
+**Y la puerta de una SALA se pinta EXACTAMENTE igual que la de un muro suelto**: `roomsLayer` no le pasa ni
+grosor, ni trazo, ni estilo de trocitos — hereda `DOOR_BAR_PX`, `.mp-door-leaf` y `.mp-door-stub`. Orden
+suya: «*¿por qué no pones las puertas anchas como en el modo foto? y te pedí que dejes los trozos de pared
+al costado*».
+
+> 🧨 **NO VOLVER A ATARLA AL GROSOR DE LA ROCA DE UNA SALA.** Se probó tres veces en esta sesión y las tumbó
+> las tres mirándolas: a `width * 0.66` el trazo fijo de 2.5 se comía el hueco y salía una **barra maciza**;
+> a `width` entero se veía gruesa Y tapaba los trocitos de los costados, que dejaban de verse; y con el trazo
+> encogido a proporción tampoco. La respuesta era copiar el modo foto, que ya le valía.
+
+### ✅ LO QUE ESTÁ HECHO Y FUNCIONA
+- **Dibujo nuevo** (`doorQuads` + `doorSpan`, `DoorLeaves`): barra de **ÁNGULOS RECTOS** —jamás
+  `cornerRadius` ni `linejoin: round`—, abierta girada 90°, sin arco, una o dos hojas, bisagra y lado.
+- **Trocito de muro a cada lado**, con tope del 15% del hueco por lado.
+- **El color RELLENA** la puerta; la **TEXTURA manda sobre el color**, del catálogo (`which: 'door'`).
+- **Panel**: los ajustes salen al ELEGIR PUERTA, sobre un borrador (`doorDraft`), y la puerta nace ya así.
+- **El disco abre las puertas de SALA** y se pueden borrar. **Ctrl+Z** funciona con ellas.
+- **Una puerta de sala fuera del contorno se dibuja igual**, donde él la puso.
+- 🐞 **Arreglado en esta sesión: la puerta doble.** El encadenado de trazos miraba `p.wallKind` —la clase del
+  modo foto—, así que en el constructor de salas creía que estaba poniendo un MURO y encadenaba: aparecía
+  una segunda puerta pegada a la primera («*si pongo una puerta me haces poner otra puerta al lado como si
+  fuera un muro del modo fotos*»). Ahora mira `builderMode === 'draw' ? buildKind : wallKind`
+  (`MapCanvas.tsx` ~755, prop `buildKind` nueva, pasada desde `SceneTab`).
+
+### 🚫 REGLAS SUYAS QUE NO SE PUEDEN VOLVER A ROMPER
+1. **En el constructor de habitaciones NO se exige que exista un muro** para poner una puerta. Sólo queda un
+   IMÁN que la clava en la pared si hay una cerca. **El modo FOTO no se toca**: ahí sí recorta el muro.
+2. **Ángulos rectos**, nunca cantos redondeados.
+3. Un vano de sala que no cae en el contorno **se dibuja igual**.
+4. **Un solo dibujo de puerta para las dos clases.** Nada de estilos propios para las salas.
+
+### 🧨 LECCIONES DE ESTA SESIÓN
+- **Cuando la duda es visual, la respuesta está en el `.pen` o se le pregunta con NÚMEROS MEDIDOS delante.**
+  Se gastaron cuatro intentos ajustando el grosor a ojo. Él lo cerró en un mensaje dando la cifra exacta.
+- **`tsc` DESPUÉS de escribir los tests, no antes.** Vitest transpila sin comprobar tipos.
+- **El servidor de desarrollo se queda con el paquete viejo.** Tras tocar i18n o CSS: parar, borrar
+  `apps/web/node_modules/.vite`, y levantar otra vez.
+- **Un test que no falla al romper el código a propósito no es un test.** Los dos arreglos de hoy se
+  verificaron rompiéndolos.
+
+### 🧾 DEUDA ANOTADA, NO TOCADA (para decidir aparte)
+- `DoorLeaves` sigue aceptando un `thickness` que hoy no le pasa NADIE (los dos sitios usan el de serie). Es
+  la misma puerta trasera que ya invitó tres veces a re-afinar las salas por su cuenta. Se dejó porque es
+  anterior a esta tanda; el `stub?`, que sí nació en ella y quedó huérfano, se quitó.
+- `doorPatternId` (`mapRules.ts`) mete la URL de la textura en un hash de 32 bits. Dos URLs distintas que
+  chocasen pintarían una puerta con la textura de la otra. Improbable con las texturas de una escena.
+
 ## 🚀 2026-09-07 — TODO ESO YA ESTÁ EN PRODUCCIÓN · Y EL ENCARGO NUEVO: LAS PUERTAS
 
 `main` = `c8e2e2b`. **Nada pendiente de subir y ninguna migración sin aplicar.**
@@ -49,7 +283,7 @@ y cerrar* · *tengo que poder elegir si la puerta es de una o dos hojas y si abr
 adentro o afuera (preseteado en algo, que no sea obligatorio configurarla)* · *si a la puerta se le puede
 poner un color o textura mejor*».
 
-**La captura** (Dungeon Scrawl): la puerta es una **barra hueca de esquinas redondeadas** que ocupa el hueco
+**La captura** (Dungeon Scrawl): la puerta es una **barra hueca de ÁNGULOS RECTOS** que ocupa el hueco
 del muro, con el trazo negro parándose a cada lado. Hoy se dibuja distinto —la línea del muro más dos
 marquitas en los extremos (`openingGeometry`, `mapRules.ts:224`)—, siempre de UNA hoja, con la bisagra
 siempre en el mismo extremo y abriendo siempre hacia el mismo lado.
@@ -63,8 +297,91 @@ siempre en el mismo extremo y abriendo siempre hacia el mismo lado.
 3. **Color/textura: uno para toda la escena, y por puerta si quiere cambiar una.**
 4. **Publicar lo de anoche ya**, sin esperar a las puertas. Hecho.
 
-**⏭️ SIGUIENTE PASO CONCRETO: el spec de las puertas**, y de ahí DBA → diseño en el `.pen` → construir.
-Ojo con el orden: es un cambio VISIBLE, así que el `.pen` va ANTES del código.
+**⏭️ SIGUIENTE PASO CONCRETO: el diseño de la puerta en el `.pen`.** El spec está cerrado y **el DBA ya está
+hecho** (bloque de abajo). Ojo con el orden: es un cambio VISIBLE, así que el `.pen` va ANTES del código.
+
+## 🚪 2026-09-07 (mediodía) — EL DBA DE LAS PUERTAS, HECHO · Y EL DISEÑO, PARADO ESPERÁNDOLE
+
+Rama **`feat/maps-puertas`** (sale de `main` = `fc01209`). **Sin commitear todavía.**
+
+### ✅ La migración: `supabase/migrations/20260907120000_maps_doors.sql`
+**Aplicada en local con `migration up`, NUNCA con `db:reset`** — sus 2 campañas, 3 usuarios, 7 texturas y 91
+salas siguen ahí, comprobado después de aplicarla.
+
+- **Las mismas cuatro columnas en `maps_walls` y en `maps_room_openings`**, a propósito: es lo que deja que el
+  panel de la puerta y el disco de abrir/cerrar sean UNA pieza para las dos, que es justo lo que hoy está roto.
+  **hojas** (`leaves`, 1|2, def. 1) · **bisagra** (`hinge`, start|end, def. start) · **lado** (`swing`,
+  left|right, def. right) · **color propio** (`door_color`, nulo = el de la escena).
+- **`maps_scenes.door_color`** — el color de todas las puertas de la escena. **Nulo y no un hex**: nulo
+  significa «el trazo del muro». Clavar un color aquí obligaría a que la base y el `.pen` dijeran lo mismo en
+  dos sitios, y el día que cambie la tinta habría que migrar todas las escenas.
+- `swing` se nombra por la **geometría** (`right` = +n con n = (-dy, dx), el lado hacia el que la saca hoy
+  `openingGeometry`) y no «adentro/afuera»: en un muro suelto sobre una foto no hay dentro ni fuera.
+- **Sus 7 puertas de hoy no cambian de comportamiento**: los valores por defecto son exactamente lo que hacen
+  ya. El ASPECTO sí cambiará, pero eso lo hace el dibujo nuevo y es decisión suya.
+- **Sin políticas nuevas**: las tres tablas ya tienen RLS con su `*_select` y su `*_dm_write FOR ALL`, que es
+  el reparto que estas columnas piden. **Borrar una abertura de sala tampoco necesitaba base**: la política es
+  `FOR ALL` y el GRANT ya incluye DELETE — falta que alguien llame a `removeRoomOpening`, y eso es código.
+- Comprobado: los **9 CHECK muerden** (hojas fuera de {1,2}, bisagras y lados inventados, `rgb(1,2,3)` y
+  `javascript:alert(1)` rechazados) y los valores buenos entran en las dos tablas ·
+  `supabase db lint --local --level error` **limpio** · `npm run audit` **0 hard** · `npm run typecheck` limpio.
+- `NOTIFY pgrst` al final, que sin él PostgREST se queda con el esquema viejo y la pantalla sale vacía.
+- `packages/shared-types/src/database.types.ts` regenerado: **+28 líneas y ninguna borrada**, sólo lo nuevo.
+- `specs/modules/maps/SPEC.md` — el «Modelo de datos» que decía «Pendiente, lo completa el DBA», relleno.
+
+### ✅ EL DISEÑO, APROBADO Y GUARDADO (2026-09-07, 13:58)
+Dos láminas nuevas en el `.pen`, al final de la fila «5 · LA ESCENA · mapas», en `x≈22100`:
+- **`wexID` · «PL/Puerta · el dibujo»** — ocho casillas: cerrada y abierta de una hoja, la bisagra en cada
+  extremo, abriendo a cada lado, cerrada y abierta de dos hojas, el color, y el disco.
+- **`phwDN` · «PL/Puerta · panel»** — HOJAS · BISAGRA · ABRE HACIA · COLOR, con vista previa y papelera.
+
+- 🔴 **CORRECCIÓN SUYA CON LA LÁMINA DELANTE: «*la puerta tiene que tener ángulos rectos no circulares*».**
+  El primer diseño llevaba cantos redondeados (venía del spec) y **está mal**. Ya cambiado en las dos láminas
+  y en el spec. Que no vuelva a colarse un `cornerRadius` en la puerta.
+- **REUSE, no invención**: el panel sale del molde de `LightEditor` / `PL/Builder · panel v3`. Lo activo va en
+  **`$pl-sangre`**, como los paneles nuevos del Builder — **no** en negro, que es el idioma viejo del panel de
+  luces (`o4oM8f`). El negro sigue siendo selección, la sangre acción.
+- **Sin variante clara/oscura, a propósito**: dentro de la mesa manda el tema del sistema (`--sys-*`), como
+  todas las demás láminas `PL/`.
+
+> 🪤 **LA TRAMPA DE ESTA SESIÓN, PARA NO REPETIRLA**: el MCP de Pencil no veía el fichero aunque `rolvium.pen`
+> estuviera abierto. El motivo es que **se engancha a UNA sola ventana de VS Code** (la que coge el socket
+> `~/.pencil/socket/`, que fue la tercera que abrió esa mañana), y había tres. Abrir el `.pen` desde la
+> terminal con el CLI **no sirve**. Si vuelve a pasar: mirar quién tiene dos descriptores del socket
+> (`lsof -U | grep pencil`) y abrir el `.pen` EN ESA ventana, o dejar una sola abierta.
+
+### ✅ CONSTRUIDO (2026-09-07) — falta que lo MIRE en pantalla
+
+Todo verde: `npm run test` **1458 web · 246 api · 64 core · 16 · 141** · `tsc` limpio · `audit` **0 hard** ·
+`build:web` y `build:api` compilan · `db lint --level error` limpio · **review pasado**.
+
+| Qué | Dónde |
+|---|---|
+| El dibujo nuevo | `doorQuads` en `mapRules.ts` (+ `quadPoints`, `doorColorOf`, `DOOR_COLORS`) |
+| Lo pinta | `DoorLeaves` en `canvasLayers.tsx` · `WallShape` para muros · `roomsLayer.tsx` para salas |
+| El disco, arreglado | `MapCanvas`: mira en muros **Y** vanos; `hitWall`/`hitOpening` ahora genéricos |
+| El panel | `BuilderPanel`: HOJAS · BISAGRA · ABRE HACIA · COLOR, sólo con una puerta cogida |
+| Borrar un vano de sala | `SceneTab` → `st.removeRoomOpening`, que existía y **no la llamaba nadie** |
+| Volver del tramo a la fila | `RoomOpeningSpan.id` / `RoomWall.openingId` en `packages/core/src/rooms.ts` |
+
+- ⚠️ **ÁNGULOS RECTOS**: `.mp-door-leaf` lleva `stroke-linejoin:miter` y **no hay un solo `cornerRadius`** en
+  todo el módulo. Es corrección suya con la lámina delante; si alguien mete un canto redondeado, está mal.
+- **La ventana no se ha tocado**: sigue con `openingGeometry` y sus dos jambas. Ya estaba bien.
+- **El color no pide visión al servidor** (`SOLO_APARIENCIA` en `useScene`): las cuatro de la puerta son
+  apariencia y no mueven una línea de vista. Abrirla sí la pide.
+- 🐞 **Lo que cazó el review y era de verdad**: las CINCO escrituras nuevas de vanos se saltaban `run()`, que
+  es lo que enciende el aviso de «no se pudo guardar». Con la pintada optimista, un fallo de guardado se
+  habría visto como un éxito. Arregladas las cinco.
+- 🐞 Y que `npm run typecheck` **no** estaba limpio cuando lo di por bueno: 35 errores en los tests nuevos que
+  `vitest` no ve (transpila sin comprobar tipos) y `build:web` tampoco (excluye tests). Sólo los caza `tsc`.
+  **Correr `tsc` DESPUÉS de escribir los tests, no antes.**
+
+### 📌 LO QUE HACE FALTA DE ÉL, EN ORDEN
+1. **MIRARLO EN PANTALLA** (`localhost:5173`, con `npm run dev:api` y `npm run dev:web`): dibujar una puerta
+   sobre un muro y sobre una SALA; abrirla y cerrarla con el disco en las dos; cogerla con Seleccionar y
+   probar las cuatro filas del panel; y borrar la de la sala, que antes no se podía.
+2. **Guardar el `.pen` con Cmd+S** si todavía no lo hizo tras el último cambio del panel.
+3. Cuando le valga: decir «listo para merge» → QA → Deploy (la migración va **antes** que el código).
 
 ## 🟢 2026-09-04 (noche) — EL FALLO DE «PEGADO A ALGO», CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO
 

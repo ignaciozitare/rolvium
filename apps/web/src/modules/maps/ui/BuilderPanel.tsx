@@ -1,9 +1,9 @@
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
-import { ROOM_PRESETS, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
+import { DOOR_HINGES, DOOR_LEAVES, DOOR_SWINGS, ROOM_PRESETS, type DoorSettings, type RoomOpening, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
 import { DEFAULT_TEXTURE_SCALE, styleOf } from '../domain/useCases/roomStyles';
-import { WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
-import { BUILDER_MODES, BUILD_KINDS, ROOM_SHAPES, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { DOOR_COLORS, normalCellsAt, TOKEN_SCALE, WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
+import { BUILDER_MODES, BUILD_KINDS, ROOM_SHAPES, isOpeningKind, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { useDragPanel } from './useDragPanel';
 
 interface Props {
@@ -53,6 +53,15 @@ interface Props {
   floorScale?: number;
   onTextureScale?: (which: 'wall' | 'floor', cells: number) => void;
   onTextureScaleEnd?: () => void;
+  /**
+   * LA BARRITA DEL TAMAÑO DE LAS FICHAS DE LA ESCENA (specs § «La barrita del tamaño de las fichas»).
+   * Mismo trato que las escalas de textura: `onTokenScale` va pintando el previo mientras arrastra —todas
+   * las fichas encogen a la vez, que es lo que se quiere ver— y `onTokenScaleEnd` guarda al soltar, para no
+   * escribir en la base una vez por píxel.
+   */
+  tokenScale?: number;
+  onTokenScale?: (v: number) => void;
+  onTokenScaleEnd?: () => void;
   /** Cuántos muros hay cogidos y si están atados entre sí (§ «EL GRUPO»). */
   groupCount?: number;
   grouped?: boolean;
@@ -61,6 +70,27 @@ interface Props {
   onVisible?: (visible: boolean) => void;
   onToggleOpen?: () => void;
   onRemove?: () => void;
+  /**
+   * ── LAS PUERTAS, DE VERDAD ──
+   * El VANO DE SALA cogido. Va aparte de `wall` porque vive en otra tabla (`maps_room_openings`), y su
+   * ausencia era el fallo entero: una puerta dibujada en una sala no se podía ni abrir ni borrar. Se edita
+   * con los mismos controles — sin el interruptor de esconder, que una sala ES el dibujo del mapa y se ve
+   * siempre (§ «La puerta sigue la visibilidad de su muro»).
+   */
+  roomOpening?: RoomOpening | null;
+  /**
+   * Cambiar cómo es la puerta cogida: hojas, bisagra, lado y color. UNA sola función para las dos tablas —
+   * quien la pasa sabe a cuál escribir. Configurarla nunca es obligatorio: esto sólo se toca si él quiere.
+   */
+  onDoor?: (patch: Partial<DoorSettings>) => void;
+  /**
+   * CÓMO SERÁ LA PRÓXIMA PUERTA, mientras no haya ninguna cogida (`rolvium.pen` · «PUERTA ELEGIDA»).
+   * Corrección suya de concepto, 2026-09-07: los ajustes salen al ELEGIR puerta y la puerta nace ya así —
+   * antes sólo se podían tocar después de dibujarla y cogerla, «*eso está como el culo*».
+   */
+  doorDraft?: DoorSettings;
+  /** Abrir el catálogo para elegirle textura a la puerta cogida. Mismo catálogo que la pared y el suelo. */
+  onDoorTexture?: () => void;
   onClose: () => void;
 }
 
@@ -87,11 +117,45 @@ export function BuilderPanel({
   preset = 'hatch', onPreset, wallTextureUrl = null, floorTextureUrl = null, onTexture, onClearTexture,
   thickness = 0.22, onThickness,
   wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd,
-  groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, onClose,
+  tokenScale = TOKEN_SCALE.def, onTokenScale, onTokenScaleEnd,
+  groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onDoorTexture, doorDraft, onClose,
 }: Props): JSX.Element {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  /** El número del panel, con la coma o el punto que toque según el idioma. */
+  const cellsOfNormal = (v: number): string => new Intl.NumberFormat(locale).format(normalCellsAt(v));
   const { ref, style, handlers } = useDragPanel<HTMLDivElement>();
-  const held = groupCount > 1 || !!wall;
+  const held = groupCount > 1 || !!wall || !!roomOpening;
+  /**
+   * Lo que se está levantando es un VANO: en «Dibujar aquí» lo dice `buildKind`, y sobre una foto, `kind`.
+   *
+   * 🔑 Con un vano elegido, TODO lo que es del muro y de la sala se va del panel (suyo, 2026-09-07 con la
+   * pantalla delante: «*por qué dejas las opciones de muro en las opciones de puerta y ventana*»): ni la
+   * forma, ni el estilo de la mazmorra, ni las dos texturas base, ni el grosor. Nada de eso lo cambia
+   * dibujar una puerta, y ofrecerlo ahí es la misma mezcla que él ya paró una vez con los modos.
+   */
+  const construyeVano = mode === 'draw' ? isOpeningKind(buildKind) : kind !== 'wall';
+  /**
+   * LA PUERTA COGIDA, venga de donde venga. Al panel le da igual si es un muro suelto o un vano de sala:
+   * los ajustes son los mismos y por eso las dos tablas llevan las mismas columnas.
+   * Una VENTANA no entra: no se configura ni se abre — ya estaba bien y no se toca.
+   */
+  const cogida: (DoorSettings & { isOpen: boolean }) | null =
+    wall?.kind === 'door' ? wall : roomOpening?.kind === 'door' ? roomOpening : null;
+  /** Lo que se va a levantar es una PUERTA (no una ventana: una ventana no se configura, ni se abre). */
+  const levantaPuerta = (mode === 'draw' ? buildKind : kind) === 'door';
+  /**
+   * La puerta que estos controles tocan: la COGIDA si hay una, y si no la que está a punto de dibujarse.
+   * Un solo bloque para las dos cosas — es lo que él aprobó en el `.pen` y lo que evita dos sitios donde
+   * decir lo mismo.
+   *
+   * ⚠️ EL BORRADOR SÓLO SALE CON LA MANO VACÍA. Con algo cogido que no es una puerta —una ventana de sala,
+   * un muro—, `onDoor` escribe en ESA fila: así lo reparte `SceneTab`, y es lo correcto para una puerta
+   * cogida. Enseñar ahí el borrador haría que el panel mintiera dos veces: pintaría los valores de la
+   * próxima puerta y cada clic los escribiría en la ventana, sin tocar el borrador.
+   */
+  const nadaCogido = !wall && !roomOpening;
+  const door: (DoorSettings & { isOpen?: boolean }) | null =
+    cogida ?? (nadaCogido && levantaPuerta ? doorDraft ?? null : null);
 
   return (
     <div className="mp-builder" ref={ref} style={style}
@@ -152,7 +216,99 @@ export function BuilderPanel({
         <p className="mp-builder-hint">{t(mode === 'draw' ? 'maps.room.build.hint' : 'maps.builder.what.hint')}</p>
       </fieldset>
 
-      {/* ── CON QUÉ FORMA ── */}
+
+      {/*
+        * ── CÓMO SERÁ LA PUERTA ── (`rolvium.pen` · «PL/Builder · panel · PUERTA ELEGIDA», aprobado el
+        * 2026-09-07). Va AQUÍ, justo debajo de «qué levanto», y no dentro de «lo que tengo cogido»: sale en
+        * cuanto se elige PUERTA, y la puerta nace ya así. Con una cogida, edita esa.
+        */}
+      {door && onDoor && (
+        <fieldset className="mp-builder-group mp-door-opts" data-testid="mp-door-opts">
+          <legend className="tb-rotulo">{t('maps.door.section')}</legend>
+          {!cogida && <p className="mp-builder-hint">{t('maps.door.draftHint')}</p>}
+          {/*
+            * Configurarla NUNCA es obligatorio (orden suya): nace de una hoja, colgada del extremo por donde
+            * la dibujó y abriendo hacia un lado fijo. La bisagra y el lado son DOS interruptores y no un
+            * menú de cuatro combinaciones: es lo mismo y se entiende sin leer.
+            */}
+            <div className="mp-builder-row" role="radiogroup" aria-label={t('maps.door.leaves')}>
+              <span className="tb-rotulo">{t('maps.door.leaves')}</span>
+              {DOOR_LEAVES.map(n => (
+                <button key={n} type="button" role="radio" aria-checked={door.leaves === n}
+                  className={`tb-btn tb-btn-xs ${door.leaves === n ? 'tb-btn-blood' : ''}`}
+                  onClick={() => onDoor({ leaves: n })}>{t(n === 1 ? 'maps.door.leavesOne' : 'maps.door.leavesTwo')}</button>
+              ))}
+            </div>
+            {/* La bisagra sólo se lee con UNA hoja: con dos, cada hoja cuelga ya de su propio extremo. */}
+            {door.leaves === 1 && (
+              <div className="mp-builder-row" role="radiogroup" aria-label={t('maps.door.hinge')}>
+                <span className="tb-rotulo">{t('maps.door.hinge')}</span>
+                {DOOR_HINGES.map(h => (
+                  <button key={h} type="button" role="radio" aria-checked={door.hinge === h}
+                    className={`tb-btn tb-btn-xs ${door.hinge === h ? 'tb-btn-blood' : ''}`}
+                    onClick={() => onDoor({ hinge: h })}>{t(h === 'start' ? 'maps.door.hingeStart' : 'maps.door.hingeEnd')}</button>
+                ))}
+              </div>
+            )}
+            <div className="mp-builder-row" role="radiogroup" aria-label={t('maps.door.swing')}>
+              <span className="tb-rotulo">{t('maps.door.swing')}</span>
+              {DOOR_SWINGS.map(w => (
+                <button key={w} type="button" role="radio" aria-checked={door.swing === w}
+                  className={`tb-btn tb-btn-xs ${door.swing === w ? 'tb-btn-blood' : ''}`}
+                  onClick={() => onDoor({ swing: w })}>{t(w === 'right' ? 'maps.door.swingA' : 'maps.door.swingB')}</button>
+              ))}
+            </div>
+            {/*
+              * LOS COLORES, EN REJILLA Y ORDENADOS (corrección suya del 2026-09-07: «*no puedes dejar todos
+              * los colores desordenados*»). Filas fijas de cinco y por familias —maderas, metales y piedra,
+              * tintes—, no una lista que se dobla sola por donde le cabe.
+              *
+              * El de la ESCENA es el primero y el de serie: por defecto todas iguales, y la de hierro del
+              * jefe se cambia sola (elegido por él). `null` = el trazo del muro.
+              */}
+            <span className="tb-rotulo">{t('maps.door.color')}</span>
+            <div className="mp-door-colors" role="radiogroup" aria-label={t('maps.door.color')}>
+              <button type="button" role="radio" aria-checked={door.doorColor === null} aria-label={t('maps.door.colorScene')}
+                className={`mp-swatch mp-swatch-scene ${door.doorColor === null ? 'on' : ''}`} onClick={() => onDoor({ doorColor: null })} />
+              {DOOR_COLORS.map(c => (
+                <button key={c} type="button" role="radio" aria-checked={door.doorColor === c} aria-label={t('maps.door.colorOwn', { hex: c })}
+                  className={`mp-swatch ${door.doorColor === c ? 'on' : ''}`} style={{ background: c }} onClick={() => onDoor({ doorColor: c })} />
+              ))}
+            </div>
+            {/*
+              * LA TEXTURA, que manda sobre el color (suyo, 2026-09-07: «*te falta lo de la textura*»).
+              * Sale del MISMO catálogo que la pared y el suelo — es de la herramienta, ya está hecho, y
+              * duplicarlo para las puertas sería tener dos sitios donde subir una foto de madera.
+              * El azulejo es de UNA casilla, que es más o menos lo que mide una puerta.
+              */}
+            <div className="mp-builder-row">
+              <span className="tb-rotulo">{t('maps.door.texture')}</span>
+              <TextureSwatch url={door.doorTextureUrl} cells={1} fallback={styleOf(preset).rock} />
+              {/*
+                * «Elegir», no «+ Subir» (suyo, 2026-09-07: «*el botón de la textura dice subir y eso está
+                * mal*»). Y tiene razón: esto ABRE EL CATÁLOGO para escoger una que ya está. Subir una foto
+                * nueva se hace dentro del catálogo, que es donde vive ese botón.
+                */}
+              <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onDoorTexture?.()}>
+                {t(door.doorTextureUrl ? 'maps.door.textureChange' : 'maps.door.texturePick')}
+              </button>
+              {door.doorTextureUrl && (
+                <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onDoor({ doorTextureUrl: null })}>
+                  {t('maps.room.textures.remove')}
+                </button>
+              )}
+            </div>
+            <p className="mp-builder-hint">{t('maps.door.hint')}</p>
+        </fieldset>
+      )}
+
+      {/*
+        * ── CON QUÉ FORMA ── y NO con una puerta o una ventana (suyo, 2026-09-07 con la app delante:
+        * «*dejaste como opciones el a mano, recta, círculo etc, en una puerta o ventana no tiene sentido*»).
+        * Un vano es SIEMPRE un tramo recto de A a B: no hay forma que elegir, y ofrecerla prometía un gesto
+        * que no existe. Vale para los dos modos: marcando sobre una foto tampoco tiene sentido un círculo.
+        */}
+      {!construyeVano && (
       <fieldset className="mp-builder-group">
         <legend className="tb-rotulo">{t('maps.room.shapeOf')}</legend>
         <div className="mp-builder-shapes" role="radiogroup" aria-label={t('maps.room.shapeOf')}>
@@ -169,6 +325,7 @@ export function BuilderPanel({
         </div>
         <p className="mp-builder-hint">{shapeHint(shape, t)}</p>
       </fieldset>
+      )}
 
       {/*
         * ── EL ESTILO DE LA MAZMORRA ── Los nueve preajustes (`rolvium.pen` · `ePNCc` § S/PREAJUSTES).
@@ -180,7 +337,7 @@ export function BuilderPanel({
         * Sólo en «Dibujar aquí». Marcando sobre una foto el suelo lo pone la foto, y la mitad de estos
         * controles no significaría nada — que fue el fallo que él señaló: «estás mezclando estas dos opciones».
         */}
-      {mode === 'draw' && (
+      {mode === 'draw' && !construyeVano && (
         <fieldset className="mp-builder-group">
           <legend className="tb-rotulo">{t('maps.room.preset.label')}</legend>
           <div className="mp-builder-presets" role="radiogroup" aria-label={t('maps.room.preset.label')}>
@@ -202,7 +359,7 @@ export function BuilderPanel({
         * bosque no se parecen en nada*» (dueño, 2026-09-03). Cambiarlas NO repinta las salas ya levantadas:
         * cada una se llevó su suelo el día que se dibujó.
         */}
-      {mode === 'draw' && (
+      {mode === 'draw' && !construyeVano && (
         <fieldset className="mp-builder-group">
           <legend className="tb-rotulo">{t('maps.room.textures.label')}</legend>
           <p className="mp-builder-hint">{t('maps.room.textures.hint')}</p>
@@ -220,7 +377,7 @@ export function BuilderPanel({
                   * nadie: «*mira el botón que está mal*».
                   */}
                 <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onTexture?.(which)}>
-                  {t(url ? 'maps.room.textures.change' : 'maps.room.textures.upload')}
+                  {t(url ? 'maps.room.textures.change' : 'maps.room.textures.pick')}
                 </button>
                 {url && (
                   <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onClearTexture?.(which)}>
@@ -255,6 +412,45 @@ export function BuilderPanel({
           </div>
         </fieldset>
       )}
+
+      {/*
+        * ── EL TAMAÑO DE LAS FICHAS ── Encargo suyo del 2026-09-07: «*si dibujan pasillos pequeños los tokens
+        * no pasarán… quiero reducir el tamaño*», y con su condición, «*que se mantenga la relación de
+        * diminuto pequeño normal grande y enorme*». Por eso es UNA barrita para todos y no un tamaño por
+        * ficha: multiplica por igual, así que la proporción del manual no se toca.
+        *
+        * VA FUERA DEL `builderMode`, al contrario que las texturas: las fichas están en los dos modos, y el
+        * pasillo estrecho que lo motivó se puede dibujar tanto levantando salas como marcando muros.
+        *
+        * El número que se enseña NO es el multiplicador: es LO QUE OCUPA UNA FICHA NORMAL, en casillas. «×0,66»
+        * no le dice nada a nadie; «1 casilla» contesta sola la pregunta de si pasa por el pasillo. Aprobado
+        * así en `rolvium.pen` · «PL/Builder · panel · TAMAÑO DE LAS FICHAS».
+        */}
+      <fieldset className="mp-builder-group">
+        <legend className="tb-rotulo">{t('maps.tokenScale.label')}</legend>
+        <p className="mp-builder-hint">{t('maps.tokenScale.hint')}</p>
+        <div className="mp-builder-thick">
+          <span className="mp-builder-tex-n">{t('maps.tokenScale.short')}</span>
+          {/*
+            * LA MARCA DEL CENTRO, «como siempre», que la lámina aprobada pide para poder volver sin buscar.
+            * Va con `list`/`<datalist>`, que es como el navegador dibuja una muesca en un deslizador — y NO
+            * con estilos propios del carril: los otros deslizadores del panel son los nativos tal cual, y
+            * pintarle un carril a medida sólo a éste lo dejaría desentonando al lado del grosor del muro.
+            * Donde el navegador no dibuje la muesca no se pierde nada: el número sigue diciendo dónde está.
+            */}
+          <datalist id="mp-token-scale-ticks"><option value={TOKEN_SCALE.def} /></datalist>
+          <input type="range" min={TOKEN_SCALE.min} max={TOKEN_SCALE.max} step={0.01} value={tokenScale}
+            list="mp-token-scale-ticks"
+            aria-label={t('maps.tokenScale.label')}
+            aria-valuetext={t('maps.tokenScale.reading', { cells: cellsOfNormal(tokenScale) })}
+            onChange={e => onTokenScale?.(Number(e.target.value))}
+            onPointerUp={() => onTokenScaleEnd?.()}
+            onKeyUp={() => onTokenScaleEnd?.()}
+            onBlur={() => onTokenScaleEnd?.()} />
+          <span className="mp-builder-thick-v">{cellsOfNormal(tokenScale)}</span>
+        </div>
+        <p className="mp-builder-hint">{t('maps.tokenScale.reading', { cells: cellsOfNormal(tokenScale) })}</p>
+      </fieldset>
 
       {/*
         * ── EL CANDADO ── Aprobado por él el 2026-09-03 («*tira*») con sus tres condiciones: empieza cerrado,
@@ -302,16 +498,17 @@ export function BuilderPanel({
             </div>
           )}
           {groupCount > 1 && <p className="mp-builder-hint">{grouped ? t('maps.group.hintGrouped') : t('maps.group.hintLoose')}</p>}
-          {wall && (
+          {(wall || roomOpening) && (
             <div className="mp-builder-row">
-              {onVisible && (
+              {/* Esconder es SÓLO de un muro suelto: una sala es el dibujo del mapa y se ve siempre. */}
+              {wall && onVisible && (
                 <label className="mp-light-check">
                   <input type="checkbox" checked={wall.visiblePlayers} onChange={e => onVisible(e.target.checked)} />
                   {t('maps.wall.visible')}
                 </label>
               )}
-              {onToggleOpen && canOpen(wall) && (
-                <button type="button" className="tb-btn tb-btn-xs" onClick={onToggleOpen}>{wall.isOpen ? t('maps.wall.close') : t('maps.wall.open')}</button>
+              {onToggleOpen && canOpen(wall ?? roomOpening!) && (
+                <button type="button" className="tb-btn tb-btn-xs" onClick={onToggleOpen}>{(wall ?? roomOpening!).isOpen ? t('maps.wall.close') : t('maps.wall.open')}</button>
               )}
               {onRemove && (
                 <Tooltip label={t('maps.wall.remove')} placement="top">

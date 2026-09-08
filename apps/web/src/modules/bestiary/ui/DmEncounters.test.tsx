@@ -8,8 +8,9 @@ import { DmEncounters } from './DmEncounters';
 const tokenOgro = { ...TOKEN_MUTANT, id: 'tk-ogro', bestiaryRef: 'ogre', name: 'Ogro', visible: true, x: TOKEN_KAREN.x + 1, y: TOKEN_KAREN.y, state: {} };
 const tokenMutante = { ...TOKEN_MUTANT, id: 'tk-mut2', name: 'Mutante', visible: true, x: TOKEN_KAREN.x + 3, y: TOKEN_KAREN.y };
 
-const setup = (over: { tokens?: (typeof tokenOgro)[]; activeSceneId?: string | null } = {}) => {
-  const repo = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: (over.tokens ?? [TOKEN_KAREN, tokenOgro]) as never });
+const setup = (over: { tokens?: (typeof tokenOgro)[]; activeSceneId?: string | null; tokenScale?: number } = {}) => {
+  const escena = over.tokenScale === undefined ? SCENE_WAREHOUSE : { ...SCENE_WAREHOUSE, tokenScale: over.tokenScale };
+  const repo = fakeMapsRepo({ scenes: [escena], tokens: (over.tokens ?? [TOKEN_KAREN, tokenOgro]) as never });
   const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });
   const onOpenAttack = vi.fn().mockResolvedValue({ id: 'atk-1' });
   const onOpenBestiary = vi.fn();
@@ -85,6 +86,33 @@ describe('DmEncounters — «Encuentros en la escena» del panel (.pen columna 4
       sceneId: 'sc-1', attackerTokenId: 'tk-ogro', attackerName: 'Ogro', targetCharacterId: TOKEN_KAREN.characterId,
     });
     expect(onRoll).not.toHaveBeenCalled();
+  });
+
+  /**
+   * REGRESIÓN · LA BARRITA DEL TAMAÑO TAMBIÉN MIDE AQUÍ (specs/modules/maps § «La barrita del tamaño de las
+   * fichas»). Este panel y el mapa se ven A LA VEZ en la mesa del director, y los dos miden el mismo hueco
+   * con `tokenGapCells`, que resta el radio de cada cuerpo. Cuando esto leía el token CRUDO, con la barrita
+   * fuera del centro daban números distintos para las mismas dos fichas — y el que decide si el ataque es
+   * cuerpo a cuerpo es el de aquí. Ogro y Karen están a una casilla de centro a centro: enteros se tocan
+   * (hueco 0), y a media escala sus cuerpos ocupan la mitad, así que queda medio hueco entre ellos.
+   */
+  it('regresión · con la barrita a la mitad el hueco se mide con los cuerpos YA encogidos', async () => {
+    const u = userEvent.setup();
+    setup({ tokenScale: 0.5 });
+    await u.click(await screen.findByRole('button', { name: /Encuentros en la escena/ }));
+    await u.click(screen.getByRole('button', { name: 'Atacar' }));
+    const modal = await screen.findByRole('dialog', { name: 'Atacar con Ogro' });
+    // Con la lente: 1 casilla entre centros − 0,25 − 0,25 de cuerpo = 0,5. Sin ella salía 0.
+    expect(within(modal).getByText(/Karen «K» está a 0\.5 casillas/)).toBeInTheDocument();
+  });
+
+  it('en el centro de la barrita se mide como siempre: los cuerpos enteros se tocan', async () => {
+    const u = userEvent.setup();
+    setup();
+    await u.click(await screen.findByRole('button', { name: /Encuentros en la escena/ }));
+    await u.click(screen.getByRole('button', { name: 'Atacar' }));
+    const modal = await screen.findByRole('dialog', { name: 'Atacar con Ogro' });
+    expect(within(modal).getByText(/Karen «K» está a 0 casillas/)).toBeInTheDocument();
   });
 
   it('«+ Añadir» lleva al Bestiario, y sin escena activa la sección no pinta nada', async () => {

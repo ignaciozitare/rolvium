@@ -1,32 +1,34 @@
 import type { RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
-import type { BgTransform, BlockShape, CreateSceneInput, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPatch, Room, RoomKind, RoomOpening, RoomPreset, RoomShapeKind, Texture, TextureCategory, NewTexture, TexturePatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
+import { DEFAULT_DOOR } from '../domain/entities/Scene';
+import type { BgTransform, BlockShape, CreateSceneInput, DoorSettings, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPatch, Room, RoomKind, RoomOpening, RoomPreset, RoomShapeKind, Texture, TextureCategory, NewTexture, TexturePatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, RoomOpeningPatch, Unsubscribe } from '../domain/ports/MapsPort';
 import { maskPath } from '../domain/useCases/layerRules';
+import { TOKEN_SCALE } from '../domain/useCases/mapRules';
 import { propPath } from '../domain/useCases/propRules';
 
-interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; /* rebanada 8 — opcionales a propósito: una fila escrita antes de la migración no las trae, y el mapeador ya las defiende con su valor de serie */ room_preset?: RoomPreset; wall_texture_url?: string | null; floor_texture_url?: string | null; wall_thickness?: number; wall_texture_scale?: number; floor_texture_scale?: number; created_at: string; updated_at: string }
-interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean; group_id: string | null }
+interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; /* rebanada 8 — opcionales a propósito: una fila escrita antes de la migración no las trae, y el mapeador ya las defiende con su valor de serie */ room_preset?: RoomPreset; wall_texture_url?: string | null; floor_texture_url?: string | null; wall_thickness?: number; wall_texture_scale?: number; floor_texture_scale?: number; door_color?: string | null; door_texture_url?: string | null; token_scale?: number; created_at: string; updated_at: string }
+interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean; group_id: string | null; /* las puertas, de verdad — opcionales a propósito: una fila anterior a la migración no las trae y `mapDoorRow` la defiende con DEFAULT_DOOR */ leaves?: number | null; hinge?: string | null; swing?: string | null; door_color?: string | null; door_texture_url?: string | null }
 interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; bestiary_entry_id: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown>; layer_id: string | null }
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string; layer_id: string | null }
 interface LayerRow { id: string; scene_id: string; campaign_id: string; kind: LayerKind; name: string; sort_order: number; visible: boolean; locked: boolean; image_url: string | null; transform: BgTransform; mask_url: string | null; mask_version: number; created_at: string; updated_at: string }
 interface LightRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; shape: LightShape; kind: LightKind; x: number; y: number; rotation: number; cone_angle: number; color: string; flicker: boolean; range_m: number; casts_shadow: boolean; spin_ms: number; intensity: number; created_at: string; updated_at: string }
 interface RoomRow { id: string; scene_id: string; campaign_id: string; kind?: RoomKind; shape: RoomShapeKind; points: [number, number][]; floor_preset: RoomPreset; floor_url: string | null; created_at: string; updated_at: string }
-interface RoomOpeningRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; kind: 'door' | 'window'; is_open: boolean }
+interface RoomOpeningRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; kind: 'door' | 'window'; is_open: boolean; /* las puertas, de verdad — opcionales a propósito: una fila anterior a la migración no las trae y `mapDoorRow` la defiende con DEFAULT_DOOR */ leaves?: number | null; hinge?: string | null; swing?: string | null; door_color?: string | null; door_texture_url?: string | null }
 interface ImageRow { id: string; campaign_id: string; name: string; url: string; created_at: string }
 interface TextureRow { id: string; name: string; category: TextureCategory; url: string; tile_cells: number; uploaded_by: string | null; created_at: string; updated_at: string }
 interface PropRow { id: string; campaign_id: string | null; name: string; category: PropCategory; image_url: string; natural_width: number; natural_height: number; default_scale: number; default_blocks_sight: boolean; default_blocks_move: boolean; default_block_shape: BlockShape; uploaded_by: string | null; created_at: string; updated_at: string }
 interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; created_at: string; updated_at: string }
 
-const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, created_at, updated_at';
+const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, door_color, door_texture_url, token_scale, created_at, updated_at';
 const ROOM_COLS = 'id, scene_id, campaign_id, kind, shape, points, floor_preset, floor_url, created_at, updated_at';
-const ROOM_OPENING_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, kind, is_open';
+const ROOM_OPENING_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, kind, is_open, leaves, hinge, swing, door_color, door_texture_url';
 const TEXTURE_COLS = 'id, name, category, url, tile_cells, uploaded_by, created_at, updated_at';
 /** Espejo de la migración: una escena de antes de la rebanada 8 se lee con el preajuste y el grosor de serie. */
 const DEFAULT_ROOM_PRESET: RoomPreset = 'hatch';
 const DEFAULT_WALL_THICKNESS = 0.22;
 /** Un azulejo grande, que es lo que menos sorprende al subir una foto cualquiera. En CASILLAS. */
 const DEFAULT_TEXTURE_SCALE = 4;
-const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, kind, blocks_sight, blocks_move, is_open, group_id';
+const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, kind, blocks_sight, blocks_move, is_open, group_id, leaves, hinge, swing, door_color, door_texture_url';
 /** Defaults mirror the migration, so a row written before slice 2 still reads as a plain closed wall. */
 const DEFAULT_NIGHT_RADIUS_M = 10;
 const TOKEN_COLS = 'id, scene_id, campaign_id, character_id, bestiary_ref, bestiary_entry_id, name, image_url, x, y, size, color, visible, controlled_by, vision_radius, state, layer_id';
@@ -38,6 +40,26 @@ const SCENE_PROP_COLS = 'id, scene_id, campaign_id, layer_id, prop_id, image_url
 /** La máscara del pincel vive en el bucket de fondos, bajo la carpeta de la campaña: la política ya lo cubre. */
 const DEFAULT_TRANSFORM: BgTransform = { mode: 'cover', x: 0, y: 0, scale: 1 };
 export const BACKGROUNDS_BUCKET = 'backgrounds';
+
+/**
+ * LAS CUATRO DE LA PUERTA, en un solo sitio para las dos tablas (`maps_walls` y `maps_room_openings`).
+ * Se leen con `DEFAULT_DOOR` por si falta la columna: una fila escrita antes de esta migración es una
+ * puerta de una hoja, colgada del extremo por donde se empezó a dibujar — que es justo lo que hacía.
+ */
+const DOOR_COLS: Record<string, string> = { leaves: 'leaves', hinge: 'hinge', swing: 'swing', doorColor: 'door_color', doorTextureUrl: 'door_texture_url' };
+type DoorRow = { leaves?: number | null; hinge?: string | null; swing?: string | null; door_color?: string | null; door_texture_url?: string | null };
+const mapDoorRow = (r: DoorRow): DoorSettings => ({
+  leaves: r.leaves === 2 ? 2 : DEFAULT_DOOR.leaves,
+  hinge: r.hinge === 'end' ? 'end' : DEFAULT_DOOR.hinge,
+  swing: r.swing === 'left' ? 'left' : DEFAULT_DOOR.swing,
+  doorColor: r.door_color ?? DEFAULT_DOOR.doorColor,
+  doorTextureUrl: r.door_texture_url ?? DEFAULT_DOOR.doorTextureUrl,
+});
+function doorPatchRow(p: Partial<DoorSettings>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  for (const [k, col] of Object.entries(DOOR_COLS)) { const v = (p as Record<string, unknown>)[k]; if (v !== undefined) row[col] = v; }
+  return row;
+}
 
 export const mapSceneRow = (r: SceneRow): Scene => ({
   id: r.id, campaignId: r.campaign_id, name: r.name, width: r.width, height: r.height, bgColor: r.bg_color, bgImageUrl: r.bg_image_url,
@@ -54,6 +76,11 @@ export const mapSceneRow = (r: SceneRow): Scene => ({
   wallThickness: r.wall_thickness ?? DEFAULT_WALL_THICKNESS,
   wallTextureScale: r.wall_texture_scale ?? DEFAULT_TEXTURE_SCALE,
   floorTextureScale: r.floor_texture_scale ?? DEFAULT_TEXTURE_SCALE,
+  // Nulo = el trazo del muro, que es de donde salen las puertas de todas las escenas de antes.
+  doorColor: r.door_color ?? null,
+  doorTextureUrl: r.door_texture_url ?? null,
+  // Una escena escrita antes de la migración no trae la columna: se lee como 1 y se ve exactamente igual.
+  tokenScale: r.token_scale ?? TOKEN_SCALE.def,
   createdAt: r.created_at, updatedAt: r.updated_at,
 });
 export const mapRoomRow = (r: RoomRow): Room => ({
@@ -72,14 +99,16 @@ export const mapTextureRow = (r: TextureRow): Texture => ({
 export const mapRoomOpeningRow = (r: RoomOpeningRow): RoomOpening => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id,
   x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, kind: r.kind ?? 'door', isOpen: r.is_open ?? false,
+  ...mapDoorRow(r),
 });
 export const mapWallRow = (r: WallRow): Wall => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, visiblePlayers: r.visible_players,
   kind: r.kind ?? 'wall', blocksSight: r.blocks_sight ?? true, blocksMove: r.blocks_move ?? true, isOpen: r.is_open ?? false,
   groupId: r.group_id ?? null,
+  ...mapDoorRow(r),
 });
 function wallPatchRow(p: WallPatch): Record<string, unknown> {
-  const map: Record<string, string> = { visiblePlayers: 'visible_players', kind: 'kind', blocksSight: 'blocks_sight', blocksMove: 'blocks_move', isOpen: 'is_open' };
+  const map: Record<string, string> = { visiblePlayers: 'visible_players', kind: 'kind', blocksSight: 'blocks_sight', blocksMove: 'blocks_move', isOpen: 'is_open', ...DOOR_COLS };
   const row: Record<string, unknown> = {};
   for (const [k, col] of Object.entries(map)) { const v = (p as Record<string, unknown>)[k]; if (v !== undefined) row[col] = v; }
   return row;
@@ -168,6 +197,8 @@ function scenePatchRow(p: ScenePatch): Record<string, unknown> {
   if (p.lighting !== undefined) row.lighting = p.lighting;
   if (p.nightRadiusM !== undefined) row.night_radius_m = p.nightRadiusM;
   if (p.solidWalls !== undefined) row.solid_walls = p.solidWalls;
+  if (p.doorColor !== undefined) row.door_color = p.doorColor;
+  if (p.doorTextureUrl !== undefined) row.door_texture_url = p.doorTextureUrl;
   // Rebanada 8 — las dos texturas base, el preajuste y el grosor son DE LA ESCENA («una cripta y un bosque
   // no se parecen en nada»). Cambiarlos no repinta ninguna sala ya levantada: cada una se llevó su suelo.
   if (p.roomPreset !== undefined) row.room_preset = p.roomPreset;
@@ -176,6 +207,7 @@ function scenePatchRow(p: ScenePatch): Record<string, unknown> {
   if (p.wallThickness !== undefined) row.wall_thickness = p.wallThickness;
   if (p.wallTextureScale !== undefined) row.wall_texture_scale = p.wallTextureScale;
   if (p.floorTextureScale !== undefined) row.floor_texture_scale = p.floorTextureScale;
+  if (p.tokenScale !== undefined) row.token_scale = p.tokenScale;
   if (p.sortOrder !== undefined) row.sort_order = p.sortOrder;
   if (p.visiblePlayers !== undefined) row.visible_players = p.visiblePlayers;
   return row;
@@ -575,7 +607,7 @@ export class SupabaseMapsRepo implements MapsPort {
   }
   async addRoomOpening(o: NewRoomOpening): Promise<RoomOpening> {
     const { data, error } = await this.db.from('maps_room_openings').insert({
-      scene_id: o.sceneId, campaign_id: o.campaignId, x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2, kind: o.kind, is_open: o.isOpen,
+      scene_id: o.sceneId, campaign_id: o.campaignId, x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2, kind: o.kind, is_open: o.isOpen, ...doorPatchRow(o),
     }).select(ROOM_OPENING_COLS).single();
     this.fail(error);
     return mapRoomOpeningRow(data as RoomOpeningRow);
@@ -584,6 +616,7 @@ export class SupabaseMapsRepo implements MapsPort {
     const row: Record<string, unknown> = {};
     if (patch.kind !== undefined) row.kind = patch.kind;
     if (patch.isOpen !== undefined) row.is_open = patch.isOpen;
+    Object.assign(row, doorPatchRow(patch));
     const { error } = await this.db.from('maps_room_openings').update(row).eq('id', id);
     this.fail(error);
   }

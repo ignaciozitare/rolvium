@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
-import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, doorTexturesUsed, type Point, type Segment, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
-import { BackgroundLayer, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
+import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
 import { ringFromSides, roomWallsOf } from '../domain/useCases/roomStyles';
 import { roomMoveSegments } from '@rolvium/core';
@@ -65,6 +65,13 @@ interface Props {
   roomOpenings?: RoomOpening[];
   /** En qué modo está Builder. Sin él, todo sigue funcionando como el modo «sobre una foto» de siempre. */
   builderMode?: BuilderMode;
+  /**
+   * QUÉ SE ESTÁ LEVANTANDO en el constructor de salas. Es OTRA cosa que `wallKind`, que es la clase del modo
+   * «sobre una foto»: en el constructor la clase vive aquí. Sin este dato el lienzo creía que siempre estaba
+   * poniendo un MURO y encadenaba —suyo, 2026-09-07: «*si pongo una puerta me haces poner otra puerta al
+   * lado como si fuera un muro del modo fotos*».
+   */
+  buildKind?: BuildKind;
   onAddRoomShape?: (shape: RoomShapeKind, points: [number, number][]) => void;
   /**
    * EL GESTO NO LEVANTÓ NADA, y hay que decirlo. Sin esto el fallo era mudo: se arrastraba corto, no aparecía
@@ -74,6 +81,18 @@ interface Props {
   onTooSmall?: (locked: boolean) => void;
   /** DM: open or close the door/window that was clicked. */
   onToggleWall: (wall: Wall) => void;
+  /**
+   * Abrir y cerrar una puerta DE SALA. Va aparte de `onToggleWall` porque vive en otra tabla
+   * (`maps_room_openings`), y su ausencia era el fallo: el disco sólo miraba en los muros, así que una
+   * puerta dibujada en una sala nacía cerrada y no había forma de abrirla.
+   */
+  onToggleRoomOpening?: (opening: RoomOpening) => void;
+  /**
+   * EL VANO DE SALA COGIDO. Va aparte de `selectedWallId` porque es otra tabla, y existe para que el panel
+   * pueda enseñar cómo es esa puerta y —lo que faltaba— su papelera: hoy un vano de sala no se puede borrar.
+   */
+  selectedRoomOpeningId?: string | null;
+  onSelectRoomOpening?: (id: string | null) => void;
   /** DM: paint the fog at a scene point with the current brush radius (scene px). */
   onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => void;
   /** DM, herramienta Luz: coloca una luz de ambiente donde se pinchó (px de escena). */
@@ -354,6 +373,7 @@ export function MapCanvas(p: Props): JSX.Element {
       if (!dmSight || !p.showWalls || !p.walls.length) return;
       // Se suelta el muro suelto: o se tiene UNO cogido y se editan sus puntas, o se tienen TODOS y se mueven.
       p.onSelectWall?.(null);
+      p.onSelectRoomOpening?.(null);
       p.onSelectToken(null);
       p.onSelectLight?.(null);
       p.onSelectDrawing?.(null);
@@ -428,6 +448,7 @@ export function MapCanvas(p: Props): JSX.Element {
     // One selection at a time: leaving a segment selected would stack «Segmento» and the token bar on the same
     // spot over the canvas, and Suprimir would delete the segment instead of the token you just picked.
     p.onSelectWall?.(null);
+    p.onSelectRoomOpening?.(null);
     p.onSelectLight?.(null);
     p.onSelectDrawing?.(null);
     if (!canMoveToken(tok, p.me, p.isDm)) return;
@@ -478,10 +499,23 @@ export function MapCanvas(p: Props): JSX.Element {
        * un pelo fuera de su disco COLOCA otra luz en vez de abrir la que querías — así que en la práctica no
        * había forma fiable de volver a una. Va antes que el muro porque es un blanco pequeño y encima de él.
        */
-      const light = dmSight ? lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= Math.max(12 / p.view.zoom, lightRadiusPx(l, p.scene.grid) * 0.25)) : null;
+      /**
+       * 🐞 …PERO NO SI DEBAJO HAY UN MURO O UN VANO (dueño, 2026-09-07: «*cuando hago click en una puerta me
+       * abre el modal de las luces*»).
+       *
+       * La generosidad de arriba es un CUARTO DEL RADIO de la luz, y el radio de una luz de ambiente grande
+       * son cientos de píxeles: dentro de ese círculo la luz se comía el clic de todo lo que hubiera debajo,
+       * y una puerta bajo una antorcha no se podía ni elegir ni configurar. Con algo debajo, la luz vuelve a
+       * exigir su disco de verdad (12 px), que es lo que se ve; en el vacío sigue perdonando como antes.
+       */
+      const debajo = dmSight ? (hitWall(p.walls, s, 10 / p.view.zoom) ?? hitWall(p.roomOpenings ?? [], s, 10 / p.view.zoom)) : null;
+      const holguraLuz = (l: Light): number =>
+        (debajo ? 12 / p.view.zoom : Math.max(12 / p.view.zoom, lightRadiusPx(l, p.scene.grid) * 0.25));
+      const light = dmSight ? lightsShown.find(l => Math.hypot(l.x - s.x, l.y - s.y) <= holguraLuz(l)) : null;
       if (light) {
         p.onSelectToken(null);
         p.onSelectWall?.(null);
+        p.onSelectRoomOpening?.(null);
         p.onSelectDrawing?.(null);
         p.onSelectLight?.(light.id);
         /**
@@ -560,6 +594,7 @@ export function MapCanvas(p: Props): JSX.Element {
             p.onSelectLight?.(null);
             p.onSelectDrawing?.(null);
             p.onSelectWall?.(null);
+            p.onSelectRoomOpening?.(null);
             p.onSelectWalls?.(grupo.map(g => g.id));
           }
           // Los ids van DENTRO del gesto: si dependiera de la prop, el primer arrastre tras elegir movería
@@ -574,10 +609,26 @@ export function MapCanvas(p: Props): JSX.Element {
         p.onSelectLight?.(null);
         p.onSelectDrawing?.(null);
         p.onSelectWall?.(wall.id);
+        p.onSelectRoomOpening?.(null);
         const near = (x: number, y: number) => Math.hypot(s.x - x, s.y - y) <= 12 / p.view.zoom;
         const grab = near(wall.x1, wall.y1) ? 'a' : near(wall.x2, wall.y2) ? 'b' : 'whole';
         setGesture({ kind: 'wallEdit', id: wall.id, grab, start: s, origin: { x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 }, dbl: doble });
         svgRef.current?.setPointerCapture?.(e.pointerId);
+        return;
+      }
+      /**
+       * UN VANO DE SALA. Después del muro y antes del trazo: es igual de fino y se coge con la misma
+       * tolerancia, pero NO se arrastra — su sitio es el tramo anotado sobre el contorno, y se mueve
+       * moviendo la forma. Cogerlo es lo que abre su panel, y con él la papelera que hasta hoy no existía.
+       */
+      const opening = dmSight ? hitWall(p.roomOpenings ?? [], s, 10 / p.view.zoom) : null;
+      if (opening) {
+        p.onSelectToken(null);
+        p.onSelectWall?.(null);
+        p.onSelectWalls?.([]);
+        p.onSelectLight?.(null);
+        p.onSelectDrawing?.(null);
+        p.onSelectRoomOpening?.(opening.id);
         return;
       }
       /**
@@ -590,6 +641,7 @@ export function MapCanvas(p: Props): JSX.Element {
       if (drawing) {
         p.onSelectToken(null);
         p.onSelectWall?.(null);
+        p.onSelectRoomOpening?.(null);
         p.onSelectLight?.(null);
         /**
          * Si el trazo es UNO DE LOS COGIDOS por el área, la selección no se toca y se mueven TODOS: agarrar
@@ -609,6 +661,7 @@ export function MapCanvas(p: Props): JSX.Element {
       }
       p.onSelectToken(null);
       p.onSelectWall?.(null);
+      p.onSelectRoomOpening?.(null);
       // Pinchar en vacío suelta TODO, la luz, el trazo y el grupo: es la forma de soltar sin buscar una X.
       p.onSelectLight?.(null);
       p.onSelectDrawing?.(null);
@@ -692,8 +745,15 @@ export function MapCanvas(p: Props): JSX.Element {
         const q = anclar(s, undefined, wallStart);
         if (wallStart) {
           p.onAddWall(wallStart, q);
-          // A door or a window is ONE segment: chaining would drop a second one where you did not ask for it.
-          setWallStart(p.wallKind && p.wallKind !== 'wall' ? null : q);
+          /**
+           * UNA PUERTA O UNA VENTANA ES UN SOLO TRAMO: encadenar dejaría caer otra donde nadie la pidió.
+           *
+           * Y hay que mirar la clase QUE SE ESTÁ COLOCANDO, no siempre `wallKind`. En el constructor de salas
+           * la clase es `buildKind`; mirando sólo `wallKind` —que allí sigue valiendo «muro»— la puerta de
+           * sala SÍ encadenaba, y salía una segunda pegada a la primera (suyo, 2026-09-07).
+           */
+          const colocando = p.builderMode === 'draw' ? p.buildKind : p.wallKind;
+          setWallStart(colocando && colocando !== 'wall' ? null : q);
           return;
         }
         setWallStart(q);
@@ -788,7 +848,29 @@ export function MapCanvas(p: Props): JSX.Element {
        * legal entero. Sin dato (sin física, director, primer instante) no se recorta nada.
        */
       const bound = p.onDragBound?.(gesture.id) ?? null;
-      if (bound) {
+      /**
+       * 🐞 PERO UN DISCO DE RADIO CERO NO ENCIERRA A NADIE (suyo, 2026-09-07: «*cuando un token está en una
+       * esquina se queda pegado, hay que soltarlo y cogerlo de nuevo*»).
+       *
+       * `circleClearance` deja el disco en CERO en cuanto el cuerpo queda pegado a un muro — y `slideCircle`
+       * aparca justo ahí a propósito, a `SLIDE_GAP` de la pared. O sea que **cualquier frenazo** dejaba el
+       * disco a cero. Contra una pared aún se avanzaba a tirones (cada respuesta del servidor concedía un
+       * resbalón), pero en una ESQUINA `slideCircle` no puede resbalar por ningún lado, devuelve el mismo
+       * punto, y el disco se quedaba en cero para siempre: el token no se movía ni tirando hacia el hueco
+       * abierto. Sólo soltar y volver a cogerlo lo desatascaba, porque eso borra el disco.
+       *
+       * ⚖️ PERO SÓLO SE SUELTA SI ESTE NAVEGADOR TIENE FÍSICA PROPIA A LA QUE CAER. Con el disco a cero se
+       * pinta `server ?? frenado`, y `frenado` sólo frena contra los muros que este navegador VE. Un JUGADOR
+       * en una escena normal no ve NINGUNO —son secretos por RLS: 16 de 16 ocultos, comprobado en la app—,
+       * así que para él `frenado` es el dedo a pelo, y soltar ahí le dejaría cruzar una pared que no ve:
+       * exactamente el fallo del 2026-08-22 que motivó el disco. Y no haría falta ni mala fe, porque
+       * «pegado a una pared moviéndose en paralelo» deja el disco a cero en CADA tick, no sólo en la esquina.
+       *
+       * Con `blockers.length > 0` la excepción vale sólo donde hay a qué caer. La esquina suya —el contorno
+       * de una sala, que se dibuja en el navegador— entra de lleno; el jugador ciego se queda como estaba, y
+       * ahí no se cambia nada.
+       */
+      if (bound && (bound.clearance > 1e-6 || blockers.length === 0)) {
         const dx = x - bound.x, dy = y - bound.y, d = Math.hypot(dx, dy);
         if (d > bound.clearance) {
           const k = bound.clearance / d;
@@ -910,6 +992,10 @@ export function MapCanvas(p: Props): JSX.Element {
     if (press) {
       const w = p.walls.find(x => x.id === press.id);
       if (w) p.onToggleWall(w);
+      else {
+        const o = (p.roomOpenings ?? []).find(x => x.id === press.id);
+        if (o) p.onToggleRoomOpening?.(o);
+      }
     }
     if (!gesture) return;
     // La sonda no guarda nada al soltar: no es una ficha. Sólo se deja de arrastrar.
@@ -951,7 +1037,13 @@ export function MapCanvas(p: Props): JSX.Element {
        * media quieta es un hueco, y es el mismo agujero por el que se colaba la visión con `addRoom`.
        */
       const cadena = p.chainNodes === false ? [] : chainWalls(p.walls, gesture.id, gesture.origin, at, gesture.grab);
-      if (!viajó && gesture.dbl) p.onSplitWall?.(gesture.id, gesture.start);
+      /**
+       * EL NODO POR DOBLE CLIC ES SÓLO DE UN MURO (dueño, 2026-09-07: «*por qué si le doy doble click a una
+       * puerta me crea un nodo al medio, eso es solo para los muros*»). Partir una puerta por la mitad deja
+       * dos medias puertas, que no es nada: un vano es UNA cosa de A a B. Los muros no se tocan.
+       */
+      const partible = p.walls.find(w => w.id === gesture.id)?.kind === 'wall';
+      if (!viajó && gesture.dbl && partible) p.onSplitWall?.(gesture.id, gesture.start);
       else if (moved && cadena.length) p.onTransformWalls?.([{ id: gesture.id, ...at }, ...cadena]);
       else if (moved) p.onMoveWall?.(gesture.id, at);
       setGroupDraft(null);
@@ -1058,8 +1150,18 @@ export function MapCanvas(p: Props): JSX.Element {
    * en la spec: el director no puede probar en su pantalla lo que siente un jugador; se mira entrando con una
    * cuenta de jugador.
    */
-  const rooms = p.rooms ?? [];
-  const roomOpenings = p.roomOpenings ?? [];
+  /**
+   * ⚡ ESTABLES A PROPÓSITO, y la mitad que de verdad importaba es `roomIds` (abajo): `roomMaskIds(...)`
+   * devuelve un objeto NUEVO en cada llamada, así que el `memo` de `RoomsLayer` no habría servido de nada
+   * —props distintas, cuerpo ejecutado igual— y en cada fotograma del arrastre se volvía a recorrer el
+   * contorno entero de la mazmorra para reconstruir un SVG idéntico al que ya estaba pintado.
+   *
+   * `p.rooms ?? []` ya conservaba la referencia cuando había salas (`??` no copia, devuelve el mismo
+   * array); se memoriza igual para que el caso SIN salas no meta un `[]` nuevo en cada pintada, pero el
+   * fallo que él notaba vivía en `roomIds`. Lo sujeta un test en `MapCanvas.test.tsx`.
+   */
+  const rooms = useMemo(() => p.rooms ?? [], [p.rooms]);
+  const roomOpenings = useMemo(() => p.roomOpenings ?? [], [p.roomOpenings]);
   /**
    * 🧱 Y LAS SALAS FRENAN IGUAL (su aviso del 2026-09-04: «*le falta la física a los muros*»).
    *
@@ -1070,8 +1172,8 @@ export function MapCanvas(p: Props): JSX.Element {
    *
    * Respeta el interruptor de la escena igual que los muros: con las paredes sólidas apagadas, nada frena.
    */
-  const roomBlockers = p.scene.solidWalls ? roomMoveSegments(roomWallsOf(rooms, roomOpenings)) : [];
-  const blockers = p.isDm ? [] : [...moveBlockers(p.walls, p.scene), ...roomBlockers];
+  const roomBlockers = useMemo(() => (p.scene.solidWalls ? roomMoveSegments(roomWallsOf(rooms, roomOpenings)) : []), [p.scene.solidWalls, rooms, roomOpenings]);
+  const blockers = useMemo(() => (p.isDm ? [] : [...moveBlockers(p.walls, p.scene), ...roomBlockers]), [p.isDm, p.walls, p.scene, roomBlockers]);
   /**
    * …salvo LA SONDA DE PRUEBA, que sí choca (dueño, 2026-09-01: «no funciona bien el user dummy, traspasa las
    * paredes»). Y es la misma función, `moveBlockers` + `slideToken` → `slideCircle` de `@rolvium/core`, la
@@ -1084,7 +1186,7 @@ export function MapCanvas(p: Props): JSX.Element {
    * Si el interruptor de paredes sólidas está APAGADO, `moveBlockers` devuelve vacío y la sonda atraviesa —
    * como atravesaría el jugador. Simular es copiar lo que pasa, no ser más estricto que la escena.
    */
-  const probeBlockers = [...moveBlockers(p.walls, p.scene), ...roomBlockers];
+  const probeBlockers = useMemo(() => [...moveBlockers(p.walls, p.scene), ...roomBlockers], [p.walls, p.scene, roomBlockers]);
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
 
   /**
@@ -1094,14 +1196,18 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const layers = p.layers ?? [];
   const hasTerrain = terrainLayers(layers).some(l => l.visible && l.imageUrl);
-  const roomIds = roomMaskIds(p.scene.id);
+  const roomIds = useMemo(() => roomMaskIds(p.scene.id), [p.scene.id]);
   const drawingsShown = layers.length === 0 ? p.drawings : p.drawings.filter(d => isPainted(resolveLayer(layers, d.layerId, 'drawing'), dmSight));
   /**
    * Mientras se arrastra una luz se pinta donde va el dedo, no donde está guardada: el resplandor, su aro y
    * su disco de clic salen todos de esta lista, así que con cambiarla aquí se mueve el conjunto de una pieza.
    */
-  const lightsAll = paintedLights(p.lights ?? [], layers, dmSight);
-  const lightsShown = lightDraft ? lightsAll.map(l => (l.id === lightDraft.id ? { ...l, x: lightDraft.x, y: lightDraft.y } : l)) : lightsAll;
+  const lightsAll = useMemo(() => paintedLights(p.lights ?? [], layers, dmSight), [p.lights, layers, dmSight]);
+  /** ⚡ Estable salvo mientras se arrastra una luz: sin esto el `memo` de `LightsLayer` no serviría de nada. */
+  const lightsShown = useMemo(
+    () => (lightDraft ? lightsAll.map(l => (l.id === lightDraft.id ? { ...l, x: lightDraft.x, y: lightDraft.y } : l)) : lightsAll),
+    [lightDraft, lightsAll],
+  );
   /** Un PJ es un token con ficha de personaje detrás. Los PNJ del bestiario no la tienen. */
   const isPc = (tk: Token): boolean => tk.characterId !== null;
   const renderToken = (tk: Token): JSX.Element => {
@@ -1117,7 +1223,13 @@ export function MapCanvas(p: Props): JSX.Element {
   // ── fog ──
   // `null` = the API has not answered yet: draw the scene unfogged rather than flash a black canvas.
   const fog = p.fog;
-  const fogIds = { seen: `mp-seen-${p.scene.id}`, lit: `mp-lit-${p.scene.id}`, dim: `mp-dim-${p.scene.id}`, unexplored: `mp-unex-${p.scene.id}` };
+  /**
+   * ⚡ ESTABLE, por lo MISMO que `roomIds`: era un objeto nuevo en cada repintado, así que `FogMasks` —que
+   * arma el camino de TODAS las casillas exploradas y los polígonos de visión, y encima los mete en cuatro
+   * máscaras con desenfoque— se rehacía en cada fotograma del arrastre. En un mapa muy explorado cuesta más
+   * que la capa de salas. Ni la escena ni la niebla cambian mientras se arrastra una ficha.
+   */
+  const fogIds = useMemo(() => ({ seen: `mp-seen-${p.scene.id}`, lit: `mp-lit-${p.scene.id}`, dim: `mp-dim-${p.scene.id}`, unexplored: `mp-unex-${p.scene.id}` }), [p.scene.id]);
   const url = (id: string) => `url(#${id})`;
   /** A player (and the DM «viendo como jugador») only gets what the server drew for them. */
   const playerSight = !!fog && !dmSight;
@@ -1139,8 +1251,13 @@ export function MapCanvas(p: Props): JSX.Element {
    * press itself (Muro, Pin, Texto, Borrar, los pinceles) it would have to swallow that press, and swallowing is
    * how the rebanada 2 clash worked — so there it simply does not appear. Nor with something half-done.
    */
+  /**
+   * EL DISCO MIRA EN LOS DOS SITIOS: los muros sueltos y los vanos de sala. Los de sala no llevan
+   * `visible_players` —una sala ES el dibujo del mapa y se ve siempre— así que entran enteros.
+   */
+  const abribles: (Segment & Pick<Wall, 'id' | 'kind' | 'isOpen'>)[] = [...wallsShown, ...roomOpenings];
   const hoverOpening = dmSight && hover && !gesture && !wallStart && !p.placing && DISC_TOOLS.includes(p.tool)
-    ? hitOpening(wallsShown, hover, 14 / p.view.zoom) : null;
+    ? hitOpening(abribles, hover, 14 / p.view.zoom) : null;
   const handleAt = wallDraft ?? (selectedWall ? { x1: selectedWall.x1, y1: selectedWall.y1, x2: selectedWall.x2, y2: selectedWall.y2 } : { x1: 0, y1: 0, x2: 0, y2: 0 });
   /** Los trazos que se están arrastrando ahora mismo: uno, o el puñado entero que se cogió con el área. */
   const moviendo = new Set(gesture?.kind === 'drawingMove' ? gesture.ids : []);
@@ -1151,6 +1268,11 @@ export function MapCanvas(p: Props): JSX.Element {
       <defs>
         <clipPath id={clipId}><rect x={0} y={0} width={p.scene.width} height={p.scene.height} /></clipPath>
         {fog && <FogMasks scene={p.scene} fog={fog} ids={fogIds} />}
+        {/*
+          * Los mosaicos de las puertas, uno por textura distinta de la escena — de los muros Y de las salas,
+          * porque las dos clases de puerta se pintan con el mismo trazo y piden el mismo `<pattern>`.
+          */}
+        <DoorTextureDefs urls={doorTexturesUsed([...wallsShown, ...roomOpenings], p.scene)} grid={p.scene.grid.size} />
       </defs>
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
         <g className="mp-layer-map" {...(playerSight ? { mask: url(fogIds.seen) } : {})} data-testid="mp-map">
@@ -1160,7 +1282,7 @@ export function MapCanvas(p: Props): JSX.Element {
             * yo aquí»): la roca y el suelo son el cimiento del mapa, y una capa con transparencia sigue
             * mandando encima de todo esto.
             */}
-          <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} />
+          <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} selectedOpeningId={p.selectedRoomOpeningId ?? null} />
           {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} />}
           {/*
             * Con salas levantadas la rejilla se recorta al AGUJERO: fuera no hay suelo que cuadricular, hay
@@ -1170,7 +1292,7 @@ export function MapCanvas(p: Props): JSX.Element {
           {dmSight && fog && p.fogVeil !== false && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
             {wallsShown.map(w => (
-              <WallShape key={w.id} wall={w}
+              <WallShape key={w.id} wall={w} sceneDoorColor={p.scene.doorColor} sceneDoorTexture={p.scene.doorTextureUrl}
                 selected={w.id === p.selectedWallId || (p.selectedWallIds ?? []).includes(w.id)}
                 draft={groupDraft?.get(w.id) ?? (wallDraft && w.id === p.selectedWallId ? wallDraft : null)} />
             ))}

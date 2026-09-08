@@ -2,8 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
 import { DRAWING_MINE, DRAWING_OTHER, LAYERS_ALL, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES, LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import type { Tool } from '../domain/useCases/mapRules';
+import { DEFAULT_DOOR } from '../domain/entities/Scene';
+import { DOOR_BAR_PX, doorPatternId } from '../domain/useCases/mapRules';
 import { MapCanvas } from './MapCanvas';
 import { FOG_FEATHER, lightFeather } from './canvasLayers';
+import * as roomStyles from '../domain/useCases/roomStyles';
+import * as mapRules from '../domain/useCases/mapRules';
 
 // jsdom has no PointerEvent: a MouseEvent with pointerId is enough for the canvas handlers.
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -13,7 +17,7 @@ const G = SCENE_WAREHOUSE.grid.size; // 27
 const VIEW = { zoom: 1, panX: 0, panY: 0 };
 
 function mount(over: Partial<React.ComponentProps<typeof MapCanvas>> = {}) {
-  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onMoveLight: vi.fn(), onSelectDrawing: vi.fn(), onMoveDrawing: vi.fn(), onProbeMove: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn() };
+  const cb = { onViewChange: vi.fn(), onDragToken: vi.fn(), onMoveToken: vi.fn(), onAddDrawing: vi.fn(), onErase: vi.fn(), onAddWall: vi.fn(), onToggleWall: vi.fn(), onPaintFog: vi.fn(), onPin: vi.fn(), onPlace: vi.fn(), onSelectToken: vi.fn(), onMarquee: vi.fn(), onSelectWall: vi.fn(), onSelectLight: vi.fn(), onMoveWall: vi.fn(), onMoveLight: vi.fn(), onSelectDrawing: vi.fn(), onMoveDrawing: vi.fn(), onProbeMove: vi.fn(), onDeleteSelection: vi.fn(), onContextMenu: vi.fn(), onCloseMenus: vi.fn(), onAddText: vi.fn(), onToggleRoomOpening: vi.fn(), onSelectRoomOpening: vi.fn(), onSplitWall: vi.fn() };
   const props: React.ComponentProps<typeof MapCanvas> = {
     scene: SCENE_WAREHOUSE, tokens: [TOKEN_KAREN, TOKEN_ELIAS, TOKEN_MUTANT], walls: [WALL_1, WALL_VISIBLE], drawings: [DRAWING_MINE, DRAWING_OTHER], drags: {}, pin: null,
     tool: 'select', stroke: { color: '#c9a84c', width: 2 }, me: PLAYER_USER.id, isDm: false, playerView: false, showWalls: true,
@@ -753,6 +757,63 @@ describe('<MapCanvas> fog', () => {
   });
 
   /**
+   * 🐞 EL TOKEN CLAVADO EN LA ESQUINA (dueño, 2026-09-07, con captura: «*cuando un token está en una esquina
+   * como en la captura se queda pegado, hay que soltarlo y cogerlo de nuevo*»).
+   *
+   * `circleClearance` deja el disco en CERO en cuanto el cuerpo queda pegado a un muro — y el freno aparca
+   * ahí a propósito, a `SLIDE_GAP` de la pared. O sea que cualquier frenazo dejaba el disco a cero, y el
+   * recorte clavaba el pintado en ese punto pasara lo que pasara con el dedo. Contra una pared aún se
+   * avanzaba a tirones; en una ESQUINA no se podía resbalar por ningún lado y el token no se movía más.
+   * Soltar y volver a cogerlo lo desatascaba porque eso borra el disco — que es justo lo que él describe.
+   */
+  it('regresión · con el disco a CERO el token no se queda clavado: sale de la esquina sin soltarlo', () => {
+    // Pegado a la pared: el servidor confirma su sitio, pero sin ni un pelo de holgura alrededor.
+    const onDragBound = vi.fn(() => ({ x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, clearance: 0 }));
+    // Con un muro que este navegador SÍ ve: es su caso —el contorno de una sala se dibuja aquí— y es la
+    // condición para soltar el disco. Va lejos del token, así que no frena este arrastre.
+    const { svg, token, cb } = mount({
+      scene: { ...SCENE_WAREHOUSE, solidWalls: true },
+      walls: [WALL_VISIBLE], isDm: false, me: PLAYER_USER.id, onDragBound,
+    });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 3.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    // Se mueve. Antes se quedaba EXACTAMENTE donde estaba, y sólo soltar y volver a cogerlo lo liberaba.
+    const [, x] = cb.onMoveToken.mock.calls.at(-1)!;
+    expect(x).toBeGreaterThan(TOKEN_KAREN.x);
+  });
+
+  /**
+   * ⚖️ Y LA OTRA MITAD, que es la que evita reabrir el fallo del 2026-08-22: si este navegador NO tiene
+   * física propia —un jugador en una escena normal no ve ni un muro, son secretos por RLS— el disco a cero
+   * SIGUE clavando. Sin esto, pegado a una pared que no ve, el token la cruzaría a pelo hasta la respuesta
+   * siguiente del servidor (~140 ms), y soltando ahí la posición se guarda sin que nadie la vete.
+   */
+  it('regresión · pero el jugador que no ve NINGÚN muro sigue clavado al disco: no se le abre la pared', () => {
+    const onDragBound = vi.fn(() => ({ x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, clearance: 0 }));
+    const { svg, token, cb } = mount({
+      scene: { ...SCENE_WAREHOUSE, solidWalls: true },
+      walls: [], isDm: false, me: PLAYER_USER.id, onDragBound,
+    });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 3.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x, TOKEN_KAREN.y);
+  });
+
+  it('y con holgura de verdad se sigue recortando: el disco no se ha desactivado', () => {
+    const onDragBound = vi.fn(() => ({ x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, clearance: 1 }));
+    const { svg, token, cb } = mount({
+      scene: { ...SCENE_WAREHOUSE, solidWalls: true },
+      walls: [], isDm: false, me: PLAYER_USER.id, onDragBound,
+    });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 5.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x + 1, TOKEN_KAREN.y);
+  });
+
+  /**
    * EL SALTO DEL BORDE (dueño, 2026-08-22): al rozar el borde de una puerta o ventana el token se engancha
    * un instante mientras el dedo sigue; al liberarse el camino, el hueco se cerraba DE GOLPE — un salto
    * hacia adelante. Ahora el pintado cierra el hueco a razón de lo que se mueve el dedo más
@@ -826,24 +887,195 @@ describe('<MapCanvas> fog', () => {
 });
 
 describe('<MapCanvas> openings', () => {
-  it('a door renders its jambs (and a dark core while closed), a window is its own segment, a plain wall stays one line', () => {
+  /**
+   * ── LAS PUERTAS, DE VERDAD (2026-09-07) ──
+   * El dibujo de hoy es la BARRA HUECA de ángulos rectos, y sustituyó a la línea con dos marquitas en TODAS
+   * las puertas. La VENTANA no se tocó: sigue siendo su segmento entre dos jambas.
+   * `WALL_DOOR` va de (540,216) a (540,324): vertical, 108 px de largo.
+   */
+  const hojasDe = (svg: HTMLElement, id = 'w-door') =>
+    within(svg).getByTestId('mp-walls').querySelector(`[data-wall-id="${id}"]`)!.querySelectorAll('.mp-door-leaf');
+  /** Las esquinas de una hoja, como pares `[x, y]` — en tuplas para que indexarlas siga siendo un número. */
+  const puntos = (el: Element): [number, number][] =>
+    el.getAttribute('points')!.split(' ').map(p => { const [x, y] = p.split(',').map(Number); return [x!, y!]; });
+
+  it('a door is a hollow bar lying in the gap, a window keeps its jambs, a plain wall stays one line', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', walls: [WALL_1, WALL_DOOR, WALL_WINDOW] });
     const walls = within(svg).getByTestId('mp-walls');
     expect(walls.querySelector('[data-wall-id="w-1"]')!.tagName).toBe('line');
     const door = walls.querySelector('[data-wall-id="w-door"]')!;
     expect(door.getAttribute('data-open')).toBe('false');
-    expect(door.querySelectorAll('.mp-wall-core')).toHaveLength(1);
-    expect(door.querySelectorAll('.mp-wall-jamb')).toHaveLength(2);
-    expect(door.querySelectorAll('.mp-wall-leaf')).toHaveLength(0);
-    expect(walls.querySelector('[data-wall-id="w-win"] .mp-wall')!.classList.contains('window')).toBe(true);
+    // Una hoja, y ni umbral ni marquitas: el muro ya se parte al abrir el vano, sus trozos son las jambas.
+    expect(door.querySelectorAll('.mp-door-leaf')).toHaveLength(1);
+    expect(door.querySelectorAll('.mp-wall-jamb')).toHaveLength(0);
+    /**
+     * LOS DOS TROCITOS DE MURO, uno por lado y del largo del grosor de la barra (`DOOR_BAR_PX`): la
+     * puerta no se pega a los muros (suyo, 2026-09-07). El vano mide 108, así que la hoja se queda en 94.
+     */
+    const stubs = door.querySelectorAll('.mp-door-stub');
+    expect(stubs).toHaveLength(2);
+    for (const st of Array.from(stubs)) {
+      expect(Math.abs(Number(st.getAttribute('y2')) - Number(st.getAttribute('y1')))).toBeCloseTo(DOOR_BAR_PX, 1);
+    }
+    // Cerrada, la barra va tumbada sobre el muro, entre los dos trocitos.
+    const ys = puntos(door.querySelector('.mp-door-leaf')!).map(p => p[1]);
+    expect(Math.min(...ys)).toBeCloseTo(216 + DOOR_BAR_PX, 1);
+    expect(Math.max(...ys)).toBeCloseTo(324 - DOOR_BAR_PX, 1);
+    // La ventana, intacta.
+    const win = walls.querySelector('[data-wall-id="w-win"]')!;
+    expect(win.querySelector('.mp-wall')!.classList.contains('window')).toBe(true);
+    expect(win.querySelectorAll('.mp-wall-jamb')).toHaveLength(2);
   });
 
-  it('an open door drops the core and swings a leaf instead', () => {
+  it('an open door swings its leaf 90° out of the hinge, and never draws a sweep arc', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', walls: [{ ...WALL_DOOR, isOpen: true }] });
     const door = within(svg).getByTestId('mp-walls').querySelector('[data-wall-id="w-door"]')!;
     expect(door.getAttribute('data-open')).toBe('true');
-    expect(door.querySelectorAll('.mp-wall-core')).toHaveLength(0);
-    expect(door.querySelectorAll('.mp-wall-leaf')).toHaveLength(1);
+    const hojas = door.querySelectorAll('.mp-door-leaf');
+    expect(hojas).toHaveLength(1);
+    // Girada: ya no recorre el hueco a lo largo, sino que sale perpendicular al muro, lo que mide la hoja.
+    const pts = puntos(hojas[0]!);
+    expect(Math.max(...pts.map(p => p[0])) - Math.min(...pts.map(p => p[0]))).toBeCloseTo(108 - 2 * DOOR_BAR_PX, 1);
+    // Sin arco de barrido: no hay un solo `path` ni `ellipse` dentro de la puerta (decisión suya).
+    expect(door.querySelectorAll('path, ellipse, circle')).toHaveLength(0);
+  });
+
+  it('DOS hojas se parten por la mitad, y la bisagra elige por qué extremo cuelga', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', walls: [{ ...WALL_DOOR, leaves: 2 as const }] });
+    const hojas = hojasDe(svg);
+    expect(hojas).toHaveLength(2);
+    for (const h of Array.from(hojas)) {
+      const ys = puntos(h).map(p => p[1]);
+      expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo((108 - 2 * DOOR_BAR_PX) / 2, 1);
+    }
+  });
+
+  it('la bisagra al otro extremo saca la hoja por el otro lado, y el color propio manda', () => {
+    const abierta = { ...WALL_DOOR, isOpen: true };
+    const { svg, rerender } = mount({ isDm: true, me: 'u-gm', walls: [{ ...abierta, hinge: 'start' as const }] });
+    /**
+     * Girada, la hoja reparte su GROSOR a lo largo del muro, así que su franja en `y` queda centrada en la
+     * bisagra — no arranca justo en ella. Por eso se mira el centro y no el extremo.
+     */
+    const bisagraY = () => { const ys = puntos(hojasDe(svg)[0]!).map(p => p[1]); return (Math.min(...ys) + Math.max(...ys)) / 2; };
+    expect(bisagraY()).toBeCloseTo(216 + DOOR_BAR_PX, 1);
+    rerender({ walls: [{ ...abierta, hinge: 'end' as const }] });
+    expect(bisagraY()).toBeCloseTo(324 - DOOR_BAR_PX, 1);
+    /**
+     * Y el lado: los dos valores sacan la hoja por costados OPUESTOS del muro (que está en x = 540).
+     * Cuál de los dos es «izquierda» en pantalla depende de en qué sentido se dibujó el muro —`right` es
+     * la normal +n del segmento, no la derecha de la pantalla—, así que lo que se fija aquí es que sean
+     * contrarios, que es la regla; atarlo a un lado concreto sería fijar el sentido del trazo.
+     */
+    rerender({ walls: [{ ...abierta, swing: 'left' as const }] });
+    const xIzq = puntos(hojasDe(svg)[0]!).map(p => p[0]);
+    rerender({ walls: [{ ...abierta, swing: 'right' as const }] });
+    const xDer = puntos(hojasDe(svg)[0]!).map(p => p[0]);
+    const fuera = (xs: number[]) => (Math.max(...xs) + Math.min(...xs)) / 2 - 540;
+    expect(Math.sign(fuera(xIzq))).toBe(-Math.sign(fuera(xDer)));
+    expect(Math.abs(fuera(xIzq))).toBeCloseTo((108 - 2 * DOOR_BAR_PX) / 2, 1);
+    rerender({ walls: [{ ...WALL_DOOR, doorColor: '#8b1a1a' }] });
+    expect(hojasDe(svg)[0]!.getAttribute('style')).toContain('8b1a1a');
+  });
+
+  /**
+   * 🐞 EL FALLO QUE ORIGINÓ TODO EL ENCARGO (QA, 2026-09-07): una puerta dibujada en una SALA nacía cerrada y
+   * no había forma de abrirla ni de borrarla. El disco existía y funcionaba, pero buscaba sólo en `p.walls`,
+   * y las aberturas de sala viven en `maps_room_openings`. Estas dos pruebas son el cepo.
+   */
+  const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 300, y1: 200, x2: 300, y2: 300, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
+
+  it('el disco TAMBIÉN sale sobre una puerta de sala, y la abre por su propio camino', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [], roomOpenings: [VANO] });
+    move(svg, 301, 250);
+    const disc = within(svg).getByTestId('mp-door-toggle');
+    expect(disc).toHaveAttribute('data-wall-id', 'ro-1');
+    expect(disc).toHaveAttribute('aria-label', 'Abrir');
+    expect(disc).toHaveAttribute('transform', 'translate(300 250) scale(1)');
+    down(disc, 300, 250); up(svg);
+    // Por SU camino: no se cuela como si fuera un muro, que sería escribir en la tabla equivocada.
+    expect(cb.onToggleRoomOpening).toHaveBeenCalledWith(VANO);
+    expect(cb.onToggleWall).not.toHaveBeenCalled();
+  });
+
+  it('el color RELLENA la puerta, no sólo su canto (corrección suya del 2026-09-07)', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', walls: [{ ...WALL_DOOR, doorColor: '#8b1a1a' }] });
+    const estilo = hojasDe(svg)[0]!.getAttribute('style')!;
+    expect(estilo).toContain('fill');
+    expect(estilo.match(/8b1a1a/g)!.length).toBe(2);   // el canto y el relleno
+  });
+
+  it('con TEXTURA se rellena con su mosaico, y el mosaico se monta UNA vez por url', () => {
+    const tex = 'https://x/roble.png';
+    const { svg } = mount({
+      isDm: true, me: 'u-gm',
+      walls: [{ ...WALL_DOOR, doorTextureUrl: tex }, { ...WALL_DOOR, id: 'w-door2', x1: 700, x2: 700, doorTextureUrl: tex }],
+    });
+    const id = doorPatternId(tex);
+    expect(hojasDe(svg)[0]!.getAttribute('style')).toContain(`url(#${id})`);
+    // Dos puertas con la misma textura, un solo <pattern>.
+    expect(svg.querySelectorAll(`pattern#${id}`)).toHaveLength(1);
+    expect(svg.querySelector(`pattern#${id} image`)!.getAttribute('href')).toBe(tex);
+  });
+
+  it('la textura MANDA sobre el color: con las dos puestas, el relleno es el mosaico', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', walls: [{ ...WALL_DOOR, doorColor: '#8b1a1a', doorTextureUrl: 'https://x/roble.png' }] });
+    const estilo = hojasDe(svg)[0]!.getAttribute('style')!;
+    expect(estilo).toContain('url(#');
+    // El color sigue mandando en el CANTO, pero no rellena.
+    expect(estilo).toContain('8b1a1a');
+    expect(estilo).not.toMatch(/fill:\s*#8b1a1a/);
+  });
+
+  it('sin textura ninguna no se monta ningún <pattern> de puerta', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', walls: [WALL_DOOR] });
+    expect(svg.querySelectorAll('pattern[id^="mp-doortex-"]')).toHaveLength(0);
+  });
+
+  it('un vano de sala se COGE con Seleccionar, que es lo que abre su panel y su papelera', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [], roomOpenings: [VANO] });
+    down(svg, 301, 250); up(svg);
+    expect(cb.onSelectRoomOpening).toHaveBeenCalledWith('ro-1');
+    // Y pinchar en vacío lo suelta, como suelta todo lo demás.
+    down(svg, 20, 20); up(svg);
+    expect(cb.onSelectRoomOpening).toHaveBeenLastCalledWith(null);
+  });
+
+  /**
+   * 🐞 «*cuando hago click en una puerta me abre el modal de las luces*» (2026-09-07). Elegir una luz
+   * perdona un CUARTO DE SU RADIO, y el radio de una luz grande son cientos de píxeles: se comía el clic de
+   * todo lo que hubiera debajo, y una puerta bajo una antorcha no se podía ni elegir ni configurar.
+   */
+  it('una luz no roba el clic de una puerta que tiene debajo, pero sigue perdonando en el vacío', () => {
+    // Una luz grande al lado de la puerta: su disco de verdad queda lejos del clic, su generosidad no.
+    const luz = { ...LIGHT_TORCH, id: 'li-1', x: 540, y: 180, rangeM: 30 };
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [WALL_DOOR], lights: [luz] });
+    // Clic SOBRE la puerta, a 80 px de la luz: manda la puerta.
+    down(svg, 541, 260); up(svg);
+    expect(cb.onSelectWall).toHaveBeenLastCalledWith('w-door');
+    expect(cb.onSelectLight).toHaveBeenLastCalledWith(null);
+    // Clic en el vacío, a la misma distancia de la luz pero lejos de la puerta: manda la luz, como antes.
+    down(svg, 620, 200); up(svg);
+    expect(cb.onSelectLight).toHaveBeenLastCalledWith('li-1');
+  });
+
+  /**
+   * 🐞 «*por qué si le doy doble click a una puerta me crea un nodo al medio? eso es solo para los muros*»
+   * (2026-09-07). Partir una puerta deja dos medias puertas, que no es nada.
+   */
+  it('el doble clic parte un MURO pero no una puerta ni una ventana', () => {
+    const dobleClicEn = (w: typeof WALL_1) => {
+      document.body.innerHTML = '';
+      const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'select', walls: [w] });
+      const x = w.x1 + 1, y = (w.y1 + w.y2) / 2;
+      down(svg, x, y); up(svg);
+      fireEvent.pointerDown(svg, { clientX: x, clientY: y, pointerId: 1, button: 0, detail: 2 });
+      up(svg);
+      return cb.onSplitWall;
+    };
+    expect(dobleClicEn(WALL_1)).toHaveBeenCalled();               // el muro, intacto
+    expect(dobleClicEn(WALL_DOOR)).not.toHaveBeenCalled();
+    expect(dobleClicEn(WALL_WINDOW)).not.toHaveBeenCalled();
   });
 
   it('Muro sólo construye: empezar un muro sobre una puerta ya no la abre (ése era el choque de la rebanada 2)', () => {
@@ -1064,6 +1296,26 @@ describe('<MapCanvas> Seleccionar edita muros', () => {
 
     document.body.innerHTML = '';
     const chain = mount({ isDm: true, me: 'u-gm', tool: 'wall', wallKind: 'wall' });
+    down(chain.svg, 2 * G, 2 * G); down(chain.svg, 6 * G, 2 * G); down(chain.svg, 9 * G, 2 * G);
+    expect(chain.cb.onAddWall).toHaveBeenCalledTimes(2);
+  });
+
+  /**
+   * LO MISMO EN EL CONSTRUCTOR DE SALAS, donde la clase NO es `wallKind` sino `buildKind`. Mirando sólo
+   * `wallKind` —que allí se queda en «muro»— la puerta de sala encadenaba y aparecía una segunda pegada a la
+   * primera: «*si pongo una puerta me haces poner otra puerta al lado como si fuera un muro del modo
+   * fotos*» (suyo, 2026-09-07).
+   */
+  it('en el constructor de salas una puerta tampoco encadena, aunque `wallKind` siga en «muro»', () => {
+    const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'wall', wallKind: 'wall', builderMode: 'draw', buildKind: 'door' });
+    down(svg, 2 * G, 2 * G); down(svg, 6 * G, 2 * G);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+    down(svg, 9 * G, 2 * G);
+    expect(cb.onAddWall).toHaveBeenCalledTimes(1);
+
+    // Y levantando MURO en el constructor sí se encadena, que es como se cierra un pasillo de un tirón.
+    document.body.innerHTML = '';
+    const chain = mount({ isDm: true, me: 'u-gm', tool: 'wall', wallKind: 'wall', builderMode: 'draw', buildKind: 'wall' });
     down(chain.svg, 2 * G, 2 * G); down(chain.svg, 6 * G, 2 * G); down(chain.svg, 9 * G, 2 * G);
     expect(chain.cb.onAddWall).toHaveBeenCalledTimes(2);
   });
@@ -2026,5 +2278,61 @@ describe('<MapCanvas> dibujar pegado a algo', () => {
     down(svg, 100, 100); move(svg, 103, 100); up(svg);
     expect(cb.onAddWall).not.toHaveBeenCalled();
     expect(cb2.onTooSmall).toHaveBeenCalledWith(false);
+  });
+});
+
+/**
+ * ⚡ LA OTRA MITAD DEL ARREGLO DEL RENDIMIENTO (suyo, 2026-09-07: «*la sombra dinámica en local va lentísima
+ * cuando pruebo*»). `RoomsLayer` está envuelta en `memo`, pero un `memo` sólo sirve si las props llegan
+ * ESTABLES: `roomMaskIds(...)` devuelve un objeto NUEVO en cada llamada, así que sin el `useMemo` de aquí la
+ * capa se repintaba igualmente en cada fotograma del arrastre y el `memo` no ahorraba nada.
+ *
+ * Esto se prueba aquí y no en `roomsLayer.test.tsx` a propósito: allí sólo se puede comprobar el `memo` con
+ * props que el test mismo sujeta; el fallo real vivía en QUIÉN las pasa.
+ */
+describe('<MapCanvas> arrastrar una ficha no repinta las salas', () => {
+  const SALA = {
+    id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[G * 8, G * 8], [G * 14, G * 8], [G * 14, G * 14], [G * 8, G * 14]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, createdAt: '', updatedAt: '',
+  };
+
+  it('el cuerpo de la capa de salas NO se ejecuta en cada tirón del dedo', () => {
+    const { svg, token } = mount({ rooms: [SALA], isDm: true, me: 'u-gm' });
+    // `roomWallsOf` es lo primero que hace el cuerpo de `RoomsLayer`: si se llama, es que se ha repintado.
+    const spy = vi.spyOn(roomStyles, 'roomWallsOf');
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 1.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 2.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 3.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  /**
+   * Y LA NIEBLA IGUAL, que en un mapa muy explorado cuesta MÁS que las salas: arma el camino de todas las
+   * casillas exploradas y los polígonos de visión, y los mete en cuatro máscaras con desenfoque. Tampoco
+   * depende de las fichas.
+   */
+  it('el cuerpo de las máscaras de niebla TAMPOCO se ejecuta en cada tirón del dedo', () => {
+    const { svg, token } = mount({ rooms: [SALA], isDm: true, me: 'u-gm', fog: FOG });
+    // `cellsPath` es lo primero que hace el cuerpo de `FogMasks`: si se llama, es que se ha repintado.
+    const spy = vi.spyOn(mapRules, 'cellsPath');
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 1.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 2.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  /** Y si de verdad cambia una sala, se repinta: el `memo` no puede dejar la mazmorra obsoleta. */
+  it('pero cambiar la sala sí la repinta', () => {
+    const { rerender } = mount({ rooms: [SALA], isDm: true, me: 'u-gm' });
+    const spy = vi.spyOn(roomStyles, 'roomWallsOf');
+    rerender({ rooms: [{ ...SALA, points: [[G * 8, G * 8], [G * 12, G * 8], [G * 12, G * 12], [G * 8, G * 12]] as [number, number][] }] });
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

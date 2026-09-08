@@ -214,4 +214,17 @@ describe('<TextureCatalog>', () => {
     mount();
     expect(screen.getByText(/Son de la HERRAMIENTA, no de tu campaña/)).toBeInTheDocument();
   });
+
+  /**
+   * El mismo catálogo sirve para la PUERTA (2026-09-07), pero lo que promete al elegir una no es lo mismo:
+   * en una puerta no se pone «como textura base de esta escena, con su tamaño de baldosa».
+   */
+  it('abierto para una PUERTA cambia el título y lo que promete al elegir', () => {
+    const { rejilla } = mount({ which: 'door' });
+    expect(screen.getByText('Textura de la puerta')).toBeInTheDocument();
+    expect(screen.getByText(/se pone en la puerta, con el azulejo de una casilla/)).toBeInTheDocument();
+    expect(screen.queryByText(/textura base de esta escena/)).not.toBeInTheDocument();
+    // Y el catálogo es el mismo: las mismas texturas, con el mismo botón de subir.
+    expect(piezas(rejilla())).toHaveLength(4);
+  });
 });

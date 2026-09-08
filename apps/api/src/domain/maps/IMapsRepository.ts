@@ -12,6 +12,15 @@ export interface SceneRecord {
   /** Paredes sólidas: si un token puede atravesar un muro en esta escena (rebanada 4). */
   solidWalls: boolean;
   nightRadiusM: number;
+  /**
+   * La barrita del tamaño de las fichas de la escena (0,5 a 1,25; 1 = como siempre).
+   *
+   * ⚠️ El servidor la NECESITA, y no es cosmética: es él quien frena de verdad al arrastrar
+   * (`sceneVision`, `slideCircle`). Sin esto frenaría con el cuerpo sin encoger y la ficha seguiría sin
+   * pasar por el pasillo estrecho por mucho que en pantalla se vea pequeña — justo lo que la barrita existe
+   * para resolver.
+   */
+  tokenScale: number;
 }
 
 /**
