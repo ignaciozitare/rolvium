@@ -25,15 +25,19 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 **Frase para arrancar el chat nuevo:**
 > «Rolvium. Lee el bloque 🔴 de WORK_STATE.md. Queda el token que se pega al tocar una esquina.»
 
-### ESTADO
-- Rama **`feat/maps-puertas`**, tres commits: `10cfa00` (puertas) · `0c2580e` (tamaño de las fichas) ·
-  `6b29801` (tres arreglos). Árbol limpio.
-- **Él pidió desplegar el 2026-09-08 sabiendo que el trabón sigue**: «*no funciona del todo bien, todavía se
-  pega, pero podemos solucionarlo más adelante*». QA lanzada. Si esto se lee antes de que termine el
-  despliegue, comprobar primero `git log origin/main` y los advisors.
-- ⚠️ **TRES MIGRACIONES A PRODUCCIÓN, Y ANTES QUE EL CÓDIGO**, en este orden:
-  `20260907120000_maps_doors.sql` → `20260907150000_maps_door_texture.sql` → `20260907170000_maps_token_scale.sql`.
-- Servidor de desarrollo levantado con `npm run dev:web` (**no** `npm run dev`, ese script no existe).
+### ESTADO — ✅ EN PRODUCCIÓN Y VERIFICADO (2026-09-08)
+- `main` = **`66546f6`** · **v0.5.0 → v0.6.0**. Nada pendiente de subir.
+- **Las TRES migraciones, aplicadas en producción ANTES que el código**, en orden, y comprobadas EN LA BASE
+  (no de palabra): las **13 columnas** están con sus valores por defecto. `get_advisors`: **22 WARN, cero
+  ERROR** — la familia de siempre.
+- **Comprobado EN VIVO**: `rolvium-api.vercel.app/health` → `{"ok":true}` (api en `fra1`) y
+  `rolvium.vercel.app` → 200, con el paquete servido (`index-4k_SAkps.js`) llevando `token_scale` y
+  `door_texture_url` dentro.
+- Los dos previews de la rama estaban en READY antes del merge; se comprobaron por la API de Vercel, sin
+  hacérselo mirar a él.
+- **Él pidió desplegar sabiendo que el trabón sigue**: «*no funciona del todo bien, todavía se pega, pero
+  podemos solucionarlo más adelante*».
+- Servidor de desarrollo: `npm run dev:web` (**no** `npm run dev`, ese script no existe).
 
 ### 🐞 LO ÚNICO ABIERTO: EL TOKEN SE PEGA AL TOCAR UNA ESQUINA
 Suyo, 2026-09-08: «*si toco una esquina se pega y sólo se destraba si muevo el puntero en la dirección
