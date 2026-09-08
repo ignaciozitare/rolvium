@@ -20,6 +20,65 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 «EL FALLO DE "PEGADO A ALGO", CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO», justo debajo.**
 
+## 🐞 2026-09-07 (noche) — TRES FALLOS SUYOS PROBANDO · ARREGLADOS, SIN COMMITEAR
+
+Rama **`feat/maps-puertas`**. **SIN COMMITEAR** a propósito: falta que él los pruebe en pantalla, sobre todo
+el del rendimiento, que es el único que no puedo medir yo. Review pasado.
+
+Verde: web **1530** · api **249** · `tsc` en las dos apps · `audit` **0 hard** · las dos compilan.
+
+### 1 · EL TOKEN CLAVADO EN LA ESQUINA
+«*cuando un token está en una esquina se queda pegado, hay que soltarlo y cogerlo de nuevo*».
+
+`circleClearance` deja el «disco libre» en CERO en cuanto el cuerpo queda pegado a un muro —y `slideCircle`
+aparca ahí a propósito, a `SLIDE_GAP` de la pared—, así que **cualquier frenazo** dejaba el disco a cero. El
+recorte de `MapCanvas` clavaba el pintado en ese punto: contra una pared se avanzaba a tirones, y en una
+ESQUINA `slideCircle` no puede resbalar, devuelve el mismo punto y el token no se movía más.
+
+> ⚖️ **EL ARREGLO TIENE DOS MITADES Y LAS DOS SON OBLIGATORIAS.**
+> `if (bound && (bound.clearance > 1e-6 || blockers.length === 0))`.
+> Soltar el disco a secas **reabría el fallo del 2026-08-22**, y lo cazó el review: con el disco a cero se
+> pinta `frenado`, que sólo frena contra los muros que ESTE navegador ve — y un jugador no ve ninguno (RLS,
+> 16 de 16 ocultos). Peor: «pegado a una pared en paralelo» deja el disco a cero en CADA tick, no sólo en la
+> esquina, así que no era un caso raro. Soltando dentro de la ventana de ~140 ms la posición se guardaba sin
+> que el servidor pudiera vetarla. Con `blockers.length === 0` el jugador ciego **sigue clavado como antes**
+> y sólo se suelta a quien tiene física propia a la que caer — que es su caso, porque el contorno de una sala
+> se dibuja en el navegador. Hay un test por cada mitad.
+
+### 2 · EL BOTÓN DE LAS TEXTURAS BASE: «ELEGIR», NO «+ SUBIR»
+«*ese botón no es para subir, es para elegir; luego ya dentro del modal se pueden subir*». Es la MISMA
+corrección que ya se le hizo a la textura de puerta y que no se llevó a las de pared y suelo. Clave nueva
+`maps.room.textures.pick`. ⚠️ `maps.room.textures.upload` se ha quedado sin usar.
+
+### 3 · EL RENDIMIENTO · «la sombra dinámica va lentísima»
+Él avisó: «*ojo con romper la sombra*». **No se ha tocado su dibujo**: mismo `filter`, mismo grosor, dentro de
+la misma máscara, y hay un test guardián.
+
+Lo que se arregló es que se rehacía de balde. `RoomsLayer`, `FogMasks` y `LightsLayer` van ahora en `memo`, y
+sus props se estabilizaron con `useMemo` en `MapCanvas` (`roomIds`, `fogIds`, `rooms`, `roomOpenings`,
+`blockers`, `probeBlockers`, `roomBlockers`, `lightsAll`, `lightsShown`). Sin lo segundo el `memo` no vale
+para nada, y **`roomIds`/`fogIds` eran los que de verdad rompían la memoización** (objetos literales nuevos
+en cada repintado).
+
+> 🧨 **UN TEST DE «NO SE REPINTA» QUE MIRA EL DOM NO PRUEBA NADA.** El primer guardián comprobaba que el nodo
+> del DOM fuera el mismo, y React reutiliza el nodo cuando no cambian los atributos — con `memo` o sin él.
+> Pasaba en verde con el `memo` borrado. Ahora se espía la primera función que llama el cuerpo del componente
+> (`roomWallsOf` para las salas, `cellsPath` para la niebla): si se llama, se repintó. Verificado borrando el
+> `memo` y viendo fallar.
+>
+> Y ojo con lo que se escribe al lado: el review corrigió DOS comentarios míos que explicaban un mecanismo
+> falso (que el navegador re-rasterizaba el desenfoque; no lo hace si React no toca atributos — el coste real
+> es JS: rehacer contornos, `wobble`, cadenas de `path` y reconciliar el subárbol 60 veces por segundo). En
+> este repo los comentarios se creen, así que un comentario equivocado es deuda.
+
+### 🧾 LO QUE **NO** SE TOCÓ, Y POR QUÉ
+- **`setHover` se dispara en CADA `pointermove`**, haya gesto o no, y repinta el lienzo entero. Es una causa
+  real de lentitud… **pero no la suya**: todo lo que lee `hover` (el pincel, el disco de abrir, el borrador
+  del muro) está detrás de `dmSight`, así que para un DIRECTOR no se ahorraría nada. Ayuda a los JUGADORES.
+  Es además el cambio más delicado de los cuatro. Queda para decidir aparte.
+- `BestiaryTab.test.tsx › enseña las criaturas del manual junto a las propias` **parpadeó una vez** bajo carga
+  y pasó sola al repetir: un `findByRole` con el timeout de 1 s. No es de este cambio, pero morderá en QA.
+
 ## 🔍 2026-09-07 (noche) — LA BARRITA DEL TAMAÑO DE LAS FICHAS · CONSTRUIDA, REVISADA, SIN COMMITEAR
 
 Rama **`feat/maps-puertas`** (las puertas ya están commiteadas en `10cfa00`). Esto es lo de encima y está

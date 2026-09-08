@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { LitLight, SceneVision } from '@rolvium/core';
 import type { DoorSettings, Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
 import { cellsPath, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, initialsOf, openingGeometry, polygonPoints, polygonsPath, quadPoints, tokenCenter, type Segment } from '../domain/useCases/mapRules';
@@ -203,7 +204,17 @@ const fogFeather = (lighting: Scene['lighting']): number => (lighting === 'night
  * `seen` = explored ∪ current vision (what exists at all for a player) · `lit` = current vision only (tokens) ·
  * `dim` = everything but the current vision (darkens the remembered part) · `unexplored` = the DM's blue veil.
  */
-export function FogMasks({ scene, fog, ids }: FogProps): JSX.Element {
+/**
+ * ⚡ ENVUELTA EN `memo`, por lo mismo que `RoomsLayer` (suyo, 2026-09-07: «*la sombra dinámica en local va
+ * lentísima cuando pruebo*»). Aquí se arma el camino de TODAS las casillas exploradas y los polígonos de
+ * visión, y encima van en cuatro máscaras con desenfoque. En un mapa muy explorado eso cuesta más que la
+ * capa de salas — y se rehacía en CADA repintado del lienzo, o sea ~60 veces por segundo al arrastrar una
+ * ficha, aunque ni la escena ni la niebla hubieran cambiado.
+ *
+ * Con `memo` y con `ids` estable desde `MapCanvas` (era un objeto nuevo cada vez, y sin eso el `memo` no
+ * serviría de nada), arrastrar una ficha deja de tocar esto. No cambia ni un píxel de lo que se ve.
+ */
+function FogMasksBase({ scene, fog, ids }: FogProps): JSX.Element {
   const cells = cellsPath(fog.explored, scene.grid.size);
   const full = { x: 0, y: 0, width: scene.width, height: scene.height };
   const polys = fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_SHOW} />);
@@ -379,7 +390,10 @@ function prunePhases(lights: readonly Light[]): void {
   for (const key of spinPhase.keys()) if (!live.has(key)) spinPhase.delete(key);
 }
 
-export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: readonly Light[]; lit?: readonly LitLight[] }): JSX.Element {
+/**
+ * ⚡ Y ésta igual: una luz lleva su propio desenfoque, y tampoco depende de las fichas. Mismo trato.
+ */
+function LightsLayerBase({ scene, lights, lit }: { scene: Scene; lights: readonly Light[]; lit?: readonly LitLight[] }): JSX.Element {
   const shown = lights.map(l => ({ light: l, parts: lit?.find(x => x.id === l.id)?.parts ?? null }))
     .filter(({ parts }) => !lit || parts !== null);
   prunePhases(lights);
@@ -524,3 +538,12 @@ export function LightsLayer({ scene, lights, lit }: { scene: Scene; lights: read
     </g>
   );
 }
+
+/**
+ * Las capas CARAS del lienzo, envueltas para que arrastrar una ficha no las rehaga (§ el arreglo del
+ * 2026-09-07). Ninguna de las dos depende de las fichas.
+ */
+export const FogMasks = memo(FogMasksBase);
+FogMasks.displayName = 'FogMasks';
+export const LightsLayer = memo(LightsLayerBase);
+LightsLayer.displayName = 'LightsLayer';

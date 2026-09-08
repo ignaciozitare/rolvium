@@ -956,7 +956,7 @@ describe('<SceneTab> el panel de Builder v3', () => {
     await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
 
     const bloque = (await screen.findByText('Las dos texturas base')).closest('fieldset')!;
-    const [roca] = within(bloque).getAllByRole('button', { name: '+ Subir' });
+    const [roca] = within(bloque).getAllByRole('button', { name: 'Elegir' });
     await u.click(roca!);
     const input = screen.getByTestId('mp-room-texture-input') as HTMLInputElement;
     await u.upload(input, new File(['x'], 'roca.png', { type: 'image/png' }));
@@ -1923,8 +1923,9 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
     const panel = await screen.findByRole('group', { name: 'Builder' });
     await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
     const bloque = (await screen.findByText('Las dos texturas base')).closest('fieldset')!;
-    // Sin foto puesta el botón se llama «+ Subir»; con una puesta, «Cambiar». Los dos abren el catálogo.
-    await u.click(within(bloque).getAllByRole('button', { name: /Cambiar|\+ Subir/ })[0]!);
+    // Sin foto puesta el botón se llama «Elegir»; con una puesta, «Cambiar». Los dos abren el catálogo — y
+    // ninguno sube nada: eso se hace DENTRO (corrección suya, repetida, del 2026-09-07).
+    await u.click(within(bloque).getAllByRole('button', { name: /Cambiar|Elegir/ })[0]!);
   };
 
   /**

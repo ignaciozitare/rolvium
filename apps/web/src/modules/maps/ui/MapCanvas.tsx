@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
@@ -848,7 +848,29 @@ export function MapCanvas(p: Props): JSX.Element {
        * legal entero. Sin dato (sin física, director, primer instante) no se recorta nada.
        */
       const bound = p.onDragBound?.(gesture.id) ?? null;
-      if (bound) {
+      /**
+       * 🐞 PERO UN DISCO DE RADIO CERO NO ENCIERRA A NADIE (suyo, 2026-09-07: «*cuando un token está en una
+       * esquina se queda pegado, hay que soltarlo y cogerlo de nuevo*»).
+       *
+       * `circleClearance` deja el disco en CERO en cuanto el cuerpo queda pegado a un muro — y `slideCircle`
+       * aparca justo ahí a propósito, a `SLIDE_GAP` de la pared. O sea que **cualquier frenazo** dejaba el
+       * disco a cero. Contra una pared aún se avanzaba a tirones (cada respuesta del servidor concedía un
+       * resbalón), pero en una ESQUINA `slideCircle` no puede resbalar por ningún lado, devuelve el mismo
+       * punto, y el disco se quedaba en cero para siempre: el token no se movía ni tirando hacia el hueco
+       * abierto. Sólo soltar y volver a cogerlo lo desatascaba, porque eso borra el disco.
+       *
+       * ⚖️ PERO SÓLO SE SUELTA SI ESTE NAVEGADOR TIENE FÍSICA PROPIA A LA QUE CAER. Con el disco a cero se
+       * pinta `server ?? frenado`, y `frenado` sólo frena contra los muros que este navegador VE. Un JUGADOR
+       * en una escena normal no ve NINGUNO —son secretos por RLS: 16 de 16 ocultos, comprobado en la app—,
+       * así que para él `frenado` es el dedo a pelo, y soltar ahí le dejaría cruzar una pared que no ve:
+       * exactamente el fallo del 2026-08-22 que motivó el disco. Y no haría falta ni mala fe, porque
+       * «pegado a una pared moviéndose en paralelo» deja el disco a cero en CADA tick, no sólo en la esquina.
+       *
+       * Con `blockers.length > 0` la excepción vale sólo donde hay a qué caer. La esquina suya —el contorno
+       * de una sala, que se dibuja en el navegador— entra de lleno; el jugador ciego se queda como estaba, y
+       * ahí no se cambia nada.
+       */
+      if (bound && (bound.clearance > 1e-6 || blockers.length === 0)) {
         const dx = x - bound.x, dy = y - bound.y, d = Math.hypot(dx, dy);
         if (d > bound.clearance) {
           const k = bound.clearance / d;
@@ -1128,8 +1150,18 @@ export function MapCanvas(p: Props): JSX.Element {
    * en la spec: el director no puede probar en su pantalla lo que siente un jugador; se mira entrando con una
    * cuenta de jugador.
    */
-  const rooms = p.rooms ?? [];
-  const roomOpenings = p.roomOpenings ?? [];
+  /**
+   * ⚡ ESTABLES A PROPÓSITO, y la mitad que de verdad importaba es `roomIds` (abajo): `roomMaskIds(...)`
+   * devuelve un objeto NUEVO en cada llamada, así que el `memo` de `RoomsLayer` no habría servido de nada
+   * —props distintas, cuerpo ejecutado igual— y en cada fotograma del arrastre se volvía a recorrer el
+   * contorno entero de la mazmorra para reconstruir un SVG idéntico al que ya estaba pintado.
+   *
+   * `p.rooms ?? []` ya conservaba la referencia cuando había salas (`??` no copia, devuelve el mismo
+   * array); se memoriza igual para que el caso SIN salas no meta un `[]` nuevo en cada pintada, pero el
+   * fallo que él notaba vivía en `roomIds`. Lo sujeta un test en `MapCanvas.test.tsx`.
+   */
+  const rooms = useMemo(() => p.rooms ?? [], [p.rooms]);
+  const roomOpenings = useMemo(() => p.roomOpenings ?? [], [p.roomOpenings]);
   /**
    * 🧱 Y LAS SALAS FRENAN IGUAL (su aviso del 2026-09-04: «*le falta la física a los muros*»).
    *
@@ -1140,8 +1172,8 @@ export function MapCanvas(p: Props): JSX.Element {
    *
    * Respeta el interruptor de la escena igual que los muros: con las paredes sólidas apagadas, nada frena.
    */
-  const roomBlockers = p.scene.solidWalls ? roomMoveSegments(roomWallsOf(rooms, roomOpenings)) : [];
-  const blockers = p.isDm ? [] : [...moveBlockers(p.walls, p.scene), ...roomBlockers];
+  const roomBlockers = useMemo(() => (p.scene.solidWalls ? roomMoveSegments(roomWallsOf(rooms, roomOpenings)) : []), [p.scene.solidWalls, rooms, roomOpenings]);
+  const blockers = useMemo(() => (p.isDm ? [] : [...moveBlockers(p.walls, p.scene), ...roomBlockers]), [p.isDm, p.walls, p.scene, roomBlockers]);
   /**
    * …salvo LA SONDA DE PRUEBA, que sí choca (dueño, 2026-09-01: «no funciona bien el user dummy, traspasa las
    * paredes»). Y es la misma función, `moveBlockers` + `slideToken` → `slideCircle` de `@rolvium/core`, la
@@ -1154,7 +1186,7 @@ export function MapCanvas(p: Props): JSX.Element {
    * Si el interruptor de paredes sólidas está APAGADO, `moveBlockers` devuelve vacío y la sonda atraviesa —
    * como atravesaría el jugador. Simular es copiar lo que pasa, no ser más estricto que la escena.
    */
-  const probeBlockers = [...moveBlockers(p.walls, p.scene), ...roomBlockers];
+  const probeBlockers = useMemo(() => [...moveBlockers(p.walls, p.scene), ...roomBlockers], [p.walls, p.scene, roomBlockers]);
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
 
   /**
@@ -1164,14 +1196,18 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const layers = p.layers ?? [];
   const hasTerrain = terrainLayers(layers).some(l => l.visible && l.imageUrl);
-  const roomIds = roomMaskIds(p.scene.id);
+  const roomIds = useMemo(() => roomMaskIds(p.scene.id), [p.scene.id]);
   const drawingsShown = layers.length === 0 ? p.drawings : p.drawings.filter(d => isPainted(resolveLayer(layers, d.layerId, 'drawing'), dmSight));
   /**
    * Mientras se arrastra una luz se pinta donde va el dedo, no donde está guardada: el resplandor, su aro y
    * su disco de clic salen todos de esta lista, así que con cambiarla aquí se mueve el conjunto de una pieza.
    */
-  const lightsAll = paintedLights(p.lights ?? [], layers, dmSight);
-  const lightsShown = lightDraft ? lightsAll.map(l => (l.id === lightDraft.id ? { ...l, x: lightDraft.x, y: lightDraft.y } : l)) : lightsAll;
+  const lightsAll = useMemo(() => paintedLights(p.lights ?? [], layers, dmSight), [p.lights, layers, dmSight]);
+  /** ⚡ Estable salvo mientras se arrastra una luz: sin esto el `memo` de `LightsLayer` no serviría de nada. */
+  const lightsShown = useMemo(
+    () => (lightDraft ? lightsAll.map(l => (l.id === lightDraft.id ? { ...l, x: lightDraft.x, y: lightDraft.y } : l)) : lightsAll),
+    [lightDraft, lightsAll],
+  );
   /** Un PJ es un token con ficha de personaje detrás. Los PNJ del bestiario no la tienen. */
   const isPc = (tk: Token): boolean => tk.characterId !== null;
   const renderToken = (tk: Token): JSX.Element => {
@@ -1187,7 +1223,13 @@ export function MapCanvas(p: Props): JSX.Element {
   // ── fog ──
   // `null` = the API has not answered yet: draw the scene unfogged rather than flash a black canvas.
   const fog = p.fog;
-  const fogIds = { seen: `mp-seen-${p.scene.id}`, lit: `mp-lit-${p.scene.id}`, dim: `mp-dim-${p.scene.id}`, unexplored: `mp-unex-${p.scene.id}` };
+  /**
+   * ⚡ ESTABLE, por lo MISMO que `roomIds`: era un objeto nuevo en cada repintado, así que `FogMasks` —que
+   * arma el camino de TODAS las casillas exploradas y los polígonos de visión, y encima los mete en cuatro
+   * máscaras con desenfoque— se rehacía en cada fotograma del arrastre. En un mapa muy explorado cuesta más
+   * que la capa de salas. Ni la escena ni la niebla cambian mientras se arrastra una ficha.
+   */
+  const fogIds = useMemo(() => ({ seen: `mp-seen-${p.scene.id}`, lit: `mp-lit-${p.scene.id}`, dim: `mp-dim-${p.scene.id}`, unexplored: `mp-unex-${p.scene.id}` }), [p.scene.id]);
   const url = (id: string) => `url(#${id})`;
   /** A player (and the DM «viendo como jugador») only gets what the server drew for them. */
   const playerSight = !!fog && !dmSight;

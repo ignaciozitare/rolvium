@@ -6,6 +6,8 @@ import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { DOOR_BAR_PX, doorPatternId } from '../domain/useCases/mapRules';
 import { MapCanvas } from './MapCanvas';
 import { FOG_FEATHER, lightFeather } from './canvasLayers';
+import * as roomStyles from '../domain/useCases/roomStyles';
+import * as mapRules from '../domain/useCases/mapRules';
 
 // jsdom has no PointerEvent: a MouseEvent with pointerId is enough for the canvas handlers.
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
@@ -751,6 +753,63 @@ describe('<MapCanvas> fog', () => {
     // el dedo pidió +5 casillas; el disco sólo garantiza 1: se pinta (y se suelta) en el borde del disco
     expect(cb.onDragToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x + 1, TOKEN_KAREN.y,
       { x: expect.closeTo(TOKEN_KAREN.x + 5, 1), y: expect.closeTo(TOKEN_KAREN.y, 1) });
+    expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x + 1, TOKEN_KAREN.y);
+  });
+
+  /**
+   * 🐞 EL TOKEN CLAVADO EN LA ESQUINA (dueño, 2026-09-07, con captura: «*cuando un token está en una esquina
+   * como en la captura se queda pegado, hay que soltarlo y cogerlo de nuevo*»).
+   *
+   * `circleClearance` deja el disco en CERO en cuanto el cuerpo queda pegado a un muro — y el freno aparca
+   * ahí a propósito, a `SLIDE_GAP` de la pared. O sea que cualquier frenazo dejaba el disco a cero, y el
+   * recorte clavaba el pintado en ese punto pasara lo que pasara con el dedo. Contra una pared aún se
+   * avanzaba a tirones; en una ESQUINA no se podía resbalar por ningún lado y el token no se movía más.
+   * Soltar y volver a cogerlo lo desatascaba porque eso borra el disco — que es justo lo que él describe.
+   */
+  it('regresión · con el disco a CERO el token no se queda clavado: sale de la esquina sin soltarlo', () => {
+    // Pegado a la pared: el servidor confirma su sitio, pero sin ni un pelo de holgura alrededor.
+    const onDragBound = vi.fn(() => ({ x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, clearance: 0 }));
+    // Con un muro que este navegador SÍ ve: es su caso —el contorno de una sala se dibuja aquí— y es la
+    // condición para soltar el disco. Va lejos del token, así que no frena este arrastre.
+    const { svg, token, cb } = mount({
+      scene: { ...SCENE_WAREHOUSE, solidWalls: true },
+      walls: [WALL_VISIBLE], isDm: false, me: PLAYER_USER.id, onDragBound,
+    });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 3.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    // Se mueve. Antes se quedaba EXACTAMENTE donde estaba, y sólo soltar y volver a cogerlo lo liberaba.
+    const [, x] = cb.onMoveToken.mock.calls.at(-1)!;
+    expect(x).toBeGreaterThan(TOKEN_KAREN.x);
+  });
+
+  /**
+   * ⚖️ Y LA OTRA MITAD, que es la que evita reabrir el fallo del 2026-08-22: si este navegador NO tiene
+   * física propia —un jugador en una escena normal no ve ni un muro, son secretos por RLS— el disco a cero
+   * SIGUE clavando. Sin esto, pegado a una pared que no ve, el token la cruzaría a pelo hasta la respuesta
+   * siguiente del servidor (~140 ms), y soltando ahí la posición se guarda sin que nadie la vete.
+   */
+  it('regresión · pero el jugador que no ve NINGÚN muro sigue clavado al disco: no se le abre la pared', () => {
+    const onDragBound = vi.fn(() => ({ x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, clearance: 0 }));
+    const { svg, token, cb } = mount({
+      scene: { ...SCENE_WAREHOUSE, solidWalls: true },
+      walls: [], isDm: false, me: PLAYER_USER.id, onDragBound,
+    });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 3.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x, TOKEN_KAREN.y);
+  });
+
+  it('y con holgura de verdad se sigue recortando: el disco no se ha desactivado', () => {
+    const onDragBound = vi.fn(() => ({ x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, clearance: 1 }));
+    const { svg, token, cb } = mount({
+      scene: { ...SCENE_WAREHOUSE, solidWalls: true },
+      walls: [], isDm: false, me: PLAYER_USER.id, onDragBound,
+    });
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 5.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
     expect(cb.onMoveToken).toHaveBeenLastCalledWith('tk-karen', TOKEN_KAREN.x + 1, TOKEN_KAREN.y);
   });
 
@@ -2219,5 +2278,61 @@ describe('<MapCanvas> dibujar pegado a algo', () => {
     down(svg, 100, 100); move(svg, 103, 100); up(svg);
     expect(cb.onAddWall).not.toHaveBeenCalled();
     expect(cb2.onTooSmall).toHaveBeenCalledWith(false);
+  });
+});
+
+/**
+ * ⚡ LA OTRA MITAD DEL ARREGLO DEL RENDIMIENTO (suyo, 2026-09-07: «*la sombra dinámica en local va lentísima
+ * cuando pruebo*»). `RoomsLayer` está envuelta en `memo`, pero un `memo` sólo sirve si las props llegan
+ * ESTABLES: `roomMaskIds(...)` devuelve un objeto NUEVO en cada llamada, así que sin el `useMemo` de aquí la
+ * capa se repintaba igualmente en cada fotograma del arrastre y el `memo` no ahorraba nada.
+ *
+ * Esto se prueba aquí y no en `roomsLayer.test.tsx` a propósito: allí sólo se puede comprobar el `memo` con
+ * props que el test mismo sujeta; el fallo real vivía en QUIÉN las pasa.
+ */
+describe('<MapCanvas> arrastrar una ficha no repinta las salas', () => {
+  const SALA = {
+    id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[G * 8, G * 8], [G * 14, G * 8], [G * 14, G * 14], [G * 8, G * 14]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, createdAt: '', updatedAt: '',
+  };
+
+  it('el cuerpo de la capa de salas NO se ejecuta en cada tirón del dedo', () => {
+    const { svg, token } = mount({ rooms: [SALA], isDm: true, me: 'u-gm' });
+    // `roomWallsOf` es lo primero que hace el cuerpo de `RoomsLayer`: si se llama, es que se ha repintado.
+    const spy = vi.spyOn(roomStyles, 'roomWallsOf');
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 1.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 2.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 3.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  /**
+   * Y LA NIEBLA IGUAL, que en un mapa muy explorado cuesta MÁS que las salas: arma el camino de todas las
+   * casillas exploradas y los polígonos de visión, y los mete en cuatro máscaras con desenfoque. Tampoco
+   * depende de las fichas.
+   */
+  it('el cuerpo de las máscaras de niebla TAMPOCO se ejecuta en cada tirón del dedo', () => {
+    const { svg, token } = mount({ rooms: [SALA], isDm: true, me: 'u-gm', fog: FOG });
+    // `cellsPath` es lo primero que hace el cuerpo de `FogMasks`: si se llama, es que se ha repintado.
+    const spy = vi.spyOn(mapRules, 'cellsPath');
+    down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 1.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    move(svg, (TOKEN_KAREN.x + 2.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+    up(svg);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  /** Y si de verdad cambia una sala, se repinta: el `memo` no puede dejar la mazmorra obsoleta. */
+  it('pero cambiar la sala sí la repinta', () => {
+    const { rerender } = mount({ rooms: [SALA], isDm: true, me: 'u-gm' });
+    const spy = vi.spyOn(roomStyles, 'roomWallsOf');
+    rerender({ rooms: [{ ...SALA, points: [[G * 8, G * 8], [G * 12, G * 8], [G * 12, G * 12], [G * 8, G * 12]] as [number, number][] }] });
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

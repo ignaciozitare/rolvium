@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import * as core from '@rolvium/core';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { Room, RoomOpening, Scene } from '../domain/entities/Scene';
+import * as styles from '../domain/useCases/roomStyles';
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
 import { DOOR_BAR_PX } from '../domain/useCases/mapRules';
 
@@ -46,6 +47,16 @@ describe('<RoomsLayer> — la roca, el agujero y el muro', () => {
     expect(screen.getByTestId('mp-room-floor')).toBeInTheDocument();
     expect(screen.getByTestId('mp-room-wall')).toBeInTheDocument();
     expect(screen.getByTestId('mp-room-shadow')).toBeInTheDocument();
+    /**
+     * ⚡ Y SIGUE SIENDO UN DESENFOQUE DE VERDAD. Esta capa se envolvió en `memo` el 2026-09-07 porque el
+     * `filter` del navegador se estaba rasterizando en cada fotograma del arrastre («*la sombra dinámica en
+     * local va lentísima*»), y él avisó: «*ojo con romper la sombra*». Esto es el guardián: si alguien
+     * arregla el rendimiento quitándole el desenfoque, o dejándola fuera de la máscara del agujero, salta.
+     */
+    const sombra = screen.getByTestId('mp-room-shadow');
+    expect(sombra.getAttribute('filter')).toMatch(/^url\(#mp-room-blur-/);
+    expect(Number(sombra.getAttribute('stroke-width'))).toBeGreaterThan(0);
+    expect(sombra.closest('g')!.getAttribute('mask')).toMatch(/^url\(#/);
   });
 
   /**
@@ -439,5 +450,44 @@ describe('<RoomsLayer> lo último dibujado es lo último pintado', () => {
   it('las salas seguidas con el mismo suelo se pintan de una vez', () => {
     mount([room('r1', 60, 60, 200, 200), room('r2', 220, 60, 360, 200), room('r3', 380, 60, 520, 200)]);
     expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(1);
+  });
+});
+
+/**
+ * ⚡ EL ARREGLO DEL RENDIMIENTO (suyo, 2026-09-07: «*la sombra dinámica en local va lentísima cuando
+ * pruebo*»). Arrastrar una ficha repinta el lienzo ~60 veces por segundo, y esta capa se repintaba con él
+ * aunque nada de lo que dibuja dependa de las fichas: en cada fotograma se volvía a recorrer el contorno
+ * entero de la mazmorra —el temblor punto a punto, los caminos, las capas de suelo— y a reconciliar todo ese
+ * árbol de SVG. Con `memo`, y con las props estables desde `MapCanvas`, React ni entra.
+ *
+ * OJO CON LO QUE ESTE TEST TIENE QUE MIRAR. La primera versión comprobaba que el nodo del DOM fuera el mismo
+ * (`toBe`) — y eso pasa SIEMPRE, con `memo` y sin él: React reutiliza el nodo cuando los atributos no
+ * cambian. O sea que el guardián no guardaba nada; quitando el `memo` seguía verde (review, 2026-09-07). Lo
+ * que de verdad distingue es si el CUERPO del componente se ha ejecutado, y eso se ve espiando una función
+ * que el cuerpo llama sí o sí.
+ */
+describe('<RoomsLayer> — no se repinta de balde', () => {
+  it('con las MISMAS props React NI ENTRA en el cuerpo: es lo que salva el desenfoque de la sombra', () => {
+    const rooms = [room('r1', 60, 60, 300, 300)];
+    const openings: RoomOpening[] = [];
+    const ids = roomMaskIds(SCENE.id);
+    const { rerender } = render(<svg><RoomsLayer scene={SCENE} rooms={rooms} openings={openings} ids={ids} /></svg>);
+    const antes = screen.getByTestId('mp-room-shadow');
+    // `roomWallsOf` es lo primero que hace el cuerpo. Si se llama otra vez, el cuerpo se ha vuelto a ejecutar.
+    const spy = vi.spyOn(styles, 'roomWallsOf');
+    // Mismísimas referencias: es el caso real, con `useMemo` sujetando las props en `MapCanvas`.
+    rerender(<svg><RoomsLayer scene={SCENE} rooms={rooms} openings={openings} ids={ids} /></svg>);
+    expect(spy).not.toHaveBeenCalled();
+    // Y el nodo sigue siendo el mismo, claro: nadie lo ha tocado.
+    expect(screen.getByTestId('mp-room-shadow')).toBe(antes);
+    spy.mockRestore();
+  });
+
+  it('pero si cambia una sala SÍ se repinta: el `memo` no puede dejarla obsoleta', () => {
+    const ids = roomMaskIds(SCENE.id);
+    const { rerender } = render(<svg><RoomsLayer scene={SCENE} rooms={[room('r1', 60, 60, 300, 300)]} openings={[]} ids={ids} /></svg>);
+    const antes = screen.getByTestId('mp-room-wall').getAttribute('d');
+    rerender(<svg><RoomsLayer scene={SCENE} rooms={[room('r1', 60, 60, 200, 200)]} openings={[]} ids={ids} /></svg>);
+    expect(screen.getByTestId('mp-room-wall').getAttribute('d')).not.toBe(antes);
   });
 });

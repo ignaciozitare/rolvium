@@ -377,7 +377,7 @@ export function BuilderPanel({
                   * nadie: «*mira el botón que está mal*».
                   */}
                 <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onTexture?.(which)}>
-                  {t(url ? 'maps.room.textures.change' : 'maps.room.textures.upload')}
+                  {t(url ? 'maps.room.textures.change' : 'maps.room.textures.pick')}
                 </button>
                 {url && (
                   <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onClearTexture?.(which)}>

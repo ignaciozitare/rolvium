@@ -1054,6 +1054,7 @@
         "hint": "The wall one fills the whole map; the floor one shows through the hole each room opens.",
         "own": "Your own photo",
         "change": "Change",
+        "pick": "Choose",
         "upload": "+ Upload",
         "remove": "Remove"
       },

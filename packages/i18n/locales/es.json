@@ -1054,6 +1054,7 @@
         "hint": "La de pared rellena el mapa entero; la de suelo asoma por el hueco que abre cada sala.",
         "own": "Foto tuya",
         "change": "Cambiar",
+        "pick": "Elegir",
         "upload": "+ Subir",
         "remove": "Quitar"
       },

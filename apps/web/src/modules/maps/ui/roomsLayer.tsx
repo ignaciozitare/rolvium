@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { RoomWall } from '@rolvium/core';
 import type { Room, RoomOpening, RoomPreset, Scene } from '../domain/entities/Scene';
 import {
@@ -92,7 +93,21 @@ function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl'>):
   return out;
 }
 
-export function RoomsLayer({ scene, rooms, openings, ids, selectedOpeningId = null }: Props): JSX.Element | null {
+/**
+ * ⚡ ENVUELTA EN `memo`, Y NO ES UN CAPRICHO (suyo, 2026-09-07: «*la sombra dinámica en local va lentísima
+ * cuando pruebo*»).
+ *
+ * Esta capa dibuja la mazmorra ENTERA: funde el contorno de todas las salas, le pone el temblor punto a
+ * punto, monta las capas de suelo y encima la sombra de adentro —un desenfoque de SVG sobre todo el
+ * contorno, dentro de una máscara—. Se repintaba en cada repintado del lienzo, y arrastrar una ficha repinta
+ * ~60 veces por segundo: todo ese trabajo se rehacía en cada fotograma del arrastre para acabar dibujando
+ * exactamente lo mismo que ya estaba en pantalla.
+ *
+ * Nada de lo que hay aquí depende de las fichas: sala, vano y escena. Con `memo` (y con las props estables
+ * desde `MapCanvas`) React ni entra en el cuerpo, y el arrastre va suelto. No cambia ni un píxel de lo que
+ * se ve.
+ */
+function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null }: Props): JSX.Element | null {
   /**
    * ⏱ EL CONTORNO SE CALCULA UNA VEZ POR CAMBIO, NO UNA VEZ POR PINTADA.
    *
@@ -305,3 +320,6 @@ export function RoomsLayer({ scene, rooms, openings, ids, selectedOpeningId = nu
     </g>
   );
 }
+
+export const RoomsLayer = memo(RoomsLayerBase);
+RoomsLayer.displayName = 'RoomsLayer';

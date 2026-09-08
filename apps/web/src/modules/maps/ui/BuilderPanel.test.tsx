@@ -268,7 +268,13 @@ describe('<BuilderPanel> las dos texturas base y el grosor', () => {
     mount({ mode: 'draw', preset: 'cavern' });
     const fila = screen.getByText('Las dos texturas base').closest('fieldset')!;
     expect(within(fila).getAllByText('Caverna')).toHaveLength(2);   // pared y suelo
-    expect(within(fila).getAllByRole('button', { name: '+ Subir' })).toHaveLength(2);
+    /**
+     * ELEGIR, NO SUBIR. Es la MISMA corrección que ya se le hizo a la puerta, y él la tuvo que repetir para
+     * las texturas base: «*ese botón no es para subir, es para elegir; luego ya dentro del modal se pueden
+     * subir*» (2026-09-07). El botón abre el CATÁLOGO; subir una foto se hace dentro.
+     */
+    expect(within(fila).getAllByRole('button', { name: 'Elegir' })).toHaveLength(2);
+    expect(within(fila).queryByRole('button', { name: '+ Subir' })).not.toBeInTheDocument();
   });
 
   it('con una foto suya, manda la suya — y se puede quitar', async () => {
