@@ -26,10 +26,10 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 > «Rolvium. Lee el bloque 🟡 de WORK_STATE.md. El trabón de la esquina está arreglado en rama y sin mergear:
 > falta que yo lo pruebe y contestar si lo que se me pegaba era una ficha o la sonda.»
 
-Rama **`fix/maps-trabon-esquina`**, dos commits (`6d1e324` + `f2e8169`), subida. Review pasado (bloqueó una
+Rama **`fix/maps-trabon-esquina`**, subida (`6d1e324` · `f2e8169` · `ce524c8`). Review pasado (bloqueó una
 vez, con razón). **NO mergeado**: falta que él lo pruebe y diga «listo para merge» → QA → Deploy.
 
-Verde: core **76** · web **1530** · api **249** · `tsc` limpio en apps/web y apps/api · `audit` **0 hard** ·
+Verde: core **76** · web **1532** · api **249** · `tsc` limpio en apps/web y apps/api · `audit` **0 hard** ·
 `build:web` y `build:api` compilan. Sin migraciones.
 
 ### 🎯 LA CAUSA, Y ERA UNA SOLA
@@ -70,19 +70,22 @@ cuatro esquinas × dos salidas, con el dedo ya pasado al otro lado— y **fallan
 viejo, uno por esquina** (verificado revirtiendo sólo esa parte). Más el de `nearestFree`, que falla con esa
 línea revertida. Son tests discriminantes, no de adorno.
 
-### ❓ LO ÚNICO QUE FALTA, Y SÓLO PUEDE CONTESTARLO ÉL
-Se le preguntó y **no ha contestado todavía**: **¿lo que se le pega es una FICHA o la SONDA** (el círculo con
-las caretas de teatro de «ver como jugador»)? ¿Y está como **director** o entrando con cuenta de **jugador**?
+### ✅ CONTESTADA LA PREGUNTA: ES LA SONDA, Y ERA EL SITIO EXACTO
+Suyo, 2026-09-08: «*es como director, la careta es la que arrastro, por supuesto, como te hice en todas las
+fotos*». **La careta es la SONDA DE PRUEBA**, y es lo ÚNICO que choca en la pantalla de un director: a sus
+fichas no las frena nadie (`blockers = p.isDm ? [] : […]`, y `sceneVision.ts` retorna en `if (role === 'dm')`
+antes de calcular `corrected`/`clearance`). La sonda usa `probeBlockers`, **sin** filtro de director.
 
-Importa porque **al director sus fichas no le chocan nunca** (`blockers = p.isDm ? [] : […]`, y el servidor
-tampoco le contesta correcciones: en `sceneVision.ts` el bloque `if (role === 'dm')` retorna antes de calcular
-`corrected`/`clearance`). O sea: **si lo que arrastraba era una ficha suya como director, este arreglo no le
-va a cambiar nada** y habría que seguir buscando por otro lado — el CHIVATO en pantalla del bloque de abajo.
-Si era la sonda (`probeBlockers`, **sin** filtro de director) o una ficha en la pantalla de un jugador
-(contorno de sala = física propia), esto es exactamente su fallo.
+O sea que el arreglo cae justo donde le duele. Y hay dos tests en su gesto de verdad
+(`MapCanvas.test.tsx › la sonda de prueba`), con `WALL_1` + `WALL_VISIBLE` haciendo una esquina en (270, 540)
+y el puntero METIDO en la pared:
+- salir por el muro de **arriba** → pasa también en `main`: guardián de que lo que ya iba sigue yendo;
+- salir por el **de al lado** → **falla en `main`**, pasa aquí.
+
+Uno de cada dos: la forma exacta del fallo.
 
 ### ⏳ SIGUIENTE
-1. Que lo pruebe en el preview de la rama.
+1. Que lo pruebe en el preview de la rama, **arrastrando la careta a una esquina**.
 2. Si va: «listo para merge» → QA → Deploy. **Sin migraciones.**
 3. Si NO va: volver a poner el chivato (línea roja con `director / muros / disco / frena` mientras arrastras)
    y pedirle la captura. Media hora, y contesta de golpe si es física o pintura.
