@@ -1465,6 +1465,44 @@ describe('<MapCanvas> la sonda de prueba', () => {
     expect(dejada.x).toBeLessThan(270);   // se queda a este lado de la pared
   });
 
+  /**
+   * 🐞 EL TRABÓN DE LA ESQUINA, EN LO QUE ÉL ARRASTRA DE VERDAD (2026-09-08: «*si toco una esquina se pega y
+   * sólo se destraba si muevo el puntero en la dirección contraria*» · «*es como director, la careta es la
+   * que arrastro*»).
+   *
+   * La careta es la SONDA, y es lo único que choca en la pantalla de un director: a sus fichas no las frena
+   * nadie —ni el navegador (`blockers` vacío) ni el servidor (`sceneVision` retorna antes de calcular la
+   * corrección para un `dm`)—, así que este es el sitio donde su fallo se ve.
+   *
+   * `WALL_1` (vertical, x=270) y `WALL_VISIBLE` (horizontal, y=540) hacen una esquina en (270, 540). Desde
+   * ahí hay DOS salidas, y con el desempate viejo una de las dos estaba muerta: `slideCircle` elegía muro
+   * por el ORDEN de la lista, no por cuál dejaba pasar. Se prueban las dos, y en las dos el puntero va METIDO
+   * en la pared — que es lo que pasa al empujar contra un muro y seguir tirando.
+   */
+  const ESQUINA = { x: 287.5, y: 522.5 }; // pegada al vértice, a radio (17) + holgura (0,5) de cada muro
+  const enLaEsquina = (onProbeMove: ReturnType<typeof vi.fn>) =>
+    mount({ isDm: true, me: 'u-gm', scene: { ...SCENE_WAREHOUSE, solidWalls: true }, walls: [WALL_1, WALL_VISIBLE], probe: ESQUINA, onProbeMove });
+
+  it('en una esquina sale por la pared de arriba, con el puntero metido en ella', () => {
+    const onProbeMove = vi.fn();
+    const { svg } = enLaEsquina(onProbeMove);
+    down(svg, ESQUINA.x, ESQUINA.y);
+    move(svg, 250, 300); // dedo DENTRO del muro vertical, muy por encima: debe subir pegada a él
+    const subida = onProbeMove.mock.calls.at(-1)![0];
+    expect(subida.y).toBeLessThan(400);
+    expect(subida.x).toBeCloseTo(287.5, 1);
+  });
+
+  it('…y también por la de al lado: las DOS salidas del vértice valen, no una', () => {
+    const onProbeMove = vi.fn();
+    const { svg } = enLaEsquina(onProbeMove);
+    down(svg, ESQUINA.x, ESQUINA.y);
+    move(svg, 450, 580); // dedo DEBAJO del muro horizontal, a la derecha: debe correrse pegada a él
+    const corrida = onProbeMove.mock.calls.at(-1)![0];
+    expect(corrida.x).toBeGreaterThan(400);
+    expect(corrida.y).toBeCloseTo(522.5, 1);
+  });
+
   it('…y la atraviesa si la escena tiene las paredes atravesables: simular es copiar, no ser más estricto', () => {
     const onProbeMove = vi.fn();
     const scene = { ...SCENE_WAREHOUSE, solidWalls: false };
