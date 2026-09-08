@@ -855,9 +855,13 @@ export function MapCanvas(p: Props): JSX.Element {
        * `circleClearance` deja el disco en CERO en cuanto el cuerpo queda pegado a un muro — y `slideCircle`
        * aparca justo ahí a propósito, a `SLIDE_GAP` de la pared. O sea que **cualquier frenazo** dejaba el
        * disco a cero. Contra una pared aún se avanzaba a tirones (cada respuesta del servidor concedía un
-       * resbalón), pero en una ESQUINA `slideCircle` no puede resbalar por ningún lado, devuelve el mismo
-       * punto, y el disco se quedaba en cero para siempre: el token no se movía ni tirando hacia el hueco
-       * abierto. Sólo soltar y volver a cogerlo lo desatascaba, porque eso borra el disco.
+       * resbalón), pero en una ESQUINA `slideCircle` devolvía entonces el mismo punto, y el disco se quedaba
+       * en cero para siempre: el token no se movía ni tirando hacia el hueco abierto. Sólo soltar y volver a
+       * cogerlo lo desatascaba, porque eso borra el disco.
+       *
+       * (Aquello de que en una esquina `slideCircle` no supiera resbalar era a su vez un fallo suyo, el del
+       * desempate entre los dos muros del vértice, arreglado el 2026-09-08 en `@rolvium/core`. Esta salida
+       * SIGUE HACIENDO FALTA igual: el disco se pone a cero con cualquier frenazo, resbale o no.)
        *
        * ⚖️ PERO SÓLO SE SUELTA SI ESTE NAVEGADOR TIENE FÍSICA PROPIA A LA QUE CAER. Con el disco a cero se
        * pinta `server ?? frenado`, y `frenado` sólo frena contra los muros que este navegador VE. Un JUGADOR

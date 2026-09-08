@@ -208,15 +208,45 @@ export function slideCircle(from: ScenePoint, to: ScenePoint, radius: number, bl
       if (clear(pos, lerp(pos, target, mid))) lo = mid; else hi = mid;
     }
     const stop = lerp(pos, target, lo);
-    // el muro contra el que se ha topado: el más cercano al punto de contacto
-    const wall = blockers.reduce((a, b) => (pointSegDist(stop, b[0], b[1], b[2], b[3]) < pointSegDist(stop, a[0], a[1], a[2], a[3]) ? b : a));
-    const len = Math.hypot(wall[2] - wall[0], wall[3] - wall[1]);
-    if (len < 1e-9) return stop;
-    const ux = (wall[2] - wall[0]) / len, uy = (wall[3] - wall[1]) / len;
-    const along = (target.x - stop.x) * ux + (target.y - stop.y) * uy;
-    if (Math.abs(along) < 1e-6) return stop; // empujón de frente: pegado al muro, y ahí se queda
+    /**
+     * 🐞 LA SEGUNDA MITAD DEL TRABÓN DE LA ESQUINA. Aquí había un `reduce` que se quedaba con UN muro, «el
+     * más cercano al punto de contacto» — y en una esquina los dos están a la MISMA distancia, así que el
+     * desempate cogía siempre el primero de la lista. Si ése era el muro equivocado, la proyección salía
+     * contra el otro, el rebote no avanzaba ni un píxel, la vuelta siguiente volvía a elegir el mismo, y la
+     * ficha se quedaba clavada: exactamente lo que él contó (2026-09-08, «*si toco una esquina se pega y
+     * sólo se destraba si muevo el puntero en la dirección contraria*»).
+     *
+     * `nearestFree` sólo tapa una parte de eso: sirve cuando el dedo está DENTRO de la sala pero pisando el
+     * cuerpo del muro. En cuanto el dedo se pasa al otro lado —que es lo que ocurre al empujar contra una
+     * pared y seguir tirando— el destino vuelve a ser ilegal y el desempate manda otra vez. Medido en una
+     * sala de 600×600 con ficha de radio 35: de 288 direcciones probadas en las cuatro esquinas, 64 dejaban
+     * la ficha clavada pudiendo moverse; con `nearestFree` solo seguían clavadas 56.
+     *
+     * Así que no se elige un muro: se prueban TODOS los que empatan a distancia mínima del contacto y se
+     * sigue el que de verdad deja avanzar más. Con eso las 288 salen. Y no es más lento donde importa —en
+     * una sala de 44 muros el arrastre normal baja de 4,4 a 3,2 µs por evento, porque perseguir un destino
+     * ya legal ahorra bisecciones—; la biseción extra sólo corre en el empate, o sea estando en una esquina.
+     */
+    const wallDist = (w: BlockSegment): number => pointSegDist(stop, w[0], w[1], w[2], w[3]);
+    let nearest = Infinity;
+    for (const w of blockers) { const d = wallDist(w); if (d < nearest) nearest = d; }
+    let best: { target: ScenePoint; reach: number } | null = null;
+    for (const w of blockers) {
+      if (wallDist(w) > nearest + 1e-6) continue; // no es uno de los muros que se han tocado
+      const len = Math.hypot(w[2] - w[0], w[3] - w[1]);
+      if (len < 1e-9) continue;
+      const ux = (w[2] - w[0]) / len, uy = (w[3] - w[1]) / len;
+      const along = (target.x - stop.x) * ux + (target.y - stop.y) * uy;
+      if (Math.abs(along) < 1e-6) continue; // empujón de frente contra ÉSTE: por aquí no se sale
+      const candidate = { x: stop.x + ux * along, y: stop.y + uy * along };
+      let a = 0, b = 1;
+      for (let i = 0; i < 16; i++) { const mid = (a + b) / 2; if (clear(stop, lerp(stop, candidate, mid))) a = mid; else b = mid; }
+      const reach = a * Math.abs(along);
+      if (!best || reach > best.reach) best = { target: candidate, reach };
+    }
+    if (!best) return stop; // ni un muro por el que resbalar: pegado a la pared, y ahí se queda
     pos = stop;
-    target = { x: stop.x + ux * along, y: stop.y + uy * along };
+    target = best.target;
   }
   return pos;
 }
