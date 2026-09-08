@@ -1746,6 +1746,14 @@ cuatro combinaciones: es lo mismo y se entiende sin leer.
   es especial —la de hierro del jefe— se le cambia a esa sola.
 
 #### Modelo de datos
+Son **DOS** migraciones, y la segunda salió de que él revocara una decisión el mismo día (ver arriba):
+
+1. `supabase/migrations/20260907120000_maps_doors.sql` — hojas, bisagra, lado y color.
+2. `supabase/migrations/20260907150000_maps_door_texture.sql` — la **textura** de la puerta:
+   `door_texture_url` en `maps_walls`, `maps_room_openings` y `maps_scenes`, con el mismo patrón que el color
+   (uno para toda la escena, y por puerta si quiere cambiar una). La **textura manda sobre el color**.
+   Puramente aditiva, tres `ADD COLUMN IF NOT EXISTS` sobre tablas que ya tienen RLS, y hereda sus políticas.
+
 Migración `supabase/migrations/20260907120000_maps_doors.sql`, **aplicada en local**. **Puramente aditiva**: no
 crea tablas ni políticas, sólo columnas con valor por omisión sobre tres tablas que ya existían. Las siete
 puertas que él ya tiene puestas **no cambian de comportamiento** — los valores por defecto son exactamente lo
@@ -1786,8 +1794,13 @@ que hacen hoy. El aspecto sí cambia, pero eso lo hace el dibujo nuevo, no la ba
 - **El lado por defecto es fijo, no calculado.** En una sala se podría deducir «hacia fuera», pero en un muro
   suelto sobre una foto no hay dentro ni fuera, y dos comportamientos distintos para el mismo gesto se leen
   como un fallo. Un clic lo cambia.
-- **La barra hueca se pinta con el color de la puerta y el trazo del muro**, no con una textura propia. Él
-  dijo «color o textura»; la textura se puede añadir después sobre la misma columna sin migrar otra vez.
+- ~~**La barra hueca se pinta con el color de la puerta y el trazo del muro**, no con una textura propia. Él
+  dijo «color o textura»; la textura se puede añadir después sobre la misma columna sin migrar otra vez.~~
+  **REVOCADA POR ÉL EL MISMO DÍA**, con la app delante: «*te falta lo de la textura*». Así que la puerta
+  **SÍ lleva textura propia**, y la textura **manda sobre el color**. Y la predicción de esa decisión salió
+  mal por partida doble: hizo falta **otra migración** (`20260907150000_maps_door_texture.sql`, columna
+  `door_texture_url` en `maps_walls`, `maps_room_openings` y `maps_scenes`), no valía la misma columna. Se
+  deja tachada y no borrada: la decisión existió y el motivo por el que cayó es lo que enseña.
 
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
