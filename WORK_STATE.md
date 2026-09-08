@@ -20,10 +20,66 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 «EL FALLO DE "PEGADO A ALGO", CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO», justo debajo.**
 
-## 🐞 2026-09-07 (noche) — TRES FALLOS SUYOS PROBANDO · ARREGLADOS, SIN COMMITEAR
+## 🔴 2026-09-08 — DÓNDE ESTAMOS, Y LO ÚNICO QUE QUEDA ABIERTO
 
-Rama **`feat/maps-puertas`**. **SIN COMMITEAR** a propósito: falta que él los pruebe en pantalla, sobre todo
-el del rendimiento, que es el único que no puedo medir yo. Review pasado.
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 🔴 de WORK_STATE.md. Queda el token que se pega al tocar una esquina.»
+
+### ESTADO
+- Rama **`feat/maps-puertas`**, tres commits: `10cfa00` (puertas) · `0c2580e` (tamaño de las fichas) ·
+  `6b29801` (tres arreglos). Árbol limpio.
+- **Él pidió desplegar el 2026-09-08 sabiendo que el trabón sigue**: «*no funciona del todo bien, todavía se
+  pega, pero podemos solucionarlo más adelante*». QA lanzada. Si esto se lee antes de que termine el
+  despliegue, comprobar primero `git log origin/main` y los advisors.
+- ⚠️ **TRES MIGRACIONES A PRODUCCIÓN, Y ANTES QUE EL CÓDIGO**, en este orden:
+  `20260907120000_maps_doors.sql` → `20260907150000_maps_door_texture.sql` → `20260907170000_maps_token_scale.sql`.
+- Servidor de desarrollo levantado con `npm run dev:web` (**no** `npm run dev`, ese script no existe).
+
+### 🐞 LO ÚNICO ABIERTO: EL TOKEN SE PEGA AL TOCAR UNA ESQUINA
+Suyo, 2026-09-08: «*si toco una esquina se pega y sólo se destraba si muevo el puntero en la dirección
+contraria*». Dice que **después del arreglo está peor que antes**.
+
+**NO EMPIECES POR DONDE EMPECÉ YO.** Esto ya está descartado, con pruebas, y volver a mirarlo es perder horas:
+- **Como DIRECTOR no hay nada que pueda frenar la ficha.** `MapCanvas`: `blockers = p.isDm ? [] : […]`, o sea
+  vacío a propósito. Y el servidor **no le contesta con correcciones a un director**: en
+  `apps/api/src/application/maps/sceneVision.ts` el bloque `if (role === 'dm')` abre en la línea 182 y
+  **todas** sus salidas retornan antes del cálculo de `corrected`/`clearance` (cierra en la 209). Con lo cual
+  `motionRef` se queda en `null` y no hay disco que recorte.
+- **Reproducido en test en sus condiciones exactas** —director, sala, paredes sólidas, arrastre de abajo
+  arriba hasta la esquina y luego de lado— y **la ficha sigue al ratón perfectamente**. También con muros
+  sueltos y con jugador. Los tests de diagnóstico se borraron; rehacerlos es trivial.
+- **No es el paquete viejo**: se arrancó limpio (`rm -rf apps/web/node_modules/.vite`) y se comprobó pidiéndole
+  los ficheros al servidor que servía el código nuevo.
+- El puntero **sí se captura** en el arrastre de ficha (`setPointerCapture`, `MapCanvas` ~455), así que no es
+  que se salgan los eventos por el borde.
+
+**POR DÓNDE SEGUIR, EN ESTE ORDEN:**
+1. **Se le dejó un CHIVATO en pantalla y él nunca llegó a mandar la captura.** Era una línea roja mientras
+   arrastras con `director / muros / disco / frena`. **Se quitó antes de commitear** (no podía ir a
+   producción). Volver a ponerlo es media hora y contesta la pregunta de golpe: si sale `muros:0 disco:-1
+   frena:0`, la ficha va exactamente donde va el ratón y el trabón **no es la física** — es otra cosa
+   (repintado, o lo que se ve ≠ lo que se guarda).
+2. **La SONDA DE PRUEBA sí choca** (`probeBlockers`, sin filtro de director, `MapCanvas:790`) y su síntoma es
+   EXACTAMENTE el suyo: para salir hay que volver por donde entraste. Preguntarle si lo que arrastra es una
+   ficha o la sonda. No se le llegó a preguntar.
+3. Si resulta ser la física: el problema de fondo es que **el ratón se mete dentro de la pared** y la ficha no
+   vuelve a moverse hasta que el ratón sale del radio del cuerpo — media ficha entera, en las dos direcciones
+   a la vez. Medido. La salida sería proyectar el ratón al punto legal más cercano en vez de dejar la ficha
+   en el último sitio.
+
+### 🧾 DEUDA ANOTADA
+- **`setHover` se dispara en CADA `pointermove`** y repinta el lienzo entero. Es lentitud real **pero no la
+  suya**: todo lo que lee `hover` está detrás de `dmSight`, así que a un DIRECTOR no le ahorra nada. Ayuda a
+  los jugadores. Es el cambio más delicado de los de rendimiento.
+- `maps.room.textures.upload` se quedó **sin usar** en los dos idiomas.
+- `DoorLeaves` acepta un `thickness` que no le pasa nadie.
+- `BestiaryTab.test.tsx › enseña las criaturas del manual junto a las propias` **parpadea** bajo carga
+  (`findByRole` con timeout de 1 s). No es de esta rama; morderá en QA algún día.
+
+## 🐞 2026-09-07 (noche) — TRES FALLOS SUYOS PROBANDO · ARREGLADOS Y COMMITEADOS (`6b29801`)
+
+Rama **`feat/maps-puertas`**. Review pasado. ⚠️ El primero **NO cierra lo que él ve**: sigue pegándose.
+Ver el bloque de arriba del todo.
 
 Verde: web **1530** · api **249** · `tsc` en las dos apps · `audit` **0 hard** · las dos compilan.
 
@@ -79,11 +135,9 @@ en cada repintado).
 - `BestiaryTab.test.tsx › enseña las criaturas del manual junto a las propias` **parpadeó una vez** bajo carga
   y pasó sola al repetir: un `findByRole` con el timeout de 1 s. No es de este cambio, pero morderá en QA.
 
-## 🔍 2026-09-07 (noche) — LA BARRITA DEL TAMAÑO DE LAS FICHAS · CONSTRUIDA, REVISADA, SIN COMMITEAR
+## 🔍 2026-09-07 (noche) — LA BARRITA DEL TAMAÑO DE LAS FICHAS · COMMITEADA (`0c2580e`)
 
-Rama **`feat/maps-puertas`** (las puertas ya están commiteadas en `10cfa00`). Esto es lo de encima y está
-**SIN COMMITEAR**, esperando sólo a que él **guarde el `.pen` con Cmd+S** — el diseño lo aprobó («*aprobado,
-construyelo*») pero el fichero sigue con fecha de las 17:27, o sea que las dos láminas no están en disco.
+Rama **`feat/maps-puertas`**. Diseño aprobado por él y `.pen` guardado; todo commiteado en `0c2580e`.
 
 Verde: web **1522** · api **249** · `tsc` en las dos apps **0 errores** · `audit` **0 hard** · `build:web` y
 `build:api` compilan · `db lint --level error` limpio.
