@@ -19,7 +19,76 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 rediseñar) → `chat` (H8) + `journal` (H9). ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno,
 configurable por sistema (toca el puerto `GameSystem`) — spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en los dos bloques de arriba: 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» y 🖌️ «EL PINCEL».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cuatro bloques de arriba, en este orden: 🖌️ «EL PINCEL, A MEDIAS» (donde se retoma) · 📥 «TRES PETICIONES SIN EMPEZAR» · 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» · ✅ «EL TRABÓN DE LA ESQUINA».**
+
+## 🖌️ 2026-09-09 — EL PINCEL, A MEDIAS · RAMA `feat/maps-pincel` · **AQUÍ SE RETOMA**
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 🖌️ de arriba de WORK_STATE.md. El pincel está a medias en la rama
+> `feat/maps-pincel`: los cimientos y el diseño están hechos y aprobados, falta la pantalla (tanda 2).»
+
+### ESTADO
+- Rama **`feat/maps-pincel`**, subida, **2 commits**, **SIN mergear**. `main` = `9004356`.
+- Verde en la rama: web **1548** · `tsc` limpio · `audit` **0 hard**.
+- **La migración YA ESTÁ EN `main`** (`20260909160000_maps_brush.sql`) y **aplicada en local**. ⚠ **NO está
+  en producción**: va antes que el código cuando se despliegue.
+- Spec: `specs/modules/maps/SPEC.md` § «Rebanada 9», **aprobado por él**. Diseño aprobado y commiteado.
+
+### ✅ TANDA 1 — HECHA
+- `maps_scenes` guarda el pincel (punta, tamaño, fuerza, borde, cuánto de roto). `maps_rooms` guarda la
+  máscara de su suelo. Entidad + adaptador + tests.
+- `roughRadii` en `layerRules.ts`: la forma del borde roto. **El azar entra por parámetro**, no por
+  `Math.random` dentro — es lo único que la hace probable.
+- Diseño en el `.pen`: **«PL/Pincel · barra»**, final de la sección 5.
+
+### ⏭️ TANDA 2 — LA PANTALLA, LO QUE FALTA
+1. **La barra**, 1:1 con el `.pen`. Hoy existe `MaskBrushBar.tsx` y se queda corta: le faltan la punta, el
+   cuánto de roto y el «sobre qué».
+2. **Estampar el borde roto** en `useMaskPainter.ts` — hoy estampa un degradado radial (`maskStops`).
+3. **Pintar el suelo de UNA sala**, que hoy **no existe**: guardar en `floorMaskUrl` y recortar contra el
+   contorno. El recorte sale gratis de que la máscara sea de la sala.
+4. **Transparencia en la niebla** — hoy tapa o destapa a saco, y va con cuatro discos.
+5. **Guardar y leer el pincel de la escena** (`ScenePatch` ya lo admite).
+6. Claves i18n en **es y en**.
+
+### 🔑 LAS DECISIONES SUYAS QUE NO SE PUEDEN PERDER
+- **«El trazo es de la escena»** — el pincel se guarda por escena, NO por usuario. Contra la recomendación
+  contraria; él decidió.
+- **«Distinto cada vez»** — el borde roto se sortea en cada brochazo. **Y no hay que guardar nada**: lo que
+  se persiste es el RESULTADO (PNG de máscara, casillas de niebla), así que la forma queda cocida dentro.
+  ⚠ El spec llegó a decir que hacía falta una semilla por trazo. **Es falso y está corregido.**
+- **«Si voy a pintar una sala no tiene que manchar una pared»** — no se arregla eligiendo capa: el brochazo
+  se **recorta contra el contorno de la sala**.
+- **`rough` NO es «dureza 0»**: la dureza difumina en círculo, roto cambia el contorno. Dos mandos.
+- En la **niebla** el borde roto se verá **a resolución de casilla**. Es inevitable y está avisado en la barra.
+
+## 📥 2026-09-09 — TRES PETICIONES SUYAS SIN EMPEZAR (no estaban escritas en ningún sitio)
+
+Las pidió el 2026-09-09 y **no se ha tocado ninguna**. Van por orden de lo que cuesta:
+
+### 1 · Los tres puntitos de la escena, y el menú que se tapa
+Suyo, con dos capturas: *«quiero que los 3 puntitos para modificar las escenas se vean y que el modal quede
+por encima, que no se tape»*. **Comprobado en el código, son DOS fallos:**
+- **No hay ningún botón de tres puntos.** El menú se abre pinchando OTRA VEZ en la escena ya seleccionada
+  (`ScenesMenu.tsx:51`). No hay forma de adivinarlo.
+- **El menú se recorta**: vive dentro de `.mp-rail-list`, que tiene `overflow:auto` y 176 px de ancho
+  (`maps.css:188`). En su captura se ve «Activar para los jugador…» cortado.
+  → Ya hay precedente en el repo para escapar del recorte: `tooltip-escapa-el-recorte.test.tsx`.
+
+### 2 · Ordenar las escenas arrastrando
+*«Quiero poder ordenar las escenas con drag»*. **No toca la base**: `Scene.sortOrder` ya existe y
+`updateScene` ya lo admite. Es sólo el gesto.
+
+### 3 · Soltar fotos en la escena, que se vean sólo dentro del mapa
+*«quiero que en las escenas pueda arrojar fotos que mientras estén en el área que ven los jugadores donde
+está el mapa se vean, pero si la sacas fuera no se vean»*. Necesita spec.
+⚠ **NO borrar el marco `PL/Fondo · a qué capa` del `.pen`**: parecía basura del cajón de componentes pero es
+justo esto — decide en qué capa cae una foto soltada.
+
+### 4 · La galería de piezas, a pantalla completa
+Contestó las dos preguntas que faltaban: **paquetes propios SÍ**, y **por permisos** como las texturas (uno
+solo que puede con todo). El diseño ya está arreglado en el `.pen` (colores y tres puntos por pieza); falta
+**construirla entera** — rebanada 6, que sigue sin una sola línea de interfaz.
 
 ## 🐞 2026-09-09 — LAS PUERTAS DEJAN PASAR LUZ Y FICHAS · SIN ARREGLAR, ANOTADO
 
@@ -62,7 +131,7 @@ cara, y explicaría que en producción sea peor: allí sus mapas llevan más abe
 
 ⚠ **No se ha tocado nada.** Es diagnóstico, no arreglo.
 
-## 🖌️ 2026-09-09 — EL PINCEL · SPEC APROBADO (rebanada 9), sin construir
+## 🖌️ 2026-09-09 — EL PINCEL · EL SPEC Y DE DÓNDE SE PARTÍA (detalle; el estado vivo está arriba)
 
 Sus palabras: «*al pincel le tienes que poner transparencia, y tiene que poder pintar si quiero con bordes
 irregulares*» · «*para los dos, tengo que poder elegir el trazo*» · «*tengo que poder elegir en qué capa pinto
