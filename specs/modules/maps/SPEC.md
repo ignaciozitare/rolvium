@@ -1837,14 +1837,22 @@ El de niebla va con **cuatro discos**, no continuo.
 - **Tamaño**: continuo, en casillas, para los tres. La niebla deja sus cuatro discos.
 - **Sobre qué actúa**, elegido por él: una **capa de terreno** · la **niebla** · el **suelo de una sala**.
 
-### 9.2 · 🔑 CADA BROCHAZO SALE DISTINTO, Y ESO OBLIGA A GUARDARLO
+### 9.2 · CADA BROCHAZO SALE DISTINTO — y no hay que guardar nada para eso
 
 Decisión suya, preguntada y contestada: *«distinto cada vez»*. No es un sello que se repite.
 
-> ⚠ **Un borde aleatorio que no se guarda cambia solo.** Si la forma se sortea al pintar y no se anota, al
-> cerrar el mapa y volver los bordes salen con OTRA forma: el director pinta una mancha y encuentra otra. Se
-> guarda **la semilla del azar por brochazo**, no el contorno: un número por trazo lo reconstruye idéntico y
-> no engorda la escena. Guardar el contorno entero sí la engordaría.
+> ⚠ **CORRECCIÓN (2026-09-09, al hacer el modelo de datos).** Aquí se escribió que haría falta guardar «la
+> semilla del azar por brochazo» o los bordes cambiarían solos al recargar. **Es falso, y hay que decirlo
+> porque llegó a contarse así.** Lo que se guarda **no son los trazos, es el RESULTADO**:
+> - el pincel de transparencia sube un **PNG** (`maps_layers.mask_url`, `useMaskPainter`);
+> - la niebla guarda **casillas** (`maps_fog.explored`).
+>
+> El borde irregular queda **cocido dentro** de lo que se guarda. No hay nada que reconstruir, ni semillas,
+> ni tabla de brochazos: el azar se sortea al pintar y muere ahí. Sale más barato de lo que se dijo.
+
+⚠ **Consecuencia real, ésta sí**: en la NIEBLA el borde roto se ve **a resolución de casilla**, porque la
+niebla se guarda por casillas. Será dentado a lo bruto, no finamente desgarrado. En una capa de terreno y en
+el suelo de una sala, que van por PNG, se ve fino.
 
 ### 9.3 · El brochazo se recorta en el borde de la sala
 
@@ -1869,7 +1877,36 @@ pincel viven detrás de `dmSight`, igual que hoy.
 - Pintar **sobre las fichas**.
 
 ## Modelo de datos (rebanada 9)
-> Pending — DBA Agent will complete this section.
+
+Migración `20260909160000_maps_brush.sql`. **Ninguna tabla nueva, y ninguna política de RLS nueva**: las dos
+tablas que se tocan ya la tienen activa y sus políticas cubren la fila entera, luego cubren estas columnas.
+Repetir la regla en dos sitios sólo sirve para que un día discrepen.
+
+**La escena recuerda el pincel.** `maps_scenes` gana cinco datos: **la punta** (canto limpio, difuminado o
+borde roto), **el tamaño** en casillas, **cuánto tapa o destapa** cada pasada, **el borde** (de difuminado a
+filo) y **cuánto de roto**. Van en la escena y no en el director porque él lo decidió así — *«el trazo es de
+la escena»*: un mapa tiene un estilo y el pincel es parte de él. Los valores por defecto son exactamente los
+que la app ya usaba, así que **una escena vieja se abre igual que antes**. La base pone los mismos topes que
+las barras de la pantalla, porque sin ellos una llamada a mano puede dejar una escena con un pincel de
+novecientas casillas y colgar el navegador al abrirla. Lo de «cuánto de roto» va **aparte del borde** a
+propósito: un borde puede ser duro y roto, o suave y roto.
+
+**Una sala guarda dónde se ha pintado su suelo.** `maps_rooms` gana la **máscara del suelo** — un PNG, igual
+que el de las capas de terreno y por el mismo motivo: la textura original **no se toca nunca**, se pinta
+encima, y siempre se puede volver atrás. Vacío significa sala sin pintar, que es como están todas las que ya
+existen.
+
+> 🔑 **Y ahí es donde se cumple «no me manches la pared»**: la máscara pertenece **a la sala**, así que un
+> brochazo no puede salirse de ella aunque el director pase el pincel por encima del muro. El recorte sale del
+> sitio donde se guarda, no de una comprobación que alguien pueda olvidarse de escribir.
+
+**Lo que NO se guarda, y es la mitad del ahorro**: no hay tabla de brochazos ni semillas del azar. Lo que se
+persiste es el **resultado** —un PNG para el terreno y para el suelo de sala, casillas para la niebla—, así que
+el borde irregular queda cocido dentro y no hay nada que reconstruir al recargar.
+
+**Quién lee y quién escribe**: exactamente los de antes. La escena y las salas las escribe el **director** de
+la campaña; los jugadores leen lo que su RLS ya les dejaba. El pincel no añade ningún permiso nuevo al motor de
+roles: es una herramienta de director, como los otros pinceles.
 
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
