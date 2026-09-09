@@ -19,7 +19,78 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 rediseñar) → `chat` (H8) + `journal` (H9). ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno,
 configurable por sistema (toca el puerto `GameSystem`) — spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque ✅ «EL TRABÓN DE LA ESQUINA, EN PRODUCCIÓN», justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en los dos bloques de arriba: 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» y 🖌️ «EL PINCEL».**
+
+## 🐞 2026-09-09 — LAS PUERTAS DEJAN PASAR LUZ Y FICHAS · SIN ARREGLAR, ANOTADO
+
+**Suyo, probando con la SONDA en modo director:** «*las puertas son 100% opacas y hoy el token ilumina detrás
+de ellas; en producción puedes traspasar la puerta con el token*». Dice que en producción es peor que en local.
+
+### LOS DOS SÍNTOMAS SON, CASI SEGURO, LA MISMA CAUSA
+Un tramo de contorno de sala que se queda **sin segmento**: sin segmento no corta la vista (la luz pasa) y no
+frena a nadie (la ficha pasa). `roomSightSegments` y `roomMoveSegments` leen la MISMA lista.
+
+### LO QUE YA SE COMPROBÓ QUE **NO** ES (no volver a mirarlo)
+- `blocksSightNow` / `blocksMoveNow` (`mapRules.ts:256-258`): correctos, `w.blocks* && !w.isOpen`.
+- `roomSightSegments` / `roomMoveSegments` (`rooms.ts:355-364`): correctos, filtran `!w.isOpen`, y la ventana
+  corta el paso pero no la vista.
+- El adaptador: `is_open` es `NOT NULL DEFAULT false` en las dos tablas y se mapea bien
+  (`SupabaseMapsRepo.ts:101`, `:610`, `:618`). Una puerta nace CERRADA.
+- El servidor no es: **al director no le contesta correcciones** (`sceneVision.ts`, `if (role === 'dm')`), así
+  que lo que él siente con la sonda es física del NAVEGADOR (`probeBlockers`, `MapCanvas:1189`).
+
+### 🔎 LA SOSPECHA, CON EL SITIO EXACTO — **SIN REPRODUCIR TODAVÍA**
+`roomWalls` (`packages/core/src/rooms.ts`, el bucle de `spans`):
+
+```
+if (s.t0 < cursor) { cursor = Math.max(cursor, s.t1); continue; }  // vanos pisados: manda el primero
+```
+
+Cuando **dos vanos se solapan**, el segundo se descarta y `cursor` salta a `s.t1` **sin emitir ninguna pieza**
+para el tramo `[cursor viejo, s.t1]`. Ese tramo se queda sin `wall` y sin `door`: **un agujero permanente**,
+ni roca ni puerta. Encaja con los dos síntomas a la vez.
+
+Se dispara al **dibujar una puerta encima de otra abertura** — que es justo el **FALLO B** ya anotado y sin
+arreglar («un muro dibujado ENCIMA de una puerta se apila y la deja ciega»). Puede ser el mismo fallo por otra
+cara, y explicaría que en producción sea peor: allí sus mapas llevan más aberturas encima de aberturas.
+
+### ⏭️ CÓMO EMPEZAR (en este orden)
+1. **Test primero**, en `packages/core`: dos vanos solapados sobre un lado de sala → comprobar que la suma de
+   longitudes de las piezas devueltas es igual a la del lado. Si falta longitud, está confirmado.
+2. Mirar sus datos de producción: `maps_room_openings` de la escena donde lo ve, buscando solapes.
+3. Decidir con él el **FALLO B** de una vez (partir, rechazar, o dejar), porque los dos salen del mismo sitio.
+
+⚠ **No se ha tocado nada.** Es diagnóstico, no arreglo.
+
+## 🖌️ 2026-09-09 — EL PINCEL, LO QUE ÉL PIDIÓ (sin empezar)
+
+Sus palabras: «*al pincel le tienes que poner transparencia, y tiene que poder pintar si quiero con bordes
+irregulares*» · «*para los dos, tengo que poder elegir el trazo*» · «*tengo que poder elegir en qué capa pinto
+o tapo, si voy a pintar una sala no tiene que manchar una pared*» · «*distinto cada vez, y tengo que tener una
+barra donde pueda elegir qué tan irregular es, y que quede guardado el último trazo*».
+
+### LO QUE HAY HOY (comprobado en el código, no de memoria)
+| | transparencia | dureza | borde irregular | elegir capa |
+|---|---|---|---|---|
+| **Pincel de transparencia** (`MaskBrushBar`) | ✅ `strength` | ✅ `hardness` | ❌ | ❌ **atado a la capa de fondo**: `maskLayerId={bgLayer?.id ?? null}` (`SceneTab.tsx:713`) |
+| **Pincel de niebla** (revelar/ocultar) | ❌ | ❌ | ❌ | ❌ (la niebla no es una capa) |
+
+El de niebla va con **cuatro discos** (`brush`/`DEFAULT_BRUSH`), no continuo.
+
+### LO QUE PIDE, TRADUCIDO
+1. **Elegir el trazo**, para los DOS pinceles: disco limpio · difuminado · **borde roto**.
+2. **Transparencia también en la niebla**.
+3. **Borde irregular DISTINTO EN CADA BROCHAZO** (decisión suya: «distinto cada vez»), con una **barra de
+   cuánto de irregular**.
+4. **Que se guarde el último trazo** — al volver, el pincel está como lo dejó.
+5. **Elegir la capa** sobre la que se pinta o se tapa. Esto es lo que arregla «no me manches la pared».
+
+### ⚠ LO QUE HAY QUE PENSAR ANTES DE CONSTRUIR
+- **Aleatorio distinto cada vez ⇒ hay que GUARDAR la forma**, o al recargar el mapa el trazo sale otro. O se
+  guarda la semilla del azar por brochazo (barato) o el contorno entero (caro). **La semilla.**
+- **«Que quede guardado el último trazo»**: ¿por escena, por director, o por herramienta? No preguntado aún.
+- El de transparencia guarda máscara por capa; el de niebla guarda casillas. **No comparten almacén**, así que
+  «el mismo trazo para los dos» es la barra, no el guardado.
 
 ## ✅ 2026-09-09 — EL TRABÓN DE LA ESQUINA, EN PRODUCCIÓN Y VERIFICADO EN VIVO
 
