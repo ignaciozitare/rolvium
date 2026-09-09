@@ -15,8 +15,9 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo de texturas**.
 
 **SIGUIENTE:** que él MIRE en pantalla el arreglo y el catálogo → coger/mover/borrar una sala con el ratón
-(pide `.pen`) → el pincel para repintar el suelo de UNA sala → rebanada 5 (galería de props) → `chat` (H8) +
-`journal` (H9).
+(pide `.pen`) → el pincel para repintar el suelo de UNA sala → **rebanada 6** (galería de piezas, a
+rediseñar) → `chat` (H8) + `journal` (H9). ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno,
+configurable por sistema (toca el puerto `GameSystem`) — spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque ✅ «EL TRABÓN DE LA ESQUINA, EN PRODUCCIÓN», justo debajo.**
 
@@ -58,7 +59,12 @@ habrían corrido en un merge futuro. `test:regression` de la raíz ahora encaden
 
 ### 📌 SIGUIENTE (mapa largo)
 Coger/mover/borrar una sala con el ratón (pide `.pen`) → el pincel para repintar el suelo de UNA sala →
-rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9).
+**rebanada 6** (galería de piezas — RECHAZADA y a rediseñar al estilo Inkarnate) → `chat` (H8) +
+`journal` (H9).
+
+⚠ **Corregido el 2026-09-09**: los dos punteros de arriba decían «rebanada 5 (galería de props)» y es falso.
+Según `specs/modules/maps/SPEC.md`, la **5** es *movimiento máximo por turno* (configurable por sistema, toca
+el puerto `GameSystem`) y sigue **pendiente y sin empezar**; la galería de piezas es la **6**.
 
 ## 🟡 2026-09-08 (tarde) — CÓMO SE ENCONTRÓ Y SE ARREGLÓ (el detalle técnico)
 
@@ -2244,7 +2250,9 @@ se ignora a propósito: era la fuente del empate. Incluye el arreglo de los empa
 **Aplicada y probada SÓLO EN LOCAL** (`docker exec supabase_db_rolvium psql`), sin `db:reset`. Verificado:
 tres altas pidiendo todas el `0` recibieron `1, 2, 3`; cero empates en la tabla; y un intercambio con dos
 filas compartiendo número momentáneamente **se acepta**, o sea que el reordenar sigue vivo.
-🔴 **SIN DESPLEGAR A LA NUBE** — eso es acción de producción y no se hizo.
+~~🔴 SIN DESPLEGAR A LA NUBE~~ → ✅ **YA ESTÁ EN PRODUCCIÓN**, verificado el 2026-09-09 con `list_migrations`
+sobre `scfspsiemikfcnqteonq`: `20260831221707 maps_layers_sort_order_en_la_base`. Subió con la tanda del
+constructor de salas. **Este apartado ya no es deuda.**
 
 ### ✅ MIRADO EN LA APP DE VERDAD (Playwright sobre la web local)
 El aviso al arrastrar, comprobado en pantalla con dos capas de terreno: **antes de arrastrar no hay nada ·
