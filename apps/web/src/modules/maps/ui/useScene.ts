@@ -571,6 +571,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     const input: NewRoom = {
       sceneId, campaignId: live.campaignId, kind, shape, points,
       floorPreset: live.roomPreset,
+      // Una sala nace sin pintar encima: su suelo se ve entero (rebanada 9).
+      floorMaskUrl: null,
       /**
        * 🐞 `null` = «esta sala NO tiene suelo propio», y entonces manda la textura del mapa (`floorUrlOf`).
        *
@@ -607,7 +609,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       label: 'maps.history.roomDelete',
       redo: async () => { setRooms(l => l.filter(x => x.id !== vivo.id)); await repo.removeRoom(vivo.id); announceVision(); },
       undo: async () => {
-        vivo = await repo.addRoom({ sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, shape: antes.shape, points: antes.points, floorPreset: antes.floorPreset, floorUrl: antes.floorUrl });
+        vivo = await repo.addRoom({ sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, shape: antes.shape, points: antes.points, floorPreset: antes.floorPreset, floorUrl: antes.floorUrl, floorMaskUrl: antes.floorMaskUrl });
         setRooms(l => [...l, vivo]);
         announceVision();
       },

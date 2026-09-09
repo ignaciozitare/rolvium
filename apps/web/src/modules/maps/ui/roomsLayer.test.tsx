@@ -19,6 +19,7 @@ const SCENE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Cripta', width: 600, height: 400, bgColor: '#111111', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 30, visible: true }, fogMode: 'vision',
   lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null, doorTextureUrl: null, tokenScale: 1,
+  brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5,
   roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
   createdAt: '', updatedAt: '',
 };
@@ -26,7 +27,7 @@ const SCENE: Scene = {
 const room = (id: string, x1: number, y1: number, x2: number, y2: number, over: Partial<Room> = {}): Room => ({
   id, sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect',
   points: [[x1, y1], [x2, y1], [x2, y2], [x1, y2]],
-  floorPreset: 'hatch', floorUrl: null, createdAt: '2026-09-04T10:00:00Z', updatedAt: '', ...over,
+  floorPreset: 'hatch', floorUrl: null, floorMaskUrl: null, createdAt: '2026-09-04T10:00:00Z', updatedAt: '', ...over,
 });
 
 const mount = (rooms: Room[], openings: RoomOpening[] = [], scene: Scene = SCENE) =>

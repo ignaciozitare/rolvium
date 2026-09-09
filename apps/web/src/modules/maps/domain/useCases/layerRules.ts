@@ -1,5 +1,5 @@
 import { sightRadiusPx } from '@rolvium/core';
-import type { GridSettings, Layer, LayerKind, Light, LightKind, LightShape, NewLight } from '../entities/Scene';
+import { BRUSH_TIPS, type BrushTip, type GridSettings, type Layer, type LayerKind, type Light, type LightKind, type LightShape, type NewLight } from '../entities/Scene';
 
 /**
  * Reglas de las capas de contenido y de las luces de ambiente (rebanada 7).
@@ -180,6 +180,64 @@ export const clampMaskSize = (v: number): number =>
 export const DEFAULT_MASK_HARDNESS = 0.4;
 export const clampHardness = (v: number): number => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
 export const hardnessLabel = (v: number): string => `${Math.round(clampHardness(v) * 100)} %`;
+
+// ── EL PINCEL (rebanada 9) ───────────────────────────────────────────────────
+/**
+ * LA PUNTA DEL PINCEL. Tres, elegidas por el dueño el 2026-09-09: `disc` corta a canto limpio, `soft` se
+ * difumina, `rough` sale con el borde roto.
+ *
+ * ⚠️ **`rough` NO es «dureza 0»**: la dureza difumina el borde hacia fuera, siempre en círculo. Roto es otra
+ * cosa — el contorno deja de ser un círculo. Por eso son dos mandos y no uno, y por eso un brochazo puede ser
+ * de canto duro y roto a la vez.
+ */
+/** El mismo que pone la base (`maps_scenes.brush_tip`): una escena vieja se abre como se abría. */
+export const DEFAULT_BRUSH_TIP: BrushTip = 'soft';
+export const isBrushTip = (v: unknown): v is BrushTip => BRUSH_TIPS.includes(v as BrushTip);
+
+/** CUÁNTO DE ROTO, de 0 a 1. Sólo pinta con la punta `rough`. */
+export const DEFAULT_BRUSH_ROUGHNESS = 0.5;
+export const clampRoughness = (v: number): number => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
+/** Lo que se lee junto a la barra. En palabras, que «0,62» no le dice nada a nadie. */
+export const roughnessLabel = (v: number): string => {
+  const r = clampRoughness(v);
+  if (r < 0.2) return 'apenas';
+  if (r < 0.45) return 'poco';
+  if (r < 0.7) return 'bastante';
+  return 'mucho';
+};
+
+/** Cuántos vértices tiene el contorno de un brochazo roto. Bastantes para que no se lea como un polígono. */
+export const ROUGH_POINTS = 28;
+
+/**
+ * EL CONTORNO DE UN BROCHAZO ROTO: un multiplicador del radio por vértice, dando la vuelta al círculo.
+ *
+ * 🔑 **Cada brochazo sale distinto** (orden suya: «*distinto cada vez*»), y por eso el azar entra por
+ * `rnd` en vez de llamar aquí a `Math.random`: así la función es PURA y se puede probar. En la app se le
+ * pasa `Math.random`; en un test, un azar sembrado.
+ *
+ * 🔑 **Y no hace falta guardar nada.** Lo que se persiste es el RESULTADO —el PNG de la máscara, o las
+ * casillas de la niebla—, así que la forma queda cocida dentro y el azar muere aquí. El spec llegó a decir
+ * que haría falta guardar una semilla por trazo; no es cierto, y está corregido allí.
+ *
+ * El contorno **nunca crece hacia fuera**, sólo muerde hacia dentro: si creciera, el brochazo se saldría del
+ * radio que el director ve en el cursor y pintaría donde no apunta. Muerde como mucho la mitad del radio,
+ * porque más deja el trazo tan comido que ya no se lee como una pincelada.
+ */
+export const ROUGH_MAX_BITE = 0.5;
+export function roughRadii(roughness: number, rnd: () => number, points = ROUGH_POINTS): number[] {
+  const r = clampRoughness(roughness);
+  if (r === 0) return Array.from({ length: points }, () => 1);
+  const bite = r * ROUGH_MAX_BITE;
+  const raw = Array.from({ length: points }, () => 1 - rnd() * bite);
+  /*
+   * Se suaviza con sus dos vecinos y CIRCULARMENTE, que es lo que hace que el borde parezca desgarrado y no
+   * un serrucho de ruido: sin esto cada vértice salta contra el siguiente. Circular porque el último vértice
+   * es vecino del primero — si no, se ve la costura por donde se cerró el contorno.
+   */
+  const at = (i: number): number => raw[((i % points) + points) % points]!;
+  return raw.map((_, i) => (at(i - 1) + at(i) * 2 + at(i + 1)) / 4);
+}
 
 /** Una parada del degradado radial del pincel: a qué distancia del centro (0 = centro, 1 = borde) y con qué opacidad. */
 export interface MaskStop { at: number; alpha: number }

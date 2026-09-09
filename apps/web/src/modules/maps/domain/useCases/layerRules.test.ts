@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import { BRUSH_TIPS } from '../entities/Scene';
 import {
   LAYERS_ALL, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES,
   LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, SCENE_WAREHOUSE,
 } from '../../../../../tests/helpers/fakes';
 import {
+  clampRoughness, DEFAULT_BRUSH_TIP, isBrushTip, roughnessLabel, roughRadii, ROUGH_MAX_BITE, ROUGH_POINTS,
   canEditIn, clampRangeM, clampStrength, conePath, DEFAULT_MASK_STRENGTH, LIGHT_COLORS, MAX_RANGE_M, MIN_RANGE_M, FIXED_LAYER_KINDS, FLICKER, flickerOf, isFixedKind, isPainted,
   layerOfKind, layerSendsToPlayers, LIGHT_KINDS, LIGHT_PRESETS, LIGHT_SHAPES, lightRadiusPx, maskPath, maskSize, MASK_MAX_SIDE,
   maskSrc, newLightOf, nextTerrainSortOrder, paintedLights, paintOrder, panelOrder, rangeLabelM, reorderTerrain,
@@ -565,5 +567,91 @@ describe('el haz de una luz que gira', () => {
     // 30 % de 200° serían 60° de difuminado, que ya no parece un haz: se topa en 12.
     const anchisimo = beamCones({ ...l, coneAngle: 200 }, 50);
     expect(anchisimo).toHaveLength(BEAM_LAYERS);
+  });
+});
+
+/**
+ * EL PINCEL (rebanada 9). Lo que se prueba aquí es la parte que decide la FORMA del brochazo roto, que es lo
+ * único del pincel con lógica de verdad: lo demás son barras y un guardado.
+ *
+ * El azar entra por parámetro justo para esto — con `Math.random` dentro no habría forma de probar nada.
+ */
+describe('el pincel · borde roto (rebanada 9)', () => {
+  /** Un azar sembrado, para que cada caso sea el mismo cada vez que corre. */
+  const azar = (semilla: number) => { let s = semilla; return () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; }; };
+
+  it('sin nada de roto el contorno es un círculo exacto: todos los radios valen 1', () => {
+    expect(roughRadii(0, azar(1))).toEqual(Array.from({ length: ROUGH_POINTS }, () => 1));
+  });
+
+  it('devuelve un radio por vértice, sea cual sea el cuánto de roto', () => {
+    for (const r of [0, 0.3, 1]) expect(roughRadii(r, azar(7))).toHaveLength(ROUGH_POINTS);
+    expect(roughRadii(0.5, azar(7), 8)).toHaveLength(8);
+  });
+
+  /**
+   * 🔑 EL CONTORNO NUNCA CRECE HACIA FUERA. Si un vértice pasara de 1, el brochazo pintaría MÁS ancho que el
+   * círculo que el director ve en el cursor: pintaría donde no apunta, y en una sala se saldría del suelo.
+   */
+  it('nunca se sale del radio, y muerde como mucho la mitad', () => {
+    for (const semilla of [1, 42, 999, 31337]) {
+      for (const radios of [roughRadii(1, azar(semilla)), roughRadii(0.5, azar(semilla))]) {
+        for (const v of radios) {
+          expect(v).toBeLessThanOrEqual(1);
+          expect(v).toBeGreaterThanOrEqual(1 - ROUGH_MAX_BITE);
+        }
+      }
+    }
+  });
+
+  it('a más roto, más muerde: el radio medio baja', () => {
+    const medio = (r: number): number => { const v = roughRadii(r, azar(5)); return v.reduce((a, b) => a + b, 0) / v.length; };
+    expect(medio(1)).toBeLessThan(medio(0.5));
+    expect(medio(0.5)).toBeLessThan(medio(0.1));
+  });
+
+  /**
+   * Suavizado CIRCULAR: el último vértice es vecino del primero. Sin eso se ve la costura por donde se cerró
+   * el contorno — un pico que no está en ningún otro sitio del borde.
+   */
+  it('no deja costura donde el contorno se cierra', () => {
+    const v = roughRadii(1, azar(3));
+    const saltos = v.map((x, i) => Math.abs(x - v[(i + 1) % v.length]!));
+    const cierre = saltos[saltos.length - 1]!;
+    expect(cierre).toBeLessThanOrEqual(Math.max(...saltos));
+  });
+
+  it('cada brochazo sale distinto: dos tiradas del mismo cuánto de roto no coinciden', () => {
+    expect(roughRadii(0.6, azar(1))).not.toEqual(roughRadii(0.6, azar(2)));
+  });
+
+  it('el mismo azar da el mismo contorno, que es lo que deja probarlo', () => {
+    expect(roughRadii(0.6, azar(9))).toEqual(roughRadii(0.6, azar(9)));
+  });
+});
+
+describe('el pincel · puntas y cuánto de roto', () => {
+  it('las tres puntas, y sólo esas tres', () => {
+    expect(BRUSH_TIPS).toEqual(['disc', 'soft', 'rough']);
+    expect(isBrushTip('rough')).toBe(true);
+    for (const malo of ['duro', '', null, undefined, 3]) expect(isBrushTip(malo)).toBe(false);
+  });
+
+  it('la punta de serie es la misma que pone la base, para que una escena vieja se abra igual', () => {
+    expect(DEFAULT_BRUSH_TIP).toBe('soft');
+  });
+
+  it('el cuánto de roto se recorta entre 0 y 1, y una basura cae en 0', () => {
+    expect(clampRoughness(-3)).toBe(0);
+    expect(clampRoughness(9)).toBe(1);
+    expect(clampRoughness(0.42)).toBeCloseTo(0.42, 5);
+    expect(clampRoughness(Number.NaN)).toBe(0);
+  });
+
+  it('se lee en palabras, no en decimales', () => {
+    expect(roughnessLabel(0.05)).toBe('apenas');
+    expect(roughnessLabel(0.3)).toBe('poco');
+    expect(roughnessLabel(0.6)).toBe('bastante');
+    expect(roughnessLabel(0.9)).toBe('mucho');
   });
 });

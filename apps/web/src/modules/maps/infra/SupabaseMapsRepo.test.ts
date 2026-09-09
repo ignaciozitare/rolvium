@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { Wall } from '../domain/entities/Scene';
 import { createSupabaseMock } from '../../../../tests/helpers/supabaseMock';
-import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapLayerRow, mapPropRow, mapSceneRow, mapScenePropRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
+import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapLayerRow, mapPropRow, mapRoomRow, mapSceneRow, mapScenePropRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
 
 const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, lighting: 'day' as const, night_radius_m: 10, solid_walls: false, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
 const TOKEN_ROW = { id: 'tk-1', scene_id: 'sc-1', campaign_id: 'c1', character_id: 'ch-karen', bestiary_ref: null, bestiary_entry_id: null, name: 'Karen', image_url: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlled_by: 'u-pip', vision_radius: null, state: {}, layer_id: null };
@@ -515,14 +515,14 @@ describe('SupabaseMapsRepo — las salas', () => {
     expect(m.fromSpy).toHaveBeenCalledWith('maps_rooms');
     expect(q(m)['eq']).toHaveBeenCalledWith('scene_id', 'sc-1');
     expect(q(m)['order']).toHaveBeenCalledWith('created_at', { ascending: true });
-    expect(rooms[0]).toMatchObject({ id: 'rm-1', shape: 'rect', floorPreset: 'cavern', floorUrl: null });
+    expect(rooms[0]).toMatchObject({ id: 'rm-1', shape: 'rect', floorPreset: 'cavern', floorUrl: null, floorMaskUrl: null });
     expect(rooms[0]!.points).toEqual([[0, 0], [10, 0], [10, 10], [0, 10]]);
   });
 
   it('guarda la forma con su suelo heredado, y NO escribe ningún muro', async () => {
     const m = createSupabaseMock({ tables: { maps_rooms: { data: ROOM_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect', points: [[0, 0], [10, 0], [10, 10], [0, 10]], floorPreset: 'cavern', floorUrl: null });
+    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect', points: [[0, 0], [10, 0], [10, 10], [0, 10]], floorPreset: 'cavern', floorUrl: null, floorMaskUrl: null });
     expect(q(m)['insert']).toHaveBeenCalledWith(expect.objectContaining({ scene_id: 'sc-1', kind: 'room', shape: 'rect', floor_preset: 'cavern' }));
     expect(m.fromSpy).not.toHaveBeenCalledWith('maps_walls');
   });
@@ -691,5 +691,48 @@ describe('SupabaseMapsRepo — cómo es cada puerta', () => {
     const e = createSupabaseMock({ tables: { maps_scenes: { data: null, error: null } } });
     await new SupabaseMapsRepo(e.client as unknown as SupabaseClient).updateScene('sc-1', { doorTextureUrl: null });
     expect(q(e)['update']).toHaveBeenCalledWith(expect.objectContaining({ door_texture_url: null }));
+  });
+});
+
+/**
+ * EL PINCEL DE LA ESCENA (rebanada 9). Lo que hay que sujetar aquí no es que las columnas se copien —eso lo
+ * ve cualquiera— sino LO CONTRARIO: que una escena y una sala escritas ANTES de la migración se abran
+ * exactamente como se abrían. Es lo único que puede romperle un mapa que ya tiene.
+ */
+describe('el pincel de la escena y la máscara de la sala (rebanada 9)', () => {
+  const ROOM_ROW = { id: 'rm-1', scene_id: 'sc-1', campaign_id: 'c1', kind: 'room' as const, shape: 'rect' as const, points: [[0, 0], [10, 0], [10, 10], [0, 10]] as [number, number][], floor_preset: 'hatch' as const, floor_url: null, created_at: 't', updated_at: 't' };
+
+  it('una escena SIN las columnas cae en lo que la app ya usaba, no en ceros', () => {
+    expect(mapSceneRow(SCENE_ROW)).toMatchObject({ brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5 });
+  });
+
+  it('una sala SIN la columna se abre sin pintar encima: su suelo se ve entero', () => {
+    expect(mapRoomRow(ROOM_ROW).floorMaskUrl).toBeNull();
+  });
+
+  it('cuando vienen, se leen', () => {
+    expect(mapSceneRow({ ...SCENE_ROW, brush_tip: 'rough', brush_size: 3, brush_strength: 0.2, brush_hardness: 1, brush_roughness: 0.9 }))
+      .toMatchObject({ brushTip: 'rough', brushSize: 3, brushStrength: 0.2, brushHardness: 1, brushRoughness: 0.9 });
+    expect(mapRoomRow({ ...ROOM_ROW, floor_mask_url: 'https://x/rooms/rm-1.png' }).floorMaskUrl).toBe('https://x/rooms/rm-1.png');
+  });
+
+  /**
+   * Una punta que no existe NO puede llegar al lienzo: quien pinta hace `switch` sobre las tres, y una cuarta
+   * dejaría el brochazo sin dibujar y sin avisar. La base lo prohíbe con un CHECK, pero la fila también puede
+   * llegar por realtime desde una versión más nueva de la app.
+   */
+  it('una punta desconocida cae en la de serie, no rompe el pincel', () => {
+    expect(mapSceneRow({ ...SCENE_ROW, brush_tip: 'plumilla' }).brushTip).toBe('soft');
+  });
+
+  /**
+   * Y los valores se recortan AL LEER además de al escribir: la base tiene un CHECK, pero una fila escrita
+   * por otra vía —o una versión futura con otros topes— no puede dejar un pincel de 900 casillas que cuelgue
+   * el navegador al abrir el mapa.
+   */
+  it('un tamaño imposible se recorta al leer, en vez de colgar el lienzo', () => {
+    expect(mapSceneRow({ ...SCENE_ROW, brush_size: 900 }).brushSize).toBe(6);
+    expect(mapSceneRow({ ...SCENE_ROW, brush_strength: -4 }).brushStrength).toBe(0);
+    expect(mapSceneRow({ ...SCENE_ROW, brush_roughness: 7 }).brushRoughness).toBe(1);
   });
 });

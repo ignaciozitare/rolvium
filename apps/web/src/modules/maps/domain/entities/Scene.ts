@@ -8,6 +8,13 @@ export type BgFit = 'cover' | 'contain' | 'custom';
 export interface BgTransform { mode: BgFit; x: number; y: number; scale: number }
 export interface GridSettings { size: number; visible: boolean }
 
+/**
+ * LA PUNTA DEL PINCEL (rebanada 9). Espejo del CHECK de `maps_scenes.brush_tip`.
+ * `disc` corta a canto limpio · `soft` se difumina · `rough` sale con el borde roto.
+ */
+export type BrushTip = 'disc' | 'soft' | 'rough';
+export const BRUSH_TIPS: BrushTip[] = ['disc', 'soft', 'rough'];
+
 export interface Scene {
   id: string;
   campaignId: string;
@@ -85,11 +92,28 @@ export interface Scene {
    * es el único sitio donde se toca — y por el que pasan el dibujo Y la colisión, para que no se descuadren.
    */
   tokenScale: number;
+  /**
+   * EL PINCEL SE GUARDA EN LA ESCENA (rebanada 9). Decisión suya del 2026-09-09, contra la recomendación
+   * contraria: «*el trazo es de la escena*». Un mapa tiene un estilo y el pincel es parte de él, así que se
+   * abre ese mapa y el pincel está como lo dejó; otro mapa trae el suyo.
+   *
+   * Los valores por defecto son los que la app ya usaba antes de existir estas columnas, así que una escena
+   * de antes se abre exactamente igual.
+   */
+  brushTip: BrushTip;
+  /** En CASILLAS y continuo, para los tres sitios donde se pinta. */
+  brushSize: number;
+  /** Cuánto tapa o destapa cada pasada, 0..1. Ahora también en la niebla, que iba a saco. */
+  brushStrength: number;
+  /** El BORDE: 0 se difumina, 1 corta a filo. Es la dureza de siempre. */
+  brushHardness: number;
+  /** Cuánto de roto, 0..1. **Sólo se aplica con `brushTip === 'rough'`.** */
+  brushRoughness: number;
   createdAt: string;
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor' | 'doorTextureUrl' | 'tokenScale'>>;
+export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor' | 'doorTextureUrl' | 'tokenScale' | 'brushTip' | 'brushSize' | 'brushStrength' | 'brushHardness' | 'brushRoughness'>>;
 
 // ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps) ───────────────────────────
 // Espejo de `supabase/migrations/20260907120000_maps_doors.sql`.
@@ -434,6 +458,16 @@ export interface Room {
    */
   floorPreset: RoomPreset;
   floorUrl: string | null;
+  /**
+   * DÓNDE SE HA PINTADO ENCIMA DE SU SUELO (rebanada 9). Un PNG, igual que la máscara de una capa de terreno
+   * y por el mismo motivo: la textura original **no se toca nunca** y siempre se puede volver atrás.
+   * `null` = sala sin pintar = el suelo se ve entero, que es como están todas las salas de antes.
+   *
+   * 🔑 **Y es lo que hace verdad «no me manches la pared»** (regla suya, 2026-09-09): la máscara pertenece a
+   * LA SALA, así que un brochazo no puede salirse de ella aunque el pincel pase por encima del muro. El
+   * recorte sale del sitio donde se guarda, no de una comprobación que alguien pueda olvidarse de escribir.
+   */
+  floorMaskUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

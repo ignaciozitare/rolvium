@@ -688,7 +688,7 @@ describe('<MapCanvas> fog', () => {
     const SALA = {
       id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
       points: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] as [number, number][],
-      floorPreset: 'hatch' as const, floorUrl: null, createdAt: '', updatedAt: '',
+      floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
     };
     const empujar = (over: Record<string, unknown>) => {
       document.body.innerHTML = '';
@@ -2332,7 +2332,7 @@ describe('<MapCanvas> arrastrar una ficha no repinta las salas', () => {
   const SALA = {
     id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
     points: [[G * 8, G * 8], [G * 14, G * 8], [G * 14, G * 14], [G * 8, G * 14]] as [number, number][],
-    floorPreset: 'hatch' as const, floorUrl: null, createdAt: '', updatedAt: '',
+    floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
   };
 
   it('el cuerpo de la capa de salas NO se ejecuta en cada tirón del dedo', () => {

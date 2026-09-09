@@ -1232,6 +1232,7 @@ export type Database = {
         Row: {
           campaign_id: string
           created_at: string
+          floor_mask_url: string | null
           floor_preset: string
           floor_url: string | null
           id: string
@@ -1244,6 +1245,7 @@ export type Database = {
         Insert: {
           campaign_id: string
           created_at?: string
+          floor_mask_url?: string | null
           floor_preset?: string
           floor_url?: string | null
           id?: string
@@ -1256,6 +1258,7 @@ export type Database = {
         Update: {
           campaign_id?: string
           created_at?: string
+          floor_mask_url?: string | null
           floor_preset?: string
           floor_url?: string | null
           id?: string
@@ -1388,6 +1391,11 @@ export type Database = {
           bg_color: string
           bg_image_url: string | null
           bg_transform: Json
+          brush_hardness: number
+          brush_roughness: number
+          brush_size: number
+          brush_strength: number
+          brush_tip: string
           campaign_id: string
           created_at: string
           created_by: string | null
@@ -1417,6 +1425,11 @@ export type Database = {
           bg_color?: string
           bg_image_url?: string | null
           bg_transform?: Json
+          brush_hardness?: number
+          brush_roughness?: number
+          brush_size?: number
+          brush_strength?: number
+          brush_tip?: string
           campaign_id: string
           created_at?: string
           created_by?: string | null
@@ -1446,6 +1459,11 @@ export type Database = {
           bg_color?: string
           bg_image_url?: string | null
           bg_transform?: Json
+          brush_hardness?: number
+          brush_roughness?: number
+          brush_size?: number
+          brush_strength?: number
+          brush_tip?: string
           campaign_id?: string
           created_at?: string
           created_by?: string | null

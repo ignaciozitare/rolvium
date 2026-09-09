@@ -801,7 +801,7 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
    * LLAMABA NADIE. Esto ata el camino entero: cogerla con Seleccionar → el panel → Suprimir.
    */
   const CUARTO = { id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
-    points: [[0, 0], [300, 0], [300, 300], [0, 300]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null, createdAt: '', updatedAt: '' };
+    points: [[0, 0], [300, 0], [300, 300], [0, 300]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '' };
   const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 300, y1: 100, x2: 300, y2: 160, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
   const conSala = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [CUARTO], roomOpenings: [VANO] });
 

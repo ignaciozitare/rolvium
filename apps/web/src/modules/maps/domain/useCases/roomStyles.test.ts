@@ -13,6 +13,7 @@ const scene = (over: Partial<Scene> = {}): Scene => ({
   id: 'sc-1', campaignId: 'c1', name: 'Cripta', width: 600, height: 400, bgColor: '#111111', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 30, visible: true }, fogMode: 'vision',
   lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null, doorTextureUrl: null, tokenScale: 1,
+  brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5,
   roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
   createdAt: '', updatedAt: '', ...over,
 });
@@ -151,7 +152,7 @@ describe('snapSpanToOutline — la puerta se engancha a la pared', () => {
   /** Una sala cuadrada de (0,0) a (100,100): sus lados son el contorno. */
   const sala = (): Room => ({
     id: 'r1', sceneId: 's', campaignId: 'c', kind: 'room', shape: 'rect',
-    points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null, createdAt: '', updatedAt: '',
+    points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
   });
   const vano = (x1: number, y1: number, x2: number, y2: number): RoomOpeningSpan =>
     ({ x1, y1, x2, y2, kind: 'door', isOpen: false });
