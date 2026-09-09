@@ -18,13 +18,49 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 (pide `.pen`) → el pincel para repintar el suelo de UNA sala → rebanada 5 (galería de props) → `chat` (H8) +
 `journal` (H9).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟡 «EL TRABÓN DE LA ESQUINA», justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque ✅ «EL TRABÓN DE LA ESQUINA, EN PRODUCCIÓN», justo debajo.**
 
-## 🟡 2026-09-08 (tarde) — EL TRABÓN DE LA ESQUINA: ENCONTRADO Y ARREGLADO · FALTA QUE ÉL LO MIRE
+## ✅ 2026-09-09 — EL TRABÓN DE LA ESQUINA, EN PRODUCCIÓN Y VERIFICADO EN VIVO
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🟡 de WORK_STATE.md. El trabón de la esquina está arreglado en rama y sin mergear:
-> falta que yo lo pruebe y contestar si lo que se me pegaba era una ficha o la sonda.»
+> «Rolvium. Lee el bloque ✅ de arriba de WORK_STATE.md. Lo del trabón está cerrado; dime qué toca ahora.»
+
+`main` = **`b4ba9d3`** · **v0.6.0 → v0.6.1**. Nada pendiente de subir. **Sin migraciones.**
+
+### CÓMO SE COMPROBÓ QUE PRODUCCIÓN LLEVA EL ARREGLO (no de palabra)
+- Los dos despliegues de producción en **READY**, los dos apuntando al commit del merge (`b4ba9d3`).
+- **En vivo**: `rolvium-api.vercel.app/health` → `{"ok":true}` · `rolvium.vercel.app` → 200.
+- **Y dentro del paquete servido** (`index-Bwc3Zq8T.js`): el bucle de bisección de **16 pasos** del desempate
+  nuevo está ahí, con el mismo cuerpo minificado que el build local del mismo commit (sólo cambia el nombre
+  de una variable local, cosa del minificador). **El `main` viejo (`1affc86`) no tenía ningún bucle de 16.**
+  Los nombres no valen para comprobar esto —el paquete va minificado— y comparar byte a byte tampoco,
+  porque Vercel compila con otras variables de entorno.
+
+### LA DEUDA QUE LEVANTÓ QA, YA SALDADA
+`packages/core` **no estaba en el comando de pre-merge**: las 9 pruebas que demuestran este arreglo no
+habrían corrido en un merge futuro. `test:regression` de la raíz ahora encadena también
+`npm -w packages/core run test`. Comprobado: 1482 + 249 + **76**.
+
+### LO QUE SIGUE ABIERTO (de antes, nada nuevo)
+- **`setHover` se dispara en CADA `pointermove`** y repinta el lienzo entero. Lentitud real, **pero no la
+  suya**: todo lo que lee `hover` está detrás de `dmSight`. Ayuda a los JUGADORES. Es el cambio más delicado
+  de los de rendimiento.
+- `maps.room.textures.upload` sigue **sin usar** en los dos idiomas.
+- `DoorLeaves` sigue aceptando un `thickness` que no le pasa nadie.
+- `BestiaryTab.test.tsx › enseña las criaturas del manual junto a las propias` **parpadea** bajo carga
+  (`findByRole` con timeout de 1 s).
+- De este arreglo, y a propósito: **`nearestFree` no siempre converge** en 8 pasadas (seguro: un destino
+  ilegal falla el `clear` y degrada al comportamiento viejo), y **la válvula `if (start < radius) return to;`**
+  devuelve `to` sin validar nada — previa e intencionada.
+- **El spec de `maps` no recoge este arreglo.** Por convención los fallos que reporta él se anotan con fecha;
+  no es obligatorio aquí porque el comportamiento ya coincide con lo que el spec prometía
+  (`SPEC.md:236`, «resbala pegada a ella»). Decisión suya.
+
+### 📌 SIGUIENTE (mapa largo)
+Coger/mover/borrar una sala con el ratón (pide `.pen`) → el pincel para repintar el suelo de UNA sala →
+rebanada 5 (galería de props) → `chat` (H8) + `journal` (H9).
+
+## 🟡 2026-09-08 (tarde) — CÓMO SE ENCONTRÓ Y SE ARREGLÓ (el detalle técnico)
 
 Rama **`fix/maps-trabon-esquina`**, subida (`6d1e324` · `f2e8169` · `ce524c8`). Review pasado (bloqueó una
 vez, con razón). **NO mergeado**: falta que él lo pruebe y diga «listo para merge» → QA → Deploy.
