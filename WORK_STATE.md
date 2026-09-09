@@ -62,7 +62,7 @@ cara, y explicaría que en producción sea peor: allí sus mapas llevan más abe
 
 ⚠ **No se ha tocado nada.** Es diagnóstico, no arreglo.
 
-## 🖌️ 2026-09-09 — EL PINCEL, LO QUE ÉL PIDIÓ (sin empezar)
+## 🖌️ 2026-09-09 — EL PINCEL · SPEC APROBADO (rebanada 9), sin construir
 
 Sus palabras: «*al pincel le tienes que poner transparencia, y tiene que poder pintar si quiero con bordes
 irregulares*» · «*para los dos, tengo que poder elegir el trazo*» · «*tengo que poder elegir en qué capa pinto
@@ -72,7 +72,7 @@ barra donde pueda elegir qué tan irregular es, y que quede guardado el último 
 ### LO QUE HAY HOY (comprobado en el código, no de memoria)
 | | transparencia | dureza | borde irregular | elegir capa |
 |---|---|---|---|---|
-| **Pincel de transparencia** (`MaskBrushBar`) | ✅ `strength` | ✅ `hardness` | ❌ | ❌ **atado a la capa de fondo**: `maskLayerId={bgLayer?.id ?? null}` (`SceneTab.tsx:713`) |
+| **Pincel de transparencia** (`MaskBrushBar`) | ✅ `strength` | ✅ `hardness` | ❌ | la capa ACTIVA, **pero sólo si es de terreno** (`SceneTab.tsx:546`) |
 | **Pincel de niebla** (revelar/ocultar) | ❌ | ❌ | ❌ | ❌ (la niebla no es una capa) |
 
 El de niebla va con **cuatro discos** (`brush`/`DEFAULT_BRUSH`), no continuo.
@@ -83,12 +83,18 @@ El de niebla va con **cuatro discos** (`brush`/`DEFAULT_BRUSH`), no continuo.
 3. **Borde irregular DISTINTO EN CADA BROCHAZO** (decisión suya: «distinto cada vez»), con una **barra de
    cuánto de irregular**.
 4. **Que se guarde el último trazo** — al volver, el pincel está como lo dejó.
-5. **Elegir la capa** sobre la que se pinta o se tapa. Esto es lo que arregla «no me manches la pared».
+5. **Elegir sobre qué se pinta**: capa de terreno · niebla · **suelo de una sala**.
+
+> ⚠ **CORRECCIÓN (2026-09-09).** Aquí se escribió que el pincel de transparencia estaba «atado a la capa de
+> fondo». **Es falso**: sí sigue la capa activa, pero si esa capa no es de terreno enseña «necesitas una capa»
+> y no deja pintar. Y para el **suelo de una sala no hay pincel ninguno** — eso es lo que él quería pintar
+> cuando dijo «hoy no se puede pintar». Lo de «no me manches la pared» no se arregla eligiendo capa: se
+> arregla **recortando el brochazo contra el contorno de la sala** (spec § 9.3).
 
 ### ⚠ LO QUE HAY QUE PENSAR ANTES DE CONSTRUIR
 - **Aleatorio distinto cada vez ⇒ hay que GUARDAR la forma**, o al recargar el mapa el trazo sale otro. O se
   guarda la semilla del azar por brochazo (barato) o el contorno entero (caro). **La semilla.**
-- **«Que quede guardado el último trazo»**: ¿por escena, por director, o por herramienta? No preguntado aún.
+- ~~¿por escena, por director, o por herramienta?~~ → **CONTESTADO: por ESCENA** («*el trazo es de la escena*»), contra la recomendación contraria. Un mapa tiene un estilo.
 - El de transparencia guarda máscara por capa; el de niebla guarda casillas. **No comparten almacén**, así que
   «el mismo trazo para los dos» es la barra, no el guardado.
 

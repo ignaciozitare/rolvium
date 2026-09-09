@@ -18,6 +18,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Rebanada 5 — pendiente**: movimiento máximo por turno, configurable **por sistema** (toca el puerto `GameSystem`).
   Las dos deudas que la rebanada 3 se dejó (la puerta que parte el muro y el disco de abrir al pasar el ratón) se
   construyeron el 2026-08-19, antes de empezarla.
+- **Rebanada 9 — CONFIRMADA, SIN CONSTRUIR** (§ «Rebanada 9»): **el pincel**. Trazo elegible (disco, difuminado,
+  borde roto), transparencia también en la niebla, borde irregular distinto en cada brochazo con barra de cuánto,
+  y elegir sobre qué se pinta — capa de terreno, niebla o suelo de una sala, sin manchar el muro. Confirmada por
+  el dueño el 2026-09-09. **Hoy no se puede pintar el suelo de una sala: no hay herramienta.**
 - **Rebanada 6 — A MEDIAS, SIN PANTALLA** (§ «Rebanada 6»): **galería de piezas** (muebles, árboles…) para
   construir mapas dentro de la app. Confirmada por el dueño el 2026-08-31, **después** de la 7 y **antes** de la
   5: sin capas no había dónde meter las piezas, y ahora que existen es lo que falta para montar un mapa sin
@@ -1801,6 +1805,71 @@ que hacen hoy. El aspecto sí cambia, pero eso lo hace el dibujo nuevo, no la ba
   mal por partida doble: hizo falta **otra migración** (`20260907150000_maps_door_texture.sql`, columna
   `door_texture_url` en `maps_walls`, `maps_room_openings` y `maps_scenes`), no valía la misma columna. Se
   deja tachada y no borrada: la decisión existió y el motivo por el que cayó es lo que enseña.
+
+## Rebanada 9 — EL PINCEL
+
+Confirmada por el dueño el **2026-09-09**. Sale de cuatro frases suyas: *«al pincel le tienes que poner
+transparencia, y tiene que poder pintar si quiero con bordes irregulares»* · *«para los dos, tengo que poder
+elegir el trazo»* · *«tengo que poder elegir en qué capa pinto o tapo, si voy a pintar una sala no tiene que
+manchar una pared»* · *«distinto cada vez, y tengo que tener una barra donde pueda elegir qué tan irregular
+es, y que quede guardado el último trazo»*. Y una quinta que fija el punto de partida: *«hoy no se puede
+pintar»*.
+
+### 9.0 · De dónde se parte (comprobado en el código, 2026-09-09)
+
+| | transparencia | dureza | borde irregular | sobre qué actúa |
+|---|---|---|---|---|
+| **Pincel de transparencia** (`MaskBrushBar`) | ✅ `strength` | ✅ `hardness` | ❌ | la capa ACTIVA, **sólo si es de terreno** |
+| **Pincel de niebla** (revelar/ocultar) | ❌ | ❌ | ❌ | la niebla, que no es una capa |
+| **Suelo de una sala** | — | — | — | ❌ **no existe pincel ninguno** |
+
+⚠ El de transparencia **sí sigue la capa activa** (`bgLayer` en `SceneTab`), pero si esa capa no es de terreno
+enseña «necesitas una capa» y no deja pintar. Por eso él dice, con razón, que hoy no se puede pintar: lo que
+quería pintar era el suelo de una sala, y para eso no hay herramienta.
+
+El de niebla va con **cuatro discos**, no continuo.
+
+### 9.1 · Un solo mando para los tres
+
+- **Trazo**, a elegir: **disco limpio** · **difuminado** · **borde roto**.
+- **Cuánto de roto**: una barra continua, de apenas mellado a muy desgarrado. Sólo con borde roto.
+- **Transparencia**: regulable, **también en la niebla** — hoy la niebla tapa o destapa a saco.
+- **Tamaño**: continuo, en casillas, para los tres. La niebla deja sus cuatro discos.
+- **Sobre qué actúa**, elegido por él: una **capa de terreno** · la **niebla** · el **suelo de una sala**.
+
+### 9.2 · 🔑 CADA BROCHAZO SALE DISTINTO, Y ESO OBLIGA A GUARDARLO
+
+Decisión suya, preguntada y contestada: *«distinto cada vez»*. No es un sello que se repite.
+
+> ⚠ **Un borde aleatorio que no se guarda cambia solo.** Si la forma se sortea al pintar y no se anota, al
+> cerrar el mapa y volver los bordes salen con OTRA forma: el director pinta una mancha y encuentra otra. Se
+> guarda **la semilla del azar por brochazo**, no el contorno: un número por trazo lo reconstruye idéntico y
+> no engorda la escena. Guardar el contorno entero sí la engordaría.
+
+### 9.3 · El brochazo se recorta en el borde de la sala
+
+Regla suya: *«si voy a pintar una sala no tiene que manchar una pared»*.
+
+Pintando el **suelo de una sala**, el brochazo se **recorta contra el contorno de esa sala**. Puede pasar el
+pincel por encima del muro sin miedo: fuera del suelo no pinta. Es lo que permite pintar deprisa.
+
+### 9.4 · Lo que se recuerda es DE LA ESCENA
+
+Decisión suya, contra la recomendación contraria: *«el trazo es de la escena»*. Trazo, tamaño, transparencia y
+cuánto de roto se guardan **por escena**. Se abre ese mapa y el pincel está como lo dejó; otro mapa trae el
+suyo. Un mapa tiene un estilo, y el pincel es parte de él.
+
+### 9.5 · Quién
+
+Sólo el **director**, como los otros pinceles. No es un permiso del motor de roles: es que las herramientas de
+pincel viven detrás de `dmSight`, igual que hoy.
+
+### 9.6 · Fuera de esta rebanada, dicho a propósito
+- Pinceles con **dibujo** (hojas, piedras, grava) — eso es la galería de piezas, rebanada 6.
+- Pintar **sobre las fichas**.
+
+## Modelo de datos (rebanada 9)
+> Pending — DBA Agent will complete this section.
 
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los
