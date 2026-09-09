@@ -18,12 +18,90 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 (pide `.pen`) → el pincel para repintar el suelo de UNA sala → rebanada 5 (galería de props) → `chat` (H8) +
 `journal` (H9).
 
-> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟢 «EL FALLO DE "PEGADO A ALGO", CERRADO · Y EL CATÁLOGO DE TEXTURAS, TERMINADO», justo debajo.**
+> ⚠ Lo de arriba es el mapa largo. **Lo que está vivo hoy está en el bloque 🟡 «EL TRABÓN DE LA ESQUINA», justo debajo.**
 
-## 🔴 2026-09-08 — DÓNDE ESTAMOS, Y LO ÚNICO QUE QUEDA ABIERTO
+## 🟡 2026-09-08 (tarde) — EL TRABÓN DE LA ESQUINA: ENCONTRADO Y ARREGLADO · FALTA QUE ÉL LO MIRE
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🔴 de WORK_STATE.md. Queda el token que se pega al tocar una esquina.»
+> «Rolvium. Lee el bloque 🟡 de WORK_STATE.md. El trabón de la esquina está arreglado en rama y sin mergear:
+> falta que yo lo pruebe y contestar si lo que se me pegaba era una ficha o la sonda.»
+
+Rama **`fix/maps-trabon-esquina`**, subida (`6d1e324` · `f2e8169` · `ce524c8`). Review pasado (bloqueó una
+vez, con razón). **NO mergeado**: falta que él lo pruebe y diga «listo para merge» → QA → Deploy.
+
+Verde: core **76** · web **1532** · api **249** · `tsc` limpio en apps/web y apps/api · `audit` **0 hard** ·
+`build:web` y `build:api` compilan. Sin migraciones.
+
+### 🎯 LA CAUSA, Y ERA UNA SOLA
+`slideCircle` (`packages/core/src/maps.ts`) proyectaba el movimiento sobrante «a lo largo del muro **más
+cercano** al punto de contacto». **En una esquina los dos muros están a la MISMA distancia**, y el desempate
+del `reduce` cogía siempre el primero de la lista. Si ése era el muro equivocado, la proyección salía contra
+el otro, el rebote no avanzaba, la vuelta siguiente volvía a elegir el mismo, y la ficha se quedaba clavada.
+
+> **Una de las dos salidas de CADA esquina estaba muerta y la otra funcionaba**, y de cuál se moría dependía
+> del ORDEN de la lista de muros, no de la geometría. Por eso el fallo parecía caprichoso, y por eso «sólo se
+> destraba moviendo el puntero en la dirección contraria»: había que sacarlo de la pared.
+
+Medido en una sala de 600×600 con ficha de radio 35, barriendo 288 direcciones en las cuatro esquinas y
+contando sólo las que **sí podían moverse**: `main` **64 trabones** · con la primera mitad del arreglo **56**
+· con las dos **0**.
+
+### ⚖️ EL ARREGLO TIENE DOS MITADES Y LAS DOS HACEN FALTA
+1. **`nearestFree`**: se barre hacia el **punto legal más cercano al dedo**, no hacia el dedo a pelo. Tapa el
+   caso en que el dedo está DENTRO de la sala pisando el cuerpo del muro. **No basta**: en cuanto el dedo se
+   pasa al otro lado —que es lo que pasa al empujar contra una pared y seguir tirando— el destino vuelve a
+   ser ilegal y manda otra vez el desempate.
+2. **El desempate**: ya no se elige un muro. Se prueban **todos los que empatan** a distancia mínima del
+   contacto y se sigue el que de verdad deja avanzar más. Con un solo candidato el resultado es idéntico al
+   de antes, y la bisección extra sólo corre en el empate, o sea estando en una esquina.
+
+**Sale más rápido**, no más lento: 4,4 → 3,2 µs por `pointermove` en una sala de 44 muros (−26%), porque
+perseguir un destino ya legal hace que `clear(pos, target)` acierte a la primera y se salte 24 bisecciones.
+No toca la sombra dinámica, que es otro cálculo.
+
+**No abre ninguna pared.** Comprobado con dos oráculos independientes (el review) y con un fuzz propio: 400
+arrastres × 60 tirones × 101 puntos muestreados por tramo, en sala simple, con tabique y con muros
+degenerados → **cero salidas de la sala**. La invasión sub-píxel del cuerpo (~0,15 px, de la válvula «ya
+estabas dentro») **está igual en `main`**: no es de esta rama.
+
+### ✅ POR QUÉ ESTA VEZ SÍ ES EL FALLO SUYO
+Los tests viejos no lo cazaban porque probaban **una** esquina en **una** orientación. Ahora hay 8 casos —
+cuatro esquinas × dos salidas, con el dedo ya pasado al otro lado— y **fallan exactamente 4 con el desempate
+viejo, uno por esquina** (verificado revirtiendo sólo esa parte). Más el de `nearestFree`, que falla con esa
+línea revertida. Son tests discriminantes, no de adorno.
+
+### ✅ CONTESTADA LA PREGUNTA: ES LA SONDA, Y ERA EL SITIO EXACTO
+Suyo, 2026-09-08: «*es como director, la careta es la que arrastro, por supuesto, como te hice en todas las
+fotos*». **La careta es la SONDA DE PRUEBA**, y es lo ÚNICO que choca en la pantalla de un director: a sus
+fichas no las frena nadie (`blockers = p.isDm ? [] : […]`, y `sceneVision.ts` retorna en `if (role === 'dm')`
+antes de calcular `corrected`/`clearance`). La sonda usa `probeBlockers`, **sin** filtro de director.
+
+O sea que el arreglo cae justo donde le duele. Y hay dos tests en su gesto de verdad
+(`MapCanvas.test.tsx › la sonda de prueba`), con `WALL_1` + `WALL_VISIBLE` haciendo una esquina en (270, 540)
+y el puntero METIDO en la pared:
+- salir por el muro de **arriba** → pasa también en `main`: guardián de que lo que ya iba sigue yendo;
+- salir por el **de al lado** → **falla en `main`**, pasa aquí.
+
+Uno de cada dos: la forma exacta del fallo.
+
+### ⏳ SIGUIENTE
+1. Que lo pruebe en el preview de la rama, **arrastrando la careta a una esquina**.
+2. Si va: «listo para merge» → QA → Deploy. **Sin migraciones.**
+3. Si NO va: volver a poner el chivato (línea roja con `director / muros / disco / frena` mientras arrastras)
+   y pedirle la captura. Media hora, y contesta de golpe si es física o pintura.
+
+### 🧾 DEUDA ANOTADA AQUÍ (no tocada)
+- **`nearestFree` no siempre converge** en 8 pasadas (fondo de saco, caja cerrada; ~18% en fuzz adversario,
+  1,2% en arrastre realista). **Es seguro**: un destino ilegal falla el `clear` y degrada al comportamiento
+  viejo. Se probó un guardia y salía empate (98 mejores, 69 peores), así que no se añadió.
+- **La válvula `if (start < radius) return to;`** devuelve `to` sin validar nada: una ficha que EMPIECE dentro
+  de un muro puede arrastrarse a través de cualquier otro. **Es previa e intencionada**, queda para decidir.
+- `tsc -p packages/core` da 2 errores en `gameSystem.test.ts` y `rooms.test.ts`. **Previos** (verificado con
+  `git stash`), ninguno importa `maps.ts`. No se tocaron.
+- El spec (`specs/modules/maps/SPEC.md` línea 236, «resbala pegado a ella») **no contradice nada**: sigue
+  siendo cierto, y ahora más. Se actualiza tras estar estable en producción, según CLAUDE.md.
+
+## 🔴 2026-09-08 — DÓNDE ESTÁBAMOS (el diagnóstico previo; lo descartado sigue siendo válido)
 
 ### ESTADO — ✅ EN PRODUCCIÓN Y VERIFICADO (2026-09-08)
 - `main` = **`66546f6`** · **v0.5.0 → v0.6.0**. Nada pendiente de subir.
