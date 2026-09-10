@@ -78,6 +78,9 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const roomOpeningsRef = useRef<RoomOpening[]>([]);
   roomOpeningsRef.current = roomOpenings;
   roomsRef.current = rooms;
+  /** …y la de trazos, por lo mismo: deshacer un borrado tiene que saber qué trazo había ahí. */
+  const drawingsRef = useRef<Drawing[]>([]);
+  drawingsRef.current = drawings;
   const [live, setLive] = useState<Scene | null>(scene);
   const [drags, setDrags] = useState<Record<string, LiveDrag>>({});
   const [pin, setPin] = useState<LivePin | null>(null);
@@ -403,8 +406,55 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const addToken = useCallback(async (t: NewToken) => { const created = await repo.addToken(t); setTokens(l => (l.some(x => x.id === created.id) ? l : [...l, created])); return created; }, [repo]);
   const removeToken = useCallback(async (id: string) => { setTokens(l => l.filter(t => t.id !== id)); await repo.removeToken(id); }, [repo]);
   const patchToken = useCallback(async (id: string, patch: Partial<Token>) => { setTokens(l => l.map(t => (t.id === id ? { ...t, ...patch } : t))); await repo.updateToken(id, patch); }, [repo]);
-  const addDrawing = useCallback(async (d: NewDrawing) => { const created = await repo.addDrawing(d); setDrawings(l => (l.some(x => x.id === created.id) ? l : [...l, created])); return created; }, [repo]);
-  const eraseDrawing = useCallback(async (id: string) => { setDrawings(l => l.filter(d => d.id !== id)); await repo.removeDrawing(id); }, [repo]);
+  /**
+   * ↩️ DESHACER Y REHACER (§ «Rebanada 8»). Petición suya del 2026-08-19, aparcada dos veces y reclamada el
+   * 2026-09-03: «*el deshacer y el inverso no funciona*».
+   *
+   * 🔑 Cada acción de Builder se envuelve aquí y se apila con SU vuelta atrás. Las de arriba, las `…Raw`, son
+   * las que hacen el trabajo y NO apilan: si apilaran, deshacer un paso metería otro paso y no se saldría
+   * nunca del bucle.
+   *
+   * ⚠️ Los ids CAMBIAN al deshacer un borrado —la fila anterior ya no existe, se escribe una nueva—, así que
+   * cada paso se queda con los ids nuevos en una variable propia. Sin eso, el segundo rehacer iría a por filas
+   * que ya no están.
+   */
+  const history = useHistory();
+  const { push } = history;
+
+  /**
+   * 🐞 DIBUJAR ENTRA EN EL HISTORIAL (suyo, 2026-09-10: «*revisa el Ctrl+Z, hace cosas raras o no funciona*»).
+   *
+   * Y «cosas raras» era exactamente esto: el historial se saltaba lo más frecuente —los trazos y los muros
+   * sueltos—, así que un Ctrl+Z después de dibujar tres rayas no deshacía ninguna: se iba a por la sala de
+   * hace cinco pasos. Un deshacer que salta acciones se lee como un deshacer roto, y con razón.
+   *
+   * El id es NUEVO al rehacer, así que quien apila el paso se queda con el vivo: si no, un deshacer posterior
+   * intentaría borrar una fila que ya no existe.
+   */
+  const addDrawing = useCallback(async (d: NewDrawing) => {
+    const created = await repo.addDrawing(d);
+    setDrawings(l => (l.some(x => x.id === created.id) ? l : [...l, created]));
+    let vivo = created;
+    push({
+      label: 'maps.history.drawing',
+      undo: async () => { setDrawings(l => l.filter(x => x.id !== vivo.id)); await repo.removeDrawing(vivo.id); },
+      redo: async () => { vivo = await repo.addDrawing(d); setDrawings(l => [...l, vivo]); },
+    });
+    return created;
+  }, [repo, push]);
+  const eraseDrawing = useCallback(async (id: string) => {
+    const antes = drawingsRef.current.find(d => d.id === id);
+    setDrawings(l => l.filter(d => d.id !== id));
+    await repo.removeDrawing(id);
+    if (!antes) return;
+    const input: NewDrawing = { sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, data: antes.data, color: antes.color, width: antes.width, layerId: antes.layerId };
+    let vivo = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { vivo = await repo.addDrawing(input); setDrawings(l => [...l, vivo]); },
+      redo: async () => { setDrawings(l => l.filter(x => x.id !== vivo.id)); await repo.removeDrawing(vivo.id); },
+    });
+  }, [repo, push]);
   const clearMine = useCallback(async () => { if (!sceneId) return; setDrawings(l => l.filter(d => d.authorId !== me)); await repo.removeMyDrawings(sceneId); }, [repo, sceneId, me]);
   const clearAll = useCallback(async () => { if (!sceneId) return; setDrawings([]); await repo.removeAllDrawings(sceneId); }, [repo, sceneId]);
   /**
@@ -426,8 +476,35 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       return [...l.filter(x => !hosts.has(x.id) && !fresh.some(f => f.id === x.id)), ...fresh];
     });
     announceVision();
+    /*
+     * 🐞 …Y ENTRA EN EL HISTORIAL. Era el otro hueco del Ctrl+Z: marcar muros sobre una foto es lo que más se
+     * hace en Builder, y no se podía deshacer ni uno.
+     *
+     * Deshacer un vano que PARTIÓ muros los devuelve enteros: primero se quitan los trozos y el vano, y
+     * después vuelven los anfitriones. Al revés quedaría un instante con la mampostería duplicada, y si algo
+     * falla a medias es mejor de más que un agujero que nadie pidió — el mismo criterio que al partirlos.
+     */
+    let vivos = { creado: created, trozos: pieces, anfitriones: splits.map(x => x.host) };
+    const deshacer = async (): Promise<void> => {
+      const fuera = [vivos.creado.id, ...vivos.trozos.map(x => x.id)];
+      await Promise.all(fuera.map(id => repo.removeWall(id)));
+      const vueltos = await Promise.all(vivos.anfitriones.map(h => repo.addWall(h)));
+      setWalls(l => [...l.filter(x => !fuera.includes(x.id)), ...vueltos]);
+      vivos = { ...vivos, anfitriones: vueltos };
+      announceVision();
+    };
+    const rehacer = async (): Promise<void> => {
+      const trozos = await Promise.all(splits.flatMap(sp => sp.pieces.map(pc => repo.addWall(wallPiece(sp.host, pc)))));
+      const creado = await repo.addWall(w);
+      const fuera = vivos.anfitriones.map(x => x.id);
+      await Promise.all(fuera.map(id => repo.removeWall(id)));
+      setWalls(l => [...l.filter(x => !fuera.includes(x.id)), ...trozos, creado]);
+      vivos = { creado, trozos, anfitriones: vivos.anfitriones };
+      announceVision();
+    };
+    push({ label: 'maps.history.wall', undo: deshacer, redo: rehacer });
     return created;
-  }, [repo, announceVision]);
+  }, [repo, announceVision, push]);
   /**
    * UNA HABITACIÓN DE GOLPE (§ «Rebanada 8»): N muros normales escritos de una vez.
    *
@@ -529,20 +606,6 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     return piece;
   }, [repo, wallGeometryRaw]);
 
-  /**
-   * ↩️ DESHACER Y REHACER (§ «Rebanada 8»). Petición suya del 2026-08-19, aparcada dos veces y reclamada el
-   * 2026-09-03: «*el deshacer y el inverso no funciona*».
-   *
-   * 🔑 Cada acción de Builder se envuelve aquí y se apila con SU vuelta atrás. Las de arriba, las `…Raw`, son
-   * las que hacen el trabajo y NO apilan: si apilaran, deshacer un paso metería otro paso y no se saldría
-   * nunca del bucle.
-   *
-   * ⚠️ Los ids CAMBIAN al deshacer un borrado —la fila anterior ya no existe, se escribe una nueva—, así que
-   * cada paso se queda con los ids nuevos en una variable propia. Sin eso, el segundo rehacer iría a por filas
-   * que ya no están.
-   */
-  const history = useHistory();
-  const { push } = history;
 
   const addRoom = useCallback(async (sides: NewWall[]) => {
     const created = await addRoomRaw(sides);
@@ -631,10 +694,18 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   /** Mover o estirar una forma. Las demás recuperan su contorno solas: la unión se calcula, no se guarda. */
   const moveRoom = useCallback(async (id: string, points: [number, number][]) => {
+    const antes = roomsRef.current.find(r => r.id === id)?.points;
     setRooms(l => l.map(r => (r.id === id ? { ...r, points } : r)));
     await repo.updateRoomPoints(id, points);
     announceVision();
-  }, [repo, announceVision]);
+    if (!antes) return;
+    const ir = async (a: [number, number][]): Promise<void> => {
+      setRooms(l => l.map(r => (r.id === id ? { ...r, points: a } : r)));
+      await repo.updateRoomPoints(id, a);
+      announceVision();
+    };
+    push({ label: 'maps.history.move', undo: () => ir(antes), redo: () => ir(points) });
+  }, [repo, announceVision, push]);
 
   /**
    * ABRIR UN VANO SOBRE EL CONTORNO. El gesto es el mismo disco de siempre; lo que cambia es dónde se guarda

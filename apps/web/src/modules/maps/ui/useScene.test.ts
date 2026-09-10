@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import type { SceneVision } from '@rolvium/core';
 import type { Room, Wall } from '../domain/entities/Scene';
+import { DEFAULT_DOOR } from '@/modules/maps/domain/entities/Scene';
 import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN, WALL_1 } from '../../../../tests/helpers/fakes';
 import { newLightOf } from '../domain/useCases/layerRules';
 import { useScene } from './useScene';
@@ -491,6 +492,78 @@ describe('useScene · la sonda de prueba acumula su memoria aquí, y la tira al 
   it('sin sonda no se toca nada: lo explorado es lo que conteste el servidor', async () => {
     const { result } = await mountProbe(null);
     expect(result.current.fog!.explored).toEqual(fakeVisionPort().state.explored);
+  });
+});
+
+/**
+ * ── EL CTRL+Z, DE PUNTA A PUNTA ──
+ *
+ * 🐞 Suyo, 2026-09-10: «*revisa el Ctrl+Z, hace cosas raras o no funciona*». Y «cosas raras» era esto: el
+ * historial se saltaba lo más frecuente —los trazos y los muros sueltos—, así que pulsar Ctrl+Z después de
+ * dibujar tres rayas no deshacía ninguna: se iba a por la sala de hace cinco pasos.
+ */
+describe('useScene — el historial no se salta nada de lo que se dibuja', () => {
+  it('deshacer y rehacer un TRAZO', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addDrawing({ sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'stroke', data: { points: [[0, 0], [10, 10]] }, color: '#c9a84c', width: 2, layerId: null }); });
+    expect(r.current.drawings).toHaveLength(1);
+    expect(r.current.history.canUndo).toBe(true);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.drawing'); });
+    expect(r.current.drawings).toHaveLength(0);
+    await act(async () => { await r.current.history.redo(); });
+    expect(r.current.drawings).toHaveLength(1);
+  });
+
+  it('deshacer el BORRADO de un trazo lo devuelve', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], drawings: [DRAWING_MINE] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.eraseDrawing(DRAWING_MINE.id); });
+    expect(r.current.drawings).toHaveLength(0);
+    await act(async () => { await r.current.history.undo(); });
+    expect(r.current.drawings).toHaveLength(1);
+    expect(r.current.drawings[0]!.kind).toBe(DRAWING_MINE.kind);
+  });
+
+  it('deshacer y rehacer un MURO suelto', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], walls: [] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addWall({ sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', x1: 0, y1: 0, x2: 100, y2: 0, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, ...DEFAULT_DOOR }); });
+    expect(r.current.walls).toHaveLength(1);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.wall'); });
+    expect(r.current.walls).toHaveLength(0);
+    await act(async () => { await r.current.history.redo(); });
+    expect(r.current.walls).toHaveLength(1);
+  });
+
+  /** 🔒 Y el orden importa: Ctrl+Z deshace LO ÚLTIMO, no lo de hace cinco pasos. Eso era el fallo entero. */
+  it('deshace en orden: lo último primero', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], walls: [] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addWall({ sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', x1: 0, y1: 0, x2: 100, y2: 0, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, ...DEFAULT_DOOR }); });
+    await act(async () => { await r.current.addDrawing({ sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'stroke', data: { points: [[0, 0]] }, color: '#c9a84c', width: 2, layerId: null }); });
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.drawing'); });
+    expect(r.current.walls).toHaveLength(1);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.wall'); });
+    expect(r.current.walls).toHaveLength(0);
+    // Y cuando no queda nada, lo dice con un `null` en vez de callarse.
+    await act(async () => { expect(await r.current.history.undo()).toBeNull(); });
+  });
+
+  it('deshacer un MOVIMIENTO de forma la devuelve donde estaba', async () => {
+    const SALA = {
+      id: 'rm-1', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+      points: [[0, 0], [100, 0], [100, 100], [0, 100]] as [number, number][], floorPreset: 'hatch' as const,
+      floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: 't', updatedAt: 't',
+    };
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], rooms: [SALA] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.moveRoom('rm-1', [[50, 50], [150, 50], [150, 150], [50, 150]]); });
+    expect(r.current.rooms[0]!.points[0]).toEqual([50, 50]);
+    await act(async () => { await r.current.history.undo(); });
+    expect(r.current.rooms[0]!.points[0]).toEqual([0, 0]);
+    await act(async () => { await r.current.history.redo(); });
+    expect(r.current.rooms[0]!.points[0]).toEqual([50, 50]);
   });
 });
 

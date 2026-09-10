@@ -1211,7 +1211,13 @@
       "roomDelete": "Borrar sala",
       "roomFill": "el muro",
       "door": "la puerta",
-      "window": "la ventana"
+      "window": "la ventana",
+      "drawing": "el trazo",
+      "wall": "el muro",
+      "undone": "Deshecho: {{what}}",
+      "redone": "Rehecho: {{what}}",
+      "nothing": "No queda nada que deshacer",
+      "nothingRedo": "No queda nada que rehacer"
     },
     "builder": {
       "title": "Builder",

@@ -2386,3 +2386,34 @@ describe('<SceneTab> la banda de «A pulso» en el Builder', () => {
     expect(alto(repo.rooms[1]!)).toBeGreaterThan(fino * 2);
   });
 });
+
+/**
+ * ── EL CTRL+Z DICE LO QUE HA HECHO ──
+ *
+ * 🐞 Suyo, 2026-09-10: «*revisa el Ctrl+Z, hace cosas raras o no funciona*». Media queja era que se saltaba
+ * acciones (arreglado en `useScene`); la otra media, que era MUDO: pulsabas y no sabías si había pasado algo.
+ */
+describe('<SceneTab> el Ctrl+Z avisa de lo que ha hecho', () => {
+  it('deshace el último trazo y lo dice en pantalla', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    await dibujo(u, 'Lápiz');
+    fireEvent.pointerDown(canvas(), { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(canvas(), { clientX: 160, clientY: 140, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await waitFor(() => expect(repo.drawings).toHaveLength(1));
+
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true });
+    await waitFor(() => expect(repo.drawings).toHaveLength(0));
+    expect(await screen.findByText(/Deshecho: el trazo/i)).toBeInTheDocument();
+  });
+
+  /** Y cuando no queda nada que deshacer, lo dice: callarse es justo lo que parece un fallo. */
+  it('sin nada que deshacer, lo dice en vez de quedarse mudo', async () => {
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true });
+    expect(await screen.findByText(/No queda nada que deshacer/i)).toBeInTheDocument();
+  });
+});

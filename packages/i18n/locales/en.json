@@ -1211,7 +1211,13 @@
       "roomDelete": "Delete room",
       "roomFill": "the wall",
       "door": "the door",
-      "window": "the window"
+      "window": "the window",
+      "drawing": "the stroke",
+      "wall": "the wall",
+      "undone": "Undone: {{what}}",
+      "redone": "Redone: {{what}}",
+      "nothing": "Nothing left to undo",
+      "nothingRedo": "Nothing left to redo"
     },
     "builder": {
       "title": "Builder",

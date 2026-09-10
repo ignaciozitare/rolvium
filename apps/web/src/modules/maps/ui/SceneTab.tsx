@@ -169,6 +169,12 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * forma de saber si el mínimo, el candado o la app estaban rotos. Se borra solo, como el alfiler.
    */
   const [avisoCorto, setAvisoCorto] = useState<'short' | 'snap' | null>(null);
+  /**
+   * QUÉ SE ACABA DE DESHACER (o rehacer). Sin esto, Ctrl+Z era mudo: pulsabas y no sabías si había hecho algo
+   * ni qué — y con el historial saltándose acciones (lo de hoy) eso se lee como que está roto. Suyo,
+   * 2026-09-10: «*revisa el Ctrl+Z, hace cosas raras o no funciona*».
+   */
+  const [avisoDeshacer, setAvisoDeshacer] = useState<{ modo: 'undo' | 'redo'; que: string } | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [railFolded, setRailFolded] = useState(false);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
@@ -813,11 +819,20 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     const onKey = (e: KeyboardEvent): void => {
       if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z' || escribiendo(e.target)) return;
       e.preventDefault();
-      void (e.shiftKey ? st.history.redo() : st.history.undo());
+      const modo = e.shiftKey ? 'redo' : 'undo';
+      void (e.shiftKey ? st.history.redo() : st.history.undo())
+        // `null` = no quedaba nada que deshacer, y eso TAMBIÉN se dice: callarse es lo que parece un fallo.
+        .then(label => setAvisoDeshacer({ modo, que: label ?? '' }));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isDm, st.history]);
+  /** El aviso de deshacer se retira solo: es una explicación de lo que acaba de pasar, no un estado. */
+  useEffect(() => {
+    if (!avisoDeshacer) return undefined;
+    const id = window.setTimeout(() => setAvisoDeshacer(null), AVISO_MS);
+    return () => window.clearTimeout(id);
+  }, [avisoDeshacer]);
 
   if (status === 'loading') return <section className="tb-hoja tb-placeholder">{t('maps.loading')}</section>;
   if (status === 'error') return <section className="tb-hoja tb-placeholder">{t('maps.error')}</section>;
@@ -1219,6 +1234,13 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
           {avisoCorto && (
             <div className="mp-placing" role="status">
               {t(avisoCorto === 'snap' ? 'maps.room.tooSmallSnap' : 'maps.room.tooSmall')}
+            </div>
+          )}
+          {avisoDeshacer && (
+            <div className="mp-placing" role="status">
+              {avisoDeshacer.que
+                ? t(avisoDeshacer.modo === 'undo' ? 'maps.history.undone' : 'maps.history.redone', { what: t(avisoDeshacer.que) })
+                : t(avisoDeshacer.modo === 'undo' ? 'maps.history.nothing' : 'maps.history.nothingRedo')}
             </div>
           )}
           {pendingPc && (
