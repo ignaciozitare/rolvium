@@ -1115,7 +1115,7 @@
         "poly": "Polígono",
         "free": "A pulso"
       },
-      "polyHint": "un clic, un vértice · pincha otra vez sobre el primero para cerrar la sala",
+      "polyHint": "arrastra y la forma sale con el contorno de la mano",
       "dragHint": "arrastra para levantar la sala · se monta al soltar",
       "chainHint": "un clic, un punto · se encadenan, y la pared sigue donde acabó la anterior",
       "lineHint": "arrastra de un punto a otro · sale un muro, y sólo uno",
@@ -1185,7 +1185,12 @@
         "brush": "Textura del pincel"
       },
       "tooSmall": "El gesto se quedó corto: no se levantó nada. Arrastra un poco más.",
-      "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla."
+      "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla.",
+      "band": {
+        "label": "El ancho de la banda · sólo con «A pulso»",
+        "short": "Ancho",
+        "hint": "«A pulso» saca una BANDA del ancho elegido siguiendo la mano. De serie es el grosor de muro de esta escena."
+      }
     },
     "group": {
       "countGrouped": "Grupo · {{n}} muros",

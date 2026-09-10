@@ -1115,7 +1115,7 @@
         "poly": "Polygon",
         "free": "Freehand"
       },
-      "polyHint": "one click, one corner · click the first one again to close the room",
+      "polyHint": "drag and the shape follows the outline of your hand",
       "dragHint": "drag to raise the room · it is built when you let go",
       "chainHint": "one click, one point · they chain up, and the wall carries on where the last one ended",
       "lineHint": "drag from one point to another · one wall comes out, and only one",
@@ -1185,7 +1185,12 @@
         "brush": "Brush texture"
       },
       "tooSmall": "The gesture came up short: nothing was built. Drag a little further.",
-      "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square."
+      "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square.",
+      "band": {
+        "label": "Band width · only with “Freehand”",
+        "short": "Width",
+        "hint": "“Freehand” gives a BAND of the width you pick, following your hand. By default it is this scene’s wall thickness."
+      }
     },
     "group": {
       "countGrouped": "Group · {{n}} walls",

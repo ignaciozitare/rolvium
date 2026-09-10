@@ -2268,3 +2268,78 @@ describe('<SceneTab> el pincel que pinta encima', () => {
   });
 });
 
+/**
+ * ── «A PULSO» SACA UNA BANDA, DE PUNTA A PUNTA (§ «Rebanada 10 · B») ──
+ *
+ * Lo que se construyó por error para el pincel **no se tiró**: es lo que a él le faltaba en el Builder.
+ * Palabra suya el 2026-09-10, con la pantalla delante y una captura de un pasillo trazado a mano: «*lo que
+ * habías hecho en el otro chat para el pincel estaba mal, pero en el builder me servía para corregir el a
+ * mano, que no servía de nada*».
+ */
+describe('<SceneTab> la banda de «A pulso» en el Builder', () => {
+  const abrirBuilder = async (u: ReturnType<typeof userEvent.setup>, levanta: 'Muro' | 'Sala') => {
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    await u.click(within(panel).getByRole('radio', { name: levanta }));
+    await u.click(within(panel).getByRole('radio', { name: 'A pulso' }));
+    return panel;
+  };
+  const arrastrar = (de: [number, number], a: [number, number]) => {
+    fireEvent.pointerDown(canvas(), { clientX: de[0], clientY: de[1], pointerId: 1, button: 0 });
+    fireEvent.pointerMove(canvas(), { clientX: (de[0] + a[0]) / 2, clientY: de[1], pointerId: 1 });
+    fireEvent.pointerMove(canvas(), { clientX: a[0], clientY: a[1], pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+  };
+
+  it('arrastrar con MURO levanta una banda que RELLENA, marcada como brochazo', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    await abrirBuilder(u, 'Muro');
+    arrastrar([G * 3, G * 3], [G * 12, G * 3]);
+    await waitFor(() => expect(repo.rooms).toHaveLength(1));
+    expect(repo.rooms[0]).toMatchObject({ kind: 'fill', shape: 'brush' });
+    expect(repo.rooms[0]!.points.length).toBeGreaterThanOrEqual(3);
+    // Y no ha escrito un muro suelto: dibujando aquí, una banda es una FORMA.
+    expect(repo.walls).toHaveLength(0);
+  });
+
+  /** La elección de siempre no desaparece: con SALA la misma banda excava. */
+  it('con SALA la misma banda EXCAVA', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    await abrirBuilder(u, 'Sala');
+    arrastrar([G * 3, G * 3], [G * 12, G * 3]);
+    await waitFor(() => expect(repo.rooms[0]).toMatchObject({ kind: 'room', shape: 'brush' }));
+  });
+
+  /** Sin tocar el ancho, la banda mide EL GROSOR DE MURO DE LA ESCENA: nada cambia hasta que él lo mueva. */
+  it('de serie el ancho es el grosor de muro de la escena', async () => {
+    const u = userEvent.setup();
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    const panel = await abrirBuilder(u, 'Muro');
+    expect(within(panel).getByRole('slider', { name: 'Ancho' })).toHaveValue(String(SCENE_WAREHOUSE.wallThickness));
+  });
+
+  /** Y con el ancho subido la banda sale MÁS GORDA: el número manda de verdad, no es decorativo. */
+  it('subir el ancho engorda la banda', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    const panel = await abrirBuilder(u, 'Muro');
+    arrastrar([G * 3, G * 3], [G * 12, G * 3]);
+    await waitFor(() => expect(repo.rooms).toHaveLength(1));
+    const alto = (r: typeof repo.rooms[number]) => {
+      const ys = r.points.map(pt => pt[1]);
+      return Math.max(...ys) - Math.min(...ys);
+    };
+    const fino = alto(repo.rooms[0]!);
+    fireEvent.change(within(panel).getByRole('slider', { name: 'Ancho' }), { target: { value: '3' } });
+    arrastrar([G * 3, G * 10], [G * 12, G * 10]);
+    await waitFor(() => expect(repo.rooms).toHaveLength(2));
+    expect(alto(repo.rooms[1]!)).toBeGreaterThan(fino * 2);
+  });
+});

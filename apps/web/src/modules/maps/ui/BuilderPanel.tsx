@@ -3,7 +3,7 @@ import { Tooltip } from '@rolvium/ui';
 import { DOOR_HINGES, DOOR_LEAVES, DOOR_SWINGS, ROOM_PRESETS, type DoorSettings, type RoomOpening, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
 import { DEFAULT_TEXTURE_SCALE, styleOf } from '../domain/useCases/roomStyles';
 import { DOOR_COLORS, normalCellsAt, TOKEN_SCALE, WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
-import { BUILDER_MODES, BUILD_KINDS, ROOM_SHAPES, isOpeningKind, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, BUILDER_MODES, BUILD_KINDS, ROOM_SHAPES, isOpeningKind, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { useDragPanel } from './useDragPanel';
 
 interface Props {
@@ -91,6 +91,12 @@ interface Props {
   doorDraft?: DoorSettings;
   /** Abrir el catálogo para elegirle textura a la puerta cogida. Mismo catálogo que la pared y el suelo. */
   onDoorTexture?: () => void;
+  /**
+   * ── EL ANCHO DE LA BANDA DE «A PULSO» (§ «Rebanada 10 · B») ──
+   * En CASILLAS, como todo lo que se mide en un mapa. De serie, el grosor de muro que la escena ya tiene.
+   */
+  bandCells?: number;
+  onBandCells?: (cells: number) => void;
   onClose: () => void;
 }
 
@@ -118,7 +124,8 @@ export function BuilderPanel({
   thickness = 0.22, onThickness,
   wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd,
   tokenScale = TOKEN_SCALE.def, onTokenScale, onTokenScaleEnd,
-  groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onDoorTexture, doorDraft, onClose,
+  groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onDoorTexture, doorDraft,
+  bandCells = 0.22, onBandCells, onClose,
 }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   /** El número del panel, con la coma o el punto que toque según el idioma. */
@@ -325,6 +332,26 @@ export function BuilderPanel({
         </div>
         <p className="mp-builder-hint">{shapeHint(shape, t)}</p>
       </fieldset>
+      )}
+
+      {/*
+        * ── EL ANCHO DE LA BANDA ── Sólo con «A pulso», que es donde él la quiso (2026-09-10). De serie el
+        * ancho ES el grosor de muro de la escena, así que una escena existente no cambia hasta que lo toque,
+        * y por eso este número no se guarda en ninguna parte: sale de la escena y vale para lo que dibuje
+        * ahora.
+        */}
+      {!construyeVano && shape === 'free' && (
+        <fieldset className="mp-builder-group" data-testid="mp-band">
+          <legend className="tb-rotulo">{t('maps.room.band.label')}</legend>
+          <div className="mp-builder-thick">
+            <span className="mp-builder-tex-n">{t('maps.room.band.short')}</span>
+            <input type="range" min={BRUSH_MIN_CELLS} max={BRUSH_MAX_CELLS} step={0.02} value={bandCells}
+              aria-label={t('maps.room.band.short')}
+              onChange={e => onBandCells?.(Number(e.target.value))} />
+            {/* Con la coma o el punto que toque, como el número de las fichas: «0.34» en español está mal. */}
+            <span className="mp-builder-thick-v">{new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(bandCells)}</span>
+          </div>
+        </fieldset>
       )}
 
       {/*
@@ -545,7 +572,14 @@ export function BuilderPanel({
 function shapeHint(shape: RoomShape, t: (key: string) => string): string {
   if (shape === 'segment') return t('maps.room.chainHint');
   if (shape === 'line') return t('maps.room.lineHint');
-  return shape === 'poly' ? t('maps.room.polyHint') : t('maps.room.dragHint');
+  /*
+   * 🔴 «POLÍGONO» Y «A PULSO» CAMBIARON DE GESTO el 2026-09-10, por orden suya con la pantalla delante:
+   * «*quiero que lo que hoy es a pulso lo pongas en polígono, y a pulso sea lo que te indico*». Polígono pasa
+   * a ser el trazo libre cerrado (lo que hacía a pulso) y a pulso saca una BANDA siguiendo la mano — el gesto
+   * del pincel que se construyó por error, que aquí sí servía: «*el a mano no servía de nada*».
+   */
+  if (shape === 'poly') return t('maps.room.polyHint');
+  return shape === 'free' ? t('maps.room.band.hint') : t('maps.room.dragHint');
 }
 
 /** Una foto de mapa con los muros marcados encima: la esquina de una sala ya dibujada por otro. */

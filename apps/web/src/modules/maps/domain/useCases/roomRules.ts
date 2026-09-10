@@ -234,6 +234,11 @@ function enclosesArea(ring: Point[], grid: number, min: number): boolean {
 /**
  * POLÍGONO — la habitación de N lados, y la respuesta a su «¿y si quiero poner una pared inclinada?».
  *
+ * ⚠️ **HOY NO LLEGA NINGUNA PANTALLA AQUÍ, y es a propósito.** El 2026-09-10 él mandó que el botón «Polígono»
+ * pasara a ser el TRAZO LIBRE CERRADO —«*quiero que lo que hoy es a pulso lo pongas en polígono*»—, así que
+ * los vértices a clics ya no se ponen desde ninguna parte. El motor se queda porque es la única forma de
+ * volver a ofrecer ese gesto el día que lo pida, y porque sus tests son lo que impide que se pudra.
+ *
  * Los VÉRTICES se pegan a la rejilla (con el candado cerrado); los LADOS no. Así una pared puede ir a cualquier ángulo (que es lo que
  * él pedía) y a la vez dos salas contiguas encajan sin dejar rendijas de medio píxel por donde se cuela la
  * visión — que es para lo que servía pegarse a la rejilla.

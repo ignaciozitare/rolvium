@@ -113,17 +113,61 @@ describe('<BuilderPanel> qué levanto y con qué forma', () => {
 
   it('la pista de abajo cambia con la forma: cada una se dibuja con un gesto distinto', () => {
     const { re } = mount({ shape: 'poly' });
-    expect(screen.getByText(/pincha otra vez sobre el primero/)).toBeInTheDocument();
+    // 🔴 Desde el 2026-09-10 «polígono» es el trazo libre cerrado, por orden suya.
+    expect(screen.getByText(/con el contorno de la mano/)).toBeInTheDocument();
     re({ shape: 'line' });
     expect(screen.getByText(/sale un muro, y sólo uno/)).toBeInTheDocument();
     re({ shape: 'rect' });
     expect(screen.getByText(/arrastra para levantar la sala/)).toBeInTheDocument();
+    re({ shape: 'free' });
+    expect(screen.getByText(/saca una BANDA del ancho elegido siguiendo la mano/)).toBeInTheDocument();
   });
 });
 
 /**
  * EL CANDADO, aprobado el 2026-09-03 («*tira*»). Empieza cerrado: sin tocarlo, Builder es el de siempre.
  */
+/**
+ * ── EL ANCHO DE LA BANDA DE «A PULSO» (§ «Rebanada 10 · B») ──
+ *
+ * Lo que se construyó por error para el pincel no se tiró: es lo que a él le faltaba aquí. Palabra suya el
+ * 2026-09-10 con la pantalla delante: «*el a mano no servía de nada*».
+ */
+describe('<BuilderPanel> el ancho de la banda', () => {
+  it('sólo sale con «A pulso», y dice que sale una banda siguiendo la mano', () => {
+    const { re } = mount({ mode: 'draw', shape: 'free' });
+    expect(screen.getByTestId('mp-band')).toBeInTheDocument();
+    expect(screen.getByText(/saca una BANDA del ancho elegido siguiendo la mano/)).toBeInTheDocument();
+    re({ mode: 'draw', shape: 'poly' });
+    expect(screen.queryByTestId('mp-band')).not.toBeInTheDocument();
+  });
+
+  it('mover el ancho lo avisa hacia arriba', () => {
+    const onBandCells = vi.fn();
+    mount({ mode: 'draw', shape: 'free', bandCells: 0.22, onBandCells });
+    fireEvent.change(screen.getByRole('slider', { name: 'Ancho' }), { target: { value: '1.5' } });
+    expect(onBandCells).toHaveBeenCalledWith(1.5);
+  });
+
+  /** De serie es el grosor de muro de la escena: una escena existente no cambia hasta que él lo toque. */
+  it('arranca en el grosor de muro que le llega', () => {
+    mount({ mode: 'draw', shape: 'free', bandCells: 0.34 });
+    expect(screen.getByRole('slider', { name: 'Ancho' })).toHaveValue('0.34');
+  });
+
+  /** Un vano es un tramo recto y sin ancho: ofrecerlo prometería algo que no pasa. */
+  it('con una puerta no sale', () => {
+    mount({ mode: 'draw', buildKind: 'door', shape: 'free' });
+    expect(screen.queryByTestId('mp-band')).not.toBeInTheDocument();
+  });
+
+  /** Y también marcando sobre una foto: allí la banda se convierte en los muros de su contorno. */
+  it('sobre una foto sí sale, porque allí la banda marca los muros de su contorno', () => {
+    mount({ mode: 'photo', shape: 'free' });
+    expect(screen.getByTestId('mp-band')).toBeInTheDocument();
+  });
+});
+
 describe('<BuilderPanel> el candado de pegar a la rejilla', () => {
   it('cerrado lo dice, y su pista promete que nada ha cambiado', () => {
     mount();

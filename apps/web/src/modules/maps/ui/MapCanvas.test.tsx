@@ -1863,12 +1863,14 @@ describe('<MapCanvas> Builder levanta salas enteras', () => {
     expect(puntos[0]).toEqual([0, 0]);
   });
 
-  it('en «Dibujar aquí» el polígono y el trazo a pulso también levantan sala', () => {
+  it('en «Dibujar aquí» el trazo libre también levanta sala', () => {
     const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
     const { svg } = mount({ ...dm, wallShape: 'poly', builderMode: 'draw', ...cb2 });
-    down(svg, 0, 0); down(svg, 200, 0); down(svg, 200, 200); down(svg, 0, 0);
+    down(svg, 0, 0);
+    for (const [x, y] of [[200, 0], [200, 200], [0, 200]]) move(svg, x!, y!);
+    up(svg);
     expect(cb2.onAddRoomShape).toHaveBeenCalledTimes(1);
-    expect(cb2.onAddRoomShape.mock.calls[0]![0]).toBe('poly');
+    expect(cb2.onAddRoomShape.mock.calls[0]![0]).toBe('free');
     expect(cb2.onAddRoom).not.toHaveBeenCalled();
   });
 
@@ -1898,35 +1900,14 @@ describe('<MapCanvas> Builder levanta salas enteras', () => {
     expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBeGreaterThanOrEqual(8);
   });
 
-  it('polígono: un clic un vértice, y se cierra pinchando otra vez sobre el primero', () => {
-    const cb2 = { onAddRoom: vi.fn() };
-    const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
-    down(svg, 0, 0); down(svg, 200, 0); down(svg, 200, 150);
-    expect(cb2.onAddRoom).not.toHaveBeenCalled();
-    down(svg, 3, 4);                                       // de vuelta al primero: cierra
-    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
-    expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBe(3);
-  });
-
   /**
-   * 🔒 Un vértice PEGADO al primero tiene que poder ponerse. Los vértices van a la rejilla, así que el vecino
-   * de al lado cae a exactamente una casilla del primero: con el tope de cierre en `grid` ese clic cerraba la
-   * sala en vez de colocar la esquina, y una L cuyo último vértice cae junto al primero era imposible.
+   * 🔴 «POLÍGONO» ES AHORA EL TRAZO LIBRE CERRADO, por orden suya del 2026-09-10 con la pantalla delante:
+   * «*quiero que lo que hoy es a pulso lo pongas en polígono*». Se arrastra y la forma sale con el contorno
+   * de la mano, sin un muro por cada píxel.
    */
-  it('polígono: una esquina a una casilla del primer vértice se pone, no cierra la sala', () => {
+  it('polígono: la sala sale con la forma de la mano, sin un muro por cada pixel', () => {
     const cb2 = { onAddRoom: vi.fn() };
     const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
-    down(svg, 0, 0); down(svg, G * 4, 0); down(svg, G * 4, G * 2); down(svg, G * 2, G * 2); down(svg, G * 2, G);
-    down(svg, 0, G);                                       // pegado al primero, pero NO es el primero
-    expect(cb2.onAddRoom).not.toHaveBeenCalled();
-    down(svg, 0, 0);                                       // ahora sí: encima del primero
-    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
-    expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBe(6);
-  });
-
-  it('a pulso: la sala sale con la forma de la mano, sin un muro por cada pixel', () => {
-    const cb2 = { onAddRoom: vi.fn() };
-    const { svg } = mount({ ...dm, wallShape: 'free', ...cb2 });
     down(svg, 0, 0);
     for (const [x, y] of [[50, 0], [100, 0], [150, 0], [150, 50], [150, 100], [150, 150], [100, 150], [50, 150], [0, 150], [0, 100], [0, 50]]) move(svg, x!, y!);
     up(svg);
@@ -1943,26 +1924,64 @@ describe('<MapCanvas> Builder levanta salas enteras', () => {
     expect(cb2.onAddRoom).not.toHaveBeenCalled();
   });
 
-  /** 🔒 Un polígono a medias se tira, no se monta a medias: una sala abierta no detiene ni la vista ni el paso. */
-  it('Escape y el botón derecho tiran el polígono a medias sin levantar nada', () => {
-    const cb2 = { onAddRoom: vi.fn() };
-    const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
-    down(svg, 0, 0); down(svg, 200, 0);
+  /** 🔒 Una banda a medias se tira, no se monta a medias: lo que se está trazando todavía no es nada. */
+  it('Escape tira la banda a medias sin levantar nada', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', bandCells: 1, builderMode: 'draw', ...cb2 });
+    down(svg, 0, 0); move(svg, 200, 0);
+    expect(screen.getAllByTestId('mp-band-draft').length).toBeGreaterThan(0);
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(within(svg).getByTestId('mp-walls').querySelectorAll('.mp-wall.draft')).toHaveLength(0);
-    down(svg, 0, 0); down(svg, 200, 0);
-    fireEvent.contextMenu(svg, { clientX: 200, clientY: 0 });
-    down(svg, 3, 4);
-    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('mp-band-draft')).not.toBeInTheDocument();
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
   });
 
   it('cambiar de forma a media sala descarta lo empezado', () => {
-    const cb2 = { onAddRoom: vi.fn() };
-    const { svg, rerender } = mount({ ...dm, wallShape: 'poly', ...cb2 });
-    down(svg, 0, 0); down(svg, 200, 0); down(svg, 200, 150);
-    rerender({ ...dm, wallShape: 'rect', ...cb2 });
-    down(svg, 3, 4);
-    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg, rerender } = mount({ ...dm, wallShape: 'free', bandCells: 1, builderMode: 'draw', ...cb2 });
+    down(svg, 0, 0); move(svg, 200, 0);
+    rerender({ ...dm, wallShape: 'rect', builderMode: 'draw', ...cb2 });
+    expect(screen.queryByTestId('mp-band-draft')).not.toBeInTheDocument();
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
+  });
+
+  /**
+   * ── A PULSO SACA UNA BANDA (§ «Rebanada 10 · B») ──
+   *
+   * Es el gesto del pincel que se construyó por error para la rebanada 10 y que él mandó mudar aquí con la
+   * pantalla delante: «*lo que habías hecho en el otro chat para el pincel estaba mal, pero en el builder me
+   * servía para corregir el a mano, que no servía de nada*».
+   */
+  it('a pulso: arrastrar saca una BANDA siguiendo la mano, y se guarda al soltar', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', bandCells: 1, builderMode: 'draw', ...cb2 });
+    down(svg, 100, 100);
+    move(svg, 200, 100);
+    move(svg, 300, 100);
+    // Mientras arrastra sólo se ve el previo de lo que va a quedar.
+    expect(screen.getAllByTestId('mp-band-draft').length).toBeGreaterThan(0);
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
+    up(svg);
+    expect(cb2.onAddRoomShape).toHaveBeenCalledTimes(1);
+    expect(cb2.onAddRoomShape.mock.calls[0]![0]).toBe('brush');
+    expect((cb2.onAddRoomShape.mock.calls[0]![1] as unknown[]).length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByTestId('mp-band-draft')).not.toBeInTheDocument();
+  });
+
+  /** Un toque sin arrastre es un DISCO, como en cualquier programa de dibujo. */
+  it('a pulso: un toque sin arrastre también levanta forma', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', bandCells: 2, builderMode: 'draw', ...cb2 });
+    down(svg, 100, 100); up(svg);
+    expect(cb2.onAddRoomShape).toHaveBeenCalledTimes(1);
+  });
+
+  /** Sobre una foto la banda se convierte en los MUROS de su contorno: allí no se levanta mazmorra. */
+  it('a pulso sobre una foto marca los muros del contorno de la banda', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', bandCells: 1, builderMode: 'photo', ...cb2 });
+    down(svg, 100, 100); move(svg, 300, 100); up(svg);
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
+    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
   });
 
   /** Viendo como jugador, el director no levanta nada: sus herramientas están apagadas (regresión del 02-09). */

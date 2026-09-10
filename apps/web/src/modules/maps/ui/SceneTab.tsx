@@ -257,6 +257,12 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    */
   const [brushTexture, setBrushTexture] = useState<Texture | null>(null);
   const [brushColor, setBrushColor] = useState<string>(DEFAULT_BRUSH_COLOR);
+  /**
+   * EL ANCHO DE LA BANDA de «A pulso», en casillas. `null` = todavía no lo ha tocado y vale el grosor de muro
+   * de la escena, así que **una escena existente no cambia sola**. No se guarda en ninguna parte a propósito:
+   * sale de la escena y vale para lo que dibuje ahora.
+   */
+  const [bandDraft, setBandDraft] = useState<number | null>(null);
   /** Los colores que él se ha inventado en ESTA campaña. `null` = todavía no se han pedido. */
   const [colors, setColors] = useState<MapColor[] | null>(null);
   /**
@@ -889,6 +895,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind), ...(wallKind === 'door' ? doorDraft : {}) }, plan.splits));
             }}
             rooms={st.rooms} roomOpenings={st.roomOpenings} builderMode={builderMode} buildKind={buildKind}
+            /* Con qué ancho sale la banda de «A pulso» (§ «Rebanada 10 · B»). */
+            bandCells={bandDraft ?? live.wallThickness}
             onTooSmall={locked => setAvisoCorto(locked ? 'snap' : 'short')}
             onAddRoomShape={(shape, points) => {
               // Una SALA excava y un MURO rellena: la misma forma con el signo cambiado (dueño, 2026-09-04).
@@ -1077,6 +1085,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                 if (!shapesFor(k).includes(wallShape)) setWallShape(defaultShapeFor(k));
               }}
               shape={wallShape} onShape={s => { setTool('wall'); setWallShape(s); }}
+              bandCells={bandDraft ?? live.wallThickness} onBandCells={setBandDraft}
               snapGrid={snapGrid} onSnapGrid={setSnapGrid}
               chainNodes={chainNodes} onChainNodes={setChainNodes}
               preset={live.roomPreset} onPreset={k => run(patchScene(live.id, { roomPreset: k }))}

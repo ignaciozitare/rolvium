@@ -4,7 +4,7 @@ import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, doorTexturesUsed, type Point, type Segment, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { brushRings, freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_ROOM_CELLS, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
 import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
@@ -124,6 +124,12 @@ interface Props {
   /** `start` marca el primer brochazo de un arrastre: es donde se sortea la forma del borde roto. */
   onPaintMask?: (from: Point, to: Point, start?: boolean) => void;
   onPaintMaskEnd?: () => void;
+  /**
+   * EL ANCHO DE LA BANDA de «A pulso», en casillas (§ «Rebanada 10 · B»). Arrastrar saca una banda de este
+   * ancho SIGUIENDO LA MANO — el gesto que él mandó mudar aquí desde el pincel. Sin él manda el grosor de
+   * muro de la escena, así que una escena existente no cambia hasta que él lo toque.
+   */
+  bandCells?: number;
   /**
    * ¿HAY DÓNDE PINTAR AHORA MISMO? (rebanada 10). Lo decide la pantalla, que es quien sabe si hay una capa de
    * terreno, si el ratón está sobre una habitación o si el mapa tiene roca. El lienzo sólo necesita saber si
@@ -246,6 +252,8 @@ type Gesture =
   | { kind: 'line'; start: Point }
   /** Levantando una sala a pulso: los puntos por donde va pasando la mano. */
   | { kind: 'roomFree'; points: Point[] }
+  /** A PULSO: se arrastra y sale una BANDA siguiendo la mano, del ancho elegido (§ «Rebanada 10 · B»). */
+  | { kind: 'roomBand'; points: Point[] }
   /**
    * Moviendo o estirando un GRUPO. Con `handle` a null se mueve entero; con tirador se estira por ese lado.
    * Guarda el marco de partida porque escalar es llevar los muros de un marco a otro, no ir sumando tirones.
@@ -292,6 +300,11 @@ const CATCH_UP_CELLS = 0.35;
 const PROBE_R = 17;
 /** Brush paints per second, matching the token drag's `DRAG_HZ_MS` (useScene.ts). */
 const PAINT_HZ_MS = 50;
+/**
+ * Lo mínimo que tiene que moverse la mano para que la BANDA apunte otro punto, en px de PANTALLA (se divide
+ * por el zoom). Sin este filtro un arrastre lento deja cientos de puntos en el mismo sitio.
+ */
+const BAND_STEP_PX = 4;
 
 /**
  * SVG scene canvas: background → grid → (DM veil) → walls → drawings → tokens → UI (measure · pin · brush · selection).
@@ -330,7 +343,8 @@ export function MapCanvas(p: Props): JSX.Element {
   /** La sala que se está levantando, ya en lados. Se pinta mientras se arrastra y se guarda al soltar. */
   const [roomDraft, setRoomDraft] = useState<RoomSide[]>([]);
   /** Los vértices que lleva puestos el polígono. Se cierra pinchando otra vez sobre el primero. */
-  const [polyPoints, setPolyPoints] = useState<Point[]>([]);
+  /** Los anillos de la banda mientras se arrastra: el previo de lo que va a quedar (§ «Rebanada 10 · B»). */
+  const [bandDraft, setBandDraft] = useState<[number, number][][]>([]);
   /** Dónde se está viendo la luz mientras se arrastra. Igual que `wallDraft`: se pinta ya, se guarda al soltar. */
   const [lightDraft, setLightDraft] = useState<{ id: string; x: number; y: number } | null>(null);
   /** Cuánto se lleva movido el trazo que se arrastra. Se pinta ya; se guarda al soltar. */
@@ -390,6 +404,18 @@ export function MapCanvas(p: Props): JSX.Element {
     if (p.builderMode === 'draw' && p.onAddRoomShape) p.onAddRoomShape(shape, ringFromSides(sides));
     else p.onAddRoom?.(sides);
   };
+  /**
+   * UNA BANDA, ya en anillo. Dibujando aquí es una forma más de las de siempre —así fundirse, cortar la vista
+   * y frenar a las fichas vienen ya hechos—; marcando sobre una foto se convierte en los muros de su
+   * contorno, que es lo que significa marcar una pared ahí.
+   */
+  const commitBand = (ring: [number, number][]): void => {
+    if (p.builderMode === 'draw' && p.onAddRoomShape) { p.onAddRoomShape('brush', ring); return; }
+    p.onAddRoom?.(ring.map(([x, y], i) => {
+      const [nx, ny] = ring[(i + 1) % ring.length]!;
+      return { x1: x, y1: y, x2: nx, y2: ny };
+    }));
+  };
 
   useEffect(() => {
     if (!p.pin) { setPinShown(null); return; }
@@ -397,9 +423,9 @@ export function MapCanvas(p: Props): JSX.Element {
     const id = window.setTimeout(() => setPinShown(null), PIN_MS);
     return () => window.clearTimeout(id);
   }, [p.pin]);
-  useEffect(() => { if (p.tool !== 'wall') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); } if (p.tool !== 'measure') setMeasure(null); }, [p.tool]);
+  useEffect(() => { if (p.tool !== 'wall') { setWallStart(null); setBandDraft([]); setRoomDraft([]); } if (p.tool !== 'measure') setMeasure(null); }, [p.tool]);
   /** Cambiar de forma a media sala la descarta: los vértices de un polígono no valen para un círculo. */
-  useEffect(() => { setPolyPoints([]); setRoomDraft([]); setWallStart(null); }, [p.wallShape]);
+  useEffect(() => { setBandDraft([]); setRoomDraft([]); setWallStart(null); }, [p.wallShape]);
   useEffect(() => { onDeleteRef.current = () => p.onDeleteSelection?.(); });
   useEffect(() => {
     cogerTodoRef.current = () => {
@@ -427,7 +453,7 @@ export function MapCanvas(p: Props): JSX.Element {
     const onControl = (t: EventTarget | null): boolean =>
       !!(t as HTMLElement | null)?.closest?.('button, a[href], input, select, textarea, summary, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="radio"], [role="tab"], [contenteditable="true"]');
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); setGroupDraft(null); p.onSelectWalls?.([]); return; }
+      if (e.key === 'Escape') { setWallStart(null); setBandDraft([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); setGroupDraft(null); p.onSelectWalls?.([]); return; }
       if (e.key === ' ' && !typing(e.target) && !onControl(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
       /**
@@ -751,26 +777,27 @@ export function MapCanvas(p: Props): JSX.Element {
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
-        // A pulso: se va guardando por dónde pasa la mano.
+        /*
+         * ── A PULSO: LA BANDA (§ «Rebanada 10 · B») ──
+         * Se arrastra y sale una banda del ancho elegido SIGUIENDO LA MANO. Es exactamente el gesto del
+         * pincel que se construyó por error y que él mandó mudar aquí, con la pantalla delante: «*lo que
+         * habías hecho en el otro chat para el pincel estaba mal, pero en el builder me servía*».
+         */
         if (shape === 'free') {
-          setGesture({ kind: 'roomFree', points: [s] });
+          setGesture({ kind: 'roomBand', points: [s] });
+          setBandDraft(brushRings([s], p.bandCells ?? p.scene.wallThickness, grid));
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
-        // Polígono: un clic, un vértice. Se cierra pinchando otra vez encima del primero — el gesto que ya
-        // conoce todo el mundo, y así no hace falta un botón aparte ni un doble clic que compita con nada.
+        /*
+         * ── POLÍGONO: EL TRAZO LIBRE CERRADO ──
+         * Es lo que hasta hoy hacía «a pulso», movido aquí por orden suya del 2026-09-10: «*quiero que lo que
+         * hoy es a pulso lo pongas en polígono, y a pulso sea lo que te indico*». Se arrastra y la forma sale
+         * con el contorno de la mano.
+         */
         if (shape === 'poly') {
-          const v = anclar(s, undefined, polyPoints[polyPoints.length - 1] ?? null);
-          const first = polyPoints[0];
-          // Menos de media casilla, no una entera: los vértices están pegados a la rejilla, así que el vecino
-          // de al lado cae a exactamente `grid` del primero y con el tope en `grid` cerraba la sala en vez de
-          // poner el vértice — imposible hacer una L cuya última esquina caiga junto a la primera.
-          if (first && polyPoints.length >= MIN_RING_POINTS && Math.hypot(v.x - first.x, v.y - first.y) <= grid * 0.75) {
-            commitRoom(polygonSides(polyPoints, grid, paso, minForma), 'poly');
-            setPolyPoints([]);
-            return;
-          }
-          setPolyPoints([...polyPoints, v]);
+          setGesture({ kind: 'roomFree', points: [s] });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
         // Muro only BUILDS. Opening a door is the hover disc's job, which is what unblocks starting a wall next
@@ -977,6 +1004,17 @@ export function MapCanvas(p: Props): JSX.Element {
       const points = [...gesture.points, s];
       setGesture({ ...gesture, points });
       setRoomDraft(freehandSides(points, grid, minForma));
+    } else if (gesture.kind === 'roomBand') {
+      /*
+       * Se guarda un punto sólo cuando la mano se ha MOVIDO de verdad. Sin este filtro un arrastre lento deja
+       * cientos de puntos pegados en el mismo sitio y el anillo se recalcula en cada uno; el motor los
+       * volvería a quitar igual (`brushRings` limpia el trazo antes de engordarlo).
+       */
+      const ultimo = gesture.points[gesture.points.length - 1]!;
+      if (Math.hypot(s.x - ultimo.x, s.y - ultimo.y) < BAND_STEP_PX / p.view.zoom) return;
+      const points = [...gesture.points, s];
+      setGesture({ ...gesture, points });
+      setBandDraft(brushRings(points, p.bandCells ?? p.scene.wallThickness, grid));
     } else if (gesture.kind === 'groupXf') {
       // Hasta salir de la zona muerta esto es un CLIC, no un arrastre: ni se pinta ni se guarda nada.
       if (gesture.moved || Math.hypot(s.x - gesture.start.x, s.y - gesture.start.y) > DEAD_ZONE_PX / p.view.zoom) {
@@ -1042,7 +1080,7 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const onRightClick = (e: ReactPointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
     e.preventDefault();
-    if (wallStart || measure || gesture || polyPoints.length) { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); return; }
+    if (wallStart || measure || gesture || bandDraft.length) { setWallStart(null); setBandDraft([]); setRoomDraft([]); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); return; }
     // Sobre algo, el menú es de ESE algo; en el suelo vacío, el de la vista. Sólo el director mueve capas.
     const s = toScene(e);
     const el = dmSight ? elementAt(s) : null;
@@ -1074,6 +1112,19 @@ export function MapCanvas(p: Props): JSX.Element {
     if (gesture.kind === 'roomFree') {
       commitRoom(freehandSides(gesture.points, grid, minForma), 'free');
       setRoomDraft([]); setGesture(null); return;
+    }
+    if (gesture.kind === 'roomBand') {
+      /*
+       * Un brochazo puede salir PARTIDO en varias piezas —cuando el trazo dobla más cerrado que su propio
+       * ancho— y se guardan todas: se solapan en el codo y el motor de salas las funde, que es lo que evita
+       * un agujero de roca en medio de la banda. Un toque sin arrastre es un disco, como en cualquier
+       * programa de dibujo: `brushRings` ya lo resuelve con un solo punto.
+       */
+      const anillos = brushRings(gesture.points, p.bandCells ?? p.scene.wallThickness, grid);
+      setBandDraft([]); setGesture(null);
+      if (!anillos.length) { p.onTooSmall?.(candado); return; }
+      for (const anillo of anillos) commitBand(anillo);
+      return;
     }
     if (gesture.kind === 'line') {
       const side = lineSide(gesture.start, hover ? anclar(hover, undefined, gesture.start) : gesture.start, grid, minRaya);
@@ -1382,10 +1433,8 @@ export function MapCanvas(p: Props): JSX.Element {
             {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={anclar(hover, undefined, wallStart).x} y2={anclar(hover, undefined, wallStart).y} className="mp-wall draft" />}
             {roomDraft.map((r, i) => <line key={`room-${i}`} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} className="mp-wall draft" />)}
             {/* El brochazo mientras se arrastra: el contorno de lo que va a quedar, sin rellenar. */}
-            {p.tool === 'wall' && polyPoints.map((v, i) => {
-              const next = polyPoints[i + 1] ?? (hover ? anclar(hover, undefined, polyPoints[polyPoints.length - 1] ?? null) : v);
-              return <line key={`poly-${i}`} x1={v.x} y1={v.y} x2={next.x} y2={next.y} className="mp-wall draft" />;
-            })}
+            {/* La banda mientras se arrastra: el contorno de lo que va a quedar, sin rellenar. */}
+            {bandDraft.map((ring, i) => <path key={`band-${i}`} d={ringPath(ring.map(([x, y]) => ({ x, y })))} className="mp-wall draft" fill="none" data-testid="mp-band-draft" />)}
           </g>
           <g className="mp-layer-drawings" data-testid="mp-drawings">
             {drawingsShown.map(d => (

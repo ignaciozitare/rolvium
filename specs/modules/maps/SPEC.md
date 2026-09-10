@@ -2026,6 +2026,33 @@ piezas que se solapan para que no salga un agujero de roca en medio.
 > ⚠️ Confirmado por él con esas palabras el 2026-09-10: *«lo de elegir textura y eso es una equivalencia, pero
 > queda como muro o sala»*. **No aparece ninguna cosa nueva y no desaparece la elección de siempre.**
 
+#### 🔴 CÓMO SE VE ESO EN EL PANEL — UNA FILA, NO UNA PALETA
+
+**Es UNA SOLA FILA compacta, la misma forma para los dos**, exactamente como la lámina aprobada (`rolvium.pen`
+· marco `oi358` § «CON QUÉ SE PINTA»):
+
+```
+MURO         [muestra]  Losa de piedra              [ CAMBIAR ]
+HABITACIÓN   [muestra]  Arena                       [ CAMBIAR ]
+```
+
+- La **muestra** es un cuadrito de 26×20: la textura repetida, o el color liso.
+- **`CAMBIAR` abre el sitio donde se elige** —el catálogo de texturas para el muro, la paleta para la
+  habitación— **y ese sitio se abre APARTE, encima del mapa**, como ya hace el catálogo.
+- Con nada elegido, la fila dice que manda la textura base del mapa, y no ofrece «quitar».
+
+> 🔴 **LO QUE NO SE HACE, Y ES UN FALLO REAL QUE OCURRIÓ EL 2026-09-10.** Se metió el **bloque entero del
+> color del Pincel** dentro del panel del Builder —cuadro grande, los doce colores, «tus colores», el campo
+> del hex y el cuentagotas—, y el panel se hizo gigante. Él lo vio en pantalla: *«¿qué mierda es eso?»*.
+>
+> **La paleta desplegada es del PINCEL. En el Builder sólo va la fila.** El panel del Builder ya es largo —
+> modo, qué levanto, forma, preajustes, las dos texturas base, el grosor, el tamaño de las fichas— y no
+> aguanta un bloque más.
+>
+> **Y el panel mide 300 px: lo que se meta ahí tiene que caber.** En ese mismo fallo el rótulo se salió y se
+> leía «…LA HABITACIÓN CON COLO» y «Ninguna: manda la textura del ma». Rótulos cortos, y el nombre de la
+> textura que no desborde.
+
 ### 10B.3 · Sin borrador aquí
 
 Lo construido se quita **seleccionando y borrando**, que es lo que ya existe.
