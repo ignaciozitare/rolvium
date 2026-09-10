@@ -618,12 +618,13 @@ describe('<RoomsLayer> el brochazo se pinta con lo suyo', () => {
  * geometría sigue siendo la de las formas, no la del PNG.
  */
 describe('<RoomsLayer> — la pintura que se pone encima', () => {
-  it('la pintura de una habitación se dibuja dentro de SU agujero', () => {
+  it('la pintura del suelo se dibuja dentro del AGUJERO, no suelta sobre el mapa', () => {
     const { container } = mount([room('r1', 60, 60, 300, 300, { floorPaintUrl: 'https://x/paint/room-r1.png' })]);
     const pintura = screen.getByTestId('mp-room-floor-paint');
     expect(pintura.getAttribute('href')).toContain('paint/room-r1.png');
-    // Dentro del grupo recortado por la máscara de ESA forma, no suelta sobre el mapa.
-    expect(container.querySelector('g[mask] image[data-testid="mp-room-floor-paint"]')).not.toBeNull();
+    // 🔑 Contra la máscara del agujero —la unión de lo excavado—: por ahí es por donde la roca no se mancha.
+    const grupo = container.querySelector(`g[mask="url(#${roomMaskIds('sc-1').hole})"]`)!;
+    expect(grupo.querySelector('[data-testid="mp-room-floor-paint"]')).not.toBeNull();
   });
 
   /** Sin pintar no se dibuja nada: una sala de antes de la rebanada 10 se ve exactamente igual. */
@@ -632,13 +633,20 @@ describe('<RoomsLayer> — la pintura que se pone encima', () => {
     expect(screen.queryByTestId('mp-room-floor-paint')).not.toBeInTheDocument();
   });
 
-  /** Una forma PINTADA no se junta con la de al lado: la pintura es suya, y agrupada mancharía a las vecinas. */
-  it('una forma pintada no se agrupa con las demás', () => {
+  /**
+   * 🐞 PINTAR NO PARTE LAS CAPAS DE SUELO, y eso era lo que él vio raro en pantalla el 2026-09-10: «*la forma
+   * original de las habitaciones está haciendo algo raro*». Sacar cada sala pintada a su propia capa dejaba
+   * una costura de medio píxel entre dos salas pegadas, así que al abrir el pincel aparecían las siluetas de
+   * todas las habitaciones. La pintura del suelo se dibuja UNA vez, contra el agujero.
+   */
+  it('pintar no parte las capas de suelo: dos salas iguales siguen siendo una', () => {
     mount([
       room('r1', 0, 0, 100, 100, { floorPaintUrl: 'https://x/p1.png' }),
-      room('r2', 150, 0, 250, 100),
+      room('r2', 150, 0, 250, 100, { floorPaintUrl: 'https://x/p1.png' }),
     ]);
-    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(2);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(1);
+    // …y la pintura, una sola, dentro del agujero.
+    expect(screen.getAllByTestId('mp-room-floor-paint')).toHaveLength(1);
   });
 
   /** LA ROCA se pinta dentro de la MISMA máscara que ya la talla, así que no puede manchar una habitación. */
@@ -651,7 +659,7 @@ describe('<RoomsLayer> — la pintura que se pone encima', () => {
   /** El previo EN VIVO manda sobre lo guardado: sin él el brochazo no se vería hasta soltar el ratón. */
   it('el previo en vivo manda sobre la pintura guardada', () => {
     mount([room('r1', 60, 60, 300, 300, { floorPaintUrl: 'https://x/viejo.png' })], [], SCENE, null,
-      { on: 'room', id: 'r1', href: 'data:image/png;base64,NUEVO' });
+      { on: 'room', id: 'sc-1:floor', href: 'data:image/png;base64,NUEVO' });
     expect(screen.getByTestId('mp-room-floor-paint')).toHaveAttribute('href', 'data:image/png;base64,NUEVO');
   });
 

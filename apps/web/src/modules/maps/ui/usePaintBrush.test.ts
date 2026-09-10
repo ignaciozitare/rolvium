@@ -181,6 +181,33 @@ describe('usePaintBrush', () => {
     expect(d.save).toHaveBeenCalledWith(BLOB);
   });
 
+  /**
+   * ↩️ CADA PINCELADA DEVUELVE SU VUELTA ATRÁS (2026-09-10: «*el Ctrl+Z sigue dando por culo, depende con qué
+   * te deja deshacer o no*»). El hook es el único que tiene las dos fotos del lienzo, así que la construye él
+   * y quien llama sólo la apila.
+   */
+  it('al soltar devuelve la vuelta atrás de esa pincelada', async () => {
+    const { result, d } = mount();
+    act(() => result.current.paint({ x: 100, y: 100 }, { x: 140, y: 100 }, 30, ink(), stroke(), true));
+    let paso: { undo: () => Promise<void>; redo: () => Promise<void> } | null = null;
+    await act(async () => { paso = await result.current.flush(); });
+    expect(paso).not.toBeNull();
+    d.save.mockClear();
+    // Deshacer vuelve a subir la foto de ANTES; rehacer, la de después. Invertir un lienzo de píxeles es eso.
+    await act(async () => { await paso!.undo(); });
+    expect(d.save).toHaveBeenCalledTimes(1);
+    await act(async () => { await paso!.redo(); });
+    expect(d.save).toHaveBeenCalledTimes(2);
+  });
+
+  /** Soltar sin haber pintado no deja paso que deshacer: no ha pasado nada. */
+  it('soltar sin pintar no devuelve paso', async () => {
+    const { result } = mount();
+    let paso: unknown = 'x';
+    await act(async () => { paso = await result.current.flush(); });
+    expect(paso).toBeNull();
+  });
+
   /** Sin haber pintado nada no se sube nada: soltar el ratón en el vacío no escribe en la base. */
   it('soltar sin haber pintado no sube nada', async () => {
     const { result, d } = mount();

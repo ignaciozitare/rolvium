@@ -103,6 +103,8 @@
 .mp-brush{fill:color-mix(in srgb,var(--sys-gold) 18%,transparent);stroke:var(--sys-gold);stroke-width:1;pointer-events:none;}
 .mp-brush.hide{fill:color-mix(in srgb,var(--sys-ink) 22%,transparent);stroke:var(--sys-ink-soft);}
 /* Pintando, la silueta va LIGERA: debajo está el mapa que se está retocando y un disco opaco lo taparía. */
+/* El previo del azulejo: translúcido, para comparar la losa contra lo que ya hay debajo. */
+.mp-tile-preview{opacity:.55;pointer-events:none;}
 .mp-brush.mask{fill:color-mix(in srgb,var(--sys-paper-hi) 8%,transparent);stroke:color-mix(in srgb,var(--sys-paper-hi) 55%,transparent);stroke-dasharray:4 3;}
 .mp-drawing.draft{opacity:.7;}
 /* Elegido: un halo dorado alrededor, NO un cambio de color — el color del trazo es del que lo hizo. */

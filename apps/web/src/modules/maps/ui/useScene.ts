@@ -78,9 +78,13 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const roomOpeningsRef = useRef<RoomOpening[]>([]);
   roomOpeningsRef.current = roomOpenings;
   roomsRef.current = rooms;
-  /** …y la de trazos, por lo mismo: deshacer un borrado tiene que saber qué trazo había ahí. */
+  /** …y las de trazos, fichas y luces, por lo mismo: deshacer un borrado tiene que saber qué había ahí. */
   const drawingsRef = useRef<Drawing[]>([]);
   drawingsRef.current = drawings;
+  const tokensRef = useRef<Token[]>([]);
+  tokensRef.current = tokens;
+  const lightsRef = useRef<Light[]>([]);
+  lightsRef.current = lights;
   const [live, setLive] = useState<Scene | null>(scene);
   const [drags, setDrags] = useState<Record<string, LiveDrag>>({});
   const [pin, setPin] = useState<LivePin | null>(null);
@@ -403,9 +407,6 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     announceVision();
   }, [repo, sceneId, live, announceVision]);
 
-  const addToken = useCallback(async (t: NewToken) => { const created = await repo.addToken(t); setTokens(l => (l.some(x => x.id === created.id) ? l : [...l, created])); return created; }, [repo]);
-  const removeToken = useCallback(async (id: string) => { setTokens(l => l.filter(t => t.id !== id)); await repo.removeToken(id); }, [repo]);
-  const patchToken = useCallback(async (id: string, patch: Partial<Token>) => { setTokens(l => l.map(t => (t.id === id ? { ...t, ...patch } : t))); await repo.updateToken(id, patch); }, [repo]);
   /**
    * ↩️ DESHACER Y REHACER (§ «Rebanada 8»). Petición suya del 2026-08-19, aparcada dos veces y reclamada el
    * 2026-09-03: «*el deshacer y el inverso no funciona*».
@@ -421,6 +422,39 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const history = useHistory();
   const { push } = history;
 
+  /**
+   * 🐞 COLOCAR Y QUITAR UNA FICHA ENTRAN EN EL HISTORIAL (segunda vuelta de su queja del 2026-09-10: «*el
+   * Ctrl+Z sigue dando por culo, depende con qué te deja deshacer o no*»). Un deshacer que depende de con qué
+   * herramienta estabas es peor que no tenerlo: nadie lleva la cuenta de qué acciones cuentan.
+   *
+   * ⚠️ MOVER una ficha NO entra, y es deliberado: la mueve cualquier jugador y por el canal en vivo, así que
+   * un Ctrl+Z del director tiraría de la ficha de otro por debajo. Queda anotado en `WORK_STATE.md`.
+   */
+  const addToken = useCallback(async (t: NewToken) => {
+    const created = await repo.addToken(t);
+    setTokens(l => (l.some(x => x.id === created.id) ? l : [...l, created]));
+    let vivo = created;
+    push({
+      label: 'maps.history.token',
+      undo: async () => { setTokens(l => l.filter(x => x.id !== vivo.id)); await repo.removeToken(vivo.id); },
+      redo: async () => { vivo = await repo.addToken(t); setTokens(l => [...l, vivo]); },
+    });
+    return created;
+  }, [repo, push]);
+  const removeToken = useCallback(async (id: string) => {
+    const antes = tokensRef.current.find(t => t.id === id);
+    setTokens(l => l.filter(t => t.id !== id));
+    await repo.removeToken(id);
+    if (!antes) return;
+    const { id: _id, ...input } = antes;
+    let vivo = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { vivo = await repo.addToken(input as NewToken); setTokens(l => [...l, vivo]); },
+      redo: async () => { setTokens(l => l.filter(x => x.id !== vivo.id)); await repo.removeToken(vivo.id); },
+    });
+  }, [repo, push]);
+  const patchToken = useCallback(async (id: string, patch: Partial<Token>) => { setTokens(l => l.map(t => (t.id === id ? { ...t, ...patch } : t))); await repo.updateToken(id, patch); }, [repo]);
   /**
    * 🐞 DIBUJAR ENTRA EN EL HISTORIAL (suyo, 2026-09-10: «*revisa el Ctrl+Z, hace cosas raras o no funciona*»).
    *
@@ -1050,13 +1084,35 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const addLight = useCallback(async (l: NewLight) => {
     const created = await repo.addLight(l);
     setLights(list => (list.some(x => x.id === created.id) ? list : [...list, created]));
+    let vivo = created;
+    push({
+      label: 'maps.history.light',
+      undo: async () => { setLights(list => list.filter(x => x.id !== vivo.id)); await repo.removeLight(vivo.id); },
+      redo: async () => { vivo = await repo.addLight(l); setLights(list => [...list, vivo]); },
+    });
     return created;
-  }, [repo]);
+  }, [repo, push]);
+  /**
+   * Retocar una luz NO apila: el editor escribe en cada roce de un deslizador, y apilar cincuenta pasos por
+   * un color llenaría el historial de ruido — Ctrl+Z acabaría no llegando nunca a lo de antes.
+   */
   const patchLight = useCallback(async (id: string, patch: LightPatch) => {
     setLights(list => list.map(x => (x.id === id ? { ...x, ...patch } : x)));
     await repo.updateLight(id, patch);
   }, [repo]);
-  const removeLight = useCallback(async (id: string) => { setLights(list => list.filter(x => x.id !== id)); await repo.removeLight(id); }, [repo]);
+  const removeLight = useCallback(async (id: string) => {
+    const antes = lightsRef.current.find(x => x.id === id);
+    setLights(list => list.filter(x => x.id !== id));
+    await repo.removeLight(id);
+    if (!antes) return;
+    const { id: _id, createdAt: _c, updatedAt: _u, ...input } = antes;
+    let vivo = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { vivo = await repo.addLight(input as NewLight); setLights(list => [...list, vivo]); },
+      redo: async () => { setLights(list => list.filter(x => x.id !== vivo.id)); await repo.removeLight(vivo.id); },
+    });
+  }, [repo, push]);
 
   const focusPin = useCallback((p: Point) => {
     if (!sceneId || !live) return;

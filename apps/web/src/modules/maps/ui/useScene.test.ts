@@ -550,6 +550,40 @@ describe('useScene — el historial no se salta nada de lo que se dibuja', () =>
     await act(async () => { expect(await r.current.history.undo()).toBeNull(); });
   });
 
+  /** Colocar una ficha y quitarla también entran: «depende con qué te deja deshacer o no» era el fallo. */
+  it('deshacer y rehacer COLOCAR una ficha', async () => {
+    const repo = fakeMapsRepo({ tokens: [] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addToken({ ...TOKEN_KAREN, id: undefined as unknown as string } as never); });
+    expect(r.current.tokens).toHaveLength(1);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.token'); });
+    expect(r.current.tokens).toHaveLength(0);
+    await act(async () => { await r.current.history.redo(); });
+    expect(r.current.tokens).toHaveLength(1);
+  });
+
+  it('deshacer QUITAR una ficha la devuelve', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.removeToken(TOKEN_KAREN.id); });
+    expect(r.current.tokens).toHaveLength(0);
+    await act(async () => { await r.current.history.undo(); });
+    expect(r.current.tokens).toHaveLength(1);
+    expect(r.current.tokens[0]!.name).toBe(TOKEN_KAREN.name);
+  });
+
+  /** Y las luces, que también son de Builder. */
+  it('deshacer y rehacer una LUZ', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addLight(newLightOf('fire', { x: 100, y: 200 }, SCENE_WAREHOUSE)); });
+    expect(r.current.lights).toHaveLength(1);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.light'); });
+    expect(r.current.lights).toHaveLength(0);
+    await act(async () => { await r.current.history.redo(); });
+    expect(r.current.lights).toHaveLength(1);
+  });
+
   it('deshacer un MOVIMIENTO de forma la devuelve donde estaba', async () => {
     const SALA = {
       id: 'rm-1', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,

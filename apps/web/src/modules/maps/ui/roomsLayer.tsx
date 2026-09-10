@@ -90,11 +90,9 @@ interface Capa { key: string; rock: boolean; url: string | null; d: string;
   /** CON QUÉ SE PINTA, ya resuelto (rebanada 10): el color de la forma, o el del preajuste que le toque. */
   color: string;
   /** El PNG pintado sobre el suelo de ESTA sala, si lo tiene. Una capa con máscara es siempre de una sola sala. */
-  mask: string | null;
-  /** LA PINTURA de esta forma (rebanada 10), la que va ENCIMA de su suelo. `null` = sin pintar. */
-  paint: string | null }
+  mask: string | null }
 
-function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl' | 'wallTextureUrl' | 'roomPreset'>, preview: Props['floorPreview'] = null, pintura: Props['paintPreview'] = null): Capa[] {
+function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl' | 'wallTextureUrl' | 'roomPreset'>, preview: Props['floorPreview'] = null): Capa[] {
   const out: Capa[] = [];
   for (const r of rooms) {
     const d = ringPath(ringOf(r));
@@ -114,16 +112,6 @@ function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl' | 
     // Un TABIQUE no lleva máscara: no tiene suelo que repintar, devuelve roca al hueco.
     const mask = rock ? null : preview && preview.roomId === r.id ? preview.href : roomMaskSrc(r);
     /*
-     * LA PINTURA VA EN LAS DOS: una forma que RELLENA también se pinta (su roca es su superficie), igual que
-     * una que excava pinta su suelo. Es la misma idea y por eso es la misma columna.
-     */
-    /*
-     * 🔑 El previo del SUELO vale para TODAS las formas excavadas, no para una: la pintura del suelo es una
-     * sola y cada forma la dibuja dentro de su contorno. Mirar el id aquí volvería a cortar el brochazo en
-     * las costuras de una habitación hecha de varios trozos, que es justo el fallo que él vio en pantalla.
-     */
-    const paint = pintura && pintura.on === 'room' && !rock ? pintura.href : roomPaintSrc(r);
-    /*
      * UNA SALA PINTADA NO SE JUNTA CON NADIE, y por eso su clave lleva su id. Juntar las seguidas que pintan
      * lo mismo es lo que evita veinte recortes del tamaño del mapa, pero una máscara es SUYA: metida en un
      * grupo se aplicaría también al suelo de las vecinas y aparecerían agujeros en salas que nadie tocó.
@@ -131,10 +119,10 @@ function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl' | 
      * ⚠️ Y la clave lleva el COLOR y la FOTO: dos brochazos seguidos de colores distintos pintan cosas
      * distintas, así que juntarlos daría el color del primero a los dos.
      */
-    const key = mask || paint ? `pintada:${r.id}` : `${rock ? 'rock' : 'floor'}|${color}|${url ?? ''}`;
+    const key = mask ? `pintada:${r.id}` : `${rock ? 'rock' : 'floor'}|${color}|${url ?? ''}`;
     const last = out[out.length - 1];
-    if (last && last.key === key && !mask && !paint) last.d += ` ${d}`;
-    else out.push({ key, rock, url, color, d, mask, paint });
+    if (last && last.key === key && !mask) last.d += ` ${d}`;
+    else out.push({ key, rock, url, color, d, mask });
   }
   return out;
 }
@@ -175,7 +163,23 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null,
   const floorTile = tilePx(scene.floorTextureScale, scene.grid.size);
   // UNA sola lista, y se recorre dos veces con el MISMO índice: los patrones de `defs` y los rectángulos que
   // los usan se emparejan por ese índice, así que calcularla dos veces sería pedir que se descuadren.
-  const capasPintadas = capasDe(rooms, scene, floorPreview, paintPreview);
+  const capasPintadas = capasDe(rooms, scene, floorPreview);
+  /**
+   * 🐞 LA PINTURA DEL SUELO SE DIBUJA UNA SOLA VEZ, CONTRA EL AGUJERO — y no una por forma, que es lo que
+   * hacía hasta el 2026-09-10 y lo que él vio raro en pantalla («*la forma original de las habitaciones está
+   * haciendo algo raro*»).
+   *
+   * Dibujarla por forma obligaba a sacar cada sala pintada a su propia capa, y dos salas contiguas dibujadas
+   * por separado dejan una costura de medio píxel en el borde compartido: en cuanto se abría el pincel,
+   * aparecían las siluetas de todas las habitaciones. Contra el agujero —que ES la unión de lo excavado— no
+   * hay costuras que dejar, y de paso las capas vuelven a agruparse como antes.
+   *
+   * El dato sigue colgando de CADA forma (todas apuntan al mismo PNG), que es lo que hará que la pintura se
+   * vaya con la sala el día que una sala se pueda mover.
+   */
+  const floorPaint = paintPreview && paintPreview.on === 'room'
+    ? paintPreview.href
+    : roomPaintSrc(dugRooms(rooms).find(r => r.floorPaintUrl) ?? { floorPaintUrl: null, updatedAt: '' });
   /**
    * LA PINTURA DE LA ROCA (rebanada 10). Va por ESCENA porque la roca no es una fila: es el negativo de lo
    * excavado. Y ahí es donde se cumple «*si se me va la mano al muro… lo mismo con el muro*»: se dibuja
@@ -330,17 +334,22 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null,
               {/* El color va DEBAJO: si hay foto se la come entera, y si él se la quita asoma lo que había. */}
               <rect {...full} fill={c.color} />
               {c.url && <rect {...full} fill={`url(#${ids.floorTile}-${i})`} data-testid={c.rock ? 'mp-room-fill-img' : 'mp-room-floor-img'} />}
-              {/*
-                * ── LA PINTURA (rebanada 10) ── Encima de todo lo anterior, y dentro del recorte de ESTA
-                * forma: por eso pintar una habitación no puede manchar la de al lado ni el muro. Se suma
-                * capa sobre capa porque el PNG ya viene con las pasadas cocidas dentro, y **no cambia el
-                * mapa**: la geometría es la de arriba, no ésta.
-                */}
-              {c.paint && <image href={c.paint} {...full} preserveAspectRatio="none" data-testid="mp-room-floor-paint" />}
             </g>
           </g>
         );
       })}
+
+      {/*
+        * ── LA PINTURA DEL SUELO (rebanada 10) ── Encima de todos los suelos y DENTRO DEL AGUJERO, que es la
+        * unión de lo excavado: por eso pintar el suelo no puede manchar la roca, y por eso no deja costuras
+        * entre dos salas pegadas. Se suma capa sobre capa porque el PNG ya viene con las pasadas cocidas
+        * dentro, y **no cambia el mapa**: la geometría es la de arriba, no ésta.
+        */}
+      {floorPaint && (
+        <g mask={`url(#${ids.hole})`}>
+          <image href={floorPaint} {...full} preserveAspectRatio="none" data-testid="mp-room-floor-paint" />
+        </g>
+      )}
 
       {/*
         * ── LA BANDA Y EL RAYADO, PEGADOS AL MURO POR FUERA ──

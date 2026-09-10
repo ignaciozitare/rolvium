@@ -46,6 +46,12 @@ interface Props {
   gridSize: number;
   onPickTexture: () => void;
   onClearTexture: () => void;
+  /**
+   * CUÁNTO MIDE UN AZULEJO del pincel, en casillas. Petición suya del 2026-09-10: «*aquí hace falta agregar un
+   * tamaño de la textura*». Mismo reparto que las escalas del Builder: mover va en vivo y no se guarda nada —
+   * el azulejo queda cocido dentro del PNG en cuanto se suelta un brochazo.
+   */
+  onTextureCells?: (cells: number) => void;
   color: string;
   onColor: (hex: string) => void;
   /** Los que él se ha inventado en ESTA campaña. `null` mientras se están pidiendo. */
@@ -105,7 +111,7 @@ function Slider({ label, min, max, step, value, text, onChange, onCommit }: {
  */
 export function BrushPanel({
   on, onOn, action, onAction, ink, onInk,
-  textureUrl, textureName, textureCells, gridSize, onPickTexture, onClearTexture,
+  textureUrl, textureName, textureCells, gridSize, onPickTexture, onClearTexture, onTextureCells,
   color, onColor, savedColors, onSaveColor,
   value, onChange, onCommit,
   onReset, onRevealAll, onHideAll, saving = false, onClose,
@@ -210,6 +216,21 @@ export function BrushPanel({
               </button>
             )}
           </div>
+          {/*
+            * EL AZULEJO. Sólo con una foto puesta: sin ella se pinta con el color, y un color no se escala.
+            * Mientras se arrastra, el MAPA ENTERO se cubre con la textura a ese tamaño —«*se debería ver en el
+            * mapa cubriendo todo el lienzo para ver el tamaño en previo*»—, que es la única forma de saber si
+            * una losa va a salir del tamaño de una sala antes de dar el primer brochazo.
+            */}
+          {textureUrl && onTextureCells && (
+            <div className="mp-builder-thick">
+              <span className="mp-builder-tex-n">{t('maps.brush.tileLabel')}</span>
+              <input type="range" min={0.25} max={20} step={0.25} value={textureCells}
+                aria-label={t('maps.brush.tileLabel')}
+                onChange={e => onTextureCells(Number(e.target.value))} />
+              <span className="mp-builder-thick-v">{textureCells}</span>
+            </div>
+          )}
         </fieldset>
       )}
 

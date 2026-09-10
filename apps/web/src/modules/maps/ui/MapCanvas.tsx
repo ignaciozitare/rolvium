@@ -131,6 +131,13 @@ interface Props {
    */
   bandCells?: number;
   /**
+   * EL PREVIO DEL AZULEJO DEL PINCEL (rebanada 10). Mientras él arrastra el tamaño de la textura, el mapa
+   * ENTERO se cubre con ella en transparencia: «*se debería ver en el mapa cubriendo todo el lienzo para ver
+   * el tamaño en previo*» (2026-09-10). Es lo único que deja saber si una losa va a salir del tamaño de una
+   * sala antes de dar el primer brochazo. `null` = no se está tocando el tamaño.
+   */
+  tilePreview?: { url: string; sidePx: number } | null;
+  /**
    * ¿HAY DÓNDE PINTAR AHORA MISMO? (rebanada 10). Lo decide la pantalla, que es quien sabe si hay una capa de
    * terreno, si el ratón está sobre una habitación o si el mapa tiene roca. El lienzo sólo necesita saber si
    * el gesto va a servir de algo: sin esto, arrastrar dejaría un rastro que no se guarda en ninguna parte.
@@ -1496,6 +1503,19 @@ export function MapCanvas(p: Props): JSX.Element {
             * que mirar. Y sólo sale cuando hay dónde pintar: sin destino sería prometer un brochazo que no va
             * a caer en ninguna parte.
             */}
+          {/*
+            * EL PREVIO DEL AZULEJO: la textura repetida sobre TODO el lienzo, translúcida, mientras él mueve
+            * el tamaño. Va aquí arriba —sobre el mapa y bajo los controles— porque lo que se quiere comparar
+            * es la losa contra las salas que ya están.
+            */}
+          {dmSight && p.tilePreview && (<>
+            <defs>
+              <pattern id="mp-tile-preview" patternUnits="userSpaceOnUse" width={p.tilePreview.sidePx} height={p.tilePreview.sidePx}>
+                <image href={p.tilePreview.url} x={0} y={0} width={p.tilePreview.sidePx} height={p.tilePreview.sidePx} preserveAspectRatio="xMidYMid slice" />
+              </pattern>
+            </defs>
+            <rect {...sceneRect} fill="url(#mp-tile-preview)" className="mp-tile-preview" data-testid="mp-tile-preview" />
+          </>)}
           {dmSight && hover && (isBrush(p.tool) || (p.tool === 'mask' && p.paintReady)) && (
             <circle cx={hover.x} cy={hover.y} r={brushPx} className={`mp-brush ${p.tool}`} data-testid="mp-brush" />
           )}

@@ -932,7 +932,8 @@
       },
       "scopeHint": "lo elegido es el límite: si se te va la mano, lo de al lado no se mancha",
       "footPaint": "Pintar NO cambia el mapa: ni por dónde se anda, ni qué se ve, ni la luz. Sólo cómo se ve.",
-      "needsRock": "Este mapa todavía no tiene roca: levanta una habitación con el Builder y el muro aparece."
+      "needsRock": "Este mapa todavía no tiene roca: levanta una habitación con el Builder y el muro aparece.",
+      "tileLabel": "Azulejo"
     },
     "fog": {
       "autoOn": "Niebla automática por visión · se abre sola al moverse las fichas; pulsa para manual",
@@ -1217,7 +1218,10 @@
       "undone": "Deshecho: {{what}}",
       "redone": "Rehecho: {{what}}",
       "nothing": "No queda nada que deshacer",
-      "nothingRedo": "No queda nada que rehacer"
+      "nothingRedo": "No queda nada que rehacer",
+      "token": "la ficha",
+      "light": "la luz",
+      "paint": "la pincelada"
     },
     "builder": {
       "title": "Builder",

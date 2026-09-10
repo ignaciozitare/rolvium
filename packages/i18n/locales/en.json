@@ -932,7 +932,8 @@
       },
       "scopeHint": "what you pick is the limit: if your hand slips, the thing next to it stays clean",
       "footPaint": "Painting does NOT change the map: not where you walk, not what is seen, not the light. Only how it looks.",
-      "needsRock": "This map has no rock yet: build a room with the Builder and the wall shows up."
+      "needsRock": "This map has no rock yet: build a room with the Builder and the wall shows up.",
+      "tileLabel": "Tile"
     },
     "fog": {
       "autoOn": "Automatic fog by line of sight · opens as tokens move; click for manual",
@@ -1217,7 +1218,10 @@
       "undone": "Undone: {{what}}",
       "redone": "Redone: {{what}}",
       "nothing": "Nothing left to undo",
-      "nothingRedo": "Nothing left to redo"
+      "nothingRedo": "Nothing left to redo",
+      "token": "the token",
+      "light": "the light",
+      "paint": "the brush stroke"
     },
     "builder": {
       "title": "Builder",

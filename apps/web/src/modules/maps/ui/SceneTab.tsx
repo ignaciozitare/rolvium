@@ -95,6 +95,8 @@ interface Props {
 const DEFAULT_STROKE: StrokeStyle = { color: STROKE_COLORS[1], width: 2 };
 /** Cuánto se queda en pantalla el aviso de «el gesto no levantó nada». Lo justo para leerlo sin estorbar. */
 const AVISO_MS = 2600;
+/** Cuánto se queda el previo del azulejo tras dejar de moverlo. Lo justo para mirarlo sin que estorbe. */
+const TILE_PREVIEW_MS = 1400;
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
 export function SceneTab({ campaignId, role, userId, system, canManageTextures: puedeOrdenarTexturas, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
@@ -262,6 +264,14 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * como la herramienta elegida.
    */
   const [brushTexture, setBrushTexture] = useState<Texture | null>(null);
+  /**
+   * EL AZULEJO DEL PINCEL mientras él lo mueve, en casillas. `null` = el que trae la textura del catálogo.
+   * No se guarda en ninguna parte: queda cocido dentro del PNG en cuanto se suelta un brochazo, igual que el
+   * color — cambiarlo después no repinta lo ya pintado.
+   */
+  const [brushTile, setBrushTile] = useState<number | null>(null);
+  /** Mientras se mueve, el mapa entero se cubre con la textura a ese tamaño: es el previo que él pidió. */
+  const [tocandoTile, setTocandoTile] = useState(false);
   const [brushColor, setBrushColor] = useState<string>(DEFAULT_BRUSH_COLOR);
   /**
    * EL ANCHO DE LA BANDA de «A pulso», en casillas. `null` = todavía no lo ha tocado y vale el grosor de muro
@@ -566,7 +576,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
      * LA DEL PINCEL no toca la escena: se queda esperando al próximo brochazo, y va con él. Cambiarla
      * después no repinta lo ya pintado — cada forma se llevó la suya el día que se dibujó.
      */
-    if (texPicker === 'brush') { setBrushTexture(tex); setTexPicker(null); return; }
+    if (texPicker === 'brush') { setBrushTexture(tex); setBrushTile(null); setTexPicker(null); return; }
     run(patchScene(live.id, texPicker === 'wall'
       ? { wallTextureUrl: tex.url, wallTextureScale: tex.tileCells }
       : { floorTextureUrl: tex.url, floorTextureScale: tex.tileCells }));
@@ -750,9 +760,11 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * CON QUÉ SE TIÑE EL BROCHAZO. La textura manda sobre el color, igual que en una forma del constructor, y
    * el azulejo se mide en px de ESCENA para que se vea igual con cualquier rejilla y a cualquier zoom.
    */
+  /** Cuántas casillas mide el azulejo del pincel ahora mismo: lo que él esté moviendo, o el de la textura. */
+  const azulejo = brushTile ?? brushTexture?.tileCells ?? DEFAULT_TEXTURE_SCALE;
   const tinta: PaintInk = {
     textureUrl: paintWith === 'texture' ? brushTexture?.url ?? null : null,
-    tilePx: tilePx(brushTexture?.tileCells ?? DEFAULT_TEXTURE_SCALE, live?.grid.size ?? 27),
+    tilePx: tilePx(azulejo, live?.grid.size ?? 27),
     color: brushColor,
   };
   /** La pintura EN VIVO, ya dicho sobre qué cae: sin esto el brochazo no se vería hasta soltar el ratón. */
@@ -827,6 +839,15 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isDm, st.history]);
+  /**
+   * El previo del azulejo se retira solo al dejar de moverlo: es para MEDIR la losa, no un modo. Va por
+   * inactividad y no por soltar el ratón porque el deslizador también se mueve con el teclado.
+   */
+  useEffect(() => {
+    if (!tocandoTile) return undefined;
+    const id = window.setTimeout(() => setTocandoTile(false), TILE_PREVIEW_MS);
+    return () => window.clearTimeout(id);
+  }, [tocandoTile, brushTile]);
   /** El aviso de deshacer se retira solo: es una explicación de lo que acaba de pasar, no un estado. */
   useEffect(() => {
     if (!avisoDeshacer) return undefined;
@@ -960,6 +981,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             maskLayerId={onNow === 'layer' ? bgLayer?.id ?? null : null}
             maskRoomId={paintRoom?.id ?? null} maskPreview={mask.preview}
             paintReady={!!paintTargetOf} paintPreview={paintPreview}
+            tilePreview={tocandoTile && brushTexture ? { url: brushTexture.url, sidePx: tilePx(azulejo, live.grid.size) } : null}
             onHoverRoom={setHoverRoomId}
             /*
              * ── UNA PULSACIÓN, DOS LIENZOS ── El lienzo sólo dice por dónde ha pasado la mano; aquí se
@@ -979,7 +1001,14 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                 mask.paint(from, to, r, { strength: brush.strength, hardness: brush.hardness, tip: brush.tip, roughness: brush.roughness, dir: actionNow === 'uncover' ? 'erase' : 'restore' }, start);
               }
             }}
-            onPaintMaskEnd={() => { run(paint.flush()); run(mask.flush()); }}
+            /*
+             * ↩️ Y LA PINCELADA ENTRA EN EL HISTORIAL. El hook devuelve su propia vuelta atrás —tiene las dos
+             * fotos del lienzo— y aquí sólo se apila. La máscara de la rebanada 9 todavía no: está anotado.
+             */
+            onPaintMaskEnd={() => {
+              run(paint.flush().then(paso => { if (paso) st.history.push({ label: 'maps.history.paint', ...paso }); }));
+              run(mask.flush());
+            }}
             onPlaceLight={async at => {
               // Nace con lo que trae su tipo; el editor se abre solo para retocarla sin buscarla.
               const created = await st.addLight(newLightOf('torch', at, { id: live.id, campaignId }, activeLayerId));
@@ -1072,8 +1101,9 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               action={actionNow} onAction={setBrushAction}
               ink={paintWith} onInk={setPaintWith}
               textureUrl={brushTexture?.url ?? null} textureName={brushTexture?.name ?? null}
-              textureCells={brushTexture?.tileCells ?? DEFAULT_TEXTURE_SCALE} gridSize={live.grid.size}
-              onPickTexture={() => void pickTexture('brush')} onClearTexture={() => setBrushTexture(null)}
+              textureCells={azulejo} gridSize={live.grid.size}
+              onPickTexture={() => void pickTexture('brush')} onClearTexture={() => { setBrushTexture(null); setBrushTile(null); }}
+              onTextureCells={n => { setBrushTile(n); setTocandoTile(true); }}
               color={brushColor} onColor={setBrushColor} savedColors={colors} onSaveColor={guardarColor}
               value={brush} onChange={patch => { setBrushDraft(d => ({ ...d, ...patch })); if (patch.tip !== undefined) commitBrush(patch); }}
               onCommit={() => commitBrush()}

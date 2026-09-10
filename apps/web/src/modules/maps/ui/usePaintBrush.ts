@@ -49,8 +49,14 @@ export interface PaintBrush {
   /** Lo que hay que pintar AHORA MISMO en el lienzo, sin esperar a que suba nada. `null` = sin pintura. */
   preview: string | null;
   paint: (from: Point, to: Point, radiusScenePx: number, ink: PaintInk, s: PaintStroke, start?: boolean) => void;
-  /** Sube el PNG. Se llama al soltar el ratón, no en cada movimiento. */
-  flush: () => Promise<void>;
+  /**
+   * Sube el PNG. Se llama al soltar el ratón, no en cada movimiento.
+   *
+   * Devuelve **la vuelta atrás de ESA pincelada** —o `null` si no había nada que subir— para que quien
+   * llama la apile en el historial. La construye el hook porque es el único que tiene las dos fotos: la de
+   * antes de la pincelada y la de después.
+   */
+  flush: () => Promise<{ undo: () => Promise<void>; redo: () => Promise<void> } | null>;
   /** Quita TODA la pintura de este destino. Lo pintado debajo no se toca: nunca se tocó. */
   reset: () => Promise<void>;
   saving: boolean;
@@ -256,17 +262,36 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
     edgeRef.current = null;
     const stroke = strokeRef.current;
     stroke?.getContext?.('2d')?.clearRect(0, 0, stroke.width, stroke.height);
-    if (!c || !target || !dirtyRef.current) return;
+    if (!c || !target || !dirtyRef.current) return null;
     repaintPreview(true);
-    const blob = await new Promise<Blob | null>(resolve => {
-      if (typeof c.toBlob !== 'function') { resolve(null); return; }
-      c.toBlob(b => resolve(b), 'image/png');
-    });
-    if (!blob) return;
+    const despues = await pngOf(c);
+    if (!despues) return null;
+    /*
+     * ↩️ LA VUELTA ATRÁS DE ESTA PINCELADA (2026-09-10: «*el Ctrl+Z sigue dando por culo, depende con qué te
+     * deja deshacer o no*»). Se guardan las DOS fotos —la de antes y la de después— y deshacer vuelve a subir
+     * la de antes: no hay forma más barata de invertir un lienzo de píxeles, y es exacta.
+     *
+     * ⚠️ La de antes puede ser un PNG TRANSPARENTE ENTERO en vez de «sin pintura». Se ve exactamente igual, y
+     * distinguirlo obligaría a leer los píxeles del lienzo en cada pincelada para nada.
+     */
+    const antes = baseRef.current ? await pngOf(baseRef.current) : null;
+    const save = target.save;
     dirtyRef.current = false;
     setSaving(true);
-    try { await target.save(blob); } finally { setSaving(false); }
-  }, [target, repaintPreview]);
+    try { await save(despues); } finally { setSaving(false); }
+    // La pincelada ya está: pasa a ser «lo de antes» de la siguiente.
+    const base = scratch(baseRef, { width: c.width, height: c.height });
+    const bctx = base?.getContext?.('2d') ?? null;
+    if (base && bctx) { bctx.clearRect(0, 0, base.width, base.height); bctx.drawImage(c, 0, 0); }
+
+    const volver = async (png: Blob | null): Promise<void> => {
+      if (!png) return;
+      setSaving(true);
+      try { await save(png); } finally { setSaving(false); }
+      await repintarDesde(canvasOf(), baseRef, png, repaintPreview);
+    };
+    return { undo: () => volver(antes), redo: () => volver(despues) };
+  }, [target, repaintPreview, canvasOf]);
 
   const reset = useCallback(async () => {
     const c = canvasOf();
@@ -278,6 +303,30 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
   }, [canvasOf, target]);
 
   return { preview, paint, flush, reset, saving };
+}
+
+/** El lienzo, en PNG. `null` cuando el navegador de turno no sabe hacerlo (jsdom en los tests). */
+async function pngOf(c: HTMLCanvasElement): Promise<Blob | null> {
+  if (typeof c.toBlob !== 'function') return null;
+  return new Promise<Blob | null>(resolve => c.toBlob(b => resolve(b), 'image/png'));
+}
+
+/**
+ * Rehace el lienzo desde un PNG guardado. Es lo que hace que deshacer se vea EN EL ACTO, sin esperar a que el
+ * navegador vuelva a bajarse la imagen que se acaba de subir.
+ */
+async function repintarDesde(c: HTMLCanvasElement | null, baseRef: { current: HTMLCanvasElement | null }, png: Blob, repaint: (force?: boolean) => void): Promise<void> {
+  const ctx = c?.getContext?.('2d') ?? null;
+  if (!c || !ctx || typeof createImageBitmap !== 'function') return;
+  try {
+    const bmp = await createImageBitmap(png);
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    const base = scratch(baseRef, { width: c.width, height: c.height });
+    const bctx = base?.getContext?.('2d') ?? null;
+    if (base && bctx) { bctx.clearRect(0, 0, base.width, base.height); bctx.drawImage(c, 0, 0); }
+    repaint(true);
+  } catch { /* si el navegador no sabe leerlo, lo que se ve es lo ya subido: no se pierde nada */ }
 }
 
 /** Un lienzo auxiliar del tamaño del bueno. Se reaprovecha: crear uno por pincelada sería tirar memoria. */
