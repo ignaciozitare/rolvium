@@ -406,12 +406,13 @@ describe('<BuilderPanel> qué levanto: sala o muro', () => {
     expect(within(grupo).queryByText('Sala')).not.toBeInTheDocument();
   });
 
-  it('dibujando aquí sale SALA la primera, porque excavar es lo normal', () => {
+  it('dibujando aquí sale HABITACIÓN la primera, porque excavar es lo normal', () => {
     mount({ mode: 'draw' });
     const grupo = screen.getByRole('radiogroup', { name: 'Tipo de segmento' });
     const opciones = within(grupo).getAllByRole('radio');
     expect(opciones).toHaveLength(4);
-    expect(opciones[0]).toHaveTextContent('Sala');
+    // El rótulo es el de la lámina de la rebanada 10 («HABITACIÓN»), que es como él la llama.
+    expect(opciones[0]).toHaveTextContent('Habitación');
     expect(opciones[0]).toHaveAttribute('aria-checked', 'true');
   });
 
@@ -420,6 +421,83 @@ describe('<BuilderPanel> qué levanto: sala o muro', () => {
     mount({ mode: 'draw', onBuildKind });
     await userEvent.setup().click(screen.getByRole('radio', { name: 'Muro' }));
     expect(onBuildKind).toHaveBeenCalledWith('wall');
+  });
+});
+
+/**
+ * ── LO QUE SE MUDÓ AQUÍ (rebanada 10 · B · `rolvium.pen` `oi358`, aprobado el 2026-09-10) ──
+ *
+ * El pincel que EXCAVABA no se tiró: es lo que a él le faltaba en el Builder. Palabra suya el 2026-09-10:
+ * «*el pincel de textura está funcionando como debería funcionar de verdad en el builder de muros la opción
+ * de a mano*». Aquí se sujetan las dos cosas que ganó el panel.
+ */
+describe('<BuilderPanel> con qué se pinta lo que levanto', () => {
+  /** «*Lo de elegir textura y eso es una equivalencia, pero queda como muro o sala*» (2026-09-10). */
+  it('con MURO elegido pide una TEXTURA del catálogo', async () => {
+    const onPickShapeTexture = vi.fn();
+    mount({ mode: 'draw', buildKind: 'wall', onPickShapeTexture });
+    const seccion = screen.getByTestId('mp-shape-paint');
+    expect(within(seccion).getByText(/una textura del catálogo/i)).toBeInTheDocument();
+    await userEvent.setup().click(within(seccion).getByRole('button', { name: 'Elegir' }));
+    expect(onPickShapeTexture).toHaveBeenCalled();
+  });
+
+  it('con HABITACIÓN elegida pide un COLOR, y es la misma paleta que el pincel', () => {
+    mount({ mode: 'draw', buildKind: 'room' });
+    const seccion = screen.getByTestId('mp-shape-paint');
+    expect(within(seccion).getByText(/un color/i)).toBeInTheDocument();
+    expect(within(seccion).getByTestId('mp-bp-color-big')).toBeInTheDocument();
+  });
+
+  /** `null` = manda el preajuste, que es lo que ha hecho siempre — y por eso hay cómo volver a él. */
+  it('sin color elegido no se ofrece quitarlo; con uno puesto, sí', async () => {
+    const onShapeColor = vi.fn();
+    const { re } = mount({ mode: 'draw', buildKind: 'room', shapeColor: null, onShapeColor });
+    expect(screen.queryByRole('button', { name: /Quitar el color/ })).not.toBeInTheDocument();
+    re({ mode: 'draw', buildKind: 'room', shapeColor: '#5f8f6a', onShapeColor });
+    await userEvent.setup().click(screen.getByRole('button', { name: /Quitar el color/ }));
+    expect(onShapeColor).toHaveBeenCalledWith(null);
+  });
+
+  /** Con un VANO elegido se va TODO lo del muro y la sala: es la regla que él puso el 2026-09-07. */
+  it('con una puerta elegida no sale nada de esto', () => {
+    mount({ mode: 'draw', buildKind: 'door' });
+    expect(screen.queryByTestId('mp-shape-paint')).not.toBeInTheDocument();
+  });
+
+  /** Sobre una foto no se levanta mazmorra: se marcan muros, y no hay forma que pintar. */
+  it('marcando sobre una foto tampoco', () => {
+    mount({ mode: 'photo' });
+    expect(screen.queryByTestId('mp-shape-paint')).not.toBeInTheDocument();
+  });
+});
+
+describe('<BuilderPanel> el ancho de la banda de «A mano»', () => {
+  it('sólo sale con «A mano», y dice que sale una banda y no una raya', () => {
+    const { re } = mount({ mode: 'draw', buildKind: 'wall', shape: 'segment' });
+    expect(screen.getByTestId('mp-band')).toBeInTheDocument();
+    expect(screen.getByText(/saca una BANDA del ancho elegido, no una raya/i)).toBeInTheDocument();
+    re({ mode: 'draw', buildKind: 'wall', shape: 'rect' });
+    expect(screen.queryByTestId('mp-band')).not.toBeInTheDocument();
+  });
+
+  it('mover el ancho lo avisa hacia arriba', () => {
+    const onBandCells = vi.fn();
+    mount({ mode: 'draw', buildKind: 'wall', shape: 'segment', bandCells: 0.22, onBandCells });
+    fireEvent.change(screen.getByRole('slider', { name: 'Ancho' }), { target: { value: '1.5' } });
+    expect(onBandCells).toHaveBeenCalledWith(1.5);
+  });
+
+  /** De serie es el grosor de muro de la escena: una escena existente no cambia hasta que él lo toque. */
+  it('arranca en el grosor de muro que le llega', () => {
+    mount({ mode: 'draw', buildKind: 'wall', shape: 'segment', bandCells: 0.34 });
+    expect(screen.getByRole('slider', { name: 'Ancho' })).toHaveValue('0.34');
+  });
+
+  /** Un vano es un tramo recto y sin ancho: ofrecerlo prometería algo que no pasa. */
+  it('con una puerta no sale', () => {
+    mount({ mode: 'draw', buildKind: 'door', shape: 'segment' });
+    expect(screen.queryByTestId('mp-band')).not.toBeInTheDocument();
   });
 });
 

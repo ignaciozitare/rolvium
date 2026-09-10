@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BRUSH_COLORS, BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, BRUSH_ON, brushColorName, brushRings, BUILDER_MODES, DEFAULT_BRUSH_COLOR, isBuildOn, isHexColor, roomKindOfBuild, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_FILL_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing, wallStripe } from './roomRules';
+import { BRUSH_COLORS, BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, brushColorName, brushRings, BUILDER_MODES, DEFAULT_BRUSH_COLOR, isHexColor, shapesFor, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_FILL_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing, wallStripe } from './roomRules';
 import { pointInRing } from '@rolvium/core';
 
 /**
@@ -465,26 +465,38 @@ describe('brushRings — el trazo se convierte en forma', () => {
  *
  * Reglas pequeñas, pero cada una sujeta una decisión suya que se pierde fácil al retocar el panel.
  */
-describe('el pincel que construye · lo que se elige antes de pintar', () => {
-  /**
-   * 🔒 EL ORDEN Y LAS CINCO. La lámina que él aprobó trae CUATRO —suelo, muro, capa, niebla— y la quinta, el
-   * suelo de UNA sala de la rebanada 9, sigue viva por decisión suya del 2026-09-10: «*no lo sé, por ahora
-   * déjalo*». Si alguien la quita sin que él lo diga, este test lo canta.
-   */
-  it('«sobre qué» son cinco y en el orden del diseño, con el suelo de sala el último', () => {
-    expect(BRUSH_ON).toEqual(['floor', 'wall', 'layer', 'fog', 'room']);
+/**
+ * ── QUÉ FORMAS TIENEN SENTIDO PARA LO QUE SE LEVANTA (§ «Rebanada 10 · B») ──
+ *
+ * Pega suya del 2026-09-04 mirando el panel con SALA elegida: «*esto, a mano, pulso y recta aquí no hace
+ * falta, ¿no?*». Tenía razón entonces —una raya no encierra nada— y desde la rebanada 10 «a mano» SÍ encierra,
+ * porque saca una banda del ancho elegido.
+ */
+describe('qué formas puede levantar cada cosa', () => {
+  /** 🔑 «A mano» vuelve a valer para una HABITACIÓN: ya no es una raya, es una banda. */
+  it('una habitación admite «a mano» desde que saca banda, pero no la recta', () => {
+    expect(shapesFor('room')).toEqual(['segment', 'rect', 'circle', 'poly', 'free']);
   });
 
-  it('sólo suelo y muro LEVANTAN MAPA; capa, niebla y suelo de sala pintan encima', () => {
-    expect(BRUSH_ON.filter(isBuildOn)).toEqual(['floor', 'wall']);
+  /** Un muro admite las seis: una raya sí es un muro, y un área es un bloque de roca. */
+  it('un muro admite las seis', () => {
+    expect(shapesFor('wall')).toEqual(ROOM_SHAPES);
   });
 
-  /** «Los muros serán relleno de esos huecos» (dueño, 2026-09-04): suelo excava, muro rellena. */
-  it('el suelo EXCAVA y el muro RELLENA — la misma forma con el signo cambiado', () => {
-    expect(roomKindOfBuild('floor')).toBe('room');
-    expect(roomKindOfBuild('wall')).toBe('fill');
+  /** Un vano se abre CRUZANDO la pared, no rodeándola: sólo las dos que trazan una raya. */
+  it('una puerta y una ventana sólo se trazan de A a B', () => {
+    expect(shapesFor('door')).toEqual(['segment', 'line']);
+    expect(shapesFor('window')).toEqual(['segment', 'line']);
   });
+});
 
+/**
+ * 🔴 LO QUE ERA «lo que se elige antes de pintar» SE MUDÓ AL BUILDER el 2026-09-10, y con ello sus tests: la
+ * lista de «suelo o muro» y la de «textura, color o borrar» eran del pincel que EXCAVABA, que él paró en
+ * pantalla. Lo que se elige HOY antes de pintar vive en `paintRules.test.ts`; lo que se elige antes de
+ * LEVANTAR, en el panel de Builder y en `SceneTab.test.tsx`.
+ */
+describe('los colores con los que se pinta', () => {
   /** Doce, que es lo que cabe en las dos filas de seis del diseño. */
   it('la paleta de la casa son doce colores, todos distintos y todos hex de seis', () => {
     expect(BRUSH_COLORS).toHaveLength(12);

@@ -852,11 +852,12 @@
       "hide": "Pincel ocultar",
       "on": "Sobre qué",
       "target": {
-        "layer": "Capa",
+        "layer": "Foto",
         "fog": "Niebla",
-        "room": "Suelo de sala",
+        "room": "Habitación",
         "floor": "Suelo",
-        "wall": "Muro"
+        "wall": "Muro",
+        "rock": "Muro"
       },
       "way": "Sentido",
       "dir": {
@@ -888,7 +889,7 @@
       "hintRoom": "Pintando el SUELO DE UNA SALA el brochazo se recorta solo en su borde: puedes pasar por encima del muro sin mancharlo.",
       "hintScene": "El pincel se guarda en ESTA escena — trazo, tamaño, transparencia y cuánto de roto. Otro mapa trae el suyo.",
       "hintFog": "En la NIEBLA el borde roto se ve a trozos de casilla, porque la niebla se guarda así. En una capa o en el suelo de una sala se ve fino.",
-      "needsRoom": "Pon el pincel encima de una sala para repintar su suelo.",
+      "needsRoom": "Pon el pincel encima de una habitación para pintarla.",
       "with": "Con qué pinto",
       "paint": {
         "texture": "Textura",
@@ -922,7 +923,16 @@
         "water": "Agua",
         "ice": "Hielo",
         "blood": "Sangre"
-      }
+      },
+      "doLabel": "Qué hago",
+      "do": {
+        "paint": "Pintar",
+        "erase": "Borrar pintura",
+        "uncover": "Destapar lo de debajo"
+      },
+      "scopeHint": "lo elegido es el límite: si se te va la mano, lo de al lado no se mancha",
+      "footPaint": "Pintar NO cambia el mapa: ni por dónde se anda, ni qué se ve, ni la luz. Sólo cómo se ve.",
+      "needsRock": "Este mapa todavía no tiene roca: levanta una habitación con el Builder y el muro aparece."
     },
     "fog": {
       "autoOn": "Niebla automática por visión · se abre sola al moverse las fichas; pulsa para manual",
@@ -1137,9 +1147,9 @@
         "floor": "Azulejo · suelo"
       },
       "build": {
-        "label": "Qué levanto · excavar o rellenar",
-        "hint": "SALA excava el hueco · MURO lo rellena · las aberturas, con el mismo disco",
-        "room": "Sala",
+        "label": "Qué levanto · el muro con textura, la habitación con color",
+        "hint": "HABITACIÓN excava el hueco · MURO lo rellena · las aberturas, con el mismo disco",
+        "room": "Habitación",
         "wall": "Muro",
         "door": "Puerta",
         "window": "Ventana"
@@ -1172,10 +1182,25 @@
         "renamePrompt": "¿Cómo quieres que se llame esta textura?",
         "door": "Textura de la puerta",
         "brushHint": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone en el PRÓXIMO brochazo, y va con él: cambiarla después no repinta lo ya pintado.",
-        "brush": "Textura del pincel"
+        "brush": "Textura del pincel",
+        "shape": "Textura de lo que levantes",
+        "shapeHint": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone en la PRÓXIMA forma que levantes, y va con ella: cambiarla después no repinta lo ya construido."
       },
       "tooSmall": "El gesto se quedó corto: no se levantó nada. Arrastra un poco más.",
-      "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla."
+      "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla.",
+      "paintWith": {
+        "label": "Con qué se pinta",
+        "wall": "Muro",
+        "wallHint": "con MURO elegido, una textura del catálogo",
+        "roomHint": "con HABITACIÓN elegida, un color",
+        "none": "Ninguna: manda la textura del mapa",
+        "clear": "Quitar el color"
+      },
+      "band": {
+        "label": "El ancho de la banda · sólo con «A mano»",
+        "short": "Ancho",
+        "hint": "«A mano» saca una BANDA del ancho elegido, no una raya. De serie es el grosor de muro de esta escena."
+      }
     },
     "group": {
       "countGrouped": "Grupo · {{n}} muros",

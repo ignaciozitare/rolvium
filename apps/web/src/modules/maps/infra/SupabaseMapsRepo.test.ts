@@ -296,6 +296,41 @@ describe('SupabaseMapsRepo — capas y luces (rebanada 7)', () => {
     expect(remove).toHaveBeenCalledWith(['c1/masks/ly-1.png']);
   });
 
+  /**
+   * ── LA PINTURA (rebanada 10) ── Mismo camino que la máscara, OTRO fichero y OTRA columna: aquélla QUITA y
+   * ésta PONE, y compartirlos dejaría el borrador de una llevándose la otra por delante.
+   */
+  it('la pintura de una capa va a `paint/`, no a `masks/`, y sube SU versión', async () => {
+    const m = createSupabaseMock({ tables: { maps_layers: { data: { ...LAYER_ROW, paint_version: 2 }, error: null } } });
+    const upload = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ upload, getPublicUrl: vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } })) })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    const png = new Blob(['x'], { type: 'image/png' });
+    const out = await repo.saveLayerPaint({ id: 'ly-1', campaignId: 'c1', paintVersion: 1 }, png);
+    expect(upload).toHaveBeenCalledWith('c1/paint/layer-ly-1.png', png, expect.objectContaining({ upsert: true, contentType: 'image/png' }));
+    expect(m.updateSpy).toHaveBeenCalledWith({ paint_url: 'https://x/c1/paint/layer-ly-1.png', paint_version: 2 });
+    expect(out.paintVersion).toBe(2);
+    // Y la máscara no se ha tocado: son dos cosas distintas en la misma fila.
+    expect(m.updateSpy).not.toHaveBeenCalledWith(expect.objectContaining({ mask_url: expect.anything() }));
+  });
+
+  it('quitar la pintura de una capa vacía SU columna y borra SU fichero', async () => {
+    const m = createSupabaseMock({ tables: { maps_layers: { data: LAYER_ROW, error: null } } });
+    const remove = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ remove })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    await repo.clearLayerPaint({ id: 'ly-1', campaignId: 'c1' });
+    expect(m.updateSpy).toHaveBeenCalledWith({ paint_url: null });
+    expect(remove).toHaveBeenCalledWith(['c1/paint/layer-ly-1.png']);
+  });
+
+  /** Una capa anterior a la rebanada 10 no trae las columnas: se lee como «sin pintar», y se ve igual. */
+  it('una capa sin las columnas de la pintura se lee sin pintar', async () => {
+    const m = createSupabaseMock({ tables: { maps_layers: { data: [LAYER_ROW], error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    expect((await repo.listLayers('sc-1'))[0]).toMatchObject({ paintUrl: null, paintVersion: 0 });
+  });
+
   it('las luces mapean sus columnas, incluidas las que todavía no se usan', async () => {
     const m = createSupabaseMock({ tables: { maps_lights: { data: LIGHT_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
@@ -515,14 +550,14 @@ describe('SupabaseMapsRepo — las salas', () => {
     expect(m.fromSpy).toHaveBeenCalledWith('maps_rooms');
     expect(q(m)['eq']).toHaveBeenCalledWith('scene_id', 'sc-1');
     expect(q(m)['order']).toHaveBeenCalledWith('created_at', { ascending: true });
-    expect(rooms[0]).toMatchObject({ id: 'rm-1', shape: 'rect', floorPreset: 'cavern', floorUrl: null, floorColor: null, floorMaskUrl: null });
+    expect(rooms[0]).toMatchObject({ id: 'rm-1', shape: 'rect', floorPreset: 'cavern', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null });
     expect(rooms[0]!.points).toEqual([[0, 0], [10, 0], [10, 10], [0, 10]]);
   });
 
   it('guarda la forma con su suelo heredado, y NO escribe ningún muro', async () => {
     const m = createSupabaseMock({ tables: { maps_rooms: { data: ROOM_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect', points: [[0, 0], [10, 0], [10, 10], [0, 10]], floorPreset: 'cavern', floorUrl: null, floorColor: null, floorMaskUrl: null });
+    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect', points: [[0, 0], [10, 0], [10, 10], [0, 10]], floorPreset: 'cavern', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null });
     expect(q(m)['insert']).toHaveBeenCalledWith(expect.objectContaining({ scene_id: 'sc-1', kind: 'room', shape: 'rect', floor_preset: 'cavern' }));
     expect(m.fromSpy).not.toHaveBeenCalledWith('maps_walls');
   });
@@ -566,6 +601,56 @@ describe('SupabaseMapsRepo — las salas', () => {
     await repo.clearRoomFloorMask({ id: 'rm-1', campaignId: 'c1' });
     expect(m.updateSpy).toHaveBeenCalledWith({ floor_mask_url: null });
     expect(remove).toHaveBeenCalledWith(['c1/masks/room-rm-1.png']);
+  });
+
+  /** LA PINTURA de una forma va en SU fila, porque la pintura es de lo que pintaste (§ 10A.5). */
+  it('la pintura de una forma sube a `paint/` y deja el puntero en su fila', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: { ...ROOM_ROW, floor_paint_url: 'https://x/c1/paint/room-rm-1.png', updated_at: 't2' }, error: null } } });
+    const upload = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ upload, getPublicUrl: vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } })) })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    const png = new Blob(['x'], { type: 'image/png' });
+    const out = await repo.saveRoomFloorPaint({ id: 'rm-1', campaignId: 'c1' }, png);
+    expect(upload).toHaveBeenCalledWith('c1/paint/room-rm-1.png', png, expect.objectContaining({ upsert: true, contentType: 'image/png' }));
+    expect(m.updateSpy).toHaveBeenCalledWith({ floor_paint_url: 'https://x/c1/paint/room-rm-1.png' });
+    // Vuelve la fila ENTERA: el rompe-caché de una sala es su `updated_at`.
+    expect(out).toMatchObject({ floorPaintUrl: 'https://x/c1/paint/room-rm-1.png', updatedAt: 't2' });
+  });
+
+  /** 🔒 Y quitar la pintura NO DERRIBA NADA: la forma sigue exactamente donde estaba. */
+  it('quitar la pintura de una forma no toca sus puntos ni su suelo', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: ROOM_ROW, error: null } } });
+    const remove = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ remove })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    await repo.clearRoomFloorPaint({ id: 'rm-1', campaignId: 'c1' });
+    expect(m.updateSpy).toHaveBeenCalledWith({ floor_paint_url: null });
+    expect(remove).toHaveBeenCalledWith(['c1/paint/room-rm-1.png']);
+    expect(m.deleteSpy).not.toHaveBeenCalled();
+  });
+
+  /** LA ROCA va por ESCENA: no es una fila, es el negativo de lo excavado. */
+  it('la pintura de la roca va a la ESCENA, no a ninguna forma', async () => {
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: { ...SCENE_ROW, rock_paint_url: 'https://x/c1/paint/rock-sc-1.png' }, error: null } } });
+    const upload = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ upload, getPublicUrl: vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } })) })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    const png = new Blob(['x'], { type: 'image/png' });
+    const out = await repo.saveRockPaint({ id: 'sc-1', campaignId: 'c1' }, png);
+    expect(m.fromSpy).toHaveBeenCalledWith('maps_scenes');
+    expect(upload).toHaveBeenCalledWith('c1/paint/rock-sc-1.png', png, expect.objectContaining({ upsert: true, contentType: 'image/png' }));
+    expect(m.updateSpy).toHaveBeenCalledWith({ rock_paint_url: 'https://x/c1/paint/rock-sc-1.png' });
+    expect(out.rockPaintUrl).toBe('https://x/c1/paint/rock-sc-1.png');
+  });
+
+  it('quitar la pintura de la roca vacía la columna de la escena y borra el fichero', async () => {
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: SCENE_ROW, error: null } } });
+    const remove = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ remove })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    await repo.clearRockPaint({ id: 'sc-1', campaignId: 'c1' });
+    expect(m.updateSpy).toHaveBeenCalledWith({ rock_paint_url: null });
+    expect(remove).toHaveBeenCalledWith(['c1/paint/rock-sc-1.png']);
   });
 
   it('los vanos van por ESCENA, porque el contorno es el de la UNIÓN', async () => {
@@ -838,7 +923,7 @@ describe('SupabaseMapsRepo — el color propio de una forma (rebanada 10)', () =
   it('se escribe al guardar el brochazo', async () => {
     const m = createSupabaseMock({ tables: { maps_rooms: { data: ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'fill', shape: 'brush', points: [[0, 0], [10, 0], [10, 10]], floorPreset: 'cavern', floorUrl: null, floorColor: '#5f8f6a', floorMaskUrl: null });
+    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'fill', shape: 'brush', points: [[0, 0], [10, 0], [10, 10]], floorPreset: 'cavern', floorUrl: null, floorColor: '#5f8f6a', floorMaskUrl: null, floorPaintUrl: null });
     expect(q(m)['insert']).toHaveBeenCalledWith(expect.objectContaining({ shape: 'brush', kind: 'fill', floor_color: '#5f8f6a' }));
   });
 });

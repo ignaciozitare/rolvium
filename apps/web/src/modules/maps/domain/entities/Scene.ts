@@ -109,6 +109,15 @@ export interface Scene {
   brushHardness: number;
   /** Cuánto de roto, 0..1. **Sólo se aplica con `brushTip === 'rough'`.** */
   brushRoughness: number;
+  /**
+   * LA PINTURA DE LA ROCA (rebanada 10): un PNG que se dibuja ENCIMA del muro, recortado contra la roca.
+   * `null` = sin pintar.
+   *
+   * 🔑 Va por ESCENA y no por forma a propósito: la roca no es una fila, es el negativo de lo excavado —«todo
+   * lo que no es habitación»—. No hay ninguna fila de muro a la que colgarle un PNG, y tampoco hace falta:
+   * la roca no se mueve.
+   */
+  rockPaintUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -273,11 +282,20 @@ export interface Layer {
   maskUrl: string | null;
   /** Sube en cada guardado: rompe la caché (`?v=N`) y delata al navegador que se quedó viejo. */
   maskVersion: number;
+  /**
+   * Sólo terreno: LA PINTURA de esta capa (rebanada 10), un PNG en
+   * `backgrounds/{campaignId}/paint/layer-{layerId}.png` que se dibuja ENCIMA de su foto. `null` = sin pintar.
+   * La foto original no se toca nunca, igual que con la máscara — lo contrario de la máscara es lo único que
+   * cambia: aquélla QUITA, ésta PONE.
+   */
+  paintUrl: string | null;
+  /** Su propio rompe-caché, aparte del de la máscara: se pintan y se borran por separado. */
+  paintVersion: number;
   createdAt: string;
   updatedAt: string;
 }
 export interface NewLayer { sceneId: string; campaignId: string; kind: LayerKind; name?: string; sortOrder?: number; imageUrl?: string | null; transform?: BgTransform }
-export type LayerPatch = Partial<Pick<Layer, 'name' | 'sortOrder' | 'visible' | 'locked' | 'imageUrl' | 'transform' | 'maskUrl' | 'maskVersion'>>;
+export type LayerPatch = Partial<Pick<Layer, 'name' | 'sortOrder' | 'visible' | 'locked' | 'imageUrl' | 'transform' | 'maskUrl' | 'maskVersion' | 'paintUrl' | 'paintVersion'>>;
 
 /** Forma de la luz. `cone` usa además `coneAngle`; en las otras dos se ignora. */
 export type LightShape = 'cone' | 'radius' | 'square';
@@ -485,6 +503,17 @@ export interface Room {
    * recorte sale del sitio donde se guarda, no de una comprobación que alguien pueda olvidarse de escribir.
    */
   floorMaskUrl: string | null;
+  /**
+   * LA PINTURA DE ESTA FORMA (rebanada 10): un PNG que se dibuja ENCIMA de su suelo. `null` = sin pintar.
+   *
+   * ⚠️ **No es lo mismo que `floorMaskUrl`, y por eso son dos columnas.** Aquélla QUITA para que asome lo de
+   * debajo; ésta PONE encima, y se suma capa sobre capa (suyo, 2026-09-10: «*pinto musgo arriba y pongo otro
+   * color arriba de éste, se van sumando*»). Mezclarlas dejaría el borrador de una borrando la otra.
+   *
+   * 🔑 Cuelga de la fila porque **la pintura es de lo que pintaste**: hoy no se puede mover una habitación,
+   * pero el día que se pueda la pintura se va con ella sin escribir una línea más.
+   */
+  floorPaintUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

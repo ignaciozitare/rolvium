@@ -565,7 +565,7 @@ describe('useScene — capas y luces', () => {
     const SALA: Room = {
       id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect',
       points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null,
-      floorColor: null, floorMaskUrl: null, createdAt: 't', updatedAt: 't',
+      floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: 't', updatedAt: 't',
     };
     const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], rooms: [SALA] });
     const r = await mount(repo, fakeVisionPort());
@@ -578,6 +578,51 @@ describe('useScene — capas y luces', () => {
     await act(async () => { await r.current.clearRoomFloorMask(pintada); });
     expect(r.current.rooms.find(x => x.id === 'rm-1')!.floorMaskUrl).toBeNull();
     expect(repo.floorMasksCleared).toEqual(['rm-1']);
+  });
+
+  /**
+   * ── LA PINTURA (rebanada 10) ── El hermano de la máscara con el signo cambiado: aquélla QUITA para que
+   * asome lo de debajo, ésta PONE encima. Dos columnas y dos ficheros, para que el borrador de una no se
+   * lleve la otra por delante.
+   */
+  it('la pintura de una forma va por su lado y NO toca su máscara', async () => {
+    const SALA = {
+      id: 'rm-1', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+      points: [[0, 0], [100, 0], [100, 100], [0, 100]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null,
+      floorColor: null, floorMaskUrl: 'https://x/masks/room-rm-1.png', floorPaintUrl: null, createdAt: 't', updatedAt: 't',
+    };
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], rooms: [SALA] });
+    const r = await mount(repo, fakeVisionPort());
+    const sala = r.current.rooms.find(x => x.id === 'rm-1')!;
+    await act(async () => { await r.current.saveRoomFloorPaint(sala, new Blob(['x'])); });
+    expect(repo.paintSaved).toEqual([{ on: 'room', id: 'rm-1', bytes: 1 }]);
+    const pintada = r.current.rooms.find(x => x.id === 'rm-1')!;
+    expect(pintada.floorPaintUrl).toContain('paint/room-rm-1.png');
+    // El rompe-caché de una sala es su fecha, así que la fila vuelve entera.
+    expect(pintada.updatedAt).not.toBe('t');
+    // 🔒 Y la máscara sigue donde estaba: son dos cosas distintas.
+    expect(pintada.floorMaskUrl).toBe('https://x/masks/room-rm-1.png');
+    await act(async () => { await r.current.clearRoomFloorPaint(pintada); });
+    expect(r.current.rooms.find(x => x.id === 'rm-1')!.floorPaintUrl).toBeNull();
+    expect(r.current.rooms.find(x => x.id === 'rm-1')!.floorMaskUrl).toBe('https://x/masks/room-rm-1.png');
+    expect(repo.paintCleared).toEqual([{ on: 'room', id: 'rm-1' }]);
+  });
+
+  it('la pintura de una capa sube su propia versión, aparte de la de la máscara', async () => {
+    const repo = seedLayers();
+    const r = await mount(repo, fakeVisionPort());
+    const moss = r.current.layers.find(l => l.id === LAYER_MOSS.id)!;
+    // Los números se copian ANTES: el repositorio de mentira muta la misma fila, como haría la de verdad.
+    const antesMascara = moss.maskVersion;
+    const antesPintura = moss.paintVersion;
+    await act(async () => { await r.current.saveLayerPaint(moss, new Blob(['x'])); });
+    expect(repo.paintSaved).toEqual([{ on: 'layer', id: 'ly-moss', bytes: 1 }]);
+    const pintada = r.current.layers.find(l => l.id === LAYER_MOSS.id)!;
+    expect(pintada.paintVersion).toBe(antesPintura + 1);
+    // La versión de la MÁSCARA no se mueve: pintar encima no es quitar.
+    expect(pintada.maskVersion).toBe(antesMascara);
+    await act(async () => { await r.current.clearLayerPaint(pintada); });
+    expect(r.current.layers.find(l => l.id === LAYER_MOSS.id)!.paintUrl).toBeNull();
   });
 
   it('las luces se ponen, se retocan y se quitan', async () => {

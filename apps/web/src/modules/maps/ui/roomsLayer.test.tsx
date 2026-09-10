@@ -19,7 +19,7 @@ const SCENE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Cripta', width: 600, height: 400, bgColor: '#111111', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 30, visible: true }, fogMode: 'vision',
   lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null, doorTextureUrl: null, tokenScale: 1,
-  brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5,
+  brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5, rockPaintUrl: null,
   roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
   createdAt: '', updatedAt: '',
 };
@@ -27,11 +27,11 @@ const SCENE: Scene = {
 const room = (id: string, x1: number, y1: number, x2: number, y2: number, over: Partial<Room> = {}): Room => ({
   id, sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect',
   points: [[x1, y1], [x2, y1], [x2, y2], [x1, y2]],
-  floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '2026-09-04T10:00:00Z', updatedAt: '', ...over,
+  floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '2026-09-04T10:00:00Z', updatedAt: '', ...over,
 });
 
-const mount = (rooms: Room[], openings: RoomOpening[] = [], scene: Scene = SCENE, floorPreview: { roomId: string; href: string | null } | null = null) =>
-  render(<svg><RoomsLayer scene={scene} rooms={rooms} openings={openings} ids={roomMaskIds(scene.id)} floorPreview={floorPreview} /></svg>);
+const mount = (rooms: Room[], openings: RoomOpening[] = [], scene: Scene = SCENE, floorPreview: { roomId: string; href: string | null } | null = null, paintPreview: { on: 'room' | 'rock'; id: string; href: string | null } | null = null) =>
+  render(<svg><RoomsLayer scene={scene} rooms={rooms} openings={openings} ids={roomMaskIds(scene.id)} floorPreview={floorPreview} paintPreview={paintPreview} /></svg>);
 
 describe('<RoomsLayer> — la roca, el agujero y el muro', () => {
   it('sin salas no pinta NADA: una escena de siempre no cambia ni un píxel', () => {
@@ -607,5 +607,57 @@ describe('<RoomsLayer> el brochazo se pinta con lo suyo', () => {
   it('una sala de antes del pincel no cambia ni un píxel', () => {
     const { container } = mount([room('r1', 60, 60, 300, 300)]);
     expect(suelos(container).some(r => r.getAttribute('fill') === styles.styleOf('hatch').floor)).toBe(true);
+  });
+});
+
+/**
+ * ── LA PINTURA, PINTADA (§ «Rebanada 10 · A») ──
+ *
+ * 🔑 Va ENCIMA de lo que ya está y **dentro del recorte de la cosa pintada**: ahí es donde se cumple «*si se
+ * me va la mano al muro, el muro no se tiene que pintar*» sin ninguna comprobación. Y no cambia el mapa: la
+ * geometría sigue siendo la de las formas, no la del PNG.
+ */
+describe('<RoomsLayer> — la pintura que se pone encima', () => {
+  it('la pintura de una habitación se dibuja dentro de SU agujero', () => {
+    const { container } = mount([room('r1', 60, 60, 300, 300, { floorPaintUrl: 'https://x/paint/room-r1.png' })]);
+    const pintura = screen.getByTestId('mp-room-floor-paint');
+    expect(pintura.getAttribute('href')).toContain('paint/room-r1.png');
+    // Dentro del grupo recortado por la máscara de ESA forma, no suelta sobre el mapa.
+    expect(container.querySelector('g[mask] image[data-testid="mp-room-floor-paint"]')).not.toBeNull();
+  });
+
+  /** Sin pintar no se dibuja nada: una sala de antes de la rebanada 10 se ve exactamente igual. */
+  it('una sala sin pintar no dibuja ninguna pintura', () => {
+    mount([room('r1', 60, 60, 300, 300)]);
+    expect(screen.queryByTestId('mp-room-floor-paint')).not.toBeInTheDocument();
+  });
+
+  /** Una forma PINTADA no se junta con la de al lado: la pintura es suya, y agrupada mancharía a las vecinas. */
+  it('una forma pintada no se agrupa con las demás', () => {
+    mount([
+      room('r1', 0, 0, 100, 100, { floorPaintUrl: 'https://x/p1.png' }),
+      room('r2', 150, 0, 250, 100),
+    ]);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(2);
+  });
+
+  /** LA ROCA se pinta dentro de la MISMA máscara que ya la talla, así que no puede manchar una habitación. */
+  it('la pintura de la roca va dentro de la máscara de la roca', () => {
+    const { container } = mount([room('r1', 60, 60, 300, 300)], [], { ...SCENE, rockPaintUrl: 'https://x/paint/rock-sc-1.png' });
+    const grupo = container.querySelector(`g[mask="url(#${roomMaskIds('sc-1').rock})"]`)!;
+    expect(grupo.querySelector('[data-testid="mp-room-rock-paint"]')).not.toBeNull();
+  });
+
+  /** El previo EN VIVO manda sobre lo guardado: sin él el brochazo no se vería hasta soltar el ratón. */
+  it('el previo en vivo manda sobre la pintura guardada', () => {
+    mount([room('r1', 60, 60, 300, 300, { floorPaintUrl: 'https://x/viejo.png' })], [], SCENE, null,
+      { on: 'room', id: 'r1', href: 'data:image/png;base64,NUEVO' });
+    expect(screen.getByTestId('mp-room-floor-paint')).toHaveAttribute('href', 'data:image/png;base64,NUEVO');
+  });
+
+  it('y el de la roca, igual', () => {
+    mount([room('r1', 60, 60, 300, 300)], [], { ...SCENE, rockPaintUrl: 'https://x/viejo.png' }, null,
+      { on: 'rock', id: 'sc-1', href: 'data:image/png;base64,NUEVO' });
+    expect(screen.getByTestId('mp-room-rock-paint')).toHaveAttribute('href', 'data:image/png;base64,NUEVO');
   });
 });

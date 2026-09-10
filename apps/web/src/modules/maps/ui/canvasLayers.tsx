@@ -3,6 +3,7 @@ import type { LitLight, SceneVision } from '@rolvium/core';
 import type { DoorSettings, Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
 import { cellsPath, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, initialsOf, openingGeometry, polygonPoints, polygonsPath, quadPoints, tokenCenter, type Segment } from '../domain/useCases/mapRules';
 import { beamCones, conePath, flickerOf, intensityFactor, lightRadiusPx, maskSrc, terrainLayers } from '../domain/useCases/layerRules';
+import { layerPaintSrc } from '../domain/useCases/paintRules';
 
 /** Presentational SVG pieces of the canvas (no pointer logic) — see MapCanvas.tsx. */
 
@@ -288,15 +289,22 @@ function FogMasksBase({ scene, fog, ids }: FogProps): JSX.Element {
  * ve entero), un brochazo a fuerza máxima deja negro (no se ve) y a media, gris (translúcido). La foto
  * original no se toca en ningún momento — de ahí que siempre se pueda volver atrás.
  */
-export function TerrainLayers({ scene, layers, clipId, preview = null }: { scene: Scene; layers: readonly Layer[]; clipId: string;
+export function TerrainLayers({ scene, layers, clipId, preview = null, paintPreview = null }: { scene: Scene; layers: readonly Layer[]; clipId: string;
   /** La máscara EN VIVO de la capa que se está pintando: manda sobre la guardada hasta que ésta suba. */
-  preview?: { layerId: string; href: string | null } | null }): JSX.Element {
+  preview?: { layerId: string; href: string | null } | null;
+  /**
+   * LA PINTURA EN VIVO (rebanada 10): lo que se pone ENCIMA de la foto. Va aparte de la máscara porque hacen
+   * lo contrario — aquélla QUITA para que asome la capa de abajo, ésta PONE encima.
+   */
+  paintPreview?: { layerId: string; href: string | null } | null }): JSX.Element {
   const terrain = terrainLayers(layers).filter(l => l.visible && l.imageUrl);
   return (
     <g className="mp-layer-terrain" clipPath={`url(#${clipId})`} data-testid="mp-terrain">
       {terrain.map(l => {
         const mask = preview && preview.layerId === l.id ? preview.href : maskSrc(l);
+        const paint = paintPreview && paintPreview.layerId === l.id ? paintPreview.href : layerPaintSrc(l);
         const maskId = `mp-mask-${l.id}`;
+        const clipBoxId = `mp-paint-clip-${l.id}`;
         const tr = l.transform;
         const box = tr.mode === 'custom'
           ? { x: tr.x, y: tr.y, width: scene.width * tr.scale, height: scene.height * tr.scale, preserveAspectRatio: 'xMinYMin meet' }
@@ -310,6 +318,22 @@ export function TerrainLayers({ scene, layers, clipId, preview = null }: { scene
               </mask>
             )}
             <image href={l.imageUrl!} {...box} {...(mask ? { mask: `url(#${maskId})` } : {})} />
+            {/*
+              * LA PINTURA, encima de la foto y RECORTADA A SU ENCAJE: la pintura es de esta foto, así que no
+              * puede desbordarse por el mapa cuando la foto no lo cubre entero. El PNG va en coordenadas de
+              * escena, igual que la máscara, y el recorte es el rectángulo donde cae la foto.
+              */}
+            {paint && (<>
+              <clipPath id={clipBoxId}><rect x={box.x} y={box.y} width={box.width} height={box.height} /></clipPath>
+              {/*
+                * 🔑 Y LLEVA LA MISMA MÁSCARA QUE LA FOTO, igual que la pintura de una habitación va dentro de
+                * la máscara de su suelo: **la pintura es de lo que pintaste**, así que destapar la foto
+                * destapa también lo que hubieras pintado encima. Sin esto, destapar dejaba la pintura
+                * flotando sobre el agujero.
+                */}
+              <image href={paint} x={0} y={0} width={scene.width} height={scene.height} preserveAspectRatio="none"
+                clipPath={`url(#${clipBoxId})`} {...(mask ? { mask: `url(#${maskId})` } : {})} data-testid="mp-terrain-paint" />
+            </>)}
           </g>
         );
       })}

@@ -1,4 +1,3 @@
-import type { BrushTarget } from './layerRules';
 import { snapStep, type Point } from './mapRules';
 
 /**
@@ -363,16 +362,19 @@ export function wallStripe(a: Point, b: Point, t: number, grid: number): [number
  * Tenía razón en lo que importa: **una raya no encierra nada, así que no puede ser una sala**. Enseñar el
  * botón igualmente es prometer un gesto que no va a hacer nada.
  *
- *  · `room` — sólo las CUATRO que encierran área: rectángulo, círculo, polígono y a pulso. «A mano» y «recta»
- *    no cierran, así que se caen.
+ *  · `room` — las cuatro que encierran área MÁS «a mano», que desde la rebanada 10 saca una BANDA del ancho
+ *    elegido y por lo tanto sí encierra. «Recta» sigue fuera: marca un muro de un tirón y no cierra nada.
  *  · `wall` — LAS SEIS. Una raya sí es un muro (se le da el grosor de la escena, `wallStripe`) y un área es un
  *    bloque de roca. Es donde «a mano» y «recta» son de verdad útiles: corregir un borde, cerrar un pasillo.
  *  · `door` / `window` — sólo las dos que TRAZAN una raya: un vano se abre cruzando la pared, no rodeándola.
+ *
+ * ⚠️ El cambio de la rebanada 10 es SÓLO en «Dibujar aquí». Marcando sobre una foto, «a mano» sigue siendo el
+ * Builder de siempre —clic a clic, un muro por tramo—: allí no se levanta mazmorra, se marcan paredes.
  */
 export function shapesFor(kind: BuildKind): RoomShape[] {
   if (isOpeningKind(kind)) return ['segment', 'line'];
   if (kind === 'wall') return ROOM_SHAPES;
-  return ['rect', 'circle', 'poly', 'free'];
+  return ['segment', 'rect', 'circle', 'poly', 'free'];
 }
 
 /** La forma con la que arranca cada cosa, y a la que se cae si la elegida deja de tener sentido. */
@@ -482,30 +484,13 @@ export function brushRings(path: Point[], widthCells: number, grid: number): [nu
   return runs.filter(x => x.length > 0).map(x => ringOfRun(x, r).map(p => [p.x, p.y] as [number, number]));
 }
 
-// ── EL PINCEL QUE CONSTRUYE · LO QUE SE ELIGE ANTES DE PINTAR (§ «Rebanada 10») ──
-
-/**
- * SOBRE QUÉ se está construyendo. Son las dos únicas cosas que se pueden levantar a mano alzada, y son las
- * mismas dos de siempre con otro nombre: **suelo excava** (`room`) y **muro rellena** (`fill`).
- *
- * ⚠️ Van aparte de `BrushTarget` —capa, niebla y suelo de sala— porque aquéllos PINTAN SOBRE algo que ya
- * está y éstos LEVANTAN MAPA. Mezclarlos en una lista dejaría un «sentido: pintar/quitar» sin significado
- * encima de un brochazo que excava.
- */
-export type BuildTarget = 'floor' | 'wall';
-export const BUILD_TARGETS: BuildTarget[] = ['floor', 'wall'];
-/** El signo de la forma que sale del brochazo. Es la traducción entera entre el panel y `maps_rooms.kind`. */
-export const roomKindOfBuild = (t: BuildTarget): 'room' | 'fill' => (t === 'wall' ? 'fill' : 'room');
-
-/**
- * CON QUÉ PINTO. `texture` y `color` levantan; `erase` derriba.
- *
- * El borrador es una opción MÁS de esta fila y no un interruptor aparte porque es lo que él pidió —«*una
- * herramienta de borrado como un pincel que borra*»— y porque las tres se excluyen: mientras borras no
- * estás pintando con nada.
- */
-export type BrushPaint = 'texture' | 'color' | 'erase';
-export const BRUSH_PAINTS: BrushPaint[] = ['texture', 'color', 'erase'];
+// ── LOS COLORES CON LOS QUE SE PINTA (§ «Rebanada 10») ──
+//
+// 🔴 Aquí vivían además `BuildTarget`, `BRUSH_PAINTS`, `BRUSH_ON` y `isBuildOn`: la lista de «sobre qué» y
+// «con qué» del pincel que EXCAVABA. Él lo paró en pantalla el 2026-09-10 («*eso es cavar con construir, que
+// no es lo que te pedí*») y esa mitad se mudó al Builder, donde la elección de siempre —muro o habitación—
+// ya existía. Se quitaron al mudarlas para que nadie las vuelva a cablear a un pincel: **este pincel no
+// levanta mapa**. La lista del pincel de hoy vive en `paintRules.ts`.
 
 /**
  * LA PALETA BASE DE LA CASA (`rolvium.pen` · `M9zw2t` § «EL COLOR»): doce, en dos filas de seis.
@@ -548,17 +533,3 @@ export const isHexColor = (s: string): boolean => /^#[0-9a-fA-F]{6}$/.test(s);
 export const brushColorName = (hex: string): string | null =>
   BRUSH_COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase())?.name ?? null;
 
-/**
- * LA LISTA ENTERA DE «SOBRE QUÉ» del panel (`rolvium.pen` · `YwHzR` § S/1), en el orden del diseño.
- *
- * Junta las dos familias en un solo interruptor porque para él son la misma pregunta —«¿dónde estoy
- * pintando?»— aunque por dentro una levante mapa y la otra pinte encima de algo que ya está.
- *
- * ⚠️ `room` —el suelo de UNA sala, el de la rebanada 9— va el ÚLTIMO y a todo lo ancho: el diseño aprobado
- * trae cuatro casillas y él dejó esta quinta viva con un «*no lo sé, por ahora déjalo*» del 2026-09-10. En
- * cuanto la vea funcionando dirá si se queda o se va, y quitarla es borrar esta línea.
- */
-export type BrushOn = BuildTarget | BrushTarget;
-export const BRUSH_ON: BrushOn[] = ['floor', 'wall', 'layer', 'fog', 'room'];
-/** ¿Este destino LEVANTA MAPA? De ahí cuelga medio panel: con qué pinto, y qué mandos tienen sentido. */
-export const isBuildOn = (x: BrushOn): x is BuildTarget => x === 'floor' || x === 'wall';

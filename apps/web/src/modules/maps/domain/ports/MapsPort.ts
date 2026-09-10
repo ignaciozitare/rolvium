@@ -51,6 +51,16 @@ export interface MapsPort {
   removeScene(id: string): Promise<void>;
   /** DM only: what the players see (`campaigns.active_scene_id`). */
   setActiveScene(campaignId: string, sceneId: string | null): Promise<void>;
+  /**
+   * DM only. LA PINTURA DE LA ROCA (rebanada 10): sube el PNG a
+   * `backgrounds/{campaignId}/paint/rock-{sceneId}.png` y deja el puntero en la escena.
+   *
+   * 🔑 Va en la ESCENA y no en una fila de muro porque no hay ninguna: la roca es el negativo de lo excavado.
+   * Devuelve la escena ya actualizada — su `updated_at` es el rompe-caché, igual que en una sala.
+   */
+  saveRockPaint(scene: Pick<Scene, 'id' | 'campaignId'>, png: Blob): Promise<Scene>;
+  /** Quita la pintura de la roca. El muro sigue exactamente donde estaba: pintar no cambia el mapa. */
+  clearRockPaint(scene: Pick<Scene, 'id' | 'campaignId'>): Promise<void>;
   // background library
   listImages(campaignId: string): Promise<ImageAsset[]>;
   /** DM only: uploads to `backgrounds/{campaignId}/{uuid}.png` and registers the row. */
@@ -130,6 +140,17 @@ export interface MapsPort {
   saveMask(layer: Pick<Layer, 'id' | 'campaignId' | 'maskVersion'>, png: Blob): Promise<Layer>;
   /** DM only. Quita la máscara: la capa vuelve a ser opaca entera. */
   clearMask(layer: Pick<Layer, 'id' | 'campaignId'>): Promise<void>;
+  /**
+   * DM only. LA PINTURA de una capa de terreno (rebanada 10): sube el PNG a
+   * `backgrounds/{campaignId}/paint/layer-{layerId}.png` y deja el puntero + la versión nueva.
+   *
+   * ⚠️ Va por SEPARADO de la máscara y no reaprovecha `saveMask` aunque el camino sea idéntico: son dos
+   * ficheros y dos columnas porque hacen lo contrario —aquélla QUITA, ésta PONE—, y compartir fichero
+   * dejaría el borrador de una borrando la otra.
+   */
+  saveLayerPaint(layer: Pick<Layer, 'id' | 'campaignId' | 'paintVersion'>, png: Blob): Promise<Layer>;
+  /** DM only. Quita la pintura de la capa: vuelve a verse su foto tal cual. */
+  clearLayerPaint(layer: Pick<Layer, 'id' | 'campaignId'>): Promise<void>;
 
   // lights (rebanada 7) — desde § 7.2 alumbran de verdad y entran en el cálculo de visión (del servidor)
   listLights(sceneId: string): Promise<Light[]>;
@@ -180,6 +201,14 @@ export interface MapsPort {
   saveRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>, png: Blob): Promise<Room>;
   /** Quita la máscara entera: el suelo de la sala vuelve a verse como lo puso el constructor. */
   clearRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>): Promise<void>;
+  /**
+   * DM only. LA PINTURA de esta forma (rebanada 10): el PNG que se dibuja ENCIMA de su suelo, en
+   * `backgrounds/{campaignId}/paint/room-{id}.png`. Devuelve la sala ya actualizada por lo mismo que
+   * `saveRoomFloorMask`: de ahí sale el `updated_at` que rompe la caché del navegador.
+   */
+  saveRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>, png: Blob): Promise<Room>;
+  /** Quita la pintura de la forma. **No derriba lo construido**: la forma sigue exactamente donde estaba. */
+  clearRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>): Promise<void>;
 
   // ── los colores guardados (rebanada 10) ───────────────────────────────────
   // Los que él mezcla con el cuentagotas o escribe a mano, POR CAMPAÑA. La paleta base de la casa no pasa

@@ -13,7 +13,7 @@ const scene = (over: Partial<Scene> = {}): Scene => ({
   id: 'sc-1', campaignId: 'c1', name: 'Cripta', width: 600, height: 400, bgColor: '#111111', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 30, visible: true }, fogMode: 'vision',
   lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null, doorTextureUrl: null, tokenScale: 1,
-  brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5,
+  brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5, rockPaintUrl: null,
   roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
   createdAt: '', updatedAt: '', ...over,
 });
@@ -152,7 +152,7 @@ describe('snapSpanToOutline — la puerta se engancha a la pared', () => {
   /** Una sala cuadrada de (0,0) a (100,100): sus lados son el contorno. */
   const sala = (): Room => ({
     id: 'r1', sceneId: 's', campaignId: 'c', kind: 'room', shape: 'rect',
-    points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+    points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
   });
   const vano = (x1: number, y1: number, x2: number, y2: number): RoomOpeningSpan =>
     ({ x1, y1, x2, y2, kind: 'door', isOpen: false });
@@ -196,7 +196,7 @@ describe('roomAt — a qué sala apunta el pincel del suelo', () => {
   const cuadrado = (id: string, x: number, y: number, lado = 100): Room => ({
     id, sceneId: 's', campaignId: 'c', kind: 'room', shape: 'rect',
     points: [[x, y], [x + lado, y], [x + lado, y + lado], [x, y + lado]],
-    floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+    floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
   });
 
   it('devuelve la sala que hay bajo el punto, y nada fuera de todas', () => {
@@ -231,7 +231,7 @@ describe('con qué se pinta una forma — foto, color, preajuste', () => {
   const forma = (over: Partial<Room> = {}): Room => ({
     id: 'r1', sceneId: 's', campaignId: 'c', kind: 'room', shape: 'brush',
     points: [[0, 0], [10, 0], [10, 10], [0, 10]],
-    floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '', ...over,
+    floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '', ...over,
   });
   const mapa = scene({ wallTextureUrl: 'roca.png', floorTextureUrl: 'suelo.png' });
 
@@ -278,7 +278,7 @@ describe('shapeAt — la forma que se lleva el borrador', () => {
   const cuadrado = (id: string, x: number, y: number, kind: Room['kind'] = 'room'): Room => ({
     id, sceneId: 's', campaignId: 'c', kind, shape: 'brush',
     points: [[x, y], [x + 100, y], [x + 100, y + 100], [x, y + 100]],
-    floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+    floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
   });
 
   it('coge también las que RELLENAN, al revés que el pincel del suelo', () => {

@@ -852,11 +852,12 @@
       "hide": "Hide brush",
       "on": "Paint on",
       "target": {
-        "layer": "Layer",
+        "layer": "Photo",
         "fog": "Fog",
-        "room": "Room floor",
+        "room": "Room",
         "floor": "Floor",
-        "wall": "Wall"
+        "wall": "Wall",
+        "rock": "Wall"
       },
       "way": "Way",
       "dir": {
@@ -888,7 +889,7 @@
       "hintRoom": "Painting a ROOM FLOOR the stroke clips itself at the room edge: you can sweep over the wall without staining it.",
       "hintScene": "The brush is remembered by THIS scene — stroke, size, transparency and how torn. Another map brings its own.",
       "hintFog": "In the FOG a torn edge shows in whole cells, because that is how fog is stored. On a layer or a room floor it looks fine-grained.",
-      "needsRoom": "Put the brush over a room to repaint its floor.",
+      "needsRoom": "Put the brush over a room to paint it.",
       "with": "What I paint with",
       "paint": {
         "texture": "Texture",
@@ -922,7 +923,16 @@
         "water": "Water",
         "ice": "Ice",
         "blood": "Blood"
-      }
+      },
+      "doLabel": "What I do",
+      "do": {
+        "paint": "Paint",
+        "erase": "Erase paint",
+        "uncover": "Uncover what is below"
+      },
+      "scopeHint": "what you pick is the limit: if your hand slips, the thing next to it stays clean",
+      "footPaint": "Painting does NOT change the map: not where you walk, not what is seen, not the light. Only how it looks.",
+      "needsRock": "This map has no rock yet: build a room with the Builder and the wall shows up."
     },
     "fog": {
       "autoOn": "Automatic fog by line of sight · opens as tokens move; click for manual",
@@ -1137,8 +1147,8 @@
         "floor": "Tile · floor"
       },
       "build": {
-        "label": "What I build · dig or fill",
-        "hint": "ROOM digs the hole · WALL fills it back · openings use the same disc",
+        "label": "What I build · the wall with a texture, the room with a colour",
+        "hint": "ROOM digs the hole · WALL fills it · openings, with the same disc",
         "room": "Room",
         "wall": "Wall",
         "door": "Door",
@@ -1172,10 +1182,25 @@
         "renamePrompt": "What should this texture be called?",
         "door": "Door texture",
         "brushHint": "These belong to the TOOL, not to your campaign: whatever you upload here works in all your maps. Pick one and it goes on the NEXT stroke, travelling with it: changing it later does not repaint what is already there.",
-        "brush": "Brush texture"
+        "brush": "Brush texture",
+        "shape": "Texture of what you build",
+        "shapeHint": "They belong to the TOOL, not to your campaign: what you upload here serves every map. Pick one and it goes on the NEXT shape you build, and stays with it: changing it later does not repaint what is already built."
       },
       "tooSmall": "The gesture came up short: nothing was built. Drag a little further.",
-      "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square."
+      "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square.",
+      "paintWith": {
+        "label": "What it is painted with",
+        "wall": "Wall",
+        "wallHint": "with WALL picked, a texture from the catalog",
+        "roomHint": "with ROOM picked, a colour",
+        "none": "None: the map texture wins",
+        "clear": "Remove the colour"
+      },
+      "band": {
+        "label": "Band width · only with “By hand”",
+        "short": "Width",
+        "hint": "“By hand” gives a BAND of the width you pick, not a line. By default it is this scene’s wall thickness."
+      }
     },
     "group": {
       "countGrouped": "Group · {{n}} walls",

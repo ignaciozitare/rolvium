@@ -5,14 +5,16 @@ import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, RoomOpeningPatch, Unsub
 import { clampHardness, clampMaskSize, clampRoughness, clampStrength, DEFAULT_BRUSH_ROUGHNESS, DEFAULT_BRUSH_TIP, DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, isBrushTip, maskPath, roomMaskPath } from '../domain/useCases/layerRules';
 import { TOKEN_SCALE } from '../domain/useCases/mapRules';
 import { propPath } from '../domain/useCases/propRules';
+import { layerPaintPath, rockPaintPath, roomPaintPath } from '../domain/useCases/paintRules';
+import { DEFAULT_WALL_THICKNESS } from '../domain/useCases/roomStyles';
 
-interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; /* rebanada 8 — opcionales a propósito: una fila escrita antes de la migración no las trae, y el mapeador ya las defiende con su valor de serie */ room_preset?: RoomPreset; wall_texture_url?: string | null; floor_texture_url?: string | null; wall_thickness?: number; wall_texture_scale?: number; floor_texture_scale?: number; door_color?: string | null; door_texture_url?: string | null; token_scale?: number; /* rebanada 9 — el pincel de la escena, opcionales por lo mismo */ brush_tip?: string; brush_size?: number; brush_strength?: number; brush_hardness?: number; brush_roughness?: number; created_at: string; updated_at: string }
+interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; /* rebanada 8 — opcionales a propósito: una fila escrita antes de la migración no las trae, y el mapeador ya las defiende con su valor de serie */ room_preset?: RoomPreset; wall_texture_url?: string | null; floor_texture_url?: string | null; wall_thickness?: number; wall_texture_scale?: number; floor_texture_scale?: number; door_color?: string | null; door_texture_url?: string | null; token_scale?: number; /* rebanada 9 — el pincel de la escena, opcionales por lo mismo */ brush_tip?: string; brush_size?: number; brush_strength?: number; brush_hardness?: number; brush_roughness?: number; /* rebanada 10 — la pintura de la roca, opcional por lo mismo */ rock_paint_url?: string | null; created_at: string; updated_at: string }
 interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean; group_id: string | null; /* las puertas, de verdad — opcionales a propósito: una fila anterior a la migración no las trae y `mapDoorRow` la defiende con DEFAULT_DOOR */ leaves?: number | null; hinge?: string | null; swing?: string | null; door_color?: string | null; door_texture_url?: string | null }
 interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; bestiary_entry_id: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown>; layer_id: string | null }
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string; layer_id: string | null }
-interface LayerRow { id: string; scene_id: string; campaign_id: string; kind: LayerKind; name: string; sort_order: number; visible: boolean; locked: boolean; image_url: string | null; transform: BgTransform; mask_url: string | null; mask_version: number; created_at: string; updated_at: string }
+interface LayerRow { id: string; scene_id: string; campaign_id: string; kind: LayerKind; name: string; sort_order: number; visible: boolean; locked: boolean; image_url: string | null; transform: BgTransform; mask_url: string | null; mask_version: number; /* rebanada 10 — la pintura, opcional a propósito: una capa anterior a la migración no la trae */ paint_url?: string | null; paint_version?: number; created_at: string; updated_at: string }
 interface LightRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; shape: LightShape; kind: LightKind; x: number; y: number; rotation: number; cone_angle: number; color: string; flicker: boolean; range_m: number; casts_shadow: boolean; spin_ms: number; intensity: number; created_at: string; updated_at: string }
-interface RoomRow { id: string; scene_id: string; campaign_id: string; kind?: RoomKind; shape: RoomShapeKind; points: [number, number][]; floor_preset: RoomPreset; floor_url: string | null; floor_mask_url?: string | null; /* rebanada 10 — opcional por lo mismo: una forma anterior al pincel no trae color propio */ floor_color?: string | null; created_at: string; updated_at: string }
+interface RoomRow { id: string; scene_id: string; campaign_id: string; kind?: RoomKind; shape: RoomShapeKind; points: [number, number][]; floor_preset: RoomPreset; floor_url: string | null; floor_mask_url?: string | null; /* rebanada 10 — opcional por lo mismo: una forma anterior al pincel no trae color propio ni pintura */ floor_color?: string | null; floor_paint_url?: string | null; created_at: string; updated_at: string }
 /** Espejo de `maps_colors` (rebanada 10): los colores que él mezcla, por campaña. */
 interface ColorRow { id: string; campaign_id: string; color: string; created_at: string }
 interface RoomOpeningRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; kind: 'door' | 'window'; is_open: boolean; /* las puertas, de verdad — opcionales a propósito: una fila anterior a la migración no las trae y `mapDoorRow` la defiende con DEFAULT_DOOR */ leaves?: number | null; hinge?: string | null; swing?: string | null; door_color?: string | null; door_texture_url?: string | null }
@@ -21,8 +23,8 @@ interface TextureRow { id: string; name: string; category: TextureCategory; url:
 interface PropRow { id: string; campaign_id: string | null; name: string; category: PropCategory; image_url: string; natural_width: number; natural_height: number; default_scale: number; default_blocks_sight: boolean; default_blocks_move: boolean; default_block_shape: BlockShape; uploaded_by: string | null; created_at: string; updated_at: string }
 interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; created_at: string; updated_at: string }
 
-const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, door_color, door_texture_url, token_scale, brush_tip, brush_size, brush_strength, brush_hardness, brush_roughness, created_at, updated_at';
-const ROOM_COLS = 'id, scene_id, campaign_id, kind, shape, points, floor_preset, floor_url, floor_color, floor_mask_url, created_at, updated_at';
+const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, door_color, door_texture_url, token_scale, brush_tip, brush_size, brush_strength, brush_hardness, brush_roughness, rock_paint_url, created_at, updated_at';
+const ROOM_COLS = 'id, scene_id, campaign_id, kind, shape, points, floor_preset, floor_url, floor_color, floor_mask_url, floor_paint_url, created_at, updated_at';
 const COLOR_COLS = 'id, campaign_id, color, created_at';
 /**
  * El choque contra el índice único de `maps_colors`. Se mira el MENSAJE y no un código porque el cliente de
@@ -33,7 +35,6 @@ const ROOM_OPENING_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, kind, is_o
 const TEXTURE_COLS = 'id, name, category, url, tile_cells, uploaded_by, created_at, updated_at';
 /** Espejo de la migración: una escena de antes de la rebanada 8 se lee con el preajuste y el grosor de serie. */
 const DEFAULT_ROOM_PRESET: RoomPreset = 'hatch';
-const DEFAULT_WALL_THICKNESS = 0.22;
 /** Un azulejo grande, que es lo que menos sorprende al subir una foto cualquiera. En CASILLAS. */
 const DEFAULT_TEXTURE_SCALE = 4;
 const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, kind, blocks_sight, blocks_move, is_open, group_id, leaves, hinge, swing, door_color, door_texture_url';
@@ -41,7 +42,7 @@ const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, k
 const DEFAULT_NIGHT_RADIUS_M = 10;
 const TOKEN_COLS = 'id, scene_id, campaign_id, character_id, bestiary_ref, bestiary_entry_id, name, image_url, x, y, size, color, visible, controlled_by, vision_radius, state, layer_id';
 const DRAWING_COLS = 'id, scene_id, campaign_id, author_id, kind, data, color, width, created_at, layer_id';
-const LAYER_COLS = 'id, scene_id, campaign_id, kind, name, sort_order, visible, locked, image_url, transform, mask_url, mask_version, created_at, updated_at';
+const LAYER_COLS = 'id, scene_id, campaign_id, kind, name, sort_order, visible, locked, image_url, transform, mask_url, mask_version, paint_url, paint_version, created_at, updated_at';
 const LIGHT_COLS = 'id, scene_id, campaign_id, layer_id, shape, kind, x, y, rotation, cone_angle, color, flicker, range_m, casts_shadow, spin_ms, intensity, created_at, updated_at';
 const PROP_COLS = 'id, campaign_id, name, category, image_url, natural_width, natural_height, default_scale, default_blocks_sight, default_blocks_move, default_block_shape, uploaded_by, created_at, updated_at';
 const SCENE_PROP_COLS = 'id, scene_id, campaign_id, layer_id, prop_id, image_url, name, x, y, width, height, rotation, blocks_sight, blocks_move, block_shape, block_w, block_h, block_dx, block_dy, created_at, updated_at';
@@ -98,6 +99,8 @@ export const mapSceneRow = (r: SceneRow): Scene => ({
   brushStrength: clampStrength(r.brush_strength ?? DEFAULT_MASK_STRENGTH),
   brushHardness: clampHardness(r.brush_hardness ?? DEFAULT_MASK_HARDNESS),
   brushRoughness: clampRoughness(r.brush_roughness ?? DEFAULT_BRUSH_ROUGHNESS),
+  // Un mapa anterior a la rebanada 10 no trae la columna: nadie ha pintado su roca, y se ve como siempre.
+  rockPaintUrl: r.rock_paint_url ?? null,
   createdAt: r.created_at, updatedAt: r.updated_at,
 });
 export const mapRoomRow = (r: RoomRow): Room => ({
@@ -110,6 +113,8 @@ export const mapRoomRow = (r: RoomRow): Room => ({
   floorColor: r.floor_color ?? null,
   // Una sala dibujada antes del pincel no trae la columna: nadie ha pintado en ella, y se ve entera.
   floorMaskUrl: r.floor_mask_url ?? null,
+  // …y sin pintura encima, que es otra columna y otro fichero: la máscara QUITA y la pintura PONE.
+  floorPaintUrl: r.floor_paint_url ?? null,
   createdAt: r.created_at, updatedAt: r.updated_at,
 });
 export const mapColorRow = (r: ColorRow): MapColor => ({
@@ -154,7 +159,10 @@ export const mapDrawingRow = (r: DrawingRow): Drawing => ({ id: r.id, sceneId: r
 export const mapLayerRow = (r: LayerRow): Layer => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, kind: r.kind, name: r.name ?? '', sortOrder: r.sort_order,
   visible: r.visible, locked: r.locked, imageUrl: r.image_url, transform: r.transform ?? DEFAULT_TRANSFORM,
-  maskUrl: r.mask_url, maskVersion: r.mask_version ?? 0, createdAt: r.created_at, updatedAt: r.updated_at,
+  maskUrl: r.mask_url, maskVersion: r.mask_version ?? 0,
+  // Una capa anterior a la rebanada 10 no trae pintura: se ve su foto tal cual.
+  paintUrl: r.paint_url ?? null, paintVersion: r.paint_version ?? 0,
+  createdAt: r.created_at, updatedAt: r.updated_at,
 });
 const mapLightRow = (r: LightRow): Light => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, layerId: r.layer_id, shape: r.shape, kind: r.kind,
@@ -195,7 +203,7 @@ function scenePropPatchRow(p: ScenePropPatch): Record<string, unknown> {
   return Object.fromEntries(Object.entries(p).filter(([k]) => k in map).map(([k, v]) => [map[k]!, v]));
 }
 function layerPatchRow(p: LayerPatch): Record<string, unknown> {
-  const map: Record<string, string> = { name: 'name', sortOrder: 'sort_order', visible: 'visible', locked: 'locked', imageUrl: 'image_url', transform: 'transform', maskUrl: 'mask_url', maskVersion: 'mask_version' };
+  const map: Record<string, string> = { name: 'name', sortOrder: 'sort_order', visible: 'visible', locked: 'locked', imageUrl: 'image_url', transform: 'transform', maskUrl: 'mask_url', maskVersion: 'mask_version', paintUrl: 'paint_url', paintVersion: 'paint_version' };
   const row: Record<string, unknown> = {};
   for (const [k, col] of Object.entries(map)) { const v = (p as Record<string, unknown>)[k]; if (v !== undefined) row[col] = v; }
   return row;
@@ -521,6 +529,25 @@ export class SupabaseMapsRepo implements MapsPort {
     this.fail(error);
     await this.db.storage.from(BACKGROUNDS_BUCKET).remove([maskPath(layer.campaignId, layer.id)]);
   }
+  /**
+   * LA PINTURA de una capa (rebanada 10). Mismo camino que la máscara —mismo bucket, `upsert` en la misma
+   * ruta, número de versión que sube— pero OTRO fichero y OTRA columna: aquélla QUITA y ésta PONE, y
+   * compartirlos dejaría el borrador de una llevándose la otra por delante.
+   */
+  async saveLayerPaint(layer: Pick<Layer, 'id' | 'campaignId' | 'paintVersion'>, png: Blob): Promise<Layer> {
+    const path = layerPaintPath(layer.campaignId, layer.id);
+    const { error: upErr } = await this.db.storage.from(BACKGROUNDS_BUCKET).upload(path, png, { upsert: true, contentType: 'image/png', cacheControl: '3600' });
+    this.fail(upErr);
+    const url = this.db.storage.from(BACKGROUNDS_BUCKET).getPublicUrl(path).data.publicUrl;
+    const { data, error } = await this.db.from('maps_layers').update({ paint_url: url, paint_version: layer.paintVersion + 1 }).eq('id', layer.id).select(LAYER_COLS).single();
+    this.fail(error);
+    return mapLayerRow(data as unknown as LayerRow);
+  }
+  async clearLayerPaint(layer: Pick<Layer, 'id' | 'campaignId'>): Promise<void> {
+    const { error } = await this.db.from('maps_layers').update({ paint_url: null }).eq('id', layer.id);
+    this.fail(error);
+    await this.db.storage.from(BACKGROUNDS_BUCKET).remove([layerPaintPath(layer.campaignId, layer.id)]);
+  }
 
   // ── lights (rebanada 7) ── HOY SON PINTURA: no revelan niebla ni entran en el cálculo de visión.
   async listLights(sceneId: string): Promise<Light[]> {
@@ -657,6 +684,46 @@ export class SupabaseMapsRepo implements MapsPort {
     const { error } = await this.db.from('maps_rooms').update({ floor_mask_url: null }).eq('id', room.id);
     this.fail(error);
     await this.db.storage.from(BACKGROUNDS_BUCKET).remove([roomMaskPath(room.campaignId, room.id)]);
+  }
+
+  /**
+   * LA PINTURA de una forma (rebanada 10): el PNG que se dibuja ENCIMA de su suelo. Se devuelve la fila
+   * entera por lo mismo que la máscara — el rompe-caché de una sala es su `updated_at`, y sin traerlo de
+   * vuelta el navegador se queda con el PNG de antes y parece que el pincel no pinta.
+   */
+  async saveRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>, png: Blob): Promise<Room> {
+    const path = roomPaintPath(room.campaignId, room.id);
+    const { error: upErr } = await this.db.storage.from(BACKGROUNDS_BUCKET).upload(path, png, { upsert: true, contentType: 'image/png', cacheControl: '3600' });
+    this.fail(upErr);
+    const url = this.db.storage.from(BACKGROUNDS_BUCKET).getPublicUrl(path).data.publicUrl;
+    const { data, error } = await this.db.from('maps_rooms').update({ floor_paint_url: url }).eq('id', room.id).select(ROOM_COLS).single();
+    this.fail(error);
+    return mapRoomRow(data as unknown as RoomRow);
+  }
+  async clearRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>): Promise<void> {
+    const { error } = await this.db.from('maps_rooms').update({ floor_paint_url: null }).eq('id', room.id);
+    this.fail(error);
+    await this.db.storage.from(BACKGROUNDS_BUCKET).remove([roomPaintPath(room.campaignId, room.id)]);
+  }
+
+  /**
+   * LA PINTURA DE LA ROCA (rebanada 10). Va en la ESCENA porque la roca no es una fila: es el negativo de lo
+   * excavado. El recorte contra la roca lo hace el lienzo con la máscara que ya usa para tallarla, así que
+   * aquí no hay nada que comprobar — y por eso pintar la roca no puede manchar una sala.
+   */
+  async saveRockPaint(scene: Pick<Scene, 'id' | 'campaignId'>, png: Blob): Promise<Scene> {
+    const path = rockPaintPath(scene.campaignId, scene.id);
+    const { error: upErr } = await this.db.storage.from(BACKGROUNDS_BUCKET).upload(path, png, { upsert: true, contentType: 'image/png', cacheControl: '3600' });
+    this.fail(upErr);
+    const url = this.db.storage.from(BACKGROUNDS_BUCKET).getPublicUrl(path).data.publicUrl;
+    const { data, error } = await this.db.from('maps_scenes').update({ rock_paint_url: url }).eq('id', scene.id).select(SCENE_COLS).single();
+    this.fail(error);
+    return mapSceneRow(data as unknown as SceneRow);
+  }
+  async clearRockPaint(scene: Pick<Scene, 'id' | 'campaignId'>): Promise<void> {
+    const { error } = await this.db.from('maps_scenes').update({ rock_paint_url: null }).eq('id', scene.id);
+    this.fail(error);
+    await this.db.storage.from(BACKGROUNDS_BUCKET).remove([rockPaintPath(scene.campaignId, scene.id)]);
   }
 
   // ── los colores guardados de la campaña (rebanada 10) ─────────────────────

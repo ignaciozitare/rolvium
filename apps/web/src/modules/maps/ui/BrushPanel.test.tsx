@@ -14,167 +14,164 @@ const MIOS: MapColor[] = [
 function mount(over: Partial<React.ComponentProps<typeof BrushPanel>> = {}) {
   cleanup();
   const cb = {
-    onOn: vi.fn(), onPaint: vi.fn(), onPickTexture: vi.fn(), onClearTexture: vi.fn(),
-    onColor: vi.fn(), onSaveColor: vi.fn(), onDirection: vi.fn(), onChange: vi.fn(), onCommit: vi.fn(),
-    onClose: vi.fn(),
+    onOn: vi.fn(), onAction: vi.fn(), onInk: vi.fn(), onPickTexture: vi.fn(), onClearTexture: vi.fn(),
+    onColor: vi.fn(), onSaveColor: vi.fn(), onChange: vi.fn(), onCommit: vi.fn(), onClose: vi.fn(),
   };
   renderWithProviders(
-    <BrushPanel on="floor" paint="texture" textureUrl={null} textureName={null} textureCells={4} gridSize={30}
-      color="#b08d57" savedColors={MIOS} direction="erase" value={BRUSH} {...cb} {...over} />,
+    <BrushPanel on="room" action="paint" ink="color" textureUrl={null} textureName={null} textureCells={4} gridSize={30}
+      color="#b08d57" savedColors={MIOS} value={BRUSH} {...cb} {...over} />,
   );
   return cb;
 }
 
 /**
- * 🖌 EL PANEL DEL PINCEL (rebanada 10 · `rolvium.pen` `YwHzR` + `M9zw2t`, aprobados por él el 2026-09-10).
+ * 🖌 EL PANEL DEL PINCEL QUE PINTA ENCIMA (rebanada 10 · `rolvium.pen` `TlJot`, aprobado por él el 2026-09-10).
  *
- * Sustituye a la barra flotante de la rebanada 9, que él paró en pantalla: «*esto está mal, ajusta el diseño
- * como un modal que se mueva como todos los otros*».
+ * 🔴 Reescrito ese mismo día después de verlo funcionando: la versión anterior EXCAVABA («*eso es cavar con
+ * construir, que no es lo que te pedí*») y todo aquello se mudó al Builder. Lo que sujetan estos tests es que
+ * este pincel hace lo único que tiene que hacer: **pintar encima, sin tocar el mapa**.
  */
 describe('<BrushPanel>', () => {
-  /**
-   * 🔒 LAS CINCO, Y EN EL ORDEN DEL DISEÑO. Las dos primeras levantan mapa; las tres siguientes pintan
-   * encima de algo que ya está. La quinta —el suelo de UNA sala— sigue viva por su «*por ahora déjalo*».
-   */
-  it('deja elegir sobre qué se pinta: suelo, muro, capa, niebla y suelo de sala', async () => {
+  /** Los cuatro del diseño y EN SU ORDEN: habitación, muro, foto, niebla. */
+  it('deja elegir sobre qué se pinta: habitación, muro, foto y niebla', async () => {
     const u = userEvent.setup();
     const cb = mount();
-    expect(screen.getByRole('radio', { name: 'Suelo' })).toHaveAttribute('aria-checked', 'true');
-    for (const [rotulo, valor] of [['Muro', 'wall'], ['Capa', 'layer'], ['Niebla', 'fog'], ['Suelo de sala', 'room']] as const) {
+    expect(screen.getByRole('radio', { name: 'Habitación' })).toHaveAttribute('aria-checked', 'true');
+    for (const [rotulo, valor] of [['Muro', 'rock'], ['Foto', 'layer'], ['Niebla', 'fog']] as const) {
       await u.click(screen.getByRole('radio', { name: rotulo }));
       expect(cb.onOn).toHaveBeenCalledWith(valor);
     }
   });
 
-  /** Construyendo se elige CON QUÉ; pintando encima, el SENTIDO. No son la misma pregunta. */
-  it('construyendo ofrece textura, color y borrador; pintando encima, pintar y quitar', async () => {
+  /**
+   * 🔑 LO ELEGIDO ES EL LÍMITE, y se dice en el panel: «*si elijo pintar una habitación el scope de ese pincel
+   * es la habitación; si se me va la mano al muro, el muro no se tiene que pintar*» (2026-09-10).
+   */
+  it('avisa de que lo elegido es el límite del pincel', () => {
+    mount();
+    expect(screen.getByText(/si se te va la mano, lo de al lado no se mancha/i)).toBeInTheDocument();
+  });
+
+  /** Las tres cosas que se pueden hacer, con la de destapar a lo ancho como en la lámina. */
+  it('ofrece pintar, borrar pintura y destapar lo de debajo', async () => {
     const u = userEvent.setup();
     const cb = mount();
-    expect(screen.getByRole('radio', { name: 'Textura' })).toHaveAttribute('aria-checked', 'true');
-    await u.click(screen.getByRole('radio', { name: 'Borrar' }));
-    expect(cb.onPaint).toHaveBeenCalledWith('erase');
-    expect(screen.queryByRole('radio', { name: 'Quitar' })).not.toBeInTheDocument();
-
-    mount({ on: 'layer' });
-    expect(screen.getByRole('radio', { name: 'Quitar' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.queryByRole('radio', { name: 'Textura' })).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Pintar' })).toHaveAttribute('aria-checked', 'true');
+    await u.click(screen.getByRole('radio', { name: 'Borrar pintura' }));
+    expect(cb.onAction).toHaveBeenCalledWith('erase');
+    await u.click(screen.getByRole('radio', { name: 'Destapar lo de debajo' }));
+    expect(cb.onAction).toHaveBeenCalledWith('uncover');
   });
 
   /**
-   * ⚠️ § 10.4 — LOS MANDOS QUE NO VALEN NO SE ENSEÑAN APAGADOS: NO SALEN. Un suelo se anda o no se anda, así
-   * que construyendo no hay transparencia ni difuminado. Pintando encima siguen los tres de siempre.
+   * 🔒 LO QUE NO SE PUEDE HACER NO SALE, no sale apagado. Destapar la roca no significa nada —debajo no hay
+   * mapa— y en la niebla ya lo hace borrar.
    */
-  it('construyendo no hay transparencia ni difuminado; pintando encima, sí', () => {
-    mount();
-    expect(screen.queryByRole('slider', { name: 'Transparencia' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('slider', { name: 'Borde' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('radio', { name: 'Difuminado' })).not.toBeInTheDocument();
-    expect(screen.getByRole('slider', { name: 'Tamaño' })).toBeInTheDocument();
-
+  it('no ofrece destapar donde no hay nada debajo', () => {
+    mount({ on: 'rock' });
+    expect(screen.queryByRole('radio', { name: 'Destapar lo de debajo' })).not.toBeInTheDocument();
+    mount({ on: 'fog' });
+    expect(screen.queryByRole('radio', { name: 'Destapar lo de debajo' })).not.toBeInTheDocument();
     mount({ on: 'layer' });
-    expect(screen.getByRole('slider', { name: 'Transparencia' })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Difuminado' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Destapar lo de debajo' })).toBeInTheDocument();
   });
 
-  /** El borrador se lleva el brochazo entero: ni el tamaño ni la forma cambian nada, así que no salen. */
-  it('borrando no hay mandos de brochazo, y se dice por qué', () => {
-    mount({ paint: 'erase' });
-    expect(screen.queryByRole('slider', { name: 'Tamaño' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('radio', { name: 'Disco' })).not.toBeInTheDocument();
-    expect(screen.getByText(/se lleva ENTERO el brochazo/)).toBeInTheDocument();
+  /** Sólo pintando hay algo con qué pintar: borrando y destapando se quita, no se pone. */
+  it('sólo ofrece «con qué pinto» mientras se pinta', () => {
+    mount();
+    expect(screen.getByRole('radio', { name: 'Color' })).toBeInTheDocument();
+    mount({ action: 'erase' });
+    expect(screen.queryByRole('radio', { name: 'Color' })).not.toBeInTheDocument();
+    mount({ action: 'uncover' });
+    expect(screen.queryByRole('radio', { name: 'Color' })).not.toBeInTheDocument();
   });
 
-  /** «Cuánto de roto» sólo existe con el borde roto, y va aparte de la dureza a propósito. */
-  it('«cuánto de roto» sólo aparece con el borde roto', async () => {
-    const u = userEvent.setup();
-    const cb = mount();
-    expect(screen.queryByRole('slider', { name: 'Cuánto de roto' })).not.toBeInTheDocument();
-    // El rótulo es el MISMO que en la barra de la rebanada 9 («Borde roto»): es el mismo trazo, y darle un
-    // segundo nombre en el panel nuevo sería tener dos palabras para una cosa.
-    await u.click(screen.getByRole('radio', { name: 'Borde roto' }));
-    expect(cb.onChange).toHaveBeenCalledWith({ tip: 'rough' });
+  /** La NIEBLA es sí o no: no se pinta con una textura ni con un color. */
+  it('en la niebla no se elige ni textura ni color', () => {
+    mount({ on: 'fog' });
+    expect(screen.queryByRole('radio', { name: 'Textura' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mp-bp-color-big')).not.toBeInTheDocument();
+  });
+
+  /**
+   * ⚠️ § 10A.7 — AQUÍ VALEN LOS CUATRO MANDOS, que es el vuelco exacto de la versión anterior: excavando la
+   * mitad no significaban nada («*un suelo se anda o no se anda*»), pintando sí — una mancha de humedad tiene
+   * transparencia y borde.
+   */
+  it('ofrece los cuatro mandos del brochazo, porque esto sí es pintura', () => {
     mount({ value: { ...BRUSH, tip: 'rough' } });
+    expect(screen.getByRole('slider', { name: 'Tamaño' })).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Transparencia' })).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Borde' })).toBeInTheDocument();
     expect(screen.getByRole('slider', { name: 'Cuánto de roto' })).toBeInTheDocument();
   });
 
-  /** Mover es continuo y guardar es una vez, al soltar: sin esto cada paso sería una escritura en la base. */
-  it('soltar el deslizador es lo que guarda; moverlo no', () => {
+  /** «Cuánto de roto» sólo existe con el borde roto: con las otras puntas no cambia nada. */
+  it('«cuánto de roto» sólo sale con el borde roto', () => {
+    mount();
+    expect(screen.queryByRole('slider', { name: 'Cuánto de roto' })).not.toBeInTheDocument();
+  });
+
+  /** Las tres puntas de la rebanada 9, todas útiles ahora: disco, difuminado y borde roto. */
+  it('ofrece las tres puntas y cambiar de una avisa arriba', async () => {
+    const u = userEvent.setup();
     const cb = mount();
-    const slider = screen.getByRole('slider', { name: 'Tamaño' });
-    fireEvent.change(slider, { target: { value: '35' } });
-    expect(cb.onChange).toHaveBeenCalledWith({ size: 3.5 });
+    for (const n of ['Disco', 'Difuminado', 'Borde roto']) expect(screen.getByRole('radio', { name: n })).toBeInTheDocument();
+    await u.click(screen.getByRole('radio', { name: 'Borde roto' }));
+    expect(cb.onChange).toHaveBeenCalledWith({ tip: 'rough' });
+  });
+
+  /** Mover es continuo y guardar es una vez: la escena se escribe al SOLTAR, no en cada paso. */
+  it('el deslizador avisa al moverse y guarda al soltarse', () => {
+    const cb = mount();
+    const s = screen.getByRole('slider', { name: 'Tamaño' });
+    fireEvent.change(s, { target: { value: '30' } });
+    expect(cb.onChange).toHaveBeenCalledWith({ size: 3 });
     expect(cb.onCommit).not.toHaveBeenCalled();
-    fireEvent.pointerUp(slider);
+    fireEvent.pointerUp(s);
     expect(cb.onCommit).toHaveBeenCalled();
   });
 
-  /** La textura sale del MISMO catálogo que la pared y el suelo: «Elegir», no «Subir». */
+  /** La textura sale del MISMO catálogo que la pared y el suelo, y sólo se quita si hay una puesta. */
   it('la textura se elige del catálogo, y sólo se puede quitar cuando hay una', async () => {
     const u = userEvent.setup();
-    const cb = mount();
-    expect(screen.getByText('Ninguna todavía: se pinta con el color')).toBeInTheDocument();
+    const cb = mount({ ink: 'texture' });
     expect(screen.queryByRole('button', { name: 'Quitar' })).not.toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Elegir' }));
     expect(cb.onPickTexture).toHaveBeenCalled();
 
-    const cb2 = mount({ textureUrl: 'https://x/losa.png', textureName: 'Losa de piedra' });
-    expect(screen.getByText('Losa de piedra')).toBeInTheDocument();
+    const cb2 = mount({ ink: 'texture', textureUrl: 'https://x/losa.png', textureName: 'Losa' });
+    expect(screen.getByText('Losa')).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Quitar' }));
     expect(cb2.onClearTexture).toHaveBeenCalled();
   });
 
-  /**
-   * 🔒 SU CORRECCIÓN DEL 2026-09-10: «*aquí el color se tiene que guardar, no veo un cuadradito donde quede
-   * puesto*». La paleta enseñaba las opciones y nada decía cuál era la tuya.
-   */
+  /** Su corrección del 2026-09-10: «*no veo un cuadradito donde quede puesto*». El color puesto, en grande. */
   it('el color puesto se ve EN GRANDE, con su nombre y su hex', () => {
-    mount({ paint: 'color' });
+    mount();
     expect(screen.getByTestId('mp-bp-color-big')).toHaveStyle({ background: '#b08d57' });
     expect(screen.getByText('Arena')).toBeInTheDocument();
     expect(screen.getByText('#b08d57')).toBeInTheDocument();
   });
 
-  it('la paleta de la casa son doce, y elegir una la cambia', async () => {
+  /** «Tus colores» son los de ESTA campaña, y el «+» sólo se ofrece con uno que no esté ya. */
+  it('«tus colores» enseña los de la campaña y el «+» no repite lo que ya está', async () => {
     const u = userEvent.setup();
-    const cb = mount({ paint: 'color' });
-    const paleta = screen.getByRole('radiogroup', { name: 'El color · el que está puesto' });
-    expect(within(paleta).getAllByRole('radio')).toHaveLength(12);
-    await u.click(within(paleta).getByRole('radio', { name: 'Musgo' }));
-    expect(cb.onColor).toHaveBeenCalledWith('#5f8f6a');
-  });
-
-  /** Los que él se inventa se guardan POR CAMPAÑA, y salen en su propia fila. */
-  it('«tus colores» enseña los de la campaña y deja elegirlos', async () => {
-    const u = userEvent.setup();
-    const cb = mount({ paint: 'color' });
-    const mios = screen.getByRole('radiogroup', { name: 'Tus colores · de esta campaña' });
-    expect(within(mios).getAllByRole('radio')).toHaveLength(2);
-    await u.click(within(mios).getByRole('radio', { name: 'Color #7a5c3e' }));
-    expect(cb.onColor).toHaveBeenCalledWith('#7a5c3e');
-  });
-
-  /**
-   * Guardar sólo tiene sentido con un color INVENTADO: uno de la casa ya está en la paleta y guardarlo lo
-   * pondría dos veces en pantalla; uno ya guardado, lo mismo.
-   */
-  it('el «+» guarda un color inventado, y no se ofrece con uno que ya está', async () => {
-    const u = userEvent.setup();
-    const cb = mount({ paint: 'color', color: '#123456' });
-    await u.click(screen.getByRole('button', { name: 'Guardar este color en la campaña' }));
+    const cb = mount({ color: '#123456' });
+    const mios = screen.getByRole('radiogroup', { name: /Tus colores/ });
+    expect(within(mios).getByRole('radio', { name: 'Color #7a5c3e' })).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: /Guardar este color/ }));
     expect(cb.onSaveColor).toHaveBeenCalledWith('#123456');
 
-    mount({ paint: 'color', color: '#b08d57' });          // uno de la casa
-    expect(screen.getByRole('button', { name: 'Guardar este color en la campaña' })).toBeDisabled();
-    mount({ paint: 'color', color: '#7a5c3e' });          // ya guardado
-    expect(screen.getByRole('button', { name: 'Guardar este color en la campaña' })).toBeDisabled();
+    mount({ color: MIOS[0]!.color });
+    expect(screen.getByRole('button', { name: /Guardar este color/ })).toBeDisabled();
+    mount({ color: '#b08d57' });
+    expect(screen.getByRole('button', { name: /Guardar este color/ })).toBeDisabled();
   });
 
-  /**
-   * El campo de hex avisa al escribir un color VÁLIDO y no antes: la base no comprueba el formato —igual que
-   * en el fondo del mapa— así que el filtro tiene que estar aquí.
-   */
+  /** El hex a mano no cambia el color a medio teclear: sólo cuando ya es un color de verdad. */
   it('el hex a mano sólo cambia el color cuando está completo', () => {
-    const cb = mount({ paint: 'color' });
+    const cb = mount();
     const campo = screen.getByRole('textbox', { name: 'Color en hexadecimal' });
     fireEvent.change(campo, { target: { value: '#12' } });
     expect(cb.onColor).not.toHaveBeenCalled();
@@ -182,42 +179,37 @@ describe('<BrushPanel>', () => {
     expect(cb.onColor).toHaveBeenCalledWith('#123456');
   });
 
-  /** Mientras se cargan no es lo mismo «no hay ninguno» que «todavía no han llegado». */
+  /** Mientras la lista no ha llegado se dice, en vez de enseñar una paleta vacía que parece rota. */
   it('dice que los colores están cargando cuando aún no han llegado', () => {
-    mount({ paint: 'color', savedColors: null });
-    expect(screen.getByText('Cargando…')).toBeInTheDocument();
+    mount({ savedColors: null });
+    expect(within(screen.getByRole('radiogroup', { name: /Tus colores/ })).getByText(/cargando/i)).toBeInTheDocument();
   });
 
-  /** En la niebla, el mismo hueco lleva los DOS botones de siempre: quitárselos sería perder función. */
-  it('en la niebla salen revelar y ocultar todo; en una capa, restaurar', async () => {
-    const u = userEvent.setup();
-    const onRevealAll = vi.fn(), onHideAll = vi.fn();
-    mount({ on: 'fog', onRevealAll, onHideAll });
-    await u.click(screen.getByRole('button', { name: 'Revelar todo' }));
-    await u.click(screen.getByRole('button', { name: 'Ocultar todo' }));
-    expect(onRevealAll).toHaveBeenCalled();
-    expect(onHideAll).toHaveBeenCalled();
-
-    const onReset = vi.fn();
-    mount({ on: 'layer', onReset });
-    await u.click(screen.getByRole('button', { name: 'Restaurar toda' }));
-    expect(onReset).toHaveBeenCalled();
-  });
-
-  /** Es un panel de los que se mueven, no una franja: tiene su asa y su X, como Builder y la luz. */
-  it('se cierra por la X y avisa mientras guarda', async () => {
-    const u = userEvent.setup();
-    const cb = mount({ saving: true });
-    expect(screen.getByText('guardando…')).toBeInTheDocument();
-    await u.click(screen.getByRole('button', { name: 'Cerrar el pincel' }));
-    expect(cb.onClose).toHaveBeenCalled();
-  });
-
-  /** El pie dice lo único que hay que saber antes de arrastrar, y cambia con lo que se esté haciendo. */
-  it('el pie avisa de que lo pintado levanta mapa', () => {
+  /**
+   * 🔑 EL PIE DICE LA LÍNEA QUE SEPARA ESTE PINCEL DEL BUILDER. Es lo que se entendió al revés la primera vez,
+   * así que está escrito en pantalla y sujeto por un test.
+   */
+  it('el pie avisa de que pintar NO cambia el mapa', () => {
     mount();
-    expect(screen.getByText(/levanta mapa/)).toBeInTheDocument();
-    mount({ on: 'room' });
-    expect(screen.getByText(/se recorta solo en su borde/)).toBeInTheDocument();
+    expect(screen.getByText(/Pintar NO cambia el mapa/i)).toBeInTheDocument();
+  });
+
+  /** Guardando se dice, para que no parezca que el brochazo se ha perdido. */
+  it('avisa mientras el PNG sube', () => {
+    mount({ saving: true });
+    expect(screen.getByText(/guardando/i)).toBeInTheDocument();
+  });
+
+  /** En la niebla siguen los dos botones de siempre; en lo demás, quitar del todo lo pintado. */
+  it('ofrece revelar y ocultar todo en la niebla, y quitar del todo en lo demás', async () => {
+    const u = userEvent.setup();
+    const revealAll = vi.fn(), hideAll = vi.fn(), reset = vi.fn();
+    mount({ on: 'fog', onRevealAll: revealAll, onHideAll: hideAll });
+    await u.click(screen.getByRole('button', { name: 'Revelar todo' }));
+    expect(revealAll).toHaveBeenCalled();
+
+    mount({ onReset: reset });
+    await u.click(screen.getByRole('button', { name: /Restaurar toda/ }));
+    expect(reset).toHaveBeenCalled();
   });
 });

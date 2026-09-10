@@ -106,6 +106,15 @@ export const tilePx = (cells: number, grid: number): number => Math.max(4, (cell
 export const DEFAULT_TEXTURE_SCALE = 4;
 
 /**
+ * EL GROSOR DE MURO DE SERIE, en casillas. Espejo del valor por defecto de `maps_scenes.wall_thickness`.
+ *
+ * Vive aquí y no repetido por la pantalla porque desde la rebanada 10 lo leen tres sitios —el mapeador de
+ * la escena, el deslizador del grosor y el ancho de la banda de «A mano»— y tres constantes iguales es cómo
+ * un día dicen cosas distintas.
+ */
+export const DEFAULT_WALL_THICKNESS = 0.22;
+
+/**
  * EL SUELO QUE LE TOCA A UNA SALA. `floorUrl` a `null` no es «sin suelo»: es «esta sala no tiene uno PROPIO
  * todavía», y entonces manda el del mapa.
  *

@@ -583,7 +583,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
        */
       floorColor: paint.floorColor ?? null,
       // Una sala nace sin pintar encima: su suelo se ve entero (rebanada 9).
-      floorMaskUrl: null,
+      floorMaskUrl: null, floorPaintUrl: null,
       /**
        * 🐞 `null` = «esta sala NO tiene suelo propio», y entonces manda la textura del mapa (`floorUrlOf`).
        *
@@ -622,7 +622,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       label: 'maps.history.roomDelete',
       redo: async () => { setRooms(l => l.filter(x => x.id !== vivo.id)); await repo.removeRoom(vivo.id); announceVision(); },
       undo: async () => {
-        vivo = await repo.addRoom({ sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, shape: antes.shape, points: antes.points, floorPreset: antes.floorPreset, floorUrl: antes.floorUrl, floorColor: antes.floorColor, floorMaskUrl: antes.floorMaskUrl });
+        vivo = await repo.addRoom({ sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, shape: antes.shape, points: antes.points, floorPreset: antes.floorPreset, floorUrl: antes.floorUrl, floorColor: antes.floorColor, floorMaskUrl: antes.floorMaskUrl, floorPaintUrl: antes.floorPaintUrl });
         setRooms(l => [...l, vivo]);
         announceVision();
       },
@@ -939,6 +939,36 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     await repo.clearRoomFloorMask(room);
   }, [repo]);
 
+  /**
+   * ── LA PINTURA (rebanada 10) ──
+   * Tres destinos y el mismo trato: se sube un PNG aparte, la textura y la foto originales no se tocan, y la
+   * fila vuelve entera para traerse el rompe-caché consigo. **Nada de esto entra en la partida**: ni el
+   * cálculo de visión, ni el de colisiones, ni el de luces miran una sola de estas columnas.
+   */
+  const saveRoomFloorPaint = useCallback(async (room: Room, png: Blob) => {
+    const next = await repo.saveRoomFloorPaint(room, png);
+    setRooms(l => l.map(r => (r.id === next.id ? next : r)));
+    return next;
+  }, [repo]);
+  const clearRoomFloorPaint = useCallback(async (room: Room) => {
+    setRooms(l => l.map(r => (r.id === room.id ? { ...r, floorPaintUrl: null } : r)));
+    await repo.clearRoomFloorPaint(room);
+  }, [repo]);
+  const saveLayerPaint = useCallback(async (layer: Layer, png: Blob) => {
+    const next = await repo.saveLayerPaint(layer, png);
+    setLayers(l => l.map(x => (x.id === next.id ? next : x)));
+    return next;
+  }, [repo]);
+  const clearLayerPaint = useCallback(async (layer: Layer) => {
+    setLayers(l => l.map(x => (x.id === layer.id ? { ...x, paintUrl: null } : x)));
+    await repo.clearLayerPaint(layer);
+  }, [repo]);
+  /**
+   * ⚠️ LA PINTURA DE LA ROCA NO ESTÁ AQUÍ, y es a propósito: va por ESCENA, y la escena la manda `SceneTab`
+   * —es quien tiene la lista y quien la escribe—. Este hook recibe la escena ya elegida, así que refrescarla
+   * desde dentro se la pisaría el padre en el siguiente repintado.
+   */
+
   const addLight = useCallback(async (l: NewLight) => {
     const created = await repo.addLight(l);
     setLights(list => (list.some(x => x.id === created.id) ? list : [...list, created]));
@@ -960,6 +990,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     scene: live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog,
     dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
-    addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+    addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask,
+    saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint,
+    addLight, patchLight, removeLight, patchDrawingLayer,
+  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }

@@ -31,7 +31,7 @@ interface Props {
    * rebanada 10— EL PINCEL. Sólo cambia el título y la pista del modal: el catálogo es el mismo, que es todo
    * el sentido de que sea de la herramienta y no de una campaña.
    */
-  which: 'wall' | 'floor' | 'door' | 'brush';
+  which: 'wall' | 'floor' | 'door' | 'brush' | 'shape';
   /** `null` mientras se cargan: no es lo mismo «no hay ninguna» que «todavía no han llegado». */
   textures: Texture[] | null;
   /**
@@ -223,7 +223,7 @@ export function TextureCatalog({ which, textures, canManage, onPick, onUpload, o
           * casilla siempre—. Dejar la de siempre sería el mismo fallo que él ya cazó con el botón que decía
           * «subir» sin subir nada (2026-09-07).
           */}
-        <p className="mp-texcat-hint">{t(which === 'door' ? 'maps.room.catalog.doorHint' : which === 'brush' ? 'maps.room.catalog.brushHint' : 'maps.room.catalog.hint')}</p>
+        <p className="mp-texcat-hint">{t(which === 'door' ? 'maps.room.catalog.doorHint' : which === 'brush' ? 'maps.room.catalog.brushHint' : which === 'shape' ? 'maps.room.catalog.shapeHint' : 'maps.room.catalog.hint')}</p>
       </div>
     </Modal>
   );

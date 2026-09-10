@@ -1,9 +1,11 @@
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import { DOOR_HINGES, DOOR_LEAVES, DOOR_SWINGS, ROOM_PRESETS, type DoorSettings, type RoomOpening, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
-import { DEFAULT_TEXTURE_SCALE, styleOf } from '../domain/useCases/roomStyles';
+import { DEFAULT_TEXTURE_SCALE, DEFAULT_WALL_THICKNESS, styleOf } from '../domain/useCases/roomStyles';
 import { DOOR_COLORS, normalCellsAt, TOKEN_SCALE, WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
-import { BUILDER_MODES, BUILD_KINDS, ROOM_SHAPES, isOpeningKind, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, BUILDER_MODES, DEFAULT_BRUSH_COLOR, BUILD_KINDS, ROOM_SHAPES, isOpeningKind, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { PaintColor } from './PaintColor';
+import type { MapColor } from '../domain/entities/Scene';
 import { useDragPanel } from './useDragPanel';
 
 interface Props {
@@ -91,6 +93,33 @@ interface Props {
   doorDraft?: DoorSettings;
   /** Abrir el catálogo para elegirle textura a la puerta cogida. Mismo catálogo que la pared y el suelo. */
   onDoorTexture?: () => void;
+
+  /**
+   * ── CON QUÉ SE PINTA LO QUE SE LEVANTA (rebanada 10 · B) ──
+   * «*Lo de elegir textura y eso es una equivalencia, pero queda como muro o sala*» (suyo, 2026-09-10): no
+   * aparece ninguna cosa nueva que elegir y no desaparece la elección de siempre. Lo que se añade es con qué
+   * se pinta cada una — **el MURO con una textura del catálogo, la HABITACIÓN con un color**.
+   *
+   * Y va pegado a la forma que se dibuje, no al mapa: cambiarlo después no repinta lo ya levantado, igual que
+   * el preajuste no repinta las salas.
+   */
+  shapeTextureUrl?: string | null;
+  shapeTextureName?: string | null;
+  shapeTextureCells?: number;
+  onPickShapeTexture?: () => void;
+  onClearShapeTexture?: () => void;
+  /** `null` = manda el preajuste de la escena, que es lo que ha hecho siempre. */
+  shapeColor?: string | null;
+  onShapeColor?: (hex: string | null) => void;
+  savedColors?: readonly MapColor[] | null;
+  onSaveColor?: (hex: string) => void;
+  /**
+   * ── EL ANCHO DE LA BANDA (rebanada 10 · B) ──
+   * Sólo con «A mano». De serie es **el grosor de muro que la escena ya tiene**, así que una escena existente
+   * no cambia hasta que él lo toque. En CASILLAS, como todo lo que se mide en un mapa.
+   */
+  bandCells?: number;
+  onBandCells?: (cells: number) => void;
   onClose: () => void;
 }
 
@@ -115,10 +144,13 @@ interface Props {
 export function BuilderPanel({
   mode, onMode, wall, kind, onKind, buildKind = 'room', onBuildKind, shape, onShape, snapGrid, onSnapGrid, chainNodes, onChainNodes,
   preset = 'hatch', onPreset, wallTextureUrl = null, floorTextureUrl = null, onTexture, onClearTexture,
-  thickness = 0.22, onThickness,
+  thickness = DEFAULT_WALL_THICKNESS, onThickness,
   wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd,
   tokenScale = TOKEN_SCALE.def, onTokenScale, onTokenScaleEnd,
-  groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onDoorTexture, doorDraft, onClose,
+  groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onDoorTexture, doorDraft,
+  shapeTextureUrl = null, shapeTextureName = null, shapeTextureCells = DEFAULT_TEXTURE_SCALE, onPickShapeTexture, onClearShapeTexture,
+  shapeColor = null, onShapeColor, savedColors = null, onSaveColor,
+  bandCells = DEFAULT_WALL_THICKNESS, onBandCells, onClose,
 }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   /** El número del panel, con la coma o el punto que toque según el idioma. */
@@ -215,6 +247,54 @@ export function BuilderPanel({
         </div>
         <p className="mp-builder-hint">{t(mode === 'draw' ? 'maps.room.build.hint' : 'maps.builder.what.hint')}</p>
       </fieldset>
+
+      {/*
+        * ── CON QUÉ SE PINTA ── (`rolvium.pen` · `oi358` § «CON QUÉ SE PINTA», aprobado el 2026-09-10).
+        *
+        * 🔑 **No aparece ninguna cosa nueva que elegir**: se sigue eligiendo MURO o HABITACIÓN, que es lo que
+        * se construye y como se guarda. Lo que se añade es con qué se pinta cada uno, y va PEGADO a esa
+        * elección — «*lo de elegir textura y eso es una equivalencia, pero queda como muro o sala*».
+        *
+        * Con un VANO elegido no sale: una puerta ya tiene su propia textura, en su propio bloque.
+        */}
+      {mode === 'draw' && !construyeVano && (
+        <fieldset className="mp-builder-group" data-testid="mp-shape-paint">
+          <legend className="tb-rotulo">{t('maps.room.paintWith.label')}</legend>
+          {buildKind === 'wall' ? (
+            <div className="mp-builder-tex">
+              <span className="tb-rotulo">{t('maps.room.paintWith.wall')}</span>
+              <TextureSwatch url={shapeTextureUrl} cells={shapeTextureCells} fallback={styleOf(preset).rock} />
+              <span className="mp-builder-tex-n">{shapeTextureUrl ? shapeTextureName ?? t('maps.room.textures.own') : t('maps.room.paintWith.none')}</span>
+              <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onPickShapeTexture?.()}>
+                {t(shapeTextureUrl ? 'maps.room.textures.change' : 'maps.room.textures.pick')}
+              </button>
+              {shapeTextureUrl && (
+                <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onClearShapeTexture?.()}>
+                  {t('maps.room.textures.remove')}
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/*
+                * El MISMO bloque de color que el Pincel, y sus mismos colores guardados por campaña: es una
+                * sola paleta. `null` mientras él no elija —lo normal— deja mandar al preajuste, que es lo que
+                * ha hecho siempre; por eso hay un botón para volver a él.
+                */}
+              <PaintColor value={shapeColor ?? DEFAULT_BRUSH_COLOR} onChange={hex => onShapeColor?.(hex)}
+                savedColors={savedColors} onSave={hex => onSaveColor?.(hex)} />
+              {shapeColor && (
+                <div className="mp-builder-row">
+                  <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={() => onShapeColor?.(null)}>
+                    {t('maps.room.paintWith.clear')}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+          <p className="mp-builder-hint">{t(buildKind === 'wall' ? 'maps.room.paintWith.wallHint' : 'maps.room.paintWith.roomHint')}</p>
+        </fieldset>
+      )}
 
 
       {/*
@@ -325,6 +405,30 @@ export function BuilderPanel({
         </div>
         <p className="mp-builder-hint">{shapeHint(shape, t)}</p>
       </fieldset>
+      )}
+
+      {/*
+        * ── EL ANCHO DE LA BANDA ── (`oi358` § «EL ANCHO DE LA BANDA · SÓLO CON «A MANO»»).
+        *
+        * «A mano» deja de dar una raya del grosor de la escena y da una BANDA del ancho que se elija. De serie
+        * el ancho ES ese grosor, así que una escena existente no cambia hasta que él lo toque — y por eso este
+        * número NO se guarda en ninguna parte: sale de la escena y vale para lo que dibuje ahora.
+        *
+        * Sólo con «A mano»: las otras formas ya encierran área por sí solas, y una recta marca un muro.
+        */}
+      {mode === 'draw' && !construyeVano && shape === 'segment' && (
+        <fieldset className="mp-builder-group" data-testid="mp-band">
+          <legend className="tb-rotulo">{t('maps.room.band.label')}</legend>
+          <div className="mp-builder-thick">
+            <span className="mp-builder-tex-n">{t('maps.room.band.short')}</span>
+            <input type="range" min={BRUSH_MIN_CELLS} max={BRUSH_MAX_CELLS} step={0.02} value={bandCells}
+              aria-label={t('maps.room.band.short')}
+              onChange={e => onBandCells?.(Number(e.target.value))} />
+            {/* Con la coma o el punto que toque, como el número de las fichas: «0.34» en español está mal. */}
+            <span className="mp-builder-thick-v">{new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(bandCells)}</span>
+          </div>
+          <p className="mp-builder-hint">{t('maps.room.band.hint')}</p>
+        </fieldset>
       )}
 
       {/*

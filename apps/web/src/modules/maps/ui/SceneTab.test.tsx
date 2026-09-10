@@ -600,7 +600,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
     await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Revelar' }));
     expect(await screen.findByRole('radio', { name: 'Niebla' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('radio', { name: 'Quitar' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'Borrar pintura' })).toHaveAttribute('aria-checked', 'true');
     await u.click(screen.getByRole('button', { name: 'Revelar todo' }));
     await waitFor(() => expect(vision.calls.some(c => c.op === 'revealAll')).toBe(true));
   });
@@ -817,7 +817,7 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
    * LLAMABA NADIE. Esto ata el camino entero: cogerla con Seleccionar → el panel → Suprimir.
    */
   const CUARTO = { id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
-    points: [[0, 0], [300, 0], [300, 300], [0, 300]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '' };
+    points: [[0, 0], [300, 0], [300, 300], [0, 300]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '' };
   const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 300, y1: 100, x2: 300, y2: 160, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
   const conSala = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [CUARTO], roomOpenings: [VANO] });
 
@@ -1369,15 +1369,15 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     await screen.findByRole('complementary', { name: 'Capas' });
     await u.click(screen.getByRole('button', { name: 'Pincel' }));
     /*
-     * ⚠️ El pincel ABRE EN «SUELO» desde la rebanada 10 —construyendo, que es lo que enseña marcado la
-     * lámina que él aprobó—, así que para pintar una CAPA hay que elegirla en el panel. Antes no había
-     * elección posible: el pincel sólo sabía quitar.
+     * ⚠️ El pincel ABRE EN «HABITACIÓN» desde la rebanada 10 —es lo que enseña marcado la lámina que él
+     * aprobó—, así que para pintar una FOTO hay que elegirla en el panel. Antes no había elección posible:
+     * el pincel sólo sabía quitar.
      */
-    await u.click(screen.getByRole('radio', { name: 'Capa' }));
+    await u.click(screen.getByRole('radio', { name: 'Foto' }));
     expect(screen.getByText('Elige una capa de terreno en el panel de capas para pintar en ella.')).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
     expect(screen.queryByText('Elige una capa de terreno en el panel de capas para pintar en ella.')).not.toBeInTheDocument();
-    const bar = screen.getByRole('radio', { name: 'Quitar' }).closest('.mp-brushpanel')!;
+    const bar = screen.getByRole('radio', { name: 'Pintar' }).closest('.mp-brushpanel')!;
     expect(within(bar as HTMLElement).getByRole('slider', { name: 'Transparencia' })).toBeInTheDocument();
   });
 
@@ -1415,8 +1415,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const repo = mount('dm', withLayers());
     await screen.findByRole('complementary', { name: 'Capas' });
     await u.click(screen.getByRole('button', { name: 'Pincel' }));
-    // La transparencia sólo existe pintando ENCIMA de algo: construyendo no hay medio suelo (§ 10.4).
-    await u.click(screen.getByRole('radio', { name: 'Capa' }));
+    await u.click(screen.getByRole('radio', { name: 'Foto' }));
     const slider = screen.getByRole('slider', { name: 'Transparencia' });
     fireEvent.change(slider, { target: { value: '25' } });
     expect(repo.sceneUpdates.some(x => 'brushStrength' in x.patch)).toBe(false);
@@ -1456,7 +1455,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const SALA = {
       id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
       points: [[0, 0], [400, 0], [400, 400], [0, 400]] as [number, number][],
-      floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+      floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
     };
     /*
      * jsdom no trae lienzo de verdad —`getContext` devuelve null— así que sin esto el pincel no llegaría ni
@@ -1471,13 +1470,14 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [SALA] }));
     await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Pincel' }));
-    await u.click(await screen.findByRole('radio', { name: 'Suelo de sala' }));
+    // «Destapar lo de debajo» ES el pincel de la rebanada 9, intacto: quita para que asome lo que hay debajo.
+    await u.click(await screen.findByRole('radio', { name: 'Destapar lo de debajo' }));
 
-    // Sin el ratón encima de ninguna sala el pincel lo DICE, en vez de quedarse mudo.
-    expect(await screen.findByText('Pon el pincel encima de una sala para repintar su suelo.')).toBeInTheDocument();
+    // Sin el ratón encima de ninguna habitación el pincel lo DICE, en vez de quedarse mudo.
+    expect(await screen.findByText('Pon el pincel encima de una habitación para pintarla.')).toBeInTheDocument();
 
     fireEvent.pointerMove(canvas(), { clientX: 100, clientY: 100, pointerId: 1 });
-    await waitFor(() => expect(screen.queryByText('Pon el pincel encima de una sala para repintar su suelo.')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('Pon el pincel encima de una habitación para pintarla.')).not.toBeInTheDocument());
     fireEvent.pointerDown(canvas(), { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
     fireEvent.pointerMove(canvas(), { clientX: 140, clientY: 140, pointerId: 1 });
     fireEvent.pointerUp(canvas(), { pointerId: 1 });
@@ -2121,102 +2121,130 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
 });
 
 /**
- * ── EL PINCEL QUE CONSTRUYE, DE PUNTA A PUNTA (§ «Rebanada 10») ──
+ * ── EL PINCEL QUE PINTA ENCIMA, DE PUNTA A PUNTA (§ «Rebanada 10 · A») ──
  *
- * Confirmada por él el 2026-09-10 probando la rebanada 9: «*pero ese es el pincel de transparencia… ¿cómo
- * elijo la textura con la que quiero pintar?*». El de la 9 sólo QUITA; éste PINTA CON ALGO, y lo que pinta
- * **levanta mapa de verdad** — eligió la opción B pudiendo elegir que fuera sólo aspecto.
+ * 🔴 REESCRITO el 2026-09-10 con la pantalla delante. La primera versión entendió que el pincel debía
+ * LEVANTAR MAPA y se construyó entera; él la paró: «*lo que has hecho no es un pincel para pintar sobre las
+ * habitaciones o muros o fotos que pongas, lo que eso es, es cavar con construir, que no es lo que te pedí*».
+ *
+ * 🔑 Lo que sujetan estos tests es la línea entera de la rebanada: **pintar no cambia el mapa**. Ni por dónde
+ * se anda, ni qué se ve, ni la luz — sólo cómo se ve.
  */
-describe('<SceneTab> el pincel que construye', () => {
+describe('<SceneTab> el pincel que pinta encima', () => {
   const TEX = { id: 'tx-losa', name: 'Losa mojada', category: 'stone' as const, url: 'https://x/losa.png', tileCells: 2, uploadedBy: 'u-gm', createdAt: '', updatedAt: '' };
-  const BROCHAZO = {
-    id: 'rm-viejo', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'brush' as const,
-    points: [[0, 0], [200, 0], [200, 200], [0, 200]] as [number, number][],
-    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+  const SALA = {
+    id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[0, 0], [400, 0], [400, 400], [0, 400]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
+  };
+  /**
+   * jsdom no trae lienzo de verdad —`getContext` devuelve null— así que sin esto el pincel no llegaría ni a
+   * marcar que hay algo que subir. Se le pone uno de mentira: lo que se prueba aquí es EL CAMINO, que el
+   * brochazo acabe donde tiene que acabar; el dibujo en sí es del navegador.
+   */
+  const lienzoDeMentira = () => {
+    const ctx = { save: vi.fn(), restore: vi.fn(), clearRect: vi.fn(), drawImage: vi.fn(), beginPath: vi.fn(), fill: vi.fn(), fillRect: vi.fn(), arc: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), closePath: vi.fn(), scale: vi.fn(), setTransform: vi.fn(), clip: vi.fn(), createRadialGradient: () => ({ addColorStop: vi.fn() }), createPattern: () => null, globalCompositeOperation: '', globalAlpha: 1, fillStyle: null as unknown };
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,PINTADO');
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(cb => { cb(new Blob(['png'], { type: 'image/png' })); });
   };
   /** Un arrastre sobre el lienzo, que es el gesto entero del pincel. */
   const brochazo = (de: [number, number], a: [number, number]) => {
+    fireEvent.pointerMove(canvas(), { clientX: de[0], clientY: de[1], pointerId: 1 });
     fireEvent.pointerDown(canvas(), { clientX: de[0], clientY: de[1], pointerId: 1, button: 0 });
-    fireEvent.pointerMove(canvas(), { clientX: (de[0] + a[0]) / 2, clientY: (de[1] + a[1]) / 2, pointerId: 1 });
     fireEvent.pointerMove(canvas(), { clientX: a[0], clientY: a[1], pointerId: 1 });
     fireEvent.pointerUp(canvas(), { pointerId: 1 });
   };
 
-  /** El pincel abre en SUELO, que es lo que enseña marcado la lámina que él aprobó. */
-  it('el pincel abre construyendo suelo, con el panel movible en vez de la barra vieja', async () => {
+  /** El pincel abre en HABITACIÓN, que es lo que enseña marcado la lámina que él aprobó. */
+  it('el pincel abre en HABITACIÓN, con el panel movible en vez de la barra vieja', async () => {
     const u = userEvent.setup();
     mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
     await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Pincel' }));
     const panel = await screen.findByRole('group', { name: 'Pincel' });
-    expect(within(panel).getByRole('radio', { name: 'Suelo' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(panel).getByRole('radio', { name: 'Habitación' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(panel).getByRole('radio', { name: 'Pintar' })).toHaveAttribute('aria-checked', 'true');
   });
 
   /**
-   * 🔑 UN BROCHAZO ES UNA FORMA MÁS de `maps_rooms` (§ 10.2) — de ahí salen gratis fundirse, cortar la vista
-   * y frenar a las fichas. Si un día alguien le hace una tabla propia, esto lo canta.
+   * 🔑 LA PINTURA DE UNA HABITACIÓN VIVE EN SU FILA, y ahí es donde se cumple «el scope es la habitación»:
+   * el recorte sale de dónde se guarda, no de una comprobación que alguien pueda olvidarse de escribir.
    */
-  it('arrastrar con SUELO guarda una forma que EXCAVA, marcada como brochazo', async () => {
+  it('pintar una habitación sube su PNG a ESA habitación', async () => {
     const u = userEvent.setup();
-    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    lienzoDeMentira();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [SALA] }));
     await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Pincel' }));
     await screen.findByRole('group', { name: 'Pincel' });
-    brochazo([100, 100], [300, 100]);
-    await waitFor(() => expect(repo.rooms).toHaveLength(1));
-    expect(repo.rooms[0]).toMatchObject({ kind: 'room', shape: 'brush' });
-    expect(repo.rooms[0]!.points.length).toBeGreaterThanOrEqual(3);
-  });
-
-  /** «Tienes que elegir sala o muro» (suyo, 2026-09-10): el muro es la misma forma con el signo cambiado. */
-  it('con MURO puesto, el mismo gesto guarda una forma que RELLENA', async () => {
-    const u = userEvent.setup();
-    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
-    await screen.findByText(/Almacén de Queens/);
-    await u.click(screen.getByRole('button', { name: 'Pincel' }));
-    await u.click(await screen.findByRole('radio', { name: 'Muro' }));
-    brochazo([100, 100], [300, 100]);
-    await waitFor(() => expect(repo.rooms[0]).toMatchObject({ kind: 'fill', shape: 'brush' }));
+    brochazo([100, 100], [140, 140]);
+    await waitFor(() => expect(repo.paintSaved).toEqual([{ on: 'room', id: 'rm-1', bytes: expect.any(Number) }]));
   });
 
   /**
-   * La textura sale del MISMO catálogo que la pared y el suelo, y queda pegada a ESE brochazo: cambiarla
-   * después no repinta lo ya pintado (§ 10.1).
+   * 🔒 Y NO CAMBIA EL MAPA. Es la línea entera de la rebanada, y la que la primera versión cruzó: ni una
+   * forma nueva, ni un muro, ni la textura de la sala tocada.
    */
-  it('la textura elegida en el catálogo viaja con el brochazo', async () => {
+  it('pintar no levanta ni una forma ni un muro, ni toca la textura de la sala', async () => {
     const u = userEvent.setup();
-    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], textures: [TEX] }));
+    lienzoDeMentira();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [SALA] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    await screen.findByRole('group', { name: 'Pincel' });
+    brochazo([100, 100], [300, 300]);
+    await waitFor(() => expect(repo.paintSaved.length).toBe(1));
+    expect(repo.rooms).toHaveLength(1);
+    expect(repo.rooms[0]!.floorUrl).toBeNull();
+    expect(repo.walls).toHaveLength(0);
+  });
+
+  /** LA ROCA va por ESCENA: no es una fila, es el negativo de lo excavado. */
+  it('pintar el muro sube el PNG a la ESCENA', async () => {
+    const u = userEvent.setup();
+    lienzoDeMentira();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [SALA] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    await u.click(await screen.findByRole('radio', { name: 'Muro' }));
+    brochazo([500, 500], [540, 540]);
+    await waitFor(() => expect(repo.paintSaved).toEqual([{ on: 'rock', id: 'sc-1', bytes: expect.any(Number) }]));
+  });
+
+  /** Sin ninguna forma excavada no hay roca, y el pincel lo DICE en vez de quedarse mudo. */
+  it('sin roca que pintar lo dice', async () => {
+    const u = userEvent.setup();
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    await u.click(await screen.findByRole('radio', { name: 'Muro' }));
+    expect(await screen.findByText(/todavía no tiene roca/i)).toBeInTheDocument();
+  });
+
+  /**
+   * La textura sale del MISMO catálogo que la pared y el suelo. Queda cocida dentro del PNG, así que
+   * cambiarla después no repinta lo ya pintado.
+   */
+  it('la textura del pincel se elige del catálogo y no toca la escena', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], rooms: [SALA], textures: [TEX] }));
     await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Pincel' }));
     const panel = await screen.findByRole('group', { name: 'Pincel' });
+    await u.click(within(panel).getByRole('radio', { name: 'Textura' }));
     await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
     await u.click(await within(await screen.findByTestId('mp-texcat')).findByTitle('Losa mojada'));
-    brochazo([100, 100], [300, 100]);
-    await waitFor(() => expect(repo.rooms[0]!.floorUrl).toBe('https://x/losa.png'));
-    // La textura base de la ESCENA no se ha tocado: esto es de la forma, no del mapa.
+    expect(await within(await screen.findByRole('group', { name: 'Pincel' })).findByText('Losa mojada')).toBeInTheDocument();
     expect(repo.sceneUpdates.some(x => 'floorTextureUrl' in x.patch)).toBe(false);
-  });
-
-  /** «También quiero poder elegir colores para pintar» (suyo, 2026-09-10). Y el color va en la forma. */
-  it('el color elegido en la paleta viaja con el brochazo', async () => {
-    const u = userEvent.setup();
-    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
-    await screen.findByText(/Almacén de Queens/);
-    await u.click(screen.getByRole('button', { name: 'Pincel' }));
-    await u.click(await screen.findByRole('radio', { name: 'Color' }));
-    await u.click(await screen.findByRole('radio', { name: 'Musgo' }));
-    brochazo([100, 100], [300, 100]);
-    await waitFor(() => expect(repo.rooms[0]!.floorColor).toBe('#5f8f6a'));
-    expect(repo.rooms[0]!.floorUrl).toBeNull();
   });
 
   /** Los colores que él se inventa se guardan POR CAMPAÑA, para los demás mapas de ese mundo. */
   it('un color inventado se guarda en la campaña y aparece en «tus colores»', async () => {
     const u = userEvent.setup();
-    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], rooms: [SALA] }));
     await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Pincel' }));
-    await u.click(await screen.findByRole('radio', { name: 'Color' }));
     fireEvent.change(await screen.findByRole('textbox', { name: 'Color en hexadecimal' }), { target: { value: '#123456' } });
     await u.click(screen.getByRole('button', { name: 'Guardar este color en la campaña' }));
     await waitFor(() => expect(repo.colors.map(c => c.color)).toEqual(['#123456']));
@@ -2225,32 +2253,105 @@ describe('<SceneTab> el pincel que construye', () => {
   });
 
   /**
-   * 🔒 EL BORRADOR SE LLEVA EL BROCHAZO ENTERO por el que pases (§ 10.3), que es el límite que él aceptó.
-   * Y borra la fila: deshacer ya lo lleva el historial de la escena, como con cualquier otra forma.
-   */
-  it('el borrador derriba la forma por la que pasa', async () => {
-    const u = userEvent.setup();
-    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], rooms: [BROCHAZO] }));
-    await screen.findByText(/Almacén de Queens/);
-    await u.click(screen.getByRole('button', { name: 'Pincel' }));
-    await u.click(await screen.findByRole('radio', { name: 'Borrar' }));
-    brochazo([100, 100], [140, 140]);
-    await waitFor(() => expect(repo.rooms).toHaveLength(0));
-  });
-
-  /**
    * ⚠️ REVELAR y OCULTAR de la barra lateral ENTRAN POR LA NIEBLA, aunque el pincel se hubiera quedado en
-   * SUELO la última vez: decir otra cosa en el panel sería mentir, y el gesto pintaría mapa donde él espera
-   * destapar niebla.
+   * otra cosa: decir otra cosa en el panel sería mentir.
    */
-  it('entrar por Revelar pone el panel en NIEBLA aunque el pincel estuviera construyendo', async () => {
+  it('entrar por Revelar pone el panel en NIEBLA', async () => {
     const u = userEvent.setup();
     mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
     await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Pincel' }));
-    expect(await screen.findByRole('radio', { name: 'Suelo' })).toHaveAttribute('aria-checked', 'true');
+    expect(await screen.findByRole('radio', { name: 'Habitación' })).toHaveAttribute('aria-checked', 'true');
     await u.click(screen.getByRole('button', { name: 'Revelar' }));
     expect(await screen.findByRole('radio', { name: 'Niebla' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('button', { name: 'Revelar todo' })).toBeInTheDocument();
+  });
+});
+
+/**
+ * ── «A MANO» SACA UNA BANDA, DE PUNTA A PUNTA (§ «Rebanada 10 · B») ──
+ *
+ * Lo que se construyó por error **no se tiró**: es lo que a él le faltaba en el Builder. Palabra suya el
+ * 2026-09-10: «*no es un 100% de desperdicio, el pincel de textura está funcionando como debería funcionar de
+ * verdad en el builder de muros la opción de a mano*».
+ */
+describe('<SceneTab> la banda de «A mano» en el Builder', () => {
+  const TEX = { id: 'tx-losa', name: 'Losa mojada', category: 'stone' as const, url: 'https://x/losa.png', tileCells: 2, uploadedBy: 'u-gm', createdAt: '', updatedAt: '' };
+  /** Elegir «Dibujar aquí» + lo que se levante, que es por donde se entra a todo lo de esta rebanada. */
+  const abrirBuilder = async (u: ReturnType<typeof userEvent.setup>, levanta: 'Muro' | 'Habitación') => {
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    await u.click(within(panel).getByRole('radio', { name: levanta }));
+    await u.click(within(panel).getByRole('radio', { name: 'A mano' }));
+    return panel;
+  };
+  const dosClics = (a: [number, number], b: [number, number]) => {
+    fireEvent.pointerDown(canvas(), { clientX: a[0], clientY: a[1], pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    fireEvent.pointerDown(canvas(), { clientX: b[0], clientY: b[1], pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+  };
+
+  /**
+   * 🔑 Deja de ser una raya del grosor de la escena: sale una BANDA, guardada como una forma más de
+   * `maps_rooms` — de ahí salen gratis fundirse, cortar la vista y frenar a las fichas.
+   */
+  it('dos clics con MURO levantan una BANDA que RELLENA, marcada como brochazo', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    await abrirBuilder(u, 'Muro');
+    dosClics([G * 3, G * 3], [G * 9, G * 3]);
+    await waitFor(() => expect(repo.rooms).toHaveLength(1));
+    expect(repo.rooms[0]).toMatchObject({ kind: 'fill', shape: 'brush' });
+    expect(repo.rooms[0]!.points.length).toBeGreaterThanOrEqual(3);
+    // Y no ha escrito un muro: dibujando aquí un tabique es una FORMA.
+    expect(repo.walls).toHaveLength(0);
+  });
+
+  /** «*Queda como muro o sala*»: la elección de siempre no desaparece, y con HABITACIÓN la banda EXCAVA. */
+  it('con HABITACIÓN la misma banda EXCAVA', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    await abrirBuilder(u, 'Habitación');
+    dosClics([G * 3, G * 3], [G * 9, G * 3]);
+    await waitFor(() => expect(repo.rooms[0]).toMatchObject({ kind: 'room', shape: 'brush' }));
+  });
+
+  /** El MURO se pinta con una TEXTURA del catálogo, y va pegada a la forma, no al mapa. */
+  it('la textura elegida viaja con la banda del muro', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], textures: [TEX] }));
+    await screen.findByText(/Almacén de Queens/);
+    const panel = await abrirBuilder(u, 'Muro');
+    await u.click(within(within(panel).getByTestId('mp-shape-paint')).getByRole('button', { name: 'Elegir' }));
+    await u.click(await within(await screen.findByTestId('mp-texcat')).findByTitle('Losa mojada'));
+    dosClics([G * 3, G * 3], [G * 9, G * 3]);
+    await waitFor(() => expect(repo.rooms[0]!.floorUrl).toBe('https://x/losa.png'));
+    // La textura base de la ESCENA no se ha tocado: esto es de la forma, no del mapa.
+    expect(repo.sceneUpdates.some(x => 'wallTextureUrl' in x.patch)).toBe(false);
+  });
+
+  /** …y la HABITACIÓN con un COLOR. Es la equivalencia que él confirmó con esas palabras. */
+  it('el color elegido viaja con la banda de la habitación', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    const panel = await abrirBuilder(u, 'Habitación');
+    await u.click(within(panel).getByRole('radio', { name: 'Musgo' }));
+    dosClics([G * 3, G * 3], [G * 9, G * 3]);
+    await waitFor(() => expect(repo.rooms[0]!.floorColor).toBe('#5f8f6a'));
+    expect(repo.rooms[0]!.floorUrl).toBeNull();
+  });
+
+  /** Sin tocar el ancho, la banda mide EL GROSOR DE MURO DE LA ESCENA: nada cambia hasta que él lo mueva. */
+  it('de serie el ancho es el grosor de muro de la escena', async () => {
+    const u = userEvent.setup();
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    const panel = await abrirBuilder(u, 'Muro');
+    expect(within(panel).getByRole('slider', { name: 'Ancho' })).toHaveValue(String(SCENE_WAREHOUSE.wallThickness));
   });
 });
