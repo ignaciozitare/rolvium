@@ -202,13 +202,24 @@ export interface MapsPort {
   /** Quita la máscara entera: el suelo de la sala vuelve a verse como lo puso el constructor. */
   clearRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>): Promise<void>;
   /**
-   * DM only. LA PINTURA de esta forma (rebanada 10): el PNG que se dibuja ENCIMA de su suelo, en
-   * `backgrounds/{campaignId}/paint/room-{id}.png`. Devuelve la sala ya actualizada por lo mismo que
-   * `saveRoomFloorMask`: de ahí sale el `updated_at` que rompe la caché del navegador.
+   * DM only. LA PINTURA DEL SUELO (rebanada 10): el PNG que se dibuja ENCIMA de las habitaciones, en
+   * `backgrounds/{campaignId}/paint/room-{id}.png`.
+   *
+   * 🔑 **`alsoIds` es la razón de que esto no sea «una forma, un fichero», y sale de un fallo que él vio en
+   * pantalla el 2026-09-10**: «*si hice una habitación y la modifico, el pincel se pinta dentro de cada
+   * modificación… se ve la silueta pintada de habitaciones previas, esto está mal*». Una habitación suele ser
+   * VARIAS formas fundidas, y el lienzo dibuja la pintura de cada una recortada a SU contorno: con un fichero
+   * por forma, el brochazo se cortaba en cada costura.
+   *
+   * Así que se sube UN PNG y **todas las formas excavadas apuntan a él**. Cada una lo sigue dibujando dentro
+   * de su propio contorno, así que juntas cubren la unión sin costuras — y el día que una forma se pueda
+   * mover se lleva su trozo, que es lo que él pidió. Un solo fichero, N punteros baratos.
+   *
+   * Devuelve las filas ya actualizadas: de ahí sale el `updated_at` que rompe la caché del navegador.
    */
-  saveRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>, png: Blob): Promise<Room>;
-  /** Quita la pintura de la forma. **No derriba lo construido**: la forma sigue exactamente donde estaba. */
-  clearRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>): Promise<void>;
+  saveRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>, png: Blob, alsoIds?: readonly string[]): Promise<Room[]>;
+  /** Quita la pintura de esas formas. **No derriba lo construido**: siguen exactamente donde estaban. */
+  clearRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>, alsoIds?: readonly string[]): Promise<void>;
 
   // ── los colores guardados (rebanada 10) ───────────────────────────────────
   // Los que él mezcla con el cuentagotas o escribe a mano, POR CAMPAÑA. La paleta base de la casa no pasa

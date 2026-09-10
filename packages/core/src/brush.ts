@@ -16,10 +16,14 @@ const clamp01 = (v: number): number => Math.min(1, Math.max(0, Number.isFinite(v
 export const ROUGH_POINTS = 28;
 
 /**
- * Lo más que muerde el borde roto hacia dentro, en fracción del radio. Más deja el trazo tan comido que ya no
- * se lee como una pincelada.
+ * Lo más que muerde el borde roto hacia dentro, en fracción del radio.
+ *
+ * Subido de 0,5 a 0,85 el 2026-09-10 con la pantalla delante: «*el tope para el lado de muy roto tiene que ser
+ * mucho más roto*». A la mitad del radio el trazo seguía leyéndose como un disco con el canto rizado; a 0,85
+ * se desgarra de verdad. No llega a 1 a propósito: ahí el contorno se cierra sobre sí mismo en los mordiscos
+ * profundos y el brochazo deja agujeros en medio en vez de un borde roto.
  */
-export const ROUGH_MAX_BITE = 0.5;
+export const ROUGH_MAX_BITE = 0.85;
 
 /**
  * EL CONTORNO DE UN BROCHAZO ROTO: un multiplicador del radio por vértice, dando la vuelta al círculo.

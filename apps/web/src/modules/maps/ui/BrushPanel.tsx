@@ -242,9 +242,24 @@ export function BrushPanel({
           value={Math.round(value.size * 10)} onChange={n => onChange({ size: n / 10 })} onCommit={onCommit}
           // En el uno exacto no se dice «1.0 casillas»: ni el decimal ni el plural pintan nada ahí.
           text={value.size === 1 ? t('maps.mask.sizeCell') : t('maps.mask.sizeCells', { n: value.size.toFixed(1) })} />
-        <Slider label={t('maps.brush.alpha')} min={5} max={100} step={5}
-          value={Math.round(value.strength * 100)} onChange={n => onChange({ strength: n / 100 })} onCommit={onCommit}
-          text={strengthLabel(value.strength)} />
+        {/*
+          * 🐞 LA TRANSPARENCIA IBA AL REVÉS pintando (suyo, 2026-09-10: «*transparencia está al revés, un 100 %
+          * es que no se ve y aquí es lo más opaco posible*»). Por dentro esto es la OPACIDAD del brochazo, así
+          * que pintando y borrando se le da la vuelta al número: 100 % de transparencia = no se ve.
+          *
+          * ⚠️ DESTAPANDO Y EN LA NIEBLA NO SE INVIERTE, y no es una excepción caprichosa: allí el brochazo no
+          * pone pintura, QUITA lo de arriba — y quitar a tope ES dejarlo transparente del todo. El mismo
+          * número ya decía la verdad, y darle la vuelta lo rompería.
+          */}
+        {(() => {
+          const invierte = action !== 'uncover' && on !== 'fog';
+          const leido = invierte ? 100 - Math.round(value.strength * 100) : Math.round(value.strength * 100);
+          return (
+            <Slider label={t('maps.brush.alpha')} min={0} max={95} step={5}
+              value={leido} onChange={n => onChange({ strength: invierte ? (100 - n) / 100 : n / 100 })} onCommit={onCommit}
+              text={invierte ? `${leido} %` : strengthLabel(value.strength)} />
+          );
+        })()}
         <Slider label={t('maps.brush.edge')} min={0} max={100} step={5}
           value={Math.round(value.hardness * 100)} onChange={n => onChange({ hardness: n / 100 })} onCommit={onCommit}
           text={t(`maps.brush.edgeStep.${hardnessStep(value.hardness)}`)} />

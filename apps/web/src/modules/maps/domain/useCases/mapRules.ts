@@ -25,7 +25,11 @@ export const isBrush = (t: Tool): boolean => BRUSH_TOOLS.includes(t);
 export const toolsFor = (isDm: boolean): Tool[] => (isDm ? [...PLAYER_TOOLS, ...DM_TOOLS] : PLAYER_TOOLS);
 
 export const MIN_ZOOM = 0.25;
-export const MAX_ZOOM = 4;
+/**
+ * Lo más que se puede acercar. Subido de 4 a 6 el 2026-09-10 a petición suya —«*el zoom de la pantalla tiene
+ * que acercar si quiero un 50% más*»— para poder afinar un brochazo sobre una casilla concreta.
+ */
+export const MAX_ZOOM = 6;
 export const ZOOM_STEP = 1.25;
 export const DEFAULT_GRID = 27;
 /** Reveal/hide brush radii in cells (design: four discs on the «Pincel» bar). */

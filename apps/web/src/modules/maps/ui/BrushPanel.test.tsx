@@ -106,6 +106,29 @@ describe('<BrushPanel>', () => {
     expect(screen.getByRole('slider', { name: 'Cuánto de roto' })).toBeInTheDocument();
   });
 
+  /**
+   * 🐞 LA TRANSPARENCIA DICE LA VERDAD: 100 % es que NO SE VE. Suyo, 2026-09-10 con la pantalla delante:
+   * «*transparencia está al revés, un 100 % es que no se ve y aquí es lo más opaco posible*». Por dentro se
+   * guarda la OPACIDAD, así que pintando el número se le da la vuelta.
+   */
+  it('pintando, la transparencia va al derecho: 100 % es que no se ve', () => {
+    const cb = mount({ value: { ...BRUSH, strength: 1 } });
+    expect(screen.getByText('0 %')).toBeInTheDocument();          // opaco del todo = 0 % transparente
+    fireEvent.change(screen.getByRole('slider', { name: 'Transparencia' }), { target: { value: '75' } });
+    expect(cb.onChange).toHaveBeenCalledWith({ strength: 0.25 }); // 75 % transparente = 0,25 de opacidad
+  });
+
+  /**
+   * ⚠️ DESTAPANDO NO SE INVIERTE, y no es una excepción caprichosa: allí el brochazo no pone pintura, QUITA
+   * lo de arriba — y quitar a tope ES dejarlo transparente del todo. El número ya decía la verdad.
+   */
+  it('destapando no se invierte, porque allí quitar a tope YA es transparente', () => {
+    const cb = mount({ action: 'uncover', value: { ...BRUSH, strength: 1 } });
+    expect(screen.getByText('100 %')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('slider', { name: 'Transparencia' }), { target: { value: '40' } });
+    expect(cb.onChange).toHaveBeenCalledWith({ strength: 0.4 });
+  });
+
   /** «Cuánto de roto» sólo existe con el borde roto: con las otras puntas no cambia nada. */
   it('«cuánto de roto» sólo sale con el borde roto', () => {
     mount();

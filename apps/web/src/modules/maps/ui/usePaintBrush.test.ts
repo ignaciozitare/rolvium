@@ -97,13 +97,33 @@ describe('usePaintBrush', () => {
     expect(result.current.preview).toBeNull();
   });
 
-  /** 🔑 PINTAR PONE: se compone `source-over` y con el color puesto, no con negro. */
+  /** 🔑 PINTAR PONE, y con el color puesto: la silueta del trazo se tiñe con él, no con negro. */
   it('pinta con el color puesto, y ENCIMA de lo que hubiera', () => {
     const { result } = mount();
     act(() => result.current.paint({ x: 100, y: 100 }, { x: 140, y: 100 }, 30, ink(), stroke(), true));
-    expect(todo().ops).toContain('source-over');
-    expect(todo().stops.some(([, c]) => c.startsWith('rgba(95,143,106'))).toBe(true);
     expect(todo().arcs.length).toBeGreaterThan(0);
+    // El rastro se tiñe con `source-in`, y el color que se cuela por él es el elegido.
+    expect(todo().ops).toContain('source-in');
+    expect(todo().fills).toContain('#5f8f6a');
+    // Y no se borra nada: eso es lo contrario de pintar.
+    expect(todo().ops).not.toContain('destination-out');
+  });
+
+  /**
+   * 🐞 LA TRANSPARENCIA SE APLICA UNA VEZ, A LA PINCELADA ENTERA. Su queja del 2026-09-10: «*la barra de
+   * transparencia casi que es on/off, no hay una progresión*». No era la barra: una pincelada son decenas de
+   * gotas solapadas, y aplicándosela a cada gota se sumaban entre ellas hasta saturar al tercer roce.
+   *
+   * Lo que sujeta este test: las gotas se estampan A PLENA OPACIDAD en el rastro, y la transparencia entra
+   * después, una sola vez, al pegar ese rastro sobre lo que había.
+   */
+  it('aplica la transparencia UNA VEZ por pincelada, no gota a gota', () => {
+    const { result } = mount();
+    act(() => result.current.paint({ x: 100, y: 100 }, { x: 300, y: 100 }, 30, ink(), stroke({ strength: 0.2 }), true));
+    // El rastro va opaco: ninguna parada del degradado lleva la transparencia metida dentro.
+    expect(todo().stops.every(([, c]) => !c.includes('0.2'))).toBe(true);
+    // …y el 0,2 aparece UNA sola vez, componiendo la pincelada entera.
+    expect(todo().alphas.filter(a => a === 0.2)).toHaveLength(1);
   });
 
   /**
@@ -114,6 +134,8 @@ describe('usePaintBrush', () => {
     const { result } = mount();
     act(() => result.current.paint({ x: 100, y: 100 }, { x: 140, y: 100 }, 30, ink(), stroke({ mode: 'erase' }), true));
     expect(todo().ops).toContain('destination-out');
+    // Borrando no se tiñe nada: no se pinta con un color, se quita.
+    expect(todo().fills).not.toContain('#5f8f6a');
   });
 
   /**

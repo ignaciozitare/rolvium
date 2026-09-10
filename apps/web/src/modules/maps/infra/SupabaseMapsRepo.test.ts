@@ -603,18 +603,29 @@ describe('SupabaseMapsRepo — las salas', () => {
     expect(remove).toHaveBeenCalledWith(['c1/masks/room-rm-1.png']);
   });
 
-  /** LA PINTURA de una forma va en SU fila, porque la pintura es de lo que pintaste (§ 10A.5). */
-  it('la pintura de una forma sube a `paint/` y deja el puntero en su fila', async () => {
-    const m = createSupabaseMock({ tables: { maps_rooms: { data: { ...ROOM_ROW, floor_paint_url: 'https://x/c1/paint/room-rm-1.png', updated_at: 't2' }, error: null } } });
+  /**
+   * 🔑 UN SOLO PNG Y N PUNTEROS, y sale de un fallo que él vio en pantalla el 2026-09-10: «*si hice una
+   * habitación y la modifico, el pincel se pinta dentro de cada modificación… se ve la silueta pintada de
+   * habitaciones previas*». Una habitación son varias formas fundidas y cada una dibuja su pintura recortada
+   * a SU contorno: con un fichero por forma, el brochazo se cortaba en cada costura.
+   */
+  it('la pintura del suelo sube UNA vez y la apuntan todas las formas excavadas', async () => {
+    const FILA = { ...ROOM_ROW, floor_paint_url: 'https://x/c1/paint/room-rm-1.png', updated_at: 't2' };
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: [FILA, { ...FILA, id: 'rm-2' }], error: null } } });
     const upload = vi.fn().mockResolvedValue({ data: null, error: null });
     const client = { ...m.client, storage: { from: vi.fn(() => ({ upload, getPublicUrl: vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } })) })) } };
     const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
     const png = new Blob(['x'], { type: 'image/png' });
-    const out = await repo.saveRoomFloorPaint({ id: 'rm-1', campaignId: 'c1' }, png);
+    const out = await repo.saveRoomFloorPaint({ id: 'rm-1', campaignId: 'c1' }, png, ['rm-2']);
+    // UN solo fichero, con el nombre de la primera.
+    expect(upload).toHaveBeenCalledTimes(1);
     expect(upload).toHaveBeenCalledWith('c1/paint/room-rm-1.png', png, expect.objectContaining({ upsert: true, contentType: 'image/png' }));
+    // …y una sola escritura en lote para las dos filas.
     expect(m.updateSpy).toHaveBeenCalledWith({ floor_paint_url: 'https://x/c1/paint/room-rm-1.png' });
-    // Vuelve la fila ENTERA: el rompe-caché de una sala es su `updated_at`.
-    expect(out).toMatchObject({ floorPaintUrl: 'https://x/c1/paint/room-rm-1.png', updatedAt: 't2' });
+    expect(q(m)['in']).toHaveBeenCalledWith('id', ['rm-1', 'rm-2']);
+    // Vuelven las filas ENTERAS: el rompe-caché de una sala es su `updated_at`.
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({ floorPaintUrl: 'https://x/c1/paint/room-rm-1.png', updatedAt: 't2' });
   });
 
   /** 🔒 Y quitar la pintura NO DERRIBA NADA: la forma sigue exactamente donde estaba. */
@@ -623,8 +634,9 @@ describe('SupabaseMapsRepo — las salas', () => {
     const remove = vi.fn().mockResolvedValue({ data: null, error: null });
     const client = { ...m.client, storage: { from: vi.fn(() => ({ remove })) } };
     const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
-    await repo.clearRoomFloorPaint({ id: 'rm-1', campaignId: 'c1' });
+    await repo.clearRoomFloorPaint({ id: 'rm-1', campaignId: 'c1' }, ['rm-2']);
     expect(m.updateSpy).toHaveBeenCalledWith({ floor_paint_url: null });
+    expect(q(m)['in']).toHaveBeenCalledWith('id', ['rm-1', 'rm-2']);
     expect(remove).toHaveBeenCalledWith(['c1/paint/room-rm-1.png']);
     expect(m.deleteSpy).not.toHaveBeenCalled();
   });

@@ -1486,7 +1486,17 @@ export function MapCanvas(p: Props): JSX.Element {
               })}
             </g>
           )}
-          {dmSight && isBrush(p.tool) && hover && (
+          {/*
+            * LA SILUETA DEL PINCEL BAJO EL PUNTERO. En la niebla la lleva desde siempre; pintando y borrando
+            * faltaba, y él lo pidió con esas palabras (2026-09-10): «*al poner el puntero en el lienzo tendría
+            * que tener una silueta del área que ocupa el pincel, si no lo hago a ciegas*».
+            *
+            * Pintando va MÁS FLOJA que la de la niebla —«*una silueta ligera, pero algo se tiene que ver*»—:
+            * ahí debajo está el mapa que se está retocando, y un disco dorado opaco taparía justo lo que hay
+            * que mirar. Y sólo sale cuando hay dónde pintar: sin destino sería prometer un brochazo que no va
+            * a caer en ninguna parte.
+            */}
+          {dmSight && hover && (isBrush(p.tool) || (p.tool === 'mask' && p.paintReady)) && (
             <circle cx={hover.x} cy={hover.y} r={brushPx} className={`mp-brush ${p.tool}`} data-testid="mp-brush" />
           )}
           {dmSight && selectedWall && (

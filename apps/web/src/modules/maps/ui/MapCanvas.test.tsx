@@ -2584,9 +2584,27 @@ describe('<MapCanvas> el pincel que pinta encima', () => {
     expect(onHoverRoom).not.toHaveBeenCalled();
   });
 
+  /**
+   * 🐞 LA SILUETA DEL PINCEL BAJO EL PUNTERO, que él pidió con esas palabras (2026-09-10): «*al poner el
+   * puntero en el lienzo tendría que tener una silueta del área que ocupa el pincel, si no lo hago a ciegas*».
+   */
+  it('enseña la silueta del pincel bajo el puntero, y sólo si hay dónde pintar', () => {
+    const { svg } = mount({ ...dm, paintReady: true, brush: 2 });
+    move(svg, 120, 120);
+    const silueta = within(svg).getByTestId('mp-brush');
+    expect(silueta).toHaveAttribute('r', String(2 * SCENE_WAREHOUSE.grid.size));
+    expect(silueta.getAttribute('class')).toContain('mask');
+  });
+
+  it('sin dónde pintar no hay silueta: sería prometer un brochazo que no cae en ninguna parte', () => {
+    const { svg } = mount({ ...dm, paintReady: false });
+    move(svg, 120, 120);
+    expect(within(svg).queryByTestId('mp-brush')).not.toBeInTheDocument();
+  });
+
   /** LA PINTURA EN VIVO se dibuja encima de lo pintado, y por eso el brochazo se ve antes de soltar. */
   it('pinta la pintura en vivo sobre la sala que se está pintando', () => {
-    mount({ ...dm, paintReady: true, rooms: [SALA_A], paintPreview: { on: 'room', id: 'rm-a', href: 'data:image/png;base64,AAA' } });
+    mount({ ...dm, paintReady: true, rooms: [SALA_A], paintPreview: { on: 'room', id: 'sc-1:floor', href: 'data:image/png;base64,AAA' } });
     expect(screen.getByTestId('mp-room-floor-paint')).toHaveAttribute('href', 'data:image/png;base64,AAA');
   });
 });

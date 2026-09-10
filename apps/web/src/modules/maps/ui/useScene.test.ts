@@ -585,26 +585,33 @@ describe('useScene — capas y luces', () => {
    * asome lo de debajo, ésta PONE encima. Dos columnas y dos ficheros, para que el borrador de una no se
    * lleve la otra por delante.
    */
-  it('la pintura de una forma va por su lado y NO toca su máscara', async () => {
+  it('la pintura del suelo la apuntan TODAS las formas, y NO toca sus máscaras', async () => {
     const SALA = {
       id: 'rm-1', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
       points: [[0, 0], [100, 0], [100, 100], [0, 100]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null,
       floorColor: null, floorMaskUrl: 'https://x/masks/room-rm-1.png', floorPaintUrl: null, createdAt: 't', updatedAt: 't',
     };
-    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], rooms: [SALA] });
+    // Una habitación de DOS trozos, que es el caso que él vio roto: la pintura se cortaba en la costura.
+    const TROZO2 = { ...SALA, id: 'rm-2', floorMaskUrl: null, points: [[100, 0], [200, 0], [200, 100], [100, 100]] as [number, number][] };
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], rooms: [SALA, TROZO2] });
     const r = await mount(repo, fakeVisionPort());
     const sala = r.current.rooms.find(x => x.id === 'rm-1')!;
-    await act(async () => { await r.current.saveRoomFloorPaint(sala, new Blob(['x'])); });
+    await act(async () => { await r.current.saveRoomFloorPaint(sala, new Blob(['x']), ['rm-2']); });
+    // UN solo fichero subido…
     expect(repo.paintSaved).toEqual([{ on: 'room', id: 'rm-1', bytes: 1 }]);
-    const pintada = r.current.rooms.find(x => x.id === 'rm-1')!;
-    expect(pintada.floorPaintUrl).toContain('paint/room-rm-1.png');
-    // El rompe-caché de una sala es su fecha, así que la fila vuelve entera.
-    expect(pintada.updatedAt).not.toBe('t');
+    const pintadas = r.current.rooms;
+    // …y las DOS formas apuntando a él: así el brochazo no se corta en la costura.
+    expect(pintadas.map(x => x.floorPaintUrl)).toEqual([
+      'https://x/backgrounds/c1/paint/room-rm-1.png',
+      'https://x/backgrounds/c1/paint/room-rm-1.png',
+    ]);
+    // El rompe-caché de una sala es su fecha, así que las filas vuelven enteras.
+    expect(pintadas[0]!.updatedAt).not.toBe('t');
     // 🔒 Y la máscara sigue donde estaba: son dos cosas distintas.
-    expect(pintada.floorMaskUrl).toBe('https://x/masks/room-rm-1.png');
-    await act(async () => { await r.current.clearRoomFloorPaint(pintada); });
-    expect(r.current.rooms.find(x => x.id === 'rm-1')!.floorPaintUrl).toBeNull();
-    expect(r.current.rooms.find(x => x.id === 'rm-1')!.floorMaskUrl).toBe('https://x/masks/room-rm-1.png');
+    expect(pintadas[0]!.floorMaskUrl).toBe('https://x/masks/room-rm-1.png');
+    await act(async () => { await r.current.clearRoomFloorPaint(pintadas[0]!, ['rm-2']); });
+    expect(r.current.rooms.every(x => x.floorPaintUrl === null)).toBe(true);
+    expect(r.current.rooms[0]!.floorMaskUrl).toBe('https://x/masks/room-rm-1.png');
     expect(repo.paintCleared).toEqual([{ on: 'room', id: 'rm-1' }]);
   });
 

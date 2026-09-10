@@ -1417,10 +1417,15 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     await u.click(screen.getByRole('button', { name: 'Pincel' }));
     await u.click(screen.getByRole('radio', { name: 'Foto' }));
     const slider = screen.getByRole('slider', { name: 'Transparencia' });
+    /*
+     * 🔑 PINTANDO, LA BARRA DICE TRANSPARENCIA Y POR DENTRO SE GUARDA LA OPACIDAD (suyo, 2026-09-10:
+     * «*transparencia está al revés, un 100 % es que no se ve*»). Un 25 % de transparencia son 0,75 de
+     * opacidad — y eso es lo que llega a la escena.
+     */
     fireEvent.change(slider, { target: { value: '25' } });
     expect(repo.sceneUpdates.some(x => 'brushStrength' in x.patch)).toBe(false);
     fireEvent.pointerUp(slider);
-    await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { brushStrength: 0.25 } }));
+    await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { brushStrength: 0.75 } }));
     /*
      * 🐞 Y AL SOLTAR NO REBOTA. Lo que se está moviendo se guarda en la pantalla y lo guardado vive en la
      * ESCENA: si al soltar se tirara el borrador antes de que la escena se enterase, el deslizador daría un
@@ -2180,6 +2185,44 @@ describe('<SceneTab> el pincel que pinta encima', () => {
     await screen.findByRole('group', { name: 'Pincel' });
     brochazo([100, 100], [140, 140]);
     await waitFor(() => expect(repo.paintSaved).toEqual([{ on: 'room', id: 'rm-1', bytes: expect.any(Number) }]));
+  });
+
+  /**
+   * 🐞 LA PINTURA NO SE CORTA EN LAS COSTURAS. Su fallo del 2026-09-10 con la captura delante: «*si hice una
+   * habitación y la modifico, el pincel se pinta dentro de cada modificación… se ve la silueta pintada de
+   * habitaciones previas, esto está mal*». Una habitación son varias formas fundidas, y el brochazo se
+   * cortaba en cada una. Ahora se sube UN PNG y lo apuntan todas.
+   */
+  it('pintar una habitación hecha de dos trozos los marca LOS DOS, con el mismo fichero', async () => {
+    const u = userEvent.setup();
+    lienzoDeMentira();
+    const TROZO2 = { ...SALA, id: 'rm-2', points: [[400, 0], [800, 0], [800, 400], [400, 400]] as [number, number][] };
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [SALA, TROZO2] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    await screen.findByRole('group', { name: 'Pincel' });
+    brochazo([100, 100], [140, 140]);
+    // UN solo fichero subido…
+    await waitFor(() => expect(repo.paintSaved).toHaveLength(1));
+    // …y las DOS formas apuntando a él.
+    expect(repo.rooms.map(r => r.floorPaintUrl)).toEqual([
+      'https://x/backgrounds/c1/paint/room-rm-1.png',
+      'https://x/backgrounds/c1/paint/room-rm-1.png',
+    ]);
+  });
+
+  /** 🔒 Y un RELLENO no se mancha: es roca, no suelo. Por ahí sigue valiendo «no me manches el muro». */
+  it('pintar el suelo no toca las formas que RELLENAN', async () => {
+    const u = userEvent.setup();
+    lienzoDeMentira();
+    const TABIQUE = { ...SALA, id: 'rm-fill', kind: 'fill' as const, points: [[400, 0], [420, 0], [420, 400], [400, 400]] as [number, number][] };
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [SALA, TABIQUE] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    await screen.findByRole('group', { name: 'Pincel' });
+    brochazo([100, 100], [140, 140]);
+    await waitFor(() => expect(repo.paintSaved).toHaveLength(1));
+    expect(repo.rooms.find(r => r.id === 'rm-fill')!.floorPaintUrl).toBeNull();
   });
 
   /**

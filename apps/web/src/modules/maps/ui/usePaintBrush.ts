@@ -81,7 +81,21 @@ const PREVIEW_MS = 100;
  */
 export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): PaintBrush {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  /** El lienzo de usar y tirar donde se estampa la forma del brochazo antes de teñirla con la textura. */
+  /**
+   * ── LOS TRES LIENZOS, Y POR QUÉ HACEN FALTA TRES ──
+   *
+   * 🐞 Su queja del 2026-09-10: «*la barra de transparencia casi que es on/off, no hay una progresión*». Y no
+   * era la barra: una pincelada son decenas de gotas solapadas, y aplicándole la transparencia A CADA GOTA se
+   * suman entre ellas — al 20 % la tercera gota ya iba por el 50 %, y al quinto roce el trazo estaba opaco.
+   *
+   * Así que la transparencia se aplica UNA VEZ, a la pincelada entera:
+   *   · `base`   — lo que había ANTES de empezar esta pincelada;
+   *   · `stroke` — por dónde ha pasado la mano en ESTA pincelada, a plena opacidad;
+   *   · el lienzo bueno — `base` + `stroke` teñido y compuesto con la transparencia elegida.
+   */
+  const baseRef = useRef<HTMLCanvasElement | null>(null);
+  const strokeRef = useRef<HTMLCanvasElement | null>(null);
+  /** El lienzo de usar y tirar donde se tiñe la pincelada con la textura antes de pegarla. */
   const stampRef = useRef<HTMLCanvasElement | null>(null);
   const dirtyRef = useRef(false);
   const lastPreview = useRef(0);
@@ -165,92 +179,83 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
     const ctx = c?.getContext?.('2d') ?? null;
     if (!c || !ctx || !target || !scene) return;
     const size = { width: c.width, height: c.height };
+    const base = scratch(baseRef, size), stroke = scratch(strokeRef, size);
+    const bctx = base?.getContext?.('2d') ?? null, sctx = stroke?.getContext?.('2d') ?? null;
+    if (!base || !bctx || !stroke || !sctx) return;
     const r = Math.max(1, toMaskPoint({ x: radiusScenePx, y: 0 }, scene, size).x);
     const a = Math.min(1, Math.max(0, s.strength));
     // La forma del borde roto se sortea UNA VEZ por pincelada («distinto cada vez» es por brochazo).
     if (start || edgeRef.current === null) edgeRef.current = roughRadii(s.roughness, Math.random);
     const edge = edgeRef.current;
-    /**
-     * CON QUÉ SE TIÑE. Con un color basta un degradado radial —el mismo que la máscara, cambiando el negro
-     * por el suyo—. Con una textura no: un degradado no puede ser un patrón, así que la pasada se estampa
-     * primero en un lienzo aparte y ahí se tiñe con `source-in`. Es el único camino que respeta a la vez la
-     * transparencia, el borde difuminado y el azulejo.
-     */
-    const img = !ink.textureUrl || s.mode === 'erase' ? null : textureOf(ink.textureUrl);
-    const stamp = img ? stampOf(stampRef, size) : null;
-    const sctx = stamp?.getContext?.('2d') ?? null;
-    const dest = stamp && sctx ? sctx : ctx;
-    if (stamp && sctx) sctx.clearRect(0, 0, stamp.width, stamp.height);
-    dest.save();
+    // Empieza la pincelada: se guarda lo que había, y el rastro se estrena en blanco.
+    if (start) {
+      bctx.clearRect(0, 0, base.width, base.height);
+      bctx.drawImage(c, 0, 0);
+      sctx.clearRect(0, 0, stroke.width, stroke.height);
+    }
+
+    // ── 1 · POR DÓNDE HA PASADO LA MANO, a plena opacidad y con su borde ──
+    sctx.save();
     /*
      * EL RECORTE, y por qué va aquí y no en una comprobación por punto: pintando una habitación el brochazo
      * se recorta contra su contorno, así que pasar el pincel por encima del muro no lo mancha. El contorno
      * viene en px de escena y la pintura se guarda reducida, de ahí la escala.
      */
-    if (target.clip && typeof Path2D !== 'undefined' && typeof dest.clip === 'function') {
-      dest.scale(size.width / scene.width, size.height / scene.height);
-      dest.clip(new Path2D(target.clip));
-      dest.setTransform(1, 0, 0, 1, 0, 0);
+    if (target.clip && typeof Path2D !== 'undefined' && typeof sctx.clip === 'function') {
+      sctx.scale(size.width / scene.width, size.height / scene.height);
+      sctx.clip(new Path2D(target.clip));
+      sctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-    /*
-     * Borrando se quita del propio lienzo de pintura (`destination-out`): lo que asoma es lo que había debajo,
-     * que nunca se tocó. **No derriba nada** — la forma, el muro y la foto siguen exactamente donde estaban.
-     */
-    dest.globalCompositeOperation = s.mode === 'erase' ? 'destination-out' : 'source-over';
-    // Con textura, la pasada se estampa OPACA y la transparencia se aplica luego, al pegarla: si no, el
-    // solape de dos gotas de la misma pasada se vería como una mancha más oscura dentro del propio brochazo.
-    const alpha = stamp ? 1 : a;
-    const tinta = (op: number): string => rgba(ink.color, op);
     for (const dot of strokeDots(toMaskPoint(from, scene, size), toMaskPoint(to, scene, size), r * MASK_STEP_RATIO)) {
       /*
-       * El borde lo manda la DUREZA (`maskStops`), no una constante, y la PUNTA manda sobre el degradado:
-       * `disc` corta a canto limpio pase lo que pase, `soft` y `rough` lo respetan. Igual que en la máscara,
-       * porque es el mismo brochazo.
+       * El borde lo manda la DUREZA (`maskStops`) y la PUNTA manda sobre el degradado: `disc` corta a canto
+       * limpio pase lo que pase, `soft` y `rough` lo respetan. Igual que en la máscara, porque es el mismo
+       * brochazo — sólo que aquí a plena opacidad: la transparencia llega después, y una sola vez.
        */
-      const g = dest.createRadialGradient(dot.x, dot.y, 0, dot.x, dot.y, r);
-      if (s.tip === 'disc') { g.addColorStop(0, tinta(alpha)); g.addColorStop(1, tinta(alpha)); }
-      else for (const st of maskStops(alpha, s.hardness)) g.addColorStop(st.at, tinta(st.alpha));
-      dest.fillStyle = g;
-      dest.beginPath();
+      const g = sctx.createRadialGradient(dot.x, dot.y, 0, dot.x, dot.y, r);
+      if (s.tip === 'disc') { g.addColorStop(0, TRAZO); g.addColorStop(1, TRAZO); }
+      else for (const st of maskStops(1, s.hardness)) g.addColorStop(st.at, `rgba(255,255,255,${st.alpha})`);
+      sctx.fillStyle = g;
+      sctx.beginPath();
       if (s.tip === 'rough') {
         const pts = roughOutline(dot.x, dot.y, r, edge);
-        pts.forEach((pt, i) => (i === 0 ? dest.moveTo(pt.x, pt.y) : dest.lineTo(pt.x, pt.y)));
-        dest.closePath();
+        pts.forEach((pt, i) => (i === 0 ? sctx.moveTo(pt.x, pt.y) : sctx.lineTo(pt.x, pt.y)));
+        sctx.closePath();
       } else {
-        dest.arc(dot.x, dot.y, r, 0, Math.PI * 2);
+        sctx.arc(dot.x, dot.y, r, 0, Math.PI * 2);
       }
-      dest.fill();
+      sctx.fill();
     }
-    dest.restore();
-    if (stamp && sctx && img) {
-      // La textura, teñida por la forma del brochazo: `source-in` la recorta a lo que se acaba de estampar.
-      sctx.save();
-      sctx.globalCompositeOperation = 'source-in';
-      const pat = sctx.createPattern(img, 'repeat');
-      if (pat) {
-        // El azulejo se mide en px de ESCENA y el lienzo va reducido: sin esta escala una losa saldría del
-        // tamaño del mapa entero en un mapa grande.
-        const lado = Math.max(1, (ink.tilePx * size.width) / scene.width);
-        pat.setTransform?.(new DOMMatrix().scale(lado / img.naturalWidth, lado / img.naturalHeight));
-        sctx.fillStyle = pat;
-      } else {
-        sctx.fillStyle = ink.color;
-      }
-      sctx.fillRect(0, 0, stamp.width, stamp.height);
-      sctx.restore();
-      ctx.save();
-      ctx.globalAlpha = a;
-      ctx.drawImage(stamp, 0, 0);
-      ctx.restore();
+    sctx.restore();
+
+    // ── 2 · EL LIENZO BUENO: lo de antes, y encima esta pincelada con SU transparencia ──
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.drawImage(base, 0, 0);
+    ctx.save();
+    ctx.globalAlpha = a;
+    if (s.mode === 'erase') {
+      /*
+       * Borrando se quita del propio lienzo de pintura: lo que asoma es lo que había debajo, que nunca se
+       * tocó. **No derriba nada** — la forma, el muro y la foto siguen exactamente donde estaban.
+       */
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.drawImage(stroke, 0, 0);
+    } else {
+      // El azulejo, pasado a píxeles del lienzo con la misma regla de tres que el radio del brochazo.
+      const azulejo = Math.max(1, (ink.tilePx * size.width) / scene.width);
+      ctx.drawImage(tint(stampRef, stroke, ink, azulejo, textureOf), 0, 0);
     }
+    ctx.restore();
     dirtyRef.current = true;
     repaintPreview();
   }, [canvasOf, target, scene, repaintPreview, textureOf]);
 
   const flush = useCallback(async () => {
     const c = canvasRef.current;
-    // La pincelada terminó: la siguiente vuelve a sortear su forma.
+    // La pincelada terminó: la siguiente vuelve a sortear su forma y a estrenar rastro.
     edgeRef.current = null;
+    const stroke = strokeRef.current;
+    stroke?.getContext?.('2d')?.clearRect(0, 0, stroke.width, stroke.height);
     if (!c || !target || !dirtyRef.current) return;
     repaintPreview(true);
     const blob = await new Promise<Blob | null>(resolve => {
@@ -275,8 +280,8 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
   return { preview, paint, flush, reset, saving };
 }
 
-/** El lienzo de usar y tirar donde se estampa la forma antes de teñirla. Uno solo, reaprovechado. */
-function stampOf(ref: { current: HTMLCanvasElement | null }, size: { width: number; height: number }): HTMLCanvasElement | null {
+/** Un lienzo auxiliar del tamaño del bueno. Se reaprovecha: crear uno por pincelada sería tirar memoria. */
+function scratch(ref: { current: HTMLCanvasElement | null }, size: { width: number; height: number }): HTMLCanvasElement | null {
   if (typeof document === 'undefined') return null;
   let c = ref.current;
   if (!c) { c = document.createElement('canvas'); ref.current = c; }
@@ -285,16 +290,38 @@ function stampOf(ref: { current: HTMLCanvasElement | null }, size: { width: numb
 }
 
 /**
- * Un hex de la paleta, con su opacidad. Se pasa a `rgba()` a mano y no se usa `globalAlpha` porque lo que
- * hace el degradado del brochazo es justamente variar la opacidad punto a punto — con `globalAlpha` el borde
- * difuminado se perdería.
- *
- * ⚠️ Éstos NO son colores de tema: son DATO, el color con el que él pintó, y viven en `maps_rooms.floor_color`
- * o en `maps_colors`. Mismo caso justificado que `BRUSH_COLORS` y `STROKE_COLORS`.
+ * El blanco con el que se dibuja el RASTRO de la pincelada. No es un color de tema ni se ve nunca: es la
+ * silueta por la que después se cuela el color o la textura de verdad (`source-in`).
  */
-function rgba(hex: string, alpha: number): string {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return `rgba(0,0,0,${alpha})`;
-  const n = parseInt(m[1]!, 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+const TRAZO = 'rgba(255,255,255,1)';
+
+/**
+ * LA PINCELADA, TEÑIDA. `source-in` recorta el color o el azulejo a la silueta del rastro, así que el borde
+ * difuminado y el borde roto se conservan exactamente.
+ *
+ * ⚠️ El color NO es tema: es DATO, el que él eligió, y viaja a `maps_rooms.floor_color` o a `maps_colors`.
+ * Mismo caso justificado que `BRUSH_COLORS` y `STROKE_COLORS`.
+ */
+function tint(ref: { current: HTMLCanvasElement | null }, stroke: HTMLCanvasElement, ink: PaintInk, tilePx: number, textureOf: (url: string) => HTMLImageElement | null): HTMLCanvasElement {
+  const size = { width: stroke.width, height: stroke.height };
+  const c = scratch(ref, size);
+  const ctx = c?.getContext?.('2d') ?? null;
+  if (!c || !ctx) return stroke;
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.drawImage(stroke, 0, 0);
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-in';
+  const img = ink.textureUrl ? textureOf(ink.textureUrl) : null;
+  const pat = img ? ctx.createPattern(img, 'repeat') : null;
+  if (pat && img) {
+    // `tilePx` llega ya en píxeles DEL LIENZO: el azulejo se mide en px de escena y el lienzo va reducido,
+    // así que sin esa conversión una losa saldría del tamaño del mapa entero en un mapa grande.
+    pat.setTransform?.(new DOMMatrix().scale(tilePx / img.naturalWidth, tilePx / img.naturalHeight));
+    ctx.fillStyle = pat;
+  } else {
+    ctx.fillStyle = ink.color;
+  }
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.restore();
+  return c;
 }

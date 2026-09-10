@@ -549,16 +549,19 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
       const r = rooms.find(x => x.id === room.id);
       if (r) r.floorMaskUrl = null;
     },
-    saveRoomFloorPaint: async (room: Pick<Room, 'id' | 'campaignId'>, png: Blob) => {
+    /** Un solo PNG y N punteros: es lo que evita que la pintura se corte en las costuras de una habitación. */
+    saveRoomFloorPaint: async (room: Pick<Room, 'id' | 'campaignId'>, png: Blob, alsoIds: readonly string[] = []) => {
       paintSaved.push({ on: 'room', id: room.id, bytes: png.size });
-      const r = rooms.find(x => x.id === room.id);
-      const next = { floorPaintUrl: `https://x/backgrounds/${room.campaignId}/paint/room-${room.id}.png`, updatedAt: `t${++n}` };
-      if (r) Object.assign(r, next);
-      return { ...(r ?? rooms[0]!), ...next };
+      const ids = [room.id, ...alsoIds.filter(id => id !== room.id)];
+      const url = `https://x/backgrounds/${room.campaignId}/paint/room-${room.id}.png`;
+      const tocadas = rooms.filter(r => ids.includes(r.id));
+      for (const r of tocadas) Object.assign(r, { floorPaintUrl: url, updatedAt: `t${++n}` });
+      return tocadas.length ? [...tocadas] : [{ ...rooms[0]!, floorPaintUrl: url, updatedAt: `t${++n}` }];
     },
-    clearRoomFloorPaint: async (room: Pick<Room, 'id' | 'campaignId'>) => {
+    clearRoomFloorPaint: async (room: Pick<Room, 'id' | 'campaignId'>, alsoIds: readonly string[] = []) => {
       paintCleared.push({ on: 'room', id: room.id });
-      const r = rooms.find(x => x.id === room.id); if (r) r.floorPaintUrl = null;
+      const ids = [room.id, ...alsoIds];
+      for (const r of rooms) if (ids.includes(r.id)) r.floorPaintUrl = null;
     },
     // ── los colores guardados de la campaña (rebanada 10) ──
     listColors: async (cid: string) => colors.filter(c => c.campaignId === cid),

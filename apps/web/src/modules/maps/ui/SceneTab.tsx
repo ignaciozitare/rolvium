@@ -22,7 +22,7 @@ import { TextureCatalog } from './TextureCatalog';
 import { defaultShapeFor, DEFAULT_BRUSH_COLOR, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { fogOpOf, paintActionsFor, rockPaintSrc, roomPaintSrc, layerPaintSrc, type PaintAction, type PaintOn, type PaintWith } from '../domain/useCases/paintRules';
 import { usePaintBrush, type PaintInk, type PaintTarget } from './usePaintBrush';
-import { DEFAULT_TEXTURE_SCALE, ringOf, ringPath, snapSpanToOutline, tilePx, wallWidthPx } from '../domain/useCases/roomStyles';
+import { DEFAULT_TEXTURE_SCALE, dugRooms, ringOf, ringPath, ringsOf, ringsPath, snapSpanToOutline, tilePx, wallWidthPx } from '../domain/useCases/roomStyles';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
@@ -659,11 +659,25 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     if (onNow === 'fog') setTool(fogOpOf(a) === 'hide' ? 'hide' : 'reveal');
   };
   /**
-   * La habitación que se pinta: la que hay bajo el pincel. No hay que elegirla antes, se apunta y ya.
+   * La habitación cuyo suelo se DESTAPA: la que hay bajo el pincel. Eso sigue siendo por forma, porque la
+   * máscara de la rebanada 9 es de cada sala.
    */
   const paintRoom = onNow === 'room' ? st.rooms.find(r => r.id === hoverRoomId) ?? null : null;
+  /**
+   * 🔑 EL SUELO ES TODO LO EXCAVADO, NO UNA FORMA (corrección suya del 2026-09-10 con la pantalla delante:
+   * «*si hice una habitación y la modifico, el pincel se pinta dentro de cada modificación… se ve la silueta
+   * pintada de habitaciones previas, esto está mal*»).
+   *
+   * Una habitación suele ser varias formas fundidas. Pintar sobre la de debajo del ratón cortaba el brochazo
+   * en cada costura; pintar sobre LA UNIÓN y guardar el mismo PNG en todas lo deja continuo, y cada forma lo
+   * sigue dibujando dentro de su contorno — así el día que se pueda mover una, se lleva su trozo.
+   *
+   * Los RELLENOS quedan fuera: son roca, no suelo. Por ahí es por donde sigue valiendo «si se me va la mano
+   * al muro, el muro no se tiene que pintar».
+   */
+  const suelo = useMemo(() => dugRooms(st.rooms), [st.rooms]);
   /** ¿Hay roca que pintar? Sin ninguna forma excavada el mapa no tiene muro, y el pincel no tendría dónde caer. */
-  const hayRoca = st.rooms.some(r => r.kind !== 'fill');
+  const hayRoca = suelo.length > 0;
   /**
    * ── EL LIENZO QUE QUITA (rebanada 9, intacto) ── «Destapar lo de debajo». Sólo existe donde hay algo
    * debajo que enseñar: una habitación y una foto. `useMemo` porque si no el hook se rehace en cada render y
@@ -693,11 +707,21 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * en su capa y se recorta contra su encaje.
    */
   const paintTargetOf = useMemo<PaintTarget | null>(() => {
-    if (paintRoom) return {
-      id: paintRoom.id, src: roomPaintSrc(paintRoom), clip: ringPath(ringOf(paintRoom)),
-      save: (png: Blob) => st.saveRoomFloorPaint(paintRoom, png),
-      clear: () => st.clearRoomFloorPaint(paintRoom),
-    };
+    if (onNow === 'room' && suelo.length) {
+      const primera = suelo[0]!;
+      const otras = suelo.slice(1).map(r => r.id);
+      return {
+        /*
+         * El id es EL SUELO ENTERO y no la forma de debajo del ratón: si cambiara al pasar de una forma a la
+         * de al lado, el lienzo se reharía a media pincelada y se perdería lo pintado sin subir.
+         */
+        id: `${primera.sceneId}:floor`,
+        src: roomPaintSrc(suelo.find(r => r.floorPaintUrl) ?? primera),
+        clip: ringsPath(ringsOf(suelo)),
+        save: (png: Blob) => st.saveRoomFloorPaint(primera, png, otras),
+        clear: () => st.clearRoomFloorPaint(primera, otras),
+      };
+    }
     if (onNow === 'layer' && bgLayer) return {
       id: bgLayer.id, src: layerPaintSrc(bgLayer), clip: null,
       save: (png: Blob) => st.saveLayerPaint(bgLayer, png),
@@ -714,7 +738,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
       clear: () => clearRockPaint(live),
     };
     return null;
-  }, [paintRoom, onNow, bgLayer, live, hayRoca, st.saveRoomFloorPaint, st.clearRoomFloorPaint, st.saveLayerPaint, st.clearLayerPaint, saveRockPaint, clearRockPaint]);
+  }, [suelo, onNow, bgLayer, live, hayRoca, st.saveRoomFloorPaint, st.clearRoomFloorPaint, st.saveLayerPaint, st.clearLayerPaint, saveRockPaint, clearRockPaint]);
   const paint = usePaintBrush(live, paintTargetOf);
   /**
    * CON QUÉ SE TIÑE EL BROCHAZO. La textura manda sobre el color, igual que en una forma del constructor, y
@@ -729,6 +753,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const paintPreview = paintTargetOf && onNow !== 'fog'
     ? { on: onNow, id: paintTargetOf.id, href: paint.preview }
     : null;
+  /** Sin habitaciones no hay suelo que pintar, y el pincel lo DICE en vez de quedarse mudo. */
+  const faltaSuelo = onNow === 'room' && !suelo.length;
   /** Guarda en la escena lo que se acaba de mover. Un viaje por gesto, no uno por paso del deslizador. */
   const commitBrush = (patch: Partial<BrushSettings> = {}): void => {
     const next = { ...brushDraft, ...patch };
@@ -1048,7 +1074,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                 : { onReset: () => run(actionNow === 'uncover' ? mask.reset() : paint.reset()) })} />
             {/* Sin sitio donde pintar el pincel quedaría MUDO, y eso se dice — no se deja adivinar. */}
             {onNow === 'layer' && !bgLayer && <p className="mp-mask-needs">{t('maps.mask.needsLayer')}</p>}
-            {onNow === 'room' && !paintRoom && <p className="mp-mask-needs">{t('maps.brush.needsRoom')}</p>}
+            {faltaSuelo && <p className="mp-mask-needs">{t('maps.brush.needsRoom')}</p>}
+            {onNow === 'room' && actionNow === 'uncover' && !paintRoom && <p className="mp-mask-needs">{t('maps.brush.needsRoom')}</p>}
             {onNow === 'rock' && !hayRoca && <p className="mp-mask-needs">{t('maps.brush.needsRock')}</p>}
           </>)}
           {isDm && !playerView && selectedLight && (

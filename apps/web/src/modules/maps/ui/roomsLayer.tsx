@@ -117,7 +117,12 @@ function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl' | 
      * LA PINTURA VA EN LAS DOS: una forma que RELLENA también se pinta (su roca es su superficie), igual que
      * una que excava pinta su suelo. Es la misma idea y por eso es la misma columna.
      */
-    const paint = pintura && pintura.on === 'room' && pintura.id === r.id ? pintura.href : roomPaintSrc(r);
+    /*
+     * 🔑 El previo del SUELO vale para TODAS las formas excavadas, no para una: la pintura del suelo es una
+     * sola y cada forma la dibuja dentro de su contorno. Mirar el id aquí volvería a cortar el brochazo en
+     * las costuras de una habitación hecha de varios trozos, que es justo el fallo que él vio en pantalla.
+     */
+    const paint = pintura && pintura.on === 'room' && !rock ? pintura.href : roomPaintSrc(r);
     /*
      * UNA SALA PINTADA NO SE JUNTA CON NADIE, y por eso su clave lleva su id. Juntar las seguidas que pintan
      * lo mismo es lo que evita veinte recortes del tamaño del mapa, pero una máscara es SUYA: metida en un

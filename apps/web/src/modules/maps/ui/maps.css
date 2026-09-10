@@ -102,6 +102,8 @@
 .mp-fog-dim{fill:var(--sys-ink);fill-opacity:.66;pointer-events:none;}
 .mp-brush{fill:color-mix(in srgb,var(--sys-gold) 18%,transparent);stroke:var(--sys-gold);stroke-width:1;pointer-events:none;}
 .mp-brush.hide{fill:color-mix(in srgb,var(--sys-ink) 22%,transparent);stroke:var(--sys-ink-soft);}
+/* Pintando, la silueta va LIGERA: debajo está el mapa que se está retocando y un disco opaco lo taparía. */
+.mp-brush.mask{fill:color-mix(in srgb,var(--sys-paper-hi) 8%,transparent);stroke:color-mix(in srgb,var(--sys-paper-hi) 55%,transparent);stroke-dasharray:4 3;}
 .mp-drawing.draft{opacity:.7;}
 /* Elegido: un halo dorado alrededor, NO un cambio de color — el color del trazo es del que lo hizo. */
 .mp-drawing.selected{filter:drop-shadow(0 0 3px var(--sys-gold)) drop-shadow(0 0 6px var(--sys-gold));}
@@ -338,6 +340,9 @@
 .mp-mask-needs{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:3;padding:6px 10px;
   background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);font-size:var(--fs-xs);color:var(--sys-ink-dim);}
 
+/* Los paneles de herramienta miden TODOS lo mismo (suyo, 2026-09-10: «los modales que se abren de las
+   herramientas tienen que ser todos del mismo ancho»). Es el ancho de Builder, 300 px — deja sin efecto su
+   corrección anterior de «demasiado ancho», que era de cuando el del pincel iba solo. */
 /* ── LA BARRA DEL PINCEL (rebanada 9 · rolvium.pen «PL/Pincel · barra») ──
    Cuatro filas apiladas y no una tira: son tres grupos de mandos y tres pistas, y en una sola línea se
    doblaban solos por donde caía. El contenedor sigue siendo `.mp-strokebar` —misma posición, mismo papel,
@@ -556,7 +561,7 @@
    agarra por la cabecera y se aparta — y reutiliza sus piezas (`mp-builder-head`,
    `mp-builder-group`, `mp-builder-hint`, `mp-builder-row`, `.tb-rotulo`).
    Ancho 220, el del diseño después de su corrección «demasiado ancho». */
-.mp-brushpanel{position:absolute;top:8px;left:8px;z-index:4;width:220px;max-height:calc(100% - 16px);overflow:auto;
+.mp-brushpanel{position:absolute;top:8px;left:8px;z-index:4;width:300px;max-height:calc(100% - 16px);overflow:auto;
   display:flex;flex-direction:column;gap:10px;padding:10px;
   background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);color:var(--sys-ink);}
 .mp-bp-icon{color:var(--sys-ink);}

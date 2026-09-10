@@ -945,14 +945,21 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * fila vuelve entera para traerse el rompe-caché consigo. **Nada de esto entra en la partida**: ni el
    * cálculo de visión, ni el de colisiones, ni el de luces miran una sola de estas columnas.
    */
-  const saveRoomFloorPaint = useCallback(async (room: Room, png: Blob) => {
-    const next = await repo.saveRoomFloorPaint(room, png);
-    setRooms(l => l.map(r => (r.id === next.id ? next : r)));
+  /**
+   * 🔑 LA PINTURA DEL SUELO ES DE TODAS LAS FORMAS EXCAVADAS, no de una. Su fallo del 2026-09-10: una
+   * habitación suele ser varias formas fundidas, y con un fichero por forma el brochazo se cortaba en cada
+   * costura — «*se ve la silueta pintada de habitaciones previas, esto está mal*».
+   */
+  const saveRoomFloorPaint = useCallback(async (room: Room, png: Blob, alsoIds: readonly string[] = []) => {
+    const next = await repo.saveRoomFloorPaint(room, png, alsoIds);
+    const porId = new Map(next.map(r => [r.id, r]));
+    setRooms(l => l.map(r => porId.get(r.id) ?? r));
     return next;
   }, [repo]);
-  const clearRoomFloorPaint = useCallback(async (room: Room) => {
-    setRooms(l => l.map(r => (r.id === room.id ? { ...r, floorPaintUrl: null } : r)));
-    await repo.clearRoomFloorPaint(room);
+  const clearRoomFloorPaint = useCallback(async (room: Room, alsoIds: readonly string[] = []) => {
+    const todas = new Set([room.id, ...alsoIds]);
+    setRooms(l => l.map(r => (todas.has(r.id) ? { ...r, floorPaintUrl: null } : r)));
+    await repo.clearRoomFloorPaint(room, alsoIds);
   }, [repo]);
   const saveLayerPaint = useCallback(async (layer: Layer, png: Blob) => {
     const next = await repo.saveLayerPaint(layer, png);

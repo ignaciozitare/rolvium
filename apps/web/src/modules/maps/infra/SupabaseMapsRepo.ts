@@ -691,17 +691,24 @@ export class SupabaseMapsRepo implements MapsPort {
    * entera por lo mismo que la máscara — el rompe-caché de una sala es su `updated_at`, y sin traerlo de
    * vuelta el navegador se queda con el PNG de antes y parece que el pincel no pinta.
    */
-  async saveRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>, png: Blob): Promise<Room> {
+  async saveRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>, png: Blob, alsoIds: readonly string[] = []): Promise<Room[]> {
     const path = roomPaintPath(room.campaignId, room.id);
     const { error: upErr } = await this.db.storage.from(BACKGROUNDS_BUCKET).upload(path, png, { upsert: true, contentType: 'image/png', cacheControl: '3600' });
     this.fail(upErr);
     const url = this.db.storage.from(BACKGROUNDS_BUCKET).getPublicUrl(path).data.publicUrl;
-    const { data, error } = await this.db.from('maps_rooms').update({ floor_paint_url: url }).eq('id', room.id).select(ROOM_COLS).single();
+    /*
+     * UN SOLO FICHERO Y N PUNTEROS: todas las formas excavadas apuntan al mismo PNG y cada una lo dibuja
+     * dentro de su contorno, así que la pintura no se corta en las costuras de una habitación hecha de varios
+     * trozos. Es una escritura en lote, no N viajes.
+     */
+    const ids = [room.id, ...alsoIds.filter(id => id !== room.id)];
+    const { data, error } = await this.db.from('maps_rooms').update({ floor_paint_url: url }).in('id', ids).select(ROOM_COLS);
     this.fail(error);
-    return mapRoomRow(data as unknown as RoomRow);
+    return ((data ?? []) as unknown as RoomRow[]).map(mapRoomRow);
   }
-  async clearRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>): Promise<void> {
-    const { error } = await this.db.from('maps_rooms').update({ floor_paint_url: null }).eq('id', room.id);
+  async clearRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>, alsoIds: readonly string[] = []): Promise<void> {
+    const ids = [room.id, ...alsoIds.filter(id => id !== room.id)];
+    const { error } = await this.db.from('maps_rooms').update({ floor_paint_url: null }).in('id', ids);
     this.fail(error);
     await this.db.storage.from(BACKGROUNDS_BUCKET).remove([roomPaintPath(room.campaignId, room.id)]);
   }
