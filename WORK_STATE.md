@@ -41,9 +41,24 @@ que haya, con la **textura del catálogo** o el **color** que elijas, y hay un *
 - Rama `feat/maps-pincel`, **sin mergear**. `main` = `9004356`.
 - ✅ **Spec escrito y confirmado**: `specs/modules/maps/SPEC.md` § «Rebanada 10».
 - ✅ **Diseño aprobado por él** el 2026-09-10 (dos pasadas: «demasiado ancho» → 220 px, y «no veo dónde queda
-  puesto el color» → cuadro grande del color + «tus colores»). ⚠️ **En el `.pen` SIN GUARDAR: hace falta su
-  Cmd+S en la pestaña de `rolvium.pen`, el MCP no escribe en disco.** Frames `YwHzR` (con textura) y `M9zw2t`
+  puesto el color» → cuadro grande del color + «tus colores»). Frames `YwHzR` (con textura) y `M9zw2t`
   (con color).
+
+  🔴🔴 **EL `.pen` NO ESTÁ GUARDADO EN DISCO. LO PRIMERO DEL CHAT NUEVO.** Comprobado al cerrar: la fecha de
+  `rolvium.pen` seguía siendo la de ayer. **El panel aprobado vive SÓLO en la caché del editor de Pencil** —
+  el MCP no escribe en disco, sólo su Cmd+S lo baja (regla ya conocida, `pen-solo-lo-guarda-el-dueno`).
+  - **Si cerró el editor sin guardar, el diseño se ha perdido y hay que rehacerlo.** Está descrito entero
+    aquí abajo, así que rehacerlo cuesta una pasada, pero no se da por hecho que esté.
+  - **Antes de tocar interfaz: pedirle el Cmd+S, comprobar `ls -l rolvium.pen`, y commitear el `.pen`.**
+
+  **Cómo es el panel aprobado** (por si hay que rehacerlo): 220 px de ancho, fondo `#f2f0eaee` con sombra,
+  formato del panel de Builder. Cabecera: asa `drag_indicator` · icono `brush` · «Pincel» · `close`.
+  Secciones: **SOBRE QUÉ** (Suelo · Muro / Capa · Niebla, dos filas de dos, con icono) · **CON QUÉ PINTO**
+  (Textura · Color / Borrar) · **la textura** (muestra grande a todo lo ancho + nombre + Elegir/Quitar) **o
+  el color** (cuadro grande del color puesto con su nombre y su hex, paleta de 12 en dos filas, fila «TUS
+  COLORES · DE ESTA CAMPAÑA» con las muestras y un `+`, y campo hex con botón de cuentagotas) ·
+  **EL BROCHAZO** (Disco · Roto, y los deslizadores APILADOS —rótulo y valor arriba, la barra debajo a todo
+  lo ancho—: tamaño, y cuánto de roto sólo con Roto) · una línea al pie. Lo activo, en `pl-sangre`.
 - ✅ **Base de datos hecha y aplicada en local**, sin `db:reset`:
   - `20260910120000_maps_brush_build.sql` — `shape` admite `brush`, y cada forma gana **color propio**.
   - `20260910140000_maps_colors.sql` — tabla nueva `maps_colors`, los colores que él mezcla, **por campaña**.
@@ -77,9 +92,10 @@ que haya, con la **textura del catálogo** o el **color** que elijas, y hay un *
 
 ### ⚠️ PENDIENTE DE ÉL
 - **Guardar `rolvium.pen` (Cmd+S)** para poder commitear el diseño.
-- **Sin contestar**: si el destino «suelo de una sala» de la rebanada 9 —el que BORRA el suelo para que
-  asome la foto— sigue haciendo falta ahora que se puede repintar con textura. Se preguntó y contestó a otra
-  cosa; **se deja construido** hasta que lo diga.
+- **El «suelo de una sala» de la rebanada 9 SE QUEDA.** Se le preguntó si seguía haciendo falta —el que
+  BORRA el suelo para que asome la foto de debajo— ahora que se podrá repintar con textura. Contestó el
+  2026-09-10: «*no lo sé, por ahora déjalo*». **No es una decisión pendiente de recordarle: es un «déjalo»
+  hasta que lo vea funcionando.** No volver a sacar el tema sin que él lo saque.
 
 ## 🖌️ 2026-09-09 — EL PINCEL, CONSTRUIDO ENTERO · RAMA `feat/maps-pincel` · **PENDIENTE DE QUE LO MIRE**
 
