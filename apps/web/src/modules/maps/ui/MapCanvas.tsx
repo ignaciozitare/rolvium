@@ -4,7 +4,7 @@ import type { SceneVision } from '@rolvium/core';
 import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, doorTexturesUsed, type Point, type Segment, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { brushRings, freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
 import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
@@ -137,12 +137,6 @@ interface Props {
    * lienzos que hacen lo contrario: aquélla quita para que asome lo de debajo, ésta pone encima.
    */
   paintPreview?: { on: 'room' | 'rock' | 'layer'; id: string; href: string | null } | null;
-  /**
-   * EL ANCHO DE LA BANDA DE «A MANO» (rebanada 10 · B), en casillas. Con esto puesto, el tramo que se dibuja
-   * clic a clic se pinta como la BANDA que va a quedar y no como una raya — quien la levanta de verdad es
-   * `onAddWall`, que es donde ya vivía este camino.
-   */
-  bandCells?: number | null;
   /** DM: la luz que se está editando. Es pintura, así que seleccionarla no cambia nada para nadie. */
   selectedLightId?: string | null;
   onSelectLight?: (id: string | null) => void;
@@ -1345,14 +1339,6 @@ export function MapCanvas(p: Props): JSX.Element {
    * `visible_players` —una sala ES el dibujo del mapa y se ve siempre— así que entran enteros.
    */
   const abribles: (Segment & Pick<Wall, 'id' | 'kind' | 'isOpen'>)[] = [...wallsShown, ...roomOpenings];
-  /**
-   * LA BANDA DE «A MANO» (rebanada 10 · B), mientras se traza. Sale del MISMO motor que la levanta —
-   * `brushRings`, el que se construyó para el pincel que excavaba y que él mandó mudar aquí— así que lo que
-   * se ve es exactamente lo que se va a guardar. Vacío = no hay banda y se pinta la raya de siempre.
-   */
-  const bandRings = wallStart && hover && p.tool === 'wall' && p.bandCells
-    ? brushRings([wallStart, anclar(hover, undefined, wallStart)], p.bandCells, grid)
-    : [];
   const hoverOpening = dmSight && hover && !gesture && !wallStart && !p.placing && DISC_TOOLS.includes(p.tool)
     ? hitOpening(abribles, hover, 14 / p.view.zoom) : null;
   const handleAt = wallDraft ?? (selectedWall ? { x1: selectedWall.x1, y1: selectedWall.y1, x2: selectedWall.x2, y2: selectedWall.y2 } : { x1: 0, y1: 0, x2: 0, y2: 0 });
@@ -1393,14 +1379,7 @@ export function MapCanvas(p: Props): JSX.Element {
                 selected={w.id === p.selectedWallId || (p.selectedWallIds ?? []).includes(w.id)}
                 draft={groupDraft?.get(w.id) ?? (wallDraft && w.id === p.selectedWallId ? wallDraft : null)} />
             ))}
-            {/*
-              * EL TRAMO QUE SE ESTÁ TRAZANDO. Con «A mano» y un ancho de banda puesto (rebanada 10 · B) se
-              * enseña LA BANDA que va a quedar, no una raya: sin verla, elegir un ancho es elegir a ciegas.
-              * Sin ancho —sobre una foto, o abriendo un vano— sigue siendo la raya de siempre.
-              */}
-            {wallStart && hover && p.tool === 'wall' && (bandRings.length
-              ? bandRings.map((ring, i) => <path key={`band-${i}`} d={ringPath(ring.map(([x, y]) => ({ x, y })))} className="mp-wall draft" fill="none" data-testid="mp-band-draft" />)
-              : <line x1={wallStart.x} y1={wallStart.y} x2={anclar(hover, undefined, wallStart).x} y2={anclar(hover, undefined, wallStart).y} className="mp-wall draft" />)}
+            {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={anclar(hover, undefined, wallStart).x} y2={anclar(hover, undefined, wallStart).y} className="mp-wall draft" />}
             {roomDraft.map((r, i) => <line key={`room-${i}`} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} className="mp-wall draft" />)}
             {/* El brochazo mientras se arrastra: el contorno de lo que va a quedar, sin rellenar. */}
             {p.tool === 'wall' && polyPoints.map((v, i) => {

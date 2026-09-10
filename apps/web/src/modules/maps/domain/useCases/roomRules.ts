@@ -362,19 +362,16 @@ export function wallStripe(a: Point, b: Point, t: number, grid: number): [number
  * Tenía razón en lo que importa: **una raya no encierra nada, así que no puede ser una sala**. Enseñar el
  * botón igualmente es prometer un gesto que no va a hacer nada.
  *
- *  · `room` — las cuatro que encierran área MÁS «a mano», que desde la rebanada 10 saca una BANDA del ancho
- *    elegido y por lo tanto sí encierra. «Recta» sigue fuera: marca un muro de un tirón y no cierra nada.
+ *  · `room` — sólo las CUATRO que encierran área: rectángulo, círculo, polígono y a pulso. «A mano» y «recta»
+ *    no cierran, así que se caen.
  *  · `wall` — LAS SEIS. Una raya sí es un muro (se le da el grosor de la escena, `wallStripe`) y un área es un
  *    bloque de roca. Es donde «a mano» y «recta» son de verdad útiles: corregir un borde, cerrar un pasillo.
  *  · `door` / `window` — sólo las dos que TRAZAN una raya: un vano se abre cruzando la pared, no rodeándola.
- *
- * ⚠️ El cambio de la rebanada 10 es SÓLO en «Dibujar aquí». Marcando sobre una foto, «a mano» sigue siendo el
- * Builder de siempre —clic a clic, un muro por tramo—: allí no se levanta mazmorra, se marcan paredes.
  */
 export function shapesFor(kind: BuildKind): RoomShape[] {
   if (isOpeningKind(kind)) return ['segment', 'line'];
   if (kind === 'wall') return ROOM_SHAPES;
-  return ['segment', 'rect', 'circle', 'poly', 'free'];
+  return ['rect', 'circle', 'poly', 'free'];
 }
 
 /** La forma con la que arranca cada cosa, y a la que se cae si la elegida deja de tener sentido. */

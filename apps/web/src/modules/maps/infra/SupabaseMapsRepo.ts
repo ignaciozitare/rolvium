@@ -6,7 +6,6 @@ import { clampHardness, clampMaskSize, clampRoughness, clampStrength, DEFAULT_BR
 import { TOKEN_SCALE } from '../domain/useCases/mapRules';
 import { propPath } from '../domain/useCases/propRules';
 import { layerPaintPath, rockPaintPath, roomPaintPath } from '../domain/useCases/paintRules';
-import { DEFAULT_WALL_THICKNESS } from '../domain/useCases/roomStyles';
 
 interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; /* rebanada 8 — opcionales a propósito: una fila escrita antes de la migración no las trae, y el mapeador ya las defiende con su valor de serie */ room_preset?: RoomPreset; wall_texture_url?: string | null; floor_texture_url?: string | null; wall_thickness?: number; wall_texture_scale?: number; floor_texture_scale?: number; door_color?: string | null; door_texture_url?: string | null; token_scale?: number; /* rebanada 9 — el pincel de la escena, opcionales por lo mismo */ brush_tip?: string; brush_size?: number; brush_strength?: number; brush_hardness?: number; brush_roughness?: number; /* rebanada 10 — la pintura de la roca, opcional por lo mismo */ rock_paint_url?: string | null; created_at: string; updated_at: string }
 interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean; group_id: string | null; /* las puertas, de verdad — opcionales a propósito: una fila anterior a la migración no las trae y `mapDoorRow` la defiende con DEFAULT_DOOR */ leaves?: number | null; hinge?: string | null; swing?: string | null; door_color?: string | null; door_texture_url?: string | null }
@@ -35,6 +34,7 @@ const ROOM_OPENING_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, kind, is_o
 const TEXTURE_COLS = 'id, name, category, url, tile_cells, uploaded_by, created_at, updated_at';
 /** Espejo de la migración: una escena de antes de la rebanada 8 se lee con el preajuste y el grosor de serie. */
 const DEFAULT_ROOM_PRESET: RoomPreset = 'hatch';
+const DEFAULT_WALL_THICKNESS = 0.22;
 /** Un azulejo grande, que es lo que menos sorprende al subir una foto cualquiera. En CASILLAS. */
 const DEFAULT_TEXTURE_SCALE = 4;
 const WALL_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, visible_players, kind, blocks_sight, blocks_move, is_open, group_id, leaves, hinge, swing, door_color, door_texture_url';

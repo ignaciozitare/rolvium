@@ -19,10 +19,10 @@ import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { BuilderPanel } from './BuilderPanel';
 import { TextureCatalog } from './TextureCatalog';
-import { brushRings, defaultShapeFor, DEFAULT_BRUSH_COLOR, isOpeningKind, MIN_FILL_CELLS, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { defaultShapeFor, DEFAULT_BRUSH_COLOR, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { fogOpOf, paintActionsFor, rockPaintSrc, roomPaintSrc, layerPaintSrc, type PaintAction, type PaintOn, type PaintWith } from '../domain/useCases/paintRules';
 import { usePaintBrush, type PaintInk, type PaintTarget } from './usePaintBrush';
-import { DEFAULT_TEXTURE_SCALE, DEFAULT_WALL_THICKNESS, ringOf, ringPath, snapSpanToOutline, tilePx, wallWidthPx } from '../domain/useCases/roomStyles';
+import { DEFAULT_TEXTURE_SCALE, ringOf, ringPath, snapSpanToOutline, tilePx, wallWidthPx } from '../domain/useCases/roomStyles';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
@@ -257,21 +257,6 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    */
   const [brushTexture, setBrushTexture] = useState<Texture | null>(null);
   const [brushColor, setBrushColor] = useState<string>(DEFAULT_BRUSH_COLOR);
-  /**
-   * ── LO QUE SE MUDÓ AL BUILDER (rebanada 10 · B) ──
-   * Con qué se pinta LO QUE SE LEVANTA: el muro con una textura del catálogo, la habitación con un color.
-   * `null` en los dos = manda lo del mapa (la textura de la escena, el color del preajuste), que es lo que
-   * ha hecho siempre — así una escena existente no cambia hasta que él lo toque.
-   */
-  const [shapeTexture, setShapeTexture] = useState<Texture | null>(null);
-  const [shapeColor, setShapeColor] = useState<string | null>(null);
-  /**
-   * EL ANCHO DE LA BANDA de «A mano», en casillas. `null` = todavía no lo ha tocado y vale el grosor de muro
-   * de la escena. No se guarda en ninguna parte a propósito: sale de la escena y vale para lo que dibuje
-   * ahora, que es exactamente lo que dice el spec («*de serie el ancho es el grosor de muro que la escena ya
-   * tiene, así que una escena existente no cambia hasta que él lo toque*»).
-   */
-  const [bandDraft, setBandDraft] = useState<number | null>(null);
   /** Los colores que él se ha inventado en ESTA campaña. `null` = todavía no se han pedido. */
   const [colors, setColors] = useState<MapColor[] | null>(null);
   /**
@@ -384,7 +369,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * Para qué se está eligiendo textura. `door` entró el 2026-09-07 («*te falta lo de la textura*»): la
    * puerta bebe del MISMO catálogo que la pared y el suelo, que es de la herramienta y ya está hecho.
    */
-  const [texPicker, setTexPicker] = useState<'wall' | 'floor' | 'door' | 'brush' | 'shape' | null>(null);
+  const [texPicker, setTexPicker] = useState<'wall' | 'floor' | 'door' | 'brush' | null>(null);
   /**
    * EL CATÁLOGO DE TEXTURAS, y ya NO la biblioteca de fondos de la campaña (él, 2026-09-04: «*los fondos de
    * las escenas que subí antes y las texturas no son lo mismo… las texturas son de un catálogo de texturas,
@@ -570,17 +555,12 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
      * después no repinta lo ya pintado — cada forma se llevó la suya el día que se dibujó.
      */
     if (texPicker === 'brush') { setBrushTexture(tex); setTexPicker(null); return; }
-    /*
-     * LA DE LO QUE SE LEVANTA (rebanada 10 · B) tampoco toca la escena: queda pegada a la forma que se dibuje
-     * ahora. Es la misma regla de siempre —«*como que repinta las salas, nooooo*»— aplicada a la textura.
-     */
-    if (texPicker === 'shape') { setShapeTexture(tex); setTexPicker(null); return; }
     run(patchScene(live.id, texPicker === 'wall'
       ? { wallTextureUrl: tex.url, wallTextureScale: tex.tileCells }
       : { floorTextureUrl: tex.url, floorTextureScale: tex.tileCells }));
     setTexPicker(null);
   }, [live, texPicker, run, patchScene, aplicarTexturaPuerta]);
-  const pickTexture = useCallback(async (which: 'wall' | 'floor' | 'door' | 'brush' | 'shape') => {
+  const pickTexture = useCallback(async (which: 'wall' | 'floor' | 'door' | 'brush') => {
     setTexPicker(which);
     if (textures === null) setTextures(await repo.listTextures().catch(() => []));
   }, [textures, repo]);
@@ -591,17 +571,11 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * pequeñísima que la mayoría de las sesiones no llega a mirar. Mismo trato que el catálogo de texturas.
    */
   useEffect(() => {
-    /*
-     * Los pide CUALQUIERA de los dos sitios donde se elige un color: el Pincel y el Builder con HABITACIÓN
-     * elegida. Es una lista pequeñísima, así que adelantarla no molesta; lo que se evita es pedirla en
-     * sesiones que no llegan a tocar un color.
-     */
-    const quiereColor = (tool === 'mask' && paintWith === 'color') || (tool === 'wall' && builderMode === 'draw' && buildKind === 'room');
-    if (colors !== null || !isDm || !quiereColor) return;
+    if (colors !== null || !isDm || tool !== 'mask' || paintWith !== 'color') return;
     let alive = true;
     void repo.listColors(campaignId).then(l => { if (alive) setColors(l); }).catch(() => { if (alive) setColors([]); });
     return () => { alive = false; };
-  }, [colors, isDm, tool, paintWith, builderMode, buildKind, repo, campaignId]);
+  }, [colors, isDm, tool, paintWith, repo, campaignId]);
   /**
    * Guardar el color que está puesto. Optimista y sin deshacer: es una muestra en una paleta, no trabajo que
    * se pueda perder — y la base ya impide que el mismo color entre dos veces.
@@ -749,23 +723,6 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const paintPreview = paintTargetOf && onNow !== 'fog'
     ? { on: onNow, id: paintTargetOf.id, href: paint.preview }
     : null;
-  /**
-   * EL ANCHO DE LA BANDA DE «A MANO» (rebanada 10 · B). `null` = no hay banda y el tramo sale como siempre:
-   * sobre una foto se marca un muro, y un vano es un vano. Mientras él no lo toque, el ancho ES el grosor de
-   * muro de la escena — por eso una escena existente no cambia sola.
-   */
-  const bandaAhora: number | null = builderMode === 'draw' && !isOpeningKind(buildKind) && wallShape === 'segment'
-    ? bandDraft ?? live?.wallThickness ?? DEFAULT_WALL_THICKNESS
-    : null;
-  /**
-   * CON QUÉ SE PINTA LO QUE SE LEVANTA (rebanada 10 · B), y va pegado a la elección de siempre: **el MURO
-   * con una textura, la HABITACIÓN con un color**. Los dos nulos mientras él no elija — entonces manda lo
-   * del mapa, que es lo que ha hecho siempre, y por eso una escena existente no cambia sola.
-   */
-  const pinturaDeForma = {
-    floorUrl: buildKind === 'wall' ? shapeTexture?.url ?? null : null,
-    floorColor: buildKind === 'wall' ? null : shapeColor,
-  };
   /** Guarda en la escena lo que se acaba de mover. Un viaje por gesto, no uno por paso del deslizador. */
   const commitBrush = (patch: Partial<BrushSettings> = {}): void => {
     const next = { ...brushDraft, ...patch };
@@ -918,28 +875,6 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                   const crudo = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, kind: buildKind, isOpen: false };
                   const vano = snapSpanToOutline(st.rooms, crudo, Math.max(live.grid.size / 2, wallWidthPx(live))) ?? crudo;
                   run(st.addRoomOpening({ ...vano, ...(buildKind === 'door' ? doorDraft : {}) }));
-                } else if (bandaAhora) {
-                  /*
-                   * ── «A MANO» SACA UNA BANDA (rebanada 10 · B) ──
-                   * El tramo se engorda con el MISMO motor que se construyó para el pincel que excavaba,
-                   * `brushRings`, que es exactamente lo que él mandó mudar aquí: «*el pincel de textura está
-                   * funcionando como debería funcionar de verdad en el builder de muros la opción de a mano*».
-                   *
-                   * Sale como una forma más de `maps_rooms`, así que fundirse al tocarse, cortar la vista y
-                   * frenar a las fichas vienen ya hechos — y cada tramo se pinta con LO SUYO: el muro con su
-                   * textura, la habitación con su color.
-                   */
-                  /*
-                   * 🐞 EL TOPE DE LO CORTO SE QUEDA, y no es un detalle heredado: `brushRings` resuelve un
-                   * gesto de largo cero como un DISCO —es lo correcto arrastrando un pincel— pero «A mano»
-                   * va CLIC A CLIC, y dos clics en el mismo sitio son un resbalón, no un lunar pedido. Sin
-                   * esto, el aviso «no se levantó nada» que él pidió desaparecería en silencio.
-                   */
-                  const anillos = Math.hypot(b.x - a.x, b.y - a.y) < live.grid.size * MIN_FILL_CELLS
-                    ? []
-                    : brushRings([a, b], bandaAhora, live.grid.size);
-                  if (anillos.length) for (const anillo of anillos) run(st.addRoomShape('brush', anillo, buildKind === 'wall' ? 'fill' : 'room', pinturaDeForma));
-                  else setAvisoCorto(snapGrid ? 'snap' : 'short');
                 } else {
                   const tira = wallStripe(a, b, wallWidthPx(live), live.grid.size);
                   if (tira.length) run(st.addRoomShape('rect', tira, 'fill'));
@@ -957,8 +892,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             onTooSmall={locked => setAvisoCorto(locked ? 'snap' : 'short')}
             onAddRoomShape={(shape, points) => {
               // Una SALA excava y un MURO rellena: la misma forma con el signo cambiado (dueño, 2026-09-04).
-              // Y desde la rebanada 10 cada forma se lleva LO SUYO: el muro su textura, la habitación su color.
-              run(st.addRoomShape(shape, points, buildKind === 'wall' ? 'fill' : 'room', pinturaDeForma));
+              run(st.addRoomShape(shape, points, buildKind === 'wall' ? 'fill' : 'room'));
             }}
             onAddRoom={sides => {
               // Una sala son MUROS de los de siempre (§ «Rebanada 8»): opacos, y ocultos al jugador como
@@ -976,8 +910,6 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             fogVeil={fogVeil}
             maskLayerId={onNow === 'layer' ? bgLayer?.id ?? null : null}
             maskRoomId={paintRoom?.id ?? null} maskPreview={mask.preview}
-            /* Con qué ancho sale «A mano» (rebanada 10 · B). Sólo cuando de verdad va a salir una banda. */
-            bandCells={bandaAhora}
             paintReady={!!paintTargetOf} paintPreview={paintPreview}
             onHoverRoom={setHoverRoomId}
             /*
@@ -1145,17 +1077,6 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                 if (!shapesFor(k).includes(wallShape)) setWallShape(defaultShapeFor(k));
               }}
               shape={wallShape} onShape={s => { setTool('wall'); setWallShape(s); }}
-              /*
-               * ── LO QUE SE MUDÓ AQUÍ (rebanada 10 · B) ── Con qué se pinta cada forma y el ancho de la
-               * banda de «A mano». Ninguna de las dos cosas toca la escena: quedan pegadas a lo que dibuje
-               * ahora, igual que el preajuste se congela en cada sala el día que se levanta.
-               */
-              shapeTextureUrl={shapeTexture?.url ?? null} shapeTextureName={shapeTexture?.name ?? null}
-              shapeTextureCells={shapeTexture?.tileCells ?? DEFAULT_TEXTURE_SCALE}
-              onPickShapeTexture={() => void pickTexture('shape')} onClearShapeTexture={() => setShapeTexture(null)}
-              shapeColor={shapeColor} onShapeColor={setShapeColor}
-              savedColors={colors} onSaveColor={guardarColor}
-              bandCells={bandaAhora ?? live.wallThickness} onBandCells={setBandDraft}
               snapGrid={snapGrid} onSnapGrid={setSnapGrid}
               chainNodes={chainNodes} onChainNodes={setChainNodes}
               preset={live.roomPreset} onPreset={k => run(patchScene(live.id, { roomPreset: k }))}

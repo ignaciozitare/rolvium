@@ -466,16 +466,14 @@ describe('brushRings — el trazo se convierte en forma', () => {
  * Reglas pequeñas, pero cada una sujeta una decisión suya que se pierde fácil al retocar el panel.
  */
 /**
- * ── QUÉ FORMAS TIENEN SENTIDO PARA LO QUE SE LEVANTA (§ «Rebanada 10 · B») ──
+ * ── QUÉ FORMAS TIENEN SENTIDO PARA LO QUE SE LEVANTA ──
  *
  * Pega suya del 2026-09-04 mirando el panel con SALA elegida: «*esto, a mano, pulso y recta aquí no hace
- * falta, ¿no?*». Tenía razón entonces —una raya no encierra nada— y desde la rebanada 10 «a mano» SÍ encierra,
- * porque saca una banda del ancho elegido.
+ * falta, ¿no?*». Una raya no encierra nada, así que no puede ser una sala.
  */
 describe('qué formas puede levantar cada cosa', () => {
-  /** 🔑 «A mano» vuelve a valer para una HABITACIÓN: ya no es una raya, es una banda. */
-  it('una habitación admite «a mano» desde que saca banda, pero no la recta', () => {
-    expect(shapesFor('room')).toEqual(['segment', 'rect', 'circle', 'poly', 'free']);
+  it('una sala sólo admite las cuatro que encierran área', () => {
+    expect(shapesFor('room')).toEqual(['rect', 'circle', 'poly', 'free']);
   });
 
   /** Un muro admite las seis: una raya sí es un muro, y un área es un bloque de roca. */

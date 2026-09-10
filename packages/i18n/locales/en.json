@@ -1147,8 +1147,8 @@
         "floor": "Tile · floor"
       },
       "build": {
-        "label": "What I build · the wall with a texture, the room with a colour",
-        "hint": "ROOM digs the hole · WALL fills it · openings, with the same disc",
+        "label": "What I build · dig or fill",
+        "hint": "ROOM digs the hole · WALL fills it back · openings use the same disc",
         "room": "Room",
         "wall": "Wall",
         "door": "Door",
@@ -1182,25 +1182,10 @@
         "renamePrompt": "What should this texture be called?",
         "door": "Door texture",
         "brushHint": "These belong to the TOOL, not to your campaign: whatever you upload here works in all your maps. Pick one and it goes on the NEXT stroke, travelling with it: changing it later does not repaint what is already there.",
-        "brush": "Brush texture",
-        "shape": "Texture of what you build",
-        "shapeHint": "They belong to the TOOL, not to your campaign: what you upload here serves every map. Pick one and it goes on the NEXT shape you build, and stays with it: changing it later does not repaint what is already built."
+        "brush": "Brush texture"
       },
       "tooSmall": "The gesture came up short: nothing was built. Drag a little further.",
-      "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square.",
-      "paintWith": {
-        "label": "What it is painted with",
-        "wall": "Wall",
-        "wallHint": "with WALL picked, a texture from the catalog",
-        "roomHint": "with ROOM picked, a colour",
-        "none": "None: the map texture wins",
-        "clear": "Remove the colour"
-      },
-      "band": {
-        "label": "Band width · only with “By hand”",
-        "short": "Width",
-        "hint": "“By hand” gives a BAND of the width you pick, not a line. By default it is this scene’s wall thickness."
-      }
+      "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square."
     },
     "group": {
       "countGrouped": "Group · {{n}} walls",

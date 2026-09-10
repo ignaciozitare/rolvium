@@ -1147,9 +1147,9 @@
         "floor": "Azulejo · suelo"
       },
       "build": {
-        "label": "Qué levanto · el muro con textura, la habitación con color",
-        "hint": "HABITACIÓN excava el hueco · MURO lo rellena · las aberturas, con el mismo disco",
-        "room": "Habitación",
+        "label": "Qué levanto · excavar o rellenar",
+        "hint": "SALA excava el hueco · MURO lo rellena · las aberturas, con el mismo disco",
+        "room": "Sala",
         "wall": "Muro",
         "door": "Puerta",
         "window": "Ventana"
@@ -1182,25 +1182,10 @@
         "renamePrompt": "¿Cómo quieres que se llame esta textura?",
         "door": "Textura de la puerta",
         "brushHint": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone en el PRÓXIMO brochazo, y va con él: cambiarla después no repinta lo ya pintado.",
-        "brush": "Textura del pincel",
-        "shape": "Textura de lo que levantes",
-        "shapeHint": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone en la PRÓXIMA forma que levantes, y va con ella: cambiarla después no repinta lo ya construido."
+        "brush": "Textura del pincel"
       },
       "tooSmall": "El gesto se quedó corto: no se levantó nada. Arrastra un poco más.",
-      "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla.",
-      "paintWith": {
-        "label": "Con qué se pinta",
-        "wall": "Muro",
-        "wallHint": "con MURO elegido, una textura del catálogo",
-        "roomHint": "con HABITACIÓN elegida, un color",
-        "none": "Ninguna: manda la textura del mapa",
-        "clear": "Quitar el color"
-      },
-      "band": {
-        "label": "El ancho de la banda · sólo con «A mano»",
-        "short": "Ancho",
-        "hint": "«A mano» saca una BANDA del ancho elegido, no una raya. De serie es el grosor de muro de esta escena."
-      }
+      "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla."
     },
     "group": {
       "countGrouped": "Grupo · {{n}} muros",
