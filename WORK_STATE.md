@@ -17,105 +17,106 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 `maps` **rebanada 9** — EL PINCEL — construida entera el 2026-09-09 (las dos tandas), en la rama
 `feat/maps-pincel` y sin mergear.
 
-`maps` **rebanada 10** — reescrita el 2026-09-10 después de que él la viera: el pincel **pinta encima**, y lo
-que se construyó (que excavaba) **se mudó a la opción «A mano» del Builder**. Spec, base de datos, diseño y
-**las dos cosas construidas enteras** el 2026-09-10, en la rama `feat/maps-pincel` y sin mergear.
+`maps` **rebanada 10** — el pincel **pinta encima**, y lo que se construyó por error (que excavaba) **se mudó
+a «A pulso» del Builder**. Construida entera el 2026-09-10 y **probada por él en pantalla**, con siete tandas
+de correcciones suyas. En la rama `feat/maps-pincel` y **sin mergear**.
 
-**SIGUIENTE:** que él MIRE la rebanada 10 en pantalla → coger/mover/borrar una sala con el ratón (pide `.pen`) →
+**SIGUIENTE:** las cinco peticiones del bloque 📋 → coger/mover/borrar una sala con el ratón (pide `.pen`) →
 **rebanada 6** (galería de piezas, a rediseñar) → `chat` (H8) + `journal` (H9). ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno,
 configurable por sistema (toca el puerto `GameSystem`) — spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cuatro bloques de arriba, en este orden: 🖌️ «EL PINCEL QUE PINTA» (rebanada 10, construida y pendiente de que la mire) · 📥 «TRES PETICIONES SIN EMPEZAR» · 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cinco bloques de arriba, en este orden: 📋 «LO QUE TOCA EN EL CHAT SIGUIENTE» (donde se retoma) · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «TRES PETICIONES SIN EMPEZAR» · 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🖌️ 2026-09-10 — EL PINCEL QUE **PINTA** (rebanada 10) · **CONSTRUIDO ENTERO · PENDIENTE DE QUE LO MIRE**
+## 📋 2026-09-10 — LO QUE TOCA EN EL CHAT SIGUIENTE · **AQUÍ SE RETOMA**
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🖌️ de arriba de WORK_STATE.md. La rebanada 10 está construida entera en la rama
-> `feat/maps-pincel` y sin mergear: el Pincel que pinta encima, y «A mano» del Builder con ancho de banda.
-> Falta que la mire él en pantalla (`http://localhost:5173`, con recarga forzada) y contestar las preguntas
-> abiertas del final del bloque.»
+> «Rolvium. Lee el bloque 📋 de arriba de WORK_STATE.md. La rebanada 10 está construida entera y probada por
+> mí en la rama `feat/maps-pincel`, sin mergear. Hay cinco cosas apuntadas para hacer ahora.»
 
-### ✅ LO QUE SE CONSTRUYÓ HOY (todo verde, sin mergear)
-`typecheck` · `build:web` · `build:api` · **1694 tests en web + 500 en el resto, todos pasando** ·
-`npm run audit` **0 hard** · review pasada.
+Las dictó él el 2026-09-10 después de probar el pincel a fondo. **Ninguna está empezada.** Van en su orden.
 
-**A · EL PINCEL PINTA ENCIMA** — se elige SOBRE QUÉ (habitación · muro · foto · niebla) y QUÉ HAGO (pintar ·
-borrar pintura · destapar lo de debajo), con qué (textura del catálogo o color) y los CUATRO mandos del
-brochazo, que aquí sí valen todos.
-- **Un PNG por cosa pintada**, en las columnas que ya migró la sesión anterior: la de una habitación cuelga de
-  su fila, la de la roca de la escena, la de una foto de su capa. Ninguna tabla nueva, ninguna política nueva.
-- **El recorte sale de dónde se guarda Y de dónde se dibuja**, no de una comprobación: la de una sala vive en
-  su fila y se pinta dentro de su contorno; la de la roca se pinta dentro de la misma máscara que ya talla la
-  roca; la de una foto, dentro de su encaje. Salirse es imposible.
-- **No cambia el mapa**: comprobado en la review que ninguna de las tres columnas la mira el cálculo de
-  visión, ni el de colisiones, ni el de luces — ni en `apps/web` ni en `apps/api` ni en `packages/core`.
+1. **LA TEXTURA, ADEMÁS DE ESCALARSE, QUE SE PUEDA GIRAR.** Otro mando al lado del de tamaño. Y **el rótulo
+   «Azulejo» pasa a llamarse «Escala»** (`maps.brush.tileLabel`).
+   → ⚠ Girar un azulejo es girar el PATRÓN con el que se rellena la pincelada, no la pincelada: toca
+   `tint()` en `usePaintBrush.ts` (`pat.setTransform`, que ya se usa para la escala) y el previo a pantalla
+   completa de `MapCanvas` (`patternTransform` del `<pattern>`).
 
-**B · EL BUILDER GANA LA BANDA** — «A mano» deja de dar una raya del grosor de la escena y da una **banda del
-ancho que elijas**, con el mismo motor (`brushRings`) que se construyó para el pincel que excavaba. Se sigue
-eligiendo MURO o HABITACIÓN, y cada uno trae lo suyo: **muro → textura del catálogo · habitación → color**.
-De serie el ancho ES el grosor de muro de la escena, así que **una escena existente no cambia hasta que él lo
-toque**, y ese número no se guarda en ninguna parte.
+2. **AL RECARGAR, QUE VUELVA A LA MISMA ESCENA.** Hoy la recarga cae en la escena activa de la mesa o en la
+   primera, no en la que él estaba mirando. Suyo: «*si recargo debería caer en la misma vista o escena*».
+   → ⚠ Ojo con no confundirlo con la escena ACTIVA (la que ven los jugadores, `campaigns.active_scene_id`):
+   son dos cosas distintas y sólo cambia dónde MIRA el director.
 
-### 🔴 LO QUE SE TORCIÓ HOY, PARA NO REPETIRLO
-Cuando dijo «*lo que hiciste en el pincel del otro chat, tráelo al builder*», lo que quería era **EL DIBUJO
-LIBRE** —arrastrar y que la habitación salga siguiendo la mano—, no con qué se pinta. Le traje **colores y
-texturas**, que ni pidió ni estaban en la lámina aprobada (`oi358` sólo dice una línea: «con HABITACIÓN
-elegida, aquí sale un COLOR en vez de una textura»), y me inventé el bloque de color entero del Pincel dentro
-del Builder. Interfaz inventada, que es justo lo que la regla prohíbe.
+3. **«RESTAURAR TODA» TIENE QUE PEDIR CONFIRMACIÓN.** «*Es peligroso*»: se lleva de golpe toda la pintura de
+   ese destino. Hay `ConfirmModal` en `@rolvium/ui` y `useDialog()` ya está en la pantalla.
 
-Y encima, al deshacerlo, me llevé por delante lo único que sí le servía: «*me cago en todo, lo has
-arruinado*». **Deshacer no es gratis: antes de revertir, preguntar qué parte se queda.**
+4. **LOS TRES PUNTITOS DEL SELECTOR DE ESCENAS NO SE VEN.** En el rail de escenas (captura suya). Hay que
+   mirarlo con la app delante: es contraste, o sólo salen al pasar el ratón.
 
-Cómo quedó, por orden suya del 2026-09-10:
-- **«A pulso»** — se arrastra y sale una **banda del ancho elegido siguiendo la mano**. Es el gesto del pincel
-  que se construyó por error, con su mismo motor.
-- **«Polígono»** — pasa a ser el **trazo libre cerrado**, que es lo que hacía «a pulso».
-- **«El ancho de la banda»** — sólo con «A pulso», de serie el grosor de muro de la escena.
-- **Los colores y las texturas por forma NO están** y no vuelven sin diseño aprobado.
-- ⚠️ Los **vértices a clics** del polígono ya no se ponen desde ninguna pantalla. El motor (`polygonSides`) se
-  queda en el dominio con sus tests por si los pide otra vez.
-- ⚠️ **El `.pen` se queda desfasado**: la lámina `oi358` dice «el ancho, sólo con A mano» y ahora va en «A
-  pulso», y trae una sección de textura/color que no está construida. Hay que corregirla y **guardarla él**.
+5. **AL PONER UNA PUERTA, QUE QUEDE COGIDA.** Hoy dibujas la puerta y para tocarle las propiedades tienes que
+   ir a Seleccionar y volver a pincharla. Debería quedar en foco sola, con su panel listo.
 
-### 🟡 CUATRO DECISIONES MÍAS, MARCADAS COMO REVISABLES
-Las tomé porque el spec no las cierra. Si dice otra cosa, se cambian:
-1. **«Borrar pintura» también devuelve lo destapado.** Para él las dos cosas son «lo que el pincel puso aquí»,
-   así que un solo borrador las deshace. Sin esto, «destapar» no tendría vuelta atrás salvo el botón de
-   quitarlo todo — y eso sí sería una pérdida respecto a la rebanada 9.
-2. **«Destapar lo de debajo» sólo sale en HABITACIÓN y FOTO.** En la roca no hay mapa debajo y en la niebla ya
-   lo hace borrar; un mando que no hace nada es peor que no tenerlo.
-3. ~~«A mano» pasa a valer también para HABITACIÓN~~ — **descartado por él**: la banda va en «A pulso».
-4. **La pintura de la roca se guarda sin recortar**: si mañana borra una habitación, los brochazos que caían
-   encima —guardados y escondidos— reaparecen. Es coherente con el spec, pero en pantalla puede sorprender.
+---
+
+## 🖌️ 2026-09-10 — LA REBANADA 10, CONSTRUIDA ENTERA Y PROBADA POR ÉL · SIN MERGEAR
+
+Rama `feat/maps-pincel`. Verde de punta a punta: `typecheck`, `build:web`, `build:api`, **1706 tests en web +
+500 en el resto**, `npm run audit` **0 hard**, paridad es/en limpia y review pasada.
+
+### ✅ A · EL PINCEL PINTA ENCIMA — **él lo dio por bueno**: «*lo que está ahora del pincel funciona*»
+Se elige SOBRE QUÉ (habitación · muro · foto · niebla) y QUÉ HAGO (pintar · borrar pintura · destapar lo de
+debajo), con qué (textura del catálogo o color) y los cuatro mandos del brochazo.
+- **Un PNG por cosa pintada**, en las columnas de `20260910160000_maps_paint.sql`. Ninguna tabla ni política
+  nueva. **No cambia el mapa**: ni visión, ni colisiones, ni luces miran una sola de esas columnas.
+- **La pintura del suelo es de TODO lo excavado, no de una forma.** Se sube un PNG y lo apuntan todas las
+  formas; el lienzo lo dibuja UNA vez contra el agujero. Así no hay costuras — que fue el fallo que él vio
+  dos veces seguidas.
+
+### ✅ B · «A PULSO» SACA LA BANDA DEL PINCEL, Y «POLÍGONO» ES EL TRAZO LIBRE
+Orden suya, literal: «*quiero que lo que hoy es a pulso lo pongas en polígono, y a pulso sea lo que te
+indico*». Arrastrar con «A pulso» saca una banda del ancho elegido siguiendo la mano, con el motor
+`brushRings`. «El ancho de la banda» sale sólo con «A pulso» y de serie es el grosor de muro de la escena.
+
+### ✅ LO QUE ARREGLÓ ADEMÁS, TODO VISTO POR ÉL EN PANTALLA
+Paneles del mismo ancho (300) · la transparencia con progresión de verdad (se aplica una vez por pincelada,
+no gota a gota) · la transparencia al derecho (100 % = no se ve) · «muy roto» mucho más roto (0,85) · el zoom
+acerca un 50 % más (tope 6) · la silueta del pincel bajo el puntero · el tamaño del azulejo con previo a
+pantalla completa.
+
+### ✅ EL CTRL+Z, QUE ESTABA A MEDIAS
+Se saltaba justo lo que más se hace, así que parecía aleatorio. Ahora deshace: **trazos** (y su borrado),
+**muros sueltos** (devolviendo entera la mampostería que partió un vano), **mover o estirar una forma**,
+**la pincelada del pincel**, **colocar y quitar una ficha**, **poner y quitar una luz**. Y **dice en pantalla
+qué ha deshecho**, o que ya no queda nada.
+- ⚠ **Fuera a propósito**: mover una ficha (la mueve cualquier jugador en vivo; un Ctrl+Z del director
+  tiraría de la ficha de otro) y retocar una luz (escribe en cada roce del deslizador y llenaría el
+  historial). **Fuera todavía**: destapar, la niebla y los ajustes de la escena.
+
+### 🔴 LAS DOS VECES QUE ME TORCÍ HOY, PARA NO REPETIRLO
+1. **Traje lo que no era.** Cuando dijo «*lo que hiciste en el pincel, tráelo al builder*» quería **el dibujo
+   libre**; le traje **colores y texturas**, que ni pidió ni estaban en la lámina aprobada — me inventé el
+   bloque de color entero del Pincel dentro del Builder. **Interfaz inventada: la regla dice diseño primero.**
+2. **Y al deshacerlo me llevé por delante lo que sí le servía** («*me cago en todo, lo has arruinado*»).
+   **Deshacer no es gratis: antes de revertir, preguntar qué parte se queda.**
+
+### 🟡 DECISIONES MÍAS SIN CONFIRMAR POR ÉL
+- **«Borrar pintura» también devuelve lo destapado** (para él las dos cosas son «lo que el pincel puso aquí»).
+- **«Destapar» sólo sale en HABITACIÓN y FOTO**: en la roca no hay mapa debajo y en la niebla ya lo hace borrar.
+- **La pintura de la roca se guarda sin recortar**: si borra una habitación, los brochazos que caían encima
+  —guardados y escondidos— reaparecen.
 
 ### 🚫 DEUDA ANOTADA, NO TOCADA
-- **Claves i18n huérfanas de la reescritura**, en `es.json` y `en.json`: `maps.brush.way`, `dir.restore`,
-  `dir.erase`, `target.floor`, `target.wall`, `paint.erase`, `footBuild`, `footErase`, `hintRoom`,
-  `hintScene`. **No se borran sin que él lo diga**: es copia que puede querer. ⚠ Ojo con `target.wall`, que
-  dice «Muro» igual que la nueva `target.rock`.
+- ⚠️ **El `.pen` está desfasado**: la lámina `oi358` dice «el ancho, sólo con A mano» —ahora va en «A pulso»—
+  y trae una sección de textura/color que NO está construida. Hay que corregirla, y **guardarla él**.
+- Los **vértices a clics** del polígono ya no se ponen desde ninguna pantalla; el motor (`polygonSides`) se
+  queda en el dominio con sus tests por si los pide otra vez.
+- **Claves i18n huérfanas** de la reescritura: `maps.brush.way`, `dir.restore`, `dir.erase`, `target.floor`,
+  `target.wall`, `paint.erase`, `footBuild`, `footErase`, `hintRoom`, `hintScene`. **No se borran sin que él
+  lo diga**: es copia que puede querer. ⚠ `target.wall` dice «Muro» igual que la nueva `target.rock`.
 - Ya huérfanas de antes: `maps.mask.{label,direction,erase,restore,strength,hint,hardness}`,
-  `maps.brush.everyStrokeDiffers` y `maps.room.textures.upload`.
-- De la rebanada 9: la rama `brushing` de `StrokeBar.tsx` y `BRUSH_SIZES` / `DEFAULT_BRUSH` en `mapRules.ts`,
-  inalcanzables desde la pantalla.
-- **Sí se quitó** (era código del pincel que se dio la vuelta, sin un solo consumidor de producción):
-  `BuildTarget`, `BUILD_TARGETS`, `roomKindOfBuild`, `BrushPaint`, `BRUSH_PAINTS`, `BrushOn`, `BRUSH_ON` e
-  `isBuildOn` en `roomRules.ts`, con sus tests. Dejarlos habría dejado el código diciendo que el pincel
-  todavía puede excavar.
+  `maps.brush.everyStrokeDiffers` y `maps.room.textures.upload`. Y de la rebanada 9, la rama `brushing` de
+  `StrokeBar.tsx` y `BRUSH_SIZES` / `DEFAULT_BRUSH` en `mapRules.ts`.
 
-### 🔍 QUÉ TIENE QUE MIRAR ÉL
-`http://localhost:5173` → su campaña → Escena. **Recarga forzada (Cmd+Shift+R) antes de nada**: se han tocado
-las traducciones y el paquete viejo del navegador se queda a medias.
-1. **Pincel** → pinta una habitación con un color y con una textura; comprueba que **al salirte al muro no se
-   mancha**, y que pintar dos veces **se suma**.
-2. **Pincel · MURO** → pinta la roca. **Pincel · FOTO** → con una capa de terreno elegida en el panel de capas.
-3. **Builder → Dibujar aquí → Muro → A pulso** → mueve «EL ANCHO DE LA BANDA» y **arrastra**: tiene que salir
-   una banda siguiendo la mano, como el pasillo de su captura, y verse mientras arrastra.
-4. Lo mismo con **Sala** (excava en vez de rellenar), y **Polígono**, que ahora es el trazo libre cerrado.
-
-⚠ **El `.pen` no se ha tocado en esta sesión**: las dos láminas (`TlJot` y `oi358`) ya estaban aprobadas y
-commiteadas el 2026-09-10.
-
-## 🖌️ 2026-09-09 — EL PINCEL, CONSTRUIDO ENTERO · RAMA `feat/maps-pincel` · **PENDIENTE DE QUE LO MIRE**
+## 🖌️ 2026-09-09 — EL PINCEL (rebanada 9), CONSTRUIDO ENTERO · **YA VISTO POR ÉL** (detalle histórico)
 
 **Frase para arrancar el chat nuevo:**
 > «Rolvium. Lee el bloque 🖌️ de arriba de WORK_STATE.md. El pincel está construido entero en la rama
