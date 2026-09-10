@@ -376,3 +376,107 @@ export function shapesFor(kind: BuildKind): RoomShape[] {
 
 /** La forma con la que arranca cada cosa, y a la que se cae si la elegida deja de tener sentido. */
 export const defaultShapeFor = (kind: BuildKind): RoomShape => (isOpeningKind(kind) ? 'line' : 'rect');
+
+// ── EL PINCEL QUE CONSTRUYE (rebanada 10) ────────────────────────────────────
+
+/**
+ * EL ANCHO DEL PINCEL, EN CASILLAS. Los mismos topes que el pincel de la rebanada 9, y por lo mismo: por
+ * debajo de un quinto de casilla el trazo no se ve, y por encima de seis un brochazo tapa media escena.
+ */
+export const BRUSH_MIN_CELLS = 0.2;
+export const BRUSH_MAX_CELLS = 6;
+
+/**
+ * Cuántos puntos tiene el redondeo de una esquina o de una punta. Ocho por media vuelta basta: el anillo se
+ * guarda en la base y cada vértice es un lado contra el que el motor de visión traza rayos.
+ */
+const CAP_STEPS = 8;
+
+/**
+ * A PARTIR DE QUÉ GIRO SE PARTE EL BROCHAZO EN DOS PIEZAS.
+ *
+ * 🔑 Y por qué se parte, que es lo único no obvio de todo esto. Un brochazo se guarda como UN anillo: el
+ * trazo engordado a un lado y al otro. En un giro más cerrado que el propio ancho del pincel, el lado de
+ * DENTRO se cruza consigo mismo, y `pointInRing` cuenta cruces —par o impar—, así que ese cruce sale como un
+ * AGUJERO de roca dentro del brochazo. Un lunar de pared en medio de un pasillo, que se lee como un fallo.
+ *
+ * Partir en la esquina lo evita sin ninguna geometría fina: salen dos piezas que se solapan en el codo, y
+ * fundirse al solaparse es exactamente lo que el motor de salas ya hace desde la rebanada 8.
+ */
+const SPLIT_ANGLE = Math.PI / 2;
+
+const norm = (dx: number, dy: number): Point => {
+  const d = Math.hypot(dx, dy) || 1;
+  return { x: dx / d, y: dy / d };
+};
+
+/**
+ * Los puntos del semicírculo que cierra una punta del trazo. Sale del lado IZQUIERDO —el offset a `+90°` de
+ * la marcha— y gira **hacia atrás en ángulo**, para pasar por delante de la punta y morir en el lado derecho.
+ *
+ * 🐞 Girando al revés el arco pasa por DETRÁS: el anillo se cruza consigo mismo como un lazo y el trazo deja
+ * de encerrar su propio camino. Lo sujeta el test «el anillo ENVUELVE el trazo».
+ */
+function cap(centre: Point, r: number, forward: number): Point[] {
+  const from = forward + Math.PI / 2;
+  return Array.from({ length: CAP_STEPS + 1 }, (_, i) => {
+    const a = from - (Math.PI * i) / CAP_STEPS;
+    return { x: centre.x + Math.cos(a) * r, y: centre.y + Math.sin(a) * r };
+  });
+}
+
+/** Un solo tramo de trazo, ya sin codos cerrados, engordado a `r` por cada lado y cerrado por las puntas. */
+function ringOfRun(run: Point[], r: number): Point[] {
+  if (run.length < 2) {
+    // Un toque sin arrastre es un disco: se pinta igual que en cualquier programa de dibujo.
+    const c = run[0]!;
+    return [...cap(c, r, 0), ...cap(c, r, Math.PI)];
+  }
+  const izq: Point[] = [], der: Point[] = [];
+  for (let i = 0; i < run.length - 1; i++) {
+    const a = run[i]!, b = run[i + 1]!;
+    const n = norm(-(b.y - a.y), b.x - a.x);
+    for (const p of [a, b]) {
+      izq.push({ x: p.x + n.x * r, y: p.y + n.y * r });
+      der.push({ x: p.x - n.x * r, y: p.y - n.y * r });
+    }
+  }
+  const first = run[0]!, last = run[run.length - 1]!;
+  const aIni = Math.atan2(first.y - run[1]!.y, first.x - run[1]!.x);
+  const aFin = Math.atan2(last.y - run[run.length - 2]!.y, last.x - run[run.length - 2]!.x);
+  // Ida por un lado, media vuelta en la punta, vuelta por el otro, y media vuelta en el arranque.
+  return [...izq, ...cap(last, r, aFin), ...der.reverse(), ...cap(first, r, aIni)];
+}
+
+/**
+ * EL TRAZO DEL PINCEL, CONVERTIDO EN FORMAS (§ «Rebanada 10»).
+ *
+ * Devuelve **uno o varios anillos**, en las mismas coordenadas de escena que cualquier otra forma de
+ * `maps_rooms`. Varios sólo cuando el trazo dobla más cerrado que su propio ancho — ver `SPLIT_ANGLE`.
+ *
+ * El trazo se limpia antes: se quitan los puntos pegados y se simplifica contra la cuerda del tramo, que es
+ * lo que evita que un arrastre a pulso deje cientos de vértices. Cada vértice de estos anillos acaba siendo
+ * un lado contra el que el servidor traza rayos en cada refresco de visión, para cada jugador.
+ */
+export function brushRings(path: Point[], widthCells: number, grid: number): [number, number][][] {
+  if (path.length === 0) return [];
+  const r = (Math.min(BRUSH_MAX_CELLS, Math.max(BRUSH_MIN_CELLS, widthCells)) * grid) / 2;
+  const limpio = simplifyPath(dedupe(path, r / 2), r / 2);
+  if (limpio.length === 1) return [ringOfRun(limpio, r).map(p => [p.x, p.y] as [number, number])];
+
+  // Se corta en los codos cerrados: cada trozo comparte el vértice con el siguiente, así que se solapan y
+  // el motor de salas los funde en el codo.
+  const runs: Point[][] = [];
+  let run: Point[] = [limpio[0]!];
+  for (let i = 1; i < limpio.length; i++) {
+    run.push(limpio[i]!);
+    const prev = limpio[i - 1]!, cur = limpio[i]!, next = limpio[i + 1];
+    if (!next) break;
+    const a = norm(cur.x - prev.x, cur.y - prev.y);
+    const b = norm(next.x - cur.x, next.y - cur.y);
+    const giro = Math.acos(Math.min(1, Math.max(-1, a.x * b.x + a.y * b.y)));
+    if (giro > SPLIT_ANGLE) { runs.push(run); run = [cur]; }
+  }
+  runs.push(run);
+  return runs.filter(x => x.length > 0).map(x => ringOfRun(x, r).map(p => [p.x, p.y] as [number, number]));
+}

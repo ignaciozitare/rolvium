@@ -23,6 +23,64 @@ configurable por sistema (toca el puerto `GameSystem`) — spec de maps, línea 
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cuatro bloques de arriba, en este orden: 🖌️ «EL PINCEL, CONSTRUIDO ENTERO» (donde se retoma) · 📥 «TRES PETICIONES SIN EMPEZAR» · 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» · ✅ «EL TRABÓN DE LA ESQUINA».**
 
+## 🖌️ 2026-09-10 — EL PINCEL QUE CONSTRUYE (rebanada 10) · **AQUÍ SE RETOMA**
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 🖌️ de arriba de WORK_STATE.md. Estoy con la rebanada 10 en la rama
+> `feat/maps-pincel`: spec y diseño aprobados, el motor del brochazo hecho, falta la pantalla.»
+
+### DE QUÉ VA, Y POR QUÉ NO ERA UN RETOQUE
+Probando la rebanada 9 en pantalla dijo: *«pero ese es el pincel de transparencia… ¿cómo elijo la textura con
+la que quiero pintar?»*. El pincel de la 9 sólo **QUITA**. Preguntado si pintar con textura/color era sólo
+aspecto (**A**) o si levantaba mapa de verdad (**B**), contestó **«b después si tiene sentido a»**.
+
+Así que el pincel **construye**: eliges **suelo** o **muro**, arrastras, y sale una banda que se funde con lo
+que haya, con la **textura del catálogo** o el **color** que elijas, y hay un **borrador** que derriba.
+
+### ESTADO
+- Rama `feat/maps-pincel`, **sin mergear**. `main` = `9004356`.
+- ✅ **Spec escrito y confirmado**: `specs/modules/maps/SPEC.md` § «Rebanada 10».
+- ✅ **Diseño aprobado por él** el 2026-09-10 (dos pasadas: «demasiado ancho» → 220 px, y «no veo dónde queda
+  puesto el color» → cuadro grande del color + «tus colores»). ⚠️ **En el `.pen` SIN GUARDAR: hace falta su
+  Cmd+S en la pestaña de `rolvium.pen`, el MCP no escribe en disco.** Frames `YwHzR` (con textura) y `M9zw2t`
+  (con color).
+- ✅ **Base de datos hecha y aplicada en local**, sin `db:reset`:
+  - `20260910120000_maps_brush_build.sql` — `shape` admite `brush`, y cada forma gana **color propio**.
+  - `20260910140000_maps_colors.sql` — tabla nueva `maps_colors`, los colores que él mezcla, **por campaña**.
+- ✅ **El motor del brochazo**: `brushRings` en `roomRules.ts`, con 8 tests.
+
+### ⏭️ LO QUE FALTA (la pantalla)
+1. **El panel**, 1:1 con el `.pen`: movible (`useDragPanel`), formato Builder, 220 px de ancho.
+   Sustituye a `BrushBar` de la rebanada 9.
+2. **El gesto** en `MapCanvas`: recoger el trazo y al soltar crear la forma con `brushRings`.
+3. **El borrador**: se lleva las formas por las que pases (enteras — ver el límite abajo).
+4. **Que cada forma se pinte con lo suyo**: `roomsLayer` tiene que mirar `floorColor`, y una forma que
+   RELLENA tiene que poder llevar su propia roca.
+5. **Los colores guardados**: puerto + adaptador + la fila «tus colores».
+6. **El icono de la barra**: de `opacity` (gota) a `brush`. Petición literal suya.
+7. Claves i18n en **es y en**.
+
+### 🔑 DECISIONES QUE NO SE PUEDEN PERDER
+- **UN BROCHAZO ES UNA FORMA MÁS de `maps_rooms`.** De ahí sale gratis fundirse, cortar la vista y frenar a
+  las fichas — ya construido y en producción desde la rebanada 8. Una tabla aparte habría obligado a
+  escribir las tres cosas otra vez.
+- **El codo cerrado se PARTE en dos piezas.** En un giro más cerrado que el ancho del pincel el anillo se
+  cruzaría consigo mismo y saldría un agujero de roca en medio del brochazo. Partiendo, las dos piezas se
+  solapan en el codo y el motor las funde. Tiene test.
+- **El borrador se lleva el brochazo ENTERO**, no medio. Aceptado por él. Partir una pieza es recortar
+  polígonos, y multiplicaría las filas justo donde el motor de fusión ya se nota.
+- **Transparencia y difuminado NO valen construyendo** (un suelo se anda o no se anda) y **no se enseñan
+  apagados: no salen**. Sí valen tamaño y borde roto.
+- **Los colores guardados son POR CAMPAÑA.** Él delegó («*campaña o escena, lo que tengamos*»); se elige
+  campaña porque el verde que mezclas para el bosque lo quieres en los demás mapas de ese bosque. Mismo
+  alcance que la biblioteca de fondos.
+
+### ⚠️ PENDIENTE DE ÉL
+- **Guardar `rolvium.pen` (Cmd+S)** para poder commitear el diseño.
+- **Sin contestar**: si el destino «suelo de una sala» de la rebanada 9 —el que BORRA el suelo para que
+  asome la foto— sigue haciendo falta ahora que se puede repintar con textura. Se preguntó y contestó a otra
+  cosa; **se deja construido** hasta que lo diga.
+
 ## 🖌️ 2026-09-09 — EL PINCEL, CONSTRUIDO ENTERO · RAMA `feat/maps-pincel` · **PENDIENTE DE QUE LO MIRE**
 
 **Frase para arrancar el chat nuevo:**

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { BUILDER_MODES, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_FILL_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing, wallStripe } from './roomRules';
+import { BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, brushRings, BUILDER_MODES, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_FILL_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing, wallStripe } from './roomRules';
+import { pointInRing } from '@rolvium/core';
 
 /**
  * 🏗 EL MOTOR DE LAS HABITACIONES RÁPIDAS (§ «Rebanada 8»). Sólo geometría: la pantalla no existe todavía
@@ -370,5 +371,91 @@ describe('el mínimo de un muro de relleno', () => {
     expect(lineSide({ x: 0, y: 0 }, { x: 8, y: 0 }, G2)).toBeNull();
     // …y con el del relleno sí, que es lo que pasa dibujando aquí.
     expect(lineSide({ x: 0, y: 0 }, { x: 8, y: 0 }, G2, MIN_FILL_CELLS)).toEqual({ x1: 0, y1: 0, x2: 8, y2: 0 });
+  });
+});
+
+/**
+ * ── EL PINCEL QUE CONSTRUYE (rebanada 10) ──
+ * Un brochazo es UNA FORMA MÁS de `maps_rooms`: de ahí sale gratis fundirse, cortar la vista y frenar a las
+ * fichas. Lo único nuevo de verdad es esto — convertir un trazo en un anillo.
+ */
+describe('brushRings — el trazo se convierte en forma', () => {
+  const G = 30;
+  const pts = (ring: [number, number][]) => ring.map(([x, y]) => ({ x, y }));
+
+  it('un toque sin arrastre deja un disco del ancho del pincel', () => {
+    const [ring] = brushRings([{ x: 100, y: 100 }], 2, G);
+    expect(ring).toBeDefined();
+    const r = G;   // 2 casillas de ancho = 1 de radio
+    for (const p of pts(ring!)) expect(Math.hypot(p.x - 100, p.y - 100)).toBeCloseTo(r, 4);
+  });
+
+  /** El ancho es el ancho: un brochazo no puede pintar más allá del círculo que el director ve en el cursor. */
+  it('un trazo recto sale del ancho pedido, ni más ni menos', () => {
+    const [ring] = brushRings([{ x: 0, y: 300 }, { x: 400, y: 300 }], 2, G);
+    const p = pts(ring!);
+    const ys = p.map(q => q.y);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(2 * G, 3);
+    // Y no se pasa de largo más que el redondeo de las puntas.
+    const xs = p.map(q => q.x);
+    expect(Math.min(...xs)).toBeCloseTo(-G, 3);
+    expect(Math.max(...xs)).toBeCloseTo(400 + G, 3);
+  });
+
+  it('el ancho se recorta a los topes, y una basura no revienta el anillo', () => {
+    const anchoDe = (cells: number) => {
+      const [ring] = brushRings([{ x: 0, y: 300 }, { x: 400, y: 300 }], cells, G);
+      const ys = pts(ring!).map(q => q.y);
+      return Math.max(...ys) - Math.min(...ys);
+    };
+    expect(anchoDe(900)).toBeCloseTo(BRUSH_MAX_CELLS * G, 3);
+    expect(anchoDe(0)).toBeCloseTo(BRUSH_MIN_CELLS * G, 3);
+  });
+
+  it('el anillo ENVUELVE el trazo: todo punto del camino cae dentro', () => {
+    const camino = [{ x: 60, y: 60 }, { x: 200, y: 90 }, { x: 340, y: 200 }];
+    const [ring] = brushRings(camino, 2, G);
+    for (const p of camino) expect(pointInRing(p, pts(ring!))).toBe(true);
+    // Y un punto claramente fuera, fuera.
+    expect(pointInRing({ x: 60, y: 400 }, pts(ring!))).toBe(false);
+  });
+
+  /**
+   * 🔑 EL CODO CERRADO SE PARTE, y es lo único no obvio de toda la rebanada. En un giro más cerrado que el
+   * ancho del pincel, el lado de dentro se cruzaría consigo mismo y `pointInRing` —que cuenta cruces— sacaría
+   * un AGUJERO de roca en medio del brochazo. Partiendo salen dos piezas que se solapan en el codo, y
+   * fundirse al solaparse ya lo hace el motor de salas.
+   */
+  it('un codo cerrado sale en dos piezas, no en un anillo que se cruza', () => {
+    const enV = [{ x: 300, y: 60 }, { x: 300, y: 300 }, { x: 320, y: 60 }];
+    expect(brushRings(enV, 2, G)).toHaveLength(2);
+    // Una curva suave del mismo largo NO se parte: partir de más multiplica las filas sin motivo.
+    const suave = [{ x: 60, y: 300 }, { x: 200, y: 260 }, { x: 340, y: 300 }];
+    expect(brushRings(suave, 2, G)).toHaveLength(1);
+  });
+
+  it('las dos piezas de un codo se SOLAPAN, que es lo que hace que se fundan sin hueco', () => {
+    const codo = [{ x: 300, y: 60 }, { x: 300, y: 300 }, { x: 320, y: 60 }];
+    const [a, b] = brushRings(codo, 2, G);
+    // El vértice del codo cae dentro de las dos: por ahí se cosen.
+    expect(pointInRing({ x: 300, y: 300 }, pts(a!))).toBe(true);
+    expect(pointInRing({ x: 300, y: 300 }, pts(b!))).toBe(true);
+  });
+
+  /**
+   * Un arrastre a pulso llega con cientos de puntos, y CADA vértice del anillo acaba siendo un lado contra el
+   * que el servidor traza rayos en cada refresco de visión, para cada jugador. Sin simplificar, un brochazo
+   * cuesta lo que costaban las 318 paredes de un círculo a mano alzada (§ «Rebanada 8»).
+   */
+  it('un trazo a pulso se simplifica: un brochazo no deja cientos de lados', () => {
+    const aPulso = Array.from({ length: 400 }, (_, i) => ({ x: 60 + i, y: 300 + Math.sin(i / 40) * 2 }));
+    const rings = brushRings(aPulso, 2, G);
+    const lados = rings.reduce((n, r) => n + r.length, 0);
+    expect(lados).toBeLessThan(80);
+    expect(rings.length).toBeLessThanOrEqual(2);
+  });
+
+  it('sin trazo no hay forma', () => {
+    expect(brushRings([], 2, G)).toEqual([]);
   });
 });
