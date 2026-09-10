@@ -537,6 +537,37 @@ describe('SupabaseMapsRepo — las salas', () => {
     expect(q(m, 1)['delete']).toHaveBeenCalled();
   });
 
+  /**
+   * ── EL PINCEL SOBRE EL SUELO DE UNA SALA (rebanada 9) ──
+   * Mismo camino que el de una capa —mismo bucket, misma carpeta, mismas políticas— porque es el mismo
+   * mecanismo: la textura del constructor NUNCA se toca, se pinta una máscara encima y siempre se puede
+   * volver atrás.
+   */
+  it('la máscara del suelo sube al bucket de la campaña y deja el puntero en la fila', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: { ...ROOM_ROW, floor_mask_url: 'https://x/c1/masks/room-rm-1.png', updated_at: 't2' }, error: null } } });
+    const upload = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ upload, getPublicUrl: vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } })) })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    const png = new Blob(['x'], { type: 'image/png' });
+    const out = await repo.saveRoomFloorMask({ id: 'rm-1', campaignId: 'c1' }, png);
+    expect(client.storage.from).toHaveBeenCalledWith(BACKGROUNDS_BUCKET);
+    expect(upload).toHaveBeenCalledWith('c1/masks/room-rm-1.png', png, expect.objectContaining({ upsert: true, contentType: 'image/png' }));
+    expect(m.updateSpy).toHaveBeenCalledWith({ floor_mask_url: 'https://x/c1/masks/room-rm-1.png' });
+    // Vuelve la fila ENTERA, no sólo la URL: el rompe-caché de una sala es su `updated_at`.
+    expect(out).toMatchObject({ floorMaskUrl: 'https://x/c1/masks/room-rm-1.png', updatedAt: 't2' });
+  });
+
+  /** La fila se vacía ANTES que el fichero, igual que en una capa: un fallo deja un huérfano, no una sala rota. */
+  it('quitar la máscara del suelo vacía la fila y borra el fichero', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: ROOM_ROW, error: null } } });
+    const remove = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ remove })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    await repo.clearRoomFloorMask({ id: 'rm-1', campaignId: 'c1' });
+    expect(m.updateSpy).toHaveBeenCalledWith({ floor_mask_url: null });
+    expect(remove).toHaveBeenCalledWith(['c1/masks/room-rm-1.png']);
+  });
+
   it('los vanos van por ESCENA, porque el contorno es el de la UNIÓN', async () => {
     const m = createSupabaseMock({ tables: { maps_room_openings: { data: [OPENING_ROW], error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);

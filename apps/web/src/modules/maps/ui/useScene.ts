@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FogCell, SceneVision } from '@rolvium/core';
 import type { DoorSettings, Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewRoom, NewRoomOpening, NewToken, NewWall, Room, RoomKind, RoomOpening, RoomShapeKind, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
-import type { VisionPort } from '../domain/ports/VisionPort';
+import type { FogBrush, VisionPort } from '../domain/ports/VisionPort';
 import { splitWallAt, unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
 import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
 import { newGroupId } from '../domain/useCases/groupRules';
@@ -823,7 +823,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     announceVision();
   }, [repo, announceVision]);
   /** DM brush: paints on every player's explored cells; the answer is the DM's own union. */
-  const paintFog = useCallback(async (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => {
+  const paintFog = useCallback(async (at: FogBrush, op: 'reveal' | 'hide') => {
     if (!sceneId || !vision) return;
     const seq = ++visionSeq.current;
     const next = await vision.paint(sceneId, op, at);
@@ -908,6 +908,23 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     setLayers(l => l.map(x => (x.id === layer.id ? { ...x, maskUrl: null } : x)));
     await repo.clearMask(layer);
   }, [repo]);
+  /**
+   * EL MISMO PINCEL, SOBRE EL SUELO DE UNA SALA (rebanada 9). La textura del constructor no se toca: se sube
+   * un PNG aparte y se guarda el puntero, igual que en una capa.
+   *
+   * La fila se reemplaza ENTERA con la que contesta la base, y no se parchea sólo la URL, porque lo que hace
+   * que el navegador se entere del cambio es el `updated_at` que trae de vuelta — una sala no lleva número de
+   * versión.
+   */
+  const saveRoomFloorMask = useCallback(async (room: Room, png: Blob) => {
+    const next = await repo.saveRoomFloorMask(room, png);
+    setRooms(l => l.map(r => (r.id === next.id ? next : r)));
+    return next;
+  }, [repo]);
+  const clearRoomFloorMask = useCallback(async (room: Room) => {
+    setRooms(l => l.map(r => (r.id === room.id ? { ...r, floorMaskUrl: null } : r)));
+    await repo.clearRoomFloorMask(room);
+  }, [repo]);
 
   const addLight = useCallback(async (l: NewLight) => {
     const created = await repo.addLight(l);
@@ -930,6 +947,6 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     scene: live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog,
     dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
-    addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+    addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, addLight, patchLight, removeLight, patchDrawingLayer,
+  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }

@@ -849,7 +849,44 @@
       "revealAll": "Revelar todo",
       "hideAll": "Ocultar todo",
       "reveal": "Pincel revelar",
-      "hide": "Pincel ocultar"
+      "hide": "Pincel ocultar",
+      "on": "Sobre qué",
+      "target": {
+        "layer": "Capa",
+        "fog": "Niebla",
+        "room": "Suelo de sala"
+      },
+      "way": "Sentido",
+      "dir": {
+        "restore": "Pintar",
+        "erase": "Quitar"
+      },
+      "tipLabel": "Trazo",
+      "tip": {
+        "disc": "Disco",
+        "soft": "Difuminado",
+        "rough": "Borde roto"
+      },
+      "sizeLabel": "Tamaño",
+      "alpha": "Transparencia",
+      "edge": "Borde",
+      "edgeStep": {
+        "soft": "difuminado",
+        "medium": "medio",
+        "sharp": "a filo"
+      },
+      "roughLabel": "Cuánto de roto",
+      "roughness": {
+        "barely": "apenas",
+        "little": "poco",
+        "quite": "bastante",
+        "lots": "mucho"
+      },
+      "everyStrokeDiffers": "cada brochazo, distinto",
+      "hintRoom": "Pintando el SUELO DE UNA SALA el brochazo se recorta solo en su borde: puedes pasar por encima del muro sin mancharlo.",
+      "hintScene": "El pincel se guarda en ESTA escena — trazo, tamaño, transparencia y cuánto de roto. Otro mapa trae el suyo.",
+      "hintFog": "En la NIEBLA el borde roto se ve a trozos de casilla, porque la niebla se guarda así. En una capa o en el suelo de una sala se ve fino.",
+      "needsRoom": "Pon el pincel encima de una sala para repintar su suelo."
     },
     "fog": {
       "autoOn": "Niebla automática por visión · se abre sola al moverse las fichas; pulsa para manual",

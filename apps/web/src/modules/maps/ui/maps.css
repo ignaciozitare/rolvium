@@ -334,9 +334,33 @@
 .mp-mask-dirs{display:flex;gap:3px;}
 .mp-mask-strength{display:inline-flex;align-items:center;gap:6px;}
 .mp-mask-strength input{width:110px;accent-color:var(--sys-ink);}
-/* El aviso de que hace falta una capa: se dice, no se deja el pincel mudo. */
+/* El aviso de que hace falta una capa —o una sala bajo el pincel—: se dice, no se deja el pincel mudo. */
 .mp-mask-needs{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:3;padding:6px 10px;
   background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);font-size:var(--fs-xs);color:var(--sys-ink-dim);}
+
+/* ── LA BARRA DEL PINCEL (rebanada 9 · rolvium.pen «PL/Pincel · barra») ──
+   Cuatro filas apiladas y no una tira: son tres grupos de mandos y tres pistas, y en una sola línea se
+   doblaban solos por donde caía. El contenedor sigue siendo `.mp-strokebar` —misma posición, mismo papel,
+   misma sombra— y aquí sólo se le cambia el sentido. */
+.mp-brushbar-v2{flex-direction:column;align-items:stretch;gap:6px;}
+.mp-brush-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.mp-brush-group{display:inline-flex;align-items:center;gap:6px;}
+.mp-brush-seg{display:inline-flex;align-items:center;background:var(--sys-paper-lo);}
+/* Los botones de un grupo: sin línea entre ellos, que la separación la da el tono del carril de detrás. */
+.mp-brush-opt{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;font-family:inherit;
+  font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;background:transparent;
+  color:var(--sys-ink-soft);border:none;cursor:pointer;}
+/* 🩸 LO ACTIVO VA EN SANGRE, NUNCA EN NEGRO. El negro es para el arte del mapa; en los mandos de la mesa el
+   color de acción es `--sys-blood` (rolvium.pen, y corrección suya sobre los botones negros). */
+.mp-brush-opt.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+/* La muestra de cada trazo: se ve lo que hace antes de probarlo. */
+.mp-brush-tipdot{width:13px;height:13px;flex:0 0 auto;background:currentColor;}
+.mp-brush-tipdot.disc{border-radius:50%;}
+.mp-brush-tipdot.soft{border-radius:50%;background:radial-gradient(circle,currentColor 25%,transparent 75%);}
+/* El borde roto se sugiere con un contorno mellado: es lo que hace el pincel, mordido hacia dentro. */
+.mp-brush-tipdot.rough{clip-path:polygon(50% 0%,68% 10%,88% 12%,92% 32%,100% 50%,88% 66%,86% 88%,66% 90%,50% 100%,32% 88%,12% 86%,10% 66%,0% 50%,12% 34%,14% 12%,34% 10%);}
+.mp-brush-sample{padding:4px 10px;background:var(--sys-paper-lo);font-size:var(--fs-2xs);color:var(--sys-ink-dim);font-style:italic;}
+.mp-brush-hints{display:flex;flex-direction:column;gap:2px;font-size:var(--fs-2xs);line-height:var(--lh-normal);color:var(--sys-ink-dim);}
 
 /* ── menú «mandar a la capa» (rebanada 7) ── */
 .mp-layermenu{min-width:190px;padding:5px;}

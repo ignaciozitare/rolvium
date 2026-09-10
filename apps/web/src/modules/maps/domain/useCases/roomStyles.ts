@@ -1,4 +1,4 @@
-import { orientRing, roomWalls, type BlockSegment, type RoomPart, type RoomRing, type RoomOpeningSpan, type RoomWall } from '@rolvium/core';
+import { orientRing, pointInRing, roomWalls, type BlockSegment, type RoomPart, type RoomRing, type RoomOpeningSpan, type RoomWall } from '@rolvium/core';
 import type { Room, RoomOpening, RoomPreset, Scene } from '../entities/Scene';
 import type { RoomSide } from './roomRules';
 
@@ -146,6 +146,16 @@ export const ringsOf = (rooms: readonly Room[]): RoomRing[] => rooms.map(ringOf)
 export const dugRooms = (rooms: readonly Room[]): Room[] => rooms.filter(r => r.kind !== 'fill');
 /** Las que RELLENAN: devuelven roca al hueco (un tabique, un pilar, corregir un borde). */
 export const filledRooms = (rooms: readonly Room[]): Room[] => rooms.filter(r => r.kind === 'fill');
+
+/**
+ * LA SALA QUE HAY BAJO UN PUNTO — cuál se repinta con el pincel del suelo (rebanada 9).
+ *
+ * Sólo cuentan las que EXCAVAN: un tabique no tiene suelo que pintar. Y se recorre **al revés**, de la más
+ * nueva a la más vieja, porque ése es el orden en que se pinta el mapa: donde dos salas se solapan manda la
+ * de arriba, que es la que él está viendo cuando apunta con el pincel.
+ */
+export const roomAt = (rooms: readonly Room[], p: { x: number; y: number }): Room | null =>
+  dugRooms(rooms).reverse().find(r => pointInRing(p, ringOf(r))) ?? null;
 
 /**
  * Las formas del mapa **en el orden en que él las dibujó**, que es el que decide quién manda: la lista llega

@@ -1163,10 +1163,12 @@ describe('<MapCanvas> reveal/hide brush', () => {
     move(svg, 100, 100);
     expect(within(svg).getByTestId('mp-brush')).toHaveAttribute('r', String(2 * G));
     down(svg, 100, 100);
-    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 100, y: 100, radius: 2 * G }, 'reveal');
+    // `true` = primera pincelada del arrastre: es donde quien escucha sortea la forma del borde roto.
+    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 100, y: 100, radius: 2 * G }, 'reveal', true);
     // throttled like the token drag: every paint rewrites the fog row of every player and wakes the whole table
     vi.setSystemTime(Date.now() + 100);
     move(svg, 130, 100);
+    // Y en los puntos de en medio NO se marca el arranque: la misma forma sigue toda la pincelada.
     expect(cb.onPaintFog).toHaveBeenLastCalledWith({ x: 130, y: 100, radius: 2 * G }, 'reveal');
     const painted = cb.onPaintFog.mock.calls.length;
     move(svg, 131, 100);
@@ -1178,7 +1180,7 @@ describe('<MapCanvas> reveal/hide brush', () => {
   it('the hide brush sends the other op, and a player never paints', () => {
     const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'hide', brush: 1 });
     down(svg, 50, 50);
-    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 50, y: 50, radius: G }, 'hide');
+    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 50, y: 50, radius: G }, 'hide', true);
 
     document.body.innerHTML = '';
     const player = mount({ tool: 'reveal', brush: 1 });
@@ -2372,5 +2374,103 @@ describe('<MapCanvas> arrastrar una ficha no repinta las salas', () => {
     rerender({ rooms: [{ ...SALA, points: [[G * 8, G * 8], [G * 12, G * 8], [G * 12, G * 12], [G * 8, G * 12]] as [number, number][] }] });
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
+  });
+});
+
+/**
+ * ── EL PINCEL SOBRE EL SUELO DE UNA SALA (rebanada 9) ──
+ *
+ * No hay que elegir la sala antes: se apunta con el ratón y se pinta la que hay debajo. El lienzo es quien lo
+ * sabe, y lo avisa al MOVERSE —no al pulsar— porque quien escucha lo guarda en estado de React: decidirlo en
+ * el `pointerdown` llegaría un render tarde y el primer brochazo caería en la sala anterior.
+ */
+describe('<MapCanvas> el pincel del suelo de una sala', () => {
+  const SALA = {
+    id: 'rm-1', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[0, 0], [200, 0], [200, 200], [0, 200]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+  };
+
+  it('avisa de la sala bajo el ratón, y sólo cuando cambia', () => {
+    const onHoverRoom = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'mask', rooms: [SALA], onHoverRoom });
+    move(svg, 50, 50);
+    expect(onHoverRoom).toHaveBeenCalledWith('rm-1');
+    // Moverse DENTRO de la misma sala no despierta a la pantalla otra vez: sería un goteo en cada píxel.
+    onHoverRoom.mockClear();
+    move(svg, 60, 60);
+    expect(onHoverRoom).not.toHaveBeenCalled();
+    // Salirse sí, porque ahí ya no hay suelo que pintar.
+    move(svg, 400, 400);
+    expect(onHoverRoom).toHaveBeenCalledWith(null);
+  });
+
+  it('con una sala bajo el pincel se pinta, aunque no haya capa de terreno activa', () => {
+    const onPaintMask = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'mask', rooms: [SALA], maskLayerId: null, maskRoomId: 'rm-1', onPaintMask });
+    down(svg, 50, 50);
+    // `true` = arranque de la pincelada: es donde se sortea la forma del borde roto.
+    expect(onPaintMask).toHaveBeenCalledWith({ x: 50, y: 50 }, { x: 50, y: 50 }, true);
+  });
+
+  it('sin capa ni sala el pincel no hace nada, en vez de pintar en el vacío', () => {
+    const onPaintMask = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'mask', rooms: [SALA], maskLayerId: null, maskRoomId: null, onPaintMask });
+    down(svg, 50, 50);
+    expect(onPaintMask).not.toHaveBeenCalled();
+  });
+
+  /** «Ver como jugador» le quita al director sus privilegios, y pintar el suelo es uno. */
+  it('viendo como jugador no se pinta el suelo de nada', () => {
+    const onPaintMask = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', playerView: true, tool: 'mask', rooms: [SALA], maskRoomId: 'rm-1', onPaintMask });
+    down(svg, 50, 50);
+    expect(onPaintMask).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * 🐞 LA SALA NO CAMBIA A MEDIA PINCELADA (rebanada 9).
+ *
+ * El spec promete lo contrario de lo que pasaba: «*puedes pasar por encima del muro sin mancharlo*» (§ 9.3).
+ * Y el muro se dibuja SOBRE el contorno, así que media franja del muro cae fuera de la sala: barrer el
+ * pincel por encima —justo el gesto que el spec invita a hacer— sacaba el ratón del contorno, se avisaba de
+ * otra sala (o de ninguna), el destino del pincel cambiaba a media pincelada y quien escucha rehacía su
+ * lienzo. La pincelada entera se perdía sin decir nada, y si al otro lado había otra sala, el resto del
+ * trazo caía en ella.
+ *
+ * La sala se decide al APOYAR y no se suelta hasta levantar: una pincelada, una sala.
+ */
+describe('<MapCanvas> la sala del pincel no cambia a media pincelada', () => {
+  const SALA_A = {
+    id: 'rm-a', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[0, 0], [200, 0], [200, 200], [0, 200]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+  };
+  const SALA_B = { ...SALA_A, id: 'rm-b', points: [[300, 0], [500, 0], [500, 200], [300, 200]] as [number, number][] };
+
+  it('salirse de la sala mientras se pinta NO cambia de destino', () => {
+    const onHoverRoom = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'mask', rooms: [SALA_A, SALA_B], maskRoomId: 'rm-a', onHoverRoom });
+    move(svg, 50, 50);
+    expect(onHoverRoom).toHaveBeenLastCalledWith('rm-a');
+    onHoverRoom.mockClear();
+    down(svg, 50, 50);
+    // Barrer por encima del muro y entrar en la vecina: el destino se queda donde se apoyó.
+    move(svg, 250, 100);
+    move(svg, 400, 100);
+    expect(onHoverRoom).not.toHaveBeenCalled();
+  });
+
+  it('soltado el ratón, el pincel vuelve a apuntar a lo que hay debajo', () => {
+    const onHoverRoom = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'mask', rooms: [SALA_A, SALA_B], maskRoomId: 'rm-a', onHoverRoom });
+    move(svg, 50, 50);
+    down(svg, 50, 50);
+    move(svg, 400, 100);
+    up(svg);
+    onHoverRoom.mockClear();
+    move(svg, 400, 120);
+    expect(onHoverRoom).toHaveBeenCalledWith('rm-b');
   });
 });

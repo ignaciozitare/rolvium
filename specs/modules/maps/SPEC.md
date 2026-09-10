@@ -18,10 +18,19 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Rebanada 5 — pendiente**: movimiento máximo por turno, configurable **por sistema** (toca el puerto `GameSystem`).
   Las dos deudas que la rebanada 3 se dejó (la puerta que parte el muro y el disco de abrir al pasar el ratón) se
   construyeron el 2026-08-19, antes de empezarla.
-- **Rebanada 9 — CONFIRMADA, SIN CONSTRUIR** (§ «Rebanada 9»): **el pincel**. Trazo elegible (disco, difuminado,
-  borde roto), transparencia también en la niebla, borde irregular distinto en cada brochazo con barra de cuánto,
-  y elegir sobre qué se pinta — capa de terreno, niebla o suelo de una sala, sin manchar el muro. Confirmada por
-  el dueño el 2026-09-09. **Hoy no se puede pintar el suelo de una sala: no hay herramienta.**
+- **Rebanada 9 — EL PINCEL · CONSTRUIDA** (2026-09-09, § «Rebanada 9»). Un solo mando para los tres sitios donde
+  se pinta: trazo elegible (disco, difuminado, borde roto), transparencia también en la niebla, borde irregular
+  distinto en cada brochazo con su barra, y **el suelo de una sala**, que hasta hoy no tenía herramienta ninguna.
+  - ✅ **HECHO**: la migración `20260909160000_maps_brush.sql` · la forma del brochazo en `@rolvium/core`
+    (`brush.ts`, compartida con el servidor) · la barra `BrushBar` 1:1 con el `.pen` · el recorte contra el
+    contorno de la sala · la niebla con transparencia y borde roto · el pincel guardado por escena.
+  - ⏳ **Falta que lo mire el dueño en pantalla**, y con él las decisiones marcadas abajo como revisables.
+- **Rebanada 10 — EL PINCEL QUE CONSTRUYE · CONFIRMADA, SIN CONSTRUIR** (§ «Rebanada 10»): el pincel deja de
+  ser decoración y **levanta mapa** — se elige **suelo o muro**, se arrastra, y sale una banda que se funde con
+  lo que haya; con la **textura del catálogo** o el **color** (paleta + cuentagotas) que se elija, y con un
+  **borrador** que derriba lo pintado. Confirmada por el dueño el 2026-09-10 probando la rebanada 9.
+  **Un brochazo es una forma más de `maps_rooms`**, así que la fusión, la visión y las colisiones salen
+  gratis. La pintura que NO cambia el mapa (sólo aspecto) él la dejó para después, «*si tiene sentido*».
 - **Rebanada 6 — A MEDIAS, SIN PANTALLA** (§ «Rebanada 6»): **galería de piezas** (muebles, árboles…) para
   construir mapas dentro de la app. Confirmada por el dueño el 2026-08-31, **después** de la 7 y **antes** de la
   5: sin capas no había dónde meter las piezas, y ahora que existen es lo que falta para montar un mapa sin
@@ -1837,6 +1846,18 @@ El de niebla va con **cuatro discos**, no continuo.
 - **Tamaño**: continuo, en casillas, para los tres. La niebla deja sus cuatro discos.
 - **Sobre qué actúa**, elegido por él: una **capa de terreno** · la **niebla** · el **suelo de una sala**.
 
+> 🔧 **Cómo quedó construido (2026-09-09).** «Sobre qué» y «sentido» **son la herramienta**, rotulados en lo que
+> hacen: las tres herramientas de pincel que ya existían en la barra lateral —*Pincel de transparencia*,
+> *Revelar* y *Ocultar*— siguen intactas y ahora se leen como `capa`, `niebla · quitar` y `niebla · pintar`.
+> No hay dos estados que sincronizar: una sola verdad, leída en los dos sentidos.
+>
+> Las dos palabras del sentido son **PINTAR** y **QUITAR** (del `.pen`) y valen para los tres: QUITAR se lleva
+> lo que hay encima —la capa, el suelo, la niebla— y PINTAR lo devuelve, que en la niebla es taparla.
+>
+> ⚠️ **Salvo el arranque**: el pincel abre en QUITAR, aunque el `.pen` enseñe PINTAR marcado. Sobre una capa
+> recién estrenada PINTAR no hace nada —no hay nada pintado que devolver— y el pincel parecería roto.
+> **Revisable con él en pantalla.**
+
 ### 9.2 · CADA BROCHAZO SALE DISTINTO — y no hay que guardar nada para eso
 
 Decisión suya, preguntada y contestada: *«distinto cada vez»*. No es un sello que se repite.
@@ -1854,12 +1875,32 @@ Decisión suya, preguntada y contestada: *«distinto cada vez»*. No es un sello
 niebla se guarda por casillas. Será dentado a lo bruto, no finamente desgarrado. En una capa de terreno y en
 el suelo de una sala, que van por PNG, se ve fino.
 
+### 9.2 bis · QUÉ SIGNIFICA «TRANSPARENCIA» EN LA NIEBLA (decisión de construcción, 2026-09-09)
+
+La niebla **no se guarda como imagen**: son casillas, y una casilla está explorada o no lo está. No existe
+media casilla. Así que «transparencia» ahí sólo puede significar una cosa: **cobertura**.
+
+Cada casilla del brochazo entra con la **probabilidad** que le da el pincel en ese punto. A media fuerza la
+niebla se abre **a manchas** y una segunda pasada abre más; a fuerza máxima no queda nada al azar y sale el
+disco entero de siempre. Eso es lo contrario de «tapa o destapa a saco», que era la queja.
+
+⚠️ **Es una interpretación, no una frase suya.** La alternativa era que la fuerza encogiera el brochazo, y eso
+ya lo hace la barra de tamaño: sería el mismo mando dos veces. **Revisable en cuanto lo vea en pantalla.**
+
+🔑 **Y sin nada de esto, el disco de siempre.** El servidor sólo cambia de camino si le llega forma; un
+navegador que no la mande —o el botón de «revelar todo»— se comporta exactamente igual que antes.
+
 ### 9.3 · El brochazo se recorta en el borde de la sala
 
 Regla suya: *«si voy a pintar una sala no tiene que manchar una pared»*.
 
 Pintando el **suelo de una sala**, el brochazo se **recorta contra el contorno de esa sala**. Puede pasar el
 pincel por encima del muro sin miedo: fuera del suelo no pinta. Es lo que permite pintar deprisa.
+
+**A qué sala.** A la que hay **bajo el ratón**: no hay que elegirla antes ni existe forma de hacerlo —coger una
+sala con el ratón es la tanda siguiente—. Donde dos se solapan manda la de arriba, que es la que se está
+viendo. Un **tabique** no cuenta: devuelve roca al hueco y no tiene suelo que repintar. Con el pincel fuera de
+toda sala la barra **lo dice** en vez de quedarse muda.
 
 ### 9.4 · Lo que se recuerda es DE LA ESCENA
 
@@ -1875,6 +1916,153 @@ pincel viven detrás de `dmSight`, igual que hoy.
 ### 9.6 · Fuera de esta rebanada, dicho a propósito
 - Pinceles con **dibujo** (hojas, piedras, grava) — eso es la galería de piezas, rebanada 6.
 - Pintar **sobre las fichas**.
+
+## Rebanada 10 — EL PINCEL QUE CONSTRUYE
+
+Confirmada por el dueño el **2026-09-10**, probando la rebanada 9 sobre la app corriendo. Sus palabras, en
+orden: *«pero ese es el pincel de transparencia… ¿cómo hago para elegir la textura con la que quiero pintar?
+tengo que poder elegirla»* · *«también quiero poder elegir colores para pintar, pero ahí tiene que haber una
+paleta base y un color picker»* · *«tienes que elegir sala o muro, y se tienen que poder superponer y
+necesitamos una herramienta de borrado como un pincel que borra»*.
+
+> 🔑 **DE QUÉ VA ESTO, Y POR QUÉ NO ES UN RETOQUE DE LA 9.** El pincel de la rebanada 9 sólo **QUITA**:
+> destapa lo que hay debajo. Lo que él abrió el panel esperando encontrar era un pincel que **PINTA CON
+> ALGO**. Y cuando se le preguntó si esa pintura era sólo aspecto o si levantaba mapa de verdad, eligió lo
+> segundo — **B, y A después «si tiene sentido»**. Así que este pincel **no es decoración: es el constructor
+> de salas a mano alzada**.
+
+### 10.1 · Lo que hace
+
+- Se elige **SUELO** o **MURO** y se arrastra: sale una **banda del ancho del pincel** con la forma dibujada.
+- **Suelo** se puede andar. **Muro** corta la vista y el paso. **Cambia la partida**, no sólo cómo se ve.
+- Los brochazos **se superponen y se funden**, exactamente igual que arrastrar un rectángulo hoy.
+- **Con qué se pinta**: una **textura del catálogo** —el mismo que ya usa para suelos y paredes, con sus
+  categorías y su «Subir»— o un **color**, con **paleta base + cuentagotas**, como el «Fondo del mapa». Se
+  elige ANTES de pintar y queda pegado a **ese brochazo**, no a todo el mapa.
+- **El color puesto se ve en grande**, igual que la textura. Corrección suya del 2026-09-10 mirando el
+  diseño: *«aquí el color se tiene que guardar, no veo un cuadradito donde quede puesto»* — la paleta
+  enseñaba las opciones pero nada decía cuál era la tuya.
+- **Los colores que te inventas se guardan** (petición suya, mismo día): lo que salga del cuentagotas o del
+  campo se queda en «tus colores», **por CAMPAÑA**. Él delegó el alcance —*«es sólo para esta campaña o
+  escena, lo que tengamos más o menos creado»*— y se elige campaña porque una campaña es un mundo con un
+  aspecto: el verde que mezclas para el bosque lo quieres en los demás mapas de ese bosque. Por escena
+  obligaría a re-mezclarlo en cada mapa nuevo. Mismo alcance que la biblioteca de fondos, y por lo mismo.
+- **Borrador**: un pincel más, que **derriba lo pintado** por donde pase.
+
+### 10.2 · Un brochazo ES UNA FORMA — y de ahí sale todo lo demás gratis
+
+Un brochazo se guarda como **una forma más de las de la rebanada 8** (`maps_rooms`), con su anillo calculado
+a partir del trazo y del ancho del pincel. No hay motor nuevo:
+
+- **Fundirse al tocarse** ya lo hace `roomOutline` / `roomWalls` en `@rolvium/core`.
+- **La visión, las colisiones y las luces** ya miran esas formas en el servidor (§ «Rebanada 8»).
+- **Excavar y rellenar** ya son `kind = room | fill`, que es exactamente «suelo» y «muro».
+
+Es la decisión que hace esta rebanada barata en vez de enorme: lo único de verdad nuevo es **convertir un
+trazo en un anillo** y **darle a cada forma su propia textura o su color**.
+
+### 10.3 · El borrador, y su límite dicho por delante
+
+El borrador **se lleva el brochazo entero** por el que pase, no medio brochazo. Aceptado por él al confirmar
+la rebanada.
+
+- **Por qué**: cada brochazo es una pieza, y partir una pieza por la mitad es recortar polígonos — trabajo de
+  verdad, y encima multiplicaría las piezas justo donde el motor de fusión ya se nota
+  (§ «Rebanada 8»: con 60 salas el contorno cuesta ~21 ms por cálculo).
+- **Qué significa en la mesa**: pintando a trazos cortos se borra fino; un brochazo larguísimo se va entero.
+- ⚠ No se parte el trazo en piezas pequeñas automáticamente **a propósito**: cientos de formas por mapa es
+  exactamente el «va lentísimo» que él ya sufrió una vez.
+
+### 10.4 · Qué mandos valen aquí y cuáles NO
+
+| Mando | ¿Vale construyendo? | Por qué |
+|---|---|---|
+| **Tamaño** | ✅ | Es el ancho de la banda. |
+| **Borde roto** | ✅ | Un contorno mellado es justo lo que quiere una cueva. |
+| **Transparencia** | ❌ | Un suelo se anda o no se anda. No hay medio suelo. |
+| **Difuminado** | ❌ | Lo mismo: el borde de un muro no se desvanece. |
+
+Los mandos que no valen **no se enseñan apagados: no salen**. Un mando que no hace nada es peor que no tenerlo.
+
+### 10.5 · El panel
+
+Un solo panel **«Pincel»**, movible y con el **formato del constructor de salas** (cabecera con asa, secciones
+con rótulo, opciones en sangre cuando están activas). Sustituye a la barra flotante de la rebanada 9, que él
+paró en pantalla el 2026-09-09: *«esto está mal, ajusta el diseño como un modal que se mueva como todos los
+otros»*.
+
+- **SOBRE QUÉ**: `Suelo` · `Muro` · `Una capa de terreno` · `La niebla`.
+- Con **Suelo** o **Muro** aparece **CON QUÉ**: textura · color · borrador. Con **Capa** o **Niebla**, lo de
+  siempre (quitar/devolver y revelar/ocultar).
+- El **icono de la barra de herramientas** pasa de la gota (`opacity`) a un **pincel** (`brush`). Petición
+  suya: *«que no sea una gota, que sea un pincel el icono»*.
+
+### 10.6 · Quién
+
+Sólo el **director**, como todo lo del constructor: levanta mapa.
+
+### 10.7 · Fuera de esta rebanada, dicho a propósito
+
+- **A · pintura decorativa** —pintar color o textura ENCIMA sin cambiar dónde se anda—: él la dejó para
+  después, *«si tiene sentido»*. No se construye ahora y no se le busca sitio en el panel.
+- Partir un brochazo por la mitad con el borrador (§ 10.3).
+- **PENDIENTE DE DECIDIR CON ÉL, viéndolo funcionando**: si el destino «suelo de una sala» de la rebanada 9
+  —el que BORRA el suelo para que asome la foto de debajo— sigue haciendo falta una vez que se puede repintar
+  con textura. Se preguntó y quedó sin contestar; **se deja construido y en el panel** hasta que lo diga.
+
+## Modelo de datos (rebanada 10)
+
+Migración `20260910120000_maps_brush_build.sql`. **Ninguna tabla nueva, ninguna política de RLS nueva, y
+apenas nada que migrar** — y eso no es suerte, es la decisión que abarata la rebanada entera.
+
+**Un brochazo no es una cosa nueva: es una forma más de las que ya existen.** Se guarda en `maps_rooms` como
+cualquier rectángulo arrastrado, con su anillo sacado del trazo y del ancho del pincel. Por eso vienen ya
+hechas, probadas y en producción las tres cosas caras: **fundirse al tocarse**, **cortar la vista y el paso**
+—que las calcula el servidor mirando estas mismas formas— y **excavar o rellenar**, que es exactamente «suelo
+o muro» con otro nombre. Una tabla aparte habría obligado a escribir las tres otra vez.
+
+**Lo único que se añade es que cada forma se pinte con lo suyo.** Hasta hoy una forma podía traer su propia
+**foto**, pero no su propio **color**: el color salía del preajuste, que es una lista cerrada de nueve. Él
+pidió las dos cosas y con paleta abierta, así que la forma gana un **color propio**.
+
+**Qué manda sobre qué** — el mismo orden que ya rige en las puertas, para no inventar una segunda regla: la
+**foto** gana al **color**, y el color gana al **preajuste**. Tiene una consecuencia buena y buscada: quitarle
+la textura a un brochazo no lo deja en blanco, descubre el color que había debajo; y quitarle también el
+color lo devuelve a su preajuste.
+
+**En una forma que EXCAVA eso es su suelo; en una que RELLENA es su roca.** Es la misma columna porque es la
+misma idea —«con qué está pintada esta forma»— y está anotado en la propia base de datos para que nadie tenga
+que deducirlo.
+
+**Y una forma sabe de dónde salió**: arrastrada como rectángulo o círculo, dibujada a mano alzada, o
+**pintada con el pincel**. Hoy no cambia cómo se ve; hace falta el día que una forma se pueda coger y editar,
+porque un rectángulo y un brochazo no se editan igual.
+
+**El borrador no guarda nada**: derriba, o sea que borra la fila. Por eso no hay ni papelera ni marca de
+borrado — deshacer ya lo lleva el historial de la escena, como con cualquier otra forma.
+
+**Quién lee y quién escribe**: exactamente los de antes. Las formas las escribe el **director** de la
+campaña y las leen los miembros, que es lo que ya dicen las políticas de `maps_rooms` desde la rebanada 8.
+Este pincel **no añade ningún permiso nuevo**: levantar mapa siempre ha sido cosa del director.
+
+### Los colores guardados
+
+Migración `20260910140000_maps_colors.sql`. **Una tabla nueva y pequeña**: los colores que el director mezcla
+con el cuentagotas o escribe a mano, guardados **por campaña** para reutilizarlos en todos sus mapas. La
+paleta base de la casa **no vive aquí** — ésa es código, no dato.
+
+**Por qué una tabla y no una lista dentro de la campaña.** Una lista habría ahorrado la tabla, pero añadir un
+color sería leer-modificar-escribir la lista entera: con dos pestañas abiertas —cosa normal en un director—
+la segunda pisa el color de la primera y se pierde sin avisar. Una fila por color no puede perderse.
+
+**El mismo color no entra dos veces** en la misma campaña: no sería un color más, sería la misma muestra
+ocupando sitio en la paleta. Lo impide la base, para que la pantalla no tenga que acordarse.
+
+**Se guarda quién lo mezcló**, pero la fila **sobrevive a la cuenta**: el color es de la campaña, no de la
+persona. Y al borrar la campaña se van con ella.
+
+**Quién lee y quién escribe**: los miembros de la campaña leen, el **director** escribe. Palabra por palabra
+lo mismo que la biblioteca de fondos (`maps_images`), porque es lo mismo: una biblioteca de la campaña.
 
 ## Modelo de datos (rebanada 9)
 
@@ -1907,6 +2095,20 @@ el borde irregular queda cocido dentro y no hay nada que reconstruir al recargar
 **Quién lee y quién escribe**: exactamente los de antes. La escena y las salas las escribe el **director** de
 la campaña; los jugadores leen lo que su RLS ya les dejaba. El pincel no añade ningún permiso nuevo al motor de
 roles: es una herramienta de director, como los otros pinceles.
+
+**Dónde vive el PNG del suelo**: en el bucket `backgrounds` que ya existe, bajo
+`{campaignId}/masks/room-{roomId}.png` — misma carpeta y mismas políticas que las máscaras de capa
+(`foldername[1]` sigue siendo la campaña), así que **ninguna política de almacenamiento nueva**.
+
+⚠️ **El rompe-caché de una sala es su `updated_at`**, no un número de versión: `maps_rooms` no lo tiene, y el
+disparador `maps_rooms_touch` ya mueve la fecha en cada guardado. Sin pegarlo a la URL el navegador se queda
+con el PNG viejo y parece que el pincel no pinta.
+
+**Dónde vive la forma del brochazo**: en `@rolvium/core` (`brush.ts`), no en el navegador. El pincel pinta en
+tres sitios y uno de ellos —la niebla— lo calcula el servidor; con la forma escrita dos veces acabarían
+discrepando, y sería el mismo mando difuminando en una capa y cortando a filo en la niebla. Mismo motivo por el
+que `roomWalls` vive allí. El **azar** se tira en el navegador (una tirada por pincelada) y viaja como
+parámetro: el servidor sólo lo lee.
 
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los

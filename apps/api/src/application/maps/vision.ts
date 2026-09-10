@@ -1,3 +1,4 @@
+import { brushAlphaAt, roughReach } from '@rolvium/core';
 import type { FogCell, VisionPoint, VisionPolygon } from '@rolvium/core';
 
 /**
@@ -121,6 +122,61 @@ export function cellsInDisc(centre: Point, radius: number, grid: number, width: 
   for (let cx = c0; cx <= c1; cx++) {
     for (let cy = r0; cy <= r1; cy++) {
       if (Math.hypot((cx + 0.5) * grid - centre.x, (cy + 0.5) * grid - centre.y) <= radius) out.push([cx, cy]);
+    }
+  }
+  return out;
+}
+
+/**
+ * LA FORMA DEL PINCEL EN LA NIEBLA (rebanada 9 — «el pincel»).
+ *
+ * La niebla no se guarda como una imagen sino como CASILLAS, así que aquí no se puede estampar un degradado:
+ * hay que preguntar casilla a casilla si le toca. Tres cosas cambian respecto al disco de siempre:
+ *
+ *  · **el contorno**, si viene `edge` — el borde roto (`roughRadii` en el navegador, que es quien tira el
+ *    dado; aquí sólo se lee). ⚠️ Se verá **a resolución de casilla**: dentado a lo bruto, no finamente
+ *    desgarrado, y así está avisado en la barra y en el spec (§ 9.2).
+ *  · **la transparencia**, que en un almacén de sí-o-no sólo puede ser COBERTURA: cada casilla entra con la
+ *    probabilidad que le da el brochazo en ese punto. A media fuerza la niebla se abre a manchas y una
+ *    segunda pasada abre más, en vez de destaparlo todo de golpe — que es la queja de «tapa o destapa a
+ *    saco». A fuerza máxima no queda nada al azar y sale el disco de siempre.
+ *  · **el borde**, la misma dureza que en las capas.
+ *
+ * El azar entra por `rnd` para poder probarla, y **muere aquí**: lo que se guarda son las casillas
+ * resultantes, no la tirada.
+ */
+export interface BrushShape {
+  /** 0..1 — cuánto destapa o tapa cada pasada. Ausente = 1, el disco entero y sin azar. */
+  strength?: number;
+  /** 0..1 — el borde: 0 se difumina, 1 corta a filo. Ausente = 1. */
+  hardness?: number;
+  /** El contorno roto: un multiplicador de radio por vértice dando la vuelta. Ausente o vacío = círculo. */
+  edge?: number[];
+  rnd?: () => number;
+}
+
+export function cellsInBrush(centre: Point, radius: number, grid: number, width: number, height: number, shape: BrushShape = {}): FogCell[] {
+  const edge = shape.edge ?? [];
+  const strength = shape.strength ?? 1;
+  const hardness = shape.hardness ?? 1;
+  // Sin nada que lo cambie es el pincel de siempre, letra por letra: un mapa suyo pintado antes de esto se
+  // sigue pintando igual, y no hay que fiarse de que dos caminos coincidan.
+  if (edge.length === 0 && strength >= 1 && hardness >= 1) return cellsInDisc(centre, radius, grid, width, height);
+  const rnd = shape.rnd ?? Math.random;
+  const out: FogCell[] = [];
+  const cols = Math.ceil(width / grid), rows = Math.ceil(height / grid);
+  const c0 = Math.max(0, Math.floor((centre.x - radius) / grid)), c1 = Math.min(cols - 1, Math.floor((centre.x + radius) / grid));
+  const r0 = Math.max(0, Math.floor((centre.y - radius) / grid)), r1 = Math.min(rows - 1, Math.floor((centre.y + radius) / grid));
+  for (let cx = c0; cx <= c1; cx++) {
+    for (let cy = r0; cy <= r1; cy++) {
+      const dx = (cx + 0.5) * grid - centre.x, dy = (cy + 0.5) * grid - centre.y;
+      const dist = Math.hypot(dx, dy);
+      // El borde roto sólo MUERDE hacia dentro, nunca crece: el brochazo no puede pasarse del radio que el
+      // director ve en el cursor.
+      const reach = radius * (edge.length > 0 ? roughReach(edge, Math.atan2(dy, dx)) : 1);
+      if (reach <= 0 || dist > reach) continue;
+      const alpha = brushAlphaAt(dist / reach, strength, hardness);
+      if (alpha >= 1 || rnd() < alpha) out.push([cx, cy]);
     }
   }
   return out;

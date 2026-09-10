@@ -2,7 +2,7 @@ import type { RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } 
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { BgTransform, BlockShape, CreateSceneInput, DoorSettings, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPatch, Room, RoomKind, RoomOpening, RoomPreset, RoomShapeKind, Texture, TextureCategory, NewTexture, TexturePatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, RoomOpeningPatch, Unsubscribe } from '../domain/ports/MapsPort';
-import { clampHardness, clampMaskSize, clampRoughness, clampStrength, DEFAULT_BRUSH_ROUGHNESS, DEFAULT_BRUSH_TIP, DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, isBrushTip, maskPath } from '../domain/useCases/layerRules';
+import { clampHardness, clampMaskSize, clampRoughness, clampStrength, DEFAULT_BRUSH_ROUGHNESS, DEFAULT_BRUSH_TIP, DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, isBrushTip, maskPath, roomMaskPath } from '../domain/useCases/layerRules';
 import { TOKEN_SCALE } from '../domain/useCases/mapRules';
 import { propPath } from '../domain/useCases/propRules';
 
@@ -619,6 +619,31 @@ export class SupabaseMapsRepo implements MapsPort {
   async removeRoom(id: string): Promise<void> {
     const { error } = await this.db.from('maps_rooms').delete().eq('id', id);
     this.fail(error);
+  }
+  /**
+   * La máscara del suelo de una sala (rebanada 9). Mismo camino que `saveMask` de una capa —mismo bucket,
+   * misma carpeta, mismas políticas— porque es el mismo mecanismo: la textura original NUNCA se toca, se
+   * pinta una máscara encima y siempre se puede volver atrás.
+   *
+   * Se devuelve la fila entera y no sólo la URL: el rompe-caché de una sala es su `updated_at` (no lleva
+   * número de versión como las capas), y quien pinta lo necesita para que el navegador no se quede con el
+   * PNG viejo.
+   */
+  async saveRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>, png: Blob): Promise<Room> {
+    const path = roomMaskPath(room.campaignId, room.id);
+    const { error: upErr } = await this.db.storage.from(BACKGROUNDS_BUCKET).upload(path, png, { upsert: true, contentType: 'image/png', cacheControl: '3600' });
+    this.fail(upErr);
+    const url = this.db.storage.from(BACKGROUNDS_BUCKET).getPublicUrl(path).data.publicUrl;
+    const { data, error } = await this.db.from('maps_rooms').update({ floor_mask_url: url }).eq('id', room.id).select(ROOM_COLS).single();
+    this.fail(error);
+    return mapRoomRow(data as unknown as RoomRow);
+  }
+  async clearRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>): Promise<void> {
+    // Primero la fila, como en `clearMask`: si el borrado del fichero falla, el suelo ya se ve entero y sólo
+    // queda un PNG huérfano — al revés dejaría una sala apuntando a un fichero que ya no está.
+    const { error } = await this.db.from('maps_rooms').update({ floor_mask_url: null }).eq('id', room.id);
+    this.fail(error);
+    await this.db.storage.from(BACKGROUNDS_BUCKET).remove([roomMaskPath(room.campaignId, room.id)]);
   }
   async listRoomOpenings(sceneId: string): Promise<RoomOpening[]> {
     const { data, error } = await this.db.from('maps_room_openings').select(ROOM_OPENING_COLS).eq('scene_id', sceneId);

@@ -1,6 +1,6 @@
 import { circleClearance, roomMoveSegments, roomSightSegments, roomWalls, sightRadiusPx, slideCircle, type BlockSegment, type FogCell, type LitLight, type RoomPart, type SceneVision, type VisionPolygon } from '@rolvium/core';
 import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
-import { allCells, boundsSegments, cellsInDisc, cellsInPolygons, clipToStar, lightPolygon, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
+import { allCells, boundsSegments, cellsInBrush, cellsInPolygons, clipToStar, lightPolygon, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
 
 export type VisionErrorCode = 'NOT_FOUND' | 'FORBIDDEN';
 export type VisionOutcome = { ok: true; data: SceneVision } | { ok: false; code: VisionErrorCode };
@@ -328,8 +328,14 @@ export interface PaintInput {
   sceneId: string;
   userId: string;
   op: 'reveal' | 'hide';
-  /** Brush centre in scene px + radius in scene px. Omitted when `all` is set. */
-  at?: { x: number; y: number; radius: number };
+  /**
+   * Brush centre in scene px + radius in scene px. Omitted when `all` is set.
+   *
+   * `strength`, `hardness` y `edge` son la forma del brochazo (rebanada 9) y **son opcionales a propósito**:
+   * sin ellos sale el disco duro de siempre, así que un navegador viejo —o el botón de «revelar todo»— se
+   * comporta exactamente igual que antes.
+   */
+  at?: { x: number; y: number; radius: number; strength?: number | undefined; hardness?: number | undefined; edge?: number[] | undefined };
   /** «Revelar todo» / «Ocultar todo» for the whole scene. */
   all?: boolean;
 }
@@ -359,7 +365,11 @@ export async function paintSceneFog(deps: Deps, input: PaintInput): Promise<Visi
   const painted: FogCell[] = input.all
     ? allCells(scene.gridSize, scene.width, scene.height)
     : input.at
-      ? cellsInDisc(input.at, input.at.radius, scene.gridSize, scene.width, scene.height)
+      ? cellsInBrush(input.at, input.at.radius, scene.gridSize, scene.width, scene.height, {
+        ...(input.at.strength !== undefined ? { strength: input.at.strength } : {}),
+        ...(input.at.hardness !== undefined ? { hardness: input.at.hardness } : {}),
+        ...(input.at.edge ? { edge: input.at.edge } : {}),
+      })
       : [];
 
   // El director entra en el reparto, y sin duplicarse si además figurase como jugador.

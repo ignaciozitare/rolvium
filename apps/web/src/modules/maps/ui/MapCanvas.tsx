@@ -9,7 +9,7 @@ import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
 import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
-import { ringFromSides, roomWallsOf } from '../domain/useCases/roomStyles';
+import { ringFromSides, roomAt, roomWallsOf } from '../domain/useCases/roomStyles';
 import { roomMoveSegments } from '@rolvium/core';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 
@@ -94,7 +94,12 @@ interface Props {
   selectedRoomOpeningId?: string | null;
   onSelectRoomOpening?: (id: string | null) => void;
   /** DM: paint the fog at a scene point with the current brush radius (scene px). */
-  onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => void;
+  /**
+   * `start` marca el primer brochazo de un arrastre, igual que en el pincel de la máscara: quien escucha
+   * sortea ahí la forma del borde roto, y sortearla en cada punto dejaría el trazo de ruido en vez de
+   * desgarrado.
+   */
+  onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide', start?: boolean) => void;
   /** DM, herramienta Luz: coloca una luz de ambiente donde se pinchó (px de escena). */
   onPlaceLight?: (at: Point) => void;
   /**
@@ -102,7 +107,22 @@ interface Props {
    * escena. `null` en `maskLayerId` = no hay capa donde pintar y el pincel no hace nada.
    */
   maskLayerId?: string | null;
-  onPaintMask?: (from: Point, to: Point) => void;
+  /**
+   * LA SALA cuyo suelo se está repintando (rebanada 9). Manda sobre `maskLayerId` cuando está puesta: el
+   * pincel apunta a un sitio o a otro, nunca a los dos.
+   */
+  maskRoomId?: string | null;
+  /**
+   * Avisa de sobre QUÉ SALA está el ratón, para que el pincel del suelo sepa a cuál apunta. Sólo se llama
+   * cuando la sala CAMBIA —no en cada movimiento— porque despierta a la pantalla entera de la escena.
+   *
+   * Se manda con el pincel puesto AUNQUE se esté pintando una capa, y no sólo con el suelo elegido: si se
+   * callara a ratos, lo que sabe el lienzo y lo que sabe la pantalla se quedarían desparejados y al volver al
+   * suelo apuntaría a la sala de antes.
+   */
+  onHoverRoom?: (roomId: string | null) => void;
+  /** `start` marca el primer brochazo de un arrastre: es donde se sortea la forma del borde roto. */
+  onPaintMask?: (from: Point, to: Point, start?: boolean) => void;
   onPaintMaskEnd?: () => void;
   /** La máscara EN VIVO mientras se pinta, antes de que suba. Se pinta en lugar de la guardada. */
   maskPreview?: string | null;
@@ -281,6 +301,8 @@ export function MapCanvas(p: Props): JSX.Element {
   const [measure, setMeasure] = useState<{ a: Point; b: Point } | null>(null);
   const [wallStart, setWallStart] = useState<Point | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
+  /** La última sala avisada al padre. En una `ref` porque sólo sirve para no repetir el aviso. */
+  const hoverRoom = useRef<string | null>(null);
   const [pinShown, setPinShown] = useState<LivePin | null>(null);
   /** Space held = pan, from ANY tool (the middle button already did this). Panning is a modifier, not a tool. */
   const [spacePan, setSpacePan] = useState(false);
@@ -760,8 +782,8 @@ export function MapCanvas(p: Props): JSX.Element {
         return;
       }
       case 'mask': {
-        if (!dmSight || !p.maskLayerId) return;
-        p.onPaintMask?.(s, s);
+        if (!dmSight || (!p.maskLayerId && !p.maskRoomId)) return;
+        p.onPaintMask?.(s, s, true);
         setGesture({ kind: 'mask', last: s });
         svgRef.current?.setPointerCapture?.(e.pointerId);
         return;
@@ -770,7 +792,7 @@ export function MapCanvas(p: Props): JSX.Element {
       case 'hide': {
         if (!dmSight) return;
         const op = p.tool === 'reveal' ? 'reveal' : 'hide';
-        p.onPaintFog({ ...s, radius: brushRadius(p.brush, grid) }, op);
+        p.onPaintFog({ ...s, radius: brushRadius(p.brush, grid) }, op, true);
         setGesture({ kind: 'brush', op });
         svgRef.current?.setPointerCapture?.(e.pointerId);
         return;
@@ -783,6 +805,25 @@ export function MapCanvas(p: Props): JSX.Element {
   const onMove = (e: ReactPointerEvent<SVGSVGElement>) => {
     const s = toScene(e);
     setHover(s);
+    /*
+     * SOBRE QUÉ SALA ESTÁ EL PINCEL DEL SUELO (rebanada 9). Se avisa al MOVERSE y no al pulsar porque quien
+     * escucha guarda la sala en estado de React: decidirla en el `pointerdown` llegaría un render tarde y el
+     * primer brochazo caería en la sala anterior. Al pulsar, el ratón ya ha pasado por aquí.
+     *
+     * Y sólo cuando CAMBIA de sala: esto despierta a la pantalla entera de la escena, y hacerlo en cada
+     * píxel del movimiento sería la clase de goteo que él nota como «va lentísimo».
+     *
+     * 🐞 Y NO MIENTRAS SE PINTA. Una pincelada, una sala: la que había al apoyar. El spec invita a barrer el
+     * pincel «*por encima del muro sin mancharlo*» (§ 9.3), y el muro se dibuja SOBRE el contorno, así que
+     * media franja cae fuera de la sala. Sin este freno, ese mismo gesto sacaba el ratón del contorno, se
+     * avisaba de otra sala —o de ninguna—, el destino del pincel cambiaba a media pincelada y quien escucha
+     * rehacía su lienzo: la pincelada entera se perdía sin decir nada, y si al otro lado había otra sala, el
+     * resto del trazo caía en ella. El recorte protege los píxeles; esto protege el destino.
+     */
+    if (p.tool === 'mask' && dmSight && p.onHoverRoom && gesture?.kind !== 'mask') {
+      const id = roomAt(rooms, s)?.id ?? null;
+      if (id !== hoverRoom.current) { hoverRoom.current = id; p.onHoverRoom(id); }
+    }
     // Past a few px the press is a DRAG, and a drag belongs to the tool (moving the segment, drawing a stroke),
     // never to the disc. This is what keeps Seleccionar able to grab a one-cell door the disc sits right on top of.
     if (discPress.current && Math.hypot(s.x - discPress.current.at.x, s.y - discPress.current.at.y) > 4 / p.view.zoom) discPress.current = null;
@@ -1165,6 +1206,14 @@ export function MapCanvas(p: Props): JSX.Element {
    * fallo que él notaba vivía en `roomIds`. Lo sujeta un test en `MapCanvas.test.tsx`.
    */
   const rooms = useMemo(() => p.rooms ?? [], [p.rooms]);
+  /**
+   * ⚡ MEMORIZADA POR LO MISMO QUE `roomIds`: un objeto nuevo en cada pintada dejaría el `memo` de
+   * `RoomsLayer` sin efecto y volvería a recorrerse el contorno entero de la mazmorra en cada fotograma del
+   * arrastre — que es exactamente el «va lentísimo» que él notó.
+   */
+  const floorPreview = useMemo(
+    () => (p.maskRoomId && p.maskPreview !== undefined ? { roomId: p.maskRoomId, href: p.maskPreview } : null),
+    [p.maskRoomId, p.maskPreview]);
   const roomOpenings = useMemo(() => p.roomOpenings ?? [], [p.roomOpenings]);
   /**
    * 🧱 Y LAS SALAS FRENAN IGUAL (su aviso del 2026-09-04: «*le falta la física a los muros*»).
@@ -1286,7 +1335,7 @@ export function MapCanvas(p: Props): JSX.Element {
             * yo aquí»): la roca y el suelo son el cimiento del mapa, y una capa con transparencia sigue
             * mandando encima de todo esto.
             */}
-          <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} selectedOpeningId={p.selectedRoomOpeningId ?? null} />
+          <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} selectedOpeningId={p.selectedRoomOpeningId ?? null} floorPreview={floorPreview} />
           {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} />}
           {/*
             * Con salas levantadas la rejilla se recorta al AGUJERO: fuera no hay suelo que cuadricular, hay

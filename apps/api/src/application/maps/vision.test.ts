@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { allCells, boundsSegments, cellsInDisc, cellsInPolygons, clipToConvex, clipToStar, lightPolygon, pointInPolygon, rayHit, unionCells, subtractCells, visionPolygon } from './vision.js';
+import { allCells, boundsSegments, cellsInBrush, cellsInDisc, cellsInPolygons, clipToConvex, clipToStar, lightPolygon, pointInPolygon, rayHit, unionCells, subtractCells, visionPolygon } from './vision.js';
 
 const SQUARE = [[0, 0], [100, 0], [100, 100], [0, 100]] as [number, number][];
 
@@ -67,6 +67,55 @@ describe('cells', () => {
     expect(disc.length).toBeGreaterThan(0);
     expect(disc.every(([x, y]) => Math.hypot((x + 0.5) * 27 - 135, (y + 0.5) * 27 - 135) <= 30)).toBe(true);
   });
+  /**
+   * EL PINCEL DE LA NIEBLA (rebanada 9). Lo primero y más importante: sin forma ninguna, es el disco de
+   * SIEMPRE, letra por letra. Un mapa suyo pintado antes de esto se sigue pintando igual, y eso no se deja a
+   * que dos caminos coincidan por casualidad.
+   */
+  it('cellsInBrush sin forma es exactamente el disco de siempre', () => {
+    const at = { x: 135, y: 135 };
+    expect(cellsInBrush(at, 60, 27, 270, 270)).toEqual(cellsInDisc(at, 60, 27, 270, 270));
+    expect(cellsInBrush(at, 60, 27, 270, 270, { strength: 1, hardness: 1 })).toEqual(cellsInDisc(at, 60, 27, 270, 270));
+  });
+
+  /**
+   * LA TRANSPARENCIA EN UN ALMACÉN DE SÍ-O-NO sólo puede ser COBERTURA: cada casilla entra con la
+   * probabilidad que le da el brochazo ahí. A media fuerza la niebla se abre a manchas y una segunda pasada
+   * abre más — que es lo contrario de «tapa o destapa a saco».
+   */
+  it('a media fuerza coge menos casillas que a fuerza entera, y ninguna de más', () => {
+    const at = { x: 135, y: 135 };
+    // Un azar fijo en la mitad: coge lo que el brochazo pinte por encima de 0.5 y deja lo de debajo.
+    const media = cellsInBrush(at, 60, 27, 270, 270, { strength: 0.5, hardness: 0, rnd: () => 0.5 });
+    const entera = cellsInDisc(at, 60, 27, 270, 270);
+    expect(media.length).toBeLessThan(entera.length);
+    const dentro = new Set(entera.map(c => `${c[0]},${c[1]}`));
+    expect(media.every(c => dentro.has(`${c[0]},${c[1]}`))).toBe(true);
+  });
+
+  it('a fuerza cero no se abre ni una casilla', () => {
+    expect(cellsInBrush({ x: 135, y: 135 }, 60, 27, 270, 270, { strength: 0, hardness: 0, rnd: () => 0 })).toEqual([]);
+  });
+
+  /**
+   * EL BORDE ROTO MUERDE, NUNCA CRECE: el brochazo no puede pasarse del radio que el director ve en el
+   * cursor. Y en la niebla se ve a resolución de CASILLA — dentado a lo bruto—, que es la consecuencia
+   * avisada en el spec § 9.2 y en la propia barra.
+   */
+  it('un contorno roto quita casillas del borde y no añade ninguna fuera del disco', () => {
+    const at = { x: 135, y: 135 };
+    const entera = cellsInDisc(at, 60, 27, 270, 270);
+    const roto = cellsInBrush(at, 60, 27, 270, 270, { edge: [0.5, 0.5, 0.5, 0.5], rnd: () => 0 });
+    expect(roto.length).toBeLessThan(entera.length);
+    const dentro = new Set(entera.map(c => `${c[0]},${c[1]}`));
+    expect(roto.every(c => dentro.has(`${c[0]},${c[1]}`))).toBe(true);
+  });
+
+  it('el borde roto no se sale de la escena aunque se pinte en una esquina', () => {
+    const cells = cellsInBrush({ x: 0, y: 0 }, 200, 27, 270, 270, { edge: [1, 0.6, 1, 0.6], rnd: () => 0 });
+    expect(cells.every(([x, y]) => x >= 0 && y >= 0 && x < 10 && y < 10)).toBe(true);
+  });
+
   it('union deduplicates and subtract removes', () => {
     expect(unionCells([[1, 1], [2, 2]], [[2, 2], [3, 3]])).toEqual([[1, 1], [2, 2], [3, 3]]);
     expect(subtractCells([[1, 1], [2, 2]], [[2, 2]])).toEqual([[1, 1]]);

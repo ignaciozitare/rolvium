@@ -169,6 +169,17 @@ export interface MapsPort {
   /** Mover o estirar una forma. Nada que reescribir además: el contorno se recalcula solo. */
   updateRoomPoints(id: string, points: [number, number][]): Promise<void>;
   removeRoom(id: string): Promise<void>;
+  /**
+   * DM only. Sube el PNG del pincel sobre el suelo de ESTA sala a `backgrounds/{campaignId}/masks/room-{id}.png`
+   * y deja el puntero en la fila. Devuelve la sala ya actualizada — de ahí sale el `updated_at` que rompe la
+   * caché del navegador (una sala no lleva número de versión, a diferencia de una capa).
+   *
+   * 🔑 La máscara es DE LA SALA, y ahí es donde se cumple «no me manches la pared»: el recorte sale del sitio
+   * donde se guarda, no de una comprobación que alguien pueda olvidarse de escribir.
+   */
+  saveRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>, png: Blob): Promise<Room>;
+  /** Quita la máscara entera: el suelo de la sala vuelve a verse como lo puso el constructor. */
+  clearRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>): Promise<void>;
 
   // ── el catálogo de texturas (rebanada 8) ──────────────────────────────────
   // De la HERRAMIENTA, no de una campaña: se sube una vez y sirve en todos los mapas.

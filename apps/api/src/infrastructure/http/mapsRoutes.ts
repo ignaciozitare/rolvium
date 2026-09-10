@@ -9,7 +9,20 @@ const Params = z.object({ sceneId: z.string().uuid() });
 const PaintBody = z.object({
   op: z.enum(['reveal', 'hide']),
   all: z.boolean().optional(),
-  at: z.object({ x: z.number().finite(), y: z.number().finite(), radius: z.number().positive().max(4000) }).optional(),
+  /**
+   * La forma del brochazo (rebanada 9). Todo lo que va más allá del centro y el radio es OPCIONAL: sin ello
+   * sale el disco duro de siempre, así que un navegador que no lo mande se comporta exactamente igual.
+   *
+   * `edge` es el contorno roto, y viene del navegador porque es allí donde se tira el dado —«distinto cada
+   * vez»—. Está acotado: sin tope, una llamada a mano podría mandar un contorno de un millón de vértices y
+   * dejar al servidor interpolando por cada casilla de la escena.
+   */
+  at: z.object({
+    x: z.number().finite(), y: z.number().finite(), radius: z.number().positive().max(4000),
+    strength: z.number().min(0).max(1).optional(),
+    hardness: z.number().min(0).max(1).optional(),
+    edge: z.array(z.number().min(0).max(1)).max(256).optional(),
+  }).optional(),
 }).refine(b => b.all === true || b.at !== undefined, { message: 'at or all required' });
 
 /** Posición provisional de un token propio mientras se arrastra. No mueve nada: sólo pregunta qué vería ahí. */

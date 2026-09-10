@@ -30,8 +30,8 @@ const room = (id: string, x1: number, y1: number, x2: number, y2: number, over: 
   floorPreset: 'hatch', floorUrl: null, floorMaskUrl: null, createdAt: '2026-09-04T10:00:00Z', updatedAt: '', ...over,
 });
 
-const mount = (rooms: Room[], openings: RoomOpening[] = [], scene: Scene = SCENE) =>
-  render(<svg><RoomsLayer scene={scene} rooms={rooms} openings={openings} ids={roomMaskIds(scene.id)} /></svg>);
+const mount = (rooms: Room[], openings: RoomOpening[] = [], scene: Scene = SCENE, floorPreview: { roomId: string; href: string | null } | null = null) =>
+  render(<svg><RoomsLayer scene={scene} rooms={rooms} openings={openings} ids={roomMaskIds(scene.id)} floorPreview={floorPreview} /></svg>);
 
 describe('<RoomsLayer> — la roca, el agujero y el muro', () => {
   it('sin salas no pinta NADA: una escena de siempre no cambia ni un píxel', () => {
@@ -490,5 +490,55 @@ describe('<RoomsLayer> — no se repinta de balde', () => {
     const antes = screen.getByTestId('mp-room-wall').getAttribute('d');
     rerender(<svg><RoomsLayer scene={SCENE} rooms={[room('r1', 60, 60, 200, 200)]} openings={[]} ids={ids} /></svg>);
     expect(screen.getByTestId('mp-room-wall').getAttribute('d')).not.toBe(antes);
+  });
+});
+
+/**
+ * ── EL PINCEL SOBRE EL SUELO DE UNA SALA (rebanada 9) ──
+ *
+ * El PNG es negro donde se ha pintado y transparente donde no, así que puesto ENCIMA del contorno blanco de
+ * la máscara tapa justo lo pintado y por ahí asoma lo que haya debajo. La textura del constructor no se toca:
+ * se puede volver atrás siempre.
+ */
+describe('<RoomsLayer> el pincel sobre el suelo de una sala', () => {
+  it('una sala sin pintar no lleva ninguna máscara de pincel', () => {
+    mount([room('a', 0, 0, 100, 100)]);
+    expect(screen.queryByTestId('mp-room-floor-mask')).not.toBeInTheDocument();
+  });
+
+  it('una sala pintada mete su PNG en la máscara de su suelo, con la fecha pegada', () => {
+    mount([room('a', 0, 0, 100, 100, { floorMaskUrl: 'https://x/m.png', updatedAt: 't7' })]);
+    const img = screen.getByTestId('mp-room-floor-mask');
+    expect(img).toHaveAttribute('href', 'https://x/m.png?v=t7');
+  });
+
+  /**
+   * 🔑 UNA SALA PINTADA NO SE JUNTA CON NADIE. Juntar las seguidas que pintan lo mismo es lo que evita
+   * veinte recortes del tamaño del mapa, pero una máscara es SUYA: metida en un grupo se aplicaría también al
+   * suelo de las vecinas y aparecerían agujeros en salas que nadie tocó.
+   */
+  it('la sala pintada se separa de sus vecinas, que sin ella irían en un solo grupo', () => {
+    const iguales = [room('a', 0, 0, 100, 100), room('b', 200, 0, 300, 100)];
+    mount(iguales);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(1);
+    document.body.innerHTML = '';
+    mount([{ ...iguales[0]!, floorMaskUrl: 'https://x/m.png', updatedAt: 't2' }, iguales[1]!]);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(2);
+    expect(screen.getAllByTestId('mp-room-floor-mask')).toHaveLength(1);
+  });
+
+  /** Mientras se arrastra manda la máscara EN VIVO: sin esto el pincel no se vería hasta soltar el ratón. */
+  it('la previa en vivo manda sobre la guardada, y sólo en la sala que se está pintando', () => {
+    const salas = [room('a', 0, 0, 100, 100, { floorMaskUrl: 'https://x/vieja.png', updatedAt: 't1' }), room('b', 200, 0, 300, 100)];
+    mount(salas, [], SCENE, { roomId: 'a', href: 'data:image/png;base64,ENVIVO' });
+    const imgs = screen.getAllByTestId('mp-room-floor-mask');
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0]).toHaveAttribute('href', 'data:image/png;base64,ENVIVO');
+  });
+
+  /** Y una previa VACÍA es «acabo de restaurarla»: tiene que borrar la guardada, no dejarla asomar. */
+  it('una previa vacía deja el suelo entero aunque haya una máscara guardada', () => {
+    mount([room('a', 0, 0, 100, 100, { floorMaskUrl: 'https://x/vieja.png', updatedAt: 't1' })], [], SCENE, { roomId: 'a', href: null });
+    expect(screen.queryByTestId('mp-room-floor-mask')).not.toBeInTheDocument();
   });
 });

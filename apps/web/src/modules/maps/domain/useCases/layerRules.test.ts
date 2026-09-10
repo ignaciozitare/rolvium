@@ -5,12 +5,12 @@ import {
   LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, SCENE_WAREHOUSE,
 } from '../../../../../tests/helpers/fakes';
 import {
-  clampRoughness, DEFAULT_BRUSH_TIP, isBrushTip, roughnessLabel, roughRadii, ROUGH_MAX_BITE, ROUGH_POINTS,
+  BRUSH_TARGETS, clampRoughness, DEFAULT_BRUSH_TIP, isBrushTip, roomMaskPath, roomMaskSrc, roughnessStep, roughRadii, ROUGH_MAX_BITE, ROUGH_POINTS,
   canEditIn, clampRangeM, clampStrength, conePath, DEFAULT_MASK_STRENGTH, LIGHT_COLORS, MAX_RANGE_M, MIN_RANGE_M, FIXED_LAYER_KINDS, FLICKER, flickerOf, isFixedKind, isPainted,
   layerOfKind, layerSendsToPlayers, LIGHT_KINDS, LIGHT_PRESETS, LIGHT_SHAPES, lightRadiusPx, maskPath, maskSize, MASK_MAX_SIDE,
   maskSrc, newLightOf, nextTerrainSortOrder, paintedLights, paintOrder, panelOrder, rangeLabelM, reorderTerrain,
   strengthLabel, strokeDots, TERRAIN_WARN_AT, terrainLayers, terrainOverweight, toMaskPoint, MASK_DIRECTIONS, reorderTerrainTo,
-  clampHardness, clampMaskSize, DEFAULT_MASK_SIZE, hardnessLabel, maskStops, MASK_SIZE_MAX, MASK_SIZE_MIN,
+  clampHardness, clampMaskSize, DEFAULT_MASK_SIZE, hardnessStep, maskStops, MASK_SIZE_MAX, MASK_SIZE_MIN,
   clampSpinMs, DEFAULT_SPIN_MS, MAX_SPIN_MS, MIN_SPIN_MS, spinLabelS,
   clampIntensity, DEFAULT_INTENSITY, intensityFactor, intensityLabel, MAX_INTENSITY, MIN_INTENSITY,
   beamCones, BEAM_LAYERS,
@@ -443,9 +443,15 @@ describe('maskStops — la dureza manda el borde, no la fuerza', () => {
     expect(maskStops(Number.NaN, Number.NaN)).toEqual([{ at: 0, alpha: 0 }, { at: 0, alpha: 0 }, { at: 1, alpha: 0 }]);
   });
 
-  it('hardnessLabel lo enseña en porcentaje', () => {
-    expect(hardnessLabel(0.4)).toBe('40 %');
-    expect(hardnessLabel(2)).toBe('100 %');
+  /**
+   * En PALABRAS y no en porcentaje: «40 % de borde» no significa nada para nadie. Y devuelve la CLAVE, no el
+   * texto — es texto de pantalla y se traduce, que es justo lo que se coló con «apenas/poco/bastante».
+   */
+  it('el borde se lee en palabras, y lo que sale es una clave de traducción', () => {
+    expect(hardnessStep(0)).toBe('soft');
+    expect(hardnessStep(0.4)).toBe('medium');
+    expect(hardnessStep(1)).toBe('sharp');
+    expect(hardnessStep(2)).toBe('sharp');
   });
 });
 
@@ -648,10 +654,35 @@ describe('el pincel · puntas y cuánto de roto', () => {
     expect(clampRoughness(Number.NaN)).toBe(0);
   });
 
-  it('se lee en palabras, no en decimales', () => {
-    expect(roughnessLabel(0.05)).toBe('apenas');
-    expect(roughnessLabel(0.3)).toBe('poco');
-    expect(roughnessLabel(0.6)).toBe('bastante');
-    expect(roughnessLabel(0.9)).toBe('mucho');
+  /** Los tres sitios donde se pinta, en el orden del diseño: capa · niebla · suelo de sala. */
+  it('el pincel actúa sobre tres sitios, y ése es el orden de la barra', () => {
+    expect(BRUSH_TARGETS).toEqual(['layer', 'fog', 'room']);
+  });
+
+  /**
+   * LA MÁSCARA DEL SUELO DE UNA SALA. Misma carpeta y misma política del bucket que las de capa
+   * (`foldername[1]` sigue siendo la campaña); el prefijo sólo dice de qué es cada fichero.
+   */
+  it('la máscara de una sala vive en la carpeta de la campaña, con su prefijo', () => {
+    expect(roomMaskPath('c1', 'rm-7')).toBe('c1/masks/room-rm-7.png');
+  });
+
+  /**
+   * ⚠️ El rompe-caché de una sala es su `updated_at`, y NO un número de versión: una sala no lo tiene. Sin
+   * esto el navegador se queda con el PNG viejo y parece que el pincel no pinta.
+   */
+  it('la máscara de una sala se pide con su fecha pegada, y sin pintar no hay nada que pedir', () => {
+    expect(roomMaskSrc({ floorMaskUrl: null, updatedAt: '2026-09-09T10:00:00Z' })).toBeNull();
+    expect(roomMaskSrc({ floorMaskUrl: 'https://x/m.png', updatedAt: '2026-09-09T10:00:00Z' }))
+      .toBe('https://x/m.png?v=2026-09-09T10%3A00%3A00Z');
+    // Con la URL ya trayendo parámetros se encadena, no se rompe.
+    expect(roomMaskSrc({ floorMaskUrl: 'https://x/m.png?a=1', updatedAt: 't2' })).toBe('https://x/m.png?a=1&v=t2');
+  });
+
+  it('se lee en palabras, no en decimales — y devuelve la CLAVE, que el texto se traduce', () => {
+    expect(roughnessStep(0.05)).toBe('barely');
+    expect(roughnessStep(0.3)).toBe('little');
+    expect(roughnessStep(0.6)).toBe('quite');
+    expect(roughnessStep(0.9)).toBe('lots');
   });
 });

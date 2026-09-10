@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import type { SceneVision } from '@rolvium/core';
-import type { Wall } from '../domain/entities/Scene';
+import type { Room, Wall } from '../domain/entities/Scene';
 import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN, WALL_1 } from '../../../../tests/helpers/fakes';
 import { newLightOf } from '../domain/useCases/layerRules';
 import { useScene } from './useScene';
@@ -553,6 +553,31 @@ describe('useScene — capas y luces', () => {
     expect(r.current.layers.find(l => l.id === LAYER_MOSS.id)!.maskVersion).toBe(before + 1);
     await act(async () => { await r.current.clearMask(moss); });
     expect(r.current.layers.find(l => l.id === LAYER_MOSS.id)!.maskUrl).toBeNull();
+  });
+
+  /**
+   * ── EL MISMO PINCEL, SOBRE EL SUELO DE UNA SALA (rebanada 9) ──
+   * La fila se reemplaza ENTERA con la que contesta la base, y no se parchea sólo la URL: lo que hace que el
+   * navegador se entere del cambio es el `updated_at` que trae de vuelta. Una sala no lleva número de versión
+   * como una capa, así que sin eso el PNG viejo se quedaría en la caché y parecería que el pincel no pinta.
+   */
+  it('pintar el suelo de una sala guarda su máscara y mueve su fecha; quitarla lo deja entero', async () => {
+    const SALA: Room = {
+      id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect',
+      points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null,
+      floorMaskUrl: null, createdAt: 't', updatedAt: 't',
+    };
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], rooms: [SALA] });
+    const r = await mount(repo, fakeVisionPort());
+    const sala = r.current.rooms.find(x => x.id === 'rm-1')!;
+    await act(async () => { await r.current.saveRoomFloorMask(sala, new Blob(['x'])); });
+    expect(repo.floorMasksSaved).toEqual([{ roomId: 'rm-1', bytes: 1 }]);
+    const pintada = r.current.rooms.find(x => x.id === 'rm-1')!;
+    expect(pintada.floorMaskUrl).toContain('masks/room-rm-1.png');
+    expect(pintada.updatedAt).not.toBe('t');
+    await act(async () => { await r.current.clearRoomFloorMask(pintada); });
+    expect(r.current.rooms.find(x => x.id === 'rm-1')!.floorMaskUrl).toBeNull();
+    expect(repo.floorMasksCleared).toEqual(['rm-1']);
   });
 
   it('las luces se ponen, se retocan y se quitan', async () => {

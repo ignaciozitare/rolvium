@@ -11,7 +11,7 @@ import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { DoorSettings, ImageAsset, Scene, ScenePatch, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { brushRadius, canvasToScene, centerOn, DEFAULT_BRUSH, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokensScaledIn, tokenAnchorShift, tokenPointStored, tokenSizeIn, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { brushRadius, canvasToScene, centerOn, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokensScaledIn, tokenAnchorShift, tokenPointStored, tokenSizeIn, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
 import { mapsRepo, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
@@ -20,14 +20,18 @@ import { StrokeBar } from './StrokeBar';
 import { BuilderPanel } from './BuilderPanel';
 import { TextureCatalog } from './TextureCatalog';
 import { defaultShapeFor, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
-import { DEFAULT_TEXTURE_SCALE, snapSpanToOutline, wallWidthPx } from '../domain/useCases/roomStyles';
+import { DEFAULT_TEXTURE_SCALE, ringOf, ringPath, snapSpanToOutline, wallWidthPx } from '../domain/useCases/roomStyles';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
-import { MaskBrushBar } from './MaskBrushBar';
+import { BrushBar, type BrushSettings } from './BrushBar';
 import { LayerMenu } from './LayerMenu';
-import { useMaskPainter } from './useMaskPainter';
-import { clampMaskSize, DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, newLightOf, type ElementKind, type MaskDirection } from '../domain/useCases/layerRules';
+import { useMaskPainter, type MaskTarget } from './useMaskPainter';
+import {
+  clampHardness, clampMaskSize, clampRoughness, clampStrength, DEFAULT_BRUSH_ROUGHNESS, DEFAULT_BRUSH_TIP,
+  DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, maskSrc, newLightOf, roomMaskSrc, roughRadii,
+  type BrushTarget, type ElementKind, type MaskDirection,
+} from '../domain/useCases/layerRules';
 import { ScenesMenu } from './ScenesMenu';
 import { BackgroundPopover } from './BackgroundPopover';
 import { EncounterMenu } from './EncounterMenu';
@@ -117,7 +121,6 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const [armedFromBestiary, setArmedFromBestiary] = useState(false);
   const [pendingPc, setPendingPc] = useState<Character | null>(null);
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
-  const [brush, setBrush] = useState<number>(DEFAULT_BRUSH);
   const [wallKind, setWallKind] = useState<WallKind>('wall');
   /** Con qué forma levanta Builder. Arranca en `segment`: el Builder de siempre, sin sorpresas (§ «Rebanada 8»). */
   const [wallShape, setWallShape] = useState<RoomShape>('segment');
@@ -229,15 +232,26 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const [layersOpen, setLayersOpen] = useState(true);
   /** La luz que se está retocando. Es pintura: seleccionarla no cambia nada para nadie. */
   const [selectedLightId, setSelectedLightId] = useState<string | null>(null);
-  const [maskStrength, setMaskStrength] = useState(DEFAULT_MASK_STRENGTH);
-  const [maskDir, setMaskDir] = useState<MaskDirection>('erase');
   /**
-   * El pincel de transparencia lleva SU tamaño, continuo y en casillas, y su dureza. No comparte el `brush`
-   * de la niebla a propósito: allí son cuatro discos y aquí el dueño lo pidió gradual, así que compartirlo
-   * habría dejado la niebla con un tamaño que ninguno de sus discos puede representar.
+   * EL SENTIDO del pincel cuando pinta una MÁSCARA (capa o suelo de sala). En la niebla no vive aquí: lo dice
+   * la herramienta —Revelar o Ocultar—, que es como estaba y como se sigue entrando desde la barra lateral.
+   *
+   * Arranca en `erase` («QUITAR») y no en `restore`, aunque el `.pen` enseñe PINTAR marcado: sobre una capa
+   * recién estrenada `restore` no hace nada —no hay nada pintado que devolver— y el pincel parecería roto.
    */
-  const [maskSizeCells, setMaskSizeCells] = useState(DEFAULT_MASK_SIZE);
-  const [maskHardness, setMaskHardness] = useState(DEFAULT_MASK_HARDNESS);
+  const [maskDir, setMaskDir] = useState<MaskDirection>('erase');
+  /** Capa o suelo de sala. La niebla no entra aquí porque la elige la herramienta. */
+  const [maskTarget, setMaskTarget] = useState<Exclude<BrushTarget, 'fog'>>('layer');
+  /** La sala bajo el ratón: a ésa apunta el pincel del suelo. La avisa el lienzo, y sólo cuando cambia. */
+  const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
+  /**
+   * LO QUE SE ESTÁ MOVIENDO AHORA MISMO EN LAS BARRAS DEL PINCEL, antes de que llegue a la escena. Mismo
+   * reparto que el previo de la escala de textura: mover es continuo, guardar es una vez, al soltar. Sin
+   * esto cada paso del deslizador sería una escritura en la base.
+   */
+  const [brushDraft, setBrushDraft] = useState<Partial<BrushSettings> | null>(null);
+  /** La forma del borde roto de la pincelada de NIEBLA en curso: se sortea al empezarla, como en la máscara. */
+  const fogEdge = useRef<number[] | null>(null);
   /** «Botón derecho sobre cualquier cosa → mándala a otra capa». */
   const [layerMenu, setLayerMenu] = useState<{ at: Point; element: { kind: ElementKind; id: string; name: string; layerId: string | null } } | null>(null);
   /**
@@ -544,12 +558,86 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * «+ Capa de terreno» sirva de algo: sin esto la capa nacía vacía y no había manera de darle foto.
    */
   const bgLayer = st.layers.find(l => l.id === activeLayerId && l.kind === 'terrain') ?? null;
+
+  // ── EL PINCEL (rebanada 9) ────────────────────────────────────────────────
   /**
-   * El pincel de transparencia pinta sobre un lienzo propio fuera de pantalla; la foto de la capa no se toca.
-   * `useMemo` en las dependencias porque si no el hook se rehace en cada render y pierde lo pintado.
+   * EL PINCEL SE GUARDA EN LA ESCENA, no en la pantalla ni en el director: decisión suya contra la
+   * recomendación contraria, «*el trazo es de la escena*». Se abre ese mapa y el pincel está como lo dejó.
+   * Lo que hay encima es sólo lo que está moviendo ahora mismo, hasta que suelte.
    */
-  const maskDeps = useMemo(() => ({ saveMask: st.saveMask, clearMask: st.clearMask }), [st.saveMask, st.clearMask]);
-  const mask = useMaskPainter(live, bgLayer, maskDeps);
+  const brush: BrushSettings = {
+    tip: live?.brushTip ?? DEFAULT_BRUSH_TIP,
+    size: live?.brushSize ?? DEFAULT_MASK_SIZE,
+    strength: live?.brushStrength ?? DEFAULT_MASK_STRENGTH,
+    hardness: live?.brushHardness ?? DEFAULT_MASK_HARDNESS,
+    roughness: live?.brushRoughness ?? DEFAULT_BRUSH_ROUGHNESS,
+    ...brushDraft,
+  };
+  /**
+   * SOBRE QUÉ PINTA, Y EN QUÉ SENTIDO — los dos salen de la HERRAMIENTA cuando es la niebla, y del estado de
+   * la barra cuando es una máscara. Una sola verdad y sin sincronizar nada en los dos sentidos: los botones
+   * Revelar y Ocultar de la barra lateral siguen siendo lo que eran, ahora leídos como «niebla · quitar» y
+   * «niebla · pintar».
+   */
+  const brushTarget: BrushTarget = isBrush(tool) ? 'fog' : maskTarget;
+  const brushDir: MaskDirection = tool === 'reveal' ? 'erase' : tool === 'hide' ? 'restore' : maskDir;
+  const setBrushTarget = (x: BrushTarget): void => {
+    if (x === 'fog') { setTool(brushDir === 'erase' ? 'reveal' : 'hide'); return; }
+    setMaskTarget(x);
+    setTool('mask');
+  };
+  const setBrushDir = (d: MaskDirection): void => {
+    if (brushTarget === 'fog') { setTool(d === 'erase' ? 'reveal' : 'hide'); return; }
+    setMaskDir(d);
+  };
+  /** La sala que se repinta: la que hay bajo el pincel. No hay que elegirla antes, se apunta y ya. */
+  const paintRoom = brushTarget === 'room' ? st.rooms.find(r => r.id === hoverRoomId) ?? null : null;
+  /**
+   * El pincel pinta sobre un lienzo propio fuera de pantalla; la foto de la capa —o la textura del suelo— no
+   * se toca. `useMemo` porque si no el hook se rehace en cada render y pierde lo pintado.
+   *
+   * 🔑 El RECORTE de una sala sale de aquí: su propio contorno. Es lo que hace verdad «*si voy a pintar una
+   * sala no tiene que manchar una pared*» sin ninguna comprobación que alguien pueda olvidarse de escribir.
+   */
+  const maskTargetOf = useMemo<MaskTarget | null>(() => {
+    if (paintRoom) return {
+      id: paintRoom.id, src: roomMaskSrc(paintRoom), clip: ringPath(ringOf(paintRoom)),
+      save: (png: Blob) => st.saveRoomFloorMask(paintRoom, png),
+      clear: () => st.clearRoomFloorMask(paintRoom),
+    };
+    if (brushTarget === 'layer' && bgLayer) return {
+      id: bgLayer.id, src: maskSrc(bgLayer), clip: null,
+      save: (png: Blob) => st.saveMask(bgLayer, png),
+      clear: () => st.clearMask(bgLayer),
+    };
+    return null;
+  }, [paintRoom, brushTarget, bgLayer, st.saveRoomFloorMask, st.clearRoomFloorMask, st.saveMask, st.clearMask]);
+  const mask = useMaskPainter(live, maskTargetOf);
+  /** Guarda en la escena lo que se acaba de mover. Un viaje por gesto, no uno por paso del deslizador. */
+  const commitBrush = (patch: Partial<BrushSettings> = {}): void => {
+    const next = { ...brushDraft, ...patch };
+    setBrushDraft(null);
+    if (!live || Object.keys(next).length === 0) return;
+    run(patchScene(live.id, {
+      ...(next.tip !== undefined ? { brushTip: next.tip } : {}),
+      ...(next.size !== undefined ? { brushSize: clampMaskSize(next.size) } : {}),
+      ...(next.strength !== undefined ? { brushStrength: clampStrength(next.strength) } : {}),
+      ...(next.hardness !== undefined ? { brushHardness: clampHardness(next.hardness) } : {}),
+      ...(next.roughness !== undefined ? { brushRoughness: clampRoughness(next.roughness) } : {}),
+    }));
+  };
+  /**
+   * La forma del brochazo de NIEBLA. `disc` corta a canto limpio pase lo que pase con el borde, y el contorno
+   * roto sólo viaja con la punta que lo usa: sin nada de esto el servidor pinta el disco duro de siempre.
+   */
+  const fogShape = (start?: boolean): { strength: number; hardness: number; edge?: number[] } => {
+    if (start || fogEdge.current === null) fogEdge.current = roughRadii(brush.roughness, Math.random);
+    return {
+      strength: brush.strength,
+      hardness: brush.tip === 'disc' ? 1 : brush.hardness,
+      ...(brush.tip === 'rough' ? { edge: fogEdge.current } : {}),
+    };
+  };
 
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
   const removeLight = (id: string) => { setSelectedLightId(cur => (cur === id ? null : cur)); run(st.removeLight(id)); };
@@ -640,7 +728,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
         <div className="mp-stage" ref={stageRef}>
           {/* El lienzo pinta `shown`: la escena más el borrador de la escala que él esté arrastrando ahora. */}
           <MapCanvas scene={shown!} tokens={fichas} walls={st.walls} drawings={st.drawings} layers={st.layers} lights={st.lights} drags={drags} pin={st.pin} tool={tool} stroke={stroke} me={userId} isDm={isDm}
-            playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush} wallKind={wallKind} wallShape={wallShape} snapGrid={snapGrid} chainNodes={chainNodes} view={view} onViewChange={setView} nameOf={nameOf}
+            playerView={playerView} probe={probe} onProbeMove={setProbe} showWalls={showWalls} fog={st.fog} brush={brush.size} wallKind={wallKind} wallShape={wallShape} snapGrid={snapGrid} chainNodes={chainNodes} view={view} onViewChange={setView} nameOf={nameOf}
             onCloseMenus={() => setQuickMenu(null)}
             onAddText={async at => {
               const text = await dialog.prompt(t('maps.text.prompt'));
@@ -702,7 +790,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               run(st.addRoom(sides.map(sd => ({ sceneId: live.id, campaignId, ...sd, visiblePlayers: false, ...newWallOf('wall') }))));
             }}
             onToggleWall={(w: Wall) => run(st.patchWall(w.id, { isOpen: !w.isOpen }))}
-            onPaintFog={(at, op) => run(st.paintFog(at, op))}
+            onPaintFog={(at, op, start) => run(st.paintFog({ ...at, ...fogShape(start) }, op))}
             selectedLightId={selectedLightId} onSelectLight={setSelectedLightId}
             onMoveLight={(id, at) => run(st.patchLight(id, at))}
             selectedDrawingId={selectedDrawingId} onSelectDrawing={setSelectedDrawingId}
@@ -710,8 +798,11 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             onMoveDrawing={(id, data) => run(st.moveDrawing(id, data))}
             onMoveDrawings={batch => batch.forEach(b => run(st.moveDrawing(b.id, b.data)))}
             fogVeil={fogVeil}
-            maskLayerId={bgLayer?.id ?? null} maskPreview={mask.preview}
-            onPaintMask={(from, to) => mask.paint(from, to, brushRadius(maskSizeCells, live.grid.size), maskStrength, maskDir, maskHardness)}
+            maskLayerId={brushTarget === 'layer' ? bgLayer?.id ?? null : null}
+            maskRoomId={paintRoom?.id ?? null} maskPreview={mask.preview}
+            onHoverRoom={setHoverRoomId}
+            onPaintMask={(from, to, start) => mask.paint(from, to, brushRadius(brush.size, live.grid.size),
+              { strength: brush.strength, hardness: brush.hardness, tip: brush.tip, roughness: brush.roughness, dir: brushDir }, start)}
             onPaintMaskEnd={() => run(mask.flush())}
             onPlaceLight={async at => {
               // Nace con lo que trae su tipo; el editor se abre solo para retocarla sin buscarla.
@@ -769,10 +860,9 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             * director sus privilegios y pintar la niebla es uno. Lo que estaba mal era OFRECERLO: la barra
             * salía, se pintaba con ella y no pasaba nada.
             */}
-          {(isDraw(tool) || (isDm && !playerView && isBrush(tool))) && (
+          {isDraw(tool) && (
             <StrokeBar value={stroke} onChange={setStroke} onClearMine={() => run(st.clearMine())} onClearAll={isDm ? () => run(st.clearAll()) : undefined}
-              tool={tool}
-              {...(isDm && !playerView && isBrush(tool) ? { brush, onBrush: setBrush, onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) } : {})} />
+              tool={tool} />
           )}
           {/*
             * El panel de capas es del DIRECTOR y desaparece con «ver como jugador»: la lente sirve para ver
@@ -796,13 +886,23 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                 run(st.removeLayer(l.id));
               }} />
           )}
-          {/* El pincel de transparencia necesita una capa de terreno donde pintar; si no la hay, se DICE. */}
-          {isDm && !playerView && tool === 'mask' && (bgLayer
-            ? <MaskBrushBar layerName={bgLayer.name || t('maps.layers.kind.terrain')} size={maskSizeCells} onSize={n => setMaskSizeCells(clampMaskSize(n))}
-                strength={maskStrength} onStrength={setMaskStrength} hardness={maskHardness} onHardness={setMaskHardness}
-                direction={maskDir} onDirection={setMaskDir}
-                saving={mask.saving} onReset={() => run(mask.reset())} />
-            : <p className="mp-mask-needs">{t('maps.mask.needsLayer')}</p>)}
+          {/*
+            * LA BARRA DEL PINCEL, la misma para los tres sitios donde se pinta. Sale con cualquiera de las
+            * tres herramientas de pincel —la máscara y los dos de niebla— porque desde ella se salta de una
+            * a otra: «SOBRE QUÉ» ES la herramienta, rotulada en lo que hace y no en cómo se llama por dentro.
+            */}
+          {isDm && !playerView && (tool === 'mask' || isBrush(tool)) && (<>
+            <BrushBar target={brushTarget} onTarget={setBrushTarget} direction={brushDir} onDirection={setBrushDir}
+              value={brush} onChange={patch => { setBrushDraft(d => ({ ...d, ...patch })); if (patch.tip !== undefined) commitBrush(patch); }}
+              onCommit={() => commitBrush()}
+              saving={mask.saving}
+              {...(brushTarget === 'fog'
+                ? { onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) }
+                : { onReset: () => run(mask.reset()) })} />
+            {/* Sin sitio donde pintar el pincel quedaría MUDO, y eso se dice — no se deja adivinar. */}
+            {brushTarget === 'layer' && !bgLayer && <p className="mp-mask-needs">{t('maps.mask.needsLayer')}</p>}
+            {brushTarget === 'room' && !paintRoom && <p className="mp-mask-needs">{t('maps.brush.needsRoom')}</p>}
+          </>)}
           {isDm && !playerView && selectedLight && (
             <LightEditor light={selectedLight}
               onChange={patch => run(st.patchLight(selectedLight.id, patch))}

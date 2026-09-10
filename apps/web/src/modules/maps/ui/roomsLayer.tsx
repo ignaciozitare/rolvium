@@ -5,6 +5,7 @@ import {
   dugRooms, filledRooms, floorUrlOf, outlinePath, ringOf, ringPath, ringsOf, roomWallsOf, shadowDepthPx,
   styleOf, tilePx, wallWidthPx,
 } from '../domain/useCases/roomStyles';
+import { roomMaskSrc } from '../domain/useCases/layerRules';
 import { doorColorOf, doorTextureOf, type Segment } from '../domain/useCases/mapRules';
 import { DoorLeaves } from './canvasLayers';
 
@@ -38,6 +39,11 @@ interface Props {
   selectedOpeningId?: string | null;
   /** Los ids de las máscaras, para que la rejilla pueda pedir la del agujero (ver `GridLayer`). */
   ids: RoomMaskIds;
+  /**
+   * LA MÁSCARA EN VIVO de la sala que se está pintando (rebanada 9): manda sobre la guardada hasta que el PNG
+   * suba. Sin esto el pincel no se vería hasta soltar el ratón, que es como pintar a ciegas.
+   */
+  floorPreview?: { roomId: string; href: string | null } | null;
 }
 
 export interface RoomMaskIds { rock: string; hole: string; hatch: string; blur: string; rockTile: string; floorTile: string }
@@ -74,9 +80,11 @@ const MASK_HIDE = '#000000';
  * suelo, y pintarlas de una en una serían veinte recortes y veinte rectángulos del tamaño del mapa. Juntar
  * sólo las CONSECUTIVAS es lo que mantiene el orden intacto.
  */
-interface Capa { key: string; rock: boolean; preset: RoomPreset; url: string | null; d: string }
+interface Capa { key: string; rock: boolean; preset: RoomPreset; url: string | null; d: string;
+  /** El PNG pintado sobre el suelo de ESTA sala, si lo tiene. Una capa con máscara es siempre de una sola sala. */
+  mask: string | null }
 
-function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl'>): Capa[] {
+function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl'>, preview: Props['floorPreview'] = null): Capa[] {
   const out: Capa[] = [];
   for (const r of rooms) {
     const d = ringPath(ringOf(r));
@@ -85,10 +93,17 @@ function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl'>):
     // 🐞 La url se RESUELVE contra el mapa: una sala sin suelo propio usa el del mapa. Sin esto, las salas
     // dibujadas antes de subir la textura se quedaban con el color del preajuste para siempre.
     const url = rock ? null : floorUrlOf(r, scene);
-    const key = rock ? 'rock' : `${r.floorPreset}|${url ?? ''}`;
+    // Un TABIQUE no lleva máscara: no tiene suelo que repintar, devuelve roca al hueco.
+    const mask = rock ? null : preview && preview.roomId === r.id ? preview.href : roomMaskSrc(r);
+    /*
+     * UNA SALA PINTADA NO SE JUNTA CON NADIE, y por eso su clave lleva su id. Juntar las seguidas que pintan
+     * lo mismo es lo que evita veinte recortes del tamaño del mapa, pero una máscara es SUYA: metida en un
+     * grupo se aplicaría también al suelo de las vecinas y aparecerían agujeros en salas que nadie tocó.
+     */
+    const key = rock ? 'rock' : mask ? `pintada:${r.id}` : `${r.floorPreset}|${url ?? ''}`;
     const last = out[out.length - 1];
-    if (last && last.key === key) last.d += ` ${d}`;
-    else out.push({ key, rock, preset: r.floorPreset, url, d });
+    if (last && last.key === key && !mask) last.d += ` ${d}`;
+    else out.push({ key, rock, preset: r.floorPreset, url, d, mask });
   }
   return out;
 }
@@ -107,7 +122,7 @@ function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl'>):
  * desde `MapCanvas`) React ni entra en el cuerpo, y el arrastre va suelto. No cambia ni un píxel de lo que
  * se ve.
  */
-function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null }: Props): JSX.Element | null {
+function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null, floorPreview = null }: Props): JSX.Element | null {
   /**
    * ⏱ EL CONTORNO SE CALCULA UNA VEZ POR CAMBIO, NO UNA VEZ POR PINTADA.
    *
@@ -129,7 +144,7 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null 
   const floorTile = tilePx(scene.floorTextureScale, scene.grid.size);
   // UNA sola lista, y se recorre dos veces con el MISMO índice: los patrones de `defs` y los rectángulos que
   // los usan se emparejan por ese índice, así que calcularla dos veces sería pedir que se descuadren.
-  const capasPintadas = capasDe(rooms, scene);
+  const capasPintadas = capasDe(rooms, scene, floorPreview);
   const full = { x: 0, y: 0, width: scene.width, height: scene.height };
   /**
    * EL VACÍO = lo EXCAVADO menos lo RELLENADO (suyo, 2026-09-04: «*los muros serán relleno de esos huecos*»).
@@ -254,6 +269,16 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null 
               <mask id={maskId} maskUnits="userSpaceOnUse" {...full}>
                 <rect {...full} fill={MASK_HIDE} />
                 <path d={c.d} fill={MASK_SHOW} />
+                {/*
+                  * EL PINCEL SOBRE EL SUELO DE ESTA SALA (rebanada 9). El PNG es negro donde se ha pintado y
+                  * transparente donde no, así que puesto ENCIMA del contorno blanco tapa justo lo pintado y
+                  * por ahí asoma lo que haya debajo. La textura del constructor no se toca: se puede volver
+                  * atrás siempre.
+                  *
+                  * Y aquí es donde «no me manches la pared» se cumple solo: la máscara vive dentro del
+                  * recorte de la sala, así que lo que caiga fuera de su contorno no pinta nada.
+                  */}
+                {c.mask && <image href={c.mask} {...full} preserveAspectRatio="none" data-testid="mp-room-floor-mask" />}
               </mask>
             </defs>
             <g mask={`url(#${maskId})`}>

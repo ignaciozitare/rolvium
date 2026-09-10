@@ -849,7 +849,44 @@
       "revealAll": "Reveal all",
       "hideAll": "Hide all",
       "reveal": "Reveal brush",
-      "hide": "Hide brush"
+      "hide": "Hide brush",
+      "on": "Paint on",
+      "target": {
+        "layer": "Layer",
+        "fog": "Fog",
+        "room": "Room floor"
+      },
+      "way": "Way",
+      "dir": {
+        "restore": "Paint",
+        "erase": "Remove"
+      },
+      "tipLabel": "Stroke",
+      "tip": {
+        "disc": "Disc",
+        "soft": "Soft",
+        "rough": "Torn edge"
+      },
+      "sizeLabel": "Size",
+      "alpha": "Transparency",
+      "edge": "Edge",
+      "edgeStep": {
+        "soft": "soft",
+        "medium": "medium",
+        "sharp": "sharp"
+      },
+      "roughLabel": "How torn",
+      "roughness": {
+        "barely": "barely",
+        "little": "a little",
+        "quite": "quite",
+        "lots": "a lot"
+      },
+      "everyStrokeDiffers": "every stroke, different",
+      "hintRoom": "Painting a ROOM FLOOR the stroke clips itself at the room edge: you can sweep over the wall without staining it.",
+      "hintScene": "The brush is remembered by THIS scene — stroke, size, transparency and how torn. Another map brings its own.",
+      "hintFog": "In the FOG a torn edge shows in whole cells, because that is how fog is stored. On a layer or a room floor it looks fine-grained.",
+      "needsRoom": "Put the brush over a room to repaint its floor."
     },
     "fog": {
       "autoOn": "Automatic fog by line of sight · opens as tokens move; click for manual",

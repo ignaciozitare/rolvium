@@ -589,15 +589,30 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
     await waitFor(() => expect(within(canvas()).getByTestId('mp-walls').querySelectorAll('[data-wall-id]')).toHaveLength(3));
   });
 
-  it('DM: the reveal brush replaces the stroke bar and «Revelar todo» paints the whole scene for every player', async () => {
+  /**
+   * Desde la rebanada 9 «Revelar» y «Ocultar» son la barra del PINCEL puesta en NIEBLA: son la misma
+   * herramienta con el sentido cambiado. «Revelar todo» sigue donde estaba, en el mismo hueco de la barra.
+   */
+  it('DM: the reveal brush opens the brush bar on «Niebla» and «Revelar todo» paints the whole scene for every player', async () => {
     const u = userEvent.setup();
     const vision = fakeVisionPort();
     mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
     await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Revelar' }));
-    expect(await screen.findByRole('radio', { name: 'Tamaño 3' })).toBeChecked();
+    expect(await screen.findByRole('radio', { name: 'Niebla' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'Quitar' })).toHaveAttribute('aria-checked', 'true');
     await u.click(screen.getByRole('button', { name: 'Revelar todo' }));
     await waitFor(() => expect(vision.calls.some(c => c.op === 'revealAll')).toBe(true));
+  });
+
+  /** Y al revés: elegir NIEBLA · PINTAR en la barra ES la herramienta Ocultar. Una sola verdad, sin sincronizar. */
+  it('cambiar el sentido en la barra cambia la herramienta: niebla · pintar ES Ocultar', async () => {
+    const u = userEvent.setup();
+    mount('dm', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), fakeVisionPort());
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Revelar' }));
+    await u.click(await screen.findByRole('radio', { name: 'Pintar' }));
+    expect(await screen.findByRole('button', { name: 'Ocultar' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('a `fog.updated` from someone else makes this client ask the server again; its own does not (that would loop)', async () => {
@@ -741,7 +756,7 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     expect(stage().querySelector('.mp-builder')).not.toBeNull();     // el panel de Builder, sobre el mapa
 
     await u.click(screen.getByRole('button', { name: 'Revelar' }));
-    expect(stage().querySelector('.mp-brushbar')).not.toBeNull();    // «Pincel», sobre el mapa
+    expect(stage().querySelector('.mp-brushbar-v2')).not.toBeNull(); // «Pincel», sobre el mapa
   });
 
   it('cambiar de herramienta suelta la selección: el panel de Builder no se queda pisando a «Trazo»', async () => {
@@ -1347,43 +1362,120 @@ describe('<SceneTab> capas (rebanada 7)', () => {
   /**
    * El pincel de transparencia necesita una capa de terreno donde pintar. Sin ella no se queda mudo: lo dice.
    */
-  it('el pincel avisa si no hay capa de terreno donde pintar, y aparece cuando la hay', async () => {
+  it('el pincel avisa si no hay capa de terreno donde pintar, y pinta cuando la hay', async () => {
     const u = userEvent.setup();
     mount('dm', withLayers());
     await screen.findByRole('complementary', { name: 'Capas' });
     await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
     expect(screen.getByText('Elige una capa de terreno en el panel de capas para pintar en ella.')).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
-    const bar = screen.getByRole('radio', { name: 'Borrar' }).closest('.mp-maskbar')!;
-    expect(within(bar as HTMLElement).getByRole('slider', { name: 'Fuerza' })).toBeInTheDocument();
-    // La barra dice en qué capa se pinta: el pincel no vale para todas a la vez.
-    expect(within(bar as HTMLElement).getByText('Musgo')).toBeInTheDocument();
+    expect(screen.queryByText('Elige una capa de terreno en el panel de capas para pintar en ella.')).not.toBeInTheDocument();
+    const bar = screen.getByRole('radio', { name: 'Quitar' }).closest('.mp-maskbar')!;
+    expect(within(bar as HTMLElement).getByRole('slider', { name: 'Transparencia' })).toBeInTheDocument();
   });
 
   /**
-   * PIN DE DECISIÓN: el tamaño del pincel de transparencia es CONTINUO y vive APARTE del de la niebla, que
-   * son cuatro discos fijos. El dueño pidió el gradual sólo para éste. Si alguien «ordena» el código y los
-   * junta reusando `brush`, la niebla se queda con un tamaño que ninguno de sus cuatro discos puede marcar:
-   * este test es lo único que se entera.
+   * ⚠️ PIN DE DECISIÓN, REESCRITO EN LA REBANADA 9. Hasta aquí este test fijaba lo CONTRARIO: que el tamaño
+   * de transparencia iba aparte del de la niebla, que eran cuatro discos fijos. Lo tumba el spec § 9.1, que
+   * él aprobó el 2026-09-09: «*Tamaño: continuo, en casillas, para los tres. La niebla deja sus cuatro
+   * discos*». Un solo pincel para los tres sitios era la petición entera.
+   *
+   * Lo que se fija ahora: **un solo tamaño**, continuo, y que los cuatro discos NO vuelvan.
    */
-  it('el tamaño de transparencia va aparte del de la niebla', async () => {
+  it('un solo tamaño, continuo, para los tres sitios — y los cuatro discos no vuelven', async () => {
     const u = userEvent.setup();
     mount('dm', withLayers());
     await screen.findByRole('complementary', { name: 'Capas' });
     await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
     await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
     expect(screen.getByText('1.2 casillas')).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('slider', { name: 'Tamaño del pincel' }), { target: { value: '35' } });
+    fireEvent.change(screen.getByRole('slider', { name: 'Tamaño' }), { target: { value: '35' } });
     expect(await screen.findByText('3.5 casillas')).toBeInTheDocument();
-    // La niebla sigue en su disco de siempre…
+    // La niebla trae el MISMO tamaño, y ya no hay discos que marcar.
     await u.click(screen.getByRole('button', { name: 'Revelar' }));
-    expect(await screen.findByRole('radio', { name: 'Tamaño 3' })).toBeChecked();
-    // …y moverle el disco a la niebla tampoco arrastra al de transparencia (la fusión de una sola dirección).
-    await u.click(screen.getByRole('radio', { name: 'Tamaño 1' }));
-    expect(await screen.findByRole('radio', { name: 'Tamaño 1' })).toBeChecked();
-    // …y al volver, la transparencia conserva el suyo.
-    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
     expect(await screen.findByText('3.5 casillas')).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /^Tamaño \d$/ })).not.toBeInTheDocument();
+  });
+
+  /**
+   * «*EL TRAZO ES DE LA ESCENA*» (decisión suya, contra la recomendación contraria). El pincel NO es estado
+   * de la pantalla ni preferencia del director: se guarda en la escena, y por eso otro mapa trae el suyo.
+   *
+   * Y se guarda al SOLTAR, no en cada paso del deslizador: mover es continuo, guardar es una vez.
+   */
+  it('el pincel se guarda en la escena, y sólo al soltar el deslizador', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', withLayers());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    const slider = screen.getByRole('slider', { name: 'Transparencia' });
+    fireEvent.change(slider, { target: { value: '25' } });
+    expect(repo.sceneUpdates.some(x => 'brushStrength' in x.patch)).toBe(false);
+    fireEvent.pointerUp(slider);
+    await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { brushStrength: 0.25 } }));
+    /*
+     * 🐞 Y AL SOLTAR NO REBOTA. Lo que se está moviendo se guarda en la pantalla y lo guardado vive en la
+     * ESCENA: si al soltar se tirara el borrador antes de que la escena se enterase, el deslizador daría un
+     * salto atrás a la vista. Es lo primero que se nota y lo último que se prueba, así que se prueba.
+     */
+    expect(screen.getByText('25 %')).toBeInTheDocument();
+    await new Promise(r => setTimeout(r, 0));
+    expect(screen.getByText('25 %')).toBeInTheDocument();
+  });
+
+  /** Elegir el trazo es un clic, no un arrastre: se guarda en el acto. */
+  it('elegir el trazo se guarda en el acto', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', withLayers());
+    await screen.findByRole('complementary', { name: 'Capas' });
+    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    await u.click(screen.getByRole('radio', { name: 'Borde roto' }));
+    await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { brushTip: 'rough' } }));
+    // Y con el borde roto aparece su barra, que antes no estaba.
+    expect(await screen.findByRole('slider', { name: 'Cuánto de roto' })).toBeInTheDocument();
+  });
+
+  /**
+   * ── EL CAMINO ENTERO DEL PINCEL SOBRE EL SUELO DE UNA SALA (rebanada 9) ──
+   *
+   * Es lo que él quería cuando dijo «*hoy no se puede pintar*»: no era que el pincel de transparencia
+   * estuviera roto, es que para el suelo de una sala NO HABÍA HERRAMIENTA NINGUNA. Aquí se ata de punta a
+   * punta: elegir SUELO DE SALA → apuntar con el ratón → pintar → que suba el PNG de ESA sala.
+   */
+  it('repintar el suelo de una sala: se apunta con el ratón y el PNG sube a esa sala', async () => {
+    const u = userEvent.setup();
+    const SALA = {
+      id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+      points: [[0, 0], [400, 0], [400, 400], [0, 400]] as [number, number][],
+      floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+    };
+    /*
+     * jsdom no trae lienzo de verdad —`getContext` devuelve null— así que sin esto el pincel no llegaría ni
+     * a marcar que hay algo que subir. Se le pone uno de mentira: lo que se prueba aquí es el CAMINO, que el
+     * brochazo acabe en la sala correcta; el dibujo en sí es del navegador y ya lo cubre `useMaskPainter`.
+     */
+    const ctx = { save: vi.fn(), restore: vi.fn(), clearRect: vi.fn(), drawImage: vi.fn(), beginPath: vi.fn(), fill: vi.fn(), arc: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), closePath: vi.fn(), scale: vi.fn(), setTransform: vi.fn(), clip: vi.fn(), createRadialGradient: () => ({ addColorStop: vi.fn() }), globalCompositeOperation: '', fillStyle: null as unknown };
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,PINTADO');
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(cb => { cb(new Blob(['png'], { type: 'image/png' })); });
+
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [SALA] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    await u.click(await screen.findByRole('radio', { name: 'Suelo de sala' }));
+
+    // Sin el ratón encima de ninguna sala el pincel lo DICE, en vez de quedarse mudo.
+    expect(await screen.findByText('Pon el pincel encima de una sala para repintar su suelo.')).toBeInTheDocument();
+
+    fireEvent.pointerMove(canvas(), { clientX: 100, clientY: 100, pointerId: 1 });
+    await waitFor(() => expect(screen.queryByText('Pon el pincel encima de una sala para repintar su suelo.')).not.toBeInTheDocument());
+    fireEvent.pointerDown(canvas(), { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(canvas(), { clientX: 140, clientY: 140, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+
+    await waitFor(() => expect(repo.floorMasksSaved.map(x => x.roomId)).toEqual(['rm-1']));
+    // Y la TEXTURA de la sala no se ha tocado: lo que se guarda es una máscara aparte.
+    expect(repo.rooms[0]!.floorUrl).toBeNull();
   });
 
   it('retocar y borrar la luz seleccionada llega al repositorio', async () => {

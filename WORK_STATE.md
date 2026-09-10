@@ -14,53 +14,98 @@ sesión del 18→19 de agosto a partir de la prueba del dueño sobre la app corr
 `maps` **rebanada 8** — EL CONSTRUCTOR DE SALAS — construida entera la noche del 03→04 de septiembre, y
 rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo de texturas**.
 
-**SIGUIENTE:** que él MIRE en pantalla el arreglo y el catálogo → coger/mover/borrar una sala con el ratón
-(pide `.pen`) → el pincel para repintar el suelo de UNA sala → **rebanada 6** (galería de piezas, a
-rediseñar) → `chat` (H8) + `journal` (H9). ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno,
+`maps` **rebanada 9** — EL PINCEL — construida entera el 2026-09-09 (las dos tandas), en la rama
+`feat/maps-pincel` y sin mergear.
+
+**SIGUIENTE:** que él MIRE el pincel en pantalla → coger/mover/borrar una sala con el ratón (pide `.pen`) →
+**rebanada 6** (galería de piezas, a rediseñar) → `chat` (H8) + `journal` (H9). ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno,
 configurable por sistema (toca el puerto `GameSystem`) — spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cuatro bloques de arriba, en este orden: 🖌️ «EL PINCEL, A MEDIAS» (donde se retoma) · 📥 «TRES PETICIONES SIN EMPEZAR» · 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cuatro bloques de arriba, en este orden: 🖌️ «EL PINCEL, CONSTRUIDO ENTERO» (donde se retoma) · 📥 «TRES PETICIONES SIN EMPEZAR» · 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🖌️ 2026-09-09 — EL PINCEL, A MEDIAS · RAMA `feat/maps-pincel` · **AQUÍ SE RETOMA**
+## 🖌️ 2026-09-09 — EL PINCEL, CONSTRUIDO ENTERO · RAMA `feat/maps-pincel` · **PENDIENTE DE QUE LO MIRE**
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🖌️ de arriba de WORK_STATE.md. El pincel está a medias en la rama
-> `feat/maps-pincel`: los cimientos y el diseño están hechos y aprobados, falta la pantalla (tanda 2).»
+> «Rolvium. Lee el bloque 🖌️ de arriba de WORK_STATE.md. El pincel está construido entero en la rama
+> `feat/maps-pincel`, sin mergear. Falta que yo lo mire en pantalla.»
 
 ### ESTADO
-- Rama **`feat/maps-pincel`**, subida, **2 commits**, **SIN mergear**. `main` = `9004356`.
-- Verde en la rama: web **1548** · `tsc` limpio · `audit` **0 hard**.
-- **La migración YA ESTÁ EN `main`** (`20260909160000_maps_brush.sql`) y **aplicada en local**. ⚠ **NO está
-  en producción**: va antes que el código cuando se despliegue.
-- Spec: `specs/modules/maps/SPEC.md` § «Rebanada 9», **aprobado por él**. Diseño aprobado y commiteado.
+- Rama **`feat/maps-pincel`**, **SIN mergear**. `main` = `9004356`.
+- Verde: web **1582** · api **256** · core **87** · `tsc` limpio · `build:web` y `build:api` limpios ·
+  `audit` **0 hard**.
+- **La migración YA ESTÁ EN `main`** (`20260909160000_maps_brush.sql`) y aplicada en local. ⚠ **NO está en
+  producción**: va antes que el código cuando se despliegue.
+- Spec actualizado con lo construido (`specs/modules/maps/SPEC.md` § «Rebanada 9», y el § 9.2 bis nuevo).
 
-### ✅ TANDA 1 — HECHA
-- `maps_scenes` guarda el pincel (punta, tamaño, fuerza, borde, cuánto de roto). `maps_rooms` guarda la
-  máscara de su suelo. Entidad + adaptador + tests.
-- `roughRadii` en `layerRules.ts`: la forma del borde roto. **El azar entra por parámetro**, no por
-  `Math.random` dentro — es lo único que la hace probable.
-- Diseño en el `.pen`: **«PL/Pincel · barra»**, final de la sección 5.
+### ⏭️ LO SIGUIENTE, Y ES SUYO: MIRARLO EN PANTALLA
+Con la app corriendo, escena de director, herramienta **Pincel de transparencia**:
+1. **Capa** — pintar sobre una capa de terreno como siempre, y probar los tres trazos.
+2. **Suelo de sala** — poner el ratón encima de una sala y pintar: se recorta solo en el borde, se puede
+   pasar por encima del muro sin mancharlo.
+3. **Niebla** — Revelar / Ocultar, ahora con tamaño continuo y transparencia.
 
-### ⏭️ TANDA 2 — LA PANTALLA, LO QUE FALTA
-1. **La barra**, 1:1 con el `.pen`. Hoy existe `MaskBrushBar.tsx` y se queda corta: le faltan la punta, el
-   cuánto de roto y el «sobre qué».
-2. **Estampar el borde roto** en `useMaskPainter.ts` — hoy estampa un degradado radial (`maskStops`).
-3. **Pintar el suelo de UNA sala**, que hoy **no existe**: guardar en `floorMaskUrl` y recortar contra el
-   contorno. El recorte sale gratis de que la máscara sea de la sala.
-4. **Transparencia en la niebla** — hoy tapa o destapa a saco, y va con cuatro discos.
-5. **Guardar y leer el pincel de la escena** (`ScenePatch` ya lo admite).
-6. Claves i18n en **es y en**.
+### ✅ CONSTRUIDO (tanda 2 entera)
+- **La forma del brochazo se mudó a `@rolvium/core`** (`packages/core/src/brush.ts`): `roughRadii`,
+  `roughOutline`, `roughReach`, `brushAlphaAt`. **No es purismo**: la niebla la calcula el SERVIDOR, así que
+  `apps/api` necesitaba las mismas funciones. `layerRules.ts` las re-exporta y ningún import de la UI cambió.
+- **`useMaskPainter` ya no es de capas: es de DESTINOS** (`MaskTarget` = id · src · recorte · guardar ·
+  limpiar). La misma máquina sirve para una capa y para el suelo de una sala.
+- **El borde roto se estampa de verdad**: polígono en vez de arco, con el mismo degradado. Y la forma se
+  sortea **una vez por pincelada**, no por punto — sortearla en cada punto dejaba el trazo de ruido.
+- **El suelo de una sala, de punta a punta**: puerto → adaptador Supabase → `useScene` → pintado en
+  `roomsLayer`. PNG en `backgrounds/{campaña}/masks/room-{sala}.png`, sin políticas nuevas.
+- **La barra**, `MaskBrushBar.tsx` → **`BrushBar.tsx`**, 1:1 con el `.pen`.
+- **El pincel se guarda POR ESCENA**, y se escribe **al soltar** el deslizador, no en cada paso.
+- **La niebla acepta la forma**: `cellsInBrush` en la API + cuerpo de `POST /scenes/:id/fog` ampliado.
+- Claves i18n en **es y en**, paridad comprobada.
 
 ### 🔑 LAS DECISIONES SUYAS QUE NO SE PUEDEN PERDER
-- **«El trazo es de la escena»** — el pincel se guarda por escena, NO por usuario. Contra la recomendación
-  contraria; él decidió.
-- **«Distinto cada vez»** — el borde roto se sortea en cada brochazo. **Y no hay que guardar nada**: lo que
-  se persiste es el RESULTADO (PNG de máscara, casillas de niebla), así que la forma queda cocida dentro.
-  ⚠ El spec llegó a decir que hacía falta una semilla por trazo. **Es falso y está corregido.**
-- **«Si voy a pintar una sala no tiene que manchar una pared»** — no se arregla eligiendo capa: el brochazo
-  se **recorta contra el contorno de la sala**.
+- **«El trazo es de la escena»** — por escena, NO por usuario. Contra la recomendación contraria; él decidió.
+- **«Distinto cada vez»** — se sortea en cada brochazo y **no hay que guardar nada**: se persiste el
+  RESULTADO (PNG o casillas), así que la forma queda cocida dentro. ⚠ El spec llegó a pedir una semilla por
+  trazo: **es falso y está corregido**.
+- **«Si voy a pintar una sala no tiene que manchar una pared»** — no se arregla eligiendo capa: se **recorta
+  contra el contorno de la sala**, y el recorte sale del sitio donde se guarda la máscara.
 - **`rough` NO es «dureza 0»**: la dureza difumina en círculo, roto cambia el contorno. Dos mandos.
-- En la **niebla** el borde roto se verá **a resolución de casilla**. Es inevitable y está avisado en la barra.
+
+### ⚠️ TRES COSAS QUE DECIDÍ YO Y ÉL PUEDE TUMBAR AL VERLAS
+1. **La transparencia en la NIEBLA es COBERTURA.** La niebla son casillas y una casilla está o no está: no
+   hay media casilla. Así que a media fuerza se abre **a manchas** y una segunda pasada abre más; a fuerza
+   máxima sale el disco entero de siempre. La alternativa —que la fuerza encogiera el brochazo— ya la hace la
+   barra de tamaño. Está escrito en el spec § 9.2 bis.
+2. **El pincel arranca en QUITAR**, aunque el `.pen` enseñe PINTAR marcado. Sobre una capa recién estrenada
+   PINTAR no hace nada y el pincel parecería roto.
+3. **En la niebla, el hueco de «RESTAURAR TODA» lleva los DOS botones de siempre** (Revelar todo / Ocultar
+   todo). El `.pen` dibuja uno solo, pero quitarle esos dos al director sería perder función.
+
+### 🐞 DOS FALLOS QUE CAZÓ LA REVISIÓN Y YA ESTÁN ARREGLADOS (no volver a introducirlos)
+1. **Una pincelada en el suelo de una sala se perdía ENTERA, sin decir nada**, en cuanto el pincel cruzaba el
+   borde. El aviso de «sobre qué sala está el ratón» saltaba también EN MEDIO del trazo, así que al salirse
+   del contorno el destino del pincel cambiaba, el lienzo se rehacía y al soltar no había nada que subir. Y lo
+   disparaba el gesto que el propio spec invita —«*puedes pasar por encima del muro sin mancharlo*»—, porque
+   el muro se dibuja SOBRE el contorno y media franja cae fuera. **Arreglo: una pincelada, una sala — la que
+   había al apoyar** (`MapCanvas`, `gesture?.kind !== 'mask'`). El recorte protege los píxeles; esto protege
+   el destino.
+2. **Guardar el pincel borraba lo pintado.** Como el pincel se guarda en la escena, soltar un deslizador
+   reescribía la fila y llegaba una escena NUEVA del mismo tamaño; el lienzo del pincel colgaba del objeto
+   escena, así que se rehacía: parpadeo en cada roce y, si daba tiempo a pintar, la máscara vieja caía encima
+   de lo nuevo. **Arreglo: el lienzo cuelga del TAMAÑO de la máscara, no de la escena** (`useMaskPainter`).
+   Cambiar de mapa lo sigue rehaciendo; guardar el pincel, no.
+
+Los dos tienen test que fallaba antes del arreglo. Y hay un tercero que ata que **el deslizador no rebota al
+soltarlo**, que es lo primero que se nota en pantalla.
+
+### 🚫 DEUDA ANOTADA A PROPÓSITO, NO TOCADA
+- La rama `brushing` de **`StrokeBar.tsx`** (los cuatro discos de la niebla) queda **inalcanzable**: la barra
+  nueva la sustituye. **No la borro hasta que él apruebe la barra en pantalla** — borrar interfaz que
+  funciona antes de que vea la que la reemplaza es al revés. Igual con `BRUSH_SIZES` / `DEFAULT_BRUSH` en
+  `mapRules.ts`, que ya no los usa nadie en la pantalla.
+- La barra **ya no dice el nombre de la capa** en la que se pinta (el `.pen` no lo lleva). El panel de capas
+  marca la activa, así que el dato no se pierde de la pantalla — pero si lo echa de menos, ahí está el porqué.
+- Dos nimiedades que la revisión señaló y NO se tocaron: con el borde a tope, el 2 % exterior del brochazo de
+  niebla sigue siendo probabilístico (por debajo del tamaño de una casilla, no se ve); y lo que se está
+  moviendo en un deslizador no se limpia al cambiar de escena (sólo alcanzable si el `pointerup` no llega
+  nunca, que en un deslizador no pasa).
 
 ## 📥 2026-09-09 — TRES PETICIONES SUYAS SIN EMPEZAR (no estaban escritas en ningún sitio)
 

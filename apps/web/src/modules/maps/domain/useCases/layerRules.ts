@@ -1,4 +1,4 @@
-import { sightRadiusPx } from '@rolvium/core';
+import { brushPlateau, sightRadiusPx } from '@rolvium/core';
 import { BRUSH_TIPS, type BrushTip, type GridSettings, type Layer, type LayerKind, type Light, type LightKind, type LightShape, type NewLight } from '../entities/Scene';
 
 /**
@@ -179,7 +179,18 @@ export const clampMaskSize = (v: number): number =>
  */
 export const DEFAULT_MASK_HARDNESS = 0.4;
 export const clampHardness = (v: number): number => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
-export const hardnessLabel = (v: number): string => `${Math.round(clampHardness(v) * 100)} %`;
+/**
+ * Lo que se lee junto a la barra del borde. En palabras y no en porcentaje (`rolvium.pen` · «PL/Pincel ·
+ * barra»): «40 %» de borde no significa nada para nadie, «media» sí. Devuelve la CLAVE, que el texto es de
+ * pantalla y se traduce.
+ */
+export type HardnessStep = 'soft' | 'medium' | 'sharp';
+export const hardnessStep = (v: number): HardnessStep => {
+  const h = clampHardness(v);
+  if (h < 0.34) return 'soft';
+  if (h < 0.67) return 'medium';
+  return 'sharp';
+};
 
 // ── EL PINCEL (rebanada 9) ───────────────────────────────────────────────────
 /**
@@ -197,47 +208,52 @@ export const isBrushTip = (v: unknown): v is BrushTip => BRUSH_TIPS.includes(v a
 /** CUÁNTO DE ROTO, de 0 a 1. Sólo pinta con la punta `rough`. */
 export const DEFAULT_BRUSH_ROUGHNESS = 0.5;
 export const clampRoughness = (v: number): number => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
-/** Lo que se lee junto a la barra. En palabras, que «0,62» no le dice nada a nadie. */
-export const roughnessLabel = (v: number): string => {
+/**
+ * Lo que se lee junto a la barra, en palabras: «0,62» no le dice nada a nadie.
+ *
+ * ⚠️ Devuelve una CLAVE, no el texto. La primera versión devolvía «apenas»/«poco»/… en castellano desde el
+ * dominio, y eso es texto de pantalla escrito donde no se puede traducir: en inglés salía en español. La
+ * barra lo pasa por `t('maps.brush.roughness.<clave>')`.
+ */
+export type RoughnessStep = 'barely' | 'little' | 'quite' | 'lots';
+export const roughnessStep = (v: number): RoughnessStep => {
   const r = clampRoughness(v);
-  if (r < 0.2) return 'apenas';
-  if (r < 0.45) return 'poco';
-  if (r < 0.7) return 'bastante';
-  return 'mucho';
+  if (r < 0.2) return 'barely';
+  if (r < 0.45) return 'little';
+  if (r < 0.7) return 'quite';
+  return 'lots';
 };
 
-/** Cuántos vértices tiene el contorno de un brochazo roto. Bastantes para que no se lea como un polígono. */
-export const ROUGH_POINTS = 28;
+/**
+ * LA FORMA DEL BROCHAZO VIVE EN `@rolvium/core` (`brush.ts`) y aquí sólo se re-exporta.
+ *
+ * No es purismo: el pincel pinta en tres sitios y uno de ellos, la NIEBLA, lo calcula el servidor. Una copia
+ * en el navegador y otra en `apps/api` acabarían discrepando, y sería el mismo mando difuminando en una capa
+ * y cortando a filo en la niebla. Mismo motivo por el que `roomWalls` vive allí.
+ */
+export { roughRadii, roughOutline, roughReach, brushAlphaAt, ROUGH_POINTS, ROUGH_MAX_BITE } from '@rolvium/core';
 
 /**
- * EL CONTORNO DE UN BROCHAZO ROTO: un multiplicador del radio por vértice, dando la vuelta al círculo.
- *
- * 🔑 **Cada brochazo sale distinto** (orden suya: «*distinto cada vez*»), y por eso el azar entra por
- * `rnd` en vez de llamar aquí a `Math.random`: así la función es PURA y se puede probar. En la app se le
- * pasa `Math.random`; en un test, un azar sembrado.
- *
- * 🔑 **Y no hace falta guardar nada.** Lo que se persiste es el RESULTADO —el PNG de la máscara, o las
- * casillas de la niebla—, así que la forma queda cocida dentro y el azar muere aquí. El spec llegó a decir
- * que haría falta guardar una semilla por trazo; no es cierto, y está corregido allí.
- *
- * El contorno **nunca crece hacia fuera**, sólo muerde hacia dentro: si creciera, el brochazo se saldría del
- * radio que el director ve en el cursor y pintaría donde no apunta. Muerde como mucho la mitad del radio,
- * porque más deja el trazo tan comido que ya no se lee como una pincelada.
+ * SOBRE QUÉ ACTÚA EL PINCEL (§ 9.1, elegido por él): una **capa de terreno**, la **niebla**, o el **suelo de
+ * una sala**. Los tres comparten la barra, y por eso comparten también lo que se guarda en la escena.
  */
-export const ROUGH_MAX_BITE = 0.5;
-export function roughRadii(roughness: number, rnd: () => number, points = ROUGH_POINTS): number[] {
-  const r = clampRoughness(roughness);
-  if (r === 0) return Array.from({ length: points }, () => 1);
-  const bite = r * ROUGH_MAX_BITE;
-  const raw = Array.from({ length: points }, () => 1 - rnd() * bite);
-  /*
-   * Se suaviza con sus dos vecinos y CIRCULARMENTE, que es lo que hace que el borde parezca desgarrado y no
-   * un serrucho de ruido: sin esto cada vértice salta contra el siguiente. Circular porque el último vértice
-   * es vecino del primero — si no, se ve la costura por donde se cerró el contorno.
-   */
-  const at = (i: number): number => raw[((i % points) + points) % points]!;
-  return raw.map((_, i) => (at(i - 1) + at(i) * 2 + at(i + 1)) / 4);
-}
+export type BrushTarget = 'layer' | 'fog' | 'room';
+export const BRUSH_TARGETS: BrushTarget[] = ['layer', 'fog', 'room'];
+
+/**
+ * Dónde vive el PNG de la máscara del suelo de una sala. Misma carpeta que las de capa y misma política del
+ * bucket (`foldername[1]` sigue siendo la campaña); el prefijo `room-` sólo está para que al mirar la carpeta
+ * se sepa de qué es cada fichero.
+ */
+export const roomMaskPath = (campaignId: string, roomId: string): string => `${campaignId}/masks/room-${roomId}.png`;
+
+/**
+ * La máscara del suelo de una sala, con rompe-caché. A diferencia de las capas, una sala NO guarda número de
+ * versión: se usa su `updated_at`, que el disparador `maps_rooms_touch` mueve en cada guardado. Sin esto el
+ * navegador se queda con el PNG viejo y parece que el pincel no pinta.
+ */
+export const roomMaskSrc = (room: { floorMaskUrl: string | null; updatedAt: string }): string | null =>
+  room.floorMaskUrl ? `${room.floorMaskUrl}${room.floorMaskUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(room.updatedAt)}` : null;
 
 /** Una parada del degradado radial del pincel: a qué distancia del centro (0 = centro, 1 = borde) y con qué opacidad. */
 export interface MaskStop { at: number; alpha: number }
@@ -253,7 +269,7 @@ export interface MaskStop { at: number; alpha: number }
  */
 export function maskStops(strength: number, hardness: number): MaskStop[] {
   const alpha = clampStrength(strength);
-  const plateau = Math.min(0.98, clampHardness(hardness));
+  const plateau = brushPlateau(hardness);
   return [{ at: 0, alpha }, { at: plateau, alpha }, { at: 1, alpha: 0 }];
 }
 

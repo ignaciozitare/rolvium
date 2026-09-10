@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ROOM_PRESETS, type RoomPreset, type Scene } from '../entities/Scene';
 import {
-  outlinePath, ringFromSides, ringOf, ringPath, ringsOf, ROOM_STYLES, sceneTextures,
+  outlinePath, ringFromSides, ringOf, ringPath, ringsOf, ROOM_STYLES, roomAt, sceneTextures,
   shadowDepthPx, snapSpanToOutline, spansOf, styleOf, wallWidthPx, roomWallsOf,
 } from './roomStyles';
 import type { RoomSide } from './roomRules';
@@ -185,5 +185,38 @@ describe('snapSpanToOutline — la puerta se engancha a la pared', () => {
 
   it('sin salas no hay contorno al que engancharse', () => {
     expect(snapSpanToOutline([], vano(30, 0, 70, 0), 15)).toBeNull();
+  });
+});
+
+/**
+ * ── LA SALA BAJO EL PINCEL (rebanada 9) ──
+ * El pincel del suelo no pide elegir sala antes: se apunta con el ratón y pinta la que hay debajo.
+ */
+describe('roomAt — a qué sala apunta el pincel del suelo', () => {
+  const cuadrado = (id: string, x: number, y: number, lado = 100): Room => ({
+    id, sceneId: 's', campaignId: 'c', kind: 'room', shape: 'rect',
+    points: [[x, y], [x + lado, y], [x + lado, y + lado], [x, y + lado]],
+    floorPreset: 'hatch', floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+  });
+
+  it('devuelve la sala que hay bajo el punto, y nada fuera de todas', () => {
+    const salas = [cuadrado('a', 0, 0), cuadrado('b', 200, 0)];
+    expect(roomAt(salas, { x: 50, y: 50 })?.id).toBe('a');
+    expect(roomAt(salas, { x: 250, y: 50 })?.id).toBe('b');
+    expect(roomAt(salas, { x: 150, y: 50 })).toBeNull();
+    expect(roomAt([], { x: 1, y: 1 })).toBeNull();
+  });
+
+  /** Donde dos salas se solapan manda la de ARRIBA, que es la que él está viendo cuando apunta. */
+  it('con dos solapadas manda la última dibujada, que es la que se ve', () => {
+    const salas = [cuadrado('vieja', 0, 0), cuadrado('nueva', 50, 50)];
+    expect(roomAt(salas, { x: 75, y: 75 })?.id).toBe('nueva');
+    expect(roomAt(salas, { x: 10, y: 10 })?.id).toBe('vieja');
+  });
+
+  /** Un TABIQUE no tiene suelo que pintar: es roca devuelta al hueco, no una sala. */
+  it('un relleno no cuenta: no hay suelo que repintar en un tabique', () => {
+    const tabique: Room = { ...cuadrado('t', 0, 0), kind: 'fill' };
+    expect(roomAt([tabique], { x: 50, y: 50 })).toBeNull();
   });
 });

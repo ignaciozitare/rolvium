@@ -406,9 +406,12 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const propUploads: { name: string; bytes: number }[] = [];
   const masksSaved: { layerId: string; bytes: number }[] = [];
   const masksCleared: string[] = [];
+  /** El pincel sobre el suelo de una sala (rebanada 9). Se apunta aparte del de las capas: son dos destinos. */
+  const floorMasksSaved: { roomId: string; bytes: number }[] = [];
+  const floorMasksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, rooms, roomOpenings, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, rooms, roomOpenings, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared, floorMasksSaved, floorMasksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -507,6 +510,19 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     addRoom: async (r: NewRoom) => { const created: Room = { ...r, id: `rm-new-${++n}`, createdAt: '', updatedAt: '' }; rooms.push(created); return created; },
     updateRoomPoints: async (id: string, points: [number, number][]) => { const r = rooms.find(x => x.id === id); if (r) r.points = points; },
     removeRoom: async (id: string) => { const i = rooms.findIndex(r => r.id === id); if (i >= 0) rooms.splice(i, 1); },
+    saveRoomFloorMask: async (room: Pick<Room, 'id' | 'campaignId'>, png: Blob) => {
+      floorMasksSaved.push({ roomId: room.id, bytes: png.size });
+      const r = rooms.find(x => x.id === room.id);
+      // La fila vuelve con `updatedAt` NUEVO, que es el rompe-caché de una sala (no lleva número de versión).
+      const next = { floorMaskUrl: `https://x/backgrounds/${room.campaignId}/masks/room-${room.id}.png`, updatedAt: `t${++n}` };
+      if (r) Object.assign(r, next);
+      return { ...(r ?? rooms[0]!), ...next };
+    },
+    clearRoomFloorMask: async (room: Pick<Room, 'id' | 'campaignId'>) => {
+      floorMasksCleared.push(room.id);
+      const r = rooms.find(x => x.id === room.id);
+      if (r) r.floorMaskUrl = null;
+    },
     listRoomOpenings: async (sid: string) => roomOpenings.filter(o => o.sceneId === sid),
     addRoomOpening: async (o: NewRoomOpening) => { const created: RoomOpening = { ...DEFAULT_DOOR, ...o, id: `ro-new-${++n}` }; roomOpenings.push(created); return created; },
     updateRoomOpening: async (id: string, patch: RoomOpeningPatch) => { const o = roomOpenings.find(x => x.id === id); if (o) Object.assign(o, patch); },
