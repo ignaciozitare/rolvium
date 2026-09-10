@@ -30,7 +30,7 @@ describe('<Toolbar>', () => {
     // + DIRECTOR: Luz · Muro · Fondo del mapa · Pincel de transparencia ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ
     expect(screen.getAllByRole('button')).toHaveLength(13);
     // El pincel y la luz entran en el bloque del director: son cosa suya (rebanada 7).
-    expect(screen.getByRole('button', { name: 'Pincel de transparencia' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pincel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Luz de ambiente' })).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Colocar PJ' }));
     expect(onPlacePc).toHaveBeenCalled();
@@ -81,7 +81,7 @@ describe('<Toolbar>', () => {
     renderWithProviders(<Toolbar tool="select" isDm onChange={vi.fn()} onDice={vi.fn()} onPlacePc={vi.fn()} onBackground={vi.fn()} />);
     const names = screen.getAllByRole('button').map(b => b.getAttribute('aria-label'));
     expect(names.slice(-8)).toEqual([
-      'Luz de ambiente', 'Builder', 'Fondo del mapa', 'Pincel de transparencia',
+      'Luz de ambiente', 'Builder', 'Fondo del mapa', 'Pincel',
       'Revelar', 'Ocultar', 'Encuentro', 'Colocar PJ',
     ]);
   });

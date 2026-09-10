@@ -1,9 +1,9 @@
 import { memo } from 'react';
 import type { RoomWall } from '@rolvium/core';
-import type { Room, RoomOpening, RoomPreset, Scene } from '../domain/entities/Scene';
+import type { Room, RoomOpening, Scene } from '../domain/entities/Scene';
 import {
-  dugRooms, filledRooms, floorUrlOf, outlinePath, ringOf, ringPath, ringsOf, roomWallsOf, shadowDepthPx,
-  styleOf, tilePx, wallWidthPx,
+  dugRooms, filledRooms, outlinePath, ringOf, ringPath, ringsOf, roomWallsOf, shadowDepthPx, shapeColorOf,
+  shapeImageOf, styleOf, tilePx, wallWidthPx,
 } from '../domain/useCases/roomStyles';
 import { roomMaskSrc } from '../domain/useCases/layerRules';
 import { doorColorOf, doorTextureOf, type Segment } from '../domain/useCases/mapRules';
@@ -80,30 +80,43 @@ const MASK_HIDE = '#000000';
  * suelo, y pintarlas de una en una serían veinte recortes y veinte rectángulos del tamaño del mapa. Juntar
  * sólo las CONSECUTIVAS es lo que mantiene el orden intacto.
  */
-interface Capa { key: string; rock: boolean; preset: RoomPreset; url: string | null; d: string;
+interface Capa { key: string; rock: boolean; url: string | null; d: string;
+  /** CON QUÉ SE PINTA, ya resuelto (rebanada 10): el color de la forma, o el del preajuste que le toque. */
+  color: string;
   /** El PNG pintado sobre el suelo de ESTA sala, si lo tiene. Una capa con máscara es siempre de una sola sala. */
   mask: string | null }
 
-function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl'>, preview: Props['floorPreview'] = null): Capa[] {
+function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl' | 'wallTextureUrl' | 'roomPreset'>, preview: Props['floorPreview'] = null): Capa[] {
   const out: Capa[] = [];
   for (const r of rooms) {
     const d = ringPath(ringOf(r));
     if (!d) continue;
     const rock = r.kind === 'fill';
-    // 🐞 La url se RESUELVE contra el mapa: una sala sin suelo propio usa el del mapa. Sin esto, las salas
-    // dibujadas antes de subir la textura se quedaban con el color del preajuste para siempre.
-    const url = rock ? null : floorUrlOf(r, scene);
+    /*
+     * CADA FORMA SE PINTA CON LO SUYO (rebanada 10) — su foto y su color, resueltos en un solo sitio.
+     *
+     * 🐞 La url se RESUELVE contra el mapa: una sala sin suelo propio usa el del mapa. Sin esto, las salas
+     * dibujadas antes de subir la textura se quedaban con el color del preajuste para siempre.
+     *
+     * Y desde el pincel eso vale también para la que RELLENA: un brochazo de muro puede traer su propia
+     * piedra, y si no la trae sigue saliendo la roca del mapa, exactamente como hasta hoy.
+     */
+    const url = shapeImageOf(r, scene);
+    const color = shapeColorOf(r, scene.roomPreset);
     // Un TABIQUE no lleva máscara: no tiene suelo que repintar, devuelve roca al hueco.
     const mask = rock ? null : preview && preview.roomId === r.id ? preview.href : roomMaskSrc(r);
     /*
      * UNA SALA PINTADA NO SE JUNTA CON NADIE, y por eso su clave lleva su id. Juntar las seguidas que pintan
      * lo mismo es lo que evita veinte recortes del tamaño del mapa, pero una máscara es SUYA: metida en un
      * grupo se aplicaría también al suelo de las vecinas y aparecerían agujeros en salas que nadie tocó.
+     *
+     * ⚠️ Y la clave lleva el COLOR y la FOTO: dos brochazos seguidos de colores distintos pintan cosas
+     * distintas, así que juntarlos daría el color del primero a los dos.
      */
-    const key = rock ? 'rock' : mask ? `pintada:${r.id}` : `${r.floorPreset}|${url ?? ''}`;
+    const key = mask ? `pintada:${r.id}` : `${rock ? 'rock' : 'floor'}|${color}|${url ?? ''}`;
     const last = out[out.length - 1];
     if (last && last.key === key && !mask) last.d += ` ${d}`;
-    else out.push({ key, rock, preset: r.floorPreset, url, d, mask });
+    else out.push({ key, rock, url, color, d, mask });
   }
   return out;
 }
@@ -237,9 +250,15 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null,
             <image href={scene.wallTextureUrl} x={0} y={0} width={rockTile} height={rockTile} preserveAspectRatio="xMidYMid slice" />
           </pattern>
         )}
+        {/*
+          * Un azulejo por capa, y del tamaño QUE LE TOCA: el de la roca cuando la forma rellena y el del
+          * suelo cuando excava. Son dos escalas distintas de la escena y mezclarlas dejaría la piedra de un
+          * brochazo de muro con el tamaño del suelo.
+          */}
         {capasPintadas.map((c, i) => c.url && (
-          <pattern key={i} id={`${ids.floorTile}-${i}`} patternUnits="userSpaceOnUse" width={floorTile} height={floorTile}>
-            <image href={c.url} x={0} y={0} width={floorTile} height={floorTile} preserveAspectRatio="xMidYMid slice" />
+          <pattern key={i} id={`${ids.floorTile}-${i}`} patternUnits="userSpaceOnUse"
+            width={c.rock ? rockTile : floorTile} height={c.rock ? rockTile : floorTile}>
+            <image href={c.url} x={0} y={0} width={c.rock ? rockTile : floorTile} height={c.rock ? rockTile : floorTile} preserveAspectRatio="xMidYMid slice" />
           </pattern>
         ))}
         <filter id={ids.blur} x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox">
@@ -262,7 +281,6 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null,
         */}
       {capasPintadas.map((c, i) => {
         const maskId = `${ids.hole}-c${i}`;
-        const floor = styleOf(c.preset);
         return (
           <g key={i} data-testid={c.rock ? 'mp-room-refill' : 'mp-room-floor'}>
             <defs>
@@ -282,9 +300,9 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null,
               </mask>
             </defs>
             <g mask={`url(#${maskId})`}>
-              <rect {...full} fill={c.rock ? st.rock : floor.floor} />
-              {c.rock && scene.wallTextureUrl && <rect {...full} fill={`url(#${ids.rockTile})`} />}
-              {!c.rock && c.url && <rect {...full} fill={`url(#${ids.floorTile}-${i})`} data-testid="mp-room-floor-img" />}
+              {/* El color va DEBAJO: si hay foto se la come entera, y si él se la quita asoma lo que había. */}
+              <rect {...full} fill={c.color} />
+              {c.url && <rect {...full} fill={`url(#${ids.floorTile}-${i})`} data-testid={c.rock ? 'mp-room-fill-img' : 'mp-room-floor-img'} />}
             </g>
           </g>
         );

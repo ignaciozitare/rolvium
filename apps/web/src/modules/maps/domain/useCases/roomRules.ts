@@ -1,3 +1,4 @@
+import type { BrushTarget } from './layerRules';
 import { snapStep, type Point } from './mapRules';
 
 /**
@@ -480,3 +481,84 @@ export function brushRings(path: Point[], widthCells: number, grid: number): [nu
   runs.push(run);
   return runs.filter(x => x.length > 0).map(x => ringOfRun(x, r).map(p => [p.x, p.y] as [number, number]));
 }
+
+// ── EL PINCEL QUE CONSTRUYE · LO QUE SE ELIGE ANTES DE PINTAR (§ «Rebanada 10») ──
+
+/**
+ * SOBRE QUÉ se está construyendo. Son las dos únicas cosas que se pueden levantar a mano alzada, y son las
+ * mismas dos de siempre con otro nombre: **suelo excava** (`room`) y **muro rellena** (`fill`).
+ *
+ * ⚠️ Van aparte de `BrushTarget` —capa, niebla y suelo de sala— porque aquéllos PINTAN SOBRE algo que ya
+ * está y éstos LEVANTAN MAPA. Mezclarlos en una lista dejaría un «sentido: pintar/quitar» sin significado
+ * encima de un brochazo que excava.
+ */
+export type BuildTarget = 'floor' | 'wall';
+export const BUILD_TARGETS: BuildTarget[] = ['floor', 'wall'];
+/** El signo de la forma que sale del brochazo. Es la traducción entera entre el panel y `maps_rooms.kind`. */
+export const roomKindOfBuild = (t: BuildTarget): 'room' | 'fill' => (t === 'wall' ? 'fill' : 'room');
+
+/**
+ * CON QUÉ PINTO. `texture` y `color` levantan; `erase` derriba.
+ *
+ * El borrador es una opción MÁS de esta fila y no un interruptor aparte porque es lo que él pidió —«*una
+ * herramienta de borrado como un pincel que borra*»— y porque las tres se excluyen: mientras borras no
+ * estás pintando con nada.
+ */
+export type BrushPaint = 'texture' | 'color' | 'erase';
+export const BRUSH_PAINTS: BrushPaint[] = ['texture', 'color', 'erase'];
+
+/**
+ * LA PALETA BASE DE LA CASA (`rolvium.pen` · `M9zw2t` § «EL COLOR»): doce, en dos filas de seis.
+ *
+ * Son DATO y no tema: se guardan tal cual en `maps_rooms.floor_color` y se ven sobre la MESA, que va con los
+ * `--sys-*` del sistema de juego y no con los tokens de la app. Mismo caso —y mismo porqué— que
+ * `STROKE_COLORS`, `BG_COLORS` y `DOOR_COLORS`.
+ *
+ * El orden es el del diseño: los grises de piedra, las maderas y tierras, y al final los tres que cantan —
+ * musgo, agua y sangre—, que son los que se usan para marcar algo, no para levantar una sala entera.
+ *
+ * ⚠️ Los colores que él se INVENTE no viven aquí: ésos son fila de `maps_colors`, por campaña.
+ */
+export const BRUSH_COLORS = [
+  { hex: '#8a8f98', name: 'steel' },
+  { hex: '#5c6470', name: 'slate' },
+  { hex: '#2f3338', name: 'coal' },
+  { hex: '#1a1c1f', name: 'obsidian' },
+  { hex: '#b08d57', name: 'sand' },
+  { hex: '#8b5a2b', name: 'leather' },
+  { hex: '#4a3524', name: 'earth' },
+  { hex: '#6e5a3a', name: 'mud' },
+  { hex: '#5f8f6a', name: 'moss' },
+  { hex: '#4a7fc0', name: 'water' },
+  { hex: '#7fd4d0', name: 'ice' },
+  { hex: '#b8452c', name: 'blood' },
+] as const;
+
+/** Con qué color arranca el pincel: la arena del diseño, que es la que se ve en la lámina aprobada. */
+export const DEFAULT_BRUSH_COLOR = '#b08d57';
+
+/**
+ * Un color escrito a mano vale si es un hex de seis. Se comprueba antes de guardarlo porque la base NO lo
+ * comprueba —a propósito, igual que en `bg_color` y `door_color`: un patrón allí sólo serviría para rechazar
+ * un color válido escrito de otra manera— así que el filtro tiene que estar donde se teclea.
+ */
+export const isHexColor = (s: string): boolean => /^#[0-9a-fA-F]{6}$/.test(s);
+
+/** Cómo se llama un color de la paleta base, si es uno de ellos. `null` = se lo inventó él. */
+export const brushColorName = (hex: string): string | null =>
+  BRUSH_COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase())?.name ?? null;
+
+/**
+ * LA LISTA ENTERA DE «SOBRE QUÉ» del panel (`rolvium.pen` · `YwHzR` § S/1), en el orden del diseño.
+ *
+ * Junta las dos familias en un solo interruptor porque para él son la misma pregunta —«¿dónde estoy
+ * pintando?»— aunque por dentro una levante mapa y la otra pinte encima de algo que ya está.
+ *
+ * ⚠️ `room` —el suelo de UNA sala, el de la rebanada 9— va el ÚLTIMO y a todo lo ancho: el diseño aprobado
+ * trae cuatro casillas y él dejó esta quinta viva con un «*no lo sé, por ahora déjalo*» del 2026-09-10. En
+ * cuanto la vea funcionando dirá si se queda o se va, y quitarla es borrar esta línea.
+ */
+export type BrushOn = BuildTarget | BrushTarget;
+export const BRUSH_ON: BrushOn[] = ['floor', 'wall', 'layer', 'fog', 'room'];
+/** ¿Este destino LEVANTA MAPA? De ahí cuelga medio panel: con qué pinto, y qué mandos tienen sentido. */
+export const isBuildOn = (x: BrushOn): x is BuildTarget => x === 'floor' || x === 'wall';

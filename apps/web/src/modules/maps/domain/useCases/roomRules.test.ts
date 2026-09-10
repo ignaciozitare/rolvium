@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, brushRings, BUILDER_MODES, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_FILL_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing, wallStripe } from './roomRules';
+import { BRUSH_COLORS, BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, BRUSH_ON, brushColorName, brushRings, BUILDER_MODES, DEFAULT_BRUSH_COLOR, isBuildOn, isHexColor, roomKindOfBuild, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_FILL_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing, wallStripe } from './roomRules';
 import { pointInRing } from '@rolvium/core';
 
 /**
@@ -457,5 +457,64 @@ describe('brushRings — el trazo se convierte en forma', () => {
 
   it('sin trazo no hay forma', () => {
     expect(brushRings([], 2, G)).toEqual([]);
+  });
+});
+
+/**
+ * ── EL PINCEL QUE CONSTRUYE · LO QUE SE ELIGE ANTES DE PINTAR (§ «Rebanada 10») ──
+ *
+ * Reglas pequeñas, pero cada una sujeta una decisión suya que se pierde fácil al retocar el panel.
+ */
+describe('el pincel que construye · lo que se elige antes de pintar', () => {
+  /**
+   * 🔒 EL ORDEN Y LAS CINCO. La lámina que él aprobó trae CUATRO —suelo, muro, capa, niebla— y la quinta, el
+   * suelo de UNA sala de la rebanada 9, sigue viva por decisión suya del 2026-09-10: «*no lo sé, por ahora
+   * déjalo*». Si alguien la quita sin que él lo diga, este test lo canta.
+   */
+  it('«sobre qué» son cinco y en el orden del diseño, con el suelo de sala el último', () => {
+    expect(BRUSH_ON).toEqual(['floor', 'wall', 'layer', 'fog', 'room']);
+  });
+
+  it('sólo suelo y muro LEVANTAN MAPA; capa, niebla y suelo de sala pintan encima', () => {
+    expect(BRUSH_ON.filter(isBuildOn)).toEqual(['floor', 'wall']);
+  });
+
+  /** «Los muros serán relleno de esos huecos» (dueño, 2026-09-04): suelo excava, muro rellena. */
+  it('el suelo EXCAVA y el muro RELLENA — la misma forma con el signo cambiado', () => {
+    expect(roomKindOfBuild('floor')).toBe('room');
+    expect(roomKindOfBuild('wall')).toBe('fill');
+  });
+
+  /** Doce, que es lo que cabe en las dos filas de seis del diseño. */
+  it('la paleta de la casa son doce colores, todos distintos y todos hex de seis', () => {
+    expect(BRUSH_COLORS).toHaveLength(12);
+    expect(new Set(BRUSH_COLORS.map(c => c.hex.toLowerCase())).size).toBe(12);
+    expect(BRUSH_COLORS.every(c => isHexColor(c.hex))).toBe(true);
+  });
+
+  /**
+   * La base NO comprueba el formato del color a propósito —igual que en `bg_color` y `door_color`— así que
+   * el filtro tiene que estar donde se teclea, o una escena se queda con «rojo» metido en una columna de
+   * color y nada se pinta.
+   */
+  it('un color escrito a mano vale sólo si es un hex de seis', () => {
+    expect(isHexColor('#b08d57')).toBe(true);
+    expect(isHexColor('#B08D57')).toBe(true);
+    expect(isHexColor('#b08')).toBe(false);
+    expect(isHexColor('b08d57')).toBe(false);
+    expect(isHexColor('rojo')).toBe(false);
+    expect(isHexColor('#b08d5g')).toBe(false);
+  });
+
+  /** Un color de la casa se llama por su nombre; el que él se inventa no tiene ninguno, y eso es el `null`. */
+  it('un color de la paleta trae su nombre; uno inventado, ninguno', () => {
+    expect(brushColorName('#b08d57')).toBe('sand');
+    expect(brushColorName('#B08D57')).toBe('sand');
+    expect(brushColorName('#123456')).toBeNull();
+  });
+
+  /** Con el pincel arrancado en un color de la casa, la muestra de la lámina se lee tal cual. */
+  it('el color de serie es uno de la paleta, no uno suelto', () => {
+    expect(brushColorName(DEFAULT_BRUSH_COLOR)).not.toBeNull();
   });
 });

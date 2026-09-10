@@ -312,7 +312,7 @@ export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWat
 import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
 import type { SceneVision, VisionPort } from '@/modules/maps/domain/ports/VisionPort';
 import { DEFAULT_DOOR } from '@/modules/maps/domain/entities/Scene';
-import type { Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
+import type { Drawing, ImageAsset, Layer, LayerPatch, MapColor, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
 import type { RoomOpeningPatch } from '@/modules/maps/domain/ports/MapsPort';
 
 export const SCENE_WAREHOUSE: Scene = {
@@ -369,7 +369,7 @@ export const LIGHT_SECRET: Light = { ...LIGHT_BASE, id: 'li-secret', layerId: LA
  * In-memory MapsPort. Mutations are recorded; `emit(sceneId, …)` simulates realtime rows/events to subscribers;
  * `broadcasts` collects what I sent on the scene channel.
  */
-export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[]; props?: Prop[]; sceneProps?: SceneProp[]; rooms?: Room[]; roomOpenings?: RoomOpening[]; textures?: Texture[] } = {}) {
+export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[]; props?: Prop[]; sceneProps?: SceneProp[]; rooms?: Room[]; roomOpenings?: RoomOpening[]; textures?: Texture[]; colors?: MapColor[] } = {}) {
   const scenes = (seed.scenes ?? [SCENE_WAREHOUSE]).map(s => ({ ...s }));
   const tokens = (seed.tokens ?? []).map(t => ({ ...t }));
   const walls = (seed.walls ?? []).map(w => ({ ...w }));
@@ -383,6 +383,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const textures = (seed.textures ?? []).map(t => ({ ...t }));
   const textureUpdates: { id: string; patch: { name?: string; category?: Texture['category'] } }[] = [];
   const roomOpenings = (seed.roomOpenings ?? []).map(o => ({ ...o }));
+  const colors = (seed.colors ?? []).map(c => ({ ...c }));
   const subs = new Map<string, Set<MapsLiveHandlers>>();
   const broadcasts: { sceneId: string; event: MapsLiveEvent }[] = [];
   const tokenUpdates: { id: string; patch: TokenPatch }[] = [];
@@ -411,7 +412,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const floorMasksCleared: string[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, rooms, roomOpenings, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared, floorMasksSaved, floorMasksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, rooms, roomOpenings, colors, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared, floorMasksSaved, floorMasksCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -522,6 +523,16 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
       floorMasksCleared.push(room.id);
       const r = rooms.find(x => x.id === room.id);
       if (r) r.floorMaskUrl = null;
+    },
+    // ── los colores guardados de la campaña (rebanada 10) ──
+    listColors: async (cid: string) => colors.filter(c => c.campaignId === cid),
+    addColor: async (cid: string, color: string) => {
+      // El mismo color no entra dos veces: en la base lo impide un índice único, aquí se imita igual.
+      const ya = colors.find(c => c.campaignId === cid && c.color.toLowerCase() === color.toLowerCase());
+      if (ya) return ya;
+      const created: MapColor = { id: `mc-new-${++n}`, campaignId: cid, color, createdAt: `t${n}` };
+      colors.push(created);
+      return created;
     },
     listRoomOpenings: async (sid: string) => roomOpenings.filter(o => o.sceneId === sid),
     addRoomOpening: async (o: NewRoomOpening) => { const created: RoomOpening = { ...DEFAULT_DOOR, ...o, id: `ro-new-${++n}` }; roomOpenings.push(created); return created; },

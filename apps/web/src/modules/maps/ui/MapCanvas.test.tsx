@@ -688,7 +688,7 @@ describe('<MapCanvas> fog', () => {
     const SALA = {
       id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
       points: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] as [number, number][],
-      floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+      floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
     };
     const empujar = (over: Record<string, unknown>) => {
       document.body.innerHTML = '';
@@ -2334,7 +2334,7 @@ describe('<MapCanvas> arrastrar una ficha no repinta las salas', () => {
   const SALA = {
     id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
     points: [[G * 8, G * 8], [G * 14, G * 8], [G * 14, G * 14], [G * 8, G * 14]] as [number, number][],
-    floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
   };
 
   it('el cuerpo de la capa de salas NO se ejecuta en cada tirón del dedo', () => {
@@ -2388,7 +2388,7 @@ describe('<MapCanvas> el pincel del suelo de una sala', () => {
   const SALA = {
     id: 'rm-1', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
     points: [[0, 0], [200, 0], [200, 200], [0, 200]] as [number, number][],
-    floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
   };
 
   it('avisa de la sala bajo el ratón, y sólo cuando cambia', () => {
@@ -2445,7 +2445,7 @@ describe('<MapCanvas> la sala del pincel no cambia a media pincelada', () => {
   const SALA_A = {
     id: 'rm-a', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
     points: [[0, 0], [200, 0], [200, 200], [0, 200]] as [number, number][],
-    floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
   };
   const SALA_B = { ...SALA_A, id: 'rm-b', points: [[300, 0], [500, 0], [500, 200], [300, 200]] as [number, number][] };
 
@@ -2472,5 +2472,114 @@ describe('<MapCanvas> la sala del pincel no cambia a media pincelada', () => {
     onHoverRoom.mockClear();
     move(svg, 400, 120);
     expect(onHoverRoom).toHaveBeenCalledWith('rm-b');
+  });
+});
+
+/**
+ * ── EL PINCEL QUE CONSTRUYE, EN EL LIENZO (§ «Rebanada 10») ──
+ *
+ * Arrastrar levanta mapa: sale una banda del ancho del pincel que se guarda como una forma más de las de la
+ * rebanada 8, y de ahí salen gratis fundirse, cortar la vista y frenar a las fichas.
+ */
+describe('<MapCanvas> el pincel que construye y el que borra', () => {
+  const dm = { isDm: true, me: 'u-gm', tool: 'mask' as const };
+  const FORMA = {
+    id: 'rm-a', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'brush' as const,
+    points: [[0, 0], [200, 0], [200, 200], [0, 200]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+  };
+  const MURO = { ...FORMA, id: 'rm-muro', kind: 'fill' as const, points: [[300, 0], [500, 0], [500, 200], [300, 200]] as [number, number][] };
+
+  /** Un trazo recto sale de una pieza: el anillo envuelve el camino y se cierra por las puntas. */
+  it('arrastrar entrega el anillo del brochazo al soltar, no antes', () => {
+    const onBrushBuild = vi.fn();
+    const { svg } = mount({ ...dm, brushBuild: { kind: 'room', widthCells: 1 }, onBrushBuild });
+    down(svg, 100, 100);
+    move(svg, 200, 100);
+    move(svg, 300, 100);
+    expect(onBrushBuild).not.toHaveBeenCalled();   // mientras arrastra sólo se ve el previo
+    up(svg);
+    expect(onBrushBuild).toHaveBeenCalledTimes(1);
+    const anillos = onBrushBuild.mock.calls[0]![0] as [number, number][][];
+    expect(anillos).toHaveLength(1);
+    // Un anillo de verdad: al menos un triángulo, y envuelve el trazo que se hizo.
+    expect(anillos[0]!.length).toBeGreaterThanOrEqual(3);
+    expect(roomStyles.ringPath(anillos[0]!.map(([x, y]) => ({ x, y })))).not.toBe('');
+  });
+
+  /** Mientras se arrastra se ve LO QUE VA A QUEDAR: sin previo se pinta a ciegas. */
+  it('mientras se arrastra se dibuja el previo del brochazo, y al soltar se va', () => {
+    const { svg } = mount({ ...dm, brushBuild: { kind: 'room', widthCells: 1 }, onBrushBuild: vi.fn() });
+    down(svg, 100, 100);
+    move(svg, 200, 100);
+    expect(screen.getAllByTestId('mp-brush-draft').length).toBeGreaterThan(0);
+    up(svg);
+    expect(screen.queryByTestId('mp-brush-draft')).not.toBeInTheDocument();
+  });
+
+  /** Un toque sin arrastre es un DISCO, como en cualquier programa de dibujo. */
+  it('un toque sin arrastre también levanta forma: un disco', () => {
+    const onBrushBuild = vi.fn();
+    const { svg } = mount({ ...dm, brushBuild: { kind: 'fill', widthCells: 2 }, onBrushBuild });
+    down(svg, 100, 100);
+    up(svg);
+    expect((onBrushBuild.mock.calls[0]![0] as unknown[])).toHaveLength(1);
+  });
+
+  /**
+   * 🔒 EL BORRADOR SE LLEVA LA FORMA ENTERA por la que pasa, no media — el límite que él aceptó al confirmar
+   * la rebanada (§ 10.3). Y avisa UNA VEZ por forma: pasar tres veces por encima no la borra tres veces.
+   */
+  it('el borrador derriba las formas por las que pasa, y cada una una sola vez', () => {
+    const onBrushErase = vi.fn();
+    const { svg } = mount({ ...dm, brushErase: true, rooms: [FORMA, MURO], onBrushErase });
+    down(svg, 100, 100);
+    expect(onBrushErase).toHaveBeenCalledWith('rm-a');
+    move(svg, 120, 120);                       // sigue dentro de la misma
+    move(svg, 400, 100);                       // y ahora sobre el MURO
+    expect(onBrushErase).toHaveBeenCalledWith('rm-muro');
+    expect(onBrushErase).toHaveBeenCalledTimes(2);
+    up(svg);
+  });
+
+  /** Un brochazo de MURO también se borra: es la mitad de lo que se pinta. */
+  it('el borrador no se salta las formas que RELLENAN', () => {
+    const onBrushErase = vi.fn();
+    const { svg } = mount({ ...dm, brushErase: true, rooms: [MURO], onBrushErase });
+    down(svg, 400, 100);
+    expect(onBrushErase).toHaveBeenCalledWith('rm-muro');
+  });
+
+  /** Borrando NO se construye: el borrador manda, aunque el pincel traiga forma elegida. */
+  it('borrando no se levanta nada', () => {
+    const onBrushBuild = vi.fn();
+    const { svg } = mount({ ...dm, brushErase: true, brushBuild: { kind: 'room', widthCells: 1 }, rooms: [FORMA], onBrushBuild, onBrushErase: vi.fn() });
+    down(svg, 100, 100);
+    move(svg, 300, 100);
+    up(svg);
+    expect(onBrushBuild).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🐞 El aviso de «sobre qué sala está el ratón» despierta a la pantalla entera de la escena. A media
+   * pincelada no sirve para nada y es la clase de goteo que se nota como «va lentísimo».
+   */
+  it('mientras se construye o se borra no se avisa de la sala de debajo', () => {
+    const onHoverRoom = vi.fn();
+    const { svg } = mount({ ...dm, brushBuild: { kind: 'room', widthCells: 1 }, rooms: [FORMA, MURO], onHoverRoom, onBrushBuild: vi.fn() });
+    move(svg, 50, 50);
+    onHoverRoom.mockClear();
+    down(svg, 50, 50);
+    move(svg, 400, 100);
+    expect(onHoverRoom).not.toHaveBeenCalled();
+  });
+
+  /** Sin pincel que construya ni borrador, el pincel es el de la rebanada 9 y no se ha tocado. */
+  it('sin construir ni borrar sigue pintando la máscara de siempre', () => {
+    const onPaintMask = vi.fn();
+    const { svg } = mount({ ...dm, maskLayerId: 'ly-1', onPaintMask, onPaintMaskEnd: vi.fn() });
+    down(svg, 100, 100);
+    expect(onPaintMask).toHaveBeenCalled();
+    up(svg);
   });
 });

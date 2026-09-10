@@ -15,7 +15,7 @@ import { DM_TOOLS, DRAW_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '..
  * `builder-mask.png` es SU MISMO dibujo con el alfa engordado 2 px y las medias tintas levantadas, que a
  * tamaño real lo deja en 252. **El original no se ha tocado** y sigue en la carpeta.
  */
-const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: '/icons/builder-mask.png', reveal: 'visibility', hide: 'visibility_off', mask: 'opacity', light: 'wb_incandescent', encounter: 'swords' };
+const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: '/icons/builder-mask.png', reveal: 'visibility', hide: 'visibility_off', mask: 'brush', light: 'wb_incandescent', encounter: 'swords' };
 const esImagen = (icon: string): boolean => icon.startsWith('/');
 
 /** Actions that open a panel instead of changing the cursor: they are buttons, not tools. */

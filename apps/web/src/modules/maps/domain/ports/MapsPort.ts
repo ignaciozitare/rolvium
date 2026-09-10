@@ -1,5 +1,5 @@
 import type { TableEvent } from '@rolvium/core';
-import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, TexturePatch, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
+import type { CreateSceneInput, Drawing, ImageAsset, MapColor, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, TexturePatch, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
 
 /**
  * Lo que se edita de un vano: si está abierto, qué es, y —desde «Las puertas, de verdad»— cómo es la puerta.
@@ -180,6 +180,19 @@ export interface MapsPort {
   saveRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>, png: Blob): Promise<Room>;
   /** Quita la máscara entera: el suelo de la sala vuelve a verse como lo puso el constructor. */
   clearRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>): Promise<void>;
+
+  // ── los colores guardados (rebanada 10) ───────────────────────────────────
+  // Los que él mezcla con el cuentagotas o escribe a mano, POR CAMPAÑA. La paleta base de la casa no pasa
+  // por aquí: ésa es código. Sólo hay leer y añadir — el diseño aprobado no ofrece quitar ninguno.
+
+  /** Por orden de llegada, que es el orden en que se enseñan en «tus colores». */
+  listColors(campaignId: string): Promise<MapColor[]>;
+  /**
+   * Guarda un color en la campaña. **El mismo color no entra dos veces**: lo impide la base con un índice
+   * único, así que si ya estaba se devuelve el que había en vez de reventar — la pantalla no tiene que
+   * acordarse de comprobarlo antes.
+   */
+  addColor(campaignId: string, color: string): Promise<MapColor>;
 
   // ── el catálogo de texturas (rebanada 8) ──────────────────────────────────
   // De la HERRAMIENTA, no de una campaña: se sube una vez y sirve en todos los mapas.

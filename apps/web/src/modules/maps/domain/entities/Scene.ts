@@ -425,8 +425,13 @@ export type ScenePropPatch = Partial<Omit<SceneProp, 'id' | 'sceneId' | 'campaig
 export type RoomPreset = 'hatch' | 'module' | 'ancient' | 'hatch_gray' | 'fill' | 'cavern' | 'simple' | 'ink' | 'hand';
 export const ROOM_PRESETS: RoomPreset[] = ['hatch', 'module', 'ancient', 'hatch_gray', 'fill', 'cavern', 'hand', 'simple', 'ink'];
 
-/** Con qué gesto se levantó la sala. No cambia cómo se funde: todas las formas siguen las mismas reglas. */
-export type RoomShapeKind = 'rect' | 'circle' | 'poly' | 'free';
+/**
+ * Con qué gesto se levantó la sala. No cambia cómo se funde: todas las formas siguen las mismas reglas.
+ *
+ * `brush` es un BROCHAZO del pincel (rebanada 10). Hoy se pinta y se funde como cualquier otra, y la marca
+ * existe para el día que una forma se pueda coger y editar: un rectángulo y un brochazo no se editan igual.
+ */
+export type RoomShapeKind = 'rect' | 'circle' | 'poly' | 'free' | 'brush';
 
 /**
  * QUÉ HACE UNA FORMA CON LA ROCA — y son las dos únicas cosas que se pueden hacer (suyo, 2026-09-04: «*los
@@ -459,6 +464,18 @@ export interface Room {
   floorPreset: RoomPreset;
   floorUrl: string | null;
   /**
+   * CON QUÉ COLOR ESTÁ PINTADA ESTA FORMA (rebanada 10). `null` = manda su preajuste.
+   *
+   * 🔑 **En una que EXCAVA es su suelo; en una que RELLENA es su roca.** Es la misma columna porque es la
+   * misma idea —«con qué está pintada esta forma»— y por eso un brochazo de MURO puede llevar su propia
+   * piedra sin inventar una segunda columna que dijera lo mismo.
+   *
+   * Qué manda sobre qué, y es el mismo orden que ya rige en las puertas: **la foto (`floorUrl`) gana al
+   * color, y el color gana al preajuste**. La consecuencia es buena y buscada: quitarle la textura a un
+   * brochazo no lo deja en blanco, descubre el color que había debajo.
+   */
+  floorColor: string | null;
+  /**
    * DÓNDE SE HA PINTADO ENCIMA DE SU SUELO (rebanada 9). Un PNG, igual que la máscara de una capa de terreno
    * y por el mismo motivo: la textura original **no se toca nunca** y siempre se puede volver atrás.
    * `null` = sala sin pintar = el suelo se ve entero, que es como están todas las salas de antes.
@@ -487,6 +504,22 @@ export interface RoomOpening extends DoorSettings {
   isOpen: boolean;
 }
 export type NewRoomOpening = Omit<RoomOpening, 'id' | keyof DoorSettings> & Partial<DoorSettings>;
+
+/**
+ * UN COLOR QUE ÉL SE INVENTÓ, guardado (rebanada 10 · `supabase/migrations/20260910140000_maps_colors.sql`).
+ *
+ * Espejo de la tabla. Lo que sale del cuentagotas o del campo de texto se queda en «tus colores», **por
+ * CAMPAÑA**: una campaña es un mundo con un aspecto, y el verde que mezclas para el bosque lo quieres en los
+ * demás mapas de ese bosque. Mismo alcance que la biblioteca de fondos, y por lo mismo.
+ *
+ * ⚠️ La PALETA BASE de la casa no vive aquí: ésa es código (`BRUSH_COLORS`), no dato.
+ */
+export interface MapColor {
+  id: string;
+  campaignId: string;
+  color: string;
+  createdAt: string;
+}
 
 // ── Rebanada 8 · EL CATÁLOGO DE TEXTURAS ────────────────────────────────────
 // Espejo de `supabase/migrations/20260904180000_maps_textures.sql`.

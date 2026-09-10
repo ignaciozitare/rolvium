@@ -784,7 +784,7 @@
       "select": "Select",
       "text": "Text",
       "light": "Ambient light",
-      "mask": "Transparency brush",
+      "mask": "Brush",
       "notInPlayerView": "not while viewing as a player",
       "draw": "Draw"
     },
@@ -854,7 +854,9 @@
       "target": {
         "layer": "Layer",
         "fog": "Fog",
-        "room": "Room floor"
+        "room": "Room floor",
+        "floor": "Floor",
+        "wall": "Wall"
       },
       "way": "Way",
       "dir": {
@@ -886,7 +888,41 @@
       "hintRoom": "Painting a ROOM FLOOR the stroke clips itself at the room edge: you can sweep over the wall without staining it.",
       "hintScene": "The brush is remembered by THIS scene — stroke, size, transparency and how torn. Another map brings its own.",
       "hintFog": "In the FOG a torn edge shows in whole cells, because that is how fog is stored. On a layer or a room floor it looks fine-grained.",
-      "needsRoom": "Put the brush over a room to repaint its floor."
+      "needsRoom": "Put the brush over a room to repaint its floor.",
+      "with": "What I paint with",
+      "paint": {
+        "texture": "Texture",
+        "color": "Colour",
+        "erase": "Erase"
+      },
+      "textureLabel": "The texture · beats the colour",
+      "textureNone": "None yet: it paints with the colour",
+      "colorLabel": "The colour · the one in use",
+      "colorOwn": "Yours",
+      "colorOwnNamed": "Colour {{hex}}",
+      "colorStays": "it stays until you change it",
+      "mine": "Your colours · in this campaign",
+      "save": "Save this colour to the campaign",
+      "hex": "Hex colour",
+      "picker": "Eyedropper",
+      "strokeLabel": "The stroke",
+      "close": "Close the brush",
+      "footBuild": "What you paint builds map: the FLOOR can be walked, the WALL blocks sight and movement.",
+      "footErase": "The eraser takes the WHOLE stroke you run over, not half of it. Short strokes erase finely.",
+      "color": {
+        "steel": "Steel",
+        "slate": "Slate",
+        "coal": "Coal",
+        "obsidian": "Obsidian",
+        "sand": "Sand",
+        "leather": "Leather",
+        "earth": "Earth",
+        "mud": "Mud",
+        "moss": "Moss",
+        "water": "Water",
+        "ice": "Ice",
+        "blood": "Blood"
+      }
     },
     "fog": {
       "autoOn": "Automatic fog by line of sight · opens as tokens move; click for manual",
@@ -1134,7 +1170,9 @@
         "rename": "Rename",
         "categorize": "Categorise",
         "renamePrompt": "What should this texture be called?",
-        "door": "Door texture"
+        "door": "Door texture",
+        "brushHint": "These belong to the TOOL, not to your campaign: whatever you upload here works in all your maps. Pick one and it goes on the NEXT stroke, travelling with it: changing it later does not repaint what is already there.",
+        "brush": "Brush texture"
       },
       "tooSmall": "The gesture came up short: nothing was built. Drag a little further.",
       "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square."

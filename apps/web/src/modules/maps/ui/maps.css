@@ -548,3 +548,50 @@
 .mp-texcat-note{display:flex;align-items:center;gap:6px;margin:0;font-size:var(--fs-2xs);color:var(--tx3);}
 .mp-texcat-hint{margin:0;padding:8px;border-radius:var(--r);background:var(--sf2);
   font-size:var(--fs-2xs);font-style:italic;color:var(--tx2);line-height:var(--lh-normal);}
+
+/* ── EL PANEL DEL PINCEL (rebanada 10 · rolvium.pen · YwHzR + M9zw2t) ─────────
+   Sustituye a la barra flotante `.mp-brushbar-v2`, que él paró en pantalla:
+   «esto está mal, ajusta el diseño como un modal que se mueva como todos los
+   otros». Misma familia que `.mp-builder` y `.mp-light-editor` — flota, se
+   agarra por la cabecera y se aparta — y reutiliza sus piezas (`mp-builder-head`,
+   `mp-builder-group`, `mp-builder-hint`, `mp-builder-row`, `.tb-rotulo`).
+   Ancho 220, el del diseño después de su corrección «demasiado ancho». */
+.mp-brushpanel{position:absolute;top:8px;left:8px;z-index:4;width:220px;max-height:calc(100% - 16px);overflow:auto;
+  display:flex;flex-direction:column;gap:10px;padding:10px;
+  background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);color:var(--sys-ink);}
+.mp-bp-icon{color:var(--sys-ink);}
+/* Dos columnas, y lo que va solo ocupa la fila entera — igual que BORRAR en la lámina. */
+.mp-bp-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.mp-bp-opt{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:5px 6px;font-family:inherit;
+  font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;
+  background:color-mix(in srgb,var(--sys-paper-lo) 48%,transparent);color:var(--sys-ink);border:none;cursor:pointer;}
+.mp-bp-opt.wide{grid-column:1 / -1;}
+/* Lo ACTIVO va en rojo sangre, nunca en negro: el negro es el fondo sobre el que se ve arte, no el cromo. */
+.mp-bp-opt.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+/* La muestra de la textura, a todo lo ancho y con el azulejo al tamaño de verdad. */
+.mp-bp-tex{display:block;height:52px;background-color:var(--sys-paper-lo);}
+.mp-bp-tex-n{font-size:var(--fs-xs);color:var(--sys-ink);}
+/* EL COLOR PUESTO, en grande — su corrección: «no veo un cuadradito donde quede puesto». */
+.mp-bp-color-now{display:flex;align-items:flex-start;gap:6px;}
+.mp-bp-color-big{width:52px;height:52px;flex:0 0 auto;box-shadow:0 0 0 1px var(--sys-line);}
+.mp-bp-color-txt{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.mp-bp-color-n{font-size:var(--fs-xs);color:var(--sys-ink);}
+.mp-bp-color-hex{font-size:var(--fs-2xs);color:var(--sys-ink-dim);font-variant-numeric:tabular-nums;}
+/* Seis por fila, que es como caben los doce de la casa en dos filas limpias. */
+.mp-bp-swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;align-items:center;}
+.mp-bp-swatch{height:22px;padding:0;border:2px solid transparent;cursor:pointer;box-shadow:0 0 0 1px var(--sys-line);}
+.mp-bp-swatch.on{border-color:var(--sys-paper-hi);box-shadow:0 0 0 2px var(--sys-ink);}
+.mp-bp-swatch.add{display:inline-flex;align-items:center;justify-content:center;
+  background:transparent;color:var(--sys-ink-dim);box-shadow:0 0 0 1px var(--sys-line);}
+.mp-bp-swatch.add:disabled{opacity:.4;cursor:default;}
+.mp-bp-hexrow{display:flex;align-items:center;gap:4px;}
+.mp-bp-hexrow .mp-hex{flex:1;min-width:0;}
+/* El cuentagotas: el selector del navegador, con su `input` escondido para poder pintar el botón. */
+.mp-bp-eyedrop{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;flex:0 0 auto;
+  border:1px solid var(--sys-line);color:var(--sys-ink);cursor:pointer;}
+.mp-bp-eyedrop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
+/* Los deslizadores, APILADOS: rótulo y lectura arriba, la barra debajo a todo lo ancho. */
+.mp-bp-slider{display:flex;flex-direction:column;gap:2px;}
+.mp-bp-slider-head{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
+.mp-bp-slider-v{font-size:var(--fs-xs);color:var(--sys-ink);}
+.mp-bp-slider input[type="range"]{width:100%;accent-color:var(--sys-blood);}

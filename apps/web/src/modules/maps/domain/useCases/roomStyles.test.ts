@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ROOM_PRESETS, type RoomPreset, type Scene } from '../entities/Scene';
 import {
   outlinePath, ringFromSides, ringOf, ringPath, ringsOf, ROOM_STYLES, roomAt, sceneTextures,
-  shadowDepthPx, snapSpanToOutline, spansOf, styleOf, wallWidthPx, roomWallsOf,
+  shadowDepthPx, shapeAt, shapeColorOf, shapeImageOf, snapSpanToOutline, spansOf, styleOf, wallWidthPx, roomWallsOf,
 } from './roomStyles';
 import type { RoomSide } from './roomRules';
 import type { RoomOpeningSpan } from '@rolvium/core';
@@ -152,7 +152,7 @@ describe('snapSpanToOutline — la puerta se engancha a la pared', () => {
   /** Una sala cuadrada de (0,0) a (100,100): sus lados son el contorno. */
   const sala = (): Room => ({
     id: 'r1', sceneId: 's', campaignId: 'c', kind: 'room', shape: 'rect',
-    points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+    points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
   });
   const vano = (x1: number, y1: number, x2: number, y2: number): RoomOpeningSpan =>
     ({ x1, y1, x2, y2, kind: 'door', isOpen: false });
@@ -196,7 +196,7 @@ describe('roomAt — a qué sala apunta el pincel del suelo', () => {
   const cuadrado = (id: string, x: number, y: number, lado = 100): Room => ({
     id, sceneId: 's', campaignId: 'c', kind: 'room', shape: 'rect',
     points: [[x, y], [x + lado, y], [x + lado, y + lado], [x, y + lado]],
-    floorPreset: 'hatch', floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+    floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
   });
 
   it('devuelve la sala que hay bajo el punto, y nada fuera de todas', () => {
@@ -218,5 +218,80 @@ describe('roomAt — a qué sala apunta el pincel del suelo', () => {
   it('un relleno no cuenta: no hay suelo que repintar en un tabique', () => {
     const tabique: Room = { ...cuadrado('t', 0, 0), kind: 'fill' };
     expect(roomAt([tabique], { x: 50, y: 50 })).toBeNull();
+  });
+});
+
+/**
+ * ── CADA FORMA SE PINTA CON LO SUYO (§ «Rebanada 10») ──
+ *
+ * Lo único de verdad nuevo de la rebanada, junto con convertir un trazo en un anillo: que un brochazo lleve
+ * su propia textura o su propio color, y que quitarle la de arriba descubra la de abajo.
+ */
+describe('con qué se pinta una forma — foto, color, preajuste', () => {
+  const forma = (over: Partial<Room> = {}): Room => ({
+    id: 'r1', sceneId: 's', campaignId: 'c', kind: 'room', shape: 'brush',
+    points: [[0, 0], [10, 0], [10, 10], [0, 10]],
+    floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '', ...over,
+  });
+  const mapa = scene({ wallTextureUrl: 'roca.png', floorTextureUrl: 'suelo.png' });
+
+  /** Una forma sin nada propio se ve como siempre: la del mapa. Es lo que deja intactas las salas ya hechas. */
+  it('sin foto propia manda la del mapa, y la del MURO no es la del suelo', () => {
+    expect(shapeImageOf(forma(), mapa)).toBe('suelo.png');
+    expect(shapeImageOf(forma({ kind: 'fill' }), mapa)).toBe('roca.png');
+  });
+
+  /** Y con la suya, manda la suya — que es lo que hace que un brochazo lleve su piedra. */
+  it('con foto propia manda la suya, excave o rellene', () => {
+    expect(shapeImageOf(forma({ floorUrl: 'losa.png' }), mapa)).toBe('losa.png');
+    expect(shapeImageOf(forma({ kind: 'fill', floorUrl: 'granito.png' }), mapa)).toBe('granito.png');
+  });
+
+  /**
+   * 🔑 EL ORDEN: la foto gana al color y el color gana al preajuste. La consecuencia buscada es que quitarle
+   * la textura a un brochazo NO lo deje en blanco: descubre el color que llevaba debajo.
+   */
+  it('el color propio manda sobre el preajuste, y sigue ahí debajo de la foto', () => {
+    const conColor = forma({ floorColor: '#5f8f6a' });
+    expect(shapeColorOf(conColor, 'hatch')).toBe('#5f8f6a');
+    // La misma forma con foto: el color no se ha ido, se queda debajo para cuando le quite la foto.
+    expect(shapeColorOf(forma({ floorColor: '#5f8f6a', floorUrl: 'losa.png' }), 'hatch')).toBe('#5f8f6a');
+  });
+
+  /**
+   * ⚠️ Sin color propio se cae al preajuste, y ahí se respeta de dónde salía cada uno: la roca de un relleno
+   * es la de LA ESCENA y el suelo de una sala es el que ella se llevó al dibujarse. Cambiarlo repintaría
+   * mapas ya hechos, que es lo que él prohibió en redondo.
+   */
+  it('sin color propio manda el preajuste: el suelo el de la forma, la roca la de la escena', () => {
+    expect(shapeColorOf(forma({ floorPreset: 'cavern' }), 'ink')).toBe(styleOf('cavern').floor);
+    expect(shapeColorOf(forma({ kind: 'fill', floorPreset: 'cavern' }), 'ink')).toBe(styleOf('ink').rock);
+  });
+});
+
+/**
+ * ── LO QUE SE LLEVA EL BORRADOR ──
+ * `roomAt` sólo mira las que EXCAVAN, porque un tabique no tiene suelo que repintar. El borrador del pincel
+ * sí tiene que poder derribar un brochazo de MURO: es la mitad de lo que se pinta.
+ */
+describe('shapeAt — la forma que se lleva el borrador', () => {
+  const cuadrado = (id: string, x: number, y: number, kind: Room['kind'] = 'room'): Room => ({
+    id, sceneId: 's', campaignId: 'c', kind, shape: 'brush',
+    points: [[x, y], [x + 100, y], [x + 100, y + 100], [x, y + 100]],
+    floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+  });
+
+  it('coge también las que RELLENAN, al revés que el pincel del suelo', () => {
+    const formas = [cuadrado('muro', 0, 0, 'fill')];
+    expect(shapeAt(formas, { x: 50, y: 50 })?.id).toBe('muro');
+    // `roomAt` no la ve, y así tiene que seguir: ahí se elige a qué SUELO apunta el pincel de la rebanada 9.
+    expect(roomAt(formas, { x: 50, y: 50 })).toBeNull();
+  });
+
+  it('con dos solapadas manda la última, que es la que él está viendo', () => {
+    const formas = [cuadrado('vieja', 0, 0), cuadrado('nueva', 50, 50, 'fill')];
+    expect(shapeAt(formas, { x: 75, y: 75 })?.id).toBe('nueva');
+    expect(shapeAt(formas, { x: 10, y: 10 })?.id).toBe('vieja');
+    expect(shapeAt(formas, { x: 500, y: 500 })).toBeNull();
   });
 });

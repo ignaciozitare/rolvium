@@ -784,7 +784,7 @@
       "select": "Seleccionar",
       "text": "Texto",
       "light": "Luz de ambiente",
-      "mask": "Pincel de transparencia",
+      "mask": "Pincel",
       "notInPlayerView": "no mientras ves como jugador",
       "draw": "Dibujar"
     },
@@ -854,7 +854,9 @@
       "target": {
         "layer": "Capa",
         "fog": "Niebla",
-        "room": "Suelo de sala"
+        "room": "Suelo de sala",
+        "floor": "Suelo",
+        "wall": "Muro"
       },
       "way": "Sentido",
       "dir": {
@@ -886,7 +888,41 @@
       "hintRoom": "Pintando el SUELO DE UNA SALA el brochazo se recorta solo en su borde: puedes pasar por encima del muro sin mancharlo.",
       "hintScene": "El pincel se guarda en ESTA escena — trazo, tamaño, transparencia y cuánto de roto. Otro mapa trae el suyo.",
       "hintFog": "En la NIEBLA el borde roto se ve a trozos de casilla, porque la niebla se guarda así. En una capa o en el suelo de una sala se ve fino.",
-      "needsRoom": "Pon el pincel encima de una sala para repintar su suelo."
+      "needsRoom": "Pon el pincel encima de una sala para repintar su suelo.",
+      "with": "Con qué pinto",
+      "paint": {
+        "texture": "Textura",
+        "color": "Color",
+        "erase": "Borrar"
+      },
+      "textureLabel": "La textura · manda sobre el color",
+      "textureNone": "Ninguna todavía: se pinta con el color",
+      "colorLabel": "El color · el que está puesto",
+      "colorOwn": "Tuyo",
+      "colorOwnNamed": "Color {{hex}}",
+      "colorStays": "se queda puesto hasta que lo cambies",
+      "mine": "Tus colores · de esta campaña",
+      "save": "Guardar este color en la campaña",
+      "hex": "Color en hexadecimal",
+      "picker": "Cuentagotas",
+      "strokeLabel": "El brochazo",
+      "close": "Cerrar el pincel",
+      "footBuild": "Lo que pintes levanta mapa: el SUELO se anda, el MURO corta la vista y el paso.",
+      "footErase": "El borrador se lleva ENTERO el brochazo por el que pases, no medio. A trazos cortos se borra fino.",
+      "color": {
+        "steel": "Acero",
+        "slate": "Pizarra",
+        "coal": "Carbón",
+        "obsidian": "Obsidiana",
+        "sand": "Arena",
+        "leather": "Cuero",
+        "earth": "Tierra",
+        "mud": "Barro",
+        "moss": "Musgo",
+        "water": "Agua",
+        "ice": "Hielo",
+        "blood": "Sangre"
+      }
     },
     "fog": {
       "autoOn": "Niebla automática por visión · se abre sola al moverse las fichas; pulsa para manual",
@@ -1134,7 +1170,9 @@
         "rename": "Renombrar",
         "categorize": "Clasificar",
         "renamePrompt": "¿Cómo quieres que se llame esta textura?",
-        "door": "Textura de la puerta"
+        "door": "Textura de la puerta",
+        "brushHint": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone en el PRÓXIMO brochazo, y va con él: cambiarla después no repinta lo ya pintado.",
+        "brush": "Textura del pincel"
       },
       "tooSmall": "El gesto se quedó corto: no se levantó nada. Arrastra un poco más.",
       "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla."

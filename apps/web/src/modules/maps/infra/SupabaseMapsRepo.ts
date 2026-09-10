@@ -1,6 +1,6 @@
 import type { RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
-import type { BgTransform, BlockShape, CreateSceneInput, DoorSettings, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPatch, Room, RoomKind, RoomOpening, RoomPreset, RoomShapeKind, Texture, TextureCategory, NewTexture, TexturePatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
+import type { BgTransform, BlockShape, CreateSceneInput, MapColor, DoorSettings, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPatch, Room, RoomKind, RoomOpening, RoomPreset, RoomShapeKind, Texture, TextureCategory, NewTexture, TexturePatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, RoomOpeningPatch, Unsubscribe } from '../domain/ports/MapsPort';
 import { clampHardness, clampMaskSize, clampRoughness, clampStrength, DEFAULT_BRUSH_ROUGHNESS, DEFAULT_BRUSH_TIP, DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, isBrushTip, maskPath, roomMaskPath } from '../domain/useCases/layerRules';
 import { TOKEN_SCALE } from '../domain/useCases/mapRules';
@@ -12,7 +12,9 @@ interface TokenRow { id: string; scene_id: string; campaign_id: string; characte
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string; layer_id: string | null }
 interface LayerRow { id: string; scene_id: string; campaign_id: string; kind: LayerKind; name: string; sort_order: number; visible: boolean; locked: boolean; image_url: string | null; transform: BgTransform; mask_url: string | null; mask_version: number; created_at: string; updated_at: string }
 interface LightRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; shape: LightShape; kind: LightKind; x: number; y: number; rotation: number; cone_angle: number; color: string; flicker: boolean; range_m: number; casts_shadow: boolean; spin_ms: number; intensity: number; created_at: string; updated_at: string }
-interface RoomRow { id: string; scene_id: string; campaign_id: string; kind?: RoomKind; shape: RoomShapeKind; points: [number, number][]; floor_preset: RoomPreset; floor_url: string | null; floor_mask_url?: string | null; created_at: string; updated_at: string }
+interface RoomRow { id: string; scene_id: string; campaign_id: string; kind?: RoomKind; shape: RoomShapeKind; points: [number, number][]; floor_preset: RoomPreset; floor_url: string | null; floor_mask_url?: string | null; /* rebanada 10 — opcional por lo mismo: una forma anterior al pincel no trae color propio */ floor_color?: string | null; created_at: string; updated_at: string }
+/** Espejo de `maps_colors` (rebanada 10): los colores que él mezcla, por campaña. */
+interface ColorRow { id: string; campaign_id: string; color: string; created_at: string }
 interface RoomOpeningRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; kind: 'door' | 'window'; is_open: boolean; /* las puertas, de verdad — opcionales a propósito: una fila anterior a la migración no las trae y `mapDoorRow` la defiende con DEFAULT_DOOR */ leaves?: number | null; hinge?: string | null; swing?: string | null; door_color?: string | null; door_texture_url?: string | null }
 interface ImageRow { id: string; campaign_id: string; name: string; url: string; created_at: string }
 interface TextureRow { id: string; name: string; category: TextureCategory; url: string; tile_cells: number; uploaded_by: string | null; created_at: string; updated_at: string }
@@ -20,7 +22,13 @@ interface PropRow { id: string; campaign_id: string | null; name: string; catego
 interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; created_at: string; updated_at: string }
 
 const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, door_color, door_texture_url, token_scale, brush_tip, brush_size, brush_strength, brush_hardness, brush_roughness, created_at, updated_at';
-const ROOM_COLS = 'id, scene_id, campaign_id, kind, shape, points, floor_preset, floor_url, floor_mask_url, created_at, updated_at';
+const ROOM_COLS = 'id, scene_id, campaign_id, kind, shape, points, floor_preset, floor_url, floor_color, floor_mask_url, created_at, updated_at';
+const COLOR_COLS = 'id, campaign_id, color, created_at';
+/**
+ * El choque contra el índice único de `maps_colors`. Se mira el MENSAJE y no un código porque el cliente de
+ * Supabase devuelve un error de forma libre; el mensaje de Postgres para un duplicado siempre lo dice así.
+ */
+const UNIQUE_VIOLATION = /duplicate key|23505/i;
 const ROOM_OPENING_COLS = 'id, scene_id, campaign_id, x1, y1, x2, y2, kind, is_open, leaves, hinge, swing, door_color, door_texture_url';
 const TEXTURE_COLS = 'id, name, category, url, tile_cells, uploaded_by, created_at, updated_at';
 /** Espejo de la migración: una escena de antes de la rebanada 8 se lee con el preajuste y el grosor de serie. */
@@ -98,9 +106,14 @@ export const mapRoomRow = (r: RoomRow): Room => ({
   kind: r.kind ?? 'room', shape: r.shape ?? 'rect',
   points: (r.points ?? []) as [number, number][],
   floorPreset: r.floor_preset ?? DEFAULT_ROOM_PRESET, floorUrl: r.floor_url ?? null,
+  // Una forma dibujada antes del pincel que construye no trae color propio: manda su preajuste, como siempre.
+  floorColor: r.floor_color ?? null,
   // Una sala dibujada antes del pincel no trae la columna: nadie ha pintado en ella, y se ve entera.
   floorMaskUrl: r.floor_mask_url ?? null,
   createdAt: r.created_at, updatedAt: r.updated_at,
+});
+export const mapColorRow = (r: ColorRow): MapColor => ({
+  id: r.id, campaignId: r.campaign_id, color: r.color, createdAt: r.created_at,
 });
 export const mapTextureRow = (r: TextureRow): Texture => ({
   id: r.id, name: r.name, category: r.category ?? 'misc', url: r.url,
@@ -607,7 +620,7 @@ export class SupabaseMapsRepo implements MapsPort {
   async addRoom(r: NewRoom): Promise<Room> {
     const { data, error } = await this.db.from('maps_rooms').insert({
       scene_id: r.sceneId, campaign_id: r.campaignId, kind: r.kind, shape: r.shape, points: r.points,
-      floor_preset: r.floorPreset, floor_url: r.floorUrl, floor_mask_url: r.floorMaskUrl,
+      floor_preset: r.floorPreset, floor_url: r.floorUrl, floor_color: r.floorColor, floor_mask_url: r.floorMaskUrl,
     }).select(ROOM_COLS).single();
     this.fail(error);
     return mapRoomRow(data as RoomRow);
@@ -645,6 +658,34 @@ export class SupabaseMapsRepo implements MapsPort {
     this.fail(error);
     await this.db.storage.from(BACKGROUNDS_BUCKET).remove([roomMaskPath(room.campaignId, room.id)]);
   }
+
+  // ── los colores guardados de la campaña (rebanada 10) ─────────────────────
+  async listColors(campaignId: string): Promise<MapColor[]> {
+    const { data, error } = await this.db.from('maps_colors').select(COLOR_COLS).eq('campaign_id', campaignId).order('created_at', { ascending: true });
+    this.fail(error);
+    return (data as ColorRow[] ?? []).map(mapColorRow);
+  }
+  async addColor(campaignId: string, color: string): Promise<MapColor> {
+    /**
+     * 🔑 EL MISMO COLOR DOS VECES NO ES UN ERROR: es el mismo color, y lo que él espera es que su muestra
+     * siga ahí. Lo impide la base con un índice único sobre `(campaign_id, lower(color))`.
+     *
+     * Se INTENTA meter y se recoge el choque, en vez de consultar antes y escribir después: entre la consulta
+     * y la escritura cabe la otra pestaña del director, que es justo el hueco por el que se pierde un color.
+     * Y el índice es sobre una FUNCIÓN (`lower(color)`), así que no se puede pedir un `upsert` por columnas:
+     * PostgREST necesita nombres de columna y `lower(color)` no lo es.
+     */
+    const me = await this.me();
+    const { data, error } = await this.db.from('maps_colors')
+      .insert({ campaign_id: campaignId, color, created_by: me }).select(COLOR_COLS).single();
+    if (!error) return mapColorRow(data as ColorRow);
+    if (!UNIQUE_VIOLATION.test(error.message)) { this.fail(error); }
+    const previo = await this.db.from('maps_colors').select(COLOR_COLS)
+      .eq('campaign_id', campaignId).ilike('color', color).limit(1).single();
+    this.fail(previo.error);
+    return mapColorRow(previo.data as ColorRow);
+  }
+
   async listRoomOpenings(sceneId: string): Promise<RoomOpening[]> {
     const { data, error } = await this.db.from('maps_room_openings').select(ROOM_OPENING_COLS).eq('scene_id', sceneId);
     this.fail(error);

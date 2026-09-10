@@ -17,17 +17,20 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 `maps` **rebanada 9** — EL PINCEL — construida entera el 2026-09-09 (las dos tandas), en la rama
 `feat/maps-pincel` y sin mergear.
 
+`maps` **rebanada 10** — EL PINCEL QUE CONSTRUYE — construida entera el 2026-09-10 en la misma rama: el motor,
+la base y **la pantalla**. Review pasada sin arreglos; falta que la mire.
+
 **SIGUIENTE:** que él MIRE el pincel en pantalla → coger/mover/borrar una sala con el ratón (pide `.pen`) →
 **rebanada 6** (galería de piezas, a rediseñar) → `chat` (H8) + `journal` (H9). ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno,
 configurable por sistema (toca el puerto `GameSystem`) — spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cuatro bloques de arriba, en este orden: 🖌️ «EL PINCEL, CONSTRUIDO ENTERO» (donde se retoma) · 📥 «TRES PETICIONES SIN EMPEZAR» · 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cuatro bloques de arriba, en este orden: 🖌️ «EL PINCEL QUE CONSTRUYE» (rebanada 10, donde se retoma) · 📥 «TRES PETICIONES SIN EMPEZAR» · 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🖌️ 2026-09-10 — EL PINCEL QUE CONSTRUYE (rebanada 10) · **AQUÍ SE RETOMA**
+## 🖌️ 2026-09-10 — EL PINCEL QUE CONSTRUYE (rebanada 10) · **CONSTRUIDO ENTERO** · **AQUÍ SE RETOMA**
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🖌️ de arriba de WORK_STATE.md. Estoy con la rebanada 10 en la rama
-> `feat/maps-pincel`: spec y diseño aprobados, el motor del brochazo hecho, falta la pantalla.»
+> «Rolvium. Lee el bloque 🖌️ de arriba de WORK_STATE.md. La rebanada 10 está construida entera en la rama
+> `feat/maps-pincel`, sin mergear. Falta que yo la mire en pantalla.»
 
 ### DE QUÉ VA, Y POR QUÉ NO ERA UN RETOQUE
 Probando la rebanada 9 en pantalla dijo: *«pero ese es el pincel de transparencia… ¿cómo elijo la textura con
@@ -38,42 +41,47 @@ Así que el pincel **construye**: eliges **suelo** o **muro**, arrastras, y sale
 que haya, con la **textura del catálogo** o el **color** que elijas, y hay un **borrador** que derriba.
 
 ### ESTADO
-- Rama `feat/maps-pincel`, **sin mergear**. `main` = `9004356`.
-- ✅ **Spec escrito y confirmado**: `specs/modules/maps/SPEC.md` § «Rebanada 10».
-- ✅ **Diseño aprobado por él** el 2026-09-10 (dos pasadas: «demasiado ancho» → 220 px, y «no veo dónde queda
-  puesto el color» → cuadro grande del color + «tus colores»). Frames `YwHzR` (con textura) y `M9zw2t`
-  (con color).
+- Rama `feat/maps-pincel`, **SIN mergear**. `main` = `9004356`.
+- Verde: `test:regression` **1590** · `tsc` limpio · `build:web` y `build:api` limpios · `audit` **0 hard** ·
+  paridad i18n 1137/1137.
+- **Review pasada el 2026-09-10 sin un solo arreglo** (hexagonal, seguridad, RLS, diseño, i18n, cobertura).
+- ✅ **El `.pen` SÍ se guardó.** El aviso rojo de la sesión anterior era falso: los marcos `YwHzR` y `M9zw2t`
+  entraron en el commit `4bc9f5f`. No hay nada que rehacer ni nada que pedirle.
+- Migraciones ya aplicadas en local **y visibles para PostgREST** (comprobado por REST):
+  `20260910120000_maps_brush_build.sql` y `20260910140000_maps_colors.sql`.
 
-  🔴🔴 **EL `.pen` NO ESTÁ GUARDADO EN DISCO. LO PRIMERO DEL CHAT NUEVO.** Comprobado al cerrar: la fecha de
-  `rolvium.pen` seguía siendo la de ayer. **El panel aprobado vive SÓLO en la caché del editor de Pencil** —
-  el MCP no escribe en disco, sólo su Cmd+S lo baja (regla ya conocida, `pen-solo-lo-guarda-el-dueno`).
-  - **Si cerró el editor sin guardar, el diseño se ha perdido y hay que rehacerlo.** Está descrito entero
-    aquí abajo, así que rehacerlo cuesta una pasada, pero no se da por hecho que esté.
-  - **Antes de tocar interfaz: pedirle el Cmd+S, comprobar `ls -l rolvium.pen`, y commitear el `.pen`.**
+### ✅ CONSTRUIDO (la pantalla entera)
+- **`BrushPanel.tsx`** — el panel movible de 220 px, 1:1 con la lámina. **Sustituye a `BrushBar.tsx`, que se
+  ha borrado** (orden suya del 2026-09-09: «*ajusta el diseño como un modal que se mueva como todos los
+  otros*»). Lleva también todo lo de la rebanada 9: capa, niebla y suelo de sala siguen pintándose desde aquí.
+- **El gesto**, en `MapCanvas`: `brushBuild` (arrastrar → `brushRings` → una o varias formas, con previo
+  mientras se arrastra) y `brushErase` (derriba las formas por las que pasa, enteras y una sola vez cada una).
+- **Cada forma con lo suyo**: `Room.floorColor` nuevo, `shape` admite `brush`, y `shapeImageOf` /
+  `shapeColorOf` en `roomStyles` deciden con qué se pinta. **La foto gana al color, y el color al preajuste.**
+- **Los colores guardados por campaña**: puerto `listColors`/`addColor` + adaptador, con el choque del índice
+  único recogido (el mismo color dos veces devuelve el que había, no revienta).
+- **El icono de la barra ya es un pincel**, y la herramienta se llama «Pincel» a secas.
+- **El catálogo de texturas se movió FUERA del bloque del panel de Builder**: ahora lo abren los dos, y
+  estando dentro el pincel pedía textura y no salía nada.
+- Claves i18n en **es y en**, y test de todo lo no cosmético.
 
-  **Cómo es el panel aprobado** (por si hay que rehacerlo): 220 px de ancho, fondo `#f2f0eaee` con sombra,
-  formato del panel de Builder. Cabecera: asa `drag_indicator` · icono `brush` · «Pincel» · `close`.
-  Secciones: **SOBRE QUÉ** (Suelo · Muro / Capa · Niebla, dos filas de dos, con icono) · **CON QUÉ PINTO**
-  (Textura · Color / Borrar) · **la textura** (muestra grande a todo lo ancho + nombre + Elegir/Quitar) **o
-  el color** (cuadro grande del color puesto con su nombre y su hex, paleta de 12 en dos filas, fila «TUS
-  COLORES · DE ESTA CAMPAÑA» con las muestras y un `+`, y campo hex con botón de cuentagotas) ·
-  **EL BROCHAZO** (Disco · Roto, y los deslizadores APILADOS —rótulo y valor arriba, la barra debajo a todo
-  lo ancho—: tamaño, y cuánto de roto sólo con Roto) · una línea al pie. Lo activo, en `pl-sangre`.
-- ✅ **Base de datos hecha y aplicada en local**, sin `db:reset`:
-  - `20260910120000_maps_brush_build.sql` — `shape` admite `brush`, y cada forma gana **color propio**.
-  - `20260910140000_maps_colors.sql` — tabla nueva `maps_colors`, los colores que él mezcla, **por campaña**.
-- ✅ **El motor del brochazo**: `brushRings` en `roomRules.ts`, con 8 tests.
+### ⏭️ LO SIGUIENTE, Y ES SUYO: MIRARLO EN PANTALLA
+Con la app corriendo, escena de director, herramienta **Pincel**:
+1. **Suelo** — arrastrar y ver que sale una banda que se funde, y que se puede andar por ella.
+2. **Muro** — lo mismo, y comprobar que corta la vista y el paso.
+3. **Textura y color** — elegir una del catálogo, elegir un color, inventarse uno y guardarlo.
+4. **Borrar** — pasar por encima y ver que se lleva el brochazo entero.
+5. Y que **capa, niebla y suelo de sala** siguen haciendo lo de siempre desde el panel nuevo.
 
-### ⏭️ LO QUE FALTA (la pantalla)
-1. **El panel**, 1:1 con el `.pen`: movible (`useDragPanel`), formato Builder, 220 px de ancho.
-   Sustituye a `BrushBar` de la rebanada 9.
-2. **El gesto** en `MapCanvas`: recoger el trazo y al soltar crear la forma con `brushRings`.
-3. **El borrador**: se lleva las formas por las que pases (enteras — ver el límite abajo).
-4. **Que cada forma se pinte con lo suyo**: `roomsLayer` tiene que mirar `floorColor`, y una forma que
-   RELLENA tiene que poder llevar su propia roca.
-5. **Los colores guardados**: puerto + adaptador + la fila «tus colores».
-6. **El icono de la barra**: de `opacity` (gota) a `brush`. Petición literal suya.
-7. Claves i18n en **es y en**.
+### ⚠️ LO QUE DECIDÍ YO Y ÉL PUEDE TUMBAR AL VERLO
+1. **«Suelo de sala» es una QUINTA casilla a todo lo ancho.** La lámina trae cuatro; ésta sigue viva por su
+   «*no lo sé, por ahora déjalo*» del 2026-09-10. Quitarla es borrar una línea (`BRUSH_ON`, `roomRules.ts`).
+2. **El pincel abre en SUELO.** Antes la herramienta caía directa a pintar la máscara de una capa; ahora para
+   eso hay que elegir `Capa` en el panel. Cambia cómo se siente el primer clic.
+3. **El pie del panel dice UNA línea** en vez de las tres que la barra vieja listaba juntas.
+4. **El trazo roto se sigue llamando «Borde roto»** y no «Roto», que es como lo abrevia la lámina: es el
+   mismo trazo que en la rebanada 9 y no se le pone un segundo nombre.
+5. ⚠ **El borrador deja UN deshacer POR FORMA**: un trazo que cruce ocho brochazos necesita ocho deshaceres.
 
 ### 🔑 DECISIONES QUE NO SE PUEDEN PERDER
 - **UN BROCHAZO ES UNA FORMA MÁS de `maps_rooms`.** De ahí sale gratis fundirse, cortar la vista y frenar a
@@ -89,13 +97,15 @@ que haya, con la **textura del catálogo** o el **color** que elijas, y hay un *
 - **Los colores guardados son POR CAMPAÑA.** Él delegó («*campaña o escena, lo que tengamos*»); se elige
   campaña porque el verde que mezclas para el bosque lo quieres en los demás mapas de ese bosque. Mismo
   alcance que la biblioteca de fondos.
+- **La textura y el color del pincel NO se guardan en ningún sitio**: quedan pegados al brochazo que se pinte,
+  así que cambiarlos después no repinta nada. Son dato de sesión, como la herramienta elegida.
 
-### ⚠️ PENDIENTE DE ÉL
-- **Guardar `rolvium.pen` (Cmd+S)** para poder commitear el diseño.
-- **El «suelo de una sala» de la rebanada 9 SE QUEDA.** Se le preguntó si seguía haciendo falta —el que
-  BORRA el suelo para que asome la foto de debajo— ahora que se podrá repintar con textura. Contestó el
-  2026-09-10: «*no lo sé, por ahora déjalo*». **No es una decisión pendiente de recordarle: es un «déjalo»
-  hasta que lo vea funcionando.** No volver a sacar el tema sin que él lo saque.
+### 🚫 DEUDA ANOTADA A PROPÓSITO, NO TOCADA
+- **Tres claves i18n se han quedado huérfanas** al borrar `BrushBar`: `maps.brush.everyStrokeDiffers`
+  —«cada brochazo, distinto», que era un aviso suyo aprobado el 2026-09-09 y que la lámina nueva no lleva—,
+  `maps.brush.reveal` y `maps.brush.hide`. No se borran sin que él lo diga: es copia que puede querer de vuelta.
+- Sigue en pie la de la rebanada 9: la rama `brushing` de **`StrokeBar.tsx`** y `BRUSH_SIZES` / `DEFAULT_BRUSH`
+  en `mapRules.ts`, inalcanzables desde la pantalla.
 
 ## 🖌️ 2026-09-09 — EL PINCEL, CONSTRUIDO ENTERO · RAMA `feat/maps-pincel` · **PENDIENTE DE QUE LO MIRE**
 

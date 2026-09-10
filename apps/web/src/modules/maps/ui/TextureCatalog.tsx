@@ -27,10 +27,11 @@ const PREVIEW_CELLS = 4;
 interface Props {
   /** Para cuál de las dos texturas base se está eligiendo. Sólo cambia el título. */
   /**
-   * Para qué se está eligiendo: la pared de la sala, su suelo, o —desde el 2026-09-07— una PUERTA. Sólo
-   * cambia el título del modal: el catálogo es el mismo, que es todo el sentido de que sea de la herramienta.
+   * Para qué se está eligiendo: la pared de la sala, su suelo, una PUERTA (desde el 2026-09-07) o —desde la
+   * rebanada 10— EL PINCEL. Sólo cambia el título y la pista del modal: el catálogo es el mismo, que es todo
+   * el sentido de que sea de la herramienta y no de una campaña.
    */
-  which: 'wall' | 'floor' | 'door';
+  which: 'wall' | 'floor' | 'door' | 'brush';
   /** `null` mientras se cargan: no es lo mismo «no hay ninguna» que «todavía no han llegado». */
   textures: Texture[] | null;
   /**
@@ -222,7 +223,7 @@ export function TextureCatalog({ which, textures, canManage, onPick, onUpload, o
           * casilla siempre—. Dejar la de siempre sería el mismo fallo que él ya cazó con el botón que decía
           * «subir» sin subir nada (2026-09-07).
           */}
-        <p className="mp-texcat-hint">{t(which === 'door' ? 'maps.room.catalog.doorHint' : 'maps.room.catalog.hint')}</p>
+        <p className="mp-texcat-hint">{t(which === 'door' ? 'maps.room.catalog.doorHint' : which === 'brush' ? 'maps.room.catalog.brushHint' : 'maps.room.catalog.hint')}</p>
       </div>
     </Modal>
   );

@@ -118,6 +118,33 @@ export const floorUrlOf = (room: Pick<Room, 'floorUrl'>, scene: Pick<Scene, 'flo
   room.floorUrl ?? scene.floorTextureUrl;
 
 /**
+ * CON QUÉ SE PINTA UNA FORMA — LA FOTO (rebanada 10). Un solo sitio para las dos clases de forma:
+ *
+ *  · la que EXCAVA enseña su SUELO   → el suyo si lo trae, y si no el del mapa (`floorUrlOf`, intacto);
+ *  · la que RELLENA enseña su ROCA   → la suya si la trae, y si no la del mapa.
+ *
+ * Es la MISMA columna (`floorUrl`) porque es la misma idea —«con qué está pintada esta forma»—, que es lo que
+ * el pincel necesita para poder pintar un muro con una piedra distinta sin inventar una segunda columna.
+ * Una forma anterior al pincel no trae nada propio, así que se ve exactamente igual que ayer.
+ */
+export const shapeImageOf = (room: Pick<Room, 'kind' | 'floorUrl'>, scene: Pick<Scene, 'floorTextureUrl' | 'wallTextureUrl'>): string | null =>
+  room.kind === 'fill' ? room.floorUrl ?? scene.wallTextureUrl : floorUrlOf(room, scene);
+
+/**
+ * …Y EL COLOR, que es lo que se ve DEBAJO de la foto —o en vez de ella si no hay ninguna.
+ *
+ * El orden es el mismo que ya rige en las puertas: **la foto gana al color, y el color gana al preajuste**.
+ * Por eso quitarle la textura a un brochazo no lo deja en blanco: descubre el color que llevaba debajo.
+ *
+ * ⚠️ Cuando la forma NO trae color propio se cae al preajuste de siempre, y ahí se respeta a rajatabla de
+ * dónde salía cada uno: la roca de un relleno es la de LA ESCENA (`scenePreset`) y el suelo de una sala es el
+ * que ella se llevó el día que se dibujó (`room.floorPreset`). Cambiarlo aquí repintaría mapas ya hechos, que
+ * es justo lo que él prohibió en redondo — «*como que repinta las salas, nooooo*».
+ */
+export const shapeColorOf = (room: Pick<Room, 'kind' | 'floorPreset' | 'floorColor'>, scenePreset: RoomPreset): string =>
+  room.floorColor ?? (room.kind === 'fill' ? styleOf(scenePreset).rock : styleOf(room.floorPreset).floor);
+
+/**
  * UN MURO DE RELLENO NO SE DIBUJA COMO FORMA: lo que se ve de él es el AGUJERO que deja en el suelo, y de eso
  * ya se encarga la máscara —su anillo se resta del hueco— más su contorno, que sale del motor como cualquier
  * otra pared. No hay nada que pintar aparte: si se pintara, se vería una mancha de roca con borde propio
@@ -156,6 +183,18 @@ export const filledRooms = (rooms: readonly Room[]): Room[] => rooms.filter(r =>
  */
 export const roomAt = (rooms: readonly Room[], p: { x: number; y: number }): Room | null =>
   dugRooms(rooms).reverse().find(r => pointInRing(p, ringOf(r))) ?? null;
+
+/**
+ * LA FORMA QUE HAY BAJO UN PUNTO, EXCAVE O RELLENE — la que se lleva el borrador del pincel (rebanada 10).
+ *
+ * Va aparte de `roomAt` a propósito: aquél sólo mira las que EXCAVAN, porque un tabique no tiene suelo que
+ * repintar. El borrador sí tiene que poder derribar un brochazo de MURO — es la mitad de lo que se pinta.
+ *
+ * De la más nueva a la más vieja, por lo mismo que `roomAt`: donde dos se solapan manda la de arriba, que es
+ * la que él está viendo cuando apunta.
+ */
+export const shapeAt = (rooms: readonly Room[], p: { x: number; y: number }): Room | null =>
+  [...rooms].reverse().find(r => pointInRing(p, ringOf(r))) ?? null;
 
 /**
  * Las formas del mapa **en el orden en que él las dibujó**, que es el que decide quién manda: la lista llega

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
-import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
+import type { Drawing, DrawingKind, Layer, Light, Room, RoomKind, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, doorTexturesUsed, type Point, type Segment, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { brushRings, freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
 import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
-import { ringFromSides, roomAt, roomWallsOf } from '../domain/useCases/roomStyles';
+import { ringFromSides, ringPath, roomAt, roomWallsOf, shapeAt } from '../domain/useCases/roomStyles';
 import { roomMoveSegments } from '@rolvium/core';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 
@@ -124,6 +124,26 @@ interface Props {
   /** `start` marca el primer brochazo de un arrastre: es donde se sortea la forma del borde roto. */
   onPaintMask?: (from: Point, to: Point, start?: boolean) => void;
   onPaintMaskEnd?: () => void;
+  /**
+   * EL PINCEL QUE CONSTRUYE (rebanada 10). `null` = el pincel está pintando ENCIMA de algo, que es lo de la
+   * rebanada 9 y no se toca. Con esto puesto, arrastrar levanta mapa: sale una banda del ancho del pincel.
+   *
+   * `kind` es el signo de la forma —«suelo» excava, «muro» rellena— y `widthCells` el ancho de la banda, en
+   * casillas, que es exactamente el tamaño del pincel.
+   */
+  brushBuild?: { kind: RoomKind; widthCells: number } | null;
+  /**
+   * El trazo, ya convertido en ANILLOS de escena. Varios sólo cuando el trazo dobla más cerrado que su
+   * propio ancho: partirlo en el codo es lo que evita un agujero de roca en medio del brochazo (§ 10.2).
+   */
+  onBrushBuild?: (rings: [number, number][][]) => void;
+  /** Borrando: el pincel derriba las formas por las que pasa. Manda sobre `brushBuild`. */
+  brushErase?: boolean;
+  /**
+   * Una forma por la que ha pasado el borrador. Se avisa UNA VEZ por forma y por gesto — se lleva el
+   * brochazo ENTERO, que es el límite que él aceptó al confirmar la rebanada (§ 10.3).
+   */
+  onBrushErase?: (roomId: string) => void;
   /** La máscara EN VIVO mientras se pinta, antes de que suba. Se pinta en lugar de la guardada. */
   maskPreview?: string | null;
   /** DM: la luz que se está editando. Es pintura, así que seleccionarla no cambia nada para nadie. */
@@ -223,6 +243,10 @@ type Gesture =
   | { kind: 'brush'; op: 'reveal' | 'hide' }
   /** Pincel de transparencia: pinta la máscara de una capa de terreno. `last` encadena el trazo sin lunares. */
   | { kind: 'mask'; last: Point }
+  /** El pincel que CONSTRUYE: se guarda por dónde pasa la mano y al soltar sale la forma (rebanada 10). */
+  | { kind: 'brushBuild'; points: Point[] }
+  /** El BORRADOR del pincel. `gone` es lo ya derribado en este gesto, para no avisar dos veces de lo mismo. */
+  | { kind: 'brushErase'; gone: string[] }
   | { kind: 'wallEdit'; id: string; grab: 'a' | 'b' | 'whole'; start: Point; origin: { x1: number; y1: number; x2: number; y2: number }; dbl: boolean }
   /** Arrastrando una luz ya colocada. Se mueve entera: una luz no tiene extremos que agarrar. */
   | { kind: 'lightMove'; id: string; start: Point; origin: Point; moved: boolean }
@@ -281,6 +305,12 @@ const CATCH_UP_CELLS = 0.35;
 const PROBE_R = 17;
 /** Brush paints per second, matching the token drag's `DRAG_HZ_MS` (useScene.ts). */
 const PAINT_HZ_MS = 50;
+/**
+ * Lo mínimo que tiene que moverse la mano para que el pincel que CONSTRUYE apunte otro punto, en px de
+ * PANTALLA (se divide por el zoom). Sin este filtro un arrastre lento deja cientos de puntos en el mismo
+ * sitio y el anillo se recalcula en cada uno; con él, el trazo de un mapa entero se queda en unas decenas.
+ */
+const BRUSH_STEP_PX = 4;
 
 /**
  * SVG scene canvas: background → grid → (DM veil) → walls → drawings → tokens → UI (measure · pin · brush · selection).
@@ -318,6 +348,8 @@ export function MapCanvas(p: Props): JSX.Element {
   const ultimoToque = useRef<{ id: string; t: number; x: number; y: number } | null>(null);
   /** La sala que se está levantando, ya en lados. Se pinta mientras se arrastra y se guarda al soltar. */
   const [roomDraft, setRoomDraft] = useState<RoomSide[]>([]);
+  /** Los anillos del brochazo mientras se arrastra: es el previo de la forma que va a quedar (rebanada 10). */
+  const [brushDraft, setBrushDraft] = useState<[number, number][][]>([]);
   /** Los vértices que lleva puestos el polígono. Se cierra pinchando otra vez sobre el primero. */
   const [polyPoints, setPolyPoints] = useState<Point[]>([]);
   /** Dónde se está viendo la luz mientras se arrastra. Igual que `wallDraft`: se pinta ya, se guarda al soltar. */
@@ -386,7 +418,7 @@ export function MapCanvas(p: Props): JSX.Element {
     const id = window.setTimeout(() => setPinShown(null), PIN_MS);
     return () => window.clearTimeout(id);
   }, [p.pin]);
-  useEffect(() => { if (p.tool !== 'wall') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); } if (p.tool !== 'measure') setMeasure(null); }, [p.tool]);
+  useEffect(() => { if (p.tool !== 'wall') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); } if (p.tool !== 'measure') setMeasure(null); if (p.tool !== 'mask') setBrushDraft([]); }, [p.tool]);
   /** Cambiar de forma a media sala la descarta: los vértices de un polígono no valen para un círculo. */
   useEffect(() => { setPolyPoints([]); setRoomDraft([]); setWallStart(null); }, [p.wallShape]);
   useEffect(() => { onDeleteRef.current = () => p.onDeleteSelection?.(); });
@@ -782,7 +814,26 @@ export function MapCanvas(p: Props): JSX.Element {
         return;
       }
       case 'mask': {
-        if (!dmSight || (!p.maskLayerId && !p.maskRoomId)) return;
+        if (!dmSight) return;
+        /*
+         * EL BORRADOR (rebanada 10) manda sobre todo lo demás: derriba la forma que haya bajo el pincel y
+         * sigue derribando por donde pase. Se lleva el brochazo ENTERO, que es el límite que él aceptó.
+         */
+        if (p.brushErase) {
+          const bajo = shapeAt(rooms, s);
+          if (bajo) p.onBrushErase?.(bajo.id);
+          setGesture({ kind: 'brushErase', gone: bajo ? [bajo.id] : [] });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
+        // EL PINCEL QUE CONSTRUYE: se guarda por dónde pasa la mano y la forma sale al soltar.
+        if (p.brushBuild) {
+          setGesture({ kind: 'brushBuild', points: [s] });
+          setBrushDraft(brushRings([s], p.brushBuild.widthCells, grid));
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
+        if (!p.maskLayerId && !p.maskRoomId) return;
         p.onPaintMask?.(s, s, true);
         setGesture({ kind: 'mask', last: s });
         svgRef.current?.setPointerCapture?.(e.pointerId);
@@ -820,7 +871,9 @@ export function MapCanvas(p: Props): JSX.Element {
      * rehacía su lienzo: la pincelada entera se perdía sin decir nada, y si al otro lado había otra sala, el
      * resto del trazo caía en ella. El recorte protege los píxeles; esto protege el destino.
      */
-    if (p.tool === 'mask' && dmSight && p.onHoverRoom && gesture?.kind !== 'mask') {
+    // 🐞 …y tampoco mientras se construye o se borra (rebanada 10): son gestos del mismo pincel y avisar a
+    // media pincelada despierta a la pantalla entera de la escena por nada.
+    if (p.tool === 'mask' && dmSight && p.onHoverRoom && gesture?.kind !== 'mask' && gesture?.kind !== 'brushBuild' && gesture?.kind !== 'brushErase') {
       const id = roomAt(rooms, s)?.id ?? null;
       if (id !== hoverRoom.current) { hoverRoom.current = id; p.onHoverRoom(id); }
     }
@@ -990,6 +1043,22 @@ export function MapCanvas(p: Props): JSX.Element {
       // and wakes the whole table through `fog.updated`. One per pointermove would be ~60 a second.
       const now = Date.now();
       if (now - lastPaint.current >= PAINT_HZ_MS) { lastPaint.current = now; p.onPaintFog({ ...s, radius: brushRadius(p.brush, grid) }, gesture.op); }
+    } else if (gesture.kind === 'brushBuild') {
+      /*
+       * Se guarda un punto sólo cuando la mano se ha MOVIDO de verdad. Sin este filtro un arrastre lento
+       * deja cientos de puntos pegados en el mismo sitio, y el anillo se recalcula en cada uno de ellos.
+       * El motor los volvería a quitar de todas formas (`brushRings` limpia el trazo antes de engordarlo).
+       */
+      const ultimo = gesture.points[gesture.points.length - 1]!;
+      if (Math.hypot(s.x - ultimo.x, s.y - ultimo.y) < BRUSH_STEP_PX / p.view.zoom) return;
+      const points = [...gesture.points, s];
+      setGesture({ ...gesture, points });
+      if (p.brushBuild) setBrushDraft(brushRings(points, p.brushBuild.widthCells, grid));
+    } else if (gesture.kind === 'brushErase') {
+      const bajo = shapeAt(rooms, s);
+      if (!bajo || gesture.gone.includes(bajo.id)) return;
+      p.onBrushErase?.(bajo.id);
+      setGesture({ ...gesture, gone: [...gesture.gone, bajo.id] });
     } else if (gesture.kind === 'mask') {
       // Sin límite de ritmo: esto pinta en un lienzo del propio navegador. Lo que cuesta —subir el PNG— pasa
       // UNA vez al soltar, no en cada movimiento.
@@ -1023,7 +1092,7 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const onRightClick = (e: ReactPointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
     e.preventDefault();
-    if (wallStart || measure || gesture || polyPoints.length) { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); return; }
+    if (wallStart || measure || gesture || polyPoints.length) { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setBrushDraft([]); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); return; }
     // Sobre algo, el menú es de ESE algo; en el suelo vacío, el de la vista. Sólo el director mueve capas.
     const s = toScene(e);
     const el = dmSight ? elementAt(s) : null;
@@ -1047,6 +1116,18 @@ export function MapCanvas(p: Props): JSX.Element {
     if (gesture.kind === 'probe') { setGesture(null); return; }
     // El PNG de la máscara sube UNA vez, al soltar: un guardado por pincelada, no cien.
     if (gesture.kind === 'mask') { setGesture(null); p.onPaintMaskEnd?.(); return; }
+    if (gesture.kind === 'brushErase') { setGesture(null); return; }
+    if (gesture.kind === 'brushBuild') {
+      /*
+       * Un toque sin arrastre es un DISCO, igual que en cualquier programa de dibujo: `brushRings` ya lo
+       * resuelve con un solo punto, así que aquí no hay nada que decidir.
+       */
+      const rings = p.brushBuild ? brushRings(gesture.points, p.brushBuild.widthCells, grid) : [];
+      setGesture(null);
+      setBrushDraft([]);
+      if (rings.length) p.onBrushBuild?.(rings);
+      return;
+    }
     // La sala se escribe al soltar, no mientras se arrastra: si no, cada píxel del gesto sería una escritura.
     if (gesture.kind === 'room') {
       commitRoom(roomSides(gesture.shape, gesture.start, hover ?? gesture.start, grid, paso, minForma), gesture.shape);
@@ -1351,6 +1432,8 @@ export function MapCanvas(p: Props): JSX.Element {
             ))}
             {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={anclar(hover, undefined, wallStart).x} y2={anclar(hover, undefined, wallStart).y} className="mp-wall draft" />}
             {roomDraft.map((r, i) => <line key={`room-${i}`} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} className="mp-wall draft" />)}
+            {/* El brochazo mientras se arrastra: el contorno de lo que va a quedar, sin rellenar. */}
+            {brushDraft.map((ring, i) => <path key={`brush-${i}`} d={ringPath(ring.map(([x, y]) => ({ x, y })))} className="mp-wall draft" fill="none" data-testid="mp-brush-draft" />)}
             {p.tool === 'wall' && polyPoints.map((v, i) => {
               const next = polyPoints[i + 1] ?? (hover ? anclar(hover, undefined, polyPoints[polyPoints.length - 1] ?? null) : v);
               return <line key={`poly-${i}`} x1={v.x} y1={v.y} x2={next.x} y2={next.y} className="mp-wall draft" />;

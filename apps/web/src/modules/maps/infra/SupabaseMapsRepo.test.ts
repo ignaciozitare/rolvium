@@ -515,14 +515,14 @@ describe('SupabaseMapsRepo — las salas', () => {
     expect(m.fromSpy).toHaveBeenCalledWith('maps_rooms');
     expect(q(m)['eq']).toHaveBeenCalledWith('scene_id', 'sc-1');
     expect(q(m)['order']).toHaveBeenCalledWith('created_at', { ascending: true });
-    expect(rooms[0]).toMatchObject({ id: 'rm-1', shape: 'rect', floorPreset: 'cavern', floorUrl: null, floorMaskUrl: null });
+    expect(rooms[0]).toMatchObject({ id: 'rm-1', shape: 'rect', floorPreset: 'cavern', floorUrl: null, floorColor: null, floorMaskUrl: null });
     expect(rooms[0]!.points).toEqual([[0, 0], [10, 0], [10, 10], [0, 10]]);
   });
 
   it('guarda la forma con su suelo heredado, y NO escribe ningún muro', async () => {
     const m = createSupabaseMock({ tables: { maps_rooms: { data: ROOM_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect', points: [[0, 0], [10, 0], [10, 10], [0, 10]], floorPreset: 'cavern', floorUrl: null, floorMaskUrl: null });
+    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect', points: [[0, 0], [10, 0], [10, 10], [0, 10]], floorPreset: 'cavern', floorUrl: null, floorColor: null, floorMaskUrl: null });
     expect(q(m)['insert']).toHaveBeenCalledWith(expect.objectContaining({ scene_id: 'sc-1', kind: 'room', shape: 'rect', floor_preset: 'cavern' }));
     expect(m.fromSpy).not.toHaveBeenCalledWith('maps_walls');
   });
@@ -765,5 +765,80 @@ describe('el pincel de la escena y la máscara de la sala (rebanada 9)', () => {
     expect(mapSceneRow({ ...SCENE_ROW, brush_size: 900 }).brushSize).toBe(6);
     expect(mapSceneRow({ ...SCENE_ROW, brush_strength: -4 }).brushStrength).toBe(0);
     expect(mapSceneRow({ ...SCENE_ROW, brush_roughness: 7 }).brushRoughness).toBe(1);
+  });
+});
+
+/**
+ * ── LOS COLORES GUARDADOS DE LA CAMPAÑA (§ «Rebanada 10») ──
+ *
+ * Los que él mezcla con el cuentagotas o escribe a mano. Por CAMPAÑA, como la biblioteca de fondos y por lo
+ * mismo: una campaña es un mundo con un aspecto.
+ */
+describe('SupabaseMapsRepo — los colores guardados', () => {
+  const COLOR_ROW = { id: 'mc-1', campaign_id: 'c1', color: '#7a5c3e', created_at: 't' };
+
+  it('los lee de la campaña y por orden de llegada, que es como se enseñan', async () => {
+    const m = createSupabaseMock({ tables: { maps_colors: { data: [COLOR_ROW], error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    const colores = await repo.listColors('c1');
+    expect(m.fromSpy).toHaveBeenCalledWith('maps_colors');
+    expect(q(m)['eq']).toHaveBeenCalledWith('campaign_id', 'c1');
+    expect(q(m)['order']).toHaveBeenCalledWith('created_at', { ascending: true });
+    expect(colores[0]).toEqual({ id: 'mc-1', campaignId: 'c1', color: '#7a5c3e', createdAt: 't' });
+  });
+
+  it('guarda el color en la campaña y a nombre de quien lo mezcló', async () => {
+    const m = createSupabaseMock({ tables: { maps_colors: { data: COLOR_ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(withSession(m.client, 'u-gm') as unknown as SupabaseClient);
+    const creado = await repo.addColor('c1', '#7a5c3e');
+    expect(q(m)['insert']).toHaveBeenCalledWith({ campaign_id: 'c1', color: '#7a5c3e', created_by: 'u-gm' });
+    expect(creado.color).toBe('#7a5c3e');
+  });
+
+  /**
+   * 🔑 EL MISMO COLOR DOS VECES NO ES UN ERROR: es el mismo color, y lo que él espera es que su muestra siga
+   * ahí. Se intenta meter y se recoge el choque —en vez de consultar antes y escribir después—, porque entre
+   * la consulta y la escritura cabe la otra pestaña del director, que es justo por donde se pierde un color.
+   */
+  it('si el color ya estaba en la campaña devuelve el que había, sin reventar', async () => {
+    let llamada = 0;
+    const chain: Record<string, unknown> = {
+      then: (ok: (r: unknown) => unknown) => Promise.resolve(
+        ++llamada === 1
+          ? { data: null, error: { message: 'duplicate key value violates unique constraint "maps_colors_unique_idx"' } }
+          : { data: COLOR_ROW, error: null },
+      ).then(ok),
+    };
+    for (const met of ['select', 'insert', 'eq', 'ilike', 'limit', 'single', 'order']) chain[met] = vi.fn(() => chain);
+    const client = withSession({ from: vi.fn(() => chain) }, 'u-gm');
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    expect(await repo.addColor('c1', '#7A5C3E')).toEqual({ id: 'mc-1', campaignId: 'c1', color: '#7a5c3e', createdAt: 't' });
+    // Se busca SIN distinguir mayúsculas, que es como lo compara el índice de la base (`lower(color)`).
+    expect(chain['ilike']).toHaveBeenCalledWith('color', '#7A5C3E');
+  });
+
+  /** Un error de verdad —de permisos, de red— sí sube: sólo el choque del duplicado se recoge. */
+  it('un error que NO es un duplicado no se traga', async () => {
+    const m = createSupabaseMock({ tables: { maps_colors: { data: null, error: { message: 'permission denied' } as Error } } });
+    const repo = new SupabaseMapsRepo(withSession(m.client) as unknown as SupabaseClient);
+    await expect(repo.addColor('c1', '#123456')).rejects.toThrow('permission denied');
+  });
+});
+
+/** El color propio de una forma viaja en su fila, y una forma de antes del pincel no lo trae. */
+describe('SupabaseMapsRepo — el color propio de una forma (rebanada 10)', () => {
+  const ROW = { id: 'rm-1', scene_id: 'sc-1', campaign_id: 'c1', kind: 'room' as const, shape: 'brush' as const, points: [[0, 0], [10, 0], [10, 10]] as [number, number][], floor_preset: 'cavern' as const, floor_url: null, created_at: 't', updated_at: 't' };
+
+  it('se lee cuando viene, y una fila anterior a la migración se lee sin color', () => {
+    expect(mapRoomRow({ ...ROW, floor_color: '#5f8f6a' }).floorColor).toBe('#5f8f6a');
+    expect(mapRoomRow(ROW).floorColor).toBeNull();
+    expect(mapRoomRow(ROW).shape).toBe('brush');
+  });
+
+  it('se escribe al guardar el brochazo', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'fill', shape: 'brush', points: [[0, 0], [10, 0], [10, 10]], floorPreset: 'cavern', floorUrl: null, floorColor: '#5f8f6a', floorMaskUrl: null });
+    expect(q(m)['insert']).toHaveBeenCalledWith(expect.objectContaining({ shape: 'brush', kind: 'fill', floor_color: '#5f8f6a' }));
   });
 });

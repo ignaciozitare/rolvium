@@ -27,7 +27,7 @@ const SCENE: Scene = {
 const room = (id: string, x1: number, y1: number, x2: number, y2: number, over: Partial<Room> = {}): Room => ({
   id, sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect',
   points: [[x1, y1], [x2, y1], [x2, y2], [x1, y2]],
-  floorPreset: 'hatch', floorUrl: null, floorMaskUrl: null, createdAt: '2026-09-04T10:00:00Z', updatedAt: '', ...over,
+  floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '2026-09-04T10:00:00Z', updatedAt: '', ...over,
 });
 
 const mount = (rooms: Room[], openings: RoomOpening[] = [], scene: Scene = SCENE, floorPreview: { roomId: string; href: string | null } | null = null) =>
@@ -540,5 +540,72 @@ describe('<RoomsLayer> el pincel sobre el suelo de una sala', () => {
   it('una previa vacía deja el suelo entero aunque haya una máscara guardada', () => {
     mount([room('a', 0, 0, 100, 100, { floorMaskUrl: 'https://x/vieja.png', updatedAt: 't1' })], [], SCENE, { roomId: 'a', href: null });
     expect(screen.queryByTestId('mp-room-floor-mask')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * ── CADA FORMA SE PINTA CON LO SUYO (§ «Rebanada 10») ──
+ *
+ * Lo único de verdad nuevo que la rebanada mete en el pintado: un brochazo trae su propia textura o su
+ * propio color, y una forma que RELLENA puede llevar su propia roca.
+ */
+describe('<RoomsLayer> el brochazo se pinta con lo suyo', () => {
+  const suelos = (c: HTMLElement) => Array.from(c.querySelectorAll('[data-testid="mp-room-floor"] rect[fill]'));
+
+  it('un brochazo con color propio se pinta con ÉL, no con el del preajuste', () => {
+    const { container } = mount([room('r1', 60, 60, 300, 300, { shape: 'brush', floorColor: '#5f8f6a' })]);
+    expect(suelos(container).some(r => r.getAttribute('fill') === '#5f8f6a')).toBe(true);
+  });
+
+  /**
+   * 🔑 Y EL ORDEN SE VE EN PANTALLA: la foto se pinta ENCIMA del color, no en su lugar. Por eso quitarle la
+   * textura a un brochazo no lo deja en blanco: descubre el color que llevaba debajo.
+   */
+  it('con foto y color, la foto va encima y el color se queda debajo', () => {
+    const { container } = mount([room('r1', 60, 60, 300, 300, { shape: 'brush', floorColor: '#5f8f6a', floorUrl: 'https://x/losa.png' })]);
+    const capa = container.querySelector('[data-testid="mp-room-floor"] g[mask]')!;
+    const rects = Array.from(capa.querySelectorAll('rect'));
+    expect(rects[0]).toHaveAttribute('fill', '#5f8f6a');
+    expect(rects[1]!.getAttribute('fill')).toMatch(/^url\(#/);
+    expect(screen.getByTestId('mp-room-floor-img')).toBeInTheDocument();
+  });
+
+  /** «En una que EXCAVA es su suelo; en una que RELLENA es su roca»: la misma columna, la misma idea. */
+  it('un brochazo de MURO puede traer su propia piedra', () => {
+    const { container } = mount([
+      room('r1', 0, 0, 400, 400),
+      room('r2', 60, 60, 200, 200, { kind: 'fill', shape: 'brush', floorUrl: 'https://x/granito.png', floorColor: '#2f3338' }),
+    ]);
+    expect(screen.getByTestId('mp-room-fill-img')).toBeInTheDocument();
+    const relleno = container.querySelector('[data-testid="mp-room-refill"] g[mask] rect')!;
+    expect(relleno).toHaveAttribute('fill', '#2f3338');
+  });
+
+  /**
+   * 🔒 DOS BROCHAZOS SEGUIDOS DE COLORES DISTINTOS NO SE JUNTAN. Juntar las capas seguidas que pintan lo
+   * mismo es lo que evita veinte recortes del tamaño del mapa; juntar dos que pintan DISTINTO le daría a los
+   * dos el color del primero.
+   */
+  it('dos brochazos de colores distintos son dos capas, no una', () => {
+    mount([
+      room('r1', 0, 0, 100, 100, { shape: 'brush', floorColor: '#5f8f6a' }),
+      room('r2', 150, 0, 250, 100, { shape: 'brush', floorColor: '#b8452c' }),
+    ]);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(2);
+  });
+
+  /** …y dos del MISMO color sí, que es lo que mantiene el mapa barato de pintar. */
+  it('dos brochazos del mismo color se juntan en una sola capa', () => {
+    mount([
+      room('r1', 0, 0, 100, 100, { shape: 'brush', floorColor: '#5f8f6a' }),
+      room('r2', 150, 0, 250, 100, { shape: 'brush', floorColor: '#5f8f6a' }),
+    ]);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(1);
+  });
+
+  /** ⚠️ Y una forma de antes del pincel se sigue viendo EXACTAMENTE igual: sin color propio manda el preajuste. */
+  it('una sala de antes del pincel no cambia ni un píxel', () => {
+    const { container } = mount([room('r1', 60, 60, 300, 300)]);
+    expect(suelos(container).some(r => r.getAttribute('fill') === styles.styleOf('hatch').floor)).toBe(true);
   });
 });

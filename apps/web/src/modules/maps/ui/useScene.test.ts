@@ -565,7 +565,7 @@ describe('useScene — capas y luces', () => {
     const SALA: Room = {
       id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect',
       points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null,
-      floorMaskUrl: null, createdAt: 't', updatedAt: 't',
+      floorColor: null, floorMaskUrl: null, createdAt: 't', updatedAt: 't',
     };
     const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], rooms: [SALA] });
     const r = await mount(repo, fakeVisionPort());

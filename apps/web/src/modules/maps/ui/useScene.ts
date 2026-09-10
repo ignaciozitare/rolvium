@@ -566,11 +566,22 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * El suelo se HEREDA del momento de dibujar y se queda quieto: se copia aquí lo que la escena tenga puesto
    * ahora mismo. Cambiar el preajuste después no repinta esta sala — orden suya del 2026-09-03, en redondo.
    */
-  const addRoomShape = useCallback(async (shape: RoomShapeKind, points: [number, number][], kind: RoomKind = 'room') => {
+  /**
+   * `paint` es CON QUÉ NACE la forma (rebanada 10): la textura y el color que el pincel tenía elegidos. Es
+   * opcional a propósito — arrastrar un rectángulo en Builder sigue llamando a esto sin nada y la forma sale
+   * con el preajuste del mapa, exactamente como hasta hoy.
+   */
+  const addRoomShape = useCallback(async (shape: RoomShapeKind, points: [number, number][], kind: RoomKind = 'room', paint: { floorUrl?: string | null; floorColor?: string | null } = {}) => {
     if (!sceneId || !live || points.length < 3) return null;
     const input: NewRoom = {
       sceneId, campaignId: live.campaignId, kind, shape, points,
       floorPreset: live.roomPreset,
+      /**
+       * EL COLOR PROPIO de esta forma. `null` —lo normal— deja mandar al preajuste, que es lo que ha hecho
+       * siempre. Con el pincel puesto en COLOR llega el suyo, y queda pegado a ESTE brochazo: cambiar el
+       * color del pincel después no repinta lo ya pintado, igual que el preajuste no repinta las salas.
+       */
+      floorColor: paint.floorColor ?? null,
       // Una sala nace sin pintar encima: su suelo se ve entero (rebanada 9).
       floorMaskUrl: null,
       /**
@@ -581,8 +592,10 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
        * textura del piso en el momento cero no la carga*». El PREAJUSTE sí se congela, que es lo que él
        * ordenó («*como que repinta las salas, nooooo*»); la textura es del mapa. Esta columna se rellenará
        * cuando llegue el pincel de repintar el suelo de UNA sala, que es la tanda siguiente.
+       *
+       * …y con el pincel en TEXTURA sí llega una: la que él eligió del catálogo para este brochazo.
        */
-      floorUrl: null,
+      floorUrl: paint.floorUrl ?? null,
     };
     const created = await repo.addRoom(input);
     setRooms(l => (l.some(x => x.id === created.id) ? l : [...l, created]));
@@ -609,7 +622,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       label: 'maps.history.roomDelete',
       redo: async () => { setRooms(l => l.filter(x => x.id !== vivo.id)); await repo.removeRoom(vivo.id); announceVision(); },
       undo: async () => {
-        vivo = await repo.addRoom({ sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, shape: antes.shape, points: antes.points, floorPreset: antes.floorPreset, floorUrl: antes.floorUrl, floorMaskUrl: antes.floorMaskUrl });
+        vivo = await repo.addRoom({ sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, shape: antes.shape, points: antes.points, floorPreset: antes.floorPreset, floorUrl: antes.floorUrl, floorColor: antes.floorColor, floorMaskUrl: antes.floorMaskUrl });
         setRooms(l => [...l, vivo]);
         announceVision();
       },

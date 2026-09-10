@@ -756,7 +756,8 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
     expect(stage().querySelector('.mp-builder')).not.toBeNull();     // el panel de Builder, sobre el mapa
 
     await u.click(screen.getByRole('button', { name: 'Revelar' }));
-    expect(stage().querySelector('.mp-brushbar-v2')).not.toBeNull(); // «Pincel», sobre el mapa
+    // El PANEL del pincel (rebanada 10), sobre el mapa — ya no la franja a lo ancho de la rebanada 9.
+    expect(stage().querySelector('.mp-brushpanel')).not.toBeNull();
   });
 
   it('cambiar de herramienta suelta la selección: el panel de Builder no se queda pisando a «Trazo»', async () => {
@@ -816,7 +817,7 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
    * LLAMABA NADIE. Esto ata el camino entero: cogerla con Seleccionar → el panel → Suprimir.
    */
   const CUARTO = { id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
-    points: [[0, 0], [300, 0], [300, 300], [0, 300]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '' };
+    points: [[0, 0], [300, 0], [300, 300], [0, 300]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '' };
   const VANO = { id: 'ro-1', sceneId: 'sc-1', campaignId: 'c1', x1: 300, y1: 100, x2: 300, y2: 160, kind: 'door' as const, isOpen: false, ...DEFAULT_DOOR };
   const conSala = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [CUARTO], roomOpenings: [VANO] });
 
@@ -1366,11 +1367,17 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const u = userEvent.setup();
     mount('dm', withLayers());
     await screen.findByRole('complementary', { name: 'Capas' });
-    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    /*
+     * ⚠️ El pincel ABRE EN «SUELO» desde la rebanada 10 —construyendo, que es lo que enseña marcado la
+     * lámina que él aprobó—, así que para pintar una CAPA hay que elegirla en el panel. Antes no había
+     * elección posible: el pincel sólo sabía quitar.
+     */
+    await u.click(screen.getByRole('radio', { name: 'Capa' }));
     expect(screen.getByText('Elige una capa de terreno en el panel de capas para pintar en ella.')).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
     expect(screen.queryByText('Elige una capa de terreno en el panel de capas para pintar en ella.')).not.toBeInTheDocument();
-    const bar = screen.getByRole('radio', { name: 'Quitar' }).closest('.mp-maskbar')!;
+    const bar = screen.getByRole('radio', { name: 'Quitar' }).closest('.mp-brushpanel')!;
     expect(within(bar as HTMLElement).getByRole('slider', { name: 'Transparencia' })).toBeInTheDocument();
   });
 
@@ -1386,7 +1393,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const u = userEvent.setup();
     mount('dm', withLayers());
     await screen.findByRole('complementary', { name: 'Capas' });
-    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
     await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
     expect(screen.getByText('1.2 casillas')).toBeInTheDocument();
     fireEvent.change(screen.getByRole('slider', { name: 'Tamaño' }), { target: { value: '35' } });
@@ -1407,7 +1414,9 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const u = userEvent.setup();
     const repo = mount('dm', withLayers());
     await screen.findByRole('complementary', { name: 'Capas' });
-    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    // La transparencia sólo existe pintando ENCIMA de algo: construyendo no hay medio suelo (§ 10.4).
+    await u.click(screen.getByRole('radio', { name: 'Capa' }));
     const slider = screen.getByRole('slider', { name: 'Transparencia' });
     fireEvent.change(slider, { target: { value: '25' } });
     expect(repo.sceneUpdates.some(x => 'brushStrength' in x.patch)).toBe(false);
@@ -1428,7 +1437,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const u = userEvent.setup();
     const repo = mount('dm', withLayers());
     await screen.findByRole('complementary', { name: 'Capas' });
-    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
     await u.click(screen.getByRole('radio', { name: 'Borde roto' }));
     await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { brushTip: 'rough' } }));
     // Y con el borde roto aparece su barra, que antes no estaba.
@@ -1447,7 +1456,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const SALA = {
       id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
       points: [[0, 0], [400, 0], [400, 400], [0, 400]] as [number, number][],
-      floorPreset: 'hatch' as const, floorUrl: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+      floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
     };
     /*
      * jsdom no trae lienzo de verdad —`getContext` devuelve null— así que sin esto el pincel no llegaría ni
@@ -1461,7 +1470,7 @@ describe('<SceneTab> capas (rebanada 7)', () => {
 
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [SALA] }));
     await screen.findByText(/Almacén de Queens/);
-    await u.click(screen.getByRole('button', { name: 'Pincel de transparencia' }));
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
     await u.click(await screen.findByRole('radio', { name: 'Suelo de sala' }));
 
     // Sin el ratón encima de ninguna sala el pincel lo DICE, en vez de quedarse mudo.
@@ -2108,5 +2117,140 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
     expect(await screen.findByTestId('mp-texcat')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Opciones de/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Subir a/ })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * ── EL PINCEL QUE CONSTRUYE, DE PUNTA A PUNTA (§ «Rebanada 10») ──
+ *
+ * Confirmada por él el 2026-09-10 probando la rebanada 9: «*pero ese es el pincel de transparencia… ¿cómo
+ * elijo la textura con la que quiero pintar?*». El de la 9 sólo QUITA; éste PINTA CON ALGO, y lo que pinta
+ * **levanta mapa de verdad** — eligió la opción B pudiendo elegir que fuera sólo aspecto.
+ */
+describe('<SceneTab> el pincel que construye', () => {
+  const TEX = { id: 'tx-losa', name: 'Losa mojada', category: 'stone' as const, url: 'https://x/losa.png', tileCells: 2, uploadedBy: 'u-gm', createdAt: '', updatedAt: '' };
+  const BROCHAZO = {
+    id: 'rm-viejo', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'brush' as const,
+    points: [[0, 0], [200, 0], [200, 200], [0, 200]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, createdAt: '', updatedAt: '',
+  };
+  /** Un arrastre sobre el lienzo, que es el gesto entero del pincel. */
+  const brochazo = (de: [number, number], a: [number, number]) => {
+    fireEvent.pointerDown(canvas(), { clientX: de[0], clientY: de[1], pointerId: 1, button: 0 });
+    fireEvent.pointerMove(canvas(), { clientX: (de[0] + a[0]) / 2, clientY: (de[1] + a[1]) / 2, pointerId: 1 });
+    fireEvent.pointerMove(canvas(), { clientX: a[0], clientY: a[1], pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+  };
+
+  /** El pincel abre en SUELO, que es lo que enseña marcado la lámina que él aprobó. */
+  it('el pincel abre construyendo suelo, con el panel movible en vez de la barra vieja', async () => {
+    const u = userEvent.setup();
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    const panel = await screen.findByRole('group', { name: 'Pincel' });
+    expect(within(panel).getByRole('radio', { name: 'Suelo' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  /**
+   * 🔑 UN BROCHAZO ES UNA FORMA MÁS de `maps_rooms` (§ 10.2) — de ahí salen gratis fundirse, cortar la vista
+   * y frenar a las fichas. Si un día alguien le hace una tabla propia, esto lo canta.
+   */
+  it('arrastrar con SUELO guarda una forma que EXCAVA, marcada como brochazo', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    await screen.findByRole('group', { name: 'Pincel' });
+    brochazo([100, 100], [300, 100]);
+    await waitFor(() => expect(repo.rooms).toHaveLength(1));
+    expect(repo.rooms[0]).toMatchObject({ kind: 'room', shape: 'brush' });
+    expect(repo.rooms[0]!.points.length).toBeGreaterThanOrEqual(3);
+  });
+
+  /** «Tienes que elegir sala o muro» (suyo, 2026-09-10): el muro es la misma forma con el signo cambiado. */
+  it('con MURO puesto, el mismo gesto guarda una forma que RELLENA', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    await u.click(await screen.findByRole('radio', { name: 'Muro' }));
+    brochazo([100, 100], [300, 100]);
+    await waitFor(() => expect(repo.rooms[0]).toMatchObject({ kind: 'fill', shape: 'brush' }));
+  });
+
+  /**
+   * La textura sale del MISMO catálogo que la pared y el suelo, y queda pegada a ESE brochazo: cambiarla
+   * después no repinta lo ya pintado (§ 10.1).
+   */
+  it('la textura elegida en el catálogo viaja con el brochazo', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], textures: [TEX] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    const panel = await screen.findByRole('group', { name: 'Pincel' });
+    await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
+    await u.click(await within(await screen.findByTestId('mp-texcat')).findByTitle('Losa mojada'));
+    brochazo([100, 100], [300, 100]);
+    await waitFor(() => expect(repo.rooms[0]!.floorUrl).toBe('https://x/losa.png'));
+    // La textura base de la ESCENA no se ha tocado: esto es de la forma, no del mapa.
+    expect(repo.sceneUpdates.some(x => 'floorTextureUrl' in x.patch)).toBe(false);
+  });
+
+  /** «También quiero poder elegir colores para pintar» (suyo, 2026-09-10). Y el color va en la forma. */
+  it('el color elegido en la paleta viaja con el brochazo', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    await u.click(await screen.findByRole('radio', { name: 'Color' }));
+    await u.click(await screen.findByRole('radio', { name: 'Musgo' }));
+    brochazo([100, 100], [300, 100]);
+    await waitFor(() => expect(repo.rooms[0]!.floorColor).toBe('#5f8f6a'));
+    expect(repo.rooms[0]!.floorUrl).toBeNull();
+  });
+
+  /** Los colores que él se inventa se guardan POR CAMPAÑA, para los demás mapas de ese mundo. */
+  it('un color inventado se guarda en la campaña y aparece en «tus colores»', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    await u.click(await screen.findByRole('radio', { name: 'Color' }));
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Color en hexadecimal' }), { target: { value: '#123456' } });
+    await u.click(screen.getByRole('button', { name: 'Guardar este color en la campaña' }));
+    await waitFor(() => expect(repo.colors.map(c => c.color)).toEqual(['#123456']));
+    const mios = await screen.findByRole('radiogroup', { name: 'Tus colores · de esta campaña' });
+    expect(within(mios).getByRole('radio', { name: 'Color #123456' })).toBeInTheDocument();
+  });
+
+  /**
+   * 🔒 EL BORRADOR SE LLEVA EL BROCHAZO ENTERO por el que pases (§ 10.3), que es el límite que él aceptó.
+   * Y borra la fila: deshacer ya lo lleva el historial de la escena, como con cualquier otra forma.
+   */
+  it('el borrador derriba la forma por la que pasa', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], rooms: [BROCHAZO] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    await u.click(await screen.findByRole('radio', { name: 'Borrar' }));
+    brochazo([100, 100], [140, 140]);
+    await waitFor(() => expect(repo.rooms).toHaveLength(0));
+  });
+
+  /**
+   * ⚠️ REVELAR y OCULTAR de la barra lateral ENTRAN POR LA NIEBLA, aunque el pincel se hubiera quedado en
+   * SUELO la última vez: decir otra cosa en el panel sería mentir, y el gesto pintaría mapa donde él espera
+   * destapar niebla.
+   */
+  it('entrar por Revelar pone el panel en NIEBLA aunque el pincel estuviera construyendo', async () => {
+    const u = userEvent.setup();
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    expect(await screen.findByRole('radio', { name: 'Suelo' })).toHaveAttribute('aria-checked', 'true');
+    await u.click(screen.getByRole('button', { name: 'Revelar' }));
+    expect(await screen.findByRole('radio', { name: 'Niebla' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('button', { name: 'Revelar todo' })).toBeInTheDocument();
   });
 });

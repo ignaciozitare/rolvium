@@ -8,7 +8,7 @@ import type { CharactersPort } from '@/modules/characters/domain/ports/Character
 import { characterAvatar } from '@/modules/characters/domain/useCases/characterRules';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
-import type { DoorSettings, ImageAsset, Scene, ScenePatch, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
+import type { DoorSettings, ImageAsset, MapColor, Scene, ScenePatch, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import { brushRadius, canvasToScene, centerOn, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokensScaledIn, tokenAnchorShift, tokenPointStored, tokenSizeIn, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
@@ -19,12 +19,12 @@ import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { BuilderPanel } from './BuilderPanel';
 import { TextureCatalog } from './TextureCatalog';
-import { defaultShapeFor, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { defaultShapeFor, DEFAULT_BRUSH_COLOR, isBuildOn, isOpeningKind, roomKindOfBuild, shapesFor, wallStripe, type BrushOn, type BrushPaint, type BuildKind, type BuilderMode, type BuildTarget, type RoomShape } from '../domain/useCases/roomRules';
 import { DEFAULT_TEXTURE_SCALE, ringOf, ringPath, snapSpanToOutline, wallWidthPx } from '../domain/useCases/roomStyles';
 import { CanvasControls } from './CanvasControls';
 import { LayersPanel } from './LayersPanel';
 import { LightEditor } from './LightEditor';
-import { BrushBar, type BrushSettings } from './BrushBar';
+import { BrushPanel, type BrushSettings } from './BrushPanel';
 import { LayerMenu } from './LayerMenu';
 import { useMaskPainter, type MaskTarget } from './useMaskPainter';
 import {
@@ -245,6 +245,26 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   /** La sala bajo el ratón: a ésa apunta el pincel del suelo. La avisa el lienzo, y sólo cuando cambia. */
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   /**
+   * ── EL PINCEL QUE CONSTRUYE (rebanada 10) ──
+   * `buildOn` es SUELO o MURO cuando el pincel levanta mapa, y `null` cuando pinta encima de algo que ya
+   * está —capa, niebla o suelo de sala—, que es lo de la rebanada 9 y no se ha tocado.
+   *
+   * Arranca en SUELO porque es lo primero que hay que levantar en un mapa vacío, y porque es lo que el
+   * diseño aprobado enseña marcado.
+   */
+  const [buildOn, setBuildOn] = useState<BuildTarget | null>('floor');
+  /** Con qué pinta: una textura del catálogo, un color, o el borrador. */
+  const [brushPaint, setBrushPaint] = useState<BrushPaint>('texture');
+  /**
+   * LA TEXTURA Y EL COLOR DEL PINCEL. **No se guardan en ningún sitio a propósito**: quedan pegados al
+   * brochazo que se pinte (§ 10.1, «se elige ANTES de pintar y queda pegado a ESE brochazo»), así que
+   * cambiarlos después no repinta nada. Un dato de sesión, como la herramienta elegida.
+   */
+  const [brushTexture, setBrushTexture] = useState<Texture | null>(null);
+  const [brushColor, setBrushColor] = useState<string>(DEFAULT_BRUSH_COLOR);
+  /** Los colores que él se ha inventado en ESTA campaña. `null` = todavía no se han pedido. */
+  const [colors, setColors] = useState<MapColor[] | null>(null);
+  /**
    * LO QUE SE ESTÁ MOVIENDO AHORA MISMO EN LAS BARRAS DEL PINCEL, antes de que llegue a la escena. Mismo
    * reparto que el previo de la escala de textura: mover es continuo, guardar es una vez, al soltar. Sin
    * esto cada paso del deslizador sería una escritura en la base.
@@ -339,7 +359,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * Para qué se está eligiendo textura. `door` entró el 2026-09-07 («*te falta lo de la textura*»): la
    * puerta bebe del MISMO catálogo que la pared y el suelo, que es de la herramienta y ya está hecho.
    */
-  const [texPicker, setTexPicker] = useState<'wall' | 'floor' | 'door' | null>(null);
+  const [texPicker, setTexPicker] = useState<'wall' | 'floor' | 'door' | 'brush' | null>(null);
   /**
    * EL CATÁLOGO DE TEXTURAS, y ya NO la biblioteca de fondos de la campaña (él, 2026-09-04: «*los fondos de
    * las escenas que subí antes y las texturas no son lo mismo… las texturas son de un catálogo de texturas,
@@ -520,15 +540,42 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const aplicarTextura = useCallback((tex: Texture) => {
     if (!live || !texPicker) return;
     if (texPicker === 'door') { aplicarTexturaPuerta(tex.url); setTexPicker(null); return; }
+    /*
+     * LA DEL PINCEL no toca la escena: se queda esperando al próximo brochazo, y va con él. Cambiarla
+     * después no repinta lo ya pintado — cada forma se llevó la suya el día que se dibujó.
+     */
+    if (texPicker === 'brush') { setBrushTexture(tex); setTexPicker(null); return; }
     run(patchScene(live.id, texPicker === 'wall'
       ? { wallTextureUrl: tex.url, wallTextureScale: tex.tileCells }
       : { floorTextureUrl: tex.url, floorTextureScale: tex.tileCells }));
     setTexPicker(null);
   }, [live, texPicker, run, patchScene, aplicarTexturaPuerta]);
-  const pickTexture = useCallback(async (which: 'wall' | 'floor' | 'door') => {
+  const pickTexture = useCallback(async (which: 'wall' | 'floor' | 'door' | 'brush') => {
     setTexPicker(which);
     if (textures === null) setTextures(await repo.listTextures().catch(() => []));
   }, [textures, repo]);
+
+  /**
+   * ── LOS COLORES GUARDADOS DE LA CAMPAÑA (rebanada 10) ──
+   * Se piden la primera vez que se abre la sección del color y no al entrar en la escena: son una lista
+   * pequeñísima que la mayoría de las sesiones no llega a mirar. Mismo trato que el catálogo de texturas.
+   */
+  useEffect(() => {
+    // `buildOn` y no `buildNow`: aquí sólo se decide CUÁNDO pedir doce filas, y adelantarlas no molesta.
+    if (colors !== null || !isDm || brushPaint !== 'color' || !buildOn) return;
+    let alive = true;
+    void repo.listColors(campaignId).then(l => { if (alive) setColors(l); }).catch(() => { if (alive) setColors([]); });
+    return () => { alive = false; };
+  }, [colors, isDm, brushPaint, buildOn, repo, campaignId]);
+  /**
+   * Guardar el color que está puesto. Optimista y sin deshacer: es una muestra en una paleta, no trabajo que
+   * se pueda perder — y la base ya impide que el mismo color entre dos veces.
+   */
+  const guardarColor = useCallback((hex: string) => {
+    run(repo.addColor(campaignId, hex).then(c => {
+      setColors(l => ((l ?? []).some(x => x.id === c.id) ? l : [...(l ?? []), c]));
+    }));
+  }, [repo, campaignId, run]);
   /**
    * EL BOTÓN DE ENSEÑARLE LOS MUROS A LOS JUGADORES (petición suya, 2026-09-03).
    *
@@ -581,7 +628,19 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    */
   const brushTarget: BrushTarget = isBrush(tool) ? 'fog' : maskTarget;
   const brushDir: MaskDirection = tool === 'reveal' ? 'erase' : tool === 'hide' ? 'restore' : maskDir;
-  const setBrushTarget = (x: BrushTarget): void => {
+  /**
+   * SOBRE QUÉ, EN UNA SOLA LISTA (rebanada 10).
+   *
+   * ⚠️ Con REVELAR u OCULTAR de la barra lateral manda la NIEBLA, aunque el pincel se quedara en SUELO la
+   * última vez: esos dos botones ENTRAN por la niebla y decir otra cosa en el panel sería mentir. Por eso el
+   * pincel que construye se aparta mientras la herramienta sea de niebla — `buildNow`, y no `buildOn` a
+   * secas, es lo que se mira en todo lo que cuelga de construir.
+   */
+  const buildNow: BuildTarget | null = isBrush(tool) ? null : buildOn;
+  const brushOn: BrushOn = buildNow ?? brushTarget;
+  const setBrushOn = (x: BrushOn): void => {
+    if (isBuildOn(x)) { setBuildOn(x); setTool('mask'); return; }
+    setBuildOn(null);
     if (x === 'fog') { setTool(brushDir === 'erase' ? 'reveal' : 'hide'); return; }
     setMaskTarget(x);
     setTool('mask');
@@ -590,8 +649,11 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     if (brushTarget === 'fog') { setTool(d === 'erase' ? 'reveal' : 'hide'); return; }
     setMaskDir(d);
   };
-  /** La sala que se repinta: la que hay bajo el pincel. No hay que elegirla antes, se apunta y ya. */
-  const paintRoom = brushTarget === 'room' ? st.rooms.find(r => r.id === hoverRoomId) ?? null : null;
+  /**
+   * La sala que se repinta: la que hay bajo el pincel. No hay que elegirla antes, se apunta y ya.
+   * Construyendo no hay ninguna: ahí el pincel no pinta encima de nada, levanta forma nueva.
+   */
+  const paintRoom = !buildNow && brushTarget === 'room' ? st.rooms.find(r => r.id === hoverRoomId) ?? null : null;
   /**
    * El pincel pinta sobre un lienzo propio fuera de pantalla; la foto de la capa —o la textura del suelo— no
    * se toca. `useMemo` porque si no el hook se rehace en cada render y pierde lo pintado.
@@ -600,6 +662,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * sala no tiene que manchar una pared*» sin ninguna comprobación que alguien pueda olvidarse de escribir.
    */
   const maskTargetOf = useMemo<MaskTarget | null>(() => {
+    // Construyendo no hay máscara que pintar: el brochazo es una forma nueva, no pintura sobre algo.
+    if (buildNow) return null;
     if (paintRoom) return {
       id: paintRoom.id, src: roomMaskSrc(paintRoom), clip: ringPath(ringOf(paintRoom)),
       save: (png: Blob) => st.saveRoomFloorMask(paintRoom, png),
@@ -611,7 +675,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
       clear: () => st.clearMask(bgLayer),
     };
     return null;
-  }, [paintRoom, brushTarget, bgLayer, st.saveRoomFloorMask, st.clearRoomFloorMask, st.saveMask, st.clearMask]);
+  }, [buildNow, paintRoom, brushTarget, bgLayer, st.saveRoomFloorMask, st.clearRoomFloorMask, st.saveMask, st.clearMask]);
   const mask = useMaskPainter(live, maskTargetOf);
   /** Guarda en la escena lo que se acaba de mover. Un viaje por gesto, no uno por paso del deslizador. */
   const commitBrush = (patch: Partial<BrushSettings> = {}): void => {
@@ -798,8 +862,30 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             onMoveDrawing={(id, data) => run(st.moveDrawing(id, data))}
             onMoveDrawings={batch => batch.forEach(b => run(st.moveDrawing(b.id, b.data)))}
             fogVeil={fogVeil}
-            maskLayerId={brushTarget === 'layer' ? bgLayer?.id ?? null : null}
+            maskLayerId={!buildNow && brushTarget === 'layer' ? bgLayer?.id ?? null : null}
             maskRoomId={paintRoom?.id ?? null} maskPreview={mask.preview}
+            /*
+             * ── EL PINCEL QUE CONSTRUYE (rebanada 10) ──
+             * El ancho de la banda es el TAMAÑO del pincel, el mismo deslizador de siempre: no hay un segundo
+             * número que ajustar. Borrando no se pasa `brushBuild` — el borrador manda en el lienzo.
+             */
+            brushBuild={buildNow && brushPaint !== 'erase' ? { kind: roomKindOfBuild(buildNow), widthCells: brush.size } : null}
+            brushErase={!!buildNow && brushPaint === 'erase'}
+            onBrushBuild={rings => {
+              /*
+               * Un brochazo puede salir PARTIDO en varias piezas —cuando el trazo dobla más cerrado que su
+               * propio ancho— y se guardan todas: se solapan en el codo y el motor de salas las funde, que es
+               * lo que evita un agujero de roca en medio del brochazo (§ 10.2).
+               */
+              const kind = roomKindOfBuild(buildNow ?? 'floor');
+              for (const ring of rings) {
+                run(st.addRoomShape('brush', ring, kind, {
+                  floorUrl: brushPaint === 'texture' ? brushTexture?.url ?? null : null,
+                  floorColor: brushPaint === 'color' ? brushColor : null,
+                }));
+              }
+            }}
+            onBrushErase={id => run(st.removeRoom(id))}
             onHoverRoom={setHoverRoomId}
             onPaintMask={(from, to, start) => mask.paint(from, to, brushRadius(brush.size, live.grid.size),
               { strength: brush.strength, hardness: brush.hardness, tip: brush.tip, roughness: brush.roughness, dir: brushDir }, start)}
@@ -892,16 +978,25 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             * a otra: «SOBRE QUÉ» ES la herramienta, rotulada en lo que hace y no en cómo se llama por dentro.
             */}
           {isDm && !playerView && (tool === 'mask' || isBrush(tool)) && (<>
-            <BrushBar target={brushTarget} onTarget={setBrushTarget} direction={brushDir} onDirection={setBrushDir}
+            <BrushPanel on={brushOn} onOn={setBrushOn}
+              paint={brushPaint} onPaint={setBrushPaint}
+              textureUrl={brushTexture?.url ?? null} textureName={brushTexture?.name ?? null}
+              textureCells={brushTexture?.tileCells ?? DEFAULT_TEXTURE_SCALE} gridSize={live.grid.size}
+              onPickTexture={() => void pickTexture('brush')} onClearTexture={() => setBrushTexture(null)}
+              color={brushColor} onColor={setBrushColor} savedColors={colors} onSaveColor={guardarColor}
+              direction={brushDir} onDirection={setBrushDir}
               value={brush} onChange={patch => { setBrushDraft(d => ({ ...d, ...patch })); if (patch.tip !== undefined) commitBrush(patch); }}
               onCommit={() => commitBrush()}
               saving={mask.saving}
-              {...(brushTarget === 'fog'
-                ? { onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) }
-                : { onReset: () => run(mask.reset()) })} />
+              onClose={() => { setBuildOn(null); setTool('select'); }}
+              {...(buildNow
+                ? {}
+                : brushTarget === 'fog'
+                  ? { onRevealAll: () => run(st.paintAllFog('reveal')), onHideAll: () => run(st.paintAllFog('hide')) }
+                  : { onReset: () => run(mask.reset()) })} />
             {/* Sin sitio donde pintar el pincel quedaría MUDO, y eso se dice — no se deja adivinar. */}
-            {brushTarget === 'layer' && !bgLayer && <p className="mp-mask-needs">{t('maps.mask.needsLayer')}</p>}
-            {brushTarget === 'room' && !paintRoom && <p className="mp-mask-needs">{t('maps.brush.needsRoom')}</p>}
+            {!buildNow && brushTarget === 'layer' && !bgLayer && <p className="mp-mask-needs">{t('maps.mask.needsLayer')}</p>}
+            {!buildNow && brushTarget === 'room' && !paintRoom && <p className="mp-mask-needs">{t('maps.brush.needsRoom')}</p>}
           </>)}
           {isDm && !playerView && selectedLight && (
             <LightEditor light={selectedLight}
@@ -914,22 +1009,6 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             * que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este*».
             */}
           {isDm && (builderOpen || selectedWall || selectedRoomOpening || selectedWallIds.length > 1) && (<>
-            {/*
-              * El selector de fichero: escondido, lo dispara «Subir» DENTRO del catálogo. Sube al catálogo de
-              * la herramienta —no a la biblioteca de fondos de la campaña— y en la categoría que él tuviera
-              * elegida, que es la que llega en `texUploadCat`.
-              */}
-            <input type="file" accept="image/*" ref={texInput} hidden data-testid="mp-room-texture-input"
-              onChange={async e => {
-                const f = e.target.files?.[0];
-                e.target.value = '';
-                if (!f || !texPicker) return;
-                const nueva = await repo.addTexture(
-                  { name: f.name.replace(/\.[^.]+$/, ''), category: texUploadCat, tileCells: DEFAULT_TEXTURE_SCALE },
-                  f, campaignId);
-                setTextures(l => [nueva, ...(l ?? [])]);
-                aplicarTextura(nueva);
-              }} />
             <BuilderPanel mode={builderMode} onMode={setBuilderMode}
               wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
               buildKind={buildKind}
@@ -1014,6 +1093,32 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                 onDoor: (patch) => run(st.patchRoomOpening(selectedRoomOpening.id, patch)),
                 onDoorTexture: () => void pickTexture('door'),
               } : {})} />
+          </>)}
+
+          {/*
+            * ── EL CATÁLOGO DE TEXTURAS, FUERA DEL PANEL DE BUILDER ──
+            * Vivía DENTRO de él, que era su único cliente. Desde la rebanada 10 lo abre también el PINCEL, y
+            * el panel de Builder no está en pantalla mientras se pinta: dejarlo dentro era pedirle textura al
+            * pincel y no ver nada. Se mueve entero —el catálogo y el selector de fichero que usa su botón de
+            * «Subir»—, sin tocar lo que hace ninguno de los dos.
+            */}
+          {isDm && (<>
+            {/*
+              * El selector de fichero: escondido, lo dispara «Subir» DENTRO del catálogo. Sube al catálogo de
+              * la herramienta —no a la biblioteca de fondos de la campaña— y en la categoría que él tuviera
+              * elegida, que es la que llega en `texUploadCat`.
+              */}
+            <input type="file" accept="image/*" ref={texInput} hidden data-testid="mp-room-texture-input"
+              onChange={async e => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (!f || !texPicker) return;
+                const nueva = await repo.addTexture(
+                  { name: f.name.replace(/\.[^.]+$/, ''), category: texUploadCat, tileCells: DEFAULT_TEXTURE_SCALE },
+                  f, campaignId);
+                setTextures(l => [nueva, ...(l ?? [])]);
+                aplicarTextura(nueva);
+              }} />
             {texPicker && (
               <TextureCatalog which={texPicker} textures={textures} canManage={puedeOrdenarTexturas}
                 onClose={() => setTexPicker(null)}
