@@ -28,11 +28,69 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-12 (madrugada) — PUERTAS ✅ · PETICIÓN 1 ✅ · PETICIÓN 2 ✅ · LENTITUD ✅ · VISTA Y REPINTADO ✅ · **AQUÍ SE RETOMA: QUE ÉL LO PRUEBE, Y LUEGO LA 3**
+## 🟢 2026-09-12 (madrugada) — LENTITUD ✅ · VISTA Y REPINTADO ✅ · **AQUÍ SE RETOMA: LA FICHA SE CLAVA EN LOS DIENTES DEL BORDE ROTO (diagnosticado, con prototipo) · LUEGO LA 3**
 
-**Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. La lentitud y la
-> línea de vista están hechas y commiteadas; [lo que vio al probar]. Seguimos con la 3.»
+**Frase para arrancar el chat nuevo** (él se fue a dormir el 2026-09-12 ~02:40 diciendo «*vamos a un chat nuevo así
+tienes memoria y puedes seguir trabajando*»):
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. Construye el arreglo de
+> «la ficha se clava en los dientes» (bloque 🦷: spec corto, `slideCircle` rodea las puntas, tests, review, commit).
+> Después prepara el spec de la 3 (ordenar herramientas arrastrando) para enseñárselo cuando despierte.»
+
+### 🦷 LA FICHA SE CLAVA EN LOS DIENTES DEL BORDE ROTO — DIAGNOSTICADO, SIN CONSTRUIR (2026-09-12 ~02:30)
+Suyo, tras probar lo de hoy: «*has desecho el tema de que no se pegue en las esquinas, tienes idea porque o que
+hiciste?*». Se fue a dormir antes de leer la respuesta: **dársela al arrancar**, en pocas líneas.
+
+**Lo comprobado (no se ha deshecho nada):**
+- El arreglo del trabón de la esquina (`slideCircle`, `packages/core/src/maps.ts`, commits `6d1e324` + `f2e8169`) está
+  INTACTO: `maps.ts` no se tocó hoy (`git diff 8206cf0..HEAD` no lo lista) y sus 25 tests pasan.
+- Las paredes que frenan son IDÉNTICAS a las de ayer con sus datos de AHORA (259 formas: 2.320 tramos iguales uno a
+  uno; scratchpad `antes-despues.mts` con `rooms-hoy.json` re-volcado a las 02:05).
+- En Chrome sin ventana (scratchpad `esquina.mjs`), la sonda RESBALA por las esquinas rectas de su sala grande (tres
+  gestos del trabón: salir por arriba, por el lado, y llegar a la esquina pegado).
+- **La causa de verdad**: los trazos con **borde roto** (anoche, a 0,95) dejan paredes DENTADAS, y una ficha redonda se
+  engancha en los dientes. Ayer no se podía notar: cada movimiento tardaba segundos. Simulado con la física de la app y
+  sus 22 trazos rotos + 71 limpios (scratchpad `dientes3.mts`, sonda radio 17 rozando la pared por los dos lados, 180
+  pasadas): **18 clavadas reales** (el dedo cabía y la ficha no fue), **13 de ellas contra la PUNTA de un diente**, 5
+  contra el cuerpo; 21 frenadas con razón (el dedo no cabía). Mismo resultado con la física de ayer: es la misma.
+- **Por qué**: `slideCircle` resbala «a lo largo de la pared tocada». Cuando lo tocado es la punta de un diente (el
+  punto más cercano es un VÉRTICE, no el cuerpo), ir a lo largo de ese lado no saca a la ficha: las dos caras del diente
+  cierran en ángulo y ninguna proyección avanza → clavada.
+
+**El arreglo, PROTOTIPADO y medido** (scratchpad `slide-proto.mts`; no está en el repo): en el bucle de candidatos de
+`slideCircle`, para cada pared tocada (a distancia mínima del contacto), si el punto más cercano es un extremo del
+segmento (`t < 1e-6 || t > 1 - 1e-6`), se prueba ADEMÁS la tangente del disco en ese contacto — perpendicular a la
+recta punta→centro: `probar(-ny/n, nx/n)` con `(nx, ny) = stop − c` — con la misma bisección y el mismo «gana el que
+más avanza». Con sus datos: clavadas **18 → 6** (1 en punta, 5 en cuerpo) · llegan al final **141 → 163** de 180 ·
+**0 posiciones finales dentro de una pared** (saliendo de una legal) · coste igual (~2,9 ms por tirón con sus 2.320
+tramos). La recta inicio→final «roza» una pared en 3 (hoy) / 5 (proto) tirones: son caminos en CODO alrededor de una
+punta, no cruces — cada tramo lo valida `clear()`.
+```ts
+// dentro del `for (const w of blockers)` de candidatos, tras probar la dirección del segmento:
+const c = closestOnSeg(stop, w[0], w[1], w[2], w[3]);      // hay que devolver también `t` desde closestOnSeg
+if (c.t > 1e-6 && c.t < 1 - 1e-6) continue;               // contacto con el cuerpo: ya probado
+const nx = stop.x - c.x, ny = stop.y - c.y, n = Math.hypot(nx, ny);
+if (n >= 1e-9) probar(-ny / n, nx / n);                    // rodear la punta
+```
+(`probar(ux, uy)` = el cuerpo del candidato de hoy, extraído: proyección `along`, bisección de 16, `best` por `reach`.)
+
+**Cómo construirlo (orden de siempre, sin saltarse nada):**
+1. Spec: párrafo en `specs/modules/maps/SPEC.md` junto a § 10B.4 (o en «Rebanada 4 — paredes sólidas»): «la ficha
+   RODEA las puntas: un borde dentado no la clava»; sin migración ni `.pen`.
+2. `packages/core/src/maps.ts`: lo de arriba (`closestOnSeg` devuelve `t`; `probar` extraído). Es física COMPARTIDA
+   navegador/servidor: cambia en los dos a la vez, como debe.
+3. Tests en `packages/core/src/maps.test.ts`: (a) un diente en sierra (dos segmentos en V hacia dentro del suelo) con la
+   ficha empujada a lo largo → pasa; falla con el motor de hoy (comprobar revirtiendo); (b) los 8 casos de la esquina
+   siguen igual; (c) fuzz corto: ninguna posición final dentro de una pared. Web: `MapCanvas.test.tsx` «la sonda de
+   prueba» si hace falta un caso con diente.
+4. Review → commit. Luego que ÉL lo pruebe (Cmd+Shift+R) rozando un trazo roto con la sonda.
+- Las 6 que quedan (5 contra el cuerpo): seguramente dientes en zigzag donde la cara siguiente cierra; segunda mejora
+  posible: probar la tangente también en contactos de cuerpo cuando `reach ≈ 0`. Medir antes con `dientes3.mts`.
+- ⚠ Los guiones del scratchpad viven en `/private/tmp/claude-501/-Users-ignacioz-Documents-Developer-Rolvium/
+  e44b6b71-b98b-4e25-8469-93d11c3b6a17/scratchpad/` (`rooms-hoy.json`, `openings-hoy.json`, `dientes3.mts`,
+  `slide-proto.mts`, `esquina.mjs`); si `/private/tmp` se limpió, re-volcar con `docker exec supabase_db_rolvium psql`
+  (sólo lectura) como en `perfil.mts`.
+- ⚠ Los servidores locales (`npm run dev:api` en 3001, `npm run dev:web` en 5173) los arrancó este chat en segundo
+  plano: al cerrarlo pueden morir. Comprobar con `curl localhost:3001/health` y relanzar si hace falta.
 
 ### ⏱ LA LÍNEA DE VISTA Y EL REPINTADO — ✅ HECHO, REVISADO (APROBADO con dos arreglos suyos) Y COMMITEADO (2026-09-12 ~02:00)
 Suyo: «*arreglalo esta muy lento, esto tiene que ir rapido rapido*» · «*aprovechemos fable para lograr una solucion
