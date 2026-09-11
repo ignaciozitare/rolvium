@@ -211,6 +211,7 @@ Rolvium/
 - Reuse the existing component library (`packages/ui`) whenever possible.
 - Do not create new components if an existing one can solve the need with reasonable changes.
 - If a new reusable component is created, add it to the component library following project conventions.
+- **Table panels, sliders and option buttons come ONLY from `@rolvium/ui`**: `FloatingPanel` (+ `PanelSection`, `PanelHint`, `PanelNote`, `PanelIconButton`), `Slider` and `OptionGroup`. Never a hand-made floating panel, never an `<input type="range">`, never a copied chip grid — until 2026-09-11 the Builder, the Pincel and the light editor each carried their own copy, with sliders built three different ways. `npm run audit` fails HARD (`ui-panels`) on a local slider or a locally defined piece and warns on hand-made radiogroups. A new game system restyles them through `--sys-*`; it never copies them.
 - **When adding a new component to `packages/ui`, also add it to the UI Kit page** (`apps/web/src/shared/ui/UIKit.tsx`) with a live interactive example, description, and import statement, and regenerate the catalog with `npm run ui:catalog`.
 
 ---

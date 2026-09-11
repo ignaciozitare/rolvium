@@ -26,9 +26,90 @@ pasó por delante el 2026-09-11) → coger/mover/borrar una sala con el ratón (
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🧩 «LOS OBJETOS» (donde se retoma) · 🏛️ «REVISIÓN DE ARQUITECTURA» (lo propuesto pide su sí) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «PANELES COMUNES» (donde se retoma) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🧩 2026-09-11 — LOS OBJETOS (rebanada 6): DISEÑO AJUSTADO AL PINCEL Y AL BUILDER, **APROBADO** · **AQUÍ SE RETOMA**
+## 🟢 2026-09-11 — PANELES COMUNES EN @rolvium/ui: A MEDIAS · **AQUÍ SE RETOMA**
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`, pasar los paneles del
+> mapa a las piezas comunes de @rolvium/ui. Está a medias y commiteado como WIP.»
+
+Él, 2026-09-11, a la propuesta 1 del bloque 🏛️: «*sí, pasa a la biblioteca común, deja esto ordenado y asegúrate de
+que esto no vuelva a pasar, no rompas nada*». Se cortó por el candado de contexto (6 MB), antes de tocar los paneles.
+
+### Rama y estado
+- Rama **`refactor/ui-paneles-comunes`**, sacada de `feat/maps-pincel` (que sigue SIN QA ni merge). Commit WIP.
+- ⚠️ **La rama está en ROJO a propósito hasta terminar el paso 3**: `BuilderPanel.test` y `LightEditor.test` ya buscan
+  la cabecera por `.rv-fpanel-head`; `tests/functional/panel-primitives.test.tsx` importa piezas que aún no exporta
+  `packages/ui/src/index.ts`; y `npm run audit` da HARD en `ui-panels` (los deslizadores a mano y el `useDragPanel` local).
+
+### ✅ Hecho (en el commit WIP)
+- `packages/ui/src/components/`: `FloatingPanel.tsx` (`FloatingPanel`, `PanelIconButton`, `PanelSection`, `PanelHint`,
+  `PanelNote`, y `useDragPanel` mudado tal cual), `Slider.tsx`, `OptionGroup.tsx` y `panel.css`. Tema SÓLO por
+  `--sys-*`; dónde va el panel y cuánto mide lo pone la clase del módulo. Compilan (el único error de `packages/ui`
+  es VIEJO: `Sheet.tsx:531`).
+- Pruebas nuevas: `apps/web/tests/functional/panel-primitives.test.tsx` (carcasa, arrastre, Escape, deslizador, opciones).
+- **El candado**: `scripts/audit.mjs` § 7b `ui-panels` (HARD: `<input type="range">` fuera de `packages/ui`, o una pieza
+  compartida definida en un módulo; WARN: radiogroups a mano) · `.claude/hooks/check-ui-dup.mjs` avisa al escribirlos ·
+  regla en `.claude/CLAUDE.md` (UI Components) y en `.claude/skills/ui-reuse/SKILL.md` § 4b · las 7 piezas en el META
+  de `scripts/gen-ui-catalog.mjs`.
+- `rolvium.pen` · la lámina de Luces `o4oM8f`: lo elegido (`Op/CONO`, `Tipo/Antorcha`) pasa de negro y oro a
+  **sangre**. ⏳ **Falta su Cmd+S**, y después commitearlo.
+- **Capturas de ANTES** de los paneles de verdad (app local; no escribe nada: 19 luces antes y después) y el guion, en
+  **`~/Desktop/Rolvium-paneles-antes/`** (`builder.png`, `pincel.png`, `luces.png`, `trazo.png`, `panels.mjs` →
+  `node panels.mjs <carpeta>`). Se ve: el Builder con el deslizador AZUL del navegador; Luces con la forma elegida en
+  NEGRO, el tipo en ORO y los deslizadores AZULES.
+
+### ⏭️ Lo que falta, EN ORDEN (el paso 1 lo bloqueó el candado a medio escribir)
+1. `Slider`: prop `ariaLabel?` (nombre accesible distinto del rótulo: el tamaño de las fichas ENSEÑA
+   `maps.tokenScale.short` y la barra se LLAMA `maps.tokenScale.label`) · `PanelHint`: prop `as?: 'p' | 'span'`
+   (`PaintColor.tsx:50` va dentro de un span) · y sus dos pruebas en `panel-primitives.test.tsx`.
+2. Exportar de `packages/ui/src/index.ts`: `FloatingPanel, PanelIconButton, PanelSection, PanelHint, PanelNote,
+   useDragPanel` · `Slider` (+ `SliderProps`) · `OptionGroup` (+ `OptionGroupProps`, `OptionItem`).
+3. Migrar, conservando las clases de colocación y los testids:
+   - **`BrushPanel`**: fuera su `Slider` local, `useDragPanel` y `chip()`. `FloatingPanel className="mp-brushpanel"`,
+     icono `brush` con `mp-bp-icon`, `actions` = «guardando…». Los 4 grupos → `OptionGroup` (chip; `wide` en `uncover`
+     y en `rough`; la punta del pincel como icono dibujado). Deslizadores apilados.
+   - **`BuilderPanel`**: `FloatingPanel className="mp-builder"` con su icono de máscara (`data-testid="mp-builder-icon"`).
+     «Qué levanto» → `OptionGroup look="outline" columns="row"`; formas → `outline`, 3 columnas. Deslizadores `inline`:
+     banda; escala de textura (`onCommit` + `commitOnBlur`); grosor; tamaño de fichas (`ticks={[TOKEN_SCALE.def]}`,
+     `ticksId="mp-token-scale-ticks"`, `ariaValueText`, `ariaLabel`, `onCommit` + `commitOnBlur`). `PanelSection` con
+     `className="mp-door-opts" testId="mp-door-opts"` y `testId="mp-band"`. Pistas y nota → `PanelHint` / `PanelNote`.
+     Los modos, los preajustes, el candado, la cadena y los botones de la puerta NO cambian.
+   - **`LightEditor`**: `FloatingPanel className="mp-light-editor"`, `ariaLabel` = `maps.lights.select`, `closeOnEscape`,
+     `actions` = `PanelIconButton` de borrar; fuera su `useEffect` de Escape. Forma → `outline` en fila; tipo →
+     `outline`, 3 columnas, `caps={false}`, con icono. Deslizadores `inline` + `hideLabel`.
+   - **`StrokeBar`**: `Slider layout="inline" hideLabel className="mp-stroke-width"` (la rama `brushing`, inalcanzable, NO se toca).
+   - **`BackgroundPopover`**: `Slider className="mp-bg-scale"` + en `maps.css` `.mp-custom .mp-bg-scale{width:88px}`.
+   - **`PaintColor`**: `<PanelHint as="span">`.
+4. Borrar `apps/web/src/modules/maps/ui/useDragPanel.ts` (sólo lo usan los tres paneles).
+5. `maps.css`: `.mp-builder`, `.mp-brushpanel` y `.mp-light-editor` se quedan SÓLO con position / top / left o right /
+   z-index / width. Fuera: `.mp-builder-{head,grip,title,group,hint,seg,shapes,opt,note,thick,thick-v}`,
+   `.mp-light-{head,grip,title,group,seg,opt,kinds,kind,note}`, `.mp-bp-{grid,opt,slider*}` y el `accent-color` de
+   `.mp-stroke-width`. **Se quedan**: `.mp-builder-row`, `.mp-builder-tex-n`, modos, minis, candado, preajustes,
+   texturas, `.mp-light-{head-icon,preview,halo,row,colors,check,animates,range,label,value}` y lo del color del Pincel.
+6. UIKit (`apps/web/src/shared/ui/UIKit.tsx`): los tres ejemplos bajo `sysVars` · `npm run ui:catalog`.
+7. Comprobar: `npm test` · `npm run typecheck` · `build:web` + `build:api` · `npm run audit` (`ui-panels` 0 hard) ·
+   capturas DESPUÉS con el guion, comparadas con las de antes · subagente review · ARCHITECTURE § «Known architecture
+   debt» (los paneles, resueltos) · commit · enseñárselo.
+
+### 🔑 Decisiones
+- **Lo elegido va SIEMPRE en sangre** dentro de `OptionGroup`, sin opción de cambiarlo. Cambios de aspecto A PROPÓSITO,
+  por sus reglas: Luces (negro, oro y azul → sangre), Builder (azul → sangre), trazo (tinta → sangre). **Todo lo demás
+  tiene que salir IGUAL que en las capturas de antes.**
+- Dos formas de deslizador en la misma pieza (`stacked` / `inline`) para no cambiar la maqueta aprobada del Builder y
+  de las luces. Unificarlas sería rediseño y pediría `.pen`.
+
+### 🚫 Visto y NO tocado (decidir aparte)
+- Las casillas de Luces y del Builder llevan `accent-color: var(--sys-ink)` → **negras**: la misma regla rota.
+- Los botones de la puerta (hojas, bisagra, lado) son radiogroups hechos con `tb-btn`: saldrán como WARN.
+- `tb-btn` / `tb-rotulo` siguen en `table.css`; 7 ventanas hechas a mano en vez de `Modal`; `.mp-mask-strength` huérfano.
+
+### Y después de esto
+`/qa` de `feat/maps-pincel` → merge → deploy → mergear esta rama → spec de los objetos (§ «Rebanada 6»: biblioteca de
+la herramienta, «lo que se sube sirve para todos») → DBA → los objetos, ya con las piezas comunes.
+
+## 🧩 2026-09-11 — LOS OBJETOS (rebanada 6): DISEÑO AJUSTADO AL PINCEL Y AL BUILDER, **APROBADO**
 
 Él, 2026-09-11: «*sigamos con el ws, el próximo feature que quiero es el de los objetos*». «Objetos» = la galería
 de piezas de la rebanada 6 (sección 6 del `.pen`). Luego: «*ajusta el diseño a lo que hicimos con el pincel y el

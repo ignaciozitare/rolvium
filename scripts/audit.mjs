@@ -276,6 +276,35 @@ for (const f of designTsx) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 7b. TABLE PANELS — panels, sliders and option groups come from @rolvium/ui  (HARD / WARN)
+// ─────────────────────────────────────────────────────────────────────────────
+// Revisión del 2026-09-11, pedida por el dueño: el Builder, el Pincel y el editor de luces llevaban cada uno
+// su copia de la carcasa del panel, del deslizador y de los botones de opción, y los deslizadores estaban
+// hechos de TRES maneras. Se sacaron a @rolvium/ui (FloatingPanel · Slider · OptionGroup) para que un sistema
+// de juego nuevo sólo cambie colores. Orden suya: «asegúrate de que esto no vuelva a pasar».
+//   HARD · an <input type="range"> outside packages/ui                        → Slider
+//   HARD · a component/hook named like a shared panel piece, defined locally  → import it from @rolvium/ui
+//   WARN · a hand-made radiogroup (colour swatches and art thumbnails are legit: there the choice IS the art)
+{
+  const SHARED = ['FloatingPanel', 'PanelSection', 'PanelHint', 'PanelNote', 'PanelIconButton', 'Slider', 'OptionGroup', 'useDragPanel'];
+  const localDef = new RegExp(`\\b(?:function|const|let|class)\\s+(${SHARED.join('|')})\\b`);
+  for (const f of webTsx) {
+    if (isTest(f)) continue;
+    const ls = lines(f);
+    ls.forEach((ln, i) => {
+      if (/type\s*=\s*['"]range['"]/.test(ln)) H('ui-panels', f, i + 1, 'hand-made slider — use Slider from @rolvium/ui');
+      const m = ln.match(localDef);
+      if (m) H('ui-panels', f, i + 1, `local ${m[1]} — the shared one lives in @rolvium/ui`);
+    });
+    const src = ls.join('\n');
+    if (f.endsWith('.tsx') && /role\s*=\s*['"]radiogroup['"]/.test(src) && /role\s*=\s*['"]radio['"]/.test(src)) {
+      const at = ls.findIndex((ln) => /role\s*=\s*['"]radiogroup['"]/.test(ln));
+      W('ui-panels', f, at + 1, 'hand-made radiogroup — OptionGroup from @rolvium/ui, unless the choice IS the art (swatches, thumbnails)');
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 8. i18n — es/en leaf-key parity  (mismatch = WARN)
 // ─────────────────────────────────────────────────────────────────────────────
 function leafKeys(obj, prefix = '', set = new Set()) {
@@ -328,6 +357,7 @@ const SECTIONS = [
   ['design:var-fallback', 'var() fallbacks'],
   ['design:emoji', 'emoji in UI'],
   ['ui-reuse',   '@rolvium/ui reuse'],
+  ['ui-panels',  'table panels, sliders & options from @rolvium/ui'],
   ['i18n',       'es/en key parity'],
 ];
 const hardG = group(hard), warnG = group(warn);

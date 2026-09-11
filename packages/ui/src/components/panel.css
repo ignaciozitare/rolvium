@@ -1,0 +1,58 @@
+/* ── Paneles flotantes de la mesa: carcasa, secciones, deslizador y opciones ──
+   Primitivas neutras de mesa, como Tooltip y Sheet: el aspecto entra SÓLO por las
+   variables --sys-* que pone el sistema de juego en el contenedor de la mesa.
+   Dónde va el panel y cuánto mide NO es de aquí: lo pone la clase de quien lo usa
+   (top/left/right, z-index, width).
+
+   Nacen de la revisión del 2026-09-11: el Builder, el Pincel y el editor de luces
+   llevaban cada uno su copia de todo esto, y los deslizadores estaban hechos de tres
+   maneras. `npm run audit` bloquea volver a hacerlos a mano. */
+
+.rv-fpanel{max-height:calc(100% - 16px);overflow:auto;display:flex;flex-direction:column;gap:10px;padding:10px;
+  background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);color:var(--sys-ink);}
+/* La cabecera es el asa. `touch-action:none` es obligatorio: sin él el navegador se queda el gesto para
+   desplazar y el panel no se mueve en pantalla táctil. */
+.rv-fpanel-head{display:flex;align-items:center;gap:7px;cursor:grab;touch-action:none;user-select:none;}
+.rv-fpanel-head:active{cursor:grabbing;}
+.rv-fpanel-head .rv-tip-wrap{flex-shrink:0;}
+.rv-fpanel-grip{color:var(--sys-ink-dim);}
+.rv-fpanel-title{flex:1;font-size:var(--fs-sm);color:var(--sys-ink);}
+.rv-fpanel-btn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;
+  border:none;background:transparent;color:var(--sys-ink-dim);cursor:pointer;}
+.rv-fpanel-btn:hover:not(:disabled){background:color-mix(in srgb,var(--sys-ink) 10%,transparent);}
+
+.rv-fpanel-section{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;}
+.rv-fpanel-section > legend{padding:0;}
+.rv-fpanel-label{font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;color:var(--sys-ink-soft);}
+.rv-fpanel-hint{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);line-height:var(--lh-normal);}
+.rv-fpanel-note{display:flex;align-items:flex-start;gap:6px;margin:0;padding:6px;font-size:var(--fs-2xs);line-height:var(--lh-normal);
+  color:var(--sys-ink-dim);background:color-mix(in srgb,var(--sys-gold) 15%,transparent);}
+.rv-fpanel-note .material-symbols-outlined{color:var(--sys-gold);flex-shrink:0;}
+
+/* El deslizador. APILADO de serie (el del Pincel): rótulo y lectura arriba, la barra debajo a todo lo ancho.
+   EN FILA para los paneles que ya lo llevaban así (Builder, luces, la barra del trazo). La barra, en sangre. */
+.rv-slider{display:flex;flex-direction:column;gap:2px;}
+.rv-slider-head{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
+.rv-slider-v{font-size:var(--fs-xs);color:var(--sys-ink);}
+.rv-slider input[type="range"]{width:100%;accent-color:var(--sys-blood);}
+.rv-slider.inline{flex-direction:row;align-items:center;gap:8px;}
+.rv-slider.inline input[type="range"]{flex:1;width:auto;min-width:0;}
+.rv-slider-l{flex:1;font-size:var(--fs-2xs);color:var(--sys-ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rv-slider.inline .rv-slider-v{font-size:var(--fs-2xs);color:var(--sys-ink-soft);min-width:3ch;text-align:right;}
+.rv-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+
+/* Elegir UNA de varias. `chip` (el del Pincel): relleno suave. `outline` (el del Builder): con filo.
+   Lo ELEGIDO va SIEMPRE en rojo sangre: en la vista del director el negro es el fondo sobre el que se ve
+   arte, nunca el cromo, y el oro es la herramienta activa de la barra (reglas del dueño, 2026-08-31 y
+   2026-09-04). */
+.rv-options{display:grid;gap:4px;}
+.rv-options.cols-2{grid-template-columns:1fr 1fr;}
+.rv-options.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.rv-options.cols-row{display:flex;}
+.rv-options.cols-row > .rv-option{flex:1;}
+.rv-option{display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;font-size:var(--fs-2xs);cursor:pointer;}
+.rv-option.caps{letter-spacing:.1em;text-transform:uppercase;}
+.rv-option.wide{grid-column:1 / -1;}
+.rv-option.chip{padding:5px 6px;background:color-mix(in srgb,var(--sys-paper-lo) 48%,transparent);color:var(--sys-ink);border:none;}
+.rv-option.outline{padding:4px 6px;background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);}
+.rv-option.on{background:var(--sys-blood);color:var(--sys-paper-hi);border-color:var(--sys-blood);}

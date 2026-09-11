@@ -144,7 +144,7 @@ describe('<LightEditor> · salir y apartarlo', () => {
   it('se arrastra por la cabecera, sale del mapa y se corre con el ratón', () => {
     mount();
     const panel = screen.getByRole('group', { name: /Luz/ }) as HTMLElement;
-    const head = panel.querySelector('.mp-light-head') as HTMLElement;
+    const head = panel.querySelector('.rv-fpanel-head') as HTMLElement;
     expect(panel.style.position).toBe('');            // sin tocarlo, lo coloca el CSS
     fireEvent.pointerDown(head, { button: 0, clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 160, clientY: 130, pointerId: 1 });
@@ -159,7 +159,7 @@ describe('<LightEditor> · salir y apartarlo', () => {
   it('pulsar borrar o cerrar NO empieza un arrastre: los botones mandan sobre el asa', () => {
     mount();
     const panel = screen.getByRole('group', { name: /Luz/ });
-    const head = panel.querySelector('.mp-light-head') as HTMLElement;
+    const head = panel.querySelector('.rv-fpanel-head') as HTMLElement;
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Borrar la luz' }), { button: 0, clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 300, clientY: 300, pointerId: 1 });
     expect((panel as HTMLElement).style.position).toBe('');

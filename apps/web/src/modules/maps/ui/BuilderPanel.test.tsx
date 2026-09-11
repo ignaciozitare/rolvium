@@ -49,7 +49,7 @@ describe('<BuilderPanel> la cabecera', () => {
   it('se agarra por la cabecera, se sale del mapa y se mueve por la ventana', () => {
     const { container } = mount();
     const panel = container.querySelector('.mp-builder') as HTMLElement;
-    const asa = container.querySelector('.mp-builder-head') as HTMLElement;
+    const asa = container.querySelector('.rv-fpanel-head') as HTMLElement;
     // Sin tocarlo lo coloca el CSS: nada en el `style`.
     expect(panel.style.position).toBe('');
     fireEvent.pointerDown(asa, { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
