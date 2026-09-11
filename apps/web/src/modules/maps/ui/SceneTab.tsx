@@ -289,6 +289,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * sale de la escena y vale para lo que dibuje ahora.
    */
   const [bandDraft, setBandDraft] = useState<number | null>(null);
+  /** Cuánto de roto mientras se mueve la barra del borde de «A pulso»; al soltar se guarda en la escena (§ 10B.4). */
+  const [bandRoughDraft, setBandRoughDraft] = useState<number | null>(null);
   /** Los colores que él se ha inventado en ESTA campaña. `null` = todavía no se han pedido. */
   const [colors, setColors] = useState<MapColor[] | null>(null);
   /**
@@ -1000,6 +1002,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             rooms={st.rooms} roomOpenings={st.roomOpenings} builderMode={builderMode} buildKind={buildKind}
             /* Con qué ancho sale la banda de «A pulso» (§ «Rebanada 10 · B»). */
             bandCells={bandDraft ?? live.wallThickness}
+            /* Y con qué borde (§ 10B.4): el previo y lo que se guarda salen con el que se está eligiendo ahora. */
+            bandTip={live.bandTip} bandRoughness={bandRoughDraft ?? live.bandRoughness}
             onTooSmall={locked => setAvisoCorto(locked ? 'snap' : 'short')}
             onAddRoomShape={(shape, points) => {
               // Una SALA excava y un MURO rellena: la misma forma con el signo cambiado (dueño, 2026-09-04).
@@ -1217,6 +1221,10 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               }}
               shape={wallShape} onShape={s => { setTool('wall'); setWallShape(s); }}
               bandCells={bandDraft ?? live.wallThickness} onBandCells={setBandDraft}
+              /* El borde de «A pulso» (§ 10B.4): va en la escena, aparte del pincel. El tipo se guarda en el acto; la barra, al soltar. */
+              bandTip={live.bandTip} onBandTip={tip => run(patchScene(live.id, { bandTip: tip }))}
+              bandRoughness={bandRoughDraft ?? live.bandRoughness} onBandRoughness={setBandRoughDraft}
+              onBandRoughnessEnd={() => { if (bandRoughDraft === null) return; setBandRoughDraft(null); run(patchScene(live.id, { bandRoughness: clampRoughness(bandRoughDraft) })); }}
               snapGrid={snapGrid} onSnapGrid={setSnapGrid}
               chainNodes={chainNodes} onChainNodes={setChainNodes}
               preset={live.roomPreset} onPreset={k => run(patchScene(live.id, { roomPreset: k }))}

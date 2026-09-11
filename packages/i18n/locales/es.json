@@ -1193,7 +1193,12 @@
       "band": {
         "label": "El ancho de la banda · sólo con «A pulso»",
         "short": "Ancho",
-        "hint": "«A pulso» saca una BANDA del ancho elegido siguiendo la mano. De serie es el grosor de muro de esta escena."
+        "hint": "«A pulso» saca una BANDA del ancho elegido siguiendo la mano. De serie es el grosor de muro de esta escena.",
+        "edge": "El borde · sólo con «A pulso»",
+        "tip": {
+          "clean": "Limpio",
+          "rough": "Borde roto"
+        }
       }
     },
     "group": {

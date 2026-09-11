@@ -163,9 +163,46 @@ Textuales suyas, con lo que se entendió:
      ROTO con las palabras del pincel («bastante») · la nota reescrita. «LIMPIO» es nombre NUESTRO (el pincel dice
      «Disco», que en un trazo no encaja): **preguntado si le vale**. Captura: scratchpad `diseno/R7gay.png`.
      La lámina de Luces se commiteó aparte (`f9fcb05`, su Cmd+S de las 15:08).
-   - ⚠ Tras su «aprobado»: pedirle SU Cmd+S, comprobar la hora del `.pen`, commit `design(maps)` → código:
-     `brushRings` con borde roto, tope de esquinas y sin partirse · `BuilderPanel` con `OptionGroup` + `Slider` de
-     `@rolvium/ui` · guardar en la escena como el Pincel.
+   - ✅ `.pen` guardado por él (20:33) y commiteado (`design(maps): el borde roto de «A pulso»…`).
+   - ⏳ **CÓDIGO HECHO, SIN COMMITEAR: esperando al subagente review.** Suyo: «*sigue con el 2 no te saltes nada ve
+     como esta planeado*».
+     - `roomRules.ts`: `brushRings(path, ancho, grid, edge?)` con `BandEdge { roughness, seed }` · `roughen` reparte
+       esquinas cada medio ancho y muerde hacia su camino con ruido del SITIO + semilla, suavizado 1-2-1 como
+       `roughRadii` · `BAND_MAX_BITE` 0,45 (los dos lados a la vez nunca cierran la banda) · `BAND_ROUGH_MAX_POINTS`
+       160 (tope de esquinas añadidas por trozo). Sin borde roto sale IDÉNTICO.
+     - `MapCanvas.tsx`: props `bandTip`/`bandRoughness`; la semilla se sortea al empezar el gesto (`roomBand.seed`) y
+       `bordeDe()` va en el previo, al mover y al soltar → el previo y lo guardado son el mismo canto.
+     - `BuilderPanel.tsx`: sección «El borde · sólo con «A pulso»» (`mp-band-edge`): `OptionGroup` outline en fila
+       Limpio / Borde roto + `Slider` inline «Cuánto de roto» 0-100 con las palabras del pincel, sólo con borde roto.
+     - `SceneTab.tsx`: el tipo → `patchScene({ bandTip })` en el acto; la barra → borrador `bandRoughDraft` y al
+       soltar `patchScene({ bandRoughness })`.
+     - i18n es/en: `maps.room.band.edge` + `maps.room.band.tip.{clean,rough}` (la barra reusa `maps.brush.roughLabel`
+       y `maps.brush.roughness.*`).
+     - Tests (+10): `roomRules.test.ts` «el borde roto» (5) · `BuilderPanel.test.tsx` (3) · `MapCanvas.test.tsx` (1) ·
+       `SceneTab.test.tsx` «el borde roto de «A pulso» se guarda en la escena» (1).
+     - **El review APROBÓ y arregló**: el tope de esquinas contaba por TROZO y no por TRAZO (§ 10B.4) — un zigzag
+       partido en muchos trozos llegaba a 780. Ahora los 160 se reparten entre todos los trozos (máx. 128 en 300 trazos
+       de prueba; el zigzag, 100) + test del zigzag + test «el previo es lo que se guarda» en `MapCanvas.test.tsx`.
+     - Verde (review): web `src/modules/maps` 1199/1199 · `test:regression` 1701/1701 · `test:smoke` 12/12 ·
+       `build:web` + `build:api` · typecheck · audit 0 graves. Estrés de ~1.500 trazos: nunca se parte ni deja agujero
+       en medio; sólo motas de 0,1–27 px² en el canto.
+   - ⚠ **ANTES DE DESPLEGAR**: la migración `20260911170000_maps_band_rough.sql` tiene que llegar a producción
+     (`scfspsiemikfcnqteonq`) ANTES que la web: la web ya pide `band_tip`/`band_roughness` y sin esas columnas la lista
+     de escenas sale VACÍA.
+   - ❓ **Dos decisiones suyas, preguntadas** (2026-09-11 noche):
+     1. **«Sobre una foto»**: la sección del borde también sale ahí, donde cada lado del anillo se escribe como una fila
+        de `maps_walls` → un trazo roto escribe 20+ filas por trozo y hasta 160 más. El `.pen` (`R7gay`) sólo dibuja
+        «Dibujar aquí». Propuesto: ocultarla sobre una foto, como los preajustes.
+     2. **El coste**: el borde roto triplica las esquinas y el api recalcula las salas SIN caché en cada petición de
+        visión (30 trazos a 1 casilla: 142 → 885 ms por llamada). Enlaza con su pregunta de la lentitud (bloque ❓ de
+        abajo): la caché del contorno por escena lo resuelve. Menores: esquinas cada radio en vez de cada medio radio, o
+        bajar el tope.
+   - 🚫 Visto y NO tocado: las barras del `.pen` llevan rótulo y valor ENCIMA y el código las pone en fila (`inline`),
+     igual que la del ancho que ya existía · el previo «no tiembla» sólo a medias (lejos de la punta el canto se mueve
+     1–3 px por paso) · filas de muro de largo cero donde se juntan las puntas en «Sobre una foto» (viejo) · el índice
+     y § 10B.4 siguen diciendo «sin construir».
+   - ⏳ Siguiente: que él recargue (Cmd+Shift+R) y pruebe «A pulso» con borde roto · sus dos respuestas · y después la 3
+     (spec + `.pen`) o la tarea de la lentitud, según diga.
 3. «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas arrastrando*». Spec + `.pen`.
 4. «*el sobre una foto o dibujar aquí si lo cierro y lo abro tiene que quedar guardada la última elección que hice*» —
    el modo del Builder se pierde al cerrar el panel. Preguntar dónde vale lo guardado (este navegador, la escena…).
@@ -176,6 +213,21 @@ Textuales suyas, con lo que se entendió:
 7. Para LOS OBJETOS (rebanada 6): «*cada uno al hacerle click derecho tienes que poder mandarlo adelante y atrás como en
    cualquier programa … top layer, down layer etc*» — menú contextual: traer adelante / enviar atrás / al frente / al
    fondo. **Meterlo en el spec de la rebanada 6** cuando se cierre.
+
+### ❓ SU PREGUNTA (2026-09-11, noche): ¿guardar cada sala por separado lo hace lento? — CONTESTADA, SIN DECIDIR
+«*habiamos decidido que las habitaciones se guardaba cada una por si la queria mover en un futuro etc, y pensandolo
+creo que eso lo haria super lento y cada vez que lo cargaria traeria mucha mierda y seria aun mas lento*».
+- Medido con su «Dungeon» (guion de sólo lectura, scratchpad `cuanto-pesa.mts`): 109 formas (7 rectángulos + 102
+  trazos «A pulso») · 2.564 esquinas, 2.536 de ellas en los trazos · los puntos pesan 97 KB.
+- Calcular las paredes (`roomOutline`, en caliente, mediana): 27 formas 18 ms · 55 formas 50 ms · 109 formas 214 ms →
+  crece al CUADRADO (compara cada trozo con todos).
+- El api lo recalcula SIN caché en cada petición de visión y de luces (`sceneVision.ts` · `roomGeometry`, llamadas en
+  las líneas 178/230/391), y además vuelve a leer las salas de la base cada vez.
+- Contestado: no es por guardarlas por separado (cargar 97 KB es poco); lo lento es recalcular las paredes en cada
+  movimiento. Fundirlas al guardar perdería mover/borrar una sala y la pintura y el color de cada una (van por fila).
+  Recomendado: seguir por separado + guardar ya calculado el contorno (sólo se recalcula cuando cambia una forma o una
+  puerta) + no comparar trozos lejanos (cajas).
+- ⏳ Preguntado si se apunta como tarea y si va antes o después de sus 7 peticiones.
 
 ### ⏳ Pendiente de él (de hoy)
 - Ver los paneles: `~/Desktop/Rolvium-paneles-antes/` frente a `~/Desktop/Rolvium-paneles-despues/`. **Preguntado si le

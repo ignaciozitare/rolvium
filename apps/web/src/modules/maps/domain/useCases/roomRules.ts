@@ -479,11 +479,23 @@ function ringOfRun(run: Point[], r: number): Point[] {
  * lo que evita que un arrastre a pulso deje cientos de vértices. Cada vértice de estos anillos acaba siendo
  * un lado contra el que el servidor traza rayos en cada refresco de visión, para cada jugador.
  */
-export function brushRings(path: Point[], widthCells: number, grid: number): [number, number][][] {
+export function brushRings(path: Point[], widthCells: number, grid: number, edge?: BandEdge): [number, number][][] {
   if (path.length === 0) return [];
   const r = (Math.min(BRUSH_MAX_CELLS, Math.max(BRUSH_MIN_CELLS, widthCells)) * grid) / 2;
   const limpio = simplifyPath(dedupe(path, r / 2), r / 2);
-  if (limpio.length === 1) return [ringOfRun(limpio, r).map(p => [p.x, p.y] as [number, number])];
+  // Con borde roto el canto de cada trozo muerde hacia su propio camino; sin él, el anillo de siempre.
+  const anillos = (trozos: Point[][]): [number, number][][] => {
+    const rings = trozos.map(x => ringOfRun(x, r));
+    const roto = edge && edge.roughness > 0 ? edge : null;
+    /**
+     * 🔑 EL TOPE DE ESQUINAS ES POR TRAZO (§ 10B.4), no por trozo. Un zigzag de codos cerrados sale en muchos
+     * trozos, y con un tope para cada uno se pasaba de largo (diez trozos, 780 esquinas). La separación sale del
+     * contorno de TODOS, así que las esquinas se reparten entre ellos; un trazo de un solo trozo sale igual.
+     */
+    const paso = roto ? Math.max(r / 2, rings.reduce((s, ring) => s + perimetro(ring), 0) / BAND_ROUGH_MAX_POINTS) : 0;
+    return rings.map((ring, i) => (roto ? roughen(ring, trozos[i]!, r, roto.roughness, roto.seed, paso) : ring).map(p => [p.x, p.y] as [number, number]));
+  };
+  if (limpio.length === 1) return anillos([limpio]);
 
   // Se corta en los codos cerrados: cada trozo comparte el vértice con el siguiente, así que se solapan y
   // el motor de salas los funde en el codo.
@@ -499,7 +511,91 @@ export function brushRings(path: Point[], widthCells: number, grid: number): [nu
     if (giro > SPLIT_ANGLE) { runs.push(run); run = [cur]; }
   }
   runs.push(run);
-  return runs.filter(x => x.length > 0).map(x => ringOfRun(x, r).map(p => [p.x, p.y] as [number, number]));
+  return anillos(runs.filter(x => x.length > 0));
+}
+
+/** El borde roto de «A pulso» (§ 10B.4): cuánto de roto (0..1) y la semilla del trazo. */
+export interface BandEdge { roughness: number; seed: number }
+
+/**
+ * CUÁNTO PUEDE MORDER HACIA DENTRO CADA LADO DE LA BANDA, en fracción de su medio ancho.
+ *
+ * 🔑 Por debajo de la mitad a propósito: los dos lados muerden a la vez, y con 0,45 cada uno siempre queda más
+ * de medio ancho de suelo en medio. Así, por muy roto que se ponga, el trazo nunca se parte ni deja agujeros —
+ * regla del spec. El pincel llega a 0,85 (`ROUGH_MAX_BITE`) porque un disco no tiene un lado de enfrente.
+ */
+const BAND_MAX_BITE = 0.45;
+
+/**
+ * EL TOPE DE ESQUINAS QUE AÑADE EL BORDE ROTO a cada TRAZO, repartido entre todos sus trozos (§ 10B.4). Cada
+ * esquina es un muro contra el que el servidor traza rayos en cada refresco de visión, para cada jugador: un
+ * trazo larguísimo —o partido en muchos trozos— reparte sus esquinas más separadas antes que pasar de aquí.
+ */
+export const BAND_ROUGH_MAX_POINTS = 160;
+
+/** Lo que mide el contorno de un anillo, cerrando contra el primero. */
+function perimetro(ring: Point[]): number {
+  let total = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i]!, b = ring[(i + 1) % ring.length]!;
+    total += Math.hypot(b.x - a.x, b.y - a.y);
+  }
+  return total;
+}
+
+/**
+ * UN NÚMERO DE 0 A 1 QUE SALE DEL SITIO Y DE LA SEMILLA DEL TRAZO. Mismo sitio, mismo mordisco: por eso el previo
+ * que se ve mientras arrastra no tiembla a cada paso, y lo que se guarda al soltar es lo que se estaba viendo.
+ */
+function ruido(seed: number, cx: number, cy: number): number {
+  let h = Math.imul(seed | 0, 0x9e3779b1) ^ Math.imul(cx | 0, 0x85ebca6b) ^ Math.imul(cy | 0, 0xc2b2ae35);
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  h = Math.imul(h ^ (h >>> 12), 0x297a2d39);
+  return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+}
+
+/** El punto del camino más cercano a `p`. */
+function cercanoEnCamino(p: Point, run: Point[]): Point {
+  let mejor = run[0]!, dMejor = Infinity;
+  for (let i = 0; i < run.length - 1; i++) {
+    const a = run[i]!, b = run[i + 1]!;
+    const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+    const t = l2 < 1e-12 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
+    const q = { x: a.x + t * dx, y: a.y + t * dy };
+    const d = Math.hypot(p.x - q.x, p.y - q.y);
+    if (d < dMejor) { dMejor = d; mejor = q; }
+  }
+  return mejor;
+}
+
+/**
+ * EL ANILLO DE UN TROZO, CON EL CANTO ROTO. Se reparten esquinas por el contorno cada `paso` —medio ancho, o más
+ * separadas si las del trazo entero no caben en el tope— y cada una se acerca a su camino según el ruido del sitio,
+ * suavizado con sus dos vecinas como el borde roto del pincel (`roughRadii`): desgarrado, no un serrucho.
+ *
+ * Sólo muerde HACIA DENTRO, hacia el camino: el trazo nunca crece más allá del ancho que él eligió.
+ */
+function roughen(ring: Point[], run: Point[], r: number, roughness: number, seed: number, paso: number): Point[] {
+  const lado = (i: number): [Point, Point] => [ring[i]!, ring[(i + 1) % ring.length]!];
+  const puntos: Point[] = [];
+  for (let i = 0; i < ring.length; i++) {
+    const [a, b] = lado(i);
+    const n = Math.max(1, Math.floor(Math.hypot(b.x - a.x, b.y - a.y) / paso));
+    for (let k = 0; k < n; k++) puntos.push({ x: a.x + ((b.x - a.x) * k) / n, y: a.y + ((b.y - a.y) * k) / n });
+  }
+  const celda = r / 2;
+  const crudo = puntos.map(p => ruido(seed, Math.round(p.x / celda), Math.round(p.y / celda)));
+  const m = crudo.length;
+  const at = (i: number): number => crudo[((i % m) + m) % m]!;
+  const bite = r * Math.min(1, Math.max(0, roughness)) * BAND_MAX_BITE;
+  return puntos.map((p, i) => {
+    const mordisco = ((at(i - 1) + at(i) * 2 + at(i + 1)) / 4) * bite;
+    const c = cercanoEnCamino(p, run);
+    const d = Math.hypot(c.x - p.x, c.y - p.y);
+    if (d < 1e-9) return p;
+    const k = Math.min(mordisco, d) / d;
+    return { x: p.x + (c.x - p.x) * k, y: p.y + (c.y - p.y) * k };
+  });
 }
 
 // ── LOS COLORES CON LOS QUE SE PINTA (§ «Rebanada 10») ──

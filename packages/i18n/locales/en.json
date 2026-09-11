@@ -1193,7 +1193,12 @@
       "band": {
         "label": "Band width · only with “Freehand”",
         "short": "Width",
-        "hint": "“Freehand” gives a BAND of the width you pick, following your hand. By default it is this scene’s wall thickness."
+        "hint": "“Freehand” gives a BAND of the width you pick, following your hand. By default it is this scene’s wall thickness.",
+        "edge": "Edge · only with “Freehand”",
+        "tip": {
+          "clean": "Clean",
+          "rough": "Rough edge"
+        }
       }
     },
     "group": {

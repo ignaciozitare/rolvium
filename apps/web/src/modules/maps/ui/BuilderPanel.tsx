@@ -1,9 +1,10 @@
 import { useTranslation } from '@rolvium/i18n';
 import { FloatingPanel, OptionGroup, PanelHint, PanelNote, PanelSection, Slider, Tooltip } from '@rolvium/ui';
-import { DOOR_HINGES, DOOR_LEAVES, DOOR_SWINGS, ROOM_PRESETS, type DoorSettings, type RoomOpening, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
+import { BAND_TIPS, DOOR_HINGES, DOOR_LEAVES, DOOR_SWINGS, ROOM_PRESETS, type BandTip, type DoorSettings, type RoomOpening, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
 import { DEFAULT_TEXTURE_SCALE, styleOf } from '../domain/useCases/roomStyles';
+import { roughnessStep } from '../domain/useCases/layerRules';
 import { DOOR_COLORS, normalCellsAt, TOKEN_SCALE, WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
-import { BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, BUILDER_MODES, BUILD_KINDS, ROOM_SHAPES, isOpeningKind, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
+import { BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, BUILDER_MODES, BUILD_KINDS, DEFAULT_BAND_ROUGHNESS, DEFAULT_BAND_TIP, ROOM_SHAPES, isOpeningKind, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 
 interface Props {
   /** En qué está trabajando: marcando sobre una foto o levantando salas aquí. Las dos conviven. */
@@ -96,6 +97,15 @@ interface Props {
    */
   bandCells?: number;
   onBandCells?: (cells: number) => void;
+  /**
+   * ── EL BORDE DE «A PULSO» (§ 10B.4) ── Limpio o roto, y cuánto (0..1). El tipo se avisa en el acto; la barra
+   * avisa mientras se mueve y `onBandRoughnessEnd` al soltar, que es cuando se guarda.
+   */
+  bandTip?: BandTip;
+  onBandTip?: (tip: BandTip) => void;
+  bandRoughness?: number;
+  onBandRoughness?: (roughness: number) => void;
+  onBandRoughnessEnd?: () => void;
   onClose: () => void;
 }
 
@@ -124,7 +134,7 @@ export function BuilderPanel({
   wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd,
   tokenScale = TOKEN_SCALE.def, onTokenScale, onTokenScaleEnd,
   groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onDoorTexture, doorDraft,
-  bandCells = 0.22, onBandCells, onClose,
+  bandCells = 0.22, onBandCells, bandTip = DEFAULT_BAND_TIP, onBandTip, bandRoughness = DEFAULT_BAND_ROUGHNESS, onBandRoughness, onBandRoughnessEnd, onClose,
 }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   /** El número del panel, con la coma o el punto que toque según el idioma. */
@@ -317,6 +327,23 @@ export function BuilderPanel({
             value={bandCells} onChange={v => onBandCells?.(v)}
             // Con la coma o el punto que toque, como el número de las fichas: «0.34» en español está mal.
             valueText={new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(bandCells)} />
+        </PanelSection>
+      )}
+
+      {/*
+        * ── EL BORDE DE «A PULSO» (§ 10B.4 · `rolvium.pen` · `R7gay`) ── Limpio, como siempre, o borde roto, y
+        * cuánto. Va en la escena y aparte del pincel: uno pinta encima y el otro levanta paredes. La barra habla
+        * con las palabras del pincel porque es la misma pareja de mandos.
+        */}
+      {!construyeVano && shape === 'free' && (
+        <PanelSection label={t('maps.room.band.edge')} testId="mp-band-edge">
+          <OptionGroup ariaLabel={t('maps.room.band.edge')} look="outline" columns="row" value={bandTip} onChange={v => onBandTip?.(v)}
+            options={BAND_TIPS.map(tip => ({ value: tip, label: t(`maps.room.band.tip.${tip}`) }))} />
+          {bandTip === 'rough' && (
+            <Slider layout="inline" label={t('maps.brush.roughLabel')} min={0} max={100} step={5}
+              value={Math.round(bandRoughness * 100)} onChange={n => onBandRoughness?.(n / 100)} onCommit={() => onBandRoughnessEnd?.()}
+              valueText={t(`maps.brush.roughness.${roughnessStep(bandRoughness)}`)} />
+          )}
         </PanelSection>
       )}
 

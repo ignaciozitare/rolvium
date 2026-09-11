@@ -285,6 +285,22 @@ describe('<SceneTab> DM', () => {
     expect(repo.scenes.at(-1)).toMatchObject({ name: 'Mercado', campaignId: 'c1' });
   });
 
+  /** El borde de «A pulso» (§ 10B.4) va en la ESCENA: el tipo se guarda en el acto; la barra, al soltar. */
+  it('el borde roto de «A pulso» se guarda en la escena', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm');
+    await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    await u.click(await screen.findByRole('radio', { name: 'A pulso' }));
+    await u.click(await screen.findByRole('radio', { name: 'Borde roto' }));
+    await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { bandTip: 'rough' } }));
+    const barra = await screen.findByRole('slider', { name: 'Cuánto de roto' });
+    fireEvent.change(barra, { target: { value: '80' } });
+    expect(repo.sceneUpdates.some(x => 'bandRoughness' in x.patch)).toBe(false);
+    fireEvent.pointerUp(barra);
+    await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { bandRoughness: 0.8 } }));
+  });
+
   /**
    * Atacar CON el token (`.pen` columna 6). El botón sólo sale sobre una criatura, y la distancia hasta
    * cada personaje la mide el mapa: el mutante está en (20,9) y Karen en (12,11) → 8,2 casillas, o sea

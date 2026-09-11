@@ -166,6 +166,39 @@ describe('<BuilderPanel> el ancho de la banda', () => {
     mount({ mode: 'photo', shape: 'free' });
     expect(screen.getByTestId('mp-band')).toBeInTheDocument();
   });
+
+  /** ── EL BORDE DE «A PULSO» (§ 10B.4 · `rolvium.pen` · `R7gay`) ── */
+  it('el borde sale con «A pulso», y la barra de cuánto de roto sólo con borde roto', () => {
+    const { re } = mount({ mode: 'draw', shape: 'free', bandTip: 'clean' });
+    const borde = screen.getByTestId('mp-band-edge');
+    expect(within(borde).getByRole('radio', { name: 'Limpio' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(borde).queryByRole('slider', { name: 'Cuánto de roto' })).not.toBeInTheDocument();
+    re({ mode: 'draw', shape: 'free', bandTip: 'rough', bandRoughness: 0.6 });
+    expect(screen.getByRole('slider', { name: 'Cuánto de roto' })).toHaveValue('60');
+    // Con las palabras del pincel: «0,6» no le dice nada a nadie.
+    expect(within(screen.getByTestId('mp-band-edge')).getByText('bastante')).toBeInTheDocument();
+    re({ mode: 'draw', shape: 'poly', bandTip: 'rough' });
+    expect(screen.queryByTestId('mp-band-edge')).not.toBeInTheDocument();
+  });
+
+  it('elegir borde roto y mover la barra lo avisan hacia arriba, y soltar la barra la guarda', () => {
+    const onBandTip = vi.fn(), onBandRoughness = vi.fn(), onBandRoughnessEnd = vi.fn();
+    const { re } = mount({ mode: 'draw', shape: 'free', bandTip: 'clean', onBandTip, onBandRoughness, onBandRoughnessEnd });
+    fireEvent.click(screen.getByRole('radio', { name: 'Borde roto' }));
+    expect(onBandTip).toHaveBeenCalledWith('rough');
+    re({ mode: 'draw', shape: 'free', bandTip: 'rough', bandRoughness: 0.5, onBandTip, onBandRoughness, onBandRoughnessEnd });
+    const barra = screen.getByRole('slider', { name: 'Cuánto de roto' });
+    fireEvent.change(barra, { target: { value: '80' } });
+    expect(onBandRoughness).toHaveBeenCalledWith(0.8);
+    expect(onBandRoughnessEnd).not.toHaveBeenCalled();
+    fireEvent.pointerUp(barra);
+    expect(onBandRoughnessEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('con una puerta tampoco sale el borde', () => {
+    mount({ mode: 'draw', buildKind: 'door', shape: 'free', bandTip: 'rough' });
+    expect(screen.queryByTestId('mp-band-edge')).not.toBeInTheDocument();
+  });
 });
 
 describe('<BuilderPanel> el candado de pegar a la rejilla', () => {

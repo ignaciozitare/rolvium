@@ -1967,6 +1967,33 @@ describe('<MapCanvas> Builder levanta salas enteras', () => {
     expect(screen.queryByTestId('mp-band-draft')).not.toBeInTheDocument();
   });
 
+  /** El borde de «A pulso» (§ 10B.4): con BORDE ROTO la banda que se guarda sale con el canto roto; con LIMPIO, como siempre. */
+  it('a pulso con BORDE ROTO: la banda que se guarda sale con el canto roto', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const base = { ...dm, wallShape: 'free' as const, bandCells: 2, builderMode: 'draw' as const, ...cb2 };
+    const { svg, rerender } = mount({ ...base, bandTip: 'clean' });
+    const trazar = () => { down(svg, 100, 100); move(svg, 300, 100); move(svg, 500, 100); up(svg); };
+    trazar();
+    rerender({ ...base, bandTip: 'rough', bandRoughness: 1 });
+    trazar();
+    expect(cb2.onAddRoomShape).toHaveBeenCalledTimes(2);
+    const [limpio, roto] = cb2.onAddRoomShape.mock.calls.map(c => (c[1] as unknown[]).length);
+    expect(cb2.onAddRoomShape.mock.calls[1]![0]).toBe('brush');
+    expect(roto!).toBeGreaterThan(limpio!);
+  });
+
+  /** § 10B.4: la semilla se sortea al EMPEZAR el trazo, así que el canto roto que se ve al arrastrar ES el que se guarda al soltar. */
+  it('a pulso con BORDE ROTO: el previo y lo que se guarda son el mismo canto', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', bandCells: 2, builderMode: 'draw', bandTip: 'rough', bandRoughness: 1, ...cb2 });
+    down(svg, 100, 100); move(svg, 300, 120); move(svg, 500, 100);
+    const previo = screen.getAllByTestId('mp-band-draft').map(el => el.getAttribute('d'));
+    expect(previo.length).toBeGreaterThan(0);
+    up(svg);
+    const guardado = cb2.onAddRoomShape.mock.calls.map(c => roomStyles.ringPath((c[1] as [number, number][]).map(([x, y]) => ({ x, y }))));
+    expect(guardado).toEqual(previo);
+  });
+
   /** Un toque sin arrastre es un DISCO, como en cualquier programa de dibujo. */
   it('a pulso: un toque sin arrastre también levanta forma', () => {
     const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };

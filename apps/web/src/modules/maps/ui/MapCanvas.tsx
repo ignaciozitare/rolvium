@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
-import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
+import type { BandTip, Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, doorTexturesUsed, type Point, type Segment, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { brushRings, freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_ROOM_CELLS, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { brushRings, DEFAULT_BAND_ROUGHNESS, type BandEdge, freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_ROOM_CELLS, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
 import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
@@ -130,6 +130,12 @@ interface Props {
    * muro de la escena, así que una escena existente no cambia hasta que él lo toque.
    */
   bandCells?: number;
+  /**
+   * EL BORDE DE «A PULSO» (§ 10B.4): limpio, como siempre, o roto y cuánto. Cada trazo sortea su semilla al
+   * empezar, así que el previo y lo que se guarda al soltar son el mismo canto.
+   */
+  bandTip?: BandTip;
+  bandRoughness?: number;
   /**
    * EL PREVIO DEL AZULEJO DEL PINCEL (rebanada 10). Mientras él arrastra el tamaño de la textura, el mapa
    * ENTERO se cubre con ella en transparencia: «*se debería ver en el mapa cubriendo todo el lienzo para ver
@@ -260,7 +266,7 @@ type Gesture =
   /** Levantando una sala a pulso: los puntos por donde va pasando la mano. */
   | { kind: 'roomFree'; points: Point[] }
   /** A PULSO: se arrastra y sale una BANDA siguiendo la mano, del ancho elegido (§ «Rebanada 10 · B»). */
-  | { kind: 'roomBand'; points: Point[] }
+  | { kind: 'roomBand'; points: Point[]; /** La semilla del borde roto: el previo y lo que se guarda salen iguales (§ 10B.4). */ seed: number }
   /**
    * Moviendo o estirando un GRUPO. Con `handle` a null se mueve entero; con tirador se estira por ese lado.
    * Guarda el marco de partida porque escalar es llevar los muros de un marco a otro, no ir sumando tirones.
@@ -312,6 +318,10 @@ const PAINT_HZ_MS = 50;
  * por el zoom). Sin este filtro un arrastre lento deja cientos de puntos en el mismo sitio.
  */
 const BAND_STEP_PX = 4;
+
+/** El borde con el que sale la banda de «A pulso» (§ 10B.4): sólo con borde roto; con limpio, el de siempre. */
+const bordeDe = (tip: BandTip | undefined, roughness: number | undefined, seed: number): BandEdge | undefined =>
+  (tip === 'rough' ? { roughness: roughness ?? DEFAULT_BAND_ROUGHNESS, seed } : undefined);
 
 /**
  * SVG scene canvas: background → grid → (DM veil) → walls → drawings → tokens → UI (measure · pin · brush · selection).
@@ -791,8 +801,10 @@ export function MapCanvas(p: Props): JSX.Element {
          * habías hecho en el otro chat para el pincel estaba mal, pero en el builder me servía*».
          */
         if (shape === 'free') {
-          setGesture({ kind: 'roomBand', points: [s] });
-          setBandDraft(brushRings([s], p.bandCells ?? p.scene.wallThickness, grid));
+          // La semilla del borde roto se sortea aquí, al empezar: cada trazo sale distinto (§ 10B.4).
+          const seed = Math.floor(Math.random() * 2 ** 31);
+          setGesture({ kind: 'roomBand', points: [s], seed });
+          setBandDraft(brushRings([s], p.bandCells ?? p.scene.wallThickness, grid, bordeDe(p.bandTip, p.bandRoughness, seed)));
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
@@ -1021,7 +1033,7 @@ export function MapCanvas(p: Props): JSX.Element {
       if (Math.hypot(s.x - ultimo.x, s.y - ultimo.y) < BAND_STEP_PX / p.view.zoom) return;
       const points = [...gesture.points, s];
       setGesture({ ...gesture, points });
-      setBandDraft(brushRings(points, p.bandCells ?? p.scene.wallThickness, grid));
+      setBandDraft(brushRings(points, p.bandCells ?? p.scene.wallThickness, grid, bordeDe(p.bandTip, p.bandRoughness, gesture.seed)));
     } else if (gesture.kind === 'groupXf') {
       // Hasta salir de la zona muerta esto es un CLIC, no un arrastre: ni se pinta ni se guarda nada.
       if (gesture.moved || Math.hypot(s.x - gesture.start.x, s.y - gesture.start.y) > DEAD_ZONE_PX / p.view.zoom) {
@@ -1127,7 +1139,7 @@ export function MapCanvas(p: Props): JSX.Element {
        * un agujero de roca en medio de la banda. Un toque sin arrastre es un disco, como en cualquier
        * programa de dibujo: `brushRings` ya lo resuelve con un solo punto.
        */
-      const anillos = brushRings(gesture.points, p.bandCells ?? p.scene.wallThickness, grid);
+      const anillos = brushRings(gesture.points, p.bandCells ?? p.scene.wallThickness, grid, bordeDe(p.bandTip, p.bandRoughness, gesture.seed));
       setBandDraft([]); setGesture(null);
       if (!anillos.length) { p.onTooSmall?.(candado); return; }
       for (const anillo of anillos) commitBand(anillo);

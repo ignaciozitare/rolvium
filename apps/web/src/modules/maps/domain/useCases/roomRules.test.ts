@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BRUSH_COLORS, BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, brushColorName, brushRings, BUILDER_MODES, DEFAULT_BRUSH_COLOR, isHexColor, shapesFor, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_FILL_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing, wallStripe } from './roomRules';
+import { BAND_ROUGH_MAX_POINTS, BRUSH_COLORS, BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, brushColorName, brushRings, BUILDER_MODES, DEFAULT_BRUSH_COLOR, isHexColor, shapesFor, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_FILL_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing, wallStripe } from './roomRules';
 import { digs, pointInRing, roomOutline } from '@rolvium/core';
 
 /**
@@ -473,6 +473,69 @@ describe('brushRings — el trazo se convierte en forma', () => {
       const nx = (-(y2 - y1) / len) * 2, ny = ((x2 - x1) / len) * 2, mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
       expect(suelo({ x: mx + nx, y: my + ny }) && suelo({ x: mx - nx, y: my - ny })).toBe(false);
     }
+  });
+
+  /**
+   * ── EL BORDE ROTO DE «A PULSO» (§ 10B.4) ──
+   * Sin borde roto sale LO MISMO que siempre. Con él el canto sale irregular y distinto en cada trazo, pero
+   * nunca crece más allá del ancho elegido, nunca se parte ni deja agujeros, y tiene tope de esquinas.
+   * Sobre una recta, para que la simplificación del trazo no mueva el camino contra el que se mide.
+   */
+  describe('el borde roto', () => {
+    // Dos puntos y nada más: así el camino del que sale la banda es EXACTAMENTE éste, puntas incluidas.
+    const recta = [{ x: 60, y: 300 }, { x: 591, y: 300 }];
+    const distAlCamino = (p: { x: number; y: number }) => Math.hypot(p.x - Math.min(591, Math.max(60, p.x)), p.y - 300);
+
+    it('con «Limpio» —o sin nada de roto— el trazo sale exactamente como siempre', () => {
+      const siempre = brushRings(recta, 2, G);
+      expect(brushRings(recta, 2, G, undefined)).toEqual(siempre);
+      expect(brushRings(recta, 2, G, { roughness: 0, seed: 7 })).toEqual(siempre);
+    });
+
+    it('muerde hacia dentro y nunca crece más allá del ancho que él eligió', () => {
+      const [roto] = brushRings(recta, 2, G, { roughness: 1, seed: 7 });
+      const ds = pts(roto!).map(distAlCamino);
+      expect(Math.max(...ds)).toBeLessThanOrEqual(G + 1e-6);
+      expect(Math.min(...ds)).toBeLessThan(G * 0.9);
+    });
+
+    it('por muy roto que se ponga, no se parte ni deja agujeros: el camino y su franja central siguen dentro', () => {
+      const [roto] = brushRings(recta, 2, G, { roughness: 1, seed: 11 });
+      const anillo = pts(roto!);
+      expect(Math.min(...anillo.map(distAlCamino))).toBeGreaterThanOrEqual(G * 0.5);
+      for (let x = 60; x <= 591; x += 7) for (const dy of [-G / 3, 0, G / 3]) expect(pointInRing({ x, y: 300 + dy }, anillo)).toBe(true);
+    });
+
+    it('cada trazo sale distinto, y el mismo trazo sale igual en el previo y al soltar', () => {
+      expect(brushRings(recta, 2, G, { roughness: 0.6, seed: 7 })).toEqual(brushRings(recta, 2, G, { roughness: 0.6, seed: 7 }));
+      expect(brushRings(recta, 2, G, { roughness: 0.6, seed: 8 })).not.toEqual(brushRings(recta, 2, G, { roughness: 0.6, seed: 7 }));
+    });
+
+    it('un trazo larguísimo reparte las esquinas en vez de pasar del tope', () => {
+      const larga = Array.from({ length: 60 }, (_, i) => ({ x: i * 400, y: 300 }));
+      const [siempre] = brushRings(larga, 2, G);
+      const [roto] = brushRings(larga, 2, G, { roughness: 1, seed: 3 });
+      expect(roto!.length).toBeGreaterThan(siempre!.length);
+      expect(roto!.length).toBeLessThanOrEqual(siempre!.length + BAND_ROUGH_MAX_POINTS);
+    });
+
+    /** 🐞 El tope es POR TRAZO (§ 10B.4): un zigzag de codos cerrados sale en muchos trozos, y el tope no se multiplica por ellos. */
+    it('un zigzag partido en muchos trozos reparte el tope entre todos', () => {
+      // Codos de 120°: cada uno parte el trazo (`SPLIT_ANGLE`), así que salen diez trozos. Antes: 780 esquinas de más.
+      const zig: { x: number; y: number }[] = [{ x: 100, y: 400 }];
+      let rumbo = 0;
+      for (let i = 0; i < 10; i++) {
+        const p = zig[zig.length - 1]!;
+        zig.push({ x: p.x + 60 * Math.cos(rumbo), y: p.y + 60 * Math.sin(rumbo) });
+        rumbo += ((i % 2 ? -1 : 1) * 2 * Math.PI) / 3;
+      }
+      const esquinas = (rings: [number, number][][]) => rings.reduce((s, x) => s + x.length, 0);
+      const siempre = brushRings(zig, BRUSH_MIN_CELLS, G);
+      const roto = brushRings(zig, BRUSH_MIN_CELLS, G, { roughness: 1, seed: 3 });
+      expect(roto.length).toBeGreaterThan(1);
+      expect(esquinas(roto)).toBeGreaterThan(esquinas(siempre));
+      expect(esquinas(roto) - esquinas(siempre)).toBeLessThanOrEqual(BAND_ROUGH_MAX_POINTS);
+    });
   });
 
   /**
