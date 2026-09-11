@@ -189,7 +189,10 @@ Textuales suyas, con lo que se entendió:
    - ⚠ **ANTES DE DESPLEGAR**: la migración `20260911170000_maps_band_rough.sql` tiene que llegar a producción
      (`scfspsiemikfcnqteonq`) ANTES que la web: la web ya pide `band_tip`/`band_roughness` y sin esas columnas la lista
      de escenas sale VACÍA.
-   - ❓ **Dos decisiones suyas, preguntadas** (2026-09-11 noche):
+   - ✅ **SUS DOS DECISIONES** (2026-09-11 noche: «*si, hazlo antes de seguir*» — leído así, y dicho en el chat para que
+     pueda corregirlo): 1 → SÍ, quitar el borde roto «Sobre una foto» (escrito en § 10B.4) · 2 → la tarea de la
+     LENTITUD va ANTES de la 3. Orden: primero lo de la foto (remate de la 2), luego la lentitud, luego la 3.
+   - Lo que se le preguntó:
      1. **«Sobre una foto»**: la sección del borde también sale ahí, donde cada lado del anillo se escribe como una fila
         de `maps_walls` → un trazo roto escribe 20+ filas por trozo y hasta 160 más. El `.pen` (`R7gay`) sólo dibuja
         «Dibujar aquí». Propuesto: ocultarla sobre una foto, como los preajustes.
@@ -201,8 +204,20 @@ Textuales suyas, con lo que se entendió:
      igual que la del ancho que ya existía · el previo «no tiembla» sólo a medias (lejos de la punta el canto se mueve
      1–3 px por paso) · filas de muro de largo cero donde se juntan las puntas en «Sobre una foto» (viejo) · el índice
      y § 10B.4 siguen diciendo «sin construir».
-   - ⏳ Siguiente: que él recargue (Cmd+Shift+R) y pruebe «A pulso» con borde roto · sus dos respuestas · y después la 3
-     (spec + `.pen`) o la tarea de la lentitud, según diga.
+   - ✅ **REMATE «SOBRE UNA FOTO»: HECHO, REVISADO (aprobado sin cambios) Y COMMITEADO.** `BuilderPanel.tsx` (la sección
+     `mp-band-edge` sólo con `mode === 'draw'`) · `MapCanvas.tsx` (una sola cuenta, `puntaBanda = builderMode === 'draw'
+     ? bandTip : undefined`, para el previo, al mover y al soltar: sobre una foto sale limpio aunque la escena guarde el
+     roto) · spec § 10B.4 + estado e índice («construido, sin mergear») · tests: `BuilderPanel.test.tsx` «sobre una foto
+     no sale el borde, aunque el ancho sí» · `MapCanvas.test.tsx` «sobre una foto, a pulso sale con canto limpio…» ·
+     `SceneTab.test.tsx` (el test del borde pasa antes a «Dibujar aquí»: el Builder abre en foto). Verde: web
+     `src/modules/maps` 1201/1201 · typecheck · smoke 12/12 (review).
+   - 🚫 Visto y NO tocado (review): sólo lo que se guarda al soltar tiene test; el previo va por la misma cuenta
+     `puntaBanda`, pero ningún test compara su dibujo · en «Dibujar aquí» sin `onAddRoomShape` el trazo caería a muros
+     sueltos sin mirar el borde (hoy imposible: `SceneTab` siempre lo pasa).
+   - ⏳ **SIGUIENTE: LA TAREA DE LA LENTITUD** (bloque ❓ de abajo; él: antes de la 3). Primero enseñarle en pocas líneas
+     qué se va a hacer (se le prometió) y, con su «sí»: spec → medir dónde se va el tiempo → construir → review. Por
+     tamaño, construirla en un CHAT NUEVO (este iba por 3,6 MB de 6). Él tiene que recargar (Cmd+Shift+R) y probar
+     «A pulso» con borde roto en «Dibujar aquí».
 3. «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas arrastrando*». Spec + `.pen`.
 4. «*el sobre una foto o dibujar aquí si lo cierro y lo abro tiene que quedar guardada la última elección que hice*» —
    el modo del Builder se pierde al cerrar el panel. Preguntar dónde vale lo guardado (este navegador, la escena…).
@@ -227,7 +242,7 @@ creo que eso lo haria super lento y cada vez que lo cargaria traeria mucha mierd
   movimiento. Fundirlas al guardar perdería mover/borrar una sala y la pintura y el color de cada una (van por fila).
   Recomendado: seguir por separado + guardar ya calculado el contorno (sólo se recalcula cuando cambia una forma o una
   puerta) + no comparar trozos lejanos (cajas).
-- ⏳ Preguntado si se apunta como tarea y si va antes o después de sus 7 peticiones.
+- ✅ Decidido por él (2026-09-11 noche): se hace, y ANTES de la 3 (tras rematar lo de la foto de la 2).
 
 ### ⏳ Pendiente de él (de hoy)
 - Ver los paneles: `~/Desktop/Rolvium-paneles-antes/` frente a `~/Desktop/Rolvium-paneles-despues/`. **Preguntado si le

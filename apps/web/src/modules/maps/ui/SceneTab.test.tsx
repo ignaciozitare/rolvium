@@ -291,6 +291,8 @@ describe('<SceneTab> DM', () => {
     const repo = mount('dm');
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
     await u.click(screen.getByRole('button', { name: 'Builder' }));
+    // Sólo dibujando aquí: sobre una foto el borde roto no sale (§ 10B.4).
+    await u.click(await screen.findByRole('radio', { name: /Dibujar aquí/ }));
     await u.click(await screen.findByRole('radio', { name: 'A pulso' }));
     await u.click(await screen.findByRole('radio', { name: 'Borde roto' }));
     await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { bandTip: 'rough' } }));

@@ -35,7 +35,7 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
     da una **banda del ancho que elijas**. Se sigue eligiendo **muro o habitación**, y cada uno trae lo suyo:
     el muro una **textura**, la habitación un **color**.
     - **§ 10B.4 · el borde roto de «A pulso»** — elegir canto limpio o borde roto, y cuánto. Confirmado por él el
-      2026-09-11 · ⏳ sin construir (datos → `.pen` → código).
+      2026-09-11 · ✅ construido y revisado el mismo día (rama `refactor/ui-paneles-comunes`, sin mergear); sólo dibujando aquí.
   > 🔴 La primera versión entendió al revés lo de «pintar» y construyó un pincel que **excavaba**. Él lo paró
   > en pantalla: «*eso es cavar con construir, que no es lo que te pedí*». Lo construido no se tiró — se muda
   > al Builder, que es donde él dijo que hacía falta.
@@ -2080,6 +2080,10 @@ irregulares o como está ahora y qué tan irregular lo quiero»*. Confirmado por
 - **Se guarda en la escena, como el Pincel (§ 9.4), y APARTE del Pincel**: cambiar uno no cambia el otro. Uno
   pinta encima y el otro levanta paredes.
 - **Sin «difuminado»**: un suelo se pisa o no se pisa (§ 10A.7).
+- **Sólo dibujando aquí, no «Sobre una foto»** (suyo, 2026-09-11 noche, preguntado si quitarlo: «*si*»). Sobre una
+  foto cada lado del trazo se guarda como un muro suelto, y un canto roto dejaría cientos; el diseño (`R7gay`) ya
+  sólo lo enseña en «Dibujar aquí». Sobre una foto, «A pulso» sale con canto limpio aunque la escena tenga guardado
+  el roto.
 - ⚠️ **Un límite que no se ve pero manda**: cada esquina del borde es un muro más contra el que el servidor traza
   rayos, para cada jugador y en cada refresco. El borde roto lleva un **tope de esquinas por trazo**, para que un
   mapa irregular no traiga de vuelta el «va lentísimo».

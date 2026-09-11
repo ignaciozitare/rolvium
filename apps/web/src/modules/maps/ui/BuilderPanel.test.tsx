@@ -199,6 +199,14 @@ describe('<BuilderPanel> el ancho de la banda', () => {
     mount({ mode: 'draw', buildKind: 'door', shape: 'free', bandTip: 'rough' });
     expect(screen.queryByTestId('mp-band-edge')).not.toBeInTheDocument();
   });
+
+  /** Sobre una foto cada lado del trazo es un muro suelto: un canto roto dejaría cientos (suyo, 2026-09-11). */
+  it('sobre una foto no sale el borde, aunque el ancho sí', () => {
+    mount({ mode: 'photo', shape: 'free', bandTip: 'rough', bandRoughness: 0.6 });
+    expect(screen.getByTestId('mp-band')).toBeInTheDocument();
+    expect(screen.queryByTestId('mp-band-edge')).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', { name: 'Cuánto de roto' })).not.toBeInTheDocument();
+  });
 });
 
 describe('<BuilderPanel> el candado de pegar a la rejilla', () => {

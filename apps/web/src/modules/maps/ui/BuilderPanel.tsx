@@ -333,9 +333,10 @@ export function BuilderPanel({
       {/*
         * ── EL BORDE DE «A PULSO» (§ 10B.4 · `rolvium.pen` · `R7gay`) ── Limpio, como siempre, o borde roto, y
         * cuánto. Va en la escena y aparte del pincel: uno pinta encima y el otro levanta paredes. La barra habla
-        * con las palabras del pincel porque es la misma pareja de mandos.
+        * con las palabras del pincel porque es la misma pareja de mandos. Y sólo DIBUJANDO AQUÍ (suyo, 2026-09-11):
+        * sobre una foto cada lado del trazo es un muro suelto, y un canto roto dejaría cientos.
         */}
-      {!construyeVano && shape === 'free' && (
+      {!construyeVano && shape === 'free' && mode === 'draw' && (
         <PanelSection label={t('maps.room.band.edge')} testId="mp-band-edge">
           <OptionGroup ariaLabel={t('maps.room.band.edge')} look="outline" columns="row" value={bandTip} onChange={v => onBandTip?.(v)}
             options={BAND_TIPS.map(tip => ({ value: tip, label: t(`maps.room.band.tip.${tip}`) }))} />

@@ -1982,6 +1982,21 @@ describe('<MapCanvas> Builder levanta salas enteras', () => {
     expect(roto!).toBeGreaterThan(limpio!);
   });
 
+  /** Sobre una foto el borde roto no cuenta (§ 10B.4): cada lado es un muro suelto y un canto roto dejaría cientos. */
+  it('sobre una foto, a pulso sale con canto limpio aunque la escena tenga guardado el roto', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const base = { ...dm, wallShape: 'free' as const, bandCells: 2, builderMode: 'photo' as const, ...cb2 };
+    const { svg, rerender } = mount({ ...base, bandTip: 'clean' });
+    const trazar = () => { down(svg, 100, 100); move(svg, 300, 100); move(svg, 500, 100); up(svg); };
+    trazar();
+    rerender({ ...base, bandTip: 'rough', bandRoughness: 1 });
+    trazar();
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
+    expect(cb2.onAddRoom).toHaveBeenCalledTimes(2);
+    const [limpio, conRoto] = cb2.onAddRoom.mock.calls.map(c => (c[0] as unknown[]).length);
+    expect(conRoto).toBe(limpio);
+  });
+
   /** § 10B.4: la semilla se sortea al EMPEZAR el trazo, así que el canto roto que se ve al arrastrar ES el que se guarda al soltar. */
   it('a pulso con BORDE ROTO: el previo y lo que se guarda son el mismo canto', () => {
     const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };

@@ -405,6 +405,12 @@ export function MapCanvas(p: Props): JSX.Element {
    * Con el de la foto puesto en los dos, un tabique corto se caía sin decir nada (fallo suyo del 2026-09-04).
    */
   const minRaya = p.builderMode === 'draw' ? MIN_FILL_CELLS : MIN_LINE_CELLS;
+  /**
+   * La punta con la que sale «A pulso» (§ 10B.4): la de la escena, pero SÓLO dibujando aquí. Sobre una foto cada lado
+   * del trazo es un muro suelto y un canto roto dejaría cientos, así que ahí sale siempre limpio. Una sola cuenta
+   * para el previo y para lo que se guarda: si no, se vería roto y se guardaría limpio.
+   */
+  const puntaBanda = p.builderMode === 'draw' ? p.bandTip : undefined;
 
   /**
    * ADÓNDE VA LO QUE SE ACABA DE DIBUJAR — y aquí es donde conviven las dos maneras de trabajar.
@@ -804,7 +810,7 @@ export function MapCanvas(p: Props): JSX.Element {
           // La semilla del borde roto se sortea aquí, al empezar: cada trazo sale distinto (§ 10B.4).
           const seed = Math.floor(Math.random() * 2 ** 31);
           setGesture({ kind: 'roomBand', points: [s], seed });
-          setBandDraft(brushRings([s], p.bandCells ?? p.scene.wallThickness, grid, bordeDe(p.bandTip, p.bandRoughness, seed)));
+          setBandDraft(brushRings([s], p.bandCells ?? p.scene.wallThickness, grid, bordeDe(puntaBanda, p.bandRoughness, seed)));
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
@@ -1033,7 +1039,7 @@ export function MapCanvas(p: Props): JSX.Element {
       if (Math.hypot(s.x - ultimo.x, s.y - ultimo.y) < BAND_STEP_PX / p.view.zoom) return;
       const points = [...gesture.points, s];
       setGesture({ ...gesture, points });
-      setBandDraft(brushRings(points, p.bandCells ?? p.scene.wallThickness, grid, bordeDe(p.bandTip, p.bandRoughness, gesture.seed)));
+      setBandDraft(brushRings(points, p.bandCells ?? p.scene.wallThickness, grid, bordeDe(puntaBanda, p.bandRoughness, gesture.seed)));
     } else if (gesture.kind === 'groupXf') {
       // Hasta salir de la zona muerta esto es un CLIC, no un arrastre: ni se pinta ni se guarda nada.
       if (gesture.moved || Math.hypot(s.x - gesture.start.x, s.y - gesture.start.y) > DEAD_ZONE_PX / p.view.zoom) {
@@ -1139,7 +1145,7 @@ export function MapCanvas(p: Props): JSX.Element {
        * un agujero de roca en medio de la banda. Un toque sin arrastre es un disco, como en cualquier
        * programa de dibujo: `brushRings` ya lo resuelve con un solo punto.
        */
-      const anillos = brushRings(gesture.points, p.bandCells ?? p.scene.wallThickness, grid, bordeDe(p.bandTip, p.bandRoughness, gesture.seed));
+      const anillos = brushRings(gesture.points, p.bandCells ?? p.scene.wallThickness, grid, bordeDe(puntaBanda, p.bandRoughness, gesture.seed));
       setBandDraft([]); setGesture(null);
       if (!anillos.length) { p.onTooSmall?.(candado); return; }
       for (const anillo of anillos) commitBand(anillo);
