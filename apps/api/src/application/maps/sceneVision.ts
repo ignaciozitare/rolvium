@@ -1,5 +1,5 @@
-import { circleClearance, roomMoveSegments, roomSightSegments, roomWalls, sightRadiusPx, slideCircle, type BlockSegment, type FogCell, type LitLight, type RoomPart, type SceneVision, type VisionPolygon } from '@rolvium/core';
-import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
+import { circleClearance, roomMoveSegments, roomSightSegments, roomWalls, sameRoomInput, sightRadiusPx, slideCircle, type BlockSegment, type FogCell, type LitLight, type RoomPart, type SceneVision, type VisionPolygon } from '@rolvium/core';
+import type { IMapsRepository, LayerRecord, LightRecord, RoomOpeningRecord, RoomRecord, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
 import { allCells, boundsSegments, cellsInBrush, cellsInPolygons, clipToStar, lightPolygon, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
 
 export type VisionErrorCode = 'NOT_FOUND' | 'FORBIDDEN';
@@ -34,15 +34,43 @@ const toSegment = ([x1, y1, x2, y2]: BlockSegment): Segment => ({ a: { x: x1, y:
  * Se calcula con `roomWalls`, **el mismo motor que usa el navegador para pintarlas**. Una segunda
  * implementación aquí daría una sala que se ve de una forma y tapa de otra, y ese fallo no se nota hasta que
  * alguien está jugando.
+ *
+ * ⏱ Y SE RECUERDA POR ESCENA (specs/modules/maps/SPEC.md § «Las paredes no se recalculan en cada movimiento»).
+ * Suyo, 2026-09-11: «*esta recontra super lento*». Con su «Dungeon» fundir las formas costaba segundos, y esto
+ * se llama en CADA petición de visión y de luces —cada tirón de una ficha— aunque nadie haya tocado una pared.
+ *
+ * Se recuerda en MEMORIA, no en una columna: las formas y los vanos se leen igual en cada petición y se comparan
+ * con los que dieron lo recordado (`sameRoomInput`). Cambió algo —una forma, un vano, abrir una puerta— → se
+ * recalcula. No hay nada que invalidar a mano ni forma de servir paredes viejas.
+ *
+ * En Vercel la app se monta en cada petición, pero este módulo se carga una vez por copia del servidor: cada copia
+ * despierta recuerda lo suyo, y una recién arrancada lo calcula una vez. Lo devuelto se comparte entre peticiones
+ * y nadie lo modifica (`sightSegments` y el freno lo copian en listas nuevas).
  */
 export async function roomGeometry(maps: IMapsRepository, sceneId: string): Promise<{ sight: Segment[]; move: BlockSegment[] }> {
   const [rooms, openings] = await Promise.all([maps.listRooms(sceneId), maps.listRoomOpenings(sceneId)]);
   if (rooms.length === 0) return { sight: [], move: [] };
+  const recordada = recuerdo.get(sceneId);
+  if (recordada && sameRoomInput(recordada, { rooms, openings })) {
+    // Vuelve al final de la cola: es la usada más recientemente.
+    recuerdo.delete(sceneId);
+    recuerdo.set(sceneId, recordada);
+    return recordada.geom;
+  }
   // En ORDEN de llegada y con su signo: la última forma que él dibujó manda, igual que al pintar.
   const parts: RoomPart[] = rooms.map(r => ({ ring: r.points.map(([x, y]) => ({ x, y })), dig: r.kind !== 'fill' }));
   const walls = roomWalls(parts, openings);
-  return { sight: roomSightSegments(walls).map(toSegment), move: roomMoveSegments(walls) };
+  const geom = { sight: roomSightSegments(walls).map(toSegment), move: roomMoveSegments(walls) };
+  recuerdo.delete(sceneId);
+  recuerdo.set(sceneId, { rooms, openings, geom });
+  // Al pasar el tope se olvida la que lleva más tiempo sin usarse: la primera de la cola.
+  for (const vieja of recuerdo.keys()) { if (recuerdo.size <= RECUERDO_MAX) break; recuerdo.delete(vieja); }
+  return geom;
 }
+
+/** Cuántas escenas recuerda cada copia del servidor. Una mazmorra muy rota ocupa del orden de un megabyte. */
+export const RECUERDO_MAX = 32;
+const recuerdo = new Map<string, { rooms: RoomRecord[]; openings: RoomOpeningRecord[]; geom: { sight: Segment[]; move: BlockSegment[] } }>();
 
 /** Centre of a token in scene px (`x`/`y` are the top-left cell). */
 export const tokenOrigin = (t: Pick<TokenRecord, 'x' | 'y' | 'size'>, grid: number): Point =>

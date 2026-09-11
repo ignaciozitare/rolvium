@@ -255,14 +255,21 @@ function overlay(a: BlockSegment, b: BlockSegment): 'forward' | 'reverse' | null
  * salas solapadas devuelven la silueta de las dos; dos pegadas por una cara devuelven la silueta sin esa
  * cara — que es lo que hace que se lean como una sola habitación y no como dos con un tabique en medio.
  *
- * El coste es el de comparar cada lado con todos los demás. Con las salas que caben en un mapa (decenas de
- * formas, un puñado de lados cada una) son unos miles de comparaciones: nada. Y no crece con el tamaño de la
- * sala, sólo con cuántas hay — un rectángulo de media pantalla sigue teniendo cuatro lados.
+ * ⏱ EL COSTE, Y POR QUÉ NO SE COMPARA TODO CON TODO (suyo, 2026-09-11: «*esta recontra super lento*»). Partir
+ * cada lado mirando TODOS los del mapa crece al cuadrado con las esquinas, y el borde roto de «A pulso» las
+ * multiplica: su «Dungeon» (256 formas, 8.648 esquinas) tardaba ~2,5 s, y el servidor lo repetía en cada tirón
+ * de una ficha. Ahora un lado sólo se mira contra los que tiene CERCA y un punto sólo contra las formas que lo
+ * CUBREN (`casillero`). Lo lejano no podía partir ni tapar nada, así que salen las mismas paredes: con sus datos y
+ * en las escenas al azar de `rooms.index.test.ts`, tramo a tramo y en el mismo orden que el motor de antes. Sólo con
+ * lados paralelos hasta el ruido de coma flotante y a más de 90 px (de laboratorio: a mano no sale) el de antes
+ * partía un tramo en dos de más — la misma pared, un trozo más.
  */
 export function roomOutline(parts: readonly RoomPart[]): BlockSegment[] {
   const formas = parts.filter(f => f.ring.length >= 3);
   if (!formas.some(f => f.dig)) return [];
   const edges = formas.map(f => f.ring).flatMap(ringEdges);
+  const ladosCerca = casillero(edges.map(e => cajaDe([e.a, e.b])));
+  const formasCerca = casillero(formas.map(f => cajaDe(f.ring)));
 
   /**
    * ¿ESTÁ ESTE PUNTO EN EL VACÍO? Con esta pregunta se define TODO el mapa, y se contesta **como se pinta**:
@@ -270,16 +277,19 @@ export function roomOutline(parts: readonly RoomPart[]): BlockSegment[] {
    * encima de un muro abre; rellenar encima de una sala tapa.
    *
    * Y hacia qué lado dio la vuelta a cada forma da igual: `pointInRing` no mira el sentido.
+   *
+   * Sólo se pregunta a las formas que CUBREN el punto: una que no lo cubre no lo contiene. «La última» es la de
+   * índice más alto, así que no importa en qué orden salgan las candidatas.
    */
   const vacio = (p: ScenePoint): boolean => {
-    let dentro = false;
-    for (const f of formas) if (pointInRing(p, f.ring)) dentro = f.dig;
-    return dentro;
+    let ultima = -1;
+    for (const i of formasCerca([p.x, p.y, p.x, p.y])) if (i > ultima && pointInRing(p, formas[i]!.ring)) ultima = i;
+    return ultima >= 0 && formas[ultima]!.dig;
   };
 
   const kept: BlockSegment[] = [];
   for (const edge of edges) {
-    const ts = cutPoints(edge, edges);
+    const ts = cutPoints(edge, ladosCerca(cajaDe([edge.a, edge.b])).map(i => edges[i]!));
     for (let i = 0; i < ts.length - 1; i++) {
       const t0 = ts[i]!, t1 = ts[i + 1]!;
       const at = (t: number): ScenePoint => ({ x: edge.a.x + (edge.b.x - edge.a.x) * t, y: edge.a.y + (edge.b.y - edge.a.y) * t });
@@ -315,8 +325,129 @@ export function roomOutline(parts: readonly RoomPart[]): BlockSegment[] {
    * tapa, pero sí doblan el trabajo del motor de visión en cada refresco.
    */
   const out: BlockSegment[] = [];
-  for (const seg of kept) if (!out.some(o => overlay(o, seg))) out.push(seg);
+  /** Lo ya puesto, por la casilla de su PRIMERA punta: uno que pisa al nuevo arranca junto a una de sus dos puntas. */
+  const porPunta = new Map<number, BlockSegment[]>();
+  const alrededor = (x: number, y: number, holgura: number): number[] | null => casillasDe([x, y, x, y], PUNTA_CELDA, holgura);
+  for (const seg of kept) {
+    const cerca1 = alrededor(seg[0], seg[1], HOLGURA), cerca2 = alrededor(seg[2], seg[3], HOLGURA);
+    // Una punta que no cabe en el casillero (coordenada absurda o que no es un número) se compara con todo lo puesto.
+    const pisa = cerca1 && cerca2
+      ? [...cerca1, ...cerca2].some(k => porPunta.get(k)?.some(o => overlay(o, seg)))
+      : out.some(o => overlay(o, seg));
+    if (pisa) continue;
+    out.push(seg);
+    for (const k of alrededor(seg[0], seg[1], 0) ?? []) {
+      const l = porPunta.get(k);
+      if (l) l.push(seg); else porPunta.set(k, [seg]);
+    }
+  }
   return out;
+}
+
+/**
+ * La holgura con la que se pregunta al casillero, en px de escena: el doble de `ROOM_EPS`. Todo lo que el motor
+ * compara cae a `ROOM_EPS` o menos de lo comparado; el resto es margen para que un redondeo justo en el borde de
+ * una casilla no deje fuera a nadie. Contestar de más no cambia nada; de menos, sí.
+ */
+const HOLGURA = ROOM_EPS * 2;
+/** El lado de las casillas del paso 3: holgado para la tolerancia con la que se pisan dos tramos. */
+const PUNTA_CELDA = ROOM_EPS * 8;
+/** Una caja que tocaría más casillas que éstas no se reparte y se mira siempre: los lados larguísimos en diagonal. */
+const CASILLAS_MAX = 256;
+
+/** La caja de unos puntos, `[minX, minY, maxX, maxY]` en px de escena. */
+type Caja = readonly [number, number, number, number];
+
+function cajaDe(puntos: readonly ScenePoint[]): Caja {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const p of puntos) {
+    if (p.x < x0) x0 = p.x;
+    if (p.x > x1) x1 = p.x;
+    if (p.y < y0) y0 = p.y;
+    if (p.y > y1) y1 = p.y;
+  }
+  return [x0, y0, x1, y1];
+}
+
+/** Las casillas de lado `celda` que toca una caja ensanchada `holgura` px, o `null` si son demasiadas o no se pueden contar. */
+function casillasDe([x0, y0, x1, y1]: Caja, celda: number, holgura: number): number[] | null {
+  const ix0 = Math.floor((x0 - holgura) / celda), ix1 = Math.floor((x1 + holgura) / celda);
+  const iy0 = Math.floor((y0 - holgura) / celda), iy1 = Math.floor((y1 + holgura) / celda);
+  // 🐞 Una coordenada absurda (del orden de 10^16 px o más) da casillas más allá de 2^53, donde `ix++` ya no avanza y
+  // el bucle de abajo no acababa nunca. Con ésas —y con las que no son números— no se reparte: se mira todo.
+  if (!(Number.isSafeInteger(ix0) && Number.isSafeInteger(ix1) && Number.isSafeInteger(iy0) && Number.isSafeInteger(iy1))) return null;
+  if (!((ix1 - ix0 + 1) * (iy1 - iy0 + 1) <= CASILLAS_MAX)) return null;
+  const out: number[] = [];
+  // Una clave por casilla. Si dos casillas lejanísimas llegaran a compartirla, sólo saldrían candidatas de más.
+  for (let ix = ix0; ix <= ix1; ix++) for (let iy = iy0; iy <= iy1; iy++) out.push(ix * 4194304 + iy);
+  return out;
+}
+
+/**
+ * ⏱ UN CASILLERO: reparte cajas en casillas cuadradas y contesta cuáles caen cerca de otra caja.
+ *
+ * Contesta DE MÁS, nunca de menos —toda caja que comparta casilla con la pregunta, más las que no se repartieron
+ * por enormes—, y quien pregunta sigue haciendo con cada candidata su cuenta exacta de siempre. Por eso no puede
+ * cambiar el resultado: sólo se salta lo que está demasiado lejos para cortar, tocar o contener.
+ *
+ * El lado de la casilla es el doble de la caja mediana: casi todas caen en una o dos casillas.
+ */
+function casillero(cajas: readonly Caja[]): (caja: Caja) => number[] {
+  const medidas = cajas.map(([x0, y0, x1, y1]) => Math.max(x1 - x0, y1 - y0)).filter(Number.isFinite).sort((a, b) => a - b);
+  const celda = Math.max(ROOM_EPS * 8, 2 * (medidas[medidas.length >> 1] ?? 0));
+  const casillas = new Map<number, number[]>();
+  const grandes: number[] = [];
+  cajas.forEach((caja, i) => {
+    const claves = casillasDe(caja, celda, 0);
+    if (!claves) { grandes.push(i); return; }
+    for (const k of claves) {
+      const l = casillas.get(k);
+      if (l) l.push(i); else casillas.set(k, [i]);
+    }
+  });
+  // Una caja puede estar en varias casillas de la misma pregunta: se marca con el número de pregunta y sale una vez.
+  const vista = new Array<number>(cajas.length).fill(0);
+  let pregunta = 0;
+  return caja => {
+    const claves = casillasDe(caja, celda, HOLGURA);
+    if (!claves) return cajas.map((_, i) => i);
+    pregunta++;
+    const out = [...grandes];
+    for (const k of claves) {
+      for (const i of casillas.get(k) ?? []) if (vista[i] !== pregunta) { vista[i] = pregunta; out.push(i); }
+    }
+    return out;
+  };
+}
+
+/** Una forma tal como la guarda la base: para el contorno sólo cuentan si rellena y sus puntos, en orden. */
+export interface RoomShapeRow { kind: string; points: readonly (readonly [number, number])[] }
+
+/**
+ * ¿SALE EL MISMO CONTORNO? La pregunta de quien RECUERDA las paredes ya calculadas (specs/modules/maps/SPEC.md
+ * § «Las paredes no se recalculan en cada movimiento»): el servidor, escena a escena, y el lienzo, pintada a pintada.
+ *
+ * Se compara TODO lo que entra en el cálculo y nada más: el orden de las formas (la última manda), si cada una
+ * excava o rellena, cada punto, y cada vano con su id —de él cuelga cómo se pinta la puerta—. Una lista NUEVA con
+ * lo mismo dentro (el eco de la base, pintar un suelo) dice que sí; mover un punto, abrir una puerta o cambiar el
+ * orden dice que no.
+ */
+export function sameRoomInput(
+  a: { rooms: readonly RoomShapeRow[]; openings: readonly RoomOpeningSpan[] },
+  b: { rooms: readonly RoomShapeRow[]; openings: readonly RoomOpeningSpan[] },
+): boolean {
+  if (a.rooms.length !== b.rooms.length || a.openings.length !== b.openings.length) return false;
+  for (let i = 0; i < a.rooms.length; i++) {
+    const r = a.rooms[i]!, s = b.rooms[i]!;
+    if (r.kind !== s.kind || r.points.length !== s.points.length) return false;
+    for (let j = 0; j < r.points.length; j++) {
+      if (r.points[j]![0] !== s.points[j]![0] || r.points[j]![1] !== s.points[j]![1]) return false;
+    }
+  }
+  return a.openings.every((o, i) => {
+    const q = b.openings[i]!;
+    return o.id === q.id && o.x1 === q.x1 && o.y1 === q.y1 && o.x2 === q.x2 && o.y2 === q.y2 && o.kind === q.kind && o.isOpen === q.isOpen;
+  });
 }
 
 /**

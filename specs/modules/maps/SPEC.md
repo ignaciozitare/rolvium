@@ -1241,6 +1241,55 @@ de `maps_walls`». **Eso se cae.** Consecuencias, todas para el DBA:
 con paredes de grosores distintos según la sala se lee como un error de dibujo, no como una decisión. Si él lo
 quiere por sala, se mueve la columna sin romper nada de lo demás.
 
+### ⏱ LAS PAREDES NO SE RECALCULAN EN CADA MOVIMIENTO (suyo, 2026-09-11 noche)
+
+> «*habiamos decidido que las habitaciones se guardaba cada una por si la queria mover en un futuro etc, y
+> pensandolo creo que eso lo haria super lento*» · y tras probar el borde roto (§ 10B.4): «*esta recontra super
+> lento*». Plan enseñado en palabras llanas y aceptado por él: «*Sí al plan de la lentitud: hazlo*».
+
+**Lo que pasaba — medido con su «Dungeon»** (256 formas, 8.648 esquinas, 2 puertas):
+- **Calcular las paredes tardaba ~2,5 s.** El 72 % se iba en partir cada lado comparándolo con TODOS los lados
+  del mapa, y el 26 % en preguntar «¿esto es suelo?» mirando TODAS las formas. Crece al cuadrado con las
+  esquinas, y el borde roto las multiplica.
+- **El servidor lo repetía en CADA petición** de visión y de luces: cada tirón de una ficha (~7 por segundo).
+- **Su pantalla lo calculaba dos veces por forma dibujada** (al dibujarla y al llegar el eco de la base), y otra
+  vez al pintar un suelo, que no cambia ninguna pared.
+- **No es por guardar cada forma por separado**: leer sus 256 formas de la base cuesta ~7 ms.
+
+**Lo que se hace. En pantalla no cambia NADA: las mismas paredes, las mismas puertas.**
+1. **No se compara lo que está lejos.** Un lado sólo se mira contra los lados que tiene cerca, y un punto sólo
+   contra las formas que lo cubren. Salen **las mismas paredes**: con sus datos y en las escenas al azar del test,
+   idénticas tramo a tramo y en el mismo orden que con el motor de antes. Sólo en casos de laboratorio —lados
+   paralelos hasta el ruido de coma flotante, a más de 90 px— el motor de antes partía un tramo en dos de más: la
+   misma pared, un trozo más. A mano no se puede dibujar, y el navegador y el servidor usan el mismo motor.
+2. **El servidor recuerda las paredes de cada escena** y las reutiliza mientras las formas y los vanos sean los
+   mismos. En cada petición compara lo que lee de la base con lo que usó la vez anterior: si cambió algo —una
+   forma, un vano, abrir o cerrar una puerta— recalcula. No hay nada que borrar a mano ni forma de que se quede
+   vieja.
+3. **Su pantalla calcula las paredes una vez por cambio DE PAREDES**: ni el eco de la base ni pintar un suelo
+   las recalculan.
+
+**Lo que NO cambia:**
+- Lo que se ve es lo que tapa y frena: el navegador y el servidor siguen usando el MISMO motor (`@rolvium/core`).
+- Cada forma se sigue guardando por separado (decisión suya: poder mover o borrar una sala). Sus trazos no se
+  tocan.
+- Sin migración: la base de datos no cambia.
+
+**Objetivo**: con su «Dungeon», las paredes en centésimas de segundo y mover una ficha sin esperar. Se le
+enseñan los números de antes y de después.
+
+**🟠 Decisiones mías, revisables:**
+- **El servidor recuerda en memoria**, no en una columna de la base: no pide migración y no puede quedarse viejo,
+  porque compara con lo que acaba de leer. En producción cada copia del servidor recuerda lo suyo; una copia
+  recién arrancada lo calcula una vez.
+- **Recuerda las 32 escenas usadas más recientemente**, para que la memoria no crezca sin límite.
+
+**Fuera, dicho a propósito:**
+- Fundir las formas al guardar: perdería mover o borrar una sala y el suelo de cada una.
+- Quitar esquinas a los trazos ya hechos o bajar el tope del borde roto.
+- Leer menos de la base en cada petición: sólo si, tras esto, la lectura resultara ser lo lento en producción.
+- Lo que tarda el navegador en PINTAR tantas formas: si tras esto sigue lento, se mide aparte.
+
 ### ✅ LAS SIETE PREGUNTAS, TODAS CERRADAS (ninguna abierta — orden suya del 2026-09-04)
 1. **¿Puertas automáticas?** → **NINGUNA.** La sala se levanta cerrada y él abre los vanos con el disco de
    siempre. Confirmado por él al decir «tienes que ver cómo pondremos puertas aquí»: las pone él.

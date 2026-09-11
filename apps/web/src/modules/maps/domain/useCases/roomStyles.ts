@@ -1,4 +1,4 @@
-import { orientRing, pointInRing, roomWalls, type BlockSegment, type RoomPart, type RoomRing, type RoomOpeningSpan, type RoomWall } from '@rolvium/core';
+import { orientRing, pointInRing, roomWalls, sameRoomInput, type BlockSegment, type RoomPart, type RoomRing, type RoomOpeningSpan, type RoomWall } from '@rolvium/core';
 import type { Room, RoomOpening, RoomPreset, Scene } from '../entities/Scene';
 import type { RoomSide } from './roomRules';
 
@@ -228,16 +228,6 @@ export const spansOf = (openings: readonly RoomOpening[]): RoomOpeningSpan[] =>
   openings.map(o => ({ id: o.id, x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2, kind: o.kind, isOpen: o.isOpen }));
 
 /**
- * EL CONTORNO DE LAS SALAS DE ESTA ESCENA, CALCULADO UNA SOLA VEZ.
- *
- * Lo piden dos sitios a la vez y por motivos distintos: el LIENZO, para pintar el muro; y el FRENO del
- * arrastre, para saber contra qué choca una ficha. Fundir las formas cuesta comparar cada lado con todos los
- * demás —medido: ~21 ms con 60 salas— así que hacerlo dos veces por pintada sería pagarlo dos veces.
- *
- * La caché es de UNA entrada y va por identidad de las listas: en cuanto React entrega otras —porque una sala
- * cambió— se recalcula. No hay nada que invalidar a mano ni forma de que se quede vieja.
- */
-/**
  * EL VANO SE ENGANCHA A LA PARED MÁS CERCANA, o no se pone.
  *
  * 🐞 Suyo, 2026-09-07 con la app delante: «*no pone las puertas*». Y no era que no se guardaran: es que al
@@ -281,9 +271,22 @@ export function snapSpanToOutline(rooms: readonly Room[], span: RoomOpeningSpan,
   return { ...span, x1: pa.x, y1: pa.y, x2: pb.x, y2: pb.y };
 }
 
-let cacheSalas: { rooms: unknown; openings: unknown; walls: RoomWall[] } | null = null;
+/**
+ * EL CONTORNO DE LAS SALAS DE ESTA ESCENA, CALCULADO UNA SOLA VEZ.
+ *
+ * Lo piden dos sitios a la vez y por motivos distintos: el LIENZO, para pintar el muro; y el FRENO del
+ * arrastre, para saber contra qué choca una ficha. Fundir las formas es la cuenta cara del mapa, así que
+ * hacerlo dos veces por pintada sería pagarlo dos veces.
+ *
+ * ⏱ La caché es de UNA entrada y va por CONTENIDO, no por identidad de las listas (specs/modules/maps/SPEC.md
+ * § «Las paredes no se recalculan en cada movimiento», 2026-09-11). Por identidad, cada forma dibujada se fundía
+ * DOS veces —al dibujarla y al llegar el eco de la base, que trae la misma fila en una lista nueva— y pintar un
+ * suelo, que no mueve ninguna pared, volvía a fundir la mazmorra entera: con su «Dungeon», segundos cada vez.
+ * `sameRoomInput` mira sólo lo que entra en el cálculo; en cuanto cambia una forma o un vano, se recalcula.
+ */
+let cacheSalas: { rooms: readonly Room[]; openings: readonly RoomOpening[]; walls: RoomWall[] } | null = null;
 export function roomWallsOf(rooms: readonly Room[], openings: readonly RoomOpening[]): RoomWall[] {
-  if (cacheSalas && cacheSalas.rooms === rooms && cacheSalas.openings === openings) return cacheSalas.walls;
+  if (cacheSalas && sameRoomInput(cacheSalas, { rooms, openings })) return cacheSalas.walls;
   const walls = roomWalls(partsOf(rooms), spansOf(openings));
   cacheSalas = { rooms, openings, walls };
   return walls;

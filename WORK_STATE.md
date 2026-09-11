@@ -28,11 +28,53 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-11 (noche) — PUERTAS ✅ · PETICIÓN 1 ✅ · PETICIÓN 2 ✅ · **AQUÍ SE RETOMA: LA LENTITUD (antes de la 3)**
+## 🟢 2026-09-11 (noche) — PUERTAS ✅ · PETICIÓN 1 ✅ · PETICIÓN 2 ✅ · LENTITUD ✅ · **AQUÍ SE RETOMA: SU RESPUESTA (¿la línea de vista antes de la 3?)**
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. Sí al plan de la
-> lentitud: hazlo (spec, medir, construir, review) y después seguimos con la 3.»
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. La lentitud está
+> hecha; lo de la línea de vista: [su respuesta].»
+
+### ⏱ LA LENTITUD — ✅ HECHA, REVISADA (review APROBADO, con un arreglo suyo) Y COMMITEADA (2026-09-11 ~23:15)
+Suyo: «*Sí al plan de la lentitud: hazlo (spec, medir, construir, review) y después seguimos con la 3*».
+- **Spec**: `specs/modules/maps/SPEC.md` § «⏱ LAS PAREDES NO SE RECALCULAN EN CADA MOVIMIENTO» (va tras § «Los muros de
+  una sala NO son los muros de siempre») + una línea en `specs/SPEC.md`. Sin migración ni pantalla → sin DBA ni `.pen`.
+- **Medido** con su «Dungeon» (volcado de sólo lectura de las 22:40: 256 formas, 8.648 esquinas, 2 puertas): `roomWalls`
+  ~2,5 s = 72 % partir lados comparando todos con todos + 26 % `pointInRing` contra todas las formas. Leer sus salas de
+  la base: ~7 ms (369 KB) → **no es por guardarlas por separado**.
+- **Construido**:
+  1. `packages/core/src/rooms.ts` — casillero (`casillero` · `casillasDe` · `cajaDe`) dentro de `roomOutline`: cada lado
+     sólo contra los cercanos, cada punto sólo contra las formas que lo cubren, y el paso 3 sólo contra tramos cercanos.
+     El casillero contesta de MÁS, nunca de menos. + `sameRoomInput` (¿sale el mismo contorno?, por contenido).
+  2. `apps/api/src/application/maps/sceneVision.ts` `roomGeometry` — recuerdo EN MEMORIA por escena (`RECUERDO_MAX` =
+     32; al pasarlo se olvida la usada hace más tiempo). Se sigue leyendo de la base en cada petición y se reutiliza
+     sólo si lo leído es igual (`sameRoomInput`) → no puede servir paredes viejas.
+  3. `apps/web/src/modules/maps/domain/useCases/roomStyles.ts` `roomWallsOf` — su caché de una entrada compara por
+     CONTENIDO: ni el eco de la base (`applyChange` de `useScene` da lista nueva) ni pintar un suelo recalculan.
+- **Números (antes → ahora)**: paredes de su «Dungeon» **2.478 ms → 83–88 ms**, salida idéntica en los dos caminos (api
+  2.337 tramos, navegador 2.336) · lo que cuesta al servidor por petición (base local) **2.459 ms → 118 ms la primera vez
+  y 6 ms las siguientes**. Guiones de sólo lectura: scratchpad `antes-despues.mts`, `peticion.mts`, `desglose.mts`.
+- **Review**: aprobó y arregló un CUELGUE con coordenadas absurdas (> 3,6e16 px: el índice de casilla pasa de 2^53 y
+  `ix++` no avanza) → `Number.isSafeInteger` en `casillasDe`, y el paso 3 mira todo en ese caso; + test. Probó 200.000
+  escenas de laboratorio: en 1.335 (lados paralelos hasta el ruido de coma flotante, a 90–200 px) el motor de antes metía
+  UN corte de más en un tramo — mismas paredes, un trozo más; a mano no se puede dibujar, y web y api usan el mismo motor.
+  La palabra «idéntico» del spec y del comentario, matizada con eso.
+- **Tests**: core `rooms.index.test.ts` (el motor de antes como oráculo: 221 escenas al azar + la forma lejanísima +
+  `sameRoomInput`) · api `rooms.vision.test.ts` «roomGeometry — recuerda las paredes…» (5) · web `roomStyles.test.ts`
+  «roomWallsOf — no vuelve a fundir…» (2). Verde (review, tras su arreglo): smoke 12/12 · web regression 1705/1705 · core
+  111/111 · api 264/264 · web `src/modules/maps` 1203/1203 · `build:web` + `build:api` · audit 0 graves.
+- 🔥 **LO QUE SIGUE LENTO — visto al medir, NO tocado (fuera del plan)**: la LÍNEA DE VISTA (`visionPolygon`,
+  `apps/api/src/application/maps/vision.ts`) lanza 3 rayos a cada punta de CADA pared del mapa y prueba cada rayo contra
+  TODAS: con su «Dungeon», 2.323 tramos → polígono de 14.010 puntos y **154 ms por ojo**, aunque de noche sólo se ve a
+  180 px. Petición entera de la sonda: ~270 ms (lecturas 4 ms · paredes 5 ms · vista 154 ms · casillas 10 ms). Arreglo
+  probable: sólo las paredes al alcance del ojo — el polígono ya no sería idéntico punto a punto, así que pide spec y su
+  visto bueno. **Preguntado si va antes de la 3** (no es un orden hasta que lo diga).
+- 🚫 Deuda vista y NO tocada: core `tsc` con 2 errores viejos (`rooms.test.ts:447`, `gameSystem.test.ts:10`) · `listRooms`
+  ordena por `created_at` sin desempate (api y web) · 32 avisos viejos del audit · una caché por contenido se fía de que
+  nadie mute un `Room` en sitio (hoy nadie lo hace).
+- ⚠️ Sus servidores locales (web 5173 y api 3001) aparecieron APAGADOS a mitad de sesión; no los paré yo y sus datos
+  están intactos («Dungeon» ya va por 259 formas). Vueltos a encender con `npm run dev:api` y `npm run dev:web`.
+- ⏳ Él: recargar con Cmd+Shift+R su mesa `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4` y probar
+  en «Dungeon» dibujar, pintar un suelo y la sonda.
 
 Estado al cortar (2026-09-11 ~23:00; chat cerrado a propósito por tamaño, 3,6 MB): todo COMMITEADO en la rama, sin
 subir — puertas que cierran un pasillo (`b95c235`) · la 1, trazos que se cruzan (`927ddcc`) · la 2, borde roto de
@@ -218,7 +260,7 @@ Textuales suyas, con lo que se entendió:
    - 🚫 Visto y NO tocado (review): sólo lo que se guarda al soltar tiene test; el previo va por la misma cuenta
      `puntaBanda`, pero ningún test compara su dibujo · en «Dibujar aquí» sin `onAddRoomShape` el trazo caería a muros
      sueltos sin mirar el borde (hoy imposible: `SceneTab` siempre lo pasa).
-   - ⏳ **SIGUIENTE: LA TAREA DE LA LENTITUD** (bloque ❓ de abajo; él: antes de la 3). Primero enseñarle en pocas líneas
+   - ✅ **LA TAREA DE LA LENTITUD: HECHA** (bloque ⏱ de arriba). Lo que decía antes de hacerla: (bloque ❓ de abajo; él: antes de la 3). Primero enseñarle en pocas líneas
      qué se va a hacer (se le prometió) y, con su «sí»: spec → medir dónde se va el tiempo → construir → review. Por
      tamaño, construirla en un CHAT NUEVO (este iba por 3,6 MB de 6). Él tiene que recargar (Cmd+Shift+R) y probar
      «A pulso» con borde roto en «Dibujar aquí».
@@ -246,7 +288,8 @@ creo que eso lo haria super lento y cada vez que lo cargaria traeria mucha mierd
   movimiento. Fundirlas al guardar perdería mover/borrar una sala y la pintura y el color de cada una (van por fila).
   Recomendado: seguir por separado + guardar ya calculado el contorno (sólo se recalcula cuando cambia una forma o una
   puerta) + no comparar trozos lejanos (cajas).
-- ✅ Decidido por él (2026-09-11 noche): se hace, y ANTES de la 3 (tras rematar lo de la foto de la 2).
+- ✅ Decidido por él (2026-09-11 noche): se hace, y ANTES de la 3 (tras rematar lo de la foto de la 2). **✅ HECHO el
+  mismo día: bloque ⏱ de arriba.**
 - 🔥 **Él, 2026-09-11 ~23:00, tras probar el borde roto: «*esta recontra super lento*».** Medido (guion scratchpad
   `lento-ahora.mts`, sólo lectura, sus datos locales de las 23:00):
   - «Dungeon» tiene ya **256 formas y 8.648 esquinas** (esta mañana 109 / 2.564; a las 20:30, 163 / 3.828). Desde las

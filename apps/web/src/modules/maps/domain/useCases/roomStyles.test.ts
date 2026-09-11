@@ -189,6 +189,37 @@ describe('snapSpanToOutline — la puerta se engancha a la pared', () => {
 });
 
 /**
+ * ⏱ EL CONTORNO SE RECUERDA POR CONTENIDO (specs/modules/maps/SPEC.md § «Las paredes no se recalculan en cada
+ * movimiento», 2026-09-11). Por identidad de las listas, el eco de la base —la misma fila en una lista nueva— y
+ * pintar un suelo volvían a fundir la mazmorra entera: con su «Dungeon», segundos cada vez.
+ */
+describe('roomWallsOf — no vuelve a fundir lo que no ha cambiado', () => {
+  const sala = (over: Partial<Room> = {}): Room => ({
+    id: 'r-eco', sceneId: 's', campaignId: 'c', kind: 'room', shape: 'rect',
+    points: [[0, 0], [310, 0], [310, 170], [0, 170]], floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '', ...over,
+  });
+  const puerta = (over: { isOpen?: boolean } = {}) =>
+    ({ ...DEFAULT_DOOR, id: 'o-eco', sceneId: 's', campaignId: 'c', x1: 100, y1: 0, x2: 150, y2: 0, kind: 'door' as const, isOpen: false, ...over });
+
+  it('el eco de la base y pintar un suelo traen listas NUEVAS con las mismas paredes: se reutiliza lo calculado', () => {
+    const antes = roomWallsOf([sala()], [puerta()]);
+    // Lo que llega por tiempo real: la misma fila, en objetos y listas nuevos, con otra fecha.
+    expect(roomWallsOf([sala({ updatedAt: 'más tarde' })], [puerta()])).toBe(antes);
+    // Pintar el suelo de la sala no mueve ninguna pared.
+    expect(roomWallsOf([sala({ floorPaintUrl: 'pintura.png' })], [puerta()])).toBe(antes);
+  });
+
+  it('mover una esquina o abrir la puerta sí recalcula', () => {
+    const antes = roomWallsOf([sala()], [puerta()]);
+    const movida = roomWallsOf([sala({ points: [[0, 0], [320, 0], [320, 170], [0, 170]] })], [puerta()]);
+    expect(movida).not.toBe(antes);
+    expect(movida.some(w => w.seg[0] === 320 && w.seg[2] === 320)).toBe(true);
+    const abierta = roomWallsOf([sala()], [puerta({ isOpen: true })]);
+    expect(abierta.find(w => w.kind === 'door')?.isOpen).toBe(true);
+  });
+});
+
+/**
  * ── LA SALA BAJO EL PINCEL (rebanada 9) ──
  * El pincel del suelo no pide elegir sala antes: se apunta con el ratón y pinta la que hay debajo.
  */

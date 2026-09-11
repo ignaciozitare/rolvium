@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeSceneVision, paintSceneFog, roomGeometry, sightSegments } from './sceneVision.js';
+import { computeSceneVision, paintSceneFog, RECUERDO_MAX, roomGeometry, sightSegments } from './sceneVision.js';
 import { pointInPolygon } from './vision.js';
 import { fakeMapsRepo } from './fakeMapsRepo.js';
 
@@ -249,5 +249,60 @@ describe('lo que NO cambia: `maps_walls` sigue intacto', () => {
     expect(pointInPolygon({ x: 160, y: 148 }, poly)).toBe(true);
     // …y la corta el MURO MARCADO de más allá, que sigue haciendo su trabajo de siempre.
     expect(pointInPolygon({ x: 240, y: 148 }, poly)).toBe(false);
+  });
+});
+
+/**
+ * ⏱ LAS PAREDES SE RECUERDAN POR ESCENA (specs/modules/maps/SPEC.md § «Las paredes no se recalculan en cada
+ * movimiento», 2026-09-11). Suyo: «*esta recontra super lento*». `roomGeometry` se llama en cada petición de
+ * visión —cada tirón de una ficha— y con su «Dungeon» fundir las formas costaba segundos cada vez.
+ *
+ * Lo que se sujeta es la parte peligrosa de recordar: que NUNCA se sirvan paredes viejas. Cada test usa su propia
+ * escena para no heredar lo recordado por otro.
+ */
+describe('roomGeometry — recuerda las paredes de la escena mientras nada cambie', () => {
+  /** Lo que devuelve la base en cada lectura: listas y objetos NUEVOS, aunque dentro esté lo mismo. */
+  const copia = (r: typeof ROOM) => ({ ...r, points: r.points.map(([x, y]) => [x, y] as [number, number]) });
+
+  it('mismas formas y mismos vanos en una lectura nueva: devuelve lo recordado, sin recalcular', async () => {
+    const a = await roomGeometry(seed({ rooms: [copia(ROOM)] }), 'recuerdo-1');
+    const b = await roomGeometry(seed({ rooms: [copia(ROOM)] }), 'recuerdo-1');
+    expect(b).toBe(a);
+  });
+
+  it('mover una esquina recalcula, y la pared sale donde está ahora', async () => {
+    const a = await roomGeometry(seed(), 'recuerdo-2');
+    const movida = { ...ROOM, points: [[27, 27], [162, 27], [162, 243], [27, 243]] as [number, number][] };
+    const b = await roomGeometry(seed({ rooms: [movida] }), 'recuerdo-2');
+    expect(b).not.toBe(a);
+    expect(b.sight.some(s => s.a.x === 162 && s.b.x === 162)).toBe(true);
+    expect(b.sight.some(s => s.a.x === 135 && s.b.x === 135)).toBe(false);
+  });
+
+  it('abrir y volver a cerrar una puerta: nunca se sirve la puerta como estaba', async () => {
+    const vano = { x1: 135, y1: 108, x2: 135, y2: 162, kind: 'door' as const, isOpen: false };
+    const cerrada = await roomGeometry(seed({ roomOpenings: [vano] }), 'recuerdo-3');
+    const abierta = await roomGeometry(seed({ roomOpenings: [{ ...vano, isOpen: true }] }), 'recuerdo-3');
+    // Cerrada, la hoja frena; abierta, no: un tramo menos en lo que frena.
+    expect(abierta.move).toHaveLength(cerrada.move.length - 1);
+    const otraVez = await roomGeometry(seed({ roomOpenings: [vano] }), 'recuerdo-3');
+    expect(otraVez.move).toHaveLength(cerrada.move.length);
+  });
+
+  it('cada escena recuerda lo suyo: dos escenas con formas distintas no se pisan', async () => {
+    const vecina = { id: 'rm-2', kind: 'room' as const, points: [[135, 27], [243, 27], [243, 243], [135, 243]] as [number, number][] };
+    const una = await roomGeometry(seed(), 'recuerdo-4a');
+    const dos = await roomGeometry(seed({ rooms: [ROOM, vecina] }), 'recuerdo-4b');
+    expect(una.sight).toHaveLength(4);
+    expect(dos.sight).toHaveLength(6);
+    expect(await roomGeometry(seed(), 'recuerdo-4a')).toBe(una);
+  });
+
+  it(`pasadas ${RECUERDO_MAX} escenas olvida la usada hace más tiempo, y al volver la calcula igual de bien`, async () => {
+    const primera = await roomGeometry(seed(), 'recuerdo-5-0');
+    for (let i = 1; i <= RECUERDO_MAX; i++) await roomGeometry(seed(), `recuerdo-5-${i}`);
+    const otraVez = await roomGeometry(seed(), 'recuerdo-5-0');
+    expect(otraVez).not.toBe(primera);
+    expect(otraVez).toEqual(primera);
   });
 });
