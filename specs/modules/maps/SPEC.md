@@ -1405,7 +1405,8 @@ que se distinga de un vistazo un rayado de un relleno. Y los dos rayados pasan a
   agregar cosas en este*». Lo que lleva dentro, en el orden del diseño:
   1. **Cabecera** con SU icono (`builder-mask.png`, de máscara para que lo tiña el panel), el nombre y la X.
      Se agarra por la cabecera y se aparta, como el editor de luces — de hecho el asa se extrajo a
-     `ui/useDragPanel.ts` y ahora la comparten los dos paneles. **No se queda con Escape** a propósito:
+     `ui/useDragPanel.ts`, y desde el 2026-09-11 la carcasa entera es `FloatingPanel` de `@rolvium/ui`, la
+     misma para el Builder, el Pincel y las luces. **No se queda con Escape** a propósito:
      dibujando un polígono, Escape es para cancelar el polígono.
   2. **«EN QUÉ ESTOY TRABAJANDO · LAS DOS CONVIVEN»** — el interruptor `photo` / `draw`, con las dos
      miniaturas dibujadas (una foto con muros marcados encima · una sala levantada con su rejilla).

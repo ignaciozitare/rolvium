@@ -65,6 +65,14 @@ export type { TopBarLink }                from './components/Layout';
 export { Sheet, Crescent, PhaseDisc }     from './components/Sheet';
 export type { SheetProps, SheetLabels, SheetRef } from './components/Sheet';
 
+// ── Paneles de la mesa: carcasa, deslizador y opciones (themed via --sys-* vars) ─
+export { FloatingPanel, PanelIconButton, PanelSection, PanelHint, PanelNote, useDragPanel } from './components/FloatingPanel';
+export type { FloatingPanelProps }        from './components/FloatingPanel';
+export { Slider }                         from './components/Slider';
+export type { SliderProps }               from './components/Slider';
+export { OptionGroup }                    from './components/OptionGroup';
+export type { OptionGroupProps, OptionItem } from './components/OptionGroup';
+
 // ── Imágenes: compresión a WebP en el navegador (specs/core/images) ───────────
 export { compressImage, fitDimensions, formatBytes, CompressError, IMAGE_TARGETS, ACCEPTED_MIME, MAX_INPUT_BYTES, MAX_OUTPUT_BYTES } from './lib/compressImage';
 export type { ImageTarget, CompressResult, CompressDeps, CompressErrorCode, TargetSpec } from './lib/compressImage';

@@ -110,9 +110,30 @@ describe('<PanelSection> · <PanelHint> · <PanelNote>', () => {
     expect(nota).toHaveClass('rv-fpanel-note');
     expect(nota.querySelector('.material-symbols-outlined')?.textContent).toBe('info');
   });
+
+  it('la pista puede ir en un span, dentro de un texto que no admite párrafos', () => {
+    renderWithProviders(<span><PanelHint as="span">se queda puesto</PanelHint></span>);
+    const pista = screen.getByText('se queda puesto');
+    expect(pista.tagName).toBe('SPAN');
+    expect(pista).toHaveClass('rv-fpanel-hint');
+  });
 });
 
 describe('<Slider>', () => {
+  it('el nombre de la barra puede ser otro que el rótulo que se ve, y guardar no recibe el evento', () => {
+    const onCommit = vi.fn();
+    renderWithProviders(
+      <Slider label="TAMAÑO" ariaLabel="TAMAÑO DE LAS FICHAS" value={1} min={0} max={2} step={0.1} layout="inline"
+        onChange={() => {}} onCommit={onCommit} commitOnBlur />,
+    );
+    const barra = screen.getByRole('slider', { name: 'TAMAÑO DE LAS FICHAS' });
+    expect(screen.getByText('TAMAÑO')).toHaveClass('rv-slider-l');
+    fireEvent.pointerUp(barra, { pointerId: 1 });
+    fireEvent.blur(barra);
+    expect(onCommit).toHaveBeenCalledTimes(2);
+    expect(onCommit.mock.calls.every(args => args.length === 0)).toBe(true);
+  });
+
   it('apilado: rótulo y lectura arriba, mueve en vivo y guarda al soltar con ratón o teclado', () => {
     const onChange = vi.fn();
     const onCommit = vi.fn();

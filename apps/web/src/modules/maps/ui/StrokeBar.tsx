@@ -1,4 +1,5 @@
 import { useTranslation } from '@rolvium/i18n';
+import { Slider } from '@rolvium/ui';
 import { BRUSH_SIZES, STROKE_COLORS, STROKE_WIDTHS, isBrush, type Tool } from '../domain/useCases/mapRules';
 import type { StrokeStyle } from './MapCanvas';
 
@@ -45,8 +46,8 @@ export function StrokeBar({ value, onChange, onClearMine, onClearAll, tool = 'pe
   return (
     <div className="mp-strokebar">
       <span className="tb-rotulo">{t('maps.stroke.label')}</span>
-      <input type="range" className="mp-stroke-width" min={0} max={STROKE_WIDTHS.length - 1} step={1} aria-label={t('maps.stroke.width')}
-        value={Math.max(0, STROKE_WIDTHS.indexOf(value.width as typeof STROKE_WIDTHS[number]))} onChange={e => onChange({ ...value, width: STROKE_WIDTHS[Number(e.target.value)] ?? 2 })} />
+      <Slider layout="inline" hideLabel className="mp-stroke-width" label={t('maps.stroke.width')} min={0} max={STROKE_WIDTHS.length - 1} step={1}
+        value={Math.max(0, STROKE_WIDTHS.indexOf(value.width as typeof STROKE_WIDTHS[number]))} onChange={n => onChange({ ...value, width: STROKE_WIDTHS[n] ?? 2 })} />
       <div className="mp-stroke-colors" role="radiogroup" aria-label={t('maps.stroke.label')}>
         {STROKE_COLORS.map((c, i) => (
           <button key={c} type="button" role="radio" aria-checked={value.color === c} aria-label={t('maps.stroke.color', { n: String(i + 1) })} className={`mp-swatch ${value.color === c ? 'on' : ''}`} style={{ background: c }} onClick={() => onChange({ ...value, color: c })} />

@@ -36,7 +36,9 @@
 .rv-slider-v{font-size:var(--fs-xs);color:var(--sys-ink);}
 .rv-slider input[type="range"]{width:100%;accent-color:var(--sys-blood);}
 .rv-slider.inline{flex-direction:row;align-items:center;gap:8px;}
-.rv-slider.inline input[type="range"]{flex:1;width:auto;min-width:0;}
+/* Sin `min-width:0` a propósito: la barra no baja de su ancho natural, que es como ya salía en el Builder.
+   Con un ancho puesto desde fuera (la barra del trazo) manda ese ancho: el `width:100%` de arriba lo respeta. */
+.rv-slider.inline input[type="range"]{flex:1;}
 .rv-slider-l{flex:1;font-size:var(--fs-2xs);color:var(--sys-ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .rv-slider.inline .rv-slider-v{font-size:var(--fs-2xs);color:var(--sys-ink-soft);min-width:3ch;text-align:right;}
 .rv-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}

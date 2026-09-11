@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { Tooltip } from '@rolvium/ui';
+import { PanelHint, Tooltip } from '@rolvium/ui';
 import type { MapColor } from '../domain/entities/Scene';
 import { BRUSH_COLORS, brushColorName, isHexColor } from '../domain/useCases/roomRules';
 
@@ -47,7 +47,7 @@ export function PaintColor({ value, onChange, savedColors, onSave }: Props): JSX
       <span className="mp-bp-color-txt">
         <span className="mp-bp-color-n">{nombre ? t(`maps.brush.color.${nombre}`) : t('maps.brush.colorOwn')}</span>
         <span className="mp-bp-color-hex">{value}</span>
-        <span className="mp-builder-hint">{t('maps.brush.colorStays')}</span>
+        <PanelHint as="span">{t('maps.brush.colorStays')}</PanelHint>
       </span>
     </div>
     <div className="mp-bp-swatches" role="radiogroup" aria-label={t('maps.brush.colorLabel')}>

@@ -4,6 +4,11 @@ import './panel.css';
 export interface SliderProps {
   /** El nombre: se ve (salvo con `hideLabel`) y es el nombre accesible de la barra. */
   label: string;
+  /**
+   * Otro nombre para el lector de pantalla cuando el rótulo que se ve se queda corto: el tamaño de las fichas
+   * ENSEÑA «TAMAÑO» y la barra se LLAMA «TAMAÑO DE LAS FICHAS · TODA LA ESCENA».
+   */
+  ariaLabel?: string | undefined;
   value: number;
   min: number;
   max: number;
@@ -42,17 +47,19 @@ export interface SliderProps {
  * Primitiva neutra, como `Tooltip`: el aspecto entra SÓLO por las variables `--sys-*`.
  */
 export function Slider({
-  label, value, min, max, step, onChange, valueText, onCommit, commitOnBlur = false,
+  label, ariaLabel, value, min, max, step, onChange, valueText, onCommit, commitOnBlur = false,
   layout = 'stacked', hideLabel = false, ariaValueText, ticks, ticksId, className,
 }: SliderProps) {
   const autoId = useId();
   const listId = ticks?.length ? (ticksId ?? autoId) : undefined;
   const muescas = listId && ticks ? <datalist id={listId}>{ticks.map(v => <option key={v} value={v} />)}</datalist> : null;
+  // Sin el evento: a quien guarda no le importa cómo se soltó, y así no le llega un argumento que no espera.
+  const commit = onCommit ? (): void => onCommit() : undefined;
   const barra = (
-    <input type="range" min={min} max={max} step={step} value={value} aria-label={label}
+    <input type="range" min={min} max={max} step={step} value={value} aria-label={ariaLabel ?? label}
       aria-valuetext={ariaValueText} list={listId}
       onChange={e => onChange(Number(e.target.value))}
-      onPointerUp={onCommit} onKeyUp={onCommit} onBlur={commitOnBlur ? onCommit : undefined} />
+      onPointerUp={commit} onKeyUp={commit} onBlur={commitOnBlur ? commit : undefined} />
   );
   const lectura = valueText === undefined || valueText === null ? null : <span className="rv-slider-v">{valueText}</span>;
   const extra = className ? ` ${className}` : '';

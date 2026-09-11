@@ -35,6 +35,19 @@ describe('<LightEditor>', () => {
     expect(screen.getByRole('radio', { name: 'Antorcha' })).toHaveAttribute('aria-checked', 'true');
   });
 
+  /**
+   * Lo elegido va en SANGRE, como en el Builder y el Pincel (2026-09-11): antes la forma salía en negro y el tipo
+   * en oro. Se fija por la pieza común de `@rolvium/ui`, que es la que lo pinta así y no deja cambiarlo desde fuera.
+   */
+  it('la carcasa y lo elegido salen de las piezas comunes, no de unas propias', () => {
+    mount();
+    expect(screen.getByRole('group', { name: /Luz/ })).toHaveClass('rv-fpanel', 'mp-light-editor');
+    expect(screen.getByRole('radio', { name: 'Radio' })).toHaveClass('rv-option', 'outline', 'on');
+    const antorcha = screen.getByRole('radio', { name: 'Antorcha' });
+    expect(antorcha).toHaveClass('rv-option', 'outline', 'on');
+    expect(antorcha).not.toHaveClass('caps');
+  });
+
   it('cambiar forma y tipo sale por el mismo sitio', async () => {
     const u = userEvent.setup();
     const cb = mount();

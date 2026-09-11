@@ -1,5 +1,5 @@
 import { useTranslation } from '@rolvium/i18n';
-import { Tooltip } from '@rolvium/ui';
+import { FloatingPanel, OptionGroup, PanelHint, PanelSection, Slider } from '@rolvium/ui';
 import { BRUSH_TIPS, type BrushTip, type MapColor } from '../domain/entities/Scene';
 import {
   hardnessStep, MASK_SIZE_MAX, MASK_SIZE_MIN, roughnessStep, strengthLabel,
@@ -9,7 +9,6 @@ import {
 } from '../domain/useCases/paintRules';
 import { tilePx } from '../domain/useCases/roomStyles';
 import { PaintColor } from './PaintColor';
-import { useDragPanel } from './useDragPanel';
 
 export interface BrushSettings {
   tip: BrushTip;
@@ -81,25 +80,6 @@ interface Props {
   onClose: () => void;
 }
 
-/** Un deslizador APILADO: rótulo y lectura arriba, la barra debajo a todo lo ancho (`TlJot` § C/TAMAÑO). */
-function Slider({ label, min, max, step, value, text, onChange, onCommit }: {
-  label: string; min: number; max: number; step: number; value: number; text: string;
-  /** Sin `onCommit` el deslizador es sólo en vivo: la escala y el giro de la textura no guardan nada al soltar. */
-  onChange: (v: number) => void; onCommit?: () => void;
-}): JSX.Element {
-  return (
-    <label className="mp-bp-slider">
-      <span className="mp-bp-slider-head">
-        <span className="tb-rotulo">{label}</span>
-        <span className="mp-bp-slider-v">{text}</span>
-      </span>
-      {/* `pointerUp` para el ratón y `keyUp` para el teclado: las dos formas de soltar un deslizador. */}
-      <input type="range" min={min} max={max} step={step} value={value} aria-label={label}
-        onChange={e => onChange(Number(e.target.value))} onPointerUp={onCommit} onKeyUp={onCommit} />
-    </label>
-  );
-}
-
 /**
  * EL PANEL DEL PINCEL QUE PINTA ENCIMA (rebanada 10 · `rolvium.pen` marco `TlJot` «PINTAR ENCIMA», aprobado
  * por él el 2026-09-10).
@@ -115,7 +95,8 @@ function Slider({ label, min, max, step, value, text, onChange, onCommit }: {
  *
  * Sigue siendo de la familia de `BuilderPanel` y `LightEditor` —flota, se agarra por la cabecera, la X lo
  * cierra— porque él tumbó la barra a lo ancho de la rebanada 9: «*ajusta el diseño como un modal que se mueva
- * como todos los otros*».
+ * como todos los otros*». Desde el 2026-09-11 la carcasa, los deslizadores y los botones de opción son las
+ * piezas comunes de `@rolvium/ui`.
  */
 export function BrushPanel({
   on, onOn, action, onAction, ink, onInk,
@@ -125,27 +106,16 @@ export function BrushPanel({
   onReset, onRevealAll, onHideAll, saving = false, onClose,
 }: Props): JSX.Element {
   const { t } = useTranslation();
-  const { ref, style, handlers } = useDragPanel<HTMLDivElement>();
   /** Sólo PINTANDO hay algo que elegir: borrando y destapando no se pinta con nada. Y en la niebla, nunca. */
   const eligeConQue = action === 'paint' && paintsWithStuff(on);
   const acciones = paintActionsFor(on);
 
-  const chip = (activo: boolean): string => `mp-bp-opt ${activo ? 'on' : ''}`;
-
   return (
-    <div className="mp-brushpanel" ref={ref} style={style} role="group" aria-label={t('maps.brush.label')}>
-      <div className="mp-builder-head mp-drag" title={t('maps.builder.move')} {...handlers}>
-        <span className="material-symbols-outlined mp-builder-grip" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">drag_indicator</span>
-        {/* El MISMO icono que la barra de herramientas — petición suya: «*que no sea una gota, que sea un pincel*». */}
-        <span className="material-symbols-outlined mp-bp-icon" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">brush</span>
-        <span className="mp-builder-title">{t('maps.brush.label')}</span>
-        {saving && <span className="tb-italic tb-dim">{t('maps.mask.saving')}</span>}
-        <Tooltip label={t('maps.brush.close')} placement="top">
-          <button type="button" className="mp-layers-icon" aria-label={t('maps.brush.close')} onClick={onClose}>
-            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>close</span>
-          </button>
-        </Tooltip>
-      </div>
+    <FloatingPanel className="mp-brushpanel" title={t('maps.brush.label')} moveLabel={t('maps.builder.move')}
+      closeLabel={t('maps.brush.close')} onClose={onClose}
+      // El MISMO icono que la barra de herramientas — petición suya: «*que no sea una gota, que sea un pincel*».
+      icon={<span className="material-symbols-outlined mp-bp-icon" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">brush</span>}
+      actions={saving && <span className="tb-italic tb-dim">{t('maps.mask.saving')}</span>}>
 
       {/*
         * ── SOBRE QUÉ PINTO ── Las cuatro cosas sobre las que se puede pintar, en el orden de la lámina.
@@ -153,52 +123,28 @@ export function BrushPanel({
         * 🔑 Y LO ELEGIDO ES EL LÍMITE: si se te va la mano, lo de al lado no se mancha. No hace falta apuntar
         * fino — el recorte sale de dónde se guarda la pintura, no de una comprobación.
         */}
-      <fieldset className="mp-builder-group">
-        <legend className="tb-rotulo">{t('maps.brush.on')}</legend>
-        <div className="mp-bp-grid" role="radiogroup" aria-label={t('maps.brush.on')}>
-          {PAINT_ON.map(x => (
-            <button key={x} type="button" role="radio" aria-checked={on === x}
-              className={chip(on === x)} onClick={() => onOn(x)}>
-              <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">{ON_ICON[x]}</span>
-              {t(`maps.brush.target.${x}`)}
-            </button>
-          ))}
-        </div>
-        <p className="mp-builder-hint">{t('maps.brush.scopeHint')}</p>
-      </fieldset>
+      <PanelSection label={t('maps.brush.on')}>
+        <OptionGroup ariaLabel={t('maps.brush.on')} value={on} onChange={onOn}
+          options={PAINT_ON.map(x => ({ value: x, label: t(`maps.brush.target.${x}`), icon: ON_ICON[x] }))} />
+        <PanelHint>{t('maps.brush.scopeHint')}</PanelHint>
+      </PanelSection>
 
       {/*
         * ── QUÉ HAGO ── Pintar, borrar la pintura, o destapar lo de debajo. Los que no valen para el destino
         * elegido **no salen** (§ `paintActionsFor`): destapar la roca no significa nada, y en la niebla ya lo
         * hace borrar.
         */}
-      <fieldset className="mp-builder-group">
-        <legend className="tb-rotulo">{t('maps.brush.doLabel')}</legend>
-        <div className="mp-bp-grid" role="radiogroup" aria-label={t('maps.brush.doLabel')}>
-          {acciones.map(a => (
-            <button key={a} type="button" role="radio" aria-checked={action === a}
-              className={`${chip(action === a)} ${a === 'uncover' ? 'wide' : ''}`} onClick={() => onAction(a)}>
-              <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">{ACTION_ICON[a]}</span>
-              {t(`maps.brush.do.${a}`)}
-            </button>
-          ))}
-        </div>
-      </fieldset>
+      <PanelSection label={t('maps.brush.doLabel')}>
+        <OptionGroup ariaLabel={t('maps.brush.doLabel')} value={action} onChange={onAction}
+          options={acciones.map(a => ({ value: a, label: t(`maps.brush.do.${a}`), icon: ACTION_ICON[a], wide: a === 'uncover' }))} />
+      </PanelSection>
 
       {/* ── CON QUÉ PINTO ── Sólo pintando: borrando y destapando no se pinta con nada. */}
       {eligeConQue && (
-        <fieldset className="mp-builder-group">
-          <legend className="tb-rotulo">{t('maps.brush.with')}</legend>
-          <div className="mp-bp-grid" role="radiogroup" aria-label={t('maps.brush.with')}>
-            {PAINT_WITH.map(w => (
-              <button key={w} type="button" role="radio" aria-checked={ink === w}
-                className={chip(ink === w)} onClick={() => onInk(w)}>
-                <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">{WITH_ICON[w]}</span>
-                {t(`maps.brush.paint.${w}`)}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        <PanelSection label={t('maps.brush.with')}>
+          <OptionGroup ariaLabel={t('maps.brush.with')} value={ink} onChange={onInk}
+            options={PAINT_WITH.map(w => ({ value: w, label: t(`maps.brush.paint.${w}`), icon: WITH_ICON[w] }))} />
+        </PanelSection>
       )}
 
       {/*
@@ -207,8 +153,7 @@ export function BrushPanel({
         * el suelo del constructor — es de la herramienta y ya está hecho.
         */}
       {eligeConQue && ink === 'texture' && (
-        <fieldset className="mp-builder-group">
-          <legend className="tb-rotulo">{t('maps.brush.textureLabel')}</legend>
+        <PanelSection label={t('maps.brush.textureLabel')}>
           <span className="mp-bp-tex" data-testid="mp-bp-tex" aria-hidden="true"
             style={textureUrl
               ? { backgroundImage: `url(${textureUrl})`, backgroundSize: `${tilePx(textureCells, gridSize)}px ${tilePx(textureCells, gridSize)}px`, backgroundRepeat: 'repeat' }
@@ -235,21 +180,20 @@ export function BrushPanel({
           {textureUrl && onTextureCells && (
             <Slider label={t('maps.brush.tileLabel')} min={0.25} max={20} step={0.25} value={textureCells}
               onChange={onTextureCells}
-              text={textureCells === 1 ? t('maps.mask.sizeCell') : t('maps.mask.sizeCells', { n: String(textureCells) })} />
+              valueText={textureCells === 1 ? t('maps.mask.sizeCell') : t('maps.mask.sizeCells', { n: String(textureCells) })} />
           )}
           {textureUrl && onTextureDeg && (
             <Slider label={t('maps.brush.turnLabel')} min={0} max={355} step={5} value={textureDeg}
-              onChange={onTextureDeg} text={`${textureDeg}°`} />
+              onChange={onTextureDeg} valueText={`${textureDeg}°`} />
           )}
-        </fieldset>
+        </PanelSection>
       )}
 
       {/* ── EL COLOR ── El mismo bloque que usa el Builder para pintar una habitación: uno solo, y sus colores. */}
       {eligeConQue && ink === 'color' && (
-        <fieldset className="mp-builder-group">
-          <legend className="tb-rotulo">{t('maps.brush.colorLabel')}</legend>
+        <PanelSection label={t('maps.brush.colorLabel')}>
           <PaintColor value={color} onChange={onColor} savedColors={savedColors} onSave={onSaveColor} />
-        </fieldset>
+        </PanelSection>
       )}
 
       {/*
@@ -257,22 +201,17 @@ export function BrushPanel({
         * una mancha de humedad tiene transparencia y borde. Es el vuelco exacto de la versión anterior, donde
         * la mitad de los mandos no significaban nada porque lo que se hacía era abrir suelo.
         */}
-      <fieldset className="mp-builder-group">
-        <legend className="tb-rotulo">{t('maps.brush.strokeLabel')}</legend>
-        <div className="mp-bp-grid" role="radiogroup" aria-label={t('maps.brush.tipLabel')}>
-          {BRUSH_TIPS.map(tip => (
-            <button key={tip} type="button" role="radio" aria-checked={value.tip === tip}
-              className={`${chip(value.tip === tip)} ${tip === 'rough' ? 'wide' : ''}`} onClick={() => onChange({ tip })}>
-              <span className={`mp-brush-tipdot ${tip}`} aria-hidden="true" />
-              {t(`maps.brush.tip.${tip}`)}
-            </button>
-          ))}
-        </div>
+      <PanelSection label={t('maps.brush.strokeLabel')}>
+        <OptionGroup ariaLabel={t('maps.brush.tipLabel')} value={value.tip} onChange={tip => onChange({ tip })}
+          options={BRUSH_TIPS.map(tip => ({
+            value: tip, label: t(`maps.brush.tip.${tip}`), wide: tip === 'rough',
+            icon: <span className={`mp-brush-tipdot ${tip}`} aria-hidden="true" />,
+          }))} />
         {/* El tamaño va por décimas de casilla: el paso entero se le quedaba corto («gradual, no me sirve eso»). */}
         <Slider label={t('maps.brush.sizeLabel')} min={MASK_SIZE_MIN * 10} max={MASK_SIZE_MAX * 10} step={1}
           value={Math.round(value.size * 10)} onChange={n => onChange({ size: n / 10 })} onCommit={onCommit}
           // En el uno exacto no se dice «1.0 casillas»: ni el decimal ni el plural pintan nada ahí.
-          text={value.size === 1 ? t('maps.mask.sizeCell') : t('maps.mask.sizeCells', { n: value.size.toFixed(1) })} />
+          valueText={value.size === 1 ? t('maps.mask.sizeCell') : t('maps.mask.sizeCells', { n: value.size.toFixed(1) })} />
         {/*
           * 🐞 LA TRANSPARENCIA IBA AL REVÉS pintando (suyo, 2026-09-10: «*transparencia está al revés, un 100 %
           * es que no se ve y aquí es lo más opaco posible*»). Por dentro esto es la OPACIDAD del brochazo, así
@@ -288,12 +227,12 @@ export function BrushPanel({
           return (
             <Slider label={t('maps.brush.alpha')} min={0} max={95} step={5}
               value={leido} onChange={n => onChange({ strength: invierte ? (100 - n) / 100 : n / 100 })} onCommit={onCommit}
-              text={invierte ? `${leido} %` : strengthLabel(value.strength)} />
+              valueText={invierte ? `${leido} %` : strengthLabel(value.strength)} />
           );
         })()}
         <Slider label={t('maps.brush.edge')} min={0} max={100} step={5}
           value={Math.round(value.hardness * 100)} onChange={n => onChange({ hardness: n / 100 })} onCommit={onCommit}
-          text={t(`maps.brush.edgeStep.${hardnessStep(value.hardness)}`)} />
+          valueText={t(`maps.brush.edgeStep.${hardnessStep(value.hardness)}`)} />
         {/*
           * «Cuánto de roto» sólo existe con el BORDE ROTO, y va aparte de la dureza a propósito: la dureza
           * difumina hacia fuera y siempre en círculo, roto cambia el contorno. Un brochazo puede ser de canto
@@ -302,9 +241,9 @@ export function BrushPanel({
         {value.tip === 'rough' && (
           <Slider label={t('maps.brush.roughLabel')} min={0} max={100} step={5}
             value={Math.round(value.roughness * 100)} onChange={n => onChange({ roughness: n / 100 })} onCommit={onCommit}
-            text={t(`maps.brush.roughness.${roughnessStep(value.roughness)}`)} />
+            valueText={t(`maps.brush.roughness.${roughnessStep(value.roughness)}`)} />
         )}
-      </fieldset>
+      </PanelSection>
 
       {/* Quitar del todo lo que el pincel haya puesto aquí. Lo de debajo no se toca: nunca se tocó. */}
       {(onRevealAll || onHideAll || onReset) && (
@@ -316,7 +255,7 @@ export function BrushPanel({
       )}
 
       {/* La línea del pie, que dice lo único que hay que saber antes de arrastrar. */}
-      <p className="mp-builder-hint">{t(on === 'fog' ? 'maps.brush.hintFog' : 'maps.brush.footPaint')}</p>
-    </div>
+      <PanelHint>{t(on === 'fog' ? 'maps.brush.hintFog' : 'maps.brush.footPaint')}</PanelHint>
+    </FloatingPanel>
   );
 }

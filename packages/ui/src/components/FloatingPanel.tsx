@@ -137,9 +137,12 @@ export function PanelSection({ label, className, testId, children }: {
   );
 }
 
-/** La línea de ayuda en cursiva, bajo lo que explica. */
-export function PanelHint({ children }: { children: ReactNode }) {
-  return <p className="rv-fpanel-hint">{children}</p>;
+/**
+ * La línea de ayuda en cursiva, bajo lo que explica. `as="span"` cuando va dentro de algo que no admite un
+ * párrafo, como el texto del color puesto en el Pincel.
+ */
+export function PanelHint({ as: Tag = 'p', children }: { as?: 'p' | 'span' | undefined; children: ReactNode }) {
+  return <Tag className="rv-fpanel-hint">{children}</Tag>;
 }
 
 /** La nota con el icono de información, al pie del panel. */

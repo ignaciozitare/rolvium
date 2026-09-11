@@ -21,7 +21,8 @@
 /* stroke bar */
 .mp-strokebar{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   max-width:calc(100% - 16px);padding:6px 10px;background:color-mix(in srgb,var(--sys-paper-hi) 95%,transparent);box-shadow:var(--sys-card-shadow);}
-.mp-stroke-width{width:110px;accent-color:var(--sys-ink);}
+/* Sólo el ancho: la barra es `Slider`, y su color (sangre) lo pone la pieza común. */
+.mp-stroke-width{width:110px;}
 .mp-stroke-colors{display:flex;gap:6px;}
 .mp-swatch{width:20px;height:20px;padding:0;border:2px solid transparent;cursor:pointer;box-shadow:0 0 0 1px var(--sys-line);}
 .mp-swatch.on{border-color:var(--sys-paper-hi);box-shadow:0 0 0 2px var(--sys-ink);}
@@ -168,6 +169,8 @@
 .mp-lib-name{font-size:var(--fs-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mp-custom label{display:flex;flex-direction:column;gap:2px;font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;color:var(--sys-ink-soft);}
 .mp-custom input{font-family:inherit;font-size:var(--fs-sm);color:var(--sys-ink);background:transparent;border:1px solid var(--sys-line);padding:2px 6px;width:88px;accent-color:var(--sys-ink);}
+/* La escala es `Slider`: los 88 px de siempre se le ponen a la pieza, y la barra la llena. */
+.mp-custom .mp-bg-scale{width:88px;}
 .mp-encounter{top:60px;left:8px;width:270px;max-height:calc(100% - 70px);}
 .mp-search{display:flex;align-items:center;gap:6px;margin:10px 10px 6px;padding:4px 8px;border:1px solid var(--sys-line);color:var(--sys-ink-dim);}
 .mp-search input{flex:1;border:none;background:transparent;font-family:inherit;font-size:var(--fs-sm);color:var(--sys-ink);outline:none;}
@@ -295,30 +298,13 @@
 }
 
 /* ── editor de una luz (rebanada 7) ──────────────────────────────────────────
-   Flota sobre el mapa, junto al panel de capas. Reutiliza `.mp-swatch` y
-   `.tb-rotulo`, que ya existían. */
-.mp-light-editor{position:absolute;top:8px;right:222px;z-index:4;width:264px;max-height:calc(100% - 16px);overflow:auto;
-  display:flex;flex-direction:column;gap:10px;padding:10px;background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);}
-.mp-light-head{display:flex;align-items:center;gap:7px;}
-/* La cabecera es el asa. `touch-action:none` es obligatorio: sin él el navegador se queda el gesto para
-   desplazar y el panel no se mueve en pantalla táctil. */
-.mp-light-head.mp-drag{cursor:grab;touch-action:none;user-select:none;}
-.mp-light-head.mp-drag:active{cursor:grabbing;}
-.mp-light-grip{color:var(--sys-ink-dim);}
+   Flota sobre el mapa, junto al panel de capas. La carcasa, los rótulos, los
+   deslizadores y las opciones son las piezas comunes de @rolvium/ui (panel.css):
+   aquí sólo dónde va y cuánto mide, y lo que es de una luz. Reutiliza `.mp-swatch`. */
+.mp-light-editor{position:absolute;top:8px;right:222px;z-index:4;width:264px;}
 .mp-light-head-icon{color:var(--sys-gold);}
-.mp-light-title{flex:1;font-size:var(--fs-sm);color:var(--sys-ink);}
 .mp-light-preview{height:64px;background:var(--sys-ink);display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .mp-light-halo{width:110px;height:110px;border-radius:50%;opacity:.85;}
-.mp-light-group{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;}
-.mp-light-group legend{padding:0;}
-.mp-light-seg{display:flex;gap:4px;}
-.mp-light-opt{flex:1;padding:4px 6px;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;
-  background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
-.mp-light-opt.on{background:var(--sys-ink);color:var(--sys-paper-hi);border-color:var(--sys-ink);}
-.mp-light-kinds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
-.mp-light-kind{display:inline-flex;align-items:center;gap:4px;padding:4px 6px;font-family:inherit;font-size:var(--fs-2xs);
-  background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
-.mp-light-kind.on{background:var(--sys-gold);color:var(--sys-ink);border-color:var(--sys-gold);}
 .mp-light-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 /* Doce colores en dos filas de seis: en una sola fila no caben en el panel (dueño, 2026-09-02: «debería poder elegir más colores, no solo esos»). */
 .mp-light-colors{display:grid;grid-template-columns:repeat(6,20px);gap:5px;}
@@ -330,9 +316,6 @@
 .mp-light-range input{width:64px;font-family:inherit;font-size:var(--fs-xs);padding:2px 4px;background:transparent;color:var(--sys-ink);border:1px solid var(--sys-line);}
 .mp-light-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
 .mp-light-value{color:var(--sys-ink);}
-.mp-light-note{display:flex;align-items:flex-start;gap:6px;margin:0;padding:6px;font-size:var(--fs-2xs);line-height:var(--lh-normal);
-  color:var(--sys-ink-dim);background:color-mix(in srgb,var(--sys-gold) 15%,transparent);}
-.mp-light-note .material-symbols-outlined{color:var(--sys-gold);flex-shrink:0;}
 /* La luz seleccionada: un aro para saber cuál se está tocando. */
 .mp-light-sel{fill:none;stroke:var(--sys-gold);stroke-width:2;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;pointer-events:none;}
 .mp-light-hit{fill:transparent;cursor:move;}
@@ -415,26 +398,16 @@
 .mp-groupbar-hint{font-size:var(--fs-2xs);color:var(--tx3);font-style:italic;}
 
 /* ── EL PANEL DE BUILDER v3 (rolvium.pen · ePNCc · zpsjH · CvkXT · tS9zl) ─────
-   Misma familia que `.mp-light-editor`: flota sobre el mapa, se agarra por la
-   cabecera y reutiliza `.tb-rotulo`, `.mp-light-check` y `.mp-groupbar-n`.
-   Ancho 300, el del diseño. */
-.mp-builder{position:absolute;top:8px;left:8px;z-index:4;width:300px;max-height:calc(100% - 16px);overflow:auto;
-  display:flex;flex-direction:column;gap:10px;padding:10px;
-  background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);color:var(--sys-ink);}
-.mp-builder-head{display:flex;align-items:center;gap:7px;}
-/* `touch-action:none` es obligatorio: sin él el navegador se queda el gesto y el panel no se mueve al tacto. */
-.mp-builder-head.mp-drag{cursor:grab;touch-action:none;user-select:none;}
-.mp-builder-head.mp-drag:active{cursor:grabbing;}
-.mp-builder-grip{color:var(--sys-ink-dim);}
+   Misma familia que `.mp-light-editor`: la carcasa, los rótulos, los deslizadores
+   y las opciones son las piezas comunes de @rolvium/ui (panel.css). Aquí sólo
+   dónde va y cuánto mide, y lo que es suyo: modos, candado, preajustes, texturas.
+   Reutiliza `.mp-light-check` y `.mp-groupbar-n`. Ancho 300, el del diseño. */
+.mp-builder{position:absolute;top:8px;left:8px;z-index:4;width:300px;}
 /* Su dibujo, de máscara: el color lo pone el panel, así que no se pierde sobre el papel claro. */
 .mp-builder-icon{width:16px;height:16px;background:var(--sys-ink);
   mask-size:contain;mask-repeat:no-repeat;mask-position:center;
   -webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;}
-.mp-builder-title{flex:1;font-size:var(--fs-sm);color:var(--sys-ink);}
-.mp-builder-group{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;}
-.mp-builder-group legend{padding:0;}
 .mp-builder-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.mp-builder-hint{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);line-height:var(--lh-normal);}
 /* Las dos maneras, una al lado de la otra y dibujadas: lo primero que se ve del panel. */
 .mp-builder-modes{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
 .mp-builder-mode{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;font-family:inherit;
@@ -448,22 +421,11 @@
 .mp-builder-mini-floor{fill:var(--sys-paper);}
 .mp-builder-mini-grid line{stroke:var(--sys-line);stroke-width:.6;}
 .mp-builder-mini-wall{fill:none;stroke:var(--sys-ink);stroke-width:2.5;}
-.mp-builder-seg{display:flex;gap:4px;}
-.mp-builder-shapes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
-.mp-builder-opt{flex:1;padding:4px 6px;font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;
-  background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
-/* El segmento ACTIVO de un interruptor es un botón de acción: va en ROJO SANGRE, nunca en negro. Regla suya
-   del 2026-08-31 y reclamada otra vez el 2026-09-04 («*habíamos quedado que para la vista del director no
-   usábamos negros*»). El negro se reserva para el fondo sobre el que se ve arte, no para el cromo. */
-.mp-builder-opt.on{background:var(--sys-blood);color:var(--sys-paper-hi);border-color:var(--sys-blood);}
 /* El candado. Cerrado es lo de siempre, así que se enseña en calma; abierto canta en oro, porque cambia el gesto. */
 .mp-builder-lock{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;font-family:inherit;font-size:var(--fs-xs);
   background:transparent;color:var(--sys-ink-soft);border:1px solid var(--sys-line);cursor:pointer;}
 .mp-builder-lock.on{background:transparent;color:var(--sys-ink);border-color:var(--sys-border);}
 .mp-builder-lock:not(.on){background:var(--sys-gold);color:var(--sys-ink);border-color:var(--sys-gold);}
-.mp-builder-note{display:flex;align-items:flex-start;gap:6px;margin:0;padding:6px;font-size:var(--fs-2xs);line-height:var(--lh-normal);
-  color:var(--sys-ink-dim);background:color-mix(in srgb,var(--sys-gold) 15%,transparent);}
-.mp-builder-note .material-symbols-outlined{color:var(--sys-gold);flex-shrink:0;}
 
 /* ── las seis de dibujar, en un icono con su menú al lado ────────────────────
    El menú va `fixed` desde el componente (la barra recorta con `overflow:auto`),
@@ -492,9 +454,6 @@
 .mp-builder-tex{display:flex;align-items:center;gap:8px;}
 .mp-builder-tex-swatch{width:26px;height:20px;flex:0 0 auto;border-radius:2px;outline:1px solid var(--sys-line);outline-offset:-1px;}
 .mp-builder-tex-n{flex:1;font-size:var(--fs-2xs);color:var(--sys-ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mp-builder-thick{display:flex;align-items:center;gap:8px;}
-.mp-builder-thick input{flex:1;}
-.mp-builder-thick-v{font-size:var(--fs-2xs);color:var(--sys-ink-soft);min-width:3ch;text-align:right;}
 
 /* La muestra de textura: tres casillas de ancho, con la rejilla encima para que se vea el tamaño real
    del azulejo (§ «el previo de cómo iría quedando», petición suya del 2026-09-04). */
@@ -564,22 +523,13 @@
 /* ── EL PANEL DEL PINCEL (rebanada 10 · rolvium.pen · YwHzR + M9zw2t) ─────────
    Sustituye a la barra flotante `.mp-brushbar-v2`, que él paró en pantalla:
    «esto está mal, ajusta el diseño como un modal que se mueva como todos los
-   otros». Misma familia que `.mp-builder` y `.mp-light-editor` — flota, se
-   agarra por la cabecera y se aparta — y reutiliza sus piezas (`mp-builder-head`,
-   `mp-builder-group`, `mp-builder-hint`, `mp-builder-row`, `.tb-rotulo`).
+   otros». Misma familia que `.mp-builder` y `.mp-light-editor`: la carcasa, los
+   rótulos, los deslizadores y las opciones son las piezas comunes de @rolvium/ui
+   (panel.css). Aquí sólo dónde va y cuánto mide, y lo que es suyo: la muestra de
+   la textura y el color. Reutiliza `mp-builder-row` y `.tb-rotulo`.
    Ancho 220, el del diseño después de su corrección «demasiado ancho». */
-.mp-brushpanel{position:absolute;top:8px;left:8px;z-index:4;width:300px;max-height:calc(100% - 16px);overflow:auto;
-  display:flex;flex-direction:column;gap:10px;padding:10px;
-  background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);color:var(--sys-ink);}
+.mp-brushpanel{position:absolute;top:8px;left:8px;z-index:4;width:300px;}
 .mp-bp-icon{color:var(--sys-ink);}
-/* Dos columnas, y lo que va solo ocupa la fila entera — igual que BORRAR en la lámina. */
-.mp-bp-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
-.mp-bp-opt{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:5px 6px;font-family:inherit;
-  font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;
-  background:color-mix(in srgb,var(--sys-paper-lo) 48%,transparent);color:var(--sys-ink);border:none;cursor:pointer;}
-.mp-bp-opt.wide{grid-column:1 / -1;}
-/* Lo ACTIVO va en rojo sangre, nunca en negro: el negro es el fondo sobre el que se ve arte, no el cromo. */
-.mp-bp-opt.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
 /* La muestra de la textura, a todo lo ancho y con el azulejo al tamaño de verdad. */
 .mp-bp-tex{display:block;height:52px;background-color:var(--sys-paper-lo);}
 .mp-bp-tex-n{font-size:var(--fs-xs);color:var(--sys-ink);}
@@ -602,8 +552,3 @@
 .mp-bp-eyedrop{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;flex:0 0 auto;
   border:1px solid var(--sys-line);color:var(--sys-ink);cursor:pointer;}
 .mp-bp-eyedrop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
-/* Los deslizadores, APILADOS: rótulo y lectura arriba, la barra debajo a todo lo ancho. */
-.mp-bp-slider{display:flex;flex-direction:column;gap:2px;}
-.mp-bp-slider-head{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
-.mp-bp-slider-v{font-size:var(--fs-xs);color:var(--sys-ink);}
-.mp-bp-slider input[type="range"]{width:100%;accent-color:var(--sys-blood);}
