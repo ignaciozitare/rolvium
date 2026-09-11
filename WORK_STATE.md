@@ -28,15 +28,19 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-11 (tarde) — LAS PUERTAS QUE CIERRAN UN PASILLO: **ARREGLADO** · **AQUÍ SE RETOMA: EL ORDEN DE SUS 7 PETICIONES**
+## 🟢 2026-09-11 (noche) — PUERTAS ✅ · PETICIÓN 1 ✅ · PETICIÓN 2 ✅ · **AQUÍ SE RETOMA: LA LENTITUD (antes de la 3)**
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. Las puertas ya están
-> arregladas; te digo si me funcionan y por cuál de mis 7 peticiones empezamos.»
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. Sí al plan de la
+> lentitud: hazlo (spec, medir, construir, review) y después seguimos con la 3.»
 
-Retomado en chat nuevo (2026-09-11, tarde): condición del centro pegada, review APROBADO con dos cambios suyos, todo en
-verde y el WIP rehecho como commit `fix(core)` (rama sin subir). ⚠ `rolvium.pen` sigue modificado y **sin commitear a
-propósito**: sólo lo guarda él (ver «Pendiente de él»).
+Estado al cortar (2026-09-11 ~23:00; chat cerrado a propósito por tamaño, 3,6 MB): todo COMMITEADO en la rama, sin
+subir — puertas que cierran un pasillo (`b95c235`) · la 1, trazos que se cruzan (`927ddcc`) · la 2, borde roto de
+«A pulso» (spec + migración `29ed15c`, datos `3bc606c`, diseño `654db67`, código `6ef6325`, remate foto `34ae6f3`) ·
+lámina de Luces (`f9fcb05`). Orden de sus 7: **1 → 7** («*en ese orden*»). **Lo siguiente es la LENTITUD**: bloque
+❓ «SU PREGUNTA… ¿guardar cada sala por separado lo hace lento?» más abajo, con la medición de las 23:00 y el PLAN. Luego
+la 3. ⚠ La migración `20260911170000_maps_band_rough.sql` sólo está en LOCAL: tiene que llegar a producción ANTES que
+la web.
 
 ### 🐞 Lo que vio él (2026-09-11, con captura de su escena «Dungeon»)
 «*¿por qué las puertas no funcionan? dejan pasar la visión y no colisionas con ellas*».
@@ -243,6 +247,24 @@ creo que eso lo haria super lento y cada vez que lo cargaria traeria mucha mierd
   Recomendado: seguir por separado + guardar ya calculado el contorno (sólo se recalcula cuando cambia una forma o una
   puerta) + no comparar trozos lejanos (cajas).
 - ✅ Decidido por él (2026-09-11 noche): se hace, y ANTES de la 3 (tras rematar lo de la foto de la 2).
+- 🔥 **Él, 2026-09-11 ~23:00, tras probar el borde roto: «*esta recontra super lento*».** Medido (guion scratchpad
+  `lento-ahora.mts`, sólo lectura, sus datos locales de las 23:00):
+  - «Dungeon» tiene ya **256 formas y 8.648 esquinas** (esta mañana 109 / 2.564; a las 20:30, 163 / 3.828). Desde las
+    20:30 dibujó 93 trazos con 4.820 esquinas, con la escena en **borde roto a 0,95**.
+  - Calcular las paredes: 163 formas → 520 ms · **256 formas → 2.526 ms** con el motor de hoy · 2.404 ms con el de esta
+    mañana → el arreglo de los cruces de hoy añade ~5 %: **NO es la causa**. La causa es el crecimiento AL CUADRADO con
+    las esquinas, disparado por los trazos rotos.
+  - El api tarda **2.511 ms** (`roomWalls`) en CADA petición de visión, sin caché. En el navegador `RoomsLayer` va con
+    `memo` y `roomBlockers` con `useMemo` (no recalculan al mover el ratón), pero cada cambio de salas se calcula DOS
+    veces (capa + bloqueo): ~5 s de bloqueo por cambio.
+- **PLAN PRESENTADO** (a él, en palabras llanas; el «sí» llega con la frase del chat nuevo): (1) medir dónde se va el
+  tiempo dentro del cálculo (partir lados vs. «¿está en el vacío?») · (2) no comparar trozos lejanos: filtro por cajas
+  / rejilla en `cutPoints` y en `vacio` (`packages/core/src/rooms.ts`), con test de salida IDÉNTICA contra el motor
+  viejo en escenas al azar · (3) guardar calculado el contorno por escena en el api y reutilizarlo hasta que cambie una
+  forma o un vano (decidir memoria vs. columna + disparador; ojo: el api va en Vercel y la memoria no dura entre
+  llamadas) · (4) en el navegador calcularlo UNA vez por cambio y compartirlo entre la capa y el bloqueo. Objetivo: con
+  su «Dungeon» de hoy, mover una ficha en centésimas, no en segundos; enseñarle números antes / después. **En un CHAT
+  NUEVO** (este iba por 3,6 MB). Sus trazos NO se tocan ni se borran.
 
 ### ⏳ Pendiente de él (de hoy)
 - Ver los paneles: `~/Desktop/Rolvium-paneles-antes/` frente a `~/Desktop/Rolvium-paneles-despues/`. **Preguntado si le
