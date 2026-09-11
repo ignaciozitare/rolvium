@@ -34,6 +34,8 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   - **B · el Builder gana la banda** — la opción **«A mano»** deja de dar una raya del grosor de la escena y
     da una **banda del ancho que elijas**. Se sigue eligiendo **muro o habitación**, y cada uno trae lo suyo:
     el muro una **textura**, la habitación un **color**.
+    - **§ 10B.4 · el borde roto de «A pulso»** — elegir canto limpio o borde roto, y cuánto. Confirmado por él el
+      2026-09-11 · ⏳ sin construir (datos → `.pen` → código).
   > 🔴 La primera versión entendió al revés lo de «pintar» y construyó un pincel que **excavaba**. Él lo paró
   > en pantalla: «*eso es cavar con construir, que no es lo que te pedí*». Lo construido no se tiró — se muda
   > al Builder, que es donde él dijo que hacía falta.
@@ -2058,6 +2060,33 @@ HABITACIÓN   [muestra]  Arena                       [ CAMBIAR ]
 
 Lo construido se quita **seleccionando y borrando**, que es lo que ya existe.
 
+### 10B.4 · EL BORDE ROTO DE «A PULSO»
+
+Petición suya, 2026-09-11: *«Quiero poder en a pulso elegir el trazo como en el pincel para que los bordes sean
+irregulares o como está ahora y qué tan irregular lo quiero»*. Confirmado por él tal cual se le enseñó, con un
+*«si»*, el mismo día.
+
+- **El trazo, a elegir**: **como ahora** (el canto limpio de siempre) o **borde roto**.
+- **Cuánto de roto**: una barra continua, de apenas mellado a muy irregular. Sólo con borde roto. Es la misma
+  pareja de mandos que la del Pincel (§ 9.1).
+- **Cada trazo sale distinto**, como en el Pincel (§ 9.2). El azar se sortea al dibujar y queda **cocido en la
+  forma que se guarda**: no hay semilla que recordar ni nada que reconstruir al recargar.
+- **Vale para habitación y para muro**, las dos cosas que se dibujan a pulso.
+- 🔑 **EL BORDE IRREGULAR ES LA PARED DE VERDAD.** Tapa la vista y frena las fichas justo por donde se ve. Es la
+  regla de siempre del motor de salas: una sala que se ve de una forma y tapa de otra es un fallo que no se nota
+  hasta que alguien juega.
+- **Por muy roto que se ponga, el trazo nunca se parte en trozos ni deja agujeros en medio.**
+- **Sólo los trazos nuevos.** Lo ya dibujado no cambia al mover la barra.
+- **Se guarda en la escena, como el Pincel (§ 9.4), y APARTE del Pincel**: cambiar uno no cambia el otro. Uno
+  pinta encima y el otro levanta paredes.
+- **Sin «difuminado»**: un suelo se pisa o no se pisa (§ 10A.7).
+- ⚠️ **Un límite que no se ve pero manda**: cada esquina del borde es un muro más contra el que el servidor traza
+  rayos, para cada jugador y en cada refresco. El borde roto lleva un **tope de esquinas por trazo**, para que un
+  mapa irregular no traiga de vuelta el «va lentísimo».
+- **Dónde va en el panel** lo decide el diseño (`rolvium.pen`), y el panel del Builder mide 300 px (§ 10B.2).
+- **Fuera, dicho a propósito**: borde roto para rectángulo, círculo y polígono · volver irregular un trazo ya
+  hecho.
+
 ---
 
 ### 10.9 · Fuera de esta rebanada, dicho a propósito
@@ -2162,6 +2191,29 @@ persona. Y al borrar la campaña se van con ella.
 
 **Quién lee y quién escribe**: los miembros de la campaña leen, el **director** escribe. Palabra por palabra
 lo mismo que la biblioteca de fondos (`maps_images`), porque es lo mismo: una biblioteca de la campaña.
+
+## Modelo de datos (rebanada 10 B · el borde roto de «A pulso», § 10B.4)
+
+Migración `20260911170000_maps_band_rough.sql`. **Ninguna tabla nueva, ninguna política nueva, y dos columnas en
+la escena.**
+
+**La escena recuerda la punta de «A pulso».** `maps_scenes` gana **la punta** (canto limpio o borde roto; de serie
+canto limpio, que es como dibuja hoy, así que ninguna escena cambia al migrar) y **cuánto de roto** (de 0 a 1; de
+serie 0,5, el mismo arranque que el pincel, y sólo cuenta con borde roto). La base pone los dos topes, para que una
+llamada a mano no guarde un valor fuera de escala.
+
+**Aparte del pincel, a propósito.** Son las hermanas de `brush_tip` y `brush_roughness`, no las mismas columnas:
+uno pinta encima y el otro levanta paredes, y cambiar uno no puede cambiar el otro (§ 10B.4).
+
+**No se guardan los trazos ni el azar.** Cada trazo sale distinto, pero lo que se guarda es la forma ya rota: los
+puntos de su anillo en `maps_rooms.points`, como cualquier otra forma. El servidor calcula la visión y el paso con
+esos mismos puntos, así que el borde irregular es la pared sin escribir nada más. Y como el borde queda cocido en la
+forma, mover la barra no cambia lo ya dibujado.
+
+**Quién lee y quién escribe**: exactamente los de antes. `maps_scenes` tiene RLS activa y sus políticas cubren la
+fila entera —escribe el **director** de la campaña, leen sus miembros—, igual que cuando la rebanada 9 le añadió el
+pincel. Una columna nueva en una fila ya cubierta está cubierta, y no hace falta ningún permiso nuevo en el motor de
+roles.
 
 ## Modelo de datos (rebanada 9)
 

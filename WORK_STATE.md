@@ -127,6 +127,26 @@ Textuales suyas, con lo que se entendió:
      de un lado se pierde (ya anotado en el 🔧 de las puertas).
 2. «*Quiero poder en a pulso elegir el trazo como en el pincel para que los bordes sean irregulares o como está ahora y
    qué tan irregular lo quiero*» — la punta de A pulso (como la del Pincel: normal / borde roto + cuánto). Spec + `.pen`.
+   - ✅ **SPEC CONFIRMADO por él («*si*», 2026-09-11 tarde) y GUARDADO**: `specs/modules/maps/SPEC.md` § 10B.4 (+ una
+     línea en «Estado por rebanadas» y en el índice `specs/SPEC.md`). Lo que se le enseñó y aceptó:
+     elegir en «A pulso» como ahora / **borde roto** + barra **cuánto de roto** · cada trazo distinto (el azar se cuece
+     en los puntos del anillo, como el Pincel lo cuece en su PNG) · vale para **habitación y muro** (`shapesFor`:
+     `free` sale en los dos) · el borde irregular ES la pared: tapa y frena por donde se ve (principio de `rooms.ts`:
+     lo que se ve = lo que tapa) · por muy roto que se ponga, nunca se parte en trozos ni deja agujeros · sólo trazos
+     nuevos · **guardado en la escena, como el Pincel, y APARTE del Pincel** · sin «difuminado» (un suelo se pisa o no)
+     · fuera: rectángulo, círculo, polígono y trazos ya hechos.
+   - Visto en el código: hoy «A pulso» NO recuerda nada (el ancho `bandDraft` es estado local de `SceneTab` y cae al
+     grosor de la escena). ⚠ Límite técnico a respetar: cada vértice es un muro para la visión → tope de vértices por
+     trazo (escrito en el spec).
+   - ✅ **DBA HECHO**: `supabase/migrations/20260911170000_maps_band_rough.sql` — `maps_scenes.band_tip` ('clean' |
+     'rough', de serie 'clean') y `band_roughness` (0..1, de serie 0,5), hermanas de `brush_tip`/`brush_roughness`, con
+     sus dos CHECK, sin políticas nuevas y acabando en `NOTIFY pgrst`. Aplicada en LOCAL con
+     `supabase migration up --local` (NUNCA `db:reset`): sus 4 escenas quedan en clean/0,5 · RLS activa, políticas
+     `maps_scenes_select` + `maps_scenes_dm_write` sólo `authenticated` · `db lint --local` 0 · `npm run audit` 0 graves
+     · PostgREST recargó el esquema. ⚠ **En la nube NO está**: sube con el deploy. Modelo de datos escrito en el spec.
+   - ⏳ **Siguiente**: Scaffold → Design (`.pen`: el panel del Builder, 300 px, con su aprobación y SU Cmd+S) → código
+     (`brushRings` con borde roto, tope de esquinas y sin partirse · `BuilderPanel` con `OptionGroup` + `Slider` de
+     `@rolvium/ui` · guardado en la escena como el Pincel).
 3. «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas arrastrando*». Spec + `.pen`.
 4. «*el sobre una foto o dibujar aquí si lo cierro y lo abro tiene que quedar guardada la última elección que hice*» —
    el modo del Builder se pierde al cerrar el panel. Preguntar dónde vale lo guardado (este navegador, la escena…).
