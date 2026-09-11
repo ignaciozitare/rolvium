@@ -361,3 +361,44 @@ describe('roomWalls — de qué vano salió cada tramo', () => {
     expect(walls.find(w => w.kind === 'window')!.openingId).toBe('b');
   });
 });
+
+/**
+ * 🐞 LAS PUERTAS DEJAN PASAR LUZ Y FICHAS (suyo, 2026-09-09, con la sonda: «*las puertas son 100 % opacas y hoy
+ * el token ilumina detrás de ellas; en producción puedes traspasar la puerta con el token*»).
+ *
+ * Con dos vanos PISADOS sobre el mismo lado, el segundo se descartaba y el cursor saltaba a su final SIN poner
+ * nada en el trozo que sobresalía del primero: ni roca ni puerta, un agujero por el que pasan la vista y las
+ * fichas. «Manda el primero» se conserva; lo que sobresale vuelve a ser pared.
+ */
+describe('roomWalls — dos vanos pisados no dejan un agujero', () => {
+  const largo = (seg: BlockSegment): number => Math.hypot(seg[2] - seg[0], seg[3] - seg[1]);
+  const deArriba = (seg: BlockSegment): boolean => seg[1] === 0 && seg[3] === 0;
+  const cubre = (segs: BlockSegment[], x: number): boolean =>
+    segs.some(sg => deArriba(sg) && Math.min(sg[0], sg[2]) - 1e-6 <= x && x <= Math.max(sg[0], sg[2]) + 1e-6);
+  const pisados = () => roomWalls(digs(rect(0, 0, 100, 60)), [
+    { x1: 40, y1: 0, x2: 60, y2: 0, kind: 'door', isOpen: false },
+    { x1: 50, y1: 0, x2: 80, y2: 0, kind: 'door', isOpen: false },
+  ]);
+
+  it('las piezas de ese lado siguen sumando el lado entero', () => {
+    const arriba = pisados().filter(w => deArriba(w.seg));
+    expect(arriba.reduce((n, w) => n + largo(w.seg), 0)).toBeCloseTo(100);
+  });
+
+  it('el trozo que sobresale del primer vano corta la vista y frena a las fichas', () => {
+    const walls = pisados();
+    expect(cubre(roomSightSegments(walls), 70)).toBe(true);
+    expect(cubre(roomMoveSegments(walls), 70)).toBe(true);
+  });
+
+  it('manda el primero: el tramo pisado sigue siendo SU puerta, y un vano metido dentro de otro no añade nada', () => {
+    const puerta = pisados().filter(w => deArriba(w.seg) && w.kind === 'door');
+    expect(puerta).toHaveLength(1);
+    expect(largo(puerta[0]!.seg)).toBeCloseTo(20);
+    const dentro = roomWalls(digs(rect(0, 0, 100, 60)), [
+      { x1: 30, y1: 0, x2: 70, y2: 0, kind: 'door', isOpen: false },
+      { x1: 40, y1: 0, x2: 60, y2: 0, kind: 'window', isOpen: false },
+    ]).filter(w => deArriba(w.seg));
+    expect(dentro.map(w => w.kind).sort()).toEqual(['door', 'wall', 'wall']);
+  });
+});

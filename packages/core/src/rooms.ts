@@ -338,7 +338,12 @@ export function roomWalls(parts: readonly RoomPart[], openings: readonly RoomOpe
     };
     let cursor = 0;
     for (const s of spans) {
-      if (s.t0 < cursor) { cursor = Math.max(cursor, s.t1); continue; }  // vanos pisados: manda el primero
+      /*
+       * VANOS PISADOS: manda el primero. Pero lo que el segundo SOBRESALE del primero vuelve a ser pared: antes
+       * el cursor saltaba sin poner nada y quedaba un agujero por el que pasaban la vista y las fichas (🐞 suyo,
+       * 2026-09-09: «*en producción puedes traspasar la puerta con el token*»). Metido del todo dentro, nada.
+       */
+      if (s.t0 < cursor) { piece(cursor, s.t1, 'wall', false); cursor = Math.max(cursor, s.t1); continue; }
       piece(cursor, s.t0, 'wall', false);
       piece(s.t0, s.t1, s.o.kind, s.o.isOpen, s.o.id);
       cursor = s.t1;
