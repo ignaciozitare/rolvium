@@ -144,9 +144,28 @@ Textuales suyas, con lo que se entendió:
      `supabase migration up --local` (NUNCA `db:reset`): sus 4 escenas quedan en clean/0,5 · RLS activa, políticas
      `maps_scenes_select` + `maps_scenes_dm_write` sólo `authenticated` · `db lint --local` 0 · `npm run audit` 0 graves
      · PostgREST recargó el esquema. ⚠ **En la nube NO está**: sube con el deploy. Modelo de datos escrito en el spec.
-   - ⏳ **Siguiente**: Scaffold → Design (`.pen`: el panel del Builder, 300 px, con su aprobación y SU Cmd+S) → código
-     (`brushRings` con borde roto, tope de esquinas y sin partirse · `BuilderPanel` con `OptionGroup` + `Slider` de
-     `@rolvium/ui` · guardado en la escena como el Pincel).
+   - ✅ **SCAFFOLD HECHO** (commit `feat(maps): la punta de «A pulso» se guarda en la escena`): `Scene.ts` (`BandTip`,
+     `BAND_TIPS`, `bandTip`, `bandRoughness`, `ScenePatch`) · `roomRules.ts` (`DEFAULT_BAND_TIP`, `isBandTip`,
+     `DEFAULT_BAND_ROUGHNESS`) · `SupabaseMapsRepo.ts` (fila, columnas, lectura con valores de serie y recorte,
+     escritura recortada) · tests: `SupabaseMapsRepo.test.ts` describe «la punta de «A pulso» de la escena» (4) +
+     fixtures (`roomStyles.test.ts`, `roomsLayer.test.tsx`, `tests/helpers/fakes.ts`). Verde: web `src/modules/maps`
+     1187/1187 · typecheck. SIN pantalla todavía.
+   - 🚫 Visto y NO tocado: `packages/shared-types/src/database.types.ts` está desfasado — no tiene `rock_paint_url`
+     (rebanada 10) ni ahora `band_*`; nadie lo usa para `maps_scenes` (el repo lleva su propio `SceneRow`). Regenerarlo
+     es tarea aparte.
+   - ✅ **DISEÑO APROBADO** (él, 2026-09-11 tarde: «*esta bien sigue con el 3*» — a la pregunta de aprobar y de si le
+     valía «LIMPIO»; se toma como sí a las dos). ⚠ **La 2 queda SIN PROGRAMAR**: preguntado si programarla antes de
+     empezar la 3 (su «sigue con el 3» no lo dice, y un «A y B» ya costó una rebanada).
+   - Lámina: `rolvium.pen` · lámina nueva `R7gay` «PL/Builder · panel · «A PULSO»
+     CON BORDE ROTO ← NUEVO 11-09 (§ 10B.4)», al final de la fila de la sección 5 (x 27440, y 6938). Es copia de la
+     aprobada `oi358` con: «A PULSO» elegido (en el `.pen` viejo la banda colgaba de «A MANO»; la app ya dice «A pulso»)
+     · la sección «EL BORDE · SÓLO CON «A PULSO»» con LIMPIO / BORDE ROTO (lo elegido en sangre) y la barra CUÁNTO DE
+     ROTO con las palabras del pincel («bastante») · la nota reescrita. «LIMPIO» es nombre NUESTRO (el pincel dice
+     «Disco», que en un trazo no encaja): **preguntado si le vale**. Captura: scratchpad `diseno/R7gay.png`.
+     La lámina de Luces se commiteó aparte (`f9fcb05`, su Cmd+S de las 15:08).
+   - ⚠ Tras su «aprobado»: pedirle SU Cmd+S, comprobar la hora del `.pen`, commit `design(maps)` → código:
+     `brushRings` con borde roto, tope de esquinas y sin partirse · `BuilderPanel` con `OptionGroup` + `Slider` de
+     `@rolvium/ui` · guardar en la escena como el Pincel.
 3. «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas arrastrando*». Spec + `.pen`.
 4. «*el sobre una foto o dibujar aquí si lo cierro y lo abro tiene que quedar guardada la última elección que hice*» —
    el modo del Builder se pierde al cerrar el panel. Preguntar dónde vale lo guardado (este navegador, la escena…).

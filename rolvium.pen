@@ -143525,6 +143525,778 @@
       "width": 460,
       "height": 260,
       "content": "REGLA DE TIPOGRAFIA (dueno, 2026-08-21)\n\nCormorant Garamond es una romana de trazo fino: a tamano pequeno un gris medio se deshace aunque el contraste medido sea correcto. El dueno lo pidio tres veces (19, 20 y 21 de agosto: «no se lee, hace doler la cabeza»), y las dos primeras se intento arreglar solo bajando el color, que no basto porque el problema es el PESO.\n\nNorma, ya aplicada en el codigo:\n· El texto que se LEE va en ink-soft #221f19 y con fontWeight 500. Nunca en ink-dim.\n· ink-dim #3b382f queda solo para filetes, bordes y adornos grandes (iniciales).\n· Los rotulos en versalitas van a 600.\n· Pesos permitidos: 500 y 600. No se inventa el 700.\n\nPENDIENTE DE DECIDIR: en este .pen quedan textos pequenos en ink-dim en OTROS frames (fichas de personaje, escena, campanas). No se han barrido en bloque para no reescribir el master del dueno sin permiso. Si el se conforma, es un cambio mecanico: text con fill #3b382f -> #221f19 + weight 500."
+    },
+    {
+      "type": "frame",
+      "id": "R7gay",
+      "x": 27440,
+      "y": 6938,
+      "name": "PL/Builder · panel · «A PULSO» CON BORDE ROTO  ←  NUEVO 11-09 (§ 10B.4)",
+      "width": 300,
+      "fill": "#f2f0eaee",
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "#13131059",
+        "offset": {
+          "x": 0,
+          "y": 3
+        },
+        "blur": 14
+      },
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 10,
+      "children": [
+        {
+          "type": "frame",
+          "id": "L3aECx",
+          "name": "Head",
+          "width": "fill_container",
+          "gap": 7,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "m2d6m",
+              "name": "Asa",
+              "width": 14,
+              "height": 14,
+              "icon": "drag_indicator",
+              "library": "Material Symbols Outlined",
+              "fill": "$pl-tinta-tenue"
+            },
+            {
+              "type": "rectangle",
+              "id": "y3IeQu",
+              "name": "Icono Builder · EL SUYO",
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "apps/web/public/icons/builder-mask.png",
+                "mode": "fit"
+              },
+              "width": 16,
+              "height": 16
+            },
+            {
+              "type": "text",
+              "id": "QTBdH",
+              "name": "T",
+              "fill": "$pl-tinta",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Builder",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "icon",
+              "id": "VK8vp",
+              "name": "Cerrar",
+              "width": 14,
+              "height": 14,
+              "icon": "close",
+              "library": "Material Symbols Outlined",
+              "fill": "$pl-tinta-tenue"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "h1IR6",
+          "name": "S/QUÉ LEVANTO",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 5,
+          "children": [
+            {
+              "type": "text",
+              "id": "v2nAa",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "QUÉ LEVANTO · EL MURO CON TEXTURA, LA HABITACIÓN CON COLOR",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "oBRLF",
+              "name": "Fila",
+              "width": "fill_container",
+              "gap": 4,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "jKObY",
+                  "name": "S/HABITACIÓN",
+                  "fill": "#00000000",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "oJbVZ",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "HABITACIÓN",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pMDqq",
+                  "name": "S/MURO · ACTIVO",
+                  "fill": "$pl-sangre",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lbHqY",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "MURO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "y15iF",
+                  "name": "S/PUERTA",
+                  "fill": "#00000000",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "HLOfM",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "PUERTA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "z4Za0y",
+                  "name": "S/VENTANA",
+                  "fill": "#00000000",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "tHwV8",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "VENTANA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "pCBWV",
+          "name": "S/CON QUÉ SE PINTA",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 5,
+          "children": [
+            {
+              "type": "text",
+              "id": "xaCEb",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "CON QUÉ SE PINTA · CON MURO ELEGIDO, UNA TEXTURA",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.1
+            },
+            {
+              "type": "frame",
+              "id": "UYug0",
+              "name": "Fila · TEXTURA DEL MURO",
+              "width": "fill_container",
+              "gap": 7,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "j6qk4j",
+                  "name": "C",
+                  "fill": "$pl-tinta-tenue",
+                  "content": "MURO",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 7.5,
+                  "fontWeight": "normal",
+                  "letterSpacing": 1.1
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "t2TIn4",
+                  "name": "Textura PARED",
+                  "fill": "#8c5a3c",
+                  "width": 26,
+                  "height": 20,
+                  "stroke": "#5e3a26",
+                  "strokeWidth": 1.5,
+                  "strokeAlignment": "inner"
+                },
+                {
+                  "type": "text",
+                  "id": "NlJAU",
+                  "name": "N",
+                  "fill": "$pl-tinta-suave",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Losa de piedra",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "TR3tE",
+                  "name": "A/CAMBIAR",
+                  "fill": "$pl-sangre",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "b74vV",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "CAMBIAR",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "xau77",
+              "name": "Pista",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "con HABITACIÓN elegida, aquí sale un COLOR en vez de una textura",
+              "lineHeight": 1.35,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "sk7JN",
+          "name": "S/CON QUÉ FORMA",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 5,
+          "children": [
+            {
+              "type": "text",
+              "id": "HBb5N",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "CON QUÉ FORMA",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "FRp3Z",
+              "name": "Fila A",
+              "width": "fill_container",
+              "gap": 4,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "HHrR4",
+                  "name": "S/A MANO",
+                  "fill": "#00000000",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nmHAs",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "A MANO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "nUmgF",
+                  "name": "S/RECTA",
+                  "fill": "#00000000",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "m0VDF",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "RECTA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "U1NLwR",
+                  "name": "S/RECTÁNGULO",
+                  "fill": "#00000000",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qBUxp",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "RECTÁNGULO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "XsCHt",
+              "name": "Fila B",
+              "width": "fill_container",
+              "gap": 4,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "UlubN",
+                  "name": "S/CÍRCULO",
+                  "fill": "#00000000",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "X71NV",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "CÍRCULO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "azKNG",
+                  "name": "S/POLÍGONO",
+                  "fill": "#00000000",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "oceTh",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "POLÍGONO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "J07sD",
+                  "name": "S/A PULSO · ACTIVO",
+                  "fill": "$pl-sangre",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "CBxcr",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "A PULSO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "yXpRd",
+          "name": "S/EL ANCHO",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 5,
+          "children": [
+            {
+              "type": "text",
+              "id": "CsE7W",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "EL ANCHO DE LA BANDA · SÓLO CON «A PULSO»",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "gCqQj",
+              "name": "C/ANCHO",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "NwcyF",
+                  "name": "Cab",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "EvwCv",
+                      "name": "L",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "ANCHO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "T78rfM",
+                      "name": "V",
+                      "fill": "$pl-tinta-suave",
+                      "content": "1,2 casillas",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gjfae",
+                  "name": "Slider",
+                  "width": "fill_container",
+                  "height": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 3,
+                      "id": "W2hqzP",
+                      "name": "Pista",
+                      "fill": "#13131024",
+                      "width": "fill_container",
+                      "height": 5
+                    },
+                    {
+                      "type": "ellipse",
+                      "id": "gJazQ",
+                      "layoutPosition": "absolute",
+                      "x": 20,
+                      "y": 1,
+                      "name": "Tirador",
+                      "fill": "$pl-sangre",
+                      "width": 12,
+                      "height": 12
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "i0XxmY",
+          "name": "S/EL BORDE",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 5,
+          "children": [
+            {
+              "type": "text",
+              "id": "dOMWg",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "EL BORDE · SÓLO CON «A PULSO»",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "R0S9DW",
+              "name": "Fila",
+              "width": "fill_container",
+              "gap": 4,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pCifv",
+                  "name": "S/LIMPIO",
+                  "fill": "#00000000",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "XMYNc",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "LIMPIO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "s3C8d",
+                  "name": "S/BORDE ROTO · ACTIVO",
+                  "fill": "$pl-sangre",
+                  "padding": [
+                    3,
+                    7
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xIvlc",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "BORDE ROTO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1.1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "j2QTfu",
+              "name": "C/CUÁNTO DE ROTO",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qv2lU",
+                  "name": "Cab",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "uvsTu",
+                      "name": "L",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "CUÁNTO DE ROTO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "FMJ9s",
+                      "name": "V",
+                      "fill": "$pl-tinta-suave",
+                      "content": "bastante",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "dBzOj",
+                  "name": "Slider",
+                  "width": "fill_container",
+                  "height": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 3,
+                      "id": "OuRUn",
+                      "name": "Pista",
+                      "fill": "#13131024",
+                      "width": "fill_container",
+                      "height": 5
+                    },
+                    {
+                      "type": "ellipse",
+                      "id": "K2etR",
+                      "layoutPosition": "absolute",
+                      "x": 166,
+                      "y": 1,
+                      "name": "Tirador",
+                      "fill": "$pl-sangre",
+                      "width": 12,
+                      "height": 12
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cKwOw",
+          "name": "Nota",
+          "width": "fill_container",
+          "fill": "#8a703826",
+          "gap": 6,
+          "padding": 6,
+          "children": [
+            {
+              "type": "icon",
+              "id": "HjIz9",
+              "name": "I",
+              "width": 12,
+              "height": 12,
+              "icon": "info",
+              "library": "Material Symbols Outlined",
+              "fill": "$pl-oro"
+            },
+            {
+              "type": "text",
+              "id": "CrIsY",
+              "name": "T",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "«A PULSO» sale una BANDA del ancho elegido. Con BORDE ROTO el canto sale irregular —distinto en cada trazo— y ES la pared: tapa la vista y frena las fichas justo por donde se ve. Con LIMPIO la barra no sale. Mover la barra no cambia lo ya dibujado. El MURO se pinta con una TEXTURA y la HABITACIÓN con un COLOR, como siempre.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {
