@@ -142533,7 +142533,7 @@
                       "id": "m5iWh",
                       "name": "Op/CONO",
                       "width": "fill_container",
-                      "fill": "$pl-tinta",
+                      "fill": "$pl-sangre",
                       "padding": [
                         4,
                         6
@@ -142644,7 +142644,7 @@
                       "id": "XpO8n",
                       "name": "Tipo/Antorcha",
                       "width": "fill_container",
-                      "fill": "$pl-oro",
+                      "fill": "$pl-sangre",
                       "gap": 4,
                       "padding": [
                         4,
@@ -142666,7 +142666,7 @@
                           "type": "text",
                           "id": "jUua0",
                           "name": "T",
-                          "fill": "#1a1508",
+                          "fill": "$pl-papel-alto",
                           "content": "Antorcha",
                           "fontFamily": "$font-plenilunio",
                           "fontSize": 9,
