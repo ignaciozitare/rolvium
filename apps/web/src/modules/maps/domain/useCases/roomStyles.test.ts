@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ROOM_PRESETS, type RoomPreset, type Scene } from '../entities/Scene';
 import {
   outlinePath, ringFromSides, ringOf, ringPath, ringsOf, ROOM_STYLES, roomAt, sceneTextures,
-  shadowDepthPx, shapeAt, shapeColorOf, shapeImageOf, snapSpanToOutline, spansOf, styleOf, wallWidthPx, roomWallsOf,
+  shadowDepthPx, shapeAt, shapeColorOf, shapeImageOf, snapSpanToOutline, spansOf, styleOf, tileMatrix, wallWidthPx, roomWallsOf,
 } from './roomStyles';
 import type { RoomSide } from './roomRules';
 import type { RoomOpeningSpan } from '@rolvium/core';
@@ -293,5 +293,30 @@ describe('shapeAt — la forma que se lleva el borrador', () => {
     expect(shapeAt(formas, { x: 75, y: 75 })?.id).toBe('nueva');
     expect(shapeAt(formas, { x: 10, y: 10 })?.id).toBe('vieja');
     expect(shapeAt(formas, { x: 500, y: 500 })).toBeNull();
+  });
+});
+
+/**
+ * ── LA TEXTURA DEL PINCEL SE GIRA (suyo, 2026-09-10: «*además de escalarse, que se pueda girar*») ──
+ * Una sola matriz para lo pintado y para el previo: si se calculasen por separado, lo que se ve al mover el
+ * giro y lo que cae al dar el brochazo podrían no coincidir.
+ */
+describe('tileMatrix', () => {
+  const cerca = (got: number[], want: number[]) => want.forEach((w, i) => expect(got[i]).toBeCloseTo(w, 9));
+
+  it('sin girar sólo escala la foto al tamaño del azulejo', () => {
+    cerca(tileMatrix(54, 108, 108), [0.5, 0, 0, 0.5, 0, 0]);
+    cerca(tileMatrix(54, 108, 108, 0), [0.5, 0, 0, 0.5, 0, 0]);
+  });
+
+  it('girar un cuarto de vuelta cambia los ejes, sin deformar', () => {
+    cerca(tileMatrix(54, 108, 108, 90), [0, 0.5, -0.5, 0, 0, 0]);
+  });
+
+  /** Primero se escala y DESPUÉS se gira: una foto apaisada no sale torcida al girarla. */
+  it('una foto que no es cuadrada escala cada eje por su lado y luego gira', () => {
+    const [a, b, c, d] = tileMatrix(60, 120, 60, 90);
+    expect(a).toBeCloseTo(0); expect(b).toBeCloseTo(0.5);   // el eje X de la foto: ×0,5 y girado
+    expect(c).toBeCloseTo(-1); expect(d).toBeCloseTo(0);    // el eje Y: ×1 y girado
   });
 });

@@ -101,6 +101,18 @@ export const shadowDepthPx = (scene: Pick<Scene, 'grid'>): number => scene.grid.
  * con la rejilla en 15 que en 60, y no cambia al acercar o alejar.
  */
 export const tilePx = (cells: number, grid: number): number => Math.max(4, (cells || DEFAULT_TEXTURE_SCALE) * grid);
+/**
+ * EL PATRÓN DEL AZULEJO, ESCALADO Y GIRADO, como matriz `[a, b, c, d, e, f]` de un lienzo 2D (petición suya,
+ * 2026-09-10: la textura del pincel, además de escalarse, «*que se pueda girar*»).
+ *
+ * Primero se lleva la foto al tamaño del azulejo y DESPUÉS se gira el mosaico entero: al revés, una foto que
+ * no fuese cuadrada saldría torcida además de girada. Gira el PATRÓN con el que se rellena, no la pincelada.
+ */
+export function tileMatrix(sidePx: number, imgW: number, imgH: number, deg = 0): [number, number, number, number, number, number] {
+  const sx = sidePx / imgW, sy = sidePx / imgH;
+  const r = (deg * Math.PI) / 180, cos = Math.cos(r), sin = Math.sin(r);
+  return [cos * sx, sin * sx, -sin * sy, cos * sy, 0, 0];
+}
 
 /** Un azulejo grande, que es lo que menos sorprende al subir una foto cualquiera. Espejo de la migración. */
 export const DEFAULT_TEXTURE_SCALE = 4;

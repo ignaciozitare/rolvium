@@ -2609,3 +2609,15 @@ describe('<MapCanvas> el pincel que pinta encima', () => {
   });
 });
 
+/**
+ * ── EL PREVIO DE LA TEXTURA DEL PINCEL, GIRADO (suyo, 2026-09-10) ──
+ * Es la única forma de ver cómo cae la losa girada antes de dar el primer brochazo.
+ */
+describe('<MapCanvas> el previo de la textura gira con el giro', () => {
+  it('con giro, el patrón lleva rotate(); sin giro, va derecho', () => {
+    const { svg, rerender } = mount({ isDm: true, tilePreview: { url: 'https://x/losa.png', sidePx: 54, deg: 30 } });
+    expect(svg.querySelector('#mp-tile-preview')).toHaveAttribute('patternTransform', 'rotate(30)');
+    rerender({ isDm: true, tilePreview: { url: 'https://x/losa.png', sidePx: 54, deg: 0 } });
+    expect(svg.querySelector('#mp-tile-preview')).not.toHaveAttribute('patternTransform');
+  });
+});

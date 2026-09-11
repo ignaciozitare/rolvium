@@ -136,7 +136,7 @@ interface Props {
    * el tamaño en previo*» (2026-09-10). Es lo único que deja saber si una losa va a salir del tamaño de una
    * sala antes de dar el primer brochazo. `null` = no se está tocando el tamaño.
    */
-  tilePreview?: { url: string; sidePx: number } | null;
+  tilePreview?: { url: string; sidePx: number; /** Grados de giro del patrón, como el pincel. */ deg?: number } | null;
   /**
    * ¿HAY DÓNDE PINTAR AHORA MISMO? (rebanada 10). Lo decide la pantalla, que es quien sabe si hay una capa de
    * terreno, si el ratón está sobre una habitación o si el mapa tiene roca. El lienzo sólo necesita saber si
@@ -1510,7 +1510,8 @@ export function MapCanvas(p: Props): JSX.Element {
             */}
           {dmSight && p.tilePreview && (<>
             <defs>
-              <pattern id="mp-tile-preview" patternUnits="userSpaceOnUse" width={p.tilePreview.sidePx} height={p.tilePreview.sidePx}>
+              <pattern id="mp-tile-preview" patternUnits="userSpaceOnUse" width={p.tilePreview.sidePx} height={p.tilePreview.sidePx}
+                patternTransform={p.tilePreview.deg ? `rotate(${p.tilePreview.deg})` : undefined}>
                 <image href={p.tilePreview.url} x={0} y={0} width={p.tilePreview.sidePx} height={p.tilePreview.sidePx} preserveAspectRatio="xMidYMid slice" />
               </pattern>
             </defs>

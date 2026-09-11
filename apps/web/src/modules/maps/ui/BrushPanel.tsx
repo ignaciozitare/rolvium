@@ -52,6 +52,13 @@ interface Props {
    * el azulejo queda cocido dentro del PNG en cuanto se suelta un brochazo.
    */
   onTextureCells?: (cells: number) => void;
+  /**
+   * CUÁNTOS GRADOS SE GIRA la textura (petición suya, 2026-09-10: «*además de escalarse, que se pueda girar*»).
+   * Va DEBAJO de la escala (`TlJot` § S/4, y suyo: «*el girar va debajo*»). Mismo reparto: mover va en vivo y
+   * no se guarda nada — queda cocido en el PNG en cuanto se suelta un brochazo.
+   */
+  textureDeg?: number;
+  onTextureDeg?: (deg: number) => void;
   color: string;
   onColor: (hex: string) => void;
   /** Los que él se ha inventado en ESTA campaña. `null` mientras se están pidiendo. */
@@ -77,7 +84,8 @@ interface Props {
 /** Un deslizador APILADO: rótulo y lectura arriba, la barra debajo a todo lo ancho (`TlJot` § C/TAMAÑO). */
 function Slider({ label, min, max, step, value, text, onChange, onCommit }: {
   label: string; min: number; max: number; step: number; value: number; text: string;
-  onChange: (v: number) => void; onCommit: () => void;
+  /** Sin `onCommit` el deslizador es sólo en vivo: la escala y el giro de la textura no guardan nada al soltar. */
+  onChange: (v: number) => void; onCommit?: () => void;
 }): JSX.Element {
   return (
     <label className="mp-bp-slider">
@@ -111,7 +119,7 @@ function Slider({ label, min, max, step, value, text, onChange, onCommit }: {
  */
 export function BrushPanel({
   on, onOn, action, onAction, ink, onInk,
-  textureUrl, textureName, textureCells, gridSize, onPickTexture, onClearTexture, onTextureCells,
+  textureUrl, textureName, textureCells, gridSize, onPickTexture, onClearTexture, onTextureCells, textureDeg = 0, onTextureDeg,
   color, onColor, savedColors, onSaveColor,
   value, onChange, onCommit,
   onReset, onRevealAll, onHideAll, saving = false, onClose,
@@ -217,19 +225,21 @@ export function BrushPanel({
             )}
           </div>
           {/*
-            * EL AZULEJO. Sólo con una foto puesta: sin ella se pinta con el color, y un color no se escala.
-            * Mientras se arrastra, el MAPA ENTERO se cubre con la textura a ese tamaño —«*se debería ver en el
-            * mapa cubriendo todo el lienzo para ver el tamaño en previo*»—, que es la única forma de saber si
-            * una losa va a salir del tamaño de una sala antes de dar el primer brochazo.
+            * LA ESCALA Y, DEBAJO, EL GIRO (`TlJot` § S/4). Sólo con una foto puesta: sin ella se pinta con el
+            * color, y un color ni se escala ni se gira. Mientras se arrastra cualquiera de los dos, el MAPA
+            * ENTERO se cubre con la textura así —«*se debería ver en el mapa cubriendo todo el lienzo para ver
+            * el tamaño en previo*»—, que es la única forma de saberlo antes de dar el primer brochazo.
+            *
+            * El rótulo era «Azulejo» y él lo quiso «Escala», expresamente (2026-09-10).
             */}
           {textureUrl && onTextureCells && (
-            <div className="mp-builder-thick">
-              <span className="mp-builder-tex-n">{t('maps.brush.tileLabel')}</span>
-              <input type="range" min={0.25} max={20} step={0.25} value={textureCells}
-                aria-label={t('maps.brush.tileLabel')}
-                onChange={e => onTextureCells(Number(e.target.value))} />
-              <span className="mp-builder-thick-v">{textureCells}</span>
-            </div>
+            <Slider label={t('maps.brush.tileLabel')} min={0.25} max={20} step={0.25} value={textureCells}
+              onChange={onTextureCells}
+              text={textureCells === 1 ? t('maps.mask.sizeCell') : t('maps.mask.sizeCells', { n: String(textureCells) })} />
+          )}
+          {textureUrl && onTextureDeg && (
+            <Slider label={t('maps.brush.turnLabel')} min={0} max={355} step={5} value={textureDeg}
+              onChange={onTextureDeg} text={`${textureDeg}°`} />
           )}
         </fieldset>
       )}

@@ -236,3 +236,37 @@ describe('<BrushPanel>', () => {
     expect(reset).toHaveBeenCalled();
   });
 });
+
+/**
+ * ── LA ESCALA Y, DEBAJO, EL GIRO (`TlJot` § S/4) ──
+ * Suyo, 2026-09-11: «*el girar va debajo de azulejo, azulejo te pedí expresamente que lo cambies por escala*».
+ * Lo que se sujeta: el rótulo dice «Escala», el giro va JUSTO DEBAJO, y la palabra «Azulejo» no sale.
+ */
+describe('<BrushPanel> la textura se escala y se gira', () => {
+  const conTextura = { ink: 'texture' as const, textureUrl: 'https://x/losa.png', textureName: 'Losa mojada' };
+
+  it('con una textura puesta salen «Escala» y, justo debajo, «Giro» — y «Azulejo» ya no', () => {
+    mount({ ...conTextura, onTextureCells: vi.fn(), onTextureDeg: vi.fn(), textureDeg: 15 });
+    const rotulos = screen.getAllByRole('slider').map(s => s.getAttribute('aria-label'));
+    expect(rotulos.indexOf('Giro')).toBe(rotulos.indexOf('Escala') + 1);
+    expect(screen.queryByText(/azulejo/i)).not.toBeInTheDocument();
+    expect(screen.getByText('4 casillas')).toBeInTheDocument();
+    expect(screen.getByText('15°')).toBeInTheDocument();
+  });
+
+  it('mover el giro lo manda en grados; mover la escala, en casillas', () => {
+    const onTextureDeg = vi.fn(), onTextureCells = vi.fn();
+    mount({ ...conTextura, onTextureCells, onTextureDeg });
+    fireEvent.change(screen.getByRole('slider', { name: 'Giro' }), { target: { value: '90' } });
+    expect(onTextureDeg).toHaveBeenCalledWith(90);
+    fireEvent.change(screen.getByRole('slider', { name: 'Escala' }), { target: { value: '2.5' } });
+    expect(onTextureCells).toHaveBeenCalledWith(2.5);
+  });
+
+  /** Sin foto se pinta con el color, y un color ni se escala ni se gira. */
+  it('sin textura no sale ni la escala ni el giro', () => {
+    mount({ ink: 'texture', onTextureCells: vi.fn(), onTextureDeg: vi.fn() });
+    expect(screen.queryByRole('slider', { name: 'Escala' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', { name: 'Giro' })).not.toBeInTheDocument();
+  });
+});

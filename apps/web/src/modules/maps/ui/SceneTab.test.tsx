@@ -3,7 +3,7 @@ import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../.
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
-import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
+import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { SceneTab } from './SceneTab';
 import { DEFAULT_TEXTURE_SCALE } from '../domain/useCases/roomStyles';
@@ -28,9 +28,22 @@ const dibujo = async (u: ReturnType<typeof userEvent.setup>, name: string): Prom
   await u.click(await screen.findByRole('menuitemradio', { name }));
 };
 
+/**
+ * Una memoria de vista de mentira: dónde tenía puesto el ojo el director. De serie está EN BLANCO, así que
+ * la escena que se abre sale de la activa de la mesa — que es como se comportaba esto antes de existir.
+ */
+function fakeViewMemory(last: string | null = null) {
+  const m = { last, seen: [] as string[] };
+  return {
+    m,
+    lastScene: () => m.last,
+    rememberScene: (_c: string, id: string) => { m.last = id; m.seen.push(id); },
+  };
+}
+
 /** Vision always comes from the API — the tests inject a fake port so nothing here ever computes it. */
-function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision = fakeVisionPort(), canManageTextures = true) {
-  renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio} members={MEMBERS} activeSceneId={activeSceneId} charactersRepo={chars} repo={repo} vision={vision} canManageTextures={canManageTextures} />);
+function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision = fakeVisionPort(), canManageTextures = true, memory = fakeViewMemory()) {
+  renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio} members={MEMBERS} activeSceneId={activeSceneId} charactersRepo={chars} repo={repo} vision={vision} canManageTextures={canManageTextures} memory={memory} />);
   return repo;
 }
 
@@ -2119,8 +2132,9 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
     mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], textures: [TEX] }), 'sc-1', undefined, undefined, false);
     await screen.findByText(/Almacén de Queens/);
     await abrirTexturas(u);
-    expect(await screen.findByTestId('mp-texcat')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Opciones de/ })).not.toBeInTheDocument();
+    const catalogo = await screen.findByTestId('mp-texcat');
+    // Dentro del CATÁLOGO: fuera están los tres puntos de las escenas, que no dependen de este permiso.
+    expect(within(catalogo).queryByRole('button', { name: /Opciones de/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Subir a/ })).not.toBeInTheDocument();
   });
 });
@@ -2282,6 +2296,31 @@ describe('<SceneTab> el pincel que pinta encima', () => {
     expect(repo.sceneUpdates.some(x => 'floorTextureUrl' in x.patch)).toBe(false);
   });
 
+  /**
+   * EL GIRO DE LA TEXTURA (suyo, 2026-09-10 y 11). Mover el giro cubre el mapa entero con la textura YA GIRADA
+   * —igual que la escala enseña el tamaño—, y quitar la textura lo devuelve a derecho para la siguiente.
+   */
+  it('mover el giro gira el previo del mapa entero, y quitar la textura lo devuelve a derecho', async () => {
+    const u = userEvent.setup();
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], rooms: [SALA], textures: [TEX] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    const pincel = () => screen.getByRole('group', { name: 'Pincel' });
+    await screen.findByRole('group', { name: 'Pincel' });
+    await u.click(within(pincel()).getByRole('radio', { name: 'Textura' }));
+    await u.click(within(pincel()).getByRole('button', { name: 'Elegir' }));
+    await u.click(await within(await screen.findByTestId('mp-texcat')).findByTitle('Losa mojada'));
+
+    fireEvent.change(await within(pincel()).findByRole('slider', { name: 'Giro' }), { target: { value: '45' } });
+    await waitFor(() => expect(canvas().querySelector('#mp-tile-preview')).toHaveAttribute('patternTransform', 'rotate(45)'));
+    expect(within(pincel()).getByText('45°')).toBeInTheDocument();
+
+    await u.click(within(pincel()).getByRole('button', { name: 'Quitar' }));
+    await u.click(within(pincel()).getByRole('button', { name: 'Elegir' }));
+    await u.click(await within(await screen.findByTestId('mp-texcat')).findByTitle('Losa mojada'));
+    expect(await within(pincel()).findByRole('slider', { name: 'Giro' })).toHaveValue('0');
+  });
+
   /** Los colores que él se inventa se guardan POR CAMPAÑA, para los demás mapas de ese mundo. */
   it('un color inventado se guarda en la campaña y aparece en «tus colores»', async () => {
     const u = userEvent.setup();
@@ -2415,5 +2454,143 @@ describe('<SceneTab> el Ctrl+Z avisa de lo que ha hecho', () => {
     await screen.findByText(/Almacén de Queens/);
     fireEvent.keyDown(window, { key: 'z', ctrlKey: true });
     expect(await screen.findByText(/No queda nada que deshacer/i)).toBeInTheDocument();
+  });
+});
+
+/**
+ * ── AL RECARGAR, LA MISMA ESCENA (petición suya, 2026-09-10: «*si recargo debería caer en la misma vista o
+ * escena*») ──
+ * Hasta hoy la recarga le dejaba en la escena ACTIVA de la mesa, o en la primera. Son dos cosas distintas:
+ * la activa es lo que ven los jugadores y no se toca; esto es sólo dónde MIRA él.
+ */
+describe('<SceneTab> la recarga vuelve a la escena que miraba', () => {
+  it('abre la que tenía apuntada, no la activa de la mesa — y apunta la que elija después', async () => {
+    const u = userEvent.setup();
+    const memoria = fakeViewMemory('sc-3');
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE, SCENE_TUNNELS] }), 'sc-1', undefined, undefined, true, memoria);
+    // «sc-1» es la ACTIVA y sigue siéndolo; la que se abre es la suya.
+    const tuneles = await screen.findByRole('button', { name: 'Ver escena Túneles de servicio' });
+    await waitFor(() => expect(tuneles).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByRole('button', { name: 'Ver escena Almacén de Queens' })).toHaveAttribute('aria-pressed', 'false');
+
+    // Y cambiar de escena lo apunta, que es lo que hará que la próxima recarga caiga aquí.
+    await u.click(screen.getByRole('button', { name: 'Ver escena Almacén de Queens' }));
+    await waitFor(() => expect(memoria.m.last).toBe('sc-1'));
+  });
+
+  /** Si la que tenía apuntada ya no existe, no se queda en blanco: cae en la activa de la mesa. */
+  it('si la escena apuntada ya no está, cae en la activa', async () => {
+    const memoria = fakeViewMemory('sc-borrada');
+    mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE, SCENE_TUNNELS] }), 'sc-3', undefined, undefined, true, memoria);
+    const tuneles = await screen.findByRole('button', { name: 'Ver escena Túneles de servicio' });
+    await waitFor(() => expect(tuneles).toHaveAttribute('aria-pressed', 'true'));
+  });
+
+  /** Un jugador no elige escena —la suya la manda la mesa—, así que no se le apunta nada. */
+  it('a un jugador no se le apunta nada', async () => {
+    const memoria = fakeViewMemory();
+    mount('player', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] }), 'sc-1', undefined, undefined, true, memoria);
+    await screen.findByText(/Almacén de Queens · tu visión/);
+    expect(memoria.m.seen).toEqual([]);
+  });
+});
+
+/**
+ * ── «RESTAURAR TODA» PREGUNTA ANTES (suyo, 2026-09-10: «*es peligroso*») ──
+ * Se lleva de golpe toda la pintura del destino elegido y el Ctrl+Z no la devuelve: apila pinceladas, no el
+ * borrado entero. Cancelar no tiene que tocar nada.
+ */
+describe('<SceneTab> «Restaurar toda» pide confirmación', () => {
+  const SALA_R = {
+    id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[0, 0], [400, 0], [400, 400], [0, 400]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
+  };
+  const abrirPincel = async (u: ReturnType<typeof userEvent.setup>) => {
+    await u.click(screen.getByRole('button', { name: 'Pincel' }));
+    return screen.findByRole('group', { name: 'Pincel' });
+  };
+  /** El botón del panel y el del diálogo se llaman igual: el del diálogo es el que sale después. */
+  const confirmar = async (u: ReturnType<typeof userEvent.setup>) => {
+    await screen.findByText(/Esto se lleva TODA la pintura/);
+    const botones = screen.getAllByRole('button', { name: 'Restaurar toda' });
+    await u.click(botones[botones.length - 1]!);
+  };
+
+  it('cancelar no borra nada; confirmar sí', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [SALA_R] }));
+    await screen.findByText(/Almacén de Queens/);
+    const panel = await abrirPincel(u);
+
+    await u.click(within(panel).getByRole('button', { name: 'Restaurar toda' }));
+    await screen.findByText(/Esto se lleva TODA la pintura/);
+    // El botón de cancelar va traducido: `dialog.confirm` sin `cancelLabel` lo deja en inglés a secas.
+    await u.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByText(/Esto se lleva TODA la pintura/)).not.toBeInTheDocument());
+    expect(repo.paintCleared).toEqual([]);
+
+    await u.click(within(panel).getByRole('button', { name: 'Restaurar toda' }));
+    await confirmar(u);
+    await waitFor(() => expect(repo.paintCleared).toEqual([{ on: 'room', id: 'rm-1' }]));
+  });
+});
+
+/**
+ * ── LA PUERTA RECIÉN PUESTA QUEDA COGIDA (suyo, 2026-09-10) ──
+ * «Hoy dibujas la puerta y para tocarle las propiedades tienes que ir a Seleccionar y volver a pincharla».
+ * Vale para los dos caminos —el vano de sala y la puerta marcada sobre una foto— y NO para un muro corriente.
+ */
+describe('<SceneTab> la puerta recién puesta queda cogida', () => {
+  const CUARTO_P = { id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[0, 0], [300, 0], [300, 300], [0, 300]] as [number, number][], floorPreset: 'hatch' as const,
+    floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '' };
+  const trazar = (x1: number, y1: number, x2: number, y2: number) => {
+    fireEvent.pointerDown(canvas(), { clientX: x1, clientY: y1, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    fireEvent.pointerDown(canvas(), { clientX: x2, clientY: y2, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+  };
+
+  it('un vano de SALA sale en foco, con su panel listo — sin pasar por Seleccionar', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [], rooms: [CUARTO_P], roomOpenings: [] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    await u.click(within(panel).getByRole('radio', { name: /^Puerta$/ }));
+    trazar(300, 100, 300, 160);
+    await waitFor(() => expect(repo.roomOpenings).toHaveLength(1));
+
+    // Los ajustes de ESA puerta están ahí, sin haber pasado por Seleccionar…
+    expect(await screen.findByTestId('mp-door-opts')).toBeInTheDocument();
+    // …y Suprimir apunta a ella, que es la prueba de que está cogida y no sólo dibujada.
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.roomOpenings).toHaveLength(0));
+  });
+
+  it('una puerta marcada sobre una foto también queda cogida; un muro corriente NO', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    await u.click(await screen.findByRole('radio', { name: /Sobre una foto/ }));
+    await u.click(screen.getByRole('radio', { name: /^Puerta$/ }));
+    trazar(WALL_1.x1, 300, WALL_1.x1, 360);
+    await waitFor(() => expect(repo.walls.some(w => w.kind === 'door')).toBe(true));
+    const puerta = repo.walls.find(w => w.kind === 'door')!;
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.walls.some(w => w.id === puerta.id)).toBe(false));
+
+    // Y ahora un MURO: marcar pared es lo que más se repite, quedarse cogido cada raya estorbaría.
+    await u.click(screen.getByRole('radio', { name: /^Muro$/ }));
+    const antes = repo.walls.length;
+    trazar(600, 300, 600, 380);
+    await waitFor(() => expect(repo.walls.length).toBe(antes + 1));
+    const nuevo = repo.walls[repo.walls.length - 1]!;
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await new Promise(r => setTimeout(r, 30));
+    expect(repo.walls.some(w => w.id === nuevo.id)).toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BrushTip, Scene } from '../domain/entities/Scene';
 import { MASK_STEP_RATIO, maskSize, maskStops, roughOutline, roughRadii, strokeDots, toMaskPoint } from '../domain/useCases/layerRules';
+import { tileMatrix } from '../domain/useCases/roomStyles';
 
 interface Point { x: number; y: number }
 
@@ -31,6 +32,8 @@ export interface PaintInk {
   textureUrl: string | null;
   /** Cuánto mide un azulejo de esa textura, EN PX DE ESCENA. */
   tilePx: number;
+  /** Cuántos grados se GIRA el patrón. Sin él, o 0, va derecho. Gira el mosaico, no la pincelada. */
+  tileDeg?: number;
   color: string;
 }
 
@@ -364,8 +367,9 @@ function tint(ref: { current: HTMLCanvasElement | null }, stroke: HTMLCanvasElem
   const pat = img ? ctx.createPattern(img, 'repeat') : null;
   if (pat && img) {
     // `tilePx` llega ya en píxeles DEL LIENZO: el azulejo se mide en px de escena y el lienzo va reducido,
-    // así que sin esa conversión una losa saldría del tamaño del mapa entero en un mapa grande.
-    pat.setTransform?.(new DOMMatrix().scale(tilePx / img.naturalWidth, tilePx / img.naturalHeight));
+    // así que sin esa conversión una losa saldría del tamaño del mapa entero en un mapa grande. El giro va
+    // en la MISMA matriz (`tileMatrix`), que es lo que hace que el previo y lo pintado coincidan.
+    pat.setTransform?.(new DOMMatrix(tileMatrix(tilePx, img.naturalWidth, img.naturalHeight, ink.tileDeg ?? 0)));
     ctx.fillStyle = pat;
   } else {
     ctx.fillStyle = ink.color;

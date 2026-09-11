@@ -15,7 +15,8 @@
 .mp-scene-chip{display:inline-flex;align-items:center;gap:6px;}
 .mp-scene-thumb{width:14px;height:14px;border:1px solid var(--sys-line);flex-shrink:0;}
 .mp-scene-active{width:7px;height:7px;border-radius:50%;background:var(--sys-gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--sys-gold) 35%,transparent);}
-.mp-scene-menu{top:calc(100% + 4px);left:0;min-width:220px;}
+/* El menú de una escena flota FIJO a la ventana (lo coloca ScenesMenu): dentro de la lista, que se desplaza, quedaba recortado. */
+.mp-pop.mp-scene-menu{position:fixed;z-index:60;min-width:220px;}
 .mp-pcmenu{top:60px;left:8px;min-width:230px;max-height:calc(100% - 70px);overflow:auto;}
 /* stroke bar */
 .mp-strokebar{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
@@ -191,9 +192,13 @@
 .mp-rail-fold{display:inline-flex;border:none;background:transparent;padding:0;cursor:pointer;color:var(--sys-ink-dim);line-height:0;}
 .mp-rail-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;overflow:auto;flex:1;min-height:0;}
 .mp-rail-row{position:relative;}
-.mp-rail-item{display:flex;align-items:center;gap:8px;width:100%;padding:3px 4px;border:none;background:transparent;font-family:inherit;font-size:var(--fs-sm);color:var(--sys-ink-soft);cursor:pointer;text-align:left;}
+.mp-rail-item{display:flex;align-items:center;gap:8px;width:100%;padding:3px 26px 3px 4px;border:none;background:transparent;font-family:inherit;font-size:var(--fs-sm);color:var(--sys-ink-soft);cursor:pointer;text-align:left;}
 .mp-rail-item:hover{background:color-mix(in srgb,var(--sys-ink) 8%,transparent);}
-.mp-rail-item.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
+.mp-rail-item.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.mp-rail.collapsed .mp-rail-item{padding:3px 4px;}
+.mp-rail-kebab{position:absolute;top:50%;right:3px;transform:translateY(-50%);display:inline-flex;border:none;background:transparent;padding:2px;cursor:pointer;color:var(--sys-ink-dim);line-height:0;}
+.mp-rail-kebab:hover{color:var(--sys-ink);}
+.mp-rail-kebab.on,.mp-rail-kebab.on:hover{color:var(--sys-paper-hi);}
 .mp-rail-thumb{width:38px;height:26px;flex-shrink:0;box-shadow:0 0 0 1px var(--sys-line);}
 .mp-rail.collapsed .mp-rail-thumb{width:44px;height:30px;}
 .mp-rail-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

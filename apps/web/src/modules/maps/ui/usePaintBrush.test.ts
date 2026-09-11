@@ -237,3 +237,49 @@ describe('usePaintBrush', () => {
     expect(ctxs.every(c => c.arcs.length === 0)).toBe(true);
   });
 });
+
+/**
+ * ── LA TEXTURA DEL PINCEL SE GIRA (suyo, 2026-09-10: «*además de escalarse, que se pueda girar*») ──
+ * `tileMatrix` ya se prueba sola en `roomStyles.test.ts`. Lo que se sujeta aquí es que el giro de la tinta
+ * LLEGUE al patrón con el que se tiñe la pincelada: sin eso el panel y el previo girarían, y lo pintado
+ * caería derecho — que es justo lo que no se ve hasta soltar el brochazo.
+ */
+describe('usePaintBrush — el giro de la textura', () => {
+  /** jsdom no trae `DOMMatrix` ni fotos que carguen: se ponen de mentira y se mira qué matriz llega. */
+  type Matriz = [number, number, number, number, number, number];
+  class FakeMatrix { constructor(public init: Matriz) {} }
+  /** Una foto APAISADA a propósito: con una cuadrada no se notaría si se escala antes o después de girar. */
+  class FakeImage { complete = true; naturalWidth = 120; naturalHeight = 60; crossOrigin = ''; src = ''; onload: (() => void) | null = null; }
+
+  const pintaCon = (tinta: PaintInk): Matriz => {
+    const setTransform = vi.fn();
+    vi.stubGlobal('DOMMatrix', FakeMatrix);
+    vi.stubGlobal('Image', FakeImage);
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+      const api = fakeContext();
+      api.createPattern = () => ({ setTransform });
+      return api as unknown as CanvasRenderingContext2D;
+    });
+    const { result } = mount();
+    // La primera pasada pide la foto (todavía no ha llegado: sale con el color); la segunda ya tiñe con ella.
+    act(() => result.current.paint({ x: 100, y: 100 }, { x: 140, y: 100 }, 30, tinta, stroke(), true));
+    act(() => result.current.paint({ x: 140, y: 100 }, { x: 180, y: 100 }, 30, tinta, stroke()));
+    expect(setTransform).toHaveBeenCalled();
+    return (setTransform.mock.calls.at(-1)![0] as FakeMatrix).init;
+  };
+  const losa = 'https://x/losa.png';
+
+  it('sin giro el patrón sólo se escala: va derecho', () => {
+    const [a, b, c, d] = pintaCon(ink({ textureUrl: losa }));
+    expect(a).toBeGreaterThan(0); expect(d).toBeGreaterThan(0);
+    expect(b).toBeCloseTo(0, 9); expect(c).toBeCloseTo(0, 9);
+  });
+
+  it('con giro el patrón gira, y girar no cambia el tamaño del azulejo', () => {
+    const [a0, , , d0] = pintaCon(ink({ textureUrl: losa }));
+    const [a, b, c, d] = pintaCon(ink({ textureUrl: losa, tileDeg: 90 }));
+    // Un cuarto de vuelta cruza los ejes y conserva la escala de cada uno: primero escala, luego gira.
+    expect(a).toBeCloseTo(0, 9); expect(d).toBeCloseTo(0, 9);
+    expect(b).toBeCloseTo(a0, 9); expect(c).toBeCloseTo(-d0, 9);
+  });
+});

@@ -735,6 +735,7 @@
       "delete": "Eliminar escena",
       "deleteConfirm": "¿Eliminar «{{name}}» con sus tokens, muros y trazos?",
       "menu": "Opciones de la escena",
+      "menuFor": "Opciones de «{{name}}»",
       "select": "Ver escena {{name}}",
       "collapse": "Plegar escenas",
       "expand": "Desplegar escenas"
@@ -848,6 +849,7 @@
       "affectsAll": "revelar u ocultar afecta a todos los jugadores",
       "revealAll": "Revelar todo",
       "hideAll": "Ocultar todo",
+      "resetConfirm": "Esto se lleva TODA la pintura que hayas puesto aquí. Lo de debajo no se toca, pero la pintura no vuelve.",
       "reveal": "Pincel revelar",
       "hide": "Pincel ocultar",
       "on": "Sobre qué",
@@ -933,7 +935,8 @@
       "scopeHint": "lo elegido es el límite: si se te va la mano, lo de al lado no se mancha",
       "footPaint": "Pintar NO cambia el mapa: ni por dónde se anda, ni qué se ve, ni la luz. Sólo cómo se ve.",
       "needsRock": "Este mapa todavía no tiene roca: levanta una habitación con el Builder y el muro aparece.",
-      "tileLabel": "Azulejo"
+      "tileLabel": "Escala",
+      "turnLabel": "Giro"
     },
     "fog": {
       "autoOn": "Niebla automática por visión · se abre sola al moverse las fichas; pulsa para manual",

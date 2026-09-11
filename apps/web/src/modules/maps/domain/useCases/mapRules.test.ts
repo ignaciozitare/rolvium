@@ -4,7 +4,7 @@ import type { Drawing } from '../entities/Scene';
 import { CHARACTER_KAREN, DRAWING_MINE, DRAWING_OTHER, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1 } from '../../../../../tests/helpers/fakes';
 import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
-  MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
+  MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneToOpen, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
   blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, DOOR_BAR_PX, TOKEN_SCALE, tokenSizeIn, tokensScaledIn, tokenAnchorShift, tokenPointStored, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, doorTexturesUsed, quadPoints, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
@@ -202,6 +202,22 @@ describe('mapRules — permissions & visibility', () => {
     expect(canEraseDrawing(DRAWING_OTHER, 'u-pip', false)).toBe(false);
     expect(canEraseDrawing(DRAWING_OTHER, 'dm', true)).toBe(true);
   });
+  /**
+   * ── AL RECARGAR, LA MISMA ESCENA (petición suya, 2026-09-10) ──
+   * Lo que él miraba manda sobre la escena ACTIVA de la mesa: son dos cosas distintas, y confundirlas es
+   * justo lo que le movía la vista al recargar.
+   */
+  it('sceneToOpen: sigue mirando · lo apuntado · la activa · la primera — y salta lo que ya no existe', () => {
+    const l = [SCENE_WAREHOUSE, SCENE_TUNNELS];
+    expect(sceneToOpen(l, 'sc-3', 'sc-1', 'sc-1')).toBe('sc-3');           // lo que ya miraba no se le toca
+    expect(sceneToOpen(l, null, 'sc-3', 'sc-1')).toBe('sc-3');             // recarga: vuelve a la suya, no a la activa
+    expect(sceneToOpen(l, null, null, 'sc-3')).toBe('sc-3');               // sin nada apuntado, la de la mesa
+    expect(sceneToOpen(l, null, null, null)).toBe('sc-1');                 // y si no, la primera
+    expect(sceneToOpen(l, 'sc-borrada', 'sc-3', 'sc-1')).toBe('sc-3');     // la que miraba ya no está
+    expect(sceneToOpen(l, null, 'sc-borrada', 'sc-1')).toBe('sc-1');       // lo apuntado ya no está
+    expect(sceneToOpen([], null, 'sc-1', 'sc-1')).toBe(null);              // sin escenas no hay nada que abrir
+  });
+
   it('sceneVisibleTo: DM always; players when flagged or active', () => {
     expect(sceneVisibleTo(SCENE_WAREHOUSE, null, true)).toBe(true);
     expect(sceneVisibleTo(SCENE_WAREHOUSE, null, false)).toBe(false);

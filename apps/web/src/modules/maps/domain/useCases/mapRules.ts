@@ -208,6 +208,25 @@ export function canEraseDrawing(d: Pick<Drawing, 'authorId'>, me: string | null,
 export function sceneVisibleTo(s: Pick<Scene, 'id' | 'visiblePlayers'>, activeSceneId: string | null, isDm: boolean): boolean {
   return isDm || s.visiblePlayers || s.id === activeSceneId;
 }
+/**
+ * QUÉ ESCENA SE ABRE cuando llega la lista (petición suya, 2026-09-10: «*si recargo debería caer en la misma
+ * vista o escena*»). En orden, y cada escalón sólo cuenta si esa escena sigue existiendo:
+ *
+ *  1. la que ya estaba mirando —la lista se recarga sola cada vez que cambia algo, y sin esto cualquier
+ *     cambio ajeno le movería la vista de debajo del ratón;
+ *  2. la ÚLTIMA QUE MIRÓ, apuntada en su navegador: es la que hace que recargar no le mueva de sitio;
+ *  3. la escena ACTIVA de la mesa, que es lo que ven los jugadores;
+ *  4. la primera de la lista.
+ *
+ * ⚠️ 2 va ANTES que 3 a propósito: son dos cosas distintas. La activa es de la partida y la mira todo el
+ * mundo; ésta es sólo dónde tiene el ojo él, y es justo lo que la recarga le estaba pisando.
+ */
+export function sceneToOpen(
+  scenes: Pick<Scene, 'id'>[], current: string | null, remembered: string | null, activeSceneId: string | null,
+): string | null {
+  const hay = (id: string | null): string | null => (id && scenes.some(s => s.id === id) ? id : null);
+  return hay(current) ?? hay(remembered) ?? hay(activeSceneId) ?? scenes[0]?.id ?? null;
+}
 /** Hidden tokens do not exist for players (RLS) — kept here so a stale cache never leaks them. */
 export function visibleTokens(tokens: Token[], isDm: boolean, playerView = false): Token[] {
   return isDm && !playerView ? tokens : tokens.filter(t => t.visible);

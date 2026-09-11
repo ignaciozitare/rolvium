@@ -11,8 +11,9 @@ import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { DoorSettings, ImageAsset, MapColor, Scene, ScenePatch, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
-import { brushRadius, canvasToScene, centerOn, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokensScaledIn, tokenAnchorShift, tokenPointStored, tokenSizeIn, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
-import { mapsRepo, visionPort } from '../container';
+import type { ViewMemoryPort } from '../domain/ports/ViewMemoryPort';
+import { brushRadius, canvasToScene, centerOn, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, sceneToOpen, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokensScaledIn, tokenAnchorShift, tokenPointStored, tokenSizeIn, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
+import { mapsRepo, viewMemory, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
 import { Toolbar } from './Toolbar';
@@ -89,6 +90,8 @@ interface Props {
   diceOpen?: boolean;
   repo?: MapsPort;
   vision?: VisionPort;
+  /** Dónde tenía puesto el ojo el director. Es una prop para que un test pueda darle una memoria de mentira. */
+  memory?: ViewMemoryPort;
 }
 
 /** Gold, the second swatch of the persisted stroke palette (mapRules.STROKE_COLORS). */
@@ -99,7 +102,7 @@ const AVISO_MS = 2600;
 const TILE_PREVIEW_MS = 1400;
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, canManageTextures: puedeOrdenarTexturas, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort }: Props): JSX.Element {
+export function SceneTab({ campaignId, role, userId, system, canManageTextures: puedeOrdenarTexturas, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort, memory = viewMemory }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -219,12 +222,17 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     let alive = true;
     setStatus('loading');
     if (isDm) {
-      void repo.listScenes(campaignId).then(l => { if (!alive) return; setScenes(l); setSelectedId(cur => cur && l.some(s => s.id === cur) ? cur : (l.find(s => s.id === activeSceneId)?.id ?? l[0]?.id ?? null)); setStatus('ready'); }).catch(() => { if (alive) setStatus('error'); });
+      void repo.listScenes(campaignId).then(l => { if (!alive) return; setScenes(l); setSelectedId(cur => sceneToOpen(l, cur, memory.lastScene(campaignId), activeSceneId)); setStatus('ready'); }).catch(() => { if (alive) setStatus('error'); });
     } else if (activeSceneId) {
       void repo.getScene(activeSceneId).then(s => { if (!alive) return; setPlayerScene(s); setStatus('ready'); }).catch(() => { if (alive) setStatus('error'); });
     } else { setPlayerScene(null); setStatus('ready'); }
     return () => { alive = false; };
-  }, [repo, campaignId, isDm, activeSceneId]);
+  }, [repo, campaignId, isDm, activeSceneId, memory]);
+  /**
+   * …Y SE APUNTA LO QUE MIRA, para que la recarga le devuelva aquí. Sólo el director: un jugador no elige
+   * escena, la suya la manda la mesa.
+   */
+  useEffect(() => { if (isDm && selectedId) memory.rememberScene(campaignId, selectedId); }, [isDm, selectedId, campaignId, memory]);
 
   const scene = isDm ? scenes?.find(s => s.id === selectedId) ?? null : playerScene;
   /**
@@ -270,6 +278,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * color — cambiarlo después no repinta lo ya pintado.
    */
   const [brushTile, setBrushTile] = useState<number | null>(null);
+  /** Cuántos grados se gira la textura del pincel. Como la escala: en vivo, sin guardar, cocido en el PNG. */
+  const [brushTileDeg, setBrushTileDeg] = useState(0);
   /** Mientras se mueve, el mapa entero se cubre con la textura a ese tamaño: es el previo que él pidió. */
   const [tocandoTile, setTocandoTile] = useState(false);
   const [brushColor, setBrushColor] = useState<string>(DEFAULT_BRUSH_COLOR);
@@ -576,7 +586,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
      * LA DEL PINCEL no toca la escena: se queda esperando al próximo brochazo, y va con él. Cambiarla
      * después no repinta lo ya pintado — cada forma se llevó la suya el día que se dibujó.
      */
-    if (texPicker === 'brush') { setBrushTexture(tex); setBrushTile(null); setTexPicker(null); return; }
+    if (texPicker === 'brush') { setBrushTexture(tex); setBrushTile(null); setBrushTileDeg(0); setTexPicker(null); return; }
     run(patchScene(live.id, texPicker === 'wall'
       ? { wallTextureUrl: tex.url, wallTextureScale: tex.tileCells }
       : { floorTextureUrl: tex.url, floorTextureScale: tex.tileCells }));
@@ -765,6 +775,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const tinta: PaintInk = {
     textureUrl: paintWith === 'texture' ? brushTexture?.url ?? null : null,
     tilePx: tilePx(azulejo, live?.grid.size ?? 27),
+    tileDeg: brushTileDeg,
     color: brushColor,
   };
   /** La pintura EN VIVO, ya dicho sobre qué cae: sin esto el brochazo no se vería hasta soltar el ratón. */
@@ -773,6 +784,35 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     : null;
   /** Sin habitaciones no hay suelo que pintar, y el pincel lo DICE en vez de quedarse mudo. */
   const faltaSuelo = onNow === 'room' && !suelo.length;
+  /**
+   * LA PUERTA RECIÉN PUESTA QUEDA COGIDA (petición suya, 2026-09-10: «*hoy dibujas la puerta y para tocarle
+   * las propiedades tienes que ir a Seleccionar y volver a pincharla*»). El panel del Builder ya enseña las
+   * propiedades de lo que esté cogido, así que sólo faltaba cogerlo.
+   *
+   * Vale para PUERTA Y VENTANA: es el mismo gesto y el mismo panel. Un muro corriente NO se coge — marcar
+   * pared es lo que más se repite, y quedarse cogido cada raya estorbaría en vez de ayudar.
+   *
+   * Y suelta lo que hubiera cogido antes: dos cosas cogidas a la vez dejarían el panel apuntando a una y la
+   * papelera a otra.
+   */
+  const cogerVano = (creado: { id: string } | null): void => {
+    if (!creado) return;
+    setSelectedWallId(null); setSelectedWallIds([]); setSelectedRoomOpeningId(creado.id);
+  };
+  const cogerMuro = (id: string): void => {
+    setSelectedRoomOpeningId(null); setSelectedWallIds([]); setSelectedWallId(id);
+  };
+  /**
+   * «RESTAURAR TODA», CON RED (suyo, 2026-09-10: «*es peligroso*»). Se lleva de una vez toda la pintura del
+   * destino elegido, y eso NO lo devuelve el Ctrl+Z —el historial apila pinceladas, no el borrado entero—,
+   * así que se pregunta antes. Lo de debajo sigue sin tocarse: nunca se tocó.
+   */
+  const confirmarReset = async (): Promise<void> => {
+    const ok = await dialog.confirm(t('maps.brush.resetConfirm'), {
+      title: t('maps.mask.reset'), danger: true, confirmLabel: t('maps.mask.reset'), cancelLabel: t('common.cancel'),
+    });
+    if (ok) run(actionNow === 'uncover' ? mask.reset() : paint.reset());
+  };
   /** Guarda en la escena lo que se acaba de mover. Un viaje por gesto, no uno por paso del deslizador. */
   const commitBrush = (patch: Partial<BrushSettings> = {}): void => {
     const next = { ...brushDraft, ...patch };
@@ -847,7 +887,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     if (!tocandoTile) return undefined;
     const id = window.setTimeout(() => setTocandoTile(false), TILE_PREVIEW_MS);
     return () => window.clearTimeout(id);
-  }, [tocandoTile, brushTile]);
+  }, [tocandoTile, brushTile, brushTileDeg]);
   /** El aviso de deshacer se retira solo: es una explicación de lo que acaba de pasar, no un estado. */
   useEffect(() => {
     if (!avisoDeshacer) return undefined;
@@ -942,7 +982,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                    */
                   const crudo = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, kind: buildKind, isOpen: false };
                   const vano = snapSpanToOutline(st.rooms, crudo, Math.max(live.grid.size / 2, wallWidthPx(live))) ?? crudo;
-                  run(st.addRoomOpening({ ...vano, ...(buildKind === 'door' ? doorDraft : {}) }));
+                  run(st.addRoomOpening({ ...vano, ...(buildKind === 'door' ? doorDraft : {}) }).then(cogerVano));
                 } else {
                   const tira = wallStripe(a, b, wallWidthPx(live), live.grid.size);
                   if (tira.length) run(st.addRoomShape('rect', tira, 'fill'));
@@ -954,7 +994,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               // It also inherits whether the players could see that wall: otherwise their plan grows a gap
               // exactly where the doorway is.
               const plan = planOpening(st.walls, a, b, wallKind);
-              run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind), ...(wallKind === 'door' ? doorDraft : {}) }, plan.splits));
+              run(st.addWall({ sceneId: live.id, campaignId, ...plan.opening, visiblePlayers: plan.splits[0]?.host.visiblePlayers ?? false, ...newWallOf(wallKind), ...(wallKind === 'door' ? doorDraft : {}) }, plan.splits)
+                .then(creado => { if (isOpeningKind(wallKind)) cogerMuro(creado.id); }));
             }}
             rooms={st.rooms} roomOpenings={st.roomOpenings} builderMode={builderMode} buildKind={buildKind}
             /* Con qué ancho sale la banda de «A pulso» (§ «Rebanada 10 · B»). */
@@ -981,7 +1022,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             maskLayerId={onNow === 'layer' ? bgLayer?.id ?? null : null}
             maskRoomId={paintRoom?.id ?? null} maskPreview={mask.preview}
             paintReady={!!paintTargetOf} paintPreview={paintPreview}
-            tilePreview={tocandoTile && brushTexture ? { url: brushTexture.url, sidePx: tilePx(azulejo, live.grid.size) } : null}
+            tilePreview={tocandoTile && brushTexture ? { url: brushTexture.url, sidePx: tilePx(azulejo, live.grid.size), deg: brushTileDeg } : null}
             onHoverRoom={setHoverRoomId}
             /*
              * ── UNA PULSACIÓN, DOS LIENZOS ── El lienzo sólo dice por dónde ha pasado la mano; aquí se
@@ -1102,8 +1143,9 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               ink={paintWith} onInk={setPaintWith}
               textureUrl={brushTexture?.url ?? null} textureName={brushTexture?.name ?? null}
               textureCells={azulejo} gridSize={live.grid.size}
-              onPickTexture={() => void pickTexture('brush')} onClearTexture={() => { setBrushTexture(null); setBrushTile(null); }}
+              onPickTexture={() => void pickTexture('brush')} onClearTexture={() => { setBrushTexture(null); setBrushTile(null); setBrushTileDeg(0); }}
               onTextureCells={n => { setBrushTile(n); setTocandoTile(true); }}
+              textureDeg={brushTileDeg} onTextureDeg={d => { setBrushTileDeg(d); setTocandoTile(true); }}
               color={brushColor} onColor={setBrushColor} savedColors={colors} onSaveColor={guardarColor}
               value={brush} onChange={patch => { setBrushDraft(d => ({ ...d, ...patch })); if (patch.tip !== undefined) commitBrush(patch); }}
               onCommit={() => commitBrush()}
@@ -1116,7 +1158,11 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                  * o borrando, la pintura. Uno u otro, nunca los dos — borrar de golpe algo que no se está
                  * tocando es exactamente lo que nadie espera de un botón.
                  */
-                : { onReset: () => run(actionNow === 'uncover' ? mask.reset() : paint.reset()) })} />
+                /*
+                  * ⚠️ Y PREGUNTA ANTES (suyo, 2026-09-10: «*es peligroso*»). Se lleva de golpe toda la pintura
+                  * de este destino y no hay vuelta atrás: el Ctrl+Z apila pinceladas, no el borrado entero.
+                  */
+                : { onReset: () => void confirmarReset() })} />
             {/* Sin sitio donde pintar el pincel quedaría MUDO, y eso se dice — no se deja adivinar. */}
             {onNow === 'layer' && !bgLayer && <p className="mp-mask-needs">{t('maps.mask.needsLayer')}</p>}
             {faltaSuelo && <p className="mp-mask-needs">{t('maps.brush.needsRoom')}</p>}
@@ -1140,6 +1186,13 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               onBuildKind={k => {
                 setTool('wall');
                 setBuildKind(k);
+                /*
+                 * Y SUELTA LO QUE HUBIERA COGIDO. Desde que una puerta recién puesta queda cogida (petición
+                 * suya del 2026-09-10), sin esto elegir «Ventana» dejaría el panel enseñando los ajustes de
+                 * la PUERTA anterior — leído como que estás configurando la ventana que vas a dibujar.
+                 * Aquí no se convierte nada: esto es sólo qué voy a levantar a continuación.
+                 */
+                setSelectedRoomOpeningId(null); setSelectedWallId(null); setSelectedWallIds([]);
                 // Si la forma que tenía elegida no puede levantar lo nuevo —una raya no hace una sala—, se
                 // cae sola a una que sí. Dejarla puesta sería prometer un gesto que no iba a hacer nada.
                 if (!shapesFor(k).includes(wallShape)) setWallShape(defaultShapeFor(k));
@@ -1149,8 +1202,14 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                 // Seleccionar activo tocabas «Puerta» y seguías seleccionando — «*es super anti intuitivo*»
                 // (dueño, 2026-09-04).
                 setTool('wall');
+                /*
+                 * Con un muro COGIDO estos botones dicen QUÉ ES ESE MURO y lo convierten. La mano se lleva el
+                 * mismo valor a propósito: si no, los botones enseñarían «ventana» (la del muro cogido) y el
+                 * siguiente trazo saldría puerta. Desde que la puerta recién puesta queda cogida eso se toca
+                 * a diario, y el desacuerdo se ve enseguida.
+                 */
+                setWallKind(k);
                 if (selectedWall) run(st.patchWall(selectedWall.id, { kind: k, ...WALL_FLAGS[k] }));
-                else setWallKind(k);
                 // Y lo mismo que con `buildKind`: un vano es un tramo recto, así que la forma se cae a una
                 // que sirva. Sin esto quedaba un «círculo» elegido para una puerta, que no hace nada.
                 // (Las tres clases de muro son también `BuildKind`, así que `k` vale tal cual.)

@@ -735,6 +735,7 @@
       "delete": "Delete scene",
       "deleteConfirm": "Delete “{{name}}” with its tokens, walls and strokes?",
       "menu": "Scene options",
+      "menuFor": "Options for “{{name}}”",
       "select": "View scene {{name}}",
       "collapse": "Collapse scenes",
       "expand": "Expand scenes"
@@ -848,6 +849,7 @@
       "affectsAll": "revealing or hiding affects every player",
       "revealAll": "Reveal all",
       "hideAll": "Hide all",
+      "resetConfirm": "This wipes ALL the paint you have put here. What is underneath stays, but the paint does not come back.",
       "reveal": "Reveal brush",
       "hide": "Hide brush",
       "on": "Paint on",
@@ -933,7 +935,8 @@
       "scopeHint": "what you pick is the limit: if your hand slips, the thing next to it stays clean",
       "footPaint": "Painting does NOT change the map: not where you walk, not what is seen, not the light. Only how it looks.",
       "needsRock": "This map has no rock yet: build a room with the Builder and the wall shows up.",
-      "tileLabel": "Tile"
+      "tileLabel": "Scale",
+      "turnLabel": "Rotation"
     },
     "fog": {
       "autoOn": "Automatic fog by line of sight · opens as tokens move; click for manual",
