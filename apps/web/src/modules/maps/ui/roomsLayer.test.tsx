@@ -352,6 +352,27 @@ describe('<RoomsLayer> — los vanos, anotados sobre el contorno', () => {
     mount([room('r1', 60, 60, 300, 300)], [suelta({ kind: 'window' })]);
     expect(vano('o2')).toHaveLength(0);
   });
+
+  /**
+   * 🐞 La que CIERRA UN PASO de pared a pared (2026-09-11) ya tapa y frena, pero se dibuja EXACTAMENTE igual:
+   * una vez y desde sus propias puntas, no desde el tramo alargado con el que tapa. Se compara con otra del
+   * mismo largo que flota en el suelo de otra sala, que es el dibujo de siempre.
+   */
+  it('una puerta que cierra un paso de pared a pared se pinta una vez, igual que antes', () => {
+    const largoDe = (id: string): number => {
+      const hoja = screen.getByTestId('mp-room-doors').querySelector(`[data-opening-id="${id}"] [data-leaf="0"]`)!;
+      const ys = hoja.getAttribute('points')!.split(' ').map(p => Number(p.split(',')[1]));
+      return Math.max(...ys) - Math.min(...ys);
+    };
+    mount([room('r1', 60, 60, 300, 300), room('r2', 400, 60, 700, 600)], [
+      // De la pared de arriba (y = 60) a la de abajo (y = 300), a 0,3 y 3 px como las suyas.
+      suelta({ id: 'o2', x1: 180, y1: 60.3, x2: 180, y2: 297 }),
+      // El mismo largo, en mitad del suelo de la otra sala: no toca pared.
+      suelta({ id: 'o3', x1: 550, y1: 150, x2: 550, y2: 386.7 }),
+    ]);
+    expect(vano('o2')).toHaveLength(1);
+    expect(largoDe('o2')).toBeCloseTo(largoDe('o3'), 3);
+  });
 });
 
 /**

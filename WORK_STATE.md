@@ -26,22 +26,114 @@ pasó por delante el 2026-09-11) → coger/mover/borrar una sala con el ratón (
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «PANELES COMUNES» (donde se retoma) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-11 — PANELES COMUNES EN @rolvium/ui: A MEDIAS · **AQUÍ SE RETOMA**
+## 🟢 2026-09-11 (tarde) — LAS PUERTAS QUE CIERRAN UN PASILLO: **ARREGLADO** · **AQUÍ SE RETOMA: EL ORDEN DE SUS 7 PETICIONES**
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`, pasar los paneles del
-> mapa a las piezas comunes de @rolvium/ui. Está a medias y commiteado como WIP.»
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. Las puertas ya están
+> arregladas; te digo si me funcionan y por cuál de mis 7 peticiones empezamos.»
+
+Retomado en chat nuevo (2026-09-11, tarde): condición del centro pegada, review APROBADO con dos cambios suyos, todo en
+verde y el WIP rehecho como commit `fix(core)` (rama sin subir). ⚠ `rolvium.pen` sigue modificado y **sin commitear a
+propósito**: sólo lo guarda él (ver «Pendiente de él»).
+
+### 🐞 Lo que vio él (2026-09-11, con captura de su escena «Dungeon»)
+«*¿por qué las puertas no funcionan? dejan pasar la visión y no colisionas con ellas*».
+
+### ✅ Causa CONFIRMADA con sus datos — no la rompió nada de hoy
+- Sus dos puertas (`maps_room_openings` `7d55a0b7…` y `06994250…`, escena `e4ccff48…`, cerradas, creadas 14:18 y
+  14:19) van **de una pared a la de enfrente, cruzando el pasillo**. `roomWalls` (`packages/core/src/rooms.ts`) sólo
+  anota un vano si sus dos puntas caen SOBRE el mismo lado del contorno → no salía ningún tramo → ni tapaba ni frenaba.
+  Se veía por el repesque de `roomsLayer.tsx` («las que no cayeron en el contorno se pintan igual», 2026-09-07).
+- Medido con un guion de sólo lectura sobre sus filas: 0 tramos de puerta; puntas a 0,33/2,70 px y 3,00/1,42 px de dos
+  lados DISTINTOS; el centro a ~40 px de cualquier lado, y en suelo (le cubren las formas 3 y 104, que excavan).
+- NO es el 🐞 del 09-09 (vanos pisados, arreglado en `b3fbc03`), ni el servidor (`/health` ok), ni «paredes sólidas»
+  (encendidas en esa escena).
+- El spec lo respalda: su encargo del 2026-09-07 «*las puertas se tienen que poner sobre un muro o un pasillo*» y la
+  regla «**Cerrada corta la vista y el paso. Abierta deja pasar las dos cosas.**» (`specs/modules/maps/SPEC.md` § «LAS
+  PUERTAS, DE VERDAD»).
+
+### 🔧 El arreglo — ✅ HECHO, REVISADO Y COMMITEADO (el WIP rehecho con `--amend` como `fix(core)`; la rama no estaba subida)
+Regla: una **PUERTA** que no cae sobre ningún lado, con **sus dos puntas a ≤ `GAP_REACH` (6 px) del contorno**, **el
+centro LEJOS del contorno (> 6 px)** y **el centro en SUELO** (manda la última forma que lo cubre, como al pintar), sale
+como tramo propio con `offOutline: true`, alargado 6 px por cada punta (sin rendija). Cerrada tapa y frena; abierta deja
+pasar. `roomsLayer` lo filtra (`!w.offOutline`): el DIBUJO no cambia. Con sus datos: sus dos puertas tapan y la del
+tabique fundido (a 20 px) sigue sin tapar.
+- Ficheros: `packages/core/src/rooms.ts` + `rooms.test.ts` (describe «la puerta que cierra un paso de pared a pared», 9
+  tests) · `roomsLayer.tsx` (el filtro) + `roomsLayer.test.tsx` · `apps/api/src/application/maps/rooms.vision.test.ts`.
+- **El subagente review APROBÓ con dos cambios suyos:**
+  - **Las VENTANAS quedan FUERA de la regla** (antes: «deja ver y no deja pasar»). Fuera del contorno una ventana NO se
+    dibuja (el repesque de `roomsLayer` es sólo de puertas) → habría sido un muro invisible en mitad del pasillo. Si él
+    quiere algún día ventanas cruzando un pasillo, primero hay que dibujarlas (pide `.pen`).
+  - **Una puerta TUMBADA a lo largo de una pared no cuenta** (su centro queda pegado al contorno): la que se pasaba unos
+    px de una esquina metía 10 px de puerta en la boca del pasillo de al lado (sólo en paredes de izquierda y arriba).
+- Consumidores mirados, sin cambios: api `sceneVision.ts` (visión, niebla, luces, mover fichas) y web `MapCanvas.tsx`
+  (arrastrar fichas) usan los tramos SIN filtrar → la puerta tapa y frena; sólo el dibujo filtra.
+- Pruebas: core ENTERO 98/98 · api `src/application/maps` 100/100 · web `roomsLayer` + `MapCanvas` 262/262 · typecheck
+  limpio · (el review, antes de sus dos cambios, que sólo estrechan la regla: web regression 1684/1684, smoke 12/12,
+  `build:web` + `build:api` OK).
+
+### 🚫 Deuda que vio el review y NO se tocó
+1. Puertas en DIAGONAL que se quedan cortas: el alargue va a lo largo de la puerta → rendija de 0,8 px a 45° y de 2 px a
+   30° (se cuela un hilo de vista; las fichas no pasan). Baja.
+2. Una puerta a MÁS de 6 px de la pared (corta o pasada) sigue sin tapar — el mismo síntoma que vio él. Si vuelve a
+   salir: regla «la puerta cruza el contorno», más robusta que `GAP_REACH`.
+3. Spec: `specs/modules/maps/SPEC.md:1754` dice «Una puerta va SIEMPRE sobre un muro… no se guarda y avisa» (el Builder
+   ya la guarda) y no cuenta esta regla → escribirla cuando esté en producción (ya apuntado abajo).
+4. Comentarios viejos con la regla «a 2 px de un lado»: `roomStyles.ts:244`, `roomsLayer.tsx:237`,
+   `roomsLayer.test.tsx:318`; y el comentario de «un vano se abre igual en un muro de relleno» contradice su `expect`.
+5. 🐞 viejo, no de hoy: una puerta a lo largo de una pared partida en dos trozos en línea (la corta la esquina de otra
+   forma) nunca abre hueco.
+
+### ⏭️ Siguiente, EN ORDEN
+1. ⏳ Que él **recargue con Cmd+Shift+R** su mesa `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`
+   (escena «Dungeon», campaña `254e5415…`) y pruebe sus dos puertas: cerradas no se ve ni se pasa; abiertas, sí.
+2. ⏳ Que diga **qué va primero** de sus 7 peticiones (abajo) — preguntado otra vez el 2026-09-11 (tarde), en texto
+   plano. ⚠ Si contesta «A y B», preguntar cuál primero. Pedirle la captura de la 6, que no llegó.
+
+### 📥 SUS 7 PETICIONES NUEVAS (2026-09-11, tarde) — SIN EMPEZAR · preguntado el orden, SIN respuesta
+Textuales suyas, con lo que se entendió:
+1. 🐞 «*Cuando dibujo una sala a pulso y hago que se crucen trazos quedan estas líneas cruzadas, eso no debería pasar*»
+   — captura: una banda de A pulso que se cruza consigo misma deja tramos de pared dentro del suelo. Sospecha: un anillo
+   que se corta a sí mismo en la unión de `roomOutline`. Sin diagnosticar.
+2. «*Quiero poder en a pulso elegir el trazo como en el pincel para que los bordes sean irregulares o como está ahora y
+   qué tan irregular lo quiero*» — la punta de A pulso (como la del Pincel: normal / borde roto + cuánto). Spec + `.pen`.
+3. «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas arrastrando*». Spec + `.pen`.
+4. «*el sobre una foto o dibujar aquí si lo cierro y lo abro tiene que quedar guardada la última elección que hice*» —
+   el modo del Builder se pierde al cerrar el panel. Preguntar dónde vale lo guardado (este navegador, la escena…).
+5. «*En la base del suelo y las paredes … tengo que poder rotar sus texturas*» — girar las dos texturas base del Builder,
+   como el giro de textura del Pincel. Toca `maps_scenes` (DBA) + `.pen`.
+6. «*cuando no hay textura no sé cuál es pared o piso, le pondría background y foreground*» — rótulos en las dos muestras
+   de textura base. ⚠ **Su tercera captura NO llegó**: pedírsela. Los nombres los puso él: no inventar otros.
+7. Para LOS OBJETOS (rebanada 6): «*cada uno al hacerle click derecho tienes que poder mandarlo adelante y atrás como en
+   cualquier programa … top layer, down layer etc*» — menú contextual: traer adelante / enviar atrás / al frente / al
+   fondo. **Meterlo en el spec de la rebanada 6** cuando se cierre.
+
+### ⏳ Pendiente de él (de hoy)
+- Ver los paneles: `~/Desktop/Rolvium-paneles-antes/` frente a `~/Desktop/Rolvium-paneles-despues/`. **Preguntado si le
+  vale** que en Luces los deslizadores ocupen la fila y el número salga más pequeño y más suave (la forma en fila del
+  Builder). El review vio además, sin tocarlos: los tipos de luz con icono y nombre CENTRADOS (antes a la izquierda); el
+  deslizador «Escala» del fondo pasa de negro a sangre, y su rótulo lleva más espaciado que «Desplazamiento X/Y».
+- `rolvium.pen` · lámina de Luces `o4oM8f` en sangre: **falta su Cmd+S**, y commitearlo.
+
+### 🚫 Visto y NO tocado (decidir aparte)
+- El lanzador de dados (`dice/ui/DiceRoller.tsx`) es un panel arrastrable hecho a mano y el audit no lo caza (anotado en
+  ARCHITECTURE § «Known architecture debt»).
+- `tests/functional/panel-primitives.test.tsx` no entra en `test:regression` (pre-merge); los tests de cada panel cubren
+  lo mismo. Moverlo a `tests/regression/` es un `git mv`.
+- Spec de maps: escribir la regla «la puerta que cierra un paso» cuando esté en producción.
+
+## ✅ 2026-09-11 — PANELES COMUNES EN @rolvium/ui: **HECHO Y COMMITEADO** (`29b8a75`, sobre el WIP `218dde4`)
 
 Él, 2026-09-11, a la propuesta 1 del bloque 🏛️: «*sí, pasa a la biblioteca común, deja esto ordenado y asegúrate de
-que esto no vuelva a pasar, no rompas nada*». Se cortó por el candado de contexto (6 MB), antes de tocar los paneles.
+que esto no vuelva a pasar, no rompas nada*». Los 7 pasos de abajo están HECHOS; se dejan como registro.
 
 ### Rama y estado
-- Rama **`refactor/ui-paneles-comunes`**, sacada de `feat/maps-pincel` (que sigue SIN QA ni merge). Commit WIP.
-- ⚠️ **La rama está en ROJO a propósito hasta terminar el paso 3**: `BuilderPanel.test` y `LightEditor.test` ya buscan
-  la cabecera por `.rv-fpanel-head`; `tests/functional/panel-primitives.test.tsx` importa piezas que aún no exporta
-  `packages/ui/src/index.ts`; y `npm run audit` da HARD en `ui-panels` (los deslizadores a mano y el `useDragPanel` local).
+- Rama **`refactor/ui-paneles-comunes`**, sacada de `feat/maps-pincel` (que sigue SIN QA ni merge). En VERDE: `npm test`
+  (web 111 ficheros / 1751 tests), typecheck, `build:web` + `build:api`, audit 0 graves (`ui-panels` 0 graves y 8 avisos;
+  el árbol de antes daba 13 graves), capturas antes/después comparadas y subagente review APROBADO.
+- Cambios de aspecto que no estaban en la lista (a su juicio, ver 🟢 «Pendiente de él»): Luces con deslizadores en fila.
 
 ### ✅ Hecho (en el commit WIP)
 - `packages/ui/src/components/`: `FloatingPanel.tsx` (`FloatingPanel`, `PanelIconButton`, `PanelSection`, `PanelHint`,

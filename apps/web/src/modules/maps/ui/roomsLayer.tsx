@@ -154,7 +154,12 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null,
    * número de hooks entre pintadas, que es lo que React no permite.
    */
   const excavado = dugRooms(rooms);
-  const walls = roomWallsOf(rooms, openings);
+  /**
+   * Lo que se PINTA es el contorno. Una puerta que cierra un paso de pared a pared (`offOutline`, 2026-09-11) ya
+   * tapa y frena —la visión y las colisiones lo leen de `roomWalls` directamente—, pero no es pared: se sigue
+   * dibujando abajo, donde él la puso, como hasta ahora y sin roca debajo.
+   */
+  const walls = roomWallsOf(rooms, openings).filter(w => !w.offOutline);
   if (excavado.length === 0) return null;
   const st = styleOf(scene.roomPreset);
   const width = wallWidthPx(scene);

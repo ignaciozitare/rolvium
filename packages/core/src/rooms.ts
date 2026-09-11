@@ -72,6 +72,11 @@ export interface RoomWall {
   isOpen: boolean;
   /** El vano del que salió este tramo, si salió de uno. La roca entre dos vanos no lleva ninguno. */
   openingId?: string;
+  /**
+   * Una PUERTA que NO cae sobre el contorno sino que CIERRA UN PASO, de una pared a la de enfrente (§ `roomWalls`).
+   * Tapa y frena como cualquier otra, pero no es un tramo de pared: quien dibuja el contorno no lo pinta como roca.
+   */
+  offOutline?: true;
 }
 
 /**
@@ -316,6 +321,8 @@ export function roomWalls(parts: readonly RoomPart[], openings: readonly RoomOpe
   if (openings.length === 0) return outline.map(seg => ({ seg, kind: 'wall' as const, isOpen: false }));
 
   const out: RoomWall[] = [];
+  /** Los vanos que cayeron SOBRE algún lado. Los demás se miran al final, por si cierran un paso. */
+  const sobreUnLado = new Set<RoomOpeningSpan>();
   for (const seg of outline) {
     const a = { x: seg[0], y: seg[1] }, b = { x: seg[2], y: seg[3] };
     /** Los tramos de este lado que un vano se lleva, en parámetro 0→1 y ya recortados al lado. */
@@ -326,7 +333,7 @@ export function roomWalls(parts: readonly RoomPart[], openings: readonly RoomOpe
       if (distToSegment(p, a, b) > ROOM_EPS * 4 || distToSegment(q, a, b) > ROOM_EPS * 4) continue;
       const t0 = Math.max(0, Math.min(paramOf(p, a, b), paramOf(q, a, b)));
       const t1 = Math.min(1, Math.max(paramOf(p, a, b), paramOf(q, a, b)));
-      if (t1 - t0 > 1e-6) spans.push({ t0, t1, o });
+      if (t1 - t0 > 1e-6) { spans.push({ t0, t1, o }); sobreUnLado.add(o); }
     }
     if (spans.length === 0) { out.push({ seg, kind: 'wall', isOpen: false }); continue; }
     spans.sort((x, y) => x.t0 - y.t0);
@@ -350,8 +357,54 @@ export function roomWalls(parts: readonly RoomPart[], openings: readonly RoomOpe
     }
     piece(cursor, 1, 'wall', false);
   }
+
+  /*
+   * 🐞 LA PUERTA QUE CIERRA UN PASO (suyo, 2026-09-11: «*dejan pasar la visión y no colisionas con ellas*»).
+   * Él la pone de una pared a la de enfrente, cruzando el pasillo —«*sobre un muro o un pasillo*», su encargo del
+   * 2026-09-07—, así que no cae SOBRE ningún lado y arriba no sale: se dibujaba, pero ni tapaba ni frenaba.
+   * Con sus DOS puntas apoyadas en la pared y el centro en el SUELO es un tramo propio: cerrada tapa y frena,
+   * abierta deja pasar, como cualquier puerta. Se alarga `GAP_REACH` por cada punta para que no quede una rendija
+   * entre ella y la pared.
+   *
+   * Una que flota en mitad del suelo —la del tabique fundido— no cierra nada y sigue sin tapar. Y una que atraviesa
+   * el GROSOR de un muro también va de pared a pared, pero por dentro de la roca: ahí no hay paso que cerrar (test
+   * «un vano se abre igual en un muro de relleno»).
+   *
+   * Dos más que tampoco cierran nada (revisión del 2026-09-11):
+   *  - Una TUMBADA A LO LARGO de una pared, con el centro pegado a ella: sus dos puntas también «se apoyan», pero no
+   *    cruza ningún paso. La que se pasaba unos px de la esquina metía un trozo de puerta en la boca del pasillo de
+   *    al lado, y sólo en las paredes de la izquierda y de arriba (`pointInRing` resuelve el borde por un lado).
+   *  - Una VENTANA: fuera del contorno no se dibuja —el repesque de `roomsLayer` es sólo de puertas— y frenar sin
+   *    verse sería un muro invisible en mitad del pasillo.
+   */
+  for (const o of openings) {
+    if (o.kind !== 'door' || sobreUnLado.has(o)) continue;
+    const p = { x: o.x1, y: o.y1 }, q = { x: o.x2, y: o.y2 };
+    const largo = Math.hypot(q.x - p.x, q.y - p.y);
+    if (largo <= ROOM_EPS) continue;
+    const apoyada = (pt: ScenePoint): boolean =>
+      outline.some(s => distToSegment(pt, { x: s[0], y: s[1] }, { x: s[2], y: s[3] }) <= GAP_REACH);
+    const centro = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+    if (!apoyada(p) || !apoyada(q) || apoyada(centro)) continue;
+    // ¿Suelo o roca? Manda la ÚLTIMA forma que cubre el centro, igual que al pintar; ninguna = roca.
+    let enSuelo = false;
+    for (const part of parts) if (pointInRing(centro, part.ring)) enSuelo = part.dig;
+    if (!enSuelo) continue;
+    const ux = ((q.x - p.x) / largo) * GAP_REACH, uy = ((q.y - p.y) / largo) * GAP_REACH;
+    out.push({
+      seg: [p.x - ux, p.y - uy, q.x + ux, q.y + uy], kind: o.kind, isOpen: o.isOpen, offOutline: true,
+      ...(o.id ? { openingId: o.id } : {}),
+    });
+  }
   return out;
 }
+
+/**
+ * Cuánto puede quedarse corta —o pasarse— la punta de una puerta que cierra un paso para contar como APOYADA en
+ * la pared, en px de escena. Las dos con las que él lo vio (2026-09-11) quedaban a 0,3 y a 3 px: con el candado
+ * abierto nada pega la punta a la pared, y la mano no es exacta. La del tabique fundido queda a 20 y sigue sin tapar.
+ */
+const GAP_REACH = ROOM_EPS * 12;
 
 /**
  * Lo que CORTA LA VISTA de un contorno. Mismo criterio que un muro de los de siempre, para que la niebla no

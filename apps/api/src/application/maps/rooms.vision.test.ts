@@ -97,6 +97,38 @@ describe('computeSceneVision — una sala tapa EXACTAMENTE igual que un muro mar
     expect(pointInPolygon({ x: 200, y: 148 }, r.data.vision[0]!)).toBe(false);
   });
 
+  /**
+   * 🐞 LA PUERTA QUE CIERRA UN PASILLO de pared a pared (suyo, 2026-09-11: «*dejan pasar la visión y no
+   * colisionas con ellas*»). No cae sobre ningún lado del contorno, y hasta hoy se dibujaba sin tapar nada.
+   * Un pasillo sale de la pared derecha de la sala, y la puerta lo cruza en x = 189, a 0,3 y 3 px de sus paredes.
+   */
+  describe('una puerta que cierra un pasillo de pared a pared', () => {
+    const PASILLO = { id: 'rm-2', kind: 'room' as const, points: [[135, 121.5], [243, 121.5], [243, 175.5], [135, 175.5]] as [number, number][] };
+    const PUERTA = { x1: 189, y1: 121.8, x2: 189, y2: 172.5, kind: 'door' as const, isOpen: false };
+    const conPuerta = (isOpen: boolean) => seed({ rooms: [ROOM, PASILLO], roomOpenings: [{ ...PUERTA, isOpen }] });
+    const vista = async (isOpen: boolean) => {
+      const r = await computeSceneVision({ maps: conPuerta(isOpen) }, { sceneId: SCENE, userId: PIP });
+      if (!r.ok) throw new Error('sin visión');
+      return r.data.vision[0]!;
+    };
+
+    it('cerrada, tapa lo que hay detrás; el trozo de pasillo de este lado se sigue viendo', async () => {
+      const poly = await vista(false);
+      expect(pointInPolygon({ x: 160, y: 148.5 }, poly)).toBe(true);
+      expect(pointInPolygon({ x: 220, y: 148.5 }, poly)).toBe(false);
+    });
+
+    it('abierta, se ve al otro lado', async () => {
+      expect(pointInPolygon({ x: 220, y: 148.5 }, await vista(true))).toBe(true);
+    });
+
+    it('cerrada frena a las fichas; abierta, no', async () => {
+      const cruza = (move: readonly (readonly number[])[]) => move.some(([x1, , x2]) => Math.abs(x1! - 189) < 1e-6 && Math.abs(x2! - 189) < 1e-6);
+      expect(cruza((await roomGeometry(conPuerta(false), SCENE)).move)).toBe(true);
+      expect(cruza((await roomGeometry(conPuerta(true), SCENE)).move)).toBe(false);
+    });
+  });
+
   it('una VENTANA de sala deja ver, como la de siempre', async () => {
     const maps = seed({ roomOpenings: [{ x1: 135, y1: 108, x2: 135, y2: 189, kind: 'window', isOpen: false }] });
     const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });

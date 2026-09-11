@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BlockSegment, ScenePoint } from './maps';
-import { digs, fills, orientRing, pointInRing, roomMoveSegments, roomOutline, roomSightSegments, roomWalls, type RoomRing } from './rooms';
+import { digs, fills, orientRing, pointInRing, roomMoveSegments, roomOutline, roomSightSegments, roomWalls, type RoomOpeningSpan, type RoomRing } from './rooms';
 
 /**
  * EL MOTOR DE UNIÓN DE LAS SALAS (specs/modules/maps/SPEC.md § «Cómo se levanta una sala»).
@@ -210,6 +210,81 @@ describe('roomWalls — los vanos se anotan SOBRE el contorno (no parten ninguna
     const walls = roomWalls(digs(rect(0, 0, 300, 60)), [opening]);
     expect(walls.filter(w => w.kind === 'door')).toHaveLength(1);
     expect(perimeter(roomSightSegments(walls))).toBeCloseTo(2 * (300 + 60) - 20, 6);
+  });
+});
+
+/**
+ * 🐞 LA PUERTA QUE CIERRA UN PASO (suyo, 2026-09-11: «*dejan pasar la visión y no colisionas con ellas*»).
+ * Puesta de una pared a la de enfrente, cruzando el pasillo, no cae SOBRE ningún lado del contorno, y hasta hoy
+ * se dibujaba sin tapar nada. Las suyas quedaban a 0,3 y a 3 px de la pared: aquí igual.
+ */
+describe('roomWalls — la puerta que cierra un paso de pared a pared', () => {
+  const pasillo = rect(0, 0, 200, 30);
+  const cruzando = (over: Partial<RoomOpeningSpan> = {}): RoomOpeningSpan =>
+    ({ id: 'o1', x1: 100, y1: 0.3, x2: 100, y2: 27, kind: 'door', isOpen: false, ...over });
+
+  it('cerrada, tapa la vista y frena a las fichas de pared a pared, sin rendija', () => {
+    const walls = roomWalls(digs(pasillo), [cruzando()]);
+    const puerta = walls.filter(w => w.openingId === 'o1');
+    expect(puerta).toHaveLength(1);
+    expect(puerta[0]!.offOutline).toBe(true);
+    expect(roomSightSegments(walls)).toContainEqual(puerta[0]!.seg);
+    expect(roomMoveSegments(walls)).toContainEqual(puerta[0]!.seg);
+    // Llega a las dos paredes y se mete en ellas: por una rendija de 0,3 px también se cuela la vista.
+    const [, y1, , y2] = puerta[0]!.seg;
+    expect(Math.min(y1, y2)).toBeLessThan(0);
+    expect(Math.max(y1, y2)).toBeGreaterThan(30);
+  });
+
+  it('abierta, deja pasar la vista y a las fichas', () => {
+    const sinPuerta = roomWalls(digs(pasillo));
+    const walls = roomWalls(digs(pasillo), [cruzando({ isOpen: true })]);
+    expect(roomSightSegments(walls)).toEqual(roomSightSegments(sinPuerta));
+    expect(roomMoveSegments(walls)).toEqual(roomMoveSegments(sinPuerta));
+  });
+
+  // Fuera del contorno una ventana no se dibuja (el repesque de `roomsLayer` es sólo de puertas): si frenara, sería
+  // un muro invisible en mitad del pasillo.
+  it('una ventana de pared a pared no se dibuja, así que tampoco frena ni tapa', () => {
+    const sinVentana = roomWalls(digs(pasillo));
+    const walls = roomWalls(digs(pasillo), [cruzando({ kind: 'window' })]);
+    expect(walls.some(w => w.openingId === 'o1')).toBe(false);
+    expect(roomMoveSegments(walls)).toEqual(roomMoveSegments(sinVentana));
+    expect(roomSightSegments(walls)).toEqual(roomSightSegments(sinVentana));
+  });
+
+  it('la pared no cambia: el contorno sigue midiendo lo mismo y no se parte por la puerta', () => {
+    const pared = roomWalls(digs(pasillo), [cruzando()]).filter(w => !w.offOutline);
+    expect(pared.every(w => w.kind === 'wall')).toBe(true);
+    expect(perimeter(pared.map(w => w.seg))).toBeCloseTo(460, 6);
+  });
+
+  it('una que flota en mitad del suelo, sin tocar pared, no cierra nada y no tapa', () => {
+    const walls = roomWalls(digs(rect(0, 0, 200, 100)), [cruzando({ y1: 30, y2: 60 })]);
+    expect(walls.some(w => w.openingId === 'o1')).toBe(false);
+  });
+
+  it('una cerrada que atraviesa el GROSOR de un muro de relleno va por dentro de la roca: no cierra nada', () => {
+    const walls = roomWalls([...digs(rect(0, 0, 200, 100)), ...fills(rect(90, 0, 110, 100))], [cruzando({ x1: 90, y1: 30, x2: 110, y2: 30 })]);
+    expect(walls.some(w => w.offOutline)).toBe(false);
+  });
+
+  /**
+   * Tumbada a lo largo de una pared y pasándose 4 px de la esquina, junto a la boca de un pasillo: no cruza ningún
+   * paso. Sin la regla del centro, en la pared de la IZQUIERDA metía 10 px de puerta en la boca y en la de la
+   * derecha no — `pointInRing` resuelve el borde por un solo lado.
+   */
+  it('una tumbada a lo largo de la pared no mete un trozo de puerta en la boca del pasillo de al lado, en ninguna pared', () => {
+    for (const x of [100, 300]) {
+      const pasilloAlLado = x === 100 ? rect(0, 80, 100, 120) : rect(300, 80, 400, 120);
+      const walls = roomWalls(digs(rect(100, 0, 300, 200), pasilloAlLado), [cruzando({ x1: x, y1: 40, x2: x, y2: 84 })]);
+      expect(walls.some(w => w.offOutline)).toBe(false);
+    }
+  });
+
+  it('la que cierra la BOCA del pasillo, apoyada en la pared de arriba y en la de abajo, sí tapa', () => {
+    const walls = roomWalls(digs(rect(100, 0, 300, 200), rect(0, 80, 100, 120)), [cruzando({ x1: 100, y1: 78, x2: 100, y2: 122 })]);
+    expect(walls.filter(w => w.offOutline)).toHaveLength(1);
   });
 });
 
