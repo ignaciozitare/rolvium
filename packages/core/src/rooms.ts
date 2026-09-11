@@ -162,20 +162,27 @@ function paramOf(p: ScenePoint, a: ScenePoint, b: ScenePoint): number {
 }
 
 /**
- * ¿Está `p` DENTRO del anillo? Rayo horizontal y cuenta de cruces, el de toda la vida.
+ * ¿Está `p` DENTRO del anillo? Rayo horizontal, y se cuentan las VUELTAS que da el anillo alrededor del punto.
+ *
+ * 🐞 Antes contaba cruces —par o impar— y así NO pinta SVG, que rellena cada forma por vueltas (su regla de
+ * serie). En un anillo normal da igual: cero vueltas o una. Pero un trazo «A pulso» que se CRUZA consigo mismo
+ * da DOS vueltas sobre el cruce: SVG lo pintaba de suelo, aquí salía roca, y alrededor del cruce quedaban muros
+ * dentro del suelo (suyo, 2026-09-11: «*quedan estas líneas cruzadas, eso no debería pasar*»). Se contesta como
+ * se pinta.
  *
  * Devuelve `false` para un punto que esté justo ENCIMA del borde, y eso es a propósito: sobre el borde la
  * cuenta de cruces es una moneda al aire —depende de qué lado del vértice caiga el rayo— y quien pregunta ya
  * ha comprobado antes que el punto no roza el contorno. Aquí sólo se contesta lo que está claramente dentro.
  */
 export function pointInRing(p: ScenePoint, ring: RoomRing): boolean {
-  let inside = false;
+  let vueltas = 0;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const a = ring[i]!, b = ring[j]!;
     const crosses = (a.y > p.y) !== (b.y > p.y);
-    if (crosses && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+    // El lado va de `b` a `a`: según hacia dónde cruce el rayo, suma una vuelta o la resta.
+    if (crosses && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) vueltas += a.y > b.y ? 1 : -1;
   }
-  return inside;
+  return vueltas !== 0;
 }
 
 /** ¿Roza `p` el contorno del anillo? Es la pregunta que hace estable a `pointInRing`. */
@@ -193,12 +200,16 @@ function onRing(p: ScenePoint, ring: RoomRing, eps = ROOM_EPS): boolean {
  * un VÉRTICE de otra forma (dos salas que se tocan sin cruzarse, o una esquina apoyada en mitad de una
  * pared). Sin el segundo, dos rectángulos pegados por una cara no se parten por los extremos de la cara
  * compartida y el paso 3 no puede reconocer que ese tramo está repetido — el tabique se quedaría puesto.
+ *
+ * 🐞 Y donde lo cruza un lado de la MISMA forma: un trazo «A pulso» que se cruza consigo mismo (2026-09-11).
+ * Sin partir ahí, un lado que entra en el cruce es de muro por una punta y de suelo por la otra, y el paso 2 lo
+ * juzga entero por su punto medio: se quedaba un trozo de muro dentro del suelo.
  */
 function cutPoints(edge: Edge, others: readonly Edge[]): number[] {
   const ts: number[] = [0, 1];
   const push = (t: number): void => { if (t > 1e-9 && t < 1 - 1e-9) ts.push(t); };
   for (const o of others) {
-    if (o.ring === edge.ring) continue;
+    if (o === edge) continue;
     // Cruce propio de dos rectas.
     const d1x = edge.b.x - edge.a.x, d1y = edge.b.y - edge.a.y;
     const d2x = o.b.x - o.a.x, d2y = o.b.y - o.a.y;
@@ -209,6 +220,8 @@ function cutPoints(edge: Edge, others: readonly Edge[]): number[] {
       const u = (ex * d1y - ey * d1x) / den;
       if (u >= -1e-9 && u <= 1 + 1e-9) push(t);
     }
+    // De la misma forma sólo cuenta el cruce: sus vértices los comparten los lados vecinos, y eso no parte nada.
+    if (o.ring === edge.ring) continue;
     // Vértices del otro lado que se apoyan en éste (incluye el caso colineal, que es el del tabique).
     for (const p of [o.a, o.b]) {
       if (distToSegment(p, edge.a, edge.b) <= ROOM_EPS) push(paramOf(p, edge.a, edge.b));

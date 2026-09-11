@@ -298,6 +298,34 @@ describe('pointInRing', () => {
 });
 
 /**
+ * 🐞 ── LA FORMA QUE SE CRUZA CONSIGO MISMA (suyo, 2026-09-11) ──
+ *
+ * «*Cuando dibujo una sala a pulso y hago que se crucen trazos quedan estas líneas cruzadas, eso no debería
+ * pasar*». Un trazo que se cruza da DOS vueltas sobre el cruce. SVG lo pinta de suelo —rellena por vueltas— y el
+ * motor contaba cruces: salía roca, y alrededor del cruce quedaban muros dentro del suelo.
+ *
+ * La estrella de cinco puntas trazada de un tirón es el caso de libro: el pentágono del centro da dos vueltas.
+ */
+describe('una forma que se cruza consigo misma — se calcula como se pinta', () => {
+  const C = { x: 100, y: 100 };
+  const punta = (k: number) => ({ x: C.x + 80 * Math.cos(-Math.PI / 2 + (2 * Math.PI * k) / 5), y: C.y + 80 * Math.sin(-Math.PI / 2 + (2 * Math.PI * k) / 5) });
+  const estrella: RoomRing = [0, 2, 4, 1, 3].map(punta);
+
+  it('el centro, con dos vueltas, está DENTRO; una punta, con una, también', () => {
+    expect(pointInRing(C, estrella)).toBe(true);
+    expect(pointInRing({ x: C.x, y: C.y - 60 }, estrella)).toBe(true);
+    expect(pointInRing({ x: C.x + 70, y: C.y + 70 }, estrella)).toBe(false);
+  });
+
+  it('el muro es sólo la silueta de fuera: ni un tramo toca el pentágono del centro', () => {
+    const out = roomOutline(digs(estrella));
+    // Cada lado se parte por sus dos cruces: las dos puntas son muro y el trozo del medio es suelo con suelo.
+    expect(out).toHaveLength(10);
+    for (const [x1, y1, x2, y2] of out) expect(Math.hypot((x1 + x2) / 2 - C.x, (y1 + y2) / 2 - C.y)).toBeGreaterThan(35);
+  });
+});
+
+/**
  * ── LOS MUROS SON RELLENO ──
  *
  * Suyo, 2026-09-04, probando el constructor: «*así como genero habitaciones necesito generar muros para

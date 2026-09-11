@@ -89,14 +89,42 @@ tabique fundido (a 20 px) sigue sin tapar.
 ### ⏭️ Siguiente, EN ORDEN
 1. ⏳ Que él **recargue con Cmd+Shift+R** su mesa `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`
    (escena «Dungeon», campaña `254e5415…`) y pruebe sus dos puertas: cerradas no se ve ni se pasa; abiertas, sí.
-2. ⏳ Que diga **qué va primero** de sus 7 peticiones (abajo) — preguntado otra vez el 2026-09-11 (tarde), en texto
-   plano. ⚠ Si contesta «A y B», preguntar cuál primero. Pedirle la captura de la 6, que no llegó.
+2. ✅ Contestado (2026-09-11, tarde): «*en ese orden*» → **de la 1 a la 7, tal cual están numeradas abajo**. La captura
+   de la 6 sigue sin llegar: pedírsela al llegar a la 6.
 
-### 📥 SUS 7 PETICIONES NUEVAS (2026-09-11, tarde) — SIN EMPEZAR · preguntado el orden, SIN respuesta
+### 📥 SUS 7 PETICIONES NUEVAS (2026-09-11, tarde) — **ORDEN: 1 → 7, el de la lista** (suyo: «*en ese orden*»)
 Textuales suyas, con lo que se entendió:
 1. 🐞 «*Cuando dibujo una sala a pulso y hago que se crucen trazos quedan estas líneas cruzadas, eso no debería pasar*»
-   — captura: una banda de A pulso que se cruza consigo misma deja tramos de pared dentro del suelo. Sospecha: un anillo
-   que se corta a sí mismo en la unión de `roomOutline`. Sin diagnosticar.
+   — **✅ ARREGLADA, REVISADA (review APROBADO) Y COMMITEADA** (`fix(core): el trazo a pulso que se cruza consigo mismo…`).
+   ⏳ Falta que él recargue con Cmd+Shift+R y lo pruebe en su mesa. **Siguiente: la 2** (spec + `.pen`).
+   - **Causa confirmada**: «A pulso» es la BANDA (`brushRings`). Un lazo de giros suaves no se parte, así que el cruce
+     queda dentro de UN anillo con DOS vueltas encima. SVG pinta por vueltas (nonzero) → suelo; `pointInRing` contaba
+     cruces (par/impar) → roca, y `cutPoints` no partía un lado por los cruces de su MISMA forma → muros dentro del
+     suelo, que además tapan y frenan. Las salas cerradas a mano (`freehandSides`) nunca fallaron. Medido: lazos de
+     prueba 7–28 muros dentro del suelo; su «Dungeon» (109 formas, 16 trazos que se cruzan) 41 trozos / 1050 px.
+   - **Arreglo (core, `rooms.ts`)**: `pointInRing` cuenta VUELTAS, como pinta SVG (en un anillo normal da lo mismo) ·
+     `cutPoints` parte también por los cruces con lados de la misma forma (sólo cruces, no vértices). Sus trazos ya
+     guardados se arreglan solos: el contorno se calcula al vuelo.
+   - Tras el arreglo: lazos de prueba 0 · su «Dungeon» 9 trocitos (27 px, de 0,6 a 8,7 px) que bordean rendijas de
+     roca de < 1,5 px que TAMBIÉN se pintan (mirando a ±0,6 px: 0).
+   - Tests: core `rooms.test.ts` «una forma que se cruza consigo misma» (estrella de cinco puntas, 2) · web
+     `roomRules.test.ts` «un trazo que se cruza consigo mismo no deja muros dentro del suelo» (oráculo propio por
+     vueltas). Los dos FALLAN con el motor de antes (comprobado, y el review lo repitió por su cuenta).
+   - Comentario de `SPLIT_ANGLE` (y el de su test) **reescrito por el review**: contando vueltas, un codo sin partir ya
+     NO deja agujero; se sigue partiendo porque la unión RECTA del lado de fuera se come la punta y el codo sale chato.
+   - **El review vio que arregla más de lo pedido, y bien**: en CADA curva de un trazo normal el lado de dentro se
+     cruza consigo mismo; quedaban muros sueltos dentro del suelo (zigzag a 60°, ancho 2: 4 trozos / 120 px → 0) y
+     agujeros calculados en una media vuelta ancha (5.000–30.000 px² → 0) — puede que parte de lo que él vio fuera
+     esto. Formas simples (300 escenas al azar): salida IDÉNTICA. Puertas sobre un trazo doblado: 10/10 siguen.
+     Efecto menor: con pincel muy estrecho salen trocitos de ~1 px en las esquinas de dentro (74 → 96 tramos, mismo
+     largo, ninguno dentro del suelo). Coste: 71,9 → 74,3 ms en 90 formas.
+   - Verde (review): core entero 100/100 · web `src/modules/maps` 1183/1183 · web `test:regression` 1685/1685 · api
+     `src/application/maps` 100/100 · `build:web` + `build:api` · typecheck.
+   - 🚫 Deuda vista y NO tocada: spec maps `SPEC.md:2014-2015` da el motivo viejo de partir el codo · `onRing`
+     (`rooms.ts`) no lo llama nadie y el doc de `pointInRing` dice que quien pregunta lo mira antes · comentarios
+     viejos en `orientRing` (`rooms.ts`) y `roomStyles.ts:180` · `roomOutline` compara todo con todo, sin caja previa
+     (~240 ms en su escena, y el api lo recalcula en cada petición de visión) · una puerta que cruza un corte en mitad
+     de un lado se pierde (ya anotado en el 🔧 de las puertas).
 2. «*Quiero poder en a pulso elegir el trazo como en el pincel para que los bordes sean irregulares o como está ahora y
    qué tan irregular lo quiero*» — la punta de A pulso (como la del Pincel: normal / borde roto + cuánto). Spec + `.pen`.
 3. «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas arrastrando*». Spec + `.pen`.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { BRUSH_COLORS, BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, brushColorName, brushRings, BUILDER_MODES, DEFAULT_BRUSH_COLOR, isHexColor, shapesFor, circleSegments, freehandSides, isClosed, isDragShape, isLineShape, isPathShape, lineSide, MIN_FILL_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, ROOM_KINDS, ROOM_SHAPES, simplifyRing, wallStripe } from './roomRules';
-import { pointInRing } from '@rolvium/core';
+import { digs, pointInRing, roomOutline } from '@rolvium/core';
 
 /**
  * 🏗 EL MOTOR DE LAS HABITACIONES RÁPIDAS (§ «Rebanada 8»). Sólo geometría: la pantalla no existe todavía
@@ -421,10 +421,10 @@ describe('brushRings — el trazo se convierte en forma', () => {
   });
 
   /**
-   * 🔑 EL CODO CERRADO SE PARTE, y es lo único no obvio de toda la rebanada. En un giro más cerrado que el
-   * ancho del pincel, el lado de dentro se cruzaría consigo mismo y `pointInRing` —que cuenta cruces— sacaría
-   * un AGUJERO de roca en medio del brochazo. Partiendo salen dos piezas que se solapan en el codo, y
-   * fundirse al solaparse ya lo hace el motor de salas.
+   * 🔑 EL CODO CERRADO SE PARTE, y es lo único no obvio de toda la rebanada. Sin partir, el anillo une los dos
+   * lados de FUERA del giro con una recta, y en un giro más cerrado que un ángulo recto esa recta se come la punta
+   * del codo: pared donde tendría que haber suelo. Partiendo salen dos piezas con su punta redonda que se solapan
+   * en el codo, y fundirse al solaparse ya lo hace el motor de salas.
    */
   it('un codo cerrado sale en dos piezas, no en un anillo que se cruza', () => {
     const enV = [{ x: 300, y: 60 }, { x: 300, y: 300 }, { x: 320, y: 60 }];
@@ -440,6 +440,39 @@ describe('brushRings — el trazo se convierte en forma', () => {
     // El vértice del codo cae dentro de las dos: por ahí se cosen.
     expect(pointInRing({ x: 300, y: 300 }, pts(a!))).toBe(true);
     expect(pointInRing({ x: 300, y: 300 }, pts(b!))).toBe(true);
+  });
+
+  /**
+   * 🐞 EL TRAZO QUE SE CRUZA CONSIGO MISMO (suyo, 2026-09-11: «*hago que se crucen trazos, quedan estas líneas
+   * cruzadas*»). Un lazo de giros suaves no se parte, así que el cruce queda dentro de UN anillo, con dos vueltas
+   * encima. SVG lo pinta de suelo, y el motor tiene que verlo igual: ni un tramo de muro con suelo a los dos lados.
+   * El «¿es suelo?» se cuenta aquí a mano, por vueltas como SVG, para que el test no se dé la razón a sí mismo.
+   */
+  it('un trazo que se cruza consigo mismo no deja muros dentro del suelo', () => {
+    const lazo = Array.from({ length: 240 }, (_, i) => {
+      const t = -1.6 + (3.2 * i) / 239;
+      return { x: 400 + 200 * (t * t - 1), y: 350 + 200 * (t * t * t - t) };
+    });
+    const rings = brushRings(lazo, 2, G).map(r => pts(r));
+    expect(rings).toHaveLength(1);
+    const vueltas = (p: { x: number; y: number }, ring: { x: number; y: number }[]) => {
+      let w = 0;
+      for (let i = 0; i < ring.length; i++) {
+        const a = ring[i]!, b = ring[(i + 1) % ring.length]!;
+        const lado = (b.x - a.x) * (p.y - a.y) - (p.x - a.x) * (b.y - a.y);
+        if (a.y <= p.y && b.y > p.y && lado > 0) w++;
+        else if (a.y > p.y && b.y <= p.y && lado < 0) w--;
+      }
+      return w;
+    };
+    const suelo = (p: { x: number; y: number }) => rings.some(r => vueltas(p, r) !== 0);
+    const muros = roomOutline(digs(...rings));
+    expect(muros.length).toBeGreaterThan(0);
+    for (const [x1, y1, x2, y2] of muros) {
+      const len = Math.hypot(x2 - x1, y2 - y1);
+      const nx = (-(y2 - y1) / len) * 2, ny = ((x2 - x1) / len) * 2, mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+      expect(suelo({ x: mx + nx, y: my + ny }) && suelo({ x: mx - nx, y: my - ny })).toBe(false);
+    }
   });
 
   /**

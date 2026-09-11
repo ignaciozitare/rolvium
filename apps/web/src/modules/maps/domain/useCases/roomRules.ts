@@ -401,12 +401,18 @@ const CAP_STEPS = 8;
  * A PARTIR DE QUÉ GIRO SE PARTE EL BROCHAZO EN DOS PIEZAS.
  *
  * 🔑 Y por qué se parte, que es lo único no obvio de todo esto. Un brochazo se guarda como UN anillo: el
- * trazo engordado a un lado y al otro. En un giro más cerrado que el propio ancho del pincel, el lado de
- * DENTRO se cruza consigo mismo, y `pointInRing` cuenta cruces —par o impar—, así que ese cruce sale como un
- * AGUJERO de roca dentro del brochazo. Un lunar de pared en medio de un pasillo, que se lee como un fallo.
+ * trazo engordado a un lado y al otro. En cada giro, los dos tramos del lado de FUERA se unen con una RECTA, no
+ * con un arco, y esa recta se come la esquina redonda del trazo. En un giro suave apenas muerde; en uno más
+ * cerrado que un ángulo recto se come la punta entera —en una horquilla pasa a un par de px del camino— y el
+ * codo sale cortado en plano, pintado y calculado: pared donde tendría que haber suelo.
  *
- * Partir en la esquina lo evita sin ninguna geometría fina: salen dos piezas que se solapan en el codo, y
- * fundirse al solaparse es exactamente lo que el motor de salas ya hace desde la rebanada 8.
+ * El lado de DENTRO no da guerra: ahí el anillo se cruza consigo mismo, pero las vueltas se SUMAN y es suelo,
+ * igual que cuando el trazo se cruza con otro tramo suyo. (Hasta el 2026-09-11 salía además un AGUJERO de roca
+ * en ese cruce, porque `pointInRing` contaba cruces —par o impar— en vez de vueltas.)
+ *
+ * Partir en la esquina lo evita sin ninguna geometría fina: salen dos piezas, cada una con su punta redonda,
+ * que se solapan en el codo, y fundirse al solaparse es exactamente lo que el motor de salas ya hace desde la
+ * rebanada 8.
  */
 const SPLIT_ANGLE = Math.PI / 2;
 
