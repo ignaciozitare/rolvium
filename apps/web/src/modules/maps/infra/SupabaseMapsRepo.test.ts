@@ -866,6 +866,37 @@ describe('el pincel de la escena y la máscara de la sala (rebanada 9)', () => {
 });
 
 /**
+ * LA PUNTA DE «A PULSO» DE LA ESCENA (§ 10B.4). Lo mismo que el pincel, y por lo mismo: una escena escrita ANTES
+ * de la migración tiene que dibujar exactamente como dibujaba —canto limpio—, y un valor que no existe no puede
+ * llegar al trazo.
+ */
+describe('la punta de «A pulso» de la escena (rebanada 10 B)', () => {
+  it('una escena SIN las columnas dibuja con canto limpio, como siempre', () => {
+    expect(mapSceneRow(SCENE_ROW)).toMatchObject({ bandTip: 'clean', bandRoughness: 0.5 });
+  });
+
+  it('cuando vienen, se leen — y van APARTE de las del pincel', () => {
+    const escena = mapSceneRow({ ...SCENE_ROW, band_tip: 'rough', band_roughness: 0.8, brush_tip: 'disc', brush_roughness: 0.1 });
+    expect(escena).toMatchObject({ bandTip: 'rough', bandRoughness: 0.8, brushTip: 'disc', brushRoughness: 0.1 });
+  });
+
+  it('una punta desconocida cae en canto limpio, y un «cuánto» imposible se recorta', () => {
+    expect(mapSceneRow({ ...SCENE_ROW, band_tip: 'difuminado' }).bandTip).toBe('clean');
+    expect(mapSceneRow({ ...SCENE_ROW, band_roughness: 7 }).bandRoughness).toBe(1);
+    expect(mapSceneRow({ ...SCENE_ROW, band_roughness: -2 }).bandRoughness).toBe(0);
+  });
+
+  it('se guarda EN LA ESCENA, recortado al escribir para que la base no rechace el parche entero', async () => {
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateScene('sc-1', { bandTip: 'rough', bandRoughness: 9 });
+    expect(q(m)['update']).toHaveBeenCalledWith(expect.objectContaining({ band_tip: 'rough', band_roughness: 1 }));
+    // Y no toca el pincel: van aparte.
+    expect(q(m)['update']).not.toHaveBeenCalledWith(expect.objectContaining({ brush_tip: expect.anything() }));
+  });
+});
+
+/**
  * ── LOS COLORES GUARDADOS DE LA CAMPAÑA (§ «Rebanada 10») ──
  *
  * Los que él mezcla con el cuentagotas o escribe a mano. Por CAMPAÑA, como la biblioteca de fondos y por lo

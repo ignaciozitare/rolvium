@@ -15,6 +15,13 @@ export interface GridSettings { size: number; visible: boolean }
 export type BrushTip = 'disc' | 'soft' | 'rough';
 export const BRUSH_TIPS: BrushTip[] = ['disc', 'soft', 'rough'];
 
+/**
+ * LA PUNTA DE «A PULSO» EN EL BUILDER (§ 10B.4). Espejo del CHECK de `maps_scenes.band_tip`.
+ * `clean` es el canto limpio de siempre · `rough` sale con el borde roto. Sin difuminado: un suelo se pisa o no.
+ */
+export type BandTip = 'clean' | 'rough';
+export const BAND_TIPS: BandTip[] = ['clean', 'rough'];
+
 export interface Scene {
   id: string;
   campaignId: string;
@@ -110,6 +117,14 @@ export interface Scene {
   /** Cuánto de roto, 0..1. **Sólo se aplica con `brushTip === 'rough'`.** */
   brushRoughness: number;
   /**
+   * LA PUNTA DE «A PULSO» TAMBIÉN SE GUARDA EN LA ESCENA (§ 10B.4), como el pincel y APARTE de él: uno pinta
+   * encima y el otro levanta paredes, y cambiar uno no puede cambiar el otro. De serie, canto limpio: una escena
+   * de antes dibuja exactamente como dibujaba.
+   */
+  bandTip: BandTip;
+  /** Cuánto de roto sale el borde de «A pulso», 0..1. **Sólo se aplica con `bandTip === 'rough'`.** */
+  bandRoughness: number;
+  /**
    * LA PINTURA DE LA ROCA (rebanada 10): un PNG que se dibuja ENCIMA del muro, recortado contra la roca.
    * `null` = sin pintar.
    *
@@ -122,7 +137,7 @@ export interface Scene {
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor' | 'doorTextureUrl' | 'tokenScale' | 'brushTip' | 'brushSize' | 'brushStrength' | 'brushHardness' | 'brushRoughness'>>;
+export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor' | 'doorTextureUrl' | 'tokenScale' | 'brushTip' | 'brushSize' | 'brushStrength' | 'brushHardness' | 'brushRoughness' | 'bandTip' | 'bandRoughness'>>;
 
 // ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps) ───────────────────────────
 // Espejo de `supabase/migrations/20260907120000_maps_doors.sql`.

@@ -323,7 +323,7 @@ export const SCENE_WAREHOUSE: Scene = {
   // Sin color ni textura propios de puerta: nulo = el trazo del muro, que es como nacen todas.
   doorColor: null, doorTextureUrl: null, tokenScale: 1,
   // Rebanada 9: el pincel de la escena, con los mismos valores que la app ya usaba antes de guardarlo.
-  brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5, rockPaintUrl: null,
+  brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5, bandTip: 'clean', bandRoughness: 0.5, rockPaintUrl: null,
   createdAt: '2026-08-18T00:00:00Z', updatedAt: '2026-08-18T00:00:00Z',
 };
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };

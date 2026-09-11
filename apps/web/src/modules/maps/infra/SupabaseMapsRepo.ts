@@ -4,10 +4,11 @@ import type { BgTransform, BlockShape, CreateSceneInput, MapColor, DoorSettings,
 import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, RoomOpeningPatch, Unsubscribe } from '../domain/ports/MapsPort';
 import { clampHardness, clampMaskSize, clampRoughness, clampStrength, DEFAULT_BRUSH_ROUGHNESS, DEFAULT_BRUSH_TIP, DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, isBrushTip, maskPath, roomMaskPath } from '../domain/useCases/layerRules';
 import { TOKEN_SCALE } from '../domain/useCases/mapRules';
+import { DEFAULT_BAND_ROUGHNESS, DEFAULT_BAND_TIP, isBandTip } from '../domain/useCases/roomRules';
 import { propPath } from '../domain/useCases/propRules';
 import { layerPaintPath, rockPaintPath, roomPaintPath } from '../domain/useCases/paintRules';
 
-interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; /* rebanada 8 — opcionales a propósito: una fila escrita antes de la migración no las trae, y el mapeador ya las defiende con su valor de serie */ room_preset?: RoomPreset; wall_texture_url?: string | null; floor_texture_url?: string | null; wall_thickness?: number; wall_texture_scale?: number; floor_texture_scale?: number; door_color?: string | null; door_texture_url?: string | null; token_scale?: number; /* rebanada 9 — el pincel de la escena, opcionales por lo mismo */ brush_tip?: string; brush_size?: number; brush_strength?: number; brush_hardness?: number; brush_roughness?: number; /* rebanada 10 — la pintura de la roca, opcional por lo mismo */ rock_paint_url?: string | null; created_at: string; updated_at: string }
+interface SceneRow { id: string; campaign_id: string; name: string; width: number; height: number; bg_color: string; bg_image_url: string | null; bg_transform: BgTransform; grid: GridSettings; fog_mode: FogMode; lighting: Lighting; night_radius_m: number; solid_walls: boolean; sort_order: number; visible_players: boolean; /* rebanada 8 — opcionales a propósito: una fila escrita antes de la migración no las trae, y el mapeador ya las defiende con su valor de serie */ room_preset?: RoomPreset; wall_texture_url?: string | null; floor_texture_url?: string | null; wall_thickness?: number; wall_texture_scale?: number; floor_texture_scale?: number; door_color?: string | null; door_texture_url?: string | null; token_scale?: number; /* rebanada 9 — el pincel de la escena, opcionales por lo mismo */ brush_tip?: string; brush_size?: number; brush_strength?: number; brush_hardness?: number; brush_roughness?: number; /* rebanada 10 B — la punta de «A pulso», opcionales por lo mismo */ band_tip?: string; band_roughness?: number; /* rebanada 10 — la pintura de la roca, opcional por lo mismo */ rock_paint_url?: string | null; created_at: string; updated_at: string }
 interface WallRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; visible_players: boolean; kind: WallKind; blocks_sight: boolean; blocks_move: boolean; is_open: boolean; group_id: string | null; /* las puertas, de verdad — opcionales a propósito: una fila anterior a la migración no las trae y `mapDoorRow` la defiende con DEFAULT_DOOR */ leaves?: number | null; hinge?: string | null; swing?: string | null; door_color?: string | null; door_texture_url?: string | null }
 interface TokenRow { id: string; scene_id: string; campaign_id: string; character_id: string | null; bestiary_ref: string | null; bestiary_entry_id: string | null; name: string; image_url: string | null; x: number; y: number; size: number; color: string | null; visible: boolean; controlled_by: string | null; vision_radius: number | null; state: Record<string, unknown>; layer_id: string | null }
 interface DrawingRow { id: string; scene_id: string; campaign_id: string; author_id: string; kind: DrawingKind; data: DrawingData; color: string; width: number; created_at: string; layer_id: string | null }
@@ -22,7 +23,7 @@ interface TextureRow { id: string; name: string; category: TextureCategory; url:
 interface PropRow { id: string; campaign_id: string | null; name: string; category: PropCategory; image_url: string; natural_width: number; natural_height: number; default_scale: number; default_blocks_sight: boolean; default_blocks_move: boolean; default_block_shape: BlockShape; uploaded_by: string | null; created_at: string; updated_at: string }
 interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; created_at: string; updated_at: string }
 
-const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, door_color, door_texture_url, token_scale, brush_tip, brush_size, brush_strength, brush_hardness, brush_roughness, rock_paint_url, created_at, updated_at';
+const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, door_color, door_texture_url, token_scale, brush_tip, brush_size, brush_strength, brush_hardness, brush_roughness, band_tip, band_roughness, rock_paint_url, created_at, updated_at';
 const ROOM_COLS = 'id, scene_id, campaign_id, kind, shape, points, floor_preset, floor_url, floor_color, floor_mask_url, floor_paint_url, created_at, updated_at';
 const COLOR_COLS = 'id, campaign_id, color, created_at';
 /**
@@ -99,6 +100,9 @@ export const mapSceneRow = (r: SceneRow): Scene => ({
   brushStrength: clampStrength(r.brush_strength ?? DEFAULT_MASK_STRENGTH),
   brushHardness: clampHardness(r.brush_hardness ?? DEFAULT_MASK_HARDNESS),
   brushRoughness: clampRoughness(r.brush_roughness ?? DEFAULT_BRUSH_ROUGHNESS),
+  // La punta de «A pulso» (§ 10B.4): una escena anterior no trae las columnas y dibuja con canto limpio, como siempre.
+  bandTip: isBandTip(r.band_tip) ? r.band_tip : DEFAULT_BAND_TIP,
+  bandRoughness: clampRoughness(r.band_roughness ?? DEFAULT_BAND_ROUGHNESS),
   // Un mapa anterior a la rebanada 10 no trae la columna: nadie ha pintado su roca, y se ve como siempre.
   rockPaintUrl: r.rock_paint_url ?? null,
   createdAt: r.created_at, updatedAt: r.updated_at,
@@ -249,6 +253,9 @@ function scenePatchRow(p: ScenePatch): Record<string, unknown> {
   if (p.brushStrength !== undefined) row.brush_strength = clampStrength(p.brushStrength);
   if (p.brushHardness !== undefined) row.brush_hardness = clampHardness(p.brushHardness);
   if (p.brushRoughness !== undefined) row.brush_roughness = clampRoughness(p.brushRoughness);
+  // La punta de «A pulso» (§ 10B.4), aparte de la del pincel y recortada por lo mismo.
+  if (p.bandTip !== undefined) row.band_tip = p.bandTip;
+  if (p.bandRoughness !== undefined) row.band_roughness = clampRoughness(p.bandRoughness);
   if (p.sortOrder !== undefined) row.sort_order = p.sortOrder;
   if (p.visiblePlayers !== undefined) row.visible_players = p.visiblePlayers;
   return row;

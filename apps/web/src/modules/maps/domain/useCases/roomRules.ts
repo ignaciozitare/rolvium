@@ -1,3 +1,4 @@
+import { BAND_TIPS, type BandTip } from '../entities/Scene';
 import { snapStep, type Point } from './mapRules';
 
 /**
@@ -390,6 +391,15 @@ export const defaultShapeFor = (kind: BuildKind): RoomShape => (isOpeningKind(ki
  */
 export const BRUSH_MIN_CELLS = 0.2;
 export const BRUSH_MAX_CELLS = 6;
+
+/**
+ * LA PUNTA DE «A PULSO» (§ 10B.4). Los mismos valores de serie que pone la base (`maps_scenes.band_tip` y
+ * `band_roughness`): una escena de antes dibuja con canto limpio, como siempre, y la barra arranca en el mismo
+ * 0,5 que la del pincel.
+ */
+export const DEFAULT_BAND_TIP: BandTip = 'clean';
+export const isBandTip = (v: unknown): v is BandTip => BAND_TIPS.includes(v as BandTip);
+export const DEFAULT_BAND_ROUGHNESS = 0.5;
 
 /**
  * Cuántos puntos tiene el redondeo de una esquina o de una punta. Ocho por media vuelta basta: el anillo se
