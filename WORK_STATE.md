@@ -21,39 +21,91 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 a «A pulso» del Builder**. Construida entera el 2026-09-10 y **probada por él en pantalla**, con siete tandas
 de correcciones suyas. En la rama `feat/maps-pincel` y **sin mergear**.
 
-**SIGUIENTE:** las cinco peticiones del bloque 📋 → coger/mover/borrar una sala con el ratón (pide `.pen`) →
+**SIGUIENTE:** `/qa` de `feat/maps-pincel` → merge → deploy → coger/mover/borrar una sala con el ratón (pide `.pen`) →
 **rebanada 6** (galería de piezas, a rediseñar) → `chat` (H8) + `journal` (H9). ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno,
 configurable por sistema (toca el puerto `GameSystem`) — spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cinco bloques de arriba, en este orden: 📋 «LO QUE TOCA EN EL CHAT SIGUIENTE» (donde se retoma) · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «TRES PETICIONES SIN EMPEZAR» · 🐞 «LAS PUERTAS DEJAN PASAR LUZ Y FICHAS» · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cinco bloques de arriba, en este orden: 📋 «LO QUE TOCA EN EL CHAT SIGUIENTE» (donde se retoma) · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 📋 2026-09-10 — LO QUE TOCA EN EL CHAT SIGUIENTE · **AQUÍ SE RETOMA**
+## 📋 2026-09-11 — LAS CINCO PETICIONES, PROBADAS POR ÉL («*está todo bien*») Y COMMITEADAS · **AQUÍ SE RETOMA**
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 📋 de arriba de WORK_STATE.md. La rebanada 10 está construida entera y probada por
-> mí en la rama `feat/maps-pincel`, sin mergear. Hay cinco cosas apuntadas para hacer ahora.»
+> «Rolvium. Lee el bloque 📋 de arriba de WORK_STATE.md. La rama `feat/maps-pincel` está construida, probada por
+> mí y commiteada, sin mergear.»
 
-Las dictó él el 2026-09-10 después de probar el pincel a fondo. **Ninguna está empezada.** Van en su orden.
+Rama `feat/maps-pincel`, **COMMITEADA Y SIN MERGEAR** (nada subido, nada en `main`). ⚠ Nunca `db:reset`.
 
-1. **LA TEXTURA, ADEMÁS DE ESCALARSE, QUE SE PUEDA GIRAR.** Otro mando al lado del de tamaño. Y **el rótulo
-   «Azulejo» pasa a llamarse «Escala»** (`maps.brush.tileLabel`).
-   → ⚠ Girar un azulejo es girar el PATRÓN con el que se rellena la pincelada, no la pincelada: toca
-   `tint()` en `usePaintBrush.ts` (`pat.setTransform`, que ya se usa para la escala) y el previo a pantalla
-   completa de `MapCanvas` (`patternTransform` del `<pattern>`).
+### ⏭️ SIGUIENTE PASO Y LO QUE QUEDA ABIERTO
+- **Siguiente:** `/qa` sobre `feat/maps-pincel` —lleva las rebanadas 9 y 10 y todo esto— → merge → deploy.
+- **Preguntado, sin respuesta:** ¿«Azulejo · pared» y «Azulejo · suelo» del Builder pasan a «Escala»? · el
+  FALLO B (qué hacer al dibujar una puerta encima de otra).
+- **Visto por las reviews, sin decidir:** cambiar de modo en el Builder no suelta lo cogido · la escala se lee
+  «0.25 casillas» con punto · con textura NO cuadrada el previo y lo pintado no coinciden del todo · `packages/core`
+  no pasa su typecheck por 2 errores anteriores · spec `maps` § «Rebanada 3» aún dice que el menú de escena sólo
+  sale pinchando la escena (actualizar cuando esté en producción).
+- **Resto del 📥 del 2026-09-09:** ordenar escenas arrastrando (pide lámina) · soltar fotos en la escena (pide
+  spec) · la galería de piezas (rebanada 6).
 
-2. **AL RECARGAR, QUE VUELVA A LA MISMA ESCENA.** Hoy la recarga cae en la escena activa de la mesa o en la
-   primera, no en la que él estaba mirando. Suyo: «*si recargo debería caer en la misma vista o escena*».
-   → ⚠ Ojo con no confundirlo con la escena ACTIVA (la que ven los jugadores, `campaigns.active_scene_id`):
-   son dos cosas distintas y sólo cambia dónde MIRA el director.
+### ✅ 1 · GIRAR LA TEXTURA + «Azulejo» → «Escala» — CONSTRUIDO · **probado por él: «*está todo bien*»**
+- Él, 2026-09-11: «*el girar va debajo de azulejo, azulejo te pedí expresamente que lo cambies por escala*».
+  Tomado como visto bueno de `TlJot` § S/4 con esas dos cosas.
+- `roomStyles.tileMatrix()` (rotate·scale) → `tint()` de `usePaintBrush` y `patternTransform` del previo de
+  `MapCanvas`: lo pintado y el previo usan la MISMA matriz. `BrushPanel`: ESCALA («N casillas») y debajo GIRO
+  (0–355°, paso 5), los dos con el `Slider` apilado. `SceneTab`: `brushTileDeg`, en vivo, sin guardar, a 0 al
+  elegir o quitar textura. i18n `tileLabel` «Escala» y `turnLabel` «Giro».
+- `.pen`: quitada de `TlJot` la nota que decía «azulejo». **Y las cuatro láminas del pincel (`YwHzR`,
+  `M9zw2t`, `TlJot`, `oi358`) estaban colgando DETRÁS de la sección 13: movidas al final de la sección 5.**
+- 🚫 Sin tocar, preguntado: el Builder aún dice «Azulejo · pared» y «Azulejo · suelo».
+- ✅ Review pasada; añadió 2 tests del giro en `usePaintBrush.test.ts`. Suite web 1723, audit 0 graves, builds OK.
+- 🚫 Visto por la review, no tocado (ya pasaba antes): con una foto NO cuadrada el previo del mapa y lo pintado
+  no coinciden del todo (el previo SVG recorta a cuadrado, el lienzo estira cada eje). Y la escala se lee
+  «0.25 casillas» con punto.
 
-3. **«RESTAURAR TODA» TIENE QUE PEDIR CONFIRMACIÓN.** «*Es peligroso*»: se lleva de golpe toda la pintura de
-   ese destino. Hay `ConfirmModal` en `@rolvium/ui` y `useDialog()` ya está en la pantalla.
+### ✅ 2 · AL RECARGAR, LA MISMA ESCENA — construido · **probado por él: «*está todo bien*»**
+Puerto `ViewMemoryPort` + `infra/LocalViewMemory` (localStorage por campaña) → `viewMemory` en `container.ts`.
+Regla `mapRules.sceneToOpen()`: lo que ya miraba → lo apuntado → la ACTIVA → la primera. La activa no se toca.
+Sólo recuerda la escena, no la pestaña (se le dijo; si la quiere, está sin hacer).
 
-4. **LOS TRES PUNTITOS DEL SELECTOR DE ESCENAS NO SE VEN.** En el rail de escenas (captura suya). Hay que
-   mirarlo con la app delante: es contraste, o sólo salen al pasar el ratón.
+### ✅ 3 · «RESTAURAR TODA» PIDE CONFIRMACIÓN — construido · **probado por él: «*está todo bien*»**
+`confirmarReset()` en `SceneTab` con `dialog.confirm` rojo («Restaurar toda» / «Cancelar»). Clave `maps.brush.resetConfirm`.
 
-5. **AL PONER UNA PUERTA, QUE QUEDE COGIDA.** Hoy dibujas la puerta y para tocarle las propiedades tienes que
-   ir a Seleccionar y volver a pincharla. Debería quedar en foco sola, con su panel listo.
+### ✅ 5 · LA PUERTA RECIÉN PUESTA QUEDA COGIDA — construido · **probado por él: «*está todo bien*»**
+Por los dos caminos (sala y foto), también ventanas; un muro corriente NO. `onBuildKind` suelta lo cogido;
+`onKind` hace también `setWallKind(k)`. Suprimir justo después la borra (se le dijo).
+🚫 Visto por la review, no tocado: cambiar de modo («Dibujar aquí» ↔ «Sobre una foto») no suelta lo cogido.
+
+### ✅ 4 · LOS TRES PUNTOS DEL SELECTOR DE ESCENAS — CONSTRUIDO SIN ESPERAR A LA LÁMINA (lo pidió él: «*avanza todo lo que puedas sin mi ayuda*») · **probado por él: «*está todo bien*»**
+- Él, 2026-09-11: «*te pedí ya varias sesiones atrás que tenga el icono y que el desplegable quede por arriba no
+  que se corte*». Es la petición 1 del bloque 📥 del 2026-09-09.
+- `ScenesMenu.tsx`: un ⋮ por escena (hermano de la fila), abre el menú de ESA escena sin cambiar la que se mira;
+  pinchar la elegida lo sigue abriendo. El menú va **fijo a la ventana** (como el `Tooltip`), debajo del ⋮ o
+  hacia arriba si no cabe; se cierra con clic fuera, Escape, scroll, resize y al plegar.
+- `maps.css`: **la escena elegida pasa de negro a rojo sangre** (memoria «negro sólo para arte, nunca cromo»).
+- Lámina `fljtF` en el `.pen` (sección 5, al final), **guardada por él a las 00:59 pero sin aprobar**. Si al
+  verlo no le gusta, se cambia en los dos sitios.
+- i18n `maps.scenes.menuFor`. Tests `ScenesMenu.test.tsx` +6.
+- ✅ Review pasada (A tres puntos + B puertas): web 1731, core 90, api 256, audit 0 graves, builds OK. Arregló las
+  comillas del inglés y añadió el test de los cierres. Él lo probó y dijo «*está todo
+  bien*» (2026-09-11): cuenta como visto bueno de `fljtF`. Spec `maps` § «Rebanada 3» dice aún que el menú sólo sale pinchando la escena: actualizar cuando
+  esté estable en producción.
+- 🚫 Visto y no tocado: `packages/core` no pasa su propio typecheck por 2 errores ANTERIORES
+  (`gameSystem.test.ts:10`, `rooms.test.ts:344`); ningún script lo corre. Y con TRES vanos encadenados, el
+  tercero que sólo pisa al segundo sale pared entera (lo seguro; antes era agujero).
+
+### ✅ 🐞 LAS PUERTAS DEJAN PASAR LUZ Y FICHAS — EL AGUJERO DE LOS VANOS PISADOS, CERRADO
+- ⚠️ **Él, al leerlo:** «*lo de las puertas estaba solucionado y lo has roto de nuevo*» — y a continuación, tras
+  probar: «*está todo bien*». O sea: **el bloque 🐞 del 2026-09-09 estaba DESFASADO** (ya se había resuelto) y
+  el arreglo de hoy no ha roto nada. Lección en memoria: un 🐞 viejo se confirma con él ANTES de tocarlo.
+- Paso 1 del plan del bloque 🐞 hecho: test en `packages/core/src/rooms.test.ts` con dos vanos pisados → **fallaba**
+  (faltaba longitud: el trozo que el segundo vano sobresale del primero no era ni roca ni puerta).
+- Arreglo de una línea en `roomWalls`: lo que sobresale vuelve a ser PARED; «manda el primero» se conserva.
+  Core 90/90, api 256/256.
+- 🔎 Paso 2 hecho (SELECT de sólo lectura en producción, `scfspsiemikfcnqteonq`): **hay UN vano de sala en todo
+  producción y ningún par pisado.** O sea: el agujero arreglado es real, pero **NO es lo que él vio en producción**.
+- 🔎 Pista para lo de producción: la escena «test» tiene **2 puertas marcadas sobre foto (`maps_walls`), y UNA
+  está ABIERTA** (`is_open = true`); las dos frenan y tapan cuando están cerradas. Una puerta abierta deja pasar
+  luz y fichas a propósito. (Ya no hace falta preguntarlo: dice que lo de las puertas estaba resuelto.)
+- ⏳ Paso 3 sigue con él: el FALLO B (qué hacer al dibujar una puerta encima de otra). **No se ha desplegado nada.**
 
 ---
 
@@ -204,7 +256,7 @@ soltarlo**, que es lo primero que se nota en pantalla.
 
 Las pidió el 2026-09-09 y **no se ha tocado ninguna**. Van por orden de lo que cuesta:
 
-### 1 · Los tres puntitos de la escena, y el menú que se tapa
+### 1 · Los tres puntitos de la escena, y el menú que se tapa · ✅ HECHO el 2026-09-11 (ver 📋)
 Suyo, con dos capturas: *«quiero que los 3 puntitos para modificar las escenas se vean y que el modal quede
 por encima, que no se tape»*. **Comprobado en el código, son DOS fallos:**
 - **No hay ningún botón de tres puntos.** El menú se abre pinchando OTRA VEZ en la escena ya seleccionada
@@ -228,7 +280,7 @@ Contestó las dos preguntas que faltaban: **paquetes propios SÍ**, y **por perm
 solo que puede con todo). El diseño ya está arreglado en el `.pen` (colores y tres puntos por pieza); falta
 **construirla entera** — rebanada 6, que sigue sin una sola línea de interfaz.
 
-## 🐞 2026-09-09 — LAS PUERTAS DEJAN PASAR LUZ Y FICHAS · SIN ARREGLAR, ANOTADO
+## 🐞 2026-09-09 — LAS PUERTAS DEJAN PASAR LUZ Y FICHAS · ⚠️ DESFASADO: SEGÚN ÉL YA ESTABA RESUELTO (2026-09-11)
 
 **Suyo, probando con la SONDA en modo director:** «*las puertas son 100% opacas y hoy el token ilumina detrás
 de ellas; en producción puedes traspasar la puerta con el token*». Dice que en producción es peor que en local.
