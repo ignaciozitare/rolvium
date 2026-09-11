@@ -53,8 +53,14 @@
 .mp-tool.on{background:var(--sys-ink);color:var(--sys-paper-hi);}
 .mp-tool.dm.on{background:var(--sys-gold);}
 .mp-tool:disabled{opacity:.35;cursor:default;background:transparent;}
-.mp-stage{position:relative;flex:1 1 auto;min-width:0;min-height:0;background:var(--sys-ink);overflow:hidden;touch-action:none;}
+.mp-stage{position:relative;flex:1 1 auto;min-width:0;min-height:0;background:var(--sys-ink);overflow:hidden;touch-action:none;isolation:isolate;}
 .mp-svg{display:block;width:100%;height:100%;user-select:none;}
+/* ⏱ El dibujo de DEBAJO (fondo, salas, terreno, rejilla): se mueve y escala por CSS para que arrastrar el mapa no lo repinte
+   (specs/modules/maps/SPEC.md § «Y en pantalla: lo que no cambia no se vuelve a pintar»). `isolation` en el escenario es lo
+   que deja el `z-index:-1` por debajo del SVG de arriba y por encima del fondo del escenario. */
+.mp-svg-under{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;overflow:visible;transform-origin:0 0;will-change:transform;user-select:none;}
+/* Lo que un jugador no ve: el color del escenario, con la máscara de «lo visto» al revés. */
+.mp-fog-unseen{fill:var(--sys-ink);pointer-events:none;}
 .mp-canvas-label{position:absolute;top:8px;left:8px;padding:3px 8px;font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;background:color-mix(in srgb,var(--sys-ink) 82%,transparent);color:var(--sys-gold);pointer-events:none;}
 .mp-tokbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 10px;background:color-mix(in srgb,var(--sys-paper-hi) 94%,transparent);box-shadow:var(--sys-card-shadow);}
 .mp-tokbar-name{font-size:var(--fs-sm);color:var(--sys-ink);}

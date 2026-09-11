@@ -1,6 +1,6 @@
 import { circleClearance, roomMoveSegments, roomSightSegments, roomWalls, sameRoomInput, sightRadiusPx, slideCircle, type BlockSegment, type FogCell, type LitLight, type RoomPart, type SceneVision, type VisionPolygon } from '@rolvium/core';
 import type { IMapsRepository, LayerRecord, LightRecord, RoomOpeningRecord, RoomRecord, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
-import { allCells, boundsSegments, cellsInBrush, cellsInPolygons, clipToStar, lightPolygon, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
+import { allCells, arcSafeReach, boundsSegments, cellsInBrush, cellsInPolygons, clipToStar, lightPolygon, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
 
 export type VisionErrorCode = 'NOT_FOUND' | 'FORBIDDEN';
 export type VisionOutcome = { ok: true; data: SceneVision } | { ok: false; code: VisionErrorCode };
@@ -106,8 +106,20 @@ function litLights(
   scene: Pick<SceneRecord, 'gridSize'>, isDm: boolean, eyes: Point[] | null,
 ): LitLight[] {
   if (lights.length === 0) return [];
-  // La línea de vista SIN límite de alcance, una vez por ojo: es contra ella contra la que se corta la luz.
-  const stars = eyes?.map(eye => ({ eye, star: visionPolygon(eye, segments) })) ?? null;
+  /**
+   * La línea de vista SIN límite de alcance, una vez por ojo: es contra ella contra la que se corta la luz.
+   *
+   * ⏱ …calculada sólo hasta donde llega la luz más lejana desde ese ojo (su distancia más su alcance; un cuadrado
+   * llega √2 más lejos en diagonal), con el margen de `arcSafeReach` para que el arco no muerda por dentro. Más
+   * allá no hay luz que recortar, así que el recorte sale igual que con la vista entera — y con su «Dungeon» la
+   * vista entera eran 14.000 puntos y segundo y medio de recorte por luz (§ «La línea de vista sólo mira lo que
+   * tiene al alcance»).
+   */
+  const reachFrom = (eye: Point): number => arcSafeReach(lights.reduce((r, l) => {
+    const radius = (sightRadiusPx('night', l.rangeM, scene.gridSize) ?? 0) * (l.shape === 'square' ? Math.SQRT2 : 1);
+    return Math.max(r, Math.hypot(l.x - eye.x, l.y - eye.y) + radius);
+  }, 0));
+  const stars = eyes?.map(eye => ({ eye, star: visionPolygon(eye, segments, reachFrom(eye)) })) ?? null;
   const out: LitLight[] = [];
   for (const l of lights) {
     if (!layerPaints(layers, l.layerId, isDm)) continue;

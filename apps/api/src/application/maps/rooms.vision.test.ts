@@ -171,6 +171,34 @@ describe('computeSceneVision — LA SONDA del director mira también las salas',
   });
 });
 
+/**
+ * ⏱ La vista contra la que se recortan las luces se calcula sólo hasta la luz más lejana desde el ojo
+ * (specs/modules/maps/SPEC.md § «La línea de vista sólo mira lo que tiene al alcance»). Lo que se sujeta es que ESO
+ * no recorta luz de más ni de menos: una luz lejos del ojo, al otro lado de la puerta, se ve entera con la puerta
+ * abierta —hasta su borde más lejano— y no se ve con la puerta cerrada.
+ */
+describe('computeSceneVision — un jugador ve una luz lejana igual que antes', () => {
+  /** En el pasillo de la derecha, a 132 px del token de Pip, con 3 m de alcance (54 px): llega hasta x = 254. */
+  const LUZ_LEJOS = { id: 'li-2', layerId: null, x: 200, y: 148.5, rotation: 0, shape: 'radius' as const, coneAngle: 60, rangeM: 3, castsShadow: true, spinMs: 0 };
+  const lit = async (isOpen: boolean) => {
+    const maps = seed({ lights: [LUZ_LEJOS], roomOpenings: [{ x1: 135, y1: 108, x2: 135, y2: 189, kind: 'door', isOpen }] });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    if (!r.ok) throw new Error('sin visión');
+    return (r.data.lit ?? []).flatMap(l => l.parts);
+  };
+
+  it('por la puerta abierta el charco viaja entero, hasta su borde más lejano', async () => {
+    const partes = await lit(true);
+    expect(partes.some(p => pointInPolygon({ x: 200, y: 148.5 }, p))).toBe(true);
+    // A 182 px del ojo: la vista para recortar no se quedó corta.
+    expect(partes.some(p => pointInPolygon({ x: 250, y: 148.5 }, p))).toBe(true);
+  });
+
+  it('con la puerta cerrada la luz queda detrás de la pared y no viaja', async () => {
+    expect(await lit(false)).toEqual([]);
+  });
+});
+
 describe('paintSceneFog — el pincel contesta las luces recortadas también contra las salas', () => {
   /** Una antorcha DENTRO de la sala. Su charco no puede atravesar el contorno. */
   const LUZ = { id: 'li-1', layerId: null, x: 67.5, y: 148.5, rotation: 0, shape: 'radius' as const, coneAngle: 60, rangeM: 30, castsShadow: true, spinMs: 0 };

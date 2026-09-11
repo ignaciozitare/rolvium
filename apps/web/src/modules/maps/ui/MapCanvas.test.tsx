@@ -287,18 +287,18 @@ describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
    */
   it('con capas de terreno se pinta la capa y NO la foto de fondo de siempre', () => {
     const { svg } = mount({ scene: SCENE_CHAPEL, isDm: true, me: 'u-gm', layers: LAYERS_ALL });
-    expect(within(svg).queryByTestId('mp-bg-image')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mp-bg-image')).not.toBeInTheDocument();
     // El color de base se pinta siempre: es lo que se ve donde no llega ninguna foto.
-    expect(within(svg).getByTestId('mp-bg')).toBeInTheDocument();
-    const painted = within(svg).getAllByTestId('mp-terrain-layer');
+    expect(screen.getByTestId('mp-bg')).toBeInTheDocument();
+    const painted = screen.getAllByTestId('mp-terrain-layer');
     // «Charcos» está apagada: no se pinta ni para el director. El ojo es el de Photoshop.
     expect(painted.map(g => g.getAttribute('data-layer-id'))).toEqual([LAYER_FLOOR.id, LAYER_MOSS.id]);
   });
 
   it('sin capas de terreno todo sigue como antes', () => {
     const { svg } = mount({ scene: SCENE_CHAPEL, isDm: true, me: 'u-gm', layers: [LAYER_OBJECTS, LAYER_NOTES] });
-    expect(within(svg).getByTestId('mp-bg-image')).toBeInTheDocument();
-    expect(within(svg).queryByTestId('mp-terrain-layer')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mp-bg-image')).toBeInTheDocument();
+    expect(screen.queryByTestId('mp-terrain-layer')).not.toBeInTheDocument();
   });
 
   /**
@@ -307,13 +307,13 @@ describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
    */
   it('la capa con máscara la aplica, con la versión pegada para no servir la vieja', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL });
-    const moss = within(svg).getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_MOSS.id)!;
+    const moss = screen.getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_MOSS.id)!;
     const mask = moss.querySelector('mask')!;
     expect(mask.querySelector('rect')).toHaveAttribute('fill', '#ffffff');
     expect(within(moss).getByTestId('mp-terrain-mask')).toHaveAttribute('href', 'https://x/backgrounds/c1/masks/ly-moss.png?v=3');
     expect(moss.querySelectorAll('image')[1]).toHaveAttribute('mask', `url(#mp-mask-${LAYER_MOSS.id})`);
     // El suelo no lleva máscara: se pinta entero, sin `mask`.
-    const floor = within(svg).getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_FLOOR.id)!;
+    const floor = screen.getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_FLOOR.id)!;
     expect(floor.querySelector('mask')).toBeNull();
     expect(floor.querySelector('image')).not.toHaveAttribute('mask');
   });
@@ -326,7 +326,7 @@ describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
   it('la pintura de una capa se dibuja encima de su foto y recortada a su encaje', () => {
     const PINTADA = { ...LAYER_MOSS, paintUrl: 'https://x/backgrounds/c1/paint/layer-ly-moss.png', paintVersion: 2 };
     const { svg } = mount({ isDm: true, me: 'u-gm', layers: [LAYER_OBJECTS, LAYER_NOTES, PINTADA] });
-    const moss = within(svg).getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_MOSS.id)!;
+    const moss = screen.getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_MOSS.id)!;
     const pintura = within(moss).getByTestId('mp-terrain-paint');
     // Con su rompe-caché pegado: sin él el navegador se queda con el PNG viejo.
     expect(pintura).toHaveAttribute('href', 'https://x/backgrounds/c1/paint/layer-ly-moss.png?v=2');
@@ -339,7 +339,7 @@ describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
   /** Una capa sin pintar se ve exactamente igual que antes de la rebanada 10. */
   it('una capa sin pintura no dibuja nada de más', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL });
-    expect(within(svg).queryByTestId('mp-terrain-paint')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mp-terrain-paint')).not.toBeInTheDocument();
   });
 
   /**
@@ -410,25 +410,25 @@ describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
 describe('<MapCanvas> layers', () => {
   it('player: background colour + grid, only visible walls, visible tokens (hidden absent), every drawing', () => {
     const { svg, token } = mount();
-    expect(within(svg).getByTestId('mp-bg')).toHaveAttribute('fill', '#4a4a3e');
-    expect(within(svg).getByTestId('mp-grid')).toBeInTheDocument();
+    expect(screen.getByTestId('mp-bg')).toHaveAttribute('fill', '#4a4a3e');
+    expect(screen.getByTestId('mp-grid')).toBeInTheDocument();
     expect(within(svg).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(1);
     // Dos capas de tokens: los PJ van aparte y SIN máscara, para no perderlos de vista nunca (2026-08-22).
     expect(svg.querySelectorAll('[data-token-id]')).toHaveLength(2);
     expect(within(svg).getByTestId('mp-tokens-pc').querySelectorAll('[data-token-id]')).toHaveLength(2);
     expect(token('Karen')).toHaveAttribute('data-token-id', 'tk-karen');
     expect(within(svg).getByTestId('mp-drawings').querySelectorAll('[data-drawing-id]')).toHaveLength(2);
-    expect(within(svg).queryByTestId('mp-bg-image')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mp-bg-image')).not.toBeInTheDocument();
   });
   it('DM: all walls + hidden tokens (gold dashed ring, «oculto» label); «ver como jugador» hides them; walls toggle; background image with fit', () => {
     const { svg, rerender } = mount({ isDm: true, me: 'u-gm', scene: SCENE_CHAPEL });
     expect(within(svg).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(2);
     expect(within(svg).getByRole('img', { name: 'Token Mutante (oculto)' }).classList.contains('hidden')).toBe(true);
-    expect(within(svg).getByTestId('mp-bg-image')).toHaveAttribute('preserveAspectRatio', 'xMidYMid slice');
+    expect(screen.getByTestId('mp-bg-image')).toHaveAttribute('preserveAspectRatio', 'xMidYMid slice');
     rerender({ isDm: true, me: 'u-gm', scene: { ...SCENE_CHAPEL, bgTransform: { mode: 'contain', x: 0, y: 0, scale: 1 } } });
-    expect(within(svg).getByTestId('mp-bg-image')).toHaveAttribute('preserveAspectRatio', 'xMidYMid meet');
+    expect(screen.getByTestId('mp-bg-image')).toHaveAttribute('preserveAspectRatio', 'xMidYMid meet');
     rerender({ isDm: true, me: 'u-gm', scene: { ...SCENE_CHAPEL, bgTransform: { mode: 'custom', x: 10, y: 20, scale: 2 } } });
-    expect(within(svg).getByTestId('mp-bg-image')).toHaveAttribute('x', '10');
+    expect(screen.getByTestId('mp-bg-image')).toHaveAttribute('x', '10');
     rerender({ isDm: true, me: 'u-gm', scene: SCENE_CHAPEL, showWalls: false });
     expect(within(svg).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(0);
     rerender({ isDm: true, me: 'u-gm', scene: SCENE_CHAPEL, playerView: true });
@@ -648,9 +648,15 @@ describe('<MapCanvas> fog', () => {
     expect(svg.querySelector('mask')).toBeNull();
   });
 
-  it('player: the map is masked to explored ∪ vision, what is only remembered is dimmed, and tokens live only inside the current sight', () => {
+  /**
+   * ⏱ El mapa YA NO lleva la máscara de «lo visto» (specs § «Y en pantalla: lo que no cambia no se vuelve a pintar»):
+   * cada cambio de visión obligaba a repintar la mazmorra entera a través de ella. Ahora lo que no se ve se TAPA con
+   * el color del escenario y la máscara al revés — mismos píxeles, y el mapa no se toca.
+   */
+  it('player: the map is covered where not seen (explored ∪ vision), what is only remembered is dimmed, and tokens live only inside the current sight', () => {
     const { svg } = mount({ fog: FOG });
-    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-map')).not.toHaveAttribute('mask');
+    expect(within(svg).getByTestId('mp-fog-unseen')).toHaveAttribute('mask', `url(#mp-unseen-${SCENE_WAREHOUSE.id})`);
     expect(within(svg).getByTestId('mp-fog-dim')).toHaveAttribute('mask', `url(#mp-dim-${SCENE_WAREHOUSE.id})`);
     expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
     /**
@@ -880,14 +886,14 @@ describe('<MapCanvas> fog', () => {
 
   it('with manual fog nothing is dimmed and tokens follow whatever the DM revealed', () => {
     const { svg } = mount({ scene: { ...SCENE_WAREHOUSE, fogMode: 'manual' }, fog: { ...FOG, vision: [] } });
-    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-fog-unseen')).toHaveAttribute('mask', `url(#mp-unseen-${SCENE_WAREHOUSE.id})`);
     expect(within(svg).queryByTestId('mp-fog-dim')).not.toBeInTheDocument();
     expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
   });
 
   it('a player with no token of their own sees the map they remember but NO tokens on it — memory holds no creatures', () => {
     const { svg } = mount({ fog: { ...FOG, vision: [] } });
-    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-fog-unseen')).toHaveAttribute('mask', `url(#mp-unseen-${SCENE_WAREHOUSE.id})`);
     // the `lit` mask is empty, so the token layer resolves to nothing
     expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
     /**
@@ -906,7 +912,7 @@ describe('<MapCanvas> fog', () => {
     expect(within(svg).getByTestId('mp-fog-veil')).toHaveAttribute('mask', `url(#mp-unex-${SCENE_WAREHOUSE.id})`);
     rerender({ isDm: true, me: 'u-gm', fog: FOG, playerView: true });
     expect(within(svg).queryByTestId('mp-fog-veil')).not.toBeInTheDocument();
-    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-fog-unseen')).toHaveAttribute('mask', `url(#mp-unseen-${SCENE_WAREHOUSE.id})`);
   });
 });
 
@@ -1716,7 +1722,7 @@ describe('<MapCanvas> el velo del director', () => {
     const { svg } = mount({ isDm: false, fog, fogVeil: false });
     expect(svg.querySelector('[data-testid="mp-fog-veil"]')).toBeNull();
     // Al jugador lo que le tapa es la niebla negra, y esa sigue en su sitio.
-    expect(svg.querySelector('[data-testid="mp-map"]')!.getAttribute('mask')).toContain('mp-seen');
+    expect(svg.querySelector('[data-testid="mp-fog-unseen"]')!.getAttribute('mask')).toContain('mp-unseen');
   });
 });
 
@@ -2661,5 +2667,87 @@ describe('<MapCanvas> el previo de la textura gira con el giro', () => {
     expect(svg.querySelector('#mp-tile-preview')).toHaveAttribute('patternTransform', 'rotate(30)');
     rerender({ isDm: true, tilePreview: { url: 'https://x/losa.png', sidePx: 54, deg: 0 } });
     expect(svg.querySelector('#mp-tile-preview')).not.toHaveAttribute('patternTransform');
+  });
+});
+
+/**
+ * ⏱ DOS DIBUJOS, NO UNO (specs/modules/maps/SPEC.md § «Y en pantalla: lo que no cambia no se vuelve a pintar»).
+ * Medido con su «Dungeon» (531 caminos, 1,3 MB de coordenadas): en reposo 17 ms por fotograma; al mover la sonda o
+ * arrastrar el mapa, 100–130. Con la mazmorra en su propio dibujo de debajo y el mapa tapado en vez de enmascarado,
+ * las dos cosas van a 60 por segundo. Estos tests sujetan la ESTRUCTURA que lo hace posible.
+ */
+describe('<MapCanvas> lo que no cambia no se vuelve a pintar', () => {
+  const SALA = {
+    id: 'rm-u', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[G * 2, G * 2], [G * 8, G * 2], [G * 8, G * 8], [G * 2, G * 8]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
+  };
+
+  it('el fondo, las salas y la rejilla viven en el dibujo de DEBAJO, y la vista se le pone por CSS', () => {
+    const { svg } = mount({ rooms: [SALA], isDm: true, me: 'u-gm', view: { zoom: 2, panX: 10, panY: 20 } });
+    const under = screen.getByTestId('mp-under');
+    expect(under).toContainElement(screen.getByTestId('mp-rooms'));
+    expect(under).toContainElement(screen.getByTestId('mp-bg'));
+    expect(under).toHaveStyle({ transform: 'translate(10px, 20px) scale(2)' });
+    // Y ni una sala en el de arriba: nada de lo que se mueve puede obligar a repintarlas.
+    expect(within(svg).queryByTestId('mp-rooms')).toBeNull();
+    expect(within(svg).queryByTestId('mp-bg')).toBeNull();
+    // El de arriba sigue llevando la vista de siempre, con las fichas y los muros.
+    expect(svg.querySelector(':scope > g')).toHaveAttribute('transform', 'translate(10 20) scale(2)');
+    expect(within(svg).getByTestId('mp-walls')).toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-tokens')).toBeInTheDocument();
+    // El de debajo no recibe eventos ni habla: los recibe el de arriba.
+    expect(under).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('dentro del de debajo el orden es el de siempre: fondo → salas → terreno', () => {
+    mount({ rooms: [SALA], isDm: true, me: 'u-gm', layers: LAYERS_ALL });
+    const vistos = [...screen.getByTestId('mp-under').querySelectorAll('[data-testid]')].map(e => e.getAttribute('data-testid'))
+      .filter(t => ['mp-bg', 'mp-rooms', 'mp-terrain-layer'].includes(t ?? ''));
+    expect(vistos.filter((t, i) => vistos.indexOf(t) === i)).toEqual(['mp-bg', 'mp-rooms', 'mp-terrain-layer']);
+  });
+
+  it('arrastrar el mapa NO vuelve a fundir las salas: el de debajo sólo cambia de sitio', () => {
+    const { rerender } = mount({ rooms: [SALA], isDm: true, me: 'u-gm' });
+    const spy = vi.spyOn(roomStyles, 'roomWallsOf');
+    rerender({ view: { zoom: 1.5, panX: -40, panY: 12 } });
+    expect(spy).not.toHaveBeenCalled();
+    expect(screen.getByTestId('mp-under')).toHaveStyle({ transform: 'translate(-40px, 12px) scale(1.5)' });
+    spy.mockRestore();
+  });
+
+  it('en la vista de jugador la máscara de la tapa es la de «lo visto» AL REVÉS, con el mismo desenfoque', () => {
+    const { svg } = mount({ fog: FOG });
+    const seen = svg.querySelector(`mask#mp-seen-${SCENE_WAREHOUSE.id}`)!, unseen = svg.querySelector(`mask#mp-unseen-${SCENE_WAREHOUSE.id}`)!;
+    expect(seen.querySelector(':scope > rect')).toHaveAttribute('fill', '#000000');
+    expect(unseen.querySelector(':scope > rect')).toHaveAttribute('fill', '#ffffff');
+    expect(seen.querySelector('polygon')).toHaveAttribute('fill', '#ffffff');
+    expect(unseen.querySelector('polygon')).toHaveAttribute('fill', '#000000');
+    expect(unseen.querySelector('g[filter]')).toHaveAttribute('filter', seen.querySelector('g[filter]')!.getAttribute('filter')!);
+    // La tapa va ENCIMA del mapa y DEBAJO de las fichas: justo donde actuaba la máscara.
+    const map = within(svg).getByTestId('mp-map'), cover = within(svg).getByTestId('mp-fog-unseen'), tokens = within(svg).getByTestId('mp-tokens');
+    expect(map.compareDocumentPosition(cover) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(cover.compareDocumentPosition(tokens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Y mide la escena justa, igual que la región de su máscara Y que la de «lo visto»: dentro, la cuenta al revés.
+    for (const k of ['x', 'y', 'width', 'height']) {
+      expect(cover.getAttribute(k)).toBe(unseen.getAttribute(k));
+      expect(unseen.getAttribute(k)).toBe(seen.getAttribute(k));
+    }
+    expect(cover).toHaveAttribute('width', String(SCENE_WAREHOUSE.width));
+    expect(cover).toHaveAttribute('height', String(SCENE_WAREHOUSE.height));
+    // FUERA de la escena tapa el MARCO, sin máscara: como la región de la máscara de antes, fuera no se veía nada.
+    const frame = within(svg).getByTestId('mp-fog-frame');
+    expect(frame).toHaveAttribute('fill-rule', 'evenodd');
+    expect(frame).not.toHaveAttribute('mask');
+    expect(frame.getAttribute('d')).toContain(`M 0 0 V ${SCENE_WAREHOUSE.height} H ${SCENE_WAREHOUSE.width} V 0 Z`);
+    expect(cover.compareDocumentPosition(frame) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(frame.compareDocumentPosition(tokens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('el director no lleva tapa: ve el mapa entero con su velo de siempre', () => {
+    const { svg } = mount({ fog: FOG, isDm: true, me: 'u-gm' });
+    expect(within(svg).queryByTestId('mp-fog-unseen')).toBeNull();
+    expect(within(svg).queryByTestId('mp-fog-frame')).toBeNull();
+    expect(within(svg).getByTestId('mp-fog-veil')).toBeInTheDocument();
   });
 });

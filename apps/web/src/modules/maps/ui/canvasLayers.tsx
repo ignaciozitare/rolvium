@@ -180,7 +180,20 @@ export function WallShape({ wall, selected = false, draft = null, sceneDoorColor
   );
 }
 
-interface FogProps { scene: Scene; fog: SceneVision; ids: { seen: string; lit: string; dim: string; unexplored: string } }
+interface FogProps { scene: Scene; fog: SceneVision; ids: { seen: string; lit: string; dim: string; unexplored: string; unseen: string } }
+
+/**
+ * ⏱ EL MARCO que tapa TODO lo que quede FUERA de la escena en la vista de jugador (specs/modules/maps/SPEC.md § «Y en
+ * pantalla: lo que no cambia no se vuelve a pintar»). La máscara de antes iba sobre el mapa con la escena por región,
+ * y fuera de su región un `<mask>` no pinta nada: un trazo o un muro que asomara del mapa, o el halo de una antorcha
+ * pegada al borde, no se veían. Ahora que el mapa va sin máscara lo hace este marco —el color del escenario, sin
+ * máscara ninguna—, y la tapa enmascarada (`unseen`) se queda con la escena justa, región incluida, para que el
+ * desenfoque que rebosa del borde tampoco cambie un píxel. Es un camino con agujero (`fillRule="evenodd"`): fuera se
+ * pinta, dentro no. Lo ancho que sea da igual mientras cubra el escenario al mínimo acercamiento (0,25).
+ */
+const FOG_FRAME = 100_000;
+export const fogFrame = ({ width, height }: Pick<Scene, 'width' | 'height'>): string =>
+  `M ${-FOG_FRAME} ${-FOG_FRAME} H ${width + FOG_FRAME} V ${height + FOG_FRAME} H ${-FOG_FRAME} Z M 0 0 V ${height} H ${width} V 0 Z`;
 
 /**
  * Lo BORROSO que es el borde de la niebla, en px de escena.
@@ -249,6 +262,21 @@ function FogMasksBase({ scene, fog, ids }: FogProps): JSX.Element {
           {cells && <path d={cells} fill={MASK_SHOW} />}
           {polys}
           {litParts && <path d={litParts} fill={MASK_SHOW} data-testid="mp-fog-lit" />}
+        </g>
+      </mask>
+      {/*
+        * ⏱ `unseen` es `seen` AL REVÉS: blanco donde aquélla es negra y negro donde es blanca, con el mismo
+        * desenfoque y LA MISMA REGIÓN (la escena), así que una tapa con esta máscara deja EXACTAMENTE los mismos
+        * píxeles que enmascarar el mapa con la otra — sólo que enmascarado, cada cambio de visión (siete por segundo
+        * al mover) obligaba al navegador a repintar la mazmorra entera a través de la máscara; tapado, sólo repinta
+        * la tapa (§ «Y en pantalla: lo que no cambia no se vuelve a pintar»). Fuera de la escena tapa `fogFrame`.
+        */}
+      <mask id={ids.unseen} maskUnits="userSpaceOnUse" {...full}>
+        <rect {...wide} fill={MASK_SHOW} />
+        <g filter={blur}>
+          {cells && <path d={cells} fill={MASK_HIDE} />}
+          {fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_HIDE} />)}
+          {litParts && <path d={litParts} fill={MASK_HIDE} />}
         </g>
       </mask>
       <mask id={ids.lit} maskUnits="userSpaceOnUse" {...full}>

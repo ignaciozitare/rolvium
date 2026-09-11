@@ -134,7 +134,7 @@ describe('<SceneTab> player', () => {
     repo.emit('sc-1', { drawing: { type: 'INSERT', id: 'd-live', row: { ...DRAWING_OTHER, id: 'd-live' } } });
     await waitFor(() => expect(within(canvas()).getByTestId('mp-drawings').querySelectorAll('[data-drawing-id]')).toHaveLength(3));
     repo.emit('sc-1', { scene: { type: 'UPDATE', id: 'sc-1', row: { ...SCENE_WAREHOUSE, bgColor: '#123456' } } });
-    await waitFor(() => expect(within(canvas()).getByTestId('mp-bg')).toHaveAttribute('fill', '#123456'));
+    await waitFor(() => expect(screen.getByTestId('mp-bg')).toHaveAttribute('fill', '#123456'));
   });
 });
 
@@ -153,9 +153,9 @@ describe('<SceneTab> DM', () => {
     await u.click(screen.getByRole('button', { name: 'Fondo del mapa' }));
     await u.click(await screen.findByRole('button', { name: 'Capilla' }));
     await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { bgImageUrl: IMAGE_CHAPEL.url } }));
-    expect(within(canvas()).getByTestId('mp-bg-image')).toHaveAttribute('href', IMAGE_CHAPEL.url);
+    expect(screen.getByTestId('mp-bg-image')).toHaveAttribute('href', IMAGE_CHAPEL.url);
     await u.click(screen.getByRole('radio', { name: '#0f0f0f' }));
-    await waitFor(() => expect(within(canvas()).getByTestId('mp-bg')).toHaveAttribute('fill', '#0f0f0f'));
+    await waitFor(() => expect(screen.getByTestId('mp-bg')).toHaveAttribute('fill', '#0f0f0f'));
     await u.click(screen.getByRole('button', { name: 'Cerrar' }));
     // place PC
     await u.click(screen.getByRole('button', { name: 'Colocar PJ' }));
@@ -493,7 +493,7 @@ describe('<SceneTab> slice 2 — vision, light and openings', () => {
     mount('player', seed(), 'sc-1', fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision);
     await screen.findByText(/Almacén de Queens/);
     await waitFor(() => expect(vision.calls.some(c => c.op === 'refresh' && c.sceneId === 'sc-1')).toBe(true));
-    await waitFor(() => expect(within(canvas()).getByTestId('mp-map')).toHaveAttribute('mask', 'url(#mp-seen-sc-1)'));
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-fog-unseen')).toHaveAttribute('mask', 'url(#mp-unseen-sc-1)'));
     // Refreshes are coalesced on a trailing tick: entering the scene costs at most one round trip per DATA
     // arrival (the scene, then its tokens and walls), never one per dependency that happened to change.
     expect(vision.calls.filter(c => c.op === 'refresh').length).toBeLessThanOrEqual(2);
@@ -1309,10 +1309,10 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     const repo = withLayers();
     mount('dm', repo);
     await screen.findByRole('complementary', { name: 'Capas' });
-    expect(within(canvas()).getAllByTestId('mp-terrain-layer')).toHaveLength(2);
+    expect(screen.getAllByTestId('mp-terrain-layer')).toHaveLength(2);
     await u.click(screen.getByRole('button', { name: 'Ocultar la capa Musgo (deja de pintarse para todos)' }));
     await waitFor(() => expect(repo.layerUpdates).toEqual([{ id: 'ly-moss', patch: { visible: false } }]));
-    await waitFor(() => expect(within(canvas()).getAllByTestId('mp-terrain-layer')).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByTestId('mp-terrain-layer')).toHaveLength(1));
   });
 
   it('lo que se dibuja cae en la capa ACTIVA', async () => {

@@ -1288,7 +1288,65 @@ enseñan los números de antes y de después.
 - Fundir las formas al guardar: perdería mover o borrar una sala y el suelo de cada una.
 - Quitar esquinas a los trazos ya hechos o bajar el tope del borde roto.
 - Leer menos de la base en cada petición: sólo si, tras esto, la lectura resultara ser lo lento en producción.
-- Lo que tarda el navegador en PINTAR tantas formas: si tras esto sigue lento, se mide aparte.
+- Lo que tarda el navegador en PINTAR tantas formas: se mide aparte (§ siguiente).
+
+### ⏱ LA LÍNEA DE VISTA SÓLO MIRA LO QUE TIENE AL ALCANCE (suyo, 2026-09-11 noche)
+
+> «*arreglalo esta muy lento, esto tiene que ir rapido rapido*» · «*una solucion optima para que tanto pinte rapido
+> como para que cuando ponga los tokens se muevan a tiempo real*».
+
+**Lo que pasaba — medido con su «Dungeon»** (2.323 tramos que tapan, de noche, alcance 180 px):
+- **Sólo 12 de las 2.323 paredes están al alcance del ojo**, pero el cálculo lanzaba tres rayos hacia CADA esquina
+  del mapa entero y probaba cada rayo contra TODAS las paredes: **161 ms por ficha** y un polígono de **14.010
+  puntos**, que el navegador tiene que pintar (con su difuminado) en cada tirón.
+- Con una luz que da sombra: 158 ms el charco, y **1,5 segundos** recortarlo contra la vista de un ojo.
+
+**Lo que se hace. Lo que se ve y lo que se alumbra NO cambia.**
+1. **Sólo se lanzan rayos hacia lo que está al alcance**: hacia las esquinas de las paredes a esa distancia o menos
+   del ojo (de noche, su alcance; una luz, su radio), y hacia el punto exacto donde cada una de esas paredes sale
+   del círculo. Una pared más lejos no puede tapar nada que esté al alcance. De día (sin límite) se sigue mirando
+   todo.
+2. **Cada rayo sólo mira las paredes de las casillas que cruza**, de cerca a lejos, y se para en la primera. Es
+   exactamente el mismo choque que antes —la misma pared, en el mismo punto— sólo que sin probar las que no
+   podían estar en su camino.
+3. **El polígono se manda sin puntos de más**: un punto que cae en línea recta entre sus dos vecinos no cambia la
+   forma y se quita antes de enviarlo.
+4. La vista **contra la que se recortan las luces** (que no tiene límite) se calcula sólo hasta donde llega la
+   luz más lejana: más allá no hay nada que recortar.
+
+**Lo que NO cambia:** las paredes tapan igual y en el mismo sitio; el borde redondo de la vista de noche sigue
+saliendo con un rayo cada 5° (a 180 px, se aparta 0,2 px de un círculo perfecto, como hasta hoy).
+
+**Objetivo**: con su «Dungeon», lo que ve una ficha en unas milésimas y un polígono de cientos de puntos, no de
+miles. Números de antes y de después en `WORK_STATE.md`.
+
+**El borde redondo** se pinta con los rayos justos para que no se aparte más de una décima de píxel de un círculo
+perfecto, sea cual sea el alcance (72 como mínimo; antes eran 72 fijos y el borde salía más fino sólo porque los
+miles de rayos de más lo rellenaban sin querer).
+
+**Fuera, dicho a propósito:** el cálculo en el navegador (sigue en el servidor, por lo de siempre: a un jugador no
+le llegan los muros que no debe conocer).
+
+#### Y EN PANTALLA: lo que no cambia no se vuelve a pintar
+
+Medido en un Chrome sin ventana con su «Dungeon» (531 dibujos, 1,3 MB de coordenadas): con el servidor ya rápido
+(42 ms por petición), **cada fotograma al mover la sonda o arrastrar el mapa tardaba 100–130 ms** (en reposo, 60
+por segundo). El culpable no es el servidor sino el repintado:
+
+1. **En la vista de jugador, la máscara de «lo que se ve» iba puesta SOBRE EL MAPA ENTERO**, así que cada vez que
+   cambiaba la visión (siete veces por segundo al mover) el navegador repintaba la mazmorra completa a través de
+   ella. Ahora el mapa se pinta sin máscara y se **tapa** por donde no se ve, con el color del escenario y la
+   máscara al revés. Es la misma cuenta al revés: **los mismos píxeles**. Con eso, mover la sonda va a 60 por
+   segundo con la mazmorra puesta (medido).
+2. **Arrastrar o acercar el mapa** cambia la transformación de todo el dibujo, y el navegador lo repinta entero. La
+   parte pesada y quieta —fondo, roca, suelo, sombra, capas de terreno y rejilla— pasa a **su propio dibujo, debajo
+   del de siempre**, que se desplaza y escala por CSS: el navegador lo conserva pintado y sólo lo mueve. Al
+   acercar, lo repinta una vez a la nueva escala, sin parar el resto.
+
+**Lo que NO cambia:** ni un píxel, ni el orden de las capas (fondo, salas, terreno, rejilla, velo, muros, trazos,
+luces, fichas), ni dónde se pulsa. Las fichas, la sonda, los muros y los trazos siguen en el dibujo de siempre.
+
+**Objetivo**: con su «Dungeon», mover la sonda o una ficha y arrastrar el mapa a 60 fotogramas por segundo.
 
 ### ✅ LAS SIETE PREGUNTAS, TODAS CERRADAS (ninguna abierta — orden suya del 2026-09-04)
 1. **¿Puertas automáticas?** → **NINGUNA.** La sala se levanta cerrada y él abre los vanos con el disco de

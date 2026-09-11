@@ -7,7 +7,7 @@ import type { LiveDrag, LivePin } from './useScene';
 import { brushRings, DEFAULT_BAND_ROUGHNESS, type BandEdge, freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_ROOM_CELLS, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
-import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
+import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, fogFrame, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
 import { ringFromSides, ringPath, roomAt, roomWallsOf } from '../domain/useCases/roomStyles';
 import { roomMoveSegments } from '@rolvium/core';
@@ -1388,7 +1388,7 @@ export function MapCanvas(p: Props): JSX.Element {
    * máscaras con desenfoque— se rehacía en cada fotograma del arrastre. En un mapa muy explorado cuesta más
    * que la capa de salas. Ni la escena ni la niebla cambian mientras se arrastra una ficha.
    */
-  const fogIds = useMemo(() => ({ seen: `mp-seen-${p.scene.id}`, lit: `mp-lit-${p.scene.id}`, dim: `mp-dim-${p.scene.id}`, unexplored: `mp-unex-${p.scene.id}` }), [p.scene.id]);
+  const fogIds = useMemo(() => ({ seen: `mp-seen-${p.scene.id}`, lit: `mp-lit-${p.scene.id}`, dim: `mp-dim-${p.scene.id}`, unexplored: `mp-unex-${p.scene.id}`, unseen: `mp-unseen-${p.scene.id}` }), [p.scene.id]);
   const url = (id: string) => `url(#${id})`;
   /** A player (and the DM «viendo como jugador») only gets what the server drew for them. */
   const playerSight = !!fog && !dmSight;
@@ -1421,11 +1421,27 @@ export function MapCanvas(p: Props): JSX.Element {
   /** Los trazos que se están arrastrando ahora mismo: uno, o el puñado entero que se cogió con el área. */
   const moviendo = new Set(gesture?.kind === 'drawingMove' ? gesture.ids : []);
 
+  /**
+   * ⏱ DOS DIBUJOS, NO UNO (specs/modules/maps/SPEC.md § «Y en pantalla: lo que no cambia no se vuelve a pintar»).
+   * Medido con su «Dungeon» (531 caminos, 1,3 MB de coordenadas): cada fotograma al mover la sonda o arrastrar el
+   * mapa tardaba 100–130 ms. Dos causas, dos arreglos, ni un píxel distinto:
+   *
+   *  1. En la vista de jugador la máscara de «lo que se ve» iba SOBRE EL MAPA ENTERO, y cada cambio de visión
+   *     obligaba a repintar la mazmorra a través de ella. Ahora el mapa va sin máscara y se TAPA por donde no se ve
+   *     (`mp-fog-unseen`: el color del escenario con la máscara al revés). Con eso, mover la sonda va a 60 por
+   *     segundo con la mazmorra puesta (medido).
+   *  2. Arrastrar o acercar cambia la transformación de todo y el navegador lo repinta todo. Lo pesado y quieto
+   *     —fondo, roca, suelo, sombra, terreno y rejilla— va en un SVG propio DEBAJO (`mp-svg-under`), desplazado y
+   *     escalado por CSS (`will-change: transform`): el navegador lo conserva pintado y sólo lo mueve.
+   *
+   * El orden de las capas es el de siempre: el de debajo pinta lo que antes iba primero dentro de `mp-layer-map`.
+   * Todo lo que se toca —fichas, sonda, muros, trazos, luces— sigue en este SVG, con sus eventos.
+   */
   return (
+    <>
     <svg ref={svgRef} className="mp-svg" data-tool={p.tool} style={{ cursor }} aria-label={t('maps.canvas.label')} role="application"
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => setHover(null)} onContextMenu={onRightClick}>
       <defs>
-        <clipPath id={clipId}><rect x={0} y={0} width={p.scene.width} height={p.scene.height} /></clipPath>
         {fog && <FogMasks scene={p.scene} fog={fog} ids={fogIds} />}
         {/*
           * Los mosaicos de las puertas, uno por textura distinta de la escena — de los muros Y de las salas,
@@ -1434,20 +1450,7 @@ export function MapCanvas(p: Props): JSX.Element {
         <DoorTextureDefs urls={doorTexturesUsed([...wallsShown, ...roomOpenings], p.scene)} grid={p.scene.grid.size} />
       </defs>
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
-        <g className="mp-layer-map" {...(playerSight ? { mask: url(fogIds.seen) } : {})} data-testid="mp-map">
-          <BackgroundLayer scene={p.scene} clipId={clipId} imageHidden={hasTerrain} />
-          {/*
-            * LAS SALAS, por DEBAJO de las capas de terreno (decisión mía, revisable, § «Decisiones que tomo
-            * yo aquí»): la roca y el suelo son el cimiento del mapa, y una capa con transparencia sigue
-            * mandando encima de todo esto.
-            */}
-          <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} selectedOpeningId={p.selectedRoomOpeningId ?? null} floorPreview={floorPreview} paintPreview={paintPreviewRooms} />
-          {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} paintPreview={paintPreviewLayer} />}
-          {/*
-            * Con salas levantadas la rejilla se recorta al AGUJERO: fuera no hay suelo que cuadricular, hay
-            * roca maciza. Sin salas no hay máscara y la rejilla se pinta entera, exactamente como hasta hoy.
-            */}
-          <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} {...(rooms.length > 0 ? { maskId: roomIds.hole } : {})} />
+        <g className="mp-layer-map" data-testid="mp-map">
           {dmSight && fog && p.fogVeil !== false && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
             {wallsShown.map(w => (
@@ -1482,6 +1485,13 @@ export function MapCanvas(p: Props): JSX.Element {
           {/* What was explored but is out of sight right now stays visible, only dimmed — «sigue ahí, apagado». */}
           {playerSight && hasVision && <rect {...sceneRect} className="mp-fog-dim" mask={url(fogIds.dim)} data-testid="mp-fog-dim" />}
         </g>
+        {/*
+          * Lo que un jugador NO ve se TAPA con el color del escenario y la máscara al revés: mismos píxeles, sin
+          * repintar el mapa. Y FUERA de la escena tapa el marco, sin máscara: la máscara de antes tenía la escena por
+          * región y fuera de ella no dejaba ver nada (un trazo que asome, el halo de una luz pegada al borde).
+          */}
+        {playerSight && <rect {...sceneRect} className="mp-fog-unseen" mask={url(fogIds.unseen)} data-testid="mp-fog-unseen" />}
+        {playerSight && <path d={fogFrame(p.scene)} fillRule="evenodd" className="mp-fog-unseen" data-testid="mp-fog-frame" />}
         {/*
           * Dos capas de tokens, no una. **Los PJ se pintan SIEMPRE, encima de la niebla y sin máscara**: sabes
           * dónde está tu grupo aunque esté en otra sala, que es como funcionaba el prototipo
@@ -1585,5 +1595,28 @@ export function MapCanvas(p: Props): JSX.Element {
         </g>
       </g>
     </svg>
+    {/*
+      * EL DIBUJO DE DEBAJO: lo pesado y quieto, con la misma vista que el de arriba pero puesta por CSS (ver el
+      * comentario del `return`). Sin eventos —los recibe el de arriba— y sin voz para el lector de pantalla.
+      */}
+    <svg className="mp-svg-under" aria-hidden="true" data-testid="mp-under" style={{ transform: `translate(${p.view.panX}px, ${p.view.panY}px) scale(${p.view.zoom})` }}>
+      <defs>
+        <clipPath id={clipId}><rect x={0} y={0} width={p.scene.width} height={p.scene.height} /></clipPath>
+      </defs>
+      <BackgroundLayer scene={p.scene} clipId={clipId} imageHidden={hasTerrain} />
+      {/*
+        * LAS SALAS, por DEBAJO de las capas de terreno (decisión mía, revisable, § «Decisiones que tomo
+        * yo aquí»): la roca y el suelo son el cimiento del mapa, y una capa con transparencia sigue
+        * mandando encima de todo esto.
+        */}
+      <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} selectedOpeningId={p.selectedRoomOpeningId ?? null} floorPreview={floorPreview} paintPreview={paintPreviewRooms} />
+      {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} paintPreview={paintPreviewLayer} />}
+      {/*
+        * Con salas levantadas la rejilla se recorta al AGUJERO: fuera no hay suelo que cuadricular, hay
+        * roca maciza. Sin salas no hay máscara y la rejilla se pinta entera, exactamente como hasta hoy.
+        */}
+      <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} {...(rooms.length > 0 ? { maskId: roomIds.hole } : {})} />
+    </svg>
+    </>
   );
 }

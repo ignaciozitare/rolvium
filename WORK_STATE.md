@@ -28,11 +28,74 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-11 (noche) — PUERTAS ✅ · PETICIÓN 1 ✅ · PETICIÓN 2 ✅ · LENTITUD ✅ · **AQUÍ SE RETOMA: SU RESPUESTA (¿la línea de vista antes de la 3?)**
+## 🟢 2026-09-12 (madrugada) — PUERTAS ✅ · PETICIÓN 1 ✅ · PETICIÓN 2 ✅ · LENTITUD ✅ · VISTA Y REPINTADO ✅ · **AQUÍ SE RETOMA: QUE ÉL LO PRUEBE, Y LUEGO LA 3**
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. La lentitud está
-> hecha; lo de la línea de vista: [su respuesta].»
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. La lentitud y la
+> línea de vista están hechas y commiteadas; [lo que vio al probar]. Seguimos con la 3.»
+
+### ⏱ LA LÍNEA DE VISTA Y EL REPINTADO — ✅ HECHO, REVISADO (APROBADO con dos arreglos suyos) Y COMMITEADO (2026-09-12 ~02:00)
+Suyo: «*arreglalo esta muy lento, esto tiene que ir rapido rapido*» · «*aprovechemos fable para lograr una solucion
+optima para que tanto pinte rapido como para que cuando ponga los tokens se muevan a tiempo real*».
+- **Spec**: `specs/modules/maps/SPEC.md` § «⏱ LA LÍNEA DE VISTA SÓLO MIRA LO QUE TIENE AL ALCANCE» (+ subsección
+  «Y en pantalla: lo que no cambia no se vuelve a pintar») + línea en `specs/SPEC.md`. Sin migración ni `.pen`: ni un
+  píxel de diseño cambia.
+- **Servidor** (`apps/api/src/application/maps/vision.ts` + `sceneVision.ts`):
+  - rayos sólo hacia las paredes AL ALCANCE (+ uno donde cada una sale del círculo, uno a cada cruce en X de dos paredes
+    al alcance, y en un cuadrado uno a cada esquina) · el rayo hacia una esquina lleva su distancia (`cap`) y para EN
+    la esquina aunque el redondeo la falle (los dos motores dejaban «agujas») · `nearestHit`: rejilla de paredes
+    (Amanatides-Woo, `rejillaDe` por lista, `WeakMap`), choque EXACTO al de probar contra todas · `trimCollinear` quita
+    los puntos en línea recta y los repetidos · `arcRays`: rayos al arco justos para ≤ 0,1 px de un círculo
+    (`ARC_SAGITTA`; 72 mínimo) · los dos bordes del cono siempre (antes se perdían por redondeo) · `litLights` calcula
+    la vista para recortar luces sólo hasta la luz más lejana (`arcSafeReach`).
+  - **Números (su «Dungeon», 8 ojos)**: de noche **160 → 0,24 ms** por ficha y **14.010 → 94 puntos** · de día 162 →
+    2,7 ms · luz con sombra 159 → 0,16 ms · recortar una luz contra la vista **1.505 → 0,06 ms** · casillas vistas
+    IDÉNTICAS en todos los casos. Petición entera de la sonda: ~270 → ~40 ms.
+  - **Tests**: `vision.index.test.ts` (nuevo): rejilla vs todas-las-paredes (80 escenas × 8 orígenes × 36 rayos × 3
+    alcances, exacto) · de día = motor viejo salvo agujas (área < 0,1 %) · con alcance y luces = LA VERDAD (rayo a rayo,
+    área distinta ≤ arco + 0,01 %) · cono vértice a vértice · cruce con el círculo · `trimCollinear` · `arcRays`.
+    `rooms.vision.test.ts`: «un jugador ve una luz lejana igual que antes» (2). Verde: api ENTERO 282/282 · typecheck.
+- **Navegador** (`MapCanvas.tsx`, `canvasLayers.tsx`, `maps.css`): medido en Chrome sin ventana (Playwright, usuario de
+  pruebas local, sonda = no escribe) con su «Dungeon»: en reposo 17 ms/fotograma; mover la sonda o arrastrar el mapa
+  **100–130 ms** (RasterTask 4,5–6 s por gesto). Dos causas, dos arreglos:
+  1. En vista de jugador la máscara `seen` iba sobre TODO `mp-layer-map` → cada visión repintaba la mazmorra. Ahora el
+     mapa va sin máscara y lo TAPA `mp-fog-unseen` (`fill: var(--sys-ink)`, máscara `unseen` = `seen` al revés, MISMA
+     región que `seen`: la escena) + **el marco `mp-fog-frame`** (review): un `<path evenodd>` de tinta fuera de la
+     escena, porque la máscara vieja tapaba también lo que asomaba fuera (muros, el halo de una luz en el borde).
+     Mismos píxeles (misma cuenta al revés).
+  2. Fondo + salas + terreno + rejilla van en un `<svg class="mp-svg-under">` DEBAJO (`position:absolute; z-index:-1;
+     pointer-events:none; overflow:visible; will-change:transform`; `.mp-stage{isolation:isolate}`) con la vista por
+     CSS `translate(panX px, panY px) scale(zoom)`. El de arriba conserva su `<g transform>`, eventos, fichas, muros,
+     trazos, luces, sonda. `clipPath` de la escena movido al de debajo (sólo lo usan fondo y terreno).
+  - **Números**: arrastrar el mapa p95 **100 → 17 ms** (0 fotogramas > 50 ms) · arrastrar la sonda p95 **117 → 18 ms** ·
+    el SVG de arriba: 531 caminos / 1,3 MB → 3 caminos / 8 KB.
+  - **Píxel a píxel (antes vs después, 3 capturas de 1056×800)**: sin diferencia visible. Director: 73 % de píxeles con
+    ±2/255 (remuestreo de las texturas en la capa aparte; uniforme, sin formas — imagen `diff-director.png` en el
+    scratchpad), 556 píxeles > 16/255, máximo 34. Jugador: 6,6 % con ≤ 16/255. Acercado: 8 %, máximo 26.
+  - **Tests**: `MapCanvas.test.tsx` describe «lo que no cambia no se vuelve a pintar» (5: estructura de debajo con la
+    vista por CSS, orden fondo→salas→terreno, arrastrar el mapa no refunde salas, máscara al revés y tapa entre mapa y
+    fichas con la misma región, el director sin tapa) · 10 tests viejos actualizados (fondo/terreno/rejilla se buscan
+    en el documento; `mp-map` sin máscara → `mp-fog-unseen` con `unseen`). Verde: web `src/modules/maps` 1208/1208 ·
+    typecheck.
+- **Guiones de sólo lectura** (scratchpad de esta sesión): `vista2.mts` (viejo vs nuevo con su Dungeon), `navegador.mjs`
+  (medida del navegador), `experimento.mjs` (qué capa cuesta), `pixeles.mjs` + `comparar.mjs` + `diferencias.mjs`
+  (antes/después píxel a píxel; el «antes» se capturó con `git stash` y se restauró). El «antes» del navegador usa el
+  usuario de pruebas `admin@rolvium.local` de `supabase/seed.sql` (sólo local).
+- **El review APROBÓ y arregló dos cosas**: (a) la tapa no era idéntica FUERA de la escena (arriba) · (b) el cruce en X
+  de paredes al alcance iba todos-contra-todos: con una antorcha de 30 m el alcance cubre el mapa entero y costaba 29 ms
+  por ojo y por luz → ahora los candidatos salen de la rejilla (`rejillaDe`): 6 ms. Tras sus arreglos, remedido: mover
+  la sonda y arrastrar el mapa p95 18 ms, 0 fotogramas largos; píxel a píxel igual que antes de sus arreglos. Verde
+  (review): api 282/282 · smoke 12/12 · regression 1710/1710 · `build:web` + `build:api` · audit 0 graves.
+- ⏳ **SIGUIENTE**: (1) él recarga con Cmd+Shift+R y prueba en «Dungeon»: mover la sonda, arrastrar y acercar el mapa,
+  dibujar; y si mete una ficha, moverla · (2) la 3 (ordenar las herramientas arrastrando: spec + `.pen`).
+- ⚠ Al desplegar: la migración `20260911170000_maps_band_rough.sql` sigue sólo en LOCAL (va ANTES que la web).
+- 🚫 Visto y NO tocado: `clipToStar` sigue siendo O(vértices de la vista × vértices de la luz) — con las vistas de ahora
+  (cientos de puntos) es nada · el polígono de día sigue lanzando rayos a todas las esquinas (2,7 ms; cabría cortarlo
+  por la caja de la escena) · el DM con `mp-fog-veil` (unexplored) sobre el mapa: la máscara cambia sólo cuando cambia
+  lo explorado, no al mover · las capas de terreno con pintura viven en el de debajo: pintar sobre ellas lo repinta
+  (una vez por brochazo, no por fotograma) · (review) un ojo EXACTAMENTE en una esquina de pared da polígono vacío
+  (antes uno degenerado): sin `mp-fog-dim` en ese caso raro · (review) drift viejo fuera del diff: `var()` con fallback
+  en `packages/ui/src/components/DateRangePicker.tsx`, `fontSize: 14` en `DataTable.tsx:250` y `ColorPicker.tsx:148`.
 
 ### ⏱ LA LENTITUD — ✅ HECHA, REVISADA (review APROBADO, con un arreglo suyo) Y COMMITEADA (2026-09-11 ~23:15)
 Suyo: «*Sí al plan de la lentitud: hazlo (spec, medir, construir, review) y después seguimos con la 3*».
