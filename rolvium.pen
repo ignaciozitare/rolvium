@@ -114401,7 +114401,7 @@
                       "x": 0,
                       "y": 5,
                       "name": "Riel",
-                      "fill": "$pl-borde",
+                      "fill": "#13131024",
                       "width": 82,
                       "height": 2
                     },
@@ -114412,6 +114412,7 @@
                       "x": 0,
                       "y": 5,
                       "name": "Relleno",
+                      "enabled": false,
                       "fill": "$pl-oro",
                       "width": 50,
                       "height": 2
@@ -118824,7 +118825,7 @@
             {
               "type": "frame",
               "id": "oPYfI",
-              "name": "H/Muro",
+              "name": "H/Builder",
               "width": 36,
               "height": 36,
               "fill": "#00000000",
@@ -118832,14 +118833,17 @@
               "alignItems": "center",
               "children": [
                 {
-                  "type": "icon",
-                  "id": "MmEMx",
-                  "name": "I",
+                  "type": "rectangle",
+                  "id": "XTMfG",
+                  "name": "I/Builder · EL SUYO",
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "apps/web/public/icons/builder-mask.png",
+                    "mode": "fit"
+                  },
                   "width": 20,
-                  "height": 20,
-                  "icon": "fence",
-                  "library": "Material Symbols Outlined",
-                  "fill": "$pl-oro"
+                  "height": 20
                 }
               ]
             },
@@ -118868,7 +118872,7 @@
             {
               "type": "frame",
               "id": "D0Ce0E",
-              "name": "H/Pincel de transparencia",
+              "name": "H/Pincel",
               "width": 36,
               "height": 36,
               "fill": "#00000000",
@@ -118881,9 +118885,9 @@
                   "name": "I",
                   "width": 20,
                   "height": 20,
-                  "icon": "opacity",
+                  "icon": "brush",
                   "library": "Material Symbols Outlined",
-                  "fill": "$pl-tinta-suave"
+                  "fill": "$pl-oro"
                 }
               ]
             },
@@ -119013,80 +119017,78 @@
       "id": "lWBaU",
       "x": 2060,
       "y": 8688,
-      "name": "PL/Panel de pieza · mientras plantas",
-      "width": 238,
+      "name": "PL/Panel de pieza · mientras plantas  ←  AJUSTADO 11-09 al Pincel y al Builder",
+      "width": 220,
       "fill": "#f2f0eaee",
-      "cornerRadius": 2,
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "#13131059",
+        "offset": {
+          "x": 0,
+          "y": 3
+        },
+        "blur": 14
+      },
       "layout": "vertical",
       "gap": 10,
-      "padding": [
-        12,
-        12,
-        13,
-        12
-      ],
+      "padding": 10,
       "children": [
         {
           "type": "frame",
-          "id": "U4NWnm",
-          "name": "Cabecera",
+          "id": "mJjoW",
+          "name": "Head",
           "width": "fill_container",
-          "gap": 7,
+          "gap": 6,
           "alignItems": "center",
           "children": [
             {
               "type": "icon",
-              "id": "WC3vH",
-              "name": "Agarre",
-              "width": 15,
-              "height": 15,
+              "id": "m28lT",
+              "name": "Asa",
+              "width": 13,
+              "height": 13,
               "icon": "drag_indicator",
               "library": "Material Symbols Outlined",
               "fill": "$pl-tinta-tenue"
             },
             {
-              "type": "icon",
-              "id": "hreJi",
-              "name": "I",
-              "width": 16,
-              "height": 16,
-              "icon": "park",
-              "library": "Material Symbols Outlined",
-              "fill": "$pl-oro"
+              "type": "path",
+              "id": "EHVuu",
+              "name": "Icono PIEZAS · el de la barra",
+              "geometry": "M10.7 1.3l2.6 0 0 3.2 2 0-3.3 3.9-3.3-3.9 2 0 0-3.2z m-0.47 8.1l-1 0.57m-0.76 0.43l-1 0.57m6.3-1.57l1 0.57m0.76 0.43l1 0.57m-9.83 0.43l1 0.57m0.77 0.43l1 0.57m0.76 0.43l1 0.57m6.07-2.57l-1 0.57m-0.77 0.43l-1 0.57m-0.76 0.43l-1 0.57m-0.77 0.43l0 1.13m0 0.87l0 1.13m0 0.87l0 1.13m-5.3-8.13l0 1.13m0 0.87l0 1.13m0 0.87l0 1.13m10.6-5.13l0 1.13m0 0.87l0 1.13m0 0.87l0 1.13m-10.6 0.87l1 0.57m0.77 0.43l1 0.57m0.76 0.43l1 0.57m6.07-2.57l-1 0.57m-0.77 0.43l-1 0.57m-0.76 0.43l-1 0.57m-7.97-4.47l-1.9 1.7 1.9 1.7m14.4-3.4l1.9 1.7-1.9 1.7m-10.73 2.1l3.53 2.4 3.53-2.4",
+              "viewBox": [
+                0,
+                0,
+                24,
+                24
+              ],
+              "fill": "#00000000",
+              "width": 15,
+              "height": 15,
+              "stroke": "$pl-tinta",
+              "strokeWidth": 1.1,
+              "strokeLinejoin": "round",
+              "strokeLinecap": "round"
             },
             {
               "type": "text",
-              "id": "Tdfp5",
+              "id": "mIww0",
               "name": "T",
               "fill": "$pl-tinta",
-              "content": "Roble",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Piezas",
               "fontFamily": "$font-plenilunio",
-              "fontSize": 15,
+              "fontSize": 11.5,
               "fontWeight": "normal"
             },
             {
-              "type": "frame",
-              "id": "H0Rf1f",
-              "name": "Sp",
-              "width": "fill_container",
-              "height": 1
-            },
-            {
               "type": "icon",
-              "id": "J30Us",
-              "name": "Fav",
-              "width": 15,
-              "height": 15,
-              "icon": "star",
-              "library": "Material Symbols Outlined",
-              "fill": "$pl-oro"
-            },
-            {
-              "type": "icon",
-              "id": "yzyUx",
+              "id": "aNfAB",
               "name": "Cerrar",
-              "width": 14,
-              "height": 14,
+              "width": 13,
+              "height": 13,
               "icon": "close",
               "library": "Material Symbols Outlined",
               "fill": "$pl-tinta-tenue"
@@ -119095,914 +119097,1137 @@
         },
         {
           "type": "frame",
-          "id": "uube2",
-          "name": "Vista previa",
-          "width": "fill_container",
-          "height": 112,
-          "fill": "$pl-tinta",
-          "cornerRadius": 2,
-          "justifyContent": "center",
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "icon",
-              "id": "y6CYWv",
-              "name": "Arte",
-              "width": 46,
-              "height": 46,
-              "icon": "park",
-              "library": "Material Symbols Outlined",
-              "fill": "$pl-papel"
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "Jl58D",
-          "name": "Pestañas",
-          "width": "fill_container",
-          "gap": 13,
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "frame",
-              "id": "fXpzJ",
-              "name": "Tab/RECIENTES",
-              "stroke": "$pl-oro",
-              "strokeWidth": {
-                "bottom": 1.5
-              },
-              "padding": [
-                0,
-                0,
-                3,
-                0
-              ],
-              "children": [
-                {
-                  "type": "text",
-                  "id": "Y4hbwa",
-                  "name": "T",
-                  "fill": "$pl-tinta",
-                  "content": "RECIENTES",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 8,
-                  "fontWeight": "normal",
-                  "letterSpacing": 1.5
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "mgRnc",
-              "name": "Tab/FAVORITOS",
-              "padding": [
-                0,
-                0,
-                3,
-                0
-              ],
-              "children": [
-                {
-                  "type": "text",
-                  "id": "LnILj",
-                  "name": "T",
-                  "fill": "$pl-tinta-tenue",
-                  "content": "FAVORITOS",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 8,
-                  "fontWeight": "normal",
-                  "letterSpacing": 1.5
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "J02KS",
-          "name": "Recientes",
-          "width": "fill_container",
-          "gap": 6,
-          "children": [
-            {
-              "type": "frame",
-              "id": "vM5Im",
-              "name": "Filas",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 4,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "MUGcP",
-                  "name": "Fila",
-                  "width": "fill_container",
-                  "gap": 4,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "q4m392",
-                      "name": "R/park",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "YekF3",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "park",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "K997Hj",
-                      "name": "R/forest",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "PWfBM",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "forest",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "v4miEW",
-                      "name": "R/grass",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "NgInf",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "grass",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "nJ837",
-                      "name": "R/nature",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "RHIBq",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "nature",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "LzBLt",
-                      "name": "R/eco",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "QtGhy",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "eco",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "rHeYR",
-                      "name": "R/filter_vintage",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "m2Qh1",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "filter_vintage",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "lxTS9",
-                  "name": "Fila",
-                  "width": "fill_container",
-                  "gap": 4,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "u8SOLI",
-                      "name": "R/chair",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "eQemF",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "chair",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "wvUpI",
-                      "name": "R/table_restaurant",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "zSaOy",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "table_restaurant",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "ZyXao",
-                      "name": "R/bed",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "v15Zr",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "bed",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "LW5I6",
-                      "name": "R/shelves",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "gPEN0",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "shelves",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "GiLMv",
-                      "name": "R/inventory_2",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "nXkp9",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "inventory_2",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "bSAc6",
-                      "name": "R/door_front",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "h81V0W",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "door_front",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "Z9Ujws",
-                  "name": "Fila",
-                  "width": "fill_container",
-                  "gap": 4,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "vFfGE",
-                      "name": "R/water_drop",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "O5XAf5",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "water_drop",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "BsiCJ",
-                      "name": "R/local_fire_department",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "NesNQ",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "local_fire_department",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "J6iUy7",
-                      "name": "R/landscape",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "IvaND",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "landscape",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "P5RbV",
-                      "name": "R/waves",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "YGZf5",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "waves",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "kMjDp",
-                      "name": "R/stairs",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "RfvdB",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "stairs",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "mz4Tb",
-                      "name": "R/fence",
-                      "width": "fill_container",
-                      "height": 28,
-                      "fill": "$pl-tinta",
-                      "cornerRadius": 2,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "UIdPf",
-                          "name": "I",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "fence",
-                          "library": "Material Symbols Outlined",
-                          "fill": "$pl-papel"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "OOkyM",
-              "name": "Barra de scroll",
-              "width": 3,
-              "height": 92,
-              "fill": "$pl-papel-hueco",
-              "cornerRadius": 2,
-              "layout": "none",
-              "children": [
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 2,
-                  "id": "cgobb",
-                  "x": 0,
-                  "y": 0,
-                  "name": "Pulgar",
-                  "fill": "$pl-borde",
-                  "width": 3,
-                  "height": 52
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "Autd6",
-          "name": "C/ESCALA",
+          "id": "n7waZB",
+          "name": "S/1 · LA PIEZA",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 4,
+          "gap": 5,
           "children": [
             {
+              "type": "text",
+              "id": "A5lGLP",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "LA PIEZA DEL SELLO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.4
+            },
+            {
               "type": "frame",
-              "id": "CFZgm",
-              "name": "Cab",
+              "id": "uube2",
+              "name": "Muestra grande · sobre oscuro para que se vea el arte",
+              "width": "fill_container",
+              "height": 96,
+              "fill": "$pl-tinta",
+              "stroke": "$pl-borde",
+              "strokeWidth": 1,
+              "strokeAlignment": "inner",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "y6CYWv",
+                  "name": "Arte",
+                  "width": 40,
+                  "height": 40,
+                  "icon": "park",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-papel"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "F3tdP",
+              "name": "Nombre",
               "width": "fill_container",
               "gap": 6,
               "alignItems": "center",
               "children": [
                 {
                   "type": "text",
-                  "id": "vzUw2",
-                  "name": "L",
-                  "fill": "$pl-tinta-tenue",
-                  "content": "ESCALA",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 8,
-                  "fontWeight": "normal",
-                  "letterSpacing": 1.5
-                },
-                {
-                  "type": "frame",
-                  "id": "wWlKe",
-                  "name": "Sp",
+                  "id": "fvUSt",
+                  "name": "N",
+                  "fill": "$pl-tinta",
+                  "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "height": 1
-                },
-                {
-                  "type": "text",
-                  "id": "RiOJa",
-                  "name": "V",
-                  "fill": "$pl-tinta",
-                  "content": "1,4 ×",
+                  "content": "Roble",
                   "fontFamily": "$font-plenilunio",
-                  "fontSize": 10.5,
-                  "fontWeight": "normal"
-                },
-                {
-                  "type": "text",
-                  "id": "vMgo4",
-                  "name": "Recuerda",
-                  "fill": "$pl-tinta-tenue",
-                  "content": "se recuerda",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 8.5,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "skG7u",
-              "name": "Pista",
-              "width": 214,
-              "height": 12,
-              "layout": "none",
-              "children": [
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 1,
-                  "id": "T38jAo",
-                  "x": 0,
-                  "y": 5,
-                  "name": "Riel",
-                  "fill": "$pl-borde",
-                  "width": 214,
-                  "height": 2
-                },
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 1,
-                  "id": "Ntnk9",
-                  "x": 0,
-                  "y": 5,
-                  "name": "Relleno",
-                  "fill": "$pl-oro",
-                  "width": 90,
-                  "height": 2
-                },
-                {
-                  "type": "ellipse",
-                  "id": "l1f8Z",
-                  "x": 85,
-                  "y": 1,
-                  "name": "Tirador",
-                  "fill": "$pl-tinta",
-                  "width": 10,
-                  "height": 10
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "ClRRd",
-          "name": "C/GIRO",
-          "width": "fill_container",
-          "layout": "vertical",
-          "gap": 4,
-          "children": [
-            {
-              "type": "frame",
-              "id": "w2QZC",
-              "name": "Cab",
-              "width": "fill_container",
-              "gap": 6,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "D4cPmp",
-                  "name": "L",
-                  "fill": "$pl-tinta-tenue",
-                  "content": "GIRO",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 8,
-                  "fontWeight": "normal",
-                  "letterSpacing": 1.5
-                },
-                {
-                  "type": "frame",
-                  "id": "n2bHh",
-                  "name": "Sp",
-                  "width": "fill_container",
-                  "height": 1
-                },
-                {
-                  "type": "text",
-                  "id": "MNd05",
-                  "name": "V",
-                  "fill": "$pl-tinta",
-                  "content": "15°",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 10.5,
+                  "fontSize": 9,
                   "fontWeight": "normal"
                 },
                 {
                   "type": "icon",
-                  "id": "ItjVx",
-                  "name": "Azar",
-                  "width": 13,
-                  "height": 13,
-                  "icon": "casino",
+                  "id": "J5JqU6",
+                  "name": "Favorita",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "star",
                   "library": "Material Symbols Outlined",
-                  "fill": "$pl-oro"
+                  "fill": "$pl-tinta-suave"
                 }
               ]
             },
             {
               "type": "frame",
-              "id": "vTIQa",
-              "name": "Pista",
-              "width": 214,
-              "height": 12,
-              "layout": "none",
+              "id": "MYyNW",
+              "name": "Fila",
+              "width": "fill_container",
+              "gap": 4,
               "children": [
                 {
-                  "type": "rectangle",
-                  "cornerRadius": 1,
-                  "id": "BaMxt",
-                  "x": 0,
-                  "y": 5,
-                  "name": "Riel",
-                  "fill": "$pl-borde",
-                  "width": 214,
-                  "height": 2
+                  "type": "frame",
+                  "id": "dxopN",
+                  "name": "Ch/ELEGIR",
+                  "width": "fill_container",
+                  "fill": "$pl-sangre",
+                  "padding": [
+                    4,
+                    6
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "hlXs5",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "ELEGIR",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    }
+                  ]
                 },
                 {
-                  "type": "rectangle",
-                  "cornerRadius": 1,
-                  "id": "PDJAy",
-                  "x": 0,
-                  "y": 5,
-                  "name": "Relleno",
-                  "fill": "$pl-oro",
-                  "width": 17,
-                  "height": 2
-                },
-                {
-                  "type": "ellipse",
-                  "id": "Iy3N1",
-                  "x": 12,
-                  "y": 1,
-                  "name": "Tirador",
-                  "fill": "$pl-tinta",
-                  "width": 10,
-                  "height": 10
+                  "type": "frame",
+                  "id": "xQE2C",
+                  "name": "Ch/SOLTAR",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "stroke": "$pl-borde",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    4,
+                    6
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "khAcc",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "SOLTAR",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    }
+                  ]
                 }
               ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "N42qCV",
-          "name": "A qué capa",
-          "width": "fill_container",
-          "fill": "$pl-papel-hueco",
-          "cornerRadius": 2,
-          "gap": 7,
-          "padding": [
-            7,
-            9
-          ],
-          "alignItems": "center",
-          "children": [
+            },
             {
-              "type": "icon",
-              "id": "o4e02",
-              "name": "I",
-              "width": 14,
-              "height": 14,
-              "icon": "layers",
-              "library": "Material Symbols Outlined",
-              "fill": "$pl-oro"
+              "type": "frame",
+              "id": "nFFuG",
+              "name": "C/ESCALA",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "EL7tL",
+                  "name": "Cab",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YlZgd",
+                      "name": "L",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "ESCALA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "y5SL9",
+                      "name": "V",
+                      "fill": "$pl-tinta-suave",
+                      "content": "1,4 ×",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "RgJ6e",
+                  "name": "Slider",
+                  "width": "fill_container",
+                  "height": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 3,
+                      "id": "Elag8",
+                      "name": "Pista",
+                      "fill": "#13131024",
+                      "width": "fill_container",
+                      "height": 5
+                    },
+                    {
+                      "type": "ellipse",
+                      "id": "W3Mfv",
+                      "layoutPosition": "absolute",
+                      "x": 40,
+                      "y": 1,
+                      "name": "Tirador",
+                      "fill": "$pl-sangre",
+                      "width": 12,
+                      "height": 12
+                    }
+                  ]
+                }
+              ]
             },
             {
               "type": "text",
-              "id": "xATcZ",
-              "name": "T",
-              "fill": "$pl-tinta",
-              "content": "cae en Objetos",
+              "id": "og0ct",
+              "name": "Nota",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "se recuerda: el próximo roble sale ya a este tamaño",
+              "lineHeight": 1.35,
               "fontFamily": "$font-plenilunio",
-              "fontSize": 10.5,
-              "fontWeight": "normal"
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
             },
             {
               "type": "frame",
-              "id": "ONbMB",
-              "name": "Sp",
+              "id": "QArLC",
+              "name": "C/GIRO",
               "width": "fill_container",
-              "height": 1
-            },
-            {
-              "type": "icon",
-              "id": "Vve6E",
-              "name": "Chev",
-              "width": 13,
-              "height": 13,
-              "icon": "keyboard_arrow_down",
-              "library": "Material Symbols Outlined",
-              "fill": "$pl-tinta-tenue"
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "b1if4",
+                  "name": "Cab",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "NUkkc",
+                      "name": "L",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "GIRO",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "neHAq",
+                      "name": "V",
+                      "fill": "$pl-tinta-suave",
+                      "content": "15°",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "kU3QO",
+                      "name": "Azar",
+                      "width": 11,
+                      "height": 11,
+                      "icon": "casino",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wMhsS",
+                  "name": "Slider",
+                  "width": "fill_container",
+                  "height": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 3,
+                      "id": "uwzYN",
+                      "name": "Pista",
+                      "fill": "#13131024",
+                      "width": "fill_container",
+                      "height": 5
+                    },
+                    {
+                      "type": "ellipse",
+                      "id": "ssp0q",
+                      "layoutPosition": "absolute",
+                      "x": 8,
+                      "y": 1,
+                      "name": "Tirador",
+                      "fill": "$pl-sangre",
+                      "width": 12,
+                      "height": 12
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
         {
           "type": "frame",
-          "id": "w5EvC",
-          "name": "Una o muchas",
-          "clip": true,
+          "id": "YOBLc",
+          "name": "S/2 · RECIENTES Y FAVORITOS",
           "width": "fill_container",
-          "fill": "$pl-papel-hueco",
-          "cornerRadius": 2,
-          "children": [
-            {
-              "type": "frame",
-              "id": "rNer4",
-              "name": "Seg/UNA",
-              "width": "fill_container",
-              "padding": [
-                7,
-                0
-              ],
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "jpKqY",
-                  "name": "T",
-                  "fill": "$pl-tinta-suave",
-                  "content": "UNA",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 8.5,
-                  "fontWeight": "normal",
-                  "letterSpacing": 1.4
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "jAPhQ",
-              "name": "Seg/MUCHAS",
-              "width": "fill_container",
-              "fill": "$pl-tinta",
-              "padding": [
-                7,
-                0
-              ],
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "qqcSH",
-                  "name": "T",
-                  "fill": "$pl-papel-alto",
-                  "content": "MUCHAS",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 8.5,
-                  "fontWeight": "normal",
-                  "letterSpacing": 1.4
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "q5JOTL",
-          "name": "Sólo con MUCHAS",
-          "width": "fill_container",
-          "fill": "#8a703814",
-          "cornerRadius": 2,
           "layout": "vertical",
-          "gap": 9,
-          "padding": [
-            9,
-            10,
-            10,
-            10
-          ],
+          "gap": 5,
           "children": [
             {
+              "type": "text",
+              "id": "ztZ5e",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "SIN ABRIR EL CATÁLOGO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.4
+            },
+            {
               "type": "frame",
-              "id": "N4W9gq",
+              "id": "yuENz",
+              "name": "Fila",
+              "width": "fill_container",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "u8vsa",
+                  "name": "S/RECIENTES · ACTIVO",
+                  "width": "fill_container",
+                  "fill": "$pl-sangre",
+                  "gap": 5,
+                  "padding": [
+                    5,
+                    6
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "D7eqaO",
+                      "name": "I",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "history",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SBvkl",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "RECIENTES",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "A07UC5",
+                  "name": "S/FAVORITOS",
+                  "width": "fill_container",
+                  "fill": "#cbc9c07a",
+                  "gap": 5,
+                  "padding": [
+                    5,
+                    6
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "ciEup",
+                      "name": "I",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "star",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "EScrf",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "FAVORITOS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "J02KS",
+              "name": "Recientes",
+              "width": "fill_container",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "vM5Im",
+                  "name": "Filas",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "MUGcP",
+                      "name": "Fila",
+                      "width": "fill_container",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "q4m392",
+                          "name": "R/park · LA DEL SELLO",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "stroke": "$pl-sangre",
+                          "strokeWidth": 2,
+                          "strokeAlignment": "inner",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "YekF3",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "park",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "K997Hj",
+                          "name": "R/forest",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "PWfBM",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "forest",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "v4miEW",
+                          "name": "R/grass",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "NgInf",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "grass",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "nJ837",
+                          "name": "R/nature",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "RHIBq",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "nature",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "LzBLt",
+                          "name": "R/eco",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "QtGhy",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "eco",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "rHeYR",
+                          "name": "R/filter_vintage",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "m2Qh1",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "filter_vintage",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lxTS9",
+                      "name": "Fila",
+                      "width": "fill_container",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "u8SOLI",
+                          "name": "R/chair",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "eQemF",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "chair",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "wvUpI",
+                          "name": "R/table_restaurant",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "zSaOy",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "table_restaurant",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ZyXao",
+                          "name": "R/bed",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "v15Zr",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "bed",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "LW5I6",
+                          "name": "R/shelves",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "gPEN0",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "shelves",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "GiLMv",
+                          "name": "R/inventory_2",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "nXkp9",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "inventory_2",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bSAc6",
+                          "name": "R/door_front",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "h81V0W",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "door_front",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Z9Ujws",
+                      "name": "Fila",
+                      "width": "fill_container",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "vFfGE",
+                          "name": "R/water_drop",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "O5XAf5",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "water_drop",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "BsiCJ",
+                          "name": "R/local_fire_department",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "NesNQ",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "local_fire_department",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "J6iUy7",
+                          "name": "R/landscape",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "IvaND",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "landscape",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "P5RbV",
+                          "name": "R/waves",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "YGZf5",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "waves",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "kMjDp",
+                          "name": "R/stairs",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "RfvdB",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "stairs",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "mz4Tb",
+                          "name": "R/fence",
+                          "width": "fill_container",
+                          "height": 28,
+                          "fill": "$pl-tinta",
+                          "cornerRadius": 2,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "UIdPf",
+                              "name": "I",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "fence",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-papel"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "OOkyM",
+                  "name": "Barra de scroll",
+                  "width": 3,
+                  "height": 92,
+                  "fill": "$pl-papel-hueco",
+                  "cornerRadius": 2,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 2,
+                      "id": "cgobb",
+                      "x": 0,
+                      "y": 0,
+                      "name": "Pulgar",
+                      "fill": "$pl-borde",
+                      "width": 3,
+                      "height": 52
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "lVDkb",
+          "name": "S/3 · A QUÉ CAPA",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 5,
+          "children": [
+            {
+              "type": "text",
+              "id": "Q6RBr",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "A QUÉ CAPA VA",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.4
+            },
+            {
+              "type": "frame",
+              "id": "N42qCV",
+              "name": "A qué capa",
+              "width": "fill_container",
+              "fill": "#cbc9c07a",
+              "gap": 5,
+              "padding": [
+                5,
+                6
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "o4e02",
+                  "name": "I",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "layers",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                },
+                {
+                  "type": "text",
+                  "id": "xATcZ",
+                  "name": "T",
+                  "fill": "$pl-tinta",
+                  "content": "Objetos",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 9,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "ONbMB",
+                  "name": "Sp",
+                  "width": "fill_container",
+                  "height": 1
+                },
+                {
+                  "type": "icon",
+                  "id": "Vve6E",
+                  "name": "Chev",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "keyboard_arrow_down",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-tenue"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "dzf3E",
+          "name": "S/4 · CUÁNTAS",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 5,
+          "children": [
+            {
+              "type": "text",
+              "id": "GPDeN",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "CUÁNTAS PLANTO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.4
+            },
+            {
+              "type": "frame",
+              "id": "VBGzn",
+              "name": "Fila",
+              "width": "fill_container",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "quXzp",
+                  "name": "S/UNA",
+                  "width": "fill_container",
+                  "fill": "#cbc9c07a",
+                  "gap": 5,
+                  "padding": [
+                    5,
+                    6
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "ysG71",
+                      "name": "I",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "ads_click",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
+                    },
+                    {
+                      "type": "text",
+                      "id": "v30Ty",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "UNA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "W82Sm7",
+                  "name": "S/MUCHAS · ACTIVO",
+                  "width": "fill_container",
+                  "fill": "$pl-sangre",
+                  "gap": 5,
+                  "padding": [
+                    5,
+                    6
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "gLWXt",
+                      "name": "I",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "grain",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    },
+                    {
+                      "type": "text",
+                      "id": "J3tAXv",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "MUCHAS",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "bE9Lt",
+              "name": "Nota",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "con muchas, arrastras y va sembrando por donde pasas",
+              "lineHeight": 1.35,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "fontStyle": "italic"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wj9RU",
+          "name": "S/5 · SÓLO CON MUCHAS",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 5,
+          "children": [
+            {
+              "type": "text",
+              "id": "UtVkQ",
+              "name": "L",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "AL SEMBRAR MUCHAS",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.4
+            },
+            {
+              "type": "frame",
+              "id": "gkzcG",
               "name": "C/ÁREA",
               "width": "fill_container",
               "layout": "vertical",
-              "gap": 4,
+              "gap": 2,
               "children": [
                 {
                   "type": "frame",
-                  "id": "o5giw",
+                  "id": "q6JlW",
                   "name": "Cab",
                   "width": "fill_container",
                   "gap": 6,
@@ -120010,73 +120235,56 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "ufgQl",
+                      "id": "a3Kzt",
                       "name": "L",
                       "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
                       "content": "ÁREA",
                       "fontFamily": "$font-plenilunio",
-                      "fontSize": 8,
+                      "fontSize": 7.5,
                       "fontWeight": "normal",
-                      "letterSpacing": 1.5
-                    },
-                    {
-                      "type": "frame",
-                      "id": "ofueZ",
-                      "name": "Sp",
-                      "width": "fill_container",
-                      "height": 1
+                      "letterSpacing": 1
                     },
                     {
                       "type": "text",
-                      "id": "PEc9K",
+                      "id": "lgGJ7",
                       "name": "V",
-                      "fill": "$pl-tinta",
+                      "fill": "$pl-tinta-suave",
                       "content": "3 casillas",
                       "fontFamily": "$font-plenilunio",
-                      "fontSize": 10.5,
+                      "fontSize": 9,
                       "fontWeight": "normal"
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "S37GY3",
-                  "name": "Pista",
-                  "width": 194,
-                  "height": 12,
-                  "layout": "none",
+                  "id": "LydbH",
+                  "name": "Slider",
+                  "width": "fill_container",
+                  "height": 14,
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "rectangle",
-                      "cornerRadius": 1,
-                      "id": "NQ2D2",
-                      "x": 0,
-                      "y": 5,
-                      "name": "Riel",
-                      "fill": "$pl-borde",
-                      "width": 194,
-                      "height": 2
-                    },
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 1,
-                      "id": "qMhw3",
-                      "x": 0,
-                      "y": 5,
-                      "name": "Relleno",
-                      "fill": "$pl-oro",
-                      "width": 68,
-                      "height": 2
+                      "cornerRadius": 3,
+                      "id": "f4yR7",
+                      "name": "Pista",
+                      "fill": "#13131024",
+                      "width": "fill_container",
+                      "height": 5
                     },
                     {
                       "type": "ellipse",
-                      "id": "RxJdm",
-                      "x": 63,
+                      "id": "ktLRe",
+                      "layoutPosition": "absolute",
+                      "x": 60,
                       "y": 1,
                       "name": "Tirador",
-                      "fill": "$pl-tinta",
-                      "width": 10,
-                      "height": 10
+                      "fill": "$pl-sangre",
+                      "width": 12,
+                      "height": 12
                     }
                   ]
                 }
@@ -120084,147 +120292,158 @@
             },
             {
               "type": "frame",
-              "id": "jEXJE",
+              "id": "bTnOF",
               "name": "C/DENSIDAD",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "hdwO7",
+                  "name": "Cab",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "sUESl",
+                      "name": "L",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "DENSIDAD",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "vA2dW",
+                      "name": "V",
+                      "fill": "$pl-tinta-suave",
+                      "content": "media",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 9,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "OcDvb",
+                  "name": "Slider",
+                  "width": "fill_container",
+                  "height": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 3,
+                      "id": "DU8dR",
+                      "name": "Pista",
+                      "fill": "#13131024",
+                      "width": "fill_container",
+                      "height": 5
+                    },
+                    {
+                      "type": "ellipse",
+                      "id": "yB4tN",
+                      "layoutPosition": "absolute",
+                      "x": 94,
+                      "y": 1,
+                      "name": "Tirador",
+                      "fill": "$pl-sangre",
+                      "width": 12,
+                      "height": 12
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "qFf84",
+              "name": "Fila",
               "width": "fill_container",
               "layout": "vertical",
               "gap": 4,
               "children": [
                 {
                   "type": "frame",
-                  "id": "o5I82r",
-                  "name": "Cab",
+                  "id": "BFk7U",
+                  "name": "S/GIRO AL AZAR · ACTIVO",
                   "width": "fill_container",
-                  "gap": 6,
+                  "fill": "$pl-sangre",
+                  "gap": 5,
+                  "padding": [
+                    5,
+                    6
+                  ],
+                  "justifyContent": "center",
                   "alignItems": "center",
                   "children": [
                     {
+                      "type": "icon",
+                      "id": "oFIw9",
+                      "name": "I",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "rotate_right",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-papel-alto"
+                    },
+                    {
                       "type": "text",
-                      "id": "QYXWB",
-                      "name": "L",
-                      "fill": "$pl-tinta-tenue",
-                      "content": "DENSIDAD",
+                      "id": "Ay0MC",
+                      "name": "T",
+                      "fill": "$pl-papel-alto",
+                      "content": "GIRO AL AZAR",
                       "fontFamily": "$font-plenilunio",
-                      "fontSize": 8,
+                      "fontSize": 7.5,
                       "fontWeight": "normal",
-                      "letterSpacing": 1.5
-                    },
-                    {
-                      "type": "frame",
-                      "id": "W6y0c",
-                      "name": "Sp",
-                      "width": "fill_container",
-                      "height": 1
-                    },
-                    {
-                      "type": "text",
-                      "id": "fJzdr",
-                      "name": "V",
-                      "fill": "$pl-tinta",
-                      "content": "media",
-                      "fontFamily": "$font-plenilunio",
-                      "fontSize": 10.5,
-                      "fontWeight": "normal"
+                      "letterSpacing": 1
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "YP11q",
-                  "name": "Pista",
-                  "width": 194,
-                  "height": 12,
-                  "layout": "none",
+                  "id": "pmovS",
+                  "name": "S/TAMAÑO AL AZAR",
+                  "width": "fill_container",
+                  "fill": "#cbc9c07a",
+                  "gap": 5,
+                  "padding": [
+                    5,
+                    6
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
-                      "type": "rectangle",
-                      "cornerRadius": 1,
-                      "id": "kvTOI",
-                      "x": 0,
-                      "y": 5,
-                      "name": "Riel",
-                      "fill": "$pl-borde",
-                      "width": 194,
-                      "height": 2
+                      "type": "icon",
+                      "id": "sqN2f",
+                      "name": "I",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "open_in_full",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$pl-tinta-suave"
                     },
                     {
-                      "type": "rectangle",
-                      "cornerRadius": 1,
-                      "id": "qkcN8",
-                      "x": 0,
-                      "y": 5,
-                      "name": "Relleno",
-                      "fill": "$pl-oro",
-                      "width": 107,
-                      "height": 2
-                    },
-                    {
-                      "type": "ellipse",
-                      "id": "rPDt9",
-                      "x": 102,
-                      "y": 1,
-                      "name": "Tirador",
-                      "fill": "$pl-tinta",
-                      "width": 10,
-                      "height": 10
+                      "type": "text",
+                      "id": "dsEdw",
+                      "name": "T",
+                      "fill": "$pl-tinta-suave",
+                      "content": "TAMAÑO AL AZAR",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 7.5,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
                     }
                   ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "P9uMB",
-              "name": "Chk/giro al azar",
-              "gap": 7,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 1,
-                  "id": "pUpiX",
-                  "name": "Casilla",
-                  "fill": "$pl-tinta",
-                  "width": 12,
-                  "height": 12
-                },
-                {
-                  "type": "text",
-                  "id": "uzCvt",
-                  "name": "T",
-                  "fill": "$pl-tinta-suave",
-                  "content": "giro al azar",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 10,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "pSsvW",
-              "name": "Chk/tamaño al azar",
-              "gap": 7,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 1,
-                  "id": "oIOOv",
-                  "name": "Casilla",
-                  "fill": "$pl-tinta",
-                  "width": 12,
-                  "height": 12
-                },
-                {
-                  "type": "text",
-                  "id": "Z3Xx4N",
-                  "name": "T",
-                  "fill": "$pl-tinta-suave",
-                  "content": "tamaño al azar",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 10,
-                  "fontWeight": "normal"
                 }
               ]
             }
@@ -120232,506 +120451,17 @@
         },
         {
           "type": "text",
-          "id": "XEyWT",
-          "name": "Pista",
+          "id": "ug1aO",
+          "name": "Nota",
           "fill": "$pl-tinta-tenue",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "cada clic planta otra · Esc suelta el sello",
+          "content": "una: cada clic planta otra · muchas: arrastras y siembra · Esc suelta el sello",
+          "lineHeight": 1.35,
           "fontFamily": "$font-plenilunio",
-          "fontSize": 9,
-          "fontWeight": "normal"
-        }
-      ]
-    },
-    {
-      "type": "frame",
-      "id": "NAAEV",
-      "x": 2458,
-      "y": 8688,
-      "name": "PL/Sello activo · plantar muchas",
-      "clip": true,
-      "width": 1010,
-      "fill": "#f2f0eaee",
-      "cornerRadius": 2,
-      "layout": "vertical",
-      "children": [
-        {
-          "type": "frame",
-          "id": "WSR1A",
-          "name": "Fila 1",
-          "width": "fill_container",
-          "gap": 11,
-          "padding": [
-            13,
-            16,
-            9,
-            16
-          ],
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "text",
-              "id": "WP4YG",
-              "name": "Rotulo",
-              "fill": "$pl-tinta-tenue",
-              "content": "SELLO",
-              "fontFamily": "$font-plenilunio",
-              "fontSize": 8,
-              "fontWeight": "normal",
-              "letterSpacing": 1.8
-            },
-            {
-              "type": "frame",
-              "id": "zSym2",
-              "name": "Pieza",
-              "fill": "$pl-oro",
-              "cornerRadius": 2,
-              "gap": 7,
-              "padding": [
-                6,
-                10
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon",
-                  "id": "D9Yx3y",
-                  "name": "I",
-                  "width": 15,
-                  "height": 15,
-                  "icon": "park",
-                  "library": "Material Symbols Outlined",
-                  "fill": "$pl-papel-alto"
-                },
-                {
-                  "type": "text",
-                  "id": "GkdrC",
-                  "name": "T",
-                  "fill": "$pl-papel-alto",
-                  "content": "Roble",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 11.5,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "nuoIr",
-              "name": "Tamaño",
-              "fill": "$pl-papel-hueco",
-              "cornerRadius": 2,
-              "gap": 7,
-              "padding": [
-                6,
-                9
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "o1O05",
-                  "name": "V",
-                  "fill": "$pl-tinta",
-                  "content": "1,4 ×",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 11,
-                  "fontWeight": "normal"
-                },
-                {
-                  "type": "icon",
-                  "id": "ekiop",
-                  "name": "Mas",
-                  "width": 13,
-                  "height": 13,
-                  "icon": "unfold_more",
-                  "library": "Material Symbols Outlined",
-                  "fill": "$pl-tinta-tenue"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "JAPPT",
-              "name": "Capa",
-              "gap": 6,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon",
-                  "id": "HxP5r",
-                  "name": "I",
-                  "width": 14,
-                  "height": 14,
-                  "icon": "layers",
-                  "library": "Material Symbols Outlined",
-                  "fill": "$pl-tinta-tenue"
-                },
-                {
-                  "type": "text",
-                  "id": "uQBoj",
-                  "name": "T",
-                  "fill": "$pl-tinta-tenue",
-                  "content": "cae en Objetos",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 11,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "EP2MS",
-              "name": "Sp",
-              "width": "fill_container",
-              "height": 1
-            },
-            {
-              "type": "frame",
-              "id": "nQZHD",
-              "name": "Una o muchas",
-              "clip": true,
-              "fill": "$pl-papel-hueco",
-              "cornerRadius": 2,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "uk80s",
-                  "name": "Seg/UNA",
-                  "padding": [
-                    7,
-                    13
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "jFlxJ",
-                      "name": "T",
-                      "fill": "$pl-tinta-suave",
-                      "content": "UNA",
-                      "fontFamily": "$font-plenilunio",
-                      "fontSize": 8.5,
-                      "fontWeight": "normal",
-                      "letterSpacing": 1.4
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "WvPcI",
-                  "name": "Seg/MUCHAS",
-                  "fill": "$pl-tinta",
-                  "padding": [
-                    7,
-                    13
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "DTUJ3",
-                      "name": "T",
-                      "fill": "$pl-papel-alto",
-                      "content": "MUCHAS",
-                      "fontFamily": "$font-plenilunio",
-                      "fontSize": 8.5,
-                      "fontWeight": "normal",
-                      "letterSpacing": 1.4
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "FMC08",
-              "name": "Soltar",
-              "cornerRadius": 2,
-              "stroke": "$pl-linea",
-              "strokeWidth": 1,
-              "padding": [
-                7,
-                13
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "FeSXh",
-                  "name": "T",
-                  "fill": "$pl-tinta-suave",
-                  "content": "SOLTAR",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 8.5,
-                  "fontWeight": "normal",
-                  "letterSpacing": 1.4
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "r2EFHB",
-          "name": "Fila 2 · sólo con MUCHAS",
-          "width": "fill_container",
-          "fill": "#8a703814",
-          "gap": 22,
-          "padding": [
-            0,
-            16,
-            10,
-            16
-          ],
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "frame",
-              "id": "fVIU6",
-              "name": "C/ÁREA",
-              "gap": 9,
-              "padding": [
-                9,
-                0,
-                0,
-                0
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "qHKdX",
-                  "name": "L",
-                  "fill": "$pl-tinta-tenue",
-                  "content": "ÁREA",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 8,
-                  "fontWeight": "normal",
-                  "letterSpacing": 1.6
-                },
-                {
-                  "type": "frame",
-                  "id": "H3bGJN",
-                  "name": "Pista",
-                  "width": 120,
-                  "height": 12,
-                  "layout": "none",
-                  "children": [
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 1,
-                      "id": "UsJny",
-                      "x": 0,
-                      "y": 5,
-                      "name": "Riel",
-                      "fill": "$pl-borde",
-                      "width": 120,
-                      "height": 2
-                    },
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 1,
-                      "id": "D22GTQ",
-                      "x": 0,
-                      "y": 5,
-                      "name": "Relleno",
-                      "fill": "$pl-oro",
-                      "width": 42,
-                      "height": 2
-                    },
-                    {
-                      "type": "ellipse",
-                      "id": "XcV6a",
-                      "x": 37,
-                      "y": 1,
-                      "name": "Tirador",
-                      "fill": "$pl-tinta",
-                      "width": 10,
-                      "height": 10
-                    }
-                  ]
-                },
-                {
-                  "type": "text",
-                  "id": "K1a2b9",
-                  "name": "V",
-                  "fill": "$pl-tinta",
-                  "content": "3 casillas",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 10.5,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "pJ190",
-              "name": "C/DENSIDAD",
-              "gap": 9,
-              "padding": [
-                9,
-                0,
-                0,
-                0
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "s8phhr",
-                  "name": "L",
-                  "fill": "$pl-tinta-tenue",
-                  "content": "DENSIDAD",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 8,
-                  "fontWeight": "normal",
-                  "letterSpacing": 1.6
-                },
-                {
-                  "type": "frame",
-                  "id": "lRJzl",
-                  "name": "Pista",
-                  "width": 120,
-                  "height": 12,
-                  "layout": "none",
-                  "children": [
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 1,
-                      "id": "flPQv",
-                      "x": 0,
-                      "y": 5,
-                      "name": "Riel",
-                      "fill": "$pl-borde",
-                      "width": 120,
-                      "height": 2
-                    },
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 1,
-                      "id": "Rv8B5",
-                      "x": 0,
-                      "y": 5,
-                      "name": "Relleno",
-                      "fill": "$pl-oro",
-                      "width": 66,
-                      "height": 2
-                    },
-                    {
-                      "type": "ellipse",
-                      "id": "KW9Qs",
-                      "x": 61,
-                      "y": 1,
-                      "name": "Tirador",
-                      "fill": "$pl-tinta",
-                      "width": 10,
-                      "height": 10
-                    }
-                  ]
-                },
-                {
-                  "type": "text",
-                  "id": "EDMYn",
-                  "name": "V",
-                  "fill": "$pl-tinta",
-                  "content": "media",
-                  "fontFamily": "$font-plenilunio",
-                  "fontSize": 10.5,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "lJQcp",
-              "name": "Aleatorios",
-              "gap": 16,
-              "padding": [
-                9,
-                0,
-                0,
-                0
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "SbVbT",
-                  "name": "Chk/giro al azar",
-                  "gap": 7,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 1,
-                      "id": "BmuEB",
-                      "name": "Casilla",
-                      "fill": "$pl-tinta",
-                      "width": 12,
-                      "height": 12
-                    },
-                    {
-                      "type": "text",
-                      "id": "y9p05",
-                      "name": "T",
-                      "fill": "$pl-tinta-suave",
-                      "content": "giro al azar",
-                      "fontFamily": "$font-plenilunio",
-                      "fontSize": 10.5,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "HnKMH",
-                  "name": "Chk/tamaño al azar",
-                  "gap": 7,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 1,
-                      "id": "O7EwM",
-                      "name": "Casilla",
-                      "fill": "$pl-tinta",
-                      "width": 12,
-                      "height": 12
-                    },
-                    {
-                      "type": "text",
-                      "id": "x4uhU",
-                      "name": "T",
-                      "fill": "$pl-tinta-suave",
-                      "content": "tamaño al azar",
-                      "fontFamily": "$font-plenilunio",
-                      "fontSize": 10.5,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Z4OJKT",
-              "name": "Sp",
-              "width": "fill_container",
-              "height": 1
-            },
-            {
-              "type": "text",
-              "id": "mqk9h",
-              "name": "Pista",
-              "fill": "$pl-tinta-tenue",
-              "content": "pinta y va sembrando · Esc suelta el sello",
-              "fontFamily": "$font-plenilunio",
-              "fontSize": 9.5,
-              "fontWeight": "normal"
-            }
-          ]
+          "fontSize": 7.5,
+          "fontWeight": "normal",
+          "fontStyle": "italic"
         }
       ]
     },
@@ -121101,7 +120831,7 @@
                       "x": 0,
                       "y": 5,
                       "name": "Riel",
-                      "fill": "$pl-borde",
+                      "fill": "#13131024",
                       "width": 70,
                       "height": 2
                     },
@@ -121112,7 +120842,7 @@
                       "x": 0,
                       "y": 5,
                       "name": "Relleno",
-                      "fill": "$pl-oro",
+                      "fill": "$pl-sangre",
                       "width": 43,
                       "height": 2
                     },
@@ -121122,6 +120852,7 @@
                       "x": 38,
                       "y": 1,
                       "name": "Tirador",
+                      "enabled": false,
                       "fill": "$pl-tinta",
                       "width": 10,
                       "height": 10

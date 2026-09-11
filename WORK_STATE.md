@@ -21,13 +21,49 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 a «A pulso» del Builder**. Construida entera el 2026-09-10 y **probada por él en pantalla**, con siete tandas
 de correcciones suyas. En la rama `feat/maps-pincel` y **sin mergear**.
 
-**SIGUIENTE:** `/qa` de `feat/maps-pincel` → merge → deploy → coger/mover/borrar una sala con el ratón (pide `.pen`) →
-**rebanada 6** (galería de piezas, a rediseñar) → `chat` (H8) + `journal` (H9). ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno,
-configurable por sistema (toca el puerto `GameSystem`) — spec de maps, línea 18.
+**SIGUIENTE:** `/qa` de `feat/maps-pincel` → merge → deploy → **rebanada 6 · LOS OBJETOS** (galería de piezas; él la
+pasó por delante el 2026-09-11) → coger/mover/borrar una sala con el ratón (pide `.pen`) → `chat` (H8) + `journal` (H9).
+⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
+spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los cinco bloques de arriba, en este orden: 📋 «LO QUE TOCA EN EL CHAT SIGUIENTE» (donde se retoma) · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🧩 «LOS OBJETOS» (donde se retoma) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 📋 2026-09-11 — LAS CINCO PETICIONES, PROBADAS POR ÉL («*está todo bien*») Y COMMITEADAS · **AQUÍ SE RETOMA**
+## 🧩 2026-09-11 — LOS OBJETOS (rebanada 6): DISEÑO AJUSTADO AL PINCEL Y AL BUILDER, **APROBADO** · **AQUÍ SE RETOMA**
+
+Él, 2026-09-11: «*sigamos con el ws, el próximo feature que quiero es el de los objetos*». «Objetos» = la galería
+de piezas de la rebanada 6 (sección 6 del `.pen`). Luego: «*ajusta el diseño a lo que hicimos con el pincel y el
+builder*» → hecho, y **«aprobado»**.
+
+### ✅ LO QUE CAMBIÓ EN `rolvium.pen` (todo dentro de la sección 6, sin nodos nuevos en la raíz)
+- **`lWBaU` · Panel de pieza, REHECHO con las medidas de `TlJot`** (220 de ancho, hueco y margen 10, la misma sombra):
+  cabecera asa + icono de Piezas (copia del trazo `kM4CT` en tinta, 1.1) + «Piezas» + X · **S/1 LA PIEZA DEL SELLO**
+  (muestra sobre oscuro, nombre con estrella, ELEGIR en sangre / SOLTAR con borde, ESCALA con nota «se recuerda», GIRO
+  con dado) · **S/2 SIN ABRIR EL CATÁLOGO** (RECIENTES / FAVORITOS como botones, rejilla 6×3 con scroll, la del sello
+  con filo sangre) · **S/3 A QUÉ CAPA VA** (desplegable «Objetos») · **S/4 CUÁNTAS PLANTO** (UNA / MUCHAS) · **S/5 AL
+  SEMBRAR MUCHAS** (ÁREA, DENSIDAD, y GIRO AL AZAR / TAMAÑO AL AZAR como botones de fila entera) · pie.
+  **Ni un negro en los mandos** (antes lo eran MUCHAS, las dos casillas y los tiradores): sólo detrás del arte.
+- **`NAAEV` · «Sello activo», la barra alargada: BORRADA por orden suya** — «*está todo dentro del panel no la
+  pongas*». Mismo motivo por el que tumbó la barra del pincel. **No volver a dibujarla.**
+- **`SNlGp` · la barra:** `H/Muro` → `H/Builder` con su icono (imagen `builder-mask.png`: en el `.pen` sale negra
+  porque no se puede teñir; en la app se tiñe) · `H/Pincel de transparencia` → `H/Pincel` con `brush` en oro.
+- **`w7sTC0` (catálogo) y `DCs6S` (subir en lote):** deslizadores sin oro ni tirador negro — pista gris y rojo sangre.
+- 🚫 Visto y NO tocado (fuera de lo pedido): en `SNlGp` el LIENZO sigue con 6 botones sueltos (en la app es uno
+  solo desde el 2026-09-03) · `f2N67t` «PL/Barra pincel · CON DUREZA» sigue en la sección 6 (barra vieja del pincel).
+
+### ⏳ LO QUE FALTA, EN ORDEN
+1. ✅ **`.pen` guardado por él a las 09:43** y commiteado en la rama (`design(maps): el panel de objetos…`).
+2. **Cerrar el spec** (`specs/modules/maps/SPEC.md` § «Rebanada 6»): es de ANTES del rediseño estilo Inkarnate y choca
+   con lo decidido después:
+   - ✅ **De la HERRAMIENTA, no de la campaña.** Él, 2026-09-11: «*lo que se sube sirve para todos*». Como las
+     texturas: se sube una vez y vale en todos los mapas de todas las campañas; subir, ordenar y borrar, por permiso
+     («*por permisos, como las texturas*»). El spec que dice «viven en la CAMPAÑA» está MAL y se corrige.
+   - Categorías cerradas → **paquetes propios SÍ** (ya decidido por él, 2026-09-09).
+   - «Sin variación automática» → el panel **aprobado** lleva GIRO AL AZAR y TAMAÑO AL AZAR: manda lo aprobado.
+3. **DBA**: `maps_props` tal como está en producción NO vale para eso (`campaign_id`, CHECK de 6 categorías cerradas,
+   escribe sólo el director de su campaña). Las tablas están vacías, así que cambiarlas no pierde nada.
+4. **QA + merge de `feat/maps-pincel` ANTES de programar los objetos**, y los objetos en rama nueva desde `main`.
+
+## 📋 2026-09-11 — LAS CINCO PETICIONES, PROBADAS POR ÉL («*está todo bien*») Y COMMITEADAS
 
 **Frase para arrancar el chat nuevo:**
 > «Rolvium. Lee el bloque 📋 de arriba de WORK_STATE.md. La rama `feat/maps-pincel` está construida, probada por
