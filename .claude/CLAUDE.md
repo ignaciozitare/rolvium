@@ -130,9 +130,11 @@ Rolvium/
 │   ├── web/                 Frontend — Vite + React 18 + react-router + CSS vars
 │   │   ├── src/
 │   │   │   ├── modules/     Feature modules (hexagonal: domain/application/infra/ui + container.ts)
-│   │   │   │   ├── auth/    Login, session, Supabase auth
-│   │   │   │   ├── admin/   Users, roles, permissions, settings
-│   │   │   │   └── home/    Landing / dashboard after login
+│   │   │   │   ├── auth/ · admin/ · home/ · identity/   Login/session · users & roles · landing · sign-up & account (H1)
+│   │   │   │   ├── campaigns/ · table/                   Campaigns (H2) · live table shell, applies the system theme (H3)
+│   │   │   │   ├── characters/ · bestiary/ · dice/       Sheets (H4) · NPCs & encounters (H5) · server-side rolls (H6)
+│   │   │   │   └── maps/ · systems/                      Scenes: walls, fog, rooms, brush, props (H7) · /systems page
+│   │   │   ├── systems/     registry.ts — the ONE place meant to import game-system packages
 │   │   │   ├── shared/      Cross-module UI (incl. shared/ui/UIKit.tsx), hooks, libs
 │   │   │   └── RolviumApp.css  Design tokens (:root dark, [data-theme="light"])
 │   │   └── tests/           smoke/ regression/ functional/ + helpers/
@@ -145,6 +147,8 @@ Rolvium/
 │           │   └── supabase/ Supabase adapters
 │           └── app.ts       Fastify app factory (registers routes)
 ├── packages/                Shared libraries used by both apps
+│   ├── core/                @rolvium/core — GameSystem port + system-agnostic rules shared by web and api
+│   ├── system-plenilunio/   First game system (implements GameSystem; RULES.md = digest of the manual)
 │   ├── ui/                  Reusable React components (@rolvium/ui) + CATALOG.md
 │   ├── i18n/                Translation keys (@rolvium/i18n) — locales/{es,en}.json
 │   └── shared-types/        Cross-app types (@rolvium/shared-types)
@@ -342,7 +346,7 @@ These rules apply while writing code. The QA Agent will verify them before any m
 ---
 
 ## Specs
-- Every module and core area has its own `SPEC.md` in `specs/modules/{name}/SPEC.md` or `specs/core/{name}/SPEC.md` (today: `specs/core/{auth,roles-permissions,testing}/SPEC.md`).
+- Every module and core area has its own `SPEC.md` in `specs/modules/{name}/SPEC.md` or `specs/core/{name}/SPEC.md` (today: `specs/core/{auth,game-system,images,realtime,roles-permissions,testing}/SPEC.md`).
 - `specs/SPEC.md` is the global index that references all individual specs.
 - Always read the relevant SPEC.md before starting any work on that area.
 - Update the SPEC.md when functionality changes, after it is stable in production.

@@ -101,7 +101,7 @@ Once confirmed, determine the correct location:
 
 - New module → `specs/modules/{name}/SPEC.md`
 - Feature in existing module → update `specs/modules/{name}/SPEC.md`
-- Core change → `specs/core/{area}/SPEC.md` (existing: `auth`, `roles-permissions`, `testing`)
+- Core change → `specs/core/{area}/SPEC.md` (existing: `auth`, `game-system`, `images`, `realtime`, `roles-permissions`, `testing`)
 - Integration → `specs/modules/{name}/SPEC.md` or `specs/core/integrations/SPEC.md`
 
 Save the confirmed spec. Then add a data model section at the bottom marked as pending:

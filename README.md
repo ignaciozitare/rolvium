@@ -20,12 +20,19 @@ demo keys). Studio: http://127.0.0.1:54323. Local dev accounts (from `supabase/s
 `rolvium123`): **admin@rolvium.local** (admin) · **jugador1@ejemplo.com** (Marta Ruiz) · **jugador2@ejemplo.com**
 (Nico Vega) — the two players are seeded unjoined on purpose, so joining by invite code stays part of the manual test.
 
-- New migration: `npm run db:migration <name>` → edit the file → `npm run db:reset` (re-applies everything + seed).
+- New migration: `npm run db:migration <name>` → edit the file → apply it to the running local database **without
+  wiping it**: `docker exec -i supabase_db_rolvium psql -U postgres -d postgres < supabase/migrations/<file>.sql`, then
+  `docker exec supabase_db_rolvium psql -U postgres -d postgres -c "NOTIFY pgrst, 'reload schema';"` — PostgREST caches
+  the schema, and without the NOTIFY the new tables and columns come back empty.
+- ⚠️ **Never `npm run db:reset` on a local database whose data matters.** It drops everything and re-creates only what
+  is in `supabase/seed.sql` (it once wiped a whole test campaign). Whatever must survive goes into the seed first.
 - `npm run db:status` prints URLs/keys; `npm run db:stop` stops the containers (data persists).
 - E-mails (sign-up confirmation, password reset) land in the local Mailpit inbox: http://127.0.0.1:54324. Reset links
   point at `http://localhost:5173/reset` (`site_url` in `supabase/config.toml`; a config change needs `db:stop` + `db:start`).
 
-## Moving to a hosted Supabase project (later)
+## Hosted Supabase (production is already live)
+The production project is live — see `ARCHITECTURE.md` § Deployment. The steps below are only for setting up a new
+hosted project from scratch:
 ```bash
 supabase login
 supabase link --project-ref <ref>

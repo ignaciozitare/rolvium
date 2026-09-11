@@ -26,7 +26,7 @@ pasó por delante el 2026-09-11) → coger/mover/borrar una sala con el ratón (
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🧩 «LOS OBJETOS» (donde se retoma) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🧩 «LOS OBJETOS» (donde se retoma) · 🏛️ «REVISIÓN DE ARQUITECTURA» (lo propuesto pide su sí) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
 ## 🧩 2026-09-11 — LOS OBJETOS (rebanada 6): DISEÑO AJUSTADO AL PINCEL Y AL BUILDER, **APROBADO** · **AQUÍ SE RETOMA**
 
@@ -62,6 +62,44 @@ builder*» → hecho, y **«aprobado»**.
 3. **DBA**: `maps_props` tal como está en producción NO vale para eso (`campaign_id`, CHECK de 6 categorías cerradas,
    escribe sólo el director de su campaña). Las tablas están vacías, así que cambiarlas no pierde nada.
 4. **QA + merge de `feat/maps-pincel` ANTES de programar los objetos**, y los objetos en rama nueva desde `main`.
+
+## 🏛️ 2026-09-11 — REVISIÓN DE ARQUITECTURA, REUTILIZACIÓN Y DOCUMENTACIÓN (pedida por él)
+
+Él: «*asegúrate de que la documentación, los specs, arquitectura etc esté actualizado, ¿estamos manteniendo la
+arquitectura hexagonal y si realmente estamos reutilizando componentes? cuando agreguemos otros sistemas todo lo
+agnóstico al sistema de reglas, como escenas, no se tiene que duplicar, sólo se tiene que adaptar estilos*».
+
+### Lo que se encontró
+- ✅ **Hexagonal**: `npm run audit` 0 graves; ninguna pantalla va a la base directa; todo módulo con datos tiene
+  `container.ts`; dominio y casos de uso (web y api) sin frameworks ni infra.
+- ✅ **Escenas agnósticas**: `maps` no importa ningún sistema; el tamaño de ficha sale del sistema
+  (`engine.tokenCells`); el aspecto entra sólo por `--sys-*` (`TablePage` / `CharacterSheetPage` vuelcan
+  `system.theme.vars`).
+- ❌ **`bestiary` (7 ficheros, dominio incluido) y `dice` (3 pantallas) importan `@rolvium/system-plenilunio`
+  directamente.** Con un segundo sistema habría que rehacerlos. Rompe la regla de `specs/core/game-system`.
+- ⚠️ `METRES_PER_CELL = 1.5` (Plenilunio) fijo en `packages/core/src/maps.ts` → medir y luz nocturna.
+- ⚠️ Los «por defecto» de `--sys-*` en `table.css` son la paleta de Plenilunio en hex.
+- ❌ **Paneles flotantes del mapa repetidos**: Builder, Pincel y Luces copian cada uno su carcasa (cabecera con asa,
+  título y X; `.mp-builder` y `.mp-brushpanel` empiezan con la misma regla) y los deslizadores están hechos de TRES
+  maneras (apilado en el Pincel, en línea en Builder y en Luces). **El panel de objetos sería la cuarta copia.** En
+  `@rolvium/ui` no hay ni panel flotante ni deslizador.
+- ⚠️ Los botones y rótulos de la mesa (`tb-btn`, `tb-btn-blood`, `tb-rotulo`) viven en `table.css` pero los usan
+  `maps` (12 ficheros) y `characters`: piezas compartidas en el sitio equivocado.
+- ⚠️ 7 ventanas hechas a mano en vez de `Modal` (bestiario ×3, fichas, dados, mapa ×2). Adopción de `@rolvium/ui`:
+  46 de 70 pantallas (66 %). `CATALOG.md` al día (regenerado, sin cambios).
+- ❌ **El README recomendaba `npm run db:reset` después de cada migración** —lo que borró la campaña y a Karen— y
+  daba Supabase en la nube como «para más adelante». Corregido.
+- ⚠️ ARCHITECTURE sin `packages/core` ni `system-plenilunio`, sin filas de `campaigns` y `table`, y con la fila de
+  `maps` sin Pincel, capas y luces, memoria de la escena ni objetos (y citando un `DmOptionsBar` que ya no existe).
+  Índice de specs con maps desfasado; spec del puerto con el selector del tema mal; CLAUDE.md con la estructura de
+  hace un mes. Corregido en la misma tanda.
+
+### Propuesto, SIN hacer (pide su sí)
+1. **Antes de programar los objetos**: sacar a `@rolvium/ui` el panel flotante, el deslizador y los botones de
+   opción (tema sólo por `--sys-*`), y que Builder, Pincel, Luces y Objetos los usen. Es tocar paneles que ya
+   funcionan → sólo con su sí.
+2. **Antes de un segundo sistema**: sacar Plenilunio de `bestiary` y `dice` por el puerto, `METRES_PER_CELL` al
+   puerto y los por defecto de `table.css` neutros. Tanda propia, con su spec.
 
 ## 📋 2026-09-11 — LAS CINCO PETICIONES, PROBADAS POR ÉL («*está todo bien*») Y COMMITEADAS
 

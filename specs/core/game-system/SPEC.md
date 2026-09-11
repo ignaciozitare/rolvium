@@ -51,7 +51,19 @@ interface GameSystem {
     rechaza como `unknown` toda clave que el esquema no declare.
 - `SectionDef.span` — cuánto ocupa la sección en la rejilla de SEIS de la ficha (6 = fila entera, 3 = media,
   2 = un tercio). Lo declara el sistema: la plataforma no sabe que «Estado» pide más sitio que «Dones».
-- `VisualTheme` se aplica como variables CSS **en el contenedor de la mesa** (`.rv-table[data-system=...]`), nunca con condicionales en componentes.
+- `VisualTheme` se aplica como variables CSS **en el contenedor de la mesa**: `TablePage` (y `CharacterSheetPage`, la
+  ficha en ventana aparte) vuelca `system.theme.vars` como `--sys-*` inline sobre `.tb-root`. Nunca con condicionales
+  en componentes.
+- ⚠️ **Deuda conocida — lo que hoy impediría meter un segundo sistema sin tocar la plataforma** (revisado el 2026-09-11):
+  - `bestiary` (7 ficheros, dominio incluido) y `dice` (3 pantallas) importan `@rolvium/system-plenilunio`
+    directamente (`STAT_IDS`, `DIFFICULTIES`, `capabilityLevel`, `RANGE_DIFFICULTY`, tipos `StatId`/`CapabilityId`…),
+    saltándose la regla de abajo. Tienen que pedirlo al puerto.
+  - `METRES_PER_CELL = 1.5` —regla de Plenilunio— vive fijo en `packages/core/src/maps.ts`: con otro sistema, medir y
+    la luz nocturna saldrían en metros de Plenilunio. Tiene que venir del puerto.
+  - Los valores «por defecto» de `--sys-*` en `table.css` (`.tb-root`) son una copia en hex de la paleta de
+    Plenilunio: un sistema que olvide una variable se vería como Plenilunio sin avisar.
+  - Lo que SÍ cumple: `maps` no importa ningún sistema, el tamaño de las fichas lo da el sistema
+    (`engine.tokenCells`) y el aspecto de las escenas entra sólo por `--sys-*`.
 
 ## Rules & limits
 - Un sistema no importa nada de la plataforma salvo `packages/core`. La plataforma no importa nada de `packages/system-*` salvo por el registro de sistemas (`systems/registry.ts`).
