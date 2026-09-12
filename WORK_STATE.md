@@ -28,14 +28,34 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-12 — LENTITUD ✅ · VISTA Y REPINTADO ✅ · LOS DIENTES ✅ · LA 3 (barra arrastrando) ✅ · LA 4 (el Builder recuerda su modo) ✅ — todo SIN PROBAR POR ÉL · **AQUÍ SE RETOMA: LA 5 (girar las dos texturas base del Builder: spec → DBA → `.pen` → dev)**
+## 🟢 2026-09-12 — LOS DIENTES ✅ · LA 3 (barra arrastrando) ✅ · LA 4 (el Builder recuerda su modo) ✅ · LA 5 (girar las texturas base) ✅ · LA 7 (menú de las piezas) apuntada en el spec de la rebanada 6 — **todo SIN PROBAR POR ÉL** · **AQUÍ SE RETOMA: QUE ÉL PRUEBE LAS CUATRO y conteste lo de la 6 (la captura que nunca llegó y qué rótulos exactos quiere)**
 
-**Frase para arrancar el chat nuevo** (él se fue a dormir el 2026-09-12 diciendo «*sigue solo todo lo que puedas, ya lo
-probaré mañana*»; el chat de la noche hizo los dientes y dejó escrita la propuesta de la 3):
-> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. Los dientes están hechos
-> y commiteados (bloque 🦷): dile en pocas líneas qué pasó y que lo pruebe con Cmd+Shift+R rozando un trazo roto con la
-> sonda. Después enséñale la propuesta de spec de la 3 (bloque 🧲, el texto entre comillas) y espera su «sí» o sus
-> correcciones antes de tocar nada.»
+**Frase para arrancar el chat nuevo** (él se fue el 2026-09-12 a mediodía diciendo «*termínalo y con el contexto que te
+quede comienza el punto siguiente, no me esperes, no rompas nada*»; este chat hizo los dientes, la 3, la 4 y la 5):
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. Hay cuatro cosas hechas
+> y commiteadas sin probar por él (dientes, barra arrastrando, el Builder recuerda su modo, giro de texturas): pídele
+> que recargue con Cmd+Shift+R y las pruebe, y que guarde el `.pen` (Cmd+S: la lámina del giro `I6TcDm` sólo está en
+> memoria del Pencil). Después la 6 (rótulos en las dos muestras de textura base): pídele la captura y los rótulos
+> exactos antes de tocar nada. La 7 ya está en el spec de la rebanada 6.»
+
+**Lo que tiene que probar él (recargando con Cmd+Shift+R su mesa
+`http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`):**
+1. 🦷 Rozar un trazo roto con la sonda, por los dos lados: ya no se clava en los dientes.
+2. 🧲 Arrastrar un botón de la barra de herramientas (él es admin) dentro de su bloque: se queda así para todos.
+3. 🔁 Builder → «Dibujar aquí» → cambiar de pestaña de la mesa y volver (o recargar): sigue en «Dibujar aquí».
+4. 🔄 Builder → «Dibujar aquí» → con una textura puesta, la barra «Giro» debajo de la del azulejo: mapa y muestra giran
+   en vivo y se guarda al soltar.
+5. `.pen`: guardar con Cmd+S (la lámina `I6TcDm` del giro no está en disco); la del arrastre `NhYOy` ya la guardó.
+⚠ Al desplegar: TRES migraciones sólo en LOCAL (`20260911170000_maps_band_rough`, `20260912100000_core_app_settings`,
+`20260912130000_maps_texture_rotation`) que tienen que llegar a producción ANTES que la web.
+
+### 📥 LA 6, SIN EMPEZAR — LE FALTAN DOS COSAS SUYAS
+«*cuando no hay textura no sé cuál es pared o piso, le pondría background y foreground*» → rótulos en las dos muestras
+de textura base del Builder. No se tocó a propósito («no rompas nada»): (a) su tercera captura NUNCA llegó y (b) los
+nombres los puso él («background» y «foreground») y en una interfaz en castellano no está claro si los quiere tal
+cual, en inglés, o si «background» = suelo y «foreground» = pared. **Preguntarle las dos cosas en texto plano** y sólo
+entonces: spec (una línea) → `.pen` (la fila de cada muestra con su rótulo, sobre `I6TcDm`) → dev (`BuilderPanel`,
+`mp-builder-tex-n` ya enseña el nombre del preajuste: el rótulo iría al lado) → review.
 
 ### 🧲 LA 3 · ORDENAR LAS HERRAMIENTAS ARRASTRANDO — ✅ SPEC CONFIRMADO CON SUS CORRECCIONES (2026-09-12, por la mañana) · EN CONSTRUCCIÓN
 **Sus tres respuestas, textuales** («*joder, pero quería que tengas esto*»): (1) «*los bloques los tienes que respetar
@@ -534,12 +554,39 @@ Textuales suyas, con lo que se entendió:
    Tests: `LocalViewMemory.test.ts` (+1 y el de almacenamiento capado), `SceneTab.test.tsx` describe «el Builder
    recuerda su modo» (2). ⏳ review + commit · ⏳ él: probarlo (elegir «Dibujar aquí», cambiar de pestaña y volver).
 5. «*En la base del suelo y las paredes … tengo que poder rotar sus texturas*» — girar las dos texturas base del Builder,
-   como el giro de textura del Pincel. Toca `maps_scenes` (DBA) + `.pen`.
+   como el giro de textura del Pincel. ✅ **HECHA (2026-09-12, mediodía, por su orden de seguir sin esperarle)**.
+   - Spec: § «Rebanada 8», punto 2 («se escalan») gana el punto 🔄 **«Y SE GIRAN»**: barra de giro debajo de la del
+     azulejo, sólo con foto, 0°–355° de 5 en 5 (como el «Giro» del Pincel), una por textura, de serie 0°, con previo
+     en vivo y guardado al soltar. Decisiones del agente avisadas ahí (mismo paso y tope que el Pincel; gira la textura
+     de la escena entera; también la piedra de un brochazo de muro y el suelo pintado).
+   - ✅ DBA: `supabase/migrations/20260912130000_maps_texture_rotation.sql` — `maps_scenes.wall_texture_rotation` y
+     `floor_texture_rotation` (real, 0 ≤ x < 360, de serie 0, con CHECK), sin políticas nuevas, `NOTIFY pgrst`.
+     Aplicada en LOCAL (`migration up --local`), lint 0, audit 0 graves. ⚠ **En la nube NO está**: con el deploy,
+     ANTES que la web (la web ya pide las columnas en `SCENE_COLS`).
+   - ✅ `.pen`: lámina `I6TcDm` «PL/Builder · panel · LAS TEXTURAS SE GIRAN ← NUEVO 12-09 (rebanada 8 · punto 5)»,
+     copia de `ePNCc` (v3) con una fila `C/GIRO · PARED` y otra `C/GIRO · SUELO` (copias del `C/GIRO` del Pincel,
+     `hfb6r`) debajo de cada fila de azulejo en «S/TEXTURAS BASE», al final de la fila de la sección 5 (x 28354). SIN
+     GUARDAR por él (Cmd+S) y sin su visto bueno: se construyó por su orden. Los «partially clipped» que avisa `Get`
+     son las miniaturas de los preajustes, ya así en `ePNCc`.
+   - ✅ Código: `Scene.ts` (`wallTextureRotation`/`floorTextureRotation` + `ScenePatch`) · `SupabaseMapsRepo.ts` (fila,
+     columnas, lectura a 0° si falta, escritura normalizada a [0, 360)) · `roomsLayer.tsx` (`patternTransform=rotate`
+     en el azulejo de la roca y en los de cada capa pintada: roca con el giro de pared, suelo con el de suelo) ·
+     `BuilderPanel.tsx` (props `wallRotation`/`floorRotation`/`onTextureRotation`; `Slider` inline «Giro · pared/suelo»
+     bajo el del azulejo; `TextureSwatch` con capa `mp-tex-turn` girada, sólo si ≠ 0°) · `maps.css`
+     (`.mp-builder-tex-turn`) · `SceneTab.tsx` (el mismo borrador `texDraft` que la escala: previo en vivo, guarda al
+     soltar) · i18n es/en `maps.room.turn.{wall,floor}` · fixtures (`fakes.ts`, `roomStyles.test.ts`,
+     `roomsLayer.test.tsx`).
+   - Tests: `BuilderPanel.test.tsx` describe «girar la textura» (3) · `roomsLayer.test.tsx` (+1) ·
+     `SupabaseMapsRepo.test.ts` (+1) · `SceneTab.test.tsx` describe «el giro de las texturas base» (1). ✅ **Review
+     APROBADO** (añadió un test: el suelo gira con SU giro y la piedra de un relleno con el de la pared) y
+     **commiteado** (`8a9b7f3`). Verde: smoke 12/12 · regression 1737/1737 · build:web + build:api · audit 0 graves.
+     ⏳ él: probarlo (Builder → Dibujar aquí → con una textura puesta, la barra «Giro»).
 6. «*cuando no hay textura no sé cuál es pared o piso, le pondría background y foreground*» — rótulos en las dos muestras
    de textura base. ⚠ **Su tercera captura NO llegó**: pedírsela. Los nombres los puso él: no inventar otros.
 7. Para LOS OBJETOS (rebanada 6): «*cada uno al hacerle click derecho tienes que poder mandarlo adelante y atrás como en
    cualquier programa … top layer, down layer etc*» — menú contextual: traer adelante / enviar atrás / al frente / al
-   fondo. **Meterlo en el spec de la rebanada 6** cuando se cierre.
+   fondo. ✅ **Apuntado en el spec de la rebanada 6** (2026-09-12, § «Rebanada 6 — galería de piezas», lista «📥 Suyo,
+   para cuando se construya»): sólo spec, sin código ni `.pen`; se diseña con la galería.
 
 ### ❓ SU PREGUNTA (2026-09-11, noche): ¿guardar cada sala por separado lo hace lento? — CONTESTADA, SIN DECIDIR
 «*habiamos decidido que las habitaciones se guardaba cada una por si la queria mover en un futuro etc, y pensandolo

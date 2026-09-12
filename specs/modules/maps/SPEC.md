@@ -940,6 +940,14 @@ puse»*.
   fichas cuando se borra una capa.
 - **Nada de esto cambia una regla del manual.** Un mueble no da ni quita dados; estorbar es geometría.
 
+### 📥 Suyo, para cuando se construya la galería (apuntado el 2026-09-12)
+
+- **Menú del botón derecho sobre una pieza puesta** (suyo, 2026-09-11, la 7 de sus siete: «*cada uno al hacerle click
+  derecho tienes que poder mandarlo adelante y atrás como en cualquier programa … top layer, down layer etc*»): **traer
+  adelante · enviar atrás · traer al frente · enviar al fondo**. Es el orden de apilado ENTRE PIEZAS de la misma capa —
+  la capa la sigue decidiendo el panel de capas—. Sin diseñar todavía: pide su lámina en el `.pen` y va con la galería,
+  no antes.
+
 ### Fuera de alcance (de esta rebanada)
 
 - **Los dibujos del catálogo de serie**: es arte, no código. Se compran o se encargan.
