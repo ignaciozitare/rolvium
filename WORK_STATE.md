@@ -30,13 +30,15 @@ spec de maps, línea 18.
 
 ## 🟢 2026-09-12 — LOS DIENTES ✅ · LA 3 (barra arrastrando) ✅ PROBADA POR ÉL («ok funciona») · LA 4 (el Builder recuerda su modo) ✅ · LA 5 (girar las texturas base) ✅ · LA 6 (rótulos PARED / SUELO) ✅ · LA 7 apuntada en el spec de la rebanada 6 — **SUS 7 PETICIONES, CERRADAS** · **AQUÍ SE RETOMA: que él pruebe la 4, la 5 y la 6 y guarde el `.pen`; después, lo que él diga (el mapa largo: `/qa` de la rama → merge → deploy con las OCHO migraciones —no cuatro, ver ⚠ abajo— → rebanada 6 · LOS OBJETOS)**
 
-**Frase para arrancar el chat nuevo** (él se fue el 2026-09-12 a mediodía diciendo «*termínalo y con el contexto que te
-quede comienza el punto siguiente, no me esperes, no rompas nada*»; este chat hizo los dientes, la 3, la 4 y la 5):
-> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. Hay cuatro cosas hechas
-> y commiteadas sin probar por él (dientes, barra arrastrando, el Builder recuerda su modo, giro de texturas): pídele
-> que recargue con Cmd+Shift+R y las pruebe, y que guarde el `.pen` (Cmd+S: la lámina del giro `I6TcDm` sólo está en
-> memoria del Pencil). Después la 6 (rótulos en las dos muestras de textura base): pídele la captura y los rótulos
-> exactos antes de tocar nada. La 7 ya está en el spec de la rebanada 6.»
+**Frase para arrancar el chat nuevo** (él se fue a la cama el 2026-09-12 por la noche diciendo «*sigue, estás autorizado…
+te dejo trabajando por la noche*» — AUTORIZÓ EXPLÍCITAMENTE las migraciones en producción, el merge a `main` y el
+despliegue; el bloque 🚀 de abajo dice exactamente en qué paso está):
+> «Rolvium. Lee el bloque 🟢 y el bloque 🚀 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`, QA pasado,
+> versión 0.7.0, rama subida. Él autorizó el despliegue entero y se fue a dormir. Sigue el bloque 🚀 por donde está:
+> aplica en producción (`scfspsiemikfcnqteonq`, con `apply_migration` del MCP de Supabase, nombre del fichero sin la
+> fecha, en orden) las migraciones que sigan en ⏳; luego merge `--no-ff` a `main` y push; luego las sondas `curl` a
+> `/health` y a la web; luego docs «estable en producción» y WORK_STATE. Si un permiso te bloquea, anota dónde y para.
+> Nada de preguntas: las decisiones ya están tomadas.»
 
 **Lo que tiene que probar él (recargando con Cmd+Shift+R su mesa
 `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`):**
@@ -67,11 +69,10 @@ Orden de pasos (deploy.md) y dónde está cada uno:
   el histórico de la nube va por nombre con la fecha que pone el MCP (así se aplicaron todas las anteriores), así que
   se aplican con `apply_migration` y el nombre del fichero sin la fecha, EN ESTE ORDEN:
   1. ✅ `maps_brush` (`20260909160000`) — APLICADA el 12-09 por la noche (`{"success":true}`).
-  2. ⛔ `maps_brush_build` (`20260910120000`) — **BLOQUEADA por el clasificador de permisos de Claude Code** («Blocked
-     by classifier») al intentarla justo después. No se reintentó: hay que darle permiso o hacerlo él.
-  3. ⏳ `maps_colors` (`20260910140000`) · 4. ⏳ `maps_paint` (`20260910160000`) · 5. ⏳ `maps_band_rough`
-     (`20260911170000`) · 6. ⏳ `core_app_settings` (`20260912100000`) · 7. ⏳ `maps_texture_rotation`
-     (`20260912130000`) · 8. ⏳ `core_app_settings_grants` (`20260912140000`).
+  2. ✅ `maps_brush_build` (`20260910120000`) — APLICADA al segundo intento, tras autorizarlo él («estás autorizado»).
+  3. ✅ `maps_colors` (`20260910140000`) — APLICADA · 4. ✅ `maps_paint` (`20260910160000`) — APLICADA · 5. ✅ `maps_band_rough`
+     (`20260911170000`) — APLICADA · 6. ✅ `core_app_settings` (`20260912100000`) — APLICADA · 7. ✅ `maps_texture_rotation`
+     (`20260912130000`) — APLICADA · 8. ✅ `core_app_settings_grants` (`20260912140000`) — APLICADA. **LAS OCHO EN PRODUCCIÓN** (12-09, noche).
   Son todas ADITIVAS (columnas con valor por defecto, tablas nuevas): la web que hay hoy en producción no las nota.
 - ⛔ **NO MERGEAR A `main` HASTA QUE ESTÉN LAS 8**: la web nueva pide `band_tip`, `*_texture_rotation`,
   `app_settings`… y sin ellas la lista de escenas sale VACÍA en producción.
