@@ -52,7 +52,33 @@ quede comienza el punto siguiente, no me esperes, no rompas nada*»; este chat h
 `20260910160000_maps_paint`, `20260911170000_maps_band_rough`, `20260912100000_core_app_settings`,
 `20260912130000_maps_texture_rotation`, `20260912140000_core_app_settings_grants` — en ese orden, y ANTES que la web.
 
-### 🧪 QA DE LA RAMA (2026-09-12, noche; él: «bloque») — ✅ AUTOMÁTICO PASADO (tras anotar § 10B.2 como ⏳, el QA lo volvió a mirar: «spec y código coinciden») · ⏳ FALTA SU CLARO/OSCURO EN `/ui-kit` · DESPUÉS: merge → deploy (OCHO migraciones antes que la web)
+### 🚀 DESPLIEGUE EN MARCHA (2026-09-12, noche; él: «sigue») — PARADO EN LAS MIGRACIONES DE PRODUCCIÓN: 1 DE 8 APLICADA, EL PERMISO BLOQUEÓ LA 2ª
+Orden de pasos (deploy.md) y dónde está cada uno:
+- ✅ QA automático pasado (bloque de abajo) · ✅ claro/oscuro de `/ui-kit` comprobado POR EL AGENTE con Playwright
+  (usuario de pruebas local, capturas `uikit-dark.png` / `uikit-light.png` en el scratchpad): la sección nueva de
+  paneles se ve igual en los dos temas —va con `--sys-*`, como debe— y sin errores JS; él no lo confirmó a mano
+  (dijo «sigue»).
+- ✅ Versión `0.6.1 → 0.7.0` en `package.json` y `apps/web/package.json` (`3508211`, MINOR: 14 commits `feat`). El
+  `package-lock.json` sigue diciendo 0.1.0 desde siempre: no se tocó (nunca se ha tocado en los releases anteriores).
+- ✅ Rama `refactor/ui-paneles-comunes` SUBIDA a origin por primera vez (`git push -u`) → Vercel construye los previews.
+  ⚠ No se pudo mirar el preview desde aquí: el MCP de Vercel bloqueado por el clasificador de permisos
+  (`list_teams`) y el slug `rolvium` no vale. Lo tiene que mirar ÉL en Vercel o dar permiso.
+- 🟡 **MIGRACIONES EN PRODUCCIÓN (`scfspsiemikfcnqteonq`, comprobado con `get_project`: «Rolvium», ACTIVE_HEALTHY)**:
+  el histórico de la nube va por nombre con la fecha que pone el MCP (así se aplicaron todas las anteriores), así que
+  se aplican con `apply_migration` y el nombre del fichero sin la fecha, EN ESTE ORDEN:
+  1. ✅ `maps_brush` (`20260909160000`) — APLICADA el 12-09 por la noche (`{"success":true}`).
+  2. ⛔ `maps_brush_build` (`20260910120000`) — **BLOQUEADA por el clasificador de permisos de Claude Code** («Blocked
+     by classifier») al intentarla justo después. No se reintentó: hay que darle permiso o hacerlo él.
+  3. ⏳ `maps_colors` (`20260910140000`) · 4. ⏳ `maps_paint` (`20260910160000`) · 5. ⏳ `maps_band_rough`
+     (`20260911170000`) · 6. ⏳ `core_app_settings` (`20260912100000`) · 7. ⏳ `maps_texture_rotation`
+     (`20260912130000`) · 8. ⏳ `core_app_settings_grants` (`20260912140000`).
+  Son todas ADITIVAS (columnas con valor por defecto, tablas nuevas): la web que hay hoy en producción no las nota.
+- ⛔ **NO MERGEAR A `main` HASTA QUE ESTÉN LAS 8**: la web nueva pide `band_tip`, `*_texture_rotation`,
+  `app_settings`… y sin ellas la lista de escenas sale VACÍA en producción.
+- ⏳ Después: merge `--no-ff` + push de `main` → build de producción → sondas `curl` a `/health` y a la web → su
+  smoke test → docs «estable en producción» → WORK_STATE.
+
+### 🧪 QA DE LA RAMA (2026-09-12, noche; él: «bloque») — ✅ AUTOMÁTICO PASADO (tras anotar § 10B.2 como ⏳, el QA lo volvió a mirar: «spec y código coinciden»)
 Todo lo mecánico VERDE: review inline · smoke 12/12 · regression 1739/1739 · functional 56/56 · arquitectura y
 seguridad limpias · advisores del proyecto en la nube 0 ERROR / 23 WARN (línea base, ninguno nuevo) · lint local 0 ·
 i18n 1168 claves a la par · docs y `CATALOG.md` al día · build web + api · `/health` y la web en producción contestan
