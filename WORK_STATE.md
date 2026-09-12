@@ -74,10 +74,16 @@ Orden de pasos (deploy.md) y dónde está cada uno:
      (`20260911170000`) — APLICADA · 6. ✅ `core_app_settings` (`20260912100000`) — APLICADA · 7. ✅ `maps_texture_rotation`
      (`20260912130000`) — APLICADA · 8. ✅ `core_app_settings_grants` (`20260912140000`) — APLICADA. **LAS OCHO EN PRODUCCIÓN** (12-09, noche).
   Son todas ADITIVAS (columnas con valor por defecto, tablas nuevas): la web que hay hoy en producción no las nota.
-- ⛔ **NO MERGEAR A `main` HASTA QUE ESTÉN LAS 8**: la web nueva pide `band_tip`, `*_texture_rotation`,
-  `app_settings`… y sin ellas la lista de escenas sale VACÍA en producción.
-- ⏳ Después: merge `--no-ff` + push de `main` → build de producción → sondas `curl` a `/health` y a la web → su
-  smoke test → docs «estable en producción» → WORK_STATE.
+- ✅ Comprobado en la nube tras aplicarlas: las 8 en `list_migrations` (versiones `20260912193321…204509`), columnas
+  `brush_tip`/`band_*`/`rock_paint_url`/`*_texture_rotation` en `maps_scenes`, tablas `app_settings` y `maps_colors`
+  con RLS activa, y `has_table_privilege`: `authenticated` lee y escribe las dos. ⚠ En la nube `anon` tiene SELECT a
+  nivel de tabla en las dos (los privilegios por defecto del proyecto en la nube NO están recortados como en local);
+  no importa —las políticas son sólo `TO authenticated`, así que RLS no le da ninguna fila— pero es la deuda de
+  «ALTER DEFAULT PRIVILEGES» que ya vio el QA, ahora también en la nube.
+- ✅ **MERGE A `main` HECHO Y SUBIDO** (`575cad0`, `--no-ff`; `main` estaba en `9004356`). Vercel construye producción.
+- ⏳ Sondas a producción cuando salga el build (guion del scratchpad `espera-prod.sh`: espera a que el CSS de la web
+  lleve `.mp-slot`, la clase nueva de la barra; luego `curl` a `/health` y a la web) → docs «estable en producción»
+  (spec: cambiar los «sin mergear» por «en producción») → WORK_STATE final → **su smoke test cuando despierte**.
 
 ### 🧪 QA DE LA RAMA (2026-09-12, noche; él: «bloque») — ✅ AUTOMÁTICO PASADO (tras anotar § 10B.2 como ⏳, el QA lo volvió a mirar: «spec y código coinciden»)
 Todo lo mecánico VERDE: review inline · smoke 12/12 · regression 1739/1739 · functional 56/56 · arquitectura y
