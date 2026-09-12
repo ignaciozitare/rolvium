@@ -24,25 +24,35 @@ de correcciones suyas. En la rama `feat/maps-pincel` y **sin mergear**.
 `maps` **rebanadas 9 y 10, los paneles comunes y las siete peticiones del 11-09**: QA pasado, mergeadas y **EN
 PRODUCCIÓN como v0.7.0** la noche del 2026-09-12 (rama `refactor/ui-paneles-comunes`, que incluía `feat/maps-pincel`).
 
-**SIGUIENTE:** su smoke test en producción → la fila «con qué se pinta» de «A pulso» (§ 10B.2, pendiente) o
-**rebanada 6 · LOS OBJETOS** (galería de piezas; él la pasó por delante el 2026-09-11) → coger/mover/borrar una sala
-con el ratón (pide `.pen`) → `chat` (H8) + `journal` (H9).
+**SIGUIENTE (orden suyo, repetido y enfadado el 2026-09-12): rebanada 6 · LOS OBJETOS** (galería de piezas) →
+después, la fila «con qué se pinta» de «A pulso» (§ 10B.2, pendiente) → coger/mover/borrar una sala con el ratón
+(pide `.pen`) → `chat` (H8) + `journal` (H9). El smoke test de producción sólo si él lo pide.
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-12 — LOS DIENTES ✅ · LA 3 (barra arrastrando) ✅ PROBADA POR ÉL («ok funciona») · LA 4 (el Builder recuerda su modo) ✅ · LA 5 (girar las texturas base) ✅ · LA 6 (rótulos PARED / SUELO) ✅ · LA 7 apuntada en el spec de la rebanada 6 — **SUS 7 PETICIONES, CERRADAS** · **AQUÍ SE RETOMA: que él pruebe la 4, la 5 y la 6 y guarde el `.pen`; después, lo que él diga (el mapa largo: `/qa` de la rama → merge → deploy con las OCHO migraciones —no cuatro, ver ⚠ abajo— → rebanada 6 · LOS OBJETOS)**
+## 🟢 2026-09-12 — **AQUÍ SE RETOMA: LA REBANADA 6 · LOS OBJETOS (la galería de piezas). NADA MÁS.** Todo lo anterior está hecho y EN PRODUCCIÓN (v0.7.0): dientes, barra arrastrando, modo del Builder, giro de texturas, rótulos, y las siete peticiones del 11-09.
 
-**Frase para arrancar el chat nuevo** (él se fue a la cama el 2026-09-12 por la noche diciendo «*sigue, estás autorizado…
-te dejo trabajando por la noche*» — AUTORIZÓ EXPLÍCITAMENTE las migraciones en producción, el merge a `main` y el
-despliegue; el bloque 🚀 de abajo dice exactamente en qué paso está):
-> «Rolvium. Lee el bloque 🟢 y el bloque 🚀 de arriba de WORK_STATE.md. La v0.7.0 está en `main` y VIVA en producción
-> desde la noche del 12-09 (ocho migraciones aplicadas, sondas OK); estamos en `main`, árbol limpio. Primero, pídele en
-> pocas líneas el smoke test de producción del bloque 🚀 (cuatro cosas). Después, lo que él elija de estas dos, en
-> este orden si no dice nada: (a) la fila «con qué se pinta» de «A pulso» (§ 10B.2, confirmada por él y sin construir:
-> Diseño primero, la lámina `oi358` está desfasada) · (b) la rebanada 6 · LOS OBJETOS (galería de piezas; el menú del
-> botón derecho ya está apuntado en su spec). Rama nueva desde `main` para lo que sea.»
+> 🔴 **Suyo, 2026-09-12, última cosa antes de irse a dormir, ENFADADO: «*no no quiero producción quiero los putos
+> objetos joder, ya no sé cuánto te lo tengo que pedir*».** Lo ha pedido VARIAS veces (el 2026-09-11 la pasó por
+> delante de todo; el 12 por la noche, otra vez). **El chat nuevo empieza por LOS OBJETOS directamente.** Ni smoke
+> test de producción, ni QA, ni deploy, ni «¿por dónde seguimos?»: si quiere probar producción ya lo dirá él. Lo de
+> producción del bloque 🚀 queda como referencia, no como tarea.
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md y el bloque 🧩 «LOS OBJETOS» más abajo. Empieza YA la rebanada
+> 6 · LOS OBJETOS (la galería de piezas), sin preguntarle nada de producción. Rama nueva desde `main`
+> (`feat/maps-objetos`). Orden de siempre: Spec (el § «Rebanada 6» del spec de maps está a medias y pendiente de
+> reescribirse con lo decidido el 11-09: la biblioteca es de la HERRAMIENTA —«lo que se sube sirve para todos»—,
+> paquetes propios SÍ, por permisos como las texturas; el menú del botón derecho ya está apuntado) → DBA (las tablas
+> `maps_props`/`maps_scene_props` YA existen en producción; mirar qué falta) → el `.pen` ya tiene las láminas de la
+> galería (`w7sTC0` Catálogo · `NAAEV` Sello activo · `DCs6S` Subir en lote · `SNlGp` Barra con Piezas · `lWBaU` Panel
+> de pieza), aprobadas por él el 11-09: construir sobre ellas → Dev → Review. Enséñale el spec reescrito en pocas
+> líneas y, con su «sí», a construir. No le preguntes lo que ya decidió.»
+
+
+*(La frase de arranque está arriba del todo, en el bloque 🟢: LOS OBJETOS. Lo de abajo es el registro del despliegue.)*
 
 **Lo que tiene que probar él (recargando con Cmd+Shift+R su mesa
 `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`):**
@@ -91,7 +101,7 @@ Orden de pasos (deploy.md) y dónde está cada uno:
   versión no se incrusta ahí): la prueba de que es la web nueva es la clase de la barra.
 - ✅ Docs: specs con «en producción» donde decían «sin mergear», `deploy.md`/`CLAUDE.md` con las URLs reales y el
   procedimiento de migraciones por MCP, `dba.md` con el paso de la nube corregido (el CLI no está enlazado).
-- ⏳ **SU SMOKE TEST EN PRODUCCIÓN cuando despierte** (`https://rolvium.vercel.app`): entrar, abrir su campaña y la
+- (Sólo si él lo pide — NO proponérselo.) Smoke test en producción (`https://rolvium.vercel.app`): entrar, abrir su campaña y la
   mesa, y (1) arrastrar un botón de la barra → se queda y sigue al recargar; (2) Builder → «Dibujar aquí», la barra
   «Giro» con una textura puesta; (3) «A pulso» con borde roto; (4) el pincel que pinta encima. Si la lista de escenas
   saliera VACÍA: es que a PostgREST le falta recargar el esquema (`NOTIFY pgrst, 'reload schema'` por `execute_sql`).
