@@ -28,17 +28,96 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-12 (madrugada) — LENTITUD ✅ · VISTA Y REPINTADO ✅ · **AQUÍ SE RETOMA: LA FICHA SE CLAVA EN LOS DIENTES DEL BORDE ROTO (diagnosticado, con prototipo) · LUEGO LA 3**
+## 🟢 2026-09-12 (madrugada) — LENTITUD ✅ · VISTA Y REPINTADO ✅ · LOS DIENTES ✅ (hecho, revisado y commiteado; falta que ÉL lo pruebe) · **AQUÍ SE RETOMA: LA 3 — PROPUESTA DE SPEC ESCRITA (bloque 🧲), ENSEÑÁRSELA Y ESPERAR SU «SÍ»**
 
-**Frase para arrancar el chat nuevo** (él se fue a dormir el 2026-09-12 ~02:40 diciendo «*vamos a un chat nuevo así
-tienes memoria y puedes seguir trabajando*»):
-> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. Construye el arreglo de
-> «la ficha se clava en los dientes» (bloque 🦷: spec corto, `slideCircle` rodea las puntas, tests, review, commit).
-> Después prepara el spec de la 3 (ordenar herramientas arrastrando) para enseñárselo cuando despierte.»
+**Frase para arrancar el chat nuevo** (él se fue a dormir el 2026-09-12 diciendo «*sigue solo todo lo que puedas, ya lo
+probaré mañana*»; el chat de la noche hizo los dientes y dejó escrita la propuesta de la 3):
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`. Los dientes están hechos
+> y commiteados (bloque 🦷): dile en pocas líneas qué pasó y que lo pruebe con Cmd+Shift+R rozando un trazo roto con la
+> sonda. Después enséñale la propuesta de spec de la 3 (bloque 🧲, el texto entre comillas) y espera su «sí» o sus
+> correcciones antes de tocar nada.»
 
-### 🦷 LA FICHA SE CLAVA EN LOS DIENTES DEL BORDE ROTO — DIAGNOSTICADO, SIN CONSTRUIR (2026-09-12 ~02:30)
+### 🧲 LA 3 · ORDENAR LAS HERRAMIENTAS ARRASTRANDO — PROPUESTA DE SPEC, **SIN CONFIRMAR** (escrita la madrugada del 2026-09-12 para enseñársela al despertar)
+Suyo, 2026-09-11: «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas arrastrando*».
+Mirado antes de escribirla: la barra (`Toolbar.tsx`) son tres bloques —juego · dibujo · director— con el orden del
+director fijado por él el 31-ago y sujeto por un test (`controls.test.tsx`); el único arrastre que ya existe en la mesa
+es el de las capas de terreno del panel de capas (`LayersPanel.tsx`, arrastre nativo del navegador); las preferencias
+de cada uno hoy viven en dos sitios: con la cuenta (idioma y tema, columnas `locale`/`theme_pref` de `users`) o en
+este navegador (la última escena abierta, `LocalViewMemory`). No hay ordenar-escenas-arrastrando construido (📥 del
+09-09) — si algún día se hace, debería sentirse igual que esto.
+
+**Lo que se le enseña (texto para pegarle, corto):**
+> Propuesta para la 3 (ordenar las herramientas arrastrando):
+> - Mantienes pulsado un botón de la barra, lo arrastras arriba o abajo y lo sueltas donde quieras. Mientras arrastras,
+>   el botón se levanta y una raya marca dónde va a caer (como las capas de terreno del panel de capas). Un clic normal
+>   sigue siendo un clic: sólo arrastra si mueves.
+> - Cada botón se mueve DENTRO de su bloque (juego · dibujo · director) y las rayas que separan los bloques se quedan:
+>   separan lo que cambia el cursor de lo que abre un panel, y el bloque del director un jugador no lo tiene.
+> - El botón de dibujar (el que despliega Lápiz, Línea, Caja…) se mueve como un botón más; el orden de las seis de
+>   dentro del menú queda para otra tanda.
+> - El orden es de QUIEN lo mueve, no de la campaña ni de la escena: tú ordenas tu barra y cada jugador la suya, y
+>   vale en todas las campañas. Mueves una vez y así se queda.
+> - Un botón para volver al orden de serie. El orden de serie sigue siendo el que fijaste el 31-ago.
+> - «Ver como jugador»: la barra no baila; las herramientas del director salen apagadas donde las dejaste. Un botón
+>   nuevo del futuro (Piezas) aparece en su sitio de serie sin romper tu orden.
+> - Fuera, a propósito: ocultar herramientas · atajos de teclado · un orden distinto por campaña · ordenar el menú de
+>   dibujo · mover la barra de sitio.
+>
+> Tres preguntas:
+> 1. ¿Dentro de cada bloque (lo propuesto) o libre, cualquier botón a cualquier sitio de la barra?
+> 2. ¿El orden te sigue a cualquier ordenador (se guarda con tu cuenta, como el idioma y el tema) o sólo vale en este
+>    navegador (como la última escena abierta)? Recomiendo con la cuenta: si no, en el portátil sale distinto que en el
+>    de mesa. Con la cuenta toca la base (una columna más en tu perfil).
+> 3. El botón de «volver al orden de serie»: ¿dónde lo quieres? Propongo que salga al hacer clic derecho sobre la barra,
+>    para no gastar un hueco de la barra en algo que se usa una vez.
+
+**Lo que pasa después de su «sí»** (orden de siempre): spec a `specs/modules/maps/SPEC.md` (nueva sección junto a
+«Una sola barra de herramientas, en tres bloques») + índice → DBA sólo si va con la cuenta (columna en `users`, hermana
+de `locale`/`theme_pref`, con sus CHECK/validación; RLS de `users` ya existe) → Scaffold (puerto + adaptador: leer y
+guardar el orden; el de serie vive en `mapRules` y NO se toca) → `.pen`: la barra `SNlGp` es la única barra dibujada;
+hace falta la lámina del arrastre (botón levantado + raya de destino) y el «orden de serie» → Dev (`Toolbar.tsx`:
+arrastre nativo como en `LayersPanel`, el orden guardado se aplica bloque a bloque y lo que no esté en la lista guardada
+cae en su sitio de serie) → tests (`controls.test.tsx`: el test del orden del 31-ago pasa a ser «el orden DE SERIE»;
+nuevo: arrastrar reordena, se guarda, un botón desconocido cae en su sitio, un clic sin mover no reordena) → Review.
+- ⚠ Detalle técnico visto: `.mp-toolbar` tiene `overflow:auto`; el arrastre nativo funciona dentro, pero la raya de
+  destino y el botón levantado no pueden salirse de la barra (mismo motivo por el que el menú de dibujo va `fixed`).
+- ⚠ Los botones de PANEL (Dados, Fondo del mapa, Colocar PJ) van intercalados con las herramientas en el mismo bloque:
+  el orden guardado tiene que ser de BOTONES, no de herramientas.
+
+### 🦷 LA FICHA SE CLAVA EN LOS DIENTES DEL BORDE ROTO — ✅ CONSTRUIDO, REVISADO (review APROBADO sin cambios) Y COMMITEADO (2026-09-12 ~02:25) · ⏳ FALTA QUE ÉL LO PRUEBE
 Suyo, tras probar lo de hoy: «*has desecho el tema de que no se pegue en las esquinas, tienes idea porque o que
-hiciste?*». Se fue a dormir antes de leer la respuesta: **dársela al arrancar**, en pocas líneas.
+hiciste?*». Se fue a dormir antes de leer la respuesta: **dársela al arrancar**, en pocas líneas (está en «Lo
+comprobado», más abajo: no se deshizo nada; eran los dientes del borde roto, y ya está arreglado).
+
+**Lo construido** (commit `fix(core): la ficha rodea las puntas: un borde dentado ya no la clava`, en la rama, sin subir):
+- Spec: `specs/modules/maps/SPEC.md` § «Rebanada 4 — Cómo se siente», punto 🦷 (la regla y los números) · un cruce en
+  § 10B.4 · un fragmento en la línea de maps de `specs/SPEC.md`. Sin migración, sin `.pen`, sin i18n.
+- `packages/core/src/maps.ts`: `closestOnSeg` devuelve también `t` · el cuerpo del candidato extraído a `probar(ux, uy)`
+  · si el contacto con una pared es una PUNTA (`t` en 0 ó 1) se prueba además la tangente del disco en el contacto ·
+  **y un rumbo que avanza < 1e-3 px ya no cuenta**: antes se aceptaba a falta de otro y el rebote siguiente perseguía
+  ese destino fantasma; con la tangente eso hacía que una ficha empujada de frente contra las DOS esquinas de un hueco
+  estrecho se escurriera 4 px HACIA ATRÁS (lo pilló el test viejo del hueco). Un primer intento —«cada tramo tiene que
+  acercar al dedo»— arreglaba eso pero subía las clavadas del Dungeon de 6 a 12: descartado.
+- Tests `maps.test.ts`, describe «la ficha rodea las puntas» (3): un diente alto y estrecho arrastrando a lo largo (con
+  el motor viejo se queda en x = 231, ahora llega) · un caso REAL de su «Dungeon» (7 paredes, la boca de un pasillo en
+  diagonal: antes 0 px, ahora entra) · fuzz con semilla (300 escenas de sierra, > 500 tirones: nunca acaba dentro de
+  una pared). Los dos primeros FALLAN con el motor viejo (comprobado cambiando el fichero; el review lo repitió). Los
+  8 casos de la esquina, intactos.
+- **Números con sus datos** (guiones de sólo lectura en el scratchpad de este chat —`dientes-repo.mts`, `caso-real.mts`,
+  `oraculo.mts`, `retroceso.mts`— sobre `rooms-hoy.json` del chat anterior): clavadas sin motivo **18 → 6** (1 en
+  punta, 5 en cuerpo) · llegan al final **141 → 162** de 180 · **0** posiciones finales dentro de una pared · 3,6 → 2,6
+  ms por tirón. Al azar (17.600 tirones): el motor nuevo SIN la tangente difiere del viejo en un 5 % por ≤ 0,11 px (el
+  pelo que movían los rebotes fantasma) · 24.000 tirones con el dedo en sitio legal: ni el viejo ni el nuevo acaban
+  nunca más lejos del dedo que al salir.
+- Verde (review): core 114/114 · api `src/application/maps` 123/123 · web `src/modules/maps` 1208/1208 · regression
+  1710/1710 · smoke 12/12 · `build:web` + `build:api` · audit 0 graves · typecheck (sólo los 2 errores viejos de core).
+- ⏳ **Él**: Cmd+Shift+R en su mesa y rozar un trazo roto con la sonda, por los dos lados.
+- 🚫 Deuda vista y NO tocada: las 6 clavadas que quedan (5 contra el cuerpo: dientes en zigzag donde la cara siguiente
+  también cierra) — segunda mejora posible: probar la tangente también en contactos de cuerpo con `reach ≈ 0`; medir
+  antes con `dientes-repo.mts` · la deuda vieja del review (fallbacks `var()` y `fontSize` sueltos en `packages/ui`)
+  sigue igual.
+
+**El diagnóstico de la madrugada (se deja tal cual, es la explicación para él):**
 
 **Lo comprobado (no se ha deshecho nada):**
 - El arreglo del trabón de la esquina (`slideCircle`, `packages/core/src/maps.ts`, commits `6d1e324` + `f2e8169`) está
@@ -89,8 +168,9 @@ if (n >= 1e-9) probar(-ny / n, nx / n);                    // rodear la punta
   e44b6b71-b98b-4e25-8469-93d11c3b6a17/scratchpad/` (`rooms-hoy.json`, `openings-hoy.json`, `dientes3.mts`,
   `slide-proto.mts`, `esquina.mjs`); si `/private/tmp` se limpió, re-volcar con `docker exec supabase_db_rolvium psql`
   (sólo lectura) como en `perfil.mts`.
-- ⚠ Los servidores locales (`npm run dev:api` en 3001, `npm run dev:web` en 5173) los arrancó este chat en segundo
-  plano: al cerrarlo pueden morir. Comprobar con `curl localhost:3001/health` y relanzar si hace falta.
+- ⚠ Los servidores locales (`npm run dev:api` en 3001, `npm run dev:web` en 5173) los arrancó el chat anterior en
+  segundo plano; a las 02:20 del 12-09 seguían vivos (`/health` ok, web 200). Comprobar con `curl localhost:3001/health`
+  y relanzar si hace falta.
 
 ### ⏱ LA LÍNEA DE VISTA Y EL REPINTADO — ✅ HECHO, REVISADO (APROBADO con dos arreglos suyos) Y COMMITEADO (2026-09-12 ~02:00)
 Suyo: «*arreglalo esta muy lento, esto tiene que ir rapido rapido*» · «*aprovechemos fable para lograr una solucion
