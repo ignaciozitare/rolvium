@@ -168,7 +168,14 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * panel, no cambia ni un dato de la partida. El día que traiga preajustes y texturas —tabla de habitaciones,
    * migración y DBA de por medio— se mirará si tiene que guardarse.
    */
-  const [builderMode, setBuilderMode] = useState<BuilderMode>('photo');
+  /**
+   * 🔁 El Builder abre en el modo que dejaste la última vez (suyo, 2026-09-11: «*el sobre una foto o dibujar aquí si
+   * lo cierro y lo abro tiene que quedar guardada la última elección*»). Se recuerda en este navegador, como la
+   * escena que mirabas: sobrevive a cerrar el panel, a cambiar de pestaña de la mesa (que desmonta esta escena) y a
+   * recargar. Sin nada apuntado, «Sobre una foto», como siempre.
+   */
+  const [builderMode, setBuilderMode] = useState<BuilderMode>(() => memory.lastBuilderMode() ?? 'photo');
+  const elegirModoBuilder = useCallback((m: BuilderMode) => { setBuilderMode(m); memory.rememberBuilderMode(m); }, [memory]);
   /**
    * QUÉ LEVANTA EL GESTO dibujando aquí: excavar una sala, rellenar un muro, o abrir un vano. Sólo cuenta en
    * «Dibujar aquí»; sobre una foto manda `wallKind`, que no se ha tocado.
@@ -1213,7 +1220,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             * que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este*».
             */}
           {isDm && (builderOpen || selectedWall || selectedRoomOpening || selectedWallIds.length > 1) && (<>
-            <BuilderPanel mode={builderMode} onMode={setBuilderMode}
+            <BuilderPanel mode={builderMode} onMode={elegirModoBuilder}
               wall={selectedWall} kind={selectedWall ? selectedWall.kind : wallKind}
               buildKind={buildKind}
               onBuildKind={k => {

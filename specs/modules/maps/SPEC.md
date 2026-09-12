@@ -76,6 +76,8 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Rebanada 8 — EL CONSTRUCTOR DE SALAS · CONSTRUIDA** (2026-09-04, § «Rebanada 8»). El modo **«Dibujar aquí»**
   de Builder: se arrastra una forma y sale una habitación montada, con su suelo, su muro y su sombra. Las salas
   **se funden** al tocarse y cada forma se sigue recordando por separado.
+  - 🔁 **El Builder recuerda su modo** (§ del mismo nombre, 2026-09-12): abre en el que dejaste, recordado en este
+    navegador. ✅ Construido (rama `refactor/ui-paneles-comunes`, sin mergear).
   - ✅ **HECHO** (2026-09-04): tabla `maps_rooms` + `maps_room_openings` y las cuatro columnas de escena
     (migración `20260904120000_maps_rooms.sql`) · el **motor de unión** en `@rolvium/core` (`rooms.ts`) ·
     los **nueve preajustes** y las **dos texturas base** en el panel · el lienzo (roca, agujero, muro, rayado y
@@ -1448,6 +1450,22 @@ inverso no funciona, no sé si se construyó pero estaba en las cosas que hay qu
   que quede en memoria*». Guardarlo obligaría a la base y podría desandar lo que otro hizo después.
 - 🕓 **EN EL BACKLOG, decisión suya del 2026-09-03**: extender deshacer/rehacer a **fichas, dibujos y luces**.
   Hoy sólo cubre muros y salas, que es donde está trabajando.
+
+### 🔁 EL BUILDER RECUERDA SU MODO (2026-09-12)
+
+Suyo, 2026-09-11 (la 4 de sus siete): «*el sobre una foto o dibujar aquí si lo cierro y lo abro tiene que quedar
+guardada la última elección que hice*». Lo que pasaba: el modo vivía sólo en la pantalla de la escena — cerrar el
+panel lo aguantaba, pero cambiar de pestaña de la mesa o recargar lo devolvían a «Sobre una foto».
+
+- **El Builder abre en el modo que dejaste la última vez**, y da igual cómo lo cerraras: la X del panel, otra pestaña
+  de la mesa, una recarga o cerrar el navegador.
+- **Se recuerda en este navegador**, igual que la escena que estabas mirando. ✅ Decisión del agente, avisada (no se
+  le preguntó, por su orden de no repreguntar): es una preferencia de TU pantalla, no un dato de la partida —
+  guardarlo en la escena lo cambiaría también en el otro ordenador y para cualquier otro director—, y así no toca la
+  base ni cambia nada para los jugadores. Si un día lo quiere con la cuenta, es una columna hermana del idioma.
+- **Es UNA elección**, no una por campaña ni por escena: «la última elección que hice».
+- **De serie, «Sobre una foto»**, como hasta ahora: quien nunca eligió no nota nada.
+- Sin `.pen`: no cambia ni un píxel; sólo cuál de los dos sale marcado al abrir.
 
 ### 🧩 EL GRUPO — modo «Sobre una foto» (decidido el 2026-09-03)
 

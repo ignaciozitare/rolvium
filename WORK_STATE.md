@@ -28,7 +28,7 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-12 — LENTITUD ✅ · VISTA Y REPINTADO ✅ · LOS DIENTES ✅ (falta que ÉL lo pruebe) · **AQUÍ SE RETOMA: LA 3 (bloque 🧲) — SPEC CONFIRMADO, EN CONSTRUCCIÓN: DBA → scaffold → `.pen` → dev**
+## 🟢 2026-09-12 — LENTITUD ✅ · VISTA Y REPINTADO ✅ · LOS DIENTES ✅ · LA 3 (barra arrastrando) ✅ · LA 4 (el Builder recuerda su modo) ✅ — todo SIN PROBAR POR ÉL · **AQUÍ SE RETOMA: LA 5 (girar las dos texturas base del Builder: spec → DBA → `.pen` → dev)**
 
 **Frase para arrancar el chat nuevo** (él se fue a dormir el 2026-09-12 diciendo «*sigue solo todo lo que puedas, ya lo
 probaré mañana*»; el chat de la noche hizo los dientes y dejó escrita la propuesta de la 3):
@@ -76,7 +76,16 @@ se le preguntó lo que ya había dicho: **no volver a preguntarle nada de esto**
   no se tocó — no es de esta tarea.
   **Él tiene que**: (1) mirarla y decir si vale, (2) guardar el `.pen` con Cmd+S (sin eso no llega al disco), y
   entonces se commitea `design(maps): …` y arranca el Dev.
-- ⏳ **DEV (después de su visto bueno)**: `Toolbar.tsx` pinta cada bloque desde `resolvedToolbarOrder` (los botones de
+- ✅ **DEV HECHO, REVISADO (review APROBADO con dos arreglos suyos) Y COMMITEADO** (`dfe3fea` código · `74c1c3a` el
+  `.pen`, que él guardó a las 11:23 · `c007134` specs). Suyo a media mañana: «*no se ve en local, dejo apretado y no
+  me deja*» (no estaba programado) → «*joder construyelo!*» → se construyó sin esperar su revisión de la lámina.
+  Los dos arreglos del review: `.mp-slot` en columna (en fila las rayas del director se quedaban a 0 px) y
+  `TablePage` inyecta el puerto (`toolbarOrder`) para que los tests de la mesa no toquen Supabase de verdad; +
+  regresión `tests/regression/barra-la-ordena-manage-settings.test.tsx` (3: el permiso manda, no el ser director).
+  Verde: smoke 12/12 · regression 1728/1728 · functional table 21/21 · build:web · audit 0 graves.
+  ⏳ **Él**: Cmd+Shift+R y arrastrar un botón de la barra (es admin), dentro de su bloque; los demás lo ven al abrir
+  la mesa. Sin teclado para ordenar (el spec no lo pide; apuntado).
+  Lo planeado, que se hizo tal cual: `Toolbar.tsx` pinta cada bloque desde `resolvedToolbarOrder` (los botones de
   panel intercalados: el orden es de BOTONES) · arrastre nativo como `LayersPanel` (`draggable` sólo si
   `can('manage_settings')`; `onDragOver` con `preventDefault` sobre botones del MISMO bloque; `onDrop` →
   `moveToolbarItem`; si devuelve la misma lista, nada) · `SceneTab` carga con `toolbarOrder.load()` al montar y guarda
@@ -515,7 +524,15 @@ Textuales suyas, con lo que se entendió:
      «A pulso» con borde roto en «Dibujar aquí».
 3. «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas arrastrando*». Spec + `.pen`.
 4. «*el sobre una foto o dibujar aquí si lo cierro y lo abro tiene que quedar guardada la última elección que hice*» —
-   el modo del Builder se pierde al cerrar el panel. Preguntar dónde vale lo guardado (este navegador, la escena…).
+   ✅ **HECHA (2026-09-12, mediodía; él se había ido: «*termínalo y comienza el punto siguiente, no me esperes, no
+   rompas nada*»)**. Confirmado antes de tocar: el modo vivía en el estado de `SceneTab`; cerrar el panel lo
+   aguantaba, pero cambiar de pestaña de la mesa (desmonta la escena) o recargar lo devolvían a «Sobre una foto».
+   Decisión del agente, avisada en el spec: se recuerda EN ESTE NAVEGADOR (como la última escena: `ViewMemoryPort`
+   → `LocalViewMemory`, clave `rolvium_maps_builder_mode`, una sola, sin campaña); sin base ni `.pen`. Spec:
+   § «🔁 El Builder recuerda su modo» (antes de § «EL GRUPO») + estado + índice. Código: `ViewMemoryPort` (+2),
+   `LocalViewMemory` (+2, valida el valor), `SceneTab` (arranca del recuerdo; `elegirModoBuilder` apunta).
+   Tests: `LocalViewMemory.test.ts` (+1 y el de almacenamiento capado), `SceneTab.test.tsx` describe «el Builder
+   recuerda su modo» (2). ⏳ review + commit · ⏳ él: probarlo (elegir «Dibujar aquí», cambiar de pestaña y volver).
 5. «*En la base del suelo y las paredes … tengo que poder rotar sus texturas*» — girar las dos texturas base del Builder,
    como el giro de textura del Pincel. Toca `maps_scenes` (DBA) + `.pen`.
 6. «*cuando no hay textura no sé cuál es pared o piso, le pondría background y foreground*» — rótulos en las dos muestras

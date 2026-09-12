@@ -33,12 +33,14 @@ const dibujo = async (u: ReturnType<typeof userEvent.setup>, name: string): Prom
  * Una memoria de vista de mentira: dónde tenía puesto el ojo el director. De serie está EN BLANCO, así que
  * la escena que se abre sale de la activa de la mesa — que es como se comportaba esto antes de existir.
  */
-function fakeViewMemory(last: string | null = null) {
-  const m = { last, seen: [] as string[] };
+function fakeViewMemory(last: string | null = null, builderMode: 'photo' | 'draw' | null = null) {
+  const m = { last, seen: [] as string[], builderMode, modes: [] as string[] };
   return {
     m,
     lastScene: () => m.last,
     rememberScene: (_c: string, id: string) => { m.last = id; m.seen.push(id); },
+    lastBuilderMode: () => m.builderMode,
+    rememberBuilderMode: (mode: 'photo' | 'draw') => { m.builderMode = mode; m.modes.push(mode); },
   };
 }
 
@@ -2661,5 +2663,31 @@ describe('<SceneTab> · el orden de la barra de herramientas', () => {
     await waitFor(() => expect(mal.save).toHaveBeenCalled());
     await screen.findByText(/No se pudo guardar el cambio/);
     expect(nombres().slice(-8)).toEqual(DE_SERIE);
+  });
+});
+
+/**
+ * 🔁 Suyo, 2026-09-11: «*el sobre una foto o dibujar aquí si lo cierro y lo abro tiene que quedar guardada la última
+ * elección que hice*». El modo vivía sólo en el estado de la escena: cerrar el panel lo aguantaba, pero cambiar de
+ * pestaña de la mesa (que desmonta la escena) o recargar lo devolvían a «Sobre una foto». Ahora se apunta en la
+ * misma memoria del navegador que la escena que mirabas.
+ */
+describe('<SceneTab> · el Builder recuerda su modo', () => {
+  it('abre en el modo que dejaste la última vez, y apunta el que eliges', async () => {
+    const memoria = fakeViewMemory(null, 'draw');
+    mount('dm', seed(), 'sc-1', undefined, undefined, true, memoria);
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole('button', { name: 'Builder' }));
+    expect(await screen.findByRole('radio', { name: /Dibujar aquí/ })).toHaveAttribute('aria-checked', 'true');
+    await u.click(screen.getByRole('radio', { name: /Sobre una foto/ }));
+    expect(screen.getByRole('radio', { name: /Sobre una foto/ })).toHaveAttribute('aria-checked', 'true');
+    expect(memoria.m.modes).toEqual(['photo']);
+    expect(memoria.m.builderMode).toBe('photo');
+  });
+
+  it('sin nada apuntado abre como siempre, «Sobre una foto»', async () => {
+    mount('dm');
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Builder' }));
+    expect(await screen.findByRole('radio', { name: /Sobre una foto/ })).toHaveAttribute('aria-checked', 'true');
   });
 });

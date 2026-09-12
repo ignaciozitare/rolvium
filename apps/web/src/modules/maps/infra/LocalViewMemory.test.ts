@@ -26,6 +26,18 @@ describe('LocalViewMemory', () => {
     expect(m.lastScene('c1')).toBe('sc-1');
   });
 
+  it('apunta el modo del Builder —una sola elección, sin campaña— y no se cree cualquier cosa guardada', () => {
+    const m = new LocalViewMemory();
+    expect(m.lastBuilderMode()).toBe(null);
+    m.rememberBuilderMode('draw');
+    expect(m.lastBuilderMode()).toBe('draw');
+    m.rememberBuilderMode('photo');
+    expect(m.lastBuilderMode()).toBe('photo');
+    // una clave escrita a mano con otra cosa no rompe nada: es como si no hubiera nada
+    mem.set('rolvium_maps_builder_mode', 'cueva');
+    expect(m.lastBuilderMode()).toBe(null);
+  });
+
   /**
    * Con el almacenamiento capado (modo privado, cookies de terceros bloqueadas) `localStorage` LANZA, no
    * devuelve `null`. Sin el `try` la pantalla del mapa no abriría — por eso esto está pineado.
@@ -38,5 +50,7 @@ describe('LocalViewMemory', () => {
     });
     expect(m.lastScene('c1')).toBe(null);
     expect(() => m.rememberScene('c1', 'sc-1')).not.toThrow();
+    expect(m.lastBuilderMode()).toBe(null);
+    expect(() => m.rememberBuilderMode('draw')).not.toThrow();
   });
 });
