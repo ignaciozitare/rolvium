@@ -36,6 +36,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
     el muro una **textura**, la habitación un **color**.
     - **§ 10B.4 · el borde roto de «A pulso»** — elegir canto limpio o borde roto, y cuánto. Confirmado por él el
       2026-09-11 · ✅ construido y revisado el mismo día (rama `refactor/ui-paneles-comunes`, sin mergear); sólo dibujando aquí.
+    - ⏳ **§ 10B.2 · la fila «con qué se pinta» (MURO → textura · HABITACIÓN → color) NO está construida** (visto por
+      el QA del 2026-09-12): confirmada por él y dibujada en `oi358`, pero hoy la banda de muro sale con la textura de
+      pared de la escena y la de habitación con el color de siempre. Pide Diseño (lámina nueva) → Dev. Es la
+      siguiente tanda si él la quiere.
 - **🧲 La barra se ordena arrastrando — ✅ CONSTRUIDA Y REVISADA el 2026-09-12** (§ «La barra se ordena arrastrando, y
   el orden lo pone el admin para todos»; rama `refactor/ui-paneles-comunes`, sin mergear): sólo quien administra los
   ajustes, cada botón dentro de su bloque, y el orden es uno para toda la plataforma (`app_settings`). Lámina `NhYOy`
@@ -2245,6 +2249,13 @@ HABITACIÓN   [muestra]  Arena                       [ CAMBIAR ]
 - **`CAMBIAR` abre el sitio donde se elige** —el catálogo de texturas para el muro, la paleta para la
   habitación— **y ese sitio se abre APARTE, encima del mapa**, como ya hace el catálogo.
 - Con nada elegido, la fila dice que manda la textura base del mapa, y no ofrece «quitar».
+
+> ⏳ **SIN CONSTRUIR (visto por el QA de la rama, 2026-09-12).** La equivalencia la confirmó él y la fila está en la
+> lámina, pero el código no la pinta: hoy una banda de MURO sale con la textura de pared de la escena y una de
+> HABITACIÓN con el color de siempre, y las dos llamadas del Builder (`SceneTab` → `addRoomShape`) no pasan ningún
+> `paint` aunque `useScene` ya lo admite. La lámina `oi358` que la dibuja está desfasada (cuelga la banda de «A mano» y
+> el panel ha cambiado desde entonces): **pide Diseño primero** (lámina nueva sobre `I6TcDm`), luego Dev + tests. Es
+> su siguiente tanda si él la quiere ya; no bloquea el merge de la rama porque queda dicho aquí.
 
 > 🔴 **LO QUE NO SE HACE, Y ES UN FALLO REAL QUE OCURRIÓ EL 2026-09-10.** Se metió el **bloque entero del
 > color del Pincel** dentro del panel del Builder —cuadro grande, los doce colores, «tus colores», el campo

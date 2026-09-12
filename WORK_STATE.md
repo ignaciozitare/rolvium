@@ -28,7 +28,7 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-12 — LOS DIENTES ✅ · LA 3 (barra arrastrando) ✅ PROBADA POR ÉL («ok funciona») · LA 4 (el Builder recuerda su modo) ✅ · LA 5 (girar las texturas base) ✅ · LA 6 (rótulos PARED / SUELO) ✅ · LA 7 apuntada en el spec de la rebanada 6 — **SUS 7 PETICIONES, CERRADAS** · **AQUÍ SE RETOMA: que él pruebe la 4, la 5 y la 6 y guarde el `.pen`; después, lo que él diga (el mapa largo: `/qa` de la rama → merge → deploy con las CUATRO migraciones → rebanada 6 · LOS OBJETOS)**
+## 🟢 2026-09-12 — LOS DIENTES ✅ · LA 3 (barra arrastrando) ✅ PROBADA POR ÉL («ok funciona») · LA 4 (el Builder recuerda su modo) ✅ · LA 5 (girar las texturas base) ✅ · LA 6 (rótulos PARED / SUELO) ✅ · LA 7 apuntada en el spec de la rebanada 6 — **SUS 7 PETICIONES, CERRADAS** · **AQUÍ SE RETOMA: que él pruebe la 4, la 5 y la 6 y guarde el `.pen`; después, lo que él diga (el mapa largo: `/qa` de la rama → merge → deploy con las OCHO migraciones —no cuatro, ver ⚠ abajo— → rebanada 6 · LOS OBJETOS)**
 
 **Frase para arrancar el chat nuevo** (él se fue el 2026-09-12 a mediodía diciendo «*termínalo y con el contexto que te
 quede comienza el punto siguiente, no me esperes, no rompas nada*»; este chat hizo los dientes, la 3, la 4 y la 5):
@@ -45,10 +45,35 @@ quede comienza el punto siguiente, no me esperes, no rompas nada*»; este chat h
 3. 🔁 Builder → «Dibujar aquí» → cambiar de pestaña de la mesa y volver (o recargar): sigue en «Dibujar aquí».
 4. 🔄 Builder → «Dibujar aquí» → con una textura puesta, la barra «Giro» debajo de la del azulejo: mapa y muestra giran
    en vivo y se guarda al soltar.
-5. `.pen`: guardar con Cmd+S (la lámina `I6TcDm` del giro no está en disco); la del arrastre `NhYOy` ya la guardó.
-⚠ Al desplegar: CUATRO migraciones sólo en LOCAL (`20260911170000_maps_band_rough`, `20260912100000_core_app_settings`,
-`20260912130000_maps_texture_rotation`, `20260912140000_core_app_settings_grants`) que tienen que llegar a producción
-ANTES que la web.
+5. `.pen`: ✅ guardado — la lámina `I6TcDm` del giro ya está en disco (commit `bb44096`, 12-09 20:59); la del arrastre `NhYOy` también (`74c1c3a`).
+⚠ Al desplegar: **OCHO migraciones sólo en LOCAL, no cuatro** (comprobado por QA el 2026-09-12 contra el proyecto
+`scfspsiemikfcnqteonq`: `list_migrations` acaba en `maps_token_scale` (08-09) y en `public` no existen `maps_colors` ni
+`app_settings`): `20260909160000_maps_brush` (ya en `main`), `20260910120000_maps_brush_build`, `20260910140000_maps_colors`,
+`20260910160000_maps_paint`, `20260911170000_maps_band_rough`, `20260912100000_core_app_settings`,
+`20260912130000_maps_texture_rotation`, `20260912140000_core_app_settings_grants` — en ese orden, y ANTES que la web.
+
+### 🧪 QA DE LA RAMA (2026-09-12, noche; él: «bloque») — ✅ AUTOMÁTICO PASADO (tras anotar § 10B.2 como ⏳, el QA lo volvió a mirar: «spec y código coinciden») · ⏳ FALTA SU CLARO/OSCURO EN `/ui-kit` · DESPUÉS: merge → deploy (OCHO migraciones antes que la web)
+Todo lo mecánico VERDE: review inline · smoke 12/12 · regression 1739/1739 · functional 56/56 · arquitectura y
+seguridad limpias · advisores del proyecto en la nube 0 ERROR / 23 WARN (línea base, ninguno nuevo) · lint local 0 ·
+i18n 1168 claves a la par · docs y `CATALOG.md` al día · build web + api · `/health` y la web en producción contestan
+200 (¡ya no son placeholders!: `rolvium-api.vercel.app/health` da `{"ok":true}` — CLAUDE.md y los agentes aún los
+llaman placeholders).
+- 🚫 **El único bloqueo (modo block)**: § 10B.2 del spec —la fila «con qué se pinta» (MURO → textura del catálogo ·
+  HABITACIÓN → color), confirmada por él el 2026-09-10 y dibujada en `oi358`— **no está construida**: la banda de muro
+  sale con la textura de pared de la escena y la de habitación con el color de siempre; `useScene.addRoomShape` ya
+  admite `paint` pero el Builder no lo pasa. Ya estaba en la deuda (línea de «la lámina `oi358`… trae una sección de
+  textura/color que NO está construida»). **Resuelto anotándolo como ⏳ en el spec (§ 10B.2 y estado)** — no se quita:
+  él la confirmó. Es candidata a SIGUIENTE TANDA: Diseño (lámina nueva sobre `I6TcDm`; `oi358` está desfasada) → Dev.
+- ⏳ **Claro/oscuro**: dentro de la mesa no aplica (tema del sistema), pero la rama tocó `/ui-kit` (sección nueva de
+  `FloatingPanel` y compañía): que él abra `http://localhost:5173/ui-kit`, cambie claro/oscuro y mire esa sección.
+- ⚠ **OCHO migraciones pendientes en la nube** (`scfspsiemikfcnqteonq`; `list_migrations` acaba en `maps_token_scale`
+  del 08-09), en orden: `20260909160000_maps_brush` (ya en `main`), `20260910120000_maps_brush_build`,
+  `20260910140000_maps_colors`, `20260910160000_maps_paint`, `20260911170000_maps_band_rough`,
+  `20260912100000_core_app_settings`, `20260912130000_maps_texture_rotation`, `20260912140000_core_app_settings_grants`.
+  TODAS antes que la web. El QA no aplicó nada en remoto.
+- 🚫 Deuda vista por el QA, no tocada: los privilegios por defecto del proyecto dan `TRUNCATE` a `anon` en todas las
+  tablas públicas (no llega por PostgREST; limpieza `ALTER DEFAULT PRIVILEGES` para el DBA) · `database.types.ts`
+  desfasado · dos errores viejos de `tsc` en core · la barra dibujada en el `.pen` desfasada.
 
 ### 🐞 «NO QUEDAN LAS HERRAMIENTAS DONDE LAS SUELTO» (él, 2026-09-12, tarde) — ✅ ARREGLADO
 Causa: `app_settings` se creó con RLS y políticas pero SIN `GRANT`. En este proyecto los privilegios por defecto de
