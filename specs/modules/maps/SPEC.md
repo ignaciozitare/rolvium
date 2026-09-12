@@ -36,6 +36,9 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
     el muro una **textura**, la habitación un **color**.
     - **§ 10B.4 · el borde roto de «A pulso»** — elegir canto limpio o borde roto, y cuánto. Confirmado por él el
       2026-09-11 · ✅ construido y revisado el mismo día (rama `refactor/ui-paneles-comunes`, sin mergear); sólo dibujando aquí.
+- **🧲 La barra se ordena arrastrando — EN CONSTRUCCIÓN** (§ «La barra se ordena arrastrando, y el orden lo pone el
+  admin para todos», 2026-09-12): sólo quien administra los ajustes, cada botón dentro de su bloque, y el orden es uno
+  para toda la plataforma. Pide base (dónde guardar el orden) y `.pen` (el botón levantado y la raya de destino).
   > 🔴 La primera versión entendió al revés lo de «pintar» y construyó un pincel que **excavaba**. Él lo paró
   > en pantalla: «*eso es cavar con construir, que no es lo que te pedí*». Lo construido no se tiró — se muda
   > al Builder, que es donde él dijo que hacía falta.
@@ -190,6 +193,37 @@ cambia el cursor con lo que abre un panel:
 | **DIRECTOR** (separador oro) | Muro · Revelar · Ocultar ‖ Encuentro · Colocar PJ · Fondo del mapa |
 - Las tres últimas del bloque de director abren panel en vez de cambiar el cursor, y van tras un separador propio.
 - «Fondo del mapa» y «Colocar PJ» **dejan la cabecera** (que desaparece) y viven aquí.
+
+### 🧲 La barra se ordena arrastrando, y el orden lo pone el admin para todos
+Petición suya, 2026-09-11: «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas
+arrastrando*». Y el 2026-09-12, corrigiendo la primera propuesta (que la hacía personal y con botón de «orden de
+serie»): «*los bloques los tienes que respetar porque son los que ve un rol u otro. El orden lo pone el admin y es para
+todos, lo estoy pidiendo porque si no tú los pones donde [quieres] y gasto tokens a lo tonto cada vez que ordeno algo*».
+
+- **Para qué**: que el orden de la barra lo decida él con la mano, en la propia mesa, y no pidiéndoselo al agente.
+- **Quién la ordena**: sólo quien tiene el permiso de administrar los ajustes de la plataforma
+  (`admin.manage_settings`; hoy, el rol `admin`). Para todos los demás la barra no se arrastra: es la de siempre.
+- **Vale para todos**: el orden es **UNO para toda la plataforma** — todas las campañas, todas las escenas, todos los
+  usuarios. No es una preferencia personal ni de campaña. Quien ya tenga la mesa abierta lo ve la próxima vez que la
+  abra (no hace falta que cambie en vivo delante de nadie).
+- **Cómo se siente**: mantener pulsado un botón, arrastrarlo arriba o abajo **dentro de su bloque** y soltarlo. Mientras
+  se arrastra el botón se levanta y una raya marca dónde va a caer — el mismo gesto que las capas de terreno del panel
+  de capas. Un clic sin mover sigue siendo un clic. Al soltar se guarda; si no se puede guardar, la barra vuelve a como
+  estaba y lo dice.
+- 🔑 **Los bloques no se tocan.** Cada botón se mueve sólo dentro del suyo (juego · dibujo · director), porque **los
+  bloques son lo que ve cada rol**: un jugador no tiene el del director. Las rayas que separan los bloques se quedan
+  donde están, y la del director sigue en oro.
+- **Los botones de panel** (Dados, Fondo del mapa, Colocar PJ) cuentan como botones de su bloque y se ordenan igual
+  que las herramientas: el orden guardado es de BOTONES.
+- **El botón de dibujar** (el que despliega Lápiz, Línea, Caja, Círculo, Texto y Borrar) se mueve como un botón más.
+  Las seis de dentro del menú no se ordenan en esta tanda.
+- **Un botón nuevo** (Piezas, cuando llegue la rebanada 6) aparece en su sitio de serie sin deshacer el orden guardado.
+- **El orden de serie** es el que él fijó el 31-ago (§ «Una sola barra de herramientas»): es el de partida y el que
+  sale mientras no haya nada guardado. **No hay botón de «volver al orden de serie»**: se arrastra de vuelta
+  (✅ decisión del agente, avisada: es un gesto de una vez y no merece un hueco de la barra ni un menú).
+- «Ver como jugador»: la barra no baila; las herramientas del director salen apagadas en el sitio en que estén.
+- **Fuera, a propósito**: ocultar herramientas · atajos de teclado · un orden por campaña o por usuario · ordenar el
+  menú de dibujo · mover la barra de sitio.
 
 ### Seleccionar: una herramienta, y el paneo como modificador
 - **Seleccionar** (`arrow_selector_tool`) reemplaza a «Mover» en la barra. Con ella se elige y se edita: tokens,
@@ -2219,6 +2253,28 @@ irregulares o como está ahora y qué tan irregular lo quiero»*. Confirmado por
 
 - **Pintar sobre fichas y sobre piezas.**
 - **Mover una habitación** — hoy no se puede; cuando se pueda, la pintura se va con ella (§ 10A.5).
+
+## Modelo de datos (🧲 la barra se ordena arrastrando)
+
+Migración `supabase/migrations/20260912100000_core_app_settings.sql`. **Una tabla nueva, pequeña, y el orden de la
+barra es su primera fila.**
+
+- **`app_settings` — los ajustes de la plataforma, uno por fila.** Cada fila es una clave (`maps.toolbar_order`) y su
+  valor (para la barra: la lista de botones de cada bloque —juego, dibujo, director— en el orden elegido), con cuándo
+  se creó, cuándo se tocó por última vez y quién lo tocó. **Por qué una tabla nueva y no una columna en algo que ya
+  existe**: el orden es UNO para todo el mundo —no es de una escena, ni de una campaña, ni de un usuario—, así que no
+  hay ninguna fila donde colgarlo; y el permiso de «administrar los ajustes» existe desde el primer día sin tener nada
+  que administrar. El siguiente ajuste global que haga falta es otra fila, no otra migración.
+- **Sin fila de serie**: mientras el admin no arrastre nada, no hay fila y la barra sale con el orden que él fijó el
+  31-ago, que vive en el código. Ninguna instalación cambia de aspecto al migrar.
+- **La forma del valor la valida quien lo lee**, no la base: un botón que no exista se ignora y uno que falte cae en su
+  sitio de serie. La base sólo garantiza que hay un valor por clave y quién puede tocarlo.
+- **Acceso**: **leen todos** los usuarios con sesión (cada uno pinta su barra con ese orden); **escribe sólo** quien
+  tiene el permiso de administrar los ajustes de la plataforma (`admin.manage_settings`, hoy el rol `admin`), a través
+  del ayudante de permisos de siempre — no se reimplementa el permiso en la política. Nada para `anon`.
+- Aplicada en LOCAL con `supabase migration up --local` (nunca `db:reset`): RLS activa, las dos políticas sólo
+  `authenticated`, `db lint --local` 0 errores, `npm run audit` 0 graves. ⚠ **En la nube NO está**: sube con el
+  deploy, ANTES que la web.
 
 ## Modelo de datos (rebanada 10 · LA PINTURA — apartado A)
 

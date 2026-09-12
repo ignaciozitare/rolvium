@@ -28,7 +28,7 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-12 (madrugada) — LENTITUD ✅ · VISTA Y REPINTADO ✅ · LOS DIENTES ✅ (hecho, revisado y commiteado; falta que ÉL lo pruebe) · **AQUÍ SE RETOMA: LA 3 — PROPUESTA DE SPEC ESCRITA (bloque 🧲), ENSEÑÁRSELA Y ESPERAR SU «SÍ»**
+## 🟢 2026-09-12 — LENTITUD ✅ · VISTA Y REPINTADO ✅ · LOS DIENTES ✅ (falta que ÉL lo pruebe) · **AQUÍ SE RETOMA: LA 3 (bloque 🧲) — SPEC CONFIRMADO, EN CONSTRUCCIÓN: DBA → scaffold → `.pen` → dev**
 
 **Frase para arrancar el chat nuevo** (él se fue a dormir el 2026-09-12 diciendo «*sigue solo todo lo que puedas, ya lo
 probaré mañana*»; el chat de la noche hizo los dientes y dejó escrita la propuesta de la 3):
@@ -37,7 +37,20 @@ probaré mañana*»; el chat de la noche hizo los dientes y dejó escrita la pro
 > sonda. Después enséñale la propuesta de spec de la 3 (bloque 🧲, el texto entre comillas) y espera su «sí» o sus
 > correcciones antes de tocar nada.»
 
-### 🧲 LA 3 · ORDENAR LAS HERRAMIENTAS ARRASTRANDO — PROPUESTA DE SPEC, **SIN CONFIRMAR** (escrita la madrugada del 2026-09-12 para enseñársela al despertar)
+### 🧲 LA 3 · ORDENAR LAS HERRAMIENTAS ARRASTRANDO — ✅ SPEC CONFIRMADO CON SUS CORRECCIONES (2026-09-12, por la mañana) · EN CONSTRUCCIÓN
+**Sus tres respuestas, textuales** («*joder, pero quería que tengas esto*»): (1) «*los bloques los tienes que respetar
+porque son los que ve un rol u otro*» → cada botón sólo dentro de su bloque · (2) «*El orden lo pone el admin y es para
+todos, lo estoy pidiendo porque si no tú los pones donde se te sale del culo y gasto tokens a lo tonto cada vez que
+ordeno algo*» → NO es personal ni por navegador: lo guarda el admin (`admin.manage_settings`) UNA vez para toda la
+plataforma · (3) sin botón de «orden de serie» (decisión del agente, avisada: se arrastra de vuelta). ⚠ Se enfadó porque
+se le preguntó lo que ya había dicho: **no volver a preguntarle nada de esto** (memoria `no-repreguntar-lo-decidido`).
+- ✅ **Spec GUARDADO**: `specs/modules/maps/SPEC.md` § «🧲 La barra se ordena arrastrando, y el orden lo pone el admin
+  para todos» (va antes de § «Seleccionar: una herramienta…») + línea en «Estado por rebanadas» + índice `specs/SPEC.md`.
+- ⏳ **Siguiente**: DBA (no hay tabla de ajustes de plataforma: hay que crear dónde guardar el orden; el permiso
+  `admin.manage_settings` ya existe en `roles.permissions`) → Scaffold → `.pen` (lámina del arrastre: botón levantado +
+  raya de destino, sobre la barra `SNlGp`) → Dev → Review.
+
+*(Lo de abajo es la propuesta de la madrugada, que él corrigió; se deja para ver qué cambió.)*
 Suyo, 2026-09-11: «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas arrastrando*».
 Mirado antes de escribirla: la barra (`Toolbar.tsx`) son tres bloques —juego · dibujo · director— con el orden del
 director fijado por él el 31-ago y sujeto por un test (`controls.test.tsx`); el único arrastre que ya existe en la mesa
