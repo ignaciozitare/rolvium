@@ -212,7 +212,9 @@ todos, lo estoy pidiendo porque si no tú los pones donde [quieres] y gasto toke
   estaba y lo dice.
 - 🔑 **Los bloques no se tocan.** Cada botón se mueve sólo dentro del suyo (juego · dibujo · director), porque **los
   bloques son lo que ve cada rol**: un jugador no tiene el del director. Las rayas que separan los bloques se quedan
-  donde están, y la del director sigue en oro.
+  donde están, y la del director sigue en oro. Las dos rayas de DENTRO del bloque del director (construir ‖ niebla ‖
+  juego) tampoco se arrastran ni reciben: los botones se mueven a su alrededor y ellas se quedan.
+- **Soltar sobre el fondo del bloque** (debajo del último botón) manda el botón al final.
 - **Los botones de panel** (Dados, Fondo del mapa, Colocar PJ) cuentan como botones de su bloque y se ordenan igual
   que las herramientas: el orden guardado es de BOTONES.
 - **El botón de dibujar** (el que despliega Lápiz, Línea, Caja, Círculo, Texto y Borrar) se mueve como un botón más.

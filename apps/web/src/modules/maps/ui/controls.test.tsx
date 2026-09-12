@@ -77,13 +77,77 @@ describe('<Toolbar>', () => {
    * Sin este test, «ordenar» el componente devuelve el orden viejo y nadie se entera: los otros asserts de
    * este fichero sólo miran que los botones ESTÉN, no en qué orden.
    */
-  it('el bloque del director va en el orden que fijó el dueño', () => {
+  it('el bloque del director va, DE SERIE, en el orden que fijó el dueño', () => {
     renderWithProviders(<Toolbar tool="select" isDm onChange={vi.fn()} onDice={vi.fn()} onPlacePc={vi.fn()} onBackground={vi.fn()} />);
     const names = screen.getAllByRole('button').map(b => b.getAttribute('aria-label'));
     expect(names.slice(-8)).toEqual([
       'Luz de ambiente', 'Builder', 'Fondo del mapa', 'Pincel',
       'Revelar', 'Ocultar', 'Encuentro', 'Colocar PJ',
     ]);
+  });
+
+  /**
+   * 🧲 EL ORDEN LO PONE EL ADMIN PARA TODOS (spec § «La barra se ordena arrastrando…»; suyo, 2026-09-12: «*el orden
+   * lo pone el admin y es para todos… los bloques los tienes que respetar porque son los que ve un rol u otro*»).
+   * El gesto es el mismo que el de las capas de terreno: arrastre nativo, el hueco en claro y la raya oro.
+   */
+  describe('🧲 ordenar arrastrando', () => {
+    const dm = () => ({ tool: 'select' as Tool, isDm: true, onChange: vi.fn(), onDice: vi.fn(), onPlacePc: vi.fn(), onBackground: vi.fn() });
+    const nombres = () => screen.getAllByRole('button').map(b => b.getAttribute('aria-label'));
+    const slot = (name: string): HTMLElement => screen.getByRole('button', { name }).closest('.mp-slot') as HTMLElement;
+    const arrastra = (from: string, to: HTMLElement): void => {
+      const data = { effectAllowed: '', dropEffect: '', setData: vi.fn(), getData: () => from };
+      fireEvent.dragStart(slot(from), { dataTransfer: data });
+      fireEvent.dragOver(to, { dataTransfer: data });
+      fireEvent.drop(to, { dataTransfer: data });
+    };
+
+    it('el orden guardado manda; un botón desconocido se ignora y uno que falte cae en su sitio de serie', () => {
+      renderWithProviders(<Toolbar {...dm()} order={{ play: ['pin', 'dice', 'select'], dm: ['placePc', 'pieces', 'light', 'wall', 'background', 'mask', 'sep', 'reveal', 'hide', 'sep', 'encounter'] }} />);
+      const n = nombres();
+      expect(n.slice(0, 4)).toEqual(['Pin de enfoque', 'Lanzador de dados', 'Seleccionar', 'Medir']);
+      expect(n.slice(-8)).toEqual(['Colocar PJ', 'Luz de ambiente', 'Builder', 'Fondo del mapa', 'Pincel', 'Revelar', 'Ocultar', 'Encuentro']);
+      // y las dos rayas del director siguen ahí
+      expect(document.querySelectorAll('.mp-tool-group.dm .mp-tool-sep')).toHaveLength(2);
+    });
+
+    it('el admin arrastra un botón dentro de su bloque y se guarda el bloque entero, con sus rayas; sobre el fondo del bloque, al final', () => {
+      const onReorder = vi.fn();
+      renderWithProviders(<Toolbar {...dm()} canReorder onReorder={onReorder} />);
+      expect(slot('Pincel')).toHaveAttribute('draggable', 'true');
+      expect(slot('Dibujar')).toHaveAttribute('draggable', 'false');     // un bloque de un solo botón no se ordena
+      const data = { effectAllowed: '', dropEffect: '', setData: vi.fn(), getData: () => 'mask' };
+      fireEvent.dragStart(slot('Pincel'), { dataTransfer: data });
+      expect(slot('Pincel')).toHaveClass('dragging');                      // el hueco que deja
+      fireEvent.dragOver(slot('Revelar'), { dataTransfer: data });
+      expect(slot('Revelar')).toHaveClass('over');                         // la raya oro: «va a caer antes de éste»
+      fireEvent.drop(slot('Revelar'), { dataTransfer: data });
+      expect(onReorder).toHaveBeenCalledWith('dm', ['light', 'wall', 'background', 'sep', 'mask', 'reveal', 'hide', 'sep', 'encounter', 'placePc']);
+      expect(slot('Pincel')).not.toHaveClass('dragging');
+      expect(slot('Revelar')).not.toHaveClass('over');
+      arrastra('Luz de ambiente', slot('Encuentro').parentElement as HTMLElement);
+      expect(onReorder).toHaveBeenLastCalledWith('dm', ['wall', 'background', 'mask', 'sep', 'reveal', 'hide', 'sep', 'encounter', 'placePc', 'light']);
+    });
+
+    it('un botón no cambia de bloque, una raya no es destino, y soltarlo donde ya estaba no guarda nada', () => {
+      const onReorder = vi.fn();
+      renderWithProviders(<Toolbar {...dm()} canReorder onReorder={onReorder} />);
+      arrastra('Pin de enfoque', slot('Revelar'));                          // de juego a director: nada
+      arrastra('Pin de enfoque', slot('Encuentro').parentElement as HTMLElement); // ni al fondo del otro bloque
+      arrastra('Builder', document.querySelector('.mp-slot[data-tool-id="sep"]') as HTMLElement);
+      arrastra('Builder', slot('Fondo del mapa'));                          // ya iba justo antes
+      expect(onReorder).not.toHaveBeenCalled();
+    });
+
+    it('sin permiso la barra es la de siempre: nada se arrastra, y un clic sigue siendo un clic', async () => {
+      const props = dm(); const onReorder = vi.fn();
+      renderWithProviders(<Toolbar {...props} onReorder={onReorder} />);
+      expect(slot('Pincel')).toHaveAttribute('draggable', 'false');
+      arrastra('Pincel', slot('Revelar'));
+      expect(onReorder).not.toHaveBeenCalled();
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Pincel' }));
+      expect(props.onChange).toHaveBeenCalledWith('mask');
+    });
   });
 });
 

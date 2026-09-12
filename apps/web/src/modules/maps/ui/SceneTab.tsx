@@ -12,8 +12,10 @@ import type { DoorSettings, ImageAsset, MapColor, Scene, ScenePatch, Texture, Te
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import type { ViewMemoryPort } from '../domain/ports/ViewMemoryPort';
+import type { ToolbarOrderPort } from '../domain/ports/ToolbarOrderPort';
+import { resolvedToolbarOrder, type ToolbarBlock, type ToolbarOrder } from '../domain/useCases/toolbarRules';
 import { brushRadius, canvasToScene, centerOn, fitView, isBrush, isDraw, METRES_PER_CELL, newWallOf, planOpening, sceneToOpen, WALL_FLAGS, STROKE_COLORS, tokenFromBestiary, tokenGapCells, tokensScaledIn, tokenAnchorShift, tokenPointStored, tokenSizeIn, tokenFromCharacter, tokenPointAt, DEFAULT_TOKEN_CELLS, ZOOM_STEP, zoomAt, type Point, type Tool, type View } from '../domain/useCases/mapRules';
-import { mapsRepo, viewMemory, visionPort } from '../container';
+import { mapsRepo, toolbarOrder, viewMemory, visionPort } from '../container';
 import { useScene } from './useScene';
 import { MapCanvas, type StrokeStyle } from './MapCanvas';
 import { Toolbar } from './Toolbar';
@@ -57,6 +59,13 @@ interface Props {
    */
   canManageTextures: boolean;
   /**
+   * 🧲 ¿PUEDE ORDENAR LA BARRA DE HERRAMIENTAS ARRASTRANDO? Es el permiso `manage_settings` (administrar los
+   * ajustes de la plataforma) y no el ser director: el orden es UNO para todos, no de esta campaña (spec § «La barra
+   * se ordena arrastrando, y el orden lo pone el admin para todos»). Llega por parámetro y es obligatoria por lo
+   * mismo que `canManageTextures`.
+   */
+  canOrderToolbar: boolean;
+  /**
    * Encuentros PROPIOS del director (H5), ya con forma de `CatalogItem`. Llegan por parámetro y no de un
    * repositorio: `maps` no tiene por qué saber que existe el bestiario, igual que `EncounterMenu` no sabe de
    * dónde salen sus entradas.
@@ -92,6 +101,8 @@ interface Props {
   vision?: VisionPort;
   /** Dónde tenía puesto el ojo el director. Es una prop para que un test pueda darle una memoria de mentira. */
   memory?: ViewMemoryPort;
+  /** El orden de la barra que puso el admin para todos. Es una prop para que un test pueda darle uno de mentira. */
+  toolbarOrderPort?: ToolbarOrderPort;
 }
 
 /** Gold, the second swatch of the persisted stroke palette (mapRules.STROKE_COLORS). */
@@ -102,7 +113,7 @@ const AVISO_MS = 2600;
 const TILE_PREVIEW_MS = 1400;
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, canManageTextures: puedeOrdenarTexturas, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort, memory = viewMemory }: Props): JSX.Element {
+export function SceneTab({ campaignId, role, userId, system, canManageTextures: puedeOrdenarTexturas, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort, memory = viewMemory, canOrderToolbar, toolbarOrderPort = toolbarOrder }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -114,6 +125,24 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   /** Mutations can be refused by RLS (e.g. someone else's token) or fail offline: surface it instead of swallowing. */
   const [failed, setFailed] = useState(false);
   const run = useCallback((p: Promise<unknown>) => { void p.then(() => setFailed(false)).catch(() => setFailed(true)); }, []);
+  /**
+   * 🧲 EL ORDEN DE LA BARRA que puso el admin PARA TODOS: se lee al abrir la mesa y se pinta para cualquiera;
+   * `null` = el de serie. Si no se puede leer, sale el de serie y no se molesta a nadie. Al soltar un botón se
+   * guarda el orden entero (los tres bloques, ya saneados); si guardar falla —sin permiso, sin red— la barra vuelve
+   * a como estaba y lo dice por el mismo aviso que cualquier otro cambio que no se pudo guardar.
+   */
+  const [ordenBarra, setOrdenBarra] = useState<ToolbarOrder | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    toolbarOrderPort.load().then(o => { if (vivo) setOrdenBarra(o); }).catch(() => { /* sin orden guardado: el de serie */ });
+    return () => { vivo = false; };
+  }, [toolbarOrderPort]);
+  const reordenarBarra = useCallback((block: ToolbarBlock, next: string[]) => {
+    const antes = ordenBarra;
+    const despues: ToolbarOrder = { ...resolvedToolbarOrder(antes), [block]: next };
+    setOrdenBarra(despues);
+    void toolbarOrderPort.save(despues).then(() => setFailed(false)).catch(() => { setOrdenBarra(antes); setFailed(true); });
+  }, [ordenBarra, toolbarOrderPort]);
   const [images, setImages] = useState<ImageAsset[] | null>(null);
   const [pcs, setPcs] = useState<Character[] | null>(null);
   const [tool, setTool] = useState<Tool>('select');
@@ -937,7 +966,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
           * Pasar a SELECCIONAR no cierra nada: es la otra mitad de Builder, no una salida. Cualquier otra
           * herramienta sí recoge los paneles, que flotan sobre el mismo mapa.
           */}
-        <Toolbar tool={tool} isDm={isDm} playerView={playerView} onChange={next => {
+        <Toolbar tool={tool} isDm={isDm} playerView={playerView} order={ordenBarra} canReorder={canOrderToolbar} onReorder={reordenarBarra} onChange={next => {
             if (next !== 'select') closeOverlays(next === 'encounter' ? 'encounter' : undefined);
             if (next === 'wall') setBuilderOpen(true);
             else if (next !== 'select') setBuilderOpen(false);

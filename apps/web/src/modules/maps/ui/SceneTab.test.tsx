@@ -7,6 +7,7 @@ import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CH
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { SceneTab } from './SceneTab';
 import { DEFAULT_TEXTURE_SCALE } from '../domain/useCases/roomStyles';
+import type { ToolbarOrder } from '../domain/useCases/toolbarRules';
 
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
 (globalThis as unknown as { PointerEvent: unknown }).PointerEvent = FakePointerEvent;
@@ -41,9 +42,15 @@ function fakeViewMemory(last: string | null = null) {
   };
 }
 
+/** 🧲 El orden de la barra de mentira: lo que el admin guardó para todos. De serie no hay nada guardado. */
+function fakeToolbarOrder(saved: ToolbarOrder | null = null, failSave = false) {
+  const m = { saved, saves: [] as ToolbarOrder[] };
+  return { m, load: vi.fn(async () => m.saved), save: vi.fn(async (o: ToolbarOrder) => { if (failSave) throw new Error('rls'); m.saved = o; m.saves.push(o); }) };
+}
+
 /** Vision always comes from the API — the tests inject a fake port so nothing here ever computes it. */
-function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision = fakeVisionPort(), canManageTextures = true, memory = fakeViewMemory()) {
-  renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio} members={MEMBERS} activeSceneId={activeSceneId} charactersRepo={chars} repo={repo} vision={vision} canManageTextures={canManageTextures} memory={memory} />);
+function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision = fakeVisionPort(), canManageTextures = true, memory = fakeViewMemory(), canOrderToolbar = false, toolbarOrderPort = fakeToolbarOrder()) {
+  renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio} members={MEMBERS} activeSceneId={activeSceneId} charactersRepo={chars} repo={repo} vision={vision} canManageTextures={canManageTextures} memory={memory} canOrderToolbar={canOrderToolbar} toolbarOrderPort={toolbarOrderPort} />);
   return repo;
 }
 
@@ -188,7 +195,7 @@ describe('<SceneTab> DM', () => {
     const u = userEvent.setup();
     const repo = seed();
     renderWithProviders(
-      <SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+      <SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
                 charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={repo} vision={fakeVisionPort()}
                 extraEncounters={[{ id: 'be-9', label: 'Ogro con antorcha', ref: 'bestiary',
                                     data: { resistance: 30, protection: 3, origin: 'custom', entryId: 'be-9', tokenUrl: null } }]} />,
@@ -225,7 +232,7 @@ describe('<SceneTab> DM', () => {
     const repo = seed();
     const bigPc = { ...CHARACTER_OTHER, id: 'ch-ogro', name: 'Bram el Grande', data: { ...KAREN_DATA, name: 'Bram el Grande', size: 'large' } };
     renderWithProviders(
-      <SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+      <SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
                 charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, bigPc])} repo={repo} vision={fakeVisionPort()}
                 extraEncounters={[{ id: 'be-7', label: 'Dragón de Queens', ref: 'bestiary',
                                     data: { resistance: 30, protection: 0, origin: 'npc', entryId: 'be-7', tokenUrl: null,
@@ -312,7 +319,7 @@ describe('<SceneTab> DM', () => {
     const u = userEvent.setup();
     const onRoll = vi.fn().mockResolvedValue({ id: 'r-1' });
     const onOpenAttack = vi.fn().mockResolvedValue({ id: 'atk-1' });
-    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
       vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
@@ -350,7 +357,7 @@ describe('<SceneTab> DM', () => {
       scenes: [SCENE_WAREHOUSE], walls: [WALL_1],
       tokens: [TOKEN_KAREN, { ...TOKEN_MUTANT, x: TOKEN_KAREN.x, y: TOKEN_KAREN.y, visible: true }],
     });
-    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={close}
       vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
@@ -387,7 +394,7 @@ describe('<SceneTab> DM', () => {
     const radio = () => Number(canvas().querySelector('[data-token-id="tk-1"] circle')!.getAttribute('r'));
 
     const normal = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], walls: [WALL_1], tokens: [{ ...TOKEN_KAREN, id: 'tk-1', size: 1.5 }] });
-    const r1 = renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    const r1 = renderWithProviders(<SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={normal} vision={fakeVisionPort()} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
     const entero = radio();
@@ -398,7 +405,7 @@ describe('<SceneTab> DM', () => {
       scenes: [{ ...SCENE_WAREHOUSE, tokenScale: 0.5 }], walls: [WALL_1],
       tokens: [{ ...TOKEN_KAREN, id: 'tk-1', size: 1.5 }],
     });
-    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={encogido} vision={fakeVisionPort()} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
 
@@ -419,7 +426,7 @@ describe('<SceneTab> DM', () => {
       scenes: [{ ...SCENE_WAREHOUSE, tokenScale: 0.5 }, SCENE_CHAPEL],
       tokens: [TOKEN_KAREN], walls: [WALL_1],
     });
-    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={repo} vision={fakeVisionPort()} />);
 
     await u.click(await screen.findByRole('button', { name: 'Colocar PJ' }));
@@ -444,7 +451,7 @@ describe('<SceneTab> DM', () => {
       scenes: [SCENE_WAREHOUSE], walls: [WALL_1],
       tokens: [{ ...TOKEN_KAREN, size: 1.5 }, { ...TOKEN_MUTANT, x: TOKEN_KAREN.x + 2.1, y: TOKEN_KAREN.y, size: 1.5, visible: true }],
     });
-    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={grandes}
       vision={fakeVisionPort()} onRoll={onRoll} onOpenAttack={onOpenAttack} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
@@ -461,7 +468,7 @@ describe('<SceneTab> DM', () => {
 
   /** Sin a dónde mandar el ataque a la espera, ATACAR no se ofrece: la mitad cuerpo a cuerpo moriría al pulsar. */
   it('sin `onOpenAttack` el botón ATACAR no aparece', async () => {
-    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
       vision={fakeVisionPort()} onRoll={vi.fn()} />);
     await screen.findByRole('button', { name: 'Ver escena Almacén de Queens' });
@@ -727,7 +734,7 @@ describe('<SceneTab> rebanada 3 — la cabecera desaparece y su contenido se rep
    */
   it('regresión · abrir ATACAR desde un token también cierra lo que hubiera abierto', async () => {
     const u = userEvent.setup();
-    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER])} repo={seed()}
       vision={fakeVisionPort()} onRoll={vi.fn().mockResolvedValue({ id: 'r-1' })} onOpenAttack={vi.fn().mockResolvedValue({ id: 'a-1' })} />);
     const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
@@ -810,7 +817,7 @@ describe('<SceneTab> rebanada 3 — barras dentro del mapa, menú al botón dere
 
   it('el botón derecho en vacío ofrece pin y dados; el pin centra la vista de quien lo pone', async () => {
     const onOpenDice = vi.fn();
-    renderWithProviders(<SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
+    renderWithProviders(<SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS}
       activeSceneId="sc-1" charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={seed()} vision={fakeVisionPort()} onOpenDice={onOpenDice} />);
     await screen.findByText(/Almacén de Queens/);
     fireEvent.contextMenu(canvas(), { clientX: 120, clientY: 90 });
@@ -1224,7 +1231,7 @@ describe('<SceneTab> — una criatura que llega ya elegida desde el Bestiario', 
   const mountArmed = (armEncounter: typeof OGRO | null, onArmed = vi.fn()) => {
     const repo = seed();
     renderWithProviders(
-      <SceneTab campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
+      <SceneTab canOrderToolbar={false} campaignId="c1" canManageTextures={true} role="dm" userId="u-gm" system={plenilunio} members={MEMBERS} activeSceneId="sc-1"
                 charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} repo={repo} vision={fakeVisionPort()}
                 armEncounter={armEncounter} onArmed={onArmed} />,
     );
@@ -2610,5 +2617,49 @@ describe('<SceneTab> la puerta recién puesta queda cogida', () => {
     fireEvent.keyDown(window, { key: 'Delete' });
     await new Promise(r => setTimeout(r, 30));
     expect(repo.walls.some(w => w.id === nuevo.id)).toBe(true);
+  });
+});
+
+/**
+ * 🧲 El orden de la barra lo pone el admin PARA TODOS (spec § «La barra se ordena arrastrando…», 2026-09-12): la
+ * mesa lo lee al abrir y lo pinta para cualquiera; sólo quien administra los ajustes arrastra; y si guardar falla,
+ * la barra vuelve a como estaba y lo dice.
+ */
+describe('<SceneTab> · el orden de la barra de herramientas', () => {
+  const nombres = () => within(screen.getByRole('toolbar', { name: 'Herramientas del lienzo' })).getAllByRole('button').map(b => b.getAttribute('aria-label'));
+  const slot = (name: string): HTMLElement => screen.getByRole('button', { name }).closest('.mp-slot') as HTMLElement;
+  const arrastra = (from: string, to: string): void => {
+    const data = { effectAllowed: '', dropEffect: '', setData: vi.fn(), getData: () => from };
+    fireEvent.dragStart(slot(from), { dataTransfer: data });
+    fireEvent.dragOver(slot(to), { dataTransfer: data });
+    fireEvent.drop(slot(to), { dataTransfer: data });
+  };
+  const DE_SERIE = ['Luz de ambiente', 'Builder', 'Fondo del mapa', 'Pincel', 'Revelar', 'Ocultar', 'Encuentro', 'Colocar PJ'];
+
+  it('pinta la barra con el orden guardado, también a quien no puede ordenarla', async () => {
+    const port = fakeToolbarOrder({ dm: ['placePc', 'light', 'wall', 'background', 'mask', 'sep', 'reveal', 'hide', 'sep', 'encounter'] });
+    mount('dm', seed(), 'sc-1', undefined, undefined, true, undefined, false, port);
+    await screen.findByRole('button', { name: 'Colocar PJ' });
+    await waitFor(() => expect(nombres().slice(-8)).toEqual(['Colocar PJ', 'Luz de ambiente', 'Builder', 'Fondo del mapa', 'Pincel', 'Revelar', 'Ocultar', 'Encuentro']));
+    expect(port.load).toHaveBeenCalled();
+    expect(slot('Pincel')).toHaveAttribute('draggable', 'false');
+  });
+
+  it('el admin arrastra y se guarda para todos; si guardar falla, vuelve a como estaba y lo dice', async () => {
+    const ok = fakeToolbarOrder();
+    mount('dm', seed(), 'sc-1', undefined, undefined, true, undefined, true, ok);
+    await screen.findByRole('button', { name: 'Pincel' });
+    arrastra('Luz de ambiente', 'Ocultar');
+    await waitFor(() => expect(ok.save).toHaveBeenCalledWith({ play: ['dice', 'select', 'measure', 'pin'], draw: ['draw'], dm: ['wall', 'background', 'mask', 'sep', 'reveal', 'light', 'hide', 'sep', 'encounter', 'placePc'] }));
+    expect(nombres().slice(-8)).toEqual(['Builder', 'Fondo del mapa', 'Pincel', 'Revelar', 'Luz de ambiente', 'Ocultar', 'Encuentro', 'Colocar PJ']);
+    expect(screen.queryByText(/No se pudo guardar el cambio/)).not.toBeInTheDocument();
+    document.body.innerHTML = '';
+    const mal = fakeToolbarOrder(null, true);
+    mount('dm', seed(), 'sc-1', undefined, undefined, true, undefined, true, mal);
+    await screen.findByRole('button', { name: 'Pincel' });
+    arrastra('Luz de ambiente', 'Ocultar');
+    await waitFor(() => expect(mal.save).toHaveBeenCalled());
+    await screen.findByText(/No se pudo guardar el cambio/);
+    expect(nombres().slice(-8)).toEqual(DE_SERIE);
   });
 });
