@@ -349,6 +349,19 @@ describe('<BuilderPanel> el estilo de la mazmorra (sólo dibujando aquí)', () =
 });
 
 describe('<BuilderPanel> las dos texturas base y el grosor', () => {
+  /** 🏷 Suyo, 2026-09-11: «*cuando no hay textura no sé cuál es pared o piso*». El rótulo va DELANTE de la muestra. */
+  it('cada muestra dice cuál es —Pared y Suelo, delante— con foto y sin ella', () => {
+    const { re } = mount({ mode: 'draw', preset: 'cavern' });
+    const filas = () => [...document.querySelectorAll('.mp-builder-tex')] as HTMLElement[];
+    expect(filas()).toHaveLength(2);
+    expect(filas()[0]!.firstElementChild).toHaveTextContent('Pared');
+    expect(filas()[1]!.firstElementChild).toHaveTextContent('Suelo');
+    expect(filas()[0]!.firstElementChild!.nextElementSibling).toHaveAttribute('data-testid', 'mp-tex-swatch');
+    re({ mode: 'draw', preset: 'cavern', wallTextureUrl: 'https://x/roca.png', floorTextureUrl: 'https://x/suelo.png' });
+    expect(filas()[0]!.firstElementChild).toHaveTextContent('Pared');
+    expect(filas()[1]!.firstElementChild).toHaveTextContent('Suelo');
+  });
+
   it('sin foto propia enseña el nombre del preajuste, y ofrece subir una', () => {
     mount({ mode: 'draw', preset: 'cavern' });
     const fila = screen.getByText('Las dos texturas base').closest('fieldset')!;

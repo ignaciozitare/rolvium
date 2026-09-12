@@ -1719,6 +1719,12 @@ peor posible para un AZULEJO: un mosaico de 40 px salía del tamaño del mapa en
   le preguntó, por su orden de no repreguntar): mismo paso y tope que el Pincel; gira la textura de la escena
   entera —no sala a sala— porque es donde vive la escala; y también gira la piedra de un brochazo de muro y el suelo
   pintado, que salen del mismo azulejo.
+- 🏷 **Cada muestra dice cuál es** (suyo, 2026-09-11, la 6 de sus siete: «*cuando no hay textura no sé cuál es pared o
+  piso*»): delante de cada muestra va su rótulo, **PARED** y **SUELO**, con foto o sin ella. El diseño lo tenía desde la
+  v3 del panel (`ePNCc`: «Fila · PARED» / «Fila · SUELO») y el código nunca lo pintó: sin foto, las dos muestras eran dos
+  cuadros de color con el nombre del preajuste y nada más. ✅ Decisión del agente, avisada: él propuso llamarlas
+  «background» y «foreground»; se ponen las palabras del diseño aprobado —que son las suyas: «pared o piso»— porque son
+  las que contestan la pregunta; cambiarlas es una palabra en cada idioma.
 
 **3 · «*le falta la física a los muros*»** → era un fallo, y de los que no se ven: la niebla YA respetaba las
 salas (eso lo calcula el servidor) pero **el freno del navegador no**, porque `moveBlockers` sólo miraba

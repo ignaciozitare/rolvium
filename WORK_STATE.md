@@ -28,7 +28,7 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-12 — LOS DIENTES ✅ · LA 3 (barra arrastrando) ✅ · LA 4 (el Builder recuerda su modo) ✅ · LA 5 (girar las texturas base) ✅ · LA 7 (menú de las piezas) apuntada en el spec de la rebanada 6 — **todo SIN PROBAR POR ÉL** · **AQUÍ SE RETOMA: QUE ÉL PRUEBE LAS CUATRO y conteste lo de la 6 (la captura que nunca llegó y qué rótulos exactos quiere)**
+## 🟢 2026-09-12 — LOS DIENTES ✅ · LA 3 (barra arrastrando) ✅ PROBADA POR ÉL («ok funciona») · LA 4 (el Builder recuerda su modo) ✅ · LA 5 (girar las texturas base) ✅ · LA 6 (rótulos PARED / SUELO) ✅ · LA 7 apuntada en el spec de la rebanada 6 — **SUS 7 PETICIONES, CERRADAS** · **AQUÍ SE RETOMA: que él pruebe la 4, la 5 y la 6 y guarde el `.pen`; después, lo que él diga (el mapa largo: `/qa` de la rama → merge → deploy con las CUATRO migraciones → rebanada 6 · LOS OBJETOS)**
 
 **Frase para arrancar el chat nuevo** (él se fue el 2026-09-12 a mediodía diciendo «*termínalo y con el contexto que te
 quede comienza el punto siguiente, no me esperes, no rompas nada*»; este chat hizo los dientes, la 3, la 4 y la 5):
@@ -61,13 +61,15 @@ authenticated lee y escribe, anon sigue denegado). Y la regla queda en `.claude/
 GRANTs») para que el DBA no lo vuelva a olvidar. 💡 Deuda propuesta: un check en `scripts/audit.mjs` que marque un
 `CREATE TABLE` sin `GRANT … TO authenticated` en la misma migración.
 
-### 📥 LA 6, SIN EMPEZAR — LE FALTAN DOS COSAS SUYAS
+### 🏷 LA 6 — ✅ HECHA (2026-09-12, tarde; él: «*ok funciona, vamos por el siguiente punto*»)
 «*cuando no hay textura no sé cuál es pared o piso, le pondría background y foreground*» → rótulos en las dos muestras
-de textura base del Builder. No se tocó a propósito («no rompas nada»): (a) su tercera captura NUNCA llegó y (b) los
-nombres los puso él («background» y «foreground») y en una interfaz en castellano no está claro si los quiere tal
-cual, en inglés, o si «background» = suelo y «foreground» = pared. **Preguntarle las dos cosas en texto plano** y sólo
-entonces: spec (una línea) → `.pen` (la fila de cada muestra con su rótulo, sobre `I6TcDm`) → dev (`BuilderPanel`,
-`mp-builder-tex-n` ya enseña el nombre del preajuste: el rótulo iría al lado) → review.
+de textura base del Builder. Al mirarlo: **el diseño aprobado YA los tenía** (`ePNCc` v3 y su copia `I6TcDm`: «Fila ·
+PARED» / «Fila · SUELO», rótulo de 7,5 px delante de la muestra) y el código nunca los pintó. Así que NO hace falta
+lámina nueva ni preguntarle: se pinta lo dibujado. ✅ Decisión del agente, avisada en el spec: se usan las palabras del
+diseño (PARED / SUELO — las suyas: «pared o piso») y no «background/foreground»; cambiarlo es una palabra por idioma
+(`maps.room.textures.wall/floor`). Código: `BuilderPanel.tsx` (un `tb-rotulo` reutilizado, delante de la muestra) ·
+`maps.css` (`.mp-builder-tex-c`, ancho mínimo para alinear las dos filas) · i18n es/en. Test: `BuilderPanel.test.tsx`
+«cada muestra dice cuál es». Spec: punto 🏷 en § «Rebanada 8» (junto al del giro).
 
 ### 🧲 LA 3 · ORDENAR LAS HERRAMIENTAS ARRASTRANDO — ✅ SPEC CONFIRMADO CON SUS CORRECCIONES (2026-09-12, por la mañana) · EN CONSTRUCCIÓN
 **Sus tres respuestas, textuales** («*joder, pero quería que tengas esto*»): (1) «*los bloques los tienes que respetar
@@ -593,7 +595,7 @@ Textuales suyas, con lo que se entendió:
      APROBADO** (añadió un test: el suelo gira con SU giro y la piedra de un relleno con el de la pared) y
      **commiteado** (`8a9b7f3`). Verde: smoke 12/12 · regression 1737/1737 · build:web + build:api · audit 0 graves.
      ⏳ él: probarlo (Builder → Dibujar aquí → con una textura puesta, la barra «Giro»).
-6. «*cuando no hay textura no sé cuál es pared o piso, le pondría background y foreground*» — rótulos en las dos muestras
+6. ✅ **HECHA el 2026-09-12** (bloque 🏷 de arriba: el diseño ya tenía PARED / SUELO; se pintó lo dibujado). Era: «*cuando no hay textura no sé cuál es pared o piso, le pondría background y foreground*» — rótulos en las dos muestras
    de textura base. ⚠ **Su tercera captura NO llegó**: pedírsela. Los nombres los puso él: no inventar otros.
 7. Para LOS OBJETOS (rebanada 6): «*cada uno al hacerle click derecho tienes que poder mandarlo adelante y atrás como en
    cualquier programa … top layer, down layer etc*» — menú contextual: traer adelante / enviar atrás / al frente / al

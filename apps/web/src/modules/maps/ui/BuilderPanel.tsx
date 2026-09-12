@@ -393,6 +393,12 @@ export function BuilderPanel({
           {([['wall', wallTextureUrl, wallScale, wallRotation], ['floor', floorTextureUrl, floorScale, floorRotation]] as const).map(([which, url, escala, giro]) => (
             <div key={which} className="mp-builder-texblock">
               <div className="mp-builder-tex">
+                {/*
+                  * CUÁL ES CUÁL (suyo, 2026-09-11: «*cuando no hay textura no sé cuál es pared o piso*»). El
+                  * diseño lo tenía desde la v3 (`ePNCc`, «Fila · PARED» / «Fila · SUELO») y el código no lo pintaba:
+                  * sin foto, dos cuadros de color con el nombre del preajuste. Mismo rótulo que el resto del panel.
+                  */}
+                <span className="tb-rotulo mp-builder-tex-c">{t(`maps.room.textures.${which}`)}</span>
                 <TextureSwatch url={url} cells={escala} deg={giro}
                   fallback={which === 'wall' ? styleOf(preset).rock : styleOf(preset).floor} />
                 <span className="mp-builder-tex-n">{url ? t('maps.room.textures.own') : t(`maps.room.preset.${preset}`)}</span>

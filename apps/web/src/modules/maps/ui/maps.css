@@ -464,6 +464,8 @@
 .mp-builder-preset-t{font-size:var(--fs-2xs);color:var(--sys-ink-soft);text-align:center;line-height:var(--lh-tight);}
 .mp-builder-preset.on .mp-builder-preset-t{color:var(--sys-ink);font-weight:600;}
 .mp-builder-tex{display:flex;align-items:center;gap:8px;}
+/* el rótulo PARED / SUELO delante de cada muestra: columna de ancho FIJO (cabe la palabra más larga en los dos idiomas) para que las dos muestras queden alineadas */
+.mp-builder-tex-c{flex:0 0 4.25em;white-space:nowrap;}
 .mp-builder-tex-swatch{width:26px;height:20px;flex:0 0 auto;border-radius:2px;outline:1px solid var(--sys-line);outline-offset:-1px;}
 .mp-builder-tex-n{flex:1;font-size:var(--fs-2xs);color:var(--sys-ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
