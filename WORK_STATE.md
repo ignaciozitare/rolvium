@@ -46,9 +46,44 @@ plataforma · (3) sin botón de «orden de serie» (decisión del agente, avisad
 se le preguntó lo que ya había dicho: **no volver a preguntarle nada de esto** (memoria `no-repreguntar-lo-decidido`).
 - ✅ **Spec GUARDADO**: `specs/modules/maps/SPEC.md` § «🧲 La barra se ordena arrastrando, y el orden lo pone el admin
   para todos» (va antes de § «Seleccionar: una herramienta…») + línea en «Estado por rebanadas» + índice `specs/SPEC.md`.
-- ⏳ **Siguiente**: DBA (no hay tabla de ajustes de plataforma: hay que crear dónde guardar el orden; el permiso
-  `admin.manage_settings` ya existe en `roles.permissions`) → Scaffold → `.pen` (lámina del arrastre: botón levantado +
-  raya de destino, sobre la barra `SNlGp`) → Dev → Review.
+- ✅ **DBA HECHO**: `supabase/migrations/20260912100000_core_app_settings.sql` — tabla `app_settings` (clave/valor, una
+  fila por ajuste de plataforma; el orden va en `key = 'maps.toolbar_order'`, `value = {play, draw, dm}` con ids de
+  BOTONES; sin fila de serie). RLS: leen todos (`authenticated`), escribe `has_permission('manage_settings')`. Aplicada
+  en LOCAL con `supabase migration up --local` (NUNCA `db:reset`): lint 0, audit 0 graves, políticas comprobadas con
+  psql. ⚠ **En la nube NO está**: sube con el deploy, ANTES que la web. Modelo de datos escrito en el spec.
+- ✅ **SCAFFOLD HECHO** (commit `feat(maps): el orden de la barra lo pone el admin para todos — spec, tabla de ajustes y
+  andamiaje (sin pantalla)`): `domain/useCases/toolbarRules.ts` (`DEFAULT_TOOLBAR_ORDER` por bloques con las rayas
+  `sep` del director como ítems fijos · `resolvedBlockOrder`/`resolvedToolbarOrder`: desconocidos fuera, los que falten
+  en su sitio de serie · `moveToolbarItem` · `parseToolbarOrder`) · `domain/ports/ToolbarOrderPort.ts` ·
+  `infra/SupabaseToolbarOrder.ts` (`maybeSingle` por clave; `upsert` con `onConflict: 'key'` y `updated_by`) ·
+  `container.ts` exporta `toolbarOrder`. Tests: reglas (6) + adaptador (3). Verde: 9/9 · typecheck web limpio.
+  ⚠ Decisión de diseño de datos, avisada: las DOS rayas de dentro del bloque del director (construir ‖ niebla ‖ juego)
+  viajan en la lista como ítems `sep` que no se arrastran: los botones se mueven a su alrededor y las rayas se quedan.
+- ⏳ **DISEÑO EN EL `.pen`: LÁMINA HECHA, SIN GUARDAR Y SIN APROBAR.** Lámina `NhYOy` «PL/Barra de herramientas ·
+  ORDENAR ARRASTRANDO · sólo el admin ← NUEVO 12-09 (§ 🧲)», al final de la fila de la sección 5 (x 27900, y 6938, a
+  la derecha de `R7gay`). Es la columna `Cv6yk` de la barra `SNlGp` copiada, con «Pincel» levantado bajo el puntero
+  (copia con sombra, mano cerrada `drag_pan`) y su hueco en claro (opacidad 0,45, como `.mp-layer.dragging`), la raya
+  ORO de 2 px arriba de «Revelar» como destino (como `.mp-layer.over` del panel de capas) y una nota con las reglas.
+  Estructura final: la lámina es una fila (`layout: horizontal`, gap 12) con la columna de la barra y, a su derecha,
+  una tarjeta de papel `otO6g` (cabecera «La barra · ordenar arrastrando», rótulo y dos párrafos con las reglas); el
+  botón levantado `IQV0M` y la mano `G6SvP6` van en posición absoluta sobre la barra.
+  ⚠ **LAS CAPTURAS DE ESTE CHAT NO VALEN**: `TakeScreenshot`/`Export` devolvían el render VIEJO (ni la nota, ni la mano,
+  ni un rectángulo rojo de prueba salían; la memoria `pen-solo-lo-guarda-el-dueno` ya avisaba de que «la maqueta sale
+  pisada»). `Get` sí confirma la estructura (única rareza: las cotas de algunos hijos salen +50 px, y avisa de «Reglas
+  partially clipped» aunque la tarjeta mide justo la suma de sus textos). **Mirar la lámina en el Pencil, no la
+  captura** `diseno/NhYOy.png` (que sólo enseña la barra y el botón levantado).
+  ⚠ La barra dibujada en el `.pen` va DESFASADA respecto a la app (seis botones de dibujar sueltos, «Piezas» primero):
+  no se tocó — no es de esta tarea.
+  **Él tiene que**: (1) mirarla y decir si vale, (2) guardar el `.pen` con Cmd+S (sin eso no llega al disco), y
+  entonces se commitea `design(maps): …` y arranca el Dev.
+- ⏳ **DEV (después de su visto bueno)**: `Toolbar.tsx` pinta cada bloque desde `resolvedToolbarOrder` (los botones de
+  panel intercalados: el orden es de BOTONES) · arrastre nativo como `LayersPanel` (`draggable` sólo si
+  `can('manage_settings')`; `onDragOver` con `preventDefault` sobre botones del MISMO bloque; `onDrop` →
+  `moveToolbarItem`; si devuelve la misma lista, nada) · `SceneTab` carga con `toolbarOrder.load()` al montar y guarda
+  con `save`; si falla, vuelve al orden anterior y `dialog.alert(t('maps.toolbar.orderSaveFailed'))` · CSS: `.mp-tool.dragging{opacity:.45}` y `.mp-tool.over{box-shadow:inset 0 2px 0 var(--sys-gold)}` (las MISMAS reglas que las
+  capas) · i18n es/en: `maps.toolbar.dragHint`, `maps.toolbar.orderSaveFailed` · tests `controls.test.tsx`: el del
+  orden del 31-ago pasa a llamarse «de serie»; nuevos: orden guardado aplicado, arrastrar reordena y guarda, un clic sin
+  mover no reordena, sin permiso no se arrastra, botón desconocido cae en su sitio · Review.
 
 *(Lo de abajo es la propuesta de la madrugada, que él corrigió; se deja para ver qué cambió.)*
 Suyo, 2026-09-11: «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas arrastrando*».
