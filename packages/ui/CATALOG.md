@@ -25,14 +25,21 @@ Import: `import { X } from '@rolvium/ui'`
 | `DualPanelPicker` | transferencia entre dos paneles (disponible/seleccionado) | `<DualPanelPicker items value>` |
 | `EmptyState` | estado vacío/error centrado con icono, texto y acciones | `<EmptyState icon title description actions>` |
 | `Field` | campo de formulario del .pen: label ALL-CAPS + input + error/hint + trailing (icono) | `<Field id label value onChange error trailing>` |
+| `FloatingPanel` | panel flotante de la mesa (Builder, Pincel, luces…): cabecera arrastrable que lo saca del mapa, icono, acciones y X; tema solo vía --sys-*. OBLIGATORIO para todo panel de mesa (npm run audit) | `<FloatingPanel title icon moveLabel closeLabel onClose className closeOnEscape>…</FloatingPanel>` |
 | `IconPicker` | selector de icono Material Symbols | `<IconPicker value onChange>` |
 | `ImagePicker` | subida/recorte de imagen o avatar | `<ImagePicker shape onChange>` |
 | `Modal` | overlay/diálogo con foco atrapado y cierre por ESC | `<Modal open onClose title>` |
 | `MultiSelectDropdown` | selección múltiple con búsqueda | `<MultiSelectDropdown items value onChange>` |
+| `OptionGroup` | elegir una de varias en un panel de mesa (chip u outline; 2 o 3 columnas o en fila); lo elegido siempre en rojo sangre | `<OptionGroup ariaLabel options value onChange look columns caps>` |
 | `PageHeader` | cabecera de página: título display + subtítulo + acciones | `<PageHeader title subtitle actions>` |
+| `PanelHint` | línea de ayuda en cursiva dentro de un panel flotante | `<PanelHint>…</PanelHint>` |
+| `PanelIconButton` | botón de solo icono con tooltip para la cabecera de un panel flotante | `<PanelIconButton icon="delete" label onClick />` |
+| `PanelNote` | nota con el icono de información al pie de un panel flotante | `<PanelNote>…</PanelNote>` |
+| `PanelSection` | bloque de un panel flotante con su rótulo en versalitas | `<PanelSection label className testId>…</PanelSection>` |
 | `PhaseDisc` | disco de fase (PL/Salud): fracción oscura 0→1 | `<PhaseDisc fraction={0.5} />` |
 | `SectionTitle` | título de sección ALL-CAPS con línea | `<SectionTitle>Mis campañas</SectionTitle>` |
 | `Sheet` | ficha de personaje neutra dirigida por el sheetSchema del sistema (secciones, campos, derivadas, acciones, tooltips «Manual · p.XX»), tema solo vía --sys-* | `<Sheet schema data derived readOnly onChange onAction actions t refText labels>` |
+| `Slider` | deslizador de la mesa, apilado (de serie) o en fila: lectura, guardar al soltar, muescas; tema solo vía --sys-*. OBLIGATORIO: nada de <input type="range"> a mano (npm run audit) | `<Slider label value min max step valueText onChange onCommit layout>` |
 | `StatBox` | métrica/KPI con label (átomo) | `<StatBox label value>` |
 | `StatusChip` | chip de estado con punto (green/purple/amber/red/gray) | `<StatusChip tone="green">Activa</StatusChip>` |
 | `SystemChip` | chip de sistema de juego (icono + nombre; muted si no instalado) | `<SystemChip muted>Plenilunio</SystemChip>` |
@@ -42,4 +49,4 @@ Import: `import { X } from '@rolvium/ui'`
 
 > Fuente de verdad del código: `packages/ui/src/index.ts`.
 > Ejemplos vivos e interactivos: `apps/web/src/shared/ui/UIKit.tsx`.
-> 29 componentes exportados.
+> 36 componentes exportados.

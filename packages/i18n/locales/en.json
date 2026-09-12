@@ -735,6 +735,7 @@
       "delete": "Delete scene",
       "deleteConfirm": "Delete “{{name}}” with its tokens, walls and strokes?",
       "menu": "Scene options",
+      "menuFor": "Options for “{{name}}”",
       "select": "View scene {{name}}",
       "collapse": "Collapse scenes",
       "expand": "Expand scenes"
@@ -784,7 +785,7 @@
       "select": "Select",
       "text": "Text",
       "light": "Ambient light",
-      "mask": "Transparency brush",
+      "mask": "Brush",
       "notInPlayerView": "not while viewing as a player",
       "draw": "Draw"
     },
@@ -848,8 +849,94 @@
       "affectsAll": "revealing or hiding affects every player",
       "revealAll": "Reveal all",
       "hideAll": "Hide all",
+      "resetConfirm": "This wipes ALL the paint you have put here. What is underneath stays, but the paint does not come back.",
       "reveal": "Reveal brush",
-      "hide": "Hide brush"
+      "hide": "Hide brush",
+      "on": "Paint on",
+      "target": {
+        "layer": "Photo",
+        "fog": "Fog",
+        "room": "Room",
+        "floor": "Floor",
+        "wall": "Wall",
+        "rock": "Wall"
+      },
+      "way": "Way",
+      "dir": {
+        "restore": "Paint",
+        "erase": "Remove"
+      },
+      "tipLabel": "Stroke",
+      "tip": {
+        "disc": "Disc",
+        "soft": "Soft",
+        "rough": "Torn edge"
+      },
+      "sizeLabel": "Size",
+      "alpha": "Transparency",
+      "edge": "Edge",
+      "edgeStep": {
+        "soft": "soft",
+        "medium": "medium",
+        "sharp": "sharp"
+      },
+      "roughLabel": "How torn",
+      "roughness": {
+        "barely": "barely",
+        "little": "a little",
+        "quite": "quite",
+        "lots": "a lot"
+      },
+      "everyStrokeDiffers": "every stroke, different",
+      "hintRoom": "Painting a ROOM FLOOR the stroke clips itself at the room edge: you can sweep over the wall without staining it.",
+      "hintScene": "The brush is remembered by THIS scene — stroke, size, transparency and how torn. Another map brings its own.",
+      "hintFog": "In the FOG a torn edge shows in whole cells, because that is how fog is stored. On a layer or a room floor it looks fine-grained.",
+      "needsRoom": "Put the brush over a room to paint it.",
+      "with": "What I paint with",
+      "paint": {
+        "texture": "Texture",
+        "color": "Colour",
+        "erase": "Erase"
+      },
+      "textureLabel": "The texture · beats the colour",
+      "textureNone": "None yet: it paints with the colour",
+      "colorLabel": "The colour · the one in use",
+      "colorOwn": "Yours",
+      "colorOwnNamed": "Colour {{hex}}",
+      "colorStays": "it stays until you change it",
+      "mine": "Your colours · in this campaign",
+      "save": "Save this colour to the campaign",
+      "hex": "Hex colour",
+      "picker": "Eyedropper",
+      "strokeLabel": "The stroke",
+      "close": "Close the brush",
+      "footBuild": "What you paint builds map: the FLOOR can be walked, the WALL blocks sight and movement.",
+      "footErase": "The eraser takes the WHOLE stroke you run over, not half of it. Short strokes erase finely.",
+      "color": {
+        "steel": "Steel",
+        "slate": "Slate",
+        "coal": "Coal",
+        "obsidian": "Obsidian",
+        "sand": "Sand",
+        "leather": "Leather",
+        "earth": "Earth",
+        "mud": "Mud",
+        "moss": "Moss",
+        "water": "Water",
+        "ice": "Ice",
+        "blood": "Blood"
+      },
+      "doLabel": "What I do",
+      "do": {
+        "paint": "Paint",
+        "erase": "Erase paint",
+        "uncover": "Uncover what is below"
+      },
+      "scopeHint": "what you pick is the limit: if your hand slips, the thing next to it stays clean",
+      "footPaint": "Painting does NOT change the map: not where you walk, not what is seen, not the light. Only how it looks.",
+      "needsRock": "This map has no rock yet: build a room with the Builder and the wall shows up.",
+      "tileLabel": "Scale",
+      "turnLabel": "Rotation"
     },
     "fog": {
       "autoOn": "Automatic fog by line of sight · opens as tokens move; click for manual",
@@ -1032,7 +1119,7 @@
         "poly": "Polygon",
         "free": "Freehand"
       },
-      "polyHint": "one click, one corner · click the first one again to close the room",
+      "polyHint": "drag and the shape follows the outline of your hand",
       "dragHint": "drag to raise the room · it is built when you let go",
       "chainHint": "one click, one point · they chain up, and the wall carries on where the last one ended",
       "lineHint": "drag from one point to another · one wall comes out, and only one",
@@ -1050,6 +1137,8 @@
         "ink": "Ink"
       },
       "textures": {
+        "wall": "Wall",
+        "floor": "Floor",
         "label": "The two base textures",
         "hint": "The wall one fills the whole map; the floor one shows through the hole each room opens.",
         "own": "Your own photo",
@@ -1062,6 +1151,10 @@
       "tile": {
         "wall": "Tile · wall",
         "floor": "Tile · floor"
+      },
+      "turn": {
+        "wall": "Turn · wall",
+        "floor": "Turn · floor"
       },
       "build": {
         "label": "What I build · dig or fill",
@@ -1097,10 +1190,22 @@
         "rename": "Rename",
         "categorize": "Categorise",
         "renamePrompt": "What should this texture be called?",
-        "door": "Door texture"
+        "door": "Door texture",
+        "brushHint": "These belong to the TOOL, not to your campaign: whatever you upload here works in all your maps. Pick one and it goes on the NEXT stroke, travelling with it: changing it later does not repaint what is already there.",
+        "brush": "Brush texture"
       },
       "tooSmall": "The gesture came up short: nothing was built. Drag a little further.",
-      "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square."
+      "tooSmallSnap": "The gesture came up short. With the grid lock on, nothing can be smaller than one square.",
+      "band": {
+        "label": "Band width · only with “Freehand”",
+        "short": "Width",
+        "hint": "“Freehand” gives a BAND of the width you pick, following your hand. By default it is this scene’s wall thickness.",
+        "edge": "Edge · only with “Freehand”",
+        "tip": {
+          "clean": "Clean",
+          "rough": "Rough edge"
+        }
+      }
     },
     "group": {
       "countGrouped": "Group · {{n}} walls",
@@ -1121,7 +1226,16 @@
       "roomDelete": "Delete room",
       "roomFill": "the wall",
       "door": "the door",
-      "window": "the window"
+      "window": "the window",
+      "drawing": "the stroke",
+      "wall": "the wall",
+      "undone": "Undone: {{what}}",
+      "redone": "Redone: {{what}}",
+      "nothing": "Nothing left to undo",
+      "nothingRedo": "Nothing left to redo",
+      "token": "the token",
+      "light": "the light",
+      "paint": "the brush stroke"
     },
     "builder": {
       "title": "Builder",

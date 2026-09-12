@@ -19,18 +19,19 @@ const SCENE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Cripta', width: 600, height: 400, bgColor: '#111111', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 30, visible: true }, fogMode: 'vision',
   lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null, doorTextureUrl: null, tokenScale: 1,
-  roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
+  brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5, bandTip: 'clean', bandRoughness: 0.5, rockPaintUrl: null,
+  roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4, wallTextureRotation: 0, floorTextureRotation: 0,
   createdAt: '', updatedAt: '',
 };
 
 const room = (id: string, x1: number, y1: number, x2: number, y2: number, over: Partial<Room> = {}): Room => ({
   id, sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect',
   points: [[x1, y1], [x2, y1], [x2, y2], [x1, y2]],
-  floorPreset: 'hatch', floorUrl: null, createdAt: '2026-09-04T10:00:00Z', updatedAt: '', ...over,
+  floorPreset: 'hatch', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '2026-09-04T10:00:00Z', updatedAt: '', ...over,
 });
 
-const mount = (rooms: Room[], openings: RoomOpening[] = [], scene: Scene = SCENE) =>
-  render(<svg><RoomsLayer scene={scene} rooms={rooms} openings={openings} ids={roomMaskIds(scene.id)} /></svg>);
+const mount = (rooms: Room[], openings: RoomOpening[] = [], scene: Scene = SCENE, floorPreview: { roomId: string; href: string | null } | null = null, paintPreview: { on: 'room' | 'rock'; id: string; href: string | null } | null = null) =>
+  render(<svg><RoomsLayer scene={scene} rooms={rooms} openings={openings} ids={roomMaskIds(scene.id)} floorPreview={floorPreview} paintPreview={paintPreview} /></svg>);
 
 describe('<RoomsLayer> — la roca, el agujero y el muro', () => {
   it('sin salas no pinta NADA: una escena de siempre no cambia ni un píxel', () => {
@@ -150,6 +151,32 @@ describe('<RoomsLayer> las texturas son azulejos que se repiten', () => {
       { ...SCENE, grid: { size: 60, visible: true }, wallTextureUrl: 'https://x/roca.png', wallTextureScale: 2 });
     // Misma escala en casillas, rejilla del doble → azulejo del doble. Se ve igual de grande en el mapa.
     expect(roca(otraRejilla.container)).toHaveAttribute('width', '120');
+  });
+
+  /** 🔄 Suyo, 2026-09-11: «*tengo que poder rotar sus texturas*». Gira el MOSAICO (el patrón), no la sala. */
+  it('el mosaico gira lo que diga la escena, y sin giro guardado queda a 0°', () => {
+    const girada = mount([room('r1', 60, 60, 300, 300)], [],
+      { ...SCENE, wallTextureUrl: 'https://x/roca.png', wallTextureScale: 2, wallTextureRotation: 45 });
+    const roca = (c: HTMLElement) => c.querySelector(`[id="${roomMaskIds('sc-1').rockTile}"]`);
+    expect(roca(girada.container)).toHaveAttribute('patternTransform', 'rotate(45)');
+    // y el azulejo sigue midiendo lo suyo: girar no escala
+    expect(roca(girada.container)).toHaveAttribute('width', '60');
+    const quieta = mount([room('r1', 60, 60, 300, 300)], [], { ...SCENE, wallTextureUrl: 'https://x/roca.png', wallTextureScale: 2 });
+    expect(roca(quieta.container)).toHaveAttribute('patternTransform', 'rotate(0)');
+  });
+
+  /** Y son DOS giros, no uno: el suelo gira con el suyo, y la piedra propia de un relleno con el de la pared. */
+  it('el suelo gira con SU giro y la piedra de un relleno con el de la pared: dos fotos, dos giros', () => {
+    const { container } = mount([
+      room('r1', 0, 0, 400, 400, { floorUrl: null }),
+      room('r2', 60, 60, 200, 200, { kind: 'fill', shape: 'brush', floorUrl: 'https://x/granito.png' }),
+    ], [], { ...SCENE, wallTextureRotation: 45, floorTextureUrl: 'https://x/mosaico.png', floorTextureRotation: 120 });
+    const patrones = [...container.querySelectorAll(`pattern[id^="${roomMaskIds('sc-1').floorTile}"]`)];
+    const con = (href: string) => patrones.find(p => p.querySelector('image')?.getAttribute('href') === href);
+    // el suelo del mapa, con el giro del SUELO
+    expect(con('https://x/mosaico.png')).toHaveAttribute('patternTransform', 'rotate(120)');
+    // la piedra que trae el relleno es roca: gira con el de la PARED
+    expect(con('https://x/granito.png')).toHaveAttribute('patternTransform', 'rotate(45)');
   });
 
   /**
@@ -351,6 +378,27 @@ describe('<RoomsLayer> — los vanos, anotados sobre el contorno', () => {
     mount([room('r1', 60, 60, 300, 300)], [suelta({ kind: 'window' })]);
     expect(vano('o2')).toHaveLength(0);
   });
+
+  /**
+   * 🐞 La que CIERRA UN PASO de pared a pared (2026-09-11) ya tapa y frena, pero se dibuja EXACTAMENTE igual:
+   * una vez y desde sus propias puntas, no desde el tramo alargado con el que tapa. Se compara con otra del
+   * mismo largo que flota en el suelo de otra sala, que es el dibujo de siempre.
+   */
+  it('una puerta que cierra un paso de pared a pared se pinta una vez, igual que antes', () => {
+    const largoDe = (id: string): number => {
+      const hoja = screen.getByTestId('mp-room-doors').querySelector(`[data-opening-id="${id}"] [data-leaf="0"]`)!;
+      const ys = hoja.getAttribute('points')!.split(' ').map(p => Number(p.split(',')[1]));
+      return Math.max(...ys) - Math.min(...ys);
+    };
+    mount([room('r1', 60, 60, 300, 300), room('r2', 400, 60, 700, 600)], [
+      // De la pared de arriba (y = 60) a la de abajo (y = 300), a 0,3 y 3 px como las suyas.
+      suelta({ id: 'o2', x1: 180, y1: 60.3, x2: 180, y2: 297 }),
+      // El mismo largo, en mitad del suelo de la otra sala: no toca pared.
+      suelta({ id: 'o3', x1: 550, y1: 150, x2: 550, y2: 386.7 }),
+    ]);
+    expect(vano('o2')).toHaveLength(1);
+    expect(largoDe('o2')).toBeCloseTo(largoDe('o3'), 3);
+  });
 });
 
 /**
@@ -489,5 +537,182 @@ describe('<RoomsLayer> — no se repinta de balde', () => {
     const antes = screen.getByTestId('mp-room-wall').getAttribute('d');
     rerender(<svg><RoomsLayer scene={SCENE} rooms={[room('r1', 60, 60, 200, 200)]} openings={[]} ids={ids} /></svg>);
     expect(screen.getByTestId('mp-room-wall').getAttribute('d')).not.toBe(antes);
+  });
+});
+
+/**
+ * ── EL PINCEL SOBRE EL SUELO DE UNA SALA (rebanada 9) ──
+ *
+ * El PNG es negro donde se ha pintado y transparente donde no, así que puesto ENCIMA del contorno blanco de
+ * la máscara tapa justo lo pintado y por ahí asoma lo que haya debajo. La textura del constructor no se toca:
+ * se puede volver atrás siempre.
+ */
+describe('<RoomsLayer> el pincel sobre el suelo de una sala', () => {
+  it('una sala sin pintar no lleva ninguna máscara de pincel', () => {
+    mount([room('a', 0, 0, 100, 100)]);
+    expect(screen.queryByTestId('mp-room-floor-mask')).not.toBeInTheDocument();
+  });
+
+  it('una sala pintada mete su PNG en la máscara de su suelo, con la fecha pegada', () => {
+    mount([room('a', 0, 0, 100, 100, { floorMaskUrl: 'https://x/m.png', updatedAt: 't7' })]);
+    const img = screen.getByTestId('mp-room-floor-mask');
+    expect(img).toHaveAttribute('href', 'https://x/m.png?v=t7');
+  });
+
+  /**
+   * 🔑 UNA SALA PINTADA NO SE JUNTA CON NADIE. Juntar las seguidas que pintan lo mismo es lo que evita
+   * veinte recortes del tamaño del mapa, pero una máscara es SUYA: metida en un grupo se aplicaría también al
+   * suelo de las vecinas y aparecerían agujeros en salas que nadie tocó.
+   */
+  it('la sala pintada se separa de sus vecinas, que sin ella irían en un solo grupo', () => {
+    const iguales = [room('a', 0, 0, 100, 100), room('b', 200, 0, 300, 100)];
+    mount(iguales);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(1);
+    document.body.innerHTML = '';
+    mount([{ ...iguales[0]!, floorMaskUrl: 'https://x/m.png', updatedAt: 't2' }, iguales[1]!]);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(2);
+    expect(screen.getAllByTestId('mp-room-floor-mask')).toHaveLength(1);
+  });
+
+  /** Mientras se arrastra manda la máscara EN VIVO: sin esto el pincel no se vería hasta soltar el ratón. */
+  it('la previa en vivo manda sobre la guardada, y sólo en la sala que se está pintando', () => {
+    const salas = [room('a', 0, 0, 100, 100, { floorMaskUrl: 'https://x/vieja.png', updatedAt: 't1' }), room('b', 200, 0, 300, 100)];
+    mount(salas, [], SCENE, { roomId: 'a', href: 'data:image/png;base64,ENVIVO' });
+    const imgs = screen.getAllByTestId('mp-room-floor-mask');
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0]).toHaveAttribute('href', 'data:image/png;base64,ENVIVO');
+  });
+
+  /** Y una previa VACÍA es «acabo de restaurarla»: tiene que borrar la guardada, no dejarla asomar. */
+  it('una previa vacía deja el suelo entero aunque haya una máscara guardada', () => {
+    mount([room('a', 0, 0, 100, 100, { floorMaskUrl: 'https://x/vieja.png', updatedAt: 't1' })], [], SCENE, { roomId: 'a', href: null });
+    expect(screen.queryByTestId('mp-room-floor-mask')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * ── CADA FORMA SE PINTA CON LO SUYO (§ «Rebanada 10») ──
+ *
+ * Lo único de verdad nuevo que la rebanada mete en el pintado: un brochazo trae su propia textura o su
+ * propio color, y una forma que RELLENA puede llevar su propia roca.
+ */
+describe('<RoomsLayer> el brochazo se pinta con lo suyo', () => {
+  const suelos = (c: HTMLElement) => Array.from(c.querySelectorAll('[data-testid="mp-room-floor"] rect[fill]'));
+
+  it('un brochazo con color propio se pinta con ÉL, no con el del preajuste', () => {
+    const { container } = mount([room('r1', 60, 60, 300, 300, { shape: 'brush', floorColor: '#5f8f6a' })]);
+    expect(suelos(container).some(r => r.getAttribute('fill') === '#5f8f6a')).toBe(true);
+  });
+
+  /**
+   * 🔑 Y EL ORDEN SE VE EN PANTALLA: la foto se pinta ENCIMA del color, no en su lugar. Por eso quitarle la
+   * textura a un brochazo no lo deja en blanco: descubre el color que llevaba debajo.
+   */
+  it('con foto y color, la foto va encima y el color se queda debajo', () => {
+    const { container } = mount([room('r1', 60, 60, 300, 300, { shape: 'brush', floorColor: '#5f8f6a', floorUrl: 'https://x/losa.png' })]);
+    const capa = container.querySelector('[data-testid="mp-room-floor"] g[mask]')!;
+    const rects = Array.from(capa.querySelectorAll('rect'));
+    expect(rects[0]).toHaveAttribute('fill', '#5f8f6a');
+    expect(rects[1]!.getAttribute('fill')).toMatch(/^url\(#/);
+    expect(screen.getByTestId('mp-room-floor-img')).toBeInTheDocument();
+  });
+
+  /** «En una que EXCAVA es su suelo; en una que RELLENA es su roca»: la misma columna, la misma idea. */
+  it('un brochazo de MURO puede traer su propia piedra', () => {
+    const { container } = mount([
+      room('r1', 0, 0, 400, 400),
+      room('r2', 60, 60, 200, 200, { kind: 'fill', shape: 'brush', floorUrl: 'https://x/granito.png', floorColor: '#2f3338' }),
+    ]);
+    expect(screen.getByTestId('mp-room-fill-img')).toBeInTheDocument();
+    const relleno = container.querySelector('[data-testid="mp-room-refill"] g[mask] rect')!;
+    expect(relleno).toHaveAttribute('fill', '#2f3338');
+  });
+
+  /**
+   * 🔒 DOS BROCHAZOS SEGUIDOS DE COLORES DISTINTOS NO SE JUNTAN. Juntar las capas seguidas que pintan lo
+   * mismo es lo que evita veinte recortes del tamaño del mapa; juntar dos que pintan DISTINTO le daría a los
+   * dos el color del primero.
+   */
+  it('dos brochazos de colores distintos son dos capas, no una', () => {
+    mount([
+      room('r1', 0, 0, 100, 100, { shape: 'brush', floorColor: '#5f8f6a' }),
+      room('r2', 150, 0, 250, 100, { shape: 'brush', floorColor: '#b8452c' }),
+    ]);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(2);
+  });
+
+  /** …y dos del MISMO color sí, que es lo que mantiene el mapa barato de pintar. */
+  it('dos brochazos del mismo color se juntan en una sola capa', () => {
+    mount([
+      room('r1', 0, 0, 100, 100, { shape: 'brush', floorColor: '#5f8f6a' }),
+      room('r2', 150, 0, 250, 100, { shape: 'brush', floorColor: '#5f8f6a' }),
+    ]);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(1);
+  });
+
+  /** ⚠️ Y una forma de antes del pincel se sigue viendo EXACTAMENTE igual: sin color propio manda el preajuste. */
+  it('una sala de antes del pincel no cambia ni un píxel', () => {
+    const { container } = mount([room('r1', 60, 60, 300, 300)]);
+    expect(suelos(container).some(r => r.getAttribute('fill') === styles.styleOf('hatch').floor)).toBe(true);
+  });
+});
+
+/**
+ * ── LA PINTURA, PINTADA (§ «Rebanada 10 · A») ──
+ *
+ * 🔑 Va ENCIMA de lo que ya está y **dentro del recorte de la cosa pintada**: ahí es donde se cumple «*si se
+ * me va la mano al muro, el muro no se tiene que pintar*» sin ninguna comprobación. Y no cambia el mapa: la
+ * geometría sigue siendo la de las formas, no la del PNG.
+ */
+describe('<RoomsLayer> — la pintura que se pone encima', () => {
+  it('la pintura del suelo se dibuja dentro del AGUJERO, no suelta sobre el mapa', () => {
+    const { container } = mount([room('r1', 60, 60, 300, 300, { floorPaintUrl: 'https://x/paint/room-r1.png' })]);
+    const pintura = screen.getByTestId('mp-room-floor-paint');
+    expect(pintura.getAttribute('href')).toContain('paint/room-r1.png');
+    // 🔑 Contra la máscara del agujero —la unión de lo excavado—: por ahí es por donde la roca no se mancha.
+    const grupo = container.querySelector(`g[mask="url(#${roomMaskIds('sc-1').hole})"]`)!;
+    expect(grupo.querySelector('[data-testid="mp-room-floor-paint"]')).not.toBeNull();
+  });
+
+  /** Sin pintar no se dibuja nada: una sala de antes de la rebanada 10 se ve exactamente igual. */
+  it('una sala sin pintar no dibuja ninguna pintura', () => {
+    mount([room('r1', 60, 60, 300, 300)]);
+    expect(screen.queryByTestId('mp-room-floor-paint')).not.toBeInTheDocument();
+  });
+
+  /**
+   * 🐞 PINTAR NO PARTE LAS CAPAS DE SUELO, y eso era lo que él vio raro en pantalla el 2026-09-10: «*la forma
+   * original de las habitaciones está haciendo algo raro*». Sacar cada sala pintada a su propia capa dejaba
+   * una costura de medio píxel entre dos salas pegadas, así que al abrir el pincel aparecían las siluetas de
+   * todas las habitaciones. La pintura del suelo se dibuja UNA vez, contra el agujero.
+   */
+  it('pintar no parte las capas de suelo: dos salas iguales siguen siendo una', () => {
+    mount([
+      room('r1', 0, 0, 100, 100, { floorPaintUrl: 'https://x/p1.png' }),
+      room('r2', 150, 0, 250, 100, { floorPaintUrl: 'https://x/p1.png' }),
+    ]);
+    expect(screen.getAllByTestId('mp-room-floor')).toHaveLength(1);
+    // …y la pintura, una sola, dentro del agujero.
+    expect(screen.getAllByTestId('mp-room-floor-paint')).toHaveLength(1);
+  });
+
+  /** LA ROCA se pinta dentro de la MISMA máscara que ya la talla, así que no puede manchar una habitación. */
+  it('la pintura de la roca va dentro de la máscara de la roca', () => {
+    const { container } = mount([room('r1', 60, 60, 300, 300)], [], { ...SCENE, rockPaintUrl: 'https://x/paint/rock-sc-1.png' });
+    const grupo = container.querySelector(`g[mask="url(#${roomMaskIds('sc-1').rock})"]`)!;
+    expect(grupo.querySelector('[data-testid="mp-room-rock-paint"]')).not.toBeNull();
+  });
+
+  /** El previo EN VIVO manda sobre lo guardado: sin él el brochazo no se vería hasta soltar el ratón. */
+  it('el previo en vivo manda sobre la pintura guardada', () => {
+    mount([room('r1', 60, 60, 300, 300, { floorPaintUrl: 'https://x/viejo.png' })], [], SCENE, null,
+      { on: 'room', id: 'sc-1:floor', href: 'data:image/png;base64,NUEVO' });
+    expect(screen.getByTestId('mp-room-floor-paint')).toHaveAttribute('href', 'data:image/png;base64,NUEVO');
+  });
+
+  it('y el de la roca, igual', () => {
+    mount([room('r1', 60, 60, 300, 300)], [], { ...SCENE, rockPaintUrl: 'https://x/viejo.png' }, null,
+      { on: 'rock', id: 'sc-1', href: 'data:image/png;base64,NUEVO' });
+    expect(screen.getByTestId('mp-room-rock-paint')).toHaveAttribute('href', 'data:image/png;base64,NUEVO');
   });
 });

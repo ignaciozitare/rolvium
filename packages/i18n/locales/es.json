@@ -735,6 +735,7 @@
       "delete": "Eliminar escena",
       "deleteConfirm": "¿Eliminar «{{name}}» con sus tokens, muros y trazos?",
       "menu": "Opciones de la escena",
+      "menuFor": "Opciones de «{{name}}»",
       "select": "Ver escena {{name}}",
       "collapse": "Plegar escenas",
       "expand": "Desplegar escenas"
@@ -784,7 +785,7 @@
       "select": "Seleccionar",
       "text": "Texto",
       "light": "Luz de ambiente",
-      "mask": "Pincel de transparencia",
+      "mask": "Pincel",
       "notInPlayerView": "no mientras ves como jugador",
       "draw": "Dibujar"
     },
@@ -848,8 +849,94 @@
       "affectsAll": "revelar u ocultar afecta a todos los jugadores",
       "revealAll": "Revelar todo",
       "hideAll": "Ocultar todo",
+      "resetConfirm": "Esto se lleva TODA la pintura que hayas puesto aquí. Lo de debajo no se toca, pero la pintura no vuelve.",
       "reveal": "Pincel revelar",
-      "hide": "Pincel ocultar"
+      "hide": "Pincel ocultar",
+      "on": "Sobre qué",
+      "target": {
+        "layer": "Foto",
+        "fog": "Niebla",
+        "room": "Habitación",
+        "floor": "Suelo",
+        "wall": "Muro",
+        "rock": "Muro"
+      },
+      "way": "Sentido",
+      "dir": {
+        "restore": "Pintar",
+        "erase": "Quitar"
+      },
+      "tipLabel": "Trazo",
+      "tip": {
+        "disc": "Disco",
+        "soft": "Difuminado",
+        "rough": "Borde roto"
+      },
+      "sizeLabel": "Tamaño",
+      "alpha": "Transparencia",
+      "edge": "Borde",
+      "edgeStep": {
+        "soft": "difuminado",
+        "medium": "medio",
+        "sharp": "a filo"
+      },
+      "roughLabel": "Cuánto de roto",
+      "roughness": {
+        "barely": "apenas",
+        "little": "poco",
+        "quite": "bastante",
+        "lots": "mucho"
+      },
+      "everyStrokeDiffers": "cada brochazo, distinto",
+      "hintRoom": "Pintando el SUELO DE UNA SALA el brochazo se recorta solo en su borde: puedes pasar por encima del muro sin mancharlo.",
+      "hintScene": "El pincel se guarda en ESTA escena — trazo, tamaño, transparencia y cuánto de roto. Otro mapa trae el suyo.",
+      "hintFog": "En la NIEBLA el borde roto se ve a trozos de casilla, porque la niebla se guarda así. En una capa o en el suelo de una sala se ve fino.",
+      "needsRoom": "Pon el pincel encima de una habitación para pintarla.",
+      "with": "Con qué pinto",
+      "paint": {
+        "texture": "Textura",
+        "color": "Color",
+        "erase": "Borrar"
+      },
+      "textureLabel": "La textura · manda sobre el color",
+      "textureNone": "Ninguna todavía: se pinta con el color",
+      "colorLabel": "El color · el que está puesto",
+      "colorOwn": "Tuyo",
+      "colorOwnNamed": "Color {{hex}}",
+      "colorStays": "se queda puesto hasta que lo cambies",
+      "mine": "Tus colores · de esta campaña",
+      "save": "Guardar este color en la campaña",
+      "hex": "Color en hexadecimal",
+      "picker": "Cuentagotas",
+      "strokeLabel": "El brochazo",
+      "close": "Cerrar el pincel",
+      "footBuild": "Lo que pintes levanta mapa: el SUELO se anda, el MURO corta la vista y el paso.",
+      "footErase": "El borrador se lleva ENTERO el brochazo por el que pases, no medio. A trazos cortos se borra fino.",
+      "color": {
+        "steel": "Acero",
+        "slate": "Pizarra",
+        "coal": "Carbón",
+        "obsidian": "Obsidiana",
+        "sand": "Arena",
+        "leather": "Cuero",
+        "earth": "Tierra",
+        "mud": "Barro",
+        "moss": "Musgo",
+        "water": "Agua",
+        "ice": "Hielo",
+        "blood": "Sangre"
+      },
+      "doLabel": "Qué hago",
+      "do": {
+        "paint": "Pintar",
+        "erase": "Borrar pintura",
+        "uncover": "Destapar lo de debajo"
+      },
+      "scopeHint": "lo elegido es el límite: si se te va la mano, lo de al lado no se mancha",
+      "footPaint": "Pintar NO cambia el mapa: ni por dónde se anda, ni qué se ve, ni la luz. Sólo cómo se ve.",
+      "needsRock": "Este mapa todavía no tiene roca: levanta una habitación con el Builder y el muro aparece.",
+      "tileLabel": "Escala",
+      "turnLabel": "Giro"
     },
     "fog": {
       "autoOn": "Niebla automática por visión · se abre sola al moverse las fichas; pulsa para manual",
@@ -1032,7 +1119,7 @@
         "poly": "Polígono",
         "free": "A pulso"
       },
-      "polyHint": "un clic, un vértice · pincha otra vez sobre el primero para cerrar la sala",
+      "polyHint": "arrastra y la forma sale con el contorno de la mano",
       "dragHint": "arrastra para levantar la sala · se monta al soltar",
       "chainHint": "un clic, un punto · se encadenan, y la pared sigue donde acabó la anterior",
       "lineHint": "arrastra de un punto a otro · sale un muro, y sólo uno",
@@ -1050,6 +1137,8 @@
         "ink": "Tinta"
       },
       "textures": {
+        "wall": "Pared",
+        "floor": "Suelo",
         "label": "Las dos texturas base",
         "hint": "La de pared rellena el mapa entero; la de suelo asoma por el hueco que abre cada sala.",
         "own": "Foto tuya",
@@ -1062,6 +1151,10 @@
       "tile": {
         "wall": "Azulejo · pared",
         "floor": "Azulejo · suelo"
+      },
+      "turn": {
+        "wall": "Giro · pared",
+        "floor": "Giro · suelo"
       },
       "build": {
         "label": "Qué levanto · excavar o rellenar",
@@ -1097,10 +1190,22 @@
         "rename": "Renombrar",
         "categorize": "Clasificar",
         "renamePrompt": "¿Cómo quieres que se llame esta textura?",
-        "door": "Textura de la puerta"
+        "door": "Textura de la puerta",
+        "brushHint": "Son de la HERRAMIENTA, no de tu campaña: lo que subas aquí te sirve en todos tus mapas. Elige una y se pone en el PRÓXIMO brochazo, y va con él: cambiarla después no repinta lo ya pintado.",
+        "brush": "Textura del pincel"
       },
       "tooSmall": "El gesto se quedó corto: no se levantó nada. Arrastra un poco más.",
-      "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla."
+      "tooSmallSnap": "El gesto se quedó corto. Con el candado de la rejilla echado, nada puede ser más pequeño que una casilla.",
+      "band": {
+        "label": "El ancho de la banda · sólo con «A pulso»",
+        "short": "Ancho",
+        "hint": "«A pulso» saca una BANDA del ancho elegido siguiendo la mano. De serie es el grosor de muro de esta escena.",
+        "edge": "El borde · sólo con «A pulso»",
+        "tip": {
+          "clean": "Limpio",
+          "rough": "Borde roto"
+        }
+      }
     },
     "group": {
       "countGrouped": "Grupo · {{n}} muros",
@@ -1121,7 +1226,16 @@
       "roomDelete": "Borrar sala",
       "roomFill": "el muro",
       "door": "la puerta",
-      "window": "la ventana"
+      "window": "la ventana",
+      "drawing": "el trazo",
+      "wall": "el muro",
+      "undone": "Deshecho: {{what}}",
+      "redone": "Rehecho: {{what}}",
+      "nothing": "No queda nada que deshacer",
+      "nothingRedo": "No queda nada que rehacer",
+      "token": "la ficha",
+      "light": "la luz",
+      "paint": "la pincelada"
     },
     "builder": {
       "title": "Builder",

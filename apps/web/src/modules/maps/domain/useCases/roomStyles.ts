@@ -1,4 +1,4 @@
-import { orientRing, roomWalls, type BlockSegment, type RoomPart, type RoomRing, type RoomOpeningSpan, type RoomWall } from '@rolvium/core';
+import { orientRing, pointInRing, roomWalls, sameRoomInput, type BlockSegment, type RoomPart, type RoomRing, type RoomOpeningSpan, type RoomWall } from '@rolvium/core';
 import type { Room, RoomOpening, RoomPreset, Scene } from '../entities/Scene';
 import type { RoomSide } from './roomRules';
 
@@ -101,9 +101,22 @@ export const shadowDepthPx = (scene: Pick<Scene, 'grid'>): number => scene.grid.
  * con la rejilla en 15 que en 60, y no cambia al acercar o alejar.
  */
 export const tilePx = (cells: number, grid: number): number => Math.max(4, (cells || DEFAULT_TEXTURE_SCALE) * grid);
+/**
+ * EL PATRÓN DEL AZULEJO, ESCALADO Y GIRADO, como matriz `[a, b, c, d, e, f]` de un lienzo 2D (petición suya,
+ * 2026-09-10: la textura del pincel, además de escalarse, «*que se pueda girar*»).
+ *
+ * Primero se lleva la foto al tamaño del azulejo y DESPUÉS se gira el mosaico entero: al revés, una foto que
+ * no fuese cuadrada saldría torcida además de girada. Gira el PATRÓN con el que se rellena, no la pincelada.
+ */
+export function tileMatrix(sidePx: number, imgW: number, imgH: number, deg = 0): [number, number, number, number, number, number] {
+  const sx = sidePx / imgW, sy = sidePx / imgH;
+  const r = (deg * Math.PI) / 180, cos = Math.cos(r), sin = Math.sin(r);
+  return [cos * sx, sin * sx, -sin * sy, cos * sy, 0, 0];
+}
 
 /** Un azulejo grande, que es lo que menos sorprende al subir una foto cualquiera. Espejo de la migración. */
 export const DEFAULT_TEXTURE_SCALE = 4;
+
 
 /**
  * EL SUELO QUE LE TOCA A UNA SALA. `floorUrl` a `null` no es «sin suelo»: es «esta sala no tiene uno PROPIO
@@ -116,6 +129,33 @@ export const DEFAULT_TEXTURE_SCALE = 4;
  */
 export const floorUrlOf = (room: Pick<Room, 'floorUrl'>, scene: Pick<Scene, 'floorTextureUrl'>): string | null =>
   room.floorUrl ?? scene.floorTextureUrl;
+
+/**
+ * CON QUÉ SE PINTA UNA FORMA — LA FOTO (rebanada 10). Un solo sitio para las dos clases de forma:
+ *
+ *  · la que EXCAVA enseña su SUELO   → el suyo si lo trae, y si no el del mapa (`floorUrlOf`, intacto);
+ *  · la que RELLENA enseña su ROCA   → la suya si la trae, y si no la del mapa.
+ *
+ * Es la MISMA columna (`floorUrl`) porque es la misma idea —«con qué está pintada esta forma»—, que es lo que
+ * el pincel necesita para poder pintar un muro con una piedra distinta sin inventar una segunda columna.
+ * Una forma anterior al pincel no trae nada propio, así que se ve exactamente igual que ayer.
+ */
+export const shapeImageOf = (room: Pick<Room, 'kind' | 'floorUrl'>, scene: Pick<Scene, 'floorTextureUrl' | 'wallTextureUrl'>): string | null =>
+  room.kind === 'fill' ? room.floorUrl ?? scene.wallTextureUrl : floorUrlOf(room, scene);
+
+/**
+ * …Y EL COLOR, que es lo que se ve DEBAJO de la foto —o en vez de ella si no hay ninguna.
+ *
+ * El orden es el mismo que ya rige en las puertas: **la foto gana al color, y el color gana al preajuste**.
+ * Por eso quitarle la textura a un brochazo no lo deja en blanco: descubre el color que llevaba debajo.
+ *
+ * ⚠️ Cuando la forma NO trae color propio se cae al preajuste de siempre, y ahí se respeta a rajatabla de
+ * dónde salía cada uno: la roca de un relleno es la de LA ESCENA (`scenePreset`) y el suelo de una sala es el
+ * que ella se llevó el día que se dibujó (`room.floorPreset`). Cambiarlo aquí repintaría mapas ya hechos, que
+ * es justo lo que él prohibió en redondo — «*como que repinta las salas, nooooo*».
+ */
+export const shapeColorOf = (room: Pick<Room, 'kind' | 'floorPreset' | 'floorColor'>, scenePreset: RoomPreset): string =>
+  room.floorColor ?? (room.kind === 'fill' ? styleOf(scenePreset).rock : styleOf(room.floorPreset).floor);
 
 /**
  * UN MURO DE RELLENO NO SE DIBUJA COMO FORMA: lo que se ve de él es el AGUJERO que deja en el suelo, y de eso
@@ -148,6 +188,28 @@ export const dugRooms = (rooms: readonly Room[]): Room[] => rooms.filter(r => r.
 export const filledRooms = (rooms: readonly Room[]): Room[] => rooms.filter(r => r.kind === 'fill');
 
 /**
+ * LA SALA QUE HAY BAJO UN PUNTO — cuál se repinta con el pincel del suelo (rebanada 9).
+ *
+ * Sólo cuentan las que EXCAVAN: un tabique no tiene suelo que pintar. Y se recorre **al revés**, de la más
+ * nueva a la más vieja, porque ése es el orden en que se pinta el mapa: donde dos salas se solapan manda la
+ * de arriba, que es la que él está viendo cuando apunta con el pincel.
+ */
+export const roomAt = (rooms: readonly Room[], p: { x: number; y: number }): Room | null =>
+  dugRooms(rooms).reverse().find(r => pointInRing(p, ringOf(r))) ?? null;
+
+/**
+ * LA FORMA QUE HAY BAJO UN PUNTO, EXCAVE O RELLENE — la que se lleva el borrador del pincel (rebanada 10).
+ *
+ * Va aparte de `roomAt` a propósito: aquél sólo mira las que EXCAVAN, porque un tabique no tiene suelo que
+ * repintar. El borrador sí tiene que poder derribar un brochazo de MURO — es la mitad de lo que se pinta.
+ *
+ * De la más nueva a la más vieja, por lo mismo que `roomAt`: donde dos se solapan manda la de arriba, que es
+ * la que él está viendo cuando apunta.
+ */
+export const shapeAt = (rooms: readonly Room[], p: { x: number; y: number }): Room | null =>
+  [...rooms].reverse().find(r => pointInRing(p, ringOf(r))) ?? null;
+
+/**
  * Las formas del mapa **en el orden en que él las dibujó**, que es el que decide quién manda: la lista llega
  * de la base ordenada por `created_at` y aquí sólo se le pone el signo a cada una.
  */
@@ -165,16 +227,6 @@ export const ringFromSides = (sides: readonly RoomSide[]): [number, number][] =>
 export const spansOf = (openings: readonly RoomOpening[]): RoomOpeningSpan[] =>
   openings.map(o => ({ id: o.id, x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2, kind: o.kind, isOpen: o.isOpen }));
 
-/**
- * EL CONTORNO DE LAS SALAS DE ESTA ESCENA, CALCULADO UNA SOLA VEZ.
- *
- * Lo piden dos sitios a la vez y por motivos distintos: el LIENZO, para pintar el muro; y el FRENO del
- * arrastre, para saber contra qué choca una ficha. Fundir las formas cuesta comparar cada lado con todos los
- * demás —medido: ~21 ms con 60 salas— así que hacerlo dos veces por pintada sería pagarlo dos veces.
- *
- * La caché es de UNA entrada y va por identidad de las listas: en cuanto React entrega otras —porque una sala
- * cambió— se recalcula. No hay nada que invalidar a mano ni forma de que se quede vieja.
- */
 /**
  * EL VANO SE ENGANCHA A LA PARED MÁS CERCANA, o no se pone.
  *
@@ -219,9 +271,22 @@ export function snapSpanToOutline(rooms: readonly Room[], span: RoomOpeningSpan,
   return { ...span, x1: pa.x, y1: pa.y, x2: pb.x, y2: pb.y };
 }
 
-let cacheSalas: { rooms: unknown; openings: unknown; walls: RoomWall[] } | null = null;
+/**
+ * EL CONTORNO DE LAS SALAS DE ESTA ESCENA, CALCULADO UNA SOLA VEZ.
+ *
+ * Lo piden dos sitios a la vez y por motivos distintos: el LIENZO, para pintar el muro; y el FRENO del
+ * arrastre, para saber contra qué choca una ficha. Fundir las formas es la cuenta cara del mapa, así que
+ * hacerlo dos veces por pintada sería pagarlo dos veces.
+ *
+ * ⏱ La caché es de UNA entrada y va por CONTENIDO, no por identidad de las listas (specs/modules/maps/SPEC.md
+ * § «Las paredes no se recalculan en cada movimiento», 2026-09-11). Por identidad, cada forma dibujada se fundía
+ * DOS veces —al dibujarla y al llegar el eco de la base, que trae la misma fila en una lista nueva— y pintar un
+ * suelo, que no mueve ninguna pared, volvía a fundir la mazmorra entera: con su «Dungeon», segundos cada vez.
+ * `sameRoomInput` mira sólo lo que entra en el cálculo; en cuanto cambia una forma o un vano, se recalcula.
+ */
+let cacheSalas: { rooms: readonly Room[]; openings: readonly RoomOpening[]; walls: RoomWall[] } | null = null;
 export function roomWallsOf(rooms: readonly Room[], openings: readonly RoomOpening[]): RoomWall[] {
-  if (cacheSalas && cacheSalas.rooms === rooms && cacheSalas.openings === openings) return cacheSalas.walls;
+  if (cacheSalas && sameRoomInput(cacheSalas, { rooms, openings })) return cacheSalas.walls;
   const walls = roomWalls(partsOf(rooms), spansOf(openings));
   cacheSalas = { rooms, openings, walls };
   return walls;

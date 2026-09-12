@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { Wall } from '../domain/entities/Scene';
 import { createSupabaseMock } from '../../../../tests/helpers/supabaseMock';
-import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapLayerRow, mapPropRow, mapSceneRow, mapScenePropRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
+import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapLayerRow, mapPropRow, mapRoomRow, mapSceneRow, mapScenePropRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
 
 const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, lighting: 'day' as const, night_radius_m: 10, solid_walls: false, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
 const TOKEN_ROW = { id: 'tk-1', scene_id: 'sc-1', campaign_id: 'c1', character_id: 'ch-karen', bestiary_ref: null, bestiary_entry_id: null, name: 'Karen', image_url: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlled_by: 'u-pip', vision_radius: null, state: {}, layer_id: null };
@@ -38,6 +38,15 @@ describe('SupabaseMapsRepo — mappers', () => {
 });
 
 describe('SupabaseMapsRepo — scenes', () => {
+  /** 🔄 El giro de las dos texturas base (2026-09-12): hermanas de las escalas. */
+  it('el giro de las texturas se lee a 0° si la fila no lo trae, y se escribe normalizado a [0, 360)', async () => {
+    expect(mapSceneRow(SCENE_ROW)).toMatchObject({ wallTextureRotation: 0, floorTextureRotation: 0 });
+    expect(mapSceneRow({ ...SCENE_ROW, wall_texture_rotation: 90, floor_texture_rotation: 355 })).toMatchObject({ wallTextureRotation: 90, floorTextureRotation: 355 });
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: null, error: null } } });
+    await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).updateScene('sc-1', { wallTextureRotation: 370, floorTextureRotation: -5 });
+    expect(m.updateSpy).toHaveBeenCalledWith(expect.objectContaining({ wall_texture_rotation: 10, floor_texture_rotation: 355 }));
+  });
+
   it('listScenes filters by campaign ordered by sort_order; getScene by id; errors throw', async () => {
     const m = createSupabaseMock({ tables: { maps_scenes: { data: [SCENE_ROW], error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
@@ -296,6 +305,41 @@ describe('SupabaseMapsRepo — capas y luces (rebanada 7)', () => {
     expect(remove).toHaveBeenCalledWith(['c1/masks/ly-1.png']);
   });
 
+  /**
+   * ── LA PINTURA (rebanada 10) ── Mismo camino que la máscara, OTRO fichero y OTRA columna: aquélla QUITA y
+   * ésta PONE, y compartirlos dejaría el borrador de una llevándose la otra por delante.
+   */
+  it('la pintura de una capa va a `paint/`, no a `masks/`, y sube SU versión', async () => {
+    const m = createSupabaseMock({ tables: { maps_layers: { data: { ...LAYER_ROW, paint_version: 2 }, error: null } } });
+    const upload = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ upload, getPublicUrl: vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } })) })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    const png = new Blob(['x'], { type: 'image/png' });
+    const out = await repo.saveLayerPaint({ id: 'ly-1', campaignId: 'c1', paintVersion: 1 }, png);
+    expect(upload).toHaveBeenCalledWith('c1/paint/layer-ly-1.png', png, expect.objectContaining({ upsert: true, contentType: 'image/png' }));
+    expect(m.updateSpy).toHaveBeenCalledWith({ paint_url: 'https://x/c1/paint/layer-ly-1.png', paint_version: 2 });
+    expect(out.paintVersion).toBe(2);
+    // Y la máscara no se ha tocado: son dos cosas distintas en la misma fila.
+    expect(m.updateSpy).not.toHaveBeenCalledWith(expect.objectContaining({ mask_url: expect.anything() }));
+  });
+
+  it('quitar la pintura de una capa vacía SU columna y borra SU fichero', async () => {
+    const m = createSupabaseMock({ tables: { maps_layers: { data: LAYER_ROW, error: null } } });
+    const remove = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ remove })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    await repo.clearLayerPaint({ id: 'ly-1', campaignId: 'c1' });
+    expect(m.updateSpy).toHaveBeenCalledWith({ paint_url: null });
+    expect(remove).toHaveBeenCalledWith(['c1/paint/layer-ly-1.png']);
+  });
+
+  /** Una capa anterior a la rebanada 10 no trae las columnas: se lee como «sin pintar», y se ve igual. */
+  it('una capa sin las columnas de la pintura se lee sin pintar', async () => {
+    const m = createSupabaseMock({ tables: { maps_layers: { data: [LAYER_ROW], error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    expect((await repo.listLayers('sc-1'))[0]).toMatchObject({ paintUrl: null, paintVersion: 0 });
+  });
+
   it('las luces mapean sus columnas, incluidas las que todavía no se usan', async () => {
     const m = createSupabaseMock({ tables: { maps_lights: { data: LIGHT_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
@@ -515,14 +559,14 @@ describe('SupabaseMapsRepo — las salas', () => {
     expect(m.fromSpy).toHaveBeenCalledWith('maps_rooms');
     expect(q(m)['eq']).toHaveBeenCalledWith('scene_id', 'sc-1');
     expect(q(m)['order']).toHaveBeenCalledWith('created_at', { ascending: true });
-    expect(rooms[0]).toMatchObject({ id: 'rm-1', shape: 'rect', floorPreset: 'cavern', floorUrl: null });
+    expect(rooms[0]).toMatchObject({ id: 'rm-1', shape: 'rect', floorPreset: 'cavern', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null });
     expect(rooms[0]!.points).toEqual([[0, 0], [10, 0], [10, 10], [0, 10]]);
   });
 
   it('guarda la forma con su suelo heredado, y NO escribe ningún muro', async () => {
     const m = createSupabaseMock({ tables: { maps_rooms: { data: ROOM_ROW, error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
-    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect', points: [[0, 0], [10, 0], [10, 10], [0, 10]], floorPreset: 'cavern', floorUrl: null });
+    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect', points: [[0, 0], [10, 0], [10, 10], [0, 10]], floorPreset: 'cavern', floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null });
     expect(q(m)['insert']).toHaveBeenCalledWith(expect.objectContaining({ scene_id: 'sc-1', kind: 'room', shape: 'rect', floor_preset: 'cavern' }));
     expect(m.fromSpy).not.toHaveBeenCalledWith('maps_walls');
   });
@@ -535,6 +579,99 @@ describe('SupabaseMapsRepo — las salas', () => {
     expect(q(m)['eq']).toHaveBeenCalledWith('id', 'rm-1');
     await repo.removeRoom('rm-1');
     expect(q(m, 1)['delete']).toHaveBeenCalled();
+  });
+
+  /**
+   * ── EL PINCEL SOBRE EL SUELO DE UNA SALA (rebanada 9) ──
+   * Mismo camino que el de una capa —mismo bucket, misma carpeta, mismas políticas— porque es el mismo
+   * mecanismo: la textura del constructor NUNCA se toca, se pinta una máscara encima y siempre se puede
+   * volver atrás.
+   */
+  it('la máscara del suelo sube al bucket de la campaña y deja el puntero en la fila', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: { ...ROOM_ROW, floor_mask_url: 'https://x/c1/masks/room-rm-1.png', updated_at: 't2' }, error: null } } });
+    const upload = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ upload, getPublicUrl: vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } })) })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    const png = new Blob(['x'], { type: 'image/png' });
+    const out = await repo.saveRoomFloorMask({ id: 'rm-1', campaignId: 'c1' }, png);
+    expect(client.storage.from).toHaveBeenCalledWith(BACKGROUNDS_BUCKET);
+    expect(upload).toHaveBeenCalledWith('c1/masks/room-rm-1.png', png, expect.objectContaining({ upsert: true, contentType: 'image/png' }));
+    expect(m.updateSpy).toHaveBeenCalledWith({ floor_mask_url: 'https://x/c1/masks/room-rm-1.png' });
+    // Vuelve la fila ENTERA, no sólo la URL: el rompe-caché de una sala es su `updated_at`.
+    expect(out).toMatchObject({ floorMaskUrl: 'https://x/c1/masks/room-rm-1.png', updatedAt: 't2' });
+  });
+
+  /** La fila se vacía ANTES que el fichero, igual que en una capa: un fallo deja un huérfano, no una sala rota. */
+  it('quitar la máscara del suelo vacía la fila y borra el fichero', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: ROOM_ROW, error: null } } });
+    const remove = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ remove })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    await repo.clearRoomFloorMask({ id: 'rm-1', campaignId: 'c1' });
+    expect(m.updateSpy).toHaveBeenCalledWith({ floor_mask_url: null });
+    expect(remove).toHaveBeenCalledWith(['c1/masks/room-rm-1.png']);
+  });
+
+  /**
+   * 🔑 UN SOLO PNG Y N PUNTEROS, y sale de un fallo que él vio en pantalla el 2026-09-10: «*si hice una
+   * habitación y la modifico, el pincel se pinta dentro de cada modificación… se ve la silueta pintada de
+   * habitaciones previas*». Una habitación son varias formas fundidas y cada una dibuja su pintura recortada
+   * a SU contorno: con un fichero por forma, el brochazo se cortaba en cada costura.
+   */
+  it('la pintura del suelo sube UNA vez y la apuntan todas las formas excavadas', async () => {
+    const FILA = { ...ROOM_ROW, floor_paint_url: 'https://x/c1/paint/room-rm-1.png', updated_at: 't2' };
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: [FILA, { ...FILA, id: 'rm-2' }], error: null } } });
+    const upload = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ upload, getPublicUrl: vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } })) })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    const png = new Blob(['x'], { type: 'image/png' });
+    const out = await repo.saveRoomFloorPaint({ id: 'rm-1', campaignId: 'c1' }, png, ['rm-2']);
+    // UN solo fichero, con el nombre de la primera.
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(upload).toHaveBeenCalledWith('c1/paint/room-rm-1.png', png, expect.objectContaining({ upsert: true, contentType: 'image/png' }));
+    // …y una sola escritura en lote para las dos filas.
+    expect(m.updateSpy).toHaveBeenCalledWith({ floor_paint_url: 'https://x/c1/paint/room-rm-1.png' });
+    expect(q(m)['in']).toHaveBeenCalledWith('id', ['rm-1', 'rm-2']);
+    // Vuelven las filas ENTERAS: el rompe-caché de una sala es su `updated_at`.
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({ floorPaintUrl: 'https://x/c1/paint/room-rm-1.png', updatedAt: 't2' });
+  });
+
+  /** 🔒 Y quitar la pintura NO DERRIBA NADA: la forma sigue exactamente donde estaba. */
+  it('quitar la pintura de una forma no toca sus puntos ni su suelo', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: ROOM_ROW, error: null } } });
+    const remove = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ remove })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    await repo.clearRoomFloorPaint({ id: 'rm-1', campaignId: 'c1' }, ['rm-2']);
+    expect(m.updateSpy).toHaveBeenCalledWith({ floor_paint_url: null });
+    expect(q(m)['in']).toHaveBeenCalledWith('id', ['rm-1', 'rm-2']);
+    expect(remove).toHaveBeenCalledWith(['c1/paint/room-rm-1.png']);
+    expect(m.deleteSpy).not.toHaveBeenCalled();
+  });
+
+  /** LA ROCA va por ESCENA: no es una fila, es el negativo de lo excavado. */
+  it('la pintura de la roca va a la ESCENA, no a ninguna forma', async () => {
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: { ...SCENE_ROW, rock_paint_url: 'https://x/c1/paint/rock-sc-1.png' }, error: null } } });
+    const upload = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ upload, getPublicUrl: vi.fn((path: string) => ({ data: { publicUrl: `https://x/${path}` } })) })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    const png = new Blob(['x'], { type: 'image/png' });
+    const out = await repo.saveRockPaint({ id: 'sc-1', campaignId: 'c1' }, png);
+    expect(m.fromSpy).toHaveBeenCalledWith('maps_scenes');
+    expect(upload).toHaveBeenCalledWith('c1/paint/rock-sc-1.png', png, expect.objectContaining({ upsert: true, contentType: 'image/png' }));
+    expect(m.updateSpy).toHaveBeenCalledWith({ rock_paint_url: 'https://x/c1/paint/rock-sc-1.png' });
+    expect(out.rockPaintUrl).toBe('https://x/c1/paint/rock-sc-1.png');
+  });
+
+  it('quitar la pintura de la roca vacía la columna de la escena y borra el fichero', async () => {
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: SCENE_ROW, error: null } } });
+    const remove = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { ...m.client, storage: { from: vi.fn(() => ({ remove })) } };
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    await repo.clearRockPaint({ id: 'sc-1', campaignId: 'c1' });
+    expect(m.updateSpy).toHaveBeenCalledWith({ rock_paint_url: null });
+    expect(remove).toHaveBeenCalledWith(['c1/paint/rock-sc-1.png']);
   });
 
   it('los vanos van por ESCENA, porque el contorno es el de la UNIÓN', async () => {
@@ -691,5 +828,154 @@ describe('SupabaseMapsRepo — cómo es cada puerta', () => {
     const e = createSupabaseMock({ tables: { maps_scenes: { data: null, error: null } } });
     await new SupabaseMapsRepo(e.client as unknown as SupabaseClient).updateScene('sc-1', { doorTextureUrl: null });
     expect(q(e)['update']).toHaveBeenCalledWith(expect.objectContaining({ door_texture_url: null }));
+  });
+});
+
+/**
+ * EL PINCEL DE LA ESCENA (rebanada 9). Lo que hay que sujetar aquí no es que las columnas se copien —eso lo
+ * ve cualquiera— sino LO CONTRARIO: que una escena y una sala escritas ANTES de la migración se abran
+ * exactamente como se abrían. Es lo único que puede romperle un mapa que ya tiene.
+ */
+describe('el pincel de la escena y la máscara de la sala (rebanada 9)', () => {
+  const ROOM_ROW = { id: 'rm-1', scene_id: 'sc-1', campaign_id: 'c1', kind: 'room' as const, shape: 'rect' as const, points: [[0, 0], [10, 0], [10, 10], [0, 10]] as [number, number][], floor_preset: 'hatch' as const, floor_url: null, created_at: 't', updated_at: 't' };
+
+  it('una escena SIN las columnas cae en lo que la app ya usaba, no en ceros', () => {
+    expect(mapSceneRow(SCENE_ROW)).toMatchObject({ brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5 });
+  });
+
+  it('una sala SIN la columna se abre sin pintar encima: su suelo se ve entero', () => {
+    expect(mapRoomRow(ROOM_ROW).floorMaskUrl).toBeNull();
+  });
+
+  it('cuando vienen, se leen', () => {
+    expect(mapSceneRow({ ...SCENE_ROW, brush_tip: 'rough', brush_size: 3, brush_strength: 0.2, brush_hardness: 1, brush_roughness: 0.9 }))
+      .toMatchObject({ brushTip: 'rough', brushSize: 3, brushStrength: 0.2, brushHardness: 1, brushRoughness: 0.9 });
+    expect(mapRoomRow({ ...ROOM_ROW, floor_mask_url: 'https://x/rooms/rm-1.png' }).floorMaskUrl).toBe('https://x/rooms/rm-1.png');
+  });
+
+  /**
+   * Una punta que no existe NO puede llegar al lienzo: quien pinta hace `switch` sobre las tres, y una cuarta
+   * dejaría el brochazo sin dibujar y sin avisar. La base lo prohíbe con un CHECK, pero la fila también puede
+   * llegar por realtime desde una versión más nueva de la app.
+   */
+  it('una punta desconocida cae en la de serie, no rompe el pincel', () => {
+    expect(mapSceneRow({ ...SCENE_ROW, brush_tip: 'plumilla' }).brushTip).toBe('soft');
+  });
+
+  /**
+   * Y los valores se recortan AL LEER además de al escribir: la base tiene un CHECK, pero una fila escrita
+   * por otra vía —o una versión futura con otros topes— no puede dejar un pincel de 900 casillas que cuelgue
+   * el navegador al abrir el mapa.
+   */
+  it('un tamaño imposible se recorta al leer, en vez de colgar el lienzo', () => {
+    expect(mapSceneRow({ ...SCENE_ROW, brush_size: 900 }).brushSize).toBe(6);
+    expect(mapSceneRow({ ...SCENE_ROW, brush_strength: -4 }).brushStrength).toBe(0);
+    expect(mapSceneRow({ ...SCENE_ROW, brush_roughness: 7 }).brushRoughness).toBe(1);
+  });
+});
+
+/**
+ * LA PUNTA DE «A PULSO» DE LA ESCENA (§ 10B.4). Lo mismo que el pincel, y por lo mismo: una escena escrita ANTES
+ * de la migración tiene que dibujar exactamente como dibujaba —canto limpio—, y un valor que no existe no puede
+ * llegar al trazo.
+ */
+describe('la punta de «A pulso» de la escena (rebanada 10 B)', () => {
+  it('una escena SIN las columnas dibuja con canto limpio, como siempre', () => {
+    expect(mapSceneRow(SCENE_ROW)).toMatchObject({ bandTip: 'clean', bandRoughness: 0.5 });
+  });
+
+  it('cuando vienen, se leen — y van APARTE de las del pincel', () => {
+    const escena = mapSceneRow({ ...SCENE_ROW, band_tip: 'rough', band_roughness: 0.8, brush_tip: 'disc', brush_roughness: 0.1 });
+    expect(escena).toMatchObject({ bandTip: 'rough', bandRoughness: 0.8, brushTip: 'disc', brushRoughness: 0.1 });
+  });
+
+  it('una punta desconocida cae en canto limpio, y un «cuánto» imposible se recorta', () => {
+    expect(mapSceneRow({ ...SCENE_ROW, band_tip: 'difuminado' }).bandTip).toBe('clean');
+    expect(mapSceneRow({ ...SCENE_ROW, band_roughness: 7 }).bandRoughness).toBe(1);
+    expect(mapSceneRow({ ...SCENE_ROW, band_roughness: -2 }).bandRoughness).toBe(0);
+  });
+
+  it('se guarda EN LA ESCENA, recortado al escribir para que la base no rechace el parche entero', async () => {
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateScene('sc-1', { bandTip: 'rough', bandRoughness: 9 });
+    expect(q(m)['update']).toHaveBeenCalledWith(expect.objectContaining({ band_tip: 'rough', band_roughness: 1 }));
+    // Y no toca el pincel: van aparte.
+    expect(q(m)['update']).not.toHaveBeenCalledWith(expect.objectContaining({ brush_tip: expect.anything() }));
+  });
+});
+
+/**
+ * ── LOS COLORES GUARDADOS DE LA CAMPAÑA (§ «Rebanada 10») ──
+ *
+ * Los que él mezcla con el cuentagotas o escribe a mano. Por CAMPAÑA, como la biblioteca de fondos y por lo
+ * mismo: una campaña es un mundo con un aspecto.
+ */
+describe('SupabaseMapsRepo — los colores guardados', () => {
+  const COLOR_ROW = { id: 'mc-1', campaign_id: 'c1', color: '#7a5c3e', created_at: 't' };
+
+  it('los lee de la campaña y por orden de llegada, que es como se enseñan', async () => {
+    const m = createSupabaseMock({ tables: { maps_colors: { data: [COLOR_ROW], error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    const colores = await repo.listColors('c1');
+    expect(m.fromSpy).toHaveBeenCalledWith('maps_colors');
+    expect(q(m)['eq']).toHaveBeenCalledWith('campaign_id', 'c1');
+    expect(q(m)['order']).toHaveBeenCalledWith('created_at', { ascending: true });
+    expect(colores[0]).toEqual({ id: 'mc-1', campaignId: 'c1', color: '#7a5c3e', createdAt: 't' });
+  });
+
+  it('guarda el color en la campaña y a nombre de quien lo mezcló', async () => {
+    const m = createSupabaseMock({ tables: { maps_colors: { data: COLOR_ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(withSession(m.client, 'u-gm') as unknown as SupabaseClient);
+    const creado = await repo.addColor('c1', '#7a5c3e');
+    expect(q(m)['insert']).toHaveBeenCalledWith({ campaign_id: 'c1', color: '#7a5c3e', created_by: 'u-gm' });
+    expect(creado.color).toBe('#7a5c3e');
+  });
+
+  /**
+   * 🔑 EL MISMO COLOR DOS VECES NO ES UN ERROR: es el mismo color, y lo que él espera es que su muestra siga
+   * ahí. Se intenta meter y se recoge el choque —en vez de consultar antes y escribir después—, porque entre
+   * la consulta y la escritura cabe la otra pestaña del director, que es justo por donde se pierde un color.
+   */
+  it('si el color ya estaba en la campaña devuelve el que había, sin reventar', async () => {
+    let llamada = 0;
+    const chain: Record<string, unknown> = {
+      then: (ok: (r: unknown) => unknown) => Promise.resolve(
+        ++llamada === 1
+          ? { data: null, error: { message: 'duplicate key value violates unique constraint "maps_colors_unique_idx"' } }
+          : { data: COLOR_ROW, error: null },
+      ).then(ok),
+    };
+    for (const met of ['select', 'insert', 'eq', 'ilike', 'limit', 'single', 'order']) chain[met] = vi.fn(() => chain);
+    const client = withSession({ from: vi.fn(() => chain) }, 'u-gm');
+    const repo = new SupabaseMapsRepo(client as unknown as SupabaseClient);
+    expect(await repo.addColor('c1', '#7A5C3E')).toEqual({ id: 'mc-1', campaignId: 'c1', color: '#7a5c3e', createdAt: 't' });
+    // Se busca SIN distinguir mayúsculas, que es como lo compara el índice de la base (`lower(color)`).
+    expect(chain['ilike']).toHaveBeenCalledWith('color', '#7A5C3E');
+  });
+
+  /** Un error de verdad —de permisos, de red— sí sube: sólo el choque del duplicado se recoge. */
+  it('un error que NO es un duplicado no se traga', async () => {
+    const m = createSupabaseMock({ tables: { maps_colors: { data: null, error: { message: 'permission denied' } as Error } } });
+    const repo = new SupabaseMapsRepo(withSession(m.client) as unknown as SupabaseClient);
+    await expect(repo.addColor('c1', '#123456')).rejects.toThrow('permission denied');
+  });
+});
+
+/** El color propio de una forma viaja en su fila, y una forma de antes del pincel no lo trae. */
+describe('SupabaseMapsRepo — el color propio de una forma (rebanada 10)', () => {
+  const ROW = { id: 'rm-1', scene_id: 'sc-1', campaign_id: 'c1', kind: 'room' as const, shape: 'brush' as const, points: [[0, 0], [10, 0], [10, 10]] as [number, number][], floor_preset: 'cavern' as const, floor_url: null, created_at: 't', updated_at: 't' };
+
+  it('se lee cuando viene, y una fila anterior a la migración se lee sin color', () => {
+    expect(mapRoomRow({ ...ROW, floor_color: '#5f8f6a' }).floorColor).toBe('#5f8f6a');
+    expect(mapRoomRow(ROW).floorColor).toBeNull();
+    expect(mapRoomRow(ROW).shape).toBe('brush');
+  });
+
+  it('se escribe al guardar el brochazo', async () => {
+    const m = createSupabaseMock({ tables: { maps_rooms: { data: ROW, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.addRoom({ sceneId: 'sc-1', campaignId: 'c1', kind: 'fill', shape: 'brush', points: [[0, 0], [10, 0], [10, 10]], floorPreset: 'cavern', floorUrl: null, floorColor: '#5f8f6a', floorMaskUrl: null, floorPaintUrl: null });
+    expect(q(m)['insert']).toHaveBeenCalledWith(expect.objectContaining({ shape: 'brush', kind: 'fill', floor_color: '#5f8f6a' }));
   });
 });

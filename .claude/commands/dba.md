@@ -110,6 +110,24 @@ If a new permission key is needed, add it to the `roles.permissions` contract
 **Never grant policies to the `anon` role.** Use `TO authenticated` only.
 The `anon` role is for unauthenticated browser sessions; we have no such use case.
 
+### Mandatory table GRANTs (this project has NO default privileges)
+
+RLS is not enough here. The default privileges of `public` were cut down on purpose
+(`anon`, `authenticated` and `service_role` inherit only TRUNCATE/REFERENCES/TRIGGER),
+so **every new table MUST grant its own access explicitly**, right after the policies:
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.{table} TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.{table} TO service_role;
+-- never TO anon
+```
+
+Without it PostgREST answers `permission denied for table` BEFORE evaluating RLS: reads
+fail and writes fail, silently from the user's point of view. Learned on 2026-09-12 with
+`app_settings` (the toolbar order): the owner saw «no quedan las herramientas donde las
+suelto» — the save was refused and the UI rolled back. Check with
+`set role authenticated; select count(*) from public.{table};` in psql before handing off.
+
 **Never write a `CREATE TABLE` without an immediately following `ENABLE ROW LEVEL SECURITY`
 and at least one policy.** A table with RLS off is publicly readable/writable through
 the project's anon key — which is shipped to every browser.

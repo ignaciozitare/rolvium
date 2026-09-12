@@ -18,10 +18,35 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Rebanada 5 — pendiente**: movimiento máximo por turno, configurable **por sistema** (toca el puerto `GameSystem`).
   Las dos deudas que la rebanada 3 se dejó (la puerta que parte el muro y el disco de abrir al pasar el ratón) se
   construyeron el 2026-08-19, antes de empezarla.
-- **Rebanada 9 — CONFIRMADA, SIN CONSTRUIR** (§ «Rebanada 9»): **el pincel**. Trazo elegible (disco, difuminado,
-  borde roto), transparencia también en la niebla, borde irregular distinto en cada brochazo con barra de cuánto,
-  y elegir sobre qué se pinta — capa de terreno, niebla o suelo de una sala, sin manchar el muro. Confirmada por
-  el dueño el 2026-09-09. **Hoy no se puede pintar el suelo de una sala: no hay herramienta.**
+- **Rebanada 9 — EL PINCEL · CONSTRUIDA** (2026-09-09, § «Rebanada 9»). Un solo mando para los tres sitios donde
+  se pinta: trazo elegible (disco, difuminado, borde roto), transparencia también en la niebla, borde irregular
+  distinto en cada brochazo con su barra, y **el suelo de una sala**, que hasta hoy no tenía herramienta ninguna.
+  - ✅ **HECHO**: la migración `20260909160000_maps_brush.sql` · la forma del brochazo en `@rolvium/core`
+    (`brush.ts`, compartida con el servidor) · la barra `BrushBar` 1:1 con el `.pen` · el recorte contra el
+    contorno de la sala · la niebla con transparencia y borde roto · el pincel guardado por escena.
+  - ⏳ **Falta que lo mire el dueño en pantalla**, y con él las decisiones marcadas abajo como revisables.
+- **Rebanada 10 — EL PINCEL QUE PINTA · REESCRITA el 2026-09-10 tras verla él en pantalla** (§ «Rebanada 10»).
+  Son **dos cosas**:
+  - **A · el Pincel PINTA ENCIMA** — musgo en un suelo, humedad en una pared, una mancha sobre una foto. Se
+    elige sobre qué (una habitación · el muro · una foto) y **eso es el límite**: si se te va la mano, lo de
+    al lado no se mancha. La pintura **se suma** capa sobre capa y **es de lo que pintaste**. **No cambia el
+    mapa**: ni por dónde se anda, ni qué se ve, ni la luz.
+  - **B · el Builder gana la banda** — la opción **«A mano»** deja de dar una raya del grosor de la escena y
+    da una **banda del ancho que elijas**. Se sigue eligiendo **muro o habitación**, y cada uno trae lo suyo:
+    el muro una **textura**, la habitación un **color**.
+    - **§ 10B.4 · el borde roto de «A pulso»** — elegir canto limpio o borde roto, y cuánto. Confirmado por él el
+      2026-09-11 · ✅ construido y revisado el mismo día (rama `refactor/ui-paneles-comunes`, sin mergear); sólo dibujando aquí.
+    - ⏳ **§ 10B.2 · la fila «con qué se pinta» (MURO → textura · HABITACIÓN → color) NO está construida** (visto por
+      el QA del 2026-09-12): confirmada por él y dibujada en `oi358`, pero hoy la banda de muro sale con la textura de
+      pared de la escena y la de habitación con el color de siempre. Pide Diseño (lámina nueva) → Dev. Es la
+      siguiente tanda si él la quiere.
+- **🧲 La barra se ordena arrastrando — ✅ CONSTRUIDA Y REVISADA el 2026-09-12** (§ «La barra se ordena arrastrando, y
+  el orden lo pone el admin para todos»; rama `refactor/ui-paneles-comunes`, sin mergear): sólo quien administra los
+  ajustes, cada botón dentro de su bloque, y el orden es uno para toda la plataforma (`app_settings`). Lámina `NhYOy`
+  en el `.pen`; construida por orden suya sin esperar su revisión de la lámina. ⏳ Falta que él lo pruebe.
+  > 🔴 La primera versión entendió al revés lo de «pintar» y construyó un pincel que **excavaba**. Él lo paró
+  > en pantalla: «*eso es cavar con construir, que no es lo que te pedí*». Lo construido no se tiró — se muda
+  > al Builder, que es donde él dijo que hacía falta.
 - **Rebanada 6 — A MEDIAS, SIN PANTALLA** (§ «Rebanada 6»): **galería de piezas** (muebles, árboles…) para
   construir mapas dentro de la app. Confirmada por el dueño el 2026-08-31, **después** de la 7 y **antes** de la
   5: sin capas no había dónde meter las piezas, y ahora que existen es lo que falta para montar un mapa sin
@@ -55,6 +80,11 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 - **Rebanada 8 — EL CONSTRUCTOR DE SALAS · CONSTRUIDA** (2026-09-04, § «Rebanada 8»). El modo **«Dibujar aquí»**
   de Builder: se arrastra una forma y sale una habitación montada, con su suelo, su muro y su sombra. Las salas
   **se funden** al tocarse y cada forma se sigue recordando por separado.
+  - 🔁 **El Builder recuerda su modo** (§ del mismo nombre, 2026-09-12): abre en el que dejaste, recordado en este
+    navegador. ✅ Construido (rama `refactor/ui-paneles-comunes`, sin mergear).
+  - 🔄 **Las dos texturas base se giran** (punto 5 de esta rebanada, 2026-09-12): una barra de giro debajo de la del
+    azulejo, en vivo, guardada por escena (`wall_texture_rotation` / `floor_texture_rotation`, migración
+    `20260912130000`, sólo en LOCAL). ✅ Construido (misma rama, sin mergear); lámina `I6TcDm` en el `.pen`.
   - ✅ **HECHO** (2026-09-04): tabla `maps_rooms` + `maps_room_openings` y las cuatro columnas de escena
     (migración `20260904120000_maps_rooms.sql`) · el **motor de unión** en `@rolvium/core` (`rooms.ts`) ·
     los **nueve preajustes** y las **dos texturas base** en el panel · el lienzo (roca, agujero, muro, rayado y
@@ -174,6 +204,39 @@ cambia el cursor con lo que abre un panel:
 - Las tres últimas del bloque de director abren panel en vez de cambiar el cursor, y van tras un separador propio.
 - «Fondo del mapa» y «Colocar PJ» **dejan la cabecera** (que desaparece) y viven aquí.
 
+### 🧲 La barra se ordena arrastrando, y el orden lo pone el admin para todos
+Petición suya, 2026-09-11: «*Quiero que la barra de herramientas pueda modificar el orden de las herramientas
+arrastrando*». Y el 2026-09-12, corrigiendo la primera propuesta (que la hacía personal y con botón de «orden de
+serie»): «*los bloques los tienes que respetar porque son los que ve un rol u otro. El orden lo pone el admin y es para
+todos, lo estoy pidiendo porque si no tú los pones donde [quieres] y gasto tokens a lo tonto cada vez que ordeno algo*».
+
+- **Para qué**: que el orden de la barra lo decida él con la mano, en la propia mesa, y no pidiéndoselo al agente.
+- **Quién la ordena**: sólo quien tiene el permiso de administrar los ajustes de la plataforma
+  (`admin.manage_settings`; hoy, el rol `admin`). Para todos los demás la barra no se arrastra: es la de siempre.
+- **Vale para todos**: el orden es **UNO para toda la plataforma** — todas las campañas, todas las escenas, todos los
+  usuarios. No es una preferencia personal ni de campaña. Quien ya tenga la mesa abierta lo ve la próxima vez que la
+  abra (no hace falta que cambie en vivo delante de nadie).
+- **Cómo se siente**: mantener pulsado un botón, arrastrarlo arriba o abajo **dentro de su bloque** y soltarlo. Mientras
+  se arrastra el botón se levanta y una raya marca dónde va a caer — el mismo gesto que las capas de terreno del panel
+  de capas. Un clic sin mover sigue siendo un clic. Al soltar se guarda; si no se puede guardar, la barra vuelve a como
+  estaba y lo dice.
+- 🔑 **Los bloques no se tocan.** Cada botón se mueve sólo dentro del suyo (juego · dibujo · director), porque **los
+  bloques son lo que ve cada rol**: un jugador no tiene el del director. Las rayas que separan los bloques se quedan
+  donde están, y la del director sigue en oro. Las dos rayas de DENTRO del bloque del director (construir ‖ niebla ‖
+  juego) tampoco se arrastran ni reciben: los botones se mueven a su alrededor y ellas se quedan.
+- **Soltar sobre el fondo del bloque** (debajo del último botón) manda el botón al final.
+- **Los botones de panel** (Dados, Fondo del mapa, Colocar PJ) cuentan como botones de su bloque y se ordenan igual
+  que las herramientas: el orden guardado es de BOTONES.
+- **El botón de dibujar** (el que despliega Lápiz, Línea, Caja, Círculo, Texto y Borrar) se mueve como un botón más.
+  Las seis de dentro del menú no se ordenan en esta tanda.
+- **Un botón nuevo** (Piezas, cuando llegue la rebanada 6) aparece en su sitio de serie sin deshacer el orden guardado.
+- **El orden de serie** es el que él fijó el 31-ago (§ «Una sola barra de herramientas»): es el de partida y el que
+  sale mientras no haya nada guardado. **No hay botón de «volver al orden de serie»**: se arrastra de vuelta
+  (✅ decisión del agente, avisada: es un gesto de una vez y no merece un hueco de la barra ni un menú).
+- «Ver como jugador»: la barra no baila; las herramientas del director salen apagadas en el sitio en que estén.
+- **Fuera, a propósito**: ocultar herramientas · atajos de teclado · un orden por campaña o por usuario · ordenar el
+  menú de dibujo · mover la barra de sitio.
+
 ### Seleccionar: una herramienta, y el paneo como modificador
 - **Seleccionar** (`arrow_selector_tool`) reemplaza a «Mover» en la barra. Con ella se elige y se edita: tokens,
   trazos y **muros**.
@@ -240,6 +303,19 @@ de ser un dibujo para empezar a ser un sitio (dueño, 2026-08-22: «que los toke
 - Arrastras, el token llega a la pared y **resbala pegado a ella** mientras sigues moviendo el dedo — no se
   clava en el punto del choque ni pega un salto de vuelta al soltar.
 - El movimiento sigue siendo **libre**, sin rejilla (rebanada 3 bis, 2026-08-22).
+- 🦷 **La ficha RODEA las puntas: un borde dentado no la clava** (2026-09-12). Lo vio él probando el borde roto de
+  «A pulso» (§ 10B.4): «*has desecho el tema de que no se pegue en las esquinas*». No se había deshecho nada — el
+  arreglo del trabón de la esquina seguía intacto—; lo que pasaba es que un trazo con borde roto deja una pared
+  **dentada**, y una ficha redonda que roza un diente se quedaba clavada en su **punta** aunque cupiera de sobra.
+  Antes no se notaba porque cada movimiento tardaba segundos. La causa: resbalar «a lo largo de la pared tocada» no
+  saca a nadie cuando lo tocado es una punta —las dos caras del diente cierran en ángulo y ninguna de las dos
+  avanza—. Regla nueva: **cuando lo que toca la ficha es una punta** (el vértice de un diente, o la esquina de una
+  sala vista desde fuera) **prueba además a rodearla siguiendo la curva de su propio cuerpo**, y se queda con el
+  camino que más avanza hacia el dedo. Lo que NO cambia: **nunca cruza** —cada tramo se comprueba contra todas las
+  paredes como siempre—, la esquina de una sala por dentro se siente igual, y es la misma física en pantalla y en el
+  servidor. Medido con su «Dungeon» (22 trazos rotos, una sonda rozando la pared por los dos lados, 180 pasadas):
+  clavadas sin motivo **18 → 6** y **ninguna** posición final dentro de una pared. Las 6 que quedan son dientes en
+  zigzag donde la cara siguiente también cierra: apuntadas, no tocadas.
 
 ### Quién choca
 - **Sólo los jugadores. El director pasa siempre**, esté el interruptor como esté (decisión del dueño).
@@ -868,6 +944,14 @@ puse»*.
   fichas cuando se borra una capa.
 - **Nada de esto cambia una regla del manual.** Un mueble no da ni quita dados; estorbar es geometría.
 
+### 📥 Suyo, para cuando se construya la galería (apuntado el 2026-09-12)
+
+- **Menú del botón derecho sobre una pieza puesta** (suyo, 2026-09-11, la 7 de sus siete: «*cada uno al hacerle click
+  derecho tienes que poder mandarlo adelante y atrás como en cualquier programa … top layer, down layer etc*»): **traer
+  adelante · enviar atrás · traer al frente · enviar al fondo**. Es el orden de apilado ENTRE PIEZAS de la misma capa —
+  la capa la sigue decidiendo el panel de capas—. Sin diseñar todavía: pide su lámina en el `.pen` y va con la galería,
+  no antes.
+
 ### Fuera de alcance (de esta rebanada)
 
 - **Los dibujos del catálogo de serie**: es arte, no código. Se compran o se encargan.
@@ -1224,6 +1308,113 @@ de `maps_walls`». **Eso se cae.** Consecuencias, todas para el DBA:
 con paredes de grosores distintos según la sala se lee como un error de dibujo, no como una decisión. Si él lo
 quiere por sala, se mueve la columna sin romper nada de lo demás.
 
+### ⏱ LAS PAREDES NO SE RECALCULAN EN CADA MOVIMIENTO (suyo, 2026-09-11 noche)
+
+> «*habiamos decidido que las habitaciones se guardaba cada una por si la queria mover en un futuro etc, y
+> pensandolo creo que eso lo haria super lento*» · y tras probar el borde roto (§ 10B.4): «*esta recontra super
+> lento*». Plan enseñado en palabras llanas y aceptado por él: «*Sí al plan de la lentitud: hazlo*».
+
+**Lo que pasaba — medido con su «Dungeon»** (256 formas, 8.648 esquinas, 2 puertas):
+- **Calcular las paredes tardaba ~2,5 s.** El 72 % se iba en partir cada lado comparándolo con TODOS los lados
+  del mapa, y el 26 % en preguntar «¿esto es suelo?» mirando TODAS las formas. Crece al cuadrado con las
+  esquinas, y el borde roto las multiplica.
+- **El servidor lo repetía en CADA petición** de visión y de luces: cada tirón de una ficha (~7 por segundo).
+- **Su pantalla lo calculaba dos veces por forma dibujada** (al dibujarla y al llegar el eco de la base), y otra
+  vez al pintar un suelo, que no cambia ninguna pared.
+- **No es por guardar cada forma por separado**: leer sus 256 formas de la base cuesta ~7 ms.
+
+**Lo que se hace. En pantalla no cambia NADA: las mismas paredes, las mismas puertas.**
+1. **No se compara lo que está lejos.** Un lado sólo se mira contra los lados que tiene cerca, y un punto sólo
+   contra las formas que lo cubren. Salen **las mismas paredes**: con sus datos y en las escenas al azar del test,
+   idénticas tramo a tramo y en el mismo orden que con el motor de antes. Sólo en casos de laboratorio —lados
+   paralelos hasta el ruido de coma flotante, a más de 90 px— el motor de antes partía un tramo en dos de más: la
+   misma pared, un trozo más. A mano no se puede dibujar, y el navegador y el servidor usan el mismo motor.
+2. **El servidor recuerda las paredes de cada escena** y las reutiliza mientras las formas y los vanos sean los
+   mismos. En cada petición compara lo que lee de la base con lo que usó la vez anterior: si cambió algo —una
+   forma, un vano, abrir o cerrar una puerta— recalcula. No hay nada que borrar a mano ni forma de que se quede
+   vieja.
+3. **Su pantalla calcula las paredes una vez por cambio DE PAREDES**: ni el eco de la base ni pintar un suelo
+   las recalculan.
+
+**Lo que NO cambia:**
+- Lo que se ve es lo que tapa y frena: el navegador y el servidor siguen usando el MISMO motor (`@rolvium/core`).
+- Cada forma se sigue guardando por separado (decisión suya: poder mover o borrar una sala). Sus trazos no se
+  tocan.
+- Sin migración: la base de datos no cambia.
+
+**Objetivo**: con su «Dungeon», las paredes en centésimas de segundo y mover una ficha sin esperar. Se le
+enseñan los números de antes y de después.
+
+**🟠 Decisiones mías, revisables:**
+- **El servidor recuerda en memoria**, no en una columna de la base: no pide migración y no puede quedarse viejo,
+  porque compara con lo que acaba de leer. En producción cada copia del servidor recuerda lo suyo; una copia
+  recién arrancada lo calcula una vez.
+- **Recuerda las 32 escenas usadas más recientemente**, para que la memoria no crezca sin límite.
+
+**Fuera, dicho a propósito:**
+- Fundir las formas al guardar: perdería mover o borrar una sala y el suelo de cada una.
+- Quitar esquinas a los trazos ya hechos o bajar el tope del borde roto.
+- Leer menos de la base en cada petición: sólo si, tras esto, la lectura resultara ser lo lento en producción.
+- Lo que tarda el navegador en PINTAR tantas formas: se mide aparte (§ siguiente).
+
+### ⏱ LA LÍNEA DE VISTA SÓLO MIRA LO QUE TIENE AL ALCANCE (suyo, 2026-09-11 noche)
+
+> «*arreglalo esta muy lento, esto tiene que ir rapido rapido*» · «*una solucion optima para que tanto pinte rapido
+> como para que cuando ponga los tokens se muevan a tiempo real*».
+
+**Lo que pasaba — medido con su «Dungeon»** (2.323 tramos que tapan, de noche, alcance 180 px):
+- **Sólo 12 de las 2.323 paredes están al alcance del ojo**, pero el cálculo lanzaba tres rayos hacia CADA esquina
+  del mapa entero y probaba cada rayo contra TODAS las paredes: **161 ms por ficha** y un polígono de **14.010
+  puntos**, que el navegador tiene que pintar (con su difuminado) en cada tirón.
+- Con una luz que da sombra: 158 ms el charco, y **1,5 segundos** recortarlo contra la vista de un ojo.
+
+**Lo que se hace. Lo que se ve y lo que se alumbra NO cambia.**
+1. **Sólo se lanzan rayos hacia lo que está al alcance**: hacia las esquinas de las paredes a esa distancia o menos
+   del ojo (de noche, su alcance; una luz, su radio), y hacia el punto exacto donde cada una de esas paredes sale
+   del círculo. Una pared más lejos no puede tapar nada que esté al alcance. De día (sin límite) se sigue mirando
+   todo.
+2. **Cada rayo sólo mira las paredes de las casillas que cruza**, de cerca a lejos, y se para en la primera. Es
+   exactamente el mismo choque que antes —la misma pared, en el mismo punto— sólo que sin probar las que no
+   podían estar en su camino.
+3. **El polígono se manda sin puntos de más**: un punto que cae en línea recta entre sus dos vecinos no cambia la
+   forma y se quita antes de enviarlo.
+4. La vista **contra la que se recortan las luces** (que no tiene límite) se calcula sólo hasta donde llega la
+   luz más lejana: más allá no hay nada que recortar.
+
+**Lo que NO cambia:** las paredes tapan igual y en el mismo sitio; el borde redondo de la vista de noche sigue
+saliendo con un rayo cada 5° (a 180 px, se aparta 0,2 px de un círculo perfecto, como hasta hoy).
+
+**Objetivo**: con su «Dungeon», lo que ve una ficha en unas milésimas y un polígono de cientos de puntos, no de
+miles. Números de antes y de después en `WORK_STATE.md`.
+
+**El borde redondo** se pinta con los rayos justos para que no se aparte más de una décima de píxel de un círculo
+perfecto, sea cual sea el alcance (72 como mínimo; antes eran 72 fijos y el borde salía más fino sólo porque los
+miles de rayos de más lo rellenaban sin querer).
+
+**Fuera, dicho a propósito:** el cálculo en el navegador (sigue en el servidor, por lo de siempre: a un jugador no
+le llegan los muros que no debe conocer).
+
+#### Y EN PANTALLA: lo que no cambia no se vuelve a pintar
+
+Medido en un Chrome sin ventana con su «Dungeon» (531 dibujos, 1,3 MB de coordenadas): con el servidor ya rápido
+(42 ms por petición), **cada fotograma al mover la sonda o arrastrar el mapa tardaba 100–130 ms** (en reposo, 60
+por segundo). El culpable no es el servidor sino el repintado:
+
+1. **En la vista de jugador, la máscara de «lo que se ve» iba puesta SOBRE EL MAPA ENTERO**, así que cada vez que
+   cambiaba la visión (siete veces por segundo al mover) el navegador repintaba la mazmorra completa a través de
+   ella. Ahora el mapa se pinta sin máscara y se **tapa** por donde no se ve, con el color del escenario y la
+   máscara al revés. Es la misma cuenta al revés: **los mismos píxeles**. Con eso, mover la sonda va a 60 por
+   segundo con la mazmorra puesta (medido).
+2. **Arrastrar o acercar el mapa** cambia la transformación de todo el dibujo, y el navegador lo repinta entero. La
+   parte pesada y quieta —fondo, roca, suelo, sombra, capas de terreno y rejilla— pasa a **su propio dibujo, debajo
+   del de siempre**, que se desplaza y escala por CSS: el navegador lo conserva pintado y sólo lo mueve. Al
+   acercar, lo repinta una vez a la nueva escala, sin parar el resto.
+
+**Lo que NO cambia:** ni un píxel, ni el orden de las capas (fondo, salas, terreno, rejilla, velo, muros, trazos,
+luces, fichas), ni dónde se pulsa. Las fichas, la sonda, los muros y los trazos siguen en el dibujo de siempre.
+
+**Objetivo**: con su «Dungeon», mover la sonda o una ficha y arrastrar el mapa a 60 fotogramas por segundo.
+
 ### ✅ LAS SIETE PREGUNTAS, TODAS CERRADAS (ninguna abierta — orden suya del 2026-09-04)
 1. **¿Puertas automáticas?** → **NINGUNA.** La sala se levanta cerrada y él abre los vanos con el disco de
    siempre. Confirmado por él al decir «tienes que ver cómo pondremos puertas aquí»: las pone él.
@@ -1274,6 +1465,22 @@ inverso no funciona, no sé si se construyó pero estaba en las cosas que hay qu
   que quede en memoria*». Guardarlo obligaría a la base y podría desandar lo que otro hizo después.
 - 🕓 **EN EL BACKLOG, decisión suya del 2026-09-03**: extender deshacer/rehacer a **fichas, dibujos y luces**.
   Hoy sólo cubre muros y salas, que es donde está trabajando.
+
+### 🔁 EL BUILDER RECUERDA SU MODO (2026-09-12)
+
+Suyo, 2026-09-11 (la 4 de sus siete): «*el sobre una foto o dibujar aquí si lo cierro y lo abro tiene que quedar
+guardada la última elección que hice*». Lo que pasaba: el modo vivía sólo en la pantalla de la escena — cerrar el
+panel lo aguantaba, pero cambiar de pestaña de la mesa o recargar lo devolvían a «Sobre una foto».
+
+- **El Builder abre en el modo que dejaste la última vez**, y da igual cómo lo cerraras: la X del panel, otra pestaña
+  de la mesa, una recarga o cerrar el navegador.
+- **Se recuerda en este navegador**, igual que la escena que estabas mirando. ✅ Decisión del agente, avisada (no se
+  le preguntó, por su orden de no repreguntar): es una preferencia de TU pantalla, no un dato de la partida —
+  guardarlo en la escena lo cambiaría también en el otro ordenador y para cualquier otro director—, y así no toca la
+  base ni cambia nada para los jugadores. Si un día lo quiere con la cuenta, es una columna hermana del idioma.
+- **Es UNA elección**, no una por campaña ni por escena: «la última elección que hice».
+- **De serie, «Sobre una foto»**, como hasta ahora: quien nunca eligió no nota nada.
+- Sin `.pen`: no cambia ni un píxel; sólo cuál de los dos sale marcado al abrir.
 
 ### 🧩 EL GRUPO — modo «Sobre una foto» (decidido el 2026-09-03)
 
@@ -1390,7 +1597,8 @@ que se distinga de un vistazo un rayado de un relleno. Y los dos rayados pasan a
   agregar cosas en este*». Lo que lleva dentro, en el orden del diseño:
   1. **Cabecera** con SU icono (`builder-mask.png`, de máscara para que lo tiña el panel), el nombre y la X.
      Se agarra por la cabecera y se aparta, como el editor de luces — de hecho el asa se extrajo a
-     `ui/useDragPanel.ts` y ahora la comparten los dos paneles. **No se queda con Escape** a propósito:
+     `ui/useDragPanel.ts`, y desde el 2026-09-11 la carcasa entera es `FloatingPanel` de `@rolvium/ui`, la
+     misma para el Builder, el Pincel y las luces. **No se queda con Escape** a propósito:
      dibujando un polígono, Escape es para cancelar el polígono.
   2. **«EN QUÉ ESTOY TRABAJANDO · LAS DOS CONVIVEN»** — el interruptor `photo` / `draw`, con las dos
      miniaturas dibujadas (una foto con muros marcados encima · una sala levantada con su rejilla).
@@ -1505,6 +1713,22 @@ peor posible para un AZULEJO: un mosaico de 40 px salía del tamaño del mapa en
   y se guarda al soltar — mismo reparto que el pincel de transparencia.
 - ⛔ Esto **no toca** `bg_image_url` ni las fotos de las capas de terreno: ésas sí son fotos y se siguen
   encajando con Cubrir / Encajar / Reposicionar.
+- 🔄 **Y SE GIRAN** (suyo, 2026-09-11, la 5 de sus siete: «*En la base del suelo y las paredes … tengo que poder
+  rotar sus texturas*»; construido el 2026-09-12 por su orden de seguir sin esperarle). Debajo de la barra del
+  azulejo de cada textura, **una barra de giro**, sólo con una foto puesta (un color no se gira), **de 0° a 355° de
+  5 en 5**, como el «Giro» de la textura del Pincel. Gira el **mosaico entero**, no cada azulejo por su cuenta.
+  **Una por textura**, como la escala (`wall_texture_rotation` / `floor_texture_rotation`, migración
+  `20260912130000`), y **de serie 0°**: ninguna escena cambia. **Con previo**, igual que la escala: el mapa y la
+  muestra del panel giran EN VIVO mientras arrastra y se guarda al soltar. ✅ Decisiones del agente, avisadas (no se
+  le preguntó, por su orden de no repreguntar): mismo paso y tope que el Pincel; gira la textura de la escena
+  entera —no sala a sala— porque es donde vive la escala; y también gira la piedra de un brochazo de muro y el suelo
+  pintado, que salen del mismo azulejo.
+- 🏷 **Cada muestra dice cuál es** (suyo, 2026-09-11, la 6 de sus siete: «*cuando no hay textura no sé cuál es pared o
+  piso*»): delante de cada muestra va su rótulo, **PARED** y **SUELO**, con foto o sin ella. El diseño lo tenía desde la
+  v3 del panel (`ePNCc`: «Fila · PARED» / «Fila · SUELO») y el código nunca lo pintó: sin foto, las dos muestras eran dos
+  cuadros de color con el nombre del preajuste y nada más. ✅ Decisión del agente, avisada: él propuso llamarlas
+  «background» y «foreground»; se ponen las palabras del diseño aprobado —que son las suyas: «pared o piso»— porque son
+  las que contestan la pregunta; cambiarlas es una palabra en cada idioma.
 
 **3 · «*le falta la física a los muros*»** → era un fallo, y de los que no se ven: la niebla YA respetaba las
 salas (eso lo calcula el servidor) pero **el freno del navegador no**, porque `moveBlockers` sólo miraba
@@ -1837,6 +2061,18 @@ El de niebla va con **cuatro discos**, no continuo.
 - **Tamaño**: continuo, en casillas, para los tres. La niebla deja sus cuatro discos.
 - **Sobre qué actúa**, elegido por él: una **capa de terreno** · la **niebla** · el **suelo de una sala**.
 
+> 🔧 **Cómo quedó construido (2026-09-09).** «Sobre qué» y «sentido» **son la herramienta**, rotulados en lo que
+> hacen: las tres herramientas de pincel que ya existían en la barra lateral —*Pincel de transparencia*,
+> *Revelar* y *Ocultar*— siguen intactas y ahora se leen como `capa`, `niebla · quitar` y `niebla · pintar`.
+> No hay dos estados que sincronizar: una sola verdad, leída en los dos sentidos.
+>
+> Las dos palabras del sentido son **PINTAR** y **QUITAR** (del `.pen`) y valen para los tres: QUITAR se lleva
+> lo que hay encima —la capa, el suelo, la niebla— y PINTAR lo devuelve, que en la niebla es taparla.
+>
+> ⚠️ **Salvo el arranque**: el pincel abre en QUITAR, aunque el `.pen` enseñe PINTAR marcado. Sobre una capa
+> recién estrenada PINTAR no hace nada —no hay nada pintado que devolver— y el pincel parecería roto.
+> **Revisable con él en pantalla.**
+
 ### 9.2 · CADA BROCHAZO SALE DISTINTO — y no hay que guardar nada para eso
 
 Decisión suya, preguntada y contestada: *«distinto cada vez»*. No es un sello que se repite.
@@ -1854,12 +2090,32 @@ Decisión suya, preguntada y contestada: *«distinto cada vez»*. No es un sello
 niebla se guarda por casillas. Será dentado a lo bruto, no finamente desgarrado. En una capa de terreno y en
 el suelo de una sala, que van por PNG, se ve fino.
 
+### 9.2 bis · QUÉ SIGNIFICA «TRANSPARENCIA» EN LA NIEBLA (decisión de construcción, 2026-09-09)
+
+La niebla **no se guarda como imagen**: son casillas, y una casilla está explorada o no lo está. No existe
+media casilla. Así que «transparencia» ahí sólo puede significar una cosa: **cobertura**.
+
+Cada casilla del brochazo entra con la **probabilidad** que le da el pincel en ese punto. A media fuerza la
+niebla se abre **a manchas** y una segunda pasada abre más; a fuerza máxima no queda nada al azar y sale el
+disco entero de siempre. Eso es lo contrario de «tapa o destapa a saco», que era la queja.
+
+⚠️ **Es una interpretación, no una frase suya.** La alternativa era que la fuerza encogiera el brochazo, y eso
+ya lo hace la barra de tamaño: sería el mismo mando dos veces. **Revisable en cuanto lo vea en pantalla.**
+
+🔑 **Y sin nada de esto, el disco de siempre.** El servidor sólo cambia de camino si le llega forma; un
+navegador que no la mande —o el botón de «revelar todo»— se comporta exactamente igual que antes.
+
 ### 9.3 · El brochazo se recorta en el borde de la sala
 
 Regla suya: *«si voy a pintar una sala no tiene que manchar una pared»*.
 
 Pintando el **suelo de una sala**, el brochazo se **recorta contra el contorno de esa sala**. Puede pasar el
 pincel por encima del muro sin miedo: fuera del suelo no pinta. Es lo que permite pintar deprisa.
+
+**A qué sala.** A la que hay **bajo el ratón**: no hay que elegirla antes ni existe forma de hacerlo —coger una
+sala con el ratón es la tanda siguiente—. Donde dos se solapan manda la de arriba, que es la que se está
+viendo. Un **tabique** no cuenta: devuelve roca al hueco y no tiene suelo que repintar. Con el pincel fuera de
+toda sala la barra **lo dice** en vez de quedarse muda.
 
 ### 9.4 · Lo que se recuerda es DE LA ESCENA
 
@@ -1875,6 +2131,335 @@ pincel viven detrás de `dmSight`, igual que hoy.
 ### 9.6 · Fuera de esta rebanada, dicho a propósito
 - Pinceles con **dibujo** (hojas, piedras, grava) — eso es la galería de piezas, rebanada 6.
 - Pintar **sobre las fichas**.
+
+## Rebanada 10 — EL PINCEL QUE PINTA (y el Builder, a mano alzada)
+
+> 🔴 **ESTE APARTADO SE REESCRIBIÓ EL 2026-09-10, DESPUÉS DE QUE ÉL LO VIERA CONSTRUIDO.** La primera versión
+> entendió que el pincel debía **levantar mapa**, y se construyó entera. Con la pantalla delante lo paró:
+>
+> *«lo que has hecho no es un pincel para pintar sobre las habitaciones o muros o fotos que pongas, lo que eso
+> es, es cavar con construir, que no es lo que te pedí»*.
+>
+> **Y no fue tirar el trabajo, lo dijo él mismo**: *«no es un 100% de desperdicio, el pincel de textura está
+> funcionando como debería funcionar de verdad en el builder de muros la opción de a mano»*. Así que lo
+> construido **se muda al Builder** (apartado B) y el Pincel pasa a ser lo que pedía desde el principio:
+> **pintura ENCIMA** (apartado A).
+>
+> ⚠️ De dónde salió el malentendido, para que no se repita: al confirmar la rebanada se le preguntó si pintar
+> con textura/color era sólo aspecto (**A**) o si levantaba mapa (**B**), y contestó *«b después si tiene
+> sentido a»*. Se leyó como «primero B». Lo que quería era **A**, y B era el «después». **La pregunta era
+> ambigua, no la respuesta.**
+
+---
+
+# A · EL PINCEL — PINTAR ENCIMA
+
+### 10A.1 · Para qué, y qué NO hace
+
+Dar vida a lo que ya está montado: musgo en un suelo, humedad en una pared, una mancha sobre una foto.
+
+> 🔑 **PINTAR NO CAMBIA EL MAPA.** Ni por dónde se anda, ni qué se ve, ni la luz. Es **sólo cómo se ve**. Es
+> justo lo contrario de lo que se construyó por error, y es la línea que separa este pincel del Builder.
+
+### 10A.2 · Sobre qué se pinta — y el ámbito es el límite
+
+Se **elige** sobre qué se está pintando, y **lo elegido es el límite del pincel**:
+
+- **una habitación** — se pinta su suelo;
+- **el muro** — se pinta la roca;
+- **una foto de fondo** — se pinta encima de la foto.
+
+> 🔑 **SI SE TE VA LA MANO, LO DE AL LADO NO SE MANCHA.** Palabra suya, 2026-09-10: *«si elijo pintar una
+> habitación el scope de ese pincel es la habitación; si se me va la mano al muro, el muro no se tiene que
+> pintar. Lo mismo con el muro»*. Es la misma regla que ya regía en la rebanada 9 («*si voy a pintar una sala
+> no tiene que manchar una pared*»), ahora para los tres destinos.
+
+### 10A.3 · Con qué se pinta
+
+- Un **color**: la paleta de la casa, más **los que él se invente**, que se guardan **por campaña**.
+- Una **textura** del catálogo — el mismo catálogo de la herramienta que ya usan la pared, el suelo y las
+  puertas.
+
+### 10A.4 · La pintura SE SUMA
+
+Cada pasada va **encima** de la anterior. Suyo, 2026-09-10: *«si tengo por ejemplo la base del piso a cuadros,
+pinto musgo arriba y pongo otro color arriba de éste, se van sumando»*. No es «un color por habitación»: es
+una superficie pintada que se acumula, como pintura de verdad.
+
+### 10A.5 · La pintura es DE LO QUE PINTASTE
+
+Hoy no se puede mover una habitación. **El día que se pueda, la pintura se va con ella** (suyo, mismo día).
+La pintura pertenece a la cosa pintada, no al mapa.
+
+### 10A.6 · El borrador
+
+**Quita pintura** y deja ver lo que había debajo. **No derriba nada.** Lo construido se quita seleccionando y
+borrando, como ya se hace hoy — preguntado si hacía falta un borrador que derribara, contestó *«no hace
+falta»*.
+
+### 10A.7 · Los mandos del brochazo
+
+**Aquí valen todos**, porque esto sí es pintura: **tamaño**, **borde** (de difuminado a filo), **borde roto**
+y **transparencia**. Es el vuelco exacto del § 10.4 de la versión anterior, donde la mitad no valían porque
+lo que se hacía era excavar y «*un suelo se anda o no se anda*».
+
+### 10A.8 · Quién
+
+Sólo el **director**, como todo lo que toca el dibujo del mapa.
+
+---
+
+# B · EL BUILDER — «A MANO» GANA ANCHO
+
+Lo construido por error no se tira: es lo que a él le faltaba en el Builder.
+
+### 10B.1 · La banda
+
+La opción **«A mano»** gana un **ancho**: se dibuja y sale una **banda** de ese ancho, en vez de una raya del
+grosor de la escena. De serie el ancho **es el grosor de muro que la escena ya tiene**, así que una escena
+existente no cambia hasta que él lo toque.
+
+Es lo que ya funciona: el trazo se convierte en anillo (`brushRings`), y el codo cerrado se parte en dos
+piezas que se solapan para que no salga un agujero de roca en medio.
+
+### 10B.2 · Muro o habitación, con su equivalencia
+
+**Se sigue eligiendo MURO o HABITACIÓN**, que es lo que se construye y como se guarda. Lo que se añade es
+**con qué se pinta cada uno**, y va pegado a la elección:
+
+| Se elige | Se pinta con |
+|---|---|
+| **Muro** | una **textura** del catálogo |
+| **Habitación** | un **color** |
+
+> ⚠️ Confirmado por él con esas palabras el 2026-09-10: *«lo de elegir textura y eso es una equivalencia, pero
+> queda como muro o sala»*. **No aparece ninguna cosa nueva y no desaparece la elección de siempre.**
+
+#### 🔴 CÓMO SE VE ESO EN EL PANEL — UNA FILA, NO UNA PALETA
+
+**Es UNA SOLA FILA compacta, la misma forma para los dos**, exactamente como la lámina aprobada (`rolvium.pen`
+· marco `oi358` § «CON QUÉ SE PINTA»):
+
+```
+MURO         [muestra]  Losa de piedra              [ CAMBIAR ]
+HABITACIÓN   [muestra]  Arena                       [ CAMBIAR ]
+```
+
+- La **muestra** es un cuadrito de 26×20: la textura repetida, o el color liso.
+- **`CAMBIAR` abre el sitio donde se elige** —el catálogo de texturas para el muro, la paleta para la
+  habitación— **y ese sitio se abre APARTE, encima del mapa**, como ya hace el catálogo.
+- Con nada elegido, la fila dice que manda la textura base del mapa, y no ofrece «quitar».
+
+> ⏳ **SIN CONSTRUIR (visto por el QA de la rama, 2026-09-12).** La equivalencia la confirmó él y la fila está en la
+> lámina, pero el código no la pinta: hoy una banda de MURO sale con la textura de pared de la escena y una de
+> HABITACIÓN con el color de siempre, y las dos llamadas del Builder (`SceneTab` → `addRoomShape`) no pasan ningún
+> `paint` aunque `useScene` ya lo admite. La lámina `oi358` que la dibuja está desfasada (cuelga la banda de «A mano» y
+> el panel ha cambiado desde entonces): **pide Diseño primero** (lámina nueva sobre `I6TcDm`), luego Dev + tests. Es
+> su siguiente tanda si él la quiere ya; no bloquea el merge de la rama porque queda dicho aquí.
+
+> 🔴 **LO QUE NO SE HACE, Y ES UN FALLO REAL QUE OCURRIÓ EL 2026-09-10.** Se metió el **bloque entero del
+> color del Pincel** dentro del panel del Builder —cuadro grande, los doce colores, «tus colores», el campo
+> del hex y el cuentagotas—, y el panel se hizo gigante. Él lo vio en pantalla: *«¿qué mierda es eso?»*.
+>
+> **La paleta desplegada es del PINCEL. En el Builder sólo va la fila.** El panel del Builder ya es largo —
+> modo, qué levanto, forma, preajustes, las dos texturas base, el grosor, el tamaño de las fichas— y no
+> aguanta un bloque más.
+>
+> **Y el panel mide 300 px: lo que se meta ahí tiene que caber.** En ese mismo fallo el rótulo se salió y se
+> leía «…LA HABITACIÓN CON COLO» y «Ninguna: manda la textura del ma». Rótulos cortos, y el nombre de la
+> textura que no desborde.
+
+### 10B.3 · Sin borrador aquí
+
+Lo construido se quita **seleccionando y borrando**, que es lo que ya existe.
+
+### 10B.4 · EL BORDE ROTO DE «A PULSO»
+
+Petición suya, 2026-09-11: *«Quiero poder en a pulso elegir el trazo como en el pincel para que los bordes sean
+irregulares o como está ahora y qué tan irregular lo quiero»*. Confirmado por él tal cual se le enseñó, con un
+*«si»*, el mismo día.
+
+- **El trazo, a elegir**: **como ahora** (el canto limpio de siempre) o **borde roto**.
+- **Cuánto de roto**: una barra continua, de apenas mellado a muy irregular. Sólo con borde roto. Es la misma
+  pareja de mandos que la del Pincel (§ 9.1).
+- **Cada trazo sale distinto**, como en el Pincel (§ 9.2). El azar se sortea al dibujar y queda **cocido en la
+  forma que se guarda**: no hay semilla que recordar ni nada que reconstruir al recargar.
+- **Vale para habitación y para muro**, las dos cosas que se dibujan a pulso.
+- 🔑 **EL BORDE IRREGULAR ES LA PARED DE VERDAD.** Tapa la vista y frena las fichas justo por donde se ve. Es la
+  regla de siempre del motor de salas: una sala que se ve de una forma y tapa de otra es un fallo que no se nota
+  hasta que alguien juega.
+- **Por muy roto que se ponga, el trazo nunca se parte en trozos ni deja agujeros en medio.**
+- **Sólo los trazos nuevos.** Lo ya dibujado no cambia al mover la barra.
+- **Se guarda en la escena, como el Pincel (§ 9.4), y APARTE del Pincel**: cambiar uno no cambia el otro. Uno
+  pinta encima y el otro levanta paredes.
+- **Sin «difuminado»**: un suelo se pisa o no se pisa (§ 10A.7).
+- **Sólo dibujando aquí, no «Sobre una foto»** (suyo, 2026-09-11 noche, preguntado si quitarlo: «*si*»). Sobre una
+  foto cada lado del trazo se guarda como un muro suelto, y un canto roto dejaría cientos; el diseño (`R7gay`) ya
+  sólo lo enseña en «Dibujar aquí». Sobre una foto, «A pulso» sale con canto limpio aunque la escena tenga guardado
+  el roto.
+- ⚠️ **Un límite que no se ve pero manda**: cada esquina del borde es un muro más contra el que el servidor traza
+  rayos, para cada jugador y en cada refresco. El borde roto lleva un **tope de esquinas por trazo**, para que un
+  mapa irregular no traiga de vuelta el «va lentísimo».
+- **Dónde va en el panel** lo decide el diseño (`rolvium.pen`), y el panel del Builder mide 300 px (§ 10B.2).
+- 🦷 **Un borde dentado no clava a la ficha**: al rozar la punta de un diente, la ficha la rodea en vez de quedarse
+  pegada (2026-09-12; la regla y los números, en § «Rebanada 4 — Cómo se siente»).
+- **Fuera, dicho a propósito**: borde roto para rectángulo, círculo y polígono · volver irregular un trazo ya
+  hecho.
+
+---
+
+### 10.9 · Fuera de esta rebanada, dicho a propósito
+
+- **Pintar sobre fichas y sobre piezas.**
+- **Mover una habitación** — hoy no se puede; cuando se pueda, la pintura se va con ella (§ 10A.5).
+
+## Modelo de datos (🧲 la barra se ordena arrastrando)
+
+Migración `supabase/migrations/20260912100000_core_app_settings.sql`. **Una tabla nueva, pequeña, y el orden de la
+barra es su primera fila.**
+
+- **`app_settings` — los ajustes de la plataforma, uno por fila.** Cada fila es una clave (`maps.toolbar_order`) y su
+  valor (para la barra: la lista de botones de cada bloque —juego, dibujo, director— en el orden elegido), con cuándo
+  se creó, cuándo se tocó por última vez y quién lo tocó. **Por qué una tabla nueva y no una columna en algo que ya
+  existe**: el orden es UNO para todo el mundo —no es de una escena, ni de una campaña, ni de un usuario—, así que no
+  hay ninguna fila donde colgarlo; y el permiso de «administrar los ajustes» existe desde el primer día sin tener nada
+  que administrar. El siguiente ajuste global que haga falta es otra fila, no otra migración.
+- **Sin fila de serie**: mientras el admin no arrastre nada, no hay fila y la barra sale con el orden que él fijó el
+  31-ago, que vive en el código. Ninguna instalación cambia de aspecto al migrar.
+- **La forma del valor la valida quien lo lee**, no la base: un botón que no exista se ignora y uno que falte cae en su
+  sitio de serie. La base sólo garantiza que hay un valor por clave y quién puede tocarlo.
+- **Acceso**: **leen todos** los usuarios con sesión (cada uno pinta su barra con ese orden); **escribe sólo** quien
+  tiene el permiso de administrar los ajustes de la plataforma (`admin.manage_settings`, hoy el rol `admin`), a través
+  del ayudante de permisos de siempre — no se reimplementa el permiso en la política. Nada para `anon`.
+- Aplicada en LOCAL con `supabase migration up --local` (nunca `db:reset`): RLS activa, las dos políticas sólo
+  `authenticated`, `db lint --local` 0 errores, `npm run audit` 0 graves. ⚠ **En la nube NO está**: sube con el
+  deploy, ANTES que la web.
+- 🐞 **Le faltaban los permisos de acceso** (él, 2026-09-12: «*no quedan las herramientas donde las suelto*»): en este
+  proyecto una tabla nueva no hereda permisos, y sin su `GRANT` PostgREST decía «permission denied» antes de mirar la
+  RLS — guardar fallaba y la barra volvía sola. Arreglado con `20260912140000_core_app_settings_grants.sql`
+  (`SELECT, INSERT, UPDATE, DELETE` para `authenticated` y `service_role`; nada para `anon`). Las DOS migraciones van
+  juntas a producción.
+
+## Modelo de datos (rebanada 10 · LA PINTURA — apartado A)
+
+Migración `20260910160000_maps_paint.sql`. **Ninguna tabla nueva, ninguna política nueva, y tres columnas.**
+
+**La pintura es un PNG por cosa pintada.** «*Se van sumando*» —sus palabras— es literalmente lo que hace un
+lienzo de píxeles: cada pasada cae encima de la anterior y el resultado queda cocido dentro. Guardar una fila
+por pincelada, para volver a apilarlas cada vez que se abre el mapa, sería reconstruir en cada carga algo que
+ya viene hecho, y multiplicaría las filas justo donde él ya sufrió el «va lentísimo». Es el mismo patrón
+—y el mismo bucket, y las mismas políticas— que las máscaras de la rebanada 9; lo único que cambia es el
+signo: **aquélla QUITA para que asome lo de debajo, ésta PONE encima**.
+
+**Dónde vive cada una, y por qué ahí:**
+
+- **La de una habitación**, en la fila de esa forma. Porque **la pintura es de lo que pintaste**: hoy no se
+  puede mover una habitación, pero él dijo que el día que se pueda «*debería irse con ella*» — y colgada de
+  su fila se va sola, sin escribir una línea más.
+- **La de la roca**, en la escena. La roca no es una fila: es el negativo de lo excavado, «todo lo que no es
+  habitación». No hay ninguna fila de muro a la que colgarle un PNG, y tampoco hace falta: la roca no se mueve.
+- **La de una foto**, en la capa de terreno — que es donde ya viven las fotos del mapa y donde ya pinta el
+  pincel de la rebanada 9. Lleva además **un número de versión** que sube en cada guardado, porque el
+  navegador cachea el PNG por su dirección; una habitación no lo necesita porque su fecha ya se mueve sola.
+  Cada tabla sigue la convención que ya tenía, en vez de inventar una tercera.
+
+> 🔑 **Y AHÍ ES DONDE SE CUMPLE «EL SCOPE ES LA HABITACIÓN»** (orden suya, 2026-09-10: *«si elijo pintar una
+> habitación el scope de ese pincel es la habitación; si se me va la mano al muro, el muro no se tiene que
+> pintar»*). El recorte **no sale de una comprobación que alguien pueda olvidarse de escribir: sale de dónde
+> se guarda**. La pintura de una sala vive en su fila y se dibuja dentro de su contorno; la de la roca vive en
+> la escena y se dibuja dentro de la roca. Salirse es imposible.
+
+**Nada de esto entra en la partida**: ninguna de las tres columnas la miran el cálculo de visión, el de
+colisiones ni el de luces. Es la línea que separa este pincel del Builder.
+
+**Quién lee y quién escribe**: exactamente los de antes, y por eso no hay ni una política nueva. Las tres
+tablas ya tienen RLS activa y sus políticas cubren **la fila entera** desde las rebanadas 7 y 8 — escribe el
+**director** de la campaña, leen sus miembros. Una columna nueva en una fila ya cubierta está cubierta. Y el
+PNG va al bucket `backgrounds`, que ya existe con sus políticas: mismo sitio y mismo trato que las máscaras.
+Pintar es cosa de director, así que **no hace falta ningún permiso nuevo** en el motor de roles.
+
+**Dónde vive el PNG**: `{campaignId}/paint/room-{roomId}.png` · `{campaignId}/paint/rock-{sceneId}.png` ·
+`{campaignId}/paint/layer-{layerId}.png`.
+
+## Modelo de datos (rebanada 10 · lo que se CONSTRUYE — apartado B)
+
+Migración `20260910120000_maps_brush_build.sql`. **Sigue valiendo tal cual** tras la reescritura del 2026-09-10:
+lo que describe es una forma dibujada a mano con su ancho y su pintura propia, que es exactamente el
+apartado B. Lo único que cambia es de dónde se dibuja — del Pincel al Builder.
+ **Ninguna tabla nueva, ninguna política de RLS nueva, y
+apenas nada que migrar** — y eso no es suerte, es la decisión que abarata la rebanada entera.
+
+**Un brochazo no es una cosa nueva: es una forma más de las que ya existen.** Se guarda en `maps_rooms` como
+cualquier rectángulo arrastrado, con su anillo sacado del trazo y del ancho del pincel. Por eso vienen ya
+hechas, probadas y en producción las tres cosas caras: **fundirse al tocarse**, **cortar la vista y el paso**
+—que las calcula el servidor mirando estas mismas formas— y **excavar o rellenar**, que es exactamente «suelo
+o muro» con otro nombre. Una tabla aparte habría obligado a escribir las tres otra vez.
+
+**Lo único que se añade es que cada forma se pinte con lo suyo.** Hasta hoy una forma podía traer su propia
+**foto**, pero no su propio **color**: el color salía del preajuste, que es una lista cerrada de nueve. Él
+pidió las dos cosas y con paleta abierta, así que la forma gana un **color propio**.
+
+**Qué manda sobre qué** — el mismo orden que ya rige en las puertas, para no inventar una segunda regla: la
+**foto** gana al **color**, y el color gana al **preajuste**. Tiene una consecuencia buena y buscada: quitarle
+la textura a un brochazo no lo deja en blanco, descubre el color que había debajo; y quitarle también el
+color lo devuelve a su preajuste.
+
+**En una forma que EXCAVA eso es su suelo; en una que RELLENA es su roca.** Es la misma columna porque es la
+misma idea —«con qué está pintada esta forma»— y está anotado en la propia base de datos para que nadie tenga
+que deducirlo.
+
+**Y una forma sabe de dónde salió**: arrastrada como rectángulo o círculo, dibujada a mano alzada, o
+**pintada con el pincel**. Hoy no cambia cómo se ve; hace falta el día que una forma se pueda coger y editar,
+porque un rectángulo y un brochazo no se editan igual.
+
+**El borrador no guarda nada**: derriba, o sea que borra la fila. Por eso no hay ni papelera ni marca de
+borrado — deshacer ya lo lleva el historial de la escena, como con cualquier otra forma.
+
+**Quién lee y quién escribe**: exactamente los de antes. Las formas las escribe el **director** de la
+campaña y las leen los miembros, que es lo que ya dicen las políticas de `maps_rooms` desde la rebanada 8.
+Este pincel **no añade ningún permiso nuevo**: levantar mapa siempre ha sido cosa del director.
+
+### Los colores guardados
+
+Migración `20260910140000_maps_colors.sql`. **Una tabla nueva y pequeña**: los colores que el director mezcla
+con el cuentagotas o escribe a mano, guardados **por campaña** para reutilizarlos en todos sus mapas. La
+paleta base de la casa **no vive aquí** — ésa es código, no dato.
+
+**Por qué una tabla y no una lista dentro de la campaña.** Una lista habría ahorrado la tabla, pero añadir un
+color sería leer-modificar-escribir la lista entera: con dos pestañas abiertas —cosa normal en un director—
+la segunda pisa el color de la primera y se pierde sin avisar. Una fila por color no puede perderse.
+
+**El mismo color no entra dos veces** en la misma campaña: no sería un color más, sería la misma muestra
+ocupando sitio en la paleta. Lo impide la base, para que la pantalla no tenga que acordarse.
+
+**Se guarda quién lo mezcló**, pero la fila **sobrevive a la cuenta**: el color es de la campaña, no de la
+persona. Y al borrar la campaña se van con ella.
+
+**Quién lee y quién escribe**: los miembros de la campaña leen, el **director** escribe. Palabra por palabra
+lo mismo que la biblioteca de fondos (`maps_images`), porque es lo mismo: una biblioteca de la campaña.
+
+## Modelo de datos (rebanada 10 B · el borde roto de «A pulso», § 10B.4)
+
+Migración `20260911170000_maps_band_rough.sql`. **Ninguna tabla nueva, ninguna política nueva, y dos columnas en
+la escena.**
+
+**La escena recuerda la punta de «A pulso».** `maps_scenes` gana **la punta** (canto limpio o borde roto; de serie
+canto limpio, que es como dibuja hoy, así que ninguna escena cambia al migrar) y **cuánto de roto** (de 0 a 1; de
+serie 0,5, el mismo arranque que el pincel, y sólo cuenta con borde roto). La base pone los dos topes, para que una
+llamada a mano no guarde un valor fuera de escala.
+
+**Aparte del pincel, a propósito.** Son las hermanas de `brush_tip` y `brush_roughness`, no las mismas columnas:
+uno pinta encima y el otro levanta paredes, y cambiar uno no puede cambiar el otro (§ 10B.4).
+
+**No se guardan los trazos ni el azar.** Cada trazo sale distinto, pero lo que se guarda es la forma ya rota: los
+puntos de su anillo en `maps_rooms.points`, como cualquier otra forma. El servidor calcula la visión y el paso con
+esos mismos puntos, así que el borde irregular es la pared sin escribir nada más. Y como el borde queda cocido en la
+forma, mover la barra no cambia lo ya dibujado.
+
+**Quién lee y quién escribe**: exactamente los de antes. `maps_scenes` tiene RLS activa y sus políticas cubren la
+fila entera —escribe el **director** de la campaña, leen sus miembros—, igual que cuando la rebanada 9 le añadió el
+pincel. Una columna nueva en una fila ya cubierta está cubierta, y no hace falta ningún permiso nuevo en el motor de
+roles.
 
 ## Modelo de datos (rebanada 9)
 
@@ -1907,6 +2492,20 @@ el borde irregular queda cocido dentro y no hay nada que reconstruir al recargar
 **Quién lee y quién escribe**: exactamente los de antes. La escena y las salas las escribe el **director** de
 la campaña; los jugadores leen lo que su RLS ya les dejaba. El pincel no añade ningún permiso nuevo al motor de
 roles: es una herramienta de director, como los otros pinceles.
+
+**Dónde vive el PNG del suelo**: en el bucket `backgrounds` que ya existe, bajo
+`{campaignId}/masks/room-{roomId}.png` — misma carpeta y mismas políticas que las máscaras de capa
+(`foldername[1]` sigue siendo la campaña), así que **ninguna política de almacenamiento nueva**.
+
+⚠️ **El rompe-caché de una sala es su `updated_at`**, no un número de versión: `maps_rooms` no lo tiene, y el
+disparador `maps_rooms_touch` ya mueve la fecha en cada guardado. Sin pegarlo a la URL el navegador se queda
+con el PNG viejo y parece que el pincel no pinta.
+
+**Dónde vive la forma del brochazo**: en `@rolvium/core` (`brush.ts`), no en el navegador. El pincel pinta en
+tres sitios y uno de ellos —la niebla— lo calcula el servidor; con la forma escrita dos veces acabarían
+discrepando, y sería el mismo mando difuminando en una capa y cortando a filo en la niebla. Mismo motivo por el
+que `roomWalls` vive allí. El **azar** se tira en el navegador (una tirada por pincelada) y viaja como
+parámetro: el servidor sólo lo lee.
 
 ## Rules & limits
 - El **cálculo de visión ocurre en el servidor** con todos los muros; al jugador le llega el polígono resuelto. Los

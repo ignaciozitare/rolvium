@@ -1,5 +1,5 @@
-import { sightRadiusPx } from '@rolvium/core';
-import type { GridSettings, Layer, LayerKind, Light, LightKind, LightShape, NewLight } from '../entities/Scene';
+import { brushPlateau, sightRadiusPx } from '@rolvium/core';
+import { BRUSH_TIPS, type BrushTip, type GridSettings, type Layer, type LayerKind, type Light, type LightKind, type LightShape, type NewLight } from '../entities/Scene';
 
 /**
  * Reglas de las capas de contenido y de las luces de ambiente (rebanada 7).
@@ -179,7 +179,81 @@ export const clampMaskSize = (v: number): number =>
  */
 export const DEFAULT_MASK_HARDNESS = 0.4;
 export const clampHardness = (v: number): number => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
-export const hardnessLabel = (v: number): string => `${Math.round(clampHardness(v) * 100)} %`;
+/**
+ * Lo que se lee junto a la barra del borde. En palabras y no en porcentaje (`rolvium.pen` · «PL/Pincel ·
+ * barra»): «40 %» de borde no significa nada para nadie, «media» sí. Devuelve la CLAVE, que el texto es de
+ * pantalla y se traduce.
+ */
+export type HardnessStep = 'soft' | 'medium' | 'sharp';
+export const hardnessStep = (v: number): HardnessStep => {
+  const h = clampHardness(v);
+  if (h < 0.34) return 'soft';
+  if (h < 0.67) return 'medium';
+  return 'sharp';
+};
+
+// ── EL PINCEL (rebanada 9) ───────────────────────────────────────────────────
+/**
+ * LA PUNTA DEL PINCEL. Tres, elegidas por el dueño el 2026-09-09: `disc` corta a canto limpio, `soft` se
+ * difumina, `rough` sale con el borde roto.
+ *
+ * ⚠️ **`rough` NO es «dureza 0»**: la dureza difumina el borde hacia fuera, siempre en círculo. Roto es otra
+ * cosa — el contorno deja de ser un círculo. Por eso son dos mandos y no uno, y por eso un brochazo puede ser
+ * de canto duro y roto a la vez.
+ */
+/** El mismo que pone la base (`maps_scenes.brush_tip`): una escena vieja se abre como se abría. */
+export const DEFAULT_BRUSH_TIP: BrushTip = 'soft';
+export const isBrushTip = (v: unknown): v is BrushTip => BRUSH_TIPS.includes(v as BrushTip);
+
+/** CUÁNTO DE ROTO, de 0 a 1. Sólo pinta con la punta `rough`. */
+export const DEFAULT_BRUSH_ROUGHNESS = 0.5;
+export const clampRoughness = (v: number): number => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
+/**
+ * Lo que se lee junto a la barra, en palabras: «0,62» no le dice nada a nadie.
+ *
+ * ⚠️ Devuelve una CLAVE, no el texto. La primera versión devolvía «apenas»/«poco»/… en castellano desde el
+ * dominio, y eso es texto de pantalla escrito donde no se puede traducir: en inglés salía en español. La
+ * barra lo pasa por `t('maps.brush.roughness.<clave>')`.
+ */
+export type RoughnessStep = 'barely' | 'little' | 'quite' | 'lots';
+export const roughnessStep = (v: number): RoughnessStep => {
+  const r = clampRoughness(v);
+  if (r < 0.2) return 'barely';
+  if (r < 0.45) return 'little';
+  if (r < 0.7) return 'quite';
+  return 'lots';
+};
+
+/**
+ * LA FORMA DEL BROCHAZO VIVE EN `@rolvium/core` (`brush.ts`) y aquí sólo se re-exporta.
+ *
+ * No es purismo: el pincel pinta en tres sitios y uno de ellos, la NIEBLA, lo calcula el servidor. Una copia
+ * en el navegador y otra en `apps/api` acabarían discrepando, y sería el mismo mando difuminando en una capa
+ * y cortando a filo en la niebla. Mismo motivo por el que `roomWalls` vive allí.
+ */
+export { roughRadii, roughOutline, roughReach, brushAlphaAt, ROUGH_POINTS, ROUGH_MAX_BITE } from '@rolvium/core';
+
+/**
+ * SOBRE QUÉ ACTÚA EL PINCEL (§ 9.1, elegido por él): una **capa de terreno**, la **niebla**, o el **suelo de
+ * una sala**. Los tres comparten la barra, y por eso comparten también lo que se guarda en la escena.
+ */
+export type BrushTarget = 'layer' | 'fog' | 'room';
+export const BRUSH_TARGETS: BrushTarget[] = ['layer', 'fog', 'room'];
+
+/**
+ * Dónde vive el PNG de la máscara del suelo de una sala. Misma carpeta que las de capa y misma política del
+ * bucket (`foldername[1]` sigue siendo la campaña); el prefijo `room-` sólo está para que al mirar la carpeta
+ * se sepa de qué es cada fichero.
+ */
+export const roomMaskPath = (campaignId: string, roomId: string): string => `${campaignId}/masks/room-${roomId}.png`;
+
+/**
+ * La máscara del suelo de una sala, con rompe-caché. A diferencia de las capas, una sala NO guarda número de
+ * versión: se usa su `updated_at`, que el disparador `maps_rooms_touch` mueve en cada guardado. Sin esto el
+ * navegador se queda con el PNG viejo y parece que el pincel no pinta.
+ */
+export const roomMaskSrc = (room: { floorMaskUrl: string | null; updatedAt: string }): string | null =>
+  room.floorMaskUrl ? `${room.floorMaskUrl}${room.floorMaskUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(room.updatedAt)}` : null;
 
 /** Una parada del degradado radial del pincel: a qué distancia del centro (0 = centro, 1 = borde) y con qué opacidad. */
 export interface MaskStop { at: number; alpha: number }
@@ -195,7 +269,7 @@ export interface MaskStop { at: number; alpha: number }
  */
 export function maskStops(strength: number, hardness: number): MaskStop[] {
   const alpha = clampStrength(strength);
-  const plateau = Math.min(0.98, clampHardness(hardness));
+  const plateau = brushPlateau(hardness);
   return [{ at: 0, alpha }, { at: plateau, alpha }, { at: 1, alpha: 0 }];
 }
 

@@ -1,10 +1,10 @@
 import { useTranslation } from '@rolvium/i18n';
-import { Tooltip } from '@rolvium/ui';
-import { DOOR_HINGES, DOOR_LEAVES, DOOR_SWINGS, ROOM_PRESETS, type DoorSettings, type RoomOpening, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
+import { FloatingPanel, OptionGroup, PanelHint, PanelNote, PanelSection, Slider, Tooltip } from '@rolvium/ui';
+import { BAND_TIPS, DOOR_HINGES, DOOR_LEAVES, DOOR_SWINGS, ROOM_PRESETS, type BandTip, type DoorSettings, type RoomOpening, type RoomPreset, type Wall, type WallKind } from '../domain/entities/Scene';
 import { DEFAULT_TEXTURE_SCALE, styleOf } from '../domain/useCases/roomStyles';
+import { roughnessStep } from '../domain/useCases/layerRules';
 import { DOOR_COLORS, normalCellsAt, TOKEN_SCALE, WALL_KINDS, canOpen } from '../domain/useCases/mapRules';
-import { BUILDER_MODES, BUILD_KINDS, ROOM_SHAPES, isOpeningKind, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
-import { useDragPanel } from './useDragPanel';
+import { BRUSH_MAX_CELLS, BRUSH_MIN_CELLS, BUILDER_MODES, BUILD_KINDS, DEFAULT_BAND_ROUGHNESS, DEFAULT_BAND_TIP, ROOM_SHAPES, isOpeningKind, shapesFor, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 
 interface Props {
   /** En qué está trabajando: marcando sobre una foto o levantando salas aquí. Las dos conviven. */
@@ -54,6 +54,14 @@ interface Props {
   onTextureScale?: (which: 'wall' | 'floor', cells: number) => void;
   onTextureScaleEnd?: () => void;
   /**
+   * 🔄 EL GIRO DEL MOSAICO de cada textura, en grados (petición suya del 2026-09-11: «*tengo que poder rotar sus
+   * texturas*»). Mismo reparto que la escala: `onTextureRotation` va EN VIVO mientras arrastra y se guarda al
+   * soltar con el mismo `onTextureScaleEnd`.
+   */
+  wallRotation?: number;
+  floorRotation?: number;
+  onTextureRotation?: (which: 'wall' | 'floor', deg: number) => void;
+  /**
    * LA BARRITA DEL TAMAÑO DE LAS FICHAS DE LA ESCENA (specs § «La barrita del tamaño de las fichas»).
    * Mismo trato que las escalas de textura: `onTokenScale` va pintando el previo mientras arrastra —todas
    * las fichas encogen a la vez, que es lo que se quiere ver— y `onTokenScaleEnd` guarda al soltar, para no
@@ -91,6 +99,21 @@ interface Props {
   doorDraft?: DoorSettings;
   /** Abrir el catálogo para elegirle textura a la puerta cogida. Mismo catálogo que la pared y el suelo. */
   onDoorTexture?: () => void;
+  /**
+   * ── EL ANCHO DE LA BANDA DE «A PULSO» (§ «Rebanada 10 · B») ──
+   * En CASILLAS, como todo lo que se mide en un mapa. De serie, el grosor de muro que la escena ya tiene.
+   */
+  bandCells?: number;
+  onBandCells?: (cells: number) => void;
+  /**
+   * ── EL BORDE DE «A PULSO» (§ 10B.4) ── Limpio o roto, y cuánto (0..1). El tipo se avisa en el acto; la barra
+   * avisa mientras se mueve y `onBandRoughnessEnd` al soltar, que es cuando se guarda.
+   */
+  bandTip?: BandTip;
+  onBandTip?: (tip: BandTip) => void;
+  bandRoughness?: number;
+  onBandRoughness?: (roughness: number) => void;
+  onBandRoughnessEnd?: () => void;
   onClose: () => void;
 }
 
@@ -116,14 +139,14 @@ export function BuilderPanel({
   mode, onMode, wall, kind, onKind, buildKind = 'room', onBuildKind, shape, onShape, snapGrid, onSnapGrid, chainNodes, onChainNodes,
   preset = 'hatch', onPreset, wallTextureUrl = null, floorTextureUrl = null, onTexture, onClearTexture,
   thickness = 0.22, onThickness,
-  wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd,
+  wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd, wallRotation = 0, floorRotation = 0, onTextureRotation,
   tokenScale = TOKEN_SCALE.def, onTokenScale, onTokenScaleEnd,
-  groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onDoorTexture, doorDraft, onClose,
+  groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onDoorTexture, doorDraft,
+  bandCells = 0.22, onBandCells, bandTip = DEFAULT_BAND_TIP, onBandTip, bandRoughness = DEFAULT_BAND_ROUGHNESS, onBandRoughness, onBandRoughnessEnd, onClose,
 }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   /** El número del panel, con la coma o el punto que toque según el idioma. */
   const cellsOfNormal = (v: number): string => new Intl.NumberFormat(locale).format(normalCellsAt(v));
-  const { ref, style, handlers } = useDragPanel<HTMLDivElement>();
   const held = groupCount > 1 || !!wall || !!roomOpening;
   /**
    * Lo que se está levantando es un VANO: en «Dibujar aquí» lo dice `buildKind`, y sobre una foto, `kind`.
@@ -158,27 +181,19 @@ export function BuilderPanel({
     cogida ?? (nadaCogido && levantaPuerta ? doorDraft ?? null : null);
 
   return (
-    <div className="mp-builder" ref={ref} style={style}
-      role="group" aria-label={t('maps.builder.title')}>
-      <div className="mp-builder-head mp-drag" title={t('maps.builder.move')} {...handlers}>
-        <span className="material-symbols-outlined mp-builder-grip" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">drag_indicator</span>
-        {/*
-          * SU icono, el de verdad, y de máscara igual que en la barra de herramientas: así lo tiñe el panel y
-          * no se pierde sobre el papel claro. Un Material Symbol genérico aquí ya se lo tumbó una vez.
-          */}
+    <FloatingPanel className="mp-builder" title={t('maps.builder.title')} moveLabel={t('maps.builder.move')}
+      closeLabel={t('maps.builder.close')} onClose={onClose}
+      icon={
+        /*
+         * SU icono, el de verdad, y de máscara igual que en la barra de herramientas: así lo tiñe el panel y
+         * no se pierde sobre el papel claro. Un Material Symbol genérico aquí ya se lo tumbó una vez.
+         */
         <span className="mp-builder-icon" data-testid="mp-builder-icon" aria-hidden="true"
           style={{ maskImage: 'url(/icons/builder-mask.png)', WebkitMaskImage: 'url(/icons/builder-mask.png)' }} />
-        <span className="mp-builder-title">{t('maps.builder.title')}</span>
-        <Tooltip label={t('maps.builder.close')} placement="top">
-          <button type="button" className="mp-layers-icon" aria-label={t('maps.builder.close')} onClick={onClose}>
-            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>close</span>
-          </button>
-        </Tooltip>
-      </div>
+      }>
 
       {/* ── EN QUÉ ESTOY TRABAJANDO · LAS DOS CONVIVEN ── */}
-      <fieldset className="mp-builder-group">
-        <legend className="tb-rotulo">{t('maps.builder.mode.label')}</legend>
+      <PanelSection label={t('maps.builder.mode.label')}>
         <div className="mp-builder-modes" role="radiogroup" aria-label={t('maps.builder.mode.label')}>
           {BUILDER_MODES.map(m => (
             <button key={m} type="button" role="radio" aria-checked={mode === m}
@@ -189,32 +204,21 @@ export function BuilderPanel({
             </button>
           ))}
         </div>
-      </fieldset>
+      </PanelSection>
 
       {/* ── QUÉ LEVANTO · LO DE SIEMPRE, INTACTO ── */}
-      <fieldset className="mp-builder-group">
-        <legend className="tb-rotulo">{t(mode === 'draw' ? 'maps.room.build.label' : 'maps.builder.what.label')}</legend>
+      <PanelSection label={t(mode === 'draw' ? 'maps.room.build.label' : 'maps.builder.what.label')}>
         {/*
           * Dibujando aquí son CUATRO y no tres: una sala excava el hueco y un muro lo rellena — «*los muros
           * serán relleno de esos huecos*» (dueño, 2026-09-04). Sobre una foto sigue habiendo tres, intactas.
           */}
-        <div className="mp-builder-seg" role="radiogroup" aria-label={t('maps.wall.kindOf')}>
-          {mode === 'draw'
-            ? BUILD_KINDS.map(k => (
-              <button key={k} type="button" role="radio" aria-checked={buildKind === k}
-                className={`mp-builder-opt ${buildKind === k ? 'on' : ''}`} onClick={() => onBuildKind?.(k)}>
-                {t(`maps.room.build.${k}`)}
-              </button>
-            ))
-            : WALL_KINDS.map(k => (
-              <button key={k} type="button" role="radio" aria-checked={kind === k}
-                className={`mp-builder-opt ${kind === k ? 'on' : ''}`} onClick={() => onKind(k)}>
-                {t(`maps.wall.kind.${k}`)}
-              </button>
-            ))}
-        </div>
-        <p className="mp-builder-hint">{t(mode === 'draw' ? 'maps.room.build.hint' : 'maps.builder.what.hint')}</p>
-      </fieldset>
+        {mode === 'draw'
+          ? <OptionGroup ariaLabel={t('maps.wall.kindOf')} look="outline" columns="row" value={buildKind}
+              onChange={k => onBuildKind?.(k)} options={BUILD_KINDS.map(k => ({ value: k, label: t(`maps.room.build.${k}`) }))} />
+          : <OptionGroup ariaLabel={t('maps.wall.kindOf')} look="outline" columns="row" value={kind}
+              onChange={onKind} options={WALL_KINDS.map(k => ({ value: k, label: t(`maps.wall.kind.${k}`) }))} />}
+        <PanelHint>{t(mode === 'draw' ? 'maps.room.build.hint' : 'maps.builder.what.hint')}</PanelHint>
+      </PanelSection>
 
 
       {/*
@@ -223,9 +227,8 @@ export function BuilderPanel({
         * cuanto se elige PUERTA, y la puerta nace ya así. Con una cogida, edita esa.
         */}
       {door && onDoor && (
-        <fieldset className="mp-builder-group mp-door-opts" data-testid="mp-door-opts">
-          <legend className="tb-rotulo">{t('maps.door.section')}</legend>
-          {!cogida && <p className="mp-builder-hint">{t('maps.door.draftHint')}</p>}
+        <PanelSection label={t('maps.door.section')} className="mp-door-opts" testId="mp-door-opts">
+          {!cogida && <PanelHint>{t('maps.door.draftHint')}</PanelHint>}
           {/*
             * Configurarla NUNCA es obligatorio (orden suya): nace de una hoja, colgada del extremo por donde
             * la dibujó y abriendo hacia un lado fijo. La bisagra y el lado son DOS interruptores y no un
@@ -298,8 +301,8 @@ export function BuilderPanel({
                 </button>
               )}
             </div>
-            <p className="mp-builder-hint">{t('maps.door.hint')}</p>
-        </fieldset>
+            <PanelHint>{t('maps.door.hint')}</PanelHint>
+        </PanelSection>
       )}
 
       {/*
@@ -309,22 +312,48 @@ export function BuilderPanel({
         * que no existe. Vale para los dos modos: marcando sobre una foto tampoco tiene sentido un círculo.
         */}
       {!construyeVano && (
-      <fieldset className="mp-builder-group">
-        <legend className="tb-rotulo">{t('maps.room.shapeOf')}</legend>
-        <div className="mp-builder-shapes" role="radiogroup" aria-label={t('maps.room.shapeOf')}>
-          {/*
-            * Dibujando aquí sólo salen las formas que PUEDEN levantar lo elegido: una raya no encierra nada,
-            * así que no aparece con SALA (pega suya del 2026-09-04). Sobre una foto salen las seis, intactas.
-            */}
-          {(mode === 'draw' ? shapesFor(buildKind) : ROOM_SHAPES).map(s => (
-            <button key={s} type="button" role="radio" aria-checked={shape === s}
-              className={`mp-builder-opt ${shape === s ? 'on' : ''}`} onClick={() => onShape(s)}>
-              {t(`maps.room.shape.${s}`)}
-            </button>
-          ))}
-        </div>
-        <p className="mp-builder-hint">{shapeHint(shape, t)}</p>
-      </fieldset>
+      <PanelSection label={t('maps.room.shapeOf')}>
+        {/*
+          * Dibujando aquí sólo salen las formas que PUEDEN levantar lo elegido: una raya no encierra nada,
+          * así que no aparece con SALA (pega suya del 2026-09-04). Sobre una foto salen las seis, intactas.
+          */}
+        <OptionGroup ariaLabel={t('maps.room.shapeOf')} look="outline" columns={3} value={shape} onChange={onShape}
+          options={(mode === 'draw' ? shapesFor(buildKind) : ROOM_SHAPES).map(s => ({ value: s, label: t(`maps.room.shape.${s}`) }))} />
+        <PanelHint>{shapeHint(shape, t)}</PanelHint>
+      </PanelSection>
+      )}
+
+      {/*
+        * ── EL ANCHO DE LA BANDA ── Sólo con «A pulso», que es donde él la quiso (2026-09-10). De serie el
+        * ancho ES el grosor de muro de la escena, así que una escena existente no cambia hasta que lo toque,
+        * y por eso este número no se guarda en ninguna parte: sale de la escena y vale para lo que dibuje
+        * ahora.
+        */}
+      {!construyeVano && shape === 'free' && (
+        <PanelSection label={t('maps.room.band.label')} testId="mp-band">
+          <Slider layout="inline" label={t('maps.room.band.short')} min={BRUSH_MIN_CELLS} max={BRUSH_MAX_CELLS} step={0.02}
+            value={bandCells} onChange={v => onBandCells?.(v)}
+            // Con la coma o el punto que toque, como el número de las fichas: «0.34» en español está mal.
+            valueText={new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(bandCells)} />
+        </PanelSection>
+      )}
+
+      {/*
+        * ── EL BORDE DE «A PULSO» (§ 10B.4 · `rolvium.pen` · `R7gay`) ── Limpio, como siempre, o borde roto, y
+        * cuánto. Va en la escena y aparte del pincel: uno pinta encima y el otro levanta paredes. La barra habla
+        * con las palabras del pincel porque es la misma pareja de mandos. Y sólo DIBUJANDO AQUÍ (suyo, 2026-09-11):
+        * sobre una foto cada lado del trazo es un muro suelto, y un canto roto dejaría cientos.
+        */}
+      {!construyeVano && shape === 'free' && mode === 'draw' && (
+        <PanelSection label={t('maps.room.band.edge')} testId="mp-band-edge">
+          <OptionGroup ariaLabel={t('maps.room.band.edge')} look="outline" columns="row" value={bandTip} onChange={v => onBandTip?.(v)}
+            options={BAND_TIPS.map(tip => ({ value: tip, label: t(`maps.room.band.tip.${tip}`) }))} />
+          {bandTip === 'rough' && (
+            <Slider layout="inline" label={t('maps.brush.roughLabel')} min={0} max={100} step={5}
+              value={Math.round(bandRoughness * 100)} onChange={n => onBandRoughness?.(n / 100)} onCommit={() => onBandRoughnessEnd?.()}
+              valueText={t(`maps.brush.roughness.${roughnessStep(bandRoughness)}`)} />
+          )}
+        </PanelSection>
       )}
 
       {/*
@@ -338,8 +367,7 @@ export function BuilderPanel({
         * controles no significaría nada — que fue el fallo que él señaló: «estás mezclando estas dos opciones».
         */}
       {mode === 'draw' && !construyeVano && (
-        <fieldset className="mp-builder-group">
-          <legend className="tb-rotulo">{t('maps.room.preset.label')}</legend>
+        <PanelSection label={t('maps.room.preset.label')}>
           <div className="mp-builder-presets" role="radiogroup" aria-label={t('maps.room.preset.label')}>
             {ROOM_PRESETS.map(k => (
               <button key={k} type="button" role="radio" aria-checked={preset === k}
@@ -350,8 +378,8 @@ export function BuilderPanel({
               </button>
             ))}
           </div>
-          <p className="mp-builder-hint">{t('maps.room.preset.hint')}</p>
-        </fieldset>
+          <PanelHint>{t('maps.room.preset.hint')}</PanelHint>
+        </PanelSection>
       )}
 
       {/*
@@ -360,13 +388,18 @@ export function BuilderPanel({
         * cada una se llevó su suelo el día que se dibujó.
         */}
       {mode === 'draw' && !construyeVano && (
-        <fieldset className="mp-builder-group">
-          <legend className="tb-rotulo">{t('maps.room.textures.label')}</legend>
-          <p className="mp-builder-hint">{t('maps.room.textures.hint')}</p>
-          {([['wall', wallTextureUrl, wallScale], ['floor', floorTextureUrl, floorScale]] as const).map(([which, url, escala]) => (
+        <PanelSection label={t('maps.room.textures.label')}>
+          <PanelHint>{t('maps.room.textures.hint')}</PanelHint>
+          {([['wall', wallTextureUrl, wallScale, wallRotation], ['floor', floorTextureUrl, floorScale, floorRotation]] as const).map(([which, url, escala, giro]) => (
             <div key={which} className="mp-builder-texblock">
               <div className="mp-builder-tex">
-                <TextureSwatch url={url} cells={escala}
+                {/*
+                  * CUÁL ES CUÁL (suyo, 2026-09-11: «*cuando no hay textura no sé cuál es pared o piso*»). El
+                  * diseño lo tenía desde la v3 (`ePNCc`, «Fila · PARED» / «Fila · SUELO») y el código no lo pintaba:
+                  * sin foto, dos cuadros de color con el nombre del preajuste. Mismo rótulo que el resto del panel.
+                  */}
+                <span className="tb-rotulo mp-builder-tex-c">{t(`maps.room.textures.${which}`)}</span>
+                <TextureSwatch url={url} cells={escala} deg={giro}
                   fallback={which === 'wall' ? styleOf(preset).rock : styleOf(preset).floor} />
                 <span className="mp-builder-tex-n">{url ? t('maps.room.textures.own') : t(`maps.room.preset.${preset}`)}</span>
                 {/*
@@ -390,27 +423,21 @@ export function BuilderPanel({
                 * Arrastrar repinta el mapa Y la muestra en vivo; se guarda al soltar.
                 */}
               {url && (
-                <div className="mp-builder-thick">
-                  <span className="mp-builder-tex-n">{t(`maps.room.tile.${which}`)}</span>
-                  <input type="range" min={0.25} max={20} step={0.25} value={escala}
-                    aria-label={t(`maps.room.tile.${which}`)}
-                    onChange={e => onTextureScale?.(which, Number(e.target.value))}
-                    onPointerUp={() => onTextureScaleEnd?.()}
-                    onKeyUp={() => onTextureScaleEnd?.()}
-                    onBlur={() => onTextureScaleEnd?.()} />
-                  <span className="mp-builder-thick-v">{escala}</span>
-                </div>
+                <Slider layout="inline" label={t(`maps.room.tile.${which}`)} min={0.25} max={20} step={0.25} value={escala}
+                  onChange={v => onTextureScale?.(which, v)} onCommit={() => onTextureScaleEnd?.()} commitOnBlur
+                  valueText={escala} />
+              )}
+              {/* 🔄 Y DEBAJO, EL GIRO — de 0° a 355° de 5 en 5, como el del Pincel. También sólo con foto. */}
+              {url && (
+                <Slider layout="inline" label={t(`maps.room.turn.${which}`)} min={0} max={355} step={5} value={giro}
+                  onChange={v => onTextureRotation?.(which, v)} onCommit={() => onTextureScaleEnd?.()} commitOnBlur
+                  valueText={`${giro}°`} />
               )}
             </div>
           ))}
-          <div className="mp-builder-thick">
-            <span className="mp-builder-tex-n">{t('maps.room.thickness')}</span>
-            <input type="range" min={0.08} max={0.6} step={0.02} value={thickness}
-              aria-label={t('maps.room.thickness')}
-              onChange={e => onThickness?.(Number(e.target.value))} />
-            <span className="mp-builder-thick-v">{Math.round(thickness * 100)}</span>
-          </div>
-        </fieldset>
+          <Slider layout="inline" label={t('maps.room.thickness')} min={0.08} max={0.6} step={0.02} value={thickness}
+            onChange={v => onThickness?.(v)} valueText={Math.round(thickness * 100)} />
+        </PanelSection>
       )}
 
       {/*
@@ -426,38 +453,31 @@ export function BuilderPanel({
         * no le dice nada a nadie; «1 casilla» contesta sola la pregunta de si pasa por el pasillo. Aprobado
         * así en `rolvium.pen` · «PL/Builder · panel · TAMAÑO DE LAS FICHAS».
         */}
-      <fieldset className="mp-builder-group">
-        <legend className="tb-rotulo">{t('maps.tokenScale.label')}</legend>
-        <p className="mp-builder-hint">{t('maps.tokenScale.hint')}</p>
-        <div className="mp-builder-thick">
-          <span className="mp-builder-tex-n">{t('maps.tokenScale.short')}</span>
-          {/*
-            * LA MARCA DEL CENTRO, «como siempre», que la lámina aprobada pide para poder volver sin buscar.
-            * Va con `list`/`<datalist>`, que es como el navegador dibuja una muesca en un deslizador — y NO
-            * con estilos propios del carril: los otros deslizadores del panel son los nativos tal cual, y
-            * pintarle un carril a medida sólo a éste lo dejaría desentonando al lado del grosor del muro.
-            * Donde el navegador no dibuje la muesca no se pierde nada: el número sigue diciendo dónde está.
-            */}
-          <datalist id="mp-token-scale-ticks"><option value={TOKEN_SCALE.def} /></datalist>
-          <input type="range" min={TOKEN_SCALE.min} max={TOKEN_SCALE.max} step={0.01} value={tokenScale}
-            list="mp-token-scale-ticks"
-            aria-label={t('maps.tokenScale.label')}
-            aria-valuetext={t('maps.tokenScale.reading', { cells: cellsOfNormal(tokenScale) })}
-            onChange={e => onTokenScale?.(Number(e.target.value))}
-            onPointerUp={() => onTokenScaleEnd?.()}
-            onKeyUp={() => onTokenScaleEnd?.()}
-            onBlur={() => onTokenScaleEnd?.()} />
-          <span className="mp-builder-thick-v">{cellsOfNormal(tokenScale)}</span>
-        </div>
-        <p className="mp-builder-hint">{t('maps.tokenScale.reading', { cells: cellsOfNormal(tokenScale) })}</p>
-      </fieldset>
+      <PanelSection label={t('maps.tokenScale.label')}>
+        <PanelHint>{t('maps.tokenScale.hint')}</PanelHint>
+        {/*
+          * LA MARCA DEL CENTRO, «como siempre», que la lámina aprobada pide para poder volver sin buscar.
+          * Va con `list`/`<datalist>`, que es como el navegador dibuja una muesca en un deslizador — y NO
+          * con estilos propios del carril: los otros deslizadores del panel son los nativos tal cual, y
+          * pintarle un carril a medida sólo a éste lo dejaría desentonando al lado del grosor del muro.
+          * Donde el navegador no dibuje la muesca no se pierde nada: el número sigue diciendo dónde está.
+          *
+          * Se VE «TAMAÑO», pero la barra se LLAMA con el rótulo entero: «tamaño» a secas no dice de qué.
+          */}
+        <Slider layout="inline" label={t('maps.tokenScale.short')} ariaLabel={t('maps.tokenScale.label')}
+          min={TOKEN_SCALE.min} max={TOKEN_SCALE.max} step={0.01} value={tokenScale}
+          ticks={[TOKEN_SCALE.def]} ticksId="mp-token-scale-ticks"
+          ariaValueText={t('maps.tokenScale.reading', { cells: cellsOfNormal(tokenScale) })}
+          onChange={v => onTokenScale?.(v)} onCommit={() => onTokenScaleEnd?.()} commitOnBlur
+          valueText={cellsOfNormal(tokenScale)} />
+        <PanelHint>{t('maps.tokenScale.reading', { cells: cellsOfNormal(tokenScale) })}</PanelHint>
+      </PanelSection>
 
       {/*
         * ── EL CANDADO ── Aprobado por él el 2026-09-03 («*tira*») con sus tres condiciones: empieza cerrado,
         * vale para todo Builder y, abierto, las puntas se pegan a las puntas de otros muros.
         */}
-      <fieldset className="mp-builder-group">
-        <legend className="tb-rotulo">{t('maps.builder.snap.label')}</legend>
+      <PanelSection label={t('maps.builder.snap.label')}>
         <button type="button" className={`mp-builder-lock ${snapGrid ? 'on' : ''}`} aria-pressed={snapGrid}
           onClick={() => onSnapGrid(!snapGrid)}>
           <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">
@@ -465,16 +485,15 @@ export function BuilderPanel({
           </span>
           {t(snapGrid ? 'maps.builder.snap.on' : 'maps.builder.snap.off')}
         </button>
-        <p className="mp-builder-hint">{t(snapGrid ? 'maps.builder.snap.hintOn' : 'maps.builder.snap.hintOff')}</p>
-      </fieldset>
+        <PanelHint>{t(snapGrid ? 'maps.builder.snap.hintOn' : 'maps.builder.snap.hintOff')}</PanelHint>
+      </PanelSection>
 
       {/*
         * ── LOS NODOS, EN CADENA ── «*los nodos deberían ser como una cadena a menos que yo elija que no*»
         * (dueño, 2026-09-03). Va PUESTO por omisión, que es lo que él pidió, y al lado del candado porque las
         * dos cosas contestan a la misma pregunta: cómo se comporta una punta cuando la arrastras.
         */}
-      <fieldset className="mp-builder-group">
-        <legend className="tb-rotulo">{t('maps.builder.chain.label')}</legend>
+      <PanelSection label={t('maps.builder.chain.label')}>
         <button type="button" className={`mp-builder-lock ${chainNodes ? '' : 'on'}`} aria-pressed={chainNodes}
           onClick={() => onChainNodes(!chainNodes)}>
           <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">
@@ -482,13 +501,12 @@ export function BuilderPanel({
           </span>
           {t(chainNodes ? 'maps.builder.chain.on' : 'maps.builder.chain.off')}
         </button>
-        <p className="mp-builder-hint">{t(chainNodes ? 'maps.builder.chain.hintOn' : 'maps.builder.chain.hintOff')}</p>
-      </fieldset>
+        <PanelHint>{t(chainNodes ? 'maps.builder.chain.hintOn' : 'maps.builder.chain.hintOff')}</PanelHint>
+      </PanelSection>
 
       {/* ── LO QUE TENGO COGIDO ── el grupo, los muros sueltos, o el muro que se está editando ── */}
       {held && (
-        <fieldset className="mp-builder-group">
-          <legend className="tb-rotulo">{t('maps.group.held')}</legend>
+        <PanelSection label={t('maps.group.held')}>
           {groupCount > 1 && (
             <div className="mp-builder-row">
               <span className="mp-groupbar-n">{grouped ? t('maps.group.countGrouped', { n: String(groupCount) }) : t('maps.group.countLoose', { n: String(groupCount) })}</span>
@@ -497,7 +515,7 @@ export function BuilderPanel({
               </button>
             </div>
           )}
-          {groupCount > 1 && <p className="mp-builder-hint">{grouped ? t('maps.group.hintGrouped') : t('maps.group.hintLoose')}</p>}
+          {groupCount > 1 && <PanelHint>{grouped ? t('maps.group.hintGrouped') : t('maps.group.hintLoose')}</PanelHint>}
           {(wall || roomOpening) && (
             <div className="mp-builder-row">
               {/* Esconder es SÓLO de un muro suelto: una sala es el dibujo del mapa y se ve siempre. */}
@@ -520,21 +538,18 @@ export function BuilderPanel({
             </div>
           )}
           {/* El nodo por doble clic sólo tiene sentido con un muro cogido: es donde se puede pinchar su línea. */}
-          {wall && <p className="mp-builder-hint">{t('maps.builder.nodeHint')}</p>}
-        </fieldset>
+          {wall && <PanelHint>{t('maps.builder.nodeHint')}</PanelHint>}
+        </PanelSection>
       )}
 
       {/*
         * Cómo coger TODO, y siempre a la vista: dentro de «lo que tengo cogido» no serviría, porque esa
         * sección sólo aparece cuando ya has cogido algo (dueño: «no me deja seleccionar todos los nodos»).
         */}
-      <p className="mp-builder-hint">{t('maps.builder.selectAll')}</p>
+      <PanelHint>{t('maps.builder.selectAll')}</PanelHint>
 
-      <p className="mp-builder-note">
-        <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">info</span>
-        {t(`maps.builder.note.${mode}`)}
-      </p>
-    </div>
+      <PanelNote>{t(`maps.builder.note.${mode}`)}</PanelNote>
+    </FloatingPanel>
   );
 }
 
@@ -545,7 +560,14 @@ export function BuilderPanel({
 function shapeHint(shape: RoomShape, t: (key: string) => string): string {
   if (shape === 'segment') return t('maps.room.chainHint');
   if (shape === 'line') return t('maps.room.lineHint');
-  return shape === 'poly' ? t('maps.room.polyHint') : t('maps.room.dragHint');
+  /*
+   * 🔴 «POLÍGONO» Y «A PULSO» CAMBIARON DE GESTO el 2026-09-10, por orden suya con la pantalla delante:
+   * «*quiero que lo que hoy es a pulso lo pongas en polígono, y a pulso sea lo que te indico*». Polígono pasa
+   * a ser el trazo libre cerrado (lo que hacía a pulso) y a pulso saca una BANDA siguiendo la mano — el gesto
+   * del pincel que se construyó por error, que aquí sí servía: «*el a mano no servía de nada*».
+   */
+  if (shape === 'poly') return t('maps.room.polyHint');
+  return shape === 'free' ? t('maps.room.band.hint') : t('maps.room.dragHint');
 }
 
 /** Una foto de mapa con los muros marcados encima: la esquina de una sala ya dibujada por otro. */
@@ -628,7 +650,7 @@ function PresetMini({ preset }: { preset: RoomPreset }): JSX.Element {
  */
 const SWATCH_CELLS = 3;
 const SWATCH_W = 66;
-function TextureSwatch({ url, cells, fallback }: { url: string | null; cells: number; fallback: string }): JSX.Element {
+function TextureSwatch({ url, cells, fallback, deg = 0 }: { url: string | null; cells: number; fallback: string; deg?: number }): JSX.Element {
   const cellPx = SWATCH_W / SWATCH_CELLS;
   const tile = Math.max(2, cellPx * cells);
   return (
@@ -636,6 +658,11 @@ function TextureSwatch({ url, cells, fallback }: { url: string | null; cells: nu
       style={url
         ? { backgroundImage: `url(${url})`, backgroundSize: `${tile}px ${tile}px`, backgroundRepeat: 'repeat' }
         : { background: fallback }}>
+      {/* 🔄 Girado, el mosaico va en una capa que sobra por los cuatro lados y gira entera: es el mismo previo que el mapa. */}
+      {url && deg !== 0 && (
+        <span className="mp-builder-tex-turn" data-testid="mp-tex-turn"
+          style={{ backgroundImage: `url(${url})`, backgroundSize: `${tile}px ${tile}px`, transform: `rotate(${deg}deg)` }} />
+      )}
       <span className="mp-builder-tex-grid" style={{ backgroundSize: `${cellPx}px ${cellPx}px` }} />
     </span>
   );

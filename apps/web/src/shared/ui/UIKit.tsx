@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, SystemChip, StatusChip, SectionTitle, PageHeader, EmptyState, Sheet, Tooltip } from '@rolvium/ui';
+import { Btn, Card, Chip, Badge, Modal, DualPanelPicker, UserAvatar, Field, SystemChip, StatusChip, SectionTitle, PageHeader, EmptyState, Sheet, Tooltip, FloatingPanel, PanelSection, PanelHint, PanelNote, PanelIconButton, Slider, OptionGroup } from '@rolvium/ui';
 import type { SheetData } from '@rolvium/core';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
@@ -13,6 +13,10 @@ export function UIKit(): JSX.Element {
   const [sel, setSel] = useState<string[]>(['b']);
   const [sheet, setSheet] = useState<SheetData>(() => ({ ...plenilunio.newSheet(), name: 'Karen «K»', concept: 'Líder de banda' }));
   const sysVars = Object.fromEntries(Object.entries(plenilunio.theme.vars).map(([k, v]) => [`--sys-${k}`, v]));
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [kitOn, setKitOn] = useState<'room' | 'rock' | 'fog'>('room');
+  const [kitShape, setKitShape] = useState<'cone' | 'radius' | 'square'>('cone');
+  const [kitSize, setKitSize] = useState(12);
   return (
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24, background: 'var(--bg)', minHeight: '100vh', color: 'var(--tx)' }}>
       <div className="rv-page-title">UI Kit</div>
@@ -51,6 +55,35 @@ export function UIKit(): JSX.Element {
               </button>
             </Tooltip>
           ))}
+        </div>
+      </section>
+      <section><h3 style={{ marginBottom: 8 }}>FloatingPanel / Slider / OptionGroup (table panels, themed by --sys-* — the Builder, the Pincel and the light editor are built from these)</h3>
+        <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--tx2)', marginBottom: 8 }}>
+          {"import { FloatingPanel, PanelSection, PanelHint, PanelNote, PanelIconButton, Slider, OptionGroup } from '@rolvium/ui'"} · {'<FloatingPanel title moveLabel closeLabel onClose icon actions closeOnEscape className>'} · {'<Slider label value min max step onChange valueText onCommit layout="stacked|inline" hideLabel />'} · {'<OptionGroup ariaLabel options value onChange look="chip|outline" columns={2|3|"row"} caps />'}
+        </p>
+        <div style={{ ...sysVars, padding: 24, background: 'var(--sys-bg)', fontFamily: 'var(--sys-font-body)' } as React.CSSProperties}>
+          {panelOpen ? (
+            <div style={{ width: 300 }}>
+              <FloatingPanel title="Pincel" moveLabel="Mover el panel" closeLabel="Cerrar" onClose={() => setPanelOpen(false)}
+                icon={<span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">brush</span>}
+                actions={<PanelIconButton icon="delete" label="Borrar" onClick={() => undefined} />}>
+                <PanelSection label="Sobre qué pinto">
+                  <OptionGroup ariaLabel="Sobre qué pinto" value={kitOn} onChange={setKitOn}
+                    options={[{ value: 'room', label: 'Habitación', icon: 'dashboard' }, { value: 'rock', label: 'Muro', icon: 'fence' }, { value: 'fog', label: 'Niebla', icon: 'cloud', wide: true }]} />
+                  <PanelHint>lo elegido es el límite: lo de al lado no se mancha</PanelHint>
+                </PanelSection>
+                <PanelSection label="Forma">
+                  <OptionGroup ariaLabel="Forma" look="outline" columns="row" value={kitShape} onChange={setKitShape}
+                    options={[{ value: 'cone', label: 'Cono' }, { value: 'radius', label: 'Radio' }, { value: 'square', label: 'Cuadrado' }]} />
+                </PanelSection>
+                <PanelSection label="El brochazo">
+                  <Slider label="Tamaño" value={kitSize} min={2} max={60} step={1} onChange={setKitSize} valueText={`${(kitSize / 10).toFixed(1)} casillas`} />
+                  <Slider layout="inline" label="Grosor" value={kitSize} min={2} max={60} step={1} onChange={setKitSize} valueText={kitSize} />
+                </PanelSection>
+                <PanelNote>Se agarra por la cabecera y se saca del mapa; la X lo cierra.</PanelNote>
+              </FloatingPanel>
+            </div>
+          ) : <Btn variant="ghost" onClick={() => setPanelOpen(true)}>abrir el panel</Btn>}
         </div>
       </section>
       <section><h3 style={{ marginBottom: 8 }}>Modal</h3>

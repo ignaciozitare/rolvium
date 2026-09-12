@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { Tooltip } from '@rolvium/ui';
+import { FloatingPanel, OptionGroup, PanelIconButton, PanelNote, PanelSection, Slider } from '@rolvium/ui';
 import type { Light, LightKind, LightPatch, LightShape } from '../domain/entities/Scene';
-import { useDragPanel } from './useDragPanel';
 import { clampIntensity, clampRangeM, clampSpinMs, DEFAULT_SPIN_MS, flickerOf, INTENSITY_STEP, intensityLabel, LIGHT_COLORS, LIGHT_KINDS, LIGHT_SHAPES, MAX_INTENSITY, MAX_RANGE_M, MAX_SPIN_MS, MIN_INTENSITY, MIN_RANGE_M, MIN_SPIN_MS, rangeLabelM, RANGE_STEP_M, spinLabelS, SPIN_STEP_MS } from '../domain/useCases/layerRules';
 
 const KIND_ICON: Record<LightKind, string> = {
@@ -34,70 +32,46 @@ interface Props {
  *
  * El parpadeo SÍ se anima: animar es pintar. El ritmo lo pone el TIPO (la antorcha tiembla, la hoguera
  * respira, la bombilla da golpes secos), así que aquí sólo hay un interruptor y no un juego de velocidades.
+ *
+ * Desde el 2026-09-11 la carcasa, los deslizadores y los botones de opción son las piezas comunes de
+ * `@rolvium/ui`, y lo elegido —la forma y el tipo— va en sangre como en el Builder y el Pincel, no en negro
+ * ni en oro.
  */
 export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.Element {
   const { t } = useTranslation();
-  const { ref, style, handlers } = useDragPanel<HTMLDivElement>();
-  // Escape cierra, como cualquier panel flotante de la app. Es la salida que se busca a ciegas.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
   const kindLabel = (k: LightKind): string => t(`maps.lights.kinds.${k}`);
   const animated = !!flickerOf(light);
 
   return (
-    <div className="mp-light-editor" ref={ref} style={style}
-      role="group" aria-label={t('maps.lights.select', { kind: kindLabel(light.kind) })}>
-      <div className="mp-light-head mp-drag" title={t('maps.lights.move')} {...handlers}>
-        <span className="material-symbols-outlined mp-light-grip" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">drag_indicator</span>
-        <span className="material-symbols-outlined mp-light-head-icon" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">{KIND_ICON[light.kind]}</span>
-        <span className="mp-light-title">{t('maps.lights.title')}</span>
-        <Tooltip label={t('maps.lights.delete')} placement="top">
-          <button type="button" className="mp-layers-icon" aria-label={t('maps.lights.delete')} onClick={onRemove}>
-            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>delete</span>
-          </button>
-        </Tooltip>
-        <Tooltip label={t('maps.lights.close')} placement="top">
-          <button type="button" className="mp-layers-icon" aria-label={t('maps.lights.close')} onClick={onClose}>
-            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }}>close</span>
-          </button>
-        </Tooltip>
-      </div>
+    <FloatingPanel className="mp-light-editor" title={t('maps.lights.title')}
+      ariaLabel={t('maps.lights.select', { kind: kindLabel(light.kind) })}
+      moveLabel={t('maps.lights.move')} closeLabel={t('maps.lights.close')} onClose={onClose}
+      // Escape cierra, como cualquier panel flotante de la app. Es la salida que se busca a ciegas.
+      closeOnEscape
+      icon={<span className="material-symbols-outlined mp-light-head-icon" style={{ fontSize: 'var(--icon-sm)' }} aria-hidden="true">{KIND_ICON[light.kind]}</span>}
+      actions={<PanelIconButton icon="delete" label={t('maps.lights.delete')} onClick={onRemove} />}>
 
       <div className="mp-light-preview" aria-hidden="true">
         <span className="mp-light-halo" style={{ background: `radial-gradient(circle, ${light.color} 0%, transparent 70%)` }} />
       </div>
 
-      <fieldset className="mp-light-group">
-        <legend className="tb-rotulo">{t('maps.lights.shape')}</legend>
-        <div className="mp-light-seg" role="radiogroup" aria-label={t('maps.lights.shape')}>
-          {LIGHT_SHAPES.map((sh: LightShape) => (
-            <button key={sh} type="button" role="radio" aria-checked={light.shape === sh} className={`mp-light-opt ${light.shape === sh ? 'on' : ''}`} onClick={() => onChange({ shape: sh })}>
-              {t(`maps.lights.shapes.${sh}`)}
-            </button>
-          ))}
-        </div>
+      <PanelSection label={t('maps.lights.shape')}>
+        <OptionGroup ariaLabel={t('maps.lights.shape')} look="outline" columns="row" value={light.shape}
+          onChange={(sh: LightShape) => onChange({ shape: sh })}
+          options={LIGHT_SHAPES.map(sh => ({ value: sh, label: t(`maps.lights.shapes.${sh}`) }))} />
         {light.shape === 'cone' && (
           <>
-            <label className="mp-light-row">
-              <span className="mp-light-label">{t('maps.lights.cone')}</span>
-              <input type="range" min={10} max={300} step={5} value={light.coneAngle} aria-label={t('maps.lights.cone')} onChange={e => onChange({ coneAngle: Number(e.target.value) })} />
-              <span className="mp-light-value">{Math.round(light.coneAngle)}°</span>
-            </label>
+            <Slider layout="inline" hideLabel label={t('maps.lights.cone')} min={10} max={300} step={5} value={light.coneAngle}
+              onChange={v => onChange({ coneAngle: v })} valueText={`${Math.round(light.coneAngle)}°`} />
             {/*
               * Hacia dónde APUNTA el cono. La apertura sin la dirección no sirve de nada: un foco que sólo
               * puede mirar a la derecha no es un foco (dueño, 2026-08-31). `rotation` se guardaba desde el
               * primer día y ya la lee el recorte contra los muros; lo único que faltaba era poder tocarla.
               * En vuelta entera, porque 0 y 360 son el mismo sitio y así el deslizador no tiene tope raro.
               */}
-            <label className="mp-light-row">
-              <span className="mp-light-label">{t('maps.lights.rotation')}</span>
-              <input type="range" min={0} max={355} step={5} value={((light.rotation % 360) + 360) % 360} aria-label={t('maps.lights.rotation')}
-                onChange={e => onChange({ rotation: Number(e.target.value) })} />
-              <span className="mp-light-value">{Math.round(((light.rotation % 360) + 360) % 360)}°</span>
-            </label>
+            <Slider layout="inline" hideLabel label={t('maps.lights.rotation')} min={0} max={355} step={5}
+              value={((light.rotation % 360) + 360) % 360} onChange={v => onChange({ rotation: v })}
+              valueText={`${Math.round(((light.rotation % 360) + 360) % 360)}°`} />
             {/*
               * QUE GIRE SOLA, «como una sirena» (§ 7.2, petición del dueño del 2026-08-31). Sólo aquí, con
               * el cono: un radio ya alumbra en redondo y un cuadrado girando no significa nada.
@@ -110,31 +84,20 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
               {t('maps.lights.spin')}
             </label>
             {light.spinMs > 0 && (
-              <label className="mp-light-row">
-                <span className="mp-light-label">{t('maps.lights.spinPeriod')}</span>
-                <input type="range" min={MIN_SPIN_MS} max={MAX_SPIN_MS} step={SPIN_STEP_MS} value={light.spinMs} aria-label={t('maps.lights.spinPeriod')}
-                  onChange={e => onChange({ spinMs: clampSpinMs(Number(e.target.value)) })} />
-                <span className="mp-light-value">{spinLabelS(light.spinMs)}</span>
-              </label>
+              <Slider layout="inline" hideLabel label={t('maps.lights.spinPeriod')} min={MIN_SPIN_MS} max={MAX_SPIN_MS} step={SPIN_STEP_MS}
+                value={light.spinMs} onChange={v => onChange({ spinMs: clampSpinMs(v) })} valueText={spinLabelS(light.spinMs)} />
             )}
           </>
         )}
-      </fieldset>
+      </PanelSection>
 
-      <fieldset className="mp-light-group">
-        <legend className="tb-rotulo">{t('maps.lights.kind')}</legend>
-        <div className="mp-light-kinds" role="radiogroup" aria-label={t('maps.lights.kind')}>
-          {LIGHT_KINDS.map(k => (
-            <button key={k} type="button" role="radio" aria-checked={light.kind === k} className={`mp-light-kind ${light.kind === k ? 'on' : ''}`} onClick={() => onChange({ kind: k })}>
-              <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">{KIND_ICON[k]}</span>
-              {kindLabel(k)}
-            </button>
-          ))}
-        </div>
-      </fieldset>
+      <PanelSection label={t('maps.lights.kind')}>
+        <OptionGroup ariaLabel={t('maps.lights.kind')} look="outline" columns={3} caps={false} value={light.kind}
+          onChange={k => onChange({ kind: k })}
+          options={LIGHT_KINDS.map(k => ({ value: k, label: kindLabel(k), icon: KIND_ICON[k] }))} />
+      </PanelSection>
 
-      <fieldset className="mp-light-group">
-        <legend className="tb-rotulo">{t('maps.lights.color')}</legend>
+      <PanelSection label={t('maps.lights.color')}>
         <div className="mp-light-row">
           <div className="mp-light-colors" role="radiogroup" aria-label={t('maps.lights.color')}>
             {LIGHT_COLORS.map((c, i) => (
@@ -154,21 +117,16 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
           * esto SÍ se ve en el mapa al momento: es cuánto canta la luz. Cuánto ILUMINA es el alcance, y está
           * abajo con lo demás. La barra es la misma de siempre —cono, rotación, vuelta—, no una nueva.
           */}
-        <label className="mp-light-row">
-          <span className="mp-light-label">{t('maps.lights.intensity')}</span>
-          <input type="range" min={MIN_INTENSITY} max={MAX_INTENSITY} step={INTENSITY_STEP} value={light.intensity} aria-label={t('maps.lights.intensity')}
-            onChange={e => onChange({ intensity: clampIntensity(Number(e.target.value)) })} />
-          <span className="mp-light-value">{intensityLabel(light.intensity)}</span>
-        </label>
-      </fieldset>
+        <Slider layout="inline" hideLabel label={t('maps.lights.intensity')} min={MIN_INTENSITY} max={MAX_INTENSITY} step={INTENSITY_STEP}
+          value={light.intensity} onChange={v => onChange({ intensity: clampIntensity(v) })} valueText={intensityLabel(light.intensity)} />
+      </PanelSection>
 
       {/*
         * Alcance y sombra NO se usan todavía. Se enseñan igual, y rotulados como «se guardan ya», porque el
         * director tiene que poder dejarlos puestos hoy: añadirlos el día que las luces iluminen obligaría a
         * repasar a mano todas las luces de todas las escenas.
         */}
-      <fieldset className="mp-light-group">
-        <legend className="tb-rotulo">{t('maps.lights.prepared')}</legend>
+      <PanelSection label={t('maps.lights.prepared')}>
         <div className="mp-light-row">
           <label className="mp-light-range">
             <span className="mp-light-label">{t('maps.lights.range')}</span>
@@ -181,12 +139,9 @@ export function LightEditor({ light, onChange, onRemove, onClose }: Props): JSX.
             {t('maps.lights.shadow')}
           </label>
         </div>
-      </fieldset>
+      </PanelSection>
 
-      <p className="mp-light-note">
-        <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-xs)' }} aria-hidden="true">info</span>
-        {t('maps.lights.note')}
-      </p>
-    </div>
+      <PanelNote>{t('maps.lights.note')}</PanelNote>
+    </FloatingPanel>
   );
 }

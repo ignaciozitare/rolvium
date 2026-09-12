@@ -1,5 +1,5 @@
 import type { TableEvent } from '@rolvium/core';
-import type { CreateSceneInput, Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, TexturePatch, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
+import type { CreateSceneInput, Drawing, ImageAsset, MapColor, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, TexturePatch, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
 
 /**
  * Lo que se edita de un vano: si está abierto, qué es, y —desde «Las puertas, de verdad»— cómo es la puerta.
@@ -51,6 +51,16 @@ export interface MapsPort {
   removeScene(id: string): Promise<void>;
   /** DM only: what the players see (`campaigns.active_scene_id`). */
   setActiveScene(campaignId: string, sceneId: string | null): Promise<void>;
+  /**
+   * DM only. LA PINTURA DE LA ROCA (rebanada 10): sube el PNG a
+   * `backgrounds/{campaignId}/paint/rock-{sceneId}.png` y deja el puntero en la escena.
+   *
+   * 🔑 Va en la ESCENA y no en una fila de muro porque no hay ninguna: la roca es el negativo de lo excavado.
+   * Devuelve la escena ya actualizada — su `updated_at` es el rompe-caché, igual que en una sala.
+   */
+  saveRockPaint(scene: Pick<Scene, 'id' | 'campaignId'>, png: Blob): Promise<Scene>;
+  /** Quita la pintura de la roca. El muro sigue exactamente donde estaba: pintar no cambia el mapa. */
+  clearRockPaint(scene: Pick<Scene, 'id' | 'campaignId'>): Promise<void>;
   // background library
   listImages(campaignId: string): Promise<ImageAsset[]>;
   /** DM only: uploads to `backgrounds/{campaignId}/{uuid}.png` and registers the row. */
@@ -130,6 +140,17 @@ export interface MapsPort {
   saveMask(layer: Pick<Layer, 'id' | 'campaignId' | 'maskVersion'>, png: Blob): Promise<Layer>;
   /** DM only. Quita la máscara: la capa vuelve a ser opaca entera. */
   clearMask(layer: Pick<Layer, 'id' | 'campaignId'>): Promise<void>;
+  /**
+   * DM only. LA PINTURA de una capa de terreno (rebanada 10): sube el PNG a
+   * `backgrounds/{campaignId}/paint/layer-{layerId}.png` y deja el puntero + la versión nueva.
+   *
+   * ⚠️ Va por SEPARADO de la máscara y no reaprovecha `saveMask` aunque el camino sea idéntico: son dos
+   * ficheros y dos columnas porque hacen lo contrario —aquélla QUITA, ésta PONE—, y compartir fichero
+   * dejaría el borrador de una borrando la otra.
+   */
+  saveLayerPaint(layer: Pick<Layer, 'id' | 'campaignId' | 'paintVersion'>, png: Blob): Promise<Layer>;
+  /** DM only. Quita la pintura de la capa: vuelve a verse su foto tal cual. */
+  clearLayerPaint(layer: Pick<Layer, 'id' | 'campaignId'>): Promise<void>;
 
   // lights (rebanada 7) — desde § 7.2 alumbran de verdad y entran en el cálculo de visión (del servidor)
   listLights(sceneId: string): Promise<Light[]>;
@@ -169,6 +190,49 @@ export interface MapsPort {
   /** Mover o estirar una forma. Nada que reescribir además: el contorno se recalcula solo. */
   updateRoomPoints(id: string, points: [number, number][]): Promise<void>;
   removeRoom(id: string): Promise<void>;
+  /**
+   * DM only. Sube el PNG del pincel sobre el suelo de ESTA sala a `backgrounds/{campaignId}/masks/room-{id}.png`
+   * y deja el puntero en la fila. Devuelve la sala ya actualizada — de ahí sale el `updated_at` que rompe la
+   * caché del navegador (una sala no lleva número de versión, a diferencia de una capa).
+   *
+   * 🔑 La máscara es DE LA SALA, y ahí es donde se cumple «no me manches la pared»: el recorte sale del sitio
+   * donde se guarda, no de una comprobación que alguien pueda olvidarse de escribir.
+   */
+  saveRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>, png: Blob): Promise<Room>;
+  /** Quita la máscara entera: el suelo de la sala vuelve a verse como lo puso el constructor. */
+  clearRoomFloorMask(room: Pick<Room, 'id' | 'campaignId'>): Promise<void>;
+  /**
+   * DM only. LA PINTURA DEL SUELO (rebanada 10): el PNG que se dibuja ENCIMA de las habitaciones, en
+   * `backgrounds/{campaignId}/paint/room-{id}.png`.
+   *
+   * 🔑 **`alsoIds` es la razón de que esto no sea «una forma, un fichero», y sale de un fallo que él vio en
+   * pantalla el 2026-09-10**: «*si hice una habitación y la modifico, el pincel se pinta dentro de cada
+   * modificación… se ve la silueta pintada de habitaciones previas, esto está mal*». Una habitación suele ser
+   * VARIAS formas fundidas, y el lienzo dibuja la pintura de cada una recortada a SU contorno: con un fichero
+   * por forma, el brochazo se cortaba en cada costura.
+   *
+   * Así que se sube UN PNG y **todas las formas excavadas apuntan a él**. Cada una lo sigue dibujando dentro
+   * de su propio contorno, así que juntas cubren la unión sin costuras — y el día que una forma se pueda
+   * mover se lleva su trozo, que es lo que él pidió. Un solo fichero, N punteros baratos.
+   *
+   * Devuelve las filas ya actualizadas: de ahí sale el `updated_at` que rompe la caché del navegador.
+   */
+  saveRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>, png: Blob, alsoIds?: readonly string[]): Promise<Room[]>;
+  /** Quita la pintura de esas formas. **No derriba lo construido**: siguen exactamente donde estaban. */
+  clearRoomFloorPaint(room: Pick<Room, 'id' | 'campaignId'>, alsoIds?: readonly string[]): Promise<void>;
+
+  // ── los colores guardados (rebanada 10) ───────────────────────────────────
+  // Los que él mezcla con el cuentagotas o escribe a mano, POR CAMPAÑA. La paleta base de la casa no pasa
+  // por aquí: ésa es código. Sólo hay leer y añadir — el diseño aprobado no ofrece quitar ninguno.
+
+  /** Por orden de llegada, que es el orden en que se enseñan en «tus colores». */
+  listColors(campaignId: string): Promise<MapColor[]>;
+  /**
+   * Guarda un color en la campaña. **El mismo color no entra dos veces**: lo impide la base con un índice
+   * único, así que si ya estaba se devuelve el que había en vez de reventar — la pantalla no tiene que
+   * acordarse de comprobarlo antes.
+   */
+  addColor(campaignId: string, color: string): Promise<MapColor>;
 
   // ── el catálogo de texturas (rebanada 8) ──────────────────────────────────
   // De la HERRAMIENTA, no de una campaña: se sube una vez y sirve en todos los mapas.

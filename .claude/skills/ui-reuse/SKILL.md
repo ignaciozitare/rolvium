@@ -49,9 +49,29 @@ Si dudás entre REUSE y NEW → es REUSE. Reinventar es el fallo por defecto.
 - Iconos: Material Symbols Outlined. Nunca emojis.
 - El archivo que toques necesita al menos un test que lo ejercite.
 
+## 4b. En la mesa: paneles flotantes, deslizadores y botones de opción
+
+Desde el 2026-09-11 salen SOLO de `@rolvium/ui`. Hasta entonces el Builder, el
+Pincel y el editor de luces llevaban cada uno su copia, y los deslizadores
+estaban hechos de tres maneras distintas.
+
+- Panel flotante (se arrastra por la cabecera, la X cierra) → `FloatingPanel`,
+  con `PanelSection` (bloque con rótulo), `PanelHint`, `PanelNote` y
+  `PanelIconButton` (botones de la cabecera). Dónde va y cuánto mide lo pone la
+  clase del módulo; el aspecto, nunca.
+- Deslizador → `Slider` (`layout="stacked"` de serie, `inline` en una fila).
+  Nunca un `<input type="range">` a mano.
+- Elegir una de varias → `OptionGroup` (`look` chip u outline, `columns`). Lo
+  elegido va siempre en rojo sangre. Excepción: muestras de color y miniaturas
+  con dibujo, donde lo que se elige es el arte.
+- Un sistema de juego nuevo las viste con `--sys-*`; no las copia.
+
 ## 5. Verificación
 
 Corré `npm run audit` — el check de "UI duplication" reporta modales/botones/cards
-locales y el % de adopción de `@rolvium/ui`. El usuario lo usa para confirmar
-que no duplicaste. El hook `check-ui-dup.mjs` (PostToolUse, solo avisa) marca
-overlays y botones locales al escribirlos.
+locales y el % de adopción de `@rolvium/ui`, y el check `ui-panels` FALLA (hard)
+con un deslizador a mano o con una pieza de panel definida en un módulo, y avisa
+de los radiogroups hechos a mano. El usuario lo usa para confirmar que no
+duplicaste. El hook `check-ui-dup.mjs` (PostToolUse, solo avisa) marca overlays,
+botones, deslizadores, paneles flotantes y grupos de opciones locales al
+escribirlos.

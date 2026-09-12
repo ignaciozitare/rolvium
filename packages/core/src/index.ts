@@ -7,5 +7,6 @@ export * from './rolls';
 export * from './events';
 export * from './maps';
 export * from './rooms';
+export * from './brush';
 export * from './systemRegistry';
 export * from './sheetValidation';

@@ -53,6 +53,13 @@ const META = {
   Sheet:              { resolves: 'ficha de personaje neutra dirigida por el sheetSchema del sistema (secciones, campos, derivadas, acciones, tooltips «Manual · p.XX»), tema solo vía --sys-*', usage: '<Sheet schema data derived readOnly onChange onAction actions t refText labels>' },
   Crescent:           { resolves: 'luna creciente SVG (PL/Creciente) coloreada con --sys-moon-*', usage: '<Crescent size={26} />' },
   PhaseDisc:          { resolves: 'disco de fase (PL/Salud): fracción oscura 0→1', usage: '<PhaseDisc fraction={0.5} />' },
+  FloatingPanel:      { resolves: 'panel flotante de la mesa (Builder, Pincel, luces…): cabecera arrastrable que lo saca del mapa, icono, acciones y X; tema solo vía --sys-*. OBLIGATORIO para todo panel de mesa (npm run audit)', usage: '<FloatingPanel title icon moveLabel closeLabel onClose className closeOnEscape>…</FloatingPanel>' },
+  PanelIconButton:    { resolves: 'botón de solo icono con tooltip para la cabecera de un panel flotante', usage: '<PanelIconButton icon="delete" label onClick />' },
+  PanelSection:       { resolves: 'bloque de un panel flotante con su rótulo en versalitas', usage: '<PanelSection label className testId>…</PanelSection>' },
+  PanelHint:          { resolves: 'línea de ayuda en cursiva dentro de un panel flotante', usage: '<PanelHint>…</PanelHint>' },
+  PanelNote:          { resolves: 'nota con el icono de información al pie de un panel flotante', usage: '<PanelNote>…</PanelNote>' },
+  Slider:             { resolves: 'deslizador de la mesa, apilado (de serie) o en fila: lectura, guardar al soltar, muescas; tema solo vía --sys-*. OBLIGATORIO: nada de <input type="range"> a mano (npm run audit)', usage: '<Slider label value min max step valueText onChange onCommit layout>' },
+  OptionGroup:        { resolves: 'elegir una de varias en un panel de mesa (chip u outline; 2 o 3 columnas o en fila); lo elegido siempre en rojo sangre', usage: '<OptionGroup ariaLabel options value onChange look columns caps>' },
 };
 
 function exportedComponents(src) {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FogCell, SceneVision } from '@rolvium/core';
 import type { DoorSettings, Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewRoom, NewRoomOpening, NewToken, NewWall, Room, RoomKind, RoomOpening, RoomShapeKind, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
-import type { VisionPort } from '../domain/ports/VisionPort';
+import type { FogBrush, VisionPort } from '../domain/ports/VisionPort';
 import { splitWallAt, unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
 import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
 import { newGroupId } from '../domain/useCases/groupRules';
@@ -78,6 +78,13 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   const roomOpeningsRef = useRef<RoomOpening[]>([]);
   roomOpeningsRef.current = roomOpenings;
   roomsRef.current = rooms;
+  /** …y las de trazos, fichas y luces, por lo mismo: deshacer un borrado tiene que saber qué había ahí. */
+  const drawingsRef = useRef<Drawing[]>([]);
+  drawingsRef.current = drawings;
+  const tokensRef = useRef<Token[]>([]);
+  tokensRef.current = tokens;
+  const lightsRef = useRef<Light[]>([]);
+  lightsRef.current = lights;
   const [live, setLive] = useState<Scene | null>(scene);
   const [drags, setDrags] = useState<Record<string, LiveDrag>>({});
   const [pin, setPin] = useState<LivePin | null>(null);
@@ -400,11 +407,88 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     announceVision();
   }, [repo, sceneId, live, announceVision]);
 
-  const addToken = useCallback(async (t: NewToken) => { const created = await repo.addToken(t); setTokens(l => (l.some(x => x.id === created.id) ? l : [...l, created])); return created; }, [repo]);
-  const removeToken = useCallback(async (id: string) => { setTokens(l => l.filter(t => t.id !== id)); await repo.removeToken(id); }, [repo]);
+  /**
+   * ↩️ DESHACER Y REHACER (§ «Rebanada 8»). Petición suya del 2026-08-19, aparcada dos veces y reclamada el
+   * 2026-09-03: «*el deshacer y el inverso no funciona*».
+   *
+   * 🔑 Cada acción de Builder se envuelve aquí y se apila con SU vuelta atrás. Las de arriba, las `…Raw`, son
+   * las que hacen el trabajo y NO apilan: si apilaran, deshacer un paso metería otro paso y no se saldría
+   * nunca del bucle.
+   *
+   * ⚠️ Los ids CAMBIAN al deshacer un borrado —la fila anterior ya no existe, se escribe una nueva—, así que
+   * cada paso se queda con los ids nuevos en una variable propia. Sin eso, el segundo rehacer iría a por filas
+   * que ya no están.
+   */
+  const history = useHistory();
+  const { push } = history;
+
+  /**
+   * 🐞 COLOCAR Y QUITAR UNA FICHA ENTRAN EN EL HISTORIAL (segunda vuelta de su queja del 2026-09-10: «*el
+   * Ctrl+Z sigue dando por culo, depende con qué te deja deshacer o no*»). Un deshacer que depende de con qué
+   * herramienta estabas es peor que no tenerlo: nadie lleva la cuenta de qué acciones cuentan.
+   *
+   * ⚠️ MOVER una ficha NO entra, y es deliberado: la mueve cualquier jugador y por el canal en vivo, así que
+   * un Ctrl+Z del director tiraría de la ficha de otro por debajo. Queda anotado en `WORK_STATE.md`.
+   */
+  const addToken = useCallback(async (t: NewToken) => {
+    const created = await repo.addToken(t);
+    setTokens(l => (l.some(x => x.id === created.id) ? l : [...l, created]));
+    let vivo = created;
+    push({
+      label: 'maps.history.token',
+      undo: async () => { setTokens(l => l.filter(x => x.id !== vivo.id)); await repo.removeToken(vivo.id); },
+      redo: async () => { vivo = await repo.addToken(t); setTokens(l => [...l, vivo]); },
+    });
+    return created;
+  }, [repo, push]);
+  const removeToken = useCallback(async (id: string) => {
+    const antes = tokensRef.current.find(t => t.id === id);
+    setTokens(l => l.filter(t => t.id !== id));
+    await repo.removeToken(id);
+    if (!antes) return;
+    const { id: _id, ...input } = antes;
+    let vivo = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { vivo = await repo.addToken(input as NewToken); setTokens(l => [...l, vivo]); },
+      redo: async () => { setTokens(l => l.filter(x => x.id !== vivo.id)); await repo.removeToken(vivo.id); },
+    });
+  }, [repo, push]);
   const patchToken = useCallback(async (id: string, patch: Partial<Token>) => { setTokens(l => l.map(t => (t.id === id ? { ...t, ...patch } : t))); await repo.updateToken(id, patch); }, [repo]);
-  const addDrawing = useCallback(async (d: NewDrawing) => { const created = await repo.addDrawing(d); setDrawings(l => (l.some(x => x.id === created.id) ? l : [...l, created])); return created; }, [repo]);
-  const eraseDrawing = useCallback(async (id: string) => { setDrawings(l => l.filter(d => d.id !== id)); await repo.removeDrawing(id); }, [repo]);
+  /**
+   * 🐞 DIBUJAR ENTRA EN EL HISTORIAL (suyo, 2026-09-10: «*revisa el Ctrl+Z, hace cosas raras o no funciona*»).
+   *
+   * Y «cosas raras» era exactamente esto: el historial se saltaba lo más frecuente —los trazos y los muros
+   * sueltos—, así que un Ctrl+Z después de dibujar tres rayas no deshacía ninguna: se iba a por la sala de
+   * hace cinco pasos. Un deshacer que salta acciones se lee como un deshacer roto, y con razón.
+   *
+   * El id es NUEVO al rehacer, así que quien apila el paso se queda con el vivo: si no, un deshacer posterior
+   * intentaría borrar una fila que ya no existe.
+   */
+  const addDrawing = useCallback(async (d: NewDrawing) => {
+    const created = await repo.addDrawing(d);
+    setDrawings(l => (l.some(x => x.id === created.id) ? l : [...l, created]));
+    let vivo = created;
+    push({
+      label: 'maps.history.drawing',
+      undo: async () => { setDrawings(l => l.filter(x => x.id !== vivo.id)); await repo.removeDrawing(vivo.id); },
+      redo: async () => { vivo = await repo.addDrawing(d); setDrawings(l => [...l, vivo]); },
+    });
+    return created;
+  }, [repo, push]);
+  const eraseDrawing = useCallback(async (id: string) => {
+    const antes = drawingsRef.current.find(d => d.id === id);
+    setDrawings(l => l.filter(d => d.id !== id));
+    await repo.removeDrawing(id);
+    if (!antes) return;
+    const input: NewDrawing = { sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, data: antes.data, color: antes.color, width: antes.width, layerId: antes.layerId };
+    let vivo = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { vivo = await repo.addDrawing(input); setDrawings(l => [...l, vivo]); },
+      redo: async () => { setDrawings(l => l.filter(x => x.id !== vivo.id)); await repo.removeDrawing(vivo.id); },
+    });
+  }, [repo, push]);
   const clearMine = useCallback(async () => { if (!sceneId) return; setDrawings(l => l.filter(d => d.authorId !== me)); await repo.removeMyDrawings(sceneId); }, [repo, sceneId, me]);
   const clearAll = useCallback(async () => { if (!sceneId) return; setDrawings([]); await repo.removeAllDrawings(sceneId); }, [repo, sceneId]);
   /**
@@ -426,8 +510,35 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       return [...l.filter(x => !hosts.has(x.id) && !fresh.some(f => f.id === x.id)), ...fresh];
     });
     announceVision();
+    /*
+     * 🐞 …Y ENTRA EN EL HISTORIAL. Era el otro hueco del Ctrl+Z: marcar muros sobre una foto es lo que más se
+     * hace en Builder, y no se podía deshacer ni uno.
+     *
+     * Deshacer un vano que PARTIÓ muros los devuelve enteros: primero se quitan los trozos y el vano, y
+     * después vuelven los anfitriones. Al revés quedaría un instante con la mampostería duplicada, y si algo
+     * falla a medias es mejor de más que un agujero que nadie pidió — el mismo criterio que al partirlos.
+     */
+    let vivos = { creado: created, trozos: pieces, anfitriones: splits.map(x => x.host) };
+    const deshacer = async (): Promise<void> => {
+      const fuera = [vivos.creado.id, ...vivos.trozos.map(x => x.id)];
+      await Promise.all(fuera.map(id => repo.removeWall(id)));
+      const vueltos = await Promise.all(vivos.anfitriones.map(h => repo.addWall(h)));
+      setWalls(l => [...l.filter(x => !fuera.includes(x.id)), ...vueltos]);
+      vivos = { ...vivos, anfitriones: vueltos };
+      announceVision();
+    };
+    const rehacer = async (): Promise<void> => {
+      const trozos = await Promise.all(splits.flatMap(sp => sp.pieces.map(pc => repo.addWall(wallPiece(sp.host, pc)))));
+      const creado = await repo.addWall(w);
+      const fuera = vivos.anfitriones.map(x => x.id);
+      await Promise.all(fuera.map(id => repo.removeWall(id)));
+      setWalls(l => [...l.filter(x => !fuera.includes(x.id)), ...trozos, creado]);
+      vivos = { creado, trozos, anfitriones: vivos.anfitriones };
+      announceVision();
+    };
+    push({ label: 'maps.history.wall', undo: deshacer, redo: rehacer });
     return created;
-  }, [repo, announceVision]);
+  }, [repo, announceVision, push]);
   /**
    * UNA HABITACIÓN DE GOLPE (§ «Rebanada 8»): N muros normales escritos de una vez.
    *
@@ -529,20 +640,6 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     return piece;
   }, [repo, wallGeometryRaw]);
 
-  /**
-   * ↩️ DESHACER Y REHACER (§ «Rebanada 8»). Petición suya del 2026-08-19, aparcada dos veces y reclamada el
-   * 2026-09-03: «*el deshacer y el inverso no funciona*».
-   *
-   * 🔑 Cada acción de Builder se envuelve aquí y se apila con SU vuelta atrás. Las de arriba, las `…Raw`, son
-   * las que hacen el trabajo y NO apilan: si apilaran, deshacer un paso metería otro paso y no se saldría
-   * nunca del bucle.
-   *
-   * ⚠️ Los ids CAMBIAN al deshacer un borrado —la fila anterior ya no existe, se escribe una nueva—, así que
-   * cada paso se queda con los ids nuevos en una variable propia. Sin eso, el segundo rehacer iría a por filas
-   * que ya no están.
-   */
-  const history = useHistory();
-  const { push } = history;
 
   const addRoom = useCallback(async (sides: NewWall[]) => {
     const created = await addRoomRaw(sides);
@@ -566,11 +663,24 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    * El suelo se HEREDA del momento de dibujar y se queda quieto: se copia aquí lo que la escena tenga puesto
    * ahora mismo. Cambiar el preajuste después no repinta esta sala — orden suya del 2026-09-03, en redondo.
    */
-  const addRoomShape = useCallback(async (shape: RoomShapeKind, points: [number, number][], kind: RoomKind = 'room') => {
+  /**
+   * `paint` es CON QUÉ NACE la forma (rebanada 10): la textura y el color que el pincel tenía elegidos. Es
+   * opcional a propósito — arrastrar un rectángulo en Builder sigue llamando a esto sin nada y la forma sale
+   * con el preajuste del mapa, exactamente como hasta hoy.
+   */
+  const addRoomShape = useCallback(async (shape: RoomShapeKind, points: [number, number][], kind: RoomKind = 'room', paint: { floorUrl?: string | null; floorColor?: string | null } = {}) => {
     if (!sceneId || !live || points.length < 3) return null;
     const input: NewRoom = {
       sceneId, campaignId: live.campaignId, kind, shape, points,
       floorPreset: live.roomPreset,
+      /**
+       * EL COLOR PROPIO de esta forma. `null` —lo normal— deja mandar al preajuste, que es lo que ha hecho
+       * siempre. Con el pincel puesto en COLOR llega el suyo, y queda pegado a ESTE brochazo: cambiar el
+       * color del pincel después no repinta lo ya pintado, igual que el preajuste no repinta las salas.
+       */
+      floorColor: paint.floorColor ?? null,
+      // Una sala nace sin pintar encima: su suelo se ve entero (rebanada 9).
+      floorMaskUrl: null, floorPaintUrl: null,
       /**
        * 🐞 `null` = «esta sala NO tiene suelo propio», y entonces manda la textura del mapa (`floorUrlOf`).
        *
@@ -579,8 +689,10 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
        * textura del piso en el momento cero no la carga*». El PREAJUSTE sí se congela, que es lo que él
        * ordenó («*como que repinta las salas, nooooo*»); la textura es del mapa. Esta columna se rellenará
        * cuando llegue el pincel de repintar el suelo de UNA sala, que es la tanda siguiente.
+       *
+       * …y con el pincel en TEXTURA sí llega una: la que él eligió del catálogo para este brochazo.
        */
-      floorUrl: null,
+      floorUrl: paint.floorUrl ?? null,
     };
     const created = await repo.addRoom(input);
     setRooms(l => (l.some(x => x.id === created.id) ? l : [...l, created]));
@@ -607,7 +719,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       label: 'maps.history.roomDelete',
       redo: async () => { setRooms(l => l.filter(x => x.id !== vivo.id)); await repo.removeRoom(vivo.id); announceVision(); },
       undo: async () => {
-        vivo = await repo.addRoom({ sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, shape: antes.shape, points: antes.points, floorPreset: antes.floorPreset, floorUrl: antes.floorUrl });
+        vivo = await repo.addRoom({ sceneId: antes.sceneId, campaignId: antes.campaignId, kind: antes.kind, shape: antes.shape, points: antes.points, floorPreset: antes.floorPreset, floorUrl: antes.floorUrl, floorColor: antes.floorColor, floorMaskUrl: antes.floorMaskUrl, floorPaintUrl: antes.floorPaintUrl });
         setRooms(l => [...l, vivo]);
         announceVision();
       },
@@ -616,10 +728,18 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
 
   /** Mover o estirar una forma. Las demás recuperan su contorno solas: la unión se calcula, no se guarda. */
   const moveRoom = useCallback(async (id: string, points: [number, number][]) => {
+    const antes = roomsRef.current.find(r => r.id === id)?.points;
     setRooms(l => l.map(r => (r.id === id ? { ...r, points } : r)));
     await repo.updateRoomPoints(id, points);
     announceVision();
-  }, [repo, announceVision]);
+    if (!antes) return;
+    const ir = async (a: [number, number][]): Promise<void> => {
+      setRooms(l => l.map(r => (r.id === id ? { ...r, points: a } : r)));
+      await repo.updateRoomPoints(id, a);
+      announceVision();
+    };
+    push({ label: 'maps.history.move', undo: () => ir(antes), redo: () => ir(points) });
+  }, [repo, announceVision, push]);
 
   /**
    * ABRIR UN VANO SOBRE EL CONTORNO. El gesto es el mismo disco de siempre; lo que cambia es dónde se guarda
@@ -821,7 +941,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     announceVision();
   }, [repo, announceVision]);
   /** DM brush: paints on every player's explored cells; the answer is the DM's own union. */
-  const paintFog = useCallback(async (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => {
+  const paintFog = useCallback(async (at: FogBrush, op: 'reveal' | 'hide') => {
     if (!sceneId || !vision) return;
     const seq = ++visionSeq.current;
     const next = await vision.paint(sceneId, op, at);
@@ -906,17 +1026,93 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     setLayers(l => l.map(x => (x.id === layer.id ? { ...x, maskUrl: null } : x)));
     await repo.clearMask(layer);
   }, [repo]);
+  /**
+   * EL MISMO PINCEL, SOBRE EL SUELO DE UNA SALA (rebanada 9). La textura del constructor no se toca: se sube
+   * un PNG aparte y se guarda el puntero, igual que en una capa.
+   *
+   * La fila se reemplaza ENTERA con la que contesta la base, y no se parchea sólo la URL, porque lo que hace
+   * que el navegador se entere del cambio es el `updated_at` que trae de vuelta — una sala no lleva número de
+   * versión.
+   */
+  const saveRoomFloorMask = useCallback(async (room: Room, png: Blob) => {
+    const next = await repo.saveRoomFloorMask(room, png);
+    setRooms(l => l.map(r => (r.id === next.id ? next : r)));
+    return next;
+  }, [repo]);
+  const clearRoomFloorMask = useCallback(async (room: Room) => {
+    setRooms(l => l.map(r => (r.id === room.id ? { ...r, floorMaskUrl: null } : r)));
+    await repo.clearRoomFloorMask(room);
+  }, [repo]);
+
+  /**
+   * ── LA PINTURA (rebanada 10) ──
+   * Tres destinos y el mismo trato: se sube un PNG aparte, la textura y la foto originales no se tocan, y la
+   * fila vuelve entera para traerse el rompe-caché consigo. **Nada de esto entra en la partida**: ni el
+   * cálculo de visión, ni el de colisiones, ni el de luces miran una sola de estas columnas.
+   */
+  /**
+   * 🔑 LA PINTURA DEL SUELO ES DE TODAS LAS FORMAS EXCAVADAS, no de una. Su fallo del 2026-09-10: una
+   * habitación suele ser varias formas fundidas, y con un fichero por forma el brochazo se cortaba en cada
+   * costura — «*se ve la silueta pintada de habitaciones previas, esto está mal*».
+   */
+  const saveRoomFloorPaint = useCallback(async (room: Room, png: Blob, alsoIds: readonly string[] = []) => {
+    const next = await repo.saveRoomFloorPaint(room, png, alsoIds);
+    const porId = new Map(next.map(r => [r.id, r]));
+    setRooms(l => l.map(r => porId.get(r.id) ?? r));
+    return next;
+  }, [repo]);
+  const clearRoomFloorPaint = useCallback(async (room: Room, alsoIds: readonly string[] = []) => {
+    const todas = new Set([room.id, ...alsoIds]);
+    setRooms(l => l.map(r => (todas.has(r.id) ? { ...r, floorPaintUrl: null } : r)));
+    await repo.clearRoomFloorPaint(room, alsoIds);
+  }, [repo]);
+  const saveLayerPaint = useCallback(async (layer: Layer, png: Blob) => {
+    const next = await repo.saveLayerPaint(layer, png);
+    setLayers(l => l.map(x => (x.id === next.id ? next : x)));
+    return next;
+  }, [repo]);
+  const clearLayerPaint = useCallback(async (layer: Layer) => {
+    setLayers(l => l.map(x => (x.id === layer.id ? { ...x, paintUrl: null } : x)));
+    await repo.clearLayerPaint(layer);
+  }, [repo]);
+  /**
+   * ⚠️ LA PINTURA DE LA ROCA NO ESTÁ AQUÍ, y es a propósito: va por ESCENA, y la escena la manda `SceneTab`
+   * —es quien tiene la lista y quien la escribe—. Este hook recibe la escena ya elegida, así que refrescarla
+   * desde dentro se la pisaría el padre en el siguiente repintado.
+   */
 
   const addLight = useCallback(async (l: NewLight) => {
     const created = await repo.addLight(l);
     setLights(list => (list.some(x => x.id === created.id) ? list : [...list, created]));
+    let vivo = created;
+    push({
+      label: 'maps.history.light',
+      undo: async () => { setLights(list => list.filter(x => x.id !== vivo.id)); await repo.removeLight(vivo.id); },
+      redo: async () => { vivo = await repo.addLight(l); setLights(list => [...list, vivo]); },
+    });
     return created;
-  }, [repo]);
+  }, [repo, push]);
+  /**
+   * Retocar una luz NO apila: el editor escribe en cada roce de un deslizador, y apilar cincuenta pasos por
+   * un color llenaría el historial de ruido — Ctrl+Z acabaría no llegando nunca a lo de antes.
+   */
   const patchLight = useCallback(async (id: string, patch: LightPatch) => {
     setLights(list => list.map(x => (x.id === id ? { ...x, ...patch } : x)));
     await repo.updateLight(id, patch);
   }, [repo]);
-  const removeLight = useCallback(async (id: string) => { setLights(list => list.filter(x => x.id !== id)); await repo.removeLight(id); }, [repo]);
+  const removeLight = useCallback(async (id: string) => {
+    const antes = lightsRef.current.find(x => x.id === id);
+    setLights(list => list.filter(x => x.id !== id));
+    await repo.removeLight(id);
+    if (!antes) return;
+    const { id: _id, createdAt: _c, updatedAt: _u, ...input } = antes;
+    let vivo = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { vivo = await repo.addLight(input as NewLight); setLights(list => [...list, vivo]); },
+      redo: async () => { setLights(list => list.filter(x => x.id !== vivo.id)); await repo.removeLight(vivo.id); },
+    });
+  }, [repo, push]);
 
   const focusPin = useCallback((p: Point) => {
     if (!sceneId || !live) return;
@@ -928,6 +1124,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     scene: live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog,
     dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
-    addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+    addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask,
+    saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint,
+    addLight, patchLight, removeLight, patchDrawingLayer,
+  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
 }

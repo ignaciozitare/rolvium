@@ -312,16 +312,18 @@ export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWat
 import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
 import type { SceneVision, VisionPort } from '@/modules/maps/domain/ports/VisionPort';
 import { DEFAULT_DOOR } from '@/modules/maps/domain/entities/Scene';
-import type { Drawing, ImageAsset, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
+import type { Drawing, ImageAsset, Layer, LayerPatch, MapColor, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
 import type { RoomOpeningPatch } from '@/modules/maps/domain/ports/MapsPort';
 
 export const SCENE_WAREHOUSE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Almacén de Queens', width: 1080, height: 675, bgColor: '#4a4a3e', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false,
   // Rebanada 8: una escena nace con el preajuste de serie y sin foto propia — como la crea la migración.
-  roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
+  roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4, wallTextureRotation: 0, floorTextureRotation: 0,
   // Sin color ni textura propios de puerta: nulo = el trazo del muro, que es como nacen todas.
   doorColor: null, doorTextureUrl: null, tokenScale: 1,
+  // Rebanada 9: el pincel de la escena, con los mismos valores que la app ya usaba antes de guardarlo.
+  brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5, bandTip: 'clean', bandRoughness: 0.5, rockPaintUrl: null,
   createdAt: '2026-08-18T00:00:00Z', updatedAt: '2026-08-18T00:00:00Z',
 };
 export const SCENE_CHAPEL: Scene = { ...SCENE_WAREHOUSE, id: 'sc-2', name: 'Capilla sin techo', sortOrder: 1, bgImageUrl: 'https://x/backgrounds/c1/chapel.png', bgColor: '#1a1a1a' };
@@ -343,7 +345,7 @@ export const IMAGE_CHAPEL: ImageAsset = { id: 'img-1', campaignId: 'c1', name: '
 export const IMAGE_MARKET: ImageAsset = { id: 'img-2', campaignId: 'c1', name: 'Mercado', url: 'https://x/backgrounds/c1/market.png', createdAt: '2026-08-18T00:00:00Z' };
 
 // ── Rebanada 7: capas de contenido y luces de ambiente ──
-const LAYER_BASE = { sceneId: 'sc-1', campaignId: 'c1', name: '', sortOrder: 0, visible: true, locked: false, imageUrl: null, transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, maskUrl: null, maskVersion: 0, createdAt: '2026-08-31T00:00:00Z', updatedAt: '2026-08-31T00:00:00Z' };
+const LAYER_BASE = { sceneId: 'sc-1', campaignId: 'c1', name: '', sortOrder: 0, visible: true, locked: false, imageUrl: null, transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, maskUrl: null, maskVersion: 0, paintUrl: null, paintVersion: 0, createdAt: '2026-08-31T00:00:00Z', updatedAt: '2026-08-31T00:00:00Z' };
 /** Las tres fijas van sin nombre: la pantalla las rotula desde `kind` con i18n. */
 export const LAYER_OBJECTS: Layer = { ...LAYER_BASE, id: 'ly-obj', kind: 'objects' };
 export const LAYER_CREATURES: Layer = { ...LAYER_BASE, id: 'ly-cre', kind: 'creatures' };
@@ -367,7 +369,7 @@ export const LIGHT_SECRET: Light = { ...LIGHT_BASE, id: 'li-secret', layerId: LA
  * In-memory MapsPort. Mutations are recorded; `emit(sceneId, …)` simulates realtime rows/events to subscribers;
  * `broadcasts` collects what I sent on the scene channel.
  */
-export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[]; props?: Prop[]; sceneProps?: SceneProp[]; rooms?: Room[]; roomOpenings?: RoomOpening[]; textures?: Texture[] } = {}) {
+export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[]; props?: Prop[]; sceneProps?: SceneProp[]; rooms?: Room[]; roomOpenings?: RoomOpening[]; textures?: Texture[]; colors?: MapColor[] } = {}) {
   const scenes = (seed.scenes ?? [SCENE_WAREHOUSE]).map(s => ({ ...s }));
   const tokens = (seed.tokens ?? []).map(t => ({ ...t }));
   const walls = (seed.walls ?? []).map(w => ({ ...w }));
@@ -381,6 +383,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const textures = (seed.textures ?? []).map(t => ({ ...t }));
   const textureUpdates: { id: string; patch: { name?: string; category?: Texture['category'] } }[] = [];
   const roomOpenings = (seed.roomOpenings ?? []).map(o => ({ ...o }));
+  const colors = (seed.colors ?? []).map(c => ({ ...c }));
   const subs = new Map<string, Set<MapsLiveHandlers>>();
   const broadcasts: { sceneId: string; event: MapsLiveEvent }[] = [];
   const tokenUpdates: { id: string; patch: TokenPatch }[] = [];
@@ -404,9 +407,15 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const propUploads: { name: string; bytes: number }[] = [];
   const masksSaved: { layerId: string; bytes: number }[] = [];
   const masksCleared: string[] = [];
+  /** El pincel sobre el suelo de una sala (rebanada 9). Se apunta aparte del de las capas: son dos destinos. */
+  const floorMasksSaved: { roomId: string; bytes: number }[] = [];
+  const floorMasksCleared: string[] = [];
+  /** LA PINTURA (rebanada 10) va por su lado: otro fichero y otra columna que la máscara. */
+  const paintSaved: { on: 'room' | 'rock' | 'layer'; id: string; bytes: number }[] = [];
+  const paintCleared: { on: 'room' | 'rock' | 'layer'; id: string }[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, rooms, roomOpenings, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, rooms, roomOpenings, colors, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared, floorMasksSaved, floorMasksCleared, paintSaved, paintCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -417,6 +426,17 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     updateScene: async (id: string, patch: ScenePatch) => { sceneUpdates.push({ id, patch }); const s = scenes.find(x => x.id === id); if (s) Object.assign(s, patch); },
     removeScene: async (id: string) => { const i = scenes.findIndex(s => s.id === id); if (i >= 0) scenes.splice(i, 1); },
     setActiveScene: async (_cid: string, sceneId: string | null) => { activated.push(sceneId); },
+    saveRockPaint: async (scene: Pick<Scene, 'id' | 'campaignId'>, png: Blob) => {
+      paintSaved.push({ on: 'rock', id: scene.id, bytes: png.size });
+      const sc = scenes.find(x => x.id === scene.id);
+      const next = { rockPaintUrl: `https://x/backgrounds/${scene.campaignId}/paint/rock-${scene.id}.png`, updatedAt: `t${++n}` };
+      if (sc) Object.assign(sc, next);
+      return { ...(sc ?? scenes[0]!), ...next };
+    },
+    clearRockPaint: async (scene: Pick<Scene, 'id' | 'campaignId'>) => {
+      paintCleared.push({ on: 'rock', id: scene.id });
+      const sc = scenes.find(x => x.id === scene.id); if (sc) sc.rockPaintUrl = null;
+    },
     listImages: async (cid: string) => images.filter(i => i.campaignId === cid),
     uploadImage: async (campaignId: string, _file: Blob, name: string) => { uploads.push({ campaignId, name }); const img: ImageAsset = { id: `img-new-${++n}`, campaignId, name, url: `https://x/backgrounds/${campaignId}/${name}.png`, createdAt: '' }; images.unshift(img); return img; },
     removeImage: async (id: string) => { const i = images.findIndex(x => x.id === id); if (i >= 0) images.splice(i, 1); },
@@ -464,6 +484,17 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
       return { ...(l ?? LAYER_OBJECTS), ...next };
     },
     clearMask: async (layer: Pick<Layer, 'id' | 'campaignId'>) => { masksCleared.push(layer.id); const l = layers.find(x => x.id === layer.id); if (l) l.maskUrl = null; },
+    saveLayerPaint: async (layer: Pick<Layer, 'id' | 'campaignId' | 'paintVersion'>, png: Blob) => {
+      paintSaved.push({ on: 'layer', id: layer.id, bytes: png.size });
+      const l = layers.find(x => x.id === layer.id);
+      const next = { paintUrl: `https://x/backgrounds/${layer.campaignId}/paint/layer-${layer.id}.png`, paintVersion: layer.paintVersion + 1 };
+      if (l) Object.assign(l, next);
+      return { ...(l ?? LAYER_OBJECTS), ...next };
+    },
+    clearLayerPaint: async (layer: Pick<Layer, 'id' | 'campaignId'>) => {
+      paintCleared.push({ on: 'layer', id: layer.id });
+      const l = layers.find(x => x.id === layer.id); if (l) l.paintUrl = null;
+    },
     listLights: async (sid: string) => lights.filter(l => l.sceneId === sid),
     addLight: async (l: NewLight) => { const created: Light = { ...l, id: `li-new-${++n}`, createdAt: '', updatedAt: '' }; lights.push(created); return created; },
     updateLight: async (id: string, patch: LightPatch) => { lightUpdates.push({ id, patch }); const l = lights.find(x => x.id === id); if (l) Object.assign(l, patch); },
@@ -505,6 +536,43 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     addRoom: async (r: NewRoom) => { const created: Room = { ...r, id: `rm-new-${++n}`, createdAt: '', updatedAt: '' }; rooms.push(created); return created; },
     updateRoomPoints: async (id: string, points: [number, number][]) => { const r = rooms.find(x => x.id === id); if (r) r.points = points; },
     removeRoom: async (id: string) => { const i = rooms.findIndex(r => r.id === id); if (i >= 0) rooms.splice(i, 1); },
+    saveRoomFloorMask: async (room: Pick<Room, 'id' | 'campaignId'>, png: Blob) => {
+      floorMasksSaved.push({ roomId: room.id, bytes: png.size });
+      const r = rooms.find(x => x.id === room.id);
+      // La fila vuelve con `updatedAt` NUEVO, que es el rompe-caché de una sala (no lleva número de versión).
+      const next = { floorMaskUrl: `https://x/backgrounds/${room.campaignId}/masks/room-${room.id}.png`, updatedAt: `t${++n}` };
+      if (r) Object.assign(r, next);
+      return { ...(r ?? rooms[0]!), ...next };
+    },
+    clearRoomFloorMask: async (room: Pick<Room, 'id' | 'campaignId'>) => {
+      floorMasksCleared.push(room.id);
+      const r = rooms.find(x => x.id === room.id);
+      if (r) r.floorMaskUrl = null;
+    },
+    /** Un solo PNG y N punteros: es lo que evita que la pintura se corte en las costuras de una habitación. */
+    saveRoomFloorPaint: async (room: Pick<Room, 'id' | 'campaignId'>, png: Blob, alsoIds: readonly string[] = []) => {
+      paintSaved.push({ on: 'room', id: room.id, bytes: png.size });
+      const ids = [room.id, ...alsoIds.filter(id => id !== room.id)];
+      const url = `https://x/backgrounds/${room.campaignId}/paint/room-${room.id}.png`;
+      const tocadas = rooms.filter(r => ids.includes(r.id));
+      for (const r of tocadas) Object.assign(r, { floorPaintUrl: url, updatedAt: `t${++n}` });
+      return tocadas.length ? [...tocadas] : [{ ...rooms[0]!, floorPaintUrl: url, updatedAt: `t${++n}` }];
+    },
+    clearRoomFloorPaint: async (room: Pick<Room, 'id' | 'campaignId'>, alsoIds: readonly string[] = []) => {
+      paintCleared.push({ on: 'room', id: room.id });
+      const ids = [room.id, ...alsoIds];
+      for (const r of rooms) if (ids.includes(r.id)) r.floorPaintUrl = null;
+    },
+    // ── los colores guardados de la campaña (rebanada 10) ──
+    listColors: async (cid: string) => colors.filter(c => c.campaignId === cid),
+    addColor: async (cid: string, color: string) => {
+      // El mismo color no entra dos veces: en la base lo impide un índice único, aquí se imita igual.
+      const ya = colors.find(c => c.campaignId === cid && c.color.toLowerCase() === color.toLowerCase());
+      if (ya) return ya;
+      const created: MapColor = { id: `mc-new-${++n}`, campaignId: cid, color, createdAt: `t${n}` };
+      colors.push(created);
+      return created;
+    },
     listRoomOpenings: async (sid: string) => roomOpenings.filter(o => o.sceneId === sid),
     addRoomOpening: async (o: NewRoomOpening) => { const created: RoomOpening = { ...DEFAULT_DOOR, ...o, id: `ro-new-${++n}` }; roomOpenings.push(created); return created; },
     updateRoomOpening: async (id: string, patch: RoomOpeningPatch) => { const o = roomOpenings.find(x => x.id === id); if (o) Object.assign(o, patch); },

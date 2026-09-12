@@ -228,3 +228,21 @@ describe('<TextureCatalog>', () => {
     expect(piezas(rejilla())).toHaveLength(4);
   });
 });
+
+/**
+ * ── EL MISMO CATÁLOGO PARA EL PINCEL (rebanada 10) ──
+ *
+ * Petición suya del 2026-09-10: «*¿cómo hago para elegir la textura con la que quiero pintar? tengo que
+ * poder elegirla*». Sale del MISMO catálogo que la pared y el suelo —es de la herramienta y ya está hecho—,
+ * pero lo que promete al elegir una no es lo mismo: no se pone en la escena, se pone en el próximo brochazo.
+ */
+describe('<TextureCatalog> abierto desde el pincel', () => {
+  it('cambia el título y dice que la textura va con el brochazo, no con la escena', () => {
+    const { rejilla } = mount({ which: 'brush' });
+    expect(screen.getByText('Textura del pincel')).toBeInTheDocument();
+    expect(screen.getByText(/se pone en el PRÓXIMO brochazo/)).toBeInTheDocument();
+    expect(screen.queryByText(/textura base de esta escena/)).not.toBeInTheDocument();
+    // Y es el mismo catálogo: las mismas texturas, con el mismo botón de subir.
+    expect(piezas(rejilla())).toHaveLength(4);
+  });
+});

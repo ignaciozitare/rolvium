@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import type { SceneVision } from '@rolvium/core';
-import type { Wall } from '../domain/entities/Scene';
+import type { Room, Wall } from '../domain/entities/Scene';
+import { DEFAULT_DOOR } from '@/modules/maps/domain/entities/Scene';
 import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN, WALL_1 } from '../../../../tests/helpers/fakes';
 import { newLightOf } from '../domain/useCases/layerRules';
 import { useScene } from './useScene';
@@ -494,6 +495,112 @@ describe('useScene · la sonda de prueba acumula su memoria aquí, y la tira al 
   });
 });
 
+/**
+ * ── EL CTRL+Z, DE PUNTA A PUNTA ──
+ *
+ * 🐞 Suyo, 2026-09-10: «*revisa el Ctrl+Z, hace cosas raras o no funciona*». Y «cosas raras» era esto: el
+ * historial se saltaba lo más frecuente —los trazos y los muros sueltos—, así que pulsar Ctrl+Z después de
+ * dibujar tres rayas no deshacía ninguna: se iba a por la sala de hace cinco pasos.
+ */
+describe('useScene — el historial no se salta nada de lo que se dibuja', () => {
+  it('deshacer y rehacer un TRAZO', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addDrawing({ sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'stroke', data: { points: [[0, 0], [10, 10]] }, color: '#c9a84c', width: 2, layerId: null }); });
+    expect(r.current.drawings).toHaveLength(1);
+    expect(r.current.history.canUndo).toBe(true);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.drawing'); });
+    expect(r.current.drawings).toHaveLength(0);
+    await act(async () => { await r.current.history.redo(); });
+    expect(r.current.drawings).toHaveLength(1);
+  });
+
+  it('deshacer el BORRADO de un trazo lo devuelve', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], drawings: [DRAWING_MINE] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.eraseDrawing(DRAWING_MINE.id); });
+    expect(r.current.drawings).toHaveLength(0);
+    await act(async () => { await r.current.history.undo(); });
+    expect(r.current.drawings).toHaveLength(1);
+    expect(r.current.drawings[0]!.kind).toBe(DRAWING_MINE.kind);
+  });
+
+  it('deshacer y rehacer un MURO suelto', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], walls: [] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addWall({ sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', x1: 0, y1: 0, x2: 100, y2: 0, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, ...DEFAULT_DOOR }); });
+    expect(r.current.walls).toHaveLength(1);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.wall'); });
+    expect(r.current.walls).toHaveLength(0);
+    await act(async () => { await r.current.history.redo(); });
+    expect(r.current.walls).toHaveLength(1);
+  });
+
+  /** 🔒 Y el orden importa: Ctrl+Z deshace LO ÚLTIMO, no lo de hace cinco pasos. Eso era el fallo entero. */
+  it('deshace en orden: lo último primero', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], walls: [] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addWall({ sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', x1: 0, y1: 0, x2: 100, y2: 0, visiblePlayers: false, kind: 'wall', blocksSight: true, blocksMove: true, isOpen: false, ...DEFAULT_DOOR }); });
+    await act(async () => { await r.current.addDrawing({ sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'stroke', data: { points: [[0, 0]] }, color: '#c9a84c', width: 2, layerId: null }); });
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.drawing'); });
+    expect(r.current.walls).toHaveLength(1);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.wall'); });
+    expect(r.current.walls).toHaveLength(0);
+    // Y cuando no queda nada, lo dice con un `null` en vez de callarse.
+    await act(async () => { expect(await r.current.history.undo()).toBeNull(); });
+  });
+
+  /** Colocar una ficha y quitarla también entran: «depende con qué te deja deshacer o no» era el fallo. */
+  it('deshacer y rehacer COLOCAR una ficha', async () => {
+    const repo = fakeMapsRepo({ tokens: [] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addToken({ ...TOKEN_KAREN, id: undefined as unknown as string } as never); });
+    expect(r.current.tokens).toHaveLength(1);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.token'); });
+    expect(r.current.tokens).toHaveLength(0);
+    await act(async () => { await r.current.history.redo(); });
+    expect(r.current.tokens).toHaveLength(1);
+  });
+
+  it('deshacer QUITAR una ficha la devuelve', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.removeToken(TOKEN_KAREN.id); });
+    expect(r.current.tokens).toHaveLength(0);
+    await act(async () => { await r.current.history.undo(); });
+    expect(r.current.tokens).toHaveLength(1);
+    expect(r.current.tokens[0]!.name).toBe(TOKEN_KAREN.name);
+  });
+
+  /** Y las luces, que también son de Builder. */
+  it('deshacer y rehacer una LUZ', async () => {
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.addLight(newLightOf('fire', { x: 100, y: 200 }, SCENE_WAREHOUSE)); });
+    expect(r.current.lights).toHaveLength(1);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.light'); });
+    expect(r.current.lights).toHaveLength(0);
+    await act(async () => { await r.current.history.redo(); });
+    expect(r.current.lights).toHaveLength(1);
+  });
+
+  it('deshacer un MOVIMIENTO de forma la devuelve donde estaba', async () => {
+    const SALA = {
+      id: 'rm-1', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+      points: [[0, 0], [100, 0], [100, 100], [0, 100]] as [number, number][], floorPreset: 'hatch' as const,
+      floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: 't', updatedAt: 't',
+    };
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], rooms: [SALA] });
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.moveRoom('rm-1', [[50, 50], [150, 50], [150, 150], [50, 150]]); });
+    expect(r.current.rooms[0]!.points[0]).toEqual([50, 50]);
+    await act(async () => { await r.current.history.undo(); });
+    expect(r.current.rooms[0]!.points[0]).toEqual([0, 0]);
+    await act(async () => { await r.current.history.redo(); });
+    expect(r.current.rooms[0]!.points[0]).toEqual([50, 50]);
+  });
+});
+
 describe('useScene — capas y luces', () => {
   const seedLayers = () => fakeMapsRepo({ tokens: [TOKEN_KAREN], layers: [LAYER_OBJECTS, LAYER_FLOOR, LAYER_MOSS], lights: [LIGHT_TORCH], drawings: [{ ...DRAWING_MINE, layerId: LAYER_MOSS.id }] });
 
@@ -553,6 +660,83 @@ describe('useScene — capas y luces', () => {
     expect(r.current.layers.find(l => l.id === LAYER_MOSS.id)!.maskVersion).toBe(before + 1);
     await act(async () => { await r.current.clearMask(moss); });
     expect(r.current.layers.find(l => l.id === LAYER_MOSS.id)!.maskUrl).toBeNull();
+  });
+
+  /**
+   * ── EL MISMO PINCEL, SOBRE EL SUELO DE UNA SALA (rebanada 9) ──
+   * La fila se reemplaza ENTERA con la que contesta la base, y no se parchea sólo la URL: lo que hace que el
+   * navegador se entere del cambio es el `updated_at` que trae de vuelta. Una sala no lleva número de versión
+   * como una capa, así que sin eso el PNG viejo se quedaría en la caché y parecería que el pincel no pinta.
+   */
+  it('pintar el suelo de una sala guarda su máscara y mueve su fecha; quitarla lo deja entero', async () => {
+    const SALA: Room = {
+      id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room', shape: 'rect',
+      points: [[0, 0], [100, 0], [100, 100], [0, 100]], floorPreset: 'hatch', floorUrl: null,
+      floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: 't', updatedAt: 't',
+    };
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], rooms: [SALA] });
+    const r = await mount(repo, fakeVisionPort());
+    const sala = r.current.rooms.find(x => x.id === 'rm-1')!;
+    await act(async () => { await r.current.saveRoomFloorMask(sala, new Blob(['x'])); });
+    expect(repo.floorMasksSaved).toEqual([{ roomId: 'rm-1', bytes: 1 }]);
+    const pintada = r.current.rooms.find(x => x.id === 'rm-1')!;
+    expect(pintada.floorMaskUrl).toContain('masks/room-rm-1.png');
+    expect(pintada.updatedAt).not.toBe('t');
+    await act(async () => { await r.current.clearRoomFloorMask(pintada); });
+    expect(r.current.rooms.find(x => x.id === 'rm-1')!.floorMaskUrl).toBeNull();
+    expect(repo.floorMasksCleared).toEqual(['rm-1']);
+  });
+
+  /**
+   * ── LA PINTURA (rebanada 10) ── El hermano de la máscara con el signo cambiado: aquélla QUITA para que
+   * asome lo de debajo, ésta PONE encima. Dos columnas y dos ficheros, para que el borrador de una no se
+   * lleve la otra por delante.
+   */
+  it('la pintura del suelo la apuntan TODAS las formas, y NO toca sus máscaras', async () => {
+    const SALA = {
+      id: 'rm-1', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+      points: [[0, 0], [100, 0], [100, 100], [0, 100]] as [number, number][], floorPreset: 'hatch' as const, floorUrl: null,
+      floorColor: null, floorMaskUrl: 'https://x/masks/room-rm-1.png', floorPaintUrl: null, createdAt: 't', updatedAt: 't',
+    };
+    // Una habitación de DOS trozos, que es el caso que él vio roto: la pintura se cortaba en la costura.
+    const TROZO2 = { ...SALA, id: 'rm-2', floorMaskUrl: null, points: [[100, 0], [200, 0], [200, 100], [100, 100]] as [number, number][] };
+    const repo = fakeMapsRepo({ tokens: [TOKEN_KAREN], rooms: [SALA, TROZO2] });
+    const r = await mount(repo, fakeVisionPort());
+    const sala = r.current.rooms.find(x => x.id === 'rm-1')!;
+    await act(async () => { await r.current.saveRoomFloorPaint(sala, new Blob(['x']), ['rm-2']); });
+    // UN solo fichero subido…
+    expect(repo.paintSaved).toEqual([{ on: 'room', id: 'rm-1', bytes: 1 }]);
+    const pintadas = r.current.rooms;
+    // …y las DOS formas apuntando a él: así el brochazo no se corta en la costura.
+    expect(pintadas.map(x => x.floorPaintUrl)).toEqual([
+      'https://x/backgrounds/c1/paint/room-rm-1.png',
+      'https://x/backgrounds/c1/paint/room-rm-1.png',
+    ]);
+    // El rompe-caché de una sala es su fecha, así que las filas vuelven enteras.
+    expect(pintadas[0]!.updatedAt).not.toBe('t');
+    // 🔒 Y la máscara sigue donde estaba: son dos cosas distintas.
+    expect(pintadas[0]!.floorMaskUrl).toBe('https://x/masks/room-rm-1.png');
+    await act(async () => { await r.current.clearRoomFloorPaint(pintadas[0]!, ['rm-2']); });
+    expect(r.current.rooms.every(x => x.floorPaintUrl === null)).toBe(true);
+    expect(r.current.rooms[0]!.floorMaskUrl).toBe('https://x/masks/room-rm-1.png');
+    expect(repo.paintCleared).toEqual([{ on: 'room', id: 'rm-1' }]);
+  });
+
+  it('la pintura de una capa sube su propia versión, aparte de la de la máscara', async () => {
+    const repo = seedLayers();
+    const r = await mount(repo, fakeVisionPort());
+    const moss = r.current.layers.find(l => l.id === LAYER_MOSS.id)!;
+    // Los números se copian ANTES: el repositorio de mentira muta la misma fila, como haría la de verdad.
+    const antesMascara = moss.maskVersion;
+    const antesPintura = moss.paintVersion;
+    await act(async () => { await r.current.saveLayerPaint(moss, new Blob(['x'])); });
+    expect(repo.paintSaved).toEqual([{ on: 'layer', id: 'ly-moss', bytes: 1 }]);
+    const pintada = r.current.layers.find(l => l.id === LAYER_MOSS.id)!;
+    expect(pintada.paintVersion).toBe(antesPintura + 1);
+    // La versión de la MÁSCARA no se mueve: pintar encima no es quitar.
+    expect(pintada.maskVersion).toBe(antesMascara);
+    await act(async () => { await r.current.clearLayerPaint(pintada); });
+    expect(r.current.layers.find(l => l.id === LAYER_MOSS.id)!.paintUrl).toBeNull();
   });
 
   it('las luces se ponen, se retocan y se quitan', async () => {

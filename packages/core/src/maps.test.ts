@@ -80,7 +80,9 @@ describe('slideCircle / segSegDist — paredes sólidas (rebanada 4)', () => {
   it('el cuerpo entero cuenta: el hueco por el que pasa un radio pequeño no deja pasar uno grande', () => {
     const hueco = [[100, 0, 100, 80], [100, 120, 100, 200]] as const;
     expect(slideCircle({ x: 60, y: 100 }, { x: 140, y: 100 }, 8, hueco)).toEqual({ x: 140, y: 100 });
-    // el grande avanza hasta que su cuerpo toca las esquinas del hueco, y ahí se queda — sin colarse
+    // el grande avanza hasta que su cuerpo toca las esquinas del hueco, y ahí se queda — sin colarse.
+    // 🦷 Y toca las DOS esquinas a la vez: rodear una lo metería en la otra, así que no se mueve — ni un pelo
+    // hacia atrás (la primera versión de «rodear las puntas» lo escurría 4 px para atrás desde aquí).
     const grande = slideCircle({ x: 60, y: 100 }, { x: 140, y: 100 }, 30, hueco);
     expect(grande.x).toBeCloseTo(100 - Math.sqrt(30.5 ** 2 - 20 ** 2), 2);
     expect(grande.y).toBeCloseTo(100, 6);
@@ -161,6 +163,85 @@ describe('slideCircle / segSegDist — paredes sólidas (rebanada 4)', () => {
       const r = slideCircle(desde, dedo, R, SALA);
       expect(r.x).toBeCloseTo(esperado.x, 2);
       expect(r.y).toBeCloseTo(esperado.y, 2);
+    });
+  });
+
+  /**
+   * 🦷 LOS DIENTES DEL BORDE ROTO (suyo, 2026-09-12, tras probar «A pulso» con borde roto: «*has desecho el tema
+   * de que no se pegue en las esquinas*»). No se había deshecho nada: el arreglo de la esquina de arriba seguía
+   * intacto y sus tests pasaban. Lo que pasaba es que un trazo con borde roto deja una pared DENTADA, y una ficha
+   * redonda que roza un diente se clavaba en su PUNTA: resbalar «a lo largo del muro tocado» no saca a nadie
+   * cuando lo tocado es un vértice, porque las dos caras del diente cierran en ángulo y ninguna proyección
+   * avanza. Ahora, al tocar una punta, la ficha prueba además a RODEARLA por la tangente de su propio cuerpo.
+   * Medido con su «Dungeon» (22 trazos rotos, 180 pasadas rozando la pared): clavadas 18 → 6, y ninguna
+   * posición final dentro de una pared.
+   */
+  describe('la ficha rodea las puntas: un borde dentado no la clava', () => {
+    const R = 17;
+    type Walls = readonly (readonly [number, number, number, number])[];
+    const legal = (p: ScenePoint, walls: Walls, r = R): boolean =>
+      walls.every(([x1, y1, x2, y2]) => segSegDist(p, p, { x: x1, y: y1 }, { x: x2, y: y2 }) >= r - 1e-6);
+
+    /** Una pared horizontal en y = 200 con el suelo ENCIMA, y un diente alto y estrecho que sube hacia el suelo. */
+    const DIENTE = [[0, 200, 240, 200], [240, 200, 245, 160], [245, 160, 250, 200], [250, 200, 600, 200]] as const;
+
+    it('empujada a lo largo de la pared, rodea un diente alto y estrecho y sigue (antes se clavaba delante de él)', () => {
+      let pos: ScenePoint = { x: 100, y: 200 - R - 1.5 };
+      for (let x = 110; x <= 500; x += 10) {
+        pos = slideCircle(pos, { x, y: 200 - R - 0.5 }, R, DIENTE);
+        expect(legal(pos, DIENTE)).toBe(true); // cada paso acaba en sitio legal: rodear nunca es cruzar
+      }
+      expect(pos.x).toBeGreaterThan(400);
+    });
+
+    /**
+     * Un caso REAL de su «Dungeon» (volcado de sólo lectura, 2026-09-12): las siete paredes a menos de 80 px de
+     * una de las 13 clavadas en punta que dio la simulación. La ficha está en la boca de un pasillo que baja en
+     * diagonal, tocando la esquina donde la pared de arriba se dobla hacia abajo, y el dedo tira hacia dentro del
+     * pasillo. Con el motor de antes no se movía ni un píxel.
+     */
+    const DUNGEON = [
+      [729.51, 530.59, 682.14, 530.59], [616.69, 530.59, 465.49, 530.59], [729.51, 616.18, 729.51, 530.59],
+      [616.66, 531.29, 616.69, 530.59], [682.14, 530.59, 691.24, 588.73], [691.24, 588.73, 726.96, 636.94],
+      [628.45, 606.62, 616.66, 531.29],
+    ] as const;
+
+    it('un caso real de su «Dungeon»: clavada en la esquina de la boca de un pasillo, entra en él', () => {
+      const desde = { x: 665.27, y: 525.96 }, dedo = { x: 788.7, y: 580.84 };
+      expect(legal(desde, DUNGEON)).toBe(true);
+      const r = slideCircle(desde, dedo, R, DUNGEON);
+      expect(Math.hypot(r.x - desde.x, r.y - desde.y)).toBeGreaterThan(15);
+      expect(legal(r, DUNGEON)).toBe(true);
+      // y acerca al dedo: rodear no es escurrirse hacia atrás
+      expect(Math.hypot(dedo.x - r.x, dedo.y - r.y)).toBeLessThan(Math.hypot(dedo.x - desde.x, dedo.y - desde.y));
+    });
+
+    it('al azar, con sierras y muros sueltos: saliendo de un sitio legal nunca acaba dentro de una pared', () => {
+      let seed = 20260912;
+      const rnd = (): number => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+      const malos: string[] = [];
+      let tirones = 0;
+      for (let escena = 0; escena < 300; escena++) {
+        const walls: Array<readonly [number, number, number, number]> = [];
+        let x = 0;
+        for (let i = 0, n = 2 + Math.floor(rnd() * 8); i < n; i++) {
+          const w = 4 + rnd() * 30, h = (rnd() < 0.5 ? -1 : 1) * rnd() * 40; // un diente hacia cada lado
+          walls.push([x, 200, x + w / 2, 200 + h], [x + w / 2, 200 + h, x + w, 200]);
+          x += w;
+        }
+        for (let i = 0; i < 3; i++) { const ax = rnd() * 300, ay = rnd() * 400; walls.push([ax, ay, ax + (rnd() - 0.5) * 120, ay + (rnd() - 0.5) * 120]); }
+        const r = 5 + rnd() * 25;
+        for (let k = 0; k < 5; k++) {
+          const from = { x: rnd() * 300, y: rnd() * 400 };
+          const to = { x: from.x + (rnd() - 0.5) * 160, y: from.y + (rnd() - 0.5) * 160 };
+          if (!legal(from, walls, r)) continue;
+          tirones++;
+          const fin = slideCircle(from, to, r, walls);
+          if (!legal(fin, walls, r)) malos.push(JSON.stringify({ from, to, r, fin }));
+        }
+      }
+      expect(tirones).toBeGreaterThan(500);
+      expect(malos).toEqual([]);
     });
   });
 

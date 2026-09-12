@@ -1,6 +1,6 @@
 import type { SceneVision } from '@rolvium/core';
 import { apiFetch } from '@/shared/lib/api';
-import type { VisionPort } from '../domain/ports/VisionPort';
+import type { FogBrush, VisionPort } from '../domain/ports/VisionPort';
 
 /** `POST /scenes/:id/vision` and `POST /scenes/:id/fog` on the Rolvium API (apps/api/src/infrastructure/http/mapsRoutes.ts). */
 export class HttpVisionAdapter implements VisionPort {
@@ -11,7 +11,7 @@ export class HttpVisionAdapter implements VisionPort {
     const body = { ...(at ? { at } : {}), ...(opts?.probe ? { probe: opts.probe } : {}) };
     return this.post(sceneId, 'vision', Object.keys(body).length > 0 ? body : undefined);
   }
-  paint(sceneId: string, op: 'reveal' | 'hide', at: { x: number; y: number; radius: number }): Promise<SceneVision> {
+  paint(sceneId: string, op: 'reveal' | 'hide', at: FogBrush): Promise<SceneVision> {
     return this.post(sceneId, 'fog', { op, at });
   }
   paintAll(sceneId: string, op: 'reveal' | 'hide'): Promise<SceneVision> { return this.post(sceneId, 'fog', { op, all: true }); }

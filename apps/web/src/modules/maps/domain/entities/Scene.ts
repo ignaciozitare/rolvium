@@ -8,6 +8,20 @@ export type BgFit = 'cover' | 'contain' | 'custom';
 export interface BgTransform { mode: BgFit; x: number; y: number; scale: number }
 export interface GridSettings { size: number; visible: boolean }
 
+/**
+ * LA PUNTA DEL PINCEL (rebanada 9). Espejo del CHECK de `maps_scenes.brush_tip`.
+ * `disc` corta a canto limpio · `soft` se difumina · `rough` sale con el borde roto.
+ */
+export type BrushTip = 'disc' | 'soft' | 'rough';
+export const BRUSH_TIPS: BrushTip[] = ['disc', 'soft', 'rough'];
+
+/**
+ * LA PUNTA DE «A PULSO» EN EL BUILDER (§ 10B.4). Espejo del CHECK de `maps_scenes.band_tip`.
+ * `clean` es el canto limpio de siempre · `rough` sale con el borde roto. Sin difuminado: un suelo se pisa o no.
+ */
+export type BandTip = 'clean' | 'rough';
+export const BAND_TIPS: BandTip[] = ['clean', 'rough'];
+
 export interface Scene {
   id: string;
   campaignId: string;
@@ -59,6 +73,13 @@ export interface Scene {
   wallTextureScale: number;
   floorTextureScale: number;
   /**
+   * 🔄 EL GIRO DEL MOSAICO de cada textura, EN GRADOS (0 ≤ x < 360). Petición suya del 2026-09-11: «*en la base del
+   * suelo y las paredes tengo que poder rotar sus texturas*». Hermanas de las escalas —una por textura— y gira el
+   * mosaico entero, como el «Giro» de la textura del Pincel (`tileMatrix`). De serie 0: ninguna escena cambia.
+   */
+  wallTextureRotation: number;
+  floorTextureRotation: number;
+  /**
    * EL COLOR DE TODAS LAS PUERTAS DE ESTA ESCENA (§ «Las puertas, de verdad»). `null` = el trazo del muro,
    * que es de donde salen hoy — y por eso es nulo y no un hex: clavar un color aquí obligaría a que la base
    * y el diseño dijeran lo mismo en dos sitios, y el día que cambie la tinta habría que migrar cada escena.
@@ -85,11 +106,45 @@ export interface Scene {
    * es el único sitio donde se toca — y por el que pasan el dibujo Y la colisión, para que no se descuadren.
    */
   tokenScale: number;
+  /**
+   * EL PINCEL SE GUARDA EN LA ESCENA (rebanada 9). Decisión suya del 2026-09-09, contra la recomendación
+   * contraria: «*el trazo es de la escena*». Un mapa tiene un estilo y el pincel es parte de él, así que se
+   * abre ese mapa y el pincel está como lo dejó; otro mapa trae el suyo.
+   *
+   * Los valores por defecto son los que la app ya usaba antes de existir estas columnas, así que una escena
+   * de antes se abre exactamente igual.
+   */
+  brushTip: BrushTip;
+  /** En CASILLAS y continuo, para los tres sitios donde se pinta. */
+  brushSize: number;
+  /** Cuánto tapa o destapa cada pasada, 0..1. Ahora también en la niebla, que iba a saco. */
+  brushStrength: number;
+  /** El BORDE: 0 se difumina, 1 corta a filo. Es la dureza de siempre. */
+  brushHardness: number;
+  /** Cuánto de roto, 0..1. **Sólo se aplica con `brushTip === 'rough'`.** */
+  brushRoughness: number;
+  /**
+   * LA PUNTA DE «A PULSO» TAMBIÉN SE GUARDA EN LA ESCENA (§ 10B.4), como el pincel y APARTE de él: uno pinta
+   * encima y el otro levanta paredes, y cambiar uno no puede cambiar el otro. De serie, canto limpio: una escena
+   * de antes dibuja exactamente como dibujaba.
+   */
+  bandTip: BandTip;
+  /** Cuánto de roto sale el borde de «A pulso», 0..1. **Sólo se aplica con `bandTip === 'rough'`.** */
+  bandRoughness: number;
+  /**
+   * LA PINTURA DE LA ROCA (rebanada 10): un PNG que se dibuja ENCIMA del muro, recortado contra la roca.
+   * `null` = sin pintar.
+   *
+   * 🔑 Va por ESCENA y no por forma a propósito: la roca no es una fila, es el negativo de lo excavado —«todo
+   * lo que no es habitación»—. No hay ninguna fila de muro a la que colgarle un PNG, y tampoco hace falta:
+   * la roca no se mueve.
+   */
+  rockPaintUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor' | 'doorTextureUrl' | 'tokenScale'>>;
+export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'wallTextureRotation' | 'floorTextureRotation' | 'doorColor' | 'doorTextureUrl' | 'tokenScale' | 'brushTip' | 'brushSize' | 'brushStrength' | 'brushHardness' | 'brushRoughness' | 'bandTip' | 'bandRoughness'>>;
 
 // ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps) ───────────────────────────
 // Espejo de `supabase/migrations/20260907120000_maps_doors.sql`.
@@ -249,11 +304,20 @@ export interface Layer {
   maskUrl: string | null;
   /** Sube en cada guardado: rompe la caché (`?v=N`) y delata al navegador que se quedó viejo. */
   maskVersion: number;
+  /**
+   * Sólo terreno: LA PINTURA de esta capa (rebanada 10), un PNG en
+   * `backgrounds/{campaignId}/paint/layer-{layerId}.png` que se dibuja ENCIMA de su foto. `null` = sin pintar.
+   * La foto original no se toca nunca, igual que con la máscara — lo contrario de la máscara es lo único que
+   * cambia: aquélla QUITA, ésta PONE.
+   */
+  paintUrl: string | null;
+  /** Su propio rompe-caché, aparte del de la máscara: se pintan y se borran por separado. */
+  paintVersion: number;
   createdAt: string;
   updatedAt: string;
 }
 export interface NewLayer { sceneId: string; campaignId: string; kind: LayerKind; name?: string; sortOrder?: number; imageUrl?: string | null; transform?: BgTransform }
-export type LayerPatch = Partial<Pick<Layer, 'name' | 'sortOrder' | 'visible' | 'locked' | 'imageUrl' | 'transform' | 'maskUrl' | 'maskVersion'>>;
+export type LayerPatch = Partial<Pick<Layer, 'name' | 'sortOrder' | 'visible' | 'locked' | 'imageUrl' | 'transform' | 'maskUrl' | 'maskVersion' | 'paintUrl' | 'paintVersion'>>;
 
 /** Forma de la luz. `cone` usa además `coneAngle`; en las otras dos se ignora. */
 export type LightShape = 'cone' | 'radius' | 'square';
@@ -401,8 +465,13 @@ export type ScenePropPatch = Partial<Omit<SceneProp, 'id' | 'sceneId' | 'campaig
 export type RoomPreset = 'hatch' | 'module' | 'ancient' | 'hatch_gray' | 'fill' | 'cavern' | 'simple' | 'ink' | 'hand';
 export const ROOM_PRESETS: RoomPreset[] = ['hatch', 'module', 'ancient', 'hatch_gray', 'fill', 'cavern', 'hand', 'simple', 'ink'];
 
-/** Con qué gesto se levantó la sala. No cambia cómo se funde: todas las formas siguen las mismas reglas. */
-export type RoomShapeKind = 'rect' | 'circle' | 'poly' | 'free';
+/**
+ * Con qué gesto se levantó la sala. No cambia cómo se funde: todas las formas siguen las mismas reglas.
+ *
+ * `brush` es un BROCHAZO del pincel (rebanada 10). Hoy se pinta y se funde como cualquier otra, y la marca
+ * existe para el día que una forma se pueda coger y editar: un rectángulo y un brochazo no se editan igual.
+ */
+export type RoomShapeKind = 'rect' | 'circle' | 'poly' | 'free' | 'brush';
 
 /**
  * QUÉ HACE UNA FORMA CON LA ROCA — y son las dos únicas cosas que se pueden hacer (suyo, 2026-09-04: «*los
@@ -434,6 +503,39 @@ export interface Room {
    */
   floorPreset: RoomPreset;
   floorUrl: string | null;
+  /**
+   * CON QUÉ COLOR ESTÁ PINTADA ESTA FORMA (rebanada 10). `null` = manda su preajuste.
+   *
+   * 🔑 **En una que EXCAVA es su suelo; en una que RELLENA es su roca.** Es la misma columna porque es la
+   * misma idea —«con qué está pintada esta forma»— y por eso un brochazo de MURO puede llevar su propia
+   * piedra sin inventar una segunda columna que dijera lo mismo.
+   *
+   * Qué manda sobre qué, y es el mismo orden que ya rige en las puertas: **la foto (`floorUrl`) gana al
+   * color, y el color gana al preajuste**. La consecuencia es buena y buscada: quitarle la textura a un
+   * brochazo no lo deja en blanco, descubre el color que había debajo.
+   */
+  floorColor: string | null;
+  /**
+   * DÓNDE SE HA PINTADO ENCIMA DE SU SUELO (rebanada 9). Un PNG, igual que la máscara de una capa de terreno
+   * y por el mismo motivo: la textura original **no se toca nunca** y siempre se puede volver atrás.
+   * `null` = sala sin pintar = el suelo se ve entero, que es como están todas las salas de antes.
+   *
+   * 🔑 **Y es lo que hace verdad «no me manches la pared»** (regla suya, 2026-09-09): la máscara pertenece a
+   * LA SALA, así que un brochazo no puede salirse de ella aunque el pincel pase por encima del muro. El
+   * recorte sale del sitio donde se guarda, no de una comprobación que alguien pueda olvidarse de escribir.
+   */
+  floorMaskUrl: string | null;
+  /**
+   * LA PINTURA DE ESTA FORMA (rebanada 10): un PNG que se dibuja ENCIMA de su suelo. `null` = sin pintar.
+   *
+   * ⚠️ **No es lo mismo que `floorMaskUrl`, y por eso son dos columnas.** Aquélla QUITA para que asome lo de
+   * debajo; ésta PONE encima, y se suma capa sobre capa (suyo, 2026-09-10: «*pinto musgo arriba y pongo otro
+   * color arriba de éste, se van sumando*»). Mezclarlas dejaría el borrador de una borrando la otra.
+   *
+   * 🔑 Cuelga de la fila porque **la pintura es de lo que pintaste**: hoy no se puede mover una habitación,
+   * pero el día que se pueda la pintura se va con ella sin escribir una línea más.
+   */
+  floorPaintUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -453,6 +555,22 @@ export interface RoomOpening extends DoorSettings {
   isOpen: boolean;
 }
 export type NewRoomOpening = Omit<RoomOpening, 'id' | keyof DoorSettings> & Partial<DoorSettings>;
+
+/**
+ * UN COLOR QUE ÉL SE INVENTÓ, guardado (rebanada 10 · `supabase/migrations/20260910140000_maps_colors.sql`).
+ *
+ * Espejo de la tabla. Lo que sale del cuentagotas o del campo de texto se queda en «tus colores», **por
+ * CAMPAÑA**: una campaña es un mundo con un aspecto, y el verde que mezclas para el bosque lo quieres en los
+ * demás mapas de ese bosque. Mismo alcance que la biblioteca de fondos, y por lo mismo.
+ *
+ * ⚠️ La PALETA BASE de la casa no vive aquí: ésa es código (`BRUSH_COLORS`), no dato.
+ */
+export interface MapColor {
+  id: string;
+  campaignId: string;
+  color: string;
+  createdAt: string;
+}
 
 // ── Rebanada 8 · EL CATÁLOGO DE TEXTURAS ────────────────────────────────────
 // Espejo de `supabase/migrations/20260904180000_maps_textures.sql`.

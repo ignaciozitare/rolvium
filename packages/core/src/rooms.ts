@@ -72,6 +72,11 @@ export interface RoomWall {
   isOpen: boolean;
   /** El vano del que salió este tramo, si salió de uno. La roca entre dos vanos no lleva ninguno. */
   openingId?: string;
+  /**
+   * Una PUERTA que NO cae sobre el contorno sino que CIERRA UN PASO, de una pared a la de enfrente (§ `roomWalls`).
+   * Tapa y frena como cualquier otra, pero no es un tramo de pared: quien dibuja el contorno no lo pinta como roca.
+   */
+  offOutline?: true;
 }
 
 /**
@@ -157,20 +162,27 @@ function paramOf(p: ScenePoint, a: ScenePoint, b: ScenePoint): number {
 }
 
 /**
- * ¿Está `p` DENTRO del anillo? Rayo horizontal y cuenta de cruces, el de toda la vida.
+ * ¿Está `p` DENTRO del anillo? Rayo horizontal, y se cuentan las VUELTAS que da el anillo alrededor del punto.
+ *
+ * 🐞 Antes contaba cruces —par o impar— y así NO pinta SVG, que rellena cada forma por vueltas (su regla de
+ * serie). En un anillo normal da igual: cero vueltas o una. Pero un trazo «A pulso» que se CRUZA consigo mismo
+ * da DOS vueltas sobre el cruce: SVG lo pintaba de suelo, aquí salía roca, y alrededor del cruce quedaban muros
+ * dentro del suelo (suyo, 2026-09-11: «*quedan estas líneas cruzadas, eso no debería pasar*»). Se contesta como
+ * se pinta.
  *
  * Devuelve `false` para un punto que esté justo ENCIMA del borde, y eso es a propósito: sobre el borde la
  * cuenta de cruces es una moneda al aire —depende de qué lado del vértice caiga el rayo— y quien pregunta ya
  * ha comprobado antes que el punto no roza el contorno. Aquí sólo se contesta lo que está claramente dentro.
  */
 export function pointInRing(p: ScenePoint, ring: RoomRing): boolean {
-  let inside = false;
+  let vueltas = 0;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const a = ring[i]!, b = ring[j]!;
     const crosses = (a.y > p.y) !== (b.y > p.y);
-    if (crosses && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+    // El lado va de `b` a `a`: según hacia dónde cruce el rayo, suma una vuelta o la resta.
+    if (crosses && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) vueltas += a.y > b.y ? 1 : -1;
   }
-  return inside;
+  return vueltas !== 0;
 }
 
 /** ¿Roza `p` el contorno del anillo? Es la pregunta que hace estable a `pointInRing`. */
@@ -188,12 +200,16 @@ function onRing(p: ScenePoint, ring: RoomRing, eps = ROOM_EPS): boolean {
  * un VÉRTICE de otra forma (dos salas que se tocan sin cruzarse, o una esquina apoyada en mitad de una
  * pared). Sin el segundo, dos rectángulos pegados por una cara no se parten por los extremos de la cara
  * compartida y el paso 3 no puede reconocer que ese tramo está repetido — el tabique se quedaría puesto.
+ *
+ * 🐞 Y donde lo cruza un lado de la MISMA forma: un trazo «A pulso» que se cruza consigo mismo (2026-09-11).
+ * Sin partir ahí, un lado que entra en el cruce es de muro por una punta y de suelo por la otra, y el paso 2 lo
+ * juzga entero por su punto medio: se quedaba un trozo de muro dentro del suelo.
  */
 function cutPoints(edge: Edge, others: readonly Edge[]): number[] {
   const ts: number[] = [0, 1];
   const push = (t: number): void => { if (t > 1e-9 && t < 1 - 1e-9) ts.push(t); };
   for (const o of others) {
-    if (o.ring === edge.ring) continue;
+    if (o === edge) continue;
     // Cruce propio de dos rectas.
     const d1x = edge.b.x - edge.a.x, d1y = edge.b.y - edge.a.y;
     const d2x = o.b.x - o.a.x, d2y = o.b.y - o.a.y;
@@ -204,6 +220,8 @@ function cutPoints(edge: Edge, others: readonly Edge[]): number[] {
       const u = (ex * d1y - ey * d1x) / den;
       if (u >= -1e-9 && u <= 1 + 1e-9) push(t);
     }
+    // De la misma forma sólo cuenta el cruce: sus vértices los comparten los lados vecinos, y eso no parte nada.
+    if (o.ring === edge.ring) continue;
     // Vértices del otro lado que se apoyan en éste (incluye el caso colineal, que es el del tabique).
     for (const p of [o.a, o.b]) {
       if (distToSegment(p, edge.a, edge.b) <= ROOM_EPS) push(paramOf(p, edge.a, edge.b));
@@ -237,14 +255,21 @@ function overlay(a: BlockSegment, b: BlockSegment): 'forward' | 'reverse' | null
  * salas solapadas devuelven la silueta de las dos; dos pegadas por una cara devuelven la silueta sin esa
  * cara — que es lo que hace que se lean como una sola habitación y no como dos con un tabique en medio.
  *
- * El coste es el de comparar cada lado con todos los demás. Con las salas que caben en un mapa (decenas de
- * formas, un puñado de lados cada una) son unos miles de comparaciones: nada. Y no crece con el tamaño de la
- * sala, sólo con cuántas hay — un rectángulo de media pantalla sigue teniendo cuatro lados.
+ * ⏱ EL COSTE, Y POR QUÉ NO SE COMPARA TODO CON TODO (suyo, 2026-09-11: «*esta recontra super lento*»). Partir
+ * cada lado mirando TODOS los del mapa crece al cuadrado con las esquinas, y el borde roto de «A pulso» las
+ * multiplica: su «Dungeon» (256 formas, 8.648 esquinas) tardaba ~2,5 s, y el servidor lo repetía en cada tirón
+ * de una ficha. Ahora un lado sólo se mira contra los que tiene CERCA y un punto sólo contra las formas que lo
+ * CUBREN (`casillero`). Lo lejano no podía partir ni tapar nada, así que salen las mismas paredes: con sus datos y
+ * en las escenas al azar de `rooms.index.test.ts`, tramo a tramo y en el mismo orden que el motor de antes. Sólo con
+ * lados paralelos hasta el ruido de coma flotante y a más de 90 px (de laboratorio: a mano no sale) el de antes
+ * partía un tramo en dos de más — la misma pared, un trozo más.
  */
 export function roomOutline(parts: readonly RoomPart[]): BlockSegment[] {
   const formas = parts.filter(f => f.ring.length >= 3);
   if (!formas.some(f => f.dig)) return [];
   const edges = formas.map(f => f.ring).flatMap(ringEdges);
+  const ladosCerca = casillero(edges.map(e => cajaDe([e.a, e.b])));
+  const formasCerca = casillero(formas.map(f => cajaDe(f.ring)));
 
   /**
    * ¿ESTÁ ESTE PUNTO EN EL VACÍO? Con esta pregunta se define TODO el mapa, y se contesta **como se pinta**:
@@ -252,16 +277,19 @@ export function roomOutline(parts: readonly RoomPart[]): BlockSegment[] {
    * encima de un muro abre; rellenar encima de una sala tapa.
    *
    * Y hacia qué lado dio la vuelta a cada forma da igual: `pointInRing` no mira el sentido.
+   *
+   * Sólo se pregunta a las formas que CUBREN el punto: una que no lo cubre no lo contiene. «La última» es la de
+   * índice más alto, así que no importa en qué orden salgan las candidatas.
    */
   const vacio = (p: ScenePoint): boolean => {
-    let dentro = false;
-    for (const f of formas) if (pointInRing(p, f.ring)) dentro = f.dig;
-    return dentro;
+    let ultima = -1;
+    for (const i of formasCerca([p.x, p.y, p.x, p.y])) if (i > ultima && pointInRing(p, formas[i]!.ring)) ultima = i;
+    return ultima >= 0 && formas[ultima]!.dig;
   };
 
   const kept: BlockSegment[] = [];
   for (const edge of edges) {
-    const ts = cutPoints(edge, edges);
+    const ts = cutPoints(edge, ladosCerca(cajaDe([edge.a, edge.b])).map(i => edges[i]!));
     for (let i = 0; i < ts.length - 1; i++) {
       const t0 = ts[i]!, t1 = ts[i + 1]!;
       const at = (t: number): ScenePoint => ({ x: edge.a.x + (edge.b.x - edge.a.x) * t, y: edge.a.y + (edge.b.y - edge.a.y) * t });
@@ -297,8 +325,129 @@ export function roomOutline(parts: readonly RoomPart[]): BlockSegment[] {
    * tapa, pero sí doblan el trabajo del motor de visión en cada refresco.
    */
   const out: BlockSegment[] = [];
-  for (const seg of kept) if (!out.some(o => overlay(o, seg))) out.push(seg);
+  /** Lo ya puesto, por la casilla de su PRIMERA punta: uno que pisa al nuevo arranca junto a una de sus dos puntas. */
+  const porPunta = new Map<number, BlockSegment[]>();
+  const alrededor = (x: number, y: number, holgura: number): number[] | null => casillasDe([x, y, x, y], PUNTA_CELDA, holgura);
+  for (const seg of kept) {
+    const cerca1 = alrededor(seg[0], seg[1], HOLGURA), cerca2 = alrededor(seg[2], seg[3], HOLGURA);
+    // Una punta que no cabe en el casillero (coordenada absurda o que no es un número) se compara con todo lo puesto.
+    const pisa = cerca1 && cerca2
+      ? [...cerca1, ...cerca2].some(k => porPunta.get(k)?.some(o => overlay(o, seg)))
+      : out.some(o => overlay(o, seg));
+    if (pisa) continue;
+    out.push(seg);
+    for (const k of alrededor(seg[0], seg[1], 0) ?? []) {
+      const l = porPunta.get(k);
+      if (l) l.push(seg); else porPunta.set(k, [seg]);
+    }
+  }
   return out;
+}
+
+/**
+ * La holgura con la que se pregunta al casillero, en px de escena: el doble de `ROOM_EPS`. Todo lo que el motor
+ * compara cae a `ROOM_EPS` o menos de lo comparado; el resto es margen para que un redondeo justo en el borde de
+ * una casilla no deje fuera a nadie. Contestar de más no cambia nada; de menos, sí.
+ */
+const HOLGURA = ROOM_EPS * 2;
+/** El lado de las casillas del paso 3: holgado para la tolerancia con la que se pisan dos tramos. */
+const PUNTA_CELDA = ROOM_EPS * 8;
+/** Una caja que tocaría más casillas que éstas no se reparte y se mira siempre: los lados larguísimos en diagonal. */
+const CASILLAS_MAX = 256;
+
+/** La caja de unos puntos, `[minX, minY, maxX, maxY]` en px de escena. */
+type Caja = readonly [number, number, number, number];
+
+function cajaDe(puntos: readonly ScenePoint[]): Caja {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const p of puntos) {
+    if (p.x < x0) x0 = p.x;
+    if (p.x > x1) x1 = p.x;
+    if (p.y < y0) y0 = p.y;
+    if (p.y > y1) y1 = p.y;
+  }
+  return [x0, y0, x1, y1];
+}
+
+/** Las casillas de lado `celda` que toca una caja ensanchada `holgura` px, o `null` si son demasiadas o no se pueden contar. */
+function casillasDe([x0, y0, x1, y1]: Caja, celda: number, holgura: number): number[] | null {
+  const ix0 = Math.floor((x0 - holgura) / celda), ix1 = Math.floor((x1 + holgura) / celda);
+  const iy0 = Math.floor((y0 - holgura) / celda), iy1 = Math.floor((y1 + holgura) / celda);
+  // 🐞 Una coordenada absurda (del orden de 10^16 px o más) da casillas más allá de 2^53, donde `ix++` ya no avanza y
+  // el bucle de abajo no acababa nunca. Con ésas —y con las que no son números— no se reparte: se mira todo.
+  if (!(Number.isSafeInteger(ix0) && Number.isSafeInteger(ix1) && Number.isSafeInteger(iy0) && Number.isSafeInteger(iy1))) return null;
+  if (!((ix1 - ix0 + 1) * (iy1 - iy0 + 1) <= CASILLAS_MAX)) return null;
+  const out: number[] = [];
+  // Una clave por casilla. Si dos casillas lejanísimas llegaran a compartirla, sólo saldrían candidatas de más.
+  for (let ix = ix0; ix <= ix1; ix++) for (let iy = iy0; iy <= iy1; iy++) out.push(ix * 4194304 + iy);
+  return out;
+}
+
+/**
+ * ⏱ UN CASILLERO: reparte cajas en casillas cuadradas y contesta cuáles caen cerca de otra caja.
+ *
+ * Contesta DE MÁS, nunca de menos —toda caja que comparta casilla con la pregunta, más las que no se repartieron
+ * por enormes—, y quien pregunta sigue haciendo con cada candidata su cuenta exacta de siempre. Por eso no puede
+ * cambiar el resultado: sólo se salta lo que está demasiado lejos para cortar, tocar o contener.
+ *
+ * El lado de la casilla es el doble de la caja mediana: casi todas caen en una o dos casillas.
+ */
+function casillero(cajas: readonly Caja[]): (caja: Caja) => number[] {
+  const medidas = cajas.map(([x0, y0, x1, y1]) => Math.max(x1 - x0, y1 - y0)).filter(Number.isFinite).sort((a, b) => a - b);
+  const celda = Math.max(ROOM_EPS * 8, 2 * (medidas[medidas.length >> 1] ?? 0));
+  const casillas = new Map<number, number[]>();
+  const grandes: number[] = [];
+  cajas.forEach((caja, i) => {
+    const claves = casillasDe(caja, celda, 0);
+    if (!claves) { grandes.push(i); return; }
+    for (const k of claves) {
+      const l = casillas.get(k);
+      if (l) l.push(i); else casillas.set(k, [i]);
+    }
+  });
+  // Una caja puede estar en varias casillas de la misma pregunta: se marca con el número de pregunta y sale una vez.
+  const vista = new Array<number>(cajas.length).fill(0);
+  let pregunta = 0;
+  return caja => {
+    const claves = casillasDe(caja, celda, HOLGURA);
+    if (!claves) return cajas.map((_, i) => i);
+    pregunta++;
+    const out = [...grandes];
+    for (const k of claves) {
+      for (const i of casillas.get(k) ?? []) if (vista[i] !== pregunta) { vista[i] = pregunta; out.push(i); }
+    }
+    return out;
+  };
+}
+
+/** Una forma tal como la guarda la base: para el contorno sólo cuentan si rellena y sus puntos, en orden. */
+export interface RoomShapeRow { kind: string; points: readonly (readonly [number, number])[] }
+
+/**
+ * ¿SALE EL MISMO CONTORNO? La pregunta de quien RECUERDA las paredes ya calculadas (specs/modules/maps/SPEC.md
+ * § «Las paredes no se recalculan en cada movimiento»): el servidor, escena a escena, y el lienzo, pintada a pintada.
+ *
+ * Se compara TODO lo que entra en el cálculo y nada más: el orden de las formas (la última manda), si cada una
+ * excava o rellena, cada punto, y cada vano con su id —de él cuelga cómo se pinta la puerta—. Una lista NUEVA con
+ * lo mismo dentro (el eco de la base, pintar un suelo) dice que sí; mover un punto, abrir una puerta o cambiar el
+ * orden dice que no.
+ */
+export function sameRoomInput(
+  a: { rooms: readonly RoomShapeRow[]; openings: readonly RoomOpeningSpan[] },
+  b: { rooms: readonly RoomShapeRow[]; openings: readonly RoomOpeningSpan[] },
+): boolean {
+  if (a.rooms.length !== b.rooms.length || a.openings.length !== b.openings.length) return false;
+  for (let i = 0; i < a.rooms.length; i++) {
+    const r = a.rooms[i]!, s = b.rooms[i]!;
+    if (r.kind !== s.kind || r.points.length !== s.points.length) return false;
+    for (let j = 0; j < r.points.length; j++) {
+      if (r.points[j]![0] !== s.points[j]![0] || r.points[j]![1] !== s.points[j]![1]) return false;
+    }
+  }
+  return a.openings.every((o, i) => {
+    const q = b.openings[i]!;
+    return o.id === q.id && o.x1 === q.x1 && o.y1 === q.y1 && o.x2 === q.x2 && o.y2 === q.y2 && o.kind === q.kind && o.isOpen === q.isOpen;
+  });
 }
 
 /**
@@ -316,6 +465,8 @@ export function roomWalls(parts: readonly RoomPart[], openings: readonly RoomOpe
   if (openings.length === 0) return outline.map(seg => ({ seg, kind: 'wall' as const, isOpen: false }));
 
   const out: RoomWall[] = [];
+  /** Los vanos que cayeron SOBRE algún lado. Los demás se miran al final, por si cierran un paso. */
+  const sobreUnLado = new Set<RoomOpeningSpan>();
   for (const seg of outline) {
     const a = { x: seg[0], y: seg[1] }, b = { x: seg[2], y: seg[3] };
     /** Los tramos de este lado que un vano se lleva, en parámetro 0→1 y ya recortados al lado. */
@@ -326,7 +477,7 @@ export function roomWalls(parts: readonly RoomPart[], openings: readonly RoomOpe
       if (distToSegment(p, a, b) > ROOM_EPS * 4 || distToSegment(q, a, b) > ROOM_EPS * 4) continue;
       const t0 = Math.max(0, Math.min(paramOf(p, a, b), paramOf(q, a, b)));
       const t1 = Math.min(1, Math.max(paramOf(p, a, b), paramOf(q, a, b)));
-      if (t1 - t0 > 1e-6) spans.push({ t0, t1, o });
+      if (t1 - t0 > 1e-6) { spans.push({ t0, t1, o }); sobreUnLado.add(o); }
     }
     if (spans.length === 0) { out.push({ seg, kind: 'wall', isOpen: false }); continue; }
     spans.sort((x, y) => x.t0 - y.t0);
@@ -338,15 +489,66 @@ export function roomWalls(parts: readonly RoomPart[], openings: readonly RoomOpe
     };
     let cursor = 0;
     for (const s of spans) {
-      if (s.t0 < cursor) { cursor = Math.max(cursor, s.t1); continue; }  // vanos pisados: manda el primero
+      /*
+       * VANOS PISADOS: manda el primero. Pero lo que el segundo SOBRESALE del primero vuelve a ser pared: antes
+       * el cursor saltaba sin poner nada y quedaba un agujero por el que pasaban la vista y las fichas (🐞 suyo,
+       * 2026-09-09: «*en producción puedes traspasar la puerta con el token*»). Metido del todo dentro, nada.
+       */
+      if (s.t0 < cursor) { piece(cursor, s.t1, 'wall', false); cursor = Math.max(cursor, s.t1); continue; }
       piece(cursor, s.t0, 'wall', false);
       piece(s.t0, s.t1, s.o.kind, s.o.isOpen, s.o.id);
       cursor = s.t1;
     }
     piece(cursor, 1, 'wall', false);
   }
+
+  /*
+   * 🐞 LA PUERTA QUE CIERRA UN PASO (suyo, 2026-09-11: «*dejan pasar la visión y no colisionas con ellas*»).
+   * Él la pone de una pared a la de enfrente, cruzando el pasillo —«*sobre un muro o un pasillo*», su encargo del
+   * 2026-09-07—, así que no cae SOBRE ningún lado y arriba no sale: se dibujaba, pero ni tapaba ni frenaba.
+   * Con sus DOS puntas apoyadas en la pared y el centro en el SUELO es un tramo propio: cerrada tapa y frena,
+   * abierta deja pasar, como cualquier puerta. Se alarga `GAP_REACH` por cada punta para que no quede una rendija
+   * entre ella y la pared.
+   *
+   * Una que flota en mitad del suelo —la del tabique fundido— no cierra nada y sigue sin tapar. Y una que atraviesa
+   * el GROSOR de un muro también va de pared a pared, pero por dentro de la roca: ahí no hay paso que cerrar (test
+   * «un vano se abre igual en un muro de relleno»).
+   *
+   * Dos más que tampoco cierran nada (revisión del 2026-09-11):
+   *  - Una TUMBADA A LO LARGO de una pared, con el centro pegado a ella: sus dos puntas también «se apoyan», pero no
+   *    cruza ningún paso. La que se pasaba unos px de la esquina metía un trozo de puerta en la boca del pasillo de
+   *    al lado, y sólo en las paredes de la izquierda y de arriba (`pointInRing` resuelve el borde por un lado).
+   *  - Una VENTANA: fuera del contorno no se dibuja —el repesque de `roomsLayer` es sólo de puertas— y frenar sin
+   *    verse sería un muro invisible en mitad del pasillo.
+   */
+  for (const o of openings) {
+    if (o.kind !== 'door' || sobreUnLado.has(o)) continue;
+    const p = { x: o.x1, y: o.y1 }, q = { x: o.x2, y: o.y2 };
+    const largo = Math.hypot(q.x - p.x, q.y - p.y);
+    if (largo <= ROOM_EPS) continue;
+    const apoyada = (pt: ScenePoint): boolean =>
+      outline.some(s => distToSegment(pt, { x: s[0], y: s[1] }, { x: s[2], y: s[3] }) <= GAP_REACH);
+    const centro = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+    if (!apoyada(p) || !apoyada(q) || apoyada(centro)) continue;
+    // ¿Suelo o roca? Manda la ÚLTIMA forma que cubre el centro, igual que al pintar; ninguna = roca.
+    let enSuelo = false;
+    for (const part of parts) if (pointInRing(centro, part.ring)) enSuelo = part.dig;
+    if (!enSuelo) continue;
+    const ux = ((q.x - p.x) / largo) * GAP_REACH, uy = ((q.y - p.y) / largo) * GAP_REACH;
+    out.push({
+      seg: [p.x - ux, p.y - uy, q.x + ux, q.y + uy], kind: o.kind, isOpen: o.isOpen, offOutline: true,
+      ...(o.id ? { openingId: o.id } : {}),
+    });
+  }
   return out;
 }
+
+/**
+ * Cuánto puede quedarse corta —o pasarse— la punta de una puerta que cierra un paso para contar como APOYADA en
+ * la pared, en px de escena. Las dos con las que él lo vio (2026-09-11) quedaban a 0,3 y a 3 px: con el candado
+ * abierto nada pega la punta a la pared, y la mano no es exacta. La del tabique fundido queda a 20 y sigue sin tapar.
+ */
+const GAP_REACH = ROOM_EPS * 12;
 
 /**
  * Lo que CORTA LA VISTA de un contorno. Mismo criterio que un muro de los de siempre, para que la niebla no

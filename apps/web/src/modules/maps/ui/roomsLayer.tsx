@@ -1,10 +1,12 @@
 import { memo } from 'react';
 import type { RoomWall } from '@rolvium/core';
-import type { Room, RoomOpening, RoomPreset, Scene } from '../domain/entities/Scene';
+import type { Room, RoomOpening, Scene } from '../domain/entities/Scene';
 import {
-  dugRooms, filledRooms, floorUrlOf, outlinePath, ringOf, ringPath, ringsOf, roomWallsOf, shadowDepthPx,
-  styleOf, tilePx, wallWidthPx,
+  dugRooms, filledRooms, outlinePath, ringOf, ringPath, ringsOf, roomWallsOf, shadowDepthPx, shapeColorOf,
+  shapeImageOf, styleOf, tilePx, wallWidthPx,
 } from '../domain/useCases/roomStyles';
+import { roomMaskSrc } from '../domain/useCases/layerRules';
+import { rockPaintSrc, roomPaintSrc } from '../domain/useCases/paintRules';
 import { doorColorOf, doorTextureOf, type Segment } from '../domain/useCases/mapRules';
 import { DoorLeaves } from './canvasLayers';
 
@@ -38,6 +40,16 @@ interface Props {
   selectedOpeningId?: string | null;
   /** Los ids de las máscaras, para que la rejilla pueda pedir la del agujero (ver `GridLayer`). */
   ids: RoomMaskIds;
+  /**
+   * LA MÁSCARA EN VIVO de la sala que se está pintando (rebanada 9): manda sobre la guardada hasta que el PNG
+   * suba. Sin esto el pincel no se vería hasta soltar el ratón, que es como pintar a ciegas.
+   */
+  floorPreview?: { roomId: string; href: string | null } | null;
+  /**
+   * LA PINTURA EN VIVO (rebanada 10), la que se pone ENCIMA. Va aparte de `floorPreview` porque son dos
+   * lienzos que hacen lo contrario, y porque ésta puede ser la de la ROCA, que no es de ninguna sala.
+   */
+  paintPreview?: { on: 'room' | 'rock'; id: string; href: string | null } | null;
 }
 
 export interface RoomMaskIds { rock: string; hole: string; hatch: string; blur: string; rockTile: string; floorTile: string }
@@ -74,21 +86,43 @@ const MASK_HIDE = '#000000';
  * suelo, y pintarlas de una en una serían veinte recortes y veinte rectángulos del tamaño del mapa. Juntar
  * sólo las CONSECUTIVAS es lo que mantiene el orden intacto.
  */
-interface Capa { key: string; rock: boolean; preset: RoomPreset; url: string | null; d: string }
+interface Capa { key: string; rock: boolean; url: string | null; d: string;
+  /** CON QUÉ SE PINTA, ya resuelto (rebanada 10): el color de la forma, o el del preajuste que le toque. */
+  color: string;
+  /** El PNG pintado sobre el suelo de ESTA sala, si lo tiene. Una capa con máscara es siempre de una sola sala. */
+  mask: string | null }
 
-function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl'>): Capa[] {
+function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl' | 'wallTextureUrl' | 'roomPreset'>, preview: Props['floorPreview'] = null): Capa[] {
   const out: Capa[] = [];
   for (const r of rooms) {
     const d = ringPath(ringOf(r));
     if (!d) continue;
     const rock = r.kind === 'fill';
-    // 🐞 La url se RESUELVE contra el mapa: una sala sin suelo propio usa el del mapa. Sin esto, las salas
-    // dibujadas antes de subir la textura se quedaban con el color del preajuste para siempre.
-    const url = rock ? null : floorUrlOf(r, scene);
-    const key = rock ? 'rock' : `${r.floorPreset}|${url ?? ''}`;
+    /*
+     * CADA FORMA SE PINTA CON LO SUYO (rebanada 10) — su foto y su color, resueltos en un solo sitio.
+     *
+     * 🐞 La url se RESUELVE contra el mapa: una sala sin suelo propio usa el del mapa. Sin esto, las salas
+     * dibujadas antes de subir la textura se quedaban con el color del preajuste para siempre.
+     *
+     * Y desde el pincel eso vale también para la que RELLENA: un brochazo de muro puede traer su propia
+     * piedra, y si no la trae sigue saliendo la roca del mapa, exactamente como hasta hoy.
+     */
+    const url = shapeImageOf(r, scene);
+    const color = shapeColorOf(r, scene.roomPreset);
+    // Un TABIQUE no lleva máscara: no tiene suelo que repintar, devuelve roca al hueco.
+    const mask = rock ? null : preview && preview.roomId === r.id ? preview.href : roomMaskSrc(r);
+    /*
+     * UNA SALA PINTADA NO SE JUNTA CON NADIE, y por eso su clave lleva su id. Juntar las seguidas que pintan
+     * lo mismo es lo que evita veinte recortes del tamaño del mapa, pero una máscara es SUYA: metida en un
+     * grupo se aplicaría también al suelo de las vecinas y aparecerían agujeros en salas que nadie tocó.
+     *
+     * ⚠️ Y la clave lleva el COLOR y la FOTO: dos brochazos seguidos de colores distintos pintan cosas
+     * distintas, así que juntarlos daría el color del primero a los dos.
+     */
+    const key = mask ? `pintada:${r.id}` : `${rock ? 'rock' : 'floor'}|${color}|${url ?? ''}`;
     const last = out[out.length - 1];
-    if (last && last.key === key) last.d += ` ${d}`;
-    else out.push({ key, rock, preset: r.floorPreset, url, d });
+    if (last && last.key === key && !mask) last.d += ` ${d}`;
+    else out.push({ key, rock, url, color, d, mask });
   }
   return out;
 }
@@ -107,7 +141,7 @@ function capasDe(rooms: readonly Room[], scene: Pick<Scene, 'floorTextureUrl'>):
  * desde `MapCanvas`) React ni entra en el cuerpo, y el arrastre va suelto. No cambia ni un píxel de lo que
  * se ve.
  */
-function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null }: Props): JSX.Element | null {
+function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null, floorPreview = null, paintPreview = null }: Props): JSX.Element | null {
   /**
    * ⏱ EL CONTORNO SE CALCULA UNA VEZ POR CAMBIO, NO UNA VEZ POR PINTADA.
    *
@@ -120,7 +154,12 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null 
    * número de hooks entre pintadas, que es lo que React no permite.
    */
   const excavado = dugRooms(rooms);
-  const walls = roomWallsOf(rooms, openings);
+  /**
+   * Lo que se PINTA es el contorno. Una puerta que cierra un paso de pared a pared (`offOutline`, 2026-09-11) ya
+   * tapa y frena —la visión y las colisiones lo leen de `roomWalls` directamente—, pero no es pared: se sigue
+   * dibujando abajo, donde él la puso, como hasta ahora y sin roca debajo.
+   */
+  const walls = roomWallsOf(rooms, openings).filter(w => !w.offOutline);
   if (excavado.length === 0) return null;
   const st = styleOf(scene.roomPreset);
   const width = wallWidthPx(scene);
@@ -129,7 +168,30 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null 
   const floorTile = tilePx(scene.floorTextureScale, scene.grid.size);
   // UNA sola lista, y se recorre dos veces con el MISMO índice: los patrones de `defs` y los rectángulos que
   // los usan se emparejan por ese índice, así que calcularla dos veces sería pedir que se descuadren.
-  const capasPintadas = capasDe(rooms, scene);
+  const capasPintadas = capasDe(rooms, scene, floorPreview);
+  /**
+   * 🐞 LA PINTURA DEL SUELO SE DIBUJA UNA SOLA VEZ, CONTRA EL AGUJERO — y no una por forma, que es lo que
+   * hacía hasta el 2026-09-10 y lo que él vio raro en pantalla («*la forma original de las habitaciones está
+   * haciendo algo raro*»).
+   *
+   * Dibujarla por forma obligaba a sacar cada sala pintada a su propia capa, y dos salas contiguas dibujadas
+   * por separado dejan una costura de medio píxel en el borde compartido: en cuanto se abría el pincel,
+   * aparecían las siluetas de todas las habitaciones. Contra el agujero —que ES la unión de lo excavado— no
+   * hay costuras que dejar, y de paso las capas vuelven a agruparse como antes.
+   *
+   * El dato sigue colgando de CADA forma (todas apuntan al mismo PNG), que es lo que hará que la pintura se
+   * vaya con la sala el día que una sala se pueda mover.
+   */
+  const floorPaint = paintPreview && paintPreview.on === 'room'
+    ? paintPreview.href
+    : roomPaintSrc(dugRooms(rooms).find(r => r.floorPaintUrl) ?? { floorPaintUrl: null, updatedAt: '' });
+  /**
+   * LA PINTURA DE LA ROCA (rebanada 10). Va por ESCENA porque la roca no es una fila: es el negativo de lo
+   * excavado. Y ahí es donde se cumple «*si se me va la mano al muro… lo mismo con el muro*»: se dibuja
+   * DENTRO de la misma máscara que ya talla la roca, así que lo que caiga sobre una sala no se ve — el
+   * recorte sale de dónde se guarda y de dónde se pinta, no de una comprobación.
+   */
+  const rockPaint = paintPreview && paintPreview.on === 'rock' ? paintPreview.href : rockPaintSrc(scene);
   const full = { x: 0, y: 0, width: scene.width, height: scene.height };
   /**
    * EL VACÍO = lo EXCAVADO menos lo RELLENADO (suyo, 2026-09-04: «*los muros serán relleno de esos huecos*»).
@@ -218,13 +280,20 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null 
           * de la escala en casillas: así se ve igual con cualquier rejilla y a cualquier zoom.
           */}
         {scene.wallTextureUrl && (
-          <pattern id={ids.rockTile} patternUnits="userSpaceOnUse" width={rockTile} height={rockTile}>
+          <pattern id={ids.rockTile} patternUnits="userSpaceOnUse" width={rockTile} height={rockTile} patternTransform={`rotate(${scene.wallTextureRotation})`}>
             <image href={scene.wallTextureUrl} x={0} y={0} width={rockTile} height={rockTile} preserveAspectRatio="xMidYMid slice" />
           </pattern>
         )}
+        {/*
+          * Un azulejo por capa, y del tamaño QUE LE TOCA: el de la roca cuando la forma rellena y el del
+          * suelo cuando excava. Son dos escalas distintas de la escena y mezclarlas dejaría la piedra de un
+          * brochazo de muro con el tamaño del suelo.
+          */}
         {capasPintadas.map((c, i) => c.url && (
-          <pattern key={i} id={`${ids.floorTile}-${i}`} patternUnits="userSpaceOnUse" width={floorTile} height={floorTile}>
-            <image href={c.url} x={0} y={0} width={floorTile} height={floorTile} preserveAspectRatio="xMidYMid slice" />
+          <pattern key={i} id={`${ids.floorTile}-${i}`} patternUnits="userSpaceOnUse"
+            width={c.rock ? rockTile : floorTile} height={c.rock ? rockTile : floorTile}
+            patternTransform={`rotate(${c.rock ? scene.wallTextureRotation : scene.floorTextureRotation})`}>
+            <image href={c.url} x={0} y={0} width={c.rock ? rockTile : floorTile} height={c.rock ? rockTile : floorTile} preserveAspectRatio="xMidYMid slice" />
           </pattern>
         ))}
         <filter id={ids.blur} x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox">
@@ -238,6 +307,8 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null 
         {scene.wallTextureUrl && (
           <rect {...full} fill={`url(#${ids.rockTile})`} data-testid="mp-room-rock-img" />
         )}
+        {/* La pintura, ENCIMA de la roca y de su textura: se suma, no la sustituye. */}
+        {rockPaint && <image href={rockPaint} {...full} preserveAspectRatio="none" data-testid="mp-room-rock-paint" />}
       </g>
 
       {/*
@@ -247,23 +318,44 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null 
         */}
       {capasPintadas.map((c, i) => {
         const maskId = `${ids.hole}-c${i}`;
-        const floor = styleOf(c.preset);
         return (
           <g key={i} data-testid={c.rock ? 'mp-room-refill' : 'mp-room-floor'}>
             <defs>
               <mask id={maskId} maskUnits="userSpaceOnUse" {...full}>
                 <rect {...full} fill={MASK_HIDE} />
                 <path d={c.d} fill={MASK_SHOW} />
+                {/*
+                  * EL PINCEL SOBRE EL SUELO DE ESTA SALA (rebanada 9). El PNG es negro donde se ha pintado y
+                  * transparente donde no, así que puesto ENCIMA del contorno blanco tapa justo lo pintado y
+                  * por ahí asoma lo que haya debajo. La textura del constructor no se toca: se puede volver
+                  * atrás siempre.
+                  *
+                  * Y aquí es donde «no me manches la pared» se cumple solo: la máscara vive dentro del
+                  * recorte de la sala, así que lo que caiga fuera de su contorno no pinta nada.
+                  */}
+                {c.mask && <image href={c.mask} {...full} preserveAspectRatio="none" data-testid="mp-room-floor-mask" />}
               </mask>
             </defs>
             <g mask={`url(#${maskId})`}>
-              <rect {...full} fill={c.rock ? st.rock : floor.floor} />
-              {c.rock && scene.wallTextureUrl && <rect {...full} fill={`url(#${ids.rockTile})`} />}
-              {!c.rock && c.url && <rect {...full} fill={`url(#${ids.floorTile}-${i})`} data-testid="mp-room-floor-img" />}
+              {/* El color va DEBAJO: si hay foto se la come entera, y si él se la quita asoma lo que había. */}
+              <rect {...full} fill={c.color} />
+              {c.url && <rect {...full} fill={`url(#${ids.floorTile}-${i})`} data-testid={c.rock ? 'mp-room-fill-img' : 'mp-room-floor-img'} />}
             </g>
           </g>
         );
       })}
+
+      {/*
+        * ── LA PINTURA DEL SUELO (rebanada 10) ── Encima de todos los suelos y DENTRO DEL AGUJERO, que es la
+        * unión de lo excavado: por eso pintar el suelo no puede manchar la roca, y por eso no deja costuras
+        * entre dos salas pegadas. Se suma capa sobre capa porque el PNG ya viene con las pasadas cocidas
+        * dentro, y **no cambia el mapa**: la geometría es la de arriba, no ésta.
+        */}
+      {floorPaint && (
+        <g mask={`url(#${ids.hole})`}>
+          <image href={floorPaint} {...full} preserveAspectRatio="none" data-testid="mp-room-floor-paint" />
+        </g>
+      )}
 
       {/*
         * ── LA BANDA Y EL RAYADO, PEGADOS AL MURO POR FUERA ──

@@ -49,7 +49,7 @@ describe('<BuilderPanel> la cabecera', () => {
   it('se agarra por la cabecera, se sale del mapa y se mueve por la ventana', () => {
     const { container } = mount();
     const panel = container.querySelector('.mp-builder') as HTMLElement;
-    const asa = container.querySelector('.mp-builder-head') as HTMLElement;
+    const asa = container.querySelector('.rv-fpanel-head') as HTMLElement;
     // Sin tocarlo lo coloca el CSS: nada en el `style`.
     expect(panel.style.position).toBe('');
     fireEvent.pointerDown(asa, { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
@@ -113,17 +113,102 @@ describe('<BuilderPanel> qué levanto y con qué forma', () => {
 
   it('la pista de abajo cambia con la forma: cada una se dibuja con un gesto distinto', () => {
     const { re } = mount({ shape: 'poly' });
-    expect(screen.getByText(/pincha otra vez sobre el primero/)).toBeInTheDocument();
+    // 🔴 Desde el 2026-09-10 «polígono» es el trazo libre cerrado, por orden suya.
+    expect(screen.getByText(/con el contorno de la mano/)).toBeInTheDocument();
     re({ shape: 'line' });
     expect(screen.getByText(/sale un muro, y sólo uno/)).toBeInTheDocument();
     re({ shape: 'rect' });
     expect(screen.getByText(/arrastra para levantar la sala/)).toBeInTheDocument();
+    re({ shape: 'free' });
+    expect(screen.getByText(/saca una BANDA del ancho elegido siguiendo la mano/)).toBeInTheDocument();
   });
 });
 
 /**
  * EL CANDADO, aprobado el 2026-09-03 («*tira*»). Empieza cerrado: sin tocarlo, Builder es el de siempre.
  */
+/**
+ * ── EL ANCHO DE LA BANDA DE «A PULSO» (§ «Rebanada 10 · B») ──
+ *
+ * Lo que se construyó por error para el pincel no se tiró: es lo que a él le faltaba aquí. Palabra suya el
+ * 2026-09-10 con la pantalla delante: «*el a mano no servía de nada*».
+ */
+describe('<BuilderPanel> el ancho de la banda', () => {
+  it('sólo sale con «A pulso», y dice que sale una banda siguiendo la mano', () => {
+    const { re } = mount({ mode: 'draw', shape: 'free' });
+    expect(screen.getByTestId('mp-band')).toBeInTheDocument();
+    expect(screen.getByText(/saca una BANDA del ancho elegido siguiendo la mano/)).toBeInTheDocument();
+    re({ mode: 'draw', shape: 'poly' });
+    expect(screen.queryByTestId('mp-band')).not.toBeInTheDocument();
+  });
+
+  it('mover el ancho lo avisa hacia arriba', () => {
+    const onBandCells = vi.fn();
+    mount({ mode: 'draw', shape: 'free', bandCells: 0.22, onBandCells });
+    fireEvent.change(screen.getByRole('slider', { name: 'Ancho' }), { target: { value: '1.5' } });
+    expect(onBandCells).toHaveBeenCalledWith(1.5);
+  });
+
+  /** De serie es el grosor de muro de la escena: una escena existente no cambia hasta que él lo toque. */
+  it('arranca en el grosor de muro que le llega', () => {
+    mount({ mode: 'draw', shape: 'free', bandCells: 0.34 });
+    expect(screen.getByRole('slider', { name: 'Ancho' })).toHaveValue('0.34');
+  });
+
+  /** Un vano es un tramo recto y sin ancho: ofrecerlo prometería algo que no pasa. */
+  it('con una puerta no sale', () => {
+    mount({ mode: 'draw', buildKind: 'door', shape: 'free' });
+    expect(screen.queryByTestId('mp-band')).not.toBeInTheDocument();
+  });
+
+  /** Y también marcando sobre una foto: allí la banda se convierte en los muros de su contorno. */
+  it('sobre una foto sí sale, porque allí la banda marca los muros de su contorno', () => {
+    mount({ mode: 'photo', shape: 'free' });
+    expect(screen.getByTestId('mp-band')).toBeInTheDocument();
+  });
+
+  /** ── EL BORDE DE «A PULSO» (§ 10B.4 · `rolvium.pen` · `R7gay`) ── */
+  it('el borde sale con «A pulso», y la barra de cuánto de roto sólo con borde roto', () => {
+    const { re } = mount({ mode: 'draw', shape: 'free', bandTip: 'clean' });
+    const borde = screen.getByTestId('mp-band-edge');
+    expect(within(borde).getByRole('radio', { name: 'Limpio' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(borde).queryByRole('slider', { name: 'Cuánto de roto' })).not.toBeInTheDocument();
+    re({ mode: 'draw', shape: 'free', bandTip: 'rough', bandRoughness: 0.6 });
+    expect(screen.getByRole('slider', { name: 'Cuánto de roto' })).toHaveValue('60');
+    // Con las palabras del pincel: «0,6» no le dice nada a nadie.
+    expect(within(screen.getByTestId('mp-band-edge')).getByText('bastante')).toBeInTheDocument();
+    re({ mode: 'draw', shape: 'poly', bandTip: 'rough' });
+    expect(screen.queryByTestId('mp-band-edge')).not.toBeInTheDocument();
+  });
+
+  it('elegir borde roto y mover la barra lo avisan hacia arriba, y soltar la barra la guarda', () => {
+    const onBandTip = vi.fn(), onBandRoughness = vi.fn(), onBandRoughnessEnd = vi.fn();
+    const { re } = mount({ mode: 'draw', shape: 'free', bandTip: 'clean', onBandTip, onBandRoughness, onBandRoughnessEnd });
+    fireEvent.click(screen.getByRole('radio', { name: 'Borde roto' }));
+    expect(onBandTip).toHaveBeenCalledWith('rough');
+    re({ mode: 'draw', shape: 'free', bandTip: 'rough', bandRoughness: 0.5, onBandTip, onBandRoughness, onBandRoughnessEnd });
+    const barra = screen.getByRole('slider', { name: 'Cuánto de roto' });
+    fireEvent.change(barra, { target: { value: '80' } });
+    expect(onBandRoughness).toHaveBeenCalledWith(0.8);
+    expect(onBandRoughnessEnd).not.toHaveBeenCalled();
+    fireEvent.pointerUp(barra);
+    expect(onBandRoughnessEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('con una puerta tampoco sale el borde', () => {
+    mount({ mode: 'draw', buildKind: 'door', shape: 'free', bandTip: 'rough' });
+    expect(screen.queryByTestId('mp-band-edge')).not.toBeInTheDocument();
+  });
+
+  /** Sobre una foto cada lado del trazo es un muro suelto: un canto roto dejaría cientos (suyo, 2026-09-11). */
+  it('sobre una foto no sale el borde, aunque el ancho sí', () => {
+    mount({ mode: 'photo', shape: 'free', bandTip: 'rough', bandRoughness: 0.6 });
+    expect(screen.getByTestId('mp-band')).toBeInTheDocument();
+    expect(screen.queryByTestId('mp-band-edge')).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', { name: 'Cuánto de roto' })).not.toBeInTheDocument();
+  });
+});
+
 describe('<BuilderPanel> el candado de pegar a la rejilla', () => {
   it('cerrado lo dice, y su pista promete que nada ha cambiado', () => {
     mount();
@@ -264,6 +349,19 @@ describe('<BuilderPanel> el estilo de la mazmorra (sólo dibujando aquí)', () =
 });
 
 describe('<BuilderPanel> las dos texturas base y el grosor', () => {
+  /** 🏷 Suyo, 2026-09-11: «*cuando no hay textura no sé cuál es pared o piso*». El rótulo va DELANTE de la muestra. */
+  it('cada muestra dice cuál es —Pared y Suelo, delante— con foto y sin ella', () => {
+    const { re } = mount({ mode: 'draw', preset: 'cavern' });
+    const filas = () => [...document.querySelectorAll('.mp-builder-tex')] as HTMLElement[];
+    expect(filas()).toHaveLength(2);
+    expect(filas()[0]!.firstElementChild).toHaveTextContent('Pared');
+    expect(filas()[1]!.firstElementChild).toHaveTextContent('Suelo');
+    expect(filas()[0]!.firstElementChild!.nextElementSibling).toHaveAttribute('data-testid', 'mp-tex-swatch');
+    re({ mode: 'draw', preset: 'cavern', wallTextureUrl: 'https://x/roca.png', floorTextureUrl: 'https://x/suelo.png' });
+    expect(filas()[0]!.firstElementChild).toHaveTextContent('Pared');
+    expect(filas()[1]!.firstElementChild).toHaveTextContent('Suelo');
+  });
+
   it('sin foto propia enseña el nombre del preajuste, y ofrece subir una', () => {
     mount({ mode: 'draw', preset: 'cavern' });
     const fila = screen.getByText('Las dos texturas base').closest('fieldset')!;
@@ -389,6 +487,42 @@ describe('<BuilderPanel> escalar la textura', () => {
     re({ mode: 'draw', floorTextureUrl: 'https://x/mosaico.png', floorScale: 3 });
     // El triple de casillas por azulejo → el azulejo llena la muestra entera.
     expect(muestra()).toHaveStyle({ backgroundSize: '66px 66px' });
+  });
+});
+
+/**
+ * ── 🔄 EL GIRO ── Petición suya del 2026-09-11: «*en la base del suelo y las paredes tengo que poder rotar sus
+ * texturas*». Debajo del azulejo, de 0° a 355° de 5 en 5 como el «Giro» del Pincel; en vivo al arrastrar y se
+ * guarda al soltar, por el mismo camino que la escala.
+ */
+describe('<BuilderPanel> girar la textura', () => {
+  it('sin foto puesta NO hay giro que tocar: un color no se gira', () => {
+    mount({ mode: 'draw' });
+    expect(screen.queryByRole('slider', { name: 'Giro · pared' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', { name: 'Giro · suelo' })).not.toBeInTheDocument();
+  });
+
+  it('con una foto sale el giro debajo del azulejo, avisa EN VIVO y se guarda al soltar', () => {
+    const onTextureRotation = vi.fn(), onTextureScaleEnd = vi.fn();
+    mount({ mode: 'draw', wallTextureUrl: 'https://x/roca.png', wallRotation: 0, onTextureRotation, onTextureScaleEnd });
+    const sliders = screen.getAllByRole('slider').map(s => s.getAttribute('aria-label') ?? s.getAttribute('name'));
+    expect(sliders.indexOf('Giro · pared')).toBeGreaterThan(sliders.indexOf('Azulejo · pared'));
+    const giro = screen.getByRole('slider', { name: 'Giro · pared' });
+    expect(giro).toHaveAttribute('min', '0');
+    expect(giro).toHaveAttribute('max', '355');
+    expect(giro).toHaveAttribute('step', '5');
+    fireEvent.change(giro, { target: { value: '90' } });
+    expect(onTextureRotation).toHaveBeenCalledWith('wall', 90);
+    expect(onTextureScaleEnd).not.toHaveBeenCalled();
+    fireEvent.pointerUp(giro);
+    expect(onTextureScaleEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('la muestra gira con el mosaico: a 0° no hay capa girada, a 90° sí, del mismo azulejo', () => {
+    const { re } = mount({ mode: 'draw', floorTextureUrl: 'https://x/mosaico.png', floorScale: 1, floorRotation: 0 });
+    expect(screen.queryByTestId('mp-tex-turn')).not.toBeInTheDocument();
+    re({ mode: 'draw', floorTextureUrl: 'https://x/mosaico.png', floorScale: 1, floorRotation: 90 });
+    expect(screen.getByTestId('mp-tex-turn')).toHaveStyle({ transform: 'rotate(90deg)', backgroundSize: '22px 22px' });
   });
 });
 

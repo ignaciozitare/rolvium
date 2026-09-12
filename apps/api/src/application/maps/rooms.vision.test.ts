@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeSceneVision, paintSceneFog, roomGeometry, sightSegments } from './sceneVision.js';
+import { computeSceneVision, paintSceneFog, RECUERDO_MAX, roomGeometry, sightSegments } from './sceneVision.js';
 import { pointInPolygon } from './vision.js';
 import { fakeMapsRepo } from './fakeMapsRepo.js';
 
@@ -97,6 +97,38 @@ describe('computeSceneVision — una sala tapa EXACTAMENTE igual que un muro mar
     expect(pointInPolygon({ x: 200, y: 148 }, r.data.vision[0]!)).toBe(false);
   });
 
+  /**
+   * 🐞 LA PUERTA QUE CIERRA UN PASILLO de pared a pared (suyo, 2026-09-11: «*dejan pasar la visión y no
+   * colisionas con ellas*»). No cae sobre ningún lado del contorno, y hasta hoy se dibujaba sin tapar nada.
+   * Un pasillo sale de la pared derecha de la sala, y la puerta lo cruza en x = 189, a 0,3 y 3 px de sus paredes.
+   */
+  describe('una puerta que cierra un pasillo de pared a pared', () => {
+    const PASILLO = { id: 'rm-2', kind: 'room' as const, points: [[135, 121.5], [243, 121.5], [243, 175.5], [135, 175.5]] as [number, number][] };
+    const PUERTA = { x1: 189, y1: 121.8, x2: 189, y2: 172.5, kind: 'door' as const, isOpen: false };
+    const conPuerta = (isOpen: boolean) => seed({ rooms: [ROOM, PASILLO], roomOpenings: [{ ...PUERTA, isOpen }] });
+    const vista = async (isOpen: boolean) => {
+      const r = await computeSceneVision({ maps: conPuerta(isOpen) }, { sceneId: SCENE, userId: PIP });
+      if (!r.ok) throw new Error('sin visión');
+      return r.data.vision[0]!;
+    };
+
+    it('cerrada, tapa lo que hay detrás; el trozo de pasillo de este lado se sigue viendo', async () => {
+      const poly = await vista(false);
+      expect(pointInPolygon({ x: 160, y: 148.5 }, poly)).toBe(true);
+      expect(pointInPolygon({ x: 220, y: 148.5 }, poly)).toBe(false);
+    });
+
+    it('abierta, se ve al otro lado', async () => {
+      expect(pointInPolygon({ x: 220, y: 148.5 }, await vista(true))).toBe(true);
+    });
+
+    it('cerrada frena a las fichas; abierta, no', async () => {
+      const cruza = (move: readonly (readonly number[])[]) => move.some(([x1, , x2]) => Math.abs(x1! - 189) < 1e-6 && Math.abs(x2! - 189) < 1e-6);
+      expect(cruza((await roomGeometry(conPuerta(false), SCENE)).move)).toBe(true);
+      expect(cruza((await roomGeometry(conPuerta(true), SCENE)).move)).toBe(false);
+    });
+  });
+
   it('una VENTANA de sala deja ver, como la de siempre', async () => {
     const maps = seed({ roomOpenings: [{ x1: 135, y1: 108, x2: 135, y2: 189, kind: 'window', isOpen: false }] });
     const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
@@ -136,6 +168,34 @@ describe('computeSceneVision — LA SONDA del director mira también las salas',
     expect(pointInPolygon({ x: 200, y: 148 }, r.data.vision[0]!)).toBe(true);
     // Y sigue sin escribir una sola fila: la sonda es una consulta, no un movimiento.
     expect(seed({ roomOpenings: vano }).fog).toEqual({});
+  });
+});
+
+/**
+ * ⏱ La vista contra la que se recortan las luces se calcula sólo hasta la luz más lejana desde el ojo
+ * (specs/modules/maps/SPEC.md § «La línea de vista sólo mira lo que tiene al alcance»). Lo que se sujeta es que ESO
+ * no recorta luz de más ni de menos: una luz lejos del ojo, al otro lado de la puerta, se ve entera con la puerta
+ * abierta —hasta su borde más lejano— y no se ve con la puerta cerrada.
+ */
+describe('computeSceneVision — un jugador ve una luz lejana igual que antes', () => {
+  /** En el pasillo de la derecha, a 132 px del token de Pip, con 3 m de alcance (54 px): llega hasta x = 254. */
+  const LUZ_LEJOS = { id: 'li-2', layerId: null, x: 200, y: 148.5, rotation: 0, shape: 'radius' as const, coneAngle: 60, rangeM: 3, castsShadow: true, spinMs: 0 };
+  const lit = async (isOpen: boolean) => {
+    const maps = seed({ lights: [LUZ_LEJOS], roomOpenings: [{ x1: 135, y1: 108, x2: 135, y2: 189, kind: 'door', isOpen }] });
+    const r = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP });
+    if (!r.ok) throw new Error('sin visión');
+    return (r.data.lit ?? []).flatMap(l => l.parts);
+  };
+
+  it('por la puerta abierta el charco viaja entero, hasta su borde más lejano', async () => {
+    const partes = await lit(true);
+    expect(partes.some(p => pointInPolygon({ x: 200, y: 148.5 }, p))).toBe(true);
+    // A 182 px del ojo: la vista para recortar no se quedó corta.
+    expect(partes.some(p => pointInPolygon({ x: 250, y: 148.5 }, p))).toBe(true);
+  });
+
+  it('con la puerta cerrada la luz queda detrás de la pared y no viaja', async () => {
+    expect(await lit(false)).toEqual([]);
   });
 });
 
@@ -217,5 +277,60 @@ describe('lo que NO cambia: `maps_walls` sigue intacto', () => {
     expect(pointInPolygon({ x: 160, y: 148 }, poly)).toBe(true);
     // …y la corta el MURO MARCADO de más allá, que sigue haciendo su trabajo de siempre.
     expect(pointInPolygon({ x: 240, y: 148 }, poly)).toBe(false);
+  });
+});
+
+/**
+ * ⏱ LAS PAREDES SE RECUERDAN POR ESCENA (specs/modules/maps/SPEC.md § «Las paredes no se recalculan en cada
+ * movimiento», 2026-09-11). Suyo: «*esta recontra super lento*». `roomGeometry` se llama en cada petición de
+ * visión —cada tirón de una ficha— y con su «Dungeon» fundir las formas costaba segundos cada vez.
+ *
+ * Lo que se sujeta es la parte peligrosa de recordar: que NUNCA se sirvan paredes viejas. Cada test usa su propia
+ * escena para no heredar lo recordado por otro.
+ */
+describe('roomGeometry — recuerda las paredes de la escena mientras nada cambie', () => {
+  /** Lo que devuelve la base en cada lectura: listas y objetos NUEVOS, aunque dentro esté lo mismo. */
+  const copia = (r: typeof ROOM) => ({ ...r, points: r.points.map(([x, y]) => [x, y] as [number, number]) });
+
+  it('mismas formas y mismos vanos en una lectura nueva: devuelve lo recordado, sin recalcular', async () => {
+    const a = await roomGeometry(seed({ rooms: [copia(ROOM)] }), 'recuerdo-1');
+    const b = await roomGeometry(seed({ rooms: [copia(ROOM)] }), 'recuerdo-1');
+    expect(b).toBe(a);
+  });
+
+  it('mover una esquina recalcula, y la pared sale donde está ahora', async () => {
+    const a = await roomGeometry(seed(), 'recuerdo-2');
+    const movida = { ...ROOM, points: [[27, 27], [162, 27], [162, 243], [27, 243]] as [number, number][] };
+    const b = await roomGeometry(seed({ rooms: [movida] }), 'recuerdo-2');
+    expect(b).not.toBe(a);
+    expect(b.sight.some(s => s.a.x === 162 && s.b.x === 162)).toBe(true);
+    expect(b.sight.some(s => s.a.x === 135 && s.b.x === 135)).toBe(false);
+  });
+
+  it('abrir y volver a cerrar una puerta: nunca se sirve la puerta como estaba', async () => {
+    const vano = { x1: 135, y1: 108, x2: 135, y2: 162, kind: 'door' as const, isOpen: false };
+    const cerrada = await roomGeometry(seed({ roomOpenings: [vano] }), 'recuerdo-3');
+    const abierta = await roomGeometry(seed({ roomOpenings: [{ ...vano, isOpen: true }] }), 'recuerdo-3');
+    // Cerrada, la hoja frena; abierta, no: un tramo menos en lo que frena.
+    expect(abierta.move).toHaveLength(cerrada.move.length - 1);
+    const otraVez = await roomGeometry(seed({ roomOpenings: [vano] }), 'recuerdo-3');
+    expect(otraVez.move).toHaveLength(cerrada.move.length);
+  });
+
+  it('cada escena recuerda lo suyo: dos escenas con formas distintas no se pisan', async () => {
+    const vecina = { id: 'rm-2', kind: 'room' as const, points: [[135, 27], [243, 27], [243, 243], [135, 243]] as [number, number][] };
+    const una = await roomGeometry(seed(), 'recuerdo-4a');
+    const dos = await roomGeometry(seed({ rooms: [ROOM, vecina] }), 'recuerdo-4b');
+    expect(una.sight).toHaveLength(4);
+    expect(dos.sight).toHaveLength(6);
+    expect(await roomGeometry(seed(), 'recuerdo-4a')).toBe(una);
+  });
+
+  it(`pasadas ${RECUERDO_MAX} escenas olvida la usada hace más tiempo, y al volver la calcula igual de bien`, async () => {
+    const primera = await roomGeometry(seed(), 'recuerdo-5-0');
+    for (let i = 1; i <= RECUERDO_MAX; i++) await roomGeometry(seed(), `recuerdo-5-${i}`);
+    const otraVez = await roomGeometry(seed(), 'recuerdo-5-0');
+    expect(otraVez).not.toBe(primera);
+    expect(otraVez).toEqual(primera);
   });
 });

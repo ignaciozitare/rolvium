@@ -58,6 +58,18 @@ function main() {
     hits.push('un <button> con estilos inline → @rolvium/ui ya tiene `Btn`');
   }
 
+  // Las piezas de los paneles de la mesa (revisión del 2026-09-11): el Builder, el Pincel y las luces
+  // llevaban cada uno su copia. `npm run audit` lo BLOQUEA; aquí sólo se avisa al escribirlo.
+  if (/type\s*=\s*['"]range['"]/.test(code) && !importsUi('Slider')) {
+    hits.push('un deslizador (<input type="range">) a mano → @rolvium/ui ya tiene `Slider`');
+  }
+  if (/\buseDragPanel\b|drag_indicator/.test(code) && /onClose/.test(code) && !importsUi('FloatingPanel')) {
+    hits.push('un panel flotante con asa y X a mano → @rolvium/ui ya tiene `FloatingPanel`');
+  }
+  if (/role\s*=\s*['"]radiogroup['"]/.test(code) && /role\s*=\s*['"]radio['"]/.test(code) && !importsUi('OptionGroup')) {
+    hits.push('un grupo de opciones a mano → @rolvium/ui tiene `OptionGroup` (salvo muestras de color o miniaturas con dibujo, donde lo que se elige es el arte)');
+  }
+
   if (!hits.length) return null;
 
   return `⚠️ Reutilización de UI — en ${file} parece que hay:\n` +

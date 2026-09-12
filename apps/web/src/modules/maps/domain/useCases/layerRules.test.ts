@@ -1,14 +1,16 @@
 import { describe, it, expect } from 'vitest';
+import { BRUSH_TIPS } from '../entities/Scene';
 import {
   LAYERS_ALL, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES,
   LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, SCENE_WAREHOUSE,
 } from '../../../../../tests/helpers/fakes';
 import {
+  BRUSH_TARGETS, clampRoughness, DEFAULT_BRUSH_TIP, isBrushTip, roomMaskPath, roomMaskSrc, roughnessStep, roughRadii, ROUGH_MAX_BITE, ROUGH_POINTS,
   canEditIn, clampRangeM, clampStrength, conePath, DEFAULT_MASK_STRENGTH, LIGHT_COLORS, MAX_RANGE_M, MIN_RANGE_M, FIXED_LAYER_KINDS, FLICKER, flickerOf, isFixedKind, isPainted,
   layerOfKind, layerSendsToPlayers, LIGHT_KINDS, LIGHT_PRESETS, LIGHT_SHAPES, lightRadiusPx, maskPath, maskSize, MASK_MAX_SIDE,
   maskSrc, newLightOf, nextTerrainSortOrder, paintedLights, paintOrder, panelOrder, rangeLabelM, reorderTerrain,
   strengthLabel, strokeDots, TERRAIN_WARN_AT, terrainLayers, terrainOverweight, toMaskPoint, MASK_DIRECTIONS, reorderTerrainTo,
-  clampHardness, clampMaskSize, DEFAULT_MASK_SIZE, hardnessLabel, maskStops, MASK_SIZE_MAX, MASK_SIZE_MIN,
+  clampHardness, clampMaskSize, DEFAULT_MASK_SIZE, hardnessStep, maskStops, MASK_SIZE_MAX, MASK_SIZE_MIN,
   clampSpinMs, DEFAULT_SPIN_MS, MAX_SPIN_MS, MIN_SPIN_MS, spinLabelS,
   clampIntensity, DEFAULT_INTENSITY, intensityFactor, intensityLabel, MAX_INTENSITY, MIN_INTENSITY,
   beamCones, BEAM_LAYERS,
@@ -441,9 +443,15 @@ describe('maskStops — la dureza manda el borde, no la fuerza', () => {
     expect(maskStops(Number.NaN, Number.NaN)).toEqual([{ at: 0, alpha: 0 }, { at: 0, alpha: 0 }, { at: 1, alpha: 0 }]);
   });
 
-  it('hardnessLabel lo enseña en porcentaje', () => {
-    expect(hardnessLabel(0.4)).toBe('40 %');
-    expect(hardnessLabel(2)).toBe('100 %');
+  /**
+   * En PALABRAS y no en porcentaje: «40 % de borde» no significa nada para nadie. Y devuelve la CLAVE, no el
+   * texto — es texto de pantalla y se traduce, que es justo lo que se coló con «apenas/poco/bastante».
+   */
+  it('el borde se lee en palabras, y lo que sale es una clave de traducción', () => {
+    expect(hardnessStep(0)).toBe('soft');
+    expect(hardnessStep(0.4)).toBe('medium');
+    expect(hardnessStep(1)).toBe('sharp');
+    expect(hardnessStep(2)).toBe('sharp');
   });
 });
 
@@ -565,5 +573,116 @@ describe('el haz de una luz que gira', () => {
     // 30 % de 200° serían 60° de difuminado, que ya no parece un haz: se topa en 12.
     const anchisimo = beamCones({ ...l, coneAngle: 200 }, 50);
     expect(anchisimo).toHaveLength(BEAM_LAYERS);
+  });
+});
+
+/**
+ * EL PINCEL (rebanada 9). Lo que se prueba aquí es la parte que decide la FORMA del brochazo roto, que es lo
+ * único del pincel con lógica de verdad: lo demás son barras y un guardado.
+ *
+ * El azar entra por parámetro justo para esto — con `Math.random` dentro no habría forma de probar nada.
+ */
+describe('el pincel · borde roto (rebanada 9)', () => {
+  /** Un azar sembrado, para que cada caso sea el mismo cada vez que corre. */
+  const azar = (semilla: number) => { let s = semilla; return () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; }; };
+
+  it('sin nada de roto el contorno es un círculo exacto: todos los radios valen 1', () => {
+    expect(roughRadii(0, azar(1))).toEqual(Array.from({ length: ROUGH_POINTS }, () => 1));
+  });
+
+  it('devuelve un radio por vértice, sea cual sea el cuánto de roto', () => {
+    for (const r of [0, 0.3, 1]) expect(roughRadii(r, azar(7))).toHaveLength(ROUGH_POINTS);
+    expect(roughRadii(0.5, azar(7), 8)).toHaveLength(8);
+  });
+
+  /**
+   * 🔑 EL CONTORNO NUNCA CRECE HACIA FUERA. Si un vértice pasara de 1, el brochazo pintaría MÁS ancho que el
+   * círculo que el director ve en el cursor: pintaría donde no apunta, y en una sala se saldría del suelo.
+   */
+  it('nunca se sale del radio, y muerde como mucho la mitad', () => {
+    for (const semilla of [1, 42, 999, 31337]) {
+      for (const radios of [roughRadii(1, azar(semilla)), roughRadii(0.5, azar(semilla))]) {
+        for (const v of radios) {
+          expect(v).toBeLessThanOrEqual(1);
+          expect(v).toBeGreaterThanOrEqual(1 - ROUGH_MAX_BITE);
+        }
+      }
+    }
+  });
+
+  it('a más roto, más muerde: el radio medio baja', () => {
+    const medio = (r: number): number => { const v = roughRadii(r, azar(5)); return v.reduce((a, b) => a + b, 0) / v.length; };
+    expect(medio(1)).toBeLessThan(medio(0.5));
+    expect(medio(0.5)).toBeLessThan(medio(0.1));
+  });
+
+  /**
+   * Suavizado CIRCULAR: el último vértice es vecino del primero. Sin eso se ve la costura por donde se cerró
+   * el contorno — un pico que no está en ningún otro sitio del borde.
+   */
+  it('no deja costura donde el contorno se cierra', () => {
+    const v = roughRadii(1, azar(3));
+    const saltos = v.map((x, i) => Math.abs(x - v[(i + 1) % v.length]!));
+    const cierre = saltos[saltos.length - 1]!;
+    expect(cierre).toBeLessThanOrEqual(Math.max(...saltos));
+  });
+
+  it('cada brochazo sale distinto: dos tiradas del mismo cuánto de roto no coinciden', () => {
+    expect(roughRadii(0.6, azar(1))).not.toEqual(roughRadii(0.6, azar(2)));
+  });
+
+  it('el mismo azar da el mismo contorno, que es lo que deja probarlo', () => {
+    expect(roughRadii(0.6, azar(9))).toEqual(roughRadii(0.6, azar(9)));
+  });
+});
+
+describe('el pincel · puntas y cuánto de roto', () => {
+  it('las tres puntas, y sólo esas tres', () => {
+    expect(BRUSH_TIPS).toEqual(['disc', 'soft', 'rough']);
+    expect(isBrushTip('rough')).toBe(true);
+    for (const malo of ['duro', '', null, undefined, 3]) expect(isBrushTip(malo)).toBe(false);
+  });
+
+  it('la punta de serie es la misma que pone la base, para que una escena vieja se abra igual', () => {
+    expect(DEFAULT_BRUSH_TIP).toBe('soft');
+  });
+
+  it('el cuánto de roto se recorta entre 0 y 1, y una basura cae en 0', () => {
+    expect(clampRoughness(-3)).toBe(0);
+    expect(clampRoughness(9)).toBe(1);
+    expect(clampRoughness(0.42)).toBeCloseTo(0.42, 5);
+    expect(clampRoughness(Number.NaN)).toBe(0);
+  });
+
+  /** Los tres sitios donde se pinta, en el orden del diseño: capa · niebla · suelo de sala. */
+  it('el pincel actúa sobre tres sitios, y ése es el orden de la barra', () => {
+    expect(BRUSH_TARGETS).toEqual(['layer', 'fog', 'room']);
+  });
+
+  /**
+   * LA MÁSCARA DEL SUELO DE UNA SALA. Misma carpeta y misma política del bucket que las de capa
+   * (`foldername[1]` sigue siendo la campaña); el prefijo sólo dice de qué es cada fichero.
+   */
+  it('la máscara de una sala vive en la carpeta de la campaña, con su prefijo', () => {
+    expect(roomMaskPath('c1', 'rm-7')).toBe('c1/masks/room-rm-7.png');
+  });
+
+  /**
+   * ⚠️ El rompe-caché de una sala es su `updated_at`, y NO un número de versión: una sala no lo tiene. Sin
+   * esto el navegador se queda con el PNG viejo y parece que el pincel no pinta.
+   */
+  it('la máscara de una sala se pide con su fecha pegada, y sin pintar no hay nada que pedir', () => {
+    expect(roomMaskSrc({ floorMaskUrl: null, updatedAt: '2026-09-09T10:00:00Z' })).toBeNull();
+    expect(roomMaskSrc({ floorMaskUrl: 'https://x/m.png', updatedAt: '2026-09-09T10:00:00Z' }))
+      .toBe('https://x/m.png?v=2026-09-09T10%3A00%3A00Z');
+    // Con la URL ya trayendo parámetros se encadena, no se rompe.
+    expect(roomMaskSrc({ floorMaskUrl: 'https://x/m.png?a=1', updatedAt: 't2' })).toBe('https://x/m.png?a=1&v=t2');
+  });
+
+  it('se lee en palabras, no en decimales — y devuelve la CLAVE, que el texto se traduce', () => {
+    expect(roughnessStep(0.05)).toBe('barely');
+    expect(roughnessStep(0.3)).toBe('little');
+    expect(roughnessStep(0.6)).toBe('quite');
+    expect(roughnessStep(0.9)).toBe('lots');
   });
 });

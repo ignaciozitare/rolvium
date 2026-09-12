@@ -130,9 +130,11 @@ Rolvium/
 │   ├── web/                 Frontend — Vite + React 18 + react-router + CSS vars
 │   │   ├── src/
 │   │   │   ├── modules/     Feature modules (hexagonal: domain/application/infra/ui + container.ts)
-│   │   │   │   ├── auth/    Login, session, Supabase auth
-│   │   │   │   ├── admin/   Users, roles, permissions, settings
-│   │   │   │   └── home/    Landing / dashboard after login
+│   │   │   │   ├── auth/ · admin/ · home/ · identity/   Login/session · users & roles · landing · sign-up & account (H1)
+│   │   │   │   ├── campaigns/ · table/                   Campaigns (H2) · live table shell, applies the system theme (H3)
+│   │   │   │   ├── characters/ · bestiary/ · dice/       Sheets (H4) · NPCs & encounters (H5) · server-side rolls (H6)
+│   │   │   │   └── maps/ · systems/                      Scenes: walls, fog, rooms, brush, props (H7) · /systems page
+│   │   │   ├── systems/     registry.ts — the ONE place meant to import game-system packages
 │   │   │   ├── shared/      Cross-module UI (incl. shared/ui/UIKit.tsx), hooks, libs
 │   │   │   └── RolviumApp.css  Design tokens (:root dark, [data-theme="light"])
 │   │   └── tests/           smoke/ regression/ functional/ + helpers/
@@ -145,6 +147,8 @@ Rolvium/
 │           │   └── supabase/ Supabase adapters
 │           └── app.ts       Fastify app factory (registers routes)
 ├── packages/                Shared libraries used by both apps
+│   ├── core/                @rolvium/core — GameSystem port + system-agnostic rules shared by web and api
+│   ├── system-plenilunio/   First game system (implements GameSystem; RULES.md = digest of the manual)
 │   ├── ui/                  Reusable React components (@rolvium/ui) + CATALOG.md
 │   ├── i18n/                Translation keys (@rolvium/i18n) — locales/{es,en}.json
 │   └── shared-types/        Cross-app types (@rolvium/shared-types)
@@ -207,6 +211,7 @@ Rolvium/
 - Reuse the existing component library (`packages/ui`) whenever possible.
 - Do not create new components if an existing one can solve the need with reasonable changes.
 - If a new reusable component is created, add it to the component library following project conventions.
+- **Table panels, sliders and option buttons come ONLY from `@rolvium/ui`**: `FloatingPanel` (+ `PanelSection`, `PanelHint`, `PanelNote`, `PanelIconButton`), `Slider` and `OptionGroup`. Never a hand-made floating panel, never an `<input type="range">`, never a copied chip grid — until 2026-09-11 the Builder, the Pincel and the light editor each carried their own copy, with sliders built three different ways. `npm run audit` fails HARD (`ui-panels`) on a local slider or a locally defined piece and warns on hand-made radiogroups. A new game system restyles them through `--sys-*`; it never copies them.
 - **When adding a new component to `packages/ui`, also add it to the UI Kit page** (`apps/web/src/shared/ui/UIKit.tsx`) with a live interactive example, description, and import statement, and regenerate the catalog with `npm run ui:catalog`.
 
 ---
@@ -342,7 +347,7 @@ These rules apply while writing code. The QA Agent will verify them before any m
 ---
 
 ## Specs
-- Every module and core area has its own `SPEC.md` in `specs/modules/{name}/SPEC.md` or `specs/core/{name}/SPEC.md` (today: `specs/core/{auth,roles-permissions,testing}/SPEC.md`).
+- Every module and core area has its own `SPEC.md` in `specs/modules/{name}/SPEC.md` or `specs/core/{name}/SPEC.md` (today: `specs/core/{auth,game-system,images,realtime,roles-permissions,testing}/SPEC.md`).
 - `specs/SPEC.md` is the global index that references all individual specs.
 - Always read the relevant SPEC.md before starting any work on that area.
 - Update the SPEC.md when functionality changes, after it is stable in production.

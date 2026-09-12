@@ -1,3 +1,4 @@
+import { BAND_TIPS, type BandTip } from '../entities/Scene';
 import { snapStep, type Point } from './mapRules';
 
 /**
@@ -234,6 +235,11 @@ function enclosesArea(ring: Point[], grid: number, min: number): boolean {
 /**
  * POLÍGONO — la habitación de N lados, y la respuesta a su «¿y si quiero poner una pared inclinada?».
  *
+ * ⚠️ **HOY NO LLEGA NINGUNA PANTALLA AQUÍ, y es a propósito.** El 2026-09-10 él mandó que el botón «Polígono»
+ * pasara a ser el TRAZO LIBRE CERRADO —«*quiero que lo que hoy es a pulso lo pongas en polígono*»—, así que
+ * los vértices a clics ya no se ponen desde ninguna parte. El motor se queda porque es la única forma de
+ * volver a ofrecer ese gesto el día que lo pida, y porque sus tests son lo que impide que se pudra.
+ *
  * Los VÉRTICES se pegan a la rejilla (con el candado cerrado); los LADOS no. Así una pared puede ir a cualquier ángulo (que es lo que
  * él pedía) y a la vez dos salas contiguas encajan sin dejar rendijas de medio píxel por donde se cuela la
  * visión — que es para lo que servía pegarse a la rejilla.
@@ -376,3 +382,268 @@ export function shapesFor(kind: BuildKind): RoomShape[] {
 
 /** La forma con la que arranca cada cosa, y a la que se cae si la elegida deja de tener sentido. */
 export const defaultShapeFor = (kind: BuildKind): RoomShape => (isOpeningKind(kind) ? 'line' : 'rect');
+
+// ── EL PINCEL QUE CONSTRUYE (rebanada 10) ────────────────────────────────────
+
+/**
+ * EL ANCHO DEL PINCEL, EN CASILLAS. Los mismos topes que el pincel de la rebanada 9, y por lo mismo: por
+ * debajo de un quinto de casilla el trazo no se ve, y por encima de seis un brochazo tapa media escena.
+ */
+export const BRUSH_MIN_CELLS = 0.2;
+export const BRUSH_MAX_CELLS = 6;
+
+/**
+ * LA PUNTA DE «A PULSO» (§ 10B.4). Los mismos valores de serie que pone la base (`maps_scenes.band_tip` y
+ * `band_roughness`): una escena de antes dibuja con canto limpio, como siempre, y la barra arranca en el mismo
+ * 0,5 que la del pincel.
+ */
+export const DEFAULT_BAND_TIP: BandTip = 'clean';
+export const isBandTip = (v: unknown): v is BandTip => BAND_TIPS.includes(v as BandTip);
+export const DEFAULT_BAND_ROUGHNESS = 0.5;
+
+/**
+ * Cuántos puntos tiene el redondeo de una esquina o de una punta. Ocho por media vuelta basta: el anillo se
+ * guarda en la base y cada vértice es un lado contra el que el motor de visión traza rayos.
+ */
+const CAP_STEPS = 8;
+
+/**
+ * A PARTIR DE QUÉ GIRO SE PARTE EL BROCHAZO EN DOS PIEZAS.
+ *
+ * 🔑 Y por qué se parte, que es lo único no obvio de todo esto. Un brochazo se guarda como UN anillo: el
+ * trazo engordado a un lado y al otro. En cada giro, los dos tramos del lado de FUERA se unen con una RECTA, no
+ * con un arco, y esa recta se come la esquina redonda del trazo. En un giro suave apenas muerde; en uno más
+ * cerrado que un ángulo recto se come la punta entera —en una horquilla pasa a un par de px del camino— y el
+ * codo sale cortado en plano, pintado y calculado: pared donde tendría que haber suelo.
+ *
+ * El lado de DENTRO no da guerra: ahí el anillo se cruza consigo mismo, pero las vueltas se SUMAN y es suelo,
+ * igual que cuando el trazo se cruza con otro tramo suyo. (Hasta el 2026-09-11 salía además un AGUJERO de roca
+ * en ese cruce, porque `pointInRing` contaba cruces —par o impar— en vez de vueltas.)
+ *
+ * Partir en la esquina lo evita sin ninguna geometría fina: salen dos piezas, cada una con su punta redonda,
+ * que se solapan en el codo, y fundirse al solaparse es exactamente lo que el motor de salas ya hace desde la
+ * rebanada 8.
+ */
+const SPLIT_ANGLE = Math.PI / 2;
+
+const norm = (dx: number, dy: number): Point => {
+  const d = Math.hypot(dx, dy) || 1;
+  return { x: dx / d, y: dy / d };
+};
+
+/**
+ * Los puntos del semicírculo que cierra una punta del trazo. Sale del lado IZQUIERDO —el offset a `+90°` de
+ * la marcha— y gira **hacia atrás en ángulo**, para pasar por delante de la punta y morir en el lado derecho.
+ *
+ * 🐞 Girando al revés el arco pasa por DETRÁS: el anillo se cruza consigo mismo como un lazo y el trazo deja
+ * de encerrar su propio camino. Lo sujeta el test «el anillo ENVUELVE el trazo».
+ */
+function cap(centre: Point, r: number, forward: number): Point[] {
+  const from = forward + Math.PI / 2;
+  return Array.from({ length: CAP_STEPS + 1 }, (_, i) => {
+    const a = from - (Math.PI * i) / CAP_STEPS;
+    return { x: centre.x + Math.cos(a) * r, y: centre.y + Math.sin(a) * r };
+  });
+}
+
+/** Un solo tramo de trazo, ya sin codos cerrados, engordado a `r` por cada lado y cerrado por las puntas. */
+function ringOfRun(run: Point[], r: number): Point[] {
+  if (run.length < 2) {
+    // Un toque sin arrastre es un disco: se pinta igual que en cualquier programa de dibujo.
+    const c = run[0]!;
+    return [...cap(c, r, 0), ...cap(c, r, Math.PI)];
+  }
+  const izq: Point[] = [], der: Point[] = [];
+  for (let i = 0; i < run.length - 1; i++) {
+    const a = run[i]!, b = run[i + 1]!;
+    const n = norm(-(b.y - a.y), b.x - a.x);
+    for (const p of [a, b]) {
+      izq.push({ x: p.x + n.x * r, y: p.y + n.y * r });
+      der.push({ x: p.x - n.x * r, y: p.y - n.y * r });
+    }
+  }
+  const first = run[0]!, last = run[run.length - 1]!;
+  const aIni = Math.atan2(first.y - run[1]!.y, first.x - run[1]!.x);
+  const aFin = Math.atan2(last.y - run[run.length - 2]!.y, last.x - run[run.length - 2]!.x);
+  // Ida por un lado, media vuelta en la punta, vuelta por el otro, y media vuelta en el arranque.
+  return [...izq, ...cap(last, r, aFin), ...der.reverse(), ...cap(first, r, aIni)];
+}
+
+/**
+ * EL TRAZO DEL PINCEL, CONVERTIDO EN FORMAS (§ «Rebanada 10»).
+ *
+ * Devuelve **uno o varios anillos**, en las mismas coordenadas de escena que cualquier otra forma de
+ * `maps_rooms`. Varios sólo cuando el trazo dobla más cerrado que su propio ancho — ver `SPLIT_ANGLE`.
+ *
+ * El trazo se limpia antes: se quitan los puntos pegados y se simplifica contra la cuerda del tramo, que es
+ * lo que evita que un arrastre a pulso deje cientos de vértices. Cada vértice de estos anillos acaba siendo
+ * un lado contra el que el servidor traza rayos en cada refresco de visión, para cada jugador.
+ */
+export function brushRings(path: Point[], widthCells: number, grid: number, edge?: BandEdge): [number, number][][] {
+  if (path.length === 0) return [];
+  const r = (Math.min(BRUSH_MAX_CELLS, Math.max(BRUSH_MIN_CELLS, widthCells)) * grid) / 2;
+  const limpio = simplifyPath(dedupe(path, r / 2), r / 2);
+  // Con borde roto el canto de cada trozo muerde hacia su propio camino; sin él, el anillo de siempre.
+  const anillos = (trozos: Point[][]): [number, number][][] => {
+    const rings = trozos.map(x => ringOfRun(x, r));
+    const roto = edge && edge.roughness > 0 ? edge : null;
+    /**
+     * 🔑 EL TOPE DE ESQUINAS ES POR TRAZO (§ 10B.4), no por trozo. Un zigzag de codos cerrados sale en muchos
+     * trozos, y con un tope para cada uno se pasaba de largo (diez trozos, 780 esquinas). La separación sale del
+     * contorno de TODOS, así que las esquinas se reparten entre ellos; un trazo de un solo trozo sale igual.
+     */
+    const paso = roto ? Math.max(r / 2, rings.reduce((s, ring) => s + perimetro(ring), 0) / BAND_ROUGH_MAX_POINTS) : 0;
+    return rings.map((ring, i) => (roto ? roughen(ring, trozos[i]!, r, roto.roughness, roto.seed, paso) : ring).map(p => [p.x, p.y] as [number, number]));
+  };
+  if (limpio.length === 1) return anillos([limpio]);
+
+  // Se corta en los codos cerrados: cada trozo comparte el vértice con el siguiente, así que se solapan y
+  // el motor de salas los funde en el codo.
+  const runs: Point[][] = [];
+  let run: Point[] = [limpio[0]!];
+  for (let i = 1; i < limpio.length; i++) {
+    run.push(limpio[i]!);
+    const prev = limpio[i - 1]!, cur = limpio[i]!, next = limpio[i + 1];
+    if (!next) break;
+    const a = norm(cur.x - prev.x, cur.y - prev.y);
+    const b = norm(next.x - cur.x, next.y - cur.y);
+    const giro = Math.acos(Math.min(1, Math.max(-1, a.x * b.x + a.y * b.y)));
+    if (giro > SPLIT_ANGLE) { runs.push(run); run = [cur]; }
+  }
+  runs.push(run);
+  return anillos(runs.filter(x => x.length > 0));
+}
+
+/** El borde roto de «A pulso» (§ 10B.4): cuánto de roto (0..1) y la semilla del trazo. */
+export interface BandEdge { roughness: number; seed: number }
+
+/**
+ * CUÁNTO PUEDE MORDER HACIA DENTRO CADA LADO DE LA BANDA, en fracción de su medio ancho.
+ *
+ * 🔑 Por debajo de la mitad a propósito: los dos lados muerden a la vez, y con 0,45 cada uno siempre queda más
+ * de medio ancho de suelo en medio. Así, por muy roto que se ponga, el trazo nunca se parte ni deja agujeros —
+ * regla del spec. El pincel llega a 0,85 (`ROUGH_MAX_BITE`) porque un disco no tiene un lado de enfrente.
+ */
+const BAND_MAX_BITE = 0.45;
+
+/**
+ * EL TOPE DE ESQUINAS QUE AÑADE EL BORDE ROTO a cada TRAZO, repartido entre todos sus trozos (§ 10B.4). Cada
+ * esquina es un muro contra el que el servidor traza rayos en cada refresco de visión, para cada jugador: un
+ * trazo larguísimo —o partido en muchos trozos— reparte sus esquinas más separadas antes que pasar de aquí.
+ */
+export const BAND_ROUGH_MAX_POINTS = 160;
+
+/** Lo que mide el contorno de un anillo, cerrando contra el primero. */
+function perimetro(ring: Point[]): number {
+  let total = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i]!, b = ring[(i + 1) % ring.length]!;
+    total += Math.hypot(b.x - a.x, b.y - a.y);
+  }
+  return total;
+}
+
+/**
+ * UN NÚMERO DE 0 A 1 QUE SALE DEL SITIO Y DE LA SEMILLA DEL TRAZO. Mismo sitio, mismo mordisco: por eso el previo
+ * que se ve mientras arrastra no tiembla a cada paso, y lo que se guarda al soltar es lo que se estaba viendo.
+ */
+function ruido(seed: number, cx: number, cy: number): number {
+  let h = Math.imul(seed | 0, 0x9e3779b1) ^ Math.imul(cx | 0, 0x85ebca6b) ^ Math.imul(cy | 0, 0xc2b2ae35);
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  h = Math.imul(h ^ (h >>> 12), 0x297a2d39);
+  return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+}
+
+/** El punto del camino más cercano a `p`. */
+function cercanoEnCamino(p: Point, run: Point[]): Point {
+  let mejor = run[0]!, dMejor = Infinity;
+  for (let i = 0; i < run.length - 1; i++) {
+    const a = run[i]!, b = run[i + 1]!;
+    const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+    const t = l2 < 1e-12 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
+    const q = { x: a.x + t * dx, y: a.y + t * dy };
+    const d = Math.hypot(p.x - q.x, p.y - q.y);
+    if (d < dMejor) { dMejor = d; mejor = q; }
+  }
+  return mejor;
+}
+
+/**
+ * EL ANILLO DE UN TROZO, CON EL CANTO ROTO. Se reparten esquinas por el contorno cada `paso` —medio ancho, o más
+ * separadas si las del trazo entero no caben en el tope— y cada una se acerca a su camino según el ruido del sitio,
+ * suavizado con sus dos vecinas como el borde roto del pincel (`roughRadii`): desgarrado, no un serrucho.
+ *
+ * Sólo muerde HACIA DENTRO, hacia el camino: el trazo nunca crece más allá del ancho que él eligió.
+ */
+function roughen(ring: Point[], run: Point[], r: number, roughness: number, seed: number, paso: number): Point[] {
+  const lado = (i: number): [Point, Point] => [ring[i]!, ring[(i + 1) % ring.length]!];
+  const puntos: Point[] = [];
+  for (let i = 0; i < ring.length; i++) {
+    const [a, b] = lado(i);
+    const n = Math.max(1, Math.floor(Math.hypot(b.x - a.x, b.y - a.y) / paso));
+    for (let k = 0; k < n; k++) puntos.push({ x: a.x + ((b.x - a.x) * k) / n, y: a.y + ((b.y - a.y) * k) / n });
+  }
+  const celda = r / 2;
+  const crudo = puntos.map(p => ruido(seed, Math.round(p.x / celda), Math.round(p.y / celda)));
+  const m = crudo.length;
+  const at = (i: number): number => crudo[((i % m) + m) % m]!;
+  const bite = r * Math.min(1, Math.max(0, roughness)) * BAND_MAX_BITE;
+  return puntos.map((p, i) => {
+    const mordisco = ((at(i - 1) + at(i) * 2 + at(i + 1)) / 4) * bite;
+    const c = cercanoEnCamino(p, run);
+    const d = Math.hypot(c.x - p.x, c.y - p.y);
+    if (d < 1e-9) return p;
+    const k = Math.min(mordisco, d) / d;
+    return { x: p.x + (c.x - p.x) * k, y: p.y + (c.y - p.y) * k };
+  });
+}
+
+// ── LOS COLORES CON LOS QUE SE PINTA (§ «Rebanada 10») ──
+//
+// 🔴 Aquí vivían además `BuildTarget`, `BRUSH_PAINTS`, `BRUSH_ON` y `isBuildOn`: la lista de «sobre qué» y
+// «con qué» del pincel que EXCAVABA. Él lo paró en pantalla el 2026-09-10 («*eso es cavar con construir, que
+// no es lo que te pedí*») y esa mitad se mudó al Builder, donde la elección de siempre —muro o habitación—
+// ya existía. Se quitaron al mudarlas para que nadie las vuelva a cablear a un pincel: **este pincel no
+// levanta mapa**. La lista del pincel de hoy vive en `paintRules.ts`.
+
+/**
+ * LA PALETA BASE DE LA CASA (`rolvium.pen` · `M9zw2t` § «EL COLOR»): doce, en dos filas de seis.
+ *
+ * Son DATO y no tema: se guardan tal cual en `maps_rooms.floor_color` y se ven sobre la MESA, que va con los
+ * `--sys-*` del sistema de juego y no con los tokens de la app. Mismo caso —y mismo porqué— que
+ * `STROKE_COLORS`, `BG_COLORS` y `DOOR_COLORS`.
+ *
+ * El orden es el del diseño: los grises de piedra, las maderas y tierras, y al final los tres que cantan —
+ * musgo, agua y sangre—, que son los que se usan para marcar algo, no para levantar una sala entera.
+ *
+ * ⚠️ Los colores que él se INVENTE no viven aquí: ésos son fila de `maps_colors`, por campaña.
+ */
+export const BRUSH_COLORS = [
+  { hex: '#8a8f98', name: 'steel' },
+  { hex: '#5c6470', name: 'slate' },
+  { hex: '#2f3338', name: 'coal' },
+  { hex: '#1a1c1f', name: 'obsidian' },
+  { hex: '#b08d57', name: 'sand' },
+  { hex: '#8b5a2b', name: 'leather' },
+  { hex: '#4a3524', name: 'earth' },
+  { hex: '#6e5a3a', name: 'mud' },
+  { hex: '#5f8f6a', name: 'moss' },
+  { hex: '#4a7fc0', name: 'water' },
+  { hex: '#7fd4d0', name: 'ice' },
+  { hex: '#b8452c', name: 'blood' },
+] as const;
+
+/** Con qué color arranca el pincel: la arena del diseño, que es la que se ve en la lámina aprobada. */
+export const DEFAULT_BRUSH_COLOR = '#b08d57';
+
+/**
+ * Un color escrito a mano vale si es un hex de seis. Se comprueba antes de guardarlo porque la base NO lo
+ * comprueba —a propósito, igual que en `bg_color` y `door_color`: un patrón allí sólo serviría para rechazar
+ * un color válido escrito de otra manera— así que el filtro tiene que estar donde se teclea.
+ */
+export const isHexColor = (s: string): boolean => /^#[0-9a-fA-F]{6}$/.test(s);
+
+/** Cómo se llama un color de la paleta base, si es uno de ellos. `null` = se lo inventó él. */
+export const brushColorName = (hex: string): string | null =>
+  BRUSH_COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase())?.name ?? null;
+

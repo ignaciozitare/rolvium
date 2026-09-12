@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { ColorPicker, Tooltip } from '@rolvium/ui';
+import { ColorPicker, Slider, Tooltip } from '@rolvium/ui';
 import type { BgFit, BgTransform, ImageAsset, Layer, Scene } from '../domain/entities/Scene';
 import { BG_COLORS } from '../domain/useCases/mapRules';
 
@@ -86,7 +86,7 @@ export function BackgroundPopover({ scene, layer = null, images, onColor, onImag
         </div>
         {tr.mode === 'custom' && (
           <div className="mp-pop-row mp-custom">
-            <label>{t('maps.bg.scale')}<input type="range" min={0.25} max={3} step={0.05} value={tr.scale} onChange={e => onTransform({ ...tr, scale: Number(e.target.value) })} /></label>
+            <Slider className="mp-bg-scale" label={t('maps.bg.scale')} min={0.25} max={3} step={0.05} value={tr.scale} onChange={v => onTransform({ ...tr, scale: v })} />
             <label>{t('maps.bg.offsetX')}<input type="number" value={tr.x} onChange={e => onTransform({ ...tr, x: Number(e.target.value) })} /></label>
             <label>{t('maps.bg.offsetY')}<input type="number" value={tr.y} onChange={e => onTransform({ ...tr, y: Number(e.target.value) })} /></label>
           </div>

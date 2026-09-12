@@ -35,6 +35,19 @@ describe('<LightEditor>', () => {
     expect(screen.getByRole('radio', { name: 'Antorcha' })).toHaveAttribute('aria-checked', 'true');
   });
 
+  /**
+   * Lo elegido va en SANGRE, como en el Builder y el Pincel (2026-09-11): antes la forma salía en negro y el tipo
+   * en oro. Se fija por la pieza común de `@rolvium/ui`, que es la que lo pinta así y no deja cambiarlo desde fuera.
+   */
+  it('la carcasa y lo elegido salen de las piezas comunes, no de unas propias', () => {
+    mount();
+    expect(screen.getByRole('group', { name: /Luz/ })).toHaveClass('rv-fpanel', 'mp-light-editor');
+    expect(screen.getByRole('radio', { name: 'Radio' })).toHaveClass('rv-option', 'outline', 'on');
+    const antorcha = screen.getByRole('radio', { name: 'Antorcha' });
+    expect(antorcha).toHaveClass('rv-option', 'outline', 'on');
+    expect(antorcha).not.toHaveClass('caps');
+  });
+
   it('cambiar forma y tipo sale por el mismo sitio', async () => {
     const u = userEvent.setup();
     const cb = mount();
@@ -144,7 +157,7 @@ describe('<LightEditor> · salir y apartarlo', () => {
   it('se arrastra por la cabecera, sale del mapa y se corre con el ratón', () => {
     mount();
     const panel = screen.getByRole('group', { name: /Luz/ }) as HTMLElement;
-    const head = panel.querySelector('.mp-light-head') as HTMLElement;
+    const head = panel.querySelector('.rv-fpanel-head') as HTMLElement;
     expect(panel.style.position).toBe('');            // sin tocarlo, lo coloca el CSS
     fireEvent.pointerDown(head, { button: 0, clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 160, clientY: 130, pointerId: 1 });
@@ -159,7 +172,7 @@ describe('<LightEditor> · salir y apartarlo', () => {
   it('pulsar borrar o cerrar NO empieza un arrastre: los botones mandan sobre el asa', () => {
     mount();
     const panel = screen.getByRole('group', { name: /Luz/ });
-    const head = panel.querySelector('.mp-light-head') as HTMLElement;
+    const head = panel.querySelector('.rv-fpanel-head') as HTMLElement;
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Borrar la luz' }), { button: 0, clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(head, { clientX: 300, clientY: 300, pointerId: 1 });
     expect((panel as HTMLElement).style.position).toBe('');

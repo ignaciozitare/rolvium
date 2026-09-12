@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
-import type { Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
+import type { BandTip, Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, doorTexturesUsed, type Point, type Segment, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
-import { freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_RING_POINTS, MIN_ROOM_CELLS, polygonSides, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
+import { brushRings, DEFAULT_BAND_ROUGHNESS, type BandEdge, freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_ROOM_CELLS, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
 import { anchorEnd, builderPoint, END_SNAP_PX, stepOf } from '../domain/useCases/snapRules';
 import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEYS, insideGroup, moveWalls, resizeRect, scaleWallsTo, wallBounds, wallsInRect, withWholeGroups, type HandleKey, type Rect, type WallAt } from '../domain/useCases/groupRules';
-import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
+import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, fogFrame, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
-import { ringFromSides, roomWallsOf } from '../domain/useCases/roomStyles';
+import { ringFromSides, ringPath, roomAt, roomWallsOf } from '../domain/useCases/roomStyles';
 import { roomMoveSegments } from '@rolvium/core';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 
@@ -94,7 +94,12 @@ interface Props {
   selectedRoomOpeningId?: string | null;
   onSelectRoomOpening?: (id: string | null) => void;
   /** DM: paint the fog at a scene point with the current brush radius (scene px). */
-  onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide') => void;
+  /**
+   * `start` marca el primer brochazo de un arrastre, igual que en el pincel de la máscara: quien escucha
+   * sortea ahí la forma del borde roto, y sortearla en cada punto dejaría el trazo de ruido en vez de
+   * desgarrado.
+   */
+  onPaintFog: (at: { x: number; y: number; radius: number }, op: 'reveal' | 'hide', start?: boolean) => void;
   /** DM, herramienta Luz: coloca una luz de ambiente donde se pinchó (px de escena). */
   onPlaceLight?: (at: Point) => void;
   /**
@@ -102,10 +107,55 @@ interface Props {
    * escena. `null` en `maskLayerId` = no hay capa donde pintar y el pincel no hace nada.
    */
   maskLayerId?: string | null;
-  onPaintMask?: (from: Point, to: Point) => void;
+  /**
+   * LA SALA cuyo suelo se está repintando (rebanada 9). Manda sobre `maskLayerId` cuando está puesta: el
+   * pincel apunta a un sitio o a otro, nunca a los dos.
+   */
+  maskRoomId?: string | null;
+  /**
+   * Avisa de sobre QUÉ SALA está el ratón, para que el pincel del suelo sepa a cuál apunta. Sólo se llama
+   * cuando la sala CAMBIA —no en cada movimiento— porque despierta a la pantalla entera de la escena.
+   *
+   * Se manda con el pincel puesto AUNQUE se esté pintando una capa, y no sólo con el suelo elegido: si se
+   * callara a ratos, lo que sabe el lienzo y lo que sabe la pantalla se quedarían desparejados y al volver al
+   * suelo apuntaría a la sala de antes.
+   */
+  onHoverRoom?: (roomId: string | null) => void;
+  /** `start` marca el primer brochazo de un arrastre: es donde se sortea la forma del borde roto. */
+  onPaintMask?: (from: Point, to: Point, start?: boolean) => void;
   onPaintMaskEnd?: () => void;
+  /**
+   * EL ANCHO DE LA BANDA de «A pulso», en casillas (§ «Rebanada 10 · B»). Arrastrar saca una banda de este
+   * ancho SIGUIENDO LA MANO — el gesto que él mandó mudar aquí desde el pincel. Sin él manda el grosor de
+   * muro de la escena, así que una escena existente no cambia hasta que él lo toque.
+   */
+  bandCells?: number;
+  /**
+   * EL BORDE DE «A PULSO» (§ 10B.4): limpio, como siempre, o roto y cuánto. Cada trazo sortea su semilla al
+   * empezar, así que el previo y lo que se guarda al soltar son el mismo canto.
+   */
+  bandTip?: BandTip;
+  bandRoughness?: number;
+  /**
+   * EL PREVIO DEL AZULEJO DEL PINCEL (rebanada 10). Mientras él arrastra el tamaño de la textura, el mapa
+   * ENTERO se cubre con ella en transparencia: «*se debería ver en el mapa cubriendo todo el lienzo para ver
+   * el tamaño en previo*» (2026-09-10). Es lo único que deja saber si una losa va a salir del tamaño de una
+   * sala antes de dar el primer brochazo. `null` = no se está tocando el tamaño.
+   */
+  tilePreview?: { url: string; sidePx: number; /** Grados de giro del patrón, como el pincel. */ deg?: number } | null;
+  /**
+   * ¿HAY DÓNDE PINTAR AHORA MISMO? (rebanada 10). Lo decide la pantalla, que es quien sabe si hay una capa de
+   * terreno, si el ratón está sobre una habitación o si el mapa tiene roca. El lienzo sólo necesita saber si
+   * el gesto va a servir de algo: sin esto, arrastrar dejaría un rastro que no se guarda en ninguna parte.
+   */
+  paintReady?: boolean;
   /** La máscara EN VIVO mientras se pinta, antes de que suba. Se pinta en lugar de la guardada. */
   maskPreview?: string | null;
+  /**
+   * LA PINTURA EN VIVO (rebanada 10), la que se pone ENCIMA. Va aparte de `maskPreview` porque son dos
+   * lienzos que hacen lo contrario: aquélla quita para que asome lo de debajo, ésta pone encima.
+   */
+  paintPreview?: { on: 'room' | 'rock' | 'layer'; id: string; href: string | null } | null;
   /** DM: la luz que se está editando. Es pintura, así que seleccionarla no cambia nada para nadie. */
   selectedLightId?: string | null;
   onSelectLight?: (id: string | null) => void;
@@ -215,6 +265,8 @@ type Gesture =
   | { kind: 'line'; start: Point }
   /** Levantando una sala a pulso: los puntos por donde va pasando la mano. */
   | { kind: 'roomFree'; points: Point[] }
+  /** A PULSO: se arrastra y sale una BANDA siguiendo la mano, del ancho elegido (§ «Rebanada 10 · B»). */
+  | { kind: 'roomBand'; points: Point[]; /** La semilla del borde roto: el previo y lo que se guarda salen iguales (§ 10B.4). */ seed: number }
   /**
    * Moviendo o estirando un GRUPO. Con `handle` a null se mueve entero; con tirador se estira por ese lado.
    * Guarda el marco de partida porque escalar es llevar los muros de un marco a otro, no ir sumando tirones.
@@ -261,6 +313,15 @@ const CATCH_UP_CELLS = 0.35;
 const PROBE_R = 17;
 /** Brush paints per second, matching the token drag's `DRAG_HZ_MS` (useScene.ts). */
 const PAINT_HZ_MS = 50;
+/**
+ * Lo mínimo que tiene que moverse la mano para que la BANDA apunte otro punto, en px de PANTALLA (se divide
+ * por el zoom). Sin este filtro un arrastre lento deja cientos de puntos en el mismo sitio.
+ */
+const BAND_STEP_PX = 4;
+
+/** El borde con el que sale la banda de «A pulso» (§ 10B.4): sólo con borde roto; con limpio, el de siempre. */
+const bordeDe = (tip: BandTip | undefined, roughness: number | undefined, seed: number): BandEdge | undefined =>
+  (tip === 'rough' ? { roughness: roughness ?? DEFAULT_BAND_ROUGHNESS, seed } : undefined);
 
 /**
  * SVG scene canvas: background → grid → (DM veil) → walls → drawings → tokens → UI (measure · pin · brush · selection).
@@ -281,6 +342,8 @@ export function MapCanvas(p: Props): JSX.Element {
   const [measure, setMeasure] = useState<{ a: Point; b: Point } | null>(null);
   const [wallStart, setWallStart] = useState<Point | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
+  /** La última sala avisada al padre. En una `ref` porque sólo sirve para no repetir el aviso. */
+  const hoverRoom = useRef<string | null>(null);
   const [pinShown, setPinShown] = useState<LivePin | null>(null);
   /** Space held = pan, from ANY tool (the middle button already did this). Panning is a modifier, not a tool. */
   const [spacePan, setSpacePan] = useState(false);
@@ -297,7 +360,8 @@ export function MapCanvas(p: Props): JSX.Element {
   /** La sala que se está levantando, ya en lados. Se pinta mientras se arrastra y se guarda al soltar. */
   const [roomDraft, setRoomDraft] = useState<RoomSide[]>([]);
   /** Los vértices que lleva puestos el polígono. Se cierra pinchando otra vez sobre el primero. */
-  const [polyPoints, setPolyPoints] = useState<Point[]>([]);
+  /** Los anillos de la banda mientras se arrastra: el previo de lo que va a quedar (§ «Rebanada 10 · B»). */
+  const [bandDraft, setBandDraft] = useState<[number, number][][]>([]);
   /** Dónde se está viendo la luz mientras se arrastra. Igual que `wallDraft`: se pinta ya, se guarda al soltar. */
   const [lightDraft, setLightDraft] = useState<{ id: string; x: number; y: number } | null>(null);
   /** Cuánto se lleva movido el trazo que se arrastra. Se pinta ya; se guarda al soltar. */
@@ -341,6 +405,12 @@ export function MapCanvas(p: Props): JSX.Element {
    * Con el de la foto puesto en los dos, un tabique corto se caía sin decir nada (fallo suyo del 2026-09-04).
    */
   const minRaya = p.builderMode === 'draw' ? MIN_FILL_CELLS : MIN_LINE_CELLS;
+  /**
+   * La punta con la que sale «A pulso» (§ 10B.4): la de la escena, pero SÓLO dibujando aquí. Sobre una foto cada lado
+   * del trazo es un muro suelto y un canto roto dejaría cientos, así que ahí sale siempre limpio. Una sola cuenta
+   * para el previo y para lo que se guarda: si no, se vería roto y se guardaría limpio.
+   */
+  const puntaBanda = p.builderMode === 'draw' ? p.bandTip : undefined;
 
   /**
    * ADÓNDE VA LO QUE SE ACABA DE DIBUJAR — y aquí es donde conviven las dos maneras de trabajar.
@@ -357,6 +427,18 @@ export function MapCanvas(p: Props): JSX.Element {
     if (p.builderMode === 'draw' && p.onAddRoomShape) p.onAddRoomShape(shape, ringFromSides(sides));
     else p.onAddRoom?.(sides);
   };
+  /**
+   * UNA BANDA, ya en anillo. Dibujando aquí es una forma más de las de siempre —así fundirse, cortar la vista
+   * y frenar a las fichas vienen ya hechos—; marcando sobre una foto se convierte en los muros de su
+   * contorno, que es lo que significa marcar una pared ahí.
+   */
+  const commitBand = (ring: [number, number][]): void => {
+    if (p.builderMode === 'draw' && p.onAddRoomShape) { p.onAddRoomShape('brush', ring); return; }
+    p.onAddRoom?.(ring.map(([x, y], i) => {
+      const [nx, ny] = ring[(i + 1) % ring.length]!;
+      return { x1: x, y1: y, x2: nx, y2: ny };
+    }));
+  };
 
   useEffect(() => {
     if (!p.pin) { setPinShown(null); return; }
@@ -364,9 +446,9 @@ export function MapCanvas(p: Props): JSX.Element {
     const id = window.setTimeout(() => setPinShown(null), PIN_MS);
     return () => window.clearTimeout(id);
   }, [p.pin]);
-  useEffect(() => { if (p.tool !== 'wall') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); } if (p.tool !== 'measure') setMeasure(null); }, [p.tool]);
+  useEffect(() => { if (p.tool !== 'wall') { setWallStart(null); setBandDraft([]); setRoomDraft([]); } if (p.tool !== 'measure') setMeasure(null); }, [p.tool]);
   /** Cambiar de forma a media sala la descarta: los vértices de un polígono no valen para un círculo. */
-  useEffect(() => { setPolyPoints([]); setRoomDraft([]); setWallStart(null); }, [p.wallShape]);
+  useEffect(() => { setBandDraft([]); setRoomDraft([]); setWallStart(null); }, [p.wallShape]);
   useEffect(() => { onDeleteRef.current = () => p.onDeleteSelection?.(); });
   useEffect(() => {
     cogerTodoRef.current = () => {
@@ -394,7 +476,7 @@ export function MapCanvas(p: Props): JSX.Element {
     const onControl = (t: EventTarget | null): boolean =>
       !!(t as HTMLElement | null)?.closest?.('button, a[href], input, select, textarea, summary, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="radio"], [role="tab"], [contenteditable="true"]');
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); setGroupDraft(null); p.onSelectWalls?.([]); return; }
+      if (e.key === 'Escape') { setWallStart(null); setBandDraft([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); setGroupDraft(null); p.onSelectWalls?.([]); return; }
       if (e.key === ' ' && !typing(e.target) && !onControl(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
       /**
@@ -718,26 +800,29 @@ export function MapCanvas(p: Props): JSX.Element {
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
-        // A pulso: se va guardando por dónde pasa la mano.
+        /*
+         * ── A PULSO: LA BANDA (§ «Rebanada 10 · B») ──
+         * Se arrastra y sale una banda del ancho elegido SIGUIENDO LA MANO. Es exactamente el gesto del
+         * pincel que se construyó por error y que él mandó mudar aquí, con la pantalla delante: «*lo que
+         * habías hecho en el otro chat para el pincel estaba mal, pero en el builder me servía*».
+         */
         if (shape === 'free') {
-          setGesture({ kind: 'roomFree', points: [s] });
+          // La semilla del borde roto se sortea aquí, al empezar: cada trazo sale distinto (§ 10B.4).
+          const seed = Math.floor(Math.random() * 2 ** 31);
+          setGesture({ kind: 'roomBand', points: [s], seed });
+          setBandDraft(brushRings([s], p.bandCells ?? p.scene.wallThickness, grid, bordeDe(puntaBanda, p.bandRoughness, seed)));
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
-        // Polígono: un clic, un vértice. Se cierra pinchando otra vez encima del primero — el gesto que ya
-        // conoce todo el mundo, y así no hace falta un botón aparte ni un doble clic que compita con nada.
+        /*
+         * ── POLÍGONO: EL TRAZO LIBRE CERRADO ──
+         * Es lo que hasta hoy hacía «a pulso», movido aquí por orden suya del 2026-09-10: «*quiero que lo que
+         * hoy es a pulso lo pongas en polígono, y a pulso sea lo que te indico*». Se arrastra y la forma sale
+         * con el contorno de la mano.
+         */
         if (shape === 'poly') {
-          const v = anclar(s, undefined, polyPoints[polyPoints.length - 1] ?? null);
-          const first = polyPoints[0];
-          // Menos de media casilla, no una entera: los vértices están pegados a la rejilla, así que el vecino
-          // de al lado cae a exactamente `grid` del primero y con el tope en `grid` cerraba la sala en vez de
-          // poner el vértice — imposible hacer una L cuya última esquina caiga junto a la primera.
-          if (first && polyPoints.length >= MIN_RING_POINTS && Math.hypot(v.x - first.x, v.y - first.y) <= grid * 0.75) {
-            commitRoom(polygonSides(polyPoints, grid, paso, minForma), 'poly');
-            setPolyPoints([]);
-            return;
-          }
-          setPolyPoints([...polyPoints, v]);
+          setGesture({ kind: 'roomFree', points: [s] });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
         // Muro only BUILDS. Opening a door is the hover disc's job, which is what unblocks starting a wall next
@@ -760,8 +845,14 @@ export function MapCanvas(p: Props): JSX.Element {
         return;
       }
       case 'mask': {
-        if (!dmSight || !p.maskLayerId) return;
-        p.onPaintMask?.(s, s);
+        if (!dmSight) return;
+        /*
+         * 🔴 AQUÍ YA NO SE LEVANTA MAPA. Hasta el 2026-09-10 este gesto excavaba y rellenaba, y él lo paró en
+         * pantalla: «*eso es cavar con construir, que no es lo que te pedí*». Aquello se mudó al Builder, y
+         * este pincel hace lo único que hace: PINTAR ENCIMA. Ni toca una fila de sala, ni de muro, ni de luz.
+         */
+        if (!p.paintReady) return;
+        p.onPaintMask?.(s, s, true);
         setGesture({ kind: 'mask', last: s });
         svgRef.current?.setPointerCapture?.(e.pointerId);
         return;
@@ -770,7 +861,7 @@ export function MapCanvas(p: Props): JSX.Element {
       case 'hide': {
         if (!dmSight) return;
         const op = p.tool === 'reveal' ? 'reveal' : 'hide';
-        p.onPaintFog({ ...s, radius: brushRadius(p.brush, grid) }, op);
+        p.onPaintFog({ ...s, radius: brushRadius(p.brush, grid) }, op, true);
         setGesture({ kind: 'brush', op });
         svgRef.current?.setPointerCapture?.(e.pointerId);
         return;
@@ -783,6 +874,27 @@ export function MapCanvas(p: Props): JSX.Element {
   const onMove = (e: ReactPointerEvent<SVGSVGElement>) => {
     const s = toScene(e);
     setHover(s);
+    /*
+     * SOBRE QUÉ SALA ESTÁ EL PINCEL DEL SUELO (rebanada 9). Se avisa al MOVERSE y no al pulsar porque quien
+     * escucha guarda la sala en estado de React: decidirla en el `pointerdown` llegaría un render tarde y el
+     * primer brochazo caería en la sala anterior. Al pulsar, el ratón ya ha pasado por aquí.
+     *
+     * Y sólo cuando CAMBIA de sala: esto despierta a la pantalla entera de la escena, y hacerlo en cada
+     * píxel del movimiento sería la clase de goteo que él nota como «va lentísimo».
+     *
+     * 🐞 Y NO MIENTRAS SE PINTA. Una pincelada, una sala: la que había al apoyar. El spec invita a barrer el
+     * pincel «*por encima del muro sin mancharlo*» (§ 9.3), y el muro se dibuja SOBRE el contorno, así que
+     * media franja cae fuera de la sala. Sin este freno, ese mismo gesto sacaba el ratón del contorno, se
+     * avisaba de otra sala —o de ninguna—, el destino del pincel cambiaba a media pincelada y quien escucha
+     * rehacía su lienzo: la pincelada entera se perdía sin decir nada, y si al otro lado había otra sala, el
+     * resto del trazo caía en ella. El recorte protege los píxeles; esto protege el destino.
+     */
+    // 🐞 …y tampoco mientras se construye o se borra (rebanada 10): son gestos del mismo pincel y avisar a
+    // media pincelada despierta a la pantalla entera de la escena por nada.
+    if (p.tool === 'mask' && dmSight && p.onHoverRoom && gesture?.kind !== 'mask') {
+      const id = roomAt(rooms, s)?.id ?? null;
+      if (id !== hoverRoom.current) { hoverRoom.current = id; p.onHoverRoom(id); }
+    }
     // Past a few px the press is a DRAG, and a drag belongs to the tool (moving the segment, drawing a stroke),
     // never to the disc. This is what keeps Seleccionar able to grab a one-cell door the disc sits right on top of.
     if (discPress.current && Math.hypot(s.x - discPress.current.at.x, s.y - discPress.current.at.y) > 4 / p.view.zoom) discPress.current = null;
@@ -917,6 +1029,17 @@ export function MapCanvas(p: Props): JSX.Element {
       const points = [...gesture.points, s];
       setGesture({ ...gesture, points });
       setRoomDraft(freehandSides(points, grid, minForma));
+    } else if (gesture.kind === 'roomBand') {
+      /*
+       * Se guarda un punto sólo cuando la mano se ha MOVIDO de verdad. Sin este filtro un arrastre lento deja
+       * cientos de puntos pegados en el mismo sitio y el anillo se recalcula en cada uno; el motor los
+       * volvería a quitar igual (`brushRings` limpia el trazo antes de engordarlo).
+       */
+      const ultimo = gesture.points[gesture.points.length - 1]!;
+      if (Math.hypot(s.x - ultimo.x, s.y - ultimo.y) < BAND_STEP_PX / p.view.zoom) return;
+      const points = [...gesture.points, s];
+      setGesture({ ...gesture, points });
+      setBandDraft(brushRings(points, p.bandCells ?? p.scene.wallThickness, grid, bordeDe(puntaBanda, p.bandRoughness, gesture.seed)));
     } else if (gesture.kind === 'groupXf') {
       // Hasta salir de la zona muerta esto es un CLIC, no un arrastre: ni se pinta ni se guarda nada.
       if (gesture.moved || Math.hypot(s.x - gesture.start.x, s.y - gesture.start.y) > DEAD_ZONE_PX / p.view.zoom) {
@@ -982,7 +1105,7 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const onRightClick = (e: ReactPointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
     e.preventDefault();
-    if (wallStart || measure || gesture || polyPoints.length) { setWallStart(null); setPolyPoints([]); setRoomDraft([]); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); return; }
+    if (wallStart || measure || gesture || bandDraft.length) { setWallStart(null); setBandDraft([]); setRoomDraft([]); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); return; }
     // Sobre algo, el menú es de ESE algo; en el suelo vacío, el de la vista. Sólo el director mueve capas.
     const s = toScene(e);
     const el = dmSight ? elementAt(s) : null;
@@ -1014,6 +1137,19 @@ export function MapCanvas(p: Props): JSX.Element {
     if (gesture.kind === 'roomFree') {
       commitRoom(freehandSides(gesture.points, grid, minForma), 'free');
       setRoomDraft([]); setGesture(null); return;
+    }
+    if (gesture.kind === 'roomBand') {
+      /*
+       * Un brochazo puede salir PARTIDO en varias piezas —cuando el trazo dobla más cerrado que su propio
+       * ancho— y se guardan todas: se solapan en el codo y el motor de salas las funde, que es lo que evita
+       * un agujero de roca en medio de la banda. Un toque sin arrastre es un disco, como en cualquier
+       * programa de dibujo: `brushRings` ya lo resuelve con un solo punto.
+       */
+      const anillos = brushRings(gesture.points, p.bandCells ?? p.scene.wallThickness, grid, bordeDe(puntaBanda, p.bandRoughness, gesture.seed));
+      setBandDraft([]); setGesture(null);
+      if (!anillos.length) { p.onTooSmall?.(candado); return; }
+      for (const anillo of anillos) commitBand(anillo);
+      return;
     }
     if (gesture.kind === 'line') {
       const side = lineSide(gesture.start, hover ? anclar(hover, undefined, gesture.start) : gesture.start, grid, minRaya);
@@ -1165,6 +1301,25 @@ export function MapCanvas(p: Props): JSX.Element {
    * fallo que él notaba vivía en `roomIds`. Lo sujeta un test en `MapCanvas.test.tsx`.
    */
   const rooms = useMemo(() => p.rooms ?? [], [p.rooms]);
+  /**
+   * ⚡ MEMORIZADA POR LO MISMO QUE `roomIds`: un objeto nuevo en cada pintada dejaría el `memo` de
+   * `RoomsLayer` sin efecto y volvería a recorrerse el contorno entero de la mazmorra en cada fotograma del
+   * arrastre — que es exactamente el «va lentísimo» que él notó.
+   */
+  const floorPreview = useMemo(
+    () => (p.maskRoomId && p.maskPreview !== undefined ? { roomId: p.maskRoomId, href: p.maskPreview } : null),
+    [p.maskRoomId, p.maskPreview]);
+  /**
+   * ⚡ Y LA PINTURA, memorizada por lo mismo. Se parte en dos: lo que va a `RoomsLayer` —una habitación o la
+   * roca— y lo que va a las capas de terreno, que es otra pieza del lienzo.
+   */
+  const pv = p.paintPreview ?? null;
+  const paintPreviewRooms = useMemo(
+    () => (pv && pv.on !== 'layer' ? { on: pv.on, id: pv.id, href: pv.href } : null),
+    [pv]);
+  const paintPreviewLayer = useMemo(
+    () => (pv && pv.on === 'layer' ? { layerId: pv.id, href: pv.href } : null),
+    [pv]);
   const roomOpenings = useMemo(() => p.roomOpenings ?? [], [p.roomOpenings]);
   /**
    * 🧱 Y LAS SALAS FRENAN IGUAL (su aviso del 2026-09-04: «*le falta la física a los muros*»).
@@ -1233,7 +1388,7 @@ export function MapCanvas(p: Props): JSX.Element {
    * máscaras con desenfoque— se rehacía en cada fotograma del arrastre. En un mapa muy explorado cuesta más
    * que la capa de salas. Ni la escena ni la niebla cambian mientras se arrastra una ficha.
    */
-  const fogIds = useMemo(() => ({ seen: `mp-seen-${p.scene.id}`, lit: `mp-lit-${p.scene.id}`, dim: `mp-dim-${p.scene.id}`, unexplored: `mp-unex-${p.scene.id}` }), [p.scene.id]);
+  const fogIds = useMemo(() => ({ seen: `mp-seen-${p.scene.id}`, lit: `mp-lit-${p.scene.id}`, dim: `mp-dim-${p.scene.id}`, unexplored: `mp-unex-${p.scene.id}`, unseen: `mp-unseen-${p.scene.id}` }), [p.scene.id]);
   const url = (id: string) => `url(#${id})`;
   /** A player (and the DM «viendo como jugador») only gets what the server drew for them. */
   const playerSight = !!fog && !dmSight;
@@ -1266,11 +1421,27 @@ export function MapCanvas(p: Props): JSX.Element {
   /** Los trazos que se están arrastrando ahora mismo: uno, o el puñado entero que se cogió con el área. */
   const moviendo = new Set(gesture?.kind === 'drawingMove' ? gesture.ids : []);
 
+  /**
+   * ⏱ DOS DIBUJOS, NO UNO (specs/modules/maps/SPEC.md § «Y en pantalla: lo que no cambia no se vuelve a pintar»).
+   * Medido con su «Dungeon» (531 caminos, 1,3 MB de coordenadas): cada fotograma al mover la sonda o arrastrar el
+   * mapa tardaba 100–130 ms. Dos causas, dos arreglos, ni un píxel distinto:
+   *
+   *  1. En la vista de jugador la máscara de «lo que se ve» iba SOBRE EL MAPA ENTERO, y cada cambio de visión
+   *     obligaba a repintar la mazmorra a través de ella. Ahora el mapa va sin máscara y se TAPA por donde no se ve
+   *     (`mp-fog-unseen`: el color del escenario con la máscara al revés). Con eso, mover la sonda va a 60 por
+   *     segundo con la mazmorra puesta (medido).
+   *  2. Arrastrar o acercar cambia la transformación de todo y el navegador lo repinta todo. Lo pesado y quieto
+   *     —fondo, roca, suelo, sombra, terreno y rejilla— va en un SVG propio DEBAJO (`mp-svg-under`), desplazado y
+   *     escalado por CSS (`will-change: transform`): el navegador lo conserva pintado y sólo lo mueve.
+   *
+   * El orden de las capas es el de siempre: el de debajo pinta lo que antes iba primero dentro de `mp-layer-map`.
+   * Todo lo que se toca —fichas, sonda, muros, trazos, luces— sigue en este SVG, con sus eventos.
+   */
   return (
+    <>
     <svg ref={svgRef} className="mp-svg" data-tool={p.tool} style={{ cursor }} aria-label={t('maps.canvas.label')} role="application"
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => setHover(null)} onContextMenu={onRightClick}>
       <defs>
-        <clipPath id={clipId}><rect x={0} y={0} width={p.scene.width} height={p.scene.height} /></clipPath>
         {fog && <FogMasks scene={p.scene} fog={fog} ids={fogIds} />}
         {/*
           * Los mosaicos de las puertas, uno por textura distinta de la escena — de los muros Y de las salas,
@@ -1279,20 +1450,7 @@ export function MapCanvas(p: Props): JSX.Element {
         <DoorTextureDefs urls={doorTexturesUsed([...wallsShown, ...roomOpenings], p.scene)} grid={p.scene.grid.size} />
       </defs>
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
-        <g className="mp-layer-map" {...(playerSight ? { mask: url(fogIds.seen) } : {})} data-testid="mp-map">
-          <BackgroundLayer scene={p.scene} clipId={clipId} imageHidden={hasTerrain} />
-          {/*
-            * LAS SALAS, por DEBAJO de las capas de terreno (decisión mía, revisable, § «Decisiones que tomo
-            * yo aquí»): la roca y el suelo son el cimiento del mapa, y una capa con transparencia sigue
-            * mandando encima de todo esto.
-            */}
-          <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} selectedOpeningId={p.selectedRoomOpeningId ?? null} />
-          {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} />}
-          {/*
-            * Con salas levantadas la rejilla se recorta al AGUJERO: fuera no hay suelo que cuadricular, hay
-            * roca maciza. Sin salas no hay máscara y la rejilla se pinta entera, exactamente como hasta hoy.
-            */}
-          <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} {...(rooms.length > 0 ? { maskId: roomIds.hole } : {})} />
+        <g className="mp-layer-map" data-testid="mp-map">
           {dmSight && fog && p.fogVeil !== false && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
           <g className="mp-layer-walls" data-testid="mp-walls">
             {wallsShown.map(w => (
@@ -1302,10 +1460,9 @@ export function MapCanvas(p: Props): JSX.Element {
             ))}
             {wallStart && hover && p.tool === 'wall' && <line x1={wallStart.x} y1={wallStart.y} x2={anclar(hover, undefined, wallStart).x} y2={anclar(hover, undefined, wallStart).y} className="mp-wall draft" />}
             {roomDraft.map((r, i) => <line key={`room-${i}`} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} className="mp-wall draft" />)}
-            {p.tool === 'wall' && polyPoints.map((v, i) => {
-              const next = polyPoints[i + 1] ?? (hover ? anclar(hover, undefined, polyPoints[polyPoints.length - 1] ?? null) : v);
-              return <line key={`poly-${i}`} x1={v.x} y1={v.y} x2={next.x} y2={next.y} className="mp-wall draft" />;
-            })}
+            {/* El brochazo mientras se arrastra: el contorno de lo que va a quedar, sin rellenar. */}
+            {/* La banda mientras se arrastra: el contorno de lo que va a quedar, sin rellenar. */}
+            {bandDraft.map((ring, i) => <path key={`band-${i}`} d={ringPath(ring.map(([x, y]) => ({ x, y })))} className="mp-wall draft" fill="none" data-testid="mp-band-draft" />)}
           </g>
           <g className="mp-layer-drawings" data-testid="mp-drawings">
             {drawingsShown.map(d => (
@@ -1328,6 +1485,13 @@ export function MapCanvas(p: Props): JSX.Element {
           {/* What was explored but is out of sight right now stays visible, only dimmed — «sigue ahí, apagado». */}
           {playerSight && hasVision && <rect {...sceneRect} className="mp-fog-dim" mask={url(fogIds.dim)} data-testid="mp-fog-dim" />}
         </g>
+        {/*
+          * Lo que un jugador NO ve se TAPA con el color del escenario y la máscara al revés: mismos píxeles, sin
+          * repintar el mapa. Y FUERA de la escena tapa el marco, sin máscara: la máscara de antes tenía la escena por
+          * región y fuera de ella no dejaba ver nada (un trazo que asome, el halo de una luz pegada al borde).
+          */}
+        {playerSight && <rect {...sceneRect} className="mp-fog-unseen" mask={url(fogIds.unseen)} data-testid="mp-fog-unseen" />}
+        {playerSight && <path d={fogFrame(p.scene)} fillRule="evenodd" className="mp-fog-unseen" data-testid="mp-fog-frame" />}
         {/*
           * Dos capas de tokens, no una. **Los PJ se pintan SIEMPRE, encima de la niebla y sin máscara**: sabes
           * dónde está tu grupo aunque esté en otra sala, que es como funcionaba el prototipo
@@ -1357,7 +1521,31 @@ export function MapCanvas(p: Props): JSX.Element {
               })}
             </g>
           )}
-          {dmSight && isBrush(p.tool) && hover && (
+          {/*
+            * LA SILUETA DEL PINCEL BAJO EL PUNTERO. En la niebla la lleva desde siempre; pintando y borrando
+            * faltaba, y él lo pidió con esas palabras (2026-09-10): «*al poner el puntero en el lienzo tendría
+            * que tener una silueta del área que ocupa el pincel, si no lo hago a ciegas*».
+            *
+            * Pintando va MÁS FLOJA que la de la niebla —«*una silueta ligera, pero algo se tiene que ver*»—:
+            * ahí debajo está el mapa que se está retocando, y un disco dorado opaco taparía justo lo que hay
+            * que mirar. Y sólo sale cuando hay dónde pintar: sin destino sería prometer un brochazo que no va
+            * a caer en ninguna parte.
+            */}
+          {/*
+            * EL PREVIO DEL AZULEJO: la textura repetida sobre TODO el lienzo, translúcida, mientras él mueve
+            * el tamaño. Va aquí arriba —sobre el mapa y bajo los controles— porque lo que se quiere comparar
+            * es la losa contra las salas que ya están.
+            */}
+          {dmSight && p.tilePreview && (<>
+            <defs>
+              <pattern id="mp-tile-preview" patternUnits="userSpaceOnUse" width={p.tilePreview.sidePx} height={p.tilePreview.sidePx}
+                patternTransform={p.tilePreview.deg ? `rotate(${p.tilePreview.deg})` : undefined}>
+                <image href={p.tilePreview.url} x={0} y={0} width={p.tilePreview.sidePx} height={p.tilePreview.sidePx} preserveAspectRatio="xMidYMid slice" />
+              </pattern>
+            </defs>
+            <rect {...sceneRect} fill="url(#mp-tile-preview)" className="mp-tile-preview" data-testid="mp-tile-preview" />
+          </>)}
+          {dmSight && hover && (isBrush(p.tool) || (p.tool === 'mask' && p.paintReady)) && (
             <circle cx={hover.x} cy={hover.y} r={brushPx} className={`mp-brush ${p.tool}`} data-testid="mp-brush" />
           )}
           {dmSight && selectedWall && (
@@ -1407,5 +1595,28 @@ export function MapCanvas(p: Props): JSX.Element {
         </g>
       </g>
     </svg>
+    {/*
+      * EL DIBUJO DE DEBAJO: lo pesado y quieto, con la misma vista que el de arriba pero puesta por CSS (ver el
+      * comentario del `return`). Sin eventos —los recibe el de arriba— y sin voz para el lector de pantalla.
+      */}
+    <svg className="mp-svg-under" aria-hidden="true" data-testid="mp-under" style={{ transform: `translate(${p.view.panX}px, ${p.view.panY}px) scale(${p.view.zoom})` }}>
+      <defs>
+        <clipPath id={clipId}><rect x={0} y={0} width={p.scene.width} height={p.scene.height} /></clipPath>
+      </defs>
+      <BackgroundLayer scene={p.scene} clipId={clipId} imageHidden={hasTerrain} />
+      {/*
+        * LAS SALAS, por DEBAJO de las capas de terreno (decisión mía, revisable, § «Decisiones que tomo
+        * yo aquí»): la roca y el suelo son el cimiento del mapa, y una capa con transparencia sigue
+        * mandando encima de todo esto.
+        */}
+      <RoomsLayer scene={p.scene} rooms={rooms} openings={roomOpenings} ids={roomIds} selectedOpeningId={p.selectedRoomOpeningId ?? null} floorPreview={floorPreview} paintPreview={paintPreviewRooms} />
+      {hasTerrain && <TerrainLayers scene={p.scene} layers={layers} clipId={clipId} preview={p.maskLayerId && p.maskPreview !== undefined ? { layerId: p.maskLayerId, href: p.maskPreview } : null} paintPreview={paintPreviewLayer} />}
+      {/*
+        * Con salas levantadas la rejilla se recorta al AGUJERO: fuera no hay suelo que cuadricular, hay
+        * roca maciza. Sin salas no hay máscara y la rejilla se pinta entera, exactamente como hasta hoy.
+        */}
+      <GridLayer scene={p.scene} patternId={`mp-grid-${p.scene.id}`} {...(rooms.length > 0 ? { maskId: roomIds.hole } : {})} />
+    </svg>
+    </>
   );
 }

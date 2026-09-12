@@ -1,6 +1,6 @@
-import { circleClearance, roomMoveSegments, roomSightSegments, roomWalls, sightRadiusPx, slideCircle, type BlockSegment, type FogCell, type LitLight, type RoomPart, type SceneVision, type VisionPolygon } from '@rolvium/core';
-import type { IMapsRepository, LayerRecord, LightRecord, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
-import { allCells, boundsSegments, cellsInDisc, cellsInPolygons, clipToStar, lightPolygon, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
+import { circleClearance, roomMoveSegments, roomSightSegments, roomWalls, sameRoomInput, sightRadiusPx, slideCircle, type BlockSegment, type FogCell, type LitLight, type RoomPart, type SceneVision, type VisionPolygon } from '@rolvium/core';
+import type { IMapsRepository, LayerRecord, LightRecord, RoomOpeningRecord, RoomRecord, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
+import { allCells, arcSafeReach, boundsSegments, cellsInBrush, cellsInPolygons, clipToStar, lightPolygon, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
 
 export type VisionErrorCode = 'NOT_FOUND' | 'FORBIDDEN';
 export type VisionOutcome = { ok: true; data: SceneVision } | { ok: false; code: VisionErrorCode };
@@ -34,15 +34,43 @@ const toSegment = ([x1, y1, x2, y2]: BlockSegment): Segment => ({ a: { x: x1, y:
  * Se calcula con `roomWalls`, **el mismo motor que usa el navegador para pintarlas**. Una segunda
  * implementación aquí daría una sala que se ve de una forma y tapa de otra, y ese fallo no se nota hasta que
  * alguien está jugando.
+ *
+ * ⏱ Y SE RECUERDA POR ESCENA (specs/modules/maps/SPEC.md § «Las paredes no se recalculan en cada movimiento»).
+ * Suyo, 2026-09-11: «*esta recontra super lento*». Con su «Dungeon» fundir las formas costaba segundos, y esto
+ * se llama en CADA petición de visión y de luces —cada tirón de una ficha— aunque nadie haya tocado una pared.
+ *
+ * Se recuerda en MEMORIA, no en una columna: las formas y los vanos se leen igual en cada petición y se comparan
+ * con los que dieron lo recordado (`sameRoomInput`). Cambió algo —una forma, un vano, abrir una puerta— → se
+ * recalcula. No hay nada que invalidar a mano ni forma de servir paredes viejas.
+ *
+ * En Vercel la app se monta en cada petición, pero este módulo se carga una vez por copia del servidor: cada copia
+ * despierta recuerda lo suyo, y una recién arrancada lo calcula una vez. Lo devuelto se comparte entre peticiones
+ * y nadie lo modifica (`sightSegments` y el freno lo copian en listas nuevas).
  */
 export async function roomGeometry(maps: IMapsRepository, sceneId: string): Promise<{ sight: Segment[]; move: BlockSegment[] }> {
   const [rooms, openings] = await Promise.all([maps.listRooms(sceneId), maps.listRoomOpenings(sceneId)]);
   if (rooms.length === 0) return { sight: [], move: [] };
+  const recordada = recuerdo.get(sceneId);
+  if (recordada && sameRoomInput(recordada, { rooms, openings })) {
+    // Vuelve al final de la cola: es la usada más recientemente.
+    recuerdo.delete(sceneId);
+    recuerdo.set(sceneId, recordada);
+    return recordada.geom;
+  }
   // En ORDEN de llegada y con su signo: la última forma que él dibujó manda, igual que al pintar.
   const parts: RoomPart[] = rooms.map(r => ({ ring: r.points.map(([x, y]) => ({ x, y })), dig: r.kind !== 'fill' }));
   const walls = roomWalls(parts, openings);
-  return { sight: roomSightSegments(walls).map(toSegment), move: roomMoveSegments(walls) };
+  const geom = { sight: roomSightSegments(walls).map(toSegment), move: roomMoveSegments(walls) };
+  recuerdo.delete(sceneId);
+  recuerdo.set(sceneId, { rooms, openings, geom });
+  // Al pasar el tope se olvida la que lleva más tiempo sin usarse: la primera de la cola.
+  for (const vieja of recuerdo.keys()) { if (recuerdo.size <= RECUERDO_MAX) break; recuerdo.delete(vieja); }
+  return geom;
 }
+
+/** Cuántas escenas recuerda cada copia del servidor. Una mazmorra muy rota ocupa del orden de un megabyte. */
+export const RECUERDO_MAX = 32;
+const recuerdo = new Map<string, { rooms: RoomRecord[]; openings: RoomOpeningRecord[]; geom: { sight: Segment[]; move: BlockSegment[] } }>();
 
 /** Centre of a token in scene px (`x`/`y` are the top-left cell). */
 export const tokenOrigin = (t: Pick<TokenRecord, 'x' | 'y' | 'size'>, grid: number): Point =>
@@ -78,8 +106,20 @@ function litLights(
   scene: Pick<SceneRecord, 'gridSize'>, isDm: boolean, eyes: Point[] | null,
 ): LitLight[] {
   if (lights.length === 0) return [];
-  // La línea de vista SIN límite de alcance, una vez por ojo: es contra ella contra la que se corta la luz.
-  const stars = eyes?.map(eye => ({ eye, star: visionPolygon(eye, segments) })) ?? null;
+  /**
+   * La línea de vista SIN límite de alcance, una vez por ojo: es contra ella contra la que se corta la luz.
+   *
+   * ⏱ …calculada sólo hasta donde llega la luz más lejana desde ese ojo (su distancia más su alcance; un cuadrado
+   * llega √2 más lejos en diagonal), con el margen de `arcSafeReach` para que el arco no muerda por dentro. Más
+   * allá no hay luz que recortar, así que el recorte sale igual que con la vista entera — y con su «Dungeon» la
+   * vista entera eran 14.000 puntos y segundo y medio de recorte por luz (§ «La línea de vista sólo mira lo que
+   * tiene al alcance»).
+   */
+  const reachFrom = (eye: Point): number => arcSafeReach(lights.reduce((r, l) => {
+    const radius = (sightRadiusPx('night', l.rangeM, scene.gridSize) ?? 0) * (l.shape === 'square' ? Math.SQRT2 : 1);
+    return Math.max(r, Math.hypot(l.x - eye.x, l.y - eye.y) + radius);
+  }, 0));
+  const stars = eyes?.map(eye => ({ eye, star: visionPolygon(eye, segments, reachFrom(eye)) })) ?? null;
   const out: LitLight[] = [];
   for (const l of lights) {
     if (!layerPaints(layers, l.layerId, isDm)) continue;
@@ -328,8 +368,14 @@ export interface PaintInput {
   sceneId: string;
   userId: string;
   op: 'reveal' | 'hide';
-  /** Brush centre in scene px + radius in scene px. Omitted when `all` is set. */
-  at?: { x: number; y: number; radius: number };
+  /**
+   * Brush centre in scene px + radius in scene px. Omitted when `all` is set.
+   *
+   * `strength`, `hardness` y `edge` son la forma del brochazo (rebanada 9) y **son opcionales a propósito**:
+   * sin ellos sale el disco duro de siempre, así que un navegador viejo —o el botón de «revelar todo»— se
+   * comporta exactamente igual que antes.
+   */
+  at?: { x: number; y: number; radius: number; strength?: number | undefined; hardness?: number | undefined; edge?: number[] | undefined };
   /** «Revelar todo» / «Ocultar todo» for the whole scene. */
   all?: boolean;
 }
@@ -359,7 +405,11 @@ export async function paintSceneFog(deps: Deps, input: PaintInput): Promise<Visi
   const painted: FogCell[] = input.all
     ? allCells(scene.gridSize, scene.width, scene.height)
     : input.at
-      ? cellsInDisc(input.at, input.at.radius, scene.gridSize, scene.width, scene.height)
+      ? cellsInBrush(input.at, input.at.radius, scene.gridSize, scene.width, scene.height, {
+        ...(input.at.strength !== undefined ? { strength: input.at.strength } : {}),
+        ...(input.at.hardness !== undefined ? { hardness: input.at.hardness } : {}),
+        ...(input.at.edge ? { edge: input.at.edge } : {}),
+      })
       : [];
 
   // El director entra en el reparto, y sin duplicarse si además figurase como jugador.

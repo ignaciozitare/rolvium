@@ -3,6 +3,7 @@ import type { LitLight, SceneVision } from '@rolvium/core';
 import type { DoorSettings, Drawing, Layer, Light, Scene, Token, Wall } from '../domain/entities/Scene';
 import { cellsPath, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, initialsOf, openingGeometry, polygonPoints, polygonsPath, quadPoints, tokenCenter, type Segment } from '../domain/useCases/mapRules';
 import { beamCones, conePath, flickerOf, intensityFactor, lightRadiusPx, maskSrc, terrainLayers } from '../domain/useCases/layerRules';
+import { layerPaintSrc } from '../domain/useCases/paintRules';
 
 /** Presentational SVG pieces of the canvas (no pointer logic) — see MapCanvas.tsx. */
 
@@ -179,7 +180,20 @@ export function WallShape({ wall, selected = false, draft = null, sceneDoorColor
   );
 }
 
-interface FogProps { scene: Scene; fog: SceneVision; ids: { seen: string; lit: string; dim: string; unexplored: string } }
+interface FogProps { scene: Scene; fog: SceneVision; ids: { seen: string; lit: string; dim: string; unexplored: string; unseen: string } }
+
+/**
+ * ⏱ EL MARCO que tapa TODO lo que quede FUERA de la escena en la vista de jugador (specs/modules/maps/SPEC.md § «Y en
+ * pantalla: lo que no cambia no se vuelve a pintar»). La máscara de antes iba sobre el mapa con la escena por región,
+ * y fuera de su región un `<mask>` no pinta nada: un trazo o un muro que asomara del mapa, o el halo de una antorcha
+ * pegada al borde, no se veían. Ahora que el mapa va sin máscara lo hace este marco —el color del escenario, sin
+ * máscara ninguna—, y la tapa enmascarada (`unseen`) se queda con la escena justa, región incluida, para que el
+ * desenfoque que rebosa del borde tampoco cambie un píxel. Es un camino con agujero (`fillRule="evenodd"`): fuera se
+ * pinta, dentro no. Lo ancho que sea da igual mientras cubra el escenario al mínimo acercamiento (0,25).
+ */
+const FOG_FRAME = 100_000;
+export const fogFrame = ({ width, height }: Pick<Scene, 'width' | 'height'>): string =>
+  `M ${-FOG_FRAME} ${-FOG_FRAME} H ${width + FOG_FRAME} V ${height + FOG_FRAME} H ${-FOG_FRAME} Z M 0 0 V ${height} H ${width} V 0 Z`;
 
 /**
  * Lo BORROSO que es el borde de la niebla, en px de escena.
@@ -250,6 +264,21 @@ function FogMasksBase({ scene, fog, ids }: FogProps): JSX.Element {
           {litParts && <path d={litParts} fill={MASK_SHOW} data-testid="mp-fog-lit" />}
         </g>
       </mask>
+      {/*
+        * ⏱ `unseen` es `seen` AL REVÉS: blanco donde aquélla es negra y negro donde es blanca, con el mismo
+        * desenfoque y LA MISMA REGIÓN (la escena), así que una tapa con esta máscara deja EXACTAMENTE los mismos
+        * píxeles que enmascarar el mapa con la otra — sólo que enmascarado, cada cambio de visión (siete por segundo
+        * al mover) obligaba al navegador a repintar la mazmorra entera a través de la máscara; tapado, sólo repinta
+        * la tapa (§ «Y en pantalla: lo que no cambia no se vuelve a pintar»). Fuera de la escena tapa `fogFrame`.
+        */}
+      <mask id={ids.unseen} maskUnits="userSpaceOnUse" {...full}>
+        <rect {...wide} fill={MASK_SHOW} />
+        <g filter={blur}>
+          {cells && <path d={cells} fill={MASK_HIDE} />}
+          {fog.vision.map((poly, i) => <polygon key={i} points={polygonPoints(poly)} fill={MASK_HIDE} />)}
+          {litParts && <path d={litParts} fill={MASK_HIDE} />}
+        </g>
+      </mask>
       <mask id={ids.lit} maskUnits="userSpaceOnUse" {...full}>
         <rect {...wide} fill={MASK_HIDE} />
         <g filter={blur}>
@@ -288,15 +317,22 @@ function FogMasksBase({ scene, fog, ids }: FogProps): JSX.Element {
  * ve entero), un brochazo a fuerza máxima deja negro (no se ve) y a media, gris (translúcido). La foto
  * original no se toca en ningún momento — de ahí que siempre se pueda volver atrás.
  */
-export function TerrainLayers({ scene, layers, clipId, preview = null }: { scene: Scene; layers: readonly Layer[]; clipId: string;
+export function TerrainLayers({ scene, layers, clipId, preview = null, paintPreview = null }: { scene: Scene; layers: readonly Layer[]; clipId: string;
   /** La máscara EN VIVO de la capa que se está pintando: manda sobre la guardada hasta que ésta suba. */
-  preview?: { layerId: string; href: string | null } | null }): JSX.Element {
+  preview?: { layerId: string; href: string | null } | null;
+  /**
+   * LA PINTURA EN VIVO (rebanada 10): lo que se pone ENCIMA de la foto. Va aparte de la máscara porque hacen
+   * lo contrario — aquélla QUITA para que asome la capa de abajo, ésta PONE encima.
+   */
+  paintPreview?: { layerId: string; href: string | null } | null }): JSX.Element {
   const terrain = terrainLayers(layers).filter(l => l.visible && l.imageUrl);
   return (
     <g className="mp-layer-terrain" clipPath={`url(#${clipId})`} data-testid="mp-terrain">
       {terrain.map(l => {
         const mask = preview && preview.layerId === l.id ? preview.href : maskSrc(l);
+        const paint = paintPreview && paintPreview.layerId === l.id ? paintPreview.href : layerPaintSrc(l);
         const maskId = `mp-mask-${l.id}`;
+        const clipBoxId = `mp-paint-clip-${l.id}`;
         const tr = l.transform;
         const box = tr.mode === 'custom'
           ? { x: tr.x, y: tr.y, width: scene.width * tr.scale, height: scene.height * tr.scale, preserveAspectRatio: 'xMinYMin meet' }
@@ -310,6 +346,22 @@ export function TerrainLayers({ scene, layers, clipId, preview = null }: { scene
               </mask>
             )}
             <image href={l.imageUrl!} {...box} {...(mask ? { mask: `url(#${maskId})` } : {})} />
+            {/*
+              * LA PINTURA, encima de la foto y RECORTADA A SU ENCAJE: la pintura es de esta foto, así que no
+              * puede desbordarse por el mapa cuando la foto no lo cubre entero. El PNG va en coordenadas de
+              * escena, igual que la máscara, y el recorte es el rectángulo donde cae la foto.
+              */}
+            {paint && (<>
+              <clipPath id={clipBoxId}><rect x={box.x} y={box.y} width={box.width} height={box.height} /></clipPath>
+              {/*
+                * 🔑 Y LLEVA LA MISMA MÁSCARA QUE LA FOTO, igual que la pintura de una habitación va dentro de
+                * la máscara de su suelo: **la pintura es de lo que pintaste**, así que destapar la foto
+                * destapa también lo que hubieras pintado encima. Sin esto, destapar dejaba la pintura
+                * flotando sobre el agujero.
+                */}
+              <image href={paint} x={0} y={0} width={scene.width} height={scene.height} preserveAspectRatio="none"
+                clipPath={`url(#${clipBoxId})`} {...(mask ? { mask: `url(#${maskId})` } : {})} data-testid="mp-terrain-paint" />
+            </>)}
           </g>
         );
       })}

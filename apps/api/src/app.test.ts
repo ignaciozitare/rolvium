@@ -410,6 +410,27 @@ describe('POST /scenes/:id/fog', () => {
     expect(body.data.explored.some(([x, y]) => x === 0 && y === 0)).toBe(false);
     expect(body.data.explored).toHaveLength(99);
   });
+
+  /**
+   * LA FORMA DEL BROCHAZO (rebanada 9) llega por el cuerpo y es toda OPCIONAL: un navegador que no la mande
+   * —o el botón de «revelar todo»— se comporta exactamente igual que antes.
+   */
+  it('acepta la forma del brochazo, y a fuerza cero no tapa nada', async () => {
+    await post(app, `/scenes/${SCENE_ID}/fog`, 'admin', { op: 'reveal', all: true });
+    const flojo = await post(app, `/scenes/${SCENE_ID}/fog`, 'admin', { op: 'hide', at: { x: 13.5, y: 13.5, radius: 20, strength: 0, hardness: 0 } });
+    expect(flojo.statusCode).toBe(200);
+    // El brochazo llega, pero no pinta: a fuerza cero ninguna casilla entra, así que la niebla queda igual.
+    expect((flojo.json() as { data: { explored: number[][] } }).data.explored).toHaveLength(100);
+  });
+
+  /**
+   * Los topes NO son decoración: sin ellos una llamada a mano podría mandar un contorno de un millón de
+   * vértices y dejar al servidor interpolando por cada casilla de la escena.
+   */
+  it('rechaza una forma fuera de rango o un contorno desmesurado', async () => {
+    expect((await post(app, `/scenes/${SCENE_ID}/fog`, 'admin', { op: 'reveal', at: { x: 1, y: 1, radius: 20, strength: 4 } })).statusCode).toBe(400);
+    expect((await post(app, `/scenes/${SCENE_ID}/fog`, 'admin', { op: 'reveal', at: { x: 1, y: 1, radius: 20, edge: Array.from({ length: 300 }, () => 1) } })).statusCode).toBe(400);
+  });
 });
 
 // ── ataques a la espera (`.pen` columna 5): el director abre, el jugador contesta y ahí sale la tirada ──

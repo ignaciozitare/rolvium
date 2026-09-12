@@ -287,18 +287,18 @@ describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
    */
   it('con capas de terreno se pinta la capa y NO la foto de fondo de siempre', () => {
     const { svg } = mount({ scene: SCENE_CHAPEL, isDm: true, me: 'u-gm', layers: LAYERS_ALL });
-    expect(within(svg).queryByTestId('mp-bg-image')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mp-bg-image')).not.toBeInTheDocument();
     // El color de base se pinta siempre: es lo que se ve donde no llega ninguna foto.
-    expect(within(svg).getByTestId('mp-bg')).toBeInTheDocument();
-    const painted = within(svg).getAllByTestId('mp-terrain-layer');
+    expect(screen.getByTestId('mp-bg')).toBeInTheDocument();
+    const painted = screen.getAllByTestId('mp-terrain-layer');
     // «Charcos» está apagada: no se pinta ni para el director. El ojo es el de Photoshop.
     expect(painted.map(g => g.getAttribute('data-layer-id'))).toEqual([LAYER_FLOOR.id, LAYER_MOSS.id]);
   });
 
   it('sin capas de terreno todo sigue como antes', () => {
     const { svg } = mount({ scene: SCENE_CHAPEL, isDm: true, me: 'u-gm', layers: [LAYER_OBJECTS, LAYER_NOTES] });
-    expect(within(svg).getByTestId('mp-bg-image')).toBeInTheDocument();
-    expect(within(svg).queryByTestId('mp-terrain-layer')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mp-bg-image')).toBeInTheDocument();
+    expect(screen.queryByTestId('mp-terrain-layer')).not.toBeInTheDocument();
   });
 
   /**
@@ -307,15 +307,39 @@ describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
    */
   it('la capa con máscara la aplica, con la versión pegada para no servir la vieja', () => {
     const { svg } = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL });
-    const moss = within(svg).getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_MOSS.id)!;
+    const moss = screen.getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_MOSS.id)!;
     const mask = moss.querySelector('mask')!;
     expect(mask.querySelector('rect')).toHaveAttribute('fill', '#ffffff');
     expect(within(moss).getByTestId('mp-terrain-mask')).toHaveAttribute('href', 'https://x/backgrounds/c1/masks/ly-moss.png?v=3');
     expect(moss.querySelectorAll('image')[1]).toHaveAttribute('mask', `url(#mp-mask-${LAYER_MOSS.id})`);
     // El suelo no lleva máscara: se pinta entero, sin `mask`.
-    const floor = within(svg).getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_FLOOR.id)!;
+    const floor = screen.getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_FLOOR.id)!;
     expect(floor.querySelector('mask')).toBeNull();
     expect(floor.querySelector('image')).not.toHaveAttribute('mask');
+  });
+
+  /**
+   * ── LA PINTURA DE UNA FOTO (rebanada 10 · A) ── Va ENCIMA de la foto y **recortada a su encaje**: la
+   * pintura es de esa foto, así que no puede desbordarse por el mapa cuando la foto no lo cubre entero.
+   * Y va por su lado de la máscara: aquélla QUITA para que asome la capa de abajo, ésta PONE.
+   */
+  it('la pintura de una capa se dibuja encima de su foto y recortada a su encaje', () => {
+    const PINTADA = { ...LAYER_MOSS, paintUrl: 'https://x/backgrounds/c1/paint/layer-ly-moss.png', paintVersion: 2 };
+    const { svg } = mount({ isDm: true, me: 'u-gm', layers: [LAYER_OBJECTS, LAYER_NOTES, PINTADA] });
+    const moss = screen.getAllByTestId('mp-terrain-layer').find(g => g.dataset.layerId === LAYER_MOSS.id)!;
+    const pintura = within(moss).getByTestId('mp-terrain-paint');
+    // Con su rompe-caché pegado: sin él el navegador se queda con el PNG viejo.
+    expect(pintura).toHaveAttribute('href', 'https://x/backgrounds/c1/paint/layer-ly-moss.png?v=2');
+    expect(pintura).toHaveAttribute('clip-path', `url(#mp-paint-clip-${LAYER_MOSS.id})`);
+    // Y va DESPUÉS de la foto, que es lo que significa «encima».
+    const imagenes = [...moss.querySelectorAll('image')] as Element[];
+    expect(imagenes.indexOf(pintura as Element)).toBeGreaterThan(0);
+  });
+
+  /** Una capa sin pintar se ve exactamente igual que antes de la rebanada 10. */
+  it('una capa sin pintura no dibuja nada de más', () => {
+    const { svg } = mount({ isDm: true, me: 'u-gm', layers: LAYERS_ALL });
+    expect(screen.queryByTestId('mp-terrain-paint')).not.toBeInTheDocument();
   });
 
   /**
@@ -386,25 +410,25 @@ describe('<MapCanvas> capas de terreno y luces (rebanada 7)', () => {
 describe('<MapCanvas> layers', () => {
   it('player: background colour + grid, only visible walls, visible tokens (hidden absent), every drawing', () => {
     const { svg, token } = mount();
-    expect(within(svg).getByTestId('mp-bg')).toHaveAttribute('fill', '#4a4a3e');
-    expect(within(svg).getByTestId('mp-grid')).toBeInTheDocument();
+    expect(screen.getByTestId('mp-bg')).toHaveAttribute('fill', '#4a4a3e');
+    expect(screen.getByTestId('mp-grid')).toBeInTheDocument();
     expect(within(svg).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(1);
     // Dos capas de tokens: los PJ van aparte y SIN máscara, para no perderlos de vista nunca (2026-08-22).
     expect(svg.querySelectorAll('[data-token-id]')).toHaveLength(2);
     expect(within(svg).getByTestId('mp-tokens-pc').querySelectorAll('[data-token-id]')).toHaveLength(2);
     expect(token('Karen')).toHaveAttribute('data-token-id', 'tk-karen');
     expect(within(svg).getByTestId('mp-drawings').querySelectorAll('[data-drawing-id]')).toHaveLength(2);
-    expect(within(svg).queryByTestId('mp-bg-image')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mp-bg-image')).not.toBeInTheDocument();
   });
   it('DM: all walls + hidden tokens (gold dashed ring, «oculto» label); «ver como jugador» hides them; walls toggle; background image with fit', () => {
     const { svg, rerender } = mount({ isDm: true, me: 'u-gm', scene: SCENE_CHAPEL });
     expect(within(svg).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(2);
     expect(within(svg).getByRole('img', { name: 'Token Mutante (oculto)' }).classList.contains('hidden')).toBe(true);
-    expect(within(svg).getByTestId('mp-bg-image')).toHaveAttribute('preserveAspectRatio', 'xMidYMid slice');
+    expect(screen.getByTestId('mp-bg-image')).toHaveAttribute('preserveAspectRatio', 'xMidYMid slice');
     rerender({ isDm: true, me: 'u-gm', scene: { ...SCENE_CHAPEL, bgTransform: { mode: 'contain', x: 0, y: 0, scale: 1 } } });
-    expect(within(svg).getByTestId('mp-bg-image')).toHaveAttribute('preserveAspectRatio', 'xMidYMid meet');
+    expect(screen.getByTestId('mp-bg-image')).toHaveAttribute('preserveAspectRatio', 'xMidYMid meet');
     rerender({ isDm: true, me: 'u-gm', scene: { ...SCENE_CHAPEL, bgTransform: { mode: 'custom', x: 10, y: 20, scale: 2 } } });
-    expect(within(svg).getByTestId('mp-bg-image')).toHaveAttribute('x', '10');
+    expect(screen.getByTestId('mp-bg-image')).toHaveAttribute('x', '10');
     rerender({ isDm: true, me: 'u-gm', scene: SCENE_CHAPEL, showWalls: false });
     expect(within(svg).getByTestId('mp-walls').querySelectorAll('line')).toHaveLength(0);
     rerender({ isDm: true, me: 'u-gm', scene: SCENE_CHAPEL, playerView: true });
@@ -624,9 +648,15 @@ describe('<MapCanvas> fog', () => {
     expect(svg.querySelector('mask')).toBeNull();
   });
 
-  it('player: the map is masked to explored ∪ vision, what is only remembered is dimmed, and tokens live only inside the current sight', () => {
+  /**
+   * ⏱ El mapa YA NO lleva la máscara de «lo visto» (specs § «Y en pantalla: lo que no cambia no se vuelve a pintar»):
+   * cada cambio de visión obligaba a repintar la mazmorra entera a través de ella. Ahora lo que no se ve se TAPA con
+   * el color del escenario y la máscara al revés — mismos píxeles, y el mapa no se toca.
+   */
+  it('player: the map is covered where not seen (explored ∪ vision), what is only remembered is dimmed, and tokens live only inside the current sight', () => {
     const { svg } = mount({ fog: FOG });
-    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-map')).not.toHaveAttribute('mask');
+    expect(within(svg).getByTestId('mp-fog-unseen')).toHaveAttribute('mask', `url(#mp-unseen-${SCENE_WAREHOUSE.id})`);
     expect(within(svg).getByTestId('mp-fog-dim')).toHaveAttribute('mask', `url(#mp-dim-${SCENE_WAREHOUSE.id})`);
     expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
     /**
@@ -688,7 +718,7 @@ describe('<MapCanvas> fog', () => {
     const SALA = {
       id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
       points: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] as [number, number][],
-      floorPreset: 'hatch' as const, floorUrl: null, createdAt: '', updatedAt: '',
+      floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
     };
     const empujar = (over: Record<string, unknown>) => {
       document.body.innerHTML = '';
@@ -856,14 +886,14 @@ describe('<MapCanvas> fog', () => {
 
   it('with manual fog nothing is dimmed and tokens follow whatever the DM revealed', () => {
     const { svg } = mount({ scene: { ...SCENE_WAREHOUSE, fogMode: 'manual' }, fog: { ...FOG, vision: [] } });
-    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-fog-unseen')).toHaveAttribute('mask', `url(#mp-unseen-${SCENE_WAREHOUSE.id})`);
     expect(within(svg).queryByTestId('mp-fog-dim')).not.toBeInTheDocument();
     expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
   });
 
   it('a player with no token of their own sees the map they remember but NO tokens on it — memory holds no creatures', () => {
     const { svg } = mount({ fog: { ...FOG, vision: [] } });
-    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-fog-unseen')).toHaveAttribute('mask', `url(#mp-unseen-${SCENE_WAREHOUSE.id})`);
     // the `lit` mask is empty, so the token layer resolves to nothing
     expect(within(svg).getByTestId('mp-tokens')).toHaveAttribute('mask', `url(#mp-lit-${SCENE_WAREHOUSE.id})`);
     /**
@@ -882,7 +912,7 @@ describe('<MapCanvas> fog', () => {
     expect(within(svg).getByTestId('mp-fog-veil')).toHaveAttribute('mask', `url(#mp-unex-${SCENE_WAREHOUSE.id})`);
     rerender({ isDm: true, me: 'u-gm', fog: FOG, playerView: true });
     expect(within(svg).queryByTestId('mp-fog-veil')).not.toBeInTheDocument();
-    expect(within(svg).getByTestId('mp-map')).toHaveAttribute('mask', `url(#mp-seen-${SCENE_WAREHOUSE.id})`);
+    expect(within(svg).getByTestId('mp-fog-unseen')).toHaveAttribute('mask', `url(#mp-unseen-${SCENE_WAREHOUSE.id})`);
   });
 });
 
@@ -1163,10 +1193,12 @@ describe('<MapCanvas> reveal/hide brush', () => {
     move(svg, 100, 100);
     expect(within(svg).getByTestId('mp-brush')).toHaveAttribute('r', String(2 * G));
     down(svg, 100, 100);
-    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 100, y: 100, radius: 2 * G }, 'reveal');
+    // `true` = primera pincelada del arrastre: es donde quien escucha sortea la forma del borde roto.
+    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 100, y: 100, radius: 2 * G }, 'reveal', true);
     // throttled like the token drag: every paint rewrites the fog row of every player and wakes the whole table
     vi.setSystemTime(Date.now() + 100);
     move(svg, 130, 100);
+    // Y en los puntos de en medio NO se marca el arranque: la misma forma sigue toda la pincelada.
     expect(cb.onPaintFog).toHaveBeenLastCalledWith({ x: 130, y: 100, radius: 2 * G }, 'reveal');
     const painted = cb.onPaintFog.mock.calls.length;
     move(svg, 131, 100);
@@ -1178,7 +1210,7 @@ describe('<MapCanvas> reveal/hide brush', () => {
   it('the hide brush sends the other op, and a player never paints', () => {
     const { svg, cb } = mount({ isDm: true, me: 'u-gm', tool: 'hide', brush: 1 });
     down(svg, 50, 50);
-    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 50, y: 50, radius: G }, 'hide');
+    expect(cb.onPaintFog).toHaveBeenCalledWith({ x: 50, y: 50, radius: G }, 'hide', true);
 
     document.body.innerHTML = '';
     const player = mount({ tool: 'reveal', brush: 1 });
@@ -1690,7 +1722,7 @@ describe('<MapCanvas> el velo del director', () => {
     const { svg } = mount({ isDm: false, fog, fogVeil: false });
     expect(svg.querySelector('[data-testid="mp-fog-veil"]')).toBeNull();
     // Al jugador lo que le tapa es la niebla negra, y esa sigue en su sitio.
-    expect(svg.querySelector('[data-testid="mp-map"]')!.getAttribute('mask')).toContain('mp-seen');
+    expect(svg.querySelector('[data-testid="mp-fog-unseen"]')!.getAttribute('mask')).toContain('mp-unseen');
   });
 });
 
@@ -1837,12 +1869,14 @@ describe('<MapCanvas> Builder levanta salas enteras', () => {
     expect(puntos[0]).toEqual([0, 0]);
   });
 
-  it('en «Dibujar aquí» el polígono y el trazo a pulso también levantan sala', () => {
+  it('en «Dibujar aquí» el trazo libre también levanta sala', () => {
     const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
     const { svg } = mount({ ...dm, wallShape: 'poly', builderMode: 'draw', ...cb2 });
-    down(svg, 0, 0); down(svg, 200, 0); down(svg, 200, 200); down(svg, 0, 0);
+    down(svg, 0, 0);
+    for (const [x, y] of [[200, 0], [200, 200], [0, 200]]) move(svg, x!, y!);
+    up(svg);
     expect(cb2.onAddRoomShape).toHaveBeenCalledTimes(1);
-    expect(cb2.onAddRoomShape.mock.calls[0]![0]).toBe('poly');
+    expect(cb2.onAddRoomShape.mock.calls[0]![0]).toBe('free');
     expect(cb2.onAddRoom).not.toHaveBeenCalled();
   });
 
@@ -1872,35 +1906,14 @@ describe('<MapCanvas> Builder levanta salas enteras', () => {
     expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBeGreaterThanOrEqual(8);
   });
 
-  it('polígono: un clic un vértice, y se cierra pinchando otra vez sobre el primero', () => {
-    const cb2 = { onAddRoom: vi.fn() };
-    const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
-    down(svg, 0, 0); down(svg, 200, 0); down(svg, 200, 150);
-    expect(cb2.onAddRoom).not.toHaveBeenCalled();
-    down(svg, 3, 4);                                       // de vuelta al primero: cierra
-    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
-    expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBe(3);
-  });
-
   /**
-   * 🔒 Un vértice PEGADO al primero tiene que poder ponerse. Los vértices van a la rejilla, así que el vecino
-   * de al lado cae a exactamente una casilla del primero: con el tope de cierre en `grid` ese clic cerraba la
-   * sala en vez de colocar la esquina, y una L cuyo último vértice cae junto al primero era imposible.
+   * 🔴 «POLÍGONO» ES AHORA EL TRAZO LIBRE CERRADO, por orden suya del 2026-09-10 con la pantalla delante:
+   * «*quiero que lo que hoy es a pulso lo pongas en polígono*». Se arrastra y la forma sale con el contorno
+   * de la mano, sin un muro por cada píxel.
    */
-  it('polígono: una esquina a una casilla del primer vértice se pone, no cierra la sala', () => {
+  it('polígono: la sala sale con la forma de la mano, sin un muro por cada pixel', () => {
     const cb2 = { onAddRoom: vi.fn() };
     const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
-    down(svg, 0, 0); down(svg, G * 4, 0); down(svg, G * 4, G * 2); down(svg, G * 2, G * 2); down(svg, G * 2, G);
-    down(svg, 0, G);                                       // pegado al primero, pero NO es el primero
-    expect(cb2.onAddRoom).not.toHaveBeenCalled();
-    down(svg, 0, 0);                                       // ahora sí: encima del primero
-    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
-    expect((cb2.onAddRoom.mock.calls[0]![0] as unknown[]).length).toBe(6);
-  });
-
-  it('a pulso: la sala sale con la forma de la mano, sin un muro por cada pixel', () => {
-    const cb2 = { onAddRoom: vi.fn() };
-    const { svg } = mount({ ...dm, wallShape: 'free', ...cb2 });
     down(svg, 0, 0);
     for (const [x, y] of [[50, 0], [100, 0], [150, 0], [150, 50], [150, 100], [150, 150], [100, 150], [50, 150], [0, 150], [0, 100], [0, 50]]) move(svg, x!, y!);
     up(svg);
@@ -1917,26 +1930,106 @@ describe('<MapCanvas> Builder levanta salas enteras', () => {
     expect(cb2.onAddRoom).not.toHaveBeenCalled();
   });
 
-  /** 🔒 Un polígono a medias se tira, no se monta a medias: una sala abierta no detiene ni la vista ni el paso. */
-  it('Escape y el botón derecho tiran el polígono a medias sin levantar nada', () => {
-    const cb2 = { onAddRoom: vi.fn() };
-    const { svg } = mount({ ...dm, wallShape: 'poly', ...cb2 });
-    down(svg, 0, 0); down(svg, 200, 0);
+  /** 🔒 Una banda a medias se tira, no se monta a medias: lo que se está trazando todavía no es nada. */
+  it('Escape tira la banda a medias sin levantar nada', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', bandCells: 1, builderMode: 'draw', ...cb2 });
+    down(svg, 0, 0); move(svg, 200, 0);
+    expect(screen.getAllByTestId('mp-band-draft').length).toBeGreaterThan(0);
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(within(svg).getByTestId('mp-walls').querySelectorAll('.mp-wall.draft')).toHaveLength(0);
-    down(svg, 0, 0); down(svg, 200, 0);
-    fireEvent.contextMenu(svg, { clientX: 200, clientY: 0 });
-    down(svg, 3, 4);
-    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('mp-band-draft')).not.toBeInTheDocument();
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
   });
 
   it('cambiar de forma a media sala descarta lo empezado', () => {
-    const cb2 = { onAddRoom: vi.fn() };
-    const { svg, rerender } = mount({ ...dm, wallShape: 'poly', ...cb2 });
-    down(svg, 0, 0); down(svg, 200, 0); down(svg, 200, 150);
-    rerender({ ...dm, wallShape: 'rect', ...cb2 });
-    down(svg, 3, 4);
-    expect(cb2.onAddRoom).not.toHaveBeenCalled();
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg, rerender } = mount({ ...dm, wallShape: 'free', bandCells: 1, builderMode: 'draw', ...cb2 });
+    down(svg, 0, 0); move(svg, 200, 0);
+    rerender({ ...dm, wallShape: 'rect', builderMode: 'draw', ...cb2 });
+    expect(screen.queryByTestId('mp-band-draft')).not.toBeInTheDocument();
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
+  });
+
+  /**
+   * ── A PULSO SACA UNA BANDA (§ «Rebanada 10 · B») ──
+   *
+   * Es el gesto del pincel que se construyó por error para la rebanada 10 y que él mandó mudar aquí con la
+   * pantalla delante: «*lo que habías hecho en el otro chat para el pincel estaba mal, pero en el builder me
+   * servía para corregir el a mano, que no servía de nada*».
+   */
+  it('a pulso: arrastrar saca una BANDA siguiendo la mano, y se guarda al soltar', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', bandCells: 1, builderMode: 'draw', ...cb2 });
+    down(svg, 100, 100);
+    move(svg, 200, 100);
+    move(svg, 300, 100);
+    // Mientras arrastra sólo se ve el previo de lo que va a quedar.
+    expect(screen.getAllByTestId('mp-band-draft').length).toBeGreaterThan(0);
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
+    up(svg);
+    expect(cb2.onAddRoomShape).toHaveBeenCalledTimes(1);
+    expect(cb2.onAddRoomShape.mock.calls[0]![0]).toBe('brush');
+    expect((cb2.onAddRoomShape.mock.calls[0]![1] as unknown[]).length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByTestId('mp-band-draft')).not.toBeInTheDocument();
+  });
+
+  /** El borde de «A pulso» (§ 10B.4): con BORDE ROTO la banda que se guarda sale con el canto roto; con LIMPIO, como siempre. */
+  it('a pulso con BORDE ROTO: la banda que se guarda sale con el canto roto', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const base = { ...dm, wallShape: 'free' as const, bandCells: 2, builderMode: 'draw' as const, ...cb2 };
+    const { svg, rerender } = mount({ ...base, bandTip: 'clean' });
+    const trazar = () => { down(svg, 100, 100); move(svg, 300, 100); move(svg, 500, 100); up(svg); };
+    trazar();
+    rerender({ ...base, bandTip: 'rough', bandRoughness: 1 });
+    trazar();
+    expect(cb2.onAddRoomShape).toHaveBeenCalledTimes(2);
+    const [limpio, roto] = cb2.onAddRoomShape.mock.calls.map(c => (c[1] as unknown[]).length);
+    expect(cb2.onAddRoomShape.mock.calls[1]![0]).toBe('brush');
+    expect(roto!).toBeGreaterThan(limpio!);
+  });
+
+  /** Sobre una foto el borde roto no cuenta (§ 10B.4): cada lado es un muro suelto y un canto roto dejaría cientos. */
+  it('sobre una foto, a pulso sale con canto limpio aunque la escena tenga guardado el roto', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const base = { ...dm, wallShape: 'free' as const, bandCells: 2, builderMode: 'photo' as const, ...cb2 };
+    const { svg, rerender } = mount({ ...base, bandTip: 'clean' });
+    const trazar = () => { down(svg, 100, 100); move(svg, 300, 100); move(svg, 500, 100); up(svg); };
+    trazar();
+    rerender({ ...base, bandTip: 'rough', bandRoughness: 1 });
+    trazar();
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
+    expect(cb2.onAddRoom).toHaveBeenCalledTimes(2);
+    const [limpio, conRoto] = cb2.onAddRoom.mock.calls.map(c => (c[0] as unknown[]).length);
+    expect(conRoto).toBe(limpio);
+  });
+
+  /** § 10B.4: la semilla se sortea al EMPEZAR el trazo, así que el canto roto que se ve al arrastrar ES el que se guarda al soltar. */
+  it('a pulso con BORDE ROTO: el previo y lo que se guarda son el mismo canto', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', bandCells: 2, builderMode: 'draw', bandTip: 'rough', bandRoughness: 1, ...cb2 });
+    down(svg, 100, 100); move(svg, 300, 120); move(svg, 500, 100);
+    const previo = screen.getAllByTestId('mp-band-draft').map(el => el.getAttribute('d'));
+    expect(previo.length).toBeGreaterThan(0);
+    up(svg);
+    const guardado = cb2.onAddRoomShape.mock.calls.map(c => roomStyles.ringPath((c[1] as [number, number][]).map(([x, y]) => ({ x, y }))));
+    expect(guardado).toEqual(previo);
+  });
+
+  /** Un toque sin arrastre es un DISCO, como en cualquier programa de dibujo. */
+  it('a pulso: un toque sin arrastre también levanta forma', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', bandCells: 2, builderMode: 'draw', ...cb2 });
+    down(svg, 100, 100); up(svg);
+    expect(cb2.onAddRoomShape).toHaveBeenCalledTimes(1);
+  });
+
+  /** Sobre una foto la banda se convierte en los MUROS de su contorno: allí no se levanta mazmorra. */
+  it('a pulso sobre una foto marca los muros del contorno de la banda', () => {
+    const cb2 = { onAddRoom: vi.fn(), onAddRoomShape: vi.fn() };
+    const { svg } = mount({ ...dm, wallShape: 'free', bandCells: 1, builderMode: 'photo', ...cb2 });
+    down(svg, 100, 100); move(svg, 300, 100); up(svg);
+    expect(cb2.onAddRoomShape).not.toHaveBeenCalled();
+    expect(cb2.onAddRoom).toHaveBeenCalledTimes(1);
   });
 
   /** Viendo como jugador, el director no levanta nada: sus herramientas están apagadas (regresión del 02-09). */
@@ -2332,7 +2425,7 @@ describe('<MapCanvas> arrastrar una ficha no repinta las salas', () => {
   const SALA = {
     id: 'rm-1', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
     points: [[G * 8, G * 8], [G * 14, G * 8], [G * 14, G * 14], [G * 8, G * 14]] as [number, number][],
-    floorPreset: 'hatch' as const, floorUrl: null, createdAt: '', updatedAt: '',
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
   };
 
   it('el cuerpo de la capa de salas NO se ejecuta en cada tirón del dedo', () => {
@@ -2372,5 +2465,289 @@ describe('<MapCanvas> arrastrar una ficha no repinta las salas', () => {
     rerender({ rooms: [{ ...SALA, points: [[G * 8, G * 8], [G * 12, G * 8], [G * 12, G * 12], [G * 8, G * 12]] as [number, number][] }] });
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
+  });
+});
+
+/**
+ * ── EL PINCEL SOBRE EL SUELO DE UNA SALA (rebanada 9) ──
+ *
+ * No hay que elegir la sala antes: se apunta con el ratón y se pinta la que hay debajo. El lienzo es quien lo
+ * sabe, y lo avisa al MOVERSE —no al pulsar— porque quien escucha lo guarda en estado de React: decidirlo en
+ * el `pointerdown` llegaría un render tarde y el primer brochazo caería en la sala anterior.
+ */
+describe('<MapCanvas> el pincel del suelo de una sala', () => {
+  const SALA = {
+    id: 'rm-1', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[0, 0], [200, 0], [200, 200], [0, 200]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
+  };
+
+  it('avisa de la sala bajo el ratón, y sólo cuando cambia', () => {
+    const onHoverRoom = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'mask', rooms: [SALA], onHoverRoom });
+    move(svg, 50, 50);
+    expect(onHoverRoom).toHaveBeenCalledWith('rm-1');
+    // Moverse DENTRO de la misma sala no despierta a la pantalla otra vez: sería un goteo en cada píxel.
+    onHoverRoom.mockClear();
+    move(svg, 60, 60);
+    expect(onHoverRoom).not.toHaveBeenCalled();
+    // Salirse sí, porque ahí ya no hay suelo que pintar.
+    move(svg, 400, 400);
+    expect(onHoverRoom).toHaveBeenCalledWith(null);
+  });
+
+  it('con una sala bajo el pincel se pinta, aunque no haya capa de terreno activa', () => {
+    const onPaintMask = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'mask', rooms: [SALA], maskLayerId: null, maskRoomId: 'rm-1', paintReady: true, onPaintMask });
+    down(svg, 50, 50);
+    // `true` = arranque de la pincelada: es donde se sortea la forma del borde roto.
+    expect(onPaintMask).toHaveBeenCalledWith({ x: 50, y: 50 }, { x: 50, y: 50 }, true);
+  });
+
+  it('sin capa ni sala el pincel no hace nada, en vez de pintar en el vacío', () => {
+    const onPaintMask = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'mask', rooms: [SALA], maskLayerId: null, maskRoomId: null, onPaintMask });
+    down(svg, 50, 50);
+    expect(onPaintMask).not.toHaveBeenCalled();
+  });
+
+  /** «Ver como jugador» le quita al director sus privilegios, y pintar el suelo es uno. */
+  it('viendo como jugador no se pinta el suelo de nada', () => {
+    const onPaintMask = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', playerView: true, tool: 'mask', rooms: [SALA], maskRoomId: 'rm-1', paintReady: true, onPaintMask });
+    down(svg, 50, 50);
+    expect(onPaintMask).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * 🐞 LA SALA NO CAMBIA A MEDIA PINCELADA (rebanada 9).
+ *
+ * El spec promete lo contrario de lo que pasaba: «*puedes pasar por encima del muro sin mancharlo*» (§ 9.3).
+ * Y el muro se dibuja SOBRE el contorno, así que media franja del muro cae fuera de la sala: barrer el
+ * pincel por encima —justo el gesto que el spec invita a hacer— sacaba el ratón del contorno, se avisaba de
+ * otra sala (o de ninguna), el destino del pincel cambiaba a media pincelada y quien escucha rehacía su
+ * lienzo. La pincelada entera se perdía sin decir nada, y si al otro lado había otra sala, el resto del
+ * trazo caía en ella.
+ *
+ * La sala se decide al APOYAR y no se suelta hasta levantar: una pincelada, una sala.
+ */
+describe('<MapCanvas> la sala del pincel no cambia a media pincelada', () => {
+  const SALA_A = {
+    id: 'rm-a', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[0, 0], [200, 0], [200, 200], [0, 200]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
+  };
+  const SALA_B = { ...SALA_A, id: 'rm-b', points: [[300, 0], [500, 0], [500, 200], [300, 200]] as [number, number][] };
+
+  it('salirse de la sala mientras se pinta NO cambia de destino', () => {
+    const onHoverRoom = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'mask', rooms: [SALA_A, SALA_B], maskRoomId: 'rm-a', paintReady: true, onHoverRoom });
+    move(svg, 50, 50);
+    expect(onHoverRoom).toHaveBeenLastCalledWith('rm-a');
+    onHoverRoom.mockClear();
+    down(svg, 50, 50);
+    // Barrer por encima del muro y entrar en la vecina: el destino se queda donde se apoyó.
+    move(svg, 250, 100);
+    move(svg, 400, 100);
+    expect(onHoverRoom).not.toHaveBeenCalled();
+  });
+
+  it('soltado el ratón, el pincel vuelve a apuntar a lo que hay debajo', () => {
+    const onHoverRoom = vi.fn();
+    const { svg } = mount({ isDm: true, me: 'u-gm', tool: 'mask', rooms: [SALA_A, SALA_B], maskRoomId: 'rm-a', paintReady: true, onHoverRoom });
+    move(svg, 50, 50);
+    down(svg, 50, 50);
+    move(svg, 400, 100);
+    up(svg);
+    onHoverRoom.mockClear();
+    move(svg, 400, 120);
+    expect(onHoverRoom).toHaveBeenCalledWith('rm-b');
+  });
+});
+
+/**
+ * ── EL PINCEL, EN EL LIENZO (§ «Rebanada 10 · A») ──
+ *
+ * 🔴 Hasta el 2026-09-10 este gesto LEVANTABA MAPA, y él lo paró en pantalla: «*eso es cavar con construir,
+ * que no es lo que te pedí*». Lo que excavaba se mudó al Builder («A mano» con ancho, abajo). Lo que queda
+ * aquí es lo único que hace el pincel: decir por dónde ha pasado la mano — quién pinta y sobre qué lienzo lo
+ * decide la pantalla.
+ */
+describe('<MapCanvas> el pincel que pinta encima', () => {
+  const dm = { isDm: true, me: 'u-gm', tool: 'mask' as const };
+  const SALA_A = {
+    id: 'rm-a', sceneId: SCENE_WAREHOUSE.id, campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[0, 0], [200, 0], [200, 200], [0, 200]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
+  };
+  const SALA_B = { ...SALA_A, id: 'rm-b', points: [[300, 0], [500, 0], [500, 200], [300, 200]] as [number, number][] };
+
+  it('con dónde pintar, el trazo se entrega de punta a punta y el PNG sube al soltar', () => {
+    const onPaintMask = vi.fn();
+    const onPaintMaskEnd = vi.fn();
+    const { svg } = mount({ ...dm, paintReady: true, onPaintMask, onPaintMaskEnd });
+    down(svg, 100, 100);
+    expect(onPaintMask).toHaveBeenCalledWith({ x: 100, y: 100 }, { x: 100, y: 100 }, true);
+    move(svg, 160, 100);
+    expect(onPaintMask).toHaveBeenCalledTimes(2);
+    expect(onPaintMaskEnd).not.toHaveBeenCalled();   // un guardado por pincelada, no cien
+    up(svg);
+    expect(onPaintMaskEnd).toHaveBeenCalledTimes(1);
+  });
+
+  /** Sin sitio donde pintar el gesto no arranca: un rastro que no se guarda en ninguna parte es peor que nada. */
+  it('sin dónde pintar no pasa nada', () => {
+    const onPaintMask = vi.fn();
+    const { svg } = mount({ ...dm, paintReady: false, onPaintMask, onPaintMaskEnd: vi.fn() });
+    down(svg, 100, 100);
+    move(svg, 160, 100);
+    up(svg);
+    expect(onPaintMask).not.toHaveBeenCalled();
+  });
+
+  /** 🔒 Y NO TOCA EL MAPA: ni levanta formas, ni derriba, ni escribe un muro. Es la línea del spec. */
+  it('no levanta ni derriba nada', () => {
+    const onAddRoomShape = vi.fn();
+    const onAddWall = vi.fn();
+    const { svg } = mount({ ...dm, paintReady: true, onPaintMask: vi.fn(), onPaintMaskEnd: vi.fn(), onAddRoomShape, onAddWall });
+    down(svg, 100, 100);
+    move(svg, 300, 100);
+    up(svg);
+    expect(onAddRoomShape).not.toHaveBeenCalled();
+    expect(onAddWall).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🐞 El aviso de «sobre qué sala está el ratón» despierta a la pantalla entera de la escena. A media
+   * pincelada no sirve para nada y es la clase de goteo que se nota como «va lentísimo».
+   */
+  it('a media pincelada no se avisa de la sala de debajo', () => {
+    const onHoverRoom = vi.fn();
+    const { svg } = mount({ ...dm, paintReady: true, rooms: [SALA_A, SALA_B], onHoverRoom, onPaintMask: vi.fn(), onPaintMaskEnd: vi.fn() });
+    move(svg, 50, 50);
+    onHoverRoom.mockClear();
+    down(svg, 50, 50);
+    move(svg, 400, 100);
+    expect(onHoverRoom).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 🐞 LA SILUETA DEL PINCEL BAJO EL PUNTERO, que él pidió con esas palabras (2026-09-10): «*al poner el
+   * puntero en el lienzo tendría que tener una silueta del área que ocupa el pincel, si no lo hago a ciegas*».
+   */
+  it('enseña la silueta del pincel bajo el puntero, y sólo si hay dónde pintar', () => {
+    const { svg } = mount({ ...dm, paintReady: true, brush: 2 });
+    move(svg, 120, 120);
+    const silueta = within(svg).getByTestId('mp-brush');
+    expect(silueta).toHaveAttribute('r', String(2 * SCENE_WAREHOUSE.grid.size));
+    expect(silueta.getAttribute('class')).toContain('mask');
+  });
+
+  it('sin dónde pintar no hay silueta: sería prometer un brochazo que no cae en ninguna parte', () => {
+    const { svg } = mount({ ...dm, paintReady: false });
+    move(svg, 120, 120);
+    expect(within(svg).queryByTestId('mp-brush')).not.toBeInTheDocument();
+  });
+
+  /** LA PINTURA EN VIVO se dibuja encima de lo pintado, y por eso el brochazo se ve antes de soltar. */
+  it('pinta la pintura en vivo sobre la sala que se está pintando', () => {
+    mount({ ...dm, paintReady: true, rooms: [SALA_A], paintPreview: { on: 'room', id: 'sc-1:floor', href: 'data:image/png;base64,AAA' } });
+    expect(screen.getByTestId('mp-room-floor-paint')).toHaveAttribute('href', 'data:image/png;base64,AAA');
+  });
+});
+
+/**
+ * ── EL PREVIO DE LA TEXTURA DEL PINCEL, GIRADO (suyo, 2026-09-10) ──
+ * Es la única forma de ver cómo cae la losa girada antes de dar el primer brochazo.
+ */
+describe('<MapCanvas> el previo de la textura gira con el giro', () => {
+  it('con giro, el patrón lleva rotate(); sin giro, va derecho', () => {
+    const { svg, rerender } = mount({ isDm: true, tilePreview: { url: 'https://x/losa.png', sidePx: 54, deg: 30 } });
+    expect(svg.querySelector('#mp-tile-preview')).toHaveAttribute('patternTransform', 'rotate(30)');
+    rerender({ isDm: true, tilePreview: { url: 'https://x/losa.png', sidePx: 54, deg: 0 } });
+    expect(svg.querySelector('#mp-tile-preview')).not.toHaveAttribute('patternTransform');
+  });
+});
+
+/**
+ * ⏱ DOS DIBUJOS, NO UNO (specs/modules/maps/SPEC.md § «Y en pantalla: lo que no cambia no se vuelve a pintar»).
+ * Medido con su «Dungeon» (531 caminos, 1,3 MB de coordenadas): en reposo 17 ms por fotograma; al mover la sonda o
+ * arrastrar el mapa, 100–130. Con la mazmorra en su propio dibujo de debajo y el mapa tapado en vez de enmascarado,
+ * las dos cosas van a 60 por segundo. Estos tests sujetan la ESTRUCTURA que lo hace posible.
+ */
+describe('<MapCanvas> lo que no cambia no se vuelve a pintar', () => {
+  const SALA = {
+    id: 'rm-u', sceneId: 'sc-1', campaignId: 'c1', kind: 'room' as const, shape: 'rect' as const,
+    points: [[G * 2, G * 2], [G * 8, G * 2], [G * 8, G * 8], [G * 2, G * 8]] as [number, number][],
+    floorPreset: 'hatch' as const, floorUrl: null, floorColor: null, floorMaskUrl: null, floorPaintUrl: null, createdAt: '', updatedAt: '',
+  };
+
+  it('el fondo, las salas y la rejilla viven en el dibujo de DEBAJO, y la vista se le pone por CSS', () => {
+    const { svg } = mount({ rooms: [SALA], isDm: true, me: 'u-gm', view: { zoom: 2, panX: 10, panY: 20 } });
+    const under = screen.getByTestId('mp-under');
+    expect(under).toContainElement(screen.getByTestId('mp-rooms'));
+    expect(under).toContainElement(screen.getByTestId('mp-bg'));
+    expect(under).toHaveStyle({ transform: 'translate(10px, 20px) scale(2)' });
+    // Y ni una sala en el de arriba: nada de lo que se mueve puede obligar a repintarlas.
+    expect(within(svg).queryByTestId('mp-rooms')).toBeNull();
+    expect(within(svg).queryByTestId('mp-bg')).toBeNull();
+    // El de arriba sigue llevando la vista de siempre, con las fichas y los muros.
+    expect(svg.querySelector(':scope > g')).toHaveAttribute('transform', 'translate(10 20) scale(2)');
+    expect(within(svg).getByTestId('mp-walls')).toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-tokens')).toBeInTheDocument();
+    // El de debajo no recibe eventos ni habla: los recibe el de arriba.
+    expect(under).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('dentro del de debajo el orden es el de siempre: fondo → salas → terreno', () => {
+    mount({ rooms: [SALA], isDm: true, me: 'u-gm', layers: LAYERS_ALL });
+    const vistos = [...screen.getByTestId('mp-under').querySelectorAll('[data-testid]')].map(e => e.getAttribute('data-testid'))
+      .filter(t => ['mp-bg', 'mp-rooms', 'mp-terrain-layer'].includes(t ?? ''));
+    expect(vistos.filter((t, i) => vistos.indexOf(t) === i)).toEqual(['mp-bg', 'mp-rooms', 'mp-terrain-layer']);
+  });
+
+  it('arrastrar el mapa NO vuelve a fundir las salas: el de debajo sólo cambia de sitio', () => {
+    const { rerender } = mount({ rooms: [SALA], isDm: true, me: 'u-gm' });
+    const spy = vi.spyOn(roomStyles, 'roomWallsOf');
+    rerender({ view: { zoom: 1.5, panX: -40, panY: 12 } });
+    expect(spy).not.toHaveBeenCalled();
+    expect(screen.getByTestId('mp-under')).toHaveStyle({ transform: 'translate(-40px, 12px) scale(1.5)' });
+    spy.mockRestore();
+  });
+
+  it('en la vista de jugador la máscara de la tapa es la de «lo visto» AL REVÉS, con el mismo desenfoque', () => {
+    const { svg } = mount({ fog: FOG });
+    const seen = svg.querySelector(`mask#mp-seen-${SCENE_WAREHOUSE.id}`)!, unseen = svg.querySelector(`mask#mp-unseen-${SCENE_WAREHOUSE.id}`)!;
+    expect(seen.querySelector(':scope > rect')).toHaveAttribute('fill', '#000000');
+    expect(unseen.querySelector(':scope > rect')).toHaveAttribute('fill', '#ffffff');
+    expect(seen.querySelector('polygon')).toHaveAttribute('fill', '#ffffff');
+    expect(unseen.querySelector('polygon')).toHaveAttribute('fill', '#000000');
+    expect(unseen.querySelector('g[filter]')).toHaveAttribute('filter', seen.querySelector('g[filter]')!.getAttribute('filter')!);
+    // La tapa va ENCIMA del mapa y DEBAJO de las fichas: justo donde actuaba la máscara.
+    const map = within(svg).getByTestId('mp-map'), cover = within(svg).getByTestId('mp-fog-unseen'), tokens = within(svg).getByTestId('mp-tokens');
+    expect(map.compareDocumentPosition(cover) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(cover.compareDocumentPosition(tokens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Y mide la escena justa, igual que la región de su máscara Y que la de «lo visto»: dentro, la cuenta al revés.
+    for (const k of ['x', 'y', 'width', 'height']) {
+      expect(cover.getAttribute(k)).toBe(unseen.getAttribute(k));
+      expect(unseen.getAttribute(k)).toBe(seen.getAttribute(k));
+    }
+    expect(cover).toHaveAttribute('width', String(SCENE_WAREHOUSE.width));
+    expect(cover).toHaveAttribute('height', String(SCENE_WAREHOUSE.height));
+    // FUERA de la escena tapa el MARCO, sin máscara: como la región de la máscara de antes, fuera no se veía nada.
+    const frame = within(svg).getByTestId('mp-fog-frame');
+    expect(frame).toHaveAttribute('fill-rule', 'evenodd');
+    expect(frame).not.toHaveAttribute('mask');
+    expect(frame.getAttribute('d')).toContain(`M 0 0 V ${SCENE_WAREHOUSE.height} H ${SCENE_WAREHOUSE.width} V 0 Z`);
+    expect(cover.compareDocumentPosition(frame) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(frame.compareDocumentPosition(tokens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('el director no lleva tapa: ve el mapa entero con su velo de siempre', () => {
+    const { svg } = mount({ fog: FOG, isDm: true, me: 'u-gm' });
+    expect(within(svg).queryByTestId('mp-fog-unseen')).toBeNull();
+    expect(within(svg).queryByTestId('mp-fog-frame')).toBeNull();
+    expect(within(svg).getByTestId('mp-fog-veil')).toBeInTheDocument();
   });
 });

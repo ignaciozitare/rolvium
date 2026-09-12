@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Tooltip } from '@rolvium/ui';
 import { DM_TOOLS, DRAW_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '../domain/useCases/mapRules';
+import { moveToolbarItem, resolvedToolbarOrder, TOOLBAR_SEP, type ToolbarBlock, type ToolbarOrder } from '../domain/useCases/toolbarRules';
 
 /**
  * «Builder» no usa un icono de Material: usa el DIBUJO DEL DUEÑO (`apps/web/public/icons/builder.png`, sacado
@@ -15,7 +16,7 @@ import { DM_TOOLS, DRAW_TOOLS, PLAYER_TOOLS, TOOLS_NOT_YET, type Tool } from '..
  * `builder-mask.png` es SU MISMO dibujo con el alfa engordado 2 px y las medias tintas levantadas, que a
  * tamaño real lo deja en 252. **El original no se ha tocado** y sigue en la carpeta.
  */
-const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: '/icons/builder-mask.png', reveal: 'visibility', hide: 'visibility_off', mask: 'opacity', light: 'wb_incandescent', encounter: 'swords' };
+const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: '/icons/builder-mask.png', reveal: 'visibility', hide: 'visibility_off', mask: 'brush', light: 'wb_incandescent', encounter: 'swords' };
 const esImagen = (icon: string): boolean => icon.startsWith('/');
 
 /** Actions that open a panel instead of changing the cursor: they are buttons, not tools. */
@@ -41,6 +42,16 @@ interface Props {
   placePcOpen?: boolean;
   onBackground?: () => void;
   backgroundOpen?: boolean;
+  /**
+   * 🧲 EL ORDEN QUE PUSO EL ADMIN PARA TODOS (spec § «La barra se ordena arrastrando, y el orden lo pone el admin
+   * para todos», 2026-09-12). Ausente o `null` = el de serie. Se sanea aquí contra el de serie: un botón desconocido
+   * se ignora y uno que falte cae en su sitio.
+   */
+  order?: ToolbarOrder | null;
+  /** Sólo quien administra los ajustes de la plataforma arrastra. Para los demás la barra es la de siempre. */
+  canReorder?: boolean;
+  /** Al soltar: el bloque y su lista nueva de botones (las rayas `sep` del director van dentro). */
+  onReorder?: (block: ToolbarBlock, next: string[]) => void;
 }
 
 function Btn({ label, icon, on, dm, disabled, onClick }: { label: string; icon: string; on: boolean; dm?: boolean; disabled?: boolean; onClick: () => void }): JSX.Element {
@@ -141,42 +152,79 @@ export function Toolbar(p: Props): JSX.Element {
   const label = (id: Tool) => (TOOLS_NOT_YET.includes(id)
     ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.soon')}`
     : dormida(id) ? `${t(`maps.tool.${id}`)} · ${t('maps.tool.notInPlayerView')}` : t(`maps.tool.${id}`));
-  const tools = (ids: Tool[]) => ids.filter(x => p.isDm || PLAYER_TOOLS.includes(x)).map(id => (
-    <Btn key={id} label={label(id)} icon={ICONS[id]} on={p.tool === id} dm={DM_TOOLS.includes(id)} disabled={TOOLS_NOT_YET.includes(id) || dormida(id)}
-      onClick={() => p.onChange(p.tool === id ? 'select' : id)} />
-  ));
-  const actions = (list: Action[]) => list.map(a => (
-    <Btn key={a.id} label={t(`maps.action.${a.id}`)} icon={a.icon} on={!!a.on} dm={a.id !== 'dice'} onClick={a.onClick} />
-  ));
+  const herramienta = (id: Tool): JSX.Element | null => (p.isDm || PLAYER_TOOLS.includes(id)
+    ? <Btn label={label(id)} icon={ICONS[id]} on={p.tool === id} dm={DM_TOOLS.includes(id)} disabled={TOOLS_NOT_YET.includes(id) || dormida(id)} onClick={() => p.onChange(p.tool === id ? 'select' : id)} />
+    : null);
+  const accion = (a: Action): JSX.Element => <Btn label={t(`maps.action.${a.id}`)} icon={a.icon} on={!!a.on} dm={a.id !== 'dice'} onClick={a.onClick} />;
 
   /**
-   * The two DM panels are kept apart because the owner's order interleaves them with the tools: «Imágenes»
-   * belongs with what BUILDS the scene, «Colocar PJ» with what starts the game.
+   * 🧲 EL ORDEN LO PONE EL ADMIN PARA TODOS (spec § «La barra se ordena arrastrando…», 2026-09-12). Cada bloque se
+   * pinta desde su lista —la guardada, saneada contra la de serie en `toolbarRules`— y el orden es de BOTONES: los
+   * de panel (Dados, Fondo del mapa, Colocar PJ) van intercalados con las herramientas porque así lo ordenó él el
+   * 31-ago («Imágenes» con lo que CONSTRUYE la escena, «Colocar PJ» con lo que arranca la partida), y las dos rayas
+   * de dentro del bloque del director viajan en la lista como ítems `sep` que no se arrastran.
    */
-  const bgPanel: Action[] = p.onBackground ? [{ id: 'background', icon: 'image', onClick: p.onBackground, ...(p.backgroundOpen !== undefined ? { on: p.backgroundOpen } : {}) }] : [];
-  const placePcPanel: Action[] = p.onPlacePc ? [{ id: 'placePc', icon: 'person_add', onClick: p.onPlacePc, ...(p.placePcOpen !== undefined ? { on: p.placePcOpen } : {}) }] : [];
+  const orden = resolvedToolbarOrder(p.order);
+  const pieza = (id: string): JSX.Element | null => {
+    switch (id) {
+      case TOOLBAR_SEP: return <span className="mp-tool-sep" aria-hidden />;
+      case 'dice': return accion({ id: 'dice', icon: 'casino', onClick: p.onDice, ...(p.diceOpen !== undefined ? { on: p.diceOpen } : {}) });
+      case 'draw': return <DrawTools tool={p.tool} label={label} onChange={p.onChange} />;
+      case 'background': return p.onBackground ? accion({ id: 'background', icon: 'image', onClick: p.onBackground, ...(p.backgroundOpen !== undefined ? { on: p.backgroundOpen } : {}) }) : null;
+      case 'placePc': return p.onPlacePc ? accion({ id: 'placePc', icon: 'person_add', onClick: p.onPlacePc, ...(p.placePcOpen !== undefined ? { on: p.placePcOpen } : {}) }) : null;
+      default: return id in ICONS ? herramienta(id as Tool) : null;
+    }
+  };
+
+  /**
+   * ARRASTRAR PARA ORDENAR — sólo con `canReorder` (quien administra los ajustes). Arrastre nativo del navegador,
+   * el mismo que las capas de terreno del panel de capas: un clic sin mover sigue siendo un clic, y las señas son
+   * las mismas (`.dragging` = el hueco que deja el botón levantado · `.over` = la raya oro sobre el botón ANTES del
+   * cual va a caer). Un botón NUNCA cambia de bloque —los bloques son lo que ve cada rol—: soltarlo sobre otro
+   * bloque no hace nada. Soltarlo sobre el fondo de su bloque lo manda al final. Una raya ni se arrastra ni recibe.
+   */
+  const [drag, setDrag] = useState<{ block: ToolbarBlock; id: string } | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  const endDrag = (): void => { setDrag(null); setOver(null); };
+  const movible = (block: ToolbarBlock, id: string): boolean =>
+    !!p.canReorder && id !== TOOLBAR_SEP && orden[block].filter(x => x !== TOOLBAR_SEP).length > 1;
+  const soltar = (block: ToolbarBlock, before: string | null): void => {
+    if (drag && drag.block === block) {
+      const next = moveToolbarItem(orden[block], drag.id, before);
+      if (next !== orden[block]) p.onReorder?.(block, [...next]);
+    }
+    endDrag();
+  };
+  const bloque = (block: ToolbarBlock, clase = ''): JSX.Element => (
+    <div className={`mp-tool-group ${clase}`.trim()}
+      onDragOver={e => { if (drag && drag.block === block) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOver(null); } }}
+      onDrop={e => { e.preventDefault(); soltar(block, null); }}>
+      {orden[block].map((id, i) => {
+        const el = pieza(id);
+        if (!el) return null;
+        const mueve = movible(block, id);
+        const levantado = !!drag && drag.block === block && drag.id === id;
+        const destino = !!drag && drag.block === block && drag.id !== id && id !== TOOLBAR_SEP;
+        return (
+          <div key={`${id}-${i}`} data-tool-id={id} draggable={mueve}
+            className={`mp-slot${mueve ? ' draggable' : ''}${levantado ? ' dragging' : ''}${destino && over === id ? ' over' : ''}`}
+            onDragStart={e => { if (!mueve) return; setDrag({ block, id }); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id); }}
+            onDragEnd={endDrag}
+            onDragOver={e => { if (!drag || drag.block !== block) return; e.stopPropagation(); if (!destino) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOver(id); }}
+            onDragLeave={() => { if (over === id) setOver(null); }}
+            onDrop={e => { e.preventDefault(); e.stopPropagation(); if (destino) soltar(block, id); else endDrag(); }}>
+            {el}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="mp-toolbar" role="toolbar" aria-label={t('maps.toolbar')} aria-orientation="vertical">
-      <div className="mp-tool-group">
-        {actions([{ id: 'dice', icon: 'casino', onClick: p.onDice, ...(p.diceOpen !== undefined ? { on: p.diceOpen } : {}) }])}
-        {tools(['select', 'measure', 'pin'])}
-      </div>
-      <div className="mp-tool-group">
-        <DrawTools tool={p.tool} label={label} onChange={p.onChange} />
-      </div>
-      {p.isDm && (
-        <div className="mp-tool-group dm">
-          {tools(['light', 'wall'])}
-          {actions(bgPanel)}
-          {tools(['mask'])}
-          <span className="mp-tool-sep" aria-hidden />
-          {tools(['reveal', 'hide'])}
-          <span className="mp-tool-sep" aria-hidden />
-          {tools(['encounter'])}
-          {actions(placePcPanel)}
-        </div>
-      )}
+      {bloque('play')}
+      {bloque('draw')}
+      {p.isDm && bloque('dm', 'dm')}
     </div>
   );
 }
