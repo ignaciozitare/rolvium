@@ -257,6 +257,19 @@ de ser un dibujo para empezar a ser un sitio (dueño, 2026-08-22: «que los toke
 - Arrastras, el token llega a la pared y **resbala pegado a ella** mientras sigues moviendo el dedo — no se
   clava en el punto del choque ni pega un salto de vuelta al soltar.
 - El movimiento sigue siendo **libre**, sin rejilla (rebanada 3 bis, 2026-08-22).
+- 🦷 **La ficha RODEA las puntas: un borde dentado no la clava** (2026-09-12). Lo vio él probando el borde roto de
+  «A pulso» (§ 10B.4): «*has desecho el tema de que no se pegue en las esquinas*». No se había deshecho nada — el
+  arreglo del trabón de la esquina seguía intacto—; lo que pasaba es que un trazo con borde roto deja una pared
+  **dentada**, y una ficha redonda que roza un diente se quedaba clavada en su **punta** aunque cupiera de sobra.
+  Antes no se notaba porque cada movimiento tardaba segundos. La causa: resbalar «a lo largo de la pared tocada» no
+  saca a nadie cuando lo tocado es una punta —las dos caras del diente cierran en ángulo y ninguna de las dos
+  avanza—. Regla nueva: **cuando lo que toca la ficha es una punta** (el vértice de un diente, o la esquina de una
+  sala vista desde fuera) **prueba además a rodearla siguiendo la curva de su propio cuerpo**, y se queda con el
+  camino que más avanza hacia el dedo. Lo que NO cambia: **nunca cruza** —cada tramo se comprueba contra todas las
+  paredes como siempre—, la esquina de una sala por dentro se siente igual, y es la misma física en pantalla y en el
+  servidor. Medido con su «Dungeon» (22 trazos rotos, una sonda rozando la pared por los dos lados, 180 pasadas):
+  clavadas sin motivo **18 → 6** y **ninguna** posición final dentro de una pared. Las 6 que quedan son dientes en
+  zigzag donde la cara siguiente también cierra: apuntadas, no tocadas.
 
 ### Quién choca
 - **Sólo los jugadores. El director pasa siempre**, esté el interruptor como esté (decisión del dueño).
@@ -2195,6 +2208,8 @@ irregulares o como está ahora y qué tan irregular lo quiero»*. Confirmado por
   rayos, para cada jugador y en cada refresco. El borde roto lleva un **tope de esquinas por trazo**, para que un
   mapa irregular no traiga de vuelta el «va lentísimo».
 - **Dónde va en el panel** lo decide el diseño (`rolvium.pen`), y el panel del Builder mide 300 px (§ 10B.2).
+- 🦷 **Un borde dentado no clava a la ficha**: al rozar la punta de un diente, la ficha la rodea en vez de quedarse
+  pegada (2026-09-12; la regla y los números, en § «Rebanada 4 — Cómo se siente»).
 - **Fuera, dicho a propósito**: borde roto para rectángulo, círculo y polígono · volver irregular un trazo ya
   hecho.
 

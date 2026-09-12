@@ -83,12 +83,15 @@ export interface ScenePoint { x: number; y: number }
 /** Un segmento que corta el paso, en px de escena. */
 export type BlockSegment = readonly [number, number, number, number];
 
-/** El punto del segmento `a`–`b` más cercano a `p`. */
-function closestOnSeg(p: ScenePoint, ax: number, ay: number, bx: number, by: number): ScenePoint {
+/**
+ * El punto del segmento `a`–`b` más cercano a `p`, y en qué parte del segmento cae (`t`: 0 en `a`, 1 en `b`).
+ * `t` en un extremo quiere decir que lo más cercano es una PUNTA, no el cuerpo — y eso cambia cómo se resbala.
+ */
+function closestOnSeg(p: ScenePoint, ax: number, ay: number, bx: number, by: number): ScenePoint & { t: number } {
   const dx = bx - ax, dy = by - ay;
   const l2 = dx * dx + dy * dy;
   const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - ax) * dx + (p.y - ay) * dy) / l2));
-  return { x: ax + t * dx, y: ay + t * dy };
+  return { x: ax + t * dx, y: ay + t * dy, t };
 }
 
 /** Distancia de un punto al segmento `a`–`b`. */
@@ -230,19 +233,47 @@ export function slideCircle(from: ScenePoint, to: ScenePoint, radius: number, bl
     const wallDist = (w: BlockSegment): number => pointSegDist(stop, w[0], w[1], w[2], w[3]);
     let nearest = Infinity;
     for (const w of blockers) { const d = wallDist(w); if (d < nearest) nearest = d; }
-    let best: { target: ScenePoint; reach: number } | null = null;
-    for (const w of blockers) {
-      if (wallDist(w) > nearest + 1e-6) continue; // no es uno de los muros que se han tocado
-      const len = Math.hypot(w[2] - w[0], w[3] - w[1]);
-      if (len < 1e-9) continue;
-      const ux = (w[2] - w[0]) / len, uy = (w[3] - w[1]) / len;
+    let best = null as { target: ScenePoint; reach: number } | null;
+    /**
+     * Un rumbo por el que intentar resbalar: se sigue hasta donde de verdad cabe, y gana el que más avanza.
+     *
+     * Un rumbo que NO MUEVE NADA no cuenta. Antes se aceptaba (a falta de otro) y el rebote siguiente salía a
+     * perseguir ese destino fantasma; con las proyecciones a lo largo del muro era inofensivo, pero rodeando
+     * puntas no: empujada de frente contra las dos esquinas de un hueco estrecho, la ficha tocaba las dos, no
+     * podía rodear ninguna, y aun así el segundo rebote la escurría 4 px HACIA ATRÁS. Si no se ha resbalado
+     * nada, no hay movimiento que continuar.
+     */
+    const probar = (ux: number, uy: number): void => {
       const along = (target.x - stop.x) * ux + (target.y - stop.y) * uy;
-      if (Math.abs(along) < 1e-6) continue; // empujón de frente contra ÉSTE: por aquí no se sale
+      if (Math.abs(along) < 1e-6) return; // empujón de frente contra ÉSTE: por aquí no se sale
       const candidate = { x: stop.x + ux * along, y: stop.y + uy * along };
       let a = 0, b = 1;
       for (let i = 0; i < 16; i++) { const mid = (a + b) / 2; if (clear(stop, lerp(stop, candidate, mid))) a = mid; else b = mid; }
       const reach = a * Math.abs(along);
+      if (reach < 1e-3) return; // bloqueado nada más salir: por aquí tampoco
       if (!best || reach > best.reach) best = { target: candidate, reach };
+    };
+    for (const w of blockers) {
+      if (wallDist(w) > nearest + 1e-6) continue; // no es uno de los muros que se han tocado
+      const len = Math.hypot(w[2] - w[0], w[3] - w[1]);
+      if (len < 1e-9) continue;
+      probar((w[2] - w[0]) / len, (w[3] - w[1]) / len);
+      /**
+       * 🦷 Y SI LO QUE SE TOCA ES UNA PUNTA —el vértice de un diente del borde roto (§ 10B.4), o la esquina de
+       * una sala vista desde FUERA—, «a lo largo del muro» no saca a nadie: las dos caras del diente cierran en
+       * ángulo y ninguna de las dos proyecciones avanza, así que la ficha se quedaba clavada en cada diente (él,
+       * 2026-09-12: «*has desecho el tema de que no se pegue en las esquinas*» — no se había deshecho nada: con
+       * el borde roto las paredes salen DENTADAS, y la víspera no se notaba porque cada movimiento tardaba
+       * segundos). Un cuerpo redondo RODEA una punta: se prueba además la tangente de su propio disco en el
+       * contacto —la perpendicular a la recta punta→centro—, con la misma bisección y el mismo «gana el que más
+       * avanza». Cada tramo sigue pasando por `clear`, así que sigue sin poder cruzar. Medido con su «Dungeon»
+       * (22 trazos rotos, 180 pasadas rozando la pared): clavadas 18 → 6, ninguna posición final dentro de una
+       * pared, mismo coste. Las 6 que quedan son dientes en zigzag donde la cara siguiente también cierra.
+       */
+      const c = closestOnSeg(stop, w[0], w[1], w[2], w[3]);
+      if (c.t > 1e-6 && c.t < 1 - 1e-6) continue; // contacto con el cuerpo: la dirección del muro ya está probada
+      const nx = stop.x - c.x, ny = stop.y - c.y, n = Math.hypot(nx, ny);
+      if (n >= 1e-9) probar(-ny / n, nx / n);
     }
     if (!best) return stop; // ni un muro por el que resbalar: pegado a la pared, y ahí se queda
     pos = stop;
