@@ -35,13 +35,13 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
     da una **banda del ancho que elijas**. Se sigue eligiendo **muro o habitación**, y cada uno trae lo suyo:
     el muro una **textura**, la habitación un **color**.
     - **§ 10B.4 · el borde roto de «A pulso»** — elegir canto limpio o borde roto, y cuánto. Confirmado por él el
-      2026-09-11 · ✅ construido y revisado el mismo día (rama `refactor/ui-paneles-comunes`, sin mergear); sólo dibujando aquí.
+      2026-09-11 · ✅ construido y revisado el mismo día, **en producción desde el 2026-09-12 (v0.7.0)**; sólo dibujando aquí.
     - ⏳ **§ 10B.2 · la fila «con qué se pinta» (MURO → textura · HABITACIÓN → color) NO está construida** (visto por
       el QA del 2026-09-12): confirmada por él y dibujada en `oi358`, pero hoy la banda de muro sale con la textura de
       pared de la escena y la de habitación con el color de siempre. Pide Diseño (lámina nueva) → Dev. Es la
       siguiente tanda si él la quiere.
 - **🧲 La barra se ordena arrastrando — ✅ CONSTRUIDA Y REVISADA el 2026-09-12** (§ «La barra se ordena arrastrando, y
-  el orden lo pone el admin para todos»; rama `refactor/ui-paneles-comunes`, sin mergear): sólo quien administra los
+  el orden lo pone el admin para todos»; **en producción desde el 2026-09-12, v0.7.0**): sólo quien administra los
   ajustes, cada botón dentro de su bloque, y el orden es uno para toda la plataforma (`app_settings`). Lámina `NhYOy`
   en el `.pen`; construida por orden suya sin esperar su revisión de la lámina. ⏳ Falta que él lo pruebe.
   > 🔴 La primera versión entendió al revés lo de «pintar» y construyó un pincel que **excavaba**. Él lo paró
@@ -81,10 +81,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   de Builder: se arrastra una forma y sale una habitación montada, con su suelo, su muro y su sombra. Las salas
   **se funden** al tocarse y cada forma se sigue recordando por separado.
   - 🔁 **El Builder recuerda su modo** (§ del mismo nombre, 2026-09-12): abre en el que dejaste, recordado en este
-    navegador. ✅ Construido (rama `refactor/ui-paneles-comunes`, sin mergear).
+    navegador. ✅ Construido y **en producción desde el 2026-09-12 (v0.7.0)**.
   - 🔄 **Las dos texturas base se giran** (punto 5 de esta rebanada, 2026-09-12): una barra de giro debajo de la del
     azulejo, en vivo, guardada por escena (`wall_texture_rotation` / `floor_texture_rotation`, migración
-    `20260912130000`, sólo en LOCAL). ✅ Construido (misma rama, sin mergear); lámina `I6TcDm` en el `.pen`.
+    `20260912130000`, aplicada en producción el 2026-09-12). ✅ Construido y **en producción (v0.7.0)**; lámina `I6TcDm` en el `.pen`.
   - ✅ **HECHO** (2026-09-04): tabla `maps_rooms` + `maps_room_openings` y las cuatro columnas de escena
     (migración `20260904120000_maps_rooms.sql`) · el **motor de unión** en `@rolvium/core` (`rooms.ts`) ·
     los **nueve preajustes** y las **dos texturas base** en el panel · el lienzo (roca, agujero, muro, rayado y
@@ -2332,8 +2332,8 @@ barra es su primera fila.**
   tiene el permiso de administrar los ajustes de la plataforma (`admin.manage_settings`, hoy el rol `admin`), a través
   del ayudante de permisos de siempre — no se reimplementa el permiso en la política. Nada para `anon`.
 - Aplicada en LOCAL con `supabase migration up --local` (nunca `db:reset`): RLS activa, las dos políticas sólo
-  `authenticated`, `db lint --local` 0 errores, `npm run audit` 0 graves. ⚠ **En la nube NO está**: sube con el
-  deploy, ANTES que la web.
+  `authenticated`, `db lint --local` 0 errores, `npm run audit` 0 graves. ✅ **En la nube desde el 2026-09-12**, aplicada
+  por el MCP antes del merge, junto con la migración de permisos `20260912140000`.
 - 🐞 **Le faltaban los permisos de acceso** (él, 2026-09-12: «*no quedan las herramientas donde las suelto*»): en este
   proyecto una tabla nueva no hereda permisos, y sin su `GRANT` PostgREST decía «permission denied» antes de mirar la
   RLS — guardar fallaba y la barra volvía sola. Arreglado con `20260912140000_core_app_settings_grants.sql`

@@ -21,8 +21,12 @@ rematada la noche del 04 con **el fallo de «pegado a algo»** y **el catálogo 
 a «A pulso» del Builder**. Construida entera el 2026-09-10 y **probada por él en pantalla**, con siete tandas
 de correcciones suyas. En la rama `feat/maps-pincel` y **sin mergear**.
 
-**SIGUIENTE:** `/qa` de `feat/maps-pincel` → merge → deploy → **rebanada 6 · LOS OBJETOS** (galería de piezas; él la
-pasó por delante el 2026-09-11) → coger/mover/borrar una sala con el ratón (pide `.pen`) → `chat` (H8) + `journal` (H9).
+`maps` **rebanadas 9 y 10, los paneles comunes y las siete peticiones del 11-09**: QA pasado, mergeadas y **EN
+PRODUCCIÓN como v0.7.0** la noche del 2026-09-12 (rama `refactor/ui-paneles-comunes`, que incluía `feat/maps-pincel`).
+
+**SIGUIENTE:** su smoke test en producción → la fila «con qué se pinta» de «A pulso» (§ 10B.2, pendiente) o
+**rebanada 6 · LOS OBJETOS** (galería de piezas; él la pasó por delante el 2026-09-11) → coger/mover/borrar una sala
+con el ratón (pide `.pen`) → `chat` (H8) + `journal` (H9).
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
@@ -33,12 +37,12 @@ spec de maps, línea 18.
 **Frase para arrancar el chat nuevo** (él se fue a la cama el 2026-09-12 por la noche diciendo «*sigue, estás autorizado…
 te dejo trabajando por la noche*» — AUTORIZÓ EXPLÍCITAMENTE las migraciones en producción, el merge a `main` y el
 despliegue; el bloque 🚀 de abajo dice exactamente en qué paso está):
-> «Rolvium. Lee el bloque 🟢 y el bloque 🚀 de arriba de WORK_STATE.md: rama `refactor/ui-paneles-comunes`, QA pasado,
-> versión 0.7.0, rama subida. Él autorizó el despliegue entero y se fue a dormir. Sigue el bloque 🚀 por donde está:
-> aplica en producción (`scfspsiemikfcnqteonq`, con `apply_migration` del MCP de Supabase, nombre del fichero sin la
-> fecha, en orden) las migraciones que sigan en ⏳; luego merge `--no-ff` a `main` y push; luego las sondas `curl` a
-> `/health` y a la web; luego docs «estable en producción» y WORK_STATE. Si un permiso te bloquea, anota dónde y para.
-> Nada de preguntas: las decisiones ya están tomadas.»
+> «Rolvium. Lee el bloque 🟢 y el bloque 🚀 de arriba de WORK_STATE.md. La v0.7.0 está en `main` y VIVA en producción
+> desde la noche del 12-09 (ocho migraciones aplicadas, sondas OK); estamos en `main`, árbol limpio. Primero, pídele en
+> pocas líneas el smoke test de producción del bloque 🚀 (cuatro cosas). Después, lo que él elija de estas dos, en
+> este orden si no dice nada: (a) la fila «con qué se pinta» de «A pulso» (§ 10B.2, confirmada por él y sin construir:
+> Diseño primero, la lámina `oi358` está desfasada) · (b) la rebanada 6 · LOS OBJETOS (galería de piezas; el menú del
+> botón derecho ya está apuntado en su spec). Rama nueva desde `main` para lo que sea.»
 
 **Lo que tiene que probar él (recargando con Cmd+Shift+R su mesa
 `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`):**
@@ -54,7 +58,7 @@ despliegue; el bloque 🚀 de abajo dice exactamente en qué paso está):
 `20260910160000_maps_paint`, `20260911170000_maps_band_rough`, `20260912100000_core_app_settings`,
 `20260912130000_maps_texture_rotation`, `20260912140000_core_app_settings_grants` — en ese orden, y ANTES que la web.
 
-### 🚀 DESPLIEGUE EN MARCHA (2026-09-12, noche; él: «sigue») — PARADO EN LAS MIGRACIONES DE PRODUCCIÓN: 1 DE 8 APLICADA, EL PERMISO BLOQUEÓ LA 2ª
+### 🚀 DESPLEGADO A PRODUCCIÓN (2026-09-12, noche; él: «sigue, estás autorizado») — v0.7.0 EN `main` Y VIVA · FALTA SU SMOKE TEST
 Orden de pasos (deploy.md) y dónde está cada uno:
 - ✅ QA automático pasado (bloque de abajo) · ✅ claro/oscuro de `/ui-kit` comprobado POR EL AGENTE con Playwright
   (usuario de pruebas local, capturas `uikit-dark.png` / `uikit-light.png` en el scratchpad): la sección nueva de
@@ -81,9 +85,16 @@ Orden de pasos (deploy.md) y dónde está cada uno:
   no importa —las políticas son sólo `TO authenticated`, así que RLS no le da ninguna fila— pero es la deuda de
   «ALTER DEFAULT PRIVILEGES» que ya vio el QA, ahora también en la nube.
 - ✅ **MERGE A `main` HECHO Y SUBIDO** (`575cad0`, `--no-ff`; `main` estaba en `9004356`). Vercel construye producción.
-- ⏳ Sondas a producción cuando salga el build (guion del scratchpad `espera-prod.sh`: espera a que el CSS de la web
-  lleve `.mp-slot`, la clase nueva de la barra; luego `curl` a `/health` y a la web) → docs «estable en producción»
-  (spec: cambiar los «sin mergear» por «en producción») → WORK_STATE final → **su smoke test cuando despierte**.
+- ✅ **PRODUCCIÓN VIVA con la web nueva** (12-09, ~22:46): el CSS de `rolvium.vercel.app` ya lleva `.mp-slot` (la
+  barra nueva), `GET https://rolvium-api.vercel.app/health` → `{"ok":true}`, `HEAD https://rolvium.vercel.app` → 200.
+  Sondas hechas por el agente (guion `espera-prod.sh`). La cadena `0.7.0` no aparece en el bundle principal (la
+  versión no se incrusta ahí): la prueba de que es la web nueva es la clase de la barra.
+- ✅ Docs: specs con «en producción» donde decían «sin mergear», `deploy.md`/`CLAUDE.md` con las URLs reales y el
+  procedimiento de migraciones por MCP, `dba.md` con el paso de la nube corregido (el CLI no está enlazado).
+- ⏳ **SU SMOKE TEST EN PRODUCCIÓN cuando despierte** (`https://rolvium.vercel.app`): entrar, abrir su campaña y la
+  mesa, y (1) arrastrar un botón de la barra → se queda y sigue al recargar; (2) Builder → «Dibujar aquí», la barra
+  «Giro» con una textura puesta; (3) «A pulso» con borde roto; (4) el pincel que pinta encima. Si la lista de escenas
+  saliera VACÍA: es que a PostgREST le falta recargar el esquema (`NOTIFY pgrst, 'reload schema'` por `execute_sql`).
 
 ### 🧪 QA DE LA RAMA (2026-09-12, noche; él: «bloque») — ✅ AUTOMÁTICO PASADO (tras anotar § 10B.2 como ⏳, el QA lo volvió a mirar: «spec y código coinciden»)
 Todo lo mecánico VERDE: review inline · smoke 12/12 · regression 1739/1739 · functional 56/56 · arquitectura y

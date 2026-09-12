@@ -143,8 +143,11 @@ After writing the migration:
    run clean. Then check RLS with the local linter:
    `supabase db lint --local --level error` (must report nothing) and run
    `npm run audit` (RLS / `TO anon` checks on the migration file).
-   **Hosted project (once linked):** `npm run db:push`, then run the Supabase MCP
-   `get_advisors` with `type: "security"` for the linked project.
+   **Hosted project:** the CLI is NOT linked (`supabase/.temp/project-ref` is empty), so
+   `npm run db:push` does not work. Hosted migrations are applied at DEPLOY time, before the
+   merge to `main`, with the Supabase MCP `apply_migration` on project `scfspsiemikfcnqteonq`
+   (`name` = file name without timestamp, in order) — see `.claude/commands/deploy.md`. After
+   that, run the Supabase MCP `get_advisors` with `type: "security"` on that project.
 2. Never apply a migration with the MCP `apply_migration` on a project you have
    not confirmed is Rolvium's — never guess a project ref.
 3. The lint result must contain **zero `level: "ERROR"` entries** for any table

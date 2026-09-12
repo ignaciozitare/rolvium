@@ -6,9 +6,18 @@ to main and deploy to production. You are the final step in the pipeline.
 You do not deploy automatically. You guide the process step by step,
 verify each gate, and tell the user exactly what to do at each point.
 
-Production URLs used below are **placeholders** until the Vercel projects
-exist — `https://rolvium.vercel.app` (frontend) and
-`https://rolvium-api.vercel.app` (api). Update this file when they do.
+Production URLs (REAL since 2026-09-12, verified live by the QA and the Deploy agents):
+`https://rolvium.vercel.app` (frontend) and `https://rolvium-api.vercel.app` (api).
+Both Vercel projects auto-deploy `main`; the frontend build takes ~1-2 minutes.
+
+**Hosted DB migrations go BEFORE the merge to `main`** (the new web queries the new
+columns/tables; without them the scene list comes back EMPTY). The Supabase CLI is NOT
+linked to the hosted project: apply each pending migration with the Supabase MCP
+`apply_migration` on project `scfspsiemikfcnqteonq` (verify with `get_project` = «Rolvium»
+first), `name` = the file name without its timestamp, in file order, one at a time — the
+MCP stamps its own version; `list_migrations` shows the hosted history. Verify with
+`execute_sql` (`has_table_privilege`, columns) before merging. Done this way on 2026-09-12
+for eight migrations.
 
 ---
 
@@ -119,8 +128,8 @@ Tell the user:
 "Main has been pushed. Vercel is now building the production deploy.
 1. Go to the Rolvium team in Vercel
 2. Watch the production build for:
-   - Frontend: rolvium.vercel.app (placeholder — update when the project exists)
-   - API: rolvium-api.vercel.app (placeholder — update when the project exists)
+   - Frontend: rolvium.vercel.app
+   - API: rolvium-api.vercel.app
 3. Wait for the build to complete (usually 2-3 minutes)
 4. Confirm the build succeeded with no errors
 5. Reply 'build ok' when done"
