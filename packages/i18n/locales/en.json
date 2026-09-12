@@ -1150,6 +1150,10 @@
         "wall": "Tile · wall",
         "floor": "Tile · floor"
       },
+      "turn": {
+        "wall": "Turn · wall",
+        "floor": "Turn · floor"
+      },
       "build": {
         "label": "What I build · dig or fill",
         "hint": "ROOM digs the hole · WALL fills it back · openings use the same disc",

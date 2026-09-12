@@ -2691,3 +2691,27 @@ describe('<SceneTab> · el Builder recuerda su modo', () => {
     expect(await screen.findByRole('radio', { name: /Sobre una foto/ })).toHaveAttribute('aria-checked', 'true');
   });
 });
+
+/**
+ * 🔄 Suyo, 2026-09-11: «*en la base del suelo y las paredes tengo que poder rotar sus texturas*». Mismo reparto que
+ * la escala: mientras arrastra, el mapa (el patrón de la roca) y la muestra giran EN VIVO; al soltar se guarda una
+ * sola vez en la escena.
+ */
+describe('<SceneTab> · el giro de las texturas base', () => {
+  it('arrastrar el giro se ve en vivo en la muestra y se guarda en la escena al soltar', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [{ ...SCENE_WAREHOUSE, wallTextureUrl: 'https://x/roca.png' }] }));
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Builder' }));
+    const panel = await screen.findByRole('group', { name: 'Builder' });
+    await u.click(within(panel).getByRole('radio', { name: /Dibujar aquí/ }));
+    const giro = await screen.findByRole('slider', { name: 'Giro · pared' });
+    expect(screen.queryByTestId('mp-tex-turn')).not.toBeInTheDocument();   // a 0° la muestra va sin capa girada
+    fireEvent.change(giro, { target: { value: '90' } });
+    // el previo: la escena que se pinta (`shown`) ya lleva el giro, y la muestra del panel gira con ella — sin guardar
+    expect(screen.getByTestId('mp-tex-turn')).toHaveStyle({ transform: 'rotate(90deg)' });
+    expect(repo.sceneUpdates.some(x => 'wallTextureRotation' in x.patch)).toBe(false);
+    fireEvent.pointerUp(giro);
+    await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { wallTextureRotation: 90 } }));
+  });
+});

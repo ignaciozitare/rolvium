@@ -20,7 +20,7 @@ const SCENE: Scene = {
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 30, visible: true }, fogMode: 'vision',
   lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false, doorColor: null, doorTextureUrl: null, tokenScale: 1,
   brushTip: 'soft', brushSize: 1.2, brushStrength: 0.6, brushHardness: 0.4, brushRoughness: 0.5, bandTip: 'clean', bandRoughness: 0.5, rockPaintUrl: null,
-  roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
+  roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4, wallTextureRotation: 0, floorTextureRotation: 0,
   createdAt: '', updatedAt: '',
 };
 
@@ -151,6 +151,32 @@ describe('<RoomsLayer> las texturas son azulejos que se repiten', () => {
       { ...SCENE, grid: { size: 60, visible: true }, wallTextureUrl: 'https://x/roca.png', wallTextureScale: 2 });
     // Misma escala en casillas, rejilla del doble → azulejo del doble. Se ve igual de grande en el mapa.
     expect(roca(otraRejilla.container)).toHaveAttribute('width', '120');
+  });
+
+  /** 🔄 Suyo, 2026-09-11: «*tengo que poder rotar sus texturas*». Gira el MOSAICO (el patrón), no la sala. */
+  it('el mosaico gira lo que diga la escena, y sin giro guardado queda a 0°', () => {
+    const girada = mount([room('r1', 60, 60, 300, 300)], [],
+      { ...SCENE, wallTextureUrl: 'https://x/roca.png', wallTextureScale: 2, wallTextureRotation: 45 });
+    const roca = (c: HTMLElement) => c.querySelector(`[id="${roomMaskIds('sc-1').rockTile}"]`);
+    expect(roca(girada.container)).toHaveAttribute('patternTransform', 'rotate(45)');
+    // y el azulejo sigue midiendo lo suyo: girar no escala
+    expect(roca(girada.container)).toHaveAttribute('width', '60');
+    const quieta = mount([room('r1', 60, 60, 300, 300)], [], { ...SCENE, wallTextureUrl: 'https://x/roca.png', wallTextureScale: 2 });
+    expect(roca(quieta.container)).toHaveAttribute('patternTransform', 'rotate(0)');
+  });
+
+  /** Y son DOS giros, no uno: el suelo gira con el suyo, y la piedra propia de un relleno con el de la pared. */
+  it('el suelo gira con SU giro y la piedra de un relleno con el de la pared: dos fotos, dos giros', () => {
+    const { container } = mount([
+      room('r1', 0, 0, 400, 400, { floorUrl: null }),
+      room('r2', 60, 60, 200, 200, { kind: 'fill', shape: 'brush', floorUrl: 'https://x/granito.png' }),
+    ], [], { ...SCENE, wallTextureRotation: 45, floorTextureUrl: 'https://x/mosaico.png', floorTextureRotation: 120 });
+    const patrones = [...container.querySelectorAll(`pattern[id^="${roomMaskIds('sc-1').floorTile}"]`)];
+    const con = (href: string) => patrones.find(p => p.querySelector('image')?.getAttribute('href') === href);
+    // el suelo del mapa, con el giro del SUELO
+    expect(con('https://x/mosaico.png')).toHaveAttribute('patternTransform', 'rotate(120)');
+    // la piedra que trae el relleno es roca: gira con el de la PARED
+    expect(con('https://x/granito.png')).toHaveAttribute('patternTransform', 'rotate(45)');
   });
 
   /**

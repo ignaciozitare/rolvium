@@ -345,7 +345,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * escribir en la base**; al soltar se guarda UNA vez. Mismo reparto que el pincel de transparencia: pintar
    * es continuo, guardar es una vez.
    */
-  const [texDraft, setTexDraft] = useState<{ wallTextureScale?: number; floorTextureScale?: number; tokenScale?: number } | null>(null);
+  const [texDraft, setTexDraft] = useState<{ wallTextureScale?: number; floorTextureScale?: number; wallTextureRotation?: number; floorTextureRotation?: number; tokenScale?: number } | null>(null);
   const live = st.scene;
   /** Lo que se PINTA: la escena de verdad más el borrador de la escala que él esté arrastrando ahora mismo. */
   const shown = live && texDraft ? { ...live, ...texDraft } : live;
@@ -1269,6 +1269,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               onClearTexture={which => run(patchScene(live.id, which === 'wall' ? { wallTextureUrl: null } : { floorTextureUrl: null }))}
               thickness={live.wallThickness} onThickness={v => run(patchScene(live.id, { wallThickness: v }))}
               wallScale={shown!.wallTextureScale} floorScale={shown!.floorTextureScale}
+              wallRotation={shown!.wallTextureRotation} floorRotation={shown!.floorTextureRotation}
+              onTextureRotation={(which, deg) => setTexDraft(d => ({ ...d, [which === 'wall' ? 'wallTextureRotation' : 'floorTextureRotation']: deg }))}
               onTextureScale={(which, cells) => setTexDraft(d => ({ ...d, [which === 'wall' ? 'wallTextureScale' : 'floorTextureScale']: cells }))}
               onTextureScaleEnd={() => {
                 // Se guarda lo que quedó en pantalla, y sólo si de verdad cambió algo.

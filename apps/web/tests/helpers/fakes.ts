@@ -319,7 +319,7 @@ export const SCENE_WAREHOUSE: Scene = {
   id: 'sc-1', campaignId: 'c1', name: 'Almacén de Queens', width: 1080, height: 675, bgColor: '#4a4a3e', bgImageUrl: null,
   bgTransform: { mode: 'cover', x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fogMode: 'vision', lighting: 'day', nightRadiusM: 10, solidWalls: false, sortOrder: 0, visiblePlayers: false,
   // Rebanada 8: una escena nace con el preajuste de serie y sin foto propia — como la crea la migración.
-  roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4,
+  roomPreset: 'hatch', wallTextureUrl: null, floorTextureUrl: null, wallThickness: 0.22, wallTextureScale: 4, floorTextureScale: 4, wallTextureRotation: 0, floorTextureRotation: 0,
   // Sin color ni textura propios de puerta: nulo = el trazo del muro, que es como nacen todas.
   doorColor: null, doorTextureUrl: null, tokenScale: 1,
   // Rebanada 9: el pincel de la escena, con los mismos valores que la app ya usaba antes de guardarlo.

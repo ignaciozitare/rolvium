@@ -478,6 +478,42 @@ describe('<BuilderPanel> escalar la textura', () => {
 });
 
 /**
+ * ── 🔄 EL GIRO ── Petición suya del 2026-09-11: «*en la base del suelo y las paredes tengo que poder rotar sus
+ * texturas*». Debajo del azulejo, de 0° a 355° de 5 en 5 como el «Giro» del Pincel; en vivo al arrastrar y se
+ * guarda al soltar, por el mismo camino que la escala.
+ */
+describe('<BuilderPanel> girar la textura', () => {
+  it('sin foto puesta NO hay giro que tocar: un color no se gira', () => {
+    mount({ mode: 'draw' });
+    expect(screen.queryByRole('slider', { name: 'Giro · pared' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('slider', { name: 'Giro · suelo' })).not.toBeInTheDocument();
+  });
+
+  it('con una foto sale el giro debajo del azulejo, avisa EN VIVO y se guarda al soltar', () => {
+    const onTextureRotation = vi.fn(), onTextureScaleEnd = vi.fn();
+    mount({ mode: 'draw', wallTextureUrl: 'https://x/roca.png', wallRotation: 0, onTextureRotation, onTextureScaleEnd });
+    const sliders = screen.getAllByRole('slider').map(s => s.getAttribute('aria-label') ?? s.getAttribute('name'));
+    expect(sliders.indexOf('Giro · pared')).toBeGreaterThan(sliders.indexOf('Azulejo · pared'));
+    const giro = screen.getByRole('slider', { name: 'Giro · pared' });
+    expect(giro).toHaveAttribute('min', '0');
+    expect(giro).toHaveAttribute('max', '355');
+    expect(giro).toHaveAttribute('step', '5');
+    fireEvent.change(giro, { target: { value: '90' } });
+    expect(onTextureRotation).toHaveBeenCalledWith('wall', 90);
+    expect(onTextureScaleEnd).not.toHaveBeenCalled();
+    fireEvent.pointerUp(giro);
+    expect(onTextureScaleEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('la muestra gira con el mosaico: a 0° no hay capa girada, a 90° sí, del mismo azulejo', () => {
+    const { re } = mount({ mode: 'draw', floorTextureUrl: 'https://x/mosaico.png', floorScale: 1, floorRotation: 0 });
+    expect(screen.queryByTestId('mp-tex-turn')).not.toBeInTheDocument();
+    re({ mode: 'draw', floorTextureUrl: 'https://x/mosaico.png', floorScale: 1, floorRotation: 90 });
+    expect(screen.getByTestId('mp-tex-turn')).toHaveStyle({ transform: 'rotate(90deg)', backgroundSize: '22px 22px' });
+  });
+});
+
+/**
  * ── EXCAVAR O RELLENAR ──
  *
  * Suyo, 2026-09-04: «*hoy tomamos como que las habitaciones son huecos en el muro, entonces los muros serán

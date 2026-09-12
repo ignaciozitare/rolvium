@@ -1150,6 +1150,10 @@
         "wall": "Azulejo · pared",
         "floor": "Azulejo · suelo"
       },
+      "turn": {
+        "wall": "Giro · pared",
+        "floor": "Giro · suelo"
+      },
       "build": {
         "label": "Qué levanto · excavar o rellenar",
         "hint": "SALA excava el hueco · MURO lo rellena · las aberturas, con el mismo disco",

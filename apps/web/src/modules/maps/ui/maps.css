@@ -471,6 +471,8 @@
    del azulejo (§ «el previo de cómo iría quedando», petición suya del 2026-09-04). */
 .mp-builder-texblock{display:flex;flex-direction:column;gap:4px;}
 .mp-builder-tex-swatch{width:66px;height:44px;position:relative;overflow:hidden;}
+/* 🔄 el mosaico girado: sobra por los cuatro lados para que al girar no asome ninguna esquina sin textura */
+.mp-builder-tex-turn{position:absolute;inset:-40%;background-repeat:repeat;transform-origin:center;pointer-events:none;}
 .mp-builder-tex-grid{position:absolute;inset:0;
   background-image:linear-gradient(to right,var(--sys-line) 1px,transparent 1px),
                    linear-gradient(to bottom,var(--sys-line) 1px,transparent 1px);

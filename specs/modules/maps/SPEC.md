@@ -78,6 +78,9 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   **se funden** al tocarse y cada forma se sigue recordando por separado.
   - 🔁 **El Builder recuerda su modo** (§ del mismo nombre, 2026-09-12): abre en el que dejaste, recordado en este
     navegador. ✅ Construido (rama `refactor/ui-paneles-comunes`, sin mergear).
+  - 🔄 **Las dos texturas base se giran** (punto 5 de esta rebanada, 2026-09-12): una barra de giro debajo de la del
+    azulejo, en vivo, guardada por escena (`wall_texture_rotation` / `floor_texture_rotation`, migración
+    `20260912130000`, sólo en LOCAL). ✅ Construido (misma rama, sin mergear); lámina `I6TcDm` en el `.pen`.
   - ✅ **HECHO** (2026-09-04): tabla `maps_rooms` + `maps_room_openings` y las cuatro columnas de escena
     (migración `20260904120000_maps_rooms.sql`) · el **motor de unión** en `@rolvium/core` (`rooms.ts`) ·
     los **nueve preajustes** y las **dos texturas base** en el panel · el lienzo (roca, agujero, muro, rayado y
@@ -1698,6 +1701,16 @@ peor posible para un AZULEJO: un mosaico de 40 px salía del tamaño del mapa en
   y se guarda al soltar — mismo reparto que el pincel de transparencia.
 - ⛔ Esto **no toca** `bg_image_url` ni las fotos de las capas de terreno: ésas sí son fotos y se siguen
   encajando con Cubrir / Encajar / Reposicionar.
+- 🔄 **Y SE GIRAN** (suyo, 2026-09-11, la 5 de sus siete: «*En la base del suelo y las paredes … tengo que poder
+  rotar sus texturas*»; construido el 2026-09-12 por su orden de seguir sin esperarle). Debajo de la barra del
+  azulejo de cada textura, **una barra de giro**, sólo con una foto puesta (un color no se gira), **de 0° a 355° de
+  5 en 5**, como el «Giro» de la textura del Pincel. Gira el **mosaico entero**, no cada azulejo por su cuenta.
+  **Una por textura**, como la escala (`wall_texture_rotation` / `floor_texture_rotation`, migración
+  `20260912130000`), y **de serie 0°**: ninguna escena cambia. **Con previo**, igual que la escala: el mapa y la
+  muestra del panel giran EN VIVO mientras arrastra y se guarda al soltar. ✅ Decisiones del agente, avisadas (no se
+  le preguntó, por su orden de no repreguntar): mismo paso y tope que el Pincel; gira la textura de la escena
+  entera —no sala a sala— porque es donde vive la escala; y también gira la piedra de un brochazo de muro y el suelo
+  pintado, que salen del mismo azulejo.
 
 **3 · «*le falta la física a los muros*»** → era un fallo, y de los que no se ven: la niebla YA respetaba las
 salas (eso lo calcula el servidor) pero **el freno del navegador no**, porque `moveBlockers` sólo miraba

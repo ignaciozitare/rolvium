@@ -280,7 +280,7 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null,
           * de la escala en casillas: así se ve igual con cualquier rejilla y a cualquier zoom.
           */}
         {scene.wallTextureUrl && (
-          <pattern id={ids.rockTile} patternUnits="userSpaceOnUse" width={rockTile} height={rockTile}>
+          <pattern id={ids.rockTile} patternUnits="userSpaceOnUse" width={rockTile} height={rockTile} patternTransform={`rotate(${scene.wallTextureRotation})`}>
             <image href={scene.wallTextureUrl} x={0} y={0} width={rockTile} height={rockTile} preserveAspectRatio="xMidYMid slice" />
           </pattern>
         )}
@@ -291,7 +291,8 @@ function RoomsLayerBase({ scene, rooms, openings, ids, selectedOpeningId = null,
           */}
         {capasPintadas.map((c, i) => c.url && (
           <pattern key={i} id={`${ids.floorTile}-${i}`} patternUnits="userSpaceOnUse"
-            width={c.rock ? rockTile : floorTile} height={c.rock ? rockTile : floorTile}>
+            width={c.rock ? rockTile : floorTile} height={c.rock ? rockTile : floorTile}
+            patternTransform={`rotate(${c.rock ? scene.wallTextureRotation : scene.floorTextureRotation})`}>
             <image href={c.url} x={0} y={0} width={c.rock ? rockTile : floorTile} height={c.rock ? rockTile : floorTile} preserveAspectRatio="xMidYMid slice" />
           </pattern>
         ))}

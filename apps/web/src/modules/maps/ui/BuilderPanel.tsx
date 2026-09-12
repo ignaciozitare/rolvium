@@ -54,6 +54,14 @@ interface Props {
   onTextureScale?: (which: 'wall' | 'floor', cells: number) => void;
   onTextureScaleEnd?: () => void;
   /**
+   * 🔄 EL GIRO DEL MOSAICO de cada textura, en grados (petición suya del 2026-09-11: «*tengo que poder rotar sus
+   * texturas*»). Mismo reparto que la escala: `onTextureRotation` va EN VIVO mientras arrastra y se guarda al
+   * soltar con el mismo `onTextureScaleEnd`.
+   */
+  wallRotation?: number;
+  floorRotation?: number;
+  onTextureRotation?: (which: 'wall' | 'floor', deg: number) => void;
+  /**
    * LA BARRITA DEL TAMAÑO DE LAS FICHAS DE LA ESCENA (specs § «La barrita del tamaño de las fichas»).
    * Mismo trato que las escalas de textura: `onTokenScale` va pintando el previo mientras arrastra —todas
    * las fichas encogen a la vez, que es lo que se quiere ver— y `onTokenScaleEnd` guarda al soltar, para no
@@ -131,7 +139,7 @@ export function BuilderPanel({
   mode, onMode, wall, kind, onKind, buildKind = 'room', onBuildKind, shape, onShape, snapGrid, onSnapGrid, chainNodes, onChainNodes,
   preset = 'hatch', onPreset, wallTextureUrl = null, floorTextureUrl = null, onTexture, onClearTexture,
   thickness = 0.22, onThickness,
-  wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd,
+  wallScale = DEFAULT_TEXTURE_SCALE, floorScale = DEFAULT_TEXTURE_SCALE, onTextureScale, onTextureScaleEnd, wallRotation = 0, floorRotation = 0, onTextureRotation,
   tokenScale = TOKEN_SCALE.def, onTokenScale, onTokenScaleEnd,
   groupCount = 0, grouped = false, onGroup, onUngroup, onVisible, onToggleOpen, onRemove, roomOpening = null, onDoor, onDoorTexture, doorDraft,
   bandCells = 0.22, onBandCells, bandTip = DEFAULT_BAND_TIP, onBandTip, bandRoughness = DEFAULT_BAND_ROUGHNESS, onBandRoughness, onBandRoughnessEnd, onClose,
@@ -382,10 +390,10 @@ export function BuilderPanel({
       {mode === 'draw' && !construyeVano && (
         <PanelSection label={t('maps.room.textures.label')}>
           <PanelHint>{t('maps.room.textures.hint')}</PanelHint>
-          {([['wall', wallTextureUrl, wallScale], ['floor', floorTextureUrl, floorScale]] as const).map(([which, url, escala]) => (
+          {([['wall', wallTextureUrl, wallScale, wallRotation], ['floor', floorTextureUrl, floorScale, floorRotation]] as const).map(([which, url, escala, giro]) => (
             <div key={which} className="mp-builder-texblock">
               <div className="mp-builder-tex">
-                <TextureSwatch url={url} cells={escala}
+                <TextureSwatch url={url} cells={escala} deg={giro}
                   fallback={which === 'wall' ? styleOf(preset).rock : styleOf(preset).floor} />
                 <span className="mp-builder-tex-n">{url ? t('maps.room.textures.own') : t(`maps.room.preset.${preset}`)}</span>
                 {/*
@@ -412,6 +420,12 @@ export function BuilderPanel({
                 <Slider layout="inline" label={t(`maps.room.tile.${which}`)} min={0.25} max={20} step={0.25} value={escala}
                   onChange={v => onTextureScale?.(which, v)} onCommit={() => onTextureScaleEnd?.()} commitOnBlur
                   valueText={escala} />
+              )}
+              {/* 🔄 Y DEBAJO, EL GIRO — de 0° a 355° de 5 en 5, como el del Pincel. También sólo con foto. */}
+              {url && (
+                <Slider layout="inline" label={t(`maps.room.turn.${which}`)} min={0} max={355} step={5} value={giro}
+                  onChange={v => onTextureRotation?.(which, v)} onCommit={() => onTextureScaleEnd?.()} commitOnBlur
+                  valueText={`${giro}°`} />
               )}
             </div>
           ))}
@@ -630,7 +644,7 @@ function PresetMini({ preset }: { preset: RoomPreset }): JSX.Element {
  */
 const SWATCH_CELLS = 3;
 const SWATCH_W = 66;
-function TextureSwatch({ url, cells, fallback }: { url: string | null; cells: number; fallback: string }): JSX.Element {
+function TextureSwatch({ url, cells, fallback, deg = 0 }: { url: string | null; cells: number; fallback: string; deg?: number }): JSX.Element {
   const cellPx = SWATCH_W / SWATCH_CELLS;
   const tile = Math.max(2, cellPx * cells);
   return (
@@ -638,6 +652,11 @@ function TextureSwatch({ url, cells, fallback }: { url: string | null; cells: nu
       style={url
         ? { backgroundImage: `url(${url})`, backgroundSize: `${tile}px ${tile}px`, backgroundRepeat: 'repeat' }
         : { background: fallback }}>
+      {/* 🔄 Girado, el mosaico va en una capa que sobra por los cuatro lados y gira entera: es el mismo previo que el mapa. */}
+      {url && deg !== 0 && (
+        <span className="mp-builder-tex-turn" data-testid="mp-tex-turn"
+          style={{ backgroundImage: `url(${url})`, backgroundSize: `${tile}px ${tile}px`, transform: `rotate(${deg}deg)` }} />
+      )}
       <span className="mp-builder-tex-grid" style={{ backgroundSize: `${cellPx}px ${cellPx}px` }} />
     </span>
   );

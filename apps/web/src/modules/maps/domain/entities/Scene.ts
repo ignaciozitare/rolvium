@@ -73,6 +73,13 @@ export interface Scene {
   wallTextureScale: number;
   floorTextureScale: number;
   /**
+   * 🔄 EL GIRO DEL MOSAICO de cada textura, EN GRADOS (0 ≤ x < 360). Petición suya del 2026-09-11: «*en la base del
+   * suelo y las paredes tengo que poder rotar sus texturas*». Hermanas de las escalas —una por textura— y gira el
+   * mosaico entero, como el «Giro» de la textura del Pincel (`tileMatrix`). De serie 0: ninguna escena cambia.
+   */
+  wallTextureRotation: number;
+  floorTextureRotation: number;
+  /**
    * EL COLOR DE TODAS LAS PUERTAS DE ESTA ESCENA (§ «Las puertas, de verdad»). `null` = el trazo del muro,
    * que es de donde salen hoy — y por eso es nulo y no un hex: clavar un color aquí obligaría a que la base
    * y el diseño dijeran lo mismo en dos sitios, y el día que cambie la tinta habría que migrar cada escena.
@@ -137,7 +144,7 @@ export interface Scene {
   updatedAt: string;
 }
 export interface CreateSceneInput { campaignId: string; name: string; width?: number; height?: number; bgColor?: string; sortOrder?: number }
-export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'doorColor' | 'doorTextureUrl' | 'tokenScale' | 'brushTip' | 'brushSize' | 'brushStrength' | 'brushHardness' | 'brushRoughness' | 'bandTip' | 'bandRoughness'>>;
+export type ScenePatch = Partial<Pick<Scene, 'name' | 'width' | 'height' | 'bgColor' | 'bgImageUrl' | 'bgTransform' | 'grid' | 'fogMode' | 'lighting' | 'nightRadiusM' | 'solidWalls' | 'sortOrder' | 'visiblePlayers' | 'roomPreset' | 'wallTextureUrl' | 'floorTextureUrl' | 'wallThickness' | 'wallTextureScale' | 'floorTextureScale' | 'wallTextureRotation' | 'floorTextureRotation' | 'doorColor' | 'doorTextureUrl' | 'tokenScale' | 'brushTip' | 'brushSize' | 'brushStrength' | 'brushHardness' | 'brushRoughness' | 'bandTip' | 'bandRoughness'>>;
 
 // ── LAS PUERTAS, DE VERDAD (§ specs/modules/maps) ───────────────────────────
 // Espejo de `supabase/migrations/20260907120000_maps_doors.sql`.

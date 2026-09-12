@@ -38,6 +38,15 @@ describe('SupabaseMapsRepo — mappers', () => {
 });
 
 describe('SupabaseMapsRepo — scenes', () => {
+  /** 🔄 El giro de las dos texturas base (2026-09-12): hermanas de las escalas. */
+  it('el giro de las texturas se lee a 0° si la fila no lo trae, y se escribe normalizado a [0, 360)', async () => {
+    expect(mapSceneRow(SCENE_ROW)).toMatchObject({ wallTextureRotation: 0, floorTextureRotation: 0 });
+    expect(mapSceneRow({ ...SCENE_ROW, wall_texture_rotation: 90, floor_texture_rotation: 355 })).toMatchObject({ wallTextureRotation: 90, floorTextureRotation: 355 });
+    const m = createSupabaseMock({ tables: { maps_scenes: { data: null, error: null } } });
+    await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).updateScene('sc-1', { wallTextureRotation: 370, floorTextureRotation: -5 });
+    expect(m.updateSpy).toHaveBeenCalledWith(expect.objectContaining({ wall_texture_rotation: 10, floor_texture_rotation: 355 }));
+  });
+
   it('listScenes filters by campaign ordered by sort_order; getScene by id; errors throw', async () => {
     const m = createSupabaseMock({ tables: { maps_scenes: { data: [SCENE_ROW], error: null } } });
     const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
