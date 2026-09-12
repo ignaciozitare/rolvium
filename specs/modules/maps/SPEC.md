@@ -36,9 +36,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
     el muro una **textura**, la habitación un **color**.
     - **§ 10B.4 · el borde roto de «A pulso»** — elegir canto limpio o borde roto, y cuánto. Confirmado por él el
       2026-09-11 · ✅ construido y revisado el mismo día (rama `refactor/ui-paneles-comunes`, sin mergear); sólo dibujando aquí.
-- **🧲 La barra se ordena arrastrando — EN CONSTRUCCIÓN** (§ «La barra se ordena arrastrando, y el orden lo pone el
-  admin para todos», 2026-09-12): sólo quien administra los ajustes, cada botón dentro de su bloque, y el orden es uno
-  para toda la plataforma. Pide base (dónde guardar el orden) y `.pen` (el botón levantado y la raya de destino).
+- **🧲 La barra se ordena arrastrando — ✅ CONSTRUIDA Y REVISADA el 2026-09-12** (§ «La barra se ordena arrastrando, y
+  el orden lo pone el admin para todos»; rama `refactor/ui-paneles-comunes`, sin mergear): sólo quien administra los
+  ajustes, cada botón dentro de su bloque, y el orden es uno para toda la plataforma (`app_settings`). Lámina `NhYOy`
+  en el `.pen`; construida por orden suya sin esperar su revisión de la lámina. ⏳ Falta que él lo pruebe.
   > 🔴 La primera versión entendió al revés lo de «pintar» y construyó un pincel que **excavaba**. Él lo paró
   > en pantalla: «*eso es cavar con construir, que no es lo que te pedí*». Lo construido no se tiró — se muda
   > al Builder, que es donde él dijo que hacía falta.
