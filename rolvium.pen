@@ -144297,6 +144297,677 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "NhYOy",
+      "x": 27900,
+      "y": 6938,
+      "name": "PL/Barra de herramientas · ORDENAR ARRASTRANDO · sólo el admin  ←  NUEVO 12-09 (§ 🧲)",
+      "fill": "#00000000",
+      "gap": 12,
+      "children": [
+        {
+          "type": "frame",
+          "id": "Fx0KV",
+          "name": "Herramientas · arrastrando «Pincel»",
+          "fill": "#f2f0eacc",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131040",
+            "offset": {
+              "x": 0,
+              "y": 2
+            },
+            "blur": 8
+          },
+          "layout": "vertical",
+          "gap": 2,
+          "padding": 4,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "fGvR2",
+              "name": "R",
+              "fill": "$pl-tinta-tenue",
+              "content": "JUEGO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 6.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "qOxg3",
+              "name": "H/Dados",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "i1agR",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "casino",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "NFwJR",
+              "name": "H/Seleccionar",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "i4gTh",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "arrow_selector_tool",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nsAj6",
+              "name": "H/Medir",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "gMr2K",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "straighten",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Sf5hP",
+              "name": "H/Pin",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "w16FE",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "location_on",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "mXUDE",
+              "name": "Sep",
+              "fill": "$pl-borde",
+              "width": 28,
+              "height": 1
+            },
+            {
+              "type": "text",
+              "id": "iJjBZ",
+              "name": "R",
+              "fill": "$pl-tinta-tenue",
+              "content": "LIENZO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 6.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "zqj3m",
+              "name": "H/Lápiz",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "f20ea",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "edit",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "BvBsW",
+              "name": "H/Línea",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "Mn98w",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "horizontal_rule",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "W5qtT",
+              "name": "H/Caja",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "Y34Ai",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "crop_square",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "s3hQLe",
+              "name": "H/Círculo",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "oGN8h",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "circle",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "u57Vs0",
+              "name": "H/Texto",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "exvco",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "title",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "twunj",
+              "name": "H/Borrar",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "mSZcW",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "ink_eraser",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-tinta-suave"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "usXFP",
+              "name": "Sep DJ",
+              "fill": "$pl-oro",
+              "width": 28,
+              "height": 2
+            },
+            {
+              "type": "text",
+              "id": "jKnng",
+              "name": "R",
+              "fill": "$pl-tinta-tenue",
+              "content": "DIRECTOR",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 6.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "p7GeAD",
+              "name": "H/Piezas",
+              "width": 36,
+              "height": 36,
+              "fill": "$pl-oro",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "path",
+                  "id": "F7gOFY",
+                  "name": "I/Piezas · plantar",
+                  "geometry": "M10.7 1.3l2.6 0 0 3.2 2 0-3.3 3.9-3.3-3.9 2 0 0-3.2z m-0.47 8.1l-1 0.57m-0.76 0.43l-1 0.57m6.3-1.57l1 0.57m0.76 0.43l1 0.57m-9.83 0.43l1 0.57m0.77 0.43l1 0.57m0.76 0.43l1 0.57m6.07-2.57l-1 0.57m-0.77 0.43l-1 0.57m-0.76 0.43l-1 0.57m-0.77 0.43l0 1.13m0 0.87l0 1.13m0 0.87l0 1.13m-5.3-8.13l0 1.13m0 0.87l0 1.13m0 0.87l0 1.13m10.6-5.13l0 1.13m0 0.87l0 1.13m0 0.87l0 1.13m-10.6 0.87l1 0.57m0.77 0.43l1 0.57m0.76 0.43l1 0.57m6.07-2.57l-1 0.57m-0.77 0.43l-1 0.57m-0.76 0.43l-1 0.57m-7.97-4.47l-1.9 1.7 1.9 1.7m14.4-3.4l1.9 1.7-1.9 1.7m-10.73 2.1l3.53 2.4 3.53-2.4",
+                  "viewBox": [
+                    0,
+                    0,
+                    24,
+                    24
+                  ],
+                  "fill": "#00000000",
+                  "width": 20,
+                  "height": 20,
+                  "stroke": "$pl-papel-alto",
+                  "strokeWidth": 1.5,
+                  "strokeLinejoin": "round",
+                  "strokeLinecap": "round"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "DVLk7",
+              "name": "H/Luz",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "CsSyJ",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "wb_incandescent",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "C957s",
+              "name": "H/Builder",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "gNpjU",
+                  "name": "I/Builder · EL SUYO",
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "apps/web/public/icons/builder-mask.png",
+                    "mode": "fit"
+                  },
+                  "width": 20,
+                  "height": 20
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "P4YDD",
+              "name": "H/Fondo del mapa",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "CAXD8",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "image",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OeGWT",
+              "name": "H/Pincel · hueco que deja",
+              "opacity": 0.45,
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "gEs3k",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "brush",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "PG77w",
+              "name": "Sep",
+              "fill": "$pl-borde",
+              "width": 28,
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "e3N03g",
+              "name": "H/Revelar · destino (raya oro arriba)",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "stroke": "$pl-oro",
+              "strokeWidth": {
+                "top": 2
+              },
+              "strokeAlignment": "inner",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "V04wf",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "visibility",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "p3lv4",
+              "name": "H/Ocultar",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "x5EsWj",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "visibility_off",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "rOIU1",
+              "name": "Sep juego",
+              "fill": "$pl-borde",
+              "width": 28,
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "povE5",
+              "name": "H/Encuentro",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "YBJc1",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "swords",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Mz2V9",
+              "name": "H/Colocar PJ",
+              "width": 36,
+              "height": 36,
+              "fill": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "yjXLA",
+                  "name": "I",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "person_add",
+                  "library": "Material Symbols Outlined",
+                  "fill": "$pl-oro"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "IQV0M",
+          "layoutPosition": "absolute",
+          "x": 26,
+          "y": 574,
+          "name": "H/Pincel · levantado, bajo el puntero",
+          "width": 36,
+          "height": 36,
+          "fill": "$pl-papel-alto",
+          "cornerRadius": 2,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131080",
+            "offset": {
+              "x": 0,
+              "y": 3
+            },
+            "blur": 10
+          },
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "I5Ycp",
+              "name": "I",
+              "width": 20,
+              "height": 20,
+              "icon": "brush",
+              "library": "Material Symbols Outlined",
+              "fill": "$pl-oro"
+            }
+          ]
+        },
+        {
+          "type": "icon",
+          "id": "G6SvP6",
+          "layoutPosition": "absolute",
+          "x": 50,
+          "y": 598,
+          "name": "Puntero · mano cerrada",
+          "width": 18,
+          "height": 18,
+          "icon": "drag_pan",
+          "library": "Material Symbols Outlined",
+          "weight": 300,
+          "fill": "$pl-tinta"
+        },
+        {
+          "type": "frame",
+          "id": "otO6g",
+          "name": "Nota · qué es y cómo va",
+          "width": 232,
+          "fill": "#f2f0eaee",
+          "cornerRadius": 2,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#13131059",
+            "offset": {
+              "x": 0,
+              "y": 3
+            },
+            "blur": 14
+          },
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 10,
+          "children": [
+            {
+              "type": "text",
+              "id": "xI7FV",
+              "name": "Cabecera",
+              "fill": "$pl-tinta",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "La barra · ordenar arrastrando",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "KQ6Ok",
+              "name": "Subcabecera",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "MISMA BARRA, MISMOS BLOQUES · SÓLO CAMBIA EL GESTO",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "text",
+              "id": "Zb02N",
+              "name": "Rótulo",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "ORDENAR ARRASTRANDO · SÓLO EL ADMIN · VALE PARA TODOS",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 7.5,
+              "fontWeight": "normal",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "text",
+              "id": "uqKPv",
+              "name": "Cómo",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Mantén pulsado un botón, arrástralo arriba o abajo DENTRO de su bloque y suéltalo. Mientras lo arrastras, el botón se levanta bajo el puntero y deja su hueco en claro (aquí «Pincel»); una raya oro sobre otro botón marca dónde va a caer (antes de «Revelar»).",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "V1ll7I",
+              "name": "Reglas",
+              "fill": "$pl-tinta-tenue",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Las rayas de los bloques no se cruzan: son lo que ve cada rol. Al soltar se guarda para TODOS; si no se puede guardar, el botón vuelve a su sitio y lo dice. Un clic sin mover sigue siendo un clic. Para quien no administra los ajustes, la barra no se arrastra. Sin botón de «orden de serie»: se arrastra de vuelta.",
+              "lineHeight": 1.3,
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 9,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {
