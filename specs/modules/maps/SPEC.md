@@ -2317,6 +2317,11 @@ barra es su primera fila.**
 - Aplicada en LOCAL con `supabase migration up --local` (nunca `db:reset`): RLS activa, las dos políticas sólo
   `authenticated`, `db lint --local` 0 errores, `npm run audit` 0 graves. ⚠ **En la nube NO está**: sube con el
   deploy, ANTES que la web.
+- 🐞 **Le faltaban los permisos de acceso** (él, 2026-09-12: «*no quedan las herramientas donde las suelto*»): en este
+  proyecto una tabla nueva no hereda permisos, y sin su `GRANT` PostgREST decía «permission denied» antes de mirar la
+  RLS — guardar fallaba y la barra volvía sola. Arreglado con `20260912140000_core_app_settings_grants.sql`
+  (`SELECT, INSERT, UPDATE, DELETE` para `authenticated` y `service_role`; nada para `anon`). Las DOS migraciones van
+  juntas a producción.
 
 ## Modelo de datos (rebanada 10 · LA PINTURA — apartado A)
 

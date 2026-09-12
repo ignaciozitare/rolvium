@@ -46,8 +46,20 @@ quede comienza el punto siguiente, no me esperes, no rompas nada*»; este chat h
 4. 🔄 Builder → «Dibujar aquí» → con una textura puesta, la barra «Giro» debajo de la del azulejo: mapa y muestra giran
    en vivo y se guarda al soltar.
 5. `.pen`: guardar con Cmd+S (la lámina `I6TcDm` del giro no está en disco); la del arrastre `NhYOy` ya la guardó.
-⚠ Al desplegar: TRES migraciones sólo en LOCAL (`20260911170000_maps_band_rough`, `20260912100000_core_app_settings`,
-`20260912130000_maps_texture_rotation`) que tienen que llegar a producción ANTES que la web.
+⚠ Al desplegar: CUATRO migraciones sólo en LOCAL (`20260911170000_maps_band_rough`, `20260912100000_core_app_settings`,
+`20260912130000_maps_texture_rotation`, `20260912140000_core_app_settings_grants`) que tienen que llegar a producción
+ANTES que la web.
+
+### 🐞 «NO QUEDAN LAS HERRAMIENTAS DONDE LAS SUELTO» (él, 2026-09-12, tarde) — ✅ ARREGLADO
+Causa: `app_settings` se creó con RLS y políticas pero SIN `GRANT`. En este proyecto los privilegios por defecto de
+`public` están recortados (anon/authenticated/service_role sólo heredan TRUNCATE/REFERENCES/TRIGGER; todas las demás
+tablas los dan a mano, p. ej. `20260818130000_maps.sql` § GRANT), así que PostgREST contestaba «permission denied for
+table app_settings» antes de mirar la RLS: leer fallaba (barra de serie) y guardar fallaba (la barra volvía a como
+estaba, con el aviso de «no se pudo guardar» abajo). Comprobado con curl a PostgREST y con `set role authenticated` en
+psql; la tabla estaba VACÍA. Arreglo: migración `20260912140000_core_app_settings_grants.sql` (aplicada en local;
+authenticated lee y escribe, anon sigue denegado). Y la regla queda en `.claude/commands/dba.md` («Mandatory table
+GRANTs») para que el DBA no lo vuelva a olvidar. 💡 Deuda propuesta: un check en `scripts/audit.mjs` que marque un
+`CREATE TABLE` sin `GRANT … TO authenticated` en la misma migración.
 
 ### 📥 LA 6, SIN EMPEZAR — LE FALTAN DOS COSAS SUYAS
 «*cuando no hay textura no sé cuál es pared o piso, le pondría background y foreground*» → rótulos en las dos muestras
