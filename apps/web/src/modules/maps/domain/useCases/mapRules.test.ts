@@ -234,6 +234,12 @@ describe('mapRules — permissions & visibility', () => {
     expect(toolsFor(false)).not.toContain('wall');
     expect(toolsFor(true)).toEqual(expect.arrayContaining(['wall', 'reveal', 'hide', 'encounter']));
   });
+  /** «Piezas» (rebanada 6) es del director y abre su bloque: sale la primera, y a un jugador no le sale. */
+  it('toolsFor: «Piezas» is a DM tool and heads the DM block; players never see it', () => {
+    expect(toolsFor(false)).not.toContain('props');
+    expect(toolsFor(true)).toContain('props');
+    expect(toolsFor(true).indexOf('props')).toBe(PLAYER_TOOLS.length);
+  });
 });
 
 describe('mapRules — hit tests & shapes', () => {

@@ -122,6 +122,31 @@ DROP POLICY IF EXISTS backgrounds_props_delete ON storage.objects;
 CREATE POLICY backgrounds_props_delete ON storage.objects FOR DELETE TO authenticated
   USING (bucket_id = 'backgrounds' AND (storage.foldername(name))[1] = 'props' AND public.has_tool('manage_props'));
 
+-- Las políticas hermanas `backgrounds_dm_*` (20260818130000_maps.sql) convertían la primera carpeta a uuid a
+-- ciegas. Con `props/` en el MISMO cubo eso ya no vale: cuando la política de piezas dice NO, Postgres sigue con la
+-- del director y `'props'::uuid` revienta con «invalid input syntax for type uuid» en vez de un «no» limpio de RLS
+-- (comprobado en local el 2026-09-13 con un jugador sin `manage_props`; con el permiso pasa porque la de piezas se
+-- evalúa antes — orden que NO está garantizado). CASE obliga a que sólo se convierta lo que tiene forma de uuid; el
+-- resto de la condición es la misma de agosto.
+DROP POLICY IF EXISTS backgrounds_dm_write ON storage.objects;
+CREATE POLICY backgrounds_dm_write ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'backgrounds'
+    AND CASE WHEN (storage.foldername(name))[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+             THEN public.is_campaign_dm(((storage.foldername(name))[1])::uuid) ELSE false END);
+DROP POLICY IF EXISTS backgrounds_dm_update ON storage.objects;
+CREATE POLICY backgrounds_dm_update ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'backgrounds'
+    AND CASE WHEN (storage.foldername(name))[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+             THEN public.is_campaign_dm(((storage.foldername(name))[1])::uuid) ELSE false END)
+  WITH CHECK (bucket_id = 'backgrounds'
+    AND CASE WHEN (storage.foldername(name))[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+             THEN public.is_campaign_dm(((storage.foldername(name))[1])::uuid) ELSE false END);
+DROP POLICY IF EXISTS backgrounds_dm_delete ON storage.objects;
+CREATE POLICY backgrounds_dm_delete ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'backgrounds'
+    AND CASE WHEN (storage.foldername(name))[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+             THEN public.is_campaign_dm(((storage.foldername(name))[1])::uuid) ELSE false END);
+
 -- ── 5 · EL PERMISO, a «los dms» ──────────────────────────────────────────────
 -- Igual que `manage_textures` (`20260904230000_tool_permissions.sql`): al `admin` no se le escribe nada —lo
 -- tiene por `is_admin()` y el trigger `roles_guard_system` prohíbe tocar sus permisos—.

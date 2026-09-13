@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { Layer, LayerKind } from '../domain/entities/Scene';
 import { panelOrder, resolveLayer, type ElementKind } from '../domain/useCases/layerRules';
@@ -43,9 +44,27 @@ interface Props {
 export function LayerMenu({ at, element, layers, onPick, onRemove, onStack, blocks, onDuplicate, onClose }: Props): JSX.Element {
   const { t } = useTranslation();
   const current = resolveLayer(layers, element.layerId, element.kind);
+  /**
+   * SI NO CABE, SUBE (o se corre a la izquierda). El menú se pinta dentro del mapa, que recorta lo que se sale; con
+   * lo que trae una PIEZA (capas + apilado + estorbo + duplicar + borrar) pinchar cerca del borde de abajo lo dejaba
+   * a medias. Se mide una vez pintado y, si se sale, se pega al borde. Sin medida (jsdom) se queda donde se pinchó.
+   */
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState(at);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const parent = el?.parentElement;
+    if (!el || !parent) { setPos(at); return; }
+    const h = el.offsetHeight, w = el.offsetWidth;
+    const maxY = parent.clientHeight, maxX = parent.clientWidth;
+    setPos({
+      x: w && maxX && at.x + w > maxX ? Math.max(0, maxX - w - 4) : at.x,
+      y: h && maxY && at.y + h > maxY ? Math.max(0, maxY - h - 4) : at.y,
+    });
+  }, [at, element.kind, element.id]);
   const nameOf = (l: Layer): string => l.name || t(`maps.layers.kind.${KIND_KEY[l.kind]}`);
   return (
-    <div className="mp-pop mp-layermenu" role="menu" aria-label={t('maps.layers.sendTo')} style={{ left: at.x, top: at.y }} onMouseLeave={onClose}>
+    <div ref={ref} className="mp-pop mp-layermenu" role="menu" aria-label={t('maps.layers.sendTo')} style={{ left: pos.x, top: pos.y }} onMouseLeave={onClose}>
       <div className="mp-layermenu-head">
         <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-xs)' }}>{ELEMENT_ICON[element.kind]}</span>
         <span className="mp-layermenu-name">{element.name || t(`maps.layers.element.${element.kind}`)}</span>

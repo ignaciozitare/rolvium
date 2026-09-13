@@ -24,7 +24,8 @@ describe('<PropsUpload>', () => {
     expect(screen.getByText('Arrastra aquí tus imágenes')).toBeInTheDocument();
     expect(screen.getByText(/PNG o WEBP con fondo transparente/)).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'A qué paquete' })).toHaveValue(PACK_DUNGEON.id);
-    expect(screen.getByRole('button', { name: /Añadir/ })).toBeDisabled();
+    // Sin nada en cola el botón dice qué hace («Subir piezas») en vez de «Añadir 0 piezas», y está apagado.
+    expect(screen.getByRole('button', { name: 'Subir piezas' })).toBeDisabled();
     expect(screen.getByText(/El nombre del fichero se queda como nombre de la pieza/)).toBeInTheDocument();
   });
 

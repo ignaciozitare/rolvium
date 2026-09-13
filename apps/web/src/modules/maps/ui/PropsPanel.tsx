@@ -104,7 +104,8 @@ export function PropsPanel({
         </div>
         {stamp && (<>
           {/* La ESCALA se recuerda POR PIEZA (§ 6.4): mover va en vivo, y al soltar se guarda en la biblioteca. */}
-          <Slider label={t('maps.props.stamp.scale')} min={MIN_SCALE * 100} max={SCALE_SLIDER_MAX * 100} step={5}
+          {/* En centésimas: una pieza de 1024 px nace a 0,05 y a saltos de 0,05 cada paso era una casilla entera. */}
+          <Slider label={t('maps.props.stamp.scale')} min={MIN_SCALE * 100} max={SCALE_SLIDER_MAX * 100} step={1}
             value={Math.round(Math.min(SCALE_SLIDER_MAX, scale) * 100)} onChange={n => onScale(n / 100)} onCommit={onScaleEnd}
             valueText={fmtScale(scale)} />
           <PanelHint>{t('maps.props.stamp.scaleHint', { name: stamp.name.toLowerCase() })}</PanelHint>

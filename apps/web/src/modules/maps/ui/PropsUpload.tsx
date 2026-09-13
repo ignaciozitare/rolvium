@@ -132,7 +132,7 @@ export function PropsUpload({ packs, packId: initialPack, initialFiles, onAdd, o
         <div className="mp-propup-foot">
           <button type="button" className="mp-propup-btn" onClick={onClose} disabled={busy}>{t('maps.props.upload.cancel')}</button>
           <button type="button" className="mp-propup-btn blood" onClick={() => void subir()} disabled={busy || !pendientes.length}>
-            {busy ? t('maps.props.upload.adding') : pendientes.length === 1 ? t('maps.props.upload.addOne') : t('maps.props.upload.add', { n: String(pendientes.length) })}
+            {busy ? t('maps.props.upload.adding') : pendientes.length === 0 ? t('maps.props.upload.title') : pendientes.length === 1 ? t('maps.props.upload.addOne') : t('maps.props.upload.add', { n: String(pendientes.length) })}
           </button>
         </div>
       </div>

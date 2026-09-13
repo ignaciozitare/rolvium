@@ -72,6 +72,14 @@ describe('compressImage — el camino normal', () => {
     expect(d.encode).toHaveBeenCalledWith(expect.anything(), 2560, 1920, IMAGE_TARGETS.background.quality);
   });
 
+  /** Una PIEZA de la galería (maps, rebanada 6): más lado que un token, más calidad, y WebP conserva el alfa. */
+  it('una pieza de la galería va a 1024 px de lado mayor y calidad 0,9', async () => {
+    const d = deps({}, 3000, 1500);
+    await compressImage(fakeFile(500_000), 'prop', d);
+    expect(d.encode).toHaveBeenCalledWith(expect.anything(), 1024, 512, 0.9);
+    expect(IMAGE_TARGETS.prop).toEqual({ max: 1024, quality: 0.9 });
+  });
+
   it('si no se puede leer la imagen, el error dice que fue al decodificar', async () => {
     const d = deps({ decode: vi.fn().mockRejectedValue(new Error('roto')) });
     await expect(compressImage(fakeFile(1000), 'avatar', d)).rejects.toMatchObject({ code: 'decode' });

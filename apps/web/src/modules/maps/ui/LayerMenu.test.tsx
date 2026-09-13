@@ -155,6 +155,27 @@ describe('<LayerMenu> una pieza plantada', () => {
     expect(onRemove).toHaveBeenCalled();
   });
 
+  /** Visto en el navegador la noche del 13-09: con todo lo de una pieza, el menú se salía por abajo del mapa. */
+  it('si no cabe por abajo o por la derecha, se pega al borde en vez de recortarse', () => {
+    const h = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
+    const w = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+    const ch = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight');
+    const cw = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth');
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get() { return this.getAttribute('role') === 'menu' ? 300 : 0; } });
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get() { return this.getAttribute('role') === 'menu' ? 190 : 0; } });
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get() { return 400; } });
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get() { return 500; } });
+    try {
+      const { menu } = mount({ element: pieza, at: { x: 450, y: 250 }, onStack: vi.fn() });
+      // 250 + 300 no cabe en 400 → 400 − 300 − 4; 450 + 190 no cabe en 500 → 500 − 190 − 4.
+      expect(menu()).toHaveStyle({ top: '96px', left: '306px' });
+    } finally {
+      for (const [k, d] of [['offsetHeight', h], ['offsetWidth', w], ['clientHeight', ch], ['clientWidth', cw]] as const) {
+        if (d) Object.defineProperty(HTMLElement.prototype, k, d); else delete (HTMLElement.prototype as unknown as Record<string, unknown>)[k];
+      }
+    }
+  });
+
   it('la pieza tiene su capa natural, Objetos, cuando no se movió de sitio', () => {
     mount({ element: pieza });
     expect(within(screen.getByRole('menuitem', { name: /Objetos/ })).getByText('check')).toBeInTheDocument();
