@@ -1094,16 +1094,15 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     return list.length > 1 ? list : [];
   }, [pickedProp, library, favorites, recents]);
   /**
-   * Pinchar una DE SU FAMILIA cambia la PLANTADA COGIDA a esa pieza, en vivo (corrección suya, 14-09: «*eso
-   * está a medias, me lo tiene que mostrar en el modal cuando elijo uno*» — antes sólo tocaba el sello, sin
-   * efecto visible). Guarda la ESCALA (no el ancho/alto en píxeles), para no deformarla al cambiar de arte;
-   * posición, giro, capa y estorbo de la plantada no se tocan.
+   * Pinchar una DE SU FAMILIA la hace EL SELLO, igual que la rejilla de «sin abrir el catálogo» — NUNCA toca la
+   * ya plantada (él, 14-09: «*cuando hago click en un objeto lo selecciono, luego clico en el mapa y lo pongo,
+   * así tiene que funcionar*»). Suelta además la pieza cogida, como hace Esc: así el bloque de arriba deja de
+   * mostrar LA PIEZA COGIDA y enseña ENSEGUIDA la elegida como sello, con la escala que ella recuerda y su
+   * fantasma bajo el puntero — que era lo que faltaba cuando dijo que estaba «a medias».
    */
-  const cambiarPiezaCogida = (p: Prop): void => {
-    if (!selectedProp || selectedPropIds.length > 1) return;
-    const scale = (pickedDraft?.width ?? selectedProp.width) / (pickedBase.current?.w || 1);
-    const { width, height } = footprintOf(p, scale);
-    run(st.patchSceneProp(selectedProp.id, { propId: p.id, imageUrl: p.imageUrl, name: p.name, width, height }, 'maps.history.propSwap'));
+  const elegirSelloDeLaFamilia = (p: Prop): void => {
+    elegirSello(p);
+    setSelectedPropId(null); setSelectedPropIds([]);
   };
   const familyPackName = pickedProp ? (packs ?? []).find(k => k.id === pickedProp.packId)?.name ?? t('maps.props.catalog.unsorted') : '';
   /** Crear la pieza en la biblioteca con lo que trae la subida. Nace con el lado mayor a DOS casillas de esta escena. */
@@ -1493,7 +1492,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               onPickedScale={moverEscalaCogida} onPickedScaleEnd={soltarEscalaCogida}
               onPickedRotation={deg => setPickedDraft(d => ({ ...d, rotation: deg }))} onPickedRotationEnd={soltarGiroCogida}
               onPickedToggleFavorite={() => { if (pickedProp) alternarFavorito(pickedProp.id); }}
-              family={family} familyPackName={familyPackName} onFamilyPick={cambiarPiezaCogida}
+              family={family} familyPackName={familyPackName} onFamilyPick={elegirSelloDeLaFamilia}
               onClose={() => { setPropsOpen(false); setTool('select'); }} />
           )}
           {/*

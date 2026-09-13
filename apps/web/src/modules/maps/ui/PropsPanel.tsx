@@ -61,8 +61,7 @@ interface Props {
    * DE SU FAMILIA (§ 6.8, punto 9 — él: «*donde está la pieza cogida, quiero inmediatamente debajo un pequeño
    * recuadro donde pueda visualizar escroleando … de a tres líneas de 3 objetos de su familia*»). Las piezas del
    * mismo paquete que la cogida (`familyPackName` es su nombre, o «Sin clasificar»); vacío = sin bloque. Pinchar
-   * otra CAMBIA la plantada cogida a esa pieza, en vivo (corrección suya, 14-09: antes sólo tocaba el sello,
-   * sin efecto visible — «*eso está a medias, me lo tiene que mostrar en el modal cuando elijo uno*»).
+   * otra la hace el sello, igual que la rejilla de «sin abrir el catálogo» — no toca la plantada.
    */
   family?: readonly Prop[];
   familyPackName?: string;
@@ -83,7 +82,7 @@ const KIND_KEY: Record<Layer['kind'], string> = { terrain: 'terrain', objects: '
  *
  * S/1b · DE SU FAMILIA (§ 6.8, punto 9, `JHdTe`): con una pieza plantada cogida, debajo de «LA PIEZA COGIDA»
  * sale un recuadro con las de su mismo paquete, de a tres por fila y tres filas a la vista con scroll; pinchar
- * otra CAMBIA la plantada a esa pieza, en vivo. Sin pieza cogida, o sin más piezas en su paquete, no sale.
+ * otra la hace el sello, sin tocar la ya plantada. Sin pieza cogida, o sin más piezas en su paquete, no sale.
  *
  * La barra alargada «Sello activo» (`NAAEV`) NO existe: la tumbó él («*está todo dentro del panel, no la
  * pongas*»), igual que la del Pincel. Todo lo del sello vive aquí.

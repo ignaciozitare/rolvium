@@ -1017,14 +1017,20 @@ el `.pen` antes del código; las otras (2 y 5) son de comportamiento.
    valer igual que el botón de elegir*»). Pinchar la muestra grande del panel de pieza abre el catálogo (= ELEGIR),
    y pinchar la muestra de textura del Constructor (pared, suelo, puerta) o del Pincel abre el catálogo de
    texturas (= ELEGIR / CAMBIAR).
-9. ⏳ **DE SU FAMILIA, debajo de la pieza cogida** (pedido el 13-09 por la noche, tras ver lo anterior: «*donde está
+9. **DE SU FAMILIA, debajo de la pieza cogida** (pedido el 13-09 por la noche, tras ver lo anterior: «*donde está
    la pieza cogida, quiero inmediatamente debajo un pequeño recuadro donde pueda visualizar escroleando que me muestre
-   de a tres líneas de 3 objetos de su familia con la que está categorizada*»). **Diseñado en la lámina del panel
-   (`JHdTe`, bloque «S/1b · DE SU FAMILIA»), SIN CONSTRUIR**: justo debajo del bloque «LA PIEZA COGIDA» sale un
-   recuadro con las piezas de **su mismo paquete** (o de su categoría de serie, si es de la app), en **filas de tres**
+   de a tres líneas de 3 objetos de su familia con la que está categorizada*»). Diseñado en la lámina del panel
+   (`JHdTe`, bloque «S/1b · DE SU FAMILIA»): justo debajo del bloque «LA PIEZA COGIDA» sale un
+   recuadro con las piezas de **su mismo paquete** (hoy SIEMPRE por paquete: agrupar las de la app por su categoría
+   de serie está sin construir, y no estorba mientras no haya piezas de la app), en **filas de tres**
    y **tres filas a la vista, con scroll** para el resto; la cogida va marcada con filo sangre y **pinchar otra la
    hace el sello** (como la rejilla de «sin abrir el catálogo»). Rótulo: «DE SU FAMILIA · {nombre del paquete}». Sólo
    sale mientras hay una pieza cogida (con el sello, el bloque S/2 de recientes/favoritos ya cumple ese papel).
+   - ⚠ **Pinchar una NUNCA toca la ya plantada.** Se construyó un día (14-09) reemplazando en vivo la pieza cogida y
+     lo rechazó de plano («*me reemplaza el seleccionado, de dónde carajo sacaste eso*»); se revirtió. Pinchar una la
+     hace **el sello**, con la escala que esa pieza recuerda, y **suelta la cogida**: así el bloque de arriba pasa a
+     enseñar ese sello — con algo cogido el bloque muestra LA PIEZA COGIDA, que manda, y el sello cambiaba invisible
+     por debajo (el «*está a medias*» que dijo al probarlo). El siguiente clic en el mapa la planta.
 
 #### 🟠 Decisiones de construcción del § 6.8 (2026-09-13, revisables)
 
