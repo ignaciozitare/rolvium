@@ -55,6 +55,41 @@ describe('<DiceRoller>', () => {
   });
 });
 
+/**
+ * Sin `initial`, nace pegado a la barra — salvo que YA haya un panel de herramienta abierto ahí (Builder,
+ * Pincel, Piezas…: todos son `.rv-fpanel`), porque entonces se pisaban los dos (queja suya, 14-09: se veía
+ * «LANZADOR DE DADOS» tapando el panel de Piezas entero).
+ */
+describe('DiceRoller — dónde nace sin `initial`', () => {
+  const rect = (left: number, right: number, top = 100): DOMRect =>
+    ({ left, right, top, bottom: top + 40, width: right - left, height: 40, x: left, y: top, toJSON: () => ({}) }) as DOMRect;
+
+  it('sin panel de herramienta abierto, nace pegado a la barra, como siempre', () => {
+    const bar = document.createElement('div');
+    bar.className = 'mp-toolbar';
+    document.body.appendChild(bar);
+    vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue(rect(0, 40));
+    renderWithProviders(<DiceRoller campaignId="c1" onClose={vi.fn()} rolls={{ roll: vi.fn() } as never} />);
+    expect(screen.getByRole('dialog')).toHaveStyle({ left: '50px', top: '100px' });
+    bar.remove();
+  });
+
+  it('con un panel ya abierto ahí, nace a SU lado, no encima', () => {
+    const bar = document.createElement('div');
+    bar.className = 'mp-toolbar';
+    document.body.appendChild(bar);
+    vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue(rect(0, 40));
+    const panel = document.createElement('div');
+    panel.className = 'rv-fpanel mp-propspanel';
+    document.body.appendChild(panel);
+    vi.spyOn(panel, 'getBoundingClientRect').mockReturnValue(rect(40, 260));
+    renderWithProviders(<DiceRoller campaignId="c1" onClose={vi.fn()} rolls={{ roll: vi.fn() } as never} />);
+    expect(screen.getByRole('dialog')).toHaveStyle({ left: '270px', top: '100px' });
+    bar.remove();
+    panel.remove();
+  });
+});
+
 describe('DiceRoller — el modo director (.pen columna 4: el mismo lanzador, expandido)', () => {
   it('con `ask` lleva el título de director y el panel de pedir encima del lanzador de siempre', () => {
     renderWithProviders(

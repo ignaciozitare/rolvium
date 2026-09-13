@@ -1058,7 +1058,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     const escribiendo = (el: EventTarget | null): boolean => !!(el as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]');
     const onKey = (e: KeyboardEvent): void => {
       if (escribiendo(e.target)) return;
-      if (e.key === 'Escape' && tool === 'props' && stamp) { setStamp(null); return; }
+      // Esc, con Piezas puesta, suelta el sello (si había) Y vuelve a Seleccionar (petición suya, 14-09).
+      if (e.key === 'Escape' && tool === 'props') { if (stamp) setStamp(null); setTool('select'); return; }
       if (!(e.metaKey || e.ctrlKey)) return;
       const k = e.key.toLowerCase();
       if (k === 'c' && selectedProps.length) { clipboard.current = selectedProps; e.preventDefault(); }
@@ -1092,6 +1093,18 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     const list = sortProps(filterProps(library ?? [], shelf, '', ctx), 'name', ctx, shelf);
     return list.length > 1 ? list : [];
   }, [pickedProp, library, favorites, recents]);
+  /**
+   * Pinchar una DE SU FAMILIA cambia la PLANTADA COGIDA a esa pieza, en vivo (corrección suya, 14-09: «*eso
+   * está a medias, me lo tiene que mostrar en el modal cuando elijo uno*» — antes sólo tocaba el sello, sin
+   * efecto visible). Guarda la ESCALA (no el ancho/alto en píxeles), para no deformarla al cambiar de arte;
+   * posición, giro, capa y estorbo de la plantada no se tocan.
+   */
+  const cambiarPiezaCogida = (p: Prop): void => {
+    if (!selectedProp || selectedPropIds.length > 1) return;
+    const scale = (pickedDraft?.width ?? selectedProp.width) / (pickedBase.current?.w || 1);
+    const { width, height } = footprintOf(p, scale);
+    run(st.patchSceneProp(selectedProp.id, { propId: p.id, imageUrl: p.imageUrl, name: p.name, width, height }, 'maps.history.propSwap'));
+  };
   const familyPackName = pickedProp ? (packs ?? []).find(k => k.id === pickedProp.packId)?.name ?? t('maps.props.catalog.unsorted') : '';
   /** Crear la pieza en la biblioteca con lo que trae la subida. Nace con el lado mayor a DOS casillas de esta escena. */
   const añadirPieza = async (input: PropUploadInput, blob: Blob): Promise<void> => {
@@ -1480,7 +1493,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               onPickedScale={moverEscalaCogida} onPickedScaleEnd={soltarEscalaCogida}
               onPickedRotation={deg => setPickedDraft(d => ({ ...d, rotation: deg }))} onPickedRotationEnd={soltarGiroCogida}
               onPickedToggleFavorite={() => { if (pickedProp) alternarFavorito(pickedProp.id); }}
-              family={family} familyPackName={familyPackName} onFamilyPick={elegirSello}
+              family={family} familyPackName={familyPackName} onFamilyPick={cambiarPiezaCogida}
               onClose={() => { setPropsOpen(false); setTool('select'); }} />
           )}
           {/*

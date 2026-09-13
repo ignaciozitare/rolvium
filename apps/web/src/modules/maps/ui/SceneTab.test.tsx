@@ -2874,9 +2874,9 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     expect(await screen.findByTestId('mp-propcat')).toBeInTheDocument();
   });
 
-  it('debajo de la pieza cogida, DE SU FAMILIA enseña las de su mismo paquete; pinchar otra la hace el sello sin tocar la ya plantada (§ 6.8, punto 9)', async () => {
+  it('debajo de la pieza cogida, DE SU FAMILIA enseña las de su mismo paquete; pinchar otra CAMBIA la plantada cogida a esa pieza, en vivo (§ 6.8, punto 9, corrección suya del 14-09)', async () => {
     const u = userEvent.setup();
-    mount('dm', fakeMapsRepo({
+    const repo = mount('dm', fakeMapsRepo({
       scenes: [SCENE_WAREHOUSE], props: [PROP_OAK, PROP_PINE, PROP_COLUMN],
       packs: [{ ...PACK_FOREST, sortOrder: 0 }, { ...PACK_DUNGEON, sortOrder: 1 }],
       sceneProps: [SCENE_PROP_OAK, { ...SCENE_PROP_COLUMN, layerId: null }], layers: [LAYER_OBJECTS],
@@ -2884,14 +2884,16 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     const panel = await abrirPiezas(u);
     await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
     await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
-    coger(400, 300);   // el Roble, del paquete Bosque de Karen
+    coger(400, 300);   // el Roble, del paquete Bosque de Karen — 300×450, escala 1,5 (300/200)
     expect(within(panel).getByText('De su familia · Bosque de Karen')).toBeInTheDocument();
     const grid = within(panel).getByTestId('mp-props-family-grid');
     expect(within(grid).getAllByRole('listitem')).toHaveLength(2);   // el Roble y el Pino; la Columna es de otro paquete
     expect(within(grid).getByRole('listitem', { name: 'Usar Roble como sello' })).toHaveAttribute('aria-pressed', 'true');
     await u.click(within(grid).getByRole('listitem', { name: 'Usar Pino como sello' }));
-    expect(within(panel).getByTestId('mp-props-picked')).toHaveTextContent('Roble');   // la ya plantada no cambia
-    expect(screen.getByRole('button', { name: 'Seleccionar' })).toHaveAttribute('aria-pressed', 'false');   // el Pino pasa a sello, la mano vuelve a Piezas
+    // La plantada cogida CAMBIA a Pino, en vivo, con la MISMA escala (1,5 → 180×320 pasa a 270×480):
+    await waitFor(() => expect(repo.scenePropUpdates.at(-1)).toMatchObject({ id: 'sp-oak', patch: { propId: 'pr-pine', name: 'Pino', width: 270, height: 480 } }));
+    expect(within(panel).getByTestId('mp-props-picked')).toHaveTextContent('Pino');
+    expect(screen.getByRole('button', { name: 'Seleccionar' })).toHaveAttribute('aria-pressed', 'true');   // sigue en Seleccionar, con la pieza cogida
   });
 
   it('sin más piezas en su paquete, el bloque DE SU FAMILIA no sale (§ 6.8, punto 9)', async () => {

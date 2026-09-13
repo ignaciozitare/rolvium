@@ -466,13 +466,13 @@
 .mp-builder-tex{display:flex;align-items:center;gap:8px;}
 /* el rótulo PARED / SUELO delante de cada muestra: columna de ancho FIJO (cabe la palabra más larga en los dos idiomas) para que las dos muestras queden alineadas */
 .mp-builder-tex-c{flex:0 0 4.25em;white-space:nowrap;}
-.mp-builder-tex-swatch{width:26px;height:20px;flex:0 0 auto;border-radius:2px;outline:1px solid var(--sys-line);outline-offset:-1px;}
+.mp-builder-tex-swatch{width:26px;height:20px;flex:0 0 auto;border-radius:2px;outline:1px solid var(--sys-line);outline-offset:-1px;padding:0;border:none;cursor:pointer;}
 .mp-builder-tex-n{flex:1;font-size:var(--fs-2xs);color:var(--sys-ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* La muestra de textura: tres casillas de ancho, con la rejilla encima para que se vea el tamaño real
    del azulejo (§ «el previo de cómo iría quedando», petición suya del 2026-09-04). */
 .mp-builder-texblock{display:flex;flex-direction:column;gap:4px;}
-.mp-builder-tex-swatch{width:66px;height:44px;position:relative;overflow:hidden;padding:0;border:none;cursor:pointer;}
+.mp-builder-tex .mp-builder-tex-swatch{width:66px;height:44px;position:relative;overflow:hidden;padding:0;border:none;cursor:pointer;}
 .mp-builder-tex-swatch:hover,.mp-bp-tex:hover{outline:2px solid var(--sys-gold);outline-offset:-2px;}
 /* 🔄 el mosaico girado: sobra por los cuatro lados para que al girar no asome ninguna esquina sin textura */
 .mp-builder-tex-turn{position:absolute;inset:-40%;background-repeat:repeat;transform-origin:center;pointer-events:none;}
