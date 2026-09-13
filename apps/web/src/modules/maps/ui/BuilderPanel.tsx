@@ -286,7 +286,7 @@ export function BuilderPanel({
               */}
             <div className="mp-builder-row">
               <span className="tb-rotulo">{t('maps.door.texture')}</span>
-              <TextureSwatch url={door.doorTextureUrl} cells={1} fallback={styleOf(preset).rock} />
+              <TextureSwatch url={door.doorTextureUrl} cells={1} fallback={styleOf(preset).rock} onOpen={() => onDoorTexture?.()} />
               {/*
                 * «Elegir», no «+ Subir» (suyo, 2026-09-07: «*el botón de la textura dice subir y eso está
                 * mal*»). Y tiene razón: esto ABRE EL CATÁLOGO para escoger una que ya está. Subir una foto
@@ -400,7 +400,7 @@ export function BuilderPanel({
                   */}
                 <span className="tb-rotulo mp-builder-tex-c">{t(`maps.room.textures.${which}`)}</span>
                 <TextureSwatch url={url} cells={escala} deg={giro}
-                  fallback={which === 'wall' ? styleOf(preset).rock : styleOf(preset).floor} />
+                  fallback={which === 'wall' ? styleOf(preset).rock : styleOf(preset).floor} onOpen={() => onTexture?.(which)} />
                 <span className="mp-builder-tex-n">{url ? t('maps.room.textures.own') : t(`maps.room.preset.${preset}`)}</span>
                 {/*
                   * Rojo sangre = ACCIÓN (su corrección nº 3 del 2026-09-02). El negro es sólo lo seleccionado.
@@ -650,11 +650,16 @@ function PresetMini({ preset }: { preset: RoomPreset }): JSX.Element {
  */
 const SWATCH_CELLS = 3;
 const SWATCH_W = 66;
-function TextureSwatch({ url, cells, fallback, deg = 0 }: { url: string | null; cells: number; fallback: string; deg?: number }): JSX.Element {
+/**
+ * LA MUESTRA ES UN BOTÓN (§ 6.8, punto 8 — él, 2026-09-13: «*si clico en la fotito … de las texturas de cualquier
+ * lado tiene que valer igual que el botón de elegir*»): pincharla abre el catálogo, igual que ELEGIR / CAMBIAR.
+ */
+function TextureSwatch({ url, cells, fallback, deg = 0, onOpen }: { url: string | null; cells: number; fallback: string; deg?: number; onOpen?: () => void }): JSX.Element {
+  const { t } = useTranslation();
   const cellPx = SWATCH_W / SWATCH_CELLS;
   const tile = Math.max(2, cellPx * cells);
   return (
-    <span className="mp-builder-tex-swatch" data-testid="mp-tex-swatch" aria-hidden="true"
+    <button type="button" className="mp-builder-tex-swatch" data-testid="mp-tex-swatch" aria-label={t('maps.room.textures.open')} onClick={onOpen}
       style={url
         ? { backgroundImage: `url(${url})`, backgroundSize: `${tile}px ${tile}px`, backgroundRepeat: 'repeat' }
         : { background: fallback }}>
@@ -664,6 +669,6 @@ function TextureSwatch({ url, cells, fallback, deg = 0 }: { url: string | null; 
           style={{ backgroundImage: `url(${url})`, backgroundSize: `${tile}px ${tile}px`, transform: `rotate(${deg}deg)` }} />
       )}
       <span className="mp-builder-tex-grid" style={{ backgroundSize: `${cellPx}px ${cellPx}px` }} />
-    </span>
+    </button>
   );
 }

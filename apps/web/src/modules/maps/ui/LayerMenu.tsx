@@ -31,6 +31,14 @@ interface Props {
   onStack?: (dir: StackDir) => void;
   blocks?: { sight: boolean; move: boolean; onToggle: (which: 'sight' | 'move') => void };
   onDuplicate?: () => void;
+  /**
+   * «SELECCIONAR» ARRIBA DEL TODO (§ 6.8, punto 6 — él: «*si estoy poniendo objetos y hago click derecho no me
+   * figura la opción de seleccionar primero*»): suelta el sello, pasa a Seleccionar y coge esta pieza. `on`
+   * cuando ya se está en Seleccionar, para que no parezca que no hizo nada.
+   */
+  onSelect?: { on: boolean; pick: () => void };
+  /** Con varias cogidas, el menú manda sobre todas (§ 6.8, punto 5): se dice arriba, con la cuenta. */
+  count?: number;
   onClose: () => void;
 }
 
@@ -41,7 +49,7 @@ interface Props {
  * Sale la lista ENTERA, notas del director incluida: mandar algo ahí es justamente cómo se esconde de la
  * mesa sin borrarlo. La capa donde está ahora se marca — y si nunca se movió, la marcada es su capa natural.
  */
-export function LayerMenu({ at, element, layers, onPick, onRemove, onStack, blocks, onDuplicate, onClose }: Props): JSX.Element {
+export function LayerMenu({ at, element, layers, onPick, onRemove, onStack, blocks, onDuplicate, onSelect, count, onClose }: Props): JSX.Element {
   const { t } = useTranslation();
   const current = resolveLayer(layers, element.layerId, element.kind);
   /**
@@ -67,8 +75,18 @@ export function LayerMenu({ at, element, layers, onPick, onRemove, onStack, bloc
     <div ref={ref} className="mp-pop mp-layermenu" role="menu" aria-label={t('maps.layers.sendTo')} style={{ left: pos.x, top: pos.y }} onMouseLeave={onClose}>
       <div className="mp-layermenu-head">
         <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-xs)' }}>{ELEMENT_ICON[element.kind]}</span>
-        <span className="mp-layermenu-name">{element.name || t(`maps.layers.element.${element.kind}`)}</span>
+        <span className="mp-layermenu-name">{count && count > 1 ? t('maps.props.menu.many', { n: String(count) }) : element.name || t(`maps.layers.element.${element.kind}`)}</span>
       </div>
+      {onSelect && (
+        <>
+          <button type="button" role="menuitem" className={`mp-menu-item ${onSelect.on ? 'on' : ''}`} onClick={() => { onSelect.pick(); onClose(); }}>
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-sm)' }}>arrow_selector_tool</span>
+            {t('maps.props.menu.select')}
+            {onSelect.on && <span className="material-symbols-outlined mp-layermenu-check" aria-hidden style={{ fontSize: 'var(--icon-xs)' }}>check</span>}
+          </button>
+          <span className="mp-menu-sep" aria-hidden />
+        </>
+      )}
       <span className="tb-rotulo mp-layermenu-label">{t('maps.layers.sendTo')}</span>
       {panelOrder(layers).map(l => (
         <button key={l.id} type="button" role="menuitem" className={`mp-menu-item ${current?.id === l.id ? 'on' : ''}`} onClick={() => { onPick(l.id); onClose(); }}>

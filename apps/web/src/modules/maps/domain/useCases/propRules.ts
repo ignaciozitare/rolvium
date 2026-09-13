@@ -1,4 +1,8 @@
 import type { NewSceneProp, Prop, PropCategory, PropPack, Scene, SceneProp, ScenePropPatch } from '../entities/Scene';
+import {
+  countIn as countInLibrary, filterItems, hasBuiltIn, inShelf as inLibraryShelf, matchesQuery as matchesLibraryQuery,
+  sectionsOf as librarySectionsOf, sortItems, type LibraryGroup, type LibraryPlace, type Shelf, type ShelfContext, type ShelfSort,
+} from './libraryRules';
 
 /**
  * Reglas puras de la galería de piezas (specs/modules/maps/SPEC.md § Rebanada 6). Sin React, sin Supabase:
@@ -86,9 +90,7 @@ export const duplicateProp = (p: SceneProp, at: { x: number; y: number }, z = p.
 export const PASTE_OFFSET_PX = 14;
 
 /** Coincide por nombre, sin distinguir mayúsculas ni acentos: se busca «arbol» y sale «Árbol». */
-const fold = (v: string): string => v.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
-export const matchesQuery = (p: Pick<Prop, 'name'>, query: string): boolean =>
-  fold(query) === '' || fold(p.name).includes(fold(query));
+export const matchesQuery = (p: Pick<Prop, 'name'>, query: string): boolean => matchesLibraryQuery(p, query);
 
 /** Las de la app y las tuyas se enseñan juntas, pero se distinguen: es lo que prepara el catálogo de serie. */
 export const isAppProp = (p: Pick<Prop, 'uploadedBy'>): boolean => p.uploadedBy === null;
@@ -103,48 +105,35 @@ export const propPath = (id: string): string => `props/${id}.webp`;
 export const nameFromFile = (fileName: string): string => fileName.replace(/\.[^.]+$/, '').trim().slice(0, 80) || 'Pieza';
 
 // ── EL CATÁLOGO: estantes, secciones, orden ─────────────────────────────────
+// Lo que no sabe si tiene delante una pieza o una textura vive en `libraryRules` (desde el 2026-09-13 el
+// catálogo de texturas es EL MISMO componente, § 6.8). Aquí sólo se dice DÓNDE vive una pieza.
 
 /**
  * Qué se está mirando en el rail del catálogo (`w7sTC0`): recientes, favoritos, un paquete (o «Sin
  * clasificar», que es el paquete nulo) o una categoría de serie. «Todo» es el buscador con la lupa.
  */
-export type PropShelf =
-  | { kind: 'all' }
-  | { kind: 'recent' }
-  | { kind: 'favorites' }
-  | { kind: 'pack'; id: string | null }
-  | { kind: 'category'; category: PropCategory };
+export type PropShelf = Shelf;
+export type PropSort = ShelfSort;
+export type PropShelfContext = ShelfContext;
 
-export type PropSort = 'name' | 'recent';
+/** Dónde vive una pieza: las de serie en su categoría; las tuyas en su paquete (o en ninguno). */
+export const propPlace = (p: Pick<Prop, 'packId' | 'category' | 'uploadedBy'>): LibraryPlace =>
+  isAppProp(p) ? { group: null, builtIn: p.category } : { group: p.packId, builtIn: null };
 
-export interface PropShelfContext {
-  favorites: readonly string[];
-  /** Ids de lo último plantado, el más reciente primero. */
-  recents: readonly string[];
-}
+/** Un paquete como grupo del rail: se ordenan por su orden y luego por antigüedad. */
+export const packGroup = (k: PropPack, i = 0): LibraryGroup => ({ id: k.id, name: k.name, order: k.sortOrder * 1e6 + i });
+export const packGroups = (packs: readonly PropPack[]): LibraryGroup[] =>
+  [...packs].sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt)).map((k, i) => packGroup(k, i));
 
 /** ¿Esta pieza cae en este estante? */
-export function inShelf(p: Prop, shelf: PropShelf, ctx: PropShelfContext): boolean {
-  switch (shelf.kind) {
-    case 'all': return true;
-    case 'recent': return ctx.recents.includes(p.id);
-    case 'favorites': return ctx.favorites.includes(p.id);
-    case 'pack': return !isAppProp(p) && p.packId === shelf.id;
-    case 'category': return isAppProp(p) && p.category === shelf.category;
-  }
-}
+export const inShelf = (p: Prop, shelf: PropShelf, ctx: PropShelfContext): boolean => inLibraryShelf(p, shelf, ctx, propPlace);
 
 /** Lo que enseña la galería: el estante elegido y el buscador, en un solo paso. */
 export const filterProps = (props: readonly Prop[], shelf: PropShelf, query: string, ctx: PropShelfContext): Prop[] =>
-  props.filter(p => inShelf(p, shelf, ctx) && matchesQuery(p, query));
+  filterItems(props, shelf, query, ctx, propPlace);
 
-export function sortProps(props: readonly Prop[], sort: PropSort, ctx: PropShelfContext, shelf: PropShelf): Prop[] {
-  const list = [...props];
-  // Recientes van en el orden en que se plantaron, que es lo que significa «recientes».
-  if (shelf.kind === 'recent') return list.sort((a, b) => ctx.recents.indexOf(a.id) - ctx.recents.indexOf(b.id));
-  if (sort === 'name') return list.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
+export const sortProps = (props: readonly Prop[], sort: PropSort, ctx: PropShelfContext, shelf: PropShelf): Prop[] =>
+  sortItems(props, sort, ctx, shelf);
 
 export interface PropSection { key: string; title: string | null; pack: PropPack | null; category: PropCategory | null; props: Prop[] }
 
@@ -157,31 +146,20 @@ export function sectionsOf(
   props: readonly Prop[], packs: readonly PropPack[], shelf: PropShelf, query: string, sort: PropSort,
   ctx: PropShelfContext, grouped: boolean,
 ): PropSection[] {
-  const shown = sortProps(filterProps(props, shelf, query, ctx), sort, ctx, shelf);
-  if (!grouped || shelf.kind === 'recent' || shelf.kind === 'favorites') {
-    return shown.length ? [{ key: 'all', title: null, pack: null, category: null, props: shown }] : [];
-  }
-  const out: PropSection[] = [];
-  const orderedPacks = [...packs].sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt));
-  for (const pack of orderedPacks) {
-    const mine = shown.filter(p => !isAppProp(p) && p.packId === pack.id);
-    if (mine.length) out.push({ key: `pack:${pack.id}`, title: pack.name, pack, category: null, props: mine });
-  }
-  const loose = shown.filter(p => !isAppProp(p) && (p.packId === null || !packs.some(k => k.id === p.packId)));
-  if (loose.length) out.push({ key: 'pack:none', title: null, pack: null, category: null, props: loose });
-  for (const category of PROP_CATEGORIES) {
-    const mine = shown.filter(p => isAppProp(p) && p.category === category);
-    if (mine.length) out.push({ key: `cat:${category}`, title: null, pack: null, category, props: mine });
-  }
-  return out;
+  return librarySectionsOf(props, packGroups(packs), PROP_CATEGORIES, shelf, query, sort, ctx, grouped, propPlace).map(sec => ({
+    key: sec.key,
+    title: sec.group?.name ?? null,
+    pack: sec.group ? packs.find(k => k.id === sec.group!.id) ?? null : null,
+    category: (sec.builtIn as PropCategory | null),
+    props: sec.items,
+  }));
 }
 
 /** Cuántas piezas hay en cada estante del rail, para las cuentas de al lado del nombre. */
-export const countIn = (props: readonly Prop[], shelf: PropShelf, ctx: PropShelfContext): number =>
-  props.filter(p => inShelf(p, shelf, ctx)).length;
+export const countIn = (props: readonly Prop[], shelf: PropShelf, ctx: PropShelfContext): number => countInLibrary(props, shelf, ctx, propPlace);
 
 /** ¿Hay alguna pieza de serie? Sin ninguna, el rail no pinta «DE SERIE · ROLVIUM» (decisión mía, § 6.1). */
-export const hasAppProps = (props: readonly Prop[]): boolean => props.some(isAppProp);
+export const hasAppProps = (props: readonly Prop[]): boolean => hasBuiltIn(props, propPlace);
 
 // ── RECIENTES ────────────────────────────────────────────────────────────────
 
@@ -314,6 +292,36 @@ export function scaleFromCorner(p: Pick<SceneProp, 'x' | 'y' | 'rotation' | 'wid
   const width = Math.max(minPx, p.width * k);
   const height = width * (p.height / (p.width || 1));
   return { width: Math.round(width * 100) / 100, height: Math.round(height * 100) / 100 };
+}
+
+/**
+ * ESTIRAR DESDE LA ESQUINA CONTRARIA (§ 6.8, punto 2 — él: «*cuando redimensiono no tiene que ser desde el
+ * centro*»): la esquina de enfrente de la que se tira se queda clavada y la pieza crece hacia la mano,
+ * manteniendo la proporción. Devuelve también el centro nuevo, porque al no crecer desde el centro, éste se
+ * mueve. Se acota por `minPx` para que una pieza no pueda encogerse hasta desaparecer.
+ */
+export function scaleFromCornerAnchored(
+  p: Pick<SceneProp, 'x' | 'y' | 'rotation' | 'width' | 'height'>, corner: PropCorner, pointer: Point2, minPx = 8,
+): { x: number; y: number; width: number; height: number } {
+  const sx = corner === 'ne' || corner === 'se' ? 1 : -1;
+  const sy = corner === 'sw' || corner === 'se' ? 1 : -1;
+  const anchor = { x: -sx * p.width / 2, y: -sy * p.height / 2 };
+  const l = toPropFrame(p, pointer);
+  // Lo que ha crecido la diagonal, proyectado sobre la diagonal original: así un arrastre torcido no deforma.
+  const d = { x: l.x - anchor.x, y: l.y - anchor.y };
+  const diag = { x: sx * p.width, y: sy * p.height };
+  const len2 = diag.x * diag.x + diag.y * diag.y || 1;
+  const k = Math.max((d.x * diag.x + d.y * diag.y) / len2, minPx / (p.width || 1));
+  const width = Math.round(p.width * k * 100) / 100;
+  const height = Math.round(p.height * k * 100) / 100;
+  const centro = fromPropFrame(p, { x: anchor.x + sx * width / 2, y: anchor.y + sy * height / 2 });
+  return { x: Math.round(centro.x * 100) / 100, y: Math.round(centro.y * 100) / 100, width, height };
+}
+
+/** Las piezas cuyo CENTRO cae dentro del recuadro de selección (§ 6.8, punto 5), como las fichas. */
+export function propsInRect<T extends Pick<SceneProp, 'id' | 'x' | 'y'>>(props: readonly T[], a: Point2, b: Point2): string[] {
+  const x1 = Math.min(a.x, b.x), x2 = Math.max(a.x, b.x), y1 = Math.min(a.y, b.y), y2 = Math.max(a.y, b.y);
+  return props.filter(p => p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2).map(p => p.id);
 }
 
 /** El giro que apunta la mano desde el centro, con el tirador «arriba» como 0°. En pasos de 1°. */

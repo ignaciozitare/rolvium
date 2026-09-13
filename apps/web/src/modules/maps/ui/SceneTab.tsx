@@ -25,6 +25,7 @@ import { TextureCatalog } from './TextureCatalog';
 import { DEFAULT_SOW, PropsPanel, type PlantMode, type SowSettings } from './PropsPanel';
 import { PropsCatalog } from './PropsCatalog';
 import { PropsUpload, type PropUploadInput } from './PropsUpload';
+import { TextureUpload, type TextureUploadInput } from './TextureUpload';
 import { dueToSow, duplicateProp, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleChanged, scaleOfWidth, scatterIn, sowStepPx, topZ, type PropShelf } from '../domain/useCases/propRules';
 import type { StackDir } from './LayerMenu';
 import { defaultShapeFor, DEFAULT_BRUSH_COLOR, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
@@ -368,11 +369,22 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [upload, setUpload] = useState<{ packId: string | null; files?: File[] } | null>(null);
   const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
+  /** VARIAS COGIDAS (§ 6.8, punto 5): Mayús+clic o el recuadro. Con dos o más, la «suelta» de arriba es `null`. */
+  const [selectedPropIds, setSelectedPropIds] = useState<string[]>([]);
+  /** El panel de Piezas SE QUEDA ABIERTO al pasar a Seleccionar (§ 6.8, punto 7), como el Constructor. */
+  const [propsOpen, setPropsOpen] = useState(false);
+  /**
+   * Lo que se está moviendo AHORA en ESCALA/GIRO del panel sobre la pieza cogida: se pinta ya y se guarda al
+   * soltar, como el previo de la escala de textura. Sin esto cada paso del deslizador sería una escritura.
+   */
+  const [pickedDraft, setPickedDraft] = useState<{ width?: number; height?: number; rotation?: number } | null>(null);
+  const pickedDraftRef = useRef<typeof pickedDraft>(null);
+  pickedDraftRef.current = pickedDraft;
   /** Lo que va cayendo mientras se SIEMBRA (MUCHAS): se pinta ya y se guarda de una vez al soltar, como UN paso. */
   const [sowPreview, setSowPreview] = useState<NewSceneProp[]>([]);
   const sowLast = useRef<Point | null>(null);
   /** La pieza copiada con Ctrl+C, para pegarla con Ctrl+V con su giro y su tamaño (§ 6.5). */
-  const clipboard = useRef<SceneProp | null>(null);
+  const clipboard = useRef<SceneProp[]>([]);
   /**
    * EL PREVIO EN VIVO DE LA ESCALA DE TEXTURA (petición suya del 2026-09-04: «*tener un previo de cómo iría
    * quedando cuando la escale*»). Mientras arrastra el deslizador el mapa se repinta con este valor **sin
@@ -427,7 +439,9 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * OTRA herramienta sí la suelta: apilaba la barra del token sobre «Trazo» —las dos flotan en el mismo
    * sitio— y dejaba a Suprimir apuntando a algo que no se ve.
    */
-  useEffect(() => { if (tool !== 'select' && tool !== 'wall') { setSelectedWallId(null); setSelectedTokenIds([]); setSelectedDrawingIds([]); setSelectedPropId(null); } }, [tool]);
+  useEffect(() => { if (tool !== 'select' && tool !== 'wall' && tool !== 'props') { setSelectedWallId(null); setSelectedTokenIds([]); setSelectedDrawingIds([]); setSelectedPropId(null); setSelectedPropIds([]); } }, [tool]);
+  // Al cambiar lo cogido se olvida lo que se estaba moviendo en el panel: era de la otra pieza.
+  useEffect(() => { setPickedDraft(null); }, [selectedPropId]);
   useEffect(() => { if (live) { setPendingPc(null); setPcMenu(false); } }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nameOf = useCallback((uid: string) => members.find(m => m.userId === uid)?.name ?? uid, [members]);
@@ -457,7 +471,6 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    *
    * Cambiar la textura NO repinta las salas ya levantadas: cada una se llevó su suelo el día que se dibujó.
    */
-  const texInput = useRef<HTMLInputElement | null>(null);
   /**
    * EL CATÁLOGO DE TEXTURAS (petición suya del 2026-09-04): «*las texturas se tienen que alimentar de un
    * catálogo, no que si quieres cambiarla sólo te permita subirlas… ¿quedarán infinitas texturas?*». Tenía
@@ -481,7 +494,11 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * herramienta entera.
    */
   const [textures, setTextures] = useState<Texture[] | null>(null);
-  const [texUploadCat, setTexUploadCat] = useState<TextureCategory>('misc');
+  /** LA SUBIDA EN LOTE DE TEXTURAS (§ 6.8, punto 1): la misma ventana que las piezas, en la categoría abierta. */
+  const [texUpload, setTexUpload] = useState<{ category: TextureCategory; files?: File[] } | null>(null);
+  /** Favoritas y recientes de las texturas: de ESTE navegador, como las de piezas (el catálogo es el mismo). */
+  const [favoriteTextures, setFavoriteTextures] = useState<string[]>(() => memory.favoriteTextures());
+  const [recentTextures, setRecentTextures] = useState<string[]>(() => memory.recentTextures());
   /**
    * ELEGIR UNA TEXTURA copia además SU TAMAÑO DE BALDOSA a la escena (§ «El catálogo de texturas»). Un mosaico
    * fino y unas losas grandes no quieren la misma escala, y hacerle mover el deslizador cada vez sería
@@ -964,25 +981,74 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     setSowPreview([]);
   };
   const selectedProp = st.sceneProps.find(sp => sp.id === selectedPropId) ?? null;
+  /** Lo cogido, sea una o varias: es sobre lo que actúan Suprimir, Ctrl+C y el botón derecho. */
+  const selectedProps = useMemo(
+    () => (selectedPropIds.length > 1 ? st.sceneProps.filter(sp => selectedPropIds.includes(sp.id)) : selectedProp ? [selectedProp] : []),
+    [selectedPropIds, st.sceneProps, selectedProp],
+  );
   /** La pieza de biblioteca de una plantada, si sigue existiendo: es a la que se le reescribe la escala. */
   const bibliotecaDe = (sp: SceneProp): Prop | null => (sp.propId ? (library ?? []).find(x => x.id === sp.propId) ?? (stamp?.id === sp.propId ? stamp : null) : null);
   /**
    * ESTIRAR una plantada mantiene la proporción, reescala con ella la forma que estorba, y REESCRIBE la escala
    * recordada de su pieza (§ 6.4: «por los dos caminos»).
    */
-  const estirarPieza = (id: string, size: { width: number; height: number }): void => {
+  const estirarPieza = (id: string, box: { x?: number; y?: number; width: number; height: number }): void => {
     const sp = st.sceneProps.find(x => x.id === id);
     if (!sp) return;
-    const k = size.width / (sp.width || 1);
-    run(st.patchSceneProp(id, { ...size, blockW: sp.blockW * k, blockH: sp.blockH * k, blockDx: sp.blockDx * k, blockDy: sp.blockDy * k }, 'maps.history.propScale'));
+    const k = box.width / (sp.width || 1);
+    // Desde una esquina llega también el centro nuevo (§ 6.8, punto 2: la contraria se queda clavada); desde el panel, no.
+    const sitio = box.x !== undefined && box.y !== undefined ? { x: box.x, y: box.y } : {};
+    run(st.patchSceneProp(id, { ...sitio, width: box.width, height: box.height, blockW: sp.blockW * k, blockH: sp.blockH * k, blockDx: sp.blockDx * k, blockDy: sp.blockDy * k }, 'maps.history.propScale'));
     const prop = bibliotecaDe(sp);
-    if (prop) recordarEscala(prop, scaleOfWidth(prop, size.width));
+    if (prop) recordarEscala(prop, scaleOfWidth(prop, box.width));
   };
-  const duplicarPieza = (sp: SceneProp): void => {
-    if (!live) return;
-    run(st.plantSceneProp(duplicateProp(sp, { x: sp.x + PASTE_OFFSET_PX, y: sp.y + PASTE_OFFSET_PX }, topZ(st.sceneProps))).then(nueva => setSelectedPropId(nueva.id)));
+  /** Duplicar (o pegar) una o varias: TODAS con su giro y su tamaño, corridas lo mismo, y como UN paso. */
+  const duplicarPiezas = (sps: readonly SceneProp[]): void => {
+    if (!live || !sps.length) return;
+    const z = topZ(st.sceneProps);
+    run(st.plantSceneProps(sps.map((sp, i) => duplicateProp(sp, { x: sp.x + PASTE_OFFSET_PX, y: sp.y + PASTE_OFFSET_PX }, z + i))).then(nuevas => {
+      if (nuevas.length === 1) { setSelectedPropIds([]); setSelectedPropId(nuevas[0]!.id); }
+      else { setSelectedPropId(null); setSelectedPropIds(nuevas.map(n => n.id)); }
+    }));
   };
-  const removeProp = (id: string): void => { setSelectedPropId(cur => (cur === id ? null : cur)); run(st.removeSceneProp(id)); };
+  const removeProp = (id: string): void => { setSelectedPropId(cur => (cur === id ? null : cur)); setSelectedPropIds(ids => ids.filter(x => x !== id)); run(st.removeSceneProp(id)); };
+  const removeProps = (ids: string[]): void => {
+    if (ids.length === 1) { removeProp(ids[0]!); return; }
+    setSelectedPropId(null); setSelectedPropIds([]);
+    run(st.removeSceneProps(ids));
+  };
+  /**
+   * LA PIEZA COGIDA EN EL PANEL (§ 6.8, punto 7): su escala respecto a su pieza de biblioteca —o a su tamaño
+   * al cogerla, si ya no está en la biblioteca—, y lo que se esté moviendo ahora encima.
+   */
+  const pickedBase = useRef<{ id: string; w: number; h: number } | null>(null);
+  const pickedProp = selectedProp ? bibliotecaDe(selectedProp) : null;
+  if (selectedProp && pickedBase.current?.id !== selectedProp.id) {
+    pickedBase.current = { id: selectedProp.id, w: pickedProp?.naturalWidth ?? selectedProp.width, h: pickedProp?.naturalHeight ?? selectedProp.height };
+  }
+  const picked = selectedProp && selectedPropIds.length <= 1 ? {
+    prop: { ...selectedProp, ...pickedDraft },
+    scale: (pickedDraft?.width ?? selectedProp.width) / (pickedBase.current?.w || 1),
+    rotation: pickedDraft?.rotation ?? selectedProp.rotation,
+    isFavorite: pickedProp ? favorites.includes(pickedProp.id) : null,
+  } : null;
+  const moverEscalaCogida = (scale: number): void => {
+    const base = pickedBase.current;
+    if (!base) return;
+    setPickedDraft(d => ({ ...d, width: Math.round(base.w * scale * 100) / 100, height: Math.round(base.h * scale * 100) / 100 }));
+  };
+  const soltarEscalaCogida = (): void => {
+    const d = pickedDraftRef.current;
+    if (!selectedProp || !d || d.width === undefined || d.height === undefined) return;
+    estirarPieza(selectedProp.id, { width: d.width, height: d.height });
+    setPickedDraft(x => (x ? { ...x, width: undefined, height: undefined } : x));
+  };
+  const soltarGiroCogida = (): void => {
+    const d = pickedDraftRef.current;
+    if (!selectedProp || !d || d.rotation === undefined) return;
+    if (d.rotation !== selectedProp.rotation) run(st.patchSceneProp(selectedProp.id, { rotation: d.rotation }, 'maps.history.propRotate'));
+    setPickedDraft(x => (x ? { ...x, rotation: undefined } : x));
+  };
   /**
    * ESC SUELTA EL SELLO (§ 6.4, el pie del panel); Ctrl/Cmd+C y V copian y pegan la pieza cogida CON su giro y
    * su tamaño (§ 6.5). Sólo el director, y nunca mientras se escribe en un campo.
@@ -995,17 +1061,19 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
       if (e.key === 'Escape' && tool === 'props' && stamp) { setStamp(null); return; }
       if (!(e.metaKey || e.ctrlKey)) return;
       const k = e.key.toLowerCase();
-      if (k === 'c' && selectedProp) { clipboard.current = selectedProp; e.preventDefault(); }
-      else if (k === 'v' && clipboard.current && live) { e.preventDefault(); duplicarPieza(clipboard.current); }
+      if (k === 'c' && selectedProps.length) { clipboard.current = selectedProps; e.preventDefault(); }
+      else if (k === 'v' && clipboard.current.length && live) { e.preventDefault(); duplicarPiezas(clipboard.current); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
   /** Lo que se PINTA: lo plantado más lo que va cayendo en la siembra, con ids provisionales hasta que se guarde. */
-  const piezasEnPantalla = useMemo(
-    () => (sowPreview.length ? [...st.sceneProps, ...sowPreview.map((sp, i) => ({ ...sp, id: `sow-${i}`, createdAt: `z${i}`, updatedAt: '' }))] : st.sceneProps),
-    [st.sceneProps, sowPreview],
-  );
+  const piezasEnPantalla = useMemo(() => {
+    let list = st.sceneProps;
+    // La cogida se pinta con lo que se esté moviendo en el panel (§ 6.8, punto 7): el mapa y el panel a la vez.
+    if (pickedDraft && selectedPropId) list = list.map(sp => (sp.id === selectedPropId ? { ...sp, ...Object.fromEntries(Object.entries(pickedDraft).filter(([, v]) => v !== undefined)) } : sp));
+    return sowPreview.length ? [...list, ...sowPreview.map((sp, i) => ({ ...sp, id: `sow-${i}`, createdAt: `z${i}`, updatedAt: '' }))] : list;
+  }, [st.sceneProps, sowPreview, pickedDraft, selectedPropId]);
   /** Las de «sin abrir el catálogo»: recientes en su orden, o favoritas. Sólo las que siguen en la biblioteca. */
   const quickProps = useMemo(() => {
     const ids = quickShelf === 'recent' ? recents : favorites;
@@ -1024,6 +1092,12 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     setLibrary(l => [created, ...(l ?? [])]);
   };
 
+  /** Crear la textura en el catálogo con lo que trae la subida en lote: nace con la baldosa de serie (4 casillas). */
+  const añadirTextura = async (input: TextureUploadInput, blob: Blob): Promise<void> => {
+    const nueva = await repo.addTexture({ name: input.name, category: input.category, tileCells: DEFAULT_TEXTURE_SCALE }, blob, campaignId);
+    setTextures(l => [nueva, ...(l ?? [])]);
+  };
+
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
   const removeLight = (id: string) => { setSelectedLightId(cur => (cur === id ? null : cur)); run(st.removeLight(id)); };
   const removeDrawing = (id: string) => { setSelectedDrawingId(cur => (cur === id ? null : cur)); run(st.eraseDrawing(id)); };
@@ -1031,8 +1105,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     if (!isDm) return;
     // La LUZ va primero porque elegirla suelta lo demás: si hay una elegida, es LO elegido (dueño, 2026-09-02).
     if (selectedLight) { removeLight(selectedLight.id); return; }
-    // La PIEZA cogida (rebanada 6): elegirla soltó lo demás, así que si hay una es LO elegido.
-    if (selectedProp) { removeProp(selectedProp.id); return; }
+    // Las PIEZAS cogidas (rebanada 6, y varias desde § 6.8): cogerlas soltó lo demás, así que si hay son LO elegido.
+    if (selectedProps.length) { removeProps(selectedProps.map(sp => sp.id)); return; }
     // Varios trazos cogidos con el área se borran juntos; uno solo sigue por su camino de siempre.
     if (selectedDrawingIds.length > 1) { selectedDrawingIds.forEach(id => removeDrawing(id)); setSelectedDrawingIds([]); return; }
     if (selectedDrawingId) { removeDrawing(selectedDrawingId); return; }
@@ -1126,6 +1200,9 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             if (next !== 'select') closeOverlays(next === 'encounter' ? 'encounter' : undefined);
             if (next === 'wall') setBuilderOpen(true);
             else if (next !== 'select') setBuilderOpen(false);
+            // Lo mismo con PIEZAS (§ 6.8, punto 7): Seleccionar no lo cierra; cualquier otra herramienta sí.
+            if (next === 'props') setPropsOpen(true);
+            else if (next !== 'select') setPropsOpen(false);
             setTool(next);
           }}
           onDice={() => onOpenDice?.()} diceOpen={diceOpen}
@@ -1209,7 +1286,9 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             onMoveDrawings={batch => batch.forEach(b => run(st.moveDrawing(b.id, b.data)))}
             /* ── LAS PIEZAS (rebanada 6): lo plantado, la cogida, el sello y la siembra ── */
             sceneProps={piezasEnPantalla} selectedPropId={selectedPropId} onSelectProp={setSelectedPropId}
+            selectedPropIds={selectedPropIds} onSelectProps={setSelectedPropIds}
             onMoveProp={(id, at) => run(st.patchSceneProp(id, at, 'maps.history.propMove'))}
+            onMoveProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y } })), 'maps.history.propMove'))}
             onScaleProp={estirarPieza}
             onRotateProp={(id, rotation) => run(st.patchSceneProp(id, { rotation }, 'maps.history.propRotate'))}
             stamp={tool === 'props' && stamp ? { imageUrl: stamp.imageUrl, ...footprintOf(stamp, stampScale), rotation: stampRotation } : null}
@@ -1376,7 +1455,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             * EL PANEL DE PIEZA (rebanada 6, `lWBaU`): sale con la herramienta Piezas. Cerrarlo es volver a
             * Seleccionar; el sello se queda en memoria por si vuelve, y Esc lo suelta.
             */}
-          {isDm && !playerView && tool === 'props' && (
+          {isDm && !playerView && (tool === 'props' || (propsOpen && tool === 'select')) && (
             <PropsPanel stamp={stamp} isFavorite={!!stamp && favorites.includes(stamp.id)}
               onToggleFavorite={() => { if (stamp) alternarFavorito(stamp.id); }}
               onPick={() => setCatalogOpen(true)} onDrop={soltarSello}
@@ -1385,7 +1464,11 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               quick={quickShelf} onQuick={setQuickShelf} quickProps={quickProps} onQuickPick={elegirSello}
               layers={st.layers} layerId={plantLayerId} onLayer={setPlantLayerId}
               mode={plantMode} onMode={setPlantMode} sow={sow} onSow={patch => setSow(x => ({ ...x, ...patch }))}
-              onClose={() => setTool('select')} />
+              picked={picked}
+              onPickedScale={moverEscalaCogida} onPickedScaleEnd={soltarEscalaCogida}
+              onPickedRotation={deg => setPickedDraft(d => ({ ...d, rotation: deg }))} onPickedRotationEnd={soltarGiroCogida}
+              onPickedToggleFavorite={() => { if (pickedProp) alternarFavorito(pickedProp.id); }}
+              onClose={() => { setPropsOpen(false); setTool('select'); }} />
           )}
           {/*
             * EL PANEL DE BUILDER v3, y ya no la barra flotante vieja — orden suya del 2026-09-03: «*ya es hora
@@ -1529,22 +1612,22 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               <PropsUpload packs={packs ?? []} packId={upload.packId} {...(upload.files ? { initialFiles: upload.files } : {})}
                 onAdd={añadirPieza} onClose={() => setUpload(null)} />
             )}
-            <input type="file" accept="image/*" ref={texInput} hidden data-testid="mp-room-texture-input"
-              onChange={async e => {
-                const f = e.target.files?.[0];
-                e.target.value = '';
-                if (!f || !texPicker) return;
-                const nueva = await repo.addTexture(
-                  { name: f.name.replace(/\.[^.]+$/, ''), category: texUploadCat, tileCells: DEFAULT_TEXTURE_SCALE },
-                  f, campaignId);
-                setTextures(l => [nueva, ...(l ?? [])]);
-                aplicarTextura(nueva);
-              }} />
+            {/*
+              * EL CATÁLOGO DE TEXTURAS es EL MISMO que el de piezas (él, 2026-09-13: «*usa el mismo componente*»),
+              * y subir abre LA MISMA ventana de subir en lote, en la categoría abierta. Lo subido queda en el
+              * catálogo para elegirlo: con varias a la vez ya no se pone sola la última.
+              */}
+            {texUpload && (
+              <TextureUpload category={texUpload.category} {...(texUpload.files ? { initialFiles: texUpload.files } : {})}
+                onAdd={añadirTextura} onClose={() => setTexUpload(null)} />
+            )}
             {texPicker && (
               <TextureCatalog which={texPicker} textures={textures} canManage={puedeOrdenarTexturas}
+                favorites={favoriteTextures} recents={recentTextures}
+                onToggleFavorite={tex => setFavoriteTextures(memory.toggleFavoriteTexture(tex.id))}
                 onClose={() => setTexPicker(null)}
-                onPick={aplicarTextura}
-                onUpload={cat => { setTexUploadCat(cat); texInput.current?.click(); }}
+                onPick={tex => { setRecentTextures(memory.rememberRecentTexture(tex.id)); aplicarTextura(tex); }}
+                onUpload={(category, files) => setTexUpload(files ? { category, files } : { category })}
                 onUpdate={async (tex, patch) => {
                   await repo.updateTexture(tex.id, patch);
                   setTextures(l => (l ?? []).map(x => (x.id === tex.id ? { ...x, ...patch } : x)));
@@ -1588,19 +1671,37 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               {...(layerMenu.element.kind === 'drawing' ? { onRemove: () => removeDrawing(layerMenu.element.id) } : {})}
               {...(layerMenu.element.kind === 'prop' ? (() => {
                 // Una PIEZA (rebanada 6, § 6.6): el orden de apilado, el estorbo, duplicar y borrar, además de la capa.
+                // Y con VARIAS cogidas y el botón derecho sobre una de ellas, el menú manda sobre todas (§ 6.8, punto 5).
                 const sp = st.sceneProps.find(x => x.id === layerMenu.element.id);
-                return sp ? {
-                  onRemove: () => removeProp(sp.id),
-                  onStack: (dir: StackDir) => run(st.restackSceneProps(restack(st.sceneProps, sp.id, dir))),
-                  blocks: { sight: sp.blocksSight, move: sp.blocksMove, onToggle: (which: 'sight' | 'move') => run(st.patchSceneProp(sp.id, which === 'sight' ? { blocksSight: !sp.blocksSight } : { blocksMove: !sp.blocksMove })) },
-                  onDuplicate: () => duplicarPieza(sp),
-                } : {};
+                if (!sp) return {};
+                const todas = selectedProps.length > 1 && selectedProps.some(x => x.id === sp.id) ? selectedProps : [sp];
+                const ids = todas.map(x => x.id);
+                return {
+                  // «Seleccionar» arriba del todo (§ 6.8, punto 6): suelta el sello, pasa a Seleccionar y coge ESTA pieza.
+                  onSelect: { on: tool === 'select', pick: () => { setStamp(null); setTool('select'); setSelectedPropIds([]); setSelectedPropId(sp.id); } },
+                  count: todas.length,
+                  onRemove: () => removeProps(ids),
+                  onStack: (dir: StackDir) => {
+                    // Varias: se apilan una tras otra en el orden en que están, y se escribe el resultado de una vez.
+                    let lista = st.sceneProps;
+                    const cambios = new Map<string, number>();
+                    for (const id of ids) {
+                      for (const c of restack(lista, id, dir)) { cambios.set(c.id, c.patch.z!); lista = lista.map(x => (x.id === c.id ? { ...x, z: c.patch.z! } : x)); }
+                    }
+                    run(st.restackSceneProps([...cambios].map(([id, z]) => ({ id, patch: { z } }))));
+                  },
+                  blocks: { sight: sp.blocksSight, move: sp.blocksMove, onToggle: (which: 'sight' | 'move') => {
+                    const patch = which === 'sight' ? { blocksSight: !sp.blocksSight } : { blocksMove: !sp.blocksMove };
+                    run(ids.length > 1 ? st.patchSceneProps(ids.map(id => ({ id, patch }))) : st.patchSceneProp(sp.id, patch));
+                  } },
+                  onDuplicate: () => duplicarPiezas(todas),
+                };
               })() : {})}
               onPick={layerId => {
                 const { kind, id } = layerMenu.element;
                 if (kind === 'token') run(st.patchToken(id, { layerId }));
                 else if (kind === 'light') run(st.patchLight(id, { layerId }));
-                else if (kind === 'prop') run(st.patchSceneProp(id, { layerId }));
+                else if (kind === 'prop') { const todas = selectedProps.length > 1 && selectedProps.some(x => x.id === id) ? selectedProps.map(x => x.id) : [id]; run(todas.length > 1 ? st.patchSceneProps(todas.map(pid => ({ id: pid, patch: { layerId } }))) : st.patchSceneProp(id, { layerId })); }
                 else run(st.patchDrawingLayer(id, layerId));
               }}
               onClose={() => setLayerMenu(null)} />

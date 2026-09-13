@@ -1341,6 +1341,37 @@ describe('useScene — las piezas plantadas (rebanada 6)', () => {
     expect(repo.sceneProps.map(p => p.name)).toContain('Roble');
   });
 
+  /** § 6.8, punto 5 (2026-09-13): varias cogidas se mueven y se borran como UN paso del historial. */
+  it('varias de una vez: moverlas es UN paso (deshacer las devuelve a todas), y cambiar de capa sin historial no apila', async () => {
+    const repo = seedProps();
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.patchSceneProps([{ id: 'sp-oak', patch: { x: 10, y: 20 } }, { id: 'sp-col', patch: { x: 30, y: 40 } }], 'maps.history.propMove'); });
+    expect(repo.sceneProps.find(p => p.id === 'sp-oak')).toMatchObject({ x: 10, y: 20 });
+    expect(repo.sceneProps.find(p => p.id === 'sp-col')).toMatchObject({ x: 30, y: 40 });
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.propMove'); });
+    expect(repo.sceneProps.find(p => p.id === 'sp-oak')).toMatchObject({ x: 400, y: 300 });
+    expect(repo.sceneProps.find(p => p.id === 'sp-col')).toMatchObject({ x: 700, y: 200 });
+    await act(async () => { await r.current.history.redo(); });
+    expect(repo.sceneProps.find(p => p.id === 'sp-col')).toMatchObject({ x: 30, y: 40 });
+    await act(async () => { await r.current.patchSceneProps([{ id: 'sp-oak', patch: { layerId: 'ly-dm' } }, { id: 'sp-col', patch: { layerId: 'ly-dm' } }]); });
+    expect(r.current.history.canUndo).toBe(true);   // sólo el paso de mover: la capa no apila
+    await act(async () => { await r.current.history.undo(); });
+    expect(r.current.history.canUndo).toBe(false);
+    await act(async () => { await r.current.patchSceneProps([]); });
+  });
+
+  it('borrar varias es UN paso: deshacer las devuelve todas, rehacer las vuelve a quitar', async () => {
+    const repo = seedProps();
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.removeSceneProps(['sp-oak', 'sp-col']); });
+    expect(repo.sceneProps).toHaveLength(0);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.remove'); });
+    expect(repo.sceneProps.map(p => p.name).sort()).toEqual(['Columna', 'Roble']);
+    await act(async () => { await r.current.history.redo(); });
+    expect(repo.sceneProps).toHaveLength(0);
+    await act(async () => { await r.current.removeSceneProps(['nadie']); });   // nada que borrar: no apila
+  });
+
   it('mover con historial guarda la foto de antes; cambiar de capa sin historial no apila nada', async () => {
     const repo = seedProps();
     const r = await mount(repo, fakeVisionPort());

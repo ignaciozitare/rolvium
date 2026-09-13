@@ -33,4 +33,9 @@ export interface ViewMemoryPort {
   /** Ids de lo último plantado, el más reciente primero. */
   recentProps(): string[];
   rememberRecentProp(id: string): string[];
+  /** Lo mismo para las TEXTURAS, desde que su catálogo es el mismo que el de piezas (2026-09-13, § 6.8). */
+  favoriteTextures(): string[];
+  toggleFavoriteTexture(id: string): string[];
+  recentTextures(): string[];
+  rememberRecentTexture(id: string): string[];
 }

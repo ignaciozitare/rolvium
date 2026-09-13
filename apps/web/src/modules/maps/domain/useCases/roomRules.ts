@@ -82,13 +82,18 @@ export function circleSegments(radius: number, grid: number): number {
 }
 
 /**
- * El polígono de la habitación redonda. El radio se pega a la rejilla —no el centro, que es donde él pinchó—
- * para que dos círculos del mismo tamaño salgan idénticos y encajen entre sí. Con el candado abierto el radio
- * es el que salga del gesto.
+ * El polígono de la habitación redonda. NACE DE DONDE SE PINCHA (él, 2026-09-13: «*una habitación circular
+ * tiene que crecer desde donde clico*»): `a` es una esquina del cuadrado que la encierra y el círculo crece
+ * hacia `b`, como el rectángulo; el lado es el mayor de los dos desplazamientos. El diámetro se pega a la
+ * rejilla —no la esquina, que es donde él pinchó— para que dos círculos del mismo tamaño salgan idénticos.
+ * Con el candado abierto el tamaño es el que salga del gesto.
  */
-function circleSides(center: Point, edge: Point, grid: number, step: number, min: number): RoomSide[] {
-  const radius = snapStep(Math.hypot(edge.x - center.x, edge.y - center.y), step);
-  if (radius < grid * min) return [];
+function circleSides(a: Point, b: Point, grid: number, step: number, min: number): RoomSide[] {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const side = snapStep(Math.max(Math.abs(dx), Math.abs(dy)), step);
+  const radius = side / 2;
+  if (side < grid * min) return [];
+  const center = { x: a.x + Math.sign(dx || 1) * radius, y: a.y + Math.sign(dy || 1) * radius };
   const n = circleSegments(radius, grid);
   const at = (i: number): Point => ({
     x: center.x + radius * Math.cos((2 * Math.PI * i) / n),
@@ -102,8 +107,8 @@ function circleSides(center: Point, edge: Point, grid: number, step: number, min
 }
 
 /**
- * LA HABITACIÓN, EN MUROS. `a` es donde empezó el gesto y `b` donde acabó: en un rectángulo son dos esquinas
- * opuestas; en un círculo, el centro y un punto del borde.
+ * LA HABITACIÓN, EN MUROS. `a` es donde empezó el gesto y `b` donde acabó: dos esquinas opuestas, tanto en el
+ * rectángulo como en el círculo (que desde el 2026-09-13 crece desde donde se pincha, no desde el centro).
  *
  * Devuelve la lista vacía si el gesto es demasiado pequeño para ser una sala — quien llame a esto no tiene que
  * acordarse de comprobarlo, y así un clic sin arrastre no ensucia la escena con muros diminutos.

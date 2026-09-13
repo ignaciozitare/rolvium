@@ -66,6 +66,19 @@ describe('LocalViewMemory', () => {
    * Con el almacenamiento capado (modo privado, cookies de terceros bloqueadas) `localStorage` LANZA, no
    * devuelve `null`. Sin el `try` la pantalla del mapa no abriría — por eso esto está pineado.
    */
+  it('las texturas tienen sus propias listas de favoritas y recientes, aparte de las de piezas', () => {
+    const m = new LocalViewMemory();
+    expect(m.favoriteTextures()).toEqual([]);
+    expect(m.toggleFavoriteTexture('tx-a')).toEqual(['tx-a']);
+    expect(m.toggleFavoriteProp('pr-a')).toEqual(['pr-a']);
+    expect(m.favoriteTextures()).toEqual(['tx-a']);          // la de piezas no se mezcla
+    expect(m.toggleFavoriteTexture('tx-a')).toEqual([]);
+    expect(m.rememberRecentTexture('tx-a')).toEqual(['tx-a']);
+    expect(m.rememberRecentTexture('tx-b')).toEqual(['tx-b', 'tx-a']);
+    expect(m.recentTextures()).toEqual(['tx-b', 'tx-a']);
+    expect(m.recentProps()).toEqual([]);
+  });
+
   it('con el almacenamiento capado no revienta: devuelve null y guardar no hace nada', () => {
     const m = new LocalViewMemory();
     vi.stubGlobal('localStorage', {

@@ -703,9 +703,21 @@ export function canMoveDrawing(_d: Pick<Drawing, 'authorId'>, _me: string | null
   return isDm;
 }
 
+/**
+ * EL CÍRCULO NACE DE DONDE SE PINCHA (él, 2026-09-13: «*cuando hago un círculo … tiene que crecer desde donde
+ * clico*»): `a` es una esquina del cuadrado que lo encierra y crece hacia `b`, como el rectángulo. El lado es
+ * el mayor de los dos desplazamientos, para que siga siendo un círculo y no un óvalo.
+ */
+export function circleFromCorner(a: Point, b: Point): { cx: number; cy: number; r: number } {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const side = Math.max(Math.abs(dx), Math.abs(dy));
+  const r = side / 2;
+  return { cx: a.x + Math.sign(dx || 1) * r, cy: a.y + Math.sign(dy || 1) * r, r };
+}
+
 /** Shape data of a two-point tool (line/rect/circle) between `a` and `b`. */
 export function shapeData(kind: Exclude<DrawingKind, 'stroke' | 'text'>, a: Point, b: Point): Drawing['data'] {
-  if (kind === 'circle') return { cx: a.x, cy: a.y, r: Math.hypot(b.x - a.x, b.y - a.y) };
+  if (kind === 'circle') return circleFromCorner(a, b);
   return { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
 }
 

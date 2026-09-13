@@ -1150,7 +1150,8 @@
         "change": "Cambiar",
         "pick": "Elegir",
         "upload": "+ Subir",
-        "remove": "Quitar"
+        "remove": "Quitar",
+        "open": "Abrir el catálogo de texturas"
       },
       "thickness": "Grosor del muro",
       "tile": {
@@ -1303,7 +1304,10 @@
         "scale": "Escala",
         "scaleHint": "se recuerda: la próxima {{name}} sale ya a este tamaño",
         "rotation": "Giro",
-        "random": "Un giro al azar"
+        "random": "Un giro al azar",
+        "pickedLabel": "La pieza cogida",
+        "pickedHint": "escala y giro cambian ESTA pieza · al soltar se recuerda para las próximas",
+        "openCatalog": "Abrir el catálogo de piezas"
       },
       "quick": {
         "label": "Sin abrir el catálogo",
@@ -1350,7 +1354,9 @@
         "blocks": "Estorba",
         "blocksSight": "Corta la vista",
         "blocksMove": "Corta el paso",
-        "duplicate": "Duplicar"
+        "duplicate": "Duplicar",
+        "select": "Seleccionar",
+        "many": "{{n}} piezas cogidas: manda sobre todas"
       },
       "catalog": {
         "title": "Piezas",
@@ -1391,7 +1397,7 @@
         "emptyAll": "La biblioteca está vacía: sube tus primeras piezas.",
         "count": "Piezas · {{n}}",
         "legend": "el punto marca las tuyas · las demás las trae Rolvium",
-        "note": "Las piezas son de la HERRAMIENTA, no de una campaña: lo que subas aquí te sirve en todos tus mapas. Arrastra tus imágenes y caen en el paquete abierto. Elige una y el sello se queda puesto: cada clic planta otra. Borrar una de aquí NO borra las que ya pusiste en los mapas.",
+        "note": "Las piezas son de la HERRAMIENTA, no de una campaña: lo que subas aquí te sirve en todos tus mapas. Arrastra tus imágenes y caen en el paquete abierto. Elige una y el sello se queda puesto: cada clic planta otra. Con permiso: marca varias con el círculo (o Ctrl+clic) y arrástralas a un paquete del rail, o usa MOVER A…. Borrar una de aquí NO borra las que ya pusiste en los mapas.",
         "cat": {
           "furniture": "Mobiliario",
           "vegetation": "Vegetación",
@@ -1399,7 +1405,14 @@
           "doors": "Puertas",
           "markers": "Marcas",
           "misc": "Varios"
-        }
+        },
+        "selected": "{{n}} seleccionadas",
+        "selectedOne": "1 seleccionada",
+        "removeManyConfirm": "¿Borrar {{n}} piezas de la biblioteca? Las que ya pusiste en los mapas se quedan.",
+        "clearSelection": "Quitar selección · Esc",
+        "selectionHint": "arrástralas hasta un paquete del rail · Ctrl+clic marca · Mayús+clic coge un tramo",
+        "mark": "Marcar {{name}}",
+        "unmark": "Desmarcar {{name}}"
       },
       "upload": {
         "title": "Subir piezas",
@@ -1416,6 +1429,76 @@
         "note": "El nombre del fichero se queda como nombre de la pieza. Puedes cambiarlo luego con «Renombrar».",
         "add": "Añadir {{n}} piezas",
         "addOne": "Añadir 1 pieza",
+        "adding": "Añadiendo…",
+        "cancel": "Cancelar",
+        "remove": "Quitar {{name}} de la lista",
+        "err": {
+          "mime": "no es una imagen que sirva (PNG, JPG, WEBP o GIF)",
+          "input-too-large": "pesa más de 8 MB",
+          "output-too-large": "sigue pesando demasiado tras comprimirla",
+          "decode": "no se pudo leer la imagen",
+          "upload": "no se pudo subir"
+        }
+      },
+      "pickedFoot": "pincha la foto grande = ELEGIR · Esc o clic en el vacío suelta la pieza y vuelve el sello"
+    },
+    "textures": {
+      "catalog": {
+        "title": "Texturas",
+        "close": "Cerrar el catálogo",
+        "search": "Buscar en todas las categorías…",
+        "upload": "Subir texturas",
+        "group": "Agrupar",
+        "groupPack": "Categoría",
+        "groupNone": "Ninguna",
+        "sort": "Ordenar",
+        "sortName": "A–Z",
+        "sortRecent": "Más recientes",
+        "thumb": "Tamaño de miniatura",
+        "rail": "Categorías",
+        "all": "Todas",
+        "recent": "Recientes",
+        "favorites": "Favoritas",
+        "myPacks": "Categorías",
+        "unsorted": "Sin clasificar",
+        "builtIn": "De serie · Rolvium",
+        "section": "{{name}} ({{n}} texturas)",
+        "sectionOne": "{{name}} (1 textura)",
+        "uploadTile": "Subir",
+        "pick": "Elegir {{name}}",
+        "menu": "Opciones de «{{name}}»",
+        "rename": "Renombrar",
+        "renamePrompt": "¿Cómo quieres que se llame esta textura?",
+        "moveTo": "Clasificar en…",
+        "removeConfirm": "¿Borrar la textura «{{name}}» del catálogo? Los mapas que la estén usando se quedarán sin ella.",
+        "removeManyConfirm": "¿Borrar {{n}} texturas del catálogo? Los mapas que las estén usando se quedarán sin ellas.",
+        "empty": "Ninguna textura con ese nombre aquí.",
+        "emptyAll": "El catálogo está vacío: sube tus primeras texturas.",
+        "count": "Texturas · {{n}}",
+        "legend": "el punto marca las tuyas · las demás las trae Rolvium",
+        "note": "Las texturas son de la HERRAMIENTA, no de una campaña: lo que subas aquí te sirve en todos tus mapas. Arrastra tus imágenes y caen en la categoría abierta. La miniatura se repite al tamaño de baldosa que recuerda cada textura. Con permiso: marca varias con el círculo (o Ctrl+clic) y arrástralas a una categoría del rail, o usa CLASIFICAR EN….",
+        "selected": "{{n}} seleccionadas",
+        "selectedOne": "1 seleccionada",
+        "clearSelection": "Quitar selección · Esc",
+        "selectionHint": "arrástralas hasta una categoría del rail · Ctrl+clic marca · Mayús+clic coge un tramo",
+        "mark": "Marcar {{name}}",
+        "unmark": "Desmarcar {{name}}"
+      },
+      "upload": {
+        "title": "Subir texturas",
+        "close": "Cerrar",
+        "drop": "Arrastra aquí tus imágenes",
+        "dropHint": "JPG, PNG o WEBP · varias a la vez · no hace falta transparencia",
+        "browse": "o elige los ficheros",
+        "pack": "A qué categoría",
+        "unsorted": "Sin clasificar",
+        "queued": "en cola",
+        "uploading": "subiendo",
+        "done": "listo",
+        "failed": "no se pudo",
+        "note": "El nombre del fichero se queda como nombre de la textura. Nace con baldosa de 4 casillas; se ajusta luego en el Constructor.",
+        "add": "Añadir {{n}} texturas",
+        "addOne": "Añadir 1 textura",
         "adding": "Añadiendo…",
         "cancel": "Cancelar",
         "remove": "Quitar {{name}} de la lista",

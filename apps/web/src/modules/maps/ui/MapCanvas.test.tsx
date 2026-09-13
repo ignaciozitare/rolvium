@@ -476,7 +476,7 @@ describe('<MapCanvas> tools', () => {
     const { svg, cb, rerender } = mount({ tool: 'pencil' });
     down(svg, 10, 10); move(svg, 20, 15); move(svg, 30, 20); up(svg);
     expect(cb.onAddDrawing).toHaveBeenCalledWith('stroke', { points: [[10, 10], [20, 15], [30, 20]] });
-    for (const [tool, kind, data] of [['rect', 'rect', { x1: 0, y1: 0, x2: 40, y2: 30 }], ['line', 'line', { x1: 0, y1: 0, x2: 40, y2: 30 }], ['circle', 'circle', { cx: 0, cy: 0, r: 50 }]] as const) {
+    for (const [tool, kind, data] of [['rect', 'rect', { x1: 0, y1: 0, x2: 40, y2: 30 }], ['line', 'line', { x1: 0, y1: 0, x2: 40, y2: 30 }], ['circle', 'circle', { cx: 20, cy: 20, r: 20 }]] as const) {   // el círculo nace de la esquina donde se pinchó (2026-09-13)
       rerender({ tool: tool as Tool });
       down(svg, 0, 0); move(svg, 40, 30); up(svg);
       expect(cb.onAddDrawing).toHaveBeenLastCalledWith(kind, data);
@@ -2813,17 +2813,69 @@ describe('<MapCanvas> las piezas plantadas', () => {
     expect(cb.onMoveProp).toHaveBeenCalledWith('sp-oak', { x: 440, y: 330 });
   });
 
-  it('la cogida enseña su marco, cuatro tiradores y el de giro; estirar desde una esquina mantiene la proporción', () => {
+  it('la cogida enseña su marco, cuatro tiradores y el de giro; estirar desde una esquina deja CLAVADA la contraria y mantiene la proporción', () => {
     const cb = propCb();
     const { svg } = mount({ ...dm, ...cb, selectedPropId: 'sp-oak' });
     expect(within(svg).getByTestId('mp-prop-frame')).toBeInTheDocument();
     expect(within(svg).getByTestId('mp-prop-handles').querySelectorAll('.mp-prop-handle')).toHaveLength(4);
-    // La esquina de abajo a la derecha está en (550, 525); la mano al doble de distancia del centro → el doble.
+    // La esquina de abajo a la derecha está en (550, 525) y la de arriba a la izquierda en (250, 75). La mano a
+    // (700, 750) es 1,5 veces la diagonal desde la esquina clavada → 450 × 675, con el centro corrido (§ 6.8, punto 2).
     down(svg, 550, 525);
     move(svg, 700, 750);
+    expect(svg.querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toBe('translate(475 412.5) rotate(0)');
     up(svg);
-    expect(cb.onScaleProp).toHaveBeenCalledWith('sp-oak', { width: 600, height: 900 });
+    expect(cb.onScaleProp).toHaveBeenCalledWith('sp-oak', { x: 475, y: 412.5, width: 450, height: 675 });
     expect(cb.onMoveProp).not.toHaveBeenCalled();
+  });
+
+  /** § 6.8, punto 5 — él: «*si quiero seleccionar de manera múltiple objetos no me deja*». */
+  it('Mayús+clic añade otra a lo cogido (y la quita si ya estaba): varias van con marco y sin tiradores', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn() };
+    const { svg, rerender } = mount({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropId: 'sp-oak' });
+    fireEvent.pointerDown(svg, { clientX: 700, clientY: 200, button: 0, pointerId: 1, shiftKey: true });
+    expect(cb.onSelectProps).toHaveBeenCalledWith(['sp-oak', 'sp-col']);
+    expect(cb.onSelectProp).toHaveBeenCalledWith(null);
+    expect(cb.onMoveProp).not.toHaveBeenCalled();
+    rerender({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropId: null, selectedPropIds: ['sp-oak', 'sp-col'] });
+    expect(within(svg).getAllByTestId('mp-prop-frame')).toHaveLength(2);
+    expect(within(svg).queryByTestId('mp-prop-handles')).not.toBeInTheDocument();
+    // Mayús+clic sobre una que ya estaba la quita; al quedar UNA, vuelve a ser la cogida suelta (con tiradores).
+    fireEvent.pointerDown(svg, { clientX: 700, clientY: 200, button: 0, pointerId: 1, shiftKey: true });
+    expect(cb.onSelectProps).toHaveBeenLastCalledWith([]);
+    expect(cb.onSelectProp).toHaveBeenLastCalledWith('sp-oak');
+  });
+
+  it('el recuadro por el vacío coge las piezas de dentro; arrastrar una de las cogidas las mueve TODAS y se guarda de una vez', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn() };
+    const { svg, rerender } = mount({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }] });
+    down(svg, 50, 50);
+    move(svg, 900, 600);
+    up(svg);
+    expect(cb.onSelectProps).toHaveBeenLastCalledWith(['sp-oak', 'sp-col']);
+    rerender({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropId: null, selectedPropIds: ['sp-oak', 'sp-col'] });
+    down(svg, 400, 300);
+    move(svg, 440, 330);
+    expect(svg.querySelector('[data-prop-id="sp-col"]')!.getAttribute('transform')).toBe('translate(740 230) rotate(0)');
+    up(svg);
+    expect(cb.onMoveProps).toHaveBeenCalledWith([{ id: 'sp-oak', x: 440, y: 330 }, { id: 'sp-col', x: 740, y: 230 }]);
+    expect(cb.onMoveProp).not.toHaveBeenCalled();
+    // Un recuadro que sólo pilla una la coge suelta, con tiradores.
+    down(svg, 600, 100);
+    move(svg, 800, 300);
+    up(svg);
+    expect(cb.onSelectProp).toHaveBeenLastCalledWith('sp-col');
+  });
+
+  it('pinchar una que NO está en el grupo suelta el grupo y la coge sola', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn() };
+    const { svg } = mount({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropIds: ['sp-col', 'sp-oak'] });
+    down(svg, 400, 300);
+    up(svg);
+    // Ya estaba en el grupo: sigue el grupo. Pinchar el vacío lo suelta entero.
+    expect(cb.onSelectProps).not.toHaveBeenCalledWith(['sp-oak']);
+    down(svg, 50, 50);
+    expect(cb.onSelectProps).toHaveBeenLastCalledWith([]);
+    expect(cb.onSelectProp).toHaveBeenLastCalledWith(null);
   });
 
   it('el tirador de arriba la gira hacia donde apunta la mano', () => {
@@ -2862,6 +2914,14 @@ describe('<MapCanvas> las piezas plantadas', () => {
     rerender({ ...dm, ...cb, tool: 'props', stamp: null });
     down(svg, 120, 140);
     expect(cb.onPlantProp).toHaveBeenCalledTimes(1);
+    // SIN SELLO, pinchar una plantada LA COGE (§ 6.8, punto 7): el panel de Piezas pasa a mandar sobre ella.
+    down(svg, 400, 300);
+    up(svg);
+    expect(cb.onSelectProp).toHaveBeenCalledWith('sp-oak');
+    expect(cb.onPlantProp).toHaveBeenCalledTimes(1);
+    // y en el vacío la suelta
+    down(svg, 120, 140);
+    expect(cb.onSelectProp).toHaveBeenLastCalledWith(null);
   });
 
   it('MUCHAS: arrastrar siembra por donde pasa la mano y avisa al soltar; la silueta enseña el área', () => {

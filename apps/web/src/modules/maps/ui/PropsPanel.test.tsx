@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { LAYERS_ALL, PROP_COLUMN, PROP_OAK } from '../../../../tests/helpers/fakes';
+import { LAYERS_ALL, PROP_COLUMN, PROP_OAK, SCENE_PROP_OAK } from '../../../../tests/helpers/fakes';
 import { DEFAULT_SOW, PropsPanel } from './PropsPanel';
 
 /**
@@ -138,5 +138,54 @@ describe('<PropsPanel> sin abrir el catálogo (S/2), la capa (S/3) y cuántas (S
     expect(screen.getByText(/una: cada clic planta otra · muchas: arrastras y siembra · Esc suelta el sello/)).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Cerrar Piezas' }));
     expect(cb.onClose).toHaveBeenCalled();
+  });
+});
+
+/** § 6.8 (2026-09-13), puntos 7 y 8: la pieza COGIDA manda en el primer bloque, y la foto grande es un botón. */
+describe('<PropsPanel> la pieza cogida y la foto como botón', () => {
+  it('la foto grande abre el catálogo, igual que ELEGIR', async () => {
+    const u = userEvent.setup();
+    const { cb } = mount();
+    await u.click(screen.getByRole('button', { name: 'Abrir el catálogo de piezas' }));
+    expect(cb.onPick).toHaveBeenCalledTimes(1);
+  });
+
+  it('con una cogida, el bloque dice LA PIEZA COGIDA, enseña su foto con marco y su nombre, y ESCALA/GIRO son los suyos', () => {
+    const onPickedScale = vi.fn(), onPickedScaleEnd = vi.fn(), onPickedRotation = vi.fn(), onPickedRotationEnd = vi.fn(), onPickedToggleFavorite = vi.fn();
+    const { panel, cb } = mount({ picked: { prop: SCENE_PROP_OAK, scale: 2, rotation: 45, isFavorite: false }, onPickedScale, onPickedScaleEnd, onPickedRotation, onPickedRotationEnd, onPickedToggleFavorite });
+    expect(within(panel()).getByText('La pieza cogida')).toBeInTheDocument();
+    expect(within(panel()).queryByText('La pieza del sello')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mp-props-sample')).toHaveClass('picked');
+    expect(within(panel()).getByTestId('mp-props-picked')).toHaveTextContent('Roble');
+    const escala = within(panel()).getByRole('slider', { name: 'Escala' });
+    expect(escala).toHaveValue('200');
+    expect(within(panel()).getByText('2 ×')).toBeInTheDocument();
+    fireEvent.change(escala, { target: { value: '250' } });
+    expect(onPickedScale).toHaveBeenCalledWith(2.5);
+    expect(cb.onScale).not.toHaveBeenCalled();   // el sello no se toca
+    fireEvent.pointerUp(escala);
+    expect(onPickedScaleEnd).toHaveBeenCalled();
+    expect(within(panel()).getByText(/escala y giro cambian ESTA pieza/)).toBeInTheDocument();
+    const giro = within(panel()).getByRole('slider', { name: 'Giro' });
+    expect(giro).toHaveValue('45');
+    fireEvent.change(giro, { target: { value: '90' } });
+    expect(onPickedRotation).toHaveBeenCalledWith(90);
+    fireEvent.pointerUp(giro);
+    expect(onPickedRotationEnd).toHaveBeenCalled();
+    // El pie cambia: dice cómo se suelta.
+    expect(within(panel()).getByText(/Esc o clic en el vacío suelta la pieza/)).toBeInTheDocument();
+  });
+
+  it('el dado gira la cogida al azar y guarda; la estrella marca su pieza de biblioteca, y no sale si ya no está en la biblioteca', async () => {
+    const u = userEvent.setup();
+    const onPickedRotation = vi.fn(), onPickedRotationEnd = vi.fn(), onPickedToggleFavorite = vi.fn();
+    const { rerender, panel } = mount({ picked: { prop: SCENE_PROP_OAK, scale: 1, rotation: 0, isFavorite: true }, onPickedRotation, onPickedRotationEnd, onPickedToggleFavorite });
+    await u.click(within(panel()).getByRole('button', { name: 'Un giro al azar' }));
+    expect(onPickedRotation).toHaveBeenCalled();
+    expect(onPickedRotationEnd).toHaveBeenCalled();
+    await u.click(within(panel()).getByRole('button', { name: 'Quitar de favoritos' }));
+    expect(onPickedToggleFavorite).toHaveBeenCalled();
+    rerender(<PropsPanel {...({ stamp: PROP_OAK, isFavorite: false, scale: 1.5, rotation: 15, quick: 'recent', quickProps: [], layers: LAYERS_ALL, layerId: null, mode: 'one', sow: DEFAULT_SOW, onToggleFavorite: vi.fn(), onPick: vi.fn(), onDrop: vi.fn(), onScale: vi.fn(), onScaleEnd: vi.fn(), onRotation: vi.fn(), onRandomRotation: vi.fn(), onQuick: vi.fn(), onQuickPick: vi.fn(), onLayer: vi.fn(), onMode: vi.fn(), onSow: vi.fn(), onClose: vi.fn(), picked: { prop: { ...SCENE_PROP_OAK, propId: null }, scale: 1, rotation: 0, isFavorite: null } } as React.ComponentProps<typeof PropsPanel>)} />);
+    expect(within(panel()).queryByRole('button', { name: /favorit/i })).not.toBeInTheDocument();
   });
 });

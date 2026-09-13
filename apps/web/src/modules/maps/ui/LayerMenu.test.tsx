@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderWithProviders, screen, within } from '../../../../tests/helpers/render';
+import { renderWithProviders, screen, within, cleanup } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { LAYERS_ALL, LAYER_NOTES, LAYER_OBJECTS } from '../../../../tests/helpers/fakes';
 import { LayerMenu } from './LayerMenu';
@@ -179,5 +179,34 @@ describe('<LayerMenu> una pieza plantada', () => {
   it('la pieza tiene su capa natural, Objetos, cuando no se movió de sitio', () => {
     mount({ element: pieza });
     expect(within(screen.getByRole('menuitem', { name: /Objetos/ })).getByText('check')).toBeInTheDocument();
+  });
+});
+
+/** § 6.8 (2026-09-13), puntos 5 y 6: «Seleccionar» arriba del todo, y con varias cogidas manda sobre todas. */
+describe('<LayerMenu> seleccionar y varias piezas', () => {
+  it('con `onSelect`, «Seleccionar» va ARRIBA DEL TODO, coge la pieza y cierra; marcado cuando ya se está en Seleccionar', async () => {
+    const u = userEvent.setup();
+    const pick = vi.fn();
+    const { cb, menu } = mount({ element: { kind: 'prop', id: 'sp-1', name: 'Roble', layerId: null }, onSelect: { on: false, pick } });
+    const items = within(menu()).getAllByRole('menuitem');
+    expect(items[0]).toHaveTextContent('Seleccionar');
+    expect(items[0]).not.toHaveClass('on');
+    await u.click(items[0]!);
+    expect(pick).toHaveBeenCalled();
+    expect(cb.onClose).toHaveBeenCalled();
+  });
+
+  it('en Seleccionar ya, la opción sale marcada; sin `onSelect` no está', () => {
+    const { menu } = mount({ element: { kind: 'prop', id: 'sp-1', name: 'Roble', layerId: null }, onSelect: { on: true, pick: vi.fn() } });
+    expect(within(menu()).getAllByRole('menuitem')[0]).toHaveClass('on');
+    cleanup();
+    const { menu: sin } = mount({ element: { kind: 'prop', id: 'sp-1', name: 'Roble', layerId: null } });
+    expect(within(sin()).queryByRole('menuitem', { name: /Seleccionar/ })).not.toBeInTheDocument();
+  });
+
+  it('con varias cogidas, la cabecera dice cuántas y que manda sobre todas', () => {
+    const { menu } = mount({ element: { kind: 'prop', id: 'sp-1', name: 'Roble', layerId: null }, count: 3 });
+    expect(within(menu()).getByText('3 piezas cogidas: manda sobre todas')).toBeInTheDocument();
+    expect(within(menu()).queryByText('Roble')).not.toBeInTheDocument();
   });
 });

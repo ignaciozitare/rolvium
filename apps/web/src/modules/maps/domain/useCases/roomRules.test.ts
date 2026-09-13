@@ -92,6 +92,29 @@ describe('habitación redonda', () => {
   it('un círculo más pequeño que una casilla no monta nada', () => {
     expect(roomSides('circle', { x: 0, y: 0 }, { x: 3, y: 0 }, G)).toEqual([]);
   });
+
+  /** Él, 2026-09-13: «*una habitación circular tiene que crecer desde donde clico*» (§ 6.8, punto 2). */
+  it('NACE DE DONDE SE PINCHA: la esquina se queda quieta y el círculo crece hacia la mano, hacia cualquier lado', () => {
+    const derecha = roomSides('circle', { x: 0, y: 0 }, { x: G * 4, y: G * 2 }, G);
+    // El lado es el mayor desplazamiento (4 casillas): el círculo va de x=0 a x=4G, centrado en (2G, 2G). Es un
+    // polígono, así que el borde se mira con la holgura de un vértice que no cae justo en el eje.
+    const caja = (sides: typeof derecha) => {
+      const xs = sides.map(s => s.x1), ys = sides.map(s => s.y1);
+      return { x1: Math.min(...xs), x2: Math.max(...xs), y1: Math.min(...ys), y2: Math.max(...ys) };
+    };
+    const d = caja(derecha);
+    expect(d.x1).toBeGreaterThanOrEqual(-1e-6); expect(d.x1).toBeLessThan(G * 0.3);
+    expect(d.x2).toBeCloseTo(G * 4, 6);
+    expect(d.y1).toBeGreaterThanOrEqual(-1e-6); expect(d.y1).toBeLessThan(G * 0.3);
+    expect(d.y2).toBeLessThanOrEqual(G * 4 + 1e-6); expect(d.y2).toBeGreaterThan(G * 3.7);
+    // Hacia arriba y a la izquierda: sigue pegado a la esquina donde se pinchó, sin cruzarla.
+    const izquierda = roomSides('circle', { x: G * 4, y: G * 4 }, { x: 0, y: G * 3 }, G);
+    const i = caja(izquierda);
+    expect(i.x2).toBeLessThanOrEqual(G * 4 + 1e-6); expect(i.x2).toBeGreaterThan(G * 3.7);
+    expect(i.y2).toBeLessThanOrEqual(G * 4 + 1e-6); expect(i.y2).toBeGreaterThan(G * 3.7);
+    expect(i.x1).toBeGreaterThanOrEqual(-1e-6); expect(i.x1).toBeLessThan(G * 0.3);
+    expect(isClosed(izquierda)).toBe(true);
+  });
 });
 
 describe('el motor en general', () => {
@@ -317,12 +340,17 @@ describe('las formas con el candado abierto', () => {
     expect(roomSides('rect', { x: 10, y: 10 }, { x: 20, y: 20 }, 27, 0)[0]).toEqual({ x1: 10, y1: 10, x2: 20, y2: 10 });
   });
 
-  it('el círculo se queda con el radio del gesto en vez de redondearlo', () => {
+  it('el círculo se queda con el tamaño del gesto en vez de redondearlo', () => {
+    // Abierto: el gesto de 40 es el DIÁMETRO (nace de la esquina, § 6.8): radio 20, centro en (20, 0), y el
+    // primer vértice (ángulo 0) en el borde derecho, a 40 de donde se pinchó.
+    // (el cuadrado que lo encierra va de (0,0) a (40,40): el gesto horizontal también decide el alto)
     const libre = roomSides('circle', { x: 0, y: 0 }, { x: 40, y: 0 }, 27, 0);
-    expect(Math.hypot(libre[0]!.x1, libre[0]!.y1)).toBeCloseTo(40, 6);
-    // Cerrado (lo de siempre): 40 redondea a 27, la casilla más cercana.
+    expect(libre[0]!.x1).toBeCloseTo(40, 6);
+    expect(libre[0]!.y1).toBeCloseTo(20, 6);
+    // Cerrado (lo de siempre): 40 redondea a 27, la casilla más cercana: diámetro 27, borde derecho en 27.
     const pegado = roomSides('circle', { x: 0, y: 0 }, { x: 40, y: 0 }, 27);
-    expect(Math.hypot(pegado[0]!.x1, pegado[0]!.y1)).toBeCloseTo(27, 6);
+    expect(pegado[0]!.x1).toBeCloseTo(27, 6);
+    expect(pegado[0]!.y1).toBeCloseTo(13.5, 6);
   });
 
   it('los vértices del polígono se quedan donde se pincharon', () => {

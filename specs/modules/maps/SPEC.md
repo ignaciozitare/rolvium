@@ -846,8 +846,8 @@ difuminada CAMBIA lo que se ve**, no es sólo aspecto — y dentro se ve **todo 
 > cosas cambiaron con el rediseño** y manda lo aprobado en `rolvium.pen` (sección 6: `w7sTC0` Catálogo · `DCs6S`
 > Subir en lote · `SNlGp` Barra con Piezas · `lWBaU` Panel de pieza; aprobadas el 2026-09-11).
 >
-> Rama `feat/maps-objetos`. ⏳ Falta que él la pruebe en pantalla y el menú del botón derecho (§ 6.6) pide su
-> lámina en el `.pen`: se construyó con el aspecto del «Menú mandar a capa» que ya existe.
+> Rama `feat/maps-objetos`. **La probó él el 2026-09-13** y salieron ocho remates, cerrados en § 6.8. El menú del
+> botón derecho (§ 6.6) ya tiene lámina (`iwLak`, guardada por él el 13-09; se retoca en § 6.8).
 
 **Para qué**: montar un mapa dentro de la app —muebles, árboles, puertas dibujadas, marcas— sin salir a otro
 programa. Es lo que la rebanada 7 dejó apuntado como imposible hasta que existieran las capas.
@@ -960,6 +960,95 @@ layer, down layer etc*». Botón derecho sobre una pieza plantada:
   `@rolvium/core`, girada con la pieza). Una columna marcada «corta la vista» proyecta su sombra sola: la luz se
   recorta contra los mismos segmentos. Las fichas siguen sin proyectarla.
 
+### 6.8 · Lo que salió al probarlo él (2026-09-13, primera prueba en pantalla) — cerrado por él («*vale*»)
+
+Ocho cosas, con capturas. Ninguna toca la base de datos. Las que cambian de aspecto (1, 3, 4, 6, 7 y 8) pasan por
+el `.pen` antes del código; las otras (2 y 5) son de comportamiento.
+
+1. **El catálogo de texturas ES el catálogo de piezas** («*quiero el mismo de los objetos, usa el mismo
+   componente*» — corrección suya, con captura, cuando le enseñé el modal viejo con chips: «*no te pedí eso*»). El
+   modal pequeño de categorías en chips (`sO0GV` / `R5Out`, 2026-09-04) **queda sustituido** por el catálogo a
+   pantalla completa de § 6.2, el MISMO componente con otra cara: cabecera «Texturas», buscador, **SUBIR TEXTURAS**,
+   AGRUPAR (categoría · ninguno) · ORDENAR · tamaño de miniatura; **el rail lleva las categorías** (Recientes ·
+   Favoritos · CATEGORÍAS: piedra · madera · baldosa · tierra · hierba · agua · varios, con su cuenta) en vez de
+   paquetes —las categorías siguen cerradas, no hay «Nueva categoría»—; la rejilla por secciones (una por
+   categoría, la primera baldosa «Subir»); **la miniatura se sigue repitiendo al tamaño de baldosa que recuerda
+   cada textura**; los tres puntos (renombrar · mover a otra categoría = clasificar · borrar), la estrella, el
+   punto oro, y todo lo de los puntos 3 y 4 (tres puntos a la vista, selección múltiple, arrastrar a una categoría
+   del rail). Pinchar una la elige, como hoy (para pared, suelo, puerta o pincel). **Subir abre LA MISMA ventana de
+   subir en lote** (§ 6.3, `DCs6S`): varias a la vez, la cola con estado, el nombre del fichero como nombre, y «A
+   QUÉ CATEGORÍA» en vez de «A QUÉ PAQUETE». Aquí valen también JPG: una textura no necesita transparencia. El
+   tamaño de baldosa nace a 4 casillas, como hoy. **Nada de esto toca la base**: `maps_textures` y sus categorías
+   siguen igual; `manage_textures` sigue mandando. Lámina: copia de la del catálogo de piezas, al final de la
+   sección 5 del `.pen`.
+2. **Estirar desde la esquina contraria** («*cuando redimensiono no tiene que ser desde el centro*»). Al tirar de
+   una esquina de una pieza plantada, **la esquina de enfrente se queda clavada** y la pieza crece hacia la mano
+   (manteniendo proporción, § 6.5). **El círculo de dibujo y la sala circular del Builder** dejan de nacer del
+   centro: donde pinchas es **una esquina del cuadrado que encierra el círculo**, y el círculo crece hacia donde
+   arrastras (lado = el mayor de los dos desplazamientos). El rectángulo ya iba así.
+3. **Los tres puntos siempre a la vista** («*nadie va a saber que existen*»). En cada baldosa del catálogo de piezas
+   Y del de texturas (mismo gesto), con permiso, los tres puntos se ven siempre, no sólo al pasar por encima.
+   Decisión mía, revisable: la estrella de favorito sigue saliendo al pasar por encima o cuando está marcada.
+4. **Selección múltiple en el catálogo y arrastrar al paquete** («*seleccionar múltiples componentes y
+   arrastrarlos al paquete que quiera*»). Con permiso de ordenar: cada baldosa lleva **un círculo para marcarla**;
+   Ctrl/Cmd+clic también marca, Mayús+clic coge un tramo. Con alguna marcada aparece **una barra encima de la
+   rejilla: «N seleccionadas · Mover a… · Borrar · Quitar selección»** (borrar pregunta, como con una). Y **lo
+   marcado se arrastra hasta un paquete del rail** (o «Sin clasificar»), que se ilumina al pasar; al soltar se
+   mueven todas. Una baldosa sin marcar también se arrastra sola. Esc quita la selección; pinchar una baldosa sin
+   nada marcado sigue eligiéndola como sello.
+5. **Selección múltiple en la escena** («*si quiero seleccionar de manera múltiple objetos no me deja*»). Con
+   Seleccionar: **Mayús+clic** añade o quita una pieza de lo cogido; **el recuadro por el vacío** coge las piezas de
+   dentro (como ya hace con fichas, muros y trazos). Con varias cogidas: cada una con su marco oro **sin
+   tiradores**; arrastrar las mueve juntas; **Suprimir** las borra; **Ctrl+C / Ctrl+V** las copia (todas, con su
+   giro y tamaño, el mismo desplazamiento); **el botón derecho manda sobre todas** (capa · apilado · estorbo ·
+   duplicar · borrar); Ctrl+Z deshace en UN paso. Estirar y girar sólo con una cogida.
+6. **«Seleccionar» arriba del menú del botón derecho de una pieza** («*si estoy poniendo objetos y hago click
+   derecho no me figura la opción de seleccionar primero*»). Sobre el suelo vacío ya salía (menú de la vista);
+   sobre una pieza salía su menú (§ 6.6) sin él. Ahora el menú de la pieza lleva **Seleccionar** arriba del todo:
+   suelta el sello, pasa a Seleccionar y coge esa pieza. Se marca cuando ya se está en Seleccionar.
+7. **El panel enseña la pieza cogida** («*no puedo reescalar o girar el objeto que tengo seleccionado desde el
+   modal*»). El panel de Piezas **se queda abierto al pasar a Seleccionar** (como el Constructor) y se cierra con
+   la X o con otra herramienta. Con una pieza plantada cogida, el primer bloque pasa a **«LA PIEZA COGIDA»**: su
+   dibujo, su nombre, y **ESCALA y GIRO actúan sobre ella en vivo**; al soltar la escala se recuerda en su pieza de
+   biblioteca (como las esquinas, § 6.5) y todo entra en Ctrl+Z. Al soltarla (Esc, clic en el vacío) el bloque
+   vuelve a ser el del sello. Con Piezas abierto y **sin sello puesto, pinchar una pieza plantada la coge**. Con
+   varias cogidas el panel no las toca (fuera, por ahora).
+8. **La foto es el botón** («*si clico en la fotito de la pieza o en las texturas de cualquier lado tiene que
+   valer igual que el botón de elegir*»). Pinchar la muestra grande del panel de pieza abre el catálogo (= ELEGIR),
+   y pinchar la muestra de textura del Constructor (pared, suelo, puerta) o del Pincel abre el catálogo de
+   texturas (= ELEGIR / CAMBIAR).
+9. ⏳ **DE SU FAMILIA, debajo de la pieza cogida** (pedido el 13-09 por la noche, tras ver lo anterior: «*donde está
+   la pieza cogida, quiero inmediatamente debajo un pequeño recuadro donde pueda visualizar escroleando que me muestre
+   de a tres líneas de 3 objetos de su familia con la que está categorizada*»). **Diseñado en la lámina del panel
+   (`JHdTe`, bloque «S/1b · DE SU FAMILIA»), SIN CONSTRUIR**: justo debajo del bloque «LA PIEZA COGIDA» sale un
+   recuadro con las piezas de **su mismo paquete** (o de su categoría de serie, si es de la app), en **filas de tres**
+   y **tres filas a la vista, con scroll** para el resto; la cogida va marcada con filo sangre y **pinchar otra la
+   hace el sello** (como la rejilla de «sin abrir el catálogo»). Rótulo: «DE SU FAMILIA · {nombre del paquete}». Sólo
+   sale mientras hay una pieza cogida (con el sello, el bloque S/2 de recientes/favoritos ya cumple ese papel).
+
+#### 🟠 Decisiones de construcción del § 6.8 (2026-09-13, revisables)
+
+- **Un solo componente, dos caras.** El catálogo (`LibraryCatalog`) y la subida en lote (`LibraryUpload`) no saben si
+  tienen delante una pieza o una textura: cada cara (`PropsCatalog` / `TextureCatalog`, `PropsUpload` / `TextureUpload`)
+  sólo dice qué es un grupo (paquete · categoría), dónde vive cada cosa y cómo se pinta la miniatura. Las reglas
+  comunes (estantes, secciones, buscador, selección) viven en `libraryRules`; `propRules` se apoya en ellas.
+- **El catálogo de piezas abre en el primer paquete POR SU ORDEN** (el mismo del rail), no en el primero que
+  devuelva la base. El de texturas abre en «Todas», como abría el modal viejo.
+- **Con algo marcado, un clic normal en una baldosa marca o desmarca** (en vez de elegirla y cerrar): mientras se
+  ordena no se sale del catálogo. Sin nada marcado, el clic elige, como siempre.
+- **La estrella de favorito** pasa abajo a la derecha del arte (arriba a la izquierda va el círculo de marcar) y
+  sigue asomando sólo al pasar por encima o marcada.
+- **Lo subido en lote de texturas se queda en el catálogo** para elegirlo; con varias a la vez ya no se pone sola la
+  última (antes, con una, se ponía al subirla).
+- **Las texturas entran tal cual** (sin comprimir), como entraban por el selector de antes. Favoritas y recientes de
+  texturas viven en el navegador, como las de piezas.
+- **El estirado anclado** proyecta la mano sobre la diagonal original: un arrastre torcido no deforma. El panel
+  (ESCALA de la cogida) escala en torno al centro, porque ahí no hay esquina de la que tirar.
+- **Con Piezas abierto y sin sello**, pinchar una plantada la coge y también se puede arrastrar; el panel se cierra
+  con la X o con cualquier herramienta que no sea Seleccionar ni Piezas.
+- **Varias cogidas y el botón derecho**: capa, estorbo (todas al mismo valor que toma la pinchada), apilar (una tras
+  otra, en el orden en que están), duplicar y borrar mandan sobre todas; el título del menú lo dice.
+
 ### Reglas y límites de esta rebanada
 
 - **Planta, mueve y borra el director**; un jugador no toca una pieza. **Ordena la biblioteca quien tiene el permiso.**
@@ -974,6 +1063,7 @@ layer, down layer etc*». Botón derecho sobre una pieza plantada:
   y **estirado libre** sin proporción. **Ajustar a mano la forma que estorba** (hoy es la huella entera).
 - **Favoritos compartidos entre dispositivos** (hoy, en el navegador). **Limpieza de imágenes huérfanas** del bucket.
 - **Arrastrar imágenes directamente sobre la escena** para plantarlas: lo que se arrastra cae en el catálogo.
+- **Estirar o girar varias piezas a la vez**, y que el panel mande sobre varias cogidas (§ 6.8, punto 7).
 
 ### Modelo de datos (rebanada 6)
 
@@ -1914,6 +2004,12 @@ ponle el permiso al admin y los dms*».
   sólo esconde. `SELECT` sigue abierto a cualquiera con cuenta.
 - 🟠 **Sin construir todavía**: no hay pantalla para cambiar el `tileCells` de una textura ya subida (las
   rescatadas por la migración entraron todas en `misc` con 4, porque adivinarlo sale mal más veces que bien).
+- 🔴 **2026-09-13 — ESTE MODAL QUEDA SUSTITUIDO** por el catálogo a pantalla completa de las piezas (§ 6.8 de la
+  rebanada 6, punto 1: «*quiero el mismo de los objetos, usa el mismo componente*»). Mismo componente con otra
+  cara: el rail lleva las categorías, subir abre la ventana de subir en lote, tres puntos siempre a la vista,
+  selección múltiple y arrastrar a una categoría. Lo de arriba (buscador, categorías, miniatura repetida, menú de
+  los tres puntos, permiso `manage_textures`) sigue valiendo como reglas; sólo cambia la pantalla. Y **la muestra
+  de textura del Constructor y del Pincel es un botón**: pincharla abre el catálogo, igual que ELEGIR (punto 8).
 
 ### 🚪 LAS PUERTAS, DE VERDAD (2026-09-07) — spec cerrado, SIN CONSTRUIR
 

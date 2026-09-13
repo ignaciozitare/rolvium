@@ -1150,7 +1150,8 @@
         "change": "Change",
         "pick": "Choose",
         "upload": "+ Upload",
-        "remove": "Remove"
+        "remove": "Remove",
+        "open": "Open the textures catalog"
       },
       "thickness": "Wall thickness",
       "tile": {
@@ -1303,7 +1304,10 @@
         "scale": "Scale",
         "scaleHint": "remembered: the next {{name}} already comes out this size",
         "rotation": "Rotation",
-        "random": "A random rotation"
+        "random": "A random rotation",
+        "pickedLabel": "The picked piece",
+        "pickedHint": "scale and turn change THIS piece · on release it is remembered for the next ones",
+        "openCatalog": "Open the pieces catalog"
       },
       "quick": {
         "label": "Without opening the catalog",
@@ -1350,7 +1354,9 @@
         "blocks": "Blocks",
         "blocksSight": "Blocks sight",
         "blocksMove": "Blocks movement",
-        "duplicate": "Duplicate"
+        "duplicate": "Duplicate",
+        "select": "Select",
+        "many": "{{n}} pieces picked: applies to all of them"
       },
       "catalog": {
         "title": "Pieces",
@@ -1391,7 +1397,7 @@
         "emptyAll": "The library is empty: upload your first pieces.",
         "count": "Pieces · {{n}}",
         "legend": "the dot marks yours · the rest ship with Rolvium",
-        "note": "Pieces belong to the TOOL, not to a campaign: whatever you upload here works on all your maps. Drag your images in and they land in the open pack. Pick one and the stamp stays on: each click places another. Deleting one here does NOT remove the ones already placed on maps.",
+        "note": "Pieces belong to the TOOL, not to a campaign: what you upload here works on all your maps. Drag your images and they land in the open pack. Pick one and the stamp stays on: every click plants another. With permission: mark several with the circle (or Ctrl+click) and drag them onto a pack in the rail, or use MOVE TO…. Deleting one here does NOT delete the ones already placed on maps.",
         "cat": {
           "furniture": "Furniture",
           "vegetation": "Vegetation",
@@ -1399,7 +1405,14 @@
           "doors": "Doors",
           "markers": "Markers",
           "misc": "Misc"
-        }
+        },
+        "selected": "{{n}} selected",
+        "selectedOne": "1 selected",
+        "removeManyConfirm": "Delete {{n}} pieces from the library? The ones already placed on maps stay.",
+        "clearSelection": "Clear selection · Esc",
+        "selectionHint": "drag them onto a pack in the rail · Ctrl+click marks · Shift+click grabs a range",
+        "mark": "Mark {{name}}",
+        "unmark": "Unmark {{name}}"
       },
       "upload": {
         "title": "Upload pieces",
@@ -1416,6 +1429,76 @@
         "note": "The file name becomes the piece name. You can change it later with “Rename”.",
         "add": "Add {{n}} pieces",
         "addOne": "Add 1 piece",
+        "adding": "Adding…",
+        "cancel": "Cancel",
+        "remove": "Remove {{name}} from the list",
+        "err": {
+          "mime": "not a usable image (PNG, JPG, WEBP or GIF)",
+          "input-too-large": "weighs more than 8 MB",
+          "output-too-large": "still too heavy after compressing",
+          "decode": "the image could not be read",
+          "upload": "could not upload"
+        }
+      },
+      "pickedFoot": "click the big picture = PICK · Esc or a click on empty ground drops the piece and the stamp is back"
+    },
+    "textures": {
+      "catalog": {
+        "title": "Textures",
+        "close": "Close the catalog",
+        "search": "Search all categories…",
+        "upload": "Upload textures",
+        "group": "Group",
+        "groupPack": "Category",
+        "groupNone": "None",
+        "sort": "Sort",
+        "sortName": "A–Z",
+        "sortRecent": "Most recent",
+        "thumb": "Thumbnail size",
+        "rail": "Categories",
+        "all": "All",
+        "recent": "Recent",
+        "favorites": "Favorites",
+        "myPacks": "Categories",
+        "unsorted": "Unsorted",
+        "builtIn": "Built-in · Rolvium",
+        "section": "{{name}} ({{n}} textures)",
+        "sectionOne": "{{name}} (1 texture)",
+        "uploadTile": "Upload",
+        "pick": "Pick {{name}}",
+        "menu": "Options for “{{name}}”",
+        "rename": "Rename",
+        "renamePrompt": "What should this texture be called?",
+        "moveTo": "Classify as…",
+        "removeConfirm": "Delete the texture “{{name}}” from the catalog? Maps using it will lose it.",
+        "removeManyConfirm": "Delete {{n}} textures from the catalog? Maps using them will lose them.",
+        "empty": "No texture with that name here.",
+        "emptyAll": "The catalog is empty: upload your first textures.",
+        "count": "Textures · {{n}}",
+        "legend": "the dot marks yours · the rest come with Rolvium",
+        "note": "Textures belong to the TOOL, not to a campaign: what you upload here works on all your maps. Drag your images and they land in the open category. The thumbnail repeats at the tile size each texture remembers. With permission: mark several with the circle (or Ctrl+click) and drag them onto a category in the rail, or use CLASSIFY AS….",
+        "selected": "{{n}} selected",
+        "selectedOne": "1 selected",
+        "clearSelection": "Clear selection · Esc",
+        "selectionHint": "drag them onto a category in the rail · Ctrl+click marks · Shift+click grabs a range",
+        "mark": "Mark {{name}}",
+        "unmark": "Unmark {{name}}"
+      },
+      "upload": {
+        "title": "Upload textures",
+        "close": "Close",
+        "drop": "Drop your images here",
+        "dropHint": "JPG, PNG or WEBP · several at once · no transparency needed",
+        "browse": "or choose the files",
+        "pack": "Which category",
+        "unsorted": "Unsorted",
+        "queued": "queued",
+        "uploading": "uploading",
+        "done": "done",
+        "failed": "failed",
+        "note": "The file name becomes the texture name. It starts with a 4-cell tile; adjust it later in the Builder.",
+        "add": "Add {{n}} textures",
+        "addOne": "Add 1 texture",
         "adding": "Adding…",
         "cancel": "Cancel",
         "remove": "Remove {{name}} from the list",

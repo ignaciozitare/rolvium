@@ -5,7 +5,7 @@ import {
   MAX_SCALE, MIN_SCALE, PROP_CATEGORIES, RECENTS_MAX, clampScale, countIn, dueToSow, duplicateProp, filterProps, footprintOf,
   fromPropFrame, hasAppProps, hitProp, isAppProp, matchesQuery, nameFromFile, normDeg, paintOrderProps, plantProp, pointInProp,
   propCorners, propPath, pushRecent, randomRotation, randomScale, restack, rotateHandleAt, rotationToward, scaleChanged,
-  scaleFromCorner, scaleOfWidth, scatterIn, sectionsOf, sowStepPx, topZ, toPropFrame,
+  scaleFromCorner, scaleFromCornerAnchored, propsInRect, propPlace, scaleOfWidth, scatterIn, sectionsOf, sowStepPx, topZ, toPropFrame,
 } from './propRules';
 
 const OAK = PROP_OAK;
@@ -84,6 +84,12 @@ describe('propRules — plantar y duplicar (§ 6.4, § 6.5)', () => {
 });
 
 describe('propRules — el catálogo: estantes, buscador y secciones (§ 6.2)', () => {
+  it('dónde vive cada pieza: las tuyas en su paquete (o en ninguno), las de serie en su categoría', () => {
+    expect(propPlace(OAK)).toEqual({ group: OAK.packId, builtIn: null });
+    expect(propPlace({ ...OAK, packId: null })).toEqual({ group: null, builtIn: null });
+    expect(propPlace(APP_CHAIR)).toEqual({ group: null, builtIn: 'furniture' });
+  });
+
   const ALL = [OAK, COLUMN, PROP_TABLE, APP_CHAIR];
 
   it('son seis categorías de serie, cerradas, y sólo cuentan para las piezas de la app', () => {
@@ -238,6 +244,41 @@ describe('propRules — lo plantado: orden, apilado, coger y tocar (§ 6.5, § 6
     const mini = scaleFromCorner(A, { x: 400, y: 300 });
     expect(mini.width).toBe(8);
     expect(mini.height).toBeCloseTo(12);
+  });
+
+  /** Él, 2026-09-13: «*cuando redimensiono no tiene que ser desde el centro*» (§ 6.8, punto 2). */
+  it('estirar desde una esquina deja CLAVADA la de enfrente: crece hacia la mano y el centro se mueve', () => {
+    // A: centro (400, 300), 300 × 450 → esquina se en (550, 525), nw en (250, 75).
+    const doble = scaleFromCornerAnchored(A, 'se', { x: 250 + 600, y: 75 + 900 });   // la mano al doble, desde la nw
+    expect(doble.width).toBeCloseTo(600);
+    expect(doble.height).toBeCloseTo(900);
+    // La nw sigue en (250, 75): el centro nuevo está a medio ancho y medio alto de ella.
+    expect(doble.x).toBeCloseTo(250 + 300);
+    expect(doble.y).toBeCloseTo(75 + 450);
+    // Tirando de la nw hacia dentro, la se (550, 525) no se mueve y la pieza encoge hacia ella.
+    const mitad = scaleFromCornerAnchored(A, 'nw', { x: 550 - 150, y: 525 - 225 });
+    expect(mitad.width).toBeCloseTo(150);
+    expect(mitad.height).toBeCloseTo(225);
+    expect(mitad.x).toBeCloseTo(550 - 75);
+    expect(mitad.y).toBeCloseTo(525 - 112.5);
+    // Torcido no deforma: la proporción se mantiene; y no baja del mínimo aunque se cruce la esquina.
+    const torcido = scaleFromCornerAnchored(A, 'se', { x: 250 + 900, y: 75 + 100 });
+    expect(torcido.height / torcido.width).toBeCloseTo(1.5);
+    const cruzado = scaleFromCornerAnchored(A, 'se', { x: 0, y: 0 });
+    expect(cruzado.width).toBe(8);
+    // Girada 90°, la esquina clavada sigue clavada en el lienzo.
+    const girada = { ...A, rotation: 90 };
+    const antes = propCorners(girada).nw;
+    const g = scaleFromCornerAnchored(girada, 'se', propCorners(girada).se);   // la mano en la propia esquina: no cambia
+    const despues = propCorners({ ...girada, ...g }).nw;
+    expect(despues.x).toBeCloseTo(antes.x);
+    expect(despues.y).toBeCloseTo(antes.y);
+  });
+
+  it('el recuadro de selección coge las piezas cuyo centro cae dentro (§ 6.8, punto 5)', () => {
+    expect(propsInRect([A, B], { x: 0, y: 0 }, { x: 500, y: 500 })).toEqual(['sp-oak']);
+    expect(propsInRect([A, B], { x: 800, y: 500 }, { x: 0, y: 0 })).toEqual(['sp-oak', 'sp-col']);   // al revés también
+    expect(propsInRect([A, B], { x: 0, y: 0 }, { x: 10, y: 10 })).toEqual([]);
   });
 
   it('el giro apunta a la mano, con «arriba» como 0°', () => {

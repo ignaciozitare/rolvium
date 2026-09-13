@@ -34,7 +34,7 @@ const dibujo = async (u: ReturnType<typeof userEvent.setup>, name: string): Prom
  * la escena que se abre sale de la activa de la mesa — que es como se comportaba esto antes de existir.
  */
 function fakeViewMemory(last: string | null = null, builderMode: 'photo' | 'draw' | null = null, favorites: string[] = [], recents: string[] = []) {
-  const m = { last, seen: [] as string[], builderMode, modes: [] as string[], favorites, recents };
+  const m = { last, seen: [] as string[], builderMode, modes: [] as string[], favorites, recents, favoriteTextures: [] as string[], recentTextures: [] as string[] };
   return {
     m,
     lastScene: () => m.last,
@@ -46,6 +46,11 @@ function fakeViewMemory(last: string | null = null, builderMode: 'photo' | 'draw
     toggleFavoriteProp: (id: string) => { m.favorites = m.favorites.includes(id) ? m.favorites.filter(x => x !== id) : [...m.favorites, id]; return [...m.favorites]; },
     recentProps: () => [...m.recents],
     rememberRecentProp: (id: string) => { m.recents = [id, ...m.recents.filter(x => x !== id)].slice(0, 18); return [...m.recents]; },
+    // Y las de las TEXTURAS, desde que su catálogo es el mismo (2026-09-13).
+    favoriteTextures: () => [...m.favoriteTextures],
+    toggleFavoriteTexture: (id: string) => { m.favoriteTextures = m.favoriteTextures.includes(id) ? m.favoriteTextures.filter(x => x !== id) : [...m.favoriteTextures, id]; return [...m.favoriteTextures]; },
+    recentTextures: () => [...m.recentTextures],
+    rememberRecentTexture: (id: string) => { m.recentTextures = [id, ...m.recentTextures.filter(x => x !== id)].slice(0, 18); return [...m.recentTextures]; },
   };
 }
 
@@ -1019,8 +1024,13 @@ describe('<SceneTab> el panel de Builder v3', () => {
     const bloque = (await screen.findByText('Las dos texturas base')).closest('fieldset')!;
     const [roca] = within(bloque).getAllByRole('button', { name: 'Elegir' });
     await u.click(roca!);
-    const input = screen.getByTestId('mp-room-texture-input') as HTMLInputElement;
-    await u.upload(input, new File(['x'], 'roca.png', { type: 'image/png' }));
+    /**
+     * Desde el 2026-09-13 subir abre LA MISMA ventana de subir en lote que las piezas (él: «*puedo subir de a
+     * muchas*»): el fichero entra por su selector y AÑADIR lo guarda en el catálogo, en la categoría abierta.
+     */
+    await u.click(await screen.findByRole('button', { name: /Subir texturas/ }));
+    await u.upload(screen.getByTestId('mp-propup-input') as HTMLInputElement, new File(['x'], 'roca.png', { type: 'image/png' }));
+    await u.click(screen.getByRole('button', { name: 'Añadir 1 textura' }));
 
     /**
      * 🔑 SUBE AL CATÁLOGO DE LA HERRAMIENTA, NO A LA BIBLIOTECA DE LA CAMPAÑA (él, 2026-09-04: «*los fondos de
@@ -1029,6 +1039,8 @@ describe('<SceneTab> el panel de Builder v3', () => {
      */
     await waitFor(() => expect(repo.textures.map(x => x.name)).toContain('roca'));
     expect(repo.uploads).toHaveLength(0);
+    // Lo subido queda en el catálogo, que sigue abierto: se elige desde ahí (con varias a la vez ya no se pone sola la última).
+    await u.click(await screen.findByRole('button', { name: 'Elegir roca' }));
     // Y al ponerla, su tamaño de baldosa viaja con ella a la escena: no hay que reajustar el deslizador.
     await waitFor(() => expect(repo.sceneUpdates).toContainEqual({
       id: 'sc-1', patch: { wallTextureUrl: 'https://x/tex-1.png', wallTextureScale: DEFAULT_TEXTURE_SCALE },
@@ -2096,8 +2108,9 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
     // La fila de textura de la PUERTA, no la de la pared de la sala.
     const filaPuerta = screen.getByText('Textura').closest('.mp-builder-row')!;
     await u.click(within(filaPuerta as HTMLElement).getByRole('button', { name: 'Elegir' }));
-    expect(await screen.findByText('Textura de la puerta')).toBeInTheDocument();
-    await u.click(within(screen.getByTestId('mp-texcat')).getByTitle('Losa mojada'));
+    // El MISMO catálogo que las piezas (2026-09-13); la pista del pie dice que va a la puerta.
+    expect(await screen.findByText(/se pone en la puerta, con el azulejo de una casilla/)).toBeInTheDocument();
+    await u.click(within(screen.getByTestId('mp-propcat')).getByTitle('Losa mojada'));
 
     await waitFor(() => expect(repo.wallUpdates.at(-1)?.patch).toEqual({ doorTextureUrl: TEX.url }));
     // Y a la ESCENA no se le ha tocado la textura de pared: son cosas distintas.
@@ -2110,11 +2123,12 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
     await screen.findByText(/Almacén de Queens/);
     await abrirTexturas(u);
 
-    expect(await screen.findByRole('searchbox', { name: 'Buscar por nombre…' })).toBeInTheDocument();
-    expect(screen.getByRole('radiogroup', { name: 'Categorías' })).toBeInTheDocument();
-    expect(within(screen.getByTestId('mp-texcat')).getByTitle('Losa mojada')).toBeInTheDocument();
+    // Es EL MISMO catálogo a pantalla completa que el de piezas (él, 2026-09-13): buscador y el rail de categorías.
+    expect(await screen.findByRole('searchbox', { name: 'Buscar en todas las categorías…' })).toBeInTheDocument();
+    expect(screen.getByRole('tablist', { name: 'Categorías' })).toBeInTheDocument();
+    expect(within(screen.getByTestId('mp-propcat')).getByTitle('Losa mojada')).toBeInTheDocument();
     // 🔑 Y el fondo de la campaña NO está aquí dentro: son dos cosas distintas.
-    expect(within(screen.getByTestId('mp-texcat')).queryByTitle(IMAGE_CHAPEL.name)).not.toBeInTheDocument();
+    expect(within(screen.getByTestId('mp-propcat')).queryByTitle(IMAGE_CHAPEL.name)).not.toBeInTheDocument();
     expect(repo.uploads).toHaveLength(0);
   });
 
@@ -2124,7 +2138,7 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
     const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], textures: [TEX] }));
     await screen.findByText(/Almacén de Queens/);
     await abrirTexturas(u);
-    await u.click(await within(await screen.findByTestId('mp-texcat')).findByTitle('Losa mojada'));
+    await u.click(await within(await screen.findByTestId('mp-propcat')).findByTitle('Losa mojada'));
 
     await waitFor(() => expect(repo.sceneUpdates).toContainEqual({
       id: 'sc-1', patch: { wallTextureUrl: 'https://x/losa.png', wallTextureScale: 2 },
@@ -2150,7 +2164,7 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
     await screen.findByText(/Almacén de Queens/);
     await abrirTexturas(u);
     await u.click(await screen.findByRole('button', { name: 'Opciones de «Losa mojada»' }));
-    await u.click(await screen.findByRole('menuitem', { name: 'Clasificar' }));
+    await u.click(await screen.findByRole('menuitem', { name: 'Clasificar en…' }));
     await u.click(await screen.findByRole('menuitemradio', { name: 'Agua' }));
     await waitFor(() => expect(repo.textureUpdates).toEqual([{ id: 'tx-losa', patch: { category: 'water' } }]));
   });
@@ -2164,10 +2178,11 @@ describe('<SceneTab> «Cambiar» abre el catálogo de texturas, no la biblioteca
     mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], textures: [TEX] }), 'sc-1', undefined, undefined, false);
     await screen.findByText(/Almacén de Queens/);
     await abrirTexturas(u);
-    const catalogo = await screen.findByTestId('mp-texcat');
+    const catalogo = await screen.findByTestId('mp-propcat');
     // Dentro del CATÁLOGO: fuera están los tres puntos de las escenas, que no dependen de este permiso.
     expect(within(catalogo).queryByRole('button', { name: /Opciones de/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Subir a/ })).not.toBeInTheDocument();
+    expect(within(catalogo).queryByRole('button', { name: /^Marcar / })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Subir texturas/ })).not.toBeInTheDocument();
   });
 });
 
@@ -2323,7 +2338,7 @@ describe('<SceneTab> el pincel que pinta encima', () => {
     const panel = await screen.findByRole('group', { name: 'Pincel' });
     await u.click(within(panel).getByRole('radio', { name: 'Textura' }));
     await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
-    await u.click(await within(await screen.findByTestId('mp-texcat')).findByTitle('Losa mojada'));
+    await u.click(await within(await screen.findByTestId('mp-propcat')).findByTitle('Losa mojada'));
     expect(await within(await screen.findByRole('group', { name: 'Pincel' })).findByText('Losa mojada')).toBeInTheDocument();
     expect(repo.sceneUpdates.some(x => 'floorTextureUrl' in x.patch)).toBe(false);
   });
@@ -2341,7 +2356,7 @@ describe('<SceneTab> el pincel que pinta encima', () => {
     await screen.findByRole('group', { name: 'Pincel' });
     await u.click(within(pincel()).getByRole('radio', { name: 'Textura' }));
     await u.click(within(pincel()).getByRole('button', { name: 'Elegir' }));
-    await u.click(await within(await screen.findByTestId('mp-texcat')).findByTitle('Losa mojada'));
+    await u.click(await within(await screen.findByTestId('mp-propcat')).findByTitle('Losa mojada'));
 
     fireEvent.change(await within(pincel()).findByRole('slider', { name: 'Giro' }), { target: { value: '45' } });
     await waitFor(() => expect(canvas().querySelector('#mp-tile-preview')).toHaveAttribute('patternTransform', 'rotate(45)'));
@@ -2349,7 +2364,7 @@ describe('<SceneTab> el pincel que pinta encima', () => {
 
     await u.click(within(pincel()).getByRole('button', { name: 'Quitar' }));
     await u.click(within(pincel()).getByRole('button', { name: 'Elegir' }));
-    await u.click(await within(await screen.findByTestId('mp-texcat')).findByTitle('Losa mojada'));
+    await u.click(await within(await screen.findByTestId('mp-propcat')).findByTitle('Losa mojada'));
     expect(await within(pincel()).findByRole('slider', { name: 'Giro' })).toHaveValue('0');
   });
 
@@ -2727,7 +2742,8 @@ describe('<SceneTab> · el giro de las texturas base', () => {
  * el sello. Construida la noche del 2026-09-12→13 sobre las láminas aprobadas el 2026-09-11.
  */
 describe('<SceneTab> · las piezas (rebanada 6)', () => {
-  const seedProps = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], props: [PROP_OAK, PROP_COLUMN], packs: [PACK_FOREST, PACK_DUNGEON], layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES] });
+  // El catálogo abre en el PRIMER paquete por su orden (el mismo que el rail): el Bosque va primero para que el Roble esté a la vista.
+  const seedProps = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], props: [PROP_OAK, PROP_COLUMN], packs: [{ ...PACK_FOREST, sortOrder: 0 }, { ...PACK_DUNGEON, sortOrder: 1 }], layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES] });
   const abrirPiezas = async (u: ReturnType<typeof userEvent.setup>) => {
     await screen.findByText(/Almacén de Queens/);
     await u.click(screen.getByRole('button', { name: 'Piezas' }));
@@ -2802,5 +2818,114 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     expect(within(canvas()).getByTestId('mp-prop-frame')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'Delete' });
     await waitFor(() => expect(repo.sceneProps.map(p => p.id)).toEqual(['sp-col']));
+  });
+
+  /**
+   * ── LO QUE SALIÓ AL PROBARLO ÉL (2026-09-13, § 6.8) ──
+   */
+  const seedPlantadas = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], props: [PROP_OAK, PROP_COLUMN], packs: [{ ...PACK_FOREST, sortOrder: 0 }, { ...PACK_DUNGEON, sortOrder: 1 }], sceneProps: [SCENE_PROP_OAK, { ...SCENE_PROP_COLUMN, layerId: null }], layers: [LAYER_OBJECTS] });
+  const coger = (x: number, y: number, shift = false) => {
+    fireEvent.pointerDown(canvas(), { clientX: x, clientY: y, pointerId: 1, button: 0, shiftKey: shift });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+  };
+
+  it('el panel de Piezas se queda abierto al pasar a Seleccionar, y con una plantada cogida enseña LA PIEZA COGIDA: ESCALA y GIRO la cambian a ella y se guardan al soltar (§ 6.8, punto 7)', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', seedPlantadas());
+    await abrirPiezas(u);
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    const panel = screen.getByRole('group', { name: 'Piezas' });   // sigue abierto
+    expect(within(panel).getByText(/Sin pieza elegida/)).toBeInTheDocument();
+    coger(400, 300);
+    expect(within(panel).getByText('La pieza cogida')).toBeInTheDocument();
+    expect(within(panel).getByTestId('mp-props-picked')).toHaveTextContent('Roble');
+    // ESCALA: la del Roble plantado respecto a su pieza (300 / 200 = 1,5 ×). Mover cambia la plantada en vivo y soltar guarda.
+    const escala = within(panel).getByRole('slider', { name: 'Escala' });
+    expect(escala).toHaveValue('150');
+    fireEvent.change(escala, { target: { value: '200' } });
+    expect(within(canvas()).getByTestId('mp-prop-frame')).toHaveAttribute('width', '400');
+    fireEvent.pointerUp(escala);
+    await waitFor(() => expect(repo.scenePropUpdates.at(-1)).toMatchObject({ id: 'sp-oak', patch: { width: 400, height: 600 } }));
+    // …y la escala se recuerda en la pieza de la biblioteca, como con las esquinas.
+    await waitFor(() => expect(repo.propUpdates).toContainEqual({ id: 'pr-oak', patch: { defaultScale: 2 } }));
+    // GIRO: igual, en vivo y al soltar.
+    const giro = within(panel).getByRole('slider', { name: 'Giro' });
+    fireEvent.change(giro, { target: { value: '90' } });
+    expect(canvas().querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toContain('rotate(90)');
+    fireEvent.pointerUp(giro);
+    await waitFor(() => expect(repo.scenePropUpdates.at(-1)).toEqual({ id: 'sp-oak', patch: { rotation: 90 } }));
+    // Pinchar el vacío suelta la pieza y el bloque vuelve a ser el del sello.
+    coger(50, 50);
+    expect(within(panel).getByText('La pieza del sello')).toBeInTheDocument();
+    // La X cierra el panel de verdad; Piezas lo vuelve a abrir.
+    await u.click(within(panel).getByRole('button', { name: 'Cerrar Piezas' }));
+    expect(screen.queryByRole('group', { name: 'Piezas' })).not.toBeInTheDocument();
+  });
+
+  it('con Piezas abierto y sin sello, pinchar una plantada la coge; y la foto grande del panel abre el catálogo (§ 6.8, puntos 7 y 8)', async () => {
+    const u = userEvent.setup();
+    mount('dm', seedPlantadas());
+    const panel = await abrirPiezas(u);
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
+    coger(700, 200);
+    expect(within(panel).getByTestId('mp-props-picked')).toHaveTextContent('Columna');
+    await u.click(within(panel).getByRole('button', { name: 'Abrir el catálogo de piezas' }));
+    expect(await screen.findByTestId('mp-propcat')).toBeInTheDocument();
+  });
+
+  it('Mayús+clic coge varias: Suprimir las borra juntas y Ctrl+C / Ctrl+V las copia todas (§ 6.8, punto 5)', async () => {
+    const repo = mount('dm', seedPlantadas());
+    await screen.findByText(/Almacén de Queens/);
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
+    coger(400, 300);
+    coger(700, 200, true);
+    expect(within(canvas()).getAllByTestId('mp-prop-frame')).toHaveLength(2);
+    expect(within(canvas()).queryByTestId('mp-prop-handles')).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'v', ctrlKey: true });
+    await waitFor(() => expect(repo.sceneProps).toHaveLength(4));
+    expect(repo.sceneProps.slice(2).map(p => p.name)).toEqual(['Roble', 'Columna']);
+    // Las pegadas quedan cogidas; Suprimir las borra de una vez.
+    await waitFor(() => expect(within(canvas()).getAllByTestId('mp-prop-frame')).toHaveLength(2));
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.sceneProps).toHaveLength(2));
+    expect(repo.sceneProps.map(p => p.id)).toEqual(['sp-oak', 'sp-col']);
+  });
+
+  it('el botón derecho sobre una pieza mientras se planta ofrece SELECCIONAR arriba del todo: suelta el sello, pasa a Seleccionar y la coge (§ 6.8, punto 6)', async () => {
+    const u = userEvent.setup();
+    mount('dm', seedPlantadas());
+    const panel = await abrirPiezas(u);
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
+    await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
+    await u.click(await screen.findByRole('button', { name: 'Elegir Roble' }));
+    expect(within(screen.getByRole('group', { name: 'Piezas' })).getByText('Roble')).toBeInTheDocument();   // el sello puesto
+    fireEvent.contextMenu(canvas(), { clientX: 700, clientY: 200 });
+    const menu = await screen.findByRole('menu', { name: 'Mandar a la capa' });
+    expect(within(menu).getAllByRole('menuitem')[0]).toHaveTextContent('Seleccionar');
+    await u.click(within(menu).getByRole('menuitem', { name: /Seleccionar/ }));
+    expect(screen.getByRole('button', { name: 'Seleccionar' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(screen.getByRole('group', { name: 'Piezas' })).getByTestId('mp-props-picked')).toHaveTextContent('Columna');
+    expect(within(canvas()).getByTestId('mp-prop-handles')).toBeInTheDocument();
+  });
+
+  it('con varias cogidas, el botón derecho sobre una de ellas manda sobre todas: capa, estorbo y borrar (§ 6.8, punto 5)', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], sceneProps: [SCENE_PROP_OAK, { ...SCENE_PROP_COLUMN, layerId: null }], layers: [LAYER_OBJECTS, LAYER_NOTES] }));
+    await screen.findByText(/Almacén de Queens/);
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
+    coger(400, 300);
+    coger(700, 200, true);
+    // El botón derecho sobre el Roble (que NO corta el paso): las dos pasan a cortarlo, la Columna incluida.
+    fireEvent.contextMenu(canvas(), { clientX: 400, clientY: 300 });
+    const menu = await screen.findByRole('menu', { name: 'Mandar a la capa' });
+    expect(within(menu).getByText('2 piezas cogidas: manda sobre todas')).toBeInTheDocument();
+    await u.click(within(menu).getByRole('menuitemcheckbox', { name: /Corta el paso/ }));
+    await waitFor(() => expect(repo.scenePropUpdates.filter(x => 'blocksMove' in x.patch).map(x => x.id).sort()).toEqual(['sp-col', 'sp-oak']));
+    expect(repo.sceneProps.every(p => p.blocksMove)).toBe(true);
+    // El menú sigue abierto tras el interruptor (no cierra); el mismo menú ofrece borrar las dos.
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Borrar la pieza' }));
+    await waitFor(() => expect(repo.sceneProps).toHaveLength(0));
   });
 });

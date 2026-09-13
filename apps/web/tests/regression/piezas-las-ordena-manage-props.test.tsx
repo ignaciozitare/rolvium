@@ -49,7 +49,8 @@ const fakeBestiaryRepo = (): BestiaryPort => ({ listForCampaign: vi.fn().mockRes
 function mount(user: User): void {
   const attacks = fakeAttacks();
   const requests = fakeRollRequests();
-  const maps = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], props: [PROP_OAK, PROP_COLUMN], packs: [PACK_FOREST, PACK_DUNGEON], layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES] });
+  // El catálogo abre en el PRIMER paquete por su orden (2026-09-13): el Bosque va primero para que el Roble esté a la vista.
+  const maps = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], props: [PROP_OAK, PROP_COLUMN], packs: [{ ...PACK_FOREST, sortOrder: 0 }, { ...PACK_DUNGEON, sortOrder: 1 }], layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES] });
   renderWithProviders(
     <AuthProvider repo={fakeAuthRepo(user)}>
       <Routes><Route path="/table/:id" element={

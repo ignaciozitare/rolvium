@@ -10,6 +10,9 @@ const isBuilderMode = (v: string | null): v is BuilderMode => v === 'photo' || v
 /** Las dos listas de la galería de piezas, sin campaña: la biblioteca es una para toda la herramienta. */
 const FAVORITE_PROPS_KEY = 'rolvium_maps_prop_favorites';
 const RECENT_PROPS_KEY = 'rolvium_maps_prop_recents';
+/** Y las dos de las texturas, que desde el 2026-09-13 tienen el mismo catálogo. */
+const FAVORITE_TEXTURES_KEY = 'rolvium_maps_texture_favorites';
+const RECENT_TEXTURES_KEY = 'rolvium_maps_texture_recents';
 /** Una lista de ids guardada como JSON. Cualquier cosa que no sea una lista de textos vale como vacía. */
 const readIds = (key: string): string[] => {
   try {
@@ -46,16 +49,26 @@ export class LocalViewMemory implements ViewMemoryPort {
   }
 
   favoriteProps(): string[] { return readIds(FAVORITE_PROPS_KEY); }
-  toggleFavoriteProp(id: string): string[] {
-    const cur = readIds(FAVORITE_PROPS_KEY);
-    const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
-    writeIds(FAVORITE_PROPS_KEY, next);
-    return next;
-  }
+  toggleFavoriteProp(id: string): string[] { return toggleIn(FAVORITE_PROPS_KEY, id); }
   recentProps(): string[] { return readIds(RECENT_PROPS_KEY); }
-  rememberRecentProp(id: string): string[] {
-    const next = pushRecent(readIds(RECENT_PROPS_KEY), id);
-    writeIds(RECENT_PROPS_KEY, next);
-    return next;
-  }
+  rememberRecentProp(id: string): string[] { return pushIn(RECENT_PROPS_KEY, id); }
+
+  favoriteTextures(): string[] { return readIds(FAVORITE_TEXTURES_KEY); }
+  toggleFavoriteTexture(id: string): string[] { return toggleIn(FAVORITE_TEXTURES_KEY, id); }
+  recentTextures(): string[] { return readIds(RECENT_TEXTURES_KEY); }
+  rememberRecentTexture(id: string): string[] { return pushIn(RECENT_TEXTURES_KEY, id); }
+}
+
+/** Marcar o desmarcar en una lista guardada, y devolver cómo queda. */
+function toggleIn(key: string, id: string): string[] {
+  const cur = readIds(key);
+  const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+  writeIds(key, next);
+  return next;
+}
+/** Meter al principio de una lista de recientes guardada, y devolver cómo queda. */
+function pushIn(key: string, id: string): string[] {
+  const next = pushRecent(readIds(key), id);
+  writeIds(key, next);
+  return next;
 }

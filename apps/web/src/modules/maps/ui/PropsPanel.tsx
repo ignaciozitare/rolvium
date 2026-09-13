@@ -1,8 +1,8 @@
 import { useTranslation } from '@rolvium/i18n';
 import { FloatingPanel, OptionGroup, PanelHint, PanelSection, Slider } from '@rolvium/ui';
-import type { Layer, Prop } from '../domain/entities/Scene';
+import type { Layer, Prop, SceneProp } from '../domain/entities/Scene';
 import { panelOrder } from '../domain/useCases/layerRules';
-import { DEFAULT_SOW_AREA, MIN_SCALE, SCALE_SLIDER_MAX, SOW_AREA_MAX, SOW_AREA_MIN, SOW_DENSITIES, type SowDensity } from '../domain/useCases/propRules';
+import { DEFAULT_SOW_AREA, MIN_SCALE, randomRotation, SCALE_SLIDER_MAX, SOW_AREA_MAX, SOW_AREA_MIN, SOW_DENSITIES, type SowDensity } from '../domain/useCases/propRules';
 
 export type PlantMode = 'one' | 'many';
 
@@ -44,6 +44,19 @@ interface Props {
   onMode: (mode: PlantMode) => void;
   sow: SowSettings;
   onSow: (patch: Partial<SowSettings>) => void;
+  /**
+   * LA PIEZA COGIDA (§ 6.8, punto 7 — él: «*no puedo reescalar o girar el objeto que tengo seleccionado desde
+   * el modal*»): con una plantada cogida, el primer bloque la enseña a ELLA y ESCALA y GIRO actúan sobre ella
+   * en vivo; al soltar se guarda (y la escala se recuerda en su pieza, como con las esquinas). `scale` es la
+   * suya respecto a su pieza de biblioteca (o a su tamaño al cogerla, si ya no está en la biblioteca).
+   * `isFavorite` es `null` cuando ya no hay pieza de biblioteca a la que marcar. Sin cogida, el bloque es el del sello.
+   */
+  picked?: { prop: SceneProp; scale: number; rotation: number; isFavorite: boolean | null } | null;
+  onPickedScale?: (scale: number) => void;
+  onPickedScaleEnd?: () => void;
+  onPickedRotation?: (deg: number) => void;
+  onPickedRotationEnd?: () => void;
+  onPickedToggleFavorite?: () => void;
   onClose: () => void;
 }
 
@@ -66,7 +79,8 @@ const KIND_KEY: Record<Layer['kind'], string> = { terrain: 'terrain', objects: '
  */
 export function PropsPanel({
   stamp, isFavorite, onToggleFavorite, onPick, onDrop, scale, onScale, onScaleEnd, rotation, onRotation, onRandomRotation,
-  quick, onQuick, quickProps, onQuickPick, layers, layerId, onLayer, mode, onMode, sow, onSow, onClose,
+  quick, onQuick, quickProps, onQuickPick, layers, layerId, onLayer, mode, onMode, sow, onSow,
+  picked = null, onPickedScale, onPickedScaleEnd, onPickedRotation, onPickedRotationEnd, onPickedToggleFavorite, onClose,
 }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const nameOf = (l: Layer): string => l.name || t(`maps.layers.kind.${KIND_KEY[l.kind]}`);
@@ -82,14 +96,27 @@ export function PropsPanel({
       closeLabel={t('maps.props.close')} onClose={onClose}
       icon={<span className="mp-tool-img mp-props-icon" aria-hidden="true" style={{ maskImage: 'url(/icons/props-mask.svg)', WebkitMaskImage: 'url(/icons/props-mask.svg)' }} />}>
 
-      {/* ── S/1 · LA PIEZA DEL SELLO ── */}
-      <PanelSection label={t('maps.props.stamp.label')} testId="mp-props-stamp">
-        <div className="mp-props-sample" data-testid="mp-props-sample">
-          {stamp
-            ? <img src={stamp.imageUrl} alt="" style={{ transform: `rotate(${rotation}deg)` }} />
-            : <span className="material-symbols-outlined" aria-hidden="true">category</span>}
-        </div>
-        {stamp ? (
+      {/* ── S/1 · LA PIEZA DEL SELLO — o LA PIEZA COGIDA (§ 6.8, punto 7), que manda mientras haya una ── */}
+      <PanelSection label={t(picked ? 'maps.props.stamp.pickedLabel' : 'maps.props.stamp.label')} testId="mp-props-stamp">
+        {/* LA FOTO ES EL BOTÓN (§ 6.8, punto 8): pincharla abre el catálogo, igual que ELEGIR. La cogida lleva marco oro. */}
+        <button type="button" className={`mp-props-sample ${picked ? 'picked' : ''}`} data-testid="mp-props-sample" aria-label={t('maps.props.stamp.openCatalog')} onClick={onPick}>
+          {picked
+            ? <img src={picked.prop.imageUrl} alt="" style={{ transform: `rotate(${picked.rotation}deg)` }} />
+            : stamp
+              ? <img src={stamp.imageUrl} alt="" style={{ transform: `rotate(${rotation}deg)` }} />
+              : <span className="material-symbols-outlined" aria-hidden="true">category</span>}
+        </button>
+        {picked ? (
+          <div className="mp-props-name" data-testid="mp-props-picked">
+            <span className="mp-props-name-t">{picked.prop.name}</span>
+            {picked.isFavorite !== null && (
+              <button type="button" className={`mp-props-star ${picked.isFavorite ? 'on' : ''}`} aria-pressed={picked.isFavorite}
+                aria-label={t(picked.isFavorite ? 'maps.props.stamp.unfavorite' : 'maps.props.stamp.favorite')} onClick={onPickedToggleFavorite}>
+                <span className="material-symbols-outlined" aria-hidden="true">{picked.isFavorite ? 'star' : 'star_border'}</span>
+              </button>
+            )}
+          </div>
+        ) : stamp ? (
           <div className="mp-props-name">
             <span className="mp-props-name-t">{stamp.name}</span>
             <button type="button" className={`mp-props-star ${isFavorite ? 'on' : ''}`} aria-pressed={isFavorite}
@@ -102,7 +129,22 @@ export function PropsPanel({
           <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={onPick}>{t('maps.props.stamp.pick')}</button>
           <button type="button" className="tb-btn tb-btn-xs" disabled={!stamp} onClick={onDrop}>{t('maps.props.stamp.drop')}</button>
         </div>
-        {stamp && (<>
+        {picked && (<>
+          {/* ESCALA y GIRO de la COGIDA: en vivo mientras se mueve, y se guarda al soltar (§ 6.8, punto 7). */}
+          <Slider label={t('maps.props.stamp.scale')} min={MIN_SCALE * 100} max={SCALE_SLIDER_MAX * 100} step={1}
+            value={Math.round(Math.min(SCALE_SLIDER_MAX, picked.scale) * 100)} onChange={n => onPickedScale?.(n / 100)} onCommit={onPickedScaleEnd}
+            valueText={fmtScale(picked.scale)} />
+          <PanelHint>{t('maps.props.stamp.pickedHint')}</PanelHint>
+          <div className="mp-props-rot">
+            <Slider className="mp-props-rot-slider" label={t('maps.props.stamp.rotation')} min={0} max={355} step={5}
+              value={picked.rotation} onChange={n => onPickedRotation?.(n)} onCommit={onPickedRotationEnd} valueText={`${picked.rotation}°`} />
+            <button type="button" className="mp-props-dice" aria-label={t('maps.props.stamp.random')}
+              onClick={() => { onPickedRotation?.(randomRotation(Math.random)); onPickedRotationEnd?.(); }}>
+              <span className="material-symbols-outlined" aria-hidden="true">casino</span>
+            </button>
+          </div>
+        </>)}
+        {!picked && stamp && (<>
           {/* La ESCALA se recuerda POR PIEZA (§ 6.4): mover va en vivo, y al soltar se guarda en la biblioteca. */}
           {/* En centésimas: una pieza de 1024 px nace a 0,05 y a saltos de 0,05 cada paso era una casilla entera. */}
           <Slider label={t('maps.props.stamp.scale')} min={MIN_SCALE * 100} max={SCALE_SLIDER_MAX * 100} step={1}
@@ -178,7 +220,7 @@ export function PropsPanel({
         </PanelSection>
       )}
 
-      <PanelHint>{t('maps.props.foot')}</PanelHint>
+      <PanelHint>{t(picked ? 'maps.props.pickedFoot' : 'maps.props.foot')}</PanelHint>
     </FloatingPanel>
   );
 }

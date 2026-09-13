@@ -162,6 +162,10 @@ describe('<BrushPanel>', () => {
     expect(screen.queryByRole('button', { name: 'Quitar' })).not.toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Elegir' }));
     expect(cb.onPickTexture).toHaveBeenCalled();
+    // LA MUESTRA ES UN BOTÓN (§ 6.8, punto 8): pincharla también abre el catálogo.
+    cb.onPickTexture.mockClear();
+    fireEvent.click(screen.getByTestId('mp-bp-tex'));
+    expect(cb.onPickTexture).toHaveBeenCalledTimes(1);
 
     const cb2 = mount({ ink: 'texture', textureUrl: 'https://x/losa.png', textureName: 'Losa' });
     expect(screen.getByText('Losa')).toBeInTheDocument();
