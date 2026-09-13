@@ -47,20 +47,12 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
   > 🔴 La primera versión entendió al revés lo de «pintar» y construyó un pincel que **excavaba**. Él lo paró
   > en pantalla: «*eso es cavar con construir, que no es lo que te pedí*». Lo construido no se tiró — se muda
   > al Builder, que es donde él dijo que hacía falta.
-- **Rebanada 6 — A MEDIAS, SIN PANTALLA** (§ «Rebanada 6»): **galería de piezas** (muebles, árboles…) para
-  construir mapas dentro de la app. Confirmada por el dueño el 2026-08-31, **después** de la 7 y **antes** de la
-  5: sin capas no había dónde meter las piezas, y ahora que existen es lo que falta para montar un mapa sin
-  salir de Rolvium.
-  > ⚠ **Está construida de abajo arriba y le falta TODA la interfaz.** Ya existen y están en producción: el
-  > esquema (`maps_props`, `maps_scene_props`), `propRules.ts` con sus tests, los 8 métodos del puerto
-  > `MapsPort` y su implementación entera en `SupabaseMapsRepo` con realtime. **No existe ni la galería, ni el
-  > botón que la abre, ni forma de plantar una pieza.** Es inerte y no molesta —las tablas están vacías y nada
-  > puede llegar a ellas—, pero que nadie dé la rebanada por hecha. El botón `Piezas` está dibujado en
-  > `rolvium.pen` y **deliberadamente NO está en el código**: un botón que no abre nada es peor que ninguno.
-  > ✅ **FECHA PUESTA (decisión del dueño, 2026-09-01)**: el andamio **se queda** y la galería **se construye
-  > justo después de la sonda de prueba (§ 7.3) y del arreglo de la puerta**. No se borra nada — ni las 12
-  > funciones de `propRules.ts`, ni los métodos del puerto, ni las dos tablas vacías de producción. Queda así
-  > cerrado el «no vale dejarlo sin fecha» que señalaron QA y la limpieza del 2026-09-01.
+- **Rebanada 6 — LA GALERÍA DE PIEZAS · CONSTRUIDA ENTERA la noche del 2026-09-12→13, rama `feat/maps-objetos`,
+  SIN MERGEAR y ⏳ pendiente de que él la pruebe** (§ «Rebanada 6»): la biblioteca es de la HERRAMIENTA y va en
+  PAQUETES propios detrás del permiso `manage_props`; el catálogo a pantalla completa, la subida en lote, el
+  panel de pieza (UNA / MUCHAS con ÁREA, DENSIDAD, giro y tamaño al azar), coger-mover-girar-escalar-copiar lo
+  plantado, el menú del botón derecho con el orden de apilado, y las piezas que estorban ya cuentan en el servidor.
+  Construida sobre las láminas `w7sTC0` · `DCs6S` · `SNlGp` · `lWBaU` aprobadas el 2026-09-11.
 - **Rebanada 7 — A MEDIAS** (§ «Rebanada 7»). Confirmada por el dueño el 2026-08-31, y va **ANTES que la 5 y
   la 6** (decisión suya del mismo día): es donde pasa la partida y es lo que menos se ha tocado desde que lo
   pidió (2026-08-20).
@@ -845,159 +837,163 @@ difuminada CAMBIA lo que se ve**, no es sólo aspecto — y dentro se ve **todo 
   no de las siete de la escena.
 
 
-## Rebanada 6 — galería de piezas
+## Rebanada 6 — LA GALERÍA DE PIEZAS (los objetos)
 
-**Para qué**: construir un mapa dentro de la app —poner mobiliario, vegetación, suelos— sin salir a buscar
-imágenes ni montar el plano en otro programa. Es lo que la rebanada 7 dejó apuntado como imposible hasta que
-existieran las capas: «imágenes sueltas movibles esperan a que existan las capas, porque lo primero que hay que
-decidir es en qué capa caen».
+> 🟢 **REESCRITA la noche del 2026-09-12→13 con lo que él decidió el 2026-09-09 y el 2026-09-11, y CONSTRUIDA esa
+> misma noche por orden suya** («*tienes los diseños aprobados, trabaja durante la noche todo lo que puedas, quiero
+> ver la herramienta montada cuando me despierte*»). Lo de abajo sustituye al § de agosto, que decía que las piezas
+> «viven en la CAMPAÑA», que las categorías eran seis cerradas y que no había variación automática: **las tres
+> cosas cambiaron con el rediseño** y manda lo aprobado en `rolvium.pen` (sección 6: `w7sTC0` Catálogo · `DCs6S`
+> Subir en lote · `SNlGp` Barra con Piezas · `lWBaU` Panel de pieza; aprobadas el 2026-09-11).
+>
+> Rama `feat/maps-objetos`. ⏳ Falta que él la pruebe en pantalla y el menú del botón derecho (§ 6.6) pide su
+> lámina en el `.pen`: se construyó con el aspecto del «Menú mandar a capa» que ya existe.
 
-**Quién**: **sólo el director**. Al jugador le llega el resultado pintado, como todo lo demás de la escena.
+**Para qué**: montar un mapa dentro de la app —muebles, árboles, puertas dibujadas, marcas— sin salir a otro
+programa. Es lo que la rebanada 7 dejó apuntado como imposible hasta que existieran las capas.
 
-### 6.1 · Tu biblioteca de piezas
+**Quién**: **planta, mueve y borra el director** de la campaña, como todo lo de una escena. **La biblioteca la
+ordena quien tenga el permiso `manage_props`** («Gestionar piezas», en «Permisos de Rolvium» de la pantalla de
+roles; de serie lo tienen `admin` y `game_master`). Al jugador le llega el resultado pintado.
 
-- El director **sube sus propias imágenes** (una mesa, un roble, una alfombra). **Viven en la CAMPAÑA, no en la
-  escena**: se suben una vez y se usan en todos sus mapas. Es la misma decisión que ya gobierna la biblioteca
-  de fondos, y por el mismo motivo — una pieza que sólo valiera en una escena no es una biblioteca.
-- Cada pieza cae en una **categoría que trae la app** —mobiliario · vegetación · suelos y alfombras · puertas y
-  aberturas · trampas y marcas · varios— y hay **buscador por nombre**.
-  - Categorías cerradas y no etiquetas libres, por elección del dueño (2026-08-31): las etiquetas obligan a
-    etiquetar bien o no se encuentra nada, y el que sube es el mismo que busca.
-- **La subida va por el camino único de `specs/core/images/SPEC.md`** (compresión a WebP en el navegador, tope
-  de entrada 8 MB). ⚠ **La transparencia se conserva**: sin alfa, una mesa llegaría con un recuadro blanco
-  alrededor y la galería entera no serviría de nada.
-- 🔮 **El catálogo de serie queda montado por dentro.** La biblioteca distingue **piezas de la app** de **piezas
-  de la campaña** desde el primer día, aunque hoy sólo existan las segundas. El día que haya dibujos, aparecen
-  sin rehacer nada. **Los dibujos NO son parte de esta rebanada**: eso es arte, se compra o se encarga.
+### 6.1 · La biblioteca es de la HERRAMIENTA, en paquetes
 
-### 6.2 · Su propia ventana — la de fondos no se toca
+- **Lo que se sube sirve para todos** (él, 2026-09-11). Una pieza se sube UNA vez y vale en todos los mapas de
+  todas las campañas — exactamente como las texturas (rebanada 8). El § de agosto que decía «viven en la campaña»
+  **estaba mal y queda anulado**.
+- **Paquetes propios, no categorías cerradas** (él, 2026-09-09). El director crea sus paquetes («Mazmorra propia»,
+  «Bosque de Karen»…), les da nombre, los renombra y los borra. Una pieza está en un paquete o **«Sin clasificar»**.
+  Borrar un paquete NO borra sus piezas: pasan a «Sin clasificar».
+- **DE SERIE · ROLVIUM** son las seis categorías de agosto (mobiliario · vegetación · puertas · suelos · marcas ·
+  varios) y valen SÓLO para las piezas que traiga la app (sin quien las subió). **Hoy no hay ninguna** —los dibujos
+  son arte, se compran o se encargan— así que la sección **no se pinta hasta que exista alguna** (decisión mía,
+  revisable: seis rótulos vacíos en el rail son ruido).
+- **Subir, renombrar, mover de paquete y borrar** piezas, y **crear, renombrar y borrar** paquetes: **por permiso**
+  (`manage_props`), como las texturas — «*por permisos, como las texturas*». Sin él el catálogo se abre igual, se
+  elige y se planta, pero no salen ni «Subir piezas» ni los tres puntos ni «Nuevo paquete». Quien deniega de verdad
+  es la base (`has_tool('manage_props')` en las políticas), no el botón escondido.
+- **Favoritos y Recientes son de cada uno y viven en SU navegador** (`ViewMemoryPort`, como la escena que miraba y
+  el modo del Builder). Decisión mía, revisable: son una comodidad de pantalla, no un dato de la partida.
 
-**Petición literal del dueño (2026-08-31)**: *«crea un modal para cargar componentes pero no uses el mismo de
-los fondos que dará por culo y complicará usar los fondos»*.
+### 6.2 · El catálogo a pantalla completa (`w7sTC0`)
 
-- La galería tiene **ventana propia**, independiente de `BackgroundPopover`. Son dos trabajos distintos —uno es
-  el SUELO de la escena, el otro es el MOBILIARIO— y meterlos en la misma ventana ensuciaría la de fondos, que
-  ya funciona.
-- ⚠ Matiz que no contradice lo anterior: por dentro usa la **carcasa de ventana del sistema de diseño**, la
-  misma que el resto de la app. Lo que no se reaprovecha es el popover de fondos, no la carcasa — si cada
-  ventana se construyera desde cero, dejarían de parecerse entre ellas.
+Se abre desde el panel de pieza («ELEGIR») y desde el botón **Piezas** de la barra cuando no hay sello puesto.
+- **Cabecera**: icono, «Piezas», el paquete abierto, X.
+- **Barra**: buscador («Buscar en todos los paquetes…», sin distinguir mayúsculas ni acentos) · **SUBIR PIEZAS** (sólo
+  con permiso) · AGRUPAR (paquete · ninguno) · ORDENAR (A–Z · más recientes) · tamaño de miniatura.
+- **Rail de paquetes** a la izquierda: Recientes · Favoritos (con su cuenta) · MIS PAQUETES (cada uno con su cuenta,
+  el abierto en sangre; «Sin clasificar» si hay alguna sin paquete) · DE SERIE · ROLVIUM (sólo si hay piezas de la
+  app) · **NUEVO PAQUETE** abajo (sólo con permiso).
+- **Rejilla**: una sección por paquete con su cabecera «Nombre (n piezas)»; la primera baldosa de la sección es
+  **Subir** (con permiso). Cada baldosa: el arte sobre fondo hueco, el nombre, **el punto oro marca las tuyas** y la
+  estrella de favorito. Pinchar la baldosa **la elige como sello** y cierra el catálogo. Los tres puntos (con
+  permiso): renombrar · mover a otro paquete · borrar (pregunta antes: «las ya puestas en los mapas se quedan»).
+- **Leyenda y nota** al pie, literales del `.pen`: «el punto marca las tuyas · las demás las trae Rolvium» y «Las
+  piezas son de la HERRAMIENTA, no de una campaña… Borrar una de aquí NO borra las que ya pusiste en los mapas».
 
-### 6.3 · Poner piezas en el mapa
+### 6.3 · Subir en lote (`DCs6S`)
 
-- **Herramienta nueva** en la barra del director.
-- **El sello se queda puesto**: se elige una pieza y **cada clic planta otra** hasta cambiar de herramienta.
-  Plantar un bosque con «elegir → colocar → volver a la galería» es inviable.
-- **Copiar y pegar** una pieza ya colocada, **con su giro y su tamaño**: cuando ya has ajustado una mesa y
-  quieres cuatro iguales.
-- 🚫 **Sin variación automática** de giro ni tamaño: el dueño eligió el sello exacto (2026-08-31). Lo que se
-  planta es exactamente lo que se ve, no algo parecido.
-- Se mueven, se giran y se escalan con **Seleccionar**, igual que los muros y las luces.
-- **Caen en la capa de OBJETOS** (la natural de su tipo) y con el botón derecho se mandan a cualquier otra
-  capa — eso ya funciona desde la rebanada 7 y no se construye otra vez.
+- Zona de arrastre («Arrastra aquí tus imágenes · PNG o WEBP con fondo transparente · varias a la vez») y el
+  selector de ficheros con varios a la vez.
+- **A QUÉ PAQUETE**: el abierto en el catálogo, cambiable aquí.
+- La cola con estado por fichero: en cola · subiendo · listo · error (el motivo, en palabras).
+- **El nombre del fichero se queda como nombre de la pieza** (sin la extensión); se cambia luego con «Renombrar».
+- Pie: CANCELAR · **AÑADIR N PIEZAS**.
+- **La subida va por el camino único de `specs/core/images/SPEC.md`** (`compressImage` de `@rolvium/ui`), con un
+  destino nuevo **`prop`: 1024 px de lado mayor, calidad 0,9**. ⚠ **La transparencia se conserva**: WebP lleva alfa
+  y el compresor no aplana nada; sin alfa una mesa llegaría con un recuadro blanco y la galería no serviría de nada.
+  El tamaño natural (ancho × alto en px, ya comprimida) se guarda con la pieza: con él y la escala sale la huella sin
+  esperar a que cargue la foto.
+- Las fotos van al bucket `backgrounds` bajo **`props/{id}.webp`** (sin campaña delante, porque no son de ninguna)
+  con su propia política de storage detrás de `manage_props`.
 
-### 6.4 · Cada pieza recuerda su escala
+### 6.4 · El panel de pieza — «mientras plantas» (`lWBaU`)
 
-**Petición del dueño (2026-08-31)**: *«tengo que poder escalar el objeto y siempre se usa la última escala que
-puse»*.
+Sale al pulsar **Piezas** en la barra (bloque del director, **el primero**, antes de Luz: `SNlGp`). 220 de ancho,
+las mismas piezas comunes que el Builder y el Pincel (`FloatingPanel` · `Slider` · `OptionGroup`).
+- **S/1 · LA PIEZA DEL SELLO**: la muestra grande sobre oscuro (el único negro del panel: detrás del arte), su nombre
+  con la estrella de favorito, **ELEGIR** (sangre, abre el catálogo) / **SOLTAR** (quita el sello) · **ESCALA** (×,
+  «se recuerda: el próximo roble sale ya a este tamaño») · **GIRO** (0–355°, con el dado que sortea uno).
+- **S/2 · SIN ABRIR EL CATÁLOGO**: RECIENTES / FAVORITOS y una rejilla de miniaturas con scroll; la del sello con
+  filo sangre. Pinchar una la hace el sello.
+- **S/3 · A QUÉ CAPA VA**: desplegable con las capas; de serie **Objetos**.
+- **S/4 · CUÁNTAS PLANTO**: **UNA** (cada clic planta otra) / **MUCHAS** (arrastras y va sembrando por donde pasas).
+- **S/5 · AL SEMBRAR MUCHAS** (sólo con MUCHAS): **ÁREA** (radio, en casillas) · **DENSIDAD** (baja · media · alta) ·
+  **GIRO AL AZAR** · **TAMAÑO AL AZAR** (±35 % sobre la escala del sello). El «sin variación automática» de agosto
+  queda anulado: **manda el panel aprobado**.
+- Pie: «una: cada clic planta otra · muchas: arrastras y siembra · Esc suelta el sello».
+- **El sello se queda puesto** hasta SOLTAR, Esc o cambiar de herramienta. Sin sello, el clic en el mapa no hace
+  nada y el panel lo dice.
+- **La escala se recuerda POR PIEZA de la biblioteca** (§ 6.4 de agosto, intacto): mover ESCALA con el sello puesto
+  la guarda en la pieza al soltar, y redimensionar una plantada también. El GIRO no se recuerda: es de la sesión.
 
-- Una pieza colocada **se escala** arrastrando de sus esquinas.
-- **La escala se recuerda POR PIEZA de la biblioteca.** Ajustas un roble al tamaño que te gusta y **todos los
-  robles que plantes salen ya a ese tamaño** — en esa escena y en las siguientes, hoy y la semana que viene.
-- Se actualiza **por los dos caminos**: cambiar el tamaño al plantar, o redimensionar una ya colocada.
-- **Por pieza y no una sola para todo**: una mesa y un roble no miden lo mismo, y una escala global obligaría a
-  corregir en cada cambio de pieza, que es justo el trabajo que esto viene a quitar.
-- ✅ **Decisión del agente, avisada**: la escala **mantiene la proporción** — se arrastra de las esquinas y la
-  pieza no se deforma. Estirar sólo a lo ancho (una alfombra) queda fuera; añadirlo luego es aditivo y no
-  obliga a repasar nada de lo ya colocado.
+### 6.5 · Lo plantado: coger, mover, girar, escalar, copiar
 
-### 6.5 · Que estorben de verdad
+- Con **Seleccionar**, pinchar una pieza la coge (marco oro a trazos + cuatro tiradores de esquina + un tirador
+  de giro encima). Arrastrarla la mueve; **los tiradores de esquina la escalan manteniendo la proporción** (y
+  reescriben la escala recordada de su pieza de biblioteca, si sigue existiendo); **el de giro la gira**. Un clic
+  sin arrastre sólo la elige y no escribe nada.
+- **Suprimir** la borra. **Ctrl/Cmd+C y Ctrl/Cmd+V** copian y pegan la cogida **con su giro y su tamaño**, un poco
+  desplazada para que se vea. Pinchar el vacío suelta.
+- **Deshacer**: plantar, borrar, mover, girar y escalar una pieza entran en el historial (Ctrl+Z), como los muros.
+- Orden de dibujo: las piezas van **encima del suelo y las salas y debajo de los muros, los trazos y las fichas**;
+  entre ellas, por su **orden de apilado** (`z`) y de creación. Un jugador las ve si su capa le llega (misma regla
+  que trazos y luces) y por dentro de su visión, como todo.
 
-- Cada pieza tiene un interruptor **«estorba»** con dos casillas independientes: **corta la vista** y **corta el
-  paso**. Son las dos que ya distinguen los muros (`blocks_sight` / `blocks_move`), no dos conceptos nuevos.
-- Lo que estorba es una **forma simple encima de la pieza** —rectángulo o círculo, ajustable—, **no la silueta
-  exacta del dibujo**. La silueta real de un PNG es cara de calcular y da errores raros en los bordes.
-- 🔦 **Si corta la vista, corta también la luz.** No hace falta nada nuevo: la luz se recorta contra los mismos
-  segmentos que la visión (§ 7.2), así que una columna marcada «corta la vista» proyecta su sombra sola. Esto
-  cierra de paso lo que § 7.2 dejó anotado como ausente («una ficha o un objeto no proyectan sombra») **para
-  los objetos** — las fichas siguen sin proyectarla.
-- El dato de «estorba» **se guarda desde el primer día** aunque se empiece sin usarlo: añadirlo después
-  obligaría a repasar todas las piezas ya colocadas de todos los mapas.
+### 6.6 · El menú del botón derecho sobre una pieza (suyo, 2026-09-11 — la 7 de sus siete)
 
-### 6.6 · Elegir a qué capa va un fondo
+«*cada uno al hacerle click derecho tienes que poder mandarlo adelante y atrás como en cualquier programa … top
+layer, down layer etc*». Botón derecho sobre una pieza plantada:
+- **Mandar a la capa** (la lista de capas, como con fichas, trazos y luces).
+- **Traer adelante · Enviar atrás · Traer al frente · Enviar al fondo** — el orden de apilado ENTRE PIEZAS; la capa
+  la sigue decidiendo el bloque de arriba.
+- **Corta la vista · Corta el paso** (interruptores): es el «estorba» de agosto, con la forma simple que ya guarda
+  la fila (su huella entera, rectángulo o círculo según nació la pieza).
+- **Duplicar** · **Borrar la pieza**.
+⏳ Sin lámina propia en el `.pen`: se dibujó con el aspecto del «Menú mandar a capa» aprobado. Pide su lámina.
 
-**Petición del dueño (2026-08-31)**: *«cada fondo se tiene que poder asociar a una capa»*.
+### 6.7 · Que estorben de verdad (intacto desde agosto, y AHORA conectado)
 
-- ⚠ **Esto CAMBIA algo que ya funciona** (rebanada 7), y por eso está escrito aparte: hoy la foto cae en **la
-  capa de terreno que esté activa**, sin decirlo. Si había otra activa, se va donde no se quería.
-- Pasa a ser **explícito**: al poner un fondo se **elige en qué capa se pone**, de una lista con las capas de
-  terreno de la escena más «el fondo de la escena», que es el comportamiento de siempre.
-- **La asociación vive en la ESCENA, no en la biblioteca**: la misma foto puede ser el suelo de una capa en una
-  mazmorra y el de otra capa en otro mapa. Una imagen de la biblioteca **no queda casada** con una capa.
+- Las dos casillas son las de los muros: **corta la vista** y **corta el paso**. La forma que estorba es simple
+  —rectángulo o círculo sobre la pieza—, nunca la silueta del PNG.
+- **El servidor las suma a la geometría** al calcular visión, luz y paredes sólidas (`propBlockSegments` en
+  `@rolvium/core`, girada con la pieza). Una columna marcada «corta la vista» proyecta su sombra sola: la luz se
+  recorta contra los mismos segmentos. Las fichas siguen sin proyectarla.
 
 ### Reglas y límites de esta rebanada
 
-- **Todo es del director.** Un jugador no sube piezas, no las coloca y no las mueve.
-- **Una pieza no es una ficha**: no tiene ficha, ni iniciativa, ni se le tira nada. Si se quiere que algo actúe,
-  eso es un token del bestiario y ya existe.
-- **Borrar una pieza de la biblioteca NO borra las ya puestas en los mapas.** Perder el mobiliario de una
-  mazmorra por limpiar la biblioteca sería un desastre silencioso, y es la misma regla que ya protege a las
-  fichas cuando se borra una capa.
-- **Nada de esto cambia una regla del manual.** Un mueble no da ni quita dados; estorbar es geometría.
-
-### 📥 Suyo, para cuando se construya la galería (apuntado el 2026-09-12)
-
-- **Menú del botón derecho sobre una pieza puesta** (suyo, 2026-09-11, la 7 de sus siete: «*cada uno al hacerle click
-  derecho tienes que poder mandarlo adelante y atrás como en cualquier programa … top layer, down layer etc*»): **traer
-  adelante · enviar atrás · traer al frente · enviar al fondo**. Es el orden de apilado ENTRE PIEZAS de la misma capa —
-  la capa la sigue decidiendo el panel de capas—. Sin diseñar todavía: pide su lámina en el `.pen` y va con la galería,
-  no antes.
+- **Planta, mueve y borra el director**; un jugador no toca una pieza. **Ordena la biblioteca quien tiene el permiso.**
+- **Una pieza no es una ficha**: no tiene ficha, ni iniciativa, ni se le tira nada.
+- **Borrar una pieza de la biblioteca NO borra las ya puestas en los mapas**: lo plantado se lleva su propia foto y
+  su nombre. **Borrar un paquete no borra sus piezas.**
+- **Nada de esto cambia una regla del manual.** Estorbar es geometría.
 
 ### Fuera de alcance (de esta rebanada)
 
-- **Los dibujos del catálogo de serie**: es arte, no código. Se compran o se encargan.
-- **La silueta exacta** del PNG como obstáculo.
-- **Piezas animadas**, **estirado libre** (sin mantener proporción) y **deshacer/rehacer** — este último ya
-  estaba fuera desde la rebanada 7.
-- **Que una FICHA proyecte sombra**: aquí sólo la proyectan los objetos marcados «corta la vista».
-- **Limpieza de imágenes huérfanas** en el bucket: ya estaba fuera en `specs/core/images/SPEC.md`.
+- **Los dibujos del catálogo de serie** (arte). **La silueta exacta** del PNG como obstáculo. **Piezas animadas**
+  y **estirado libre** sin proporción. **Ajustar a mano la forma que estorba** (hoy es la huella entera).
+- **Favoritos compartidos entre dispositivos** (hoy, en el navegador). **Limpieza de imágenes huérfanas** del bucket.
+- **Arrastrar imágenes directamente sobre la escena** para plantarlas: lo que se arrastra cae en el catálogo.
 
 ### Modelo de datos (rebanada 6)
 
-Migración: `supabase/migrations/20260831200000_maps_props.sql`. **Dos tablas, y la separación entre ellas ES la
-regla que pidió el dueño.**
+Migraciones: `20260831200000_maps_props.sql` (el andamio de agosto) y **`20260913100000_maps_props_tool_library.sql`**
+(lo que la vuelve de la herramienta). Las tablas estaban vacías en producción, así que cambiarlas no perdió nada.
 
-- **`maps_props` — LA BIBLIOTECA.** Una pieza que existe para usarse: su **foto**, su **nombre**, su
-  **categoría** (una de las seis cerradas) y el tamaño real del fichero subido. Además guarda lo que la pieza
-  **recuerda**: la **última escala** con la que se usó (§ 6.4) y **con qué estorbo nace** una copia suya
-  (§ 6.5). La escala es **un solo número**, no un ancho y un alto: así redimensionar no puede deformar la
-  pieza, que es la decisión de mantener la proporción.
-  - **`campaign_id` puede ir vacío**, y ahí está el catálogo de serie: vacío = **pieza de la app**, con valor =
-    **pieza de esa campaña**. La distinción existe desde el primer día aunque hoy sólo haya piezas de campaña.
-  - **Quién lee**: el director de esa campaña, y cualquiera las piezas de la app (no hay nada que esconder en
-    el dibujo de una silla). **Un jugador no necesita leerla nunca**: lo plantado se lleva su propia foto.
-  - **Quién escribe**: el director, y **sólo en su campaña** — nadie puede meter nada en el catálogo de la app
-    desde la aplicación; eso se siembra por migración.
-
-- **`maps_scene_props` — LO PLANTADO.** Cada copia puesta en un mapa: **dónde está**, **qué tamaño tiene**,
-  **cuánto está girada**, **en qué capa vive** y **qué estorba**. Lo que estorba es una **forma simple**
-  —rectángulo o círculo, con su tamaño y su desplazamiento respecto al centro—, nunca la silueta del dibujo.
-  - 🔑 **Guarda su propia foto, copiada de la biblioteca al plantarla.** Es lo que hace cumplir la regla
-    «borrar una pieza de la biblioteca no borra las ya puestas en los mapas»: el enlace a la biblioteca puede
-    quedarse vacío y lo plantado sigue entero. La foto del bucket tampoco se borra al borrar la fila.
-  - **Vive en una capa**, y si se borra la capa se va con ella — igual que los dibujos y las luces de la
-    rebanada 7. (Las **fichas** son la excepción a esa regla, y por un buen motivo.)
-  - **Quién lee**: el director todo; un jugador, si la escena le es visible **y** su capa le llega. Exactamente
-    la misma condición que las luces.
-  - **Quién escribe**: sólo el director.
-
-**Lo que NO cambia en la base de datos:**
-- **El § 6.6 («elegir a qué capa va un fondo») no necesita esquema.** La capa ya tiene su foto y su encaje
-  desde la rebanada 7; lo que cambia es que la pantalla deje de dar por hecho «la capa activa» y te la haga
-  elegir. Es trabajo de pantalla, no de datos.
-- **`maps_walls` no se toca.** Una pieza que estorba **no es un muro**: se apunta en su propia fila, y el
-  servidor la suma a la geometría al calcular la visión — que es también lo que hará que proyecte sombra.
-- **No hay bucket nuevo.** Las fotos van al bucket `backgrounds` que ya existe, bajo `{campaña}/props/…`, con
-  el mismo precedente que las máscaras del pincel de transparencia.
+- **`maps_prop_packs` — LOS PAQUETES.** Nombre, orden y quién lo creó. **Leen todos** los que tienen cuenta;
+  **crea, renombra y borra quien tiene `manage_props`**. Borrar uno deja sus piezas «Sin clasificar» (`SET NULL`).
+- **`maps_props` — LA BIBLIOTECA.** Ya **sin campaña**: la pieza pertenece a un **paquete** (o a ninguno) y guarda su
+  foto, su nombre, su categoría de serie (sólo cuenta para las piezas de la app, las que no subió nadie), el tamaño
+  natural del fichero, **la escala que recuerda** y **con qué estorbo nace** una copia. **Leen todos**; **sube quien
+  tiene el permiso y la fila queda a su nombre**; renombra, mueve de paquete y borra quien tiene el permiso.
+- **`maps_scene_props` — LO PLANTADO.** Igual que en agosto (sitio, tamaño, giro, capa, estorbo con su forma simple,
+  **su propia copia de la foto y del nombre**) más **`z`, el orden de apilado** entre piezas de la escena. **Lee** el
+  director todo y el jugador si la escena le es visible y su capa le llega; **escribe sólo el director**.
+- **Storage**: las fotos de la biblioteca van a `backgrounds/props/{id}.webp` con políticas propias detrás de
+  `manage_props`. Borrar la fila no borra el objeto (regla de `specs/core/images/SPEC.md`): es lo que deja vivas las
+  copias plantadas.
+- **Permiso**: `manage_props` en `roles.permissions.tools` (registro `TOOL_PERMISSIONS`, `has_tool('manage_props')`);
+  de serie a `game_master`; `admin` lo tiene por `is_admin()`.
 
 ## Rebanada 8 — habitaciones rápidas (el «generador» de Builder)
 

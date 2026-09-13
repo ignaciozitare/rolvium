@@ -120,7 +120,9 @@
     "toolsPicker": "Rolvium permissions",
     "tool": {
       "manage_textures": "Manage textures",
-      "manage_textures_desc": "Upload, rename, categorise and delete catalog textures. Without it they can only be picked."
+      "manage_textures_desc": "Upload, rename, categorise and delete catalog textures. Without it they can only be picked.",
+      "manage_props": "Manage pieces",
+      "manage_props_desc": "Upload, rename, move between packs and delete gallery pieces, and create or delete packs. Without it they can only be picked and placed."
     }
   },
   "modules": {
@@ -787,7 +789,8 @@
       "light": "Ambient light",
       "mask": "Brush",
       "notInPlayerView": "not while viewing as a player",
-      "draw": "Draw"
+      "draw": "Draw",
+      "props": "Pieces"
     },
     "toolbar": "Canvas tools",
     "probe": {
@@ -1048,12 +1051,14 @@
       "remove": {
         "light": "Delete light",
         "token": "Delete token",
-        "drawing": "Delete drawing"
+        "drawing": "Delete drawing",
+        "prop": "Delete piece"
       },
       "element": {
         "token": "Token",
         "drawing": "Drawing",
-        "light": "Light"
+        "light": "Light",
+        "prop": "Piece"
       },
       "drag": "Drag to reorder"
     },
@@ -1235,7 +1240,12 @@
       "nothingRedo": "Nothing left to redo",
       "token": "the token",
       "light": "the light",
-      "paint": "the brush stroke"
+      "paint": "the brush stroke",
+      "prop": "the piece",
+      "props": "the sown pieces",
+      "propMove": "moving the piece",
+      "propScale": "the piece size",
+      "propRotate": "the piece rotation"
     },
     "builder": {
       "title": "Builder",
@@ -1278,6 +1288,145 @@
       "short": "SIZE",
       "hint": "so they fit through narrow corridors · the ratio between sizes never changes",
       "reading": "a normal token takes up {cells} squares"
+    },
+    "props": {
+      "title": "Pieces",
+      "move": "Move the panel",
+      "close": "Close Pieces",
+      "stamp": {
+        "label": "The stamp piece",
+        "none": "No piece chosen: press PICK and take one from the catalog.",
+        "pick": "Pick",
+        "drop": "Drop",
+        "favorite": "Favourite",
+        "unfavorite": "Remove from favourites",
+        "scale": "Scale",
+        "scaleHint": "remembered: the next {{name}} already comes out this size",
+        "rotation": "Rotation",
+        "random": "A random rotation"
+      },
+      "quick": {
+        "label": "Without opening the catalog",
+        "recent": "Recent",
+        "favorites": "Favourites",
+        "emptyRecent": "You have not placed any yet.",
+        "emptyFavorites": "Star one and it shows up here.",
+        "use": "Use {{name}} as the stamp"
+      },
+      "layer": {
+        "label": "Which layer it goes to"
+      },
+      "count": {
+        "label": "How many I place",
+        "one": "One",
+        "many": "Many",
+        "hint": "with many, you drag and it sows along the way"
+      },
+      "sow": {
+        "label": "When sowing many",
+        "area": "Area",
+        "density": "Density",
+        "low": "low",
+        "mid": "medium",
+        "high": "high",
+        "randomRotation": "Random rotation",
+        "randomScale": "Random size"
+      },
+      "foot": "one: each click places another · many: drag and sow · Esc drops the stamp",
+      "cells": "{{n}} cells",
+      "cell": "1 cell",
+      "canvas": {
+        "label": "Piece {{name}}",
+        "selected": "Piece {{name}}, selected",
+        "scale": "Resize the piece",
+        "rotate": "Rotate the piece"
+      },
+      "menu": {
+        "order": "Stacking order",
+        "forward": "Bring forward",
+        "backward": "Send backward",
+        "front": "Bring to front",
+        "back": "Send to back",
+        "blocks": "Blocks",
+        "blocksSight": "Blocks sight",
+        "blocksMove": "Blocks movement",
+        "duplicate": "Duplicate"
+      },
+      "catalog": {
+        "title": "Pieces",
+        "close": "Close the catalog",
+        "search": "Search all packs…",
+        "upload": "Upload pieces",
+        "group": "Group",
+        "groupPack": "Pack",
+        "groupNone": "None",
+        "sort": "Sort",
+        "sortName": "A–Z",
+        "sortRecent": "Newest",
+        "thumb": "Thumbnail size",
+        "rail": "Packs",
+        "all": "All",
+        "recent": "Recent",
+        "favorites": "Favourites",
+        "myPacks": "My packs",
+        "unsorted": "Unsorted",
+        "builtIn": "Built-in · Rolvium",
+        "newPack": "New pack",
+        "newPackPrompt": "What is the pack called?",
+        "packMenu": "Options for pack “{{name}}”",
+        "renamePack": "Rename pack",
+        "renamePackPrompt": "What do you want to call this pack?",
+        "deletePack": "Delete pack",
+        "deletePackConfirm": "Delete pack “{{name}}”? Its pieces are kept: they become “Unsorted”.",
+        "section": "{{name}} ({{n}} pieces)",
+        "sectionOne": "{{name}} (1 piece)",
+        "uploadTile": "Upload",
+        "pick": "Pick {{name}}",
+        "menu": "Options for “{{name}}”",
+        "rename": "Rename",
+        "renamePrompt": "What do you want to call this piece?",
+        "moveTo": "Move to…",
+        "removeConfirm": "Delete piece “{{name}}” from the library? The ones already placed on maps stay.",
+        "empty": "No piece with that name here.",
+        "emptyAll": "The library is empty: upload your first pieces.",
+        "count": "Pieces · {{n}}",
+        "legend": "the dot marks yours · the rest ship with Rolvium",
+        "note": "Pieces belong to the TOOL, not to a campaign: whatever you upload here works on all your maps. Drag your images in and they land in the open pack. Pick one and the stamp stays on: each click places another. Deleting one here does NOT remove the ones already placed on maps.",
+        "cat": {
+          "furniture": "Furniture",
+          "vegetation": "Vegetation",
+          "floors": "Floors",
+          "doors": "Doors",
+          "markers": "Markers",
+          "misc": "Misc"
+        }
+      },
+      "upload": {
+        "title": "Upload pieces",
+        "close": "Close",
+        "drop": "Drag your images here",
+        "dropHint": "PNG or WEBP with a transparent background · several at once",
+        "browse": "or choose the files",
+        "pack": "Which pack",
+        "unsorted": "Unsorted",
+        "queued": "queued",
+        "uploading": "uploading",
+        "done": "done",
+        "failed": "failed",
+        "note": "The file name becomes the piece name. You can change it later with “Rename”.",
+        "add": "Add {{n}} pieces",
+        "addOne": "Add 1 piece",
+        "adding": "Adding…",
+        "cancel": "Cancel",
+        "remove": "Remove {{name}} from the list",
+        "err": {
+          "mime": "not a usable image (PNG, JPG, WEBP or GIF)",
+          "input-too-large": "weighs more than 8 MB",
+          "output-too-large": "still too heavy after compressing",
+          "decode": "the image could not be read",
+          "upload": "could not upload"
+        }
+      }
     }
   },
   "bestiary": {

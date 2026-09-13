@@ -3,7 +3,7 @@ import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../.
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
-import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
+import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PACK_DUNGEON, PACK_FOREST, PLAYER_USER, PROP_COLUMN, PROP_OAK, SCENE_CHAPEL, SCENE_PROP_COLUMN, SCENE_PROP_OAK, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { SceneTab } from './SceneTab';
 import { DEFAULT_TEXTURE_SCALE } from '../domain/useCases/roomStyles';
@@ -33,14 +33,19 @@ const dibujo = async (u: ReturnType<typeof userEvent.setup>, name: string): Prom
  * Una memoria de vista de mentira: dónde tenía puesto el ojo el director. De serie está EN BLANCO, así que
  * la escena que se abre sale de la activa de la mesa — que es como se comportaba esto antes de existir.
  */
-function fakeViewMemory(last: string | null = null, builderMode: 'photo' | 'draw' | null = null) {
-  const m = { last, seen: [] as string[], builderMode, modes: [] as string[] };
+function fakeViewMemory(last: string | null = null, builderMode: 'photo' | 'draw' | null = null, favorites: string[] = [], recents: string[] = []) {
+  const m = { last, seen: [] as string[], builderMode, modes: [] as string[], favorites, recents };
   return {
     m,
     lastScene: () => m.last,
     rememberScene: (_c: string, id: string) => { m.last = id; m.seen.push(id); },
     lastBuilderMode: () => m.builderMode,
     rememberBuilderMode: (mode: 'photo' | 'draw') => { m.builderMode = mode; m.modes.push(mode); },
+    // ⭐ favoritos y 🕒 recientes de la galería (rebanada 6): de este navegador, como lo demás de aquí.
+    favoriteProps: () => [...m.favorites],
+    toggleFavoriteProp: (id: string) => { m.favorites = m.favorites.includes(id) ? m.favorites.filter(x => x !== id) : [...m.favorites, id]; return [...m.favorites]; },
+    recentProps: () => [...m.recents],
+    rememberRecentProp: (id: string) => { m.recents = [id, ...m.recents.filter(x => x !== id)].slice(0, 18); return [...m.recents]; },
   };
 }
 
@@ -51,8 +56,8 @@ function fakeToolbarOrder(saved: ToolbarOrder | null = null, failSave = false) {
 }
 
 /** Vision always comes from the API — the tests inject a fake port so nothing here ever computes it. */
-function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision = fakeVisionPort(), canManageTextures = true, memory = fakeViewMemory(), canOrderToolbar = false, toolbarOrderPort = fakeToolbarOrder()) {
-  renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio} members={MEMBERS} activeSceneId={activeSceneId} charactersRepo={chars} repo={repo} vision={vision} canManageTextures={canManageTextures} memory={memory} canOrderToolbar={canOrderToolbar} toolbarOrderPort={toolbarOrderPort} />);
+function mount(role: 'dm' | 'player', repo = seed(), activeSceneId: string | null = 'sc-1', chars = fakeCharactersRepo([CHARACTER_KAREN, CHARACTER_OTHER]), vision = fakeVisionPort(), canManageTextures = true, memory = fakeViewMemory(), canOrderToolbar = false, toolbarOrderPort = fakeToolbarOrder(), canManageProps = true) {
+  renderWithProviders(<SceneTab campaignId="c1" role={role} userId={role === 'dm' ? 'u-gm' : PLAYER_USER.id} system={plenilunio} members={MEMBERS} activeSceneId={activeSceneId} charactersRepo={chars} repo={repo} vision={vision} canManageTextures={canManageTextures} canManageProps={canManageProps} memory={memory} canOrderToolbar={canOrderToolbar} toolbarOrderPort={toolbarOrderPort} />);
   return repo;
 }
 
@@ -2652,7 +2657,7 @@ describe('<SceneTab> · el orden de la barra de herramientas', () => {
     mount('dm', seed(), 'sc-1', undefined, undefined, true, undefined, true, ok);
     await screen.findByRole('button', { name: 'Pincel' });
     arrastra('Luz de ambiente', 'Ocultar');
-    await waitFor(() => expect(ok.save).toHaveBeenCalledWith({ play: ['dice', 'select', 'measure', 'pin'], draw: ['draw'], dm: ['wall', 'background', 'mask', 'sep', 'reveal', 'light', 'hide', 'sep', 'encounter', 'placePc'] }));
+    await waitFor(() => expect(ok.save).toHaveBeenCalledWith({ play: ['dice', 'select', 'measure', 'pin'], draw: ['draw'], dm: ['props', 'wall', 'background', 'mask', 'sep', 'reveal', 'light', 'hide', 'sep', 'encounter', 'placePc'] }));
     expect(nombres().slice(-8)).toEqual(['Builder', 'Fondo del mapa', 'Pincel', 'Revelar', 'Luz de ambiente', 'Ocultar', 'Encuentro', 'Colocar PJ']);
     expect(screen.queryByText(/No se pudo guardar el cambio/)).not.toBeInTheDocument();
     document.body.innerHTML = '';
@@ -2713,5 +2718,89 @@ describe('<SceneTab> · el giro de las texturas base', () => {
     expect(repo.sceneUpdates.some(x => 'wallTextureRotation' in x.patch)).toBe(false);
     fireEvent.pointerUp(giro);
     await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { wallTextureRotation: 90 } }));
+  });
+});
+
+/**
+ * LA GALERÍA DE PIEZAS (rebanada 6), de punta a punta en la pantalla: el botón Piezas abre el panel, ELEGIR abre
+ * el catálogo, elegir una la hace el sello, un clic en el mapa la planta con la escala que recuerda, y Esc suelta
+ * el sello. Construida la noche del 2026-09-12→13 sobre las láminas aprobadas el 2026-09-11.
+ */
+describe('<SceneTab> · las piezas (rebanada 6)', () => {
+  const seedProps = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], props: [PROP_OAK, PROP_COLUMN], packs: [PACK_FOREST, PACK_DUNGEON], layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES] });
+  const abrirPiezas = async (u: ReturnType<typeof userEvent.setup>) => {
+    await screen.findByText(/Almacén de Queens/);
+    await u.click(screen.getByRole('button', { name: 'Piezas' }));
+    return screen.getByRole('group', { name: 'Piezas' });
+  };
+
+  it('el botón Piezas es el primero del bloque del director, y abre el panel sin sello', async () => {
+    const u = userEvent.setup();
+    mount('dm', seedProps());
+    const panel = await abrirPiezas(u);
+    expect(panel).toHaveClass('mp-propspanel');
+    expect(within(panel).getByText(/Sin pieza elegida/)).toBeInTheDocument();
+    const dm = document.querySelector('.mp-tool-group.dm')!;
+    expect(dm.querySelector('button')).toHaveAccessibleName('Piezas');
+  });
+
+  it('ELEGIR abre el catálogo con la biblioteca; elegir una la hace el sello y un clic en el mapa la planta con la escala que recuerda', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', seedProps());
+    const panel = await abrirPiezas(u);
+    await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
+    await u.click(await screen.findByRole('button', { name: 'Elegir Roble' }));
+    expect(screen.queryByTestId('mp-propcat')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Piezas' })).getByText('Roble')).toBeInTheDocument();
+    // El fantasma del sello bajo el puntero, y el clic planta: 200 × 300 a escala 1,5 = 300 × 450, encima de todo.
+    fireEvent.pointerMove(canvas(), { clientX: 200, clientY: 220, pointerId: 1 });
+    expect(within(canvas()).getByTestId('mp-prop-ghost')).toBeInTheDocument();
+    fireEvent.pointerDown(canvas(), { clientX: 200, clientY: 220, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.sceneProps).toHaveLength(1));
+    expect(repo.sceneProps[0]).toMatchObject({ name: 'Roble', propId: 'pr-oak', x: 200, y: 220, width: 300, height: 450, rotation: 0, z: 0, layerId: null });
+    // y cada clic planta OTRA: el sello se queda puesto
+    fireEvent.pointerDown(canvas(), { clientX: 400, clientY: 220, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.sceneProps).toHaveLength(2));
+    expect(repo.sceneProps[1]!.z).toBe(1);
+    // Esc suelta el sello
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(within(screen.getByRole('group', { name: 'Piezas' })).getByText(/Sin pieza elegida/)).toBeInTheDocument();
+  });
+
+  it('mover la ESCALA y soltar la guarda en la pieza de la biblioteca (§ 6.4), sólo con el permiso', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', seedProps());
+    const panel = await abrirPiezas(u);
+    await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
+    await u.click(await screen.findByRole('button', { name: 'Elegir Roble' }));
+    const barra = screen.getByRole('slider', { name: 'Escala' });
+    fireEvent.change(barra, { target: { value: '200' } });
+    fireEvent.pointerUp(barra);
+    await waitFor(() => expect(repo.propUpdates).toContainEqual({ id: 'pr-oak', patch: { defaultScale: 2 } }));
+  });
+
+  it('sin el permiso de ordenar la biblioteca el catálogo no ofrece subir, pero planta igual', async () => {
+    const u = userEvent.setup();
+    mount('dm', seedProps(), 'sc-1', undefined, undefined, true, undefined, false, undefined, false);
+    const panel = await abrirPiezas(u);
+    await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
+    await screen.findByRole('button', { name: 'Elegir Roble' });
+    expect(screen.queryByRole('button', { name: /Subir piezas/ })).not.toBeInTheDocument();
+  });
+
+  it('una pieza plantada se coge con Seleccionar, se borra con Suprimir, y el botón derecho ofrece el orden de apilado', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], sceneProps: [SCENE_PROP_OAK, { ...SCENE_PROP_COLUMN, layerId: null }], layers: [LAYER_OBJECTS] }));
+    await screen.findByText(/Almacén de Queens/);
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
+    fireEvent.contextMenu(canvas(), { clientX: 700, clientY: 200 });
+    await u.click(await screen.findByRole('menuitem', { name: 'Enviar al fondo' }));
+    await waitFor(() => expect(repo.sceneProps.find(p => p.id === 'sp-col')!.z).toBe(0));
+    expect(repo.sceneProps.find(p => p.id === 'sp-oak')!.z).toBe(1);
+    fireEvent.pointerDown(canvas(), { clientX: 400, clientY: 300, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    expect(within(canvas()).getByTestId('mp-prop-frame')).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Delete' });
+    await waitFor(() => expect(repo.sceneProps.map(p => p.id)).toEqual(['sp-col']));
   });
 });

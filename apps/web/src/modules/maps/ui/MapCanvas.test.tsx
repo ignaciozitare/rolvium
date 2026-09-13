@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
-import { DRAWING_MINE, DRAWING_OTHER, LAYERS_ALL, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES, LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
+import { DRAWING_MINE, DRAWING_OTHER, LAYERS_ALL, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES, LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_PROP_COLUMN, SCENE_PROP_OAK, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import type { Tool } from '../domain/useCases/mapRules';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { DOOR_BAR_PX, doorPatternId } from '../domain/useCases/mapRules';
@@ -2749,5 +2749,133 @@ describe('<MapCanvas> lo que no cambia no se vuelve a pintar', () => {
     expect(within(svg).queryByTestId('mp-fog-unseen')).toBeNull();
     expect(within(svg).queryByTestId('mp-fog-frame')).toBeNull();
     expect(within(svg).getByTestId('mp-fog-veil')).toBeInTheDocument();
+  });
+});
+
+/**
+ * LAS PIEZAS PLANTADAS (rebanada 6, § 6.5): se pintan encima del suelo y debajo de los muros, en su orden de
+ * apilado; con Seleccionar se cogen, se mueven, se estiran por las esquinas manteniendo la proporción y se giran
+ * por el tirador de arriba. Con la herramienta Piezas, un clic planta (UNA) o un arrastre siembra (MUCHAS).
+ */
+describe('<MapCanvas> las piezas plantadas', () => {
+  const OAK = SCENE_PROP_OAK;         // (400, 300), 300 × 450, z 0, capa natural (objetos)
+  const COL = SCENE_PROP_COLUMN;      // (700, 200), 100 × 100, z 1, en NOTAS DEL DIRECTOR
+  const dm = { isDm: true, me: 'u-gm', tool: 'select' as const, sceneProps: [COL, OAK], layers: LAYERS_ALL };
+  const propCb = () => ({ onSelectProp: vi.fn(), onMoveProp: vi.fn(), onScaleProp: vi.fn(), onRotateProp: vi.fn(), onPlantProp: vi.fn(), onSow: vi.fn(), onSowEnd: vi.fn() });
+
+  it('se pintan en su orden de apilado, cada una girada alrededor de su centro, y bajo los muros', () => {
+    const { svg } = mount({ ...dm, sceneProps: [{ ...COL, layerId: null, rotation: 30 }, OAK] });
+    const capa = within(svg).getByTestId('mp-props');
+    const ids = [...capa.querySelectorAll('[data-prop-id]')].map(g => g.getAttribute('data-prop-id'));
+    expect(ids).toEqual(['sp-oak', 'sp-col']);   // z 0 primero: se pinta debajo
+    expect(capa.querySelector('[data-prop-id="sp-col"]')!.getAttribute('transform')).toBe('translate(700 200) rotate(30)');
+    expect(capa.querySelector('[data-prop-id="sp-oak"] image')!.getAttribute('width')).toBe('300');
+    // La capa de piezas va ANTES que la de muros en el DOM: debajo al pintar.
+    const layers = [...svg.querySelectorAll('.mp-layer-map > g')].map(g => g.getAttribute('class') ?? '');
+    expect(layers.indexOf('mp-layer-props')).toBeLessThan(layers.indexOf('mp-layer-walls'));
+  });
+
+  it('un jugador no ve la de «Notas del director»; el director sí', () => {
+    const { svg } = mount({ ...dm, isDm: false, me: PLAYER_USER.id });
+    expect(within(svg).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(1);
+    document.body.innerHTML = '';
+    const { svg: svg2 } = mount(dm);
+    expect(within(svg2).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2);
+  });
+
+  it('con Seleccionar, pinchar una la coge y suelta lo demás; un clic sin arrastre no guarda nada', () => {
+    const cb = propCb();
+    const { svg, cb: base } = mount({ ...dm, ...cb });
+    down(svg, 400, 300);
+    up(svg);
+    expect(cb.onSelectProp).toHaveBeenCalledWith('sp-oak');
+    expect(base.onSelectLight).toHaveBeenCalledWith(null);
+    expect(cb.onMoveProp).not.toHaveBeenCalled();
+    // y pinchar el vacío la suelta
+    down(svg, 50, 50);
+    expect(cb.onSelectProp).toHaveBeenLastCalledWith(null);
+  });
+
+  it('entre dos, se coge la de más arriba', () => {
+    const cb = propCb();
+    const { svg } = mount({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null, x: 400, y: 300 }] });
+    down(svg, 400, 300);
+    expect(cb.onSelectProp).toHaveBeenCalledWith('sp-col');
+  });
+
+  it('arrastrarla la mueve: se pinta donde va el dedo y se guarda al soltar', () => {
+    const cb = propCb();
+    const { svg } = mount({ ...dm, ...cb });
+    down(svg, 400, 300);
+    move(svg, 440, 330);
+    expect(svg.querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toBe('translate(440 330) rotate(0)');
+    up(svg);
+    expect(cb.onMoveProp).toHaveBeenCalledWith('sp-oak', { x: 440, y: 330 });
+  });
+
+  it('la cogida enseña su marco, cuatro tiradores y el de giro; estirar desde una esquina mantiene la proporción', () => {
+    const cb = propCb();
+    const { svg } = mount({ ...dm, ...cb, selectedPropId: 'sp-oak' });
+    expect(within(svg).getByTestId('mp-prop-frame')).toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-prop-handles').querySelectorAll('.mp-prop-handle')).toHaveLength(4);
+    // La esquina de abajo a la derecha está en (550, 525); la mano al doble de distancia del centro → el doble.
+    down(svg, 550, 525);
+    move(svg, 700, 750);
+    up(svg);
+    expect(cb.onScaleProp).toHaveBeenCalledWith('sp-oak', { width: 600, height: 900 });
+    expect(cb.onMoveProp).not.toHaveBeenCalled();
+  });
+
+  it('el tirador de arriba la gira hacia donde apunta la mano', () => {
+    const cb = propCb();
+    const { svg } = mount({ ...dm, ...cb, selectedPropId: 'sp-oak' });
+    // El tirador de giro está a 22 px de pantalla por encima del borde de arriba: (400, 300 − 225 − 22).
+    down(svg, 400, 53);
+    move(svg, 900, 300);
+    up(svg);
+    expect(cb.onRotateProp).toHaveBeenCalledWith('sp-oak', 90);
+  });
+
+  it('Escape suelta la pieza cogida, como todo lo demás', () => {
+    const cb = propCb();
+    mount({ ...dm, ...cb, selectedPropId: 'sp-oak' });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(cb.onSelectProp).toHaveBeenCalledWith(null);
+  });
+
+  it('el botón derecho sobre una pieza abre SU menú, con lo que es', () => {
+    const { svg, cb } = mount(dm);
+    fireEvent.contextMenu(svg, { clientX: 400, clientY: 300 });
+    expect(cb.onContextMenu).not.toHaveBeenCalled();
+    expect((cb as unknown as { onElementMenu: ReturnType<typeof vi.fn> }).onElementMenu ?? vi.fn()).toBeDefined();
+  });
+
+  it('con la herramienta Piezas y un sello, UNA: cada clic planta donde se pulsa; sin sello no pasa nada', () => {
+    const cb = propCb();
+    const stamp = { imageUrl: 'https://x/oak.webp', width: 300, height: 450, rotation: 15 };
+    const { svg, rerender } = mount({ ...dm, ...cb, tool: 'props', stamp, sowing: false });
+    down(svg, 120, 140);
+    expect(cb.onPlantProp).toHaveBeenCalledWith({ x: 120, y: 140 });
+    // El fantasma del sello sigue al puntero, girado como va a caer.
+    move(svg, 200, 200);
+    expect(within(svg).getByTestId('mp-prop-ghost').querySelector('g')!.getAttribute('transform')).toBe('translate(200 200) rotate(15)');
+    rerender({ ...dm, ...cb, tool: 'props', stamp: null });
+    down(svg, 120, 140);
+    expect(cb.onPlantProp).toHaveBeenCalledTimes(1);
+  });
+
+  it('MUCHAS: arrastrar siembra por donde pasa la mano y avisa al soltar; la silueta enseña el área', () => {
+    const cb = propCb();
+    const stamp = { imageUrl: 'https://x/oak.webp', width: 30, height: 45, rotation: 0 };
+    const { svg } = mount({ ...dm, ...cb, tool: 'props', stamp, sowing: true, sowRadiusPx: 81 });
+    move(svg, 100, 100);
+    expect(within(svg).getByTestId('mp-prop-ghost').querySelector('.mp-prop-sowarea')!.getAttribute('r')).toBe('81');
+    down(svg, 100, 100);
+    expect(cb.onSow).toHaveBeenCalledWith({ x: 100, y: 100 }, true);
+    move(svg, 160, 100);
+    expect(cb.onSow).toHaveBeenLastCalledWith({ x: 160, y: 100 }, false);
+    up(svg);
+    expect(cb.onSowEnd).toHaveBeenCalled();
+    expect(cb.onPlantProp).not.toHaveBeenCalled();
   });
 });

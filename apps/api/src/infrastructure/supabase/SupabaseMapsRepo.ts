@@ -85,10 +85,10 @@ export class SupabaseMapsRepo implements IMapsRepository {
     return ((data ?? []) as unknown as LayerRow[]).map(r => ({ id: r.id, kind: r.kind, visible: r.visible }));
   }
 
-  async listSightBlockingProps(sceneId: string): Promise<ScenePropRecord[]> {
+  async listBlockingProps(sceneId: string): Promise<ScenePropRecord[]> {
     const { data, error } = await this.db.from('maps_scene_props')
       .select('id, layer_id, x, y, rotation, blocks_sight, blocks_move, block_shape, block_w, block_h, block_dx, block_dy')
-      .eq('scene_id', sceneId).eq('blocks_sight', true);
+      .eq('scene_id', sceneId).or('blocks_sight.eq.true,blocks_move.eq.true');
     this.fail(error);
     return ((data ?? []) as unknown as ScenePropRow[]).map(r => ({
       id: r.id, layerId: r.layer_id, x: r.x, y: r.y, rotation: r.rotation,

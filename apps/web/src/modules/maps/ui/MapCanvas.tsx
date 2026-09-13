@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import type { SceneVision } from '@rolvium/core';
-import type { BandTip, Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, Token, Wall, WallKind } from '../domain/entities/Scene';
+import type { BandTip, Drawing, DrawingKind, Layer, Light, Room, RoomOpening, RoomShapeKind, Scene, SceneProp, Token, Wall, WallKind } from '../domain/entities/Scene';
 import { brushRadius, canEraseDrawing, canMoveDrawing, canMoveToken, canvasToScene, distanceCells, distanceLabel, drawingsInRect, hitOpening, hitTest, hitWall, isBrush, midpoint, rectFrom, shapeData, slideToken, tokenCenter, tokenPointAt, tokenRadiusPx, moveBlockers, tokensInRect, translateDrawing, wallDragTo, zoomAt, doorTexturesUsed, type Point, type Segment, type Tool, type View } from '../domain/useCases/mapRules';
 import type { LiveDrag, LivePin } from './useScene';
 import { brushRings, DEFAULT_BAND_ROUGHNESS, type BandEdge, freehandSides, isDragShape, isLineShape, lineSide, MIN_FILL_CELLS, MIN_LINE_CELLS, MIN_ROOM_CELLS, roomSides, type BuildKind, type BuilderMode, type RoomShape, type RoomSide } from '../domain/useCases/roomRules';
@@ -12,6 +12,7 @@ import { RoomsLayer, roomMaskIds } from './roomsLayer';
 import { ringFromSides, ringPath, roomAt, roomWallsOf } from '../domain/useCases/roomStyles';
 import { roomMoveSegments } from '@rolvium/core';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
+import { hitProp, paintOrderProps, PROP_CORNERS, propCorners, rotateHandleAt, rotationToward, scaleFromCorner, type PropCorner } from '../domain/useCases/propRules';
 
 export interface StrokeStyle { color: string; width: number }
 
@@ -244,6 +245,28 @@ interface Props {
   onMoveDrawings?: (batch: { id: string; data: Drawing['data'] }[]) => void;
   /** Mover un trazo: sus coordenadas ya desplazadas. Sólo el director (lo manda la RLS, no la pantalla). */
   onMoveDrawing?: (id: string, data: Drawing['data']) => void;
+  /**
+   * ── LAS PIEZAS PLANTADAS (rebanada 6) ──
+   * Se pintan encima del suelo y las salas y debajo de los muros, los trazos y las fichas; un jugador las ve
+   * si su capa le llega (misma regla que trazos y luces). Con Seleccionar se cogen, se mueven, se estiran por
+   * las esquinas (manteniendo la proporción) y se giran por el tirador de arriba (§ 6.5).
+   */
+  sceneProps?: SceneProp[];
+  selectedPropId?: string | null;
+  onSelectProp?: (id: string | null) => void;
+  onMoveProp?: (id: string, at: Point) => void;
+  onScaleProp?: (id: string, size: { width: number; height: number }) => void;
+  onRotateProp?: (id: string, rotation: number) => void;
+  /** EL SELLO: lo que se va a plantar, para pintar su fantasma bajo el puntero. `null` = sin sello. */
+  stamp?: { imageUrl: string; width: number; height: number; rotation: number } | null;
+  /** UNA (§ 6.4): cada clic planta otra donde se pulsa. */
+  onPlantProp?: (at: Point) => void;
+  /** MUCHAS: arrastrar siembra. Aquí sólo se dice por dónde pasa la mano; cuándo cae otra lo decide el padre. */
+  sowing?: boolean;
+  onSow?: (at: Point, start: boolean) => void;
+  onSowEnd?: () => void;
+  /** El radio del área de siembra en px de escena, para la silueta bajo el puntero. */
+  sowRadiusPx?: number;
 }
 
 type Gesture =
@@ -279,7 +302,12 @@ type Gesture =
   | { kind: 'marquee'; start: Point; last: Point; porDentro: string | null }
   | { kind: 'measure' }
   /** Arrastrando la sonda de prueba. No lleva id: sólo hay una y no es de nadie. */
-  | { kind: 'probe' };
+  | { kind: 'probe' }
+  /** Coger, estirar y girar una pieza plantada (§ 6.5), y sembrar muchas (§ 6.4). */
+  | { kind: 'propMove'; id: string; start: Point; origin: Point; moved: boolean }
+  | { kind: 'propScale'; id: string; corner: PropCorner; moved: boolean }
+  | { kind: 'propRotate'; id: string; moved: boolean }
+  | { kind: 'sow' };
 
 type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
 /** Tools whose press opens a gesture, so the open/close disc can wait for the release instead of stealing it. */
@@ -299,6 +327,8 @@ const DEAD_ZONE_PX = 4;
 const LIGHT_PICK_TOOLS: Tool[] = ['light', 'select'];
 /** El radio, EN PÍXELES DE PANTALLA, del disco que se pinta sobre una luz y por el que se la agarra. */
 const LIGHT_HANDLE_R = 14;
+/** A cuántos px de PANTALLA por encima de la pieza cogida va su tirador de giro (rebanada 6, § 6.5). */
+const PROP_ROTATE_GAP = 22;
 const DRAW_TOOLS: Record<string, DrawTool> = { pencil: 'stroke', line: 'line', rect: 'rect', circle: 'circle' };
 const PIN_MS = 2500;
 /** Centésima de casilla: suficiente para que el movimiento se vea libre y no manda 14 decimales por la red. */
@@ -366,6 +396,8 @@ export function MapCanvas(p: Props): JSX.Element {
   const [lightDraft, setLightDraft] = useState<{ id: string; x: number; y: number } | null>(null);
   /** Cuánto se lleva movido el trazo que se arrastra. Se pinta ya; se guarda al soltar. */
   const [drawingDraft, setDrawingDraft] = useState<{ id: string; dx: number; dy: number } | null>(null);
+  /** Dónde y cómo se está viendo la pieza mientras se arrastra, estira o gira. Se pinta ya; se guarda al soltar. */
+  const [propDraft, setPropDraft] = useState<{ id: string; x?: number; y?: number; width?: number; height?: number; rotation?: number } | null>(null);
   /** In a ref so the key listener never has to be re-bound as the selection changes. */
   const onDeleteRef = useRef<() => void>(() => {});
   /** COGERLO TODO con Ctrl/Cmd + A. Por referencia, como el borrar: el oyente del teclado se monta una vez. */
@@ -458,7 +490,7 @@ export function MapCanvas(p: Props): JSX.Element {
       p.onSelectRoomOpening?.(null);
       p.onSelectToken(null);
       p.onSelectLight?.(null);
-      p.onSelectDrawing?.(null);
+      p.onSelectDrawing?.(null); p.onSelectProp?.(null);
       p.onSelectWalls?.(p.walls.map(w => w.id));
     };
   });
@@ -476,7 +508,7 @@ export function MapCanvas(p: Props): JSX.Element {
     const onControl = (t: EventTarget | null): boolean =>
       !!(t as HTMLElement | null)?.closest?.('button, a[href], input, select, textarea, summary, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="radio"], [role="tab"], [contenteditable="true"]');
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setWallStart(null); setBandDraft([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); setDrawingDraft(null); setGroupDraft(null); p.onSelectWalls?.([]); return; }
+      if (e.key === 'Escape') { setWallStart(null); setBandDraft([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); p.onSelectProp?.(null); setDrawingDraft(null); setGroupDraft(null); p.onSelectWalls?.([]); return; }
       if (e.key === ' ' && !typing(e.target) && !onControl(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
       /**
@@ -532,7 +564,7 @@ export function MapCanvas(p: Props): JSX.Element {
     p.onSelectWall?.(null);
     p.onSelectRoomOpening?.(null);
     p.onSelectLight?.(null);
-    p.onSelectDrawing?.(null);
+    p.onSelectDrawing?.(null); p.onSelectProp?.(null);
     if (!canMoveToken(tok, p.me, p.isDm)) return;
     svgRef.current?.setPointerCapture?.(e.pointerId);
     setGesture({ kind: 'token', id: tok.id, start: toScene(e), origin: { x: tok.x, y: tok.y }, moved: false });
@@ -590,6 +622,25 @@ export function MapCanvas(p: Props): JSX.Element {
        * y una puerta bajo una antorcha no se podía ni elegir ni configurar. Con algo debajo, la luz vuelve a
        * exigir su disco de verdad (12 px), que es lo que se ve; en el vacío sigue perdonando como antes.
        */
+      /**
+       * LOS TIRADORES DE LA PIEZA COGIDA van antes que nada (§ 6.5): se pintan encima de todo y tienen que
+       * robar el clic a lo que haya debajo, igual que los del grupo. Las esquinas estiran; el de arriba gira.
+       */
+      if (dmSight && selectedProp) {
+        const rot = rotateHandleAt(selectedProp, PROP_ROTATE_GAP / p.view.zoom);
+        if (Math.hypot(s.x - rot.x, s.y - rot.y) <= 10 / p.view.zoom) {
+          setGesture({ kind: 'propRotate', id: selectedProp.id, moved: false });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
+        const esquinas = propCorners(selectedProp);
+        const corner = PROP_CORNERS.find(k => Math.hypot(s.x - esquinas[k].x, s.y - esquinas[k].y) <= 9 / p.view.zoom);
+        if (corner) {
+          setGesture({ kind: 'propScale', id: selectedProp.id, corner, moved: false });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
+      }
       const debajo = dmSight ? (hitWall(p.walls, s, 10 / p.view.zoom) ?? hitWall(p.roomOpenings ?? [], s, 10 / p.view.zoom)) : null;
       const holguraLuz = (l: Light): number =>
         (debajo ? 12 / p.view.zoom : Math.max(12 / p.view.zoom, lightRadiusPx(l, p.scene.grid) * 0.25));
@@ -598,7 +649,7 @@ export function MapCanvas(p: Props): JSX.Element {
         p.onSelectToken(null);
         p.onSelectWall?.(null);
         p.onSelectRoomOpening?.(null);
-        p.onSelectDrawing?.(null);
+        p.onSelectDrawing?.(null); p.onSelectProp?.(null);
         p.onSelectLight?.(light.id);
         /**
          * ELEGIR es generoso; AGARRAR exige acertar el disco que se ve.
@@ -674,7 +725,7 @@ export function MapCanvas(p: Props): JSX.Element {
           if (!grupo.every(g => (p.selectedWallIds ?? []).includes(g.id))) {
             p.onSelectToken(null);
             p.onSelectLight?.(null);
-            p.onSelectDrawing?.(null);
+            p.onSelectDrawing?.(null); p.onSelectProp?.(null);
             p.onSelectWall?.(null);
             p.onSelectRoomOpening?.(null);
             p.onSelectWalls?.(grupo.map(g => g.id));
@@ -689,7 +740,7 @@ export function MapCanvas(p: Props): JSX.Element {
         p.onSelectToken(null);
         // Suelta la luz y el trazo: si no, quedaría algo elegido sin verse y Suprimir se confundiría de víctima.
         p.onSelectLight?.(null);
-        p.onSelectDrawing?.(null);
+        p.onSelectDrawing?.(null); p.onSelectProp?.(null);
         p.onSelectWall?.(wall.id);
         p.onSelectRoomOpening?.(null);
         const near = (x: number, y: number) => Math.hypot(s.x - x, s.y - y) <= 12 / p.view.zoom;
@@ -709,7 +760,7 @@ export function MapCanvas(p: Props): JSX.Element {
         p.onSelectWall?.(null);
         p.onSelectWalls?.([]);
         p.onSelectLight?.(null);
-        p.onSelectDrawing?.(null);
+        p.onSelectDrawing?.(null); p.onSelectProp?.(null);
         p.onSelectRoomOpening?.(opening.id);
         return;
       }
@@ -741,12 +792,30 @@ export function MapCanvas(p: Props): JSX.Element {
         }
         return;
       }
+      /**
+       * Y LA PIEZA PLANTADA (§ 6.5), después del trazo y antes del vacío: se pinta debajo de los trazos, así
+       * que un trazo encima se lleva el clic. Se coge la de más arriba; arrastrar la mueve, un clic la elige.
+       */
+      const pieza = dmSight ? hitProp(propsShown, s) : null;
+      if (pieza) {
+        p.onSelectToken(null);
+        p.onSelectWall?.(null);
+        p.onSelectRoomOpening?.(null);
+        p.onSelectLight?.(null);
+        p.onSelectDrawing?.(null);
+        p.onSelectDrawings?.([]);
+        p.onSelectWalls?.([]);
+        p.onSelectProp?.(pieza.id);
+        setGesture({ kind: 'propMove', id: pieza.id, start: s, origin: { x: pieza.x, y: pieza.y }, moved: false });
+        svgRef.current?.setPointerCapture?.(e.pointerId);
+        return;
+      }
       p.onSelectToken(null);
       p.onSelectWall?.(null);
       p.onSelectRoomOpening?.(null);
       // Pinchar en vacío suelta TODO, la luz, el trazo y el grupo: es la forma de soltar sin buscar una X.
       p.onSelectLight?.(null);
-      p.onSelectDrawing?.(null);
+      p.onSelectDrawing?.(null); p.onSelectProp?.(null);
       p.onSelectDrawings?.([]);
       p.onSelectWalls?.([]);
       // Se apunta ANTES de soltar la selección: al levantar el dedo ya no habría de dónde saberlo.
@@ -778,6 +847,16 @@ export function MapCanvas(p: Props): JSX.Element {
           return;
         }
         p.onPlaceLight?.(s);
+        return;
+      }
+      /**
+       * PLANTAR (rebanada 6). Sin sello el clic no hace nada —el panel ya lo dice—. UNA: cada clic planta otra.
+       * MUCHAS: arrastrar siembra, y aquí sólo se avisa por dónde pasa la mano; cuándo cae otra lo decide el padre.
+       */
+      case 'props': {
+        if (!dmSight || !p.stamp) return;
+        if (p.sowing) { setGesture({ kind: 'sow' }); p.onSow?.(s, true); svgRef.current?.setPointerCapture?.(e.pointerId); return; }
+        p.onPlantProp?.(s);
         return;
       }
       case 'erase': { const hit = hitTest(p.drawings, s, 6 / p.view.zoom); if (hit && canEraseDrawing(hit, p.me, p.isDm)) p.onErase(hit.id); return; }
@@ -1067,6 +1146,20 @@ export function MapCanvas(p: Props): JSX.Element {
       // la grilla (2026-08-21, sobre las fichas). Se pinta al momento; el guardado espera a que suelte.
       setLightDraft({ id: gesture.id, x: gesture.origin.x + (s.x - gesture.start.x), y: gesture.origin.y + (s.y - gesture.start.y) });
       if (!gesture.moved) setGesture({ ...gesture, moved: true });
+    } else if (gesture.kind === 'propMove') {
+      // Libre, sin rejilla, como las luces y los trazos: se pinta al momento y se guarda al soltar.
+      if (gesture.moved || Math.hypot(s.x - gesture.start.x, s.y - gesture.start.y) > DEAD_ZONE_PX / p.view.zoom) {
+        setPropDraft({ id: gesture.id, x: gesture.origin.x + (s.x - gesture.start.x), y: gesture.origin.y + (s.y - gesture.start.y) });
+        if (!gesture.moved) setGesture({ ...gesture, moved: true });
+      }
+    } else if (gesture.kind === 'propScale') {
+      const pieza = (p.sceneProps ?? []).find(x => x.id === gesture.id);
+      if (pieza) { setPropDraft({ id: gesture.id, ...scaleFromCorner(pieza, s) }); if (!gesture.moved) setGesture({ ...gesture, moved: true }); }
+    } else if (gesture.kind === 'propRotate') {
+      const pieza = (p.sceneProps ?? []).find(x => x.id === gesture.id);
+      if (pieza) { setPropDraft({ id: gesture.id, rotation: rotationToward(pieza, s) }); if (!gesture.moved) setGesture({ ...gesture, moved: true }); }
+    } else if (gesture.kind === 'sow') {
+      p.onSow?.(s, false);
     } else if (gesture.kind === 'brush') {
       // Same rate limit as the token drag: every call is a round trip that rewrites the fog row of EVERY player
       // and wakes the whole table through `fog.updated`. One per pointermove would be ~60 a second.
@@ -1096,6 +1189,8 @@ export function MapCanvas(p: Props): JSX.Element {
     if (li) return { kind: 'light', id: li.id, name: '', layerId: li.layerId };
     const d = hitTest(drawingsShown, s, 6 / p.view.zoom);
     if (d) return { kind: 'drawing', id: d.id, name: '', layerId: d.layerId };
+    const pr = hitProp(propsShown, s);
+    if (pr) return { kind: 'prop', id: pr.id, name: pr.name, layerId: pr.layerId };
     return null;
   };
 
@@ -1188,6 +1283,18 @@ export function MapCanvas(p: Props): JSX.Element {
       else if (moved) p.onMoveWall?.(gesture.id, at);
       setGroupDraft(null);
       setWallDraft(null);
+      setGesture(null);
+      return;
+    }
+    if (gesture.kind === 'sow') { setGesture(null); p.onSowEnd?.(); return; }
+    if (gesture.kind === 'propMove' || gesture.kind === 'propScale' || gesture.kind === 'propRotate') {
+      // Un clic sin arrastre sólo la ELIGE: escribir en la base por cada clic sobraría, igual que con la luz.
+      if (gesture.moved && propDraft && propDraft.id === gesture.id) {
+        if (gesture.kind === 'propMove' && propDraft.x !== undefined && propDraft.y !== undefined) p.onMoveProp?.(gesture.id, { x: round2(propDraft.x), y: round2(propDraft.y) });
+        if (gesture.kind === 'propScale' && propDraft.width !== undefined && propDraft.height !== undefined) p.onScaleProp?.(gesture.id, { width: propDraft.width, height: propDraft.height });
+        if (gesture.kind === 'propRotate' && propDraft.rotation !== undefined) p.onRotateProp?.(gesture.id, propDraft.rotation);
+      }
+      setPropDraft(null);
       setGesture(null);
       return;
     }
@@ -1358,6 +1465,20 @@ export function MapCanvas(p: Props): JSX.Element {
   const roomIds = useMemo(() => roomMaskIds(p.scene.id), [p.scene.id]);
   const drawingsShown = layers.length === 0 ? p.drawings : p.drawings.filter(d => isPainted(resolveLayer(layers, d.layerId, 'drawing'), dmSight));
   /**
+   * LAS PIEZAS PLANTADAS que se pintan (rebanada 6): las de las capas que se ven, en su orden de apilado, y la
+   * que se está arrastrando, estirando o girando ya donde va el dedo. `useMemo` para que una lista estable no
+   * rehaga la capa entera en cada fotograma del arrastre de una ficha.
+   */
+  const propsAll = useMemo(() => {
+    const src = p.sceneProps ?? [];
+    return paintOrderProps(layers.length === 0 ? src : src.filter(sp => isPainted(resolveLayer(layers, sp.layerId, 'prop'), dmSight)));
+  }, [p.sceneProps, layers, dmSight]);
+  const propsShown = useMemo(
+    () => (propDraft ? propsAll.map(sp => (sp.id === propDraft.id ? { ...sp, ...propDraft } : sp)) : propsAll),
+    [propDraft, propsAll],
+  );
+  const selectedProp = p.selectedPropId ? propsShown.find(sp => sp.id === p.selectedPropId) ?? null : null;
+  /**
    * Mientras se arrastra una luz se pinta donde va el dedo, no donde está guardada: el resplandor, su aro y
    * su disco de clic salen todos de esta lista, así que con cambiarla aquí se mueve el conjunto de una pieza.
    */
@@ -1452,6 +1573,21 @@ export function MapCanvas(p: Props): JSX.Element {
       <g transform={`translate(${p.view.panX} ${p.view.panY}) scale(${p.view.zoom})`}>
         <g className="mp-layer-map" data-testid="mp-map">
           {dmSight && fog && p.fogVeil !== false && <rect {...sceneRect} className="mp-fog-veil" mask={url(fogIds.unexplored)} data-testid="mp-fog-veil" />}
+          {/*
+            * LAS PIEZAS (rebanada 6): encima del suelo y las salas, debajo de los muros, los trazos y las fichas.
+            * Cada una girada alrededor de su centro; la cogida lleva su marco. Con `preserveAspectRatio="none"`
+            * porque la huella ya sale del tamaño natural por UNA escala: la proporción la garantiza el dato.
+            */}
+          <g className="mp-layer-props" data-testid="mp-props">
+            {propsShown.map(sp => (
+              <g key={sp.id} className={`mp-prop ${sp.id === p.selectedPropId ? 'selected' : ''} ${dmSight && p.tool === 'select' ? 'movable' : ''}`}
+                transform={`translate(${sp.x} ${sp.y}) rotate(${sp.rotation})`} data-prop-id={sp.id} role="img"
+                aria-label={t(sp.id === p.selectedPropId ? 'maps.props.canvas.selected' : 'maps.props.canvas.label', { name: sp.name })}>
+                <image href={sp.imageUrl} x={-sp.width / 2} y={-sp.height / 2} width={sp.width} height={sp.height} preserveAspectRatio="none" />
+                {sp.id === p.selectedPropId && <rect className="mp-prop-frame" x={-sp.width / 2} y={-sp.height / 2} width={sp.width} height={sp.height} data-testid="mp-prop-frame" />}
+              </g>
+            ))}
+          </g>
           <g className="mp-layer-walls" data-testid="mp-walls">
             {wallsShown.map(w => (
               <WallShape key={w.id} wall={w} sceneDoorColor={p.scene.doorColor} sceneDoorTexture={p.scene.doorTextureUrl}
@@ -1547,6 +1683,34 @@ export function MapCanvas(p: Props): JSX.Element {
           </>)}
           {dmSight && hover && (isBrush(p.tool) || (p.tool === 'mask' && p.paintReady)) && (
             <circle cx={hover.x} cy={hover.y} r={brushPx} className={`mp-brush ${p.tool}`} data-testid="mp-brush" />
+          )}
+          {/* Los tiradores de la pieza cogida (§ 6.5): cuatro esquinas que estiran y el de arriba que gira. Tamaño fijo en pantalla. */}
+          {dmSight && selectedProp && (
+            <g className="mp-prop-handles" data-testid="mp-prop-handles">
+              {(() => {
+                const c = propCorners(selectedProp);
+                const rot = rotateHandleAt(selectedProp, PROP_ROTATE_GAP / p.view.zoom);
+                const top = rotateHandleAt(selectedProp, 0);
+                const lado = 9 / p.view.zoom;
+                return (<>
+                  <line x1={top.x} y1={top.y} x2={rot.x} y2={rot.y} className="mp-prop-rotline" />
+                  <circle cx={rot.x} cy={rot.y} r={6 / p.view.zoom} className="mp-prop-rotate" data-testid="mp-prop-rotate" role="img" aria-label={t('maps.props.canvas.rotate')} />
+                  {PROP_CORNERS.map(k => (
+                    <rect key={k} className="mp-prop-handle" data-testid={`mp-prop-handle-${k}`} x={c[k].x - lado / 2} y={c[k].y - lado / 2} width={lado} height={lado}
+                      transform={`rotate(${selectedProp.rotation} ${c[k].x} ${c[k].y})`} />
+                  ))}
+                </>);
+              })()}
+            </g>
+          )}
+          {/* EL FANTASMA DEL SELLO bajo el puntero (rebanada 6): lo que va a caer, y con MUCHAS el área que siembra. */}
+          {dmSight && p.tool === 'props' && p.stamp && hover && (
+            <g className="mp-prop-ghost" data-testid="mp-prop-ghost" pointerEvents="none">
+              {p.sowing && <circle cx={hover.x} cy={hover.y} r={p.sowRadiusPx ?? 0} className="mp-prop-sowarea" />}
+              <g transform={`translate(${hover.x} ${hover.y}) rotate(${p.stamp.rotation})`}>
+                <image href={p.stamp.imageUrl} x={-p.stamp.width / 2} y={-p.stamp.height / 2} width={p.stamp.width} height={p.stamp.height} preserveAspectRatio="none" opacity={0.6} />
+              </g>
+            </g>
           )}
           {dmSight && selectedWall && (
             <g className="mp-wall-handles" data-testid="mp-wall-handles">

@@ -11,7 +11,7 @@
  * entera y la codifica.
  */
 
-export type ImageTarget = 'avatar' | 'token' | 'background';
+export type ImageTarget = 'avatar' | 'token' | 'background' | 'prop';
 
 export interface TargetSpec {
   /** Lado máximo en píxeles. */
@@ -24,6 +24,12 @@ export const IMAGE_TARGETS: Record<ImageTarget, TargetSpec> = {
   avatar:     { max: 512,  quality: 0.85 },   // se pinta a 64 px como mucho
   token:      { max: 512,  quality: 0.85 },   // una casilla del mapa
   background: { max: 2560, quality: 0.82 },   // pantalla completa y con zoom
+  /**
+   * Una PIEZA de la galería (maps, rebanada 6): se planta a escala y se mira de cerca, así que más lado que un
+   * token y más calidad. WebP conserva el alfa y aquí eso es lo que la hace servir: sin transparencia una mesa
+   * llegaría con un recuadro blanco alrededor.
+   */
+  prop:       { max: 1024, quality: 0.9 },
 };
 
 /** Tope duro de ENTRADA: por encima se rechaza, ni se intenta comprimir. */

@@ -39,7 +39,7 @@ export function fakeMapsRepo(seed: FakeMapsSeed = {}): IMapsRepository & { fog: 
     listTokens: async () => tokens,
     listLights: async () => lights,
     listLayers: async () => layers,
-    listSightBlockingProps: async () => props.filter(p => p.blocksSight),
+    listBlockingProps: async () => props.filter(p => p.blocksSight || p.blocksMove),
     roleOf: async (cid, uid) => (cid === scene.campaignId ? roles[uid] ?? null : null),
     listPlayerIds: async () => Object.entries(roles).filter(([, r]) => r === 'player').map(([id]) => id),
     getExplored: async (_s, uid) => fog[uid] ?? [],

@@ -8,7 +8,7 @@ import type { CharactersPort } from '@/modules/characters/domain/ports/Character
 import { characterAvatar } from '@/modules/characters/domain/useCases/characterRules';
 import { sysT } from '@/modules/characters/domain/useCases/systemText';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
-import type { DoorSettings, ImageAsset, MapColor, Scene, ScenePatch, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
+import type { DoorSettings, ImageAsset, MapColor, NewSceneProp, Prop, PropPack, Scene, ScenePatch, SceneProp, Texture, TextureCategory, Wall, WallKind } from '../domain/entities/Scene';
 import type { MapsPort } from '../domain/ports/MapsPort';
 import type { VisionPort } from '../domain/ports/VisionPort';
 import type { ViewMemoryPort } from '../domain/ports/ViewMemoryPort';
@@ -22,6 +22,11 @@ import { Toolbar } from './Toolbar';
 import { StrokeBar } from './StrokeBar';
 import { BuilderPanel } from './BuilderPanel';
 import { TextureCatalog } from './TextureCatalog';
+import { DEFAULT_SOW, PropsPanel, type PlantMode, type SowSettings } from './PropsPanel';
+import { PropsCatalog } from './PropsCatalog';
+import { PropsUpload, type PropUploadInput } from './PropsUpload';
+import { dueToSow, duplicateProp, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleChanged, scaleOfWidth, scatterIn, sowStepPx, topZ, type PropShelf } from '../domain/useCases/propRules';
+import type { StackDir } from './LayerMenu';
 import { defaultShapeFor, DEFAULT_BRUSH_COLOR, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { fogOpOf, paintActionsFor, rockPaintSrc, roomPaintSrc, layerPaintSrc, type PaintAction, type PaintOn, type PaintWith } from '../domain/useCases/paintRules';
 import { usePaintBrush, type PaintInk, type PaintTarget } from './usePaintBrush';
@@ -58,6 +63,11 @@ interface Props {
    * botones sin que nadie se entere. Así el compilador obliga a decidirlo en cada sitio.
    */
   canManageTextures: boolean;
+  /**
+   * ¿PUEDE ORDENAR LA BIBLIOTECA DE PIEZAS? El permiso `manage_props` (rebanada 6, «*por permisos, como las
+   * texturas*»). Sin él el director planta y coloca igual, pero no sube, ni renombra, ni borra, ni toca paquetes.
+   */
+  canManageProps?: boolean;
   /**
    * 🧲 ¿PUEDE ORDENAR LA BARRA DE HERRAMIENTAS ARRASTRANDO? Es el permiso `manage_settings` (administrar los
    * ajustes de la plataforma) y no el ser director: el orden es UNO para todos, no de esta campaña (spec § «La barra
@@ -113,7 +123,7 @@ const AVISO_MS = 2600;
 const TILE_PREVIEW_MS = 1400;
 
 /** «Escena» tab: the DM prepares (scenes · background · walls · encounters), everyone plays on top (rolvium.pen Mesa/Escena). */
-export function SceneTab({ campaignId, role, userId, system, canManageTextures: puedeOrdenarTexturas, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort, memory = viewMemory, canOrderToolbar, toolbarOrderPort = toolbarOrder }: Props): JSX.Element {
+export function SceneTab({ campaignId, role, userId, system, canManageTextures: puedeOrdenarTexturas, canManageProps: puedeOrdenarPiezas = false, members, activeSceneId, charactersRepo, onOpenDice, onRoll, onOpenAttack, diceOpen = false, extraEncounters, armEncounter, onArmed, repo = mapsRepo, vision = visionPort, memory = viewMemory, canOrderToolbar, toolbarOrderPort = toolbarOrder }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const dialog = useDialog();
   const isDm = role === 'dm';
@@ -339,6 +349,30 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const fogEdge = useRef<number[] | null>(null);
   /** «Botón derecho sobre cualquier cosa → mándala a otra capa». */
   const [layerMenu, setLayerMenu] = useState<{ at: Point; element: { kind: ElementKind; id: string; name: string; layerId: string | null } } | null>(null);
+  // ── LA GALERÍA DE PIEZAS (rebanada 6) ────────────────────────────────────
+  /** La biblioteca y sus paquetes: de la HERRAMIENTA. `null` = todavía no se han pedido; se piden al abrir Piezas. */
+  const [library, setLibrary] = useState<Prop[] | null>(null);
+  const [packs, setPacks] = useState<PropPack[] | null>(null);
+  /** EL SELLO: la pieza que se planta. Se queda puesto hasta SOLTAR, Esc o cambiar de herramienta (§ 6.4). */
+  const [stamp, setStamp] = useState<Prop | null>(null);
+  /** La escala y el giro con los que sale la próxima; la escala se guarda en la pieza al soltar (§ 6.4). */
+  const [stampScale, setStampScale] = useState(1);
+  const [stampRotation, setStampRotation] = useState(0);
+  const [plantLayerId, setPlantLayerId] = useState<string | null>(null);
+  const [plantMode, setPlantMode] = useState<PlantMode>('one');
+  const [sow, setSow] = useState<SowSettings>(DEFAULT_SOW);
+  const [quickShelf, setQuickShelf] = useState<'recent' | 'favorites'>('recent');
+  /** Favoritos y recientes son de ESTE navegador (`ViewMemoryPort`), como la escena que miraba. */
+  const [favorites, setFavorites] = useState<string[]>(() => memory.favoriteProps());
+  const [recents, setRecents] = useState<string[]>(() => memory.recentProps());
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [upload, setUpload] = useState<{ packId: string | null; files?: File[] } | null>(null);
+  const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
+  /** Lo que va cayendo mientras se SIEMBRA (MUCHAS): se pinta ya y se guarda de una vez al soltar, como UN paso. */
+  const [sowPreview, setSowPreview] = useState<NewSceneProp[]>([]);
+  const sowLast = useRef<Point | null>(null);
+  /** La pieza copiada con Ctrl+C, para pegarla con Ctrl+V con su giro y su tamaño (§ 6.5). */
+  const clipboard = useRef<SceneProp | null>(null);
   /**
    * EL PREVIO EN VIVO DE LA ESCALA DE TEXTURA (petición suya del 2026-09-04: «*tener un previo de cómo iría
    * quedando cuando la escale*»). Mientras arrastra el deslizador el mapa se repinta con este valor **sin
@@ -393,7 +427,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * OTRA herramienta sí la suelta: apilaba la barra del token sobre «Trazo» —las dos flotan en el mismo
    * sitio— y dejaba a Suprimir apuntando a algo que no se ve.
    */
-  useEffect(() => { if (tool !== 'select' && tool !== 'wall') { setSelectedWallId(null); setSelectedTokenIds([]); setSelectedDrawingIds([]); } }, [tool]);
+  useEffect(() => { if (tool !== 'select' && tool !== 'wall') { setSelectedWallId(null); setSelectedTokenIds([]); setSelectedDrawingIds([]); setSelectedPropId(null); } }, [tool]);
   useEffect(() => { if (live) { setPendingPc(null); setPcMenu(false); } }, [live?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nameOf = useCallback((uid: string) => members.find(m => m.userId === uid)?.name ?? uid, [members]);
@@ -877,6 +911,119 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     };
   };
 
+  // ── LA GALERÍA DE PIEZAS: la biblioteca, el sello, plantar y sembrar (rebanada 6) ──
+  /** La biblioteca se pide la primera vez que hace falta: al abrir Piezas o el catálogo. Una vez por mesa. */
+  const cargarBiblioteca = useCallback(() => {
+    if (library === null) void repo.listProps().then(setLibrary).catch(() => setLibrary([]));
+    if (packs === null) void repo.listPropPacks().then(setPacks).catch(() => setPacks([]));
+  }, [library, packs, repo]);
+  useEffect(() => { if (isDm && (tool === 'props' || catalogOpen)) cargarBiblioteca(); }, [isDm, tool, catalogOpen, cargarBiblioteca]);
+  const recordarReciente = (id: string): void => setRecents(memory.rememberRecentProp(id));
+  const alternarFavorito = (id: string): void => setFavorites(memory.toggleFavoriteProp(id));
+  /** Elegir una pieza la hace el sello, con la escala que recuerda, y pone la herramienta Piezas en la mano. */
+  const elegirSello = (p: Prop): void => {
+    setStamp(p); setStampScale(p.defaultScale); setCatalogOpen(false);
+    closeOverlays(); setTool('props');
+  };
+  const soltarSello = (): void => setStamp(null);
+  /**
+   * LA ESCALA SE RECUERDA POR PIEZA (§ 6.4): al soltar el deslizador se guarda en la biblioteca, si cambió y si
+   * se tiene el permiso — sin él la base la rechazaría, y el sello sigue valiendo para esta sesión igual.
+   */
+  const recordarEscala = (prop: Prop, scale: number): void => {
+    if (!scaleChanged(prop.defaultScale, scale)) return;
+    const next = { ...prop, defaultScale: scale };
+    setLibrary(l => (l ?? []).map(x => (x.id === prop.id ? next : x)));
+    setStamp(st => (st?.id === prop.id ? next : st));
+    if (puedeOrdenarPiezas) void repo.updateProp(prop.id, { defaultScale: scale }).catch(() => undefined);
+  };
+  const plantar = (at: Point): void => {
+    if (!stamp || !live) return;
+    run(st.plantSceneProp(plantProp(stamp, at, live, plantLayerId, stampScale, stampRotation, topZ(st.sceneProps))));
+    recordarReciente(stamp.id);
+  };
+  /**
+   * SEMBRAR MUCHAS (§ 6.4, S/5): por donde pasa la mano cae otra cada `sowStepPx`, esparcida dentro del área
+   * y con giro y tamaño al azar si están puestos. Se pintan ya (`sowPreview`) y se guardan TODAS al soltar,
+   * como UN paso del historial: un Ctrl+Z que deshiciera un roble de cincuenta sería inútil.
+   */
+  const sembrar = (at: Point, start: boolean): void => {
+    if (!stamp || !live) return;
+    if (start) { sowLast.current = null; setSowPreview([]); }
+    const radiusPx = sow.areaCells * live.grid.size;
+    if (!dueToSow(sowLast.current, at, sowStepPx(radiusPx, sow.density))) return;
+    sowLast.current = at;
+    const pos = scatterIn(at, radiusPx, Math.random);
+    const rot = sow.randomRotation ? randomRotation(Math.random) : stampRotation;
+    const sc = sow.randomScale ? randomScale(stampScale, Math.random) : stampScale;
+    setSowPreview(prev => [...prev, plantProp(stamp, pos, live, plantLayerId, sc, rot, topZ(st.sceneProps) + prev.length)]);
+  };
+  const acabarSiembra = (): void => {
+    sowLast.current = null;
+    if (sowPreview.length) { run(st.plantSceneProps(sowPreview)); if (stamp) recordarReciente(stamp.id); }
+    setSowPreview([]);
+  };
+  const selectedProp = st.sceneProps.find(sp => sp.id === selectedPropId) ?? null;
+  /** La pieza de biblioteca de una plantada, si sigue existiendo: es a la que se le reescribe la escala. */
+  const bibliotecaDe = (sp: SceneProp): Prop | null => (sp.propId ? (library ?? []).find(x => x.id === sp.propId) ?? (stamp?.id === sp.propId ? stamp : null) : null);
+  /**
+   * ESTIRAR una plantada mantiene la proporción, reescala con ella la forma que estorba, y REESCRIBE la escala
+   * recordada de su pieza (§ 6.4: «por los dos caminos»).
+   */
+  const estirarPieza = (id: string, size: { width: number; height: number }): void => {
+    const sp = st.sceneProps.find(x => x.id === id);
+    if (!sp) return;
+    const k = size.width / (sp.width || 1);
+    run(st.patchSceneProp(id, { ...size, blockW: sp.blockW * k, blockH: sp.blockH * k, blockDx: sp.blockDx * k, blockDy: sp.blockDy * k }, 'maps.history.propScale'));
+    const prop = bibliotecaDe(sp);
+    if (prop) recordarEscala(prop, scaleOfWidth(prop, size.width));
+  };
+  const duplicarPieza = (sp: SceneProp): void => {
+    if (!live) return;
+    run(st.plantSceneProp(duplicateProp(sp, { x: sp.x + PASTE_OFFSET_PX, y: sp.y + PASTE_OFFSET_PX }, topZ(st.sceneProps))).then(nueva => setSelectedPropId(nueva.id)));
+  };
+  const removeProp = (id: string): void => { setSelectedPropId(cur => (cur === id ? null : cur)); run(st.removeSceneProp(id)); };
+  /**
+   * ESC SUELTA EL SELLO (§ 6.4, el pie del panel); Ctrl/Cmd+C y V copian y pegan la pieza cogida CON su giro y
+   * su tamaño (§ 6.5). Sólo el director, y nunca mientras se escribe en un campo.
+   */
+  useEffect(() => {
+    if (!isDm) return undefined;
+    const escribiendo = (el: EventTarget | null): boolean => !!(el as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]');
+    const onKey = (e: KeyboardEvent): void => {
+      if (escribiendo(e.target)) return;
+      if (e.key === 'Escape' && tool === 'props' && stamp) { setStamp(null); return; }
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'c' && selectedProp) { clipboard.current = selectedProp; e.preventDefault(); }
+      else if (k === 'v' && clipboard.current && live) { e.preventDefault(); duplicarPieza(clipboard.current); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+  /** Lo que se PINTA: lo plantado más lo que va cayendo en la siembra, con ids provisionales hasta que se guarde. */
+  const piezasEnPantalla = useMemo(
+    () => (sowPreview.length ? [...st.sceneProps, ...sowPreview.map((sp, i) => ({ ...sp, id: `sow-${i}`, createdAt: `z${i}`, updatedAt: '' }))] : st.sceneProps),
+    [st.sceneProps, sowPreview],
+  );
+  /** Las de «sin abrir el catálogo»: recientes en su orden, o favoritas. Sólo las que siguen en la biblioteca. */
+  const quickProps = useMemo(() => {
+    const ids = quickShelf === 'recent' ? recents : favorites;
+    return ids.map(id => (library ?? []).find(p => p.id === id)).filter((p): p is Prop => !!p);
+  }, [quickShelf, recents, favorites, library]);
+  /** El estante con el que abre el catálogo: el paquete del sello, o el primero. */
+  const catalogShelf: PropShelf | undefined = stamp ? { kind: 'pack', id: stamp.packId } : undefined;
+  /** Crear la pieza en la biblioteca con lo que trae la subida. Nace con el lado mayor a DOS casillas de esta escena. */
+  const añadirPieza = async (input: PropUploadInput, blob: Blob): Promise<void> => {
+    const grid = live?.grid.size ?? 27;
+    const created = await repo.addProp({
+      packId: input.packId, name: input.name, category: 'misc', imageUrl: '', naturalWidth: input.naturalWidth, naturalHeight: input.naturalHeight,
+      defaultScale: (2 * grid) / Math.max(1, input.naturalWidth, input.naturalHeight),
+      defaultBlocksSight: false, defaultBlocksMove: false, defaultBlockShape: 'rect', uploadedBy: null,
+    }, blob);
+    setLibrary(l => [created, ...(l ?? [])]);
+  };
+
   /** One definition of «borra lo que hay elegido», shared by Suprimir, the right-click menu and the token bar. */
   const removeLight = (id: string) => { setSelectedLightId(cur => (cur === id ? null : cur)); run(st.removeLight(id)); };
   const removeDrawing = (id: string) => { setSelectedDrawingId(cur => (cur === id ? null : cur)); run(st.eraseDrawing(id)); };
@@ -884,6 +1031,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     if (!isDm) return;
     // La LUZ va primero porque elegirla suelta lo demás: si hay una elegida, es LO elegido (dueño, 2026-09-02).
     if (selectedLight) { removeLight(selectedLight.id); return; }
+    // La PIEZA cogida (rebanada 6): elegirla soltó lo demás, así que si hay una es LO elegido.
+    if (selectedProp) { removeProp(selectedProp.id); return; }
     // Varios trazos cogidos con el área se borran juntos; uno solo sigue por su camino de siempre.
     if (selectedDrawingIds.length > 1) { selectedDrawingIds.forEach(id => removeDrawing(id)); setSelectedDrawingIds([]); return; }
     if (selectedDrawingId) { removeDrawing(selectedDrawingId); return; }
@@ -1058,6 +1207,14 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             selectedDrawingIds={selectedDrawingIds} onSelectDrawings={setSelectedDrawingIds}
             onMoveDrawing={(id, data) => run(st.moveDrawing(id, data))}
             onMoveDrawings={batch => batch.forEach(b => run(st.moveDrawing(b.id, b.data)))}
+            /* ── LAS PIEZAS (rebanada 6): lo plantado, la cogida, el sello y la siembra ── */
+            sceneProps={piezasEnPantalla} selectedPropId={selectedPropId} onSelectProp={setSelectedPropId}
+            onMoveProp={(id, at) => run(st.patchSceneProp(id, at, 'maps.history.propMove'))}
+            onScaleProp={estirarPieza}
+            onRotateProp={(id, rotation) => run(st.patchSceneProp(id, { rotation }, 'maps.history.propRotate'))}
+            stamp={tool === 'props' && stamp ? { imageUrl: stamp.imageUrl, ...footprintOf(stamp, stampScale), rotation: stampRotation } : null}
+            onPlantProp={plantar} sowing={plantMode === 'many'} onSow={sembrar} onSowEnd={acabarSiembra}
+            sowRadiusPx={sow.areaCells * live.grid.size}
             fogVeil={fogVeil}
             maskLayerId={onNow === 'layer' ? bgLayer?.id ?? null : null}
             maskRoomId={paintRoom?.id ?? null} maskPreview={mask.preview}
@@ -1216,6 +1373,21 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               onClose={() => setSelectedLightId(null)} />
           )}
           {/*
+            * EL PANEL DE PIEZA (rebanada 6, `lWBaU`): sale con la herramienta Piezas. Cerrarlo es volver a
+            * Seleccionar; el sello se queda en memoria por si vuelve, y Esc lo suelta.
+            */}
+          {isDm && !playerView && tool === 'props' && (
+            <PropsPanel stamp={stamp} isFavorite={!!stamp && favorites.includes(stamp.id)}
+              onToggleFavorite={() => { if (stamp) alternarFavorito(stamp.id); }}
+              onPick={() => setCatalogOpen(true)} onDrop={soltarSello}
+              scale={stampScale} onScale={setStampScale} onScaleEnd={() => { if (stamp) recordarEscala(stamp, stampScale); }}
+              rotation={stampRotation} onRotation={setStampRotation} onRandomRotation={() => setStampRotation(randomRotation(Math.random))}
+              quick={quickShelf} onQuick={setQuickShelf} quickProps={quickProps} onQuickPick={elegirSello}
+              layers={st.layers} layerId={plantLayerId} onLayer={setPlantLayerId}
+              mode={plantMode} onMode={setPlantMode} sow={sow} onSow={patch => setSow(x => ({ ...x, ...patch }))}
+              onClose={() => setTool('select')} />
+          )}
+          {/*
             * EL PANEL DE BUILDER v3, y ya no la barra flotante vieja — orden suya del 2026-09-03: «*ya es hora
             * que dejes esto maqueteado en el menú que va y que dejes de agregar cosas en este*».
             */}
@@ -1339,6 +1511,24 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               * la herramienta —no a la biblioteca de fondos de la campaña— y en la categoría que él tuviera
               * elegida, que es la que llega en `texUploadCat`.
               */}
+            {/* ── EL CATÁLOGO DE PIEZAS y LA SUBIDA EN LOTE (rebanada 6): fuera del panel, como el de texturas. ── */}
+            {catalogOpen && (
+              <PropsCatalog props={library} packs={packs} canManage={puedeOrdenarPiezas} favorites={favorites} recents={recents}
+                onToggleFavorite={p => alternarFavorito(p.id)} onPick={elegirSello}
+                onUpload={(packId, files) => setUpload(files ? { packId, files } : { packId })}
+                onRename={(p, name) => { setLibrary(l => (l ?? []).map(x => (x.id === p.id ? { ...x, name } : x))); setStamp(x => (x?.id === p.id ? { ...x, name } : x)); run(repo.updateProp(p.id, { name })); }}
+                onMoveTo={(p, packId) => { setLibrary(l => (l ?? []).map(x => (x.id === p.id ? { ...x, packId } : x))); run(repo.updateProp(p.id, { packId })); }}
+                onRemove={p => { setLibrary(l => (l ?? []).filter(x => x.id !== p.id)); if (stamp?.id === p.id) setStamp(null); run(repo.removeProp(p.id)); }}
+                onNewPack={name => run(repo.addPropPack(name).then(k => setPacks(l => [...(l ?? []), k])))}
+                onRenamePack={(k, name) => { setPacks(l => (l ?? []).map(x => (x.id === k.id ? { ...x, name } : x))); run(repo.updatePropPack(k.id, { name })); }}
+                onRemovePack={k => { setPacks(l => (l ?? []).filter(x => x.id !== k.id)); setLibrary(l => (l ?? []).map(x => (x.packId === k.id ? { ...x, packId: null } : x))); run(repo.removePropPack(k.id)); }}
+                {...(catalogShelf ? { initialShelf: catalogShelf } : {})}
+                onClose={() => setCatalogOpen(false)} />
+            )}
+            {upload && (
+              <PropsUpload packs={packs ?? []} packId={upload.packId} {...(upload.files ? { initialFiles: upload.files } : {})}
+                onAdd={añadirPieza} onClose={() => setUpload(null)} />
+            )}
             <input type="file" accept="image/*" ref={texInput} hidden data-testid="mp-room-texture-input"
               onChange={async e => {
                 const f = e.target.files?.[0];
@@ -1396,10 +1586,21 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             <LayerMenu at={layerMenu.at} element={layerMenu.element} layers={st.layers}
               {...(layerMenu.element.kind === 'light' ? { onRemove: () => removeLight(layerMenu.element.id) } : {})}
               {...(layerMenu.element.kind === 'drawing' ? { onRemove: () => removeDrawing(layerMenu.element.id) } : {})}
+              {...(layerMenu.element.kind === 'prop' ? (() => {
+                // Una PIEZA (rebanada 6, § 6.6): el orden de apilado, el estorbo, duplicar y borrar, además de la capa.
+                const sp = st.sceneProps.find(x => x.id === layerMenu.element.id);
+                return sp ? {
+                  onRemove: () => removeProp(sp.id),
+                  onStack: (dir: StackDir) => run(st.restackSceneProps(restack(st.sceneProps, sp.id, dir))),
+                  blocks: { sight: sp.blocksSight, move: sp.blocksMove, onToggle: (which: 'sight' | 'move') => run(st.patchSceneProp(sp.id, which === 'sight' ? { blocksSight: !sp.blocksSight } : { blocksMove: !sp.blocksMove })) },
+                  onDuplicate: () => duplicarPieza(sp),
+                } : {};
+              })() : {})}
               onPick={layerId => {
                 const { kind, id } = layerMenu.element;
                 if (kind === 'token') run(st.patchToken(id, { layerId }));
                 else if (kind === 'light') run(st.patchLight(id, { layerId }));
+                else if (kind === 'prop') run(st.patchSceneProp(id, { layerId }));
                 else run(st.patchDrawingLayer(id, layerId));
               }}
               onClose={() => setLayerMenu(null)} />

@@ -34,6 +34,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bestiary_entries: {
         Row: {
           campaign_id: string | null
@@ -783,6 +818,45 @@ export type Database = {
           },
         ]
       }
+      maps_colors: {
+        Row: {
+          campaign_id: string
+          color: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          campaign_id: string
+          color: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          campaign_id?: string
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maps_colors_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maps_colors_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maps_drawings: {
         Row: {
           author_id: string
@@ -950,6 +1024,8 @@ export type Database = {
           mask_url: string | null
           mask_version: number
           name: string
+          paint_url: string | null
+          paint_version: number
           scene_id: string
           sort_order: number
           transform: Json
@@ -966,6 +1042,8 @@ export type Database = {
           mask_url?: string | null
           mask_version?: number
           name?: string
+          paint_url?: string | null
+          paint_version?: number
           scene_id: string
           sort_order?: number
           transform?: Json
@@ -982,6 +1060,8 @@ export type Database = {
           mask_url?: string | null
           mask_version?: number
           name?: string
+          paint_url?: string | null
+          paint_version?: number
           scene_id?: string
           sort_order?: number
           transform?: Json
@@ -1090,9 +1170,43 @@ export type Database = {
           },
         ]
       }
+      maps_prop_packs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maps_prop_packs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maps_props: {
         Row: {
-          campaign_id: string | null
           category: string
           created_at: string
           default_block_shape: string
@@ -1104,11 +1218,11 @@ export type Database = {
           name: string
           natural_height: number
           natural_width: number
+          pack_id: string | null
           updated_at: string
           uploaded_by: string | null
         }
         Insert: {
-          campaign_id?: string | null
           category?: string
           created_at?: string
           default_block_shape?: string
@@ -1120,11 +1234,11 @@ export type Database = {
           name?: string
           natural_height: number
           natural_width: number
+          pack_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
         Update: {
-          campaign_id?: string | null
           category?: string
           created_at?: string
           default_block_shape?: string
@@ -1136,15 +1250,16 @@ export type Database = {
           name?: string
           natural_height?: number
           natural_width?: number
+          pack_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "maps_props_campaign_id_fkey"
-            columns: ["campaign_id"]
+            foreignKeyName: "maps_props_pack_id_fkey"
+            columns: ["pack_id"]
             isOneToOne: false
-            referencedRelation: "campaigns_campaigns"
+            referencedRelation: "maps_prop_packs"
             referencedColumns: ["id"]
           },
           {
@@ -1232,7 +1347,9 @@ export type Database = {
         Row: {
           campaign_id: string
           created_at: string
+          floor_color: string | null
           floor_mask_url: string | null
+          floor_paint_url: string | null
           floor_preset: string
           floor_url: string | null
           id: string
@@ -1245,7 +1362,9 @@ export type Database = {
         Insert: {
           campaign_id: string
           created_at?: string
+          floor_color?: string | null
           floor_mask_url?: string | null
+          floor_paint_url?: string | null
           floor_preset?: string
           floor_url?: string | null
           id?: string
@@ -1258,7 +1377,9 @@ export type Database = {
         Update: {
           campaign_id?: string
           created_at?: string
+          floor_color?: string | null
           floor_mask_url?: string | null
+          floor_paint_url?: string | null
           floor_preset?: string
           floor_url?: string | null
           id?: string
@@ -1308,6 +1429,7 @@ export type Database = {
           width: number
           x: number
           y: number
+          z: number
         }
         Insert: {
           block_dx?: number
@@ -1331,6 +1453,7 @@ export type Database = {
           width: number
           x?: number
           y?: number
+          z?: number
         }
         Update: {
           block_dx?: number
@@ -1354,6 +1477,7 @@ export type Database = {
           width?: number
           x?: number
           y?: number
+          z?: number
         }
         Relationships: [
           {
@@ -1388,6 +1512,8 @@ export type Database = {
       }
       maps_scenes: {
         Row: {
+          band_roughness: number
+          band_tip: string
           bg_color: string
           bg_image_url: string | null
           bg_transform: Json
@@ -1401,6 +1527,7 @@ export type Database = {
           created_by: string | null
           door_color: string | null
           door_texture_url: string | null
+          floor_texture_rotation: number
           floor_texture_scale: number
           floor_texture_url: string | null
           fog_mode: string
@@ -1410,18 +1537,22 @@ export type Database = {
           lighting: string
           name: string
           night_radius_m: number
+          rock_paint_url: string | null
           room_preset: string
           solid_walls: boolean
           sort_order: number
           token_scale: number
           updated_at: string
           visible_players: boolean
+          wall_texture_rotation: number
           wall_texture_scale: number
           wall_texture_url: string | null
           wall_thickness: number
           width: number
         }
         Insert: {
+          band_roughness?: number
+          band_tip?: string
           bg_color?: string
           bg_image_url?: string | null
           bg_transform?: Json
@@ -1435,6 +1566,7 @@ export type Database = {
           created_by?: string | null
           door_color?: string | null
           door_texture_url?: string | null
+          floor_texture_rotation?: number
           floor_texture_scale?: number
           floor_texture_url?: string | null
           fog_mode?: string
@@ -1444,18 +1576,22 @@ export type Database = {
           lighting?: string
           name: string
           night_radius_m?: number
+          rock_paint_url?: string | null
           room_preset?: string
           solid_walls?: boolean
           sort_order?: number
           token_scale?: number
           updated_at?: string
           visible_players?: boolean
+          wall_texture_rotation?: number
           wall_texture_scale?: number
           wall_texture_url?: string | null
           wall_thickness?: number
           width?: number
         }
         Update: {
+          band_roughness?: number
+          band_tip?: string
           bg_color?: string
           bg_image_url?: string | null
           bg_transform?: Json
@@ -1469,6 +1605,7 @@ export type Database = {
           created_by?: string | null
           door_color?: string | null
           door_texture_url?: string | null
+          floor_texture_rotation?: number
           floor_texture_scale?: number
           floor_texture_url?: string | null
           fog_mode?: string
@@ -1478,12 +1615,14 @@ export type Database = {
           lighting?: string
           name?: string
           night_radius_m?: number
+          rock_paint_url?: string | null
           room_preset?: string
           solid_walls?: boolean
           sort_order?: number
           token_scale?: number
           updated_at?: string
           visible_players?: boolean
+          wall_texture_rotation?: number
           wall_texture_scale?: number
           wall_texture_url?: string | null
           wall_thickness?: number

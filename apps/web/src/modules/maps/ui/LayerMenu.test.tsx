@@ -104,3 +104,59 @@ describe('<LayerMenu> borrar desde el menú', () => {
     expect(screen.getByRole('menu', { name: 'Mandar a la capa' }).querySelector('.mp-menu-sep')).not.toBeNull();
   });
 });
+
+/**
+ * UNA PIEZA PLANTADA (rebanada 6, § 6.6). Suyo, 2026-09-11: «*cada uno al hacerle click derecho tienes que poder
+ * mandarlo adelante y atrás como en cualquier programa … top layer, down layer etc*». El mismo menú, con el orden
+ * de apilado, el estorbo con sus dos casillas, duplicar y borrar — y la lista de capas de siempre encima.
+ */
+describe('<LayerMenu> una pieza plantada', () => {
+  const pieza = { kind: 'prop' as const, id: 'sp-1', name: 'Roble', layerId: null };
+
+  it('sin las opciones de pieza no ofrece ni apilar ni estorbar: son de las piezas y de nada más', () => {
+    mount({ element: pieza });
+    expect(screen.queryByText('Orden de apilado')).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemcheckbox')).not.toBeInTheDocument();
+    // y una pieza sin nombre propio dice que es una pieza
+    expect(screen.getByText('Roble')).toBeInTheDocument();
+  });
+
+  it('las cuatro del orden de apilado, en el orden de la petición, y cada una cierra el menú', async () => {
+    const u = userEvent.setup();
+    const onStack = vi.fn();
+    const { cb } = mount({ element: pieza, onStack });
+    const items = ['Traer adelante', 'Enviar atrás', 'Traer al frente', 'Enviar al fondo'];
+    // Por el nombre accesible y en orden: el icono es texto y va marcado como decorativo.
+    const all = screen.getAllByRole('menuitem');
+    expect(items.map(n => all.indexOf(screen.getByRole('menuitem', { name: n })))).toEqual([...items.keys()].map(i => all.length - 4 + i));
+    await u.click(screen.getByRole('menuitem', { name: 'Traer al frente' }));
+    expect(onStack).toHaveBeenCalledWith('front');
+    expect(cb.onClose).toHaveBeenCalled();
+  });
+
+  it('el estorbo son dos casillas independientes que se marcan sin cerrar el menú', async () => {
+    const u = userEvent.setup();
+    const onToggle = vi.fn();
+    const { cb } = mount({ element: pieza, blocks: { sight: true, move: false, onToggle } });
+    expect(screen.getByRole('menuitemcheckbox', { name: /Corta la vista/ })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('menuitemcheckbox', { name: /Corta el paso/ })).toHaveAttribute('aria-checked', 'false');
+    await u.click(screen.getByRole('menuitemcheckbox', { name: /Corta el paso/ }));
+    expect(onToggle).toHaveBeenCalledWith('move');
+    expect(cb.onClose).not.toHaveBeenCalled();
+  });
+
+  it('duplicar y borrar la pieza, cada uno por su camino', async () => {
+    const u = userEvent.setup();
+    const onDuplicate = vi.fn(), onRemove = vi.fn();
+    mount({ element: pieza, onDuplicate, onRemove });
+    await u.click(screen.getByRole('menuitem', { name: 'Duplicar' }));
+    expect(onDuplicate).toHaveBeenCalled();
+    await u.click(screen.getByRole('menuitem', { name: 'Borrar la pieza' }));
+    expect(onRemove).toHaveBeenCalled();
+  });
+
+  it('la pieza tiene su capa natural, Objetos, cuando no se movió de sitio', () => {
+    mount({ element: pieza });
+    expect(within(screen.getByRole('menuitem', { name: /Objetos/ })).getByText('check')).toBeInTheDocument();
+  });
+});

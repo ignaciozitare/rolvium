@@ -8,7 +8,7 @@ import { DEFAULT_TOOLBAR_ORDER, moveToolbarItem, parseToolbarOrder, resolvedBloc
  */
 describe('toolbarRules — el orden de la barra', () => {
   it('sin nada guardado sale el orden de serie: el que fijó él el 31-ago', () => {
-    expect(resolvedBlockOrder('dm')).toEqual(['light', 'wall', 'background', 'mask', TOOLBAR_SEP, 'reveal', 'hide', TOOLBAR_SEP, 'encounter', 'placePc']);
+    expect(resolvedBlockOrder('dm')).toEqual(['props', 'light', 'wall', 'background', 'mask', TOOLBAR_SEP, 'reveal', 'hide', TOOLBAR_SEP, 'encounter', 'placePc']);
     expect(resolvedToolbarOrder(null)).toEqual({ play: [...DEFAULT_TOOLBAR_ORDER.play], draw: ['draw'], dm: [...DEFAULT_TOOLBAR_ORDER.dm] });
     // y no devuelve la lista de serie por identidad: quien la reciba puede tocarla sin pisar la constante
     expect(resolvedBlockOrder('play')).not.toBe(DEFAULT_TOOLBAR_ORDER.play);
@@ -31,11 +31,12 @@ describe('toolbarRules — el orden de la barra', () => {
   });
 
   it('las rayas del bloque del director se quedan donde estaban mientras los botones se mueven a su alrededor', () => {
-    const movido = ['wall', 'background', 'mask', TOOLBAR_SEP, 'reveal', 'light', 'hide', TOOLBAR_SEP, 'encounter', 'placePc'];
+    const movido = ['props', 'wall', 'background', 'mask', TOOLBAR_SEP, 'reveal', 'light', 'hide', TOOLBAR_SEP, 'encounter', 'placePc'];
     expect(resolvedBlockOrder('dm', movido)).toEqual(movido);
     // guardado SIN rayas (basura o versión vieja): vuelven a su sitio de serie, y sobran las de más
+    // «props» no estaba guardado (es de la rebanada 6): cae en su sitio de serie, el primero del bloque.
     expect(resolvedBlockOrder('dm', ['placePc', 'light', 'wall', 'background', 'mask', 'reveal', 'hide', 'encounter']))
-      .toEqual(['placePc', 'light', 'wall', 'background', 'mask', TOOLBAR_SEP, 'reveal', 'hide', TOOLBAR_SEP, 'encounter']);
+      .toEqual(['props', 'placePc', 'light', 'wall', 'background', 'mask', TOOLBAR_SEP, 'reveal', 'hide', TOOLBAR_SEP, 'encounter']);
     expect(resolvedBlockOrder('dm', [TOOLBAR_SEP, TOOLBAR_SEP, TOOLBAR_SEP, ...DEFAULT_TOOLBAR_ORDER.dm.filter(x => x !== TOOLBAR_SEP)]).filter(x => x === TOOLBAR_SEP)).toHaveLength(2);
   });
 
@@ -52,7 +53,7 @@ describe('toolbarRules — el orden de la barra', () => {
     const dm = DEFAULT_TOOLBAR_ORDER.dm;
     expect(moveToolbarItem(dm, TOOLBAR_SEP, 'light')).toBe(dm);
     expect(moveToolbarItem(dm, 'light', TOOLBAR_SEP)).toBe(dm);
-    expect(moveToolbarItem(dm, 'light', 'hide')).toEqual(['wall', 'background', 'mask', TOOLBAR_SEP, 'reveal', 'light', 'hide', TOOLBAR_SEP, 'encounter', 'placePc']);
+    expect(moveToolbarItem(dm, 'light', 'hide')).toEqual(['props', 'wall', 'background', 'mask', TOOLBAR_SEP, 'reveal', 'light', 'hide', TOOLBAR_SEP, 'encounter', 'placePc']);
   });
 
   it('parseToolbarOrder: sólo entiende un objeto con listas de textos por bloque; lo demás es «nada guardado»', () => {

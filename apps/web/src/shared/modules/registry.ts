@@ -45,4 +45,5 @@ export const ADMIN_PERMISSIONS: { id: AdminPermissionKey; labelKey: string; desc
  */
 export const TOOL_PERMISSIONS: { id: ToolPermissionKey; labelKey: string; descKey: string }[] = [
   { id: 'manage_textures', labelKey: 'admin.tool.manage_textures', descKey: 'admin.tool.manage_textures_desc' },
+  { id: 'manage_props',    labelKey: 'admin.tool.manage_props',    descKey: 'admin.tool.manage_props_desc' },
 ];

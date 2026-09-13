@@ -3,7 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import type { SceneVision } from '@rolvium/core';
 import type { Room, Wall } from '../domain/entities/Scene';
 import { DEFAULT_DOOR } from '@/modules/maps/domain/entities/Scene';
-import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_WAREHOUSE, TOKEN_KAREN, WALL_1 } from '../../../../tests/helpers/fakes';
+import { DRAWING_MINE, fakeMapsRepo, fakeVisionPort, LAYER_FLOOR, LAYER_MOSS, LAYER_OBJECTS, LIGHT_TORCH, PLAYER_USER, SCENE_PROP_COLUMN, SCENE_PROP_OAK, SCENE_WAREHOUSE, TOKEN_KAREN, WALL_1 } from '../../../../tests/helpers/fakes';
 import { newLightOf } from '../domain/useCases/layerRules';
 import { useScene } from './useScene';
 
@@ -1288,5 +1288,88 @@ describe('useScene — las salas (rebanada 8)', () => {
     expect(result.current.walls[0]).toMatchObject({ doorTextureUrl: 'https://x/roble.png' });
     expect(vision.calls.filter(c => c.op === 'refresh').length).toBe(antes);
     expect(repo.broadcasts.slice(emitidos).map(b => b.event.type)).not.toContain('fog.updated');
+  });
+});
+
+/**
+ * LAS PIEZAS PLANTADAS (rebanada 6): se cargan con la escena, llegan por el canal en vivo, y plantar, borrar,
+ * mover y estirar entran en el historial. Sembrar MUCHAS entra como UN solo paso. Y las que estorban cambian
+ * la visión (§ 6.7): moverlas vuelve a preguntar al servidor; una que sólo adorna, no.
+ */
+describe('useScene — las piezas plantadas (rebanada 6)', () => {
+  const seedProps = () => fakeMapsRepo({ tokens: [TOKEN_KAREN], sceneProps: [SCENE_PROP_OAK, SCENE_PROP_COLUMN] });
+
+  it('se cargan con la escena y llegan por el canal en vivo', async () => {
+    const repo = seedProps();
+    const r = await mount(repo, fakeVisionPort());
+    expect(r.current.sceneProps.map(p => p.id)).toEqual(['sp-oak', 'sp-col']);
+    act(() => { repo.emit('sc-1', { sceneProp: { type: 'INSERT', id: 'sp-new', row: { ...SCENE_PROP_OAK, id: 'sp-new', name: 'Mesa' } } }); });
+    expect(r.current.sceneProps.map(p => p.name)).toContain('Mesa');
+    act(() => { repo.emit('sc-1', { sceneProp: { type: 'DELETE', id: 'sp-oak', row: null } }); });
+    expect(r.current.sceneProps.map(p => p.id)).not.toContain('sp-oak');
+  });
+
+  it('plantar escribe y entra en el historial: deshacer la quita, rehacer la vuelve a poner', async () => {
+    const repo = seedProps();
+    const r = await mount(repo, fakeVisionPort());
+    const { id: _i, createdAt: _c, updatedAt: _u, ...input } = SCENE_PROP_OAK;
+    await act(async () => { await r.current.plantSceneProp({ ...input, name: 'Silla' }); });
+    expect(repo.sceneProps.map(p => p.name)).toContain('Silla');
+    expect(r.current.sceneProps).toHaveLength(3);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.prop'); });
+    expect(repo.sceneProps.map(p => p.name)).not.toContain('Silla');
+    await act(async () => { await r.current.history.redo(); });
+    expect(repo.sceneProps.map(p => p.name)).toContain('Silla');
+  });
+
+  it('sembrar muchas es UN paso: un Ctrl+Z se lleva la tanda entera', async () => {
+    const repo = seedProps();
+    const r = await mount(repo, fakeVisionPort());
+    const { id: _i, createdAt: _c, updatedAt: _u, ...input } = SCENE_PROP_OAK;
+    await act(async () => { await r.current.plantSceneProps([{ ...input, x: 1 }, { ...input, x: 2 }, { ...input, x: 3 }]); });
+    expect(repo.sceneProps).toHaveLength(5);
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.props'); });
+    expect(repo.sceneProps).toHaveLength(2);
+  });
+
+  it('borrar entra en el historial y deshacer la devuelve entera', async () => {
+    const repo = seedProps();
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.removeSceneProp('sp-oak'); });
+    expect(repo.sceneProps.map(p => p.id)).toEqual(['sp-col']);
+    await act(async () => { await r.current.history.undo(); });
+    expect(repo.sceneProps.map(p => p.name)).toContain('Roble');
+  });
+
+  it('mover con historial guarda la foto de antes; cambiar de capa sin historial no apila nada', async () => {
+    const repo = seedProps();
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.patchSceneProp('sp-oak', { x: 10, y: 20 }, 'maps.history.propMove'); });
+    expect(repo.scenePropUpdates).toContainEqual({ id: 'sp-oak', patch: { x: 10, y: 20 } });
+    await act(async () => { expect(await r.current.history.undo()).toBe('maps.history.propMove'); });
+    expect(repo.sceneProps.find(p => p.id === 'sp-oak')).toMatchObject({ x: 400, y: 300 });
+    await act(async () => { await r.current.patchSceneProp('sp-oak', { layerId: 'ly-dm' }); });
+    expect(r.current.history.canUndo).toBe(false);
+  });
+
+  it('el orden de apilado escribe varios z de una vez', async () => {
+    const repo = seedProps();
+    const r = await mount(repo, fakeVisionPort());
+    await act(async () => { await r.current.restackSceneProps([{ id: 'sp-oak', patch: { z: 1 } }, { id: 'sp-col', patch: { z: 0 } }]); });
+    expect(repo.sceneProps.find(p => p.id === 'sp-oak')!.z).toBe(1);
+    expect(repo.sceneProps.find(p => p.id === 'sp-col')!.z).toBe(0);
+  });
+
+  it('mover una pieza que ESTORBA vuelve a pedir la visión; mover una que sólo adorna, no', async () => {
+    const repo = seedProps();
+    const vision = fakeVisionPort();
+    const r = await mount(repo, vision);
+    const before = vision.calls.length;
+    await act(async () => { await r.current.patchSceneProp('sp-col', { x: 720 }); });
+    await waitFor(() => expect(vision.calls.length).toBeGreaterThan(before));
+    const again = vision.calls.length;
+    await act(async () => { await r.current.patchSceneProp('sp-oak', { x: 410 }); });
+    await act(async () => { await new Promise(res => setTimeout(res, 5)); });
+    expect(vision.calls.length).toBe(again);
   });
 });

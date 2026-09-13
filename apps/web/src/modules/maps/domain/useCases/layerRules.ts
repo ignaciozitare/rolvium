@@ -33,8 +33,8 @@ export const layerOfKind = (layers: readonly Layer[], kind: LayerKind): Layer | 
   layers.find(l => l.kind === kind) ?? null;
 
 /** Qué se coloca por defecto en cada capa cuando su `layerId` viene vacío. */
-export type ElementKind = 'drawing' | 'token' | 'light';
-const NATURAL_LAYER: Record<ElementKind, LayerKind> = { drawing: 'objects', token: 'creatures', light: 'objects' };
+export type ElementKind = 'drawing' | 'token' | 'light' | 'prop';
+const NATURAL_LAYER: Record<ElementKind, LayerKind> = { drawing: 'objects', token: 'creatures', light: 'objects', prop: 'objects' };
 
 /**
  * La capa en la que está de verdad un elemento. `layerId` vacío significa «su capa natural», que es lo que

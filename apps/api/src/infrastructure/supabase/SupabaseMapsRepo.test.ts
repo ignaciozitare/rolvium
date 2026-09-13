@@ -16,6 +16,7 @@ function fakeDb(rows: Record<string, unknown>) {
     const q: Record<string, unknown> = {};
     q.select = () => q;
     q.eq = () => q;
+    q.or = () => q;
     q.order = () => q;
     q.maybeSingle = async () => ({ data: Array.isArray(data) ? data[0] ?? null : data, error: null });
     q.upsert = upsert;
@@ -120,13 +121,13 @@ describe('SupabaseMapsRepo (service role)', () => {
    * Rebanada 6: sólo las piezas que ESTORBAN LA VISTA. Una escena puede tener cien macetas y ninguna cambia
    * lo que se ve; traerlas todas sería barrerla entera en cada movimiento de una ficha.
    */
-  it('reads only the placed props that block sight', async () => {
+  it('reads only the placed props that block sight or movement', async () => {
     const rows = [{ id: 'sp-1', layer_id: 'ly-7', x: 300, y: 200, rotation: 15, blocks_sight: true, blocks_move: false, block_shape: 'circle', block_w: 90, block_h: 90, block_dx: 4, block_dy: -6 }];
     const m = fakeDb({ maps_scene_props: rows });
-    expect(await new SupabaseMapsRepo(m.db).listSightBlockingProps('sc-1')).toEqual([
+    expect(await new SupabaseMapsRepo(m.db).listBlockingProps('sc-1')).toEqual([
       { id: 'sp-1', layerId: 'ly-7', x: 300, y: 200, rotation: 15, blocksSight: true, blocksMove: false, blockShape: 'circle', blockW: 90, blockH: 90, blockDx: 4, blockDy: -6 },
     ]);
-    expect(await new SupabaseMapsRepo(fakeDb({}).db).listSightBlockingProps('sc-1')).toEqual([]);
+    expect(await new SupabaseMapsRepo(fakeDb({}).db).listBlockingProps('sc-1')).toEqual([]);
   });
 
   it('reads the table role and the player list from campaigns_members', async () => {

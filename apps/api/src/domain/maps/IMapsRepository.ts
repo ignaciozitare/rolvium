@@ -113,10 +113,11 @@ export interface IMapsRepository {
   /** Las capas de la escena, para saber qué se pinta y qué no. */
   listLayers(sceneId: string): Promise<LayerRecord[]>;
   /**
-   * Las piezas plantadas que ESTORBAN LA VISTA. Sólo ésas: una escena puede tener cien macetas y ninguna
-   * cambia lo que se ve, así que traerlas todas sería barrerla entera en cada movimiento.
+   * Las piezas plantadas que ESTORBAN —la vista, el paso o las dos (rebanada 6, § 6.7)—. Sólo ésas: una
+   * escena puede tener cien macetas y ninguna cambia lo que se ve ni frena a nadie, así que traerlas todas
+   * sería barrerla entera en cada movimiento.
    */
-  listSightBlockingProps(sceneId: string): Promise<ScenePropRecord[]>;
+  listBlockingProps(sceneId: string): Promise<ScenePropRecord[]>;
   /** The caller's table role, or `null` when they are not a member of the campaign. */
   roleOf(campaignId: string, userId: string): Promise<TableRole | null>;
   /** Members with the `player` table role — who the DM's brush paints on. */

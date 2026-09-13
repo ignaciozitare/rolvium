@@ -24,6 +24,7 @@ creado y vacío). Who: todos los miembros para su avatar; el director para fondo
   | Avatar | 512×512 | 0,85 | se pinta a 64 px como mucho |
   | Token de encuentro | 512×512 | 0,85 | una casilla del mapa |
   | Fondo de escena | 2560 px de lado mayor | 0,82 | se ve a pantalla completa y con zoom |
+  | Pieza de la galería (`prop`) | 1024 px de lado mayor | 0,90 | se planta a escala y se mira de cerca; WebP conserva el alfa, que es lo que la hace servir |
 - **Tope duro de 8 MB en el fichero de entrada**, antes de comprimir: por encima se rechaza con un aviso, no se
   intenta. Y tope de 1,5 MB en el resultado subido.
 - Sólo `image/png`, `image/jpeg`, `image/webp` y `image/gif` (el gif se aplana al primer fotograma).
@@ -32,7 +33,7 @@ creado y vacío). Who: todos los miembros para su avatar; el director para fondo
 - Borrar la fila que apunta a una imagen **no borra el objeto** del bucket; la limpieza es aparte y no está hecha.
 
 ## Connections
-`characters` (avatar), `bestiary` (token de entrada), `maps` (fondo de escena). El compresor es **uno solo** y vive
+`characters` (avatar), `bestiary` (token de entrada), `maps` (fondo de escena y piezas de la galería, rebanada 6). El compresor es **uno solo** y vive
 en `packages/ui` como utilidad, no copiado en cada módulo. La subida sigue siendo del adaptador de cada módulo:
 el compresor devuelve un `Blob` y no sabe de Supabase.
 

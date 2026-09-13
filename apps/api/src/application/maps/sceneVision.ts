@@ -1,4 +1,4 @@
-import { circleClearance, roomMoveSegments, roomSightSegments, roomWalls, sameRoomInput, sightRadiusPx, slideCircle, type BlockSegment, type FogCell, type LitLight, type RoomPart, type SceneVision, type VisionPolygon } from '@rolvium/core';
+import { circleClearance, propsGeometry, roomMoveSegments, roomSightSegments, roomWalls, sameRoomInput, sightRadiusPx, slideCircle, type BlockSegment, type FogCell, type LitLight, type RoomPart, type SceneVision, type VisionPolygon } from '@rolvium/core';
 import type { IMapsRepository, LayerRecord, LightRecord, RoomOpeningRecord, RoomRecord, SceneRecord, TokenRecord, WallRecord } from '../../domain/maps/IMapsRepository.js';
 import { allCells, arcSafeReach, boundsSegments, cellsInBrush, cellsInPolygons, clipToStar, lightPolygon, subtractCells, unionCells, visionPolygon, type Point, type Segment } from './vision.js';
 
@@ -66,6 +66,22 @@ export async function roomGeometry(maps: IMapsRepository, sceneId: string): Prom
   // Al pasar el tope se olvida la que lleva más tiempo sin usarse: la primera de la cola.
   for (const vieja of recuerdo.keys()) { if (recuerdo.size <= RECUERDO_MAX) break; recuerdo.delete(vieja); }
   return geom;
+}
+
+/**
+ * TODO LO QUE TAPA Y FRENA SIN SER UN MURO MARCADO: los contornos de las salas (rebanada 8) MÁS las piezas
+ * plantadas que estorban (rebanada 6, § 6.7). Van juntos porque el motor de visión y el freno los tratan igual
+ * —segmentos y nada más—; van separados por dentro porque las salas se recuerdan por escena (`roomGeometry`)
+ * y las piezas no: se plantan y se mueven a cada rato y su forma es barata (cuatro lados, o dieciséis).
+ *
+ * Una pieza puede cortar la vista sin frenar (una cortina) o frenar sin tapar (un banco), igual que una
+ * ventana entre los muros, así que `sight` y `move` se rellenan por separado.
+ */
+export async function blockingGeometry(maps: IMapsRepository, sceneId: string): Promise<{ sight: Segment[]; move: BlockSegment[] }> {
+  const [rooms, props] = await Promise.all([roomGeometry(maps, sceneId), maps.listBlockingProps(sceneId)]);
+  if (props.length === 0) return rooms;
+  const piezas = propsGeometry(props);
+  return { sight: [...rooms.sight, ...piezas.sight.map(toSegment)], move: [...rooms.move, ...piezas.move] };
 }
 
 /** Cuántas escenas recuerda cada copia del servidor. Una mazmorra muy rota ocupa del orden de un megabyte. */
@@ -215,7 +231,7 @@ export async function computeSceneVision(
    * no habría tapado nada — que es el trabajo de fondo de esta tanda, y el que no se ve en pantalla.
    */
   const wallSegments = async (): Promise<Segment[]> => {
-    const [walls, geom] = await Promise.all([deps.maps.listWalls(scene.id), roomGeometry(deps.maps, scene.id)]);
+    const [walls, geom] = await Promise.all([deps.maps.listWalls(scene.id), blockingGeometry(deps.maps, scene.id)]);
     return sightSegments(walls, scene, geom.sight);
   };
 
@@ -267,8 +283,8 @@ export async function computeSceneVision(
    * las paredes sólidas encendidas — apagadas, `corrected` sale `null` igual y sobran las dos lecturas.
    */
   const [walls, tokens, roomGeom] = (at && scene.solidWalls) || scene.fogMode === 'vision' || lights.length > 0
-    ? await Promise.all([deps.maps.listWalls(scene.id), deps.maps.listTokens(scene.id), roomGeometry(deps.maps, scene.id)])
-    : [[], [], { sight: [], move: [] } as Awaited<ReturnType<typeof roomGeometry>>];
+    ? await Promise.all([deps.maps.listWalls(scene.id), deps.maps.listTokens(scene.id), blockingGeometry(deps.maps, scene.id)])
+    : [[], [], { sight: [], move: [] } as Awaited<ReturnType<typeof blockingGeometry>>];
   const dragged = at ? tokensOf(tokens, input.userId).find(t => t.id === at.tokenId) ?? null : null;
   let corrected: SceneVision['corrected'] = null;
   let clearance: SceneVision['clearance'] = null;
@@ -428,7 +444,7 @@ export async function paintSceneFog(deps: Deps, input: PaintInput): Promise<Visi
    */
   const lights = await deps.maps.listLights(scene.id);
   const lit = lights.length > 0
-    ? litLights(lights, await deps.maps.listLayers(scene.id), sightSegments(await deps.maps.listWalls(scene.id), scene, (await roomGeometry(deps.maps, scene.id)).sight), scene, true, null)
+    ? litLights(lights, await deps.maps.listLayers(scene.id), sightSegments(await deps.maps.listWalls(scene.id), scene, (await blockingGeometry(deps.maps, scene.id)).sight), scene, true, null)
     : [];
   return { ok: true, data: { vision: [], explored: unionCells(...next), radiusPx: sightRadiusPx(scene.lighting, scene.nightRadiusM, scene.gridSize), ...litField(lit, lights) } };
 }

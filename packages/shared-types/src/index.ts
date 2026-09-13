@@ -36,7 +36,9 @@ export type AdminPermissionKey =
  * el registro, sus dos claves de i18n, y la política de RLS que lo exija con `has_tool(key)`.
  */
 export type ToolPermissionKey =
-  | 'manage_textures';
+  | 'manage_textures'
+  /** Ordenar la biblioteca de piezas (rebanada 6): subir, renombrar, mover de paquete y borrar; crear y borrar paquetes. */
+  | 'manage_props';
 
 export interface RolePermissions {
   /** Modules the role can see/use. */

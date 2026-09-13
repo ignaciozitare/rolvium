@@ -568,3 +568,129 @@
 .mp-bp-eyedrop{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;flex:0 0 auto;
   border:1px solid var(--sys-line);color:var(--sys-ink);cursor:pointer;}
 .mp-bp-eyedrop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
+
+/* ── LA GALERÍA DE PIEZAS (rebanada 6) ───────────────────────────────────────
+   El panel (`lWBaU`, 220 de ancho), lo plantado en el lienzo con su marco y sus tiradores, el fantasma del
+   sello, el catálogo a pantalla completa (`w7sTC0`) y la subida en lote (`DCs6S`). Los paneles van con los
+   tokens de la mesa (--sys-*); el catálogo y la subida viven en el Modal compartido y van con los de la app. */
+.mp-propspanel{position:absolute;top:8px;left:8px;z-index:4;width:220px;}
+.mp-props-icon{width:var(--icon-sm);height:var(--icon-sm);}
+/* La muestra sobre OSCURO: el único negro del panel, y detrás del arte (regla del dueño: negro sólo para arte). */
+.mp-props-sample{display:flex;align-items:center;justify-content:center;height:96px;background:var(--sys-ink);color:var(--sys-paper);overflow:hidden;}
+.mp-props-sample img{max-width:80%;max-height:80%;object-fit:contain;}
+.mp-props-sample .material-symbols-outlined{font-size:var(--icon-lg);opacity:.5;}
+.mp-props-name{display:flex;align-items:center;gap:6px;}
+.mp-props-name-t{flex:1;font-size:var(--fs-xs);color:var(--sys-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-props-star{display:inline-flex;padding:0;border:none;background:transparent;color:var(--sys-ink-soft);cursor:pointer;}
+.mp-props-star .material-symbols-outlined{font-size:var(--icon-sm);}
+.mp-props-star.on{color:var(--sys-gold);}
+.mp-props-row2{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.mp-props-row2 .tb-btn{padding:5px 6px;}
+.mp-props-rot{display:flex;align-items:flex-end;gap:6px;}
+.mp-props-rot-slider{flex:1;min-width:0;}
+.mp-props-dice{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex-shrink:0;margin-bottom:2px;
+  border:none;background:transparent;color:var(--sys-ink-soft);cursor:pointer;}
+.mp-props-dice:hover{color:var(--sys-blood);}
+.mp-props-dice .material-symbols-outlined{font-size:var(--icon-sm);}
+/* La rejilla 6 × 3 de la lámina, con scroll: la del sello lleva el filo en sangre. */
+.mp-props-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;max-height:92px;overflow-y:auto;}
+.mp-props-cell{display:flex;align-items:center;justify-content:center;aspect-ratio:1;padding:2px;border:2px solid transparent;background:var(--sys-ink);cursor:pointer;}
+.mp-props-cell img{max-width:100%;max-height:100%;object-fit:contain;}
+.mp-props-cell.on{border-color:var(--sys-blood);}
+.mp-props-select{width:100%;padding:5px 6px;border:none;font-family:inherit;font-size:var(--fs-xs);color:var(--sys-ink);
+  background:color-mix(in srgb,var(--sys-paper-lo) 48%,transparent);}
+.mp-props-toggle{width:100%;justify-content:center;}
+/* Lo plantado: la cogida lleva un marco oro a trazos que no escala con el zoom, y se arrastra con la mano. */
+.mp-prop.movable{cursor:move;}
+.mp-prop-frame{fill:none;stroke:var(--sys-gold);stroke-width:1.5;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;pointer-events:none;}
+.mp-prop-handle{fill:var(--sys-paper-hi);stroke:var(--sys-ink);stroke-width:1;vector-effect:non-scaling-stroke;cursor:nwse-resize;}
+.mp-prop-rotate{fill:var(--sys-paper-hi);stroke:var(--sys-gold);stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:grab;}
+.mp-prop-rotline{stroke:var(--sys-gold);stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:none;}
+.mp-prop-ghost{pointer-events:none;}
+.mp-prop-sowarea{fill:color-mix(in srgb,var(--sys-gold) 12%,transparent);stroke:var(--sys-gold);stroke-width:1;stroke-dasharray:4 3;vector-effect:non-scaling-stroke;}
+/* ── EL CATÁLOGO a pantalla completa ── */
+.mp-propcat{display:flex;flex-direction:column;height:min(84vh,900px);--mp-thumb:118px;}
+.mp-propcat.dragging{outline:2px dashed var(--ac);outline-offset:-4px;}
+.mp-propcat-head{display:flex;align-items:baseline;gap:8px;}
+.mp-propcat-head-icon{width:var(--icon-md);height:var(--icon-md);color:var(--ac);align-self:center;}
+.mp-propcat-title{font-size:var(--fs-lg);color:var(--tx);}
+.mp-propcat-crumb{font-size:var(--fs-xs);color:var(--tx3);}
+.mp-propcat-bar{display:flex;align-items:center;gap:10px;padding:10px 18px;flex-wrap:wrap;}
+.mp-propcat-search{width:290px;flex:0 1 290px;}
+.mp-propcat-upload{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:none;border-radius:var(--r);font-family:inherit;
+  font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;background:var(--sys-blood);color:var(--sys-paper-hi);cursor:pointer;}
+.mp-propcat-upload .material-symbols-outlined{font-size:var(--icon-xs);}
+.mp-propcat-sp{flex:1;}
+.mp-propcat-sel{display:flex;flex-direction:column;gap:1px;padding:4px 8px;border-radius:var(--r);background:var(--sf2);}
+.mp-propcat-sel-l{font-size:var(--fs-2xs);letter-spacing:.15em;text-transform:uppercase;color:var(--tx3);}
+.mp-propcat-sel select{border:none;background:transparent;font-family:inherit;font-size:var(--fs-xs);color:var(--tx);}
+.mp-propcat-thumb{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:var(--r);background:var(--sf2);color:var(--tx3);}
+.mp-propcat-thumb .material-symbols-outlined{font-size:var(--icon-xs);}
+.mp-propcat-thumb-s{width:90px;}
+.mp-propcat-body{display:flex;flex:1;min-height:0;}
+/* El rail de paquetes: hueco, y el abierto en sangre. */
+.mp-propcat-rail{display:flex;flex-direction:column;gap:2px;width:250px;flex-shrink:0;padding:10px 12px;overflow-y:auto;background:var(--bg);}
+.mp-propcat-railcell{position:relative;}
+.mp-propcat-rail-item{display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px;border:none;border-radius:var(--r);background:transparent;
+  font-family:inherit;font-size:var(--fs-sm);color:var(--tx2);cursor:pointer;text-align:left;}
+.mp-propcat-rail-item .material-symbols-outlined{font-size:var(--icon-xs);color:var(--tx3);}
+.mp-propcat-rail-item:hover{background:var(--sf2);color:var(--tx);}
+.mp-propcat-rail-item.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.mp-propcat-rail-item.on .material-symbols-outlined,.mp-propcat-rail-item.on .mp-propcat-rail-c{color:var(--sys-paper-hi);}
+.mp-propcat-rail-n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-propcat-rail-c{font-size:var(--fs-2xs);color:var(--tx3);}
+.mp-propcat-rail-label{padding:10px 10px 2px;font-size:var(--fs-2xs);letter-spacing:.15em;text-transform:uppercase;color:var(--tx3);}
+.mp-propcat-rail-push{flex:1;}
+.mp-propcat-kebab{top:4px;right:2px;}
+.mp-propcat-menu{top:28px;right:2px;}
+.mp-propcat-newpack{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border:none;border-radius:var(--r);background:var(--sf2);
+  font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;color:var(--tx2);cursor:pointer;}
+.mp-propcat-newpack .material-symbols-outlined{font-size:var(--icon-xs);color:var(--ac);}
+.mp-propcat-newpack:hover{background:var(--sf3);color:var(--tx);}
+/* La rejilla por secciones. El arte va sobre fondo hueco; el tamaño de miniatura lo pone el deslizador. */
+.mp-propcat-grid{flex:1;min-width:0;display:flex;flex-direction:column;gap:18px;padding:12px 18px 18px;overflow-y:auto;}
+.mp-propcat-sec{display:flex;flex-direction:column;gap:8px;}
+.mp-propcat-sec-h{margin:0;font-size:var(--fs-body);font-weight:500;color:var(--tx);}
+.mp-propcat-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--mp-thumb),1fr));gap:10px;}
+.mp-propcat-cell{position:relative;}
+.mp-propcat-tile{display:flex;flex-direction:column;gap:4px;padding:0;width:100%;background:none;border:none;cursor:pointer;font-family:inherit;text-align:left;}
+.mp-propcat-view{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1.72;border-radius:var(--r);background:var(--sf2);overflow:hidden;color:var(--tx3);}
+.mp-propcat-view img{max-width:84%;max-height:84%;object-fit:contain;}
+.mp-propcat-view .material-symbols-outlined{font-size:var(--icon-md);}
+.mp-propcat-tile:hover .mp-propcat-view{outline:2px solid var(--ac);outline-offset:-2px;}
+.mp-propcat-add:hover .mp-propcat-view{color:var(--ac);}
+.mp-propcat-n{display:flex;align-items:center;gap:5px;font-size:var(--fs-2xs);color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-propcat-star{position:absolute;top:5px;left:5px;display:flex;padding:2px;border:none;border-radius:var(--r);background:color-mix(in srgb,var(--sf) 80%,transparent);
+  color:var(--tx3);cursor:pointer;opacity:0;transition:opacity .12s;}
+.mp-propcat-star .material-symbols-outlined{font-size:var(--icon-sm);}
+.mp-propcat-star.on{opacity:1;color:var(--ac);}
+.mp-propcat-cell:hover .mp-propcat-star,.mp-propcat-star:focus-visible{opacity:1;}
+.mp-propcat-count{margin-top:auto;}
+/* ── SUBIR EN LOTE ── */
+.mp-propup{display:flex;flex-direction:column;gap:14px;}
+.mp-propup-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:22px 16px;border-radius:var(--r2);
+  background:var(--sf2);color:var(--tx2);text-align:center;}
+.mp-propup-drop.on{outline:2px dashed var(--ac);outline-offset:-4px;}
+.mp-propup-drop .material-symbols-outlined{font-size:var(--icon-lg);color:var(--tx3);}
+.mp-propup-drop-t{font-size:var(--fs-body);color:var(--tx);}
+.mp-propup-drop-s{font-size:var(--fs-2xs);color:var(--tx3);}
+.mp-propup-browse{margin-top:6px;padding:4px 10px;border:none;border-radius:var(--r);background:var(--sf3);font-family:inherit;font-size:var(--fs-2xs);color:var(--tx);cursor:pointer;}
+.mp-propup-pack{display:flex;align-items:center;gap:10px;}
+.mp-propup-pack select{padding:5px 8px;border:none;border-radius:var(--r);background:var(--sf2);font-family:inherit;font-size:var(--fs-xs);color:var(--tx);}
+.mp-propup-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;max-height:34vh;overflow-y:auto;}
+.mp-propup-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--r);background:var(--sf2);font-size:var(--fs-xs);color:var(--tx2);}
+.mp-propup-item.done{color:var(--tx3);}
+.mp-propup-st{font-size:var(--icon-xs);color:var(--tx3);}
+.mp-propup-st.done{color:var(--green);}
+.mp-propup-st.failed{color:var(--red);}
+.mp-propup-st.uploading{color:var(--ac);animation:mp-propup-spin 1s linear infinite;}
+@keyframes mp-propup-spin{to{transform:rotate(360deg);}}
+.mp-propup-file{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx);}
+.mp-propup-state{font-size:var(--fs-2xs);color:var(--tx3);}
+.mp-propup-item.failed .mp-propup-state{color:var(--red);}
+.mp-propup-x{display:inline-flex;padding:0;border:none;background:transparent;color:var(--tx3);cursor:pointer;}
+.mp-propup-x .material-symbols-outlined{font-size:var(--icon-xs);}
+.mp-propup-foot{display:flex;justify-content:flex-end;gap:8px;}
+.mp-propup-btn{padding:7px 14px;border:none;border-radius:var(--r);background:var(--sf2);font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;color:var(--tx2);cursor:pointer;}
+.mp-propup-btn:disabled{opacity:.45;cursor:default;}
+.mp-propup-btn.blood{background:var(--sys-blood);color:var(--sys-paper-hi);}

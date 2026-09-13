@@ -120,7 +120,9 @@
     "toolsPicker": "Permisos de Rolvium",
     "tool": {
       "manage_textures": "Gestionar texturas",
-      "manage_textures_desc": "Subir, renombrar, clasificar y borrar texturas del catálogo. Sin esto sólo se pueden elegir."
+      "manage_textures_desc": "Subir, renombrar, clasificar y borrar texturas del catálogo. Sin esto sólo se pueden elegir.",
+      "manage_props": "Gestionar piezas",
+      "manage_props_desc": "Subir, renombrar, mover de paquete y borrar piezas de la galería, y crear o borrar paquetes. Sin esto sólo se pueden elegir y plantar."
     }
   },
   "modules": {
@@ -787,7 +789,8 @@
       "light": "Luz de ambiente",
       "mask": "Pincel",
       "notInPlayerView": "no mientras ves como jugador",
-      "draw": "Dibujar"
+      "draw": "Dibujar",
+      "props": "Piezas"
     },
     "toolbar": "Herramientas del lienzo",
     "probe": {
@@ -1048,12 +1051,14 @@
       "remove": {
         "light": "Borrar la luz",
         "token": "Borrar la ficha",
-        "drawing": "Borrar el trazo"
+        "drawing": "Borrar el trazo",
+        "prop": "Borrar la pieza"
       },
       "element": {
         "token": "Ficha",
         "drawing": "Trazo",
-        "light": "Luz"
+        "light": "Luz",
+        "prop": "Pieza"
       },
       "drag": "Arrastra para cambiar el orden"
     },
@@ -1235,7 +1240,12 @@
       "nothingRedo": "No queda nada que rehacer",
       "token": "la ficha",
       "light": "la luz",
-      "paint": "la pincelada"
+      "paint": "la pincelada",
+      "prop": "la pieza",
+      "props": "las piezas sembradas",
+      "propMove": "mover la pieza",
+      "propScale": "el tamaño de la pieza",
+      "propRotate": "el giro de la pieza"
     },
     "builder": {
       "title": "Builder",
@@ -1278,6 +1288,145 @@
       "short": "TAMAÑO",
       "hint": "para que quepan por los pasillos estrechos · la proporción entre tamaños no cambia",
       "reading": "una ficha normal ocupa {cells} casillas"
+    },
+    "props": {
+      "title": "Piezas",
+      "move": "Mover el panel",
+      "close": "Cerrar Piezas",
+      "stamp": {
+        "label": "La pieza del sello",
+        "none": "Sin pieza elegida: pulsa ELEGIR y coge una del catálogo.",
+        "pick": "Elegir",
+        "drop": "Soltar",
+        "favorite": "Favorita",
+        "unfavorite": "Quitar de favoritos",
+        "scale": "Escala",
+        "scaleHint": "se recuerda: la próxima {{name}} sale ya a este tamaño",
+        "rotation": "Giro",
+        "random": "Un giro al azar"
+      },
+      "quick": {
+        "label": "Sin abrir el catálogo",
+        "recent": "Recientes",
+        "favorites": "Favoritos",
+        "emptyRecent": "Todavía no has plantado ninguna.",
+        "emptyFavorites": "Marca una con la estrella y aparece aquí.",
+        "use": "Usar {{name}} como sello"
+      },
+      "layer": {
+        "label": "A qué capa va"
+      },
+      "count": {
+        "label": "Cuántas planto",
+        "one": "Una",
+        "many": "Muchas",
+        "hint": "con muchas, arrastras y va sembrando por donde pasas"
+      },
+      "sow": {
+        "label": "Al sembrar muchas",
+        "area": "Área",
+        "density": "Densidad",
+        "low": "baja",
+        "mid": "media",
+        "high": "alta",
+        "randomRotation": "Giro al azar",
+        "randomScale": "Tamaño al azar"
+      },
+      "foot": "una: cada clic planta otra · muchas: arrastras y siembra · Esc suelta el sello",
+      "cells": "{{n}} casillas",
+      "cell": "1 casilla",
+      "canvas": {
+        "label": "Pieza {{name}}",
+        "selected": "Pieza {{name}}, cogida",
+        "scale": "Estirar la pieza",
+        "rotate": "Girar la pieza"
+      },
+      "menu": {
+        "order": "Orden de apilado",
+        "forward": "Traer adelante",
+        "backward": "Enviar atrás",
+        "front": "Traer al frente",
+        "back": "Enviar al fondo",
+        "blocks": "Estorba",
+        "blocksSight": "Corta la vista",
+        "blocksMove": "Corta el paso",
+        "duplicate": "Duplicar"
+      },
+      "catalog": {
+        "title": "Piezas",
+        "close": "Cerrar el catálogo",
+        "search": "Buscar en todos los paquetes…",
+        "upload": "Subir piezas",
+        "group": "Agrupar",
+        "groupPack": "Paquete",
+        "groupNone": "Ninguno",
+        "sort": "Ordenar",
+        "sortName": "A–Z",
+        "sortRecent": "Más recientes",
+        "thumb": "Tamaño de miniatura",
+        "rail": "Paquetes",
+        "all": "Todo",
+        "recent": "Recientes",
+        "favorites": "Favoritos",
+        "myPacks": "Mis paquetes",
+        "unsorted": "Sin clasificar",
+        "builtIn": "De serie · Rolvium",
+        "newPack": "Nuevo paquete",
+        "newPackPrompt": "¿Cómo se llama el paquete?",
+        "packMenu": "Opciones del paquete «{{name}}»",
+        "renamePack": "Renombrar paquete",
+        "renamePackPrompt": "¿Cómo quieres que se llame este paquete?",
+        "deletePack": "Borrar paquete",
+        "deletePackConfirm": "¿Borrar el paquete «{{name}}»? Sus piezas no se borran: pasan a «Sin clasificar».",
+        "section": "{{name}} ({{n}} piezas)",
+        "sectionOne": "{{name}} (1 pieza)",
+        "uploadTile": "Subir",
+        "pick": "Elegir {{name}}",
+        "menu": "Opciones de «{{name}}»",
+        "rename": "Renombrar",
+        "renamePrompt": "¿Cómo quieres que se llame esta pieza?",
+        "moveTo": "Mover a…",
+        "removeConfirm": "¿Borrar la pieza «{{name}}» de la biblioteca? Las que ya pusiste en los mapas se quedan.",
+        "empty": "Ninguna pieza con ese nombre aquí.",
+        "emptyAll": "La biblioteca está vacía: sube tus primeras piezas.",
+        "count": "Piezas · {{n}}",
+        "legend": "el punto marca las tuyas · las demás las trae Rolvium",
+        "note": "Las piezas son de la HERRAMIENTA, no de una campaña: lo que subas aquí te sirve en todos tus mapas. Arrastra tus imágenes y caen en el paquete abierto. Elige una y el sello se queda puesto: cada clic planta otra. Borrar una de aquí NO borra las que ya pusiste en los mapas.",
+        "cat": {
+          "furniture": "Mobiliario",
+          "vegetation": "Vegetación",
+          "floors": "Suelos",
+          "doors": "Puertas",
+          "markers": "Marcas",
+          "misc": "Varios"
+        }
+      },
+      "upload": {
+        "title": "Subir piezas",
+        "close": "Cerrar",
+        "drop": "Arrastra aquí tus imágenes",
+        "dropHint": "PNG o WEBP con fondo transparente · varias a la vez",
+        "browse": "o elige los ficheros",
+        "pack": "A qué paquete",
+        "unsorted": "Sin clasificar",
+        "queued": "en cola",
+        "uploading": "subiendo",
+        "done": "listo",
+        "failed": "no se pudo",
+        "note": "El nombre del fichero se queda como nombre de la pieza. Puedes cambiarlo luego con «Renombrar».",
+        "add": "Añadir {{n}} piezas",
+        "addOne": "Añadir 1 pieza",
+        "adding": "Añadiendo…",
+        "cancel": "Cancelar",
+        "remove": "Quitar {{name}} de la lista",
+        "err": {
+          "mime": "no es una imagen que sirva (PNG, JPG, WEBP o GIF)",
+          "input-too-large": "pesa más de 8 MB",
+          "output-too-large": "sigue pesando demasiado tras comprimirla",
+          "decode": "no se pudo leer la imagen",
+          "upload": "no se pudo subir"
+        }
+      }
     }
   },
   "bestiary": {

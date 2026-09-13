@@ -1,6 +1,6 @@
 import type { RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
-import type { BgTransform, BlockShape, CreateSceneInput, MapColor, DoorSettings, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPatch, Room, RoomKind, RoomOpening, RoomPreset, RoomShapeKind, Texture, TextureCategory, NewTexture, TexturePatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
+import type { BgTransform, BlockShape, CreateSceneInput, MapColor, DoorSettings, Drawing, DrawingData, DrawingKind, FogMode, GridSettings, ImageAsset, Layer, LayerKind, LayerPatch, Light, LightKind, LightPatch, LightShape, Lighting, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropCategory, PropPack, PropPackPatch, PropPatch, Room, RoomKind, RoomOpening, RoomPreset, RoomShapeKind, Texture, TextureCategory, NewTexture, TexturePatch, RowChange, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallKind, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsLiveHandlers, MapsPort, RoomOpeningPatch, Unsubscribe } from '../domain/ports/MapsPort';
 import { clampHardness, clampMaskSize, clampRoughness, clampStrength, DEFAULT_BRUSH_ROUGHNESS, DEFAULT_BRUSH_TIP, DEFAULT_MASK_HARDNESS, DEFAULT_MASK_SIZE, DEFAULT_MASK_STRENGTH, isBrushTip, maskPath, roomMaskPath } from '../domain/useCases/layerRules';
 import { TOKEN_SCALE } from '../domain/useCases/mapRules';
@@ -20,8 +20,8 @@ interface ColorRow { id: string; campaign_id: string; color: string; created_at:
 interface RoomOpeningRow { id: string; scene_id: string; campaign_id: string; x1: number; y1: number; x2: number; y2: number; kind: 'door' | 'window'; is_open: boolean; /* las puertas, de verdad — opcionales a propósito: una fila anterior a la migración no las trae y `mapDoorRow` la defiende con DEFAULT_DOOR */ leaves?: number | null; hinge?: string | null; swing?: string | null; door_color?: string | null; door_texture_url?: string | null }
 interface ImageRow { id: string; campaign_id: string; name: string; url: string; created_at: string }
 interface TextureRow { id: string; name: string; category: TextureCategory; url: string; tile_cells: number; uploaded_by: string | null; created_at: string; updated_at: string }
-interface PropRow { id: string; campaign_id: string | null; name: string; category: PropCategory; image_url: string; natural_width: number; natural_height: number; default_scale: number; default_blocks_sight: boolean; default_blocks_move: boolean; default_block_shape: BlockShape; uploaded_by: string | null; created_at: string; updated_at: string }
-interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; created_at: string; updated_at: string }
+interface PropRow { id: string; pack_id: string | null; name: string; category: PropCategory; image_url: string; natural_width: number; natural_height: number; default_scale: number; default_blocks_sight: boolean; default_blocks_move: boolean; default_block_shape: BlockShape; uploaded_by: string | null; created_at: string; updated_at: string }
+interface ScenePropRow { id: string; scene_id: string; campaign_id: string; layer_id: string | null; prop_id: string | null; image_url: string; name: string; x: number; y: number; width: number; height: number; rotation: number; /* rebanada 6 · orden de apilado — opcional a propósito: una fila anterior a la columna no lo trae */ z?: number; blocks_sight: boolean; blocks_move: boolean; block_shape: BlockShape; block_w: number; block_h: number; block_dx: number; block_dy: number; created_at: string; updated_at: string }
 
 const SCENE_COLS = 'id, campaign_id, name, width, height, bg_color, bg_image_url, bg_transform, grid, fog_mode, lighting, night_radius_m, solid_walls, sort_order, visible_players, room_preset, wall_texture_url, floor_texture_url, wall_thickness, wall_texture_scale, floor_texture_scale, wall_texture_rotation, floor_texture_rotation, door_color, door_texture_url, token_scale, brush_tip, brush_size, brush_strength, brush_hardness, brush_roughness, band_tip, band_roughness, rock_paint_url, created_at, updated_at';
 const ROOM_COLS = 'id, scene_id, campaign_id, kind, shape, points, floor_preset, floor_url, floor_color, floor_mask_url, floor_paint_url, created_at, updated_at';
@@ -45,8 +45,8 @@ const TOKEN_COLS = 'id, scene_id, campaign_id, character_id, bestiary_ref, besti
 const DRAWING_COLS = 'id, scene_id, campaign_id, author_id, kind, data, color, width, created_at, layer_id';
 const LAYER_COLS = 'id, scene_id, campaign_id, kind, name, sort_order, visible, locked, image_url, transform, mask_url, mask_version, paint_url, paint_version, created_at, updated_at';
 const LIGHT_COLS = 'id, scene_id, campaign_id, layer_id, shape, kind, x, y, rotation, cone_angle, color, flicker, range_m, casts_shadow, spin_ms, intensity, created_at, updated_at';
-const PROP_COLS = 'id, campaign_id, name, category, image_url, natural_width, natural_height, default_scale, default_blocks_sight, default_blocks_move, default_block_shape, uploaded_by, created_at, updated_at';
-const SCENE_PROP_COLS = 'id, scene_id, campaign_id, layer_id, prop_id, image_url, name, x, y, width, height, rotation, blocks_sight, blocks_move, block_shape, block_w, block_h, block_dx, block_dy, created_at, updated_at';
+const PROP_COLS = 'id, pack_id, name, category, image_url, natural_width, natural_height, default_scale, default_blocks_sight, default_blocks_move, default_block_shape, uploaded_by, created_at, updated_at';
+const SCENE_PROP_COLS = 'id, scene_id, campaign_id, layer_id, prop_id, image_url, name, x, y, width, height, rotation, z, blocks_sight, blocks_move, block_shape, block_w, block_h, block_dx, block_dy, created_at, updated_at';
 /** La máscara del pincel vive en el bucket de fondos, bajo la carpeta de la campaña: la política ya lo cubre. */
 const DEFAULT_TRANSFORM: BgTransform = { mode: 'cover', x: 0, y: 0, scale: 1 };
 export const BACKGROUNDS_BUCKET = 'backgrounds';
@@ -127,6 +127,11 @@ export const mapRoomRow = (r: RoomRow): Room => ({
 export const mapColorRow = (r: ColorRow): MapColor => ({
   id: r.id, campaignId: r.campaign_id, color: r.color, createdAt: r.created_at,
 });
+interface PackRow { id: string; name: string; sort_order: number; created_by: string | null; created_at: string; updated_at: string }
+const PACK_COLS = 'id, name, sort_order, created_by, created_at, updated_at';
+export const mapPackRow = (r: PackRow): PropPack => ({
+  id: r.id, name: r.name, sortOrder: r.sort_order, createdBy: r.created_by, createdAt: r.created_at, updatedAt: r.updated_at,
+});
 export const mapTextureRow = (r: TextureRow): Texture => ({
   id: r.id, name: r.name, category: r.category ?? 'misc', url: r.url,
   tileCells: r.tile_cells ?? 4, uploadedBy: r.uploaded_by ?? null,
@@ -177,7 +182,7 @@ const mapLightRow = (r: LightRow): Light => ({
   rangeM: r.range_m, castsShadow: r.casts_shadow, spinMs: r.spin_ms ?? 0, intensity: r.intensity ?? 100, createdAt: r.created_at, updatedAt: r.updated_at,
 });
 export const mapPropRow = (r: PropRow): Prop => ({
-  id: r.id, campaignId: r.campaign_id, name: r.name, category: r.category, imageUrl: r.image_url,
+  id: r.id, packId: r.pack_id ?? null, name: r.name, category: r.category, imageUrl: r.image_url,
   naturalWidth: r.natural_width, naturalHeight: r.natural_height, defaultScale: r.default_scale,
   defaultBlocksSight: r.default_blocks_sight, defaultBlocksMove: r.default_blocks_move,
   defaultBlockShape: r.default_block_shape, uploadedBy: r.uploaded_by,
@@ -185,14 +190,14 @@ export const mapPropRow = (r: PropRow): Prop => ({
 });
 export const mapScenePropRow = (r: ScenePropRow): SceneProp => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, layerId: r.layer_id, propId: r.prop_id,
-  imageUrl: r.image_url, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height, rotation: r.rotation,
+  imageUrl: r.image_url, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height, rotation: r.rotation, z: r.z ?? 0,
   blocksSight: r.blocks_sight, blocksMove: r.blocks_move, blockShape: r.block_shape,
   blockW: r.block_w, blockH: r.block_h, blockDx: r.block_dx, blockDy: r.block_dy,
   createdAt: r.created_at, updatedAt: r.updated_at,
 });
 function propPatchRow(p: PropPatch): Record<string, unknown> {
   const map: Record<string, string> = {
-    name: 'name', category: 'category', imageUrl: 'image_url', naturalWidth: 'natural_width',
+    packId: 'pack_id', name: 'name', category: 'category', imageUrl: 'image_url', naturalWidth: 'natural_width',
     naturalHeight: 'natural_height', defaultScale: 'default_scale', defaultBlocksSight: 'default_blocks_sight',
     defaultBlocksMove: 'default_blocks_move', defaultBlockShape: 'default_block_shape',
     // `uploadedBy` NO está a propósito: quién subió una pieza se pone una vez al crearla y no se edita.
@@ -203,7 +208,7 @@ function propPatchRow(p: PropPatch): Record<string, unknown> {
 function scenePropPatchRow(p: ScenePropPatch): Record<string, unknown> {
   const map: Record<string, string> = {
     layerId: 'layer_id', propId: 'prop_id', imageUrl: 'image_url', name: 'name', x: 'x', y: 'y',
-    width: 'width', height: 'height', rotation: 'rotation', blocksSight: 'blocks_sight',
+    width: 'width', height: 'height', rotation: 'rotation', z: 'z', blocksSight: 'blocks_sight',
     blocksMove: 'blocks_move', blockShape: 'block_shape', blockW: 'block_w', blockH: 'block_h',
     blockDx: 'block_dx', blockDy: 'block_dy',
   };
@@ -585,30 +590,30 @@ export class SupabaseMapsRepo implements MapsPort {
 
   // ── piezas: LA BIBLIOTECA (rebanada 6) ──
   /**
-   * Trae las de la campaña Y las del catálogo de la app (`campaign_id` nulo), en una sola consulta: la
-   * galería las enseña juntas y separarlas en dos viajes sólo serviría para verlas aparecer a destiempo.
+   * La biblioteca ENTERA en una sola consulta: es de la herramienta (rebanada 6, § 6.1), así que no hay
+   * campaña por la que filtrar. Las de todos los paquetes, las sin clasificar y las de serie, juntas: la
+   * galería las reparte por secciones en pantalla.
    */
-  async listProps(campaignId: string): Promise<Prop[]> {
-    const { data, error } = await this.db.from('maps_props').select(PROP_COLS)
-      .or(`campaign_id.eq.${campaignId},campaign_id.is.null`).order('created_at', { ascending: false });
+  async listProps(): Promise<Prop[]> {
+    const { data, error } = await this.db.from('maps_props').select(PROP_COLS).order('created_at', { ascending: false });
     this.fail(error);
     return ((data ?? []) as unknown as PropRow[]).map(mapPropRow);
   }
   /**
-   * El id se genera AQUÍ, antes de subir: la foto va a `{campaña}/props/{id}.webp` y así el objeto del bucket
-   * y la fila comparten nombre. Sin eso habría que insertar primero con una URL falsa y corregirla después.
+   * El id se genera AQUÍ, antes de subir: la foto va a `props/{id}.webp` —sin campaña delante, porque la
+   * biblioteca es de la herramienta— y así el objeto del bucket y la fila comparten nombre. Sin eso habría que
+   * insertar primero con una URL falsa y corregirla después.
    */
   async addProp(input: NewProp, image: Blob): Promise<Prop> {
     const me = await this.me();
-    if (!input.campaignId) throw new Error('Una pieza subida siempre es de una campaña');
     const id = crypto.randomUUID();
-    const path = propPath(input.campaignId, id);
+    const path = propPath(id);
     const { error: upErr } = await this.db.storage.from(BACKGROUNDS_BUCKET)
       .upload(path, image, { upsert: false, contentType: image.type || 'image/webp', cacheControl: '3600' });
     this.fail(upErr);
     const url = this.db.storage.from(BACKGROUNDS_BUCKET).getPublicUrl(path).data.publicUrl;
     const { data, error } = await this.db.from('maps_props')
-      .insert({ id, campaign_id: input.campaignId, uploaded_by: me, ...propPatchRow({ ...input, imageUrl: url }) })
+      .insert({ id, uploaded_by: me, ...propPatchRow({ ...input, imageUrl: url }) })
       .select(PROP_COLS).single();
     this.fail(error);
     return mapPropRow(data as unknown as PropRow);
@@ -829,6 +834,34 @@ export class SupabaseMapsRepo implements MapsPort {
   }
   async removeTexture(id: string): Promise<void> {
     const { error } = await this.db.from('maps_textures').delete().eq('id', id);
+    this.fail(error);
+  }
+
+  // ── piezas: LOS PAQUETES (rebanada 6, § 6.1) ──
+  // De la herramienta, como las piezas. Sin realtime: la biblioteca se relee al abrir el catálogo.
+  async listPropPacks(): Promise<PropPack[]> {
+    const { data, error } = await this.db.from('maps_prop_packs').select(PACK_COLS)
+      .order('sort_order', { ascending: true }).order('created_at', { ascending: true });
+    this.fail(error);
+    return ((data ?? []) as unknown as PackRow[]).map(mapPackRow);
+  }
+  async addPropPack(name: string): Promise<PropPack> {
+    const me = await this.me();
+    const { data, error } = await this.db.from('maps_prop_packs')
+      .insert({ name, created_by: me }).select(PACK_COLS).single();
+    this.fail(error);
+    return mapPackRow(data as unknown as PackRow);
+  }
+  async updatePropPack(id: string, patch: PropPackPatch): Promise<void> {
+    const row: Record<string, unknown> = {};
+    if (patch.name !== undefined) row.name = patch.name;
+    if (patch.sortOrder !== undefined) row.sort_order = patch.sortOrder;
+    const { error } = await this.db.from('maps_prop_packs').update(row).eq('id', id);
+    this.fail(error);
+  }
+  /** La base pone `pack_id` a nulo en sus piezas (SET NULL): pasan a «Sin clasificar», no se borran. */
+  async removePropPack(id: string): Promise<void> {
+    const { error } = await this.db.from('maps_prop_packs').delete().eq('id', id);
     this.fail(error);
   }
 
