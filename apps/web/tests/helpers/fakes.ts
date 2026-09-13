@@ -372,6 +372,8 @@ export const PACK_FOREST: PropPack = { id: 'pk-for', name: 'Bosque de Karen', so
 const PROP_BASE = { category: 'misc' as const, defaultScale: 1, defaultBlocksSight: false, defaultBlocksMove: false, defaultBlockShape: 'rect' as const, uploadedBy: 'u-gm', createdAt: '2026-09-12T02:00:00Z', updatedAt: '2026-09-12T02:00:00Z' };
 /** Un roble de 200 × 300, en el paquete del bosque, que recuerda una escala de 1,5. */
 export const PROP_OAK: Prop = { ...PROP_BASE, id: 'pr-oak', packId: PACK_FOREST.id, name: 'Roble', category: 'vegetation', imageUrl: 'https://x/backgrounds/props/pr-oak.webp', naturalWidth: 200, naturalHeight: 300, defaultScale: 1.5 };
+/** Un pino, del MISMO paquete que el roble: para probar DE SU FAMILIA (§ 6.8, punto 9). */
+export const PROP_PINE: Prop = { ...PROP_BASE, id: 'pr-pine', packId: PACK_FOREST.id, name: 'Pino', category: 'vegetation', imageUrl: 'https://x/backgrounds/props/pr-pine.webp', naturalWidth: 180, naturalHeight: 320, createdAt: '2026-09-12T02:30:00Z' };
 /** Una columna que NACE estorbando: corta la vista y el paso, en círculo. */
 export const PROP_COLUMN: Prop = { ...PROP_BASE, id: 'pr-col', packId: PACK_DUNGEON.id, name: 'Columna', category: 'furniture', imageUrl: 'https://x/backgrounds/props/pr-col.webp', naturalWidth: 100, naturalHeight: 100, defaultBlocksSight: true, defaultBlocksMove: true, defaultBlockShape: 'circle', createdAt: '2026-09-12T03:00:00Z' };
 /** Una mesa sin paquete: «Sin clasificar». */

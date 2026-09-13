@@ -1309,6 +1309,9 @@
         "pickedHint": "scale and turn change THIS piece · on release it is remembered for the next ones",
         "openCatalog": "Open the pieces catalog"
       },
+      "family": {
+        "label": "From its family · {{name}}"
+      },
       "quick": {
         "label": "Without opening the catalog",
         "recent": "Recent",

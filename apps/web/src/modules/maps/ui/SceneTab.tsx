@@ -26,7 +26,7 @@ import { DEFAULT_SOW, PropsPanel, type PlantMode, type SowSettings } from './Pro
 import { PropsCatalog } from './PropsCatalog';
 import { PropsUpload, type PropUploadInput } from './PropsUpload';
 import { TextureUpload, type TextureUploadInput } from './TextureUpload';
-import { dueToSow, duplicateProp, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleChanged, scaleOfWidth, scatterIn, sowStepPx, topZ, type PropShelf } from '../domain/useCases/propRules';
+import { dueToSow, duplicateProp, filterProps, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleChanged, scaleOfWidth, scatterIn, sortProps, sowStepPx, topZ, type PropShelf, type PropShelfContext } from '../domain/useCases/propRules';
 import type { StackDir } from './LayerMenu';
 import { defaultShapeFor, DEFAULT_BRUSH_COLOR, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { fogOpOf, paintActionsFor, rockPaintSrc, roomPaintSrc, layerPaintSrc, type PaintAction, type PaintOn, type PaintWith } from '../domain/useCases/paintRules';
@@ -1081,6 +1081,18 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   }, [quickShelf, recents, favorites, library]);
   /** El estante con el que abre el catálogo: el paquete del sello, o el primero. */
   const catalogShelf: PropShelf | undefined = stamp ? { kind: 'pack', id: stamp.packId } : undefined;
+  /**
+   * DE SU FAMILIA (§ 6.8, punto 9): las piezas del mismo paquete que la cogida (ELLA incluida, marcada), para
+   * cambiar el sello sin volver al catálogo. Sola en su paquete (sin compañía) el bloque no aporta nada: vacío.
+   */
+  const family = useMemo(() => {
+    if (!pickedProp) return [];
+    const shelf: PropShelf = { kind: 'pack', id: pickedProp.packId };
+    const ctx: PropShelfContext = { favorites, recents };
+    const list = sortProps(filterProps(library ?? [], shelf, '', ctx), 'name', ctx, shelf);
+    return list.length > 1 ? list : [];
+  }, [pickedProp, library, favorites, recents]);
+  const familyPackName = pickedProp ? (packs ?? []).find(k => k.id === pickedProp.packId)?.name ?? t('maps.props.catalog.unsorted') : '';
   /** Crear la pieza en la biblioteca con lo que trae la subida. Nace con el lado mayor a DOS casillas de esta escena. */
   const añadirPieza = async (input: PropUploadInput, blob: Blob): Promise<void> => {
     const grid = live?.grid.size ?? 27;
@@ -1468,6 +1480,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               onPickedScale={moverEscalaCogida} onPickedScaleEnd={soltarEscalaCogida}
               onPickedRotation={deg => setPickedDraft(d => ({ ...d, rotation: deg }))} onPickedRotationEnd={soltarGiroCogida}
               onPickedToggleFavorite={() => { if (pickedProp) alternarFavorito(pickedProp.id); }}
+              family={family} familyPackName={familyPackName} onFamilyPick={elegirSello}
               onClose={() => { setPropsOpen(false); setTool('select'); }} />
           )}
           {/*

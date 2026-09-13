@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { LAYERS_ALL, PROP_COLUMN, PROP_OAK, SCENE_PROP_OAK } from '../../../../tests/helpers/fakes';
+import { LAYERS_ALL, PROP_COLUMN, PROP_OAK, PROP_PINE, SCENE_PROP_OAK } from '../../../../tests/helpers/fakes';
 import { DEFAULT_SOW, PropsPanel } from './PropsPanel';
 
 /**
@@ -11,7 +11,7 @@ import { DEFAULT_SOW, PropsPanel } from './PropsPanel';
 function mount(over: Partial<React.ComponentProps<typeof PropsPanel>> = {}) {
   const cb = {
     onToggleFavorite: vi.fn(), onPick: vi.fn(), onDrop: vi.fn(), onScale: vi.fn(), onScaleEnd: vi.fn(), onRotation: vi.fn(),
-    onRandomRotation: vi.fn(), onQuick: vi.fn(), onQuickPick: vi.fn(), onLayer: vi.fn(), onMode: vi.fn(), onSow: vi.fn(), onClose: vi.fn(),
+    onRandomRotation: vi.fn(), onQuick: vi.fn(), onQuickPick: vi.fn(), onLayer: vi.fn(), onMode: vi.fn(), onSow: vi.fn(), onFamilyPick: vi.fn(), onClose: vi.fn(),
   };
   const props: React.ComponentProps<typeof PropsPanel> = {
     stamp: PROP_OAK, isFavorite: false, scale: 1.5, rotation: 15, quick: 'recent', quickProps: [PROP_OAK, PROP_COLUMN],
@@ -187,5 +187,34 @@ describe('<PropsPanel> la pieza cogida y la foto como botón', () => {
     expect(onPickedToggleFavorite).toHaveBeenCalled();
     rerender(<PropsPanel {...({ stamp: PROP_OAK, isFavorite: false, scale: 1.5, rotation: 15, quick: 'recent', quickProps: [], layers: LAYERS_ALL, layerId: null, mode: 'one', sow: DEFAULT_SOW, onToggleFavorite: vi.fn(), onPick: vi.fn(), onDrop: vi.fn(), onScale: vi.fn(), onScaleEnd: vi.fn(), onRotation: vi.fn(), onRandomRotation: vi.fn(), onQuick: vi.fn(), onQuickPick: vi.fn(), onLayer: vi.fn(), onMode: vi.fn(), onSow: vi.fn(), onClose: vi.fn(), picked: { prop: { ...SCENE_PROP_OAK, propId: null }, scale: 1, rotation: 0, isFavorite: null } } as React.ComponentProps<typeof PropsPanel>)} />);
     expect(within(panel()).queryByRole('button', { name: /favorit/i })).not.toBeInTheDocument();
+  });
+});
+
+/** § 6.8, punto 9: DE SU FAMILIA — debajo de la pieza cogida, las de su mismo paquete. */
+describe('<PropsPanel> DE SU FAMILIA (S/1b)', () => {
+  it('sin pieza cogida, o sin compañía en su paquete, el bloque no sale', () => {
+    const { panel } = mount();   // sin `picked`
+    expect(within(panel()).queryByTestId('mp-props-family')).not.toBeInTheDocument();
+    document.body.innerHTML = '';
+    const { panel: panel2 } = mount({ picked: { prop: SCENE_PROP_OAK, scale: 1, rotation: 0, isFavorite: false }, family: [] });
+    expect(within(panel2()).queryByTestId('mp-props-family')).not.toBeInTheDocument();
+  });
+
+  it('con una cogida y su paquete, enseña el rótulo con el nombre, la rejilla de a tres, la suya marcada, y pinchar otra la hace el sello sin tocar la plantada', async () => {
+    const u = userEvent.setup();
+    const { panel, cb } = mount({
+      picked: { prop: SCENE_PROP_OAK, scale: 1.5, rotation: 0, isFavorite: false },
+      family: [PROP_OAK, PROP_PINE], familyPackName: 'Bosque de Karen',
+    });
+    expect(within(panel()).getByText('De su familia · Bosque de Karen')).toBeInTheDocument();
+    const grid = within(panel()).getByTestId('mp-props-family-grid');
+    const celdas = within(grid).getAllByRole('listitem');
+    expect(celdas).toHaveLength(2);
+    expect(within(grid).getByRole('listitem', { name: 'Usar Roble como sello' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(grid).getByRole('listitem', { name: 'Usar Roble como sello' })).toHaveClass('on');
+    expect(within(grid).getByRole('listitem', { name: 'Usar Pino como sello' })).toHaveAttribute('aria-pressed', 'false');
+    await u.click(within(grid).getByRole('listitem', { name: 'Usar Pino como sello' }));
+    expect(cb.onFamilyPick).toHaveBeenCalledWith(PROP_PINE);
+    expect(within(panel()).getByTestId('mp-props-picked')).toHaveTextContent('Roble');   // la plantada cogida no cambia
   });
 });

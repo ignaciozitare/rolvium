@@ -57,6 +57,15 @@ interface Props {
   onPickedRotation?: (deg: number) => void;
   onPickedRotationEnd?: () => void;
   onPickedToggleFavorite?: () => void;
+  /**
+   * DE SU FAMILIA (§ 6.8, punto 9 — él: «*donde está la pieza cogida, quiero inmediatamente debajo un pequeño
+   * recuadro donde pueda visualizar escroleando … de a tres líneas de 3 objetos de su familia*»). Las piezas del
+   * mismo paquete que la cogida (`familyPackName` es su nombre, o «Sin clasificar»); vacío = sin bloque. Pinchar
+   * otra la hace el sello, igual que la rejilla de «sin abrir el catálogo» — no toca la plantada.
+   */
+  family?: readonly Prop[];
+  familyPackName?: string;
+  onFamilyPick?: (prop: Prop) => void;
   onClose: () => void;
 }
 
@@ -71,6 +80,10 @@ const KIND_KEY: Record<Layer['kind'], string> = { terrain: 'terrain', objects: '
  * abrir el catálogo (RECIENTES / FAVORITOS y la rejilla) · a qué capa va · cuántas planto (UNA / MUCHAS) · al
  * sembrar muchas (ÁREA, DENSIDAD, GIRO y TAMAÑO al azar, en botones de fila entera). Y el pie.
  *
+ * S/1b · DE SU FAMILIA (§ 6.8, punto 9, `JHdTe`): con una pieza plantada cogida, debajo de «LA PIEZA COGIDA»
+ * sale un recuadro con las de su mismo paquete, de a tres por fila y tres filas a la vista con scroll; pinchar
+ * otra la hace el sello, sin tocar la ya plantada. Sin pieza cogida, o sin más piezas en su paquete, no sale.
+ *
  * La barra alargada «Sello activo» (`NAAEV`) NO existe: la tumbó él («*está todo dentro del panel, no la
  * pongas*»), igual que la del Pincel. Todo lo del sello vive aquí.
  *
@@ -80,7 +93,8 @@ const KIND_KEY: Record<Layer['kind'], string> = { terrain: 'terrain', objects: '
 export function PropsPanel({
   stamp, isFavorite, onToggleFavorite, onPick, onDrop, scale, onScale, onScaleEnd, rotation, onRotation, onRandomRotation,
   quick, onQuick, quickProps, onQuickPick, layers, layerId, onLayer, mode, onMode, sow, onSow,
-  picked = null, onPickedScale, onPickedScaleEnd, onPickedRotation, onPickedRotationEnd, onPickedToggleFavorite, onClose,
+  picked = null, onPickedScale, onPickedScaleEnd, onPickedRotation, onPickedRotationEnd, onPickedToggleFavorite,
+  family = [], familyPackName = '', onFamilyPick, onClose,
 }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const nameOf = (l: Layer): string => l.name || t(`maps.layers.kind.${KIND_KEY[l.kind]}`);
@@ -160,6 +174,20 @@ export function PropsPanel({
           </div>
         </>)}
       </PanelSection>
+
+      {/* ── S/1b · DE SU FAMILIA (§ 6.8, punto 9) — sólo con una pieza cogida y compañía en su paquete ── */}
+      {picked && family.length > 0 && (
+        <PanelSection label={t('maps.props.family.label', { name: familyPackName })} testId="mp-props-family">
+          <div className="mp-props-family-grid" role="list" data-testid="mp-props-family-grid">
+            {family.map(p => (
+              <button key={p.id} type="button" role="listitem" className={`mp-props-cell ${p.id === picked.prop.propId ? 'on' : ''}`}
+                aria-label={t('maps.props.quick.use', { name: p.name })} aria-pressed={p.id === picked.prop.propId} onClick={() => onFamilyPick?.(p)}>
+                <img src={p.imageUrl} alt="" />
+              </button>
+            ))}
+          </div>
+        </PanelSection>
+      )}
 
       {/* ── S/2 · SIN ABRIR EL CATÁLOGO ── */}
       <PanelSection label={t('maps.props.quick.label')} testId="mp-props-quick">

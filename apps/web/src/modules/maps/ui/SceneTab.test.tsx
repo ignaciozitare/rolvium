@@ -3,7 +3,7 @@ import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../.
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
-import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PACK_DUNGEON, PACK_FOREST, PLAYER_USER, PROP_COLUMN, PROP_OAK, SCENE_CHAPEL, SCENE_PROP_COLUMN, SCENE_PROP_OAK, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
+import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PACK_DUNGEON, PACK_FOREST, PLAYER_USER, PROP_COLUMN, PROP_OAK, PROP_PINE, SCENE_CHAPEL, SCENE_PROP_COLUMN, SCENE_PROP_OAK, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { SceneTab } from './SceneTab';
 import { DEFAULT_TEXTURE_SCALE } from '../domain/useCases/roomStyles';
@@ -2872,6 +2872,37 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     expect(within(panel).getByTestId('mp-props-picked')).toHaveTextContent('Columna');
     await u.click(within(panel).getByRole('button', { name: 'Abrir el catálogo de piezas' }));
     expect(await screen.findByTestId('mp-propcat')).toBeInTheDocument();
+  });
+
+  it('debajo de la pieza cogida, DE SU FAMILIA enseña las de su mismo paquete; pinchar otra la hace el sello sin tocar la ya plantada (§ 6.8, punto 9)', async () => {
+    const u = userEvent.setup();
+    mount('dm', fakeMapsRepo({
+      scenes: [SCENE_WAREHOUSE], props: [PROP_OAK, PROP_PINE, PROP_COLUMN],
+      packs: [{ ...PACK_FOREST, sortOrder: 0 }, { ...PACK_DUNGEON, sortOrder: 1 }],
+      sceneProps: [SCENE_PROP_OAK, { ...SCENE_PROP_COLUMN, layerId: null }], layers: [LAYER_OBJECTS],
+    }));
+    const panel = await abrirPiezas(u);
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    coger(400, 300);   // el Roble, del paquete Bosque de Karen
+    expect(within(panel).getByText('De su familia · Bosque de Karen')).toBeInTheDocument();
+    const grid = within(panel).getByTestId('mp-props-family-grid');
+    expect(within(grid).getAllByRole('listitem')).toHaveLength(2);   // el Roble y el Pino; la Columna es de otro paquete
+    expect(within(grid).getByRole('listitem', { name: 'Usar Roble como sello' })).toHaveAttribute('aria-pressed', 'true');
+    await u.click(within(grid).getByRole('listitem', { name: 'Usar Pino como sello' }));
+    expect(within(panel).getByTestId('mp-props-picked')).toHaveTextContent('Roble');   // la ya plantada no cambia
+    expect(screen.getByRole('button', { name: 'Seleccionar' })).toHaveAttribute('aria-pressed', 'false');   // el Pino pasa a sello, la mano vuelve a Piezas
+  });
+
+  it('sin más piezas en su paquete, el bloque DE SU FAMILIA no sale (§ 6.8, punto 9)', async () => {
+    const u = userEvent.setup();
+    mount('dm', seedPlantadas());
+    const panel = await abrirPiezas(u);
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    coger(700, 200);   // la Columna, sola en su paquete
+    expect(within(panel).getByTestId('mp-props-picked')).toHaveTextContent('Columna');
+    expect(within(panel).queryByTestId('mp-props-family')).not.toBeInTheDocument();
   });
 
   it('Mayús+clic coge varias: Suprimir las borra juntas y Ctrl+C / Ctrl+V las copia todas (§ 6.8, punto 5)', async () => {

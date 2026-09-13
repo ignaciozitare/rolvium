@@ -602,6 +602,8 @@
 .mp-props-cell{display:flex;align-items:center;justify-content:center;aspect-ratio:1;padding:2px;border:2px solid transparent;background:var(--sys-ink);cursor:pointer;}
 .mp-props-cell img{max-width:100%;max-height:100%;object-fit:contain;}
 .mp-props-cell.on{border-color:var(--sys-blood);}
+/* DE SU FAMILIA (§ 6.8, punto 9): las mismas baldosas, en tres columnas y tres filas a la vista, con scroll. */
+.mp-props-family-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;max-height:204px;overflow-y:auto;}
 .mp-props-select{width:100%;padding:5px 6px;border:none;font-family:inherit;font-size:var(--fs-xs);color:var(--sys-ink);
   background:color-mix(in srgb,var(--sys-paper-lo) 48%,transparent);}
 .mp-props-toggle{width:100%;justify-content:center;}

@@ -1309,6 +1309,9 @@
         "pickedHint": "escala y giro cambian ESTA pieza · al soltar se recuerda para las próximas",
         "openCatalog": "Abrir el catálogo de piezas"
       },
+      "family": {
+        "label": "De su familia · {{name}}"
+      },
       "quick": {
         "label": "Sin abrir el catálogo",
         "recent": "Recientes",
