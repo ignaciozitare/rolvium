@@ -41,7 +41,100 @@ diseña lo del grupo (spec + `.pen`) → QA → migración a producción por MCP
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» (donde se retoma) · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «DE SU FAMILIA REVERTIDO» (donde se retoma: espera que él pruebe y conteste cuatro preguntas) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+
+## 🟢 2026-09-14 (madrugada) — **«DE SU FAMILIA» REVERTIDO, revisado (✅ review) y COMMITEADO (`9361751`). ⏳ Falta que lo pruebe en pantalla y que conteste CUATRO preguntas: nada más se toca sin ellas.**
+
+### 🆕 Queja suya SIN INVESTIGAR (llegó cuando el hook ya había cortado la edición de código — sin diagnosticar)
+Captura + texto: con RECIENTES lleno de piezas usadas, «LA PIEZA DEL SELLO» apareció VACÍA («Sin pieza elegida») —
+él: «*si hago click en otra cosa me tiene que mantener el último objeto, no quedarse vacío, eso es una mierda de
+UX*». Sospecha más probable (SIN CONFIRMAR): el pie del panel ya decía, de antes de esta sesión, «Esc suelta el
+sello» (§ 6.4, decisión ya aprobada en su momento) — y el Esc que acabo de meter en el commit `3b88a28`
+(`if (stamp) setStamp(null); setTool('select');`) hace eso mismo. Puede que ahora no lo quiera así, o puede ser
+OTRO gesto (clic en vacío del mapa, cambiar de herramienta) el que se lo vacía — **no lo confirmé, no toqué nada.**
+**PREGUNTADO Y SIN CONTESTAR** (se fue a dormir con la pregunta hecha: «*no necesitas permiso … cuando me despierte
+quiero esto listo*», pero el gesto es un dato que sólo tiene él). **NO SE TOCÓ NADA.** Investigado de sólo lectura:
+hoy el sello se vacía por **exactamente cuatro caminos** (`SceneTab.tsx`), y ninguno más —
+1. **SOLTAR** en el panel (explícito, de diseño).
+2. **Esc con Piezas puesta** (`1062`). **Es de DISEÑO aprobado**: el pie del panel dice «*Esc suelta el sello*»
+   (`maps.props.foot`) y «*Esc o clic en el vacío suelta la pieza y vuelve el sello*» (`maps.props.pickedFoot`).
+3. **Botón derecho sobre una pieza plantada → SELECCIONAR** (`1706`): hace `setStamp(null)` sin avisar. Entró con los
+   ocho remates (`f6b7188`), **no** con el commit malo. **Es el que mejor encaja con sus palabras** («*si hago click
+   en otra cosa me tiene que mantener el último objeto*») — pero SIN CONFIRMAR por él.
+4. Borrar de la biblioteca la pieza que es el sello (`1629`) — evidente, no se discute.
+**NO lo vacían**: cambiar de herramienta, pinchar una plantada con el clic normal, ni pinchar el vacío del mapa.
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 🔴 de arriba de WORK_STATE.md. En `feat/maps-objetos`, el commit `3b88a28` metió mal el
+> comportamiento de "DE SU FAMILIA": hay que revertirlo exactamente como dice el bloque, con su test, review y
+> commit aparte. Y el sello se me vacía solo en algún momento — pregúntame el gesto exacto antes de tocarlo. Después
+> seguimos con lo demás que probé en pantalla.»
+
+### 📍 Punto exacto
+- Rama `feat/maps-objetos`. Último commit: **`9361751`** (`fix(maps): revierte DE SU FAMILIA…`), encima de `3b88a28`.
+- **Árbol de trabajo LIMPIO** salvo este `WORK_STATE.md`. De los CUATRO arreglos de `3b88a28`, los tres buenos siguen
+  en pie (Builder sin scroll lateral, el dado ya no se pisa con Piezas/Builder/Pincel, Esc con Piezas puesta vuelve a
+  Seleccionar) y **el malo está REVERTIDO**: pinchar una DE SU FAMILIA la hace EL SELLO y suelta la cogida — nunca
+  toca la ya plantada. Cuatro ficheros: `SceneTab.tsx`, `SceneTab.test.tsx`, `PropsPanel.tsx` (sólo comentarios) y
+  el spec § 6.8 punto 9.
+- **Verde**: typecheck web · **1928 tests web** (121 ficheros) · `npm run audit` **0 hard** (31 warn, los de siempre,
+  ninguno nuevo) · build web + build api · **review subagente ✅ PASSED**, sin nada que arreglar.
+- **Por qué se hizo mal**: dijo «*eso está a medias, me lo tiene que mostrar en el modal cuando elijo uno*» y lo leí
+  como «pinchar una DE SU FAMILIA debe cambiar la plantada cogida». Estaba mal leído: lo que quería decir (confirmado
+  después, «*cuando hago click en un objeto lo selecciono, luego clico en el mapa y lo pongo, así tiene que
+  funcionar*») es el comportamiento ORIGINAL — pinchar una la hace el SELLO (para plantarla con el siguiente clic en
+  el mapa), NUNCA toca la ya plantada. «A medias» era que el panel no enseñaba ningún cambio visible al pinchar,
+  porque con algo COGIDO el bloque superior sigue mostrando LA PIEZA COGIDA (que manda en el render) y el sello
+  cambiaba por debajo, invisible.
+
+### ✅ Decisiones (para no volver a errar esto)
+- **`onFamilyPick` vuelve a ser, en esencia, `elegirSello`** (mismo efecto que la rejilla «sin abrir el catálogo»,
+  S/2): `setStamp(p); setStampScale(p.defaultScale); setCatalogOpen(false); closeOverlays(); setTool('props')`. **NO
+  TOCA `st.patchSceneProp`, no muta la plantada.**
+- **Además**, para que el «a medias» quede resuelto de verdad: soltar la selección actual (`setSelectedPropId(null)`
+  y `setSelectedPropIds([])`, como hace Esc) DENTRO del mismo handler, así `picked` pasa a `null` y el panel
+  ENSEGUIDA enseña «LA PIEZA DEL SELLO» con la elegida — visible, con el fantasma bajo el puntero al pasar por el
+  mapa, listo para plantar con el siguiente clic (exactamente lo que describió).
+- **Esto también arregla solo, de paso, su otra queja** («*que pasó con lo de recordar la última escala? tiene que
+  ser la última escala de la familia*»): `elegirSello` YA hace `setStampScale(p.defaultScale)` — cada pieza nace con
+  SU PROPIA escala recordada. El código que había escrito (heredar el ratio de la pieza vieja) no sólo mutaba lo que
+  no debía: además rompía esto. Al revertir a `elegirSello`, las dos quejas se resuelven con el mismo cambio.
+- **Con esto desaparece también el bug que había encontrado** de `pickedBase` (indexado por el id de la plantada en
+  vez de por `propId`, que se leía mal tras el swap): ya no aplica, porque no hay swap.
+
+### ⏳ Siguiente paso — LO QUE QUEDA DEPENDE DE ÉL
+1. ✅ **HECHO**: el revert, con su test, review y commit aparte (`9361751`).
+2. **Que lo pruebe en pantalla** (recarga forzada): Builder sin scroll lateral · el dado sin pisar Piezas · Esc
+   vuelve a Seleccionar · y ahora sí DE SU FAMILIA como lo pidió (pinchar una → se hace el sello y se suelta la
+   cogida → el clic siguiente en el mapa la planta, con la escala que ESA pieza recuerda).
+3. **CUATRO preguntas suyas SIN CONTESTAR.** Ninguna se toca sin su palabra:
+   a. **El gesto que le vacía el sello.** Los cuatro caminos posibles están arriba en el 🆕; el sospechoso es el
+      **botón derecho → SELECCIONAR**. Sin su respuesta no se toca: Esc y SOLTAR son diseño aprobado y están
+      escritos en el pie del panel.
+   b. **«el maquetado que está como el culo»** — lo dijo sin decir DÓNDE. Comprobado lo comprobable sin adivinar:
+      la carcasa `rv-fpanel` **SÍ** limita el alto (`max-height:calc(100% - 16px)` + `overflow:auto`, en
+      `packages/ui/src/components/panel.css`), así que el panel no se sale de la pantalla — la sospecha no se
+      sostenía y **no se tocó nada**. Hay que preguntarle **qué pantalla o qué panel**. Ojo: arreglar maquetado es
+      cambio visible → Design Agent y `.pen` ANTES del código, y **el `.pen` sólo lo guarda él**.
+   c. **Escalar/girar un GRUPO** de piezas cogidas juntas, con **NODOS de verdad** en el marco del grupo, no
+      sliders (lo dijo explícito). Sigue pidiendo Spec Agent → Design Agent (`.pen`) antes de tocar código; hoy
+      está registrado como FUERA de alcance de la rebanada 6 (spec, línea ~1066).
+   d. Si quiere que la UI diga **«Objetos» en vez de «Piezas»** en todos lados (cambio grande: ~40 claves i18n,
+      specs, tests) o si es sólo cómo habla ÉL del asunto.
+4. Y después de eso: `/qa` sobre `feat/maps-objetos` → migración `maps_props_tool_library` a producción por MCP →
+   merge → deploy (v0.8.0, MINOR).
+
+### 🚫 Notas / no olvidar
+- **El botón derecho o el Ctrl+Z NO se tocaron** en nada de esto: si algo de eso falla al probar, es otra cosa.
+- Los tres arreglos BUENOS de `3b88a28` (Builder, dado, Esc) están commiteados y en verde — no hace falta rehacerlos,
+  sólo lo de DE SU FAMILIA.
+- **Preguntas suyas sin contestar todavía**: las cuatro están en el ⏳ de arriba (el gesto del sello · qué maquetado
+  está mal · escalar/girar un grupo · «Objetos» vs «Piezas»).
+- **Las dos «⚠ PENDIENTE» que dejaba dicho el commit `3b88a28`** (la escala heredada y `pickedBase` indexado por el
+  id de la plantada) están **MUERTAS**: sólo existían dentro del camino que borró el revert. No arrastrarlas.
+- **Deuda encontrada y NO tocada** (a decidir aparte, la sacó el review): el spec del punto 9 prometía agrupar la
+  familia por la **categoría de serie** cuando la pieza es de la app, y eso no está construido — siempre agrupa por
+  paquete. Queda matizado en el spec, sin tocar código; no estorba mientras no haya piezas de la app.
 
 ## 🟢 2026-09-13/14 (madrugada) — **§ 6.8 COMPLETO: los ocho remates + el noveno («DE SU FAMILIA»), revisados (✅ review) y COMMITEADOS. ⏳ Falta que él lo pruebe entero en pantalla.**
 
