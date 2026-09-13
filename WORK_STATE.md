@@ -35,15 +35,19 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» (donde se retoma) · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-13 (madrugada) — **LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA ENTERA. Rama `feat/maps-objetos`, commiteada, SIN MERGEAR. ⏳ Falta que él la pruebe.**
+## 🟢 2026-09-13 — **LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA ENTERA. Rama `feat/maps-objetos`, commiteada, SIN MERGEAR. ⏳ Falta que él la pruebe en pantalla (chat nuevo).**
 
 Su orden de la noche del 12: «*tienes los diseños aprobados, trabaja durante la noche todo lo que puedas, quiero ver la
 herramienta montada cuando me despierte, ni se te ocurra parar por una gilipollez*». Hecho de punta a punta sobre las
 láminas aprobadas el 2026-09-11 (`w7sTC0` catálogo · `DCs6S` subir en lote · `SNlGp` barra · `lWBaU` panel).
 
-**Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md. La rama `feat/maps-objetos` tiene la galería de piezas
-> construida y commiteada, sin mergear. Voy a probarla en local; lo que falle te lo digo con capturas.»
+**Frase para arrancar el chat nuevo (él, 2026-09-13: «*vale guardado, actualiza el ws y sigamos en el otro chat*»):**
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md. Estoy en la rama `feat/maps-objetos`: la galería de piezas
+> está construida, revisada y commiteada, sin mergear y con la migración sólo en local. Voy a probarla en
+> `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`; lo que falle te lo digo con capturas.»
+
+⚠ **No hay nada a medias**: árbol de trabajo limpio, todo en dos commits (`32439d2` y `210c5f6`) más el `.pen` guardado.
+Nada subido a `origin`. **Nunca `db:reset`** (la migración nueva ya está aplicada en su local con `migration up`).
 
 ### 🧪 LO QUE TIENE QUE PROBAR ÉL (local, `npm run dev`, recargando con Cmd+Shift+R su mesa
 `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`; la migración nueva YA está aplicada en su
@@ -104,10 +108,11 @@ stack local — `supabase migration up`, sin `db:reset`)
   seguridad, RLS, tokens, i18n (1293/1293) y cobertura: limpios. Todo lo suyo está en el commit `feat(maps): la
   galería de piezas — review y remates`.
 
-### 🎨 `.pen`: lámina NUEVA sin guardar — `iwLak` «PL/Menú de una pieza · botón derecho» (§ 6.6)
-El menú del botón derecho no tenía lámina («pide su lámina en el .pen y va con la galería»). Se dibujó esta noche
-al lado de `lWBaU` (sección 6), con el aspecto del «Menú mandar a capa» aprobado y lo elegido en sangre. **Sólo la
-guarda él (Cmd+S)**; la captura del MCP salió en blanco (render del canvas sin refrescar), así que **que la mire**.
+### 🎨 `.pen`: lámina NUEVA — `iwLak` «PL/Menú de una pieza · botón derecho» (§ 6.6) · ✅ GUARDADA por él el 13-09
+El menú del botón derecho no tenía lámina («pide su lámina en el .pen y va con la galería»). Se dibujó la noche del
+12→13 al lado de `lWBaU` (sección 6), con el aspecto del «Menú mandar a capa» aprobado y lo elegido en sangre. Él la
+guardó (Cmd+S) el 13-09 y va en el commit del `.pen`. ⏳ **Sin aprobar aún**: si al verla no le gusta, se cambia en
+los dos sitios (la lámina y `LayerMenu`).
 
 ### 🟠 DECISIONES MÍAS, REVISABLES (avisadas en el spec)
 - «DE SERIE · ROLVIUM» (las seis categorías) **no se pinta en el rail hasta que haya piezas de serie** — hoy no hay.
