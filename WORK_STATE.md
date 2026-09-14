@@ -41,7 +41,32 @@ diseña lo del grupo (spec + `.pen`) → QA → migración a producción por MCP
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «EL FONDO DEL MAPA» (lo último: espera que lo pruebe) · 🟢 «SUS CUATRO QUEJAS, HECHAS» (espera que las pruebe) · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🚀 «CAMINO A PRODUCCIÓN (v0.8.0)» (donde se retoma) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+
+## 🚀 2026-09-14 (tarde) — **CAMINO A PRODUCCIÓN (v0.8.0). Él dio el visto bueno: «*yo probé lo mío por ahora ok, sino ya solucionaremos*».**
+
+Orden suya: cerrar flecos y subir. **20 commits** en `feat/maps-objetos` sin mergear, todo verde.
+
+### 📍 El plan, en este orden (lo irreversible va marcado)
+1. ⏳ **QA** sobre la rama (lo exige el hook antes de mergear).
+2. ⚠️ **La migración a producción por MCP** — `20260913100000_maps_props_tool_library`, **la ÚNICA que falta**.
+   Comprobado con `list_migrations`: la nube va hasta `core_app_settings_grants` (12-09); las «ocho pendientes»
+   que decía el bloque del 12 ya se aplicaron siete. **Antes del merge**, como siempre.
+3. ⚠️ **Merge a `main`** → deploy → **v0.8.0**.
+4. ⏳ **Mover su biblioteca a producción** (ver abajo: se puede a medias).
+
+### 🖼️ MOVER TEXTURAS Y OBJETOS A PRODUCCIÓN — lo que se puede y lo que no
+Su local apunta a **su propia base** (`VITE_SUPABASE_URL=http://127.0.0.1:54321`), así que TODO lo suyo vive en
+su máquina. Hay **41 texturas · 50 objetos · 6 paquetes · 18 fondos de campaña**, y en el almacén
+**81 ficheros en `backgrounds/props` (13,8 MB)** más **18 fondos de dos campañas (49,8 MB)**.
+
+- ✅ **Las filas** se pueden crear en producción por SQL (MCP).
+- ❌ **Los ficheros NO**: por aquí no hay forma de escribir en el almacén de producción — el MCP de Supabase da
+  SQL y migraciones, no storage, y la clave de servicio de producción no está (ni debe estar) en el repo.
+  Copiar sólo las filas dejaría las fotos apuntando a `127.0.0.1`: se verían rotas.
+- 🟢 **El camino bueno**: exportarle los 91 ficheros a una carpeta, con sus nombres de verdad y ordenados por
+  paquete/categoría, y que los suba él en producción con **la subida en lote** (que es justo lo que se acaba de
+  construir): dos o tres arrastres. Los paquetes se le pueden dejar creados por SQL para que ya estén ahí.
 
 ## 🟢 2026-09-14 (tarde) — **EL FONDO DEL MAPA, con el mismo catálogo que las texturas. Spec + láminas commiteadas (`c391aff`); el código, construido y en review.**
 
