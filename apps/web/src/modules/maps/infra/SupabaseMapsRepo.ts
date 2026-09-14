@@ -359,6 +359,10 @@ export class SupabaseMapsRepo implements MapsPort {
     this.fail(error);
     return mapImageRow(data as unknown as ImageRow);
   }
+  async updateImage(id: string, patch: { name: string }): Promise<void> {
+    const { error } = await this.db.from('maps_images').update({ name: patch.name }).eq('id', id);
+    this.fail(error);
+  }
   async removeImage(id: string): Promise<void> {
     const { error } = await this.db.from('maps_images').delete().eq('id', id);
     this.fail(error);

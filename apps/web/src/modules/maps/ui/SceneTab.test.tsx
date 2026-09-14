@@ -170,11 +170,14 @@ describe('<SceneTab> DM', () => {
     expect(screen.getByText(/1 muros · 0 puertas · 0 ventanas \(invisibles para jugadores\) · 1 tokens ocultos/)).toBeInTheDocument();
     // background
     await u.click(screen.getByRole('button', { name: 'Fondo del mapa' }));
-    await u.click(await screen.findByRole('button', { name: 'Capilla' }));
+    // La foto ya no se elige en el panel: CAMBIAR abre el catálogo (§ «EL FONDO DEL MAPA»).
+    await u.click(await screen.findByRole('button', { name: 'Cambiar' }));
+    await u.click(await screen.findByRole('button', { name: 'Poner Capilla de fondo' }));
     await waitFor(() => expect(repo.sceneUpdates).toContainEqual({ id: 'sc-1', patch: { bgImageUrl: IMAGE_CHAPEL.url } }));
     expect(screen.getByTestId('mp-bg-image')).toHaveAttribute('href', IMAGE_CHAPEL.url);
-    await u.click(screen.getByRole('radio', { name: '#0f0f0f' }));
-    await waitFor(() => expect(screen.getByTestId('mp-bg')).toHaveAttribute('fill', '#0f0f0f'));
+    // Y el color de base es ya el bloque del Pincel, con su paleta de la casa.
+    await u.click(screen.getByRole('radio', { name: 'Carbón' }));
+    await waitFor(() => expect(screen.getByTestId('mp-bg')).toHaveAttribute('fill', '#2f3338'));
     await u.click(screen.getByRole('button', { name: 'Cerrar' }));
     // place PC
     await u.click(screen.getByRole('button', { name: 'Colocar PJ' }));
@@ -702,7 +705,7 @@ describe('<SceneTab> rebanada 3 — la cabecera desaparece y su contenido se rep
     mount('dm', seed());
     const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
     await u.click(within(bar).getByRole('button', { name: 'Fondo del mapa' }));
-    expect(await screen.findByText('Biblioteca de imágenes')).toBeInTheDocument();
+    expect(await screen.findByText('La imagen')).toBeInTheDocument();
     await u.click(within(bar).getByRole('button', { name: 'Colocar PJ' }));
     expect(await screen.findByRole('menu', { name: 'Elige un personaje' })).toBeInTheDocument();
   });
@@ -1400,7 +1403,8 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     await u.click(screen.getByRole('button', { name: 'Trabajar en la capa Musgo' }));
     await u.click(screen.getByRole('button', { name: 'Fondo del mapa' }));
     expect(await screen.findByRole('dialog', { name: 'Foto de la capa «Musgo»' })).toBeInTheDocument();
-    await u.click(screen.getByRole('button', { name: IMAGE_CHAPEL.name }));
+    await u.click(screen.getByRole('button', { name: 'Cambiar' }));
+    await u.click(await screen.findByRole('button', { name: `Poner ${IMAGE_CHAPEL.name} de fondo` }));
     await waitFor(() => expect(repo.layerUpdates.at(-1)).toEqual({ id: 'ly-moss', patch: { imageUrl: IMAGE_CHAPEL.url } }));
     // Y la escena NO se ha tocado: la foto es de la capa.
     expect(repo.sceneUpdates.some(u2 => 'bgImageUrl' in u2.patch)).toBe(false);
@@ -1413,8 +1417,48 @@ describe('<SceneTab> capas (rebanada 7)', () => {
     await screen.findByRole('complementary', { name: 'Capas' });
     await u.click(screen.getByRole('button', { name: 'Fondo del mapa' }));
     expect(await screen.findByRole('dialog', { name: 'Fondo del mapa' })).toBeInTheDocument();
-    await u.click(screen.getByRole('button', { name: IMAGE_CHAPEL.name }));
+    await u.click(screen.getByRole('button', { name: 'Cambiar' }));
+    await u.click(await screen.findByRole('button', { name: `Poner ${IMAGE_CHAPEL.name} de fondo` }));
     await waitFor(() => expect(repo.sceneUpdates.at(-1)).toEqual({ id: 'sc-1', patch: { bgImageUrl: IMAGE_CHAPEL.url } }));
+  });
+
+  /**
+   * EL CATÁLOGO DE FONDOS enseña DOS bibliotecas (§ «EL FONDO DEL MAPA»), así que cada acción tiene que ir a la
+   * que toca: sus fondos a los de la campaña, las texturas a las de la herramienta. Si se mezclan, borrar un
+   * fondo suyo se llevaría por delante una textura de todas sus campañas.
+   */
+  it('borrar en el catálogo de fondos va a la biblioteca que toca', async () => {
+    const u = userEvent.setup();
+    const roca = { id: 'tx-roca', name: 'Roca gris', category: 'stone' as const, url: 'https://x/roca.png', tileCells: 2, uploadedBy: 'u-gm', createdAt: '2026-09-01', updatedAt: '' };
+    const repo = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], images: [IMAGE_CHAPEL], textures: [roca] });
+    mount('dm', repo);
+    await u.click(await screen.findByRole('button', { name: 'Fondo del mapa' }));
+    await u.click(await screen.findByRole('button', { name: 'Cambiar' }));
+    await u.click(await screen.findByRole('button', { name: 'Opciones de «Capilla»' }));
+    await u.click(screen.getByRole('menuitem', { name: /Eliminar|Borrar/ }));
+    await u.click(await screen.findByRole('button', { name: 'Eliminar' }));
+    await waitFor(() => expect(repo.images).toHaveLength(0));
+    // Y la textura sigue donde estaba: es de la herramienta, no de esta campaña.
+    expect(repo.textures).toHaveLength(1);
+  });
+
+  /**
+   * EL COLOR DE BASE ES EL BLOQUE DEL PINCEL (§ «EL FONDO DEL MAPA»; él, 2026-09-14: «*el color picker tiene
+   * que ajustarse como hicimos en otros menús*»), y ese bloque enseña LOS COLORES GUARDADOS DE LA CAMPAÑA. Se
+   * piden al abrir el panel: hasta que se pidieron sólo al abrir el Pincel, «Tus colores» se quedaba en
+   * «Cargando…» para siempre en quien entrara por el fondo sin haber tocado antes el Pincel.
+   */
+  it('el panel del fondo trae los colores guardados de la campaña, sin pasar por el Pincel', async () => {
+    const u = userEvent.setup();
+    const repo = fakeMapsRepo({
+      scenes: [SCENE_WAREHOUSE],
+      colors: [{ id: 'mc-1', campaignId: 'c1', color: '#7a5c3e', createdAt: '2026-09-10' }],
+    });
+    mount('dm', repo);
+    await u.click(await screen.findByRole('button', { name: 'Fondo del mapa' }));
+    const mios = await screen.findByRole('radiogroup', { name: 'Tus colores · de esta campaña' });
+    expect(await within(mios).findByRole('radio', { name: 'Color #7a5c3e' })).toBeInTheDocument();
+    expect(within(mios).queryByText('Cargando…')).not.toBeInTheDocument();
   });
 
   /**

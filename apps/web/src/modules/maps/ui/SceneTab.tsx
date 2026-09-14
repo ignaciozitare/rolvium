@@ -44,7 +44,9 @@ import {
   type ElementKind,
 } from '../domain/useCases/layerRules';
 import { ScenesMenu } from './ScenesMenu';
+import { BackgroundCatalog } from './BackgroundCatalog';
 import { BackgroundPopover } from './BackgroundPopover';
+import { BackgroundUpload } from './BackgroundUpload';
 import { EncounterMenu } from './EncounterMenu';
 import { TokenAttackModal, type AttackTarget } from '@/modules/bestiary/ui/TokenAttackModal';
 import { entryFromCatalogItem } from '@/modules/bestiary/domain/useCases/bestiaryRules';
@@ -162,6 +164,9 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const [showWalls, setShowWalls] = useState(true);
   const [playerView, setPlayerView] = useState(false);
   const [bgOpen, setBgOpen] = useState(false);
+  /** El catálogo de fondos a pantalla completa, y su ventana de subida en lote (§ «EL FONDO DEL MAPA»). */
+  const [bgCatalog, setBgCatalog] = useState(false);
+  const [bgUpload, setBgUpload] = useState<{ files?: File[] } | null>(null);
   const [encounter, setEncounter] = useState<CatalogItem | null>(null);
   const [pcMenu, setPcMenu] = useState(false);
   /** La criatura llegó ya elegida desde el Bestiario: se arma la colocación pero NO se abre el buscador. */
@@ -529,12 +534,28 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     if (keep !== 'quick') setQuickMenu(null);
     if (keep !== 'encounter' && encounterMenuOpen) setTool(t => (t === 'encounter' ? 'select' : t));
   };
+  /**
+   * Las DOS bibliotecas del fondo: los suyos de esta campaña y las texturas de la herramienta. Se piden las
+   * dos, porque el catálogo las enseña juntas y con una sola no sabría si la otra está vacía o aún no llegó.
+   */
+  const cargarFondos = async (): Promise<void> => {
+    if (images === null) setImages(await repo.listImages(campaignId).catch(() => []));
+    if (textures === null) setTextures(await repo.listTextures().catch(() => []));
+  };
   const openBg = async () => {
     const next = !bgOpen;
     closeOverlays(next ? 'bg' : undefined);
     setBgOpen(next);
-    if (next && images === null) setImages(await repo.listImages(campaignId).catch(() => []));
+    if (next) await cargarFondos();
   };
+  const abrirCatalogoFondos = async (): Promise<void> => { setBgCatalog(true); await cargarFondos(); };
+  /**
+   * Cómo se llama lo que hay puesto de fondo, para la fila del panel. Puede ser uno SUYO o una TEXTURA, así que
+   * se busca en las dos bibliotecas; si no está en ninguna (una foto de antes, borrada de la biblioteca), no hay
+   * nombre que enseñar y la fila dice «Ninguna».
+   */
+  const nombreDelFondo = (url: string | null): string | null =>
+    url ? (images ?? []).find(i => i.url === url)?.name ?? (textures ?? []).find(x => x.url === url)?.name ?? null : null;
   const openPcMenu = async () => {
     const next = !pcMenu;
     closeOverlays(next ? 'pc' : undefined);
@@ -690,13 +711,18 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * ── LOS COLORES GUARDADOS DE LA CAMPAÑA (rebanada 10) ──
    * Se piden la primera vez que se abre la sección del color y no al entrar en la escena: son una lista
    * pequeñísima que la mayoría de las sesiones no llega a mirar. Mismo trato que el catálogo de texturas.
+   *
+   * DOS SITIOS LOS MIRAN, no uno: el Pincel pintando con color, y el panel del FONDO DEL MAPA desde que su
+   * color de base es el mismo bloque (§ «EL FONDO DEL MAPA»). Pidiéndolos sólo por el Pincel, quien entraba
+   * por el fondo veía «Tus colores» en «Cargando…» para siempre.
    */
+  const pidenColores = isDm && (bgOpen || (tool === 'mask' && paintWith === 'color'));
   useEffect(() => {
-    if (colors !== null || !isDm || tool !== 'mask' || paintWith !== 'color') return;
+    if (colors !== null || !pidenColores) return;
     let alive = true;
     void repo.listColors(campaignId).then(l => { if (alive) setColors(l); }).catch(() => { if (alive) setColors([]); });
     return () => { alive = false; };
-  }, [colors, isDm, tool, paintWith, repo, campaignId]);
+  }, [colors, pidenColores, repo, campaignId]);
   /**
    * Guardar el color que está puesto. Optimista y sin deshacer: es una muestra en una paleta, no trabajo que
    * se pueda perder — y la base ya impide que el mismo color entre dos veces.
@@ -1805,16 +1831,45 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             <EncounterMenu entries={bestiary} labelOf={e => ts(e.label)} selectedId={encounter?.id ?? null} onSelect={setEncounter} onClose={() => setTool('select')} />
           )}
           {isDm && bgOpen && (
-            <BackgroundPopover scene={live} layer={bgLayer} images={images}
+            <BackgroundPopover scene={live} layer={bgLayer}
+              currentName={nombreDelFondo(bgLayer ? bgLayer.imageUrl : live.bgImageUrl)}
+              savedColors={colors} onSaveColor={guardarColor}
               onColor={hex => run(patchScene(live.id, { bgColor: hex }))}
-              onImage={url => run(bgLayer ? st.patchLayer(bgLayer.id, { imageUrl: url }) : patchScene(live.id, { bgImageUrl: url }))}
+              onOpenCatalog={() => void abrirCatalogoFondos()}
+              onRemoveImage={() => run(bgLayer ? st.patchLayer(bgLayer.id, { imageUrl: null }) : patchScene(live.id, { bgImageUrl: null }))}
               onTransform={tr => run(bgLayer ? st.patchLayer(bgLayer.id, { transform: tr }) : patchScene(live.id, { bgTransform: tr }))}
-              onUpload={async f => {
-                const img = await repo.uploadImage(campaignId, f, f.name.replace(/\.[^.]+$/, ''));
-                setImages(l => [img, ...(l ?? [])]);
-                await (bgLayer ? st.patchLayer(bgLayer.id, { imageUrl: img.url }) : patchScene(live.id, { bgImageUrl: img.url }));
-              }}
               onClose={() => setBgOpen(false)} />
+          )}
+          {isDm && bgCatalog && (
+            <BackgroundCatalog images={images} textures={textures} canManageTextures={puedeOrdenarTexturas}
+              favorites={favoriteTextures} recents={recentTextures}
+              onToggleFavorite={b => setFavoriteTextures(memory.toggleFavoriteTexture(b.id))}
+              onPick={b => {
+                setRecentTextures(memory.rememberRecentTexture(b.id));
+                run(bgLayer ? st.patchLayer(bgLayer.id, { imageUrl: b.url }) : patchScene(live.id, { bgImageUrl: b.url }));
+                setBgCatalog(false);
+              }}
+              onUpload={files => setBgUpload(files ? { files } : {})}
+              onRename={(b, name) => {
+                // Cada uno a su biblioteca: los suyos a `maps_images`, las texturas a `maps_textures`.
+                if (b.mine) { setImages(l => (l ?? []).map(x => (x.id === b.id ? { ...x, name } : x))); run(repo.updateImage(b.id, { name })); }
+                else { setTextures(l => (l ?? []).map(x => (x.id === b.id ? { ...x, name } : x))); run(repo.updateTexture(b.id, { name })); }
+              }}
+              onRemove={async b => {
+                // Ya viene confirmado por él: el catálogo enseña el modal antes de llamar aquí.
+                if (b.mine) { await repo.removeImage(b.id); setImages(l => (l ?? []).filter(x => x.id !== b.id)); }
+                else { await repo.removeTexture(b.id); setTextures(l => (l ?? []).filter(x => x.id !== b.id)); }
+              }}
+              onClose={() => setBgCatalog(false)} />
+          )}
+          {/* Lo subido se queda en el catálogo para elegirlo: NO se pone solo el último (§ 6.8, punto 1). */}
+          {isDm && bgUpload && (
+            <BackgroundUpload {...(bgUpload.files ? { initialFiles: bgUpload.files } : {})}
+              onAdd={async (name, blob) => {
+                const img = await repo.uploadImage(campaignId, blob, name);
+                setImages(l => [img, ...(l ?? [])]);
+              }}
+              onClose={() => setBgUpload(null)} />
           )}
           <CanvasControls isDm={isDm} showWalls={showWalls} playerView={playerView} scene={live}
             onFogMode={mode => run(patchScene(live.id, { fogMode: mode }))}

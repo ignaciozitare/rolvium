@@ -425,6 +425,8 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const propUpdates: { id: string; patch: PropPatch }[] = [];
   const scenePropUpdates: { id: string; patch: ScenePropPatch }[] = [];
   const propUploads: { name: string; bytes: number }[] = [];
+  /** Renombrados de fondos de la campaña, desde el catálogo de fondos (§ «EL FONDO DEL MAPA»). */
+  const imageUpdates: { id: string; patch: { name: string } }[] = [];
   const masksSaved: { layerId: string; bytes: number }[] = [];
   const masksCleared: string[] = [];
   /** El pincel sobre el suelo de una sala (rebanada 9). Se apunta aparte del de las capas: son dos destinos. */
@@ -435,7 +437,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const paintCleared: { on: 'room' | 'rock' | 'layer'; id: string }[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, packs, packUpdates, sceneProps, textures, rooms, roomOpenings, colors, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared, floorMasksSaved, floorMasksCleared, paintSaved, paintCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, packs, packUpdates, sceneProps, textures, rooms, roomOpenings, colors, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, imageUpdates, masksSaved, masksCleared, floorMasksSaved, floorMasksCleared, paintSaved, paintCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -459,6 +461,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     },
     listImages: async (cid: string) => images.filter(i => i.campaignId === cid),
     uploadImage: async (campaignId: string, _file: Blob, name: string) => { uploads.push({ campaignId, name }); const img: ImageAsset = { id: `img-new-${++n}`, campaignId, name, url: `https://x/backgrounds/${campaignId}/${name}.png`, createdAt: '' }; images.unshift(img); return img; },
+    updateImage: async (id: string, patch: { name: string }) => { imageUpdates.push({ id, patch }); const img = images.find(x => x.id === id); if (img) Object.assign(img, patch); },
     removeImage: async (id: string) => { const i = images.findIndex(x => x.id === id); if (i >= 0) images.splice(i, 1); },
     listWalls: async (sid: string) => walls.filter(w => w.sceneId === sid),
     addWall: async (w: NewWall) => { const created: Wall = { groupId: null, ...DEFAULT_DOOR, ...w, id: `w-new-${++n}` }; walls.push(created); return created; },

@@ -66,6 +66,11 @@ export interface MapsPort {
   /** DM only: uploads to `backgrounds/{campaignId}/{uuid}.png` and registers the row. */
   uploadImage(campaignId: string, file: Blob, name: string): Promise<ImageAsset>;
   removeImage(id: string): Promise<void>;
+  /**
+   * Renombrar un fondo de la campaña, desde el catálogo de fondos (§ «EL FONDO DEL MAPA»). Es lo ÚNICO que se
+   * le puede cambiar: la foto no se toca, y de campaña no se mueve — un fondo es de la campaña donde se subió.
+   */
+  updateImage(id: string, patch: { name: string }): Promise<void>;
   // walls
   listWalls(sceneId: string): Promise<Wall[]>;
   addWall(input: NewWall): Promise<Wall>;

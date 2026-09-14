@@ -96,6 +96,27 @@ describe('SupabaseMapsRepo — images', () => {
     const failing = { ...client, storage: { from: vi.fn(() => ({ upload: vi.fn().mockResolvedValue({ data: null, error: { message: 'too big' } }), getPublicUrl: vi.fn() })) } };
     await expect(new SupabaseMapsRepo(failing as unknown as SupabaseClient).uploadImage('c1', new Blob(['x']), 'x')).rejects.toThrow('too big');
   });
+
+  /**
+   * RENOMBRAR UN FONDO desde el catálogo (§ «EL FONDO DEL MAPA»). Es lo ÚNICO que se le puede cambiar: ni la
+   * foto ni la campaña viajan en el `update`, porque un fondo es de la campaña donde se subió — mandar
+   * `campaign_id` sería abrir la puerta a moverlo a otra, y quien tiene que cerrarla es también el adaptador.
+   */
+  it('updateImage manda sólo `name` y apunta a la fila por id', async () => {
+    const m = createSupabaseMock({ tables: { maps_images: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateImage('img-1', { name: 'Capilla en ruinas' });
+    expect(m.fromSpy).toHaveBeenCalledWith('maps_images');
+    expect(q(m)['update']).toHaveBeenCalledWith({ name: 'Capilla en ruinas' });
+    expect(q(m)['eq']).toHaveBeenCalledWith('id', 'img-1');
+    expect(q(m)['eq']).toHaveBeenCalledTimes(1);
+  });
+
+  it('si la RLS deniega (no es el director de esa campaña), el error SUBE', async () => {
+    const m = createSupabaseMock({ tables: { maps_images: { data: null, error: new Error('new row violates row-level security policy') } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await expect(repo.updateImage('img-1', { name: 'X' })).rejects.toThrow(/row-level security/);
+  });
 });
 
 describe('SupabaseMapsRepo — walls, tokens, drawings', () => {

@@ -23,8 +23,14 @@ creado y vacío). Who: todos los miembros para su avatar; el director para fondo
   |---|---|---|---|
   | Avatar | 512×512 | 0,85 | se pinta a 64 px como mucho |
   | Token de encuentro | 512×512 | 0,85 | una casilla del mapa |
-  | Fondo de escena | 2560 px de lado mayor | 0,82 | se ve a pantalla completa y con zoom |
+  | Fondo de escena | ~~2560 px de lado mayor~~ **NO se comprime** | — | ver el ⚠ de debajo |
   | Pieza de la galería (`prop`) | 1024 px de lado mayor | 0,90 | se planta a escala y se mira de cerca; WebP conserva el alfa, que es lo que la hace servir |
+> ⚠ **EL FONDO DE ESCENA NO SE COMPRIME** (decisión suya, 2026-09-14). Se construyó comprimiéndolo a 2560 px y
+> 0,82 y lo paró en cuanto lo leyó: «*¿pero se comprimen y pierden calidad? porque eso sería un problema*». Un
+> fondo es lo que más de cerca se mira de toda la mesa —a pantalla completa y con zoom—, y reescalar un mapa de
+> 4000 px a 2560 se nota. Entra **tal cual**, como las texturas (spec de maps, § 6.8 punto 1 y § «EL FONDO DEL
+> MAPA»). Los otros tres destinos siguen comprimiéndose: un avatar se pinta a 64 px y un token ocupa una casilla.
+
 - **Tope duro de 8 MB en el fichero de entrada**, antes de comprimir: por encima se rechaza con un aviso, no se
   intenta. Y tope de 1,5 MB en el resultado subido.
 - Sólo `image/png`, `image/jpeg`, `image/webp` y `image/gif` (el gif se aplana al primer fotograma).

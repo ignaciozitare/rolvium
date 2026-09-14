@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from '@rolvium/i18n';
 import { Modal, Slider, useDialog } from '@rolvium/ui';
 import {
@@ -26,6 +26,14 @@ export interface LibraryCatalogProps<T extends LibraryItem> {
    * no salen ni «Subir», ni los tres puntos, ni marcar, ni «Nuevo paquete». Quien deniega de verdad es la base.
    */
   canManage: boolean;
+  /**
+   * ¿Y sobre ESTA en concreto? De serie manda `canManage` para todas, que es como nacieron las piezas y las
+   * texturas. Lo necesita el catálogo de FONDOS (2026-09-14), que enseña dos bibliotecas a la vez: los fondos
+   * de su campaña son suyos y siempre puede con ellos, pero tocar una textura es tocar la biblioteca de la
+   * herramienta y eso pide `manage_textures`. Sin esto, o no podía subir los suyos o podía borrar texturas
+   * de todo el mundo.
+   */
+  canManageItem?: (item: T) => boolean;
   favorites: readonly string[];
   recents: readonly string[];
   onToggleFavorite: (item: T) => void;
@@ -36,8 +44,13 @@ export interface LibraryCatalogProps<T extends LibraryItem> {
   /** Abrir la subida en lote, en el grupo que se esté mirando. Con ficheros si vienen arrastrados. */
   onUpload: (groupId: string | null, files?: File[]) => void;
   onRename: (item: T, name: string) => void;
-  /** Mover a otro grupo. Con varias marcadas se llama una vez por cada una. */
-  onMoveTo: (item: T, groupId: string | null) => void;
+  /**
+   * Mover a otro grupo. Con varias marcadas se llama una vez por cada una.
+   * **Opcional desde el 2026-09-14**: sin él no sale «Mover a…» ni en los tres puntos ni
+   * en la barra de selección, y arrastrar a un grupo no hace nada. Lo necesita así el catálogo de FONDOS, donde
+   * no hay adónde mover: los suyos son de su campaña y las texturas ya están en su categoría.
+   */
+  onMoveTo?: (item: T, groupId: string | null) => void;
   /** Ya confirmado: quien recibe esto sólo tiene que borrarla. Con varias marcadas, una vez por cada una. */
   onRemove: (item: T) => void;
   /** Sólo las bibliotecas con grupos PROPIOS (paquetes): crear, renombrar y borrar. Las categorías cerradas no. */
@@ -77,12 +90,14 @@ const esArrastreInterno = (e: React.DragEvent): boolean => {
  * compartido. Lo elegido va en sangre, como en toda la mesa.
  */
 export function LibraryCatalog<T extends LibraryItem>({
-  keys, icon, items, groups, builtIns, builtInLabel, placeOf, groupIcon, canManage, favorites, recents, onToggleFavorite, onPick,
+  keys, icon, items, groups, builtIns, builtInLabel, placeOf, groupIcon, canManage, canManageItem, favorites, recents, onToggleFavorite, onPick,
   renderThumb, onUpload, onRename, onMoveTo, onRemove, onNewGroup, onRenameGroup, onRemoveGroup, initialShelf, hint, onClose,
 }: LibraryCatalogProps<T>): JSX.Element {
   const { t } = useTranslation();
   const dialog = useDialog();
   const k = (key: string, vars?: Record<string, string>): string => t(`${keys}.${key}`, vars);
+  /** ¿Se puede ordenar ÉSTA? Sin `canManageItem`, lo que diga `canManage` para todas, como siempre. */
+  const puede = useCallback((item: T): boolean => (canManageItem ? canManageItem(item) : canManage), [canManage, canManageItem]);
   const [query, setQuery] = useState('');
   const [shelf, setShelf] = useState<Shelf>(() => initialShelf ?? (groups?.[0] ? { kind: 'pack', id: groups[0].id } : { kind: 'all' }));
   const [grouped, setGrouped] = useState(true);
@@ -105,7 +120,14 @@ export function LibraryCatalog<T extends LibraryItem>({
   const shelfNow: Shelf = query.trim() ? { kind: 'all' } : shelf;
   const sections = useMemo(() => sectionsOf(all, groupList, builtIns, shelfNow, query, sort, ctx, grouped, placeOf), [all, groupList, builtIns, shelfNow, query, sort, ctx, grouped, placeOf]);
   const shownCount = sections.reduce((n, s) => n + s.items.length, 0);
-  const visibleIds = useMemo(() => sections.flatMap(s => s.items.map(i => i.id)), [sections]);
+  /**
+   * LO QUE PUEDE COGER EL TRAMO DE MAYÚS, en el orden en que se ve. Es lo visible MENOS lo que no se puede
+   * ordenar, y eso último importa desde que el catálogo enseña DOS bibliotecas con permisos distintos (los
+   * FONDOS): con AGRUPAR apagado —o en Favoritos y en Recientes— las dos salen mezcladas en una sola lista, y
+   * un tramo entre dos fondos SUYOS se llevaba por delante las texturas de en medio. Con ellas marcadas, la
+   * papelera de la barra de selección las borraba sin tener `manage_textures`.
+   */
+  const visibleIds = useMemo(() => sections.flatMap(s => s.items.filter(puede).map(i => i.id)), [sections, puede]);
   const loose = countIn(all, { kind: 'pack', id: null }, ctx, placeOf);
   const deSerie = builtIns.length > 0 && hasBuiltIn(all, placeOf);
   /** Adónde va lo que se suba desde aquí: el grupo abierto, o «Sin clasificar» (o el primer grupo, si no hay sueltas). */
@@ -120,7 +142,15 @@ export function LibraryCatalog<T extends LibraryItem>({
       case 'category': return builtInLabel?.(s.category) ?? s.category;
     }
   };
-  const marcadas = useMemo(() => selected.map(id => all.find(i => i.id === id)).filter((i): i is T => !!i), [selected, all]);
+  /**
+   * LAS MARCADAS, y **sólo las que se pueden ordenar**: borrar y mover en lote salen de aquí, así que el
+   * permiso se comprueba donde se actúa y no sólo donde se pinta el botón. Con `canManage` a secas las dos
+   * listas son la misma; con permiso POR PIEZA (los FONDOS) esto es el segundo cerrojo del primero.
+   */
+  const marcadas = useMemo(
+    () => selected.map(id => all.find(i => i.id === id)).filter((i): i is T => !!i && puede(i)),
+    [selected, all, puede],
+  );
   const limpiarSeleccion = (): void => { setSelected([]); setAnchor(null); };
 
   useEffect(() => {
@@ -163,7 +193,7 @@ export function LibraryCatalog<T extends LibraryItem>({
   };
   const moverMarcadas = (groupId: string | null): void => {
     setMenu(null);
-    marcadas.filter(i => placeOf(i).group !== groupId).forEach(i => onMoveTo(i, groupId));
+    marcadas.filter(i => placeOf(i).group !== groupId).forEach(i => onMoveTo?.(i, groupId));
     limpiarSeleccion();
   };
   const nuevoGrupo = async (): Promise<void> => {
@@ -190,8 +220,8 @@ export function LibraryCatalog<T extends LibraryItem>({
    * elige. Con algo ya marcado, un clic normal marca o desmarca: mientras se ordena no se sale del catálogo.
    */
   const pinchar = (item: T, e: React.MouseEvent): void => {
-    if (canManage && e.shiftKey) { setSelected(s => rangeIds(visibleIds, s, anchor, item.id)); setAnchor(item.id); return; }
-    if (canManage && (e.ctrlKey || e.metaKey || selected.length)) { setSelected(s => toggleId(s, item.id)); setAnchor(item.id); return; }
+    if (puede(item) && e.shiftKey) { setSelected(s => rangeIds(visibleIds, s, anchor, item.id)); setAnchor(item.id); return; }
+    if (puede(item) && (e.ctrlKey || e.metaKey || selected.length)) { setSelected(s => toggleId(s, item.id)); setAnchor(item.id); return; }
     onPick(item);
   };
   const marcar = (item: T): void => { setSelected(s => toggleId(s, item.id)); setAnchor(item.id); };
@@ -216,7 +246,7 @@ export function LibraryCatalog<T extends LibraryItem>({
     let ids: string[] = [];
     try { ids = JSON.parse(e.dataTransfer.getData(LIBRARY_DRAG_MIME) || '[]') as string[]; } catch { ids = []; }
     const movidas = ids.map(id => all.find(i => i.id === id)).filter((i): i is T => !!i && placeOf(i).group !== groupId);
-    movidas.forEach(i => onMoveTo(i, groupId));
+    movidas.forEach(i => onMoveTo?.(i, groupId));
     limpiarSeleccion();
   };
   const destino = (groupId: string | null): { onDragOver: (e: React.DragEvent) => void; onDragLeave: () => void; onDrop: (e: React.DragEvent) => void } | Record<string, never> =>
@@ -342,17 +372,19 @@ export function LibraryCatalog<T extends LibraryItem>({
               <div className="mp-propcat-selbar" role="toolbar" aria-label={k(selected.length === 1 ? 'selectedOne' : 'selected', { n: String(selected.length) })} data-testid="mp-propcat-selbar">
                 <span className="material-symbols-outlined" aria-hidden="true">check_circle</span>
                 <span className="mp-propcat-selbar-n">{k(selected.length === 1 ? 'selectedOne' : 'selected', { n: String(selected.length) })}</span>
-                <span className="mp-propcat-selbar-cell">
-                  <button type="button" className="mp-propcat-selbar-btn blood" aria-haspopup="menu" aria-expanded={menu?.kind === 'sel'}
-                    onClick={() => setMenu(m => (m?.kind === 'sel' ? null : { kind: 'sel', id: 'sel', step: 'move' }))}>
-                    <span className="material-symbols-outlined" aria-hidden="true">drive_file_move</span>{k('moveTo')}
-                  </button>
-                  {menu?.kind === 'sel' && (
-                    <div className="mp-texcat-menu mp-propcat-selmenu" role="menu" ref={menuRef} aria-label={k('moveTo')}>
-                      {opcionesDestino(g => marcadas.length > 0 && marcadas.every(i => placeOf(i).group === g), moverMarcadas)}
-                    </div>
-                  )}
-                </span>
+                {onMoveTo && (
+                  <span className="mp-propcat-selbar-cell">
+                    <button type="button" className="mp-propcat-selbar-btn blood" aria-haspopup="menu" aria-expanded={menu?.kind === 'sel'}
+                      onClick={() => setMenu(m => (m?.kind === 'sel' ? null : { kind: 'sel', id: 'sel', step: 'move' }))}>
+                      <span className="material-symbols-outlined" aria-hidden="true">drive_file_move</span>{k('moveTo')}
+                    </button>
+                    {menu?.kind === 'sel' && (
+                      <div className="mp-texcat-menu mp-propcat-selmenu" role="menu" ref={menuRef} aria-label={k('moveTo')}>
+                        {opcionesDestino(g => marcadas.length > 0 && marcadas.every(i => placeOf(i).group === g), moverMarcadas)}
+                      </div>
+                    )}
+                  </span>
+                )}
                 <button type="button" className="mp-propcat-selbar-btn danger" onClick={() => void borrarMarcadas()}>
                   <span className="material-symbols-outlined" aria-hidden="true">delete</span>{t('common.delete')}
                 </button>
@@ -385,7 +417,7 @@ export function LibraryCatalog<T extends LibraryItem>({
                     {sec.items.map(p => {
                       const on = selected.includes(p.id);
                       return (
-                        <div key={p.id} className={`mp-propcat-cell ${on ? 'on' : ''}`} draggable={canManage} onDragStart={e => empezarArrastre(p, e)}>
+                        <div key={p.id} className={`mp-propcat-cell ${on ? 'on' : ''}`} draggable={puede(p)} onDragStart={e => empezarArrastre(p, e)}>
                           <button type="button" className="mp-propcat-tile" onClick={e => pinchar(p, e)} aria-label={k('pick', { name: p.name })} title={p.name}>
                             <span className="mp-propcat-view">{renderThumb(p)}</span>
                             <span className="mp-propcat-n">
@@ -395,7 +427,7 @@ export function LibraryCatalog<T extends LibraryItem>({
                             </span>
                           </button>
                           {/* MARCAR (§ 6.8, punto 4): el círculo arriba a la izquierda, siempre a la vista con permiso. */}
-                          {canManage && (
+                          {puede(p) && (
                             <button type="button" className={`mp-propcat-mark ${on ? 'on' : ''}`} aria-pressed={on}
                               aria-label={k(on ? 'unmark' : 'mark', { name: p.name })} onClick={() => marcar(p)}>
                               <span className="material-symbols-outlined" aria-hidden="true">{on ? 'check_circle' : 'radio_button_unchecked'}</span>
@@ -412,7 +444,7 @@ export function LibraryCatalog<T extends LibraryItem>({
                             <span className="material-symbols-outlined" aria-hidden="true">{favorites.includes(p.id) ? 'star' : 'star_border'}</span>
                           </button>
                           {/* LOS TRES PUNTOS, SIEMPRE A LA VISTA (§ 6.8, punto 3: «*nadie va a saber que existen*»). Sólo con permiso. */}
-                          {canManage && (
+                          {puede(p) && (
                             <button type="button" className="mp-texcat-kebab" aria-haspopup="menu" aria-expanded={menu?.kind === 'item' && menu.id === p.id}
                               aria-label={k('menu', { name: p.name })}
                               onClick={() => setMenu(m => (m?.kind === 'item' && m.id === p.id ? null : { kind: 'item', id: p.id, step: 'main' }))}>
@@ -425,14 +457,16 @@ export function LibraryCatalog<T extends LibraryItem>({
                                 <button type="button" role="menuitem" className="mp-texcat-mi" onClick={() => void renombrar(p)}>
                                   <span className="material-symbols-outlined" aria-hidden="true">edit</span>{k('rename')}
                                 </button>
-                                <button type="button" role="menuitem" className="mp-texcat-mi" onClick={() => setMenu({ kind: 'item', id: p.id, step: 'move' })}>
-                                  <span className="material-symbols-outlined" aria-hidden="true">drive_file_move</span>{k('moveTo')}
-                                </button>
+                                {onMoveTo && (
+                                  <button type="button" role="menuitem" className="mp-texcat-mi" onClick={() => setMenu({ kind: 'item', id: p.id, step: 'move' })}>
+                                    <span className="material-symbols-outlined" aria-hidden="true">drive_file_move</span>{k('moveTo')}
+                                  </button>
+                                )}
                                 <span className="mp-texcat-misep" aria-hidden="true" />
                                 <button type="button" role="menuitem" className="mp-texcat-mi danger" onClick={() => void borrar(p)}>
                                   <span className="material-symbols-outlined" aria-hidden="true">delete</span>{t('common.delete')}
                                 </button>
-                              </>) : opcionesDestino(g => placeOf(p).group === g, g => { setMenu(null); if (placeOf(p).group !== g) onMoveTo(p, g); })}
+                              </>) : opcionesDestino(g => placeOf(p).group === g, g => { setMenu(null); if (placeOf(p).group !== g) onMoveTo?.(p, g); })}
                             </div>
                           )}
                         </div>

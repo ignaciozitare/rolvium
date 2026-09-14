@@ -1160,8 +1160,30 @@ una capa de terreno** (§ 7.1), donde el color de base no sale porque es de la e
 
 ### Modelo de datos
 **No hace falta migración.** `maps_images` ya es de la campaña (`campaign_id`, con `uploaded_by`) y `maps_textures`
-ya es de la herramienta: lo único que cambia es que el catálogo los enseña juntos. Lo que SÍ hay que verificar
-antes de construir es que la RLS de `maps_images` acota de verdad por campaña — es el 🔑 de arriba.
+ya es de la herramienta: lo único que cambia es que el catálogo los enseña juntos. Verificado antes de construir:
+la RLS de `maps_images` ya acota por campaña — `SELECT` sólo para miembros o director de ESA campaña y escritura
+sólo para su director, que es exactamente el 🔑 de arriba.
+
+Sí se añade al puerto **`updateImage(id, { name })`**: el catálogo ofrece renombrar y hasta hoy un fondo sólo se
+podía subir y borrar. De campaña no se mueve y la foto no se toca.
+
+### 🟠 Decisiones de construcción (2026-09-14, revisables)
+- **Los dos orígenes entran por donde ya existía**: sus fondos como GRUPO del rail y las texturas como secciones
+  DE SERIE. El catálogo común ya pinta primero los grupos y luego las de serie, y ya tenía DOS rótulos de rail
+  (uno para cada bloque), así que «los suyos arriba» sale sin tocar el componente.
+- **El catálogo común gana dos props, las dos retrocompatibles**: `canManageItem` (permiso POR PIEZA — sin él, o
+  no podía subir los suyos o podía borrar texturas de todo el mundo) y `onMoveTo` **opcional** (sin él no sale
+  «mover a» en ningún sitio: aquí no hay adónde mover).
+- **Favoritos y recientes se comparten con el catálogo de texturas**: es la misma memoria del navegador. Una
+  textura marcada como favorita lo está en los dos sitios, que es lo que uno espera.
+- **Los fondos entran TAL CUAL, sin comprimir**, igual que las texturas. Se intentó comprimirlos (2560 px, 0,82,
+  como dice `specs/core/images/SPEC.md`) y él lo paró en cuanto lo leyó: «*¿pero se comprimen y pierden calidad?
+  porque eso sería un problema*». Tiene razón dos veces: lo que pidió fue «*como las texturas*», y las texturas
+  entran tal cual (§ 6.8, punto 1); y un fondo es lo que más de cerca se mira de toda la mesa — reescalar un mapa
+  de 4000 px a 2560 se ve al hacer zoom. ⚠ `specs/core/images/SPEC.md` dice que el fondo se comprime: **queda
+  desfasado a propósito**, y hay que corregirlo allí.
+- **Lo subido NO se pone solo de fondo**: se queda en el catálogo para elegirlo, igual que las texturas desde el
+  § 6.8. Con varios a la vez, poner el último sería una lotería.
 
 ## Rebanada 8 — habitaciones rápidas (el «generador» de Builder)
 

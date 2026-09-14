@@ -688,6 +688,8 @@
 .mp-propcat-cell[draggable="true"] .mp-propcat-tile{cursor:grab;}
 /* La textura repetida a su tamaño de baldosa, llenando la baldosa (la cara de las texturas del mismo catálogo). */
 .mp-propcat-tex{display:block;width:100%;height:100%;background-position:center;background-repeat:repeat;}
+/* La miniatura de un FONDO va CUBRIENDO, no repetida: de fondo, una textura no se embaldosa — se encaja. */
+.mp-propcat-bg{display:block;width:100%;height:100%;background-position:center;background-repeat:no-repeat;background-size:cover;}
 /* LA BARRA DE SELECCIÓN encima de la rejilla: cuántas, MOVER A… en sangre, BORRAR, la pista y quitar. */
 .mp-propcat-selbar{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:var(--r);background:var(--sf2);color:var(--sys-blood);flex-wrap:wrap;}
 .mp-propcat-selbar>.material-symbols-outlined{font-size:var(--icon-xs);}
