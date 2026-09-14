@@ -1068,8 +1068,9 @@ diciendo «pieza» en la prosa de abajo por la misma razón**: manda lo que se v
   sigue asomando sólo al pasar por encima o marcada.
 - **Lo subido en lote de texturas se queda en el catálogo** para elegirlo; con varias a la vez ya no se pone sola la
   última (antes, con una, se ponía al subirla).
-- **Las texturas entran tal cual** (sin comprimir), como entraban por el selector de antes. Favoritas y recientes de
-  texturas viven en el navegador, como las de piezas.
+- **Las texturas se comprimen al subir** (desde 2026-09-14; antes entraban tal cual, sin comprimir — ver
+  `specs/core/images/SPEC.md`, nivel elegido en Admin → Ajustes). Favoritas y recientes de texturas viven en el
+  navegador, como las de piezas.
 - **El estirado anclado** proyecta la mano sobre la diagonal original: un arrastre torcido no deforma. El panel
   (ESCALA de la cogida) escala en torno al centro, porque ahí no hay esquina de la que tirar.
 - **Con Piezas abierto y sin sello**, pinchar una plantada la coge y también se puede arrastrar; el panel se cierra
@@ -1186,12 +1187,12 @@ podía subir y borrar. De campaña no se mueve y la foto no se toca.
   «mover a» en ningún sitio: aquí no hay adónde mover).
 - **Favoritos y recientes se comparten con el catálogo de texturas**: es la misma memoria del navegador. Una
   textura marcada como favorita lo está en los dos sitios, que es lo que uno espera.
-- **Los fondos entran TAL CUAL, sin comprimir**, igual que las texturas. Se intentó comprimirlos (2560 px, 0,82,
-  como dice `specs/core/images/SPEC.md`) y él lo paró en cuanto lo leyó: «*¿pero se comprimen y pierden calidad?
-  porque eso sería un problema*». Tiene razón dos veces: lo que pidió fue «*como las texturas*», y las texturas
-  entran tal cual (§ 6.8, punto 1); y un fondo es lo que más de cerca se mira de toda la mesa — reescalar un mapa
-  de 4000 px a 2560 se ve al hacer zoom. ⚠ `specs/core/images/SPEC.md` dice que el fondo se comprime: **queda
-  desfasado a propósito**, y hay que corregirlo allí.
+- **Los fondos entraban TAL CUAL, sin comprimir** (decisión del 2026-09-14: se intentó comprimirlos a 2560 px y
+  0,82, y lo paró en cuanto lo leyó: «*¿pero se comprimen y pierden calidad? porque eso sería un problema*»). Esa
+  misma tarde, más adelante, pidió reabrir la prueba con un fondo real y zoom 1:1 sobre la zona más difícil, y
+  con la prueba delante aprobó comprimir **sin reducir resolución** (solo formato/calidad, nivel elegido en
+  Admin → Ajustes) — ver `specs/core/images/SPEC.md`, que es donde vive la regla completa. No se movió nada de
+  lo de este apartado (catálogo, orígenes, subida en lote): solo cambió si el fichero final es TAL CUAL o WebP.
 - **Lo subido NO se pone solo de fondo**: se queda en el catálogo para elegirlo, igual que las texturas desde el
   § 6.8. Con varios a la vez, poner el último sería una lotería.
 

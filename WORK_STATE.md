@@ -41,13 +41,212 @@ diseña lo del grupo (spec + `.pen`) → QA → migración a producción por MCP
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 📥 «COMPRIMIR LAS TEXTURAS» (donde se retoma, chat nuevo) · 🚀 «v0.8.0 EN PRODUCCIÓN» (registro) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 📥 «IMPLEMENTAR NIVELES DE COMPRESIÓN» (donde se retoma, chat nuevo — GATE de contexto) · 📥 «COMPRIMIR LAS TEXTURAS» (el spec/DBA/scaffold que llevó a lo de arriba) · 🚀 «v0.8.0 EN PRODUCCIÓN» (registro) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+
+## 📥 2026-09-14 — TRASPASO A CHAT NUEVO (GATE DE CONTEXTO): **IMPLEMENTAR NIVELES DE COMPRESIÓN**
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 📥 "IMPLEMENTAR NIVELES DE COMPRESIÓN" de arriba de WORK_STATE.md y segui con el
+> siguiente paso exacto que deja apuntado.»
+
+Este traspaso lo disparó el HOOK de contexto (`require-context-handoff.mjs`, transcripción por encima de 6 MB),
+no una orden suya — así que no hace falta preguntarle nada, solo seguir donde quedó.
+
+### 🎯 Qué se está construyendo
+Spec ya **aprobado por él** (`specs/core/images/SPEC.md`, actualizado) tras dos artifacts de antes/después que
+vio y aprobó (texturas, luego objetos+fondos — están linkeados en el bloque 📥 «COMPRIMIR LAS TEXTURAS» de más
+abajo). DBA ya pasó: **no hace falta tabla ni migración**, se reutiliza `app_settings` (la misma de
+`maps.toolbar_order`). Scaffold ya reportó los 20 ficheros y él dijo **«avanza»**.
+
+**Diseño ya cerrado con él, no volver a preguntar:**
+- Texturas, objetos y fondos se comprimen al subir (hoy solo objetos lo hacía). Avatar/token quedan FIJOS, sin nivel.
+- **Tres niveles independientes** (uno por texturas, uno por objetos, uno por fondos — pidió «los tres por
+  separado», no un único nivel para los tres): Ligero / Equilibrado (por defecto) / Máximo ahorro.
+- El fondo **nunca reduce resolución** en ningún nivel — solo cambia formato/calidad (su condición original).
+- El nivel se guarda en Admin → Ajustes (dijo «ponlo en ajustes»); solo lo cambia quien tiene `manage_settings`;
+  cambiarlo **no reconvierte nada retroactivo**, solo afecta a lo que se suba después.
+- Su biblioteca local de hoy (41 texturas · 50 objetos · 18 fondos) se convierte **una vez**, con Equilibrado.
+
+**Tabla de números YA VALIDADA** (Chromium headless real, no inventada — está en los dos artifacts):
+| Nivel | Textura | Objeto (`prop`) | Fondo |
+|---|---|---|---|
+| Ligero | 1280px · 0,85 | 1024px · 0,85 | sin reducir · 0,95 |
+| **Equilibrado (por defecto)** | 1024px · 0,82 | 768px · 0,80 | sin reducir · 0,90 |
+| Máximo ahorro | 800px · 0,80 | 640px · 0,75 | sin reducir · 0,82 |
+
+### 📍 Punto exacto — QUÉ QUEDÓ HECHO
+- ✅ `specs/core/images/SPEC.md` — reescrito entero con la regla nueva, incluida la sección «Modelo de datos»
+  (DBA ya la completó: reutiliza `app_settings`, sin migración).
+- ✅ `specs/modules/maps/SPEC.md` — corregidas las DOS notas desfasadas que decían «sin comprimir» (línea ~1071
+  y la sección «EL FONDO DEL MAPA», ~1189-1194): ya no contradicen la spec de imágenes.
+- ✅ `specs/SPEC.md` — índice actualizado.
+- ❌ **CERO código tocado todavía.** El primer `Edit` de la sesión (a `compressImage.ts`) fue bloqueado por el
+  GATE de contexto ANTES de aplicarse — el fichero sigue en su estado ORIGINAL, sin ningún cambio.
+
+### ⏳ Próximo paso exacto (empezar por aquí, en este orden)
+
+**1. `packages/ui/src/lib/compressImage.ts`** — reemplazar el bloque de `IMAGE_TARGETS` (avatar/token/background/prop)
+por esto (ya redactado, copiar tal cual):
+```ts
+export type ImageTarget = 'avatar' | 'token' | 'background' | 'prop' | 'texture';
+
+/** Qué tan agresivo comprimir. Lo elige un admin en Ajustes, por separado para cada destino de abajo. */
+export type CompressionLevel = 'light' | 'balanced' | 'max';
+export const DEFAULT_COMPRESSION_LEVEL: CompressionLevel = 'balanced';
+
+export interface TargetSpec {
+  /** Lado máximo en píxeles. `Infinity` = nunca reduce resolución. */
+  max: number;
+  quality: number;
+}
+
+/** Avatar y token: tamaño fijo, sin nivel — se pintan a 64 px o a una casilla, no hay margen que ganar ahí. */
+export const IMAGE_TARGETS: Record<'avatar' | 'token', TargetSpec> = {
+  avatar: { max: 512, quality: 0.85 },
+  token:  { max: 512, quality: 0.85 },
+};
+
+/**
+ * Textura, objeto (`prop`) y fondo: dependen del nivel elegido en Admin → Ajustes (uno por tipo). Números
+ * probados de verdad el 2026-09-14 sobre una textura, un objeto y un fondo reales, antes de que él los aprobara
+ * (spec: `specs/core/images/SPEC.md`).
+ */
+export const LEVELED_TARGETS: Record<'texture' | 'prop' | 'background', Record<CompressionLevel, TargetSpec>> = {
+  texture: {
+    light:    { max: 1280, quality: 0.85 },
+    balanced: { max: 1024, quality: 0.82 },
+    max:      { max: 800,  quality: 0.80 },
+  },
+  prop: {
+    light:    { max: 1024, quality: 0.85 },
+    balanced: { max: 768,  quality: 0.80 },
+    max:      { max: 640,  quality: 0.75 },
+  },
+  background: {
+    light:    { max: Infinity, quality: 0.95 },
+    balanced: { max: Infinity, quality: 0.90 },
+    max:      { max: Infinity, quality: 0.82 },
+  },
+};
+
+function specFor(target: ImageTarget, level: CompressionLevel): TargetSpec {
+  if (target === 'avatar' || target === 'token') return IMAGE_TARGETS[target];
+  return LEVELED_TARGETS[target][level];
+}
+```
+Después: cambiar `compressImage(file, target, deps = browserDeps)` a
+`compressImage(file, target, level: CompressionLevel = DEFAULT_COMPRESSION_LEVEL, deps = browserDeps)`, y dentro
+de la función cambiar `const spec = IMAGE_TARGETS[target];` por `const spec = specFor(target, level);`.
+
+**2. `packages/ui/src/lib/compressImage.test.ts`** — TODAS las llamadas a `compressImage(file, target, deps)`
+pasan a `compressImage(file, target, level, deps)` (nuevo parámetro en medio). Para avatar/token, cualquier
+nivel vale (se ignora) — usar `'balanced'`. Actualizar los números esperados: `prop`+`balanced` ya NO es
+1024/0,9, ahora es 768/0,80; `background`+`balanced` ya NO es 2560/0,82, ahora es `Infinity`/0,90 (no debe
+reducir aunque la imagen sea enorme). Añadir un test nuevo para `texture` (los tres niveles) y uno que compruebe
+que `background` con una imagen de 6000 px de lado **no la reduce** en ningún nivel.
+
+**3. `packages/ui/src/index.ts`** — exportar también `CompressionLevel`, `LEVELED_TARGETS`, `DEFAULT_COMPRESSION_LEVEL`.
+
+**4. Crear `apps/web/src/shared/settings/`** (nuevo, mirror exacto de `maps/domain/ports/ToolbarOrderPort.ts` +
+`maps/infra/SupabaseToolbarOrder.ts` — LEER ESOS DOS ficheros primero para copiar el patrón):
+   - `compressionLevels.ts`: `export interface CompressionLevels { texture: CompressionLevel; prop: CompressionLevel; background: CompressionLevel }`,
+     `export const DEFAULT_COMPRESSION_LEVELS: CompressionLevels = { texture: 'balanced', prop: 'balanced', background: 'balanced' }`,
+     `export const COMPRESSION_LEVELS_KEY = 'images.compression_levels'`, y una `parseCompressionLevels(value: unknown): CompressionLevels`
+     que valida las tres claves (si algo no cuadra, usa el default de esa clave) — igual de defensivo que `parseToolbarOrder`.
+   - `CompressionLevelsPort.ts`: `interface CompressionLevelsPort { load(): Promise<CompressionLevels | null>; save(levels: CompressionLevels): Promise<void> }`.
+   - `SupabaseCompressionLevels.ts`: copiar `SupabaseToolbarOrder.ts` cambiando la key y el parse.
+   - `SupabaseCompressionLevels.test.ts`: copiar `SupabaseToolbarOrder.test.ts` adaptado.
+   - `container.ts`: `export const compressionLevelsRepo: CompressionLevelsPort = new SupabaseCompressionLevels(supabase);`.
+
+**5.** `maps/container.ts` — importar y re-exportar `compressionLevelsRepo` desde `@/shared/settings/container`
+(mismo sitio donde ya vive `toolbarOrder`).
+
+**6.** `admin/container.ts` — añadir `compressionLevels: CompressionLevelsPort` a `AdminDeps`, instanciado desde
+el mismo `@/shared/settings/container` (no una segunda copia del adaptador — es la MISMA fila de `app_settings`).
+
+**7. Los tres uploaders** (leer primero para no romper nada — cada uno tiene un preparador por defecto,
+sobreescribible por prop, con test propio):
+   - `TextureUpload.tsx`: `rawTexture` deja de ser el default. Nuevo `compressTexture: Preparer = async file => {
+     const levels = await compressionLevelsRepo.load(); return compressImage(file, 'texture', levels?.texture
+     ?? 'balanced'); }`, importando `compressionLevelsRepo` de `../container`.
+   - `PropsUpload.tsx`: mismo patrón para `'prop'` (`levels?.prop`), reemplaza `compressProp`.
+   - `BackgroundUpload.tsx`: mismo patrón para `'background'` (`levels?.background`), reemplaza `sinComprimir`.
+   - Actualizar los tres `.test.tsx`: ya no basta con comprobar que el blob entra tal cual — mockear
+     `compressionLevelsRepo.load` y comprobar que `compressImage` se llama con el destino y nivel correctos.
+
+**8. `packages/i18n/locales/{es,en}.json`** — claves nuevas para Admin → Ajustes (título de la sección de
+compresión, nombre de cada nivel, etiqueta de cada tipo, texto de guardado). Las claves exactas se deciden
+recién en el paso 9 (después del Design Agent), no inventarlas antes.
+
+**9. `admin/ui/AdminSettings.tsx` — PASA POR DESIGN AGENT PRIMERO.** Hoy está vacío (placeholder). Esta pantalla
+sí es UI nueva visible, así que **antes de escribirla** hay que correr `.claude/commands/design.md` (`.pen`) y
+que él la apruebe con capturas — no saltarse esto aunque el resto ya esté aprobado. Después: tres `OptionGroup`
+(o lo que decida el Design Agent — revisar si `OptionGroup` de `@rolvium/ui`, pensado para paneles de mesa con
+selección en rojo sangre, encaja en una pantalla de Admin o si aquí toca otra cosa) para elegir el nivel de
+cada tipo, guardando con `adminDeps.compressionLevels.save(...)`. Nuevo `AdminSettings.test.tsx`.
+
+**10. Script de conversión ÚNICA de su biblioteca local** (41 texturas · 50 objetos · 18 fondos, nivel
+Equilibrado) — NO es código de la app, es un script de un solo uso contra su Supabase LOCAL (no producción, que
+hoy tiene esas tres bibliotecas vacías). Para cada objeto (`maps_props`) hay que **actualizar también
+`natural_width`/`natural_height`** en la fila al nuevo tamaño (768px o menos) — texturas y fondos no guardan
+ancho/alto aparte, así que no hace falta tocar nada más ahí. Sobrescribir el MISMO storage path (no crear
+ficheros nuevos): así lo ya plantado en escenas (que guarda su propia copia de la URL) sirve la versión liviana
+sin tocar `maps_scene_props`. Usar el mismo enfoque de Chromium headless que los dos artifacts (Playwright ya
+está instalado) para generar el WebP real, no una aproximación.
+
+**11.** Cuando todo lo anterior esté hecho → Review Agent → actualizar WORK_STATE otra vez (esta vez como
+registro, no como traspaso) → **no mergear ni desplegar sin que él lo pida** (QA gate).
+
+### 🚫 No repreguntar / no reabrir
+- Nivel único vs. por separado → **ya decidido: por separado**, tres selectores.
+- Dónde va el ajuste → **ya decidido: Admin → Ajustes**.
+- Si tocar la biblioteca ya subida → **ya decidido: sí, una vez, con Equilibrado**.
+- Los números de la tabla → **ya probados y aprobados**, no re-testear salvo que él pida otra calidad.
 
 ## 📥 2026-09-14 — TRASPASO A CHAT NUEVO: **COMPRIMIR LAS TEXTURAS** (orden suya: «*hazlo en el chat nuevo*»)
 
 **Frase para arrancar el chat nuevo:**
 > «Rolvium. Lee el bloque 📥 de arriba de WORK_STATE.md. Las texturas pesan demasiado y me como el tráfico de
 > Supabase: enséñame un antes/después con una de las mías y, si me convence, conviértelas.»
+
+### 🟡 HECHO: el antes/después, en un artifact — esperando su veredicto
+Cogida `01_cesped_verde_uniforme` (su textura real, local, 1672×941, 3,7 MB) y comprimida con el MISMO
+codificador del navegador (Chromium headless vía Playwright, canvas → WebP) que usaría `compressImage` en
+producción — no una simulación. Candidato mostrado: **1024 px de lado máximo, calidad 0,82 → 265 KB (-93%)**;
+en el artifact salen también 800 px/0,80 (157 KB, -96%) y 1280 px/0,85 (427 KB, -89%) por si prefiere otro punto.
+Nada de esto tocó código ni `IMAGE_TARGETS` todavía — es solo la muestra que pidió.
+
+**⏳ Falta que él conteste DOS cosas** (se lo pregunté en el chat, texto plano):
+1. Si el WebP le convence a esa calidad (o prefiere otra de las tres).
+2. Si convierto solo las 41 que ya tiene subidas (local), o también cambio la subida (`TextureUpload.tsx` usa
+   `rawTexture`, sin comprimir) para que las nuevas entren ya en WebP — o las dos cosas.
+
+Si dice que sí: añadir destino `texture` a `IMAGE_TARGETS` (`packages/ui/src/lib/compressImage.ts`) y a la tabla
+de `specs/core/images/SPEC.md`, cambiar `rawTexture` por el compresor en `TextureUpload.tsx`, y si además quiere
+las 41 ya subidas convertidas, es un script aparte contra su Supabase local (no toca producción, que hoy tiene
+la biblioteca vacía — bloque 🖼️ de abajo).
+
+**Dijo «vale las texturas perfecto» y pidió ampliar la prueba a OBJETOS y a FONDOS.** Segundo artifact:
+https://claude.ai/code/artifact/f89f622f-7e4c-44f0-bd41-34561af09c3e
+- **Objetos**: NO parten de «sin comprimir» — ya pasan por `compressImage(file,'prop')` (1024 px, calidad 0,9)
+  desde `PropsUpload.tsx`. La prueba es si se puede apretar MÁS: sobre `arbol_02_frondoso` (real, 1024px/456 KB
+  hoy), un candidato a 768px/calidad 0,80 pesa 193 KB (-58% extra). Ganancia menor que en texturas — avisado en
+  la página.
+- **Fondos**: **esto REABRE la decisión de «EL FONDO DEL MAPA»** (no comprimir, spec de maps +
+  `specs/core/images/SPEC.md`) — se lo señalé explícitamente en la página, no se tocó nada silenciosamente. Sobre
+  el fondo real de la escena «Spaceship 1» (1692×930, 2,0 MB PNG): WebP a calidad 0,90 sin tocar la resolución
+  pesa 283 KB (-86%), con recorte de zoom 1:1 sobre la zona más oscura/detallada (cajas) para probar justo lo que
+  le preocupaba. El destino `background` de `IMAGE_TARGETS` (2560/0,82) **ya existe en el código pero no se usa
+  en ningún sitio** — está probado también (189 KB, -91%) como alternativa más agresiva.
+- Preguntó además (respondido en el chat, no en el artifact): sí, la idea es que la subida comprima siempre a
+  partir de ahora (como ya hacen avatar/token/prop); lo de un SETEO en el admin para elegir cuánto se comprime
+  se le devolvió como propuesta con su trade-off (no re-comprime lo ya subido; añade una tabla de ajustes por
+  tipo) — **sin construir**, a la espera de si lo quiere como parte del spec o prefiere los valores fijos de
+  `IMAGE_TARGETS`.
+
+**⏳ Sigue esperando su veredicto** sobre las TRES cosas (texturas ya dijo que sí; objetos y fondos, pendiente) y
+sobre alcance: ¿todo junto o texturas primero?, ¿convertir lo ya subido / cambiar la subida / las dos?, ¿seteo de
+compresión en el admin sí o no?
 
 ### 🎯 Qué hay que hacer
 Convertir las texturas a WebP para que dejen de comerse el tráfico. **PRIMERO enseñarle un ANTES/DESPUÉS con
