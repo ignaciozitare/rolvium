@@ -1315,6 +1315,8 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
             onMoveProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y } })), 'maps.history.propMove'))}
             onScaleProp={estirarPieza}
             onRotateProp={(id, rotation) => run(st.patchSceneProp(id, { rotation }, 'maps.history.propRotate'))}
+            onScaleProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y, width: b.width, height: b.height } })), 'maps.history.propScale'))}
+            onRotateProps={batch => run(st.patchSceneProps(batch.map(b => ({ id: b.id, patch: { x: b.x, y: b.y, rotation: b.rotation } })), 'maps.history.propRotate'))}
             stamp={tool === 'props' && stamp ? { imageUrl: stamp.imageUrl, ...footprintOf(stamp, stampScale), rotation: stampRotation } : null}
             onPlantProp={plantar} sowing={plantMode === 'many'} onSow={sembrar} onSowEnd={acabarSiembra}
             sowRadiusPx={sow.areaCells * live.grid.size}

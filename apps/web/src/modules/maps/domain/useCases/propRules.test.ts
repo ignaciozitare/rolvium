@@ -6,6 +6,7 @@ import {
   fromPropFrame, hasAppProps, hitProp, isAppProp, matchesQuery, nameFromFile, normDeg, paintOrderProps, plantProp, pointInProp,
   propCorners, propPath, pushRecent, randomRotation, randomScale, restack, rotateHandleAt, rotationToward, scaleChanged,
   scaleFromCorner, scaleFromCornerAnchored, propsInRect, propPlace, scaleOfWidth, scatterIn, sectionsOf, sowStepPx, topZ, toPropFrame,
+  groupBoxFromCorner, groupCorners, groupRotateHandleAt, propsBounds, rotatePropsBy, scalePropsTo,
 } from './propRules';
 
 const OAK = PROP_OAK;
@@ -286,5 +287,61 @@ describe('propRules — lo plantado: orden, apilado, coger y tocar (§ 6.5, § 6
     expect(rotationToward(A, { x: 900, y: 300 })).toBe(90);
     expect(rotationToward(A, { x: 400, y: 900 })).toBe(180);
     expect(rotationToward(A, { x: 0, y: 300 })).toBe(270);
+  });
+});
+
+/*
+ * VARIAS COGIDAS: el marco del grupo, estirarlo y girarlo. Orden suya del 2026-09-14 («*son los mismos nodos
+ * de cuando seleccionas un solo objeto*»). Los números van calculados a mano: el Roble ocupa de (250, 75) a
+ * (550, 525) y la Columna de (650, 150) a (750, 250), así que el marco de los dos es (250, 75) 500 × 450.
+ */
+describe('propRules — el grupo de piezas cogidas: marco, estirar y girar (§ 6.8, punto 5)', () => {
+  const A = SCENE_PROP_OAK;    // el Roble plantado: (400, 300), 300 × 450, sin girar
+  const B = SCENE_PROP_COLUMN; // la Columna: (700, 200), 100 × 100
+
+  it('el marco envuelve a todas, y se mide por las esquinas YA GIRADAS, no por la caja sin girar', () => {
+    expect(propsBounds([A, B])).toEqual({ x: 250, y: 75, w: 500, h: 450 });
+    expect(propsBounds([])).toBeNull();
+    // El Roble tumbado 90°: 300 × 450 pasa a ocupar 450 de ancho por 300 de alto alrededor de su centro.
+    expect(propsBounds([{ ...A, rotation: 90 }])).toEqual({ x: 175, y: 150, w: 450, h: 300 });
+  });
+
+  it('las cuatro esquinas y el tirador de giro salen donde los de una pieza sola', () => {
+    const marco = propsBounds([A, B])!;
+    expect(groupCorners(marco)).toEqual({
+      nw: { x: 250, y: 75 }, ne: { x: 750, y: 75 }, se: { x: 750, y: 525 }, sw: { x: 250, y: 525 },
+    });
+    expect(groupRotateHandleAt(marco, 22)).toEqual({ x: 500, y: 53 });
+  });
+
+  it('estirar desde una esquina deja CLAVADA la contraria y mantiene la proporción del grupo', () => {
+    const marco = propsBounds([A, B])!;
+    // La mano al doble de la diagonal desde la esquina clavada (250, 75) → el marco dobla, y el origen no se mueve.
+    expect(groupBoxFromCorner(marco, 'se', { x: 1250, y: 975 })).toEqual({ x: 250, y: 75, w: 1000, h: 900 });
+    // Y no se puede estrujar hasta desaparecer: con la mano sobre la esquina clavada, queda el mínimo.
+    expect(groupBoxFromCorner(marco, 'se', { x: 250, y: 75 })).toEqual({ x: 250, y: 75, w: 8, h: 7.2 });
+  });
+
+  it('al llevar el grupo de un marco a otro, cada pieza se corre y crece en la MISMA proporción', () => {
+    const from = propsBounds([A, B])!;
+    const to = groupBoxFromCorner(from, 'se', { x: 1250, y: 975 });
+    expect(scalePropsTo([A, B], from, to)).toEqual([
+      { id: 'sp-oak', patch: { x: 550, y: 525, width: 600, height: 900 } },
+      { id: 'sp-col', patch: { x: 1150, y: 325, width: 200, height: 200 } },
+    ]);
+    // La proporción de cada una se respeta: el Roble sigue siendo 2 a 3.
+    expect(600 / 900).toBeCloseTo(A.width / A.height);
+  });
+
+  it('girar el grupo gira cada pieza sobre sí misma Y la lleva alrededor del centro del marco', () => {
+    expect(rotatePropsBy([A, B], { x: 500, y: 300 }, 90)).toEqual([
+      { id: 'sp-oak', patch: { x: 500, y: 200, rotation: 90 } },
+      { id: 'sp-col', patch: { x: 600, y: 500, rotation: 90 } },
+    ]);
+    // Sin giro no se mueve nada, y el giro se acumula sobre el que ya tenía.
+    expect(rotatePropsBy([{ ...A, rotation: 30 }], { x: 500, y: 300 }, 0)).toEqual([
+      { id: 'sp-oak', patch: { x: 400, y: 300, rotation: 30 } },
+    ]);
+    expect(rotatePropsBy([{ ...A, rotation: 350 }], { x: 400, y: 300 }, 20)[0]!.patch.rotation).toBe(10);
   });
 });

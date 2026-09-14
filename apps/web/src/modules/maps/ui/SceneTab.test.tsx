@@ -2902,6 +2902,29 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     expect(within(panel).queryByTestId('mp-props-picked')).not.toBeInTheDocument();
   });
 
+  /**
+   * Orden suya del 2026-09-14: «*si selecciono varios items sigo sin los putos nodos … son los mismos nodos
+   * de cuando seleccionas un solo objeto*». El Roble ocupa de (250, 75) a (550, 525) y la Columna de
+   * (650, 150) a (750, 250): el marco del grupo es (250, 75) de 500 × 450, con la esquina SE en (750, 525).
+   */
+  it('con varias cogidas salen los tiradores del GRUPO, y estirar por una esquina las guarda todas de una vez (§ 6.8, punto 5)', async () => {
+    const u = userEvent.setup();
+    const repo = mount('dm', seedPlantadas());
+    await abrirPiezas(u);
+    await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    coger(400, 300);         // el Roble
+    coger(700, 200, true);   // …y la Columna con Mayús: dos cogidas
+    expect(within(canvas()).getByTestId('mp-props-group-handles').querySelectorAll('.mp-prop-handle')).toHaveLength(4);
+    expect(within(canvas()).getByTestId('mp-props-group-rotate')).toBeInTheDocument();
+    // La mano al doble de la diagonal desde la esquina clavada (250, 75): el grupo dobla, cada pieza con él.
+    fireEvent.pointerDown(canvas(), { clientX: 750, clientY: 525, pointerId: 1, button: 0 });
+    fireEvent.pointerMove(canvas(), { clientX: 1250, clientY: 975, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { pointerId: 1 });
+    await waitFor(() => expect(repo.scenePropUpdates).toContainEqual({ id: 'sp-oak', patch: { x: 550, y: 525, width: 600, height: 900 } }));
+    expect(repo.scenePropUpdates).toContainEqual({ id: 'sp-col', patch: { x: 1150, y: 325, width: 200, height: 200 } });
+  });
+
   it('sin más piezas en su paquete, el bloque DE SU FAMILIA no sale (§ 6.8, punto 9)', async () => {
     const u = userEvent.setup();
     mount('dm', seedPlantadas());

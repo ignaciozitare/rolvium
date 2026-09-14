@@ -12,7 +12,7 @@ import { RoomsLayer, roomMaskIds } from './roomsLayer';
 import { ringFromSides, ringPath, roomAt, roomWallsOf } from '../domain/useCases/roomStyles';
 import { roomMoveSegments } from '@rolvium/core';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
-import { hitProp, paintOrderProps, PROP_CORNERS, propCorners, propsInRect, rotateHandleAt, rotationToward, scaleFromCornerAnchored, type PropCorner } from '../domain/useCases/propRules';
+import { groupBoxFromCorner, groupCorners, groupRotateHandleAt, hitProp, paintOrderProps, PROP_CORNERS, propCorners, propsBounds, propsInRect, rotatePropsBy, rotateHandleAt, rotationToward, scaleFromCornerAnchored, scalePropsTo, type PropCorner } from '../domain/useCases/propRules';
 
 export interface StrokeStyle { color: string; width: number }
 
@@ -265,6 +265,13 @@ interface Props {
   /** Estirar desde una esquina deja clavada la de enfrente (§ 6.8, punto 2): llega también el centro nuevo. */
   onScaleProp?: (id: string, box: { x: number; y: number; width: number; height: number }) => void;
   onRotateProp?: (id: string, rotation: number) => void;
+  /**
+   * VARIAS A LA VEZ, con los MISMOS tiradores que una sola (orden suya, 2026-09-14). Llegan ya resueltas: el
+   * marco del grupo se estira o se gira entero y cada pieza trae su sitio, su tamaño y su giro nuevos, para
+   * guardarlas todas en UN solo paso de Ctrl+Z.
+   */
+  onScaleProps?: (batch: { id: string; x: number; y: number; width: number; height: number }[]) => void;
+  onRotateProps?: (batch: { id: string; x: number; y: number; rotation: number }[]) => void;
   /** EL SELLO: lo que se va a plantar, para pintar su fantasma bajo el puntero. `null` = sin sello. */
   stamp?: { imageUrl: string; width: number; height: number; rotation: number } | null;
   /** UNA (§ 6.4): cada clic planta otra donde se pulsa. */
@@ -315,6 +322,13 @@ type Gesture =
   | { kind: 'propMove'; id: string; ids: string[]; start: Point; origin: Point; moved: boolean }
   | { kind: 'propScale'; id: string; corner: PropCorner; moved: boolean }
   | { kind: 'propRotate'; id: string; moved: boolean }
+  /**
+   * Y LO MISMO CON VARIAS COGIDAS. Se guarda el marco DE PARTIDA (y el ángulo de partida al girar) porque
+   * estirar es llevar el grupo de un marco a otro, no ir sumando tirones: sumando, el redondeo de cada
+   * fotograma se acumularía y el grupo se iría deformando solo.
+   */
+  | { kind: 'propsScale'; corner: PropCorner; origin: Rect; ids: string[]; moved: boolean }
+  | { kind: 'propsRotate'; center: Point; startDeg: number; ids: string[]; moved: boolean }
   | { kind: 'sow' };
 
 type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
@@ -406,6 +420,8 @@ export function MapCanvas(p: Props): JSX.Element {
   const [drawingDraft, setDrawingDraft] = useState<{ id: string; dx: number; dy: number } | null>(null);
   /** Dónde y cómo se está viendo la pieza mientras se arrastra, estira o gira. Se pinta ya; se guarda al soltar. */
   const [propDraft, setPropDraft] = useState<{ id: string; x?: number; y?: number; width?: number; height?: number; rotation?: number } | null>(null);
+  /** VARIAS COGIDAS estirándose o girándose a la vez: lo que se pinta mientras dura el gesto, por id. */
+  const [propsXfDraft, setPropsXfDraft] = useState<Map<string, { x: number; y: number; width?: number; height?: number; rotation?: number }> | null>(null);
   /** Varias cogidas arrastrándose a la vez: el mismo desplazamiento para todas, se pinta ya y se guarda al soltar. */
   const [propMoveDraft, setPropMoveDraft] = useState<{ ids: string[]; dx: number; dy: number } | null>(null);
   /** In a ref so the key listener never has to be re-bound as the selection changes. */
@@ -632,6 +648,26 @@ export function MapCanvas(p: Props): JSX.Element {
        * y una puerta bajo una antorcha no se podía ni elegir ni configurar. Con algo debajo, la luz vuelve a
        * exigir su disco de verdad (12 px), que es lo que se ve; en el vacío sigue perdonando como antes.
        */
+      /**
+       * LOS TIRADORES DEL GRUPO (dos o más cogidas) van LOS PRIMEROS, por el mismo motivo que los de una
+       * sola: se pintan encima de todo y tienen que robarle el clic a las piezas que hay debajo.
+       */
+      if (propsMarco) {
+        const rotG = groupRotateHandleAt(propsMarco, PROP_ROTATE_GAP / p.view.zoom);
+        const centroG = { x: propsMarco.x + propsMarco.w / 2, y: propsMarco.y + propsMarco.h / 2 };
+        if (Math.hypot(s.x - rotG.x, s.y - rotG.y) <= 10 / p.view.zoom) {
+          setGesture({ kind: 'propsRotate', center: centroG, startDeg: rotationToward(centroG, s), ids: [...cogidas], moved: false });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
+        const esquinasG = groupCorners(propsMarco);
+        const cornerG = PROP_CORNERS.find(k => Math.hypot(s.x - esquinasG[k].x, s.y - esquinasG[k].y) <= 9 / p.view.zoom);
+        if (cornerG) {
+          setGesture({ kind: 'propsScale', corner: cornerG, origin: propsMarco, ids: [...cogidas], moved: false });
+          svgRef.current?.setPointerCapture?.(e.pointerId);
+          return;
+        }
+      }
       /**
        * LOS TIRADORES DE LA PIEZA COGIDA van antes que nada (§ 6.5): se pintan encima de todo y tienen que
        * robar el clic a lo que haya debajo, igual que los del grupo. Las esquinas estiran; el de arriba gira.
@@ -1168,6 +1204,19 @@ export function MapCanvas(p: Props): JSX.Element {
     } else if (gesture.kind === 'propRotate') {
       const pieza = (p.sceneProps ?? []).find(x => x.id === gesture.id);
       if (pieza) { setPropDraft({ id: gesture.id, rotation: rotationToward(pieza, s) }); if (!gesture.moved) setGesture({ ...gesture, moved: true }); }
+    } else if (gesture.kind === 'propsScale') {
+      // EL GRUPO ENTERO de un marco al otro: la esquina de enfrente clavada y la proporción intacta, igual
+      // que con una sola. Se parte SIEMPRE del marco de origen, no del de hace un fotograma.
+      const piezas = (p.sceneProps ?? []).filter(x => gesture.ids.includes(x.id));
+      const destino = groupBoxFromCorner(gesture.origin, gesture.corner, s);
+      setPropsXfDraft(new Map(scalePropsTo(piezas, gesture.origin, destino).map(b => [b.id, b.patch])));
+      if (!gesture.moved) setGesture({ ...gesture, moved: true });
+    } else if (gesture.kind === 'propsRotate') {
+      // Lo que ha girado la mano desde que agarró, aplicado al grupo entero alrededor de su centro.
+      const piezas = (p.sceneProps ?? []).filter(x => gesture.ids.includes(x.id));
+      const delta = rotationToward(gesture.center, s) - gesture.startDeg;
+      setPropsXfDraft(new Map(rotatePropsBy(piezas, gesture.center, delta).map(b => [b.id, b.patch])));
+      if (!gesture.moved) setGesture({ ...gesture, moved: true });
     } else if (gesture.kind === 'sow') {
       p.onSow?.(s, false);
     } else if (gesture.kind === 'brush') {
@@ -1316,6 +1365,21 @@ export function MapCanvas(p: Props): JSX.Element {
         if (gesture.kind === 'propRotate' && propDraft.rotation !== undefined) p.onRotateProp?.(gesture.id, propDraft.rotation);
       }
       setPropDraft(null);
+      setGesture(null);
+      return;
+    }
+    if (gesture.kind === 'propsScale' || gesture.kind === 'propsRotate') {
+      // Un clic sin arrastre no escribe nada, como con una sola. Lo que se guarda es lo que ya se está
+      // pintando, y va de UNA vez: un solo paso de Ctrl+Z para todo el grupo.
+      if (gesture.moved && propsXfDraft?.size) {
+        const batch = [...propsXfDraft.entries()];
+        if (gesture.kind === 'propsScale') {
+          p.onScaleProps?.(batch.flatMap(([id, d]) => (d.width === undefined || d.height === undefined ? [] : [{ id, x: d.x, y: d.y, width: d.width, height: d.height }])));
+        } else {
+          p.onRotateProps?.(batch.flatMap(([id, d]) => (d.rotation === undefined ? [] : [{ id, x: d.x, y: d.y, rotation: d.rotation }])));
+        }
+      }
+      setPropsXfDraft(null);
       setGesture(null);
       return;
     }
@@ -1504,11 +1568,19 @@ export function MapCanvas(p: Props): JSX.Element {
     let list = propsAll;
     if (propMoveDraft) list = list.map(sp => (propMoveDraft.ids.includes(sp.id) ? { ...sp, x: sp.x + propMoveDraft.dx, y: sp.y + propMoveDraft.dy } : sp));
     if (propDraft) list = list.map(sp => (sp.id === propDraft.id ? { ...sp, ...propDraft } : sp));
+    if (propsXfDraft) list = list.map(sp => { const d = propsXfDraft.get(sp.id); return d ? { ...sp, ...d } : sp; });
     return list;
-  }, [propDraft, propMoveDraft, propsAll]);
+  }, [propDraft, propMoveDraft, propsXfDraft, propsAll]);
   const selectedProp = p.selectedPropId ? propsShown.find(sp => sp.id === p.selectedPropId) ?? null : null;
   const cogidas = p.selectedPropIds ?? [];
   const esCogida = (id: string): boolean => id === p.selectedPropId || cogidas.includes(id);
+  /**
+   * EL MARCO DEL GRUPO (orden suya, 2026-09-14: «*son los mismos nodos de cuando seleccionas un solo
+   * objeto*»). Con DOS O MÁS cogidas sale el mismo juego de tiradores que con una sola. Se mide sobre lo que
+   * se está PINTANDO, así que el marco sigue a la mano mientras dura el gesto en vez de quedarse atrás.
+   */
+  const grupoPiezas = cogidas.length > 1 ? propsShown.filter(sp => cogidas.includes(sp.id)) : [];
+  const propsMarco = dmSight && grupoPiezas.length > 1 ? propsBounds(grupoPiezas) : null;
   /**
    * COGER UNA PIEZA PLANTADA (§ 6.5 y § 6.8, punto 5). Mayús+clic la añade o la quita de lo cogido, sin arrastre.
    * Pinchar una que ya está en el grupo cogido arrastra el grupo entero; pinchar otra suelta lo demás y la coge.
@@ -1753,6 +1825,29 @@ export function MapCanvas(p: Props): JSX.Element {
                   {PROP_CORNERS.map(k => (
                     <rect key={k} className="mp-prop-handle" data-testid={`mp-prop-handle-${k}`} x={c[k].x - lado / 2} y={c[k].y - lado / 2} width={lado} height={lado}
                       transform={`rotate(${selectedProp.rotation} ${c[k].x} ${c[k].y})`} />
+                  ))}
+                </>);
+              })()}
+            </g>
+          )}
+          {/*
+            * LOS MISMOS TIRADORES, PERO DEL GRUPO (orden suya, 2026-09-14: «*si selecciono varios items sigo
+            * sin los putos nodos … son los mismos nodos de cuando seleccionas un solo objeto*»). Mismas
+            * clases que los de una pieza: se ven y se usan igual, y el grupo se estira y se gira entero.
+            */}
+          {propsMarco && (
+            <g className="mp-prop-handles" data-testid="mp-props-group-handles">
+              {(() => {
+                const rotG = groupRotateHandleAt(propsMarco, PROP_ROTATE_GAP / p.view.zoom);
+                const esquinasG = groupCorners(propsMarco);
+                const lado = 9 / p.view.zoom;
+                return (<>
+                  <rect className="mp-prop-frame" x={propsMarco.x} y={propsMarco.y} width={propsMarco.w} height={propsMarco.h} data-testid="mp-props-group-frame" />
+                  <line x1={propsMarco.x + propsMarco.w / 2} y1={propsMarco.y} x2={rotG.x} y2={rotG.y} className="mp-prop-rotline" />
+                  <circle cx={rotG.x} cy={rotG.y} r={6 / p.view.zoom} className="mp-prop-rotate" data-testid="mp-props-group-rotate" role="img" aria-label={t('maps.props.canvas.rotate')} />
+                  {PROP_CORNERS.map(k => (
+                    <rect key={k} className="mp-prop-handle" data-testid={`mp-props-group-handle-${k}`}
+                      x={esquinasG[k].x - lado / 2} y={esquinasG[k].y - lado / 2} width={lado} height={lado} />
                   ))}
                 </>);
               })()}

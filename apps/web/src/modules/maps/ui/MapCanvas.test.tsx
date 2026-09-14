@@ -2829,7 +2829,7 @@ describe('<MapCanvas> las piezas plantadas', () => {
   });
 
   /** § 6.8, punto 5 — él: «*si quiero seleccionar de manera múltiple objetos no me deja*». */
-  it('Mayús+clic añade otra a lo cogido (y la quita si ya estaba): varias van con marco y sin tiradores', () => {
+  it('Mayús+clic añade otra a lo cogido (y la quita si ya estaba): varias van con su marco Y con los tiradores del grupo', () => {
     const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn() };
     const { svg, rerender } = mount({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropId: 'sp-oak' });
     fireEvent.pointerDown(svg, { clientX: 700, clientY: 200, button: 0, pointerId: 1, shiftKey: true });
@@ -2838,11 +2838,63 @@ describe('<MapCanvas> las piezas plantadas', () => {
     expect(cb.onMoveProp).not.toHaveBeenCalled();
     rerender({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropId: null, selectedPropIds: ['sp-oak', 'sp-col'] });
     expect(within(svg).getAllByTestId('mp-prop-frame')).toHaveLength(2);
+    // Los de UNA sola no salen; los del GRUPO sí, y son los mismos cuatro nodos más el de giro (orden suya, 14-09).
     expect(within(svg).queryByTestId('mp-prop-handles')).not.toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-props-group-handles').querySelectorAll('.mp-prop-handle')).toHaveLength(4);
+    expect(within(svg).getByTestId('mp-props-group-rotate')).toBeInTheDocument();
     // Mayús+clic sobre una que ya estaba la quita; al quedar UNA, vuelve a ser la cogida suelta (con tiradores).
     fireEvent.pointerDown(svg, { clientX: 700, clientY: 200, button: 0, pointerId: 1, shiftKey: true });
     expect(cb.onSelectProps).toHaveBeenLastCalledWith([]);
     expect(cb.onSelectProp).toHaveBeenLastCalledWith('sp-oak');
+  });
+
+  /**
+   * Orden suya del 2026-09-14: «*si selecciono varios items sigo sin los putos nodos, ponlos, si no no los
+   * puedo ni escalar ni girar … son los mismos nodos de cuando seleccionas un solo objeto*».
+   * El Roble ocupa de (250, 75) a (550, 525) y la Columna de (650, 150) a (750, 250): el marco del grupo es
+   * (250, 75) de 500 × 450, con la esquina SE en (750, 525) y el tirador de giro en (500, 53).
+   */
+  const grupo = (cb: Record<string, unknown>) => ({
+    ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropId: null, selectedPropIds: ['sp-oak', 'sp-col'],
+  });
+
+  it('con varias cogidas, estirar por una esquina del grupo las agranda a TODAS en la misma proporción y se guarda de una vez', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn(), onScaleProps: vi.fn(), onRotateProps: vi.fn() };
+    const { svg } = mount(grupo(cb));
+    // La mano al doble de la diagonal desde la esquina clavada (250, 75): el marco dobla y cada pieza con él.
+    down(svg, 750, 525);
+    move(svg, 1250, 975);
+    expect(svg.querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toBe('translate(550 525) rotate(0)');
+    up(svg);
+    expect(cb.onScaleProps).toHaveBeenCalledWith([
+      { id: 'sp-oak', x: 550, y: 525, width: 600, height: 900 },
+      { id: 'sp-col', x: 1150, y: 325, width: 200, height: 200 },
+    ]);
+    expect(cb.onMoveProps).not.toHaveBeenCalled();
+    expect(cb.onSelectProps).not.toHaveBeenCalled();   // agarrar un tirador no cambia lo cogido
+  });
+
+  it('con varias cogidas, el tirador de giro las gira a TODAS alrededor del centro del grupo, y se guarda de una vez', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn(), onScaleProps: vi.fn(), onRotateProps: vi.fn() };
+    const { svg } = mount(grupo(cb));
+    // Se agarra el tirador (500, 53), que apunta a 0°, y se lleva la mano a la derecha del centro: 90°.
+    down(svg, 500, 53);
+    move(svg, 1000, 300);
+    up(svg);
+    expect(cb.onRotateProps).toHaveBeenCalledWith([
+      { id: 'sp-oak', x: 500, y: 200, rotation: 90 },
+      { id: 'sp-col', x: 600, y: 500, rotation: 90 },
+    ]);
+    expect(cb.onScaleProps).not.toHaveBeenCalled();
+  });
+
+  it('un clic en un tirador del grupo, sin arrastre, no escribe nada', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onScaleProps: vi.fn(), onRotateProps: vi.fn() };
+    const { svg } = mount(grupo(cb));
+    down(svg, 750, 525);
+    up(svg);
+    expect(cb.onScaleProps).not.toHaveBeenCalled();
+    expect(cb.onRotateProps).not.toHaveBeenCalled();
   });
 
   it('el recuadro por el vacío coge las piezas de dentro; arrastrar una de las cogidas las mueve TODAS y se guarda de una vez', () => {

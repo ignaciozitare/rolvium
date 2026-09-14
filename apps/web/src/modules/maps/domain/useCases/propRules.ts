@@ -1,4 +1,7 @@
 import type { NewSceneProp, Prop, PropCategory, PropPack, Scene, SceneProp, ScenePropPatch } from '../entities/Scene';
+// El rectángulo recto es el MISMO que el de los grupos de muros: un marco es un marco, y duplicar el tipo
+// sería tener dos verdades para lo mismo. Sólo el tipo, que se borra al compilar.
+import type { Rect } from './groupRules';
 import {
   countIn as countInLibrary, filterItems, hasBuiltIn, inShelf as inLibraryShelf, matchesQuery as matchesLibraryQuery,
   sectionsOf as librarySectionsOf, sortItems, type LibraryGroup, type LibraryPlace, type Shelf, type ShelfContext, type ShelfSort,
@@ -328,4 +331,109 @@ export function propsInRect<T extends Pick<SceneProp, 'id' | 'x' | 'y'>>(props: 
 export function rotationToward(p: Pick<SceneProp, 'x' | 'y'>, pointer: Point2): number {
   const deg = (Math.atan2(pointer.y - p.y, pointer.x - p.x) * 180) / Math.PI + 90;
   return normDeg(deg);
+}
+
+// ── VARIAS COGIDAS: EL MARCO DEL GRUPO, ESTIRARLO Y GIRARLO ─────────────────
+/*
+ * Orden suya del 2026-09-14: «*si selecciono varios items sigo sin los putos nodos, ponlos, si no no los puedo
+ * ni escalar ni girar … son los mismos nodos de cuando seleccionas un solo objeto*». Así que un grupo se
+ * maneja EXACTAMENTE como una pieza sola: cuatro esquinas que estiran manteniendo la proporción con la de
+ * enfrente clavada (§ 6.4 y § 6.8, punto 2), y el tirador de arriba que gira. Nada nuevo que aprender.
+ *
+ * Esto es geometría pura. Quién la pinta vive en `ui/`, quién la guarda en `infra/`.
+ */
+
+const round2 = (v: number): number => Math.round(v * 100) / 100;
+
+/** Lo más pequeño que puede quedar un grupo al estrujarlo: sin tope se aplasta a nada y no se recupera. */
+export const MIN_GROUP_SIDE_PX = 8;
+
+/** La esquina de enfrente, la que se queda clavada al estirar desde la otra. */
+const OPPOSITE_CORNER: Record<PropCorner, PropCorner> = { nw: 'se', ne: 'sw', se: 'nw', sw: 'ne' };
+
+/** El marco RECTO que envuelve a varias piezas ya giradas: se mide por sus esquinas, no por su caja sin girar. */
+export function propsBounds(props: readonly Pick<SceneProp, 'x' | 'y' | 'width' | 'height' | 'rotation'>[]): Rect | null {
+  if (!props.length) return null;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of props) {
+    for (const k of PROP_CORNERS) {
+      const c = propCorners(p)[k];
+      minX = Math.min(minX, c.x); maxX = Math.max(maxX, c.x);
+      minY = Math.min(minY, c.y); maxY = Math.max(maxY, c.y);
+    }
+  }
+  return { x: round2(minX), y: round2(minY), w: round2(maxX - minX), h: round2(maxY - minY) };
+}
+
+/** Las cuatro esquinas del marco del grupo, con los mismos nombres que las de una pieza. */
+export function groupCorners(r: Rect): Record<PropCorner, Point2> {
+  return {
+    nw: { x: r.x, y: r.y }, ne: { x: r.x + r.w, y: r.y },
+    se: { x: r.x + r.w, y: r.y + r.h }, sw: { x: r.x, y: r.y + r.h },
+  };
+}
+
+/** El tirador de giro del grupo: sobre el lado de arriba, a `gapPx` del borde. Igual que el de una pieza. */
+export const groupRotateHandleAt = (r: Rect, gapPx: number): Point2 => ({ x: r.x + r.w / 2, y: r.y - gapPx });
+
+/**
+ * Estirar el marco del grupo desde una esquina: la de enfrente se queda clavada y el marco crece hacia la
+ * mano MANTENIENDO LA PROPORCIÓN. El factor sale de proyectar la mano sobre la diagonal original, así que un
+ * arrastre torcido no deforma — el mismo truco que con una pieza sola.
+ */
+export function groupBoxFromCorner(r: Rect, corner: PropCorner, pointer: Point2, minPx = MIN_GROUP_SIDE_PX): Rect {
+  const sx = corner === 'ne' || corner === 'se' ? 1 : -1;
+  const sy = corner === 'sw' || corner === 'se' ? 1 : -1;
+  const anchor = groupCorners(r)[OPPOSITE_CORNER[corner]];
+  const diag = { x: sx * r.w, y: sy * r.h };
+  const len2 = diag.x * diag.x + diag.y * diag.y || 1;
+  const d = { x: pointer.x - anchor.x, y: pointer.y - anchor.y };
+  const k = Math.max((d.x * diag.x + d.y * diag.y) / len2, minPx / (Math.max(r.w, r.h) || 1));
+  return {
+    x: round2(Math.min(anchor.x, anchor.x + diag.x * k)),
+    y: round2(Math.min(anchor.y, anchor.y + diag.y * k)),
+    w: round2(r.w * k), h: round2(r.h * k),
+  };
+}
+
+/**
+ * Llevar el grupo de un marco a otro: cada pieza se corre y crece EN LA MISMA PROPORCIÓN, así que las
+ * distancias entre ellas se mantienen y ninguna se deforma. Un solo factor para los dos lados, como manda
+ * la regla de la proporción; el giro de cada una no se toca.
+ */
+export function scalePropsTo<T extends Pick<SceneProp, 'id' | 'x' | 'y' | 'width' | 'height'>>(
+  props: readonly T[], from: Rect, to: Rect,
+): { id: string; patch: { x: number; y: number; width: number; height: number } }[] {
+  const k = to.w / (from.w || 1);
+  return props.map(p => ({
+    id: p.id,
+    patch: {
+      x: round2(to.x + (p.x - from.x) * k),
+      y: round2(to.y + (p.y - from.y) * k),
+      width: round2(p.width * k),
+      height: round2(p.height * k),
+    },
+  }));
+}
+
+/**
+ * Girar el grupo alrededor de un punto: cada pieza gira sobre sí misma Y da la vuelta al centro del marco —
+ * las dos cosas, que es lo que hace que el conjunto gire como una sola plancha y no como un montón de piezas
+ * girando cada una en su sitio.
+ */
+export function rotatePropsBy<T extends Pick<SceneProp, 'id' | 'x' | 'y' | 'rotation'>>(
+  props: readonly T[], center: Point2, deg: number,
+): { id: string; patch: { x: number; y: number; rotation: number } }[] {
+  const a = (deg * Math.PI) / 180, cos = Math.cos(a), sin = Math.sin(a);
+  return props.map(p => {
+    const dx = p.x - center.x, dy = p.y - center.y;
+    return {
+      id: p.id,
+      patch: {
+        x: round2(center.x + dx * cos - dy * sin),
+        y: round2(center.y + dx * sin + dy * cos),
+        rotation: normDeg(p.rotation + deg),
+      },
+    };
+  });
 }
