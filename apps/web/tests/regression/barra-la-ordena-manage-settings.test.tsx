@@ -96,7 +96,8 @@ describe('regresión · la barra la ordena quien administra los ajustes, no el d
     arrastra(bar, 'Luz de ambiente', 'Ocultar');
     await waitFor(() => expect(port.save).toHaveBeenCalledWith({
       play: ['dice', 'select', 'measure', 'pin'], draw: ['draw'],
-      dm: ['wall', 'background', 'mask', 'sep', 'reveal', 'light', 'hide', 'sep', 'encounter', 'placePc'],
+      // «props» (rebanada 6) no estaba en lo guardado: cae en su sitio de serie, el primero, y se guarda con los demás.
+      dm: ['props', 'wall', 'background', 'mask', 'sep', 'reveal', 'light', 'hide', 'sep', 'encounter', 'placePc'],
     }));
     expect(nombres(bar).slice(-8)).toEqual(['Builder', 'Fondo del mapa', 'Pincel', 'Revelar', 'Luz de ambiente', 'Ocultar', 'Encuentro', 'Colocar PJ']);
   });

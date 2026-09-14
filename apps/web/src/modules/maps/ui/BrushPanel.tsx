@@ -154,7 +154,8 @@ export function BrushPanel({
         */}
       {eligeConQue && ink === 'texture' && (
         <PanelSection label={t('maps.brush.textureLabel')}>
-          <span className="mp-bp-tex" data-testid="mp-bp-tex" aria-hidden="true"
+          {/* LA MUESTRA ES UN BOTÓN (§ 6.8, punto 8): pincharla abre el catálogo, igual que ELEGIR / CAMBIAR. */}
+          <button type="button" className="mp-bp-tex" data-testid="mp-bp-tex" aria-label={t('maps.room.textures.open')} onClick={onPickTexture}
             style={textureUrl
               ? { backgroundImage: `url(${textureUrl})`, backgroundSize: `${tilePx(textureCells, gridSize)}px ${tilePx(textureCells, gridSize)}px`, backgroundRepeat: 'repeat' }
               : { background: color }} />

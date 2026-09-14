@@ -1,5 +1,5 @@
 import type { TableEvent } from '@rolvium/core';
-import type { CreateSceneInput, Drawing, ImageAsset, MapColor, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, TexturePatch, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
+import type { CreateSceneInput, Drawing, ImageAsset, MapColor, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPack, PropPackPatch, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, TexturePatch, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '../entities/Scene';
 
 /**
  * Lo que se edita de un vano: si está abierto, qué es, y —desde «Las puertas, de verdad»— cómo es la puerta.
@@ -66,6 +66,11 @@ export interface MapsPort {
   /** DM only: uploads to `backgrounds/{campaignId}/{uuid}.png` and registers the row. */
   uploadImage(campaignId: string, file: Blob, name: string): Promise<ImageAsset>;
   removeImage(id: string): Promise<void>;
+  /**
+   * Renombrar un fondo de la campaña, desde el catálogo de fondos (§ «EL FONDO DEL MAPA»). Es lo ÚNICO que se
+   * le puede cambiar: la foto no se toca, y de campaña no se mueve — un fondo es de la campaña donde se subió.
+   */
+  updateImage(id: string, patch: { name: string }): Promise<void>;
   // walls
   listWalls(sceneId: string): Promise<Wall[]>;
   addWall(input: NewWall): Promise<Wall>;
@@ -159,20 +164,28 @@ export interface MapsPort {
   removeLight(id: string): Promise<void>;
 
   // ── piezas (rebanada 6) ───────────────────────────────────────────────────
-  // Dos familias, y la separación ES la regla: la BIBLIOTECA es de la campaña y existe para usarse; lo
-  // PLANTADO vive en una escena. Borrar de la biblioteca no toca lo plantado.
+  // Dos familias, y la separación ES la regla: la BIBLIOTECA es de la HERRAMIENTA —«lo que se sube sirve para
+  // todos», en paquetes propios, detrás del permiso `manage_props`— y lo PLANTADO vive en una escena y lo
+  // escribe su director. Borrar de la biblioteca no toca lo plantado.
 
-  /** La biblioteca de la campaña MÁS el catálogo de la app (las piezas sin campaña). DM only. */
-  listProps(campaignId: string): Promise<Prop[]>;
+  /** La biblioteca entera: las de todos los paquetes, las sin clasificar y las de serie. La lee cualquiera. */
+  listProps(): Promise<Prop[]>;
   /**
-   * DM only. Sube la foto y crea la pieza. Recibe el fichero ya elegido: comprimir es del camino único de
-   * imágenes (`specs/core/images/SPEC.md`), no de este adaptador.
+   * Con `manage_props`. Sube la foto a `backgrounds/props/{id}.webp` y crea la pieza. Recibe el fichero ya
+   * comprimido: comprimir es del camino único de imágenes (`specs/core/images/SPEC.md`), no de este adaptador.
    */
   addProp(input: NewProp, image: Blob): Promise<Prop>;
-  /** DM only. También es por donde se guarda la escala que la pieza RECUERDA (§ 6.4). */
+  /** Con `manage_props`: renombrar, mover de paquete… y guardar la escala que la pieza RECUERDA (§ 6.4). */
   updateProp(id: string, patch: PropPatch): Promise<void>;
-  /** DM only. NO borra lo ya plantado en los mapas: ésos se quedan con su copia de la foto. */
+  /** Con `manage_props`. NO borra lo ya plantado en los mapas: ésos se quedan con su copia de la foto. */
   removeProp(id: string): Promise<void>;
+
+  /** Los paquetes, en su orden. Los lee cualquiera; los crea, renombra y borra quien tiene `manage_props`. */
+  listPropPacks(): Promise<PropPack[]>;
+  addPropPack(name: string): Promise<PropPack>;
+  updatePropPack(id: string, patch: PropPackPatch): Promise<void>;
+  /** Borrar un paquete deja sus piezas «Sin clasificar»: la base pone `pack_id` a nulo, no las borra. */
+  removePropPack(id: string): Promise<void>;
 
   listSceneProps(sceneId: string): Promise<SceneProp[]>;
   addSceneProp(input: NewSceneProp): Promise<SceneProp>;

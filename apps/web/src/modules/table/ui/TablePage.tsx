@@ -203,7 +203,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               * por qué saber cómo se leen los permisos. Es el permiso `manage_textures` del motor de roles,
               * que se concede POR ROL desde «Permisos de Rolvium» en la pantalla de roles.
               */}
-            {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} toolbarOrderPort={toolbarOrder} canManageTextures={canUse('manage_textures')} canOrderToolbar={can('manage_settings')} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
+            {tab === 'scene' && <Scene campaignId={campaign.id} role={role} userId={user.id} system={system} members={members} activeSceneId={activeSceneId} charactersRepo={charactersRepo} repo={maps} vision={vision} toolbarOrderPort={toolbarOrder} canManageTextures={canUse('manage_textures')} canManageProps={canUse('manage_props')} canOrderToolbar={can('manage_settings')} onOpenDice={() => setRollerOpen(o => !o)} diceOpen={rollerOpen} armEncounter={toPlace} onArmed={() => setToPlace(null)}
               onRoll={req => rolls.roll({ ...req, campaignId: campaign.id })}
               onOpenAttack={i => attacks.open({ ...i, campaignId: campaign.id })} />}
             {tab === 'bestiary' && <BestiaryTab campaignId={campaign.id} system={system} onPlace={e => { setToPlace(toCatalogItem(e)); setTab('scene'); }} rolls={rolls} {...(bestiary ? { repo: bestiary } : {})} />}

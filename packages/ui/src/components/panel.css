@@ -8,7 +8,10 @@
    llevaban cada uno su copia de todo esto, y los deslizadores estaban hechos de tres
    maneras. `npm run audit` bloquea volver a hacerlos a mano. */
 
-.rv-fpanel{max-height:calc(100% - 16px);overflow:auto;display:flex;flex-direction:column;gap:10px;padding:10px;
+/* A lo ALTO se desplaza; a lo ANCHO, NUNCA (queja suya, 14-09: «*el panel de objetos y builder tienen un scroll
+   lateral, eso no va así*»). Un panel flotante mide lo que mide y lo de dentro se adapta: si algo no cabe, se
+   arregla la fila, no se le da barra lateral al panel. */
+.rv-fpanel{max-height:calc(100% - 16px);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:10px;padding:10px;
   background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);color:var(--sys-ink);}
 /* La cabecera es el asa. `touch-action:none` es obligatorio: sin él el navegador se queda el gesto para
    desplazar y el panel no se mueve en pantalla táctil. */
@@ -24,7 +27,10 @@
 .rv-fpanel-section{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;}
 .rv-fpanel-section > legend{padding:0;}
 .rv-fpanel-label{font-size:var(--fs-2xs);letter-spacing:.2em;text-transform:uppercase;color:var(--sys-ink-soft);}
-.rv-fpanel-hint{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);line-height:var(--lh-normal);}
+/* `overflow-wrap:anywhere`: en los pies va el NOMBRE de lo elegido, y un nombre sin espacios (el de un fichero
+   largo, o un identificador) es una palabra sola de 40 caracteres que empujaba el panel a lo ancho. */
+.rv-fpanel-hint{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);line-height:var(--lh-normal);
+  overflow-wrap:anywhere;}
 .rv-fpanel-note{display:flex;align-items:flex-start;gap:6px;margin:0;padding:6px;font-size:var(--fs-2xs);line-height:var(--lh-normal);
   color:var(--sys-ink-dim);background:color-mix(in srgb,var(--sys-gold) 15%,transparent);}
 .rv-fpanel-note .material-symbols-outlined{color:var(--sys-gold);flex-shrink:0;}
@@ -36,9 +42,12 @@
 .rv-slider-v{font-size:var(--fs-xs);color:var(--sys-ink);}
 .rv-slider input[type="range"]{width:100%;accent-color:var(--sys-blood);}
 .rv-slider.inline{flex-direction:row;align-items:center;gap:8px;}
-/* Sin `min-width:0` a propósito: la barra no baja de su ancho natural, que es como ya salía en el Builder.
-   Con un ancho puesto desde fuera (la barra del trazo) manda ese ancho: el `width:100%` de arriba lo respeta. */
-.rv-slider.inline input[type="range"]{flex:1;}
+/* CON `min-width:0` desde el 14-09, y es lo contrario de lo que ponía aquí: un `input[type="range"]` trae un
+   ancho mínimo propio (~129 px) y, como su `overflow` es visible, en una fila de rótulo + barra + lectura NO
+   se encogía. Esa fila desbordaba el panel a lo ancho y le sacaba barra de scroll lateral al Builder y al
+   editor de luces. Con un ancho puesto desde fuera (la barra del trazo) manda ese ancho: el `width:100%` de
+   arriba lo respeta. */
+.rv-slider.inline input[type="range"]{flex:1;min-width:0;}
 .rv-slider-l{flex:1;font-size:var(--fs-2xs);color:var(--sys-ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .rv-slider.inline .rv-slider-v{font-size:var(--fs-2xs);color:var(--sys-ink-soft);min-width:3ch;text-align:right;}
 .rv-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}

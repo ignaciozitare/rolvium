@@ -24,33 +24,423 @@ de correcciones suyas. En la rama `feat/maps-pincel` y **sin mergear**.
 `maps` **rebanadas 9 y 10, los paneles comunes y las siete peticiones del 11-09**: QA pasado, mergeadas y **EN
 PRODUCCIÓN como v0.7.0** la noche del 2026-09-12 (rama `refactor/ui-paneles-comunes`, que incluía `feat/maps-pincel`).
 
-**SIGUIENTE (orden suyo, repetido y enfadado el 2026-09-12): rebanada 6 · LOS OBJETOS** (galería de piezas) →
-después, la fila «con qué se pinta» de «A pulso» (§ 10B.2, pendiente) → coger/mover/borrar una sala con el ratón
-(pide `.pen`) → `chat` (H8) + `journal` (H9). El smoke test de producción sólo si él lo pide.
+`maps` **rebanada 6 — LA GALERÍA DE PIEZAS (los objetos)**: construida ENTERA la noche del 2026-09-12→13 por orden suya,
+rama `feat/maps-objetos`. **La probó él el 13-09 por la tarde y pidió ocho remates (§ 6.8 del spec) + un noveno (DE SU
+FAMILIA): TODO construido, revisado (✅ review) y COMMITEADO** (tres commits: `.pen` guardado, los ocho remates, el
+noveno). **Sin mergear. ⏳ Falta que él lo pruebe entero en pantalla** (bloque 🟢 nuevo).
+
+**Pedido suyo del 13-09 (noche), SIN SPEC NI `.pen` todavía**: con un GRUPO de piezas cogidas (selección múltiple, §
+6.8 punto 5), poder **escalarlas y girarlas juntas**. Hoy «Estirar y girar sólo con una cogida» es alcance EXPRESO
+FUERA de la rebanada 6 (spec, línea 1066). Le toca Spec Agent → Design Agent (`.pen`) antes de tocar código — se lo
+avisé y no ha contestado cuál prefiere primero.
+
+**SIGUIENTE (cuando él lo diga)**: que pruebe la galería entera (los ocho remates + el noveno) → decidir cuándo se
+diseña lo del grupo (spec + `.pen`) → QA → migración a producción por MCP → merge → deploy (v0.8.0). Después la fila
+«con qué se pinta» de «A pulso» (§ 10B.2, pendiente) → coger/mover/borrar una sala con el ratón (pide `.pen`) → `chat`
+(H8) + `journal` (H9). El smoke test de producción sólo si él lo pide.
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «LAS PUERTAS QUE CIERRAN UN PASILLO» (donde se retoma, con SUS 7 PETICIONES NUEVAS) · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🚀 «CAMINO A PRODUCCIÓN (v0.8.0)» (donde se retoma) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🟢 2026-09-12 — **AQUÍ SE RETOMA: LA REBANADA 6 · LOS OBJETOS (la galería de piezas). NADA MÁS.** Todo lo anterior está hecho y EN PRODUCCIÓN (v0.7.0): dientes, barra arrastrando, modo del Builder, giro de texturas, rótulos, y las siete peticiones del 11-09.
+## 🚀 2026-09-14 (tarde) — **CAMINO A PRODUCCIÓN (v0.8.0). Él dio el visto bueno: «*yo probé lo mío por ahora ok, sino ya solucionaremos*».**
 
-> 🔴 **Suyo, 2026-09-12, última cosa antes de irse a dormir, ENFADADO: «*no no quiero producción quiero los putos
-> objetos joder, ya no sé cuánto te lo tengo que pedir*».** Lo ha pedido VARIAS veces (el 2026-09-11 la pasó por
-> delante de todo; el 12 por la noche, otra vez). **El chat nuevo empieza por LOS OBJETOS directamente.** Ni smoke
-> test de producción, ni QA, ni deploy, ni «¿por dónde seguimos?»: si quiere probar producción ya lo dirá él. Lo de
-> producción del bloque 🚀 queda como referencia, no como tarea.
+Orden suya: cerrar flecos y subir. **20 commits** en `feat/maps-objetos` sin mergear, todo verde.
+
+### 📍 El plan, en este orden (lo irreversible va marcado)
+1. ⏳ **QA** sobre la rama (lo exige el hook antes de mergear).
+2. ⚠️ **La migración a producción por MCP** — `20260913100000_maps_props_tool_library`, **la ÚNICA que falta**.
+   Comprobado con `list_migrations`: la nube va hasta `core_app_settings_grants` (12-09); las «ocho pendientes»
+   que decía el bloque del 12 ya se aplicaron siete. **Antes del merge**, como siempre.
+3. ⚠️ **Merge a `main`** → deploy → **v0.8.0**.
+4. ⏳ **Mover su biblioteca a producción** (ver abajo: se puede a medias).
+
+### 🖼️ MOVER TEXTURAS Y OBJETOS A PRODUCCIÓN — lo que se puede y lo que no
+Su local apunta a **su propia base** (`VITE_SUPABASE_URL=http://127.0.0.1:54321`), así que TODO lo suyo vive en
+su máquina. Hay **41 texturas · 50 objetos · 6 paquetes · 18 fondos de campaña**, y en el almacén
+**81 ficheros en `backgrounds/props` (13,8 MB)** más **18 fondos de dos campañas (49,8 MB)**.
+
+- ✅ **Las filas** se pueden crear en producción por SQL (MCP).
+- ❌ **Los ficheros NO**: por aquí no hay forma de escribir en el almacén de producción — el MCP de Supabase da
+  SQL y migraciones, no storage, y la clave de servicio de producción no está (ni debe estar) en el repo.
+  Copiar sólo las filas dejaría las fotos apuntando a `127.0.0.1`: se verían rotas.
+- 🟢 **El camino bueno**: exportarle los 91 ficheros a una carpeta, con sus nombres de verdad y ordenados por
+  paquete/categoría, y que los suba él en producción con **la subida en lote** (que es justo lo que se acaba de
+  construir): dos o tres arrastres. Los paquetes se le pueden dejar creados por SQL para que ya estén ahí.
+
+## 🟢 2026-09-14 (tarde) — **EL FONDO DEL MAPA, con el mismo catálogo que las texturas. Spec + láminas commiteadas (`c391aff`); el código, construido y en review.**
+
+Pedido suyo con captura del popover delante. **Ojo al malentendido**: dijo «*soluciona lo que te pedí de las
+texturas*» y yo me fui a § 10B.2 («con qué se pinta») — no era eso. Era **el fondo del mapa**: «*ya sé en qué
+nos desconectamos, fondos del mapa*».
+
+Sus cuatro cosas: (1) la subida, en lote como las texturas; (2) el selector de color, el mismo que en los otros
+menús; (3) el catálogo categorizado, **el mismo componente**; (4) lo nuevo: **fondos de sistema** (= las
+texturas, de la herramienta) y **fondos del director** (sólo de esa campaña).
+
+- **Spec**: sección nueva «EL FONDO DEL MAPA» en `specs/modules/maps/SPEC.md`, cerrada por él («*sip*») con su
+  regla: «*los fondos de las campañas sólo son para la campaña del DM que la publicó*». **Sin migración**: la
+  RLS de `maps_images` ya acota por campaña (verificado).
+- **Láminas** (las guardó él): `PL/Fondo del mapa · panel` y `PL/Catálogo de fondos`, al final de la fila de la
+  sección 5.
+- **Código: COMMITEADO en `c1782b9`**, con review ✅ PASSED. `backgroundRules.ts` nuevo (la forma común de los
+  dos orígenes) · `BackgroundCatalog` y `BackgroundUpload`, las terceras caras de `LibraryCatalog`/`LibraryUpload`
+  · el panel con `PaintColor` (el bloque del Pincel, con TUS COLORES por campaña) y la fila muestra + CAMBIAR ·
+  `updateImage` nuevo en el puerto · `maps.backgrounds.*` en es/en. El catálogo común gana dos props
+  retrocompatibles: `canManageItem` (permiso por pieza) y `onMoveTo` opcional.
+- **SIN COMPRIMIR, decisión suya**: se construyó comprimiendo los fondos (2560 px, 0,82) y él lo paró al leerlo
+  («*¿pero se comprimen y pierden calidad? porque eso sería un problema*»). Tenía razón dos veces: pidió «como
+  las texturas», y las texturas entran tal cual. **Corregidos los dos specs**, que decían lo contrario
+  (`specs/core/images/SPEC.md` incluido). ⚠ Contrapartida avisada: sin compresión tampoco hay tope de peso.
+- **Dos fallos que sacó el review**, arreglados: el tramo de Mayús se saltaba el permiso por pieza y dejaba
+  borrar texturas ajenas en silencio; y «Tus colores» se quedaba en «Cargando…» para siempre si abrías el fondo
+  sin haber tocado antes el Pincel.
+- **Verde**: typecheck · **1965 tests** (124 ficheros) · audit 0 hard · build web + api.
+
+⏳ **Falta**: que lo pruebe él.
+
+## 🟢 2026-09-14 (madrugada→mañana) — **SUS CUATRO QUEJAS DE LA PRUEBA EN PANTALLA: LAS CUATRO HECHAS Y COMMITEADAS. ⏳ Falta que las pruebe.**
+
+Se fue a dormir dejando cuatro cosas («*no necesitas permiso … cuando me despierte quiero esto listo*»). Las cuatro
+están construidas, revisadas y commiteadas en `feat/maps-objetos`, sin mergear.
+
+1. **`8792b54` — el scroll lateral de los paneles.** («*el panel de objetos y builder tienen un scroll lateral, eso
+   no va así … el de objetos es más pequeño que los otros*».) Eran **tres causas reales**, no una: la barra de los
+   deslizadores en fila no podía encogerse (`min-width:0`, y el comentario decía que era a propósito); los pies de
+   panel no partían palabras largas (un nombre de fichero sin espacios empujaba el panel); y la fila de textura del
+   Builder no tenía a dónde ir (los botones no encogen). De remate, `.rv-fpanel` pasa a `overflow-x:hidden`: a lo
+   ancho NUNCA. Y el panel de objetos de 220 a **300 px**, los mismos que Builder y Pincel.
+2. **`245840d` — LOS NODOS con varios objetos cogidos.** («*si selecciono varios items sigo sin los putos nodos…
+   son los mismos nodos de cuando seleccionas un solo objeto*».) Geometría pura nueva en `propRules.ts`
+   (`propsBounds`, `groupCorners`, `groupRotateHandleAt`, `groupBoxFromCorner`, `scalePropsTo`, `rotatePropsBy`),
+   dos gestos en `MapCanvas.tsx` y guardado en lote: **un solo paso de Ctrl+Z** para todo el grupo. Mismas clases
+   CSS que los de uno solo, así que se ven y se usan igual.
+3. **`e9a9ba5` — OBJETOS, y fuera «sello».** («*que son objetos, no piezas*» · «*no sé lo que es un sello, deja de
+   inventar términos*».) 95 textos en es/en, con las concordancias una a una. «LA PIEZA DEL SELLO» → **«EL OBJETO
+   ELEGIDO»**. Decisión escrita como NO revisable en `specs/modules/maps/SPEC.md` § Rebanada 6.
+4. **`919c7cb` — los dos fallos que sacó el review** de los nodos: el marco se re-medía al girar y el tirador se
+   escapaba del puntero (se veía al primer giro), y el borrador se quedaba pegado si el gesto se cortaba con Esc o
+   con el botón derecho. Más: los objetos de capas apagadas ya no se redimensionan a escondidas, y Ctrl+Z dice el
+   plural.
+
+5. **`7bc29f9` — lo que sacó el review del renombrado.** «Favorito» se le coló a las TEXTURAS (el catálogo es el
+   mismo componente y la estrella era la única cadena clavada al prefijo de objetos): decía «Favorito · Roca gris»
+   con el estante «Favoritas» al lado. Cada cara pone ya su palabra. Además, el nombre de reserva al subir un
+   fichero que es sólo extensión lo pone ahora quien llama, traducido («Objeto» / «Textura»): antes una textura
+   habría acabado llamándose «Objeto». Y el inglés de los Ctrl+Z nuevos, que estaba mal escrito.
+
+**Verde en todo**: typecheck web · **1940 tests** (121 ficheros) · `npm run audit` **0 hard** (31 warn, los de
+siempre) · build web + build api · **TRES reviews subagente**: el primero limpio, el segundo con dos defectos
+encontrados y arreglados (`919c7cb`), el tercero con uno más (`7bc29f9`).
+
+### 🚫 Lo que NO se tocó, y por qué
+- **El sello que se le vacía**: sigue SIN preguntar el gesto (ver el 🆕 del bloque de abajo, con los cuatro
+  caminos ya localizados). Con el renombrado, la pregunta cambia de forma: ya no hay «sello», hay «objeto
+  elegido» — pero el comportamiento es el mismo y la pregunta sigue en pie.
+- **El `.pen`**: dice «Piezas» y «LA PIEZA DEL SELLO», y el panel a 220 px. **Sólo lo puede guardar él.** Hay que
+  corregirlo con él delante antes de QA.
+- **Renombrar el código** (`scene_props`, `Prop`, claves `maps.props.*`, prosa de specs y comentarios): NO. Son
+  identificadores internos que no ve nadie; sería un terremoto sin ninguna ganancia para él.
+- **Deuda de antes, encontrada y no tocada**: `propDraft` y `propMoveDraft` tienen el MISMO agujero que se acaba de
+  arreglar en el del grupo (Esc o botón derecho a media faena los dejan pegados). Es de antes, se arregla aparte.
+  Y el Ctrl+Z de MOVER varios sigue diciendo el singular.
+- **Decisión suya pendiente, NO la tomo yo**: «Objetos» es ahora el botón de la barra, el panel, el catálogo Y la
+  capa de serie, así que dentro del panel OBJETOS el desplegable «A qué capa va» lista una capa llamada
+  «Objetos». Antes se distinguían porque el panel era «Piezas». Es coherente, pero se repite: si le molesta, se
+  le cambia el nombre a la capa.
+
+## 🟢 2026-09-14 (madrugada) — **«DE SU FAMILIA» REVERTIDO, revisado (✅ review) y COMMITEADO (`9361751`). ⏳ Falta que lo pruebe en pantalla y que conteste CUATRO preguntas: nada más se toca sin ellas.**
+
+### 🆕 Queja suya SIN INVESTIGAR (llegó cuando el hook ya había cortado la edición de código — sin diagnosticar)
+Captura + texto: con RECIENTES lleno de piezas usadas, «LA PIEZA DEL SELLO» apareció VACÍA («Sin pieza elegida») —
+él: «*si hago click en otra cosa me tiene que mantener el último objeto, no quedarse vacío, eso es una mierda de
+UX*». Sospecha más probable (SIN CONFIRMAR): el pie del panel ya decía, de antes de esta sesión, «Esc suelta el
+sello» (§ 6.4, decisión ya aprobada en su momento) — y el Esc que acabo de meter en el commit `3b88a28`
+(`if (stamp) setStamp(null); setTool('select');`) hace eso mismo. Puede que ahora no lo quiera así, o puede ser
+OTRO gesto (clic en vacío del mapa, cambiar de herramienta) el que se lo vacía — **no lo confirmé, no toqué nada.**
+**PREGUNTADO Y SIN CONTESTAR** (se fue a dormir con la pregunta hecha: «*no necesitas permiso … cuando me despierte
+quiero esto listo*», pero el gesto es un dato que sólo tiene él). **NO SE TOCÓ NADA.** Investigado de sólo lectura:
+hoy el sello se vacía por **exactamente cuatro caminos** (`SceneTab.tsx`), y ninguno más —
+1. **SOLTAR** en el panel (explícito, de diseño).
+2. **Esc con Piezas puesta** (`1062`). **Es de DISEÑO aprobado**: el pie del panel dice «*Esc suelta el sello*»
+   (`maps.props.foot`) y «*Esc o clic en el vacío suelta la pieza y vuelve el sello*» (`maps.props.pickedFoot`).
+3. **Botón derecho sobre una pieza plantada → SELECCIONAR** (`1706`): hace `setStamp(null)` sin avisar. Entró con los
+   ocho remates (`f6b7188`), **no** con el commit malo. **Es el que mejor encaja con sus palabras** («*si hago click
+   en otra cosa me tiene que mantener el último objeto*») — pero SIN CONFIRMAR por él.
+4. Borrar de la biblioteca la pieza que es el sello (`1629`) — evidente, no se discute.
+**NO lo vacían**: cambiar de herramienta, pinchar una plantada con el clic normal, ni pinchar el vacío del mapa.
 
 **Frase para arrancar el chat nuevo:**
-> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md y el bloque 🧩 «LOS OBJETOS» más abajo. Empieza YA la rebanada
-> 6 · LOS OBJETOS (la galería de piezas), sin preguntarle nada de producción. Rama nueva desde `main`
-> (`feat/maps-objetos`). Orden de siempre: Spec (el § «Rebanada 6» del spec de maps está a medias y pendiente de
-> reescribirse con lo decidido el 11-09: la biblioteca es de la HERRAMIENTA —«lo que se sube sirve para todos»—,
-> paquetes propios SÍ, por permisos como las texturas; el menú del botón derecho ya está apuntado) → DBA (las tablas
-> `maps_props`/`maps_scene_props` YA existen en producción; mirar qué falta) → el `.pen` ya tiene las láminas de la
-> galería (`w7sTC0` Catálogo · `NAAEV` Sello activo · `DCs6S` Subir en lote · `SNlGp` Barra con Piezas · `lWBaU` Panel
-> de pieza), aprobadas por él el 11-09: construir sobre ellas → Dev → Review. Enséñale el spec reescrito en pocas
-> líneas y, con su «sí», a construir. No le preguntes lo que ya decidió.»
+> «Rolvium. Lee el bloque 🔴 de arriba de WORK_STATE.md. En `feat/maps-objetos`, el commit `3b88a28` metió mal el
+> comportamiento de "DE SU FAMILIA": hay que revertirlo exactamente como dice el bloque, con su test, review y
+> commit aparte. Y el sello se me vacía solo en algún momento — pregúntame el gesto exacto antes de tocarlo. Después
+> seguimos con lo demás que probé en pantalla.»
 
+### 📍 Punto exacto
+- Rama `feat/maps-objetos`. Último commit: **`9361751`** (`fix(maps): revierte DE SU FAMILIA…`), encima de `3b88a28`.
+- **Árbol de trabajo LIMPIO** salvo este `WORK_STATE.md`. De los CUATRO arreglos de `3b88a28`, los tres buenos siguen
+  en pie (Builder sin scroll lateral, el dado ya no se pisa con Piezas/Builder/Pincel, Esc con Piezas puesta vuelve a
+  Seleccionar) y **el malo está REVERTIDO**: pinchar una DE SU FAMILIA la hace EL SELLO y suelta la cogida — nunca
+  toca la ya plantada. Cuatro ficheros: `SceneTab.tsx`, `SceneTab.test.tsx`, `PropsPanel.tsx` (sólo comentarios) y
+  el spec § 6.8 punto 9.
+- **Verde**: typecheck web · **1928 tests web** (121 ficheros) · `npm run audit` **0 hard** (31 warn, los de siempre,
+  ninguno nuevo) · build web + build api · **review subagente ✅ PASSED**, sin nada que arreglar.
+- **Por qué se hizo mal**: dijo «*eso está a medias, me lo tiene que mostrar en el modal cuando elijo uno*» y lo leí
+  como «pinchar una DE SU FAMILIA debe cambiar la plantada cogida». Estaba mal leído: lo que quería decir (confirmado
+  después, «*cuando hago click en un objeto lo selecciono, luego clico en el mapa y lo pongo, así tiene que
+  funcionar*») es el comportamiento ORIGINAL — pinchar una la hace el SELLO (para plantarla con el siguiente clic en
+  el mapa), NUNCA toca la ya plantada. «A medias» era que el panel no enseñaba ningún cambio visible al pinchar,
+  porque con algo COGIDO el bloque superior sigue mostrando LA PIEZA COGIDA (que manda en el render) y el sello
+  cambiaba por debajo, invisible.
+
+### ✅ Decisiones (para no volver a errar esto)
+- **`onFamilyPick` vuelve a ser, en esencia, `elegirSello`** (mismo efecto que la rejilla «sin abrir el catálogo»,
+  S/2): `setStamp(p); setStampScale(p.defaultScale); setCatalogOpen(false); closeOverlays(); setTool('props')`. **NO
+  TOCA `st.patchSceneProp`, no muta la plantada.**
+- **Además**, para que el «a medias» quede resuelto de verdad: soltar la selección actual (`setSelectedPropId(null)`
+  y `setSelectedPropIds([])`, como hace Esc) DENTRO del mismo handler, así `picked` pasa a `null` y el panel
+  ENSEGUIDA enseña «LA PIEZA DEL SELLO» con la elegida — visible, con el fantasma bajo el puntero al pasar por el
+  mapa, listo para plantar con el siguiente clic (exactamente lo que describió).
+- **Esto también arregla solo, de paso, su otra queja** («*que pasó con lo de recordar la última escala? tiene que
+  ser la última escala de la familia*»): `elegirSello` YA hace `setStampScale(p.defaultScale)` — cada pieza nace con
+  SU PROPIA escala recordada. El código que había escrito (heredar el ratio de la pieza vieja) no sólo mutaba lo que
+  no debía: además rompía esto. Al revertir a `elegirSello`, las dos quejas se resuelven con el mismo cambio.
+- **Con esto desaparece también el bug que había encontrado** de `pickedBase` (indexado por el id de la plantada en
+  vez de por `propId`, que se leía mal tras el swap): ya no aplica, porque no hay swap.
+
+### ⏳ Siguiente paso — LO QUE QUEDA DEPENDE DE ÉL
+1. ✅ **HECHO**: el revert, con su test, review y commit aparte (`9361751`).
+2. **Que lo pruebe en pantalla** (recarga forzada): Builder sin scroll lateral · el dado sin pisar Piezas · Esc
+   vuelve a Seleccionar · y ahora sí DE SU FAMILIA como lo pidió (pinchar una → se hace el sello y se suelta la
+   cogida → el clic siguiente en el mapa la planta, con la escala que ESA pieza recuerda).
+3. **CUATRO preguntas suyas SIN CONTESTAR.** Ninguna se toca sin su palabra:
+   a. **El gesto que le vacía el sello.** Los cuatro caminos posibles están arriba en el 🆕; el sospechoso es el
+      **botón derecho → SELECCIONAR**. Sin su respuesta no se toca: Esc y SOLTAR son diseño aprobado y están
+      escritos en el pie del panel.
+   b. **«el maquetado que está como el culo»** — lo dijo sin decir DÓNDE. Comprobado lo comprobable sin adivinar:
+      la carcasa `rv-fpanel` **SÍ** limita el alto (`max-height:calc(100% - 16px)` + `overflow:auto`, en
+      `packages/ui/src/components/panel.css`), así que el panel no se sale de la pantalla — la sospecha no se
+      sostenía y **no se tocó nada**. Hay que preguntarle **qué pantalla o qué panel**. Ojo: arreglar maquetado es
+      cambio visible → Design Agent y `.pen` ANTES del código, y **el `.pen` sólo lo guarda él**.
+   c. **Escalar/girar un GRUPO** de piezas cogidas juntas, con **NODOS de verdad** en el marco del grupo, no
+      sliders (lo dijo explícito). Sigue pidiendo Spec Agent → Design Agent (`.pen`) antes de tocar código; hoy
+      está registrado como FUERA de alcance de la rebanada 6 (spec, línea ~1066).
+   d. Si quiere que la UI diga **«Objetos» en vez de «Piezas»** en todos lados (cambio grande: ~40 claves i18n,
+      specs, tests) o si es sólo cómo habla ÉL del asunto.
+4. Y después de eso: `/qa` sobre `feat/maps-objetos` → migración `maps_props_tool_library` a producción por MCP →
+   merge → deploy (v0.8.0, MINOR).
+
+### 🚫 Notas / no olvidar
+- **El botón derecho o el Ctrl+Z NO se tocaron** en nada de esto: si algo de eso falla al probar, es otra cosa.
+- Los tres arreglos BUENOS de `3b88a28` (Builder, dado, Esc) están commiteados y en verde — no hace falta rehacerlos,
+  sólo lo de DE SU FAMILIA.
+- **Preguntas suyas sin contestar todavía**: las cuatro están en el ⏳ de arriba (el gesto del sello · qué maquetado
+  está mal · escalar/girar un grupo · «Objetos» vs «Piezas»).
+- **Las dos «⚠ PENDIENTE» que dejaba dicho el commit `3b88a28`** (la escala heredada y `pickedBase` indexado por el
+  id de la plantada) están **MUERTAS**: sólo existían dentro del camino que borró el revert. No arrastrarlas.
+- **Deuda encontrada y NO tocada** (a decidir aparte, la sacó el review): el spec del punto 9 prometía agrupar la
+  familia por la **categoría de serie** cuando la pieza es de la app, y eso no está construido — siempre agrupa por
+  paquete. Queda matizado en el spec, sin tocar código; no estorba mientras no haya piezas de la app.
+
+## 🟢 2026-09-13/14 (madrugada) — **§ 6.8 COMPLETO: los ocho remates + el noveno («DE SU FAMILIA»), revisados (✅ review) y COMMITEADOS. ⏳ Falta que él lo pruebe entero en pantalla.**
+
+Chat nuevo arrancado con la frase del bloque de abajo. Primer paso: verificar el `.pen` — seguía sin guardar (mtime
+20:54, igual que el último commit); se lo pedí, lo guardó (mtime 23:39, +10.010 líneas) y confirmé el diff antes de
+commitear. Tres commits en `feat/maps-objetos`:
+1. `design(maps): láminas § 6.8` — el `.pen` con las cinco láminas nuevas/retocadas (`r9mUM`, `AYZZS`, `JHdTe`, `iwLak`
+   retocada, `mRnmh`).
+2. `feat(maps): § 6.8 — los ocho remates de su prueba` — el código de los ocho puntos (ya estaba construido y
+   revisado la noche anterior; sólo esperaba el `.pen`).
+3. `feat(maps): § 6.8 punto 9 — DE SU FAMILIA` — construido esta sesión: en `PropsPanel`, debajo de «LA PIEZA
+   COGIDA», un bloque nuevo (S/1b) con las piezas del mismo paquete que la cogida (ELLA incluida, marcada en sangre),
+   tres por fila y tres filas a la vista con scroll (`.mp-props-family-grid`, CSS nueva); pinchar otra la hace el
+   sello (como la rejilla de «sin abrir el catálogo»), SIN TOCAR la ya plantada. Sola en su paquete (sin compañía) el
+   bloque no sale — decisión mía, revisable: mostrar sólo-ella no aportaba nada al navegar variantes.
+   - **Reutiliza `filterProps`/`sortProps` de `propRules.ts`** (el mismo estante `{kind:'pack', id}` del catálogo):
+     CERO función de dominio nueva.
+   - i18n: `maps.props.family.label` («De su familia · {{name}}») en es/en.
+   - Fixture de test nueva: `PROP_PINE` (`tests/helpers/fakes.ts`), hermana de `PROP_OAK` en el mismo paquete
+     («Bosque de Karen»), para poder probar la familia con más de una pieza.
+   - 4 tests nuevos (2 en `PropsPanel.test.tsx`, 2 en `SceneTab.test.tsx`).
+- **Verde**: typecheck web · 1926 tests web (incluidos los 4 nuevos) · `npm run audit` 0 hard, mismos warnings de
+  siempre (ninguno nuevo) · review subagente ✅ PASSED (hexagonal, seguridad, RLS n/a —sin migraciones—, diseño, i18n,
+  cobertura y build, todo limpio; cosmético sin test propio: `maps.css`, los dos `locales/*.json`, `fakes.ts`).
+
+**Pedido nuevo suyo (en el mismo mensaje, NO estaba en este WORK_STATE)**: con un GRUPO de piezas cogidas, poder
+**escalarlas y girarlas juntas**. Se lo señalé: es un cambio visible nuevo (nueva interacción sobre el marco de
+selección múltiple), le toca Spec Agent y luego Design Agent (`.pen`) ANTES de tocar código — hoy «estirar o girar
+varias a la vez» está registrado como FUERA de alcance de la rebanada 6 (spec, línea 1066). Le pregunté si lo
+diseñamos ya o después de que pruebe el § 6.8 completo; no contestó todavía (sólo dijo «listo» sobre el `.pen`).
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md. El § 6.8 de maps está completo (los ocho remates + el
+> noveno) y commiteado en `feat/maps-objetos`, sin mergear. Lo probé en
+> `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`; lo que falle te lo digo con capturas. [Y/o:
+> sobre lo de escalar/girar un grupo de piezas juntas, quiero que lo diseñemos ya / después de que termine de
+> probar.]»
+
+### ⏳ Siguiente paso
+1. Que él pruebe TODO el panel de Piezas en pantalla (recarga forzada): los ocho remates del § 6.8 y el noveno («DE SU
+   FAMILIA», con una pieza cogida de un paquete con más de una pieza). Lo que falle, con capturas.
+2. Decidir con él cuándo se diseña lo de escalar/girar un grupo (Spec Agent → Design Agent → `.pen`).
+3. Después: `/qa` sobre `feat/maps-objetos` → migración `maps_props_tool_library` a producción por MCP → merge →
+   deploy (v0.8.0, MINOR).
+
+## 🟢 (desfasado — ya commiteado, ver el bloque de arriba) 2026-09-13 (noche) — **§ 6.8 · LOS OCHO REMATES DE SU PRUEBA: construidos, revisados (✅ review) y en verde. EL NOVENO («DE SU FAMILIA») SÓLO DISEÑADO. ⏳ Falta: que él guarde el `.pen` (Cmd+S), commit, construir el 9 y que lo pruebe.**
+
+Probó la galería por la tarde (chat de este día) y pidió ocho cosas, con capturas; las confirmó («*vale*») y aprobó las
+láminas. Todo está en **`specs/modules/maps/SPEC.md` § 6.8** (los ocho puntos + «Decisiones de construcción»). Al ver
+el resultado pidió un **noveno** (§ 6.8, punto 9): debajo de «LA PIEZA COGIDA», un recuadro con las piezas de su mismo
+paquete, en filas de tres y tres filas a la vista con scroll; pinchar una la hace el sello. **Está DIBUJADO en la
+lámina del panel (`JHdTe`, bloque «S/1b · DE SU FAMILIA») y él vio la captura; SIN CONSTRUIR.** Se construye en el
+chat siguiente (en `PropsPanel`, con la rejilla de S/2 como base: `mp-props-grid` a tres columnas y `max-height` con
+scroll; los datos ya están en `SceneTab`: `library` filtrado por `packId` de la pieza de biblioteca de la cogida).
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md. Estoy en `feat/maps-objetos`: los ocho remates del § 6.8 están
+> construidos y revisados (sin commitear) y el noveno, «DE SU FAMILIA», sólo diseñado. Primero commit (yo ya guardé el
+> `.pen`), luego construye el 9, y lo pruebo todo en `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`.»
+
+### 📍 Punto exacto
+- **Árbol de trabajo SUCIO, nada commiteado** (31 ficheros tocados + 7 nuevos). Último commit: `da84216`.
+- **`rolvium.pen` SIN GUARDAR por él** (mtime 20:54, anterior a las láminas nuevas): sin su Cmd+S las cinco láminas
+  nuevas no están en disco y **no se puede commitear el diseño**. Pedírselo primero. Láminas nuevas (todas copias de
+  las aprobadas): catálogo de piezas con tres puntos + selección múltiple + arrastre (`r9mUM`, fila de la sección 6),
+  subir texturas en lote (`AYZZS`), panel «LA PIEZA COGIDA» (`JHdTe`), menú del botón derecho con SELECCIONAR arriba
+  (`iwLak`, retocada en sitio), y el catálogo de texturas COMO EL DE PIEZAS (`mRnmh`, al final de la fila de la
+  sección 5). Una lámina equivocada (modal viejo con chips, `Eky5O`) se borró.
+- ⚠ **La herramienta del `.pen` en esta sesión NO pintaba los nodos insertados de cero** (sólo los copiados): todo
+  se hizo a base de `Copy` + `Update`. Si en otra sesión vuelve a pasar, ése es el rodeo.
+- **Verde**: typecheck web · web 1920 tests (34 casos nuevos/reescritos) · `npm run audit` 0 graves · build web + api ·
+  review subagente ✅ (cosmético sin test: `maps.css` y el puerto `ViewMemoryPort`).
+
+### ✅ Lo que se hizo (por punto del § 6.8)
+1. **El catálogo de texturas ES el de piezas**: `LibraryCatalog` + `LibraryUpload` (genéricos, en `maps/ui`) con dos
+   caras cada uno (`PropsCatalog`/`TextureCatalog`, `PropsUpload`/`TextureUpload`). Reglas comunes en
+   `domain/useCases/libraryRules.ts`; `propRules` se apoya en ellas. El rail de texturas son sus siete categorías;
+   «Clasificar en…» = mover a. Subir texturas abre la misma ventana de lote (entran tal cual, sin comprimir; lo
+   subido se queda en el catálogo, ya no se pone sola la última). Favoritas/recientes de texturas en el navegador.
+2. **Estirar desde la esquina contraria** (`scaleFromCornerAnchored`); **círculo y sala circular nacen de donde se
+   pincha** (`circleFromCorner`, `circleSides`). El estirado devuelve también el centro nuevo.
+3. **Tres puntos siempre a la vista** (CSS) en los dos catálogos.
+4. **Selección múltiple en el catálogo**: círculo · Ctrl+clic · Mayús+clic (tramo, en el orden en que se ven) · barra
+   con MOVER A… / BORRAR / QUITAR SELECCIÓN · Esc (antes que el modal) · arrastre HTML5 de baldosas al grupo del rail.
+5. **Selección múltiple en la escena**: Mayús+clic y recuadro; mover juntas (`patchSceneProps`, UN paso), Suprimir
+   (`removeSceneProps`, UN paso), Ctrl+C/V de varias, botón derecho sobre todas (capa · estorbo · apilar · duplicar ·
+   borrar). Sin tiradores con varias.
+6. **«Seleccionar» arriba del menú de la pieza** (`LayerMenu.onSelect`) + cabecera «N piezas cogidas».
+7. **El panel se queda abierto en Seleccionar** (`propsOpen`, como el Builder) y enseña **LA PIEZA COGIDA** con ESCALA y
+   GIRO en vivo (`pickedDraft`), guardando al soltar; con Piezas sin sello, pinchar una plantada la coge.
+8. **La foto es el botón**: la muestra del panel y las de textura (Builder pared/suelo/puerta, Pincel) abren el catálogo.
+
+### 🟠 Decisiones mías (en el spec, revisables)
+- Catálogo de piezas abre en el primer paquete POR SU ORDEN; el de texturas en «Todas».
+- Con algo marcado, un clic normal en una baldosa marca (no elige). El review lo señala como cambio de semántica.
+- Estrella de favorito abajo a la derecha del arte, sólo al pasar o marcada.
+
+### ⏳ Siguiente paso
+1. Que él guarde el `.pen` → verificar mtime (> 22:50 del 13-09) → **commit** (`design(maps): § 6.8 láminas` +
+   `feat(maps): § 6.8 …`). Si al abrir el chat nuevo el mtime sigue en 20:54, pedírselo antes de nada.
+2. **Construir el punto 9** («DE SU FAMILIA», `PropsPanel` + `SceneTab`) con su test, review, y commit aparte.
+3. Que lo pruebe en local (recarga forzada). Lo que falle, con capturas.
+4. Después: QA → migración `maps_props_tool_library` a producción por MCP → merge → deploy (v0.8.0).
+
+## 🟢 2026-09-13 — **LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA ENTERA. Rama `feat/maps-objetos`, commiteada, SIN MERGEAR. ⏳ Falta que él la pruebe en pantalla (chat nuevo).**
+
+Su orden de la noche del 12: «*tienes los diseños aprobados, trabaja durante la noche todo lo que puedas, quiero ver la
+herramienta montada cuando me despierte, ni se te ocurra parar por una gilipollez*». Hecho de punta a punta sobre las
+láminas aprobadas el 2026-09-11 (`w7sTC0` catálogo · `DCs6S` subir en lote · `SNlGp` barra · `lWBaU` panel).
+
+**Frase para arrancar el chat nuevo (él, 2026-09-13: «*vale guardado, actualiza el ws y sigamos en el otro chat*»):**
+> «Rolvium. Lee el bloque 🟢 de arriba de WORK_STATE.md. Estoy en la rama `feat/maps-objetos`: la galería de piezas
+> está construida, revisada y commiteada, sin mergear y con la migración sólo en local. Voy a probarla en
+> `http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`; lo que falle te lo digo con capturas.»
+
+⚠ **No hay nada a medias**: árbol de trabajo limpio, todo en dos commits (`32439d2` y `210c5f6`) más el `.pen` guardado.
+Nada subido a `origin`. **Nunca `db:reset`** (la migración nueva ya está aplicada en su local con `migration up`).
+
+### 🧪 LO QUE TIENE QUE PROBAR ÉL (local, `npm run dev`, recargando con Cmd+Shift+R su mesa
+`http://localhost:5173/table/254e5415-03ed-4ba9-a834-7aeaa33beee4`; la migración nueva YA está aplicada en su
+stack local — `supabase migration up`, sin `db:reset`)
+1. **Piezas** es el PRIMER botón del bloque del director (su dibujo como icono). Abre el panel de 220 (`lWBaU`).
+2. **ELEGIR** → el catálogo a pantalla completa (`w7sTC0`). Vacío al principio: **SUBIR PIEZAS** → arrastrar PNG con
+   transparencia (varios a la vez) → AÑADIR N PIEZAS. El nombre del fichero se queda como nombre. Nacen con el lado
+   mayor a DOS casillas de la escena; luego «se recuerda» lo que él ajuste.
+3. **Nuevo paquete**, renombrar y borrar paquetes (las piezas pasan a «Sin clasificar»); tres puntos de una pieza:
+   renombrar · mover a otro paquete · borrar (pregunta). La estrella marca favoritas; Recientes se llena al plantar.
+4. Elegir una → el sello. **UNA**: cada clic planta otra, con el fantasma bajo el puntero. **ESCALA** se recuerda por
+   pieza al soltar; **GIRO** con dado. **MUCHAS**: arrastrar siembra por donde pasa (ÁREA, DENSIDAD, GIRO/TAMAÑO al
+   azar) y es UN paso del Ctrl+Z. **Esc suelta el sello.**
+5. Con **Seleccionar**: pinchar una plantada la coge (marco oro + 4 esquinas + tirador de giro arriba). Arrastrar
+   mueve; esquina estira manteniendo proporción (y reescribe la escala recordada); el tirador gira. **Suprimir**
+   borra; **Ctrl+C / Ctrl+V** duplica con giro y tamaño. Ctrl+Z deshace plantar, borrar, mover, estirar y girar.
+6. **Botón derecho sobre una pieza**: mandar a capa · **Traer adelante / Enviar atrás / Traer al frente / Enviar al
+   fondo** · **Corta la vista / Corta el paso** · Duplicar · Borrar. Una pieza con «corta la vista» tapa de verdad al
+   jugador (el servidor la suma a la visión, la luz y las paredes sólidas).
+7. Los jugadores ven las piezas de las capas que les llegan, por dentro de su visión, como los trazos.
+
+### ✅ LO QUE SE HIZO (todo en el commit `32439d2` y en los que le sigan esta noche)
+- **Spec**: `specs/modules/maps/SPEC.md` § «Rebanada 6» REESCRITO con lo decidido el 09 y el 11-09 (biblioteca de la
+  HERRAMIENTA en PAQUETES, por permiso `manage_props`; sello UNA/MUCHAS con azar; coger/mover/girar/escalar/copiar;
+  menú de apilado; estorbo conectado). Índice de specs, `specs/core/roles-permissions`, `specs/core/images` (destino
+  `prop`) y `ARCHITECTURE.md` al día.
+- **DBA**: `supabase/migrations/20260913100000_maps_props_tool_library.sql` — tabla `maps_prop_packs`; `maps_props`
+  pierde `campaign_id` y gana `pack_id` (las tablas estaban vacías en producción); `maps_scene_props.z` (apilado);
+  políticas de storage para `backgrounds/props/`; permiso `manage_props` a `game_master`. Aplicada en LOCAL, lint
+  limpio, tipos regenerados. **⚠ EN PRODUCCIÓN NO ESTÁ**: se aplica por MCP (`apply_migration`, nombre
+  `maps_props_tool_library`) ANTES del merge a `main`, como las ocho anteriores.
+- **Permiso** `manage_props` («Gestionar piezas») en `ToolPermissionKey`, `TOOL_PERMISSIONS` (sale solo en «Permisos de
+  Rolvium» de la pantalla de roles) e i18n.
+- **`@rolvium/core/props.ts`** (+8 tests): la forma que estorba → segmentos. **API**: `blockingGeometry` = salas +
+  piezas, en visión, luz y paredes sólidas (`listBlockingProps`; +7 tests).
+- **Web**: `propRules.ts` reescrito (estantes, secciones, siembra, apilado, coger/estirar/girar; 28 tests) ·
+  `SupabaseMapsRepo` (paquetes, `props/{id}.webp`) · `LocalViewMemory` (favoritos y recientes, en el navegador —
+  decisión mía, revisable) · `PropsPanel` · `PropsCatalog` · `PropsUpload` · `LayerMenu` con apilado/estorbo/duplicar ·
+  `MapCanvas` (capa de piezas bajo los muros, gestos) · `useScene` (estado, tiempo real, historial, `propKey` →
+  visión) · `SceneTab` (sello, plantar, sembrar, Esc, Ctrl+C/V, catálogo, subida) · `Toolbar` (Piezas primero, icono
+  `public/icons/props-mask.svg` sacado del trazo del `.pen`) · `TablePage` pasa `canManageProps`.
+- **Verde**: typecheck web+api · web 1883 tests · api 289 · core 122 · ui 17 · `npm run audit` 0 graves · build web + api.
+- **Probado EN EL NAVEGADOR por el agente** (Playwright contra su `npm run dev` y su stack local, usuario
+  `admin@rolvium.local`, mesa `test`): Piezas → panel · ELEGIR → catálogo vacío · SUBIR PIEZAS → un PNG por el
+  selector → AÑADIR 1 PIEZA (comprime a WebP y sube a `backgrounds/props/` con la política nueva; la fila entra por
+  RLS) → la baldosa aparece → elegirla → fantasma bajo el puntero → dos clics plantan dos → Seleccionar coge una
+  (marco + 4 tiradores) → botón derecho: capas, ORDEN DE APILADO, ESTORBA (marcó «corta la vista») → arrastrar mueve
+  → Suprimir borra las dos → borrar la pieza de la biblioteca desde los tres puntos. **Cero errores de consola.**
+  Capturas en el scratchpad de la sesión (`props-panel.png`, `props-catalog.png`, `flow-2-planted.png`, `flow-3-menu.png`).
+  Visto en las capturas y corregido después: el menú del botón derecho se recortaba por abajo del mapa (ahora sube si
+  no cabe) y la ESCALA iba a saltos de 0,05 (ahora de 0,01).
+- **Review subagente: ✅ PASADA (con arreglos)**. Endureció las políticas de storage del bucket `backgrounds`: las
+  viejas (`backgrounds_dm_*`) casteaban la primera carpeta a uuid sin guarda, y con `props/` un jugador SIN permiso
+  recibía «invalid input syntax for type uuid» en vez de una denegación limpia (denegado seguía denegado; sólo era
+  frágil). Ahora llevan un `CASE WHEN carpeta ~ uuid`. Probado en local con admin, director con permiso, jugador y no
+  miembro. Añadió 3 tests de regresión (`tests/regression/piezas-las-ordena-manage-props.test.tsx`: el permiso baja de
+  `TablePage`), y casos en `layerRules`, `mapRules` y `AdminRoles` («Gestionar piezas» escribe en `tools`). Hexagonal,
+  seguridad, RLS, tokens, i18n (1293/1293) y cobertura: limpios. Todo lo suyo está en el commit `feat(maps): la
+  galería de piezas — review y remates`.
+
+### 🎨 `.pen`: lámina NUEVA — `iwLak` «PL/Menú de una pieza · botón derecho» (§ 6.6) · ✅ GUARDADA por él el 13-09
+El menú del botón derecho no tenía lámina («pide su lámina en el .pen y va con la galería»). Se dibujó la noche del
+12→13 al lado de `lWBaU` (sección 6), con el aspecto del «Menú mandar a capa» aprobado y lo elegido en sangre. Él la
+guardó (Cmd+S) el 13-09 y va en el commit del `.pen`. ⏳ **Sin aprobar aún**: si al verla no le gusta, se cambia en
+los dos sitios (la lámina y `LayerMenu`).
+
+### 🟠 DECISIONES MÍAS, REVISABLES (avisadas en el spec)
+- «DE SERIE · ROLVIUM» (las seis categorías) **no se pinta en el rail hasta que haya piezas de serie** — hoy no hay.
+- **Favoritos y Recientes viven en el navegador** (`ViewMemoryPort`), no en la base: comodidad de pantalla.
+- Una pieza recién subida **nace con el lado mayor a 2 casillas** de la escena abierta; después manda «se recuerda».
+- Sin el permiso `manage_props` el director planta igual, pero **la escala recordada no se guarda** (la base la
+  rechazaría): vale para la sesión.
+- El **estorbo se edita desde el botón derecho** (dos interruptores), no desde una sección nueva del panel: el panel
+  aprobado es «mientras plantas» y no lo traía.
+
+### ⏭️ DESPUÉS (en este orden, y sólo cuando él lo diga)
+1. Que él pruebe la lista de arriba y diga qué falla. 2. `/qa` sobre `feat/maps-objetos` → migración a producción por
+MCP → merge → deploy (v0.8.0, MINOR). 3. La fila «con qué se pinta» de «A pulso» (§ 10B.2) → coger/mover/borrar una
+sala con el ratón (pide `.pen`) → `chat` (H8) + `journal` (H9).
+
+## 🚀 2026-09-12 — v0.7.0 EN PRODUCCIÓN (registro del despliegue; ya no es la tarea)
+Todo lo anterior a la rebanada 6 está hecho y EN PRODUCCIÓN (v0.7.0): dientes, barra arrastrando, modo del Builder,
+giro de texturas, rótulos, y las siete peticiones del 11-09.
 
 *(La frase de arranque está arriba del todo, en el bloque 🟢: LOS OBJETOS. Lo de abajo es el registro del despliegue.)*
 

@@ -13,7 +13,7 @@ import {
   clampHardness, clampMaskSize, DEFAULT_MASK_SIZE, hardnessStep, maskStops, MASK_SIZE_MAX, MASK_SIZE_MIN,
   clampSpinMs, DEFAULT_SPIN_MS, MAX_SPIN_MS, MIN_SPIN_MS, spinLabelS,
   clampIntensity, DEFAULT_INTENSITY, intensityFactor, intensityLabel, MAX_INTENSITY, MIN_INTENSITY,
-  beamCones, BEAM_LAYERS,
+  beamCones, BEAM_LAYERS, resolveLayer,
 } from './layerRules';
 
 const ids = (ls: { id: string }[]): string[] => ls.map(l => l.id);
@@ -53,6 +53,15 @@ describe('«manda esto a otra capa» — dónde está de verdad un elemento', ()
     expect(paintOrder(LAYERS_ALL).length).toBe(6);
     expect(LAYER_OBJECTS.kind).toBe('objects');
     expect(LAYER_CREATURES.kind).toBe('creatures');
+    expect(resolveLayer(LAYERS_ALL, null, 'drawing')).toBe(LAYER_OBJECTS);
+    expect(resolveLayer(LAYERS_ALL, null, 'token')).toBe(LAYER_CREATURES);
+  });
+
+  /** Rebanada 6: una PIEZA plantada sin capa vive en Objetos, como un dibujo; con capa, donde diga la capa. */
+  it('una pieza sin capa cae en Objetos, y con capa va a la que se le mande', () => {
+    expect(resolveLayer(LAYERS_ALL, null, 'prop')).toBe(LAYER_OBJECTS);
+    expect(resolveLayer(LAYERS_ALL, LAYER_NOTES.id, 'prop')).toBe(LAYER_NOTES);
+    expect(resolveLayer([], null, 'prop')).toBeNull();
   });
 });
 

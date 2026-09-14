@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders, screen, fireEvent, within } from '../../../../tests/helpers/render';
-import { DRAWING_MINE, DRAWING_OTHER, LAYERS_ALL, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES, LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
+import { DRAWING_MINE, DRAWING_OTHER, LAYERS_ALL, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LAYER_PUDDLES, LIGHT_BULB, LIGHT_SECRET, LIGHT_TORCH, PLAYER_USER, SCENE_CHAPEL, SCENE_PROP_COLUMN, SCENE_PROP_OAK, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, WALL_WINDOW } from '../../../../tests/helpers/fakes';
 import type { Tool } from '../domain/useCases/mapRules';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import { DOOR_BAR_PX, doorPatternId } from '../domain/useCases/mapRules';
@@ -476,7 +476,7 @@ describe('<MapCanvas> tools', () => {
     const { svg, cb, rerender } = mount({ tool: 'pencil' });
     down(svg, 10, 10); move(svg, 20, 15); move(svg, 30, 20); up(svg);
     expect(cb.onAddDrawing).toHaveBeenCalledWith('stroke', { points: [[10, 10], [20, 15], [30, 20]] });
-    for (const [tool, kind, data] of [['rect', 'rect', { x1: 0, y1: 0, x2: 40, y2: 30 }], ['line', 'line', { x1: 0, y1: 0, x2: 40, y2: 30 }], ['circle', 'circle', { cx: 0, cy: 0, r: 50 }]] as const) {
+    for (const [tool, kind, data] of [['rect', 'rect', { x1: 0, y1: 0, x2: 40, y2: 30 }], ['line', 'line', { x1: 0, y1: 0, x2: 40, y2: 30 }], ['circle', 'circle', { cx: 20, cy: 20, r: 20 }]] as const) {   // el círculo nace de la esquina donde se pinchó (2026-09-13)
       rerender({ tool: tool as Tool });
       down(svg, 0, 0); move(svg, 40, 30); up(svg);
       expect(cb.onAddDrawing).toHaveBeenLastCalledWith(kind, data);
@@ -2749,5 +2749,274 @@ describe('<MapCanvas> lo que no cambia no se vuelve a pintar', () => {
     expect(within(svg).queryByTestId('mp-fog-unseen')).toBeNull();
     expect(within(svg).queryByTestId('mp-fog-frame')).toBeNull();
     expect(within(svg).getByTestId('mp-fog-veil')).toBeInTheDocument();
+  });
+});
+
+/**
+ * LAS PIEZAS PLANTADAS (rebanada 6, § 6.5): se pintan encima del suelo y debajo de los muros, en su orden de
+ * apilado; con Seleccionar se cogen, se mueven, se estiran por las esquinas manteniendo la proporción y se giran
+ * por el tirador de arriba. Con la herramienta Piezas, un clic planta (UNA) o un arrastre siembra (MUCHAS).
+ */
+describe('<MapCanvas> las piezas plantadas', () => {
+  const OAK = SCENE_PROP_OAK;         // (400, 300), 300 × 450, z 0, capa natural (objetos)
+  const COL = SCENE_PROP_COLUMN;      // (700, 200), 100 × 100, z 1, en NOTAS DEL DIRECTOR
+  const dm = { isDm: true, me: 'u-gm', tool: 'select' as const, sceneProps: [COL, OAK], layers: LAYERS_ALL };
+  const propCb = () => ({ onSelectProp: vi.fn(), onMoveProp: vi.fn(), onScaleProp: vi.fn(), onRotateProp: vi.fn(), onPlantProp: vi.fn(), onSow: vi.fn(), onSowEnd: vi.fn() });
+
+  it('se pintan en su orden de apilado, cada una girada alrededor de su centro, y bajo los muros', () => {
+    const { svg } = mount({ ...dm, sceneProps: [{ ...COL, layerId: null, rotation: 30 }, OAK] });
+    const capa = within(svg).getByTestId('mp-props');
+    const ids = [...capa.querySelectorAll('[data-prop-id]')].map(g => g.getAttribute('data-prop-id'));
+    expect(ids).toEqual(['sp-oak', 'sp-col']);   // z 0 primero: se pinta debajo
+    expect(capa.querySelector('[data-prop-id="sp-col"]')!.getAttribute('transform')).toBe('translate(700 200) rotate(30)');
+    expect(capa.querySelector('[data-prop-id="sp-oak"] image')!.getAttribute('width')).toBe('300');
+    // La capa de piezas va ANTES que la de muros en el DOM: debajo al pintar.
+    const layers = [...svg.querySelectorAll('.mp-layer-map > g')].map(g => g.getAttribute('class') ?? '');
+    expect(layers.indexOf('mp-layer-props')).toBeLessThan(layers.indexOf('mp-layer-walls'));
+  });
+
+  it('un jugador no ve la de «Notas del director»; el director sí', () => {
+    const { svg } = mount({ ...dm, isDm: false, me: PLAYER_USER.id });
+    expect(within(svg).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(1);
+    document.body.innerHTML = '';
+    const { svg: svg2 } = mount(dm);
+    expect(within(svg2).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2);
+  });
+
+  it('con Seleccionar, pinchar una la coge y suelta lo demás; un clic sin arrastre no guarda nada', () => {
+    const cb = propCb();
+    const { svg, cb: base } = mount({ ...dm, ...cb });
+    down(svg, 400, 300);
+    up(svg);
+    expect(cb.onSelectProp).toHaveBeenCalledWith('sp-oak');
+    expect(base.onSelectLight).toHaveBeenCalledWith(null);
+    expect(cb.onMoveProp).not.toHaveBeenCalled();
+    // y pinchar el vacío la suelta
+    down(svg, 50, 50);
+    expect(cb.onSelectProp).toHaveBeenLastCalledWith(null);
+  });
+
+  it('entre dos, se coge la de más arriba', () => {
+    const cb = propCb();
+    const { svg } = mount({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null, x: 400, y: 300 }] });
+    down(svg, 400, 300);
+    expect(cb.onSelectProp).toHaveBeenCalledWith('sp-col');
+  });
+
+  it('arrastrarla la mueve: se pinta donde va el dedo y se guarda al soltar', () => {
+    const cb = propCb();
+    const { svg } = mount({ ...dm, ...cb });
+    down(svg, 400, 300);
+    move(svg, 440, 330);
+    expect(svg.querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toBe('translate(440 330) rotate(0)');
+    up(svg);
+    expect(cb.onMoveProp).toHaveBeenCalledWith('sp-oak', { x: 440, y: 330 });
+  });
+
+  it('la cogida enseña su marco, cuatro tiradores y el de giro; estirar desde una esquina deja CLAVADA la contraria y mantiene la proporción', () => {
+    const cb = propCb();
+    const { svg } = mount({ ...dm, ...cb, selectedPropId: 'sp-oak' });
+    expect(within(svg).getByTestId('mp-prop-frame')).toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-prop-handles').querySelectorAll('.mp-prop-handle')).toHaveLength(4);
+    // La esquina de abajo a la derecha está en (550, 525) y la de arriba a la izquierda en (250, 75). La mano a
+    // (700, 750) es 1,5 veces la diagonal desde la esquina clavada → 450 × 675, con el centro corrido (§ 6.8, punto 2).
+    down(svg, 550, 525);
+    move(svg, 700, 750);
+    expect(svg.querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toBe('translate(475 412.5) rotate(0)');
+    up(svg);
+    expect(cb.onScaleProp).toHaveBeenCalledWith('sp-oak', { x: 475, y: 412.5, width: 450, height: 675 });
+    expect(cb.onMoveProp).not.toHaveBeenCalled();
+  });
+
+  /** § 6.8, punto 5 — él: «*si quiero seleccionar de manera múltiple objetos no me deja*». */
+  it('Mayús+clic añade otra a lo cogido (y la quita si ya estaba): varias van con su marco Y con los tiradores del grupo', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn() };
+    const { svg, rerender } = mount({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropId: 'sp-oak' });
+    fireEvent.pointerDown(svg, { clientX: 700, clientY: 200, button: 0, pointerId: 1, shiftKey: true });
+    expect(cb.onSelectProps).toHaveBeenCalledWith(['sp-oak', 'sp-col']);
+    expect(cb.onSelectProp).toHaveBeenCalledWith(null);
+    expect(cb.onMoveProp).not.toHaveBeenCalled();
+    rerender({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropId: null, selectedPropIds: ['sp-oak', 'sp-col'] });
+    expect(within(svg).getAllByTestId('mp-prop-frame')).toHaveLength(2);
+    // Los de UNA sola no salen; los del GRUPO sí, y son los mismos cuatro nodos más el de giro (orden suya, 14-09).
+    expect(within(svg).queryByTestId('mp-prop-handles')).not.toBeInTheDocument();
+    expect(within(svg).getByTestId('mp-props-group-handles').querySelectorAll('.mp-prop-handle')).toHaveLength(4);
+    expect(within(svg).getByTestId('mp-props-group-rotate')).toBeInTheDocument();
+    // Mayús+clic sobre una que ya estaba la quita; al quedar UNA, vuelve a ser la cogida suelta (con tiradores).
+    fireEvent.pointerDown(svg, { clientX: 700, clientY: 200, button: 0, pointerId: 1, shiftKey: true });
+    expect(cb.onSelectProps).toHaveBeenLastCalledWith([]);
+    expect(cb.onSelectProp).toHaveBeenLastCalledWith('sp-oak');
+  });
+
+  /**
+   * Orden suya del 2026-09-14: «*si selecciono varios items sigo sin los putos nodos, ponlos, si no no los
+   * puedo ni escalar ni girar … son los mismos nodos de cuando seleccionas un solo objeto*».
+   * El Roble ocupa de (250, 75) a (550, 525) y la Columna de (650, 150) a (750, 250): el marco del grupo es
+   * (250, 75) de 500 × 450, con la esquina SE en (750, 525) y el tirador de giro en (500, 53).
+   */
+  const grupo = (cb: Record<string, unknown>) => ({
+    ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropId: null, selectedPropIds: ['sp-oak', 'sp-col'],
+  });
+
+  it('con varias cogidas, estirar por una esquina del grupo las agranda a TODAS en la misma proporción y se guarda de una vez', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn(), onScaleProps: vi.fn(), onRotateProps: vi.fn() };
+    const { svg } = mount(grupo(cb));
+    // La mano al doble de la diagonal desde la esquina clavada (250, 75): el marco dobla y cada pieza con él.
+    down(svg, 750, 525);
+    move(svg, 1250, 975);
+    expect(svg.querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toBe('translate(550 525) rotate(0)');
+    up(svg);
+    expect(cb.onScaleProps).toHaveBeenCalledWith([
+      { id: 'sp-oak', x: 550, y: 525, width: 600, height: 900 },
+      { id: 'sp-col', x: 1150, y: 325, width: 200, height: 200 },
+    ]);
+    expect(cb.onMoveProps).not.toHaveBeenCalled();
+    expect(cb.onSelectProps).not.toHaveBeenCalled();   // agarrar un tirador no cambia lo cogido
+  });
+
+  it('con varias cogidas, el tirador de giro las gira a TODAS alrededor del centro del grupo, y se guarda de una vez', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn(), onScaleProps: vi.fn(), onRotateProps: vi.fn() };
+    const { svg } = mount(grupo(cb));
+    // Se agarra el tirador (500, 53), que apunta a 0°, y se lleva la mano a la derecha del centro: 90°.
+    down(svg, 500, 53);
+    move(svg, 1000, 300);
+    up(svg);
+    expect(cb.onRotateProps).toHaveBeenCalledWith([
+      { id: 'sp-oak', x: 500, y: 200, rotation: 90 },
+      { id: 'sp-col', x: 600, y: 500, rotation: 90 },
+    ]);
+    expect(cb.onScaleProps).not.toHaveBeenCalled();
+  });
+
+  it('un clic en un tirador del grupo, sin arrastre, no escribe nada', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onScaleProps: vi.fn(), onRotateProps: vi.fn() };
+    const { svg } = mount(grupo(cb));
+    down(svg, 750, 525);
+    up(svg);
+    expect(cb.onScaleProps).not.toHaveBeenCalled();
+    expect(cb.onRotateProps).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Girando, el marco NO se vuelve a medir: se gira el de partida. Si se re-midiera en cada fotograma se
+   * hincharía (500 × 450 a 45° pasa a 672 × 672) y el tirador de giro se escaparía del puntero.
+   */
+  it('al girar el grupo, el marco se gira ENTERO en vez de volver a medirse', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onRotateProps: vi.fn() };
+    const { svg } = mount(grupo(cb));
+    const marco = () => within(svg).getByTestId('mp-props-group-frame');
+    expect(marco().getAttribute('width')).toBe('500');
+    down(svg, 500, 53);
+    move(svg, 1000, 300);
+    expect(marco().getAttribute('width')).toBe('500');   // el mismo de siempre, no uno hinchado
+    expect(within(svg).getByTestId('mp-props-group-handles').getAttribute('transform')).toBe('rotate(90 500 300)');
+    up(svg);
+  });
+
+  it('si el gesto del grupo se corta con Esc, no se queda nada pintado donde no está', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onScaleProps: vi.fn() };
+    const { svg } = mount(grupo(cb));
+    down(svg, 750, 525);
+    move(svg, 1250, 975);
+    expect(svg.querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toBe('translate(550 525) rotate(0)');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    up(svg);
+    // Ni se guarda, ni se queda el borrador puesto: el Roble vuelve a donde está de verdad.
+    expect(cb.onScaleProps).not.toHaveBeenCalled();
+    expect(svg.querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toBe('translate(400 300) rotate(0)');
+  });
+
+  it('el recuadro por el vacío coge las piezas de dentro; arrastrar una de las cogidas las mueve TODAS y se guarda de una vez', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn() };
+    const { svg, rerender } = mount({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }] });
+    down(svg, 50, 50);
+    move(svg, 900, 600);
+    up(svg);
+    expect(cb.onSelectProps).toHaveBeenLastCalledWith(['sp-oak', 'sp-col']);
+    rerender({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropId: null, selectedPropIds: ['sp-oak', 'sp-col'] });
+    down(svg, 400, 300);
+    move(svg, 440, 330);
+    expect(svg.querySelector('[data-prop-id="sp-col"]')!.getAttribute('transform')).toBe('translate(740 230) rotate(0)');
+    up(svg);
+    expect(cb.onMoveProps).toHaveBeenCalledWith([{ id: 'sp-oak', x: 440, y: 330 }, { id: 'sp-col', x: 740, y: 230 }]);
+    expect(cb.onMoveProp).not.toHaveBeenCalled();
+    // Un recuadro que sólo pilla una la coge suelta, con tiradores.
+    down(svg, 600, 100);
+    move(svg, 800, 300);
+    up(svg);
+    expect(cb.onSelectProp).toHaveBeenLastCalledWith('sp-col');
+  });
+
+  it('pinchar una que NO está en el grupo suelta el grupo y la coge sola', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn() };
+    const { svg } = mount({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }], selectedPropIds: ['sp-col', 'sp-oak'] });
+    down(svg, 400, 300);
+    up(svg);
+    // Ya estaba en el grupo: sigue el grupo. Pinchar el vacío lo suelta entero.
+    expect(cb.onSelectProps).not.toHaveBeenCalledWith(['sp-oak']);
+    down(svg, 50, 50);
+    expect(cb.onSelectProps).toHaveBeenLastCalledWith([]);
+    expect(cb.onSelectProp).toHaveBeenLastCalledWith(null);
+  });
+
+  it('el tirador de arriba la gira hacia donde apunta la mano', () => {
+    const cb = propCb();
+    const { svg } = mount({ ...dm, ...cb, selectedPropId: 'sp-oak' });
+    // El tirador de giro está a 22 px de pantalla por encima del borde de arriba: (400, 300 − 225 − 22).
+    down(svg, 400, 53);
+    move(svg, 900, 300);
+    up(svg);
+    expect(cb.onRotateProp).toHaveBeenCalledWith('sp-oak', 90);
+  });
+
+  it('Escape suelta la pieza cogida, como todo lo demás', () => {
+    const cb = propCb();
+    mount({ ...dm, ...cb, selectedPropId: 'sp-oak' });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(cb.onSelectProp).toHaveBeenCalledWith(null);
+  });
+
+  it('el botón derecho sobre una pieza abre SU menú, con lo que es', () => {
+    const { svg, cb } = mount(dm);
+    fireEvent.contextMenu(svg, { clientX: 400, clientY: 300 });
+    expect(cb.onContextMenu).not.toHaveBeenCalled();
+    expect((cb as unknown as { onElementMenu: ReturnType<typeof vi.fn> }).onElementMenu ?? vi.fn()).toBeDefined();
+  });
+
+  it('con la herramienta Piezas y un sello, UNA: cada clic planta donde se pulsa; sin sello no pasa nada', () => {
+    const cb = propCb();
+    const stamp = { imageUrl: 'https://x/oak.webp', width: 300, height: 450, rotation: 15 };
+    const { svg, rerender } = mount({ ...dm, ...cb, tool: 'props', stamp, sowing: false });
+    down(svg, 120, 140);
+    expect(cb.onPlantProp).toHaveBeenCalledWith({ x: 120, y: 140 });
+    // El fantasma del sello sigue al puntero, girado como va a caer.
+    move(svg, 200, 200);
+    expect(within(svg).getByTestId('mp-prop-ghost').querySelector('g')!.getAttribute('transform')).toBe('translate(200 200) rotate(15)');
+    rerender({ ...dm, ...cb, tool: 'props', stamp: null });
+    down(svg, 120, 140);
+    expect(cb.onPlantProp).toHaveBeenCalledTimes(1);
+    // SIN SELLO, pinchar una plantada LA COGE (§ 6.8, punto 7): el panel de Piezas pasa a mandar sobre ella.
+    down(svg, 400, 300);
+    up(svg);
+    expect(cb.onSelectProp).toHaveBeenCalledWith('sp-oak');
+    expect(cb.onPlantProp).toHaveBeenCalledTimes(1);
+    // y en el vacío la suelta
+    down(svg, 120, 140);
+    expect(cb.onSelectProp).toHaveBeenLastCalledWith(null);
+  });
+
+  it('MUCHAS: arrastrar siembra por donde pasa la mano y avisa al soltar; la silueta enseña el área', () => {
+    const cb = propCb();
+    const stamp = { imageUrl: 'https://x/oak.webp', width: 30, height: 45, rotation: 0 };
+    const { svg } = mount({ ...dm, ...cb, tool: 'props', stamp, sowing: true, sowRadiusPx: 81 });
+    move(svg, 100, 100);
+    expect(within(svg).getByTestId('mp-prop-ghost').querySelector('.mp-prop-sowarea')!.getAttribute('r')).toBe('81');
+    down(svg, 100, 100);
+    expect(cb.onSow).toHaveBeenCalledWith({ x: 100, y: 100 }, true);
+    move(svg, 160, 100);
+    expect(cb.onSow).toHaveBeenLastCalledWith({ x: 160, y: 100 }, false);
+    up(svg);
+    expect(cb.onSowEnd).toHaveBeenCalled();
+    expect(cb.onPlantProp).not.toHaveBeenCalled();
   });
 });

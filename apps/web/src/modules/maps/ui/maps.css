@@ -463,16 +463,28 @@
 .mp-builder-preset.on .mp-builder-preset-mini{outline:2px solid var(--sys-blood);outline-offset:-2px;}
 .mp-builder-preset-t{font-size:var(--fs-2xs);color:var(--sys-ink-soft);text-align:center;line-height:var(--lh-tight);}
 .mp-builder-preset.on .mp-builder-preset-t{color:var(--sys-ink);font-weight:600;}
-.mp-builder-tex{display:flex;align-items:center;gap:8px;}
+/* Con `flex-wrap`: el rótulo, la muestra y el nombre mandan, y CAMBIAR/QUITAR bajan a otra línea cuando no
+   caben, en vez de desbordar el panel a lo ancho (un botón no encoge: su texto no parte). */
+.mp-builder-tex{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0;}
 /* el rótulo PARED / SUELO delante de cada muestra: columna de ancho FIJO (cabe la palabra más larga en los dos idiomas) para que las dos muestras queden alineadas */
 .mp-builder-tex-c{flex:0 0 4.25em;white-space:nowrap;}
-.mp-builder-tex-swatch{width:26px;height:20px;flex:0 0 auto;border-radius:2px;outline:1px solid var(--sys-line);outline-offset:-1px;}
+/* 🐞 `position:relative` + `overflow:hidden` van AQUÍ, en la regla base, y no sólo en la de 66×44.
+   TODA muestra lleva dentro dos capas en absoluto —la rejilla y el mosaico girado— y sin ancla se van a buscar
+   el primer padre posicionado, que es el panel entero: la rejilla tapaba el Builder de punta a punta y, como
+   son hijas del BOTÓN, cualquier clic encima abría el catálogo de texturas y no dejaba usar la herramienta.
+   Suyo, 2026-09-14, con captura: «*no sé qué es este cuadriculado que me abre el menú de texturas y no me deja
+   usar la herramienta*». Se rompió el 14-09 en `3b88a28` al separar por selector la muestra de la PUERTA (26×20)
+   de las de pared y suelo (66×44): hasta entonces las dos reglas compartían selector y la de 66×44 le prestaba
+   el anclaje a la de la puerta sin que se notara. */
+.mp-builder-tex-swatch{width:26px;height:20px;flex:0 0 auto;position:relative;overflow:hidden;border-radius:2px;outline:1px solid var(--sys-line);outline-offset:-1px;padding:0;border:none;cursor:pointer;}
 .mp-builder-tex-n{flex:1;font-size:var(--fs-2xs);color:var(--sys-ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* La muestra de textura: tres casillas de ancho, con la rejilla encima para que se vea el tamaño real
    del azulejo (§ «el previo de cómo iría quedando», petición suya del 2026-09-04). */
 .mp-builder-texblock{display:flex;flex-direction:column;gap:4px;}
-.mp-builder-tex-swatch{width:66px;height:44px;position:relative;overflow:hidden;}
+/* Las de PARED y SUELO son más grandes: lo ÚNICO que cambia aquí es el tamaño. El anclaje lo pone la base. */
+.mp-builder-tex .mp-builder-tex-swatch{width:66px;height:44px;}
+.mp-builder-tex-swatch:hover,.mp-bp-tex:hover{outline:2px solid var(--sys-gold);outline-offset:-2px;}
 /* 🔄 el mosaico girado: sobra por los cuatro lados para que al girar no asome ninguna esquina sin textura */
 .mp-builder-tex-turn{position:absolute;inset:-40%;background-repeat:repeat;transform-origin:center;pointer-events:none;}
 .mp-builder-tex-grid{position:absolute;inset:0;
@@ -513,12 +525,13 @@
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 /* El punto marca las que trae Rolvium: no son de nadie, y por eso no se borran. */
 .mp-texcat-dot{flex-shrink:0;width:6px;height:6px;border-radius:50%;background:var(--ac);}
-/* Los tres puntos: sólo con el permiso, y sólo asomando sobre la miniatura para no ensuciar la rejilla.
-   Van en el cajón oscuro de la app, no en los `--sys-*` de la mesa — el menú vive dentro del modal. */
+/* Los tres puntos: sólo con el permiso, y SIEMPRE A LA VISTA (él, 2026-09-13: «*nadie va a saber que existen*»,
+   § 6.8 punto 3); hasta entonces sólo asomaban al pasar por encima. Van en el cajón oscuro de la app, no en los
+   `--sys-*` de la mesa — el menú vive dentro del modal. */
 .mp-texcat-kebab{position:absolute;top:5px;right:5px;display:flex;padding:2px;border:none;border-radius:var(--r);
-  background:color-mix(in srgb,var(--sf3) 88%,transparent);color:var(--tx);cursor:pointer;opacity:0;}
+  background:color-mix(in srgb,var(--sf3) 88%,transparent);color:var(--tx2);cursor:pointer;}
 .mp-texcat-kebab .material-symbols-outlined{font-size:var(--icon-sm);}
-.mp-texcat-cell:hover .mp-texcat-kebab,.mp-texcat-kebab:focus-visible,.mp-texcat-kebab[aria-expanded="true"]{opacity:1;}
+.mp-texcat-kebab:hover,.mp-texcat-kebab:focus-visible,.mp-texcat-kebab[aria-expanded="true"]{color:var(--tx);background:var(--sf3);}
 /* El menú flota sobre la rejilla: cristal y sombra, como el resto de lo que flota. */
 .mp-texcat-menu{position:absolute;top:26px;right:5px;z-index:2;display:flex;flex-direction:column;min-width:140px;
   padding:4px;border-radius:var(--r2);background:color-mix(in srgb,var(--sf3) 96%,transparent);
@@ -547,7 +560,7 @@
 .mp-brushpanel{position:absolute;top:8px;left:8px;z-index:4;width:300px;}
 .mp-bp-icon{color:var(--sys-ink);}
 /* La muestra de la textura, a todo lo ancho y con el azulejo al tamaño de verdad. */
-.mp-bp-tex{display:block;height:52px;background-color:var(--sys-paper-lo);}
+.mp-bp-tex{display:block;width:100%;height:52px;padding:0;border:none;background-color:var(--sys-paper-lo);cursor:pointer;}
 .mp-bp-tex-n{font-size:var(--fs-xs);color:var(--sys-ink);}
 /* EL COLOR PUESTO, en grande — su corrección: «no veo un cuadradito donde quede puesto». */
 .mp-bp-color-now{display:flex;align-items:flex-start;gap:6px;}
@@ -568,3 +581,166 @@
 .mp-bp-eyedrop{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;flex:0 0 auto;
   border:1px solid var(--sys-line);color:var(--sys-ink);cursor:pointer;}
 .mp-bp-eyedrop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
+
+/* ── LA GALERÍA DE PIEZAS (rebanada 6) ───────────────────────────────────────
+   El panel (`lWBaU`, 220 de ancho), lo plantado en el lienzo con su marco y sus tiradores, el fantasma del
+   sello, el catálogo a pantalla completa (`w7sTC0`) y la subida en lote (`DCs6S`). Los paneles van con los
+   tokens de la mesa (--sys-*); el catálogo y la subida viven en el Modal compartido y van con los de la app. */
+/* 300 px, LOS MISMOS que el Builder y el Pincel (orden suya, 14-09: «*el de objetos es más pequeño que los
+   otros, no es así, tiene que respetar los tamaños*»). La lámina lo dibujó a 220 y se quedaba estrecho. */
+.mp-propspanel{position:absolute;top:8px;left:8px;z-index:4;width:300px;}
+.mp-props-icon{width:var(--icon-sm);height:var(--icon-sm);}
+/* La muestra sobre OSCURO: el único negro del panel, y detrás del arte (regla del dueño: negro sólo para arte). */
+.mp-props-sample{display:flex;align-items:center;justify-content:center;width:100%;height:96px;padding:0;border:none;background:var(--sys-ink);color:var(--sys-paper);overflow:hidden;cursor:pointer;}
+.mp-props-sample:hover{outline:2px solid var(--sys-gold);outline-offset:-2px;}
+/* La pieza COGIDA (§ 6.8, punto 7) lleva el marco oro en la muestra, como en el lienzo. */
+.mp-props-sample.picked{outline:1.5px solid var(--sys-gold);outline-offset:-1.5px;}
+.mp-props-sample img{max-width:80%;max-height:80%;object-fit:contain;}
+.mp-props-sample .material-symbols-outlined{font-size:var(--icon-lg);opacity:.5;}
+.mp-props-name{display:flex;align-items:center;gap:6px;}
+.mp-props-name-t{flex:1;font-size:var(--fs-xs);color:var(--sys-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-props-star{display:inline-flex;padding:0;border:none;background:transparent;color:var(--sys-ink-soft);cursor:pointer;}
+.mp-props-star .material-symbols-outlined{font-size:var(--icon-sm);}
+.mp-props-star.on{color:var(--sys-gold);}
+.mp-props-row2{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.mp-props-row2 .tb-btn{padding:5px 6px;}
+.mp-props-rot{display:flex;align-items:flex-end;gap:6px;}
+.mp-props-rot-slider{flex:1;min-width:0;}
+.mp-props-dice{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex-shrink:0;margin-bottom:2px;
+  border:none;background:transparent;color:var(--sys-ink-soft);cursor:pointer;}
+.mp-props-dice:hover{color:var(--sys-blood);}
+.mp-props-dice .material-symbols-outlined{font-size:var(--icon-sm);}
+/* La rejilla 6 × 3 de la lámina, con scroll: la del sello lleva el filo en sangre. */
+.mp-props-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;max-height:92px;overflow-y:auto;}
+.mp-props-cell{display:flex;align-items:center;justify-content:center;aspect-ratio:1;padding:2px;border:2px solid transparent;background:var(--sys-ink);cursor:pointer;}
+.mp-props-cell img{max-width:100%;max-height:100%;object-fit:contain;}
+.mp-props-cell.on{border-color:var(--sys-blood);}
+/* DE SU FAMILIA (§ 6.8, punto 9): las mismas baldosas, en tres columnas y tres filas a la vista, con scroll. */
+.mp-props-family-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;max-height:204px;overflow-y:auto;}
+.mp-props-select{width:100%;padding:5px 6px;border:none;font-family:inherit;font-size:var(--fs-xs);color:var(--sys-ink);
+  background:color-mix(in srgb,var(--sys-paper-lo) 48%,transparent);}
+.mp-props-toggle{width:100%;justify-content:center;}
+/* Lo plantado: la cogida lleva un marco oro a trazos que no escala con el zoom, y se arrastra con la mano. */
+.mp-prop.movable{cursor:move;}
+.mp-prop-frame{fill:none;stroke:var(--sys-gold);stroke-width:1.5;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;pointer-events:none;}
+.mp-prop-handle{fill:var(--sys-paper-hi);stroke:var(--sys-ink);stroke-width:1;vector-effect:non-scaling-stroke;cursor:nwse-resize;}
+.mp-prop-rotate{fill:var(--sys-paper-hi);stroke:var(--sys-gold);stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:grab;}
+.mp-prop-rotline{stroke:var(--sys-gold);stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:none;}
+.mp-prop-ghost{pointer-events:none;}
+.mp-prop-sowarea{fill:color-mix(in srgb,var(--sys-gold) 12%,transparent);stroke:var(--sys-gold);stroke-width:1;stroke-dasharray:4 3;vector-effect:non-scaling-stroke;}
+/* ── EL CATÁLOGO a pantalla completa ── */
+.mp-propcat{display:flex;flex-direction:column;height:min(84vh,900px);--mp-thumb:118px;}
+.mp-propcat.dragging{outline:2px dashed var(--ac);outline-offset:-4px;}
+.mp-propcat-head{display:flex;align-items:baseline;gap:8px;}
+.mp-propcat-head-icon{width:var(--icon-md);height:var(--icon-md);color:var(--ac);align-self:center;}
+.mp-propcat-title{font-size:var(--fs-lg);color:var(--tx);}
+.mp-propcat-crumb{font-size:var(--fs-xs);color:var(--tx3);}
+.mp-propcat-bar{display:flex;align-items:center;gap:10px;padding:10px 18px;flex-wrap:wrap;}
+.mp-propcat-search{width:290px;flex:0 1 290px;}
+.mp-propcat-upload{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:none;border-radius:var(--r);font-family:inherit;
+  font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;background:var(--sys-blood);color:var(--sys-paper-hi);cursor:pointer;}
+.mp-propcat-upload .material-symbols-outlined{font-size:var(--icon-xs);}
+.mp-propcat-sp{flex:1;}
+.mp-propcat-sel{display:flex;flex-direction:column;gap:1px;padding:4px 8px;border-radius:var(--r);background:var(--sf2);}
+.mp-propcat-sel-l{font-size:var(--fs-2xs);letter-spacing:.15em;text-transform:uppercase;color:var(--tx3);}
+.mp-propcat-sel select{border:none;background:transparent;font-family:inherit;font-size:var(--fs-xs);color:var(--tx);}
+.mp-propcat-thumb{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:var(--r);background:var(--sf2);color:var(--tx3);}
+.mp-propcat-thumb .material-symbols-outlined{font-size:var(--icon-xs);}
+.mp-propcat-thumb-s{width:90px;}
+.mp-propcat-body{display:flex;flex:1;min-height:0;}
+/* El rail de paquetes: hueco, y el abierto en sangre. */
+.mp-propcat-rail{display:flex;flex-direction:column;gap:2px;width:250px;flex-shrink:0;padding:10px 12px;overflow-y:auto;background:var(--bg);}
+.mp-propcat-railcell{position:relative;}
+.mp-propcat-rail-item{display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px;border:none;border-radius:var(--r);background:transparent;
+  font-family:inherit;font-size:var(--fs-sm);color:var(--tx2);cursor:pointer;text-align:left;}
+.mp-propcat-rail-item .material-symbols-outlined{font-size:var(--icon-xs);color:var(--tx3);}
+.mp-propcat-rail-item:hover{background:var(--sf2);color:var(--tx);}
+.mp-propcat-rail-item.on{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.mp-propcat-rail-item.on .material-symbols-outlined,.mp-propcat-rail-item.on .mp-propcat-rail-c{color:var(--sys-paper-hi);}
+.mp-propcat-rail-n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mp-propcat-rail-c{font-size:var(--fs-2xs);color:var(--tx3);}
+.mp-propcat-rail-label{padding:10px 10px 2px;font-size:var(--fs-2xs);letter-spacing:.15em;text-transform:uppercase;color:var(--tx3);}
+.mp-propcat-rail-push{flex:1;}
+.mp-propcat-kebab{top:4px;right:2px;}
+.mp-propcat-menu{top:28px;right:2px;}
+.mp-propcat-newpack{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border:none;border-radius:var(--r);background:var(--sf2);
+  font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;color:var(--tx2);cursor:pointer;}
+.mp-propcat-newpack .material-symbols-outlined{font-size:var(--icon-xs);color:var(--ac);}
+.mp-propcat-newpack:hover{background:var(--sf3);color:var(--tx);}
+/* La rejilla por secciones. El arte va sobre fondo hueco; el tamaño de miniatura lo pone el deslizador. */
+.mp-propcat-grid{flex:1;min-width:0;display:flex;flex-direction:column;gap:18px;padding:12px 18px 18px;overflow-y:auto;}
+.mp-propcat-sec{display:flex;flex-direction:column;gap:8px;}
+.mp-propcat-sec-h{margin:0;font-size:var(--fs-body);font-weight:500;color:var(--tx);}
+.mp-propcat-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--mp-thumb),1fr));gap:10px;}
+.mp-propcat-cell{position:relative;}
+.mp-propcat-tile{display:flex;flex-direction:column;gap:4px;padding:0;width:100%;background:none;border:none;cursor:pointer;font-family:inherit;text-align:left;}
+.mp-propcat-view{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1.72;border-radius:var(--r);background:var(--sf2);overflow:hidden;color:var(--tx3);}
+.mp-propcat-view img{max-width:84%;max-height:84%;object-fit:contain;}
+.mp-propcat-view .material-symbols-outlined{font-size:var(--icon-md);}
+.mp-propcat-tile:hover .mp-propcat-view{outline:2px solid var(--ac);outline-offset:-2px;}
+.mp-propcat-add:hover .mp-propcat-view{color:var(--ac);}
+.mp-propcat-n{display:flex;align-items:center;gap:5px;font-size:var(--fs-2xs);color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* La estrella de favorito va abajo a la derecha del arte (arriba a la izquierda está el círculo de marcar): sólo
+   asoma al pasar por encima o cuando está marcada, para no llenar la baldosa de botones (decisión mía, § 6.8). */
+.mp-propcat-star{position:absolute;right:5px;bottom:24px;display:flex;padding:2px;border:none;border-radius:var(--r);background:color-mix(in srgb,var(--sf) 80%,transparent);
+  color:var(--tx3);cursor:pointer;opacity:0;transition:opacity .12s;}
+.mp-propcat-star .material-symbols-outlined{font-size:var(--icon-sm);}
+.mp-propcat-star.on{opacity:1;color:var(--ac);}
+.mp-propcat-cell:hover .mp-propcat-star,.mp-propcat-star:focus-visible{opacity:1;}
+/* MARCAR (§ 6.8, punto 4): el círculo arriba a la izquierda, siempre a la vista; marcada, en sangre y con filo sangre. */
+.mp-propcat-mark{position:absolute;top:5px;left:5px;display:flex;padding:2px;border:none;border-radius:var(--r);background:color-mix(in srgb,var(--sf3) 88%,transparent);
+  color:var(--tx2);cursor:pointer;}
+.mp-propcat-mark .material-symbols-outlined{font-size:var(--icon-sm);}
+.mp-propcat-mark:hover{color:var(--tx);background:var(--sf3);}
+.mp-propcat-mark.on{color:var(--sys-blood);}
+.mp-propcat-cell.on .mp-propcat-view{outline:2px solid var(--sys-blood);outline-offset:-2px;}
+.mp-propcat-cell[draggable="true"] .mp-propcat-tile{cursor:grab;}
+/* La textura repetida a su tamaño de baldosa, llenando la baldosa (la cara de las texturas del mismo catálogo). */
+.mp-propcat-tex{display:block;width:100%;height:100%;background-position:center;background-repeat:repeat;}
+/* La miniatura de un FONDO va CUBRIENDO, no repetida: de fondo, una textura no se embaldosa — se encaja. */
+.mp-propcat-bg{display:block;width:100%;height:100%;background-position:center;background-repeat:no-repeat;background-size:cover;}
+/* LA BARRA DE SELECCIÓN encima de la rejilla: cuántas, MOVER A… en sangre, BORRAR, la pista y quitar. */
+.mp-propcat-selbar{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:var(--r);background:var(--sf2);color:var(--sys-blood);flex-wrap:wrap;}
+.mp-propcat-selbar>.material-symbols-outlined{font-size:var(--icon-xs);}
+.mp-propcat-selbar-n{font-size:var(--fs-sm);color:var(--tx);}
+.mp-propcat-selbar-cell{position:relative;}
+.mp-propcat-selbar-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border:none;border-radius:var(--r);background:var(--sf3);font-family:inherit;
+  font-size:var(--fs-2xs);letter-spacing:.1em;text-transform:uppercase;color:var(--tx2);cursor:pointer;}
+.mp-propcat-selbar-btn .material-symbols-outlined{font-size:var(--icon-xs);}
+.mp-propcat-selbar-btn:hover{color:var(--tx);}
+.mp-propcat-selbar-btn.blood{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.mp-propcat-selbar-btn.danger{color:var(--sys-blood);}
+.mp-propcat-selbar-btn.danger:hover{background:var(--sys-blood);color:var(--sys-paper-hi);}
+.mp-propcat-selbar-hint{font-size:var(--fs-2xs);color:var(--tx3);}
+.mp-propcat-selmenu{top:30px;left:0;right:auto;}
+/* El grupo del rail bajo el arrastre se ilumina en oro: ahí van a caer. */
+.mp-propcat-railcell.drop .mp-propcat-rail-item{outline:2px solid var(--ac);outline-offset:-2px;background:var(--sf3);color:var(--tx);}
+.mp-propcat-count{margin-top:auto;}
+/* ── SUBIR EN LOTE ── */
+.mp-propup{display:flex;flex-direction:column;gap:14px;}
+.mp-propup-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:22px 16px;border-radius:var(--r2);
+  background:var(--sf2);color:var(--tx2);text-align:center;}
+.mp-propup-drop.on{outline:2px dashed var(--ac);outline-offset:-4px;}
+.mp-propup-drop .material-symbols-outlined{font-size:var(--icon-lg);color:var(--tx3);}
+.mp-propup-drop-t{font-size:var(--fs-body);color:var(--tx);}
+.mp-propup-drop-s{font-size:var(--fs-2xs);color:var(--tx3);}
+.mp-propup-browse{margin-top:6px;padding:4px 10px;border:none;border-radius:var(--r);background:var(--sf3);font-family:inherit;font-size:var(--fs-2xs);color:var(--tx);cursor:pointer;}
+.mp-propup-pack{display:flex;align-items:center;gap:10px;}
+.mp-propup-pack select{padding:5px 8px;border:none;border-radius:var(--r);background:var(--sf2);font-family:inherit;font-size:var(--fs-xs);color:var(--tx);}
+.mp-propup-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;max-height:34vh;overflow-y:auto;}
+.mp-propup-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--r);background:var(--sf2);font-size:var(--fs-xs);color:var(--tx2);}
+.mp-propup-item.done{color:var(--tx3);}
+.mp-propup-st{font-size:var(--icon-xs);color:var(--tx3);}
+.mp-propup-st.done{color:var(--green);}
+.mp-propup-st.failed{color:var(--red);}
+.mp-propup-st.uploading{color:var(--ac);animation:mp-propup-spin 1s linear infinite;}
+@keyframes mp-propup-spin{to{transform:rotate(360deg);}}
+.mp-propup-file{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx);}
+.mp-propup-state{font-size:var(--fs-2xs);color:var(--tx3);}
+.mp-propup-item.failed .mp-propup-state{color:var(--red);}
+.mp-propup-x{display:inline-flex;padding:0;border:none;background:transparent;color:var(--tx3);cursor:pointer;}
+.mp-propup-x .material-symbols-outlined{font-size:var(--icon-xs);}
+.mp-propup-foot{display:flex;justify-content:flex-end;gap:8px;}
+.mp-propup-btn{padding:7px 14px;border:none;border-radius:var(--r);background:var(--sf2);font-family:inherit;font-size:var(--fs-2xs);letter-spacing:.12em;text-transform:uppercase;color:var(--tx2);cursor:pointer;}
+.mp-propup-btn:disabled{opacity:.45;cursor:default;}
+.mp-propup-btn.blood{background:var(--sys-blood);color:var(--sys-paper-hi);}

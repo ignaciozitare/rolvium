@@ -39,12 +39,17 @@ export function DiceRoller({ campaignId, onClose, rolls = defaultRolls, initial,
   /**
    * It opens from the first tool of the scene bar, so it appears right next to that bar instead of across the
    * screen: you press the die and the roller is under your cursor. Falls back to a sane left margin off-canvas.
+   * If a tool panel (Builder, Brush, Piezas…) is already open there, it spawns to ITS right instead — they all
+   * anchor to the same toolbar corner (`rv-fpanel`), and stacking two floating panels made both unreadable.
    */
   const [pos, setPos] = useState(() => {
     if (initial) return initial;
     const bar = typeof document !== 'undefined' ? document.querySelector('.mp-toolbar') : null;
     const r = bar?.getBoundingClientRect();
-    return r ? { x: Math.round(r.right + 10), y: Math.round(r.top) } : { x: 96, y: 160 };
+    if (!r) return { x: 96, y: 160 };
+    const panel = document.querySelector('.rv-fpanel');
+    const clear = panel?.getBoundingClientRect().right;
+    return { x: Math.round((clear ?? r.right) + 10), y: Math.round(r.top) };
   });
   const drag = useRef<{ dx: number; dy: number } | null>(null);
 

@@ -9,7 +9,7 @@ role names in features. Who: admins (and anyone granted `manage_roles`).
   - `modules: string[]` — module ids the role can open (registry: `apps/web/src/shared/modules/registry.ts`).
   - `admin: { manage_users?, manage_roles?, manage_settings? }` — administer the platform. **These, and only
     these, decide who sees the Administración section.**
-  - `tools?: { manage_textures? }` — use a capability **inside** a tool. Optional: rows predating the bucket
+  - `tools?: { manage_textures?, manage_props? }` — use a capability **inside** a tool. Optional: rows predating the bucket
     lack it, and the `admin` role cannot be given one (`roles_guard_system` forbids editing its permissions),
     so a missing key means «none». Registry: `TOOL_PERMISSIONS`; checked with `hasTool()` / `has_tool(key)`.
 - Every user has exactly one role. System roles: `admin` (locked, full access), `game_master`, `player` (default).
@@ -45,4 +45,4 @@ role names in features. Who: admins (and anyone granted `manage_roles`).
 Guards: trigger `roles_guard_system`. Access: authenticated read all; `manage_roles` writes.
 Helpers (SECURITY DEFINER): `current_role_name()`, `is_admin()`, `has_permission(text)`, `has_module(text)`,
 `has_tool(text)` (`20260904230000_tool_permissions.sql` — reads `permissions -> 'tools'`, admin short-circuits).
-Seeded: `game_master` holds `manage_textures`; `admin` holds nothing in `tools` on purpose.
+Seeded: `game_master` holds `manage_textures` and `manage_props` (the pieces gallery, `20260913100000_maps_props_tool_library.sql`); `admin` holds nothing in `tools` on purpose.

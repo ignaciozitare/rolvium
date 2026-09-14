@@ -312,7 +312,7 @@ export function fakeAttacks(seed: PendingAttack[] = []): AttacksPort & AttackWat
 import type { MapsPort, MapsLiveEvent, MapsLiveHandlers } from '@/modules/maps/domain/ports/MapsPort';
 import type { SceneVision, VisionPort } from '@/modules/maps/domain/ports/VisionPort';
 import { DEFAULT_DOOR } from '@/modules/maps/domain/entities/Scene';
-import type { Drawing, ImageAsset, Layer, LayerPatch, MapColor, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
+import type { Drawing, ImageAsset, Layer, LayerPatch, MapColor, Light, LightPatch, NewDrawing, NewLayer, NewLight, NewProp, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Prop, PropPack, PropPackPatch, PropPatch, Room, RoomOpening, RowChange, Texture, NewTexture, Scene, ScenePatch, SceneProp, ScenePropPatch, Token, TokenPatch, Wall, WallPatch } from '@/modules/maps/domain/entities/Scene';
 import type { RoomOpeningPatch } from '@/modules/maps/domain/ports/MapsPort';
 
 export const SCENE_WAREHOUSE: Scene = {
@@ -365,11 +365,29 @@ export const LIGHT_BULB: Light = { ...LIGHT_BASE, id: 'li-bulb', shape: 'square'
 /** Una luz escondida en la capa de notas del director: no puede llegar a un jugador. */
 export const LIGHT_SECRET: Light = { ...LIGHT_BASE, id: 'li-secret', layerId: LAYER_NOTES.id, shape: 'cone', kind: 'flashlight', x: 800, y: 120, color: '#f2e4b8', flicker: false, rangeM: 9 };
 
+// ── Rebanada 6: la galería de piezas ──
+/** Un paquete propio del director. La biblioteca es de la herramienta: sin campaña. */
+export const PACK_DUNGEON: PropPack = { id: 'pk-dun', name: 'Mazmorra propia', sortOrder: 0, createdBy: 'u-gm', createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' };
+export const PACK_FOREST: PropPack = { id: 'pk-for', name: 'Bosque de Karen', sortOrder: 1, createdBy: 'u-gm', createdAt: '2026-09-12T01:00:00Z', updatedAt: '2026-09-12T01:00:00Z' };
+const PROP_BASE = { category: 'misc' as const, defaultScale: 1, defaultBlocksSight: false, defaultBlocksMove: false, defaultBlockShape: 'rect' as const, uploadedBy: 'u-gm', createdAt: '2026-09-12T02:00:00Z', updatedAt: '2026-09-12T02:00:00Z' };
+/** Un roble de 200 × 300, en el paquete del bosque, que recuerda una escala de 1,5. */
+export const PROP_OAK: Prop = { ...PROP_BASE, id: 'pr-oak', packId: PACK_FOREST.id, name: 'Roble', category: 'vegetation', imageUrl: 'https://x/backgrounds/props/pr-oak.webp', naturalWidth: 200, naturalHeight: 300, defaultScale: 1.5 };
+/** Un pino, del MISMO paquete que el roble: para probar DE SU FAMILIA (§ 6.8, punto 9). */
+export const PROP_PINE: Prop = { ...PROP_BASE, id: 'pr-pine', packId: PACK_FOREST.id, name: 'Pino', category: 'vegetation', imageUrl: 'https://x/backgrounds/props/pr-pine.webp', naturalWidth: 180, naturalHeight: 320, createdAt: '2026-09-12T02:30:00Z' };
+/** Una columna que NACE estorbando: corta la vista y el paso, en círculo. */
+export const PROP_COLUMN: Prop = { ...PROP_BASE, id: 'pr-col', packId: PACK_DUNGEON.id, name: 'Columna', category: 'furniture', imageUrl: 'https://x/backgrounds/props/pr-col.webp', naturalWidth: 100, naturalHeight: 100, defaultBlocksSight: true, defaultBlocksMove: true, defaultBlockShape: 'circle', createdAt: '2026-09-12T03:00:00Z' };
+/** Una mesa sin paquete: «Sin clasificar». */
+export const PROP_TABLE: Prop = { ...PROP_BASE, id: 'pr-tab', packId: null, name: 'Mesa larga', category: 'furniture', imageUrl: 'https://x/backgrounds/props/pr-tab.webp', naturalWidth: 240, naturalHeight: 120, createdAt: '2026-09-12T04:00:00Z' };
+/** El roble YA PLANTADO en el almacén, con su copia de la foto y del nombre. */
+export const SCENE_PROP_OAK: SceneProp = { id: 'sp-oak', sceneId: 'sc-1', campaignId: 'c1', layerId: null, propId: PROP_OAK.id, imageUrl: PROP_OAK.imageUrl, name: 'Roble', x: 400, y: 300, width: 300, height: 450, rotation: 0, z: 0, blocksSight: false, blocksMove: false, blockShape: 'rect', blockW: 300, blockH: 450, blockDx: 0, blockDy: 0, createdAt: '2026-09-12T05:00:00Z', updatedAt: '2026-09-12T05:00:00Z' };
+/** Y una columna plantada encima (z 1) que estorba, en la capa de notas del director. */
+export const SCENE_PROP_COLUMN: SceneProp = { ...SCENE_PROP_OAK, id: 'sp-col', layerId: LAYER_NOTES.id, propId: PROP_COLUMN.id, imageUrl: PROP_COLUMN.imageUrl, name: 'Columna', x: 700, y: 200, width: 100, height: 100, z: 1, blocksSight: true, blocksMove: true, blockShape: 'circle', blockW: 100, blockH: 100, createdAt: '2026-09-12T06:00:00Z' };
+
 /**
  * In-memory MapsPort. Mutations are recorded; `emit(sceneId, …)` simulates realtime rows/events to subscribers;
  * `broadcasts` collects what I sent on the scene channel.
  */
-export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[]; props?: Prop[]; sceneProps?: SceneProp[]; rooms?: Room[]; roomOpenings?: RoomOpening[]; textures?: Texture[]; colors?: MapColor[] } = {}) {
+export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?: Wall[]; drawings?: Drawing[]; images?: ImageAsset[]; layers?: Layer[]; lights?: Light[]; props?: Prop[]; packs?: PropPack[]; sceneProps?: SceneProp[]; rooms?: Room[]; roomOpenings?: RoomOpening[]; textures?: Texture[]; colors?: MapColor[] } = {}) {
   const scenes = (seed.scenes ?? [SCENE_WAREHOUSE]).map(s => ({ ...s }));
   const tokens = (seed.tokens ?? []).map(t => ({ ...t }));
   const walls = (seed.walls ?? []).map(w => ({ ...w }));
@@ -378,6 +396,8 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const layers = (seed.layers ?? []).map(l => ({ ...l }));
   const lights = (seed.lights ?? []).map(l => ({ ...l }));
   const props = (seed.props ?? []).map(p => ({ ...p }));
+  const packs = (seed.packs ?? []).map(k => ({ ...k }));
+  const packUpdates: { id: string; patch: PropPackPatch }[] = [];
   const sceneProps = (seed.sceneProps ?? []).map(p => ({ ...p }));
   const rooms = (seed.rooms ?? []).map(r => ({ ...r }));
   const textures = (seed.textures ?? []).map(t => ({ ...t }));
@@ -405,6 +425,8 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const propUpdates: { id: string; patch: PropPatch }[] = [];
   const scenePropUpdates: { id: string; patch: ScenePropPatch }[] = [];
   const propUploads: { name: string; bytes: number }[] = [];
+  /** Renombrados de fondos de la campaña, desde el catálogo de fondos (§ «EL FONDO DEL MAPA»). */
+  const imageUpdates: { id: string; patch: { name: string } }[] = [];
   const masksSaved: { layerId: string; bytes: number }[] = [];
   const masksCleared: string[] = [];
   /** El pincel sobre el suelo de una sala (rebanada 9). Se apunta aparte del de las capas: son dos destinos. */
@@ -415,7 +437,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
   const paintCleared: { on: 'room' | 'rock' | 'layer'; id: string }[] = [];
   let n = 0;
   const api = {
-    scenes, tokens, walls, drawings, images, layers, lights, props, sceneProps, textures, rooms, roomOpenings, colors, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, masksSaved, masksCleared, floorMasksSaved, floorMasksCleared, paintSaved, paintCleared,
+    scenes, tokens, walls, drawings, images, layers, lights, props, packs, packUpdates, sceneProps, textures, rooms, roomOpenings, colors, textureUpdates, broadcasts, tokenUpdates, sceneUpdates, wallUpdates, wallMoves, wallGroupings, wallVisibilitySweeps, wallBatchMoves, wallBatchRemoves, activated, removedDrawings, clearedMine, clearedAll, uploads, layerUpdates, lightUpdates, drawingMoves, propUpdates, scenePropUpdates, propUploads, imageUpdates, masksSaved, masksCleared, floorMasksSaved, floorMasksCleared, paintSaved, paintCleared,
     get subscribers() { return [...subs.values()].reduce((a, s) => a + s.size, 0); },
     emit: (sceneId: string, what: { token?: RowChange<Token>; wall?: RowChange<Wall>; drawing?: RowChange<Drawing>; scene?: RowChange<Scene>; layer?: RowChange<Layer>; light?: RowChange<Light>; prop?: RowChange<Prop>; sceneProp?: RowChange<SceneProp>; event?: MapsLiveEvent }) => {
       subs.get(sceneId)?.forEach(h => { if (what.token) h.onToken?.(what.token); if (what.wall) h.onWall?.(what.wall); if (what.drawing) h.onDrawing?.(what.drawing); if (what.scene) h.onScene?.(what.scene); if (what.layer) h.onLayer?.(what.layer); if (what.light) h.onLight?.(what.light); if (what.prop) h.onProp?.(what.prop); if (what.sceneProp) h.onSceneProp?.(what.sceneProp); if (what.event) h.onEvent?.(what.event); });
@@ -439,6 +461,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     },
     listImages: async (cid: string) => images.filter(i => i.campaignId === cid),
     uploadImage: async (campaignId: string, _file: Blob, name: string) => { uploads.push({ campaignId, name }); const img: ImageAsset = { id: `img-new-${++n}`, campaignId, name, url: `https://x/backgrounds/${campaignId}/${name}.png`, createdAt: '' }; images.unshift(img); return img; },
+    updateImage: async (id: string, patch: { name: string }) => { imageUpdates.push({ id, patch }); const img = images.find(x => x.id === id); if (img) Object.assign(img, patch); },
     removeImage: async (id: string) => { const i = images.findIndex(x => x.id === id); if (i >= 0) images.splice(i, 1); },
     listWalls: async (sid: string) => walls.filter(w => w.sceneId === sid),
     addWall: async (w: NewWall) => { const created: Wall = { groupId: null, ...DEFAULT_DOOR, ...w, id: `w-new-${++n}` }; walls.push(created); return created; },
@@ -500,12 +523,21 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
     updateLight: async (id: string, patch: LightPatch) => { lightUpdates.push({ id, patch }); const l = lights.find(x => x.id === id); if (l) Object.assign(l, patch); },
     removeLight: async (id: string) => { const i = lights.findIndex(l => l.id === id); if (i >= 0) lights.splice(i, 1); },
     // ── piezas (rebanada 6) ──
-    listProps: async (cid: string) => props.filter(p => p.campaignId === cid || p.campaignId === null),
+    listProps: async () => [...props],
     addProp: async (p: NewProp, image: Blob) => {
       propUploads.push({ name: p.name, bytes: image.size });
-      const created: Prop = { ...p, id: `pr-new-${++n}`, imageUrl: `https://x/backgrounds/${p.campaignId}/props/pr-new-${n}.webp`, createdAt: '', updatedAt: '' };
+      const created: Prop = { ...p, id: `pr-new-${++n}`, imageUrl: `https://x/backgrounds/props/pr-new-${n}.webp`, uploadedBy: 'u-gm', createdAt: `t${n}`, updatedAt: '' };
       props.push(created);
       return created;
+    },
+    listPropPacks: async () => [...packs],
+    addPropPack: async (name: string) => { const created: PropPack = { id: `pk-new-${++n}`, name, sortOrder: packs.length, createdBy: 'u-gm', createdAt: `t${n}`, updatedAt: '' }; packs.push(created); return created; },
+    updatePropPack: async (id: string, patch: PropPackPatch) => { packUpdates.push({ id, patch }); const k = packs.find(x => x.id === id); if (k) Object.assign(k, patch); },
+    /** Como la base (SET NULL): las piezas del paquete pasan a «Sin clasificar», no se borran. */
+    removePropPack: async (id: string) => {
+      const i = packs.findIndex(k => k.id === id);
+      if (i >= 0) packs.splice(i, 1);
+      for (const p of props) if (p.packId === id) p.packId = null;
     },
     updateProp: async (id: string, patch: PropPatch) => { propUpdates.push({ id, patch }); const p = props.find(x => x.id === id); if (p) Object.assign(p, patch); },
     /** Como el de verdad: se va de la biblioteca y lo plantado SE QUEDA, sólo pierde el enlace. */
@@ -515,7 +547,7 @@ export function fakeMapsRepo(seed: { scenes?: Scene[]; tokens?: Token[]; walls?:
       for (const sp of sceneProps) if (sp.propId === id) sp.propId = null;
     },
     listSceneProps: async (sid: string) => sceneProps.filter(p => p.sceneId === sid),
-    addSceneProp: async (p: NewSceneProp) => { const created: SceneProp = { ...p, id: `sp-new-${++n}`, createdAt: '', updatedAt: '' }; sceneProps.push(created); return created; },
+    addSceneProp: async (p: NewSceneProp) => { const created: SceneProp = { ...p, id: `sp-new-${++n}`, createdAt: `t${n}`, updatedAt: '' }; sceneProps.push(created); return created; },
     updateSceneProp: async (id: string, patch: ScenePropPatch) => { scenePropUpdates.push({ id, patch }); const p = sceneProps.find(x => x.id === id); if (p) Object.assign(p, patch); },
     removeSceneProp: async (id: string) => { const i = sceneProps.findIndex(p => p.id === id); if (i >= 0) sceneProps.splice(i, 1); },
     // ── el catálogo de texturas: de la HERRAMIENTA, no de una campaña ──

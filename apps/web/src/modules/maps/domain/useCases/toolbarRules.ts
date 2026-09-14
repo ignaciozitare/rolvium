@@ -21,8 +21,9 @@ export const TOOLBAR_SEP = 'sep';
 export const DEFAULT_TOOLBAR_ORDER: Readonly<Record<ToolbarBlock, readonly string[]>> = {
   play: ['dice', 'select', 'measure', 'pin'],
   draw: ['draw'],
-  // Luz · Builder · Fondo del mapa · Pincel ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ — suyo, 2026-08-31.
-  dm: ['light', 'wall', 'background', 'mask', TOOLBAR_SEP, 'reveal', 'hide', TOOLBAR_SEP, 'encounter', 'placePc'],
+  // Piezas · Luz · Builder · Fondo del mapa · Pincel ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ — suyo, 2026-08-31,
+  // con «Piezas» delante desde la rebanada 6 (lámina `SNlGp`, aprobada el 2026-09-11).
+  dm: ['props', 'light', 'wall', 'background', 'mask', TOOLBAR_SEP, 'reveal', 'hide', TOOLBAR_SEP, 'encounter', 'placePc'],
 };
 
 /** Lo que se guarda: cada bloque con sus ids en orden. Los bloques que falten salen de serie. */

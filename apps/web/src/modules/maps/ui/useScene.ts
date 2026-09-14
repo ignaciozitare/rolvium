@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FogCell, SceneVision } from '@rolvium/core';
-import type { DoorSettings, Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewRoom, NewRoomOpening, NewToken, NewWall, Room, RoomKind, RoomOpening, RoomShapeKind, RowChange, Scene, Token, Wall, WallPatch } from '../domain/entities/Scene';
+import type { DoorSettings, Drawing, Layer, LayerPatch, Light, LightPatch, NewDrawing, NewLight, NewRoom, NewRoomOpening, NewSceneProp, NewToken, NewWall, Room, RoomKind, RoomOpening, RoomShapeKind, RowChange, Scene, SceneProp, ScenePropPatch, Token, Wall, WallPatch } from '../domain/entities/Scene';
 import type { MapsLiveEvent, MapsPort } from '../domain/ports/MapsPort';
 import type { FogBrush, VisionPort } from '../domain/ports/VisionPort';
 import { splitWallAt, unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
@@ -85,6 +85,13 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   tokensRef.current = tokens;
   const lightsRef = useRef<Light[]>([]);
   lightsRef.current = lights;
+  /**
+   * LAS PIEZAS PLANTADAS (rebanada 6). Llegan a toda la mesa por su propia tabla, con la RLS de siempre: el
+   * director todo, el jugador lo de las capas que le llegan. Pintar es cosa del lienzo; aquí sólo la lista.
+   */
+  const [sceneProps, setSceneProps] = useState<SceneProp[]>([]);
+  const scenePropsRef = useRef<SceneProp[]>([]);
+  scenePropsRef.current = sceneProps;
   const [live, setLive] = useState<Scene | null>(scene);
   const [drags, setDrags] = useState<Record<string, LiveDrag>>({});
   const [pin, setPin] = useState<LivePin | null>(null);
@@ -162,11 +169,11 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   useEffect(() => { setLive(scene); }, [scene]);
 
   useEffect(() => {
-    if (!sceneId) { setTokens([]); setWalls([]); setDrawings([]); setLayers([]); setLights([]); setRooms([]); setRoomOpenings([]); setStatus('ready'); return; }
+    if (!sceneId) { setTokens([]); setWalls([]); setDrawings([]); setLayers([]); setLights([]); setRooms([]); setRoomOpenings([]); setSceneProps([]); setStatus('ready'); return; }
     let alive = true;
     setStatus('loading');
-    void Promise.all([repo.listTokens(sceneId), repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId), repo.listRooms(sceneId), repo.listRoomOpenings(sceneId)])
-      .then(([t, w, d, ly, li, rm, ro]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setStatus('ready'); })
+    void Promise.all([repo.listTokens(sceneId), repo.listWalls(sceneId), repo.listDrawings(sceneId), repo.listLayers(sceneId), repo.listLights(sceneId), repo.listRooms(sceneId), repo.listRoomOpenings(sceneId), repo.listSceneProps(sceneId)])
+      .then(([t, w, d, ly, li, rm, ro, sp]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); setStatus('ready'); })
       .catch(() => { if (alive) setStatus('error'); });
     const off = repo.subscribe(sceneId, {
       onScene: c => { if (c.type === 'DELETE') setLive(null); else if (c.row) setLive(c.row); },
@@ -188,6 +195,8 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
        */
       onRoom: c => setRooms(l => applyChange(l, c)),
       onRoomOpening: c => setRoomOpenings(l => applyChange(l, c)),
+      /** Las piezas plantadas (rebanada 6). Las que estorban cambian la visión: van por `propKey`, más abajo. */
+      onSceneProp: c => setSceneProps(l => applyChange(l, c)),
       onEvent: (e: MapsLiveEvent) => {
         if (e.type === 'token.moved') {
           if (e.final) setDrags(d => { const n = { ...d }; delete n[e.tokenId]; return n; });
@@ -276,8 +285,14 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
    */
   const roomKey = rooms.map(r => `${r.id}:${r.points.length}:${r.points.flat().join(',')}`).join('|')
     + '#' + roomOpenings.map(o => `${o.id}:${o.x1},${o.y1},${o.x2},${o.y2}:${o.kind}:${o.isOpen ? 1 : 0}`).join('|');
+  /**
+   * Y LAS PIEZAS QUE ESTORBAN (rebanada 6, § 6.7): sólo las que cortan la vista o el paso, y sólo lo que cambia
+   * su forma —sitio, giro, tamaño, la forma que estorba y su capa—. Una maceta que sólo adorna no vale un viaje.
+   */
+  const propKey = sceneProps.filter(p => p.blocksSight || p.blocksMove)
+    .map(p => `${p.id}:${p.x}:${p.y}:${p.rotation}:${p.blocksSight ? 1 : 0}${p.blocksMove ? 1 : 0}:${p.blockShape}:${p.blockW}:${p.blockH}:${p.blockDx}:${p.blockDy}:${p.layerId ?? ''}`).join('|');
   /** One effect, so entering the scene costs ONE round trip and every later cause costs one more. */
-  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, roomKey, lightKey, layerKey, probeOn, live?.lighting, live?.nightRadiusM, live?.fogMode]);
+  useEffect(() => { refreshVision(); }, [refreshVision, myTokenKey, wallKey, roomKey, lightKey, layerKey, propKey, probeOn, live?.lighting, live?.nightRadiusM, live?.fogMode]);
   /**
    * ARRASTRAR LA SONDA VA CON EL MISMO FRENO QUE ARRASTRAR UNA FICHA, y esto no es un adorno.
    *
@@ -1114,6 +1129,98 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
     });
   }, [repo, push]);
 
+  // ── LAS PIEZAS PLANTADAS (rebanada 6) ────────────────────────────────────
+  /**
+   * PLANTAR entra en el historial, y sembrar MUCHAS entra como UN solo paso: un Ctrl+Z que deshiciera un roble
+   * de cincuenta sería inútil. Por eso la unidad es la lista, y una sola pieza es una lista de una.
+   */
+  const plantSceneProps = useCallback(async (inputs: NewSceneProp[]) => {
+    if (!inputs.length) return [];
+    const created = await Promise.all(inputs.map(i => repo.addSceneProp(i)));
+    setSceneProps(list => [...list, ...created.filter(c => !list.some(x => x.id === c.id))]);
+    let vivas = created;
+    push({
+      label: created.length > 1 ? 'maps.history.props' : 'maps.history.prop',
+      undo: async () => { const ids = vivas.map(v => v.id); setSceneProps(list => list.filter(x => !ids.includes(x.id))); await Promise.all(ids.map(id => repo.removeSceneProp(id))); },
+      redo: async () => { vivas = await Promise.all(inputs.map(i => repo.addSceneProp(i))); setSceneProps(list => [...list, ...vivas]); },
+    });
+    return created;
+  }, [repo, push]);
+  const plantSceneProp = useCallback(async (input: NewSceneProp) => (await plantSceneProps([input]))[0]!, [plantSceneProps]);
+  const removeSceneProp = useCallback(async (id: string) => {
+    const antes = scenePropsRef.current.find(x => x.id === id);
+    setSceneProps(list => list.filter(x => x.id !== id));
+    await repo.removeSceneProp(id);
+    if (!antes) return;
+    const { id: _id, createdAt: _c, updatedAt: _u, ...input } = antes;
+    let viva = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => { viva = await repo.addSceneProp(input as NewSceneProp); setSceneProps(list => [...list, viva]); },
+      redo: async () => { setSceneProps(list => list.filter(x => x.id !== viva.id)); await repo.removeSceneProp(viva.id); },
+    });
+  }, [repo, push]);
+  /**
+   * Mover, girar, escalar, cambiar de capa o de estorbo. Con `history` entra en el historial con la foto de
+   * antes (mover y estirar, que son trabajo); sin él no (cambiar de capa o apilar, que son un clic).
+   */
+  const patchSceneProp = useCallback(async (id: string, patch: ScenePropPatch, history: string | null = null) => {
+    const antes = scenePropsRef.current.find(x => x.id === id);
+    // La foto de ANTES se toma antes de escribir: un adaptador que devuelva las mismas referencias la pisaría.
+    const vuelta = antes ? Object.fromEntries(Object.keys(patch).map(k => [k, (antes as unknown as Record<string, unknown>)[k]])) as ScenePropPatch : null;
+    setSceneProps(list => list.map(x => (x.id === id ? { ...x, ...patch } : x)));
+    await repo.updateSceneProp(id, patch);
+    if (!history || !vuelta) return;
+    push({
+      label: history,
+      undo: async () => { setSceneProps(list => list.map(x => (x.id === id ? { ...x, ...vuelta } : x))); await repo.updateSceneProp(id, vuelta); },
+      redo: async () => { setSceneProps(list => list.map(x => (x.id === id ? { ...x, ...patch } : x))); await repo.updateSceneProp(id, patch); },
+    });
+  }, [repo, push]);
+  /**
+   * VARIAS PIEZAS DE UNA VEZ (§ 6.8, punto 5): mover, cambiar de capa o de estorbo lo cogido, como UN paso del
+   * historial. Un Ctrl+Z que deshiciera una pieza de cinco movidas juntas sería inútil.
+   */
+  const patchSceneProps = useCallback(async (patches: { id: string; patch: ScenePropPatch }[], history: string | null = null) => {
+    if (!patches.length) return;
+    const antes = patches.map(({ id, patch }) => {
+      const cur = scenePropsRef.current.find(x => x.id === id);
+      const vuelta = cur ? Object.fromEntries(Object.keys(patch).map(k => [k, (cur as unknown as Record<string, unknown>)[k]])) as ScenePropPatch : null;
+      return { id, patch: vuelta };
+    }).filter((x): x is { id: string; patch: ScenePropPatch } => x.patch !== null);
+    const aplicar = async (lista: { id: string; patch: ScenePropPatch }[]) => {
+      const byId = new Map(lista.map(x => [x.id, x.patch]));
+      setSceneProps(list => list.map(x => (byId.has(x.id) ? { ...x, ...byId.get(x.id)! } : x)));
+      await Promise.all(lista.map(x => repo.updateSceneProp(x.id, x.patch)));
+    };
+    await aplicar(patches);
+    if (!history || !antes.length) return;
+    push({ label: history, undo: () => aplicar(antes), redo: () => aplicar(patches) });
+  }, [repo, push]);
+  /** Borrar varias cogidas de una vez, como UN paso: Suprimir con el recuadro, o el botón derecho sobre varias. */
+  const removeSceneProps = useCallback(async (ids: string[]) => {
+    const antes = scenePropsRef.current.filter(x => ids.includes(x.id));
+    if (!antes.length) return;
+    setSceneProps(list => list.filter(x => !ids.includes(x.id)));
+    await Promise.all(antes.map(x => repo.removeSceneProp(x.id)));
+    let vivas = antes;
+    push({
+      label: 'maps.history.remove',
+      undo: async () => {
+        vivas = await Promise.all(antes.map(a => { const { id: _id, createdAt: _c, updatedAt: _u, ...input } = a; return repo.addSceneProp(input as NewSceneProp); }));
+        setSceneProps(list => [...list, ...vivas]);
+      },
+      redo: async () => { const muertas = vivas.map(v => v.id); setSceneProps(list => list.filter(x => !muertas.includes(x.id))); await Promise.all(muertas.map(id => repo.removeSceneProp(id))); },
+    });
+  }, [repo, push]);
+  /** El orden de apilado (§ 6.6): varios z de una vez, sin historial — es un clic, no trabajo que se pierda. */
+  const restackSceneProps = useCallback(async (patches: { id: string; patch: ScenePropPatch }[]) => {
+    if (!patches.length) return;
+    const byId = new Map(patches.map(p => [p.id, p.patch]));
+    setSceneProps(list => list.map(x => (byId.has(x.id) ? { ...x, ...byId.get(x.id)! } : x)));
+    await Promise.all(patches.map(p => repo.updateSceneProp(p.id, p.patch)));
+  }, [repo]);
+
   const focusPin = useCallback((p: Point) => {
     if (!sceneId || !live) return;
     repo.broadcast(sceneId, { type: 'pin.focused', campaignId: live.campaignId, sceneId, x: p.x, y: p.y, by: me });
@@ -1121,11 +1228,12 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
   }, [repo, sceneId, live, me]);
 
   return useMemo(() => ({
-    scene: live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog,
+    scene: live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps, drags, pin, status, fog,
     dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history,
     refreshVision, paintFog, paintAllFog, serverCorrection, moveDrawing,
     addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask,
     saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint,
     addLight, patchLight, removeLight, patchDrawingLayer,
-  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing]);
+    plantSceneProp, plantSceneProps, removeSceneProp, removeSceneProps, patchSceneProp, patchSceneProps, restackSceneProps,
+  }), [live, tokens, walls, drawings, layers, lights, rooms, roomOpenings, sceneProps, drags, pin, status, fog, dragToken, dragBound, moveToken, addToken, removeToken, patchToken, addDrawing, eraseDrawing, clearMine, clearAll, addWall, addRoom, addRoomShape, removeRoom, moveRoom, addRoomOpening, toggleRoomOpening, patchRoomOpening, removeRoomOpening, splitWall, groupWalls, ungroupWalls, transformWalls, removeWalls, removeWall, patchWall, setAllWallsVisible, patchWallGeometry, focusPin, history, refreshVision, paintFog, paintAllFog, serverCorrection, addTerrainLayer, patchLayer, removeLayer, reorderLayer, reorderLayerTo, saveMask, clearMask, saveRoomFloorMask, clearRoomFloorMask, saveRoomFloorPaint, clearRoomFloorPaint, saveLayerPaint, clearLayerPaint, addLight, patchLight, removeLight, patchDrawingLayer, moveDrawing, plantSceneProp, plantSceneProps, removeSceneProp, removeSceneProps, patchSceneProp, patchSceneProps, restackSceneProps]);
 }

@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { ColorPicker, Slider, Tooltip } from '@rolvium/ui';
-import type { BgFit, BgTransform, ImageAsset, Layer, Scene } from '../domain/entities/Scene';
-import { BG_COLORS } from '../domain/useCases/mapRules';
+import { Slider, Tooltip } from '@rolvium/ui';
+import type { BgFit, BgTransform, Layer, MapColor, Scene } from '../domain/entities/Scene';
+import { PaintColor } from './PaintColor';
 
-const HEX_RX = /^#[0-9a-fA-F]{6}$/;
 const FITS: BgFit[] = ['cover', 'contain', 'custom'];
 
 interface Props {
@@ -15,31 +13,46 @@ interface Props {
    * de terreno» dejaba una capa vacía sin manera de darle foto.
    */
   layer?: Layer | null;
-  images: ImageAsset[] | null;
+  /** Cómo se llama lo que hay puesto de fondo. `null` = ninguno. */
+  currentName: string | null;
+  /** Los colores que él ha guardado en ESTA campaña, para el bloque de color. `null` mientras llegan. */
+  savedColors: readonly MapColor[] | null;
+  onSaveColor: (hex: string) => void;
   onColor: (hex: string) => void;
-  onImage: (url: string | null) => void;
+  /** Abre el catálogo de fondos, aparte y encima del mapa — como el catálogo de texturas del Constructor. */
+  onOpenCatalog: () => void;
+  /** Quitar la foto y quedarse con el color de base. Es la vieja opción «Ninguna». */
+  onRemoveImage: () => void;
   onTransform: (tr: BgTransform) => void;
-  onUpload: (file: File) => Promise<void>;
   onClose: () => void;
 }
 
-/** DM «Fondo del mapa»: base colour (swatches + hex) · campaign image library (upload / choose / none) · fit Cubrir/Encajar/Reposicionar. */
-export function BackgroundPopover({ scene, layer = null, images, onColor, onImage, onTransform, onUpload, onClose }: Props): JSX.Element {
+/**
+ * EL FONDO DEL MAPA (`rolvium.pen` · `PL/Fondo del mapa · panel`, aprobado el 2026-09-14). Spec de maps,
+ * § «EL FONDO DEL MAPA».
+ *
+ * Tres bloques: el COLOR DE BASE, LA IMAGEN y el AJUSTE. Y dos cosas que él pidió con la pantalla delante
+ * (2026-09-14):
+ *
+ * - **El color es EL MISMO bloque que el Pincel y el Constructor** (`PaintColor`): «*el color picker tiene que
+ *   ajustarse como hicimos en otros menús*». Antes había aquí un `ColorPicker` con su hex apagado MÁS una fila
+ *   de hex hecha a mano al lado — dos mandos para una cosa, y ninguno guardaba colores. Ahora se guardan por
+ *   campaña, como en el Pincel.
+ * - **La foto no se elige aquí**: la muestra y CAMBIAR abren el catálogo a pantalla completa, igual que las
+ *   texturas del Constructor («*la foto es el botón*», § 6.8 punto 8). Antes había una rejilla plana sin
+ *   categorías y una subida de un fichero cada vez.
+ *
+ * QUITAR es la vieja opción «Ninguna»: deja el mapa con el color de base, que es justo lo que se ve donde no
+ * llega ninguna foto.
+ */
+export function BackgroundPopover({
+  scene, layer = null, currentName, savedColors, onSaveColor, onColor, onOpenCatalog, onRemoveImage, onTransform, onClose,
+}: Props): JSX.Element {
   const { t } = useTranslation();
-  const [hex, setHex] = useState(scene.bgColor);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { setHex(scene.bgColor); }, [scene.bgColor]);
   // Sobre qué se está trabajando: la capa de terreno activa, o la escena de siempre.
   const imageUrl = layer ? layer.imageUrl : scene.bgImageUrl;
   const tr = layer ? layer.transform : scene.bgTransform;
   const title = layer ? t('maps.bg.layerTitle', { name: layer.name || t('maps.layers.kind.terrain') }) : t('maps.bg.title');
-  const upload = async (f: File | undefined) => {
-    if (!f) return;
-    setBusy(true); setError(null);
-    try { await onUpload(f); } catch { setError(t('maps.bg.uploadError')); } finally { setBusy(false); if (fileRef.current) fileRef.current.value = ''; }
-  };
   return (
     <div className="mp-pop mp-bgpop" role="dialog" aria-label={title}>
       <div className="mp-pop-head">
@@ -53,32 +66,24 @@ export function BackgroundPopover({ scene, layer = null, images, onColor, onImag
         {!layer && (
           <>
             <span className="tb-rotulo">{t('maps.bg.baseColor')}</span>
-            <ColorPicker value={scene.bgColor} onChange={c => { setHex(c); onColor(c); }} palette={BG_COLORS} allowCustom={false} />
-            <div className="mp-hexrow">
-              <span className="mp-hex-swatch" style={{ background: HEX_RX.test(hex) ? hex : scene.bgColor }} aria-hidden />
-              <input className="mp-hex" value={hex} maxLength={7} spellCheck={false} aria-label={t('maps.bg.hex')} onChange={e => { setHex(e.target.value); if (HEX_RX.test(e.target.value)) onColor(e.target.value); }} />
-              <span className="tb-italic tb-dim mp-hint">{t('maps.bg.hexHint')}</span>
-            </div>
+            <PaintColor value={scene.bgColor} onChange={onColor} savedColors={savedColors} onSave={onSaveColor} />
           </>
         )}
-        <div className="mp-pop-row">
-          <span className="tb-rotulo">{t('maps.bg.library')}</span>
-          <span className="mp-spacer" />
-          <button type="button" className="tb-btn tb-btn-xs" disabled={busy} onClick={() => fileRef.current?.click()}>{t('maps.bg.upload')}</button>
-          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden data-testid="mp-bg-file" onChange={e => void upload(e.target.files?.[0])} />
-        </div>
-        {error && <p className="mp-error">{error}</p>}
-        <div className="mp-lib">
-          {images === null && <span className="tb-dim tb-italic">{t('common.loading')}</span>}
-          {images?.length === 0 && <span className="tb-dim tb-italic">{t('maps.bg.empty')}</span>}
-          {images?.map(img => (
-            <button key={img.id} type="button" className={`mp-lib-item ${imageUrl === img.url ? 'on' : ''}`} aria-pressed={imageUrl === img.url} aria-label={img.name} onClick={() => onImage(img.url)}>
-              <span className="mp-lib-thumb" style={{ backgroundImage: `url(${img.url})` }} /><span className="mp-lib-name">{img.name}</span>
-            </button>
-          ))}
-          <button type="button" className={`mp-lib-item ${imageUrl === null ? 'on' : ''}`} aria-pressed={imageUrl === null} aria-label={t('maps.bg.none')} onClick={() => onImage(null)}>
-            <span className="mp-lib-thumb none"><span className="material-symbols-outlined" aria-hidden style={{ fontSize: 'var(--icon-md)' }}>hide_image</span></span><span className="mp-lib-name">{t('maps.bg.none')}</span>
-          </button>
+        {/*
+          * LA FILA DE LA IMAGEN: la misma que las de textura del Constructor (`mp-builder-tex`), que es la
+          * forma que él ya aprobó para «muestra + nombre + CAMBIAR». Se reutiliza su CSS a propósito: es el
+          * mismo objeto visual, y tenerlo dos veces sería que un día dijeran cosas distintas.
+          */}
+        <span className="tb-rotulo">{t('maps.bg.image')}</span>
+        <div className="mp-builder-tex">
+          <button type="button" className="mp-builder-tex-swatch" data-testid="mp-bg-swatch"
+            aria-label={t('maps.bg.openCatalog')} onClick={onOpenCatalog}
+            style={imageUrl ? { backgroundImage: `url(${imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: 'var(--sf2)' }} />
+          <span className="mp-builder-tex-n">{currentName ?? t('maps.bg.none')}</span>
+          <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={onOpenCatalog}>{t('maps.bg.change')}</button>
+          {imageUrl && (
+            <button type="button" className="tb-btn tb-btn-xs tb-btn-blood" onClick={onRemoveImage}>{t('maps.bg.remove')}</button>
+          )}
         </div>
         <div className="mp-pop-row">
           <span className="tb-rotulo">{t('maps.bg.fit')}</span>

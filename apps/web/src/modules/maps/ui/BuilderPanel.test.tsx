@@ -378,6 +378,12 @@ describe('<BuilderPanel> las dos texturas base y el grosor', () => {
   it('con una foto suya, manda la suya — y se puede quitar', async () => {
     const onTexture = vi.fn(), onClearTexture = vi.fn();
     mount({ mode: 'draw', wallTextureUrl: 'https://x/roca.png', onTexture, onClearTexture });
+    // LA MUESTRA ES UN BOTÓN (§ 6.8, punto 8): pincharla abre el catálogo de esa textura, igual que CAMBIAR / ELEGIR.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Abrir el catálogo de texturas' })[0]!);
+    expect(onTexture).toHaveBeenCalledWith('wall');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Abrir el catálogo de texturas' })[1]!);
+    expect(onTexture).toHaveBeenCalledWith('floor');
+    onTexture.mockClear();
     const fila = screen.getByText('Las dos texturas base').closest('fieldset')!;
     expect(within(fila).getByText('Foto tuya')).toBeInTheDocument();
     const user = userEvent.setup();

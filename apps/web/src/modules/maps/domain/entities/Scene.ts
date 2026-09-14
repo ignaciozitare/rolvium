@@ -388,9 +388,13 @@ export type BlockShape = 'rect' | 'circle';
  */
 export interface Prop {
   id: string;
-  /** `null` = pieza DEL CATÁLOGO DE LA APP; con valor = pieza de esa campaña (§ 6.1). */
-  campaignId: string | null;
+  /**
+   * El PAQUETE propio en el que está (§ 6.1, rebanada 6 reescrita: la biblioteca es de la HERRAMIENTA y va en
+   * paquetes, no en campañas). `null` = «Sin clasificar».
+   */
+  packId: string | null;
   name: string;
+  /** Categoría DE SERIE: sólo cuenta para las piezas que trae la app (sin `uploadedBy`). */
   category: PropCategory;
   imageUrl: string;
   /** Tamaño del fichero ya subido, en px: con él y la escala sale la huella sin esperar a que cargue. */
@@ -411,7 +415,21 @@ export interface Prop {
   updatedAt: string;
 }
 export type NewProp = Omit<Prop, 'id' | 'createdAt' | 'updatedAt'>;
-export type PropPatch = Partial<Omit<Prop, 'id' | 'campaignId' | 'createdAt' | 'updatedAt'>>;
+export type PropPatch = Partial<Omit<Prop, 'id' | 'uploadedBy' | 'createdAt' | 'updatedAt'>>;
+
+/**
+ * UN PAQUETE de la biblioteca (§ 6.1): la carpeta con nombre en la que él agrupa sus piezas. De la
+ * herramienta, como las piezas. Borrarlo no borra las piezas: pasan a «Sin clasificar».
+ */
+export interface PropPack {
+  id: string;
+  name: string;
+  sortOrder: number;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export type PropPackPatch = Partial<Pick<PropPack, 'name' | 'sortOrder'>>;
 
 /**
  * Una pieza YA PLANTADA en un mapa. Se lleva su propia copia de la foto y del nombre a propósito: es lo que
@@ -436,6 +454,8 @@ export interface SceneProp {
   height: number;
   /** Grados, como el resto del lienzo. */
   rotation: number;
+  /** Orden de apilado ENTRE PIEZAS de la escena (§ 6.6): mayor = más arriba. La capa la decide `layerId`. */
+  z: number;
   blocksSight: boolean;
   blocksMove: boolean;
   blockShape: BlockShape;

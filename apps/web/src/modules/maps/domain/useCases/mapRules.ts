@@ -13,10 +13,10 @@ export interface View { zoom: number; panX: number; panY: number }
  * `select` replaced `move` in slice 3: choosing and editing is a tool, panning is NOT — it is a modifier
  * (space bar or middle button) so it works from every tool (specs/modules/maps/SPEC.md § «Rebanada 3»).
  */
-export type Tool = 'select' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'text' | 'erase' | 'wall' | 'reveal' | 'hide' | 'mask' | 'light' | 'encounter';
+export type Tool = 'select' | 'measure' | 'pin' | 'pencil' | 'line' | 'rect' | 'circle' | 'text' | 'erase' | 'wall' | 'reveal' | 'hide' | 'mask' | 'light' | 'encounter' | 'props';
 
 export const PLAYER_TOOLS: Tool[] = ['select', 'measure', 'pin', 'pencil', 'line', 'rect', 'circle', 'text', 'erase'];
-export const DM_TOOLS: Tool[] = ['wall', 'reveal', 'hide', 'mask', 'light', 'encounter'];
+export const DM_TOOLS: Tool[] = ['props', 'wall', 'reveal', 'hide', 'mask', 'light', 'encounter'];
 /** Tools that exist in the design but not yet in code; the toolbar greys them out. Empty since slice 2 shipped the fog brush. */
 export const TOOLS_NOT_YET: Tool[] = [];
 /** The reveal/hide brush paints on the fog instead of drawing. */
@@ -703,9 +703,21 @@ export function canMoveDrawing(_d: Pick<Drawing, 'authorId'>, _me: string | null
   return isDm;
 }
 
+/**
+ * EL CÍRCULO NACE DE DONDE SE PINCHA (él, 2026-09-13: «*cuando hago un círculo … tiene que crecer desde donde
+ * clico*»): `a` es una esquina del cuadrado que lo encierra y crece hacia `b`, como el rectángulo. El lado es
+ * el mayor de los dos desplazamientos, para que siga siendo un círculo y no un óvalo.
+ */
+export function circleFromCorner(a: Point, b: Point): { cx: number; cy: number; r: number } {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const side = Math.max(Math.abs(dx), Math.abs(dy));
+  const r = side / 2;
+  return { cx: a.x + Math.sign(dx || 1) * r, cy: a.y + Math.sign(dy || 1) * r, r };
+}
+
 /** Shape data of a two-point tool (line/rect/circle) between `a` and `b`. */
 export function shapeData(kind: Exclude<DrawingKind, 'stroke' | 'text'>, a: Point, b: Point): Drawing['data'] {
-  if (kind === 'circle') return { cx: a.x, cy: a.y, r: Math.hypot(b.x - a.x, b.y - a.y) };
+  if (kind === 'circle') return circleFromCorner(a, b);
   return { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
 }
 

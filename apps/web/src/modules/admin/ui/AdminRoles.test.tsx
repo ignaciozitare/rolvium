@@ -59,6 +59,20 @@ describe('AdminRoles — los permisos de herramienta van a su propio cajón', ()
     expect(Object.keys(escrito.admin)).not.toContain('manage_textures');
   });
 
+  /** Rebanada 6 (maps): «Gestionar objetos» es el segundo permiso de herramienta, y entra por la misma puerta. */
+  it('conceder «Gestionar objetos» escribe `manage_props` en `tools` y deja `admin` intacto', async () => {
+    const deps = fakeAdminDeps();
+    renderWithProviders(<AdminRoles roleRepo={deps.roleRepo} />);
+    await userEvent.click(await screen.findByTestId('role-game_master'));
+    await userEvent.click(await screen.findByText('Gestionar objetos'));
+    await waitFor(() => expect(deps.roleRepo.updatePermissions).toHaveBeenCalledWith('r-gm', {
+      modules: [], admin: {}, tools: { manage_props: true },
+    }));
+    const [, escrito] = (deps.roleRepo.updatePermissions as unknown as { mock: { calls: [string, { admin: Record<string, boolean> }][] } }).mock.calls.at(-1)!;
+    expect(escrito.admin).toEqual({});
+    expect(Object.keys(escrito.admin)).not.toContain('manage_props');
+  });
+
   it('y al revés: conceder uno de administración no toca el cajón de herramientas', async () => {
     const deps = fakeAdminDeps();
     renderWithProviders(<AdminRoles roleRepo={deps.roleRepo} />);

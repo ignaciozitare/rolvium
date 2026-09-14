@@ -6,6 +6,7 @@ import {
   canEraseDrawing, canMoveToken, canvasToScene, centerOn, clampZoom, distanceCells, distanceLabel, filterEntries, fitView, hitDrawing, hitTest, initialsOf,
   MAX_ZOOM, MIN_ZOOM, sceneToCanvas, sceneToOpen, sceneVisibleTo, shapeData, snap, cellOf, tokenCellAt, tokenCenter, tokenFromBestiary, tokenFromCharacter, toolsFor, visibleTokens, zoomAt,
   blocksMoveNow, blocksSightNow, brushRadius, unionCells, canOpen, cellsPath, DOOR_BAR_PX, TOKEN_SCALE, tokenSizeIn, tokensScaledIn, tokenAnchorShift, tokenPointStored, doorColorOf, doorPatternId, doorQuads, doorSpan, doorTextureOf, doorTexturesUsed, quadPoints, hitOpening, hitWall, isBrush, METRES_PER_CELL, midpoint, newWallOf, nightLabelM, openingGeometry, planOpening, polygonPoints, polygonsPath, sceneRadiusPx, TOOLS_NOT_YET, wallDragTo, wallPiece, WALL_FLAGS, WALL_KINDS, splitWallAt, pointOnWall, snapStep, drawingBounds, drawingsInRect, rectFrom, tokensInRect, isDraw, PLAYER_TOOLS, DEFAULT_TOKEN_CELLS, tokenPointAt, slideToken, moveBlockers, tokenRadiusPx, tokenGapCells, translateDrawing, canMoveDrawing,
+  circleFromCorner,
 } from './mapRules';
 import { plenilunio } from '@rolvium/system-plenilunio';
 
@@ -234,6 +235,12 @@ describe('mapRules — permissions & visibility', () => {
     expect(toolsFor(false)).not.toContain('wall');
     expect(toolsFor(true)).toEqual(expect.arrayContaining(['wall', 'reveal', 'hide', 'encounter']));
   });
+  /** «Piezas» (rebanada 6) es del director y abre su bloque: sale la primera, y a un jugador no le sale. */
+  it('toolsFor: «Piezas» is a DM tool and heads the DM block; players never see it', () => {
+    expect(toolsFor(false)).not.toContain('props');
+    expect(toolsFor(true)).toContain('props');
+    expect(toolsFor(true).indexOf('props')).toBe(PLAYER_TOOLS.length);
+  });
 });
 
 describe('mapRules — hit tests & shapes', () => {
@@ -262,9 +269,13 @@ describe('mapRules — hit tests & shapes', () => {
     expect(hitTest([DRAWING_MINE, twin], { x: 320, y: 290 })?.id).toBe('d-top');
     expect(hitTest([DRAWING_MINE], { x: 0, y: 0 })).toBeNull();
   });
-  it('shapeData builds line/rect bbox and circle radius', () => {
+  it('shapeData builds line/rect bbox; the circle GROWS FROM THE CLICKED CORNER (2026-09-13), not from the centre', () => {
     expect(shapeData('rect', { x: 1, y: 2 }, { x: 3, y: 4 })).toEqual({ x1: 1, y1: 2, x2: 3, y2: 4 });
-    expect(shapeData('circle', { x: 0, y: 0 }, { x: 3, y: 4 })).toEqual({ cx: 0, cy: 0, r: 5 });
+    // Donde se pincha es una esquina del cuadrado que encierra el círculo; el lado es el mayor desplazamiento.
+    expect(shapeData('circle', { x: 0, y: 0 }, { x: 3, y: 4 })).toEqual({ cx: 2, cy: 2, r: 2 });
+    // Hacia arriba y a la izquierda también crece hacia la mano, sin salirse por el otro lado.
+    expect(shapeData('circle', { x: 10, y: 10 }, { x: 2, y: 4 })).toEqual({ cx: 6, cy: 6, r: 4 });
+    expect(circleFromCorner({ x: 5, y: 5 }, { x: 5, y: 5 })).toEqual({ cx: 5, cy: 5, r: 0 });
   });
 });
 

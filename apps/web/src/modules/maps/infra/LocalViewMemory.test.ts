@@ -38,10 +38,47 @@ describe('LocalViewMemory', () => {
     expect(m.lastBuilderMode()).toBe(null);
   });
 
+  /** ⭐ Favoritos y 🕒 recientes de la galería (rebanada 6): de cada uno, en su navegador, sin campaña. */
+  it('marca y desmarca favoritos, y los devuelve en el orden en que se marcaron', () => {
+    const m = new LocalViewMemory();
+    expect(m.favoriteProps()).toEqual([]);
+    expect(m.toggleFavoriteProp('pr-oak')).toEqual(['pr-oak']);
+    expect(m.toggleFavoriteProp('pr-col')).toEqual(['pr-oak', 'pr-col']);
+    expect(m.toggleFavoriteProp('pr-oak')).toEqual(['pr-col']);
+    expect(m.favoriteProps()).toEqual(['pr-col']);
+  });
+
+  it('apunta lo último plantado, lo más reciente primero, sin repetidos y con tope', () => {
+    const m = new LocalViewMemory();
+    m.rememberRecentProp('a'); m.rememberRecentProp('b'); m.rememberRecentProp('a');
+    expect(m.recentProps()).toEqual(['a', 'b']);
+    for (let i = 0; i < 30; i++) m.rememberRecentProp(`x${i}`);
+    expect(m.recentProps()).toHaveLength(18);
+    expect(m.recentProps()[0]).toBe('x29');
+    // una clave escrita a mano con basura vale como vacía
+    mem.set('rolvium_maps_prop_favorites', '{"no":1}');
+    expect(m.favoriteProps()).toEqual([]);
+    mem.set('rolvium_maps_prop_recents', 'no es json');
+    expect(m.recentProps()).toEqual([]);
+  });
+
   /**
    * Con el almacenamiento capado (modo privado, cookies de terceros bloqueadas) `localStorage` LANZA, no
    * devuelve `null`. Sin el `try` la pantalla del mapa no abriría — por eso esto está pineado.
    */
+  it('las texturas tienen sus propias listas de favoritas y recientes, aparte de las de piezas', () => {
+    const m = new LocalViewMemory();
+    expect(m.favoriteTextures()).toEqual([]);
+    expect(m.toggleFavoriteTexture('tx-a')).toEqual(['tx-a']);
+    expect(m.toggleFavoriteProp('pr-a')).toEqual(['pr-a']);
+    expect(m.favoriteTextures()).toEqual(['tx-a']);          // la de piezas no se mezcla
+    expect(m.toggleFavoriteTexture('tx-a')).toEqual([]);
+    expect(m.rememberRecentTexture('tx-a')).toEqual(['tx-a']);
+    expect(m.rememberRecentTexture('tx-b')).toEqual(['tx-b', 'tx-a']);
+    expect(m.recentTextures()).toEqual(['tx-b', 'tx-a']);
+    expect(m.recentProps()).toEqual([]);
+  });
+
   it('con el almacenamiento capado no revienta: devuelve null y guardar no hace nada', () => {
     const m = new LocalViewMemory();
     vi.stubGlobal('localStorage', {
@@ -52,5 +89,8 @@ describe('LocalViewMemory', () => {
     expect(() => m.rememberScene('c1', 'sc-1')).not.toThrow();
     expect(m.lastBuilderMode()).toBe(null);
     expect(() => m.rememberBuilderMode('draw')).not.toThrow();
+    expect(m.favoriteProps()).toEqual([]);
+    expect(() => m.toggleFavoriteProp('x')).not.toThrow();
+    expect(() => m.rememberRecentProp('x')).not.toThrow();
   });
 });

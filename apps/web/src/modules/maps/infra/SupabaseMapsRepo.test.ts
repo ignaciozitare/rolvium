@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_DOOR } from '../domain/entities/Scene';
 import type { Wall } from '../domain/entities/Scene';
 import { createSupabaseMock } from '../../../../tests/helpers/supabaseMock';
-import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapLayerRow, mapPropRow, mapRoomRow, mapSceneRow, mapScenePropRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
+import { BACKGROUNDS_BUCKET, SupabaseMapsRepo, mapDrawingRow, mapLayerRow, mapPackRow, mapPropRow, mapRoomRow, mapSceneRow, mapScenePropRow, mapTokenRow, mapWallRow } from './SupabaseMapsRepo';
 
 const SCENE_ROW = { id: 'sc-1', campaign_id: 'c1', name: 'Almacén', width: 1080, height: 675, bg_color: '#4a4a3e', bg_image_url: null, bg_transform: { mode: 'cover' as const, x: 0, y: 0, scale: 1 }, grid: { size: 27, visible: true }, fog_mode: 'vision' as const, lighting: 'day' as const, night_radius_m: 10, solid_walls: false, sort_order: 0, visible_players: false, created_at: 't', updated_at: 't' };
 const TOKEN_ROW = { id: 'tk-1', scene_id: 'sc-1', campaign_id: 'c1', character_id: 'ch-karen', bestiary_ref: null, bestiary_entry_id: null, name: 'Karen', image_url: null, x: 10, y: 11, size: 1, color: '#6e2418', visible: true, controlled_by: 'u-pip', vision_radius: null, state: {}, layer_id: null };
@@ -12,8 +12,9 @@ const LAYER_ROW = { id: 'ly-1', scene_id: 'sc-1', campaign_id: 'c1', kind: 'terr
 const LIGHT_ROW = { id: 'li-1', scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius' as const, kind: 'torch' as const, x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false, created_at: 't', updated_at: 't' };
 const DRAWING_ROW = { id: 'd-1', scene_id: 'sc-1', campaign_id: 'c1', author_id: 'u-pip', kind: 'stroke' as const, data: { points: [[1, 2]] as [number, number][] }, color: '#c9a84c', width: 2, created_at: 't', layer_id: null };
 const IMAGE_ROW = { id: 'img-1', campaign_id: 'c1', name: 'Capilla', url: 'https://x/chapel.png', created_at: 't' };
-const PROP_ROW = { id: 'pr-1', campaign_id: 'c1', name: 'Roble', category: 'vegetation' as const, image_url: 'https://x/oak.webp', natural_width: 200, natural_height: 300, default_scale: 1.5, default_blocks_sight: true, default_blocks_move: false, default_block_shape: 'circle' as const, uploaded_by: 'u-gm', created_at: 't', updated_at: 't' };
-const SCENE_PROP_ROW = { id: 'sp-1', scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, prop_id: 'pr-1', image_url: 'https://x/oak.webp', name: 'Roble', x: 120, y: 340, width: 300, height: 450, rotation: 15, blocks_sight: true, blocks_move: false, block_shape: 'circle' as const, block_w: 450, block_h: 450, block_dx: 0, block_dy: 0, created_at: 't', updated_at: 't' };
+const PROP_ROW = { id: 'pr-1', pack_id: 'pk-1', name: 'Roble', category: 'vegetation' as const, image_url: 'https://x/oak.webp', natural_width: 200, natural_height: 300, default_scale: 1.5, default_blocks_sight: true, default_blocks_move: false, default_block_shape: 'circle' as const, uploaded_by: 'u-gm', created_at: 't', updated_at: 't' };
+const SCENE_PROP_ROW = { id: 'sp-1', scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, prop_id: 'pr-1', image_url: 'https://x/oak.webp', name: 'Roble', x: 120, y: 340, width: 300, height: 450, rotation: 15, z: 2, blocks_sight: true, blocks_move: false, block_shape: 'circle' as const, block_w: 450, block_h: 450, block_dx: 0, block_dy: 0, created_at: 't', updated_at: 't' };
+const PACK_ROW = { id: 'pk-1', name: 'Mazmorra propia', sort_order: 0, created_by: 'u-gm', created_at: 't', updated_at: 't' };
 
 const withSession = (client: Record<string, unknown>, uid = 'u-pip') => ({ ...client, auth: { getSession: vi.fn().mockResolvedValue({ data: { session: { user: { id: uid } } } }) } });
 const q = (m: ReturnType<typeof createSupabaseMock>, i = 0) => (m.client.from as ReturnType<typeof vi.fn>).mock.results[i]!.value as Record<string, ReturnType<typeof vi.fn>>;
@@ -94,6 +95,27 @@ describe('SupabaseMapsRepo — images', () => {
     expect(q(list)['eq']).toHaveBeenCalledWith('campaign_id', 'c1');
     const failing = { ...client, storage: { from: vi.fn(() => ({ upload: vi.fn().mockResolvedValue({ data: null, error: { message: 'too big' } }), getPublicUrl: vi.fn() })) } };
     await expect(new SupabaseMapsRepo(failing as unknown as SupabaseClient).uploadImage('c1', new Blob(['x']), 'x')).rejects.toThrow('too big');
+  });
+
+  /**
+   * RENOMBRAR UN FONDO desde el catálogo (§ «EL FONDO DEL MAPA»). Es lo ÚNICO que se le puede cambiar: ni la
+   * foto ni la campaña viajan en el `update`, porque un fondo es de la campaña donde se subió — mandar
+   * `campaign_id` sería abrir la puerta a moverlo a otra, y quien tiene que cerrarla es también el adaptador.
+   */
+  it('updateImage manda sólo `name` y apunta a la fila por id', async () => {
+    const m = createSupabaseMock({ tables: { maps_images: { data: null, error: null } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await repo.updateImage('img-1', { name: 'Capilla en ruinas' });
+    expect(m.fromSpy).toHaveBeenCalledWith('maps_images');
+    expect(q(m)['update']).toHaveBeenCalledWith({ name: 'Capilla en ruinas' });
+    expect(q(m)['eq']).toHaveBeenCalledWith('id', 'img-1');
+    expect(q(m)['eq']).toHaveBeenCalledTimes(1);
+  });
+
+  it('si la RLS deniega (no es el director de esa campaña), el error SUBE', async () => {
+    const m = createSupabaseMock({ tables: { maps_images: { data: null, error: new Error('new row violates row-level security policy') } } });
+    const repo = new SupabaseMapsRepo(m.client as unknown as SupabaseClient);
+    await expect(repo.updateImage('img-1', { name: 'X' })).rejects.toThrow(/row-level security/);
   });
 });
 
@@ -452,12 +474,16 @@ describe('SupabaseMapsRepo — realtime', () => {
 describe('SupabaseMapsRepo — la biblioteca de piezas', () => {
   it('los mappers traducen las dos filas nuevas', () => {
     expect(mapPropRow(PROP_ROW)).toMatchObject({
-      id: 'pr-1', campaignId: 'c1', name: 'Roble', category: 'vegetation', imageUrl: 'https://x/oak.webp',
+      id: 'pr-1', packId: 'pk-1', name: 'Roble', category: 'vegetation', imageUrl: 'https://x/oak.webp',
       naturalWidth: 200, naturalHeight: 300, defaultScale: 1.5,
       defaultBlocksSight: true, defaultBlocksMove: false, defaultBlockShape: 'circle', uploadedBy: 'u-gm',
     });
     // Una del catálogo de la app llega sin campaña, y eso es lo que la distingue.
-    expect(mapPropRow({ ...PROP_ROW, campaign_id: null }).campaignId).toBeNull();
+    // Sin paquete = «Sin clasificar»; y una fila anterior a la columna `z` se pinta abajo de todo.
+    expect(mapPropRow({ ...PROP_ROW, pack_id: null }).packId).toBeNull();
+    expect(mapScenePropRow(SCENE_PROP_ROW).z).toBe(2);
+    expect(mapScenePropRow({ ...SCENE_PROP_ROW, z: undefined }).z).toBe(0);
+    expect(mapPackRow(PACK_ROW)).toEqual({ id: 'pk-1', name: 'Mazmorra propia', sortOrder: 0, createdBy: 'u-gm', createdAt: 't', updatedAt: 't' });
     expect(mapScenePropRow(SCENE_PROP_ROW)).toMatchObject({
       id: 'sp-1', sceneId: 'sc-1', propId: 'pr-1', imageUrl: 'https://x/oak.webp', name: 'Roble',
       x: 120, y: 340, width: 300, height: 450, rotation: 15,
@@ -467,10 +493,11 @@ describe('SupabaseMapsRepo — la biblioteca de piezas', () => {
     expect(mapScenePropRow({ ...SCENE_PROP_ROW, prop_id: null })).toMatchObject({ propId: null, imageUrl: 'https://x/oak.webp' });
   });
 
-  it('lista las tuyas Y las del catálogo de la app en una sola consulta', async () => {
+  it('lista la biblioteca ENTERA en una sola consulta: es de la herramienta, no hay campaña por la que filtrar', async () => {
     const m = createSupabaseMock({ tables: { maps_props: { data: [PROP_ROW], error: null } } });
-    expect(await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).listProps('c1')).toHaveLength(1);
-    expect(q(m).or).toHaveBeenCalledWith('campaign_id.eq.c1,campaign_id.is.null');
+    expect(await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).listProps()).toHaveLength(1);
+    expect(q(m).or).not.toHaveBeenCalled();
+    expect(q(m).eq).not.toHaveBeenCalled();
   });
 
   it('subir una pieza pone la foto y la fila bajo el MISMO id, en el bucket de fondos', async () => {
@@ -479,26 +506,41 @@ describe('SupabaseMapsRepo — la biblioteca de piezas', () => {
     const storage = { from: vi.fn(() => bucket) };
     const client = { ...withSession(m.client, 'u-gm'), storage };
     await new SupabaseMapsRepo(client as unknown as SupabaseClient).addProp({
-      campaignId: 'c1', name: 'Roble', category: 'vegetation', imageUrl: '', naturalWidth: 200, naturalHeight: 300,
+      packId: 'pk-1', name: 'Roble', category: 'vegetation', imageUrl: '', naturalWidth: 200, naturalHeight: 300,
       defaultScale: 1.5, defaultBlocksSight: true, defaultBlocksMove: false, defaultBlockShape: 'circle', uploadedBy: null,
     }, new Blob(['x'], { type: 'image/webp' }));
 
     expect(storage.from).toHaveBeenCalledWith(BACKGROUNDS_BUCKET);
     const path = bucket.upload.mock.calls[0]![0] as string;
-    expect(path).toMatch(/^c1\/props\/[0-9a-f-]{36}\.webp$/);
+    // En `props/`, SIN campaña delante: la biblioteca es de la herramienta y el objeto lleva su propia política.
+    expect(path).toMatch(/^props\/[0-9a-f-]{36}\.webp$/);
     const inserted = m.insertSpy.mock.calls[0]![0] as Record<string, unknown>;
     // El id de la fila y el nombre del fichero son el mismo: sin eso habría que insertar y corregir después.
-    expect(path).toBe(`c1/props/${inserted.id as string}.webp`);
-    expect(inserted).toMatchObject({ campaign_id: 'c1', uploaded_by: 'u-gm', image_url: 'https://x/subida.webp', natural_width: 200, default_scale: 1.5, default_block_shape: 'circle' });
+    expect(path).toBe(`props/${inserted.id as string}.webp`);
+    expect(inserted).toMatchObject({ pack_id: 'pk-1', uploaded_by: 'u-gm', image_url: 'https://x/subida.webp', natural_width: 200, default_scale: 1.5, default_block_shape: 'circle' });
+    expect(inserted).not.toHaveProperty('campaign_id');
   });
 
-  it('una pieza subida siempre es de una campaña: al catálogo de la app no se le mete nada desde aquí', async () => {
-    const m = createSupabaseMock({});
+  it('mover de paquete y renombrar van por el mismo update, traducidos a columnas', async () => {
+    const m = createSupabaseMock({ tables: { maps_props: { data: PROP_ROW, error: null } } });
+    await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).updateProp('pr-1', { packId: null, name: 'Roble viejo' });
+    expect(m.updateSpy).toHaveBeenCalledWith({ pack_id: null, name: 'Roble viejo' });
+  });
+
+  it('los paquetes: se listan en su orden, se crean a tu nombre, se renombran y se borran', async () => {
+    const m = createSupabaseMock({ tables: { maps_prop_packs: { data: [PACK_ROW], error: null } } });
     const repo = new SupabaseMapsRepo(withSession(m.client, 'u-gm') as unknown as SupabaseClient);
-    await expect(repo.addProp({
-      campaignId: null, name: 'x', category: 'misc', imageUrl: '', naturalWidth: 1, naturalHeight: 1,
-      defaultScale: 1, defaultBlocksSight: false, defaultBlocksMove: false, defaultBlockShape: 'rect', uploadedBy: null,
-    }, new Blob(['x']))).rejects.toThrow();
+    expect(await repo.listPropPacks()).toEqual([mapPackRow(PACK_ROW)]);
+    expect(q(m).order).toHaveBeenCalledWith('sort_order', { ascending: true });
+
+    const m2 = createSupabaseMock({ tables: { maps_prop_packs: { data: PACK_ROW, error: null } } });
+    const repo2 = new SupabaseMapsRepo(withSession(m2.client, 'u-gm') as unknown as SupabaseClient);
+    expect((await repo2.addPropPack('Mazmorra propia')).name).toBe('Mazmorra propia');
+    expect(m2.insertSpy).toHaveBeenCalledWith({ name: 'Mazmorra propia', created_by: 'u-gm' });
+    await repo2.updatePropPack('pk-1', { name: 'Cripta', sortOrder: 3 });
+    expect(m2.updateSpy).toHaveBeenCalledWith({ name: 'Cripta', sort_order: 3 });
+    await repo2.removePropPack('pk-1');
+    expect(m2.deleteSpy).toHaveBeenCalled();
   });
 
   it('actualizar traduce a columnas, y es por donde se guarda la escala que la pieza recuerda', async () => {
@@ -528,10 +570,10 @@ describe('SupabaseMapsRepo — lo plantado en la escena', () => {
     const repo2 = new SupabaseMapsRepo(m2.client as unknown as SupabaseClient);
     await repo2.addSceneProp({
       sceneId: 'sc-1', campaignId: 'c1', layerId: 'ly-7', propId: 'pr-1', imageUrl: 'https://x/oak.webp', name: 'Roble',
-      x: 120, y: 340, width: 300, height: 450, rotation: 0, blocksSight: true, blocksMove: false,
+      x: 120, y: 340, width: 300, height: 450, rotation: 0, z: 3, blocksSight: true, blocksMove: false,
       blockShape: 'circle', blockW: 450, blockH: 450, blockDx: 0, blockDy: 0,
     });
-    expect(m2.insertSpy).toHaveBeenCalledWith(expect.objectContaining({ scene_id: 'sc-1', campaign_id: 'c1', layer_id: 'ly-7', prop_id: 'pr-1', image_url: 'https://x/oak.webp', block_shape: 'circle', block_w: 450 }));
+    expect(m2.insertSpy).toHaveBeenCalledWith(expect.objectContaining({ scene_id: 'sc-1', campaign_id: 'c1', layer_id: 'ly-7', prop_id: 'pr-1', image_url: 'https://x/oak.webp', block_shape: 'circle', block_w: 450, z: 3 }));
 
     await repo2.updateSceneProp('sp-1', { width: 600, height: 900, rotation: 42, blocksMove: true });
     expect(m2.updateSpy).toHaveBeenCalledWith({ width: 600, height: 900, rotation: 42, blocks_move: true });

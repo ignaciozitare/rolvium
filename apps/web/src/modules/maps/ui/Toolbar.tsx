@@ -16,7 +16,9 @@ import { moveToolbarItem, resolvedToolbarOrder, TOOLBAR_SEP, type ToolbarBlock, 
  * `builder-mask.png` es SU MISMO dibujo con el alfa engordado 2 px y las medias tintas levantadas, que a
  * tamaño real lo deja en 252. **El original no se ha tocado** y sigue en la carpeta.
  */
-const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: '/icons/builder-mask.png', reveal: 'visibility', hide: 'visibility_off', mask: 'brush', light: 'wb_incandescent', encounter: 'swords' };
+const ICONS: Record<Tool, string> = { select: 'arrow_selector_tool', measure: 'straighten', pin: 'location_on', pencil: 'edit', line: 'horizontal_rule', rect: 'crop_square', circle: 'circle', text: 'title', erase: 'ink_eraser', wall: '/icons/builder-mask.png', reveal: 'visibility', hide: 'visibility_off', mask: 'brush', light: 'wb_incandescent', encounter: 'swords',
+  // «Piezas» (rebanada 6): el trazo dibujado en el `.pen` (`SNlGp` · «I/Piezas · plantar»), como máscara igual que el Builder.
+  props: '/icons/props-mask.svg' };
 const esImagen = (icon: string): boolean => icon.startsWith('/');
 
 /** Actions that open a panel instead of changing the cursor: they are buttons, not tools. */
@@ -134,12 +136,11 @@ function DrawTools({ tool, label, onChange }: { tool: Tool; label: (id: Tool) =>
  *
  *   play    Dados · Seleccionar · Medir · Pin        — what you touch while playing
  *   canvas  Lápiz · Línea · Caja · Círculo · Borrar  — drawing on the map
- *   dm      Luces · Muro · Imágenes · Pincel ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ
+ *   dm      Piezas · Luces · Builder · Imágenes · Pincel ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ
  *
  * The DM order is the owner's, fixed on 2026-08-31: «ponlo arriba de los muros y ventanas, y debajo de muros
  * y ventanas el de imágenes… le demos coherencia al orden». The criterion is to group first what BUILDS the
- * scene, then the fog, then the game. «Piezas» opens this block in `rolvium.pen` but is not here yet: it needs
- * the props gallery (slice 6), and a button that opens nothing is worse than no button.
+ * scene, then the fog, then the game. «Piezas» opens the block since slice 6 (2026-09-13), as drawn in `SNlGp`.
  *
  * The blocks are separated by rules, not by written labels: labels made the bar wide enough to eat map. What
  * changes the cursor and what opens a panel still must not look alike, so the DM panels sit behind their own rule.

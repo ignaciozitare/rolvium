@@ -27,8 +27,10 @@ describe('<Toolbar>', () => {
     await u0.click(await screen.findByRole('menuitemradio', { name: 'Lápiz' }));
     expect(onChange).toHaveBeenCalledWith('pencil');
     rerender(<Toolbar tool="wall" isDm onChange={onChange} onDice={onDice} onPlacePc={onPlacePc} onBackground={onBackground} />);
-    // + DIRECTOR: Luz · Muro · Fondo del mapa · Pincel de transparencia ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ
-    expect(screen.getAllByRole('button')).toHaveLength(13);
+    // + DIRECTOR: Objetos · Luz · Builder · Fondo del mapa · Pincel ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ
+    expect(screen.getAllByRole('button')).toHaveLength(14);
+    // «Piezas» abre el bloque del director desde la rebanada 6 (lámina SNlGp), con su dibujo como máscara.
+    expect(screen.getByRole('button', { name: 'Objetos' }).querySelector('.mp-tool-img')).toHaveStyle({ maskImage: 'url(/icons/props-mask.svg)' });
     // El pincel y la luz entran en el bloque del director: son cosa suya (rebanada 7).
     expect(screen.getByRole('button', { name: 'Pincel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Luz de ambiente' })).toBeInTheDocument();
@@ -122,11 +124,11 @@ describe('<Toolbar>', () => {
       fireEvent.dragOver(slot('Revelar'), { dataTransfer: data });
       expect(slot('Revelar')).toHaveClass('over');                         // la raya oro: «va a caer antes de éste»
       fireEvent.drop(slot('Revelar'), { dataTransfer: data });
-      expect(onReorder).toHaveBeenCalledWith('dm', ['light', 'wall', 'background', 'sep', 'mask', 'reveal', 'hide', 'sep', 'encounter', 'placePc']);
+      expect(onReorder).toHaveBeenCalledWith('dm', ['props', 'light', 'wall', 'background', 'sep', 'mask', 'reveal', 'hide', 'sep', 'encounter', 'placePc']);
       expect(slot('Pincel')).not.toHaveClass('dragging');
       expect(slot('Revelar')).not.toHaveClass('over');
       arrastra('Luz de ambiente', slot('Encuentro').parentElement as HTMLElement);
-      expect(onReorder).toHaveBeenLastCalledWith('dm', ['wall', 'background', 'mask', 'sep', 'reveal', 'hide', 'sep', 'encounter', 'placePc', 'light']);
+      expect(onReorder).toHaveBeenLastCalledWith('dm', ['props', 'wall', 'background', 'mask', 'sep', 'reveal', 'hide', 'sep', 'encounter', 'placePc', 'light']);
     });
 
     it('un botón no cambia de bloque, una raya no es destino, y soltarlo donde ya estaba no guarda nada', () => {
