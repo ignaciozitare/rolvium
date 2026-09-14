@@ -463,7 +463,9 @@
 .mp-builder-preset.on .mp-builder-preset-mini{outline:2px solid var(--sys-blood);outline-offset:-2px;}
 .mp-builder-preset-t{font-size:var(--fs-2xs);color:var(--sys-ink-soft);text-align:center;line-height:var(--lh-tight);}
 .mp-builder-preset.on .mp-builder-preset-t{color:var(--sys-ink);font-weight:600;}
-.mp-builder-tex{display:flex;align-items:center;gap:8px;}
+/* Con `flex-wrap`: el rótulo, la muestra y el nombre mandan, y CAMBIAR/QUITAR bajan a otra línea cuando no
+   caben, en vez de desbordar el panel a lo ancho (un botón no encoge: su texto no parte). */
+.mp-builder-tex{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0;}
 /* el rótulo PARED / SUELO delante de cada muestra: columna de ancho FIJO (cabe la palabra más larga en los dos idiomas) para que las dos muestras queden alineadas */
 .mp-builder-tex-c{flex:0 0 4.25em;white-space:nowrap;}
 .mp-builder-tex-swatch{width:26px;height:20px;flex:0 0 auto;border-radius:2px;outline:1px solid var(--sys-line);outline-offset:-1px;padding:0;border:none;cursor:pointer;}
@@ -575,7 +577,9 @@
    El panel (`lWBaU`, 220 de ancho), lo plantado en el lienzo con su marco y sus tiradores, el fantasma del
    sello, el catálogo a pantalla completa (`w7sTC0`) y la subida en lote (`DCs6S`). Los paneles van con los
    tokens de la mesa (--sys-*); el catálogo y la subida viven en el Modal compartido y van con los de la app. */
-.mp-propspanel{position:absolute;top:8px;left:8px;z-index:4;width:220px;}
+/* 300 px, LOS MISMOS que el Builder y el Pincel (orden suya, 14-09: «*el de objetos es más pequeño que los
+   otros, no es así, tiene que respetar los tamaños*»). La lámina lo dibujó a 220 y se quedaba estrecho. */
+.mp-propspanel{position:absolute;top:8px;left:8px;z-index:4;width:300px;}
 .mp-props-icon{width:var(--icon-sm);height:var(--icon-sm);}
 /* La muestra sobre OSCURO: el único negro del panel, y detrás del arte (regla del dueño: negro sólo para arte). */
 .mp-props-sample{display:flex;align-items:center;justify-content:center;width:100%;height:96px;padding:0;border:none;background:var(--sys-ink);color:var(--sys-paper);overflow:hidden;cursor:pointer;}
