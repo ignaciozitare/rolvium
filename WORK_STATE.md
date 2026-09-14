@@ -41,7 +41,59 @@ diseña lo del grupo (spec + `.pen`) → QA → migración a producción por MCP
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🚀 «CAMINO A PRODUCCIÓN (v0.8.0)» (donde se retoma) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 📥 «COMPRIMIR LAS TEXTURAS» (donde se retoma, chat nuevo) · 🚀 «v0.8.0 EN PRODUCCIÓN» (registro) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+
+## 📥 2026-09-14 — TRASPASO A CHAT NUEVO: **COMPRIMIR LAS TEXTURAS** (orden suya: «*hazlo en el chat nuevo*»)
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 📥 de arriba de WORK_STATE.md. Las texturas pesan demasiado y me como el tráfico de
+> Supabase: enséñame un antes/después con una de las mías y, si me convence, conviértelas.»
+
+### 🎯 Qué hay que hacer
+Convertir las texturas a WebP para que dejen de comerse el tráfico. **PRIMERO enseñarle un ANTES/DESPUÉS con
+una textura suya de verdad** (él decide con la imagen delante); sólo si le convence, convertir el resto.
+
+### 📊 Los números, ya comprobados (2026-09-14)
+- **Su biblioteca local**: 41 texturas = **134 MB** (PNG, ~3,8 MB cada una) · 50 objetos = 14 MB (ésos ya van
+  comprimidos) · 6 paquetes · 18 fondos de campaña.
+- **Supabase, plan FREE**, org propia de Rolvium (`iuxzfnveabephkcixsaa`; **el cupo NO se comparte con
+  Worksuite**, que está en otra org): **500 MB de base por proyecto · 1 GB de almacén · 5 GB + 5 GB de tráfico
+  al mes**.
+- **En producción hoy**: 14 MB de base, 16 MB de almacén (6 ficheros). Espacio sobra.
+- **Lo que muerde es el TRÁFICO**: un mapa con tres texturas son ~11 MB POR JUGADOR cada vez que abre la mesa;
+  con 5 jugadores, 55 MB por sesión → se acaba el cupo en ~90 aperturas al mes.
+
+### 🔑 Por qué aquí SÍ y en los fondos NO
+Una **textura** se repite en **baldosas pequeñas** y nunca se mira ampliada: WebP le quita ~90% sin que se note.
+Un **fondo** se mira a pantalla completa y con zoom, y **él ya decidió que NO se comprime** («*¿pero se comprimen
+y pierden calidad? porque eso sería un problema*»). Esa decisión está grabada en el spec de maps § «EL FONDO DEL
+MAPA» y en `specs/core/images/SPEC.md`. **No tocarla.**
+
+### 📍 Dónde está el código
+- Hoy las texturas entran TAL CUAL: `rawTexture` en `apps/web/src/modules/maps/ui/TextureUpload.tsx`, que es el
+  `prepare` que se le pasa a `LibraryUpload`. El compresor común es `compressImage(file, target)` de
+  `@rolvium/ui` (`packages/ui/src/lib/compressImage.ts`), con sus destinos en `IMAGE_TARGETS`.
+- Si se añade un destino `texture`, va en `IMAGE_TARGETS` **y** en la tabla de `specs/core/images/SPEC.md`.
+- ⚠️ Las texturas que él YA tiene subidas están en su **Supabase local**, no en producción: convertirlas es otra
+  cosa distinta de cambiar la subida, y hay que decirle cuál de las dos quiere (o las dos).
+
+### ⏳ LO DEMÁS QUE SIGUE ABIERTO (nada de esto se toca sin él)
+1. 🔴 **El objeto elegido que se le vacía.** SIN TOCAR desde el 14-09, esperando que diga **el gesto exacto** —
+   pidió expresamente que se le preguntara y ya van dos adivinadas mal. Los cuatro caminos que hoy lo vacían
+   están localizados en el bloque 🟢 «DE SU FAMILIA REVERTIDO»; el sospechoso es **el botón derecho sobre un
+   objeto puesto → SELECCIONAR** (`setStamp(null)` sin avisar). Esc y SOLTAR son diseño aprobado.
+2. 🟠 **«Objetos» se repite**: es el botón, el panel, el catálogo Y el nombre de una capa de serie, así que
+   dentro del panel OBJETOS el desplegable «A qué capa va» lista una capa llamada «Objetos». Su decisión.
+3. 🟠 **Su biblioteca NO está en producción**: allí está vacía. Las filas se pueden crear por SQL, **los ficheros
+   no** — desde aquí no hay forma de escribir en el almacén de producción. El camino bueno es exportárselos a
+   una carpeta y que los suba con la subida en lote. **Él paró la exportación** («*no exportes las texturas y
+   objetos y ya hacemos pruebas de compresión*»): primero se decide lo de comprimir.
+4. 🟠 **§ 10B.2 · la fila «con qué se pinta»** del Constructor (MURO → textura · HABITACIÓN → color): confirmada
+   por él el 10-09 y **sin construir**. Es el único ⏳ que dejó el QA del 12-09. Pide lámina nueva sobre
+   `I6TcDm` (la vieja `oi358` está desfasada).
+5. 🟠 Deuda de antes, ya escrita: `propDraft` y `propMoveDraft` se quedan pegados si el gesto se corta con Esc o
+   con el botón derecho (mismo agujero que se arregló en el del grupo), y el Ctrl+Z de MOVER varios sigue en
+   singular.
 
 ## 🚀 2026-09-14 (tarde) — **v0.8.0 EN PRODUCCIÓN.** Él dio el visto bueno («*yo probé lo mío por ahora ok*» · «*se ve bien todo*») y se subió entero.
 
