@@ -27,10 +27,10 @@ describe('<Toolbar>', () => {
     await u0.click(await screen.findByRole('menuitemradio', { name: 'Lápiz' }));
     expect(onChange).toHaveBeenCalledWith('pencil');
     rerender(<Toolbar tool="wall" isDm onChange={onChange} onDice={onDice} onPlacePc={onPlacePc} onBackground={onBackground} />);
-    // + DIRECTOR: Piezas · Luz · Builder · Fondo del mapa · Pincel ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ
+    // + DIRECTOR: Objetos · Luz · Builder · Fondo del mapa · Pincel ‖ Revelar · Ocultar ‖ Encuentro · Colocar PJ
     expect(screen.getAllByRole('button')).toHaveLength(14);
     // «Piezas» abre el bloque del director desde la rebanada 6 (lámina SNlGp), con su dibujo como máscara.
-    expect(screen.getByRole('button', { name: 'Piezas' }).querySelector('.mp-tool-img')).toHaveStyle({ maskImage: 'url(/icons/props-mask.svg)' });
+    expect(screen.getByRole('button', { name: 'Objetos' }).querySelector('.mp-tool-img')).toHaveStyle({ maskImage: 'url(/icons/props-mask.svg)' });
     // El pincel y la luz entran en el bloque del director: son cosa suya (rebanada 7).
     expect(screen.getByRole('button', { name: 'Pincel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Luz de ambiente' })).toBeInTheDocument();

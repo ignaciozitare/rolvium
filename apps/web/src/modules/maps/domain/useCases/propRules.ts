@@ -105,7 +105,7 @@ export const isAppProp = (p: Pick<Prop, 'uploadedBy'>): boolean => p.uploadedBy 
 export const propPath = (id: string): string => `props/${id}.webp`;
 
 /** El nombre de la pieza a partir del fichero: sin la extensión, y recortado a lo que admite la columna. */
-export const nameFromFile = (fileName: string): string => fileName.replace(/\.[^.]+$/, '').trim().slice(0, 80) || 'Pieza';
+export const nameFromFile = (fileName: string): string => fileName.replace(/\.[^.]+$/, '').trim().slice(0, 80) || 'Objeto';
 
 // ── EL CATÁLOGO: estantes, secciones, orden ─────────────────────────────────
 // Lo que no sabe si tiene delante una pieza o una textura vive en `libraryRules` (desde el 2026-09-13 el

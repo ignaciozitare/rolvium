@@ -151,7 +151,7 @@ describe('<LayerMenu> una pieza plantada', () => {
     mount({ element: pieza, onDuplicate, onRemove });
     await u.click(screen.getByRole('menuitem', { name: 'Duplicar' }));
     expect(onDuplicate).toHaveBeenCalled();
-    await u.click(screen.getByRole('menuitem', { name: 'Borrar la pieza' }));
+    await u.click(screen.getByRole('menuitem', { name: 'Borrar el objeto' }));
     expect(onRemove).toHaveBeenCalled();
   });
 
@@ -206,7 +206,7 @@ describe('<LayerMenu> seleccionar y varias piezas', () => {
 
   it('con varias cogidas, la cabecera dice cuántas y que manda sobre todas', () => {
     const { menu } = mount({ element: { kind: 'prop', id: 'sp-1', name: 'Roble', layerId: null }, count: 3 });
-    expect(within(menu()).getByText('3 piezas cogidas: manda sobre todas')).toBeInTheDocument();
+    expect(within(menu()).getByText('3 objetos cogidos: manda sobre todos')).toBeInTheDocument();
     expect(within(menu()).queryByText('Roble')).not.toBeInTheDocument();
   });
 });

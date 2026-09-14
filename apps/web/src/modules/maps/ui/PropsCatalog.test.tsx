@@ -29,7 +29,7 @@ describe('<PropsCatalog> el rail y la rejilla', () => {
     expect(within(rail()).getByRole('tab', { name: /Mazmorra propia/ }).textContent).toContain('1');
     expect(within(rail()).getByRole('tab', { name: /Bosque de Karen/ }).textContent).toContain('1');
     expect(within(rail()).getByRole('tab', { name: /Sin clasificar/ }).textContent).toContain('1');
-    expect(screen.getByRole('heading', { name: 'Mazmorra propia (1 pieza)' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Mazmorra propia (1 objeto)' })).toBeInTheDocument();
     expect(baldosas()).toEqual(['Columna']);
     // Sin piezas de serie, «DE SERIE · ROLVIUM» no se pinta: seis rótulos vacíos serían ruido.
     expect(screen.queryByText('De serie · Rolvium')).not.toBeInTheDocument();
@@ -39,7 +39,7 @@ describe('<PropsCatalog> el rail y la rejilla', () => {
     const u = userEvent.setup();
     const { rail } = mount({ props: [...ALL, APP_CHAIR] });
     await u.click(within(rail()).getByRole('tab', { name: /^Todo/ }));
-    expect(screen.getAllByRole('heading').map(h => h.textContent)).toEqual(['Mazmorra propia (1 pieza)', 'Bosque de Karen (1 pieza)', 'Sin clasificar (1 pieza)', 'Mobiliario (1 pieza)']);
+    expect(screen.getAllByRole('heading').map(h => h.textContent)).toEqual(['Mazmorra propia (1 objeto)', 'Bosque de Karen (1 objeto)', 'Sin clasificar (1 objeto)', 'Mobiliario (1 objeto)']);
     expect(screen.getByText('De serie · Rolvium')).toBeInTheDocument();
     expect(within(rail()).getByRole('tab', { name: /Mobiliario/ })).toBeInTheDocument();
   });
@@ -49,10 +49,10 @@ describe('<PropsCatalog> el rail y la rejilla', () => {
     mount();
     await u.type(screen.getByRole('searchbox'), 'mesa');
     expect(baldosas()).toEqual(['Mesa larga']);
-    expect(screen.getByText('Piezas · 1')).toBeInTheDocument();
+    expect(screen.getByText('Objetos · 1')).toBeInTheDocument();
     await u.clear(screen.getByRole('searchbox'));
     await u.type(screen.getByRole('searchbox'), 'zzz');
-    expect(screen.getByText('Ninguna pieza con ese nombre aquí.')).toBeInTheDocument();
+    expect(screen.getByText('Ningún objeto con ese nombre aquí.')).toBeInTheDocument();
   });
 
   it('AGRUPAR en «Ninguno» quita las cabeceras; ORDENAR cambia el orden', async () => {
@@ -72,8 +72,8 @@ describe('<PropsCatalog> el rail y la rejilla', () => {
     await u.click(within(rail()).getByRole('tab', { name: /^Todo/ }));
     expect(screen.getByRole('button', { name: 'Elegir Roble' }).querySelector('.mp-texcat-dot')).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Elegir Silla' }).querySelector('.mp-texcat-dot')).toBeNull();
-    expect(screen.getByText(/el punto marca las tuyas/)).toBeInTheDocument();
-    expect(screen.getByText(/Las piezas son de la HERRAMIENTA/)).toBeInTheDocument();
+    expect(screen.getByText(/el punto marca los tuyos/)).toBeInTheDocument();
+    expect(screen.getByText(/Los objetos son de la HERRAMIENTA/)).toBeInTheDocument();
   });
 
   it('con la biblioteca cargando o vacía lo dice', () => {
@@ -113,7 +113,7 @@ describe('<PropsCatalog> elegir, favoritos y recientes', () => {
 describe('<PropsCatalog> ordenar la biblioteca, por permiso', () => {
   it('sin el permiso no salen ni Subir, ni los tres puntos, ni Nuevo paquete — pero elegir sí', () => {
     mount({ canManage: false });
-    expect(screen.queryByRole('button', { name: /Subir piezas/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Subir objetos/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Opciones de/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Nuevo paquete/ })).not.toBeInTheDocument();
     expect(screen.queryByText('Subir')).not.toBeInTheDocument();
@@ -123,7 +123,7 @@ describe('<PropsCatalog> ordenar la biblioteca, por permiso', () => {
   it('Subir va al paquete abierto, y la baldosa Subir de cada sección al suyo', async () => {
     const u = userEvent.setup();
     const { cb, rail } = mount();
-    await u.click(screen.getByRole('button', { name: /Subir piezas/ }));
+    await u.click(screen.getByRole('button', { name: /Subir objetos/ }));
     expect(cb.onUpload).toHaveBeenCalledWith(PACK_DUNGEON.id);
     await u.click(within(rail()).getByRole('tab', { name: /Sin clasificar/ }));
     await u.click(screen.getByRole('button', { name: /^Subir$/ }));
@@ -157,7 +157,7 @@ describe('<PropsCatalog> ordenar la biblioteca, por permiso', () => {
 
     await u.click(screen.getByRole('button', { name: 'Opciones de «Columna»' }));
     await u.click(screen.getByRole('menuitem', { name: 'Eliminar' }));
-    expect(await screen.findByText(/¿Borrar la pieza «Columna» de la biblioteca\? Las que ya pusiste en los mapas se quedan\./)).toBeInTheDocument();
+    expect(await screen.findByText(/¿Borrar el objeto «Columna» de la biblioteca\? Los que ya pusiste en los mapas se quedan\./)).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Eliminar' }));
     expect(cb.onRemove).toHaveBeenCalledWith(PROP_COLUMN);
   });
@@ -172,7 +172,7 @@ describe('<PropsCatalog> ordenar la biblioteca, por permiso', () => {
 
     await u.click(screen.getByRole('button', { name: 'Opciones del paquete «Bosque de Karen»' }));
     await u.click(screen.getByRole('menuitem', { name: 'Borrar paquete' }));
-    expect(await screen.findByText(/Sus piezas no se borran: pasan a «Sin clasificar»/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sus objetos no se borran: pasan a «Sin clasificar»/)).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Eliminar' }));
     expect(cb.onRemovePack).toHaveBeenCalledWith(PACK_FOREST);
   });

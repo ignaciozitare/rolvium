@@ -66,8 +66,8 @@ function mount(user: User): void {
 /** El camino de la pantalla: el botón Piezas abre el panel, ELEGIR abre el catálogo de la herramienta. */
 async function abrirCatalogo(u: ReturnType<typeof userEvent.setup>): Promise<void> {
   const bar = await screen.findByRole('toolbar', { name: 'Herramientas del lienzo' });
-  await u.click(await within(bar).findByRole('button', { name: 'Piezas' }));
-  const panel = await screen.findByRole('group', { name: 'Piezas' });
+  await u.click(await within(bar).findByRole('button', { name: 'Objetos' }));
+  const panel = await screen.findByRole('group', { name: 'Objetos' });
   await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
   await screen.findByRole('button', { name: 'Elegir Roble' });
 }
@@ -77,20 +77,20 @@ describe('regresión · la biblioteca de piezas la ordena quien tiene `manage_pr
     const u = userEvent.setup();
     mount(DIRECTORA);
     await abrirCatalogo(u);
-    expect(screen.queryByRole('button', { name: /Subir piezas/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Subir objetos/ })).not.toBeInTheDocument();
   });
 
   it('con `manage_props` —sin ser admin— el catálogo ofrece subir: es el permiso lo que baja por `canManageProps`', async () => {
     const u = userEvent.setup();
     mount(DIRECTORA_CON_PIEZAS);
     await abrirCatalogo(u);
-    expect(screen.getByRole('button', { name: /Subir piezas/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Subir objetos/ })).toBeInTheDocument();
   });
 
   it('el admin, que lo puede todo, también', async () => {
     const u = userEvent.setup();
     mount(ADMIN_USER);
     await abrirCatalogo(u);
-    expect(screen.getByRole('button', { name: /Subir piezas/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Subir objetos/ })).toBeInTheDocument();
   });
 });

@@ -59,12 +59,12 @@ describe('AdminRoles — los permisos de herramienta van a su propio cajón', ()
     expect(Object.keys(escrito.admin)).not.toContain('manage_textures');
   });
 
-  /** Rebanada 6 (maps): «Gestionar piezas» es el segundo permiso de herramienta, y entra por la misma puerta. */
-  it('conceder «Gestionar piezas» escribe `manage_props` en `tools` y deja `admin` intacto', async () => {
+  /** Rebanada 6 (maps): «Gestionar objetos» es el segundo permiso de herramienta, y entra por la misma puerta. */
+  it('conceder «Gestionar objetos» escribe `manage_props` en `tools` y deja `admin` intacto', async () => {
     const deps = fakeAdminDeps();
     renderWithProviders(<AdminRoles roleRepo={deps.roleRepo} />);
     await userEvent.click(await screen.findByTestId('role-game_master'));
-    await userEvent.click(await screen.findByText('Gestionar piezas'));
+    await userEvent.click(await screen.findByText('Gestionar objetos'));
     await waitFor(() => expect(deps.roleRepo.updatePermissions).toHaveBeenCalledWith('r-gm', {
       modules: [], admin: {}, tools: { manage_props: true },
     }));

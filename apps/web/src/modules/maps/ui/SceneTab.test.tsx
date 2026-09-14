@@ -2746,8 +2746,8 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
   const seedProps = () => fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], props: [PROP_OAK, PROP_COLUMN], packs: [{ ...PACK_FOREST, sortOrder: 0 }, { ...PACK_DUNGEON, sortOrder: 1 }], layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES] });
   const abrirPiezas = async (u: ReturnType<typeof userEvent.setup>) => {
     await screen.findByText(/Almacén de Queens/);
-    await u.click(screen.getByRole('button', { name: 'Piezas' }));
-    return screen.getByRole('group', { name: 'Piezas' });
+    await u.click(screen.getByRole('button', { name: 'Objetos' }));
+    return screen.getByRole('group', { name: 'Objetos' });
   };
 
   it('el botón Piezas es el primero del bloque del director, y abre el panel sin sello', async () => {
@@ -2755,9 +2755,9 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     mount('dm', seedProps());
     const panel = await abrirPiezas(u);
     expect(panel).toHaveClass('mp-propspanel');
-    expect(within(panel).getByText(/Sin pieza elegida/)).toBeInTheDocument();
+    expect(within(panel).getByText(/Sin objeto elegido/)).toBeInTheDocument();
     const dm = document.querySelector('.mp-tool-group.dm')!;
-    expect(dm.querySelector('button')).toHaveAccessibleName('Piezas');
+    expect(dm.querySelector('button')).toHaveAccessibleName('Objetos');
   });
 
   it('ELEGIR abre el catálogo con la biblioteca; elegir una la hace el sello y un clic en el mapa la planta con la escala que recuerda', async () => {
@@ -2767,7 +2767,7 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
     await u.click(await screen.findByRole('button', { name: 'Elegir Roble' }));
     expect(screen.queryByTestId('mp-propcat')).not.toBeInTheDocument();
-    expect(within(screen.getByRole('group', { name: 'Piezas' })).getByText('Roble')).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Objetos' })).getByText('Roble')).toBeInTheDocument();
     // El fantasma del sello bajo el puntero, y el clic planta: 200 × 300 a escala 1,5 = 300 × 450, encima de todo.
     fireEvent.pointerMove(canvas(), { clientX: 200, clientY: 220, pointerId: 1 });
     expect(within(canvas()).getByTestId('mp-prop-ghost')).toBeInTheDocument();
@@ -2780,7 +2780,7 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     expect(repo.sceneProps[1]!.z).toBe(1);
     // Esc suelta el sello
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(within(screen.getByRole('group', { name: 'Piezas' })).getByText(/Sin pieza elegida/)).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Objetos' })).getByText(/Sin objeto elegido/)).toBeInTheDocument();
   });
 
   it('mover la ESCALA y soltar la guarda en la pieza de la biblioteca (§ 6.4), sólo con el permiso', async () => {
@@ -2801,7 +2801,7 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     const panel = await abrirPiezas(u);
     await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
     await screen.findByRole('button', { name: 'Elegir Roble' });
-    expect(screen.queryByRole('button', { name: /Subir piezas/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Subir objetos/ })).not.toBeInTheDocument();
   });
 
   it('una pieza plantada se coge con Seleccionar, se borra con Suprimir, y el botón derecho ofrece el orden de apilado', async () => {
@@ -2835,10 +2835,10 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     await abrirPiezas(u);
     await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
     await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
-    const panel = screen.getByRole('group', { name: 'Piezas' });   // sigue abierto
-    expect(within(panel).getByText(/Sin pieza elegida/)).toBeInTheDocument();
+    const panel = screen.getByRole('group', { name: 'Objetos' });   // sigue abierto
+    expect(within(panel).getByText(/Sin objeto elegido/)).toBeInTheDocument();
     coger(400, 300);
-    expect(within(panel).getByText('La pieza cogida')).toBeInTheDocument();
+    expect(within(panel).getByText('El objeto cogido')).toBeInTheDocument();
     expect(within(panel).getByTestId('mp-props-picked')).toHaveTextContent('Roble');
     // ESCALA: la del Roble plantado respecto a su pieza (300 / 200 = 1,5 ×). Mover cambia la plantada en vivo y soltar guarda.
     const escala = within(panel).getByRole('slider', { name: 'Escala' });
@@ -2857,10 +2857,10 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     await waitFor(() => expect(repo.scenePropUpdates.at(-1)).toEqual({ id: 'sp-oak', patch: { rotation: 90 } }));
     // Pinchar el vacío suelta la pieza y el bloque vuelve a ser el del sello.
     coger(50, 50);
-    expect(within(panel).getByText('La pieza del sello')).toBeInTheDocument();
+    expect(within(panel).getByText('El objeto elegido')).toBeInTheDocument();
     // La X cierra el panel de verdad; Piezas lo vuelve a abrir.
-    await u.click(within(panel).getByRole('button', { name: 'Cerrar Piezas' }));
-    expect(screen.queryByRole('group', { name: 'Piezas' })).not.toBeInTheDocument();
+    await u.click(within(panel).getByRole('button', { name: 'Cerrar Objetos' }));
+    expect(screen.queryByRole('group', { name: 'Objetos' })).not.toBeInTheDocument();
   });
 
   it('con Piezas abierto y sin sello, pinchar una plantada la coge; y la foto grande del panel abre el catálogo (§ 6.8, puntos 7 y 8)', async () => {
@@ -2870,7 +2870,7 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
     coger(700, 200);
     expect(within(panel).getByTestId('mp-props-picked')).toHaveTextContent('Columna');
-    await u.click(within(panel).getByRole('button', { name: 'Abrir el catálogo de piezas' }));
+    await u.click(within(panel).getByRole('button', { name: 'Abrir el catálogo de objetos' }));
     expect(await screen.findByTestId('mp-propcat')).toBeInTheDocument();
   });
 
@@ -2888,10 +2888,10 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     expect(within(panel).getByText('De su familia · Bosque de Karen')).toBeInTheDocument();
     const grid = within(panel).getByTestId('mp-props-family-grid');
     expect(within(grid).getAllByRole('listitem')).toHaveLength(2);   // el Roble y el Pino; la Columna es de otro paquete
-    expect(within(grid).getByRole('listitem', { name: 'Usar Roble como sello' })).toHaveAttribute('aria-pressed', 'true');
-    await u.click(within(grid).getByRole('listitem', { name: 'Usar Pino como sello' }));
+    expect(within(grid).getByRole('listitem', { name: 'Elegir Roble' })).toHaveAttribute('aria-pressed', 'true');
+    await u.click(within(grid).getByRole('listitem', { name: 'Elegir Pino' }));
     // El Pino pasa a SELLO y la mano vuelve a Piezas, listo para plantarlo con el siguiente clic en el mapa.
-    expect(within(panel).getByText('La pieza del sello')).toBeInTheDocument();
+    expect(within(panel).getByText('El objeto elegido')).toBeInTheDocument();
     expect(within(panel).getByTestId('mp-props-stamp')).toHaveTextContent('Pino');
     expect(screen.getByRole('button', { name: 'Seleccionar' })).toHaveAttribute('aria-pressed', 'false');
     // La YA PLANTADA no se toca: ni un cambio de pieza (`propId`) sobre `sp-oak` — nada que deshacer con Ctrl+Z.
@@ -2962,13 +2962,13 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     await waitFor(() => expect(within(canvas()).getByTestId('mp-props').querySelectorAll('[data-prop-id]')).toHaveLength(2));
     await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
     await u.click(await screen.findByRole('button', { name: 'Elegir Roble' }));
-    expect(within(screen.getByRole('group', { name: 'Piezas' })).getByText('Roble')).toBeInTheDocument();   // el sello puesto
+    expect(within(screen.getByRole('group', { name: 'Objetos' })).getByText('Roble')).toBeInTheDocument();   // el sello puesto
     fireEvent.contextMenu(canvas(), { clientX: 700, clientY: 200 });
     const menu = await screen.findByRole('menu', { name: 'Mandar a la capa' });
     expect(within(menu).getAllByRole('menuitem')[0]).toHaveTextContent('Seleccionar');
     await u.click(within(menu).getByRole('menuitem', { name: /Seleccionar/ }));
     expect(screen.getByRole('button', { name: 'Seleccionar' })).toHaveAttribute('aria-pressed', 'true');
-    expect(within(screen.getByRole('group', { name: 'Piezas' })).getByTestId('mp-props-picked')).toHaveTextContent('Columna');
+    expect(within(screen.getByRole('group', { name: 'Objetos' })).getByTestId('mp-props-picked')).toHaveTextContent('Columna');
     expect(within(canvas()).getByTestId('mp-prop-handles')).toBeInTheDocument();
   });
 
@@ -2982,12 +2982,12 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     // El botón derecho sobre el Roble (que NO corta el paso): las dos pasan a cortarlo, la Columna incluida.
     fireEvent.contextMenu(canvas(), { clientX: 400, clientY: 300 });
     const menu = await screen.findByRole('menu', { name: 'Mandar a la capa' });
-    expect(within(menu).getByText('2 piezas cogidas: manda sobre todas')).toBeInTheDocument();
+    expect(within(menu).getByText('2 objetos cogidos: manda sobre todos')).toBeInTheDocument();
     await u.click(within(menu).getByRole('menuitemcheckbox', { name: /Corta el paso/ }));
     await waitFor(() => expect(repo.scenePropUpdates.filter(x => 'blocksMove' in x.patch).map(x => x.id).sort()).toEqual(['sp-col', 'sp-oak']));
     expect(repo.sceneProps.every(p => p.blocksMove)).toBe(true);
     // El menú sigue abierto tras el interruptor (no cierra); el mismo menú ofrece borrar las dos.
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Borrar la pieza' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Borrar el objeto' }));
     await waitFor(() => expect(repo.sceneProps).toHaveLength(0));
   });
 });

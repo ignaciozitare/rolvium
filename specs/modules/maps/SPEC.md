@@ -1032,6 +1032,19 @@ el `.pen` antes del código; las otras (2 y 5) son de comportamiento.
      enseñar ese sello — con algo cogido el bloque muestra LA PIEZA COGIDA, que manda, y el sello cambiaba invisible
      por debajo (el «*está a medias*» que dijo al probarlo). El siguiente clic en el mapa la planta.
 
+#### 🔤 CÓMO SE LLAMAN EN PANTALLA (orden suya, 2026-09-14 — NO revisable)
+
+En la interfaz son **OBJETOS**, nunca «piezas»: «*que son objetos, no piezas, la puta madre, deja de llamarlo
+piezas*». Y la palabra **«sello» NO existe**: «*no sé lo que es un sello, deja de inventar términos*» — era un
+término que me inventé yo. Lo que antes era «la pieza del sello» ahora es **«el objeto elegido»**, y «suelta el
+sello» es «suelta el objeto».
+
+Esto vale para **todo lo que él lee**: rótulos, botones, avisos, pies de panel, textos de ayuda y los nombres de
+los pasos de Ctrl+Z, en español y en inglés (`object`, nunca `piece` ni `stamp`). Lo que NO cambia es el código:
+la tabla sigue siendo `scene_props`, el puerto `Prop`, y las claves de traducción siguen bajo `maps.props.*` —
+son identificadores internos, no los ve nadie, y renombrarlos sería un terremoto sin ganancia. **Este spec sigue
+diciendo «pieza» en la prosa de abajo por la misma razón**: manda lo que se ve en pantalla.
+
 #### 🟠 Decisiones de construcción del § 6.8 (2026-09-13, revisables)
 
 - **Un solo componente, dos caras.** El catálogo (`LibraryCatalog`) y la subida en lote (`LibraryUpload`) no saben si

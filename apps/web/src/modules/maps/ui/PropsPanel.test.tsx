@@ -18,7 +18,7 @@ function mount(over: Partial<React.ComponentProps<typeof PropsPanel>> = {}) {
     layers: LAYERS_ALL, layerId: null, mode: 'one', sow: DEFAULT_SOW, ...cb, ...over,
   };
   const r = renderWithProviders(<PropsPanel {...props} />);
-  return { ...r, cb, panel: () => screen.getByRole('group', { name: 'Piezas' }) };
+  return { ...r, cb, panel: () => screen.getByRole('group', { name: 'Objetos' }) };
 }
 
 describe('<PropsPanel> la pieza del sello (S/1)', () => {
@@ -33,7 +33,7 @@ describe('<PropsPanel> la pieza del sello (S/1)', () => {
 
   it('sin sello lo dice, y SOLTAR se apaga', () => {
     mount({ stamp: null });
-    expect(screen.getByText(/Sin pieza elegida/)).toBeInTheDocument();
+    expect(screen.getByText(/Sin objeto elegido/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Soltar' })).toBeDisabled();
     expect(screen.queryByRole('slider', { name: 'Escala' })).not.toBeInTheDocument();
   });
@@ -45,7 +45,7 @@ describe('<PropsPanel> la pieza del sello (S/1)', () => {
     expect(cb.onPick).toHaveBeenCalled();
     await u.click(screen.getByRole('button', { name: 'Soltar' }));
     expect(cb.onDrop).toHaveBeenCalled();
-    await u.click(screen.getByRole('button', { name: 'Favorita' }));
+    await u.click(screen.getByRole('button', { name: 'Favorito' }));
     expect(cb.onToggleFavorite).toHaveBeenCalled();
     document.body.innerHTML = '';
     mount({ isFavorite: true });
@@ -62,7 +62,7 @@ describe('<PropsPanel> la pieza del sello (S/1)', () => {
     expect(cb.onScale).toHaveBeenCalledWith(2);
     fireEvent.pointerUp(barra);
     expect(cb.onScaleEnd).toHaveBeenCalled();
-    expect(screen.getByText(/se recuerda: la próxima roble sale ya a este tamaño/)).toBeInTheDocument();
+    expect(screen.getByText(/se recuerda: el próximo roble sale ya a este tamaño/)).toBeInTheDocument();
   });
 
   it('el GIRO va debajo, con su dado', async () => {
@@ -87,16 +87,16 @@ describe('<PropsPanel> sin abrir el catálogo (S/2), la capa (S/3) y cuántas (S
     const celdas = within(screen.getByTestId('mp-props-grid')).getAllByRole('listitem');
     expect(celdas).toHaveLength(2);
     expect(celdas[0]).toHaveAttribute('aria-pressed', 'true');   // el roble es el sello
-    await u.click(screen.getByRole('listitem', { name: 'Usar Columna como sello' }));
+    await u.click(screen.getByRole('listitem', { name: 'Elegir Columna' }));
     expect(cb.onQuickPick).toHaveBeenCalledWith(PROP_COLUMN);
   });
 
   it('sin nada que enseñar lo dice, según el estante', () => {
     mount({ quickProps: [] });
-    expect(screen.getByText('Todavía no has plantado ninguna.')).toBeInTheDocument();
+    expect(screen.getByText('Todavía no has plantado ninguno.')).toBeInTheDocument();
     document.body.innerHTML = '';
     mount({ quickProps: [], quick: 'favorites' });
-    expect(screen.getByText(/Marca una con la estrella/)).toBeInTheDocument();
+    expect(screen.getByText(/Marca uno con la estrella/)).toBeInTheDocument();
   });
 
   it('a qué capa va: un desplegable con las capas, Objetos de serie, y elegir Objetos vuelve a «natural»', async () => {
@@ -114,7 +114,7 @@ describe('<PropsPanel> sin abrir el catálogo (S/2), la capa (S/3) y cuántas (S
     const u = userEvent.setup();
     const { cb } = mount();
     expect(screen.queryByTestId('mp-props-sow')).not.toBeInTheDocument();
-    await u.click(screen.getByRole('radio', { name: /Muchas/ }));
+    await u.click(screen.getByRole('radio', { name: /Muchos/ }));
     expect(cb.onMode).toHaveBeenCalledWith('many');
     document.body.innerHTML = '';
     const { cb: cb2 } = mount({ mode: 'many' });
@@ -135,8 +135,8 @@ describe('<PropsPanel> sin abrir el catálogo (S/2), la capa (S/3) y cuántas (S
   it('el pie dice lo único que hay que saber, y la X cierra', async () => {
     const u = userEvent.setup();
     const { cb } = mount();
-    expect(screen.getByText(/una: cada clic planta otra · muchas: arrastras y siembra · Esc suelta el sello/)).toBeInTheDocument();
-    await u.click(screen.getByRole('button', { name: 'Cerrar Piezas' }));
+    expect(screen.getByText(/uno: cada clic planta otro · muchos: arrastras y siembra · Esc suelta el objeto/)).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Cerrar Objetos' }));
     expect(cb.onClose).toHaveBeenCalled();
   });
 });
@@ -146,15 +146,15 @@ describe('<PropsPanel> la pieza cogida y la foto como botón', () => {
   it('la foto grande abre el catálogo, igual que ELEGIR', async () => {
     const u = userEvent.setup();
     const { cb } = mount();
-    await u.click(screen.getByRole('button', { name: 'Abrir el catálogo de piezas' }));
+    await u.click(screen.getByRole('button', { name: 'Abrir el catálogo de objetos' }));
     expect(cb.onPick).toHaveBeenCalledTimes(1);
   });
 
   it('con una cogida, el bloque dice LA PIEZA COGIDA, enseña su foto con marco y su nombre, y ESCALA/GIRO son los suyos', () => {
     const onPickedScale = vi.fn(), onPickedScaleEnd = vi.fn(), onPickedRotation = vi.fn(), onPickedRotationEnd = vi.fn(), onPickedToggleFavorite = vi.fn();
     const { panel, cb } = mount({ picked: { prop: SCENE_PROP_OAK, scale: 2, rotation: 45, isFavorite: false }, onPickedScale, onPickedScaleEnd, onPickedRotation, onPickedRotationEnd, onPickedToggleFavorite });
-    expect(within(panel()).getByText('La pieza cogida')).toBeInTheDocument();
-    expect(within(panel()).queryByText('La pieza del sello')).not.toBeInTheDocument();
+    expect(within(panel()).getByText('El objeto cogido')).toBeInTheDocument();
+    expect(within(panel()).queryByText('El objeto elegido')).not.toBeInTheDocument();
     expect(screen.getByTestId('mp-props-sample')).toHaveClass('picked');
     expect(within(panel()).getByTestId('mp-props-picked')).toHaveTextContent('Roble');
     const escala = within(panel()).getByRole('slider', { name: 'Escala' });
@@ -165,7 +165,7 @@ describe('<PropsPanel> la pieza cogida y la foto como botón', () => {
     expect(cb.onScale).not.toHaveBeenCalled();   // el sello no se toca
     fireEvent.pointerUp(escala);
     expect(onPickedScaleEnd).toHaveBeenCalled();
-    expect(within(panel()).getByText(/escala y giro cambian ESTA pieza/)).toBeInTheDocument();
+    expect(within(panel()).getByText(/escala y giro cambian ESTE objeto/)).toBeInTheDocument();
     const giro = within(panel()).getByRole('slider', { name: 'Giro' });
     expect(giro).toHaveValue('45');
     fireEvent.change(giro, { target: { value: '90' } });
@@ -173,7 +173,7 @@ describe('<PropsPanel> la pieza cogida y la foto como botón', () => {
     fireEvent.pointerUp(giro);
     expect(onPickedRotationEnd).toHaveBeenCalled();
     // El pie cambia: dice cómo se suelta.
-    expect(within(panel()).getByText(/Esc o clic en el vacío suelta la pieza/)).toBeInTheDocument();
+    expect(within(panel()).getByText(/Esc o clic en el vacío suelta el objeto/)).toBeInTheDocument();
   });
 
   it('el dado gira la cogida al azar y guarda; la estrella marca su pieza de biblioteca, y no sale si ya no está en la biblioteca', async () => {
@@ -210,10 +210,10 @@ describe('<PropsPanel> DE SU FAMILIA (S/1b)', () => {
     const grid = within(panel()).getByTestId('mp-props-family-grid');
     const celdas = within(grid).getAllByRole('listitem');
     expect(celdas).toHaveLength(2);
-    expect(within(grid).getByRole('listitem', { name: 'Usar Roble como sello' })).toHaveAttribute('aria-pressed', 'true');
-    expect(within(grid).getByRole('listitem', { name: 'Usar Roble como sello' })).toHaveClass('on');
-    expect(within(grid).getByRole('listitem', { name: 'Usar Pino como sello' })).toHaveAttribute('aria-pressed', 'false');
-    await u.click(within(grid).getByRole('listitem', { name: 'Usar Pino como sello' }));
+    expect(within(grid).getByRole('listitem', { name: 'Elegir Roble' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(grid).getByRole('listitem', { name: 'Elegir Roble' })).toHaveClass('on');
+    expect(within(grid).getByRole('listitem', { name: 'Elegir Pino' })).toHaveAttribute('aria-pressed', 'false');
+    await u.click(within(grid).getByRole('listitem', { name: 'Elegir Pino' }));
     expect(cb.onFamilyPick).toHaveBeenCalledWith(PROP_PINE);
     expect(within(panel()).getByTestId('mp-props-picked')).toHaveTextContent('Roble');   // la plantada cogida no cambia
   });

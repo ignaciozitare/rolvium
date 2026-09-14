@@ -60,9 +60,9 @@ describe('<LibraryCatalog> la selección múltiple', () => {
     expect(barra()).not.toBeInTheDocument();
     await u.click(marcar('Roble'));
     expect(screen.getByRole('button', { name: 'Desmarcar Roble' })).toHaveAttribute('aria-pressed', 'true');
-    expect(barra()).toHaveTextContent('1 seleccionada');
+    expect(barra()).toHaveTextContent('1 seleccionado');
     await u.click(marcar('Columna'));
-    expect(barra()).toHaveTextContent('2 seleccionadas');
+    expect(barra()).toHaveTextContent('2 seleccionados');
     await u.click(screen.getByRole('button', { name: /Quitar selección/ }));
     expect(barra()).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Desmarcar Roble' })).not.toBeInTheDocument();
@@ -73,21 +73,21 @@ describe('<LibraryCatalog> la selección múltiple', () => {
     const { cb } = mount();
     fireEvent.click(screen.getByRole('button', { name: 'Elegir Columna' }), { ctrlKey: true });
     expect(cb.onPick).not.toHaveBeenCalled();
-    expect(barra()).toHaveTextContent('1 seleccionada');
+    expect(barra()).toHaveTextContent('1 seleccionado');
     // Con algo marcado, el clic normal no se va del catálogo: marca.
     await u.click(screen.getByRole('button', { name: 'Elegir Roble' }));
     expect(cb.onPick).not.toHaveBeenCalled();
-    expect(barra()).toHaveTextContent('2 seleccionadas');
+    expect(barra()).toHaveTextContent('2 seleccionados');
     await u.click(screen.getByRole('button', { name: /Quitar selección/ }));
     // Mayús+clic: desde la última marcada hasta ésta, EN EL ORDEN EN QUE SE VEN (por secciones: Columna en
     // Mazmorra, Roble en Bosque, Mesa larga en Sin clasificar): de Columna a Roble son dos; a Mesa larga, las tres.
     await u.click(marcar('Columna'));
     fireEvent.click(screen.getByRole('button', { name: 'Elegir Roble' }), { shiftKey: true });
-    expect(barra()).toHaveTextContent('2 seleccionadas');
+    expect(barra()).toHaveTextContent('2 seleccionados');
     await u.click(screen.getByRole('button', { name: /Quitar selección/ }));
     await u.click(marcar('Columna'));
     fireEvent.click(screen.getByRole('button', { name: 'Elegir Mesa larga' }), { shiftKey: true });
-    expect(barra()).toHaveTextContent('3 seleccionadas');
+    expect(barra()).toHaveTextContent('3 seleccionados');
   });
 
   it('Esc quita la selección SIN cerrar el catálogo; sin selección, Esc cierra como siempre', async () => {
@@ -119,7 +119,7 @@ describe('<LibraryCatalog> la selección múltiple', () => {
     await u.click(marcar('Roble'));
     await u.click(marcar('Mesa larga'));
     await u.click(within(screen.getByTestId('mp-propcat-selbar')).getByRole('button', { name: 'Eliminar' }));
-    expect(await screen.findByText(/¿Borrar 2 piezas de la biblioteca\?/)).toBeInTheDocument();
+    expect(await screen.findByText(/¿Borrar 2 objetos de la biblioteca\?/)).toBeInTheDocument();
     await u.click(screen.getAllByRole('button', { name: 'Eliminar' }).at(-1)!);
     expect(cb.onRemove).toHaveBeenCalledTimes(2);
     expect(cb.onRemove).toHaveBeenCalledWith(PROP_OAK);

@@ -79,7 +79,7 @@ describe('propRules — plantar y duplicar (§ 6.4, § 6.5)', () => {
   it('el nombre sale del fichero sin la extensión, y nunca vacío', () => {
     expect(nameFromFile('arbol-viejo.png')).toBe('arbol-viejo');
     expect(nameFromFile('brasero.webp')).toBe('brasero');
-    expect(nameFromFile('.png')).toBe('Pieza');
+    expect(nameFromFile('.png')).toBe('Objeto');
     expect(nameFromFile('x'.repeat(100) + '.png')).toHaveLength(80);
   });
 });
