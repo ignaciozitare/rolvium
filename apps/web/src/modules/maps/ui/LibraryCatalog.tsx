@@ -401,8 +401,14 @@ export function LibraryCatalog<T extends LibraryItem>({
                               <span className="material-symbols-outlined" aria-hidden="true">{on ? 'check_circle' : 'radio_button_unchecked'}</span>
                             </button>
                           )}
+                          {/*
+                            * LA ESTRELLA HABLA EN EL IDIOMA DE SU CARA: `k(...)`, no una clave fija de las
+                            * piezas. Estaba clavada en `maps.props.stamp.favorite`, así que al pasar los
+                            * objetos a masculino («Favorito») las TEXTURAS empezaron a decir «Favorito · Roca
+                            * gris» con el estante de al lado diciendo «Favoritas».
+                            */}
                           <button type="button" className={`mp-propcat-star ${favorites.includes(p.id) ? 'on' : ''}`} aria-pressed={favorites.includes(p.id)}
-                            aria-label={t(favorites.includes(p.id) ? 'maps.props.stamp.unfavorite' : 'maps.props.stamp.favorite') + ` · ${p.name}`} onClick={() => onToggleFavorite(p)}>
+                            aria-label={k(favorites.includes(p.id) ? 'unfavorite' : 'favorite') + ` · ${p.name}`} onClick={() => onToggleFavorite(p)}>
                             <span className="material-symbols-outlined" aria-hidden="true">{favorites.includes(p.id) ? 'star' : 'star_border'}</span>
                           </button>
                           {/* LOS TRES PUNTOS, SIEMPRE A LA VISTA (§ 6.8, punto 3: «*nadie va a saber que existen*»). Sólo con permiso. */}

@@ -96,6 +96,9 @@ describe('<PropsCatalog> elegir, favoritos y recientes', () => {
   it('la estrella marca y desmarca, y el estante Favoritos enseña las marcadas', async () => {
     const u = userEvent.setup();
     const { cb, rail } = mount({ favorites: ['pr-oak'] });
+    // En el catálogo de OBJETOS la estrella habla en masculino; la misma estrella en el de texturas dice
+    // «Favorita» (`TextureCatalog.test.tsx`), porque la clave sale del namespace de cada cara.
+    expect(screen.getByRole('button', { name: 'Favorito · Columna' })).toBeInTheDocument();
     await u.click(within(rail()).getByRole('tab', { name: /Favoritos/ }));
     expect(baldosas()).toEqual(['Roble']);
     await u.click(screen.getByRole('button', { name: /Quitar de favoritos · Roble/ }));

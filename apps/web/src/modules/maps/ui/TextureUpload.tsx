@@ -34,7 +34,7 @@ export function TextureUpload({ category, initialFiles, onAdd, onClose, prepare 
   return (
     <LibraryUpload keys="maps.textures.upload" groups={groups} allowUnsorted={false} groupId={category}
       {...(initialFiles ? { initialFiles } : {})}
-      prepare={prepare} nameOf={nameFromFile}
+      prepare={prepare} nameOf={f => nameFromFile(f, t('maps.textures.upload.fallbackName'))}
       onAdd={(input, blob) => onAdd({ name: input.name, category: (input.groupId ?? category) as TextureCategory }, blob)}
       onClose={onClose} />
   );

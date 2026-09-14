@@ -80,6 +80,9 @@ describe('propRules — plantar y duplicar (§ 6.4, § 6.5)', () => {
     expect(nameFromFile('arbol-viejo.png')).toBe('arbol-viejo');
     expect(nameFromFile('brasero.webp')).toBe('brasero');
     expect(nameFromFile('.png')).toBe('Objeto');
+    // …y quien llama pone el suyo: la misma función la usan los objetos y las texturas.
+    expect(nameFromFile('.png', 'Textura')).toBe('Textura');
+    expect(nameFromFile('roca.webp', 'Textura')).toBe('roca');
     expect(nameFromFile('x'.repeat(100) + '.png')).toHaveLength(80);
   });
 });

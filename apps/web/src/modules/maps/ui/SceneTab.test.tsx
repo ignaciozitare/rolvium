@@ -2923,6 +2923,9 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     fireEvent.pointerUp(canvas(), { pointerId: 1 });
     await waitFor(() => expect(repo.scenePropUpdates).toContainEqual({ id: 'sp-oak', patch: { x: 550, y: 525, width: 600, height: 900 } }));
     expect(repo.scenePropUpdates).toContainEqual({ id: 'sp-col', patch: { x: 1150, y: 325, width: 200, height: 200 } });
+    // Y Ctrl+Z habla EN PLURAL: estiró dos, no una. Con `maps.history.propScale` diría «el tamaño del objeto».
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true });
+    expect(await screen.findByText(/Deshecho: el tamaño de los objetos/i)).toBeInTheDocument();
   });
 
   it('sin más piezas en su paquete, el bloque DE SU FAMILIA no sale (§ 6.8, punto 9)', async () => {

@@ -1,3 +1,4 @@
+import { useTranslation } from '@rolvium/i18n';
 import { compressImage } from '@rolvium/ui';
 import type { PropPack } from '../domain/entities/Scene';
 import { nameFromFile } from '../domain/useCases/propRules';
@@ -30,10 +31,11 @@ const compressProp: Compressor = file => compressImage(file, 'prop');
  * compresor no aplana. Sin alfa una mesa llegaría con un recuadro blanco y la galería no serviría de nada.
  */
 export function PropsUpload({ packs, packId, initialFiles, onAdd, onClose, compress = compressProp }: Props & { compress?: Compressor }): JSX.Element {
+  const { t } = useTranslation();
   return (
     <LibraryUpload keys="maps.props.upload" groups={packs} allowUnsorted groupId={packId}
       {...(initialFiles ? { initialFiles } : {})}
-      prepare={compress} nameOf={nameFromFile}
+      prepare={compress} nameOf={f => nameFromFile(f, t('maps.props.upload.fallbackName'))}
       onAdd={(input, blob) => onAdd({ name: input.name, packId: input.groupId, naturalWidth: input.naturalWidth, naturalHeight: input.naturalHeight }, blob)}
       onClose={onClose} />
   );

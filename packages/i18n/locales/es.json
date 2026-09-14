@@ -1379,6 +1379,8 @@
         "all": "Todo",
         "recent": "Recientes",
         "favorites": "Favoritos",
+        "favorite": "Favorito",
+        "unfavorite": "Quitar de favoritos",
         "myPacks": "Mis paquetes",
         "unsorted": "Sin clasificar",
         "builtIn": "De serie · Rolvium",
@@ -1443,7 +1445,8 @@
           "output-too-large": "sigue pesando demasiado tras comprimirla",
           "decode": "no se pudo leer la imagen",
           "upload": "no se pudo subir"
-        }
+        },
+        "fallbackName": "Objeto"
       },
       "pickedFoot": "pincha la foto grande = ELEGIR · Esc o clic en el vacío suelta el objeto"
     },
@@ -1464,6 +1467,8 @@
         "all": "Todas",
         "recent": "Recientes",
         "favorites": "Favoritas",
+        "favorite": "Favorita",
+        "unfavorite": "Quitar de favoritos",
         "myPacks": "Categorías",
         "unsorted": "Sin clasificar",
         "builtIn": "De serie · Rolvium",
@@ -1513,7 +1518,8 @@
           "output-too-large": "sigue pesando demasiado tras comprimirla",
           "decode": "no se pudo leer la imagen",
           "upload": "no se pudo subir"
-        }
+        },
+        "fallbackName": "Textura"
       }
     }
   },

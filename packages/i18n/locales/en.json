@@ -1247,8 +1247,8 @@
       "propMove": "moving the object",
       "propScale": "the object size",
       "propRotate": "the object rotation",
-      "propsScale": "the objects size",
-      "propsRotate": "the objects rotation"
+      "propsScale": "the size of the objects",
+      "propsRotate": "the rotation of the objects"
     },
     "builder": {
       "title": "Builder",
@@ -1379,6 +1379,8 @@
         "all": "All",
         "recent": "Recent",
         "favorites": "Favourites",
+        "favorite": "Favourite",
+        "unfavorite": "Remove from favourites",
         "myPacks": "My packs",
         "unsorted": "Unsorted",
         "builtIn": "Built-in · Rolvium",
@@ -1443,7 +1445,8 @@
           "output-too-large": "still too heavy after compressing",
           "decode": "the image could not be read",
           "upload": "could not upload"
-        }
+        },
+        "fallbackName": "Object"
       },
       "pickedFoot": "click the big picture = PICK · Esc or a click on empty ground drops the object"
     },
@@ -1464,6 +1467,8 @@
         "all": "All",
         "recent": "Recent",
         "favorites": "Favorites",
+        "favorite": "Favourite",
+        "unfavorite": "Remove from favourites",
         "myPacks": "Categories",
         "unsorted": "Unsorted",
         "builtIn": "Built-in · Rolvium",
@@ -1513,7 +1518,8 @@
           "output-too-large": "still too heavy after compressing",
           "decode": "the image could not be read",
           "upload": "could not upload"
-        }
+        },
+        "fallbackName": "Texture"
       }
     }
   },

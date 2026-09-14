@@ -130,7 +130,8 @@ describe('<TextureCatalog> la cara de las texturas del catálogo común', () => 
   it('la estrella marca favorita, y el estante Favoritas las enseña', async () => {
     const u = userEvent.setup();
     const { cb, rail } = mount({ favorites: ['tx-roble'] });
-    await u.click(screen.getByRole('button', { name: /Favorito · Roca gris/ }));
+    // FEMENINO: una TEXTURA. La estrella comparte componente con la de los objetos, pero no su idioma.
+    await u.click(screen.getByRole('button', { name: /Favorita · Roca gris/ }));
     expect(cb.onToggleFavorite).toHaveBeenCalledWith(ROCA);
     await u.click(within(rail()).getByRole('tab', { name: /Favoritas/ }));
     expect(baldosas()).toEqual(['Roble viejo']);
