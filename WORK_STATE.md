@@ -41,7 +41,47 @@ diseña lo del grupo (spec + `.pen`) → QA → migración a producción por MCP
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «DE SU FAMILIA REVERTIDO» (donde se retoma: espera que él pruebe y conteste cuatro preguntas) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «SUS CUATRO QUEJAS, HECHAS» (donde se retoma: espera que las pruebe) · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+
+## 🟢 2026-09-14 (madrugada→mañana) — **SUS CUATRO QUEJAS DE LA PRUEBA EN PANTALLA: LAS CUATRO HECHAS Y COMMITEADAS. ⏳ Falta que las pruebe.**
+
+Se fue a dormir dejando cuatro cosas («*no necesitas permiso … cuando me despierte quiero esto listo*»). Las cuatro
+están construidas, revisadas y commiteadas en `feat/maps-objetos`, sin mergear.
+
+1. **`8792b54` — el scroll lateral de los paneles.** («*el panel de objetos y builder tienen un scroll lateral, eso
+   no va así … el de objetos es más pequeño que los otros*».) Eran **tres causas reales**, no una: la barra de los
+   deslizadores en fila no podía encogerse (`min-width:0`, y el comentario decía que era a propósito); los pies de
+   panel no partían palabras largas (un nombre de fichero sin espacios empujaba el panel); y la fila de textura del
+   Builder no tenía a dónde ir (los botones no encogen). De remate, `.rv-fpanel` pasa a `overflow-x:hidden`: a lo
+   ancho NUNCA. Y el panel de objetos de 220 a **300 px**, los mismos que Builder y Pincel.
+2. **`245840d` — LOS NODOS con varios objetos cogidos.** («*si selecciono varios items sigo sin los putos nodos…
+   son los mismos nodos de cuando seleccionas un solo objeto*».) Geometría pura nueva en `propRules.ts`
+   (`propsBounds`, `groupCorners`, `groupRotateHandleAt`, `groupBoxFromCorner`, `scalePropsTo`, `rotatePropsBy`),
+   dos gestos en `MapCanvas.tsx` y guardado en lote: **un solo paso de Ctrl+Z** para todo el grupo. Mismas clases
+   CSS que los de uno solo, así que se ven y se usan igual.
+3. **`e9a9ba5` — OBJETOS, y fuera «sello».** («*que son objetos, no piezas*» · «*no sé lo que es un sello, deja de
+   inventar términos*».) 95 textos en es/en, con las concordancias una a una. «LA PIEZA DEL SELLO» → **«EL OBJETO
+   ELEGIDO»**. Decisión escrita como NO revisable en `specs/modules/maps/SPEC.md` § Rebanada 6.
+4. **`919c7cb` — los dos fallos que sacó el review** de los nodos: el marco se re-medía al girar y el tirador se
+   escapaba del puntero (se veía al primer giro), y el borrador se quedaba pegado si el gesto se cortaba con Esc o
+   con el botón derecho. Más: los objetos de capas apagadas ya no se redimensionan a escondidas, y Ctrl+Z dice el
+   plural.
+
+**Verde en todo**: typecheck web · **1940 tests** (121 ficheros, +12 nuevos) · `npm run audit` **0 hard** (31 warn,
+los de siempre) · build web + build api · **dos reviews subagente**, el segundo con dos defectos encontrados y
+arreglados.
+
+### 🚫 Lo que NO se tocó, y por qué
+- **El sello que se le vacía**: sigue SIN preguntar el gesto (ver el 🆕 del bloque de abajo, con los cuatro
+  caminos ya localizados). Con el renombrado, la pregunta cambia de forma: ya no hay «sello», hay «objeto
+  elegido» — pero el comportamiento es el mismo y la pregunta sigue en pie.
+- **El `.pen`**: dice «Piezas» y «LA PIEZA DEL SELLO», y el panel a 220 px. **Sólo lo puede guardar él.** Hay que
+  corregirlo con él delante antes de QA.
+- **Renombrar el código** (`scene_props`, `Prop`, claves `maps.props.*`, prosa de specs y comentarios): NO. Son
+  identificadores internos que no ve nadie; sería un terremoto sin ninguna ganancia para él.
+- **Deuda de antes, encontrada y no tocada**: `propDraft` y `propMoveDraft` tienen el MISMO agujero que se acaba de
+  arreglar en el del grupo (Esc o botón derecho a media faena los dejan pegados). Es de antes, se arregla aparte.
+  Y el Ctrl+Z de MOVER varios sigue diciendo el singular.
 
 ## 🟢 2026-09-14 (madrugada) — **«DE SU FAMILIA» REVERTIDO, revisado (✅ review) y COMMITEADO (`9361751`). ⏳ Falta que lo pruebe en pantalla y que conteste CUATRO preguntas: nada más se toca sin ellas.**
 
