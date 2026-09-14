@@ -67,9 +67,15 @@ están construidas, revisadas y commiteadas en `feat/maps-objetos`, sin mergear.
    con el botón derecho. Más: los objetos de capas apagadas ya no se redimensionan a escondidas, y Ctrl+Z dice el
    plural.
 
-**Verde en todo**: typecheck web · **1940 tests** (121 ficheros, +12 nuevos) · `npm run audit` **0 hard** (31 warn,
-los de siempre) · build web + build api · **dos reviews subagente**, el segundo con dos defectos encontrados y
-arreglados.
+5. **`7bc29f9` — lo que sacó el review del renombrado.** «Favorito» se le coló a las TEXTURAS (el catálogo es el
+   mismo componente y la estrella era la única cadena clavada al prefijo de objetos): decía «Favorito · Roca gris»
+   con el estante «Favoritas» al lado. Cada cara pone ya su palabra. Además, el nombre de reserva al subir un
+   fichero que es sólo extensión lo pone ahora quien llama, traducido («Objeto» / «Textura»): antes una textura
+   habría acabado llamándose «Objeto». Y el inglés de los Ctrl+Z nuevos, que estaba mal escrito.
+
+**Verde en todo**: typecheck web · **1940 tests** (121 ficheros) · `npm run audit` **0 hard** (31 warn, los de
+siempre) · build web + build api · **TRES reviews subagente**: el primero limpio, el segundo con dos defectos
+encontrados y arreglados (`919c7cb`), el tercero con uno más (`7bc29f9`).
 
 ### 🚫 Lo que NO se tocó, y por qué
 - **El sello que se le vacía**: sigue SIN preguntar el gesto (ver el 🆕 del bloque de abajo, con los cuatro
@@ -82,6 +88,10 @@ arreglados.
 - **Deuda de antes, encontrada y no tocada**: `propDraft` y `propMoveDraft` tienen el MISMO agujero que se acaba de
   arreglar en el del grupo (Esc o botón derecho a media faena los dejan pegados). Es de antes, se arregla aparte.
   Y el Ctrl+Z de MOVER varios sigue diciendo el singular.
+- **Decisión suya pendiente, NO la tomo yo**: «Objetos» es ahora el botón de la barra, el panel, el catálogo Y la
+  capa de serie, así que dentro del panel OBJETOS el desplegable «A qué capa va» lista una capa llamada
+  «Objetos». Antes se distinguían porque el panel era «Piezas». Es coherente, pero se repite: si le molesta, se
+  le cambia el nombre a la capa.
 
 ## 🟢 2026-09-14 (madrugada) — **«DE SU FAMILIA» REVERTIDO, revisado (✅ review) y COMMITEADO (`9361751`). ⏳ Falta que lo pruebe en pantalla y que conteste CUATRO preguntas: nada más se toca sin ellas.**
 
