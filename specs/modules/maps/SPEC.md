@@ -87,9 +87,10 @@ enfoque. El director prepara; el grupo juega encima. Who: todos; muchas herramie
 
 ## What the user can do
 - **Escenas** (solo DJ): crear, nombrar, activar (**el director decide qué escena ven los jugadores**), subir fondo.
-- **Fondo del mapa** (popover, solo DJ): **color de base** (muestras + hex + cuentagotas; se ve donde no llega la
-  imagen) y **biblioteca de imágenes** de la campaña (subir, elegir, ninguna) con ajuste Cubrir / Encajar /
-  Reposicionar.
+- **Fondo del mapa** (popover, solo DJ): **color de base** (el mismo bloque que el Pincel: muestras, TUS COLORES
+  por campaña, hex y cuentagotas; se ve donde no llega la imagen) y el **catálogo de fondos** a pantalla completa
+  —sus fondos de la campaña arriba, las texturas de la herramienta debajo— con ajuste Cubrir / Encajar /
+  Reposicionar. Ver «EL FONDO DEL MAPA — el mismo catálogo que las texturas y los objetos».
 - **Barra vertical de herramientas** (izquierda del lienzo), en tres bloques separados por reglas: **Dados** ·
   Seleccionar · Medir · Pin | Lápiz · Línea · Caja · Círculo · Texto · Borrar; director además (separador oro):
   Muro · Revelar · Ocultar ‖ **Encuentro** · Colocar PJ · Fondo del mapa (estas tres abren panel).
@@ -1103,6 +1104,64 @@ Migraciones: `20260831200000_maps_props.sql` (el andamio de agosto) y **`2026091
   copias plantadas.
 - **Permiso**: `manage_props` en `roles.permissions.tools` (registro `TOOL_PERMISSIONS`, `has_tool('manage_props')`);
   de serie a `game_master`; `admin` lo tiene por `is_admin()`.
+
+## EL FONDO DEL MAPA — el mismo catálogo que las texturas y los objetos (2026-09-14)
+
+> 🟢 **CONFIRMADO POR ÉL el 2026-09-14** («*sip*»), con la captura del popover de hoy delante. Cuatro cosas suyas,
+> textuales: «*el subir está mal, tiene que ser como las texturas*» · «*el color picker tiene que ajustarse como
+> hicimos en otros menús*» · «*no hay un catálogo categorizado como con las texturas y debería ser el mismo*» ·
+> «*lo que cambia aquí es que están los de sistema que son los mismos de la textura y los del DJ que son los que
+> sólo viven en la campaña*».
+
+### Qué está mal hoy
+El fondo se elige en un popover de 340 px (`BackgroundPopover`) con **una rejilla plana sin categorías**, **subida
+de un fichero cada vez** (`<input type="file">`) y un **campo de hex hecho a mano** pegado a un `ColorPicker` al
+que encima se le ha apagado el suyo (`allowCustom={false}`). Nada de eso se parece a los catálogos de texturas y
+de objetos, que desde el § 6.8 son **el mismo componente** (`LibraryCatalog`).
+
+### 1 · El catálogo es EL MISMO
+A pantalla completa, con `LibraryCatalog`, igual que las texturas y los objetos. Se entra **pulsando la muestra
+del fondo o CAMBIAR** (la regla de «la foto es el botón», § 6.8 punto 8) y se abre **encima del mapa**, aparte.
+Trae lo de siempre: buscador, tres puntos (renombrar y borrar), favoritos, recientes y tamaño de miniatura. Ahí
+se arreglan de paso los nombres con pinta de matrícula, que hoy son el nombre del fichero tal cual.
+
+### 2 · DOS ORÍGENES, EN ESTE ORDEN
+| Sección | Qué es | Dónde vive |
+|---|---|---|
+| **Arriba · sus fondos** | Los que sube el director | **SÓLO en esa campaña** |
+| **Debajo · las texturas** | La biblioteca de texturas de siempre, con sus siete categorías | En la HERRAMIENTA: valen en todos los mapas de todas las campañas |
+
+> 🔑 **UN FONDO DE CAMPAÑA NO SALE DE SU CAMPAÑA.** Suyo, 2026-09-14: «*los fondos de las campañas sólo son para
+> la campaña del DM que la publicó*». Es una regla de la BASE (`maps_images.campaign_id`), no algo que se esconda
+> en pantalla. Las texturas, al revés: son de la herramienta y se ven en todas.
+
+Sus fondos van en **una sola sección, sin categorías**: son pocos y son de esa campaña. Las categorías son de las
+texturas y siguen siendo las siete cerradas.
+
+### 3 · Subir, en lote
+La misma ventana que texturas y objetos (`LibraryUpload`), no el fichero a fichero de hoy.
+
+> 🟢 **CERRADO POR ÉL el 2026-09-14**: «*sí, se hace desde el catálogo de texturas, pero está separado y no es
+> público para todo el mundo, sino que vive dentro de la campaña*».
+
+O sea: **se sube desde ESTE mismo catálogo** (que es el de texturas, con la sección de sus fondos encima), y lo
+que entre por ahí **NO se publica para todos**: cae en **sus fondos de esta campaña**, en su propia sección. Meter
+algo en las texturas de sistema —eso sí público para todas las campañas— se sigue haciendo desde el catálogo de
+texturas por su camino de siempre, detrás de `manage_textures`.
+
+### 4 · El color de base: el bloque de siempre
+Pasa a ser **el mismo que el Pincel y el Builder** (`PaintColor`): el cuadro grande con el color puesto, la paleta
+de la casa, **TUS COLORES** guardados **por campaña**, el hex y el cuentagotas. Desaparece la fila de hex suelta.
+Lo dice ya el propio componente: «*mismo alcance que la biblioteca de fondos, y por lo mismo*».
+
+### 5 · Lo que NO cambia
+Cubrir / Encajar / Reposicionar, la opción **«Ninguna»**, y que este mismo sitio siga sirviendo para la **foto de
+una capa de terreno** (§ 7.1), donde el color de base no sale porque es de la escena, no de la capa.
+
+### Modelo de datos
+**No hace falta migración.** `maps_images` ya es de la campaña (`campaign_id`, con `uploaded_by`) y `maps_textures`
+ya es de la herramienta: lo único que cambia es que el catálogo los enseña juntos. Lo que SÍ hay que verificar
+antes de construir es que la RLS de `maps_images` acota de verdad por campaña — es el 🔑 de arriba.
 
 ## Rebanada 8 — habitaciones rápidas (el «generador» de Builder)
 
