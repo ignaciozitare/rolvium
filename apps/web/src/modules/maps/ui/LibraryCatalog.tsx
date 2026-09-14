@@ -245,7 +245,14 @@ export function LibraryCatalog<T extends LibraryItem>({
     setDropOn(null);
     let ids: string[] = [];
     try { ids = JSON.parse(e.dataTransfer.getData(LIBRARY_DRAG_MIME) || '[]') as string[]; } catch { ids = []; }
-    const movidas = ids.map(id => all.find(i => i.id === id)).filter((i): i is T => !!i && placeOf(i).group !== groupId);
+    /*
+     * El permiso se comprueba TAMBIÉN aquí, donde se actúa, y no sólo en el `draggable` que pinta el asa: los
+     * ids viajan en el portapapeles del arrastre y no hay nada que garantice de dónde salieron. Es el mismo
+     * candado que llevan `marcadas` y el tramo de Mayús desde que el catálogo enseña DOS bibliotecas con
+     * permisos distintos (los FONDOS). Hoy no se puede llegar hasta aquí sin permiso; mañana, con una cuarta
+     * cara que pase `onMoveTo` Y `canManageItem`, éste sería el único camino sin cerrar.
+     */
+    const movidas = ids.map(id => all.find(i => i.id === id)).filter((i): i is T => !!i && puede(i) && placeOf(i).group !== groupId);
     movidas.forEach(i => onMoveTo?.(i, groupId));
     limpiarSeleccion();
   };

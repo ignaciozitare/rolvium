@@ -910,8 +910,10 @@ Se abre desde el panel de pieza («ELEGIR») y desde el botón **Piezas** de la 
 
 ### 6.4 · El panel de pieza — «mientras plantas» (`lWBaU`)
 
-Sale al pulsar **Piezas** en la barra (bloque del director, **el primero**, antes de Luz: `SNlGp`). 220 de ancho,
-las mismas piezas comunes que el Builder y el Pincel (`FloatingPanel` · `Slider` · `OptionGroup`).
+Sale al pulsar **Objetos** en la barra (bloque del director, **el primero**, antes de Luz: `SNlGp`). **300 de
+ancho, los mismos que el Builder y el Pincel** — la lámina lo dibujó a 220 y él lo tumbó al verlo en pantalla
+(2026-09-14: «*el de objetos es más pequeño que los otros, no es así, tiene que respetar los tamaños*»). Las
+mismas piezas comunes que el Builder y el Pincel (`FloatingPanel` · `Slider` · `OptionGroup`).
 - **S/1 · LA PIEZA DEL SELLO**: la muestra grande sobre oscuro (el único negro del panel: detrás del arte), su nombre
   con la estrella de favorito, **ELEGIR** (sangre, abre el catálogo) / **SOLTAR** (quita el sello) · **ESCALA** (×,
   «se recuerda: el próximo roble sale ya a este tamaño») · **GIRO** (0–355°, con el dado que sortea uno).
@@ -1002,7 +1004,13 @@ el `.pen` antes del código; las otras (2 y 5) son de comportamiento.
    dentro (como ya hace con fichas, muros y trazos). Con varias cogidas: cada una con su marco oro **sin
    tiradores**; arrastrar las mueve juntas; **Suprimir** las borra; **Ctrl+C / Ctrl+V** las copia (todas, con su
    giro y tamaño, el mismo desplazamiento); **el botón derecho manda sobre todas** (capa · apilado · estorbo ·
-   duplicar · borrar); Ctrl+Z deshace en UN paso. Estirar y girar sólo con una cogida.
+   duplicar · borrar); Ctrl+Z deshace en UN paso.
+   - ✅ **Y TAMBIÉN SE ESTIRAN Y SE GIRAN JUNTAS** (orden suya del 2026-09-14: «*si selecciono varios items sigo
+     sin los putos nodos, ponlos … son los mismos nodos de cuando seleccionas un solo objeto*»). Con dos o más
+     cogidas sale el marco del grupo con **los mismos cuatro tiradores de esquina y el de giro** que con una
+     sola: las esquinas estiran manteniendo la proporción con la contraria clavada, el de arriba gira el grupo
+     entero alrededor de su centro, y todo se guarda en UN paso de Ctrl+Z. Lo que sigue fuera de alcance es que
+     **el PANEL** mande sobre varias cogidas: ahí sólo se toca una.
 6. **«Seleccionar» arriba del menú del botón derecho de una pieza** («*si estoy poniendo objetos y hago click
    derecho no me figura la opción de seleccionar primero*»). Sobre el suelo vacío ya salía (menú de la vista);
    sobre una pieza salía su menú (§ 6.6) sin él. Ahora el menú de la pieza lleva **Seleccionar** arriba del todo:
@@ -1083,7 +1091,9 @@ diciendo «pieza» en la prosa de abajo por la misma razón**: manda lo que se v
   y **estirado libre** sin proporción. **Ajustar a mano la forma que estorba** (hoy es la huella entera).
 - **Favoritos compartidos entre dispositivos** (hoy, en el navegador). **Limpieza de imágenes huérfanas** del bucket.
 - **Arrastrar imágenes directamente sobre la escena** para plantarlas: lo que se arrastra cae en el catálogo.
-- **Estirar o girar varias piezas a la vez**, y que el panel mande sobre varias cogidas (§ 6.8, punto 7).
+- ~~Estirar o girar varias piezas a la vez~~ → **HECHO el 2026-09-14** por orden suya, con los mismos nodos que
+  una sola (§ 6.8, punto 5). Sigue fuera de alcance **que el panel mande sobre varias cogidas** (§ 6.8, punto 7):
+  con dos o más, el panel no las toca.
 
 ### Modelo de datos (rebanada 6)
 
