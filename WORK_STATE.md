@@ -43,17 +43,25 @@ spec de maps, línea 18.
 
 > ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🚀 «CAMINO A PRODUCCIÓN (v0.8.0)» (donde se retoma) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
 
-## 🚀 2026-09-14 (tarde) — **CAMINO A PRODUCCIÓN (v0.8.0). Él dio el visto bueno: «*yo probé lo mío por ahora ok, sino ya solucionaremos*».**
+## 🚀 2026-09-14 (tarde) — **v0.8.0 EN PRODUCCIÓN.** Él dio el visto bueno («*yo probé lo mío por ahora ok*» · «*se ve bien todo*») y se subió entero.
 
-Orden suya: cerrar flecos y subir. **20 commits** en `feat/maps-objetos` sin mergear, todo verde.
+`feat/maps-objetos` (22 commits) mergeada a `main` en `0689501` y desplegada. **Los dos despliegues de producción
+READY** y comprobados de verdad:
+- `https://rolvium.vercel.app` → **200** · `https://rolvium-api.vercel.app/health` → **`{"ok":true}`**
+- Y el paquete que sirve producción lleva lo nuevo: están «El objeto elegido», «Tus fondos», «Texturas de
+  sistema» y `mp-props-group-handle`, y **ya NO está** «La pieza del sello». No es una versión cacheada.
 
-### 📍 El plan, en este orden (lo irreversible va marcado)
-1. ⏳ **QA** sobre la rama (lo exige el hook antes de mergear).
-2. ⚠️ **La migración a producción por MCP** — `20260913100000_maps_props_tool_library`, **la ÚNICA que falta**.
-   Comprobado con `list_migrations`: la nube va hasta `core_app_settings_grants` (12-09); las «ocho pendientes»
-   que decía el bloque del 12 ya se aplicaron siete. **Antes del merge**, como siempre.
-3. ⚠️ **Merge a `main`** → deploy → **v0.8.0**.
-4. ⏳ **Mover su biblioteca a producción** (ver abajo: se puede a medias).
+### ✅ HECHO, en este orden
+1. ✅ **QA** — pasado en modo aviso. Todo lo automático verde: 1965 tests, arquitectura y seguridad limpias,
+   **cero avisos ERROR** en Supabase, i18n 1441/1441, build web + api, producción viva. Dos desvíos de spec
+   (código por delante del spec, no al revés) **ya corregidos en `7aaf633`**.
+2. ✅ **Claro/oscuro**, verificado por él sobre los catálogos: «*se ve bien todo*».
+3. ✅ **Migración aplicada en producción por MCP**, ANTES del merge: `20260914144254 maps_props_tool_library`.
+   Comprobado después: `game_master` conserva **`manage_textures` Y gana `manage_props`**, `maps_prop_packs`
+   con sus 4 políticas, y las columnas `maps_props.pack_id` y `maps_scene_props.z`.
+   ⚠️ Era **UNA** migración pendiente, no ocho: las otras siete se aplicaron el 12-09.
+4. ✅ **Los dos previews de Vercel en verde** sobre el último commit (web y api).
+5. ✅ **Merge a `main`** (`0689501`, `--no-ff`) y push. **v0.8.0**.
 
 ### 🖼️ MOVER TEXTURAS Y OBJETOS A PRODUCCIÓN — lo que se puede y lo que no
 Su local apunta a **su propia base** (`VITE_SUPABASE_URL=http://127.0.0.1:54321`), así que TODO lo suyo vive en
