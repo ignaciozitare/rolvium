@@ -41,7 +41,38 @@ diseña lo del grupo (spec + `.pen`) → QA → migración a producción por MCP
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «SUS CUATRO QUEJAS, HECHAS» (donde se retoma: espera que las pruebe) · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🟢 «EL FONDO DEL MAPA» (lo último: espera que lo pruebe) · 🟢 «SUS CUATRO QUEJAS, HECHAS» (espera que las pruebe) · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+
+## 🟢 2026-09-14 (tarde) — **EL FONDO DEL MAPA, con el mismo catálogo que las texturas. Spec + láminas commiteadas (`c391aff`); el código, construido y en review.**
+
+Pedido suyo con captura del popover delante. **Ojo al malentendido**: dijo «*soluciona lo que te pedí de las
+texturas*» y yo me fui a § 10B.2 («con qué se pinta») — no era eso. Era **el fondo del mapa**: «*ya sé en qué
+nos desconectamos, fondos del mapa*».
+
+Sus cuatro cosas: (1) la subida, en lote como las texturas; (2) el selector de color, el mismo que en los otros
+menús; (3) el catálogo categorizado, **el mismo componente**; (4) lo nuevo: **fondos de sistema** (= las
+texturas, de la herramienta) y **fondos del director** (sólo de esa campaña).
+
+- **Spec**: sección nueva «EL FONDO DEL MAPA» en `specs/modules/maps/SPEC.md`, cerrada por él («*sip*») con su
+  regla: «*los fondos de las campañas sólo son para la campaña del DM que la publicó*». **Sin migración**: la
+  RLS de `maps_images` ya acota por campaña (verificado).
+- **Láminas** (las guardó él): `PL/Fondo del mapa · panel` y `PL/Catálogo de fondos`, al final de la fila de la
+  sección 5.
+- **Código: COMMITEADO en `c1782b9`**, con review ✅ PASSED. `backgroundRules.ts` nuevo (la forma común de los
+  dos orígenes) · `BackgroundCatalog` y `BackgroundUpload`, las terceras caras de `LibraryCatalog`/`LibraryUpload`
+  · el panel con `PaintColor` (el bloque del Pincel, con TUS COLORES por campaña) y la fila muestra + CAMBIAR ·
+  `updateImage` nuevo en el puerto · `maps.backgrounds.*` en es/en. El catálogo común gana dos props
+  retrocompatibles: `canManageItem` (permiso por pieza) y `onMoveTo` opcional.
+- **SIN COMPRIMIR, decisión suya**: se construyó comprimiendo los fondos (2560 px, 0,82) y él lo paró al leerlo
+  («*¿pero se comprimen y pierden calidad? porque eso sería un problema*»). Tenía razón dos veces: pidió «como
+  las texturas», y las texturas entran tal cual. **Corregidos los dos specs**, que decían lo contrario
+  (`specs/core/images/SPEC.md` incluido). ⚠ Contrapartida avisada: sin compresión tampoco hay tope de peso.
+- **Dos fallos que sacó el review**, arreglados: el tramo de Mayús se saltaba el permiso por pieza y dejaba
+  borrar texturas ajenas en silencio; y «Tus colores» se quedaba en «Cargando…» para siempre si abrías el fondo
+  sin haber tocado antes el Pincel.
+- **Verde**: typecheck · **1965 tests** (124 ficheros) · audit 0 hard · build web + api.
+
+⏳ **Falta**: que lo pruebe él.
 
 ## 🟢 2026-09-14 (madrugada→mañana) — **SUS CUATRO QUEJAS DE LA PRUEBA EN PANTALLA: LAS CUATRO HECHAS Y COMMITEADAS. ⏳ Falta que las pruebe.**
 
