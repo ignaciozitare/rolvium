@@ -328,7 +328,7 @@ type Gesture =
    * fotograma se acumularía y el grupo se iría deformando solo.
    */
   | { kind: 'propsScale'; corner: PropCorner; origin: Rect; ids: string[]; moved: boolean }
-  | { kind: 'propsRotate'; center: Point; startDeg: number; ids: string[]; moved: boolean }
+  | { kind: 'propsRotate'; center: Point; startDeg: number; origin: Rect; deltaDeg: number; ids: string[]; moved: boolean }
   | { kind: 'sow' };
 
 type DrawTool = 'stroke' | 'line' | 'rect' | 'circle';
@@ -534,7 +534,9 @@ export function MapCanvas(p: Props): JSX.Element {
     const onControl = (t: EventTarget | null): boolean =>
       !!(t as HTMLElement | null)?.closest?.('button, a[href], input, select, textarea, summary, [role="button"], [role="menuitem"], [role="menuitemcheckbox"], [role="radio"], [role="tab"], [contenteditable="true"]');
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setWallStart(null); setBandDraft([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); p.onSelectProp?.(null); p.onSelectProps?.([]); setDrawingDraft(null); setGroupDraft(null); p.onSelectWalls?.([]); return; }
+      // `setPropsXfDraft(null)`: sin esto, cortar un gesto de grupo a media faena dejaba el borrador puesto y
+      // el lienzo seguía pintando —y dejándose pinchar— las piezas donde NO están, sin haber guardado nada.
+      if (e.key === 'Escape') { setWallStart(null); setBandDraft([]); setRoomDraft([]); setGesture(null); setLightDraft(null); setMeasure(null); p.onSelectToken(null); p.onSelectWall?.(null); p.onSelectLight?.(null); p.onSelectDrawing?.(null); p.onSelectProp?.(null); p.onSelectProps?.([]); setDrawingDraft(null); setGroupDraft(null); setPropsXfDraft(null); p.onSelectWalls?.([]); return; }
       if (e.key === ' ' && !typing(e.target) && !onControl(e.target)) { e.preventDefault(); setSpacePan(true); return; } // preventDefault: space scrolls the table otherwise
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing(e.target)) { e.preventDefault(); onDeleteRef.current(); }
       /**
@@ -656,14 +658,14 @@ export function MapCanvas(p: Props): JSX.Element {
         const rotG = groupRotateHandleAt(propsMarco, PROP_ROTATE_GAP / p.view.zoom);
         const centroG = { x: propsMarco.x + propsMarco.w / 2, y: propsMarco.y + propsMarco.h / 2 };
         if (Math.hypot(s.x - rotG.x, s.y - rotG.y) <= 10 / p.view.zoom) {
-          setGesture({ kind: 'propsRotate', center: centroG, startDeg: rotationToward(centroG, s), ids: [...cogidas], moved: false });
+          setGesture({ kind: 'propsRotate', center: centroG, startDeg: rotationToward(centroG, s), origin: propsMarco, deltaDeg: 0, ids: grupoPiezas.map(x => x.id), moved: false });
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
         const esquinasG = groupCorners(propsMarco);
         const cornerG = PROP_CORNERS.find(k => Math.hypot(s.x - esquinasG[k].x, s.y - esquinasG[k].y) <= 9 / p.view.zoom);
         if (cornerG) {
-          setGesture({ kind: 'propsScale', corner: cornerG, origin: propsMarco, ids: [...cogidas], moved: false });
+          setGesture({ kind: 'propsScale', corner: cornerG, origin: propsMarco, ids: grupoPiezas.map(x => x.id), moved: false });
           svgRef.current?.setPointerCapture?.(e.pointerId);
           return;
         }
@@ -1207,16 +1209,19 @@ export function MapCanvas(p: Props): JSX.Element {
     } else if (gesture.kind === 'propsScale') {
       // EL GRUPO ENTERO de un marco al otro: la esquina de enfrente clavada y la proporción intacta, igual
       // que con una sola. Se parte SIEMPRE del marco de origen, no del de hace un fotograma.
-      const piezas = (p.sceneProps ?? []).filter(x => gesture.ids.includes(x.id));
+      // Las piezas salen de `propsAll` —lo que DE VERDAD se ve— y no de la lista cruda: una de una capa
+      // apagada no entró en el marco, así que tampoco puede estirarse contra él sin que nadie lo vea.
+      const piezas = propsAll.filter(x => gesture.ids.includes(x.id));
       const destino = groupBoxFromCorner(gesture.origin, gesture.corner, s);
       setPropsXfDraft(new Map(scalePropsTo(piezas, gesture.origin, destino).map(b => [b.id, b.patch])));
       if (!gesture.moved) setGesture({ ...gesture, moved: true });
     } else if (gesture.kind === 'propsRotate') {
-      // Lo que ha girado la mano desde que agarró, aplicado al grupo entero alrededor de su centro.
-      const piezas = (p.sceneProps ?? []).filter(x => gesture.ids.includes(x.id));
+      // Lo que ha girado la mano desde que agarró, aplicado al grupo entero alrededor de su centro. El giro se
+      // guarda EN EL GESTO para poder girar también el marco, en vez de volver a medirlo en cada fotograma.
+      const piezas = propsAll.filter(x => gesture.ids.includes(x.id));
       const delta = rotationToward(gesture.center, s) - gesture.startDeg;
       setPropsXfDraft(new Map(rotatePropsBy(piezas, gesture.center, delta).map(b => [b.id, b.patch])));
-      if (!gesture.moved) setGesture({ ...gesture, moved: true });
+      setGesture({ ...gesture, moved: true, deltaDeg: delta });
     } else if (gesture.kind === 'sow') {
       p.onSow?.(s, false);
     } else if (gesture.kind === 'brush') {
@@ -1259,7 +1264,7 @@ export function MapCanvas(p: Props): JSX.Element {
    */
   const onRightClick = (e: ReactPointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
     e.preventDefault();
-    if (wallStart || measure || gesture || bandDraft.length) { setWallStart(null); setBandDraft([]); setRoomDraft([]); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); return; }
+    if (wallStart || measure || gesture || bandDraft.length) { setWallStart(null); setBandDraft([]); setRoomDraft([]); setMeasure(null); setGesture(null); setLightDraft(null); setDrawingDraft(null); setPropsXfDraft(null); return; }
     // Sobre algo, el menú es de ESE algo; en el suelo vacío, el de la vista. Sólo el director mueve capas.
     const s = toScene(e);
     const el = dmSight ? elementAt(s) : null;
@@ -1835,24 +1840,32 @@ export function MapCanvas(p: Props): JSX.Element {
             * sin los putos nodos … son los mismos nodos de cuando seleccionas un solo objeto*»). Mismas
             * clases que los de una pieza: se ven y se usan igual, y el grupo se estira y se gira entero.
             */}
-          {propsMarco && (
-            <g className="mp-prop-handles" data-testid="mp-props-group-handles">
-              {(() => {
-                const rotG = groupRotateHandleAt(propsMarco, PROP_ROTATE_GAP / p.view.zoom);
-                const esquinasG = groupCorners(propsMarco);
-                const lado = 9 / p.view.zoom;
-                return (<>
-                  <rect className="mp-prop-frame" x={propsMarco.x} y={propsMarco.y} width={propsMarco.w} height={propsMarco.h} data-testid="mp-props-group-frame" />
-                  <line x1={propsMarco.x + propsMarco.w / 2} y1={propsMarco.y} x2={rotG.x} y2={rotG.y} className="mp-prop-rotline" />
-                  <circle cx={rotG.x} cy={rotG.y} r={6 / p.view.zoom} className="mp-prop-rotate" data-testid="mp-props-group-rotate" role="img" aria-label={t('maps.props.canvas.rotate')} />
-                  {PROP_CORNERS.map(k => (
-                    <rect key={k} className="mp-prop-handle" data-testid={`mp-props-group-handle-${k}`}
-                      x={esquinasG[k].x - lado / 2} y={esquinasG[k].y - lado / 2} width={lado} height={lado} />
-                  ))}
-                </>);
-              })()}
-            </g>
-          )}
+          {propsMarco && (() => {
+            /*
+             * MIENTRAS SE GIRA, EL MARCO NO SE VUELVE A MEDIR: se dibuja el de partida y se gira entero, que
+             * es justo lo que hace el de una pieza sola. Midiéndolo en cada fotograma se hinchaba —un marco
+             * de 500 × 450 puesto a 45° pasa a 672 × 672— y el tirador de giro, que va en el centro de su
+             * lado de arriba, se escapaba del puntero mientras se giraba.
+             */
+            const girando = gesture?.kind === 'propsRotate' ? gesture : null;
+            const marco = girando ? girando.origin : propsMarco;
+            const cx = marco.x + marco.w / 2, cy = marco.y + marco.h / 2;
+            const rotG = groupRotateHandleAt(marco, PROP_ROTATE_GAP / p.view.zoom);
+            const esquinasG = groupCorners(marco);
+            const lado = 9 / p.view.zoom;
+            return (
+              <g className="mp-prop-handles" data-testid="mp-props-group-handles"
+                transform={girando ? `rotate(${girando.deltaDeg} ${cx} ${cy})` : undefined}>
+                <rect className="mp-prop-frame" x={marco.x} y={marco.y} width={marco.w} height={marco.h} data-testid="mp-props-group-frame" />
+                <line x1={cx} y1={marco.y} x2={rotG.x} y2={rotG.y} className="mp-prop-rotline" />
+                <circle cx={rotG.x} cy={rotG.y} r={6 / p.view.zoom} className="mp-prop-rotate" data-testid="mp-props-group-rotate" role="img" aria-label={t('maps.props.canvas.rotate')} />
+                {PROP_CORNERS.map(k => (
+                  <rect key={k} className="mp-prop-handle" data-testid={`mp-props-group-handle-${k}`}
+                    x={esquinasG[k].x - lado / 2} y={esquinasG[k].y - lado / 2} width={lado} height={lado} />
+                ))}
+              </g>
+            );
+          })()}
           {/* EL FANTASMA DEL SELLO bajo el puntero (rebanada 6): lo que va a caer, y con MUCHAS el área que siembra. */}
           {dmSight && p.tool === 'props' && p.stamp && hover && (
             <g className="mp-prop-ghost" data-testid="mp-prop-ghost" pointerEvents="none">

@@ -2897,6 +2897,35 @@ describe('<MapCanvas> las piezas plantadas', () => {
     expect(cb.onRotateProps).not.toHaveBeenCalled();
   });
 
+  /**
+   * Girando, el marco NO se vuelve a medir: se gira el de partida. Si se re-midiera en cada fotograma se
+   * hincharía (500 × 450 a 45° pasa a 672 × 672) y el tirador de giro se escaparía del puntero.
+   */
+  it('al girar el grupo, el marco se gira ENTERO en vez de volver a medirse', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onRotateProps: vi.fn() };
+    const { svg } = mount(grupo(cb));
+    const marco = () => within(svg).getByTestId('mp-props-group-frame');
+    expect(marco().getAttribute('width')).toBe('500');
+    down(svg, 500, 53);
+    move(svg, 1000, 300);
+    expect(marco().getAttribute('width')).toBe('500');   // el mismo de siempre, no uno hinchado
+    expect(within(svg).getByTestId('mp-props-group-handles').getAttribute('transform')).toBe('rotate(90 500 300)');
+    up(svg);
+  });
+
+  it('si el gesto del grupo se corta con Esc, no se queda nada pintado donde no está', () => {
+    const cb = { ...propCb(), onSelectProps: vi.fn(), onScaleProps: vi.fn() };
+    const { svg } = mount(grupo(cb));
+    down(svg, 750, 525);
+    move(svg, 1250, 975);
+    expect(svg.querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toBe('translate(550 525) rotate(0)');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    up(svg);
+    // Ni se guarda, ni se queda el borrador puesto: el Roble vuelve a donde está de verdad.
+    expect(cb.onScaleProps).not.toHaveBeenCalled();
+    expect(svg.querySelector('[data-prop-id="sp-oak"]')!.getAttribute('transform')).toBe('translate(400 300) rotate(0)');
+  });
+
   it('el recuadro por el vacío coge las piezas de dentro; arrastrar una de las cogidas las mueve TODAS y se guarda de una vez', () => {
     const cb = { ...propCb(), onSelectProps: vi.fn(), onMoveProps: vi.fn() };
     const { svg, rerender } = mount({ ...dm, ...cb, sceneProps: [OAK, { ...COL, layerId: null }] });

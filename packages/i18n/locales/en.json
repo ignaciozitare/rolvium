@@ -1246,7 +1246,9 @@
       "props": "the sown objects",
       "propMove": "moving the object",
       "propScale": "the object size",
-      "propRotate": "the object rotation"
+      "propRotate": "the object rotation",
+      "propsScale": "the objects size",
+      "propsRotate": "the objects rotation"
     },
     "builder": {
       "title": "Builder",

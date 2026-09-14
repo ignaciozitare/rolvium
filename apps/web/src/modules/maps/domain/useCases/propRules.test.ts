@@ -322,6 +322,23 @@ describe('propRules — el grupo de piezas cogidas: marco, estirar y girar (§ 6
     expect(groupBoxFromCorner(marco, 'se', { x: 250, y: 75 })).toEqual({ x: 250, y: 75, w: 8, h: 7.2 });
   });
 
+  it('y desde las OTRAS TRES esquinas igual: la de enfrente se queda exactamente donde estaba', () => {
+    const marco = propsBounds([A, B])!;   // (250, 75) 500 × 450
+    // Tirando de NW, la clavada es SE (750, 525): el marco crece hacia arriba y a la izquierda.
+    expect(groupBoxFromCorner(marco, 'nw', { x: -250, y: -375 })).toEqual({ x: -250, y: -375, w: 1000, h: 900 });
+    // Tirando de NE, la clavada es SW (250, 525).
+    expect(groupBoxFromCorner(marco, 'ne', { x: 1250, y: -375 })).toEqual({ x: 250, y: -375, w: 1000, h: 900 });
+    // Tirando de SW, la clavada es NE (750, 75).
+    expect(groupBoxFromCorner(marco, 'sw', { x: -250, y: 975 })).toEqual({ x: -250, y: 75, w: 1000, h: 900 });
+    // En los tres, la esquina de enfrente sigue en su sitio y la proporción no se ha roto.
+    for (const [esquina, mano, fija] of [['nw', { x: -250, y: -375 }, { x: 750, y: 525 }], ['ne', { x: 1250, y: -375 }, { x: 250, y: 525 }], ['sw', { x: -250, y: 975 }, { x: 750, y: 75 }]] as const) {
+      const r = groupBoxFromCorner(marco, esquina, mano);
+      expect([r.x, r.x + r.w]).toContain(fija.x);
+      expect([r.y, r.y + r.h]).toContain(fija.y);
+      expect(r.w / r.h).toBeCloseTo(marco.w / marco.h);
+    }
+  });
+
   it('al llevar el grupo de un marco a otro, cada pieza se corre y crece en la MISMA proporción', () => {
     const from = propsBounds([A, B])!;
     const to = groupBoxFromCorner(from, 'se', { x: 1250, y: 975 });

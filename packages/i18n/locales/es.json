@@ -1246,7 +1246,9 @@
       "props": "los objetos sembrados",
       "propMove": "mover el objeto",
       "propScale": "el tamaño del objeto",
-      "propRotate": "el giro del objeto"
+      "propRotate": "el giro del objeto",
+      "propsScale": "el tamaño de los objetos",
+      "propsRotate": "el giro de los objetos"
     },
     "builder": {
       "title": "Builder",
