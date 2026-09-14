@@ -468,13 +468,22 @@
 .mp-builder-tex{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0;}
 /* el rótulo PARED / SUELO delante de cada muestra: columna de ancho FIJO (cabe la palabra más larga en los dos idiomas) para que las dos muestras queden alineadas */
 .mp-builder-tex-c{flex:0 0 4.25em;white-space:nowrap;}
-.mp-builder-tex-swatch{width:26px;height:20px;flex:0 0 auto;border-radius:2px;outline:1px solid var(--sys-line);outline-offset:-1px;padding:0;border:none;cursor:pointer;}
+/* 🐞 `position:relative` + `overflow:hidden` van AQUÍ, en la regla base, y no sólo en la de 66×44.
+   TODA muestra lleva dentro dos capas en absoluto —la rejilla y el mosaico girado— y sin ancla se van a buscar
+   el primer padre posicionado, que es el panel entero: la rejilla tapaba el Builder de punta a punta y, como
+   son hijas del BOTÓN, cualquier clic encima abría el catálogo de texturas y no dejaba usar la herramienta.
+   Suyo, 2026-09-14, con captura: «*no sé qué es este cuadriculado que me abre el menú de texturas y no me deja
+   usar la herramienta*». Se rompió el 14-09 en `3b88a28` al separar por selector la muestra de la PUERTA (26×20)
+   de las de pared y suelo (66×44): hasta entonces las dos reglas compartían selector y la de 66×44 le prestaba
+   el anclaje a la de la puerta sin que se notara. */
+.mp-builder-tex-swatch{width:26px;height:20px;flex:0 0 auto;position:relative;overflow:hidden;border-radius:2px;outline:1px solid var(--sys-line);outline-offset:-1px;padding:0;border:none;cursor:pointer;}
 .mp-builder-tex-n{flex:1;font-size:var(--fs-2xs);color:var(--sys-ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* La muestra de textura: tres casillas de ancho, con la rejilla encima para que se vea el tamaño real
    del azulejo (§ «el previo de cómo iría quedando», petición suya del 2026-09-04). */
 .mp-builder-texblock{display:flex;flex-direction:column;gap:4px;}
-.mp-builder-tex .mp-builder-tex-swatch{width:66px;height:44px;position:relative;overflow:hidden;padding:0;border:none;cursor:pointer;}
+/* Las de PARED y SUELO son más grandes: lo ÚNICO que cambia aquí es el tamaño. El anclaje lo pone la base. */
+.mp-builder-tex .mp-builder-tex-swatch{width:66px;height:44px;}
 .mp-builder-tex-swatch:hover,.mp-bp-tex:hover{outline:2px solid var(--sys-gold);outline-offset:-2px;}
 /* 🔄 el mosaico girado: sobra por los cuatro lados para que al girar no asome ninguna esquina sin textura */
 .mp-builder-tex-turn{position:absolute;inset:-40%;background-repeat:repeat;transform-origin:center;pointer-events:none;}
