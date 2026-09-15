@@ -1,7 +1,12 @@
 # WORK_STATE.md — Rolvium
 
 ## 🎯 Current task
-Construir los hexágonos v1 en orden (mapa: ARCHITECTURE.md «Product hexagons»; specs: `specs/modules/*`).
+**SUSURROS (H8)** — spec cerrado y diseño hecho el 2026-09-15; falta su OK y luego DBA. Ver el bloque 📥
+«CONSTRUIR SUSURROS» de abajo, que es donde se retoma.
+
+Después, los hexágonos que quedan (mapa: ARCHITECTURE.md «Product hexagons»; specs: `specs/modules/*`):
+**bitácora (H9)**, con spec de ~20 líneas y modelo de datos sin decidir, y **aventuras (H12)**, que al revés
+tiene **spec CERRADO de 173 líneas y nada construido** — es lo más grande que hay listo para atacar.
 
 **HECHO** (todo con review + QA pasados):
 diseño `rolvium.pen` · specs de todos los hexágonos · `packages/core` (puerto `GameSystem`, `validateSheet`) ·
@@ -41,7 +46,84 @@ diseña lo del grupo (spec + `.pen`) → QA → migración a producción por MCP
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 📥 «IMPLEMENTAR NIVELES DE COMPRESIÓN» (donde se retoma, chat nuevo — GATE de contexto) · 📥 «COMPRIMIR LAS TEXTURAS» (el spec/DBA/scaffold que llevó a lo de arriba) · 🚀 «v0.8.0 EN PRODUCCIÓN» (registro) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 📥 «CONSTRUIR SUSURROS» (donde se retoma — spec cerrado, diseño hecho, falta su OK; y dentro, el botón «+ Nuevo paquete» pendiente) · 🚀 «v0.9.0 y v0.9.1 EN PRODUCCIÓN» (registro, e incluye que su biblioteca YA está subida y comprimida allí) · ⏳ «LO DEMÁS QUE SIGUE ABIERTO» — **esa lista está VERIFICADA contra el código el 15-09; las de antes mentían** · 📥 «IMPLEMENTAR NIVELES DE COMPRESIÓN» (terminado y desplegado) · 📥 «COMPRIMIR LAS TEXTURAS» (el spec/DBA que llevó a lo anterior) · 🚀 «v0.8.0 EN PRODUCCIÓN» (registro) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+
+## 📥 2026-09-15 — TRASPASO A CHAT NUEVO: **CONSTRUIR SUSURROS (H8)** — spec cerrado y diseño hecho, falta su OK
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 📥 "CONSTRUIR SUSURROS" de arriba de WORK_STATE.md y seguí desde ahí.»
+
+### 🎯 Qué se está construyendo
+**SUSURROS (H8)** — el hexágono del chat, que **en pantalla NO se llama chat**: «*el chat son los susurros, es
+más cámbiale el nombre*» (suyo, 2026-09-15). Por dentro el módulo sigue siendo `chat` (carpeta, ids, tabla).
+
+- ✅ **Spec CERRADO con él y guardado**: `specs/modules/chat/SPEC.md` reescrito entero, e índice
+  `specs/SPEC.md` actualizado. **Sin commitear.**
+- ✅ **Diseño hecho en `rolvium.pen`**, dentro de la lámina del panel lateral (`XwDVn`, sección «── 4 · LA
+  MESA ──», x 4800 · y 4679), renombrada a `Mesa/Plenilunio · Panel lateral · SUSURROS (H8), Notas, Bitácora ←
+  NUEVO 15-09`. Tres piezas nuevas: **`I9AY0o` Susurros · directorio**, **`H8P1R` Susurros · conversación** y
+  **`m4fh05` PL/Pastilla · alguien te susurra**.
+- ⏳ **FALTA SU OK AL DISEÑO.** Estaba buscándolo en el `.pen` cuando pidió el traspaso.
+
+### ✅ Decisiones suyas (cerradas, NO volver a preguntar)
+- **No hay canal público.** Para hablar en la mesa está la mesa; esto es sólo lo privado. Esto deja sin efecto
+  el «canal Mesa (todos)» del spec viejo.
+- **Vive dentro de la CAMPAÑA y se guarda** entre sesiones. Se usa desde la pestaña de la columna lateral.
+- **Directorio de los jugadores de la campaña**: pinchás a uno y se abre la conversación; a varios, un grupo.
+  Cualquiera escribe a cualquiera (director↔jugador y jugadores entre ellos), sin permisos especiales.
+- **La pastilla** (su palabra): cuando alguien te escribe salta y **se lee y se contesta AHÍ MISMO**, sin salir
+  de la partida. Su caso de uso literal: el director le dice a UNO «escuchas un ruido detrás de ti».
+- **Dados**: por defecto siguen yendo al **Registro**. Dentro de una conversación **cualquiera** puede tirar en
+  privado, y esa tirada **NO deja NINGÚN rastro** en el Registro (ni el resultado ni un «fulano tiró en
+  privado») — preguntado expresamente. Y se puede **traer una tirada del Registro** a la conversación.
+- Propuestas mías que aceptó sin corregir: contador de no leídos en la pestaña; grupo que crea cualquiera y en
+  v1 no se renombra ni se sale; mensajes con avatar, nombre y hora.
+- Fuera de alcance v1: editar y borrar, reacciones, hilos, voz/vídeo, adjuntar ficheros.
+
+### ⏳ Próximo paso exacto
+1. **Que apruebe el diseño** (las tres piezas de arriba). Si dice que sí: **quitarle a `XwDVn` la marca roja**
+   (`stroke: $pl-sangre`, `strokeWidth: 6`) que se le puso SÓLO para que la encontrara en el lienzo.
+2. **DBA Agent** — el spec deja el modelo de datos en «Pending». Hace falta tabla(s) de conversación y mensajes
+   con RLS que acote a los participantes, y que una tirada privada **no** aparezca por ningún lado en el
+   Registro. Migración nueva → aplicar en local con `supabase migration up --local` (**NUNCA `db:reset`**) y a
+   producción por MCP ANTES del merge.
+3. Scaffold → Dev → Review → QA → Deploy, como siempre.
+
+### 🚫 Blockers / no olvidar
+- ⚠️ **El `.pen` puede NO estar entero en disco.** Él lo guardó a las 14:31; el fichero se tocó a las 19:22,
+  pero la marca roja se puso después. **Pedirle Cmd+S y comprobar `ls -la rolvium.pen` antes de commitearlo.**
+  Y ojo: el visor del `.pen` estuvo fallando toda la sesión del 15-09 (marcos en blanco, nodos 50 px
+  desplazados, pantallas negras). Los datos sí quedaban bien; **verificar con `Get`+bounds, no fiarse de la
+  captura**, y para enseñarle un diseño **exportar a PNG y mandárselo con SendUserFile** — las capturas del MCP
+  NO le llegan a él (se lo dijo dos veces: «*no veo el diseño*»).
+- 🟠 **PENDIENTE Y SIN CONSTRUIR: el botón «+ Nuevo paquete» en la ventana de subir objetos.** Lo pidió el
+  15-09 con captura: hoy el desplegable «A qué paquete» sólo deja elegir los que ya existen. **El diseño YA
+  ESTÁ HECHO** en el `.pen`, dentro de `DCs6S` («PL/Subir piezas en lote»), fila `A qué paquete`. Falta su OK y
+  construirlo: reutilizar tal cual el flujo del catálogo (`LibraryCatalog` ya tiene `onNewGroup` +
+  `dialog.prompt(k('newPackPrompt'))` + el botón `.mp-propcat-newpack`), añadiendo un `onNewGroup` opcional a
+  `LibraryUpload` que sólo pasa `PropsUpload` — texturas y fondos no tienen paquetes.
+- 🟠 **Seis ficheros viejos SIN comprimir en producción** (2 texturas del 09-09 y 4 fondos de agosto y del 3 y
+  10-09, ~16 MB). **No se pueden convertir desde aquí**: los dos `.env` apuntan al Supabase local y la clave de
+  servicio de producción no está en el repo. El camino es que las borre y las vuelva a subir por la app, que
+  ahora comprime sola. No corre prisa sobre 1 GB de cupo.
+- **Sin commitear ahora mismo**: `WORK_STATE.md`, `specs/SPEC.md`, `specs/modules/chat/SPEC.md` y `rolvium.pen`.
+  Todo sobre `main`, que está limpia y desplegada.
+
+## 🚀 2026-09-15 — **v0.9.0 y v0.9.1 EN PRODUCCIÓN** (registro)
+
+- **v0.9.0** — los niveles de compresión por tipo y la pantalla Admin → Ajustes con pestañas. QA pasado en modo
+  BLOQUEO (paró por dos specs desfasadas, corregidas en `edd22c5`), previews verdes, claro/oscuro confirmado por
+  él («*yo lo veo bien*»). Merge `671d3cd`.
+- **v0.9.1** — hotfix que pidió al momento: la ventana de subir texturas salía DETRÁS del catálogo. `Modal` lleva
+  z-index fijo, así que entre dos abiertos manda el orden del documento y las texturas eran la única pareja en
+  el orden equivocado. Con test de regresión que falla sin el arreglo. Merge `a35347f`.
+- **Comprobado vivo**: `rolvium.vercel.app` 200 con paquete nuevo (ya no lleva el placeholder viejo de Ajustes)
+  y `rolvium-api.vercel.app/health` → `{"ok":true}`.
+- **Su biblioteca YA ESTÁ EN PRODUCCIÓN**, subida por él: **41 texturas y 133 objetos, todo WebP** (194 kB y
+  138 kB de media, ninguno pasa de 768 px). El almacén de producción: **42 MB**. Comprobado por SQL y bajando
+  ficheros: las dos texturas más pesadas miden 1024 px de lado y son WebP de verdad.
+- **Su biblioteca LOCAL** se convirtió el mismo día: 109 ficheros, **187,9 MB → 20,1 MB (-89%)**, con copia de
+  seguridad de los 109 originales en el scratchpad de esa sesión.
 
 ## 📥 2026-09-14 — TRASPASO A CHAT NUEVO (GATE DE CONTEXTO): **IMPLEMENTAR NIVELES DE COMPRESIÓN**
 
@@ -359,23 +441,50 @@ MAPA» y en `specs/core/images/SPEC.md`. **No tocarla.**
 - ⚠️ Las texturas que él YA tiene subidas están en su **Supabase local**, no en producción: convertirlas es otra
   cosa distinta de cambiar la subida, y hay que decirle cuál de las dos quiere (o las dos).
 
-### ⏳ LO DEMÁS QUE SIGUE ABIERTO (nada de esto se toca sin él)
-1. 🔴 **El objeto elegido que se le vacía.** SIN TOCAR desde el 14-09, esperando que diga **el gesto exacto** —
-   pidió expresamente que se le preguntara y ya van dos adivinadas mal. Los cuatro caminos que hoy lo vacían
-   están localizados en el bloque 🟢 «DE SU FAMILIA REVERTIDO»; el sospechoso es **el botón derecho sobre un
-   objeto puesto → SELECCIONAR** (`setStamp(null)` sin avisar). Esc y SOLTAR son diseño aprobado.
-2. 🟠 **«Objetos» se repite**: es el botón, el panel, el catálogo Y el nombre de una capa de serie, así que
-   dentro del panel OBJETOS el desplegable «A qué capa va» lista una capa llamada «Objetos». Su decisión.
-3. 🟠 **Su biblioteca NO está en producción**: allí está vacía. Las filas se pueden crear por SQL, **los ficheros
-   no** — desde aquí no hay forma de escribir en el almacén de producción. El camino bueno es exportárselos a
-   una carpeta y que los suba con la subida en lote. **Él paró la exportación** («*no exportes las texturas y
-   objetos y ya hacemos pruebas de compresión*»): primero se decide lo de comprimir.
-4. 🟠 **§ 10B.2 · la fila «con qué se pinta»** del Constructor (MURO → textura · HABITACIÓN → color): confirmada
-   por él el 10-09 y **sin construir**. Es el único ⏳ que dejó el QA del 12-09. Pide lámina nueva sobre
-   `I6TcDm` (la vieja `oi358` está desfasada).
-5. 🟠 Deuda de antes, ya escrita: `propDraft` y `propMoveDraft` se quedan pegados si el gesto se corta con Esc o
-   con el botón derecho (mismo agujero que se arregló en el del grupo), y el Ctrl+Z de MOVER varios sigue en
-   singular.
+### ⏳ LO DEMÁS QUE SIGUE ABIERTO — ⚠️ LISTA VERIFICADA CONTRA EL CÓDIGO el 2026-09-15
+
+> 🔑 **Esta lista se comprueba, no se copia.** El 15-09 se la leí tal cual estaba escrita y me corrigió:
+> «*dame el backlog de verdad no esas mierdas*». Antes de decirle que algo está pendiente, hay que abrir el
+> fichero y mirarlo. Ver [[bug-viejo-se-confirma-antes-de-tocarlo]].
+
+**Ya HECHO (se creía pendiente y no lo estaba):**
+- ✅ **«Objetos» en vez de «Piezas»** en toda la pantalla, y «sello» fuera (commit `e9a9ba5`). Sólo queda la
+  clave interna `maps.props.stamp`, cuya etiqueta ya es «El objeto elegido».
+- ✅ **Escalar y girar un GRUPO con nodos de verdad** (`MapCanvas.tsx` § `mp-props-group-handles`, commit
+  `245840d`), con tests en `SceneTab.test.tsx` y `MapCanvas.test.tsx`. El spec ya lo tacha (línea ~1076).
+- ✅ **Su biblioteca EN PRODUCCIÓN**: la subió él mismo el 15-09 — 41 texturas y 133 objetos, todo WebP
+  (194 kB y 138 kB de media). El almacén de producción está en 42 MB.
+
+**Abierto de verdad, comprobado fichero a fichero:**
+1. 🟠 **§ 10B.2 · la fila «con qué se pinta»** del Constructor (MURO → textura · HABITACIÓN → color).
+   `BuilderPanel.tsx` no tiene ni una aparición de `paint`, y `addRoomShape` (`useScene.ts:686`) acepta el
+   argumento pero sus dos llamadas (`SceneTab.tsx:1302` y `:1322`) no lo pasan. El spec lo marca ⏳ dos veces
+   (líneas 39 y 2457). Pide lámina nueva: la vieja `oi358` está desfasada.
+   ⚠️ **Él dice que esto está en producción** (15-09). El código dice que no. Preguntar antes de tocarlo.
+2. 🟠 **Coger, mover y borrar una sala construida** con el ratón: `moveRoom` y `removeRoom` existen
+   (`useScene.ts:1232`) y **no los llama ninguna pantalla**, sólo los tests. Spec, líneas 1942-1944.
+3. 🟠 **Rebanada 5** — movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`).
+   No hay `maxMove` ni `speed` en `packages/core/src`. Spec de maps, línea 18.
+4. 🟠 **El botón derecho sobre un objeto puesto → SELECCIONAR sigue vaciando el objeto elegido**
+   (`SceneTab.tsx:1740`, `setStamp(null)`), y el fichero no se ha tocado desde v0.8.0.
+   ⚠️ **Él dice que esto está solucionado** (15-09). Preguntar: puede que sea diseño aprobado y no un fallo.
+5. 🟠 **«Objetos» se repite**: el desplegable «A qué capa va» del panel OBJETOS lista una capa llamada
+   «Objetos» (`PropsPanel.tsx:217` + `maps.layers.kind.objects`; la capa nace sin nombre en la migración
+   `20260831120000_maps_layers_lights.sql:200`). ⚠️ **Él también lo da por resuelto.**
+6. 🟠 **Deuda menuda, con evidencia**: `propDraft` y `propMoveDraft` no se limpian con Esc (`MapCanvas.tsx:539`
+   sí limpia `groupDraft` y `propsXfDraft`), así que se quedan pegados si se corta el gesto; y falta la clave
+   `propsMove` en plural, así que el Ctrl+Z de mover varios sigue diciendo «mover el objeto».
+7. 🟠 **De hoy**: un solo Escape cierra los DOS modales abiertos a la vez (cada `Modal` de `@rolvium/ui` se
+   registra por su cuenta en `document`); la subida en lote lee el ajuste de compresión **una vez por fichero**
+   (50 objetos = 50 lecturas de la misma fila); y sólo las texturas tienen test que fije el orden de los
+   modales — objetos y fondos no.
+
+**Dos sitios donde el SPEC está desfasado al revés** (dice pendiente y está construido): «LAS PUERTAS… SIN
+CONSTRUIR» (línea 2126; están hechas, con dos migraciones) y «la sonda está sin construir» (línea 66;
+`CanvasControls.tsx:129`).
+
+**Hexágonos vacíos (spec sí, código no):** `chat` (H8) y `journal` (H9) son specs de ~20 líneas con el modelo
+de datos «*Pending — DBA*»; `adventures` (H12) en cambio tiene **spec cerrado de 173 líneas** y nada construido.
 
 ## 🚀 2026-09-14 (tarde) — **v0.8.0 EN PRODUCCIÓN.** Él dio el visto bueno («*yo probé lo mío por ahora ok*» · «*se ve bien todo*») y se subió entero.
 
