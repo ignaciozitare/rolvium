@@ -81,6 +81,38 @@ spec de maps, línea 18.
 - **Fuera de alcance a propósito (sigue)**: traer una tirada del Registro a la conversación (modelo de datos
   listo; el botón necesita su paso de diseño).
 
+## 🖌️ 2026-09-16 (madrugada) — **EL PINCEL YA NO PARPADEA NI SE BORRA SOLO** (sin mergear)
+
+Su queja del 15-09: «*cada tanto las texturas parpadean y se borran solas, si toco Ctrl+Z vuelven*», mucho más
+en producción que en local. **Eran dos caminos al mismo sitio, los dos arreglados:**
+
+1. **El pincel se recargaba con lo que acababa de subir.** El efecto de `usePaintBrush` que rehace el lienzo
+   dependía de `target.src`, y `src` cambia DESPUÉS DE CADA PINCELADA (al guardar sube la versión → el
+   rompe-caché de `paintRules`). O sea: al soltar el ratón el lienzo se vaciaba y se volvía a bajar POR RED la
+   imagen recién subida. En local no se nota; en producción sí, y si empezabas la pincelada siguiente antes de
+   que llegara, la nueva partía de un lienzo VACÍO y se subía así — lo anterior desaparecía. Ctrl+Z lo devolvía
+   porque el historial guarda su propia copia, lo que confirmaba que lo guardado estaba bien. **Fix**: el
+   efecto sólo depende del DESTINO (`targetId`); el `src` se lee de un ref. Afecta a los tres destinos.
+2. **El eco de tiempo real podía llegar desordenado** y devolver la fila a su versión anterior (`applyChange` y
+   `onScene` aplicaban cualquier cosa que llegara). **Fix**: regla pura nueva
+   `maps/domain/useCases/liveRules.ts` (`isStaleRow`): una fila más vieja no pisa a la que hay; manda el número
+   de versión de la capa y, si no lo hay, el reloj; ante la duda se aplica. Protege también muros, salas,
+   fichas y piezas.
+
+**PROBADO EN PANTALLA, con el antes y el después** (`.pincel_e2e.tmp.mjs`, pintando sobre la foto de la capa
+«Suelo» y vigilando el `href` de la pintura):
+- **Sin el arreglo**: `["red","local","red","local","red","local"]` — tras CADA pincelada la imagen salta a la
+  URL de red y vuelve. Eso es el parpadeo, tres veces en tres pinceladas.
+- **Con el arreglo**: `["SIN-PINTURA","local"]` — entra una vez y se queda. 0 errores de consola.
+
+**Verde**: 2063/2063 (dos pasadas seguidas), typecheck, `npm run audit` 0 duras, `build:web` y `build:api`.
+Tests nuevos: `liveRules.test.ts` (5), dos casos en `usePaintBrush.test.ts` y el pin de regresión
+`tests/regression/pincel-no-parpadea-ni-se-borra.test.ts`.
+
+⚠️ **Flake ajeno, visto una vez**: `tests/regression/subir-texturas-encima-del-catalogo.test.tsx` falló en una
+pasada y pasó sola y en las dos pasadas completas siguientes. Es un test de orden de pintado, sensible al
+tiempo; no lo toca este cambio. Si vuelve a salir, mirarlo aparte.
+
 ## 🫧 2026-09-16 (madrugada) — **LAS PASTILLAS DE SUSURROS, CONSTRUIDAS** (sin mergear)
 
 **Qué pasó**: probando SUSURROS en producción preguntó «*las pastillas como en LinkedIn que te pedí, dónde

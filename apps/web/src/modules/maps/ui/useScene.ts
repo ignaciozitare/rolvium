@@ -6,6 +6,7 @@ import type { FogBrush, VisionPort } from '../domain/ports/VisionPort';
 import { splitWallAt, unionCells, wallPiece, type Point, type WallSplit } from '../domain/useCases/mapRules';
 import { nextTerrainSortOrder, reorderTerrain, reorderTerrainTo } from '../domain/useCases/layerRules';
 import { newGroupId } from '../domain/useCases/groupRules';
+import { isStaleRow } from '../domain/useCases/liveRules';
 import { useHistory, type History } from './useHistory';
 
 export interface LiveDrag { tokenId: string; x: number; y: number }
@@ -16,6 +17,8 @@ function applyChange<T extends { id: string }>(list: T[], c: RowChange<T>): T[] 
   if (!c.row) return list;
   const i = list.findIndex(x => x.id === c.id);
   if (i < 0) return [...list, c.row];
+  // Un eco que llega tarde no pisa a lo que ya hay: ver `isStaleRow` (el fallo del pincel, 2026-09-15).
+  if (isStaleRow(list[i], c.row)) return list;
   const next = [...list]; next[i] = c.row; return next;
 }
 
@@ -176,7 +179,7 @@ export function useScene(repo: MapsPort, scene: Scene | null, me: string, vision
       .then(([t, w, d, ly, li, rm, ro, sp]) => { if (!alive) return; setTokens(t); setWalls(w); setDrawings(d); setLayers(ly); setLights(li); setRooms(rm); setRoomOpenings(ro); setSceneProps(sp); setStatus('ready'); })
       .catch(() => { if (alive) setStatus('error'); });
     const off = repo.subscribe(sceneId, {
-      onScene: c => { if (c.type === 'DELETE') setLive(null); else if (c.row) setLive(c.row); },
+      onScene: c => { if (c.type === 'DELETE') setLive(null); else if (c.row) setLive(prev => (prev && isStaleRow(prev, c.row) ? prev : c.row)); },
       onToken: c => { setTokens(l => applyChange(l, c)); if (c.type !== 'INSERT') setDrags(d => { if (!d[c.id]) return d; const n = { ...d }; delete n[c.id]; return n; }); },
       onWall: c => setWalls(l => applyChange(l, c)),
       onDrawing: c => setDrawings(l => applyChange(l, c)),
