@@ -155,6 +155,7 @@ import type { Roll, RollOutcome } from '@/modules/dice/domain/entities/Roll';
 import type { ChatDirectoryEntry, ChatMessage } from '@/modules/chat/domain/entities/Chat';
 import type { ChatPort } from '@/modules/chat/domain/ports/ChatPort';
 import type { ChatRollInput, ChatRollsPort } from '@/modules/chat/domain/ports/ChatRollsPort';
+import type { SoundPort } from '@/modules/chat/domain/ports/SoundPort';
 import type { Character, CharacterAuditEntry, CharacterPatch, CreateCharacterInput, WriteOrigin } from '@/modules/characters/domain/entities/Character';
 import type { RollResult, SheetData } from '@rolvium/core';
 import { plenilunio } from '@rolvium/system-plenilunio';
@@ -306,6 +307,11 @@ export function fakeChatPort(seed: { directory?: ChatDirectoryEntry[]; messages?
     markRead: async (conversationId: string) => { read.push(conversationId); },
     subscribeMessages: (_campaignId: string, onInsert: (m: ChatMessage) => void) => { listeners.add(onInsert); return () => { listeners.delete(onInsert); }; },
   };
+}
+
+/** El ruidito de un susurro, en memoria: `plays` cuenta cuántas veces sonó. */
+export function fakeSound(): SoundPort & { plays: number } {
+  return { plays: 0, play() { this.plays += 1; } };
 }
 
 /** Tirar en privado, en memoria: `requests` guarda lo pedido; `result` es lo que contesta el servidor. */

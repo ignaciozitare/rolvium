@@ -87,6 +87,14 @@ describe('<ConversationView>', () => {
     expect(onRead).toHaveBeenCalledTimes(2);
   });
 
+  it('con hideHead (dentro de una pastilla) no pinta su cabecera: la pone la pastilla', async () => {
+    const chat = fakeChatPort({ messages: { conv1: [] } });
+    renderWithProviders(<ConversationView campaignId="c1" conversationId="conv1" title="Laura" myUserId="me" system={null} onBack={() => {}} hideHead chat={chat} />);
+    await screen.findByText('Todavía no hay mensajes.');
+    expect(screen.queryByRole('button', { name: 'Volver al directorio' })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();   // lo demás, intacto
+  });
+
   it('volver llama a onBack', async () => {
     const u = userEvent.setup();
     const chat = fakeChatPort({ messages: { conv1: [] } });

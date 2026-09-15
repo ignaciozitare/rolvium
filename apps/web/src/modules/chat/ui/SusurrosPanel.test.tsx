@@ -59,4 +59,25 @@ describe('<SusurrosPanel>', () => {
     await vi.waitFor(() => expect(onRead).toHaveBeenCalledTimes(1));
     expect(chat.read).toEqual(['conv-laura']);
   });
+
+  it('abrir una conversación avisa hacia arriba para que salga TAMBIÉN su pastilla sobre la mesa', async () => {
+    const u = userEvent.setup();
+    const onOpenConversation = vi.fn();
+    const chat = fakeChatPort({ directory: [LAURA, KAREN], messages: { 'conv-laura': [] } });
+    renderWithProviders(<SusurrosPanel campaignId="c1" myUserId="me" system={null} chat={chat} onOpenConversation={onOpenConversation} />);
+    await u.click(await screen.findByText('Laura'));
+    expect(onOpenConversation).toHaveBeenCalledWith('conv-laura', 'Laura');
+  });
+
+  it('crear un grupo también saca su pastilla, con la conversación recién creada', async () => {
+    const u = userEvent.setup();
+    const onOpenConversation = vi.fn();
+    const chat = fakeChatPort({ directory: [LAURA, KAREN], messages: {} });
+    renderWithProviders(<SusurrosPanel campaignId="c1" myUserId="me" system={null} chat={chat} onOpenConversation={onOpenConversation} />);
+    await u.click(await screen.findByRole('button', { name: '+ Grupo' }));
+    await u.click(screen.getByText('Laura'));
+    await u.click(screen.getByText('Karen'));
+    await u.click(screen.getByRole('button', { name: /Crear grupo/ }));
+    expect(onOpenConversation).toHaveBeenCalledWith('conv-1', 'Grupo');
+  });
 });

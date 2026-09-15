@@ -17,6 +17,8 @@ interface Props {
   myUserId: string;
   system: GameSystem | null;
   onBack: () => void;
+  /** Dentro de una PASTILLA la cabecera la pone ella (avatar, nombre, minimizar, cerrar): dos seguidas sobran. */
+  hideHead?: boolean;
   /** Se acaba de marcar leído (al abrir, y con cada mensaje ajeno que llega): quien lleve la campanita, que se refresque. */
   onRead?: () => void;
   chat?: ChatPort;
@@ -33,7 +35,7 @@ function asRoll(m: ChatMessage): Roll {
 }
 
 /** SUSURROS · conversación (`rolvium.pen` `H8P1R`): mensajes uno debajo de otro, entrada abajo. */
-export function ConversationView({ campaignId, conversationId, title, myUserId, system, onBack, onRead, chat = defaultChat }: Props): JSX.Element {
+export function ConversationView({ campaignId, conversationId, title, myUserId, system, onBack, hideHead = false, onRead, chat = defaultChat }: Props): JSX.Element {
   const { t, locale } = useTranslation();
   const ts = useMemo(() => (system ? sysT(system, locale) : (k: string) => k), [system, locale]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -74,13 +76,15 @@ export function ConversationView({ campaignId, conversationId, title, myUserId, 
 
   return (
     <div className="ch-conversation">
-      <div className="ch-conversation-head">
-        <button type="button" className="ch-back" onClick={onBack} aria-label={t('chat.conversation.back')}>
-          <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>arrow_back</span>
-        </button>
-        <UserAvatar user={{ name: title, avatarUrl: null }} size={22} />
-        <span className="ch-conversation-title">{title}</span>
-      </div>
+      {!hideHead && (
+        <div className="ch-conversation-head">
+          <button type="button" className="ch-back" onClick={onBack} aria-label={t('chat.conversation.back')}>
+            <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>arrow_back</span>
+          </button>
+          <UserAvatar user={{ name: title, avatarUrl: null }} size={22} />
+          <span className="ch-conversation-title">{title}</span>
+        </div>
+      )}
       {status === 'error' && <p className="dc-log-error" role="alert">{t('chat.conversation.error')}</p>}
       {status === 'ready' && messages.length === 0 && <p className="dc-log-empty">{t('chat.conversation.empty')}</p>}
       <ul className="ch-messages" ref={listRef} aria-label={t('chat.conversation.messages')} aria-busy={status === 'loading'}>

@@ -54,11 +54,11 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   // un sitio distinto: el director no tiene ficha propia, así que empieza en la escena.
   const [chosenTab, setTab] = useState<TableTab | null>(null);
   const [rollerOpen, setRollerOpen] = useState(false);
-  /** SUSURROS (H8): no leídos de toda la campaña (campanita de la pestaña) y, si se pinchó la pastilla,
-   * qué conversación abrir directo — lo llena `WhisperWatcher`, montado más abajo fuera de las pestañas. */
+  /** SUSURROS (H8): no leídos de toda la campaña (campanita de la pestaña) y la conversación que el directorio
+   * acaba de abrir, para que salga TAMBIÉN como pastilla sobre la mesa (`WhisperWatcher`, fuera de las pestañas). */
   const [chatUnread, setChatUnread] = useState(0);
   const [chatReadTick, setChatReadTick] = useState(0);   // sube cada vez que se marca leída una conversación → `WhisperWatcher` recuenta
-  const [pendingChat, setPendingChat] = useState<{ id: string; title: string } | null>(null);
+  const [pillRequest, setPillRequest] = useState<{ id: string; title: string } | null>(null);
   /** El panel lateral se pliega para dejarle el ancho al mapa (dueño, 2026-08-31). Mismo gesto que la reserva de la cabecera. */
   const [sideOpen, setSideOpen] = useState(true);
   /** The shared-resource bar floats over the tab and can be folded away: on the scene it was eating map. */
@@ -222,8 +222,8 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
               <span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-sm)' }}>{sideOpen ? 'chevron_right' : 'chevron_left'}</span>
             </button>
             {sideOpen && <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog}
-              myUserId={user.id} chatUnread={chatUnread} pendingChatOpen={pendingChat} onPendingChatOpenConsumed={() => setPendingChat(null)}
-              onChatRead={() => setChatReadTick(n => n + 1)} chat={chat} />}
+              myUserId={user.id} chatUnread={chatUnread}
+              onChatRead={() => setChatReadTick(n => n + 1)} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat} />}
           </aside>
         </div>
         {rollerOpen && <DiceRoller campaignId={campaign.id} rolls={rolls} onClose={() => setRollerOpen(false)}
@@ -248,11 +248,13 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
         <AttackWatcher campaignId={campaign.id} userId={user.id} system={system} charactersRepo={charactersRepo}
                        attacks={attacks} watch={attackWatch} />
         {/*
-          LA PASTILLA (`.pen` `m4fh05`). Vive aquí, fuera de las pestañas, por el mismo motivo que los avisos
-          de arriba: un susurro tiene que saltar esté el jugador donde esté, no sólo dentro de SUSURROS.
+          LAS PASTILLAS (`.pen` `oPbeF`): las ventanitas de conversación abajo a la derecha, tipo LinkedIn.
+          Viven aquí, fuera de las pestañas, por el mismo motivo que los avisos de arriba: un susurro se lee y
+          se contesta esté el jugador donde esté, incluso con la columna plegada o en otra pestaña.
         */}
-        <WhisperWatcher campaignId={campaign.id} myUserId={user.id} chat={chat}
-                        onOpen={(id, title) => setPendingChat({ id, title })} onUnreadChange={setChatUnread} refreshKey={chatReadTick} />
+        <WhisperWatcher campaignId={campaign.id} myUserId={user.id} system={system} chat={chat}
+                        requestOpen={pillRequest} onRequestOpenConsumed={() => setPillRequest(null)}
+                        onUnreadChange={setChatUnread} refreshKey={chatReadTick} />
       </div>
     </div>
   );

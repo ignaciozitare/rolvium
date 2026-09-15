@@ -385,8 +385,12 @@
       "failed": "No se pudo tirar."
     },
     "pill": {
-      "whispers": "{{name}} te susurra",
-      "dismiss": "Cerrar el aviso"
+      "dock": "Susurros abiertos",
+      "window": "Conversación con {{name}}",
+      "expand": "Abrir la conversación con {{name}}",
+      "minimize": "Minimizar la conversación con {{name}}",
+      "close": "Cerrar la conversación con {{name}}",
+      "unread": "{{n}} sin leer"
     }
   },
   "identity": {

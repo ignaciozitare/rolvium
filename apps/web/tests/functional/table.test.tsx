@@ -290,7 +290,27 @@ describe('table: page', () => {
     await within(panel).findByText('Todavía no hay mensajes.');
     await u.click(screen.getByRole('tab', { name: 'Registro' }));
     await waitFor(() => expect(screen.getByRole('tab', { name: /Susurros/ })).not.toHaveTextContent('2'));
-    expect(chat.read).toEqual(['conv-1']);
+    // Desde el 16-09 la misma conversación se ve en DOS sitios a la vez (la columna y su pastilla), y cada uno
+    // marca leído al abrirse: la llamada es idempotente (pone la hora), así que lo que importa es que ocurra.
+    expect(chat.read).toContain('conv-1');
+  });
+
+  it('SUSURROS: abrir una conversación saca su PASTILLA sobre la mesa, y sigue ahí al cambiar de pestaña', async () => {
+    const u = userEvent.setup();
+    const chat = fakeChatPort({
+      directory: [{ key: 'dm-1', conversationId: 'conv-1', isGroup: false, title: 'Laura', role: 'dm', memberCount: null, memberIds: ['dm-1'], lastKind: null, lastBody: null, unreadCount: 0 }],
+      messages: { 'conv-1': [] },
+    });
+    mount(PLAYER_USER, fakeTableRepo('player'), undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, chat);
+    await u.click(await screen.findByRole('tab', { name: /Susurros/ }));
+    await u.click(await within(screen.getByRole('tabpanel')).findByText('Laura'));
+    const pastilla = await screen.findByLabelText('Conversación con Laura');
+    expect(within(pastilla).getByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();
+    // la columna se va al Registro y la pastilla sigue: es para eso, para no perder el susurro de vista
+    await u.click(screen.getByRole('tab', { name: 'Registro' }));
+    expect(screen.getByLabelText('Conversación con Laura')).toBeInTheDocument();
+    await u.click(within(screen.getByLabelText('Conversación con Laura')).getByRole('button', { name: 'Cerrar la conversación con Laura' }));
+    expect(screen.queryByLabelText('Conversación con Laura')).not.toBeInTheDocument();
   });
 });
 

@@ -1,74 +1,137 @@
 import { describe, it, expect, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders, screen } from '../../../../tests/helpers/render';
-import { fakeChatPort } from '../../../../tests/helpers/fakes';
+import { fakeChatPort, fakeSound } from '../../../../tests/helpers/fakes';
 import type { ChatMessage } from '../domain/entities/Chat';
 import { WhisperWatcher } from './WhisperWatcher';
 
 const FROM_LAURA: ChatMessage = {
   id: 'm1', conversationId: 'conv1', authorId: 'laura', authorName: 'Laura', authorAvatarUrl: null, kind: 'text',
-  body: 'Escuchas un ruido detrás de ti. Nadie más lo…', characterId: null, characterName: null, systemId: null,
-  rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null, createdAt: '2026-09-15T21:04:00Z',
+  body: 'Escuchas un ruido detrás de ti.', characterId: null, characterName: null, systemId: null,
+  rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null, createdAt: '2026-09-16T21:04:00Z',
 };
 
-describe('<WhisperWatcher>', () => {
-  it('no pinta nada hasta que llega un susurro de OTRO', async () => {
-    const chat = fakeChatPort();
-    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" chat={chat} onOpen={vi.fn()} />);
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    chat.push(FROM_LAURA);
-    expect(await screen.findByText('Laura te susurra')).toBeInTheDocument();
-    expect(screen.getByText('Escuchas un ruido detrás de ti. Nadie más lo…')).toBeInTheDocument();
+describe('<WhisperWatcher> — el rincón de las pastillas', () => {
+  it('sin conversaciones abiertas no pinta nada sobre la mesa', () => {
+    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={fakeChatPort()} sound={fakeSound()} />);
+    expect(screen.queryByLabelText('Susurros abiertos')).not.toBeInTheDocument();
   });
 
-  it('un mensaje propio no saca la pastilla', async () => {
+  it('abrir desde el directorio saca la pastilla DESPLEGADA, y avisa de que ya se consumió el pedido', async () => {
+    const chat = fakeChatPort({ messages: { 'conv-1': [] } });
+    const onConsumed = vi.fn();
+    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()}
+      requestOpen={{ id: 'conv-1', title: 'Laura' }} onRequestOpenConsumed={onConsumed} />);
+    expect(await screen.findByLabelText('Conversación con Laura')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Minimizar la conversación con Laura' })).toBeInTheDocument();
+    expect(onConsumed).toHaveBeenCalled();
+  });
+
+  it('un susurro de OTRO sin pastilla abierta: nace MINIMIZADA, en sangre, con contador y SUENA', async () => {
     const chat = fakeChatPort();
-    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" chat={chat} onOpen={vi.fn()} />);
+    const sound = fakeSound();
+    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={sound} />);
+    chat.push(FROM_LAURA);
+    const pastilla = await screen.findByLabelText('Conversación con Laura');
+    expect(pastilla.className).toContain('alert');
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(sound.plays).toBe(1);
+    // un segundo mensaje de la misma conversación sube el contador y NO vuelve a sonar
+    chat.push({ ...FROM_LAURA, id: 'm2', body: 'Otro más' });
+    expect(await screen.findByText('2')).toBeInTheDocument();
+    expect(sound.plays).toBe(1);
+  });
+
+  it('lo que escribo YO no saca pastilla ni suena', async () => {
+    const chat = fakeChatPort();
+    const sound = fakeSound();
+    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={sound} />);
     chat.push({ ...FROM_LAURA, authorId: 'me', authorName: 'Pip' });
     await new Promise(r => setTimeout(r, 0));
-    expect(screen.queryByText('Pip te susurra')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Conversación con Pip')).not.toBeInTheDocument();
+    expect(sound.plays).toBe(0);
   });
 
-  it('pincharla la cierra y avisa con la conversación y el nombre de quien susurró', async () => {
-    const u = userEvent.setup();
-    const chat = fakeChatPort();
-    const onOpen = vi.fn();
-    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" chat={chat} onOpen={onOpen} />);
+  it('si la pastilla ya está DESPLEGADA el mensaje entra dentro: ni contador ni ruido', async () => {
+    const chat = fakeChatPort({ messages: { conv1: [] } });
+    const sound = fakeSound();
+    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={sound}
+      requestOpen={{ id: 'conv1', title: 'Laura' }} />);
+    await screen.findByText('Todavía no hay mensajes.');
     chat.push(FROM_LAURA);
-    await u.click(await screen.findByText('Laura te susurra'));
-    expect(onOpen).toHaveBeenCalledWith('conv1', 'Laura');
-    expect(screen.queryByText('Laura te susurra')).not.toBeInTheDocument();
+    expect(await screen.findByText('Escuchas un ruido detrás de ti.')).toBeInTheDocument();
+    expect(sound.plays).toBe(0);
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
   });
 
-  it('cerrarla con la X la quita sin avisar', async () => {
+  it('minimizar y volver a desplegar con la barrita; cerrar la quita del todo', async () => {
     const u = userEvent.setup();
-    const chat = fakeChatPort();
-    const onOpen = vi.fn();
-    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" chat={chat} onOpen={onOpen} />);
-    chat.push(FROM_LAURA);
-    await u.click(await screen.findByLabelText('Cerrar el aviso'));
-    expect(onOpen).not.toHaveBeenCalled();
-    expect(screen.queryByText('Laura te susurra')).not.toBeInTheDocument();
+    const chat = fakeChatPort({ messages: { conv1: [] } });
+    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()}
+      requestOpen={{ id: 'conv1', title: 'Laura' }} />);
+    await u.click(await screen.findByRole('button', { name: 'Minimizar la conversación con Laura' }));
+    expect(screen.queryByPlaceholderText('Escribe a Laura…')).not.toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Abrir la conversación con Laura' }));
+    expect(await screen.findByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Cerrar la conversación con Laura' }));
+    expect(screen.queryByLabelText('Conversación con Laura')).not.toBeInTheDocument();
   });
 
-  it('avisa el total de no leídos al montar y en cada mensaje nuevo', async () => {
+  it('desplegar una minimizada pone su contador a cero', async () => {
+    const u = userEvent.setup();
+    const chat = fakeChatPort({ messages: { conv1: [] } });
+    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} />);
+    chat.push(FROM_LAURA);
+    await screen.findByText('1');
+    await u.click(screen.getByRole('button', { name: 'Abrir la conversación con Laura' }));
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Conversación con Laura').className).not.toContain('alert');
+  });
+
+  it('caben TRES a la vez: la cuarta cierra la más vieja', async () => {
+    const chat = fakeChatPort();
+    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} />);
+    for (const [i, quien] of ['Laura', 'Marta', 'Dani', 'Nico'].entries()) {
+      chat.push({ ...FROM_LAURA, id: `m${i}`, conversationId: `conv${i}`, authorId: `u${i}`, authorName: quien });
+    }
+    expect(await screen.findByLabelText('Conversación con Nico')).toBeInTheDocument();
+    expect(screen.getByLabelText('Conversación con Marta')).toBeInTheDocument();
+    expect(screen.getByLabelText('Conversación con Dani')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Conversación con Laura')).not.toBeInTheDocument();
+  });
+
+  it('avisa el total de no leídos al montar, en cada mensaje y cuando cambia refreshKey — sin resuscribir', async () => {
     const chat = fakeChatPort({ directory: [{ key: 'laura', conversationId: 'conv1', isGroup: false, title: 'Laura', role: 'dm', memberCount: null, memberIds: ['laura'], lastKind: 'text', lastBody: 'hola', unreadCount: 2 }] });
     const onUnreadChange = vi.fn();
-    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" chat={chat} onOpen={vi.fn()} onUnreadChange={onUnreadChange} />);
-    await vi.waitFor(() => expect(onUnreadChange).toHaveBeenCalledWith(2));
-    chat.directory[0]!.unreadCount = 3;
-    chat.push(FROM_LAURA);
-    await vi.waitFor(() => expect(onUnreadChange).toHaveBeenLastCalledWith(3));
-  });
-
-  it('recuenta los no leídos cuando cambia refreshKey (el usuario acaba de marcar leída una conversación)', async () => {
-    const chat = fakeChatPort({ directory: [{ key: 'laura', conversationId: 'conv1', isGroup: false, title: 'Laura', role: 'dm', memberCount: null, memberIds: ['laura'], lastKind: 'text', lastBody: 'hola', unreadCount: 2 }] });
-    const onUnreadChange = vi.fn();
-    const { rerender } = renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" chat={chat} onOpen={vi.fn()} onUnreadChange={onUnreadChange} refreshKey={0} />);
+    const { rerender } = renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} onUnreadChange={onUnreadChange} refreshKey={0} />);
     await vi.waitFor(() => expect(onUnreadChange).toHaveBeenCalledWith(2));
     chat.directory[0]!.unreadCount = 0;
-    rerender(<WhisperWatcher campaignId="c1" myUserId="me" chat={chat} onOpen={vi.fn()} onUnreadChange={onUnreadChange} refreshKey={1} />);
+    rerender(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} onUnreadChange={onUnreadChange} refreshKey={1} />);
     await vi.waitFor(() => expect(onUnreadChange).toHaveBeenLastCalledWith(0));
-    expect(chat.subscribers).toBe(1);   // recontar no resuscribe el tiempo real
+    expect(chat.subscribers).toBe(1);
+  });
+
+  it('una pastilla de GRUPO nacida de un susurro se corrige con el nombre de verdad, no el de quien escribió', async () => {
+    const chat = fakeChatPort({
+      directory: [{ key: 'g1', conversationId: 'grupo-1', isGroup: true, title: 'Marta, Dani', role: null, memberCount: 3, memberIds: [], lastKind: 'text', lastBody: 'hola', unreadCount: 1 }],
+    });
+    renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} />);
+    chat.push({ ...FROM_LAURA, conversationId: 'grupo-1', authorId: 'marta', authorName: 'Marta' });
+    // nace con quien escribió, porque es lo único que trae el mensaje…
+    expect(await screen.findByLabelText(/Conversación con/)).toBeInTheDocument();
+    // …y el directorio la corrige: en un grupo el título son todos, no uno
+    await vi.waitFor(() => expect(screen.getByLabelText('Conversación con Marta, Dani')).toBeInTheDocument());
+  });
+
+  it('el total de no leídos se avisa aunque el padre cambie de función en cada repintado, sin rehacer el canal', async () => {
+    const chat = fakeChatPort({ directory: [{ key: 'laura', conversationId: 'conv1', isGroup: false, title: 'Laura', role: 'dm', memberCount: null, memberIds: ['laura'], lastKind: 'text', lastBody: 'hola', unreadCount: 2 }] });
+    const vistos: number[] = [];
+    const { rerender } = renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} onUnreadChange={n => vistos.push(n)} />);
+    await vi.waitFor(() => expect(vistos).toContain(2));
+    rerender(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} onUnreadChange={n => vistos.push(n)} />);
+    chat.directory[0]!.unreadCount = 5;
+    chat.push(FROM_LAURA);
+    await vi.waitFor(() => expect(vistos.at(-1)).toBe(5));
+    expect(chat.subscribers).toBe(1);   // una función nueva en cada repintado NO rehace la suscripción
   });
 });

@@ -16,14 +16,17 @@ interface Props {
   rollerOpen: boolean;
   onToggleRoller: () => void;
   log?: RollLogPort;
-  /** Para SUSURROS (H8): quién mira, cuántos no leídos lleva la pestaña y — si vino de la pastilla — qué
-   * conversación abrir directamente. `WhisperWatcher` (montado en `TablePage`) es quien manda esto. */
+  /** Para SUSURROS (H8): quién mira y cuántos no leídos lleva la pestaña (los cuenta `WhisperWatcher`, montado
+   * en `TablePage`). Desde el 16-09 el camino contrario —abrir una conversación— va de aquí HACIA `TablePage`
+   * (`onChatOpen`), que es quien saca la pastilla sobre la mesa. */
   myUserId: string;
   chatUnread?: number;
   pendingChatOpen?: { id: string; title: string } | null;
   onPendingChatOpenConsumed?: () => void;
   /** Se marcó leída una conversación: `TablePage` se lo pasa a `WhisperWatcher` para que recuente. */
   onChatRead?: () => void;
+  /** Se abrió una conversación en el directorio: `TablePage` saca TAMBIÉN su pastilla sobre la mesa. */
+  onChatOpen?: (conversationId: string, title: string) => void;
   chat?: ChatPort;
 }
 
@@ -32,10 +35,10 @@ interface Props {
  * The «Lanzador de dados» button is NOT here any more — the dice are the first tool of the scene toolbar, and two
  * ways to open the same thing is one too many.
  */
-export function SidePanel({ campaignId, system, rollerOpen, onToggleRoller, log, myUserId, chatUnread = 0, pendingChatOpen, onPendingChatOpenConsumed, onChatRead, chat }: Props): JSX.Element {
+export function SidePanel({ campaignId, system, rollerOpen, onToggleRoller, log, myUserId, chatUnread = 0, pendingChatOpen, onPendingChatOpenConsumed, onChatRead, onChatOpen, chat }: Props): JSX.Element {
   const { t } = useTranslation();
   const [tab, setTab] = useState<SidePanelTab>('log');
-  // La pastilla saltó en otra pestaña: SUSURROS pasa a primer plano para abrir esa conversación.
+  // Un pedido externo de abrir una conversación en la COLUMNA (hoy nadie lo manda: las pastillas lo hacen mejor).
   useEffect(() => { if (pendingChatOpen) setTab('chat'); }, [pendingChatOpen]);
   return (
     <div className="dc-side">
@@ -52,7 +55,7 @@ export function SidePanel({ campaignId, system, rollerOpen, onToggleRoller, log,
           {tab === 'log'
             ? <RollLog campaignId={campaignId} system={system} {...(log ? { log } : {})} />
             : tab === 'chat'
-              ? <SusurrosPanel campaignId={campaignId} myUserId={myUserId} system={system} {...(chat ? { chat } : {})} pendingOpen={pendingChatOpen ?? null} {...(onPendingChatOpenConsumed ? { onPendingOpenConsumed: onPendingChatOpenConsumed } : {})} {...(onChatRead ? { onRead: onChatRead } : {})} />
+              ? <SusurrosPanel campaignId={campaignId} myUserId={myUserId} system={system} {...(chat ? { chat } : {})} pendingOpen={pendingChatOpen ?? null} {...(onPendingChatOpenConsumed ? { onPendingOpenConsumed: onPendingChatOpenConsumed } : {})} {...(onChatRead ? { onRead: onChatRead } : {})} {...(onChatOpen ? { onOpenConversation: onChatOpen } : {})} />
               : <div className="dc-soon" aria-live="polite"><span className="material-symbols-outlined" style={{ fontSize: 'var(--icon-lg)' }}>construction</span>{t('dice.panel.soon')}</div>}
         </div>
       </section>

@@ -66,4 +66,17 @@ describe('<SidePanel>', () => {
     await screen.findByText('Todavía no hay mensajes.');
     await vi.waitFor(() => expect(onChatRead).toHaveBeenCalledTimes(1));
   });
+
+  it('abrir una conversación sube onChatOpen: con eso TablePage saca la pastilla sobre la mesa', async () => {
+    const u = userEvent.setup();
+    const onChatOpen = vi.fn();
+    const chat = fakeChatPort({
+      directory: [{ key: 'laura', conversationId: 'conv-1', isGroup: false, title: 'Laura', role: 'dm', memberCount: null, memberIds: ['laura'], lastKind: 'text', lastBody: 'hola', unreadCount: 0 }],
+      messages: { 'conv-1': [] },
+    });
+    renderWithProviders(<SidePanel campaignId="c1" system={plenilunio} rollerOpen={false} onToggleRoller={vi.fn()} log={fakeRollLog()} myUserId="me" chat={chat} onChatOpen={onChatOpen} />);
+    await u.click(screen.getByRole('tab', { name: /Susurros/ }));
+    await u.click(await screen.findByText('Laura'));
+    expect(onChatOpen).toHaveBeenCalledWith('conv-1', 'Laura');
+  });
 });

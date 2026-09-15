@@ -385,8 +385,12 @@
       "failed": "Could not roll."
     },
     "pill": {
-      "whispers": "{{name}} whispers to you",
-      "dismiss": "Dismiss the notice"
+      "dock": "Open whispers",
+      "window": "Conversation with {{name}}",
+      "expand": "Open the conversation with {{name}}",
+      "minimize": "Minimise the conversation with {{name}}",
+      "close": "Close the conversation with {{name}}",
+      "unread": "{{n}} unread"
     }
   },
   "identity": {
