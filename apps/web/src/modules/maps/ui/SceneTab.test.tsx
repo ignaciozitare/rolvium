@@ -9,6 +9,20 @@ import { SceneTab } from './SceneTab';
 import { DEFAULT_TEXTURE_SCALE } from '../domain/useCases/roomStyles';
 import type { ToolbarOrder } from '../domain/useCases/toolbarRules';
 
+/**
+ * Desde el 2026-09-14 el preparador de serie de `TextureUpload` (y de `PropsUpload`/`BackgroundUpload`) comprime
+ * de verdad: `createImageBitmap`/canvas no existen en jsdom. Sólo el compresor se dobla — el resto del contenedor
+ * y de `@rolvium/ui` sigue siendo el real, que es lo que el resto de este fichero necesita.
+ */
+vi.mock('../container', async importOriginal => ({
+  ...(await importOriginal<typeof import('../container')>()),
+  compressionLevelsRepo: { load: vi.fn().mockResolvedValue(null), save: vi.fn() },
+}));
+vi.mock('@rolvium/ui', async importOriginal => ({
+  ...(await importOriginal<typeof import('@rolvium/ui')>()),
+  compressImage: vi.fn().mockResolvedValue({ blob: new Blob(['x'], { type: 'image/webp' }), originalBytes: 1, bytes: 1, compressed: true, width: 10, height: 10 }),
+}));
+
 class FakePointerEvent extends MouseEvent { pointerId: number; constructor(type: string, init: MouseEventInit & { pointerId?: number } = {}) { super(type, init); this.pointerId = init.pointerId ?? 0; } }
 (globalThis as unknown as { PointerEvent: unknown }).PointerEvent = FakePointerEvent;
 

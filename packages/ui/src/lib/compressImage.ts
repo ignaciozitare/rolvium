@@ -11,26 +11,51 @@
  * entera y la codifica.
  */
 
-export type ImageTarget = 'avatar' | 'token' | 'background' | 'prop';
+export type ImageTarget = 'avatar' | 'token' | 'background' | 'prop' | 'texture';
+
+/** Qué tan agresivo comprimir. Lo elige un admin en Ajustes, por separado para cada destino de abajo. */
+export type CompressionLevel = 'light' | 'balanced' | 'max';
+export const DEFAULT_COMPRESSION_LEVEL: CompressionLevel = 'balanced';
 
 export interface TargetSpec {
-  /** Lado máximo en píxeles. */
+  /** Lado máximo en píxeles. `Infinity` = nunca reduce resolución. */
   max: number;
   quality: number;
 }
 
-/** Tamaños y calidad por destino (spec §Rules & limits). */
-export const IMAGE_TARGETS: Record<ImageTarget, TargetSpec> = {
-  avatar:     { max: 512,  quality: 0.85 },   // se pinta a 64 px como mucho
-  token:      { max: 512,  quality: 0.85 },   // una casilla del mapa
-  background: { max: 2560, quality: 0.82 },   // pantalla completa y con zoom
-  /**
-   * Una PIEZA de la galería (maps, rebanada 6): se planta a escala y se mira de cerca, así que más lado que un
-   * token y más calidad. WebP conserva el alfa y aquí eso es lo que la hace servir: sin transparencia una mesa
-   * llegaría con un recuadro blanco alrededor.
-   */
-  prop:       { max: 1024, quality: 0.9 },
+/** Avatar y token: tamaño fijo, sin nivel — se pintan a 64 px o a una casilla, no hay margen que ganar ahí. */
+export const IMAGE_TARGETS: Record<'avatar' | 'token', TargetSpec> = {
+  avatar: { max: 512, quality: 0.85 },
+  token:  { max: 512, quality: 0.85 },
 };
+
+/**
+ * Textura, objeto (`prop`) y fondo: dependen del nivel elegido en Admin → Ajustes (uno por tipo). Números
+ * probados de verdad el 2026-09-14 sobre una textura, un objeto y un fondo reales, antes de que él los aprobara
+ * (spec: `specs/core/images/SPEC.md`).
+ */
+export const LEVELED_TARGETS: Record<'texture' | 'prop' | 'background', Record<CompressionLevel, TargetSpec>> = {
+  texture: {
+    light:    { max: 1280, quality: 0.85 },
+    balanced: { max: 1024, quality: 0.82 },
+    max:      { max: 800,  quality: 0.80 },
+  },
+  prop: {
+    light:    { max: 1024, quality: 0.85 },
+    balanced: { max: 768,  quality: 0.80 },
+    max:      { max: 640,  quality: 0.75 },
+  },
+  background: {
+    light:    { max: Infinity, quality: 0.95 },
+    balanced: { max: Infinity, quality: 0.90 },
+    max:      { max: Infinity, quality: 0.82 },
+  },
+};
+
+function specFor(target: ImageTarget, level: CompressionLevel): TargetSpec {
+  if (target === 'avatar' || target === 'token') return IMAGE_TARGETS[target];
+  return LEVELED_TARGETS[target][level];
+}
 
 /** Tope duro de ENTRADA: por encima se rechaza, ni se intenta comprimir. */
 export const MAX_INPUT_BYTES = 8 * 1024 * 1024;
@@ -102,12 +127,17 @@ const browserDeps: CompressDeps = {
  *
  * Un GIF animado se aplana al primer fotograma, que es lo que devuelve el decodificador.
  */
-export async function compressImage(file: File | Blob, target: ImageTarget, deps: CompressDeps = browserDeps): Promise<CompressResult> {
+export async function compressImage(
+  file: File | Blob,
+  target: ImageTarget,
+  level: CompressionLevel = DEFAULT_COMPRESSION_LEVEL,
+  deps: CompressDeps = browserDeps,
+): Promise<CompressResult> {
   const type = file.type;
   if (!(ACCEPTED_MIME as readonly string[]).includes(type)) throw new CompressError('mime', type || 'sin tipo');
   if (file.size > MAX_INPUT_BYTES) throw new CompressError('input-too-large', `${file.size} > ${MAX_INPUT_BYTES}`);
 
-  const spec = IMAGE_TARGETS[target];
+  const spec = specFor(target, level);
 
   let decoded: { width: number; height: number; source: CanvasImageSource };
   try {

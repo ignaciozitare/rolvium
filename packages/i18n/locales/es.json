@@ -116,7 +116,24 @@
       "manage_settings_desc": "Configuración general de la plataforma"
     },
     "settingsTitle": "Ajustes",
-    "settingsEmpty": "Todavía no hay ajustes configurables.",
+    "settingsTab": {
+      "images": "Imágenes"
+    },
+    "compression": {
+      "title": "Compresión de imágenes",
+      "hint": "Elige cuánto se comprime cada tipo al subirlo. No vuelve a comprimir lo que ya has subido.",
+      "texture": "Texturas",
+      "prop": "Objetos",
+      "background": "Fondos",
+      "backgroundNote": "Nunca pierde resolución — sólo cambia el formato.",
+      "saveNote": "Los cambios se guardan al elegir un nivel.",
+      "saveError": "No se pudo guardar el nivel.",
+      "level": {
+        "light": "Ligero",
+        "balanced": "Equilibrado",
+        "max": "Máximo ahorro"
+      }
+    },
     "toolsPicker": "Permisos de Rolvium",
     "tool": {
       "manage_textures": "Gestionar texturas",

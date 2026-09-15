@@ -3,11 +3,18 @@ import { renderWithProviders, screen, fireEvent, waitFor, within } from '../../.
 import userEvent from '@testing-library/user-event';
 import { CompressError } from '@rolvium/ui';
 import { PACK_DUNGEON, PACK_FOREST } from '../../../../tests/helpers/fakes';
+import { compressionLevelsRepo } from '../container';
 import { PropsUpload, type Compressor } from './PropsUpload';
+
+vi.mock('../container', () => ({ compressionLevelsRepo: { load: vi.fn(), save: vi.fn() } }));
+vi.mock('@rolvium/ui', async importOriginal => ({ ...(await importOriginal<typeof import('@rolvium/ui')>()), compressImage: vi.fn() }));
 
 /**
  * SUBIR PIEZAS EN LOTE (`rolvium.pen` · `DCs6S`, aprobado el 2026-09-11): la zona de arrastre, a qué paquete, la
  * cola con su estado y AÑADIR N PIEZAS. El nombre del fichero se queda como nombre de la pieza.
+ *
+ * Casi todas mandan `compress` doblado (ver `ok` más abajo); el preparador de serie real —que ahora depende del
+ * nivel de Ajustes— se prueba aparte, sin pasar `compress`.
  */
 const png = (name: string) => new File(['x'], name, { type: 'image/png' });
 const ok: Compressor = async file => ({ blob: new Blob(['c'], { type: 'image/webp' }), originalBytes: file.size, bytes: 1, compressed: true, width: 320, height: 200 });
@@ -85,5 +92,17 @@ describe('<PropsUpload>', () => {
     await u.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(cb.onClose).toHaveBeenCalled();
     expect(cb.onAdd).not.toHaveBeenCalled();
+  });
+
+  it('sin `compress`: el preparador de serie comprime al destino `prop` con el nivel guardado en Ajustes', async () => {
+    const { compressImage } = await import('@rolvium/ui');
+    vi.mocked(compressionLevelsRepo.load).mockResolvedValue({ texture: 'balanced', prop: 'light', background: 'balanced' });
+    vi.mocked(compressImage).mockResolvedValue({ blob: new Blob(['c'], { type: 'image/webp' }), originalBytes: 1, bytes: 1, compressed: true, width: 1024, height: 512 });
+    const u = userEvent.setup();
+    const cb = { onAdd: vi.fn(async () => undefined), onClose: vi.fn() };
+    renderWithProviders(<PropsUpload packs={[PACK_DUNGEON, PACK_FOREST]} packId={PACK_DUNGEON.id} initialFiles={[png('arbol.png')]} {...cb} />);
+    await u.click(screen.getByRole('button', { name: 'Añadir 1 objeto' }));
+    await waitFor(() => expect(cb.onAdd).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(compressImage)).toHaveBeenCalledWith(expect.any(File), 'prop', 'light');
   });
 });

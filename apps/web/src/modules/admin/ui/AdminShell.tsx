@@ -45,7 +45,7 @@ export function AdminShell({ deps = defaultDeps }: { deps?: AdminDeps }): JSX.El
         ))}
       </nav>
       <div className="rv-admin-content">
-        {mod === 'settings' && can('manage_settings') && <AdminSettings />}
+        {mod === 'settings' && can('manage_settings') && <AdminSettings compressionLevels={deps.compressionLevels} />}
         {mod === 'users' && can('manage_users') && <AdminUsers userRepo={deps.userRepo} roleRepo={deps.roleRepo} userAdmin={deps.userAdmin} currentUserId={user.id} />}
         {mod === 'roles' && can('manage_roles') && <AdminRoles roleRepo={deps.roleRepo} />}
       </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ACCEPTED_MIME, CompressError, IMAGE_TARGETS, MAX_INPUT_BYTES, MAX_OUTPUT_BYTES, compressImage, fitDimensions, formatBytes } from './compressImage';
+import { ACCEPTED_MIME, CompressError, IMAGE_TARGETS, LEVELED_TARGETS, MAX_INPUT_BYTES, MAX_OUTPUT_BYTES, compressImage, fitDimensions, formatBytes } from './compressImage';
 import type { CompressDeps } from './compressImage';
 
 /** Un `Blob` de un tamaño concreto sin gastar memoria de verdad. */
@@ -39,17 +39,17 @@ describe('fitDimensions', () => {
 
 describe('compressImage — lo que se rechaza antes de intentar nada', () => {
   it('un tipo que no es imagen no pasa', async () => {
-    await expect(compressImage(fakeFile(100, 'application/pdf'), 'token', deps())).rejects.toMatchObject({ code: 'mime' });
+    await expect(compressImage(fakeFile(100, 'application/pdf'), 'token', 'balanced', deps())).rejects.toMatchObject({ code: 'mime' });
   });
 
   it('un fichero sin tipo tampoco', async () => {
-    await expect(compressImage(fakeFile(100, ''), 'token', deps())).rejects.toBeInstanceOf(CompressError);
+    await expect(compressImage(fakeFile(100, ''), 'token', 'balanced', deps())).rejects.toBeInstanceOf(CompressError);
   });
 
   /** Por encima de 8 MB se rechaza con aviso, NO se intenta: comprimir un fichero enorme cuelga la pestaña. */
   it('por encima del tope de entrada no se intenta comprimir', async () => {
     const d = deps();
-    await expect(compressImage(fakeFile(MAX_INPUT_BYTES + 1), 'token', d)).rejects.toMatchObject({ code: 'input-too-large' });
+    await expect(compressImage(fakeFile(MAX_INPUT_BYTES + 1), 'token', 'balanced', d)).rejects.toMatchObject({ code: 'input-too-large' });
     expect(d.decode).not.toHaveBeenCalled();
   });
 
@@ -61,28 +61,53 @@ describe('compressImage — lo que se rechaza antes de intentar nada', () => {
 describe('compressImage — el camino normal', () => {
   it('escala al tamaño del destino y devuelve el WebP con las dos medidas', async () => {
     const d = deps({}, 2000, 1000, 1000);
-    const r = await compressImage(fakeFile(500_000), 'token', d);
+    const r = await compressImage(fakeFile(500_000), 'token', 'balanced', d);
     expect(d.encode).toHaveBeenCalledWith(expect.anything(), 512, 256, IMAGE_TARGETS.token.quality);
     expect(r).toMatchObject({ compressed: true, bytes: 1000, originalBytes: 500_000, width: 512, height: 256 });
   });
 
-  it('el fondo de escena admite mucho más lado que un token', async () => {
+  /** El fondo NUNCA reduce resolución, en ningún nivel: sólo cambia formato/calidad (condición suya original). */
+  it('el fondo, en Equilibrado, no reduce resolución y usa calidad 0,90', async () => {
     const d = deps({}, 4000, 3000);
-    await compressImage(fakeFile(500_000), 'background', d);
-    expect(d.encode).toHaveBeenCalledWith(expect.anything(), 2560, 1920, IMAGE_TARGETS.background.quality);
+    await compressImage(fakeFile(500_000), 'background', 'balanced', d);
+    expect(d.encode).toHaveBeenCalledWith(expect.anything(), 4000, 3000, LEVELED_TARGETS.background.balanced.quality);
+    expect(LEVELED_TARGETS.background.balanced).toEqual({ max: Infinity, quality: 0.90 });
   });
 
-  /** Una PIEZA de la galería (maps, rebanada 6): más lado que un token, más calidad, y WebP conserva el alfa. */
-  it('una pieza de la galería va a 1024 px de lado mayor y calidad 0,9', async () => {
+  it('el fondo no reduce resolución en NINGÚN nivel, ni con una imagen enorme', async () => {
+    for (const level of ['light', 'balanced', 'max'] as const) {
+      const d = deps({}, 6000, 4000);
+      await compressImage(fakeFile(500_000), 'background', level, d);
+      expect(d.encode).toHaveBeenCalledWith(expect.anything(), 6000, 4000, LEVELED_TARGETS.background[level].quality);
+    }
+  });
+
+  /** Una PIEZA de la galería (maps, rebanada 6): más lado que un token, WebP conserva el alfa. */
+  it('un objeto de la galería, en Equilibrado, va a 768 px de lado mayor y calidad 0,80', async () => {
     const d = deps({}, 3000, 1500);
-    await compressImage(fakeFile(500_000), 'prop', d);
-    expect(d.encode).toHaveBeenCalledWith(expect.anything(), 1024, 512, 0.9);
-    expect(IMAGE_TARGETS.prop).toEqual({ max: 1024, quality: 0.9 });
+    await compressImage(fakeFile(500_000), 'prop', 'balanced', d);
+    expect(d.encode).toHaveBeenCalledWith(expect.anything(), 768, 384, 0.80);
+    expect(LEVELED_TARGETS.prop.balanced).toEqual({ max: 768, quality: 0.80 });
+  });
+
+  it('una textura, en los tres niveles, escala al lado y calidad de la tabla', async () => {
+    const cases: Array<[level: 'light' | 'balanced' | 'max', max: number, quality: number]> = [
+      ['light', 1280, 0.85],
+      ['balanced', 1024, 0.82],
+      ['max', 800, 0.80],
+    ];
+    for (const [level, max, quality] of cases) {
+      const d = deps({}, 4000, 2000);
+      await compressImage(fakeFile(500_000), 'texture', level, d);
+      const size = fitDimensions(4000, 2000, max);
+      expect(d.encode).toHaveBeenCalledWith(expect.anything(), size.width, size.height, quality);
+      expect(LEVELED_TARGETS.texture[level]).toEqual({ max, quality });
+    }
   });
 
   it('si no se puede leer la imagen, el error dice que fue al decodificar', async () => {
     const d = deps({ decode: vi.fn().mockRejectedValue(new Error('roto')) });
-    await expect(compressImage(fakeFile(1000), 'avatar', d)).rejects.toMatchObject({ code: 'decode' });
+    await expect(compressImage(fakeFile(1000), 'avatar', 'balanced', d)).rejects.toMatchObject({ code: 'decode' });
   });
 });
 
@@ -93,7 +118,7 @@ describe('compressImage — cuando comprimir no sale bien', () => {
    */
   it('sin WebP en el navegador, se sube el original', async () => {
     const original = fakeFile(300_000);
-    const r = await compressImage(original, 'token', deps({ encode: vi.fn().mockResolvedValue(null) }));
+    const r = await compressImage(original, 'token', 'balanced', deps({ encode: vi.fn().mockResolvedValue(null) }));
     expect(r.compressed).toBe(false);
     expect(r.blob).toBe(original);
     expect(r.bytes).toBe(300_000);
@@ -102,20 +127,20 @@ describe('compressImage — cuando comprimir no sale bien', () => {
   /** Una imagen ya optimizada puede ENGORDAR al recomprimir. Quedarse con la gorda sería absurdo. */
   it('si el resultado pesa más que el original, se queda el original', async () => {
     const original = fakeFile(1000);
-    const r = await compressImage(original, 'avatar', deps({ encode: vi.fn().mockResolvedValue(fakeFile(5000, 'image/webp')) }));
+    const r = await compressImage(original, 'avatar', 'balanced', deps({ encode: vi.fn().mockResolvedValue(fakeFile(5000, 'image/webp')) }));
     expect(r.compressed).toBe(false);
     expect(r.blob).toBe(original);
   });
 
   it('si aun comprimido se pasa del tope de salida, se rechaza en vez de subir un ladrillo', async () => {
     const d = deps({ encode: vi.fn().mockResolvedValue(fakeFile(MAX_OUTPUT_BYTES + 1, 'image/webp')) });
-    await expect(compressImage(fakeFile(MAX_INPUT_BYTES - 1), 'background', d)).rejects.toMatchObject({ code: 'output-too-large' });
+    await expect(compressImage(fakeFile(MAX_INPUT_BYTES - 1), 'background', 'balanced', d)).rejects.toMatchObject({ code: 'output-too-large' });
   });
 
   /** El respaldo tampoco puede colar un fichero enorme por la puerta de atrás. */
   it('el respaldo sin WebP sigue respetando el tope de salida', async () => {
     const d = deps({ encode: vi.fn().mockResolvedValue(null) });
-    await expect(compressImage(fakeFile(MAX_OUTPUT_BYTES + 1), 'background', d)).rejects.toMatchObject({ code: 'output-too-large' });
+    await expect(compressImage(fakeFile(MAX_OUTPUT_BYTES + 1), 'background', 'balanced', d)).rejects.toMatchObject({ code: 'output-too-large' });
   });
 });
 

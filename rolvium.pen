@@ -161851,6 +161851,1222 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "zhQmK",
+      "x": 0,
+      "y": 21887,
+      "name": "Admin/Ajustes · dark",
+      "theme": {
+        "mode": "dark"
+      },
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "m8nL1V",
+          "type": "ref",
+          "ref": "ocnOs",
+          "name": "TopBar",
+          "width": "fill_container"
+        },
+        {
+          "type": "frame",
+          "id": "kSVER",
+          "name": "Page",
+          "width": "fill_container",
+          "height": "fill_container",
+          "gap": 24,
+          "padding": [
+            32,
+            40
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "ZkyO6",
+              "name": "Sidebar",
+              "width": 200,
+              "height": "fill_container",
+              "fill": "$sf-low",
+              "cornerRadius": "$r2",
+              "layout": "vertical",
+              "gap": 2,
+              "padding": [
+                8,
+                6
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "gezKS",
+                  "name": "SideTitle",
+                  "fill": "$tx3",
+                  "content": "ADMINISTRACIÓN",
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-2xs",
+                  "fontWeight": "700",
+                  "letterSpacing": 1
+                },
+                {
+                  "type": "frame",
+                  "id": "QgA3y",
+                  "name": "Nav/Ajustes",
+                  "width": "fill_container",
+                  "fill": "$glow",
+                  "cornerRadius": "$r",
+                  "gap": 10,
+                  "padding": [
+                    9,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "r8vlbH",
+                      "name": "Icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "settings",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$ac2"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZmbN2",
+                      "name": "Label",
+                      "fill": "$ac2",
+                      "content": "Ajustes",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZCWJG",
+                  "name": "Nav/Usuarios",
+                  "width": "fill_container",
+                  "cornerRadius": "$r",
+                  "gap": 10,
+                  "padding": [
+                    9,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "YkNfW",
+                      "name": "Icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "group",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$tx2"
+                    },
+                    {
+                      "type": "text",
+                      "id": "IVIKm",
+                      "name": "Label",
+                      "fill": "$tx2",
+                      "content": "Usuarios",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DorPd",
+                  "name": "Nav/Roles",
+                  "width": "fill_container",
+                  "cornerRadius": "$r",
+                  "gap": 10,
+                  "padding": [
+                    9,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "giiJd",
+                      "name": "Icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "admin_panel_settings",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$tx2"
+                    },
+                    {
+                      "type": "text",
+                      "id": "A5E8wM",
+                      "name": "Label",
+                      "fill": "$tx2",
+                      "content": "Roles",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "cFdtO",
+              "name": "Content",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "yboLe",
+                  "name": "PageTitle",
+                  "fill": "$tx",
+                  "content": "Ajustes",
+                  "fontFamily": "$font-display",
+                  "fontSize": "$fs-xl",
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "a27F7W",
+                  "name": "Tabs",
+                  "fill": "$sf-low",
+                  "cornerRadius": "$r",
+                  "gap": 4,
+                  "padding": 4,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "MprP0",
+                      "name": "Tab/Imágenes",
+                      "fill": "$sf3",
+                      "cornerRadius": "$r",
+                      "padding": [
+                        8,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "cJ9Br",
+                          "name": "Label",
+                          "fill": "$tx",
+                          "content": "Imágenes",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "R6BMX",
+                  "name": "Card/Compresión",
+                  "width": "fill_container",
+                  "fill": "$sf2",
+                  "cornerRadius": "$r2",
+                  "layout": "vertical",
+                  "gap": 18,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "fCciC",
+                      "name": "CardTitle",
+                      "fill": "$tx2",
+                      "content": "COMPRESIÓN DE IMÁGENES",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-xs",
+                      "fontWeight": "700",
+                      "letterSpacing": 0.8
+                    },
+                    {
+                      "type": "text",
+                      "id": "upV3g",
+                      "name": "CardHint",
+                      "fill": "$tx2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Elegí cuánto se comprime cada tipo al subirlo. No vuelve a comprimir lo que ya subiste.",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ycqoc",
+                      "name": "Row/TEXTURAS",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "E6rDX3",
+                          "name": "Label",
+                          "fill": "$tx3",
+                          "content": "TEXTURAS",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-2xs",
+                          "fontWeight": "700",
+                          "letterSpacing": 0.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "UyECy",
+                          "name": "Seg",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "SuOFT",
+                              "name": "Opt/Ligero",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "FaC0j",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Ligero",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ZZ7wJ",
+                              "name": "Opt/Equilibrado",
+                              "fill": "$sf3",
+                              "cornerRadius": "$r",
+                              "stroke": "$ac",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "LU16X",
+                                  "name": "Label",
+                                  "fill": "$tx",
+                                  "content": "Equilibrado",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "aEWVa",
+                              "name": "Opt/Máximo ahorro",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "G9P7f",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Máximo ahorro",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sZsa9",
+                      "name": "Row/OBJETOS",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "r2e34i",
+                          "name": "Label",
+                          "fill": "$tx3",
+                          "content": "OBJETOS",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-2xs",
+                          "fontWeight": "700",
+                          "letterSpacing": 0.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "mP4g6",
+                          "name": "Seg",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "qINl6",
+                              "name": "Opt/Ligero",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "jlPsJ",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Ligero",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "RzK5x",
+                              "name": "Opt/Equilibrado",
+                              "fill": "$sf3",
+                              "cornerRadius": "$r",
+                              "stroke": "$ac",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "S0sDk7",
+                                  "name": "Label",
+                                  "fill": "$tx",
+                                  "content": "Equilibrado",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "FCVfj",
+                              "name": "Opt/Máximo ahorro",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "W5f1V",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Máximo ahorro",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Vw8yG",
+                      "name": "Row/FONDOS",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lPxyS",
+                          "name": "Label",
+                          "fill": "$tx3",
+                          "content": "FONDOS",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-2xs",
+                          "fontWeight": "700",
+                          "letterSpacing": 0.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "fVtct",
+                          "name": "Seg",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "kkvST",
+                              "name": "Opt/Ligero",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "x9MQy",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Ligero",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "L0t8V7",
+                              "name": "Opt/Equilibrado",
+                              "fill": "$sf3",
+                              "cornerRadius": "$r",
+                              "stroke": "$ac",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "zEt1I",
+                                  "name": "Label",
+                                  "fill": "$tx",
+                                  "content": "Equilibrado",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "dEMWX",
+                              "name": "Opt/Máximo ahorro",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "by1xi",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Máximo ahorro",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "ktpOZ",
+                          "name": "Note",
+                          "fill": "$tx3",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Nunca pierde resolución — sólo cambia el formato.",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-2xs",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "sRG5K",
+                      "name": "SaveNote",
+                      "fill": "$tx3",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Los cambios se guardan al elegir un nivel.",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-xs",
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "V1pQc",
+      "x": 1600,
+      "y": 21887,
+      "name": "Admin/Ajustes · light",
+      "theme": {
+        "mode": "light"
+      },
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "xRlQC",
+          "type": "ref",
+          "ref": "ocnOs",
+          "name": "TopBar",
+          "width": "fill_container"
+        },
+        {
+          "type": "frame",
+          "id": "SjC92",
+          "name": "Page",
+          "width": "fill_container",
+          "height": "fill_container",
+          "gap": 24,
+          "padding": [
+            32,
+            40
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "k20tzU",
+              "name": "Sidebar",
+              "width": 200,
+              "height": "fill_container",
+              "fill": "$sf-low",
+              "cornerRadius": "$r2",
+              "layout": "vertical",
+              "gap": 2,
+              "padding": [
+                8,
+                6
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "t5k10R",
+                  "name": "SideTitle",
+                  "fill": "$tx3",
+                  "content": "ADMINISTRACIÓN",
+                  "fontFamily": "$font-body",
+                  "fontSize": "$fs-2xs",
+                  "fontWeight": "700",
+                  "letterSpacing": 1
+                },
+                {
+                  "type": "frame",
+                  "id": "dgbAX",
+                  "name": "Nav/Ajustes",
+                  "width": "fill_container",
+                  "fill": "$glow",
+                  "cornerRadius": "$r",
+                  "gap": 10,
+                  "padding": [
+                    9,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "WdhjA",
+                      "name": "Icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "settings",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$ac2"
+                    },
+                    {
+                      "type": "text",
+                      "id": "zxduW",
+                      "name": "Label",
+                      "fill": "$ac2",
+                      "content": "Ajustes",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lIOWq",
+                  "name": "Nav/Usuarios",
+                  "width": "fill_container",
+                  "cornerRadius": "$r",
+                  "gap": 10,
+                  "padding": [
+                    9,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "VAwj7",
+                      "name": "Icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "group",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$tx2"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ndrJS",
+                      "name": "Label",
+                      "fill": "$tx2",
+                      "content": "Usuarios",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "qKHAa",
+                  "name": "Nav/Roles",
+                  "width": "fill_container",
+                  "cornerRadius": "$r",
+                  "gap": 10,
+                  "padding": [
+                    9,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "d018Lj",
+                      "name": "Icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "admin_panel_settings",
+                      "library": "Material Symbols Outlined",
+                      "fill": "$tx2"
+                    },
+                    {
+                      "type": "text",
+                      "id": "TSHMq",
+                      "name": "Label",
+                      "fill": "$tx2",
+                      "content": "Roles",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "fbNfy",
+              "name": "Content",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Ofotw",
+                  "name": "PageTitle",
+                  "fill": "$tx",
+                  "content": "Ajustes",
+                  "fontFamily": "$font-display",
+                  "fontSize": "$fs-xl",
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "jrgkn",
+                  "name": "Tabs",
+                  "fill": "$sf-low",
+                  "cornerRadius": "$r",
+                  "gap": 4,
+                  "padding": 4,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "kceta",
+                      "name": "Tab/Imágenes",
+                      "fill": "$sf3",
+                      "cornerRadius": "$r",
+                      "padding": [
+                        8,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "sx8VP",
+                          "name": "Label",
+                          "fill": "$tx",
+                          "content": "Imágenes",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-sm",
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "RfVkI",
+                  "name": "Card/Compresión",
+                  "width": "fill_container",
+                  "fill": "$sf2",
+                  "cornerRadius": "$r2",
+                  "layout": "vertical",
+                  "gap": 18,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "OhgGc",
+                      "name": "CardTitle",
+                      "fill": "$tx2",
+                      "content": "COMPRESIÓN DE IMÁGENES",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-xs",
+                      "fontWeight": "700",
+                      "letterSpacing": 0.8
+                    },
+                    {
+                      "type": "text",
+                      "id": "P1kkC",
+                      "name": "CardHint",
+                      "fill": "$tx2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Elegí cuánto se comprime cada tipo al subirlo. No vuelve a comprimir lo que ya subiste.",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-sm",
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IRyni",
+                      "name": "Row/TEXTURAS",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "eBJv7",
+                          "name": "Label",
+                          "fill": "$tx3",
+                          "content": "TEXTURAS",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-2xs",
+                          "fontWeight": "700",
+                          "letterSpacing": 0.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "FVoCT",
+                          "name": "Seg",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "NHWvb",
+                              "name": "Opt/Ligero",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Gb7Eb",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Ligero",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "E1mLIo",
+                              "name": "Opt/Equilibrado",
+                              "fill": "$sf3",
+                              "cornerRadius": "$r",
+                              "stroke": "$ac",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "GpJKT",
+                                  "name": "Label",
+                                  "fill": "$tx",
+                                  "content": "Equilibrado",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "hgYOb",
+                              "name": "Opt/Máximo ahorro",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "aiQeA",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Máximo ahorro",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "d3JaO",
+                      "name": "Row/OBJETOS",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZguSV",
+                          "name": "Label",
+                          "fill": "$tx3",
+                          "content": "OBJETOS",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-2xs",
+                          "fontWeight": "700",
+                          "letterSpacing": 0.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "e3lk9",
+                          "name": "Seg",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "loEV2",
+                              "name": "Opt/Ligero",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "sfAJC",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Ligero",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "AAnWi",
+                              "name": "Opt/Equilibrado",
+                              "fill": "$sf3",
+                              "cornerRadius": "$r",
+                              "stroke": "$ac",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Y3iRR",
+                                  "name": "Label",
+                                  "fill": "$tx",
+                                  "content": "Equilibrado",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "rf5oO",
+                              "name": "Opt/Máximo ahorro",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "TD1GK",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Máximo ahorro",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BiPbA",
+                      "name": "Row/FONDOS",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "x4QfHk",
+                          "name": "Label",
+                          "fill": "$tx3",
+                          "content": "FONDOS",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-2xs",
+                          "fontWeight": "700",
+                          "letterSpacing": 0.8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "g424M",
+                          "name": "Seg",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Vio0P",
+                              "name": "Opt/Ligero",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "AIEB4",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Ligero",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "CehyA",
+                              "name": "Opt/Equilibrado",
+                              "fill": "$sf3",
+                              "cornerRadius": "$r",
+                              "stroke": "$ac",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "LYMZd",
+                                  "name": "Label",
+                                  "fill": "$tx",
+                                  "content": "Equilibrado",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "PgQAf",
+                              "name": "Opt/Máximo ahorro",
+                              "fill": "$bg",
+                              "cornerRadius": "$r",
+                              "stroke": "$bd",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "c7pV3",
+                                  "name": "Label",
+                                  "fill": "$tx2",
+                                  "content": "Máximo ahorro",
+                                  "fontFamily": "$font-body",
+                                  "fontSize": "$fs-xs",
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "w9P9Sk",
+                          "name": "Note",
+                          "fill": "$tx3",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Nunca pierde resolución — sólo cambia el formato.",
+                          "fontFamily": "$font-body",
+                          "fontSize": "$fs-2xs",
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "iZmlx",
+                      "name": "SaveNote",
+                      "fill": "$tx3",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Los cambios se guardan al elegir un nivel.",
+                      "fontFamily": "$font-body",
+                      "fontSize": "$fs-xs",
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {

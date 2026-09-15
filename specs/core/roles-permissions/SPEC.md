@@ -20,7 +20,10 @@ role names in features. Who: admins (and anyone granted `manage_roles`).
 - **Users**: list (name, email, role selector, active chip), add user (name/email/role/password, validated), change password,
   block/unblock (not yourself), delete (not yourself). Create/password/delete go through the API (`/admin/*`).
 - **Roles**: create (label slugified to `snake_case` name), select, edit description, dual-panel pickers for modules and permissions, delete custom.
-- **Settings**: placeholder.
+- **Settings**: a tabbed screen — today the single **Imágenes** tab, and more tabs get added as other settings appear.
+  The Imágenes tab holds the compression level for each type (textures, objects, backgrounds); it saves on pick, with no
+  save button, and writes the `images.compression_levels` row of `app_settings` (`manage_settings` by RLS).
+  See `specs/core/images/SPEC.md`.
 - The **Roles** section has three pickers: modules, admin permissions, and **«Permisos de Rolvium»** (tool
   permissions — one item per capability, so a new tool can be handed to a role without touching the screen).
 

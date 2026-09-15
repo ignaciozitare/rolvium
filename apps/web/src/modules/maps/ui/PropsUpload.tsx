@@ -2,6 +2,7 @@ import { useTranslation } from '@rolvium/i18n';
 import { compressImage } from '@rolvium/ui';
 import type { PropPack } from '../domain/entities/Scene';
 import { nameFromFile } from '../domain/useCases/propRules';
+import { compressionLevelsRepo } from '../container';
 import { LibraryUpload, type Preparer } from './LibraryUpload';
 
 /** Lo que hace falta para crear la pieza: el resto (foto, quién, escala) lo pone quien la guarda. */
@@ -21,9 +22,12 @@ interface Props {
   onClose: () => void;
 }
 
-/** Comprimir con el destino `prop` (1024 px, calidad 0,9). Aparte para poder doblarlo en los tests. */
+/** Comprimir con el destino `prop`, con el nivel que haya elegido un admin en Ajustes (`balanced` de serie). */
 export type Compressor = Preparer;
-const compressProp: Compressor = file => compressImage(file, 'prop');
+const compressProp: Compressor = async file => {
+  const levels = await compressionLevelsRepo.load();
+  return compressImage(file, 'prop', levels?.prop ?? 'balanced');
+};
 
 /**
  * SUBIR PIEZAS EN LOTE (`rolvium.pen` · `DCs6S`): la cara de las PIEZAS de la subida común (`LibraryUpload`).
