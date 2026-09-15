@@ -123,6 +123,10 @@ a{color:var(--ac2);text-decoration:none;}
 .rv-admin-nav{width:200px;flex-shrink:0;padding:8px 6px;background:var(--sf-low);border-radius:var(--r2);display:flex;flex-direction:column;gap:2px;}
 .rv-admin-nav-t{font-size:var(--fs-2xs);font-weight:700;letter-spacing:.12em;color:var(--tx3);padding:8px 12px 10px;}
 .rv-admin-content{flex:1;min-width:0;padding:0 0 0 24px;overflow:auto;}
+.rv-admin-tabs{display:inline-flex;gap:4px;padding:4px;margin:10px 0 16px;border-radius:var(--r);background:var(--sf-low);}
+.rv-admin-tab{padding:8px 16px;border:none;border-radius:var(--r);background:transparent;color:var(--tx2);font:inherit;font-size:var(--fs-sm);font-weight:500;cursor:pointer;transition:var(--ease);}
+.rv-admin-tab:hover{color:var(--tx);}
+.rv-admin-tab.active{background:var(--sf3);color:var(--tx);font-weight:600;}
 .rv-chip{display:inline-flex;align-items:center;font-size:var(--fs-2xs);font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:999px;background:var(--sf3);color:var(--tx2);}
 .rv-chip.ac{background:var(--ac-dim);color:var(--ac2);}
 .rv-chip.ok{background:var(--green-dim);color:var(--green);}

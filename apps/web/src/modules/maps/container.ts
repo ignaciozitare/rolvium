@@ -1,4 +1,5 @@
 import { supabase } from '@/shared/lib/supabaseClient';
+import { compressionLevelsRepo } from '@/shared/settings/container';
 import { SupabaseMapsRepo } from './infra/SupabaseMapsRepo';
 import { HttpVisionAdapter } from './infra/HttpVisionAdapter';
 import { LocalViewMemory } from './infra/LocalViewMemory';
@@ -22,3 +23,9 @@ export const viewMemory: ViewMemoryPort = new LocalViewMemory();
  * escribe sólo quien tiene `admin.manage_settings` (RLS).
  */
 export const toolbarOrder: ToolbarOrderPort = new SupabaseToolbarOrder(supabase);
+/**
+ * 🧲 El nivel de compresión de imágenes por tipo (textura · objeto · fondo), que pone un admin en Ajustes PARA
+ * TODOS: misma fila de `app_settings` que `toolbarOrder`, re-exportada desde `@/shared/settings/container`
+ * porque también la usa `admin/container.ts`.
+ */
+export { compressionLevelsRepo };

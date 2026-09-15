@@ -1,13 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, fireEvent, waitFor } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import { compressionLevelsRepo } from '../container';
 import { BackgroundUpload } from './BackgroundUpload';
 import type { Preparer } from './LibraryUpload';
 
+vi.mock('../container', () => ({ compressionLevelsRepo: { load: vi.fn(), save: vi.fn() } }));
+vi.mock('@rolvium/ui', async importOriginal => ({ ...(await importOriginal<typeof import('@rolvium/ui')>()), compressImage: vi.fn() }));
+
 /**
  * SUBIR FONDOS EN LOTE (§ «EL FONDO DEL MAPA»; suyo, 2026-09-14: «*el subir está mal, tiene que ser como las
- * texturas*»). Hasta hoy era un fichero cada vez. Y aquí SÍ se comprime, al revés que las texturas: un fondo se
- * mira a pantalla completa.
+ * texturas*»). Hasta hoy era un fichero cada vez. Desde el mismo día, además, el fondo SÍ se comprime (destino
+ * `background`) pero **nunca reduce resolución**, en ningún nivel — sólo cambia formato/calidad (su condición
+ * original: «*¿pero se comprimen y pierden calidad? porque eso sería un problema*»).
  */
 const png = (name: string) => new File(['x'], name, { type: 'image/png' });
 const ok: Preparer = async file => ({ blob: new Blob(['c'], { type: 'image/webp' }), originalBytes: file.size, bytes: 1, compressed: true, width: 2560, height: 1440 });
@@ -33,18 +38,20 @@ describe('<BackgroundUpload>', () => {
   });
 
   /**
-   * TAL CUAL, SIN COMPRIMIR, como las texturas. Pregunta suya del 2026-09-14: «*¿pero se comprimen y pierden
-   * calidad? porque eso sería un problema*». Un fondo es lo que más de cerca se mira de toda la mesa.
+   * Sin `prepare`, el de serie (`compressBackground`) comprime al destino `background` con el nivel de Ajustes:
+   * NUNCA reduce resolución (spec `specs/core/images/SPEC.md`), sólo cambia formato/calidad.
    */
-  it('al añadir, el fichero llega TAL CUAL —sin pasar por el compresor— y con el nombre del fichero', async () => {
+  it('al añadir sin `prepare`: comprime al destino `background` con el nivel guardado en Ajustes, y sube el nombre del fichero', async () => {
+    const { compressImage } = await import('@rolvium/ui');
+    vi.mocked(compressionLevelsRepo.load).mockResolvedValue({ texture: 'balanced', prop: 'balanced', background: 'max' });
+    vi.mocked(compressImage).mockResolvedValue({ blob: new Blob(['c'], { type: 'image/webp' }), originalBytes: 1, bytes: 1, compressed: true, width: 1692, height: 930 });
     const u = userEvent.setup();
     const cb = { onAdd: vi.fn(async (_name: string, _blob: Blob) => undefined), onClose: vi.fn() };
-    // Sin `prepare`: el de serie, que es el que usa la app.
     renderWithProviders(<BackgroundUpload {...cb} />);
     const fichero = png('mazmorra a mano.png');
     fireEvent.change(screen.getByTestId('mp-propup-input'), { target: { files: [fichero] } });
     await u.click(screen.getByRole('button', { name: 'Añadir 1 fondo' }));
-    // Lo que sube es EL MISMO fichero, no una copia reguardada.
-    await waitFor(() => expect(cb.onAdd).toHaveBeenCalledWith('mazmorra a mano', fichero));
+    await waitFor(() => expect(cb.onAdd).toHaveBeenCalledWith('mazmorra a mano', expect.any(Blob)));
+    expect(vi.mocked(compressImage)).toHaveBeenCalledWith(fichero, 'background', 'max');
   });
 });

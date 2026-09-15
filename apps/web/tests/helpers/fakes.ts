@@ -41,6 +41,10 @@ export function fakeAdminDeps(over: Partial<AdminDeps> = {}): AdminDeps {
       setPassword: vi.fn().mockResolvedValue(undefined),
       deleteUser: vi.fn().mockResolvedValue(undefined),
     },
+    compressionLevels: {
+      load: vi.fn().mockResolvedValue(null),
+      save: vi.fn().mockResolvedValue(undefined),
+    },
     ...over,
   };
 }
