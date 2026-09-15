@@ -28,6 +28,12 @@ describe('mapMessageRow', () => {
     expect(mapMessageRow({ ...ROW, author: null }).authorName).toBe('');
     expect(mapMessageRow({ ...ROW, character: [{ name: 'Nix' }] }).characterName).toBe('Nix');
   });
+  it('prefiere el ALIAS de la mesa al nombre de la cuenta (como el Registro); sin alias o en blanco, el nombre', () => {
+    expect(mapMessageRow({ ...ROW, author: { name: 'Laura', alias: 'La Directora', avatar_url: null } }).authorName).toBe('La Directora');
+    expect(mapMessageRow({ ...ROW, author: { name: 'Laura', alias: '   ', avatar_url: null } }).authorName).toBe('Laura');
+    expect(mapMessageRow({ ...ROW, author: { name: 'Laura', alias: null, avatar_url: null } }).authorName).toBe('Laura');
+  });
+
   it('carries the roll fields through untouched for a roll message', () => {
     const roll = { ...ROW, kind: 'roll' as const, body: null, character_id: 'ch1', roll_kind: 'system' as const, roll_request: { a: 1 }, roll_dice: [[4, 2]], roll_result: { total: 6 } };
     expect(mapMessageRow(roll as never)).toMatchObject({ kind: 'roll', rollKind: 'system', rollDice: [[4, 2]], rollResult: { total: 6 } });

@@ -4,8 +4,11 @@
 **SUSURROS (H8)** — construido ENTERO (migración + API + módulo web), revisado y **probado EN PANTALLA de
 verdad** contra la app corriendo, con los dos usuarios a la vez (director y Marta): el fix diagnosticado el 15-09
 está aplicado, y los TRES fallos más que salieron al mirarlo con ojos están arreglados y verificados. Se retoma
-por el bloque 📥 «SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él» de abajo. **Nada commiteado
-todavía.** NO retomar por «CONSTRUIR SUSURROS» ni por «falta un fix ya diagnosticado»: los dos están hechos.
+por el bloque 📥 «SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él» de abajo. **Commiteado en la rama
+`feat/chat-susurros`** (3 commits: feat · `.pen` · release v0.10.0, subida a origin), migración ya aplicada a
+producción por MCP, y **`/qa` (modo block) pasado el 15-09 noche con UN bloqueo de spec: el alias** — ver el
+«Próximo paso exacto» de ese bloque. NO retomar por «CONSTRUIR SUSURROS» ni por «falta un fix ya diagnosticado»:
+los dos están hechos.
 
 Después, los hexágonos que quedan (mapa: ARCHITECTURE.md «Product hexagons»; specs: `specs/modules/*`):
 **bitácora (H9)**, con spec de ~20 líneas y modelo de datos sin decidir, y **aventuras (H12)**, que al revés
@@ -115,13 +118,28 @@ Lo contó él a mitad de sesión. Diagnóstico HECHO (sin tocar código), ver el
 1. ✅ **COMMITEADO** por orden suya («vale comitea lo de susurros») en la rama **`feat/chat-susurros`** (creada
    desde `main`, que tenía todo sin commitear): migración + api + módulo web + i18n + specs + docs. Los tres
    scripts de Playwright se sacaron del repo (copia en el scratchpad de la sesión).
-2. ⏳ **`rolvium.pen` NO va en ese commit**: el disco es de las 19:26 y en la app la lámina `XwDVn` aún llevaba
-   el `stroke: $pl-sangre` de la marca (se le quitó en la app en esta sesión). **Pedirle Cmd+S en Pencil**,
-   comprobar `ls -la rolvium.pen` (fecha posterior a 22:58) y commitearlo aparte: `chore(design): SUSURROS en el .pen`.
-3. Lo que falta para TERMINAR SUSURROS (se lo dije): **migración a producción por MCP ANTES del merge** →
-   `/qa` cuando diga «listo para mergear» → merge a `main` → deploy (v0.10.0: es un hexágono entero). Si
-   quiere probarlo él antes: `npm run dev:api` + `npm run dev:web` (hoy en el 5174; director
-   `admin@rolvium.local` / Marta `jugador1@ejemplo.com`, clave `rolvium123`).
+2. ✅ **`rolvium.pen` commiteado aparte** (`2081e49 chore(design)`) tras su Cmd+S, y `8d24962 chore(release): v0.10.0`.
+   La rama está en origin.
+3. ✅ **Migración a producción por MCP hecha** (`chat_susurros`, versión `20260915211123` en `scfspsiemikfcnqteonq`).
+   Advisors de seguridad: 0 CRITICAL. Dos WARN nuevos que NO bloquean (migración de una línea cada uno, cuando se
+   quiera): `chat_messages_immutable` sin `SET search_path = public` (a `dice_rolls_immutable` se lo puso
+   `harden_functions`), y `chat_messages_set_campaign()` ejecutable por `anon` vía RPC (revocar EXECUTE, como
+   hace `harden_functions` § 2 con las funciones de trigger; no es explotable — un trigger no se puede llamar
+   a mano — pero es el convenio del proyecto).
+4. 🚫 **`/qa` (modo block) ejecutado el 15-09 noche: TODO en verde** (smoke 12 · regression 131 ficheros/1967 ·
+   functional 57 · api 300 · build web+api · audit 0 duras · i18n en sync · hexagonal · secretos · probes 200/200)
+   **SALVO UN desvío del spec que bloquea**: los mensajes de una conversación y la pastilla enseñan `users.name`
+   y NO el alias («Connections: identity — avatar, nombre y alias»; la regla de identity es «alias shown at the
+   tables», y el Registro —misma columna lateral— sí lo hace: `SupabaseRollLogRepo.ts:26` `alias || name`, igual
+   que `SupabaseCharactersRepo.ts:24`). La misma persona sale con dos nombres según la pestaña. **Fix** (patrón
+   del Registro): en `apps/web/src/modules/chat/infra/SupabaseChatRepo.ts` pedir `alias` en el join del autor
+   (`MESSAGE_SELECT` → `author:users!chat_messages_author_id_fkey(name, alias, avatar_url)`, el tipo `MessageRow.author`)
+   y `authorName: author?.alias?.trim() || author?.name || ''` en `mapMessageRow`; caso nuevo en
+   `SupabaseChatRepo.test.ts`. (El directorio y `chat_group_member_names` van con el mismo `name` que el resto
+   del roster de `campaigns.listMembers` — coherente con lo que ya hay; hacerlo alias-first de punta a punta
+   tocaría `campaigns` y una función en la base: decisión suya, no de este PR.) Luego: **re-lanzar `/qa` → merge a
+   `main` → deploy v0.10.0** (es un hexágono entero). Si quiere probarlo él antes: `npm run dev:api` +
+   `npm run dev:web` (hoy en el 5174; director `admin@rolvium.local` / Marta `jugador1@ejemplo.com`, clave `rolvium123`).
 
 ### 🚫 Blockers / no olvidar
 - El placeholder «Escribe a Marta…» sale cortado («Escribe a Marta l») porque el campo es estrecho: cosmético,

@@ -5,14 +5,14 @@ import type { ChatDirectoryEntry, ChatMessage, ChatMessageKind } from '../domain
 import type { ChatPort, Unsubscribe } from '../domain/ports/ChatPort';
 
 const MESSAGE_SELECT = `id, conversation_id, author_id, kind, body, character_id, system_id, roll_kind, roll_request, roll_dice, roll_result, roll_ref_id, created_at,
-  author:users!chat_messages_author_id_fkey(name, avatar_url), character:characters(name)`;
+  author:users!chat_messages_author_id_fkey(name, alias, avatar_url), character:characters(name)`;
 
 interface MessageRow {
   id: string; conversation_id: string; author_id: string; kind: ChatMessageKind; body: string | null;
   character_id: string | null; system_id: string | null; roll_kind: 'system' | 'free' | null;
   roll_request: RollRequest | null; roll_dice: RolledDice | null; roll_result: RollResult | null;
   roll_ref_id: string | null; created_at: string;
-  author: { name: string; avatar_url: string | null } | { name: string; avatar_url: string | null }[] | null;
+  author: { name: string; alias?: string | null; avatar_url: string | null } | { name: string; alias?: string | null; avatar_url: string | null }[] | null;
   character: { name: string } | { name: string }[] | null;
 }
 const one = <T>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
@@ -21,7 +21,8 @@ export function mapMessageRow(r: MessageRow): ChatMessage {
   const author = one(r.author);
   const character = one(r.character);
   return {
-    id: r.id, conversationId: r.conversation_id, authorId: r.author_id, authorName: author?.name ?? '', authorAvatarUrl: author?.avatar_url ?? null,
+    // Quién escribe se nombra como en el Registro (`SupabaseRollLogRepo`): el alias de la mesa si lo tiene, si no el nombre de la cuenta.
+    id: r.id, conversationId: r.conversation_id, authorId: r.author_id, authorName: author?.alias?.trim() || author?.name || '', authorAvatarUrl: author?.avatar_url ?? null,
     kind: r.kind, body: r.body, characterId: r.character_id, characterName: character?.name ?? null, systemId: r.system_id,
     rollKind: r.roll_kind, rollRequest: r.roll_request, rollDice: r.roll_dice, rollResult: r.roll_result, rollRefId: r.roll_ref_id, createdAt: r.created_at,
   };
