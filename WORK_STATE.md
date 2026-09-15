@@ -1,8 +1,14 @@
 # WORK_STATE.md — Rolvium
 
 ## 🎯 Current task
-**SUSURROS (H8)** — spec cerrado y diseño hecho el 2026-09-15; falta su OK y luego DBA. Ver el bloque 📥
-«CONSTRUIR SUSURROS» de abajo, que es donde se retoma.
+**SUSURROS (H8)** — construido ENTERO (migración + API + módulo web), revisado y **probado EN PANTALLA de
+verdad** contra la app corriendo, con los dos usuarios a la vez (director y Marta): el fix diagnosticado el 15-09
+está aplicado, y los TRES fallos más que salieron al mirarlo con ojos están arreglados y verificados. Se retoma
+por el bloque 📥 «SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él» de abajo. **Commiteado en la rama
+`feat/chat-susurros`** (3 commits: feat · `.pen` · release v0.10.0, subida a origin), migración ya aplicada a
+producción por MCP, y **`/qa` (modo block) pasado el 15-09 noche con UN bloqueo de spec: el alias — ARREGLADO en `74d0e47`, y el `/qa` re-lanzado salió TODO EN VERDE** — ver el
+«Próximo paso exacto» de ese bloque. NO retomar por «CONSTRUIR SUSURROS» ni por «falta un fix ya diagnosticado»:
+los dos están hechos.
 
 Después, los hexágonos que quedan (mapa: ARCHITECTURE.md «Product hexagons»; specs: `specs/modules/*`):
 **bitácora (H9)**, con spec de ~20 líneas y modelo de datos sin decidir, y **aventuras (H12)**, que al revés
@@ -46,7 +52,210 @@ diseña lo del grupo (spec + `.pen`) → QA → migración a producción por MCP
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 📥 «CONSTRUIR SUSURROS» (donde se retoma — spec cerrado, diseño hecho, falta su OK; y dentro, el botón «+ Nuevo paquete» pendiente) · 🚀 «v0.9.0 y v0.9.1 EN PRODUCCIÓN» (registro, e incluye que su biblioteca YA está subida y comprimida allí) · ⏳ «LO DEMÁS QUE SIGUE ABIERTO» — **esa lista está VERIFICADA contra el código el 15-09; las de antes mentían** · 📥 «IMPLEMENTAR NIVELES DE COMPRESIÓN» (terminado y desplegado) · 📥 «COMPRIMIR LAS TEXTURAS» (el spec/DBA que llevó a lo anterior) · 🚀 «v0.8.0 EN PRODUCCIÓN» (registro) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 📥 «SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él» (donde se retoma AHORA) · 📥 «SUSURROS — falta un fix ya diagnosticado» (HECHO; queda como registro de cómo se probó la primera vez) · 📥 «CONSTRUIR SUSURROS» (DESFASADO — spec y diseño ya aprobados y construidos; queda sólo el botón «+ Nuevo paquete» pendiente, que es otra cosa) · 🚀 «v0.9.0 y v0.9.1 EN PRODUCCIÓN» (registro, e incluye que su biblioteca YA está subida y comprimida allí) · ⏳ «LO DEMÁS QUE SIGUE ABIERTO» — **esa lista está VERIFICADA contra el código el 15-09; las de antes mentían** · 📥 «IMPLEMENTAR NIVELES DE COMPRESIÓN» (terminado y desplegado) · 📥 «COMPRIMIR LAS TEXTURAS» (el spec/DBA que llevó a lo anterior) · 🚀 «v0.8.0 EN PRODUCCIÓN» (registro) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+
+## 📥 2026-09-15 (noche, 2ª sesión) — **SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él**
+
+**Frase para arrancar el chat nuevo (si hace falta):**
+> «Rolvium. Lee el bloque 📥 "SUSURROS — PROBADO EN PANTALLA" de arriba de WORK_STATE.md y seguí desde ahí.»
+
+### ✅ Qué se hizo en esta sesión
+1. **El fix diagnosticado, aplicado**: `ChatRollPopover` movido DENTRO de `.ch-composer` (`ConversationView.tsx`).
+   Test en `ConversationView.test.tsx` («se ancla DENTRO de la entrada»).
+2. **Tres fallos más, vistos en las CAPTURAS (los tests no los pillaban) y arreglados:**
+   - 🐞→✅ **El popover seguía recortándose por arriba con una conversación NUEVA** (el caso normal de la primera
+     tirada): `.dc-log-scroll` (la pestaña) tiene `overflow:auto` y NO es flex, así que `.ch-conversation` se
+     encogía a su contenido, la Entrada flotaba a media pestaña y el popover (281 px hacia arriba) chocaba con el
+     borde. Fix: `.ch-conversation{height:100%}` en `chat.css` — la conversación llena la pestaña, la Entrada va
+     al pie (como en el `.pen` `H8P1R`: Mensajes en medio, Entrada abajo) y los mensajes hacen scroll dentro de
+     la lista. CSS puro (cosmético, sin test; verificado midiendo en el navegador: conversación 782 px = pestaña
+     782 px, popover entero dentro).
+   - 🐞→✅ **La campanita contaba lo que escribías TÚ** (el director veía «SUSURROS 2» tras mandar un texto y una
+     tirada): `chat_list_directory` contaba todo lo posterior a `last_read_at`. Fix en la MISMA migración
+     (`20260915150000_chat_susurros.sql`, sin migración nueva: no está en producción ni commiteada):
+     `AND msg.author_id IS DISTINCT FROM me.user_id`. Re-aplicada en local por `psql` (CREATE OR REPLACE) y
+     comprobada como cada usuario: director 0, Marta 3.
+   - 🐞→✅ **La campanita no se refrescaba al leer** — `WhisperWatcher` sólo recontaba al llegar un mensaje, así
+     que tras abrir la conversación y volver al Registro seguía el número viejo. Fix: `ConversationView` avisa
+     `onRead` al marcar leído → `SusurrosPanel` → `SidePanel` (`onChatRead`) → `TablePage` sube un tic
+     (`chatReadTick`) → `WhisperWatcher` recuenta por `refreshKey`. Tests nuevos en los cuatro + uno de punta a
+     punta en `tests/functional/table.test.tsx`.
+3. **Verificado en pantalla otra vez, con los dos usuarios a la vez** (`node apps/web/.verify_fixes.tmp.mjs`,
+   capturas a 2x): popover entero con su cabecera; «Tirar 1 D6» tira y aparece en la conversación; el Registro
+   sigue sin nada; el director vuelve al Registro SIN número; Marta entra con «SUSURROS 5»; **el director le
+   escribe y a Marta le salta la pastilla en vivo** («Game Master Root te susurra · ¿Sigues ahí?…»), el
+   contador sube a 6, pincha la pastilla, se abre la conversación, vuelve al Registro y **el número
+   desaparece**. 0 errores de consola/red.
+4. ✅ **Verde**: 2036/2036 tests en `apps/web` (136 ficheros), typecheck limpio, `npm run audit` 0 duras.
+   `apps/api` sin tocar en esta sesión.
+5. ✅ **Review subagent sobre este delta: PASSED, sin cambios** (arquitectura, seguridad, RLS —verificó la
+   función en la base local como cada usuario—, tokens, i18n, cobertura, build web+api). Dos notas suyas,
+   sin tocar: (a) `.ch-tab-unread{font-size:9px}` en `chat.css` es un px crudo de la sesión anterior, con
+   precedente en `table.css` (8/9 px para cromo minúsculo); el token más pequeño es `--fs-2xs` = 12px y
+   cambiaría la campanita que él ya vio — decisión de diseño, no se toca sola. (b) Los tres scripts de
+   Playwright NO están en `.gitignore`: borrarlos antes de commitear, que `git add -A` los subiría.
+
+### 🐞 PENDIENTE DE SU RESPUESTA (2ª sesión): **el pincel «parpadea y se borra solo» en producción**
+Lo contó él a mitad de sesión. Diagnóstico HECHO (sin tocar código), ver el aviso que se le dio:
+- `usePaintBrush.ts` (efecto de las líneas ~154-167) VACÍA el lienzo y RECARGA por red la imagen cada vez que
+  cambia `target.src` — y `src` cambia tras CADA pincelada (nueva `paintVersion` / `updated_at` → `bust()`).
+  En local es instantáneo; en producción tarda: mientras baja, la vista previa salta de la data-URL a la URL
+  de red (parpadeo) y si empieza la pincelada siguiente antes de que llegue, `start` captura un lienzo
+  VACÍO como base → todo lo anterior desaparece y se sube así. Ctrl+Z lo devuelve porque el historial
+  guarda la copia local («antes»).
+- Segundo camino: el eco de `postgres_changes` (`onLayer`/`onRoom`/`onScene`) entra por `applyChange` /
+  `setLive` SIN comparar versión ni `updated_at`; un eco viejo devuelve la versión anterior → `src` retrocede
+  → el pincel recarga la imagen VIEJA (cacheada por el navegador con ese `?v=`) → las últimas pinceladas se
+  esfuman.
+- Afecta a los TRES destinos (suelo de sala, roca, capa).
+- Arreglo propuesto (2 ficheros + tests): (1) el pincel sólo rehace el lienzo al cambiar de DESTINO
+  (`targetId`), nunca por un guardado propio, y la vista previa se queda con los píxeles locales; (2)
+  `applyChange`/`onScene` en `useScene.ts` ignoran una fila más vieja que la que ya tienen (`updatedAt`, y
+  `paintVersion`/`maskVersion` en capas). Se le preguntó si lo arregla YA (commit aparte, SUSURROS sigue sin
+  commitear en `main`) o si cierra SUSURROS primero. **Sin respuesta todavía.**
+
+### ⏳ Próximo paso exacto
+1. ✅ **COMMITEADO** por orden suya («vale comitea lo de susurros») en la rama **`feat/chat-susurros`** (creada
+   desde `main`, que tenía todo sin commitear): migración + api + módulo web + i18n + specs + docs. Los tres
+   scripts de Playwright se sacaron del repo (copia en el scratchpad de la sesión).
+2. ✅ **`rolvium.pen` commiteado aparte** (`2081e49 chore(design)`) tras su Cmd+S, y `8d24962 chore(release): v0.10.0`.
+   La rama está en origin.
+3. ✅ **Migración a producción por MCP hecha** (`chat_susurros`, versión `20260915211123` en `scfspsiemikfcnqteonq`).
+   Advisors de seguridad: 0 CRITICAL. Dos WARN nuevos que NO bloquean (migración de una línea cada uno, cuando se
+   quiera): `chat_messages_immutable` sin `SET search_path = public` (a `dice_rolls_immutable` se lo puso
+   `harden_functions`), y `chat_messages_set_campaign()` ejecutable por `anon` vía RPC (revocar EXECUTE, como
+   hace `harden_functions` § 2 con las funciones de trigger; no es explotable — un trigger no se puede llamar
+   a mano — pero es el convenio del proyecto). **→ ✅ HECHO en `74d0e47`**: migración
+   `20260915231500_chat_susurros_harden.sql`, aplicada en local y en hosted (`chat_susurros_harden`, versión
+   `20260915214639`); advisors después: 0 CRITICAL y los dos WARN desaparecidos.
+4. ✅ (el desvío del alias, ARREGLADO en `74d0e47` — ver el punto 5) **`/qa` (modo block) ejecutado el 15-09 noche: TODO en verde** (smoke 12 · regression 131 ficheros/1967 ·
+   functional 57 · api 300 · build web+api · audit 0 duras · i18n en sync · hexagonal · secretos · probes 200/200)
+   **SALVO UN desvío del spec que bloquea**: los mensajes de una conversación y la pastilla enseñan `users.name`
+   y NO el alias («Connections: identity — avatar, nombre y alias»; la regla de identity es «alias shown at the
+   tables», y el Registro —misma columna lateral— sí lo hace: `SupabaseRollLogRepo.ts:26` `alias || name`, igual
+   que `SupabaseCharactersRepo.ts:24`). La misma persona sale con dos nombres según la pestaña. **Fix** (patrón
+   del Registro): en `apps/web/src/modules/chat/infra/SupabaseChatRepo.ts` pedir `alias` en el join del autor
+   (`MESSAGE_SELECT` → `author:users!chat_messages_author_id_fkey(name, alias, avatar_url)`, el tipo `MessageRow.author`)
+   y `authorName: author?.alias?.trim() || author?.name || ''` en `mapMessageRow`; caso nuevo en
+   `SupabaseChatRepo.test.ts`. (El directorio y `chat_group_member_names` van con el mismo `name` que el resto
+   del roster de `campaigns.listMembers` — coherente con lo que ya hay; hacerlo alias-first de punta a punta
+   tocaría `campaigns` y una función en la base: decisión suya, no de este PR.) Luego: **re-lanzar `/qa` → merge a
+   `main` → deploy v0.10.0** (es un hexágono entero). Si quiere probarlo él antes: `npm run dev:api` +
+   `npm run dev:web` (hoy en el 5174; director `admin@rolvium.local` / Marta `jugador1@ejemplo.com`, clave `rolvium123`).
+5. ✅ **Alias arreglado (`74d0e47`: `SupabaseChatRepo` pide `alias` en el join y `mapMessageRow` hace `alias || name`, como el
+   Registro; caso nuevo en `SupabaseChatRepo.test.ts`) y `/qa` RE-LANZADO en modo block: TODO EN VERDE** — smoke 12 ·
+   regression 131 ficheros/1968 · functional 4/57 (con `table.test.tsx`) · build web+api · audit 0 duras/33 warn (baseline) ·
+   advisors 0 CRITICAL · i18n en sync · probes 200/200. Comprobado además en la base LOCAL que, con el EXECUTE revocado por
+   el harden, un INSERT como `authenticated` sigue pasando por el trigger y le rellena `campaign_id` (transacción con
+   rollback). Queda como nota, no bloquea: el directorio y `chat_group_member_names` siguen con `users.name` (decisión
+   suya), y la portada (`auth.feat.maps`, de antes de este PR) todavía dice «chat» en la lista de funciones.
+   **SIGUIENTE: merge a `main` → deploy v0.10.0.**
+
+### 🚫 Blockers / no olvidar
+- El placeholder «Escribe a Marta…» sale cortado («Escribe a Marta l») porque el campo es estrecho: cosmético,
+  sin tocar. Decírselo por si le molesta.
+- Fuera de alcance a propósito (sigue): traer una tirada del Registro a la conversación (el botón no está en
+  el `.pen`).
+- Dentro de la mesa no hay claro/oscuro (manda el tema del sistema): no hace falta captura en claro.
+
+## 📥 2026-09-15 (noche) — TRASPASO POR GATE DE CONTEXTO: **SUSURROS — falta un fix ya diagnosticado** (HECHO en la 2ª sesión)
+
+**Frase para arrancar el chat nuevo:**
+> «Rolvium. Lee el bloque 📥 "SUSURROS — falta un fix ya diagnosticado" de arriba de WORK_STATE.md y seguí desde ahí.»
+
+Este traspaso lo disparó el HOOK de contexto (transcripción por encima de 6 MB), no una orden suya — no hace
+falta preguntarle nada, sólo aplicar el fix de abajo y seguir probando.
+
+### 🎯 Qué se construyó hoy (spec ya estaba cerrado; diseño ya estaba aprobado — él dijo «construyelo»)
+**SUSURROS (H8) entero**, de punta a punta:
+- **Migración** `supabase/migrations/20260915150000_chat_susurros.sql`: tablas `chat_conversations` /
+  `chat_conversation_members` / `chat_messages`; funciones `chat_create_conversation` (reabre el 1:1 ya
+  existente, un grupo de 3+ siempre crea uno nuevo, con `pg_advisory_xact_lock` para que dos altas a la vez
+  del mismo par no dupliquen), `chat_mark_read`, `chat_list_directory`, `chat_group_member_names`, y
+  `chat_commit_roll` (sólo `service_role`, igual que `dice_commit_roll`: el dado lo tira el servidor). RLS
+  **sin el atajo de admin** que llevan otras tablas — lo privado es privado incluso para un administrador,
+  pedido expreso suyo. Aplicada y probada en local con un smoke test transaccional (rollback al final).
+- **`apps/api`**: `POST /chat/rolls` (tirada privada, mismo patrón que `POST /rolls` pero sin débito de
+  recurso compartido ni efectos de ficha — es un aparte narrativo, no una acción de combate).
+- **`apps/web/src/modules/chat`** entero: dominio, `SupabaseChatRepo`, `HttpChatRollsAdapter`, `container.ts`,
+  y la UI — `SusurrosPanel` (directorio ⟷ conversación), `Directory` (con el modo «+ Grupo» de marcar
+  varios), `ConversationView` (reutiliza el `RollEntry` del Registro para pintar una tirada privada),
+  `ChatRollPopover`, `WhisperPill`/`WhisperWatcher` (la pastilla, montada en `TablePage` como `AttackWatcher`;
+  auto-se-va sola, no hace cola como los avisos de ataque).
+- Cableado en `dice/ui/SidePanel.tsx` (pestaña ya no dice «pronto», lleva campanita de no leídos) y
+  `table/ui/TablePage.tsx`. i18n `es`/`en` completo. `ARCHITECTURE.md` y el «Modelo de datos» del spec, al día.
+- **Fuera de alcance, marcado a propósito**: traer una tirada YA hecha del Registro a la conversación
+  (`kind='roll_ref'` ya existe en la base, con su propia RLS — sólo se puede citar una que ya se pudiera ver,
+  de la misma campaña — pero el botón en el Registro para hacerlo no estaba en el `.pen` aprobado. Le toca su
+  propio paso de Design Agent antes de construirse).
+- ✅ **Review subagent: PASSED** (arquitectura, seguridad, RLS, i18n, cobertura de tests, build — los 6 pasos
+  limpios). Revisó también las 3 dudas que le mandé: el botón ENVIAR en `--sys-blood` en vez del negro del
+  `.pen` (dijo: dejarlo, el `.pen` es el que está mal en ese punto concreto — memoria del dueño confirmada
+  varias veces), la reutilización del 1:1 (segura), y el sin-atajo-de-admin (consistente en todo). Un hallazgo
+  real que SÍ se corrigió: `roll_ref` dejaba citar una tirada ajena o de otra campaña — cerrado en la misma
+  migración con una condición más en la política de `INSERT`, y probado.
+- ✅ **Todo en verde antes de probar en pantalla**: `npm run audit` (0 hard), typecheck limpio en `apps/web` y
+  `apps/api`, `build:web` y `build:api` limpios, **2029/2029 tests en `apps/web`** + **300/300 en `apps/api`**
+  (incluidos los nuevos del módulo).
+
+### 🐞 Probado EN PANTALLA (orden suyo: nunca dar una UI por buena sólo con tests) — DOS fallos reales, uno arreglado, uno a medias
+Con `npm run dev:api` + `npm run dev:web` (puerto real: **5174**, no 5173 — había un vite viejo huérfano del
+13-09 ocupando el 5173, se dejó vivo, no es cosa de esta tarea) contra el Supabase local, y Playwright
+(`node apps/web/.debug_click.mjs`, `node apps/web/.susurros_e2e.tmp.mjs` — **dos ficheros SIN commitear**,
+scripts de prueba, se pueden borrar o reusar) logueado como `admin@rolvium.local` / `rolvium123` (el director)
+y `jugador1@ejemplo.com` / `rolvium123` (Marta), sobre la campaña `8f506705-e348-415c-82a9-5a37e2c0ce51`:
+
+1. **🐞→✅ ARREGLADO Y VERIFICADO.** Al abrir una conversación la pantalla se quedaba en NEGRO ENTERO. Causa
+   real: `SupabaseChatRepo.subscribeMessages` abría el canal de tiempo real con el nombre `chat:<campaignId>`
+   a secas — y `WhisperWatcher` (vive toda la partida) Y `ConversationView` (cada conversación abierta)
+   suscriben la MISMA campaña A LA VEZ. Supabase devuelve el MISMO objeto de canal para el mismo nombre, y
+   añadir oyentes a uno que ya hizo `.subscribe()` revienta («cannot add postgres_changes callbacks... after
+   subscribe()»), lo que tumbaba el árbol de React entero sin `ErrorBoundary`. **Arreglado**: el nombre ahora
+   lleva un `crypto.randomUUID()` (cada llamada pide SU PROPIO canal; todos reciben los mismos eventos igual,
+   el nombre es sólo la etiqueta del cliente). Test de regresión nuevo en `SupabaseChatRepo.test.ts` (dos
+   suscriptores a la vez piden canales distintos) + confirmado en pantalla: directorio → conversación →
+   escribir → ENVIAR, todo funcionando de verdad contra la base real.
+2. **🐞→✅ APLICADO Y VERIFICADO en la 2ª sesión (ver el bloque de arriba; salieron tres fallos más, también arreglados).** El
+   popover «Tirar en privado» (icono del dado) no se ve: el botón de dentro («Tirar 2 D6») existe en el DOM,
+   visible y activo, pero **queda fuera del viewport** (confirmado con el mensaje de error de Playwright:
+   *«element is outside of the viewport»*). Causa: `.ch-roll-pop` en `chat.css` es `position: absolute`, y en
+   `ConversationView.tsx` el `{rolling && <ChatRollPopover .../>}` está como HERMANO de `<div
+   className="ch-composer">` (que sí tiene `position: relative`), no DENTRO — así que se ancla contra un
+   antepasado de más arriba que no está posicionado, y sale lejos de donde toca.
+   **El fix exacto** (una línea, en `apps/web/src/modules/chat/ui/ConversationView.tsx`, ~línea 103-106):
+   mover `{rolling && <ChatRollPopover conversationId={conversationId} onClose={() => setRolling(false)} />}`
+   de DESPUÉS del `</div>` que cierra `.ch-composer` a ANTES de ese mismo `</div>` (es decir, dentro del
+   `<div className="ch-composer">`, como último hijo, junto a los dos `<button>`). Nada más cambia.
+
+### ⏳ Próximo paso exacto
+1. **Aplicar el fix de arriba** (una edición, ya sabés exactamente dónde y qué).
+2. **Levantar los servidores si no siguen corriendo** (`npm run db:start` si hace falta, `npm run dev:api`,
+   `npm run dev:web` — puede salir en 5173 o 5174, mirar el log) y volver a correr
+   `node apps/web/.susurros_e2e.tmp.mjs` (o el debug script) para confirmar: el popover SÍ se ve, «Tirar 2 D6»
+   tira de verdad, la tirada aparece en la conversación (reutilizando `RollEntry`), y el Registro **sigue sin
+   la tirada privada** — eso último ya está probado por SQL y por `performChatRoll.test.ts`/`app.test.ts`, pero
+   falta verlo en pantalla con tus propios ojos, que es la regla.
+3. Sacar un par de capturas (claro y oscuro) y decírselo a él en bullets cortos con el link... **no hay link,
+   es local**: describirle qué se ve y preguntar si quiere probarlo él mismo (`npm run dev:api` + `dev:web`) o
+   si sigue con el flujo normal (migración a producción por MCP ANTES del merge → `/qa` cuando él diga «listo
+   para mergear» → merge → deploy).
+4. **Nada está commiteado todavía.** `git status` tiene toda la migración + `apps/api` + `apps/web/src/modules/chat`
+   + los ficheros tocados (`SidePanel`, `TablePage`, i18n, `ARCHITECTURE.md`, `specs/modules/chat/SPEC.md`,
+   `fakes.ts`, tests de `table`/regresión) como nuevos/modificados sin commitear. `rolvium.pen` también sigue
+   modificado (se le quitó la marca roja de `XwDVn` tras su «construyelo» — comprobar `ls -la rolvium.pen`
+   antes de commitear, por si hace falta su Cmd+S).
+
+### 🚫 Blockers / no olvidar
+- Servidores de desarrollo pueden seguir vivos en background de la sesión anterior: `apps/api` en :3001,
+  `apps/web` en **:5174** (revisar con `lsof -nP -iTCP:5174 -sTCP:LISTEN`). Hay además un vite HUÉRFANO del
+  13-09 en :5173 que NO es de esta tarea — no tocarlo sin necesidad.
+- `apps/web/.debug_click.mjs` y `apps/web/.susurros_e2e.tmp.mjs`: scripts de prueba con Playwright, sin
+  commitear (untracked). Sirven para retomar la prueba en pantalla tal cual. Borrar cuando ya no hagan falta.
+- El botón ENVIAR quedó en `--sys-blood` (rojo sangre) aunque el `.pen` lo pinta negro — decisión tomada
+  (Review + esta sesión): la regla del dueño manda sobre ese pixel del `.pen`. Si él lo mira y no le gusta,
+  es un ajuste de una línea en `chat.css`.
+- El placeholder del campo «Escribe a Marta…» se ve cortado en pantallas estrechas del panel lateral (sale
+  algo como «Escribe a Marta |») — cosmético, no funcional, no confirmado si molesta. Mencionarlo si se puede.
 
 ## 📥 2026-09-15 — TRASPASO A CHAT NUEVO: **CONSTRUIR SUSURROS (H8)** — spec cerrado y diseño hecho, falta su OK
 

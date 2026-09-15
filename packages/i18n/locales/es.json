@@ -328,7 +328,7 @@
     "roller": "Lanzador de dados",
     "panel": {
       "log": "Registro",
-      "chat": "Chat",
+      "chat": "Susurros",
       "notes": "Notas",
       "journal": "Bitácora"
     },
@@ -352,6 +352,41 @@
     "side": {
       "hide": "Ocultar el panel lateral",
       "show": "Mostrar el panel lateral"
+    }
+  },
+  "chat": {
+    "directory": {
+      "title": "A quién le escribes",
+      "newGroup": "+ Grupo",
+      "confirmGroup": "Crear grupo ({{n}})",
+      "cancelGroup": "Cancelar grupo",
+      "empty": "Todavía no hay nadie más en esta campaña.",
+      "note": "Sólo lo leen los que están en la conversación. Marca a varios para armar un grupo.",
+      "groupOf": "Grupo · {{n}} personas",
+      "newGroupTitle": "Grupo",
+      "rollPreview": "Tirada privada",
+      "rollRefPreview": "Tirada del Registro",
+      "error": "No se pudo cargar el directorio."
+    },
+    "conversation": {
+      "back": "Volver al directorio",
+      "error": "No se pudieron cargar los mensajes.",
+      "empty": "Todavía no hay mensajes.",
+      "messages": "Mensajes",
+      "placeholder": "Escribe a {{name}}…",
+      "send": "Enviar",
+      "privateRollNote": "Lo que se tira aquí no sale en el Registro: no queda rastro para nadie."
+    },
+    "roll": {
+      "title": "Tirar en privado",
+      "close": "Cerrar",
+      "rollN": "Tirar {{n}} {{die}}",
+      "rolling": "Tirando {{notation}}…",
+      "failed": "No se pudo tirar."
+    },
+    "pill": {
+      "whispers": "{{name}} te susurra",
+      "dismiss": "Cerrar el aviso"
     }
   },
   "identity": {

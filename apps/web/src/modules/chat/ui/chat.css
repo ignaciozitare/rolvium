@@ -1,0 +1,76 @@
+/* ── chat (H8, «SUSURROS» en pantalla): directorio + conversación + pastilla ──
+   Themed ONLY via --sys-* (set by the game system on the table container), mismo criterio que dice.css.
+   El botón de activar (Enviar, Tirar) va en --sys-blood: es el color de acción de la mesa; el negro
+   (--sys-ink) es selección, nunca un botón (memoria del dueño, confirmado varias veces). */
+
+/* Directorio (rolvium.pen I9AY0o) */
+.ch-directory{display:flex;flex-direction:column;gap:10px;min-height:0;}
+.ch-directory-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.ch-directory-title{font-size:var(--fs-2xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--sys-ink-soft);}
+.ch-directory-newgroup{font-family:inherit;font-size:var(--fs-2xs);font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;cursor:pointer;background:transparent;border:1px solid var(--sys-line);color:var(--sys-ink-soft);}
+.ch-directory-newgroup:disabled{opacity:.5;cursor:default;}
+.ch-directory-group-actions{display:flex;align-items:center;gap:6px;}
+.ch-directory-cancel{background:none;border:none;padding:2px;cursor:pointer;color:var(--sys-ink-soft);line-height:0;}
+.ch-directory-empty{font-style:italic;color:var(--sys-ink-dim);font-size:var(--fs-sm);margin:0;}
+.ch-directory-list{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;list-style:none;}
+.ch-directory-row{width:100%;display:flex;align-items:center;gap:10px;padding:7px 6px;background:var(--sys-paper-hi);border:none;cursor:pointer;text-align:left;font-family:inherit;}
+.ch-directory-row:hover{background:var(--sys-paper-lo);}
+.ch-directory-row:disabled{opacity:.5;cursor:default;}
+.ch-directory-row-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.ch-directory-row-name{font-size:var(--fs-sm);font-weight:700;color:var(--sys-ink);}
+.ch-directory-row-preview{font-size:var(--fs-xs);color:var(--sys-ink-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ch-directory-check{width:16px;height:16px;flex:0 0 auto;border:1px solid var(--sys-ink-soft);border-radius:50%;}
+.ch-directory-check.on{background:var(--sys-ink);border-color:var(--sys-ink);}
+.ch-unread{flex:0 0 auto;min-width:16px;height:16px;padding:0 4px;display:inline-flex;align-items:center;justify-content:center;font-size:var(--fs-2xs);font-weight:700;color:var(--sys-paper-hi);background:var(--sys-blood);border-radius:8px;}
+.ch-directory-note{font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);margin:0;}
+
+/* Conversación (rolvium.pen H8P1R) */
+/* height:100%: `.dc-log-scroll` no es flex, así que sin esto la conversación se encoge a su contenido, la Entrada
+   flota a media pestaña y el popover de tirar (que se abre hacia ARRIBA) se recorta contra el overflow. */
+.ch-conversation{display:flex;flex-direction:column;gap:8px;min-height:0;height:100%;}
+.ch-conversation-head{display:flex;align-items:center;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--sys-line);}
+.ch-back{background:none;border:none;padding:2px;cursor:pointer;color:var(--sys-ink-soft);line-height:0;}
+.ch-conversation-title{font-size:var(--fs-sm);font-weight:700;color:var(--sys-ink);}
+.ch-messages{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin:0;padding:0 2px 0 0;list-style:none;scrollbar-gutter:stable;}
+.ch-message{display:flex;align-items:flex-start;gap:8px;}
+.ch-message-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.ch-message-head{display:flex;align-items:baseline;gap:8px;}
+.ch-message-author{font-size:var(--fs-xs);font-weight:700;color:var(--sys-blood);}
+.ch-message-time{font-size:var(--fs-2xs);color:var(--sys-ink-dim);}
+.ch-message-text{margin:0;font-size:var(--fs-sm);line-height:var(--lh-normal);color:var(--sys-ink);}
+.ch-conversation-note{margin:0;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+.ch-composer{position:relative;display:flex;align-items:center;gap:6px;}
+.ch-composer-input{flex:1 1 auto;background:var(--sys-paper-hi);}
+.ch-composer-input input{width:100%;box-sizing:border-box;padding:8px 10px;font-family:inherit;font-size:var(--fs-sm);background:none;border:none;color:var(--sys-ink);}
+.ch-composer-input input::placeholder{color:var(--sys-ink-dim);}
+.ch-roll-btn{background:none;border:1px solid var(--sys-line);padding:6px;cursor:pointer;color:var(--sys-ink-soft);line-height:0;}
+.ch-roll-btn[aria-expanded="true"]{background:var(--sys-paper-lo);color:var(--sys-ink);}
+.ch-send{font-family:inherit;font-size:var(--fs-2xs);font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;cursor:pointer;background:var(--sys-blood);border:none;color:var(--sys-paper-hi);}
+.ch-send:disabled{opacity:.5;cursor:default;}
+
+/* Tirar en privado: mismo lenguaje visual que .dc-roller, sin visibilidad ni modificador. */
+.ch-roll-pop{position:absolute;right:0;bottom:calc(100% + 6px);z-index:6;width:220px;display:flex;flex-direction:column;
+  background:color-mix(in srgb,var(--sys-paper-hi) 96%,transparent);box-shadow:var(--sys-card-shadow);color:var(--sys-ink);}
+.ch-roll-pop-head{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:var(--sys-ink);color:var(--sys-paper-hi);font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;}
+.ch-roll-pop-x{background:none;border:none;padding:0;cursor:pointer;color:inherit;line-height:0;}
+.ch-roll-pop-rows{display:flex;flex-direction:column;padding:2px 8px;}
+.ch-roll-pop-row{display:flex;align-items:center;padding:4px 0;border-bottom:1px solid var(--sys-line);}
+.ch-roll-pop-die{display:flex;align-items:center;gap:6px;width:56px;font-size:var(--fs-2xs);letter-spacing:.06em;color:var(--sys-ink);}
+.ch-roll-pop-row button{flex:1;height:22px;font-family:inherit;font-size:var(--fs-sm);cursor:pointer;background:transparent;border:none;border-left:1px solid var(--sys-line);color:var(--sys-ink);padding:0;}
+.ch-roll-pop-row button:hover:not(:disabled),.ch-roll-pop-row button:focus-visible{background:color-mix(in srgb,var(--sys-ink) 12%,transparent);outline:none;}
+.ch-roll-pop-row button:disabled{cursor:progress;opacity:.6;}
+.ch-roll-pop-error{margin:0;padding:4px 8px 8px;font-size:var(--fs-2xs);color:var(--sys-blood);}
+.ch-roll-pop-busy{margin:0;padding:4px 8px 8px;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
+
+/* La pastilla (rolvium.pen m4fh05): salta sobre la mesa, filete sangre como los avisos (.dc-atk). */
+.ch-pill{position:fixed;right:16px;bottom:16px;z-index:41;width:min(320px,92vw);display:flex;align-items:flex-start;gap:6px;
+  padding:10px 12px;background:var(--sys-paper-hi);border-left:3px solid var(--sys-blood);box-shadow:var(--sys-card-shadow);}
+.ch-pill-open{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px;background:none;border:none;padding:0;cursor:pointer;text-align:left;font-family:inherit;}
+.ch-pill-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.ch-pill-who{font-size:var(--fs-xs);font-weight:700;color:var(--sys-blood);}
+.ch-pill-text{font-size:var(--fs-sm);color:var(--sys-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ch-pill-x{background:none;border:none;padding:2px;cursor:pointer;color:var(--sys-ink-dim);line-height:0;}
+
+/* La pestaña SUSURROS lleva contador de no leídos, junto a su rótulo en .dc-tabs. */
+.ch-tab-unread{margin-left:5px;display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 3px;
+  font-size:9px;font-weight:700;color:var(--sys-paper-hi);background:var(--sys-blood);border-radius:7px;vertical-align:middle;}

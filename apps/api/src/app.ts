@@ -15,6 +15,7 @@ import type { IAttackRepository } from './domain/attack/IAttackRepository.js';
 import type { IRollRequestRepository } from './domain/rollRequest/IRollRequestRepository.js';
 import type { IMapsRepository } from './domain/maps/IMapsRepository.js';
 import type { ICombatRepository } from './domain/combat/ICombatRepository.js';
+import type { IChatRollRepository } from './domain/chatRoll/IChatRollRepository.js';
 import type { GameSystem } from '@rolvium/core';
 import { SupabaseTokenVerifier } from './infrastructure/supabase/SupabaseTokenVerifier.js';
 import { SupabaseUserRepo } from './infrastructure/supabase/SupabaseUserRepo.js';
@@ -26,6 +27,7 @@ import { SupabaseAttackRepo } from './infrastructure/supabase/SupabaseAttackRepo
 import { SupabaseRollRequestRepo } from './infrastructure/supabase/SupabaseRollRequestRepo.js';
 import { SupabaseMapsRepo } from './infrastructure/supabase/SupabaseMapsRepo.js';
 import { SupabaseCombatRepo } from './infrastructure/supabase/SupabaseCombatRepo.js';
+import { SupabaseChatRollRepo } from './infrastructure/supabase/SupabaseChatRollRepo.js';
 import { systemById } from './infrastructure/systems.js';
 import { authRoutes } from './infrastructure/http/authRoutes.js';
 import { adminRoutes } from './infrastructure/http/adminRoutes.js';
@@ -36,6 +38,7 @@ import { attacksRoutes } from './infrastructure/http/attacksRoutes.js';
 import { rollRequestsRoutes } from './infrastructure/http/rollRequestsRoutes.js';
 import { mapsRoutes } from './infrastructure/http/mapsRoutes.js';
 import { combatsRoutes } from './infrastructure/http/combatsRoutes.js';
+import { chatRoutes } from './infrastructure/http/chatRoutes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -61,6 +64,8 @@ export interface AppDeps {
   maps: IMapsRepository;
   /** El orden de turnos de un combate (`dice_combats` + `dice_combat_slots`). */
   combats: ICombatRepository;
+  /** Tiradas privadas dentro de una conversación de SUSURROS (`chat_messages`, nunca `dice_rolls`). */
+  chatRolls: IChatRollRepository;
   /** Installed game systems (defaults to the bundled registry). */
   systemById?: (id: string) => GameSystem | null;
   /** Dice source for `POST /rolls` (defaults to CSPRNG); tests inject a rigged one. */
@@ -88,6 +93,7 @@ export function supabaseDeps(): AppDeps {
     rollRequests: new SupabaseRollRequestRepo(db),
     maps: new SupabaseMapsRepo(db),
     combats: new SupabaseCombatRepo(db),
+    chatRolls: new SupabaseChatRollRepo(db),
     allowedOrigins: ALLOWED_ORIGIN ? ALLOWED_ORIGIN.split(',').map(s => s.trim()) : [],
     logger: true,
   };
@@ -132,6 +138,7 @@ export async function createApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(rollRequestsRoutes, { prefix: '/roll-requests', characters: deps.characters, rolls: deps.rolls, rollRequests: deps.rollRequests, systemById: sys, ...(deps.rng ? { rng: deps.rng } : {}) });
   await app.register(mapsRoutes, { prefix: '/scenes', maps: deps.maps });
   await app.register(combatsRoutes, { prefix: '/combats', characters: deps.characters, combats: deps.combats, systemById: sys });
+  await app.register(chatRoutes, { prefix: '/chat', characters: deps.characters, chatRolls: deps.chatRolls, systemById: sys, ...(deps.rng ? { rng: deps.rng } : {}) });
 
   app.get('/health', async () => ({ ok: true, ts: new Date().toISOString() }));
 
