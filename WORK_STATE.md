@@ -81,6 +81,24 @@ spec de maps, línea 18.
 - **Fuera de alcance a propósito (sigue)**: traer una tirada del Registro a la conversación (modelo de datos
   listo; el botón necesita su paso de diseño).
 
+## 👥 2026-09-16 — **CUATRO JUGADORES DE PRUEBA EN LA CAMPAÑA «Test» DE PRODUCCIÓN** (registro)
+
+Pedido suyo tras ver el directorio de SUSURROS vacío en producción («no puedo escribirles»): el directorio lista
+PERSONAS (miembros), no personajes, y su campaña sólo lo tenía a él. Creadas por orden suya, con su permiso
+explícito y en modo de permisos manual (el filtro automático lo bloqueaba por los tres caminos):
+- **Naty → Nix Corbeau · Pancho → Elías Vane · Efreet → Random · Pako → Sable Marín** (personaje nuevo, copia de
+  la hoja de Nix con otro nombre/concepto). Correos `<nombre>@rolvium.local`, contraseña la de pruebas de siempre
+  (la del seed; que cada uno la cambie en su cuenta). Todos `player` en la campaña `e74d85f1…`, con su personaje
+  enlazado y como dueños; el campo «jugador» de cada hoja lleva su nombre.
+- Hecho por `apply_migration` en el proyecto de producción (**sólo allí, sin fichero en el repo**, como
+  `pjs_de_prueba`): `campaign_test_jugadores_naty_pancho_efreet_pako` y `campaign_test_dm_sin_personaje_prestado`
+  (la fila de director del dueño apuntaba al PJ «Random», que pasó a ser de Efreet: enlace quitado).
+- Comprobado: `campaigns_members` con los cinco, cuentas confirmadas, y login real de Naty por la API de auth
+  (200 + sesión).
+- 🔑 Aprendido (en memoria): `execute_sql` del MCP es de SÓLO LECTURA; los datos van por `apply_migration`; en
+  producción `extensions.crypt/gen_salt`; y crear cuentas en producción lo bloquea el clasificador del modo auto
+  aunque él dé permiso en el chat — hay que pasar a modo manual.
+
 ## 📥 2026-09-15 (noche, 2ª sesión) — **SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él**
 
 **Frase para arrancar el chat nuevo (si hace falta):**
