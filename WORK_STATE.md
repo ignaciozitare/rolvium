@@ -1,6 +1,20 @@
 # WORK_STATE.md — Rolvium
 
 ## 🎯 Current task
+> ## 🛑 TRASPASO OBLIGADO: **ABRE UN CHAT NUEVO** (gate de contexto, 2026-09-16 · 01:35)
+> La transcripción de esta sesión pasó de 13 MB con el límite en 6, o sea que el hook de contexto ya salta.
+> Todo lo de esta noche está **terminado, probado y commiteado** en la rama `feat/pastillas-y-fix-pincel`
+> (subida a GitHub: los previews de Vercel se construyen solos mientras duermes). **Frase para el chat nuevo:**
+> > «Rolvium. Lee el bloque 🫧 "LAS PASTILLAS" y el 🖌️ "EL PINCEL YA NO PARPADEA" de arriba de WORK_STATE.md y seguí desde ahí.»
+>
+> **Lo primero al retomar, por este orden:**
+> 1. Que él pruebe las pastillas y el pincel (en local o en el preview de la rama).
+> 2. **Pedirle Cmd+S en Pencil y commitear `rolvium.pen`**: la maqueta nueva de las pastillas (`oPbeF`) está
+>    SÓLO en la caché de Pencil. Sin eso el `.pen` se queda desfasado.
+> 3. `/qa` → merge a `main` → deploy (sería la v0.11.0: las pastillas son funcionalidad nueva).
+> 4. Pendiente de decidir él: lo de ver la conversación a la vez en la columna y en la pastilla, y quitar el
+>    camino muerto `pendingChatOpen` (ver las notas del review en el bloque 🫧).
+
 **SUSURROS (H8) — ✅ EN PRODUCCIÓN desde la noche del 2026-09-15 como v0.10.0** (registro 🚀 «v0.10.0 EN
 PRODUCCIÓN» abajo). Construido, probado en pantalla con los dos usuarios, review ×2, QA (modo bloqueo) con un
 bloqueo de spec (el alias) arreglado y re-pasado en verde, migraciones `chat_susurros` + `chat_susurros_harden`
