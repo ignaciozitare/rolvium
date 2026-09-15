@@ -1,14 +1,15 @@
 # WORK_STATE.md — Rolvium
 
 ## 🎯 Current task
-**SUSURROS (H8)** — construido ENTERO (migración + API + módulo web), revisado y **probado EN PANTALLA de
-verdad** contra la app corriendo, con los dos usuarios a la vez (director y Marta): el fix diagnosticado el 15-09
-está aplicado, y los TRES fallos más que salieron al mirarlo con ojos están arreglados y verificados. Se retoma
-por el bloque 📥 «SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él» de abajo. **Commiteado en la rama
-`feat/chat-susurros`** (3 commits: feat · `.pen` · release v0.10.0, subida a origin), migración ya aplicada a
-producción por MCP, y **`/qa` (modo block) pasado el 15-09 noche con UN bloqueo de spec: el alias — ARREGLADO en `74d0e47`, y el `/qa` re-lanzado salió TODO EN VERDE** — ver el
-«Próximo paso exacto» de ese bloque. NO retomar por «CONSTRUIR SUSURROS» ni por «falta un fix ya diagnosticado»:
-los dos están hechos.
+**SUSURROS (H8) — ✅ EN PRODUCCIÓN desde la noche del 2026-09-15 como v0.10.0** (registro 🚀 «v0.10.0 EN
+PRODUCCIÓN» abajo). Construido, probado en pantalla con los dos usuarios, review ×2, QA (modo bloqueo) con un
+bloqueo de spec (el alias) arreglado y re-pasado en verde, migraciones `chat_susurros` + `chat_susurros_harden`
+en producción, merge `f0dc44f`, web y api vivas.
+
+**LO QUE SE RETOMA AHORA: el pincel «parpadea y se borra solo» en producción** — diagnóstico HECHO y arreglo
+propuesto (2 ficheros + tests), ver «🐞 PENDIENTE DE SU RESPUESTA» dentro del bloque 📥 «SUSURROS — PROBADO EN
+PANTALLA». Él dijo «cerrar SUSURROS primero»: ya está cerrado, así que lo siguiente es ese arreglo en cuanto
+diga «dale» (rama nueva `fix/maps-pincel-recarga`, commit aparte).
 
 Después, los hexágonos que quedan (mapa: ARCHITECTURE.md «Product hexagons»; specs: `specs/modules/*`):
 **bitácora (H9)**, con spec de ~20 líneas y modelo de datos sin decidir, y **aventuras (H12)**, que al revés
@@ -52,7 +53,33 @@ diseña lo del grupo (spec + `.pen`) → QA → migración a producción por MCP
 ⚠ La **rebanada 5** es otra cosa: movimiento máximo por turno, configurable por sistema (toca el puerto `GameSystem`) —
 spec de maps, línea 18.
 
-> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 📥 «SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él» (donde se retoma AHORA) · 📥 «SUSURROS — falta un fix ya diagnosticado» (HECHO; queda como registro de cómo se probó la primera vez) · 📥 «CONSTRUIR SUSURROS» (DESFASADO — spec y diseño ya aprobados y construidos; queda sólo el botón «+ Nuevo paquete» pendiente, que es otra cosa) · 🚀 «v0.9.0 y v0.9.1 EN PRODUCCIÓN» (registro, e incluye que su biblioteca YA está subida y comprimida allí) · ⏳ «LO DEMÁS QUE SIGUE ABIERTO» — **esa lista está VERIFICADA contra el código el 15-09; las de antes mentían** · 📥 «IMPLEMENTAR NIVELES DE COMPRESIÓN» (terminado y desplegado) · 📥 «COMPRIMIR LAS TEXTURAS» (el spec/DBA que llevó a lo anterior) · 🚀 «v0.8.0 EN PRODUCCIÓN» (registro) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+> ⚠ Lo de arriba es el mapa largo. **Lo vivo está en los bloques de arriba, en este orden: 🚀 «v0.10.0 EN PRODUCCIÓN» (registro) · 📥 «SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él» (HECHO y en producción; dentro está el 🐞 del pincel, que es lo que se retoma AHORA) · 📥 «SUSURROS — falta un fix ya diagnosticado» (HECHO; queda como registro de cómo se probó la primera vez) · 📥 «CONSTRUIR SUSURROS» (DESFASADO — spec y diseño ya aprobados y construidos; queda sólo el botón «+ Nuevo paquete» pendiente, que es otra cosa) · 🚀 «v0.9.0 y v0.9.1 EN PRODUCCIÓN» (registro, e incluye que su biblioteca YA está subida y comprimida allí) · ⏳ «LO DEMÁS QUE SIGUE ABIERTO» — **esa lista está VERIFICADA contra el código el 15-09; las de antes mentían** · 📥 «IMPLEMENTAR NIVELES DE COMPRESIÓN» (terminado y desplegado) · 📥 «COMPRIMIR LAS TEXTURAS» (el spec/DBA que llevó a lo anterior) · 🚀 «v0.8.0 EN PRODUCCIÓN» (registro) · 🟢 «EL FONDO DEL MAPA» · 🟢 «SUS CUATRO QUEJAS, HECHAS» · 🟢 «DE SU FAMILIA REVERTIDO» (espera que pruebe y conteste el gesto del sello) · 🟢 «§ 6.8 COMPLETO (los ocho remates + el noveno), COMMITEADO» · 🟢 (desfasado) «§ 6.8 · LOS OCHO REMATES DE SU PRUEBA» · 🟢 «LA REBANADA 6 · LOS OBJETOS, CONSTRUIDA» · 🚀 «v0.7.0 EN PRODUCCIÓN» (registro) · 🟢 (viejo) «LAS PUERTAS QUE CIERRAN UN PASILLO» · ✅ «PANELES COMUNES» (hecho) · 🧩 «LOS OBJETOS» · 🏛️ «REVISIÓN DE ARQUITECTURA» (a su propuesta 1 dijo que sí: es el 🟢) · 📋 «LAS CINCO PETICIONES» · 🖌️ «LA REBANADA 10, CONSTRUIDA ENTERA» · 📥 «PETICIONES SIN EMPEZAR» (la 1 ya hecha) · 🐞 «LAS PUERTAS…» (desfasado: ya estaba resuelto) · ✅ «EL TRABÓN DE LA ESQUINA».**
+
+## 🚀 2026-09-15 (noche) — **v0.10.0 EN PRODUCCIÓN: SUSURROS (H8)** (registro)
+
+- **Qué salió**: el hexágono entero — pestaña SUSURROS del panel lateral con campanita de no leídos, directorio
+  de la campaña, conversaciones 1:1 (reutilizadas por par) y de grupo, mensajes con avatar/alias/hora, la
+  pastilla «te susurra» que se contesta sin salir de la partida, y tirar en privado (servidor, `POST /chat/rolls`,
+  sin rastro en el Registro). RLS por participación SIN atajo de admin.
+- **Cómo**: rama `feat/chat-susurros` (feat `4fc1647` · `.pen` `2081e49` · release `8d24962` · fix alias +
+  endurecido `74d0e47` · docs `ee1dd41`) → merge `f0dc44f` a `main` → Vercel producción READY en los dos
+  proyectos → `/health` 200, web 200, `POST /chat/rolls` sin sesión 401 (la ruta existe).
+- **QA (modo bloqueo, el suyo de siempre)**: primera pasada BLOQUEADA por UNA desviación de spec — el autor de un
+  mensaje y de la pastilla salía con el nombre de la cuenta y no con el alias de la mesa, que es lo que hace el
+  Registro (`SupabaseRollLogRepo`). Arreglado en `SupabaseChatRepo` (+ test) y re-pasado: todo en verde
+  (smoke 12 · regression 1968 · functional 57 · api 300 · advisors 0 CRITICAL · builds web+api).
+- **Migraciones en producción por MCP**: `chat_susurros` (20260915211123) y `chat_susurros_harden`
+  (20260915214639: `search_path` fijo en `chat_messages_immutable` y las dos funciones de trigger fuera de la
+  API — eran los dos WARN nuevos de `get_advisors`, ya desaparecidos). Supabase estuvo en mantenimiento
+  programado 23:20→23:45; la segunda entró al volver.
+- **Claro/oscuro**: N/A — dentro de la mesa manda el tema del sistema (regla suya).
+- **Notas del QA, sin tocar (decisión de producto suya)**: (a) el directorio y los nombres de un grupo siguen con
+  `users.name` (lo que devuelve `campaigns.listMembers` para toda la mesa); ponerlo alias-primero de punta a punta
+  toca `campaigns` y una función SQL. (b) El texto de la landing `auth.feat.maps` (es/en) todavía dice «chat»:
+  es anterior a este PR y es sólo copy. (c) La lista del directorio se refresca al montar/volver; la campanita
+  de la pestaña sí es en vivo. (d) La pastilla salta también si ya estás dentro de esa conversación.
+- **Fuera de alcance a propósito (sigue)**: traer una tirada del Registro a la conversación (modelo de datos
+  listo; el botón necesita su paso de diseño).
 
 ## 📥 2026-09-15 (noche, 2ª sesión) — **SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él**
 

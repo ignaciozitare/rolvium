@@ -4,6 +4,11 @@
 > nadie. **En pantalla se llama SUSURROS**, y esa es la palabra: suya, 2026-09-15, «*el chat son los susurros, es
 > más cámbiale el nombre*». Nunca «chat» en la interfaz.
 
+**Estado: ✅ construido, revisado, QA pasado (modo bloqueo) y EN PRODUCCIÓN desde el 2026-09-15 (v0.10.0)**;
+migraciones `chat_susurros` y `chat_susurros_harden` aplicadas al proyecto de producción. ⏳ Pendiente sólo el
+botón para traer una tirada del Registro a una conversación (el modelo de datos ya lo soporta; le toca su propio
+paso de diseño).
+
 ## Purpose
 Hablar en privado sin salir de la campaña: el director le dice a UN jugador «escuchas un ruido detrás de ti» sin
 que se entere el resto, y los jugadores se escriben entre ellos. Who: los miembros de la campaña.
