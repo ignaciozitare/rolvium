@@ -328,7 +328,7 @@
     "roller": "Dice roller",
     "panel": {
       "log": "Log",
-      "chat": "Chat",
+      "chat": "Whispers",
       "notes": "Notes",
       "journal": "Journal"
     },
@@ -352,6 +352,41 @@
     "side": {
       "hide": "Hide the side panel",
       "show": "Show the side panel"
+    }
+  },
+  "chat": {
+    "directory": {
+      "title": "Who to write to",
+      "newGroup": "+ Group",
+      "confirmGroup": "Create group ({{n}})",
+      "cancelGroup": "Cancel group",
+      "empty": "No one else in this campaign yet.",
+      "note": "Only its participants read it. Mark several to form a group.",
+      "groupOf": "Group · {{n}} people",
+      "newGroupTitle": "Group",
+      "rollPreview": "Private roll",
+      "rollRefPreview": "Roll from the Log",
+      "error": "Could not load the directory."
+    },
+    "conversation": {
+      "back": "Back to the directory",
+      "error": "Could not load the messages.",
+      "empty": "No messages yet.",
+      "messages": "Messages",
+      "placeholder": "Write to {{name}}…",
+      "send": "Send",
+      "privateRollNote": "What's rolled here never reaches the Log: no trace for anyone."
+    },
+    "roll": {
+      "title": "Roll privately",
+      "close": "Close",
+      "rollN": "Roll {{n}} {{die}}",
+      "rolling": "Rolling {{notation}}…",
+      "failed": "Could not roll."
+    },
+    "pill": {
+      "whispers": "{{name}} whispers to you",
+      "dismiss": "Dismiss the notice"
     }
   },
   "identity": {

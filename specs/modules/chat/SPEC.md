@@ -46,4 +46,29 @@ sólo lo privado. Decisión suya del 2026-09-15, que deja sin efecto el «canal 
 - `realtime` — un mensaje nuevo llega solo, sin recargar (`postgres_changes`), igual que el resto de la mesa.
 
 ## Modelo de datos
-> Pending — DBA Agent will complete this section.
+
+**Tres tablas.** `chat_conversations` es cada conversación (1:1 o de grupo), siempre dentro de UNA campaña.
+`chat_conversation_members` dice quién está en cada una, y ahí vive el contador de no leídos (cuándo la abrió
+cada quien por última vez, por persona). `chat_messages` es cada mensaje, uno debajo de otro — sin editar ni
+borrar, la base lo impide igual que con el Registro.
+
+**Tres tipos de mensaje.** Uno normal, de texto. Uno de **tirada privada**: el dado se tira en el servidor,
+igual que las tiradas del Registro, pero el resultado se guarda AQUÍ, en `chat_messages` — nunca en la tabla
+del Registro (`dice_rolls`). No es una cuestión de ocultarlo en la pantalla: no hay ningún camino de datos por
+el que una tirada así pueda llegar al Registro, ni para el director. Uno de **tirada traída del Registro**:
+sólo apunta a la tirada que ya existe allí (una referencia), nunca la copia — y sólo se puede traer una que
+ya se pudiera ver (de la misma campaña, y pública, suya o del director; la RLS lo impide, no la pantalla).
+⏳ Falta el punto de entrada en pantalla (desde el Registro): el modelo de datos ya lo soporta, pero la UI no
+estaba en el `.pen` aprobado — le toca su propio paso de diseño antes de construirse.
+
+**Quién crea una conversación.** Cualquier miembro de la campaña, sin permiso especial. Si pincha a UNA sola
+persona con la que ya habló antes, se reabre esa misma conversación — no se crea una nueva cada vez que se
+pincha el mismo nombre. Si arma un grupo (varias personas a la vez), siempre es una conversación nueva.
+
+**Quién lee qué (RLS).** Sólo los participantes de una conversación ven sus mensajes o la lista de quién está
+en ella. A propósito, sin la excepción que llevan otras tablas del proyecto: ni siquiera un administrador de la
+plataforma puede leer una conversación ajena — el dueño pidió expresamente que lo privado sea privado de
+verdad.
+
+**Marcar como leído.** Lo hace cada uno sobre su propia fila (nadie puede tocar la de otro), a través de una
+función — no hay una edición directa de la tabla desde el navegador.

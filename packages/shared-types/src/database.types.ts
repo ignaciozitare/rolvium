@@ -427,6 +427,165 @@ export type Database = {
           },
         ]
       }
+      chat_conversation_members: {
+        Row: {
+          conversation_id: string
+          joined_at: string
+          last_read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          joined_at?: string
+          last_read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversation_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_conversations: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          author_id: string
+          body: string | null
+          campaign_id: string
+          character_id: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          kind: string
+          roll_dice: Json | null
+          roll_kind: string | null
+          roll_ref_id: string | null
+          roll_request: Json | null
+          roll_result: Json | null
+          system_id: string | null
+        }
+        Insert: {
+          author_id: string
+          body?: string | null
+          campaign_id: string
+          character_id?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          kind?: string
+          roll_dice?: Json | null
+          roll_kind?: string | null
+          roll_ref_id?: string | null
+          roll_request?: Json | null
+          roll_result?: Json | null
+          system_id?: string | null
+        }
+        Update: {
+          author_id?: string
+          body?: string | null
+          campaign_id?: string
+          character_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          roll_dice?: Json | null
+          roll_kind?: string | null
+          roll_ref_id?: string | null
+          roll_request?: Json | null
+          roll_result?: Json | null
+          system_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_roll_ref_id_fkey"
+            columns: ["roll_ref_id"]
+            isOneToOne: false
+            referencedRelation: "dice_rolls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dice_attacks: {
         Row: {
           answered_at: string | null
@@ -1994,6 +2153,43 @@ export type Database = {
         Args: { cid: string; origin: string; patch: Json }
         Returns: undefined
       }
+      chat_commit_roll: {
+        Args: {
+          actor: string
+          char_id: string
+          conv_id: string
+          dice: Json
+          request: Json
+          result: Json
+          roll_kind: string
+          sys_id: string
+          title: string
+        }
+        Returns: string
+      }
+      chat_create_conversation: {
+        Args: { cid: string; member_ids: string[] }
+        Returns: string
+      }
+      chat_group_member_names: {
+        Args: { conv_id: string }
+        Returns: {
+          name: string
+        }[]
+      }
+      chat_list_directory: {
+        Args: { cid: string }
+        Returns: {
+          conversation_id: string
+          last_body: string
+          last_created_at: string
+          last_kind: string
+          member_count: number
+          other_user_id: string
+          unread_count: number
+        }[]
+      }
+      chat_mark_read: { Args: { cid: string }; Returns: undefined }
       current_role_name: { Args: never; Returns: string }
       dice_advance_turn: {
         Args: { actor: string; kid: string; slot: string }
@@ -2098,6 +2294,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_campaign_dm: { Args: { cid: string }; Returns: boolean }
       is_campaign_member: { Args: { cid: string }; Returns: boolean }
+      is_chat_participant: { Args: { conv_id: string }; Returns: boolean }
       join_campaign_by_code: { Args: { code: string }; Returns: string }
       maps_layer_sends_to_players: { Args: { lid: string }; Returns: boolean }
       maps_scene_visible: { Args: { sid: string }; Returns: boolean }

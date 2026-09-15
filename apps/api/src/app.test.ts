@@ -19,6 +19,8 @@ const CAMP_ID = '77777777-7777-4777-8777-777777777777';
 const OTHER_CAMP = '88888888-8888-4888-8888-888888888888';
 const saved: { id: string; actor: string; patch: unknown; origin: string }[] = [];
 const committed: RollCommitInput[] = [];
+const committedChat: import('./domain/chatRoll/IChatRollRepository.js').ChatRollCommitInput[] = [];
+const CONV_ID = '44444444-4444-4444-8444-444444444444';
 const ATTACK_ID = '99999999-9999-4999-8999-999999999999';
 const REQUEST_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const MIRROR_ID = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
@@ -111,6 +113,11 @@ const makeDeps = (): AppDeps => ({
         if ((input.shared['destiny'] ?? 0) > 1) throw Object.assign(new Error('pool_empty'), { code: 'POOL_EMPTY' });
         committed.push(input); return { id: `roll-${committed.length}` };
       },
+    },
+    // SUSURROS (H8): tirada privada — sólo PLAYER y ADMIN participan de CONV_ID, que vive en CAMP_ID.
+    chatRolls: {
+      campaignOf: async (conv, actor) => (conv === CONV_ID && (actor === PLAYER.id || actor === ADMIN.id) ? CAMP_ID : null),
+      commit: async (input) => { committedChat.push(input); return { id: `msg-${committedChat.length}` }; },
     },
   });
 
@@ -328,6 +335,35 @@ describe('POST /rolls — pool authority', () => {
     expect(data.dice[0]!.length).toBe(own.count);
     // Y lo GUARDADO es lo que de verdad se tiró, no lo que se pidió: el Registro no puede decir «+26».
     expect(data.request.options['extraDice']).toBe(2);
+  });
+});
+
+describe('POST /chat/rolls — tirada privada dentro de una conversación de SUSURROS', () => {
+  const free = { conversationId: CONV_ID, systemId: null, kind: 'free' as const, title: '2d6', groups: [{ count: 2, sides: 6 }] };
+  it('requires a token, validates the body, and 403s outside a conversation the actor is not in', async () => {
+    expect((await app.inject({ method: 'POST', url: '/chat/rolls', payload: free })).statusCode).toBe(401);
+    expect((await app.inject({ method: 'POST', url: '/chat/rolls', headers: { authorization: 'Bearer player' }, payload: { ...free, groups: [] } })).statusCode).toBe(400);
+    const outsider = await app.inject({ method: 'POST', url: '/chat/rolls', headers: { authorization: 'Bearer member' }, payload: free });
+    expect(outsider.statusCode).toBe(403);
+  });
+  it('rolls server-side and commits via chat_commit_roll (chatRolls), never through rolls (dice_rolls)', async () => {
+    committed.length = 0; committedChat.length = 0;
+    const r = await app.inject({ method: 'POST', url: '/chat/rolls', headers: { authorization: 'Bearer player' }, payload: free });
+    expect(r.statusCode).toBe(200);
+    expect(committedChat).toHaveLength(1);
+    expect(committedChat[0]).toMatchObject({ actorId: PLAYER.id, conversationId: CONV_ID, characterId: null, systemId: null, rollKind: 'free' });
+    expect(committed).toHaveLength(0);
+    // Sin `visibility` en el body: una tirada privada no tiene una, ya es sólo para la conversación.
+    expect(r.json().data.request.groups).toEqual(free.groups);
+  });
+  it('a system roll rebuilds the pool from the sheet, same server authority as /rolls', async () => {
+    committedChat.length = 0;
+    const payload = { conversationId: CONV_ID, systemId: 'plenilunio', kind: 'system' as const, title: 'Combate', groups: [{ count: 20, sides: 6, tag: 'own' }], options: { stat: 'combat' }, characterId: CHAR_ID };
+    const r = await app.inject({ method: 'POST', url: '/chat/rolls', headers: { authorization: 'Bearer player' }, payload });
+    expect(r.statusCode).toBe(200);
+    const own = (r.json().data.request.groups as { count: number; tag?: string }[]).find(g => g.tag === 'own');
+    expect(own!.count).toBeLessThan(20);
+    expect(committedChat[0]!.characterId).toBe(CHAR_ID);
   });
 });
 

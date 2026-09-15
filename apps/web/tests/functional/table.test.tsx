@@ -6,7 +6,7 @@ import { AuthProvider } from '@/shared/hooks/useAuth';
 import { TablePage } from '@/modules/table/ui/TablePage';
 import type { TablePort } from '@/modules/table/domain/ports/TablePort';
 import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
-import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, fakeAttacks, fakeRollRequests, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
+import { fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort, fakeRollsPort, fakeRollLog, fakeAttacks, fakeRollRequests, fakeChatPort, PLAYER_USER, ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, ROLL_FREE, SCENE_WAREHOUSE, TOKEN_KAREN } from '../helpers/fakes';
 import { canTake, initialTabFor, tabsFor, askTargetsFrom } from '@/modules/table/domain/useCases/tableRules';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 
@@ -49,12 +49,12 @@ const fakeBestiaryRepo = (): BestiaryPort => ({
   create: vi.fn(), update: vi.fn(), remove: vi.fn(), uploadToken: vi.fn(),
 });
 
-function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks(), requests = fakeRollRequests()) {
+function mount(user: typeof PLAYER_USER, repo: TablePort, chars = fakeCharactersRepo([CHARACTER_KAREN]), rolls = fakeRollsPort(), rollLog = fakeRollLog(), maps = fakeMapsRepo(), vision = fakeVisionPort(), bestiary = fakeBestiaryRepo(), attacks = fakeAttacks(), requests = fakeRollRequests(), chat = fakeChatPort()) {
   renderWithProviders(
-    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} />} /></Routes></AuthProvider>,
+    <AuthProvider repo={fakeAuthRepo(user)}><Routes><Route path="/table/:id" element={<TablePage repo={repo} charactersRepo={chars} rolls={rolls} rollLog={rollLog} maps={maps} vision={vision} bestiary={bestiary} attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} chat={chat} />} /></Routes></AuthProvider>,
     { providers: { routerProps: { initialEntries: ['/table/c1'] } } },
   );
-  return { rolls, rollLog, maps, vision, bestiary, attacks };
+  return { rolls, rollLog, maps, vision, bestiary, attacks, chat };
 }
 
 describe('table: rules', () => {
@@ -273,6 +273,24 @@ describe('table: page', () => {
     expect(rolls.requests[0]).toMatchObject({ campaignId: 'c1', kind: 'free', groups: [{ count: 2, sides: 10 }] });
     await u.click(within(roller).getByRole('button', { name: 'Cerrar el lanzador' }));
     expect(screen.queryByRole('dialog', { name: 'Lanzador de dados' })).not.toBeInTheDocument();
+  });
+
+  it('SUSURROS: la campanita de no leídos se recuenta al abrir la conversación, no sólo cuando llega otro susurro', async () => {
+    const u = userEvent.setup();
+    const chat = fakeChatPort({
+      directory: [{ key: 'dm-1', conversationId: 'conv-1', isGroup: false, title: 'Laura', role: 'dm', memberCount: null, memberIds: ['dm-1'], lastKind: 'text', lastBody: 'Escuchas un ruido', unreadCount: 2 }],
+      messages: { 'conv-1': [] },
+    });
+    mount(PLAYER_USER, fakeTableRepo('player'), undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, chat);
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Susurros/ })).toHaveTextContent('2'));
+    chat.directory[0]!.unreadCount = 0;   // en la base ya no queda nada pendiente en cuanto se marca leída
+    await u.click(screen.getByRole('tab', { name: /Susurros/ }));
+    const panel = screen.getByRole('tabpanel');
+    await u.click(await within(panel).findByText('Laura'));
+    await within(panel).findByText('Todavía no hay mensajes.');
+    await u.click(screen.getByRole('tab', { name: 'Registro' }));
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Susurros/ })).not.toHaveTextContent('2'));
+    expect(chat.read).toEqual(['conv-1']);
   });
 });
 

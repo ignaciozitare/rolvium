@@ -11,7 +11,7 @@ import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort'
 import type { ToolbarOrderPort } from '@/modules/maps/domain/ports/ToolbarOrderPort';
 import {
   ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, LAYER_CREATURES, LAYER_NOTES, LAYER_OBJECTS, PACK_DUNGEON, PACK_FOREST, PROP_COLUMN, PROP_OAK, SCENE_WAREHOUSE,
-  fakeAttacks, fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeRollLog, fakeRollRequests, fakeRollsPort, fakeVisionPort,
+  fakeAttacks, fakeAuthRepo, fakeCharactersRepo, fakeChatPort, fakeMapsRepo, fakeRollLog, fakeRollRequests, fakeRollsPort, fakeVisionPort,
 } from '../helpers/fakes';
 
 /**
@@ -56,7 +56,7 @@ function mount(user: User): void {
       <Routes><Route path="/table/:id" element={
         <TablePage repo={fakeTableRepo(user)} charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} rolls={fakeRollsPort()} rollLog={fakeRollLog()}
                    maps={maps} vision={fakeVisionPort()} bestiary={fakeBestiaryRepo()}
-                   attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} toolbarOrder={fakeToolbarOrder()} />
+                   attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} toolbarOrder={fakeToolbarOrder()} chat={fakeChatPort()} />
       } /></Routes>
     </AuthProvider>,
     { providers: { routerProps: { initialEntries: ['/table/c1'] } } },

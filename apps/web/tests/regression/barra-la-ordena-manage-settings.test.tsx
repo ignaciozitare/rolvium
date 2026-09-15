@@ -9,7 +9,7 @@ import type { TableSnapshot } from '@/modules/table/domain/entities/Table';
 import type { BestiaryPort } from '@/modules/bestiary/domain/ports/BestiaryPort';
 import type { ToolbarOrderPort } from '@/modules/maps/domain/ports/ToolbarOrderPort';
 import type { ToolbarOrder } from '@/modules/maps/domain/useCases/toolbarRules';
-import { ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, SCENE_WAREHOUSE, fakeAttacks, fakeAuthRepo, fakeCharactersRepo, fakeMapsRepo, fakeRollLog, fakeRollRequests, fakeRollsPort, fakeVisionPort } from '../helpers/fakes';
+import { ADMIN_USER, CAMPAIGN_MINE, CHARACTER_KAREN, SCENE_WAREHOUSE, fakeAttacks, fakeAuthRepo, fakeCharactersRepo, fakeChatPort, fakeMapsRepo, fakeRollLog, fakeRollRequests, fakeRollsPort, fakeVisionPort } from '../helpers/fakes';
 
 /**
  * 🧲 Pin de la corrección del dueño del 2026-09-12 (specs/modules/maps/SPEC.md § «La barra se ordena arrastrando,
@@ -56,7 +56,7 @@ function mount(user: User, port: ToolbarOrderPort): void {
       <Routes><Route path="/table/:id" element={
         <TablePage repo={fakeTableRepo(user)} charactersRepo={fakeCharactersRepo([CHARACTER_KAREN])} rolls={fakeRollsPort()} rollLog={fakeRollLog()}
                    maps={fakeMapsRepo({ scenes: [SCENE_WAREHOUSE] })} vision={fakeVisionPort()} bestiary={fakeBestiaryRepo()}
-                   attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} toolbarOrder={port} />
+                   attacks={attacks} attackWatch={attacks} rollRequests={requests} rollRequestWatch={requests} toolbarOrder={port} chat={fakeChatPort()} />
       } /></Routes>
     </AuthProvider>,
     { providers: { routerProps: { initialEntries: ['/table/c1'] } } },

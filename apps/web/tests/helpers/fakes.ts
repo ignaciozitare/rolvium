@@ -152,6 +152,9 @@ import type { OpenRollRequestsInput, PendingRollRequest } from '@/modules/dice/d
 import type { AttackWatchPort } from '@/modules/dice/domain/ports/AttackWatchPort';
 import type { OpenAttackInput, PendingAttack } from '@/modules/dice/domain/entities/Attack';
 import type { Roll, RollOutcome } from '@/modules/dice/domain/entities/Roll';
+import type { ChatDirectoryEntry, ChatMessage } from '@/modules/chat/domain/entities/Chat';
+import type { ChatPort } from '@/modules/chat/domain/ports/ChatPort';
+import type { ChatRollInput, ChatRollsPort } from '@/modules/chat/domain/ports/ChatRollsPort';
 import type { Character, CharacterAuditEntry, CharacterPatch, CreateCharacterInput, WriteOrigin } from '@/modules/characters/domain/entities/Character';
 import type { RollResult, SheetData } from '@rolvium/core';
 import { plenilunio } from '@rolvium/system-plenilunio';
@@ -263,6 +266,52 @@ export function fakeRollLog(seed: Roll[] = [ROLL_COMBAT, ROLL_SETBACK, ROLL_FREE
     subscribe: (_cid: string, on: (r: Roll) => void) => { listeners.add(on); return () => { listeners.delete(on); }; },
   };
   return api;
+}
+
+/**
+ * SUSURROS (H8) en memoria: directorio, mensajes por conversación y el hilo de tiempo real, campaign-wide
+ * como el real (`ChatPort.subscribeMessages`). `push` mete un mensaje como si acabara de llegar por
+ * realtime — al propio autor también, igual que la base de verdad. `users` resuelve authorId → nombre para
+ * lo que escribe `sendText` (si no está, se enseña el id tal cual).
+ */
+export function fakeChatPort(seed: { directory?: ChatDirectoryEntry[]; messages?: Record<string, ChatMessage[]>; users?: Record<string, { name: string; avatarUrl: string | null }> } = {}): ChatPort & {
+  directory: ChatDirectoryEntry[]; messagesByConv: Record<string, ChatMessage[]>; sent: { conversationId: string; authorId: string; body: string }[];
+  read: string[]; opened: { campaignId: string; memberIds: string[] }[]; push: (m: ChatMessage) => void; subscribers: number;
+} {
+  const directory = seed.directory ? [...seed.directory] : [];
+  const messagesByConv: Record<string, ChatMessage[]> = Object.fromEntries(Object.entries(seed.messages ?? {}).map(([k, v]) => [k, [...v]]));
+  const sent: { conversationId: string; authorId: string; body: string }[] = [];
+  const read: string[] = [];
+  const opened: { campaignId: string; memberIds: string[] }[] = [];
+  const listeners = new Set<(m: ChatMessage) => void>();
+  let nextId = 1;
+  return {
+    directory, messagesByConv, sent, read, opened,
+    get subscribers() { return listeners.size; },
+    push: (m: ChatMessage) => { messagesByConv[m.conversationId] = [...(messagesByConv[m.conversationId] ?? []), m]; listeners.forEach(l => l(m)); },
+    listDirectory: async () => [...directory],
+    listMessages: async (conversationId: string) => [...(messagesByConv[conversationId] ?? [])],
+    openConversation: async (campaignId: string, memberIds: string[]) => { opened.push({ campaignId, memberIds }); return `conv-${opened.length}`; },
+    sendText: async (conversationId: string, authorId: string, body: string) => {
+      sent.push({ conversationId, authorId, body });
+      const author = seed.users?.[authorId];
+      const msg: ChatMessage = {
+        id: `msg-${nextId++}`, conversationId, authorId, authorName: author?.name ?? authorId, authorAvatarUrl: author?.avatarUrl ?? null,
+        kind: 'text', body, characterId: null, characterName: null, systemId: null, rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null,
+        createdAt: new Date().toISOString(),
+      };
+      messagesByConv[conversationId] = [...(messagesByConv[conversationId] ?? []), msg];
+      listeners.forEach(l => l(msg));
+    },
+    markRead: async (conversationId: string) => { read.push(conversationId); },
+    subscribeMessages: (_campaignId: string, onInsert: (m: ChatMessage) => void) => { listeners.add(onInsert); return () => { listeners.delete(onInsert); }; },
+  };
+}
+
+/** Tirar en privado, en memoria: `requests` guarda lo pedido; `result` es lo que contesta el servidor. */
+export function fakeChatRollsPort(result: { id: string } | null = { id: 'roll-msg-1' }): ChatRollsPort & { requests: ChatRollInput[] } {
+  const requests: ChatRollInput[] = [];
+  return { requests, roll: async (req: ChatRollInput) => { requests.push(req); return result; } };
 }
 
 /**
