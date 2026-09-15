@@ -80,10 +80,111 @@ abajo). DBA ya pasó: **no hace falta tabla ni migración**, se reutiliza `app_s
 - ✅ `specs/modules/maps/SPEC.md` — corregidas las DOS notas desfasadas que decían «sin comprimir» (línea ~1071
   y la sección «EL FONDO DEL MAPA», ~1189-1194): ya no contradicen la spec de imágenes.
 - ✅ `specs/SPEC.md` — índice actualizado.
-- ❌ **CERO código tocado todavía.** El primer `Edit` de la sesión (a `compressImage.ts`) fue bloqueado por el
-  GATE de contexto ANTES de aplicarse — el fichero sigue en su estado ORIGINAL, sin ningún cambio.
+- ✅ **PASOS 1-7, HECHOS Y REVISADOS** (chat nuevo, mismo día 2026-09-14, tras el traspaso):
+  1. `packages/ui/src/lib/compressImage.ts` — `IMAGE_TARGETS` (avatar/token, sin nivel) separado de
+     `LEVELED_TARGETS` (texture/prop/background × light/balanced/max); `compressImage()` gana el parámetro
+     `level` antes de `deps`.
+  2. `packages/ui/src/lib/compressImage.test.ts` — llamadas actualizadas, tests nuevos por nivel (texture) y el
+     de «background nunca reduce resolución, en ningún nivel, ni con una imagen enorme».
+  3. `packages/ui/src/index.ts` — exporta `CompressionLevel`, `LEVELED_TARGETS`, `DEFAULT_COMPRESSION_LEVEL`.
+  4. `apps/web/src/shared/settings/` (NUEVO): `compressionLevels.ts` (+ `.test.ts`, añadido por el Review),
+     `CompressionLevelsPort.ts`, `SupabaseCompressionLevels.ts` (+ `.test.ts`), `container.ts` — mismo patrón
+     que `ToolbarOrderPort`/`SupabaseToolbarOrder`, misma tabla `app_settings`, key `images.compression_levels`.
+  5. `maps/container.ts` — re-exporta `compressionLevelsRepo` desde `@/shared/settings/container`.
+  6. `admin/container.ts` — `AdminDeps` gana `compressionLevels: CompressionLevelsPort`.
+  7. Los tres uploaders (`TextureUpload.tsx`, `PropsUpload.tsx`, `BackgroundUpload.tsx`): el `prepare`/`compress`
+     de serie ahora carga el nivel guardado (`compressionLevelsRepo.load()`) y llama a `compressImage` con el
+     destino y nivel correctos (`balanced` si nadie ha tocado Ajustes). `BackgroundUpload` deja de subir
+     `sinComprimir`/`rawTexture` — **ahora SÍ comprime, pero `LEVELED_TARGETS.background` tiene `max: Infinity`
+     en los tres niveles, así que la resolución nunca baja** (su condición original, intacta).
+  - ✅ **Review subagent: PASSED.** Arquitectura hexagonal limpia (nada en `/ui/` importa `/infra/` ni hace E/S
+    directa), sin secretos, sin RLS nueva que auditar (reutiliza `app_settings`, misma RLS que `maps.toolbar_order`,
+    verificada: `SELECT TO authenticated` + escritura por `has_permission('manage_settings')`), i18n limpio (cero
+    strings nuevas — las de Ajustes van en el paso 8, después del Design Agent), diseño limpio. Añadió
+    `compressionLevels.test.ts` (7 tests, faltaba cobertura directa de `parseCompressionLevels`).
+  - ✅ **1970 tests pasando** (`apps/web`) + **19 tests** (`packages/ui`, `compressImage`) + typecheck limpio en
+    los dos paquetes. Tuvo que doblar `compressImage`/`compressionLevelsRepo` en `SceneTab.test.tsx` (mismo
+    patrón `vi.mock` con `importOriginal`) porque un test de integración ya existente pasa por el `prepare` de
+    serie real de `TextureUpload`, que ahora necesita `createImageBitmap`/canvas (no existen en jsdom).
+  - ⚠️ Hallazgo del Review, NO bloqueante y NO tocado (fuera de alcance): `packages/ui` tiene un error de
+    typecheck PREEXISTENTE en `src/components/Sheet.tsx:531` (choque de `exactOptionalPropertyTypes` en
+    `FieldDef.max`), confirmado con `git stash` que ya estaba en `main` antes de este cambio. No lo toques sin
+    que él lo pida aparte.
+  - **Sin commitear todavía** (ninguna orden suya de commitear en este chat).
 
-### ⏳ Próximo paso exacto (empezar por aquí, en este orden)
+### ✅ PASOS 8 y 9, HECHOS (2026-09-14, mismo chat)
+
+- ✅ **Design Agent corrido y APROBADO por él.** Frames en `rolvium.pen`: `Admin/Ajustes · dark` (`zhQmK`) y
+  `Admin/Ajustes · light` (`V1pQc`). **Ajustes es una pantalla CON PESTAÑAS** — orden suya: «*tendremos pestañas
+  dentro de la opción de ajustes … luego cuando vayamos agregando más se irán agregando*». Primero le enseñé una
+  pestaña por tipo (Texturas/Objetos/Fondos) y **lo corrigió: «es una sola pestaña para todo»** → hoy hay UNA
+  pestaña, «Imágenes», con los tres niveles dentro.
+  ⚠️ **El `.pen` puede NO estar en disco**: el editor se le quedó renderizando en negro al final y hace falta su
+  Cmd+S. Antes de commitearlo, comprobar `ls -la rolvium.pen` y que los dos frames se vean bien.
+- ✅ **8.** `packages/i18n/locales/{es,en}.json` — `admin.settingsTab.images` y `admin.compression.*` (título,
+  aviso, los tres tipos, nota del fondo, nota de guardado, error, y los tres niveles). Se **borró**
+  `admin.settingsEmpty`, que sólo alimentaba el placeholder que ya no existe.
+- ✅ **9.** `admin/ui/AdminSettings.tsx` (era un placeholder vacío) + `AdminShell.tsx` le pasa
+  `deps.compressionLevels` + `.rv-admin-tabs`/`.rv-admin-tab` nuevas en `RolviumApp.css` +
+  `AdminSettings.test.tsx` (10 tests) y un test nuevo en `AdminShell.test.tsx` por el cableado.
+  - **Los niveles NO son desplegables**: son botones en fila con las clases `rv-seg`/`rv-seg-btn` que ya usa
+    «Mi Cuenta → Idioma y tema». **`OptionGroup` NO sirve aquí**: su propio comentario lo ata a «un panel de la
+    mesa» y clava lo elegido en rojo sangre (regla suya de la vista del director); Admin va en oro/ámbar. El
+    `audit` lo avisa (`ui-panels`) igual que ya avisa de `PreferencesSection`, `SignupPage` y
+    `CreateCampaignWizard`: es el idioma establecido fuera de la mesa, no un invento nuevo.
+  - **Se guarda al elegir, sin botón.** Si la base deniega (sin `manage_settings`), deshace **sólo ese tipo** y
+    avisa. Y como `save` escribe los tres juntos, **parte de lo GUARDADO, no de lo que se ve**: espera la
+    lectura en vuelo (o reintenta una vez) antes de escribir, y si no se puede leer **no escribe nada** — si no,
+    un fallo de lectura rebajaba a Equilibrado los otros dos tipos sin avisar.
+- ✅ **Review subagent: PASSED** (arregló cuatro cosas: lectura lenta pisando una elección, rollback de todo en
+  vez de sólo el tipo fallido, `tablist` sin `tabpanel`, error sin `role="alert"`; y corrigió el único string en
+  voseo del locale). Tras eso **1988 tests en verde**, typecheck limpio, `npm run audit` 0 hard.
+- ✅ **Visto en pantalla de verdad** (claro y oscuro) renderizando el CSS real con Playwright, porque el editor
+  del `.pen` no dibujaba.
+
+**🔎 Dos cosas que el Review dejó anotadas para él, sin tocar:**
+1. La card usa `Card` de `@rolvium/ui` (como TODAS las demás pantallas de ajustes) y en claro `--sf` es **más
+   claro** que el fondo, mientras que la maqueta la pintaba con `$sf2`, más oscura: la card «avanza» en vez de
+   «hundirse». Que lo mire en claro antes de mergear.
+2. Divergencia residual pantalla/base si un `save` falla justo mientras otro va bien (converge en el caso
+   normal, que es la denegación por RLS: ahí fallan los tres). Cerrarlo pediría un puerto por tipo.
+3. Sin navegación por flechas en las pestañas ni en los grupos de opciones (todo es alcanzable con Tab, como el
+   resto de la app). Revisar cuando entre la segunda pestaña.
+
+### ✅ PASO 10, HECHO — su biblioteca local, convertida (2026-09-15, orden suya: «*vale está bien lo que hiciste ahora hazlo*»)
+
+**109 ficheros: 187,9 MB → 20,1 MB (-89%). Cero fallos.** Con el mismo codificador de la app (Chromium
+headless, canvas → WebP) y los números de Equilibrado. Script de un solo uso, **no está en el repo**: vive en el
+scratchpad de esa sesión (`convertir.mjs`), junto al informe `conversion.json` y a las **copias de seguridad de
+los 109 originales** (197 MB, carpeta `backup/`).
+
+- **Sobrescrito el MISMO storage path**, con `content-type: image/webp` (el nombre sigue acabando en `.png` en
+  texturas y fondos: manda la cabecera, no la extensión). Así las URLs guardadas en escenas siguen valiendo.
+- **Los fondos NO bajaron de resolución** (1672×941 → 1672×941): sólo cambió el formato. Comprobado fichero a
+  fichero en el informe.
+- **Objetos**: `natural_width`/`natural_height` a 768 **y `default_scale` recalculado** × (1024/768). ⚠️ Esto
+  ÚLTIMO no estaba en el plan y hacía falta: la huella de un objeto es `natural_width × escala`, así que bajar
+  el tamaño sin tocar la escala habría hecho que **todo lo que plantara a partir de ahora saliera un 25% más
+  pequeño**. Con el ajuste, planta exactamente igual que antes.
+- **Lo ya plantado en las escenas NO se tocó** y no hacía falta: `maps_scene_props` guarda ancho y alto en
+  píxeles absolutos (50,64 · 54 · 33,63…), no una escala. Verificado después de convertir.
+- **3 filas «sin tocar»**: son filas DUPLICADAS que apuntan al mismo fichero ya convertido en la misma pasada
+  (`dark granit 1`, `mosaicos 2`, `mosaicos 1 copia`). El script se queda con el original cuando recomprimir no
+  adelgaza, así que no hubo doble compresión. ⚠️ Para esos 3 caminos, la copia de seguridad acabó guardando la
+  versión YA convertida, no la original.
+
+### ⏳ Próximo paso exacto
+
+**11.** **No mergear ni desplegar sin que él lo pida** (QA gate). Cuando lo diga: `/qa` → migración a producción
+(no hay ninguna nueva en esta tanda: se reutiliza `app_settings`) → merge a `main` → deploy.
+⚠️ Antes de commitear el `.pen` hace falta **su Cmd+S**: el fichero en disco es de las 16:45 del 14-09, o sea
+anterior a los frames `Admin/Ajustes`. Comprobar con `ls -la rolvium.pen`.
+⚠️ En producción las tres bibliotecas siguen VACÍAS. Lo de subírselas allí sigue pendiente y es otra tarea
+(bloque 🖼️ de más abajo): los ficheros no se pueden escribir desde aquí, se los exportamos y los sube él con la
+subida en lote — **ahora pesan 20 MB en vez de 188**, así que ya no hay problema de cupo.
+
+<details>
+<summary>Redacción original de los pasos 1-7 (ya aplicados, se deja como referencia de lo que se copió tal cual)</summary>
 
 **1. `packages/ui/src/lib/compressImage.ts`** — reemplazar el bloque de `IMAGE_TARGETS` (avatar/token/background/prop)
 por esto (ya redactado, copiar tal cual):
@@ -174,28 +275,10 @@ sobreescribible por prop, con test propio):
    - Actualizar los tres `.test.tsx`: ya no basta con comprobar que el blob entra tal cual — mockear
      `compressionLevelsRepo.load` y comprobar que `compressImage` se llama con el destino y nivel correctos.
 
-**8. `packages/i18n/locales/{es,en}.json`** — claves nuevas para Admin → Ajustes (título de la sección de
-compresión, nombre de cada nivel, etiqueta de cada tipo, texto de guardado). Las claves exactas se deciden
-recién en el paso 9 (después del Design Agent), no inventarlas antes.
+**8-11.** Ver la versión VIVA de estos pasos más arriba (fuera del `<details>`) — quedaron actualizados tras el
+Review del 2026-09-14.
 
-**9. `admin/ui/AdminSettings.tsx` — PASA POR DESIGN AGENT PRIMERO.** Hoy está vacío (placeholder). Esta pantalla
-sí es UI nueva visible, así que **antes de escribirla** hay que correr `.claude/commands/design.md` (`.pen`) y
-que él la apruebe con capturas — no saltarse esto aunque el resto ya esté aprobado. Después: tres `OptionGroup`
-(o lo que decida el Design Agent — revisar si `OptionGroup` de `@rolvium/ui`, pensado para paneles de mesa con
-selección en rojo sangre, encaja en una pantalla de Admin o si aquí toca otra cosa) para elegir el nivel de
-cada tipo, guardando con `adminDeps.compressionLevels.save(...)`. Nuevo `AdminSettings.test.tsx`.
-
-**10. Script de conversión ÚNICA de su biblioteca local** (41 texturas · 50 objetos · 18 fondos, nivel
-Equilibrado) — NO es código de la app, es un script de un solo uso contra su Supabase LOCAL (no producción, que
-hoy tiene esas tres bibliotecas vacías). Para cada objeto (`maps_props`) hay que **actualizar también
-`natural_width`/`natural_height`** en la fila al nuevo tamaño (768px o menos) — texturas y fondos no guardan
-ancho/alto aparte, así que no hace falta tocar nada más ahí. Sobrescribir el MISMO storage path (no crear
-ficheros nuevos): así lo ya plantado en escenas (que guarda su propia copia de la URL) sirve la versión liviana
-sin tocar `maps_scene_props`. Usar el mismo enfoque de Chromium headless que los dos artifacts (Playwright ya
-está instalado) para generar el WebP real, no una aproximación.
-
-**11.** Cuando todo lo anterior esté hecho → Review Agent → actualizar WORK_STATE otra vez (esta vez como
-registro, no como traspaso) → **no mergear ni desplegar sin que él lo pida** (QA gate).
+</details>
 
 ### 🚫 No repreguntar / no reabrir
 - Nivel único vs. por separado → **ya decidido: por separado**, tres selectores.
