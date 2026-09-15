@@ -1670,10 +1670,6 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
               * y subir abre LA MISMA ventana de subir en lote, en la categoría abierta. Lo subido queda en el
               * catálogo para elegirlo: con varias a la vez ya no se pone sola la última.
               */}
-            {texUpload && (
-              <TextureUpload category={texUpload.category} {...(texUpload.files ? { initialFiles: texUpload.files } : {})}
-                onAdd={añadirTextura} onClose={() => setTexUpload(null)} />
-            )}
             {texPicker && (
               <TextureCatalog which={texPicker} textures={textures} canManage={puedeOrdenarTexturas}
                 favorites={favoriteTextures} recents={recentTextures}
@@ -1690,6 +1686,16 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
                   await repo.removeTexture(tex.id);
                   setTextures(l => (l ?? []).filter(x => x.id !== tex.id));
                 }} />
+            )}
+            {/*
+              * 🔑 SUBIR VA DESPUÉS DEL CATÁLOGO, y el orden aquí NO es cosmético: los dos son `Modal`, que
+              * lleva un z-index fijo, así que manda quien se pinta después. Estando antes, la ventana de subir
+              * salía DETRÁS del catálogo (suyo, 2026-09-15: «*el modal de subir queda detrás del modal del
+              * catálogo*»). Las piezas y los fondos ya lo tenían en este orden; las texturas eran la excepción.
+              */}
+            {texUpload && (
+              <TextureUpload category={texUpload.category} {...(texUpload.files ? { initialFiles: texUpload.files } : {})}
+                onAdd={añadirTextura} onClose={() => setTexUpload(null)} />
             )}
           </>)}
           {avisoCorto && (
