@@ -5,7 +5,8 @@
 > más cámbiale el nombre*». Nunca «chat» en la interfaz.
 
 **Estado: ✅ construido, revisado, QA pasado (modo bloqueo) y EN PRODUCCIÓN desde el 2026-09-15 (v0.10.0)**;
-migraciones `chat_susurros` y `chat_susurros_harden` aplicadas al proyecto de producción. ⏳ Pendiente sólo el
+migraciones `chat_susurros` y `chat_susurros_harden` aplicadas al proyecto de producción. ⏳ **Pendientes**: (1)
+**las pastillas tipo LinkedIn** (spec cerrado con él el 2026-09-16, ver «La pastilla» abajo; en diseño), y (2) el
 botón para traer una tirada del Registro a una conversación (el modelo de datos ya lo soporta; le toca su propio
 paso de diseño).
 
@@ -24,8 +25,22 @@ sólo lo privado. Decisión suya del 2026-09-15, que deja sin efecto el «canal 
 - Conversación de uno a uno o de grupo, con los mensajes uno debajo de otro y **avatar, nombre y hora**.
 - **Cualquiera escribe a cualquiera**: el director a un jugador, un jugador al director, y los jugadores entre
   ellos. Ningún permiso especial.
-- Cuando alguien te escribe, salta **la pastilla** —así la llama él— y **se lee y se contesta ahí mismo**, sin
-  salir de la partida.
+- **La pastilla** —así la llama él— es una **ventanita de conversación tipo LinkedIn, abajo a la derecha, encima
+  de la mesa** (aclarado por él el 2026-09-16: «*cuando abro una conversación tiene que estar la pastilla, se
+  tiene que poder minimizar… no es fija, se tiene que poder cerrar*»). Lo de la columna se queda como está y
+  las pastillas SE AÑADEN:
+  - Al abrir una conversación desde el directorio, se abre en la columna como hoy **y además aparece su
+    pastilla**: una barrita con avatar y nombre.
+  - La pastilla se **despliega** (la conversación entera: mensajes, escribir, tirar en privado, ENVIAR), se
+    **minimiza** (vuelve a la barrita) y se **cierra** con una X. Cerrarla no borra nada: se reabre desde el
+    directorio.
+  - Sirve para seguir hablando mientras la columna está en otra pestaña (Registro, Notas) o plegada. **Varias a
+    la vez**, una al lado de otra.
+  - Cuando **alguien te escribe** y no tienes su pastilla, **aparece sola, minimizada, en rojo sangre** (para
+    que se vea) **y con un sonido corto**; lleva el número de mensajes sin leer. Si la tienes abierta, el
+    mensaje entra directo. Esto SUSTITUYE al aviso que saltaba y se iba solo a los pocos segundos (lo construido
+    el 15-09 como «pastilla», que él no había pedido así).
+  - Al desplegarla se marca como leída y deja de estar en rojo.
 - La pestaña lleva un **contador de no leídos**.
 - **Tirar en privado dentro de la conversación**, y **traer una tirada del Registro** a la conversación para
   enseñarla («mirad esto»).
@@ -41,6 +56,9 @@ sólo lo privado. Decisión suya del 2026-09-15, que deja sin efecto el «canal 
 - Una tirada traída del Registro viaja como referencia: si el Registro la tiene, la conversación la enseña.
 - Sin editar ni borrar mensajes en v1 (auditoría simple).
 - Un grupo lo crea cualquiera; en v1 **no se renombra ni se sale de él**.
+- Pastillas: **hasta tres abiertas a la vez**; al abrir una cuarta se cierra la más antigua. El sonido suena
+  SÓLO cuando aparece una pastilla por un susurro ajeno, nunca por lo que escribes tú (el navegador no deja
+  sonar nada hasta que has tocado la página una vez: en la mesa eso ya ha pasado siempre).
 - Fuera de alcance: voz y vídeo (para eso está Discord), reacciones, hilos, adjuntar ficheros o imágenes.
 
 ## Connections
@@ -77,3 +95,7 @@ verdad.
 
 **Marcar como leído.** Lo hace cada uno sobre su propia fila (nadie puede tocar la de otro), a través de una
 función — no hay una edición directa de la tabla desde el navegador.
+
+**Las pastillas (2026-09-16): sin cambio de datos.** Qué pastillas tiene cada uno abiertas o minimizadas es
+estado de pantalla de ESE navegador, no de la campaña: no se guarda en la base. El «marcar leído» al desplegar
+usa la misma función de siempre.
