@@ -6,7 +6,7 @@ verdad** contra la app corriendo, con los dos usuarios a la vez (director y Mart
 está aplicado, y los TRES fallos más que salieron al mirarlo con ojos están arreglados y verificados. Se retoma
 por el bloque 📥 «SUSURROS — PROBADO EN PANTALLA, listo para que lo vea él» de abajo. **Commiteado en la rama
 `feat/chat-susurros`** (3 commits: feat · `.pen` · release v0.10.0, subida a origin), migración ya aplicada a
-producción por MCP, y **`/qa` (modo block) pasado el 15-09 noche con UN bloqueo de spec: el alias** — ver el
+producción por MCP, y **`/qa` (modo block) pasado el 15-09 noche con UN bloqueo de spec: el alias — ARREGLADO en `74d0e47`, y el `/qa` re-lanzado salió TODO EN VERDE** — ver el
 «Próximo paso exacto» de ese bloque. NO retomar por «CONSTRUIR SUSURROS» ni por «falta un fix ya diagnosticado»:
 los dos están hechos.
 
@@ -125,8 +125,10 @@ Lo contó él a mitad de sesión. Diagnóstico HECHO (sin tocar código), ver el
    quiera): `chat_messages_immutable` sin `SET search_path = public` (a `dice_rolls_immutable` se lo puso
    `harden_functions`), y `chat_messages_set_campaign()` ejecutable por `anon` vía RPC (revocar EXECUTE, como
    hace `harden_functions` § 2 con las funciones de trigger; no es explotable — un trigger no se puede llamar
-   a mano — pero es el convenio del proyecto).
-4. 🚫 **`/qa` (modo block) ejecutado el 15-09 noche: TODO en verde** (smoke 12 · regression 131 ficheros/1967 ·
+   a mano — pero es el convenio del proyecto). **→ ✅ HECHO en `74d0e47`**: migración
+   `20260915231500_chat_susurros_harden.sql`, aplicada en local y en hosted (`chat_susurros_harden`, versión
+   `20260915214639`); advisors después: 0 CRITICAL y los dos WARN desaparecidos.
+4. ✅ (el desvío del alias, ARREGLADO en `74d0e47` — ver el punto 5) **`/qa` (modo block) ejecutado el 15-09 noche: TODO en verde** (smoke 12 · regression 131 ficheros/1967 ·
    functional 57 · api 300 · build web+api · audit 0 duras · i18n en sync · hexagonal · secretos · probes 200/200)
    **SALVO UN desvío del spec que bloquea**: los mensajes de una conversación y la pastilla enseñan `users.name`
    y NO el alias («Connections: identity — avatar, nombre y alias»; la regla de identity es «alias shown at the
@@ -140,6 +142,14 @@ Lo contó él a mitad de sesión. Diagnóstico HECHO (sin tocar código), ver el
    tocaría `campaigns` y una función en la base: decisión suya, no de este PR.) Luego: **re-lanzar `/qa` → merge a
    `main` → deploy v0.10.0** (es un hexágono entero). Si quiere probarlo él antes: `npm run dev:api` +
    `npm run dev:web` (hoy en el 5174; director `admin@rolvium.local` / Marta `jugador1@ejemplo.com`, clave `rolvium123`).
+5. ✅ **Alias arreglado (`74d0e47`: `SupabaseChatRepo` pide `alias` en el join y `mapMessageRow` hace `alias || name`, como el
+   Registro; caso nuevo en `SupabaseChatRepo.test.ts`) y `/qa` RE-LANZADO en modo block: TODO EN VERDE** — smoke 12 ·
+   regression 131 ficheros/1968 · functional 4/57 (con `table.test.tsx`) · build web+api · audit 0 duras/33 warn (baseline) ·
+   advisors 0 CRITICAL · i18n en sync · probes 200/200. Comprobado además en la base LOCAL que, con el EXECUTE revocado por
+   el harden, un INSERT como `authenticated` sigue pasando por el trigger y le rellena `campaign_id` (transacción con
+   rollback). Queda como nota, no bloquea: el directorio y `chat_group_member_names` siguen con `users.name` (decisión
+   suya), y la portada (`auth.feat.maps`, de antes de este PR) todavía dice «chat» en la lista de funciones.
+   **SIGUIENTE: merge a `main` → deploy v0.10.0.**
 
 ### 🚫 Blockers / no olvidar
 - El placeholder «Escribe a Marta…» sale cortado («Escribe a Marta l») porque el campo es estrecho: cosmético,
