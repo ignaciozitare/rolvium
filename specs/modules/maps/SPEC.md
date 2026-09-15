@@ -900,8 +900,9 @@ Se abre desde el panel de pieza («ELEGIR») y desde el botón **Piezas** de la 
 - La cola con estado por fichero: en cola · subiendo · listo · error (el motivo, en palabras).
 - **El nombre del fichero se queda como nombre de la pieza** (sin la extensión); se cambia luego con «Renombrar».
 - Pie: CANCELAR · **AÑADIR N PIEZAS**.
-- **La subida va por el camino único de `specs/core/images/SPEC.md`** (`compressImage` de `@rolvium/ui`), con un
-  destino nuevo **`prop`: 1024 px de lado mayor, calidad 0,9**. ⚠ **La transparencia se conserva**: WebP lleva alfa
+- **La subida va por el camino único de `specs/core/images/SPEC.md`** (`compressImage` de `@rolvium/ui`), con el
+  destino **`prop`**, cuyo nivel (Ligero · Equilibrado · Máximo ahorro) sale de Admin → Ajustes: los números, en la
+  tabla de esa spec. ⚠ **La transparencia se conserva**: WebP lleva alfa
   y el compresor no aplana nada; sin alfa una mesa llegaría con un recuadro blanco y la galería no serviría de nada.
   El tamaño natural (ancho × alto en px, ya comprimida) se guarda con la pieza: con él y la escala sale la huella sin
   esperar a que cargue la foto.
