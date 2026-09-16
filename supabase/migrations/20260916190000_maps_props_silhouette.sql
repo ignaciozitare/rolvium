@@ -29,7 +29,8 @@ ALTER TABLE public.maps_props
 
 COMMENT ON COLUMN public.maps_props.default_silhouette IS
   'El anillo de la silueta en fracciones de la huella (-0.5…+0.5 desde el centro), '
-  '[[x,y], …]. NULL = todavía sin sacar: la pieza es de antes de la silueta, o el '
+  '[{"x":…,"y":…}, …] — puntos con nombre, que es como los escribe y los lee `@rolvium/core`. '
+  'NULL = todavía sin sacar: la pieza es de antes de la silueta, o el '
   'PNG no dio contorno. Se calcula AL SUBIR, en la misma pasada que ya comprime la imagen.';
 
 ALTER TABLE public.maps_props
@@ -72,8 +73,8 @@ ALTER TABLE public.maps_scene_props
   ADD COLUMN IF NOT EXISTS silhouette jsonb;
 
 COMMENT ON COLUMN public.maps_scene_props.silhouette IS
-  'Copiada de la biblioteca al plantar. Mismo formato: [[x,y], …] en fracciones de '
-  'la huella desde el centro. NULL = esta pieza no estorba por silueta.';
+  'Copiada de la biblioteca al plantar. Mismo formato: [{"x":…,"y":…}, …] en fracciones '
+  'de la huella desde el centro. NULL = esta pieza no estorba por silueta.';
 
 ALTER TABLE public.maps_scene_props
   DROP CONSTRAINT IF EXISTS maps_scene_props_block_shape_check;

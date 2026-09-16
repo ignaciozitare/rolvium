@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, waitFor, within, fireEvent } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
+import { compressImage } from '@rolvium/ui';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
 import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PACK_DUNGEON, PACK_FOREST, PLAYER_USER, PROP_COLUMN, PROP_OAK, PROP_PINE, SCENE_CHAPEL, SCENE_PROP_COLUMN, SCENE_PROP_OAK, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
 import { DEFAULT_DOOR, type PropCategory } from '../domain/entities/Scene';
@@ -2912,6 +2913,56 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     fireEvent.pointerDown(canvas(), { clientX: 400, clientY: 220, pointerId: 1, button: 0 });
     await waitFor(() => expect(repo.sceneProps).toHaveLength(1));
     expect(repo.sceneProps[0]).toMatchObject({ name: 'Columna', propId: 'pr-col', width: 100, height: 100 });
+  });
+
+  /**
+   * 🔑 LA SILUETA SALE AL SUBIR (specs/modules/maps/SPEC.md § 6.9). Su queja del 2026-09-16 con las capturas de
+   * sus vehículos: «*tienen que recortar por la silueta del png … pero no un cuadrado u óvalo que no tenga nada
+   * que ver con la silueta del objeto*». Aquí se sujeta el CAMINO entero: la opacidad que trae el compresor
+   * llega a la fila de la biblioteca convertida en silueta, sin volver a abrir la imagen.
+   */
+  const opacidadDeUnCamion = (): { data: Uint8ClampedArray; width: number; height: number } => {
+    const width = 64, height = 64, data = new Uint8ClampedArray(width * height);
+    // Sólo una franja central es carrocería: lo de arriba y lo de abajo es transparente.
+    for (let y = 28; y < 36; y++) for (let x = 2; x < 62; x++) data[y * width + x] = 255;
+    return { data, width, height };
+  };
+  const subirObjeto = async (u: ReturnType<typeof userEvent.setup>, panel: HTMLElement): Promise<void> => {
+    await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
+    await u.click(await screen.findByRole('button', { name: /Subir objetos/ }));
+    await u.upload(screen.getByTestId('mp-propup-input'), new File(['x'], 'camion.png', { type: 'image/png' }));
+    await u.click(await screen.findByRole('button', { name: /Añadir 1 objeto/ }));
+  };
+
+  it('🔑 subir un objeto le saca LA SILUETA de su propia foto, no un cuadrado', async () => {
+    const u = userEvent.setup();
+    const alpha = opacidadDeUnCamion();
+    vi.mocked(compressImage).mockResolvedValueOnce({ blob: new Blob(['x'], { type: 'image/webp' }), originalBytes: 1, bytes: 1, compressed: true, width: 64, height: 64, alpha });
+    const repo = mount('dm', seedProps());
+    await subirObjeto(u, await abrirPiezas(u));
+
+    await waitFor(() => expect(repo.props.some(p => p.name === 'camion')).toBe(true));
+    const creado = repo.props.find(p => p.name === 'camion')!;
+    expect(creado.defaultBlockShape).toBe('silhouette');
+    expect(creado.defaultSilhouette!.length).toBeGreaterThanOrEqual(3);
+    // Apaisada de verdad: ancha hasta el borde y baja — eso es lo que arregla la sombra del camión.
+    expect(Math.max(...creado.defaultSilhouette!.map(p => Math.abs(p.x)))).toBeGreaterThan(0.4);
+    expect(Math.max(...creado.defaultSilhouette!.map(p => Math.abs(p.y)))).toBeLessThan(0.2);
+    // Y NACE SIN ESTORBAR: la silueta sólo decide con qué forma estorbará el día que él lo encienda.
+    expect(creado.defaultBlocksSight).toBe(false);
+    expect(creado.defaultBlocksMove).toBe(false);
+  });
+
+  it('un navegador que no sabe leer la opacidad sube igual, con el rectángulo de siempre', async () => {
+    const u = userEvent.setup();
+    // El compresor de serie de este fichero NO trae `alpha`: exactamente ese caso.
+    const repo = mount('dm', seedProps());
+    await subirObjeto(u, await abrirPiezas(u));
+
+    await waitFor(() => expect(repo.props.some(p => p.name === 'camion')).toBe(true));
+    const creado = repo.props.find(p => p.name === 'camion')!;
+    expect(creado.defaultBlockShape).toBe('rect');
+    expect(creado.defaultSilhouette).toBeNull();
   });
 
   it('sin el permiso de ordenar la biblioteca el catálogo no ofrece subir, pero planta igual', async () => {

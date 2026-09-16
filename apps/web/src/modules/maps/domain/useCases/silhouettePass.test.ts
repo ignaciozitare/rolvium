@@ -52,7 +52,8 @@ describe('runSilhouettePass — los 133 de una vez', () => {
     expect(r).toEqual({ hechas: 3, fallidas: 0, yaEstaban: 0 });
     expect(d.saveProp).toHaveBeenCalledTimes(3);
     // 🔑 Lo que él ve en sus mapas son COPIAS: sin esto no cambiaría una sola sombra de las que ya tiene puestas.
-    expect(d.applyToPlanted).toHaveBeenCalledTimes(3);
+    // Dos y no tres: la columna de la lista lleva ÓVALO puesto a mano, y eso no se le toca a sus copias.
+    expect(d.applyToPlanted).toHaveBeenCalledTimes(2);
     expect(vi.mocked(d.applyToPlanted).mock.calls[0]![0]).toBe(PROP_OAK.id);
     expect(vi.mocked(d.applyToPlanted).mock.calls[0]![1].length).toBeGreaterThanOrEqual(3);
   });
@@ -74,6 +75,15 @@ describe('runSilhouettePass — los 133 de una vez', () => {
     const r = await runSilhouettePass([hecha, { ...PROP_COLUMN, id: 'pr-2' }], d);
     expect(r).toEqual({ hechas: 1, fallidas: 0, yaEstaban: 1 });
     expect(d.alphaOf).toHaveBeenCalledTimes(1);
+  });
+
+  it('🔑 con un ÓVALO puesto a mano, la silueta se guarda pero NO baja a lo plantado', async () => {
+    // Bajarla contradiría lo que él eligió, y una copia no tiene pantalla donde verlo ni forma de volver atrás.
+    const d = deps();
+    await runSilhouettePass([{ ...PROP_OAK, defaultBlockShape: 'circle' }], d);
+    expect(d.saveProp).toHaveBeenCalledWith(PROP_OAK.id, expect.objectContaining({ defaultSilhouette: expect.anything() }));
+    expect(vi.mocked(d.saveProp).mock.calls[0]![1].defaultBlockShape).toBeUndefined();
+    expect(d.applyToPlanted).not.toHaveBeenCalled();
   });
 
   it('va diciendo por dónde va, para poder enseñarlo en pantalla', async () => {

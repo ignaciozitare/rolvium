@@ -1159,6 +1159,11 @@ cada una, con la luz movible— y la aprobó: «**está perfecto**».
 - **`@rolvium/ui`**: el compresor puede devolver la **opacidad en crudo** de la imagen que ya tiene abierta, así
   que la silueta sale en la misma pasada de la subida. La biblioteca de componentes **no** pasa a depender del
   motor de juego: devuelve opacidad, no geometría.
+- 🔑 **Y el SERVIDOR la lee** (`apps/api`, `listBlockingProps`). No es un detalle de fontanería: **la sombra que
+  él vio la calcula el servidor**, no el navegador. Mientras `ScenePropRecord` decía sólo «rect o circle» y el
+  `select` no pedía la columna, un camión guardado como `silhouette` llegaba mudo al motor, `propBlockRing` se
+  caía al rectángulo y la sombra seguía siendo **el mismo bloque negro de su captura** — aunque el navegador ya
+  lo frenase por su contorno. Las dos orillas leen la misma columna o la silueta no se ve.
 - **Nacer con silueta NO hace que estorbe**: «tapa la vista» y «corta el paso» siguen naciendo apagados. La
   silueta sólo decide CON QUÉ FORMA estorbará el día que él los encienda.
 

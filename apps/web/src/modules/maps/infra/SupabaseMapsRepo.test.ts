@@ -557,6 +557,29 @@ describe('SupabaseMapsRepo — la biblioteca de piezas', () => {
     expect(m.deleteSpy).toHaveBeenCalled();
     expect(bucket.remove).not.toHaveBeenCalled();
   });
+
+  /**
+   * LA PASADA DE UNA VEZ, LLEVADA A LO PLANTADO (§ 6.9). Una sola escritura por objeto, y con un filtro que no
+   * es decorativo: `block_shape = 'rect'` es LO ÚNICO que impide pisar una forma que él eligió a mano. Sin ese
+   * `.eq` la pasada convertiría en silueta también los óvalos que puso él, y eso no se deshace.
+   */
+  it('lleva la silueta a lo ya plantado SIN pisar una forma elegida a mano', async () => {
+    const m = createSupabaseMock({ tables: { maps_scene_props: { data: null, error: null } } });
+    const anillo = [{ x: 0, y: -0.5 }, { x: 0.5, y: 0.5 }, { x: -0.5, y: 0.5 }];
+    await new SupabaseMapsRepo(m.client as unknown as SupabaseClient).applySilhouetteToPlanted('pr-1', anillo);
+    expect(m.updateSpy).toHaveBeenCalledTimes(1);
+    // Exacto, no `objectContaining`: así queda sujeto que NO toca la huella — `block_w`/`block_h` siguen
+    // siendo los que tuviera cada copia, y la silueta se estira a ellos.
+    expect(m.updateSpy).toHaveBeenCalledWith({ silhouette: anillo, block_shape: 'silhouette' });
+    // Las dos condiciones, y sólo esas: el objeto, y que siga con la forma de fábrica.
+    expect(q(m).eq!.mock.calls).toEqual([['prop_id', 'pr-1'], ['block_shape', 'rect']]);
+  });
+
+  it('si la escritura de la pasada falla, se entera quien la lanzó', async () => {
+    const m = createSupabaseMock({ tables: { maps_scene_props: { data: null, error: new Error('no puedes') } } });
+    await expect(new SupabaseMapsRepo(m.client as unknown as SupabaseClient).applySilhouetteToPlanted('pr-1', [{ x: 0, y: 0 }]))
+      .rejects.toThrow('no puedes');
+  });
 });
 
 describe('SupabaseMapsRepo — lo plantado en la escena', () => {

@@ -83,8 +83,14 @@ export async function runSilhouettePass(
     const alpha = await deps.alphaOf(prop.imageUrl);
     const ring = alpha ? silhouetteRing(alpha.data, alpha.width, alpha.height) : [];
     if (ring.length < 3) { out.fallidas += 1; continue; }
-    await deps.saveProp(prop.id, silhouettePatch(prop, ring));
-    await deps.applyToPlanted(prop.id, ring);
+    const patch = silhouettePatch(prop, ring);
+    await deps.saveProp(prop.id, patch);
+    /*
+     * A lo plantado SÓLO si la pieza pasa de verdad a estorbar por su silueta. Con un ÓVALO puesto a mano
+     * arriba, bajar la silueta a las copias contradiría lo que él eligió — y las copias no tienen pantalla
+     * donde verlo ni forma de volver atrás. Lo cazó la review.
+     */
+    if (patch.defaultBlockShape === 'silhouette') await deps.applyToPlanted(prop.id, ring);
     out.hechas += 1;
   }
   onProgress?.({ done, total: props.length, name: '' });

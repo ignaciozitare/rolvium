@@ -11,10 +11,12 @@ const WALL_ROWS = [
 /** Minimal chainable stub: `from(table)` → select/eq/maybeSingle/upsert; every table answers with what it was seeded. */
 function fakeDb(rows: Record<string, unknown>) {
   const upsert = vi.fn().mockResolvedValue({ error: null });
+  /** Las listas de columnas pedidas: una columna que no se pide llega muda, y eso no se ve en el resultado. */
+  const selects: string[] = [];
   const from = vi.fn((table: string) => {
     const data = rows[table] ?? null;
     const q: Record<string, unknown> = {};
-    q.select = () => q;
+    q.select = (cols?: string) => { if (typeof cols === 'string') selects.push(cols); return q; };
     q.eq = () => q;
     q.or = () => q;
     q.order = () => q;
@@ -23,7 +25,7 @@ function fakeDb(rows: Record<string, unknown>) {
     q.then = (resolve: (v: unknown) => unknown) => resolve({ data, error: null });
     return q;
   });
-  return { db: { from } as unknown as SupabaseClient, upsert, from };
+  return { db: { from } as unknown as SupabaseClient, upsert, from, selects };
 }
 
 describe('SupabaseMapsRepo (service role)', () => {
@@ -125,9 +127,26 @@ describe('SupabaseMapsRepo (service role)', () => {
     const rows = [{ id: 'sp-1', layer_id: 'ly-7', x: 300, y: 200, rotation: 15, blocks_sight: true, blocks_move: false, block_shape: 'circle', block_w: 90, block_h: 90, block_dx: 4, block_dy: -6 }];
     const m = fakeDb({ maps_scene_props: rows });
     expect(await new SupabaseMapsRepo(m.db).listBlockingProps('sc-1')).toEqual([
-      { id: 'sp-1', layerId: 'ly-7', x: 300, y: 200, rotation: 15, blocksSight: true, blocksMove: false, blockShape: 'circle', blockW: 90, blockH: 90, blockDx: 4, blockDy: -6 },
+      { id: 'sp-1', layerId: 'ly-7', x: 300, y: 200, rotation: 15, blocksSight: true, blocksMove: false, blockShape: 'circle', blockW: 90, blockH: 90, blockDx: 4, blockDy: -6, silhouette: null },
     ]);
     expect(await new SupabaseMapsRepo(fakeDb({}).db).listBlockingProps('sc-1')).toEqual([]);
+  });
+
+  /**
+   * 🔑 LA SILUETA LLEGA AL SERVIDOR (§ 6.9). El servidor es quien calcula la sombra que él ve, así que si esta
+   * columna no viaja, una pieza guardada como `silhouette` se sigue calculando con el RECTÁNGULO: el camión
+   * frenaría por su contorno en el navegador y taparía como un bloque negro en la pantalla de los jugadores.
+   */
+  it('brings the silhouette of a planted prop, and leaves an old row as null', async () => {
+    const anillo = [{ x: -0.5, y: -0.1 }, { x: 0.5, y: -0.1 }, { x: 0.5, y: 0.1 }, { x: -0.5, y: 0.1 }];
+    const camion = { id: 'sp-2', layer_id: null, x: 10, y: 20, rotation: 0, blocks_sight: true, blocks_move: true, block_shape: 'silhouette', block_w: 100, block_h: 100, block_dx: 0, block_dy: 0, silhouette: anillo };
+    const [leido] = await new SupabaseMapsRepo(fakeDb({ maps_scene_props: [camion] }).db).listBlockingProps('sc-1');
+    expect(leido!.blockShape).toBe('silhouette');
+    expect(leido!.silhouette).toEqual(anillo);
+    // Y la columna se PIDE: sin ella en el `select` la fila llegaría muda y taparía con el rectángulo.
+    const m = fakeDb({ maps_scene_props: [camion] });
+    await new SupabaseMapsRepo(m.db).listBlockingProps('sc-1');
+    expect(m.selects.some(s => s.includes('silhouette'))).toBe(true);
   });
 
   it('reads the table role and the player list from campaigns_members', async () => {
