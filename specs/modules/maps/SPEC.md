@@ -984,6 +984,9 @@ layer, down layer etc*». Botón derecho sobre una pieza plantada:
 - **El servidor las suma a la geometría** al calcular visión, luz y paredes sólidas (`propBlockSegments` en
   `@rolvium/core`, girada con la pieza). Una columna marcada «corta la vista» proyecta su sombra sola: la luz se
   recorta contra los mismos segmentos. Las fichas siguen sin proyectarla.
+- **Y desde el 2026-09-16 frenan también EN EL NAVEGADOR mientras arrastras** (§ «Quién choca»). Antes sólo lo
+  hacía el servidor, después: un vehículo marcado «corta el paso» se atravesaba en pantalla. Era su queja, con
+  dos capturas: «*no funciona lo de bloquear paso*».
 
 ### 6.8 · Lo que salió al probarlo él (2026-09-13, primera prueba en pantalla) — cerrado por él («*vale*»)
 

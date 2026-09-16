@@ -292,8 +292,9 @@ export const blocksMoveNow = (w: Pick<Wall, 'blocksMove' | 'isOpen'>): boolean =
  * ejes y se queda con lo que sí cabe. Así, empujando en diagonal contra una pared vertical, el token sigue
  * bajando pegado a ella, que es lo que hacen los videojuegos y lo que el dueño eligió.
  *
- * Sólo geometría, sin estado ni I/O: quién choca y cuándo se decide fuera (el director nunca choca, y sólo
- * aplica si la escena lo tiene encendido).
+ * Sólo geometría, sin estado ni I/O: quién choca y cuándo se decide fuera. Desde el 2026-09-16 choca TODO EL
+ * MUNDO al arrastrar, director incluido (él: «*nunca debió dejar traspasar puertas u objetos*» — revoca la
+ * regla del 2026-08-22, § «Quién choca»), y sólo aplica si la escena tiene las paredes sólidas encendidas.
  */
 /**
  * Lo que corta el paso puede llegar de DOS SITIOS y hay que aceptar los dos: un muro marcado sobre una foto

@@ -1488,12 +1488,6 @@ export function MapCanvas(p: Props): JSX.Element {
     : [];
   const grupoMarco = dmSight ? wallBounds(grupoCogido) : null;
   /**
-   * Los muros que hoy cortan el paso en esta escena. Vacío cuando el interruptor está apagado — y **vacío
-   * siempre para el director**, que no choca nunca (decisión del dueño, 2026-08-22). Su contrapartida, dicha
-   * en la spec: el director no puede probar en su pantalla lo que siente un jugador; se mira entrando con una
-   * cuenta de jugador.
-   */
-  /**
    * ⚡ ESTABLES A PROPÓSITO, y la mitad que de verdad importaba es `roomIds` (abajo): `roomMaskIds(...)`
    * devuelve un objeto NUEVO en cada llamada, así que el `memo` de `RoomsLayer` no habría servido de nada
    * —props distintas, cuerpo ejecutado igual— y en cada fotograma del arrastre se volvía a recorrer el
