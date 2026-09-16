@@ -2844,16 +2844,24 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     expect(within(screen.getByRole('group', { name: 'Objetos' })).getByText(/Sin objeto elegido/)).toBeInTheDocument();
   });
 
-  it('mover la ESCALA y soltar la guarda en la pieza de la biblioteca (§ 6.4), sólo con el permiso', async () => {
+  /**
+   * 🔴 Y NO se escribe en la ficha del objeto de la biblioteca. Lo hacía —era la regla vieja «por pieza»— y al
+   * pasar a la categoría se volvió dañino: la biblioteca es de la HERRAMIENTA, la ve todo el mundo, y le estaba
+   * grabando al Pino un 200 % heredado del Roble que nadie decidió para el Pino. `defaultScale` vuelve a ser
+   * sólo el tamaño de fábrica, que es justo de lo que tira una categoría que aún no sabe nada.
+   */
+  it('mover la ESCALA y soltar la apunta en la CATEGORÍA y NO toca la ficha del objeto en la biblioteca', async () => {
     const u = userEvent.setup();
-    const repo = mount('dm', seedProps());
+    const memory = fakeViewMemory();
+    const repo = mount('dm', seedProps(), 'sc-1', undefined, undefined, true, memory);
     const panel = await abrirPiezas(u);
     await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
     await u.click(await screen.findByRole('button', { name: 'Elegir Roble' }));
     const barra = screen.getByRole('slider', { name: 'Escala' });
     fireEvent.change(barra, { target: { value: '200' } });
     fireEvent.pointerUp(barra);
-    await waitFor(() => expect(repo.propUpdates).toContainEqual({ id: 'pr-oak', patch: { defaultScale: 2 } }));
+    await waitFor(() => expect(memory.m.scales).toEqual({ vegetation: 2 }));
+    expect(repo.propUpdates).toEqual([]);
   });
 
   /**
@@ -2940,6 +2948,24 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     fireEvent.pointerUp(canvas(), { pointerId: 1 });
   };
 
+  /**
+   * 📏 El OTRO camino por el que se aprende la escala (§ 6.4 · § 6.8, punto 7): estirar una YA PLANTADA también
+   * se lo enseña a su categoría, no sólo a ella. Sin esto, el director que nunca toca el deslizador del sello
+   * —el que agranda el roble tirando de la esquina— seguiría sin que el siguiente árbol le saliera a ese tamaño.
+   */
+  it('estirar una plantada también apunta la escala en su CATEGORÍA, no sólo en la pieza', async () => {
+    const u = userEvent.setup();
+    const memory = fakeViewMemory();
+    mount('dm', seedPlantadas(), 'sc-1', undefined, undefined, true, memory);
+    await abrirPiezas(u);
+    await u.click(screen.getByRole('button', { name: 'Seleccionar' }));
+    coger(400, 300);                                   // el Roble plantado (Vegetación), que está al 150 %
+    const escala = within(screen.getByRole('group', { name: 'Objetos' })).getByRole('slider', { name: 'Escala' });
+    fireEvent.change(escala, { target: { value: '200' } });
+    fireEvent.pointerUp(escala);
+    await waitFor(() => expect(memory.m.scales).toEqual({ vegetation: 2 }));
+  });
+
   it('el panel de Piezas se queda abierto al pasar a Seleccionar, y con una plantada cogida enseña LA PIEZA COGIDA: ESCALA y GIRO la cambian a ella y se guardan al soltar (§ 6.8, punto 7)', async () => {
     const u = userEvent.setup();
     const repo = mount('dm', seedPlantadas());
@@ -2958,8 +2984,8 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     expect(within(canvas()).getByTestId('mp-prop-frame')).toHaveAttribute('width', '400');
     fireEvent.pointerUp(escala);
     await waitFor(() => expect(repo.scenePropUpdates.at(-1)).toMatchObject({ id: 'sp-oak', patch: { width: 400, height: 600 } }));
-    // …y la escala se recuerda en la pieza de la biblioteca, como con las esquinas.
-    await waitFor(() => expect(repo.propUpdates).toContainEqual({ id: 'pr-oak', patch: { defaultScale: 2 } }));
+    // …y la escala se apunta en la CATEGORÍA (§ 6.4), sin tocar la ficha del objeto en la biblioteca.
+    expect(repo.propUpdates).toEqual([]);
     // GIRO: igual, en vivo y al soltar.
     const giro = within(panel).getByRole('slider', { name: 'Giro' });
     fireEvent.change(giro, { target: { value: '90' } });

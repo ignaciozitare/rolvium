@@ -26,7 +26,7 @@ import { DEFAULT_SOW, PropsPanel, type PlantMode, type SowSettings } from './Pro
 import { PropsCatalog } from './PropsCatalog';
 import { PropsUpload, type PropUploadInput } from './PropsUpload';
 import { TextureUpload, type TextureUploadInput } from './TextureUpload';
-import { dueToSow, duplicateProp, filterProps, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleChanged, scaleOfWidth, scatterIn, sortProps, sowStepPx, topZ, type PropShelf, type PropShelfContext } from '../domain/useCases/propRules';
+import { dueToSow, duplicateProp, filterProps, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleOfWidth, scatterIn, sortProps, sowStepPx, topZ, type PropShelf, type PropShelfContext } from '../domain/useCases/propRules';
 import type { StackDir } from './LayerMenu';
 import { defaultShapeFor, DEFAULT_BRUSH_COLOR, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { fogOpOf, paintActionsFor, rockPaintSrc, roomPaintSrc, layerPaintSrc, type PaintAction, type PaintOn, type PaintWith } from '../domain/useCases/paintRules';
@@ -975,19 +975,16 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   };
   const soltarSello = (): void => setStamp(null);
   /**
-   * LA ESCALA SE RECUERDA POR PIEZA (§ 6.4): al soltar el deslizador se guarda en la biblioteca, si cambió y si
-   * se tiene el permiso — sin él la base la rechazaría, y el sello sigue valiendo para esta sesión igual.
+   * LA ESCALA SE RECUERDA POR CATEGORÍA (§ 6.4): al soltar el deslizador se apunta en su categoría, que es la
+   * que mandará al elegir el siguiente objeto. Y además se sigue guardando en la propia pieza de la biblioteca
+   * —si cambió y si se tiene el permiso, que sin él la base la rechazaría—, que es de donde sale el punto de
+   * partida mientras esa categoría no tenga nada apuntado todavía.
    */
   const recordarEscala = (prop: Prop, scale: number): void => {
-    // Lo primero y SIEMPRE: la escala de la categoría es la que mandará al elegir el siguiente, y tiene que
+    // SIEMPRE, y sin condición: la escala de la categoría es la que mandará al elegir el siguiente, y tiene que
     // apuntarse aunque el objeto ya estuviera a esa escala (si no, estirar un árbol hasta el tamaño que ese
     // árbol ya tenía no enseñaría nada al resto de la Vegetación).
     memory.rememberPropScale(prop.category, scale);
-    if (!scaleChanged(prop.defaultScale, scale)) return;
-    const next = { ...prop, defaultScale: scale };
-    setLibrary(l => (l ?? []).map(x => (x.id === prop.id ? next : x)));
-    setStamp(st => (st?.id === prop.id ? next : st));
-    if (puedeOrdenarPiezas) void repo.updateProp(prop.id, { defaultScale: scale }).catch(() => undefined);
   };
   const plantar = (at: Point): void => {
     if (!stamp || !live) return;

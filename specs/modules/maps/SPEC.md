@@ -940,6 +940,10 @@ mismas piezas comunes que el Builder y el Pincel (`FloatingPanel` · `Slider` ·
   > sigue existiendo y sirve de punto de partida **mientras esa categoría no tenga nada apuntado todavía**.
   > Lo apuntado vive en el navegador de cada uno (`ViewMemoryPort`), como los favoritos: «lo grandes que planto
   > yo los árboles» es de quien planta, no de la mesa.
+  > 🔴 **Y estirar YA NO reescribe `defaultScale`**, que es lo que hacía la regla vieja. Con la categoría mandando,
+  > ese guardado pasó a ser dañino: la biblioteca es de la HERRAMIENTA y la ve todo el mundo, así que le grababa
+  > al Pino un 200 % heredado del Roble que nadie decidió para el Pino — y justo ese número es del que tira una
+  > categoría que aún no sabe nada. `defaultScale` vuelve a ser sólo el tamaño de fábrica, el de la subida.
 
 ### 6.5 · Lo plantado: coger, mover, girar, escalar, copiar
 
