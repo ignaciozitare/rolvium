@@ -64,7 +64,11 @@
 > - Y las 53 comparten **UNA sola URL** de pintura: se dibuja una vez contra el agujero, no una por sala.
 >
 > **Lo que se hizo y lo que NO está cerrado:**
-> - Rama `fix/salas-desaparecen-al-pintar`, **DOS commits**, QA automático pasado (16-09):
+> - Rama `fix/salas-desaparecen-al-pintar`, **DOS commits**, QA automático pasado (16-09, modo bloqueo: los doce
+>   pasos verdes, las dos builds y las dos sondas de producción a 200). Tres avisos que NO bloquearon: queda una
+>   ventana estrechísima de carrera (si llega el eco de otro director justo mientras baja la pintura y él empieza
+>   a pintar encima), de los cuatro tests nuevos **sólo uno falla de verdad contra `main`** —los otros tres son
+>   guardas hacia delante, no prueba de la regresión—, y el camino de descodificar no se puede probar en jsdom:
 >   · `966a321` — arregla un agujero REAL que abrió el arreglo de esta mañana: la pintura guardada que llega
 >     TARDE no se cogía nunca, porque el efecto dejó de mirar `src`. Se distingue con `tocadoRef` (si él ya
 >     pintó en este destino, mandan sus píxeles; si no, lo que llegue por la red es bueno).
@@ -74,6 +78,14 @@
 > - ⚠️ **PERO NO ESTÁ CONFIRMADO QUE FUERA SU FALLO.** Se lo di como arreglado y contestó «sigue pasando»; se
 >   comprobó que sus DOS servidores de desarrollo (5173 y 5174, los dos vivos) sí servían el código nuevo.
 >   Después dijo «ahora ya no lo hace más». **No dárselo por cerrado hasta que lo use un rato.**
+> - 🔎 **LA PISTA DE LA MÁSCARA, MIRADA Y CASI DESCARTADA (16-09 tarde)**: sí es verdad que el destino de la
+>   máscara sigue a la sala bajo el ratón y cambia a media pincelada, pero **eso no puede hacer desaparecer una
+>   sala**. Con «pintar» (que es lo que él describe: textura + transparencia) el pincel de la máscara ni se
+>   toca. Y si se tocara, perder su lienzo hace que lo DESTAPADO se vuelva a tapar — o sea, suelo que VUELVE, no
+>   suelo que se va. Además sus 56 salas tienen CERO máscaras. Queda como deuda de verdad pero de otra familia:
+>   cruzar de sala a media pincelada con «Destapar» puede perder ese trozo de brochazo, y si la máscara guardada
+>   de la sala nueva llega tarde, al soltar se sube un PNG sin ella. Mismo patrón que se arregló en la pintura
+>   (`tocadoRef`), sin aplicar todavía aquí.
 > - 🔎 **Pista sin explorar para el siguiente**: `SceneTab.tsx:806`, `paintRoom = onNow === 'room' ? rooms.find(r
 >   => r.id === hoverRoomId)` — el destino de la MÁSCARA (`useMaskPainter`, el pincel de transparencia) sigue a
 >   la sala que hay bajo el RATÓN y cambia al cruzar de una a otra. Con 56 salas pegadas y una pincelada que
