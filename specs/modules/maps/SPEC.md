@@ -1103,6 +1103,49 @@ diciendo «pieza» en la prosa de abajo por la misma razón**: manda lo que se v
 - **Varias cogidas y el botón derecho**: capa, estorbo (todas al mismo valor que toma la pinchada), apilar (una tras
   otra, en el orden en que están), duplicar y borrar mandan sobre todas; el título del menú lo dice.
 
+
+### 6.9 · LA SILUETA — la forma que estorba sale del PNG ⏳ APROBADA, SIN CONSTRUIR
+
+**Su queja, 2026-09-16, con dos capturas de sus vehículos**: la sombra que proyectaba un camión era un bloque
+negro rectangular enorme que no se parecía en nada al camión. Y su criterio, literal: «*tienen que recortar por
+la silueta del png no por el área que crees que tenga, o al menos lo más aproximado, pero no un cuadrado u óvalo
+que no tenga nada que ver con la silueta del objeto*».
+
+Se le enseñó una maqueta con SEIS objetos suyos de producción —las tres formas dibujadas encima y la sombra de
+cada una, con la luz movible— y la aprobó: «**está perfecto**».
+
+#### Cómo se saca la silueta
+- **A rayos desde el centro.** Por cada ángulo se entra desde fuera hacia dentro hasta topar con el primer píxel
+  opaco; ese punto es un vértice. Sale **siempre** un polígono simple —sin cruces, sin agujeros y con el número
+  de puntos que se pida—, que es justo lo que el motor de visión necesita para que el coste no se dispare.
+  Frente a seguir el contorno píxel a píxel: aquello da polígonos con cientos de puntos, cruces en las formas
+  raras y ningún tope de coste.
+- **24 puntos** de serie, y **50 % de opacidad** como corte de transparencia. Los dos salen de la maqueta.
+- **Cuesta lo mismo que el óvalo que ya existe**: el «círculo» de hoy es por dentro un polígono de sólo
+  `CIRCLE_SIDES = 16` lados. 24 es el mismo orden de magnitud, no uno nuevo.
+
+#### Lo que la silueta NO hace, dicho antes de construirla
+- **Rellena los huecos interiores**: el hueco entre las ruedas de un tanque o el arco de un puente quedan
+  macizos. Visto desde arriba, para tapar la vista, no se nota.
+- **No entra en entrantes muy profundos**, por ser vista desde el centro. El cañón de un tanque sí sale; una
+  forma de herradura saldría redondeada.
+- Es **su «o al menos lo más aproximado»**, no un recorte perfecto al píxel.
+
+#### Dónde vive
+- **En la pieza de la biblioteca**, como una forma más: se calcula **al subir**, en la misma pasada en la que la
+  imagen ya se dibuja en un lienzo para comprimirla (`compressImage` en `@rolvium/ui`) — sin volver a bajarla ni
+  descodificarla. La copia plantada la hereda al nacer, como hereda hoy el rectángulo.
+- **`block_shape` gana el valor `silhouette`** y la lista de puntos se guarda con la fila. Rectángulo y círculo
+  **se quedan**: no se borra nada que funcione.
+- ⏳ **Los objetos ya subidos** (133 suyos el 16-09) nacieron sin silueta. Hay que decidir con él cómo se
+  recalculan: una pasada de una vez, o la primera vez que se usa cada uno.
+
+#### Pendiente antes de tocar código
+- **DBA**: la migración (el valor nuevo de `block_shape` y la columna de los puntos, en `maps_props` y en
+  `maps_scene_props`).
+- **Diseño**: sólo si se le va a enseñar la silueta en pantalla o dejar ajustarla. Si se calcula sola y no se
+  enseña, no hay lámina que pedir.
+
 ### Reglas y límites de esta rebanada
 
 - **Planta, mueve y borra el director**; un jugador no toca una pieza. **Ordena la biblioteca quien tiene el permiso.**
