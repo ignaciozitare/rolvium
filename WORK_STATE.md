@@ -14,8 +14,14 @@
 >
 > > «*lo que quiero arreglar primero no es el chat, es lo que cuando pinto se borran las habitaciones*»
 >
-> **1. ✅ EL PINCEL QUE BORRA LAS HABITACIONES — CAZADO, ARREGLADO Y PROBADO POR ÉL: «*en local ahora
-> funciona bien*» (16-09, noche). Review y QA pasados; va a producción.**
+> **1. 🚀 EL PINCEL QUE BORRA LAS HABITACIONES — v0.12.1, EN PRODUCCIÓN.** Probado por él («*en local ahora
+> funciona bien*»), review y QA en modo bloqueo pasados, merge `b610c59`, los dos despliegues READY sobre ese
+> commit, web y api a 200 — y **comprobado que el paquete que sirve producción lleva el arreglo**, con la misma
+> forma minificada que la compilación local (no se dio por bueno el 200 a secas). Sin migraciones.
+>
+> ⏳ **LO ÚNICO QUE FALTA: que lo pruebe EN PRODUCCIÓN.** Las dos veces anteriores se cerró sin su palabra y
+> las dos falló; esta vez la palabra que hay es la del LOCAL. No darlo por cerrado del todo hasta que pinte un
+> rato en `rolvium.vercel.app`.
 >
 > > «*el fix no funciona, no dejes en el WS que ya está solucionado, SIGUE PASANDO*» (él, 16-09, por la noche,
 > > sobre los DOS intentos anteriores). Tenía razón las dos veces. Por eso esta vez no se cerró hasta que él
@@ -56,11 +62,11 @@
 > **0 duros**, y las dos builds OK. Spec actualizado en `specs/core/realtime/SPEC.md` § «Qué se puede creer de
 > un eco».
 >
-> ✅ **LO PROBÓ ÉL Y VA** («*vale en local ahora funciona bien*»), que es lo que faltaba: las dos veces
-> anteriores se dio por cerrado sin su palabra y las dos falló. Commit `f30f6d2` en la rama
-> `fix/salas-desaparecen-al-pintar`. **QA en modo bloqueo pasado** (los 12 pasos; repitió por su cuenta el
-> «2 de 4 fallan sin el arreglo» y le salió igual, con 26 de 53 salas perdiendo el contorno) y las dos sondas
-> de producción a 200. Sin migraciones.
+> ✅ **LO PROBÓ ÉL EN LOCAL Y VA** («*vale en local ahora funciona bien*»), que es lo que faltaba: las dos
+> veces anteriores se dio por cerrado sin su palabra y las dos falló. Commit del arreglo `f30f6d2`, merge a
+> `main` `b610c59`. **QA en modo bloqueo pasado** (los 12 pasos; repitió por su cuenta el «2 de 4 fallan sin el
+> arreglo» y le salió igual, con 26 de 53 salas perdiendo el contorno). Las dos vistas previas READY sobre
+> `f375642` ANTES del merge, que es la puerta obligatoria. Sin migraciones.
 >
 > ✅ **REVISIÓN PASADA, sin nada que arreglar** (16-09, noche). Comprobó lo importante de verdad: enumeró las
 > **7 columnas jsonb** de las nueve tablas que van por este canal y **sólo DOS son listas** (`maps_rooms.points`
