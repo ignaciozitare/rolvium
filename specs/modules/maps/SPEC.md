@@ -1104,7 +1104,7 @@ diciendo «pieza» en la prosa de abajo por la misma razón**: manda lo que se v
   otra, en el orden en que están), duplicar y borrar mandan sobre todas; el título del menú lo dice.
 
 
-### 6.9 · LA SILUETA — la forma que estorba sale del PNG ✅ CONSTRUIDA (menos el botón de la pasada)
+### 6.9 · LA SILUETA — la forma que estorba sale del PNG ✅ CONSTRUIDA
 
 **Su queja, 2026-09-16, con dos capturas de sus vehículos**: la sombra que proyectaba un camión era un bloque
 negro rectangular enorme que no se parecía en nada al camión. Y su criterio, literal: «*tienen que recortar por
@@ -1137,9 +1137,15 @@ cada una, con la luz movible— y la aprobó: «**está perfecto**».
   descodificarla. La copia plantada la hereda al nacer, como hereda hoy el rectángulo.
 - **`block_shape` gana el valor `silhouette`** y la lista de puntos se guarda con la fila. Rectángulo y círculo
   **se quedan**: no se borra nada que funcione.
-- ✅ **Los objetos ya subidos** (133 suyos el 16-09) nacieron sin silueta, y él decidió el mismo día: «*hazlas
-  de a una vez*». Es una **pasada única** que se lanza a mano desde la biblioteca, va de una en una y es
-  **repetible**: sólo mira las que aún no la tienen.
+- ✅ **Los objetos ya subidos** (**149** suyos el 16-09) nacieron sin silueta, y él decidió el mismo día:
+  «*hazlas de a una vez*». Es una **pasada única**, y **NO es un botón de la aplicación**: es
+  `scripts/gen-silhouettes.mjs`, que se lanza a mano desde el repositorio y **escribe un fichero de migración**
+  —no toca ninguna base de datos—. Va de una en una y es **repetible**: sólo mira los que aún no la tienen.
+  > 🔴 **Hubo lámina de un botón en la barra de la biblioteca, y él lo paró en cuanto la vio** (16-09): «*¿por
+  > qué no lo haces automáticamente, por qué un botón?*». Tenía razón: es un trabajo de UNA SOLA VEZ —lo que se
+  > suba a partir de ahora saca su silueta al subirse—, así que un botón permanente sería basura para siempre.
+  > Y hacerlo solo al abrir la biblioteca tampoco valía: le caería encima al primero que entre, 149 descargas y
+  > 149 escrituras sin pedirle permiso, y si falla la mitad no se entera nadie. **No volver a proponerlo.**
   - Una foto que no se deja bajar (red, CORS) **no para la pasada**: se cuenta y se sigue.
   - Un objeto al que él le puso **óvalo a mano no se pisa**: se le guarda la silueta, pero la forma elegida
     sigue siendo la suya. Sólo se cambia la forma cuando sigue siendo el rectángulo de fábrica.
@@ -1167,9 +1173,25 @@ cada una, con la luz movible— y la aprobó: «**está perfecto**».
 - **Nacer con silueta NO hace que estorbe**: «tapa la vista» y «corta el paso» siguen naciendo apagados. La
   silueta sólo decide CON QUÉ FORMA estorbará el día que él los encienda.
 
-#### Lo único que falta
-- ⏳ **El botón que lanza la pasada**, en la biblioteca, con su avance. Es pantalla, así que va detrás del paso
-  de diseño en el `.pen` — el motor ya está construido y probado.
+- **La pasada de lo ya subido**, `scripts/gen-silhouettes.mjs`: baja cada foto, le saca el contorno con el
+  MISMO motor de `@rolvium/core` —no hay una segunda verdad geométrica— y escribe la migración. Descodifica en
+  un Chromium sin ventana porque Node no sabe abrir un WebP con transparencia; a la página se le pasan los
+  BYTES, así que no sale a la red: ni CORS ni lienzo manchado. Un id que no sea un UUID no llega al texto de la
+  migración. **149 de 149 sin un fallo**, y ninguna silueta sale igual que el cuadrado: la que menos recorta se
+  queda en el 76 % de la caja, la mediana en el 53 % y la que más baja al 20 %.
+- La migración de datos `20260916200000_maps_props_siluetas_de_lo_ya_subido.sql` es **repetible**: cada
+  sentencia sólo toca la fila si sigue SIN silueta, y la forma sólo cambia si sigue siendo el rectángulo de
+  fábrica.
+
+#### El orden de la entrega, y por qué no se puede invertir
+1. La migración de la COLUMNA (`20260916190000`).
+2. El código (merge y despliegue).
+3. **Y sólo entonces** la migración de los DATOS (`20260916200000`).
+
+Al revés se rompe: con los datos puestos y el código viejo todavía vivo, `plantProp` mandaría
+`block_shape = 'silhouette'` sin traer la lista, y **plantar un objeto en producción fallaría** contra
+`maps_scene_props_silhouette_shape_check`. En el sentido bueno no hay ventana: código nuevo sin datos es
+exactamente lo de hoy, rectángulos.
 
 ### Reglas y límites de esta rebanada
 

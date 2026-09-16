@@ -62,7 +62,7 @@ maqueta que aprobó con «está perfecto»).
 - **Nada de lo viejo cambia**: sin silueta guardada se estorba con el rectángulo de siempre. Defendido en cuatro
   sitios a la vez (el CHECK de la base, el motor, el cálculo de la subida y un test del servidor), porque el
   fallo peligroso aquí es **dejar de estorbar en silencio**.
-- **La pasada de una vez para sus 133** (su «*hazlas de a una vez*») está construida y probada: va de una en
+- **La pasada de una vez para sus 149** (su «*hazlas de a una vez*») está construida y probada: va de una en
   una, es repetible, una foto que no se deja bajar no para las demás, y **alcanza también a lo YA PLANTADO** —
   lo que él ve en sus mapas son copias, así que arreglar sólo la biblioteca no cambiaría una sola sombra de las
   que ya tiene puestas. Un óvalo que puso él a mano no se pisa ni arriba ni en las copias.
@@ -115,10 +115,8 @@ pueda editar una silueta en el sitio, la niebla no se enteraría.
 > puntos y 50 % de corte, calculada AL SUBIR dentro de la pasada que ya comprime la imagen, y `block_shape`
 > gana el valor `silhouette`. Cuesta lo mismo que el óvalo (que por dentro ya es un polígono de 16 lados).
 >
-> ⏳ **BLOQUEADO EN UNA PREGUNTA SUYA, hecha y sin responder**: sus **133 objetos ya subidos** no tienen
-> silueta. ¿Una **pasada de una vez** desde la biblioteca (recomendada), o **perezosa**, la primera vez que se
-> planta cada uno? Sin eso no se empieza, porque cambia la migración y la UI.
-> Después: DBA (migración) → Dev → Review → QA.
+> ✅ **CONTESTADO Y HECHO** (registro): «hazlas de a una vez». Terminó siendo un script del repositorio y no un
+> botón —lo paró él— y fueron **149**, no 133, porque siguió subiendo. Ver el bloque 🎯 del principio.
 >
 > ### ✅ CERRADO HOY: LOS OBJETOS QUE ESTORBAN (su queja del 16-09, con dos capturas)
 > «*no funciona lo de bloquear paso y linea de vision, hace cosas raras visualmente*». Diagnóstico HECHO
