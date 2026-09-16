@@ -46,7 +46,41 @@
 > - Cuatro comentarios que seguían afirmando «el director no choca» —uno HUÉRFANO, otro en la función que
 >   implementa el freno— corregidos. Misma lección del día: el texto viejo es lo que resucita la regla vieja.
 >
-> ### 🎯 LO SIGUIENTE, YA APROBADO POR ÉL: **LA SILUETA** (spec escrito, sin construir)
+> ### 🎯 **LA SILUETA — CONSTRUIDA ENTERA MENOS EL BOTÓN** (rama `feat/silueta-de-los-objetos`, 2026-09-16 tarde)
+Rama sacada de `main`, **sin mergear y sin migración en producción todavía**. El spec § 6.9 va al día en la misma
+rama (la vieja `docs/spec-silueta` ya viene dentro: `1417222`). Review pasada, `npm run audit` 0 duros, y verde
+entero: web 2023 · api 305 · core 133 · ui 23.
+
+**Lo que hace, dicho como lo ve él**: la sombra de un camión ya no es un bloque negro rectangular. Se saca el
+contorno del PNG a rayos desde el centro (24 puntos, corte al 50 % de opacidad — los dos números salen de la
+maqueta que aprobó con «está perfecto»).
+
+- **Al subir un objeto nuevo sale sola**, dentro de la MISMA pasada que ya comprime la imagen: ni una descarga
+  más ni una descodificación más. Se guarda con la fila, y la copia plantada la hereda al nacer.
+- **Nacer con silueta NO la hace estorbar**: «tapa la vista» y «corta el paso» siguen naciendo apagados. La
+  silueta sólo decide CON QUÉ FORMA estorbará el día que él los encienda.
+- **Nada de lo viejo cambia**: sin silueta guardada se estorba con el rectángulo de siempre. Defendido en cuatro
+  sitios a la vez (el CHECK de la base, el motor, el cálculo de la subida y un test del servidor), porque el
+  fallo peligroso aquí es **dejar de estorbar en silencio**.
+- **La pasada de una vez para sus 133** (su «*hazlas de a una vez*») está construida y probada: va de una en
+  una, es repetible, una foto que no se deja bajar no para las demás, y **alcanza también a lo YA PLANTADO** —
+  lo que él ve en sus mapas son copias, así que arreglar sólo la biblioteca no cambiaría una sola sombra de las
+  que ya tiene puestas. Un óvalo que puso él a mano no se pisa ni arriba ni en las copias.
+
+🔴 **El hallazgo gordo de la review, escrito para que no se repita**: el servidor —que es quien calcula lo que se
+ve— **no leía la columna nueva**, así que habría seguido tapando con el rectángulo mientras el navegador frenaba
+por el contorno de verdad: los dos lados discrepando en silencio. No lo cazó el compilador porque esa fila se lee
+con una conversión forzada. Ahora los dos usan los MISMOS tipos de `@rolvium/core`, y hay test del lado servidor.
+
+⏳ **LO ÚNICO QUE FALTA: el botón que lanza la pasada**, en la biblioteca, con su avance. Es pantalla, así que va
+detrás del paso de diseño en el `.pen` — **y el `.pen` sólo lo guarda él**. Preguntado y esperando respuesta:
+¿lámina ahora, o el botón para después?
+
+🧹 Deuda menuda anotada y NO tocada: la clave que dispara el recálculo de la niebla (`useScene.ts:296`) no incluye
+la silueta. Hoy no hay camino que la cambie sin cambiar también la forma, así que no se manifiesta; el día que se
+pueda editar una silueta en el sitio, la niebla no se enteraría.
+
+### 🎯 CÓMO SE APROBÓ (registro; ya construido)
 > Su queja: la sombra de un camión era un bloque negro rectangular. «*Tienen que recortar por la silueta del png
 > … o al menos lo más aproximado*». Se le hizo una **maqueta con SEIS objetos suyos de producción** (las tres
 > formas y la sombra de cada una, con la luz movible) y contestó «**está perfecto**».
