@@ -99,8 +99,14 @@ propios tests.
 y mergear. Ojo al coste: la de datos son 125 KB (~48k tokens por `apply_migration`). Pendiente de su palabra
 porque toca producción.
 
-⚠️ **EL `.pen` COMMITEADO ES DE LAS 19:48 Y TODAVÍA LLEVA LAS DOS LÁMINAS DEL BOTÓN.** Se borraron a las 19:57 en
-el buffer del MCP, pero eso no llega al disco sin su Cmd+S. **Pedírselo y commitear el `.pen` otra vez.**
+✅ **El `.pen` quedó limpio**: guardó él a las 19:48 y el commit `1b55613` se llevó las dos láminas del botón
+(5.166 líneas menos, cero añadidas — la firma de un borrado de láminas, no de una escritura a medias). El QA lo
+abrió y lo dio por íntegro: 115 láminas de primer nivel, 31 componentes, secciones numeradas intactas.
+
+🧾 **Desfase menor anotado a propósito**: producción registró la migración de la columna como `20260916182937` y
+el fichero del repositorio es `20260916190000`. No se arregla: la migración es idempotente y las de producción
+van por MCP, nunca por `db push`, así que nada se re-aplica solo. Renombrar un fichero ya aplicado o insertar a
+mano una fila en el registro es más peligroso que el desajuste.
 
 🧹 Deuda menuda anotada y NO tocada: la clave que dispara el recálculo de la niebla (`useScene.ts:296`) no incluye
 la silueta. Hoy no hay camino que la cambie sin cambiar también la forma, así que no se manifiesta; el día que se
