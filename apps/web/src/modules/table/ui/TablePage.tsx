@@ -57,7 +57,8 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
   /** SUSURROS (H8): no leídos de toda la campaña (campanita de la pestaña) y la conversación que el directorio
    * acaba de abrir, para que salga TAMBIÉN como pastilla sobre la mesa (`WhisperWatcher`, fuera de las pestañas). */
   const [chatUnread, setChatUnread] = useState(0);
-  const [chatReadTick, setChatReadTick] = useState(0);   // sube cada vez que se marca leída una conversación → `WhisperWatcher` recuenta
+  // Cuál marcó leída la columna, y cuántas veces: `WhisperWatcher` recuenta el total y le quita el contador a esa pastilla
+  const [chatRead, setChatRead] = useState<{ id: string; tick: number } | null>(null);
   const [pillRequest, setPillRequest] = useState<{ id: string; title: string } | null>(null);
   /** El panel lateral se pliega para dejarle el ancho al mapa (dueño, 2026-08-31). Mismo gesto que la reserva de la cabecera. */
   const [sideOpen, setSideOpen] = useState(true);
@@ -223,7 +224,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
             </button>
             {sideOpen && <SidePanel campaignId={campaign.id} system={system} rollerOpen={rollerOpen} onToggleRoller={() => setRollerOpen(o => !o)} log={rollLog}
               myUserId={user.id} chatUnread={chatUnread}
-              onChatRead={() => setChatReadTick(n => n + 1)} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat} />}
+              onChatRead={id => setChatRead(prev => ({ id, tick: (prev?.tick ?? 0) + 1 }))} onChatOpen={(id, title) => setPillRequest({ id, title })} chat={chat} />}
           </aside>
         </div>
         {rollerOpen && <DiceRoller campaignId={campaign.id} rolls={rolls} onClose={() => setRollerOpen(false)}
@@ -254,7 +255,7 @@ export function TablePage({ repo = tableRepo, charactersRepo = defaultCharacters
         */}
         <WhisperWatcher campaignId={campaign.id} myUserId={user.id} system={system} chat={chat}
                         requestOpen={pillRequest} onRequestOpenConsumed={() => setPillRequest(null)}
-                        onUnreadChange={setChatUnread} refreshKey={chatReadTick} />
+                        onUnreadChange={setChatUnread} readInColumn={chatRead} />
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ interface Props {
   pendingChatOpen?: { id: string; title: string } | null;
   onPendingChatOpenConsumed?: () => void;
   /** Se marcó leída una conversación: `TablePage` se lo pasa a `WhisperWatcher` para que recuente. */
-  onChatRead?: () => void;
+  onChatRead?: (conversationId: string) => void;
   /** Se abrió una conversación en el directorio: `TablePage` saca TAMBIÉN su pastilla sobre la mesa. */
   onChatOpen?: (conversationId: string, title: string) => void;
   chat?: ChatPort;

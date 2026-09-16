@@ -44,6 +44,8 @@ sólo lo privado. Decisión suya del 2026-09-15, que deja sin efecto el «canal 
     mensaje entra directo. Esto SUSTITUYE al aviso que saltaba y se iba solo a los pocos segundos (lo construido
     el 15-09 como «pastilla», que él no había pedido así).
   - Al desplegarla se marca como leída y deja de estar en rojo.
+  - **Mirar es mirar, dé igual dónde**: si esa conversación se está leyendo en la columna, lo que llegue NO le
+    pone contador ni rojo a su barrita. Lo mismo que si la pastilla estuviera desplegada.
 - La pestaña lleva un **contador de no leídos**.
 - **Tirar en privado dentro de la conversación**, y **traer una tirada del Registro** a la conversación para
   enseñarla («mirad esto»).

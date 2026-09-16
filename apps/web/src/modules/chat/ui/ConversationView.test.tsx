@@ -77,6 +77,8 @@ describe('<ConversationView>', () => {
     renderWithProviders(<ConversationView campaignId="c1" conversationId="conv1" title="Laura" myUserId="me" system={null} onBack={() => {}} onRead={onRead} chat={chat} />);
     await screen.findByText('Todavía no hay mensajes.');
     await vi.waitFor(() => expect(onRead).toHaveBeenCalledTimes(1));
+    // dice CUÁL se ha leído: con eso el rincón le quita el contador a esa pastilla aunque se lea en la columna
+    expect(onRead).toHaveBeenCalledWith('conv1');
     chat.push({ ...TEXT_MSG, id: 'm3', body: 'Nuevo susurro' });
     await screen.findByText('Nuevo susurro');
     await vi.waitFor(() => expect(onRead).toHaveBeenCalledTimes(2));

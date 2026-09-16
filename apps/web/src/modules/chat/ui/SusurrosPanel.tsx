@@ -19,7 +19,7 @@ interface Props {
   pendingOpen?: { id: string; title: string } | null;
   onPendingOpenConsumed?: () => void;
   /** Una conversación acaba de marcarse leída — sube hasta `WhisperWatcher` para refrescar la campanita. */
-  onRead?: () => void;
+  onRead?: (conversationId: string) => void;
   /** Se abrió una conversación: sube a `TablePage` para que salga TAMBIÉN su pastilla sobre la mesa (2026-09-16). */
   onOpenConversation?: (conversationId: string, title: string) => void;
 }

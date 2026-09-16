@@ -290,8 +290,8 @@ describe('table: page', () => {
     await within(panel).findByText('Todavía no hay mensajes.');
     await u.click(screen.getByRole('tab', { name: 'Registro' }));
     await waitFor(() => expect(screen.getByRole('tab', { name: /Susurros/ })).not.toHaveTextContent('2'));
-    // Desde el 16-09 la misma conversación se ve en DOS sitios a la vez (la columna y su pastilla), y cada uno
-    // marca leído al abrirse: la llamada es idempotente (pone la hora), así que lo que importa es que ocurra.
+    // Quien marca leído es la COLUMNA: la pastilla nace como barrita y no monta la conversación por dentro
+    // hasta que él la despliega. La llamada es idempotente (pone la hora), así que lo que importa es que ocurra.
     expect(chat.read).toContain('conv-1');
   });
 
@@ -307,8 +307,15 @@ describe('table: page', () => {
     const pastilla = await screen.findByLabelText('Conversación con Laura');
     // nace como BARRITA: la conversación ya se está leyendo en la columna, no hace falta verla dos veces
     expect(within(pastilla).queryByPlaceholderText('Escribe a Laura…')).not.toBeInTheDocument();
-    await u.click(within(pastilla).getByRole('button', { name: 'Abrir la conversación con Laura' }));
-    expect(await within(pastilla).findByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();
+    // y lo que llegue mientras la lee EN LA COLUMNA no le deja la barrita en sangre con un contador de algo leído
+    chat.push({ id: 'm-live', conversationId: 'conv-1', authorId: 'dm-1', authorName: 'Laura', authorAvatarUrl: null, kind: 'text',
+      body: 'Escuchas un ruido detrás de ti.', characterId: null, characterName: null, systemId: null,
+      rollKind: null, rollRequest: null, rollDice: null, rollResult: null, rollRefId: null, createdAt: '2026-09-16T21:04:00Z' });
+    await within(screen.getByRole('tabpanel')).findByText('Escuchas un ruido detrás de ti.');
+    await waitFor(() => expect(screen.getByLabelText('Conversación con Laura').className).not.toContain('alert'));
+    expect(within(screen.getByLabelText('Conversación con Laura')).queryByText('1')).not.toBeInTheDocument();
+    await u.click(within(screen.getByLabelText('Conversación con Laura')).getByRole('button', { name: 'Abrir la conversación con Laura' }));
+    expect(await within(screen.getByLabelText('Conversación con Laura')).findByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();
     // la columna se va al Registro y la pastilla sigue: es para eso, para no perder el susurro de vista
     await u.click(screen.getByRole('tab', { name: 'Registro' }));
     expect(screen.getByLabelText('Conversación con Laura')).toBeInTheDocument();

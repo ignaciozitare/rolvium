@@ -83,6 +83,33 @@ describe('<WhisperWatcher> — el rincón de las pastillas', () => {
     expect(screen.queryByLabelText('Conversación con Laura')).not.toBeInTheDocument();
   });
 
+  it('si la pastilla YA estaba puesta, volver a abrirla desde el directorio NO la despliega: sólo pone el contador a cero', async () => {
+    const chat = fakeChatPort({ messages: { conv1: [] } });
+    const { rerender } = renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} />);
+    chat.push(FROM_LAURA);
+    await screen.findByText('1');
+    rerender(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()}
+      requestOpen={{ id: 'conv1', title: 'Laura' }} />);
+    await vi.waitFor(() => expect(screen.queryByText('1')).not.toBeInTheDocument());
+    expect(screen.getByLabelText('Conversación con Laura').className).not.toContain('alert');
+    // sigue siendo barrita: la conversación se lee en la columna
+    expect(screen.getByRole('button', { name: 'Abrir la conversación con Laura' })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Escribe a Laura…')).not.toBeInTheDocument();
+  });
+
+  it('si él la había DESPLEGADO, volver a abrirla desde el directorio la respeta: no se le cierra en la cara', async () => {
+    const u = userEvent.setup();
+    const chat = fakeChatPort({ messages: { conv1: [] } });
+    const { rerender } = renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} />);
+    chat.push(FROM_LAURA);
+    await u.click(await screen.findByRole('button', { name: 'Abrir la conversación con Laura' }));
+    expect(await screen.findByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();
+    rerender(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()}
+      requestOpen={{ id: 'conv1', title: 'Laura' }} />);
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Minimizar la conversación con Laura' })).toBeInTheDocument());
+    expect(screen.getByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();
+  });
+
   it('desplegar una minimizada pone su contador a cero', async () => {
     const u = userEvent.setup();
     const chat = fakeChatPort({ messages: { conv1: [] } });
@@ -106,15 +133,34 @@ describe('<WhisperWatcher> — el rincón de las pastillas', () => {
     expect(screen.queryByLabelText('Conversación con Laura')).not.toBeInTheDocument();
   });
 
-  it('avisa el total de no leídos al montar, en cada mensaje y cuando cambia refreshKey — sin resuscribir', async () => {
+  it('avisa el total de no leídos al montar, en cada mensaje y cuando la columna marca leído — sin resuscribir', async () => {
     const chat = fakeChatPort({ directory: [{ key: 'laura', conversationId: 'conv1', isGroup: false, title: 'Laura', role: 'dm', memberCount: null, memberIds: ['laura'], lastKind: 'text', lastBody: 'hola', unreadCount: 2 }] });
     const onUnreadChange = vi.fn();
-    const { rerender } = renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} onUnreadChange={onUnreadChange} refreshKey={0} />);
+    const { rerender } = renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} onUnreadChange={onUnreadChange} readInColumn={null} />);
     await vi.waitFor(() => expect(onUnreadChange).toHaveBeenCalledWith(2));
     chat.directory[0]!.unreadCount = 0;
-    rerender(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} onUnreadChange={onUnreadChange} refreshKey={1} />);
+    rerender(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()} onUnreadChange={onUnreadChange} readInColumn={{ id: 'conv1', tick: 1 }} />);
     await vi.waitFor(() => expect(onUnreadChange).toHaveBeenLastCalledWith(0));
     expect(chat.subscribers).toBe(1);
+  });
+
+  /**
+   * 🐞 El precio de que la pastilla nazca barrita: el mensaje que llega mientras él lee esa conversación EN LA
+   * COLUMNA no puede dejarle la barrita en sangre con un «1» de algo que acaba de leer. La columna dice cuál ha
+   * marcado leída y esa pastilla se queda a cero. (Review del 2026-09-16.)
+   */
+  it('lo que llega mientras la lees EN LA COLUMNA no deja contador en la barrita', async () => {
+    const chat = fakeChatPort({ messages: { conv1: [] } });
+    const { rerender } = renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()}
+      requestOpen={{ id: 'conv1', title: 'Laura' }} readInColumn={{ id: 'conv1', tick: 1 }} />);
+    await screen.findByLabelText('Conversación con Laura');
+    chat.push(FROM_LAURA);                       // llega mientras él la está leyendo en la columna
+    await screen.findByText('1');                // por un instante sí sube…
+    // …y la columna, que también lo recibe, marca leído: eso es lo que llega aquí
+    rerender(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()}
+      requestOpen={null} readInColumn={{ id: 'conv1', tick: 2 }} />);
+    await vi.waitFor(() => expect(screen.queryByText('1')).not.toBeInTheDocument());
+    expect(screen.getByLabelText('Conversación con Laura').className).not.toContain('alert');
   });
 
   it('una pastilla de GRUPO nacida de un susurro se corrige con el nombre de verdad, no el de quien escribió', async () => {

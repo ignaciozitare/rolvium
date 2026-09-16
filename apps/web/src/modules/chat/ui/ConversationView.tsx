@@ -19,8 +19,12 @@ interface Props {
   onBack: () => void;
   /** Dentro de una PASTILLA la cabecera la pone ella (avatar, nombre, minimizar, cerrar): dos seguidas sobran. */
   hideHead?: boolean;
-  /** Se acaba de marcar leído (al abrir, y con cada mensaje ajeno que llega): quien lleve la campanita, que se refresque. */
-  onRead?: () => void;
+  /**
+   * Se acaba de marcar leído (al abrir, y con cada mensaje ajeno que llega): quien lleve la campanita, que se
+   * refresque. Dice CUÁL se ha leído porque el rincón de las pastillas lo necesita: si esta conversación tiene
+   * pastilla, se le quita el contador —la está leyendo, aunque sea en la columna y no en la ventanita.
+   */
+  onRead?: (conversationId: string) => void;
   chat?: ChatPort;
 }
 
@@ -52,7 +56,7 @@ export function ConversationView({ campaignId, conversationId, title, myUserId, 
     let alive = true;
     setStatus('loading');
     chat.listMessages(conversationId).then(list => { if (alive) { setMessages(list); setStatus('ready'); } }).catch(() => { if (alive) setStatus('error'); });
-    const markRead = () => chat.markRead(conversationId).then(() => { if (alive) onReadRef.current?.(); });
+    const markRead = () => chat.markRead(conversationId).then(() => { if (alive) onReadRef.current?.(conversationId); });
     void markRead();
     const off = chat.subscribeMessages(campaignId, m => {
       if (m.conversationId !== conversationId) return;

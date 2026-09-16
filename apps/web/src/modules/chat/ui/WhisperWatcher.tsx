@@ -27,8 +27,13 @@ interface Props {
   onRequestOpenConsumed?: () => void;
   /** Total de no leídos de toda la campaña, para la campanita de la pestaña SUSURROS. */
   onUnreadChange?: (total: number) => void;
-  /** Cambia cuando se marca leída una conversación en la columna: el total se recuenta. */
-  refreshKey?: number;
+  /**
+   * Lo último que marcó leído LA COLUMNA, con su cuenta para que cada marca cuente como una. El total se
+   * recuenta, y esa pastilla se queda sin contador: la está leyendo, aunque sea en la columna y no en la
+   * ventanita. Sin esto, abrir a alguien en el directorio dejaba su barrita en sangre con un «1» de un mensaje
+   * que él acababa de leer (visto en la review del 2026-09-16).
+   */
+  readInColumn?: { id: string; tick: number } | null;
 }
 
 /**
@@ -45,9 +50,10 @@ interface Props {
  *     conversación dos veces a la vez (decisión suya, 2026-09-16).
  *   · Si te susurran y no tenías esa pastilla, nace MINIMIZADA, en sangre y con un ruidito.
  *   · Si ya la tenías desplegada, el mensaje entra dentro y no suena nada: lo estás mirando.
+ *   · Y si la estás leyendo EN LA COLUMNA, su barrita tampoco coge contador: mirar es mirar, dé igual dónde.
  *   · Lo tuyo nunca suena ni te pone contador.
  */
-export function WhisperWatcher({ campaignId, myUserId, system, chat = defaultChat, sound = defaultSound, requestOpen, onRequestOpenConsumed, onUnreadChange, refreshKey = 0 }: Props): JSX.Element | null {
+export function WhisperWatcher({ campaignId, myUserId, system, chat = defaultChat, sound = defaultSound, requestOpen, onRequestOpenConsumed, onUnreadChange, readInColumn = null }: Props): JSX.Element | null {
   const { t } = useTranslation();
   const [pills, setPills] = useState<Pill[]>([]);
   /* Espejo en un ref: el oyente de tiempo real necesita saber si la pastilla YA existe *antes* de tocar el
@@ -80,7 +86,11 @@ export function WhisperWatcher({ campaignId, myUserId, system, chat = defaultCha
     }).catch(() => {});
   }, [chat, campaignId, myUserId]);
 
-  useEffect(() => { pullDirectory(); }, [pullDirectory, refreshKey]);
+  useEffect(() => {
+    pullDirectory();
+    const leida = readInColumn?.id;
+    if (leida) setPills(prev => prev.map(p => (p.conversationId === leida ? { ...p, unread: 0 } : p)));
+  }, [pullDirectory, readInColumn]);
 
   /** Sitio para una más: la cuarta echa a la más vieja (la primera de la fila). */
   const fit = (list: Pill[]): Pill[] => (list.length > MAX_PILLS ? list.slice(list.length - MAX_PILLS) : list);
