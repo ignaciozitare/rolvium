@@ -14,7 +14,8 @@
 >
 > > «*lo que quiero arreglar primero no es el chat, es lo que cuando pinto se borran las habitaciones*»
 >
-> **1. ✅ EL PINCEL QUE BORRA LAS HABITACIONES — CAZADO Y ARREGLADO. ⏳ FALTA QUE LO PRUEBE ÉL.**
+> **1. ✅ EL PINCEL QUE BORRA LAS HABITACIONES — CAZADO, ARREGLADO Y PROBADO POR ÉL: «*en local ahora
+> funciona bien*» (16-09, noche). Review y QA pasados; va a producción.**
 >
 > **LA CAUSA, MEDIDA Y NO SUPUESTA** (sus dos pistas del 16-09 la partieron por la mitad: «*sólo pasa con las
 > habitaciones en freehand*» y «*si recargo vuelven*»).
@@ -51,9 +52,11 @@
 > **0 duros**, y las dos builds OK. Spec actualizado en `specs/core/realtime/SPEC.md` § «Qué se puede creer de
 > un eco».
 >
-> ⏳ **LO QUE FALTA**: que lo pruebe él en `localhost:5173` (su local está en la rama
-> `fix/salas-desaparecen-al-pintar`, con el arreglo ya dentro **sin commitear**). Si dice que va, entonces
-> review → QA → merge. **No darlo por cerrado antes**: ya se dio por cerrado dos veces y las dos falló.
+> ✅ **LO PROBÓ ÉL Y VA** («*vale en local ahora funciona bien*»), que es lo que faltaba: las dos veces
+> anteriores se dio por cerrado sin su palabra y las dos falló. Commit `f30f6d2` en la rama
+> `fix/salas-desaparecen-al-pintar`. **QA en modo bloqueo pasado** (los 12 pasos; repitió por su cuenta el
+> «2 de 4 fallan sin el arreglo» y le salió igual, con 26 de 53 salas perdiendo el contorno) y las dos sondas
+> de producción a 200. Sin migraciones.
 >
 > ✅ **REVISIÓN PASADA, sin nada que arreglar** (16-09, noche). Comprobó lo importante de verdad: enumeró las
 > **7 columnas jsonb** de las nueve tablas que van por este canal y **sólo DOS son listas** (`maps_rooms.points`
