@@ -1104,7 +1104,7 @@ diciendo «pieza» en la prosa de abajo por la misma razón**: manda lo que se v
   otra, en el orden en que están), duplicar y borrar mandan sobre todas; el título del menú lo dice.
 
 
-### 6.9 · LA SILUETA — la forma que estorba sale del PNG ⏳ APROBADA, SIN CONSTRUIR
+### 6.9 · LA SILUETA — la forma que estorba sale del PNG ✅ CONSTRUIDA (menos el botón de la pasada)
 
 **Su queja, 2026-09-16, con dos capturas de sus vehículos**: la sombra que proyectaba un camión era un bloque
 negro rectangular enorme que no se parecía en nada al camión. Y su criterio, literal: «*tienen que recortar por
@@ -1137,14 +1137,34 @@ cada una, con la luz movible— y la aprobó: «**está perfecto**».
   descodificarla. La copia plantada la hereda al nacer, como hereda hoy el rectángulo.
 - **`block_shape` gana el valor `silhouette`** y la lista de puntos se guarda con la fila. Rectángulo y círculo
   **se quedan**: no se borra nada que funcione.
-- ⏳ **Los objetos ya subidos** (133 suyos el 16-09) nacieron sin silueta. Hay que decidir con él cómo se
-  recalculan: una pasada de una vez, o la primera vez que se usa cada uno.
+- ✅ **Los objetos ya subidos** (133 suyos el 16-09) nacieron sin silueta, y él decidió el mismo día: «*hazlas
+  de a una vez*». Es una **pasada única** que se lanza a mano desde la biblioteca, va de una en una y es
+  **repetible**: sólo mira las que aún no la tienen.
+  - Una foto que no se deja bajar (red, CORS) **no para la pasada**: se cuenta y se sigue.
+  - Un objeto al que él le puso **óvalo a mano no se pisa**: se le guarda la silueta, pero la forma elegida
+    sigue siendo la suya. Sólo se cambia la forma cuando sigue siendo el rectángulo de fábrica.
+  - 🔑 **Alcanza también a lo YA PLANTADO en los mapas**, no sólo a la biblioteca. Lo que él ve en sus escenas
+    son copias: arreglar sólo la biblioteca no cambiaría una sola de las sombras que ya tiene puestas. Una
+    escritura por objeto (`prop_id` + forma de fábrica), sin recorrer escena por escena.
 
-#### Pendiente antes de tocar código
-- **DBA**: la migración (el valor nuevo de `block_shape` y la columna de los puntos, en `maps_props` y en
-  `maps_scene_props`).
-- **Diseño**: sólo si se le va a enseñar la silueta en pantalla o dejar ajustarla. Si se calcula sola y no se
-  enseña, no hay lámina que pedir.
+#### Cómo quedó construido (2026-09-16)
+- **Migración** `20260916190000_maps_props_silhouette.sql`: `block_shape` gana `silhouette` y aparece la lista
+  de puntos en `maps_props.default_silhouette` y `maps_scene_props.silhouette`. Los puntos van en **fracciones
+  de la huella** (-0,5 … +0,5 desde el centro) y no en píxeles: así estirar la pieza no obliga a reescribirlos
+  —`block_w`/`block_h` ya se estiran y son los que la miden— y la copia plantada hereda la misma lista.
+  Un CHECK impide decir «estorbo por mi silueta» sin traerla: si no, la pieza dejaría de estorbar **en
+  silencio**, que es la clase de fallo que se ve en pantalla y no en el código.
+- **`@rolvium/core`**: `silhouetteRing` (los rayos) y `propBlockRing` (de fracciones a píxeles de escena, ya
+  girada). **Sin lista guardada se cae al rectángulo**: una pieza vieja estorba como hasta hoy, nunca menos.
+- **`@rolvium/ui`**: el compresor puede devolver la **opacidad en crudo** de la imagen que ya tiene abierta, así
+  que la silueta sale en la misma pasada de la subida. La biblioteca de componentes **no** pasa a depender del
+  motor de juego: devuelve opacidad, no geometría.
+- **Nacer con silueta NO hace que estorbe**: «tapa la vista» y «corta el paso» siguen naciendo apagados. La
+  silueta sólo decide CON QUÉ FORMA estorbará el día que él los encienda.
+
+#### Lo único que falta
+- ⏳ **El botón que lanza la pasada**, en la biblioteca, con su avance. Es pantalla, así que va detrás del paso
+  de diseño en el `.pen` — el motor ya está construido y probado.
 
 ### Reglas y límites de esta rebanada
 
