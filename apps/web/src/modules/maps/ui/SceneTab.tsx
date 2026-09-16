@@ -26,7 +26,7 @@ import { DEFAULT_SOW, PropsPanel, type PlantMode, type SowSettings } from './Pro
 import { PropsCatalog } from './PropsCatalog';
 import { PropsUpload, type PropUploadInput } from './PropsUpload';
 import { TextureUpload, type TextureUploadInput } from './TextureUpload';
-import { dueToSow, duplicateProp, filterProps, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleChanged, scaleOfWidth, scatterIn, sortProps, sowStepPx, topZ, type PropShelf, type PropShelfContext } from '../domain/useCases/propRules';
+import { dueToSow, duplicateProp, filterProps, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleOfWidth, scatterIn, sortProps, sowStepPx, topZ, type PropShelf, type PropShelfContext } from '../domain/useCases/propRules';
 import type { StackDir } from './LayerMenu';
 import { defaultShapeFor, DEFAULT_BRUSH_COLOR, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { fogOpOf, paintActionsFor, rockPaintSrc, roomPaintSrc, layerPaintSrc, type PaintAction, type PaintOn, type PaintWith } from '../domain/useCases/paintRules';
@@ -963,22 +963,32 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   useEffect(() => { if (isDm && (tool === 'props' || catalogOpen)) cargarBiblioteca(); }, [isDm, tool, catalogOpen, cargarBiblioteca]);
   const recordarReciente = (id: string): void => setRecents(memory.rememberRecentProp(id));
   const alternarFavorito = (id: string): void => setFavorites(memory.toggleFavoriteProp(id));
-  /** Elegir una pieza la hace el sello, con la escala que recuerda, y pone la herramienta Piezas en la mano. */
+  /**
+   * Elegir un objeto lo hace el sello, **con la escala que recuerda SU CATEGORÍA**, y pone la herramienta
+   * Objetos en la mano. Suyo, dicho dos veces (2026-09-13 «*tiene que ser la última escala de la familia*» y
+   * 2026-09-16 «*si pongo un árbol y luego elijo otro árbol tiene que mantener la misma escala del anterior*»):
+   * manda la categoría, no el objeto. `defaultScale` sólo entra mientras esa categoría no tenga nada apuntado.
+   */
   const elegirSello = (p: Prop): void => {
-    setStamp(p); setStampScale(p.defaultScale); setCatalogOpen(false);
+    setStamp(p); setStampScale(memory.propScale(p.category) ?? p.defaultScale); setCatalogOpen(false);
     closeOverlays(); setTool('props');
   };
   const soltarSello = (): void => setStamp(null);
   /**
-   * LA ESCALA SE RECUERDA POR PIEZA (§ 6.4): al soltar el deslizador se guarda en la biblioteca, si cambió y si
-   * se tiene el permiso — sin él la base la rechazaría, y el sello sigue valiendo para esta sesión igual.
+   * LA ESCALA SE RECUERDA POR CATEGORÍA (§ 6.4): al soltar el deslizador se apunta en su categoría, que es la
+   * que mandará al elegir el siguiente objeto.
+   *
+   * 🔴 **Y NO se guarda en la ficha del objeto de la biblioteca.** Se hacía —era la regla vieja «por pieza»— y
+   * con la categoría mandando pasó a ser dañino: la biblioteca es de la HERRAMIENTA, la ve todo el mundo, y le
+   * grababa al Pino un tamaño heredado del Roble que nadie decidió para el Pino. `defaultScale` es sólo el
+   * tamaño de fábrica de la subida, y justo de ahí tira una categoría que aún no sabe nada — o sea que aquel
+   * guardado corrompía lo único que a `defaultScale` le quedaba por hacer. No lo devuelvas.
    */
   const recordarEscala = (prop: Prop, scale: number): void => {
-    if (!scaleChanged(prop.defaultScale, scale)) return;
-    const next = { ...prop, defaultScale: scale };
-    setLibrary(l => (l ?? []).map(x => (x.id === prop.id ? next : x)));
-    setStamp(st => (st?.id === prop.id ? next : st));
-    if (puedeOrdenarPiezas) void repo.updateProp(prop.id, { defaultScale: scale }).catch(() => undefined);
+    // SIEMPRE, y sin condición: la escala de la categoría es la que mandará al elegir el siguiente, y tiene que
+    // apuntarse aunque el objeto ya estuviera a esa escala (si no, estirar un árbol hasta el tamaño que ese
+    // árbol ya tenía no enseñaría nada al resto de la Vegetación).
+    memory.rememberPropScale(prop.category, scale);
   };
   const plantar = (at: Point): void => {
     if (!stamp || !live) return;
@@ -1012,11 +1022,11 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     () => (selectedPropIds.length > 1 ? st.sceneProps.filter(sp => selectedPropIds.includes(sp.id)) : selectedProp ? [selectedProp] : []),
     [selectedPropIds, st.sceneProps, selectedProp],
   );
-  /** La pieza de biblioteca de una plantada, si sigue existiendo: es a la que se le reescribe la escala. */
+  /** La pieza de biblioteca de una plantada, si sigue existiendo: de ella sale la CATEGORÍA que aprende la escala. */
   const bibliotecaDe = (sp: SceneProp): Prop | null => (sp.propId ? (library ?? []).find(x => x.id === sp.propId) ?? (stamp?.id === sp.propId ? stamp : null) : null);
   /**
-   * ESTIRAR una plantada mantiene la proporción, reescala con ella la forma que estorba, y REESCRIBE la escala
-   * recordada de su pieza (§ 6.4: «por los dos caminos»).
+   * ESTIRAR una plantada mantiene la proporción, reescala con ella la forma que estorba, y apunta la escala en
+   * la CATEGORÍA de su pieza (§ 6.4: «por los dos caminos» — el deslizador del sello y las esquinas).
    */
   const estirarPieza = (id: string, box: { x?: number; y?: number; width: number; height: number }): void => {
     const sp = st.sceneProps.find(x => x.id === id);
@@ -1123,7 +1133,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * Pinchar una DE SU FAMILIA la hace EL SELLO, igual que la rejilla de «sin abrir el catálogo» — NUNCA toca la
    * ya plantada (él, 14-09: «*cuando hago click en un objeto lo selecciono, luego clico en el mapa y lo pongo,
    * así tiene que funcionar*»). Suelta además la pieza cogida, como hace Esc: así el bloque de arriba deja de
-   * mostrar LA PIEZA COGIDA y enseña ENSEGUIDA la elegida como sello, con la escala que ella recuerda y su
+   * mostrar LA PIEZA COGIDA y enseña ENSEGUIDA la elegida como sello, con la escala de SU CATEGORÍA (§ 6.4) y su
    * fantasma bajo el puntero — que era lo que faltaba cuando dijo que estaba «a medias».
    */
   const elegirSelloDeLaFamilia = (p: Prop): void => {

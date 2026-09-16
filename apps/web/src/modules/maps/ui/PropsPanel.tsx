@@ -24,7 +24,7 @@ interface Props {
   onPick: () => void;
   /** Quita el sello (también lo hace Esc). */
   onDrop: () => void;
-  /** La escala del sello, en vivo mientras se mueve; `onScaleEnd` es la que se guarda en la pieza (§ 6.4). */
+  /** La escala del sello, en vivo mientras se mueve; al soltar, `onScaleEnd` la apunta en la CATEGORÍA (§ 6.4). */
   scale: number;
   onScale: (scale: number) => void;
   onScaleEnd: () => void;
@@ -47,7 +47,8 @@ interface Props {
   /**
    * LA PIEZA COGIDA (§ 6.8, punto 7 — él: «*no puedo reescalar o girar el objeto que tengo seleccionado desde
    * el modal*»): con una plantada cogida, el primer bloque la enseña a ELLA y ESCALA y GIRO actúan sobre ella
-   * en vivo; al soltar se guarda (y la escala se recuerda en su pieza, como con las esquinas). `scale` es la
+   * en vivo; al soltar se guarda (y la escala se apunta en la CATEGORÍA de su pieza, como con las esquinas —
+   * la ficha del objeto en la biblioteca NO se toca, § 6.4). `scale` es la
    * suya respecto a su pieza de biblioteca (o a su tamaño al cogerla, si ya no está en la biblioteca).
    * `isFavorite` es `null` cuando ya no hay pieza de biblioteca a la que marcar. Sin cogida, el bloque es el del sello.
    */
@@ -159,7 +160,9 @@ export function PropsPanel({
           </div>
         </>)}
         {!picked && stamp && (<>
-          {/* La ESCALA se recuerda POR PIEZA (§ 6.4): mover va en vivo, y al soltar se guarda en la biblioteca. */}
+          {/* La ESCALA se recuerda POR CATEGORÍA (§ 6.4): mover va en vivo, y al soltar se apunta en la categoría
+              de la pieza — NUNCA en la ficha del objeto de la biblioteca, que es de la herramienta y la ve todo
+              el mundo. La regla vieja «por pieza» decía lo contrario: no la devuelvas. */}
           {/* En centésimas: una pieza de 1024 px nace a 0,05 y a saltos de 0,05 cada paso era una casilla entera. */}
           <Slider label={t('maps.props.stamp.scale')} min={MIN_SCALE * 100} max={SCALE_SLIDER_MAX * 100} step={1}
             value={Math.round(Math.min(SCALE_SLIDER_MAX, scale) * 100)} onChange={n => onScale(n / 100)} onCommit={onScaleEnd}

@@ -175,7 +175,13 @@ export interface MapsPort {
    * comprimido: comprimir es del camino único de imágenes (`specs/core/images/SPEC.md`), no de este adaptador.
    */
   addProp(input: NewProp, image: Blob): Promise<Prop>;
-  /** Con `manage_props`: renombrar, mover de paquete… y guardar la escala que la pieza RECUERDA (§ 6.4). */
+  /**
+   * Con `manage_props`: renombrar, mover de paquete, y el resto de la ficha del objeto.
+   *
+   * ⚠️ **Ya NO se usa para la escala** (2026-09-16, § 6.4): la escala se recuerda POR CATEGORÍA, en el navegador
+   * (`ViewMemoryPort`), y `default_scale` volvió a ser sólo el tamaño de fábrica de la subida. Guardarla aquí al
+   * estirar le grababa a una pieza un tamaño heredado de otra, a la vista de todos: no lo devuelvas.
+   */
   updateProp(id: string, patch: PropPatch): Promise<void>;
   /** Con `manage_props`. NO borra lo ya plantado en los mapas: ésos se quedan con su copia de la foto. */
   removeProp(id: string): Promise<void>;

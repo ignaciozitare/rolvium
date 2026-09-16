@@ -928,15 +928,29 @@ mismas piezas comunes que el Builder y el Pincel (`FloatingPanel` · `Slider` ·
 - Pie: «una: cada clic planta otra · muchas: arrastras y siembra · Esc suelta el sello».
 - **El sello se queda puesto** hasta SOLTAR, Esc o cambiar de herramienta. Sin sello, el clic en el mapa no hace
   nada y el panel lo dice.
-- **La escala se recuerda POR PIEZA de la biblioteca** (§ 6.4 de agosto, intacto): mover ESCALA con el sello puesto
-  la guarda en la pieza al soltar, y redimensionar una plantada también. El GIRO no se recuerda: es de la sesión.
+- **La escala se recuerda POR CATEGORÍA** —Mobiliario · Vegetación · Suelos · Puertas · Marcas · Varios—, no por
+  objeto: al estirar un roble, cualquier otro objeto de Vegetación que elijas después sale a ESA escala, aunque
+  ese objeto tenga otra apuntada. Mover ESCALA con el sello puesto la apunta al soltar, y redimensionar uno
+  plantado también. El GIRO no se recuerda: es de la sesión.
+  > 🔴 **Esto CORRIGE la regla vieja «la escala se recuerda POR PIEZA»**, que decía justo lo contrario. Él pidió
+  > lo de la categoría el 2026-09-13 («*tiene que ser la última escala de la familia*»), se resolvió mal como
+  > «cada pieza recuerda la suya» y así quedó escrito aquí, que es por lo que sobrevivió tres semanas hasta que
+  > lo volvió a pedir el 2026-09-16 («*si pongo un árbol y luego elijo otro árbol tiene que mantener la misma
+  > escala del anterior, lo mismo con cada categoría de objeto*»). La escala propia del objeto (`defaultScale`)
+  > sigue existiendo y sirve de punto de partida **mientras esa categoría no tenga nada apuntado todavía**.
+  > Lo apuntado vive en el navegador de cada uno (`ViewMemoryPort`), como los favoritos: «lo grandes que planto
+  > yo los árboles» es de quien planta, no de la mesa.
+  > 🔴 **Y estirar YA NO reescribe `defaultScale`**, que es lo que hacía la regla vieja. Con la categoría mandando,
+  > ese guardado pasó a ser dañino: la biblioteca es de la HERRAMIENTA y la ve todo el mundo, así que le grababa
+  > al Pino un 200 % heredado del Roble que nadie decidió para el Pino — y justo ese número es del que tira una
+  > categoría que aún no sabe nada. `defaultScale` vuelve a ser sólo el tamaño de fábrica, el de la subida.
 
 ### 6.5 · Lo plantado: coger, mover, girar, escalar, copiar
 
 - Con **Seleccionar**, pinchar una pieza la coge (marco oro a trazos + cuatro tiradores de esquina + un tirador
   de giro encima). Arrastrarla la mueve; **los tiradores de esquina la escalan manteniendo la proporción** (y
-  reescriben la escala recordada de su pieza de biblioteca, si sigue existiendo); **el de giro la gira**. Un clic
-  sin arrastre sólo la elige y no escribe nada.
+  apuntan esa escala en la CATEGORÍA de su pieza, § 6.4 — la ficha del objeto en la biblioteca NO se toca);
+  **el de giro la gira**. Un clic sin arrastre sólo la elige y no escribe nada.
 - **Suprimir** la borra. **Ctrl/Cmd+C y Ctrl/Cmd+V** copian y pegan la cogida **con su giro y su tamaño**, un poco
   desplazada para que se vea. Pinchar el vacío suelta.
 - **Deshacer**: plantar, borrar, mover, girar y escalar una pieza entran en el historial (Ctrl+Z), como los muros.
@@ -1019,8 +1033,8 @@ el `.pen` antes del código; las otras (2 y 5) son de comportamiento.
 7. **El panel enseña la pieza cogida** («*no puedo reescalar o girar el objeto que tengo seleccionado desde el
    modal*»). El panel de Piezas **se queda abierto al pasar a Seleccionar** (como el Constructor) y se cierra con
    la X o con otra herramienta. Con una pieza plantada cogida, el primer bloque pasa a **«LA PIEZA COGIDA»**: su
-   dibujo, su nombre, y **ESCALA y GIRO actúan sobre ella en vivo**; al soltar la escala se recuerda en su pieza de
-   biblioteca (como las esquinas, § 6.5) y todo entra en Ctrl+Z. Al soltarla (Esc, clic en el vacío) el bloque
+   dibujo, su nombre, y **ESCALA y GIRO actúan sobre ella en vivo**; al soltar, la escala se apunta en su
+   CATEGORÍA (§ 6.4; como las esquinas, § 6.5) y todo entra en Ctrl+Z. Al soltarla (Esc, clic en el vacío) el bloque
    vuelve a ser el del sello. Con Piezas abierto y **sin sello puesto, pinchar una pieza plantada la coge**. Con
    varias cogidas el panel no las toca (fuera, por ahora).
 8. **La foto es el botón** («*si clico en la fotito de la pieza o en las texturas de cualquier lado tiene que
@@ -1038,7 +1052,7 @@ el `.pen` antes del código; las otras (2 y 5) son de comportamiento.
    sale mientras hay una pieza cogida (con el sello, el bloque S/2 de recientes/favoritos ya cumple ese papel).
    - ⚠ **Pinchar una NUNCA toca la ya plantada.** Se construyó un día (14-09) reemplazando en vivo la pieza cogida y
      lo rechazó de plano («*me reemplaza el seleccionado, de dónde carajo sacaste eso*»); se revirtió. Pinchar una la
-     hace **el sello**, con la escala que esa pieza recuerda, y **suelta la cogida**: así el bloque de arriba pasa a
+     hace **el sello**, con la escala que recuerda su CATEGORÍA (§ 6.4), y **suelta la cogida**: así el bloque de arriba pasa a
      enseñar ese sello — con algo cogido el bloque muestra LA PIEZA COGIDA, que manda, y el sello cambiaba invisible
      por debajo (el «*está a medias*» que dijo al probarlo). El siguiente clic en el mapa la planta.
 
@@ -1106,7 +1120,8 @@ Migraciones: `20260831200000_maps_props.sql` (el andamio de agosto) y **`2026091
   **crea, renombra y borra quien tiene `manage_props`**. Borrar uno deja sus piezas «Sin clasificar» (`SET NULL`).
 - **`maps_props` — LA BIBLIOTECA.** Ya **sin campaña**: la pieza pertenece a un **paquete** (o a ninguno) y guarda su
   foto, su nombre, su categoría de serie (sólo cuenta para las piezas de la app, las que no subió nadie), el tamaño
-  natural del fichero, **la escala que recuerda** y **con qué estorbo nace** una copia. **Leen todos**; **sube quien
+  natural del fichero, **su tamaño de fábrica** (`default_scale`, el que se calcula al subirla: NO se reescribe
+  al estirar, § 6.4) y **con qué estorbo nace** una copia. **Leen todos**; **sube quien
   tiene el permiso y la fila queda a su nombre**; renombra, mueve de paquete y borra quien tiene el permiso.
 - **`maps_scene_props` — LO PLANTADO.** Igual que en agosto (sitio, tamaño, giro, capa, estorbo con su forma simple,
   **su propia copia de la foto y del nombre**) más **`z`, el orden de apilado** entre piezas de la escena. **Lee** el
