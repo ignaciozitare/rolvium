@@ -963,9 +963,14 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   useEffect(() => { if (isDm && (tool === 'props' || catalogOpen)) cargarBiblioteca(); }, [isDm, tool, catalogOpen, cargarBiblioteca]);
   const recordarReciente = (id: string): void => setRecents(memory.rememberRecentProp(id));
   const alternarFavorito = (id: string): void => setFavorites(memory.toggleFavoriteProp(id));
-  /** Elegir una pieza la hace el sello, con la escala que recuerda, y pone la herramienta Piezas en la mano. */
+  /**
+   * Elegir un objeto lo hace el sello, **con la escala que recuerda SU CATEGORÍA**, y pone la herramienta
+   * Objetos en la mano. Suyo, dicho dos veces (2026-09-13 «*tiene que ser la última escala de la familia*» y
+   * 2026-09-16 «*si pongo un árbol y luego elijo otro árbol tiene que mantener la misma escala del anterior*»):
+   * manda la categoría, no el objeto. `defaultScale` sólo entra mientras esa categoría no tenga nada apuntado.
+   */
   const elegirSello = (p: Prop): void => {
-    setStamp(p); setStampScale(p.defaultScale); setCatalogOpen(false);
+    setStamp(p); setStampScale(memory.propScale(p.category) ?? p.defaultScale); setCatalogOpen(false);
     closeOverlays(); setTool('props');
   };
   const soltarSello = (): void => setStamp(null);
@@ -974,6 +979,10 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * se tiene el permiso — sin él la base la rechazaría, y el sello sigue valiendo para esta sesión igual.
    */
   const recordarEscala = (prop: Prop, scale: number): void => {
+    // Lo primero y SIEMPRE: la escala de la categoría es la que mandará al elegir el siguiente, y tiene que
+    // apuntarse aunque el objeto ya estuviera a esa escala (si no, estirar un árbol hasta el tamaño que ese
+    // árbol ya tenía no enseñaría nada al resto de la Vegetación).
+    memory.rememberPropScale(prop.category, scale);
     if (!scaleChanged(prop.defaultScale, scale)) return;
     const next = { ...prop, defaultScale: scale };
     setLibrary(l => (l ?? []).map(x => (x.id === prop.id ? next : x)));

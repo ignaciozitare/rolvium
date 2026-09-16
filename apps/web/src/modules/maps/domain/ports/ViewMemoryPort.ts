@@ -1,4 +1,5 @@
 import type { BuilderMode } from '../useCases/roomRules';
+import type { PropCategory } from '../entities/Scene';
 
 /**
  * LO QUE ESTABA MIRANDO EL DIRECTOR, para que una recarga no le mueva la vista (petición suya, 2026-09-10:
@@ -33,6 +34,20 @@ export interface ViewMemoryPort {
   /** Ids de lo último plantado, el más reciente primero. */
   recentProps(): string[];
   rememberRecentProp(id: string): string[];
+  /**
+   * 📏 LA ÚLTIMA ESCALA USADA EN CADA CATEGORÍA (suyo, dicho dos veces: 2026-09-13 «*tiene que ser la última
+   * escala de la familia*» y 2026-09-16 «*si pongo un árbol y luego elijo otro árbol tiene que mantener la
+   * misma escala del anterior, lo mismo con cada categoría de objeto*»).
+   *
+   * 🔑 **Manda sobre la escala propia del objeto.** La primera vez se resolvió como «cada objeto recuerda la
+   * suya» (`Prop.defaultScale`), que es justo lo contrario de lo que pidió: por eso elegir otro árbol te lo
+   * devolvía a SU tamaño en vez de al que acabas de usar. `defaultScale` sigue valiendo de punto de partida
+   * mientras esa categoría no tenga nada apuntado todavía.
+   *
+   * `null` = en esa categoría aún no ha estirado nada en este navegador.
+   */
+  propScale(category: PropCategory): number | null;
+  rememberPropScale(category: PropCategory, scale: number): void;
   /** Lo mismo para las TEXTURAS, desde que su catálogo es el mismo que el de piezas (2026-09-13, § 6.8). */
   favoriteTextures(): string[];
   toggleFavoriteTexture(id: string): string[];

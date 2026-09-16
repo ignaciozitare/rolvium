@@ -79,6 +79,44 @@ describe('LocalViewMemory', () => {
     expect(m.recentProps()).toEqual([]);
   });
 
+  /**
+   * 📏 La escala por CATEGORÍA (2026-09-16): «*si pongo un árbol y luego elijo otro árbol tiene que mantener la
+   * misma escala del anterior, lo mismo con cada categoría de objeto*».
+   */
+  describe('la escala que recuerda cada categoría', () => {
+    it('empieza sin nada, guarda por categoría y cada una va por su lado', () => {
+      const m = new LocalViewMemory();
+      expect(m.propScale('vegetation')).toBe(null);
+      m.rememberPropScale('vegetation', 2.5);
+      expect(m.propScale('vegetation')).toBe(2.5);
+      expect(m.propScale('furniture')).toBe(null);   // lo del bosque no le cambia el tamaño a las mesas
+      m.rememberPropScale('furniture', 0.8);
+      expect(m.propScale('vegetation')).toBe(2.5);
+      expect(m.propScale('furniture')).toBe(0.8);
+      m.rememberPropScale('vegetation', 4);          // la última manda
+      expect(m.propScale('vegetation')).toBe(4);
+    });
+
+    it('sobrevive a una recarga: lo lee una instancia nueva', () => {
+      new LocalViewMemory().rememberPropScale('doors', 1.25);
+      expect(new LocalViewMemory().propScale('doors')).toBe(1.25);
+    });
+
+    it('una escala imposible no se guarda, y una guardada a mano no se lee', () => {
+      const m = new LocalViewMemory();
+      m.rememberPropScale('vegetation', 0);                 // por debajo del mínimo
+      m.rememberPropScale('markers', 9999);                 // por encima del máximo
+      m.rememberPropScale('floors', Number.NaN);
+      expect([m.propScale('vegetation'), m.propScale('markers'), m.propScale('floors')]).toEqual([null, null, null]);
+      // y lo que ya estuviera guardado a mano con basura se ignora al leer, sin tirar lo que sí vale
+      localStorage.setItem('rolvium_maps_prop_scales', '{"vegetation":"grande","misc":2}');
+      expect(m.propScale('vegetation')).toBe(null);
+      expect(m.propScale('misc')).toBe(2);
+      localStorage.setItem('rolvium_maps_prop_scales', 'no soy json');
+      expect(m.propScale('misc')).toBe(null);
+    });
+  });
+
   it('con el almacenamiento capado no revienta: devuelve null y guardar no hace nada', () => {
     const m = new LocalViewMemory();
     vi.stubGlobal('localStorage', {
@@ -92,5 +130,7 @@ describe('LocalViewMemory', () => {
     expect(m.favoriteProps()).toEqual([]);
     expect(() => m.toggleFavoriteProp('x')).not.toThrow();
     expect(() => m.rememberRecentProp('x')).not.toThrow();
+    expect(m.propScale('vegetation')).toBe(null);
+    expect(() => m.rememberPropScale('vegetation', 2)).not.toThrow();
   });
 });

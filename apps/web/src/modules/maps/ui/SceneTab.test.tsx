@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { plenilunio } from '@rolvium/system-plenilunio';
 import type { CampaignMember } from '@/modules/campaigns/domain/entities/Campaign';
 import { CHARACTER_KAREN, CHARACTER_OTHER, DRAWING_MINE, DRAWING_OTHER, IMAGE_CHAPEL, KAREN_DATA, LAYER_CREATURES, LAYER_FLOOR, LAYER_MOSS, LAYER_NOTES, LAYER_OBJECTS, LIGHT_TORCH, PACK_DUNGEON, PACK_FOREST, PLAYER_USER, PROP_COLUMN, PROP_OAK, PROP_PINE, SCENE_CHAPEL, SCENE_PROP_COLUMN, SCENE_PROP_OAK, SCENE_TUNNELS, SCENE_WAREHOUSE, TOKEN_ELIAS, TOKEN_KAREN, TOKEN_MUTANT, WALL_1, WALL_DOOR, WALL_VISIBLE, fakeCharactersRepo, fakeMapsRepo, fakeVisionPort } from '../../../../tests/helpers/fakes';
-import { DEFAULT_DOOR } from '../domain/entities/Scene';
+import { DEFAULT_DOOR, type PropCategory } from '../domain/entities/Scene';
 import { SceneTab } from './SceneTab';
 import { DEFAULT_TEXTURE_SCALE } from '../domain/useCases/roomStyles';
 import type { ToolbarOrder } from '../domain/useCases/toolbarRules';
@@ -47,8 +47,8 @@ const dibujo = async (u: ReturnType<typeof userEvent.setup>, name: string): Prom
  * Una memoria de vista de mentira: dónde tenía puesto el ojo el director. De serie está EN BLANCO, así que
  * la escena que se abre sale de la activa de la mesa — que es como se comportaba esto antes de existir.
  */
-function fakeViewMemory(last: string | null = null, builderMode: 'photo' | 'draw' | null = null, favorites: string[] = [], recents: string[] = []) {
-  const m = { last, seen: [] as string[], builderMode, modes: [] as string[], favorites, recents, favoriteTextures: [] as string[], recentTextures: [] as string[] };
+function fakeViewMemory(last: string | null = null, builderMode: 'photo' | 'draw' | null = null, favorites: string[] = [], recents: string[] = [], scales: Partial<Record<PropCategory, number>> = {}) {
+  const m = { last, seen: [] as string[], builderMode, modes: [] as string[], favorites, recents, favoriteTextures: [] as string[], recentTextures: [] as string[], scales };
   return {
     m,
     lastScene: () => m.last,
@@ -60,6 +60,9 @@ function fakeViewMemory(last: string | null = null, builderMode: 'photo' | 'draw
     toggleFavoriteProp: (id: string) => { m.favorites = m.favorites.includes(id) ? m.favorites.filter(x => x !== id) : [...m.favorites, id]; return [...m.favorites]; },
     recentProps: () => [...m.recents],
     rememberRecentProp: (id: string) => { m.recents = [id, ...m.recents.filter(x => x !== id)].slice(0, 18); return [...m.recents]; },
+    // 📏 La última escala de cada CATEGORÍA: la que manda al elegir el siguiente objeto (2026-09-16).
+    propScale: (cat: PropCategory) => m.scales[cat] ?? null,
+    rememberPropScale: (cat: PropCategory, scale: number) => { m.scales = { ...m.scales, [cat]: scale }; },
     // Y las de las TEXTURAS, desde que su catálogo es el mismo (2026-09-13).
     favoriteTextures: () => [...m.favoriteTextures],
     toggleFavoriteTexture: (id: string) => { m.favoriteTextures = m.favoriteTextures.includes(id) ? m.favoriteTextures.filter(x => x !== id) : [...m.favoriteTextures, id]; return [...m.favoriteTextures]; },
@@ -2851,6 +2854,56 @@ describe('<SceneTab> · las piezas (rebanada 6)', () => {
     fireEvent.change(barra, { target: { value: '200' } });
     fireEvent.pointerUp(barra);
     await waitFor(() => expect(repo.propUpdates).toContainEqual({ id: 'pr-oak', patch: { defaultScale: 2 } }));
+  });
+
+  /**
+   * 📏 LA ESCALA SE RECUERDA POR CATEGORÍA, no por objeto. Suyo, dicho DOS VECES: 2026-09-13 («*tiene que ser
+   * la última escala de la familia*») y otra vez el 2026-09-16, enfadado y con razón («*si pongo un árbol y
+   * luego elijo otro árbol tiene que mantener la misma escala del anterior, lo mismo con cada categoría de
+   * objeto*»). La primera vez se cerró justo al revés —«cada pieza recuerda la SUYA»— y quedó escrito así en
+   * el spec, que es por lo que sobrevivió tres semanas. Este test es el que no deja que vuelva.
+   */
+  it('la escala se recuerda por CATEGORÍA: estirar el Roble deja el Pino a ESA escala, no a la suya', async () => {
+    const u = userEvent.setup();
+    const memory = fakeViewMemory();
+    const repo = fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], props: [PROP_OAK, PROP_PINE, PROP_COLUMN],
+      packs: [{ ...PACK_FOREST, sortOrder: 0 }, { ...PACK_DUNGEON, sortOrder: 1 }], layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES] });
+    mount('dm', repo, 'sc-1', undefined, undefined, true, memory);
+    const panel = await abrirPiezas(u);
+
+    // 1) El Roble (Vegetación), estirado al 200 %
+    await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
+    await u.click(await screen.findByRole('button', { name: 'Elegir Roble' }));
+    const barra = screen.getByRole('slider', { name: 'Escala' });
+    fireEvent.change(barra, { target: { value: '200' } });
+    fireEvent.pointerUp(barra);
+    await waitFor(() => expect(memory.m.scales).toEqual({ vegetation: 2 }));
+
+    // 2) Elegir el PINO —otro árbol— sale ya al 200 %, aunque el suyo de fábrica sea el 100 %: 180 × 2 = 360.
+    await u.click(within(screen.getByRole('group', { name: 'Objetos' })).getByRole('button', { name: 'Elegir' }));
+    await u.click(await screen.findByRole('button', { name: 'Elegir Pino' }));
+    fireEvent.pointerMove(canvas(), { clientX: 200, clientY: 220, pointerId: 1 });
+    fireEvent.pointerDown(canvas(), { clientX: 200, clientY: 220, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.sceneProps).toHaveLength(1));
+    expect(repo.sceneProps[0]).toMatchObject({ name: 'Pino', propId: 'pr-pine', width: 360, height: 640 });
+  });
+
+  /** Y una categoría no pisa a otra: lo que aprendió la Vegetación no le cambia el tamaño al Mobiliario. */
+  it('la escala de una categoría no se contagia a las demás', async () => {
+    const u = userEvent.setup();
+    const memory = fakeViewMemory(null, null, [], [], { vegetation: 3 });
+    // La Mazmorra primero, para que el catálogo abra con la Columna a la vista (abre en el primer paquete).
+    const repo = mount('dm', fakeMapsRepo({ scenes: [SCENE_WAREHOUSE], tokens: [TOKEN_KAREN], props: [PROP_OAK, PROP_COLUMN],
+      packs: [{ ...PACK_DUNGEON, sortOrder: 0 }, { ...PACK_FOREST, sortOrder: 1 }], layers: [LAYER_OBJECTS, LAYER_CREATURES, LAYER_NOTES] }),
+      'sc-1', undefined, undefined, true, memory);
+    const panel = await abrirPiezas(u);
+    await u.click(within(panel).getByRole('button', { name: 'Elegir' }));
+    // La Columna es Mobiliario, que no tiene nada apuntado: sale con la suya de fábrica (100 × 1).
+    await u.click(await screen.findByRole('button', { name: 'Elegir Columna' }));
+    fireEvent.pointerMove(canvas(), { clientX: 400, clientY: 220, pointerId: 1 });
+    fireEvent.pointerDown(canvas(), { clientX: 400, clientY: 220, pointerId: 1, button: 0 });
+    await waitFor(() => expect(repo.sceneProps).toHaveLength(1));
+    expect(repo.sceneProps[0]).toMatchObject({ name: 'Columna', propId: 'pr-col', width: 100, height: 100 });
   });
 
   it('sin el permiso de ordenar la biblioteca el catálogo no ofrece subir, pero planta igual', async () => {
