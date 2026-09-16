@@ -166,6 +166,11 @@ export const mapTokenRow = (r: TokenRow): Token => ({
   // Una ficha colocada antes de la rebanada 7 no trae columna: se lee como «su capa natural», que es donde estaba.
   layerId: r.layer_id ?? null,
 });
+/*
+ * ⚠️ `data` NO lleva valor por defecto, y es a propósito (2026-09-17): es la columna que un eco de tiempo real
+ * puede no traer (TOAST), y ponerle `{}` taparía la ausencia justo donde `keepUnsent` tiene que verla.
+ * Medido: un trazo a pulso de 400 puntos pierde `data` en el eco; uno de 200 llega entero.
+ */
 export const mapDrawingRow = (r: DrawingRow): Drawing => ({ id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, authorId: r.author_id, kind: r.kind, data: r.data, color: r.color, width: r.width, createdAt: r.created_at, layerId: r.layer_id ?? null });
 
 export const mapLayerRow = (r: LayerRow): Layer => ({
@@ -192,7 +197,15 @@ export const mapScenePropRow = (r: ScenePropRow): SceneProp => ({
   id: r.id, sceneId: r.scene_id, campaignId: r.campaign_id, layerId: r.layer_id, propId: r.prop_id,
   imageUrl: r.image_url, name: r.name, x: r.x, y: r.y, width: r.width, height: r.height, rotation: r.rotation, z: r.z ?? 0,
   blocksSight: r.blocks_sight, blocksMove: r.blocks_move, blockShape: r.block_shape,
-  blockW: r.block_w, blockH: r.block_h, blockDx: r.block_dx, blockDy: r.block_dy, silhouette: r.silhouette ?? null,
+  blockW: r.block_w, blockH: r.block_h, blockDx: r.block_dx, blockDy: r.block_dy,
+  /*
+   * ⚠️ SIN `?? null`, Y ES A PROPÓSITO (2026-09-17). Esta columna es de las que pueden NO VENIR en un eco de
+   * tiempo real (TOAST — ver `keepUnsent`), y convertir «no vino» en `null` borraría la silueta en silencio:
+   * la pieza volvería a estorbar con el cuadrado en la pantalla de quien recibiera el eco. Dejándolo pasar,
+   * sale `undefined`, que es la señal que `keepUnsent` necesita para conservar la que ya teníamos.
+   * Por REST no cambia nada: la columna siempre viene, y vacía llega como `null`.
+   */
+  silhouette: r.silhouette,
   createdAt: r.created_at, updatedAt: r.updated_at,
 });
 function propPatchRow(p: PropPatch): Record<string, unknown> {

@@ -62,26 +62,40 @@ export function isStaleRow(prev: unknown, next: unknown): boolean {
  * queda sin contorno y DESAPARECE de la pantalla: `ringPath` no dibuja nada y ni el suelo ni el agujero la
  * cuentan. En la base no se ha perdido nada — por eso recargar las devuelve, que es justo lo que él veía.
  *
- * La regla es la mínima que lo arregla y no puede tapar un cambio de verdad: **un eco nunca VACÍA una lista
- * que ya teníamos**. Vaciarla no es un cambio legítimo en ninguna de estas filas —una sala sin contorno no
- * existe: lo que se hace es borrar la fila, y eso llega como DELETE—, así que si la que viene trae la lista
- * vacía y la que hay la tiene con algo, mandan los nuestros. Una lista CON contenido pisa a la anterior como
- * siempre, y lo que no sea una lista no se toca.
+ * La regla es la mínima que lo arregla y no puede tapar un cambio de verdad. **Un eco no puede dejarnos peor
+ * de lo que estábamos**, y eso son dos cosas, las dos imposibles como cambio legítimo:
  *
- * Va por forma de dato y no por nombre de columna a propósito: mañana otra columna grande cruzará el umbral
- * —`maps_drawings.data` ya va por 1.372 bytes— y no hay que acordarse de apuntarla aquí.
+ * 1. **No VACÍA una lista que ya teníamos.** Vaciarla no es un cambio de verdad en ninguna de estas filas —una
+ *    sala sin contorno no existe: lo que se hace es borrar la fila, y eso llega como DELETE—. Una lista CON
+ *    contenido pisa a la anterior como siempre.
+ * 2. **No convierte en `undefined` algo que teníamos.** `undefined` NO es un valor: por REST siempre vienen
+ *    todas las columnas pedidas (una vacía llega como `null`, que sí es un valor y sí manda). Un campo sólo
+ *    sale `undefined` cuando su columna **no vino en el eco**, que es exactamente el caso que nos ocupa.
+ *
+ * El punto 2 es el que salva `maps_drawings.data` (2026-09-17, medido: un trazo de 400 puntos pierde el dibujo
+ * en el eco; uno de 200 llega entero). Y ahí no es que se pierda un trazo: `mapDrawingRow` pasa `data` sin red,
+ * `DrawingShape` lee `data.points`, y eso **revienta al pintar**. Como no hay ni un ErrorBoundary en la app,
+ * React tira el árbol entero y **la mesa se queda en blanco** — la misma firma desesperante que las salas.
+ *
+ * Va por forma de dato y no por nombre de columna a propósito: cualquier columna que cruce el umbral mañana
+ * queda cubierta sin que nadie tenga que acordarse de apuntarla aquí. **Lo que exige a cambio es que el
+ * mapeador NO invente un valor por defecto** para una columna que pueda faltar — ver `mapScenePropRow`.
  *
  * Devuelve `next` TAL CUAL cuando no hay nada que conservar: copiar siempre haría que React viese una fila
  * nueva en cada eco y repintase el mapa entero de balde.
  */
-export function keepUnsentLists<T>(prev: unknown, next: T): T {
+export function keepUnsent<T>(prev: unknown, next: T): T {
   if (!prev || !next || typeof prev !== 'object' || typeof next !== 'object') return next;
   const antes = prev as Record<string, unknown>;
   const ahora = next as Record<string, unknown>;
+  /* Se recorren las claves de las DOS: una columna que no vino ni siquiera aparece en la fila mapeada, así que
+     mirando sólo las de `ahora` se escaparía justo el caso que estamos cazando. */
   let out: Record<string, unknown> | null = null;
-  for (const k of Object.keys(ahora)) {
+  for (const k of new Set([...Object.keys(ahora), ...Object.keys(antes)])) {
     const viene = ahora[k], habia = antes[k];
-    if (Array.isArray(viene) && viene.length === 0 && Array.isArray(habia) && habia.length > 0) {
+    const listaVaciada = Array.isArray(viene) && viene.length === 0 && Array.isArray(habia) && habia.length > 0;
+    const noVino = viene === undefined && habia !== undefined;
+    if (listaVaciada || noVino) {
       out ??= { ...ahora };
       out[k] = habia;
     }

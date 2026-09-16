@@ -54,7 +54,14 @@ export function GridLayer({ scene, patternId, maskId }: { scene: Scene; patternI
 }
 
 export function DrawingShape({ d, draft = false, selected = false, movable = false }: { d: Pick<Drawing, 'kind' | 'data' | 'color' | 'width'> & { id?: string }; draft?: boolean; selected?: boolean; movable?: boolean }): JSX.Element | null {
-  const data = d.data as Record<string, unknown>;
+  /*
+   * 🐞 EL `?? {}` ES UNA RED, NO UN ADORNO (2026-09-17). Si `data` llegara a faltar, esta línea leía
+   * `data.points` sobre `undefined` y **reventaba al pintar**; como no hay ni un ErrorBoundary en la app,
+   * React tira el árbol entero y la mesa se queda EN BLANCO. Quien puede dejarlo sin `data` es un eco de
+   * tiempo real al que le falte la columna, y eso ya lo corta `keepUnsent` antes de llegar aquí — pero un
+   * trazo que no se vea es infinitamente mejor que una mesa en blanco, así que la red se queda puesta.
+   */
+  const data = (d.data ?? {}) as Record<string, unknown>;
   const common = { stroke: d.color, strokeWidth: d.width, fill: 'none', className: `mp-drawing ${draft ? 'draft' : ''} ${selected ? 'selected' : ''} ${movable ? 'movable' : ''}`, 'data-drawing-id': d.id, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   switch (d.kind) {
     case 'stroke': {
