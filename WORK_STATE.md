@@ -32,21 +32,45 @@
 > 🧹 Deuda menuda creada por este cambio, anotada en el propio código: `scaleChanged` (`propRules.ts`) se quedó
 > sin uso en producción —sólo la importa su test—; si no le sale un uso nuevo, se borra.
 >
-> ### 🚨 ABIERTO Y SIN CERRAR: LOS OBJETOS QUE ESTORBAN (su queja del 16-09, con dos capturas)
+> ### 🚀 2026-09-16 (tarde) — **EL FRENO, ARREGLADO Y EN PRODUCCIÓN** (merge `c6b5b6b`)
+> Despliegue READY, web y api 200. Dos cosas, las dos suyas probando como director:
+> - **Arrastrando choca TODO EL MUNDO, director incluido.** «*Nunca debió dejar traspasar puertas u objetos*».
+>   No era una regresión: `p.isDm ? []` nace el 22-ago con las paredes sólidas y no se había tocado nunca
+>   (comprobado con `git log -L` ANTES de tocar nada) — era una de las cuatro decisiones de aquella tanda, que
+>   él acaba de revocar. Poner un token de un clic donde sea **sigue valiendo**: lo dijo él, es otro gesto.
+> - 🐞 **Los objetos que cortan el paso frenan de verdad**: faltaban en la lista de topes del navegador. Se
+>   suman con `propsGeometry` de `@rolvium/core`, la MISMA del servidor: no hay una segunda física.
+> - El QA **midió el coste**: con 500 objetos que estorban, 2,2 % del presupuesto de un fotograma. Y confirmó
+>   que servidor y navegador no discrepan (el navegador del director conoce todos los muros, también los
+>   secretos, así que su freno ya es tan bueno como el del servidor).
+> - Cuatro comentarios que seguían afirmando «el director no choca» —uno HUÉRFANO, otro en la función que
+>   implementa el freno— corregidos. Misma lección del día: el texto viejo es lo que resucita la regla vieja.
+>
+> ### 🎯 LO SIGUIENTE, YA APROBADO POR ÉL: **LA SILUETA** (spec escrito, sin construir)
+> Su queja: la sombra de un camión era un bloque negro rectangular. «*Tienen que recortar por la silueta del png
+> … o al menos lo más aproximado*». Se le hizo una **maqueta con SEIS objetos suyos de producción** (las tres
+> formas y la sombra de cada una, con la luz movible) y contestó «**está perfecto**».
+> **Spec escrito en `specs/modules/maps/SPEC.md` § 6.9**, en la rama `docs/spec-silueta` (`fc7f0a9`), SIN
+> mergear. Resumen: silueta a rayos desde el centro (polígono simple, sin cruces, con tope de puntos), 24
+> puntos y 50 % de corte, calculada AL SUBIR dentro de la pasada que ya comprime la imagen, y `block_shape`
+> gana el valor `silhouette`. Cuesta lo mismo que el óvalo (que por dentro ya es un polígono de 16 lados).
+>
+> ⏳ **BLOQUEADO EN UNA PREGUNTA SUYA, hecha y sin responder**: sus **133 objetos ya subidos** no tienen
+> silueta. ¿Una **pasada de una vez** desde la biblioteca (recomendada), o **perezosa**, la primera vez que se
+> planta cada uno? Sin eso no se empieza, porque cambia la migración y la UI.
+> Después: DBA (migración) → Dev → Review → QA.
+>
+> ### ✅ CERRADO HOY: LOS OBJETOS QUE ESTORBAN (su queja del 16-09, con dos capturas)
 > «*no funciona lo de bloquear paso y linea de vision, hace cosas raras visualmente*». Diagnóstico HECHO
 > leyendo el código, sin tocar nada todavía:
-> 1. 🐞 **FALLO REAL**: mientras arrastras, el navegador sólo mira muros y salas — los objetos plantados NO
->    están en su lista de topes (`MapCanvas.tsx:1538`, `blockers` = `moveBlockers(walls)` + `roomBlockers`).
->    Quien sí los cuenta es el servidor, después (`sceneVision.ts`, `blockingGeometry`). **Esto se arregla sí o
->    sí**, conteste lo que conteste.
-> 2. **El director atraviesa todo a propósito** (`MapCanvas.tsx:1538`, `p.isDm ? []`). Si probaba con su ficha
->    de director, no hay nada roto ahí. **PREGUNTADO, sin respuesta.**
+> 1. ✅ **ARREGLADO Y EN PRODUCCIÓN** (`c6b5b6b`): los objetos plantados ya están en la lista de topes del
+>    navegador.
+> 2. ✅ **CONTESTADO Y REVOCADO**: probaba como director, y decidió que el director también debe chocar al
+>    arrastrar. Hecho y en producción.
 > 3. **El freno sólo existe con «Paredes sólidas» encendido** (`sceneVision.ts`: `if (at && dragged &&
 >    scene.solidWalls)`). Apagado, marcar «corta el paso» no hace nada.
-> 4. **Lo visual no es un fallo, es la forma**: lo que tapa es el RECTÁNGULO que envuelve al objeto, no su
->    silueta (`propBlockRing` en `packages/core/src/props.ts`). Un tanque en diagonal proyecta una sombra
->    cuadrada enorme — que es justo lo de sus capturas. **Tres salidas ofrecidas y PREGUNTADAS, sin respuesta**:
->    óvalo por defecto · poder ajustar la forma a mano · que los vehículos corten el paso pero no la vista.
+> 4. ✅ **CONTESTADO**: ninguna de las tres que le ofrecí. Quiere **la silueta del PNG** — ver el bloque 🎯 de
+>    arriba, con su spec ya escrito.
 >
 > **Lo que queda apuntado, pequeño y sin prisa:**
 > - 🟠 **Con TRES pastillas desplegadas a la vez en una ventana estrecha, la de más arriba se sale por arriba**
