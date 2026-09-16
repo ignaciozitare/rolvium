@@ -1,34 +1,34 @@
 # WORK_STATE.md — Rolvium
 
 ## 🎯 Current task
-> ## 🛑 TRASPASO OBLIGADO: **ABRE UN CHAT NUEVO** (gate de contexto, 2026-09-16 · 01:35)
-> La transcripción de esta sesión pasó de 13 MB con el límite en 6, o sea que el hook de contexto ya salta.
-> Todo lo de esta noche está **terminado, probado y commiteado** en la rama `feat/pastillas-y-fix-pincel`
-> (subida a GitHub: los previews de Vercel se construyen solos mientras duermes). **Frase para el chat nuevo:**
-> > «Rolvium. Lee el bloque 🫧 "LAS PASTILLAS" y el 🖌️ "EL PINCEL YA NO PARPADEA" de arriba de WORK_STATE.md y seguí desde ahí.»
+> ## 🚀 v0.11.0 EN PRODUCCIÓN (2026-09-16, mañana) — **LAS PASTILLAS y el pincel arreglado**
+> Merge `a82c33e`, los dos despliegues de producción READY y comprobado de verdad: `rolvium.vercel.app` 200,
+> `rolvium-api.vercel.app/health` 200, y el paquete que sirve producción lleva «Susurros abiertos», «Minimizar
+> la conversación» y «Abrir la conversación con» — o sea, es la versión nueva, no una cacheada. Sin migraciones
+> en esta entrega.
 >
-> **Lo primero al retomar, por este orden:**
-> 1. Que él pruebe las pastillas y el pincel (en local o en el preview de la rama).
-> 2. ~~**Pedirle Cmd+S en Pencil y commitear `rolvium.pen`**~~ — ✅ HECHO: lo guardó él y entró en `4416af7`.
-> 3. `/qa` → merge a `main` → deploy (sería la v0.11.0: las pastillas son funcionalidad nueva).
->    ✅ QA (modo bloqueo) pasado el 2026-09-16 sobre `301266c`: 2066 tests, audit 0 duras, las dos builds
->    en verde, advisors sin ninguna CRÍTICA y web/api vivas. Queda sólo el merge y el deploy.
-> 4. ~~Pendiente de decidir él: lo de ver la conversación a la vez en la columna y en la pastilla~~ — ✅
->    DECIDIDO el 2026-09-16: **la pastilla del directorio nace MINIMIZADA** (barrita), la conversación se lee
->    en la columna (`ca9539f`), y leerla ahí tampoco le deja contador a la barrita (`301266c`). Specs al día.
->    ⏳ Sigue pendiente: quitar el camino muerto `pendingChatOpen` de `SidePanel` (nadie se lo pasa ya).
+> **⏳ LO PRIMERO AL RETOMAR: que él lo pruebe en producción.** Las pastillas y el pincel están probados en
+> pantalla por mí (dos usuarios, con el antes y el después), pero él todavía no los ha visto.
+>
+> **Lo que queda apuntado, pequeño y sin prisa:**
+> - Quitar el camino muerto `pendingChatOpen` / `onPendingChatOpenConsumed` de `SidePanel`/`SusurrosPanel`:
+>   nadie se lo pasa ya y hace lo contrario del diseño nuevo (tirar de la columna a la pestaña SUSURROS).
+> - La cuarta pastilla puede cerrar una DESPLEGADA en la que estuviera escribiendo.
+> - El 2.º mensaje de una pastilla minimizada sube el contador sin sonar (a propósito, pero por si le chirría).
+> - Traer una tirada del Registro a una conversación: el modelo de datos ya lo aguanta, le falta su paso de
+>   diseño (nunca estuvo en el `.pen` aprobado).
 
 **SUSURROS (H8) — ✅ EN PRODUCCIÓN desde la noche del 2026-09-15 como v0.10.0** (registro 🚀 «v0.10.0 EN
 PRODUCCIÓN» abajo). Construido, probado en pantalla con los dos usuarios, review ×2, QA (modo bloqueo) con un
 bloqueo de spec (el alias) arreglado y re-pasado en verde, migraciones `chat_susurros` + `chat_susurros_harden`
 en producción, merge `f0dc44f`, web y api vivas.
 
-**LO QUE SE RETOMA AHORA: el pincel «parpadea y se borra solo» en producción** — diagnóstico HECHO y arreglo
-propuesto (2 ficheros + tests), ver «🐞 PENDIENTE DE SU RESPUESTA» dentro del bloque 📥 «SUSURROS — PROBADO EN
-PANTALLA». Él dijo «cerrar SUSURROS primero»: ya está cerrado, así que lo siguiente es ese arreglo en cuanto
-diga «dale» (rama nueva `fix/maps-pincel-recarga`, commit aparte).
+**El pincel «parpadea y se borra solo»: ✅ ARREGLADO Y EN PRODUCCIÓN** (v0.11.0, `aa78fbd`) — ver el bloque 🖌️
+de arriba. El bloque viejo «🐞 PENDIENTE DE SU RESPUESTA» dentro de 📥 «SUSURROS — PROBADO EN PANTALLA» queda
+sólo como registro del diagnóstico.
 
-Después, los hexágonos que quedan (mapa: ARCHITECTURE.md «Product hexagons»; specs: `specs/modules/*`):
+**LO QUE SE RETOMA AHORA: que él pruebe la v0.11.0 en producción** (las pastillas y el pincel). Después, los
+hexágonos que quedan (mapa: ARCHITECTURE.md «Product hexagons»; specs: `specs/modules/*`):
 **bitácora (H9)**, con spec de ~20 líneas y modelo de datos sin decidir, y **aventuras (H12)**, que al revés
 tiene **spec CERRADO de 173 líneas y nada construido** — es lo más grande que hay listo para atacar.
 
@@ -98,7 +98,7 @@ spec de maps, línea 18.
 - **Fuera de alcance a propósito (sigue)**: traer una tirada del Registro a la conversación (modelo de datos
   listo; el botón necesita su paso de diseño).
 
-## 🖌️ 2026-09-16 (madrugada) — **EL PINCEL YA NO PARPADEA NI SE BORRA SOLO** (sin mergear)
+## 🖌️ 2026-09-16 (madrugada) — **EL PINCEL YA NO PARPADEA NI SE BORRA SOLO** (✅ EN PRODUCCIÓN, v0.11.0)
 
 Su queja del 15-09: «*cada tanto las texturas parpadean y se borran solas, si toco Ctrl+Z vuelven*», mucho más
 en producción que en local. **Eran dos caminos al mismo sitio, los dos arreglados:**
@@ -130,7 +130,7 @@ Tests nuevos: `liveRules.test.ts` (5), dos casos en `usePaintBrush.test.ts` y el
 pasada y pasó sola y en las dos pasadas completas siguientes. Es un test de orden de pintado, sensible al
 tiempo; no lo toca este cambio. Si vuelve a salir, mirarlo aparte.
 
-## 🫧 2026-09-16 (madrugada) — **LAS PASTILLAS DE SUSURROS, CONSTRUIDAS** (sin mergear)
+## 🫧 2026-09-16 (madrugada) — **LAS PASTILLAS DE SUSURROS** (✅ EN PRODUCCIÓN, v0.11.0)
 
 **Qué pasó**: probando SUSURROS en producción preguntó «*las pastillas como en LinkedIn que te pedí, dónde
 están?*». Lo que yo construí el 15-09 con ese nombre era un aviso que saltaba y se iba solo a los 8 segundos —
@@ -151,9 +151,8 @@ tiene que poder cerrar*», «*que tenga el color rojo sangre o algo para que se 
   (`pillRequest`) → `WhisperWatcher`.
 - `table.css` publica `--tb-side-w` y el rincón se sienta a la IZQUIERDA de la columna: **visto en pantalla,
   la primera versión le caía encima**.
-- ⚠️ **El `.pen` está SIN GUARDAR**: la maqueta nueva (`oPbeF`, lámina `XwDVn`: los tres estados + varias a la
-  vez) vive sólo en la caché de Pencil porque él estaba durmiendo. **Pedirle Cmd+S y commitear `rolvium.pen`
-  antes del merge.** El aviso viejo `m4fh05` quedó renombrado a «SUSTITUIDO 16-09».
+- ✅ **El `.pen`, guardado por él y commiteado** (`4416af7`): la maqueta nueva (`oPbeF`, lámina `XwDVn`: los tres
+  estados + varias a la vez). El aviso viejo `m4fh05` quedó renombrado a «SUSTITUIDO 16-09».
 
 **Verde**: 2052/2052 tests en `apps/web`, typecheck, `npm run audit` 0 duras, `build:web` y `build:api`.
 **Probado EN PANTALLA con los dos usuarios** (`apps/web/.pastillas_e2e.tmp.mjs`, 0 errores de consola): abrir
@@ -172,10 +171,17 @@ la pantalla sin poder cerrarla). Dejó dicho, para decidir él: **quitar del tod
 contrario del nuevo diseño, tirar de la columna a la pestaña SUSURROS), que la cuarta pastilla puede cerrar una
 DESPLEGADA en la que estabas escribiendo, y que el 2.º mensaje de una minimizada sube el contador sin sonar.
 
-**⏳ Preguntarle cuando se levante**: al abrir del directorio la conversación sale en la columna Y en la
-pastilla a la vez — es lo que pidió («no toques la columna»), pero se ve la misma conversación dos veces. Si le
-sobra, que el directorio abra SÓLO la pastilla es un cambio de dos líneas. (Además así se cargaría una vez, no
-dos: hoy se marca leído dos veces al abrir.)
+**✅ RESUELTO el 16-09 por la mañana** (era lo que paró el QA en modo bloqueo, porque el spec se contradecía
+solo): se le dieron tres salidas y **eligió la 2 — la pastilla del directorio NACE MINIMIZADA** (barrita), la
+conversación se lee en la columna y la ventanita la despliega él (`ca9539f`). Si la pastilla ya estaba puesta se
+respeta como la tuviera y sólo se le pone el contador a cero.
+
+Y el efecto secundario que destapó eso, cazado por la review y arreglado en `301266c`: con la barrita, un
+mensaje que llegara MIENTRAS él leía esa conversación en la columna le dejaba la barrita en sangre con un «1» de
+algo recién leído (y la campanita decía 0). Ahora `ConversationView.onRead` dice CUÁL se ha leído y ese id sube
+por `SusurrosPanel` → `SidePanel` → `TablePage`; `WhisperWatcher` cambió `refreshKey` (un número suelto) por
+`readInColumn` (`{ id, tick }`) y le pone esa pastilla a cero. **Mirar es mirar, dé igual dónde** — la regla está
+escrita en el spec para que nadie la deshaga.
 
 ## 👥 2026-09-16 — **CUATRO JUGADORES DE PRUEBA EN LA CAMPAÑA «Test» DE PRODUCCIÓN** (registro)
 
