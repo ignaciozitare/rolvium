@@ -949,8 +949,8 @@ mismas piezas comunes que el Builder y el Pincel (`FloatingPanel` · `Slider` ·
 
 - Con **Seleccionar**, pinchar una pieza la coge (marco oro a trazos + cuatro tiradores de esquina + un tirador
   de giro encima). Arrastrarla la mueve; **los tiradores de esquina la escalan manteniendo la proporción** (y
-  reescriben la escala recordada de su pieza de biblioteca, si sigue existiendo); **el de giro la gira**. Un clic
-  sin arrastre sólo la elige y no escribe nada.
+  apuntan esa escala en la CATEGORÍA de su pieza, § 6.4 — la ficha del objeto en la biblioteca NO se toca);
+  **el de giro la gira**. Un clic sin arrastre sólo la elige y no escribe nada.
 - **Suprimir** la borra. **Ctrl/Cmd+C y Ctrl/Cmd+V** copian y pegan la cogida **con su giro y su tamaño**, un poco
   desplazada para que se vea. Pinchar el vacío suelta.
 - **Deshacer**: plantar, borrar, mover, girar y escalar una pieza entran en el historial (Ctrl+Z), como los muros.
@@ -1052,7 +1052,7 @@ el `.pen` antes del código; las otras (2 y 5) son de comportamiento.
    sale mientras hay una pieza cogida (con el sello, el bloque S/2 de recientes/favoritos ya cumple ese papel).
    - ⚠ **Pinchar una NUNCA toca la ya plantada.** Se construyó un día (14-09) reemplazando en vivo la pieza cogida y
      lo rechazó de plano («*me reemplaza el seleccionado, de dónde carajo sacaste eso*»); se revirtió. Pinchar una la
-     hace **el sello**, con la escala que esa pieza recuerda, y **suelta la cogida**: así el bloque de arriba pasa a
+     hace **el sello**, con la escala que recuerda su CATEGORÍA (§ 6.4), y **suelta la cogida**: así el bloque de arriba pasa a
      enseñar ese sello — con algo cogido el bloque muestra LA PIEZA COGIDA, que manda, y el sello cambiaba invisible
      por debajo (el «*está a medias*» que dijo al probarlo). El siguiente clic en el mapa la planta.
 
@@ -1120,7 +1120,8 @@ Migraciones: `20260831200000_maps_props.sql` (el andamio de agosto) y **`2026091
   **crea, renombra y borra quien tiene `manage_props`**. Borrar uno deja sus piezas «Sin clasificar» (`SET NULL`).
 - **`maps_props` — LA BIBLIOTECA.** Ya **sin campaña**: la pieza pertenece a un **paquete** (o a ninguno) y guarda su
   foto, su nombre, su categoría de serie (sólo cuenta para las piezas de la app, las que no subió nadie), el tamaño
-  natural del fichero, **la escala que recuerda** y **con qué estorbo nace** una copia. **Leen todos**; **sube quien
+  natural del fichero, **su tamaño de fábrica** (`default_scale`, el que se calcula al subirla: NO se reescribe
+  al estirar, § 6.4) y **con qué estorbo nace** una copia. **Leen todos**; **sube quien
   tiene el permiso y la fila queda a su nombre**; renombra, mueve de paquete y borra quien tiene el permiso.
 - **`maps_scene_props` — LO PLANTADO.** Igual que en agosto (sitio, tamaño, giro, capa, estorbo con su forma simple,
   **su propia copia de la foto y del nombre**) más **`z`, el orden de apilado** entre piezas de la escena. **Lee** el

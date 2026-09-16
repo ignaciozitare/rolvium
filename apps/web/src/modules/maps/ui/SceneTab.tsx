@@ -976,9 +976,13 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   const soltarSello = (): void => setStamp(null);
   /**
    * LA ESCALA SE RECUERDA POR CATEGORÍA (§ 6.4): al soltar el deslizador se apunta en su categoría, que es la
-   * que mandará al elegir el siguiente objeto. Y además se sigue guardando en la propia pieza de la biblioteca
-   * —si cambió y si se tiene el permiso, que sin él la base la rechazaría—, que es de donde sale el punto de
-   * partida mientras esa categoría no tenga nada apuntado todavía.
+   * que mandará al elegir el siguiente objeto.
+   *
+   * 🔴 **Y NO se guarda en la ficha del objeto de la biblioteca.** Se hacía —era la regla vieja «por pieza»— y
+   * con la categoría mandando pasó a ser dañino: la biblioteca es de la HERRAMIENTA, la ve todo el mundo, y le
+   * grababa al Pino un tamaño heredado del Roble que nadie decidió para el Pino. `defaultScale` es sólo el
+   * tamaño de fábrica de la subida, y justo de ahí tira una categoría que aún no sabe nada — o sea que aquel
+   * guardado corrompía lo único que a `defaultScale` le quedaba por hacer. No lo devuelvas.
    */
   const recordarEscala = (prop: Prop, scale: number): void => {
     // SIEMPRE, y sin condición: la escala de la categoría es la que mandará al elegir el siguiente, y tiene que
@@ -1018,11 +1022,11 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
     () => (selectedPropIds.length > 1 ? st.sceneProps.filter(sp => selectedPropIds.includes(sp.id)) : selectedProp ? [selectedProp] : []),
     [selectedPropIds, st.sceneProps, selectedProp],
   );
-  /** La pieza de biblioteca de una plantada, si sigue existiendo: es a la que se le reescribe la escala. */
+  /** La pieza de biblioteca de una plantada, si sigue existiendo: de ella sale la CATEGORÍA que aprende la escala. */
   const bibliotecaDe = (sp: SceneProp): Prop | null => (sp.propId ? (library ?? []).find(x => x.id === sp.propId) ?? (stamp?.id === sp.propId ? stamp : null) : null);
   /**
-   * ESTIRAR una plantada mantiene la proporción, reescala con ella la forma que estorba, y REESCRIBE la escala
-   * recordada de su pieza (§ 6.4: «por los dos caminos»).
+   * ESTIRAR una plantada mantiene la proporción, reescala con ella la forma que estorba, y apunta la escala en
+   * la CATEGORÍA de su pieza (§ 6.4: «por los dos caminos» — el deslizador del sello y las esquinas).
    */
   const estirarPieza = (id: string, box: { x?: number; y?: number; width: number; height: number }): void => {
     const sp = st.sceneProps.find(x => x.id === id);
@@ -1129,7 +1133,7 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
    * Pinchar una DE SU FAMILIA la hace EL SELLO, igual que la rejilla de «sin abrir el catálogo» — NUNCA toca la
    * ya plantada (él, 14-09: «*cuando hago click en un objeto lo selecciono, luego clico en el mapa y lo pongo,
    * así tiene que funcionar*»). Suelta además la pieza cogida, como hace Esc: así el bloque de arriba deja de
-   * mostrar LA PIEZA COGIDA y enseña ENSEGUIDA la elegida como sello, con la escala que ella recuerda y su
+   * mostrar LA PIEZA COGIDA y enseña ENSEGUIDA la elegida como sello, con la escala de SU CATEGORÍA (§ 6.4) y su
    * fantasma bajo el puntero — que era lo que faltaba cuando dijo que estaba «a medias».
    */
   const elegirSelloDeLaFamilia = (p: Prop): void => {
