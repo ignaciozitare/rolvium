@@ -311,9 +311,16 @@ de ser un dibujo para empezar a ser un sitio (dueño, 2026-08-22: «que los toke
   zigzag donde la cara siguiente también cierra: apuntadas, no tocadas.
 
 ### Quién choca
-- **Sólo los jugadores. El director pasa siempre**, esté el interruptor como esté (decisión del dueño).
-- ⚠ Consecuencia aceptada: el director **no puede probar en su pantalla lo que siente un jugador**. Se mira
-  entrando con una cuenta de jugador.
+- **TODOS, el director incluido** (él, 2026-09-16, probándolo en pantalla: «*nunca debió dejar traspasar puertas
+  u objetos*»). Sigue mandando el interruptor de la escena: apagado, no choca nadie.
+- **Y qué frena**: los muros marcados, el contorno de las salas y **los objetos plantados marcados «corta el
+  paso»** (§ 6.7). Los tres por la misma `slideToken` → `slideCircle`: no hay una segunda física.
+- **Lo que NO choca es poner un token de un clic**: eso es otro gesto, el director lo deja donde quiera y así
+  se queda («*si hago click sobre cualquier cosa como dm me deja poner el token… y eso es correcto*»).
+  > 🔴 **Esto REVOCA la decisión del 2026-08-22** —«sólo los jugadores; el director pasa siempre»—, que era una
+  > de las cuatro de aquella tanda. Con ella, el director no podía probar en su pantalla lo que siente un
+  > jugador, y por eso nació la sonda (§ 7.3). La sonda sigue valiendo para la NIEBLA, que es lo que el
+  > director sí ve distinto; para el freno ya no hace falta.
 
 ### El tamaño cuenta
 - Choca **todo el cuerpo** del token, no su punto central: un gato (0,5 casillas) pasa por un hueco por el que
@@ -977,6 +984,9 @@ layer, down layer etc*». Botón derecho sobre una pieza plantada:
 - **El servidor las suma a la geometría** al calcular visión, luz y paredes sólidas (`propBlockSegments` en
   `@rolvium/core`, girada con la pieza). Una columna marcada «corta la vista» proyecta su sombra sola: la luz se
   recorta contra los mismos segmentos. Las fichas siguen sin proyectarla.
+- **Y desde el 2026-09-16 frenan también EN EL NAVEGADOR mientras arrastras** (§ «Quién choca»). Antes sólo lo
+  hacía el servidor, después: un vehículo marcado «corta el paso» se atravesaba en pantalla. Era su queja, con
+  dos capturas: «*no funciona lo de bloquear paso*».
 
 ### 6.8 · Lo que salió al probarlo él (2026-09-13, primera prueba en pantalla) — cerrado por él («*vale*»)
 
@@ -1949,8 +1959,9 @@ salas (eso lo calcula el servidor) pero **el freno del navegador no**, porque `m
 - Arreglado sumando los contornos a lo que frena, con la misma `slideToken` → `slideCircle` de siempre: no hay
   una segunda física. Un vano abierto ya viene descontado del contorno, así que por la puerta se pasa.
 - 🔒 **Y NADA MÁS**: su criterio, literal, fue «*tiene que funcionar igual que los otros muros que uso sobre
-  las fotos*». La regla del 2026-08-22 —**el director no choca nunca**— se queda como está, porque vale igual
-  para las dos clases de muro. Quien quiera comprobar la física usa la sonda (§ 7.3), que sí choca.
+  las fotos*».
+  > ⚠ Lo que decía aquí —«la regla del 2026-08-22, el director no choca nunca, se queda como está»— **ya no
+  > vale**: el 2026-09-16 él la revocó y ahora choca todo el mundo al arrastrar. Ver § «Quién choca».
 
 #### 🔜 Lo que esta tanda deja fuera, a propósito
 - **Los pinceles para pintar encima**, dicho por él: «*una vez tengamos esto listo ya veremos*».

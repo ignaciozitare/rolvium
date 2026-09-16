@@ -698,8 +698,49 @@ describe('<MapCanvas> fog', () => {
     expect(arrastrar(false, false)![1]).toBeCloseTo(TOKEN_KAREN.x + 3, 1);
     // encendido: se queda a ESTE lado del muro
     expect(arrastrar(true, false)![1]).toBeLessThan(TOKEN_KAREN.x + 3);
-    // el director nunca choca
-    expect(arrastrar(true, true)![1]).toBeCloseTo(TOKEN_KAREN.x + 3, 1);
+    /**
+     * Y EL DIRECTOR TAMBIÉN SE QUEDA A ESTE LADO, desde el 2026-09-16. Hasta entonces pasaba de largo: era
+     * una de las cuatro decisiones de la tanda de paredes sólidas (22-ago, «el director nunca choca»). Él la
+     * revocó al probarlo en pantalla: «*nunca debió dejar traspasar puertas u objetos*». Poner un token de un
+     * clic donde sea sigue valiendo — eso es otro gesto y no pasa por el freno.
+     */
+    expect(arrastrar(true, true)![1]).toBeLessThan(TOKEN_KAREN.x + 3);
+    // y con el interruptor apagado sigue sin chocar nadie, tampoco él
+    expect(arrastrar(false, true)![1]).toBeCloseTo(TOKEN_KAREN.x + 3, 1);
+  });
+
+  /**
+   * 🚚 Y UN OBJETO MARCADO «CORTA EL PASO» FRENA IGUAL — su queja del 2026-09-16, con dos capturas: «*no
+   * funciona lo de bloquear paso*».
+   *
+   * Aquí sólo se miraban muros y salas, así que un vehículo marcado como que estorba se atravesaba en pantalla
+   * y lo único que lo frenaba era el servidor, después. La forma que frena es la del objeto ya girada
+   * (`propsGeometry` de `@rolvium/core`, la misma que usa el servidor): no hay una segunda física.
+   */
+  it('un OBJETO que corta el paso frena a la ficha, y si no corta el paso no la frena', () => {
+    // Una columna de 1×1 casilla plantada a dos casillas a la derecha de Karen, en su misma fila.
+    const tope = {
+      ...SCENE_PROP_COLUMN, id: 'sp-tope', layerId: null,
+      x: (TOKEN_KAREN.x + 2.5) * G, y: (TOKEN_KAREN.y + 0.5) * G,
+      width: G, height: G, blockShape: 'rect' as const, blockW: G, blockH: G, blockDx: 0, blockDy: 0,
+      blocksSight: false, blocksMove: true, rotation: 0,
+    };
+    const arrastrar = (sceneProps: typeof tope[], solidWalls = true) => {
+      document.body.innerHTML = '';
+      const { svg, token, cb } = mount({ scene: { ...SCENE_WAREHOUSE, solidWalls }, walls: [], sceneProps, isDm: true, me: 'u-gm' });
+      down(token('Karen'), (TOKEN_KAREN.x + 0.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+      move(svg, (TOKEN_KAREN.x + 4.5) * G, (TOKEN_KAREN.y + 0.5) * G);
+      up(svg);
+      return cb.onMoveToken.mock.calls.at(-1);
+    };
+    // sin nada plantado, cruza de largo
+    expect(arrastrar([])![1]).toBeCloseTo(TOKEN_KAREN.x + 4, 1);
+    // con la columna delante, se queda a este lado
+    expect(arrastrar([tope])![1]).toBeLessThan(TOKEN_KAREN.x + 4);
+    // una alfombra que NO corta el paso no frena a nadie
+    expect(arrastrar([{ ...tope, blocksMove: false }])![1]).toBeCloseTo(TOKEN_KAREN.x + 4, 1);
+    // y con las paredes sólidas apagadas tampoco frena: los objetos respetan el mismo interruptor
+    expect(arrastrar([tope], false)![1]).toBeCloseTo(TOKEN_KAREN.x + 4, 1);
   });
 
   /**
