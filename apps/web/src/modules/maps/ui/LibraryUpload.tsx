@@ -1,9 +1,16 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from '@rolvium/i18n';
-import { ACCEPTED_MIME, CompressError, Modal, type CompressResult } from '@rolvium/ui';
+import { ACCEPTED_MIME, CompressError, Modal, type AlphaMap, type CompressResult } from '@rolvium/ui';
 
 /** Lo que hace falta para crear la cosa subida: el resto (foto, quién) lo pone quien la guarda. */
-export interface LibraryUploadInput { name: string; groupId: string | null; naturalWidth: number; naturalHeight: number }
+export interface LibraryUploadInput {
+  name: string; groupId: string | null; naturalWidth: number; naturalHeight: number;
+  /**
+   * LA OPACIDAD de la imagen, si quien prepara la pidió (hoy sólo los objetos, para sacar su silueta — mapas
+   * § 6.9). Viaja por aquí y no se vuelve a abrir la imagen: es la única pasada en la que está descodificada.
+   */
+  alpha?: AlphaMap | null;
+}
 
 /** Preparar UN fichero antes de guardarlo: comprimirlo (piezas) o dejarlo tal cual (texturas). Aparte para doblarlo en los tests. */
 export type Preparer = (file: File) => Promise<CompressResult>;
@@ -84,7 +91,7 @@ export function LibraryUpload({ keys, groups, allowUnsorted, groupId: initialGro
       setItems(l => l.map(i => (i.key === item.key ? { ...i, status: 'uploading', error: null } : i)));
       try {
         const r = await prepare(item.file);
-        await onAdd({ name: item.name, groupId, naturalWidth: r.width, naturalHeight: r.height }, r.blob);
+        await onAdd({ name: item.name, groupId, naturalWidth: r.width, naturalHeight: r.height, alpha: r.alpha ?? null }, r.blob);
         setItems(l => l.map(i => (i.key === item.key ? { ...i, status: 'done' } : i)));
       } catch (e) {
         fallos += 1;

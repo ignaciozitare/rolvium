@@ -1103,6 +1103,96 @@ diciendo «pieza» en la prosa de abajo por la misma razón**: manda lo que se v
 - **Varias cogidas y el botón derecho**: capa, estorbo (todas al mismo valor que toma la pinchada), apilar (una tras
   otra, en el orden en que están), duplicar y borrar mandan sobre todas; el título del menú lo dice.
 
+
+### 6.9 · LA SILUETA — la forma que estorba sale del PNG ✅ CONSTRUIDA
+
+**Su queja, 2026-09-16, con dos capturas de sus vehículos**: la sombra que proyectaba un camión era un bloque
+negro rectangular enorme que no se parecía en nada al camión. Y su criterio, literal: «*tienen que recortar por
+la silueta del png no por el área que crees que tenga, o al menos lo más aproximado, pero no un cuadrado u óvalo
+que no tenga nada que ver con la silueta del objeto*».
+
+Se le enseñó una maqueta con SEIS objetos suyos de producción —las tres formas dibujadas encima y la sombra de
+cada una, con la luz movible— y la aprobó: «**está perfecto**».
+
+#### Cómo se saca la silueta
+- **A rayos desde el centro.** Por cada ángulo se entra desde fuera hacia dentro hasta topar con el primer píxel
+  opaco; ese punto es un vértice. Sale **siempre** un polígono simple —sin cruces, sin agujeros y con el número
+  de puntos que se pida—, que es justo lo que el motor de visión necesita para que el coste no se dispare.
+  Frente a seguir el contorno píxel a píxel: aquello da polígonos con cientos de puntos, cruces en las formas
+  raras y ningún tope de coste.
+- **24 puntos** de serie, y **50 % de opacidad** como corte de transparencia. Los dos salen de la maqueta.
+- **Cuesta lo mismo que el óvalo que ya existe**: el «círculo» de hoy es por dentro un polígono de sólo
+  `CIRCLE_SIDES = 16` lados. 24 es el mismo orden de magnitud, no uno nuevo.
+
+#### Lo que la silueta NO hace, dicho antes de construirla
+- **Rellena los huecos interiores**: el hueco entre las ruedas de un tanque o el arco de un puente quedan
+  macizos. Visto desde arriba, para tapar la vista, no se nota.
+- **No entra en entrantes muy profundos**, por ser vista desde el centro. El cañón de un tanque sí sale; una
+  forma de herradura saldría redondeada.
+- Es **su «o al menos lo más aproximado»**, no un recorte perfecto al píxel.
+
+#### Dónde vive
+- **En la pieza de la biblioteca**, como una forma más: se calcula **al subir**, en la misma pasada en la que la
+  imagen ya se dibuja en un lienzo para comprimirla (`compressImage` en `@rolvium/ui`) — sin volver a bajarla ni
+  descodificarla. La copia plantada la hereda al nacer, como hereda hoy el rectángulo.
+- **`block_shape` gana el valor `silhouette`** y la lista de puntos se guarda con la fila. Rectángulo y círculo
+  **se quedan**: no se borra nada que funcione.
+- ✅ **Los objetos ya subidos** (**149** suyos el 16-09) nacieron sin silueta, y él decidió el mismo día:
+  «*hazlas de a una vez*». Es una **pasada única**, y **NO es un botón de la aplicación**: es
+  `scripts/gen-silhouettes.mjs`, que se lanza a mano desde el repositorio y **escribe un fichero de migración**
+  —no toca ninguna base de datos—. Va de una en una y es **repetible**: sólo mira los que aún no la tienen.
+  > 🔴 **Hubo lámina de un botón en la barra de la biblioteca, y él lo paró en cuanto la vio** (16-09): «*¿por
+  > qué no lo haces automáticamente, por qué un botón?*». Tenía razón: es un trabajo de UNA SOLA VEZ —lo que se
+  > suba a partir de ahora saca su silueta al subirse—, así que un botón permanente sería basura para siempre.
+  > Y hacerlo solo al abrir la biblioteca tampoco valía: le caería encima al primero que entre, 149 descargas y
+  > 149 escrituras sin pedirle permiso, y si falla la mitad no se entera nadie. **No volver a proponerlo.**
+  - Una foto que no se deja bajar (red, CORS) **no para la pasada**: se cuenta y se sigue.
+  - Un objeto al que él le puso **óvalo a mano no se pisa**: se le guarda la silueta, pero la forma elegida
+    sigue siendo la suya. Sólo se cambia la forma cuando sigue siendo el rectángulo de fábrica.
+  - 🔑 **Alcanza también a lo YA PLANTADO en los mapas**, no sólo a la biblioteca. Lo que él ve en sus escenas
+    son copias: arreglar sólo la biblioteca no cambiaría una sola de las sombras que ya tiene puestas. Una
+    escritura por objeto (`prop_id` + forma de fábrica), sin recorrer escena por escena.
+
+#### Cómo quedó construido (2026-09-16)
+- **Migración** `20260916190000_maps_props_silhouette.sql`: `block_shape` gana `silhouette` y aparece la lista
+  de puntos en `maps_props.default_silhouette` y `maps_scene_props.silhouette`. Los puntos van en **fracciones
+  de la huella** (-0,5 … +0,5 desde el centro) y no en píxeles: así estirar la pieza no obliga a reescribirlos
+  —`block_w`/`block_h` ya se estiran y son los que la miden— y la copia plantada hereda la misma lista.
+  Un CHECK impide decir «estorbo por mi silueta» sin traerla: si no, la pieza dejaría de estorbar **en
+  silencio**, que es la clase de fallo que se ve en pantalla y no en el código.
+- **`@rolvium/core`**: `silhouetteRing` (los rayos) y `propBlockRing` (de fracciones a píxeles de escena, ya
+  girada). **Sin lista guardada se cae al rectángulo**: una pieza vieja estorba como hasta hoy, nunca menos.
+- **`@rolvium/ui`**: el compresor puede devolver la **opacidad en crudo** de la imagen que ya tiene abierta, así
+  que la silueta sale en la misma pasada de la subida. La biblioteca de componentes **no** pasa a depender del
+  motor de juego: devuelve opacidad, no geometría.
+- 🔑 **Y el SERVIDOR la lee** (`apps/api`, `listBlockingProps`). No es un detalle de fontanería: **la sombra que
+  él vio la calcula el servidor**, no el navegador. Mientras `ScenePropRecord` decía sólo «rect o circle» y el
+  `select` no pedía la columna, un camión guardado como `silhouette` llegaba mudo al motor, `propBlockRing` se
+  caía al rectángulo y la sombra seguía siendo **el mismo bloque negro de su captura** — aunque el navegador ya
+  lo frenase por su contorno. Las dos orillas leen la misma columna o la silueta no se ve.
+- **Nacer con silueta NO hace que estorbe**: «tapa la vista» y «corta el paso» siguen naciendo apagados. La
+  silueta sólo decide CON QUÉ FORMA estorbará el día que él los encienda.
+
+- **La pasada de lo ya subido**, `scripts/gen-silhouettes.mjs`: baja cada foto, le saca el contorno con el
+  MISMO motor de `@rolvium/core` —no hay una segunda verdad geométrica— y escribe la migración. Descodifica en
+  un Chromium sin ventana porque Node no sabe abrir un WebP con transparencia; a la página se le pasan los
+  BYTES, así que no sale a la red: ni CORS ni lienzo manchado. Un id que no sea un UUID no llega al texto de la
+  migración. **149 de 149 sin un fallo**, y ninguna silueta sale igual que el cuadrado: la que menos recorta se
+  queda en el 76 % de la caja, la mediana en el 53 % y la que más baja al 20 %.
+- La migración de datos `20260916200000_maps_props_siluetas_de_lo_ya_subido.sql` es **repetible**: cada
+  sentencia sólo toca la fila si sigue SIN silueta, y la forma sólo cambia si sigue siendo el rectángulo de
+  fábrica.
+
+#### El orden de la entrega, y por qué no se puede invertir
+1. La migración de la COLUMNA (`20260916190000`).
+2. El código (merge y despliegue).
+3. **Y sólo entonces** la migración de los DATOS (`20260916200000`).
+
+Al revés se rompe: con los datos puestos y el código viejo todavía vivo, `plantProp` mandaría
+`block_shape = 'silhouette'` sin traer la lista, y **plantar un objeto en producción fallaría** contra
+`maps_scene_props_silhouette_shape_check`. En el sentido bueno no hay ventana: código nuevo sin datos es
+exactamente lo de hoy, rectángulos.
+
 ### Reglas y límites de esta rebanada
 
 - **Planta, mueve y borra el director**; un jugador no toca una pieza. **Ordena la biblioteca quien tiene el permiso.**

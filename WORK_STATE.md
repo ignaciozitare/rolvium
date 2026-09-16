@@ -1,6 +1,61 @@
 # WORK_STATE.md — Rolvium
 
 ## 🎯 Current task
+
+> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-16, noche)
+>
+> ## ✅ LA SILUETA — EN PRODUCCIÓN Y **PROBADA POR ÉL**: «*la silueta funciona perfecto*»
+> v0.12.0, merge `23c42ac`. Las sombras de los objetos ya recortan por el dibujo y no por un cuadrado. Los
+> números, leídos de la base de producción: **149/149 objetos** y **95/95 copias plantadas** con silueta; de
+> los que estorban de verdad, **22 por su contorno y CERO con el cuadrado**. Detalle completo en el bloque
+> «v0.12.0» de más abajo.
+>
+> ## 🔀 LO SIGUIENTE, POR ORDEN — **LO DIJO ÉL AL CERRAR EL CHAT**
+>
+> > «*lo que quiero arreglar primero no es el chat, es lo que cuando pinto se borran las habitaciones*»
+>
+> **1. 🐞 EL PINCEL QUE BORRA LAS HABITACIONES — SU PRIORIDAD, POR ENCIMA DE TODO LO DEMÁS.**
+> Rama `fix/salas-desaparecen-al-pintar`, dos commits, QA en modo bloqueo pasado entero, **sin mergear**.
+> **NO está confirmado que ese arreglo sea EL suyo**: la única vez que lo probó estaba, sin saberlo, en otra
+> rama sin el arreglo (ver la lección de abajo). **El primer paso es que lo pruebe de verdad**: su local ya
+> queda en esa rama con todo lo demás dentro; decirle que recargue con Cmd+Shift+R y que pinte un rato.
+> · Si le SIGUE pasando: no adivinar. Preguntarle **si la habitación que desaparece es la que está pintando o
+>   una de al lado**, y si pasa dando toques o sólo arrastrando y cruzando de una a otra. Las pistas ya
+>   miradas y el estado del diagnóstico están en el bloque 🐞 «DESAPARECEN HABITACIONES» de más abajo.
+> · Si NO le pasa: QA ya está pasado, así que es merge y desplegar.
+>
+> **2. ⏳ PREGUNTA SUYA SIN RESPONDER — el freno de los objetos.**
+> Se quejó de que «*el block movement no funciona*» probando como director. **No era un fallo**: la escena
+> `test3` tenía el escudo en «Paredes atravesables», y ese interruptor apaga el freno de TODO —paredes, salas
+> y objetos— **pero no la vista**. Por eso veía las sombras perfectas mientras nada frenaba. Se le dijo dónde
+> está el escudo y lo dio por bueno («vale todo bien»).
+> **Lo que sigue SIN decidir, y es lo primero que hay que preguntarle**: cuando él marca «corta el paso» en un
+> objeto concreto, ¿debe frenar SIEMPRE aunque las paredes estén atravesables, o el escudo sigue mandando
+> sobre todo? **No interpretar su «vale todo bien» como respuesta**: contestaba a que ya le funcionaba, no a la
+> pregunta. Si elige lo primero, es quitar el `p.scene.solidWalls ?` de `propBlockers` (`MapCanvas.tsx`) y su
+> gemelo del servidor (`sceneVision.ts`), con test.
+>
+> Su local corre en `localhost:5173` y `5174`, con el servidor en `3001`; los tres estaban vivos.
+>
+> **3. Lo pequeño que sigue anotado**: las tres pastillas desplegadas en ventana estrecha (la de arriba se
+> sale), el camino muerto `pendingChatOpen`, y traer una tirada del Registro a una conversación.
+>
+> ## ⚠️ DOS LECCIONES DE HOY, PARA NO REPETIRLAS
+> - **Una migración de DATOS grande no va por MCP.** La de las siluetas eran 125 KB y hubo que partirla en
+>   siete tandas por el chat: ~150k tokens. La próxima, **enlazar el CLI de Supabase y `db push`**.
+> - **Al cambiar de rama se le cambia el local sin avisar.** Pasó hoy: probó el pincel media hora contra el
+>   código viejo por culpa mía. **Decirle siempre en qué rama queda su local.**
+>
+> ## 🧹 Menudencias
+> - `siluetas-comprobacion.local.png` (raíz): la comprobación visual de seis objetos suyos. Está ignorada por
+>   git; se puede borrar cuando ya no la quiera.
+> - Deuda anotada y NO tocada: la clave de recálculo de niebla (`useScene.ts:296`) no incluye la silueta —hoy
+>   no se manifiesta—, y el pincel de máscara puede perder un trozo de brochazo al cruzar de sala (ver el 🐞
+>   del pincel, más abajo).
+> - El `.pen` está guardado y limpio: las dos láminas del botón que él mató se borraron en `1b55613`.
+
+---
+
 > ## 🚀 v0.11.0 EN PRODUCCIÓN (2026-09-16, mañana) — **LAS PASTILLAS y el pincel arreglado**
 > Merge `a82c33e`, los dos despliegues de producción READY y comprobado de verdad: `rolvium.vercel.app` 200,
 > `rolvium-api.vercel.app/health` 200, y el paquete que sirve producción lleva «Susurros abiertos», «Minimizar
@@ -94,6 +149,92 @@
 >   su escena antes de tocar nada: es como se cazó el del 15-09.
 >
 > ### 🎯 LO SIGUIENTE, YA APROBADO POR ÉL: **LA SILUETA** (spec escrito, sin construir)
+>
+> ### 🚀 v0.12.0 EN PRODUCCIÓN (2026-09-16, noche) — **LA SILUETA**
+Merge `23c42ac`, los dos despliegues READY sobre ese commit, web y api a 200, y **comprobado que el paquete que
+sirve producción es el nuevo** (lleva `default_silhouette`; no se dio por bueno el primer 200, que todavía
+servía el viejo). Advisors de seguridad sin un solo ERROR.
+
+**LAS DOS MIGRACIONES, APLICADAS Y VERIFICADAS EN PRODUCCIÓN**, y en el orden que manda:
+1. La columna (antes del despliegue).
+2. El código.
+3. Los datos (después), en siete tandas por MCP.
+
+**El recuento final, leído de la base de producción**: **149 de 149 objetos** con silueta · **95 de 95 copias
+plantadas** con silueta · de las que estorban de verdad, **22 lo hacen ya por su silueta y CERO siguen con el
+cuadrado**.
+
+⚠️ Lo que costó: la migración de datos son 125 KB, y meterla por MCP obliga a pasarla por el chat en trozos —
+unos 150k tokens en total. **Si vuelve a hacer falta una migración de datos grande, enlazar antes el CLI de
+Supabase y hacer `db push`**, que no pasa por el modelo.
+
+### 🎯 LA SILUETA — CÓMO SE CONSTRUYÓ (registro)
+Rama `feat/silueta-de-los-objetos`, ya mergeada. El spec § 6.9 va al día en la misma
+rama (la vieja `docs/spec-silueta` ya viene dentro: `1417222`). Review pasada, `npm run audit` 0 duros, y verde
+entero: web 2023 · api 305 · core 133 · ui 23.
+
+**Lo que hace, dicho como lo ve él**: la sombra de un camión ya no es un bloque negro rectangular. Se saca el
+contorno del PNG a rayos desde el centro (24 puntos, corte al 50 % de opacidad — los dos números salen de la
+maqueta que aprobó con «está perfecto»).
+
+- **Al subir un objeto nuevo sale sola**, dentro de la MISMA pasada que ya comprime la imagen: ni una descarga
+  más ni una descodificación más. Se guarda con la fila, y la copia plantada la hereda al nacer.
+- **Nacer con silueta NO la hace estorbar**: «tapa la vista» y «corta el paso» siguen naciendo apagados. La
+  silueta sólo decide CON QUÉ FORMA estorbará el día que él los encienda.
+- **Nada de lo viejo cambia**: sin silueta guardada se estorba con el rectángulo de siempre. Defendido en cuatro
+  sitios a la vez (el CHECK de la base, el motor, el cálculo de la subida y un test del servidor), porque el
+  fallo peligroso aquí es **dejar de estorbar en silencio**.
+- **La pasada de una vez para sus 149** (su «*hazlas de a una vez*») está construida y probada: va de una en
+  una, es repetible, una foto que no se deja bajar no para las demás, y **alcanza también a lo YA PLANTADO** —
+  lo que él ve en sus mapas son copias, así que arreglar sólo la biblioteca no cambiaría una sola sombra de las
+  que ya tiene puestas. Un óvalo que puso él a mano no se pisa ni arriba ni en las copias.
+
+🔴 **El hallazgo gordo de la review, escrito para que no se repita**: el servidor —que es quien calcula lo que se
+ve— **no leía la columna nueva**, así que habría seguido tapando con el rectángulo mientras el navegador frenaba
+por el contorno de verdad: los dos lados discrepando en silencio. No lo cazó el compilador porque esa fila se lee
+con una conversión forzada. Ahora los dos usan los MISMOS tipos de `@rolvium/core`, y hay test del lado servidor.
+
+✅ **EL BOTÓN NO SE CONSTRUYE — lo paró él** (16-09, en cuanto vio la lámina): «*¿por qué no lo haces
+automáticamente, por qué un botón?*». Tenía razón: es un trabajo de UNA SOLA VEZ, y un botón permanente en la
+barra para eso es basura para siempre. Hacerlo solo al abrir la biblioteca tampoco valía —le cae encima al
+primero que entre, 149 descargas y 149 escrituras sin pedirle permiso, y si falla la mitad no se entera nadie.
+
+**En su lugar: `scripts/gen-silhouettes.mjs`.** Baja cada foto, le saca el contorno con el MISMO motor de
+`@rolvium/core` y **escribe un fichero de migración**; no toca ninguna base de datos. Descodifica en un Chromium
+sin ventana (Node no sabe abrir un WebP con alfa) al que se le pasan los BYTES, así que no sale a la red: ni
+CORS ni lienzo manchado. **149 de 149 sin un fallo.** Ninguna silueta sale igual que el cuadrado: la que menos
+recorta se queda en el 76 % de la caja, la mediana en el 53 % y la que más baja al 20 %. Comprobado además con
+los ojos sobre seis objetos suyos de producción.
+
+La migración de datos es `20260916200000_maps_props_siluetas_de_lo_ya_subido.sql` y es **repetible**: cada
+sentencia sólo toca la fila si sigue SIN silueta, y la forma sólo cambia si sigue siendo el rectángulo de
+fábrica. Arregla también **lo YA PLANTADO** (95 copias en sus mapas, 15 tapando vista y 17 cortando paso), que
+es donde él lo va a ver.
+
+✅ **SU LOCAL YA LA TIENE APLICADA** (50 objetos + 52 copias plantadas): puede probarlo en `localhost:5173`.
+
+🧹 Lo que murió con el botón y se borró en `b92a373`: el caso de uso de la pasada, `applySilhouetteToPlanted`
+(puerto y adaptador) y `alphaOfUrl`. Se habían quedado sin un solo llamador en producción, sujetos sólo por sus
+propios tests.
+
+⏳ **FALTA, y es lo único**: aplicar las DOS migraciones en producción por MCP (la de la columna y la de los 149)
+y mergear. Ojo al coste: la de datos son 125 KB (~48k tokens por `apply_migration`). Pendiente de su palabra
+porque toca producción.
+
+✅ **El `.pen` quedó limpio**: guardó él a las 19:48 y el commit `1b55613` se llevó las dos láminas del botón
+(5.166 líneas menos, cero añadidas — la firma de un borrado de láminas, no de una escritura a medias). El QA lo
+abrió y lo dio por íntegro: 115 láminas de primer nivel, 31 componentes, secciones numeradas intactas.
+
+🧾 **Desfase menor anotado a propósito**: producción registró la migración de la columna como `20260916182937` y
+el fichero del repositorio es `20260916190000`. No se arregla: la migración es idempotente y las de producción
+van por MCP, nunca por `db push`, así que nada se re-aplica solo. Renombrar un fichero ya aplicado o insertar a
+mano una fila en el registro es más peligroso que el desajuste.
+
+🧹 Deuda menuda anotada y NO tocada: la clave que dispara el recálculo de la niebla (`useScene.ts:296`) no incluye
+la silueta. Hoy no hay camino que la cambie sin cambiar también la forma, así que no se manifiesta; el día que se
+pueda editar una silueta en el sitio, la niebla no se enteraría.
+
+### 🎯 CÓMO SE APROBÓ (registro; ya construido)
 > Su queja: la sombra de un camión era un bloque negro rectangular. «*Tienen que recortar por la silueta del png
 > … o al menos lo más aproximado*». Se le hizo una **maqueta con SEIS objetos suyos de producción** (las tres
 > formas y la sombra de cada una, con la luz movible) y contestó «**está perfecto**».
@@ -102,10 +243,8 @@
 > puntos y 50 % de corte, calculada AL SUBIR dentro de la pasada que ya comprime la imagen, y `block_shape`
 > gana el valor `silhouette`. Cuesta lo mismo que el óvalo (que por dentro ya es un polígono de 16 lados).
 >
-> ✅ **CONTESTADO el 16-09: «hazlas de a una vez»** — pasada única desde la biblioteca para sus 133 objetos ya
-> subidos, con su botón. Los que suba después la sacan solos al subirlos. **Ya no está bloqueado: se empieza
-> por el DBA.**
-> Después: DBA (migración) → Dev → Review → QA.
+> ✅ **CONTESTADO Y HECHO** (registro): «hazlas de a una vez». Terminó siendo un script del repositorio y no un
+> botón —lo paró él— y fueron **149**, no 133, porque siguió subiendo. Ver el bloque 🎯 del principio.
 >
 > ### ✅ CERRADO HOY: LOS OBJETOS QUE ESTORBAN (su queja del 16-09, con dos capturas)
 > «*no funciona lo de bloquear paso y linea de vision, hace cosas raras visualmente*». Diagnóstico HECHO

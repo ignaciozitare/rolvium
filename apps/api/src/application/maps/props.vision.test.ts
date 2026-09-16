@@ -84,3 +84,62 @@ describe('computeSceneVision — la pieza que estorba', () => {
     if (r.ok) expect(r.data.corrected).toBeNull();
   });
 });
+
+/**
+ * LA SILUETA, EN EL SERVIDOR (specs/modules/maps/SPEC.md § 6.9).
+ *
+ * Su queja del 2026-09-16 era una SOMBRA: «la sombra que proyectaba un camión era un bloque negro rectangular».
+ * Esa sombra la calcula el servidor, no el navegador, así que la silueta sólo arregla lo que él ve si llega
+ * hasta aquí. Estos tests sujetan las dos mitades: que la silueta se usa, y que una pieza que dice estorbar
+ * por silueta pero no trae ninguna NO deja de estorbar en silencio.
+ */
+describe('la silueta llega al servidor (§ 6.9)', () => {
+  /**
+   * Un camión apaisado plantado en (189, 148,5): su HUELLA es un cuadrado de 108 px —el rectángulo de hoy—,
+   * pero su carrocería sólo ocupa 10,8 px de alto. Ahí está la sombra del bloque negro de su captura.
+   */
+  const ANILLO = [{ x: -0.5, y: -0.05 }, { x: 0.5, y: -0.05 }, { x: 0.5, y: 0.05 }, { x: -0.5, y: 0.05 }];
+  const CAMION = { ...COLUMN, id: 'sp-cam', x: 189, blockW: 108, blockH: 108, blockShape: 'silhouette' as const, silhouette: ANILLO };
+
+  it('la forma que estorba son los puntos de la silueta, no los cuatro del rectángulo de su huella', async () => {
+    const g = await blockingGeometry(seed({ props: [CAMION] }), SCENE);
+    expect(g.sight).toHaveLength(ANILLO.length);
+    // Ancho entero de la huella (189 ± 54) y sólo una rebanada de alto (148,5 ± 5,4): ESA es la diferencia.
+    expect(g.sight[0]).toEqual({ a: { x: 135, y: 143.1 }, b: { x: 243, y: 143.1 } });
+  });
+
+  it('🔑 lo que él pidió: por encima del camión ya se ve — el bloque negro rectangular se acabó', async () => {
+    const conSilueta = await computeSceneVision({ maps: seed({ props: [CAMION] }) }, { sceneId: SCENE, userId: PIP });
+    const conBloque = await computeSceneVision({ maps: seed({ props: [{ ...CAMION, blockShape: 'rect' as const }] }) }, { sceneId: SCENE, userId: PIP });
+    expect(conSilueta.ok && conBloque.ok).toBe(true);
+    if (!conSilueta.ok || !conBloque.ok) return;
+    // Un punto detrás del camión pero POR ENCIMA de su carrocería: dentro del rectángulo, fuera de la silueta.
+    const arriba = { x: 260, y: 100 };
+    expect(pointInPolygon(arriba, conBloque.data.vision[0]!)).toBe(false);   // el bloque negro de su captura
+    expect(pointInPolygon(arriba, conSilueta.data.vision[0]!)).toBe(true);   // con la silueta, despejado
+    // Y detrás de la carrocería sigue tapando: la silueta recorta la sombra, no la apaga.
+    expect(pointInPolygon({ x: 260, y: 148.5 }, conSilueta.data.vision[0]!)).toBe(false);
+  });
+
+  it('🔑 una pieza que dice «estorbo por mi silueta» sin traerla tapa como el RECTÁNGULO, nunca menos', async () => {
+    const muda = { ...CAMION, silhouette: null };
+    const g = await blockingGeometry(seed({ props: [muda] }), SCENE);
+    const rect = await blockingGeometry(seed({ props: [{ ...CAMION, blockShape: 'rect' as const }] }), SCENE);
+    expect(g.sight).toEqual(rect.sight);
+    expect(g.move).toEqual(rect.move);
+    // Y una fila de antes de la columna, que ni siquiera trae el campo, se comporta igual.
+    const { silhouette: _s, ...vieja } = muda;
+    expect((await blockingGeometry(seed({ props: [vieja] }), SCENE)).sight).toEqual(rect.sight);
+  });
+
+  it('con paredes sólidas, el camión frena por su carrocería y deja pasar por encima', async () => {
+    const maps = seed({ props: [CAMION], scene: { solidWalls: true } });
+    // Atravesarlo de lleno (misma fila que Pip, y 7 casillas: cruza la carrocería) → frenado.
+    const through = await computeSceneVision({ maps }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 5 } });
+    if (through.ok) expect(through.data.corrected).not.toBeNull();
+    // Pasar por encima de la carrocería (fila 2, muy por encima de sus 10,8 px de alto) → libre.
+    const over = seed({ props: [CAMION], scene: { solidWalls: true }, tokens: [{ ...PIP_TOKEN, y: 2 }] });
+    const r = await computeSceneVision({ maps: over }, { sceneId: SCENE, userId: PIP, at: { tokenId: 'tk-pip', x: 7, y: 2 } });
+    if (r.ok) expect(r.data.corrected).toBeNull();
+  });
+});

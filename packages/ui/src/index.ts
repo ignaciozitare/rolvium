@@ -74,6 +74,6 @@ export { OptionGroup }                    from './components/OptionGroup';
 export type { OptionGroupProps, OptionItem } from './components/OptionGroup';
 
 // ── Imágenes: compresión a WebP en el navegador (specs/core/images) ───────────
-export { compressImage, fitDimensions, formatBytes, CompressError, IMAGE_TARGETS, LEVELED_TARGETS, DEFAULT_COMPRESSION_LEVEL, ACCEPTED_MIME, MAX_INPUT_BYTES, MAX_OUTPUT_BYTES } from './lib/compressImage';
-export type { ImageTarget, CompressionLevel, CompressResult, CompressDeps, CompressErrorCode, TargetSpec } from './lib/compressImage';
+export { compressImage, fitDimensions, formatBytes, CompressError, IMAGE_TARGETS, LEVELED_TARGETS, DEFAULT_COMPRESSION_LEVEL, ACCEPTED_MIME, MAX_INPUT_BYTES, MAX_OUTPUT_BYTES, ALPHA_SIDE } from './lib/compressImage';
+export type { ImageTarget, CompressionLevel, CompressResult, CompressDeps, CompressOptions, CompressErrorCode, TargetSpec, AlphaMap } from './lib/compressImage';
 export { pickImageFile } from './lib/pickImageFile';

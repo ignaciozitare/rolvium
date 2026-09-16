@@ -83,6 +83,30 @@ export interface CompressResult {
   compressed: boolean;
   width: number;
   height: number;
+  /**
+   * EL CANAL DE TRANSPARENCIA de la imagen ya descodificada, sólo si se pide (`opts.alpha`). Un byte por
+   * píxel, fila a fila. Es lo que permite sacar la silueta de un objeto (mapas § 6.9) **sin volver a bajar ni
+   * a descodificar la imagen**: aquí ya está abierta.
+   *
+   * Este fichero NO sabe qué es una silueta ni qué es un objeto — devuelve opacidad en crudo y la geometría la
+   * pone quien la pide. Por eso la biblioteca de componentes no depende del motor de juego.
+   */
+  alpha?: AlphaMap | null;
+}
+
+/** Opacidad en crudo, fila a fila: `data[y * width + x]`, de 0 (transparente) a 255 (opaco). */
+export interface AlphaMap { data: Uint8ClampedArray; width: number; height: number }
+
+/**
+ * A qué tamaño se lee la opacidad. Pequeño a propósito: la silueta son 24 rayos, y a 256 px de lado un rayo
+ * recorre 128 muestras — de sobra para el contorno, y evita guardar en memoria el mapa entero de una imagen
+ * grande mientras se sube un lote de cien.
+ */
+export const ALPHA_SIDE = 256;
+
+export interface CompressOptions {
+  /** Traer también el canal de transparencia (`result.alpha`). De serie no: sólo lo usan los objetos. */
+  alpha?: boolean;
 }
 
 /**
@@ -101,6 +125,8 @@ export function fitDimensions(width: number, height: number, max: number): { wid
 export interface CompressDeps {
   decode(file: Blob): Promise<{ width: number; height: number; source: CanvasImageSource }>;
   encode(source: CanvasImageSource, width: number, height: number, quality: number): Promise<Blob | null>;
+  /** La opacidad de la imagen ya abierta. Opcional: sin esto se devuelve `alpha: null` y no se rompe nada. */
+  alpha?(source: CanvasImageSource, width: number, height: number): AlphaMap | null;
 }
 
 const browserDeps: CompressDeps = {
@@ -117,6 +143,27 @@ const browserDeps: CompressDeps = {
     ctx.drawImage(source, 0, 0, width, height);
     return new Promise(resolve => canvas.toBlob(b => resolve(b), 'image/webp', quality));
   },
+  /*
+   * La imagen ya está abierta, así que esto es UN dibujado más y una lectura de píxeles — no una segunda
+   * descarga ni una segunda descodificación, que es justo lo que pedía el spec de la silueta.
+   *
+   * `willReadFrequently` le dice al navegador que este lienzo es para leerlo: sin eso Chrome lo sube a la
+   * tarjeta gráfica y cada `getImageData` obliga a bajarlo otra vez.
+   */
+  alpha(source, width, height) {
+    const side = fitDimensions(width, height, ALPHA_SIDE);
+    const canvas = document.createElement('canvas');
+    canvas.width = side.width;
+    canvas.height = side.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(source, 0, 0, side.width, side.height);
+    let px: ImageData;
+    try { px = ctx.getImageData(0, 0, side.width, side.height); } catch { return null; }
+    const data = new Uint8ClampedArray(side.width * side.height);
+    for (let i = 0; i < data.length; i++) data[i] = px.data[i * 4 + 3] ?? 0;
+    return { data, width: side.width, height: side.height };
+  },
 };
 
 /**
@@ -132,6 +179,7 @@ export async function compressImage(
   target: ImageTarget,
   level: CompressionLevel = DEFAULT_COMPRESSION_LEVEL,
   deps: CompressDeps = browserDeps,
+  opts: CompressOptions = {},
 ): Promise<CompressResult> {
   const type = file.type;
   if (!(ACCEPTED_MIME as readonly string[]).includes(type)) throw new CompressError('mime', type || 'sin tipo');
@@ -146,23 +194,30 @@ export async function compressImage(
     throw new CompressError('decode', e instanceof Error ? e.message : String(e));
   }
 
+  /*
+   * La opacidad se lee AQUÍ, con la imagen abierta y ANTES de codificar: es la única pasada en la que existe
+   * descodificada. Si el navegador no sabe darla (lienzo manchado, sin contexto), sale `null` y quien la pidió
+   * se queda con la forma que ya tenía — subir una imagen nunca puede fallar por esto.
+   */
+  const alpha = opts.alpha ? deps.alpha?.(decoded.source, decoded.width, decoded.height) ?? null : null;
+
   const size = fitDimensions(decoded.width, decoded.height, spec.max);
   const out = await deps.encode(decoded.source, size.width, size.height, spec.quality);
 
   // Sin WebP no se bloquea la subida: se sube el original, pero sigue valiendo el tope de salida.
   if (!out) {
     if (file.size > MAX_OUTPUT_BYTES) throw new CompressError('output-too-large', String(file.size));
-    return { blob: file, originalBytes: file.size, bytes: file.size, compressed: false, width: decoded.width, height: decoded.height };
+    return { blob: file, originalBytes: file.size, bytes: file.size, compressed: false, width: decoded.width, height: decoded.height, alpha };
   }
 
   // Comprimir puede engordar una imagen ya optimizada y pequeña: en ese caso se queda el original.
   if (out.size >= file.size) {
     if (file.size > MAX_OUTPUT_BYTES) throw new CompressError('output-too-large', String(file.size));
-    return { blob: file, originalBytes: file.size, bytes: file.size, compressed: false, width: decoded.width, height: decoded.height };
+    return { blob: file, originalBytes: file.size, bytes: file.size, compressed: false, width: decoded.width, height: decoded.height, alpha };
   }
 
   if (out.size > MAX_OUTPUT_BYTES) throw new CompressError('output-too-large', String(out.size));
-  return { blob: out, originalBytes: file.size, bytes: out.size, compressed: true, width: size.width, height: size.height };
+  return { blob: out, originalBytes: file.size, bytes: out.size, compressed: true, width: size.width, height: size.height, alpha };
 }
 
 /** «2,4 MB», «180 KB» — para poder enseñar cuánto ha adelgazado. Locale del usuario para el separador decimal. */

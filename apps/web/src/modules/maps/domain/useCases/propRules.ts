@@ -1,4 +1,5 @@
-import type { NewSceneProp, Prop, PropCategory, PropPack, Scene, SceneProp, ScenePropPatch } from '../entities/Scene';
+import { silhouetteRing } from '@rolvium/core';
+import type { BlockShape, NewSceneProp, Prop, PropCategory, PropPack, Scene, SceneProp, ScenePropPatch, Silhouette } from '../entities/Scene';
 // El rectángulo recto es el MISMO que el de los grupos de muros: un marco es un marco, y duplicar el tipo
 // sería tener dos verdades para lo mismo. Sólo el tipo, que se borra al compilar.
 import type { Rect } from './groupRules';
@@ -82,6 +83,12 @@ export function plantProp(
     blockW: prop.defaultBlockShape === 'circle' ? Math.max(width, height) : width,
     blockH: prop.defaultBlockShape === 'circle' ? Math.max(width, height) : height,
     blockDx: 0, blockDy: 0,
+    /*
+     * LA SILUETA SE COPIA (§ 6.9), como se copian la foto y el nombre: si la biblioteca se queda sin la pieza,
+     * lo plantado sigue tapando por su silueta. Va en fracciones de la huella, así que sirve igual a cualquier
+     * escala y `estirarPieza` no tiene que tocarla — ya estira `blockW`/`blockH`, que es lo que la mide.
+     */
+    silhouette: prop.defaultSilhouette,
   };
 }
 
@@ -448,3 +455,28 @@ export function rotatePropsBy<T extends Pick<SceneProp, 'id' | 'x' | 'y' | 'rota
     };
   });
 }
+
+// ── LA SILUETA (§ 6.9) ───────────────────────────────────────────────────────
+
+/**
+ * LA SILUETA DE UNA FOTO RECIÉN SUBIDA, si se pudo sacar.
+ *
+ * El cálculo de verdad es de `@rolvium/core` —el mismo que después convierte los puntos en lo que tapa y
+ * frena—; esto sólo pone los ajustes de Rolvium y decide qué pasa cuando no sale nada: `null`, que es «déjala
+ * con el rectángulo de siempre». Nunca una lista a medias: la base de datos rechaza decir «estorbo por mi
+ * silueta» sin traerla, precisamente para que una pieza no se quede sin estorbar en silencio.
+ */
+export function silhouetteOfAlpha(alpha: { data: ArrayLike<number>; width: number; height: number } | null | undefined): Silhouette | null {
+  if (!alpha) return null;
+  const ring = silhouetteRing(alpha.data, alpha.width, alpha.height);
+  return ring.length >= 3 ? ring : null;
+}
+
+/**
+ * CON QUÉ FORMA NACE UNA PIEZA SUBIDA. Con silueta, por la silueta: es lo que él pidió ver en la sombra de sus
+ * vehículos. Sin ella, el rectángulo de toda la vida.
+ *
+ * Nacer con `silhouette` NO la hace estorbar: `defaultBlocksSight` y `defaultBlocksMove` siguen naciendo en
+ * falso y los enciende él. Esto sólo decide CON QUÉ FORMA estorbará el día que los encienda.
+ */
+export const blockShapeOfUpload = (s: Silhouette | null): BlockShape => (s ? 'silhouette' : 'rect');

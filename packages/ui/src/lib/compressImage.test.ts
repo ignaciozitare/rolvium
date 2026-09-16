@@ -151,3 +151,41 @@ describe('formatBytes', () => {
     expect(formatBytes(Math.round(2.4 * 1024 * 1024), 'en')).toBe('2.4 MB');
   });
 });
+
+/**
+ * LA OPACIDAD, para que los objetos puedan sacar su silueta (mapas § 6.9) sin volver a bajar ni descodificar
+ * la imagen: se lee en la MISMA pasada, con el fichero ya abierto.
+ */
+describe('compressImage — el canal de transparencia', () => {
+  const mapa = { data: new Uint8ClampedArray([0, 255, 255, 0]), width: 2, height: 2 };
+
+  it('sólo se lee si se pide: de serie no se toca', async () => {
+    const alpha = vi.fn().mockReturnValue(mapa);
+    const r = await compressImage(fakeFile(5000), 'prop', 'balanced', deps({ alpha }));
+    expect(alpha).not.toHaveBeenCalled();
+    expect(r.alpha ?? null).toBeNull();
+  });
+
+  it('pedida, llega con el resultado', async () => {
+    const alpha = vi.fn().mockReturnValue(mapa);
+    const r = await compressImage(fakeFile(5000), 'prop', 'balanced', deps({ alpha }), { alpha: true });
+    expect(alpha).toHaveBeenCalledTimes(1);
+    expect(r.alpha).toEqual(mapa);
+  });
+
+  it('🔑 si el navegador no sabe darla, se sube igual: la silueta es un extra, no un requisito', async () => {
+    const sinAlpha = await compressImage(fakeFile(5000), 'prop', 'balanced', deps(), { alpha: true });
+    expect(sinAlpha.alpha ?? null).toBeNull();
+    expect(sinAlpha.blob).toBeInstanceOf(Blob);
+    const falla = await compressImage(fakeFile(5000), 'prop', 'balanced', deps({ alpha: () => null }), { alpha: true });
+    expect(falla.alpha).toBeNull();
+  });
+
+  it('y llega también cuando se devuelve el original sin comprimir', async () => {
+    // El navegador no sabe hacer WebP: `encode` devuelve `null` y se sube el fichero tal cual.
+    const r = await compressImage(fakeFile(5000), 'prop', 'balanced',
+      deps({ encode: vi.fn().mockResolvedValue(null), alpha: () => mapa }), { alpha: true });
+    expect(r.compressed).toBe(false);
+    expect(r.alpha).toEqual(mapa);
+  });
+});
