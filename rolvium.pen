@@ -40148,7 +40148,7 @@
         {
           "type": "frame",
           "id": "m4fh05",
-          "name": "PL/Pastilla · alguien te susurra",
+          "name": "PL/Pastilla · aviso efímero (SUSTITUIDO 16-09 por las pastillas)",
           "layout": "vertical",
           "gap": 8,
           "children": [
@@ -40255,14 +40255,1322 @@
               "fontStyle": "italic"
             }
           ]
+        },
+        {
+          "type": "frame",
+          "id": "oPbeF",
+          "name": "PL/Pastillas · susurros sobre la mesa",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "vPgVU",
+              "name": "Rotulo",
+              "fill": "$pl-tinta-tenue",
+              "content": "LAS PASTILLAS · ABAJO A LA DERECHA, SOBRE LA MESA",
+              "fontFamily": "$font-plenilunio",
+              "fontSize": 8.5,
+              "fontWeight": "700",
+              "letterSpacing": 1.2
+            },
+            {
+              "type": "frame",
+              "id": "lduAT",
+              "name": "Los tres estados",
+              "gap": 18,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Nwz4t",
+                  "name": "Minimizada",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "DUcSW",
+                      "name": "Rotulo",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "MINIMIZADA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.2
+                    },
+                    {
+                      "type": "frame",
+                      "id": "OhhpS",
+                      "name": "Pastilla minimizada",
+                      "width": 248,
+                      "fill": "$pl-papel-alto",
+                      "cornerRadius": 2,
+                      "stroke": "$pl-borde",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#13131040",
+                        "offset": {
+                          "x": 0,
+                          "y": 3
+                        },
+                        "blur": 10
+                      },
+                      "gap": 8,
+                      "padding": [
+                        8,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "F5MwQi",
+                          "type": "ref",
+                          "ref": "bwyxO",
+                          "name": "Av",
+                          "width": 20,
+                          "height": 20,
+                          "cornerRadius": 10,
+                          "strokeWidth": 0,
+                          "fill": "$pl-sangre",
+                          "descendants": {
+                            "D80d9o": {
+                              "content": "L",
+                              "fontSize": 7.6
+                            }
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "LKLDf",
+                          "name": "Quien",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Laura",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 11.5,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "g1Xb7",
+                          "name": "Desplegar",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "keyboard_arrow_up",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-tinta-suave"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "T45Wk7",
+                          "name": "Cerrar",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "close",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-tinta-suave"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lyOEO",
+                  "name": "Recién llegada",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Gr6aP",
+                      "name": "Rotulo",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "RECIÉN LLEGADA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.2
+                    },
+                    {
+                      "type": "frame",
+                      "id": "jeIbu",
+                      "name": "Pastilla minimizada",
+                      "width": 248,
+                      "fill": "$pl-sangre",
+                      "cornerRadius": 2,
+                      "stroke": "$pl-sangre",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#13131040",
+                        "offset": {
+                          "x": 0,
+                          "y": 3
+                        },
+                        "blur": 10
+                      },
+                      "gap": 8,
+                      "padding": [
+                        8,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "f19LZ",
+                          "type": "ref",
+                          "ref": "bwyxO",
+                          "name": "Av",
+                          "width": 20,
+                          "height": 20,
+                          "cornerRadius": 10,
+                          "strokeWidth": 0,
+                          "fill": "$pl-papel-alto",
+                          "descendants": {
+                            "D80d9o": {
+                              "content": "L",
+                              "fontSize": 7.6
+                            }
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "gKIhw",
+                          "name": "Quien",
+                          "fill": "$pl-papel-alto",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Laura",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 11.5,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "wgxAE",
+                          "name": "No leidos",
+                          "width": 16,
+                          "height": 16,
+                          "fill": "$pl-papel-alto",
+                          "cornerRadius": 8,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "aWFUM",
+                              "name": "N",
+                              "fill": "$pl-sangre",
+                              "content": "2",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 9,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "icon",
+                          "id": "VqUSa",
+                          "name": "Desplegar",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "keyboard_arrow_up",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-papel-alto"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "lDYUD",
+                          "name": "Cerrar",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "close",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-papel-alto"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "zhQbp",
+                      "name": "Nota",
+                      "fill": "$pl-tinta-tenue",
+                      "textGrowth": "fixed-width",
+                      "width": 248,
+                      "content": "Llega en sangre y con un sonido corto. Al desplegarla vuelve a papel.",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 10.5,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "T7Wjf",
+                  "name": "Desplegada",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "E9QXW8",
+                      "name": "Rotulo",
+                      "fill": "$pl-tinta-tenue",
+                      "content": "DESPLEGADA",
+                      "fontFamily": "$font-plenilunio",
+                      "fontSize": 8.5,
+                      "fontWeight": "700",
+                      "letterSpacing": 1.2
+                    },
+                    {
+                      "type": "frame",
+                      "id": "jDEJL",
+                      "name": "Pastilla desplegada",
+                      "width": 248,
+                      "fill": "$pl-papel-alto",
+                      "cornerRadius": 2,
+                      "stroke": "$pl-borde",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#13131040",
+                        "offset": {
+                          "x": 0,
+                          "y": 3
+                        },
+                        "blur": 10
+                      },
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Do09e",
+                          "name": "Cabecera",
+                          "width": "fill_container",
+                          "stroke": "$pl-borde",
+                          "strokeWidth": {
+                            "bottom": 1
+                          },
+                          "strokeAlignment": "inner",
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            0,
+                            8,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "Ix3Vq",
+                              "type": "ref",
+                              "ref": "bwyxO",
+                              "name": "Av",
+                              "width": 20,
+                              "height": 20,
+                              "cornerRadius": 10,
+                              "strokeWidth": 0,
+                              "fill": "$pl-sangre",
+                              "descendants": {
+                                "D80d9o": {
+                                  "content": "L",
+                                  "fontSize": 7.6
+                                }
+                              }
+                            },
+                            {
+                              "type": "text",
+                              "id": "O2YJEx",
+                              "name": "Quien",
+                              "fill": "$pl-tinta",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Laura · directora",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 11.5,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "Jjl1F",
+                              "name": "Minimizar",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "remove",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-suave"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "OyrAJ",
+                              "name": "Cerrar",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "close",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-suave"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "MmQzA",
+                          "name": "Mensajes",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "pwRye",
+                              "name": "Msg/Laura",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "children": [
+                                {
+                                  "id": "SfIwh",
+                                  "type": "ref",
+                                  "ref": "bwyxO",
+                                  "name": "Av",
+                                  "width": 22,
+                                  "height": 22,
+                                  "cornerRadius": 11,
+                                  "strokeWidth": 0,
+                                  "fill": "$pl-sangre",
+                                  "descendants": {
+                                    "D80d9o": {
+                                      "content": "L",
+                                      "fontSize": 8.36
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "u3KFK",
+                                  "name": "Body",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 2,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "h7rqd5",
+                                      "name": "Head",
+                                      "gap": 6,
+                                      "alignItems": "end",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "VL8ZT",
+                                          "name": "W",
+                                          "fill": "$pl-sangre",
+                                          "content": "Laura",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 11,
+                                          "fontWeight": "700"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "CXrBS",
+                                          "name": "H",
+                                          "fill": "$pl-tinta-tenue",
+                                          "content": "21:04",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 9,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "hOMpz",
+                                      "name": "T",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Escuchas un ruido detrás de ti. Nadie más lo ha oído.",
+                                      "lineHeight": 1.5,
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Dv2kF",
+                              "name": "Msg/Karen",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "children": [
+                                {
+                                  "id": "kmhje",
+                                  "type": "ref",
+                                  "ref": "bwyxO",
+                                  "name": "Av",
+                                  "width": 22,
+                                  "height": 22,
+                                  "cornerRadius": 11,
+                                  "strokeWidth": 0,
+                                  "fill": "$pl-oliva",
+                                  "descendants": {
+                                    "D80d9o": {
+                                      "content": "K",
+                                      "fontSize": 8.36
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "KV6xM",
+                                  "name": "Body",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 2,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "In8QC",
+                                      "name": "Head",
+                                      "gap": 6,
+                                      "alignItems": "end",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "p5Dsws",
+                                          "name": "W",
+                                          "fill": "$pl-oliva",
+                                          "content": "Karen",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 11,
+                                          "fontWeight": "700"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "jvGXh",
+                                          "name": "H",
+                                          "fill": "$pl-tinta-tenue",
+                                          "content": "21:05",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 9,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "xjR4O",
+                                      "name": "T",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Tiro Astucia, que no lo vea el resto.",
+                                      "lineHeight": 1.5,
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "b94CkH",
+                                      "name": "Adjunto",
+                                      "fill": "#00000000",
+                                      "stroke": "$pl-sangre",
+                                      "strokeWidth": 1,
+                                      "strokeAlignment": "inner",
+                                      "gap": 6,
+                                      "padding": [
+                                        4,
+                                        8
+                                      ],
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "F9EL5U",
+                                          "name": "I",
+                                          "width": 14,
+                                          "height": 14,
+                                          "icon": "casino",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-sangre"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "xrEJl",
+                                          "name": "T",
+                                          "fill": "$pl-tinta-suave",
+                                          "content": "Astucia · 1—2 · sólo aquí",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 10.5,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "Mbs4k",
+                          "name": "Nota",
+                          "fill": "$pl-tinta-tenue",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Lo que se tira aquí no sale en el Registro.",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 10.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "M7cQ0p",
+                          "name": "Entrada",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "KJAEj",
+                              "name": "Input",
+                              "width": "fill_container",
+                              "fill": "$pl-papel",
+                              "stroke": "$pl-linea",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                6,
+                                8
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "A3z41q",
+                                  "name": "V",
+                                  "fill": "$pl-tinta-tenue",
+                                  "content": "Escribe a Laura…",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "c4rP5",
+                              "name": "Tirar",
+                              "fill": "#00000000",
+                              "stroke": "$pl-linea",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                6,
+                                7
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "m6qbu",
+                                  "name": "I",
+                                  "width": 15,
+                                  "height": 15,
+                                  "icon": "casino",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-tinta-suave"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "SffST",
+                              "name": "Enviar",
+                              "fill": "$pl-sangre",
+                              "stroke": "$pl-sangre",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "BdWYZ",
+                                  "name": "Label",
+                                  "fill": "$pl-papel-alto",
+                                  "content": "ENVIAR",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 11,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 1.6
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eKM0S",
+              "name": "Varias a la vez",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "taT4S",
+                  "name": "Rotulo",
+                  "fill": "$pl-tinta-tenue",
+                  "content": "VARIAS A LA VEZ · SE APILAN HACIA LA IZQUIERDA",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 8.5,
+                  "fontWeight": "700",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "frame",
+                  "id": "P7qXj",
+                  "name": "Esquina de la mesa",
+                  "fill": "$pl-fondo",
+                  "gap": 10,
+                  "padding": 14,
+                  "justifyContent": "end",
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "RvwBC",
+                      "name": "Pastilla · Marta (recién llegada)",
+                      "width": 248,
+                      "fill": "$pl-sangre",
+                      "cornerRadius": 2,
+                      "stroke": "$pl-sangre",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#13131040",
+                        "offset": {
+                          "x": 0,
+                          "y": 3
+                        },
+                        "blur": 10
+                      },
+                      "gap": 8,
+                      "padding": [
+                        8,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "rJAT7",
+                          "type": "ref",
+                          "ref": "bwyxO",
+                          "name": "Av",
+                          "width": 20,
+                          "height": 20,
+                          "cornerRadius": 10,
+                          "strokeWidth": 0,
+                          "fill": "$pl-papel-alto",
+                          "descendants": {
+                            "D80d9o": {
+                              "content": "M",
+                              "fontSize": 7.6
+                            }
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "ZgJTF",
+                          "name": "Quien",
+                          "fill": "$pl-papel-alto",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Marta",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 11.5,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "fiT7f",
+                          "name": "No leidos",
+                          "width": 16,
+                          "height": 16,
+                          "fill": "$pl-papel-alto",
+                          "cornerRadius": 8,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "CfDD8",
+                              "name": "N",
+                              "fill": "$pl-sangre",
+                              "content": "2",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 9,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "icon",
+                          "id": "CGcOp",
+                          "name": "Desplegar",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "keyboard_arrow_up",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-papel-alto"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "xEClN",
+                          "name": "Cerrar",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "close",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-papel-alto"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "zAsFo",
+                      "name": "Pastilla · Dani (minimizada)",
+                      "width": 248,
+                      "fill": "$pl-papel-alto",
+                      "cornerRadius": 2,
+                      "stroke": "$pl-borde",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#13131040",
+                        "offset": {
+                          "x": 0,
+                          "y": 3
+                        },
+                        "blur": 10
+                      },
+                      "gap": 8,
+                      "padding": [
+                        8,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "uvE4u",
+                          "type": "ref",
+                          "ref": "bwyxO",
+                          "name": "Av",
+                          "width": 20,
+                          "height": 20,
+                          "cornerRadius": 10,
+                          "strokeWidth": 0,
+                          "fill": "$pl-sangre",
+                          "descendants": {
+                            "D80d9o": {
+                              "content": "L",
+                              "fontSize": 7.6
+                            }
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "wwX4D",
+                          "name": "Quien",
+                          "fill": "$pl-tinta",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Dani",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 11.5,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "XCmBQ",
+                          "name": "Desplegar",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "keyboard_arrow_up",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-tinta-suave"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "BQ0cr",
+                          "name": "Cerrar",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "close",
+                          "library": "Material Symbols Outlined",
+                          "fill": "$pl-tinta-suave"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Ngm02",
+                      "name": "Pastilla · Laura (desplegada)",
+                      "width": 248,
+                      "fill": "$pl-papel-alto",
+                      "cornerRadius": 2,
+                      "stroke": "$pl-borde",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#13131040",
+                        "offset": {
+                          "x": 0,
+                          "y": 3
+                        },
+                        "blur": 10
+                      },
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "XEweW",
+                          "name": "Cabecera",
+                          "width": "fill_container",
+                          "stroke": "$pl-borde",
+                          "strokeWidth": {
+                            "bottom": 1
+                          },
+                          "strokeAlignment": "inner",
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            0,
+                            8,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "rR14T",
+                              "type": "ref",
+                              "ref": "bwyxO",
+                              "name": "Av",
+                              "width": 20,
+                              "height": 20,
+                              "cornerRadius": 10,
+                              "strokeWidth": 0,
+                              "fill": "$pl-sangre",
+                              "descendants": {
+                                "D80d9o": {
+                                  "content": "L",
+                                  "fontSize": 7.6
+                                }
+                              }
+                            },
+                            {
+                              "type": "text",
+                              "id": "V4lcHV",
+                              "name": "Quien",
+                              "fill": "$pl-tinta",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Laura · directora",
+                              "fontFamily": "$font-plenilunio",
+                              "fontSize": 11.5,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "uhjDJ",
+                              "name": "Minimizar",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "remove",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-suave"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "du1TB",
+                              "name": "Cerrar",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "close",
+                              "library": "Material Symbols Outlined",
+                              "fill": "$pl-tinta-suave"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "cJ1XX",
+                          "name": "Mensajes",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "LRvth",
+                              "name": "Msg/Laura",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "children": [
+                                {
+                                  "id": "Vn57k",
+                                  "type": "ref",
+                                  "ref": "bwyxO",
+                                  "name": "Av",
+                                  "width": 22,
+                                  "height": 22,
+                                  "cornerRadius": 11,
+                                  "strokeWidth": 0,
+                                  "fill": "$pl-sangre",
+                                  "descendants": {
+                                    "D80d9o": {
+                                      "content": "L",
+                                      "fontSize": 8.36
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "X5m2q",
+                                  "name": "Body",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 2,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "ykrqO",
+                                      "name": "Head",
+                                      "gap": 6,
+                                      "alignItems": "end",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "tSjBR",
+                                          "name": "W",
+                                          "fill": "$pl-sangre",
+                                          "content": "Laura",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 11,
+                                          "fontWeight": "700"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "H8Abog",
+                                          "name": "H",
+                                          "fill": "$pl-tinta-tenue",
+                                          "content": "21:04",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 9,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "bnU7p",
+                                      "name": "T",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Escuchas un ruido detrás de ti. Nadie más lo ha oído.",
+                                      "lineHeight": 1.5,
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "i2rTGa",
+                              "name": "Msg/Karen",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "children": [
+                                {
+                                  "id": "qNpVe",
+                                  "type": "ref",
+                                  "ref": "bwyxO",
+                                  "name": "Av",
+                                  "width": 22,
+                                  "height": 22,
+                                  "cornerRadius": 11,
+                                  "strokeWidth": 0,
+                                  "fill": "$pl-oliva",
+                                  "descendants": {
+                                    "D80d9o": {
+                                      "content": "K",
+                                      "fontSize": 8.36
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "pTCGL",
+                                  "name": "Body",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 2,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "to5Op",
+                                      "name": "Head",
+                                      "gap": 6,
+                                      "alignItems": "end",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "VPUkW",
+                                          "name": "W",
+                                          "fill": "$pl-oliva",
+                                          "content": "Karen",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 11,
+                                          "fontWeight": "700"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "D8RBm",
+                                          "name": "H",
+                                          "fill": "$pl-tinta-tenue",
+                                          "content": "21:05",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 9,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "SNmzi",
+                                      "name": "T",
+                                      "fill": "$pl-tinta",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Tiro Astucia, que no lo vea el resto.",
+                                      "lineHeight": 1.5,
+                                      "fontFamily": "$font-plenilunio",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "zZD2a",
+                                      "name": "Adjunto",
+                                      "fill": "#00000000",
+                                      "stroke": "$pl-sangre",
+                                      "strokeWidth": 1,
+                                      "strokeAlignment": "inner",
+                                      "gap": 6,
+                                      "padding": [
+                                        4,
+                                        8
+                                      ],
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "icon",
+                                          "id": "B1blv",
+                                          "name": "I",
+                                          "width": 14,
+                                          "height": 14,
+                                          "icon": "casino",
+                                          "library": "Material Symbols Outlined",
+                                          "fill": "$pl-sangre"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "JmiTV",
+                                          "name": "T",
+                                          "fill": "$pl-tinta-suave",
+                                          "content": "Astucia · 1—2 · sólo aquí",
+                                          "fontFamily": "$font-plenilunio",
+                                          "fontSize": 10.5,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "EfN31",
+                          "name": "Nota",
+                          "fill": "$pl-tinta-tenue",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Lo que se tira aquí no sale en el Registro.",
+                          "fontFamily": "$font-plenilunio",
+                          "fontSize": 10.5,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "kEwVP",
+                          "name": "Entrada",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "I7Tsap",
+                              "name": "Input",
+                              "width": "fill_container",
+                              "fill": "$pl-papel",
+                              "stroke": "$pl-linea",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                6,
+                                8
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "r2FCMo",
+                                  "name": "V",
+                                  "fill": "$pl-tinta-tenue",
+                                  "content": "Escribe a Laura…",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "jMnlg",
+                              "name": "Tirar",
+                              "fill": "#00000000",
+                              "stroke": "$pl-linea",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                6,
+                                7
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "iukVK",
+                                  "name": "I",
+                                  "width": 15,
+                                  "height": 15,
+                                  "icon": "casino",
+                                  "library": "Material Symbols Outlined",
+                                  "fill": "$pl-tinta-suave"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "GZh9d",
+                              "name": "Enviar",
+                              "fill": "$pl-sangre",
+                              "stroke": "$pl-sangre",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "M44GZ",
+                                  "name": "Label",
+                                  "fill": "$pl-papel-alto",
+                                  "content": "ENVIAR",
+                                  "fontFamily": "$font-plenilunio",
+                                  "fontSize": 11,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 1.6
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "jfWCJ",
+                  "name": "Nota",
+                  "fill": "$pl-tinta-tenue",
+                  "textGrowth": "fixed-width",
+                  "width": 560,
+                  "content": "Hasta tres a la vez; la cuarta cierra la más vieja. Cerrar no borra nada: la conversación se reabre desde el directorio. Siguen estando en la columna SUSURROS, que no cambia.",
+                  "fontFamily": "$font-plenilunio",
+                  "fontSize": 10.5,
+                  "fontWeight": "normal",
+                  "fontStyle": "italic"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
     {
       "type": "frame",
       "id": "ORP75",
-      "x": 5888,
-      "y": 4679,
+      "x": 5798,
+      "y": 5112,
       "name": "Mesa/Plenilunio · Mejorar · habilitada",
       "theme": {
         "mode": "dark"
