@@ -10,9 +10,21 @@
 > los que estorban de verdad, **22 por su contorno y CERO con el cuadrado**. Detalle completo en el bloque
 > «v0.12.0» de más abajo.
 >
-> ## 🔀 LO SIGUIENTE, POR ORDEN
+> ## 🔀 LO SIGUIENTE, POR ORDEN — **LO DIJO ÉL AL CERRAR EL CHAT**
 >
-> **1. ⏳ PREGUNTA SUYA SIN RESPONDER — el freno de los objetos.**
+> > «*lo que quiero arreglar primero no es el chat, es lo que cuando pinto se borran las habitaciones*»
+>
+> **1. 🐞 EL PINCEL QUE BORRA LAS HABITACIONES — SU PRIORIDAD, POR ENCIMA DE TODO LO DEMÁS.**
+> Rama `fix/salas-desaparecen-al-pintar`, dos commits, QA en modo bloqueo pasado entero, **sin mergear**.
+> **NO está confirmado que ese arreglo sea EL suyo**: la única vez que lo probó estaba, sin saberlo, en otra
+> rama sin el arreglo (ver la lección de abajo). **El primer paso es que lo pruebe de verdad**: su local ya
+> queda en esa rama con todo lo demás dentro; decirle que recargue con Cmd+Shift+R y que pinte un rato.
+> · Si le SIGUE pasando: no adivinar. Preguntarle **si la habitación que desaparece es la que está pintando o
+>   una de al lado**, y si pasa dando toques o sólo arrastrando y cruzando de una a otra. Las pistas ya
+>   miradas y el estado del diagnóstico están en el bloque 🐞 «DESAPARECEN HABITACIONES» de más abajo.
+> · Si NO le pasa: QA ya está pasado, así que es merge y desplegar.
+>
+> **2. ⏳ PREGUNTA SUYA SIN RESPONDER — el freno de los objetos.**
 > Se quejó de que «*el block movement no funciona*» probando como director. **No era un fallo**: la escena
 > `test3` tenía el escudo en «Paredes atravesables», y ese interruptor apaga el freno de TODO —paredes, salas
 > y objetos— **pero no la vista**. Por eso veía las sombras perfectas mientras nada frenaba. Se le dijo dónde
@@ -23,11 +35,6 @@
 > pregunta. Si elige lo primero, es quitar el `p.scene.solidWalls ?` de `propBlockers` (`MapCanvas.tsx`) y su
 > gemelo del servidor (`sceneVision.ts`), con test.
 >
-> **2. ⏳ EL PINCEL — rama `fix/salas-desaparecen-al-pintar`, LISTA Y SIN MERGEAR.**
-> «*Desaparecen habitaciones cuando quiero pintar*». Dos commits, QA en modo bloqueo pasado entero, y **sin
-> subir a propósito**: falta que él lo use un rato y diga que no le vuelve a pasar. Ojo: la última vez que lo
-> probó estaba, sin saberlo, en la rama de la silueta —que sale de `main` y NO lleva el arreglo—, así que
-> **antes de que lo pruebe hay que poner su local en esa rama** y decirle que recargue con Cmd+Shift+R.
 > Su local corre en `localhost:5173` y `5174`, con el servidor en `3001`; los tres estaban vivos.
 >
 > **3. Lo pequeño que sigue anotado**: las tres pastillas desplegadas en ventana estrecha (la de arriba se
