@@ -118,11 +118,15 @@
 > 2. `mapScenePropRow.silhouette` pierde su `?? null`: convertía «no vino» en `null` y **devolvía la pieza al
 >    cuadrado en silencio**. Queda escrito en el spec que un mapeador NO debe inventar un valor por defecto
 >    para una columna grande — es justo lo que tapa la ausencia donde la regla tiene que verla.
-> 3. Red en `DrawingShape` (`d.data ?? {}`): un trazo que no se vea es infinitamente mejor que una mesa en
->    blanco.
+> 3. Red en `DrawingShape`: **si no hay dibujo, se sale con `null`** y no se pinta nada. Un trazo que no se
+>    vea es infinitamente mejor que una mesa en blanco. ⚠️ Se probó primero con `?? {}` y la review lo tumbó
+>    con razón: seguir con un objeto vacío pintaba un `rect` con medidas NaN —cuatro avisos por repintado— y
+>    una `line` sin coordenadas que dejaba **un punto suelto en la esquina del mapa**. No volver a `?? {}`.
 >
-> Rama `fix/el-eco-incompleto-tumba-la-mesa`, commit `ba420c8`. Verde: 2.104 tests, `tsc` limpio en web y api,
-> audit 0 duros, las dos builds. Sin migraciones.
+> Rama `fix/el-eco-incompleto-tumba-la-mesa`, tres commits hasta `68f59ec`. Verde: **2.110 tests** (12 humo +
+> 2.040 regresión + 58 funcional), `tsc` limpio en web y api, audit 0 duros, las dos builds. Review y QA en
+> modo bloqueo pasados, los dos verificando por su cuenta que un `null` DE VERDAD sigue mandando —quitar una
+> silueta o quitar la pintura— y que las tres redes hacen falta. Sin migraciones.
 >
 > 🔎 **Se probó, y se DESCARTÓ, arreglarlo en la base** (`SET STORAGE MAIN` para que la columna no se salga de
 > la fila). Habría cubierto también objetos y textos largos, pero es un cambio de ESQUEMA con reescritura de
