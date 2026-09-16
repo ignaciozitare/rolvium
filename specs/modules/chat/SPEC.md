@@ -5,10 +5,10 @@
 > más cámbiale el nombre*». Nunca «chat» en la interfaz.
 
 **Estado: ✅ construido, revisado, QA pasado (modo bloqueo) y EN PRODUCCIÓN desde el 2026-09-15 (v0.10.0)**;
-migraciones `chat_susurros` y `chat_susurros_harden` aplicadas al proyecto de producción. ⏳ **Pendientes**: (1)
-**las pastillas tipo LinkedIn** (spec cerrado con él el 2026-09-16, ver «La pastilla» abajo; en diseño), y (2) el
-botón para traer una tirada del Registro a una conversación (el modelo de datos ya lo soporta; le toca su propio
-paso de diseño).
+migraciones `chat_susurros` y `chat_susurros_harden` aplicadas al proyecto de producción. **Las pastillas tipo
+LinkedIn** —ventanita de conversación sobre la mesa, ver «La pastilla» abajo— entraron el 2026-09-16 con la
+**v0.11.0**. ⏳ **Pendiente**: el botón para traer una tirada del Registro a una conversación (el modelo de datos
+ya lo soporta; le toca su propio paso de diseño).
 
 ## Purpose
 Hablar en privado sin salir de la campaña: el director le dice a UN jugador «escuchas un ruido detrás de ti» sin
@@ -30,7 +30,10 @@ sólo lo privado. Decisión suya del 2026-09-15, que deja sin efecto el «canal 
   tiene que poder minimizar… no es fija, se tiene que poder cerrar*»). Lo de la columna se queda como está y
   las pastillas SE AÑADEN:
   - Al abrir una conversación desde el directorio, se abre en la columna como hoy **y además aparece su
-    pastilla**: una barrita con avatar y nombre.
+    pastilla, MINIMIZADA**: una barrita con avatar y nombre. No nace desplegada a propósito —decisión suya del
+    2026-09-16, al ver que si no se veía la misma conversación dos veces a la vez—; la ventanita la despliega él
+    cuando la quiera. Si esa pastilla ya estaba puesta se respeta como la tuviera y sólo se le pone el contador
+    a cero.
   - La pastilla se **despliega** (la conversación entera: mensajes, escribir, tirar en privado, ENVIAR), se
     **minimiza** (vuelve a la barrita) y se **cierra** con una X. Cerrarla no borra nada: se reabre desde el
     directorio.

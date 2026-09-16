@@ -40,7 +40,9 @@ interface Props {
  * leídos y el ruidito—; `WhisperPill` sólo pinta lo que le dan.
  *
  * Reglas, todas suyas (2026-09-16):
- *   · Abrir una conversación en el directorio abre TAMBIÉN su pastilla, desplegada.
+ *   · Abrir una conversación en el directorio deja su pastilla MINIMIZADA (barrita): la conversación se lee en
+ *     la columna, y la ventanita la despliega él si la quiere. Antes nacía desplegada y se veía la misma
+ *     conversación dos veces a la vez (decisión suya, 2026-09-16).
  *   · Si te susurran y no tenías esa pastilla, nace MINIMIZADA, en sangre y con un ruidito.
  *   · Si ya la tenías desplegada, el mensaje entra dentro y no suena nada: lo estás mirando.
  *   · Lo tuyo nunca suena ni te pone contador.
@@ -83,15 +85,20 @@ export function WhisperWatcher({ campaignId, myUserId, system, chat = defaultCha
   /** Sitio para una más: la cuarta echa a la más vieja (la primera de la fila). */
   const fit = (list: Pill[]): Pill[] => (list.length > MAX_PILLS ? list.slice(list.length - MAX_PILLS) : list);
 
+  /**
+   * Pone la pastilla en el rincón a petición del directorio. Nace como BARRITA, no desplegada: la conversación
+   * ya se está leyendo en la columna. Si la pastilla YA estaba puesta se respeta como la dejó él —desplegada o
+   * barrita— y sólo se le pone el contador a cero, porque lo que llegue lo va a ver en la columna.
+   */
   const openPill = useCallback((conversationId: string, title: string) => {
     setPills(prev => {
       const i = prev.findIndex(p => p.conversationId === conversationId);
       if (i >= 0) {
         const next = [...prev];
-        next[i] = { ...next[i]!, title, open: true, unread: 0 };
+        next[i] = { ...next[i]!, title, unread: 0 };
         return next;
       }
-      return fit([...prev, { conversationId, title, open: true, unread: 0 }]);
+      return fit([...prev, { conversationId, title, open: false, unread: 0 }]);
     });
   }, []);
 

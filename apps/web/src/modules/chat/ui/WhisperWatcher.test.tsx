@@ -17,13 +17,15 @@ describe('<WhisperWatcher> — el rincón de las pastillas', () => {
     expect(screen.queryByLabelText('Susurros abiertos')).not.toBeInTheDocument();
   });
 
-  it('abrir desde el directorio saca la pastilla DESPLEGADA, y avisa de que ya se consumió el pedido', async () => {
+  it('abrir desde el directorio deja la pastilla MINIMIZADA (la conversación se lee en la columna)', async () => {
     const chat = fakeChatPort({ messages: { 'conv-1': [] } });
     const onConsumed = vi.fn();
     renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()}
       requestOpen={{ id: 'conv-1', title: 'Laura' }} onRequestOpenConsumed={onConsumed} />);
     expect(await screen.findByLabelText('Conversación con Laura')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Minimizar la conversación con Laura' })).toBeInTheDocument();
+    // barrita: se ofrece ABRIRLA, y la conversación no está montada dentro
+    expect(screen.getByRole('button', { name: 'Abrir la conversación con Laura' })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Escribe a Laura…')).not.toBeInTheDocument();
     expect(onConsumed).toHaveBeenCalled();
   });
 
@@ -53,10 +55,12 @@ describe('<WhisperWatcher> — el rincón de las pastillas', () => {
   });
 
   it('si la pastilla ya está DESPLEGADA el mensaje entra dentro: ni contador ni ruido', async () => {
+    const u = userEvent.setup();
     const chat = fakeChatPort({ messages: { conv1: [] } });
     const sound = fakeSound();
     renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={sound}
       requestOpen={{ id: 'conv1', title: 'Laura' }} />);
+    await u.click(await screen.findByRole('button', { name: 'Abrir la conversación con Laura' }));
     await screen.findByText('Todavía no hay mensajes.');
     chat.push(FROM_LAURA);
     expect(await screen.findByText('Escuchas un ruido detrás de ti.')).toBeInTheDocument();
@@ -64,12 +68,14 @@ describe('<WhisperWatcher> — el rincón de las pastillas', () => {
     expect(screen.queryByText('1')).not.toBeInTheDocument();
   });
 
-  it('minimizar y volver a desplegar con la barrita; cerrar la quita del todo', async () => {
+  it('desplegar y volver a minimizar con la barrita; cerrar la quita del todo', async () => {
     const u = userEvent.setup();
     const chat = fakeChatPort({ messages: { conv1: [] } });
     renderWithProviders(<WhisperWatcher campaignId="c1" myUserId="me" system={null} chat={chat} sound={fakeSound()}
       requestOpen={{ id: 'conv1', title: 'Laura' }} />);
-    await u.click(await screen.findByRole('button', { name: 'Minimizar la conversación con Laura' }));
+    await u.click(await screen.findByRole('button', { name: 'Abrir la conversación con Laura' }));
+    expect(await screen.findByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Minimizar la conversación con Laura' }));
     expect(screen.queryByPlaceholderText('Escribe a Laura…')).not.toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Abrir la conversación con Laura' }));
     expect(await screen.findByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();

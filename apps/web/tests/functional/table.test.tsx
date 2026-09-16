@@ -305,7 +305,10 @@ describe('table: page', () => {
     await u.click(await screen.findByRole('tab', { name: /Susurros/ }));
     await u.click(await within(screen.getByRole('tabpanel')).findByText('Laura'));
     const pastilla = await screen.findByLabelText('Conversación con Laura');
-    expect(within(pastilla).getByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();
+    // nace como BARRITA: la conversación ya se está leyendo en la columna, no hace falta verla dos veces
+    expect(within(pastilla).queryByPlaceholderText('Escribe a Laura…')).not.toBeInTheDocument();
+    await u.click(within(pastilla).getByRole('button', { name: 'Abrir la conversación con Laura' }));
+    expect(await within(pastilla).findByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();
     // la columna se va al Registro y la pastilla sigue: es para eso, para no perder el susurro de vista
     await u.click(screen.getByRole('tab', { name: 'Registro' }));
     expect(screen.getByLabelText('Conversación con Laura')).toBeInTheDocument();
