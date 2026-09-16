@@ -3,7 +3,7 @@ import { PACK_DUNGEON, PACK_FOREST, PROP_COLUMN, PROP_OAK, PROP_TABLE, SCENE_PRO
 import type { Prop, SceneProp } from '../entities/Scene';
 import {
   MAX_SCALE, MIN_SCALE, PROP_CATEGORIES, RECENTS_MAX, clampScale, countIn, dueToSow, duplicateProp, filterProps, footprintOf,
-  fromPropFrame, hasAppProps, hitProp, isAppProp, matchesQuery, nameFromFile, normDeg, paintOrderProps, plantProp, pointInProp,
+  blockShapeOfUpload, fromPropFrame, hasAppProps, hitProp, isAppProp, matchesQuery, nameFromFile, normDeg, paintOrderProps, plantProp, pointInProp, silhouetteOfAlpha,
   propCorners, propPath, pushRecent, randomRotation, randomScale, restack, rotateHandleAt, rotationToward, scaleChanged,
   scaleFromCorner, scaleFromCornerAnchored, propsInRect, propPlace, scaleOfWidth, scatterIn, sectionsOf, sowStepPx, topZ, toPropFrame,
   groupBoxFromCorner, groupCorners, groupRotateHandleAt, propsBounds, rotatePropsBy, scalePropsTo,
@@ -363,5 +363,56 @@ describe('propRules — el grupo de piezas cogidas: marco, estirar y girar (§ 6
       { id: 'sp-oak', patch: { x: 400, y: 300, rotation: 30 } },
     ]);
     expect(rotatePropsBy([{ ...A, rotation: 350 }], { x: 400, y: 300 }, 20)[0]!.patch.rotation).toBe(10);
+  });
+});
+
+// ── LA SILUETA (§ 6.9) ───────────────────────────────────────────────────────
+
+/** Opacidad de mentira: un óvalo apaisado dentro de una imagen cuadrada, que es el caso de sus vehículos. */
+const CAMION = (() => {
+  const w = 64, h = 64, data = new Uint8ClampedArray(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const dentro = ((x - 32) / 30) ** 2 + ((y - 32) / 8) ** 2 <= 1;
+    data[y * w + x] = dentro ? 255 : 0;
+  }
+  return { data, width: w, height: h };
+})();
+
+describe('la silueta de lo que se sube (§ 6.9)', () => {
+  it('🔑 de la foto de un camión sale una silueta apaisada, no el cuadrado que él vio en pantalla', () => {
+    const s = silhouetteOfAlpha(CAMION);
+    expect(s).not.toBeNull();
+    expect(s!.length).toBeGreaterThanOrEqual(3);
+    // Ancha de verdad y baja de verdad: eso es lo que arregla la sombra del camión.
+    expect(Math.max(...s!.map(p => Math.abs(p.x)))).toBeGreaterThan(0.4);
+    expect(Math.max(...s!.map(p => Math.abs(p.y)))).toBeLessThan(0.2);
+  });
+
+  it('sin opacidad que leer, la pieza nace con el rectángulo de siempre', () => {
+    expect(silhouetteOfAlpha(null)).toBeNull();
+    expect(silhouetteOfAlpha(undefined)).toBeNull();
+    // Una imagen entera transparente tampoco da figura.
+    expect(silhouetteOfAlpha({ data: new Uint8ClampedArray(32 * 32), width: 32, height: 32 })).toBeNull();
+    expect(blockShapeOfUpload(null)).toBe('rect');
+  });
+
+  it('con silueta, la pieza nace diciendo que estorba POR SU SILUETA', () => {
+    expect(blockShapeOfUpload(silhouetteOfAlpha(CAMION))).toBe('silhouette');
+  });
+
+  it('la copia plantada HEREDA la silueta de la biblioteca, como hereda la foto', () => {
+    const silueta = silhouetteOfAlpha(CAMION);
+    const planted = plantProp({ ...OAK, defaultBlockShape: 'silhouette', defaultSilhouette: silueta }, { x: 10, y: 20 }, SCENE_WAREHOUSE);
+    expect(planted.blockShape).toBe('silhouette');
+    expect(planted.silhouette).toEqual(silueta);
+    // Y la huella que la mide sigue siendo la pieza entera, como con el rectángulo.
+    expect(planted.blockW).toBe(planted.width);
+    expect(planted.blockH).toBe(planted.height);
+  });
+
+  it('una pieza vieja, sin silueta, se planta exactamente como hasta hoy', () => {
+    const planted = plantProp(OAK, { x: 10, y: 20 }, SCENE_WAREHOUSE);
+    expect(planted.blockShape).toBe('rect');
+    expect(planted.silhouette).toBeNull();
   });
 });

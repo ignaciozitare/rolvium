@@ -12,8 +12,8 @@ const LAYER_ROW = { id: 'ly-1', scene_id: 'sc-1', campaign_id: 'c1', kind: 'terr
 const LIGHT_ROW = { id: 'li-1', scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, shape: 'radius' as const, kind: 'torch' as const, x: 300, y: 200, rotation: 0, cone_angle: 60, color: '#e8a24e', flicker: true, range_m: 6, casts_shadow: false, created_at: 't', updated_at: 't' };
 const DRAWING_ROW = { id: 'd-1', scene_id: 'sc-1', campaign_id: 'c1', author_id: 'u-pip', kind: 'stroke' as const, data: { points: [[1, 2]] as [number, number][] }, color: '#c9a84c', width: 2, created_at: 't', layer_id: null };
 const IMAGE_ROW = { id: 'img-1', campaign_id: 'c1', name: 'Capilla', url: 'https://x/chapel.png', created_at: 't' };
-const PROP_ROW = { id: 'pr-1', pack_id: 'pk-1', name: 'Roble', category: 'vegetation' as const, image_url: 'https://x/oak.webp', natural_width: 200, natural_height: 300, default_scale: 1.5, default_blocks_sight: true, default_blocks_move: false, default_block_shape: 'circle' as const, uploaded_by: 'u-gm', created_at: 't', updated_at: 't' };
-const SCENE_PROP_ROW = { id: 'sp-1', scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, prop_id: 'pr-1', image_url: 'https://x/oak.webp', name: 'Roble', x: 120, y: 340, width: 300, height: 450, rotation: 15, z: 2, blocks_sight: true, blocks_move: false, block_shape: 'circle' as const, block_w: 450, block_h: 450, block_dx: 0, block_dy: 0, created_at: 't', updated_at: 't' };
+const PROP_ROW = { id: 'pr-1', pack_id: 'pk-1', name: 'Roble', category: 'vegetation' as const, image_url: 'https://x/oak.webp', natural_width: 200, natural_height: 300, default_scale: 1.5, default_blocks_sight: true, default_blocks_move: false, default_block_shape: 'circle' as const, default_silhouette: null, uploaded_by: 'u-gm', created_at: 't', updated_at: 't' };
+const SCENE_PROP_ROW = { id: 'sp-1', scene_id: 'sc-1', campaign_id: 'c1', layer_id: null, prop_id: 'pr-1', image_url: 'https://x/oak.webp', name: 'Roble', x: 120, y: 340, width: 300, height: 450, rotation: 15, z: 2, blocks_sight: true, blocks_move: false, block_shape: 'circle' as const, block_w: 450, block_h: 450, block_dx: 0, block_dy: 0, silhouette: null, created_at: 't', updated_at: 't' };
 const PACK_ROW = { id: 'pk-1', name: 'Mazmorra propia', sort_order: 0, created_by: 'u-gm', created_at: 't', updated_at: 't' };
 
 const withSession = (client: Record<string, unknown>, uid = 'u-pip') => ({ ...client, auth: { getSession: vi.fn().mockResolvedValue({ data: { session: { user: { id: uid } } } }) } });
@@ -507,7 +507,7 @@ describe('SupabaseMapsRepo — la biblioteca de piezas', () => {
     const client = { ...withSession(m.client, 'u-gm'), storage };
     await new SupabaseMapsRepo(client as unknown as SupabaseClient).addProp({
       packId: 'pk-1', name: 'Roble', category: 'vegetation', imageUrl: '', naturalWidth: 200, naturalHeight: 300,
-      defaultScale: 1.5, defaultBlocksSight: true, defaultBlocksMove: false, defaultBlockShape: 'circle', uploadedBy: null,
+      defaultScale: 1.5, defaultBlocksSight: true, defaultBlocksMove: false, defaultBlockShape: 'circle', defaultSilhouette: null, uploadedBy: null,
     }, new Blob(['x'], { type: 'image/webp' }));
 
     expect(storage.from).toHaveBeenCalledWith(BACKGROUNDS_BUCKET);
@@ -571,7 +571,7 @@ describe('SupabaseMapsRepo — lo plantado en la escena', () => {
     await repo2.addSceneProp({
       sceneId: 'sc-1', campaignId: 'c1', layerId: 'ly-7', propId: 'pr-1', imageUrl: 'https://x/oak.webp', name: 'Roble',
       x: 120, y: 340, width: 300, height: 450, rotation: 0, z: 3, blocksSight: true, blocksMove: false,
-      blockShape: 'circle', blockW: 450, blockH: 450, blockDx: 0, blockDy: 0,
+      blockShape: 'circle', blockW: 450, blockH: 450, blockDx: 0, blockDy: 0, silhouette: null,
     });
     expect(m2.insertSpy).toHaveBeenCalledWith(expect.objectContaining({ scene_id: 'sc-1', campaign_id: 'c1', layer_id: 'ly-7', prop_id: 'pr-1', image_url: 'https://x/oak.webp', block_shape: 'circle', block_w: 450, z: 3 }));
 

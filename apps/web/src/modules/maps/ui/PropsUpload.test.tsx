@@ -60,8 +60,10 @@ describe('<PropsUpload>', () => {
     await u.selectOptions(screen.getByRole('combobox', { name: 'A qué paquete' }), PACK_FOREST.id);
     await u.click(screen.getByRole('button', { name: 'Añadir 2 objetos' }));
     await waitFor(() => expect(cb.onAdd).toHaveBeenCalledTimes(2));
-    expect(cb.onAdd).toHaveBeenNthCalledWith(1, { name: 'arbol-viejo', packId: PACK_FOREST.id, naturalWidth: 320, naturalHeight: 200 }, expect.any(Blob));
-    expect(cb.onAdd).toHaveBeenNthCalledWith(2, { name: 'puerta herrumbre', packId: PACK_FOREST.id, naturalWidth: 320, naturalHeight: 200 }, expect.any(Blob));
+    // `alpha` viaja con cada una: es de donde sale la silueta (§ 6.9). Aquí llega `null` porque el compresor
+    // de mentira no la trae — lo que prueba que una subida sin opacidad sigue funcionando igual.
+    expect(cb.onAdd).toHaveBeenNthCalledWith(1, { name: 'arbol-viejo', packId: PACK_FOREST.id, naturalWidth: 320, naturalHeight: 200, alpha: null }, expect.any(Blob));
+    expect(cb.onAdd).toHaveBeenNthCalledWith(2, { name: 'puerta herrumbre', packId: PACK_FOREST.id, naturalWidth: 320, naturalHeight: 200, alpha: null }, expect.any(Blob));
     await waitFor(() => expect(cb.onClose).toHaveBeenCalled());
   });
 
@@ -103,6 +105,7 @@ describe('<PropsUpload>', () => {
     renderWithProviders(<PropsUpload packs={[PACK_DUNGEON, PACK_FOREST]} packId={PACK_DUNGEON.id} initialFiles={[png('arbol.png')]} {...cb} />);
     await u.click(screen.getByRole('button', { name: 'Añadir 1 objeto' }));
     await waitFor(() => expect(cb.onAdd).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(compressImage)).toHaveBeenCalledWith(expect.any(File), 'prop', 'light');
+    // Y PIDE LA OPACIDAD (§ 6.9): la silueta sale de la misma pasada, sin volver a abrir la imagen.
+    expect(vi.mocked(compressImage)).toHaveBeenCalledWith(expect.any(File), 'prop', 'light', undefined, { alpha: true });
   });
 });

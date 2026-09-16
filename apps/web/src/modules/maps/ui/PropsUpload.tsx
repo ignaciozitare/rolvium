@@ -1,12 +1,16 @@
 import { useTranslation } from '@rolvium/i18n';
-import { compressImage } from '@rolvium/ui';
+import { compressImage, type AlphaMap } from '@rolvium/ui';
 import type { PropPack } from '../domain/entities/Scene';
 import { nameFromFile } from '../domain/useCases/propRules';
 import { compressionLevelsRepo } from '../container';
 import { LibraryUpload, type Preparer } from './LibraryUpload';
 
 /** Lo que hace falta para crear la pieza: el resto (foto, quién, escala) lo pone quien la guarda. */
-export interface PropUploadInput { name: string; packId: string | null; naturalWidth: number; naturalHeight: number }
+export interface PropUploadInput {
+  name: string; packId: string | null; naturalWidth: number; naturalHeight: number;
+  /** La opacidad de la foto, para sacarle la silueta (§ 6.9). `null` si el navegador no supo leerla. */
+  alpha?: AlphaMap | null;
+}
 
 interface Props {
   packs: readonly PropPack[];
@@ -26,7 +30,12 @@ interface Props {
 export type Compressor = Preparer;
 const compressProp: Compressor = async file => {
   const levels = await compressionLevelsRepo.load();
-  return compressImage(file, 'prop', levels?.prop ?? 'balanced');
+  /*
+   * Y de paso se pide la OPACIDAD (§ 6.9): la silueta sale de la MISMA pasada en la que la imagen ya está
+   * abierta para comprimirla, sin volver a bajarla ni descodificarla. Si el navegador no sabe darla, llega
+   * `null` y la pieza nace con el rectángulo de siempre — subir no puede fallar por esto.
+   */
+  return compressImage(file, 'prop', levels?.prop ?? 'balanced', undefined, { alpha: true });
 };
 
 /**
@@ -40,7 +49,7 @@ export function PropsUpload({ packs, packId, initialFiles, onAdd, onClose, compr
     <LibraryUpload keys="maps.props.upload" groups={packs} allowUnsorted groupId={packId}
       {...(initialFiles ? { initialFiles } : {})}
       prepare={compress} nameOf={f => nameFromFile(f, t('maps.props.upload.fallbackName'))}
-      onAdd={(input, blob) => onAdd({ name: input.name, packId: input.groupId, naturalWidth: input.naturalWidth, naturalHeight: input.naturalHeight }, blob)}
+      onAdd={(input, blob) => onAdd({ name: input.name, packId: input.groupId, naturalWidth: input.naturalWidth, naturalHeight: input.naturalHeight, alpha: input.alpha ?? null }, blob)}
       onClose={onClose} />
   );
 }

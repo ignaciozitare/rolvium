@@ -428,7 +428,7 @@ export const LIGHT_SECRET: Light = { ...LIGHT_BASE, id: 'li-secret', layerId: LA
 /** Un paquete propio del director. La biblioteca es de la herramienta: sin campaña. */
 export const PACK_DUNGEON: PropPack = { id: 'pk-dun', name: 'Mazmorra propia', sortOrder: 0, createdBy: 'u-gm', createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' };
 export const PACK_FOREST: PropPack = { id: 'pk-for', name: 'Bosque de Karen', sortOrder: 1, createdBy: 'u-gm', createdAt: '2026-09-12T01:00:00Z', updatedAt: '2026-09-12T01:00:00Z' };
-const PROP_BASE = { category: 'misc' as const, defaultScale: 1, defaultBlocksSight: false, defaultBlocksMove: false, defaultBlockShape: 'rect' as const, uploadedBy: 'u-gm', createdAt: '2026-09-12T02:00:00Z', updatedAt: '2026-09-12T02:00:00Z' };
+const PROP_BASE = { category: 'misc' as const, defaultScale: 1, defaultBlocksSight: false, defaultBlocksMove: false, defaultBlockShape: 'rect' as const, defaultSilhouette: null, uploadedBy: 'u-gm', createdAt: '2026-09-12T02:00:00Z', updatedAt: '2026-09-12T02:00:00Z' };
 /** Un roble de 200 × 300, en el paquete del bosque, que recuerda una escala de 1,5. */
 export const PROP_OAK: Prop = { ...PROP_BASE, id: 'pr-oak', packId: PACK_FOREST.id, name: 'Roble', category: 'vegetation', imageUrl: 'https://x/backgrounds/props/pr-oak.webp', naturalWidth: 200, naturalHeight: 300, defaultScale: 1.5 };
 /** Un pino, del MISMO paquete que el roble: para probar DE SU FAMILIA (§ 6.8, punto 9). */
@@ -438,7 +438,7 @@ export const PROP_COLUMN: Prop = { ...PROP_BASE, id: 'pr-col', packId: PACK_DUNG
 /** Una mesa sin paquete: «Sin clasificar». */
 export const PROP_TABLE: Prop = { ...PROP_BASE, id: 'pr-tab', packId: null, name: 'Mesa larga', category: 'furniture', imageUrl: 'https://x/backgrounds/props/pr-tab.webp', naturalWidth: 240, naturalHeight: 120, createdAt: '2026-09-12T04:00:00Z' };
 /** El roble YA PLANTADO en el almacén, con su copia de la foto y del nombre. */
-export const SCENE_PROP_OAK: SceneProp = { id: 'sp-oak', sceneId: 'sc-1', campaignId: 'c1', layerId: null, propId: PROP_OAK.id, imageUrl: PROP_OAK.imageUrl, name: 'Roble', x: 400, y: 300, width: 300, height: 450, rotation: 0, z: 0, blocksSight: false, blocksMove: false, blockShape: 'rect', blockW: 300, blockH: 450, blockDx: 0, blockDy: 0, createdAt: '2026-09-12T05:00:00Z', updatedAt: '2026-09-12T05:00:00Z' };
+export const SCENE_PROP_OAK: SceneProp = { id: 'sp-oak', sceneId: 'sc-1', campaignId: 'c1', layerId: null, propId: PROP_OAK.id, imageUrl: PROP_OAK.imageUrl, name: 'Roble', x: 400, y: 300, width: 300, height: 450, rotation: 0, z: 0, blocksSight: false, blocksMove: false, blockShape: 'rect', blockW: 300, blockH: 450, blockDx: 0, blockDy: 0, silhouette: null, createdAt: '2026-09-12T05:00:00Z', updatedAt: '2026-09-12T05:00:00Z' };
 /** Y una columna plantada encima (z 1) que estorba, en la capa de notas del director. */
 export const SCENE_PROP_COLUMN: SceneProp = { ...SCENE_PROP_OAK, id: 'sp-col', layerId: LAYER_NOTES.id, propId: PROP_COLUMN.id, imageUrl: PROP_COLUMN.imageUrl, name: 'Columna', x: 700, y: 200, width: 100, height: 100, z: 1, blocksSight: true, blocksMove: true, blockShape: 'circle', blockW: 100, blockH: 100, createdAt: '2026-09-12T06:00:00Z' };
 
