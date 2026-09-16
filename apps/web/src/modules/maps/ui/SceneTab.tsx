@@ -26,7 +26,7 @@ import { DEFAULT_SOW, PropsPanel, type PlantMode, type SowSettings } from './Pro
 import { PropsCatalog } from './PropsCatalog';
 import { PropsUpload, type PropUploadInput } from './PropsUpload';
 import { TextureUpload, type TextureUploadInput } from './TextureUpload';
-import { dueToSow, duplicateProp, filterProps, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleOfWidth, scatterIn, sortProps, sowStepPx, topZ, type PropShelf, type PropShelfContext } from '../domain/useCases/propRules';
+import { blockShapeOfUpload, dueToSow, duplicateProp, filterProps, footprintOf, PASTE_OFFSET_PX, plantProp, randomRotation, randomScale, restack, scaleOfWidth, scatterIn, silhouetteOfAlpha, sortProps, sowStepPx, topZ, type PropShelf, type PropShelfContext } from '../domain/useCases/propRules';
 import type { StackDir } from './LayerMenu';
 import { defaultShapeFor, DEFAULT_BRUSH_COLOR, isOpeningKind, shapesFor, wallStripe, type BuildKind, type BuilderMode, type RoomShape } from '../domain/useCases/roomRules';
 import { fogOpOf, paintActionsFor, rockPaintSrc, roomPaintSrc, layerPaintSrc, type PaintAction, type PaintOn, type PaintWith } from '../domain/useCases/paintRules';
@@ -1144,10 +1144,14 @@ export function SceneTab({ campaignId, role, userId, system, canManageTextures: 
   /** Crear la pieza en la biblioteca con lo que trae la subida. Nace con el lado mayor a DOS casillas de esta escena. */
   const añadirPieza = async (input: PropUploadInput, blob: Blob): Promise<void> => {
     const grid = live?.grid.size ?? 27;
+    // LA SILUETA (§ 6.9) sale aquí, de la opacidad que trae la propia subida. Nace guardada aunque la pieza
+    // todavía no estorbe: encender «tapa la vista» después no puede obligar a volver a subir la foto.
+    const silueta = silhouetteOfAlpha(input.alpha);
     const created = await repo.addProp({
       packId: input.packId, name: input.name, category: 'misc', imageUrl: '', naturalWidth: input.naturalWidth, naturalHeight: input.naturalHeight,
       defaultScale: (2 * grid) / Math.max(1, input.naturalWidth, input.naturalHeight),
-      defaultBlocksSight: false, defaultBlocksMove: false, defaultBlockShape: 'rect', uploadedBy: null,
+      defaultBlocksSight: false, defaultBlocksMove: false, defaultBlockShape: blockShapeOfUpload(silueta),
+      defaultSilhouette: silueta, uploadedBy: null,
     }, blob);
     setLibrary(l => [created, ...(l ?? [])]);
   };

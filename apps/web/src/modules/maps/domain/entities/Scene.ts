@@ -379,8 +379,22 @@ export type LightPatch = Partial<Omit<Light, 'id' | 'sceneId' | 'campaignId' | '
 
 /** Las seis categorías las trae la app: cerradas, no etiquetas libres (elección del dueño, 2026-08-31). */
 export type PropCategory = 'furniture' | 'vegetation' | 'floors' | 'doors' | 'markers' | 'misc';
-/** La forma que ESTORBA de una pieza. Simple a propósito: la silueta real de un PNG es cara y da errores raros. */
-export type BlockShape = 'rect' | 'circle';
+/**
+ * La forma que ESTORBA de una pieza. Las dos simples son las de la rebanada 6; `silhouette` es la del § 6.9,
+ * pedida por él con dos capturas de sus vehículos: «*tienen que recortar por la silueta del png … pero no un
+ * cuadrado u óvalo que no tenga nada que ver con la silueta del objeto*». Las tres conviven.
+ *
+ * Es el mismo tipo que `BlockShape` de `@rolvium/core`, que es quien convierte la forma en geometría.
+ */
+export type BlockShape = 'rect' | 'circle' | 'silhouette';
+
+/**
+ * LA SILUETA, en FRACCIONES de la huella (-0.5 … +0.5 desde el centro) y no en píxeles: así estirar la pieza
+ * no obliga a reescribir 24 puntos —`blockW`/`blockH` ya dicen el tamaño— y la copia plantada puede heredar la
+ * misma lista que la biblioteca. `null` = sin sacar todavía (una pieza de antes del § 6.9) o el PNG no dio
+ * contorno; entonces se estorba con el rectángulo de siempre.
+ */
+export type Silhouette = readonly { x: number; y: number }[];
 
 /**
  * Una pieza de la BIBLIOTECA: existe para usarse, y no está en ningún mapa. Guarda además lo que la pieza
@@ -410,6 +424,8 @@ export interface Prop {
   defaultBlocksSight: boolean;
   defaultBlocksMove: boolean;
   defaultBlockShape: BlockShape;
+  /** La silueta de SU foto (§ 6.9), sacada al subirla. La copia plantada la hereda. */
+  defaultSilhouette: Silhouette | null;
   uploadedBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -464,6 +480,8 @@ export interface SceneProp {
   blockH: number;
   blockDx: number;
   blockDy: number;
+  /** Copiada de la biblioteca al plantar (§ 6.9). Se estira con la pieza porque va en fracciones. */
+  silhouette: Silhouette | null;
   createdAt: string;
   updatedAt: string;
 }

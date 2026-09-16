@@ -1,4 +1,4 @@
-import type { FogCell } from '@rolvium/core';
+import type { BlockShape, FogCell, ScenePoint } from '@rolvium/core';
 
 /** The scene as the server needs it: light, grid and size. Mirrors `maps_scenes`. */
 export interface SceneRecord {
@@ -62,7 +62,12 @@ export interface LayerRecord { id: string; kind: 'terrain' | 'objects' | 'creatu
 
 /**
  * Una pieza PLANTADA, con lo justo para saber si estorba y dónde. Ni foto ni nombre: eso es pintura y vive
- * en el navegador. La forma que estorba es simple —rectángulo o círculo— a propósito (§ 6.5).
+ * en el navegador. La forma que estorba es un rectángulo, un óvalo o —desde § 6.9— LA SILUETA de su PNG.
+ *
+ * 🔑 `blockShape` y `silhouette` son los MISMOS tipos de `@rolvium/core`, que es quien convierte la forma en
+ * geometría. Escribirlos a mano aquí fue lo que dejó al servidor sin enterarse de la silueta: la fila decía
+ * `silhouette` y este contrato sólo admitía «rect» o «circle», así que la sombra del camión se seguía
+ * calculando con el rectángulo mientras el navegador ya la frenaba por su contorno.
  */
 export interface ScenePropRecord {
   id: string;
@@ -72,9 +77,14 @@ export interface ScenePropRecord {
   rotation: number;
   blocksSight: boolean;
   blocksMove: boolean;
-  blockShape: 'rect' | 'circle';
+  blockShape: BlockShape;
   /** La forma que estorba, en px y relativa al centro. En `circle`, `blockW` es el DIÁMETRO. */
   blockW: number; blockH: number; blockDx: number; blockDy: number;
+  /**
+   * LA SILUETA (§ 6.9), en FRACCIONES de la huella (-0,5 … +0,5 desde el centro). `null` = la pieza es de
+   * antes, o su PNG no dio contorno; entonces `propBlockRing` se cae al rectángulo y tapa como hasta hoy.
+   */
+  silhouette?: readonly ScenePoint[] | null;
 }
 
 /**

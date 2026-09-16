@@ -1372,6 +1372,7 @@ export type Database = {
           default_blocks_move: boolean
           default_blocks_sight: boolean
           default_scale: number
+          default_silhouette: Json | null
           id: string
           image_url: string
           name: string
@@ -1388,6 +1389,7 @@ export type Database = {
           default_blocks_move?: boolean
           default_blocks_sight?: boolean
           default_scale?: number
+          default_silhouette?: Json | null
           id?: string
           image_url: string
           name?: string
@@ -1404,6 +1406,7 @@ export type Database = {
           default_blocks_move?: boolean
           default_blocks_sight?: boolean
           default_scale?: number
+          default_silhouette?: Json | null
           id?: string
           image_url?: string
           name?: string
@@ -1584,6 +1587,7 @@ export type Database = {
           prop_id: string | null
           rotation: number
           scene_id: string
+          silhouette: Json | null
           updated_at: string
           width: number
           x: number
@@ -1608,6 +1612,7 @@ export type Database = {
           prop_id?: string | null
           rotation?: number
           scene_id: string
+          silhouette?: Json | null
           updated_at?: string
           width: number
           x?: number
@@ -1632,6 +1637,7 @@ export type Database = {
           prop_id?: string | null
           rotation?: number
           scene_id?: string
+          silhouette?: Json | null
           updated_at?: string
           width?: number
           x?: number

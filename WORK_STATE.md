@@ -46,7 +46,73 @@
 > - Cuatro comentarios que seguían afirmando «el director no choca» —uno HUÉRFANO, otro en la función que
 >   implementa el freno— corregidos. Misma lección del día: el texto viejo es lo que resucita la regla vieja.
 >
-> ### 🎯 LO SIGUIENTE, YA APROBADO POR ÉL: **LA SILUETA** (spec escrito, sin construir)
+> ### 🎯 **LA SILUETA — CONSTRUIDA ENTERA** (rama `feat/silueta-de-los-objetos`, 2026-09-16 tarde)
+Rama sacada de `main`, **sin mergear y sin migración en producción todavía**. El spec § 6.9 va al día en la misma
+rama (la vieja `docs/spec-silueta` ya viene dentro: `1417222`). Review pasada, `npm run audit` 0 duros, y verde
+entero: web 2023 · api 305 · core 133 · ui 23.
+
+**Lo que hace, dicho como lo ve él**: la sombra de un camión ya no es un bloque negro rectangular. Se saca el
+contorno del PNG a rayos desde el centro (24 puntos, corte al 50 % de opacidad — los dos números salen de la
+maqueta que aprobó con «está perfecto»).
+
+- **Al subir un objeto nuevo sale sola**, dentro de la MISMA pasada que ya comprime la imagen: ni una descarga
+  más ni una descodificación más. Se guarda con la fila, y la copia plantada la hereda al nacer.
+- **Nacer con silueta NO la hace estorbar**: «tapa la vista» y «corta el paso» siguen naciendo apagados. La
+  silueta sólo decide CON QUÉ FORMA estorbará el día que él los encienda.
+- **Nada de lo viejo cambia**: sin silueta guardada se estorba con el rectángulo de siempre. Defendido en cuatro
+  sitios a la vez (el CHECK de la base, el motor, el cálculo de la subida y un test del servidor), porque el
+  fallo peligroso aquí es **dejar de estorbar en silencio**.
+- **La pasada de una vez para sus 149** (su «*hazlas de a una vez*») está construida y probada: va de una en
+  una, es repetible, una foto que no se deja bajar no para las demás, y **alcanza también a lo YA PLANTADO** —
+  lo que él ve en sus mapas son copias, así que arreglar sólo la biblioteca no cambiaría una sola sombra de las
+  que ya tiene puestas. Un óvalo que puso él a mano no se pisa ni arriba ni en las copias.
+
+🔴 **El hallazgo gordo de la review, escrito para que no se repita**: el servidor —que es quien calcula lo que se
+ve— **no leía la columna nueva**, así que habría seguido tapando con el rectángulo mientras el navegador frenaba
+por el contorno de verdad: los dos lados discrepando en silencio. No lo cazó el compilador porque esa fila se lee
+con una conversión forzada. Ahora los dos usan los MISMOS tipos de `@rolvium/core`, y hay test del lado servidor.
+
+✅ **EL BOTÓN NO SE CONSTRUYE — lo paró él** (16-09, en cuanto vio la lámina): «*¿por qué no lo haces
+automáticamente, por qué un botón?*». Tenía razón: es un trabajo de UNA SOLA VEZ, y un botón permanente en la
+barra para eso es basura para siempre. Hacerlo solo al abrir la biblioteca tampoco valía —le cae encima al
+primero que entre, 149 descargas y 149 escrituras sin pedirle permiso, y si falla la mitad no se entera nadie.
+
+**En su lugar: `scripts/gen-silhouettes.mjs`.** Baja cada foto, le saca el contorno con el MISMO motor de
+`@rolvium/core` y **escribe un fichero de migración**; no toca ninguna base de datos. Descodifica en un Chromium
+sin ventana (Node no sabe abrir un WebP con alfa) al que se le pasan los BYTES, así que no sale a la red: ni
+CORS ni lienzo manchado. **149 de 149 sin un fallo.** Ninguna silueta sale igual que el cuadrado: la que menos
+recorta se queda en el 76 % de la caja, la mediana en el 53 % y la que más baja al 20 %. Comprobado además con
+los ojos sobre seis objetos suyos de producción.
+
+La migración de datos es `20260916200000_maps_props_siluetas_de_lo_ya_subido.sql` y es **repetible**: cada
+sentencia sólo toca la fila si sigue SIN silueta, y la forma sólo cambia si sigue siendo el rectángulo de
+fábrica. Arregla también **lo YA PLANTADO** (95 copias en sus mapas, 15 tapando vista y 17 cortando paso), que
+es donde él lo va a ver.
+
+✅ **SU LOCAL YA LA TIENE APLICADA** (50 objetos + 52 copias plantadas): puede probarlo en `localhost:5173`.
+
+🧹 Lo que murió con el botón y se borró en `b92a373`: el caso de uso de la pasada, `applySilhouetteToPlanted`
+(puerto y adaptador) y `alphaOfUrl`. Se habían quedado sin un solo llamador en producción, sujetos sólo por sus
+propios tests.
+
+⏳ **FALTA, y es lo único**: aplicar las DOS migraciones en producción por MCP (la de la columna y la de los 149)
+y mergear. Ojo al coste: la de datos son 125 KB (~48k tokens por `apply_migration`). Pendiente de su palabra
+porque toca producción.
+
+✅ **El `.pen` quedó limpio**: guardó él a las 19:48 y el commit `1b55613` se llevó las dos láminas del botón
+(5.166 líneas menos, cero añadidas — la firma de un borrado de láminas, no de una escritura a medias). El QA lo
+abrió y lo dio por íntegro: 115 láminas de primer nivel, 31 componentes, secciones numeradas intactas.
+
+🧾 **Desfase menor anotado a propósito**: producción registró la migración de la columna como `20260916182937` y
+el fichero del repositorio es `20260916190000`. No se arregla: la migración es idempotente y las de producción
+van por MCP, nunca por `db push`, así que nada se re-aplica solo. Renombrar un fichero ya aplicado o insertar a
+mano una fila en el registro es más peligroso que el desajuste.
+
+🧹 Deuda menuda anotada y NO tocada: la clave que dispara el recálculo de la niebla (`useScene.ts:296`) no incluye
+la silueta. Hoy no hay camino que la cambie sin cambiar también la forma, así que no se manifiesta; el día que se
+pueda editar una silueta en el sitio, la niebla no se enteraría.
+
+### 🎯 CÓMO SE APROBÓ (registro; ya construido)
 > Su queja: la sombra de un camión era un bloque negro rectangular. «*Tienen que recortar por la silueta del png
 > … o al menos lo más aproximado*». Se le hizo una **maqueta con SEIS objetos suyos de producción** (las tres
 > formas y la sombra de cada una, con la luz movible) y contestó «**está perfecto**».
@@ -55,10 +121,8 @@
 > puntos y 50 % de corte, calculada AL SUBIR dentro de la pasada que ya comprime la imagen, y `block_shape`
 > gana el valor `silhouette`. Cuesta lo mismo que el óvalo (que por dentro ya es un polígono de 16 lados).
 >
-> ⏳ **BLOQUEADO EN UNA PREGUNTA SUYA, hecha y sin responder**: sus **133 objetos ya subidos** no tienen
-> silueta. ¿Una **pasada de una vez** desde la biblioteca (recomendada), o **perezosa**, la primera vez que se
-> planta cada uno? Sin eso no se empieza, porque cambia la migración y la UI.
-> Después: DBA (migración) → Dev → Review → QA.
+> ✅ **CONTESTADO Y HECHO** (registro): «hazlas de a una vez». Terminó siendo un script del repositorio y no un
+> botón —lo paró él— y fueron **149**, no 133, porque siguió subiendo. Ver el bloque 🎯 del principio.
 >
 > ### ✅ CERRADO HOY: LOS OBJETOS QUE ESTORBAN (su queja del 16-09, con dos capturas)
 > «*no funciona lo de bloquear paso y linea de vision, hace cosas raras visualmente*». Diagnóstico HECHO

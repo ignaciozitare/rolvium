@@ -9,7 +9,7 @@ interface RoomRow { id: string; kind?: RoomRecord['kind']; points: [number, numb
 interface RoomOpeningRow { x1: number; y1: number; x2: number; y2: number; kind: RoomOpeningRecord['kind']; is_open: boolean }
 interface LightRow { id: string; layer_id: string | null; x: number; y: number; rotation: number; shape: LightRecord['shape']; cone_angle: number; range_m: number; casts_shadow: boolean; spin_ms: number }
 interface LayerRow { id: string; kind: LayerRecord['kind']; visible: boolean }
-interface ScenePropRow { id: string; layer_id: string | null; x: number; y: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: ScenePropRecord['blockShape']; block_w: number; block_h: number; block_dx: number; block_dy: number }
+interface ScenePropRow { id: string; layer_id: string | null; x: number; y: number; rotation: number; blocks_sight: boolean; blocks_move: boolean; block_shape: ScenePropRecord['blockShape']; block_w: number; block_h: number; block_dx: number; block_dy: number; /* § 6.9 — opcional a propósito: una fila anterior a la columna no la trae */ silhouette?: ScenePropRecord['silhouette'] }
 
 const DEFAULT_GRID = 27;
 /** Rows may hold anything jsonb; keep only well-formed integer pairs. */
@@ -87,13 +87,15 @@ export class SupabaseMapsRepo implements IMapsRepository {
 
   async listBlockingProps(sceneId: string): Promise<ScenePropRecord[]> {
     const { data, error } = await this.db.from('maps_scene_props')
-      .select('id, layer_id, x, y, rotation, blocks_sight, blocks_move, block_shape, block_w, block_h, block_dx, block_dy')
+      .select('id, layer_id, x, y, rotation, blocks_sight, blocks_move, block_shape, block_w, block_h, block_dx, block_dy, silhouette')
       .eq('scene_id', sceneId).or('blocks_sight.eq.true,blocks_move.eq.true');
     this.fail(error);
     return ((data ?? []) as unknown as ScenePropRow[]).map(r => ({
       id: r.id, layerId: r.layer_id, x: r.x, y: r.y, rotation: r.rotation,
       blocksSight: r.blocks_sight, blocksMove: r.blocks_move, blockShape: r.block_shape,
       blockW: r.block_w, blockH: r.block_h, blockDx: r.block_dx, blockDy: r.block_dy,
+      // § 6.9 — sin esta columna el servidor tapaba con el RECTÁNGULO aunque la fila dijera `silhouette`.
+      silhouette: r.silhouette ?? null,
     }));
   }
 

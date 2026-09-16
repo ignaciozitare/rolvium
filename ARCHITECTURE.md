@@ -12,7 +12,7 @@ packages/i18n   @rolvium/i18n — t(), I18nProvider, locales/{es,en}.json (es bu
 packages/shared-types  @rolvium/shared-types — User, Role, RolePermissions, ApiResponse…
 supabase/migrations    SQL migrations (RLS mandatory)
 specs/          Functional specs (source of truth)
-scripts/        audit.mjs (deterministic compliance), gen-ui-catalog.mjs
+scripts/        audit.mjs (deterministic compliance), gen-ui-catalog.mjs, gen-silhouettes.mjs
 .claude/        Dev-agent harness: CLAUDE.md, agents, commands, skills, hooks
 ```
 
