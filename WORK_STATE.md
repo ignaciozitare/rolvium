@@ -1,6 +1,54 @@
 # WORK_STATE.md — Rolvium
 
 ## 🎯 Current task
+
+> # 📍 ESTADO AL CERRAR EL CHAT (2026-09-16, noche)
+>
+> ## ✅ LA SILUETA — EN PRODUCCIÓN Y **PROBADA POR ÉL**: «*la silueta funciona perfecto*»
+> v0.12.0, merge `23c42ac`. Las sombras de los objetos ya recortan por el dibujo y no por un cuadrado. Los
+> números, leídos de la base de producción: **149/149 objetos** y **95/95 copias plantadas** con silueta; de
+> los que estorban de verdad, **22 por su contorno y CERO con el cuadrado**. Detalle completo en el bloque
+> «v0.12.0» de más abajo.
+>
+> ## 🔀 LO SIGUIENTE, POR ORDEN
+>
+> **1. ⏳ PREGUNTA SUYA SIN RESPONDER — el freno de los objetos.**
+> Se quejó de que «*el block movement no funciona*» probando como director. **No era un fallo**: la escena
+> `test3` tenía el escudo en «Paredes atravesables», y ese interruptor apaga el freno de TODO —paredes, salas
+> y objetos— **pero no la vista**. Por eso veía las sombras perfectas mientras nada frenaba. Se le dijo dónde
+> está el escudo y lo dio por bueno («vale todo bien»).
+> **Lo que sigue SIN decidir, y es lo primero que hay que preguntarle**: cuando él marca «corta el paso» en un
+> objeto concreto, ¿debe frenar SIEMPRE aunque las paredes estén atravesables, o el escudo sigue mandando
+> sobre todo? **No interpretar su «vale todo bien» como respuesta**: contestaba a que ya le funcionaba, no a la
+> pregunta. Si elige lo primero, es quitar el `p.scene.solidWalls ?` de `propBlockers` (`MapCanvas.tsx`) y su
+> gemelo del servidor (`sceneVision.ts`), con test.
+>
+> **2. ⏳ EL PINCEL — rama `fix/salas-desaparecen-al-pintar`, LISTA Y SIN MERGEAR.**
+> «*Desaparecen habitaciones cuando quiero pintar*». Dos commits, QA en modo bloqueo pasado entero, y **sin
+> subir a propósito**: falta que él lo use un rato y diga que no le vuelve a pasar. Ojo: la última vez que lo
+> probó estaba, sin saberlo, en la rama de la silueta —que sale de `main` y NO lleva el arreglo—, así que
+> **antes de que lo pruebe hay que poner su local en esa rama** y decirle que recargue con Cmd+Shift+R.
+> Su local corre en `localhost:5173` y `5174`, con el servidor en `3001`; los tres estaban vivos.
+>
+> **3. Lo pequeño que sigue anotado**: las tres pastillas desplegadas en ventana estrecha (la de arriba se
+> sale), el camino muerto `pendingChatOpen`, y traer una tirada del Registro a una conversación.
+>
+> ## ⚠️ DOS LECCIONES DE HOY, PARA NO REPETIRLAS
+> - **Una migración de DATOS grande no va por MCP.** La de las siluetas eran 125 KB y hubo que partirla en
+>   siete tandas por el chat: ~150k tokens. La próxima, **enlazar el CLI de Supabase y `db push`**.
+> - **Al cambiar de rama se le cambia el local sin avisar.** Pasó hoy: probó el pincel media hora contra el
+>   código viejo por culpa mía. **Decirle siempre en qué rama queda su local.**
+>
+> ## 🧹 Menudencias
+> - `siluetas-comprobacion.local.png` (raíz): la comprobación visual de seis objetos suyos. Está ignorada por
+>   git; se puede borrar cuando ya no la quiera.
+> - Deuda anotada y NO tocada: la clave de recálculo de niebla (`useScene.ts:296`) no incluye la silueta —hoy
+>   no se manifiesta—, y el pincel de máscara puede perder un trozo de brochazo al cruzar de sala (ver el 🐞
+>   del pincel, más abajo).
+> - El `.pen` está guardado y limpio: las dos láminas del botón que él mató se borraron en `1b55613`.
+
+---
+
 > ## 🚀 v0.11.0 EN PRODUCCIÓN (2026-09-16, mañana) — **LAS PASTILLAS y el pincel arreglado**
 > Merge `a82c33e`, los dos despliegues de producción READY y comprobado de verdad: `rolvium.vercel.app` 200,
 > `rolvium-api.vercel.app/health` 200, y el paquete que sirve producción lleva «Susurros abiertos», «Minimizar
