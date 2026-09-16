@@ -8,8 +8,9 @@
 > en esta entrega.
 >
 > **✅ YA LO PROBÓ EN PRODUCCIÓN** (2026-09-16, con captura) y salió UN fallo: al desplegar una pastilla, las
-> barritas de al lado subían hasta su altura en vez de quedarse pegadas abajo. **Arreglado en la rama
-> `fix/pastillas-pegadas-abajo` (`cc8b9f7`), QA en modo bloqueo pasado — pendiente sólo de merge y deploy.**
+> barritas de al lado subían hasta su altura en vez de quedarse pegadas abajo. **ARREGLADO Y EN PRODUCCIÓN**
+> (merge `6a5fc40`): despliegue READY, web y api 200, y el CSS que sirve producción lleva ya
+> `align-items:flex-start` en `.ch-dock` — comprobado bajándolo, no supuesto.
 > La causa: `.ch-dock` lleva `flex-wrap:wrap-reverse`, que da la vuelta al eje transversal, así que «pegado
 > abajo» se escribe `align-items:flex-start`. Parece una errata y no lo es: hay test de regresión que lo sujeta.
 >
