@@ -172,18 +172,33 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
    * `crossOrigin` es obligatorio y no decorativo: sin él el lienzo queda MANCHADO al dibujar una imagen de
    * otro origen y `toBlob` revienta con un error de seguridad — es decir, el pincel dejaría de guardar.
    */
-  const cargar = useCallback((src: string | null) => {
+  /**
+   * `enVivo` = no dejes la pantalla en blanco mientras baja. Se usa cuando el destino NO ha cambiado y sólo
+   * llega una pintura nueva: lo que hay delante sigue siendo bueno hasta que la nueva esté decodificada.
+   *
+   * 🐞 Sin esto la vista previa pasaba por la URL REMOTA entre medias, y esa URL lleva rompe-caché
+   * (`roomPaintSrc` cuelga de `updatedAt`), así que NUNCA está en caché: el `<image>` del mapa no pinta nada
+   * mientras la baja. Con 56 salas que comparten UN solo PNG, eso es el suelo entero desapareciendo, y cada
+   * eco de tiempo real lo repetía — «*parpadea un par de veces y desaparece*» (suyo, 2026-09-16). Pesa más
+   * cuanto más pesa el PNG, y una textura con transparencia pesa mucho más que un color plano: por eso lo veía
+   * él y no se veía en las pruebas.
+   */
+  const cargar = useCallback((src: string | null, enVivo = false) => {
     const c = canvasOf();
     const ctx = c?.getContext?.('2d') ?? null;
     if (c && ctx) ctx.clearRect(0, 0, c.width, c.height);
     dirtyRef.current = false;
     cargadoRef.current = src;
-    setPreview(src);
-    if (!src || !c || !ctx || typeof Image === 'undefined') return undefined;
+    if (!src || !c || !ctx || typeof Image === 'undefined') { setPreview(src); return undefined; }
+    /* Conservar lo que hay SÓLO si hay algo. Con la pantalla ya vacía, esperar a que decodifique es peor que
+       enseñar la URL: no hay parpadeo que evitar y sí un suelo que falta. */
+    setPreview(prev => (enVivo ? prev ?? src : src));
     let alive = true;
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => { if (!alive) return; ctx.drawImage(img, 0, 0, c.width, c.height); repaintPreview(true); };
+    // Si no llega (red caída, CORS), que el mapa al menos lo intente por su cuenta con la URL.
+    img.onerror = () => { if (alive) setPreview(src); };
     img.src = src;
     return () => { alive = false; };
   }, [canvasOf, repaintPreview]);
@@ -210,7 +225,7 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
    */
   useEffect(() => {
     if (tocadoRef.current || targetSrc === cargadoRef.current) return undefined;
-    return cargar(targetSrc);
+    return cargar(targetSrc, true);
   }, [targetSrc, cargar]);
 
   /**
@@ -349,6 +364,10 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
     const ctx = c?.getContext?.('2d') ?? null;
     if (c && ctx) ctx.clearRect(0, 0, c.width, c.height);
     dirtyRef.current = false;
+    // Y se vuelve a empezar de cero también para la red: sin esto, «quitar la pintura» dejaba el destino sordo
+    // a lo que llegara después (lo cazó el QA, y es la misma clase de fallo que el de la pintura que llega tarde).
+    tocadoRef.current = false;
+    cargadoRef.current = null;
     setPreview(null);
     if (target) await target.clear();
   }, [canvasOf, target]);

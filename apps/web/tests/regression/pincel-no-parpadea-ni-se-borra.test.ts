@@ -68,6 +68,21 @@ describe('🐞 las habitaciones desaparecían al ponerse a pintar (2026-09-16)',
     expect(result.current.preview).toBe('data:image/png;base64,LO-QUE-LLEVO-PINTADO');
   });
 
+  /**
+   * 🐞 EL PARPADEO DE VERDAD, el que describió él: «*parpadea un par de veces y desaparece*». Al recargar, la
+   * vista previa pasaba por la URL REMOTA entre medias — y esa URL lleva rompe-caché, así que NUNCA está en
+   * caché y el mapa no pinta NADA mientras la baja. Con 56 salas compartiendo un solo PNG, eso es el suelo
+   * entero desapareciendo; y cada eco de tiempo real lo repetía. Ahora lo que hay delante se queda hasta que
+   * la nueva esté decodificada.
+   */
+  it('mientras baja una pintura nueva NO se queda en blanco: se conserva lo que ya se ve', () => {
+    const { result, rerender } = renderHook(({ t }) => usePaintBrush(SCENE_WAREHOUSE, t), { initialProps: { t: destino('https://x/suelo.png?v=1') } });
+    expect(result.current.preview).toBe('https://x/suelo.png?v=1');
+    // Llega una versión nueva (otro director, o un eco): la de antes sigue en pantalla hasta que la nueva cargue.
+    rerender({ t: destino('https://x/suelo.png?v=2') });
+    expect(result.current.preview).toBe('https://x/suelo.png?v=1');
+  });
+
   it('y al CAMBIAR de destino sí se empieza de la pintura del nuevo', () => {
     const { result, rerender } = renderHook(({ t }) => usePaintBrush(SCENE_WAREHOUSE, t), { initialProps: { t: destino(null) } });
     act(() => { result.current.paint({ x: 0, y: 0 }, { x: 40, y: 0 }, 20, TINTA, TRAZO, true); });
