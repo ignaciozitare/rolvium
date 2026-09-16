@@ -43,8 +43,13 @@ export const scaleOfWidth = (p: Pick<Prop, 'naturalWidth'>, width: number): numb
   clampScale(width / (p.naturalWidth || 1));
 
 /**
- * ¿Hay que reescribir la escala recordada de la biblioteca? Sólo cuando de verdad ha cambiado: si no, cada
- * arrastre que acabe donde empezó escribiría en la biblioteca sin motivo.
+ * ¿Han cambiado dos escalas de verdad, más allá del ruido de coma flotante?
+ *
+ * ⚠️ **Ya no lo usa nadie en producción** (2026-09-16). Nació para no reescribir la ficha del objeto en la
+ * biblioteca en cada arrastre que acabara donde empezó — y ese guardado desapareció al pasar la escala a
+ * recordarse POR CATEGORÍA (§ 6.4): ahora se apunta SIEMPRE y sin condición, porque estirar un árbol hasta el
+ * tamaño que ya tenía igual tiene que enseñárselo al resto de su categoría. Queda como ayuda pura, con su
+ * test; si no encuentra un uso nuevo, bórrala.
  */
 export const scaleChanged = (a: number, b: number): boolean => Math.abs(a - b) > 1e-4;
 
