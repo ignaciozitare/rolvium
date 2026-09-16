@@ -12,3 +12,4 @@ apps/api/.vercel/
 
 # Claude Code local settings — machine-local; never commit
 .claude/settings.local.json
+*.local.*

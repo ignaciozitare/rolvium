@@ -40,6 +40,19 @@ if (!idsFile) {
 }
 
 const ids = readFileSync(idsFile, 'utf8').split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
+
+/*
+ * Un id que no sea un UUID NO PASA. Aquí abajo el id se pega dentro de un `WHERE id = '…'`, así que una comilla
+ * en el fichero de entrada escribiría SQL en la migración — la regla de la casa es no construir nunca una
+ * consulta pegando cadenas, y el sitio donde se cumple es este, antes de que el valor llegue al texto.
+ */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const sueltos = ids.filter(id => !UUID.test(id));
+if (sueltos.length) {
+  console.error(`No son ids: ${sueltos.slice(0, 5).join(', ')}${sueltos.length > 5 ? ` (y ${sueltos.length - 5} más)` : ''}`);
+  process.exit(1);
+}
+
 const urlOf = id => `${base}/storage/v1/object/public/backgrounds/props/${id}.webp`;
 
 /**
