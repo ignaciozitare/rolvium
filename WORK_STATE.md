@@ -14,6 +14,40 @@
 > La causa: `.ch-dock` lleva `flex-wrap:wrap-reverse`, que da la vuelta al eje transversal, así que «pegado
 > abajo» se escribe `align-items:flex-start`. Parece una errata y no lo es: hay test de regresión que lo sujeta.
 >
+> ### 🆕 2026-09-16 (tarde) — **LA ESCALA POR CATEGORÍA, EN PRODUCCIÓN** (merge `1c73774`)
+> Petición suya dicha DOS veces (13-09 «*tiene que ser la última escala de la familia*» y 16-09 «*si pongo un
+> árbol y luego elijo otro árbol tiene que mantener la misma escala del anterior, lo mismo con cada categoría
+> de objeto*»). La primera vez se cerró al revés —«cada pieza recuerda la suya»— y **quedó escrito así en el
+> spec, que es por lo que sobrevivió tres semanas**. Ahora manda la categoría; `defaultScale` vuelve a ser sólo
+> el tamaño de fábrica y **estirar ya no lo reescribe** (lo cazó la review: le grababa al Pino un tamaño
+> heredado del Roble, en la biblioteca que ve todo el mundo). El QA bloqueó por PROSA —once sitios entre spec y
+> comentarios seguían prometiendo la regla vieja, uno instruyendo a devolver el fallo— y se corrigieron todos.
+>
+> ⚠️ **SABIDO Y PENDIENTE DE SU PALABRA**: los objetos que sube él entran TODOS como `misc` («Varios»)
+> (`SceneTab.tsx:1145`) y no hay forma de cambiarles la categoría. O sea que en SU biblioteca —133 objetos
+> suyos— la separación por categoría no existe: lo que pidió funciona (árbol → árbol), pero un tanque también
+> heredaría la escala del árbol. **La salida propuesta: recordar por PAQUETE**, que sus paquetes ya agrupan por
+> tipo. Esperando su sí.
+>
+> 🧹 Deuda menuda creada por este cambio, anotada en el propio código: `scaleChanged` (`propRules.ts`) se quedó
+> sin uso en producción —sólo la importa su test—; si no le sale un uso nuevo, se borra.
+>
+> ### 🚨 ABIERTO Y SIN CERRAR: LOS OBJETOS QUE ESTORBAN (su queja del 16-09, con dos capturas)
+> «*no funciona lo de bloquear paso y linea de vision, hace cosas raras visualmente*». Diagnóstico HECHO
+> leyendo el código, sin tocar nada todavía:
+> 1. 🐞 **FALLO REAL**: mientras arrastras, el navegador sólo mira muros y salas — los objetos plantados NO
+>    están en su lista de topes (`MapCanvas.tsx:1538`, `blockers` = `moveBlockers(walls)` + `roomBlockers`).
+>    Quien sí los cuenta es el servidor, después (`sceneVision.ts`, `blockingGeometry`). **Esto se arregla sí o
+>    sí**, conteste lo que conteste.
+> 2. **El director atraviesa todo a propósito** (`MapCanvas.tsx:1538`, `p.isDm ? []`). Si probaba con su ficha
+>    de director, no hay nada roto ahí. **PREGUNTADO, sin respuesta.**
+> 3. **El freno sólo existe con «Paredes sólidas» encendido** (`sceneVision.ts`: `if (at && dragged &&
+>    scene.solidWalls)`). Apagado, marcar «corta el paso» no hace nada.
+> 4. **Lo visual no es un fallo, es la forma**: lo que tapa es el RECTÁNGULO que envuelve al objeto, no su
+>    silueta (`propBlockRing` en `packages/core/src/props.ts`). Un tanque en diagonal proyecta una sombra
+>    cuadrada enorme — que es justo lo de sus capturas. **Tres salidas ofrecidas y PREGUNTADAS, sin respuesta**:
+>    óvalo por defecto · poder ajustar la forma a mano · que los vehículos corten el paso pero no la vista.
+>
 > **Lo que queda apuntado, pequeño y sin prisa:**
 > - 🟠 **Con TRES pastillas desplegadas a la vez en una ventana estrecha, la de más arriba se sale por arriba**
 >   y no se puede cerrar (medido por el QA en Chromium: `top: -216`). Es de la v0.11.0, no del arreglo de hoy —
