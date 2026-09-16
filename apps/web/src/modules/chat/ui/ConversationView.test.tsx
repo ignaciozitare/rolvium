@@ -77,6 +77,8 @@ describe('<ConversationView>', () => {
     renderWithProviders(<ConversationView campaignId="c1" conversationId="conv1" title="Laura" myUserId="me" system={null} onBack={() => {}} onRead={onRead} chat={chat} />);
     await screen.findByText('Todavía no hay mensajes.');
     await vi.waitFor(() => expect(onRead).toHaveBeenCalledTimes(1));
+    // dice CUÁL se ha leído: con eso el rincón le quita el contador a esa pastilla aunque se lea en la columna
+    expect(onRead).toHaveBeenCalledWith('conv1');
     chat.push({ ...TEXT_MSG, id: 'm3', body: 'Nuevo susurro' });
     await screen.findByText('Nuevo susurro');
     await vi.waitFor(() => expect(onRead).toHaveBeenCalledTimes(2));
@@ -85,6 +87,14 @@ describe('<ConversationView>', () => {
     await screen.findByText('Vale');
     expect(chat.read).toEqual(['conv1', 'conv1']);
     expect(onRead).toHaveBeenCalledTimes(2);
+  });
+
+  it('con hideHead (dentro de una pastilla) no pinta su cabecera: la pone la pastilla', async () => {
+    const chat = fakeChatPort({ messages: { conv1: [] } });
+    renderWithProviders(<ConversationView campaignId="c1" conversationId="conv1" title="Laura" myUserId="me" system={null} onBack={() => {}} hideHead chat={chat} />);
+    await screen.findByText('Todavía no hay mensajes.');
+    expect(screen.queryByRole('button', { name: 'Volver al directorio' })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Escribe a Laura…')).toBeInTheDocument();   // lo demás, intacto
   });
 
   it('volver llama a onBack', async () => {

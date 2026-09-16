@@ -1,6 +1,23 @@
 # WORK_STATE.md — Rolvium
 
 ## 🎯 Current task
+> ## 🛑 TRASPASO OBLIGADO: **ABRE UN CHAT NUEVO** (gate de contexto, 2026-09-16 · 01:35)
+> La transcripción de esta sesión pasó de 13 MB con el límite en 6, o sea que el hook de contexto ya salta.
+> Todo lo de esta noche está **terminado, probado y commiteado** en la rama `feat/pastillas-y-fix-pincel`
+> (subida a GitHub: los previews de Vercel se construyen solos mientras duermes). **Frase para el chat nuevo:**
+> > «Rolvium. Lee el bloque 🫧 "LAS PASTILLAS" y el 🖌️ "EL PINCEL YA NO PARPADEA" de arriba de WORK_STATE.md y seguí desde ahí.»
+>
+> **Lo primero al retomar, por este orden:**
+> 1. Que él pruebe las pastillas y el pincel (en local o en el preview de la rama).
+> 2. ~~**Pedirle Cmd+S en Pencil y commitear `rolvium.pen`**~~ — ✅ HECHO: lo guardó él y entró en `4416af7`.
+> 3. `/qa` → merge a `main` → deploy (sería la v0.11.0: las pastillas son funcionalidad nueva).
+>    ✅ QA (modo bloqueo) pasado el 2026-09-16 sobre `301266c`: 2066 tests, audit 0 duras, las dos builds
+>    en verde, advisors sin ninguna CRÍTICA y web/api vivas. Queda sólo el merge y el deploy.
+> 4. ~~Pendiente de decidir él: lo de ver la conversación a la vez en la columna y en la pastilla~~ — ✅
+>    DECIDIDO el 2026-09-16: **la pastilla del directorio nace MINIMIZADA** (barrita), la conversación se lee
+>    en la columna (`ca9539f`), y leerla ahí tampoco le deja contador a la barrita (`301266c`). Specs al día.
+>    ⏳ Sigue pendiente: quitar el camino muerto `pendingChatOpen` de `SidePanel` (nadie se lo pasa ya).
+
 **SUSURROS (H8) — ✅ EN PRODUCCIÓN desde la noche del 2026-09-15 como v0.10.0** (registro 🚀 «v0.10.0 EN
 PRODUCCIÓN» abajo). Construido, probado en pantalla con los dos usuarios, review ×2, QA (modo bloqueo) con un
 bloqueo de spec (el alias) arreglado y re-pasado en verde, migraciones `chat_susurros` + `chat_susurros_harden`
@@ -80,6 +97,85 @@ spec de maps, línea 18.
   de la pestaña sí es en vivo. (d) La pastilla salta también si ya estás dentro de esa conversación.
 - **Fuera de alcance a propósito (sigue)**: traer una tirada del Registro a la conversación (modelo de datos
   listo; el botón necesita su paso de diseño).
+
+## 🖌️ 2026-09-16 (madrugada) — **EL PINCEL YA NO PARPADEA NI SE BORRA SOLO** (sin mergear)
+
+Su queja del 15-09: «*cada tanto las texturas parpadean y se borran solas, si toco Ctrl+Z vuelven*», mucho más
+en producción que en local. **Eran dos caminos al mismo sitio, los dos arreglados:**
+
+1. **El pincel se recargaba con lo que acababa de subir.** El efecto de `usePaintBrush` que rehace el lienzo
+   dependía de `target.src`, y `src` cambia DESPUÉS DE CADA PINCELADA (al guardar sube la versión → el
+   rompe-caché de `paintRules`). O sea: al soltar el ratón el lienzo se vaciaba y se volvía a bajar POR RED la
+   imagen recién subida. En local no se nota; en producción sí, y si empezabas la pincelada siguiente antes de
+   que llegara, la nueva partía de un lienzo VACÍO y se subía así — lo anterior desaparecía. Ctrl+Z lo devolvía
+   porque el historial guarda su propia copia, lo que confirmaba que lo guardado estaba bien. **Fix**: el
+   efecto sólo depende del DESTINO (`targetId`); el `src` se lee de un ref. Afecta a los tres destinos.
+2. **El eco de tiempo real podía llegar desordenado** y devolver la fila a su versión anterior (`applyChange` y
+   `onScene` aplicaban cualquier cosa que llegara). **Fix**: regla pura nueva
+   `maps/domain/useCases/liveRules.ts` (`isStaleRow`): una fila más vieja no pisa a la que hay; manda el número
+   de versión de la capa y, si no lo hay, el reloj; ante la duda se aplica. Protege también muros, salas,
+   fichas y piezas.
+
+**PROBADO EN PANTALLA, con el antes y el después** (`.pincel_e2e.tmp.mjs`, pintando sobre la foto de la capa
+«Suelo» y vigilando el `href` de la pintura):
+- **Sin el arreglo**: `["red","local","red","local","red","local"]` — tras CADA pincelada la imagen salta a la
+  URL de red y vuelve. Eso es el parpadeo, tres veces en tres pinceladas.
+- **Con el arreglo**: `["SIN-PINTURA","local"]` — entra una vez y se queda. 0 errores de consola.
+
+**Verde**: 2063/2063 (dos pasadas seguidas), typecheck, `npm run audit` 0 duras, `build:web` y `build:api`.
+Tests nuevos: `liveRules.test.ts` (5), dos casos en `usePaintBrush.test.ts` y el pin de regresión
+`tests/regression/pincel-no-parpadea-ni-se-borra.test.ts`.
+
+⚠️ **Flake ajeno, visto una vez**: `tests/regression/subir-texturas-encima-del-catalogo.test.tsx` falló en una
+pasada y pasó sola y en las dos pasadas completas siguientes. Es un test de orden de pintado, sensible al
+tiempo; no lo toca este cambio. Si vuelve a salir, mirarlo aparte.
+
+## 🫧 2026-09-16 (madrugada) — **LAS PASTILLAS DE SUSURROS, CONSTRUIDAS** (sin mergear)
+
+**Qué pasó**: probando SUSURROS en producción preguntó «*las pastillas como en LinkedIn que te pedí, dónde
+están?*». Lo que yo construí el 15-09 con ese nombre era un aviso que saltaba y se iba solo a los 8 segundos —
+**invención mía**. Lo que él pidió siempre fue una **ventanita de conversación**. Aclarado con él:
+«*cuando abro una conversación tiene que estar la pastilla, se tiene que poder minimizar*», «*no es fija, se
+tiene que poder cerrar*», «*que tenga el color rojo sangre o algo para que se vea y un ruidito*», y
+«*lo que está hecho no está mal, es que tienes que agregar las pastillas*» (la columna NO se toca).
+
+**Construido entero** (rama `feat/chat-susurros`, sobre v0.10.0 ya en producción):
+- `WhisperPill` reescrita: ya no es un aviso, es la ventanita. Barrita (avatar, nombre, contador, desplegar,
+  cerrar) ⟷ desplegada (cabecera + el MISMO `ConversationView` de la columna con `hideHead`, mensajes,
+  escribir, tirar en privado, ENVIAR).
+- `WhisperWatcher` pasa a ser el rincón de las pastillas: cuántas hay, cuáles desplegadas, el tiempo real, el
+  total de no leídos y el ruidito. Máximo 3; la cuarta echa a la más vieja.
+- **Sonido**: puerto `SoundPort` + `WebAudioWhisperSound` (dos notas cortas sintetizadas, sin fichero; no
+  revienta si el navegador no deja sonar). Sale del `container.ts`, no lo llama la UI a pelo.
+- Abrir del directorio saca TAMBIÉN la pastilla: `SusurrosPanel` → `SidePanel` (`onChatOpen`) → `TablePage`
+  (`pillRequest`) → `WhisperWatcher`.
+- `table.css` publica `--tb-side-w` y el rincón se sienta a la IZQUIERDA de la columna: **visto en pantalla,
+  la primera versión le caía encima**.
+- ⚠️ **El `.pen` está SIN GUARDAR**: la maqueta nueva (`oPbeF`, lámina `XwDVn`: los tres estados + varias a la
+  vez) vive sólo en la caché de Pencil porque él estaba durmiendo. **Pedirle Cmd+S y commitear `rolvium.pen`
+  antes del merge.** El aviso viejo `m4fh05` quedó renombrado a «SUSTITUIDO 16-09».
+
+**Verde**: 2052/2052 tests en `apps/web`, typecheck, `npm run audit` 0 duras, `build:web` y `build:api`.
+**Probado EN PANTALLA con los dos usuarios** (`apps/web/.pastillas_e2e.tmp.mjs`, 0 errores de consola): abrir
+del directorio → pastilla desplegada; minimizar/desplegar; sigue con la columna en otra pestaña; al otro le
+NACE en sangre, minimizada, con contador **y suena de verdad** (comprobado espiando `AudioContext`);
+desplegar la deja leída; la respuesta entra dentro de la pastilla ya abierta; tirar en privado dentro; cerrar.
+
+**✅ Review subagent: PASADO.** Un defecto real suyo, ARREGLADO en el mismo commit: una pastilla de GRUPO
+nacida de un susurro salía con el nombre de QUIEN ESCRIBE («Marta») en vez del del grupo («Marta, Dani») — el
+mensaje no trae el título, así que ahora una sola lectura del directorio sirve para el contador Y para
+corregir el título. También suyas y hechas: `onUnreadChange` en un ref (que una función escrita en línea no
+rehaga el canal de tiempo real), dos comentarios de `SidePanel` que habían quedado del revés, y
+`flex-wrap:wrap-reverse` en el rincón (en una ventana estrecha la pastilla de más a la izquierda se salía de
+la pantalla sin poder cerrarla). Dejó dicho, para decidir él: **quitar del todo `pendingChatOpen`/
+`onPendingOpenConsumed`** de `SidePanel`/`SusurrosPanel` (camino muerto: nadie lo alimenta y hace justo lo
+contrario del nuevo diseño, tirar de la columna a la pestaña SUSURROS), que la cuarta pastilla puede cerrar una
+DESPLEGADA en la que estabas escribiendo, y que el 2.º mensaje de una minimizada sube el contador sin sonar.
+
+**⏳ Preguntarle cuando se levante**: al abrir del directorio la conversación sale en la columna Y en la
+pastilla a la vez — es lo que pidió («no toques la columna»), pero se ve la misma conversación dos veces. Si le
+sobra, que el directorio abra SÓLO la pastilla es un cambio de dos líneas. (Además así se cargaría una vez, no
+dos: hoy se marca leído dos veces al abrir.)
 
 ## 👥 2026-09-16 — **CUATRO JUGADORES DE PRUEBA EN LA CAMPAÑA «Test» DE PRODUCCIÓN** (registro)
 

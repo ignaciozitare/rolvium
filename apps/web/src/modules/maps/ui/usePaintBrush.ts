@@ -144,9 +144,26 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
     try { setPreview(c.toDataURL('image/png')); } catch { /* lienzo manchado: se sigue con lo guardado */ }
   }, []);
 
+  /** La pintura guardada del destino, en un ref: el efecto de abajo la lee SIN depender de ella. */
+  const srcRef = useRef(targetSrc);
+  srcRef.current = targetSrc;
+
   /**
-   * Al cambiar de destino se empieza de SU pintura guardada, no en blanco: si no, la primera pincelada
+   * Al cambiar de DESTINO se empieza de SU pintura guardada, no en blanco: si no, la primera pincelada
    * borraría todo lo pintado en sesiones anteriores.
+   *
+   * 🐞 **Y SÓLO al cambiar de destino** (suyo, 2026-09-15: «*cada tanto las texturas parpadean y se borran
+   * solas, si toco Ctrl+Z vuelven*», mucho más en producción que en local). Este efecto dependía también de
+   * `target.src`, y `src` cambia DESPUÉS DE CADA PINCELADA porque al guardar sube la versión (el rompe-caché
+   * de `paintRules`). O sea: cada vez que soltabas el ratón, el lienzo se vaciaba y se volvía a BAJAR POR RED
+   * la imagen que se acababa de subir. En local no se notaba; en producción, mientras bajaba, se veía el
+   * parpadeo — y si empezabas la pincelada siguiente antes de que llegara, la nueva se apoyaba en un lienzo
+   * VACÍO y se subía así: lo anterior desaparecía. Ctrl+Z lo devolvía porque el historial guarda su propia
+   * copia («antes»), lo que confirmaba que lo guardado estaba bien y el fallo era de pantalla.
+   *
+   * Ahora los píxeles locales mandan mientras no cambies de destino, que es lo que ves: nadie tiene que ir a
+   * buscar por la red algo que ya tiene delante. Deshacer/rehacer repinta solo (`repintarDesde`) y quitar la
+   * pintura limpia solo (`reset`), así que no hace falta que este efecto los escuche.
    *
    * `crossOrigin` es obligatorio y no decorativo: sin él el lienzo queda MANCHADO al dibujar una imagen de
    * otro origen y `toBlob` revienta con un error de seguridad — es decir, el pincel dejaría de guardar.
@@ -156,15 +173,16 @@ export function usePaintBrush(scene: Scene | null, target: PaintTarget | null): 
     const ctx = c?.getContext?.('2d') ?? null;
     if (c && ctx) ctx.clearRect(0, 0, c.width, c.height);
     dirtyRef.current = false;
-    setPreview(targetSrc);
-    if (!targetSrc || !c || !ctx || typeof Image === 'undefined') return;
+    const src = srcRef.current;
+    setPreview(src);
+    if (!src || !c || !ctx || typeof Image === 'undefined') return;
     let alive = true;
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => { if (!alive) return; ctx.drawImage(img, 0, 0, c.width, c.height); repaintPreview(true); };
-    img.src = targetSrc;
+    img.src = src;
     return () => { alive = false; };
-  }, [targetId, targetSrc, canvasOf, repaintPreview]);
+  }, [targetId, canvasOf, repaintPreview]);
 
   /**
    * La foto de la textura, cargada una vez y guardada. Devuelve `null` la primera vez —todavía no ha

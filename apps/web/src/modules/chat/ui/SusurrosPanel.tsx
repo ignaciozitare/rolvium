@@ -19,11 +19,13 @@ interface Props {
   pendingOpen?: { id: string; title: string } | null;
   onPendingOpenConsumed?: () => void;
   /** Una conversación acaba de marcarse leída — sube hasta `WhisperWatcher` para refrescar la campanita. */
-  onRead?: () => void;
+  onRead?: (conversationId: string) => void;
+  /** Se abrió una conversación: sube a `TablePage` para que salga TAMBIÉN su pastilla sobre la mesa (2026-09-16). */
+  onOpenConversation?: (conversationId: string, title: string) => void;
 }
 
 /** SUSURROS (H8): directorio ⟷ conversación, dentro de la pestaña de la columna lateral (`SidePanel`). */
-export function SusurrosPanel({ campaignId, myUserId, system, chat = defaultChat, pendingOpen, onPendingOpenConsumed, onRead }: Props): JSX.Element {
+export function SusurrosPanel({ campaignId, myUserId, system, chat = defaultChat, pendingOpen, onPendingOpenConsumed, onRead, onOpenConversation }: Props): JSX.Element {
   const { t } = useTranslation();
   const [entries, setEntries] = useState<ChatDirectoryEntry[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -43,11 +45,14 @@ export function SusurrosPanel({ campaignId, myUserId, system, chat = defaultChat
   const openEntry = async (entry: ChatDirectoryEntry) => {
     const id = entry.conversationId ?? await chat.openConversation(campaignId, entry.memberIds);
     setView({ conversationId: id, title: entry.title });
+    onOpenConversation?.(id, entry.title);
   };
   const createGroup = async (memberIds: string[]) => {
     if (memberIds.length === 0) return;
     const id = await chat.openConversation(campaignId, memberIds);
-    setView({ conversationId: id, title: t('chat.directory.newGroupTitle') });
+    const title = t('chat.directory.newGroupTitle');
+    setView({ conversationId: id, title });
+    onOpenConversation?.(id, title);
   };
   const back = () => { setView('directory'); reload(); };
 

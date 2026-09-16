@@ -92,6 +92,30 @@ describe('usePaintBrush', () => {
     expect(result.current.preview).toBe('https://x/paint/room-rm-1.png?v=1');
   });
 
+  /**
+   * 🐞 EL PARPADEO (suyo, 2026-09-15: «*cada tanto las texturas parpadean y se borran solas, si toco Ctrl+Z
+   * vuelven*», mucho peor en producción). Guardar sube la versión del destino, o sea que `src` CAMBIA después
+   * de cada pincelada. Si el lienzo se rehiciera con eso, cada vez que sueltas el ratón se vaciaría y se
+   * volvería a bajar por red lo que acabas de subir — y la pincelada siguiente se apoyaría en el vacío.
+   */
+  it('un `src` nuevo del MISMO destino (lo que deja guardar) NO vacía el lienzo ni lo recarga', async () => {
+    const d1 = targetOf({ src: 'https://x/paint/room-rm-1.png?v=1' });
+    const { result, rerender } = renderHook(({ t }) => usePaintBrush(SCENE_WAREHOUSE, t), { initialProps: { t: d1 } });
+    act(() => { result.current.paint({ x: 0, y: 0 }, { x: 40, y: 0 }, 20, ink(), stroke(), true); });
+    await act(async () => { await result.current.flush(); });
+    expect(result.current.preview).toBe('data:image/png;base64,PINTADO');
+    // mismo id, versión nueva: es exactamente lo que devuelve el servidor al guardar
+    rerender({ t: targetOf({ src: 'https://x/paint/room-rm-1.png?v=2' }) });
+    expect(result.current.preview).toBe('data:image/png;base64,PINTADO');
+  });
+
+  it('cambiar de DESTINO sí rehace el lienzo desde la pintura guardada del nuevo', () => {
+    const { result, rerender } = renderHook(({ t }) => usePaintBrush(SCENE_WAREHOUSE, t),
+      { initialProps: { t: targetOf({ id: 'rm-1', src: 'https://x/paint/room-rm-1.png?v=1' }) } });
+    rerender({ t: targetOf({ id: 'rm-2', src: 'https://x/paint/room-rm-2.png?v=1' }) });
+    expect(result.current.preview).toBe('https://x/paint/room-rm-2.png?v=1');
+  });
+
   it('sin pintura guardada no hay nada que dibujar encima', () => {
     const { result } = mount();
     expect(result.current.preview).toBeNull();

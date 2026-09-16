@@ -62,14 +62,28 @@
 .ch-roll-pop-error{margin:0;padding:4px 8px 8px;font-size:var(--fs-2xs);color:var(--sys-blood);}
 .ch-roll-pop-busy{margin:0;padding:4px 8px 8px;font-size:var(--fs-2xs);font-style:italic;color:var(--sys-ink-dim);}
 
-/* La pastilla (rolvium.pen m4fh05): salta sobre la mesa, filete sangre como los avisos (.dc-atk). */
-.ch-pill{position:fixed;right:16px;bottom:16px;z-index:41;width:min(320px,92vw);display:flex;align-items:flex-start;gap:6px;
-  padding:10px 12px;background:var(--sys-paper-hi);border-left:3px solid var(--sys-blood);box-shadow:var(--sys-card-shadow);}
-.ch-pill-open{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px;background:none;border:none;padding:0;cursor:pointer;text-align:left;font-family:inherit;}
-.ch-pill-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;}
-.ch-pill-who{font-size:var(--fs-xs);font-weight:700;color:var(--sys-blood);}
-.ch-pill-text{font-size:var(--fs-sm);color:var(--sys-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ch-pill-x{background:none;border:none;padding:2px;cursor:pointer;color:var(--sys-ink-dim);line-height:0;}
+/* ── LAS PASTILLAS (rolvium.pen oPbeF) ────────────────────────────────────────
+   Ventanitas de conversación abajo a la derecha, encima de la mesa, como las de LinkedIn (suyo, 2026-09-16).
+   Minimizada = sólo la cabecera; desplegada = la cabecera y el MISMO `.ch-conversation` de la columna dentro.
+   Con mensajes sin leer va en sangre, que es lo que se ve sobre un mapa. */
+.ch-dock{position:fixed;right:calc(var(--tb-side-w) + 24px);bottom:16px;z-index:41;display:flex;align-items:flex-end;justify-content:flex-end;
+  flex-wrap:wrap-reverse;gap:10px;max-width:calc(100vw - var(--tb-side-w) - 40px);}
+/* `wrap-reverse`: en una ventana estrecha las tres no caben en fila, y sin esto la de más a la izquierda se
+   salía de la pantalla sin forma de cerrarla. Así se apilan hacia arriba, que es hacia donde hay sitio. */
+.ch-pill{flex:0 0 auto;width:min(248px,86vw);display:flex;flex-direction:column;background:var(--sys-paper-hi);box-shadow:var(--sys-card-shadow);}
+.ch-pill.open{height:min(360px,60vh);}
+.ch-pill.alert{background:var(--sys-blood);}
+.ch-pill-head{display:flex;align-items:center;gap:2px;padding:6px 8px 6px 10px;}
+.ch-pill.open .ch-pill-head{border-bottom:1px solid var(--sys-line);}
+.ch-pill-toggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;padding:0;background:none;border:none;cursor:pointer;text-align:left;font-family:inherit;}
+.ch-pill-who{flex:1 1 auto;min-width:0;font-size:var(--fs-sm);font-weight:700;color:var(--sys-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ch-pill-unread{flex:0 0 auto;min-width:18px;height:18px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;
+  font-size:var(--fs-2xs);font-weight:700;color:var(--sys-blood);background:var(--sys-paper-hi);border-radius:9px;}
+.ch-pill-toggle .material-symbols-outlined{flex:0 0 auto;color:var(--sys-ink-soft);line-height:0;}
+.ch-pill-x{flex:0 0 auto;padding:2px;background:none;border:none;cursor:pointer;color:var(--sys-ink-soft);line-height:0;}
+.ch-pill.alert .ch-pill-who,.ch-pill.alert .ch-pill-toggle .material-symbols-outlined,.ch-pill.alert .ch-pill-x{color:var(--sys-paper-hi);}
+.ch-pill-body{flex:1 1 auto;min-height:0;display:flex;padding:10px;}
+.ch-pill-body .ch-conversation{flex:1 1 auto;min-width:0;height:auto;}
 
 /* La pestaña SUSURROS lleva contador de no leídos, junto a su rótulo en .dc-tabs. */
 .ch-tab-unread{margin-left:5px;display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 3px;
