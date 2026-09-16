@@ -46,6 +46,37 @@
 > - Cuatro comentarios que seguían afirmando «el director no choca» —uno HUÉRFANO, otro en la función que
 >   implementa el freno— corregidos. Misma lección del día: el texto viejo es lo que resucita la regla vieja.
 >
+> ### 🐞 ABIERTO: **«DESAPARECEN HABITACIONES CUANDO QUIERO PINTAR»** (local, 2026-09-16)
+> **Sus palabras exactas, que valen más que cualquier resumen**: «*es el pincel con el que pinto eligiendo una
+> textura, le doy una transparencia y desaparece lo que creo que es la habitación sobre la que estoy pintando.
+> En el local test dungeon2 desaparecen las habitaciones de mano alzada, no todas, pero el pasillo largo, que
+> hice a mano, parpadea un par de veces y desaparece; si hago Ctrl+Z vuelve por un segundo y se pierde. Ahora
+> ya no lo hace más*».
+>
+> **Esa firma —parpadea · desaparece · Ctrl+Z lo devuelve un segundo— es LA MISMA del fallo del 15-09.**
+>
+> **Lo comprobado de verdad en SU base local (nada de teoría):**
+> - «test dungeon2»: **56 salas, 53 con pintura, 0 con textura, 0 con color, 0 con máscara**. O sea que **la
+>   pintura ES el suelo**: si la vista previa del pincel se queda vacía, la sala entera se esfuma en pantalla.
+> - **33 salas de forma `brush`** (las «a mano alzada», su pasillo entre ellas) y **las 33 tienen su pintura
+>   guardada**. Las únicas 3 sin pintura son `kind='fill'` (rellenos de muro), que es lo correcto.
+>   **NO se ha perdido nada: es de pantalla.**
+> - Y las 53 comparten **UNA sola URL** de pintura: se dibuja una vez contra el agujero, no una por sala.
+>
+> **Lo que se hizo y lo que NO está cerrado:**
+> - Rama `fix/salas-desaparecen-al-pintar` (`966a321`), en QA: arregla un agujero REAL que abrió el arreglo de
+>   esta mañana —la pintura guardada que llega TARDE no se cogía nunca, porque el efecto dejó de mirar `src`—
+>   con `tocadoRef` (si él ya pintó en este destino, mandan sus píxeles; si no, lo que llegue es bueno).
+> - ⚠️ **PERO NO ESTÁ CONFIRMADO QUE FUERA SU FALLO.** Se lo di como arreglado y contestó «sigue pasando»; se
+>   comprobó que sus DOS servidores de desarrollo (5173 y 5174, los dos vivos) sí servían el código nuevo.
+>   Después dijo «ahora ya no lo hace más». **No dárselo por cerrado hasta que lo use un rato.**
+> - 🔎 **Pista sin explorar para el siguiente**: `SceneTab.tsx:806`, `paintRoom = onNow === 'room' ? rooms.find(r
+>   => r.id === hoverRoomId)` — el destino de la MÁSCARA (`useMaskPainter`, el pincel de transparencia) sigue a
+>   la sala que hay bajo el RATÓN y cambia al cruzar de una a otra. Con 56 salas pegadas y una pincelada que
+>   cruza, el objetivo cambia a media pincelada. Él dice que usa textura **+ transparencia**, así que los dos
+>   pinceles están en juego a la vez. **Reproducirlo con Playwright** (está en `apps/web/package.json`) contra
+>   su escena antes de tocar nada: es como se cazó el del 15-09.
+>
 > ### 🎯 LO SIGUIENTE, YA APROBADO POR ÉL: **LA SILUETA** (spec escrito, sin construir)
 > Su queja: la sombra de un camión era un bloque negro rectangular. «*Tienen que recortar por la silueta del png
 > … o al menos lo más aproximado*». Se le hizo una **maqueta con SEIS objetos suyos de producción** (las tres
@@ -55,9 +86,9 @@
 > puntos y 50 % de corte, calculada AL SUBIR dentro de la pasada que ya comprime la imagen, y `block_shape`
 > gana el valor `silhouette`. Cuesta lo mismo que el óvalo (que por dentro ya es un polígono de 16 lados).
 >
-> ⏳ **BLOQUEADO EN UNA PREGUNTA SUYA, hecha y sin responder**: sus **133 objetos ya subidos** no tienen
-> silueta. ¿Una **pasada de una vez** desde la biblioteca (recomendada), o **perezosa**, la primera vez que se
-> planta cada uno? Sin eso no se empieza, porque cambia la migración y la UI.
+> ✅ **CONTESTADO el 16-09: «hazlas de a una vez»** — pasada única desde la biblioteca para sus 133 objetos ya
+> subidos, con su botón. Los que suba después la sacan solos al subirlos. **Ya no está bloqueado: se empieza
+> por el DBA.**
 > Después: DBA (migración) → Dev → Review → QA.
 >
 > ### ✅ CERRADO HOY: LOS OBJETOS QUE ESTORBAN (su queja del 16-09, con dos capturas)
