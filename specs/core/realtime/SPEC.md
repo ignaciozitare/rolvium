@@ -47,14 +47,31 @@ Un eco NO es la fila entera garantizada. Dos reglas, las dos con su fallo detrá
    excavadas de golpe —todas apuntan al mismo PNG— y **9 de los 53 ecos llegan sin `maps_rooms.points`**: los
    9 de mano alzada más gordos (1.796–3.800 bytes). Una sala rectangular ocupa 200 y no cruza el umbral nunca.
    Efecto: la sala se queda sin contorno y **desaparece de la pantalla** aunque en la base esté intacta —
-   recargar la devuelve. `keepUnsentLists` lo corta: **un eco nunca vacía una lista que ya teníamos.**
-   Vaciarla no es un cambio legítimo (una sala sin contorno no existe: se borra la fila, y eso llega como
-   `DELETE`); una lista con contenido sigue mandando.
+   recargar la devuelve.
+
+   Y medido el 2026-09-17, el mismo fallo en los TRAZOS es peor: **un trazo a pulso de 400 puntos pierde
+   `data` en el eco** (uno de 200 llega entero), y el camino existe hoy — arrastrar un trazo a otra capa hace
+   `update({ layer_id })`, que no toca `data`. Ahí no se pierde un trazo: `DrawingShape` leía `data.points`
+   sobre nada y reventaba AL PINTAR, y como **no hay ni un ErrorBoundary en la app**, React tira el árbol
+   entero y **la mesa se queda en blanco**.
+
+   `keepUnsent` lo corta con dos reglas, las dos imposibles como cambio legítimo:
+   **(a) un eco nunca VACÍA una lista que ya teníamos** —una sala sin contorno no existe: se borra la fila, y
+   eso llega como `DELETE`—; **(b) un eco nunca convierte en `undefined` algo que teníamos** — `undefined` no
+   es un valor: por REST siempre vienen todas las columnas pedidas, y una vacía llega como `null`, que sí es
+   un valor y sí manda (quitar una silueta tiene que seguir funcionando).
+
+⚠️ **LO QUE ESTO EXIGE AL ESCRIBIR UN MAPEADOR: no inventes un valor por defecto para una columna que pueda
+pasar de ~2 KB.** Un `?? null` o un `?? {}` convierte «no vino» en un valor y **tapa la ausencia justo donde
+`keepUnsent` tiene que verla**. Por eso `mapDrawingRow.data` y `mapScenePropRow.silhouette` van a pelo, con su
+comentario al lado. Por REST no cambia nada: la columna siempre viene.
 
 ⚠️ **Al añadir una columna que pueda pasar de ~2 KB, o al escribir un `UPDATE` en lote que no la toque, dar
-por hecho que NO llegará en el eco.** La regla 2 cubre las listas por su forma, no por su nombre, así que una
-columna nueva que sea lista queda protegida sola; una que sea objeto o texto largo **no**, y hay que decidir
-qué hacer con ella. Hoy la más cercana al umbral es `maps_drawings.data` (1.372 bytes medidos).
+por hecho que NO llegará en el eco.**
+
+🧹 **Deuda conocida, NO tocada**: no hay ni un `ErrorBoundary` en `apps/web`, así que **cualquier** error al
+pintar —no sólo éste— tumba la mesa entera en vez de un trozo. `DrawingShape` lleva ya su red local, pero eso
+es un parche de un sitio, no la solución. Decisión aparte.
 
 ## Connections
 Supabase Realtime (`campaign:{id}`); `identity` para el JWT del canal.

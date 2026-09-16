@@ -19,9 +19,8 @@
 > commit, web y api a 200 — y **comprobado que el paquete que sirve producción lleva el arreglo**, con la misma
 > forma minificada que la compilación local (no se dio por bueno el 200 a secas). Sin migraciones.
 >
-> ⏳ **LO ÚNICO QUE FALTA: que lo pruebe EN PRODUCCIÓN.** Las dos veces anteriores se cerró sin su palabra y
-> las dos falló; esta vez la palabra que hay es la del LOCAL. No darlo por cerrado del todo hasta que pinte un
-> rato en `rolvium.vercel.app`.
+> ✅ **CERRADO DEL TODO: LO PROBÓ EN PRODUCCIÓN Y VA** — «*en prod lo veo todo bien*» (17-09). Tres semanas
+> de fallo y dos arreglos fallidos por delante; esta vez se cerró con su palabra, en local y en producción.
 >
 > > «*el fix no funciona, no dejes en el WS que ya está solucionado, SIGUE PASANDO*» (él, 16-09, por la noche,
 > > sobre los DOS intentos anteriores). Tenía razón las dos veces. Por eso esta vez no se cerró hasta que él
@@ -102,6 +101,42 @@
 > `roomsLayer.tsx:336` el PNG de máscara se pinta dentro de la máscara SVG y **negro = se quita suelo**. Perder
 > el lienzo devuelve suelo (eso estaba bien), pero un lienzo negro se lo come. No es lo que le pasa —tiene cero
 > máscaras—, pero la razón escrita entonces era la equivocada y no debe volver a usarse para descartar nada.
+> **1-bis. 🚀 EL MISMO FALLO EN LOS TRAZOS — arreglado; ÉL PIDIÓ REMATARLO** («*termina de solucionar y deja
+> todo en prod*», 17-09).
+>
+> Lo encontró la review del arreglo de arriba: `maps_drawings.data` tenía la MISMA causa y era **mucho peor**.
+> Ahí no se pierde un trazo: **se queda la mesa EN BLANCO**. Y se midió antes de tocar nada, por el camino de
+> verdad (arrastrar un trazo a otra capa hace `update({layer_id})`, que no toca `data`):
+> **60 puntos → llega · 120 → llega · 200 → llega · 400 → ❌ NO VIENE.** O sea que un trazo a pulso largo de
+> los suyos lo dispara. `DrawingShape` leía `data.points` sobre nada y reventaba AL PINTAR; como **no hay ni un
+> ErrorBoundary en toda la app**, React tira el árbol entero.
+>
+> **Tres cosas, y las tres hacen falta** (comprobado quitándolas una a una, cada una tumba un test distinto):
+> 1. `keepUnsentLists` → **`keepUnsent`**, con la segunda mitad de la regla: un eco tampoco convierte en
+>    `undefined` algo que teníamos. `undefined` NO es un valor —por REST siempre vienen todas las columnas—,
+>    mientras que un `null` de verdad SÍ manda: quitar una silueta tiene que seguir funcionando, y hay test.
+> 2. `mapScenePropRow.silhouette` pierde su `?? null`: convertía «no vino» en `null` y **devolvía la pieza al
+>    cuadrado en silencio**. Queda escrito en el spec que un mapeador NO debe inventar un valor por defecto
+>    para una columna grande — es justo lo que tapa la ausencia donde la regla tiene que verla.
+> 3. Red en `DrawingShape`: **si no hay dibujo, se sale con `null`** y no se pinta nada. Un trazo que no se
+>    vea es infinitamente mejor que una mesa en blanco. ⚠️ Se probó primero con `?? {}` y la review lo tumbó
+>    con razón: seguir con un objeto vacío pintaba un `rect` con medidas NaN —cuatro avisos por repintado— y
+>    una `line` sin coordenadas que dejaba **un punto suelto en la esquina del mapa**. No volver a `?? {}`.
+>
+> Rama `fix/el-eco-incompleto-tumba-la-mesa`, tres commits hasta `68f59ec`. Verde: **2.110 tests** (12 humo +
+> 2.040 regresión + 58 funcional), `tsc` limpio en web y api, audit 0 duros, las dos builds. Review y QA en
+> modo bloqueo pasados, los dos verificando por su cuenta que un `null` DE VERDAD sigue mandando —quitar una
+> silueta o quitar la pintura— y que las tres redes hacen falta. Sin migraciones.
+>
+> 🔎 **Se probó, y se DESCARTÓ, arreglarlo en la base** (`SET STORAGE MAIN` para que la columna no se salga de
+> la fila). Habría cubierto también objetos y textos largos, pero es un cambio de ESQUEMA con reescritura de
+> tabla, el clasificador lo bloqueó —con razón— y no es lo que él aprobó. **Sigue disponible como opción si
+> algún día hace falta**; el arreglo de cliente no depende de ella.
+>
+> 🔴 **DEUDA GORDA DESTAPADA POR ESTO, NO TOCADA Y ES DECISIÓN SUYA**: **no hay ni un `ErrorBoundary` en
+> `apps/web`.** O sea que CUALQUIER error al pintar —no sólo éste— tumba la mesa entera en vez de un trozo. La
+> red de `DrawingShape` es un parche de UN sitio, no la solución. Merece tarea propia.
+>
 > **2. ⏳ PREGUNTA SUYA SIN RESPONDER — el freno de los objetos.**
 > Se quejó de que «*el block movement no funciona*» probando como director. **No era un fallo**: la escena
 > `test3` tenía el escudo en «Paredes atravesables», y ese interruptor apaga el freno de TODO —paredes, salas
