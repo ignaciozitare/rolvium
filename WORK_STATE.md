@@ -9,11 +9,14 @@
 >
 > **Lo primero al retomar, por este orden:**
 > 1. Que él pruebe las pastillas y el pincel (en local o en el preview de la rama).
-> 2. **Pedirle Cmd+S en Pencil y commitear `rolvium.pen`**: la maqueta nueva de las pastillas (`oPbeF`) está
->    SÓLO en la caché de Pencil. Sin eso el `.pen` se queda desfasado.
+> 2. ~~**Pedirle Cmd+S en Pencil y commitear `rolvium.pen`**~~ — ✅ HECHO: lo guardó él y entró en `4416af7`.
 > 3. `/qa` → merge a `main` → deploy (sería la v0.11.0: las pastillas son funcionalidad nueva).
-> 4. Pendiente de decidir él: lo de ver la conversación a la vez en la columna y en la pastilla, y quitar el
->    camino muerto `pendingChatOpen` (ver las notas del review en el bloque 🫧).
+>    ✅ QA (modo bloqueo) pasado el 2026-09-16 sobre `301266c`: 2066 tests, audit 0 duras, las dos builds
+>    en verde, advisors sin ninguna CRÍTICA y web/api vivas. Queda sólo el merge y el deploy.
+> 4. ~~Pendiente de decidir él: lo de ver la conversación a la vez en la columna y en la pastilla~~ — ✅
+>    DECIDIDO el 2026-09-16: **la pastilla del directorio nace MINIMIZADA** (barrita), la conversación se lee
+>    en la columna (`ca9539f`), y leerla ahí tampoco le deja contador a la barrita (`301266c`). Specs al día.
+>    ⏳ Sigue pendiente: quitar el camino muerto `pendingChatOpen` de `SidePanel` (nadie se lo pasa ya).
 
 **SUSURROS (H8) — ✅ EN PRODUCCIÓN desde la noche del 2026-09-15 como v0.10.0** (registro 🚀 «v0.10.0 EN
 PRODUCCIÓN» abajo). Construido, probado en pantalla con los dos usuarios, review ×2, QA (modo bloqueo) con un
