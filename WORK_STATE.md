@@ -14,15 +14,29 @@
 >
 > > «*lo que quiero arreglar primero no es el chat, es lo que cuando pinto se borran las habitaciones*»
 >
-> **1. 🐞 EL PINCEL QUE BORRA LAS HABITACIONES — SU PRIORIDAD, POR ENCIMA DE TODO LO DEMÁS.**
-> Rama `fix/salas-desaparecen-al-pintar`, dos commits, QA en modo bloqueo pasado entero, **sin mergear**.
-> **NO está confirmado que ese arreglo sea EL suyo**: la única vez que lo probó estaba, sin saberlo, en otra
-> rama sin el arreglo (ver la lección de abajo). **El primer paso es que lo pruebe de verdad**: su local ya
-> queda en esa rama con todo lo demás dentro; decirle que recargue con Cmd+Shift+R y que pinte un rato.
-> · Si le SIGUE pasando: no adivinar. Preguntarle **si la habitación que desaparece es la que está pintando o
->   una de al lado**, y si pasa dando toques o sólo arrastrando y cruzando de una a otra. Las pistas ya
->   miradas y el estado del diagnóstico están en el bloque 🐞 «DESAPARECEN HABITACIONES» de más abajo.
-> · Si NO le pasa: QA ya está pasado, así que es merge y desplegar.
+> **1. 🔴 EL PINCEL QUE BORRA LAS HABITACIONES — SIGUE PASANDO. SU PRIORIDAD, POR ENCIMA DE TODO.**
+>
+> > «*el fix no funciona, no dejes en el WS que ya está solucionado, SIGUE PASANDO*» (él, 2026-09-16, noche)
+>
+> **EL ARREGLO DE LA RAMA `fix/salas-desaparecen-al-pintar` NO VALE. NO MERGEARLA.** Esta vez lo probó **con
+> el código bueno delante** —su local se dejó en esa rama, con la silueta dentro, y se comprobó línea a línea
+> que el arreglo estaba en el fichero servido— y el fallo **sigue ahí**. O sea que las dos hipótesis de esa
+> rama (la pintura que llega tarde, y el parpadeo mientras baja) **eran reales pero NO eran su fallo**.
+>
+> **Lo que eso descarta y lo que deja vivo:**
+> - ❌ Descartado: que fuera sólo la vista previa vaciándose mientras la pintura baja por la red.
+> - ✅ Sigue en pie lo COMPROBADO en su base: **nada se pierde en la base de datos**, es de pantalla. Sus 33
+>   salas de mano alzada tienen su pintura guardada; las 53 comparten UNA sola URL.
+> - 🔎 Lo que NO se ha mirado todavía a fondo: por qué el mapa deja de dibujar el suelo. Con el pincel puesto,
+>   `RoomsLayer` dibuja SÓLO la vista previa (`floorPaint = paintPreview.href`), así que cualquier camino que
+>   deje esa vista previa vacía —o que devuelva `paintTargetOf` a `null` un instante— borra las 53 salas de
+>   golpe. **Mirar ahí antes que en el hook del pincel.**
+>
+> **LO PRIMERO, Y NO ADIVINAR NADA:** hay que preguntarle dos cosas y esperar respuesta —
+> **(a) ¿la habitación que desaparece es la que está pintando, o una de al lado?**
+> **(b) ¿pasa dando toques con el pincel quieto, o sólo al arrastrar cruzando de una habitación a otra?**
+> Con eso se separan las dos familias de causa. Reproducirlo con Playwright contra su escena («test dungeon2»,
+> 56 salas) es el camino que ya funcionó el 15-09. El diagnóstico acumulado está en el bloque 🐞 de más abajo.
 >
 > **2. ⏳ PREGUNTA SUYA SIN RESPONDER — el freno de los objetos.**
 > Se quejó de que «*el block movement no funciona*» probando como director. **No era un fallo**: la escena
@@ -101,7 +115,8 @@
 > - Cuatro comentarios que seguían afirmando «el director no choca» —uno HUÉRFANO, otro en la función que
 >   implementa el freno— corregidos. Misma lección del día: el texto viejo es lo que resucita la regla vieja.
 >
-> ### 🐞 ABIERTO: **«DESAPARECEN HABITACIONES CUANDO QUIERO PINTAR»** (local, 2026-09-16)
+> ### 🔴 ABIERTO Y SIN RESOLVER: **«DESAPARECEN HABITACIONES CUANDO QUIERO PINTAR»** (local, 2026-09-16)
+> **El arreglo de la rama NO lo cerró: lo volvió a probar con el código bueno y sigue pasando.**
 > **Sus palabras exactas, que valen más que cualquier resumen**: «*es el pincel con el que pinto eligiendo una
 > textura, le doy una transparencia y desaparece lo que creo que es la habitación sobre la que estoy pintando.
 > En el local test dungeon2 desaparecen las habitaciones de mano alzada, no todas, pero el pasillo largo, que
@@ -275,8 +290,9 @@ PRODUCCIÓN» abajo). Construido, probado en pantalla con los dos usuarios, revi
 bloqueo de spec (el alias) arreglado y re-pasado en verde, migraciones `chat_susurros` + `chat_susurros_harden`
 en producción, merge `f0dc44f`, web y api vivas.
 
-**El pincel «parpadea y se borra solo»: ✅ ARREGLADO Y EN PRODUCCIÓN** (v0.11.0, `aa78fbd`) — ver el bloque 🖌️
-de arriba. El bloque viejo «🐞 PENDIENTE DE SU RESPUESTA» dentro de 📥 «SUSURROS — PROBADO EN PANTALLA» queda
+**El pincel «parpadea y se borra solo» del 15-09: arreglado en la v0.11.0 (`aa78fbd`) — pero OJO: eso NO cerró
+el fallo de las habitaciones que desaparecen, que a día de hoy SIGUE PASANDO** (ver el bloque 🔴 del principio).
+Las dos cosas se parecen y no son la misma. El bloque viejo «🐞 PENDIENTE DE SU RESPUESTA» dentro de 📥 «SUSURROS — PROBADO EN PANTALLA» queda
 sólo como registro del diagnóstico.
 
 **LO QUE SE RETOMA AHORA: que él pruebe la v0.11.0 en producción** (las pastillas y el pincel). Después, los
