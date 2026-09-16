@@ -10,7 +10,7 @@ import { chainWalls, groupInsideOf, groupOf, handleAt as handlePoint, HANDLE_KEY
 import { BackgroundLayer, DoorTextureDefs, DrawingShape, FogMasks, fogFrame, GridLayer, LightsLayer, TerrainLayers, TokenGlyph, WallShape } from './canvasLayers';
 import { RoomsLayer, roomMaskIds } from './roomsLayer';
 import { ringFromSides, ringPath, roomAt, roomWallsOf } from '../domain/useCases/roomStyles';
-import { roomMoveSegments } from '@rolvium/core';
+import { propsGeometry, roomMoveSegments } from '@rolvium/core';
 import { isPainted, lightRadiusPx, paintedLights, resolveLayer, terrainLayers, type ElementKind } from '../domain/useCases/layerRules';
 import { groupBoxFromCorner, groupCorners, groupRotateHandleAt, hitProp, paintOrderProps, PROP_CORNERS, propCorners, propsBounds, propsInRect, rotatePropsBy, rotateHandleAt, rotationToward, scaleFromCornerAnchored, scalePropsTo, type PropCorner } from '../domain/useCases/propRules';
 
@@ -1034,9 +1034,9 @@ export function MapCanvas(p: Props): JSX.Element {
        * Paredes sólidas (rebanada 4): el token no atraviesa un muro, y al topar RESBALA pegado a él.
        *
        * Se calcula sobre CENTROS y en px de escena, que es donde viven los muros; `localDrag` va en casillas,
-       * así que se entra y se sale por `tokenCenter` / `tokenPointAt`. El director NUNCA choca, esté el
-       * interruptor como esté (decisión del dueño), y con el interruptor apagado `blockers` está vacío y esto
-       * no cambia ni un píxel de lo de antes.
+       * así que se entra y se sale por `tokenCenter` / `tokenPointAt`. Choca TODO EL MUNDO, director incluido
+       * (él, 16-09: «*nunca debió dejar traspasar puertas u objetos*»), y con el interruptor de paredes sólidas
+       * apagado `blockers` está vacío y esto no cambia ni un píxel de lo de antes.
        *
        * Esto es el freno PROVISIONAL, con los muros que este navegador conoce: a un jugador no le llegan los
        * muros secretos, así que la palabra final es del servidor al soltar (spec § «Rebanada 4»).
@@ -1535,7 +1535,27 @@ export function MapCanvas(p: Props): JSX.Element {
    * Respeta el interruptor de la escena igual que los muros: con las paredes sólidas apagadas, nada frena.
    */
   const roomBlockers = useMemo(() => (p.scene.solidWalls ? roomMoveSegments(roomWallsOf(rooms, roomOpenings)) : []), [p.scene.solidWalls, rooms, roomOpenings]);
-  const blockers = useMemo(() => (p.isDm ? [] : [...moveBlockers(p.walls, p.scene), ...roomBlockers]), [p.isDm, p.walls, p.scene, roomBlockers]);
+  /**
+   * 🐞 LOS OBJETOS PLANTADOS QUE CORTAN EL PASO, que faltaban aquí (§ 6.7). El navegador sólo miraba muros y
+   * salas, así que un objeto marcado «corta el paso» se atravesaba en pantalla y sólo lo frenaba el servidor,
+   * después y de refilón. Suyo, 2026-09-16, con dos capturas: «*no funciona lo de bloquear paso*».
+   *
+   * Respeta el interruptor de paredes sólidas igual que los muros y las salas: apagado, nada frena.
+   */
+  const propBlockers = useMemo(
+    () => (p.scene.solidWalls ? propsGeometry(p.sceneProps ?? []).move : []),
+    [p.scene.solidWalls, p.sceneProps],
+  );
+  /**
+   * ⚠️ EL DIRECTOR TAMBIÉN CHOCA AL ARRASTRAR, desde el 2026-09-16. Antes no: era una de las cuatro decisiones
+   * de la tanda de paredes sólidas (22-ago, «el director nunca choca») y por eso esta línea decía `p.isDm ? []`.
+   * Él la revocó al probarlo: «*nunca debió dejar traspasar puertas u objetos*». Lo que NO cambia —y es lo que
+   * dejó dicho que está bien— es poner un token de un clic donde sea: eso es otro gesto y no pasa por aquí.
+   */
+  const blockers = useMemo(
+    () => [...moveBlockers(p.walls, p.scene), ...roomBlockers, ...propBlockers],
+    [p.walls, p.scene, roomBlockers, propBlockers],
+  );
   /**
    * …salvo LA SONDA DE PRUEBA, que sí choca (dueño, 2026-09-01: «no funciona bien el user dummy, traspasa las
    * paredes»). Y es la misma función, `moveBlockers` + `slideToken` → `slideCircle` de `@rolvium/core`, la
@@ -1548,7 +1568,8 @@ export function MapCanvas(p: Props): JSX.Element {
    * Si el interruptor de paredes sólidas está APAGADO, `moveBlockers` devuelve vacío y la sonda atraviesa —
    * como atravesaría el jugador. Simular es copiar lo que pasa, no ser más estricto que la escena.
    */
-  const probeBlockers = useMemo(() => [...moveBlockers(p.walls, p.scene), ...roomBlockers], [p.walls, p.scene, roomBlockers]);
+  /** Hoy es lo mismo que `blockers` —el director ya choca—, pero se deja nombrada: la sonda simula a un JUGADOR. */
+  const probeBlockers = blockers;
   const tokensShown = dmSight ? p.tokens : p.tokens.filter(tk => tk.visible);
 
   /**
